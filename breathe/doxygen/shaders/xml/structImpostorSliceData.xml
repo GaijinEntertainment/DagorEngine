@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpostorSliceData" kind="struct" language="C++" prot="protected">
+    <compoundname>ImpostorSliceData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpostorSliceData_1a4958689e2146b9f8761ecd990721421a" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorSliceData::sliceTm</definition>
+        <argsstring></argsstring>
+        <name>sliceTm</name>
+        <qualifiedname>ImpostorSliceData::sliceTm</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="132" column="12" bodyfile="dag_rendInstRes.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorSliceData_1af137b03288f5834002b883768ca78065" prot="public" static="no" mutable="no">
+        <type>Point4</type>
+        <definition>Point4 ImpostorSliceData::clippingLines</definition>
+        <argsstring></argsstring>
+        <name>clippingLines</name>
+        <qualifiedname>ImpostorSliceData::clippingLines</qualifiedname>
+        <initializer>= Point4(0, 0, 0, 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="133" column="12" bodyfile="dag_rendInstRes.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_rendInstRes.h" line="130" column="3" bodyfile="dag_rendInstRes.h" bodystart="131" bodyend="134"/>
+    <listofallmembers>
+      <member refid="structImpostorSliceData_1af137b03288f5834002b883768ca78065" prot="public" virt="non-virtual"><scope>ImpostorSliceData</scope><name>clippingLines</name></member>
+      <member refid="structImpostorSliceData_1a4958689e2146b9f8761ecd990721421a" prot="public" virt="non-virtual"><scope>ImpostorSliceData</scope><name>sliceTm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

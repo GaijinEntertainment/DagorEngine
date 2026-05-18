@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPreshaderCompilationOutput" kind="struct" language="C++" prot="public">
+    <compoundname>PreshaderCompilationOutput</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" prot="public" static="no" mutable="no">
+        <type><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref></type>
+        <definition>CompiledPreshader PreshaderCompilationOutput::code</definition>
+        <argsstring></argsstring>
+        <name>code</name>
+        <qualifiedname>PreshaderCompilationOutput::code</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="157" column="21" bodyfile="preshaderCompilation.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>CompiledPreshader</label>
+        <link refid="structCompiledPreshader"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>namedConstTable</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>dynStBytecode</edgelabel>
+          <edgelabel>stBlkBytecode</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="3">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="7">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>PreshaderCompilationOutput</label>
+        <link refid="structPreshaderCompilationOutput"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="16">
+        <label>SerializableTab&lt; int32_t &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="17" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="13">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="10">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="11" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="12">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="13" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+      <node id="17">
+        <label>Tab&lt; int32_t  &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="preshaderCompilation.h" line="155" column="1" bodyfile="preshaderCompilation.h" bodystart="156" bodyend="158"/>
+    <listofallmembers>
+      <member refid="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" prot="public" virt="non-virtual"><scope>PreshaderCompilationOutput</scope><name>code</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

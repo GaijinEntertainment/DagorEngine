@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structdafg_1_1NamedSlot" kind="struct" language="C++" prot="public">
+    <compoundname>dafg::NamedSlot</compoundname>
+    <includes refid="resourceCreation_8h" local="no">resourceCreation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* dafg::NamedSlot::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>dafg::NamedSlot::name</qualifiedname>
+        <briefdescription>
+<para>String name for this slot, must not match any other resource&apos;s name. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="25" column="14" bodyfile="resourceCreation.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structdafg_1_1NamedSlot_1ac8c4fb3c90c5285dea72b975726a6100" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::NamedSlot::NamedSlot</definition>
+        <argsstring>(const char *slot_name)</argsstring>
+        <name>NamedSlot</name>
+        <qualifiedname>dafg::NamedSlot::NamedSlot</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>slot_name</declname>
+        </param>
+        <briefdescription>
+<para>Enables using regular parentheses for construction. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="resourceCreation.h" line="28" column="12" bodyfile="resourceCreation.h" bodystart="28" bodyend="28"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Named slots do not represent any resource by default and must be explicitly set to point to a different resource through <ref refid="group__DaFgCoreAliases_1ga62307e106e4ac06241f33b24995c651f" kindref="member">dafg::fill_slot</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="resourceCreation.h" line="22" column="1" bodyfile="resourceCreation.h" bodystart="23" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structdafg_1_1NamedSlot_1add25a71e1e886f24300cd371b4f01597" prot="public" virt="non-virtual"><scope>dafg::NamedSlot</scope><name>name</name></member>
+      <member refid="structdafg_1_1NamedSlot_1ac8c4fb3c90c5285dea72b975726a6100" prot="public" virt="non-virtual"><scope>dafg::NamedSlot</scope><name>NamedSlot</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

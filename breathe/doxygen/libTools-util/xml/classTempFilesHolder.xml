@@ -1,0 +1,195 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTempFilesHolder" kind="class" language="C++" prot="public">
+    <compoundname>TempFilesHolder</compoundname>
+    <includes refid="tempFilesHolder_8h" local="no">tempFilesHolder.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTempFilesHolder_1ae6f44bb53f559d4597f1006b9b4957f7" prot="private" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; TempFilesHolder::fnames</definition>
+        <argsstring></argsstring>
+        <name>fnames</name>
+        <qualifiedname>TempFilesHolder::fnames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="46" column="7" bodyfile="tempFilesHolder.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTempFilesHolder_1aa13eb2e259ad0c7a1cfa0bc96c898b6d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TempFilesHolder::TempFilesHolder</definition>
+        <argsstring>()</argsstring>
+        <name>TempFilesHolder</name>
+        <qualifiedname>TempFilesHolder::TempFilesHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="13" column="3" bodyfile="tempFilesHolder.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a177873c9b9aca9f3c2f15bba9f011854" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TempFilesHolder::TempFilesHolder</definition>
+        <argsstring>(const Tab&lt; String &gt; &amp;files)</argsstring>
+        <name>TempFilesHolder</name>
+        <qualifiedname>TempFilesHolder::TempFilesHolder</qualifiedname>
+        <param>
+          <type>const Tab&lt; String &gt; &amp;</type>
+          <declname>files</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="14" column="3" bodyfile="tempFilesHolder.h" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a8c75449262d134895f53678bee2bda66" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>TempFilesHolder::~TempFilesHolder</definition>
+        <argsstring>()</argsstring>
+        <name>~TempFilesHolder</name>
+        <qualifiedname>TempFilesHolder::~TempFilesHolder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="15" column="3" bodyfile="tempFilesHolder.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a107daea033c4101ae4e31ab28fac66f0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TempFilesHolder::push_back</definition>
+        <argsstring>(const char *fname)</argsstring>
+        <name>push_back</name>
+        <qualifiedname>TempFilesHolder::push_back</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="17" column="8" bodyfile="tempFilesHolder.h" bodystart="17" bodyend="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a710c98a78216f986ffe54a46e03b0643" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TempFilesHolder::push_back</definition>
+        <argsstring>(const Tab&lt; String &gt; &amp;files)</argsstring>
+        <name>push_back</name>
+        <qualifiedname>TempFilesHolder::push_back</qualifiedname>
+        <param>
+          <type>const Tab&lt; String &gt; &amp;</type>
+          <declname>files</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="23" column="8" bodyfile="tempFilesHolder.h" bodystart="23" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a76508a6c017e159b0e69c0b58bac9602" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TempFilesHolder::removeFromList</definition>
+        <argsstring>(const char *fname)</argsstring>
+        <name>removeFromList</name>
+        <qualifiedname>TempFilesHolder::removeFromList</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="30" column="8" bodyfile="tempFilesHolder.h" bodystart="30" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a84a2ead695bd2af8a0ec180e56e2e701" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TempFilesHolder::clearFilesList</definition>
+        <argsstring>(bool free_mem=false)</argsstring>
+        <name>clearFilesList</name>
+        <qualifiedname>TempFilesHolder::clearFilesList</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>free_mem</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="37" column="8" bodyfile="tempFilesHolder.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classTempFilesHolder_1a92e29e68546d6b963b156c7ca9009a05" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void TempFilesHolder::eraseFiles</definition>
+        <argsstring>()</argsstring>
+        <name>eraseFiles</name>
+        <qualifiedname>TempFilesHolder::eraseFiles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="39" column="8" bodyfile="tempFilesHolder.h" bodystart="39" bodyend="43"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classTempFilesHolder_1a561251ba3f6adc6d7854603c35140a46" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int TempFilesHolder::find</definition>
+        <argsstring>(const char *fname) const</argsstring>
+        <name>find</name>
+        <qualifiedname>TempFilesHolder::find</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tempFilesHolder.h" line="48" column="7" bodyfile="tempFilesHolder.h" bodystart="48" bodyend="55"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tempFilesHolder.h" line="10" column="1" bodyfile="tempFilesHolder.h" bodystart="11" bodyend="56"/>
+    <listofallmembers>
+      <member refid="classTempFilesHolder_1a84a2ead695bd2af8a0ec180e56e2e701" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>clearFilesList</name></member>
+      <member refid="classTempFilesHolder_1a92e29e68546d6b963b156c7ca9009a05" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>eraseFiles</name></member>
+      <member refid="classTempFilesHolder_1a561251ba3f6adc6d7854603c35140a46" prot="private" virt="non-virtual"><scope>TempFilesHolder</scope><name>find</name></member>
+      <member refid="classTempFilesHolder_1ae6f44bb53f559d4597f1006b9b4957f7" prot="private" virt="non-virtual"><scope>TempFilesHolder</scope><name>fnames</name></member>
+      <member refid="classTempFilesHolder_1a107daea033c4101ae4e31ab28fac66f0" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>push_back</name></member>
+      <member refid="classTempFilesHolder_1a710c98a78216f986ffe54a46e03b0643" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>push_back</name></member>
+      <member refid="classTempFilesHolder_1a76508a6c017e159b0e69c0b58bac9602" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>removeFromList</name></member>
+      <member refid="classTempFilesHolder_1aa13eb2e259ad0c7a1cfa0bc96c898b6d" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>TempFilesHolder</name></member>
+      <member refid="classTempFilesHolder_1a177873c9b9aca9f3c2f15bba9f011854" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>TempFilesHolder</name></member>
+      <member refid="classTempFilesHolder_1a8c75449262d134895f53678bee2bda66" prot="public" virt="non-virtual"><scope>TempFilesHolder</scope><name>~TempFilesHolder</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpEnumParamCB" kind="struct" language="C++" prot="public">
+    <compoundname>ExpEnumParamCB</compoundname>
+    <basecompoundref refid="structIDagorMat2_1_1EnumParamCB" prot="public" virt="non-virtual">IDagorMat2::EnumParamCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpEnumParamCB_1a20264204d24ee0318d93586d2337fb22" prot="public" static="no" mutable="no">
+        <type>std::ofstream &amp;</type>
+        <definition>std::ofstream&amp; ExpEnumParamCB::os</definition>
+        <argsstring></argsstring>
+        <name>os</name>
+        <qualifiedname>ExpEnumParamCB::os</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2542" column="17" bodyfile="util.cpp" bodystart="2542" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpEnumParamCB_1a70f6538d189af055a9b5e2fc7f24fd5a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExpEnumParamCB::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>ExpEnumParamCB::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2543" column="7" bodyfile="util.cpp" bodystart="2543" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structExpEnumParamCB_1ac424a0b1d5e494333228aaefe45b8747" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpEnumParamCB::ExpEnumParamCB</definition>
+        <argsstring>(std::ofstream &amp;ofs)</argsstring>
+        <name>ExpEnumParamCB</name>
+        <qualifiedname>ExpEnumParamCB::ExpEnumParamCB</qualifiedname>
+        <param>
+          <type>std::ofstream &amp;</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2545" column="3" bodyfile="util.cpp" bodystart="2545" bodyend="2545"/>
+      </memberdef>
+      <memberdef kind="function" id="structExpEnumParamCB_1aec1948f9dcb1ab835da2887b94407482" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ExpEnumParamCB::proc</definition>
+        <argsstring>(const TCHAR *group, const TCHAR *name, int type, const TCHAR *value) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>ExpEnumParamCB::proc</qualifiedname>
+        <reimplements refid="structIDagorMat2_1_1EnumParamCB_1ae84459c39c0caa21aed81845869980c2">proc</reimplements>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2546" column="7" bodyfile="util.cpp" bodystart="2546" bodyend="2596"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ExpEnumParamCB</label>
+        <link refid="structExpEnumParamCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IDagorMat2::EnumParamCB</label>
+        <link refid="structIDagorMat2_1_1EnumParamCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ExpEnumParamCB</label>
+        <link refid="structExpEnumParamCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IDagorMat2::EnumParamCB</label>
+        <link refid="structIDagorMat2_1_1EnumParamCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2540" column="1" bodyfile="util.cpp" bodystart="2541" bodyend="2597"/>
+    <listofallmembers>
+      <member refid="structExpEnumParamCB_1a70f6538d189af055a9b5e2fc7f24fd5a" prot="public" virt="non-virtual"><scope>ExpEnumParamCB</scope><name>count</name></member>
+      <member refid="structExpEnumParamCB_1ac424a0b1d5e494333228aaefe45b8747" prot="public" virt="non-virtual"><scope>ExpEnumParamCB</scope><name>ExpEnumParamCB</name></member>
+      <member refid="structExpEnumParamCB_1a20264204d24ee0318d93586d2337fb22" prot="public" virt="non-virtual"><scope>ExpEnumParamCB</scope><name>os</name></member>
+      <member refid="structExpEnumParamCB_1aec1948f9dcb1ab835da2887b94407482" prot="public" virt="virtual"><scope>ExpEnumParamCB</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

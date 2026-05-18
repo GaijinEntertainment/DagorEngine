@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__shaders_8h" kind="file" language="C++">
+    <compoundname>ec_shaders.h</compoundname>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">ioSys/dag_dataBlock.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_shaders.h</label>
+        <link refid="ec__shaders_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="2">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <innernamespace refid="namespacetools3d">tools3d</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ioSys/dag_dataBlock.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="namespacetools3d" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacetools3d" kindref="compound">tools3d</ref></highlight></codeline>
+<codeline lineno="8"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10" refid="namespacetools3d_1aa14146b0d5116da9aeda516d720060a8" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="namespacetools3d_1aa14146b0d5116da9aeda516d720060a8" kindref="member">get_snapshot_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*app_dir,<sp/>String<sp/>&amp;out_path);</highlight></codeline>
+<codeline lineno="11" refid="namespacetools3d_1a08ff6d2cdbdf904ac937aa3bb6a2da5c" refkind="member"><highlight class="normal">String<sp/><ref refid="namespacetools3d_1a08ff6d2cdbdf904ac937aa3bb6a2da5c" kindref="member">get_shaders_path</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*app_dir,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>use_dng);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>tools3d</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="ec_shaders.h"/>
+  </compounddef>
+</doxygen>

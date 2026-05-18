@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structmkbindump_1_1Ref" kind="struct" language="C++" prot="public">
+    <compoundname>mkbindump::Ref</compoundname>
+    <includes refid="makeBindump_8h" local="no">makeBindump.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structmkbindump_1_1Ref_1aa057cb1482b2262d7124e78fb72cfc62" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::Ref::start</definition>
+        <argsstring></argsstring>
+        <name>start</name>
+        <qualifiedname>mkbindump::Ref::start</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="23" column="7" bodyfile="makeBindump.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structmkbindump_1_1Ref_1a75dfbcb549f37df9445eccde2a3a9503" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::Ref::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>mkbindump::Ref::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="23" column="13" bodyfile="makeBindump.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structmkbindump_1_1Ref_1ad62674b25a97223b7bf2f4801d324102" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::Ref::end</definition>
+        <argsstring>() const</argsstring>
+        <name>end</name>
+        <qualifiedname>mkbindump::Ref::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="25" column="7" bodyfile="makeBindump.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1Ref_1a3eaac2e66485726e3f3b093530f4e5dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::Ref::zero</definition>
+        <argsstring>()</argsstring>
+        <name>zero</name>
+        <qualifiedname>mkbindump::Ref::zero</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="27" column="8" bodyfile="makeBindump.h" bodystart="27" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="structmkbindump_1_1Ref_1a4593a60fe396c34d194002a6fde3f115" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::Ref::set</definition>
+        <argsstring>(int s, int c)</argsstring>
+        <name>set</name>
+        <qualifiedname>mkbindump::Ref::set</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="32" column="8" bodyfile="makeBindump.h" bodystart="32" bodyend="36"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Simple reference to data, holds &apos;start&apos;=index/offset and &apos;count&apos; of items. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="makeBindump.h" line="21" column="1" bodyfile="makeBindump.h" bodystart="22" bodyend="37"/>
+    <listofallmembers>
+      <member refid="structmkbindump_1_1Ref_1a75dfbcb549f37df9445eccde2a3a9503" prot="public" virt="non-virtual"><scope>mkbindump::Ref</scope><name>count</name></member>
+      <member refid="structmkbindump_1_1Ref_1ad62674b25a97223b7bf2f4801d324102" prot="public" virt="non-virtual"><scope>mkbindump::Ref</scope><name>end</name></member>
+      <member refid="structmkbindump_1_1Ref_1a4593a60fe396c34d194002a6fde3f115" prot="public" virt="non-virtual"><scope>mkbindump::Ref</scope><name>set</name></member>
+      <member refid="structmkbindump_1_1Ref_1aa057cb1482b2262d7124e78fb72cfc62" prot="public" virt="non-virtual"><scope>mkbindump::Ref</scope><name>start</name></member>
+      <member refid="structmkbindump_1_1Ref_1a3eaac2e66485726e3f3b093530f4e5dd" prot="public" virt="non-virtual"><scope>mkbindump::Ref</scope><name>zero</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

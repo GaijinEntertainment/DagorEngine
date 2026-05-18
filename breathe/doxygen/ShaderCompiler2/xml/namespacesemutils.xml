@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespacesemutils" kind="namespace" language="C++">
+    <compoundname>semutils</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespacesemutils_1a6811ced6d8ed588c8946e5816ea788a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int semutils::int_number</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>int_number</name>
+        <qualifiedname>semutils::int_number</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="16" column="5" bodyfile="semUtils.cpp" bodystart="73" bodyend="78" declfile="semUtils.h" declline="16" declcolumn="5"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemutils_1a1dac415db8fc672b85f17fd11c13d3b6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>double</type>
+        <definition>double semutils::real_number</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>real_number</name>
+        <qualifiedname>semutils::real_number</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="19" column="8" bodyfile="semUtils.cpp" bodystart="80" bodyend="85" declfile="semUtils.h" declline="19" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemutils_1ad3cdae42558afe55545de2d9dff909d3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semutils::try_int_number</definition>
+        <argsstring>(const char *s, int &amp;out)</argsstring>
+        <name>try_int_number</name>
+        <qualifiedname>semutils::try_int_number</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="22" column="6" bodyfile="semUtils.cpp" bodystart="36" bodyend="48" declfile="semUtils.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemutils_1a11f9bcf0a45b97da3a1142d486dc36a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool semutils::try_real_number</definition>
+        <argsstring>(const char *s, double &amp;out)</argsstring>
+        <name>try_real_number</name>
+        <qualifiedname>semutils::try_real_number</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="24" column="6" bodyfile="semUtils.cpp" bodystart="51" bodyend="71" declfile="semUtils.h" declline="24" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemutils_1a72494e1aab675273a17d8c9420b863ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>double</type>
+        <definition>double semutils::real_number</definition>
+        <argsstring>(ShaderTerminal::signed_real *s)</argsstring>
+        <name>real_number</name>
+        <qualifiedname>semutils::real_number</qualifiedname>
+        <param>
+          <type>ShaderTerminal::signed_real *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="27" column="8" bodyfile="semUtils.cpp" bodystart="88" bodyend="96" declfile="semUtils.h" declline="27" declcolumn="8"/>
+      </memberdef>
+      <memberdef kind="function" id="namespacesemutils_1a5b31acb3d50b7ca4dcc1916408052e40" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int semutils::int_number</definition>
+        <argsstring>(ShaderTerminal::signed_real *s)</argsstring>
+        <name>int_number</name>
+        <qualifiedname>semutils::int_number</qualifiedname>
+        <param>
+          <type>ShaderTerminal::signed_real *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="semUtils.h" line="29" column="5" bodyfile="semUtils.cpp" bodystart="99" bodyend="107" declfile="semUtils.h" declline="29" declcolumn="5"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="semUtils.h" line="13" column="1"/>
+  </compounddef>
+</doxygen>

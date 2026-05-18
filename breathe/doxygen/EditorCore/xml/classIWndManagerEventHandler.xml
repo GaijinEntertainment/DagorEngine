@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIWndManagerEventHandler" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IWndManagerEventHandler</compoundname>
+    <includes refid="ec__wndPublic_8h" local="no">ec_wndPublic.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIWndManagerEventHandler_1aa3f42e7c4961c6ca0cc5f44553a95dd7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManagerEventHandler::onInit</definition>
+        <argsstring>(IWndManager *manager)=0</argsstring>
+        <name>onInit</name>
+        <qualifiedname>IWndManagerEventHandler::onInit</qualifiedname>
+        <param>
+          <type><ref refid="classIWndManager" kindref="compound">IWndManager</ref> *</type>
+          <declname>manager</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="22" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManagerEventHandler_1a683c2713d7e95511c305f1dbf0d892c8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IWndManagerEventHandler::onClose</definition>
+        <argsstring>()=0</argsstring>
+        <name>onClose</name>
+        <qualifiedname>IWndManagerEventHandler::onClose</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="23" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIWndManagerEventHandler_1aa9eb1749797c4a44486b96f872be7e12" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IWndManagerEventHandler::onDestroy</definition>
+        <argsstring>()=0</argsstring>
+        <name>onDestroy</name>
+        <qualifiedname>IWndManagerEventHandler::onDestroy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_wndPublic.h" line="24" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_wndPublic.h" line="19" column="1" bodyfile="ec_wndPublic.h" bodystart="20" bodyend="25"/>
+    <listofallmembers>
+      <member refid="classIWndManagerEventHandler_1a683c2713d7e95511c305f1dbf0d892c8" prot="public" virt="pure-virtual"><scope>IWndManagerEventHandler</scope><name>onClose</name></member>
+      <member refid="classIWndManagerEventHandler_1aa9eb1749797c4a44486b96f872be7e12" prot="public" virt="pure-virtual"><scope>IWndManagerEventHandler</scope><name>onDestroy</name></member>
+      <member refid="classIWndManagerEventHandler_1aa3f42e7c4961c6ca0cc5f44553a95dd7" prot="public" virt="pure-virtual"><scope>IWndManagerEventHandler</scope><name>onInit</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

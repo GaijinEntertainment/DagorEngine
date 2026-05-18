@@ -1,0 +1,1514 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classmkbindump_1_1BinDumpSaveCB" kind="class" language="C++" prot="public">
+    <compoundname>mkbindump::BinDumpSaveCB</compoundname>
+    <includes refid="makeBindump_8h" local="no">makeBindump.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8d" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>mkbindump::BinDumpSaveCB</qualifiedname>
+        <enumvalue id="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" prot="public">
+          <name>PTR_SZ</name>
+          <initializer>= 8</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8da652f6f61a44a61e3f6688ce02c7e988c" prot="public">
+          <name>TAB_SZ</name>
+          <initializer>= 16</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="248" column="3" bodyfile="makeBindump.h" bodystart="249" bodyend="252"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1ac7962cf02ccafd59e06fe2f4950686e9" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool mkbindump::BinDumpSaveCB::WRITE_BE</definition>
+        <argsstring></argsstring>
+        <name>WRITE_BE</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::WRITE_BE</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="263" column="8" bodyfile="makeBindump.h" bodystart="263" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1ab284f42b1fe8386724979a57c186246e" prot="protected" static="no" mutable="no">
+        <type>MemorySaveCB</type>
+        <definition>MemorySaveCB mkbindump::BinDumpSaveCB::cwr</definition>
+        <argsstring></argsstring>
+        <name>cwr</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::cwr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="652" column="16" bodyfile="makeBindump.h" bodystart="652" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1a09fdc76928dfcf732f156cd6c3232f87" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; mkbindump::BinDumpSaveCB::blocks</definition>
+        <argsstring></argsstring>
+        <name>blocks</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="653" column="7" bodyfile="makeBindump.h" bodystart="653" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1a765126c91cf2273fda1c6eda4f003a04" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; mkbindump::BinDumpSaveCB::origin</definition>
+        <argsstring></argsstring>
+        <name>origin</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::origin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="654" column="7" bodyfile="makeBindump.h" bodystart="654" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1ac435ff63e59ea16f791b93dcbd59c8c4" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t mkbindump::BinDumpSaveCB::zero[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>zero</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::zero</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="655" column="12" bodyfile="makeBindump.h" bodystart="655" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1a685c6ccb14fa624996ddd97003c46dd6" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t mkbindump::BinDumpSaveCB::cvtBuf[32]</definition>
+        <argsstring>[32]</argsstring>
+        <name>cvtBuf</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::cvtBuf</qualifiedname>
+        <initializer>= {0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="656" column="12" bodyfile="makeBindump.h" bodystart="656" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1a73247e1fafe8f416c370d36d6d51de2c" prot="protected" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned mkbindump::BinDumpSaveCB::targetCode</definition>
+        <argsstring></argsstring>
+        <name>targetCode</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::targetCode</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="657" column="12" bodyfile="makeBindump.h" bodystart="657" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1aec7f2174370b8c62837d3d117d700fcb" prot="protected" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString mkbindump::BinDumpSaveCB::profileName</definition>
+        <argsstring></argsstring>
+        <name>profileName</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::profileName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="658" column="16" bodyfile="makeBindump.h" bodystart="658" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1a3bd8c15eb46c5e1f697b7bd227296df9" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int mkbindump::BinDumpSaveCB::curOrigin</definition>
+        <argsstring></argsstring>
+        <name>curOrigin</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::curOrigin</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="659" column="7" bodyfile="makeBindump.h" bodystart="659" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1BinDumpSaveCB_1af8f328eb30858f3b9b60b2740e16a1a7" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool mkbindump::BinDumpSaveCB::fastBuildFlag</definition>
+        <argsstring></argsstring>
+        <name>fastBuildFlag</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::fastBuildFlag</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="660" column="8" bodyfile="makeBindump.h" bodystart="660" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a5a6c46c92bef1193e2e432d4b9f42c2d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::BinDumpSaveCB::BinDumpSaveCB</definition>
+        <argsstring>(int max_sz, unsigned target, bool big_endian)</argsstring>
+        <name>BinDumpSaveCB</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::BinDumpSaveCB</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_sz</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>target</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>big_endian</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="265" column="3" bodyfile="makeBindump.h" bodystart="265" bodyend="269"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a5176074a8d1c1f701d7d5257628fa17d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::BinDumpSaveCB::BinDumpSaveCB</definition>
+        <argsstring>(int max_sz, const BinDumpSaveCB &amp;orig)</argsstring>
+        <name>BinDumpSaveCB</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::BinDumpSaveCB</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>max_sz</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>orig</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="272" column="3" bodyfile="makeBindump.h" bodystart="272" bodyend="281"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae6f02c43485d8618c6050bda91cdefbb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>unsigned</type>
+        <definition>unsigned mkbindump::BinDumpSaveCB::getTarget</definition>
+        <argsstring>() const</argsstring>
+        <name>getTarget</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getTarget</qualifiedname>
+        <briefdescription>
+<para>returns target code assigned in ctor </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="284" column="12" bodyfile="makeBindump.h" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a48d18e519dbd48f1c7b511a093b79b71" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::setProfile</definition>
+        <argsstring>(const char *str)</argsstring>
+        <name>setProfile</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::setProfile</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>str</declname>
+        </param>
+        <briefdescription>
+<para>assigns profile string </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="287" column="8" bodyfile="makeBindump.h" bodystart="287" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae72699dc74e2332d2ab8f0773cb3a3c0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * mkbindump::BinDumpSaveCB::getProfile</definition>
+        <argsstring>() const</argsstring>
+        <name>getProfile</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getProfile</qualifiedname>
+        <briefdescription>
+<para>returns profile string assigned with <ref refid="classmkbindump_1_1BinDumpSaveCB_1a48d18e519dbd48f1c7b511a093b79b71" kindref="member">setProfile()</ref> </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="289" column="14" bodyfile="makeBindump.h" bodystart="289" bodyend="289"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae84e0ba4c54f90034ef9fdc854438363" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::setFastBuildFlag</definition>
+        <argsstring>(bool fast_build)</argsstring>
+        <name>setFastBuildFlag</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::setFastBuildFlag</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>fast_build</declname>
+        </param>
+        <briefdescription>
+<para>setup fast-build flag (is off by default) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="292" column="8" bodyfile="makeBindump.h" bodystart="292" bodyend="292"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a4a5dae0ed458f92632680473f4edfbc4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool mkbindump::BinDumpSaveCB::isFastBuild</definition>
+        <argsstring>() const</argsstring>
+        <name>isFastBuild</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::isFastBuild</qualifiedname>
+        <briefdescription>
+<para>returns current fast-build flag </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="294" column="8" bodyfile="makeBindump.h" bodystart="294" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a92b498bd297b02bb47fcd96fcacee0a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::reset</definition>
+        <argsstring>(int new_size)</argsstring>
+        <name>reset</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::reset</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>new_size</declname>
+        </param>
+        <briefdescription>
+<para>fully resets writer </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="297" column="8" bodyfile="makeBindump.h" bodystart="297" bodyend="309"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::BinDumpSaveCB::tell</definition>
+        <argsstring>()</argsstring>
+        <name>tell</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::tell</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="312" column="7" bodyfile="makeBindump.h" bodystart="312" bodyend="312"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1aa14b1cf051f9c5f388b9878ecd3cbf0a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::seekto</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekto</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::seekto</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="313" column="8" bodyfile="makeBindump.h" bodystart="313" bodyend="313"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a2f61f3227d0af4b32dedbf5c5001dce1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::seekToEnd</definition>
+        <argsstring>()</argsstring>
+        <name>seekToEnd</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::seekToEnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="314" column="8" bodyfile="makeBindump.h" bodystart="314" bodyend="314"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a5711642208e6bd52aa7c7648c717e23b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::BinDumpSaveCB::getBlockLevel</definition>
+        <argsstring>()</argsstring>
+        <name>getBlockLevel</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getBlockLevel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="316" column="7" bodyfile="makeBindump.h" bodystart="316" bodyend="316"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::beginBlock</definition>
+        <argsstring>()</argsstring>
+        <name>beginBlock</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::beginBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="317" column="8" bodyfile="makeBindump.h" bodystart="317" bodyend="321"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a438629220f33e523dcad27f12f6e5bde" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::beginTaggedBlock</definition>
+        <argsstring>(int fourcc)</argsstring>
+        <name>beginTaggedBlock</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::beginTaggedBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>fourcc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="322" column="8" bodyfile="makeBindump.h" bodystart="322" bodyend="326"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::BinDumpSaveCB::endBlock</definition>
+        <argsstring>(unsigned block_flags=0)</argsstring>
+        <name>endBlock</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::endBlock</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>block_flags</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="327" column="7" bodyfile="makeBindump.h" bodystart="327" bodyend="342"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::setOrigin</definition>
+        <argsstring>()</argsstring>
+        <name>setOrigin</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::setOrigin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="346" column="8" bodyfile="makeBindump.h" bodystart="346" bodyend="350"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::popOrigin</definition>
+        <argsstring>()</argsstring>
+        <name>popOrigin</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::popOrigin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="351" column="8" bodyfile="makeBindump.h" bodystart="351" bodyend="357"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ab0865c00c5c2d99446a6230d4a316a0c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeRaw</definition>
+        <argsstring>(const void *p, int sz)</argsstring>
+        <name>writeRaw</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeRaw</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="360" column="8" bodyfile="makeBindump.h" bodystart="360" bodyend="360"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1abe5837ffd858d48492b2ad2e081b5b1e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::write16ex</definition>
+        <argsstring>(const void *p, int sz)</argsstring>
+        <name>write16ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::write16ex</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="361" column="8" bodyfile="makeBindump.h" bodystart="361" bodyend="381"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a50c981b9b894c5caeeeffb3669246f34" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::write32ex</definition>
+        <argsstring>(const void *p, int sz)</argsstring>
+        <name>write32ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::write32ex</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="382" column="8" bodyfile="makeBindump.h" bodystart="382" bodyend="402"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1af373ce8ee134ebaaf66e4c8e5ee74259" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeZeroes</definition>
+        <argsstring>(size_t cnt)</argsstring>
+        <name>writeZeroes</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeZeroes</qualifiedname>
+        <param>
+          <type>size_t</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="403" column="8" bodyfile="makeBindump.h" bodystart="403" bodyend="412"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a7b8eabc23ec2385af633256be1b8739d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::align4</definition>
+        <argsstring>()</argsstring>
+        <name>align4</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::align4</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="413" column="8" bodyfile="makeBindump.h" bodystart="413" bodyend="418"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae03f63a7d4ed25847e4e9d3022f609a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::align8</definition>
+        <argsstring>()</argsstring>
+        <name>align8</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::align8</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="419" column="8" bodyfile="makeBindump.h" bodystart="419" bodyend="424"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae1007d89a438a7ee49c3d5280d9e1d57" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::align16</definition>
+        <argsstring>()</argsstring>
+        <name>align16</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::align16</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="425" column="8" bodyfile="makeBindump.h" bodystart="425" bodyend="430"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a4e65dc4ab3ea3073afa4d72ff0dd0de1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::align32</definition>
+        <argsstring>()</argsstring>
+        <name>align32</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::align32</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="431" column="8" bodyfile="makeBindump.h" bodystart="431" bodyend="436"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ab2b6eca17ae26598376a8f2d0209495e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeFourCC</definition>
+        <argsstring>(int cc)</argsstring>
+        <name>writeFourCC</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeFourCC</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>cc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="439" column="8" bodyfile="makeBindump.h" bodystart="439" bodyend="439"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ac9e62612834e0e633df12111aba55944" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeFloat32e</definition>
+        <argsstring>(float v)</argsstring>
+        <name>writeFloat32e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeFloat32e</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="440" column="8" bodyfile="makeBindump.h" bodystart="440" bodyend="446"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ada2f70a98660df189da3eac608bfef1f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeFloat64e</definition>
+        <argsstring>(double v)</argsstring>
+        <name>writeFloat64e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeFloat64e</qualifiedname>
+        <param>
+          <type>double</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="447" column="8" bodyfile="makeBindump.h" bodystart="447" bodyend="457"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a2dc819fe75bd5d35a786fe3a0c5be05a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeReal</definition>
+        <argsstring>(float v)</argsstring>
+        <name>writeReal</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeReal</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="458" column="8" bodyfile="makeBindump.h" bodystart="458" bodyend="458"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt32e</definition>
+        <argsstring>(unsigned v)</argsstring>
+        <name>writeInt32e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt32e</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="459" column="8" bodyfile="makeBindump.h" bodystart="459" bodyend="459"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a712ab65c81612d1977e3629351bef224" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeE3dColorE</definition>
+        <argsstring>(E3DCOLOR c)</argsstring>
+        <name>writeE3dColorE</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeE3dColorE</qualifiedname>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="460" column="8" bodyfile="makeBindump.h" bodystart="460" bodyend="460"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a418c8c46e197417a321444c8327ce39c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writePtr64e</definition>
+        <argsstring>(unsigned ptr_ofs)</argsstring>
+        <name>writePtr64e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writePtr64e</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>ptr_ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="461" column="8" bodyfile="makeBindump.h" bodystart="461" bodyend="465"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a908a78188e7b48ef2cebd41966b34bca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writePtr64eAt</definition>
+        <argsstring>(unsigned ptr_ofs, int ofs)</argsstring>
+        <name>writePtr64eAt</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writePtr64eAt</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>ptr_ofs</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="466" column="8" bodyfile="makeBindump.h" bodystart="466" bodyend="472"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a69527de25a0b4048a97b09af9ac240df" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writePtr32eAt</definition>
+        <argsstring>(unsigned ptr_ofs, int ofs)</argsstring>
+        <name>writePtr32eAt</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writePtr32eAt</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>ptr_ofs</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="473" column="8" bodyfile="makeBindump.h" bodystart="473" bodyend="479"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a1f797d2706389525dc9e906bb4affda8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt64e</definition>
+        <argsstring>(uint64_t v)</argsstring>
+        <name>writeInt64e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt64e</qualifiedname>
+        <param>
+          <type>uint64_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="480" column="8" bodyfile="makeBindump.h" bodystart="480" bodyend="490"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1aa803c8a5d6ab86b807fc1cb040876678" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt16e</definition>
+        <argsstring>(unsigned v)</argsstring>
+        <name>writeInt16e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt16e</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="491" column="8" bodyfile="makeBindump.h" bodystart="491" bodyend="491"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a8d44fa98c51971356d4ef569a1541cae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt8e</definition>
+        <argsstring>(unsigned v)</argsstring>
+        <name>writeInt8e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt8e</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="492" column="8" bodyfile="makeBindump.h" bodystart="492" bodyend="492"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a2d697d8f40b537d8eed7a5cacd759d84" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt16eAt</definition>
+        <argsstring>(unsigned v, int ofs)</argsstring>
+        <name>writeInt16eAt</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt16eAt</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="493" column="8" bodyfile="makeBindump.h" bodystart="493" bodyend="499"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1acc7796fecfa830f31110b1fc50e48573" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeInt32eAt</definition>
+        <argsstring>(unsigned v, int ofs)</argsstring>
+        <name>writeInt32eAt</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeInt32eAt</qualifiedname>
+        <param>
+          <type>unsigned</type>
+          <declname>v</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="500" column="8" bodyfile="makeBindump.h" bodystart="500" bodyend="506"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a57d2acbc63756201e200e589de4fb85f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeDwString</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>writeDwString</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeDwString</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="507" column="8" bodyfile="makeBindump.h" bodystart="507" bodyend="514"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a122f72f1237bc5d5bc993ac2a582f066" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class V</type>
+          </param>
+          <param>
+            <type>typename T</type>
+            <defval>typename V::value_type</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabDataRaw</definition>
+        <argsstring>(const V &amp;tab)</argsstring>
+        <name>writeTabDataRaw</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabDataRaw</qualifiedname>
+        <param>
+          <type>const V &amp;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="517" column="8" bodyfile="makeBindump.h" bodystart="517" bodyend="520"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a14c6eb78e396c8f9e183af2dd5687fae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class V</type>
+          </param>
+          <param>
+            <type>typename T</type>
+            <defval>typename V::value_type</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabDataE</definition>
+        <argsstring>(const V &amp;tab, void(*cvt_le2be)(T *data, int cnt))</argsstring>
+        <name>writeTabDataE</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabDataE</qualifiedname>
+        <param>
+          <type>const V &amp;</type>
+          <declname>tab</declname>
+        </param>
+        <param>
+          <type>void(*)(T *data, int cnt)</type>
+          <declname>cvt_le2be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="522" column="8" bodyfile="makeBindump.h" bodystart="522" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a18990c96d623763fd08b5dad85f179d4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData16e</definition>
+        <argsstring>(dag::ConstSpan&lt; uint16_t &gt; tab)</argsstring>
+        <name>writeTabData16e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData16e</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; uint16_t &gt;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="536" column="8" bodyfile="makeBindump.h" bodystart="536" bodyend="536"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a9db940002414c389b7c6fa3c0e41c033" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData32e</definition>
+        <argsstring>(dag::ConstSpan&lt; uint32_t &gt; tab)</argsstring>
+        <name>writeTabData32e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData32e</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; uint32_t &gt;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="537" column="8" bodyfile="makeBindump.h" bodystart="537" bodyend="537"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a855bc2238bb219358cb1e35845508a36" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData16e</definition>
+        <argsstring>(dag::ConstSpan&lt; int16_t &gt; tab)</argsstring>
+        <name>writeTabData16e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData16e</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int16_t &gt;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="538" column="8" bodyfile="makeBindump.h" bodystart="538" bodyend="538"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a3a5c27d906b27c147e870ea3979fe760" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData32e</definition>
+        <argsstring>(dag::ConstSpan&lt; int32_t &gt; tab)</argsstring>
+        <name>writeTabData32e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData32e</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; int32_t &gt;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="539" column="8" bodyfile="makeBindump.h" bodystart="539" bodyend="539"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a1fea1f99f042b3fbea5f4f2fd15f72ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class V</type>
+          </param>
+          <param>
+            <type>typename T</type>
+            <defval>typename V::value_type</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData16ex</definition>
+        <argsstring>(const V &amp;tab)</argsstring>
+        <name>writeTabData16ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData16ex</qualifiedname>
+        <param>
+          <type>const V &amp;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="542" column="8" bodyfile="makeBindump.h" bodystart="542" bodyend="555"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a7c636069becdbb1ab8262188927bbee7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class V</type>
+          </param>
+          <param>
+            <type>typename T</type>
+            <defval>typename V::value_type</defval>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeTabData32ex</definition>
+        <argsstring>(const V &amp;tab)</argsstring>
+        <name>writeTabData32ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeTabData32ex</qualifiedname>
+        <param>
+          <type>const V &amp;</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="557" column="8" bodyfile="makeBindump.h" bodystart="557" bodyend="570"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a727ff8de62ca7a0c729186142a3a6b9e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorage</definition>
+        <argsstring>(SharedStorage&lt; T &gt; &amp;ss)</argsstring>
+        <name>writeStorage</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorage</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; T &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="573" column="8" bodyfile="makeBindump.h" bodystart="573" bodyend="577"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a3fa2f60d2d528d341f6be2402eab36f8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorageE</definition>
+        <argsstring>(SharedStorage&lt; T &gt; &amp;ss, void(*cvt_le2be)(T *data, int cnt))</argsstring>
+        <name>writeStorageE</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorageE</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; T &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <param>
+          <type>void(*)(T *data, int cnt)</type>
+          <declname>cvt_le2be</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="579" column="8" bodyfile="makeBindump.h" bodystart="579" bodyend="583"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a20e8fc4fd645062dd42f7197744ab98c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorage16e</definition>
+        <argsstring>(SharedStorage&lt; uint16_t &gt; &amp;ss)</argsstring>
+        <name>writeStorage16e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorage16e</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; uint16_t &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="584" column="8" bodyfile="makeBindump.h" bodystart="584" bodyend="584"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a9f04c17933fe4959a9d189023bf43f3e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorage32e</definition>
+        <argsstring>(SharedStorage&lt; uint32_t &gt; &amp;ss)</argsstring>
+        <name>writeStorage32e</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorage32e</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; uint32_t &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="585" column="8" bodyfile="makeBindump.h" bodystart="585" bodyend="585"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a8df656af4c9b3ea4eb01388317bc1576" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorage16ex</definition>
+        <argsstring>(SharedStorage&lt; T &gt; &amp;ss)</argsstring>
+        <name>writeStorage16ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorage16ex</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; T &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="588" column="8" bodyfile="makeBindump.h" bodystart="588" bodyend="592"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a52e0f30bc519e326fa2a4b68490822eb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeStorage32ex</definition>
+        <argsstring>(SharedStorage&lt; T &gt; &amp;ss)</argsstring>
+        <name>writeStorage32ex</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeStorage32ex</qualifiedname>
+        <param>
+          <type><ref refid="structmkbindump_1_1SharedStorage" kindref="compound">SharedStorage</ref>&lt; T &gt; &amp;</type>
+          <declname>ss</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="594" column="8" bodyfile="makeBindump.h" bodystart="594" bodyend="598"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a271267954e51c1118530aa2b9818ddef" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeRef</definition>
+        <argsstring>(const Ref &amp;ref)</argsstring>
+        <name>writeRef</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeRef</qualifiedname>
+        <param>
+          <type>const <ref refid="structmkbindump_1_1Ref" kindref="compound">Ref</ref> &amp;</type>
+          <declname>ref</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="600" column="8" bodyfile="makeBindump.h" bodystart="600" bodyend="606"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae1f7490b04bec01c5e7011ede9f014bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::writeRef</definition>
+        <argsstring>(int ofs, int count)</argsstring>
+        <name>writeRef</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::writeRef</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="607" column="8" bodyfile="makeBindump.h" bodystart="607" bodyend="613"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a817b3c19076e7a5ee6d782af499a518d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::copyRaw</definition>
+        <argsstring>(IGenLoad &amp;crd, int sz)</argsstring>
+        <name>copyRaw</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::copyRaw</qualifiedname>
+        <param>
+          <type>IGenLoad &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>sz</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="615" column="8" bodyfile="makeBindump.h" bodystart="615" bodyend="625"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1af74545ae0e9e63be13fb4e4d68eb1533" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::copyRawFrom</definition>
+        <argsstring>(BinDumpSaveCB &amp;crd)</argsstring>
+        <name>copyRawFrom</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::copyRawFrom</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>crd</declname>
+        </param>
+        <briefdescription>
+<para>copies raw data from another <ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> (used as IGenLoad) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="628" column="8" bodyfile="makeBindump.h" bodystart="628" bodyend="628"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1aaf6df891558158db85449800b4832c98" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>MemorySaveCB &amp;</type>
+        <definition>MemorySaveCB &amp; mkbindump::BinDumpSaveCB::getRawWriter</definition>
+        <argsstring>()</argsstring>
+        <name>getRawWriter</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getRawWriter</qualifiedname>
+        <briefdescription>
+<para>returns raw underlying writer (useful for direct writing with zlib io, etc.) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="631" column="16" bodyfile="makeBindump.h" bodystart="631" bodyend="631"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a1bebe19a8b4db3ec950cb38ec7707906" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>MemoryChainedData *</type>
+        <definition>MemoryChainedData * mkbindump::BinDumpSaveCB::getMem</definition>
+        <argsstring>()</argsstring>
+        <name>getMem</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getMem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="634" column="21" bodyfile="makeBindump.h" bodystart="634" bodyend="634"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a308a49f7dadb4eb8c98da76d4844940f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::BinDumpSaveCB::getSize</definition>
+        <argsstring>()</argsstring>
+        <name>getSize</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::getSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="635" column="7" bodyfile="makeBindump.h" bodystart="635" bodyend="635"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1aadc5ffd2fdd5c9e88835665fa7e53855" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::BinDumpSaveCB::copyDataTo</definition>
+        <argsstring>(IGenSave &amp;dest_cwr)</argsstring>
+        <name>copyDataTo</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::copyDataTo</qualifiedname>
+        <param>
+          <type>IGenSave &amp;</type>
+          <declname>dest_cwr</declname>
+        </param>
+        <briefdescription>
+<para>copies contents of this writer as raw data to other stream </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="638" column="8" bodyfile="makeBindump.h" bodystart="638" bodyend="638"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a7f99131d795363d218c478f1a3629a3f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * mkbindump::BinDumpSaveCB::makeDataCopy</definition>
+        <argsstring>(IMemAlloc *mem=NULL)</argsstring>
+        <name>makeDataCopy</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::makeDataCopy</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>mem</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+<para>allocates and fill single chunk of memory with this writer&apos;s data </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="641" column="8" bodyfile="makeBindump.h" bodystart="641" bodyend="649"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-static-func">
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1a861f2a26e75f191540d2db294aa81204" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void mkbindump::BinDumpSaveCB::cvt_uint16_le2be</definition>
+        <argsstring>(uint16_t *data, int cnt)</argsstring>
+        <name>cvt_uint16_le2be</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::cvt_uint16_le2be</qualifiedname>
+        <param>
+          <type>uint16_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="662" column="15" bodyfile="makeBindump.h" bodystart="662" bodyend="670"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1BinDumpSaveCB_1ae995d87f1e438f6044a2702d6bf3f793" prot="protected" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void mkbindump::BinDumpSaveCB::cvt_uint32_le2be</definition>
+        <argsstring>(uint32_t *data, int cnt)</argsstring>
+        <name>cvt_uint32_le2be</name>
+        <qualifiedname>mkbindump::BinDumpSaveCB::cvt_uint32_le2be</qualifiedname>
+        <param>
+          <type>uint32_t *</type>
+          <declname>data</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="makeBindump.h" line="671" column="15" bodyfile="makeBindump.h" bodystart="671" bodyend="679"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Special IGenSave-clone interface to provide LE/BE writing when BINDUMP_TARGET_BE is defined (0 or 1), compile-time constant target is used when BINDUMP_TARGET_BE is not defined, target is specified in ctor </para>
+    </detaileddescription>
+    <location file="makeBindump.h" line="245" column="1" bodyfile="makeBindump.h" bodystart="246" bodyend="680"/>
+    <listofallmembers>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae1007d89a438a7ee49c3d5280d9e1d57" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>align16</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a4e65dc4ab3ea3073afa4d72ff0dd0de1" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>align32</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a7b8eabc23ec2385af633256be1b8739d" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>align4</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae03f63a7d4ed25847e4e9d3022f609a7" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>align8</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a1cbc4b94c4088f3354970787933072ae" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>beginBlock</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a438629220f33e523dcad27f12f6e5bde" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>beginTaggedBlock</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a5a6c46c92bef1193e2e432d4b9f42c2d" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>BinDumpSaveCB</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a5176074a8d1c1f701d7d5257628fa17d" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>BinDumpSaveCB</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a09fdc76928dfcf732f156cd6c3232f87" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>blocks</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aadc5ffd2fdd5c9e88835665fa7e53855" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>copyDataTo</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a817b3c19076e7a5ee6d782af499a518d" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>copyRaw</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1af74545ae0e9e63be13fb4e4d68eb1533" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>copyRawFrom</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a3bd8c15eb46c5e1f697b7bd227296df9" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>curOrigin</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a861f2a26e75f191540d2db294aa81204" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>cvt_uint16_le2be</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae995d87f1e438f6044a2702d6bf3f793" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>cvt_uint32_le2be</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a685c6ccb14fa624996ddd97003c46dd6" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>cvtBuf</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ab284f42b1fe8386724979a57c186246e" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>cwr</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a209c061073f763cfb4608128c12246da" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>endBlock</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1af8f328eb30858f3b9b60b2740e16a1a7" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>fastBuildFlag</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a5711642208e6bd52aa7c7648c717e23b" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getBlockLevel</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a1bebe19a8b4db3ec950cb38ec7707906" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getMem</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae72699dc74e2332d2ab8f0773cb3a3c0" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getProfile</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aaf6df891558158db85449800b4832c98" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getRawWriter</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a308a49f7dadb4eb8c98da76d4844940f" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getSize</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae6f02c43485d8618c6050bda91cdefbb" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>getTarget</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a4a5dae0ed458f92632680473f4edfbc4" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>isFastBuild</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a7f99131d795363d218c478f1a3629a3f" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>makeDataCopy</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a765126c91cf2273fda1c6eda4f003a04" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>origin</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a32df2cedf933ee0832c2eab42837b162" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>popOrigin</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aec7f2174370b8c62837d3d117d700fcb" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>profileName</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8daff93f29c5b9fb98c7c5880a54bfe1173" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>PTR_SZ</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a92b498bd297b02bb47fcd96fcacee0a2" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>reset</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aa14b1cf051f9c5f388b9878ecd3cbf0a" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>seekto</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a2f61f3227d0af4b32dedbf5c5001dce1" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>seekToEnd</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae84e0ba4c54f90034ef9fdc854438363" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>setFastBuildFlag</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aa6b93266421cb0f76bbac58dac554059" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>setOrigin</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a48d18e519dbd48f1c7b511a093b79b71" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>setProfile</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae941955f31943eac28a372ff3206fd8da652f6f61a44a61e3f6688ce02c7e988c" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>TAB_SZ</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a73247e1fafe8f416c370d36d6d51de2c" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>targetCode</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1af51b74dec31efceb3f31c28e8d8f8074" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>tell</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1abe5837ffd858d48492b2ad2e081b5b1e" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>write16ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a50c981b9b894c5caeeeffb3669246f34" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>write32ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ac7962cf02ccafd59e06fe2f4950686e9" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>WRITE_BE</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a57d2acbc63756201e200e589de4fb85f" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeDwString</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a712ab65c81612d1977e3629351bef224" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeE3dColorE</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ac9e62612834e0e633df12111aba55944" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeFloat32e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ada2f70a98660df189da3eac608bfef1f" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeFloat64e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ab2b6eca17ae26598376a8f2d0209495e" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeFourCC</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1aa803c8a5d6ab86b807fc1cb040876678" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt16e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a2d697d8f40b537d8eed7a5cacd759d84" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt16eAt</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a897f5b71894a9440a0882a79e0b97df7" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt32e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1acc7796fecfa830f31110b1fc50e48573" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt32eAt</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a1f797d2706389525dc9e906bb4affda8" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt64e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a8d44fa98c51971356d4ef569a1541cae" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeInt8e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a69527de25a0b4048a97b09af9ac240df" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writePtr32eAt</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a418c8c46e197417a321444c8327ce39c" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writePtr64e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a908a78188e7b48ef2cebd41966b34bca" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writePtr64eAt</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ab0865c00c5c2d99446a6230d4a316a0c" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeRaw</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a2dc819fe75bd5d35a786fe3a0c5be05a" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeReal</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a271267954e51c1118530aa2b9818ddef" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeRef</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ae1f7490b04bec01c5e7011ede9f014bb" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeRef</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a727ff8de62ca7a0c729186142a3a6b9e" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorage</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a20e8fc4fd645062dd42f7197744ab98c" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorage16e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a8df656af4c9b3ea4eb01388317bc1576" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorage16ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a9f04c17933fe4959a9d189023bf43f3e" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorage32e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a52e0f30bc519e326fa2a4b68490822eb" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorage32ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a3fa2f60d2d528d341f6be2402eab36f8" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeStorageE</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a18990c96d623763fd08b5dad85f179d4" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData16e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a855bc2238bb219358cb1e35845508a36" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData16e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a1fea1f99f042b3fbea5f4f2fd15f72ad" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData16ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a9db940002414c389b7c6fa3c0e41c033" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData32e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a3a5c27d906b27c147e870ea3979fe760" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData32e</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a7c636069becdbb1ab8262188927bbee7" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabData32ex</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a14c6eb78e396c8f9e183af2dd5687fae" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabDataE</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1a122f72f1237bc5d5bc993ac2a582f066" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeTabDataRaw</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1af373ce8ee134ebaaf66e4c8e5ee74259" prot="public" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>writeZeroes</name></member>
+      <member refid="classmkbindump_1_1BinDumpSaveCB_1ac435ff63e59ea16f791b93dcbd59c8c4" prot="protected" virt="non-virtual"><scope>mkbindump::BinDumpSaveCB</scope><name>zero</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

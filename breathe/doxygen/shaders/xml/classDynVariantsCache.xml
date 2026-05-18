@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynVariantsCache" kind="class" language="C++" prot="public">
+    <compoundname>DynVariantsCache</compoundname>
+    <templateparamlist>
+      <param>
+        <type>typename A</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDynVariantsCache_1a3463afedd1d6207ec2dbb997874899be" prot="private" static="no" mutable="no">
+        <type>dag::Vector&lt; int, A &gt;</type>
+        <definition>dag::Vector&lt;int, A&gt; DynVariantsCache&lt; A &gt;::cache</definition>
+        <argsstring></argsstring>
+        <name>cache</name>
+        <qualifiedname>DynVariantsCache::cache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynVariantsCache.h" line="14" column="15" bodyfile="dag_dynVariantsCache.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynVariantsCache_1ac28a4bb7c586cee794fbeee8533f5e0e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynVariantsCache&lt; A &gt;::DynVariantsCache</definition>
+        <argsstring>()</argsstring>
+        <name>DynVariantsCache</name>
+        <qualifiedname>DynVariantsCache::DynVariantsCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynVariantsCache.h" line="17" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynVariantsCache_1ae7e55b9a0d940cfbe493313aa2877f2e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int &gt;</type>
+        <definition>dag::ConstSpan&lt; int &gt; DynVariantsCache&lt; A &gt;::getCache</definition>
+        <argsstring>() const</argsstring>
+        <name>getCache</name>
+        <qualifiedname>DynVariantsCache::getCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynVariantsCache.h" line="18" column="18" bodyfile="dag_dynVariantsCache.h" bodystart="18" bodyend="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynVariantsCache.h" line="12" column="1" bodyfile="dag_dynVariantsCache.h" bodystart="13" bodyend="19"/>
+    <listofallmembers>
+      <member refid="classDynVariantsCache_1a3463afedd1d6207ec2dbb997874899be" prot="private" virt="non-virtual"><scope>DynVariantsCache</scope><name>cache</name></member>
+      <member refid="classDynVariantsCache_1ac28a4bb7c586cee794fbeee8533f5e0e" prot="public" virt="non-virtual"><scope>DynVariantsCache</scope><name>DynVariantsCache</name></member>
+      <member refid="classDynVariantsCache_1ae7e55b9a0d940cfbe493313aa2877f2e" prot="public" virt="non-virtual"><scope>DynVariantsCache</scope><name>getCache</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

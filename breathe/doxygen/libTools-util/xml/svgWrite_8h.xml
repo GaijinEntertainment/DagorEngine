@@ -1,0 +1,318 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="svgWrite_8h" kind="file" language="C++">
+    <compoundname>svgWrite.h</compoundname>
+    <includes local="no">stdio.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>svgWrite.h</label>
+        <link refid="svgWrite_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>stdio.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="svgWrite_8h_1a955e02e248f8072897f682e4e0f3a123" prot="public" static="no">
+        <name>__GAIJIN_SVG_DEBUG_H__</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="8" column="9" bodyfile="svgWrite.h" bodystart="8" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="svgWrite_8h_1a4c49170fc87c26ca39bad8810c9f23a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>FILE *</type>
+        <definition>FILE * svg_open</definition>
+        <argsstring>(const char *fname, int w=-1, int h=-1)</argsstring>
+        <name>svg_open</name>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>w</declname>
+          <defval>-1</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>h</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="14" column="6" declfile="svgWrite.h" declline="14" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a57053c47ef60c9fd1367996e39ad0f43" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_begin_group</definition>
+        <argsstring>(FILE *fp, const char *attr)</argsstring>
+        <name>svg_begin_group</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>attr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="15" column="6" declfile="svgWrite.h" declline="15" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a7506bf753dff56e79ad835f3aed11cee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_end_group</definition>
+        <argsstring>(FILE *fp)</argsstring>
+        <name>svg_end_group</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="16" column="6" declfile="svgWrite.h" declline="16" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a68551d9847725b2de8b44b08adcf3280" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_draw_face</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;v0, const Point2 &amp;v1, const Point2 &amp;v2)</argsstring>
+        <name>svg_draw_face</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v0</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v1</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="17" column="6" declfile="svgWrite.h" declline="17" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a5723cddfe511ae2dfdca37cfce03981e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_draw_line</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;v0, const Point2 &amp;v1, const char *attr=NULL)</argsstring>
+        <name>svg_draw_line</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v0</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v1</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>attr</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="18" column="6" declfile="svgWrite.h" declline="18" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a8947a2cd5ecdc20a3c909e810761ac9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_draw_circle</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;c, float rad=1.0f)</argsstring>
+        <name>svg_draw_circle</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rad</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="19" column="6" declfile="svgWrite.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1ae83b9dffbeed8f911aaedcd50756cec6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_draw_number</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;c, int num)</argsstring>
+        <name>svg_draw_number</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="20" column="6" declfile="svgWrite.h" declline="20" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a46d27f3041ea07a51eefd1f3673985b2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_start_poly</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;v)</argsstring>
+        <name>svg_start_poly</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="22" column="6" declfile="svgWrite.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a59f9125861ee1aa272992c5d87ed5d27" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_add_poly_point</definition>
+        <argsstring>(FILE *fp, const Point2 &amp;v)</argsstring>
+        <name>svg_add_poly_point</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="23" column="6" declfile="svgWrite.h" declline="23" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a33ebcfd2b74a5990ca046e765b514ca5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_end_poly</definition>
+        <argsstring>(FILE *fp)</argsstring>
+        <name>svg_end_poly</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="24" column="6" declfile="svgWrite.h" declline="24" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="svgWrite_8h_1a0a8f500b9226e57d2c1865a8b3783c68" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void svg_close</definition>
+        <argsstring>(FILE *fp)</argsstring>
+        <name>svg_close</name>
+        <param>
+          <type>FILE *</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="svgWrite.h" line="26" column="6" declfile="svgWrite.h" declline="26" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>__GAIJIN_SVG_DEBUG_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="svgWrite_8h_1a955e02e248f8072897f682e4e0f3a123" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>__GAIJIN_SVG_DEBUG_H__</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;stdio.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Point2;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="svgWrite_8h_1a4c49170fc87c26ca39bad8810c9f23a2" refkind="member"><highlight class="normal">FILE<sp/>*<ref refid="svgWrite_8h_1a4c49170fc87c26ca39bad8810c9f23a2" kindref="member">svg_open</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fname,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w<sp/>=<sp/>-1,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h<sp/>=<sp/>-1);</highlight></codeline>
+<codeline lineno="15" refid="svgWrite_8h_1a57053c47ef60c9fd1367996e39ad0f43" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a57053c47ef60c9fd1367996e39ad0f43" kindref="member">svg_begin_group</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*attr);</highlight></codeline>
+<codeline lineno="16" refid="svgWrite_8h_1a7506bf753dff56e79ad835f3aed11cee" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a7506bf753dff56e79ad835f3aed11cee" kindref="member">svg_end_group</ref>(FILE<sp/>*fp);</highlight></codeline>
+<codeline lineno="17" refid="svgWrite_8h_1a68551d9847725b2de8b44b08adcf3280" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a68551d9847725b2de8b44b08adcf3280" kindref="member">svg_draw_face</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v0,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v2);</highlight></codeline>
+<codeline lineno="18" refid="svgWrite_8h_1a5723cddfe511ae2dfdca37cfce03981e" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a5723cddfe511ae2dfdca37cfce03981e" kindref="member">svg_draw_line</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v0,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*attr<sp/>=<sp/>NULL);</highlight></codeline>
+<codeline lineno="19" refid="svgWrite_8h_1a8947a2cd5ecdc20a3c909e810761ac9a" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a8947a2cd5ecdc20a3c909e810761ac9a" kindref="member">svg_draw_circle</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;c,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>rad<sp/>=<sp/>1.0f);</highlight></codeline>
+<codeline lineno="20" refid="svgWrite_8h_1ae83b9dffbeed8f911aaedcd50756cec6" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1ae83b9dffbeed8f911aaedcd50756cec6" kindref="member">svg_draw_number</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;c,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>num);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="svgWrite_8h_1a46d27f3041ea07a51eefd1f3673985b2" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a46d27f3041ea07a51eefd1f3673985b2" kindref="member">svg_start_poly</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="23" refid="svgWrite_8h_1a59f9125861ee1aa272992c5d87ed5d27" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a59f9125861ee1aa272992c5d87ed5d27" kindref="member">svg_add_poly_point</ref>(FILE<sp/>*fp,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;v);</highlight></codeline>
+<codeline lineno="24" refid="svgWrite_8h_1a33ebcfd2b74a5990ca046e765b514ca5" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a33ebcfd2b74a5990ca046e765b514ca5" kindref="member">svg_end_poly</ref>(FILE<sp/>*fp);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="svgWrite_8h_1a0a8f500b9226e57d2c1865a8b3783c68" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="svgWrite_8h_1a0a8f500b9226e57d2c1865a8b3783c68" kindref="member">svg_close</ref>(FILE<sp/>*fp);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="svgWrite.h"/>
+  </compounddef>
+</doxygen>

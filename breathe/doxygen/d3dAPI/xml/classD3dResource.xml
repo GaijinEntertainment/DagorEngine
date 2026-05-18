@@ -1,0 +1,226 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classD3dResource" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>D3dResource</compoundname>
+    <derivedcompoundref refid="classBaseTexture" prot="public" virt="non-virtual">BaseTexture</derivedcompoundref>
+    <derivedcompoundref refid="classSbuffer" prot="public" virt="non-virtual">Sbuffer</derivedcompoundref>
+    <includes refid="dag__d3dResource_8h" local="no">dag_d3dResource.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classD3dResource_1a23997f6bb699d0375bd442092f6fb5e3" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void D3dResource::destroy</definition>
+        <argsstring>()=0</argsstring>
+        <name>destroy</name>
+        <qualifiedname>D3dResource::destroy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="22" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1aa94890796c26a059e9c5833c53169b77" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type><ref refid="dag__d3dResource_8h_1acbc952bc3ff138ada12e07791b9f3e98" kindref="member">D3DResourceType</ref></type>
+        <definition>virtual D3DResourceType D3dResource::getType</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getType</name>
+        <qualifiedname>D3dResource::getType</qualifiedname>
+        <reimplementedby refid="classSbuffer_1a80a2a1113f4574d5afe9e9c0f173b4a0">getType</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="24" column="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1aa1e377ab687f1f22045088e40ac08ec2" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>uint32_t</type>
+        <definition>virtual uint32_t D3dResource::getSize</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getSize</name>
+        <qualifiedname>D3dResource::getSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="25" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1ac49ff4a78c9a91d19c928e50d0e350b4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * D3dResource::getName</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getName</name>
+        <qualifiedname>D3dResource::getName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="27" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1a081b5e12026e39626062c49e4e62e50a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void D3dResource::setName</definition>
+        <argsstring>(const char *name)=0</argsstring>
+        <name>setName</name>
+        <qualifiedname>D3dResource::setName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="28" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1a54bfc8fb21e1e3062360a7155e0b9b50" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void D3dResource::setName</definition>
+        <argsstring>(const char *name, int size)=0</argsstring>
+        <name>setName</name>
+        <qualifiedname>D3dResource::setName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>size</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="29" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1aab63ceb7bd2edbad81615f78a2b04c9a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void D3dResource::setApiName</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>setApiName</name>
+        <qualifiedname>D3dResource::setApiName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="32" column="16" bodyfile="dag_d3dResource.h" bodystart="32" bodyend="32"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classD3dResource_1adf79387ed8aba74c3b89df96b6a90a4f" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>D3dResource::D3dResource</definition>
+        <argsstring>()=default</argsstring>
+        <name>D3dResource</name>
+        <qualifiedname>D3dResource::D3dResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="35" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1a934c63d0bda6062fc7c9c2dd35bffbe9" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>D3dResource::D3dResource</definition>
+        <argsstring>(D3dResource &amp;&amp;)=default</argsstring>
+        <name>D3dResource</name>
+        <qualifiedname>D3dResource::D3dResource</qualifiedname>
+        <param>
+          <type><ref refid="classD3dResource" kindref="compound">D3dResource</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="36" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1ada026bcd1e9d5cbf59686ec3adf71285" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classD3dResource" kindref="compound">D3dResource</ref> &amp;</type>
+        <definition>D3dResource &amp; D3dResource::operator=</definition>
+        <argsstring>(D3dResource &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>D3dResource::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classD3dResource" kindref="compound">D3dResource</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="37" column="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classD3dResource_1a9eff0e45f010ff9542669e35f67f5980" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>D3dResource::~D3dResource</definition>
+        <argsstring>()=default</argsstring>
+        <name>~D3dResource</name>
+        <qualifiedname>D3dResource::~D3dResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_d3dResource.h" line="38" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="dag_d3dResource.h" line="19" column="1" bodyfile="dag_d3dResource.h" bodystart="20" bodyend="39"/>
+    <listofallmembers>
+      <member refid="classD3dResource_1adf79387ed8aba74c3b89df96b6a90a4f" prot="protected" virt="non-virtual"><scope>D3dResource</scope><name>D3dResource</name></member>
+      <member refid="classD3dResource_1a934c63d0bda6062fc7c9c2dd35bffbe9" prot="protected" virt="non-virtual"><scope>D3dResource</scope><name>D3dResource</name></member>
+      <member refid="classD3dResource_1a23997f6bb699d0375bd442092f6fb5e3" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>destroy</name></member>
+      <member refid="classD3dResource_1ac49ff4a78c9a91d19c928e50d0e350b4" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>getName</name></member>
+      <member refid="classD3dResource_1aa1e377ab687f1f22045088e40ac08ec2" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>getSize</name></member>
+      <member refid="classD3dResource_1aa94890796c26a059e9c5833c53169b77" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>getType</name></member>
+      <member refid="classD3dResource_1ada026bcd1e9d5cbf59686ec3adf71285" prot="protected" virt="non-virtual"><scope>D3dResource</scope><name>operator=</name></member>
+      <member refid="classD3dResource_1aab63ceb7bd2edbad81615f78a2b04c9a" prot="public" virt="virtual"><scope>D3dResource</scope><name>setApiName</name></member>
+      <member refid="classD3dResource_1a081b5e12026e39626062c49e4e62e50a" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>setName</name></member>
+      <member refid="classD3dResource_1a54bfc8fb21e1e3062360a7155e0b9b50" prot="public" virt="pure-virtual"><scope>D3dResource</scope><name>setName</name></member>
+      <member refid="classD3dResource_1a9eff0e45f010ff9542669e35f67f5980" prot="protected" virt="non-virtual"><scope>D3dResource</scope><name>~D3dResource</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structprofiler__tracker_1_1ScopeTimeTracker" kind="struct" language="C++" prot="public">
+    <compoundname>profiler_tracker::ScopeTimeTracker</compoundname>
+    <includes refid="dag__profilerTracker_8h" local="no">dag_profilerTracker.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structprofiler__tracker_1_1ScopeTimeTracker_1a49919180adbc6344029c4b8427e4843d" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* profiler_tracker::ScopeTimeTracker::g</definition>
+        <argsstring></argsstring>
+        <name>g</name>
+        <qualifiedname>profiler_tracker::ScopeTimeTracker::g</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="43" column="14" bodyfile="dag_profilerTracker.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structprofiler__tracker_1_1ScopeTimeTracker_1a91b107ba8259338410faf7bde1c4457a" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* profiler_tracker::ScopeTimeTracker::n</definition>
+        <argsstring></argsstring>
+        <name>n</name>
+        <qualifiedname>profiler_tracker::ScopeTimeTracker::n</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="44" column="14" bodyfile="dag_profilerTracker.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structprofiler__tracker_1_1ScopeTimeTracker_1ac07d74bd6427226edd3e06ded1f1ff77" prot="public" static="no" mutable="no">
+        <type><ref refid="classprofiler__tracker_1_1Timer" kindref="compound">Timer</ref></type>
+        <definition>Timer profiler_tracker::ScopeTimeTracker::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>profiler_tracker::ScopeTimeTracker::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="45" column="9" bodyfile="dag_profilerTracker.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structprofiler__tracker_1_1ScopeTimeTracker_1a8e9aebc8dffde3122a7665581d710b3f" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>profiler_tracker::ScopeTimeTracker::ScopeTimeTracker</definition>
+        <argsstring>(const char *group, const char *name)</argsstring>
+        <name>ScopeTimeTracker</name>
+        <qualifiedname>profiler_tracker::ScopeTimeTracker::ScopeTimeTracker</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>group</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="46" column="12" bodyfile="dag_profilerTracker.h" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structprofiler__tracker_1_1ScopeTimeTracker_1a8e015cb3cdfd3b904caa508172187fe5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>profiler_tracker::ScopeTimeTracker::~ScopeTimeTracker</definition>
+        <argsstring>()</argsstring>
+        <name>~ScopeTimeTracker</name>
+        <qualifiedname>profiler_tracker::ScopeTimeTracker::~ScopeTimeTracker</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_profilerTracker.h" line="47" column="3" bodyfile="dag_profilerTracker.h" bodystart="47" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>profiler_tracker::ScopeTimeTracker</label>
+        <link refid="structprofiler__tracker_1_1ScopeTimeTracker"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>t</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>profiler_tracker::Timer</label>
+        <link refid="classprofiler__tracker_1_1Timer"/>
+      </node>
+    </collaborationgraph>
+    <location file="dag_profilerTracker.h" line="41" column="1" bodyfile="dag_profilerTracker.h" bodystart="42" bodyend="51"/>
+    <listofallmembers>
+      <member refid="structprofiler__tracker_1_1ScopeTimeTracker_1a49919180adbc6344029c4b8427e4843d" prot="public" virt="non-virtual"><scope>profiler_tracker::ScopeTimeTracker</scope><name>g</name></member>
+      <member refid="structprofiler__tracker_1_1ScopeTimeTracker_1a91b107ba8259338410faf7bde1c4457a" prot="public" virt="non-virtual"><scope>profiler_tracker::ScopeTimeTracker</scope><name>n</name></member>
+      <member refid="structprofiler__tracker_1_1ScopeTimeTracker_1a8e9aebc8dffde3122a7665581d710b3f" prot="public" virt="non-virtual"><scope>profiler_tracker::ScopeTimeTracker</scope><name>ScopeTimeTracker</name></member>
+      <member refid="structprofiler__tracker_1_1ScopeTimeTracker_1ac07d74bd6427226edd3e06ded1f1ff77" prot="public" virt="non-virtual"><scope>profiler_tracker::ScopeTimeTracker</scope><name>t</name></member>
+      <member refid="structprofiler__tracker_1_1ScopeTimeTracker_1a8e015cb3cdfd3b904caa508172187fe5" prot="public" virt="non-virtual"><scope>profiler_tracker::ScopeTimeTracker</scope><name>~ScopeTimeTracker</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

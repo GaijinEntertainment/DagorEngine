@@ -1,0 +1,163 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderHashValue_1_1CalculateContext" kind="class" language="C++" prot="public">
+    <compoundname>ShaderHashValue::CalculateContext</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderHashValue_1_1CalculateContext_1af591f339322e40ff367d6c1e3c35918a" prot="private" static="no" mutable="no">
+        <type>sha1_context</type>
+        <definition>sha1_context ShaderHashValue::CalculateContext::context</definition>
+        <argsstring></argsstring>
+        <name>context</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::context</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="57" column="18" bodyfile="dag_shaderHash.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderHashValue_1_1CalculateContext_1aaca5a0d2fca5bce024ce3292591e82a7" prot="private" static="no" mutable="no">
+        <type><ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+        <definition>ShaderHashValue&amp; ShaderHashValue::CalculateContext::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="58" column="21" bodyfile="dag_shaderHash.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderHashValue_1_1CalculateContext_1a24c118bbb88961d09195c03eb5f86379" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderHashValue::CalculateContext::CalculateContext</definition>
+        <argsstring>(ShaderHashValue &amp;t)</argsstring>
+        <name>CalculateContext</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::CalculateContext</qualifiedname>
+        <param>
+          <type><ref refid="structShaderHashValue" kindref="compound">ShaderHashValue</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="61" column="5" bodyfile="dag_shaderHash.h" bodystart="61" bodyend="61"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderHashValue_1_1CalculateContext_1a3750f8619f33361043c826e8dc04ec70" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderHashValue::CalculateContext::~CalculateContext</definition>
+        <argsstring>()</argsstring>
+        <name>~CalculateContext</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::~CalculateContext</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="62" column="5" bodyfile="dag_shaderHash.h" bodystart="62" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderHashValue_1_1CalculateContext_1a576e7e86e793d8714667f68981ed335b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderHashValue::CalculateContext::operator()</definition>
+        <argsstring>(const T &amp;value)</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::operator()</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="65" column="10" bodyfile="dag_shaderHash.h" bodystart="65" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderHashValue_1_1CalculateContext_1a25ef88660cb814fd8289e684fb0bed17" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderHashValue::CalculateContext::operator()</definition>
+        <argsstring>(const T *values, size_t count)</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::operator()</qualifiedname>
+        <param>
+          <type>const T *</type>
+          <declname>values</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="71" column="10" bodyfile="dag_shaderHash.h" bodystart="71" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderHashValue_1_1CalculateContext_1ae0773172f3973f3ed7dd338c1d5f638d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+          <param>
+            <type>size_t</type>
+            <declname>N</declname>
+            <defname>N</defname>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void ShaderHashValue::CalculateContext::operator()</definition>
+        <argsstring>(const T(&amp;values)[N])</argsstring>
+        <name>operator()</name>
+        <qualifiedname>ShaderHashValue::CalculateContext::operator()</qualifiedname>
+        <param>
+          <type>const T(&amp;)</type>
+          <declname>values</declname>
+          <array>[N]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderHash.h" line="77" column="10" bodyfile="dag_shaderHash.h" bodystart="77" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderHash.h" line="55" column="3" bodyfile="dag_shaderHash.h" bodystart="56" bodyend="81"/>
+    <listofallmembers>
+      <member refid="classShaderHashValue_1_1CalculateContext_1a24c118bbb88961d09195c03eb5f86379" prot="public" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>CalculateContext</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1af591f339322e40ff367d6c1e3c35918a" prot="private" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>context</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1a576e7e86e793d8714667f68981ed335b" prot="public" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>operator()</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1a25ef88660cb814fd8289e684fb0bed17" prot="public" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>operator()</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1ae0773172f3973f3ed7dd338c1d5f638d" prot="public" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>operator()</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1aaca5a0d2fca5bce024ce3292591e82a7" prot="private" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>target</name></member>
+      <member refid="classShaderHashValue_1_1CalculateContext_1a3750f8619f33361043c826e8dc04ec70" prot="public" virt="non-virtual"><scope>ShaderHashValue::CalculateContext</scope><name>~CalculateContext</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,353 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structshaders_1_1UniqueOverrideStateId" kind="struct" language="C++" prot="public">
+    <compoundname>shaders::UniqueOverrideStateId</compoundname>
+    <includes refid="dag__overrideStateId_8h" local="no">dag_overrideStateId.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" prot="protected" static="no" mutable="no">
+        <type>OverrideStateId</type>
+        <definition>OverrideStateId shaders::UniqueOverrideStateId::ref</definition>
+        <argsstring></argsstring>
+        <name>ref</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::ref</qualifiedname>
+        <briefdescription>
+<para>The override state id owned by the class. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="228" column="19" bodyfile="dag_overrideStateId.h" bodystart="228" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a45686cdf16bf48731bc1527a93664c7d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::~UniqueOverrideStateId</definition>
+        <argsstring>()</argsstring>
+        <name>~UniqueOverrideStateId</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::~UniqueOverrideStateId</qualifiedname>
+        <briefdescription>
+<para>Destructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It will destroy the referenced override state id. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="121" column="3" bodyfile="dag_overrideStateId.h" bodystart="121" bodyend="121"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a63fcea4d099b318c6c8f0f8d8dd305e5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::UniqueOverrideStateId</definition>
+        <argsstring>()=default</argsstring>
+        <name>UniqueOverrideStateId</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::UniqueOverrideStateId</qualifiedname>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It creates an empty handle. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="127" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a5aa698aef82bd97dee89d25d97d15704" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::UniqueOverrideStateId</definition>
+        <argsstring>(const OverrideStateId &amp;id)</argsstring>
+        <name>UniqueOverrideStateId</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::UniqueOverrideStateId</qualifiedname>
+        <param>
+          <type>const OverrideStateId &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Constructor with the override state id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It creates a handle with the given override state id.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override state id. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="135" column="3" bodyfile="dag_overrideStateId.h" bodystart="135" bodyend="135"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a1625fea388f3016a7d75fc8e15993388" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+        <definition>UniqueOverrideStateId &amp; shaders::UniqueOverrideStateId::operator=</definition>
+        <argsstring>(OverrideStateId id)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::operator=</qualifiedname>
+        <param>
+          <type>OverrideStateId</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It destroys the current override state id and sets the new one.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override state id. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="144" column="25" bodyfile="dag_overrideStateId.h" bodystart="144" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shaders::UniqueOverrideStateId::reset</definition>
+        <argsstring>(OverrideStateId id=OverrideStateId())</argsstring>
+        <name>reset</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::reset</qualifiedname>
+        <param>
+          <type>OverrideStateId</type>
+          <declname>id</declname>
+          <defval>OverrideStateId()</defval>
+        </param>
+        <briefdescription>
+<para>Reset the handle with the new override state id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It destroys the current override state id and sets the new one.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The override state id. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para><computeroutput>true</computeroutput> if the override state was reset, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="157" column="8" bodyfile="dag_overrideStateId.h" bodystart="157" bodyend="162"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1ad00c2f6b8e8609191184fadf38f9c1fb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const OverrideStateId &amp;</type>
+        <definition>const OverrideStateId &amp; shaders::UniqueOverrideStateId::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::get</qualifiedname>
+        <briefdescription>
+<para>Get the override state id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The override state id. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="168" column="25" bodyfile="dag_overrideStateId.h" bodystart="168" bodyend="168"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1af84bd5982aec92af067a0c58d60e5aa8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>OverrideStateId &amp;</type>
+        <definition>OverrideStateId &amp; shaders::UniqueOverrideStateId::get</definition>
+        <argsstring>()</argsstring>
+        <name>get</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::get</qualifiedname>
+        <briefdescription>
+<para>Get the override state id. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para>The override state id. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="174" column="19" bodyfile="dag_overrideStateId.h" bodystart="174" bodyend="174"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1ad5e02c6e6f62cfb62fef808fcd0448ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::UniqueOverrideStateId</definition>
+        <argsstring>(UniqueOverrideStateId &amp;&amp;id)</argsstring>
+        <name>UniqueOverrideStateId</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::UniqueOverrideStateId</qualifiedname>
+        <param>
+          <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;&amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Move constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It moves the override state id from the given handle. The given handle will be empty after the move.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to move. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="183" column="3" bodyfile="dag_overrideStateId.h" bodystart="183" bodyend="187"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a8319214cccde49c1535703336388091b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+        <definition>UniqueOverrideStateId &amp; shaders::UniqueOverrideStateId::operator=</definition>
+        <argsstring>(UniqueOverrideStateId &amp;&amp;id)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::operator=</qualifiedname>
+        <param>
+          <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;&amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Move assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It moves the override state id from the given handle. The given handle will be empty after the move.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to move. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="197" column="25" bodyfile="dag_overrideStateId.h" bodystart="197" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a65c8c8a010571673e39ae4fb84ac6f0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::UniqueOverrideStateId</definition>
+        <argsstring>(const UniqueOverrideStateId &amp;id)=delete</argsstring>
+        <name>UniqueOverrideStateId</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::UniqueOverrideStateId</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Copy constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is deleted because <computeroutput><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref></computeroutput> owns the state id exclusivelly.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to copy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="210" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1abf9e15a21462f6da39bfb50e59028108" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+        <definition>UniqueOverrideStateId &amp; shaders::UniqueOverrideStateId::operator=</definition>
+        <argsstring>(const UniqueOverrideStateId &amp;id)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref> &amp;</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+<para>Copy assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+<para>It is deleted because <computeroutput><ref refid="structshaders_1_1UniqueOverrideStateId" kindref="compound">UniqueOverrideStateId</ref></computeroutput> owns the state id exclusivelly.</para>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>id</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The handle to copy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Reference to this object. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="219" column="25"/>
+      </memberdef>
+      <memberdef kind="function" id="structshaders_1_1UniqueOverrideStateId_1a55e303ceefb4e3a7674aaf5f09a23d85" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>shaders::UniqueOverrideStateId::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>shaders::UniqueOverrideStateId::operator bool</qualifiedname>
+        <briefdescription>
+<para>Check if the handle is valid. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><simplesect kind="return"><para><computeroutput>true</computeroutput> if the handle is valid, <computeroutput>false</computeroutput> otherwise. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_overrideStateId.h" line="225" column="12" bodyfile="dag_overrideStateId.h" bodystart="225" bodyend="225"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>A unique handle to the override state. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>It will destroy the referenced override state id in the destructor. </para>
+    </detaileddescription>
+    <location file="dag_overrideStateId.h" line="114" column="1" bodyfile="dag_overrideStateId.h" bodystart="115" bodyend="229"/>
+    <listofallmembers>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1ad00c2f6b8e8609191184fadf38f9c1fb" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>get</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1af84bd5982aec92af067a0c58d60e5aa8" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>get</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a55e303ceefb4e3a7674aaf5f09a23d85" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>operator bool</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a1625fea388f3016a7d75fc8e15993388" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>operator=</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a8319214cccde49c1535703336388091b" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>operator=</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1abf9e15a21462f6da39bfb50e59028108" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>operator=</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a0474ea5fbfe99492532d241807cdd5da" prot="protected" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>ref</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1af42534a46896eb7cda1854591277bd40" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>reset</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a63fcea4d099b318c6c8f0f8d8dd305e5" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>UniqueOverrideStateId</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a5aa698aef82bd97dee89d25d97d15704" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>UniqueOverrideStateId</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1ad5e02c6e6f62cfb62fef808fcd0448ae" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>UniqueOverrideStateId</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a65c8c8a010571673e39ae4fb84ac6f0c" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>UniqueOverrideStateId</name></member>
+      <member refid="structshaders_1_1UniqueOverrideStateId_1a45686cdf16bf48731bc1527a93664c7d" prot="public" virt="non-virtual"><scope>shaders::UniqueOverrideStateId</scope><name>~UniqueOverrideStateId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

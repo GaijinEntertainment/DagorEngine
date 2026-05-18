@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTime" kind="struct" language="C++" prot="public">
+    <compoundname>Time</compoundname>
+    <includes refid="Timer_8hpp" local="no">Timer.hpp</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTime_1a017f1d3bc5eb10cae244a817080e403a" prot="public" static="no" mutable="no">
+        <type>double</type>
+        <definition>double Time::total</definition>
+        <argsstring></argsstring>
+        <name>total</name>
+        <qualifiedname>Time::total</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="26" column="10" bodyfile="Timer.hpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTime_1aa43f45347a457730ca7fa24f2002ef5a" prot="public" static="no" mutable="no">
+        <type>double</type>
+        <definition>double Time::frame</definition>
+        <argsstring></argsstring>
+        <name>frame</name>
+        <qualifiedname>Time::frame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="26" column="16" bodyfile="Timer.hpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Timer.hpp" line="24" column="1" bodyfile="Timer.hpp" bodystart="25" bodyend="27"/>
+    <listofallmembers>
+      <member refid="structTime_1aa43f45347a457730ca7fa24f2002ef5a" prot="public" virt="non-virtual"><scope>Time</scope><name>frame</name></member>
+      <member refid="structTime_1a017f1d3bc5eb10cae244a817080e403a" prot="public" virt="non-virtual"><scope>Time</scope><name>total</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

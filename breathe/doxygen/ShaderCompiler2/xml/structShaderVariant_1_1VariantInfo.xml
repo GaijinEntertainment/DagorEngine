@@ -1,0 +1,159 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderVariant_1_1VariantInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderVariant::VariantInfo</compoundname>
+    <includes refid="shaderVariantSrc_8h" local="no">shaderVariantSrc.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+        <definition>const VariantSrc&amp; ShaderVariant::VariantInfo::stat</definition>
+        <argsstring></argsstring>
+        <name>stat</name>
+        <qualifiedname>ShaderVariant::VariantInfo::stat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="88" column="20" bodyfile="shaderVariantSrc.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> *</type>
+        <definition>const VariantSrc* ShaderVariant::VariantInfo::dyn</definition>
+        <argsstring></argsstring>
+        <name>dyn</name>
+        <qualifiedname>ShaderVariant::VariantInfo::dyn</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="89" column="20" bodyfile="shaderVariantSrc.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" prot="public" static="no" mutable="no">
+        <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> &amp;</type>
+        <definition>const IntervalList&amp; ShaderVariant::VariantInfo::intervals</definition>
+        <argsstring></argsstring>
+        <name>intervals</name>
+        <qualifiedname>ShaderVariant::VariantInfo::intervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="90" column="22" bodyfile="shaderVariantSrc.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderVariant_1_1VariantInfo_1a005245284eba9a98045a2401c378e9ce" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::VariantInfo::VariantInfo</definition>
+        <argsstring>(const VariantSrc &amp;st, const VariantSrc *dn)</argsstring>
+        <name>VariantInfo</name>
+        <qualifiedname>ShaderVariant::VariantInfo::VariantInfo</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> &amp;</type>
+          <declname>st</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref> *</type>
+          <declname>dn</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="92" column="10" bodyfile="shaderVariantSrc.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1VariantInfo_1ae5c4d89c97b2b83074335da58eb41c74" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+        <definition>ValueType ShaderVariant::VariantInfo::getValue</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype) const</argsstring>
+        <name>getValue</name>
+        <qualifiedname>ShaderVariant::VariantInfo::getValue</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariantSrc.h" line="94" column="20" bodyfile="shaderVariantSrc.h" bodystart="94" bodyend="100"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="6">
+        <label>IVariantInfoProvider</label>
+        <link refid="classIVariantInfoProvider"/>
+      </node>
+      <node id="7">
+        <label>IntervalList</label>
+        <link refid="classIntervalList"/>
+      </node>
+      <node id="5">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="3">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>types</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariant::VariantInfo</label>
+        <link refid="structShaderVariant_1_1VariantInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>dyn</edgelabel>
+          <edgelabel>stat</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>intervals</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>defCtorTypeTable</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shaderVariantSrc.h" line="86" column="1" bodyfile="shaderVariantSrc.h" bodystart="87" bodyend="101"/>
+    <listofallmembers>
+      <member refid="structShaderVariant_1_1VariantInfo_1ad4fccf953d3032b53c1bb675298d4d6e" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantInfo</scope><name>dyn</name></member>
+      <member refid="structShaderVariant_1_1VariantInfo_1ae5c4d89c97b2b83074335da58eb41c74" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantInfo</scope><name>getValue</name></member>
+      <member refid="structShaderVariant_1_1VariantInfo_1ab612d70412d1f34ce9ab03b291e99f25" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantInfo</scope><name>intervals</name></member>
+      <member refid="structShaderVariant_1_1VariantInfo_1aeba13a45242d5103ce06de0d54b64ed7" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantInfo</scope><name>stat</name></member>
+      <member refid="structShaderVariant_1_1VariantInfo_1a005245284eba9a98045a2401c378e9ce" prot="public" virt="non-virtual"><scope>ShaderVariant::VariantInfo</scope><name>VariantInfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

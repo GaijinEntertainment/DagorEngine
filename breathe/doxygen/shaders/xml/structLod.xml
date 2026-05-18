@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structLod" kind="struct" language="C++" prot="public">
+    <compoundname>Lod</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structLod_1ad15533d661674912993ba32c825f1b9a" prot="public" static="no" mutable="no">
+        <type>PatchablePtr&lt; DynamicRenderableSceneResource &gt;</type>
+        <definition>PatchablePtr&lt;DynamicRenderableSceneResource&gt; Lod::scene</definition>
+        <argsstring></argsstring>
+        <name>scene</name>
+        <qualifiedname>Lod::scene</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="296" column="18" bodyfile="dag_dynSceneRes.h" bodystart="296" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLod_1ab67f22f8b85a27435018a803d0bb4938" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real Lod::range</definition>
+        <argsstring></argsstring>
+        <name>range</name>
+        <qualifiedname>Lod::range</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="297" column="10" bodyfile="dag_dynSceneRes.h" bodystart="297" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structLod_1ab792cc78e7059987390bc1dfdba5fcae" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Lod::texScale</definition>
+        <argsstring></argsstring>
+        <name>texScale</name>
+        <qualifiedname>Lod::texScale</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="298" column="11" bodyfile="dag_dynSceneRes.h" bodystart="298" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structLod_1a7ba2f417982b010d59e91e07559c18f6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int Lod::getAllElems</definition>
+        <argsstring>(Tab&lt; dag::ConstSpan&lt; ShaderMesh::RElem &gt; &gt; &amp;out_elems) const</argsstring>
+        <name>getAllElems</name>
+        <qualifiedname>Lod::getAllElems</qualifiedname>
+        <param>
+          <type>Tab&lt; dag::ConstSpan&lt; <ref refid="structShaderMesh_1_1RElem" kindref="compound">ShaderMesh::RElem</ref> &gt; &gt; &amp;</type>
+          <declname>out_elems</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="299" column="9"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynSceneRes.h" line="294" column="3" bodyfile="dag_dynSceneRes.h" bodystart="295" bodyend="300"/>
+    <listofallmembers>
+      <member refid="structLod_1a7ba2f417982b010d59e91e07559c18f6" prot="public" virt="non-virtual"><scope>Lod</scope><name>getAllElems</name></member>
+      <member refid="structLod_1ab67f22f8b85a27435018a803d0bb4938" prot="public" virt="non-virtual"><scope>Lod</scope><name>range</name></member>
+      <member refid="structLod_1ad15533d661674912993ba32c825f1b9a" prot="public" virt="non-virtual"><scope>Lod</scope><name>scene</name></member>
+      <member refid="structLod_1ab792cc78e7059987390bc1dfdba5fcae" prot="public" virt="non-virtual"><scope>Lod</scope><name>texScale</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

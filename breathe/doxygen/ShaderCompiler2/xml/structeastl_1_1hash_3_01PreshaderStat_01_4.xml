@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structeastl_1_1hash_3_01PreshaderStat_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>eastl::hash&lt; PreshaderStat &gt;</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structeastl_1_1hash_3_01PreshaderStat_01_4_1a39b90879efc1b3ab7b427079bdb2c31a" prot="public" static="no" const="yes" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t eastl::hash&lt; PreshaderStat &gt;::operator()</definition>
+        <argsstring>(const PreshaderStat &amp;stat) const noexcept</argsstring>
+        <name>operator()</name>
+        <qualifiedname>eastl::hash&lt; PreshaderStat &gt;::operator()</qualifiedname>
+        <param>
+          <type>const <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &amp;</type>
+          <declname>stat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="73" column="10" bodyfile="preshaderCompilation.h" bodystart="73" bodyend="80"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="preshaderCompilation.h" line="71" column="1" bodyfile="preshaderCompilation.h" bodystart="72" bodyend="81"/>
+    <listofallmembers>
+      <member refid="structeastl_1_1hash_3_01PreshaderStat_01_4_1a39b90879efc1b3ab7b427079bdb2c31a" prot="public" virt="non-virtual"><scope>eastl::hash&lt; PreshaderStat &gt;</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

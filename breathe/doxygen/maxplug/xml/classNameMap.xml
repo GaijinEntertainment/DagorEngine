@@ -1,0 +1,170 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classNameMap" kind="class" language="C++" prot="public">
+    <compoundname>NameMap</compoundname>
+    <includes refid="namemap_8h" local="no">namemap.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classNameMap_1a0206afc94eed404fffc7a02b39f577e0" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; std::string, int, <ref refid="structCaseInsensitiveHash" kindref="compound">CaseInsensitiveHash</ref>, <ref refid="structCaseInsensitiveEqual" kindref="compound">CaseInsensitiveEqual</ref> &gt;</type>
+        <definition>std::unordered_map&lt;std::string, int, CaseInsensitiveHash, CaseInsensitiveEqual&gt; NameMap::s2i</definition>
+        <argsstring></argsstring>
+        <name>s2i</name>
+        <qualifiedname>NameMap::s2i</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="32" column="22" bodyfile="namemap.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classNameMap_1aad0da68346eccbc6d13b92313a08b969" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; int, std::string &gt;</type>
+        <definition>std::unordered_map&lt;int, std::string&gt; NameMap::i2s</definition>
+        <argsstring></argsstring>
+        <name>i2s</name>
+        <qualifiedname>NameMap::i2s</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="33" column="22" bodyfile="namemap.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classNameMap_1a8560d4570112d839b90be032f2af34e7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NameMap::NameMap</definition>
+        <argsstring>()</argsstring>
+        <name>NameMap</name>
+        <qualifiedname>NameMap::NameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="12" column="3" bodyfile="namemap.h" bodystart="12" bodyend="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1ac9664880cac07da735f408f057dc83af" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NameMap::~NameMap</definition>
+        <argsstring>()</argsstring>
+        <name>~NameMap</name>
+        <qualifiedname>NameMap::~NameMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="13" column="3" bodyfile="namemap.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a3fabce90876462c293bb23b1fd7b9f69" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void NameMap::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>NameMap::clear</qualifiedname>
+        <briefdescription>
+<para>Clear name list. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="16" column="8" bodyfile="namemap.cpp" bodystart="6" bodyend="10"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a7ac43f20150f9da70b9ef59538653550" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int NameMap::nameCount</definition>
+        <argsstring>() const</argsstring>
+        <name>nameCount</name>
+        <qualifiedname>NameMap::nameCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Number of names in list. You can get them all by iterating from 0 to <ref refid="classNameMap_1a7ac43f20150f9da70b9ef59538653550" kindref="member">nameCount()</ref>-1. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="20" column="7" bodyfile="namemap.h" bodystart="20" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a13654b50dbe12ea647a89665634b9a02" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * NameMap::getName</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getName</name>
+        <qualifiedname>NameMap::getName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+<para>Returns NULL when name_id is invalid. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="23" column="14" bodyfile="namemap.cpp" bodystart="13" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int NameMap::getNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getNameId</name>
+        <qualifiedname>NameMap::getNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Returns -1 if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="26" column="7" bodyfile="namemap.cpp" bodystart="23" bodyend="33"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int NameMap::addNameId</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addNameId</name>
+        <qualifiedname>NameMap::addNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Returns -1 if NULL. Adds name to the list if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="namemap.h" line="29" column="7" bodyfile="namemap.cpp" bodystart="36" bodyend="50"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="namemap.h" line="9" column="1" bodyfile="namemap.h" bodystart="10" bodyend="34"/>
+    <listofallmembers>
+      <member refid="classNameMap_1af81ec08e783e09c8596c8a0ebf2b5328" prot="public" virt="non-virtual"><scope>NameMap</scope><name>addNameId</name></member>
+      <member refid="classNameMap_1a3fabce90876462c293bb23b1fd7b9f69" prot="public" virt="non-virtual"><scope>NameMap</scope><name>clear</name></member>
+      <member refid="classNameMap_1a13654b50dbe12ea647a89665634b9a02" prot="public" virt="non-virtual"><scope>NameMap</scope><name>getName</name></member>
+      <member refid="classNameMap_1a8218bc8a19c32dff3d67a3376abf2d23" prot="public" virt="non-virtual"><scope>NameMap</scope><name>getNameId</name></member>
+      <member refid="classNameMap_1aad0da68346eccbc6d13b92313a08b969" prot="private" virt="non-virtual"><scope>NameMap</scope><name>i2s</name></member>
+      <member refid="classNameMap_1a7ac43f20150f9da70b9ef59538653550" prot="public" virt="non-virtual"><scope>NameMap</scope><name>nameCount</name></member>
+      <member refid="classNameMap_1a8560d4570112d839b90be032f2af34e7" prot="public" virt="non-virtual"><scope>NameMap</scope><name>NameMap</name></member>
+      <member refid="classNameMap_1a0206afc94eed404fffc7a02b39f577e0" prot="private" virt="non-virtual"><scope>NameMap</scope><name>s2i</name></member>
+      <member refid="classNameMap_1ac9664880cac07da735f408f057dc83af" prot="public" virt="non-virtual"><scope>NameMap</scope><name>~NameMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

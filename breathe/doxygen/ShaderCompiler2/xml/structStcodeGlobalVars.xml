@@ -1,0 +1,212 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structStcodeGlobalVars" kind="struct" language="C++" prot="public">
+    <compoundname>StcodeGlobalVars</compoundname>
+    <includes refid="cppStcodeAssembly_8h" local="no">cppStcodeAssembly.h</includes>
+    <innerclass refid="structStcodeGlobalVars_1_1Strings" prot="public">StcodeGlobalVars::Strings</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>Type</name>
+        <qualifiedname>StcodeGlobalVars::Type</qualifiedname>
+        <enumvalue id="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112a2eca6bbd79604d1d742efa40e3a9a82a" prot="public">
+          <name>MAIN_COLLECTION</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112a688be6b57b2ae8580215def4a96efdc1" prot="public">
+          <name>REFERENCED_BY_SHADER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="364" column="3" bodyfile="cppStcodeAssembly.h" bodystart="365" bodyend="368"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structStcodeGlobalVars_1a73ba26c0f43122b89eb234fff9dc0fc7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int StcodeGlobalVars::INVALID_IN_DUMP_VAR_ID</definition>
+        <argsstring></argsstring>
+        <name>INVALID_IN_DUMP_VAR_ID</name>
+        <qualifiedname>StcodeGlobalVars::INVALID_IN_DUMP_VAR_ID</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="376" column="24" bodyfile="cppStcodeAssembly.h" bodystart="376" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structStcodeGlobalVars_1a88d1c004290867487c70656306888efe" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeGlobalVars::cppCode</definition>
+        <argsstring></argsstring>
+        <name>cppCode</name>
+        <qualifiedname>StcodeGlobalVars::cppCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="378" column="17" bodyfile="cppStcodeAssembly.h" bodystart="378" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeGlobalVars_1afc4108c6e140f5b9a215af60650e499f" prot="public" static="no" mutable="no">
+        <type><ref refid="classStcodeBuilder" kindref="compound">StcodeBuilder</ref></type>
+        <definition>StcodeBuilder StcodeGlobalVars::fetchersOrFwdCpp</definition>
+        <argsstring></argsstring>
+        <name>fetchersOrFwdCpp</name>
+        <qualifiedname>StcodeGlobalVars::fetchersOrFwdCpp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="379" column="17" bodyfile="cppStcodeAssembly.h" bodystart="379" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structStcodeGlobalVars_1a3850a54b1390302582519156cb3af648" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112" kindref="member">Type</ref></type>
+        <definition>Type StcodeGlobalVars::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>StcodeGlobalVars::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="380" column="8" bodyfile="cppStcodeAssembly.h" bodystart="380" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structStcodeGlobalVars_1a3c96a117c45ab2bfee27fbfb2f4a3ce0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>StcodeGlobalVars::StcodeGlobalVars</definition>
+        <argsstring>(Type a_type)</argsstring>
+        <name>StcodeGlobalVars</name>
+        <qualifiedname>StcodeGlobalVars::StcodeGlobalVars</qualifiedname>
+        <param>
+          <type><ref refid="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112" kindref="member">Type</ref></type>
+          <declname>a_type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="382" column="3" bodyfile="cppStcodeAssembly.h" bodystart="382" bodyend="382"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeGlobalVars_1a6dc2e6fde79537b126df611c27d1f819" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void StcodeGlobalVars::setVar</definition>
+        <argsstring>(ShaderVarType shv_type, const char *name, bool is_ptr, int id_in_final_dump=INVALID_IN_DUMP_VAR_ID)</argsstring>
+        <name>setVar</name>
+        <qualifiedname>StcodeGlobalVars::setVar</qualifiedname>
+        <param>
+          <type>ShaderVarType</type>
+          <declname>shv_type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>is_ptr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id_in_final_dump</declname>
+          <defval><ref refid="structStcodeGlobalVars_1a73ba26c0f43122b89eb234fff9dc0fc7" kindref="member">INVALID_IN_DUMP_VAR_ID</ref></defval>
+        </param>
+        <briefdescription>
+<para><ref refid="structStcodeGlobalVars" kindref="compound">StcodeGlobalVars</ref> ///. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="384" column="8" bodyfile="cppStcodeAssembly.cpp" bodystart="759" bodyend="781"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeGlobalVars_1a802c7ba5fda2f6b7181f45d650f3f9ed" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structStcodeGlobalVars_1_1Strings" kindref="compound">Strings</ref></type>
+        <definition>StcodeGlobalVars::Strings StcodeGlobalVars::releaseAssembledCode</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAssembledCode</name>
+        <qualifiedname>StcodeGlobalVars::releaseAssembledCode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="385" column="11" bodyfile="cppStcodeAssembly.cpp" bodystart="783" bodyend="788"/>
+      </memberdef>
+      <memberdef kind="function" id="structStcodeGlobalVars_1a2b6da150d9cb1cf7636622d8350c512d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash StcodeGlobalVars::calcHash</definition>
+        <argsstring>(const CryptoHash *base=nullptr)</argsstring>
+        <name>calcHash</name>
+        <qualifiedname>StcodeGlobalVars::calcHash</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> *</type>
+          <declname>base</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="cppStcodeAssembly.h" line="387" column="14" bodyfile="cppStcodeAssembly.cpp" bodystart="790" bodyend="796"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="1">
+        <label>StcodeGlobalVars</label>
+        <link refid="structStcodeGlobalVars"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cppCode</edgelabel>
+          <edgelabel>fetchersOrFwdCpp</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="cppStcodeAssembly.h" line="362" column="1" bodyfile="cppStcodeAssembly.h" bodystart="363" bodyend="388"/>
+    <listofallmembers>
+      <member refid="structStcodeGlobalVars_1a2b6da150d9cb1cf7636622d8350c512d" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>calcHash</name></member>
+      <member refid="structStcodeGlobalVars_1a88d1c004290867487c70656306888efe" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>cppCode</name></member>
+      <member refid="structStcodeGlobalVars_1afc4108c6e140f5b9a215af60650e499f" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>fetchersOrFwdCpp</name></member>
+      <member refid="structStcodeGlobalVars_1a73ba26c0f43122b89eb234fff9dc0fc7" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>INVALID_IN_DUMP_VAR_ID</name></member>
+      <member refid="structStcodeGlobalVars_1a802c7ba5fda2f6b7181f45d650f3f9ed" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>releaseAssembledCode</name></member>
+      <member refid="structStcodeGlobalVars_1a6dc2e6fde79537b126df611c27d1f819" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>setVar</name></member>
+      <member refid="structStcodeGlobalVars_1a3c96a117c45ab2bfee27fbfb2f4a3ce0" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>StcodeGlobalVars</name></member>
+      <member refid="structStcodeGlobalVars_1a9d13cdcc3efc084d3f6ed74206268112" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>Type</name></member>
+      <member refid="structStcodeGlobalVars_1a3850a54b1390302582519156cb3af648" prot="public" virt="non-virtual"><scope>StcodeGlobalVars</scope><name>type</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

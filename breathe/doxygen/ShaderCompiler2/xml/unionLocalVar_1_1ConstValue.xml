@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="unionLocalVar_1_1ConstValue" kind="union" language="C++" prot="public">
+    <compoundname>LocalVar::ConstValue</compoundname>
+    <includes refid="shLocVar_8h" local="no">shLocVar.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" prot="public" static="no" mutable="no">
+        <type><ref refid="structshc_1_1Col4" kindref="compound">shc::Col4</ref></type>
+        <definition>shc::Col4 LocalVar::ConstValue::c</definition>
+        <argsstring></argsstring>
+        <name>c</name>
+        <qualifiedname>LocalVar::ConstValue::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="34" column="15" bodyfile="shLocVar.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" prot="public" static="no" mutable="no">
+        <type>real</type>
+        <definition>real LocalVar::ConstValue::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>LocalVar::ConstValue::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="35" column="10" bodyfile="shLocVar.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="unionLocalVar_1_1ConstValue_1a6b23b6adb7b8ebdd8f43dd29a1395678" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LocalVar::ConstValue::ConstValue</definition>
+        <argsstring>()</argsstring>
+        <name>ConstValue</name>
+        <qualifiedname>LocalVar::ConstValue::ConstValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="36" column="5" bodyfile="shLocVar.h" bodystart="36" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="unionLocalVar_1_1ConstValue_1ae320421f8351491dfab515c171c2b12c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>LocalVar::ConstValue::ConstValue</definition>
+        <argsstring>(float r, float g, float b, float a)</argsstring>
+        <name>ConstValue</name>
+        <qualifiedname>LocalVar::ConstValue::ConstValue</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>r</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>g</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shLocVar.h" line="37" column="5" bodyfile="shLocVar.h" bodystart="37" bodyend="37"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>LocalVar::ConstValue</label>
+        <link refid="unionLocalVar_1_1ConstValue"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>c</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shc::Col4</label>
+        <link refid="structshc_1_1Col4"/>
+      </node>
+    </collaborationgraph>
+    <location file="shLocVar.h" line="32" column="3" bodyfile="shLocVar.h" bodystart="33" bodyend="38"/>
+    <listofallmembers>
+      <member refid="unionLocalVar_1_1ConstValue_1aced328c75d3d61ec9fd44e0748aec33d" prot="public" virt="non-virtual"><scope>LocalVar::ConstValue</scope><name>c</name></member>
+      <member refid="unionLocalVar_1_1ConstValue_1a6b23b6adb7b8ebdd8f43dd29a1395678" prot="public" virt="non-virtual"><scope>LocalVar::ConstValue</scope><name>ConstValue</name></member>
+      <member refid="unionLocalVar_1_1ConstValue_1ae320421f8351491dfab515c171c2b12c" prot="public" virt="non-virtual"><scope>LocalVar::ConstValue</scope><name>ConstValue</name></member>
+      <member refid="unionLocalVar_1_1ConstValue_1a684300f7837dfbd35c7b9373fb8d8b56" prot="public" virt="non-virtual"><scope>LocalVar::ConstValue</scope><name>r</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

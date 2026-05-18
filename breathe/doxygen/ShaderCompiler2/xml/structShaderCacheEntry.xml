@@ -1,0 +1,104 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderCacheEntry" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderCacheEntry</compoundname>
+    <includes refid="shaderBytecodeCache_8h" local="no">shaderBytecodeCache.h</includes>
+    <innerclass refid="structShaderCacheEntry_1_1Level2" prot="public">ShaderCacheEntry::Level2</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderCacheEntry_1a48aff9e279a60c514c122e4b39868906" prot="public" static="no" mutable="no">
+        <type><ref refid="structCryptoHash" kindref="compound">CryptoHash</ref></type>
+        <definition>CryptoHash ShaderCacheEntry::codeDigest</definition>
+        <argsstring></argsstring>
+        <name>codeDigest</name>
+        <qualifiedname>ShaderCacheEntry::codeDigest</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="57" column="14" bodyfile="shaderBytecodeCache.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structShaderCacheEntry_1_1Level2" kindref="compound">Level2</ref> &gt;</type>
+        <definition>Tab&lt;Level2&gt; ShaderCacheEntry::lv2</definition>
+        <argsstring></argsstring>
+        <name>lv2</name>
+        <qualifiedname>ShaderCacheEntry::lv2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="58" column="7" bodyfile="shaderBytecodeCache.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderCacheEntry_1aaf87ee553f4b4f33e36a399732001915" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderCacheEntry::ShaderCacheEntry</definition>
+        <argsstring>()</argsstring>
+        <name>ShaderCacheEntry</name>
+        <qualifiedname>ShaderCacheEntry::ShaderCacheEntry</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="60" column="3" bodyfile="shaderBytecodeCache.h" bodystart="60" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderCacheEntry::addEntry</definition>
+        <argsstring>(const CryptoHash &amp;const_digest, const char *entry, const char *profile)</argsstring>
+        <name>addEntry</name>
+        <qualifiedname>ShaderCacheEntry::addEntry</qualifiedname>
+        <param>
+          <type>const <ref refid="structCryptoHash" kindref="compound">CryptoHash</ref> &amp;</type>
+          <declname>const_digest</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>entry</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>profile</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderBytecodeCache.h" line="62" column="7" bodyfile="shaderBytecodeCache.h" bodystart="62" bodyend="68"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>CryptoHash</label>
+        <link refid="structCryptoHash"/>
+      </node>
+      <node id="1">
+        <label>ShaderCacheEntry</label>
+        <link refid="structShaderCacheEntry"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>codeDigest</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shaderBytecodeCache.h" line="32" column="1" bodyfile="shaderBytecodeCache.h" bodystart="33" bodyend="69"/>
+    <listofallmembers>
+      <member refid="structShaderCacheEntry_1a19973c17cdb048c89eaf3477d0d37614" prot="public" virt="non-virtual"><scope>ShaderCacheEntry</scope><name>addEntry</name></member>
+      <member refid="structShaderCacheEntry_1a48aff9e279a60c514c122e4b39868906" prot="public" virt="non-virtual"><scope>ShaderCacheEntry</scope><name>codeDigest</name></member>
+      <member refid="structShaderCacheEntry_1a7af8765a6c891dada14aac308591170f" prot="public" virt="non-virtual"><scope>ShaderCacheEntry</scope><name>lv2</name></member>
+      <member refid="structShaderCacheEntry_1aaf87ee553f4b4f33e36a399732001915" prot="public" virt="non-virtual"><scope>ShaderCacheEntry</scope><name>ShaderCacheEntry</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

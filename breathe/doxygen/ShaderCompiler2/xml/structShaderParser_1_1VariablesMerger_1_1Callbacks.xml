@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1VariablesMerger_1_1Callbacks" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::VariablesMerger::Callbacks</compoundname>
+    <includes refid="variablesMerger_8h" local="no">variablesMerger.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1Callbacks_1a5fd823fba4a88edbc6c310915610eb60" prot="public" static="no" mutable="no">
+        <type>dag::FunctionRef&lt; void(const <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &amp;) const  &gt;</type>
+        <definition>dag::FunctionRef&lt;void(const PreshaderStat &amp;) const&gt; ShaderParser::VariablesMerger::Callbacks::compileStat</definition>
+        <argsstring></argsstring>
+        <name>compileStat</name>
+        <qualifiedname>ShaderParser::VariablesMerger::Callbacks::compileStat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="71" column="22" bodyfile="variablesMerger.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1Callbacks_1acef9be25c3413eba3c30c49319f8d41c" prot="public" static="no" mutable="no">
+        <type>dag::FunctionRef&lt; int(const ShaderTerminal::local_var_decl &amp;) const  &gt;</type>
+        <definition>dag::FunctionRef&lt;int(const ShaderTerminal::local_var_decl &amp;) const&gt; ShaderParser::VariablesMerger::Callbacks::compileLocalVar</definition>
+        <argsstring></argsstring>
+        <name>compileLocalVar</name>
+        <qualifiedname>ShaderParser::VariablesMerger::Callbacks::compileLocalVar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="72" column="22" bodyfile="variablesMerger.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1VariablesMerger_1_1Callbacks_1afd82d1a59593428f8c34b7198deadfcc" prot="public" static="no" mutable="no">
+        <type>dag::FunctionRef&lt; void(int) const  &gt;</type>
+        <definition>dag::FunctionRef&lt;void(int) const&gt; ShaderParser::VariablesMerger::Callbacks::releaseRegister</definition>
+        <argsstring></argsstring>
+        <name>releaseRegister</name>
+        <qualifiedname>ShaderParser::VariablesMerger::Callbacks::releaseRegister</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="variablesMerger.h" line="73" column="22" bodyfile="variablesMerger.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="variablesMerger.h" line="69" column="3" bodyfile="variablesMerger.h" bodystart="70" bodyend="74"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1Callbacks_1acef9be25c3413eba3c30c49319f8d41c" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::Callbacks</scope><name>compileLocalVar</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1Callbacks_1a5fd823fba4a88edbc6c310915610eb60" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::Callbacks</scope><name>compileStat</name></member>
+      <member refid="structShaderParser_1_1VariablesMerger_1_1Callbacks_1afd82d1a59593428f8c34b7198deadfcc" prot="public" virt="non-virtual"><scope>ShaderParser::VariablesMerger::Callbacks</scope><name>releaseRegister</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

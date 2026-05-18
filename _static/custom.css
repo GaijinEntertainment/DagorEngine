@@ -1,0 +1,214 @@
+﻿:root {
+    --sd-color-muted: #f5f5f5;
+    --sd-color-muted-text: #212529;
+}
+
+.wy-side-nav-search, .wy-nav-top {
+    background: #1a1c1e;
+}
+
+/* The "CONTENTS:" word color */
+
+.wy-menu-vertical header, .wy-menu-vertical p.caption {
+    color: #ad8f5e;
+}
+
+/* The Search field border color */
+
+.wy-side-nav-search input[type="text"] {
+    border-color: #1a1c1e;
+}
+
+/* Logo max-width*/
+
+.wy-side-nav-search .wy-dropdown > a img.logo, .wy-side-nav-search > a img.logo {
+    width: 75%;
+}
+
+/* Width of the main page*/
+
+.wy-nav-content{
+    max-width: 100%;
+}
+
+audio, canvas, video {
+    display: block;
+    margin: auto;
+    margin-bottom: 12px;
+}
+
+.rst-content code, .rst-content tt, code, kbd, pre, samp {
+    font-family: monospace,serif;
+    _font-family: courier new,monospace;
+    font-size: 0.95em;
+}
+
+.rst-content .linenodiv pre, .rst-content div[class^=highlight] pre, .rst-content pre.literal-block {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+/* Margins of the images and text blocks*/
+
+.rst-content .align-center {
+    margin-bottom: 14px;
+}
+
+p {
+    margin-bottom: 14px;
+}
+
+/* Customization for icon-style numbering of menu items or objects in a picture
+for use in text */
+
+.sd-badge {
+    /* display: inline-block; */
+    padding: .25em .55em;
+    font-size: .8em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-radius: .5rem;
+}
+
+.sd-outline-dark {
+    border-width: 0.15em !important;
+}
+
+/* Changelog badges colors*/
+
+.sd-bg-text-warning {
+    color: #ffffff !important; /* "FIXED" badge text color */
+}
+
+.sd-bg-warning {
+    background-color: #ff5a00 !important; /* "FIXED" badge background color*/
+}
+
+.sd-bg-info {
+    background-color: #289ed9 !important; /* "IMPROVED" badge background color*/
+}
+
+/* Colors of "check" and "x" icons*/
+
+.sd-octicon-check {
+    display: inline-block;
+    fill: #28a745;
+    vertical-align: middle;
+}
+
+.sd-octicon-x {
+    display: inline-block;
+    fill: #dc3545;
+    vertical-align: middle;
+}
+
+/* Changelog badges colors*/
+
+.sd-bg-text-warning {
+    color: #ffffff !important; /* "FIXED" badge text color */
+}
+
+.sd-bg-warning {
+    background-color: #ff5a00 !important; /* "FIXED" badge background color*/
+}
+
+.sd-bg-info {
+    background-color: #289ed9 !important; /* "IMPROVED" badge background color*/
+}
+
+/* Adds horizontal spacing (a right margin) between images when they are placed
+ * side by side in a grid layout. Apply this class to the first image in a row
+ * to separate it visually from the next one. */
+
+.image-gap {
+    margin-right: 1em;  /* Adjust spacing as needed */
+}
+
+/* Centers images horizontally inside their container. */
+
+.image-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* === Breadcrumbs Layout & GitHub Icon Positioning === */
+
+/* Set up flexbox for the breadcrumbs container */
+.wy-breadcrumbs {
+    display: flex; /* Display elements in a row */
+    justify-content: flex-start; /* Align all breadcrumb items to the left */
+    align-items: center; /* Vertically center items */
+    width: 100%; /* Make sure the container takes full width */
+}
+
+.wy-breadcrumbs li {
+    margin-right: 10px; /* Space between breadcrumb items */
+}
+
+/* Container for "View page source" and the GitHub icon */
+.wy-breadcrumbs .wy-breadcrumbs-aside {
+    margin-left: auto; /* Push "View page source" and icon to the right */
+    display: flex; /* Display them in a single row */
+    align-items: center; /* Vertically center the items */
+}
+
+.wy-breadcrumbs-aside.github-icon img {
+    height: 1.5em; /* Set the icon size */
+    vertical-align: middle; /* Align icon with surrounding text */
+}
+
+/* === Inline numbered circle (used for step markers, references, etc.) === */
+
+.cnum {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0.1rem solid #404040;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.8em;
+  line-height: 1;
+  text-align: center;
+  vertical-align: middle;
+  margin: 0 0.1em;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Badge base styles and color modifiers
+   The base .bdg class defines common appearance for inline badges,
+   including padding, font size, weight, border radius, and text color.
+
+   Color modifier classes (.bdg-blue, .bdg-green, etc.) apply
+   distinct background colors to visually differentiate badge types,
+   enhancing clarity and conveying status or category meaning. */
+.bdg {
+    display: inline-block;
+    padding: .25em .55em;
+    font-size: .8em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    border-radius: .5rem;
+    color: white; /* default text color*/
+}
+
+/* Color modifiers */
+.bdg-blue    { background-color: #289ed9; }
+.bdg-green   { background-color: #28a745; }
+.bdg-grey    { background-color: #6c757d; }
+.bdg-orange  { background-color: #ff5a00; }
+.bdg-purple  { background-color: #6f42c1; }
+.bdg-red     { background-color: #dc3545; }
+.bdg-yellow  { background-color: #ffc107; color: black; }
+

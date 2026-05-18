@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTwoStepRelPath" kind="struct" language="C++" prot="public">
+    <compoundname>TwoStepRelPath</compoundname>
+    <includes refid="twoStepRelPath_8h" local="no">twoStepRelPath.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" prot="public" static="no">
+        <type>char</type>
+        <definition>typedef char TwoStepRelPath::storage_t[512]</definition>
+        <argsstring>[512]</argsstring>
+        <name>storage_t</name>
+        <qualifiedname>TwoStepRelPath::storage_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="11" column="16" bodyfile="twoStepRelPath.h" bodystart="11" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structTwoStepRelPath_1ac9bc36157412913cdb4746b933d54d54" prot="protected" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString TwoStepRelPath::sdkRoot</definition>
+        <argsstring></argsstring>
+        <name>sdkRoot</name>
+        <qualifiedname>TwoStepRelPath::sdkRoot</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="18" column="16" bodyfile="twoStepRelPath.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTwoStepRelPath_1aa04da768a991035129bc465eee3153de" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TwoStepRelPath::sdkRootLen</definition>
+        <argsstring></argsstring>
+        <name>sdkRootLen</name>
+        <qualifiedname>TwoStepRelPath::sdkRootLen</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="19" column="7" bodyfile="twoStepRelPath.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTwoStepRelPath_1a163f32acf5f808baedc48dd574f2b75d" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int TwoStepRelPath::sdkRootLen1</definition>
+        <argsstring></argsstring>
+        <name>sdkRootLen1</name>
+        <qualifiedname>TwoStepRelPath::sdkRootLen1</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="19" column="19" bodyfile="twoStepRelPath.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void TwoStepRelPath::setSdkRoot</definition>
+        <argsstring>(const char *root_dir, const char *subdir=nullptr)</argsstring>
+        <name>setSdkRoot</name>
+        <qualifiedname>TwoStepRelPath::setSdkRoot</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>root_dir</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>subdir</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="13" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * TwoStepRelPath::mkRelPath</definition>
+        <argsstring>(const char *fpath, storage_t &amp;stor)</argsstring>
+        <name>mkRelPath</name>
+        <qualifiedname>TwoStepRelPath::mkRelPath</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>fpath</declname>
+        </param>
+        <param>
+          <type><ref refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" kindref="member">storage_t</ref> &amp;</type>
+          <declname>stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="twoStepRelPath.h" line="15" column="14"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="twoStepRelPath.h" line="9" column="1" bodyfile="twoStepRelPath.h" bodystart="10" bodyend="20"/>
+    <listofallmembers>
+      <member refid="structTwoStepRelPath_1a4409a76c58b0d3c602445562e7d3f5e9" prot="public" virt="non-virtual"><scope>TwoStepRelPath</scope><name>mkRelPath</name></member>
+      <member refid="structTwoStepRelPath_1ac9bc36157412913cdb4746b933d54d54" prot="protected" virt="non-virtual"><scope>TwoStepRelPath</scope><name>sdkRoot</name></member>
+      <member refid="structTwoStepRelPath_1aa04da768a991035129bc465eee3153de" prot="protected" virt="non-virtual"><scope>TwoStepRelPath</scope><name>sdkRootLen</name></member>
+      <member refid="structTwoStepRelPath_1a163f32acf5f808baedc48dd574f2b75d" prot="protected" virt="non-virtual"><scope>TwoStepRelPath</scope><name>sdkRootLen1</name></member>
+      <member refid="structTwoStepRelPath_1a381c774dd151fd936cd0d5f2ee5ff697" prot="public" virt="non-virtual"><scope>TwoStepRelPath</scope><name>setSdkRoot</name></member>
+      <member refid="structTwoStepRelPath_1ae0f90060e5c48b1fece187077f9c3c60" prot="public" virt="non-virtual"><scope>TwoStepRelPath</scope><name>storage_t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

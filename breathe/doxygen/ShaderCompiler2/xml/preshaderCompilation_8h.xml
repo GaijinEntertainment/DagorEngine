@@ -1,0 +1,962 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="preshaderCompilation_8h" kind="file" language="C++">
+    <compoundname>preshaderCompilation.h</compoundname>
+    <includes local="yes">shsyn.h</includes>
+    <includes refid="const3d_8h" local="yes">const3d.h</includes>
+    <includes refid="shaderTab_8h" local="yes">shaderTab.h</includes>
+    <includes refid="shErrorReporting_8h" local="yes">shErrorReporting.h</includes>
+    <includes refid="namedConst_8h" local="yes">namedConst.h</includes>
+    <includes refid="cppStcodeAssembly_8h" local="yes">cppStcodeAssembly.h</includes>
+    <includes refid="variablesMerger_8h" local="yes">variablesMerger.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes local="no">ska_hash_map/flat_hash_map2.hpp</includes>
+    <includedby refid="namedConst_8cpp" local="yes">namedConst.cpp</includedby>
+    <includedby refid="preshaderCompilation_8cpp" local="yes">preshaderCompilation.cpp</includedby>
+    <includedby refid="shShaderContext_8h" local="yes">shShaderContext.h</includedby>
+    <includedby refid="variantAssembly_8cpp" local="yes">variantAssembly.cpp</includedby>
+    <incdepgraph>
+      <node id="71">
+        <label>DebugLevel.h</label>
+        <link refid="DebugLevel_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="69">
+        <label>blkHash.h</label>
+        <link refid="blkHash_8h"/>
+        <childnode refid="66" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>commonUtils.h</label>
+        <link refid="commonUtils_8h"/>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>const3d.h</label>
+        <link refid="const3d_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="39">
+        <label>cppStcode.h</label>
+        <link refid="cppStcode_8h"/>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="67" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+      </node>
+      <node id="40">
+        <label>cppStcodeAssembly.h</label>
+        <link refid="cppStcodeAssembly_8h"/>
+        <childnode refid="41" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="46" relation="include">
+        </childnode>
+        <childnode refid="60" relation="include">
+        </childnode>
+        <childnode refid="61" relation="include">
+        </childnode>
+        <childnode refid="62" relation="include">
+        </childnode>
+        <childnode refid="63" relation="include">
+        </childnode>
+        <childnode refid="64" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="66" relation="include">
+        </childnode>
+      </node>
+      <node id="41">
+        <label>cppStcodeBuilder.h</label>
+        <link refid="cppStcodeBuilder_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="42" relation="include">
+        </childnode>
+      </node>
+      <node id="72">
+        <label>cppStcodePlatformInfo.h</label>
+        <link refid="cppStcodePlatformInfo_8h"/>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="47">
+        <label>globVar.h</label>
+        <link refid="globVar_8h"/>
+        <childnode refid="48" relation="include">
+        </childnode>
+        <childnode refid="49" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="51" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="53" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="54" relation="include">
+        </childnode>
+        <childnode refid="55" relation="include">
+        </childnode>
+        <childnode refid="56" relation="include">
+        </childnode>
+      </node>
+      <node id="37">
+        <label>globalConfig.h</label>
+        <link refid="globalConfig_8h"/>
+        <childnode refid="38" relation="include">
+        </childnode>
+        <childnode refid="71" relation="include">
+        </childnode>
+        <childnode refid="72" relation="include">
+        </childnode>
+        <childnode refid="73" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="43">
+        <label>hash.h</label>
+        <link refid="hash_8h"/>
+        <childnode refid="44" relation="include">
+        </childnode>
+        <childnode refid="45" relation="include">
+        </childnode>
+      </node>
+      <node id="56">
+        <label>hashStrings.h</label>
+        <link refid="hashStrings_8h"/>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="57" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+        <childnode refid="59" relation="include">
+        </childnode>
+      </node>
+      <node id="30">
+        <label>hlslRegisters.h</label>
+        <link refid="hlslRegisters_8h"/>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+      </node>
+      <node id="55">
+        <label>intervals.h</label>
+        <link refid="intervals_8h"/>
+      </node>
+      <node id="8">
+        <label>nameMap.h</label>
+        <link refid="nameMap_8h"/>
+        <childnode refid="9" relation="include">
+        </childnode>
+      </node>
+      <node id="21">
+        <label>namedConst.h</label>
+        <link refid="namedConst_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="74" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>preshaderCompilation.h</label>
+        <link refid="preshaderCompilation_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="40" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="65" relation="include">
+        </childnode>
+        <childnode refid="75" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="67">
+        <label>processes.h</label>
+        <link refid="processes_8h"/>
+        <childnode refid="68" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+      </node>
+      <node id="46">
+        <label>samplers.h</label>
+        <link refid="samplers_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="47" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="43" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="52" relation="include">
+        </childnode>
+        <childnode refid="58" relation="include">
+        </childnode>
+      </node>
+      <node id="38">
+        <label>shCompilationInfo.h</label>
+        <link refid="shCompilationInfo_8h"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="39" relation="include">
+        </childnode>
+        <childnode refid="69" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="50" relation="include">
+        </childnode>
+        <childnode refid="70" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shErrorReporting.h</label>
+        <link refid="shErrorReporting_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="23">
+        <label>shExpr.h</label>
+        <link refid="shExpr_8h"/>
+      </node>
+      <node id="31">
+        <label>shLog.h</label>
+        <link refid="shLog_8h"/>
+      </node>
+      <node id="14">
+        <label>shMacro.h</label>
+        <link refid="shMacro_8h"/>
+      </node>
+      <node id="54">
+        <label>shVarVecTypes.h</label>
+        <link refid="shVarVecTypes_8h"/>
+      </node>
+      <node id="6">
+        <label>shaderSave.h</label>
+        <link refid="shaderSave_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shaderTab.h</label>
+        <link refid="shaderTab_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>shlexterm.h</label>
+        <link refid="shlexterm_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>varMap.h</label>
+        <link refid="varMap_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="53">
+        <label>varTypes.h</label>
+        <link refid="varTypes_8h"/>
+      </node>
+      <node id="22">
+        <label>variablesMerger.h</label>
+        <link refid="variablesMerger_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+      </node>
+      <node id="51">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="42">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="26">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="29">
+        <label>EASTL/bitvector.h</label>
+      </node>
+      <node id="27">
+        <label>EASTL/fixed_vector.h</label>
+      </node>
+      <node id="28">
+        <label>EASTL/map.h</label>
+      </node>
+      <node id="20">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="19">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="65">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="75">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="25">
+        <label>EASTL/vector.h</label>
+      </node>
+      <node id="74">
+        <label>EASTL/vector_set.h</label>
+      </node>
+      <node id="36">
+        <label>cstdint</label>
+      </node>
+      <node id="45">
+        <label>cstring</label>
+      </node>
+      <node id="33">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="34">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="52">
+        <label>drv/3d/dag_sampler.h</label>
+      </node>
+      <node id="32">
+        <label>generic/dag_enumerate.h</label>
+      </node>
+      <node id="35">
+        <label>generic/dag_expected.h</label>
+      </node>
+      <node id="68">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="24">
+        <label>generic/dag_functionRef.h</label>
+      </node>
+      <node id="10">
+        <label>generic/dag_tab.h</label>
+      </node>
+      <node id="44">
+        <label>hash/BLAKE3/blake3.h</label>
+      </node>
+      <node id="73">
+        <label>ioSys/dag_dataBlock.h</label>
+      </node>
+      <node id="48">
+        <label>math/dag_color.h</label>
+      </node>
+      <node id="49">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="61">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="64">
+        <label>shaders/dag_shaderVarType.h</label>
+      </node>
+      <node id="70">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="62">
+        <label>shaders/shExprTypes.h</label>
+      </node>
+      <node id="63">
+        <label>shaders/shFunc.h</label>
+      </node>
+      <node id="66">
+        <label>shaders/shader_layout.h</label>
+      </node>
+      <node id="60">
+        <label>shaders/slotTexturesRange.h</label>
+      </node>
+      <node id="2">
+        <label>shsyn.h</label>
+      </node>
+      <node id="58">
+        <label>ska_hash_map/flat_hash_map2.hpp</label>
+      </node>
+      <node id="11">
+        <label>util/dag_bindump_ext.h</label>
+      </node>
+      <node id="18">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="59">
+        <label>util/dag_hash.h</label>
+      </node>
+      <node id="9">
+        <label>util/dag_oaHashNameMap.h</label>
+      </node>
+      <node id="17">
+        <label>util/dag_safeArg.h</label>
+      </node>
+      <node id="57">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="50">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="16">
+        <label>utility</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="18">
+        <label>cppStcodeAssembly.cpp</label>
+        <link refid="cppStcodeAssembly_8cpp"/>
+      </node>
+      <node id="7">
+        <label>cppStcodePasses.cpp</label>
+        <link refid="cppStcodePasses_8cpp"/>
+      </node>
+      <node id="6">
+        <label>cppStcodePasses.h</label>
+        <link refid="cppStcodePasses_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>namedConst.cpp</label>
+        <link refid="namedConst_8cpp"/>
+      </node>
+      <node id="3">
+        <label>preshaderCompilation.cpp</label>
+        <link refid="preshaderCompilation_8cpp"/>
+      </node>
+      <node id="1">
+        <label>preshaderCompilation.h</label>
+        <link refid="preshaderCompilation_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>shExprParser.cpp</label>
+        <link refid="shExprParser_8cpp"/>
+      </node>
+      <node id="9">
+        <label>shSemCode.cpp</label>
+        <link refid="shSemCode_8cpp"/>
+      </node>
+      <node id="4">
+        <label>shShaderContext.h</label>
+        <link refid="shShaderContext_8h"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>shVariantContext.h</label>
+        <link refid="shVariantContext_8h"/>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shaderSemantic.cpp</label>
+        <link refid="shaderSemantic_8cpp"/>
+      </node>
+      <node id="10">
+        <label>shaderSemantic.h</label>
+        <link refid="shaderSemantic_8h"/>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="19">
+        <label>shaderVariantSrc.cpp</label>
+        <link refid="shaderVariantSrc_8cpp"/>
+      </node>
+      <node id="8">
+        <label>shsem.cpp</label>
+        <link refid="shsem_8cpp"/>
+      </node>
+      <node id="15">
+        <label>variablesMerger.cpp</label>
+        <link refid="variablesMerger_8cpp"/>
+      </node>
+      <node id="16">
+        <label>variantAssembly.cpp</label>
+        <link refid="variantAssembly_8cpp"/>
+      </node>
+      <node id="14">
+        <label>variantAssembly.h</label>
+        <link refid="variantAssembly_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>variantSemantic.cpp</label>
+        <link refid="variantSemantic_8cpp"/>
+      </node>
+      <node id="17">
+        <label>variantSemantic.h</label>
+        <link refid="variantSemantic_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structPreshaderStat" prot="public">PreshaderStat</innerclass>
+    <innerclass refid="structPreshaderCompilationInput" prot="public">PreshaderCompilationInput</innerclass>
+    <innerclass refid="structeastl_1_1hash_3_01PreshaderStat_01_4" prot="public">eastl::hash&lt; PreshaderStat &gt;</innerclass>
+    <innerclass refid="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4" prot="public">eastl::hash&lt; PreshaderCompilationInput &gt;</innerclass>
+    <innerclass refid="structCompiledPreshader" prot="public">CompiledPreshader</innerclass>
+    <innerclass refid="structPreshaderCompilationOutput" prot="public">PreshaderCompilationOutput</innerclass>
+    <innerclass refid="classPreshaderCompilationCache" prot="public">PreshaderCompilationCache</innerclass>
+    <innernamespace refid="namespacesemantic">semantic</innernamespace>
+    <innernamespace refid="namespaceshc">shc</innernamespace>
+    <innernamespace refid="namespaceeastl">eastl</innernamespace>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="preshaderCompilation_8h_1af48485ba9527f1a1b058b7db5e90bd32" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const PreshaderStat &amp;s1, const PreshaderStat &amp;s2)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &amp;</type>
+          <declname>s1</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &amp;</type>
+          <declname>s2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="33" column="13" bodyfile="preshaderCompilation.h" bodystart="33" bodyend="36"/>
+      </memberdef>
+      <memberdef kind="function" id="preshaderCompilation_8h_1a96beb07e550d8c3eb67269dd7ac0b245" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const PreshaderCompilationInput &amp;i1, const PreshaderCompilationInput &amp;i2)</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;</type>
+          <declname>i1</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;</type>
+          <declname>i2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="52" column="13" bodyfile="preshaderCompilation.h" bodystart="52" bodyend="65"/>
+      </memberdef>
+      <memberdef kind="function" id="preshaderCompilation_8h_1a7458f5caa5df9b4e30da99ff8549e290" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>eastl::optional&lt; <ref refid="structPreshaderCompilationOutput" kindref="compound">PreshaderCompilationOutput</ref> &gt;</type>
+        <definition>eastl::optional&lt; PreshaderCompilationOutput &gt; compile_variant_preshader</definition>
+        <argsstring>(const PreshaderCompilationInput &amp;input, shc::VariantContext &amp;vctx)</argsstring>
+        <name>compile_variant_preshader</name>
+        <param>
+          <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;</type>
+          <declname>input</declname>
+        </param>
+        <param>
+          <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> &amp;</type>
+          <declname>vctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="160" column="17" bodyfile="preshaderCompilation.cpp" bodystart="479" bodyend="732" declfile="preshaderCompilation.h" declline="160" declcolumn="17"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;shsyn.h&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="const3d_8h" kindref="compound">const3d.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shaderTab_8h" kindref="compound">shaderTab.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="shErrorReporting_8h" kindref="compound">shErrorReporting.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="namedConst_8h" kindref="compound">namedConst.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="cppStcodeAssembly_8h" kindref="compound">cppStcodeAssembly.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="variablesMerger_8h" kindref="compound">variablesMerger.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;ska_hash_map/flat_hash_map2.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespacesemantic" kindref="compound">semantic</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">VariableType</ref>;<sp/></highlight><highlight class="comment">//<sp/>Forward-declared<sp/>so<sp/>as<sp/>not<sp/>to<sp/>create<sp/>a<sp/>dependecy<sp/>on<sp/>variant<sp/>semantic</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceshc" kindref="compound">shc</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">VariantContext;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="structPreshaderStat" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref></highlight></codeline>
+<codeline lineno="27"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="28" refid="structPreshaderStat_1a9cf7ba2284ea94f65973cfedd381da2d" refkind="member"><highlight class="normal"><sp/><sp/>ShaderTerminal::state_block_stat<sp/>*<ref refid="structPreshaderStat_1a9cf7ba2284ea94f65973cfedd381da2d" kindref="member">stat</ref>;</highlight></codeline>
+<codeline lineno="29" refid="structPreshaderStat_1a52902460c656c89c6d1adc56daf8ba09" refkind="member"><highlight class="normal"><sp/><sp/>ShaderStage<sp/><ref refid="structPreshaderStat_1a52902460c656c89c6d1adc56daf8ba09" kindref="member">stage</ref>;</highlight></codeline>
+<codeline lineno="30" refid="structPreshaderStat_1adf694aa5b5894704ef2b8b74f2cd265c" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="namespacesemantic_1a1fd7ba909c618ad56fbacae8b3226182" kindref="member">semantic::VariableType</ref><sp/><ref refid="structPreshaderStat_1adf694aa5b5894704ef2b8b74f2cd265c" kindref="member">vt</ref>;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="preshaderCompilation_8h_1af48485ba9527f1a1b058b7db5e90bd32" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="preshaderCompilation_8h_1af48485ba9527f1a1b058b7db5e90bd32" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref><sp/>&amp;s1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref><sp/>&amp;s2)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>s1.<ref refid="structPreshaderStat_1a9cf7ba2284ea94f65973cfedd381da2d" kindref="member">stat</ref><sp/>==<sp/>s2.<ref refid="structPreshaderStat_1a9cf7ba2284ea94f65973cfedd381da2d" kindref="member">stat</ref><sp/>&amp;&amp;<sp/>s1.<ref refid="structPreshaderStat_1a52902460c656c89c6d1adc56daf8ba09" kindref="member">stage</ref><sp/>==<sp/>s2.<ref refid="structPreshaderStat_1a52902460c656c89c6d1adc56daf8ba09" kindref="member">stage</ref><sp/>&amp;&amp;<sp/>s1.<ref refid="structPreshaderStat_1adf694aa5b5894704ef2b8b74f2cd265c" kindref="member">vt</ref><sp/>==<sp/>s2.<ref refid="structPreshaderStat_1adf694aa5b5894704ef2b8b74f2cd265c" kindref="member">vt</ref>;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="structPreshaderCompilationInput" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref></highlight></codeline>
+<codeline lineno="39"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="40" refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderTerminal::supports_stat<sp/>*&gt;<sp/><ref refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" kindref="member">supportStats</ref>{};</highlight></codeline>
+<codeline lineno="41" refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;eastl::variant&lt;PreshaderStat,<sp/>ShaderTerminal::local_var_decl<sp/>*&gt;&gt;<sp/><ref refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" kindref="member">scalarStats</ref>{};</highlight></codeline>
+<codeline lineno="42" refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;PreshaderStat&gt;<sp/><ref refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" kindref="member">staticTextureStats</ref>{};</highlight></codeline>
+<codeline lineno="43" refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;PreshaderStat&gt;<sp/><ref refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" kindref="member">dynamicResourceStats</ref>{};</highlight></codeline>
+<codeline lineno="44" refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;PreshaderStat&gt;<sp/><ref refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" kindref="member">hardcodedStats</ref>{};</highlight></codeline>
+<codeline lineno="45" refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" kindref="member">isCompute</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>@NOTE:<sp/>this<sp/>is<sp/>not<sp/>used<sp/>for<sp/>codegen.<sp/>However,<sp/>this<sp/>is<sp/>required<sp/>for<sp/>unique<sp/>identification,<sp/>as<sp/>different<sp/>var<sp/>maps<sp/>lead<sp/>to<sp/>different</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>bytecodes,<sp/>and<sp/>they<sp/>only<sp/>consolidate<sp/>at<sp/>eval<sp/>end<sp/>(and<sp/>we<sp/>want<sp/>caching<sp/>while<sp/>it<sp/>is<sp/>ongoing)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderTerminal::static_var_decl<sp/>*&gt;<sp/><ref refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" kindref="member">staticVarDecls</ref>{};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="preshaderCompilation_8h_1a96beb07e550d8c3eb67269dd7ac0b245" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="preshaderCompilation_8h_1af48485ba9527f1a1b058b7db5e90bd32" kindref="member">operator==</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;i1,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;i2)</highlight></codeline>
+<codeline lineno="53"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(i1.<ref refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" kindref="member">supportStats</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" kindref="member">supportStats</ref>.size()<sp/>||<sp/>i1.<ref refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" kindref="member">scalarStats</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" kindref="member">scalarStats</ref>.size()<sp/>||</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>i1.<ref refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" kindref="member">staticTextureStats</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" kindref="member">staticTextureStats</ref>.size()<sp/>||</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>i1.<ref refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" kindref="member">dynamicResourceStats</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" kindref="member">dynamicResourceStats</ref>.size()<sp/>||<sp/>i1.<ref refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" kindref="member">hardcodedStats</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" kindref="member">hardcodedStats</ref>.size()<sp/>||</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>i1.<ref refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" kindref="member">staticVarDecls</ref>.size()<sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" kindref="member">staticVarDecls</ref>.size()<sp/>||<sp/>i1.<ref refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" kindref="member">isCompute</ref><sp/>!=<sp/>i2.<ref refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" kindref="member">isCompute</ref>)</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>i1.<ref refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" kindref="member">supportStats</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" kindref="member">supportStats</ref><sp/>&amp;&amp;<sp/>i1.<ref refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" kindref="member">scalarStats</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" kindref="member">scalarStats</ref><sp/>&amp;&amp;<sp/>i1.<ref refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" kindref="member">staticTextureStats</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" kindref="member">staticTextureStats</ref><sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i1.<ref refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" kindref="member">dynamicResourceStats</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" kindref="member">dynamicResourceStats</ref><sp/>&amp;&amp;<sp/>i1.<ref refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" kindref="member">hardcodedStats</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" kindref="member">hardcodedStats</ref><sp/>&amp;&amp;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>i1.<ref refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" kindref="member">staticVarDecls</ref><sp/>==<sp/>i2.<ref refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" kindref="member">staticVarDecls</ref>;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="namespaceeastl" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaceeastl" kindref="compound">eastl</ref></highlight></codeline>
+<codeline lineno="68"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="71" refid="structeastl_1_1hash_3_01PreshaderStat_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">hash&lt;<ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref>&gt;</highlight></codeline>
+<codeline lineno="72"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="73" refid="structeastl_1_1hash_3_01PreshaderStat_01_4_1a39b90879efc1b3ab7b427079bdb2c31a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structeastl_1_1hash_3_01PreshaderStat_01_4_1a39b90879efc1b3ab7b427079bdb2c31a" kindref="member">operator()</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref><sp/>&amp;stat)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>h<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>uintptr_t(stat.stat));</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal">(stat.stage));</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>stat.vt);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>h;</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="81"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="84" refid="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">hash&lt;<ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref>&gt;</highlight></codeline>
+<codeline lineno="85"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="86" refid="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4_1a85e3c6b3797400a2a09696fc3a2e671b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4_1a85e3c6b3797400a2a09696fc3a2e671b" kindref="member">operator()</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;inp)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">noexcept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>MAGIC<sp/>=<sp/>0xFADEDEED;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>h<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>inp.isCompute);</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*s<sp/>:<sp/>inp.supportStats)</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>uintptr_t(s));</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;s<sp/>:<sp/>inp.hardcodedStats)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>s);</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;v<sp/>:<sp/>inp.scalarStats)</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>v.index());</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>eastl::visit(</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>[&amp;h](</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;v)<sp/>{</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>(eastl::is_same_v&lt;eastl::decay_t&lt;</highlight><highlight class="keyword">decltype</highlight><highlight class="normal">(v)&gt;,<sp/><ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref>&gt;)</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>v);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>uintptr_t(v));</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>},</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>v);</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;s<sp/>:<sp/>inp.staticTextureStats)</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>s);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;s<sp/>:<sp/>inp.dynamicResourceStats)</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>s);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>MAGIC);</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>*s<sp/>:<sp/>inp.staticVarDecls)</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="commonUtils_8h_1a0e96e1e75b0e53402e01d6fa558e1a88" kindref="member">hash_into</ref>(h,<sp/>uintptr_t(s));</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>h;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="121"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>eastl</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight></codeline>
+<codeline lineno="125" refid="structCompiledPreshader" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref></highlight></codeline>
+<codeline lineno="126"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="127" refid="structCompiledPreshader_1af1a1f4dab37741a0dfb879654b989c08" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref><sp/><ref refid="structCompiledPreshader_1af1a1f4dab37741a0dfb879654b989c08" kindref="member">namedConstTable</ref>;</highlight></codeline>
+<codeline lineno="128" refid="structCompiledPreshader_1af4a50098a1b81493f37470ff0a52b414" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structStcodePass" kindref="compound">StcodePass</ref><sp/><ref refid="structCompiledPreshader_1af4a50098a1b81493f37470ff0a52b414" kindref="member">cppStcode</ref>{};</highlight></codeline>
+<codeline lineno="129" refid="structCompiledPreshader_1a67673d7c62b958f20a57fa493b185b38" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classSerializableTab" kindref="compound">TabStcode</ref><sp/><ref refid="structCompiledPreshader_1a67673d7c62b958f20a57fa493b185b38" kindref="member">dynStBytecode</ref>,<sp/><ref refid="structCompiledPreshader_1abdf753b609bd79d60a7c085959380b1a" kindref="member">stBlkBytecode</ref>;</highlight></codeline>
+<codeline lineno="130" refid="structCompiledPreshader_1a5b3d11b43800c80b188224bf8a12745d" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">ShaderParser::VariablesMerger::MergedVarsMapsPerStage</ref><sp/><ref refid="structCompiledPreshader_1a5b3d11b43800c80b188224bf8a12745d" kindref="member">constPackedVarsMaps</ref>;</highlight></codeline>
+<codeline lineno="131" refid="structCompiledPreshader_1abf0153bcf2efaecb361fa9c72a81937b" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">ShaderParser::VariablesMerger::MergedVarsMap</ref><sp/><ref refid="structCompiledPreshader_1abf0153bcf2efaecb361fa9c72a81937b" kindref="member">bufferedPackedVarsMap</ref>;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"></highlight></codeline>
+<codeline lineno="133" refid="structCompiledPreshader_1a7c08041ca7136e1c91e89d6e20b12230" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;uintptr_t&gt;<sp/><ref refid="structCompiledPreshader_1a7c08041ca7136e1c91e89d6e20b12230" kindref="member">usedPreshaderStatements</ref>{};</highlight></codeline>
+<codeline lineno="134" refid="structCompiledPreshader_1a3ec2456526ec96470531f5212d8d2579" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;uintptr_t&gt;<sp/><ref refid="structCompiledPreshader_1a3ec2456526ec96470531f5212d8d2579" kindref="member">preshaderVarsNeedingSamplerAsm</ref>{};</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"></highlight></codeline>
+<codeline lineno="136" refid="structCompiledPreshader_1ab5ff7fc26138235fc69c2f38e6b7dfd3" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;Terminal<sp/>*&gt;<sp/><ref refid="structCompiledPreshader_1ab5ff7fc26138235fc69c2f38e6b7dfd3" kindref="member">stcodeVars</ref>;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138" refid="structCompiledPreshader_1a8b3ddca061003fb66b1134f1c949b505" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1a8b3ddca061003fb66b1134f1c949b505" kindref="member">isCompute</ref>;</highlight></codeline>
+<codeline lineno="139" refid="structCompiledPreshader_1a7106bcf6139a05d24d2bb0d9a6aee8b7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1a7106bcf6139a05d24d2bb0d9a6aee8b7" kindref="member">requiredRegCount</ref>;</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="structCompiledPreshader_1ac3bf9b45304747236ecfa9f23bb5f4c6" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;String&gt;<sp/><ref refid="structCompiledPreshader_1ac3bf9b45304747236ecfa9f23bb5f4c6" kindref="member">dynamicSamplerImplicitVars</ref>;</highlight></codeline>
+<codeline lineno="142" refid="structCompiledPreshader_1a9310fab36cba3351ff5191b2f97780dc" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="structCompiledPreshader_1a9310fab36cba3351ff5191b2f97780dc" kindref="member">usedMaterialVarIds</ref>;</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight></codeline>
+<codeline lineno="144" refid="structCompiledPreshader_1a7b8791670824d9e2edba599cb6dbca02" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;ShaderVarTextureType&gt;<sp/><ref refid="structCompiledPreshader_1a7b8791670824d9e2edba599cb6dbca02" kindref="member">shadervarTexTypes</ref>;</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight></codeline>
+<codeline lineno="146" refid="structCompiledPreshader_1a2d9c384e30eaa737aaa93a07385d0a4e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1a2d9c384e30eaa737aaa93a07385d0a4e" kindref="member">stblkcodeNo</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="147" refid="structCompiledPreshader_1af79e2d838f55d0506519445f20e2d1fd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1af79e2d838f55d0506519445f20e2d1fd" kindref="member">stcodeNo</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="148" refid="structCompiledPreshader_1a7efc5d3e3a41b09b43f0d58b6980b9e1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1a7efc5d3e3a41b09b43f0d58b6980b9e1" kindref="member">cppStblkcodeId</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="149" refid="structCompiledPreshader_1a15c0998d302bc2a89ee0171288938946" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1a15c0998d302bc2a89ee0171288938946" kindref="member">cppStcodeId</ref><sp/>=<sp/>-1;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>true<sp/>means<sp/>cppStcode,<sp/>dynStBytecode<sp/>and<sp/>stBlkBytecode<sp/>have<sp/>been<sp/>flushed<sp/>to<sp/>target<sp/>caches,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>and<sp/>instead<sp/>can<sp/>be<sp/>referred<sp/>to<sp/>by<sp/>the<sp/>ids<sp/>above</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="152" refid="structCompiledPreshader_1afe32632696f0fb556a04803725068a56" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structCompiledPreshader_1afe32632696f0fb556a04803725068a56" kindref="member">postedToTarget</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"></highlight></codeline>
+<codeline lineno="155" refid="structPreshaderCompilationOutput" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structPreshaderCompilationOutput" kindref="compound">PreshaderCompilationOutput</ref></highlight></codeline>
+<codeline lineno="156"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="157" refid="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref><sp/><ref refid="structPreshaderCompilationOutput_1a0cbcc02586dcf89eeefa3f04966779e9" kindref="member">code</ref>;</highlight></codeline>
+<codeline lineno="158"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"></highlight></codeline>
+<codeline lineno="160"><highlight class="normal">eastl::optional&lt;PreshaderCompilationOutput&gt;<sp/><ref refid="preshaderCompilation_8h_1a7458f5caa5df9b4e30da99ff8549e290" kindref="member">compile_variant_preshader</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;input,</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref><sp/>&amp;vctx);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"></highlight></codeline>
+<codeline lineno="163" refid="classPreshaderCompilationCache" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classPreshaderCompilationCache" kindref="compound">PreshaderCompilationCache</ref></highlight></codeline>
+<codeline lineno="164"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/>ska::flat_hash_map&lt;PreshaderCompilationInput,<sp/>eastl::unique_ptr&lt;CompiledPreshader&gt;&gt;<sp/>cache;</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"></highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="168" refid="classPreshaderCompilationCache_1a95262c84c58d56197c3de63805e00772" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref><sp/>*<ref refid="classPreshaderCompilationCache_1a95262c84c58d56197c3de63805e00772" kindref="member">query</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;input)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="169"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>it<sp/>=<sp/>cache.find(input);<sp/>it<sp/>!=<sp/>cache.end())</highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it-&gt;second.get();</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"></highlight></codeline>
+<codeline lineno="175" refid="classPreshaderCompilationCache_1a8915865870add2691099564d0d4f02e4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref><sp/>*<ref refid="classPreshaderCompilationCache_1a8915865870add2691099564d0d4f02e4" kindref="member">post</ref>(<ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref><sp/>&amp;&amp;input,<sp/><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref><sp/>&amp;&amp;code)</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>[it,<sp/>ok]<sp/>=<sp/>cache.emplace(eastl::move(input),<sp/>eastl::make_unique&lt;CompiledPreshader&gt;(eastl::move(code)));</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/><sp/><sp/>G_ASSERT(ok);</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>it-&gt;second.get();</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="181"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="preshaderCompilation.h"/>
+  </compounddef>
+</doxygen>

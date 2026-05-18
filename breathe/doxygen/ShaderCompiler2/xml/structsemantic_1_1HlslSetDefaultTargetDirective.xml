@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structsemantic_1_1HlslSetDefaultTargetDirective" kind="struct" language="C++" prot="public">
+    <compoundname>semantic::HlslSetDefaultTargetDirective</compoundname>
+    <includes refid="hwSemantic_8h" local="no">hwSemantic.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structsemantic_1_1HlslSetDefaultTargetDirective_1a0ca56f17352d6759dddaff38f6685920" prot="public" static="no" mutable="no">
+        <type>String</type>
+        <definition>String semantic::HlslSetDefaultTargetDirective::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>semantic::HlslSetDefaultTargetDirective::target</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="hwSemantic.h" line="32" column="10" bodyfile="hwSemantic.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="hwSemantic.h" line="30" column="1" bodyfile="hwSemantic.h" bodystart="31" bodyend="33"/>
+    <listofallmembers>
+      <member refid="structsemantic_1_1HlslSetDefaultTargetDirective_1a0ca56f17352d6759dddaff38f6685920" prot="public" virt="non-virtual"><scope>semantic::HlslSetDefaultTargetDirective</scope><name>target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

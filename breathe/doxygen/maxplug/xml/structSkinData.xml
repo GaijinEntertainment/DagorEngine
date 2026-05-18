@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structSkinData" kind="struct" language="C++" prot="public">
+    <compoundname>SkinData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSkinData_1a4167e987be1ffc0d7e646de9e751b7d8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SkinData::numb</definition>
+        <argsstring></argsstring>
+        <name>numb</name>
+        <qualifiedname>SkinData::numb</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="41" column="7" bodyfile="dagimp.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSkinData_1afda32c4bcf06a06aa0c4256dd4dc4264" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int SkinData::numvert</definition>
+        <argsstring></argsstring>
+        <name>numvert</name>
+        <qualifiedname>SkinData::numvert</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="41" column="12" bodyfile="dagimp.cpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSkinData_1a39f8918842ee3cab77ef895ba17be64a" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structDagBone" kindref="compound">DagBone</ref> &gt;</type>
+        <definition>Tab&lt;DagBone&gt; SkinData::bones</definition>
+        <argsstring></argsstring>
+        <name>bones</name>
+        <qualifiedname>SkinData::bones</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="42" column="7" bodyfile="dagimp.cpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSkinData_1a9900c187aea406202c9f86311d195897" prot="public" static="no" mutable="no">
+        <type>Tab&lt; float &gt;</type>
+        <definition>Tab&lt;float&gt; SkinData::wt</definition>
+        <argsstring></argsstring>
+        <name>wt</name>
+        <qualifiedname>SkinData::wt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="43" column="7" bodyfile="dagimp.cpp" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSkinData_1a301c71b860d61b66cc134d8fa32c0d40" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* SkinData::skinNode</definition>
+        <argsstring></argsstring>
+        <name>skinNode</name>
+        <qualifiedname>SkinData::skinNode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="44" column="9" bodyfile="dagimp.cpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structSkinData_1a35bfa84da3feb2737d2203b7f8797919" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>SkinData::SkinData</definition>
+        <argsstring>()</argsstring>
+        <name>SkinData</name>
+        <qualifiedname>SkinData::SkinData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="45" column="3" bodyfile="dagimp.cpp" bodystart="45" bodyend="45"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="39" column="1" bodyfile="dagimp.cpp" bodystart="40" bodyend="46"/>
+    <listofallmembers>
+      <member refid="structSkinData_1a39f8918842ee3cab77ef895ba17be64a" prot="public" virt="non-virtual"><scope>SkinData</scope><name>bones</name></member>
+      <member refid="structSkinData_1a4167e987be1ffc0d7e646de9e751b7d8" prot="public" virt="non-virtual"><scope>SkinData</scope><name>numb</name></member>
+      <member refid="structSkinData_1afda32c4bcf06a06aa0c4256dd4dc4264" prot="public" virt="non-virtual"><scope>SkinData</scope><name>numvert</name></member>
+      <member refid="structSkinData_1a35bfa84da3feb2737d2203b7f8797919" prot="public" virt="non-virtual"><scope>SkinData</scope><name>SkinData</name></member>
+      <member refid="structSkinData_1a301c71b860d61b66cc134d8fa32c0d40" prot="public" virt="non-virtual"><scope>SkinData</scope><name>skinNode</name></member>
+      <member refid="structSkinData_1a9900c187aea406202c9f86311d195897" prot="public" virt="non-virtual"><scope>SkinData</scope><name>wt</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

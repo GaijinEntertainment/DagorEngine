@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindow_1_1CameraSaveState" kind="struct" language="C++" prot="protected">
+    <compoundname>ViewportWindow::CameraSaveState</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindow_1_1CameraSaveState_1a009b009dea7275a6c6e9b812a268e492" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::CameraSaveState::hasCapture</definition>
+        <argsstring></argsstring>
+        <name>hasCapture</name>
+        <qualifiedname>ViewportWindow::CameraSaveState::hasCapture</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="395" column="10" bodyfile="ec_ViewportWindow.h" bodystart="395" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1CameraSaveState_1a45128b91447d6356e470ff015e380ecc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::CameraSaveState::isCursorVisible</definition>
+        <argsstring></argsstring>
+        <name>isCursorVisible</name>
+        <qualifiedname>ViewportWindow::CameraSaveState::isCursorVisible</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="396" column="10" bodyfile="ec_ViewportWindow.h" bodystart="396" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1CameraSaveState_1a380fcce51f0376e72ab8565de499a5d8" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 ViewportWindow::CameraSaveState::lastPosition</definition>
+        <argsstring></argsstring>
+        <name>lastPosition</name>
+        <qualifiedname>ViewportWindow::CameraSaveState::lastPosition</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="397" column="13" bodyfile="ec_ViewportWindow.h" bodystart="397" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindow.h" line="393" column="3" bodyfile="ec_ViewportWindow.h" bodystart="394" bodyend="398"/>
+    <listofallmembers>
+      <member refid="structViewportWindow_1_1CameraSaveState_1a009b009dea7275a6c6e9b812a268e492" prot="public" virt="non-virtual"><scope>ViewportWindow::CameraSaveState</scope><name>hasCapture</name></member>
+      <member refid="structViewportWindow_1_1CameraSaveState_1a45128b91447d6356e470ff015e380ecc" prot="public" virt="non-virtual"><scope>ViewportWindow::CameraSaveState</scope><name>isCursorVisible</name></member>
+      <member refid="structViewportWindow_1_1CameraSaveState_1a380fcce51f0376e72ab8565de499a5d8" prot="public" virt="non-virtual"><scope>ViewportWindow::CameraSaveState</scope><name>lastPosition</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

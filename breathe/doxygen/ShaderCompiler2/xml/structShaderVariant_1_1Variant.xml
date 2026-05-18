@@ -1,0 +1,151 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderVariant_1_1Variant" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderVariant::Variant</compoundname>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structShaderVariant_1_1Variant_1acffe20a663060a345b28d9157de15367" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class VariantSrc</definition>
+        <argsstring></argsstring>
+        <name>VariantSrc</name>
+        <qualifiedname>ShaderVariant::Variant::VariantSrc</qualifiedname>
+        <param>
+          <type><ref refid="classShaderVariant_1_1VariantSrc" kindref="compound">VariantSrc</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="218" column="16" bodyfile="shaderVariant.h" bodystart="218" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structShaderVariant_1_1Variant_1a7f0cacb2bcca03cfa8e3279592e6a9e7" prot="protected" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1CombinedValues" kindref="compound">CombinedValues</ref></type>
+        <definition>CombinedValues ShaderVariant::Variant::combinedValues</definition>
+        <argsstring></argsstring>
+        <name>combinedValues</name>
+        <qualifiedname>ShaderVariant::Variant::combinedValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="219" column="18" bodyfile="shaderVariant.h" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderVariant_1_1Variant_1a3ea5741fd601096a3f6df3883b67940a" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderVariant::Variant::codeId</definition>
+        <argsstring></argsstring>
+        <name>codeId</name>
+        <qualifiedname>ShaderVariant::Variant::codeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="222" column="7" bodyfile="shaderVariant.h" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderVariant_1_1Variant_1ae191e82e3d69c310a96f52da609d5a08" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::Variant::Variant</definition>
+        <argsstring>()</argsstring>
+        <name>Variant</name>
+        <qualifiedname>ShaderVariant::Variant::Variant</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="224" column="10" bodyfile="shaderVariant.h" bodystart="224" bodyend="224"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1Variant_1ac4e3413aadae22944d5b6064a06ccc2d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderVariant::Variant::isEqual</definition>
+        <argsstring>(const SearchInfo &amp;other) const</argsstring>
+        <name>isEqual</name>
+        <qualifiedname>ShaderVariant::Variant::isEqual</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="227" column="15" bodyfile="shaderVariant.h" bodystart="227" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1Variant_1ab3dc4394c3f41040c8a77e4d9d4e0b03" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::Variant::getValue</definition>
+        <argsstring>(uint32_t index) const</argsstring>
+        <name>getValue</name>
+        <qualifiedname>ShaderVariant::Variant::getValue</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="228" column="19" bodyfile="shaderVariant.h" bodystart="228" bodyend="232"/>
+      </memberdef>
+      <memberdef kind="function" id="structShaderVariant_1_1Variant_1a67a6e8dcc733b8aa3ee8c0b7a5a73ffa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::Variant::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>ShaderVariant::Variant::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="234" column="19" bodyfile="shaderVariant.h" bodystart="234" bodyend="234"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariant::Variant</label>
+        <link refid="structShaderVariant_1_1Variant"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="shaderVariant.h" line="215" column="1" bodyfile="shaderVariant.h" bodystart="216" bodyend="235"/>
+    <listofallmembers>
+      <member refid="structShaderVariant_1_1Variant_1a3ea5741fd601096a3f6df3883b67940a" prot="public" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>codeId</name></member>
+      <member refid="structShaderVariant_1_1Variant_1a7f0cacb2bcca03cfa8e3279592e6a9e7" prot="protected" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>combinedValues</name></member>
+      <member refid="structShaderVariant_1_1Variant_1a67a6e8dcc733b8aa3ee8c0b7a5a73ffa" prot="public" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>getCount</name></member>
+      <member refid="structShaderVariant_1_1Variant_1ab3dc4394c3f41040c8a77e4d9d4e0b03" prot="public" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>getValue</name></member>
+      <member refid="structShaderVariant_1_1Variant_1ac4e3413aadae22944d5b6064a06ccc2d" prot="public" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>isEqual</name></member>
+      <member refid="structShaderVariant_1_1Variant_1ae191e82e3d69c310a96f52da609d5a08" prot="public" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>Variant</name></member>
+      <member refid="structShaderVariant_1_1Variant_1acffe20a663060a345b28d9157de15367" prot="protected" virt="non-virtual"><scope>ShaderVariant::Variant</scope><name>VariantSrc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

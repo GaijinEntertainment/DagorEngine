@@ -1,0 +1,217 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classresptr__detail_1_1ManagedRes" kind="class" language="C++" prot="public">
+    <compoundname>resptr_detail::ManagedRes</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</basecompoundref>
+    <derivedcompoundref refid="classresptr__detail_1_1UniqueRes" prot="public" virt="non-virtual">resptr_detail::UniqueRes&lt; ManagedBuf &gt;</derivedcompoundref>
+    <derivedcompoundref refid="classresptr__detail_1_1ResizableManagedTex" prot="public" virt="non-virtual">resptr_detail::ResizableManagedTex</derivedcompoundref>
+    <includes refid="dag__resPtr_8h" local="no">dag_resPtr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename ResType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedRes_1a001deffa988dfbb9cad7260375202ddb" prot="public" static="no">
+        <type>ResType</type>
+        <definition>using resptr_detail::ManagedRes&lt; ResType &gt;::resource_t =  ResType</definition>
+        <argsstring></argsstring>
+        <name>resource_t</name>
+        <qualifiedname>resptr_detail::ManagedRes::resource_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="345" column="3" bodyfile="dag_resPtr.h" bodystart="345" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classresptr__detail_1_1ManagedRes_1a961addbf9bc419d8ce5330b6d28e2a7d" prot="public" static="no">
+        <type>typename <ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt; ResType &gt;::resid_t</type>
+        <definition>using resptr_detail::ManagedRes&lt; ResType &gt;::resid_t =  typename Helper&lt;ResType&gt;::resid_t</definition>
+        <argsstring></argsstring>
+        <name>resid_t</name>
+        <qualifiedname>resptr_detail::ManagedRes::resid_t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="346" column="3" bodyfile="dag_resPtr.h" bodystart="346" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classresptr__detail_1_1ManagedRes_1a1bc73c3c24c0175853b227531ed9cad6" prot="protected" static="no" mutable="no">
+        <type>friend</type>
+        <definition>friend resptr_detail::ManagedRes&lt; ResType &gt;::PrivateDataGetter</definition>
+        <argsstring></argsstring>
+        <name>PrivateDataGetter</name>
+        <qualifiedname>resptr_detail::ManagedRes::PrivateDataGetter</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="349" column="10" bodyfile="dag_resPtr.h" bodystart="349" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classresptr__detail_1_1ManagedRes_1a1a983a6801e83f76dc2aba7916f2c4d6" prot="protected" static="no" mutable="no">
+        <type><ref refid="classresptr__detail_1_1ManagedRes_1a961addbf9bc419d8ce5330b6d28e2a7d" kindref="member">resid_t</ref></type>
+        <definition>resid_t resptr_detail::ManagedRes&lt; ResType &gt;::mResId</definition>
+        <argsstring></argsstring>
+        <name>mResId</name>
+        <qualifiedname>resptr_detail::ManagedRes::mResId</qualifiedname>
+        <initializer>= <ref refid="structresptr__detail_1_1Helper" kindref="compound">Helper</ref>&lt;ResType&gt;::BAD_ID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="351" column="11" bodyfile="dag_resPtr.h" bodystart="351" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classresptr__detail_1_1ManagedRes_1a15f373fbfb4bba15870bb9213a20f17b" prot="protected" static="no" mutable="no">
+        <type>ResType *</type>
+        <definition>ResType* resptr_detail::ManagedRes&lt; ResType &gt;::mResource</definition>
+        <argsstring></argsstring>
+        <name>mResource</name>
+        <qualifiedname>resptr_detail::ManagedRes::mResource</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="352" column="11" bodyfile="dag_resPtr.h" bodystart="352" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedRes_1a9feed595d9973d71f23a7c0de6887c8f" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void resptr_detail::ManagedRes&lt; ResType &gt;::swap</definition>
+        <argsstring>(ManagedRes &amp;other)</argsstring>
+        <name>swap</name>
+        <qualifiedname>resptr_detail::ManagedRes::swap</qualifiedname>
+        <param>
+          <type><ref refid="classresptr__detail_1_1ManagedRes" kindref="compound">ManagedRes</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="354" column="8" bodyfile="dag_resPtr.h" bodystart="354" bodyend="358"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedRes_1ab13b7fdadf748f7648a0dcfb9062bace" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedRes&lt; ResType &gt;::ManagedRes</definition>
+        <argsstring>()=default</argsstring>
+        <name>ManagedRes</name>
+        <qualifiedname>resptr_detail::ManagedRes::ManagedRes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="360" column="3"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedRes_1a231af0b8226ebfde92f8bd76e6e3cb2c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>ResType *</type>
+        <definition>ResType * resptr_detail::ManagedRes&lt; ResType &gt;::operator-&gt;</definition>
+        <argsstring>() const</argsstring>
+        <name>operator-&gt;</name>
+        <qualifiedname>resptr_detail::ManagedRes::operator-&gt;</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="363" column="11" bodyfile="dag_resPtr.h" bodystart="363" bodyend="363"/>
+      </memberdef>
+      <memberdef kind="function" id="classresptr__detail_1_1ManagedRes_1a0b05c8dd898c8597b05befff8acda242" prot="public" static="no" const="yes" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>resptr_detail::ManagedRes&lt; ResType &gt;::operator bool</definition>
+        <argsstring>() const</argsstring>
+        <name>operator bool</name>
+        <qualifiedname>resptr_detail::ManagedRes::operator bool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resPtr.h" line="365" column="12" bodyfile="dag_resPtr.h" bodystart="365" bodyend="365"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="5">
+        <label>resptr_detail::ManagedResHolder&lt; ResizableManagedTex &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedResHolder"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</label>
+      </node>
+      <node id="3">
+        <label>resptr_detail::UniqueRes&lt; ManagedBuf &gt;</label>
+        <link refid="classresptr__detail_1_1UniqueRes"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedRes&lt; ResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>resptr_detail::ResizableManagedTex&lt; BaseTexture &gt;</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTex"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>resptr_detail::ResizableManagedTexHolder</label>
+        <link refid="classresptr__detail_1_1ResizableManagedTexHolder"/>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ResourceGetter&lt; ManagedRes&lt; ResType &gt;, ResType &gt;</label>
+      </node>
+      <node id="1">
+        <label>resptr_detail::ManagedRes&lt; ResType &gt;</label>
+        <link refid="classresptr__detail_1_1ManagedRes"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_resPtr.h" line="342" column="1" bodyfile="dag_resPtr.h" bodystart="343" bodyend="366"/>
+    <listofallmembers>
+      <member refid="classresptr__detail_1_1ManagedRes_1ab13b7fdadf748f7648a0dcfb9062bace" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>ManagedRes</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a1a983a6801e83f76dc2aba7916f2c4d6" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>mResId</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a15f373fbfb4bba15870bb9213a20f17b" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>mResource</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a0b05c8dd898c8597b05befff8acda242" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>operator bool</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a231af0b8226ebfde92f8bd76e6e3cb2c" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>operator-&gt;</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a1bc73c3c24c0175853b227531ed9cad6" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>PrivateDataGetter</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a961addbf9bc419d8ce5330b6d28e2a7d" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>resid_t</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a001deffa988dfbb9cad7260375202ddb" prot="public" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>resource_t</name></member>
+      <member refid="classresptr__detail_1_1ManagedRes_1a9feed595d9973d71f23a7c0de6887c8f" prot="protected" virt="non-virtual"><scope>resptr_detail::ManagedRes</scope><name>swap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

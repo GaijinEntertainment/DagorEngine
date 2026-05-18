@@ -1,0 +1,545 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structunitedvdata_1_1BufPool" kind="struct" language="C++" prot="public">
+    <compoundname>unitedvdata::BufPool</compoundname>
+    <innerclass refid="structunitedvdata_1_1BufPool_1_1PoolSize" prot="public">unitedvdata::BufPool::PoolSize</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="structunitedvdata_1_1BufPool_1af2ac58aa2093f2d40cd4e0d477e18368" prot="public" static="no" strong="no">
+        <type></type>
+        <name></name>
+        <qualifiedname>unitedvdata::BufPool</qualifiedname>
+        <enumvalue id="structunitedvdata_1_1BufPool_1af2ac58aa2093f2d40cd4e0d477e18368aac4da2ce1def01158e5a5414a42c241e" prot="public">
+          <name>IDX_IB</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="structunitedvdata_1_1BufPool_1af2ac58aa2093f2d40cd4e0d477e18368ada0dd395dae8115fb9defaf92b31084f" prot="public">
+          <name>IDX_VB_START</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="61" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="62" bodyend="65"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a3f03dcb595cec8e86dbbc1c160ffd7ee" prot="public" static="no" mutable="no">
+        <type>StaticTab&lt; Sbuffer *, MAX_VBIDX_CNT &gt;</type>
+        <definition>StaticTab&lt;Sbuffer *, MAX_VBIDX_CNT&gt; unitedvdata::BufPool::sbuf</definition>
+        <argsstring></argsstring>
+        <name>sbuf</name>
+        <qualifiedname>unitedvdata::BufPool::sbuf</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="79" column="13" bodyfile="dag_shaderResUnitedData.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1aef1b25cf551c2d2cd1c909b3b30d295e" prot="public" static="no" mutable="no">
+        <type>StaticTab&lt; <ref refid="structunitedvdata_1_1BufPool_1_1PoolSize" kindref="compound">PoolSize</ref>, MAX_VBIDX_CNT &gt;</type>
+        <definition>StaticTab&lt;PoolSize, MAX_VBIDX_CNT&gt; unitedvdata::BufPool::pool</definition>
+        <argsstring></argsstring>
+        <name>pool</name>
+        <qualifiedname>unitedvdata::BufPool::pool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="80" column="13" bodyfile="dag_shaderResUnitedData.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a14b1694307534dd2393e671aa553cfe7" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+        <definition>Tab&lt;BufChunk&gt; unitedvdata::BufPool::freeChunks[MAX_CHUNK_CNT]</definition>
+        <argsstring>[MAX_CHUNK_CNT]</argsstring>
+        <name>freeChunks</name>
+        <qualifiedname>unitedvdata::BufPool::freeChunks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="81" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1abd62f77e4146d8e954c6f1ab3b511caa" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::maxVbSize</definition>
+        <argsstring></argsstring>
+        <name>maxVbSize</name>
+        <qualifiedname>unitedvdata::BufPool::maxVbSize</qualifiedname>
+        <initializer>= 64 &lt;&lt; 20</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="82" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a77ecd7128e373a8a65f7f538ca02f503" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::allowRebuild</definition>
+        <argsstring></argsstring>
+        <name>allowRebuild</name>
+        <qualifiedname>unitedvdata::BufPool::allowRebuild</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="83" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1ab13058a82fdf13a2297fa61ba8bfaf52" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::allowDelRes</definition>
+        <argsstring></argsstring>
+        <name>allowDelRes</name>
+        <qualifiedname>unitedvdata::BufPool::allowDelRes</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="83" column="22" bodyfile="dag_shaderResUnitedData.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a72f5e59830ad0e0b5f4871fa34243e25" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char unitedvdata::BufPool::nameChar</definition>
+        <argsstring></argsstring>
+        <name>nameChar</name>
+        <qualifiedname>unitedvdata::BufPool::nameChar</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="84" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a348dd9754156513c7615fc648be29242" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::maxIBUseKb</definition>
+        <argsstring></argsstring>
+        <name>maxIBUseKb</name>
+        <qualifiedname>unitedvdata::BufPool::maxIBUseKb</qualifiedname>
+        <initializer>= INT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="85" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1ab3680cfdf0c9c15208f170360b22c80d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::maxVBUseKb</definition>
+        <argsstring></argsstring>
+        <name>maxVBUseKb</name>
+        <qualifiedname>unitedvdata::BufPool::maxVBUseKb</qualifiedname>
+        <initializer>= INT_MAX</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="86" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1a2b44c5c68f2bdcd915c0e391e9c44845" prot="public" static="no" mutable="no">
+        <type>std::mutex</type>
+        <definition>std::mutex unitedvdata::BufPool::updateMutex</definition>
+        <argsstring></argsstring>
+        <name>updateMutex</name>
+        <qualifiedname>unitedvdata::BufPool::updateMutex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="87" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1aa3dd167ed7434331f4245f0f2488ea65" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>unitedvdata::BufPool::BufPool</definition>
+        <argsstring>(char nc)</argsstring>
+        <name>BufPool</name>
+        <qualifiedname>unitedvdata::BufPool::BufPool</qualifiedname>
+        <param>
+          <type>char</type>
+          <declname>nc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="89" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a3c3b4183e544c3514a52c165aae42f50" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref></type>
+        <definition>BufChunk unitedvdata::BufPool::allocChunkForStride</definition>
+        <argsstring>(int stride, int req_avail_sz, const BufConfig &amp;hints, bool use_soft_limit)</argsstring>
+        <name>allocChunkForStride</name>
+        <qualifiedname>unitedvdata::BufPool::allocChunkForStride</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>stride</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>req_avail_sz</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref> &amp;</type>
+          <declname>hints</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_soft_limit</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="90" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a27d6ced25e628f82acd20ba3d4381c63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::arrangeVdata</definition>
+        <argsstring>(dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; smvd_list, BufChunkTab &amp;out_c, Sbuffer *ib, bool can_fail, bool use_soft_limit, const BufConfig &amp;hints, int *vbShortage=nullptr, int *ibShortage=nullptr)</argsstring>
+        <name>arrangeVdata</name>
+        <qualifiedname>unitedvdata::BufPool::arrangeVdata</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+          <declname>smvd_list</declname>
+        </param>
+        <param>
+          <type>BufChunkTab &amp;</type>
+          <declname>out_c</declname>
+        </param>
+        <param>
+          <type>Sbuffer *</type>
+          <declname>ib</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>can_fail</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>use_soft_limit</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref> &amp;</type>
+          <declname>hints</declname>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>vbShortage</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>int *</type>
+          <declname>ibShortage</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="91" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a6fbe63e0bdf22fd33399b3731bd36c1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::resetVdataBufPointers</definition>
+        <argsstring>(dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; smvd_list)</argsstring>
+        <name>resetVdataBufPointers</name>
+        <qualifiedname>unitedvdata::BufPool::resetVdataBufPointers</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+          <declname>smvd_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="93" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a58f210545a6e593c8eb8e58538f19563" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::getSeparateChunks</definition>
+        <argsstring>(dag::ConstSpan&lt; Ptr&lt; ShaderMatVdata &gt; &gt; smvd_list, int first_lod, dag::Span&lt; BufChunk &gt; c, BufChunkTab &amp;out_c1, BufChunkTab &amp;out_c2)</argsstring>
+        <name>getSeparateChunks</name>
+        <qualifiedname>unitedvdata::BufPool::getSeparateChunks</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; Ptr&lt; <ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &gt; &gt;</type>
+          <declname>smvd_list</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>first_lod</declname>
+        </param>
+        <param>
+          <type>dag::Span&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>BufChunkTab &amp;</type>
+          <declname>out_c1</declname>
+        </param>
+        <param>
+          <type>BufChunkTab &amp;</type>
+          <declname>out_c2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="94" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1ae91e6400ea4a0407dbb483cc228c354c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::releaseBufChunk</definition>
+        <argsstring>(dag::ConstSpan&lt; BufChunk &gt; ctab, bool update_used)</argsstring>
+        <name>releaseBufChunk</name>
+        <qualifiedname>unitedvdata::BufPool::releaseBufChunk</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+          <declname>ctab</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>update_used</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="96" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="96" bodyend="104"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a914ee53b620c4c4563d70f22b4c9dda0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::allocateBuffer</definition>
+        <argsstring>(int idx, size_t size, const char *name_fmt=&quot;%cunited_%cb#%x&quot;)</argsstring>
+        <name>allocateBuffer</name>
+        <qualifiedname>unitedvdata::BufPool::allocateBuffer</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>size</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>name_fmt</declname>
+          <defval>&quot;%cunited_%cb#%x&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="107" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a0d231a444b4ac86d9f33177fa1fa6a5f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::allocatePool</definition>
+        <argsstring>(int idx, size_t hint_sz, const BufConfig &amp;hints)</argsstring>
+        <name>allocatePool</name>
+        <qualifiedname>unitedvdata::BufPool::allocatePool</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>idx</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hint_sz</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref> &amp;</type>
+          <declname>hints</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a4873526dc74c995349c39b29ef96d9fa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufPool::createSbuffers</definition>
+        <argsstring>(const BufConfig &amp;hints, bool tight=false)</argsstring>
+        <name>createSbuffers</name>
+        <qualifiedname>unitedvdata::BufPool::createSbuffers</qualifiedname>
+        <param>
+          <type>const <ref refid="structunitedvdata_1_1BufConfig" kindref="compound">BufConfig</ref> &amp;</type>
+          <declname>hints</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>tight</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="109" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a684fee2078d1422d6153c94f43db2274" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>unitedvdata::BufPool::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="110" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a6be3a4ce2288e98903ce376926c9b84d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String unitedvdata::BufPool::getStatStr</definition>
+        <argsstring>() const</argsstring>
+        <name>getStatStr</name>
+        <qualifiedname>unitedvdata::BufPool::getStatStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="112" column="10"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a1f07401036f120a2f68fdc73ad290c83" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::getVbCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getVbCount</name>
+        <qualifiedname>unitedvdata::BufPool::getVbCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="113" column="7" bodyfile="dag_shaderResUnitedData.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a26df4e8e16b128cb175f69c764ae52c4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>Ibuffer *</type>
+        <definition>Ibuffer * unitedvdata::BufPool::getIB</definition>
+        <argsstring>() const</argsstring>
+        <name>getIB</name>
+        <qualifiedname>unitedvdata::BufPool::getIB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="114" column="11" bodyfile="dag_shaderResUnitedData.h" bodystart="114" bodyend="114"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1a1b996d24fcbd6cd5bdfdbcd23b00e71b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>static const char * unitedvdata::BufPool::calcUsedSizeStr</definition>
+        <argsstring>(dag::ConstSpan&lt; BufChunk &gt; ctab, String &amp;stor)</argsstring>
+        <name>calcUsedSizeStr</name>
+        <qualifiedname>unitedvdata::BufPool::calcUsedSizeStr</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; <ref refid="structunitedvdata_1_1BufChunk" kindref="compound">BufChunk</ref> &gt;</type>
+          <declname>ctab</declname>
+        </param>
+        <param>
+          <type>String &amp;</type>
+          <declname>stor</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="105" column="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderResUnitedData.h" line="59" column="1" bodyfile="dag_shaderResUnitedData.h" bodystart="60" bodyend="115"/>
+    <listofallmembers>
+      <member refid="structunitedvdata_1_1BufPool_1a914ee53b620c4c4563d70f22b4c9dda0" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>allocateBuffer</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a0d231a444b4ac86d9f33177fa1fa6a5f" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>allocatePool</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a3c3b4183e544c3514a52c165aae42f50" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>allocChunkForStride</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1ab13058a82fdf13a2297fa61ba8bfaf52" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>allowDelRes</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a77ecd7128e373a8a65f7f538ca02f503" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>allowRebuild</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a27d6ced25e628f82acd20ba3d4381c63" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>arrangeVdata</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1aa3dd167ed7434331f4245f0f2488ea65" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>BufPool</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a1b996d24fcbd6cd5bdfdbcd23b00e71b" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>calcUsedSizeStr</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a684fee2078d1422d6153c94f43db2274" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>clear</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a4873526dc74c995349c39b29ef96d9fa" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>createSbuffers</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a14b1694307534dd2393e671aa553cfe7" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>freeChunks</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a26df4e8e16b128cb175f69c764ae52c4" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>getIB</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a58f210545a6e593c8eb8e58538f19563" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>getSeparateChunks</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a6be3a4ce2288e98903ce376926c9b84d" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>getStatStr</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a1f07401036f120a2f68fdc73ad290c83" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>getVbCount</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1af2ac58aa2093f2d40cd4e0d477e18368aac4da2ce1def01158e5a5414a42c241e" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>IDX_IB</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1af2ac58aa2093f2d40cd4e0d477e18368ada0dd395dae8115fb9defaf92b31084f" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>IDX_VB_START</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a348dd9754156513c7615fc648be29242" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>maxIBUseKb</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1abd62f77e4146d8e954c6f1ab3b511caa" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>maxVbSize</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1ab3680cfdf0c9c15208f170360b22c80d" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>maxVBUseKb</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a72f5e59830ad0e0b5f4871fa34243e25" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>nameChar</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1aef1b25cf551c2d2cd1c909b3b30d295e" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>pool</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1ae91e6400ea4a0407dbb483cc228c354c" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>releaseBufChunk</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a6fbe63e0bdf22fd33399b3731bd36c1a" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>resetVdataBufPointers</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a3f03dcb595cec8e86dbbc1c160ffd7ee" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>sbuf</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1a2b44c5c68f2bdcd915c0e391e9c44845" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool</scope><name>updateMutex</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

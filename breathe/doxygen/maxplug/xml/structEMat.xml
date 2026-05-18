@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structEMat" kind="struct" language="C++" prot="public">
+    <compoundname>EMat</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structEMat_1a5d55941eaa398fad7c2441beb1c7b852" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring EMat::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>EMat::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="995" column="16" bodyfile="expUtil.cpp" bodystart="995" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEMat_1a3ebf101b9606108d5d785e9145dd6465" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* EMat::mtl</definition>
+        <argsstring></argsstring>
+        <name>mtl</name>
+        <qualifiedname>EMat::mtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="996" column="7" bodyfile="expUtil.cpp" bodystart="996" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEMat_1ac17571f8f180d844c4abf30a4d3367ba" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* EMat::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>EMat::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="997" column="9" bodyfile="expUtil.cpp" bodystart="997" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structEMat_1acdc85647f217002d34c8a06f5e8015b8" prot="public" static="no" mutable="no">
+        <type>DWORD</type>
+        <definition>DWORD EMat::wirecolor</definition>
+        <argsstring></argsstring>
+        <name>wirecolor</name>
+        <qualifiedname>EMat::wirecolor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="998" column="9" bodyfile="expUtil.cpp" bodystart="998" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structEMat_1a9c45458ff9b100e56703f63ece4c02ea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>EMat::EMat</definition>
+        <argsstring>(const std::wstring &amp;nm, Mtl *m, INode *n, DWORD wc)</argsstring>
+        <name>EMat</name>
+        <qualifiedname>EMat::EMat</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>nm</declname>
+        </param>
+        <param>
+          <type>Mtl *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>wc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="1000" column="3" bodyfile="expUtil.cpp" bodystart="1000" bodyend="1000"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="993" column="1" bodyfile="expUtil.cpp" bodystart="994" bodyend="1001"/>
+    <listofallmembers>
+      <member refid="structEMat_1a9c45458ff9b100e56703f63ece4c02ea" prot="public" virt="non-virtual"><scope>EMat</scope><name>EMat</name></member>
+      <member refid="structEMat_1a3ebf101b9606108d5d785e9145dd6465" prot="public" virt="non-virtual"><scope>EMat</scope><name>mtl</name></member>
+      <member refid="structEMat_1a5d55941eaa398fad7c2441beb1c7b852" prot="public" virt="non-virtual"><scope>EMat</scope><name>name</name></member>
+      <member refid="structEMat_1ac17571f8f180d844c4abf30a4d3367ba" prot="public" virt="non-virtual"><scope>EMat</scope><name>node</name></member>
+      <member refid="structEMat_1acdc85647f217002d34c8a06f5e8015b8" prot="public" virt="non-virtual"><scope>EMat</scope><name>wirecolor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

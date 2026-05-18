@@ -1,0 +1,238 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderVariant_1_1SearchInfo" kind="class" language="C++" prot="public">
+    <compoundname>ShaderVariant::SearchInfo</compoundname>
+    <derivedcompoundref refid="classShaderVariant_1_1VariantSrc" prot="public" virt="non-virtual">ShaderVariant::VariantSrc</derivedcompoundref>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderVariant_1_1SearchInfo_1a57f0987e778d4bb6ce915dd99327d26b" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>struct</type>
+        <definition>friend struct Variant</definition>
+        <argsstring></argsstring>
+        <name>Variant</name>
+        <qualifiedname>ShaderVariant::SearchInfo::Variant</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1Variant" kindref="compound">Variant</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="153" column="17" bodyfile="shaderVariant.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" prot="protected" static="no" mutable="no">
+        <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref> &amp;</type>
+        <definition>const TypeTable&amp; ShaderVariant::SearchInfo::types</definition>
+        <argsstring></argsstring>
+        <name>types</name>
+        <qualifiedname>ShaderVariant::SearchInfo::types</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="210" column="19" bodyfile="shaderVariant.h" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" prot="protected" static="no" mutable="no">
+        <type><ref refid="classShaderVariant_1_1CombinedValues" kindref="compound">CombinedValues</ref></type>
+        <definition>CombinedValues ShaderVariant::SearchInfo::combinedValues</definition>
+        <argsstring></argsstring>
+        <name>combinedValues</name>
+        <qualifiedname>ShaderVariant::SearchInfo::combinedValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="211" column="18" bodyfile="shaderVariant.h" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1a74fded6982c9b01470a775642a502423" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::SearchInfo::SearchInfo</definition>
+        <argsstring>(const TypeTable &amp;t, bool fill_with_defaults)</argsstring>
+        <name>SearchInfo</name>
+        <qualifiedname>ShaderVariant::SearchInfo::SearchInfo</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>fill_with_defaults</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="158" column="10" bodyfile="shaderVariant.h" bodystart="158" bodyend="170"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1a273e68e2af38ad4c334f9d535dcec05b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::SearchInfo::fillFromPartialSearchInfo</definition>
+        <argsstring>(const PartialSearchInfo &amp;psi)</argsstring>
+        <name>fillFromPartialSearchInfo</name>
+        <qualifiedname>ShaderVariant::SearchInfo::fillFromPartialSearchInfo</qualifiedname>
+        <param>
+          <type>const <ref refid="classShaderVariant_1_1PartialSearchInfo" kindref="compound">PartialSearchInfo</ref> &amp;</type>
+          <declname>psi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="173" column="15" bodyfile="shaderVariant.h" bodystart="173" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1a18a2096d70f943893587586a094b0a4f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::SearchInfo::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>ShaderVariant::SearchInfo::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="186" column="19" bodyfile="shaderVariant.h" bodystart="186" bodyend="186"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1ac1b8d90bbe108bb9214482ad837ae1ec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::SearchInfo::setNormalizedValue</definition>
+        <argsstring>(uint32_t index, ValueType val)</argsstring>
+        <name>setNormalizedValue</name>
+        <qualifiedname>ShaderVariant::SearchInfo::setNormalizedValue</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="188" column="15" bodyfile="shaderVariant.h" bodystart="188" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1aa1f92a9c7c4f6e24c9be422636519e8d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderVariant::SearchInfo::getNormalizedValue</definition>
+        <argsstring>(uint32_t index) const</argsstring>
+        <name>getNormalizedValue</name>
+        <qualifiedname>ShaderVariant::SearchInfo::getNormalizedValue</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="194" column="19" bodyfile="shaderVariant.h" bodystart="194" bodyend="198"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1a39e202d7e744d0e82dde65086973e31e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::SearchInfo::setValue</definition>
+        <argsstring>(uint32_t index, real val)</argsstring>
+        <name>setValue</name>
+        <qualifiedname>ShaderVariant::SearchInfo::setValue</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="201" column="15" bodyfile="shaderVariant.h" bodystart="201" bodyend="205"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1SearchInfo_1ae7ab7b41c1350b7d0cc422832d4481c6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderVariant_1_1TypeTable" kindref="compound">TypeTable</ref> &amp;</type>
+        <definition>const TypeTable &amp; ShaderVariant::SearchInfo::getTypes</definition>
+        <argsstring>() const</argsstring>
+        <name>getTypes</name>
+        <qualifiedname>ShaderVariant::SearchInfo::getTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="207" column="19" bodyfile="shaderVariant.h" bodystart="207" bodyend="207"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::VariantSrc</label>
+        <link refid="classShaderVariant_1_1VariantSrc"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>ShaderVariant::CombinedValues</label>
+        <link refid="classShaderVariant_1_1CombinedValues"/>
+      </node>
+      <node id="1">
+        <label>ShaderVariant::SearchInfo</label>
+        <link refid="classShaderVariant_1_1SearchInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>types</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>combinedValues</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ShaderVariant::TypeTable</label>
+        <link refid="classShaderVariant_1_1TypeTable"/>
+      </node>
+    </collaborationgraph>
+    <location file="shaderVariant.h" line="150" column="1" bodyfile="shaderVariant.h" bodystart="151" bodyend="212"/>
+    <listofallmembers>
+      <member refid="classShaderVariant_1_1SearchInfo_1aaff088ece9ed5833a9eb71fde3e785bc" prot="protected" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>combinedValues</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a273e68e2af38ad4c334f9d535dcec05b" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>fillFromPartialSearchInfo</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a18a2096d70f943893587586a094b0a4f" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>getCount</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1aa1f92a9c7c4f6e24c9be422636519e8d" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>getNormalizedValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1ae7ab7b41c1350b7d0cc422832d4481c6" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>getTypes</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a74fded6982c9b01470a775642a502423" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>SearchInfo</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1ac1b8d90bbe108bb9214482ad837ae1ec" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>setNormalizedValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a39e202d7e744d0e82dde65086973e31e" prot="public" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>setValue</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1aacbe131c0c89648298bcff4f3b864b21" prot="protected" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>types</name></member>
+      <member refid="classShaderVariant_1_1SearchInfo_1a57f0987e778d4bb6ce915dd99327d26b" prot="protected" virt="non-virtual"><scope>ShaderVariant::SearchInfo</scope><name>Variant</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

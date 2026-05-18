@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structrgba__t" kind="struct" language="C++" prot="public">
+    <compoundname>rgba_t</compoundname>
+    <includes refid="tPixel_8h" local="no">tPixel.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structrgba__t_1a2e4f952f33d74ac6d05929923458ee75" prot="public" static="no" mutable="no">
+        <type>unsigned char</type>
+        <definition>unsigned char rgba_t::rgba[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>rgba</name>
+        <qualifiedname>rgba_t::rgba</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="tPixel.h" line="6" column="17" bodyfile="tPixel.h" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="tPixel.h" line="4" column="1" bodyfile="tPixel.h" bodystart="5" bodyend="7"/>
+    <listofallmembers>
+      <member refid="structrgba__t_1a2e4f952f33d74ac6d05929923458ee75" prot="public" virt="non-virtual"><scope>rgba_t</scope><name>rgba</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

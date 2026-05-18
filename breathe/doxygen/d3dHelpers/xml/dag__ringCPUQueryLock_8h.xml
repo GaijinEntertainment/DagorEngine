@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__ringCPUQueryLock_8h" kind="file" language="C++">
+    <compoundname>dag_ringCPUQueryLock.h</compoundname>
+    <includes local="no">generic/dag_staticTab.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includedby refid="dag__ringCPUTextureLock_8h" local="no">dag_ringCPUTextureLock.h</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>dag_ringCPUQueryLock.h</label>
+        <link refid="dag__ringCPUQueryLock_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="2">
+        <label>generic/dag_staticTab.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="1">
+        <label>dag_ringCPUQueryLock.h</label>
+        <link refid="dag__ringCPUQueryLock_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>dag_ringCPUTextureLock.h</label>
+        <link refid="dag__ringCPUTextureLock_8h"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classRingCPUBufferLock" prot="public">RingCPUBufferLock</innerclass>
+    <innerclass refid="structRingCPUBufferLock_1_1FencedGPUResource" prot="protected">RingCPUBufferLock::FencedGPUResource</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_staticTab.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">D3dResource;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">D3dEventQuery;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="classRingCPUBufferLock" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classRingCPUBufferLock" kindref="compound">RingCPUBufferLock</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="16" refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" refkind="member"><highlight class="normal"><sp/><sp/>D3dResource<sp/>*<ref refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" kindref="member">getNewTargetAndId</ref>(uint32_t<sp/>&amp;frame,<sp/>D3DRESID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="17" refid="classRingCPUBufferLock_1af14a76aca9b0751e3e61879bc4311a36" refkind="member"><highlight class="normal"><sp/><sp/>D3dResource<sp/>*<ref refid="classRingCPUBufferLock_1af14a76aca9b0751e3e61879bc4311a36" kindref="member">getNewTarget</ref>(uint32_t<sp/>&amp;frame)</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>D3DRESID<sp/>id;</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" kindref="member">getNewTargetAndId</ref>(frame,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="22" refid="classRingCPUBufferLock_1ab9f59378aa559c76523eabe277f3122f" refkind="member"><highlight class="normal"><sp/><sp/>D3dResource<sp/>*<ref refid="classRingCPUBufferLock_1ab9f59378aa559c76523eabe277f3122f" kindref="member">getNewTarget</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;frame)</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>D3DRESID<sp/>id;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a7bd50a59260c24ebe52e14ba5f14f8b0" kindref="member">getNewTargetAndId</ref>((uint32_t<sp/>&amp;)frame,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27" refid="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" refkind="member"><highlight class="normal"><sp/><sp/>D3dResource<sp/>*<ref refid="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" kindref="member">getNewTargetAndId</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;frame,<sp/>D3DRESID<sp/>&amp;</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a1fb24c80f9cc9e69edbb8b3854dd91bd" kindref="member">getNewTargetAndId</ref>((uint32_t<sp/>&amp;)frame,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);<sp/>}</highlight></codeline>
+<codeline lineno="28" refid="classRingCPUBufferLock_1aa0954f06e0fd0800812bce9d3ba59de1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1aa0954f06e0fd0800812bce9d3ba59de1" kindref="member">startCPUCopy</ref>();</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>Texture<sp/>*getCurrentTarget();</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classRingCPUBufferLock_1aefd14b19112de2c695cc7e0615ad14a9" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingCPUBufferLock_1aefd14b19112de2c695cc7e0615ad14a9" kindref="member">RingCPUBufferLock</ref>()<sp/>{}</highlight></codeline>
+<codeline lineno="31" refid="classRingCPUBufferLock_1ab23b6b33b243a924380309d82ab3a32a" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classRingCPUBufferLock_1ab23b6b33b243a924380309d82ab3a32a" kindref="member">~RingCPUBufferLock</ref>()<sp/>{<sp/><ref refid="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" kindref="member">close</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>max_buffers_count<sp/>supposed<sp/>to<sp/>be<sp/>2-3<sp/>for<sp/>single<sp/>GPU,<sp/>and<sp/>4<sp/>for<sp/>SLI.<sp/>However<sp/>it<sp/>can<sp/>actually<sp/>be<sp/>any<sp/>number<sp/>(1..6),<sp/>as<sp/>class<sp/>will</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>gracefully<sp/>handle<sp/>insufficient<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="classRingCPUBufferLock_1a13f94e2a68ff262126d3b3e1e8a60c51" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a13f94e2a68ff262126d3b3e1e8a60c51" kindref="member">init</ref>(uint32_t<sp/>elem_size,<sp/>uint32_t<sp/>elems_count,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_buffers_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name,<sp/>uint32_t<sp/>flags,<sp/>uint32_t<sp/>fmt,</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>is_tex);</highlight></codeline>
+<codeline lineno="37" refid="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1ab9f68a3eb040b66c25254dfdaab98586" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>lock<sp/>is<sp/>successfull,<sp/>it<sp/>will<sp/>return<sp/>stride,<sp/>raw<sp/>data,<sp/>and<sp/>frame<sp/>locked</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>max_frames_to_flush<sp/>is<sp/>max<sp/>frame<sp/>to<sp/>wait<sp/>before<sp/>it<sp/>will<sp/>try<sp/>to<sp/>flushevent/face</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>lock<sp/>is<sp/>not<sp/>successful,<sp/>than<sp/>there<sp/>is<sp/>no<sp/>newer<sp/>frame<sp/>available<sp/>on<sp/>CPU<sp/>(then<sp/>previous)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>if<sp/>object<sp/>is<sp/>not<sp/>inited<sp/>-<sp/>lock<sp/>will<sp/>always<sp/>fail</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="classRingCPUBufferLock_1a1e8cd2a898b31919c4883e178225d38e" refkind="member"><highlight class="normal"><sp/><sp/>uint8_t<sp/>*<ref refid="classRingCPUBufferLock_1a1e8cd2a898b31919c4883e178225d38e" kindref="member">lock</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride,<sp/>uint32_t<sp/>&amp;frame,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>get_to_topmost,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>max_frames_to_flush<sp/>=<sp/>8);<sp/></highlight><highlight class="comment">//<sp/>if<sp/>get_to_topmost<sp/>-<sp/>it<sp/>will<sp/>return</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>topmost<sp/>event,<sp/>otherwise<sp/>will</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>proceed<sp/>generously</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>close<sp/>unlock<sp/>only<sp/>if<sp/>lock<sp/>was<sp/>succesfill</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="classRingCPUBufferLock_1ad3dc7431d5870313c30a49215bdf13fa" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1ad3dc7431d5870313c30a49215bdf13fa" kindref="member">unlock</ref>();</highlight></codeline>
+<codeline lineno="48" refid="classRingCPUBufferLock_1a9fe1cc0e1c3ff3f02eab76322003c31c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a9fe1cc0e1c3ff3f02eab76322003c31c" kindref="member">reset</ref>()<sp/>{<sp/><ref refid="classRingCPUBufferLock_1a468a2c8c6121a62260a2be366218aa73" kindref="member">currentBufferIssued</ref><sp/>=<sp/><ref refid="classRingCPUBufferLock_1aadc5c4fabb807fc0b2dc27bfba2b2923" kindref="member">currentBufferToLock</ref><sp/>=<sp/><ref refid="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" kindref="member">bufferLockCounter</ref><sp/>=<sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"></highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="51" refid="structRingCPUBufferLock_1_1FencedGPUResource" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structRingCPUBufferLock_1_1FencedGPUResource" kindref="compound">FencedGPUResource</ref></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53" refid="structRingCPUBufferLock_1_1FencedGPUResource_1aa27120e5422d12965bfe21c891853448" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>D3dResource<sp/>*<ref refid="structRingCPUBufferLock_1_1FencedGPUResource_1aa27120e5422d12965bfe21c891853448" kindref="member">gpu</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="54" refid="structRingCPUBufferLock_1_1FencedGPUResource_1a466a0a0882a3eb5ae27bc1d340819fc3" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>D3DRESID<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>BAD_D3DRESID;</highlight></codeline>
+<codeline lineno="55" refid="structRingCPUBufferLock_1_1FencedGPUResource_1a2ea44d67d3f6bee58f4b83d7ca4cf5e6" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/>D3dEventQuery<sp/>*</highlight><highlight class="keyword">event</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="57" refid="classRingCPUBufferLock_1a7b36c2c5ab92266377438423b18241b5" refkind="member"><highlight class="normal"><sp/><sp/>StaticTab&lt;FencedGPUResource,<sp/>6&gt;<sp/><ref refid="classRingCPUBufferLock_1a7b36c2c5ab92266377438423b18241b5" kindref="member">buffers</ref>;<sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="classRingCPUBufferLock_1a84d3ee8a8db5b3d78d5d9e1d636ad6b6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a84d3ee8a8db5b3d78d5d9e1d636ad6b6" kindref="member">unlockData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buffer);</highlight></codeline>
+<codeline lineno="60" refid="classRingCPUBufferLock_1a77d6784bc11a7f20cc2910771bf1e74d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a77d6784bc11a7f20cc2910771bf1e74d" kindref="member">lockData</ref>(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>buffer,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>&amp;stride,<sp/>uint8_t<sp/>**pdata,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>wait);</highlight></codeline>
+<codeline lineno="61" refid="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="classRingCPUBufferLock_1a468a2c8c6121a62260a2be366218aa73" kindref="member">currentBufferIssued</ref><sp/>=<sp/>0,<sp/><ref refid="classRingCPUBufferLock_1aadc5c4fabb807fc0b2dc27bfba2b2923" kindref="member">currentBufferToLock</ref><sp/>=<sp/>0,<sp/><ref refid="classRingCPUBufferLock_1af5d405708ba6062e4fcc78dee647dca5" kindref="member">bufferLockCounter</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="62" refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/><ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761" kindref="member">CurrentState</ref></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="64" refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" kindref="member">NORMAL</ref>,</highlight></codeline>
+<codeline lineno="65" refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761a1220bde4aa9b79ca68b3718807786b84" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761a1220bde4aa9b79ca68b3718807786b84" kindref="member">LOCKED</ref>,</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761adf7df7bdef67b13bdaab860958b7a1fe" kindref="member">NEWTARGET</ref></highlight></codeline>
+<codeline lineno="67" refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761adf7df7bdef67b13bdaab860958b7a1fe" refkind="member"><highlight class="normal"><sp/><sp/>}<sp/><ref refid="classRingCPUBufferLock_1a4c1399664539954ba87b54304318c6b2" kindref="member">state</ref><sp/>=<sp/><ref refid="classRingCPUBufferLock_1a7bd3e98d6e32ba01a18b98ab37fce761ac0837c8e062890138fb1c1d192990db8" kindref="member">NORMAL</ref>;</highlight></codeline>
+<codeline lineno="68" refid="classRingCPUBufferLock_1ad86b930f1200a3716b25218c58cec88e" refkind="member"><highlight class="normal"><sp/><sp/>eastl::string<sp/><ref refid="classRingCPUBufferLock_1ad86b930f1200a3716b25218c58cec88e" kindref="member">resourceName</ref><sp/>=<sp/></highlight><highlight class="stringliteral">&quot;Not<sp/>inited<sp/>buffer&quot;</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="dag_ringCPUQueryLock.h"/>
+  </compounddef>
+</doxygen>

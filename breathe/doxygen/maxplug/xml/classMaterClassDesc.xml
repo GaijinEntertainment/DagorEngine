@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMaterClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>MaterClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMaterClassDesc_1a2c83fcd8d38a34d453d176e1eb23596e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MaterClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>MaterClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="193" column="7" bodyfile="mater.cpp" bodystart="193" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1a1e0e16bcb66bbba57c07f3fb4846a4ca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * MaterClassDesc::Create</definition>
+        <argsstring>(BOOL loading) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>MaterClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="194" column="8" bodyfile="mater.cpp" bodystart="194" bodyend="194"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1a2f363df28fa7193b4cb46c6a35be178b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MaterClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>MaterClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="195" column="15" bodyfile="mater.cpp" bodystart="195" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1a4b356c62cbd7b1a48d6db4054eaa7471" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * MaterClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>MaterClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="199" column="15" bodyfile="mater.cpp" bodystart="199" bodyend="199"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1aa2f49a538946672010b2363b1ee0a039" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID MaterClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>MaterClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="201" column="13" bodyfile="mater.cpp" bodystart="201" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1afae56af4e101f051f168fd60476fe63c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID MaterClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>MaterClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="202" column="12" bodyfile="mater.cpp" bodystart="202" bodyend="202"/>
+      </memberdef>
+      <memberdef kind="function" id="classMaterClassDesc_1a2d46ca7b211dd99082d36f6dc474e85b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MaterClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>MaterClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater.cpp" line="203" column="15" bodyfile="mater.cpp" bodystart="203" bodyend="203"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>MaterClassDesc</label>
+        <link refid="classMaterClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>MaterClassDesc</label>
+        <link refid="classMaterClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater.cpp" line="190" column="1" bodyfile="mater.cpp" bodystart="191" bodyend="204"/>
+    <listofallmembers>
+      <member refid="classMaterClassDesc_1a2d46ca7b211dd99082d36f6dc474e85b" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>Category</name></member>
+      <member refid="classMaterClassDesc_1afae56af4e101f051f168fd60476fe63c" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>ClassID</name></member>
+      <member refid="classMaterClassDesc_1a2f363df28fa7193b4cb46c6a35be178b" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>ClassName</name></member>
+      <member refid="classMaterClassDesc_1a1e0e16bcb66bbba57c07f3fb4846a4ca" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>Create</name></member>
+      <member refid="classMaterClassDesc_1a2c83fcd8d38a34d453d176e1eb23596e" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classMaterClassDesc_1a4b356c62cbd7b1a48d6db4054eaa7471" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classMaterClassDesc_1aa2f49a538946672010b2363b1ee0a039" prot="public" virt="non-virtual"><scope>MaterClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

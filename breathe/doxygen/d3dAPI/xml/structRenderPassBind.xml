@@ -1,0 +1,123 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassBind" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassBind</compoundname>
+    <includes refid="dag__renderPass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassBind_1a76b73abd7c81e03b0767c02a4eba4849" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t RenderPassBind::target</definition>
+        <argsstring></argsstring>
+        <name>target</name>
+        <qualifiedname>RenderPassBind::target</qualifiedname>
+        <briefdescription>
+<para>Index of render target in render targets array that will be used for this bind. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="23" column="11" bodyfile="dag_renderPass.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassBind_1a491792959dae830d192d1231048825f9" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t RenderPassBind::subpass</definition>
+        <argsstring></argsstring>
+        <name>subpass</name>
+        <qualifiedname>RenderPassBind::subpass</qualifiedname>
+        <briefdescription>
+<para>Index of subpass where bind happens. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="25" column="11" bodyfile="dag_renderPass.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassBind_1a5a429d7438f860887a5b52ea9aac9788" prot="public" static="no" mutable="no">
+        <type>int32_t</type>
+        <definition>int32_t RenderPassBind::slot</definition>
+        <argsstring></argsstring>
+        <name>slot</name>
+        <qualifiedname>RenderPassBind::slot</qualifiedname>
+        <briefdescription>
+<para>Index of slot where target will be used. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="27" column="11" bodyfile="dag_renderPass.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassBind_1a21117c567ac252a82203413c56e49ab2" prot="public" static="no" mutable="no">
+        <type><ref refid="group__RenderPassConsts_1ga8431b4a076f4044781f7f7189e8d8533" kindref="member">RenderPassTargetAction</ref></type>
+        <definition>RenderPassTargetAction RenderPassBind::action</definition>
+        <argsstring></argsstring>
+        <name>action</name>
+        <qualifiedname>RenderPassBind::action</qualifiedname>
+        <briefdescription>
+<para>defines what will happen with target used in binding </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="30" column="26" bodyfile="dag_renderPass.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassBind_1a9acc0955c7828e84d9bb1aece0a182c4" prot="public" static="no" mutable="no">
+        <type><ref refid="dag__consts_8h_1a17c1f6381a5d9ff056a0db3703f961d8" kindref="member">ResourceBarrier</ref></type>
+        <definition>ResourceBarrier RenderPassBind::dependencyBarrier</definition>
+        <argsstring></argsstring>
+        <name>dependencyBarrier</name>
+        <qualifiedname>RenderPassBind::dependencyBarrier</qualifiedname>
+        <briefdescription>
+<para>optional user barrier for generic(emulated) implementation </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="32" column="19" bodyfile="dag_renderPass.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structRenderPassBind_1a96c9f33bd80e444ac94faaced9794a41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const RenderPassBind &amp;first, const RenderPassBind &amp;second)=default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>RenderPassBind::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref> &amp;</type>
+          <declname>first</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structRenderPassBind" kindref="compound">RenderPassBind</ref> &amp;</type>
+          <declname>second</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="34" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Description of render target bind inside render pass. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Fully defines operation that will happen with target at defined subpass slot </para>
+    </detaileddescription>
+    <location file="dag_renderPass.h" line="20" column="1" bodyfile="dag_renderPass.h" bodystart="21" bodyend="35"/>
+    <listofallmembers>
+      <member refid="structRenderPassBind_1a21117c567ac252a82203413c56e49ab2" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>action</name></member>
+      <member refid="structRenderPassBind_1a9acc0955c7828e84d9bb1aece0a182c4" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>dependencyBarrier</name></member>
+      <member refid="structRenderPassBind_1a96c9f33bd80e444ac94faaced9794a41" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>operator==</name></member>
+      <member refid="structRenderPassBind_1a5a429d7438f860887a5b52ea9aac9788" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>slot</name></member>
+      <member refid="structRenderPassBind_1a491792959dae830d192d1231048825f9" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>subpass</name></member>
+      <member refid="structRenderPassBind_1a76b73abd7c81e03b0767c02a4eba4849" prot="public" virt="non-virtual"><scope>RenderPassBind</scope><name>target</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

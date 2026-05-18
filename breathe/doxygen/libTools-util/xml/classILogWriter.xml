@@ -1,0 +1,245 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classILogWriter" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>ILogWriter</compoundname>
+    <derivedcompoundref refid="classConsoleLogWriter" prot="public" virt="non-virtual">ConsoleLogWriter</derivedcompoundref>
+    <derivedcompoundref refid="classCtlReportLogWriter" prot="public" virt="non-virtual">CtlReportLogWriter</derivedcompoundref>
+    <derivedcompoundref refid="classReportLogWriter" prot="public" virt="non-virtual">ReportLogWriter</derivedcompoundref>
+    <includes refid="iLogWriter_8h" local="no">iLogWriter.h</includes>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" prot="public" static="no" strong="no">
+        <type></type>
+        <name>MessageType</name>
+        <qualifiedname>ILogWriter::MessageType</qualifiedname>
+        <enumvalue id="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" prot="public">
+          <name>NOTE</name>
+          <briefdescription>
+<para>Note message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" prot="public">
+          <name>WARNING</name>
+          <briefdescription>
+<para>Warning message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" prot="public">
+          <name>ERROR</name>
+          <briefdescription>
+<para>Error message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" prot="public">
+          <name>FATAL</name>
+          <briefdescription>
+<para>Fatal error message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" prot="public">
+          <name>REMARK</name>
+          <briefdescription>
+<para>Remark (low priority) message. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Messages types. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="20" column="3" bodyfile="iLogWriter.h" bodystart="21" bodyend="27"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classILogWriter_1a80768c18cfed7409e639f2167e78f799" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ILogWriter::addMessageFmt</definition>
+        <argsstring>(MessageType type, const char *fmt, const DagorSafeArg *arg, int anum)=0</argsstring>
+        <name>addMessageFmt</name>
+        <qualifiedname>ILogWriter::addMessageFmt</qualifiedname>
+        <reimplementedby refid="classCtlReportLogWriter_1a7d4e1fbcd1372200914d5dd54ac9f36c">addMessageFmt</reimplementedby>
+        <reimplementedby refid="classConsoleLogWriter_1a399f8255f36fb39d16447b2062edbaf3">addMessageFmt</reimplementedby>
+        <reimplementedby refid="classReportLogWriter_1adf8b347787969034700f7fa630c903c1">addMessageFmt</reimplementedby>
+        <param>
+          <type><ref refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" kindref="member">MessageType</ref></type>
+          <declname>type</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fmt</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Add formatted message to log. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">fmt</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- printf-like format string (dagor format extension) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">type</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- message type (see enum MessageType) </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername direction="in">arg</parametername>
+<parametername direction="in">anum</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- type-safe parameters to be used by format </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="33" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classILogWriter_1a7741a6fa40073605a2e147c3d6343463" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool ILogWriter::hasErrors</definition>
+        <argsstring>() const =0</argsstring>
+        <name>hasErrors</name>
+        <qualifiedname>ILogWriter::hasErrors</qualifiedname>
+        <reimplementedby refid="classCtlReportLogWriter_1aa6f0bc7fe2883e40ae47e5b7b6346a77">hasErrors</reimplementedby>
+        <reimplementedby refid="classConsoleLogWriter_1ac3143442f55f66001a44f6bfe1d4d8a0">hasErrors</reimplementedby>
+        <reimplementedby refid="classReportLogWriter_1ad29eb134710cb550d5508b65517f92bf">hasErrors</reimplementedby>
+        <briefdescription>
+<para>returns true when log contains ERROR/FATAL messages </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="36" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ILogWriter::startLog</definition>
+        <argsstring>()=0</argsstring>
+        <name>startLog</name>
+        <qualifiedname>ILogWriter::startLog</qualifiedname>
+        <reimplementedby refid="classCtlReportLogWriter_1acc9c558dbc7fa1a296c2a8f4f312cd8b">startLog</reimplementedby>
+        <reimplementedby refid="classConsoleLogWriter_1a1442ba3491c98fd4ac257c50e2189d1e">startLog</reimplementedby>
+        <reimplementedby refid="classReportLogWriter_1aad5449a8344a901d8189383234c3efe3">startLog</reimplementedby>
+        <briefdescription>
+<para>starts log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="39" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void ILogWriter::endLog</definition>
+        <argsstring>()=0</argsstring>
+        <name>endLog</name>
+        <qualifiedname>ILogWriter::endLog</qualifiedname>
+        <reimplementedby refid="classCtlReportLogWriter_1ac0b27d9d598c16b5df0e93e864577eed">endLog</reimplementedby>
+        <reimplementedby refid="classConsoleLogWriter_1acad2bb6ae11480725a59938f27b6abca">endLog</reimplementedby>
+        <reimplementedby refid="classReportLogWriter_1a93d1188aa2b0386ac060c53cead3a0b0">endLog</reimplementedby>
+        <briefdescription>
+<para>finishes log messages counting </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="42" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ILogWriter::DECLARE_DSA_OVERLOADS_FAMILY_LT</definition>
+        <argsstring>(void addMessage, addMessageFmt)</argsstring>
+        <name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name>
+        <qualifiedname>ILogWriter::DECLARE_DSA_OVERLOADS_FAMILY_LT</qualifiedname>
+        <param>
+          <type>void</type>
+          <declname>addMessage</declname>
+        </param>
+        <param>
+          <type><ref refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799" kindref="member">addMessageFmt</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iLogWriter.h" line="47" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Interface class for message logging management. </para>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ConsoleLogWriter</label>
+        <link refid="classConsoleLogWriter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>CtlReportLogWriter</label>
+        <link refid="classCtlReportLogWriter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ILogWriter</label>
+        <link refid="classILogWriter"/>
+      </node>
+      <node id="4">
+        <label>ReportLogWriter</label>
+        <link refid="classReportLogWriter"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <location file="iLogWriter.h" line="16" column="1" bodyfile="iLogWriter.h" bodystart="17" bodyend="50"/>
+    <listofallmembers>
+      <member refid="classILogWriter_1a80768c18cfed7409e639f2167e78f799" prot="public" virt="pure-virtual"><scope>ILogWriter</scope><name>addMessageFmt</name></member>
+      <member refid="classILogWriter_1a6f376edfaedd194fa2ce0c81e675ac43" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>DECLARE_DSA_OVERLOADS_FAMILY_LT</name></member>
+      <member refid="classILogWriter_1a2775a6fcde87e5cb6ed3baa3f87b1062" prot="public" virt="pure-virtual"><scope>ILogWriter</scope><name>endLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca1570996a0642f28b06b331c1c2921179" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>ERROR</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca8dfca79f44e456b8d8a29daf286f21fb" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>FATAL</name></member>
+      <member refid="classILogWriter_1a7741a6fa40073605a2e147c3d6343463" prot="public" virt="pure-virtual"><scope>ILogWriter</scope><name>hasErrors</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40c" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>MessageType</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40cafb236d27a41cd9214a5925219b3baf42" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>NOTE</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca15621ed2c8316c8cebdb5c9ef93cb8f7" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>REMARK</name></member>
+      <member refid="classILogWriter_1aa6fe6e79751839ef761bdb6bef385be9" prot="public" virt="pure-virtual"><scope>ILogWriter</scope><name>startLog</name></member>
+      <member refid="classILogWriter_1af08a99b5da099d82614e4ae67032a40ca4bd38cd4423708118f22a18366767cb0" prot="public" virt="non-virtual"><scope>ILogWriter</scope><name>WARNING</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

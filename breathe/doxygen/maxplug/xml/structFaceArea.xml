@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFaceArea" kind="struct" language="C++" prot="public">
+    <compoundname>FaceArea</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFaceArea_1a84ac0db652bb572421dc6a5dbdc99b09" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FaceArea::p0</definition>
+        <argsstring></argsstring>
+        <name>p0</name>
+        <qualifiedname>FaceArea::p0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="534" column="7" bodyfile="polyBumpUtil.cpp" bodystart="534" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFaceArea_1acb3bffb63e28bcb30f43e2cb35c59c77" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FaceArea::p1</definition>
+        <argsstring></argsstring>
+        <name>p1</name>
+        <qualifiedname>FaceArea::p1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="534" column="10" bodyfile="polyBumpUtil.cpp" bodystart="534" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFaceArea_1aecb29acdfa57d7d6706f505e64907596" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FaceArea::lit</definition>
+        <argsstring></argsstring>
+        <name>lit</name>
+        <qualifiedname>FaceArea::lit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="535" column="8" bodyfile="polyBumpUtil.cpp" bodystart="535" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="polyBumpUtil.cpp" line="532" column="1" bodyfile="polyBumpUtil.cpp" bodystart="533" bodyend="536"/>
+    <listofallmembers>
+      <member refid="structFaceArea_1aecb29acdfa57d7d6706f505e64907596" prot="public" virt="non-virtual"><scope>FaceArea</scope><name>lit</name></member>
+      <member refid="structFaceArea_1a84ac0db652bb572421dc6a5dbdc99b09" prot="public" virt="non-virtual"><scope>FaceArea</scope><name>p0</name></member>
+      <member refid="structFaceArea_1acb3bffb63e28bcb30f43e2cb35c59c77" prot="public" virt="non-virtual"><scope>FaceArea</scope><name>p1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

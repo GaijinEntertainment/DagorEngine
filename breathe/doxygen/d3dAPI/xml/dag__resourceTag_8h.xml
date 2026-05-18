@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resourceTag_8h" kind="file" language="C++">
+    <compoundname>dag_resourceTag.h</compoundname>
+    <includes refid="dag__consts_8h" local="no">drv/3d/dag_consts.h</includes>
+    <includes local="no">generic/dag_functionRef.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includedby refid="dag__heap_8h" local="no">dag_heap.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>drv/3d/dag_consts.h</label>
+        <link refid="dag__consts_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>drv/3d/dag_consts_base.h</label>
+        <link refid="dag__consts__base_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_resourceTag.h</label>
+        <link refid="dag__resourceTag_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="7">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="3">
+        <label>cstdint</label>
+      </node>
+      <node id="6">
+        <label>generic/dag_functionRef.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>dag_heap.h</label>
+        <link refid="dag__heap_8h"/>
+      </node>
+      <node id="1">
+        <label>dag_resourceTag.h</label>
+        <link refid="dag__resourceTag_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structResourceTypeFilter" prot="public">ResourceTypeFilter</innerclass>
+    <innerclass refid="structTaggedResourceInfo" prot="public">TaggedResourceInfo</innerclass>
+    <innernamespace refid="namespaced3d">d3d</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>TaggedResourceType</name>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aec0fc0100c4fc1ce4eea230c3dc10360" prot="public">
+          <name>Undefined</name>
+          <briefdescription>
+<para>Undefined resource type, should not be used! </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a007e509440401df8395bfda634676207" prot="public">
+          <name>DeviceBuffer</name>
+          <briefdescription>
+<para>A buffer backed by device (eg GPU) memory. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ac635045dae1378593aa85a172fac13a4" prot="public">
+          <name>HostBuffer</name>
+          <briefdescription>
+<para>A buffer backed by host (eg System) memory. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aa3e8ae43188ae76d38f414b2bdb0077b" prot="public">
+          <name>Texture</name>
+          <briefdescription>
+<para>A texture. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0abbfb5410525fce19cdf09e0fb2e7d94f" prot="public">
+          <name>TopLevelAccelerationStructure</name>
+          <briefdescription>
+<para>A TLAS. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a9c7acf0acfaa17d4eb9c44cb5db399dd" prot="public">
+          <name>BottomLevelAccelerationStructure</name>
+          <briefdescription>
+<para>A BLAS. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ae7078dd8d475057cb3634b4694d8b4de" prot="public">
+          <name>OtherAccelerationStructure</name>
+          <briefdescription>
+<para>A RT structure that is neither TLAS or BLAS. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a59d3ab3d90a6a667cce0c4e585eaffa3" prot="public">
+          <name>AccelerationStructurePool</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>A RT structure pool holding any type of RT structure. Individual structure in this pool are not visited. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a9c749d1df746b4c4cfc87776e951b591" prot="public">
+          <name>ResourceHeap</name>
+          <briefdescription>
+<para>A user-created resource heap (see <ref refid="group__HeapD3D_1ga5c73e392f297f52965cbac54470072d1" kindref="member">d3d::create_resource_heap</ref>). </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ad10132b38d927fee57e35556696504cb" prot="public">
+          <name>UnspecifiedMemory</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Memory where it is not know for which kind of resource it is being used. This is typical for memory usage by third party libraries like DLSS, XESS and such. NOTE: Has to be <bold>always</bold> the last entry in the enum! </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="44" column="1" bodyfile="dag_resourceTag.h" bodystart="45" bodyend="69"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__resourceTag_8h_1ab1dfb1f4da2743c39c2b2cc69ddec177" prot="public" static="no">
+        <type>dag::FunctionRef&lt; void(const <ref refid="structTaggedResourceInfo" kindref="compound">TaggedResourceInfo</ref> &amp;res) const  &gt;</type>
+        <definition>using ResourceVisitor =  dag::FunctionRef&lt;void(const TaggedResourceInfo &amp;res) const&gt;</definition>
+        <argsstring></argsstring>
+        <name>ResourceVisitor</name>
+        <briefdescription>
+<para>Visitor type passed to visit_tagged_resources. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="93" column="1" bodyfile="dag_resourceTag.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__consts_8h" kindref="compound">drv/3d/dag_consts.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_functionRef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="structResourceTypeFilter" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResourceTypeFilter" kindref="compound">ResourceTypeFilter</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15" refid="structResourceTypeFilter_1aaf96ec4294e5907d22b9b01c84bde085" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1aaf96ec4294e5907d22b9b01c84bde085" kindref="member">includeDeviceMemoryBuffers</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="17" refid="structResourceTypeFilter_1ab649c31620df6df0ebb491d670204ebf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1ab649c31620df6df0ebb491d670204ebf" kindref="member">includeHostMemoryBuffers</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="19" refid="structResourceTypeFilter_1ad8ae2bad0000980622d89d7ed72fa41b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1ad8ae2bad0000980622d89d7ed72fa41b" kindref="member">includeTextures</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21" refid="structResourceTypeFilter_1abe7227084f8b6bce98d0d5e5d3f2b448" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1abe7227084f8b6bce98d0d5e5d3f2b448" kindref="member">includeRayTraceBottomStructures</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="23" refid="structResourceTypeFilter_1aa339dc311fd5a06896846b272b3026bc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1aa339dc311fd5a06896846b272b3026bc" kindref="member">includeRayTraceTopStructures</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="27" refid="structResourceTypeFilter_1aec1ad28b9071d2ef8647c271b374f07d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1aec1ad28b9071d2ef8647c271b374f07d" kindref="member">includeRayTraceOtherStructures</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="29" refid="structResourceTypeFilter_1a34320870eda1516438e6d471cf16831c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1a34320870eda1516438e6d471cf16831c" kindref="member">includeRayTraceStructurePools</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31" refid="structResourceTypeFilter_1a2d42afdc41bc60d100da9b936acea379" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1a2d42afdc41bc60d100da9b936acea379" kindref="member">includeResourceHeaps</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34" refid="structResourceTypeFilter_1adb5572af074c142929f23fb086dae81a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1adb5572af074c142929f23fb086dae81a" kindref="member">includeUnspecifiedMemory</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="structResourceTypeFilter_1ae26c7509b8d07688a569eeb507db17d2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1ae26c7509b8d07688a569eeb507db17d2" kindref="member">includes_any</ref>()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="37"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter_1aaf96ec4294e5907d22b9b01c84bde085" kindref="member">includeDeviceMemoryBuffers</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1ab649c31620df6df0ebb491d670204ebf" kindref="member">includeHostMemoryBuffers</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1ad8ae2bad0000980622d89d7ed72fa41b" kindref="member">includeTextures</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1abe7227084f8b6bce98d0d5e5d3f2b448" kindref="member">includeRayTraceBottomStructures</ref><sp/>||</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structResourceTypeFilter_1aa339dc311fd5a06896846b272b3026bc" kindref="member">includeRayTraceTopStructures</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1aec1ad28b9071d2ef8647c271b374f07d" kindref="member">includeRayTraceOtherStructures</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1a34320870eda1516438e6d471cf16831c" kindref="member">includeRayTraceStructurePools</ref><sp/>||<sp/><ref refid="structResourceTypeFilter_1a2d42afdc41bc60d100da9b936acea379" kindref="member">includeResourceHeaps</ref><sp/>||</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structResourceTypeFilter_1adb5572af074c142929f23fb086dae81a" kindref="member">includeUnspecifiedMemory</ref>;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0" kindref="member">TaggedResourceType</ref></highlight></codeline>
+<codeline lineno="45"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">Undefined</ref>,</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a007e509440401df8395bfda634676207" kindref="member">DeviceBuffer</ref>,</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ac635045dae1378593aa85a172fac13a4" kindref="member">HostBuffer</ref>,</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aa3e8ae43188ae76d38f414b2bdb0077b" kindref="member">Texture</ref>,</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0abbfb5410525fce19cdf09e0fb2e7d94f" kindref="member">TopLevelAccelerationStructure</ref>,</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a9c7acf0acfaa17d4eb9c44cb5db399dd" kindref="member">BottomLevelAccelerationStructure</ref>,</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ae7078dd8d475057cb3634b4694d8b4de" kindref="member">OtherAccelerationStructure</ref>,</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a59d3ab3d90a6a667cce0c4e585eaffa3" kindref="member">AccelerationStructurePool</ref>,</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0a9c749d1df746b4c4cfc87776e951b591" kindref="member">ResourceHeap</ref>,</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0ad10132b38d927fee57e35556696504cb" kindref="member">UnspecifiedMemory</ref>,</highlight></codeline>
+<codeline lineno="69"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="structTaggedResourceInfo" refkind="compound"><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTaggedResourceInfo" kindref="compound">TaggedResourceInfo</ref></highlight></codeline>
+<codeline lineno="73"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75" refid="structTaggedResourceInfo_1a1af64fffc405d087f646b2ac6c27b6e4" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0" kindref="member">TaggedResourceType</ref><sp/><ref refid="structTaggedResourceInfo_1a1af64fffc405d087f646b2ac6c27b6e4" kindref="member">type</ref><sp/>=<sp/><ref refid="dag__resourceTag_8h_1a781af0ebc1978e717c1ecf47609670d0aec0fc0100c4fc1ce4eea230c3dc10360" kindref="member">TaggedResourceType::Undefined</ref>;</highlight></codeline>
+<codeline lineno="77" refid="structTaggedResourceInfo_1a50349c25985da08933a5471d29baff53" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structTaggedResourceInfo_1a50349c25985da08933a5471d29baff53" kindref="member">name</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="79" refid="structTaggedResourceInfo_1a28989e26e0248771e60c1f5388e307be" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="dag__consts_8h_1ad5a9fea10d2996b964488900c2434ff1" kindref="member">ResourceTagType</ref><sp/><ref refid="structTaggedResourceInfo_1a28989e26e0248771e60c1f5388e307be" kindref="member">tag</ref><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="81" refid="structTaggedResourceInfo_1a2a3acd75759a84e40926ed643f86ac94" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structTaggedResourceInfo_1a2a3acd75759a84e40926ed643f86ac94" kindref="member">sizeInBytes</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="84" refid="structTaggedResourceInfo_1ab4238f64e6a5bf6578b22c85ba07b305" refkind="member"><highlight class="normal"><sp/><sp/>uint32_t<sp/><ref refid="structTaggedResourceInfo_1ab4238f64e6a5bf6578b22c85ba07b305" kindref="member">addressAlignment</ref><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="87" refid="structTaggedResourceInfo_1a4d26cb4f28b3b233f035953729fcf2b0" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTaggedResourceInfo_1a4d26cb4f28b3b233f035953729fcf2b0" kindref="member">isSubAllocated</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="89" refid="structTaggedResourceInfo_1a8b672361fc67dbd894a11190ca1fc3f5" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTaggedResourceInfo_1a8b672361fc67dbd894a11190ca1fc3f5" kindref="member">isAproximation</ref><sp/>:<sp/>1<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="dag__resourceTag_8h_1ab1dfb1f4da2743c39c2b2cc69ddec177" refkind="member"><highlight class="keyword">using<sp/></highlight><highlight class="normal"><ref refid="dag__interface__table_8h_1ab1dfb1f4da2743c39c2b2cc69ddec177" kindref="member">ResourceVisitor</ref><sp/>=<sp/>dag::FunctionRef&lt;void(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structTaggedResourceInfo" kindref="compound">TaggedResourceInfo</ref><sp/>&amp;res)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal">&gt;;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="102" refid="namespaced3d_1ad91b3e37525669215222508a82709c57" refkind="member"><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ad91b3e37525669215222508a82709c57" kindref="member">visit_tagged_resources</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter" kindref="compound">ResourceTypeFilter</ref><sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1ab1dfb1f4da2743c39c2b2cc69ddec177" kindref="member">ResourceVisitor</ref><sp/>&amp;visitor);</highlight></codeline>
+<codeline lineno="103"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_D3D_MULTI</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__interface__table_8h" kindref="compound">drv/3d/dag_interface_table.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal"><ref refid="namespaced3d" kindref="compound">d3d</ref></highlight></codeline>
+<codeline lineno="109"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="namespaced3d_1ad91b3e37525669215222508a82709c57" kindref="member">visit_tagged_resources</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structResourceTypeFilter" kindref="compound">ResourceTypeFilter</ref><sp/>&amp;filter,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="dag__interface__table_8h_1ab1dfb1f4da2743c39c2b2cc69ddec177" kindref="member">ResourceVisitor</ref><sp/>&amp;visitor)</highlight></codeline>
+<codeline lineno="111"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/><ref refid="dag__interface__table_8h_1a9f0f35dc4d7008b6f6a8ee34d251fd6d" kindref="member">d3di</ref>.<ref refid="structD3dInterfaceTable_1af303ea20b7cf7636ed52d7962c73c5c9" kindref="member">visit_tagged_resources</ref>(filter,<sp/>visitor);</highlight></codeline>
+<codeline lineno="113"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">}<sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>d3d</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight></codeline>
+    </programlisting>
+    <location file="dag_resourceTag.h"/>
+  </compounddef>
+</doxygen>

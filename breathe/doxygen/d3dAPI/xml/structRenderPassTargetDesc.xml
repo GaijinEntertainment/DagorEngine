@@ -1,0 +1,110 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassTargetDesc" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassTargetDesc</compoundname>
+    <includes refid="dag__renderPass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassTargetDesc_1a05896be5b9ad0c26353929d1893fd650" prot="public" static="no" mutable="no">
+        <type><ref refid="classBaseTexture" kindref="compound">BaseTexture</ref> *</type>
+        <definition>BaseTexture* RenderPassTargetDesc::templateResource</definition>
+        <argsstring></argsstring>
+        <name>templateResource</name>
+        <qualifiedname>RenderPassTargetDesc::templateResource</qualifiedname>
+        <briefdescription>
+<para>Resource from which information is extracted, can be nullptr. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="42" column="15" bodyfile="dag_renderPass.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassTargetDesc_1adb0b976b127b7debab3385de095a85de" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned RenderPassTargetDesc::texcf</definition>
+        <argsstring></argsstring>
+        <name>texcf</name>
+        <qualifiedname>RenderPassTargetDesc::texcf</qualifiedname>
+        <briefdescription>
+<para>Raw texture create flags, used if template resource is not provided. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="44" column="12" bodyfile="dag_renderPass.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassTargetDesc_1aa3e300d8c7ae9f0a96ca5570d63d422c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool RenderPassTargetDesc::aliased</definition>
+        <argsstring></argsstring>
+        <name>aliased</name>
+        <qualifiedname>RenderPassTargetDesc::aliased</qualifiedname>
+        <briefdescription>
+<para>Must be set if template resource is empty and target will use memory aliased inside render pass. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="46" column="8" bodyfile="dag_renderPass.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="structRenderPassTargetDesc_1a074f09800ba2a12fb366516f8e7ba58b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool operator==</definition>
+        <argsstring>(const RenderPassTargetDesc &amp;first, const RenderPassTargetDesc &amp;second)=default</argsstring>
+        <name>operator==</name>
+        <qualifiedname>RenderPassTargetDesc::operator==</qualifiedname>
+        <param>
+          <type>const <ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref> &amp;</type>
+          <declname>first</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structRenderPassTargetDesc" kindref="compound">RenderPassTargetDesc</ref> &amp;</type>
+          <declname>second</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="48" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Early description of render target. </para>
+    </briefdescription>
+    <detaileddescription>
+<para>Gives necessary info at render pass creation so render pass is compatible with targets of same type later on </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseTexture</label>
+        <link refid="classBaseTexture"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>RenderPassTargetDesc</label>
+        <link refid="structRenderPassTargetDesc"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>templateResource</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_renderPass.h" line="39" column="1" bodyfile="dag_renderPass.h" bodystart="40" bodyend="49"/>
+    <listofallmembers>
+      <member refid="structRenderPassTargetDesc_1aa3e300d8c7ae9f0a96ca5570d63d422c" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>aliased</name></member>
+      <member refid="structRenderPassTargetDesc_1a074f09800ba2a12fb366516f8e7ba58b" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>operator==</name></member>
+      <member refid="structRenderPassTargetDesc_1a05896be5b9ad0c26353929d1893fd650" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>templateResource</name></member>
+      <member refid="structRenderPassTargetDesc_1adb0b976b127b7debab3385de095a85de" prot="public" virt="non-virtual"><scope>RenderPassTargetDesc</scope><name>texcf</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

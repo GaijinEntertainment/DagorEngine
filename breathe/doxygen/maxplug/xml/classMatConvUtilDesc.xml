@@ -1,0 +1,201 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMatConvUtilDesc" kind="class" language="C++" prot="public">
+    <compoundname>MatConvUtilDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMatConvUtilDesc_1a2c8da6ecbd0f84e4cb29603666931805" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int MatConvUtilDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>MatConvUtilDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="74" column="7" bodyfile="matConvUtil.cpp" bodystart="74" bodyend="74"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1ae5ae097702cc5a74cdb2950c946d5c3d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * MatConvUtilDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>MatConvUtilDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="75" column="8" bodyfile="matConvUtil.cpp" bodystart="75" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1a2eecc8d495dd66d3e3dbf78abc03fdb7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MatConvUtilDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>MatConvUtilDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="76" column="15" bodyfile="matConvUtil.cpp" bodystart="76" bodyend="76"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1a392a4250698ab45f063b5133b466f3f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * MatConvUtilDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>MatConvUtilDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="80" column="15" bodyfile="matConvUtil.cpp" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1aa528c6f46d845a40bdc7415b92729278" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID MatConvUtilDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>MatConvUtilDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="82" column="13" bodyfile="matConvUtil.cpp" bodystart="82" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1abb56e7eeed92ed4c5bdd250255134491" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID MatConvUtilDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>MatConvUtilDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="83" column="12" bodyfile="matConvUtil.cpp" bodystart="83" bodyend="83"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1a55f1be8b4344870b89e6c281aee0753d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * MatConvUtilDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>MatConvUtilDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="84" column="15" bodyfile="matConvUtil.cpp" bodystart="84" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1abcbc4ca323e604fe2e8e9055f7e63fec" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL MatConvUtilDesc::NeedsToSave</definition>
+        <argsstring>() override</argsstring>
+        <name>NeedsToSave</name>
+        <qualifiedname>MatConvUtilDesc::NeedsToSave</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="85" column="8" bodyfile="matConvUtil.cpp" bodystart="85" bodyend="85"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1a361d165808a13ba2522974b92fe110c5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult MatConvUtilDesc::Save</definition>
+        <argsstring>(ISave *) override</argsstring>
+        <name>Save</name>
+        <qualifiedname>MatConvUtilDesc::Save</qualifiedname>
+        <param>
+          <type>ISave *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="86" column="12" bodyfile="matConvUtil.cpp" bodystart="90" bodyend="90"/>
+      </memberdef>
+      <memberdef kind="function" id="classMatConvUtilDesc_1aeeee07a2e7779b37588e8b5c972bb08c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>IOResult</type>
+        <definition>IOResult MatConvUtilDesc::Load</definition>
+        <argsstring>(ILoad *) override</argsstring>
+        <name>Load</name>
+        <qualifiedname>MatConvUtilDesc::Load</qualifiedname>
+        <param>
+          <type>ILoad *</type>
+          <defname>io</defname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="87" column="12" bodyfile="matConvUtil.cpp" bodystart="92" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>MatConvUtilDesc</label>
+        <link refid="classMatConvUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>MatConvUtilDesc</label>
+        <link refid="classMatConvUtilDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="matConvUtil.cpp" line="71" column="1" bodyfile="matConvUtil.cpp" bodystart="72" bodyend="88"/>
+    <listofallmembers>
+      <member refid="classMatConvUtilDesc_1a55f1be8b4344870b89e6c281aee0753d" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>Category</name></member>
+      <member refid="classMatConvUtilDesc_1abb56e7eeed92ed4c5bdd250255134491" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>ClassID</name></member>
+      <member refid="classMatConvUtilDesc_1a2eecc8d495dd66d3e3dbf78abc03fdb7" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>ClassName</name></member>
+      <member refid="classMatConvUtilDesc_1ae5ae097702cc5a74cdb2950c946d5c3d" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>Create</name></member>
+      <member refid="classMatConvUtilDesc_1a2c8da6ecbd0f84e4cb29603666931805" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>IsPublic</name></member>
+      <member refid="classMatConvUtilDesc_1aeeee07a2e7779b37588e8b5c972bb08c" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>Load</name></member>
+      <member refid="classMatConvUtilDesc_1abcbc4ca323e604fe2e8e9055f7e63fec" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>NeedsToSave</name></member>
+      <member refid="classMatConvUtilDesc_1a392a4250698ab45f063b5133b466f3f3" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classMatConvUtilDesc_1a361d165808a13ba2522974b92fe110c5" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>Save</name></member>
+      <member refid="classMatConvUtilDesc_1aa528c6f46d845a40bdc7415b92729278" prot="public" virt="non-virtual"><scope>MatConvUtilDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

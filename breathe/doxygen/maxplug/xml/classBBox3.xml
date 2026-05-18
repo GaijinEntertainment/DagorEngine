@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBBox3" kind="class" language="C++" prot="public">
+    <compoundname>BBox3</compoundname>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-attrib">
+      <member refid="group__common_1ga889656955bcb1a2a94630173e9263879" kind="variable"><name>lim</name></member>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1gadc592d5a014057332e0b733bb3237c00" kind="function"><name>BBox3</name></member>
+      <member refid="group__common_1ga482a611a60abe967214de344f97db0ed" kind="function"><name>BBox3</name></member>
+      <member refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" kind="function"><name>setempty</name></member>
+      <member refid="group__common_1ga0f8ff2e55c96af52014fbae971a17c7a" kind="function"><name>isempty</name></member>
+      <member refid="group__common_1ga1cbb19c4fa49f2c82c6258e500e83d83" kind="function"><name>makecube</name></member>
+      <member refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" kind="function"><name>center</name></member>
+      <member refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" kind="function"><name>width</name></member>
+      <member refid="group__common_1gaaeb610e871cc49c3e875a4cb1137d730" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1ga066992933342722bb3931046960d2b50" kind="function"><name>operator[]</name></member>
+      <member refid="group__common_1gaa3bf0855a3d44c287769f0eca2681729" kind="function"><name>operator const Point3 *</name></member>
+      <member refid="group__common_1ga62255f3e24549388ee920027b0e0b431" kind="function"><name>operator Point3 *</name></member>
+      <member refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" kind="function"><name>operator+=</name></member>
+      <member refid="group__common_1ga0249cbd9ad452d71728f340b98afae6f" kind="function"><name>operator+=</name></member>
+      <member refid="group__common_1ga2efe6224d256bb42094675c13c25058e" kind="function"><name>operator&amp;</name></member>
+      <member refid="group__common_1gae6a6f1e7dd98862650397a6ca44e7268" kind="function"><name>operator&amp;</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="math3d.h" line="808" column="1" bodyfile="math3d.h" bodystart="809" bodyend="906"/>
+    <listofallmembers>
+      <member refid="group__common_1gadc592d5a014057332e0b733bb3237c00" prot="public" virt="non-virtual"><scope>BBox3</scope><name>BBox3</name></member>
+      <member refid="group__common_1ga482a611a60abe967214de344f97db0ed" prot="public" virt="non-virtual"><scope>BBox3</scope><name>BBox3</name></member>
+      <member refid="group__common_1ga33a8d95cdfcb26b5fafde9165e0b3b6e" prot="public" virt="non-virtual"><scope>BBox3</scope><name>center</name></member>
+      <member refid="group__common_1ga0f8ff2e55c96af52014fbae971a17c7a" prot="public" virt="non-virtual"><scope>BBox3</scope><name>isempty</name></member>
+      <member refid="group__common_1ga889656955bcb1a2a94630173e9263879" prot="public" virt="non-virtual"><scope>BBox3</scope><name>lim</name></member>
+      <member refid="group__common_1ga1cbb19c4fa49f2c82c6258e500e83d83" prot="public" virt="non-virtual"><scope>BBox3</scope><name>makecube</name></member>
+      <member refid="group__common_1gaa3bf0855a3d44c287769f0eca2681729" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator const Point3 *</name></member>
+      <member refid="group__common_1ga62255f3e24549388ee920027b0e0b431" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator Point3 *</name></member>
+      <member refid="group__common_1ga2efe6224d256bb42094675c13c25058e" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator&amp;</name></member>
+      <member refid="group__common_1gae6a6f1e7dd98862650397a6ca44e7268" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator&amp;</name></member>
+      <member refid="group__common_1ga892ff209be6f6fcc7db11b5355b8dd3a" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator+=</name></member>
+      <member refid="group__common_1ga0249cbd9ad452d71728f340b98afae6f" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator+=</name></member>
+      <member refid="group__common_1gaaeb610e871cc49c3e875a4cb1137d730" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator[]</name></member>
+      <member refid="group__common_1ga066992933342722bb3931046960d2b50" prot="public" virt="non-virtual"><scope>BBox3</scope><name>operator[]</name></member>
+      <member refid="group__common_1gaafbb1b9222d90b6821db3f6832f71612" prot="public" virt="non-virtual"><scope>BBox3</scope><name>setempty</name></member>
+      <member refid="group__common_1ga34f6664227f8531a0708a69314c9eb21" prot="public" virt="non-virtual"><scope>BBox3</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

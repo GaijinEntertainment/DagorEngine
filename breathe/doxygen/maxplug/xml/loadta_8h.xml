@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="loadta_8h" kind="file" language="C++">
+    <compoundname>loadta.h</compoundname>
+    <includedby refid="loadta_8cpp" local="yes">loadta.cpp</includedby>
+    <includedby refid="ta_8cpp" local="yes">ta.cpp</includedby>
+    <invincdepgraph>
+      <node id="2">
+        <label>loadta.cpp</label>
+        <link refid="loadta_8cpp"/>
+      </node>
+      <node id="1">
+        <label>loadta.h</label>
+        <link refid="loadta_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ta.cpp</label>
+        <link refid="ta_8cpp"/>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structTexAnimFile" prot="public">TexAnimFile</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="structTexAnimFile" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structTexAnimFile" kindref="compound">TexAnimFile</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6" refid="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;char<sp/>*&gt;<sp/><ref refid="structTexAnimFile_1a1048913d34b2b19a1305f1f7a0270dd3" kindref="member">tex</ref>;</highlight></codeline>
+<codeline lineno="7" refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;int&gt;<sp/><ref refid="structTexAnimFile_1a3fc3ef99d3b9e2bafb018e66522b50a0" kindref="member">frm</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><ref refid="structTexAnimFile_1a2ca55b29d042c0133aba6048871a44b0" kindref="member">~TexAnimFile</ref>();</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structTexAnimFile_1a24023c034f60ba9a6e1984ebf7e3a7a0" kindref="member">clear</ref>();</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="structTexAnimFile_1a022d7a2b5fafab646a33bf3b59fc728c" kindref="member">add_frame</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTexAnimFile_1ac73331eab3288aca93ea56a8aeeea34a" kindref="member">parse</ref>(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structTexAnimFile_1ac6068bf539867162fd8e93f8e5140aa0" kindref="member">load</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*fn);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="structTexAnimFile_1a2b865b6349e7dcafef2ce19b0fd38b6c" kindref="member">getlasterr</ref>();</highlight></codeline>
+<codeline lineno="15"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="loadta.h"/>
+  </compounddef>
+</doxygen>

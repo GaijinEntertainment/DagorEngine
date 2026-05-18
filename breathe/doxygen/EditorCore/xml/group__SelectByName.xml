@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="group__SelectByName" kind="group">
+    <compoundname>SelectByName</compoundname>
+    <title>&apos;Select by name&apos; window</title>
+    <innerclass refid="classIObjectsList" prot="public">IObjectsList</innerclass>
+    <innerclass refid="classSelWindow" prot="public">SelWindow</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,172 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classSerializableTab" kind="class" language="C++" prot="public">
+    <compoundname>SerializableTab</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">Tab&lt; Type &gt;</basecompoundref>
+    <includes refid="shaderSave_8h" local="no">shaderSave.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename Type</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classSerializableTab_1ae941182fed51da6bd79e34863ae8e61b" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SerializableTab&lt; Type &gt;::serialize</definition>
+        <argsstring>() const</argsstring>
+        <name>serialize</name>
+        <qualifiedname>SerializableTab::serialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="50" column="8" bodyfile="shaderSave.h" bodystart="50" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableTab_1a203b19555f1e4b0c20764b13d5e77c11" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SerializableTab&lt; Type &gt;::deserialize</definition>
+        <argsstring>()</argsstring>
+        <name>deserialize</name>
+        <qualifiedname>SerializableTab::deserialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="67" column="8" bodyfile="shaderSave.h" bodystart="67" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableTab_1a3cb908230c551b6aef7fc872bcad6f5f" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SerializableTab&lt; Type &gt;::hashialize</definition>
+        <argsstring>() const</argsstring>
+        <name>hashialize</name>
+        <qualifiedname>SerializableTab::hashialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="89" column="8" bodyfile="shaderSave.h" bodystart="89" bodyend="95"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSerializableTab_1a107b98052fb0d15fd1d577c399c62640" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SerializableTab&lt; Type &gt;::BINDUMP_ENABLE_STREAMING</definition>
+        <argsstring>(SerializableTab, Tab&lt; Type &gt;, Tab)</argsstring>
+        <name>BINDUMP_ENABLE_STREAMING</name>
+        <qualifiedname>SerializableTab::BINDUMP_ENABLE_STREAMING</qualifiedname>
+        <param>
+          <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref></type>
+        </param>
+        <param>
+          <type>Tab&lt; Type &gt;</type>
+        </param>
+        <param>
+          <type>Tab</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="98" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableTab_1ac3597370cbf99b4c4d4e59aa329ee610" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SerializableTab&lt; Type &gt;::SerializableTab</definition>
+        <argsstring>(const SerializableTab &amp;other)=default</argsstring>
+        <name>SerializableTab</name>
+        <qualifiedname>SerializableTab::SerializableTab</qualifiedname>
+        <param>
+          <type>const <ref refid="classSerializableTab" kindref="compound">SerializableTab</ref> &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="99" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableTab_1aa6aa76463cd08f0b4e62c639bdd4db5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>SerializableTab&lt; Type &gt;::SerializableTab</definition>
+        <argsstring>(SerializableTab &amp;&amp;other)=default</argsstring>
+        <name>SerializableTab</name>
+        <qualifiedname>SerializableTab::SerializableTab</qualifiedname>
+        <param>
+          <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="100" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classSerializableTab_1aad71a58eb877d0e35da0300fdabc4b4b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref> &amp;</type>
+        <definition>SerializableTab &amp; SerializableTab&lt; Type &gt;::operator=</definition>
+        <argsstring>(SerializableTab &amp;&amp;other)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>SerializableTab::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref> &amp;&amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="101" column="19"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>SerializableTab&lt; Type &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Tab&lt; Type &gt;</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>SerializableTab&lt; Type &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Tab&lt; Type &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="shaderSave.h" line="48" column="1" bodyfile="shaderSave.h" bodystart="49" bodyend="102"/>
+    <listofallmembers>
+      <member refid="classSerializableTab_1a107b98052fb0d15fd1d577c399c62640" prot="public" virt="non-virtual"><scope>SerializableTab</scope><name>BINDUMP_ENABLE_STREAMING</name></member>
+      <member refid="classSerializableTab_1a203b19555f1e4b0c20764b13d5e77c11" prot="private" virt="non-virtual"><scope>SerializableTab</scope><name>deserialize</name></member>
+      <member refid="classSerializableTab_1a3cb908230c551b6aef7fc872bcad6f5f" prot="private" virt="non-virtual"><scope>SerializableTab</scope><name>hashialize</name></member>
+      <member refid="classSerializableTab_1aad71a58eb877d0e35da0300fdabc4b4b" prot="public" virt="non-virtual"><scope>SerializableTab</scope><name>operator=</name></member>
+      <member refid="classSerializableTab_1ac3597370cbf99b4c4d4e59aa329ee610" prot="public" virt="non-virtual"><scope>SerializableTab</scope><name>SerializableTab</name></member>
+      <member refid="classSerializableTab_1aa6aa76463cd08f0b4e62c639bdd4db5e" prot="public" virt="non-virtual"><scope>SerializableTab</scope><name>SerializableTab</name></member>
+      <member refid="classSerializableTab_1ae941182fed51da6bd79e34863ae8e61b" prot="private" virt="non-virtual"><scope>SerializableTab</scope><name>serialize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

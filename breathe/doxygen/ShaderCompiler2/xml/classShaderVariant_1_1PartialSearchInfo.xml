@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderVariant_1_1PartialSearchInfo" kind="class" language="C++" prot="public">
+    <compoundname>ShaderVariant::PartialSearchInfo</compoundname>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+    <innerclass refid="structShaderVariant_1_1PartialSearchInfo_1_1ValInfo" prot="private">ShaderVariant::PartialSearchInfo::ValInfo</innerclass>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classShaderVariant_1_1PartialSearchInfo_1a76bcdccce637f908586f814abc595aa8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class SearchInfo</definition>
+        <argsstring></argsstring>
+        <name>SearchInfo</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::SearchInfo</qualifiedname>
+        <param>
+          <type><ref refid="classShaderVariant_1_1SearchInfo" kindref="compound">SearchInfo</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="83" column="16" bodyfile="shaderVariant.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1PartialSearchInfo_1a4dcbcb34508d5504d562c7b7f7d92135" prot="private" static="no" mutable="no">
+        <type>Tab&lt; ValInfo &gt;</type>
+        <definition>Tab&lt;ValInfo&gt; ShaderVariant::PartialSearchInfo::values</definition>
+        <argsstring></argsstring>
+        <name>values</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::values</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="118" column="7" bodyfile="shaderVariant.h" bodystart="118" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderVariant_1_1PartialSearchInfo_1ad2a343193179ffb86867bf9ec4f64ab8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::PartialSearchInfo::PartialSearchInfo</definition>
+        <argsstring>(IMemAlloc *m=tmpmem)</argsstring>
+        <name>PartialSearchInfo</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::PartialSearchInfo</qualifiedname>
+        <param>
+          <type>IMemAlloc *</type>
+          <declname>m</declname>
+          <defval>tmpmem</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="86" column="10" bodyfile="shaderVariant.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1PartialSearchInfo_1ac5840cd68ae6295f62b39b69e06d49af" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariant::PartialSearchInfo::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="88" column="14" bodyfile="shaderVariant.h" bodystart="88" bodyend="88"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1PartialSearchInfo_1ad7ff6077eb26c1c955704c67223a744a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::PartialSearchInfo::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::clear</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="89" column="15" bodyfile="shaderVariant.h" bodystart="89" bodyend="89"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1PartialSearchInfo_1a41ea5cba58d1332f6e83ae92ef2bd70d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::PartialSearchInfo::setValue</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype, real val)</argsstring>
+        <name>setValue</name>
+        <qualifiedname>ShaderVariant::PartialSearchInfo::setValue</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="92" column="15" bodyfile="shaderVariant.h" bodystart="92" bodyend="108"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.h" line="81" column="1" bodyfile="shaderVariant.h" bodystart="82" bodyend="119"/>
+    <listofallmembers>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1ad7ff6077eb26c1c955704c67223a744a" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>clear</name></member>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1ac5840cd68ae6295f62b39b69e06d49af" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>getCount</name></member>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1ad2a343193179ffb86867bf9ec4f64ab8" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>PartialSearchInfo</name></member>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1a76bcdccce637f908586f814abc595aa8" prot="private" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>SearchInfo</name></member>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1a41ea5cba58d1332f6e83ae92ef2bd70d" prot="public" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>setValue</name></member>
+      <member refid="classShaderVariant_1_1PartialSearchInfo_1a4dcbcb34508d5504d562c7b7f7d92135" prot="private" virt="non-virtual"><scope>ShaderVariant::PartialSearchInfo</scope><name>values</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

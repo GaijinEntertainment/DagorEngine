@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structIesReader_1_1SphericalCoordinates" kind="struct" language="C++" prot="public">
+    <compoundname>IesReader::SphericalCoordinates</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structIesReader_1_1SphericalCoordinates_1accb565dd010dd75bb8993383fe24cc8e" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::SphericalCoordinates::theta</definition>
+        <argsstring></argsstring>
+        <name>theta</name>
+        <qualifiedname>IesReader::SphericalCoordinates::theta</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="72" column="10" bodyfile="iesReader.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structIesReader_1_1SphericalCoordinates_1a462ce65e8ab4974f3435b3d2917a992b" prot="public" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::SphericalCoordinates::phi</definition>
+        <argsstring></argsstring>
+        <name>phi</name>
+        <qualifiedname>IesReader::SphericalCoordinates::phi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="73" column="10" bodyfile="iesReader.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="iesReader.h" line="70" column="3" bodyfile="iesReader.h" bodystart="71" bodyend="74"/>
+    <listofallmembers>
+      <member refid="structIesReader_1_1SphericalCoordinates_1a462ce65e8ab4974f3435b3d2917a992b" prot="public" virt="non-virtual"><scope>IesReader::SphericalCoordinates</scope><name>phi</name></member>
+      <member refid="structIesReader_1_1SphericalCoordinates_1accb565dd010dd75bb8993383fe24cc8e" prot="public" virt="non-virtual"><scope>IesReader::SphericalCoordinates</scope><name>theta</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

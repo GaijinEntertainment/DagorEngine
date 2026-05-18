@@ -1,0 +1,293 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classFreeCamCommandMode" kind="class" language="C++" prot="public">
+    <compoundname>FreeCamCommandMode</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">CommandMode</basecompoundref>
+    <basecompoundref prot="public" virt="non-virtual">MouseCallBack</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classFreeCamCommandMode_1acab17b82f4011d20d8443f3fe7d397e2" prot="public" static="no" mutable="no">
+        <type>HCURSOR</type>
+        <definition>HCURSOR FreeCamCommandMode::prevcur</definition>
+        <argsstring></argsstring>
+        <name>prevcur</name>
+        <qualifiedname>FreeCamCommandMode::prevcur</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="181" column="11" bodyfile="freecam.cpp" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFreeCamCommandMode_1addff94dd269075eafa05444c938a869d" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 FreeCamCommandMode::op</definition>
+        <argsstring></argsstring>
+        <name>op</name>
+        <qualifiedname>FreeCamCommandMode::op</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="219" column="11" bodyfile="freecam.cpp" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFreeCamCommandMode_1a05fe6f9463e11018059df6a75f0e835a" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 FreeCamCommandMode::startop</definition>
+        <argsstring></argsstring>
+        <name>startop</name>
+        <qualifiedname>FreeCamCommandMode::startop</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="219" column="14" bodyfile="freecam.cpp" bodystart="219" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classFreeCamCommandMode_1afc2de6ea1ebd2fce4280c6688407140d" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int FreeCamCommandMode::started</definition>
+        <argsstring></argsstring>
+        <name>started</name>
+        <qualifiedname>FreeCamCommandMode::started</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="220" column="7" bodyfile="freecam.cpp" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classFreeCamCommandMode_1a51fe4375461fb5b97be63228ec7b6cc0" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FreeCamCommandMode::FreeCamCommandMode</definition>
+        <argsstring>()</argsstring>
+        <name>FreeCamCommandMode</name>
+        <qualifiedname>FreeCamCommandMode::FreeCamCommandMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="182" column="3" bodyfile="freecam.cpp" bodystart="182" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1acc2bd3913fca8931fea9e5606daaeac9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FreeCamCommandMode::Class</definition>
+        <argsstring>() override</argsstring>
+        <name>Class</name>
+        <qualifiedname>FreeCamCommandMode::Class</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="183" column="7" bodyfile="freecam.cpp" bodystart="183" bodyend="183"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1a5d64fce780ec3c4fd045c425fd721166" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FreeCamCommandMode::ID</definition>
+        <argsstring>() override</argsstring>
+        <name>ID</name>
+        <qualifiedname>FreeCamCommandMode::ID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="184" column="7" bodyfile="freecam.cpp" bodystart="184" bodyend="184"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1ab47dba878d808b46942db02f0bdbecde" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>MouseCallBack *</type>
+        <definition>MouseCallBack * FreeCamCommandMode::MouseProc</definition>
+        <argsstring>(int *numPoints) override</argsstring>
+        <name>MouseProc</name>
+        <qualifiedname>FreeCamCommandMode::MouseProc</qualifiedname>
+        <param>
+          <type>int *</type>
+          <declname>numPoints</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="185" column="17" bodyfile="freecam.cpp" bodystart="185" bodyend="189"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1afcbf7fec044ae0a78e10e2c6c15d7153" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL FreeCamCommandMode::ChangeFG</definition>
+        <argsstring>(CommandMode *oldMode) override</argsstring>
+        <name>ChangeFG</name>
+        <qualifiedname>FreeCamCommandMode::ChangeFG</qualifiedname>
+        <param>
+          <type>CommandMode *</type>
+          <declname>oldMode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="190" column="8" bodyfile="freecam.cpp" bodystart="190" bodyend="190"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1a67d8f73f9fa69ad323006d52efe3eeb2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ChangeForegroundCallback *</type>
+        <definition>ChangeForegroundCallback * FreeCamCommandMode::ChangeFGProc</definition>
+        <argsstring>() override</argsstring>
+        <name>ChangeFGProc</name>
+        <qualifiedname>FreeCamCommandMode::ChangeFGProc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="192" column="28" bodyfile="freecam.cpp" bodystart="192" bodyend="192"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1ab921ec3e8a7416b8cfb4ec6194a47f18" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamCommandMode::EnterMode</definition>
+        <argsstring>() override</argsstring>
+        <name>EnterMode</name>
+        <qualifiedname>FreeCamCommandMode::EnterMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="193" column="8" bodyfile="freecam.cpp" bodystart="193" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1a5b01d5c0bb2a85a0598e4203db8355db" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamCommandMode::ExitMode</definition>
+        <argsstring>() override</argsstring>
+        <name>ExitMode</name>
+        <qualifiedname>FreeCamCommandMode::ExitMode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="210" column="8" bodyfile="freecam.cpp" bodystart="210" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1aa79493e52314715d3c0dd712713500dd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FreeCamCommandMode::proc</definition>
+        <argsstring>(HWND hwnd, int msg, int point, int flags, IPoint2 m) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>FreeCamCommandMode::proc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwnd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>point</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="221" column="7" bodyfile="freecam.cpp" bodystart="221" bodyend="313"/>
+      </memberdef>
+      <memberdef kind="function" id="classFreeCamCommandMode_1a0f814a87f841072ec30e6e243fe5978e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int FreeCamCommandMode::override</definition>
+        <argsstring>(int mode) override</argsstring>
+        <name>override</name>
+        <qualifiedname>FreeCamCommandMode::override</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>mode</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="314" column="7" bodyfile="freecam.cpp" bodystart="314" bodyend="318"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CommandMode</label>
+      </node>
+      <node id="1">
+        <label>FreeCamCommandMode</label>
+        <link refid="classFreeCamCommandMode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>MouseCallBack</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CommandMode</label>
+      </node>
+      <node id="1">
+        <label>FreeCamCommandMode</label>
+        <link refid="classFreeCamCommandMode"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>MouseCallBack</label>
+      </node>
+    </collaborationgraph>
+    <location file="freecam.cpp" line="178" column="1" bodyfile="freecam.cpp" bodystart="179" bodyend="319"/>
+    <listofallmembers>
+      <member refid="classFreeCamCommandMode_1afcbf7fec044ae0a78e10e2c6c15d7153" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>ChangeFG</name></member>
+      <member refid="classFreeCamCommandMode_1a67d8f73f9fa69ad323006d52efe3eeb2" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>ChangeFGProc</name></member>
+      <member refid="classFreeCamCommandMode_1acc2bd3913fca8931fea9e5606daaeac9" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>Class</name></member>
+      <member refid="classFreeCamCommandMode_1ab921ec3e8a7416b8cfb4ec6194a47f18" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>EnterMode</name></member>
+      <member refid="classFreeCamCommandMode_1a5b01d5c0bb2a85a0598e4203db8355db" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>ExitMode</name></member>
+      <member refid="classFreeCamCommandMode_1a51fe4375461fb5b97be63228ec7b6cc0" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>FreeCamCommandMode</name></member>
+      <member refid="classFreeCamCommandMode_1a5d64fce780ec3c4fd045c425fd721166" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>ID</name></member>
+      <member refid="classFreeCamCommandMode_1ab47dba878d808b46942db02f0bdbecde" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>MouseProc</name></member>
+      <member refid="classFreeCamCommandMode_1addff94dd269075eafa05444c938a869d" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>op</name></member>
+      <member refid="classFreeCamCommandMode_1a0f814a87f841072ec30e6e243fe5978e" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>override</name></member>
+      <member refid="classFreeCamCommandMode_1acab17b82f4011d20d8443f3fe7d397e2" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>prevcur</name></member>
+      <member refid="classFreeCamCommandMode_1aa79493e52314715d3c0dd712713500dd" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>proc</name></member>
+      <member refid="classFreeCamCommandMode_1afc2de6ea1ebd2fce4280c6688407140d" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>started</name></member>
+      <member refid="classFreeCamCommandMode_1a05fe6f9463e11018059df6a75f0e835a" prot="public" virt="non-virtual"><scope>FreeCamCommandMode</scope><name>startop</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structindex__buffer_1_1Quads32BitUsageLock" kind="struct" language="C++" prot="public">
+    <compoundname>index_buffer::Quads32BitUsageLock</compoundname>
+    <includes refid="dag__quadIndexBuffer_8h" local="no">dag_quadIndexBuffer.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structindex__buffer_1_1Quads32BitUsageLock_1a841cbdfdc536bcc93edeaa486c7b906e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>index_buffer::Quads32BitUsageLock::Quads32BitUsageLock</definition>
+        <argsstring>()</argsstring>
+        <name>Quads32BitUsageLock</name>
+        <qualifiedname>index_buffer::Quads32BitUsageLock::Quads32BitUsageLock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="24" column="3" bodyfile="dag_quadIndexBuffer.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      <memberdef kind="function" id="structindex__buffer_1_1Quads32BitUsageLock_1a0d619df48bc084567e381d8ff93c26ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>index_buffer::Quads32BitUsageLock::~Quads32BitUsageLock</definition>
+        <argsstring>()</argsstring>
+        <name>~Quads32BitUsageLock</name>
+        <qualifiedname>index_buffer::Quads32BitUsageLock::~Quads32BitUsageLock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="25" column="3" bodyfile="dag_quadIndexBuffer.h" bodystart="25" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_quadIndexBuffer.h" line="22" column="1" bodyfile="dag_quadIndexBuffer.h" bodystart="23" bodyend="26"/>
+    <listofallmembers>
+      <member refid="structindex__buffer_1_1Quads32BitUsageLock_1a841cbdfdc536bcc93edeaa486c7b906e" prot="public" virt="non-virtual"><scope>index_buffer::Quads32BitUsageLock</scope><name>Quads32BitUsageLock</name></member>
+      <member refid="structindex__buffer_1_1Quads32BitUsageLock_1a0d619df48bc084567e381d8ff93c26ae" prot="public" virt="non-virtual"><scope>index_buffer::Quads32BitUsageLock</scope><name>~Quads32BitUsageLock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

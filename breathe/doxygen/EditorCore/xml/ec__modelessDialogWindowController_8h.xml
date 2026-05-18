@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__modelessDialogWindowController_8h" kind="file" language="C++">
+    <compoundname>ec_modelessDialogWindowController.h</compoundname>
+    <includes refid="ec__modelessWindowController_8h" local="no">EditorCore/ec_modelessWindowController.h</includes>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includes local="no">EASTL/unique_ptr.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_modelessDialogWindowController.h</label>
+        <link refid="ec__modelessDialogWindowController_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>EditorCore/ec_modelessWindowController.h</label>
+        <link refid="ec__modelessWindowController_8h"/>
+      </node>
+      <node id="4">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="3">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classModelessDialogWindowController" prot="public">ModelessDialogWindowController</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__modelessWindowController_8h" kindref="compound">EditorCore/ec_modelessWindowController.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/unique_ptr.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>A<sp/>simple<sp/>base<sp/>class<sp/>that<sp/>can<sp/>be<sp/>used<sp/>when<sp/>implementing<sp/>IModelessWindowController<sp/>for<sp/>a<sp/>DialogWindow.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>In<sp/>most<sp/>of<sp/>the<sp/>cases<sp/>it<sp/>is<sp/>enough<sp/>to<sp/>override<sp/>only<sp/>the<sp/>createDialog()<sp/>method.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>DialogType&gt;</highlight></codeline>
+<codeline lineno="12" refid="classModelessDialogWindowController" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classModelessDialogWindowController" kindref="compound">ModelessDialogWindowController</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/><ref refid="classIModelessWindowController" kindref="compound">IModelessWindowController</ref></highlight></codeline>
+<codeline lineno="13"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="15" refid="classModelessDialogWindowController_1a8bd4b1822036f291f3abd6e38c20ab0d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classModelessDialogWindowController_1a8bd4b1822036f291f3abd6e38c20ab0d" kindref="member">releaseWindow</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>.reset();<sp/>}</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="classModelessDialogWindowController_1a4c2050ffaff98ea626aae01e188ae287" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classModelessDialogWindowController_1a4c2050ffaff98ea626aae01e188ae287" kindref="member">showWindow</ref>(</highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>show<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">)</highlight><highlight class="keyword"><sp/>override</highlight></codeline>
+<codeline lineno="18"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(show)</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>)</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classModelessDialogWindowController_1aed2014666d2124b5823100d9b285490e" kindref="member">createDialog</ref>();</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>)</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>-&gt;show();</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(<ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>-&gt;hide();</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="classModelessDialogWindowController_1ab51e93d6f504174d1dff2c44071978df" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classModelessDialogWindowController_1ab51e93d6f504174d1dff2c44071978df" kindref="member">isWindowShown</ref>()</highlight><highlight class="keyword"><sp/>const<sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref><sp/>&amp;&amp;<sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>-&gt;isVisible();<sp/>}</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>The<sp/>derived<sp/>class<sp/>must<sp/>override<sp/>this<sp/>method<sp/>and<sp/>create<sp/>the<sp/>dialog<sp/>window.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>example:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>void<sp/>createDialog()<sp/>override<sp/>{<sp/>dialog.reset(new<sp/>DialogType());<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="classModelessDialogWindowController_1aed2014666d2124b5823100d9b285490e" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classModelessDialogWindowController_1aed2014666d2124b5823100d9b285490e" kindref="member">createDialog</ref>()<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" refkind="member"><highlight class="normal"><sp/><sp/>eastl::unique_ptr&lt;DialogType&gt;<sp/><ref refid="classModelessDialogWindowController_1a9aeca78af1f1e63389b0a9620c32337d" kindref="member">dialog</ref>;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_modelessDialogWindowController.h"/>
+  </compounddef>
+</doxygen>

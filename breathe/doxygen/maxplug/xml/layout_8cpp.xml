@@ -1,0 +1,845 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="layout_8cpp" kind="file" language="C++">
+    <compoundname>layout.cpp</compoundname>
+    <includes local="no">max.h</includes>
+    <includes refid="layout_8h" local="yes">layout.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>layout.cpp</label>
+        <link refid="layout_8cpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>max.h</label>
+      </node>
+      <node id="4">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structDialogLayout" prot="public">DialogLayout</innerclass>
+    <innerclass refid="structResource" prot="public">Resource</innerclass>
+    <innerclass refid="structDlgExInfo" prot="public">DlgExInfo</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="layout_8cpp_1a9383512f282332748788d50955c1a5ad" prot="public" static="no">
+        <name>IDT_LAYOUT_TIMER</name>
+        <initializer>(1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="12" column="9" bodyfile="layout.cpp" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8cpp_1a4526f12c697a605eb0115dcf36c58404" prot="public" static="no">
+        <name>LAYOUT_TIMEOUT</name>
+        <initializer>(250)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="13" column="9" bodyfile="layout.cpp" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8cpp_1aaed29b12f08ec3b2ac13aca4eeb8a967" prot="public" static="no">
+        <name>PROP_LAYOUT</name>
+        <initializer>(L&quot;~Layout~&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="14" column="9" bodyfile="layout.cpp" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8cpp_1aacd6b9910595af41413bfc42ead6e9c2" prot="public" static="no">
+        <name>PROP_LAYOUT_SIZE</name>
+        <initializer>(L&quot;~LayoutSize~&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="15" column="9" bodyfile="layout.cpp" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8cpp_1acc23cb29d095d019ab806c024bcc2a39" prot="public" static="no">
+        <name>PROP_ORIGINAL_DLG_PROC</name>
+        <initializer>(L&quot;~OriginalWndProc~&quot;)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="16" column="9" bodyfile="layout.cpp" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" prot="public" static="no">
+        <type>unsigned char</type>
+        <definition>typedef unsigned char uint8_t</definition>
+        <argsstring></argsstring>
+        <name>uint8_t</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="7" column="23" bodyfile="layout.cpp" bodystart="7" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="layout_8cpp_1a74029128723095e7bf00a71d46af8b24" prot="public" static="no" mutable="no">
+        <type>HINSTANCE</type>
+        <definition>HINSTANCE hInstance</definition>
+        <argsstring></argsstring>
+        <name>hInstance</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="10" column="18" bodyfile="dllmain.cpp" bodystart="6" bodyend="-1" declfile="layout.cpp" declline="10" declcolumn="18"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="layout_8cpp_1aada84623efb5c2bd4dd7c0f876d5a4d0" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref></type>
+        <definition>static uint8_t afx_clamp</definition>
+        <argsstring>(const WORD val)</argsstring>
+        <name>afx_clamp</name>
+        <param>
+          <type>const WORD</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="25" column="23" bodyfile="layout.cpp" bodystart="25" bodyend="25"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a2c5bf1b91315657d86d2f9ebe3def423" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> *</type>
+        <definition>static const uint8_t * dword_align</definition>
+        <argsstring>(const uint8_t *ptr)</argsstring>
+        <name>dword_align</name>
+        <param>
+          <type>const <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> *</type>
+          <declname>ptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="27" column="29" bodyfile="layout.cpp" bodystart="27" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a1c314b9f7608c0216290a867465de6a3" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void update_layout</definition>
+        <argsstring>(const DialogLayout *self, HWND hWnd, LPARAM lParam)</argsstring>
+        <name>update_layout</name>
+        <param>
+          <type>const <ref refid="structDialogLayout" kindref="compound">DialogLayout</ref> *</type>
+          <declname>self</declname>
+        </param>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="33" column="13" bodyfile="layout.cpp" bodystart="33" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a2af181674729a2a0032b0cd5b381d929" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_layout</definition>
+        <argsstring>(HWND hWnd, LPARAM lParam)</argsstring>
+        <name>update_layout</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="86" column="6" bodyfile="layout.cpp" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a3fc3fe719477dae4e623966f874a152f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structResource" kindref="compound">Resource</ref></type>
+        <definition>static Resource load_resource</definition>
+        <argsstring>(LPCWSTR lpName, LPCWSTR type)</argsstring>
+        <name>load_resource</name>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>lpName</declname>
+        </param>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>type</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="95" column="17" bodyfile="layout.cpp" bodystart="95" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a8eea3ce3203f3426c9a94a52a893b1d7" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> &gt;</type>
+        <definition>static std::vector&lt; uint8_t &gt; read_afx_dialog_layout</definition>
+        <argsstring>(Resource res)</argsstring>
+        <name>read_afx_dialog_layout</name>
+        <param>
+          <type><ref refid="structResource" kindref="compound">Resource</ref></type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="118" column="20" bodyfile="layout.cpp" bodystart="118" bodyend="132"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a40cc90252b3857eb5cf0050c28db680f" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref></type>
+        <definition>static DlgExInfo read_dialog_ex</definition>
+        <argsstring>(Resource &amp;res)</argsstring>
+        <name>read_dialog_ex</name>
+        <param>
+          <type><ref refid="structResource" kindref="compound">Resource</ref> &amp;</type>
+          <declname>res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="141" column="18" bodyfile="layout.cpp" bodystart="141" bodyend="201"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a7ec6f63851401c60db5914ecea678166" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; int &gt;</type>
+        <definition>static std::vector&lt; int &gt; read_dialog_ex_items</definition>
+        <argsstring>(Resource res, WORD cDlgItems)</argsstring>
+        <name>read_dialog_ex_items</name>
+        <param>
+          <type><ref refid="structResource" kindref="compound">Resource</ref></type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>WORD</type>
+          <declname>cDlgItems</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="203" column="20" bodyfile="layout.cpp" bodystart="203" bodyend="258"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a1d3459d44dc355798f523790bf130f43" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref> *</type>
+        <definition>static DialogLayout * load_dialog_layout</definition>
+        <argsstring>(LPCWSTR dialog_name)</argsstring>
+        <name>load_dialog_layout</name>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>dialog_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="260" column="21" bodyfile="layout.cpp" bodystart="260" bodyend="286"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a43030383d0f94da68deb4ffa3009c54c" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>RECT</type>
+        <definition>static RECT get_local_rect</definition>
+        <argsstring>(HWND hWnd)</argsstring>
+        <name>get_local_rect</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="288" column="13" bodyfile="layout.cpp" bodystart="288" bodyend="294"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a7109043eaf1c3b561d35d693efb57e8b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>static INT_PTR CALLBACK parent_proc_wrapper</definition>
+        <argsstring>(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>parent_proc_wrapper</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>message</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="296" column="25" bodyfile="layout.cpp" bodystart="296" bodyend="318"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a66fdfa34af34ae20a03560d2df2cff3b" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void propagate_update_layout</definition>
+        <argsstring>(HWND hWnd, LPARAM lParam)</argsstring>
+        <name>propagate_update_layout</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="320" column="13" bodyfile="layout.cpp" bodystart="320" bodyend="325"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1ad394b03656ab2f1f5afba740a02ad24e" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR CALLBACK</type>
+        <definition>static INT_PTR CALLBACK rollup_proc_wrapper</definition>
+        <argsstring>(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>rollup_proc_wrapper</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>message</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="327" column="25" bodyfile="layout.cpp" bodystart="327" bodyend="360"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1ae5bae9eee4543d2c4c32d56b68f2f1d0" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>static void hook_dlg_proc</definition>
+        <argsstring>(HWND hWnd, DLGPROC dlgProc)</argsstring>
+        <name>hook_dlg_proc</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>dlgProc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="362" column="13" bodyfile="layout.cpp" bodystart="362" bodyend="368"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1aaf131fbb2554c561ac1a282f95fda14b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void attach_layout_to_rollup</definition>
+        <argsstring>(HWND hWnd, LPCWSTR dialog_name)</argsstring>
+        <name>attach_layout_to_rollup</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>dialog_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="370" column="6" bodyfile="layout.cpp" bodystart="370" bodyend="376"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8cpp_1a75048c6100d98af4f7937b6050907999" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void attach_layout_to_dialog</definition>
+        <argsstring>(HWND hWnd, LPCWSTR dialog_name)</argsstring>
+        <name>attach_layout_to_dialog</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>dialog_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="378" column="6" bodyfile="layout.cpp" bodystart="378" bodyend="382"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="layout_8h" kindref="compound">layout.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>uint8_t</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="keyword">typedef</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">unsigned</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref>;</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/>HINSTANCE<sp/><ref refid="layout_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IDT_LAYOUT_TIMER<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LAYOUT_TIMEOUT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(250)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PROP_LAYOUT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(L&quot;~Layout~&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PROP_LAYOUT_SIZE<sp/><sp/><sp/><sp/><sp/><sp/><sp/>(L&quot;~LayoutSize~&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>PROP_ORIGINAL_DLG_PROC<sp/>(L&quot;~OriginalWndProc~&quot;</highlight><highlight class="normal">)</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="structDialogLayout" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref></highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structDialogLayout_1a280d34075c47c954d6707f0f10bcd4fd" kindref="member">dlg_w</ref>,<sp/><ref refid="structDialogLayout_1ac1a57c8b93d620e0761dfff9d10c84d3" kindref="member">dlg_h</ref>;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>std::vector&lt;int&gt;<sp/><ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>;</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/>std::vector&lt;uint8_t&gt;<sp/><ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>afx_clamp(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WORD<sp/>val)<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>val<sp/>&lt;<sp/>100<sp/>?<sp/>val<sp/>:<sp/>100;<sp/>}</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*dword_align(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>)</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uintptr_t<sp/>alignment_minus_one<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DWORD)<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal"><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="normal">uintptr_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref><sp/>+<sp/>alignment_minus_one)<sp/>&amp;<sp/>~alignment_minus_one);</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>update_layout(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*self,<sp/>HWND<sp/>hWnd,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="34"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!self<sp/>||<sp/>!lParam)</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(self-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>.empty()<sp/>||<sp/>self-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>.empty())</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>assert((self-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>.size()<sp/>%<sp/>5)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>assert((self-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>.size()<sp/>%<sp/>4)<sp/>==<sp/>0);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>assert((self-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>.size()<sp/>/<sp/>5)<sp/>==<sp/>(self-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>.size()<sp/>/<sp/>4));</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>RECT<sp/>r;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/>r.left<sp/>=<sp/>r.top<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>r.right<sp/>=<sp/>self-&gt;<ref refid="structDialogLayout_1a280d34075c47c954d6707f0f10bcd4fd" kindref="member">dlg_w</ref>;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>r.bottom<sp/>=<sp/>self-&gt;<ref refid="structDialogLayout_1ac1a57c8b93d620e0761dfff9d10c84d3" kindref="member">dlg_h</ref>;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>MapDialogRect(hWnd,<sp/>&amp;r);</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>deltaW<sp/>=<sp/>LOWORD(lParam)<sp/>-<sp/>r.right;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>deltaH<sp/>=<sp/>HIWORD(lParam)<sp/>-<sp/>r.bottom;</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>self-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>.size()<sp/>/<sp/>5;<sp/>++i)</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>*d_it<sp/>=<sp/>&amp;self-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>[i<sp/>*<sp/>5];</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*l_it<sp/>=<sp/>&amp;self-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>[i<sp/>*<sp/>4];</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(d_it[0]<sp/>==<sp/><ref refid="afxres_8h_1ac93033490bc8943cfc82ec3b40e5cd74" kindref="member">IDC_STATIC</ref>)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/>HWND<sp/>widget<sp/>=<sp/>GetDlgItem(hWnd,<sp/>d_it[0]);</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!widget)</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="65"><highlight class="normal"></highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>r.left<sp/>=<sp/>d_it[1];</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>r.top<sp/>=<sp/>d_it[2];</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>r.right<sp/>=<sp/>d_it[3];</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/>r.bottom<sp/>=<sp/>d_it[4];</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/>MapDialogRect(hWnd,<sp/>&amp;r);</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x<sp/>=<sp/>r.left<sp/>+<sp/>(deltaW<sp/>*<sp/>l_it[0])<sp/>/<sp/>100;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y<sp/>=<sp/>r.top<sp/>+<sp/>(deltaH<sp/>*<sp/>l_it[1])<sp/>/<sp/>100;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w<sp/>=<sp/>r.right<sp/>+<sp/>(deltaW<sp/>*<sp/>l_it[2])<sp/>/<sp/>100;</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref><sp/>=<sp/>r.bottom<sp/>+<sp/>(deltaH<sp/>*<sp/>l_it[3])<sp/>/<sp/>100;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/>MoveWindow(widget,<sp/>x,<sp/>y,<sp/>w,<sp/><ref refid="polyBumpUtil_8cpp_1a48d03c7323d95df49ef19db24dcb5c71" kindref="member">h</ref>,<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/>InvalidateRect(widget,<sp/>NULL,<sp/>TRUE);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>InvalidateRgn(widget,<sp/>NULL,<sp/>TRUE);</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/>UpdateWindow(widget);</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/>UpdateWindow(hWnd);</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"></highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>update_layout(HWND<sp/>hWnd,<sp/>LPARAM<sp/>lParam)<sp/>{<sp/>update_layout((<ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*)GetProp(hWnd,<sp/><ref refid="layout_8cpp_1aaed29b12f08ec3b2ac13aca4eeb8a967" kindref="member">PROP_LAYOUT</ref>),<sp/>hWnd,<sp/>lParam);<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="structResource" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structResource" kindref="compound">Resource</ref></highlight></codeline>
+<codeline lineno="89"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/><ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/><ref refid="structResource" kindref="compound">Resource</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>,<sp/></highlight><highlight class="keywordtype">size_t</highlight><highlight class="normal"><sp/>n)<sp/>:<sp/><ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>(<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>),<sp/><ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>(n)<sp/>{}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structResource" kindref="compound">Resource</ref><sp/>load_resource(LPCWSTR<sp/>lpName,<sp/>LPCWSTR<sp/>type)</highlight></codeline>
+<codeline lineno="96"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structResource" kindref="compound">Resource</ref><sp/>nores(0,<sp/>0);</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"></highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>HRSRC<sp/>hResInfo<sp/>=<sp/>FindResourceW(<ref refid="layout_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>lpName,<sp/>type);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!hResInfo)</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nores;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/>HGLOBAL<sp/>hResData<sp/>=<sp/>LoadResource(<ref refid="layout_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>hResInfo);</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!hResData)</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nores;</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/>DWORD<sp/>size<sp/>=<sp/>SizeofResource(<ref refid="layout_8cpp_1a74029128723095e7bf00a71d46af8b24" kindref="member">hInstance</ref>,<sp/>hResInfo);</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!size)</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nores;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>*<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref><sp/>=<sp/>LockResource(hResData);</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>)</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>nores;</highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structResource" kindref="compound">Resource</ref>(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal"><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(<ref refid="polyBumpUtil_8cpp_1a935adc2e417a61d7eb6f04efb18ba031" kindref="member">ptr</ref>),<sp/>size);</highlight></codeline>
+<codeline lineno="116"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>std::vector&lt;uint8_t&gt;<sp/>read_afx_dialog_layout(<ref refid="structResource" kindref="compound">Resource</ref><sp/>res)</highlight></codeline>
+<codeline lineno="119"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/>std::vector&lt;uint8_t&gt;<sp/>layout;</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>&amp;&amp;<sp/>res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>&gt;<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(WORD))</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>=<sp/>res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(WORD)<sp/>-<sp/>1;</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/><sp/><sp/>layout.reserve(res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>);</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WORD<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref><sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">WORD<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>);</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/>WORD<sp/>version<sp/>=<sp/>*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>++;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(version<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>--)</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>layout.push_back(afx_clamp(*<ref refid="polyBumpUtil_8cpp_1aaa1ebe818ec1c763a776cc580551f3e6" kindref="member">p</ref>++));</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>layout;</highlight></codeline>
+<codeline lineno="132"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"></highlight></codeline>
+<codeline lineno="134" refid="structDlgExInfo" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref></highlight></codeline>
+<codeline lineno="135"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/><ref refid="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" kindref="member">w</ref>,<sp/><ref refid="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" kindref="member">h</ref>;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>WORD<sp/><ref refid="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" kindref="member">num_items</ref>;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref>(</highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>w_,<sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>h_,<sp/>WORD<sp/>n_)<sp/>:<sp/><ref refid="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" kindref="member">w</ref>(w_),<sp/><ref refid="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" kindref="member">h</ref>(h_),<sp/><ref refid="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" kindref="member">num_items</ref>(n_)<sp/>{}</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref><sp/>read_dialog_ex(<ref refid="structResource" kindref="compound">Resource</ref><sp/>&amp;res)</highlight></codeline>
+<codeline lineno="142"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DLGTEMPLATEEX</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/>WORD<sp/>dlgVer;</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/>WORD<sp/>signature;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>helpID;</highlight></codeline>
+<codeline lineno="148"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>exStyle;</highlight></codeline>
+<codeline lineno="149"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>style;</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/><sp/><sp/>WORD<sp/>cDlgItems;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>x;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>y;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>cx;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>cy;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"><sp/><sp/>assert(res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>&gt;=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DLGTEMPLATEEX));</highlight></codeline>
+<codeline lineno="157"><highlight class="normal"></highlight></codeline>
+<codeline lineno="158"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DLGTEMPLATEEX<sp/>*tpl<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">DLGTEMPLATEEX<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>);</highlight></codeline>
+<codeline lineno="159"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tpl-&gt;signature<sp/>!=<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="160"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="161"><highlight class="normal"><sp/><sp/><sp/><sp/>DebugPrint(L</highlight><highlight class="stringliteral">&quot;Layout:<sp/>Only<sp/>DIALOGEX<sp/>is<sp/>supported&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="162"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref>(0,<sp/>0,<sp/>0);</highlight></codeline>
+<codeline lineno="163"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="164"><highlight class="normal"></highlight></codeline>
+<codeline lineno="165"><highlight class="normal"><sp/><sp/><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref><sp/>dlg_info(tpl-&gt;cx,<sp/>tpl-&gt;cy,<sp/>tpl-&gt;cDlgItems);</highlight></codeline>
+<codeline lineno="166"><highlight class="normal"><sp/><sp/>res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>+=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DLGTEMPLATEEX);</highlight></codeline>
+<codeline lineno="167"><highlight class="normal"></highlight></codeline>
+<codeline lineno="168"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WORD<sp/>*wp<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">WORD<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>);</highlight></codeline>
+<codeline lineno="169"><highlight class="normal"></highlight></codeline>
+<codeline lineno="170"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>menu</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="171"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*wp<sp/>==<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="172"><highlight class="normal"><sp/><sp/><sp/><sp/>wp<sp/>+=<sp/>2;</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="176"><highlight class="normal"></highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>class<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="178"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*wp<sp/>==<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/>wp<sp/>+=<sp/>2;</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="181"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"></highlight></codeline>
+<codeline lineno="184"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>title</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="185"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="186"><highlight class="normal"><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="187"><highlight class="normal"></highlight></codeline>
+<codeline lineno="188"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>font<sp/>definition<sp/>(if<sp/>defined)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="189"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(tpl-&gt;style<sp/>&amp;<sp/>DS_SETFONT)</highlight></codeline>
+<codeline lineno="190"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="191"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>pointsize,<sp/>weight,<sp/>italic<sp/>+<sp/>charset</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="192"><highlight class="normal"><sp/><sp/><sp/><sp/>wp<sp/>+=<sp/>3;</highlight></codeline>
+<codeline lineno="193"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>typeface<sp/>(suppose<sp/>it&apos;s<sp/>null-terminated)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="195"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"></highlight></codeline>
+<codeline lineno="198"><highlight class="normal"><sp/><sp/>res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>=<sp/>dword_align(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal"><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(wp));</highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dlg_info;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="202"><highlight class="normal"></highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>std::vector&lt;int&gt;<sp/>read_dialog_ex_items(<ref refid="structResource" kindref="compound">Resource</ref><sp/>res,<sp/>WORD<sp/>cDlgItems)</highlight></codeline>
+<codeline lineno="204"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/>std::vector&lt;int&gt;<sp/>items;</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>||<sp/>!res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>||<sp/>!cDlgItems)</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>items;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/>items.reserve(5ULL<sp/>*<sp/>cDlgItems);</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"></highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">DLGITEMTEMPLATEEX</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>helpID;</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>exStyle;</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>style;</highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>x;</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>y;</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>cx;</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">short</highlight><highlight class="normal"><sp/>cy;</highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/>DWORD<sp/>id;</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/>assert(res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref><sp/>&gt;=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DLGITEMTEMPLATEEX));</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"></highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(WORD<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>cDlgItems;<sp/>++i)</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DLGITEMTEMPLATEEX<sp/>*tpl<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">DLGITEMTEMPLATEEX<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>);</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/>items.push_back(tpl-&gt;id);</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/>items.push_back(tpl-&gt;x);</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/>items.push_back(tpl-&gt;y);</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/>items.push_back(tpl-&gt;cx);</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/>items.push_back(tpl-&gt;cy);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>+=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DLGITEMTEMPLATEEX);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"></highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>WORD<sp/>*wp<sp/>=<sp/></highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal">WORD<sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref>);</highlight></codeline>
+<codeline lineno="236"><highlight class="normal"></highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>window<sp/>class<sp/>name</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*wp<sp/>==<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>wp<sp/>+=<sp/>2;</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"></highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>title</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="245"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(*wp<sp/>==<sp/>0xFFFF)</highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>wp<sp/>+=<sp/>2;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">while</highlight><highlight class="normal"><sp/>(*wp++)</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>;</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"></highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>skip<sp/>extra<sp/>data</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/>WORD<sp/>num<sp/>=<sp/>*wp++;</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"></highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/>res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>=<sp/>dword_align(</highlight><highlight class="keyword">reinterpret_cast&lt;</highlight><highlight class="keyword">const<sp/></highlight><highlight class="normal"><ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref><sp/>*</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(wp)<sp/>+<sp/>num);</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"></highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>items;</highlight></codeline>
+<codeline lineno="258"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"></highlight></codeline>
+<codeline lineno="260"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*load_dialog_layout(LPCWSTR<sp/>dialog_name)</highlight></codeline>
+<codeline lineno="261"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><ref refid="structResource" kindref="compound">Resource</ref><sp/>res<sp/>=<sp/>load_resource(dialog_name,<sp/>RT_DIALOG);</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>||<sp/>!res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>)</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"></highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><ref refid="structDlgExInfo" kindref="compound">DlgExInfo</ref><sp/>dlg_info<sp/>=<sp/>read_dialog_ex(res);</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!dlg_info.<ref refid="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" kindref="member">w</ref><sp/>||<sp/>!dlg_info.<ref refid="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" kindref="member">h</ref><sp/>||<sp/>!dlg_info.<ref refid="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" kindref="member">num_items</ref>)</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"></highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*layout<sp/>=<sp/></highlight><highlight class="keyword">new</highlight><highlight class="normal"><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref>;</highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/>layout-&gt;<ref refid="structDialogLayout_1a280d34075c47c954d6707f0f10bcd4fd" kindref="member">dlg_w</ref><sp/>=<sp/>dlg_info.<ref refid="structDlgExInfo_1ab40ea4ca4769fbe087194918f5e603d7" kindref="member">w</ref>;</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/>layout-&gt;<ref refid="structDialogLayout_1ac1a57c8b93d620e0761dfff9d10c84d3" kindref="member">dlg_h</ref><sp/>=<sp/>dlg_info.<ref refid="structDlgExInfo_1a0d842689182d862e3eb3a28845c60ed2" kindref="member">h</ref>;</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/>layout-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref><sp/>=<sp/>read_dialog_ex_items(res,<sp/>dlg_info.<ref refid="structDlgExInfo_1abadee5e9d2c156f74636f42d757f3a1d" kindref="member">num_items</ref>);</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(layout-&gt;<ref refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" kindref="member">items</ref>.empty())</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/>res<sp/>=<sp/>load_resource(dialog_name,<sp/>L</highlight><highlight class="stringliteral">&quot;AFX_DIALOG_LAYOUT&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!res.<ref refid="structResource_1a3df95c086cf49fd6ba588f24f3f0b78b" kindref="member">ptr</ref><sp/>||<sp/>!res.<ref refid="structResource_1a662d060c43aa0c3df46747cbde322098" kindref="member">num</ref>)</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"><sp/><sp/>layout-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref><sp/>=<sp/>read_afx_dialog_layout(res);</highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(layout-&gt;<ref refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" kindref="member">layout</ref>.empty())</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;</highlight></codeline>
+<codeline lineno="284"><highlight class="normal"></highlight></codeline>
+<codeline lineno="285"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>layout;</highlight></codeline>
+<codeline lineno="286"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="287"><highlight class="normal"></highlight></codeline>
+<codeline lineno="288"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>RECT<sp/>get_local_rect(HWND<sp/>hWnd)</highlight></codeline>
+<codeline lineno="289"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"><sp/><sp/>RECT<sp/>rect;</highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/>GetWindowRect(hWnd,<sp/>&amp;rect);</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"><sp/><sp/>MapWindowPoints(HWND_DESKTOP,<sp/>GetParent(hWnd),<sp/>(LPPOINT)&amp;rect,<sp/>2);</highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>rect;</highlight></codeline>
+<codeline lineno="294"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"></highlight></codeline>
+<codeline lineno="296"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>INT_PTR<sp/>CALLBACK<sp/>parent_proc_wrapper(HWND<sp/>hWnd,<sp/>UINT<sp/>message,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="297"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="298"><highlight class="normal"><sp/><sp/>WNDPROC<sp/>originalDlgProc<sp/>=<sp/>(WNDPROC)GetProp(hWnd,<sp/><ref refid="layout_8cpp_1acc23cb29d095d019ab806c024bcc2a39" kindref="member">PROP_ORIGINAL_DLG_PROC</ref>);</highlight></codeline>
+<codeline lineno="299"><highlight class="normal"><sp/><sp/>assert(originalDlgProc);</highlight></codeline>
+<codeline lineno="300"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(message)</highlight></codeline>
+<codeline lineno="301"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="302"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_MOVE:</highlight></codeline>
+<codeline lineno="303"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_SIZE:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="304"><highlight class="normal"></highlight></codeline>
+<codeline lineno="305"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_WINDOWPOSCHANGING:</highlight></codeline>
+<codeline lineno="306"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_WINDOWPOSCHANGED:</highlight></codeline>
+<codeline lineno="307"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(HWND<sp/>hChild<sp/>=<sp/>GetWindow(hWnd,<sp/>GW_CHILD);<sp/>hChild;<sp/>hChild<sp/>=<sp/>GetWindow(hChild,<sp/>GW_HWNDNEXT))</highlight></codeline>
+<codeline lineno="308"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="309"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>RECT<sp/>rect<sp/>=<sp/>get_local_rect(hChild);</highlight></codeline>
+<codeline lineno="310"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>WINDOWPOS<sp/>*wp<sp/>=<sp/>(WINDOWPOS<sp/>*)lParam;</highlight></codeline>
+<codeline lineno="311"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>MoveWindow(hChild,<sp/>1,<sp/>rect.top,<sp/>wp-&gt;cx<sp/>-<sp/>2,<sp/>rect.bottom<sp/>-<sp/>rect.top,<sp/>TRUE);</highlight></codeline>
+<codeline lineno="312"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="313"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="314"><highlight class="normal"></highlight></codeline>
+<codeline lineno="315"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="316"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="317"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(*originalDlgProc)(hWnd,<sp/>message,<sp/>wParam,<sp/>lParam);</highlight></codeline>
+<codeline lineno="318"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="319"><highlight class="normal"></highlight></codeline>
+<codeline lineno="320"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>propagate_update_layout(HWND<sp/>hWnd,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="321"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="322"><highlight class="normal"><sp/><sp/>update_layout(hWnd,<sp/>lParam);</highlight></codeline>
+<codeline lineno="323"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(HWND<sp/>hChild<sp/>=<sp/>GetWindow(hWnd,<sp/>GW_CHILD);<sp/>hChild;<sp/>hChild<sp/>=<sp/>GetWindow(hChild,<sp/>GW_HWNDNEXT))</highlight></codeline>
+<codeline lineno="324"><highlight class="normal"><sp/><sp/><sp/><sp/>propagate_update_layout(hChild,<sp/>lParam);</highlight></codeline>
+<codeline lineno="325"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="326"><highlight class="normal"></highlight></codeline>
+<codeline lineno="327"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>INT_PTR<sp/>CALLBACK<sp/>rollup_proc_wrapper(HWND<sp/>hWnd,<sp/>UINT<sp/>message,<sp/>WPARAM<sp/>wParam,<sp/>LPARAM<sp/>lParam)</highlight></codeline>
+<codeline lineno="328"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="329"><highlight class="normal"><sp/><sp/>WNDPROC<sp/>originalDlgProc<sp/>=<sp/>(WNDPROC)GetProp(hWnd,<sp/><ref refid="layout_8cpp_1acc23cb29d095d019ab806c024bcc2a39" kindref="member">PROP_ORIGINAL_DLG_PROC</ref>);</highlight></codeline>
+<codeline lineno="330"><highlight class="normal"><sp/><sp/>assert(originalDlgProc);</highlight></codeline>
+<codeline lineno="331"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">switch</highlight><highlight class="normal"><sp/>(message)</highlight></codeline>
+<codeline lineno="332"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="333"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_MOVE:</highlight></codeline>
+<codeline lineno="334"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_SIZE:</highlight></codeline>
+<codeline lineno="335"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_WINDOWPOSCHANGING:<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="336"><highlight class="normal"></highlight></codeline>
+<codeline lineno="337"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_WINDOWPOSCHANGED:</highlight></codeline>
+<codeline lineno="338"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="339"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>WINDOWPOS<sp/>*wp<sp/>=<sp/>(WINDOWPOS<sp/>*)lParam;</highlight></codeline>
+<codeline lineno="340"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetProp(hWnd,<sp/><ref refid="layout_8cpp_1aacd6b9910595af41413bfc42ead6e9c2" kindref="member">PROP_LAYOUT_SIZE</ref>,<sp/>(HANDLE)MAKELPARAM(wp-&gt;cx,<sp/>wp-&gt;cy));</highlight></codeline>
+<codeline lineno="341"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>SetTimer(hWnd,<sp/><ref refid="layout_8cpp_1a9383512f282332748788d50955c1a5ad" kindref="member">IDT_LAYOUT_TIMER</ref>,<sp/><ref refid="layout_8cpp_1a4526f12c697a605eb0115dcf36c58404" kindref="member">LAYOUT_TIMEOUT</ref>,<sp/>NULL);</highlight></codeline>
+<codeline lineno="342"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="343"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>TRUE;</highlight></codeline>
+<codeline lineno="344"><highlight class="normal"></highlight></codeline>
+<codeline lineno="345"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_TIMER:</highlight></codeline>
+<codeline lineno="346"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(wParam<sp/>==<sp/><ref refid="layout_8cpp_1a9383512f282332748788d50955c1a5ad" kindref="member">IDT_LAYOUT_TIMER</ref>)</highlight></codeline>
+<codeline lineno="347"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="348"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>PostMessage(hWnd,<sp/><ref refid="layout_8h_1aed00501af96b4cd497da0588c11beecc" kindref="member">LAYOUT_MESSAGE</ref>,<sp/>0,<sp/>(LPARAM)GetProp(hWnd,<sp/><ref refid="layout_8cpp_1aacd6b9910595af41413bfc42ead6e9c2" kindref="member">PROP_LAYOUT_SIZE</ref>));</highlight></codeline>
+<codeline lineno="349"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>KillTimer(hWnd,<sp/><ref refid="layout_8cpp_1a9383512f282332748788d50955c1a5ad" kindref="member">IDT_LAYOUT_TIMER</ref>);</highlight></codeline>
+<codeline lineno="350"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="351"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="352"><highlight class="normal"></highlight></codeline>
+<codeline lineno="353"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1aed00501af96b4cd497da0588c11beecc" kindref="member">LAYOUT_MESSAGE</ref>:<sp/>propagate_update_layout(hWnd,<sp/>lParam);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="354"><highlight class="normal"></highlight></codeline>
+<codeline lineno="355"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">case</highlight><highlight class="normal"><sp/>WM_DESTROY:<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal"><sp/>(<ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*)GetProp(hWnd,<sp/><ref refid="layout_8cpp_1aaed29b12f08ec3b2ac13aca4eeb8a967" kindref="member">PROP_LAYOUT</ref>);<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="356"><highlight class="normal"></highlight></codeline>
+<codeline lineno="357"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">:<sp/></highlight><highlight class="keywordflow">break</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="358"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="359"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(*originalDlgProc)(hWnd,<sp/>message,<sp/>wParam,<sp/>lParam);</highlight></codeline>
+<codeline lineno="360"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="361"><highlight class="normal"></highlight></codeline>
+<codeline lineno="362"><highlight class="normal"></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>hook_dlg_proc(HWND<sp/>hWnd,<sp/>DLGPROC<sp/>dlgProc)</highlight></codeline>
+<codeline lineno="363"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="364"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!hWnd)</highlight></codeline>
+<codeline lineno="365"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="366"><highlight class="normal"><sp/><sp/>WNDPROC<sp/>orgDlgProc<sp/>=<sp/>(WNDPROC)SetWindowLongPtr(hWnd,<sp/>GWLP_WNDPROC,<sp/>(LONG_PTR)dlgProc);</highlight></codeline>
+<codeline lineno="367"><highlight class="normal"><sp/><sp/>SetProp(hWnd,<sp/><ref refid="layout_8cpp_1acc23cb29d095d019ab806c024bcc2a39" kindref="member">PROP_ORIGINAL_DLG_PROC</ref>,<sp/>(HANDLE)orgDlgProc);</highlight></codeline>
+<codeline lineno="368"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="369"><highlight class="normal"></highlight></codeline>
+<codeline lineno="370"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1aaf131fbb2554c561ac1a282f95fda14b" kindref="member">attach_layout_to_rollup</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name)</highlight></codeline>
+<codeline lineno="371"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="372"><highlight class="normal"><sp/><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*layout<sp/>=<sp/>load_dialog_layout(dialog_name);</highlight></codeline>
+<codeline lineno="373"><highlight class="normal"><sp/><sp/>hook_dlg_proc(GetParent(hWnd),<sp/>parent_proc_wrapper);</highlight></codeline>
+<codeline lineno="374"><highlight class="normal"><sp/><sp/>hook_dlg_proc(hWnd,<sp/>rollup_proc_wrapper);</highlight></codeline>
+<codeline lineno="375"><highlight class="normal"><sp/><sp/>SetProp(hWnd,<sp/><ref refid="layout_8cpp_1aaed29b12f08ec3b2ac13aca4eeb8a967" kindref="member">PROP_LAYOUT</ref>,<sp/>(HANDLE)layout);</highlight></codeline>
+<codeline lineno="376"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="377"><highlight class="normal"></highlight></codeline>
+<codeline lineno="378"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8cpp_1a75048c6100d98af4f7937b6050907999" kindref="member">attach_layout_to_dialog</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name)</highlight></codeline>
+<codeline lineno="379"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="380"><highlight class="normal"><sp/><sp/><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref><sp/>*layout<sp/>=<sp/>load_dialog_layout(dialog_name);</highlight></codeline>
+<codeline lineno="381"><highlight class="normal"><sp/><sp/>SetProp(hWnd,<sp/><ref refid="layout_8cpp_1aaed29b12f08ec3b2ac13aca4eeb8a967" kindref="member">PROP_LAYOUT</ref>,<sp/>(HANDLE)layout);</highlight></codeline>
+<codeline lineno="382"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="layout.cpp"/>
+  </compounddef>
+</doxygen>

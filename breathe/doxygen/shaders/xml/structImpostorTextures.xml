@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structImpostorTextures" kind="struct" language="C++" prot="protected">
+    <compoundname>ImpostorTextures</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structImpostorTextures_1aff1b115f5bc8476318bc85bdc24b5cc1" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ImpostorTextures::albedo_alpha</definition>
+        <argsstring></argsstring>
+        <name>albedo_alpha</name>
+        <qualifiedname>ImpostorTextures::albedo_alpha</qualifiedname>
+        <initializer>= BAD_TEXTUREID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="106" column="15" bodyfile="dag_rendInstRes.h" bodystart="106" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1abe860098043edd20df812419715fc1aa" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ImpostorTextures::normal_translucency</definition>
+        <argsstring></argsstring>
+        <name>normal_translucency</name>
+        <qualifiedname>ImpostorTextures::normal_translucency</qualifiedname>
+        <initializer>= BAD_TEXTUREID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="107" column="15" bodyfile="dag_rendInstRes.h" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1a0bcd13694242a3f474c0258d858090a1" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ImpostorTextures::ao_smoothness</definition>
+        <argsstring></argsstring>
+        <name>ao_smoothness</name>
+        <qualifiedname>ImpostorTextures::ao_smoothness</qualifiedname>
+        <initializer>= BAD_TEXTUREID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="108" column="15" bodyfile="dag_rendInstRes.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1aea0a53dddcc8fcdb12667d728e5afa5f" prot="public" static="no" mutable="no">
+        <type>TEXTUREID</type>
+        <definition>TEXTUREID ImpostorTextures::shadowAtlas</definition>
+        <argsstring></argsstring>
+        <name>shadowAtlas</name>
+        <qualifiedname>ImpostorTextures::shadowAtlas</qualifiedname>
+        <initializer>= BAD_TEXTUREID</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="109" column="15" bodyfile="dag_rendInstRes.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1afe5835ef9553accade3e792826a29613" prot="public" static="no" mutable="no">
+        <type>Texture *</type>
+        <definition>Texture* ImpostorTextures::shadowAtlasTex</definition>
+        <argsstring></argsstring>
+        <name>shadowAtlasTex</name>
+        <qualifiedname>ImpostorTextures::shadowAtlasTex</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="110" column="13" bodyfile="dag_rendInstRes.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1add6b1af462fce0250e562a494383a914" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int ImpostorTextures::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>ImpostorTextures::width</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="111" column="18" bodyfile="dag_rendInstRes.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structImpostorTextures_1a29251a519e06b6750aa9407be74abfbf" prot="public" static="no" mutable="no">
+        <type>unsigned int</type>
+        <definition>unsigned int ImpostorTextures::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>ImpostorTextures::height</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="112" column="18" bodyfile="dag_rendInstRes.h" bodystart="112" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structImpostorTextures_1a1e34b15acd9f7500042119bc2b33c9e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ImpostorTextures::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>ImpostorTextures::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="113" column="10" bodyfile="dag_rendInstRes.h" bodystart="113" bodyend="119"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorTextures_1a7c90fa75649602c7e2945cfb0b40b3b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ImpostorTextures::isInitialized</definition>
+        <argsstring>()</argsstring>
+        <name>isInitialized</name>
+        <qualifiedname>ImpostorTextures::isInitialized</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="120" column="10" bodyfile="dag_rendInstRes.h" bodystart="120" bodyend="123"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorTextures_1a99a513727de99cb6f64b5a1e0e3aee11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ImpostorTextures::ImpostorTextures</definition>
+        <argsstring>()=default</argsstring>
+        <name>ImpostorTextures</name>
+        <qualifiedname>ImpostorTextures::ImpostorTextures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="124" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorTextures_1a26c5ab030660975eb1fa2af0abd96800" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ImpostorTextures::~ImpostorTextures</definition>
+        <argsstring>()</argsstring>
+        <name>~ImpostorTextures</name>
+        <qualifiedname>ImpostorTextures::~ImpostorTextures</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="125" column="5" bodyfile="dag_rendInstRes.h" bodystart="125" bodyend="125"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorTextures_1ac519272c0a6a65b7ea8b73456c33e073" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ImpostorTextures::ImpostorTextures</definition>
+        <argsstring>(const ImpostorTextures &amp;)=delete</argsstring>
+        <name>ImpostorTextures</name>
+        <qualifiedname>ImpostorTextures::ImpostorTextures</qualifiedname>
+        <param>
+          <type>const <ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="126" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structImpostorTextures_1a64a9c4d72267abffa2ef2fe9c3a0f222" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref> &amp;</type>
+        <definition>ImpostorTextures &amp; ImpostorTextures::operator=</definition>
+        <argsstring>(const ImpostorTextures &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>ImpostorTextures::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="structImpostorTextures" kindref="compound">ImpostorTextures</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_rendInstRes.h" line="127" column="22"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_rendInstRes.h" line="104" column="3" bodyfile="dag_rendInstRes.h" bodystart="105" bodyend="128"/>
+    <listofallmembers>
+      <member refid="structImpostorTextures_1aff1b115f5bc8476318bc85bdc24b5cc1" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>albedo_alpha</name></member>
+      <member refid="structImpostorTextures_1a0bcd13694242a3f474c0258d858090a1" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>ao_smoothness</name></member>
+      <member refid="structImpostorTextures_1a1e34b15acd9f7500042119bc2b33c9e4" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>close</name></member>
+      <member refid="structImpostorTextures_1a29251a519e06b6750aa9407be74abfbf" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>height</name></member>
+      <member refid="structImpostorTextures_1a99a513727de99cb6f64b5a1e0e3aee11" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>ImpostorTextures</name></member>
+      <member refid="structImpostorTextures_1ac519272c0a6a65b7ea8b73456c33e073" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>ImpostorTextures</name></member>
+      <member refid="structImpostorTextures_1a7c90fa75649602c7e2945cfb0b40b3b7" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>isInitialized</name></member>
+      <member refid="structImpostorTextures_1abe860098043edd20df812419715fc1aa" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>normal_translucency</name></member>
+      <member refid="structImpostorTextures_1a64a9c4d72267abffa2ef2fe9c3a0f222" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>operator=</name></member>
+      <member refid="structImpostorTextures_1aea0a53dddcc8fcdb12667d728e5afa5f" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>shadowAtlas</name></member>
+      <member refid="structImpostorTextures_1afe5835ef9553accade3e792826a29613" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>shadowAtlasTex</name></member>
+      <member refid="structImpostorTextures_1add6b1af462fce0250e562a494383a914" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>width</name></member>
+      <member refid="structImpostorTextures_1a26c5ab030660975eb1fa2af0abd96800" prot="public" virt="non-virtual"><scope>ImpostorTextures</scope><name>~ImpostorTextures</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classStaticMeshRayTracer" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>StaticMeshRayTracer</compoundname>
+    <derivedcompoundref refid="classStaticMeshRTracer" prot="public" virt="non-virtual">StaticMeshRTracer</derivedcompoundref>
+    <includes refid="math3d_8h" local="no">math3d.h</includes>
+      <sectiondef kind="public-func">
+      <member refid="group__common_1ga958b3be6b0dccb7562ea4db1078fa063" kind="function"><name>~StaticMeshRayTracer</name></member>
+      <member refid="group__common_1ga6b9807257a4afe97f271a126deefe836" kind="function"><name>traceray</name></member>
+      <member refid="group__common_1gac8b67a396f83c5ccf220ce197839e8d5" kind="function"><name>traceray_back</name></member>
+      <member refid="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea" kind="function"><name>build</name></member>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>StaticMeshRTracer</label>
+        <link refid="classStaticMeshRTracer"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>StaticMeshRayTracer</label>
+        <link refid="classStaticMeshRayTracer"/>
+      </node>
+    </inheritancegraph>
+    <location file="math3d.h" line="922" column="1" bodyfile="math3d.h" bodystart="923" bodyend="933"/>
+    <listofallmembers>
+      <member refid="group__common_1ga675c99833b9746f8164a3cacbd6ec6ea" prot="public" virt="pure-virtual"><scope>StaticMeshRayTracer</scope><name>build</name></member>
+      <member refid="group__common_1ga6b9807257a4afe97f271a126deefe836" prot="public" virt="pure-virtual"><scope>StaticMeshRayTracer</scope><name>traceray</name></member>
+      <member refid="group__common_1gac8b67a396f83c5ccf220ce197839e8d5" prot="public" virt="pure-virtual"><scope>StaticMeshRayTracer</scope><name>traceray_back</name></member>
+      <member refid="group__common_1ga958b3be6b0dccb7562ea4db1078fa063" prot="public" virt="virtual"><scope>StaticMeshRayTracer</scope><name>~StaticMeshRayTracer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

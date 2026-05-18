@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExpEnumTexCB" kind="struct" language="C++" prot="public">
+    <compoundname>ExpEnumTexCB</compoundname>
+    <basecompoundref refid="structIDagorMat2_1_1EnumTexCB" prot="public" virt="non-virtual">IDagorMat2::EnumTexCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExpEnumTexCB_1a5188ce64c5b195adba1f0d788040ad54" prot="public" static="no" mutable="no">
+        <type>std::ofstream &amp;</type>
+        <definition>std::ofstream&amp; ExpEnumTexCB::os</definition>
+        <argsstring></argsstring>
+        <name>os</name>
+        <qualifiedname>ExpEnumTexCB::os</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2527" column="17" bodyfile="util.cpp" bodystart="2527" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExpEnumTexCB_1a1dcb287cc42b04f76621aaf7c5ae264f" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ExpEnumTexCB::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>ExpEnumTexCB::count</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2528" column="7" bodyfile="util.cpp" bodystart="2528" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structExpEnumTexCB_1ac379e922cba833bac6baf11c2246e782" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ExpEnumTexCB::ExpEnumTexCB</definition>
+        <argsstring>(std::ofstream &amp;ofs)</argsstring>
+        <name>ExpEnumTexCB</name>
+        <qualifiedname>ExpEnumTexCB::ExpEnumTexCB</qualifiedname>
+        <param>
+          <type>std::ofstream &amp;</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2530" column="3" bodyfile="util.cpp" bodystart="2530" bodyend="2530"/>
+      </memberdef>
+      <memberdef kind="function" id="structExpEnumTexCB_1a09b44d0eb35bf79ff746800a02994be8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int ExpEnumTexCB::proc</definition>
+        <argsstring>(const TCHAR *name, const TCHAR *path) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>ExpEnumTexCB::proc</qualifiedname>
+        <reimplements refid="structIDagorMat2_1_1EnumTexCB_1abdffd6a3ab2bebe6749b05002191a74b">proc</reimplements>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>path</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2531" column="7" bodyfile="util.cpp" bodystart="2531" bodyend="2537"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ExpEnumTexCB</label>
+        <link refid="structExpEnumTexCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IDagorMat2::EnumTexCB</label>
+        <link refid="structIDagorMat2_1_1EnumTexCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ExpEnumTexCB</label>
+        <link refid="structExpEnumTexCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IDagorMat2::EnumTexCB</label>
+        <link refid="structIDagorMat2_1_1EnumTexCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2525" column="1" bodyfile="util.cpp" bodystart="2526" bodyend="2538"/>
+    <listofallmembers>
+      <member refid="structExpEnumTexCB_1a1dcb287cc42b04f76621aaf7c5ae264f" prot="public" virt="non-virtual"><scope>ExpEnumTexCB</scope><name>count</name></member>
+      <member refid="structExpEnumTexCB_1ac379e922cba833bac6baf11c2246e782" prot="public" virt="non-virtual"><scope>ExpEnumTexCB</scope><name>ExpEnumTexCB</name></member>
+      <member refid="structExpEnumTexCB_1a5188ce64c5b195adba1f0d788040ad54" prot="public" virt="non-virtual"><scope>ExpEnumTexCB</scope><name>os</name></member>
+      <member refid="structExpEnumTexCB_1a09b44d0eb35bf79ff746800a02994be8" prot="public" virt="virtual"><scope>ExpEnumTexCB</scope><name>proc</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

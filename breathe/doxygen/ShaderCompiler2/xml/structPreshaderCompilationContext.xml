@@ -1,0 +1,370 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPreshaderCompilationContext" kind="struct" language="C++" prot="public">
+    <compoundname>PreshaderCompilationContext</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a8e49d0e261692a79e8c842ee760efbc4" prot="public" static="no" mutable="no">
+        <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> *</type>
+        <definition>const PreshaderCompilationInput* PreshaderCompilationContext::input</definition>
+        <argsstring></argsstring>
+        <name>input</name>
+        <qualifiedname>PreshaderCompilationContext::input</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="21" column="35" bodyfile="preshaderCompilation.cpp" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a58b308c20772af53c65dbfd20c4824ee" prot="public" static="no" mutable="no">
+        <type><ref refid="structPreshaderCompilationOutput" kindref="compound">PreshaderCompilationOutput</ref> *</type>
+        <definition>PreshaderCompilationOutput* PreshaderCompilationContext::output</definition>
+        <argsstring></argsstring>
+        <name>output</name>
+        <qualifiedname>PreshaderCompilationContext::output</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="22" column="30" bodyfile="preshaderCompilation.cpp" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1afdce728a7053be9a9f655efe00a6364d" prot="public" static="no" mutable="no">
+        <type><ref refid="classshc_1_1VariantContext" kindref="compound">shc::VariantContext</ref> *</type>
+        <definition>shc::VariantContext* PreshaderCompilationContext::vctx</definition>
+        <argsstring></argsstring>
+        <name>vctx</name>
+        <qualifiedname>PreshaderCompilationContext::vctx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="24" column="23" bodyfile="preshaderCompilation.cpp" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1aa266fa358f3c9bd4596261451054d5a0" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodeBytecodeAccumulator" kindref="compound">StcodeBytecodeAccumulator</ref></type>
+        <definition>StcodeBytecodeAccumulator PreshaderCompilationContext::bytecodeAccum</definition>
+        <argsstring></argsstring>
+        <name>bytecodeAccum</name>
+        <qualifiedname>PreshaderCompilationContext::bytecodeAccum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="26" column="29" bodyfile="preshaderCompilation.cpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1ade9d8fa572cdb3e3f09dd62cdf1705ed" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger" kindref="compound">VariablesMerger</ref></type>
+        <definition>VariablesMerger PreshaderCompilationContext::varMerger</definition>
+        <argsstring></argsstring>
+        <name>varMerger</name>
+        <qualifiedname>PreshaderCompilationContext::varMerger</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="27" column="19" bodyfile="preshaderCompilation.cpp" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1ad633a235333dbae679daf35dc16d091e" prot="public" static="no" mutable="no">
+        <type>dag::VectorSet&lt; int &gt;</type>
+        <definition>dag::VectorSet&lt;int&gt; PreshaderCompilationContext::assembledSamplerIds</definition>
+        <argsstring></argsstring>
+        <name>assembledSamplerIds</name>
+        <qualifiedname>PreshaderCompilationContext::assembledSamplerIds</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="29" column="18" bodyfile="preshaderCompilation.cpp" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a9e4edb7e6e8592eb83f43a902d1f4cb6" prot="public" static="no" mutable="no">
+        <type>dag::VectorMap&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>dag::VectorMap&lt;eastl::string_view, Symbol *&gt; PreshaderCompilationContext::uavGlobalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>uavGlobalShadervarRefs</name>
+        <qualifiedname>PreshaderCompilationContext::uavGlobalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="31" column="18" bodyfile="preshaderCompilation.cpp" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a9c4cc47a66490315c5683438e2e81bb0" prot="public" static="no" mutable="no">
+        <type>dag::VectorMap&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>dag::VectorMap&lt;eastl::string_view, Symbol *&gt; PreshaderCompilationContext::srvGlobalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>srvGlobalShadervarRefs</name>
+        <qualifiedname>PreshaderCompilationContext::srvGlobalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="31" column="41" bodyfile="preshaderCompilation.cpp" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1ad3bffb0b5f75019051851ab26e9ce1dd" prot="public" static="no" mutable="no">
+        <type>dag::VectorMap&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>dag::VectorMap&lt;eastl::string_view, Symbol *&gt; PreshaderCompilationContext::uavLocalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>uavLocalShadervarRefs</name>
+        <qualifiedname>PreshaderCompilationContext::uavLocalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="31" column="64" bodyfile="preshaderCompilation.cpp" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a15001a43ca22cc2932a870d5fdead75a" prot="public" static="no" mutable="no">
+        <type>dag::VectorMap&lt; eastl::string_view, Symbol * &gt;</type>
+        <definition>dag::VectorMap&lt;eastl::string_view, Symbol *&gt; PreshaderCompilationContext::srvLocalShadervarRefs</definition>
+        <argsstring></argsstring>
+        <name>srvLocalShadervarRefs</name>
+        <qualifiedname>PreshaderCompilationContext::srvLocalShadervarRefs</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="32" column="5" bodyfile="preshaderCompilation.cpp" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1a0c57f96039f0bedc9588cb20bf71c095" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PreshaderCompilationContext::hasDynStcodeRelyingOnMaterialParams</definition>
+        <argsstring></argsstring>
+        <name>hasDynStcodeRelyingOnMaterialParams</name>
+        <qualifiedname>PreshaderCompilationContext::hasDynStcodeRelyingOnMaterialParams</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="35" column="8" bodyfile="preshaderCompilation.cpp" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationContext_1aa84b3dc5c004b844e0d16e8d3e583815" prot="public" static="no" mutable="no">
+        <type>Symbol *</type>
+        <definition>Symbol* PreshaderCompilationContext::exprWithDynamicAndMaterialTerms</definition>
+        <argsstring></argsstring>
+        <name>exprWithDynamicAndMaterialTerms</name>
+        <qualifiedname>PreshaderCompilationContext::exprWithDynamicAndMaterialTerms</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.cpp" line="36" column="10" bodyfile="preshaderCompilation.cpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>CompiledPreshader</label>
+        <link refid="structCompiledPreshader"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>namedConstTable</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="18" relation="usage">
+          <edgelabel>dynStBytecode</edgelabel>
+          <edgelabel>stBlkBytecode</edgelabel>
+        </childnode>
+      </node>
+      <node id="13">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="5">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="6" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="9">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="8" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>PreshaderCompilationContext</label>
+        <link refid="structPreshaderCompilationContext"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>input</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>output</edgelabel>
+        </childnode>
+        <childnode refid="20" relation="usage">
+          <edgelabel>vctx</edgelabel>
+        </childnode>
+        <childnode refid="21" relation="usage">
+          <edgelabel>bytecodeAccum</edgelabel>
+        </childnode>
+        <childnode refid="22" relation="usage">
+          <edgelabel>varMerger</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PreshaderCompilationInput</label>
+        <link refid="structPreshaderCompilationInput"/>
+      </node>
+      <node id="3">
+        <label>PreshaderCompilationOutput</label>
+        <link refid="structPreshaderCompilationOutput"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>code</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="18">
+        <label>SerializableTab&lt; int32_t &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="19" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>ShaderParser::VariablesMerger</label>
+        <link refid="structShaderParser_1_1VariablesMerger"/>
+      </node>
+      <node id="7">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="17">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="14" relation="public-inheritance">
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="15">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="21">
+        <label>StcodeBytecodeAccumulator</label>
+        <link refid="structStcodeBytecodeAccumulator"/>
+      </node>
+      <node id="12">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="13" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="17" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="16">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="14">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="15" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="16" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+      <node id="19">
+        <label>Tab&lt; int32_t  &gt;</label>
+      </node>
+      <node id="20">
+        <label>shc::VariantContext</label>
+        <link refid="classshc_1_1VariantContext"/>
+      </node>
+    </collaborationgraph>
+    <location file="preshaderCompilation.cpp" line="19" column="1" bodyfile="preshaderCompilation.cpp" bodystart="20" bodyend="37"/>
+    <listofallmembers>
+      <member refid="structPreshaderCompilationContext_1ad633a235333dbae679daf35dc16d091e" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>assembledSamplerIds</name></member>
+      <member refid="structPreshaderCompilationContext_1aa266fa358f3c9bd4596261451054d5a0" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>bytecodeAccum</name></member>
+      <member refid="structPreshaderCompilationContext_1aa84b3dc5c004b844e0d16e8d3e583815" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>exprWithDynamicAndMaterialTerms</name></member>
+      <member refid="structPreshaderCompilationContext_1a0c57f96039f0bedc9588cb20bf71c095" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>hasDynStcodeRelyingOnMaterialParams</name></member>
+      <member refid="structPreshaderCompilationContext_1a8e49d0e261692a79e8c842ee760efbc4" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>input</name></member>
+      <member refid="structPreshaderCompilationContext_1a58b308c20772af53c65dbfd20c4824ee" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>output</name></member>
+      <member refid="structPreshaderCompilationContext_1a9c4cc47a66490315c5683438e2e81bb0" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>srvGlobalShadervarRefs</name></member>
+      <member refid="structPreshaderCompilationContext_1a15001a43ca22cc2932a870d5fdead75a" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>srvLocalShadervarRefs</name></member>
+      <member refid="structPreshaderCompilationContext_1a9e4edb7e6e8592eb83f43a902d1f4cb6" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>uavGlobalShadervarRefs</name></member>
+      <member refid="structPreshaderCompilationContext_1ad3bffb0b5f75019051851ab26e9ce1dd" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>uavLocalShadervarRefs</name></member>
+      <member refid="structPreshaderCompilationContext_1ade9d8fa572cdb3e3f09dd62cdf1705ed" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>varMerger</name></member>
+      <member refid="structPreshaderCompilationContext_1afdce728a7053be9a9f655efe00a6364d" prot="public" virt="non-virtual"><scope>PreshaderCompilationContext</scope><name>vctx</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

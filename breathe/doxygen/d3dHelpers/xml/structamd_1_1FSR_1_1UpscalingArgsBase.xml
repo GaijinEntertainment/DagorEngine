@@ -1,0 +1,382 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structamd_1_1FSR_1_1UpscalingArgsBase" kind="struct" language="C++" prot="public">
+    <compoundname>amd::FSR::UpscalingArgsBase</compoundname>
+    <includes refid="dag__amdFsr_8h" local="no">dag_amdFsr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename TextureType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a6f55bb025cbe1c89a9769459fae3c7be" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::colorTexture</definition>
+        <argsstring></argsstring>
+        <name>colorTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::colorTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="76" column="17" bodyfile="dag_amdFsr.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a764c49502bb4dcd7404b8b727ff49b9e" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::depthTexture</definition>
+        <argsstring></argsstring>
+        <name>depthTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::depthTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="77" column="17" bodyfile="dag_amdFsr.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a74e46e32d0590d1ffd5030032c5445e8" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::motionVectors</definition>
+        <argsstring></argsstring>
+        <name>motionVectors</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::motionVectors</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="78" column="17" bodyfile="dag_amdFsr.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a52506eefaaef01e5ea386ba68a0804aa" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::exposureTexture</definition>
+        <argsstring></argsstring>
+        <name>exposureTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::exposureTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="79" column="17" bodyfile="dag_amdFsr.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a4f2e2d58a8df66e8ec7a5ef54daaf24f" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::outputTexture</definition>
+        <argsstring></argsstring>
+        <name>outputTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::outputTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="80" column="17" bodyfile="dag_amdFsr.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a2bfc696a8fd26c578b994de3ccbc4177" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::reactiveTexture</definition>
+        <argsstring></argsstring>
+        <name>reactiveTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::reactiveTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="81" column="17" bodyfile="dag_amdFsr.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a80ba7958d7e1128bf5af33c469f5dcbd" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::transparencyAndCompositionTexture</definition>
+        <argsstring></argsstring>
+        <name>transparencyAndCompositionTexture</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::transparencyAndCompositionTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="82" column="17" bodyfile="dag_amdFsr.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a2cd5ee3f7bc50dc4157eb15d49381f65" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::jitter</definition>
+        <argsstring></argsstring>
+        <name>jitter</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::jitter</qualifiedname>
+        <initializer>= Point2::ZERO</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="83" column="12" bodyfile="dag_amdFsr.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a22399fdd8d9485e6de5f62a7fe08dc05" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::motionVectorScale</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScale</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::motionVectorScale</qualifiedname>
+        <initializer>= Point2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="84" column="12" bodyfile="dag_amdFsr.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a8bd7082189e8cf3c60fc8e4e2f8e3765" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::reset</definition>
+        <argsstring></argsstring>
+        <name>reset</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::reset</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="85" column="10" bodyfile="dag_amdFsr.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a7eb37fbd5528cbfae30dab4a5e261dcf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::debugView</definition>
+        <argsstring></argsstring>
+        <name>debugView</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::debugView</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="86" column="10" bodyfile="dag_amdFsr.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a72fc6e4c008086af9827f48dc54f2162" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::sharpness</definition>
+        <argsstring></argsstring>
+        <name>sharpness</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::sharpness</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="87" column="11" bodyfile="dag_amdFsr.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1ac40045c91b62b4c9f21d96576db60a2e" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::timeElapsed</definition>
+        <argsstring></argsstring>
+        <name>timeElapsed</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::timeElapsed</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="88" column="11" bodyfile="dag_amdFsr.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1ab756945dcde50f7b50f5e457411811d2" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::preExposure</definition>
+        <argsstring></argsstring>
+        <name>preExposure</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::preExposure</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="89" column="11" bodyfile="dag_amdFsr.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a15044daad34b5795cfbb3102a7109403" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::inputResolution</definition>
+        <argsstring></argsstring>
+        <name>inputResolution</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::inputResolution</qualifiedname>
+        <initializer>= IPoint2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="90" column="13" bodyfile="dag_amdFsr.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a7164b57c4b0e70d91a2416f75d179b02" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::outputResolution</definition>
+        <argsstring></argsstring>
+        <name>outputResolution</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::outputResolution</qualifiedname>
+        <initializer>= IPoint2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="91" column="13" bodyfile="dag_amdFsr.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a8095f709018bf563e83ef6ff68ed779d" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::fovY</definition>
+        <argsstring></argsstring>
+        <name>fovY</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::fovY</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="92" column="11" bodyfile="dag_amdFsr.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1ab2699cf6e118cb253527d35385ae28b1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::nearPlane</definition>
+        <argsstring></argsstring>
+        <name>nearPlane</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::nearPlane</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="93" column="11" bodyfile="dag_amdFsr.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a57cc0193091b113069c5f391c8db60c1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::farPlane</definition>
+        <argsstring></argsstring>
+        <name>farPlane</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::farPlane</qualifiedname>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="94" column="11" bodyfile="dag_amdFsr.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1UpscalingArgsBase_1aad8a634e186e56f40efeed933745aae3" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::frameIndex</definition>
+        <argsstring></argsstring>
+        <name>frameIndex</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::frameIndex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="95" column="14" bodyfile="dag_amdFsr.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structamd_1_1FSR_1_1UpscalingArgsBase_1a8d60314db725628d23e60fdd41d66bb4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::UpscalingArgsBase</definition>
+        <argsstring>()=default</argsstring>
+        <name>UpscalingArgsBase</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::UpscalingArgsBase</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="49" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1_1UpscalingArgsBase_1abc8cd32409d24f3bc1ead329bcec7f50" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Other</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>amd::FSR::UpscalingArgsBase&lt; TextureType &gt;::UpscalingArgsBase</definition>
+        <argsstring>(const UpscalingArgsBase&lt; Other &gt; &amp;other)</argsstring>
+        <name>UpscalingArgsBase</name>
+        <qualifiedname>amd::FSR::UpscalingArgsBase::UpscalingArgsBase</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1_1UpscalingArgsBase" kindref="compound">UpscalingArgsBase</ref>&lt; Other &gt; &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="52" column="5" bodyfile="dag_amdFsr.h" bodystart="52" bodyend="74"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_amdFsr.h" line="47" column="3" bodyfile="dag_amdFsr.h" bodystart="48" bodyend="96"/>
+    <listofallmembers>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a6f55bb025cbe1c89a9769459fae3c7be" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>colorTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a7eb37fbd5528cbfae30dab4a5e261dcf" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>debugView</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a764c49502bb4dcd7404b8b727ff49b9e" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>depthTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a52506eefaaef01e5ea386ba68a0804aa" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>exposureTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a57cc0193091b113069c5f391c8db60c1" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>farPlane</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a8095f709018bf563e83ef6ff68ed779d" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>fovY</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1aad8a634e186e56f40efeed933745aae3" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>frameIndex</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a15044daad34b5795cfbb3102a7109403" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>inputResolution</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a2cd5ee3f7bc50dc4157eb15d49381f65" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>jitter</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a74e46e32d0590d1ffd5030032c5445e8" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>motionVectors</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a22399fdd8d9485e6de5f62a7fe08dc05" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>motionVectorScale</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1ab2699cf6e118cb253527d35385ae28b1" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>nearPlane</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a7164b57c4b0e70d91a2416f75d179b02" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>outputResolution</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a4f2e2d58a8df66e8ec7a5ef54daaf24f" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>outputTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1ab756945dcde50f7b50f5e457411811d2" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>preExposure</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a2bfc696a8fd26c578b994de3ccbc4177" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>reactiveTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a8bd7082189e8cf3c60fc8e4e2f8e3765" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>reset</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a72fc6e4c008086af9827f48dc54f2162" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>sharpness</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1ac40045c91b62b4c9f21d96576db60a2e" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>timeElapsed</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a80ba7958d7e1128bf5af33c469f5dcbd" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>transparencyAndCompositionTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1a8d60314db725628d23e60fdd41d66bb4" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>UpscalingArgsBase</name></member>
+      <member refid="structamd_1_1FSR_1_1UpscalingArgsBase_1abc8cd32409d24f3bc1ead329bcec7f50" prot="public" virt="non-virtual"><scope>amd::FSR::UpscalingArgsBase</scope><name>UpscalingArgsBase</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

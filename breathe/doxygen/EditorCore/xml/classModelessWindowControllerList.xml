@@ -1,0 +1,160 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classModelessWindowControllerList" kind="class" language="C++" prot="public">
+    <compoundname>ModelessWindowControllerList</compoundname>
+    <includes refid="ec__modelessWindowControllerList_8h" local="no">ec_modelessWindowControllerList.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classModelessWindowControllerList_1a078a11980a24eec0baf92c2108159661" prot="private" static="no" mutable="no">
+        <type>dag::Vector&lt; <ref refid="classIModelessWindowController" kindref="compound">IModelessWindowController</ref> * &gt;</type>
+        <definition>dag::Vector&lt;IModelessWindowController *&gt; ModelessWindowControllerList::windowControllers</definition>
+        <argsstring></argsstring>
+        <name>windowControllers</name>
+        <qualifiedname>ModelessWindowControllerList::windowControllers</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="30" column="15" bodyfile="ec_modelessWindowControllerList.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classModelessWindowControllerList_1aa715c824019c4e18e6b40b51622c36f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::addWindowController</definition>
+        <argsstring>(IModelessWindowController &amp;controller)</argsstring>
+        <name>addWindowController</name>
+        <qualifiedname>ModelessWindowControllerList::addWindowController</qualifiedname>
+        <param>
+          <type><ref refid="classIModelessWindowController" kindref="compound">IModelessWindowController</ref> &amp;</type>
+          <declname>controller</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="13" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classModelessWindowControllerList_1a02d148fb79d4819b016b61d50d238569" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::toggleShowById</definition>
+        <argsstring>(const char *id)</argsstring>
+        <name>toggleShowById</name>
+        <qualifiedname>ModelessWindowControllerList::toggleShowById</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="16" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classModelessWindowControllerList_1ab22ff1c21c07dea5502d78dd88a37c56" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::releaseAllWindows</definition>
+        <argsstring>()</argsstring>
+        <name>releaseAllWindows</name>
+        <qualifiedname>ModelessWindowControllerList::releaseAllWindows</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="19" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classModelessWindowControllerList_1a3d77465f32ad6c87459e27bef95a8f55" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::setDefaultState</definition>
+        <argsstring>()</argsstring>
+        <name>setDefaultState</name>
+        <qualifiedname>ModelessWindowControllerList::setDefaultState</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="22" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classModelessWindowControllerList_1a0eb4b658794065750edef2f75c2d038a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::loadState</definition>
+        <argsstring>(const DataBlock &amp;blk)</argsstring>
+        <name>loadState</name>
+        <qualifiedname>ModelessWindowControllerList::loadState</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="24" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classModelessWindowControllerList_1a74053be44714c78100340df79d598ff3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ModelessWindowControllerList::saveState</definition>
+        <argsstring>(DataBlock &amp;blk)</argsstring>
+        <name>saveState</name>
+        <qualifiedname>ModelessWindowControllerList::saveState</qualifiedname>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="25" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classModelessWindowControllerList_1a64c812e342a29ad4a9bebefd149c3ba8" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ModelessWindowControllerList::getIndexById</definition>
+        <argsstring>(const char *id) const</argsstring>
+        <name>getIndexById</name>
+        <qualifiedname>ModelessWindowControllerList::getIndexById</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_modelessWindowControllerList.h" line="28" column="7"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_modelessWindowControllerList.h" line="9" column="1" bodyfile="ec_modelessWindowControllerList.h" bodystart="10" bodyend="31"/>
+    <listofallmembers>
+      <member refid="classModelessWindowControllerList_1aa715c824019c4e18e6b40b51622c36f5" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>addWindowController</name></member>
+      <member refid="classModelessWindowControllerList_1a64c812e342a29ad4a9bebefd149c3ba8" prot="private" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>getIndexById</name></member>
+      <member refid="classModelessWindowControllerList_1a0eb4b658794065750edef2f75c2d038a" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>loadState</name></member>
+      <member refid="classModelessWindowControllerList_1ab22ff1c21c07dea5502d78dd88a37c56" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>releaseAllWindows</name></member>
+      <member refid="classModelessWindowControllerList_1a74053be44714c78100340df79d598ff3" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>saveState</name></member>
+      <member refid="classModelessWindowControllerList_1a3d77465f32ad6c87459e27bef95a8f55" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>setDefaultState</name></member>
+      <member refid="classModelessWindowControllerList_1a02d148fb79d4819b016b61d50d238569" prot="public" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>toggleShowById</name></member>
+      <member refid="classModelessWindowControllerList_1a078a11980a24eec0baf92c2108159661" prot="private" virt="non-virtual"><scope>ModelessWindowControllerList</scope><name>windowControllers</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__confirmation__dialog_8h" kind="file" language="C++">
+    <compoundname>ec_confirmation_dialog.h</compoundname>
+    <includes local="no">libTools/util/hdpiUtil.h</includes>
+    <includes local="no">propPanel/commonWindow/dialogWindow.h</includes>
+    <includes local="no">propPanel/control/container.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_confirmation_dialog.h</label>
+        <link refid="ec__confirmation__dialog_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>libTools/util/hdpiUtil.h</label>
+      </node>
+      <node id="3">
+        <label>propPanel/commonWindow/dialogWindow.h</label>
+      </node>
+      <node id="4">
+        <label>propPanel/control/container.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classConfirmationDialog" prot="public">ConfirmationDialog</innerclass>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;libTools/util/hdpiUtil.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/commonWindow/dialogWindow.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;propPanel/control/container.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8" refid="classConfirmationDialog" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classConfirmationDialog" kindref="compound">ConfirmationDialog</ref><sp/>final</highlight></codeline>
+<codeline lineno="9"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="11" refid="classConfirmationDialog_1a5898a49e356905d9bf85784c75df6551" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">explicit</highlight><highlight class="normal"><sp/><ref refid="classConfirmationDialog_1a5898a49e356905d9bf85784c75df6551" kindref="member">ConfirmationDialog</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>caption[],<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>msg[])<sp/>:</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><sp/><sp/>dialog(nullptr,<sp/>hdpi::_pxScaled(100),<sp/>hdpi::_pxScaled(25),<sp/>caption)</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/><sp/><sp/>dialog.getPanel()-&gt;createStatic(0,<sp/>msg);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>windowWidth<sp/>=</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>ImGui::CalcTextSize(msg).x<sp/>+<sp/>ImGui::GetStyle().ItemSpacing.x<sp/>+<sp/>(ImGui::GetStyle().WindowPadding.x<sp/>*<sp/>2.0f);</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><sp/><sp/>dialog.setWindowSize(hdpi::Px(windowWidth),<sp/>hdpi::Px(0));</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/><sp/><sp/>dialog.autoSize();</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="classConfirmationDialog_1aa5d4eff111047e2adbdd0db179bc0275" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classConfirmationDialog_1aa5d4eff111047e2adbdd0db179bc0275" kindref="member">~ConfirmationDialog</ref>()<sp/>noexcept<sp/>=<sp/>default;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="classConfirmationDialog_1a55cef35e0121575bc8faef447199f9e8" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="classConfirmationDialog_1a55cef35e0121575bc8faef447199f9e8" kindref="member">showDialog</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>dialog.showDialog();<sp/>}</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>PropPanel::DialogWindow<sp/>dialog;</highlight></codeline>
+<codeline lineno="28"><highlight class="normal">};</highlight></codeline>
+    </programlisting>
+    <location file="ec_confirmation_dialog.h"/>
+  </compounddef>
+</doxygen>

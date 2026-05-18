@@ -1,0 +1,266 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__screenshot_8h" kind="file" language="C++">
+    <compoundname>ec_screenshot.h</compoundname>
+    <includedby refid="ec__genappwnd_8h" local="no">ec_genappwnd.h</includedby>
+    <invincdepgraph>
+      <node id="3">
+        <label>ec_genapp_ehfilter.h</label>
+        <link refid="ec__genapp__ehfilter_8h"/>
+      </node>
+      <node id="2">
+        <label>ec_genappwnd.h</label>
+        <link refid="ec__genappwnd_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>ec_screenshot.h</label>
+        <link refid="ec__screenshot_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structScreenshotConfig" prot="public">ScreenshotConfig</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ScreenshotFormat</name>
+        <enumvalue id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba907e06a16862d82ca6907a28a68d0ad6" prot="public">
+          <name>JPEG</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba64efd9bcf7b83f22fe9796967255e103" prot="public">
+          <name>TGA</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba55505ba281b015ec31f03ccb151b2a34" prot="public">
+          <name>PNG</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9bace0dbe5045edda1a0e9686ce899798ea" prot="public">
+          <name>TIFF</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba3010af968778d65840ab3abc40315532" prot="public">
+          <name>DDSX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="6" column="1" bodyfile="ec_screenshot.h" bodystart="7" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="enum" id="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2e" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ScreenshotDlgMode</name>
+        <enumvalue id="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2eaf3df64af73af3f9e5632518971b364bd" prot="public">
+          <name>DA_EDITOR</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2ea00d9eabdcb94d9b2c6b76bfa592f0362" prot="public">
+          <name>ASSET_VIEWER</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="15" column="1" bodyfile="ec_screenshot.h" bodystart="16" bodyend="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__screenshot_8h_1a2cda7f3c98bcc87eabe0236c21a0a127" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void saveScreenshotConfig</definition>
+        <argsstring>(DataBlock &amp;blk, const ScreenshotConfig &amp;cfg)</argsstring>
+        <name>saveScreenshotConfig</name>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref> &amp;</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="51" column="6" declfile="ec_screenshot.h" declline="51" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__screenshot_8h_1a9d4a64429306c47ce64f3d39f81ef5ef" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void loadScreenshotConfig</definition>
+        <argsstring>(const DataBlock &amp;blk, ScreenshotConfig &amp;cfg)</argsstring>
+        <name>loadScreenshotConfig</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref> &amp;</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="52" column="6" declfile="ec_screenshot.h" declline="52" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__screenshot_8h_1a321c3550c54efc31ee0098aaa69fcbfa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void saveCubeScreenshotConfig</definition>
+        <argsstring>(DataBlock &amp;blk, const ScreenshotConfig &amp;cfg)</argsstring>
+        <name>saveCubeScreenshotConfig</name>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref> &amp;</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="54" column="6" declfile="ec_screenshot.h" declline="54" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__screenshot_8h_1aa21af76770c6c1c0cdfaca6fc6e71509" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void loadCubeScreenshotConfig</definition>
+        <argsstring>(const DataBlock &amp;blk, ScreenshotConfig &amp;cfg)</argsstring>
+        <name>loadCubeScreenshotConfig</name>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref> &amp;</type>
+          <declname>cfg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="55" column="6" declfile="ec_screenshot.h" declline="55" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__screenshot_8h_1a60907d9f282fac1fcfcecf0c25af61f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * getFileExtFromFormat</definition>
+        <argsstring>(ScreenshotFormat fmt)</argsstring>
+        <name>getFileExtFromFormat</name>
+        <param>
+          <type><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref></type>
+          <declname>fmt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_screenshot.h" line="57" column="12" declfile="ec_screenshot.h" declline="57" declcolumn="12"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">DataBlock;</highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6" refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref></highlight></codeline>
+<codeline lineno="7"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba907e06a16862d82ca6907a28a68d0ad6" kindref="member">JPEG</ref>,</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba64efd9bcf7b83f22fe9796967255e103" kindref="member">TGA</ref>,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba55505ba281b015ec31f03ccb151b2a34" kindref="member">PNG</ref>,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9bace0dbe5045edda1a0e9686ce899798ea" kindref="member">TIFF</ref>,</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba3010af968778d65840ab3abc40315532" kindref="member">DDSX</ref>,</highlight></codeline>
+<codeline lineno="13"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2e" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2e" kindref="member">ScreenshotDlgMode</ref></highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2eaf3df64af73af3f9e5632518971b364bd" kindref="member">DA_EDITOR</ref>,</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1aac199bd5aab46abe20d632fd5362bc2ea00d9eabdcb94d9b2c6b76bfa592f0362" kindref="member">ASSET_VIEWER</ref>,</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="structScreenshotConfig" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref></highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23" refid="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref><sp/><ref refid="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" kindref="member">DEFAULT_FORMAT</ref><sp/>=<sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9ba907e06a16862d82ca6907a28a68d0ad6" kindref="member">ScreenshotFormat::JPEG</ref>;</highlight></codeline>
+<codeline lineno="24" refid="structScreenshotConfig_1a949057309c896f87cd2a7a9eb347c414" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a949057309c896f87cd2a7a9eb347c414" kindref="member">DEFAULT_WIDTH</ref><sp/>=<sp/>1024;</highlight></codeline>
+<codeline lineno="25" refid="structScreenshotConfig_1a8e1b785e006b6f2bdbc1da8117c81e2a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a8e1b785e006b6f2bdbc1da8117c81e2a" kindref="member">DEFAULT_HEIGHT</ref><sp/>=<sp/>768;</highlight></codeline>
+<codeline lineno="26" refid="structScreenshotConfig_1aab80bb60362a8b538a45c65ce06c5dfc" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1aab80bb60362a8b538a45c65ce06c5dfc" kindref="member">DEFAULT_SIZE</ref><sp/>=<sp/>512;</highlight></codeline>
+<codeline lineno="27" refid="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" kindref="member">DEFAULT_JPEG_Q</ref><sp/>=<sp/>80;</highlight></codeline>
+<codeline lineno="28" refid="structScreenshotConfig_1a2ad368ba954983f3188f8d80db24f5a3" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a2ad368ba954983f3188f8d80db24f5a3" kindref="member">MIN_CUBE_2_POWER</ref><sp/>=<sp/>5;</highlight></codeline>
+<codeline lineno="29" refid="structScreenshotConfig_1aeda9652d2592e5c210e67a429616e96c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1aeda9652d2592e5c210e67a429616e96c" kindref="member">MAX_CUBE_2_POWER</ref><sp/>=<sp/>11;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="structScreenshotConfig_1a65695709ff0b10d1843137e03769a86d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/><ref refid="structScreenshotConfig_1a65695709ff0b10d1843137e03769a86d" kindref="member">getDefaultCfg</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref>{.<ref refid="structScreenshotConfig_1a6c8c0afc6d0dbaca0f82313def4a4c33" kindref="member">width</ref><sp/>=<sp/><ref refid="structScreenshotConfig_1a949057309c896f87cd2a7a9eb347c414" kindref="member">DEFAULT_WIDTH</ref>,<sp/>.height<sp/>=<sp/><ref refid="structScreenshotConfig_1a8e1b785e006b6f2bdbc1da8117c81e2a" kindref="member">DEFAULT_HEIGHT</ref>};<sp/>}</highlight></codeline>
+<codeline lineno="32" refid="structScreenshotConfig_1a7b68e2d22c14582759682495fc430264" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/><ref refid="structScreenshotConfig_1a7b68e2d22c14582759682495fc430264" kindref="member">getDefaultCubeCfg</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref>{.<ref refid="structScreenshotConfig_1a434b05942e3f123699b87eb87f2ab431" kindref="member">size</ref><sp/>=<sp/><ref refid="structScreenshotConfig_1aab80bb60362a8b538a45c65ce06c5dfc" kindref="member">DEFAULT_SIZE</ref>};<sp/>}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">union</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">struct</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="38" refid="structScreenshotConfig_1a6c8c0afc6d0dbaca0f82313def4a4c33" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a6c8c0afc6d0dbaca0f82313def4a4c33" kindref="member">width</ref>;</highlight></codeline>
+<codeline lineno="39" refid="structScreenshotConfig_1ace44bcc1a527068160984c956d29f4ed" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1ace44bcc1a527068160984c956d29f4ed" kindref="member">height</ref>;</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><sp/><sp/>};</highlight></codeline>
+<codeline lineno="41" refid="structScreenshotConfig_1a434b05942e3f123699b87eb87f2ab431" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a434b05942e3f123699b87eb87f2ab431" kindref="member">size</ref>;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="structScreenshotConfig_1ac6f0d1e6d5ba4a94077e4f5874b26567" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref><sp/><ref refid="structScreenshotConfig_1ac6f0d1e6d5ba4a94077e4f5874b26567" kindref="member">format</ref><sp/>=<sp/><ref refid="structScreenshotConfig_1afdb1844b4bbdf5c6ef36724785c523af" kindref="member">DEFAULT_FORMAT</ref>;</highlight></codeline>
+<codeline lineno="45" refid="structScreenshotConfig_1ad1580f2e86d97f519a02ce302dad768c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1ad1580f2e86d97f519a02ce302dad768c" kindref="member">jpegQuality</ref><sp/>=<sp/><ref refid="structScreenshotConfig_1a202a03d8465861d9e88d614d9fcf23ee" kindref="member">DEFAULT_JPEG_Q</ref>;</highlight></codeline>
+<codeline lineno="46" refid="structScreenshotConfig_1af8aebfa9e56ee0b2adce464317ce03bf" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1af8aebfa9e56ee0b2adce464317ce03bf" kindref="member">enableTransparentBackground</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="47" refid="structScreenshotConfig_1a97fe85471b78e155bf5bc10f3e54afe6" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a97fe85471b78e155bf5bc10f3e54afe6" kindref="member">enableDebugGeometry</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="48" refid="structScreenshotConfig_1a1ecfa8d352e20863df9fe4c16af8648b" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig_1a1ecfa8d352e20863df9fe4c16af8648b" kindref="member">nameAsCurrentAsset</ref><sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="ec__screenshot_8h_1a2cda7f3c98bcc87eabe0236c21a0a127" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1a2cda7f3c98bcc87eabe0236c21a0a127" kindref="member">saveScreenshotConfig</ref>(DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/>&amp;cfg);</highlight></codeline>
+<codeline lineno="52" refid="ec__screenshot_8h_1a9d4a64429306c47ce64f3d39f81ef5ef" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1a9d4a64429306c47ce64f3d39f81ef5ef" kindref="member">loadScreenshotConfig</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/>&amp;cfg);</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="ec__screenshot_8h_1a321c3550c54efc31ee0098aaa69fcbfa" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1a321c3550c54efc31ee0098aaa69fcbfa" kindref="member">saveCubeScreenshotConfig</ref>(DataBlock<sp/>&amp;blk,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/>&amp;cfg);</highlight></codeline>
+<codeline lineno="55" refid="ec__screenshot_8h_1aa21af76770c6c1c0cdfaca6fc6e71509" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__screenshot_8h_1aa21af76770c6c1c0cdfaca6fc6e71509" kindref="member">loadCubeScreenshotConfig</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>DataBlock<sp/>&amp;blk,<sp/><ref refid="structScreenshotConfig" kindref="compound">ScreenshotConfig</ref><sp/>&amp;cfg);</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="ec__screenshot_8h_1a60907d9f282fac1fcfcecf0c25af61f5" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="ec__screenshot_8h_1a60907d9f282fac1fcfcecf0c25af61f5" kindref="member">getFileExtFromFormat</ref>(<ref refid="ec__screenshot_8h_1ac7e91f3d7485f0c6363dc0c37d9bfe9b" kindref="member">ScreenshotFormat</ref><sp/>fmt);</highlight></codeline>
+    </programlisting>
+    <location file="ec_screenshot.h"/>
+  </compounddef>
+</doxygen>

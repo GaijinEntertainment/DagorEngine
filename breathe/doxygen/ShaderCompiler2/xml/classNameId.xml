@@ -1,0 +1,142 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classNameId" kind="class" language="C++" prot="public">
+    <compoundname>NameId</compoundname>
+    <includes refid="shaderSave_8h" local="no">shaderSave.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename Adapter</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classNameId_1abbf41d650243f4e7a27f17588bd47c53" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int NameId&lt; Adapter &gt;::mNameId</definition>
+        <argsstring></argsstring>
+        <name>mNameId</name>
+        <qualifiedname>NameId::mNameId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="22" column="7" bodyfile="shaderSave.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classNameId_1ac28ca6981b3982a3556b772eb80bb6bd" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NameId&lt; Adapter &gt;::serialize</definition>
+        <argsstring>() const</argsstring>
+        <name>serialize</name>
+        <qualifiedname>NameId::serialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="24" column="8" bodyfile="shaderSave.h" bodystart="24" bodyend="28"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameId_1ac72e87aba1e87a5a10340f4778ab3876" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NameId&lt; Adapter &gt;::deserialize</definition>
+        <argsstring>()</argsstring>
+        <name>deserialize</name>
+        <qualifiedname>NameId::deserialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="29" column="8" bodyfile="shaderSave.h" bodystart="29" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameId_1ab037488824efe3a076b553ef3c3c7184" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void NameId&lt; Adapter &gt;::hashialize</definition>
+        <argsstring>() const</argsstring>
+        <name>hashialize</name>
+        <qualifiedname>NameId::hashialize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="35" column="8" bodyfile="shaderSave.h" bodystart="35" bodyend="35"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classNameId_1af5e34db23935a469e9c3b8b29fd91d0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>NameId&lt; Adapter &gt;::BINDUMP_DECLARE_ASSIGNMENT_OPERATOR</definition>
+        <argsstring>(NameId, mNameId=other.mNameId)</argsstring>
+        <name>BINDUMP_DECLARE_ASSIGNMENT_OPERATOR</name>
+        <qualifiedname>NameId::BINDUMP_DECLARE_ASSIGNMENT_OPERATOR</qualifiedname>
+        <param>
+          <type><ref refid="classNameId" kindref="compound">NameId</ref></type>
+        </param>
+        <param>
+          <type>mNameId</type>
+          <defval>other.mNameId</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="38" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameId_1a880383e8b501f074243237c8cb7170fa" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NameId&lt; Adapter &gt;::operator int</definition>
+        <argsstring>() const</argsstring>
+        <name>operator int</name>
+        <qualifiedname>NameId::operator int</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="39" column="3" bodyfile="shaderSave.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classNameId_1ae0be9a7f30711c977be7518207aea414" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classNameId" kindref="compound">NameId</ref> &amp;</type>
+        <definition>NameId &amp; NameId&lt; Adapter &gt;::operator=</definition>
+        <argsstring>(int id)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>NameId::operator=</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderSave.h" line="40" column="10" bodyfile="shaderSave.h" bodystart="40" bodyend="44"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderSave.h" line="20" column="1" bodyfile="shaderSave.h" bodystart="21" bodyend="45"/>
+    <listofallmembers>
+      <member refid="classNameId_1af5e34db23935a469e9c3b8b29fd91d0b" prot="public" virt="non-virtual"><scope>NameId</scope><name>BINDUMP_DECLARE_ASSIGNMENT_OPERATOR</name></member>
+      <member refid="classNameId_1ac72e87aba1e87a5a10340f4778ab3876" prot="private" virt="non-virtual"><scope>NameId</scope><name>deserialize</name></member>
+      <member refid="classNameId_1ab037488824efe3a076b553ef3c3c7184" prot="private" virt="non-virtual"><scope>NameId</scope><name>hashialize</name></member>
+      <member refid="classNameId_1abbf41d650243f4e7a27f17588bd47c53" prot="private" virt="non-virtual"><scope>NameId</scope><name>mNameId</name></member>
+      <member refid="classNameId_1a880383e8b501f074243237c8cb7170fa" prot="public" virt="non-virtual"><scope>NameId</scope><name>operator int</name></member>
+      <member refid="classNameId_1ae0be9a7f30711c977be7518207aea414" prot="public" virt="non-virtual"><scope>NameId</scope><name>operator=</name></member>
+      <member refid="classNameId_1ac28ca6981b3982a3556b772eb80bb6bd" prot="private" virt="non-virtual"><scope>NameId</scope><name>serialize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

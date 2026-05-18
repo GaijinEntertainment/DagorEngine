@@ -1,0 +1,285 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__viewportSplitter_8h" kind="file" language="C++">
+    <compoundname>ec_viewportSplitter.h</compoundname>
+    <includes local="no">math/dag_Point2.h</includes>
+    <includes local="no">imgui/imgui.h</includes>
+    <includes local="no">imgui/imgui_internal.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_viewportSplitter.h</label>
+        <link refid="ec__viewportSplitter_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>imgui/imgui.h</label>
+      </node>
+      <node id="4">
+        <label>imgui/imgui_internal.h</label>
+      </node>
+      <node id="2">
+        <label>math/dag_Point2.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__viewportSplitter_8h_1a93ed68a8f674ba507e30e49dd95623c4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool crosshair_splitter_behavior</definition>
+        <argsstring>(const ImRect &amp;bbHorizontal, const ImRect &amp;bbVertical, ImGuiID id, float *newLeftWidth, float *newRightWidth, float *newTopHeight, float *newBottomHeight, float min_size, float hover_extend, float hover_visibility_delay, ImU32 bg_col)</argsstring>
+        <name>crosshair_splitter_behavior</name>
+        <param>
+          <type>const ImRect &amp;</type>
+          <declname>bbHorizontal</declname>
+        </param>
+        <param>
+          <type>const ImRect &amp;</type>
+          <declname>bbVertical</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__ViewportWindow_8h_1a1785c9b6f4e16406764a85f32582236f" kindref="member">ImGuiID</ref></type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>newLeftWidth</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>newRightWidth</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>newTopHeight</declname>
+        </param>
+        <param>
+          <type>float *</type>
+          <declname>newBottomHeight</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>min_size</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>hover_extend</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>hover_visibility_delay</declname>
+        </param>
+        <param>
+          <type>ImU32</type>
+          <declname>bg_col</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_viewportSplitter.h" line="9" column="13" bodyfile="ec_viewportSplitter.h" bodystart="9" bodyend="109"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__viewportSplitter_8h_1aa3a1389e09ddf7cac8bb00475f24ca87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void render_imgui_viewport_splitter</definition>
+        <argsstring>(Point2 &amp;viewport_split_ratio, const Point2 &amp;region_available, float left_width, float right_width, float top_height, float bottom_height, float item_spacing)</argsstring>
+        <name>render_imgui_viewport_splitter</name>
+        <param>
+          <type>Point2 &amp;</type>
+          <declname>viewport_split_ratio</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>region_available</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>left_width</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>right_width</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>top_height</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>bottom_height</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>item_spacing</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_viewportSplitter.h" line="112" column="13" bodyfile="ec_viewportSplitter.h" bodystart="112" bodyend="148"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;imgui/imgui.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;imgui/imgui_internal.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>a<sp/>heavily<sp/>modified<sp/>version<sp/>of<sp/>ImGui::SplitterBehavior<sp/>that<sp/>handles<sp/>two<sp/>splitters<sp/>that<sp/>are<sp/>placed<sp/>like<sp/>a<sp/>crosshair.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="ec__viewportSplitter_8h_1a93ed68a8f674ba507e30e49dd95623c4" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="ec__viewportSplitter_8h_1a93ed68a8f674ba507e30e49dd95623c4" kindref="member">crosshair_splitter_behavior</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImRect<sp/>&amp;bbHorizontal,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImRect<sp/>&amp;bbVertical,<sp/><ref refid="ec__ViewportWindow_8h_1a1785c9b6f4e16406764a85f32582236f" kindref="member">ImGuiID</ref><sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*newLeftWidth,</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*newRightWidth,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*newTopHeight,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>*newBottomHeight,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>min_size,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>hover_extend,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>hover_visibility_delay,</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"><sp/><sp/>ImU32<sp/>bg_col)</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>draggingSplitter<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>ImVec2<sp/>previousMousePos<sp/>=<sp/>ImVec2(0.0f,<sp/>0.0f);</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>ImGuiContext<sp/>&amp;g<sp/>=<sp/>*GImGui;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"><sp/><sp/>ImGuiWindow<sp/>*window<sp/>=<sp/>g.CurrentWindow;</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!ImGui::ItemAdd(bbHorizontal,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>NULL,<sp/>ImGuiItemFlags_NoNav))</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>horizontalHovered,<sp/>horizontalHeld;</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/>ImRect<sp/>bbHorizontalInteract<sp/>=<sp/>bbHorizontal;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/>bbHorizontalInteract.Expand(ImVec2(0.0f,<sp/>hover_extend));</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>ImGui::ButtonBehavior(bbHorizontalInteract,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>&amp;horizontalHovered,<sp/>&amp;horizontalHeld,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>ImGuiButtonFlags_FlattenChildren<sp/>|<sp/>ImGuiButtonFlags_AllowOverlap);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>verticalHovered,<sp/>verticalHeld;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>ImRect<sp/>bbVerticalInteract<sp/>=<sp/>bbVertical;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>bbVerticalInteract.Expand(ImVec2(0.0f,<sp/>hover_extend));</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>ImGui::ButtonBehavior(bbVerticalInteract,<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal">,<sp/>&amp;verticalHovered,<sp/>&amp;verticalHeld,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/><sp/><sp/>ImGuiButtonFlags_FlattenChildren<sp/>|<sp/>ImGuiButtonFlags_AllowOverlap);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>hovered<sp/>=<sp/>horizontalHovered<sp/>||<sp/>verticalHovered;</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>held<sp/>=<sp/>horizontalHeld<sp/>||<sp/>verticalHeld;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(hovered)</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/><sp/><sp/>g.LastItemData.StatusFlags<sp/>|=<sp/>ImGuiItemStatusFlags_HoveredRect;<sp/></highlight><highlight class="comment">//<sp/>for<sp/>IsItemHovered(),<sp/>because<sp/>bb_interact<sp/>is<sp/>larger<sp/>than<sp/>bb</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(held<sp/>||<sp/>(hovered<sp/>&amp;&amp;<sp/>g.HoveredIdPreviousFrame<sp/>==<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>&amp;&amp;<sp/>g.HoveredIdTimer<sp/>&gt;=<sp/>hover_visibility_delay))</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/><sp/><sp/>ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(draggingSplitter<sp/>!=<sp/>held)</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/><sp/><sp/>draggingSplitter<sp/>=<sp/>held;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/><sp/><sp/>previousMousePos<sp/>=<sp/>g.IO.MousePos;</highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>ImRect<sp/>bbHorizontalRender<sp/>=<sp/>bbHorizontal;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>ImRect<sp/>bbVerticalRender<sp/>=<sp/>bbVertical;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(held)</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/>{<sp/></highlight><highlight class="comment">//<sp/>Horizontal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mouse_delta<sp/>=<sp/>(g.IO.MousePos<sp/>-<sp/>previousMousePos)[ImGuiAxis_Y];</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Minimum<sp/>pane<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>size_1_maximum_delta<sp/>=<sp/>ImMax(0.0f,<sp/>*newTopHeight<sp/>-<sp/>min_size);</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>size_2_maximum_delta<sp/>=<sp/>ImMax(0.0f,<sp/>*newBottomHeight<sp/>-<sp/>min_size);</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>&lt;<sp/>-size_1_maximum_delta)</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mouse_delta<sp/>=<sp/>-size_1_maximum_delta;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>&gt;<sp/>size_2_maximum_delta)</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mouse_delta<sp/>=<sp/>size_2_maximum_delta;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Apply<sp/>resize</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>!=<sp/>0.0f)</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*newTopHeight<sp/>=<sp/>ImMax(*newTopHeight<sp/>+<sp/>mouse_delta,<sp/>min_size);</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*newBottomHeight<sp/>=<sp/>ImMax(*newBottomHeight<sp/>-<sp/>mouse_delta,<sp/>min_size);</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ImGui::MarkItemEdited(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/>{<sp/></highlight><highlight class="comment">//<sp/>Vertical</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>mouse_delta<sp/>=<sp/>(g.IO.MousePos<sp/>-<sp/>previousMousePos)[ImGuiAxis_X];</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Minimum<sp/>pane<sp/>size</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>size_1_maximum_delta<sp/>=<sp/>ImMax(0.0f,<sp/>*newLeftWidth<sp/>-<sp/>min_size);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>size_2_maximum_delta<sp/>=<sp/>ImMax(0.0f,<sp/>*newRightWidth<sp/>-<sp/>min_size);</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>&lt;<sp/>-size_1_maximum_delta)</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mouse_delta<sp/>=<sp/>-size_1_maximum_delta;</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>&gt;<sp/>size_2_maximum_delta)</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>mouse_delta<sp/>=<sp/>size_2_maximum_delta;</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>Apply<sp/>resize</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(mouse_delta<sp/>!=<sp/>0.0f)</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*newLeftWidth<sp/>=<sp/>ImMax(*newLeftWidth<sp/>+<sp/>mouse_delta,<sp/>min_size);</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>*newRightWidth<sp/>=<sp/>ImMax(*newRightWidth<sp/>-<sp/>mouse_delta,<sp/>min_size);</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>ImGui::MarkItemEdited(</highlight><highlight class="keywordtype">id</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/><sp/><sp/>previousMousePos<sp/>=<sp/>g.IO.MousePos;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Render<sp/>at<sp/>new<sp/>position</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(bg_col<sp/>&amp;<sp/>IM_COL32_A_MASK)</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/><sp/><sp/>window-&gt;DrawList-&gt;AddRectFilled(bbHorizontalRender.Min,<sp/>bbHorizontalRender.Max,<sp/>bg_col,<sp/>0.0f);</highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/><sp/><sp/>window-&gt;DrawList-&gt;AddRectFilled(bbVerticalRender.Min,<sp/>bbVerticalRender.Max,<sp/>bg_col,<sp/>0.0f);</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImU32<sp/>col<sp/>=<sp/>ImGui::GetColorU32(held<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>?<sp/>ImGuiCol_SeparatorActive</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>(hovered<sp/>&amp;&amp;<sp/>g.HoveredIdTimer<sp/>&gt;=<sp/>hover_visibility_delay)<sp/>?<sp/>ImGuiCol_SeparatorHovered</highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>ImGuiCol_Separator);</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>window-&gt;DrawList-&gt;AddRectFilled(bbHorizontalRender.Min,<sp/>bbHorizontalRender.Max,<sp/>col,<sp/>0.0f);</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/>window-&gt;DrawList-&gt;AddRectFilled(bbVerticalRender.Min,<sp/>bbVerticalRender.Max,<sp/>col,<sp/>0.0f);</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"></highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>held;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="comment">//<sp/>viewport_split_ratio<sp/>is<sp/>both<sp/>an<sp/>input<sp/>and<sp/>output<sp/>parameter.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112" refid="ec__viewportSplitter_8h_1aa3a1389e09ddf7cac8bb00475f24ca87" refkind="member"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__viewportSplitter_8h_1aa3a1389e09ddf7cac8bb00475f24ca87" kindref="member">render_imgui_viewport_splitter</ref>(Point2<sp/>&amp;viewport_split_ratio,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point2<sp/>&amp;region_available,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>left_width,</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>right_width,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>top_height,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>bottom_height,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>item_spacing)</highlight></codeline>
+<codeline lineno="114"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="115"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(region_available.x<sp/>&lt;=<sp/>0.0f<sp/>||<sp/>region_available.y<sp/>&lt;=<sp/>0.0f)</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImVec2<sp/>origin<sp/>=<sp/>ImGui::GetCurrentWindow()-&gt;ContentRegionRect.Min;</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>minimumSize<sp/>=<sp/>100.0f;</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImU32<sp/>backgroundColor<sp/>=<sp/>ImGui::GetColorU32(ImGuiCol_WindowBg);</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Use<sp/>a<sp/>short<sp/>delay<sp/>before<sp/>highlighting<sp/>the<sp/>splitter<sp/>(and<sp/>changing<sp/>the<sp/>mouse<sp/>cursor)<sp/>in<sp/>order<sp/>for<sp/>regular<sp/>mouse<sp/>movement<sp/>to<sp/>not</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>highlight<sp/>many<sp/>splitters</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>WINDOWS_HOVER_PADDING<sp/>=<sp/>4.0f;<sp/></highlight><highlight class="comment">//<sp/>Extend<sp/>outside<sp/>window<sp/>for<sp/>hovering/resizing<sp/>(maxxed<sp/>with<sp/>TouchPadding)<sp/>and<sp/>inside</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>windows<sp/>for<sp/>borders.<sp/>Affect<sp/>FindHoveredWindow().</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>WINDOWS_RESIZE_FROM_EDGES_FEEDBACK_TIMER<sp/>=<sp/>0.04f;<sp/></highlight><highlight class="comment">//<sp/>Reduce<sp/>visual<sp/>noise<sp/>by<sp/>only<sp/>highlighting<sp/>the<sp/>border<sp/>after<sp/>a<sp/>certain</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>time.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="128"><highlight class="normal"></highlight></codeline>
+<codeline lineno="129"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImVec2<sp/>horizontalStart(origin.x,<sp/>origin.y<sp/>+<sp/>top_height);</highlight></codeline>
+<codeline lineno="130"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImRect<sp/>horizontalRect(horizontalStart,<sp/>horizontalStart<sp/>+<sp/>ImVec2(region_available.x,<sp/>item_spacing));</highlight></codeline>
+<codeline lineno="131"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImVec2<sp/>verticalStart(origin.x<sp/>+<sp/>left_width,<sp/>origin.y);</highlight></codeline>
+<codeline lineno="132"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>ImRect<sp/>verticalRect(verticalStart,<sp/>verticalStart<sp/>+<sp/>ImVec2(item_spacing,<sp/>region_available.y));</highlight></codeline>
+<codeline lineno="133"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>newLeftWidth<sp/>=<sp/>left_width;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>newRightWidth<sp/>=<sp/>right_width;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>newTopHeight<sp/>=<sp/>top_height;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>newBottomHeight<sp/>=<sp/>bottom_height;</highlight></codeline>
+<codeline lineno="137"><highlight class="normal"></highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(</highlight></codeline>
+<codeline lineno="139"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="ec__viewportSplitter_8h_1a93ed68a8f674ba507e30e49dd95623c4" kindref="member">crosshair_splitter_behavior</ref>(horizontalRect,<sp/>verticalRect,<sp/>ImGui::GetID(</highlight><highlight class="stringliteral">&quot;ViewportSplitter&quot;</highlight><highlight class="normal">),<sp/>&amp;newLeftWidth,<sp/>&amp;newRightWidth,</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>&amp;newTopHeight,<sp/>&amp;newBottomHeight,<sp/>minimumSize,<sp/>WINDOWS_HOVER_PADDING,<sp/>WINDOWS_RESIZE_FROM_EDGES_FEEDBACK_TIMER,<sp/>backgroundColor))</highlight></codeline>
+<codeline lineno="141"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(newLeftWidth<sp/>!=<sp/>left_width)</highlight></codeline>
+<codeline lineno="143"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>viewport_split_ratio.x<sp/>=<sp/>newLeftWidth<sp/>/<sp/>region_available.x;</highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(newTopHeight<sp/>!=<sp/>top_height)</highlight></codeline>
+<codeline lineno="146"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>viewport_split_ratio.y<sp/>=<sp/>newTopHeight<sp/>/<sp/>region_available.y;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="148"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="ec_viewportSplitter.h"/>
+  </compounddef>
+</doxygen>

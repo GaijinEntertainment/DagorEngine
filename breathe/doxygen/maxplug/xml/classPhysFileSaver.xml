@@ -1,0 +1,218 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPhysFileSaver" kind="class" language="C++" prot="public">
+    <compoundname>PhysFileSaver</compoundname>
+    <innerclass refid="structPhysFileSaver_1_1Block" prot="protected">PhysFileSaver::Block</innerclass>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classPhysFileSaver_1ac8627036f651b0a8dc6bd0833b17cb9f" prot="public" static="no" mutable="no">
+        <type>FILE *</type>
+        <definition>FILE* PhysFileSaver::file</definition>
+        <argsstring></argsstring>
+        <name>file</name>
+        <qualifiedname>PhysFileSaver::file</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="43" column="8" bodyfile="physExport.cpp" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classPhysFileSaver_1af7ad7fd1b904f82d76a553a59817f9f9" prot="protected" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPhysFileSaver_1_1Block" kindref="compound">Block</ref> &gt;</type>
+        <definition>Tab&lt;Block&gt; PhysFileSaver::blocks</definition>
+        <argsstring></argsstring>
+        <name>blocks</name>
+        <qualifiedname>PhysFileSaver::blocks</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="121" column="7" bodyfile="physExport.cpp" bodystart="121" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPhysFileSaver_1af928282a93cdc716e46b4b7b9baf95a9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PhysFileSaver::PhysFileSaver</definition>
+        <argsstring>(FILE *f)</argsstring>
+        <name>PhysFileSaver</name>
+        <qualifiedname>PhysFileSaver::PhysFileSaver</qualifiedname>
+        <param>
+          <type>FILE *</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="46" column="3" bodyfile="physExport.cpp" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1a7b586c4b23c4130c2136d8215eb0995b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::write</definition>
+        <argsstring>(const void *ptr, int len)</argsstring>
+        <name>write</name>
+        <qualifiedname>PhysFileSaver::write</qualifiedname>
+        <param>
+          <type>const void *</type>
+          <declname>ptr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="49" column="8" bodyfile="physExport.cpp" bodystart="49" bodyend="49"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1a020b2d5115df36070102a12f1a1ef149" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int PhysFileSaver::tell</definition>
+        <argsstring>()</argsstring>
+        <name>tell</name>
+        <qualifiedname>PhysFileSaver::tell</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="52" column="7" bodyfile="physExport.cpp" bodystart="52" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1affecdcb474b71aa2cbd26060f5b228e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::seekto</definition>
+        <argsstring>(int ofs)</argsstring>
+        <name>seekto</name>
+        <qualifiedname>PhysFileSaver::seekto</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ofs</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="55" column="8" bodyfile="physExport.cpp" bodystart="55" bodyend="55"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1ab935a33d2e4a882cc5a54ee1e67b7dc6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void PhysFileSaver::write</definition>
+        <argsstring>(const T &amp;a)</argsstring>
+        <name>write</name>
+        <qualifiedname>PhysFileSaver::write</qualifiedname>
+        <param>
+          <type>const T &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="59" column="8" bodyfile="physExport.cpp" bodystart="59" bodyend="62"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1ab8bd798ad35b1e670be895a277833fb7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::alignOnDword</definition>
+        <argsstring>(int len)</argsstring>
+        <name>alignOnDword</name>
+        <qualifiedname>PhysFileSaver::alignOnDword</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>len</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="65" column="8" bodyfile="physExport.cpp" bodystart="65" bodyend="73"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1a5ae4262c4c189f1250d6236c722838b4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::writeString</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>writeString</name>
+        <qualifiedname>PhysFileSaver::writeString</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="76" column="8" bodyfile="physExport.cpp" bodystart="76" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1a71db3dfe7a9c74d6227af856cd9e8924" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::beginBlock</definition>
+        <argsstring>()</argsstring>
+        <name>beginBlock</name>
+        <qualifiedname>PhysFileSaver::beginBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="87" column="8" bodyfile="physExport.cpp" bodystart="87" bodyend="97"/>
+      </memberdef>
+      <memberdef kind="function" id="classPhysFileSaver_1a2c0e550d43f44db08227c828930c5d79" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PhysFileSaver::endBlock</definition>
+        <argsstring>()</argsstring>
+        <name>endBlock</name>
+        <qualifiedname>PhysFileSaver::endBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="physExport.cpp" line="100" column="8" bodyfile="physExport.cpp" bodystart="100" bodyend="112"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="physExport.cpp" line="40" column="1" bodyfile="physExport.cpp" bodystart="41" bodyend="122"/>
+    <listofallmembers>
+      <member refid="classPhysFileSaver_1ab8bd798ad35b1e670be895a277833fb7" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>alignOnDword</name></member>
+      <member refid="classPhysFileSaver_1a71db3dfe7a9c74d6227af856cd9e8924" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>beginBlock</name></member>
+      <member refid="classPhysFileSaver_1af7ad7fd1b904f82d76a553a59817f9f9" prot="protected" virt="non-virtual"><scope>PhysFileSaver</scope><name>blocks</name></member>
+      <member refid="classPhysFileSaver_1a2c0e550d43f44db08227c828930c5d79" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>endBlock</name></member>
+      <member refid="classPhysFileSaver_1ac8627036f651b0a8dc6bd0833b17cb9f" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>file</name></member>
+      <member refid="classPhysFileSaver_1af928282a93cdc716e46b4b7b9baf95a9" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>PhysFileSaver</name></member>
+      <member refid="classPhysFileSaver_1affecdcb474b71aa2cbd26060f5b228e8" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>seekto</name></member>
+      <member refid="classPhysFileSaver_1a020b2d5115df36070102a12f1a1ef149" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>tell</name></member>
+      <member refid="classPhysFileSaver_1a7b586c4b23c4130c2136d8215eb0995b" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>write</name></member>
+      <member refid="classPhysFileSaver_1ab935a33d2e4a882cc5a54ee1e67b7dc6" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>write</name></member>
+      <member refid="classPhysFileSaver_1a5ae4262c4c189f1250d6236c722838b4" prot="public" virt="non-virtual"><scope>PhysFileSaver</scope><name>writeString</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classPreshaderCompilationCache" kind="class" language="C++" prot="public">
+    <compoundname>PreshaderCompilationCache</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classPreshaderCompilationCache_1ae69a9ab6c7afc4c25272349c1b6de838" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref>, eastl::unique_ptr&lt; <ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref> &gt; &gt;</type>
+        <definition>ska::flat_hash_map&lt;PreshaderCompilationInput, eastl::unique_ptr&lt;CompiledPreshader&gt; &gt; PreshaderCompilationCache::cache</definition>
+        <argsstring></argsstring>
+        <name>cache</name>
+        <qualifiedname>PreshaderCompilationCache::cache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="165" column="22" bodyfile="preshaderCompilation.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPreshaderCompilationCache_1a95262c84c58d56197c3de63805e00772" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref> *</type>
+        <definition>CompiledPreshader * PreshaderCompilationCache::query</definition>
+        <argsstring>(const PreshaderCompilationInput &amp;input) const</argsstring>
+        <name>query</name>
+        <qualifiedname>PreshaderCompilationCache::query</qualifiedname>
+        <param>
+          <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;</type>
+          <declname>input</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="168" column="21" bodyfile="preshaderCompilation.h" bodystart="168" bodyend="173"/>
+      </memberdef>
+      <memberdef kind="function" id="classPreshaderCompilationCache_1a8915865870add2691099564d0d4f02e4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref> *</type>
+        <definition>CompiledPreshader * PreshaderCompilationCache::post</definition>
+        <argsstring>(PreshaderCompilationInput &amp;&amp;input, CompiledPreshader &amp;&amp;code)</argsstring>
+        <name>post</name>
+        <qualifiedname>PreshaderCompilationCache::post</qualifiedname>
+        <param>
+          <type><ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;&amp;</type>
+          <declname>input</declname>
+        </param>
+        <param>
+          <type><ref refid="structCompiledPreshader" kindref="compound">CompiledPreshader</ref> &amp;&amp;</type>
+          <declname>code</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="175" column="21" bodyfile="preshaderCompilation.h" bodystart="175" bodyend="180"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="preshaderCompilation.h" line="163" column="1" bodyfile="preshaderCompilation.h" bodystart="164" bodyend="181"/>
+    <listofallmembers>
+      <member refid="classPreshaderCompilationCache_1ae69a9ab6c7afc4c25272349c1b6de838" prot="private" virt="non-virtual"><scope>PreshaderCompilationCache</scope><name>cache</name></member>
+      <member refid="classPreshaderCompilationCache_1a8915865870add2691099564d0d4f02e4" prot="public" virt="non-virtual"><scope>PreshaderCompilationCache</scope><name>post</name></member>
+      <member refid="classPreshaderCompilationCache_1a95262c84c58d56197c3de63805e00772" prot="public" virt="non-virtual"><scope>PreshaderCompilationCache</scope><name>query</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDebugPrimitivesVbuffer_1_1Line" kind="struct" language="C++" prot="private">
+    <compoundname>DebugPrimitivesVbuffer::Line</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Line_1ac48e2c03e7c1231d6f5ab3832e887391" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Line::id0</definition>
+        <argsstring></argsstring>
+        <name>id0</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Line::id0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="64" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Line_1af6db4d43f87ed4f87363141e4f3a1f4e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Line::id1</definition>
+        <argsstring></argsstring>
+        <name>id1</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Line::id1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="65" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Line_1a12badbec35071d597a703dd53a02f3a8" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DebugPrimitivesVbuffer::Line::c</definition>
+        <argsstring></argsstring>
+        <name>c</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Line::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="66" column="14" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DebugPrimitivesVbuffer.h" line="62" column="3" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="63" bodyend="67"/>
+    <listofallmembers>
+      <member refid="structDebugPrimitivesVbuffer_1_1Line_1a12badbec35071d597a703dd53a02f3a8" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Line</scope><name>c</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Line_1ac48e2c03e7c1231d6f5ab3832e887391" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Line</scope><name>id0</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Line_1af6db4d43f87ed4f87363141e4f3a1f4e" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Line</scope><name>id1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

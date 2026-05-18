@@ -1,0 +1,563 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__shBindumps_8h" kind="file" language="C++">
+    <compoundname>dag_shBindumps.h</compoundname>
+    <includes refid="dag__shaderCommon_8h" local="no">shaders/dag_shaderCommon.h</includes>
+    <includes refid="dag__computeShaders_8h" local="no">shaders/dag_computeShaders.h</includes>
+    <includes refid="dag__meshShaders_8h" local="no">shaders/dag_meshShaders.h</includes>
+    <includes local="no">util/dag_generationRefId.h</includes>
+    <includes local="no">util/dag_globDef.h</includes>
+    <includes local="no">drv/3d/dag_shaderModelVersion.h</includes>
+    <incdepgraph>
+      <node id="7">
+        <label>shaders/dag_computeShaders.h</label>
+        <link refid="dag__computeShaders_8h_source"/>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shaders/dag_meshShaders.h</label>
+        <link refid="dag__meshShaders_8h_source"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_shBindumps.h</label>
+        <link refid="dag__shBindumps_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="3">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="10">
+        <label>EASTL/array.h</label>
+      </node>
+      <node id="11">
+        <label>EASTL/unique_ptr.h</label>
+      </node>
+      <node id="4">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+      </node>
+      <node id="8">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="5">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="9">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="13">
+        <label>util/dag_generationRefId.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_globDef.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structShaderBindumpHandleDummy" prot="public">ShaderBindumpHandleDummy</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="dag__shBindumps_8h_1a664d931a1eb476b70eec6f20735d5c4c" prot="public" static="no">
+        <type>GenerationRefId&lt; 8, <ref refid="structShaderBindumpHandleDummy" kindref="compound">ShaderBindumpHandleDummy</ref> &gt;</type>
+        <definition>using ShaderBindumpHandle =  GenerationRefId&lt;8, ShaderBindumpHandleDummy&gt;</definition>
+        <argsstring></argsstring>
+        <name>ShaderBindumpHandle</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="18" column="1" bodyfile="dag_shBindumps.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="dag__shBindumps_8h_1a2c413d915073ad4f545d14486f9e9669" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr ShaderBindumpHandle</type>
+        <definition>constexpr ShaderBindumpHandle MAIN_BINDUMP_HANDLE</definition>
+        <argsstring></argsstring>
+        <name>MAIN_BINDUMP_HANDLE</name>
+        <initializer>= ShaderBindumpHandle::make(uint32_t(-2), 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="20" column="38" bodyfile="dag_shBindumps.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shBindumps_8h_1afdf659ffd0e218ebbacef94a6a0fde3f" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr ShaderBindumpHandle</type>
+        <definition>constexpr ShaderBindumpHandle SEC_EXP_BINDUMP_HANDLE</definition>
+        <argsstring></argsstring>
+        <name>SEC_EXP_BINDUMP_HANDLE</name>
+        <initializer>= ShaderBindumpHandle::make(uint32_t(-3), 0)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="21" column="38" bodyfile="dag_shBindumps.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="dag__shBindumps_8h_1ac57483d67d361a3a409b616010fd9744" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr ShaderBindumpHandle</type>
+        <definition>constexpr ShaderBindumpHandle INVALID_BINDUMP_HANDLE</definition>
+        <argsstring></argsstring>
+        <name>INVALID_BINDUMP_HANDLE</name>
+        <initializer>= ShaderBindumpHandle{ShaderBindumpHandle::INVALID_ID}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="22" column="38" bodyfile="dag_shBindumps.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shBindumps_8h_1a504d8efb813351bb58978fd18b09037f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material</definition>
+        <argsstring>(ShaderBindumpHandle hnd, MaterialData const &amp;m, bool do_log=true)</argsstring>
+        <name>new_shader_material</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>MaterialData const &amp;</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>do_log</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="24" column="16" declfile="dag_shBindumps.h" declline="24" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a9b37c14b53e951c55cc3c2dd30dc9f94" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material_by_name_optional</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *shader_name, char const *mat_script=nullptr)</argsstring>
+        <name>new_shader_material_by_name_optional</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>mat_script</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="25" column="16" declfile="dag_shBindumps.h" declline="25" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a1144a4ed8c7f8fb134072c12802e4930" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+        <definition>ShaderMaterial * new_shader_material_by_name</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *shader_name, char const *mat_script=nullptr)</argsstring>
+        <name>new_shader_material_by_name</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>mat_script</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="27" column="16" declfile="dag_shBindumps.h" declline="27" declcolumn="16"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1ae70caf7901861dabbb7e8e354a2b9340" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref> *</type>
+        <definition>ComputeShaderElement * new_compute_shader</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *shader_name, bool optional=false)</argsstring>
+        <name>new_compute_shader</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="28" column="22" declfile="dag_shBindumps.h" declline="28" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a986a03f128da90f08474756eb366e641" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref> *</type>
+        <definition>MeshShaderElement * new_mesh_shader</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *shader_name, bool optional=false)</argsstring>
+        <name>new_mesh_shader</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>shader_name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>optional</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="29" column="19" declfile="dag_shBindumps.h" declline="29" declcolumn="19"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a619de7ddeb023304f29eff037d3c06ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool shader_exists</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *shader_name)</argsstring>
+        <name>shader_exists</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="31" column="6" declfile="dag_shBindumps.h" declline="31" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a19ff09367307fce689ed3589cd71791e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>char const *</type>
+        <definition>char const  * get_shader_class_name_by_material_name</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *mat_name)</argsstring>
+        <name>get_shader_class_name_by_material_name</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>mat_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="32" column="12" declfile="dag_shBindumps.h" declline="32" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1af1bf303c9fe11c5832c46ecd995d8079" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ShaderBindumpHandle</type>
+        <definition>ShaderBindumpHandle load_additional_shaders_bindump</definition>
+        <argsstring>(dag::ConstSpan&lt; uint8_t &gt; dump_data, char const *dump_name)</argsstring>
+        <name>load_additional_shaders_bindump</name>
+        <param>
+          <type>dag::ConstSpan&lt; uint8_t &gt;</type>
+          <declname>dump_data</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>dump_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="34" column="21" declfile="dag_shBindumps.h" declline="34" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a7ed64b4d8f1ca1d3f9bf3c616a5bb392" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ShaderBindumpHandle</type>
+        <definition>ShaderBindumpHandle load_additional_shaders_bindump</definition>
+        <argsstring>(char const *src_filename, d3d::shadermodel::Version shader_model_version)</argsstring>
+        <name>load_additional_shaders_bindump</name>
+        <param>
+          <type>char const *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="35" column="21" declfile="dag_shBindumps.h" declline="35" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a2dcfe4a9572fae278d610c94aca7475b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>ShaderBindumpHandle</type>
+        <definition>ShaderBindumpHandle load_additional_shaders_bindump</definition>
+        <argsstring>(char const *src_filename, char const *name_override, d3d::shadermodel::Version shader_model_version)</argsstring>
+        <name>load_additional_shaders_bindump</name>
+        <param>
+          <type>char const *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>name_override</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="36" column="21" declfile="dag_shBindumps.h" declline="36" declcolumn="21"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a401fb842adec59e87919d2d947312764" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool reload_shaders_bindump</definition>
+        <argsstring>(ShaderBindumpHandle hnd, dag::ConstSpan&lt; uint8_t &gt; dump_data, char const *dump_name)</argsstring>
+        <name>reload_shaders_bindump</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; uint8_t &gt;</type>
+          <declname>dump_data</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>dump_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="38" column="6" declfile="dag_shBindumps.h" declline="38" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a8531b1763a509143f54570260a2d7e37" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool reload_shaders_bindump</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *src_filename, d3d::shadermodel::Version shader_model_version)</argsstring>
+        <name>reload_shaders_bindump</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="39" column="6" declfile="dag_shBindumps.h" declline="39" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1adc0020ce3881fdbc992a75b909467289" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool reload_shaders_bindump</definition>
+        <argsstring>(ShaderBindumpHandle hnd, char const *src_filename, char const *name_override, d3d::shadermodel::Version shader_model_version)</argsstring>
+        <name>reload_shaders_bindump</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>src_filename</declname>
+        </param>
+        <param>
+          <type>char const *</type>
+          <declname>name_override</declname>
+        </param>
+        <param>
+          <type>d3d::shadermodel::Version</type>
+          <declname>shader_model_version</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="40" column="6" declfile="dag_shBindumps.h" declline="40" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a0d128a459ffab954b7b0d403ef2e70a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void unload_shaders_bindump</definition>
+        <argsstring>(ShaderBindumpHandle hnd)</argsstring>
+        <name>unload_shaders_bindump</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="42" column="6" declfile="dag_shBindumps.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shBindumps_8h_1a7d36a37fefb4b5c10712f201fdf801a1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t get_shaders_bindump_generation</definition>
+        <argsstring>(ShaderBindumpHandle hnd)</argsstring>
+        <name>get_shaders_bindump_generation</name>
+        <param>
+          <type>ShaderBindumpHandle</type>
+          <declname>hnd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shBindumps.h" line="44" column="10" declfile="dag_shBindumps.h" declline="44" declcolumn="10"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderCommon.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_computeShaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_meshShaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_generationRefId.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_globDef.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_shaderModelVersion.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">MaterialData;</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="structShaderBindumpHandleDummy" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structShaderBindumpHandleDummy" kindref="compound">ShaderBindumpHandleDummy</ref></highlight></codeline>
+<codeline lineno="17"><highlight class="normal">{};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="keyword">using<sp/></highlight><highlight class="normal">ShaderBindumpHandle<sp/>=<sp/>GenerationRefId&lt;8,<sp/>ShaderBindumpHandleDummy&gt;;</highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>ShaderBindumpHandle<sp/>MAIN_BINDUMP_HANDLE<sp/>=<sp/>ShaderBindumpHandle::make(uint32_t(-2),<sp/>0);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>ShaderBindumpHandle<sp/>SEC_EXP_BINDUMP_HANDLE<sp/>=<sp/>ShaderBindumpHandle::make(uint32_t(-3),<sp/>0);</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>ShaderBindumpHandle<sp/>INVALID_BINDUMP_HANDLE<sp/>=<sp/>ShaderBindumpHandle{ShaderBindumpHandle::INVALID_ID};</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material(ShaderBindumpHandle<sp/>hnd,<sp/>MaterialData<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>&amp;m,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>do_log<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material_by_name_optional(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*shader_name,</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*mat_script<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref><sp/>*new_shader_material_by_name(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*mat_script<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><ref refid="classComputeShaderElement" kindref="compound">ComputeShaderElement</ref><sp/>*new_compute_shader(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><ref refid="classMeshShaderElement" kindref="compound">MeshShaderElement</ref><sp/>*new_mesh_shader(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*shader_name,<sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>optional<sp/>=<sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>shader_exists(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*shader_name);</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*get_shader_class_name_by_material_name(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*mat_name);</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal">ShaderBindumpHandle<sp/>load_additional_shaders_bindump(dag::ConstSpan&lt;uint8_t&gt;<sp/>dump_data,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*dump_name);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal">ShaderBindumpHandle<sp/>load_additional_shaders_bindump(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*src_filename,<sp/>d3d::shadermodel::Version<sp/>shader_model_version);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal">ShaderBindumpHandle<sp/>load_additional_shaders_bindump(</highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*src_filename,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*name_override,</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>d3d::shadermodel::Version<sp/>shader_model_version);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reload_shaders_bindump(ShaderBindumpHandle<sp/>hnd,<sp/>dag::ConstSpan&lt;uint8_t&gt;<sp/>dump_data,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*dump_name);</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reload_shaders_bindump(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*src_filename,<sp/>d3d::shadermodel::Version<sp/>shader_model_version);</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>reload_shaders_bindump(ShaderBindumpHandle<sp/>hnd,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*src_filename,<sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>*name_override,</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>d3d::shadermodel::Version<sp/>shader_model_version);</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>unload_shaders_bindump(ShaderBindumpHandle<sp/>hnd);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal">uint32_t<sp/>get_shaders_bindump_generation(ShaderBindumpHandle<sp/>hnd);</highlight></codeline>
+    </programlisting>
+    <location file="dag_shBindumps.h"/>
+  </compounddef>
+</doxygen>

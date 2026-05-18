@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structNodeId" kind="struct" language="C++" prot="public">
+    <compoundname>NodeId</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structNodeId_1a2f33369873f35846260527c51ef4533c" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int NodeId::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <qualifiedname>NodeId::id</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="49" column="7" bodyfile="dagimp.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structNodeId_1aaa873eb9d511594feaa9dec48d086ba3" prot="public" static="no" mutable="no">
+        <type>INode *</type>
+        <definition>INode* NodeId::node</definition>
+        <argsstring></argsstring>
+        <name>node</name>
+        <qualifiedname>NodeId::node</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="50" column="9" bodyfile="dagimp.cpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structNodeId_1a13be0c0eb4566ac930fd6fd8cac132cf" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>NodeId::NodeId</definition>
+        <argsstring>(int _id, INode *n)</argsstring>
+        <name>NodeId</name>
+        <qualifiedname>NodeId::NodeId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>_id</declname>
+        </param>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="51" column="3" bodyfile="dagimp.cpp" bodystart="51" bodyend="51"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="47" column="1" bodyfile="dagimp.cpp" bodystart="48" bodyend="52"/>
+    <listofallmembers>
+      <member refid="structNodeId_1a2f33369873f35846260527c51ef4533c" prot="public" virt="non-virtual"><scope>NodeId</scope><name>id</name></member>
+      <member refid="structNodeId_1aaa873eb9d511594feaa9dec48d086ba3" prot="public" virt="non-virtual"><scope>NodeId</scope><name>node</name></member>
+      <member refid="structNodeId_1a13be0c0eb4566ac930fd6fd8cac132cf" prot="public" virt="non-virtual"><scope>NodeId</scope><name>NodeId</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

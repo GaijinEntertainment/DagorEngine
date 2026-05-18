@@ -1,0 +1,365 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDeviceDriverIssuesIOS" kind="struct" language="C++" prot="public">
+    <compoundname>DeviceDriverIssuesIOS</compoundname>
+    <basecompoundref refid="structDeviceDriverIssuesBase" prot="public" virt="non-virtual">DeviceDriverIssuesBase</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1aafd2a42efd1ffaf05e3ba1adc8d071bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasComputeTimeLimited</definition>
+        <argsstring></argsstring>
+        <name>hasComputeTimeLimited</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasComputeTimeLimited</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a4155a0570f12968d78e323e26304929f" kindref="member">DeviceDriverIssuesBase::hasComputeTimeLimited</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2288" column="25" bodyfile="dag_driverDesc.inl" bodystart="2288" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a3e12f2ac415928a84d62f5dc032b7589" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasComputeCanNotWrite3DTex</definition>
+        <argsstring></argsstring>
+        <name>hasComputeCanNotWrite3DTex</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasComputeCanNotWrite3DTex</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a47992c604a6c9348ed72906e2faa9c9e" kindref="member">DeviceDriverIssuesBase::hasComputeCanNotWrite3DTex</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2293" column="25" bodyfile="dag_driverDesc.inl" bodystart="2293" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a87ddb03d31a40d4e29b3ee15873b9763" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasStrictRenderPassesOnly</definition>
+        <argsstring></argsstring>
+        <name>hasStrictRenderPassesOnly</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasStrictRenderPassesOnly</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a0cadf2df929f3c2ea141d7f7a338bfd9" kindref="member">DeviceDriverIssuesBase::hasStrictRenderPassesOnly</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2298" column="25" bodyfile="dag_driverDesc.inl" bodystart="2298" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a83df35c2cd531c006e744876de2d5c82" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasSmallSampledBuffers</definition>
+        <argsstring></argsstring>
+        <name>hasSmallSampledBuffers</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasSmallSampledBuffers</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1af41da6d79519916b216c91c8c0b16c26" kindref="member">DeviceDriverIssuesBase::hasSmallSampledBuffers</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2303" column="25" bodyfile="dag_driverDesc.inl" bodystart="2303" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a162f191aeb5f8fdbf11e213a4cd9ff0d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasRenderPassClearDataRace</definition>
+        <argsstring></argsstring>
+        <name>hasRenderPassClearDataRace</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasRenderPassClearDataRace</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a0c0e9635e0bd509ed6febe7bf41b1037" kindref="member">DeviceDriverIssuesBase::hasRenderPassClearDataRace</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2308" column="25" bodyfile="dag_driverDesc.inl" bodystart="2308" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1aa295d5b36580e5631e32ca3193f97021" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenBaseInstanceID</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenBaseInstanceID</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenBaseInstanceID</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1aed100b8cc04c55fb5a645a31b4f6f1bd" kindref="member">DeviceDriverIssuesBase::hasBrokenBaseInstanceID</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2313" column="25" bodyfile="dag_driverDesc.inl" bodystart="2313" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a82696ec2dd03bdebc35b95759afed0bf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasMultisampledAndInstancingHang</definition>
+        <argsstring></argsstring>
+        <name>hasMultisampledAndInstancingHang</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasMultisampledAndInstancingHang</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ad502c03e9b8bc5f466439ede61f20a9c" kindref="member">DeviceDriverIssuesBase::hasMultisampledAndInstancingHang</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2318" column="25" bodyfile="dag_driverDesc.inl" bodystart="2318" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a4a73806d1259d3748baab52d89a52fe5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenMultisampledInputAttachment</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenMultisampledInputAttachment</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenMultisampledInputAttachment</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a9b8a521d3ddb09a523a1cb5517cdac33" kindref="member">DeviceDriverIssuesBase::hasBrokenMultisampledInputAttachment</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2323" column="25" bodyfile="dag_driverDesc.inl" bodystart="2323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a08fb535158de33fd487ac57fa0c851ab" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasIgnoreDeviceLost</definition>
+        <argsstring></argsstring>
+        <name>hasIgnoreDeviceLost</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasIgnoreDeviceLost</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a73a3b06020df31b84570b6e073204237" kindref="member">DeviceDriverIssuesBase::hasIgnoreDeviceLost</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2328" column="25" bodyfile="dag_driverDesc.inl" bodystart="2328" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a411d4e7d059b9ba2a8850b6bcb020eaa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasPollDeviceFences</definition>
+        <argsstring></argsstring>
+        <name>hasPollDeviceFences</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasPollDeviceFences</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ad14daea5fce019300ab5227acdf12886" kindref="member">DeviceDriverIssuesBase::hasPollDeviceFences</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2333" column="25" bodyfile="dag_driverDesc.inl" bodystart="2333" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a07194b5ef0f57edd0ad1f129f53439db" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenShadersAfterAppSwitch</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenShadersAfterAppSwitch</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenShadersAfterAppSwitch</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a3928aca35169986ebd34a4e811c54f62" kindref="member">DeviceDriverIssuesBase::hasBrokenShadersAfterAppSwitch</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2338" column="25" bodyfile="dag_driverDesc.inl" bodystart="2338" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a4930702bd3913dba959a689c99c0e014" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenSRGBConverionWithMRT</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenSRGBConverionWithMRT</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenSRGBConverionWithMRT</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1ae4a622bc9d156d0dd2afe06b06287387" kindref="member">DeviceDriverIssuesBase::hasBrokenSRGBConverionWithMRT</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2343" column="25" bodyfile="dag_driverDesc.inl" bodystart="2343" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a35edaf0f87136372542af99bbeb0b539" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenComputeFormattedOutput</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenComputeFormattedOutput</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenComputeFormattedOutput</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1aec7355cec1007e0b36dab07785577444" kindref="member">DeviceDriverIssuesBase::hasBrokenComputeFormattedOutput</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2348" column="25" bodyfile="dag_driverDesc.inl" bodystart="2348" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a2d2c7ee7dd5db2e32644879a0702e491" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenSubpasses</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenSubpasses</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenSubpasses</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a5eb9f931ffee8c8cba46d2cdbb97a6ee" kindref="member">DeviceDriverIssuesBase::hasBrokenSubpasses</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2353" column="25" bodyfile="dag_driverDesc.inl" bodystart="2353" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a25427c226108d28a080a787b5791f532" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasFloatClearBug</definition>
+        <argsstring></argsstring>
+        <name>hasFloatClearBug</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasFloatClearBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant true on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \win32 \baseissue{<ref refid="structDeviceDriverIssuesBase_1a9f1e938965f383922e73f877d544996d" kindref="member">DeviceDriverIssuesBase::hasFloatClearBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2358" column="25" bodyfile="dag_driverDesc.inl" bodystart="2358" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a6d6481fd4b70439c0eb8eaf82f1ccdc5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasClearColorBug</definition>
+        <argsstring></argsstring>
+        <name>hasClearColorBug</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasClearColorBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1a25023af43de6a5d31e6b1e06f2189922" kindref="member">DeviceDriverIssuesBase::hasClearColorBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2363" column="25" bodyfile="dag_driverDesc.inl" bodystart="2363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a052528e1ed7f144c49a2c195181bf4ad" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasMultipleCopySubresourceBug</definition>
+        <argsstring></argsstring>
+        <name>hasMultipleCopySubresourceBug</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasMultipleCopySubresourceBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1aa89655d054eea6e0605b24efbba60efd" kindref="member">DeviceDriverIssuesBase::hasMultipleCopySubresourceBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2368" column="25" bodyfile="dag_driverDesc.inl" bodystart="2368" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a6f37ac2e9823da6e2404af6d66eab3aa" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasBrokenNvApiGetSleepStatus</definition>
+        <argsstring></argsstring>
+        <name>hasBrokenNvApiGetSleepStatus</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasBrokenNvApiGetSleepStatus</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1a35c976b009067902b9b8dd02e2d8f920" kindref="member">DeviceDriverIssuesBase::hasBrokenNvApiGetSleepStatus</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2373" column="25" bodyfile="dag_driverDesc.inl" bodystart="2373" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDeviceDriverIssuesIOS_1a56d43bafe37abe97f72eb4031fcb0f3d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr bool</type>
+        <definition>constexpr bool DeviceDriverIssuesIOS::hasDepthCopyResourceBug</definition>
+        <argsstring></argsstring>
+        <name>hasDepthCopyResourceBug</name>
+        <qualifiedname>DeviceDriverIssuesIOS::hasDepthCopyResourceBug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+<para>Is constant false on \xbone, \scarlett, \ps4, \ps5, \ios, \tvos, \nswitch, \mac, \linux and \android \baseissue{<ref refid="structDeviceDriverIssuesBase_1a109f293edd804818332315cc6e15e2a2" kindref="member">DeviceDriverIssuesBase::hasDepthCopyResourceBug</ref>}. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_driverDesc.inl" line="2378" column="25" bodyfile="dag_driverDesc.inl" bodystart="2378" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Issues structure specific for \ios. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesIOS</label>
+        <link refid="structDeviceDriverIssuesIOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>DeviceDriverIssuesBase</label>
+        <link refid="structDeviceDriverIssuesBase"/>
+      </node>
+      <node id="1">
+        <label>DeviceDriverIssuesIOS</label>
+        <link refid="structDeviceDriverIssuesIOS"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_driverDesc.inl" line="2282" column="1" bodyfile="dag_driverDesc.inl" bodystart="2283" bodyend="2379"/>
+    <listofallmembers>
+      <member refid="structDeviceDriverIssuesIOS_1aa295d5b36580e5631e32ca3193f97021" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenBaseInstanceID</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a35edaf0f87136372542af99bbeb0b539" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenComputeFormattedOutput</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a4a73806d1259d3748baab52d89a52fe5" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenMultisampledInputAttachment</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a6f37ac2e9823da6e2404af6d66eab3aa" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenNvApiGetSleepStatus</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a07194b5ef0f57edd0ad1f129f53439db" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenShadersAfterAppSwitch</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a4930702bd3913dba959a689c99c0e014" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenSRGBConverionWithMRT</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a2d2c7ee7dd5db2e32644879a0702e491" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenSubpasses</name></member>
+      <member refid="structDeviceDriverIssuesBase_1aad143ff3fa8a884c65d5d57575cdd021" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasBrokenUAVOnlyPasses</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a6d6481fd4b70439c0eb8eaf82f1ccdc5" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasClearColorBug</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a3e12f2ac415928a84d62f5dc032b7589" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasComputeCanNotWrite3DTex</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1aafd2a42efd1ffaf05e3ba1adc8d071bb" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasComputeTimeLimited</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a56d43bafe37abe97f72eb4031fcb0f3d" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasDepthCopyResourceBug</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a25427c226108d28a080a787b5791f532" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasFloatClearBug</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a08fb535158de33fd487ac57fa0c851ab" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasIgnoreDeviceLost</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a052528e1ed7f144c49a2c195181bf4ad" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasMultipleCopySubresourceBug</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a82696ec2dd03bdebc35b95759afed0bf" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasMultisampledAndInstancingHang</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a411d4e7d059b9ba2a8850b6bcb020eaa" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasPollDeviceFences</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a162f191aeb5f8fdbf11e213a4cd9ff0d" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasRenderPassClearDataRace</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a83df35c2cd531c006e744876de2d5c82" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasSmallSampledBuffers</name></member>
+      <member refid="structDeviceDriverIssuesIOS_1a87ddb03d31a40d4e29b3ee15873b9763" prot="public" virt="non-virtual"><scope>DeviceDriverIssuesIOS</scope><name>hasStrictRenderPassesOnly</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

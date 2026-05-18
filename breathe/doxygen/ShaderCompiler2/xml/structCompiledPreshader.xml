@@ -1,0 +1,434 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structCompiledPreshader" kind="struct" language="C++" prot="public">
+    <compoundname>CompiledPreshader</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structCompiledPreshader_1af1a1f4dab37741a0dfb879654b989c08" prot="public" static="no" mutable="no">
+        <type><ref refid="structNamedConstBlock" kindref="compound">NamedConstBlock</ref></type>
+        <definition>NamedConstBlock CompiledPreshader::namedConstTable</definition>
+        <argsstring></argsstring>
+        <name>namedConstTable</name>
+        <qualifiedname>CompiledPreshader::namedConstTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="127" column="19" bodyfile="preshaderCompilation.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1af4a50098a1b81493f37470ff0a52b414" prot="public" static="no" mutable="no">
+        <type><ref refid="structStcodePass" kindref="compound">StcodePass</ref></type>
+        <definition>StcodePass CompiledPreshader::cppStcode</definition>
+        <argsstring></argsstring>
+        <name>cppStcode</name>
+        <qualifiedname>CompiledPreshader::cppStcode</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="128" column="14" bodyfile="preshaderCompilation.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a67673d7c62b958f20a57fa493b185b38" prot="public" static="no" mutable="no">
+        <type><ref refid="shaderTab_8h_1adaa8b885671aa7f33745dcdeaafd088e" kindref="member">TabStcode</ref></type>
+        <definition>TabStcode CompiledPreshader::dynStBytecode</definition>
+        <argsstring></argsstring>
+        <name>dynStBytecode</name>
+        <qualifiedname>CompiledPreshader::dynStBytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="129" column="13" bodyfile="preshaderCompilation.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1abdf753b609bd79d60a7c085959380b1a" prot="public" static="no" mutable="no">
+        <type><ref refid="shaderTab_8h_1adaa8b885671aa7f33745dcdeaafd088e" kindref="member">TabStcode</ref></type>
+        <definition>TabStcode CompiledPreshader::stBlkBytecode</definition>
+        <argsstring></argsstring>
+        <name>stBlkBytecode</name>
+        <qualifiedname>CompiledPreshader::stBlkBytecode</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="129" column="27" bodyfile="preshaderCompilation.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a5b3d11b43800c80b188224bf8a12745d" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1a69bb3b8a2526e6dccd978cd0be4fde95" kindref="member">ShaderParser::VariablesMerger::MergedVarsMapsPerStage</ref></type>
+        <definition>ShaderParser::VariablesMerger::MergedVarsMapsPerStage CompiledPreshader::constPackedVarsMaps</definition>
+        <argsstring></argsstring>
+        <name>constPackedVarsMaps</name>
+        <qualifiedname>CompiledPreshader::constPackedVarsMaps</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="130" column="57" bodyfile="preshaderCompilation.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1abf0153bcf2efaecb361fa9c72a81937b" prot="public" static="no" mutable="no">
+        <type><ref refid="structShaderParser_1_1VariablesMerger_1af5ea6f544b8ef480981a3e7a2a5f1748" kindref="member">ShaderParser::VariablesMerger::MergedVarsMap</ref></type>
+        <definition>ShaderParser::VariablesMerger::MergedVarsMap CompiledPreshader::bufferedPackedVarsMap</definition>
+        <argsstring></argsstring>
+        <name>bufferedPackedVarsMap</name>
+        <qualifiedname>CompiledPreshader::bufferedPackedVarsMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="131" column="48" bodyfile="preshaderCompilation.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a7c08041ca7136e1c91e89d6e20b12230" prot="public" static="no" mutable="no">
+        <type>Tab&lt; uintptr_t &gt;</type>
+        <definition>Tab&lt;uintptr_t&gt; CompiledPreshader::usedPreshaderStatements</definition>
+        <argsstring></argsstring>
+        <name>usedPreshaderStatements</name>
+        <qualifiedname>CompiledPreshader::usedPreshaderStatements</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="133" column="7" bodyfile="preshaderCompilation.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a3ec2456526ec96470531f5212d8d2579" prot="public" static="no" mutable="no">
+        <type>Tab&lt; uintptr_t &gt;</type>
+        <definition>Tab&lt;uintptr_t&gt; CompiledPreshader::preshaderVarsNeedingSamplerAsm</definition>
+        <argsstring></argsstring>
+        <name>preshaderVarsNeedingSamplerAsm</name>
+        <qualifiedname>CompiledPreshader::preshaderVarsNeedingSamplerAsm</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="134" column="7" bodyfile="preshaderCompilation.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1ab5ff7fc26138235fc69c2f38e6b7dfd3" prot="public" static="no" mutable="no">
+        <type>Tab&lt; Terminal * &gt;</type>
+        <definition>Tab&lt;Terminal *&gt; CompiledPreshader::stcodeVars</definition>
+        <argsstring></argsstring>
+        <name>stcodeVars</name>
+        <qualifiedname>CompiledPreshader::stcodeVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="136" column="7" bodyfile="preshaderCompilation.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a8b3ddca061003fb66b1134f1c949b505" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CompiledPreshader::isCompute</definition>
+        <argsstring></argsstring>
+        <name>isCompute</name>
+        <qualifiedname>CompiledPreshader::isCompute</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="138" column="8" bodyfile="preshaderCompilation.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a7106bcf6139a05d24d2bb0d9a6aee8b7" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledPreshader::requiredRegCount</definition>
+        <argsstring></argsstring>
+        <name>requiredRegCount</name>
+        <qualifiedname>CompiledPreshader::requiredRegCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="139" column="7" bodyfile="preshaderCompilation.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1ac3bf9b45304747236ecfa9f23bb5f4c6" prot="public" static="no" mutable="no">
+        <type>Tab&lt; String &gt;</type>
+        <definition>Tab&lt;String&gt; CompiledPreshader::dynamicSamplerImplicitVars</definition>
+        <argsstring></argsstring>
+        <name>dynamicSamplerImplicitVars</name>
+        <qualifiedname>CompiledPreshader::dynamicSamplerImplicitVars</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="141" column="7" bodyfile="preshaderCompilation.h" bodystart="141" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a9310fab36cba3351ff5191b2f97780dc" prot="public" static="no" mutable="no">
+        <type>Tab&lt; int &gt;</type>
+        <definition>Tab&lt;int&gt; CompiledPreshader::usedMaterialVarIds</definition>
+        <argsstring></argsstring>
+        <name>usedMaterialVarIds</name>
+        <qualifiedname>CompiledPreshader::usedMaterialVarIds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="142" column="7" bodyfile="preshaderCompilation.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a7b8791670824d9e2edba599cb6dbca02" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderVarTextureType &gt;</type>
+        <definition>Tab&lt;ShaderVarTextureType&gt; CompiledPreshader::shadervarTexTypes</definition>
+        <argsstring></argsstring>
+        <name>shadervarTexTypes</name>
+        <qualifiedname>CompiledPreshader::shadervarTexTypes</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="144" column="7" bodyfile="preshaderCompilation.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a2d9c384e30eaa737aaa93a07385d0a4e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledPreshader::stblkcodeNo</definition>
+        <argsstring></argsstring>
+        <name>stblkcodeNo</name>
+        <qualifiedname>CompiledPreshader::stblkcodeNo</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="146" column="7" bodyfile="preshaderCompilation.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1af79e2d838f55d0506519445f20e2d1fd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledPreshader::stcodeNo</definition>
+        <argsstring></argsstring>
+        <name>stcodeNo</name>
+        <qualifiedname>CompiledPreshader::stcodeNo</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="147" column="7" bodyfile="preshaderCompilation.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a7efc5d3e3a41b09b43f0d58b6980b9e1" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledPreshader::cppStblkcodeId</definition>
+        <argsstring></argsstring>
+        <name>cppStblkcodeId</name>
+        <qualifiedname>CompiledPreshader::cppStblkcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="148" column="7" bodyfile="preshaderCompilation.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1a15c0998d302bc2a89ee0171288938946" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int CompiledPreshader::cppStcodeId</definition>
+        <argsstring></argsstring>
+        <name>cppStcodeId</name>
+        <qualifiedname>CompiledPreshader::cppStcodeId</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="149" column="7" bodyfile="preshaderCompilation.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structCompiledPreshader_1afe32632696f0fb556a04803725068a56" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool CompiledPreshader::postedToTarget</definition>
+        <argsstring></argsstring>
+        <name>postedToTarget</name>
+        <qualifiedname>CompiledPreshader::postedToTarget</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="152" column="8" bodyfile="preshaderCompilation.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>CompiledPreshader</label>
+        <link refid="structCompiledPreshader"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>namedConstTable</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="15" relation="usage">
+          <edgelabel>dynStBytecode</edgelabel>
+          <edgelabel>stBlkBytecode</edgelabel>
+        </childnode>
+      </node>
+      <node id="10">
+        <label>DynamicStcodeRoutine</label>
+        <link refid="structDynamicStcodeRoutine"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>HlslRegAllocator</label>
+        <link refid="classHlslRegAllocator"/>
+      </node>
+      <node id="2">
+        <label>NamedConstBlock</label>
+        <link refid="structNamedConstBlock"/>
+        <childnode refid="3" relation="usage">
+          <edgelabel>bufferedConstProps</edgelabel>
+          <edgelabel>pixelProps</edgelabel>
+          <edgelabel>vertexProps</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>globConstBlk</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>bufferedConstsRegAllocator</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>slotTextureSuballocators</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>suppBlk</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>NamedConstBlock::RegisterProperties</label>
+        <link refid="structNamedConstBlock_1_1RegisterProperties"/>
+      </node>
+      <node id="6">
+        <label>NamedConstBlock::SlotTextureSubAllocators</label>
+        <link refid="structNamedConstBlock_1_1SlotTextureSubAllocators"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>psSamplers</edgelabel>
+          <edgelabel>psTex</edgelabel>
+          <edgelabel>vsSamplers</edgelabel>
+          <edgelabel>vsTex</edgelabel>
+        </childnode>
+      </node>
+      <node id="7">
+        <label>SerializableTab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="15">
+        <label>SerializableTab&lt; int32_t &gt;</label>
+        <link refid="classSerializableTab"/>
+        <childnode refid="16" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ShaderStateBlock</label>
+        <link refid="classShaderStateBlock"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>shConst</edgelabel>
+        </childnode>
+      </node>
+      <node id="14">
+        <label>StaticStcodeRoutine</label>
+        <link refid="structStaticStcodeRoutine"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>constRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>StcodeBuilder</label>
+        <link refid="classStcodeBuilder"/>
+      </node>
+      <node id="9">
+        <label>StcodePass</label>
+        <link refid="structStcodePass"/>
+        <childnode refid="10" relation="usage">
+          <edgelabel>cppStcode</edgelabel>
+        </childnode>
+        <childnode refid="14" relation="usage">
+          <edgelabel>cppStblkcode</edgelabel>
+        </childnode>
+      </node>
+      <node id="13">
+        <label>StcodeRegisters</label>
+        <link refid="structStcodeRegisters"/>
+      </node>
+      <node id="11">
+        <label>StcodeRoutine</label>
+        <link refid="structStcodeRoutine"/>
+        <childnode refid="12" relation="usage">
+          <edgelabel>code</edgelabel>
+          <edgelabel>decls</edgelabel>
+        </childnode>
+        <childnode refid="13" relation="usage">
+          <edgelabel>pixelOrComputeRegs</edgelabel>
+          <edgelabel>vertexRegs</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>Tab&lt; bindump::Address&lt; ShaderStateBlock &gt; &gt;</label>
+      </node>
+      <node id="16">
+        <label>Tab&lt; int32_t  &gt;</label>
+      </node>
+    </collaborationgraph>
+    <location file="preshaderCompilation.h" line="125" column="1" bodyfile="preshaderCompilation.h" bodystart="126" bodyend="153"/>
+    <listofallmembers>
+      <member refid="structCompiledPreshader_1abf0153bcf2efaecb361fa9c72a81937b" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>bufferedPackedVarsMap</name></member>
+      <member refid="structCompiledPreshader_1a5b3d11b43800c80b188224bf8a12745d" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>constPackedVarsMaps</name></member>
+      <member refid="structCompiledPreshader_1a7efc5d3e3a41b09b43f0d58b6980b9e1" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>cppStblkcodeId</name></member>
+      <member refid="structCompiledPreshader_1af4a50098a1b81493f37470ff0a52b414" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>cppStcode</name></member>
+      <member refid="structCompiledPreshader_1a15c0998d302bc2a89ee0171288938946" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>cppStcodeId</name></member>
+      <member refid="structCompiledPreshader_1ac3bf9b45304747236ecfa9f23bb5f4c6" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>dynamicSamplerImplicitVars</name></member>
+      <member refid="structCompiledPreshader_1a67673d7c62b958f20a57fa493b185b38" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>dynStBytecode</name></member>
+      <member refid="structCompiledPreshader_1a8b3ddca061003fb66b1134f1c949b505" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>isCompute</name></member>
+      <member refid="structCompiledPreshader_1af1a1f4dab37741a0dfb879654b989c08" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>namedConstTable</name></member>
+      <member refid="structCompiledPreshader_1afe32632696f0fb556a04803725068a56" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>postedToTarget</name></member>
+      <member refid="structCompiledPreshader_1a3ec2456526ec96470531f5212d8d2579" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>preshaderVarsNeedingSamplerAsm</name></member>
+      <member refid="structCompiledPreshader_1a7106bcf6139a05d24d2bb0d9a6aee8b7" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>requiredRegCount</name></member>
+      <member refid="structCompiledPreshader_1a7b8791670824d9e2edba599cb6dbca02" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>shadervarTexTypes</name></member>
+      <member refid="structCompiledPreshader_1abdf753b609bd79d60a7c085959380b1a" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>stBlkBytecode</name></member>
+      <member refid="structCompiledPreshader_1a2d9c384e30eaa737aaa93a07385d0a4e" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>stblkcodeNo</name></member>
+      <member refid="structCompiledPreshader_1af79e2d838f55d0506519445f20e2d1fd" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>stcodeNo</name></member>
+      <member refid="structCompiledPreshader_1ab5ff7fc26138235fc69c2f38e6b7dfd3" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>stcodeVars</name></member>
+      <member refid="structCompiledPreshader_1a9310fab36cba3351ff5191b2f97780dc" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>usedMaterialVarIds</name></member>
+      <member refid="structCompiledPreshader_1a7c08041ca7136e1c91e89d6e20b12230" prot="public" virt="non-virtual"><scope>CompiledPreshader</scope><name>usedPreshaderStatements</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

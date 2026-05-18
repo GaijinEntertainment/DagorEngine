@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structamd_1_1FSR_1_1ContextArgs" kind="struct" language="C++" prot="public">
+    <compoundname>amd::FSR::ContextArgs</compoundname>
+    <includes refid="dag__amdFsr_8h" local="no">dag_amdFsr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1a728876f0cd606b8539f85b7756daac1f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::ContextArgs::enableDebug</definition>
+        <argsstring></argsstring>
+        <name>enableDebug</name>
+        <qualifiedname>amd::FSR::ContextArgs::enableDebug</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="35" column="10" bodyfile="dag_amdFsr.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1aaa4e35fd7ea32da8e8f69deceda97d4d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::ContextArgs::invertedDepth</definition>
+        <argsstring></argsstring>
+        <name>invertedDepth</name>
+        <qualifiedname>amd::FSR::ContextArgs::invertedDepth</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="36" column="10" bodyfile="dag_amdFsr.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1aa001fe7a5938fd43d04b2e425545031e" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::ContextArgs::enableHdr</definition>
+        <argsstring></argsstring>
+        <name>enableHdr</name>
+        <qualifiedname>amd::FSR::ContextArgs::enableHdr</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="37" column="10" bodyfile="dag_amdFsr.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1ad45a91c6744347336c2e0ed0fc0acc90" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::ContextArgs::enableFrameGeneration</definition>
+        <argsstring></argsstring>
+        <name>enableFrameGeneration</name>
+        <qualifiedname>amd::FSR::ContextArgs::enableFrameGeneration</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="38" column="10" bodyfile="dag_amdFsr.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1a4e8f63d864466f04b3ce87649b232184" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t amd::FSR::ContextArgs::outputWidth</definition>
+        <argsstring></argsstring>
+        <name>outputWidth</name>
+        <qualifiedname>amd::FSR::ContextArgs::outputWidth</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="40" column="14" bodyfile="dag_amdFsr.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1a1c6e1bcf35d09cb6e3bcee7ac1108df1" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t amd::FSR::ContextArgs::outputHeight</definition>
+        <argsstring></argsstring>
+        <name>outputHeight</name>
+        <qualifiedname>amd::FSR::ContextArgs::outputHeight</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="41" column="14" bodyfile="dag_amdFsr.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1ContextArgs_1a0edbfef202185d5dbd28a7bad03a1aa8" prot="public" static="no" mutable="no">
+        <type><ref refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277" kindref="member">FSR::UpscalingMode</ref></type>
+        <definition>FSR::UpscalingMode amd::FSR::ContextArgs::mode</definition>
+        <argsstring></argsstring>
+        <name>mode</name>
+        <qualifiedname>amd::FSR::ContextArgs::mode</qualifiedname>
+        <initializer>= <ref refid="structamd_1_1FSR_1ab9424492ca24f6355c288fad24030277ad15305d7a4e34e02489c74a5ef542f36" kindref="member">FSR::UpscalingMode::Off</ref></initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="43" column="24" bodyfile="dag_amdFsr.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_amdFsr.h" line="33" column="3" bodyfile="dag_amdFsr.h" bodystart="34" bodyend="44"/>
+    <listofallmembers>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1a728876f0cd606b8539f85b7756daac1f" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>enableDebug</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1ad45a91c6744347336c2e0ed0fc0acc90" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>enableFrameGeneration</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1aa001fe7a5938fd43d04b2e425545031e" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>enableHdr</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1aaa4e35fd7ea32da8e8f69deceda97d4d" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>invertedDepth</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1a0edbfef202185d5dbd28a7bad03a1aa8" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>mode</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1a1c6e1bcf35d09cb6e3bcee7ac1108df1" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>outputHeight</name></member>
+      <member refid="structamd_1_1FSR_1_1ContextArgs_1a4e8f63d864466f04b3ce87649b232184" prot="public" virt="non-virtual"><scope>amd::FSR::ContextArgs</scope><name>outputWidth</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,745 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIesReader" kind="class" language="C++" prot="public">
+    <compoundname>IesReader</compoundname>
+    <includes refid="iesReader_8h" local="no">iesReader.h</includes>
+    <innerclass refid="structIesReader_1_1IesParams" prot="public">IesReader::IesParams</innerclass>
+    <innerclass refid="structIesReader_1_1ImageData" prot="public">IesReader::ImageData</innerclass>
+    <innerclass refid="structIesReader_1_1OctahedralBounds" prot="public">IesReader::OctahedralBounds</innerclass>
+    <innerclass refid="structIesReader_1_1SphericalCoordinates" prot="public">IesReader::SphericalCoordinates</innerclass>
+    <innerclass refid="structIesReader_1_1Texcoords" prot="public">IesReader::Texcoords</innerclass>
+    <innerclass refid="structIesReader_1_1TransformParams" prot="public">IesReader::TransformParams</innerclass>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classIesReader_1ab693d6c295d6c191e2f336539e258632" prot="public" static="no">
+        <type>double</type>
+        <definition>using IesReader::Real =  double</definition>
+        <argsstring></argsstring>
+        <name>Real</name>
+        <qualifiedname>IesReader::Real</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="15" column="3" bodyfile="iesReader.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classIesReader_1a3e90dc714086e9406644e0c32985a219" prot="public" static="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>using IesReader::PixelType =  Real</definition>
+        <argsstring></argsstring>
+        <name>PixelType</name>
+        <qualifiedname>IesReader::PixelType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="16" column="3" bodyfile="iesReader.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classIesReader_1a7d812aa811196bcad98d60937444aff2" prot="public" static="no" mutable="no">
+        <type>struct <ref refid="structIesReader_1_1OctahedralBounds" kindref="compound">IesReader::OctahedralBounds</ref></type>
+        <definition>struct IesReader::OctahedralBounds IesReader::octahedralBounds</definition>
+        <argsstring></argsstring>
+        <name>octahedralBounds</name>
+        <qualifiedname>IesReader::octahedralBounds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="68" column="20"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classIesReader_1a0a46cc4f9edcad9fec5752e21342c737" prot="private" static="no" mutable="no">
+        <type><ref refid="structIesReader_1_1IesParams" kindref="compound">IesParams</ref></type>
+        <definition>IesParams IesReader::params</definition>
+        <argsstring></argsstring>
+        <name>params</name>
+        <qualifiedname>IesReader::params</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="83" column="13" bodyfile="iesReader.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a2ec0cd9ca5433b06fe493ac0863a3bab" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::lamps</definition>
+        <argsstring></argsstring>
+        <name>lamps</name>
+        <qualifiedname>IesReader::lamps</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="84" column="12" bodyfile="iesReader.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a0a3c5464dd8ce5d5470ae18abca1dc60" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::lumensPerLamp</definition>
+        <argsstring></argsstring>
+        <name>lumensPerLamp</name>
+        <qualifiedname>IesReader::lumensPerLamp</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="85" column="8" bodyfile="iesReader.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1ae4c3361c94c396ea1757cfc40e5e6a98" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::multiplier</definition>
+        <argsstring></argsstring>
+        <name>multiplier</name>
+        <qualifiedname>IesReader::multiplier</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="86" column="8" bodyfile="iesReader.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a9d24c6cc71f18789472f1be58ea3c056" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int IesReader::photometricType</definition>
+        <argsstring></argsstring>
+        <name>photometricType</name>
+        <qualifiedname>IesReader::photometricType</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="87" column="7" bodyfile="iesReader.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a4e5d6f3e06bc99a5326461c3b4c01554" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int IesReader::unitsType</definition>
+        <argsstring></argsstring>
+        <name>unitsType</name>
+        <qualifiedname>IesReader::unitsType</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="88" column="7" bodyfile="iesReader.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a44af4f828eaa54c43b74f129097e9ca3" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::dirX</definition>
+        <argsstring></argsstring>
+        <name>dirX</name>
+        <qualifiedname>IesReader::dirX</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="89" column="8" bodyfile="iesReader.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a8b05f3f2e8b3d3e8d38b55f99ab6f460" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::dirY</definition>
+        <argsstring></argsstring>
+        <name>dirY</name>
+        <qualifiedname>IesReader::dirY</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="90" column="8" bodyfile="iesReader.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a4bdd87e683a2804a6b501c83a3605176" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::dirZ</definition>
+        <argsstring></argsstring>
+        <name>dirZ</name>
+        <qualifiedname>IesReader::dirZ</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="91" column="8" bodyfile="iesReader.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1ac0a29add1ca4bf12f96c3681b11c56f2" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::ballastFactor</definition>
+        <argsstring></argsstring>
+        <name>ballastFactor</name>
+        <qualifiedname>IesReader::ballastFactor</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="92" column="8" bodyfile="iesReader.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1ae86e9f7fe31f9910aee5fe9d12c3baf0" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::futureUse</definition>
+        <argsstring></argsstring>
+        <name>futureUse</name>
+        <qualifiedname>IesReader::futureUse</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="93" column="8" bodyfile="iesReader.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1acb976811a6a3146a1ce96cfac2d695bc" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::inputWatts</definition>
+        <argsstring></argsstring>
+        <name>inputWatts</name>
+        <qualifiedname>IesReader::inputWatts</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="94" column="8" bodyfile="iesReader.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a067c921dbe1d2f88859e6ae465dc96d2" prot="private" static="no" mutable="no">
+        <type>eastl::vector&lt; <ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref> &gt;</type>
+        <definition>eastl::vector&lt;Real&gt; IesReader::verticalAngles</definition>
+        <argsstring></argsstring>
+        <name>verticalAngles</name>
+        <qualifiedname>IesReader::verticalAngles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="95" column="17" bodyfile="iesReader.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a5ee4193d92ae498055d887cdde5a8177" prot="private" static="no" mutable="no">
+        <type>eastl::vector&lt; <ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref> &gt;</type>
+        <definition>eastl::vector&lt;Real&gt; IesReader::horizontalAngles</definition>
+        <argsstring></argsstring>
+        <name>horizontalAngles</name>
+        <qualifiedname>IesReader::horizontalAngles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="96" column="17" bodyfile="iesReader.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a3e2616b09d769312953abdd33cf9fc01" prot="private" static="no" mutable="no">
+        <type>eastl::vector&lt; eastl::vector&lt; <ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref> &gt; &gt;</type>
+        <definition>eastl::vector&lt;eastl::vector&lt;Real&gt; &gt; IesReader::candelaValues</definition>
+        <argsstring></argsstring>
+        <name>candelaValues</name>
+        <qualifiedname>IesReader::candelaValues</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="97" column="17" bodyfile="iesReader.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1aa5c258d5eb220dc1a6ef630a252b9f0f" prot="private" static="no" mutable="no">
+        <type>eastl::vector&lt; eastl::vector&lt; eastl::vector&lt; <ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref> &gt; &gt; &gt;</type>
+        <definition>eastl::vector&lt;eastl::vector&lt;eastl::vector&lt;Real&gt; &gt; &gt; IesReader::bicubicCoefficients</definition>
+        <argsstring></argsstring>
+        <name>bicubicCoefficients</name>
+        <qualifiedname>IesReader::bicubicCoefficients</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="98" column="17" bodyfile="iesReader.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a2a262a6ff90b45d09bb68b94fd6ed654" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::maxIntensity</definition>
+        <argsstring></argsstring>
+        <name>maxIntensity</name>
+        <qualifiedname>IesReader::maxIntensity</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="99" column="8" bodyfile="iesReader.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classIesReader_1a62833ca9e1f0121b6cad308c1dc45da0" prot="private" static="no" mutable="no">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::maxTheta</definition>
+        <argsstring></argsstring>
+        <name>maxTheta</name>
+        <qualifiedname>IesReader::maxTheta</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="100" column="8" bodyfile="iesReader.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIesReader_1a9341fbb798de04d29bc801a2248a3203" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>IesReader::IesReader</definition>
+        <argsstring>(IesParams params)</argsstring>
+        <name>IesReader</name>
+        <qualifiedname>IesReader::IesReader</qualifiedname>
+        <param>
+          <type><ref refid="structIesReader_1_1IesParams" kindref="compound">IesParams</ref></type>
+          <declname>params</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="28" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a756d7162a75ce84eb3755da9af4c0a3c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IesReader::read</definition>
+        <argsstring>(const char *filename, ILogWriter &amp;log)</argsstring>
+        <name>read</name>
+        <qualifiedname>IesReader::read</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+        </param>
+        <param>
+          <type><ref refid="classILogWriter" kindref="compound">ILogWriter</ref> &amp;</type>
+          <declname>log</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="29" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1afdd1155e96c01b9900a3f2dd398d02a6" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structIesReader_1_1ImageData" kindref="compound">ImageData</ref></type>
+        <definition>ImageData IesReader::generateSpherical</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>generateSpherical</name>
+        <qualifiedname>IesReader::generateSpherical</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="45" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a6e10dec6683d5755f3c8f3196095a2e0" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structIesReader_1_1ImageData" kindref="compound">ImageData</ref></type>
+        <definition>ImageData IesReader::generateOctahedral</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>generateOctahedral</name>
+        <qualifiedname>IesReader::generateOctahedral</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="46" column="13"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a379809a283140cb9ae82d1e5cb559feb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IesReader::isSphericalTransformValid</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>isSphericalTransformValid</name>
+        <qualifiedname>IesReader::isSphericalTransformValid</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="48" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a14d1264aac6c47ddaf563e59b300188b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool IesReader::isOctahedralTransformValid</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>isOctahedralTransformValid</name>
+        <qualifiedname>IesReader::isOctahedralTransformValid</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="49" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a60c90d5775745916e22eceaa3b2d3f5f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::getSphericalRelativeWaste</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>getSphericalRelativeWaste</name>
+        <qualifiedname>IesReader::getSphericalRelativeWaste</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="54" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a6a11403458ae64c3658008250811d16a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::getOctahedralRelativeWaste</definition>
+        <argsstring>(uint32_t width, uint32_t height, const TransformParams &amp;transform) const</argsstring>
+        <name>getOctahedralRelativeWaste</name>
+        <qualifiedname>IesReader::getOctahedralRelativeWaste</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref> &amp;</type>
+          <declname>transform</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="55" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a1aeba0e7335e2207a373737c2a42c031" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref></type>
+        <definition>TransformParams IesReader::getSphericalOptimalTransform</definition>
+        <argsstring>(uint32_t width, uint32_t height) const</argsstring>
+        <name>getSphericalOptimalTransform</name>
+        <qualifiedname>IesReader::getSphericalOptimalTransform</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="57" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1acc37987b025ea0eab0a2229b1c13c26e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structIesReader_1_1TransformParams" kindref="compound">TransformParams</ref></type>
+        <definition>TransformParams IesReader::getOctahedralOptimalTransform</definition>
+        <argsstring>(uint32_t width, uint32_t height, const bool *forced_rotation=nullptr) const</argsstring>
+        <name>getOctahedralOptimalTransform</name>
+        <qualifiedname>IesReader::getOctahedralOptimalTransform</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>width</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>height</declname>
+        </param>
+        <param>
+          <type>const bool *</type>
+          <declname>forced_rotation</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="58" column="19"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classIesReader_1a690485e6c7c978ddeebc9d8c5cf1efe0" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::sample_raw</definition>
+        <argsstring>(SphericalCoordinates coords, uint32_t &amp;baseHInd, uint32_t &amp;baseVInd) const</argsstring>
+        <name>sample_raw</name>
+        <qualifiedname>IesReader::sample_raw</qualifiedname>
+        <param>
+          <type><ref refid="structIesReader_1_1SphericalCoordinates" kindref="compound">SphericalCoordinates</ref></type>
+          <declname>coords</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>baseHInd</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>baseVInd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="103" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a6bf35fb17d27bc76ea6736cf57308397" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+        <definition>Real IesReader::sample_filtered</definition>
+        <argsstring>(SphericalCoordinates coords, Real fadeout, uint32_t &amp;baseHInd, uint32_t &amp;baseVInd) const</argsstring>
+        <name>sample_filtered</name>
+        <qualifiedname>IesReader::sample_filtered</qualifiedname>
+        <param>
+          <type><ref refid="structIesReader_1_1SphericalCoordinates" kindref="compound">SphericalCoordinates</ref></type>
+          <declname>coords</declname>
+        </param>
+        <param>
+          <type><ref refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" kindref="member">Real</ref></type>
+          <declname>fadeout</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>baseHInd</declname>
+        </param>
+        <param>
+          <type>uint32_t &amp;</type>
+          <declname>baseVInd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="105" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1af86a1002fc148224a8cf3385b16901eb" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::offsetHorizontalIndex</definition>
+        <argsstring>(uint32_t index, uint32_t offset) const</argsstring>
+        <name>offsetHorizontalIndex</name>
+        <qualifiedname>IesReader::offsetHorizontalIndex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>uint32_t</type>
+          <declname>offset</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="107" column="12" bodyfile="iesReader.h" bodystart="107" bodyend="107"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a526e8947c4b0353a55f02b191a567ad3" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::nextHorizontalIndex</definition>
+        <argsstring>(uint32_t index) const</argsstring>
+        <name>nextHorizontalIndex</name>
+        <qualifiedname>IesReader::nextHorizontalIndex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="108" column="12" bodyfile="iesReader.h" bodystart="108" bodyend="108"/>
+      </memberdef>
+      <memberdef kind="function" id="classIesReader_1a403fbfcddf2b17106b8790947bfeff29" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t IesReader::previousHorizontalIndex</definition>
+        <argsstring>(uint32_t index) const</argsstring>
+        <name>previousHorizontalIndex</name>
+        <qualifiedname>IesReader::previousHorizontalIndex</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="iesReader.h" line="109" column="12" bodyfile="iesReader.h" bodystart="109" bodyend="109"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>IesReader</label>
+        <link refid="classIesReader"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>octahedralBounds</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>IesReader::OctahedralBounds</label>
+        <link refid="structIesReader_1_1OctahedralBounds"/>
+      </node>
+    </collaborationgraph>
+    <location file="iesReader.h" line="12" column="1" bodyfile="iesReader.h" bodystart="13" bodyend="110"/>
+    <listofallmembers>
+      <member refid="classIesReader_1ac0a29add1ca4bf12f96c3681b11c56f2" prot="private" virt="non-virtual"><scope>IesReader</scope><name>ballastFactor</name></member>
+      <member refid="classIesReader_1aa5c258d5eb220dc1a6ef630a252b9f0f" prot="private" virt="non-virtual"><scope>IesReader</scope><name>bicubicCoefficients</name></member>
+      <member refid="classIesReader_1a3e2616b09d769312953abdd33cf9fc01" prot="private" virt="non-virtual"><scope>IesReader</scope><name>candelaValues</name></member>
+      <member refid="classIesReader_1a44af4f828eaa54c43b74f129097e9ca3" prot="private" virt="non-virtual"><scope>IesReader</scope><name>dirX</name></member>
+      <member refid="classIesReader_1a8b05f3f2e8b3d3e8d38b55f99ab6f460" prot="private" virt="non-virtual"><scope>IesReader</scope><name>dirY</name></member>
+      <member refid="classIesReader_1a4bdd87e683a2804a6b501c83a3605176" prot="private" virt="non-virtual"><scope>IesReader</scope><name>dirZ</name></member>
+      <member refid="classIesReader_1ae86e9f7fe31f9910aee5fe9d12c3baf0" prot="private" virt="non-virtual"><scope>IesReader</scope><name>futureUse</name></member>
+      <member refid="classIesReader_1a6e10dec6683d5755f3c8f3196095a2e0" prot="public" virt="non-virtual"><scope>IesReader</scope><name>generateOctahedral</name></member>
+      <member refid="classIesReader_1afdd1155e96c01b9900a3f2dd398d02a6" prot="public" virt="non-virtual"><scope>IesReader</scope><name>generateSpherical</name></member>
+      <member refid="classIesReader_1acc37987b025ea0eab0a2229b1c13c26e" prot="public" virt="non-virtual"><scope>IesReader</scope><name>getOctahedralOptimalTransform</name></member>
+      <member refid="classIesReader_1a6a11403458ae64c3658008250811d16a" prot="public" virt="non-virtual"><scope>IesReader</scope><name>getOctahedralRelativeWaste</name></member>
+      <member refid="classIesReader_1a1aeba0e7335e2207a373737c2a42c031" prot="public" virt="non-virtual"><scope>IesReader</scope><name>getSphericalOptimalTransform</name></member>
+      <member refid="classIesReader_1a60c90d5775745916e22eceaa3b2d3f5f" prot="public" virt="non-virtual"><scope>IesReader</scope><name>getSphericalRelativeWaste</name></member>
+      <member refid="classIesReader_1a5ee4193d92ae498055d887cdde5a8177" prot="private" virt="non-virtual"><scope>IesReader</scope><name>horizontalAngles</name></member>
+      <member refid="classIesReader_1a9341fbb798de04d29bc801a2248a3203" prot="public" virt="non-virtual"><scope>IesReader</scope><name>IesReader</name></member>
+      <member refid="classIesReader_1acb976811a6a3146a1ce96cfac2d695bc" prot="private" virt="non-virtual"><scope>IesReader</scope><name>inputWatts</name></member>
+      <member refid="classIesReader_1a14d1264aac6c47ddaf563e59b300188b" prot="public" virt="non-virtual"><scope>IesReader</scope><name>isOctahedralTransformValid</name></member>
+      <member refid="classIesReader_1a379809a283140cb9ae82d1e5cb559feb" prot="public" virt="non-virtual"><scope>IesReader</scope><name>isSphericalTransformValid</name></member>
+      <member refid="classIesReader_1a2ec0cd9ca5433b06fe493ac0863a3bab" prot="private" virt="non-virtual"><scope>IesReader</scope><name>lamps</name></member>
+      <member refid="classIesReader_1a0a3c5464dd8ce5d5470ae18abca1dc60" prot="private" virt="non-virtual"><scope>IesReader</scope><name>lumensPerLamp</name></member>
+      <member refid="classIesReader_1a2a262a6ff90b45d09bb68b94fd6ed654" prot="private" virt="non-virtual"><scope>IesReader</scope><name>maxIntensity</name></member>
+      <member refid="classIesReader_1a62833ca9e1f0121b6cad308c1dc45da0" prot="private" virt="non-virtual"><scope>IesReader</scope><name>maxTheta</name></member>
+      <member refid="classIesReader_1ae4c3361c94c396ea1757cfc40e5e6a98" prot="private" virt="non-virtual"><scope>IesReader</scope><name>multiplier</name></member>
+      <member refid="classIesReader_1a526e8947c4b0353a55f02b191a567ad3" prot="private" virt="non-virtual"><scope>IesReader</scope><name>nextHorizontalIndex</name></member>
+      <member refid="classIesReader_1a7d812aa811196bcad98d60937444aff2" prot="public" virt="non-virtual"><scope>IesReader</scope><name>octahedralBounds</name></member>
+      <member refid="classIesReader_1af86a1002fc148224a8cf3385b16901eb" prot="private" virt="non-virtual"><scope>IesReader</scope><name>offsetHorizontalIndex</name></member>
+      <member refid="classIesReader_1a0a46cc4f9edcad9fec5752e21342c737" prot="private" virt="non-virtual"><scope>IesReader</scope><name>params</name></member>
+      <member refid="classIesReader_1a9d24c6cc71f18789472f1be58ea3c056" prot="private" virt="non-virtual"><scope>IesReader</scope><name>photometricType</name></member>
+      <member refid="classIesReader_1a3e90dc714086e9406644e0c32985a219" prot="public" virt="non-virtual"><scope>IesReader</scope><name>PixelType</name></member>
+      <member refid="classIesReader_1a403fbfcddf2b17106b8790947bfeff29" prot="private" virt="non-virtual"><scope>IesReader</scope><name>previousHorizontalIndex</name></member>
+      <member refid="classIesReader_1a756d7162a75ce84eb3755da9af4c0a3c" prot="public" virt="non-virtual"><scope>IesReader</scope><name>read</name></member>
+      <member refid="classIesReader_1ab693d6c295d6c191e2f336539e258632" prot="public" virt="non-virtual"><scope>IesReader</scope><name>Real</name></member>
+      <member refid="classIesReader_1a6bf35fb17d27bc76ea6736cf57308397" prot="private" virt="non-virtual"><scope>IesReader</scope><name>sample_filtered</name></member>
+      <member refid="classIesReader_1a690485e6c7c978ddeebc9d8c5cf1efe0" prot="private" virt="non-virtual"><scope>IesReader</scope><name>sample_raw</name></member>
+      <member refid="classIesReader_1a4e5d6f3e06bc99a5326461c3b4c01554" prot="private" virt="non-virtual"><scope>IesReader</scope><name>unitsType</name></member>
+      <member refid="classIesReader_1a067c921dbe1d2f88859e6ae465dc96d2" prot="private" virt="non-virtual"><scope>IesReader</scope><name>verticalAngles</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

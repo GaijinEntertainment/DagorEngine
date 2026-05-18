@@ -1,0 +1,332 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCarCameraElem" kind="class" language="C++" prot="public">
+    <compoundname>CarCameraElem</compoundname>
+    <basecompoundref refid="classTpsCameraElem" prot="public" virt="non-virtual">TpsCameraElem</basecompoundref>
+    <includes refid="ec__camera__elem_8h" local="no">ec_camera_elem.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classCarCameraElem_1abde3731102942bf5c04d88dc60ba35bd" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float CarCameraElem::zoom</definition>
+        <argsstring></argsstring>
+        <name>zoom</name>
+        <qualifiedname>CarCameraElem::zoom</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="274" column="9" bodyfile="ec_camera_elem.h" bodystart="274" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCarCameraElem_1aca3b88c5d198ab2e554937332303a6cd" prot="protected" static="no" mutable="no">
+        <type>VehicleViewer *</type>
+        <definition>VehicleViewer* CarCameraElem::vehicleViewer</definition>
+        <argsstring></argsstring>
+        <name>vehicleViewer</name>
+        <qualifiedname>CarCameraElem::vehicleViewer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="275" column="17" bodyfile="ec_camera_elem.h" bodystart="275" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classCarCameraElem_1ac79c3b69a9e7c2af1b74c129824b2166" prot="protected" static="no" mutable="no">
+        <type>CameraController *</type>
+        <definition>CameraController* CarCameraElem::camController</definition>
+        <argsstring></argsstring>
+        <name>camController</name>
+        <qualifiedname>CarCameraElem::camController</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="276" column="20" bodyfile="ec_camera_elem.h" bodystart="276" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCarCameraElem_1a0775f9d892c60e430322369ff937db59" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CarCameraElem::CarCameraElem</definition>
+        <argsstring>()</argsstring>
+        <name>CarCameraElem</name>
+        <qualifiedname>CarCameraElem::CarCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="262" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a72d51672d543f6b7e43626a64ea95f20" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>CarCameraElem::~CarCameraElem</definition>
+        <argsstring>() override</argsstring>
+        <name>~CarCameraElem</name>
+        <qualifiedname>CarCameraElem::~CarCameraElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="263" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a712c337f11fdce6f3007d4dd56a428dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool CarCameraElem::begin</definition>
+        <argsstring>()</argsstring>
+        <name>begin</name>
+        <qualifiedname>CarCameraElem::begin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="265" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a7fbdd3fc3f054962de3b5301361c5907" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void CarCameraElem::end</definition>
+        <argsstring>()</argsstring>
+        <name>end</name>
+        <qualifiedname>CarCameraElem::end</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="266" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a4708c22e0eec15c19c9966cdc5a505c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CarCameraElem::actInternal</definition>
+        <argsstring>() override</argsstring>
+        <name>actInternal</name>
+        <qualifiedname>CarCameraElem::actInternal</qualifiedname>
+        <reimplements refid="classCCameraElem_1add30493bb3f088e2a3c31b67f1ed8cc0">actInternal</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="268" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a37e41364fba5c6f98829d60c9b559da0" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CarCameraElem::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>CarCameraElem::render</qualifiedname>
+        <reimplements refid="classCCameraElem_1aff44e07a6dc1479af081689f325c3153">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="269" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a366257aac9f91aad8e938cab2f784141" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>virtual void CarCameraElem::externalRender</definition>
+        <argsstring>()</argsstring>
+        <name>externalRender</name>
+        <qualifiedname>CarCameraElem::externalRender</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="270" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classCarCameraElem_1a5449e03416f59bc9bc24c1408142d3dd" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CarCameraElem::handleMouseWheel</definition>
+        <argsstring>(int dz) override</argsstring>
+        <name>handleMouseWheel</name>
+        <qualifiedname>CarCameraElem::handleMouseWheel</qualifiedname>
+        <reimplements refid="classCCameraElem_1a418af89d19e42524b6652c31bea5bb63">handleMouseWheel</reimplements>
+        <param>
+          <type>int</type>
+          <declname>delta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Handle mouse wheel rotation. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername direction="in">delta</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>- if it&apos;s &gt; 0 then the wheel was rotated forward (away from user), if &lt; 0 then it was rotated backward </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_camera_elem.h" line="271" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="3">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+      </node>
+      <node id="1">
+        <label>CarCameraElem</label>
+        <link refid="classCarCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>TpsCameraElem</label>
+        <link refid="classTpsCameraElem"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>CCameraElem</label>
+        <link refid="classCCameraElem"/>
+        <childnode refid="4" relation="usage">
+          <edgelabel>config</edgelabel>
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>vpw</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>CameraConfig</label>
+        <link refid="structCameraConfig"/>
+        <childnode refid="5" relation="usage">
+          <edgelabel>commonInertia</edgelabel>
+          <edgelabel>hangInertia</edgelabel>
+          <edgelabel>vangInertia</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>CarCameraElem</label>
+        <link refid="classCarCameraElem"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>IGenViewportWnd</label>
+        <link refid="classIGenViewportWnd"/>
+      </node>
+      <node id="5">
+        <label>Inertia</label>
+        <link refid="structInertia"/>
+      </node>
+      <node id="2">
+        <label>TpsCameraElem</label>
+        <link refid="classTpsCameraElem"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>target</edgelabel>
+        </childnode>
+        <childnode refid="8" relation="usage">
+          <edgelabel>cam</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>TpsCameraElem::Cam</label>
+        <link refid="structTpsCameraElem_1_1Cam"/>
+      </node>
+      <node id="7">
+        <label>TpsCameraElem::Target</label>
+        <link refid="structTpsCameraElem_1_1Target"/>
+      </node>
+    </collaborationgraph>
+    <location file="ec_camera_elem.h" line="259" column="1" bodyfile="ec_camera_elem.h" bodystart="260" bodyend="277"/>
+    <listofallmembers>
+      <member refid="classCCameraElem_1acd3628630db125b5831cf82498e11e3a" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>aboveSurface</name></member>
+      <member refid="classCCameraElem_1a06480a2a89d6e5cc4f074ad5db1a9c27" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>act</name></member>
+      <member refid="classCarCameraElem_1a4708c22e0eec15c19c9966cdc5a505c0" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>actInternal</name></member>
+      <member refid="classCarCameraElem_1a712c337f11fdce6f3007d4dd56a428dd" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>begin</name></member>
+      <member refid="classCCameraElem_1af0326b52c54411ac2bcfd1a8c213f52c" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>bow</name></member>
+      <member refid="classTpsCameraElem_1afc25ec1ed10607340af0bba72dff56ac" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>cam</name></member>
+      <member refid="classCarCameraElem_1ac79c3b69a9e7c2af1b74c129824b2166" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>camController</name></member>
+      <member refid="classCCameraElem_1a81e7864071ea6f986484ba115dedf6ff" prot="protected" virt="virtual"><scope>CarCameraElem</scope><name>canPutCapsule</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fac2ff4940e8a5f8bc3badcc4698103ed6" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>CAR_CAMERA</name></member>
+      <member refid="classCarCameraElem_1a0775f9d892c60e430322369ff937db59" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>CarCameraElem</name></member>
+      <member refid="classCCameraElem_1afa1c38c033aefe33f77d4a0d37627213" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>CCameraElem</name></member>
+      <member refid="classTpsCameraElem_1af7ee94266beda7eb58c109007669893f" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>clear</name></member>
+      <member refid="classCCameraElem_1a7380a83d663f5ddd5be58242b54dbaeb" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>config</name></member>
+      <member refid="classCCameraElem_1a8bcadc487215ba978d51cdbccd4b42d9" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>currentType</name></member>
+      <member refid="classCarCameraElem_1a7fbdd3fc3f054962de3b5301361c5907" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>end</name></member>
+      <member refid="classCarCameraElem_1a366257aac9f91aad8e938cab2f784141" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>externalRender</name></member>
+      <member refid="classCCameraElem_1ab01a6b40b8daf18c80322cbfae8aaed0" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>forwardZCurrent</name></member>
+      <member refid="classCCameraElem_1a947c639da64517f2a97e2b0e0ebcdffb" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>forwardZFuture</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa23b4130297cf94c00a1270aca853774c" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>FPS_CAMERA</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa8a1c6eb5561d782208e82f48476517b0" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>FREE_CAMERA</name></member>
+      <member refid="classCCameraElem_1af34bd26b4b7ae776bf07a8dd657d28b2" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>freeCamEnterPos</name></member>
+      <member refid="classCCameraElem_1a8ba3542dc350450a21f2d3e9bdaf285a" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>getCamera</name></member>
+      <member refid="classCCameraElem_1a3bfa48b599d9ac5372f7ffed706e0567" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>getConfig</name></member>
+      <member refid="classCCameraElem_1a4842c1f178de07690f7c3244a472f289" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>getMultiplier</name></member>
+      <member refid="classCCameraElem_1ad99f35d7ca324a569fcee049544fabd1" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>getSurfPos</name></member>
+      <member refid="classTpsCameraElem_1ac3ede88e47e8ab88a9120ebc8f5ec760" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>handleKeyboardInput</name></member>
+      <member refid="classCCameraElem_1aea324c522cf58ff9d062e4c72be350a0" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>handleMouseMove</name></member>
+      <member refid="classCarCameraElem_1a5449e03416f59bc9bc24c1408142d3dd" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>handleMouseWheel</name></member>
+      <member refid="classCCameraElem_1a6bba46f763c39cc4a6b63f0c2cf11d14" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>initPosition</name></member>
+      <member refid="classCCameraElem_1a8bfd483bffe3bb856b8d36138a123c0a" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>load</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54fa583859bf00ed2bbf2b1c88f5aaab3b64" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>MAX_CAMERA</name></member>
+      <member refid="classTpsCameraElem_1ac13a51e1b1b265ed5c52a2ae27c05616" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>maxDist</name></member>
+      <member refid="classTpsCameraElem_1a918de363a98a52b5b595dc674b1d42cb" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>moveForward</name></member>
+      <member refid="classTpsCameraElem_1ae4335cc5eff4da95f2907d83b2b1c70c" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>moveOn</name></member>
+      <member refid="classCCameraElem_1a8044793f8cb86109ff3aced1f8d55ee2" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>moveUp</name></member>
+      <member refid="classCCameraElem_1ae0226db3678b705aab323dcf0230a73e" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>multiply</name></member>
+      <member refid="classCarCameraElem_1a37e41364fba5c6f98829d60c9b559da0" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>render</name></member>
+      <member refid="classTpsCameraElem_1a8ce112b452f1457f3ad67fe9012d5481" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>rotate</name></member>
+      <member refid="classCCameraElem_1a818295bb0fc1ecab8f2a3ceb696b1087" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>rotateXCurrent</name></member>
+      <member refid="classCCameraElem_1a4cf0ab5e1eff9dde7ed6e4f365abc213" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>rotateXFuture</name></member>
+      <member refid="classCCameraElem_1ad3d9b94893ec17eae7d902ea3a31e26b" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>rotateYCurrent</name></member>
+      <member refid="classCCameraElem_1ad383dc5594a3ccd8077785914e5c8755" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>rotateYFuture</name></member>
+      <member refid="classCCameraElem_1a6bbe769644c901ad64ecf5cf3701e95d" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>save</name></member>
+      <member refid="classCCameraElem_1af3d5f814513547e6f3ea71e1e51c02ae" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>setAboveSurf</name></member>
+      <member refid="classCCameraElem_1a632218d651286b2e6187d778a2cd4b92" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>setAboveSurface</name></member>
+      <member refid="classCCameraElem_1add8e51ce0f764eec1c653b978997758c" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>setAboveSurfFuture</name></member>
+      <member refid="classCCameraElem_1aafd57f8c8735cfe60548c223ddf163af" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>setCamera</name></member>
+      <member refid="classCCameraElem_1a09e3afb9f4c4794d9be60968bb92d0f6" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>setMultiply</name></member>
+      <member refid="classCCameraElem_1ab1269ded3fea5f217e0033bc24bad144" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>setViewportWindow</name></member>
+      <member refid="classCCameraElem_1a3bde2982b67cac7f4cf524153900b273" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>showConfigDlg</name></member>
+      <member refid="classCCameraElem_1aefe0aea02460329030fa943569b1465e" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>stop</name></member>
+      <member refid="classTpsCameraElem_1a963eb81770f02f027b59122ee70de20d" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>strife</name></member>
+      <member refid="classCCameraElem_1aa9294c6b075248811d72bcd3e51ac42d" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>strifeXCurrent</name></member>
+      <member refid="classCCameraElem_1aaf1cea7b4c16e3f7df4466d55e62e44a" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>strifeXFuture</name></member>
+      <member refid="classCCameraElem_1a93fca12593aee136a810777de9f08e61" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>strifeYCurrent</name></member>
+      <member refid="classCCameraElem_1aac82d466dac750ce45eede1f68fb44a5" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>strifeYFuture</name></member>
+      <member refid="classCCameraElem_1a2c9b7929fcb64862abb6995cc35abaf1" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>switchCamera</name></member>
+      <member refid="classTpsCameraElem_1af5b734521f0c07c022a271ba761d70a1" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>target</name></member>
+      <member refid="classCCameraElem_1aedf6c1d14e227e09fdb93f5dc45eb182" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>thisCamType</name></member>
+      <member refid="classCCameraElem_1ae0e176e90820b4fc936d2a088caad54faf30e0a6d71a9332f3b1f977c4c42428f" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>TPS_CAMERA</name></member>
+      <member refid="classTpsCameraElem_1af292a9359ddb0c5ddd67a5b6b9ae854e" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>TpsCameraElem</name></member>
+      <member refid="classTpsCameraElem_1a3930f59c6daaf02250f5beb24d30b02d" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>TpsCameraElem</name></member>
+      <member refid="classCCameraElem_1a5816a2a89ffa2907dbb4890a907dd61d" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>upYCurrent</name></member>
+      <member refid="classCCameraElem_1a1a40fd63c6315f070aecff6884d19d5a" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>upYFuture</name></member>
+      <member refid="classCarCameraElem_1aca3b88c5d198ab2e554937332303a6cd" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>vehicleViewer</name></member>
+      <member refid="classCCameraElem_1afffbddc08ee6899fd79fd98b21f4666f" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>vpw</name></member>
+      <member refid="classCarCameraElem_1abde3731102942bf5c04d88dc60ba35bd" prot="protected" virt="non-virtual"><scope>CarCameraElem</scope><name>zoom</name></member>
+      <member refid="classCarCameraElem_1a72d51672d543f6b7e43626a64ea95f20" prot="public" virt="non-virtual"><scope>CarCameraElem</scope><name>~CarCameraElem</name></member>
+      <member refid="classCCameraElem_1a6ae132b6f09f937590936be3f8b3b979" prot="public" virt="virtual"><scope>CarCameraElem</scope><name>~CCameraElem</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

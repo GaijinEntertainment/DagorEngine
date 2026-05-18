@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="conceptHashable" kind="concept">
+    <compoundname>Hashable</compoundname>
+    <includes refid="commonUtils_8h" local="no">commonUtils.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename T</type>
+      </param>
+    </templateparamlist>
+    <initializer>template&lt;typename T&gt;
+concept <ref refid="conceptHashable" kindref="compound">Hashable</ref> =  requires(T a) {
+  { eastl::hash&lt;T&gt;{}(a) };
+} &amp;&amp; eastl::is_convertible_v&lt;decltype(eastl::hash&lt;T&gt;{}(eastl::declval&lt;T&gt;())), size_t&gt;    </initializer>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="commonUtils.h" line="71" column="1"/>
+  </compounddef>
+</doxygen>
