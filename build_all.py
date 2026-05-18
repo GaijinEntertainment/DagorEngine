@@ -111,7 +111,10 @@ if __name__ == '__main__':
           print('echo failed to build CDK, stop!')
           exit(1)
     elif DAGOR_HOST == 'macOS':
-      run('./build_dagor_cdk_mini_macOS.sh', cwd=proj_dir)
+      BUILD_TOOLS_CMD = './build_dagor_cdk_mini_macOS.sh'
+      if BUILD_TARGET_ARCH != '':
+        BUILD_TOOLS_CMD += ' ' + BUILD_TARGET_ARCH
+      run(BUILD_TOOLS_CMD, cwd=proj_dir)
     elif DAGOR_HOST == 'linux':
       run('./build_dagor_cdk_mini_linux.sh', cwd=proj_dir)
 

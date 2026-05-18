@@ -60,7 +60,7 @@ if $(Platform) = linux || $(PlatformSpec) in clang clang64 {
     if $(PlatformArch) != arm64 { CPPopt += /clang:-fno-unsafe-math-optimizations /clang:-mno-fma ; }
   } else {
     CPPopt += -ffast-math ;
-    if ! $(Platform) in iOS nswitch android { CPPopt += -fno-unsafe-math-optimizations -mno-fma ; }
+    if $(PlatformArch) in x86 x86_64 { CPPopt += -fno-unsafe-math-optimizations -mno-fma ; }
   }
 }
 if $(PlatformSpec) in clang {
