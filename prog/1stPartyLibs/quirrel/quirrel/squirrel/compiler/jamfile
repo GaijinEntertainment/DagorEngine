@@ -24,7 +24,6 @@ Sources =
   codegen.cpp
   typeinference.cpp
   constgen.cpp
-  sqio.cpp
   compiler.cpp
   sqfuncstate.cpp
   sqdump.cpp

@@ -6,6 +6,15 @@
 #include "sqobject.h"
 struct SQString;
 struct SQTable;
+struct SQGenerator;
+struct SQSharedState;
+
+namespace sqasync
+{
+struct AsyncState;
+SQRESULT wrap_generator(HSQUIRRELVM v, SQGenerator *gen, SQObjectPtr &out);
+void shutdown(SQSharedState *ss);
+}
 
 struct SQStringTable
 {
@@ -138,6 +147,9 @@ public:
     SQUnsignedInteger defaultLangFeatures;
     SQUserPointer _foreignptr;
     SQRELEASEHOOK _releasehook;
+    // Owned by the shared state. ~SQSharedState calls sqasync::shutdown while
+    // the refs table and root VM are still live so the runtime can sq_release cleanly.
+    sqasync::AsyncState *_asyncState;
 
     SQObjectPtr doc_objects;
     int doc_object_index;

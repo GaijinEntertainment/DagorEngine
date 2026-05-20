@@ -29,24 +29,24 @@ void Module_dasIMGUI::initFunctions_2() {
 // from imgui/imgui.h:426:29
 	makeExtern< void (*)(ImGuiStyle *) , ImGui::StyleColorsDark , SimNode_ExtFuncCall , imguiTempFn>(lib,"StyleColorsDark","ImGui::StyleColorsDark")
 		->args({"dst"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:427:29
 	makeExtern< void (*)(ImGuiStyle *) , ImGui::StyleColorsLight , SimNode_ExtFuncCall , imguiTempFn>(lib,"StyleColorsLight","ImGui::StyleColorsLight")
 		->args({"dst"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:428:29
 	makeExtern< void (*)(ImGuiStyle *) , ImGui::StyleColorsClassic , SimNode_ExtFuncCall , imguiTempFn>(lib,"StyleColorsClassic","ImGui::StyleColorsClassic")
 		->args({"dst"})
-		->arg_init(0,make_smart<ExprConstPtr>())
+		->arg_init(0,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:442:29
 	makeExtern< bool (*)(const char *,bool *,int) , ImGui::Begin , SimNode_ExtFuncCall , imguiTempFn>(lib,"Begin","ImGui::Begin")
 		->args({"name","p_open","flags"})
-		->arg_init(1,make_smart<ExprConstPtr>())
+		->arg_init(1,new ExprConstPtr())
 		->arg_type(2,makeType<ImGuiWindowFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImGuiWindowFlags_>(lib)))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImGuiWindowFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:443:29
 	makeExtern< void (*)() , ImGui::End , SimNode_ExtFuncCall , imguiTempFn>(lib,"End","ImGui::End")
@@ -55,17 +55,17 @@ void Module_dasIMGUI::initFunctions_2() {
 	makeExtern< bool (*)(const char *,const ImVec2 &,int,int) , ImGui::BeginChild , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginChild","ImGui::BeginChild")
 		->args({"str_id","size","child_flags","window_flags"})
 		->arg_type(2,makeType<ImGuiChildFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImGuiChildFlags_>(lib)))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImGuiChildFlags_>(lib)))
 		->arg_type(3,makeType<ImGuiWindowFlags_>(lib))
-		->arg_init(3,make_smart<ExprConstEnumeration>(0,makeType<ImGuiWindowFlags_>(lib)))
+		->arg_init(3,new ExprConstEnumeration(0,makeType<ImGuiWindowFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:464:29
 	makeExtern< bool (*)(unsigned int,const ImVec2 &,int,int) , ImGui::BeginChild , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginChild","ImGui::BeginChild")
 		->args({"id","size","child_flags","window_flags"})
 		->arg_type(2,makeType<ImGuiChildFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImGuiChildFlags_>(lib)))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImGuiChildFlags_>(lib)))
 		->arg_type(3,makeType<ImGuiWindowFlags_>(lib))
-		->arg_init(3,make_smart<ExprConstEnumeration>(0,makeType<ImGuiWindowFlags_>(lib)))
+		->arg_init(3,new ExprConstEnumeration(0,makeType<ImGuiWindowFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:465:29
 	makeExtern< void (*)() , ImGui::EndChild , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndChild","ImGui::EndChild")
@@ -80,13 +80,13 @@ void Module_dasIMGUI::initFunctions_2() {
 	makeExtern< bool (*)(int) , ImGui::IsWindowFocused , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsWindowFocused","ImGui::IsWindowFocused")
 		->args({"flags"})
 		->arg_type(0,makeType<ImGuiFocusedFlags_>(lib))
-		->arg_init(0,make_smart<ExprConstEnumeration>(0,makeType<ImGuiFocusedFlags_>(lib)))
+		->arg_init(0,new ExprConstEnumeration(0,makeType<ImGuiFocusedFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:472:29
 	makeExtern< bool (*)(int) , ImGui::IsWindowHovered , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsWindowHovered","ImGui::IsWindowHovered")
 		->args({"flags"})
 		->arg_type(0,makeType<ImGuiHoveredFlags_>(lib))
-		->arg_init(0,make_smart<ExprConstEnumeration>(0,makeType<ImGuiHoveredFlags_>(lib)))
+		->arg_init(0,new ExprConstEnumeration(0,makeType<ImGuiHoveredFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:473:29
 	makeExtern< ImDrawList * (*)() , ImGui::GetWindowDrawList , SimNode_ExtFuncCall , imguiTempFn>(lib,"GetWindowDrawList","ImGui::GetWindowDrawList")

@@ -711,7 +711,7 @@ void ChopWaterGenerator::RenderDomain(const fft_water::ChopWaterProps &water_pro
   ShaderGlobal::set_float4(wind_dirVarId, Color4(wind_dir.x, wind_dir.y, 0.f, convar::chop_debug));
 
   // height map
-  d3d::set_render_target(m_height_map.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{m_height_map.getTex2D(), 0, 0}});
   if (tex_array_index < 4)
   {
     ps_waves_heightmap.render();
@@ -734,13 +734,13 @@ void ChopWaterGenerator::RenderDomain(const fft_water::ChopWaterProps &water_pro
 
   // tiling
   ShaderGlobal::set_texture(hm_wave_textureVarId, m_height_map.getTexId());
-  d3d::set_render_target(m_height_map_tiled.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{m_height_map_tiled.getTex2D(), 0, 0}});
   ps_waves_heightmap_tiling.render();
 
   // normal map
   ShaderGlobal::set_texture(hm_wave_texture_tiledVarId, m_height_map_tiled.getTexId());
   ShaderGlobal::set_int(hm_normal_prev_layerVarId, tex_array_index);
-  d3d::set_render_target(0, rt_arr_curr, tex_array_index, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{rt_arr_curr, 0, (uint32_t)tex_array_index}});
   ps_waves_gen_normal.render();
 }
 

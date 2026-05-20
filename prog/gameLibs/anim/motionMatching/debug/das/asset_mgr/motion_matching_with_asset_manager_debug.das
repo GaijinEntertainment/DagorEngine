@@ -11,11 +11,10 @@ require gameLibs.assets_import.main.asset_manager_events
 def motion_matching_reload_animchar_resources(evt : Event;
                                               eid aka appeared_animchar_eid : EntityId;
                                               animchar : AnimcharBaseComponent;
-                                              motion_matching__dataBaseTemplateName : string)
+                                              motion_matching__dataBaseTemplateName aka new_motion_matching__dataBaseTemplateName : string)
   if get_asset_manager() == null
     return
-  let dataBaseEid = getSingletonEntity(motion_matching__dataBaseTemplateName)
-  assume dataBaseName = motion_matching__dataBaseTemplateName
+  let dataBaseEid = getSingletonEntity(new_motion_matching__dataBaseTemplateName)
   query(dataBaseEid) <| $ [es] (main_database__loaded : bool; dataBase : AnimationDataBase)
     // After asset manager is initialized all new animchars will use different resources (animTree and skeleton), which
     // loaded from sources with in-game dabuild. MM database can work only with same resources, so we need to reload them
@@ -24,12 +23,12 @@ def motion_matching_reload_animchar_resources(evt : Event;
         dataBase.referenceAnimGraph == animchar.animGraph)
       return
     var reloadCount = 0
-    query() <| $ [es] (eid : EntityId; motion_matching__dataBaseTemplateName : string)
-      if eid != appeared_animchar_eid && dataBaseName == motion_matching__dataBaseTemplateName
+    query() <| $ [es] (eid : EntityId; motion_matching__dataBaseTemplateName aka existing_motion_matching__dataBaseTemplateName : string)
+      if eid != appeared_animchar_eid && new_motion_matching__dataBaseTemplateName == existing_motion_matching__dataBaseTemplateName
         reload_animchar_resources(eid, true, false);
         reloadCount++
     if reloadCount > 0
-      visual_log("Reloaded animTree and skeleton for {reloadCount} animchars with '{dataBaseName}' MM database")
+      visual_log("Reloaded animTree and skeleton for {reloadCount} animchars with '{new_motion_matching__dataBaseTemplateName}' MM database")
     if main_database__loaded
       broadcastEventImmediate(InvalidateAnimationDataBase())
 

@@ -27,7 +27,7 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("math"));
 
-    addAnnotation(das::make_smart<EffectorDataAnnotation>(lib));
+    addAnnotation(new EffectorDataAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(bind_dascript::getNullableRW_EffectorData)>(*this, lib, "getNullableRW_EffectorData",
       das::SideEffects::modifyArgument, "bind_dascript::getNullableRW_EffectorData");
     das::addExtern<DAS_BIND_FUN(bind_dascript::getNullable_EffectorData)>(*this, lib, "getNullable_EffectorData",

@@ -23,7 +23,6 @@ void ECS::addEntityWriteOptional(das::ModuleLibrary &lib)
     "bind_dascript::entitySetOptionalStrHint");
   auto entitySetOptionalStrExt = das::addExtern<DAS_BIND_FUN(entitySetOptionalStr)>(*this, lib, "setOptional",
     das::SideEffects::modifyExternal, "bind_dascript::entitySetOptionalStr");
-  entitySetOptionalStrExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  entitySetOptionalStrExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 }
 } // namespace bind_dascript

@@ -5,6 +5,7 @@
 #include <effectManager/effectManager.h>
 
 int acesfx::get_type_by_name(const char *) { return -1; }
+int acesfx::get_type_by_name_opt(const char *, bool) { return -1; }
 FxQuality acesfx::get_fx_target() { G_ASSERT_RETURN(false, FX_QUALITY_LOW); }
 float acesfx::get_effect_life_time(int) { G_ASSERT_RETURN(false, 0.0f); }
 bool acesfx::prefetch_effect(int) { G_ASSERT_RETURN(false, false); }

@@ -43,7 +43,7 @@ def genWrapperFunc(fout : FILE const?; nargs, res, perm : int) {
 
 def genWrapper(name : string; iregs : int) {
     var max_perm = (1 << iregs)
-    fopen(name, "wb") <| $(fout) {
+    fopen(name, "wb") $(fout) {
         for (nargs in range(MAX_ARGUMENTS)) {
             for (res in range(2)) {
                 for (perm in range(max_perm)) {
@@ -93,7 +93,7 @@ struct WrapperFn {
 }
 
 def genExtraWrapper(name : string; extra : array<WrapperFn>) {
-    fopen(name, "wb") <| $(fout) {
+    fopen(name, "wb") $(fout) {
         for (fn in systemV_extra) {
             genWrapperFunc(fout, fn.nargs, fn.res, fn.perm)
         }

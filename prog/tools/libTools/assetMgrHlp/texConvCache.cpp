@@ -7,6 +7,7 @@
 #include <assets/assetPlugin.h>
 #include <assets/assetExpCache.h>
 #include <libTools/dtx/ddsxPlugin.h>
+#include <libTools/dtx/makeDDS.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/iLogWriter.h>
 #include <libTools/util/strUtil.h>
@@ -398,7 +399,9 @@ static bool build_tex(DagorAsset &a, ddsx::Buffer &dest, unsigned target, const 
     cp.kaizerAlpha = GET_PROP(Real, "mipFilterAlpha", 4);
     cp.kaizerStretch = GET_PROP(Real, "mipFilterStretch", 1);
   }
+  const char *fmt = GET_PROP(Str, "fmt", "ARGB");
   cp.imgGamma = GET_PROP(Real, "gamma", 2.2);
+  fix_gamma_for_fmt(cp.imgGamma, fmt);
   cp.splitHigh = GET_PROP(Bool, "splitHigh", false);
   cp.splitAt = GET_PROP(Int, "splitAt", 0);
   if (!GET_PROP(Bool, "splitAtOverride", false))
@@ -465,7 +468,10 @@ static bool get_tex_asset_built_ddsx_internal(DagorAsset &a, ddsx::Buffer &dest,
   AssetExportCache c4;
   int cacheEndPos = 0;
   const DataBlock &eff_props = a.getProfileTargetProps(target, profile);
-  bool gamma1 = eff_props.getReal("gamma", a.props.getReal("gamma", 2.2)) <= 1.01;
+  const char *fmt = eff_props.getStr("fmt", a.props.getStr("fmt", "ARGB"));
+  float gamma = eff_props.getReal("gamma", a.props.getReal("gamma", 2.2));
+  fix_gamma_for_fmt(gamma, fmt);
+  bool gamma1 = is_equal_float(gamma, 1.0f);
 
   texconvcache::BuildMutexAutoAcquire bmaa(cacheFname);
   if (c4.load(cacheFname, a.getMgr(), &cacheEndPos) && !checkCacheChanged(c4, a, eff_props, texExp, false) && !use_prebuilt_file)
@@ -1203,6 +1209,7 @@ bool texconvcache::convert_dds(ddsx::Buffer &b, const char *tex_path, const Dago
     cp.kaizerAlpha = GET_PROP(Real, "mipFilterAlpha", 4);
     cp.kaizerStretch = GET_PROP(Real, "mipFilterStretch", 1);
     cp.imgGamma = GET_PROP(Real, "gamma", 2.2);
+    fix_gamma_for_fmt(cp.imgGamma, GET_PROP(Str, "fmt", "ARGB"));
   }
   cp.splitHigh = GET_PROP(Bool, "splitHigh", false);
   cp.splitAt = GET_PROP(Int, "splitAt", 0);

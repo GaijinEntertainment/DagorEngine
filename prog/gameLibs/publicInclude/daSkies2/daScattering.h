@@ -189,11 +189,11 @@ protected:
 
   SkyAtmosphereParams current;
 
-  UniqueTexHolder skies_irradiance_texture, skies_transmittance_texture;
+  UniqueTexWithShaderVar skies_irradiance_texture, skies_transmittance_texture;
   UniqueBufHolder gpuAtmosphereCb;
 
   // approximated MS https://sebh.github.io/publications/egsr2020.pdf
-  UniqueTexHolder skies_ms_texture;
+  UniqueTexWithShaderVar skies_ms_texture;
   PostFxRenderer indirect_irradiance_ms, skies_approximate_ms_lut_ps;
   eastl::unique_ptr<ComputeShaderElement> skies_approximate_ms_lut_cs, skies_generate_transmittance_cs, indirect_irradiance_ms_cs;
   //--

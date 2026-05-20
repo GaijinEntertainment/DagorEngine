@@ -35,7 +35,7 @@ struct PackageBuildInfo {
 // Run the `package()` function of a .das_package and extract metadata
 def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bool {
     var args : array<string>
-    var ok = run_das_package(das_package_path, "package", args) <| $(ctx) {
+    var ok = run_das_package(das_package_path, "package", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_pkg_meta"))
         if (p != null) {
             let src = unsafe(reinterpret<PackageMeta?>(p))
@@ -56,7 +56,7 @@ def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bo
 // Run the `resolve()` function of a .das_package and extract download info
 def run_das_package_resolve(das_package_path : string; sdk_version, version : string; var result : ResolveResult) : bool {
     var args <- [sdk_version, version]
-    var ok = run_das_package(das_package_path, "resolve", args) <| $(ctx) {
+    var ok = run_das_package(das_package_path, "resolve", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_download_ref"))
         if (p != null) {
             let ref = unsafe(reinterpret<string?>(p))
@@ -82,7 +82,7 @@ def run_das_package_resolve(das_package_path : string; sdk_version, version : st
 // Run the `dependencies()` function of a .das_package and extract deps
 def run_das_package_deps(das_package_path : string; version : string; var deps : array<PackageDependency>) : bool {
     var args <- [version]
-    var ok = run_das_package(das_package_path, "dependencies", args) <| $(ctx) {
+    var ok = run_das_package(das_package_path, "dependencies", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_dependencies"))
         if (p != null) {
             let arr = unsafe(reinterpret<array<Dependency>?>(p))
@@ -97,7 +97,7 @@ def run_das_package_deps(das_package_path : string; version : string; var deps :
 // Run the `build()` function of a .das_package and extract build info
 def run_das_package_build(das_package_path : string; var info : PackageBuildInfo) : bool {
     var args : array<string>
-    var ok = run_das_package(das_package_path, "build", args) <| $(ctx) {
+    var ok = run_das_package(das_package_path, "build", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_build_kind"))
         if (p != null) {
             let kind = *unsafe(reinterpret<BuildKind?>(p))
@@ -116,23 +116,23 @@ def run_das_package_build(das_package_path : string; var info : PackageBuildInfo
 // Internal: compile, simulate, call function, read state
 def private run_das_package(das_package_path : string; func_name : string; args : array<string>; blk : block<(ctx : smart_ptr<Context>) : void>) : bool {
     if (!fexist(das_package_path)) {
-        print("Error: {das_package_path} not found\n")
+        to_log(LOG_ERROR, "Error: {das_package_path} not found\n")
         return false
     }
     var ok = false
     var inscope access <- make_file_access("")
-    using() <| $(var mg : ModuleGroup) {
-        using() <| $(var cop : CodeOfPolicies) {
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.export_all = true
-            compile_file(das_package_path, access, unsafe(addr(mg)), cop) <| $(compiled; program; issues) {
+            compile_file(das_package_path, access, unsafe(addr(mg)), cop) $(compiled; program; issues) {
                 if (!compiled) {
-                    print("Error compiling {das_package_path}:\n{issues}\n")
+                    to_log(LOG_ERROR, "Error compiling {das_package_path}:\n{issues}\n")
                     return
                 }
-                simulate(program) <| $(simulated; ctx; serrors) {
+                simulate(program) $(simulated; ctx; serrors) {
                     if (!simulated) {
-                        print("Error simulating {das_package_path}:\n{serrors}\n")
+                        to_log(LOG_ERROR, "Error simulating {das_package_path}:\n{serrors}\n")
                         return
                     }
                     try {

@@ -245,7 +245,7 @@ void Wake::renderMove(const Point2 &ofs)
     return;
   ShaderGlobal::set_float4(wake_move_ofsVarId, ofs.x, ofs.y, 0, 0);
 
-  d3d::set_render_target(height[currentHeight].getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{height[currentHeight].getTex2D(), 0, 0}});
   for (int i = 0; i < height.size(); ++i)
   {
     if (i == currentHeight)
@@ -306,7 +306,7 @@ void Wake::simulateDt(const Point2 &origin, float dt)
   {
     for (int i = 0; i < height.size(); ++i)
     {
-      d3d::set_render_target(height[i].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{height[i].getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
     }
     cleared_flag = true;
@@ -324,8 +324,7 @@ void Wake::simulateDt(const Point2 &origin, float dt)
   {
     if (shouldClear)
     {
-      d3d::set_render_target(0, wakeGradients.getArrayTex(), 0, 0);
-      d3d::set_render_target(1, wakeGradients.getArrayTex(), 1, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{wakeGradients.getArrayTex(), 0, 0}, {wakeGradients.getArrayTex(), 0, 1}});
       d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
     }
     if (dt >= 1.e-4f)
@@ -335,7 +334,7 @@ void Wake::simulateDt(const Point2 &origin, float dt)
     obstacles.clear();
     return;
   }
-  d3d::set_render_target(verticalDerivative.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{verticalDerivative.getTex2D(), 0, 0}});
   int nextheight = currentHeight;
   int prevheight = (nextheight - 2 + 3) % height.size();
   int curheight = (nextheight - 1 + 3) % height.size();
@@ -363,11 +362,10 @@ void Wake::simulateDt(const Point2 &origin, float dt)
     d3d::set_ps_const(wake_impulses_const_no, (float *)impulses.data(), impulses.size());
   impulses.clear();
 
-  d3d::set_render_target(height[nextheight].getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{height[nextheight].getTex2D(), 0, 0}});
   makeHeightmap.render();
   ShaderGlobal::set_texture(wake_ht_texVarId, height[nextheight]);
-  d3d::set_render_target(0, wakeGradients.getArrayTex(), 0, 0);
-  d3d::set_render_target(1, wakeGradients.getArrayTex(), 1, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{wakeGradients.getArrayTex(), 0, 0}, {wakeGradients.getArrayTex(), 0, 1}});
   calculateGradients.render();
   d3d::set_render_target(prevRt);
 

@@ -1152,10 +1152,10 @@ int rendinst::cloneRIGenExtraResIdx(const char *source_res_name, const char *dst
   int sourcePoolRef = riExtra[sourceId].riPoolRef;
   if (RendInstGenData *rgl = (sourcePoolRef >= 0) ? rendinst::getRgLayer(riExtra[sourceId].riPoolRefLayer) : nullptr)
   {
-    const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[sourcePoolRef];
+    const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[sourcePoolRef];
     riExtra[newId].riPoolRef = rgl->rtData->riProperties.size();
-    rgl->rtData->riProperties.push_back(RendInstGenData::RendinstProperties(riProp));
-    rgl->rtData->riDestr.push_back(RendInstGenData::DestrProps(rgl->rtData->riDestr[sourcePoolRef]));
+    rgl->rtData->riProperties.push_back(rendinst::props::RendinstProperties(riProp));
+    rgl->rtData->riDestr.push_back(rendinst::props::DestrProps(rgl->rtData->riDestr[sourcePoolRef]));
   }
   rendinst::addRiGenExtraDebris(newId, 0);
   return newId;
@@ -1341,6 +1341,14 @@ int rendinst::riExCount()
 }
 
 int rendinst::riExCount(int idx) { return rendinst::riExtra[idx].riTm.size(); }
+
+int rendinst::getRIGenExtraInstancesCount()
+{
+  int count = 0;
+  for (int i = 0, n = rendinst::riExtra.size(); i < n; ++i)
+    count += rendinst::riExtra[i].getEntitiesCount();
+  return count;
+}
 
 int rendinst::riExIndex(const char *asset_name) { return riExtraMap.getNameId(asset_name); }
 
@@ -1573,7 +1581,7 @@ rendinst::riex_handle_t rendinst::replaceRIGenWithRIExtra(const rendinst::RendIn
   v_mat44_make_from_43cu(tm44, tm.array);
 
   RendInstDesc restorableDesc = get_restorable_desc(desc);
-  rendinst::doRIGenDestrEx(restorableDesc, false /*create_destr_effects*/);
+  rendinst::delRIGen(desc, /* add destr data */ true);
   if (RendInstGenData::CellRtData *pcrt = RendInstGenData::renderResRequired ? riutil::get_cell_rtdata_by_desc(desc) : nullptr)
     rgl->updateVb(*pcrt, desc.cellIdx);
 
@@ -2196,7 +2204,7 @@ bool rayHitRiExtraInstance(const Point3 &from, const Point3 &dir, float len, ren
   const rendinst::RiExtraPool &pool = rendinst::riExtra[res_idx];
   if (RendInstGenData *rgl = (pool.riPoolRef >= 0) ? rendinst::getRgLayer(pool.riPoolRefLayer) : nullptr)
   {
-    const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[pool.riPoolRef];
+    const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[pool.riPoolRef];
     if (strategy.shouldIgnoreRendinst(/*isPos*/ false, riProp.immortal, riProp.damageable, riProp.matId))
       return false;
   }
@@ -2495,15 +2503,16 @@ dag::ConstSpan<mat43f> rendinst::riex_get_instance_matrices(int res_idx)
   return res_idx < riExtra.size() ? make_span_const(riExtra[res_idx].riTm) : dag::ConstSpan<mat43f>();
 }
 
-const uint32_t *rendinst::get_user_data(rendinst::riex_handle_t handle)
+dag::ConstSpan<int32_t> rendinst::get_user_data(rendinst::riex_handle_t handle)
 {
   uint32_t resIdx = handle_to_ri_type(handle);
   RiExtraPool &pool = riExtra[resIdx];
   uint32_t idx = handle_to_ri_inst(handle);
   RiExtraPool::NodeIdxAndTs tsNodeIdx = pool.getNodeIdx(idx);
   if (tsNodeIdx.nodeIdx == scene::INVALID_NODE)
-    return nullptr;
-  return (uint32_t *)riExTiledScenes[tsNodeIdx.tsIndex].getUserData(tsNodeIdx.nodeIdx);
+    return {};
+  const auto &scene = riExTiledScenes[tsNodeIdx.tsIndex];
+  return dag::ConstSpan<int32_t>(scene.getUserData(tsNodeIdx.nodeIdx), scene.getUserDataWordCount());
 }
 
 vec4f rendinst::get_node_bsphere(rendinst::riex_handle_t handle, float &pool_rad)
@@ -2691,6 +2700,14 @@ void rendinst::hideRIGenExtraNotCollidable(const BBox3 &_box, bool hide_immortal
     m.col3 = v_perm_xyzd(v_ldu(&pi.pos.x), V_C_ONE);
     riExTiledScenes[s].setTransform(n, m);
   }
+}
+
+float rendinst::getRIGenExtraTiledScenesMaxObjectHeight()
+{
+  float h = 0.f;
+  for (auto &s : riExTiledScenes.cscenes(0, riExTiledScenes.size()))
+    h = max(h, s.getGridObjMaxHeight());
+  return h;
 }
 
 rendinst::HasRIClipmap rendinst::hasRIClipmapPools()

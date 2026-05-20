@@ -161,9 +161,9 @@ public:
         };
 
         if (ctx->test_flags)
-          tiled_scene.frustumCullOneTile<true, true, true>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
+          tiled_scene.frustumCullOneTile<true, true, true, false>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, nullptr, cb);
         else
-          tiled_scene.frustumCullOneTile<false, true, true>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, cb);
+          tiled_scene.frustumCullOneTile<false, true, true, false>(*ctx, globtm, vpos_distscale, use_occlusion, tile_idx, nullptr, cb);
       }
       ctx++;
 

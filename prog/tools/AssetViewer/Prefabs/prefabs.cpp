@@ -27,6 +27,7 @@
 #include <coolConsole/coolConsole.h>
 
 #include <shaders/dag_shaders.h>
+#include <3d/dag_resPtr.h>
 
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
@@ -37,7 +38,7 @@
 
 static int rendEntGeomMask = -1;
 static int collisionMask = -1;
-
+static UniqueTexWithShaderVar stubTex[4];
 
 //==============================================================================
 PrefabsPlugin::PrefabsPlugin() : geom(NULL), showDag(false), changedNodes(midmem), nodeModif(NULL) {}
@@ -62,6 +63,18 @@ void PrefabsPlugin::registered()
 
   rendEntGeomMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("rend_ent_geom");
   collisionMask = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("collision");
+
+  auto create_tex_1x1([](const char *name, E3DCOLOR col) {
+    uint16_t img[4] = {1, 1, uint16_t(col.u & 0xFFFF), uint16_t((col.u >> 16) & 0xFFFF)};
+    return UniqueTexWithShaderVar(dag::create_tex((TexImage32 *)img, 1, 1, TEXCF_RGB | TEXCF_LOADONCE | TEXCF_SYSTEXCOPY, 1, name),
+      name);
+  });
+  stubTex[0] = create_tex_1x1("cache_tex0", E3DCOLOR(255, 255, 255, 0));
+  stubTex[1] = create_tex_1x1("cache_tex1", E3DCOLOR(128, 128, 0, 0));
+  stubTex[2] = create_tex_1x1("cache_tex2", E3DCOLOR(153, 0, 0, 0));
+  stubTex[3] = create_tex_1x1("last_clip_tex", E3DCOLOR(255, 255, 255, 255));
+  for (auto &tex : stubTex)
+    tex.setVar();
 }
 
 
@@ -71,6 +84,8 @@ void PrefabsPlugin::unregistered()
   // destruction
   del_it(geom);
   del_it(nodeModif);
+  for (auto &tex : stubTex)
+    tex.close();
 }
 
 

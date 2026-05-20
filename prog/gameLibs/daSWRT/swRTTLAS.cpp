@@ -31,16 +31,20 @@ void destroy(TLASData *&data) { del_it(data); }
 
 using namespace build_bvh;
 
-void RenderSWRT::clearTLASSourceData()
+void RenderSWRT::clearTLASSourceData(bool shrink_arrays)
 {
   G_STATIC_ASSERT(sizeof(TLASNode) == TLAS_NODE_ELEM_SIZE);
   G_STATIC_ASSERT(sizeof(TLASLeaf) % 4 == 0);
   matrices.clear();
-  matrices.shrink_to_fit();
   instances.clear();
-  instances.shrink_to_fit();
   tlasLeavesOffsets.clear();
-  tlasLeavesOffsets.shrink_to_fit();
+
+  if (shrink_arrays)
+  {
+    matrices.shrink_to_fit();
+    instances.shrink_to_fit();
+    tlasLeavesOffsets.shrink_to_fit();
+  }
 }
 
 void RenderSWRT::clearTLASBuffers()
@@ -49,7 +53,7 @@ void RenderSWRT::clearTLASBuffers()
   topLeavesBuf.close();
 }
 
-void RenderSWRT::build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &blas_boxes)
+void RenderSWRT::build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &blas_boxes, bool do_debug)
 {
   int64_t reft = profile_ref_ticks();
   /*
@@ -78,36 +82,54 @@ void RenderSWRT::build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &
   tlas_boxes.reserve(leaves.size() * 2);
   int maxDepth = 0;
   int root = create_bvh_node_sah(tlas_boxes, leaves.begin(), leaves.size(), 4, maxDepth);
-  debug("built BVH TLAS tree depth %d in %dus, %d instances, %d nodes", maxDepth, profile_time_usec(reft), matrices.size(),
-    tlas_boxes.size());
+  if (do_debug)
+    debug("built BVH TLAS tree depth %d in %dus, %d instances, %d nodes", maxDepth, profile_time_usec(reft), matrices.size(),
+      tlas_boxes.size());
   G_ASSERTF(maxDepth <= BVH_MAX_TLAS_DEPTH, "%d tlas depth too big, we should rebuild tree with better balancing", maxDepth);
   G_VERIFY(root == 0);
 }
 
 void RenderSWRT::destroy(TLASData *&d) { del_it(d); }
 
-void RenderSWRT::copyToGPUAndDestroy(TLASData *d)
+void RenderSWRT::copyToGPUInternal(TLASData *d, bool do_del, bool do_debug)
 {
   if (!d)
     return;
-  if (VariableMap::isVariablePresent(get_shader_variable_id("bvh_top_leaves", true)))
+
+  if (!tlasLeavesOffsets.empty() && VariableMap::isVariablePresent(get_shader_variable_id("bvh_top_leaves", true)))
   {
     ensure_buf_size_and_update(topLeavesBuf, (const uint8_t *)tlasLeavesOffsets.data(),
-      tlasLeavesOffsets.size() * sizeof(*tlasLeavesOffsets.begin()), "bvh_top_leaves");
+      tlasLeavesOffsets.size() * sizeof(*tlasLeavesOffsets.begin()), "bvh_top_leaves", do_debug);
   }
 
-  ensure_buf_size_and_update(topBuf, d->data, "bvh_top_structures");
-  del_it(d);
+  ensure_buf_size_and_update(topBuf, d->data, "bvh_top_structures", do_debug);
+  if (do_del)
+    del_it(d);
+  else
+    d->data.clear();
 }
 
-build_bvh::TLASData *RenderSWRT::buildTopLevelStructures()
+
+void RenderSWRT::copyToGPUAndDestroy(TLASData *d) { copyToGPUInternal(d, true, true); }
+
+void RenderSWRT::copyToGPUAndClear(TLASData *d) { copyToGPUInternal(d, false, false); }
+
+build_bvh::TLASData *RenderSWRT::buildTopLevelStructures() { return buildTopLevelStructuresInternal(nullptr, true); }
+
+build_bvh::TLASData *RenderSWRT::buildTopLevelStructures(build_bvh::TLASData *d)
+{
+  G_ASSERT_RETURN(d, nullptr);
+  return buildTopLevelStructuresInternal(d, false);
+}
+
+build_bvh::TLASData *RenderSWRT::buildTopLevelStructuresInternal(build_bvh::TLASData *d, bool do_debug)
 {
   if (blasDataInfo.empty() || matrices.empty())
     return nullptr;
 
   // N leaves + (N - 1) intermediate nodes + stop node
   Tab<bbox3f> tlasBoxes(framemem_ptr());
-  build_tlas(tlasBoxes, blasBoxes);
+  build_tlas(tlasBoxes, blasBoxes, do_debug);
 
   G_ASSERTF(tlasBoxes.size() >= matrices.size(), "%d > %d", tlasBoxes.size(), matrices.size());
   // Allocate max size (all non-box); actual size may be smaller if boxes exist.
@@ -116,7 +138,10 @@ build_bvh::TLASData *RenderSWRT::buildTopLevelStructures()
 
   int64_t reft = profile_ref_ticks();
 
-  TLASData *ret = new TLASData{maxTlasSize};
+  TLASData *ret = d ? d : new TLASData{maxTlasSize};
+  if (d)
+    ret->data.resize(maxTlasSize);
+
   uint8_t *bvhData = ret->data.begin();
   uint32_t numBoxLeaves;
   {
@@ -149,8 +174,9 @@ build_bvh::TLASData *RenderSWRT::buildTopLevelStructures()
   G_ASSERT(ret->data.size() >= tlasSize);
   ret->data.resize(tlasSize); // trim to actual size
 
-  debug("write BVH TLAS in %dus of %d bytes, %d instances (%d boxes)", profile_time_usec(reft), tlasSize, matrices.size(),
-    numBoxLeaves);
+  if (do_debug)
+    debug("write BVH TLAS in %dus of %d bytes, %d instances (%d boxes)", profile_time_usec(reft), tlasSize, matrices.size(),
+      numBoxLeaves);
   return ret;
 
   // G_ASSERT(build_bvh::max_tlas_depth <= BVH_MAX_TLAS_DEPTH);

@@ -55,6 +55,17 @@ bool init(const DataBlock &blk);
 void shutdown();
 bool is_inited();
 
+// Enables tracking of FMOD asserts in soundAssertsMonitor; intended to be set early by the game
+// (e.g. from acessound::early_init when sound mods are enabled).
+void set_asserts_monitor_enabled(bool enabled);
+bool is_asserts_monitor_enabled();
+
+namespace asserts_monitor
+{
+void on_fmod_message(const char *func, const char *message);
+bool debug_print_asserts_table();
+} // namespace asserts_monitor
+
 void update_listener(float dt, const TMatrix &listener_tm);
 void set_time_speed(float time_speed);
 void begin_update(float dt);

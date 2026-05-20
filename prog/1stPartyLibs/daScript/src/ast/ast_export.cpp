@@ -83,7 +83,7 @@ namespace das {
                 for ( auto & var : pm->globals.each() ) {
                     if ( forceAll || var->used || isVarExported(var) ) {
                         var->used = false;
-                        propageteVarUse(var.get());
+                        propageteVarUse(var);
                     }
                 }
                 return true;
@@ -94,7 +94,7 @@ namespace das {
                 if ( initThis && macroModule && pm!=macroModule ) return true;
                 for ( auto & fn : pm->functions.each() ) {
                     if ( (forceAll && !fn->macroInit) || fn->exports || fn->init || fn->shutdown || (fn->macroInit && initThis) ) {
-                        propagateFunctionUse(fn.get());
+                        propagateFunctionUse(fn);
                     }
                 }
                 return true;
@@ -103,7 +103,7 @@ namespace das {
         void markModuleVarsUsed( ModuleLibrary &, Module * inWhichModule ) {
             for ( auto & var : inWhichModule->globals.each() ) {
                 var->used = false;
-                propageteVarUse(var.get());
+                propageteVarUse(var);
             }
         }
         void markModuleUsedFunctions( ModuleLibrary &, Module * inWhichModule ) {
@@ -112,7 +112,7 @@ namespace das {
                 if ( fn->builtIn || fn->macroInit || fn->macroFunction  ) continue;
                 if ( fn->privateFunction && fn->generated && fn->fromGeneric ) continue;    // instances of templates are never roots
                 if ( fn->isClassMethod && fn->classParent->macroInterface ) continue;       // methods of macro interfaces
-                propagateFunctionUse(fn.get());
+                propagateFunctionUse(fn);
             }
         }
         void RemoveUnusedSymbols ( Module & mod ) {
@@ -137,7 +137,7 @@ namespace das {
         }
     protected:
         ProgramPtr  program;
-        FunctionPtr func;
+        FunctionPtr func = nullptr;
         Variable *  gVar = nullptr;
         bool        builtInDependencies;
         int         logTab = 0;
@@ -152,7 +152,7 @@ namespace das {
         // global variable declaration
         virtual void preVisitGlobalLet(const VariablePtr & var) override {
             Visitor::preVisitGlobalLet(var);
-            gVar = var.get();
+            gVar = var;
             var->useFunctions.clear();
             var->useGlobalVariables.clear();
             var->used = false;
@@ -173,7 +173,7 @@ namespace das {
             DAS_ASSERTF(!func->builtIn, "visitor should never call 'visit' on builtin function at top level.");
         }
         virtual FunctionPtr visit(Function * that) override {
-            func.reset();
+            func = nullptr;
             return Visitor::visit(that);
         }
         // string builder
@@ -187,9 +187,9 @@ namespace das {
             if (!expr->variable) return;
             if (!expr->local && !expr->argument && !expr->block) {
                 if (func) {
-                    func->useGlobalVariables.insert(expr->variable.get());
+                    func->useGlobalVariables.insert(expr->variable);
                 } else if (gVar) {
-                    gVar->useGlobalVariables.insert(expr->variable.get());
+                    gVar->useGlobalVariables.insert(expr->variable);
                 }
             }
         }

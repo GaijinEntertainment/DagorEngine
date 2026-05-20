@@ -1,0 +1,9 @@
+WARNING: w328 (redundant-await) 'await' on non-async expression has no effect.
+testData/diagnostics/async_redundant_await.nut:8:10
+
+async function main() {
+  let n = await plain()
+          ^------------
+  print(n)
+
+

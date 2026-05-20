@@ -8,6 +8,7 @@
 #include <sqrat.h>
 #include <util/dag_string.h>
 #include <util/dag_console.h>
+#include <memory/dag_framemem.h>
 #include <gui/dag_visualLog.h>
 #include <debug/dag_logSys.h>
 
@@ -74,13 +75,12 @@ static void print_to_debug(HSQUIRRELVM, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
-  if (console_output)
-  {
-    vprintf(s, vl);
-    printf("\n");
-  }
-  cvlogmessage(_MAKE4C('SQRL'), s, vl);
+  String msg(framemem_ptr());
+  msg.cvprintf(0, s, vl);
   va_end(vl);
+  if (console_output)
+    printf("%s\n", msg.c_str());
+  logmessage(_MAKE4C('SQRL'), "%s", msg.c_str());
 }
 
 

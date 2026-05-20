@@ -2,6 +2,7 @@
 
 #include "xess_wrapper.h"
 #include "device.h"
+#include "swapchain.h"
 
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_direct.h>
@@ -19,16 +20,14 @@
 #include <xess_sdk/inc/xess_fg/xefg_swapchain_d3d12.h>
 #include <xess_sdk/inc/xess_fg/xefg_swapchain_debug.h>
 
-
 static constexpr auto xefg_init_flags = XEFG_SWAPCHAIN_INIT_FLAG_INVERTED_DEPTH;
 
 using namespace drv3d_dx12;
 
-eastl::tuple<ComPtr<DXGIFactory>, ComPtr<DXGISwapChain>, ComPtr<ID3D12CommandQueue>> get_fg_initializers();
-void shutdown_internal_swapchain();
-bool adopt_external_swapchain(DXGISwapChain *swapchain);
-void create_default_swapchain();
-
+namespace
+{
+XessWrapper *active_xess_wrapper = nullptr;
+}
 
 static const char *get_xess_result_as_string(xess_result_t result)
 {
@@ -179,8 +178,21 @@ public:
     return true;
   }
 
-  void makeFgContext()
+  bool checkFgSupport()
   {
+    xefg_swapchain_handle_t dummy;
+    bool result =
+      xefgSwapChainD3D12CreateContext(static_cast<ID3D12Device *>(d3d::get_device()), &dummy) == XEFG_SWAPCHAIN_RESULT_SUCCESS;
+    if (result)
+      xefgSwapChainDestroy(dummy);
+    return result;
+  }
+
+  bool makeFgContext()
+  {
+    logdbg("[XeFG] Creating XeFG context");
+    G_ASSERT_RETURN(!m_xefgContext, false);
+
     auto result = xefgSwapChainD3D12CreateContext(static_cast<ID3D12Device *>(d3d::get_device()), &m_xefgContext);
     if (result < XEFG_SWAPCHAIN_RESULT_SUCCESS)
       logdbg("[XeFG] xefgSwapChainD3D12CreateContext failed with %d", result);
@@ -212,10 +224,69 @@ public:
     }
 
     lastPresentStatus = xefg_swapchain_present_status_t{};
+    return result >= XEFG_SWAPCHAIN_RESULT_SUCCESS;
+  }
+
+  bool destroyFgContext()
+  {
+    logdbg("[XeFG] Destroying XeFG context");
+
+    if (!m_xefgContext)
+      return true;
+
+    auto result = xefgSwapChainDestroy(m_xefgContext);
+    m_xefgContext = nullptr;
+    fgSwapchainInitialized = false;
+    fgEnabled = false;
+    lastPresentStatus = xefg_swapchain_present_status_t{};
+    G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, false);
+
+    return true;
+  }
+
+  void ensureLatencyReductionEnabled()
+  {
+    if (xellLatencyLinked)
+      return;
+
+    xellBackupState = false;
+
+    auto xell = GpuLatency::getInstance();
+    if (!xell)
+      xell = GpuLatency::create(GpuVendor::INTEL);
+
+    G_ASSERT_RETURN(xell, );
+
+    if (xell->isEnabled())
+      xellBackupState = true;
+    else
+      xell->setOptions(GpuLatency::Mode::On, 0);
+
+    auto xellHandle = xell->getHandle();
+    G_ASSERT_RETURN(xellHandle, );
+    [[maybe_unused]] auto result = xefgSwapChainSetLatencyReduction(m_xefgContext, xellHandle);
+    G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, );
+    xellLatencyLinked = true;
+  }
+
+  void restoreLatencyReduction()
+  {
+    if (!xellLatencyLinked)
+      return;
+
+    auto xell = GpuLatency::getInstance();
+    if (xell)
+      xell->setOptions(xellBackupState ? GpuLatency::Mode::On : GpuLatency::Mode::Off, 0);
+
+    xellLatencyLinked = false;
+    xellBackupState = false;
   }
 
   bool init(ID3D12Device *device)
   {
+    if (m_xessContext)
+      return true;
+
     if (!checkIfDeviceSuitableXess())
       return false;
 
@@ -232,8 +303,7 @@ public:
     if (!loadLibraryFg())
       return true;
 
-    if (libxess_fg)
-      makeFgContext();
+    fgSupported = libxess_fg && checkFgSupport();
 
     return true;
   }
@@ -266,34 +336,7 @@ public:
     return true;
   }
 
-  bool shutdownFgInt()
-  {
-    if (fgActive)
-    {
-      // Reset the swapchain from the backend. Don't set a default one just yet, as the XeFG
-      // swapchain still exist and there can be only one with flip model.
-      shutdown_internal_swapchain();
-    }
-
-    auto result = xefgSwapChainDestroy(m_xefgContext);
-    G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, false);
-    m_xefgContext = nullptr;
-
-    if (fgActive)
-    {
-      create_default_swapchain();
-      lastPresentStatus = xefg_swapchain_present_status_t{};
-
-      // Reset XeLL to the original state.
-      auto xell = GpuLatency::getInstance();
-      G_ASSERT(xell);
-      xell->setOptions(xellBackupState ? GpuLatency::Mode::On : GpuLatency::Mode::Off, 0);
-    }
-
-    fgActive = false;
-
-    return true;
-  }
+  bool shutdownFgInt() { return destroyFgContext(); }
 
   bool shutdownFg()
   {
@@ -312,8 +355,15 @@ public:
 
   bool shutdown()
   {
-    return shutdownFg() && (m_state == XessState::READY || m_state == XessState::SUPPORTED) &&
-           xessDestroyContext(m_xessContext) == XESS_RESULT_SUCCESS;
+    const bool fgShutdown = shutdownFg();
+    if (m_xessContext && (m_state == XessState::READY || m_state == XessState::SUPPORTED))
+    {
+      if (xessDestroyContext(m_xessContext) != XESS_RESULT_SUCCESS)
+        return false;
+    }
+    m_xessContext = nullptr;
+    m_state = XessState::DISABLED;
+    return fgShutdown;
   }
 
   xess_result_t evaluateXess(void *context, const void *params)
@@ -425,13 +475,89 @@ public:
     }
   }
 
-  bool isFrameGenerationSupported() const { return m_xefgContext; }
+  bool isFrameGenerationSupported() const { return fgSupported; }
 
-  bool isFrameGenerationEnabled() const { return m_xefgContext && fgActive; }
+  bool isFrameGenerationEnabled() const { return fgSwapchainInitialized && fgEnabled; }
+
+  bool createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+    const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+  {
+    logdbg("[XeFG] Creating XeFG swapchain");
+    G_ASSERT_RETURN(swapchain, false);
+
+    if (!libxess_fg && checkIfDeviceSuitableFg())
+    {
+      loadLibraryFg();
+      fgSupported = libxess_fg && checkFgSupport();
+    }
+
+    if (!fgSupported)
+    {
+      logdbg("[XeFG] Frame Generation is not supported on this device");
+      return false;
+    }
+
+    G_ASSERT_RETURN(fullscreen_desc.Windowed, false);
+
+    const bool wasFgEnabled = fgEnabled;
+
+    if (m_xefgContext && !destroyFgContext())
+      return false;
+
+    if (!makeFgContext())
+    {
+      D3D_ERROR("[XeFG] Failed to create XeFG context");
+      return false;
+    }
+
+    xefg_swapchain_d3d12_init_params_t params = {
+      .initFlags = xefg_init_flags,
+      .maxInterpolatedFrames = 1,
+      .uiMode = XEFG_SWAPCHAIN_UI_MODE_HUDLESS_UITEXTURE,
+    };
+
+    ensureLatencyReductionEnabled();
+
+    [[maybe_unused]] auto result = xefgSwapChainD3D12InitFromSwapChainDesc(m_xefgContext, create_info.window, &swapchain_desc,
+      &fullscreen_desc, queue, factory, &params);
+    if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    {
+      G_VERIFY(destroyFgContext());
+      return false;
+    }
+
+    ComPtr<DXGISwapChain> newDxgiSwapchain;
+    result = xefgSwapChainD3D12GetSwapChainPtr(m_xefgContext, IID_PPV_ARGS(newDxgiSwapchain.GetAddressOf()));
+    if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+    {
+      G_VERIFY(destroyFgContext());
+      return false;
+    }
+
+    *swapchain = newDxgiSwapchain.Detach();
+    fgSwapchainInitialized = true;
+    fgEnabled = false;
+    lastPresentStatus = xefg_swapchain_present_status_t{};
+
+    if (wasFgEnabled)
+    {
+      [[maybe_unused]] auto enableResult = xefgSwapChainSetEnabled(m_xefgContext, true);
+      G_ASSERT_RETURN(enableResult == XEFG_SWAPCHAIN_RESULT_SUCCESS, false);
+      fgEnabled = true;
+    }
+
+    return true;
+  }
+
+  void releaseFrameGenerationSwapchainContext()
+  {
+    G_VERIFY(destroyFgContext());
+    restoreLatencyReduction();
+  }
 
   void enableFrameGeneration(bool enable)
   {
-    if (enable && fgActive) [[likely]]
+    if (!fgSwapchainInitialized || enable == fgEnabled)
       return;
 
     d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
@@ -439,147 +565,77 @@ public:
 
     d3d::driver_command(Drv3dCommand::D3D_FLUSH);
 
-    if (enable)
-    {
-      // Make the framegen swapchain and replace the driver one with it
-      auto [dxgiFactory, dxgiSwapchain, d3dGraphicsQueue] = get_fg_initializers();
-
-      DXGI_SWAP_CHAIN_DESC swapchainDesc;
-      dxgiSwapchain->GetDesc(&swapchainDesc);
-      HWND hwnd;
-      dxgiSwapchain->GetHwnd(&hwnd);
-      DXGI_SWAP_CHAIN_DESC1 desc1;
-      dxgiSwapchain->GetDesc1(&desc1);
-      DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc;
-      dxgiSwapchain->GetFullscreenDesc(&fullscreenDesc);
-      dxgiSwapchain.Reset();
-
-      G_ASSERT_RETURN(fullscreenDesc.Windowed, );
-
-      // XeLL need to be enabled
-      xellBackupState = false;
-
-      auto xell = GpuLatency::getInstance();
-      if (!xell)
-        xell = GpuLatency::create(GpuVendor::INTEL);
-
-      G_ASSERT_RETURN(xell, );
-
-      if (xell->isEnabled())
-        xellBackupState = true;
-      else
-        xell->setOptions(GpuLatency::Mode::On, 0);
-
-      auto xellHandle = xell->getHandle();
-      G_ASSERT_RETURN(xellHandle, );
-      [[maybe_unused]] auto resultXellLink = xefgSwapChainSetLatencyReduction(m_xefgContext, xellHandle);
-      G_ASSERT_RETURN(resultXellLink == XEFG_SWAPCHAIN_RESULT_SUCCESS, );
-
-      // Remove the old swapchain first, because only one swapchain can exist for the window with flip model
-      shutdown_internal_swapchain();
-
-      FINALLY([this] {
-        if (!fgActive)
-        {
-          // try to restore the default DXGI swapchain if XESS FG swapchain creation is failed
-          create_default_swapchain();
-        }
-      });
-
-      xefg_swapchain_d3d12_init_params_t params = {
-        .initFlags = xefg_init_flags,
-        .maxInterpolatedFrames = 1,
-        .uiMode = XEFG_SWAPCHAIN_UI_MODE_HUDLESS_UITEXTURE,
-      };
-
-      [[maybe_unused]] auto result = xefgSwapChainD3D12InitFromSwapChainDesc(m_xefgContext, hwnd, &desc1, &fullscreenDesc,
-        d3dGraphicsQueue.Get(), dxgiFactory.Get(), &params);
-      G_ASSERT_RETURN(result == XEFG_SWAPCHAIN_RESULT_SUCCESS, );
-
-      ComPtr<IDXGISwapChain3> newDxgiSwapchain;
-      result = xefgSwapChainD3D12GetSwapChainPtr(m_xefgContext, IID_PPV_ARGS(newDxgiSwapchain.GetAddressOf()));
-      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
-
-      if (!adopt_external_swapchain(newDxgiSwapchain.Get()))
-      {
-        return;
-      }
-
-      result = xefgSwapChainSetEnabled(m_xefgContext, true);
-      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
-
-      fgActive = true;
-
-#if 0
-      xefgSwapChainEnableDebugFeature(m_xefgContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_SHOW_ONLY_INTERPOLATION, true, nullptr);
-      xefgSwapChainEnableDebugFeature(m_xefgContext, XEFG_SWAPCHAIN_DEBUG_FEATURE_PRESENT_FAILED_INTERPOLATION, true, nullptr);
-#endif
-    }
-    else if (m_xefgContext && fgActive)
-    {
-      shutdownFgInt();
-    }
+    [[maybe_unused]] auto result = xefgSwapChainSetEnabled(m_xefgContext, enable);
+    if (result != XEFG_SWAPCHAIN_RESULT_SUCCESS)
+      D3D_ERROR("DX12: Failed to %s XeFG: %d", enable ? "enable" : "disable", result);
+    G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+    fgEnabled = enable;
   }
 
   void suppressFrameGeneration(bool suppress)
   {
-    if (m_xefgContext && fgActive)
-    {
-      [[maybe_unused]] auto result = xefgSwapChainSetEnabled(m_xefgContext, !suppress);
-      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
-    }
+    if (!fgEnabled)
+      return;
+
+    [[maybe_unused]] auto result = xefgSwapChainSetEnabled(m_xefgContext, !suppress);
+    G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
   }
 
   void doScheduleGeneratedFrames(const XessFgParamsDx12 &fgArgs, const XessFgParamsDx12ResourceStates &resourceStates,
     ID3D12CommandList *d3dCommandList)
   {
+    if (!m_xefgContext)
+      return;
+
     xefgSwapChainGetLastPresentStatus(m_xefgContext, &lastPresentStatus);
 
-    if (m_xefgContext && fgActive)
-    {
-      xefg_swapchain_frame_constant_data_t constData{
-        .jitterOffsetX = fgArgs.inJitterOffsetX,
-        .jitterOffsetY = fgArgs.inJitterOffsetY,
-        .motionVectorScaleX = fgArgs.inMotionVectorScaleX,
-        .motionVectorScaleY = fgArgs.inMotionVectorScaleY,
-        .resetHistory = fgArgs.inReset,
+    if (!fgEnabled)
+      return;
+
+    xefg_swapchain_frame_constant_data_t constData{
+      .jitterOffsetX = fgArgs.inJitterOffsetX,
+      .jitterOffsetY = fgArgs.inJitterOffsetY,
+      .motionVectorScaleX = fgArgs.inMotionVectorScaleX,
+      .motionVectorScaleY = fgArgs.inMotionVectorScaleY,
+      .resetHistory = fgArgs.inReset,
+    };
+
+    memcpy(constData.viewMatrix, fgArgs.viewTm, sizeof(fgArgs.viewTm));
+    memcpy(constData.projectionMatrix, fgArgs.projTm, sizeof(fgArgs.projTm));
+
+    [[maybe_unused]] auto result = xefgSwapChainTagFrameConstants(m_xefgContext, fgArgs.inFrameIndex, &constData);
+    G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+
+    auto tagResource = [&](Image *img, xefg_swapchain_resource_type_t type, uint32_t state) {
+      auto desc = img->getHandle()->GetDesc();
+
+      xefg_swapchain_d3d12_resource_data_t resData = {
+        .type = type,
+        .validity = XEFG_SWAPCHAIN_RV_ONLY_NOW,
+        .resourceSize{
+          .x = (uint32_t)desc.Width,
+          .y = (uint32_t)desc.Height,
+        },
+        .pResource = img->getHandle(),
+        .incomingState = static_cast<D3D12_RESOURCE_STATES>(state),
       };
-
-      memcpy(constData.viewMatrix, fgArgs.viewTm, sizeof(fgArgs.viewTm));
-      memcpy(constData.projectionMatrix, fgArgs.projTm, sizeof(fgArgs.projTm));
-
-      [[maybe_unused]] auto result = xefgSwapChainTagFrameConstants(m_xefgContext, fgArgs.inFrameIndex, &constData);
+      [[maybe_unused]] auto result = xefgSwapChainD3D12TagFrameResource(m_xefgContext, d3dCommandList, fgArgs.inFrameIndex, &resData);
       G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
+    };
 
-      auto tagResource = [&](Image *img, xefg_swapchain_resource_type_t type, uint32_t state) {
-        auto desc = img->getHandle()->GetDesc();
+    tagResource(fgArgs.inColorHudless, XEFG_SWAPCHAIN_RES_HUDLESS_COLOR, resourceStates.inColorHudlessState);
+    tagResource(fgArgs.inMotionVectors, XEFG_SWAPCHAIN_RES_MOTION_VECTOR, resourceStates.inMotionVectorsState);
+    tagResource(fgArgs.inDepth, XEFG_SWAPCHAIN_RES_DEPTH, resourceStates.inDepthState);
+    tagResource(fgArgs.inUi, XEFG_SWAPCHAIN_RES_UI, resourceStates.inUiState);
 
-        xefg_swapchain_d3d12_resource_data_t resData = {
-          .type = type,
-          .validity = XEFG_SWAPCHAIN_RV_ONLY_NOW,
-          .resourceSize{
-            .x = (uint32_t)desc.Width,
-            .y = (uint32_t)desc.Height,
-          },
-          .pResource = img->getHandle(),
-          .incomingState = static_cast<D3D12_RESOURCE_STATES>(state),
-        };
-        [[maybe_unused]] auto result =
-          xefgSwapChainD3D12TagFrameResource(m_xefgContext, d3dCommandList, fgArgs.inFrameIndex, &resData);
-        G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
-      };
-
-      tagResource(fgArgs.inColorHudless, XEFG_SWAPCHAIN_RES_HUDLESS_COLOR, resourceStates.inColorHudlessState);
-      tagResource(fgArgs.inMotionVectors, XEFG_SWAPCHAIN_RES_MOTION_VECTOR, resourceStates.inMotionVectorsState);
-      tagResource(fgArgs.inDepth, XEFG_SWAPCHAIN_RES_DEPTH, resourceStates.inDepthState);
-      tagResource(fgArgs.inUi, XEFG_SWAPCHAIN_RES_UI, resourceStates.inUiState);
-
-      result = xefgSwapChainSetPresentId(m_xefgContext, fgArgs.inFrameIndex);
-      G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
-    }
+    result = xefgSwapChainSetPresentId(m_xefgContext, fgArgs.inFrameIndex);
+    G_ASSERT(result == XEFG_SWAPCHAIN_RESULT_SUCCESS);
   }
 
-  int getPresentedFrameCount() const { return lastPresentStatus.isFrameGenEnabled ? lastPresentStatus.framesPresented : 1; }
+  int getPresentedFrameCount() const
+  {
+    return fgEnabled && lastPresentStatus.isFrameGenEnabled ? lastPresentStatus.framesPresented : 1;
+  }
 
   uint64_t getMemoryUsage() const
   {
@@ -624,9 +680,12 @@ private:
 
   xefg_swapchain_handle_t m_xefgContext = nullptr;
   xefg_swapchain_present_status_t lastPresentStatus = {};
-  bool fgActive = false;
+  bool fgSupported = false;
+  bool fgSwapchainInitialized = false;
+  bool fgEnabled = false;
 
   bool xellBackupState = false;
+  bool xellLatencyLinked = false;
 
   xess_properties_t properties = {};
 
@@ -665,14 +724,23 @@ private:
 XessWrapper *debugActiveWrapper = nullptr;
 #endif
 
-XessWrapper::XessWrapper() : pImpl(new XessWrapperImpl)
+XessWrapper::XessWrapper() : pImpl(eastl::make_unique<XessWrapperImpl>())
 {
+  active_xess_wrapper = this;
 #if DAGOR_DBGLEVEL > 0
   debugActiveWrapper = this;
 #endif
 }
 
-XessWrapper::~XessWrapper() = default;
+XessWrapper::~XessWrapper()
+{
+  if (active_xess_wrapper == this)
+    active_xess_wrapper = nullptr;
+#if DAGOR_DBGLEVEL > 0
+  if (debugActiveWrapper == this)
+    debugActiveWrapper = nullptr;
+#endif
+}
 
 bool XessWrapper::xessInit(void *device) { return pImpl->init(static_cast<ID3D12Device *>(device)); }
 
@@ -695,6 +763,22 @@ bool XessWrapper::isXessQualityAvailableAtResolution(uint32_t target_width, uint
 bool XessWrapper::isFrameGenerationSupported() const { return pImpl->isFrameGenerationSupported(); }
 
 bool XessWrapper::isFrameGenerationEnabled() const { return pImpl->isFrameGenerationEnabled(); }
+
+bool XessWrapper::createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12CommandQueue *queue,
+  const SwapchainCreateInfo &create_info, const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc,
+  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  return pImpl->createFrameGenerationSwapchain(factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
+bool drv3d_dx12::create_xessfg_swapchain(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)
+{
+  return active_xess_wrapper &&
+         active_xess_wrapper->createFrameGenerationSwapchain(factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
+}
+
+void XessWrapper::releaseFrameGenerationSwapchainContext() { pImpl->releaseFrameGenerationSwapchainContext(); }
 
 void XessWrapper::enableFrameGeneration(bool enable) { pImpl->enableFrameGeneration(enable); }
 

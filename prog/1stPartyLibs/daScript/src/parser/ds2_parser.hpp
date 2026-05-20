@@ -94,7 +94,7 @@ extern int das2_yydebug;
 
     struct EnumPair {
         string name;
-        ExpressionPtr expr;
+        ExpressionPtr expr = nullptr;
         LineInfo at;
         EnumPair ( string * n, Expression * e, const LineInfo & l )
             : name(*n), expr(e), at(l) {};

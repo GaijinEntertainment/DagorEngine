@@ -83,7 +83,7 @@ def public long_string(var faker : Faker) : string {
     len %= faker.max_long_string
     var inscope arr : array<uint8>
     arr |> reserve(int(len))
-    for (t in urange(len)) {
+    for (_t in urange(len)) {
         var Ch = 0u
         faker.rnd |> next(Ch)
         arr |> push(uint8(Ch))
@@ -253,19 +253,19 @@ variant BitRepresentation64 { //! 64-bit representation of a float
 
 def public random_int64(var faker : Faker) : int64 {
     //! Generates random int64
-    var b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
     return unsafe(b.i64)
 }
 
 def public random_uint64(var faker : Faker) : uint64 {
     //! Generates random uint64
-    var b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
     return unsafe(b.u64)
 }
 
 def public random_double(var faker : Faker) : double {
     //! Generates random double.
-    var b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
+    let b =  BitRepresentation64(ui2 = fixed_array<uint>(faker |> random_uint, faker |> random_uint))
     return unsafe(b.d)
 }
 

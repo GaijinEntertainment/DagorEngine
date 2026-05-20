@@ -191,13 +191,14 @@ class DapiDataWalker {
     def abstract InvalidData : void
 }
 
-def make_data_walker(classPtr) : smart_ptr<DataWalker> {
+def make_data_walker(classPtr; blk : block<(var adapter : DataWalker?) : void>) {
     static_if (typeinfo is_class(*classPtr)) {
-        let classInfo = class_info(*classPtr)
-        return <- make_data_walker(classPtr, classInfo)
+        unsafe {
+            let classInfo = class_info(*classPtr)
+            make_data_walker(classPtr, classInfo, blk)
+        }
     } else {
         concept_assert(false, "can't make data walker of non-class")
-        return <- default<smart_ptr<DataWalker>>
     }
 }
 
@@ -218,12 +219,13 @@ class DapiStackWalker {
     def abstract onCorruptStack(pp : Prologue) : void
 }
 
-def make_stack_walker(classPtr) : smart_ptr<StackWalker> {
+def make_stack_walker(classPtr; blk : block<(var adapter : StackWalker?) : void>) {
     static_if (typeinfo is_class(*classPtr)) {
-        let classInfo = class_info(*classPtr)
-        return <- make_stack_walker(classPtr, classInfo)
+        unsafe {
+            let classInfo = class_info(*classPtr)
+            make_stack_walker(classPtr, classInfo, blk)
+        }
     } else {
         concept_assert(false, "can't make stack walker of non-class")
-        return <- default<smart_ptr<StackWalker>>
     }
 }

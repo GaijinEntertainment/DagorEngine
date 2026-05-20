@@ -1163,21 +1163,19 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(amd::FSR *, fsr)
   DX12_CONTEXT_COMMAND_PARAM(FSRUpscalingArgs, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.executeFSR(fsr, params);
+  ctx.executeFSR(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSRFG)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(amd::FSR *, fsr)
   DX12_CONTEXT_COMMAND_PARAM(FSRFrameGenArgs, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.executeFSRFG(fsr, params);
+  ctx.executeFSRFG(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1529,10 +1527,12 @@ DX12_BEGIN_CONTEXT_COMMAND(true, TwoPhaseCopyBuffer)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+// Size lives on `from`: D3D12 alignment may grow the destination past the source, so only the
+// source bytes are actually valid to copy.
 DX12_BEGIN_CONTEXT_COMMAND(true, MoveBuffer)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, from)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, to)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, from)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, to)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.moveBuffer(from, to);
@@ -1541,8 +1541,8 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, TwoPhaseMoveBuffer)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, from)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, to)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, from)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, to)
   DX12_CONTEXT_COMMAND_PARAM(ScratchBuffer, scratch)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION

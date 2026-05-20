@@ -201,11 +201,12 @@ macro INIT_RT_SURFACE_PARAMS(stage)
   INIT_WORLD_HEIGHTMAP_BASE(stage)
   RANDOM_UV_OFFSET(stage)
   INIT_GRASS_COLORS_CBUF(stage)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
   (stage)
   {
     paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
     paint_details_smp_slot@i1 = bvh_paint_details_smp_slot;
-    perlin_noise3d@smp3d = perlin_noise3d;
+    perlin_noise3d@tex3d = perlin_noise3d;
     bvh_eye_sclera_color@f3 = (pow(bvh_eye_sclera_color.x, 2.2), pow(bvh_eye_sclera_color.y, 2.2), pow(bvh_eye_sclera_color.z, 2.2), 0);
     bvh_eye_iris_color@f3 = (pow(bvh_eye_iris_color.x, 2.2), pow(bvh_eye_iris_color.y, 2.2), pow(bvh_eye_iris_color.z, 2.2), 0);
     bvh_water_color@f3 = (sRGBRead(ocean0)); // Probably good enough
@@ -229,6 +230,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
     #define paint_details_tex uniformBindlessTex2D(bvh_textures, paint_details_tex_slot)
     #define paint_details_tex_samplerstate bvh_clamp_sampler
+    #define perlin_noise3d_samplerstate global_linear_wrap_sampler
   }
   (stage)
   {
@@ -825,8 +827,8 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       float3 worldPos = surface.position + bvh_origin;
 
       #if RT_USE_RT_SHADOW
-        // TODO: Have two sided in model meta and set bias accordingly
-        half shadow = is_obstructed(bvhMain, surface.position, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, 1, trace_extra_flags) ? 0 : 1;
+        float3 offsetPos = applyAdaptiveRayOffset(surface.position, surface.normal);
+        half shadow = is_obstructed(bvhMain, offsetPos, toSun, 0, ray_max, w, bvhGroupAll & ~bvhGroupGrass, 1, trace_extra_flags) ? 0 : 1;
       #else
         half shadow = getStaticShadow(worldPos.xyz);
         #if RT_USE_CSM_SHADOW

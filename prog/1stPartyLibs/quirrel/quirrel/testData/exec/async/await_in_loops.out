@@ -1,0 +1,7 @@
+script done
+for i=0 v=ok
+for i=1 v=ok
+for i=2 v=ok
+foreach idx=0 item=a v=ok
+foreach idx=1 item=b v=ok
+foreach idx=2 item=c v=ok

@@ -45,7 +45,7 @@ private:
   void updateFrame();
   uint32_t frames = 1, frame = 0;
   PostFxRenderer shader;
-  UniqueTexHolder preIntegratedGF;
+  UniqueTexWithShaderVar preIntegratedGF;
 };
 
 TexPtr create_preintegrated_fresnel_GGX(const char *name, uint32_t preintegrate_type);

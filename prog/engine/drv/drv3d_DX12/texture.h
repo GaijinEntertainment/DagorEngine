@@ -38,6 +38,7 @@ class BaseTex final : public D3dResourceNameImpl<BaseTexture>
 public:
   bool isRenderTarget() const { return 0 != (cflg & TEXCF_RTARGET); }
   bool isUav() const { return 0 != (cflg & TEXCF_UNORDERED); }
+  bool isUpdateDestination() const { return 0 != (cflg & TEXCF_UPDATE_DESTINATION); }
   bool isMultisampled() const { return 0 != (cflg & TEXCF_SAMPLECOUNT_MASK); }
 
   bool isLocked() const { return lockFlags != 0; }

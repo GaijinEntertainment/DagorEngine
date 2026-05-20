@@ -1,0 +1,9 @@
+WARNING: w232 (always-true-or-false) Expression is always 'false'.
+testData/static_analyzer/w232_chained_mixed_deparen.nut:2:9
+
+function fn(x, y) {
+  return (x == 1) && (y == 2) && ((x != 1))
+         ^-------------------------------
+}
+
+

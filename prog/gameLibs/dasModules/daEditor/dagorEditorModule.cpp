@@ -28,8 +28,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addAnnotation(das::make_smart<EntityObjAnnotation>(lib));
-    addAnnotation(das::make_smart<UndoSystemAnnotation>(lib));
+    addAnnotation(new EntityObjAnnotation(lib));
+    addAnnotation(new UndoSystemAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(::EntityObjEditor::saveComponent)>(*this, lib, "entity_obj_editor_saveComponent",
       das::SideEffects::accessExternal, "::EntityObjEditor::saveComponent");

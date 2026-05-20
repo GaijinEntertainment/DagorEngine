@@ -2522,15 +2522,27 @@ namespace das {
         static __forceinline void invoke ( Context * __context__, LineInfo * __lineinfo__, const Func & blk ) {
             SimFunction * simFunc = blk.PTR;
             if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
-            __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
+            if ( simFunc->aotFunction ) {
+                using fnPtrType = void (*) ( Context * );
+                auto fnPtr = (fnPtrType) simFunc->aotFunction;
+                (*fnPtr) ( __context__ );
+            } else {
+                __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
+            }
         }
         template <typename ...ArgType>
         DAS_SUPPRESS_UB
         static __forceinline void invoke ( Context * __context__, LineInfo * __lineinfo__, const Func & blk, ArgType ...arg ) {
-            vec4f arguments [] = { cast<ArgType>::from(arg)... };
             SimFunction * simFunc = blk.PTR;
             if (!simFunc) __context__->throw_error_at(__lineinfo__, "invoke null function");
-            __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
+            if ( simFunc->aotFunction ) {
+                using fnPtrType = void (*) ( Context *, ArgType... );
+                auto fnPtr = (fnPtrType) simFunc->aotFunction;
+                (*fnPtr) ( __context__, das::forward<ArgType>(arg)... );
+            } else {
+                vec4f arguments [] = { cast<ArgType>::from(arg)... };
+                __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
+            }
         }
     };
 
@@ -2587,12 +2599,17 @@ namespace das {
             if (!unique) __context__->throw_error_at(__lineinfo__, "invoke non-unique function %s", funcName);
             if ( simFunc->cmres ) __context__->throw_error_at(__lineinfo__, "can't dynamically invoke function %s, which returns by reference",funcName);
             if ( simFunc->unsafe ) __context__->throw_error_at(__lineinfo__, "can't dynamically invoke unsafe function %s",funcName);
-            __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
+            if ( simFunc->aotFunction ) {
+                using fnPtrType = void (*) ( Context * );
+                auto fnPtr = (fnPtrType) simFunc->aotFunction;
+                (*fnPtr) ( __context__ );
+            } else {
+                __context__->callOrFastcall(simFunc, nullptr, __lineinfo__);
+            }
         }
         template <typename ...ArgType>
         DAS_SUPPRESS_UB
         static __forceinline void invoke ( Context * __context__, LineInfo * __lineinfo__, const char * funcName, ArgType ...arg ) {
-            vec4f arguments [] = { cast<ArgType>::from(arg)... };
             if (!funcName) __context__->throw_error_at(__lineinfo__, "invoke null function");
             bool unique = false;
             SimFunction * simFunc = __context__->findFunction(funcName, unique);
@@ -2600,7 +2617,14 @@ namespace das {
             if (!unique) __context__->throw_error_at(__lineinfo__, "invoke non-unique function %s", funcName);
             if ( simFunc->cmres ) __context__->throw_error_at(__lineinfo__, "can't dynamically invoke function %s, which returns by reference",funcName);
             if ( simFunc->unsafe ) __context__->throw_error_at(__lineinfo__, "can't dynamically invoke unsafe function %s",funcName);
-            __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
+            if ( simFunc->aotFunction ) {
+                using fnPtrType = void (*) ( Context *, ArgType... );
+                auto fnPtr = (fnPtrType) simFunc->aotFunction;
+                (*fnPtr) ( __context__, das::forward<ArgType>(arg)... );
+            } else {
+                vec4f arguments [] = { cast<ArgType>::from(arg)... };
+                __context__->callOrFastcall(simFunc, arguments, __lineinfo__);
+            }
         }
     };
 

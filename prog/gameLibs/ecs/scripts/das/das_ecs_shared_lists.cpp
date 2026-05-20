@@ -31,7 +31,7 @@ ECS_DECL_LIST_TYPES
 
 void ECS::addSharedList(das::ModuleLibrary &lib)
 {
-#define DECL_LIST_TYPE(lt, t) addAnnotation(das::make_smart<lt##SharedAnnotation>(lib));
+#define DECL_LIST_TYPE(lt, t) addAnnotation(new lt##SharedAnnotation(lib));
   ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
 }

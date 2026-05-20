@@ -10,9 +10,12 @@
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <util/dag_convar.h>
 
 #include <cstdio>
 
+CONSOLE_BOOL_VAL("gpu_profiler", gpu_pipeline_stats, false,
+  "Enable GPU pipeline statistics queries to get number of triangles for indirect draw calls.");
 
 namespace gpu_profiler
 {
@@ -55,7 +58,7 @@ struct PipelineStatsStorage
 
 static eastl::unique_ptr<PipelineStatsStorage> psStorage;
 
-inline bool pipelineStatsSupported() { return psStorage != nullptr; };
+inline bool pipelineStatsSupported() { return gpu_pipeline_stats.get() && psStorage != nullptr; };
 
 bool init()
 {
@@ -242,7 +245,7 @@ static void finish_pipeline_stats_internal()
   for (; id != modQid; id = (id + 1) % PS_MAX_QUERIES, ++processed)
   {
     uint64_t result = 0;
-    if (!d3d::driver_command(Drv3dCommand::PIPELINE_STATS_RASTERIZED_PRIMITIVES, psStorage->queries[id], &result))
+    if (!d3d::driver_command(Drv3dCommand::PIPELINE_STATS_INVOKED_PRIMITIVES, psStorage->queries[id], &result))
       break;
     if (psStorage->queryResults[id])
       *psStorage->queryResults[id] = result;

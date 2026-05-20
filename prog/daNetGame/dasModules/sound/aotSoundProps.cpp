@@ -21,7 +21,7 @@ public:
   SoundPropsModule() : das::Module("soundProps")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<SoundActionPropsAnnotation>(lib));
+    addAnnotation(new SoundActionPropsAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::das_get_props<sound::ActionProps>)>(*this, lib, "action_sound_get_props",
       das::SideEffects::accessExternal, "bind_dascript::das_get_props<sound::ActionProps>");

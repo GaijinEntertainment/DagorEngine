@@ -21,7 +21,7 @@ blood_decals_render_manager{
   "blood_decals_traces_result:list<r>"{}
   "blood_decals_traces_queue:list<ip2>"{}
 
-  "blood_decals_depth_atlas:UniqueTexHolder"{}
+  "blood_decals_depth_atlas:UniqueTexWithShaderVar"{}
 
   blood_decals_decals_max_count:i=1024
   blood_decals_decals_count:i=0

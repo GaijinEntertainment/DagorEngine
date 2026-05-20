@@ -160,5 +160,47 @@ assets {
         dynamic_chevron:t="dynamic_chevron"
       }
     }
+
+    physObj {
+      ragdoll {
+        def_density:r=1050
+        def_massType:t="box"
+        def_collType:t="capsule"
+
+        name_full {
+        }
+        name_tail {
+          " Pelvis"     { joint { type:t="rag_ball"; minLimit:p3=-30,30,30; maxLimit:p3=30,30,30; damping:r=20; twistDamping:r=20; } }
+          " Spine1"     { joint { type:t="rag_ball"; minLimit:p3=-10,20,20; maxLimit:p3=10,20,20; damping:r=50; twistDamping:r=50; } }
+
+          " R Thigh"    { joint { type:t="rag_ball"; minLimit:p3=-10,10,30; maxLimit:p3=30,30,30; damping:r=20; twistDamping:r=20; } }
+          "@clone-last: L Thigh"    { "@override:joint" { swapLimZ:b=yes; } }
+
+          " R Calf"     { joint { type:t="hinge";    minLimit:p3=-60,0,0; damping:r=15; } }
+          "@clone-last: L Calf"     {}
+
+          " R Foot"     { joint { type:t="rag_ball"; minLimit:p3=-10,10,10; maxLimit:p3=10, 5,10; damping:r=20; twistDamping:r=20; } }
+          "@clone-last: L Foot"     { "@override:joint" { swapLimZ:b=yes; } }
+
+          " Neck"       { joint { type:t="rag_ball"; minLimit:p3=-40,45,50; maxLimit:p3=40,55,50; damping:r=20; twistDamping:r=20; } }
+          " Head"       { ref:t="Bip01 Neck"; joint { type:t="rag_ball"; minLimit:p3=0,0,0; maxLimit:p3=0,0,0; damping:r=20; twistDamping:r=20; } }
+
+          " R Clavicle" { collType:t="none"; joint { type:t="rag_ball"; minLimit:p3= -5, 5, 5; maxLimit:p3= 5, 5, 5; damping:r=20; twistDamping:r=20; exclParent:t=" Neck"; } }
+          "@clone-last: L Clavicle" { "@override:joint" { swapLimZ:b=yes; } }
+
+          " R UpperArm" { joint { type:t="rag_ball"; minLimit:p3=-20,-10,-10; maxLimit:p3=20,15,30; damping:r=20; twistDamping:r=20; exclParent:t=" Neck"; } }
+          "@clone-last: L UpperArm" { "@override:joint" { swapLimZ:b=yes; } }
+
+          " R Forearm"  { joint { type:t="hinge";    minLimit:p3=-90,0,0; damping:r=0.5; } }
+          "@clone-last: L Forearm"  {}
+
+          " R Hand"     { joint { type:t="rag_ball"; minLimit:p3=-30,15,15; maxLimit:p3=30,15,15; damping:r=20; twistDamping:r=20; } }
+          "@clone-last: L Hand"     { "@override:joint" { swapLimZ:b=yes; } }
+        }
+        def_helper { physObj:b=no; animated_node:b=yes; }
+        twist_ctrl { node0:t="Bip01 L Forearm"; node1:t="Bip01 L Hand"; twistNode:t="Bip01e L Twist"; twistNode:t="Bip01e L Twist1"; angDiff:r=-90; }
+        twist_ctrl { node0:t="Bip01 R Forearm"; node1:t="Bip01 R Hand"; twistNode:t="Bip01e R Twist"; twistNode:t="Bip01e R Twist1"; angDiff:r=90; }
+      }
+    }
   }
 }

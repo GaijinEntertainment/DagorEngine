@@ -7,11 +7,11 @@ texture shadow_cascade_depth_tex;
 
 float4 shadow_cascade_camera_near_plane;
 float4 shadow_cascade_0_tm[3];
-float4 shadow_cascade_splits[2];
-float4 shadow_cascade_relative_scale[6];
-float4 shadow_cascade_relative_offset[6];
-float4 shadow_cascade_rcp_basis_length_sq[6];
+float4 shadow_cascade_relative_scale_and_near[6];
+float4 shadow_cascade_relative_offset_and_far[6];
 float4 shadow_cascade_tc_mul_offset[6];
+float4 shadow_cascade_rcp_basis_length_sq[6];
+int shadow_cascade_manual_cascade_count;
 
 float4 csm_world_view_pos;
 
@@ -22,6 +22,9 @@ float csm_dither_cascade_scale = 0.1;
 
 int num_of_cascades = 4;
 interval num_of_cascades:csm_off<1, one<2, two<3, three<4, four<5, five<6, six;
+
+int has_manual_cascades = 0;
+interval has_manual_cascades: no<1, yes;
 
 macro BASE_USE_CSM_SHADOW_DEF_NUM(code, get_csm_shadow_func)
   if (num_of_cascades == one)
@@ -69,11 +72,11 @@ macro INIT_CSM_SHADOW_STCODE_BASE(stage)
   (stage) {
     shadow_cascade_camera_near_plane@f4 = shadow_cascade_camera_near_plane;
     shadow_cascade_0_tm@f4[] = shadow_cascade_0_tm;
-    shadow_cascade_splits@f4[] = shadow_cascade_splits;
-    shadow_cascade_relative_scale@f4[] = shadow_cascade_relative_scale;
-    shadow_cascade_relative_offset@f4[] = shadow_cascade_relative_offset;
+    shadow_cascade_relative_scale_and_near@f4[] = shadow_cascade_relative_scale_and_near;
+    shadow_cascade_relative_offset_and_far@f4[] = shadow_cascade_relative_offset_and_far;
     shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
     shadow_cascade_rcp_basis_length_sq@f4[] = shadow_cascade_rcp_basis_length_sq;
+    shadow_cascade_manual_cascade_count@i1 = shadow_cascade_manual_cascade_count;
   }
 endmacro
 
@@ -89,11 +92,11 @@ macro INIT_CSM_SHADOW_CBUF_BASE(stage)
       {
         float4 shadow_cascade_camera_near_plane;
         float4 shadow_cascade_0_tm[3];
-        float4 shadow_cascade_splits[2];
-        float4 shadow_cascade_relative_scale[6];
-        float4 shadow_cascade_relative_offset[6];
+        float4 shadow_cascade_relative_scale_and_near[6];
+        float4 shadow_cascade_relative_offset_and_far[6];
         float4 shadow_cascade_tc_mul_offset[6];
         float4 shadow_cascade_rcp_basis_length_sq[6];
+        int shadow_cascade_manual_cascade_count;
       };
     }
   }
@@ -113,7 +116,7 @@ endmacro
 
 float4 csm_culling_near_planes;
 
-macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
+macro USE_CSM_SHADOW_TC_BASE(code, num_cascades)
   hlsl(code) {
     #ifndef NUM_CASCADES
     #define NUM_CASCADES num_cascades
@@ -133,7 +136,34 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
     #define CSM_CASCADE_SELECTION_PROJECTION_BOUNDS 0
     #define CSM_CASCADE_SELECTION_VIEW_DEPTH 1
 
+
+    #ifndef CSM_CASCADE_SELECTION
+    #define CSM_CASCADE_SELECTION CSM_CASCADE_SELECTION_PROJECTION_BOUNDS
+    #endif
+
+    ##if has_manual_cascades == yes
+    #define HAS_MANUAL_CASCADES 1
+    ##endif
+
     #include "./csm_shadow_tc.hlsl"
+  }
+endmacro
+
+macro USE_CSM_SHADOW_TC_BASE_DEF_NUM(code)
+  if (num_of_cascades == csm_off)    { USE_CSM_SHADOW_TC_BASE(code, 0) }
+  else if (num_of_cascades == one)   { USE_CSM_SHADOW_TC_BASE(code, 1) }
+  else if (num_of_cascades == two)   { USE_CSM_SHADOW_TC_BASE(code, 2) }
+  else if (num_of_cascades == three) { USE_CSM_SHADOW_TC_BASE(code, 3) }
+  else if (num_of_cascades == four)  { USE_CSM_SHADOW_TC_BASE(code, 4) }
+  else if (num_of_cascades == five)  { USE_CSM_SHADOW_TC_BASE(code, 5) }
+  else if (num_of_cascades == six)   { USE_CSM_SHADOW_TC_BASE(code, 6) }
+endmacro
+
+macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
+
+  USE_CSM_SHADOW_TC_BASE(code, num_cascades)
+
+  hlsl(code) {
     #include "noise/poisson_disc_8.hlsl"
 
     half texCSMShadow(float2 uv, float z)
@@ -210,7 +240,7 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
       // inv(M) = t(R) * inv(D) * inv(S)
       // t(inv(M)) = t(t(R) * inv(D) * inv(S)) = inv(S) * inv(D) * R
       // shadow_cascade_0_tm * shadow_cascade_relative_scale contains D * R. Transform by it.
-      float3 normalTcSpace = float3(dot(shadow_cascade_0_tm[0].xyz, normal), dot(shadow_cascade_0_tm[1].xyz, normal), dot(shadow_cascade_0_tm[2].xyz, normal)) * shadow_cascade_relative_scale[cascade_id].xyz;
+      float3 normalTcSpace = float3(dot(shadow_cascade_0_tm[0].xyz, normal), dot(shadow_cascade_0_tm[1].xyz, normal), dot(shadow_cascade_0_tm[2].xyz, normal)) * shadow_cascade_relative_scale_and_near[cascade_id].xyz;
       // normalTcSpace now contains scale from D, so we have to divide by square of D coefficients to compensate.
       float3 invDSq = shadow_cascade_rcp_basis_length_sq[cascade_id].xyz;
       normalTcSpace = normalTcSpace * invDSq;
@@ -313,7 +343,13 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
       float csmEffect = 1;
 
       #if SHADOWS_USE_DITHER
-      float3 t = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*0.1);
+        #if CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_VIEW_DEPTH
+        float3 t = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, dither - 0.5);
+        #elif CSM_CASCADE_SELECTION == CSM_CASCADE_SELECTION_PROJECTION_BOUNDS
+        float3 t = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*0.1);
+        #else
+        #error "Unimplemented path"
+        #endif
       #else
       float3 t = get_csm_shadow_tc(pointToEye, cascade_id, csmEffect);
       #endif

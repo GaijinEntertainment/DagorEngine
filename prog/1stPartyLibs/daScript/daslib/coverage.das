@@ -75,7 +75,7 @@ var public coverageData = table<string; CoverageData>()
 def private single_file_report(name : string) {
     var fnFound = 0
     var fnHit = 0
-    let fnData = build_string() <| $(writer) {
+    let fnData = build_string() $(writer) {
         coverageData |> get(name) $(funcs) {
             for (fname, entry in keys(funcs.func_cov), values(funcs.func_cov)) {
                 writer |> write("FN:{entry.line |> int},{fname}\n")
@@ -91,7 +91,7 @@ def private single_file_report(name : string) {
     }
     var brFound = 0
     var brHit = 0
-    let brData = build_string() <| $(writer) {
+    let brData = build_string() $(writer) {
         coverageData |> get(name) $(branches) {
             for (br in values(branches.branch_cov)) {
                 var taken : string
@@ -108,7 +108,7 @@ def private single_file_report(name : string) {
             }
         }
     }
-    let data = build_string() <| $(writer) {
+    let data = build_string() $(writer) {
         coverageData |> get(name) $(x) {
             for (k, v in keys(x.line_cov.lines), values(x.line_cov.lines)) {
                 writer |> write("DA:{k |> int},{v |> int}\n")
@@ -121,7 +121,7 @@ def private single_file_report(name : string) {
 def get_report(name : string = "") : string {
     //! Returns code coverage report in lcov format for the specified file, or all files if name is empty.
     if (name |> empty) {
-        return build_string() <| $(var w) {
+        return build_string() $(var w) {
             for (k in keys(coverageData)) {
                 w |> write(single_file_report(k))
             }
@@ -195,7 +195,7 @@ def private summary_line(var writer : StringBuilderWriter; name : string; nameWi
 
 def public register_coverage_lines(file : string; lines : array<uint>) {
     //! Registers lines as instrumented with 0 hit count (for DA:line,0 in LCOV).
-    coverageData |> get_with_default(file) <| $(var cov) {
+    coverageData |> get_with_default(file) $(var cov) {
         for (line in lines) {
             cov.line_cov.lines |> insert(line, 0u)
         }
@@ -204,8 +204,8 @@ def public register_coverage_lines(file : string; lines : array<uint>) {
 
 def public register_coverage_func_lines(file : string; fname : string; lines : array<uint>) {
     //! Registers per-function lines with 0 hit count so uncalled functions show missed lines.
-    coverageData |> get_with_default(file) <| $(var cov) {
-        cov.func_cov |> get_with_default(fname) <| $(var fc) {
+    coverageData |> get_with_default(file) $(var cov) {
+        cov.func_cov |> get_with_default(fname) $(var fc) {
             for (line in lines) {
                 fc.line_cov.lines |> insert(line, 0u)
             }
@@ -215,9 +215,9 @@ def public register_coverage_func_lines(file : string; fname : string; lines : a
 
 def public register_coverage_functions(file : string; names : array<string>; lines : array<uint>) {
     //! Registers functions with 0 hit count for FN/FNDA records in LCOV.
-    coverageData |> get_with_default(file) <| $(var funcs) {
+    coverageData |> get_with_default(file) $(var funcs) {
         for (i in range(names |> length)) {
-            funcs.func_cov |> get_with_default(names[i]) <| $(var fc) {
+            funcs.func_cov |> get_with_default(names[i]) $(var fc) {
                 fc.line = lines[i]
             }
         }
@@ -226,7 +226,7 @@ def public register_coverage_functions(file : string; names : array<string>; lin
 
 def public register_coverage_branches(file : string; blines : array<uint>; block_nums : array<uint>; branch_nums : array<uint>) {
     //! Registers branches with 0 hit count for BRDA records in LCOV.
-    coverageData |> get_with_default(file) <| $(var branches) {
+    coverageData |> get_with_default(file) $(var branches) {
         for (i in range(blines |> length)) {
             branches.branch_cov |> insert(i |> uint, BranchCov(line = blines[i], block_num = block_nums[i], branch_num = branch_nums[i], hits = 0u))
         }
@@ -235,9 +235,9 @@ def public register_coverage_branches(file : string; blines : array<uint>; block
 
 def public add_line_coverage(file : string; fname : string; line : uint) {
     //! Records a coverage hit for the given file, function, and line number.
-    coverageData |> get_with_default(file) <| $(var cov) {
+    coverageData |> get_with_default(file) $(var cov) {
         cov.line_cov.insert(line)
-        cov.func_cov |> get_with_default(fname) <| $(var fc) {
+        cov.func_cov |> get_with_default(fname) $(var fc) {
             fc.line_cov.insert(line)
         }
     }
@@ -245,8 +245,8 @@ def public add_line_coverage(file : string; fname : string; line : uint) {
 
 def public add_func_coverage(file : string; name : string) {
     //! Records a coverage hit for the given file and function name.
-    coverageData |> get_with_default(file) <| $(var funcs) {
-        funcs.func_cov |> get_with_default(name) <| $(var fc) {
+    coverageData |> get_with_default(file) $(var funcs) {
+        funcs.func_cov |> get_with_default(name) $(var fc) {
             fc.hits += 1u
         }
     }
@@ -254,8 +254,8 @@ def public add_func_coverage(file : string; name : string) {
 
 def public add_branch_coverage(file : string; branch_idx : uint) {
     //! Records a coverage hit for the given file and branch index.
-    coverageData |> get_with_default(file) <| $(var branches) {
-        branches.branch_cov |> modify(uint(branch_idx)) <| $(value) {
+    coverageData |> get_with_default(file) $(var branches) {
+        branches.branch_cov |> modify(uint(branch_idx)) $(value) {
             var res = value
             res.hits += 1u
             return res
@@ -280,7 +280,7 @@ class CoverageMacro : AstVisitor {
     @do_not_delete func : Function?
     def override preVisitFunction(var fun : FunctionPtr) {
         //! Stores a pointer to the current function being visited and records function info for coverage.
-        func = get_ptr(fun)
+        func = fun
         if (fun.flags.generated || fun.flags.init || fun.flags.builtIn) {
             return
         }
@@ -290,7 +290,7 @@ class CoverageMacro : AstVisitor {
         let file = resolve_file_path(string(fun.at.fileInfo.name))
         let fname = string(fun.name)
         let line = fun.at.line
-        registration_data |> get_with_default(file) <| $(var file_reg) {
+        registration_data |> get_with_default(file) $(var file_reg) {
             if (!(file_reg.allFunctions |> key_exists(fname))) {
                 file_reg.allFunctions |> insert(fname, line)
             }
@@ -328,7 +328,7 @@ class CoverageMacro : AstVisitor {
         let file = resolve_file_path(string(fun.at.fileInfo.name))
         let fname = string(fun.name)
         var blk = unsafe(reinterpret<ExprBlock?> expr)
-        var inscope prev : array<ExpressionPtr>
+        var prev : array<ExpressionPtr>
         for (ex in blk.list) {
             prev.emplace(ex)
         }
@@ -341,7 +341,7 @@ class CoverageMacro : AstVisitor {
         func.not_inferred()
     }
 
-    def override visitExprIfThenElse(var ifte : smart_ptr<ExprIfThenElse>) : ExpressionPtr {
+    def override visitExprIfThenElse(var ifte : ExprIfThenElse?) : ExpressionPtr {
         //! Instruments if/else branches with branch coverage tracking calls.
         // if (ifte.isStatic) {
         //     return <- ifte
@@ -355,13 +355,13 @@ class CoverageMacro : AstVisitor {
         }
         let line = ifte.at.line
         var block_num : uint
-        registration_data |> get_with_default(file) <| $(var file_reg) {
+        registration_data |> get_with_default(file) $(var file_reg) {
             block_num = file_reg.branchCounter
             file_reg.branchCounter += 1u
         }
         var true_idx : uint
         var false_idx : uint
-        registration_data |> get_with_default(file) <| $(var file_reg) {
+        registration_data |> get_with_default(file) $(var file_reg) {
             true_idx = uint(file_reg.allBranches |> length)
             file_reg.allBranches |> push(tuple(line, block_num, 0u))
 
@@ -371,7 +371,7 @@ class CoverageMacro : AstVisitor {
         // instrument true branch
         if (ifte.if_true != null && ifte.if_true is ExprBlock) {
             var true_blk = unsafe(reinterpret<ExprBlock?> ifte.if_true)
-            var inscope prevTrue : array<ExpressionPtr>
+            var prevTrue : array<ExpressionPtr>
             for (ex in true_blk.list) {
                 prevTrue.emplace(ex)
             }
@@ -384,7 +384,7 @@ class CoverageMacro : AstVisitor {
         // instrument false branch
         if (ifte.if_false != null && ifte.if_false is ExprBlock) {
             var false_blk = unsafe(reinterpret<ExprBlock?> ifte.if_false)
-            var inscope prevFalse : array<ExpressionPtr>
+            var prevFalse : array<ExpressionPtr>
             for (ex in false_blk.list) {
                 prevFalse.emplace(ex)
             }
@@ -395,23 +395,23 @@ class CoverageMacro : AstVisitor {
             }
         } elif (ifte.if_false == null) {
             // no else branch — create one with just the branch coverage call
-            var inscope elseBlk <- new ExprBlock(at = ifte.at)
+            var elseBlk = new ExprBlock(at = ifte.at)
             elseBlk.list |> emplace_new <| qmacro(_::add_branch_coverage($v(file), $v(false_idx)))
-            move(ifte.if_false) <| elseBlk
+            ifte.if_false = elseBlk
         }
         astChanged = true
         func.not_inferred()
         return <- ifte
     }
 
-    def override visitExprBlock(var blk : smart_ptr<ExprBlock>) : ExpressionPtr {
+    def override visitExprBlock(var blk : ExprBlock?) : ExpressionPtr {
         //! Instruments expression blocks with coverage tracking calls.
         if (blk.at.fileInfo == null) {
             return <- blk
         }
         astChanged = true
         func.not_inferred()
-        var inscope prev : array<ExpressionPtr>
+        var prev : array<ExpressionPtr>
         for (ex in blk.list) {
             prev.emplace(ex)
         }
@@ -426,11 +426,11 @@ class CoverageMacro : AstVisitor {
                 }
                 let fname = string(func.name)
                 let line = prev[el].at.line
-                coverageData |> get_with_default(file) <| $(var data) {
+                coverageData |> get_with_default(file) $(var data) {
                     data.line_cov.insert(line)
                 }
-                registration_data |> get_with_default(file) <| $(var reg) {
-                    reg.funcLines |> get_with_default(fname) <| $(var flines) {
+                registration_data |> get_with_default(file) $(var reg) {
+                    reg.funcLines |> get_with_default(fname) $(var flines) {
                         flines |> insert(line)
                     }
                 }
@@ -441,7 +441,7 @@ class CoverageMacro : AstVisitor {
         return <- blk
     }
 
-    def override preVisitExprAssert(var expr : smart_ptr<ExprAssert>) {
+    def override preVisitExprAssert(var expr : ExprAssert?) {
         // Once coverage added all assertions should become verify
         // since side-effects added when calling coverage tools.
         expr.isVerify = true
@@ -461,14 +461,14 @@ class CoveragePass : AstPassMacro {
             return false
         }
         var found = false
-        mod |> for_each_function("__coverage_init") <| $(fn) {
+        mod |> for_each_function("__coverage_init") $(fn) {
             found = true
         }
         if (found) {
             return false
         }
         var covModule : Module?
-        program_for_each_module(prog) <| $(m) {
+        program_for_each_module(prog) $(m) {
             if (m.name == "coverage") {
                 covModule = m
             }
@@ -478,12 +478,13 @@ class CoveragePass : AstPassMacro {
         }
         add_module_require(mod, covModule, false)
         var astVisitor = new CoverageMacro()
-        var inscope astVisitorAdapter <- make_visitor(*astVisitor)
-        visit_module(prog, astVisitorAdapter, mod)
-        var result = astVisitor.astChanged
+        make_visitor(*astVisitor) $(astVisitorAdapter) {
+            visit_module(prog, astVisitorAdapter, mod)
+        }
+        let result = astVisitor.astChanged
         if (result) {
             // generate [init] function that registers all instrumented lines with 0 hits
-            var inscope initFn <- qmacro_function("__coverage_init") <| $() {
+            var initFn = qmacro_function("__coverage_init") $() {
                 pass
             }
             var blk = unsafe(reinterpret<ExprBlock?> initFn.body)
@@ -564,7 +565,7 @@ def get_coverage_summary(cov_data : table<string; CoverageData>;
         }
     }
     let w = max_len + 2
-    return build_string() <| $(writer) {
+    return build_string() $(writer) {
         writer |> write("\nCoverage Summary\n")
         writer |> write_chars('=', w + 30)
         writer |> write("\n")
@@ -624,7 +625,7 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
     // Track function start lines per file for assigning DA lines to functions.
     var funcStarts : table<string; array<tuple<uint; string>>>
     var result = table<string; CoverageData>()
-    fopen(lcov_path, "rb") <| $(f) {
+    fopen(lcov_path, "rb") $(f) {
         if (f == null) {
             print("Failed to open {lcov_path}\n")
             return
@@ -642,7 +643,7 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
             if (skipFile) {
                 continue
             }
-            result |> get_with_default(currentFile) <| $(var cov) {
+            result |> get_with_default(currentFile) $(var cov) {
                 if (line |> starts_with("FN:")) {
                     // FN:line,name
                     let rest = slice(line, 3)
@@ -650,10 +651,10 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
                     if (comma >= 0) {
                         let fline = uint(to_int(slice(rest, 0, comma)))
                         let fname = slice(rest, comma + 1)
-                        cov.func_cov |> get_with_default(fname) <| $(var fc) {
+                        cov.func_cov |> get_with_default(fname) $(var fc) {
                             fc.line = fline
                         }
-                        funcStarts |> get_with_default(currentFile) <| $(var starts) {
+                        funcStarts |> get_with_default(currentFile) $(var starts) {
                             starts |> push(tuple(fline, string(fname)))
                         }
                     }
@@ -664,7 +665,7 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
                     if (comma >= 0) {
                         let hits = uint(to_int(slice(rest, 0, comma)))
                         let fname = slice(rest, comma + 1)
-                        cov.func_cov |> get_with_default(fname) <| $(var fc) {
+                        cov.func_cov |> get_with_default(fname) $(var fc) {
                             fc.hits += hits
                         }
                     }
@@ -714,10 +715,10 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
     }
     // Sort function starts and assign DA lines to functions for per-function line coverage.
     for (file, starts in keys(funcStarts), values(funcStarts)) {
-        sort(starts) <| $(a, b) {
+        sort(starts) $(a, b) {
             return a._0 < b._0
         }
-        result |> get(file) <| $(var cov) {
+        result |> get(file) $(var cov) {
             for (ln, hits in keys(cov.line_cov.lines), values(cov.line_cov.lines)) {
                 // Find function with largest start line <= ln.
                 var bestFunc = ""
@@ -729,7 +730,7 @@ def parse_lcov(lcov_path : string; exclude_prefixes : array<string>) : table<str
                     }
                 }
                 if (!bestFunc |> empty()) {
-                    cov.func_cov |> get(bestFunc) <| $(var fc) {
+                    cov.func_cov |> get(bestFunc) $(var fc) {
                         if (fc.line_cov.lines |> key_exists(ln)) {
                             unsafe(fc.line_cov.lines[ln]) += hits
                         } else {

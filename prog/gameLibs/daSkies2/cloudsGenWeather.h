@@ -15,7 +15,7 @@ public:
   bool setExternalWeatherTexture(TEXTUREID tid);
 
 private:
-  UniqueTexHolder clouds_weather_texture;
+  UniqueTexWithShaderVar clouds_weather_texture;
   PostFxRenderer gen_weather;
 
   int size = 128;

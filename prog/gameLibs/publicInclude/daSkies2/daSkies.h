@@ -38,6 +38,13 @@ enum class CloudsResolution
   ForceFullresClouds
 };
 
+// cloudsQuality 0..2 -> common dividers; 3,4 -> mobile low quality
+inline int get_clouds_res_divider(int quality)
+{
+  static constexpr int dividers[] = {1, 2, 4, 3, 4};
+  return dividers[quality];
+}
+
 enum class UpdateSky
 {
   Off, // sky won't be changed, so we can use it for main data for cube
@@ -266,6 +273,10 @@ public:
   }
   IPoint2 getCloudsResolution(const SkiesData *data);
   void skiesDataScatteringVolumeBarriers(SkiesData *data);
+
+#if DAGOR_DBGLEVEL > 0
+  void overrideSkiesDataCloudsUseCompute(SkiesData *data, bool use_compute);
+#endif
   // if sky_quality_div>1, additional textures required
   void changeSkiesData(int sky_detail_level, int clouds_detail_level, bool fly_through_clouds, int targetW, int targetH,
     SkiesData *data, CloudsResolution clouds_resolution = CloudsResolution::Default, bool use_blurred_clouds = false,
@@ -529,8 +540,8 @@ protected:
 
   bool updatePanorama(const Point3 &origin);
   void renderPanorama(const Point3 &origin, const TMatrix &view_tm, const TMatrix4 &proj_tm, const Driver3dPerspective &persp);
-  void downsamplePanoramaDepth(UniqueTex &depth, UniqueTexHolder &downsampled_depth);
-  void createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexHolder &downsampled_depth,
+  void downsamplePanoramaDepth(UniqueTex &depth, UniqueTexWithShaderVar &downsampled_depth);
+  void createPanoramaDepthTexHelper(UniqueTex &depth, const char *depth_name, UniqueTexWithShaderVar &downsampled_depth,
     const char *downsampled_depth_name, int w, int h, d3d::AddressMode addru, d3d::AddressMode addrv);
   void createPanoramaDepthTex();
   void createDepthPanoramaPatchTex();
@@ -584,10 +595,10 @@ protected:
 
   carray<UniqueTex, 3> cloudsPanoramaTex, cloudsPanoramaPatchTex; // fixme: we need couple for blending + 1 for 'volume fog'
   UniqueTex cloudsDepthPanoramaTex, cloudsDepthPanoramaPatchTex;
-  UniqueTexHolder cloudsDepthDownsampledPanoramaTex, cloudsDepthDownsampledPanoramaPatchTex;
-  UniqueTexHolder cloudsAlphaPanoramaTex;
-  UniqueTexHolder skyPanoramaTex;
-  UniqueTexHolder cloudsPanoramaMipTex;
+  UniqueTexWithShaderVar cloudsDepthDownsampledPanoramaTex, cloudsDepthDownsampledPanoramaPatchTex;
+  UniqueTexWithShaderVar cloudsAlphaPanoramaTex;
+  UniqueTexWithShaderVar skyPanoramaTex;
+  UniqueTexWithShaderVar cloudsPanoramaMipTex;
   PostFxRenderer cloudsPanoramaMip;
 
   bool panoramaTemporarilyDisabled = false;

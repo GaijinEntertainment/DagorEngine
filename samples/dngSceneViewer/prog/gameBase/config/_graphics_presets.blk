@@ -13,7 +13,6 @@ low {
     volumeFogQuality:t="close"
     fxTarget:t="lowres"
     groundDisplacementQuality:i=1
-    tsrQuality:i=1
   }
   video {
     antialiasing_mode:t="tsr"
@@ -36,7 +35,6 @@ medium {
     volumeFogQuality:t="medium"
     fxTarget:t="highres"
     groundDisplacementQuality:i=2
-    tsrQuality:i=0
   }
   video {
     antialiasing_mode:t="tsr"
@@ -59,7 +57,6 @@ ultra {
     volumeFogQuality:t="far"
     fxTarget:t="highres"
     groundDisplacementQuality:i=2
-    tsrQuality:i=1
   }
   video {
     antialiasing_mode:t="tsr"

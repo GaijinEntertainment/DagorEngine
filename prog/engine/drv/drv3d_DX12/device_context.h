@@ -32,6 +32,7 @@
 #include "texture.h"
 #include "viewport_state.h"
 #include "xess_wrapper.h"
+#include "fsr_wrapper.h"
 
 #if USE_DLSS_WITHOUT_STREAMLINE
 #include "dlss.h"
@@ -109,8 +110,8 @@ class ReadBackManager
   };
   struct BufferMoveRecord
   {
-    BufferResourceReferenceAndOffset from;
-    BufferResourceReferenceAndRange to;
+    BufferResourceReferenceAndRange from;
+    BufferResourceReferenceAndOffset to;
   };
   dag::Vector<TextureReadBackRecord> textureReadBackRecords;
   dag::Vector<BufferReadBackRecord> bufferReadBackRecords;
@@ -377,7 +378,7 @@ public:
     for (auto &bufferMoveRecord : bufferMoveRecords)
     {
       copy_command_list.copyBufferRegion(bufferMoveRecord.to.buffer, bufferMoveRecord.to.offset, bufferMoveRecord.from.buffer,
-        bufferMoveRecord.from.offset, bufferMoveRecord.to.size);
+        bufferMoveRecord.from.offset, bufferMoveRecord.from.size);
     }
     if (!textureMoveRecords.empty() || !bufferMoveRecords.empty())
     {
@@ -401,7 +402,7 @@ public:
     record.to = to;
     textureMoveRecords.push_back(record);
   }
-  void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+  void moveBuffer(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to)
   {
     BufferMoveRecord record;
     record.from = from;
@@ -543,7 +544,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   {
     if constexpr (T::is_primary)
     {
-      return T{CmdBase{}, this->generateCommandData(), eastl::forward<Args>(args)...};
+      return T{CmdBase{}, this->generateCommandData(getRecordingFrameIndex()), eastl::forward<Args>(args)...};
     }
     else
     {
@@ -1018,9 +1019,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void prepareExecuteAA(std::initializer_list<Image *> inputs, std::initializer_list<Image *> outputs);
     void executeXess(const XessParamsDx12 &params);
     void executeXeFg(const XessFgParamsDx12 &params);
-    void executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params);
+    void executeFSR(const FSRUpscalingArgs &params);
     void executeFSR2(const Fsr2ParamsDx12 &params);
-    void executeFSRFG(amd::FSR *fsr, const FSRFrameGenArgs &params);
+    void executeFSRFG(const FSRFrameGenArgs &params);
     void removeVertexShader(ShaderID shader);
     void removePixelShader(ShaderID shader);
     void deleteProgram(ProgramID program);
@@ -1093,8 +1094,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void aliasFlush(GpuPipeline gpu_pipeline);
     void twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint64_t destination_offset, ScratchBuffer scratch_memory,
       uint64_t data_size);
-    void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
-    void twoPhaseMoveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to, ScratchBuffer scratch_memory);
+    void moveBuffer(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to);
+    void twoPhaseMoveBuffer(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to, ScratchBuffer scratch_memory);
     void moveTexture(Image *from, Image *to);
     void twoPhaseMoveTexture(Image *from, Image *to, ScratchBuffer scratch_memory);
 
@@ -1248,6 +1249,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   EventsPool eventsPool;
 
   XessWrapper xessWrapper;
+  FsrWrapper fsrWrapper;
 #if _TARGET_PC_WIN
   eastl::optional<StreamlineAdapter> streamlineAdapter;
 #endif
@@ -1542,12 +1544,14 @@ public:
   void setVariableRateShadingTexture(Image *texture);
 #endif
   void registerInputLayout(InputLayoutID ident, const InputLayout &layout);
-  void initStreamline(ComPtr<DXGIFactory> &factory, DXGIAdapter *adapter);
+  void initStreamline(DXGIAdapter *adapter);
   void initXeSS();
+  void initFSR();
   void initFsr2();
   void initDLSS();
   void shutdownStreamline();
   void shutdownXess();
+  void shutdownFSR();
   void shutdownFsr2();
   void shutdownDLSS();
   XessState getXessState() const { return xessWrapper.getXessState(); }
@@ -1559,6 +1563,17 @@ public:
   void suppressXeFG(bool suppress) { xessWrapper.suppressFrameGeneration(suppress); }
   void scheduleXeFG(const XessFgParams &params);
   int getXeFgPresentedFrameCount() { return xessWrapper.getPresentedFrameCount(); }
+
+  bool isFsrLoaded() const { return fsrWrapper.isLoaded(); }
+  bool isFsrUpscalingSupported() const { return fsrWrapper.isUpscalingSupported(); }
+  bool initFsrUpscaling(const amd::FSR::ContextArgs &args) { return fsrWrapper.fsrCreateFeature(args); }
+  void teardownFsrUpscaling() { fsrWrapper.teardownUpscaling(); }
+  bool isFsrFGSupported() const { return fsrWrapper.isFrameGenerationSupported(); }
+  bool isFsrFGEnabled() const { return fsrWrapper.isFrameGenerationEnabled(); }
+  bool isFsrFGSuppressed() const { return fsrWrapper.isFrameGenerationSuppressed(); }
+  void enableFsrFG(bool enable) { fsrWrapper.enableFrameGeneration(enable); }
+  void suppressFsrFG(bool suppress) { fsrWrapper.suppressFrameGeneration(suppress); }
+  int getFsrFgPresentedFrameCount() { return fsrWrapper.getPresentedFrameCount(); }
 
   void shutdownInternalSwapchain();
   bool adoptUserSwapchain(DXGISwapChain *swapchain, SwapchainCreateInfo &&sci);
@@ -1580,7 +1595,12 @@ public:
   {
     xessWrapper.getXeSSRenderResolution(w, h, minw, minh, maxw, maxh);
   }
+  IPoint2 getFsrRenderResolution(amd::FSR::UpscalingMode mode, const IPoint2 &target_resolution) const
+  {
+    return fsrWrapper.getFsrRenderResolution(mode, target_resolution);
+  }
   dag::Expected<eastl::string, XessWrapper::ErrorKind> getXessVersion() const { return xessWrapper.getVersion(); }
+  String getFsrVersion() const { return fsrWrapper.getVersion(); }
   void getFsr2RenderResolution(int &width, int &height) { fsr2Wrapper.getFsr2RenderingResolution(width, height); }
   void setXessVelocityScale(float x, float y) { xessWrapper.setVelocityScale(x, y); }
   void createDlssFeature(bool stereo_render, int output_width, int output_height);
@@ -1589,9 +1609,9 @@ public:
   void executeDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index);
   void executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_params, int view_index);
   void executeXess(const XessParams &params);
-  void executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params);
+  void executeFSR(const amd::FSR::UpscalingArgs &params);
   void executeFSR2(const Fsr2Params &params);
-  void executeFSRFG(amd::FSR *fsr, const amd::FSR::FrameGenArgs &params);
+  void executeFSRFG(const amd::FSR::FrameGenArgs &params);
   void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
   void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
     bool force_barrier);
@@ -1631,6 +1651,8 @@ public:
   FormatStore getSwapchainColorFormat() const;
   FormatStore getSwapchainSecondaryColorFormat() const;
   DXGISwapChain *getDxgiSwapchain() const;
+  bool hasVirtualMainSwapchain() const;
+  int getXboxSwapchainFrequency() const;
 
   // flushes all outstanding work, waits for the backend and GPU to complete it and finish up all
   // outstanding tasks that depend on frame completions
@@ -1664,8 +1686,8 @@ public:
   void aliasFlush(GpuPipeline gpu_pipeline);
   HostDeviceSharedMemoryRegion allocatePushMemory(uint32_t size, uint32_t alignment);
 
-  void moveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
-  void twoPhaseMoveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to,
+  void moveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to);
+  void twoPhaseMoveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to,
     const ScratchBuffer &scratch);
   void moveTextureNoLock(Image *from, Image *to);
   void twoPhaseMoveTextureNoLock(Image *from, Image *to, ScratchBuffer scratch_memory);

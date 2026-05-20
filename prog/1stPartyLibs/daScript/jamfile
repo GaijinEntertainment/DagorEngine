@@ -73,13 +73,14 @@ if $(daScript_ConsoleExe) = yes {
   CPPopt += -DDAS_DEFAULT_STDOUT ;
 }
 
-local AllSrcFolder_CPP = 
+local AllSrcFolder_CPP =
   src/ast
   src/builtin
   src/simulate
   src/misc
   src/parser
   src/modules/uriparser
+  src/hal
 ;
 
 AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;

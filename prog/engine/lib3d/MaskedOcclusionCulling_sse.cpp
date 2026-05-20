@@ -21,17 +21,11 @@
 #include <string.h>
 
 #include <math/dag_declAlign.h>
-#include <math/dag_occlusionTest.h>
+#include <math/dag_occlusionZBuffer.h>
 
 #define DEPTH_VMIN occlusion_depth_vmin
 
-#if OCCLUSION_BUFFER == OCCLUSION_WBUFFER
-#define CONVERT_MASKED_TO_DEPTH(a) v_rcp(a)
-#elif OCCLUSION_BUFFER == OCCLUSION_INVWBUFFER
 #define CONVERT_MASKED_TO_DEPTH(a) (a)
-#else
-#error unselected occlusion type
-#endif
 
 #include <3d/dag_maskedOcclusionCulling.h>
 #include <daBVH/dag_swBLAS_ray.h>

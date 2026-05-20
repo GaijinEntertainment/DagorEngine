@@ -269,7 +269,7 @@ void DagExporter::saveBigMeshNode(Node *node, const PtrTab<MaterialData> &materi
   if (!dagSaver.start_save_node(node->name, node->wtm, flags))
     goto process_children;
 
-  if (node->script)
+  if (!node->script.empty())
     dagSaver.save_node_script(node->script);
 
   if (node->obj && node->obj->isSubOf(OCID_MESHHOLDER))
@@ -303,7 +303,7 @@ void DagExporter::saveBigMeshNodeHier(Node *node, const PtrTab<MaterialData> &ma
 
   dagSaver.start_save_node_raw(node->name, flags, node->child.size());
 
-  if (node->script)
+  if (!node->script.empty())
     dagSaver.save_node_script(node->script);
 
   if (node->obj && node->obj->isSubOf(OCID_MESHHOLDER))

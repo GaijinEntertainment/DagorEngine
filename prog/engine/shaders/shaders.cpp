@@ -1050,7 +1050,8 @@ bool load_shaders_debug_bindump(d3d::shadermodel::Version version)
 
   static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders")) + ".debug";
 
-  if (load_shaders_bindump(shadersDir + "/game_debug", version))
+  rebuild_shaders_stateblocks();
+  if (load_shaders_bindump_with_fence(shadersDir + "/game_debug", version))
   {
     debugDump = true;
     return true;
@@ -1067,9 +1068,10 @@ bool unload_shaders_debug_bindump(d3d::shadermodel::Version version)
   if (!debugDump)
     return true;
 
-  static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders")) + ".debug";
+  static String shadersDir = String(dgs_get_settings()->getBlockByNameEx("debug")->getStr("shadersDir", "compiledShaders"));
 
-  if (load_shaders_bindump(shadersDir + "/game", d3d::shadermodel::Version(5, 0)))
+  rebuild_shaders_stateblocks();
+  if (load_shaders_bindump_with_fence(shadersDir + "/game", d3d::shadermodel::Version(5, 0)))
   {
     debugDump = false;
     return true;

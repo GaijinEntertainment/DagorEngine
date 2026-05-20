@@ -369,8 +369,12 @@ void BarrierScheduler::updateDirtyResourceEvents(const intermediate::Graph &grap
         else
           payload = Event::CpuDeactivation{scheduledRes.getCpuDescription().dtor};
 
-        cachedResourceEvents[resIdx].push_back(PlacedEvent{
-          Event{resIdx, static_cast<uint32_t>(frame), payload}, lastUsageOccurrence.nodeIndex + 1, lastUsageOccurrence.frame});
+        auto nextNodeIdx = graph.nodes.getNextUsed(static_cast<intermediate::NodeIndex>(lastUsageOccurrence.nodeIndex));
+        G_ASSERTF(graph.nodes.isMapped(nextNodeIdx), "daFG: %d is the last node! This is impossible by design",
+          lastUsageOccurrence.nodeIndex);
+
+        cachedResourceEvents[resIdx].push_back(
+          PlacedEvent{Event{resIdx, static_cast<uint32_t>(frame), payload}, nextNodeIdx, lastUsageOccurrence.frame});
       }
 
       // Activation

@@ -1,0 +1,9 @@
+ERROR: 'yield' is not allowed inside an async function; use 'await'
+testData/diagnostics/yield_inside_async.nut:6:2
+
+async function f() {
+  yield 1
+  ^------
+}
+
+

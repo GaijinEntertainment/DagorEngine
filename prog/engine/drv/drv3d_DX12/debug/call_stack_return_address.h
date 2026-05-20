@@ -1,14 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "call_stack_ext.h"
 #include <debug/dag_log.h>
 #include <drv_returnAddrStore.h>
 #include <EASTL/string_view.h>
 
 class DataBlock;
 class String;
-
-#if COMMANDS_STORE_RETURN_ADDRESS
 
 #include <osApiWrappers/dag_stackHlp.h>
 #include <EASTL/hash_map.h>
@@ -20,6 +19,9 @@ namespace drv3d_dx12::debug::call_stack::return_address
 {
 struct CommandData
 {
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Message msg;
+#endif
   const void *returnAddress;
 };
 
@@ -46,15 +48,36 @@ public:
 
 class Generator
 {
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Generator extGenerator;
+#endif
+
 public:
-  constexpr void configure(const DataBlock *) {}
-  CommandData generateCommandData() const { return {ScopedReturnAddressStore::get_threadlocal_saved_address()}; }
+  void configure(const DataBlock *api_config)
+  {
+    G_UNUSED(api_config);
+#if DX12_HAS_CALLSTACK_EXT
+    extGenerator.configure(api_config);
+#endif
+  }
+  CommandData generateCommandData(uint32_t frame_index)
+  {
+    G_UNUSED(frame_index);
+    return {
+#if DX12_HAS_CALLSTACK_EXT
+      extGenerator.captureExtMessage(frame_index),
+#endif
+      ScopedReturnAddressStore::get_threadlocal_saved_address()};
+  }
 };
 
 class Reporter
 {
   // cache of return address pointers to avoid looking it up over and over again
   eastl::hash_map<const void *, eastl::string> addressCache;
+#if DX12_HAS_CALLSTACK_EXT
+  ext::Resolver extResolver;
+#endif
 
   const eastl::string &doResolve(const CommandData &data)
   {
@@ -93,41 +116,9 @@ public:
   void append(String &, const char *, const null::CommandData &) {}
 
   eastl::string_view resolve(const CommandData &data) { return doResolve(data); }
-};
-} // namespace drv3d_dx12::debug::call_stack::return_address
 
-#else
-
-namespace drv3d_dx12::debug::call_stack::return_address
-{
-struct CommandData
-{};
-
-class ExecutionContextDataStore
-{
-public:
-  constexpr CommandData getCommandData() const { return {}; }
-  constexpr void setCommandData(const CommandData &, const char *) {}
-};
-
-class Generator
-{
-public:
-  void configure(const DataBlock *)
-  {
-    logdbg("DX12: debug::call_stack::return_address using null implementation! No return addresses are available!");
-  }
-  constexpr CommandData generateCommandData() const { return {}; }
-  constexpr const char *getLastCommandName() const { return ""; }
-};
-
-class Reporter
-{
-public:
-  constexpr void report(const CommandData &) {}
-  constexpr void append(String &, const char *, const CommandData &) {}
-  constexpr eastl::string_view resolve(const CommandData &) { return {}; }
-};
-} // namespace drv3d_dx12::debug::call_stack::return_address
-
+#if DX12_HAS_CALLSTACK_EXT
+  const char *extMessage(const CommandData &data) { return extResolver.extMessage(data.msg); }
 #endif
+};
+} // namespace drv3d_dx12::debug::call_stack::return_address

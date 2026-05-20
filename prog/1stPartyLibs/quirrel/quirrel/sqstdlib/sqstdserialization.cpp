@@ -140,7 +140,7 @@ struct SQStreamSerializer {
                 v |= 6; // 6 for 4-byte integer
                 stream->Write(&v, sizeof(v));
                 int32_t iv32 = static_cast<int32_t>(iv);
-                stream->Write(&iv, sizeof(int32_t));
+                stream->Write(&iv32, sizeof(int32_t));
             }
             else {
                 v |= 7; // 7 for 8-byte integer
@@ -395,7 +395,7 @@ struct SQStreamSerializer {
             sq_pushobject(vm, obj); // this
             if (countOfParams > 1)
                 sq_pushobject(vm, availableClasses);
-            SQInteger top = sq_gettop(vm);
+
             SQRESULT res = sq_call(vm, countOfParams > 1 ? 2 : 1, SQTrue, SQTrue);
             if (SQ_FAILED(res)) {
                 errorString = "Failed to call __getstate method";
@@ -801,7 +801,6 @@ struct SQStreamSerializer {
                 if (countOfSetStateParams > 2)
                     sq_pushobject(vm, availableClasses);
 
-                SQInteger top = sq_gettop(vm);
                 SQRESULT res = sq_call(vm, countOfSetStateParams > 2 ? 3 : 2, SQTrue, SQTrue);
                 if (SQ_FAILED(res)) {
                     errorString = "Failed to call __setstate method";

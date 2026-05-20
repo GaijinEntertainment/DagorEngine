@@ -457,8 +457,14 @@ shader tiled_lights_zbinning_omni_cs, tiled_lights_zbinning_spot_cs
     {
       uint startIndex = (uint)(Z_BINNING_LIGHTS_BLOCK_SIZE * group_id.y);
       uint preloadLightIndex = startIndex + group_thread_id.x;
-      if ((group_thread_id.x < (uint)Z_BINNING_LIGHTS_BLOCK_SIZE) && (preloadLightIndex < lights_count))
-        lightData[group_thread_id.x] = get_light_cb_data(preloadLightIndex);
+
+      if (group_thread_id.x < (uint)Z_BINNING_LIGHTS_BLOCK_SIZE)
+      {
+        lightData[group_thread_id.x] = float4(0,0,0,0);
+        if (preloadLightIndex < lights_count)
+          lightData[group_thread_id.x] = get_light_cb_data(preloadLightIndex);
+      };
+
       GroupMemoryBarrierWithGroupSync();
 
       if (dispatch_thread_id.x >= (uint)Z_BINS_COUNT)

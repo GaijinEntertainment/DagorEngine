@@ -39,7 +39,7 @@ def append_expressions(var blk : ExprBlock?; var eblk : ExpressionPtr) {
 
 [macro_function]
 def is_typedecl_ptr(t : TypeDeclPtr) {
-    if (t.baseType != Type.tPointer || !t.flags.smartPtr) {
+    if (t.baseType != Type.tPointer) {
         return false
     }
     assume pt = t.firstType
@@ -99,9 +99,9 @@ class TypeMacroInfo : AstStructureAnnotation {
 
 [macro_function]
 def private append_arguments_annotation(var cls : StructurePtr; var func : FunctionPtr) {
-    var ann_args : array<tuple<string; RttiValue>>
+    var ann_args : array<tuple<argname : string; argvalue : RttiValue>>
     ann_args |> reserve(length(func.arguments) - 1)
-    var name = (string(func.name), RttiValue(tBool = true))
+    var name = (argname = string(func.name), argvalue = RttiValue(tBool = true))
     ann_args |> emplace(name)
     for (i in range(2, length(func.arguments))) {
         var value = RttiValue(tString = "```empty```type```")
@@ -117,7 +117,7 @@ def private append_arguments_annotation(var cls : StructurePtr; var func : Funct
                 value = RttiValue(tString = describe(argInit))
             }
         }
-        var blah = (string(func.arguments[i].name), value)
+        var blah = (argname = string(func.arguments[i].name), argvalue = value)
         ann_args |> emplace(blah)
     }
     cls |> append_annotation("typemacro_boost", "typemacro_documentation", ann_args)
@@ -128,31 +128,31 @@ class TypeMacroMacro : AstFunctionAnnotation {
     //! This macro converts function into a type macro.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         let className = "{func.name}`TypeMacro"
-        var inscope parentType <- typeinfo ast_typedecl(type<ast::AstTypeMacro>)
+        var parentType = typeinfo ast_typedecl(type<ast::AstTypeMacro>)
         if (parentType == null) {
             errors := "ast_core::AstTypeMacro not found"
             return false
         }
-        var inscope cls <- make_class(className, parentType.structType, compiling_module())
+        var cls <- make_class(className, parentType.structType, compiling_module())
         cls.flags &= ~StructureFlags.genCtor
         cls.flags.privateStructure = true
         let cvtFnName = "{func.name}`cvt`arguments"
-        var inscope cvtFn <- qmacro_function(cvtFnName) $(prog : ProgramPtr; mod : Module?; td, passT : TypeDeclPtr) : TypeDeclPtr {
+        var cvtFn = qmacro_function(cvtFnName) $(prog : ProgramPtr; mod : Module?; td, passT : TypeDeclPtr) : TypeDeclPtr {
             return <- default<TypeDeclPtr>
         }
         compiling_module() |> add_function(cvtFn)
         let visitName = className + "`visit"
-        var inscope visitFn <- qmacro_method(visitName, cls) $(var slf : $t(cls); prog : ProgramPtr; mod : Module?; td, passT : TypeDeclPtr) : TypeDeclPtr {
+        var visitFn = qmacro_method(visitName, cls) $(var slf : $t(cls); prog : ProgramPtr; mod : Module?; td, passT : TypeDeclPtr) : TypeDeclPtr {
             return <- $c(cvtFnName)(prog, mod, td, passT)
         }
         compiling_module() |> add_function(visitFn)
-        var field = find_structure_field(get_ptr(cls), "visit")
+        var field = find_structure_field(cls, "visit")
         if (field == null) {
             errors := "visit field does not exist"
             return false
         }
-        field.init |> move_new <| qmacro(cast<auto>(@@$i(visitName)))
-        let name =  ("name", RttiValue(tString = string(func.name)))
+        field.init = qmacro(cast<auto>(@@$i(visitName)))
+        let name =  (argname = "name", argvalue = RttiValue(tString = string(func.name)))
         cls |> append_annotation("ast_boost", "type_macro", [
             name
         ])
@@ -174,17 +174,16 @@ class TypeMacroMacro : AstFunctionAnnotation {
             return false
         }
         let cvtFnName = "{func.name}`cvt`arguments"
-        var inscope cvtFn <- compiling_module() |> find_unique_function(cvtFnName)
+        var cvtFn = compiling_module() |> find_unique_function(cvtFnName)
         if (cvtFn == null) {
             errors := "cvt function not found"
             return false
         }
         var body = cvtFn.body as ExprBlock
         body.list |> clear
-        var inscope retCall <- qmacro($c(func.name)(td, passT))
+        var retCall = qmacro($c(func.name)(td, passT))
         // allowed are basic types (int, float, string, @@function etc) and TypeDeclPtr
         for (ai in range(2, length(func.arguments))) {
-            let argIndex = ai - 2
             let macroArgIndex = ai - 1
             assume argType = func.arguments[ai]._type
             assume argDefaultValue = func.arguments[ai].init
@@ -193,22 +192,22 @@ class TypeMacroMacro : AstFunctionAnnotation {
                 return false
             }
             if (argDefaultValue == null) {
-                var inscope checkE <- qmacro_block() {
+                var checkE = qmacro_block() {
                     if ($v(macroArgIndex) >= length(td.dimExpr)) {
                         macro_error(compiling_program(), td.at, "expecting {$v(string(func.arguments[ai].name))} argument")
-                        return <- TypeDeclPtr()
+                        return null
                     }
                 }
                 append_expressions(body, checkE)
             }
             if (argType.baseType == Type.tInt) {
-                var inscope defaultValue <- argDefaultValue != null ? clone_expression(argDefaultValue) : quote(0)
+                var defaultValue = argDefaultValue != null ? clone_expression(argDefaultValue) : quote(0)
                 (retCall as ExprCall).arguments |> emplace_new <| qmacro(typemacro_argument(td.dimExpr, $v(macroArgIndex), type<ExprConstInt>, $e(defaultValue)))
             } elif (argType.baseType == Type.tBool) {
-                var inscope defaultValue <- argDefaultValue != null ? clone_expression(argDefaultValue) : quote(false)
+                var defaultValue = argDefaultValue != null ? clone_expression(argDefaultValue) : quote(false)
                 (retCall as ExprCall).arguments |> emplace_new <| qmacro(typemacro_argument(td.dimExpr, $v(macroArgIndex), type<ExprConstBool>, $e(defaultValue)))
             } elif (argType.baseType == Type.tString) {
-                var inscope defaultValue <- argDefaultValue != null ? clone_expression(argDefaultValue) : quote("")
+                var defaultValue = argDefaultValue != null ? clone_expression(argDefaultValue) : quote("")
                 (retCall as ExprCall).arguments |> emplace_new <| qmacro(typemacro_argument(td.dimExpr, $v(macroArgIndex), type<ExprConstString>, $e(defaultValue)))
             } elif (is_typedecl_ptr(argType)) {
                 if (argDefaultValue != null) {
@@ -222,7 +221,7 @@ class TypeMacroMacro : AstFunctionAnnotation {
                 return false
             }
         }
-        var inscope retExpr <- qmacro_block() {
+        var retExpr = qmacro_block() {
             return <- $e(retCall)
         }
         append_expressions(body, retExpr)
@@ -244,14 +243,14 @@ class TypeMacroTemplate : AstStructureAnnotation {
 [macro_function]
 def public make_typemacro_template_instance(instance_type, template_type : Structure?; ex : array<tuple<string, string>> = array<tuple<string, string>>()) {
     //! Annotates a structure as a typemacro template instance of the given template type.
-    var extra : array<tuple<string, RttiValue>>
+    var extra : array<tuple<argname : string, argvalue : RttiValue>>
     extra |> reserve(1 + length(ex))
-    extra.emplace(("parent", RttiValue(tString = "{template_type._module.name}::{template_type.name}")), 0)
+    extra.emplace((argname = "parent", argvalue = RttiValue(tString = "{template_type._module.name}::{template_type.name}")), 0)
     for (e in ex) {
-        extra.emplace((e._0, RttiValue(tString = e._1)), 0)
+        extra.emplace((argname = e._0, argvalue = RttiValue(tString = e._1)), 0)
     }
     unsafe {
-        var append_structure <- reinterpret<smart_ptr<Structure>>(instance_type)
+        var append_structure <- reinterpret<Structure?>(instance_type)
         append_structure.append_annotation("typemacro_boost", "typemacro_template", extra)
     }
 }
@@ -293,7 +292,7 @@ struct public TypeMacroTemplateArgument {
 def public infer_struct_aliases(structType : Structure?; var args : array<TypeMacroTemplateArgument>) : bool {
     //! Infers structure alias types for all template arguments from a structure definition.
     for (arg in args) {
-        arg.inferred_type |> move_new <| get_structure_alias(structType, arg.name)
+        arg.inferred_type  = get_structure_alias(structType, arg.name)
         if (arg.inferred_type == null) {
             return false
         }
@@ -308,15 +307,15 @@ def public infer_template_types(passArgument : TypeDeclPtr; var args  : array<Ty
         assume templateType = arg.argument_type
         assume inferredTemplateType = arg.inferred_type
         if (templateType.isAutoOrAlias) {
-            var inscope resT <- infer_generic_type(templateType, inferredTemplateType, true, true)
-            return <- TypeDeclPtr() if (resT == null)
-            return <- TypeDeclPtr() if (!inferredTemplateType |> is_same_type(resT, RefMatters.no, ConstMatters.no, TemporaryMatters.yes))
+            var resT = infer_generic_type(templateType, inferredTemplateType, true, true)
+            return null if (resT == null)
+            return null if (!inferredTemplateType |> is_same_type(resT, RefMatters.no, ConstMatters.no, TemporaryMatters.yes))
             compiling_program() |> update_alias_map(templateType, resT)
         } else {
-            return <- TypeDeclPtr() if (!inferredTemplateType |> is_same_type(templateType, RefMatters.no, ConstMatters.no, TemporaryMatters.yes))
+            return null if (!inferredTemplateType |> is_same_type(templateType, RefMatters.no, ConstMatters.no, TemporaryMatters.yes))
         }
     }
-    var inscope resT <- clone_type(passArgument)
+    var resT = clone_type(passArgument)
     resT.flags &= ~TypeDeclFlags.ref
     return <- resT
 }
@@ -367,28 +366,28 @@ class TemplateTypeMacroMacro : AstFunctionAnnotation {
     //! For example [typemacro_template(TFlatHashTable)] def makeFlatHashTable ( macroArgument, passArgument : TypeDeclPtr; KeyType, ValueType : TypeDeclPtr; hashFunctionName : string) : TypeDeclPtr { ... }
     //! We generate the body that handles template argument inference and instantiation.
     /* LIKE THIS:
-        var inscope template_type <- typeinfo ast_typedecl(type<TFlatHashTable>)
+        var template_type = typeinfo ast_typedecl(type<TFlatHashTable>)
         var inscope template_arguments <- [
-            TypeMacroTemplateArgument(name="KeyType",  argument_type <- clone_type(KeyType)),
-            TypeMacroTemplateArgument(name="ValueType", argument_type <- clone_type(ValueType))
+            TypeMacroTemplateArgument(name="KeyType",  argument_type = clone_type(KeyType)),
+            TypeMacroTemplateArgument(name="ValueType", argument_type = clone_type(ValueType))
         ]
         var extra_template_arguments <- [
             ("hashFunctionName", hashFunctionName)
         ]
         // code bellow can be auto-generated
         if (passArgument != null) {
-            return <- TypeDeclPtr() if (!is_typemacro_template_instance(passArgument, template_type, extra_template_arguments))
-            return <- TypeDeclPtr() if (!infer_struct_aliases(passArgument.structType, template_arguments))
-            return <- infer_template_types(passArgument, template_arguments)
+            return null if (!is_typemacro_template_instance(passArgument, template_type, extra_template_arguments))
+            return null if (!infer_struct_aliases(passArgument.structType, template_arguments))
+            return infer_template_types(passArgument, template_arguments)
         } else {
-            return <- TypeDeclPtr() if (!verify_arguments(template_arguments))
+            return null if (!verify_arguments(template_arguments))
             var struct_name = template_structure_name(template_type.structType, template_arguments, extra_template_arguments)
             var existing_struct = compiling_program().find_unique_structure(struct_name)
-            return <- new TypeDecl(baseType = Type.tStructure, structType = existing_struct, at = template_type.at) if (existing_struct != null)
-            var inscope resType <- qmacro_template_class(struct_name, type<TFlatHashTable>)
+            return new TypeDecl(baseType = Type.tStructure, structType = existing_struct, at = template_type.at) if (existing_struct != null)
+            var resType = qmacro_template_class(struct_name, type<TFlatHashTable>)
             make_typemacro_template_instance(resType.structType, template_type.structType, extra_template_arguments)
             add_structure_aliases(resType.structType, template_arguments)
-            return <- resType
+            return resType
         }
     */
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
@@ -418,33 +417,33 @@ class TemplateTypeMacroMacro : AstFunctionAnnotation {
         var body = func.body as ExprBlock
         body.list.clear()
         // add template_type
-        var inscope aliasT <- new TypeDecl(baseType = Type.alias, alias := template_type_name)
+        var aliasT = new TypeDecl(baseType = Type.alias, alias := template_type_name)
         body.list |> emplace_new <| qmacro_expr() {
-            var inscope template_type <- typeinfo ast_typedecl(type<$t(aliasT)>)
+            var template_type = typeinfo ast_typedecl(type<$t(aliasT)>)
         }
         // we need to build template arguments list
-        var inscope mk_array_expr <- new ExprMakeArray(at = func.at, makeType <- new TypeDecl(baseType = Type.autoinfer))
+        var mk_array_expr = new ExprMakeArray(at = func.at, makeType = new TypeDecl(baseType = Type.autoinfer))
         for (i in range(2, length(func.arguments))) {
             assume argType = func.arguments[i]._type
             if (is_typedecl_ptr(argType)) {
                 let argName = string(func.arguments[i].name)
-                var inscope mk_tuple <- qmacro(TypeMacroTemplateArgument(
+                var mk_tuple = qmacro(TypeMacroTemplateArgument(
                     name = "{$v(argName)}",
-                    argument_type <- clone_type($i(argName))
+                    argument_type = clone_type($i(argName))
                 ))
                 mk_array_expr.values |> emplace(mk_tuple)
             }
         }
         body.list |> emplace_new <| qmacro_expr() {
-            var inscope template_arguments <- to_array_move($e(mk_array_expr))
+            var template_arguments <- to_array_move($e(mk_array_expr))
         }
         // we need to build extra arguments list
-        var inscope mk_extra_array_expr <- new ExprMakeArray(at = func.at, makeType <- new TypeDecl(baseType = Type.autoinfer))
+        var mk_extra_array_expr = new ExprMakeArray(at = func.at, makeType = new TypeDecl(baseType = Type.autoinfer))
         for (i in range(2, length(func.arguments))) {
             assume argType = func.arguments[i]._type
             if (!is_typedecl_ptr(argType)) {
                 let argName = string(func.arguments[i].name)
-                var inscope mk_tuple <- qmacro((
+                var mk_tuple = qmacro((
                     "{$v(argName)}",
                     "{$i(argName)}"
                 ))
@@ -463,18 +462,18 @@ class TemplateTypeMacroMacro : AstFunctionAnnotation {
         // now we add boilerplate
         body.list |> emplace_new <| qmacro_block() {
             if (passArgument != null) {
-                return <- TypeDeclPtr() if (!is_typemacro_template_instance(passArgument, template_type, extra_template_arguments))
-                return <- TypeDeclPtr() if (!infer_struct_aliases(passArgument.structType, template_arguments))
-                return <- infer_template_types(passArgument, template_arguments)
+                return null if (!is_typemacro_template_instance(passArgument, template_type, extra_template_arguments))
+                return null if (!infer_struct_aliases(passArgument.structType, template_arguments))
+                return infer_template_types(passArgument, template_arguments)
             } else {
-                return <- TypeDeclPtr() if (!verify_arguments(template_arguments))
-                var struct_name = template_structure_name(template_type.structType, template_arguments, extra_template_arguments)
+                return null if (!verify_arguments(template_arguments))
+                let struct_name = template_structure_name(template_type.structType, template_arguments, extra_template_arguments)
                 var existing_struct = compiling_program().find_unique_structure(struct_name)
-                return <- new TypeDecl(baseType = Type.tStructure, structType = existing_struct, at = template_type.at) if (existing_struct != null)
-                var inscope resType <- qmacro_template_class(struct_name, type<$t(aliasT)>)
+                return new TypeDecl(baseType = Type.tStructure, structType = existing_struct, at = template_type.at) if (existing_struct != null)
+                var resType = qmacro_template_class(struct_name, type<$t(aliasT)>)
                 make_typemacro_template_instance(resType.structType, template_type.structType, extra_template_arguments)
                 add_structure_aliases(resType.structType, template_arguments)
-                return <- resType
+                return resType
             }
         }
         // mark it as patched
@@ -509,21 +508,21 @@ class TemplateStructure : AstStructureAnnotation {
             return false
         }
         let makeFuncName = "make`template`{st.name}"
-        var inscope ctxFnArguments : array<VariablePtr>
+        var ctxFnArguments : array<VariablePtr>
         for (arg in args) {
             {
-                var inscope argVar <- new Variable(
+                var argVar <- new Variable(
                     name := string(arg.name),
                     at = st.at
                 )
                 if (arg.basicType == Type.tBool) {
-                    argVar._type |> move_new <| new TypeDecl(baseType = Type.alias, alias := "TypeDeclPtr")
+                    argVar._type  = new TypeDecl(baseType = Type.alias, alias := "TypeDeclPtr")
                 } elif (arg.basicType == Type.tInt) {
-                    argVar._type |> move_new <| new TypeDecl(baseType = Type.tInt)
-                    argVar.init |> move_new <| qmacro($v(arg.iValue))
+                    argVar._type  = new TypeDecl(baseType = Type.tInt)
+                    argVar.init = qmacro($v(arg.iValue))
                 } elif (arg.basicType == Type.tString) {
-                    argVar._type |> move_new <| new TypeDecl(baseType = Type.tString)
-                    argVar.init |> move_new <| qmacro($v(string(arg.sValue)))
+                    argVar._type  = new TypeDecl(baseType = Type.tString)
+                    argVar.init = qmacro($v(string(arg.sValue)))
                 } else {
                     errors := "unsupported template argument {arg.name} type {arg.basicType}"
                     return false
@@ -531,21 +530,21 @@ class TemplateStructure : AstStructureAnnotation {
                 ctxFnArguments.emplace(argVar)
             }
         }
-        var inscope makeFunction <- qmacro_function(makeFuncName) $(macroArgument, passArgument : TypeDeclPtr; $a(ctxFnArguments)) : TypeDeclPtr {
+        var makeFunction = qmacro_function(makeFuncName) $(macroArgument, passArgument : TypeDeclPtr; $a(ctxFnArguments)) : TypeDeclPtr {
             return <- default<TypeDeclPtr>
         }
         append_annotation(makeFunction, "typemacro_boost", "typemacro_template_function", [
-             (("{st.name}", RttiValue(tBool=true))
+             ((argname="{st.name}", argvalue=RttiValue(tBool=true))
         )])
         if (!(compiling_module() |> add_function(makeFunction))) {
             panic("can't add function {makeFuncName}")
         }
         let typeMacroFunctionName = string(st.name)
-        var inscope callMacroFunction <- qmacro($c(makeFuncName)(macroArgument, passArgument))
+        var callMacroFunction = qmacro($c(makeFuncName)(macroArgument, passArgument))
         for (arg in args) {
             (callMacroFunction as ExprCall).arguments |> emplace_new <| qmacro($i(string(arg.name)))
         }
-        var inscope typeMacroFunction <- qmacro_function(typeMacroFunctionName) $(macroArgument, passArgument : TypeDeclPtr; $a(ctxFnArguments)) : TypeDeclPtr {
+        var typeMacroFunction = qmacro_function(typeMacroFunctionName) $(macroArgument, passArgument : TypeDeclPtr; $a(ctxFnArguments)) : TypeDeclPtr {
             return <- $e(callMacroFunction)
         }
         append_annotation(typeMacroFunction, "typemacro_boost", "typemacro_function", [])

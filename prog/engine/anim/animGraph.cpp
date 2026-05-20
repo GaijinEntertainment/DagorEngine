@@ -1177,8 +1177,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
-      else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
     }
 
     for (j = 0; j < scl.nodeNum; j++)
@@ -1223,8 +1221,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
-      else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
     }
 
     for (j = 0; j < rot.nodeNum; j++)
@@ -1267,8 +1263,6 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
       ch_w.totalNum++;
       if (!additive)
         ch_w.wTotal += w;
-      else if (ch_w.totalNum == 1)
-        ch_w.wTotal = 1.0f; //< only additive anims for node, mark wTotal as 'used'
     }
 
     // create added samplers
@@ -1293,11 +1287,12 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   for (i = 0; i < nodenum; i++)
   {
     const NodeWeight &ch_w = wtPos[i];
+    WeightedNode &ch = chPos[i];
     int bnum = ch_w.totalNum;
-    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
+    const bool hasAdditive = ch.readyFlg & RM_POS_A;
+    if (!bnum || (fabsf(ch_w.wTotal) < 1e-6f && !hasAdditive))
       continue;
 
-    WeightedNode &ch = chPos[i];
     NodeSamplers &smp = chXfm[i];
 
     real *bwgt = ch.blendWt;
@@ -1324,7 +1319,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     else
     {
       w4 = v_splats(*bwgt);
-      vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
+      vec4f inv_total = v_rcp_safe(v_splats(ch_w.wTotal));
       res = v_mul(v, !(*bmod & BMOD_ADDITIVE) ? v_mul(w4, inv_total) : w4);
       bwgt++;
       bmod++;
@@ -1345,11 +1340,12 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   for (i = 0; i < nodenum; i++)
   {
     const NodeWeight &ch_w = wtScl[i];
+    WeightedNode &ch = chScl[i];
     int bnum = ch_w.totalNum;
-    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
+    const bool hasAdditive = ch.readyFlg & RM_SCL_A;
+    if (!bnum || (fabsf(ch_w.wTotal) < 1e-6f && !hasAdditive))
       continue;
 
-    WeightedNode &ch = chScl[i];
     NodeSamplers &smp = chXfm[i];
 
     real *bwgt = ch.blendWt;
@@ -1376,7 +1372,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
     else
     {
       w4 = v_splats(*bwgt);
-      vec4f inv_total = v_rcp(v_splats(ch_w.wTotal));
+      vec4f inv_total = v_rcp_safe(v_splats(ch_w.wTotal));
       if (!(*bmod & BMOD_ADDITIVE))
         res = v_mul(v, v_mul(w4, inv_total));
       else
@@ -1409,11 +1405,12 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
   for (i = 0; i < nodenum; i++)
   {
     const NodeWeight &ch_w = wtRot[i];
+    WeightedNode &ch = chRot[i];
     int bnum = ch_w.totalNum;
-    if (!bnum || fabsf(ch_w.wTotal) < 1e-6f)
+    const bool hasAdditive = ch.readyFlg & RM_ROT_A;
+    if (!bnum || (fabsf(ch_w.wTotal) < 1e-6f && !hasAdditive))
       continue;
 
-    WeightedNode &ch = chRot[i];
     NodeSamplers &smp = chXfm[i];
 
     real *bwgt = ch.blendWt;

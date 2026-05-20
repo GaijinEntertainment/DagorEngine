@@ -18,7 +18,7 @@ public:
     addBuiltinDependency(lib, require("AnimV20"));
     addBuiltinDependency(lib, require("PhysVars"));
 
-    addAnnotation(das::make_smart<AnimatedPhysAnnotation>(lib));
+    addAnnotation(new AnimatedPhysAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(anim_phys_init)>(*this, lib, "anim_phys_init", das::SideEffects::modifyArgument,
       "bind_dascript::anim_phys_init");

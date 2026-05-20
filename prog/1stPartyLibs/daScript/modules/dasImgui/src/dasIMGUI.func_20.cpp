@@ -66,7 +66,7 @@ void Module_dasIMGUI::initFunctions_20() {
 // from imgui/imgui.h:2637:21
 	makeExtern<DAS_CALL_METHOD(_method_14), SimNode_ExtFuncCall , imguiTempFn>(lib,"SetKeyEventNativeData","das_call_member< void (ImGuiIO::*)(ImGuiKey,int,int,int) , &ImGuiIO::SetKeyEventNativeData >::invoke")
 		->args({"self","key","native_keycode","native_scancode","native_legacy_index"})
-		->arg_init(4,make_smart<ExprConstInt>(-1))
+		->arg_init(4,new ExprConstInt(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_15 = das::das_call_member< void (ImGuiIO::*)(bool),&ImGuiIO::SetAppAcceptingEvents >;
 // from imgui/imgui.h:2638:21

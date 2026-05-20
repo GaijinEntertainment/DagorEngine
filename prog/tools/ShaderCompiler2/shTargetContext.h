@@ -30,10 +30,12 @@ class TargetContext
   const char *mFname;
   VarNameMap mVarNameMap{};
   HashStrings mIntervalNameMap{}; // @TODO: unify name map technology
+  VarNameMap mBoolVarNameMap{};
+  HashStrings mShaderNameMap{};
   ShaderGlobal::VarTable mGvarTable;
   SamplerTable mSamplerTable;
   StcodeShader mCppstcodeAccum;
-  BoolVarTable mBoolVarTable{};
+  BoolVarTable mBoolVarTable;
   PerHlslStage<String> mGlobalHlslSource{};
   ShaderBlockTable mStateBlockTable{};
   ShaderAssumesTable mGlobalAssumes;
@@ -60,6 +62,12 @@ public:
 
   HashStrings &intervalNameMap() { return mIntervalNameMap; }
   const HashStrings &intervalNameMap() const { return mIntervalNameMap; }
+
+  VarNameMap &boolVarNameMap() { return mBoolVarNameMap; }
+  const VarNameMap &boolVarNameMap() const { return mBoolVarNameMap; }
+
+  HashStrings &shaderNameMap() { return mShaderNameMap; }
+  const HashStrings &shaderNameMap() const { return mShaderNameMap; }
 
   ShaderGlobal::VarTable &globVars() { return mGvarTable; }
   const ShaderGlobal::VarTable &globVars() const { return mGvarTable; }
@@ -124,7 +132,8 @@ private:
     mFname{fname},
     mGvarTable{mVarNameMap, mIntervalNameMap},
     mSamplerTable{mVarNameMap, mGvarTable, mCppstcodeAccum},
-    mGlobalAssumes{*shc::config().assumedVarsConfig},
+    mBoolVarTable{mBoolVarNameMap},
+    mGlobalAssumes{*shc::config().assumedVarsConfig, mIntervalNameMap},
     mParent{parent}
   {
     if (fname)

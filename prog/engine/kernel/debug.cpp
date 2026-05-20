@@ -56,7 +56,7 @@ static char fatalerrFilepath[DAGOR_MAX_PATH];
 static char logDirPath[DAGOR_MAX_PATH];
 static dag::AtomicInteger<int> logFileSizes[LOGLEVEL_REMARK + 1];
 static unsigned logsMaxSize = 0;
-extern const unsigned MAX_LOG_FILE_SIZE = (64 << 20) - 16384;
+extern const unsigned MAX_LOG_FILE_SIZE;
 
 // debug_internal::Context debug_internal::debug_context = { NULL, -1 };
 bool debug_internal::always_flush_debug = false;

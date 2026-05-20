@@ -195,7 +195,7 @@ struct ObjectsAtlasLru
   int atlas_bw = 0, atlas_bh = 0, atlas_bd = 0; // in blocks
   uint32_t maxBlocksSpace = 0;
   uint32_t currentMaxObjectsCnt = 0;
-  UniqueTexHolder object_sdf_mip_atlas;
+  UniqueTexWithShaderVar object_sdf_mip_atlas;
   FastNameMapTS<> files;
   UniqueBufHolder object_sdf_mips;
   uint16_t addFileRefSafe(const char *fileName)

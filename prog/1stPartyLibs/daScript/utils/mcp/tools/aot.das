@@ -23,7 +23,7 @@ def collect_aot_functions(program : smart_ptr<Program>) : array<AotFuncInfo> {
         if (fn.flags.builtIn || fn.flags.generated) {
             return
         }
-        var sig = build_string() <| $(var w) {
+        var sig = build_string() $(var w) {
             write(w, string(fn.name))
             write(w, "(")
             var first = true
@@ -44,7 +44,7 @@ def collect_aot_functions(program : smart_ptr<Program>) : array<AotFuncInfo> {
         }
         result |> emplace(AotFuncInfo(
             name = string(fn.name),
-            aot_name = aotFuncName(fn.get_ptr()),
+            aot_name = aotFuncName(fn),
             signature = sig
         ))
     })
@@ -87,13 +87,13 @@ def do_aot(file, func_name : string; project : string = "") : string {
 
     // full file AOT when no function specified
     if (empty(func_name)) {
-        return compile_and_simulate_ctx(file, project) <| $(program : smart_ptr<Program>; var ctx : smart_ptr<Context>; issues : string) {
+        return compile_and_simulate_ctx(file, project) $(program : smart_ptr<Program>; var ctx : smart_ptr<Context>; issues : string) {
             var warnings = ""
             if (!empty(issues)) {
                 warnings = "Warnings:\n{issues}\n"
             }
             var result : string
-            using() <| $(var cop : CodeOfPolicies) {
+            using() $(var cop : CodeOfPolicies) {
                 cop.aot = false
                 cop.aot_module = true
                 result = "{warnings}{run_aot(program.get_ptr(), ctx.get_ptr(), cop)}"
@@ -103,7 +103,7 @@ def do_aot(file, func_name : string; project : string = "") : string {
     }
 
     // single function AOT
-    return compile_and_simulate_ctx(file, project) <| $(program : smart_ptr<Program>; var ctx : smart_ptr<Context>; issues : string) {
+    return compile_and_simulate_ctx(file, project) $(program : smart_ptr<Program>; var ctx : smart_ptr<Context>; issues : string) {
         let all_funcs <- collect_aot_functions(program)
 
         // try exact match on fn.name first, then on aot_name
@@ -140,7 +140,7 @@ def do_aot(file, func_name : string; project : string = "") : string {
         if (length(matches) == 1) {
             let matched_name = all_funcs[matches[0]].aot_name
             var result : string
-            using() <| $(var cop : CodeOfPolicies) {
+            using() $(var cop : CodeOfPolicies) {
                 cop.aot = false
                 cop.aot_module = true
                 result = run_aot_function(program.get_ptr(), ctx.get_ptr(), cop, matched_name)

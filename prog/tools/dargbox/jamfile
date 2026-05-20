@@ -104,6 +104,7 @@ UseProgLibs =
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/udp
   gameLibs/quirrel/sqDataCache
+  gameLibs/quirrel/asyncRuntime
   engine/perfMon
   engine/consoleProc
   tools/libTools/util

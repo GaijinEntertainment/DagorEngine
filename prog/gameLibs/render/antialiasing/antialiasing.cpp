@@ -342,8 +342,8 @@ struct Context
   int qualityOffset = 0;
   float percentage = 0;
   bool dlssLegacyMode = false;
+  bool dlssRayReconstruction = false;
 
-  eastl::unique_ptr<amd::FSR> fsr;
   eastl::unique_ptr<TemporalAA> taa;
   eastl::unique_ptr<TemporalSuperResolution> tsr;
   eastl::unique_ptr<Antialiasing> antialiasing;
@@ -384,11 +384,6 @@ struct Context
 
   void init()
   {
-    if (!fsr)
-      fsr.reset(amd::createFSR());
-    if (fsr && (!fsr->isLoaded() || !fsr->isUpscalingSupported()))
-      fsr.reset();
-
     if (shader_exists("antialiasing"))
       antialiasing.reset(new Antialiasing());
 
@@ -397,14 +392,75 @@ struct Context
     parseSettings(true);
   }
 
+  bool initFsrUpscaling(const amd::FSR::ContextArgs &args) const
+  {
+    amd::FSR::ContextArgs driverArgs = args;
+    return d3d::driver_command(Drv3dCommand::INIT_FSR_UPSCALING, &driverArgs) != 0;
+  }
+
+  void teardownFsrUpscaling() const { d3d::driver_command(Drv3dCommand::TEARDOWN_FSR_UPSCALING); }
+
+  bool isFsrLoaded() const { return d3d::driver_command(Drv3dCommand::GET_FSR_LOADED) != 0; }
+
+  bool isFsrUpscalingSupported() const { return d3d::driver_command(Drv3dCommand::GET_FSR_UPSCALING_SUPPORTED) != 0; }
+
+  IPoint2 getFsrRenderingResolution(amd::FSR::UpscalingMode mode, const IPoint2 &target_resolution) const
+  {
+    IPoint2 renderResolution = IPoint2::ZERO;
+    IPoint2 targetResolution = target_resolution;
+    int requestedMode = static_cast<int>(mode);
+    d3d::driver_command(Drv3dCommand::GET_FSR_RESOLUTION, &targetResolution, &requestedMode, &renderResolution);
+    return renderResolution;
+  }
+
+  bool isFsrFrameGenerationSupported() const { return d3d::driver_command(Drv3dCommand::GET_FSR_FG_SUPPORTED) != 0; }
+
+  bool isFsrFrameGenerationSuppressed() const
+  {
+    bool suppressed = false;
+    d3d::driver_command(Drv3dCommand::GET_FSR_FG_SUPPRESSED, &suppressed);
+    return suppressed;
+  }
+
+  void suppressFsrFrameGeneration(bool suppress) { d3d::driver_command(Drv3dCommand::FSR_SUPPRESS_FG, &suppress); }
+
+  void enableFsrFrameGeneration(bool enable) { d3d::driver_command(Drv3dCommand::FSR_ENABLE_FG, &enable); }
+
+  int getFsrPresentedFrameCount() const
+  {
+    int presentedFrames = 1;
+    d3d::driver_command(Drv3dCommand::GET_FSR_PRESENTED_FRAME_COUNT, &presentedFrames);
+    return presentedFrames;
+  }
+
+  int getFsrMaximumGeneratedFrames() const
+  {
+    int generatedFrames = 0;
+    d3d::driver_command(Drv3dCommand::GET_FSR_SUPPORTED_GEN_FRAMES, &generatedFrames);
+    return generatedFrames;
+  }
+
+  bool isFsrFrameGenerationActive() const
+  {
+    bool enabled = false;
+    d3d::driver_command(Drv3dCommand::GET_FSR_FG_ENABLED, &enabled);
+    return enabled;
+  }
+
+  String getFsrVersionString() const
+  {
+    char version[256] = {};
+    d3d::driver_command(Drv3dCommand::GET_FSR_VERSION, version, reinterpret_cast<void *>(eastl::size(version)));
+    return String(version);
+  }
+
   void reset()
   {
     ssTargetPool.reset();
     ssInputTexturePool.reset();
     rTargetMetalfxUpscale.reset();
+    teardownFsrUpscaling();
 
-    if (fsr)
-      fsr->teardownUpscaling();
     taa.reset();
     // Release ShaderGlobal's managed-res reference before tsr is destroyed.
     // Without this, ShaderGlobal holds a reference (refCount stays >= 1) which
@@ -478,9 +534,10 @@ struct Context
         newMethod = AntialiasingMethod::FXAALow;
 
       bool newDlssLegacyMode = getdlssLegacyModeConfig();
+      bool newDlssRayReconstruction = getRRConfig();
 
       bool needRecreate = method != newMethod || quality != newQuality || percentage != newPercentage || dlssGCount != newDlssGCount ||
-                          dlssLegacyMode != newDlssLegacyMode;
+                          dlssLegacyMode != newDlssLegacyMode || dlssRayReconstruction != newDlssRayReconstruction;
       auto needReset = needRecreate && (method == AntialiasingMethod::DLSS || method == AntialiasingMethod::XeSS ||
                                          method == AntialiasingMethod::MSAA || newMethod == AntialiasingMethod::DLSS ||
                                          newMethod == AntialiasingMethod::XeSS || newMethod == AntialiasingMethod::MSAA);
@@ -492,6 +549,7 @@ struct Context
         percentage = newPercentage;
         dlssGCount = newDlssGCount;
         dlssLegacyMode = newDlssLegacyMode;
+        dlssRayReconstruction = newDlssRayReconstruction;
         debug("using AA method %s", convert(method));
       }
 
@@ -545,7 +603,7 @@ struct Context
   }
 
   bool tryInitDlss(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
-    IPoint2 &max_dynamic_resolution, const char *input_name)
+    IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name)
   {
     if (method != AntialiasingMethod::DLSS)
       return false;
@@ -611,22 +669,26 @@ struct Context
 
     initCommonUpscaling("DLSS", int(dlssQuality), inputResolution, outputResolution);
 
-    if (input_name)
+    if (input_name && depth_name)
     {
-      aaApplyNode = dafg::register_node("dlss", DAFG_PP_NODE_SRC, [this, outputResolution, input_name](dafg::Registry registry) {
-        textureFlg = TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET;
-        auto antialiasedHndl = registry.createTexture2d("frame_after_aa", {textureFlg, outputResolution})
-                                 .atStage(dafg::Stage::PS_OR_CS)
-                                 .useAs(dafg::Usage::COLOR_ATTACHMENT)
-                                 .handle();
+      aaApplyNode =
+        dafg::register_node("dlss", DAFG_PP_NODE_SRC, [this, outputResolution, input_name, depth_name](dafg::Registry registry) {
+          textureFlg = TEXFMT_A16B16G16R16F | TEXCF_UNORDERED | TEXCF_RTARGET;
+          auto antialiasedHndl = registry.createTexture2d("frame_after_aa", {textureFlg, outputResolution})
+                                   .atStage(dafg::Stage::PS_OR_CS)
+                                   .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                                   .handle();
 
-        auto frameHndl =
-          registry.read(input_name).texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
-        auto applyCtxHndl = registry.readBlob<ApplyContext>("aa_apply_context").handle();
+          auto frameHndl =
+            registry.read(input_name).texture().atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
+          auto applyCtxHndl = registry.readBlob<ApplyContext>("aa_apply_context").handle();
 
-        return
-          [this, frameHndl, applyCtxHndl, antialiasedHndl] { applyDlss(frameHndl.get(), applyCtxHndl.ref(), antialiasedHndl.get()); };
-      });
+          registry.readTexture(depth_name).atStage(dafg::Stage::COMPUTE).bindToShaderVar("depth_gbuf");
+
+          return [this, frameHndl, applyCtxHndl, antialiasedHndl] {
+            applyDlss(frameHndl.get(), applyCtxHndl.ref(), antialiasedHndl.get());
+          };
+        });
     }
 
     return true;
@@ -713,7 +775,7 @@ struct Context
   bool tryInitFsr(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
     IPoint2 &max_dynamic_resolution, const char *input_name)
   {
-    if (method != AntialiasingMethod::FSR || !fsr)
+    if (method != AntialiasingMethod::FSR || !isFsrLoaded() || !isFsrUpscalingSupported())
       return false;
 
     amd::FSR::ContextArgs args;
@@ -721,10 +783,10 @@ struct Context
     args.outputWidth = outputResolution.x;
     args.outputHeight = outputResolution.y;
     args.mode = convert_to_fsr(quality);
-    if (!fsr->initUpscaling(args))
+    if (!initFsrUpscaling(args))
       return false;
 
-    inputResolution = fsr->getRenderingResolution(args.mode, outputResolution);
+    inputResolution = getFsrRenderingResolution(args.mode, outputResolution);
 
     max_dynamic_resolution = inputResolution;
     min_dynamic_resolution = get_min_dynamic_resolution(inputResolution);
@@ -785,7 +847,7 @@ struct Context
     args.nearPlane = apply_context.persp.zf; // near and far are swapped as for inverted depth,
     args.farPlane = apply_context.persp.zn;  // FSR require far to be closer than near
     args.frameIndex = dagor_get_global_frame_id();
-    fsr->applyUpscaling(args);
+    d3d::driver_command(Drv3dCommand::EXECUTE_FSR, (void *)&args);
   }
 
   bool tryInitXess(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
@@ -1043,7 +1105,11 @@ struct Context
     G_ASSERT(source_tex);
 
     const Point2 &displayResolution = app_glue()->getDisplayResolution();
+    TextureInfo ti;
+    source_tex->getinfo(ti);
     textureFlg = (hdrrender::is_hdr_enabled() ? TEXFMT_R11G11B10F : TEXFMT_A8R8G8B8) | TEXCF_RTARGET;
+    if (ti.cflg & (TEXCF_SRGBWRITE | TEXCF_SRGBREAD))
+      textureFlg |= TEXCF_SRGBWRITE | TEXCF_SRGBREAD;
     if (!rTargetMetalfxUpscale)
       rTargetMetalfxUpscale = RTargetPool::get(displayResolution.x, displayResolution.y, textureFlg, 1);
 
@@ -1274,9 +1340,9 @@ struct Context
       args.nearPlane = ctx.noJitterPersp.zf; // near and far are swapped as for inverted depth,
       args.farPlane = ctx.noJitterPersp.zn;  // FSR require far to be closer than near
       args.frameIndex = dagor_get_global_frame_id();
-      fsr->scheduleGeneratedFrames(args);
+      d3d::driver_command(Drv3dCommand::EXECUTE_FSR_FG, (void *)&args);
 
-      if (fsr->isFrameGenerationSuppressed())
+      if (isFsrFrameGenerationSuppressed())
         blendGui();
     }
     else if (method == AntialiasingMethod::XeSS)
@@ -1318,7 +1384,7 @@ struct Context
     }
     else if (method == AntialiasingMethod::FSR)
     {
-      fsr->suppressFrameGeneration(suppress);
+      suppressFsrFrameGeneration(suppress);
     }
     else if (method == AntialiasingMethod::XeSS)
     {
@@ -1338,7 +1404,7 @@ struct Context
     }
     else if (method == AntialiasingMethod::FSR)
     {
-      fsr->enableFrameGeneration(enable);
+      enableFsrFrameGeneration(enable);
     }
     else if (method == AntialiasingMethod::XeSS)
     {
@@ -1363,7 +1429,7 @@ struct Context
     }
     else if (method == AntialiasingMethod::FSR)
     {
-      return fsr ? fsr->getPresentedFrameCount() : 1;
+      return getFsrPresentedFrameCount();
     }
     else if (method == AntialiasingMethod::XeSS)
     {
@@ -1394,7 +1460,7 @@ struct Context
       if (exclusive_fullscreen)
         return 0;
 
-      return amd::FSR::getMaximumNumberOfGeneratedFrames();
+      return getFsrMaximumGeneratedFrames();
     }
     else if (for_method == AntialiasingMethod::XeSS)
     {
@@ -1456,13 +1522,13 @@ struct Context
       }
       case AntialiasingMethod::FSR:
       {
-        if (!fsr)
+        if (!isFsrLoaded())
           return kNotSupported;
-        if (!fsr->isFrameGenerationSupported())
+        if (!isFsrFrameGenerationSupported())
           return kNotSupported;
         if (exclusive_fullscreen)
           return kExclusiveFullscreen;
-        if (amd::FSR::getMaximumNumberOfGeneratedFrames() <= 0)
+        if (getFsrMaximumGeneratedFrames() <= 0)
           return kNotSupported;
 
         break;
@@ -1505,7 +1571,7 @@ struct Context
   bool needGuiInTexture()
   {
     if (method == AntialiasingMethod::FSR)
-      return fsr && fsr->isFrameGenerationActive();
+      return isFsrFrameGenerationActive();
     else if (method == AntialiasingMethod::XeSS)
     {
       bool enabled = false;
@@ -1699,7 +1765,7 @@ void reinit()
 }
 
 void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, IPoint2 &rendering_resolution,
-  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name)
+  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name)
 {
   if (!g_ctx)
     return;
@@ -1730,7 +1796,8 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
 
 #endif
     case AntialiasingMethod::DLSS:
-      if (!g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, min_dynamic_resolution, max_dynamic_resolution, input_name))
+      if (!g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, min_dynamic_resolution, max_dynamic_resolution, input_name,
+            depth_name))
         fallbackToNone();
       break;
     case AntialiasingMethod::FSR:
@@ -2105,10 +2172,10 @@ const char *get_available_methods(bool is_vr, bool names_only)
       }
     }
 
-    if (!is_vr && (g_ctx->fsr && g_ctx->fsr->isUpscalingSupported()))
+    if (!is_vr && g_ctx->isFsrUpscalingSupported())
     {
       aaOptions += ";fsr";
-      auto version = g_ctx->fsr->getVersionString();
+      auto version = g_ctx->getFsrVersionString();
       if (!version.empty() && !names_only)
         aaOptions += "|" + version;
     }
@@ -2441,12 +2508,12 @@ unsigned int get_frame_after_aa_flags()
   }
 }
 
-bool try_init_dlss(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name)
+bool try_init_dlss(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name, const char *depth_name)
 {
   IPoint2 dummy;
 
   if (g_ctx)
-    return g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, dummy, dummy, input_name);
+    return g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, dummy, dummy, input_name, depth_name);
   return false;
 }
 

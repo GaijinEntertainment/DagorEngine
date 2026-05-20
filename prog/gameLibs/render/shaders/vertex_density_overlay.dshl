@@ -26,7 +26,7 @@ shader vertexDensityOverlay
 
   hlsl(vs) {
 
-    VsOutput main_vs(uint vertexId : SV_VertexID)
+    VsOutput vertexDensityOverlay_vs(uint vertexId : SV_VertexID)
     {
       VsOutput output;
       float2 inpos = getPostfxVertexPositionById(vertexId);
@@ -42,7 +42,7 @@ shader vertexDensityOverlay
   VERTEX_DENSITY_READ()
 
   hlsl(ps) {
-    float4 main_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
+    float4 vertexDensityOverlay_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       half3 heatColor = readVertexDensityPos(input.tc);
       if (any(heatColor))
@@ -55,6 +55,6 @@ shader vertexDensityOverlay
     }
   }
 
-  compile("target_vs", "main_vs");
-  compile("target_ps", "main_ps");
+  compile("target_vs", "vertexDensityOverlay_vs");
+  compile("target_ps", "vertexDensityOverlay_ps");
 }

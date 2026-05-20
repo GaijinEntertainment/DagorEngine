@@ -57,15 +57,10 @@ class ContextStateAgent : DapiDebugAgent {
         }
         let decsState = unsafe(reinterpret<DecsState? const>(pState))
         for (arch in decsState.allArchetypes) {
-            var arq : EcsArchetypeView
-            arq.hash = arch.hash
-            arq.size = arch.size
+            var arq = EcsArchetypeView(hash = arch.hash, size = arch.size)
             arq.components |> reserve(length(arch.components))
             for (c in arch.components) {
-                var cv : EcsComponentView
-                cv.name = c.name
-                cv.vtype = c.info.fullName
-                cv.stride = c.stride
+                var cv = EcsComponentView(name = c.name, vtype = c.info.fullName, stride = c.stride)
                 if (length(c.data) > 0) {
                     var tinfo : TypeInfo const?
                     let fnTypeInfo = c.info.mkTypeInfo
@@ -85,10 +80,7 @@ class ContextStateAgent : DapiDebugAgent {
         }
         // report entity requests, pretty version
         for (eq in decsState.ecsQueries) {
-            var prq : EcsRequestView
-            prq.file = eq.at.file
-            prq.line = int(eq.at.line)
-            prq.hash = eq.hash
+            var prq = EcsRequestView(file = eq.at.file, line = int(eq.at.line), hash = eq.hash)
             if (!empty(eq.req)) {
                 prq.REQUIRE = join(eq.req, ",")
             }

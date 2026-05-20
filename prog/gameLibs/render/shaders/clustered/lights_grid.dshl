@@ -1,0 +1,262 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+include "shader_global.dshl"
+include "lights_cb.dshl"
+
+float4x4 cull_lights_view_tm;
+float4x4 cull_lights_proj_tm;
+float4 cull_lights_proj_params;    // (znear, maxSliceDist, 0, 0)
+buffer clustered_frustum_points_buf;
+buffer clustered_grid_lights_precalculated_data;
+
+shader precalculate_clustered_frustum_data
+{
+  INIT_AND_USE_CLUSTERED_LIGHTS(cs)
+
+  (cs) {
+    cull_lights_proj_params@f4 = cull_lights_proj_params;
+    cull_lights_proj_tm@f44 = cull_lights_proj_tm;
+    clustered_frustum_points_buf@uav = clustered_frustum_points_buf hlsl {
+      RWStructuredBuffer<float4> clustered_frustum_points_buf@uav;
+    };
+  }
+
+  hlsl(cs) {
+
+    #include <clustered_constants.hlsli>
+    #include <frustumClusters.hlsli>
+
+    //dag_vec_math_common.h
+    void v_unsafe_two_plane_intersection(float4 plane1, float4 plane2, inout float3 ray_point, inout float3 ray_dir)
+    {
+      ray_dir = cross(plane1.xyz, plane2.xyz);
+      ray_point = cross(ray_dir, plane2.xyz) * plane1.w + cross(plane1.xyz, ray_dir) * plane2.w;
+      ray_point = ray_point / dot(ray_dir, ray_dir);
+    };
+
+    float3 v_unsafe_ray_intersect_plane(float3 ray_point, float3 ray_dir, float4 plane)
+    {
+      float t = (-plane.w - dot(ray_point, plane.xyz)) / dot(ray_dir, plane.xyz);
+      return t * ray_dir + ray_point;
+    };
+
+    [numthreads(8, 8, 4)]
+    void precalculate_clustered_frustum_data(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint ix = dtId.x;
+      uint iy = dtId.y;
+      uint iz = dtId.z;
+
+      if (ix > CLUSTERS_W || iy > CLUSTERS_H || iz > CLUSTERS_D)
+        return;
+
+      float proj00 = cull_lights_proj_tm[0][0];
+      float proj11 = cull_lights_proj_tm[1][1];
+      float proj20 = cull_lights_proj_tm[0][2];
+      float proj21 = cull_lights_proj_tm[1][2];
+      float znear  = cull_lights_proj_params.x;
+
+      float4 viewClip = float4(proj00, -proj11, proj20, proj21);
+      float tileScaleX = 0.5f * CLUSTERS_W;
+      float tileScaleY = 0.5f * CLUSTERS_H;
+
+      float tileBiasX = tileScaleX - (float)ix;
+      float tileBiasY = tileScaleY - (float)iy;
+
+      float4 x_plane = float4(normalize(float3(viewClip.x * tileScaleX, 0.0f, viewClip.z * tileScaleX + tileBiasX)), 0.0f);
+      float4 y_plane = float4(normalize(float3(0.0f, viewClip.y * tileScaleY, viewClip.w * tileScaleY + tileBiasY)), 0.0f);
+      float4 z_plane = float4(0.0f, 0.0f, 1.0f, iz == 0 ? -znear : -frustum_clusters_get_depth_at_slice(iz, depthSliceScale, depthSliceBias));
+
+      float3 p;
+      float3 dir;
+      v_unsafe_two_plane_intersection(z_plane, y_plane, p, dir);
+
+      uint idx = iz * (CLUSTERS_W + 1) * (CLUSTERS_H + 1) + iy * (CLUSTERS_W + 1) + ix;
+      structuredBufferAt(clustered_frustum_points_buf, idx) = float4(v_unsafe_ray_intersect_plane(p, dir, x_plane), 0);
+    }
+  }
+
+  compile("target_cs", "precalculate_clustered_frustum_data");
+}
+
+
+shader precalculate_grid_lights_data_cs
+{
+  INIT_OMNI_LIGHTS_CB(cs)
+  INIT_SPOT_LIGHTS_CB(cs)
+  USE_OMNI_LIGHTS_BOUNDS(cs)
+  USE_SPOT_LIGHTS_BOUNDS(cs)
+  INIT_AND_USE_CLUSTERED_LIGHTS(cs)
+
+  (cs) {
+    cull_lights_view_tm@f44 = cull_lights_view_tm;
+    cull_lights_proj_params@f4 = cull_lights_proj_params;
+    cull_lights_proj_tm@f44 = cull_lights_proj_tm;
+    clustered_grid_lights_precalculated_data@uav = clustered_grid_lights_precalculated_data hlsl {
+      #include <clusteredLightsGrid.hlsli>
+      RWStructuredBuffer<CLG_LightData> clustered_grid_lights_precalculated_data@uav;
+    };
+  }
+
+  hlsl(cs) {
+
+    #include <clustered_constants.hlsli>
+    #include <frustumClusters.hlsli>
+    #include <clusteredLightsGrid.hlsli>
+
+    // GPU equivalent of dag_mathBase.h safediv (VERY_SMALL_NUMBER = ~sqrt(FLT_MIN)).
+    static const float VERY_SMALL_NUMBER = /*4e-19f*/1e-8f;
+    float safediv(float a, float b) { return abs(b) >= VERY_SMALL_NUMBER ? (a / b) : 0.0f; }
+
+    // Ported from frustumClipRegion.h (computeClipRegion / findScreenSpaceBounds).
+    void updateClipRegionRoot(float normal_lateral, float light_lateral, float light_z, float light_radius, float camera_scale,
+        inout float clip_min, inout float clip_max)
+    {
+      float normal_z = safediv(light_radius - normal_lateral * light_lateral, light_z);
+      float tangent_z = safediv(light_lateral * light_lateral + light_z * light_z - light_radius * light_radius, light_z - safediv(normal_z, normal_lateral) * light_lateral);
+
+      if (tangent_z > 0.0f)
+      {
+        float c = safediv(-normal_z * camera_scale, normal_lateral);
+        if (normal_lateral > 0.0f)
+        {
+          // Left side boundary
+          clip_min = max(clip_min, c);
+        }
+        else
+        { // Right side boundary
+          clip_max = min(clip_max, c);
+        }
+      }
+    }
+
+    void updateClipRegion(float light_lateral, float light_z, float light_radius, float camera_scale,
+        inout float clip_min, inout float clip_max)
+    {
+      float radius_sq = light_radius * light_radius;
+      float light_lateral_z_sq_sum = light_lateral * light_lateral + light_z * light_z;
+      float discriminant = radius_sq * light_lateral * light_lateral - light_lateral_z_sq_sum * (radius_sq - light_z * light_z);
+
+      if (discriminant >= 0.0f)
+      {
+        float radius_lateral_prod = light_radius * light_lateral;
+        float sqrt_discriminant = sqrt(discriminant);
+        float normal_lateral_pos = safediv(radius_lateral_prod + sqrt_discriminant, light_lateral_z_sq_sum);
+        float normal_lateral_neg = safediv(radius_lateral_prod - sqrt_discriminant, light_lateral_z_sq_sum);
+
+        updateClipRegionRoot(normal_lateral_pos, light_lateral, light_z, light_radius, camera_scale, clip_min, clip_max);
+        updateClipRegionRoot(normal_lateral_neg, light_lateral, light_z, light_radius, camera_scale, clip_min, clip_max);
+      }
+    }
+
+    // Returns clip-space AABB (minX, minY, maxX, maxY) of a sphere.
+    // Returns (1,1,-1,-1) for an empty region (sphere entirely behind near plane).
+    // CPU equivalent: computeClipRegion() in frustumClipRegion.h.
+    float4 computeClipRegion(float4 lightPosView, float cameraNear, float m11, float m22)
+    {
+      // Early out with empty rectangle if the light is too far behind the view frustum
+      float4 clipRegion = float4(1.0f, 1.0f, -1.0f, -1.0f);
+      if (lightPosView.z + lightPosView.w >= cameraNear)
+      {
+        clipRegion = float4(-1.0f, -1.0f, 1.0f, 1.0f);
+
+        updateClipRegion(lightPosView.x, lightPosView.z, lightPosView.w, m11, clipRegion.x, clipRegion.z);
+        updateClipRegion(lightPosView.y, lightPosView.z, lightPosView.w, m22, clipRegion.y, clipRegion.w);
+      }
+
+      return clipRegion;
+    }
+
+    // Exact port of findScreenSpaceBounds() in frustumClipRegion.h.
+    CLG_FrustumScreenRect findScreenSpaceBounds(float4 viewSpaceBoundSpherePosRadius, float znear, float proj00, float proj11)
+    {
+      float4 reg = computeClipRegion(viewSpaceBoundSpherePosRadius, znear, proj00, proj11);
+      reg = reg * float4(0.5f, -0.5f, 0.5f, -0.5f) + float4(0.5f, 0.5f, 0.5f, 0.5f);
+
+      int center_y = (int)((reg.y + reg.w) * 0.5f * CLUSTERS_H);
+
+      static const float4 zeros = float4(0.0f, 0.0f, 0.0f, 0.0f);
+      static const float4 ones_minus_1_256 = float4(1.0f - 0.00390625f, 1.0f - 0.00390625f, 1.0f - 0.00390625f, 1.0f - 0.00390625f); // 1/-1/256.
+      reg = max(min(reg, ones_minus_1_256), zeros);
+
+      return clg_pack_frustrum_screen_rect(
+        (uint)(reg.x * CLUSTERS_W),
+        (uint)(reg.z * CLUSTERS_W),
+        (uint)(reg.w * CLUSTERS_H), // swapped
+        (uint)(reg.y * CLUSTERS_H), // swapped
+        center_y
+      );
+    }
+
+    // GPU equivalent of FrustumClusters::getSpheresClipSpaceRects for a single light.
+    // Calls findScreenSpaceBounds for the XY grid AABB + center_y, then computes Z-slice range.
+    // Returns false if the sphere is entirely outside the visible grid.
+    CLG_ItemRect3D getSpheresClipSpaceRect(
+      float4 viewSpaceBoundSpherePosRadius,
+      float znear, float maxSliceDist,
+      float proj00, float proj11)
+    {
+      CLG_ItemRect3D itemRect = (CLG_ItemRect3D)0;
+      itemRect.fsRect = findScreenSpaceBounds(viewSpaceBoundSpherePosRadius, znear, proj00, proj11);
+
+      if (!is_frustrum_screen_rect_valid(itemRect.fsRect))
+      {
+        return itemRect;
+      };
+
+      float zMinW = viewSpaceBoundSpherePosRadius.z - viewSpaceBoundSpherePosRadius.w;
+      float zMaxW = viewSpaceBoundSpherePosRadius.z + viewSpaceBoundSpherePosRadius.w;
+
+      if (zMinW >= maxSliceDist)
+        make_frustrum_screen_invalid(itemRect.fsRect);
+
+      uint zMin = frustum_clusters_get_slice_at_depth(max(zMinW, 1e-6f), depthSliceScale, depthSliceBias);
+      uint zMax = frustum_clusters_get_slice_at_depth(max(zMaxW, 1e-6f), depthSliceScale, depthSliceBias);
+
+      itemRect.z_bounds = clg_pack_z_bounds(min(zMin, (uint)(CLUSTERS_D - 1)), min(zMax, (uint)(CLUSTERS_D - 1)));
+
+      return itemRect;
+    }
+
+
+    [numthreads(256, 1, 1)]
+    void precalculate_grid_lights_data_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint totalOmni = (uint)omniLightsCount;
+      uint totalSpot = (uint)spotLightsCount;
+      uint totalLights = totalOmni + totalSpot;
+      uint lightId = dtId.x;
+
+      if(lightId >= totalLights)
+        return;
+
+      bool isSpot = (lightId >= totalOmni);
+      uint localId = isSpot ? (lightId - totalOmni) : lightId;
+
+      float proj00 = cull_lights_proj_tm[0][0];
+      float proj11 = cull_lights_proj_tm[1][1];
+      float znear = cull_lights_proj_params.x;
+      float maxSliceDist = cull_lights_proj_params.y;
+
+      // Fetch world-space bounding sphere and transform to view space.
+      float4 bsph;
+      if (!isSpot)
+      {
+        bsph = getOmniLightBoundingSphere(omni_lights_cb[localId]);
+      }
+      else
+      {
+        bsph = getSpotLightBoundingSphere(spot_lights_cb[localId]);
+      }
+
+      CLG_LightData lightData = (CLG_LightData)0;
+      lightData.viewSpaceBoundSpherePosRadius.xyz = mul(cull_lights_view_tm, float4(bsph.xyz, 1.0f)).xyz;
+      lightData.viewSpaceBoundSpherePosRadius.w = bsph.w;
+      lightData.rect3d = getSpheresClipSpaceRect(lightData.viewSpaceBoundSpherePosRadius, znear, maxSliceDist, proj00, proj11);
+
+      structuredBufferAt(clustered_grid_lights_precalculated_data, lightId) = lightData;
+    }
+
+  }
+  compile("target_cs", "precalculate_grid_lights_data_cs");
+}

@@ -49,7 +49,7 @@ function getEntityExtraName(eid) {
 }
 
 function getSceneLoadTypeText(v) {
-  let loadTypeVal = type(v) == "int" || type(v) == "integer" ? v : v.loadType
+  let loadTypeVal = type(v) == "integer" ? v : v.loadType
   let loadType = (
     (loadTypeVal == 1) ? "COMMON" :
     (loadTypeVal == 2) ? "CLIENT" :

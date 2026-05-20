@@ -342,6 +342,16 @@ void DaSkies::skiesDataScatteringVolumeBarriers(SkiesData *data)
   d3d::resource_barrier({data->baseSkies->scatteringVolume[1].getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 }
 
+#if DAGOR_DBGLEVEL > 0
+void DaSkies::overrideSkiesDataCloudsUseCompute(SkiesData *data, bool use_compute)
+{
+  if (!data)
+    return;
+  data->clouds.useCompute = use_compute;
+  data->clouds.taaUseCompute = use_compute;
+}
+#endif
+
 void DaSkies::changeSkiesData(int sky_detail_level, int clouds_detail_level, bool fly_through_clouds, int targetW, int targetH,
   SkiesData *data, CloudsResolution clouds_resolution, bool use_blurred_clouds, bool ignore_panorama_state)
 {
@@ -395,9 +405,7 @@ void DaSkies::changeSkiesData(int sky_detail_level, int clouds_detail_level, boo
   }
 
   data->cloudsDetailLevel = clouds_detail_level;
-  // clouds_detail_level: 3, 4 -- mobile low quality
-  const int divider = clouds_detail_level >= 3 ? clouds_detail_level : (1 << clouds_detail_level);
-  // have to keep legacy behav because of config files
+  const int divider = get_clouds_res_divider(clouds_detail_level);
   if (clouds_detail_level > 0 || clouds_resolution == CloudsResolution::ForceFullresClouds)
     data->clouds.init(IPoint2(targetW / divider, targetH / divider), data->base_name, fly_through_clouds, clouds_resolution,
       use_blurred_clouds);
@@ -647,7 +655,7 @@ void DaSkies::prepareSky(const DPoint3 &origin, uint32_t render_sun_moon, SkiesD
   ShaderGlobal::set_float(render_sunVarId, (data->renderSunMoon & 1) ? 1 : 0);
 
   TIME_D3D_PROFILE(render_sky);
-  d3d::set_render_target(data->lowresSkies.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{data->lowresSkies.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
   skies.renderSky();
 
@@ -1056,7 +1064,7 @@ void DaSkies::dispatchCloudsTraces()
         SCOPE_RENDER_TARGET;
         SCOPE_RESET_SHADER_BLOCKS;
         ScopeResetShaderBlocks savedBlocks;
-        d3d::set_render_target((Texture *)resultBuffer, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{(BaseTexture *)resultBuffer, 0, 0}});
         d3d::set_ps_const(15, &dispatchData[0], dispatchSize * 2);
         traceCloudsPs.render();
       }

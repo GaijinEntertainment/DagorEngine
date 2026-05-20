@@ -67,12 +67,12 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("GeomNodeTree"));
 
-    addAnnotation(das::make_smart<PhysSystemInstanceAnnotation>(lib));
-    addAnnotation(das::make_smart<PhysRagdollAnnotation>(lib));
-    addAnnotation(das::make_smart<PhysBodyAnnotation>(lib));
-    addAnnotation(das::make_smart<ProjectileImpulseAnnotation>(lib));
-    addAnnotation(das::make_smart<ImpulseDataAnnotation>(lib));
-    addAnnotation(das::make_smart<ProjectileImpulseDataPairAnnotation>(lib));
+    addAnnotation(new PhysSystemInstanceAnnotation(lib));
+    addAnnotation(new PhysRagdollAnnotation(lib));
+    addAnnotation(new PhysBodyAnnotation(lib));
+    addAnnotation(new ProjectileImpulseAnnotation(lib));
+    addAnnotation(new ImpulseDataAnnotation(lib));
+    addAnnotation(new ProjectileImpulseDataPairAnnotation(lib));
 
     using method_startRagdoll = DAS_CALL_MEMBER(PhysRagdoll::startRagdoll);
     das::addExtern<DAS_CALL_METHOD(method_startRagdoll)>(*this, lib, "ragdoll_startRagdoll", das::SideEffects::modifyArgument,

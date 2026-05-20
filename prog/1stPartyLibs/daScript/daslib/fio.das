@@ -77,7 +77,7 @@ def fload(f : file; buf : auto(BufType) -const) {
         return false
     }
     var loaded = false
-    _builtin_load(f, dfh.size) <| $(data : array<uint8>) {
+    _builtin_load(f, dfh.size) $(data : array<uint8>) {
         if (length(data) != 0) {
             binary_load(buf, data)
             loaded = true
@@ -89,7 +89,7 @@ def fload(f : file; buf : auto(BufType) -const) {
 [generic]
 def fsave(f : file; buf : auto(BufType) const) {
     var r1, r2 : int
-    binary_save(buf) <| $(data) {
+    binary_save(buf) $(data) {
         let len = length(data)
         let dfh = df_header(magic = df_magic, size = len)
         r1 = _builtin_write(f, dfh, typeinfo sizeof(type<df_header>))
@@ -162,7 +162,7 @@ def mkdir_rec(path : string; var error : string&) : bool {
 [generic]
 def fread(path : string) : string {
     var result : string
-    fopen(path, "rb") <| $(f) {
+    fopen(path, "rb") $(f) {
         if (f != null) {
             result = fread(f)
         }
@@ -174,7 +174,7 @@ def fread(path : string) : string {
 [generic]
 def fwrite(path : string; text : string) : bool {
     var ok = false
-    fopen(path, "wb") <| $(f) {
+    fopen(path, "wb") $(f) {
         if (f != null) {
             fwrite(f, text)
             ok = true

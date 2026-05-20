@@ -430,7 +430,14 @@ eastl::pair<int, int> syncvroms::write_vrom_diffs(danet::BitStream &bs, const Sy
     // Skip client vroms with the same hashes on the server
     const auto clientSyncVromIt = eastl::find(client_sync_vroms.cbegin(), client_sync_vroms.cend(), serverSyncVrom);
     if (clientSyncVromIt != client_sync_vroms.cend())
+    {
+      debug("[SyncVroms]: write_vrom_diffs ignoring unchanged vrom '%s' with hash '%s'", clientSyncVromIt->name,
+        clientSyncVromIt->hash.c_str());
       continue;
+    }
+
+    debug("[SyncVroms]: write_vrom_diffs server vrom '%s' with hash '%s' is not found in recieved client vroms. Writing diff.",
+      serverSyncVrom.name, serverSyncVrom.hash.c_str());
 
     const VromHash &baseVromHash = syncvroms::get_base_vrom_hash(serverSyncVrom.name.c_str());
 

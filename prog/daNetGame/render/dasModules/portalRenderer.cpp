@@ -27,7 +27,7 @@ public:
   PortalRendererModule() : das::Module("PortalRenderer")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<PortalParamsAnnotation>(lib));
+    addAnnotation(new PortalParamsAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(portal_renderer_mgr::update_portal)>(*this, lib, "update_portal", das::SideEffects::accessExternal,
       "portal_renderer_mgr::update_portal");
     das::addExtern<DAS_BIND_FUN(portal_renderer_mgr::allocate_portal)>(*this, lib, "allocate_portal", das::SideEffects::accessExternal,

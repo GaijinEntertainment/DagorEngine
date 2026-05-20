@@ -777,7 +777,7 @@ function doContainerOp(eid, comp_name, cont_path, op) {
         value = false
       else if (listType=="float")
         value = 0.0
-      else if (listType=="int")
+      else if (listType=="int" || listType=="integer")
         value = 0
       else if (listType=="Point2")
         value = Point2(0,0)

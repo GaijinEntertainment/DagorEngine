@@ -228,12 +228,8 @@ namespace das {
                 ss << "(" << debug_type(ti) << " 0x" << HEX << intptr_t(*(char**)pa) << DEC;
                 if ( ti->flags & TypeInfo::flag_isSmartPtr ) {
                     if ( ptr_ref_count * ps = *(ptr_ref_count**)pa) {
-#if DAS_SMART_PTR_ID
                         ss << " smart_ptr(" << int32_t(ps->use_count())
                             << ",id=" << HEX << ps->ref_count_id << DEC << ") = ";
-#else
-                        ss << " smart_ptr(" << int32_t(ps->use_count()) << ") = ";
-#endif
                     } else {
                         ss << " smart_ptr = ";
                     }

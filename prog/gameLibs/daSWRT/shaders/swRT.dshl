@@ -43,6 +43,20 @@ hlsl (code) {
 }
 endmacro
 
+define_macro_if_not_defined PROJECT_SWRT_SHADOW_FADE(code)
+hlsl (code) {
+  bool get_project_defined_swrt_fade_discard(float3 cameraPos, out float fade)
+  {
+    fade = 1.f;
+    return false;
+  }
+  float get_project_defined_swrt_blend(float swrt_shadow, float external_shadow, float fade)
+  {
+    return swrt_shadow;
+  }
+}
+endmacro
+
 shader draw_collision_swrt
 {
   CONFIGURE_SW_RT(ps)
@@ -328,6 +342,7 @@ macro COMMON_SWRT_SHADOW(code)
   INIT_HALF_RES_CLOSE_DEPTH(code)
   INIT_HALF_RES_CLOSE_DEPTH_NORMALS(code)
   PROJECT_STEP_SWRT_SHADOW_OFFSET(code)
+  PROJECT_SWRT_SHADOW_FADE(code)
   //INIT_BLUE_NOISE(code)
   //USE_BLUE_NOISE(code)
   if (swrt_use_hw_rt == on)
@@ -462,22 +477,30 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
           return;
         }
       }
+
+      //if we first calculate full res shadows, than we can and should skip completely darkened
       float2 uv = pixelCoord*inv_target_size.xy + inv_target_size.zw;
+      half4 shadows = (half4)combined_shadows.GatherRed(combined_shadows_samplerstate, uv);
+      if (all(shadows == 0))
       {
-        //if we first calculate full res shadows, than we can and should skip completely darkened
-        half4 shadows = (half4)combined_shadows.GatherRed(combined_shadows_samplerstate, uv);
-        if (all(shadows == 0))
-        {
-          WRITE_MASK(0);
-          return;
-        }
+        WRITE_MASK(0);
+        return;
       }
+      float externalShadow = dot(shadows, 0.25f);
 
       float3 viewVect = getViewVecOptimized(uv);
       float w = linearize_z(rawDepth, zn_zfar.zw);
       float3 cameraPos = viewVect * w;
       float3 worldPos = swrt_world_view_pos.xyz + cameraPos;
       float3 to_sun_dir = get_sun_direction(pixelCoord);
+
+      float fade = 1.f;
+      if (get_project_defined_swrt_fade_discard(cameraPos, fade))
+      {
+        WRITE_MASK(externalShadow);
+        return;
+      }
+
       #if HW_RT_SHADOWS
       {
         HitInfo hitInfo;
@@ -487,7 +510,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         uint extraFlags = 0;
 
         bool shadowHit = !trace_ray(bvhMain, cameraPos.xyz, to_sun_dir, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
-        WRITE_MASK(shadowHit);
+        WRITE_MASK(get_project_defined_swrt_blend(shadowHit, externalShadow, fade));
         return;
       }
       #endif
@@ -500,8 +523,8 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       #endif
       );
 
+      WRITE_MASK(get_project_defined_swrt_blend(shadowHit, externalShadow, fade));
       //swrt_shadow_target[pixelCoord] = shadowHit && !mask;
-      WRITE_MASK(shadowHit);
       //swrt_shadow_target[pixelCoord] = !shadowHit;
       //swrt_shadow_target[pixelCoord] = !mask;
       return;

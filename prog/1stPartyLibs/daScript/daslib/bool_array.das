@@ -191,10 +191,10 @@ struct BoolArray {
             resize(self, int(real_size + 1u))
             // we start with the dword, where we want to insert
             let start_offs = uindex >> 5u
-            var start_bit = uindex & 31u
+            let start_bit = uindex & 31u
             var w = bits[start_offs]
             var carry_bit = w >> 31u
-            var lower_bits = w & ((1u << start_bit) - 1u)
+            let lower_bits = w & ((1u << start_bit) - 1u)
             var upper_bits = w & ~((1u << start_bit) - 1u)
             upper_bits <<= 1u
             let set_bit = value ? (1u << start_bit) : 0u
@@ -241,7 +241,7 @@ struct BoolArray {
 def each(self : BoolArray) : iterator<bool> {
     //! Returns an iterator over all boolean values in the BoolArray.
     let pself = unsafe(addr(self))
-    return <- generator<bool>() <| $ {
+    return <- generator<bool> {
         let len = (*pself).length()
         return false if (len == 0)
         let full_uints = uint(len) >> 5u

@@ -5,6 +5,25 @@
 
 namespace das {
 
+static daScriptCompilationCallback compilationCallback = nullptr;
+static mutex compilationCallbackMutex;
+
+void setCompilationCallback(daScriptCompilationCallback callback) {
+    lock_guard<mutex> lock(compilationCallbackMutex);
+    compilationCallback = callback;
+}
+
+void callCompilationCallback(const string & moduleName, const string & fileName, const string & status) {
+    daScriptCompilationCallback callback = nullptr;
+    {
+        lock_guard<mutex> lock(compilationCallbackMutex);
+        callback = compilationCallback;
+    }
+    if (callback) {
+        callback(moduleName, fileName, status);
+    }
+}
+
 DynamicModuleInfo::~DynamicModuleInfo() {
     for (auto handler : dll_handlers) {
         closeLibrary(handler);

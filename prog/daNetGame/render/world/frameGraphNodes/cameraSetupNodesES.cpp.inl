@@ -93,7 +93,6 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     if (!shouldRenderGbufferDebug() && !renderer_has_feature(FeatureRenderFlags::POSTFX))
     {
       registry.registerTexture("opaque_resolved", [](const dafg::multiplexing::Index &) -> ManagedTexView {
-        G_ASSERTF(!WRDispatcher::isFsrEnabled(), "FSR make no sense without postfx");
         const AntiAliasingMode currentAA = static_cast<AntiAliasingMode>(WRDispatcher::getCurrentAntiAliasingMode());
         if (currentAA != AntiAliasingMode::OFF)
           logerr("Only no-AA will work without postfx: %d", int(currentAA));

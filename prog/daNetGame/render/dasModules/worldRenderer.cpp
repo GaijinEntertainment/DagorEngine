@@ -98,16 +98,16 @@ public:
     addBuiltinDependency(lib, require("DagorTexture3D"));
     addBuiltinDependency(lib, require("Scene"));
 
-    addAnnotation(das::make_smart<CameraParamsAnnotation>(lib));
-    addAnnotation(das::make_smart<VisibilityMgrAnnotation>(lib));
+    addAnnotation(new CameraParamsAnnotation(lib));
+    addAnnotation(new VisibilityMgrAnnotation(lib));
     dafg::das::register_interop_type<CameraViewVisibilityMgr *>(lib);
     dafg::das::register_interop_type<CameraParams>(lib);
 
-    addEnumeration(das::make_smart<EnumerationRenderPass>());
+    addEnumeration(new EnumerationRenderPass());
     das::addEnumFlagOps<UpdateStageInfoRender::RenderPass>(*this, lib, "UpdateStageInfoRender::RenderPass");
 
-    addEnumeration(das::make_smart<EnumerationFeatureRenderFlags>());
-    addEnumeration(das::make_smart<EnumerationCockpitReprojectionMode>());
+    addEnumeration(new EnumerationFeatureRenderFlags());
+    addEnumeration(new EnumerationCockpitReprojectionMode());
     das::addExtern<DAS_BIND_FUN(bind_dascript::toggleFeature)>(*this, lib, "toggleFeature", das::SideEffects::modifyExternal,
       "bind_dascript::toggleFeature");
     das::addExtern<DAS_BIND_FUN(UiPostFxManager::setBlurUpdateEnabled)>(*this, lib, "setBlurUpdateEnabled",

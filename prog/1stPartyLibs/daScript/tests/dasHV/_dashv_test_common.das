@@ -49,6 +49,10 @@ def with_test_server(server_type : auto(ServerType); port : int; blk : block<(ba
                         sleep(1u)
                     }
                     server->stop()
+                    server->cleanup()
+                    unsafe {
+                        delete server
+                    }
                     finished |> notify_and_release
                 }
                 started |> join

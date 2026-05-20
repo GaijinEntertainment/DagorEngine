@@ -96,7 +96,7 @@ struct WorldSDFImpl final : public WorldSDF
   WorldSDFParams world_sdf_params;
   eastl::array<IPoint4, MAX_WORLD_SDF_CLIPS> world_sdf_coord_lt;
   PostFxRenderer sdf_world_debug;
-  UniqueTexHolder world_sdf_clipmap;
+  UniqueTexWithShaderVar world_sdf_clipmap;
   UniqueBufHolder world_sdf_coord_lt_buf;
   UniqueBufHolder world_sdf_params_buf;
   UniqueBufHolder culled_sdf_instances, culled_sdf_instances_grid;
@@ -240,6 +240,8 @@ struct WorldSDFImpl final : public WorldSDF
     float dInv = 1. / d;
     float y = x * dInv * (1. / max(dInv, 0.00000001f) + 2.0f);
     ShaderGlobal::set_float4(world_sdf_to_atlas_decode__gradient_offsetVarId, x, y, 1.f / fullTextureDepth, 1.f / w);
+
+    updateCBuffers();
   }
 
   WorldSDFImpl()
@@ -820,6 +822,7 @@ struct WorldSDFImpl final : public WorldSDF
   void fullReset(bool invalidate_current)
   {
     initHistory(clipmap.size(), invalidate_current);
+    updateCBuffers();
     d3d::clear_rwtexf(world_sdf_clipmap.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   }
 };

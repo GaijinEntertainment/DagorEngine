@@ -158,7 +158,7 @@ public:
 
   void eval_supports(supports_stat &s) override { preshaderSource.supportStats.emplace_back(&s); }
 
-  void decl_bool_alias(const char *name, bool_expr &expr) override;
+  void decl_bool_alias(const char *name, const char *base_name) override;
   int is_debug_mode_enabled() override { return ctx.shCtx().isDebugModeEnabled(); }
 
 private:
@@ -179,6 +179,10 @@ private:
 
 inline int AssembleShaderEvalCB::eval_if(bool_expr &e) { return eval_expr(e).value ? IF_TRUE : IF_FALSE; }
 
+int appendVarToContext(shc::VariantContext &ctx, const char *name, ShaderVarType type, const int nameId, void *loc, bool dynamic,
+  bool noWarning, bool used = false, int slot = -1);
+void parseAttribs(shc::VariantContext &ctx, const eastl::vector<static_attrib_decl *> &attribs, const ShaderSemCode::Var &var,
+  uint32_t &flags, uint32_t &stubCol);
 
 // clear caches
 void clear_per_file_caches();

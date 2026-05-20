@@ -1,0 +1,63 @@
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:7:26
+
+//expect:w324
+for (local i = 0; i < 10; i--) {
+                          ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:14:38
+
+//expect:w324
+for (local i = arr.len() - 1; i >= 0; i++) {
+                                      ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:21:26
+
+//expect:w324
+for (local i = 0; i > 10; i++) {
+                          ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:28:25
+
+//expect:w324
+for (local i = 0; i > 0; i++) {
+                         ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:35:25
+
+//expect:w324
+for (local i = 0; 0 < i; i++) {
+                         ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:42:26
+
+//expect:w324
+for (local i = 0; 10 > i; i--) {
+                          ^--
+  if (guard++ > 1)
+
+
+WARNING: w324 (for-direction) The update expression moves the for-loop variable in the wrong direction.
+testData/static_analyzer/w324.nut:50:26
+
+//expect:w324
+for (local i = 0; i < 10; i += n) {
+                          ^-----
+  if (guard++ > 1)
+
+

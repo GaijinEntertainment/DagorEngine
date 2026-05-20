@@ -586,10 +586,11 @@ public:
     int recPid, destPid, remapPid;
     InterpolateTabFloat remapVal;
   };
-  Tab<ChangeRec> rec;
-  Tab<RemapRec> mapRec;
-  Tab<ParamOp> ops;
+  dag::Vector<ChangeRec> rec;
+  dag::Vector<RemapRec> mapRec;
+  dag::Vector<ParamOp> ops;
   int wtPid;
+  volatile int rndSeed;
 
   ApbParamCtrl(AnimationGraph &g, const char *param_name);
 

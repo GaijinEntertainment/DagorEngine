@@ -17,22 +17,20 @@ namespace SQCompilation {
 
 void ConstGenVisitor::throwUnsupported(Node *n, const char *type)
 {
-    _ctx.reportDiagnostic(DiagnosticsId::DI_NOT_ALLOWED_IN_CONST, n->lineStart(), n->columnStart(), n->textWidth(), type);
+    _ctx.throwError(n, "%s is not allowed in constant", type);
 }
 
 void ConstGenVisitor::throwGeneralError(Node *n, const char *msg)
 {
-    _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->textWidth(), msg);
+    _ctx.throwError(n, "%s", msg);
 }
 
 void ConstGenVisitor::throwGeneralErrorFmt(Node *n, const char *fmt, ...)
 {
-    char buf[256];
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);
-    _ctx.reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, n->lineStart(), n->columnStart(), n->textWidth(), buf);
+    _ctx.vthrowError(n->lineStart(), n->columnStart(), n->textWidth(), fmt, args);
+    va_end(args); // unreachable; vthrowError throws
 }
 
 void ConstGenVisitor::process(Expr *expr, SQObjectPtr &out)
@@ -108,9 +106,7 @@ void ConstGenVisitor::visitId(Id *id)
     if (_codegen.IsConstant(idObj, constant)) {
         _result = constant;
     } else {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_ID_IS_NOT_CONST,
-            id->lineStart(), id->columnStart(), id->textWidth(),
-            _stringval(idObj));
+        _ctx.throwError(id, "Identifier '%s' is not a compile-time constant", _stringval(idObj));
     }
 
     _call_target.Null();
@@ -196,9 +192,7 @@ void ConstGenVisitor::visitGetFieldExpr(GetFieldExpr *expr)
     }
     else {
         sq_settop(_vm, prevTop);
-        _ctx.reportDiagnostic(DiagnosticsId::DI_CONSTANT_FIELD_NOT_FOUND,
-            expr->lineStart(), expr->columnStart(), expr->textWidth(),
-            _stringval(slotName));
+        _ctx.throwError(expr, "Field '%s' not found in constant object", _stringval(slotName));
     }
 
     sq_settop(_vm, prevTop);
@@ -247,9 +241,7 @@ void ConstGenVisitor::visitGetSlotExpr(GetSlotExpr *expr)
 
         sq_settop(_vm, prevTop);
 
-        Expr *errNode = expr->key();
-        _ctx.reportDiagnostic(DiagnosticsId::DI_CONSTANT_SLOT_NOT_FOUND,
-            errNode->lineStart(), errNode->columnStart(), errNode->textWidth(),
+        _ctx.throwError(expr->key(), "%s slot %s not found in constant object",
             IdType2Name(sq_type(key)), _stringval(keyAsString));
     }
     sq_settop(_vm, prevTop);

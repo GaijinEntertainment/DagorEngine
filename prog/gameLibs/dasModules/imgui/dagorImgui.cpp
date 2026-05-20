@@ -18,18 +18,18 @@ class DagorImguiModule final : public das::Module
   static constexpr const char *moduleName = "DagorImgui";
 
 public:
-  das::smart_ptr<bind_dascript::RegisterImguiFunctionAnnotation> funcReg;
-  das::smart_ptr<bind_dascript::RegisterImguiWindowAnnotation> windowReg;
+  bind_dascript::RegisterImguiFunctionAnnotation *funcReg;
+  bind_dascript::RegisterImguiWindowAnnotation *windowReg;
 
 public:
   DagorImguiModule() : das::Module(moduleName)
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addEnumeration(das::make_smart<EnumerationImGuiState>());
-    funcReg = das::make_smart<bind_dascript::RegisterImguiFunctionAnnotation>(functionsRegistry, functionsRegistryMutex);
+    addEnumeration(new EnumerationImGuiState());
+    funcReg = new bind_dascript::RegisterImguiFunctionAnnotation(functionsRegistry, functionsRegistryMutex);
     addAnnotation(funcReg);
-    windowReg = das::make_smart<bind_dascript::RegisterImguiWindowAnnotation>(windowsRegistry, windowsRegistryMutex);
+    windowReg = new bind_dascript::RegisterImguiWindowAnnotation(windowsRegistry, windowsRegistryMutex);
     addAnnotation(windowReg);
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
       auto mod = das::Module::require(moduleName);

@@ -87,7 +87,7 @@ namespace drv3d_metal
 
       MTLRenderPipelineColorAttachmentDescriptor *renderbufferAttachment = pipelineStateDescriptor.colorAttachments[i];
       const auto &blend = rstate.raster_state.blend[i < shaders::RenderState::NumIndependentBlendParameters ? i : 0];
-      if (blend.ablend && rstate.pixelFormat[i] != 0)
+      if (blend.ablend && rstate.pixelFormat[i] != 0 && mask)
       {
         renderbufferAttachment.blendingEnabled = true;
 
@@ -804,18 +804,17 @@ namespace drv3d_metal
     g_saver_condition.notify_all();
 
     g_cache_dirty = false;
-    compilations_this_frame = 0;
+    interlocked_relaxed_store(compilations_this_frame, 0);
   }
 
   void ShadersPreCache::tickCompilation()
   {
     constexpr uint32_t max_compilations_before_kick = 100;
 
-    compilations_this_frame++;
-    if (compilations_this_frame >= max_compilations_before_kick)
+    if (interlocked_increment(compilations_this_frame) >= max_compilations_before_kick)
     {
       watchdog_kick();
-      compilations_this_frame = 0;
+      interlocked_relaxed_store(compilations_this_frame, 0);
     }
   }
 

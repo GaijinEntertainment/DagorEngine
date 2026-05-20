@@ -673,6 +673,7 @@ class NodeDiffComputer
     case TO_STATIC_MEMO:
     case TO_INLINE_CONST:
     case TO_RESUME:
+    case TO_AWAIT:
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:

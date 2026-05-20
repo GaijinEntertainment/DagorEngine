@@ -3,7 +3,7 @@
 
 #include <daECS/core/entityId.h>
 
-#define NO_LAG_COMPENSATION_TIME 0.f
+#define NO_LAG_COMPENSATION_TIME 0.0
 
 class BasePhysActor;
 
@@ -20,16 +20,16 @@ enum class LCError
 class ILagCompensationMgr
 {
 public:
-  virtual void startLagCompensation(float to_time, ecs::EntityId except_eid) = 0;
-  virtual LCError backtrackEntity(ecs::EntityId eid, float to_time) = 0;
+  virtual void startLagCompensation(double to_time, ecs::EntityId except_eid) = 0;
+  virtual LCError backtrackEntity(ecs::EntityId eid, double to_time) = 0;
   virtual void finishLagCompensation() = 0;
 };
 ILagCompensationMgr &get_lag_compensation();
 
 bool is_need_to_lag_compensate();
-float lag_compensation_time(ecs::EntityId avatar_eid,
+double lag_compensation_time(ecs::EntityId avatar_eid,
   ecs::EntityId lc_eid,
-  float at_time,
+  double at_time,
   int interp_delay_ticks_packed,
   float additional_interp_delay = 0.f,
   BasePhysActor **out_lc_eid_phys_actor = nullptr);

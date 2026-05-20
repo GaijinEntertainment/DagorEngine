@@ -52,34 +52,35 @@ ECS_NO_ORDER static inline void csm_shadows_recreate_views_es(
   info.maxViewports = eastl::min({CSM_MAX_CASCADES, DAGDP_MAX_VIEWPORTS, maxCascade});
 }
 
+void populate_csm_viewports(ViewPerFrameData &view_data, int max_cascades)
+{
+  ShadowsManager &shadowsManager = WRDispatcher::getShadowsManager();
+  auto csm = shadowsManager.getCascadeShadows();
+  if (!csm)
+    return;
+
+  int numCascades = csm->getNumCascadesToRender();
+  numCascades = eastl::min({numCascades, DAGDP_MAX_VIEWPORTS, max_cascades});
+  if (numCascades <= 0)
+    return;
+
+  view_data.viewports.resize(numCascades);
+  for (int ci = 0; ci < numCascades; ci++)
+  {
+    auto &viewport = view_data.viewports[ci];
+    viewport.worldPos = csm->getRenderCameraWorldViewPos(ci);
+    viewport.maxDrawDistance = csm->getMaxShadowDistance();
+    viewport.frustum = csm->getFrustum(ci);
+    viewport.csmCascade = ci;
+  }
+}
+
 dafg::NodeHandle create_csm_shadows_provider(const dafg::NameSpace &ns, int max_cascades)
 {
   const auto declare = [max_cascades](dafg::Registry registry) {
     view_multiplex(registry, ViewKind::CSM_SHADOWS);
     auto viewDataHandle = registry.createBlob<ViewPerFrameData>("view@csm").handle();
-    return [viewDataHandle, max_cascades] {
-      auto &viewData = viewDataHandle.ref();
-
-      ShadowsManager &shadowsManager = WRDispatcher::getShadowsManager();
-      auto csm = shadowsManager.getCascadeShadows();
-      if (!csm)
-        return;
-
-      int numCascades = csm->getNumCascadesToRender();
-      numCascades = eastl::min({numCascades, DAGDP_MAX_VIEWPORTS, max_cascades});
-      if (numCascades <= 0)
-        return;
-
-      viewData.viewports.resize(numCascades);
-      for (int ci = 0; ci < numCascades; ci++)
-      {
-        auto &viewport = viewData.viewports[ci];
-        viewport.worldPos = csm->getRenderCameraWorldViewPos(ci);
-        viewport.maxDrawDistance = csm->getMaxShadowDistance();
-        viewport.frustum = csm->getFrustum(ci);
-        viewport.csmCascade = ci;
-      }
-    };
+    return [viewDataHandle, max_cascades] { populate_csm_viewports(viewDataHandle.ref(), max_cascades); };
   };
 
   return ns.registerNode("csm_camera_provider", DAFG_PP_NODE_SRC, declare);

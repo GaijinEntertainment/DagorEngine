@@ -228,6 +228,7 @@ shader AdaptExposureCS
       EyeAdaptationParams_3
     };
     adaptation__minSamples@f1 = adaptation__minSamples;
+    compatibility_mode@i1 = compatibility_mode;
     Exposure@uav = ExposureOut hlsl {
       RWStructuredBuffer<float> Exposure@uav;
     };

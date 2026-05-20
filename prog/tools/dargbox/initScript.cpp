@@ -7,22 +7,27 @@
 #include <startup/dag_globalSettings.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include "scriptBindings.h"
+#include <memory/dag_framemem.h>
 
 
 static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
-  cvlogmessage(_MAKE4C('SQRL'), s, vl);
+  String msg(framemem_ptr());
+  msg.cvprintf(0, s, vl);
+  logmessage(_MAKE4C('SQRL'), "%s", msg.c_str());
   va_end(vl);
 }
 
 
-static void script_err_print_func(HSQUIRRELVM v, const char *s, ...)
+static void script_err_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
-  cvlogmessage(LOGLEVEL_ERR, s, vl);
+  String msg(framemem_ptr());
+  msg.cvprintf(0, s, vl);
+  logmessage(LOGLEVEL_ERR, "%s", msg.c_str());
   va_end(vl);
 }
 

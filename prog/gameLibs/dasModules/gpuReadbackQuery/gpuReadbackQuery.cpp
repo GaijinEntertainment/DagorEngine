@@ -13,7 +13,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addEnumeration(das::make_smart<EnumerationGpuReadbackResultState>());
+    addEnumeration(new EnumerationGpuReadbackResultState());
 
     das::addExtern<DAS_BIND_FUN(is_gpu_readback_query_successful)>(*this, lib, "is_gpu_readback_query_successful",
       das::SideEffects::none, "::is_gpu_readback_query_successful");

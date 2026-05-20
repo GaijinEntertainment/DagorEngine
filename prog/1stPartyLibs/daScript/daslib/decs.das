@@ -96,7 +96,7 @@ def private normalize_file_name(name : string) : string {
     //! Strips directory path, keeping only filename and extension.
     //! This ensures the same canonical name regardless of working directory,
     //! which is critical for AOT hash stability.
-    var s = replace(name, "\\", "/")
+    let s = replace(name, "\\", "/")
     var lastSlash = -1
     var pos = 0
     while (true) {
@@ -187,7 +187,7 @@ def public operator .(var cmp : ComponentMap; name : string) : ComponentValue& {
 
 def public set(var cv : ComponentValue; val : auto) {
     //! Sets individual component value. Verifies that the value is of the correct type.
-    var cval = make_component(cv.name, val)
+    let cval = make_component(cv.name, val)
     assert(cv.info.hash == 0ul || cv.info.hash == cval.info.hash)
     cv = cval
 }
@@ -414,7 +414,7 @@ def private new_entity_id() {
         decsState.entityFreeList |> pop
     } else {
         eid.id = uint(length(decsState.entityLookup))
-        decsState.entityLookup |> push((0, 0ul, 0))
+        decsState.entityLookup |> push((generation = 0, archetype = ComponentHash(0ul), index = 0))
     }
     eid.generation ++
     return eid
@@ -456,7 +456,7 @@ def public after_gc {
 
 def public debug_dump_string : string {
     //! Returns state of the ECS system as a string.
-    return build_string() <| $(var writer) {
+    return build_string() $(var writer) {
         debug_dump_writer(writer)
     }
 }
@@ -560,7 +560,7 @@ def private remove_entity(var arch : Archetype; di : int) {
     //! Removes entity at specified index from the archetype.
     arch.size --
     if (di != arch.size) {// copy last one in the hole
-        var eid_last_id = get_eid(arch, arch.size).id
+        let eid_last_id = get_eid(arch, arch.size).id
         decsState.entityLookup[eid_last_id].index = di
         for (c in arch.components) {
             unsafe {
@@ -618,14 +618,14 @@ def private can_process_request(var erq : EcsRequest; var arch : Archetype) {
 def public verify_request(var erq : EcsRequest) : tuple<ok : bool; error : string> {
     //! Verifies ECS request. Returns pair of boolean (true for OK) and error message.
     if (erq.hash == 0ul || (empty(erq.req) && empty(erq.reqn))) {
-        return (true, "")     // this queries just about everything
+        return (ok = true, error = "")     // this queries just about everything
     }
     for (N in erq.reqn) {// assuming require_not is typically shorter
         if (erq.req |> binary_search(N)) {
-            return (false, "duplicate req and neq {N}")
+            return (ok = false, error = "duplicate req and neq {N}")
         }
     }
-    return (true, "")
+    return (ok = true, error = "")
 }
 
 def public compile_request(var erq : EcsRequest) {
@@ -668,7 +668,7 @@ def public for_each_archetype(var erq : EcsRequest; blk : block<(arch : Archetyp
 def public for_eid_archetype(eid : EntityId implicit; hash : ComponentHash; var erq : function<() : EcsRequest>; blk : block<(arch : Archetype; index : int) : void>) {
     //! Invokes block for the specific entity id, given request.
     //! Request is returned by a specified function.
-    var lookup = decsState.entityLookup[eid.id]
+    let lookup = decsState.entityLookup[eid.id]
     if (lookup.generation != eid.generation) {
         return false
     }
@@ -864,7 +864,7 @@ def public get_optional(arch : Archetype; name : string; value : auto(TT)?) : it
 }
 
 def private update_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var cmp : ComponentMap) : void>) {
-    var lookup = decsState.entityLookup[eid.id]
+    let lookup = decsState.entityLookup[eid.id]
     if (lookup.generation != eid.generation) {
         return
     }
@@ -886,7 +886,7 @@ def private update_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
     }
     invoke(blk, eid, cmp)
     cmp |> set("eid", eid)  // necessary?
-    var new_ahash = cmp_archetype_hash(cmp)
+    let new_ahash = cmp_archetype_hash(cmp)
     if (old_ahash == new_ahash) {
         for (c, comp in decsState.allArchetypes[arch_index].components, cmp) {
             unsafe {
@@ -900,7 +900,7 @@ def private update_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
                 narch |> create_archetype(cmp, idx)
             }
             let neidx = narch |> create_entity(eid, cmp)
-            decsState.entityLookup[eid.id] =  (eid.generation, new_ahash, neidx)
+            decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = new_ahash, index = neidx)
         }
     }
     delete cmp
@@ -911,19 +911,19 @@ def private create_entity_imm(eid : EntityId; blk : lambda<(eid : EntityId; var 
     cmp |> push <| make_component("eid", eid)
     invoke(blk, eid, cmp)
     cmp |> set("eid", eid)       // necessary?
-    var ahash = cmp_archetype_hash(cmp)
+    let ahash = cmp_archetype_hash(cmp)
     with_archetype(ahash) $(var arch; idx; isNew) {
         if (isNew) {
             arch |> create_archetype(cmp, idx)
         }
         let eidx = arch |> create_entity(eid, cmp)
-        decsState.entityLookup[eid.id] =  (eid.generation, ahash, eidx)
+        decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = ahash, index = eidx)
     }
     delete cmp
 }
 
 def private delete_entity_imm(eid : EntityId) {
-    var lookup = decsState.entityLookup[eid.id]
+    let lookup = decsState.entityLookup[eid.id]
     if (lookup.generation == eid.generation) {
         let di = decsState.entityLookup[eid.id].index
         decsState.entityLookup[eid.id].generation = 0
@@ -945,7 +945,7 @@ def public create_entity(var blk : lambda<(eid : EntityId; var cmp : ComponentMa
     var deval <- @  capture(<- blk) (var act : DeferAction) {
         create_entity_imm(act.eid, blk)
     }
-    var eid = new_entity_id()
+    let eid = new_entity_id()
     deferActions |> emplace(DeferAction(action <- deval, eid = eid))
     return eid
 }
@@ -961,7 +961,7 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
     //!
     //! Example::
     //!
-    //!     create_entities(100) <| $(eid : EntityId; i : int; var cmp : ComponentMap)
+    //!     create_entities(100) $(eid : EntityId; i : int; var cmp : ComponentMap)
     //!         apply_decs_template(cmp, Particle(pos = origin, vel = compute_vel(i)))
     //!
     if (count <= 0) {
@@ -976,8 +976,8 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
     cmp |> push <| make_component("eid", first_eid)
     invoke(blk, first_eid, 0, cmp)
     cmp |> set("eid", first_eid)
-    var ahash = cmp_archetype_hash(cmp)
-    with_archetype(ahash) <| $(var arch; arch_idx; isNew) {
+    let ahash = cmp_archetype_hash(cmp)
+    with_archetype(ahash) $(var arch; arch_idx; isNew) {
         if (isNew) {
             arch |> create_archetype(cmp, arch_idx)
         }
@@ -992,7 +992,7 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
                 memcpy(addr(c.data[base * c.stride]), addr(comp.data), c.stride)
             }
         }
-        decsState.entityLookup[first_eid.id] = (first_eid.generation, ahash, base)
+        decsState.entityLookup[first_eid.id] = (generation = first_eid.generation, archetype = ahash, index = base)
         // Fill remaining entities (reuse cmp — set overwrites existing entries)
         for (i in range(1, count)) {
             var eid = new_entity_id()
@@ -1008,7 +1008,7 @@ def public create_entities(count : int; blk : block<(eid : EntityId; i : int; va
                     memcpy(addr(c.data[eidx * c.stride]), addr(comp.data), c.stride)
                 }
             }
-            decsState.entityLookup[eid.id] = (eid.generation, ahash, eidx)
+            decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = ahash, index = eidx)
         }
         arch.size += count
     }
@@ -1031,8 +1031,8 @@ def public create_entities_from_cmp(count : int; var cmp : ComponentMap;
     }
     // Ensure eid component is present for archetype hash computation
     cmp |> set("eid", INVALID_ENTITY_ID)
-    var ahash = cmp_archetype_hash(cmp)
-    with_archetype(ahash) <| $(var arch; arch_idx; isNew) {
+    let ahash = cmp_archetype_hash(cmp)
+    with_archetype(ahash) $(var arch; arch_idx; isNew) {
         if (isNew) {
             arch |> create_archetype(cmp, arch_idx)
         }
@@ -1046,7 +1046,7 @@ def public create_entities_from_cmp(count : int; var cmp : ComponentMap;
             let eid = EntityId(id = id_base + uint(i), generation = 1)
             let eidx = base + i
             invoke(fill_blk, arch, eidx, eid, i)
-            decsState.entityLookup[eid.id] = (eid.generation, ahash, eidx)
+            decsState.entityLookup[eid.id] = (generation = eid.generation, archetype = ahash, index = eidx)
         }
         arch.size += count
     }
@@ -1101,7 +1101,7 @@ def public get_component(eid : EntityId; name : string; defval : auto(TT)) : TT 
     if (!is_alive(eid)) {
         return defval
     }
-    var lookup = decsState.entityLookup[eid.id]
+    let lookup = decsState.entityLookup[eid.id]
     let arch_index = unsafe(decsState.archetypeLookup[lookup.archetype]) - 1
     var arch & = unsafe(decsState.allArchetypes[arch_index])
     let cidx = arch.components |> lower_bound(Component(name = name)) <| $(x, y) => x.name < y.name

@@ -105,7 +105,7 @@ static SQInteger _blob__nexti(HSQUIRRELVM v)
     }
     SQInteger idx;
     if(SQ_SUCCEEDED(sq_getinteger(v, 2, &idx))) {
-        if(idx+1 < self->Len()) {
+        if(idx >= -1 && idx < self->Len() - 1) {
             sq_pushinteger(v, idx+1);
             return 1;
         }
@@ -171,6 +171,11 @@ static SQInteger _blob__cloned(HSQUIRRELVM v)
     return 0;
 }
 
+static SQInteger _blob_tostring(HSQUIRRELVM v)
+{
+    return SQ_SUCCEEDED(sq_tostring(v, 1)) ? 1 : SQ_ERROR;
+}
+
 static SQInteger _blob_as_string(HSQUIRRELVM v)
 {
     SETUP_BLOB(v);
@@ -184,6 +189,7 @@ static const SQRegFunctionFromStr _blob_methods[] = {
     { _blob_swap2,       "instance.swap2()",                        "Byte-swaps the blob contents as an array of 16-bit values" },
     { _blob_swap4,       "instance.swap4()",                        "Byte-swaps the blob contents as an array of 32-bit values" },
     { _blob_as_string,   "instance.as_string(): string",            "Returns the blob contents as a string" },
+    { _blob_tostring,    "instance.tostring(): string",             "Allows calling .tostring() on blob instances (bypassing _get)"},
     { _blob__set,        "instance._set(idx: int, val: int): int",  "Sets the byte at the given index" },
     { _blob__get,        "instance._get(idx: int): int",            "Returns the byte at the given index" },
     { _blob__typeof,     "instance._typeof(): string",              "Returns 'blob'" },

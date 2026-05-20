@@ -35,6 +35,10 @@
 #include <inttypes.h>
 
 namespace das {
+    // forward declarations from module_builtin_fio.cpp
+    void * register_dynamic_module(const char *, const char *, int, Context *, LineInfoArg *);
+    void register_native_path(const char *, const char *, const char *, Context *, LineInfoArg *);
+
     typedef vec4f ( * JitFunction ) ( Context * , vec4f *, void * );
 
     struct SimNode_Jit : SimNode {
@@ -210,7 +214,8 @@ extern "C" {
     public:
         ~JitContext() = default;
         JitContext(size_t totalVariables, size_t totalFunctions, size_t globalStringHeapSize,
-                  size_t globSize, size_t shrSize, bool pinvoke) {
+                  size_t globSize, size_t shrSize, bool pinvoke, uint32_t stackSize = 16*1024)
+            : Context(stackSize) {
             auto &context = *this;
             CodeOfPolicies policies;
             policies.debugger = false;
@@ -224,10 +229,9 @@ extern "C" {
             context.allocateGlobalsAndShared();
             memset(context.globals, 0, context.globalsSize);
             memset(context.shared, 0, context.sharedSize);
-
-            // Instead of copying everything like in standalone contexts
-            // Let's add only things we really need.
-            // And apparently now we need nothing.
+            if ( pinvoke ) {
+                context.contextMutex = new recursive_mutex;
+            }
         }
 
         void allocFunctions ( uint64_t count ) {
@@ -249,7 +253,7 @@ extern "C" {
 
         void *registerJitFunction ( uint64_t index, const char * name, const char * mangledName,
                                    uint64_t mnh, uint32_t stackSize, void * fnPtr,
-                                   bool cmres, bool fastcall, bool pinvoke ) {
+                                   bool cmres, bool fastcall, bool pinvoke, uint32_t nArguments ) {
             DAS_ASSERT(index < (uint64_t) totalFunctions);
             auto & fn = functions[index];
             fn.name = code->allocateName(name);
@@ -265,6 +269,7 @@ extern "C" {
             memset(finfo, 0, sizeof(FuncInfo));
             finfo->name = fn.name;
             finfo->stackSize = stackSize;
+            finfo->count = nArguments;
             fn.debugInfo = finfo;
             auto node = code->makeNode<SimNode_Jit>(LineInfo{}, (JitFunction) fnPtr);
             fn.code = node;
@@ -289,9 +294,11 @@ extern "C" {
                                                   uint64_t globalStringHeapSize,
                                                   uint64_t globalsSize,
                                                   uint64_t sharedSize,
-                                                  bool pinvoke) {
+                                                  bool pinvoke,
+                                                  uint64_t stackSize) {
         Context *context = new JitContext(totalVariables, totalFunctions, globalStringHeapSize,
-                                         globalsSize, sharedSize, pinvoke);
+                                         globalsSize, sharedSize, pinvoke,
+                                         stackSize ? (uint32_t)stackSize : 16*1024);
         static_cast<JitContext *>(context)->allocFunctions(totalFunctions);
         return context;
     }
@@ -300,9 +307,10 @@ extern "C" {
                                              const char * name, const char * mangledName,
                                              uint64_t mnh, uint32_t stackSize,
                                              void * fnPtr,
-                                             bool cmres, bool fastcall, bool pinvoke ) {
+                                             bool cmres, bool fastcall, bool pinvoke,
+                                             uint32_t nArguments ) {
         return static_cast<JitContext *>(ctx)->registerJitFunction(index, name, mangledName, mnh, stackSize,
-                                                            fnPtr, cmres, fastcall, pinvoke);
+                                                            fnPtr, cmres, fastcall, pinvoke, nArguments);
     }
 
     DAS_API void jit_register_standalone_variable ( Context * ctx, uint64_t mangledNameHash, uint64_t offset ) {
@@ -325,7 +333,7 @@ extern "C" {
             if ( module->name != moduleName ) return true;
             auto fn = module->findFunction(funcMangledName);
             if ( fn && fn->builtIn ) {
-                *dllGlobal = static_cast<BuiltInFunction *>(fn.get())->getBuiltinAddress();
+                *dllGlobal = static_cast<BuiltInFunction *>(fn)->getBuiltinAddress();
                 found = *dllGlobal != nullptr;
                 return !found;
             }
@@ -337,7 +345,7 @@ extern "C" {
                 auto resolverFn = module->findUniqueFunction("__dasbind_resolve");
                 if ( resolverFn && resolverFn->builtIn ) {
                     auto resolver = (void * (*)(const char *))
-                        static_cast<BuiltInFunction *>(resolverFn.get())->getBuiltinAddress();
+                        static_cast<BuiltInFunction *>(resolverFn)->getBuiltinAddress();
                     if ( resolver ) {
                         *dllGlobal = resolver(funcMangledName);
                         found = *dllGlobal != nullptr;
@@ -356,7 +364,7 @@ extern "C" {
         Annotation *result = nullptr;
         Module::foreach([&](Module * module) -> bool {
             if ( module->name != moduleName ) return true;
-            result = module->findAnnotation(annName).get();
+            result = module->findAnnotation(annName);
             return false;
         });
         if (!result) {
@@ -581,8 +589,7 @@ extern "C" {
             context->throw_error_at(at, "can't find ast_typeinfo for hash %" PRIx64, hash);
         }
         auto info = ti->second;
-        info->addRef();
-        return (void*) info;
+        return (void*) new TypeDecl(*info);
     }
 }
 
@@ -715,44 +722,64 @@ extern "C" {
         }
     }
 
-    static pair<string, string> get_real_lib_linker_paths(const char * dasLib, const char * customLinker) {
-        string linker = customLinker != nullptr ? customLinker : "";
-        string dasLibrary = dasLib != nullptr ? dasLib : "";
-        if (linker.empty() || dasLibrary.empty()) {
+    struct LinkerPaths {
+        string linker;
+        string runtimeLibrary;  // always needed
+        string compilerLibrary; // non-empty when linkWholeLib — exe also needs compiler lib
+    };
+
+    static LinkerPaths get_real_lib_linker_paths(const char * dasLib, const char * customLinker, bool isShared, bool linkWholeLib) {
+        LinkerPaths result;
+        result.linker = customLinker != nullptr ? customLinker : "";
+        result.runtimeLibrary = dasLib != nullptr ? dasLib : "";
+
+        if (result.linker.empty() || result.runtimeLibrary.empty()) {
             #if defined(_WIN32) || defined(_WIN64)
-                if (linker.empty()) {
-                    linker = getDasRoot() + "/bin/clang-cl.exe";
+                if (result.linker.empty()) {
+                    result.linker = getDasRoot() + "/bin/clang-cl.exe";
                 }
-                if (dasLibrary.empty()) {
+                if (result.runtimeLibrary.empty()) {
                     const auto path = get_prefix(getExecutableFileName());
                     const auto winCfg = path.substr(path.find_last_of("\\/") + 1);
                     const auto windowsConfig = (winCfg == "bin" ? "" : (winCfg + "/"));
-                    dasLibrary = getDasRoot() + "/lib/" + windowsConfig + "libDaScriptDyn.lib";
+                    result.runtimeLibrary = getDasRoot() + "/lib/" + windowsConfig + "libDaScriptDyn_runtime.lib";
+                    if (linkWholeLib) {
+                        result.compilerLibrary = getDasRoot() + "/lib/" + windowsConfig + "libDaScriptDyn.lib";
+                    }
                 }
             #else
-                if (linker.empty()) {
-                    linker = "c++";
+                if (result.linker.empty()) {
+                    result.linker = "c++";
                 }
-                if (dasLibrary.empty()) {
+                if (result.runtimeLibrary.empty()) {
                 #if defined(__APPLE__)
-                    dasLibrary = getDasRoot() + "/lib/liblibDaScriptDyn.dylib";
+                    result.runtimeLibrary = getDasRoot() + "/lib/liblibDaScriptDyn_runtime.dylib";
+                    if (linkWholeLib) {
+                        result.compilerLibrary = getDasRoot() + "/lib/liblibDaScriptDyn.dylib";
+                    }
                 #else
-                    dasLibrary = getDasRoot() + "/lib/liblibDaScriptDyn.so";
+                    result.runtimeLibrary = getDasRoot() + "/lib/liblibDaScriptDyn_runtime.so";
+                    if (linkWholeLib) {
+                        result.compilerLibrary = getDasRoot() + "/lib/liblibDaScriptDyn.so";
+                    }
                 #endif
                 }
             #endif
         }
-        return {linker, dasLibrary};
+        return result;
     }
 
 #if (defined(_MSC_VER) || defined(__linux__) || defined(__APPLE__)) && !defined(_GAMING_XBOX) && !defined(_DURANGO)
-    void create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, bool isShared ) {
+    void create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, bool isShared, bool linkWholeLib, Context *context ) {
         char cmd[1024];
-        const auto [linker, dasLibrary] = get_real_lib_linker_paths(dasLib, customLinker);
+        const auto paths = get_real_lib_linker_paths(dasLib, customLinker, isShared, linkWholeLib);
+        const auto & linker = paths.linker;
+        const auto & runtimeLibrary = paths.runtimeLibrary;
+        const auto & compilerLibrary = paths.compilerLibrary;
 
         #if defined(_WIN32) || defined(_WIN64) || defined(__APPLE__)
-        if (!check_file_present(dasLibrary.c_str())) {
-            LOG(LogLevel::error) << "File '" << dasLibrary << "' , containing daslang library, does not exist\n";
+        if (!check_file_present(runtimeLibrary.c_str())) {
+            LOG(LogLevel::error) << "File '" << runtimeLibrary << "' , containing daslang runtime library, does not exist\n";
             return;
         }
         #endif
@@ -764,16 +791,23 @@ extern "C" {
 
         #if defined(_WIN32) || defined(_WIN64)
             const auto linkerParam = isShared ? "-DLL" : "";
-            auto result = fmt::format_to(cmd, FMT_STRING("\"\"{}\" \"{}\" \"{}\" msvcrt.lib -link {} -OUT:\"{}\" 2>&1\""), linker, objFilePath, dasLibrary, linkerParam, libraryName);
+            auto result = compilerLibrary.empty()
+                ? fmt::format_to(cmd, FMT_STRING("\"\"{}\" \"{}\" \"{}\" msvcrt.lib -link {} -OUT:\"{}\" 2>&1\""), linker, objFilePath, runtimeLibrary, linkerParam, libraryName)
+                : fmt::format_to(cmd, FMT_STRING("\"\"{}\" \"{}\" \"{}\" \"{}\" msvcrt.lib -link {} -OUT:\"{}\" 2>&1\""), linker, objFilePath, runtimeLibrary, compilerLibrary, linkerParam, libraryName);
         #elif defined(__APPLE__)
             const auto linkerParam = isShared ? "-shared " : "";
-            const auto rpath = "-Wl,-rpath," + get_prefix(dasLibrary);
-            auto result = fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -o \"{}\" \"{}\" \"{}\" 2>&1"), linker, linkerParam, rpath, libraryName, dasLibrary, objFilePath);
+            const auto rpath = "-Wl,-rpath," + get_prefix(runtimeLibrary);
+            auto result = compilerLibrary.empty()
+                ? fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -o \"{}\" \"{}\" \"{}\" 2>&1"), linker, linkerParam, rpath, libraryName, runtimeLibrary, objFilePath)
+                : fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -o \"{}\" \"{}\" \"{}\" \"{}\" 2>&1"), linker, linkerParam, rpath, libraryName, runtimeLibrary, compilerLibrary, objFilePath);
         #else
             const auto linkerParam = isShared ? "-shared" : "";
-            const auto rpath = "-Wl,-rpath," + get_prefix(dasLibrary);
-            auto result = fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -o \"{}\" \"{}\" \"{}\" 2>&1"),
-                                        linker, linkerParam, rpath, libraryName, objFilePath, dasLibrary);
+            const auto rpath = "-Wl,-rpath," + get_prefix(runtimeLibrary);
+            auto result = compilerLibrary.empty()
+                ? fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -o \"{}\" \"{}\" \"{}\" 2>&1"),
+                                        linker, linkerParam, rpath, libraryName, objFilePath, runtimeLibrary)
+                : fmt::format_to(cmd, FMT_STRING("\"{}\" {} \"{}\" -Wl,--no-as-needed -o \"{}\" \"{}\" \"{}\" \"{}\" 2>&1"),
+                                        linker, linkerParam, rpath, libraryName, objFilePath, runtimeLibrary, compilerLibrary);
         #endif
             *result = '\0';
 
@@ -807,15 +841,19 @@ extern "C" {
             }
         }
 
+        auto li = LineInfo();
         if ( int status = pclose(fp); status != 0 ) {
-            LOG(LogLevel::error) << "Failed to make shared library " << libraryName << ", command '" << cmd << "'\n";
-            printf("Output:\n%s", output);
+            string msg = string("Failed to make shared library ") + libraryName + ", command '" + cmd + "'\n";
+            context->to_out(&li, LogLevel::error, msg.c_str());
+            string err = string("Output:\n") + output;
+            context->to_out(&li, LogLevel::error, err.c_str());
         } else {
-            LOG(LogLevel::debug) << "Library " << libraryName << " made - ok\n";
+            string msg = string("Library ") + libraryName + " made - ok\n";
+            context->to_out(&li, LogLevel::info, msg.c_str());
         }
     }
 #else
-    void create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, bool isShared ) { }
+    void create_shared_library ( const char * objFilePath, const char * libraryName, [[maybe_unused]] const char * dasLib, const char * customLinker, bool isShared, bool linkWholeLib, Context *context ) { }
 #endif
 
     void jit_set_jit_state(Context & context, void *shared_lib, void *llvm_ee, void *llvm_context) {
@@ -962,7 +1000,7 @@ extern "C" {
                     ->args({"library"});
             addExtern<DAS_BIND_FUN(create_shared_library)>(*this, lib,  "create_shared_library",
                 SideEffects::worstDefault, "create_shared_library")
-                    ->args({"objFilePath","libraryName","dasLib","customLinker", "isShared"});
+                    ->args({"objFilePath","libraryName","dasLib","customLinker", "isShared", "linkWholeLib", "context"});
             addExtern<DAS_BIND_FUN(jit_set_jit_state)>(*this, lib,  "set_jit_state",
                 SideEffects::worstDefault, "jit_set_jit_state")
                     ->args({"context","shared_lib","llvm_ee","llvm_ctx"});
@@ -987,21 +1025,25 @@ extern "C" {
 
 REGISTER_MODULE_IN_NAMESPACE(Module_Jit,das);
 
-static void init() {
-    NEED_ALL_DEFAULT_MODULES;
-    NEED_MODULE(Module_UriParser);
-    NEED_MODULE(Module_JobQue);
+extern "C" {
+DAS_API void das_ensure_environment () {
+    das::daScriptEnvironment::ensure();
 }
 
-extern "C" {
 DAS_API void jit_initialize_modules () {
-    init();
-#ifdef DAS_ENABLE_DYN_INCLUDES
+    // No need to initialize modules. JIT will generate required calls.
     das::daScriptEnvironment::ensure();
-    auto access = das::make_smart<das::FsFileAccess>();
-    das::TextPrinter tout;
-    das::require_dynamic_modules(access, das::getDasRoot(), "", tout);
-#endif
+}
+
+DAS_API void jit_initialize_modules_done () {
     das::Module::Initialize();
+}
+
+DAS_API void * jit_register_dynamic_module ( const char * path, const char * mod_name ) {
+    return das::register_dynamic_module(path, mod_name, 0/*Quiet*/, nullptr, nullptr);
+}
+
+DAS_API void jit_register_native_path ( const char * mod_name, const char * src_path, const char * dst_path ) {
+    das::register_native_path(mod_name, src_path, dst_path, nullptr, nullptr);
 }
 }

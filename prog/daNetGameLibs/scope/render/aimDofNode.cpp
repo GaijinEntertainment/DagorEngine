@@ -33,14 +33,10 @@ dafg::NodeHandle makeAimDofPrepareNode()
         .useAs(dafg::Usage::DEPTH_ATTACHMENT)
         .handle();
 
-    auto depthHndl =
-      registry.readTexture("depth_for_transparency").atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
+    auto depthHndl = registry.readTexture("depth_for_transparency").atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).handle();
 
-    auto depthWithTransparencyHndl = registry.readTexture("depth_with_transparency")
-                                       .atStage(dafg::Stage::PS)
-                                       .useAs(dafg::Usage::DEPTH_ATTACHMENT)
-                                       .optional()
-                                       .handle();
+    auto depthWithTransparencyHndl =
+      registry.readTexture("depth_with_transparency").atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).optional().handle();
 
     registry.requestState().setFrameBlock("global_frame");
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewRotTm>().bindAsProj<&CameraParams::jitterProjTm>();

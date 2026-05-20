@@ -54,10 +54,18 @@ dag::Span<net::IConnection *> direct_connection_rcptf(Tab<net::IConnection *> &,
     return dag::Span<net::IConnection *>();
 }
 
+eastl::string MessageClass::defaultFormatMsgStr(const IMessage *msg)
+{
+  const MessageClass &msgCls = msg->getMsgClass();
+  eastl::string result;
+  result.sprintf("#%d/%s/%x", msgCls.classId, msgCls.debugClassName, msgCls.classHash);
+  return result;
+}
+
 MessageClass::MessageClass(const char *class_name, uint32_t class_hash, uint32_t class_sz, MessageRouting rout, bool timed,
   recipient_filter_t rcptf, PacketReliability rlb, uint8_t chn, uint32_t flags_, int dup_delay_ms,
-  void (*msg_sink_handler)(const IMessage *)) :
-  msgSinkHandler(msg_sink_handler), debugClassName(class_name), classHash(class_hash), memSize(class_sz)
+  void (*msg_sink_handler)(const IMessage *), eastl::string (*format_msg_str)(const IMessage *)) :
+  msgSinkHandler(msg_sink_handler), formatMsgStr(format_msg_str), debugClassName(class_name), classHash(class_hash), memSize(class_sz)
 {
   routing = rout, reliability = rlb;
   channel = chn;

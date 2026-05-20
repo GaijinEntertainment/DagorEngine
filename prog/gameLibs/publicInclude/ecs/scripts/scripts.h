@@ -29,12 +29,5 @@ ECS_BROADCAST_EVENT_TYPE(CmdRequireUIScripts);
 
 class WinCritSec;
 
-extern void sqvm_enter_critical_section(HSQUIRRELVM vm, WinCritSec *crit_sect);
-extern void sqvm_leave_critical_section(HSQUIRRELVM vm);
-
-struct VMScopedCriticalSection
-{
-  HSQUIRRELVM vm;
-  VMScopedCriticalSection(HSQUIRRELVM set_vm, WinCritSec *crit_sect) : vm(set_vm) { sqvm_enter_critical_section(vm, crit_sect); }
-  ~VMScopedCriticalSection() { sqvm_leave_critical_section(vm); }
-};
+void sqvm_register_critical_section(HSQUIRRELVM vm, WinCritSec &crit_sect);
+void sqvm_unregister_critical_section(HSQUIRRELVM vm);

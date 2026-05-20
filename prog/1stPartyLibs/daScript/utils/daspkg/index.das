@@ -71,7 +71,7 @@ def fetch_index(root : string; var index : table<string; IndexEntry>) : bool {
         var output : string
         let exit_code = run_cmd("git clone --depth 1 \"{git_url}\" \"{cache_dir}\"", output)
         if (exit_code != 0) {
-            print("Error: failed to clone index: {output}\n")
+            to_log(LOG_ERROR, "Error: failed to clone index: {output}\n")
             return false
         }
     }
@@ -82,7 +82,7 @@ def fetch_index(root : string; var index : table<string; IndexEntry>) : bool {
 def parse_index_file(packages_file : string; var index : table<string; IndexEntry>) : bool {
     let text = fread(packages_file)
     if (empty(text)) {
-        print("Error: cannot read {packages_file}\n")
+        to_log(LOG_ERROR, "Error: cannot read {packages_file}\n")
         return false
     }
     return parse_index_json(text, index)
@@ -92,11 +92,11 @@ def parse_index_json(text : string; var index : table<string; IndexEntry>) : boo
     var error : string
     var parsed = read_json(text, error)
     if (parsed == null) {
-        print("Error parsing index: {error}\n")
+        to_log(LOG_ERROR, "Error parsing index: {error}\n")
         return false
     }
     if (!(parsed.value is _array)) {
-        print("Error: index is not a JSON array\n")
+        to_log(LOG_ERROR, "Error: index is not a JSON array\n")
         return false
     }
     unsafe {
@@ -125,16 +125,28 @@ def parse_index_json(text : string; var index : table<string; IndexEntry>) : boo
     return true
 }
 
+var private g_cached_index : table<string; IndexEntry>
+var private g_cached_index_root : string
+
+def invalidate_index_cache() {
+    g_cached_index_root = ""
+    clear(g_cached_index)
+}
+
 def resolve_from_index(root, name : string) : string {
-    var index : table<string; IndexEntry>
-    if (!fetch_index(root, index)) {
-        return ""
+    if (g_cached_index_root != root) {
+        clear(g_cached_index)
+        if (!fetch_index(root, g_cached_index)) {
+            g_cached_index_root = ""
+            return ""
+        }
+        g_cached_index_root := root
     }
-    if (!(index |> key_exists(name))) {
+    if (!(g_cached_index |> key_exists(name))) {
         return ""
     }
     unsafe {
-        return index[name].url
+        return g_cached_index[name].url
     }
 }
 
@@ -286,13 +298,13 @@ def private format_entry(name : string; entry : IndexEntry) {
     print("    {dim_str(install_cmd)}\n")
 }
 
-def cmd_search(root, query : string; json : bool = false) {
+def cmd_search(root, query : string; json : bool = false) : int {
     var index : table<string; IndexEntry>
     if (!fetch_index(root, index)) {
         if (json) {
             print("[]\n")
         }
-        return
+        return 0
     }
     let q = to_lower(query)
     var results : array<SearchResult>
@@ -303,7 +315,7 @@ def cmd_search(root, query : string; json : bool = false) {
         }
     }
     // sort by score (lower = better)
-    sort(results) <| $(a, b : SearchResult) : bool {
+    sort(results) $(a, b : SearchResult) : bool {
         if (a.score != b.score) {
             return a.score < b.score
         }
@@ -320,7 +332,7 @@ def cmd_search(root, query : string; json : bool = false) {
         }
         print(sprint_json(infos, false))
         print("\n")
-        return
+        return 0
     }
     for (r in results) {
         if (index |> key_exists(r.name)) {
@@ -331,22 +343,23 @@ def cmd_search(root, query : string; json : bool = false) {
         }
     }
     print("{length(results)} package(s) found\n")
+    return 0
 }
 
-def cmd_search_all(root : string; json : bool = false) {
+def cmd_search_all(root : string; json : bool = false) : int {
     var index : table<string; IndexEntry>
     if (!fetch_index(root, index)) {
         if (json) {
             print("[]\n")
         }
-        return
+        return 0
     }
     // collect and sort by name
     var names : array<string>
     for (name in keys(index)) {
         names |> push_clone(name)
     }
-    sort(names) <| $(a, b : string) : bool {
+    sort(names) $(a, b : string) : bool {
         return a < b
     }
     if (json) {
@@ -360,7 +373,7 @@ def cmd_search_all(root : string; json : bool = false) {
         }
         print(sprint_json(infos, false))
         print("\n")
-        return
+        return 0
     }
     for (name in names) {
         if (index |> key_exists(name)) {
@@ -371,6 +384,7 @@ def cmd_search_all(root : string; json : bool = false) {
         }
     }
     print("{length(names)} package(s) in index\n")
+    return 0
 }
 
 // ── introduce / withdraw ────────────────────────────────────────────
@@ -389,12 +403,12 @@ struct PackageManifest {
 def read_manifest(pkg_dir : string; var manifest : PackageManifest) : bool {
     let das_package = "{pkg_dir}/.das_package"
     if (!fexist(das_package)) {
-        print("Error: no .das_package found in {pkg_dir}\n")
+        to_log(LOG_ERROR, "Error: no .das_package found in {pkg_dir}\n")
         return false
     }
     var meta : PackageMeta
     if (!run_das_package_meta(das_package, meta)) {
-        print("Error: failed to run .das_package in {pkg_dir}\n")
+        to_log(LOG_ERROR, "Error: failed to run .das_package in {pkg_dir}\n")
         return false
     }
     manifest.name = meta.pkg_name
@@ -407,11 +421,11 @@ def read_manifest(pkg_dir : string; var manifest : PackageManifest) : bool {
         manifest.tags |> push_clone(tag)
     }
     if (empty(manifest.name)) {
-        print("Error: .das_package missing package_name()\n")
+        to_log(LOG_ERROR, "Error: .das_package missing package_name()\n")
         return false
     }
     if (empty(manifest.description)) {
-        print("Error: .das_package missing package_description()\n")
+        to_log(LOG_ERROR, "Error: .das_package missing package_description()\n")
         return false
     }
     // check build info
@@ -536,7 +550,7 @@ def serialize_index(index : table<string; IndexEntry>) : string {
         var jv <- entry_to_jv(name, entry)
         name_to_jv |> emplace(name => jv)
     }
-    sort(name_to_jv) <| $(a, b : tuple<string; JsonValue?>) : bool {
+    sort(name_to_jv) $(a, b : tuple<string; JsonValue?>) : bool {
         return a._0 < b._0
     }
     var arr : array<JsonValue?>
@@ -574,7 +588,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
     for (i in range(length(sorted_names))) {
         order |> push(i)
     }
-    sort(order) <| $(a, b : int) : bool {
+    sort(order) $(a, b : int) : bool {
         return sorted_names[a] < sorted_names[b]
     }
     var names : array<string>
@@ -607,7 +621,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
         for (t in keys(all_tags)) {
             tag_names |> push_clone(t)
         }
-        sort(tag_names) <| $(a, b : string) : bool {
+        sort(tag_names) $(a, b : string) : bool {
             return a < b
         }
         for (t in tag_names) {
@@ -619,7 +633,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
         }
     }
 
-    return build_string() <| $(var writer) {
+    return build_string() $(var writer) {
         writer |> write("# daspkg package index\n\n")
         writer |> write("Package registry for [daspkg](https://github.com/GaijinEntertainment/daScript), the daslang package manager.\n\n")
 
@@ -734,7 +748,7 @@ def remove_from_index_json(index_text, name : string) : string {
 
 // ── introduce / withdraw ────────────────────────────────────────────
 
-def cmd_introduce(root, source : string) {
+def cmd_introduce(root, source : string) : int {
     // step 1: determine package directory and URL
     var pkg_dir : string
     var pkg_url : string
@@ -742,8 +756,8 @@ def cmd_introduce(root, source : string) {
         pkg_dir = root
         pkg_url = get_git_remote_url(root)
         if (empty(pkg_url)) {
-            print("Error: could not determine git remote URL. Pass a URL explicitly or run from a git repo.\n")
-            return
+            to_log(LOG_ERROR, "Error: could not determine git remote URL. Pass a URL explicitly or run from a git repo.\n")
+            return 1
         }
     } else {
         let tmp_dir = "{root}/_daspkg_introduce_tmp"
@@ -752,9 +766,9 @@ def cmd_introduce(root, source : string) {
         var output : string
         let exit_code = run_cmd("git clone --depth 1 \"{git_url}\" \"{tmp_dir}\"", output)
         if (exit_code != 0) {
-            print("Error: failed to clone {git_url}:\n{output}\n")
+            to_log(LOG_ERROR, "Error: failed to clone {git_url}:\n{output}\n")
             force_rmdir(tmp_dir)
-            return
+            return 1
         }
         pkg_dir = tmp_dir
         pkg_url = source
@@ -766,7 +780,7 @@ def cmd_introduce(root, source : string) {
         if (!empty(source)) {
             force_rmdir(pkg_dir)
         }
-        return
+        return 1
     }
 
     // step 3: check not already in index
@@ -775,15 +789,15 @@ def cmd_introduce(root, source : string) {
         if (!empty(source)) {
             force_rmdir(pkg_dir)
         }
-        print("Error: failed to fetch package index\n")
-        return
+        to_log(LOG_ERROR, "Error: failed to fetch package index\n")
+        return 1
     }
     if (idx |> key_exists(manifest.name)) {
-        print("Error: package '{manifest.name}' already exists in the index\n")
+        to_log(LOG_ERROR, "Error: package '{manifest.name}' already exists in the index\n")
         if (!empty(source)) {
             force_rmdir(pkg_dir)
         }
-        return
+        return 1
     }
 
     // cleanup temp clone
@@ -805,9 +819,9 @@ def cmd_introduce(root, source : string) {
     let old_text = fread(packages_file)
     let new_text = add_to_index_json_rich(old_text, manifest.name, manifest, pkg_url)
     if (empty(new_text)) {
-        print("Error: failed to modify packages.json\n")
+        to_log(LOG_ERROR, "Error: failed to modify packages.json\n")
         run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return
+        return 1
     }
     fwrite(packages_file, "{new_text}\n")
 
@@ -820,30 +834,33 @@ def cmd_introduce(root, source : string) {
     run_cmd("git -C \"{cache_dir}\" commit -m \"Add {manifest.name}\"", output)
     var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
     if (exit_code != 0) {
-        print("Error: failed to push branch: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
         run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return
+        return 1
     }
 
+    var rc = 0
     exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Add package: {manifest.name}\" --body \"Introduce **{manifest.name}** — {manifest.description}\n\nURL: `{pkg_url}`\"", output)
     if (exit_code != 0) {
-        print("Error: failed to create PR: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
+        rc = 1
     } else {
         print("PR created: {strip(output)}\n")
     }
 
     run_cmd("git -C \"{cache_dir}\" checkout main", output)
+    return rc
 }
 
-def cmd_withdraw(root, name : string) {
+def cmd_withdraw(root, name : string) : int {
     var idx : table<string; IndexEntry>
     if (!fetch_index(root, idx)) {
-        print("Error: failed to fetch package index\n")
-        return
+        to_log(LOG_ERROR, "Error: failed to fetch package index\n")
+        return 1
     }
     if (!(idx |> key_exists(name))) {
-        print("Error: package '{name}' is not in the index\n")
-        return
+        to_log(LOG_ERROR, "Error: package '{name}' is not in the index\n")
+        return 1
     }
 
     let cache_dir = get_index_cache_dir(root)
@@ -859,9 +876,9 @@ def cmd_withdraw(root, name : string) {
     let old_text = fread(packages_file)
     let new_text = remove_from_index_json(old_text, name)
     if (empty(new_text)) {
-        print("Error: failed to modify packages.json\n")
+        to_log(LOG_ERROR, "Error: failed to modify packages.json\n")
         run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return
+        return 1
     }
     fwrite(packages_file, "{new_text}\n")
 
@@ -874,28 +891,31 @@ def cmd_withdraw(root, name : string) {
     run_cmd("git -C \"{cache_dir}\" commit -m \"Remove {name}\"", output)
     var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
     if (exit_code != 0) {
-        print("Error: failed to push branch: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
         run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return
+        return 1
     }
 
+    var rc = 0
     exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Remove package: {name}\" --body \"Withdraw **{name}** from the package index.\"", output)
     if (exit_code != 0) {
-        print("Error: failed to create PR: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
+        rc = 1
     } else {
         print("PR created: {strip(output)}\n")
     }
 
     run_cmd("git -C \"{cache_dir}\" checkout main", output)
+    return rc
 }
 
 // ── update-index ────────────────────────────────────────────────────
 
-def cmd_update_index(root : string) {
+def cmd_update_index(root : string) : int {
     var index : table<string; IndexEntry>
     if (!fetch_index(root, index)) {
-        print("Error: failed to fetch package index\n")
-        return
+        to_log(LOG_ERROR, "Error: failed to fetch package index\n")
+        return 1
     }
 
     let tmp_base = "{root}/modules/.daspkg_cache/_update_tmp"
@@ -1018,20 +1038,23 @@ def cmd_update_index(root : string) {
     run_cmd("git -C \"{cache_dir}\" commit -m \"Update index metadata\"", output)
     var exit_code = run_cmd("git -C \"{cache_dir}\" push --force origin \"{branch_name}\"", output)
     if (exit_code != 0) {
-        print("Error: failed to push branch: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to push branch: {output}\n")
         run_cmd("git -C \"{cache_dir}\" checkout main", output)
-        return
+        return 1
     }
 
+    var rc = 0
     exit_code = run_cmd("gh pr create --repo borisbat/daspkg-index --base main --head \"{branch_name}\" --title \"Update index metadata\" --body \"Refreshed metadata for {updated} package(s).\"", output)
     if (exit_code != 0) {
-        print("Error: failed to create PR: {output}\n")
+        to_log(LOG_ERROR, "Error: failed to create PR: {output}\n")
+        rc = 1
     } else {
         print("PR created: {strip(output)}\n")
     }
 
     run_cmd("git -C \"{cache_dir}\" checkout main", output)
     print("Updated {updated} package(s)\n")
+    return rc
 }
 
 // ── GitHub API helpers ──────────────────────────────────────────────

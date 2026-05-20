@@ -542,11 +542,12 @@ void CollisionPlugin::drawObjects(IGenViewportWnd *wnd)
         node.physMatId != PHYSMAT_INVALID ? PhysMat::getMaterial(node.physMatId).name : "none");
       if (node.behaviorFlags >> 3)
       {
-        selectedName.aprintf(128, " Flags : %s %s %s %s",
+        selectedName.aprintf(128, " Flags : %s %s %s %s %s",
           (node.behaviorFlags & CollisionNode::FLAG_ALLOW_HOLE) ? "" : "noOverlapHoles |",
           (node.behaviorFlags & CollisionNode::FLAG_CUT_REQUIRED) ? "noOverlapHolesIfNoCut |" : "",
           (node.behaviorFlags & CollisionNode::FLAG_CHECK_SIDE) ? "noOverlapEdgeHoles |" : "",
-          (node.behaviorFlags & CollisionNode::FLAG_ALLOW_BULLET_DECAL) ? "" : "noBullets |");
+          (node.behaviorFlags & CollisionNode::FLAG_ALLOW_BULLET_DECAL) ? "" : "noBullets |",
+          (node.behaviorFlags & CollisionNode::FLAG_TRANSPARENT) ? " transparent" : "");
       }
     }
     const bool isHidden = nodesProcessing.selectionNodesProcessing.hiddenNodes[i];

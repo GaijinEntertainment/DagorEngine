@@ -30,6 +30,9 @@ Sources =
   # custom extensions
   squirrel/sqext.cpp
 
+  # sqasync runtime
+  squirrel/sqasync.cpp
+
   sqstdlib/sqstdrex.cpp
   sqstdlib/sqstdaux.cpp
   sqstdlib/sqstdmath.cpp

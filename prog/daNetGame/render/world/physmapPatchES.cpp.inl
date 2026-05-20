@@ -46,7 +46,7 @@ static void exec_physmap_patch_data_creation_request_es_event_handler(
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void init_physmap_patch_es_event_handler(
-  const ecs::Event &, UniqueTexHolder &physmap_patch_tex, int physmap_patch_tex_size, float &physmap_patch_invscale)
+  const ecs::Event &, UniqueTexWithShaderVar &physmap_patch_tex, int physmap_patch_tex_size, float &physmap_patch_invscale)
 {
   const PhysMap *physMap = dacoll::get_lmesh_phys_map();
 
@@ -142,8 +142,10 @@ static void gather_physmap_patch_updated_regions_es(const ParallelUpdateFrameDel
 
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
-static void update_physmap_patch_tex_es(
-  const UpdateStageInfoBeforeRender &, UniqueTexHolder &physmap_patch_tex, int physmap_patch_tex_size, float physmap_patch_invscale)
+static void update_physmap_patch_tex_es(const UpdateStageInfoBeforeRender &,
+  UniqueTexWithShaderVar &physmap_patch_tex,
+  int physmap_patch_tex_size,
+  float physmap_patch_invscale)
 {
   if (!interlocked_acquire_load(gather_physmap_patch_updated_regions_job.done)) // Wait job from prev frame
   {

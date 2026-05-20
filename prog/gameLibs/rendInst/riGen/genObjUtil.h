@@ -151,7 +151,7 @@ static inline bool unpack_tm_pos(mat44f &tm, const int16_t *data, vec3f add, vec
   tm.col1 = v_and(scale, (vec4f)V_CI_MASK0100);
   tm.col2 = v_and(scale, (vec4f)V_CI_MASK0010);
   tm.col3 = v_madd(v, mul, add);
-  return false;
+  return true;
 }
 static inline bool unpack_tm_pos(vec4f &pos, vec4f &scale, const int16_t *data, vec3f add, vec3f mul, bool palette_rotation,
   vec4i *palette_id = nullptr)

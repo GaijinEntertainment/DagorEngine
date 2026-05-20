@@ -7,7 +7,29 @@ def test_sort(t : T?; var arr : auto(TT)) {
     for (i in range(1, len)) {
         t |> success(arr[i - 1] < arr[i])
     }
-    sort(arr, $(a, b) => !(a < b))
+    sort(arr, $(a, b) => b < a)
+    for (i in range(1, len)) {
+        t |> success(!(arr[i - 1] < arr[i]))
+    }
+}
+
+def test_sort_dupes(t : T?; var arr : auto(TT); expected_sum : auto(SS)) {
+    let len = length(arr)
+    sort(arr)
+    var asc_sum = default<SS>
+    for (v in arr) {
+        asc_sum += SS(v)
+    }
+    t |> equal(asc_sum, expected_sum)
+    for (i in range(1, len)) {
+        t |> success(!(arr[i] < arr[i - 1]))
+    }
+    sort(arr, $(a, b) => a > b)
+    var desc_sum = default<SS>
+    for (v in arr) {
+        desc_sum += SS(v)
+    }
+    t |> equal(desc_sum, expected_sum)
     for (i in range(1, len)) {
         t |> success(!(arr[i - 1] < arr[i]))
     }
@@ -62,4 +84,8 @@ def test_sort_all(t : T?) {
     test_sort(t, [Foo(x=1, y=2), Foo(x=1, y=1), Foo(x=2, y=2), Foo(x=0, y=1)])
     // vector
     test_vector_sort(t)
+    // duplicates -- exercises strict-weak-ordering comparator on equal elements
+    test_sort_dupes(t, array<int>(5, 2, 5, 3, 2, 1, 4, 2, 5), 29l)
+    test_sort_dupes(t, fixed_array<int>(5, 2, 5, 3, 2, 1, 4, 2, 5), 29l)
+    test_sort_dupes(t, array<float>(1.5, 2.5, 1.5, 2.5, 3.5), 11.5lf)
 }

@@ -13,12 +13,13 @@ require strings
 
 var log_file_path : string
 var log_verbose_flag = false
+var run_cmd_counter = 0
 
 def log_init(root : string) {
     let modules_dir = "{root}/modules"
     mkdir(modules_dir)
     log_file_path = "{modules_dir}/.daspkg.log"
-    fopen(log_file_path, "ab") <| $(f) {
+    fopen(log_file_path, "ab") $(f) {
         if (f != null) {
             fprint(f, "\n--- daspkg ---\n")
         }
@@ -29,7 +30,7 @@ def private log_to_file(msg : string) {
     if (empty(log_file_path)) {
         return
     }
-    fopen(log_file_path, "ab") <| $(f) {
+    fopen(log_file_path, "ab") $(f) {
         if (f != null) {
             fprint(f, msg)
         }
@@ -53,17 +54,18 @@ def log_debug(msg : string) {
 
 def run_cmd(cmd : string; var output : string&) : int {
     log_debug("$ {cmd}")
-    let tmp_out = "{get_das_root()}/_daspkg_cmd_output.txt"
+    run_cmd_counter ++
+    let tmp_out = "{get_das_root()}/_daspkg_cmd_output_{run_cmd_counter}.txt"
     let full_cmd = "{cmd} > \"{tmp_out}\" 2>&1"
     var exit_code = -1
     unsafe {
-        exit_code = popen(full_cmd) <| $(f) {
+        exit_code = popen(full_cmd) $(f) {
             if (f != null) {
                 fread(f)
             }
         }
     }
-    fopen(tmp_out, "rb") <| $(f) {
+    fopen(tmp_out, "rb") $(f) {
         if (f != null) {
             output = fread(f)
         }
@@ -259,28 +261,129 @@ def satisfies_constraint(version_str, constraint : string) : bool {
     return true
 }
 
+// ── .gitignore management ───────────────────────────────────────────
+
+def gitignore_add(root, pattern : string) {
+    // skip if not a git repository
+    if (!fexist("{root}/.git")) {
+        return
+    }
+    let gitignore_path = "{root}/.gitignore"
+    // read existing content and check for duplicates
+    var content = ""
+    fopen(gitignore_path, "rb") $(f) {
+        if (f != null) {
+            content = fread(f)
+        }
+    }
+    // check if pattern already present (exact line match)
+    var found = false
+    var rest = content
+    while (!empty(rest)) {
+        let nl = find(rest, "\n")
+        var line : string
+        if (nl >= 0) {
+            line = slice(rest, 0, nl)
+            rest = slice(rest, nl + 1)
+        } else {
+            line = rest
+            rest = ""
+        }
+        // strip trailing \r
+        if (!empty(line) && ends_with(line, "\r")) {
+            line = slice(line, 0, length(line) - 1)
+        }
+        if (line == pattern) {
+            found = true
+            break
+        }
+    }
+    if (found) {
+        return
+    }
+    // append pattern
+    fopen(gitignore_path, "ab") $(f) {
+        if (f != null) {
+            // ensure we start on a new line
+            if (!empty(content) && !ends_with(content, "\n")) {
+                fprint(f, "\n")
+            }
+            fprint(f, "{pattern}\n")
+        }
+    }
+    log_debug("added '{pattern}' to {gitignore_path}")
+}
+
+def gitignore_remove(root, pattern : string) {
+    if (!fexist("{root}/.git")) {
+        return
+    }
+    let gitignore_path = "{root}/.gitignore"
+    var content = ""
+    fopen(gitignore_path, "rb") $(f) {
+        if (f != null) {
+            content = fread(f)
+        }
+    }
+    if (empty(content)) {
+        return
+    }
+    // rebuild without the matching line
+    var result = ""
+    var removed = false
+    var rest = content
+    while (!empty(rest)) {
+        let nl = find(rest, "\n")
+        var line : string
+        if (nl >= 0) {
+            line = slice(rest, 0, nl)
+            rest = slice(rest, nl + 1)
+        } else {
+            line = rest
+            rest = ""
+        }
+        var trimmed = line
+        if (!empty(trimmed) && ends_with(trimmed, "\r")) {
+            trimmed = slice(trimmed, 0, length(trimmed) - 1)
+        }
+        if (trimmed == pattern) {
+            removed = true
+            continue
+        }
+        result = nl >= 0 ? "{result}{line}\n" : "{result}{line}"
+    }
+    if (removed) {
+        fopen(gitignore_path, "wb") $(f) {
+            if (f != null) {
+                fprint(f, result)
+            }
+        }
+        log_debug("removed '{pattern}' from {gitignore_path}")
+    }
+}
+
 def copy_dir_rec(src, dst : string) : bool {
     mkdir(dst)
     var ok = true
-    dir(src) <| $(name) {
+    dir(src) $(name) {
         if (name == "." || name == "..") {
             return
         }
         let src_child = "{src}/{name}"
         let dst_child = "{dst}/{name}"
-        var st = stat(src_child)
+        let st = stat(src_child)
         if (st.is_dir) {
             if (!copy_dir_rec(src_child, dst_child)) {
                 ok = false
             }
         } elif (st.is_reg) {
-            fopen(src_child, "rb") <| $(fin) {
+            fopen(src_child, "rb") $(fin) {
                 if (fin != null) {
                     let fs = fstat(fin)
                     let sz = int(fs.size)
                     if (sz == 0) {
                         // empty file — just create it
-                        fopen(dst_child, "wb") <| $(fout) {
+                        fopen(dst_child, "wb") $(fout) {
                             if (fout == null) {
                                 ok = false
                             }
@@ -289,7 +392,7 @@ def copy_dir_rec(src, dst : string) : bool {
                         var buf : array<uint8>
                         buf |> resize(sz)
                         fread(fin, buf)
-                        fopen(dst_child, "wb") <| $(fout) {
+                        fopen(dst_child, "wb") $(fout) {
                             if (fout != null) {
                                 fwrite(fout, buf)
                             } else {

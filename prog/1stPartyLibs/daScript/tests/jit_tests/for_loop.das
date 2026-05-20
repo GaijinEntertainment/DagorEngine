@@ -39,7 +39,7 @@ def range_for_range(value : range) {
 [jit]
 def range_for_range_extra(value : range) {
     var i = 0
-    for (a, b in value, range(13, 100500)) {
+    for (_a, _b in value, range(13, 100500)) {
         i ++
     }
     return i
@@ -144,7 +144,7 @@ def iterator_for(value : int) {
 [jit]
 def hybrid_for(value : int) {
     var i = 0
-    for (a, b in gen_range(value), range(7)) {
+    for (_a, _b in gen_range(value), range(7)) {
         i ++
     }
     return i
@@ -178,7 +178,7 @@ def add_elements(a : array<int>) {
 [jit]
 def special_count(max, start, step : int) {
     var add = 0
-    for (i, j in range(max), count(start, step)) {
+    for (_i, j in range(max), count(start, step)) {
         add += j
     }
     return add
@@ -202,7 +202,8 @@ def test_for_loop(t : T?) {
         t |> equal(range_for_range_extra(range(100, 110)), 10)
         t |> equal(range_for_with_break(10, 5), 5)
         t |> equal(range_for_with_continue(10, 5), 4)
-        t |> equal(range_for_with_finally(10), 1)
+        // per-iter finally: finally fires once per iteration, so tf == 10 for range(10)
+        t |> equal(range_for_with_finally(10), 10)
     }
     t |> run("dim for") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@dim_for))

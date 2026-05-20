@@ -51,6 +51,11 @@
 namespace hml_lcexpr_factory
 {
 
+// HeightmapLand reserves the first user-type slot for Curve. CurveNode (defined
+// in hmlGenColorMap.cpp) reads its first arg as a varId-tagged float that holds
+// an integer slot index into the curves table passed via EvalCtx::userCtx.
+inline constexpr lcexpr::ExprType TYPE_CURVE = lcexpr::TYPE_USER_BASE;
+
 // Thin wrappers that keep the "parse map + emit map" pair in sync. Pass the
 // lcexpr::emit{Unary,Binary,Ternary}Fn<YourNode> instantiation as `emitter`.
 inline void register_unary(lcexpr::FuncParseMap &parseMap, lcexpr::NodeEmitMap &emitMap, const char *name, lcexpr::NodeEmitFn emitter)
@@ -69,6 +74,35 @@ inline void register_ternary(lcexpr::FuncParseMap &parseMap, lcexpr::NodeEmitMap
   lcexpr::NodeEmitFn emitter)
 {
   lcexpr::register_func_parse(parseMap, name, 3);
+  emitMap.emplace(lcexpr::hash_name(name), emitter);
+}
+
+// Typed registrations: same shape as the untyped wrappers above but propagate
+// per-arg / result types into FuncParseInfo. Use these for functions whose
+// arguments must be a specific user type (e.g. CURVE) -- the parser then
+// rejects calls that pass the wrong type instead of silently coercing.
+inline void register_typed_unary(lcexpr::FuncParseMap &parseMap, lcexpr::NodeEmitMap &emitMap, const char *name,
+  lcexpr::ExprType argType, lcexpr::ExprType resultType, lcexpr::NodeEmitFn emitter)
+{
+  lcexpr::ExprType args[1] = {argType};
+  lcexpr::register_func_parse_typed(parseMap, name, 1, args, resultType);
+  emitMap.emplace(lcexpr::hash_name(name), emitter);
+}
+
+inline void register_typed_binary(lcexpr::FuncParseMap &parseMap, lcexpr::NodeEmitMap &emitMap, const char *name,
+  lcexpr::ExprType arg0Type, lcexpr::ExprType arg1Type, lcexpr::ExprType resultType, lcexpr::NodeEmitFn emitter)
+{
+  lcexpr::ExprType args[2] = {arg0Type, arg1Type};
+  lcexpr::register_func_parse_typed(parseMap, name, 2, args, resultType);
+  emitMap.emplace(lcexpr::hash_name(name), emitter);
+}
+
+inline void register_typed_ternary(lcexpr::FuncParseMap &parseMap, lcexpr::NodeEmitMap &emitMap, const char *name,
+  lcexpr::ExprType arg0Type, lcexpr::ExprType arg1Type, lcexpr::ExprType arg2Type, lcexpr::ExprType resultType,
+  lcexpr::NodeEmitFn emitter)
+{
+  lcexpr::ExprType args[3] = {arg0Type, arg1Type, arg2Type};
+  lcexpr::register_func_parse_typed(parseMap, name, 3, args, resultType);
   emitMap.emplace(lcexpr::hash_name(name), emitter);
 }
 

@@ -4244,7 +4244,7 @@ bool TextEditor::OnImGui(bool windowIsOpen, uint32_t &currentDockId, bool &isFoc
 		ImGui::SameLine();
 		ImGui::BeginGroup();
 		ImGui::PushID("FindBar");
-		ImGui::SetNextItemWidth(180.0f);
+		ImGui::SetNextItemWidth(300.0f);
 		if (mRequestingFind) ImGui::SetKeyboardFocusHere();
 		ImGui::InputTextWithHint("##Find", "Find...", ctrlfTextToFind, FIND_POPUP_TEXT_FIELD_LENGTH, ImGuiInputTextFlags_AutoSelectAll);
 		ImGui::SameLine();
@@ -4640,6 +4640,15 @@ eastl::unordered_map<eastl::string, TextEditor::LanguageDefinitionId> TextEditor
 	{".h", TextEditor::LanguageDefinitionId::Cpp},
 	{".das", TextEditor::LanguageDefinitionId::Daslang},
 };
+
+void TextEditor::RegisterExtensionLanguage(const eastl::string& extension, LanguageDefinitionId language)
+{
+	if (extension.empty())
+		return;
+	if (language < LanguageDefinitionId::None || language >= LanguageDefinitionId::LanguageDefinitionCount)
+		return;
+	extensionToLanguageDefinition[extension] = language;
+}
 
 eastl::unordered_map<TextEditor::LanguageDefinitionId, const char *> TextEditor::languageDefinitionToName = {
 	{TextEditor::LanguageDefinitionId::None, "None"},

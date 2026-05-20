@@ -41,9 +41,10 @@ def test_mutation(t : T?) {
     t |> run("mutate scalar int") @(t : T?) {
         var walker = new Doubler()
         var x = 21
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(x), typeinfo rtti_typeinfo(x))
+            }
         }
         t |> equal(x, 42)
         unsafe { delete walker; }
@@ -51,9 +52,10 @@ def test_mutation(t : T?) {
     t |> run("mutate struct fields") @(t : T?) {
         var walker = new Doubler()
         var s = SimpleStruct(x = 5, y = 1.5)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(s.x, 10)
         t |> equal(s.y, 3.0)
@@ -62,9 +64,10 @@ def test_mutation(t : T?) {
     t |> run("mutate array elements") @(t : T?) {
         var walker = new Doubler()
         var arr = [1, 2, 3]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(arr[0], 2)
         t |> equal(arr[1], 4)
@@ -79,9 +82,10 @@ def test_mutate_nested(t : T?) {
     t |> run("mutate strings in struct") @(t : T?) {
         var walker = new StringUpperWalker()
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "hello")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(s.tag, "HELLO")
         unsafe { delete walker; }
@@ -89,9 +93,10 @@ def test_mutate_nested(t : T?) {
     t |> run("mutate strings in array") @(t : T?) {
         var walker = new StringUpperWalker()
         var arr = ["abc", "def"]
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(arr), typeinfo rtti_typeinfo(arr))
+            }
         }
         t |> equal(arr[0], "ABC")
         t |> equal(arr[1], "DEF")

@@ -186,9 +186,10 @@ namespace das
                 return false;
 
             }
+            const char * prev_comment = tab.data ? context->heap->get_comment(tab.data) : nullptr;
             uint32_t memSize = uint32_t(memSize64);
             newTab.data = (char *) context->allocate(memSize, at);
-            context->heap->mark_comment(newTab.data, "table");
+            context->heap->mark_comment(newTab.data, prev_comment ? prev_comment : "table");
             newTab.keys = newTab.data + newCapacity * valueTypeSize;
             newTab.hashes = (TableHashKey *)(newTab.keys + newCapacity * sizeof(KeyType));
             newTab.size = tab.size;

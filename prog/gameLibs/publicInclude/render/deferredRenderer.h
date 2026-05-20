@@ -28,25 +28,8 @@ public:
     Yes
   };
 
-  // defines specific resolve shader permutation for tiled resolve (should be in sync with classify shader)
-  static const int USE_CURRENT_SHADER_VAR_VALUE = 0xffff;
-  static const int MAX_SHADER_VARS = 1;
-  static const int MAX_SHADER_VAR_STATES = 2;
-  static const int MAX_SHADER_PERMUTATIONS = (1 << MAX_SHADER_VARS); // (MAX_SHADER_VAR_STATES ^ MAX_SHADER_VARS)
-  struct PermutationsDesc
-  {
-    int varIds[MAX_SHADER_VARS] = {};
-    int varCount = 0;
-    int varValues[MAX_SHADER_VARS][MAX_SHADER_PERMUTATIONS] = {}; // only integer variables for now
-    int varValuesToSkipTiled[MAX_SHADER_VARS] = {};
-  };
-
-  ShadingResolver(const char *resolve_pshader_name, const char *resolve_cshader_name, const char *classify_cshader_name,
-    const PermutationsDesc &resolve_permutations_desc);
-  ShadingResolver(const char *resolve_pshader_name) :
-    ShadingResolver(resolve_pshader_name, nullptr /* resolve_cshader_name */, nullptr /* classify_cshader_name */,
-      {} /* resolve_permutations_desc */)
-  {}
+  ShadingResolver(const char *resolve_pshader_name, const char *resolve_cshader_name);
+  ShadingResolver(const char *resolve_pshader_name) : ShadingResolver(resolve_pshader_name, nullptr /* resolve_cshader_name */) {}
   ~ShadingResolver();
 
   PostFxRenderer *getResolveShading() const { return resolveShading.get(); }
@@ -57,29 +40,18 @@ public:
 
 private:
   eastl::unique_ptr<PostFxRenderer> resolveShading;
-  eastl::unique_ptr<ComputeShaderElement> resolveShadingCS, classifyTilesCS, prepareArgsCS, debugTilesCS;
-
-  PermutationsDesc resolvePermutations;
-  // TODO: try to reduce buffers count (e.g. write from both sides if 2 permutations will be finalized)
-  eastl::fixed_vector<UniqueBuf, MAX_SHADER_PERMUTATIONS> tileBufs;
-  int tileCoordinatesVarId = -1, tiledInvocationVarId = -1;
-  UniqueBuf tileCounters, indirectArguments;
-  int tiles_w = -1, tiles_h = -1;
-
-  void recreateTileBuffersIfNeeded(int w, int h);
-  void debugTiles(BaseTexture *resolveTarget);
+  eastl::unique_ptr<ComputeShaderElement> resolveShadingCS;
 };
 
 class DeferredRenderTarget
 {
 public:
-  DeferredRenderTarget(const char *resolve_pshader_name, const char *resolve_cshader_name, const char *classify_cshader_name,
-    const ShadingResolver::PermutationsDesc &resolve_permutations_desc, const char *name, int w, int h,
+  DeferredRenderTarget(const char *resolve_pshader_name, const char *resolve_cshader_name, const char *name, int w, int h,
     DeferredRT::StereoMode stereo_mode, unsigned msaaFlag, int numRt, const unsigned *texFmt, uint32_t depthFmt);
   DeferredRenderTarget(const char *resolve_pshader_name, const char *name, int w, int h, DeferredRT::StereoMode stereo_mode,
     unsigned msaaFlag, int numRt, const unsigned *texFmt, uint32_t depthFmt) :
-    DeferredRenderTarget(resolve_pshader_name, nullptr /* resolve_cshader_name */, nullptr /* classify_cshader_name */,
-      {} /* resolve_permutations_desc */, name, w, h, stereo_mode, msaaFlag, numRt, texFmt, depthFmt)
+    DeferredRenderTarget(resolve_pshader_name, nullptr /* resolve_cshader_name */, name, w, h, stereo_mode, msaaFlag, numRt, texFmt,
+      depthFmt)
   {}
   ~DeferredRenderTarget();
   DeferredRenderTarget(const DeferredRenderTarget &) = delete;

@@ -128,6 +128,19 @@
         void * getLibraryHandle ( const char * moduleName ) {
             return GetModuleHandleA(moduleName);
         }
+        string getDynamicLibraryError ( void ) {
+            DWORD err = GetLastError();
+            if ( err == 0 ) return "";
+            LPSTR buf = nullptr;
+            DWORD n = FormatMessageA(
+                FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPSTR)&buf, 0, nullptr);
+            string msg = (n && buf) ? string(buf, n) : ("error code " + to_string(err));
+            if ( buf ) LocalFree(buf);
+            while ( !msg.empty() && (msg.back()=='\r' || msg.back()=='\n') ) msg.pop_back();
+            return msg;
+        }
         string normalizeFileName ( const char * fileName ) {
             char buffer[MAX_PATH ];
             auto ret = GetFullPathNameA(fileName,MAX_PATH,buffer,nullptr);
@@ -167,6 +180,10 @@
         }
         void * getLibraryHandle ( const char * lib ) {
             return dlopen(lib,RTLD_LAZY);
+        }
+        string getDynamicLibraryError ( void ) {
+            const char * e = dlerror();
+            return e ? e : "";
         }
         string normalizeFileName ( const char * fileName ) {
             char buffer[PATH_MAX];
@@ -449,6 +466,10 @@
         void * getLibraryHandle ( const char * lib ) {
             return dlopen(lib,RTLD_LAZY);
         }
+        string getDynamicLibraryError ( void ) {
+            const char * e = dlerror();
+            return e ? e : "";
+        }
         string normalizeFileName ( const char * fileName ) {
             char buffer[PATH_MAX];
 
@@ -495,6 +516,10 @@
         void * getLibraryHandle ( const char * lib ) {
             return dlopen(lib,RTLD_LAZY);
         }
+        string getDynamicLibraryError ( void ) {
+            const char * e = dlerror();
+            return e ? e : "";
+        }
         string normalizeFileName ( const char * fileName ) {
             // TODO: implement
             return "";
@@ -528,6 +553,9 @@
         void * getLibraryHandle ( const char *  ) {
             // TODO: implement
             return nullptr;
+        }
+        string getDynamicLibraryError ( void ) {
+            return "";
         }
         string normalizeFileName ( const char * fileName ) {
             // TODO: implement

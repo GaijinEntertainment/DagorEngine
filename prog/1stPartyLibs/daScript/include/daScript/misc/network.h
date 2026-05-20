@@ -11,7 +11,7 @@ namespace das {
         typedef int socket_t;
     #endif
 
-    class Server : public ptr_ref_count {
+    class Server {
     public:
         Server ();
         virtual ~Server();

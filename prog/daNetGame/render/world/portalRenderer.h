@@ -109,7 +109,7 @@ private:
 
   PortalVisibility portalVisibility;
 
-  UniqueTexHolder envCubeTexArr;
+  UniqueTexWithShaderVar envCubeTexArr;
   UniqueTex tmpRenderTargetTex;
 
   PostFxRenderer copyTargetRenderer;

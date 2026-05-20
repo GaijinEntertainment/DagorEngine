@@ -17,6 +17,7 @@
 
 #include "amdFsr3Helpers.h"
 
+#include "driver.h"
 #include "globals.h"
 #include "vulkan_loader.h"
 
@@ -29,6 +30,11 @@ static void VKAPI_PTR vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer) {}
 
 namespace amd
 {
+
+namespace
+{
+FSRVulkan *fsr_vulkan_instance = nullptr;
+}
 
 static inline FfxApiResource ffx_get_resource(void *texture, uint32_t state)
 {
@@ -74,224 +80,190 @@ static PFN_vkVoidFunction VKAPI_ATTR override_vkGetDeviceProcAddr(VkDevice devic
   return addr;
 }
 
-class FSRVulkan;
-namespace
+void FSRVulkan::loadLib()
 {
-FSRVulkan *vkFsrInstance = nullptr; // With this only one FSR instance is allowed. When this will became a problem, please fix it
-}
-
-class FSRVulkan : public FSR
-{
-public:
-  FSRVulkan()
-  {
-    logdbg("[AMDFSR] Creating upscaling FSRVulkan...");
-    G_ASSERT(!vkFsrInstance);
-    vkFsrInstance = this;
-    loadLib();
-  }
-
-  ~FSRVulkan()
-  {
-    fsrModule.reset();
-    vkFsrInstance = nullptr;
-  }
-
-  void loadLib()
-  {
 #if _TARGET_PC_WIN
-    fsrModule.reset(os_dll_load("amd_fidelityfx_vk.dll"));
+  fsrModule.reset(os_dll_load("amd_fidelityfx_vk.dll"));
 #elif _TARGET_PC_LINUX
-    fsrModule.reset(os_dll_load("libamd_fidelityfx_vk.so"));
+  fsrModule.reset(os_dll_load("libamd_fidelityfx_vk.so"));
 #endif
 
-    if (fsrModule)
-    {
-      createContext = (PfnFfxCreateContext)os_dll_get_symbol(fsrModule.get(), "ffxCreateContext");
-      destroyContext = (PfnFfxDestroyContext)os_dll_get_symbol(fsrModule.get(), "ffxDestroyContext");
-      configure = (PfnFfxConfigure)os_dll_get_symbol(fsrModule.get(), "ffxConfigure");
-      query = (PfnFfxQuery)os_dll_get_symbol(fsrModule.get(), "ffxQuery");
-      dispatch = (PfnFfxDispatch)os_dll_get_symbol(fsrModule.get(), "ffxDispatch");
-    }
+  if (fsrModule)
+  {
+    createContext = (PfnFfxCreateContext)os_dll_get_symbol(fsrModule.get(), "ffxCreateContext");
+    destroyContext = (PfnFfxDestroyContext)os_dll_get_symbol(fsrModule.get(), "ffxDestroyContext");
+    configure = (PfnFfxConfigure)os_dll_get_symbol(fsrModule.get(), "ffxConfigure");
+    query = (PfnFfxQuery)os_dll_get_symbol(fsrModule.get(), "ffxQuery");
+    dispatch = (PfnFfxDispatch)os_dll_get_symbol(fsrModule.get(), "ffxDispatch");
+  }
 
-    if (isLoadedImpl())
+  if (isLoadedImpl())
+  {
+    logdbg("[AMDFSR] FSRVulkan created.");
+    uint64_t versionCount = 0;
+    ffxQueryDescGetVersions versionsDesc{
+      .header{
+        .type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS,
+      },
+      .createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE,
+      .outputCount = &versionCount,
+    };
+    if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK && versionCount > 0)
     {
-      logdbg("[AMDFSR] FSRVulkan created.");
-      uint64_t versionCount = 0;
-      ffxQueryDescGetVersions versionsDesc{
-        .header{
-          .type = FFX_API_QUERY_DESC_TYPE_GET_VERSIONS,
-        },
-        .createDescType = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE,
-        .outputCount = &versionCount,
-      };
-      if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK && versionCount > 0)
+      dag::Vector<uint64_t, framemem_allocator> versionIds;
+      dag::Vector<const char *, framemem_allocator> versionNames;
+      versionIds.resize_noinit(versionCount);
+      versionNames.resize_noinit(versionCount);
+      versionsDesc.versionIds = versionIds.data();
+      versionsDesc.versionNames = versionNames.data();
+
+      if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK)
       {
-        dag::Vector<uint64_t, framemem_allocator> versionIds;
-        dag::Vector<const char *, framemem_allocator> versionNames;
-        versionIds.resize_noinit(versionCount);
-        versionNames.resize_noinit(versionCount);
-        versionsDesc.versionIds = versionIds.data();
-        versionsDesc.versionNames = versionNames.data();
+        for (int verIx = 0; verIx < versionCount; ++verIx)
+          logdbg("[AMDFSR] provider %llu - %s", versionIds[verIx], versionNames[verIx]);
 
-        if (query(nullptr, &versionsDesc.header) == FFX_API_RETURN_OK)
-        {
-          for (int verIx = 0; verIx < versionCount; ++verIx)
-            logdbg("[AMDFSR] provider %llu - %s", versionIds[verIx], versionNames[verIx]);
-
-          // The first returned provider is FSR upscaling
-          upscalingVersionString = versionNames.front();
-        }
+        // The first returned provider is FSR upscaling
+        upscalingVersionString = versionNames.front();
       }
     }
-    else
-    {
-      logdbg("[AMDFSR] Failed to create FSRVulkan.");
-    }
+  }
+  else
+  {
+    logdbg("[AMDFSR] Failed to create FSRVulkan.");
+  }
+}
+
+bool FSRVulkan::initUpscaling(const FSR::ContextArgs &args)
+{
+  logdbg("[AMDFSR] Initializing upscaling...");
+
+  if (!isLoaded())
+  {
+    logdbg("[AMDFSR] Library not loaded. Failed.");
+    return false;
   }
 
-  bool initUpscaling(const ContextArgs &args)
+  ffx::CreateBackendVKDesc backendDesc{};
+
+  backendDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK;
+  backendDesc.vkDevice = (VkDevice)d3d::get_device();
+  d3d::driver_command(Drv3dCommand::GET_PHYSICAL_DEVICE, &backendDesc.vkPhysicalDevice);
+
+  backendDesc.vkDeviceProcAddr = override_vkGetDeviceProcAddr;
+
+  ffxCreateContextDescUpscale desc = convert(args, backendDesc.header);
+
+  auto status = createContext(&upscalingContext, &desc.header, nullptr);
+  if (status != FFX_API_RETURN_OK)
   {
-    logdbg("[AMDFSR] Initializing upscaling...");
-
-    if (!isLoaded())
-    {
-      logdbg("[AMDFSR] Library not loaded. Failed.");
-      return false;
-    }
-
-    ffx::CreateBackendVKDesc backendDesc{};
-
-    backendDesc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_BACKEND_VK;
-    backendDesc.vkDevice = (VkDevice)d3d::get_device();
-    d3d::driver_command(Drv3dCommand::GET_PHYSICAL_DEVICE, &backendDesc.vkPhysicalDevice);
-
-    backendDesc.vkDeviceProcAddr = override_vkGetDeviceProcAddr;
-
-    ffxCreateContextDescUpscale desc = convert(args, backendDesc.header);
-
-    auto status = createContext(&upscalingContext, &desc.header, nullptr);
-    if (status != FFX_API_RETURN_OK)
-    {
-      D3D_ERROR("[AMDFSR] Failed to create FSR context: %s", get_error_string(status));
-      return false;
-    }
-
-    contextArgs = args;
-
-    logdbg("[AMDFSR] Upscaling initialized.");
-
-    return true;
+    D3D_ERROR("[AMDFSR] Failed to create FSR context: %s", get_error_string(status));
+    return false;
   }
 
-  void teardownUpscaling() override
+  contextArgs = args;
+
+  logdbg("[AMDFSR] Upscaling initialized.");
+
+  return true;
+}
+
+void FSRVulkan::teardownUpscaling()
+{
+  logdbg("[AMDFSR] Teardown upscaling.");
+
+  if (!upscalingContext)
+    return;
+
+  destroyContext(&upscalingContext, nullptr);
+  upscalingContext = nullptr;
+  contextArgs.mode = FSR::UpscalingMode::Off;
+}
+
+Point2 FSRVulkan::getNextJitter(uint32_t render_width, uint32_t output_width)
+{
+  return upscalingContext && query ? get_next_jitter(render_width, output_width, jitterIndex, upscalingContext, query) : Point2::ZERO;
+}
+
+bool FSRVulkan::doApplyUpscaling(const FSR::UpscalingPlatformArgs &args, void *command_list) const
+{
+  return upscalingContext && apply_upscaling(args, command_list, upscalingContext, dispatch, ffx_get_resource);
+}
+
+IPoint2 FSRVulkan::getRenderingResolution(FSR::UpscalingMode mode, const IPoint2 &target_resolution) const
+{
+  return isLoaded() ? get_rendering_resolution(mode, target_resolution, upscalingContext, query) : IPoint2::ZERO;
+}
+
+FSR::UpscalingMode FSRVulkan::getUpscalingMode() const { return contextArgs.mode; }
+
+bool FSRVulkan::isLoadedImpl() const { return fsrModule && createContext && destroyContext && configure && query && dispatch; }
+
+bool FSRVulkan::isLoaded() const { return isLoadedImpl(); }
+
+bool FSRVulkan::isUpscalingSupported() const { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
+
+String FSRVulkan::getVersionString() const { return upscalingVersionString; }
+
+void FSRVulkan::beforeReset()
+{
+  d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+
+  if (upscalingContext)
   {
-    logdbg("[AMDFSR] Teardown upscaling.");
-
-    if (!upscalingContext)
-      return;
-
     destroyContext(&upscalingContext, nullptr);
     upscalingContext = nullptr;
-    contextArgs.mode = UpscalingMode::Off;
   }
 
-  Point2 getNextJitter(uint32_t render_width, uint32_t output_width)
-  {
-    return get_next_jitter(render_width, output_width, jitterIndex, upscalingContext, query);
-  }
+  fsrModule.reset();
+}
 
-  bool doApplyUpscaling(const UpscalingPlatformArgs &args, void *command_list) const override
-  {
-    return apply_upscaling(args, command_list, upscalingContext, dispatch, ffx_get_resource);
-  }
+void FSRVulkan::afterReset()
+{
+  // The regular tear down resets the mode to off, but the preRecover keeps the mode
+  // and the mode isn't off here have to restore the fsr context and reinitialize the object
+  loadLib();
+  if (getUpscalingMode() != amd::FSR::UpscalingMode::Off)
+    initUpscaling(contextArgs);
+}
 
-  IPoint2 getRenderingResolution(UpscalingMode mode, const IPoint2 &target_resolution) const override
-  {
-    return get_rendering_resolution(mode, target_resolution, upscalingContext, query);
-  }
+FSRVulkan &FSRVulkan::getInstance()
+{
+  static FSRVulkan instance;
+  fsr_vulkan_instance = &instance;
+  return instance;
+}
 
-  UpscalingMode getUpscalingMode() const override { return contextArgs.mode; }
+FSRVulkan *FSRVulkan::getExistingInstance() { return fsr_vulkan_instance; }
 
-  bool isLoadedImpl() const { return fsrModule && createContext && destroyContext && configure && query && dispatch; }
+FSRVulkan::FSRVulkan()
+{
+  logdbg("[AMDFSR] Creating upscaling FSRVulkan...");
+  loadLib();
+}
 
-  bool isLoaded() const override { return isLoadedImpl(); }
+FSRVulkan::~FSRVulkan()
+{
+  teardownUpscaling();
+  fsrModule.reset();
 
-  bool isUpscalingSupported() const override { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
-
-  bool isFrameGenerationSupported() const override { return false; }
-
-  void enableFrameGeneration(bool enable) override { G_UNUSED(enable); }
-
-  void suppressFrameGeneration(bool suppress) override { G_UNUSED(suppress); }
-
-  void doScheduleGeneratedFrames(const FrameGenPlatformArgs &args, void *command_list) override
-  {
-    G_UNUSED(args);
-    G_UNUSED(command_list);
-  }
-
-  int getPresentedFrameCount() override { return 1; }
-
-  bool isFrameGenerationActive() const override { return false; }
-
-  bool isFrameGenerationSuppressed() const override { return false; }
-
-  String getVersionString() const override { return upscalingVersionString; }
-
-  void before_reset()
-  {
-    d3d::driver_command(Drv3dCommand::D3D_FLUSH);
-
-    if (upscalingContext)
-    {
-      destroyContext(&upscalingContext, nullptr);
-      upscalingContext = nullptr;
-    }
-
-    fsrModule.reset();
-  }
-
-  void after_reset()
-  {
-    // The regular tear down resets the mode to off, but the preRecover keeps the mode
-    // and the mode isn't off here have to restore the fsr context and reinitialize the object
-    loadLib();
-    if (getUpscalingMode() != amd::FSR::UpscalingMode::Off)
-      initUpscaling(contextArgs);
-  }
-
-private:
-  DagorDynLibHolder fsrModule;
-
-  PfnFfxCreateContext createContext = nullptr;
-  PfnFfxDestroyContext destroyContext = nullptr;
-  PfnFfxConfigure configure = nullptr;
-  PfnFfxQuery query = nullptr;
-  PfnFfxDispatch dispatch = nullptr;
-
-  ffxContext upscalingContext = nullptr;
-
-  ContextArgs contextArgs = {};
-
-  int32_t jitterIndex = 0;
-  String upscalingVersionString = String(8, "");
-};
-
-FSR *createVulkan() { return new FSRVulkan; }
+  if (fsr_vulkan_instance == this)
+    fsr_vulkan_instance = nullptr;
+}
 
 } // namespace amd
 
 static void fsr_vk_before_reset(bool full_reset)
 {
-  if (full_reset && amd::vkFsrInstance)
-    amd::vkFsrInstance->before_reset();
+  if (full_reset)
+    if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+      fsr->beforeReset();
 }
 
 static void fsr_vk_after_reset(bool full_reset)
 {
-  if (full_reset && amd::vkFsrInstance)
-    amd::vkFsrInstance->after_reset();
+  if (full_reset)
+    if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+      fsr->afterReset();
 }
 
 REGISTER_D3D_BEFORE_RESET_FUNC(fsr_vk_before_reset);

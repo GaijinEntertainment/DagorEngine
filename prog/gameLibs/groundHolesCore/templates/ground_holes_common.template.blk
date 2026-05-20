@@ -20,8 +20,8 @@ ground_holes_updater{
     hmapHolesProcessRenderer_name:t="heightmap_holes_process"
     "hmapHolesMipmapRenderer:PostFxRenderer" {}
     hmapHolesMipmapRenderer_name:t="heightmap_holes_mipmap"
-    "hmapHolesTex:UniqueTexHolder" {}
-    "hmapHolesTmpTex:UniqueTexHolder" {}
+    "hmapHolesTex:UniqueTexWithShaderVar" {}
+    "hmapHolesTmpTex:UniqueTexWithShaderVar" {}
     "hmapHolesBuf:UniqueBufHolder" {}
     "holes:list<p4>" {}
     "invalidate_bboxes:list<p3>" {}

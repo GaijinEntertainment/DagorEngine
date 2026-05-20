@@ -78,7 +78,7 @@ private:
 
   RTargetPool::Ptr ssaoRTPool;
   ViewDependentResource<ViewSpecific, 2> viewSpecific;
-  UniqueTexHolder randomPatternTex;
+  UniqueTexWithShaderVar randomPatternTex;
   UniqueBufHolder poissonPoints;
 
   eastl::unique_ptr<PostFxRenderer> ssaoBlurRenderer{nullptr};

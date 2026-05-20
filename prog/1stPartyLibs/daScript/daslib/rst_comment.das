@@ -127,6 +127,13 @@ class RstComment : AstCommentReader {
             delete chars
             return
         }
+        // `//!@nolint` — style_lint suppression marker. Drop the line so it
+        // never reaches generated RST.
+        let after_bang = strip_left(slice(string(chars), 1))
+        if (after_bang |> starts_with("@nolint")) {
+            delete chars
+            return
+        }
         if (length(chars)>1 && int(chars[1])==' ') {
             chars |> erase(1)
         }
@@ -430,7 +437,7 @@ class RstComment : AstCommentReader {
             }
         } else {
             if (function_comment != "") {
-                field_comments |> push( ("function",function_label_file(fn),function_comment))
+                field_comments |> push( (kind = "function", name = function_label_file(fn), comment = function_comment))
             }
             state = ParserState.structure
         }
@@ -451,7 +458,7 @@ class RstComment : AstCommentReader {
         state = ParserState.field
         if (field_comment != "") {
             debug_rst("\t-> push {name} // {field_comment}")
-            field_comments |> push( ("field",clone_string(name),field_comment))
+            field_comments |> push( (kind = "field", name = clone_string(name), comment = field_comment))
         }
     }
     def override afterStructureFields ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
@@ -467,7 +474,7 @@ class RstComment : AstCommentReader {
             return
         }
         var output : string
-        var args = get_command_line_arguments()
+        let args = get_command_line_arguments()
         let outputIds = args |> find_index("--docs_output")
         if (outputIds >= 0) {
             output = args[outputIds+1] + "/index/detail/"
@@ -476,7 +483,7 @@ class RstComment : AstCommentReader {
         }
         let fname = "{output}/{name}.rst"
         mkdir_rec(output)
-        fopen(fname,"wb") <| $ ( f ) {
+        fopen(fname,"wb") $(f) {
             if (f==null) {
                 panic_rst("can't open {fname}")
             } else {

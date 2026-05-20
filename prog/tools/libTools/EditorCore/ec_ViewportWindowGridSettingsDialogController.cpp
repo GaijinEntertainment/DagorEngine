@@ -72,3 +72,9 @@ void ViewportWindowGridSettingsDialogController::onSnapSettingChanged()
   if (grid_settings_dialog)
     grid_settings_dialog->onSnapSettingChanged();
 }
+
+void ViewportWindowGridSettingsDialogController::onSnapStepChanged()
+{
+  if (grid_settings_dialog)
+    grid_settings_dialog->onSnapStepChanged();
+}

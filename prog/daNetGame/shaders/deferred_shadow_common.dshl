@@ -9,7 +9,6 @@ include "ssr_use.dshl"
 
 include "normaldetail.dshl"
 include "viewVecVS.dshl"
-include "invGlobTm.dshl"
 include "clouds_vars.dshl"
 include "sq_clouds_shadow.dshl"
 include "static_shadow.dshl"
@@ -36,6 +35,7 @@ include "screen_gi_encoding.dshl"
 include "apply_shadow_modifications.dshl"
 include "ptgi_use.dshl"
 include "bvh_usable_inc.dshl"
+include "precomputed_dynamic_lights_inc.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -65,8 +65,6 @@ int combined_shadows_has_caustics;
 
 float4 tank_cockpit__bsphere = float4(0., 0., 0., 0.);
 float tank_cockpit_fake_ambient_light_strength = 0.25;
-texture dynamic_lighting_texture;
-int has_any_dynamic_lights = 0;
 float4 hero_cockpit_vec = (0, 0, 0, 0);
 
 macro COMMON_RESOLVE_SIMPLE(code)
@@ -193,10 +191,7 @@ macro COMMON_RESOLVE_EXTENDED(code)
 
   if (in_editor_assume == no)
   {
-    (code) {
-      has_any_dynamic_lights@i1 = has_any_dynamic_lights;
-      dynamic_lighting_texture@tex2d = dynamic_lighting_texture;
-    }
+    INIT_AND_USE_PRECOMPUTED_DYNAMIC_LIGHTS(code, false)
   }
   else
   {
@@ -247,7 +242,7 @@ macro SPECIAL_RESOLVE_EXTENDED(code)
 
   if (in_editor_assume == no)
   {
-    INIT_AND_USE_TILED_LIGHTS(code)
+    INIT_AND_USE_PRECOMPUTED_DYNAMIC_LIGHTS(code, true)
   }
   else
   {
@@ -275,11 +270,11 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       return max(AO, ((AO * A + B) * AO + C) * AO);
     }
 
-    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float ssssTransmittance, out float base_caustics, out float cloudShadow)
+    void get_combined_shadows_sample(float2 uv, out float csmShadow, out float ssssTransmittance, out float additive_caustics, out float cloudShadow)
     {
       ##if (combined_shadows == NULL) && (in_editor_assume == yes)
         csmShadow = 1;
-        ssssTransmittance = base_caustics = cloudShadow = 0;
+        ssssTransmittance = additive_caustics = cloudShadow = 0;
       ##else
         float4 sampledValues = tex2Dlod(combined_shadows, float4(uv, 0, 0));
         csmShadow = sampledValues.x;
@@ -288,23 +283,9 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         ##else
           ssssTransmittance = 0;
         ##endif
-        base_caustics = combined_shadows_has_caustics ? sampledValues.z : 0;
+        additive_caustics = combined_shadows_has_caustics ? 2.0f * sampledValues.z : 0;
         cloudShadow = combined_shadows_has_caustics ? sampledValues.w : 0;
       ##endif
-    }
-
-    float get_additive_caustics(float base_caustics, float3 worldPos, float water_level)
-    {
-      base_caustics = pow2(base_caustics);
-      float causticScale=saturate(2*(water_level-worldPos.y+0.5));
-      return lerp(base_caustics*2, 0, causticScale);
-    }
-
-    float get_underwater_caustics(float base_caustics, float3 worldPos, float water_level)
-    {
-      base_caustics = pow2(base_caustics);
-      float causticScale=saturate(water_level-worldPos.y-0.3);
-      return lerp(1, 0.2+base_caustics*3.8, causticScale);
     }
 
     half4 deferred_shadow_per_sample(float2 screenpos, float3 viewVect, float2 curViewTc, float3 pointToEye, float4 worldPos, float w,
@@ -394,8 +375,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       half3 result = 0;
       bool isValidSubsurface = isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile);
 
-      float csmShadow, ssssTransmittance, base_caustics, cloudShadow;
-      get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, base_caustics, cloudShadow);
+      float csmShadow, ssssTransmittance, additive_caustics, cloudShadow;
+      get_combined_shadows_sample(curViewTc, csmShadow, ssssTransmittance, additive_caustics, cloudShadow);
 
       FLATTEN
       if (!isValidSubsurface)
@@ -421,13 +402,11 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##endif
       enviSSR *= specularAOcclusion;
 
-      float additive_caustics = get_additive_caustics(base_caustics, worldPos.xyz, water_level) * cloudShadow;
-
       //SUN
       BRANCH
       if (shadow > 0)
       {
-        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*get_underwater_caustics(base_caustics, worldPos.xyz, water_level);
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor;
         float lightningNoL = dot(gbuffer.normal, lightning_dir);
         BRANCH
         if (lightning_scene_illumination && lightningNoL > 0)
@@ -438,8 +417,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##if in_editor_assume == yes
         result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
       ##else
-        if (has_any_dynamic_lights)
-          result += texelFetch(dynamic_lighting_texture, screenpos, 0).rgb;
+        result += get_precomputed_dynamic_lighting(screenpos);
       ##endif
       result += gbuffer.diffuseColor*additive_caustics*lightColor*pow3(saturate(enviAO*1.3));
       //SUN-

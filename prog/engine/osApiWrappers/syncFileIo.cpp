@@ -15,6 +15,9 @@
 #include <math/random/dag_random.h>
 #include <errno.h>
 #include <osApiWrappers/dag_critSec.h>
+#if _TARGET_PC_WIN | _TARGET_XBOX
+#include <windows.h> // GetLastError, FormatMessageA
+#endif
 
 #define CHECK_FILE_CASE 0
 
@@ -563,6 +566,44 @@ int df_fstat(file_ptr_t fp, DagorStat *buf)
   }
   struct STAT st;
   return sys_fstat(fp, st) == 0 ? sys_stat2dagor_stat(&st, buf) : -1;
+}
+
+int df_get_last_error(char *buf, size_t bsz)
+{
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  int errn = GetLastError(); // Use direct WinAPI as it's usually more desriptive then remapped errno
+#else
+  int errn = errno;
+#endif
+  if (errn == 0 || bsz == 0)
+  {
+    if (bsz)
+      *buf = '\0';
+    return errn;
+  }
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errn, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), buf, bsz, NULL))
+    return errn;
+#else
+  auto ret = strerror_r(errn, buf, bsz);
+  if constexpr (eastl::is_pointer_v<decltype(ret)>) // char*
+  {
+    if (!ret)
+      ;
+    else if ((char *)(intptr_t)ret != buf)
+    {
+      strncpy(buf, (char *)(intptr_t)ret, bsz);
+      buf[bsz - 1] = '\0';
+      return errn;
+    }
+    else
+      return errn;
+  }
+  else if (!ret)
+    return errn;
+#endif
+  snprintf(buf, bsz, "Unknown error %d", errn);
+  return errn;
 }
 
 #if _TARGET_C1 | _TARGET_C2 | _TARGET_C3

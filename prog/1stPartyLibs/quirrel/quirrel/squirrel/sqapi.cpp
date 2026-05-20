@@ -125,13 +125,6 @@ SQGETTHREAD sq_set_thread_id_function(HSQUIRRELVM v, SQGETTHREAD func)
     return res;
 }
 
-SQSQCALLHOOK sq_set_sq_call_hook(HSQUIRRELVM v, SQSQCALLHOOK hook)
-{
-    SQSQCALLHOOK res = v->_sq_call_hook;
-    v->_sq_call_hook = hook;
-    return res;
-}
-
 SQWATCHDOGHOOK sq_set_watchdog_hook(HSQUIRRELVM v, SQWATCHDOGHOOK hook)
 {
     SQWATCHDOGHOOK res = v->_watchdog_hook;
@@ -1628,8 +1621,6 @@ SQRESULT sq_resume(HSQUIRRELVM v,SQBool retval,SQBool invoke_err_handler)
 SQRESULT sq_call(HSQUIRRELVM v,SQInteger params,SQBool retval,SQBool invoke_err_handler)
 {
     v->ValidateThreadAccess();
-    if (v->_sq_call_hook)
-        v->_sq_call_hook(v);
 
     SQObjectPtr res;
     if(!v->Call(v->GetUp(-(params+1)),params,v->_top-params,res,invoke_err_handler?true:false)){
@@ -1732,35 +1723,6 @@ void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f)
     _ss(v)->_compilerdiaghandler = f;
 }
 
-
-SQRESULT sq_writeclosure(HSQUIRRELVM v,SQWRITEFUNC w,SQUserPointer up)
-{
-    SQObjectPtr *o = NULL;
-    _GETSAFE_OBJ(v, -1, OT_CLOSURE,o);
-    unsigned short tag = SQ_BYTECODE_STREAM_TAG;
-    if(_closure(*o)->_function->_noutervalues)
-        return sq_throwerror(v,"a closure with free variables bound cannot be serialized");
-    if(w(up,&tag,2) != 2)
-        return sq_throwerror(v,"io error");
-    if(!_closure(*o)->Save(v,up,w))
-        return SQ_ERROR;
-    return SQ_OK;
-}
-
-SQRESULT sq_readclosure(HSQUIRRELVM v,SQREADFUNC r,SQUserPointer up)
-{
-    SQObjectPtr closure;
-
-    unsigned short tag;
-    if(r(up,&tag,2) != 2)
-        return sq_throwerror(v,"io error");
-    if(tag != SQ_BYTECODE_STREAM_TAG)
-        return sq_throwerror(v,"invalid stream");
-    if(!SQClosure::Load(v,up,r,closure))
-        return SQ_ERROR;
-    v->Push(closure);
-    return SQ_OK;
-}
 
 char *sq_getscratchpad(HSQUIRRELVM v,SQInteger minsize)
 {
@@ -2020,24 +1982,24 @@ SQCompilation::SqASTData *sq_parsetoast(HSQUIRRELVM v, const char *s, SQInteger 
     return ParseToAST(v, s, size, sourcename, preserveComments, raiseerror);
 }
 
-void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, OutputStream *s)
+void sq_dumpast(HSQUIRRELVM v, SQCompilation::SqASTData *astData, bool nodesLocation, SQStreamWriteFunc write, void *ud)
 {
-    IndentedTreeRenderer rv(s);
+    IndentedTreeRenderer rv(write, ud);
     rv.printNodesLocation = nodesLocation;
     rv.render(astData->root);
 }
 
-void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, OutputStream *s, int instruction_index)
+void sq_dumpbytecode(HSQUIRRELVM v, HSQOBJECT obj, SQStreamWriteFunc write, void *ud, int instruction_index)
 {
     if (sq_isfunction(obj)) {
-        Dump(s, _funcproto(obj), true, instruction_index);
+        Dump(write, ud, _funcproto(obj), true, instruction_index);
     }
     else if (sq_isclosure(obj)) {
         SQFunctionProto *proto = _closure(obj)->_function;
-        Dump(s, proto, true, instruction_index);
+        Dump(write, ud, proto, true, instruction_index);
     }
     else {
-        s->writeString("Object is not a FunctionProto");
+        write("Object is not a FunctionProto", ud);
     }
 }
 

@@ -39,9 +39,9 @@ private:
   void renderDownsampledField();
 
   UniqueTex cloudsFieldVolCompressed;
-  UniqueTexHolder cloudsFieldVolTemp;
-  UniqueTexHolder cloudsFieldVol, cloudsDownSampledField;
-  UniqueTexHolder layersPixelCount, layersHeights;
+  UniqueTexWithShaderVar cloudsFieldVolTemp;
+  UniqueTexWithShaderVar cloudsFieldVol, cloudsDownSampledField;
+  UniqueTexWithShaderVar layersPixelCount, layersHeights;
 
   eastl::unique_ptr<ComputeShaderElement> build_dacloud_volume_cs;
   eastl::unique_ptr<ComputeShaderElement> refineAltitudes;

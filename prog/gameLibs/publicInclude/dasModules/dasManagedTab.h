@@ -93,62 +93,62 @@
     TYPE##Annotation(das::ModuleLibrary &ml) : das::ManagedVectorAnnotation<CTYPE>(#TYPE, ml) { cppName = " ::" #CTYPE; } \
   };
 
-#define DAS_VECTOR_FACTORY(TYPE, CTYPE, ITEM_CTYPE, CPP_NAME)                                               \
-  namespace das                                                                                             \
-  {                                                                                                         \
-  template <>                                                                                               \
-  struct typeName<CTYPE>                                                                                    \
-  {                                                                                                         \
-    constexpr static const char *name() { return #TYPE; }                                                   \
-  };                                                                                                        \
-  template <>                                                                                               \
-  struct typeFactory<CTYPE>                                                                                 \
-  {                                                                                                         \
-    template <typename T = void> /* generic to instatiate impl once only on actual call */                  \
-    static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                                       \
-    {                                                                                                       \
-      das::string declN = typeName<CTYPE>::name();                                                          \
-      if (library.findAnnotation(declN, nullptr).size() == 0)                                               \
-      {                                                                                                     \
-        auto declT = makeType<ITEM_CTYPE>(library);                                                         \
-        auto ann = make_smart<ManagedVectorAnnotation<CTYPE>>(declN, const_cast<ModuleLibrary &>(library)); \
-        ann->cppName = CPP_NAME;                                                                            \
-        auto mod = library.front();                                                                         \
-        mod->addAnnotation(ann);                                                                            \
-        das::registerVectorFunctions<CTYPE>::init(mod, library, declT->canCopy(), declT->canMove());        \
-      }                                                                                                     \
-      return makeHandleType(library, declN.c_str());                                                        \
-    }                                                                                                       \
-  };                                                                                                        \
+#define DAS_VECTOR_FACTORY(TYPE, CTYPE, ITEM_CTYPE, CPP_NAME)                                        \
+  namespace das                                                                                      \
+  {                                                                                                  \
+  template <>                                                                                        \
+  struct typeName<CTYPE>                                                                             \
+  {                                                                                                  \
+    constexpr static const char *name() { return #TYPE; }                                            \
+  };                                                                                                 \
+  template <>                                                                                        \
+  struct typeFactory<CTYPE>                                                                          \
+  {                                                                                                  \
+    template <typename T = void> /* generic to instatiate impl once only on actual call */           \
+    static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                                \
+    {                                                                                                \
+      das::string declN = typeName<CTYPE>::name();                                                   \
+      if (library.findAnnotation(declN, nullptr).size() == 0)                                        \
+      {                                                                                              \
+        auto declT = makeType<ITEM_CTYPE>(library);                                                  \
+        auto ann = new ManagedVectorAnnotation<CTYPE>(declN, const_cast<ModuleLibrary &>(library));  \
+        ann->cppName = CPP_NAME;                                                                     \
+        auto mod = library.front();                                                                  \
+        mod->addAnnotation(ann);                                                                     \
+        das::registerVectorFunctions<CTYPE>::init(mod, library, declT->canCopy(), declT->canMove()); \
+      }                                                                                              \
+      return makeHandleType(library, declN.c_str());                                                 \
+    }                                                                                                \
+  };                                                                                                 \
   };
 
-#define DAS_VECTOR_SET_FACTORY(TYPE, CTYPE, ITEM_CTYPE, CPP_NAME)                                           \
-  namespace das                                                                                             \
-  {                                                                                                         \
-  template <>                                                                                               \
-  struct typeName<CTYPE>                                                                                    \
-  {                                                                                                         \
-    constexpr static const char *name() { return #TYPE; }                                                   \
-  };                                                                                                        \
-  template <>                                                                                               \
-  struct typeFactory<CTYPE>                                                                                 \
-  {                                                                                                         \
-    template <typename T = void> /* generic to instatiate impl once only on actual call */                  \
-    static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                                       \
-    {                                                                                                       \
-      das::string declN = typeName<CTYPE>::name();                                                          \
-      if (library.findAnnotation(declN, nullptr).size() == 0)                                               \
-      {                                                                                                     \
-        auto declT = makeType<ITEM_CTYPE>(library);                                                         \
-        auto ann = make_smart<ManagedVectorAnnotation<CTYPE>>(declN, const_cast<ModuleLibrary &>(library)); \
-        ann->cppName = CPP_NAME;                                                                            \
-        auto mod = library.front();                                                                         \
-        mod->addAnnotation(ann);                                                                            \
-        RegisterVecSetFunctions<CTYPE>::init(*mod, library, declT->canCopy(), declT->canMove());            \
-      }                                                                                                     \
-      return makeHandleType(library, declN.c_str());                                                        \
-    }                                                                                                       \
-  };                                                                                                        \
+#define DAS_VECTOR_SET_FACTORY(TYPE, CTYPE, ITEM_CTYPE, CPP_NAME)                                   \
+  namespace das                                                                                     \
+  {                                                                                                 \
+  template <>                                                                                       \
+  struct typeName<CTYPE>                                                                            \
+  {                                                                                                 \
+    constexpr static const char *name() { return #TYPE; }                                           \
+  };                                                                                                \
+  template <>                                                                                       \
+  struct typeFactory<CTYPE>                                                                         \
+  {                                                                                                 \
+    template <typename T = void> /* generic to instatiate impl once only on actual call */          \
+    static ___noinline TypeDeclPtr make(const ModuleLibrary &library)                               \
+    {                                                                                               \
+      das::string declN = typeName<CTYPE>::name();                                                  \
+      if (library.findAnnotation(declN, nullptr).size() == 0)                                       \
+      {                                                                                             \
+        auto declT = makeType<ITEM_CTYPE>(library);                                                 \
+        auto ann = new ManagedVectorAnnotation<CTYPE>(declN, const_cast<ModuleLibrary &>(library)); \
+        ann->cppName = CPP_NAME;                                                                    \
+        auto mod = library.front();                                                                 \
+        mod->addAnnotation(ann);                                                                    \
+        RegisterVecSetFunctions<CTYPE>::init(*mod, library, declT->canCopy(), declT->canMove());    \
+      }                                                                                             \
+      return makeHandleType(library, declN.c_str());                                                \
+    }                                                                                               \
+  };                                                                                                \
   };
 
 namespace das
@@ -287,36 +287,34 @@ struct ManagedTabAnnotation : TypeAnnotation
   virtual bool isLocal() const override { return false; }
   virtual bool isYetAnotherVectorTemplate() const override { return true; }
 
-  virtual TypeDeclPtr makeIndexType(const ExpressionPtr &, const ExpressionPtr &) const override
+  virtual TypeDeclPtr makeIndexType(ExpressionPtr, ExpressionPtr) const override { return new TypeDecl(*vecType); }
+
+  virtual TypeDeclPtr makeIteratorType(ExpressionPtr) const override { return new TypeDecl(*vecType); }
+
+  virtual SimNode *simulateGetAt(Context &context, const LineInfo &at, const TypeDeclPtr &, ExpressionPtr rv, ExpressionPtr idx,
+    uint32_t ofs) const override
   {
-    return make_smart<TypeDecl>(*vecType);
+    return context.code->makeNode<SimNodeAtTab>(at, simulateExpression(context, rv), simulateExpression(context, idx), ofs);
   }
 
-  virtual TypeDeclPtr makeIteratorType(const ExpressionPtr &) const override { return make_smart<TypeDecl>(*vecType); }
-
-  virtual SimNode *simulateGetAt(Context &context, const LineInfo &at, const TypeDeclPtr &, const ExpressionPtr &rv,
-    const ExpressionPtr &idx, uint32_t ofs) const override
-  {
-    return context.code->makeNode<SimNodeAtTab>(at, rv->simulate(context), idx->simulate(context), ofs);
-  }
-
-  virtual SimNode *simulateGetAtR2V(Context &context, const LineInfo &at, const TypeDeclPtr &type, const ExpressionPtr &rv,
-    const ExpressionPtr &idx, uint32_t ofs) const override
+  virtual SimNode *simulateGetAtR2V(Context &context, const LineInfo &at, const TypeDeclPtr &type, ExpressionPtr rv, ExpressionPtr idx,
+    uint32_t ofs) const override
   {
     if (type->isHandle())
     {
-      auto expr = context.code->makeNode<SimNodeAtTab>(at, rv->simulate(context), idx->simulate(context), ofs);
-      return ExprRef2Value::GetR2V(context, at, type, expr);
+      auto expr = context.code->makeNode<SimNodeAtTab>(at, simulateExpression(context, rv), simulateExpression(context, idx), ofs);
+      return GetR2V(context, at, type, expr);
     }
     else
     {
-      return context.code->makeValueNode<SimNodeAtTabR2V>(type->baseType, at, rv->simulate(context), idx->simulate(context), ofs);
+      return context.code->makeValueNode<SimNodeAtTabR2V>(type->baseType, at, simulateExpression(context, rv),
+        simulateExpression(context, idx), ofs);
     }
   }
 
-  virtual SimNode *simulateGetIterator(Context &context, const LineInfo &at, const ExpressionPtr &src) const override
+  virtual SimNode *simulateGetIterator(Context &context, const LineInfo &at, ExpressionPtr src) const override
   {
-    auto rv = src->simulate(context);
+    auto rv = simulateExpression(context, src);
     return context.code->makeNode<SimNode_AnyIterator<VectorType, TabIterator<VectorType>>>(at, rv);
   }
 
@@ -324,7 +322,7 @@ struct ManagedTabAnnotation : TypeAnnotation
   {
     if (!ati)
     {
-      auto dimType = make_smart<TypeDecl>(*vecType);
+      auto dimType = new TypeDecl(*vecType);
       dimType->ref = 0;
       dimType->dim.push_back(1);
       ati = helpA.makeTypeInfo(nullptr, dimType);
@@ -339,6 +337,18 @@ struct ManagedTabAnnotation : TypeAnnotation
   TypeDeclPtr vecType;
   DebugInfoHelper helpA;
   TypeInfo *ati = nullptr;
+
+  virtual void gc_collect(gc_root *target, gc_root *from) override
+  {
+    TypeAnnotation::gc_collect(target, from);
+    if (vecType)
+      vecType->gc_collect(target, from);
+  }
+  virtual void visitTypeDecls(const function<void(TypeDecl *)> &callback) override
+  {
+    if (vecType)
+      callback(vecType);
+  }
 };
 
 template <typename VecT, typename TT, uint32_t size>

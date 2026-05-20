@@ -679,7 +679,7 @@ void Node::invalidate_wtm()
 
 Node *Node::find_node(const char *nm)
 {
-  if (name && strcmp(name, nm) == 0)
+  if (strcmp(name, nm) == 0)
     return this;
   for (int i = 0; i < child.size(); ++i)
   {
@@ -692,7 +692,7 @@ Node *Node::find_node(const char *nm)
 
 Node *Node::find_inode(const char *nm)
 {
-  if (name && stricmp(name, nm) == 0)
+  if (stricmp(name, nm) == 0)
     return this;
   for (int i = 0; i < child.size(); ++i)
   {

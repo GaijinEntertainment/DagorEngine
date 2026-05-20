@@ -74,6 +74,7 @@ public:
   typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::EXECUTION_PRIMARY> PrimaryPipelineBarrier;
 
   void beginPassInternal(RenderPassClass *pass_class, VulkanFramebufferHandle fb_handle, VkRect2D area);
+  void checkAttachmentsResMatch();
   void allocFrameCore();
   String getCurrentCmdCaller();
   uint64_t getCurrentCmdCallerHash();

@@ -1,3 +1,4 @@
+#include "daScript/ast/ast_simulate.h"
 #include "daScript/misc/platform.h"
 
 #include "module_builtin_rtti.h"
@@ -9,6 +10,8 @@
 #include "daScript/simulate/simulate_visit_op.h"
 
 #include "daScript/misc/performance_time.h"
+#include "daScript/ast/ast_serializer.h"
+#include "daScript/misc/gc_node.h"
 
 using namespace das;
 
@@ -38,6 +41,7 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(Context,Context)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(SimFunction,SimFunction)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CodeOfPolicies,CodeOfPolicies)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(recursive_mutex,das::recursive_mutex)
+IMPLEMENT_EXTERNAL_TYPE_FACTORY(AstSerializer,das::AstSerializerState)
 
 DAS_BASE_BIND_ENUM(das::CompilationError, CompilationError,
         unspecified
@@ -200,7 +204,7 @@ namespace das {
     template <>
     struct typeFactory<RttiValue> {
         static TypeDeclPtr make(const ModuleLibrary & library ) {
-            auto vtype = make_smart<TypeDecl>(Type::tVariant);
+            auto vtype = new TypeDecl(Type::tVariant);
             vtype->alias = "RttiValue";
             vtype->aotAlias = false;
             vtype->addVariant("tBool",   typeFactory<RttiValue::NthType<RttiBool>>::make(library));
@@ -220,7 +224,7 @@ namespace das {
     };
 
     TypeDeclPtr makeModuleFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "ModuleFlags";
         ft->argNames = {
             "builtIn", "promoted", "isPublic", "isModule", "isSolidContext",
@@ -233,6 +237,7 @@ namespace das {
     struct ModuleAnnotation : ManagedStructureAnnotation<Module,false> {
         ModuleAnnotation(ModuleLibrary & ml) : ManagedStructureAnnotation ("Module", ml) {
             addField<DAS_BIND_MANAGED_FIELD(name)>("name");
+            addField<DAS_BIND_MANAGED_FIELD(cppClassName)>("cppClassName");
             addField<DAS_BIND_MANAGED_FIELD(fileName)>("fileName");
             addFieldEx ( "moduleFlags", "moduleFlags", offsetof(Module, moduleFlags), makeModuleFlags() );
         }
@@ -241,6 +246,12 @@ namespace das {
     struct AstModuleGroupAnnotation : ManagedStructureAnnotation<ModuleGroup, true, true> {
         AstModuleGroupAnnotation(ModuleLibrary & ml)
             : ManagedStructureAnnotation ("ModuleGroup", ml) {
+        }
+    };
+
+    struct AstSerializerAnnotation : ManagedStructureAnnotation<AstSerializerState, false, false> {
+        AstSerializerAnnotation(ModuleLibrary & ml)
+            : ManagedStructureAnnotation ("AstSerializer", ml) {
         }
     };
 
@@ -270,7 +281,7 @@ namespace das {
     };
 
     TypeDeclPtr makeContextCategoryFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "context_category_flags";
         ft->argNames = { "dead", "debug_context", "thread_clone", "job_clone", "opengl",
             "debugger_tick", "debugger_attached", "macro_context", "folding_context", "audio" };
@@ -295,8 +306,6 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(last_exception)>("last_exception");
             addField<DAS_BIND_MANAGED_FIELD(exceptionAt)>("exceptionAt");
             addField<DAS_BIND_MANAGED_FIELD(contextMutex)>("contextMutex");
-            addProperty<DAS_BIND_MANAGED_PROP(getInitSemanticHash)>("getInitSemanticHash",
-                                                                  "getInitSemanticHash");
             addProperty<DAS_BIND_MANAGED_PROP(getTotalFunctions)>("totalFunctions",
                 "getTotalFunctions");
             addProperty<DAS_BIND_MANAGED_PROP(getTotalVariables)>("totalVariables",
@@ -318,7 +327,7 @@ namespace das {
     };
 
     TypeDeclPtr makeSimFunctionFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "SimFunctionFlags";
         ft->argNames = { "aot", "fastcall", "builtin", "jit", "unsafe", "cmres", "pinvoke" };
         return ft;
@@ -348,7 +357,7 @@ namespace das {
     };
 
     TypeDeclPtr makeProgramFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "ProgramFlags";
         ft->argNames = { "failToCompile", "_unsafe", "isCompiling", "isSimulating",
             "isCompilingMacros", "needMacroModule", "promoteToBuiltin",
@@ -387,7 +396,7 @@ namespace das {
     };
 
     TypeDeclPtr makeAnnotationDeclarationFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "AnnotationDeclarationFlags";
         ft->argNames = { "inherited" };
         return ft;
@@ -518,27 +527,35 @@ namespace das {
         virtual bool isIndexable ( const TypeDeclPtr & indexType ) const override {
             return indexType->isIndex();
         }
-        virtual TypeDeclPtr makeIndexType ( const ExpressionPtr &, const ExpressionPtr & ) const override {
-            return make_smart<TypeDecl>(*fieldType);
+        virtual TypeDeclPtr makeIndexType ( ExpressionPtr, ExpressionPtr ) const override {
+            return new TypeDecl(*fieldType);
         }
         virtual SimNode * simulateGetAt ( Context & context, const LineInfo & at, const TypeDeclPtr &,
-                                         const ExpressionPtr & rv, const ExpressionPtr & idx, uint32_t ofs ) const override {
+                                         ExpressionPtr rv, ExpressionPtr idx, uint32_t ofs ) const override {
             return context.code->makeNode<SimNode_DebugInfoAtField<ST>>(at,
-                                                                                rv->simulate(context),
-                                                                                idx->simulate(context),
-                                                                                ofs);
+                                                                        simulateExpression(context, rv),
+                                                                        simulateExpression(context, idx),
+                                                                        ofs);
         }
         virtual bool isIterable ( ) const override {
             return true;
         }
-        virtual TypeDeclPtr makeIteratorType ( const ExpressionPtr & ) const override {
-            return make_smart<TypeDecl>(*fieldType);
+        virtual TypeDeclPtr makeIteratorType ( ExpressionPtr ) const override {
+            return new TypeDecl(*fieldType);
         }
-        virtual SimNode * simulateGetIterator ( Context & context, const LineInfo & at, const ExpressionPtr & src ) const override {
-            auto rv = src->simulate(context);
+        virtual SimNode * simulateGetIterator ( Context & context, const LineInfo & at, ExpressionPtr src ) const override {
+            auto rv = simulateExpression(context, src);
             return context.code->makeNode<SimNode_AnyIterator<ST,DebugInfoIterator<VT,ST>>>(at, rv);
         }
-        TypeDeclPtr fieldType;
+        virtual void gc_collect ( gc_root * target, gc_root * from ) override {
+            ManagedStructureAnnotation<ST,false>::gc_collect(target, from);
+            if ( fieldType ) fieldType->gc_collect(target, from);
+        }
+        virtual void visitTypeDecls ( const function<void(TypeDecl *)> & callback ) override {
+            ManagedStructureAnnotation<ST,false>::visitTypeDecls(callback);
+            if ( fieldType ) callback(fieldType);
+        }
+        TypeDeclPtr fieldType = nullptr;
     };
 
     template <typename ST, typename VT>
@@ -570,7 +587,7 @@ namespace das {
 
 
     TypeDeclPtr makeStructInfoFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "StructInfoFlags";
         ft->argNames = { "_class", "_lambda", "heapGC", "stringHeapGC" };
         return ft;
@@ -602,7 +619,7 @@ namespace das {
     }
 
     TypeDeclPtr makeTypeInfoFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "TypeInfoFlags";
         ft->argNames = { "ref", "refType", "canCopy", "isPod", "isRawPod", "isConst", "isTemp", "isImplicit",
             "refValue", "hasInitValue", "isSmartPtr", "isSmartPtrNative", "isHandled",
@@ -670,7 +687,7 @@ namespace das {
     };
 
     TypeDeclPtr makeLocalVariableInfoFlagsFlags() {
-        auto ft = make_smart<TypeDecl>(Type::tBitfield);
+        auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "LocalVariableInfoFlags";
         ft->argNames = { "cmres" };
         return ft;
@@ -719,12 +736,14 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(aot)>("aot");
             addField<DAS_BIND_MANAGED_FIELD(aot_lib)>("aot_lib");
             addField<DAS_BIND_MANAGED_FIELD(paranoid_validation)>("paranoid_validation");
+            addField<DAS_BIND_MANAGED_FIELD(validate_ast)>("validate_ast");
             addField<DAS_BIND_MANAGED_FIELD(cross_platform)>("cross_platform");
             addField<DAS_BIND_MANAGED_FIELD(standalone_context)>("standalone_context");
             addField<DAS_BIND_MANAGED_FIELD(aot_module)>("aot_module");
             addField<DAS_BIND_MANAGED_FIELD(aot_macros)>("aot_macros");
             addField<DAS_BIND_MANAGED_FIELD(aot_result)>("aot_result");
             addField<DAS_BIND_MANAGED_FIELD(completion)>("completion");
+            addField<DAS_BIND_MANAGED_FIELD(lint_check)>("lint_check");
             addField<DAS_BIND_MANAGED_FIELD(export_all)>("export_all");
             addField<DAS_BIND_MANAGED_FIELD(serialize_main_module)>("serialize_main_module");
             addField<DAS_BIND_MANAGED_FIELD(keep_alive)>("keep_alive");
@@ -747,6 +766,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(max_static_variables_size)>("max_static_variables_size");
             addField<DAS_BIND_MANAGED_FIELD(max_heap_allocated)>("max_heap_allocated");
             addField<DAS_BIND_MANAGED_FIELD(max_string_heap_allocated)>("max_string_heap_allocated");
+            addField<DAS_BIND_MANAGED_FIELD(track_allocations)>("track_allocations");
         // rtti
             addField<DAS_BIND_MANAGED_FIELD(rtti)>("rtti");
         // language
@@ -817,7 +837,7 @@ namespace das {
         vector<pair<string,Type>> options;
         Module dummyMod;
         ModuleLibrary dummy(&dummyMod);
-        auto cop = make_smart<CodeOfPoliciesAnnotation>(dummy);
+        auto cop = new CodeOfPoliciesAnnotation(dummy);
         for ( auto & f : cop->fields ) {
             if ( f.second.decl->isWorkhorseType() ) {
                 auto bT = f.second.decl->baseType;
@@ -1073,7 +1093,7 @@ namespace das {
             auto al = (const AnnotationList *) info.annotation_list;
             for ( const auto & adp : *al ) {
                 vec4f args[2] = {
-                    cast<Annotation *>::from(adp->annotation.get()),
+                    cast<Annotation *>::from(adp->annotation),
                     cast<AnnotationArgumentList *>::from(&adp->arguments)
                 };
                 context->invoke(block, args, nullptr, at);
@@ -1119,12 +1139,12 @@ namespace das {
     }
 
     void rtti_builtin_module_for_each_annotation ( Module * module, const TBlock<void,const Annotation> & block, Context * context, LineInfoArg * at ) {
-        module->handleTypes.foreach([&](auto annotationPtr){
+        for ( auto & [key, annotationPtr] : module->handleTypes ) {
             vec4f args[1] = {
-                cast<Annotation*>::from(annotationPtr.get())
+                cast<Annotation*>::from(annotationPtr)
             };
             context->invoke(block, args, nullptr, at);
-        });
+        }
     }
 
     void rtti_builtin_basic_struct_for_each_parent ( const BasicStructureAnnotation & ann, const TBlock<void,Annotation *> & block, Context * context, LineInfoArg * at ) {
@@ -1241,9 +1261,9 @@ namespace das {
 
     struct SimNode_RttiGetTypeDecl : SimNode_CallBase {
         DAS_PTR_NODE;
-        SimNode_RttiGetTypeDecl ( const LineInfo & at, const ExpressionPtr & d )
+        SimNode_RttiGetTypeDecl ( const LineInfo & at, ExpressionPtr d )
             : SimNode_CallBase(at,"") {
-            typeExpr = d->type.get();
+            typeExpr = d->type;
         }
         virtual SimNode * visit ( SimVisitor & vis ) override {
             V_BEGIN();
@@ -1260,15 +1280,15 @@ namespace das {
 
     struct RttiTypeInfoMacro : TypeInfoMacro {
         RttiTypeInfoMacro() : TypeInfoMacro("rtti_typeinfo") {}
-        virtual TypeDeclPtr getAstType ( ModuleLibrary & lib, const ExpressionPtr &, string & ) override {
+        virtual TypeDeclPtr getAstType ( ModuleLibrary & lib, ExpressionPtr, string & ) override {
             return typeFactory<const TypeInfo>::make(lib);
         }
-        virtual SimNode * simluate ( Context * context, const ExpressionPtr & expr, string & ) override {
-            auto exprTypeInfo = static_pointer_cast<ExprTypeInfo>(expr);
+        virtual SimNode * simluate ( Context * context, ExpressionPtr expr, string & ) override {
+            auto exprTypeInfo = static_cast<ExprTypeInfo*>(expr);
             TypeInfo * typeInfo = context->thisHelper->makeTypeInfo(nullptr, exprTypeInfo->typeexpr);
             return context->code->makeNode<SimNode_TypeInfo>(expr->at, typeInfo);
         }
-        virtual bool aotNeedTypeInfo ( const ExpressionPtr & ) const override {
+        virtual bool aotNeedTypeInfo ( ExpressionPtr ) const override {
             return true;
         }
     };
@@ -1454,7 +1474,7 @@ namespace das {
     public:
         template <typename RecAnn>
         void addRecAnnotation ( ModuleLibrary & lib ) {
-            auto rec = make_smart<RecAnn>(lib);
+            auto rec = new RecAnn(lib);
             addAnnotation(rec);
             initRecAnnotation(rec, lib);
         }
@@ -1472,47 +1492,48 @@ namespace das {
             addAlias(makeSimFunctionFlags());
             addAlias(makeLocalVariableInfoFlagsFlags());
             // CodeOfPolicies
-            addAnnotation(make_smart<CodeOfPoliciesAnnotation>(lib));
+            addAnnotation(new CodeOfPoliciesAnnotation(lib));
             addCtorAndUsing<CodeOfPolicies>(*this,lib,"CodeOfPolicies","CodeOfPolicies");
             // enums
-            addEnumeration(make_smart<EnumerationCompilationError>());
+            addEnumeration(new EnumerationCompilationError());
             // type annotations
-            addAnnotation(make_smart<FileInfoAnnotation>(lib));
-            addAnnotation(make_smart<LineInfoAnnotation>(lib));
+            addAnnotation(new FileInfoAnnotation(lib));
+            addAnnotation(new LineInfoAnnotation(lib));
                 addCtor<LineInfo>(*this,lib,"LineInfo","LineInfo");
                 addCtor<LineInfo,FileInfo *,int,int,int,int>(*this,lib,"LineInfo","LineInfo");
-            addAnnotation(make_smart<DummyTypeAnnotation>("recursive_mutex","recursive_mutex",sizeof(recursive_mutex),alignof(recursive_mutex)));
+            addAnnotation(new DummyTypeAnnotation("recursive_mutex","recursive_mutex",sizeof(recursive_mutex),alignof(recursive_mutex)));
             addUsing<recursive_mutex>(*this, lib, "das::recursive_mutex");
-            addAnnotation(make_smart<ContextAnnotation>(lib));
-            addAnnotation(make_smart<ErrorAnnotation>(lib));
-            addAnnotation(make_smart<FileAccessAnnotation>(lib));
-            addAnnotation(make_smart<ModuleAnnotation>(lib));
-            addAnnotation(make_smart<AstModuleGroupAnnotation>(lib));
-            addEnumeration(make_smart<EnumerationType>());
-            addAnnotation(make_smart<AnnotationArgumentAnnotation>(lib));
+            addAnnotation(new ContextAnnotation(lib));
+            addAnnotation(new ErrorAnnotation(lib));
+            addAnnotation(new FileAccessAnnotation(lib));
+            addAnnotation(new ModuleAnnotation(lib));
+            addAnnotation(new AstModuleGroupAnnotation(lib));
+            addAnnotation(new AstSerializerAnnotation(lib));
+            addEnumeration(new EnumerationType());
+            addAnnotation(new AnnotationArgumentAnnotation(lib));
             addVectorAnnotation<AnnotationArguments>(this,lib,"AnnotationArguments");
             addVectorAnnotation<AnnotationArgumentList>(this,lib,"AnnotationArgumentList");
-            addAnnotation(make_smart<ProgramAnnotation>(lib));
-            addAnnotation(make_smart<AnnotationAnnotation>(lib));
-            addAnnotation(make_smart<AnnotationDeclarationAnnotation>(lib));
+            addAnnotation(new ProgramAnnotation(lib));
+            addAnnotation(new AnnotationAnnotation(lib));
+            addAnnotation(new AnnotationDeclarationAnnotation(lib));
             addVectorAnnotation<AnnotationList>(this,lib,"AnnotationList");
-            addAnnotation(make_smart<TypeAnnotationAnnotation>(lib));
-            addAnnotation(make_smart<BasicStructureAnnotationAnnotation>(lib));
-            addAnnotation(make_smart<EnumValueInfoAnnotation>(lib));
-            addAnnotation(make_smart<EnumInfoAnnotation>(lib));
-            addEnumeration(make_smart<EnumerationRefMatters>());
-            addEnumeration(make_smart<EnumerationConstMatters>());
-            addEnumeration(make_smart<EnumerationTemporaryMatters>());
-            auto sia = make_smart<StructInfoAnnotation>(lib);              // this is type forward decl
+            addAnnotation(new TypeAnnotationAnnotation(lib));
+            addAnnotation(new BasicStructureAnnotationAnnotation(lib));
+            addAnnotation(new EnumValueInfoAnnotation(lib));
+            addAnnotation(new EnumInfoAnnotation(lib));
+            addEnumeration(new EnumerationRefMatters());
+            addEnumeration(new EnumerationConstMatters());
+            addEnumeration(new EnumerationTemporaryMatters());
+            auto sia = new StructInfoAnnotation(lib);              // this is type forward decl
             addAnnotation(sia);
             addRecAnnotation<TypeInfoAnnotation>(lib);
             addRecAnnotation<VarInfoAnnotation>(lib);
             addRecAnnotation<LocalVariableInfoAnnotation>(lib);
             initRecAnnotation(sia, lib);
-            addAnnotation(make_smart<FuncInfoAnnotation>(lib));
-            addAnnotation(make_smart<SimFunctionAnnotation>(lib));
+            addAnnotation(new FuncInfoAnnotation(lib));
+            addAnnotation(new SimFunctionAnnotation(lib));
             // DebugInfoHelper
-            addAnnotation(make_smart<DebugInfoHelperAnnotation>(lib));
+            addAnnotation(new DebugInfoHelperAnnotation(lib));
             // RttiValue
             addAlias(typeFactory<RttiValue>::make(lib));
             // func info flags
@@ -1522,7 +1543,7 @@ namespace das {
             addConstant<uint32_t>(*this, "FUNCINFO_SHUTDOWN", uint32_t(FuncInfo::flag_shutdown));
             addConstant<uint32_t>(*this, "FUNCINFO_LATE_INIT", uint32_t(FuncInfo::flag_late_init));
             // macros
-            addTypeInfoMacro(make_smart<RttiTypeInfoMacro>());
+            addTypeInfoMacro(new RttiTypeInfoMacro());
             // ctors
             addUsing<ModuleGroup>(*this, lib, "ModuleGroup");
             // functions
@@ -1573,6 +1594,23 @@ namespace das {
             addExtern<DAS_BIND_FUN(rtti_builtin_simulate)>(*this, lib, "simulate",
                 SideEffects::modifyExternal, "rtti_builtin_simulate")
                     ->args({"program","block","context","line"});
+            addExtern<DAS_BIND_FUN(rtti_create_ast_serializer)>(*this, lib, "create_ast_serializer",
+                SideEffects::modifyExternal, "rtti_create_ast_serializer");
+            addExtern<DAS_BIND_FUN(rtti_create_ast_deserializer)>(*this, lib, "create_ast_deserializer",
+                SideEffects::modifyExternal, "rtti_create_ast_deserializer")
+                    ->args({"data"});
+            addExtern<DAS_BIND_FUN(rtti_delete_ast_serializer)>(*this, lib, "delete_ast_serializer",
+                SideEffects::modifyExternal, "rtti_delete_ast_serializer")
+                    ->args({"serializer"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_serialize_program)>(*this, lib, "serialize_program",
+                SideEffects::modifyExternal, "rtti_ast_serializer_serialize_program")
+                    ->args({"serializer","program"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_deserialize_program)>(*this, lib, "deserialize_program",
+                SideEffects::modifyExternal, "rtti_ast_serializer_deserialize_program")
+                    ->args({"serializer","block","context","line"});
+            addExtern<DAS_BIND_FUN(rtti_ast_serializer_get_data)>(*this, lib, "ast_serializer_get_data",
+                SideEffects::modifyExternal, "rtti_ast_serializer_get_data")
+                    ->args({"serializer","block","context","line"});
             addExtern<DAS_BIND_FUN(makeFileAccess)>(*this, lib, "make_file_access",
                 SideEffects::modifyExternal, "makeFileAccess")
                     ->args({"project","context","at"});
@@ -1665,7 +1703,7 @@ namespace das {
             auto dl = addExtern<DAS_BIND_FUN(builtin_debug_line)>(*this, lib, "describe",
                 SideEffects::none, "builtin_debug_line")
                     ->args({"lineinfo","fully","context","at"});
-            dl->arguments[1]->init = make_smart<ExprConstBool>(false);
+            dl->arguments[1]->init = new ExprConstBool(false);
             addExtern<DAS_BIND_FUN(builtin_get_typeinfo_mangled_name)>(*this, lib, "get_mangled_name",
                 SideEffects::none, "builtin_get_typeinfo_mangled_name")
                     ->args({"type","context","at"});

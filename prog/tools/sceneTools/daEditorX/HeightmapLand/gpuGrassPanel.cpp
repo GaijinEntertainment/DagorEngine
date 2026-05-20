@@ -120,32 +120,9 @@ void GPUGrassPanel::fillPanel(IGPUGrassService *service, DataBlock *grass_blk, P
   panel.setBool(PID_GPU_GRASS_GROUP, true);
 }
 
-bool GPUGrassPanel::isGrassValid() const
-{
-  if (!srv || srv->getTypeCount() == 0 || (srv->getTypeCount() == 1 && srv->getType(0).name == "nograss"))
-    return false;
-  for (int i = 0; i < srv->getDecalCount(); ++i)
-  {
-    const GPUGrassDecal &decal = srv->getDecal(i);
-    if (decal.channels.empty())
-      continue;
-    for (const auto &channel : decal.channels)
-    {
-      if (channel.second < 1.0)
-        continue;
-      const GPUGrassType *type = srv->getTypeByName(channel.first.c_str());
-      if (!type)
-        continue;
-      if (!type->diffuse.empty() && !type->normal.empty())
-        return true;
-    }
-  }
-  return false;
-}
-
 void GPUGrassPanel::reload()
 {
-  if (isGrassValid())
+  if (srv->isGrassValid())
     srv->createGrass(*blk);
   else
     srv->closeGrass();

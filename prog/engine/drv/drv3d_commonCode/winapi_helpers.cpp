@@ -2,6 +2,14 @@
 
 #include "winapi_helpers.h"
 
+#include <dag/dag_vector.h>
+#include <util/dag_finally.h>
+
+#include <setupapi.h>
+#include <stdio.h>
+#include <devguid.h>
+#pragma comment(lib, "setupapi.lib")
+
 
 #if DEBUG_REPORT_REGISTRY_INSPECTION
 #define DEBUG_REG debug
@@ -49,7 +57,7 @@ eastl::tuple<DWORD, DWORD, DWORD> RegistryKey::queryValueCountMaxLengthAndSize()
   return eastl::make_tuple(count, length, value);
 }
 
-eastl::string_view RegistryKey::enumKeyName(DWORD index, eastl::span<char> buffer)
+eastl::string_view RegistryKey::enumKeyName(DWORD index, eastl::span<char> buffer) const
 {
   auto maxLength = static_cast<DWORD>(buffer.size());
   if (ERROR_SUCCESS == RegEnumKeyExA(ptr.get(), index, buffer.data(), &maxLength, nullptr, nullptr, nullptr, nullptr))
@@ -64,7 +72,7 @@ eastl::string_view RegistryKey::enumKeyName(DWORD index, eastl::span<char> buffe
   }
 }
 
-eastl::string_view RegistryKey::enumValueName(DWORD index, eastl::span<char> buffer)
+eastl::string_view RegistryKey::enumValueName(DWORD index, eastl::span<char> buffer) const
 {
   auto maxNameLength = static_cast<DWORD>(buffer.size());
   if (ERROR_SUCCESS == RegEnumValueA(ptr.get(), index, buffer.data(), &maxNameLength, nullptr, nullptr, nullptr, nullptr))
@@ -80,7 +88,7 @@ eastl::string_view RegistryKey::enumValueName(DWORD index, eastl::span<char> buf
 }
 
 eastl::tuple<eastl::string_view, eastl::span<char>> RegistryKey::enumValueNameAndValue(DWORD index, eastl::span<char> name_buffer,
-  eastl::span<char> data_buffer)
+  eastl::span<char> data_buffer) const
 {
   auto maxNameLength = static_cast<DWORD>(name_buffer.size());
   auto maxDataLength = static_cast<DWORD>(data_buffer.size());
@@ -95,4 +103,33 @@ eastl::tuple<eastl::string_view, eastl::span<char>> RegistryKey::enumValueNameAn
     DEBUG_REG("enumValueNameAndValue of %p at %u failed", ptr.get(), index);
     return {};
   }
+}
+
+eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
+{
+  HDEVINFO devInfo = SetupDiGetClassDevs(&GUID_DEVCLASS_DISPLAY, nullptr, nullptr, DIGCF_PRESENT);
+  if (devInfo == INVALID_HANDLE_VALUE)
+    return {};
+
+  FINALLY([=] { SetupDiDestroyDeviceInfoList(devInfo); });
+
+  eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> gdis;
+
+  dag::Vector<wchar_t> hwId;
+  SP_DEVINFO_DATA devData{.cbSize = sizeof(SP_DEVINFO_DATA)};
+  for (DWORD i = 0; SetupDiEnumDeviceInfo(devInfo, i, &devData); ++i)
+  {
+    DWORD bufSize = 0;
+    SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, nullptr, 0, &bufSize);
+    hwId.resize_noinit(bufSize / sizeof(wchar_t));
+    SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, reinterpret_cast<PBYTE>(hwId.data()), bufSize,
+      nullptr);
+
+    uint16_t vendorId, deviceId;
+    swscanf_s(hwId.data(), L"PCI\\VEN_%hX&DEV_%hX", &vendorId, &deviceId);
+
+    gdis.push_back({vendorId, deviceId});
+  }
+
+  return gdis;
 }

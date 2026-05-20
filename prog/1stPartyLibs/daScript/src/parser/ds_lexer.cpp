@@ -442,7 +442,7 @@ struct yy_buffer_state
     FILE *yy_input_file;
 
     char *yy_ch_buf;        /* input buffer */
-    char *yy_buf_pos;       /* current position in input buffer */
+    char *yy_buf_pos;        /* current position in input buffer */
 
     /* Size of input buffer in bytes, not including room for EOB
      * characters.
@@ -1596,7 +1596,7 @@ YY_DECL
 #endif
 
         if ( ! yyg->yy_start )
-            yyg->yy_start = 1;  /* first start state */
+            yyg->yy_start = 1;    /* first start state */
 
         if ( ! yyin )
             yyin = stdin;
@@ -1671,7 +1671,7 @@ yy_find_action:
 ;
             }
 
-do_action:  /* This label is used only to access EOF actions. */
+do_action:    /* This label is used only to access EOF actions. */
 
         switch ( yy_act )
     { /* beginning of action switch */
@@ -3973,9 +3973,9 @@ case YY_STATE_EOF(include):
 /* yy_get_next_buffer - try to read in a new buffer
  *
  * Returns a code representing an action:
- *  EOB_ACT_LAST_MATCH -
- *  EOB_ACT_CONTINUE_SCAN - continue scanning from current position
- *  EOB_ACT_END_OF_FILE - end of file
+ *    EOB_ACT_LAST_MATCH -
+ *    EOB_ACT_CONTINUE_SCAN - continue scanning from current position
+ *    EOB_ACT_END_OF_FILE - end of file
  */
 static int yy_get_next_buffer (yyscan_t yyscanner)
 {
@@ -4147,7 +4147,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 /* yy_try_NUL_trans - try to make a transition on the NUL character
  *
  * synopsis
- *  next_state = yy_try_NUL_trans( current_state );
+ *    next_state = yy_try_NUL_trans( current_state );
  */
     static yy_state_type yy_try_NUL_trans  (yy_state_type yy_current_state , yyscan_t yyscanner)
 {
@@ -4287,7 +4287,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
             }
         }
 
-    c = *(unsigned char *) yyg->yy_c_buf_p; /* cast for 8-bit char's */
+    c = *(unsigned char *) yyg->yy_c_buf_p;    /* cast for 8-bit char's */
     *yyg->yy_c_buf_p = '\0';    /* preserve yytext */
     yyg->yy_hold_char = *++yyg->yy_c_buf_p;
 
@@ -4300,7 +4300,7 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 
     return c;
 }
-#endif  /* ifndef YY_NO_INPUT */
+#endif    /* ifndef YY_NO_INPUT */
 
 /** Immediately switch to a different input stream.
  * @param input_file A readable stream.
@@ -4331,8 +4331,8 @@ static int yy_get_next_buffer (yyscan_t yyscanner)
 
     /* TODO. We should be able to replace this entire function body
      * with
-     *      yypop_buffer_state();
-     *      yypush_buffer_state(new_buffer);
+     *        yypop_buffer_state();
+     *        yypush_buffer_state(new_buffer);
      */
     yyensure_buffer_stack (yyscanner);
     if ( YY_CURRENT_BUFFER == new_buffer )
@@ -4594,7 +4594,7 @@ YY_BUFFER_STATE yy_scan_buffer  (char * base, yy_size_t  size , yyscan_t yyscann
     if ( ! b )
         YY_FATAL_ERROR( "out of dynamic memory in yy_scan_buffer()" );
 
-    b->yy_buf_size = (int) (size - 2);  /* "- 2" to take care of EOB's */
+    b->yy_buf_size = (int) (size - 2);    /* "- 2" to take care of EOB's */
     b->yy_buf_pos = b->yy_ch_buf = base;
     b->yy_is_our_buffer = 0;
     b->yy_input_file = NULL;
@@ -5023,7 +5023,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 {
     struct yyguts_t * yyg = (struct yyguts_t*)yyscanner;
     (void)yyg;
-    free( (char *) ptr );   /* see yyrealloc() for (char *) cast */
+    free( (char *) ptr );    /* see yyrealloc() for (char *) cast */
 }
 
 #define YYTABLES_NAME "yytables"

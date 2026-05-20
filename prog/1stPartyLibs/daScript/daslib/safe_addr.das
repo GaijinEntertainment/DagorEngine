@@ -38,11 +38,11 @@ def public safe_addr(x : auto(T)& ==const) : T -&? const# {
 class SafeAddrMacro : AstFunctionAnnotation {
     //! This macro reports an error if safe_addr is attempted on the object, which is not local to the scope.
     //! I.e. if the object can `expire` while in scope, with delete, garbage collection, or on the C++ side.
-    def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
+    def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr {
         if (!is_local_or_global_expr(call.arguments[0])) {
             compiling_program() |> macro_error(call.at, "not a local value")
         }
-        return <- default<ExpressionPtr>
+        return null
     }
 }
 
@@ -78,7 +78,7 @@ def public shared_addr(val : auto(VALUE)&) {
 class SharedAddrMacro : AstFunctionAnnotation {
     //! This macro reports an error if shared_addr is attempted on anything other that shared global variables.
     //! I.e. only global variables are safe to use with shared_addr.
-    def override verifyCall(var call : smart_ptr<ExprCallFunc>; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (is_shared_expr(call.arguments[0])) {
             return true
         }
@@ -106,7 +106,7 @@ def public temp_value(var x : auto(T)& ==const) : T&# {
 [tag_function_macro(tag="temp_value_tag")]
 class TempValueMacro : AstFunctionAnnotation {
     //! This macro reports an error if temp_value is attempted outside of function arguments.
-    def override verifyCall(var call : smart_ptr<ExprCallFunc>; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
+    def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
         if (is_temp_safe(call.arguments[0])) {
             return true
         }
@@ -134,7 +134,7 @@ def public temp_addr(x : auto(T)& ==const) : T-& ? const #
 [tag_function_macro(tag="temp_addr_tag")]
 class TempAddrMacro : AstFunctionAnnotation
     //! This macro reports an error if temp_addr is attempted outside of function arguments.
-    def override verifyCall ( var call : smart_ptr<ExprCallFunc>; args,progArgs:AnnotationArgumentList; var errors : das_string ) : bool
+    def override verifyCall ( var call : ExprCallFunc?; args,progArgs:AnnotationArgumentList; var errors : das_string ) : bool
         if call.flags.isForLoopSource || call.flags.isCallArgument
             return true
         compiling_program() |> macro_error(call.at,"{call.name} can only be used in function arguments or for loop source")

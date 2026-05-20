@@ -445,7 +445,7 @@ def test_aggregation_empty(t : T?) {
         var avg = average(
             [iterator for(x in 0..1); 42]
         )
-        t |> equal(avg, 42)
+        t |> equal(avg, 42.0lf)
     }
 }
 

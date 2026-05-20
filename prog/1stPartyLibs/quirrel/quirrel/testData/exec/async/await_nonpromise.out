@@ -1,0 +1,4 @@
+script done
+got int: 42
+got str: hello
+got null: yes

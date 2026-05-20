@@ -506,8 +506,9 @@ struct BindlessState
         {
           G_ASSERT(type == added_textures_sorted[i].second);
           const auto texId = addedBindlessTexIds.emplace_back(uniqBindlessTex.allocate());
+          // lastFrame=~0u to avoid collision with frame 0, which would skip the first descriptor heap write.
           uniqBindlessTex[texId] =
-            BindlessTexRecord{added_textures_sorted[i].first, brange++, 0, INVALID_TEX_STREAMING_GENERATION, 0, type};
+            BindlessTexRecord{added_textures_sorted[i].first, brange++, ~0u, INVALID_TEX_STREAMING_GENERATION, 0, type};
         }
         return offset + count;
       };

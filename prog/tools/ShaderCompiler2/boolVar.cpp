@@ -7,41 +7,86 @@
 #include <EASTL/string.h>
 #include <EASTL/unordered_map.h>
 
-static const BoolVarTable::Record *find_bool_var(const char *name, const auto &table)
+static const BoolVarTable::Record *find_bool_var(int nid, const auto &table)
 {
-  auto found = table.find(name);
+  auto found = table.find(nid);
   if (found != table.end())
     return &found->second;
   return nullptr;
 }
 
-void BoolVarTable::add(ShaderTerminal::bool_decl &var, Parser &parser, bool ignore_dup)
+void BoolVarTable::add(int nid, ShaderTerminal::bool_expr *expr, Parser &parser, Terminal *t, bool ignore_dup)
 {
-  G_ASSERT(var.expr);
-  auto [it, inserted] = vars.emplace(var.name->text, Record{BoolVar(var.expr), 1});
+  G_ASSERT(nid >= 0);
+  G_ASSERT(expr);
+  auto [it, inserted] = vars.emplace(nid, Record{BoolVar(expr), 1});
   if (!inserted)
   {
     if (ignore_dup)
     {
-      report_debug_message(parser, *var.name,
+      report_debug_message(parser, *t,
         "Variant-dependent redeclaration of bool var '%s'. If this is not your intention, please refactor the usage, as some passes "
         "are required to evaluate such bool vars as depending on dynamic variants.",
-        var.name->text);
+        nameMap->getName(nid));
       ++it->second.declCount;
       return;
     }
-    auto message = string_f("Bool variable '%s' already declared in ", var.name->text);
+    auto message = string_f("Bool variable '%s' already declared in ", nameMap->getName(nid));
     message += parser.get_lexer().get_symbol_location(it->second.var.id, SymbolType::BOOL_VARIABLE);
-    report_error(parser, var.name, message.c_str());
+    report_error(parser, t, message.c_str());
     return;
   }
 
   it->second.var.id = id++;
-  parser.get_lexer().register_symbol(it->second.var.id, SymbolType::BOOL_VARIABLE, var.name);
+
+  // @TODO: I don't like this excessive map touching. Better slap it in the structure.
+  parser.get_lexer().register_symbol(it->second.var.id, SymbolType::BOOL_VARIABLE, t);
 }
 
-BoolVarTable::QueryResult BoolVarTable::tryGetExpr(ShaderTerminal::SHTOK_ident &ident) const
+void BoolVarTable::addAlias(int nid, int base_nid, Parser &parser, bool ignore_dup)
 {
-  auto found = find_bool_var(ident.text, vars);
+  ShaderTerminal::bool_expr *e = nullptr;
+  int declCount = 0;
+
+  {
+    auto baseIt = vars.find(base_nid);
+    if (baseIt == vars.end())
+    {
+      if (parent && (baseIt = parent->vars.find(base_nid)) != parent->vars.end())
+      {
+        ;
+      }
+      else
+      {
+        report_error(parser, nullptr, "Bool variable '%s' not found for alias '%s'", nameMap->getName(base_nid),
+          nameMap->getName(nid));
+        return;
+      }
+    }
+    e = baseIt->second.var.mExpr;
+    declCount = baseIt->second.declCount; // if the base var has been redeclared, the alias should also carry it's ambiguity.
+  }
+
+  auto [it, inserted] = vars.emplace(nid, Record{BoolVar(e), declCount});
+  if (!inserted)
+  {
+    if (ignore_dup)
+    {
+      report_debug_message(parser, {},
+        "Variant-dependent redeclaration of bool alias '%s'. If this is not your intention, please refactor the usage, as some passes "
+        "are required to evaluate such bool vars as depending on dynamic variants.",
+        nameMap->getName(nid));
+      ++it->second.declCount;
+      return;
+    }
+
+    report_error(parser, nullptr, "Bool variable '%s' already declared in ", nameMap->getName(nid));
+    return;
+  }
+}
+
+BoolVarTable::QueryResult BoolVarTable::tryGetExpr(int nid) const
+{
+  auto *found = find_bool_var(nid, vars);
   return found ? QueryResult{found->var.mExpr, found->declCount > 1} : QueryResult{};
 }

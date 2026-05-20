@@ -20,17 +20,16 @@ void ECS::addEntityRead(das::ModuleLibrary &lib)
 {
   das::addExtern<DAS_BIND_FUN(hasHint)>(*this, lib, "has", das::SideEffects::accessExternal, "bind_dascript::hasHint");
   auto hasExt = ADD_EXTERN(has, das::SideEffects::accessExternal);
-  hasExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  hasExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 
   addEntityReadBase(lib);
   addEntityReadList(lib);
 
   auto entityGetStringHintExt = das::addExtern<DAS_BIND_FUN(entityGetStringHint)>(*this, lib, "get_string",
     das::SideEffects::accessExternal, "bind_dascript::entityGetStringHint");
-  entityGetStringHintExt->annotations.push_back(annotation_declaration(das::make_smart<EcsGetOrFunctionAnnotation<1, 4>>()));
+  entityGetStringHintExt->annotations.push_back(annotation_declaration(new EcsGetOrFunctionAnnotation<1, 4>()));
   auto entityGetStringExt = das::addExtern<DAS_BIND_FUN(entityGetString)>(*this, lib, "get_string", das::SideEffects::accessExternal,
     "bind_dascript::entityGetString");
-  entityGetStringExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  entityGetStringExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 }
 } // namespace bind_dascript

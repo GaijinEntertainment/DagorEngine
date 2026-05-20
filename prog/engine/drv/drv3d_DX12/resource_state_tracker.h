@@ -3041,7 +3041,7 @@ public:
 
   void useRTASAsUpdateSource(BarrierBatcher &, ID3D12Resource *as) { UnorderedAccessTracker::beginImplicitAccess(as); }
 
-  void useRTASAsBuildTarget(BarrierBatcher &, ID3D12Resource *as) { UnorderedAccessTracker::beginImplicitAccess(as); }
+  void useRTASAsBuildTarget(BarrierBatcher &, ID3D12Resource *) {}
 
   // Driver explicit barriers
   TransitionResult transitionBufferExplicit(BarrierBatcher &barriers, BufferResourceReference buffer, D3D12_RESOURCE_STATES state)

@@ -49,7 +49,6 @@ struct WRDispatcher
 
   static bool isUpsampling();
 
-  static bool isFsrEnabled();
   static int getCurrentAntiAliasingMode();
 
   static struct CameraParams &getCurrentCameraParams();
@@ -64,6 +63,10 @@ struct WRDispatcher
 
   static float getDaGdpRangeScale();
   static struct SkiesData *getMainPovSkiesData();
+
+#if DAGOR_DBGLEVEL > 0
+  static void reloadMainPovSkiesData(bool useCompute);
+#endif
 
   static const ManagedTex &getFinalTargetFrame();
   static int getGbufferTargetGlobalFlags();

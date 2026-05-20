@@ -61,7 +61,7 @@ void Module_dasIMGUI::initFunctions_24() {
 // from imgui/imgui.h:3428:21
 	makeExtern<DAS_CALL_METHOD(_method_78), SimNode_ExtFuncCall , imguiTempFn>(lib,"PushClipRect","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,bool) , &ImDrawList::PushClipRect >::invoke")
 		->args({"self","clip_rect_min","clip_rect_max","intersect_with_current_clip_rect"})
-		->arg_init(3,make_smart<ExprConstBool>(false))
+		->arg_init(3,new ExprConstBool(false))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_79 = das::das_call_member< void (ImDrawList::*)(),&ImDrawList::PushClipRectFullScreen >;
 // from imgui/imgui.h:3429:21
@@ -97,7 +97,7 @@ void Module_dasIMGUI::initFunctions_24() {
 // from imgui/imgui.h:3443:21
 	makeExtern<DAS_CALL_METHOD(_method_85), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddLine","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,unsigned int,float) , &ImDrawList::AddLine >::invoke")
 		->args({"self","p1","p2","col","thickness"})
-		->arg_init(4,make_smart<ExprConstFloat>(1))
+		->arg_init(4,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 }
 }

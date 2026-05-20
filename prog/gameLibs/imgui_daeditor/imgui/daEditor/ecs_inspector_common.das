@@ -468,13 +468,13 @@ def collect_struct_components(prefix : string; data : uint8?; type_name : string
       let field_data = tinfo.basicType == Type.tPointer && tinfo.firstType != null ? *reinterpret<uint8 ??>(data + offset) : data + offset
       let ti & = tinfo.basicType == Type.tPointer && tinfo.firstType != null ? *tinfo.firstType : tinfo
       if field_data == null
-        comps |> emplace(("{prefix}.{field_name}", ComponentRenderInfo(rawData = null, roVal = "null pointer", dasTypeName = "{tinfo.basicType}", typeName = "UnknownBindedStructureFieldType", idx = 0u, componentId = uint16(0), isValidComponent = false)))
+        comps |> emplace((name="{prefix}.{field_name}", cri=ComponentRenderInfo(rawData = null, roVal = "null pointer", dasTypeName = "{tinfo.basicType}", typeName = "UnknownBindedStructureFieldType", idx = 0u, componentId = uint16(0), isValidComponent = false)))
         return
 
       if ti.basicType == Type.tHandle && ti.annotation != null
         let compTypeName = get_annotation_name(*ti.annotation)
         if has_inspector(compTypeName) // If an inspector for some type is present, it is probably better than showing individual fields.
-          comps |> emplace(("{prefix}.{field_name}", ComponentRenderInfo(rawData = field_data, roVal = "", dasTypeName = "", typeName = compTypeName, idx = 0u, componentId = uint16(0), isValidComponent = false)))
+          comps |> emplace((name="{prefix}.{field_name}", cri=ComponentRenderInfo(rawData = field_data, roVal = "", dasTypeName = "", typeName = compTypeName, idx = 0u, componentId = uint16(0), isValidComponent = false)))
         else
           collect_struct_components("{prefix}.{field_name}", field_data, compTypeName, comps, annotations)
       elif ti.isPod || ti.isConst
@@ -482,7 +482,7 @@ def collect_struct_components(prefix : string; data : uint8?; type_name : string
         var roVal = ""
         if typ == "UnknownBindedStructureFieldType"
           roVal = "{sprint_data(field_data, addr(ti), default<print_flags>)}"
-        comps |> emplace(("{prefix}.{field_name}", ComponentRenderInfo(rawData = field_data, roVal = roVal, dasTypeName = "{ti.basicType}", typeName = typ, idx = 0u, componentId = uint16(0), isValidComponent = false)))
+        comps |> emplace((name="{prefix}.{field_name}", cri=ComponentRenderInfo(rawData = field_data, roVal = roVal, dasTypeName = "{ti.basicType}", typeName = typ, idx = 0u, componentId = uint16(0), isValidComponent = false)))
       elif ti.isRefType && ti.annotation != null
         collect_struct_components("{prefix}.{field_name}", field_data, get_annotation_name(*ti.annotation), comps, annotations)
 
@@ -760,7 +760,7 @@ def iterate_over_filtered_components(eid : EntityId;
       let data = (uint(t.flags) & uint(ComponentTypeFlags.COMPONENT_TYPE_BOXED)) != 0u ? *unsafe(reinterpret<uint8 ??> compRef.rawData) : unsafe(reinterpret<uint8?> compRef.rawData)
       collect_struct_components(name, data, compTypeName, comps, basicStructAnnotations)
 
-    comps |> emplace((name, ComponentRenderInfo(
+    comps |> emplace((name=name, cri=ComponentRenderInfo(
       rawData = compRef.rawData,
       roVal = annotationFound ? "(Binded, {length(comps) - compsSizeBefore} fields)" : "(No das bind found)",// Correct term should be "annotation" but it is mainly used internally in das and most people refer to fields as binds.
       dasTypeName = "",

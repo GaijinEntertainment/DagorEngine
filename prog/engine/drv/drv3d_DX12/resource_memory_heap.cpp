@@ -247,14 +247,6 @@ eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> TextureImageFac
   return {desc, allocInfo};
 }
 
-uint64_t TextureImageFactory::getDeviceResidentImageMemoryFreeRangesTotalSize()
-{
-  OSSpinlockScopedLock lock{heapGroupMutex};
-  const auto deviceResidentImageProps =
-    getProperties(D3D12_RESOURCE_FLAG_NONE, DeviceMemoryClass::DEVICE_RESIDENT_IMAGE, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
-  return getHeapGroupFreeMemorySize(deviceResidentImageProps.raw);
-}
-
 Image *TextureImageFactory::tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
   const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory, ImagePoolState::AccessToken &access)
 {
@@ -1121,7 +1113,7 @@ uint64_t HeapFragmentationManager::getAlignmentRequirement(BufferGlobalId buffer
   DefragmentationAccessTokens &access)
 {
   const auto heap = access.bufferHeapState->getHeap(buffer_id.index());
-  return calculate_buffer_desc_allocation_info(device, heap.getBufferMemory().size, heap.getFlags()).second.Alignment;
+  return calculate_buffer_desc_allocation_info(device, heap.getResourcePtr()->GetDesc().Width, heap.getFlags()).second.Alignment;
 }
 
 uint64_t HeapFragmentationManager::getAlignmentRequirement(AliasHeapReference, ID3D12Device *, DefragmentationAccessTokens &)
@@ -6501,7 +6493,8 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Buffer %u is is queued for deletion", buffer_id.index());
     return ResourceMoveResolution::QUEUED_FOR_DELETION;
   }
-  auto movedBuffer = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags);
+  auto bufferResourceSize = bufferHeaps[buffer_id.index()].getResourcePtr()->GetDesc().Width;
+  auto movedBuffer = tryCloneBuffer(adapter, device, buffer_id, bufferHeapStateAccess, allocation_flags, bufferResourceSize);
   if (!movedBuffer)
   {
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, no space", buffer_id.index());
@@ -6521,7 +6514,7 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     {
       OSSpinlockScopedLock frameCompletionLock{recodingPendingFrameCompletionMutex};
       findBufferOwnersAndReplaceDeviceObjects(buffer_id, movedBuffer, bindless_manager, ctx, device, bufferHeapStateAccess,
-        is_emergency_defragmentation);
+        is_emergency_defragmentation, bufferResourceSize);
       areDeviceObjectsMoved = true;
     }
   }
@@ -6692,7 +6685,8 @@ void HeapFragmentationManager::moveBufferDeviceObject(GenericBufferInterface *bu
 
 void HeapFragmentationManager::findBufferOwnersAndReplaceDeviceObjects(BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
   frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
-  BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation, const ScratchBuffer &scratch)
+  BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation, uint64_t buffer_resource_size,
+  const ScratchBuffer &scratch)
 {
   bool isUsed = false;
   bufferPool.iterateAllocatedBreakable(
@@ -6715,17 +6709,17 @@ void HeapFragmentationManager::findBufferOwnersAndReplaceDeviceObjects(BufferGlo
   if (isUsed)
   {
     auto &oldBuffer = buffer_heap_state_access->getConstHeap(old_buffer.index());
-    BufferResourceReferenceAndOffset oldBufferRes = {};
+    BufferResourceReferenceAndRange oldBufferRes = {};
     oldBufferRes.buffer = oldBuffer.getResourcePtr();
     oldBufferRes.resourceId = old_buffer;
     oldBufferRes.offset = 0;
+    oldBufferRes.size = buffer_resource_size;
 
     auto &newBuffer = buffer_heap_state_access->getConstHeap(moved_buffer.index());
-    BufferResourceReferenceAndRange newBufferRes = {};
+    BufferResourceReferenceAndOffset newBufferRes = {};
     newBufferRes.buffer = newBuffer.getResourcePtr();
     newBufferRes.resourceId = moved_buffer;
     newBufferRes.offset = 0;
-    newBufferRes.size = newBuffer.getBufferMemorySize();
 
     if (scratch)
       ctx.twoPhaseMoveBufferNoLock(oldBufferRes, newBufferRes, scratch);
@@ -7873,11 +7867,12 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
   }
 
   auto oldMemory = bufferHeaps[buffer_id.index()].getBufferMemory();
+  auto bufferResourceSize = bufferHeaps[buffer_id.index()].getResourcePtr()->GetDesc().Width;
 
-  if (new_location.hasOverlap && oldMemory.size > access.scratchBuffer->buffer.getBufferMemorySize())
+  if (new_location.hasOverlap && bufferResourceSize > access.scratchBuffer->buffer.getBufferMemorySize())
   {
     DEFRAG_VERBOSE(true, "DX12: Unable to move buffer %u (%s), scratch size is not big enough (required: %u, size: %u)",
-      buffer_id.index(), name, oldMemory.size, access.scratchBuffer->buffer.getBufferMemorySize());
+      buffer_id.index(), name, bufferResourceSize, access.scratchBuffer->buffer.getBufferMemorySize());
     return ResourceLocationUpdateResult::FAILED;
   }
 
@@ -7887,7 +7882,7 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
   freeNoLock(oldMemory, false);
 
   const auto [desc, allocInfo] =
-    calculate_buffer_desc_allocation_info(system_resources.device, oldMemory.size, bufferHeaps[buffer_id.index()].getFlags());
+    calculate_buffer_desc_allocation_info(system_resources.device, bufferResourceSize, bufferHeaps[buffer_id.index()].getFlags());
   auto newMemory = allocateMemoryInPlace(new_location.heapId, new_location.freeRangeIndex, allocInfo);
   if (!newMemory)
   {
@@ -7922,7 +7917,7 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
   if (new_location.hasOverlap)
     scratch = {.buffer = access.scratchBuffer->buffer.getResourcePtr(), .offset = 0ll};
   findBufferOwnersAndReplaceDeviceObjects(buffer_id, movedBufferId, *system_resources.bindlessManager, *system_resources.ctx,
-    system_resources.device, access.bufferHeapState, true, scratch);
+    system_resources.device, access.bufferHeapState, true, bufferResourceSize, scratch);
 
   DEFRAG_VERBOSE(true, "DX12: Moving buffer %s%s: %u (0x%X) -> %u (0x%X)", name, new_location.hasOverlap ? " (two phase)" : "",
     buffer_id.index(), bufferHeaps[buffer_id.index()].getResourcePtr(), movedBufferId, newHeap.getResourcePtr());

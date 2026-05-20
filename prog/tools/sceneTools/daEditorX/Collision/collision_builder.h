@@ -83,7 +83,7 @@ ICollisionDumpBuilder *create_bullet_collision_dump_builder(bool need_bt_data);
 
 static bool getPhysMatNameFromMatName(MaterialData *m, String &s)
 {
-  if (m && m->matName)
+  if (m && !m->matName.empty())
   {
     const char *adog = ::strrchr(m->matName, '@');
     if (adog)

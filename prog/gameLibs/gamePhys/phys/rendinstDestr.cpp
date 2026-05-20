@@ -223,8 +223,8 @@ extern bool enable_apex;
 
 class RestorableRendinst
 {
-  // To restore
   rendinst::RendInstDesc riDesc;
+  // To restore
   rendinst::RendInstBufferData riBuffer;
 
 public:
@@ -269,7 +269,7 @@ public:
     rendinstdestr::remove_tree_rendinst_destr(riDesc);
     rendinst::delRIGenExtra(generatedHandle);
     destructables::removeDestructableById(destrId);
-    rendinst::riex_handle_t h = rendinst::restoreRiGenDestr(riDesc, riBuffer);
+    rendinst::riex_handle_t h = rendinst::restoreRendInst(riBuffer, true);
     VERBOSE_SYNC("restored ri (likely no sync received) desc:" FMT_DESC_STR " restored:%i", FMT_DESC_V(riDesc),
       h != rendinst::RIEX_HANDLE_NULL);
 #if ENABLE_APEX
@@ -676,7 +676,7 @@ static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neigh
 
 
 void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags)
+  const DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags)
 {
   params.physObjData = po_data;
   params.tm = tm;
@@ -702,6 +702,7 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
   params.disintegrationScale = disintegrationParams.z;
 }
 
+
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
   const Point3 &impulse, float at_time, const rendinst::CollisionInfo *coll_info, bool create_destr_effects,
   ApexDmgInfo *apex_dmg_info, rendinstdestr::on_destr_callback on_destr_cb, rendinst::DestrOptionFlags flags)
@@ -722,16 +723,13 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   }
 #endif
 
-  TMatrix mainTm = rendinst::getRIGenMatrix(desc);
-
   rendinst::RendInstBufferData riBuffer;
-  rendinst::RendInstDesc offsetedDesc = rendinst::get_restorable_desc(desc); // Desc with offs set to restorable_desc.offs
-  offsetedDesc.idx = desc.idx;
-  const bool canAddRestorable = add_restorable && offsetedDesc.isValid() && rendinstdestr::can_sync_ri_destr(offsetedDesc) &&
-                                rendinstdestr::get_destr_settings().isNetClient && coll_info &&
-                                !(desc.isRiExtra() && desc.isDynamicRiExtra());
+  G_VERIFY(rendinst::fillRendInstBufferData(desc, riBuffer)); // should never fail, as RI is checked to exist
+  TMatrix mainTm;
+  v_mat_43cu_from_mat44(mainTm.array, riBuffer.tm);
+  const DynamicPhysObjectData *poData = rendinst::getRIGenDestroyedPhysRes(desc);
+  const uint32_t riexInstanceSeed = desc.isRiExtra() ? riBuffer.riExUserData[0] : 0;
 
-  rendinst::riex_handle_t createdDestroyedRiexHandle = rendinst::RIEX_HANDLE_NULL; // New riex replacing destroyed
   dacoll::invalidate_ri_instance(desc); // do before destring, otherwise in riextra we'll lose unique data and will not be able to
                                         // compare them
 
@@ -740,30 +738,40 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   if (on_changed_destr_cb)                                                 // call it before data will be destroyed
     on_changed_destr_cb(desc, mainTm, pos, impulse, create_destr_effects); // TODO: always mainTm==riTm?
 
-  int32_t userData = coll_info ? coll_info->userData : -1;
-  bool outRiRemoved = false;
 
-  uint32_t riexInstanceSeed = 0;
-  if (desc.isRiExtra())
-  { // get seed before node destruction (doRiGenDestr), destructible creation params need it
-    rendinst::riex_handle_t riexHandle = rendinst::make_handle(desc.pool, desc.idx);
-    riexInstanceSeed = riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_instance_seed(riexHandle) : 0;
+  rendinst::RendInstDesc offsetedDesc = rendinst::get_restorable_desc(desc); // Desc with offs set to restorable_desc.offs
+  offsetedDesc.idx = desc.idx;
+  const bool canAddRestorable = add_restorable && offsetedDesc.isValid() && rendinstdestr::can_sync_ri_destr(offsetedDesc) &&
+                                rendinstdestr::get_destr_settings().isNetClient && coll_info;
+
+  const BBox3 bbox = flags & rendinst::DestrOptionFlag::UseFullBbox ? rendinst::getRIGenFullBBox(desc)
+                     : coll_info                                    ? coll_info->localBBox
+                                                                    : rendinst::getRIGenBBox(desc);
+
+  // dynamic RI destruction is handled fully inside callbacks, so exit for dynamic RIs
+  {
+    const int32_t userData = coll_info ? coll_info->userData : -1;
+    if (rendinst::doDynamicRIExtraDestr(desc, create_destr_effects, userData, impulse, pos))
+    {
+      rendinstdestr::call_on_rendinst_destroyed_cb(desc.getRiExtraHandle(), mainTm, bbox);
+      if (desc.isRiExtra() && offsetedDesc.isValid())
+        call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_DESTROYED);
+      return offsetedDesc;
+    }
   }
 
+  // call restored cb BEFORE destroying, so it will be called, before handle is invalidated
   if (canAddRestorable)
-    call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_CREATED); // call restored cb BEFORE destroying, so it will be
-                                                                           // called, before handle is invalidated
-  const Point3 *collPoint = (pos == ZERO<Point3>()) ? nullptr : &pos;
-  DynamicPhysObjectData *poData =
-    rendinst::doRIGenDestr(desc, riBuffer, create_destr_effects, create_destr_effects ? ri_effect_cb : nullptr,
-      createdDestroyedRiexHandle, userData, collPoint, &outRiRemoved, flags, impulse, pos);
-  if (canAddRestorable && !outRiRemoved)
-    call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_RESTORED); // not destroyed - call restored cb to rollback previous
-                                                                            // call
+    call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_CREATED);
+  rendinst::riex_handle_t createdDestroyedRiexHandle = rendinst::RIEX_HANDLE_NULL; // New riex replacing destroyed
+  const bool outRiRemoved = rendinst::doRIGenDestr(desc, createdDestroyedRiexHandle, flags);
+  // if not destroyed - call restored cb to rollback previous call
+  if (!outRiRemoved)
+    call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_RESTORED);
 
-  BBox3 bbox = flags & rendinst::DestrOptionFlag::UseFullBbox ? rendinst::getRIGenFullBBox(desc)
-               : coll_info                                    ? coll_info->localBBox
-                                                              : rendinst::getRIGenBBox(desc);
+  if (outRiRemoved && create_destr_effects)
+    rendinst::playRIGenDestrEffect(riBuffer, ri_effect_cb, pos != Point3::ZERO ? &pos : nullptr);
+
 
   bool apex_asset_created = false;
   int apex_destructible_id = -1;
@@ -937,8 +945,14 @@ void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TM
   v_mat44_make_from_43cu_unsafe(tm44, transform.array);
   bool isDestructableTmNaN = v_test_mat43_nan(tm44);
   G_ASSERT(!isDestructableTmNaN);
-  if (DynamicPhysObjectData *poData = rendinst::doRIExGenDestrEx(riex_handle, create_destr_effects ? ri_effect_cb : nullptr);
-      poData != nullptr && rendinstdestr::get_destr_settings().createDestr && !isDestructableTmNaN)
+  rendinst::RendInstDesc desc(riex_handle);
+  const DynamicPhysObjectData *poData = rendinst::getRIGenDestroyedPhysRes(desc);
+
+  if (ri_effect_cb && create_destr_effects)
+    if (rendinst::RendInstBufferData buffer; rendinst::fillRendInstBufferData(desc, buffer))
+      rendinst::playRIGenDestrEffect(buffer, ri_effect_cb, /* coll point */ nullptr);
+
+  if (poData != nullptr && rendinstdestr::get_destr_settings().createDestr && !isDestructableTmNaN)
   {
     // Queue nearby RI collision loading so debris can collide with standing rendinsts
     if (ri_destr_collision_queue_count >= 0)
@@ -1752,21 +1766,8 @@ static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, 
         v_st(&impulsePos.x, v_mat44_mul_vec3p(riTm, v_ldu(&local_impulse_pos.x)));
       }
       VERBOSE_SYNC("destroying rendinst from net, desc:" FMT_DESC_STR, FMT_DESC_V(restorable_desc));
-      if (g_deferred_ri_destr_list.isEnabled && false)
-      {
-        auto &data = g_deferred_ri_destr_list.list.push_back();
-        data.riDesc = restorable_desc;
-        data.pos = impulsePos;
-        data.impulse = impulse_vec;
-        data.atTime = 0.f;
-        data.createDestr = create_destr;
-        data.flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy;
-      }
-      else
-      {
-        rendinstdestr::destroyRendinst(restorable_desc, /*add_restorable*/ false, impulsePos, impulse_vec, /*at_time*/ 0.f,
-          /*coll_info*/ nullptr, create_destr);
-      }
+      rendinstdestr::destroyRendinst(restorable_desc, /*add_restorable*/ false, impulsePos, impulse_vec, /*at_time*/ 0.f,
+        /*coll_info*/ nullptr, create_destr);
     }
     if constexpr (IsReadLocked)
       rendinst::riex_lock_read();
@@ -2552,17 +2553,24 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
     impulse = Point3();
   }
 
+  const rendinst::RiDestrData riDestrData = rendinst::gather_ri_destr_data(desc, from_damage);
+  if (!riDestrData.branchDestr)
+    return desc;
+
+  rendinst::RendInstBufferData buffer;
+  if (!rendinst::fillRendInstBufferData(desc, buffer))
+    return desc;
+
   // Rendinst system can invalidate static shadows for very large cells in `rendinst::doRIGenExternalControl` and
   // `rendinstdestr::destroyRendinst`. But it is not needed if we have special callback with invalidation for only
   // instance bbox
   if (destrSettings.hasStaticShadowsInvalidationCallback)
     rendinst::render::avoidStaticShadowRecalc = true;
 
-  const rendinst::RiDestrData riDestrData = rendinst::gather_ri_destr_data(desc, from_damage);
-  if (!riDestrData.branchDestr)
-    return desc;
-
-  rendinst::DestroyedRi *ri = create_destr ? rendinst::doRIGenExternalControl(desc, !create_phys) : NULL;
+  Tab<rendinst::DestroyedRi *> destroyedRis;
+  if (create_destr)
+    destroyedRis = rendinst::doRIGenExternalControl(desc, buffer, 1);
+  rendinst::DestroyedRi *ri = destroyedRis.empty() ? nullptr : destroyedRis.back();
   if (ri && on_tree_destr_created_cb)
     on_tree_destr_created_cb(desc, ri->riHandle);
   Point2 impulseDir = normalizeDef(Point2::xz(impulse), {1.f, 0.f});
@@ -2572,6 +2580,8 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
   if (create_phys)
     offsetedDesc = rendinstdestr::destroyRendinst(desc, add_restorable, ZERO<Point3>(), ZERO<Point3>(), at_time, coll_info,
       create_destr, nullptr, -1, 1.0f, nullptr, flags);
+  else if (create_destr && !desc.isRiExtra())
+    rendinst::delRIGen(desc, false);
 
   if (destrSettings.hasStaticShadowsInvalidationCallback)
     rendinst::render::avoidStaticShadowRecalc = false;
@@ -2583,7 +2593,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
   const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
 
   const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  const RendInstGenData::RendinstProperties *riProp = nullptr;
+  const rendinst::props::RendinstProperties *riProp = nullptr;
   if (!desc.isRiExtra() && (uint32_t)desc.pool < rgl->rtData->riProperties.size())
     riProp = &rgl->rtData->riProperties[desc.pool];
 
@@ -2872,6 +2882,10 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   if (!riDestrData.branchDestr)
     return desc;
 
+  rendinst::RendInstBufferData buffer;
+  if (!rendinst::fillRendInstBufferData(desc, buffer))
+    return desc;
+
   static const float min_cut_height = 0.5f;
 
   const bool enableBranchDestr = is_branch_destruction_supported && riDestrData.branchDestr->enableBranchDestruction && at_time > 0.0f;
@@ -2909,7 +2923,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   int sliceCount = cutTreeInHalf ? 2 : 1;
 
   Tab<rendinst::DestroyedRi *> ris =
-    create_destr ? rendinst::doRIGenExternalControlMultiple(desc, sliceCount, !create_phys) : Tab<rendinst::DestroyedRi *>();
+    create_destr ? rendinst::doRIGenExternalControl(desc, buffer, sliceCount) : Tab<rendinst::DestroyedRi *>();
   if (on_tree_destr_created_cb)
     for (const rendinst::DestroyedRi *ri : ris)
       on_tree_destr_created_cb(desc, ri->riHandle);
@@ -2920,6 +2934,8 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   if (create_phys)
     offsetedDesc = rendinstdestr::destroyRendinst(desc, add_restorable, ZERO<Point3>(), ZERO<Point3>(), at_time, coll_info,
       create_destr, nullptr, 1, 1.0f, nullptr, flags);
+  else if (create_destr && !desc.isRiExtra())
+    rendinst::delRIGen(desc, false);
 
   if (destrSettings.hasStaticShadowsInvalidationCallback)
     rendinst::render::avoidStaticShadowRecalc = false;
@@ -2958,7 +2974,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   rendinst::getRIGenCanopyBBox(desc, TMatrix::IDENT, canopyBboxLocal);
 
   const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
-  const RendInstGenData::RendinstProperties *riProp = nullptr;
+  const rendinst::props::RendinstProperties *riProp = nullptr;
   if (!desc.isRiExtra() && (uint32_t)desc.pool < rgl->rtData->riProperties.size())
     riProp = &rgl->rtData->riProperties[desc.pool];
 
@@ -3620,10 +3636,7 @@ void rendinstdestr::remove_ri_without_collision_in_radius(const Point3 &pos, flo
   rendinst::foreachRIGenInSphere(BSphere3(pos, radius), rendinst::GatherRiTypeFlag::RiGenOnly, cb);
 
   for (const rendinst::RendInstDesc &desc : cb.riDescToRemove)
-  {
-    rendinst::DestroyedRi *destroyedRi = rendinst::doRIGenExternalControl(desc, true);
-    rendinst::removeRIGenExternalControl(desc, destroyedRi);
-  }
+    rendinst::delRIGen(desc, false);
 }
 
 #if TREE_DESTR_DEBUG

@@ -151,6 +151,9 @@ void ResourceManager::init(const PhysicalDeviceSet &dev_set)
   perMemoryTypeMethods.resize(memTypesCount);
   for (uint32_t i = 0; i < memTypesCount; ++i)
     perMemoryTypeMethods[i].init(i, allowMixedPages ? dev_set.properties.limits.bufferImageGranularity : 0);
+#if DAGOR_DBGLEVEL > 0
+  allocsCounter = 0;
+#endif
 }
 
 void ResourceManager::onDeviceReset()

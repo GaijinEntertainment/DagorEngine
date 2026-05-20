@@ -219,7 +219,7 @@ struct template TFlatHashTable {
     [class_method, unsafe_outside_of_for]
     def static keys() {
         var pself = unsafe(addr(self))
-        return <- generator<KeyType&>() <| $() {
+        return <- generator<KeyType&> {
             for (h, k in pself.hashes, pself.key_data) {
                 if (h > 1ul) {
                     yield k
@@ -234,7 +234,7 @@ struct template TFlatHashTable {
     [explicit_const_class_method, unsafe_outside_of_for]
     def static values() {
         var pself = unsafe(addr(self))
-        return <- generator<ValueType&>() <| $() {
+        return <- generator<ValueType&> {
             for (h, v in pself.hashes, pself.value_data) {
                 if (h > 1ul) {
                     yield v
@@ -249,7 +249,7 @@ struct template TFlatHashTable {
     [explicit_const_class_method, unsafe_outside_of_for]
     def static const values() {
         var pself = unsafe(addr(self))
-        return <- generator<ValueType const&>() <| $() {
+        return <- generator<ValueType const&> {
             for (h, v in pself.hashes, pself.value_data) {
                 if (h > 1ul) {
                     yield v

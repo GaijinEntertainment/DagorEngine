@@ -13,7 +13,7 @@ struct ModuleList {
 
 def do_list_modules(json : bool = false) : string {
     var builtin_mods : array<string>
-    program_for_each_registered_module() <| $(mod) {
+    program_for_each_registered_module() $(mod) {
         let mname = string(mod.name)
         if (mname == "$" || mname == "__main__" || empty(mname)) {
             return
@@ -22,7 +22,7 @@ def do_list_modules(json : bool = false) : string {
     }
     sort(builtin_mods)
     var daslib_mods : array<string>
-    dir("daslib") <| $(fname) {
+    dir("daslib") $(fname) {
         if (!ends_with(fname, ".das")) {
             return
         }
@@ -33,7 +33,7 @@ def do_list_modules(json : bool = false) : string {
         var result = ModuleList(builtin <- builtin_mods, daslib <- daslib_mods)
         return make_tool_result(sprint_json(result, false))
     }
-    return make_tool_result(build_string() <| $(var writer) {
+    return make_tool_result(build_string() $(var writer) {
         write(writer, "Builtin/C++ modules ({length(builtin_mods)}):\n")
         for (m in builtin_mods) {
             write(writer, "  {m}\n")

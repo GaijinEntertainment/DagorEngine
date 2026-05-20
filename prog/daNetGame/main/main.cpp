@@ -1097,6 +1097,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
         picMgrCfg.setBool("dynAtlasLazyAllocDef", true);
         picMgrCfg.setBool("fatalOnPicLoadFailed", false);
         picMgrCfg.setBool("searchBlkBeforeTaBin", true); // *.ta.bin isn't used
+        picMgrCfg.setBool("waitForTexLoading", false);
         execute_delayed_action_on_main_thread(make_delayed_action([&]() { PictureManager::init(&picMgrCfg); }));
       }
 

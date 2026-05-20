@@ -1,4 +1,4 @@
-ModuleDependsOnVars = HaveSound ;
+ModuleDependsOnVars = HaveSound PhysName ;
 HaveSound ?= yes ;
 
 Root    ?= ../../../.. ;
@@ -9,6 +9,7 @@ local DasModule = daNetGameLibs_sound_utils_DAS_pull_AOT ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
   $(Root)/prog/1stPartyLibs/daScript/include
   $(Root)/prog/3rdPartyLibs/rapidjson/include
   $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
@@ -24,6 +25,7 @@ if $(HaveSound) = yes {
   AllSrcFolder_DAS +=
     modules
     es
+    es/gpu_sound_queries
   ;
 }
 

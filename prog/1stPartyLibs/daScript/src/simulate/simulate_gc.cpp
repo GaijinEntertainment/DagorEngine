@@ -965,6 +965,12 @@ namespace das
         GcGuard guard(this);
         // clean up, so that all small allocations are marked as 'free'
         stringDisposeQue = nullptr;
+        // When allocation tracking is on, entries in MemoryModel::bigStuffComment
+        // may point into stringHeap (e.g. tag_array/tag_table with a dynamic name)
+        // and are not reachable as GC roots. Skipping stringHeap GC keeps those
+        // pointers valid for the heap report. track_allocations is a diagnostic
+        // mode, so unbounded stringHeap growth during the run is acceptable.
+        if ( stringHeap->isTrackingAllocations() ) sheap = false;
         if ( sheap && !stringHeap->mark() ) return;
         if ( !heap->mark() ) return;
         // now

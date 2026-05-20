@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/fixed_function.h>
 #include <supp/dag_comPtr.h>
 #include <winapi_helpers.h>
 #include <EASTL/array.h>
@@ -21,6 +22,7 @@ class BaseTex;
 class Image;
 class Device;
 class DeviceContext;
+struct SwapchainCreateInfo;
 
 struct SwapchainProperties
 {
@@ -31,6 +33,21 @@ struct SwapchainProperties
   XBOX_MEMBER bool preferHfr = false;
 };
 
+#if _TARGET_PC_WIN
+using SwapchainFactory = eastl::fixed_function<sizeof(void *) * 4,
+  HRESULT(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+    const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)>;
+
+HRESULT default_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+HRESULT nvidia_dlssg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+HRESULT amd_fsrfg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+HRESULT intel_xessfg_swapchain_factory(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
+  const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain);
+#endif
+
 struct SwapchainCreateInfo : SwapchainProperties
 {
   HWND window = nullptr;
@@ -40,6 +57,7 @@ struct SwapchainCreateInfo : SwapchainProperties
 
 #if _TARGET_PC_WIN
   ComPtr<IDXGIOutput> output;
+  SwapchainFactory swapchainFactory;
 #endif
 };
 
@@ -197,6 +215,7 @@ public:
 #if _TARGET_XBOX
   void restoreAfterSuspend(D3DDevice *device);
   void updateFrameInterval(D3DDevice *device, bool force = false, int32_t user_freq_level = -1);
+  int getXboxSwapchainFrequency() const;
 #elif _TARGET_PC_WIN
   void preRecovery();
   void secondaryPresent(uint32_t swapchain_index, uint32_t frame_id);

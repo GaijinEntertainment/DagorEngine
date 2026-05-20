@@ -92,8 +92,8 @@ private:
 
   carray<UniqueTex, 3> texBuffers;
   carray<UniqueTex, 2> distortionTexBuffers;
-  UniqueTexHolder heightNormalTexture;
-  UniqueTexHolder distortionTexture;
+  UniqueTexWithShaderVar heightNormalTexture;
+  UniqueTexWithShaderVar distortionTexture;
   PostFxRenderer updateRenderer;
   PostFxRenderer resolveRenderer;
   UniqueBuf dropsBuf;

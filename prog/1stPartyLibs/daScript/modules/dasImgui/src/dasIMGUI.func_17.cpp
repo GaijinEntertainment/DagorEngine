@@ -60,7 +60,7 @@ void Module_dasIMGUI::initFunctions_17() {
 // from imgui/imgui.h:1097:29
 	makeExtern< bool (*)(ImGuiKey,bool) , ImGui::IsKeyPressed , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsKeyPressed","ImGui::IsKeyPressed")
 		->args({"key","repeat"})
-		->arg_init(1,make_smart<ExprConstBool>(true))
+		->arg_init(1,new ExprConstBool(true))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1098:29
 	makeExtern< bool (*)(ImGuiKey) , ImGui::IsKeyReleased , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsKeyReleased","ImGui::IsKeyReleased")
@@ -85,12 +85,12 @@ void Module_dasIMGUI::initFunctions_17() {
 // from imgui/imgui.h:1124:29
 	makeExtern< bool (*)(int,int) , ImGui::Shortcut , SimNode_ExtFuncCall , imguiTempFn>(lib,"Shortcut","ImGui::Shortcut")
 		->args({"key_chord","flags"})
-		->arg_init(1,make_smart<ExprConstInt>(0))
+		->arg_init(1,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1125:29
 	makeExtern< void (*)(int,int) , ImGui::SetNextItemShortcut , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetNextItemShortcut","ImGui::SetNextItemShortcut")
 		->args({"key_chord","flags"})
-		->arg_init(1,make_smart<ExprConstInt>(0))
+		->arg_init(1,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 }
 }

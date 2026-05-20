@@ -43,12 +43,12 @@ public:
   PhysMatModule() : das::Module("PhysMat")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<MaterialDataAnnotation>(lib));
-    addAnnotation(das::make_smart<PhysMatDamageModelPropsAnnotation>(lib));
-    addAnnotation(das::make_smart<DeformMatPropsAnnotation>(lib));
+    addAnnotation(new MaterialDataAnnotation(lib));
+    addAnnotation(new PhysMatDamageModelPropsAnnotation(lib));
+    addAnnotation(new DeformMatPropsAnnotation(lib));
 
     G_STATIC_ASSERT(sizeof(PhysMat::MatID) == sizeof(int32_t));
-    auto pType = das::make_smart<das::TypeDecl>(das::Type::tInt);
+    auto pType = new das::TypeDecl(das::Type::tInt);
     pType->alias = "MatID";
     addAlias(pType);
 

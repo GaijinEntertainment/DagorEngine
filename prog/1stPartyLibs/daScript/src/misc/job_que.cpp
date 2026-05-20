@@ -1,6 +1,13 @@
 #include "daScript/misc/platform.h"
 
 #include "daScript/misc/job_que.h"
+#include "daScript/simulate/debug_info.h"
+#include "daScript/simulate/aot_builtin_jobque.h"
+#include "daScript/misc/string_writer.h"
+
+// Feature tracking statics
+das::Feature *  das::Feature::sTrackHead = nullptr;
+das::mutex      das::Feature::sTrackMutex;
 
 namespace das {
 
@@ -235,10 +242,66 @@ namespace das {
         }
     }
 
+    // JobStatus tracking
+
+    void JobStatus::trackInsert() {
+        lock_guard<mutex> guard(sTrackMutex);
+        mTrackId = ++g_jobque_track_total;
+        mTrackNext = sTrackHead;
+        mTrackPrev = nullptr;
+        if (sTrackHead) sTrackHead->mTrackPrev = this;
+        sTrackHead = this;
+    }
+
+    void JobStatus::trackRemove() {
+        lock_guard<mutex> guard(sTrackMutex);
+        if (mTrackPrev) mTrackPrev->mTrackNext = mTrackNext;
+        else sTrackHead = mTrackNext;
+        if (mTrackNext) mTrackNext->mTrackPrev = mTrackPrev;
+    }
+
+    void JobStatus::trackEvent ( LineInfo * at, bool isAddRef ) {
+        if ( !at ) return;
+        if ( mTrackId != g_jobque_track_id.load() ) return;
+        TextPrinter tp;
+        tp << "JobStatus #" << HEX << mTrackId << DEC;
+        if ( mTrackMagic == TRACK_CHANNEL ) tp << " (Channel)";
+        else if ( mTrackMagic == TRACK_LOCKBOX ) tp << " (LockBox)";
+        else if ( mTrackMagic == TRACK_STREAM ) tp << " (Stream)";
+        else tp << " (JobStatus)";
+        tp << (isAddRef ? " addRef" : " releaseRef")
+           << " (rc=" << int(mRef.load()) << ")";
+        tp << " at " << at->describe() << "\n";
+    }
+
+    int JobStatus::addRef( LineInfo * at ) {
+        trackEvent(at, true);
+        return mRef++;
+    }
+
+    int JobStatus::releaseRef( LineInfo * at ) {
+        trackEvent(at, false);
+        return --mRef;
+    }
+
+    // JobStatus constructors/destructor
+
+    JobStatus::JobStatus() {
+        mTrackMagic = TRACK_JOB_STATUS;
+        trackInsert();
+    }
+
+    JobStatus::JobStatus(uint32_t count) {
+        mTrackMagic = TRACK_JOB_STATUS;
+        trackInsert();
+        Clear(count);
+    }
+
     JobStatus::~JobStatus() {
         DAS_VERIFY(mMagic==STATUS_MAGIC);
         DAS_VERIFY(mRef==0);
         mMagic = 0;
+        trackRemove();
     }
 
     bool JobStatus::Notify() {
@@ -251,8 +314,9 @@ namespace das {
         return true;
     }
 
-    bool JobStatus::NotifyAndRelease() {
+    bool JobStatus::NotifyAndRelease( LineInfo * at ) {
         lock_guard<mutex> guard(mCompleteMutex);
+        trackEvent(at, false);
         mRef--;
         if ( mRemaining == 0 ) return false;
         --mRemaining;
@@ -277,6 +341,165 @@ namespace das {
     void JobStatus::Clear(uint32_t count) {
         lock_guard<mutex> guard(mCompleteMutex);
         mRemaining = count;
+    }
+
+    void JobStatus::DumpJobQueLeaks() {
+        {
+            lock_guard<mutex> guard(sTrackMutex);
+            TextPrinter tp;
+            int total = 0;
+            for ( auto p = sTrackHead; p; p = p->mTrackNext ) {
+                tp << "  JobStatus #" << HEX << p->mTrackId << DEC
+                   << " (rc=" << int(p->mRef.load()) << ")";
+                if ( p->mTrackMagic == TRACK_CHANNEL ) tp << " Channel";
+                else if ( p->mTrackMagic == TRACK_LOCKBOX ) tp << " LockBox";
+                else if ( p->mTrackMagic == TRACK_STREAM ) tp << " Stream";
+                else tp << " JobStatus";
+                if ( !p->mCreatedAt.empty() ) tp << " created at " << p->mCreatedAt;
+                tp << "\n";
+                total++;
+            }
+            if ( total ) tp << "total " << total << " leaked JobStatus objects\n";
+        }
+        {
+            lock_guard<mutex> guard(Feature::sTrackMutex);
+            TextPrinter tp;
+            int total = 0;
+            for ( auto f = Feature::sTrackHead; f; f = f->fTrackNext ) {
+                tp << "  Feature #" << HEX << f->fTrackId << DEC;
+                if ( f->fOwner ) {
+                    tp << " owner=#" << HEX << f->fOwnerTrackId << DEC;
+                }
+                if ( !f->fCreatedAt.empty() ) tp << " created at " << f->fCreatedAt;
+                tp << "\n";
+                total++;
+            }
+            if ( total ) tp << "total " << total << " leaked Feature objects\n";
+        }
+    }
+
+    uint64_t JobStatus::CountJobQueLeaks() {
+        uint64_t total = 0;
+        {
+            lock_guard<mutex> guard(sTrackMutex);
+            for ( auto p = sTrackHead; p; p = p->mTrackNext ) total++;
+        }
+        {
+            lock_guard<mutex> guard(Feature::sTrackMutex);
+            for ( auto f = Feature::sTrackHead; f; f = f->fTrackNext ) total++;
+        }
+        return total;
+    }
+
+    // Feature tracking
+
+    void Feature::trackInsert() {
+        lock_guard<mutex> guard(sTrackMutex);
+        fTrackId = ++g_jobque_track_total;
+        fTrackNext = sTrackHead;
+        fTrackPrev = nullptr;
+        if (sTrackHead) sTrackHead->fTrackPrev = this;
+        sTrackHead = this;
+    }
+
+    void Feature::trackRemove() {
+        lock_guard<mutex> guard(sTrackMutex);
+        if (fTrackPrev) fTrackPrev->fTrackNext = fTrackNext;
+        else sTrackHead = fTrackNext;
+        if (fTrackNext) fTrackNext->fTrackPrev = fTrackPrev;
+    }
+
+    Feature::Feature() {
+        trackInsert();
+    }
+
+    Feature::Feature ( void * d, TypeInfo * ti, Context * c ) : data(d), type(ti) {
+        trackInsert();
+        setFrom(c);
+    }
+
+    Feature::~Feature() {
+        trackRemove();
+    }
+
+    Feature::Feature ( const Feature & f )
+        : data(f.data), type(f.type), from(f.from), fromShared(f.fromShared) {
+        fCreatedAt = f.fCreatedAt;
+        fOwner = f.fOwner;
+        fOwnerTrackId = f.fOwnerTrackId;
+        trackInsert();
+    }
+
+    Feature::Feature ( Feature && f )
+        : data(f.data), type(f.type), from(f.from), fromShared(das::move(f.fromShared)) {
+        fCreatedAt = f.fCreatedAt;
+        fOwner = f.fOwner;
+        fOwnerTrackId = f.fOwnerTrackId;
+        f.data = nullptr;
+        f.type = nullptr;
+        f.from = nullptr;
+        trackInsert();
+    }
+
+    Feature & Feature::operator = ( const Feature & f ) {
+        if ( this != &f ) {
+            data = f.data;
+            type = f.type;
+            from = f.from;
+            fromShared = f.fromShared;
+            fCreatedAt = f.fCreatedAt;
+            fOwner = f.fOwner;
+            fOwnerTrackId = f.fOwnerTrackId;
+        }
+        return *this;
+    }
+
+    Feature & Feature::operator = ( Feature && f ) {
+        if ( this != &f ) {
+            data = f.data;
+            type = f.type;
+            from = f.from;
+            fromShared = das::move(f.fromShared);
+            fCreatedAt = f.fCreatedAt;
+            fOwner = f.fOwner;
+            fOwnerTrackId = f.fOwnerTrackId;
+            f.data = nullptr;
+            f.type = nullptr;
+            f.from = nullptr;
+        }
+        return *this;
+    }
+
+    void Feature::setFrom ( Context * c ) {
+        from = c;
+        if ( c && c->sharedPtrContext ) {
+            fromShared = c->shared_from_this();
+        } else {
+            fromShared.reset();
+        }
+    }
+
+    void Feature::clear() {
+        data = nullptr;
+        type = nullptr;
+        from = nullptr;
+        fromShared.reset();
+    }
+
+    void Feature::DumpFeatures() {
+        lock_guard<mutex> guard(sTrackMutex);
+        TextPrinter tp;
+        int total = 0;
+        for ( auto f = sTrackHead; f; f = f->fTrackNext ) {
+            tp << "  Feature #" << HEX << f->fTrackId << DEC;
+            if ( f->fOwner ) {
+                tp << " owner=#" << HEX << f->fOwnerTrackId << DEC;
+            }
+            if ( !f->fCreatedAt.empty() ) tp << " created at " << f->fCreatedAt;
+            tp << "\n";
+            total++;
+        }
+        if ( total ) tp << "total " << total << " tracked Feature objects\n";
     }
 }
 

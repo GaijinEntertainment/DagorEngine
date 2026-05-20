@@ -1565,6 +1565,8 @@ void Dagormat2Dialog::RestoreParams()
   if (shader_name.empty())
     return;
 
+  UpdateShaderNameWidget();
+
   // get list of shader parameters (including group names)
   const DataBlock *shader_blk = get_blk_shader(blk.get(), shader_name);
   std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
@@ -1715,7 +1717,12 @@ M_STD_STRING Dagormat2Dialog::GetShaderName()
   return name;
 }
 
-void Dagormat2Dialog::UpdateShaderNameWidget() { SetWindowText(GetDlgItem(hShader, IDC_CLASSNAME), theMtl->classname.data()); }
+void Dagormat2Dialog::UpdateShaderNameWidget()
+{
+  HWND hwnd = GetDlgItem(hShader, IDC_CLASSNAME);
+  SetWindowText(hwnd, theMtl->classname.data());
+  DagorMat2::tooltip.SetToolTip(hwnd, theMtl->classname.data());
+}
 
 void Dagormat2Dialog::ChangeShaderName()
 {

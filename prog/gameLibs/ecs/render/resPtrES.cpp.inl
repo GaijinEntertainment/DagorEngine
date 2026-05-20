@@ -40,8 +40,8 @@ public:
 ECS_REGISTER_MANAGED_TYPE(SharedTexHolder, nullptr,
   typename ecs::CreatorSelector<SharedTexHolder ECS_COMMA SharedTexHolderConstruct>::type);
 
-// UniqueTexHolder hasn't specific constructor
+// UniqueTexWithShaderVar hasn't specific constructor
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTex, nullptr);
-ECS_REGISTER_RELOCATABLE_TYPE(UniqueTexHolder, nullptr);
+ECS_REGISTER_RELOCATABLE_TYPE(UniqueTexWithShaderVar, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueBuf, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueBufHolder, nullptr);

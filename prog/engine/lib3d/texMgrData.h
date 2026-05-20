@@ -87,6 +87,7 @@ extern eastl::vector_set<TEXTUREID> reqLD;
 extern int gpu_mem_reserve_kb;
 extern int mem_used_persistent_kb;
 extern int mem_quota_reserve_kb;
+extern int gpu_mem_backend_overhead_kb;
 extern int sys_mem_usage_thres_mb, sys_mem_add_free_mb;
 extern int dyn_qlev_decrease;
 

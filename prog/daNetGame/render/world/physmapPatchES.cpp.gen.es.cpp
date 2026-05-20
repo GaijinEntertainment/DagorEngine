@@ -36,7 +36,7 @@ static ecs::EntitySystemDesc exec_physmap_patch_data_creation_request_es_event_h
 static constexpr ecs::ComponentDesc init_physmap_patch_es_event_handler_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("physmap_patch_tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("physmap_patch_tex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("physmap_patch_invscale"), ecs::ComponentTypeInfo<float>()},
 //start of 1 ro components at [2]
   {ECS_HASH("physmap_patch_tex_size"), ecs::ComponentTypeInfo<int>()}
@@ -45,7 +45,7 @@ static void init_physmap_patch_es_event_handler_all_events(const ecs::Event &__r
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_physmap_patch_es_event_handler(evt
-        , ECS_RW_COMP(init_physmap_patch_es_event_handler_comps, "physmap_patch_tex", UniqueTexHolder)
+        , ECS_RW_COMP(init_physmap_patch_es_event_handler_comps, "physmap_patch_tex", UniqueTexWithShaderVar)
     , ECS_RO_COMP(init_physmap_patch_es_event_handler_comps, "physmap_patch_tex_size", int)
     , ECS_RW_COMP(init_physmap_patch_es_event_handler_comps, "physmap_patch_invscale", float)
     );
@@ -123,7 +123,7 @@ static ecs::EntitySystemDesc gather_physmap_patch_updated_regions_es_es_desc
 static constexpr ecs::ComponentDesc update_physmap_patch_tex_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("physmap_patch_tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("physmap_patch_tex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
 //start of 2 ro components at [1]
   {ECS_HASH("physmap_patch_tex_size"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("physmap_patch_invscale"), ecs::ComponentTypeInfo<float>()}
@@ -133,7 +133,7 @@ static void update_physmap_patch_tex_es_all_events(const ecs::Event &__restrict 
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_physmap_patch_tex_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(update_physmap_patch_tex_es_comps, "physmap_patch_tex", UniqueTexHolder)
+        , ECS_RW_COMP(update_physmap_patch_tex_es_comps, "physmap_patch_tex", UniqueTexWithShaderVar)
     , ECS_RO_COMP(update_physmap_patch_tex_es_comps, "physmap_patch_tex_size", int)
     , ECS_RO_COMP(update_physmap_patch_tex_es_comps, "physmap_patch_invscale", float)
     );

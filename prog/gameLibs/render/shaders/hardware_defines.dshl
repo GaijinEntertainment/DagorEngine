@@ -301,14 +301,19 @@ hlsl {
   #endif
   ##if hardware.dx11 || hardware.dx12 || hardware.metal
     #define PRECISE precise
+    #define PRECISE_VAR PRECISE
   ##elif hardware.vulkan
     #if SHADER_COMPILER_DXC
-      #define PRECISE precise
+      /* 18 = Invariant */
+      #define PRECISE [[vk::ext_decorate(18)]] precise
+      #define PRECISE_VAR precise
     #else
       #define PRECISE
+      #define PRECISE_VAR
     #endif
   ##else
     #define PRECISE
+    #define PRECISE_VAR
   ##endif
 }
 

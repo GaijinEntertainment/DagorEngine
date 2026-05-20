@@ -64,17 +64,17 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_2() {
 // from imgui-node-editor/imgui_node_editor.h:322:28
 	makeExtern< bool (*)(ax::NodeEditor::LinkId,ax::NodeEditor::PinId,ax::NodeEditor::PinId,const ImVec4 &,float) , ax::NodeEditor::Link , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"Link","ax::NodeEditor::Link")
 		->args({"id","startPinId","endPinId","color","thickness"})
-		->arg_init(4,make_smart<ExprConstFloat>(1))
+		->arg_init(4,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:324:28
 	makeExtern< void (*)(ax::NodeEditor::LinkId,ax::NodeEditor::FlowDirection) , ax::NodeEditor::Flow , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"Flow","ax::NodeEditor::Flow")
 		->args({"linkId","direction"})
-		->arg_init(1,make_smart<ExprConstEnumeration>(0,makeType<ax::NodeEditor::FlowDirection>(lib)))
+		->arg_init(1,new ExprConstEnumeration(0,makeType<ax::NodeEditor::FlowDirection>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:326:28
 	makeExtern< bool (*)(const ImVec4 &,float) , ax::NodeEditor::BeginCreate , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"BeginCreate","ax::NodeEditor::BeginCreate")
 		->args({"color","thickness"})
-		->arg_init(1,make_smart<ExprConstFloat>(1))
+		->arg_init(1,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:327:28
 	makeExtern< bool (*)(ax::NodeEditor::PinId *,ax::NodeEditor::PinId *) , ax::NodeEditor::QueryNewLink , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"QueryNewLink","ax::NodeEditor::QueryNewLink")
@@ -83,7 +83,7 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_2() {
 // from imgui-node-editor/imgui_node_editor.h:328:28
 	makeExtern< bool (*)(ax::NodeEditor::PinId *,ax::NodeEditor::PinId *,const ImVec4 &,float) , ax::NodeEditor::QueryNewLink , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"QueryNewLink","ax::NodeEditor::QueryNewLink")
 		->args({"startId","endId","color","thickness"})
-		->arg_init(3,make_smart<ExprConstFloat>(1))
+		->arg_init(3,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:329:28
 	makeExtern< bool (*)(ax::NodeEditor::PinId *) , ax::NodeEditor::QueryNewNode , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"QueryNewNode","ax::NodeEditor::QueryNewNode")

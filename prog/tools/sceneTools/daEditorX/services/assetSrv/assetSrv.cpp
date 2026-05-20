@@ -130,7 +130,7 @@ public:
     {
       bool badTex = false;
 
-      if (ti < textures.size() && textures[ti])
+      if (ti < textures.size() && !textures[ti].empty())
         md->mtex[ti] = ::add_managed_texture(textures[ti]);
 
       if (badTex)

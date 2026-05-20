@@ -23,15 +23,14 @@ void ECS::addEntityWrite(das::ModuleLibrary &lib)
     "bind_dascript::entitySetStrHint");
   auto entitySetStrExt =
     das::addExtern<DAS_BIND_FUN(entitySetStr)>(*this, lib, "set", das::SideEffects::modifyExternal, "bind_dascript::entitySetStr");
-  entitySetStrExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  entitySetStrExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 
   das::addExtern<DAS_BIND_FUN(setEntityChildComponentHint)>(*this, lib, "set", das::SideEffects::modifyExternal,
     "bind_dascript::setEntityChildComponentHint")
-    ->annotations.push_back(annotation_declaration(das::make_smart<EcsSetAnnotation<1, 3, /*optional*/ false>>("ChildComponent")));
+    ->annotations.push_back(annotation_declaration(new EcsSetAnnotation<1, 3, /*optional*/ false>("ChildComponent")));
   auto setEntityChildComponentExt = das::addExtern<DAS_BIND_FUN(setEntityChildComponent)>(*this, lib, "set",
     das::SideEffects::modifyExternal, "bind_dascript::setEntityChildComponent");
   setEntityChildComponentExt->annotations.push_back(
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+    annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 }
 } // namespace bind_dascript

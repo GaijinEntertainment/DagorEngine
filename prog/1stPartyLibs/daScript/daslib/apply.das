@@ -50,10 +50,10 @@ def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : strin
     assert(stype.baseType == Type.tStructure)
     assert(stype.dim |> length == 0)
     let nfields = frange.y - frange.x
-    var inscope selfT <- clone_type(stype)
+    var selfT = clone_type(stype)
     selfT.flags |= TypeDeclFlags.isExplicit | TypeDeclFlags.explicitConst
-    var inscope blkList : array<ExpressionPtr>
-    var inscope func_args : array<VariablePtr>
+    var blkList : array<ExpressionPtr>
+    var func_args : array<VariablePtr>
     names |> reserve(nfields)
     blkList |> reserve(nfields)
     // for fld in stype.structType.fields
@@ -78,12 +78,12 @@ def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : strin
                     }
                     rttiAnnValues |> emplace(value)
                 }
-                blkList |> emplace_new <|  qmacro(invoke($i("__arg_{fld.name}"), _`_self.$f(fld.name), $v(rttiAnnValues)))
+                blkList |> push(qmacro(invoke($i("__arg_{fld.name}"), _`_self.$f(fld.name), $v(rttiAnnValues))))
             } else {
-                blkList |> emplace_new <|  qmacro(invoke($i("__arg_{fld.name}"), _`_self.$f(fld.name)))
+                blkList |> push(qmacro(invoke($i("__arg_{fld.name}"), _`_self.$f(fld.name))))
             }
-            var inscope argT <- new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
-            var inscope fldT <- clone_type(fld._type)
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var fldT = clone_type(fld._type)
             if (stype.flags.constant) {
                 fldT.flags |= TypeDeclFlags.constant
             }
@@ -94,12 +94,12 @@ def generateApplyVisitStruct(stype : TypeDeclPtr; frange : range; fnname : strin
             if (hasExtraArg) {
                 argT.argTypes |> emplace_new <| qmacro_type(type<array<tuple<name : string; data : RttiValue>>>)
             }
-            move_new(argT.firstType) <| new TypeDecl(baseType = Type.tVoid, at = at)
+            argT.firstType = new TypeDecl(baseType = Type.tVoid, at = at)
             argT.flags = TypeDeclFlags.constant
             func_args |> emplace_new <| new Variable(name := "__arg_{fld.name}", _type <- argT)
         }
     }
-    var inscope fn <- qmacro_function(fnname) <| $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
+    var fn = qmacro_function(fnname) $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
         $b(blkList)
     }
     fn.flags |= FunctionFlags.privateFunction
@@ -126,10 +126,10 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; frange : range; fnname : string
     assert(stype.baseType == Type.tTuple)
     assert(stype.dim |> length == 0)
     let nfields = frange.y - frange.x
-    var inscope selfT <- clone_type(stype)
+    var selfT = clone_type(stype)
     selfT.flags |= TypeDeclFlags.isExplicit | TypeDeclFlags.explicitConst
-    var inscope blkList : array<ExpressionPtr>
-    var inscope func_args : array<VariablePtr>
+    var blkList : array<ExpressionPtr>
+    var func_args : array<VariablePtr>
     names |> reserve(nfields)
     blkList |> reserve(nfields)
     for (fldi in frange) {
@@ -137,9 +137,9 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; frange : range; fnname : string
             assume flda = stype.argTypes[fldi]
             let fldname = length(stype.argNames) == length(stype.argTypes) ? string(stype.argNames[fldi]) : "_{fldi}"
             names |> push(fldname)
-            blkList |> emplace_new <|  qmacro(invoke($i("__arg_{fldname}"), _`_self.$f(fldname)))
-            var inscope argT <- new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
-            var inscope fldT <- clone_type(flda)
+            blkList |> push(qmacro(invoke($i("__arg_{fldname}"), _`_self.$f(fldname))))
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var fldT = clone_type(flda)
             if (stype.flags.constant) {
                 fldT.flags |= TypeDeclFlags.constant
             }
@@ -147,12 +147,12 @@ def generateApplyVisitTuple(stype : TypeDeclPtr; frange : range; fnname : string
                 fldT.flags |= TypeDeclFlags.ref
             }
             emplace(argT.argTypes, fldT)
-            move_new(argT.firstType) <| new TypeDecl(baseType = Type.tVoid, at = at)
+            argT.firstType = new TypeDecl(baseType = Type.tVoid, at = at)
             argT.flags = TypeDeclFlags.constant
             func_args |> emplace_new <| new Variable(name := "__arg_{fldname}", _type <- argT)
         }
     }
-    var inscope fn <- qmacro_function(fnname) <| $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
+    var fn = qmacro_function(fnname) $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
         $b(blkList)
     }
     fn.flags |= FunctionFlags.privateFunction
@@ -183,10 +183,10 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : stri
     assert(stype.baseType == Type.tVariant)
     assert(stype.dim |> length == 0)
     let nfields = frange.y - frange.x
-    var inscope selfT <- clone_type(stype)
+    var selfT = clone_type(stype)
     selfT.flags |= TypeDeclFlags.isExplicit | TypeDeclFlags.explicitConst
-    var inscope blkList : array<ExpressionPtr>
-    var inscope func_args : array<VariablePtr>
+    var blkList : array<ExpressionPtr>
+    var func_args : array<VariablePtr>
     names |> reserve(nfields)
     blkList |> reserve(nfields)
     for (fldi in frange) {
@@ -194,15 +194,15 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : stri
             assume flda = stype.argTypes[fldi]
             let fldname = length(stype.argNames) == length(stype.argTypes) ? string(stype.argNames[fldi]) : "_{fldi}"
             names |> push(fldname)
-            var inscope vexpr <- qmacro_block() {
+            var vexpr = qmacro_block() {
                 if (variant_index(_`_self) == $v(fldi)) {
                     invoke($i("__arg_{fldname}"), _`_self as $f(fldname))
                     return
                 }
             }
             blkList |> emplace(vexpr)
-            var inscope argT <- new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
-            var inscope fldT <- clone_type(flda)
+            var argT = new TypeDecl(baseType = Type.tBlock, at = at)                      // block<(x:field1type)>
+            var fldT = clone_type(flda)
             if (stype.flags.constant) {
                 fldT.flags |= TypeDeclFlags.constant
             }
@@ -210,12 +210,12 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; frange : range; fnname : stri
                 fldT.flags |= TypeDeclFlags.ref
             }
             emplace(argT.argTypes, fldT)
-            move_new(argT.firstType) <| new TypeDecl(baseType = Type.tVoid, at = at)
+            argT.firstType = new TypeDecl(baseType = Type.tVoid, at = at)
             argT.flags = TypeDeclFlags.constant
             func_args |> emplace_new <| new Variable(name := "__arg_{fldname}", _type <- argT)
         }
     }
-    var inscope fn <- qmacro_function(fnname) <| $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
+    var fn = qmacro_function(fnname) $ [unused_argument(_`_self)] (_`_self : $t(selfT); $a(func_args)) {
         $b(blkList)
     }
     fn.flags |= FunctionFlags.privateFunction
@@ -234,7 +234,7 @@ def generateApplyVisitVariant(stype : TypeDeclPtr; fnname : string; at : LineInf
 [macro_function]
 def clone_block_with_name(name : string; blk : ExpressionPtr; hasExtraArg : bool) {
     macro_verify(blk is ExprMakeBlock, this_program(), blk.at, "expecting make block, i.e. $(..)")
-    var inscope res <- clone_expression(blk)
+    var res = clone_expression(blk)
     var imb = res as ExprMakeBlock
     var rblk = imb._block as ExprBlock
     macro_verify(rblk != null, this_program(), blk.at, "expecting block")
@@ -243,7 +243,7 @@ def clone_block_with_name(name : string; blk : ExpressionPtr; hasExtraArg : bool
     } else {
         macro_verify(length(rblk.arguments) == 2, this_program(), blk.at, "expecting block with 2 arguments")
     }
-    var inscope eassume <- new ExprAssume(at = blk.at,
+    var eassume = new ExprAssume(at = blk.at,
         alias := rblk.arguments[0].name,
         subexpr <- new ExprConstString(at = blk.at, value := name)
     )
@@ -268,10 +268,10 @@ class ApplyMacro : AstCallMacro {
     //!     }
     //!
     //! Would print ``x = 1 y = 2``
-    def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {
+    def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(expr.arguments |> length == 2, prog, expr.at, "expecting apply(value, block)")
         if (expr.arguments[0]._type != null) {// need value inferred
-            var inscope argT := expr.arguments[0]._type
+            var argT = clone_type(expr.arguments[0]._type)
             macro_verify(argT.dim |> length == 0, prog, expr.at, "can't apply to dim")
             macro_verify(argT.baseType == Type.tStructure || argT.baseType == Type.tTuple || argT.baseType == Type.tVariant,
                 prog, expr.at, "can only apply to {describe(expr.arguments[0]._type)}")
@@ -301,12 +301,12 @@ class ApplyMacro : AstCallMacro {
                 names <- generateApplyVisitVariant(expr.arguments[0]._type, callName, expr.at)
             } else {
                 macro_error(prog, expr.at, "internal error. can't apply to {describe(argT)}")
-                return <- default<ExpressionPtr>
+                return null
             }
             // make a collection of calls
-            var inscope calls : array<ExpressionPtr>
+            var calls : array<ExpressionPtr>
             for_each_subrange(nfields) $(frange) {
-                var inscope call <- new ExprCall(name := "_::{callName}`{frange.x}`{frange.y}", at = expr.at)
+                var call = new ExprCall(name := "_::{callName}`{frange.x}`{frange.y}", at = expr.at)
                 emplace_new(call.arguments, clone_expression(expr.arguments[0]))
                 for (idx in frange) {
                     emplace_new(call.arguments, clone_block_with_name(names[idx], expr.arguments[1], hasExtraArg))
@@ -316,12 +316,12 @@ class ApplyMacro : AstCallMacro {
             if (length(calls) == 1) {
                 return <- calls[0]
             }
-            var inscope callblock <- new ExprBlock(at = expr.at)
+            var callblock = new ExprBlock(at = expr.at)
             unsafe {
                 callblock.list := calls
             }
             return <- callblock
         }
-        return <- default<ExpressionPtr>
+        return null
     }
 }

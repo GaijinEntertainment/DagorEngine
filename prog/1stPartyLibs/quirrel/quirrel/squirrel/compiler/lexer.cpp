@@ -79,6 +79,8 @@ void SQLexer::Init(const char *sourceText, size_t sourceTextSize)
     ADD_KEYWORD(global, TK_GLOBAL);
     ADD_KEYWORD(not, TK_NOT);
     ADD_KEYWORD(let, TK_LET);
+    ADD_KEYWORD(async, TK_ASYNC);
+    ADD_KEYWORD(await, TK_AWAIT);
 
     _sourceText = sourceText;
     _sourceTextSize = sourceTextSize;
@@ -153,7 +155,7 @@ void SQLexer::LexBlockComment()
               start = _currentcolumn;
               continue;
             case SQUIRREL_EOB:
-              _ctx.reportDiagnostic(DiagnosticsId::DI_TRAILING_BLOCK_COMMENT, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+              _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "missing \"*/\" in comment");
               return;
             default: NEXT();
         }
@@ -192,7 +194,7 @@ SQInteger SQLexer::LexSingleToken()
       SQInteger stype = ReadString('"', false, false);
       if (stype != -1)
         RETURN_TOKEN(stype);
-      _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "the string");
+      _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "error parsing the string");
     }
 
     while(CUR_CHAR != SQUIRREL_EOB) {
@@ -264,7 +266,7 @@ SQInteger SQLexer::LexSingleToken()
             NEXT();
             SQInteger stype = ReadDirective();
             if (stype < 0)
-                _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "directive");
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "error parsing directive");
             RETURN_TOKEN(TK_DIRECTIVE);
             }
         case '$': {
@@ -292,7 +294,7 @@ SQInteger SQLexer::LexSingleToken()
                 NEXT();
                 stype = ReadString('"', true);
                 if (stype != TK_STRING_LITERAL)
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "the docstring");
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "error parsing the docstring");
                 RETURN_TOKEN(TK_DOCSTRING);
             }
             if (CUR_CHAR != '"') {
@@ -301,7 +303,7 @@ SQInteger SQLexer::LexSingleToken()
             if ((stype = ReadString('"', true)) != -1) {
               RETURN_TOKEN(stype);
             }
-            _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "the string");
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "error parsing the string");
             break;
             }
         case '"':
@@ -310,7 +312,7 @@ SQInteger SQLexer::LexSingleToken()
             if((stype=ReadString(CUR_CHAR,false))!=-1){
                 RETURN_TOKEN(stype);
             }
-            _ctx.reportDiagnostic(DiagnosticsId::DI_LEX_ERROR_PARSE, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "the string");
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "error parsing the string");
             break;
             }
         case '{': case '}': case '(': case ')': case '[': case ']':
@@ -342,7 +344,7 @@ SQInteger SQLexer::LexSingleToken()
             if (CUR_CHAR != '.'){ RETURN_TOKEN('.') }
             NEXT();
             if (CUR_CHAR != '.'){
-              _ctx.reportDiagnostic(DiagnosticsId::DI_INVALID_TOKEN, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "..");
+              _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "invalid token '..'");
             }
             NEXT();
             RETURN_TOKEN(TK_VARPARAMS);
@@ -390,7 +392,7 @@ SQInteger SQLexer::LexSingleToken()
                 else {
                     SQInteger c = CUR_CHAR;
                     if (iscntrl((int)c))
-                        _ctx.reportDiagnostic(DiagnosticsId::DI_UNEXPECTED_CHAR, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "(control)");
+                        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "unexpected character '(control)'");
                     NEXT();
                     RETURN_TOKEN(c);
                 }
@@ -440,7 +442,7 @@ SQInteger SQLexer::ProcessStringHexEscape(char *dest, SQInteger maxdigits)
 {
     NEXT();
     if (!sq_isxdigit(CUR_CHAR))
-        _ctx.reportDiagnostic(DiagnosticsId::DI_HEX_NUMBERS_EXPECTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "hexadecimal number expected");
     SQInteger n = 0;
     while (sq_isxdigit(CUR_CHAR) && n < maxdigits) {
         dest[n] = CUR_CHAR;
@@ -455,7 +457,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
 {
     SQInteger t = TK_STRING_LITERAL;
     if (_state == LS_TEMPLATE && ndelim != '\"') {
-        _ctx.reportDiagnostic(DiagnosticsId::DI_EXPECTED_LEX, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "string");
+        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "expected string");
         return -1;
     }
     INIT_TEMP_STRING();
@@ -467,11 +469,11 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
             SQInteger x = CUR_CHAR;
             switch (x) {
             case SQUIRREL_EOB:
-                _ctx.reportDiagnostic(DiagnosticsId::DI_UNFINISHED_STRING, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "unfinished string");
                 return -1;
             case '\n':
                 if(!verbatim)
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_NEWLINE_IN_CONST, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "newline in a constant");
                 APPEND_CHAR(CUR_CHAR); NEXT();
                 nextLine();
                 break;
@@ -518,7 +520,7 @@ SQInteger SQLexer::ReadString(SQInteger ndelim,bool verbatim, bool advance)
                         }
                     // fall through -V796
                     default:
-                        _ctx.reportDiagnostic(DiagnosticsId::DI_UNRECOGNISED_ESCAPER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "unrecognised escape char");
                     break;
                     }
                 }
@@ -556,9 +558,9 @@ loop_exit:
     if(ndelim == '\'') {
         assert(_state != LS_TEMPLATE);
         if(len == 0)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_EMPTY_LITERAL, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "empty constant");
         if(len > 1)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_TOO_LONG_LITERAL, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "constant too long");
         _nvalue = _longstr[0];
         return TK_INTEGER;
     }
@@ -611,7 +613,7 @@ SQInteger SQLexer::ReadNumber()
     INIT_TEMP_STRING();
     NUM_NEXT();
     if(firstchar == '0' && sq_isdigit(CUR_CHAR))
-        _ctx.reportDiagnostic(DiagnosticsId::DI_OCTAL_NOT_SUPPORTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "leading 0 is not allowed, octal numbers are not supported");
     if(firstchar == '0' && (toupper(CUR_CHAR) == 'X') ) {
         NUM_NEXT();
         type = THEX;
@@ -620,9 +622,9 @@ SQInteger SQLexer::ReadNumber()
             NUM_NEXT();
         }
         if(_longstr.size() > MAX_HEX_DIGITS)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_HEX_TOO_MANY_DIGITS, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "too many digits for a hex number");
         if(_longstr.size() == 0)
-            _ctx.reportDiagnostic(DiagnosticsId::DI_HEX_DIGITS_EXPECTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "expected hex digits after '0x'");
     }
     else {
         APPEND_CHAR((char)firstchar);
@@ -631,13 +633,13 @@ SQInteger SQLexer::ReadNumber()
         while (CUR_CHAR == '.' || sq_isalnum(CUR_CHAR)) {
             if(CUR_CHAR == '.') {
                 if(hasDot || hasExp)
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "malformed number");
                 hasDot = true;
                 type = TFLOAT;
             }
             else if(isexponent(CUR_CHAR)) {
                 if(hasExp)
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "malformed number");
                 hasExp = true;
                 type = TSCIENTIFIC;
                 APPEND_CHAR(CUR_CHAR);
@@ -647,10 +649,10 @@ SQInteger SQLexer::ReadNumber()
                     NEXT();
                 }
                 if(!sq_isdigit(CUR_CHAR))
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_FP_EXP_EXPECTED, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "exponent expected");
             }
             if(!sq_isdigit(CUR_CHAR) && !isexponent(CUR_CHAR) && CUR_CHAR != '.')
-                _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "malformed number");
 
             APPEND_CHAR(CUR_CHAR);
             NUM_NEXT();
@@ -664,13 +666,13 @@ SQInteger SQLexer::ReadNumber()
         {
             auto ret = std::from_chars(&_longstr[0], &_longstr[0] + _longstr.size(), _fvalue);
             if (ret.ec == std::errc::result_out_of_range)
-                _ctx.reportDiagnostic(_fvalue == 0 ? DiagnosticsId::DI_LITERAL_UNDERFLOW : DiagnosticsId::DI_LITERAL_OVERFLOW,
-                    _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn,
+                    _fvalue == 0 ? "float constant underflow" : "float constant overflow");
 
             for (const char * c = ret.ptr; c < &_longstr[0] + _longstr.size() - 1; ++c)
                 if (*c != '0')
                 {
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_MALFORMED_NUMBER, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn);
+                    _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "malformed number");
                     break;
                 }
         }
@@ -688,7 +690,7 @@ SQInteger SQLexer::ReadNumber()
                     if (!c || c == 'e' || c == 'E')
                         break;
                     if (c != '.' && c != '0')
-                        _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_UNDERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                        _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float constant underflow");
                 }
             }
         }
@@ -697,17 +699,17 @@ SQInteger SQLexer::ReadNumber()
         if(sizeof(_fvalue) == sizeof(float))
         {
             if (_fvalue >= FLT_MAX)
-                _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_OVERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float constant overflow");
         }
         else if(sizeof(_fvalue) == sizeof(double))
         {
             if (_fvalue >= DBL_MAX)
-                _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_OVERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float");
+                _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "float constant overflow");
         }
         return TK_FLOAT;
     case TINT:
         if(!LexInteger(&_longstr[0],(SQUnsignedInteger *)&_nvalue))
-            _ctx.reportDiagnostic(DiagnosticsId::DI_LITERAL_OVERFLOW, _tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "integer");
+            _ctx.throwError(_tokenline, _tokencolumn, _currentcolumn - _tokencolumn, "integer constant overflow");
         return TK_INTEGER;
     case THEX:
         LexHexadecimal(&_longstr[0],(SQUnsignedInteger *)&_nvalue);

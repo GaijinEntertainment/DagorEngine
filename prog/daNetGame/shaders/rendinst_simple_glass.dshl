@@ -102,6 +102,10 @@ shader rendinst_simple_glass
   {
     GENERATE_TRANSPARENT_GBUFFER_PS()
   }
+  else if (rendinst_reactive_mask_pass == yes)
+  {
+    dont_render;
+  }
   else
   {
     RT_GLASS_APPLY(ps)

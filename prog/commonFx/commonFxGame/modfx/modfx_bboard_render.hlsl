@@ -53,8 +53,8 @@
     float3 lighting = 0;
 
     // Find omni lights outside of current modfx
-    uint sliceId = min(getSliceAtDepth(proj_dist, depthSliceScale, depthSliceBias), CLUSTERS_D);
-    uint clusterIndex = getClusterIndex(tc, sliceId);
+    uint sliceId = min(frustum_clusters_get_slice_at_depth(proj_dist, depthSliceScale, depthSliceBias), CLUSTERS_D);
+    uint clusterIndex = frustum_clusters_get_cluster_index(tc, sliceId);
 
     uint omniAddress = clusterIndex*omniLightsWordCount;
     LOOP

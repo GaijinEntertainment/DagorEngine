@@ -166,7 +166,15 @@ public:
     return ret;
   }
 
-  vec4f getBoundingSphere(unsigned id) const { return ((const vec4f &)rawLights[id].pos_radius); }
+  vec4f getBoundingSphere(unsigned id) const
+  {
+    const Light &l = rawLights[id];
+    const float cullRadius = l.posRelToOrigin_cullRadius.w;
+    vec4f bounds = v_ldu(reinterpret_cast<const float *>(&l.pos_radius.x));
+    if (cullRadius > 0.f)
+      bounds = v_perm_xyzd(bounds, v_splats(cullRadius));
+    return bounds;
+  }
 
 private:
   carray<Light, MAX_LIGHTS> rawLights;

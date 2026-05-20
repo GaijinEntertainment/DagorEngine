@@ -3,6 +3,7 @@
 #include <memory.h>
 #include <sqconfig.h>
 #include "compilationcontext.h"
+#include "ast.h"
 #include "sqstring.h"
 #include "keyValueFile.h"
 #include <sq_char_class.h>
@@ -26,9 +27,9 @@ struct DiagnosticDescriptor {
   bool disabled;
 };
 
-static const char severityPrefixes[] = "hwe";
+static const char severityPrefixes[] = "hw";
 static const char *severityNames[] = {
-  "HINT", "WARNING", "ERROR", nullptr
+  "HINT", "WARNING"
 };
 
 static DiagnosticDescriptor diagnosticDescriptors[] = {
@@ -101,8 +102,6 @@ const char *SQCompilationContext::findLine(int lineNo) {
 
 void SQCompilationContext::printAllWarnings(FILE *ostream) {
   for (auto &diag : diagnosticDescriptors) {
-    if (diag.severity == DS_ERROR)
-      continue;
     fprintf(ostream, "w%d (%s)\n", diag.id, diag.textId);
     fprintf(ostream, diag.format, "***", "***", "***", "***", "***", "***", "***", "***");
     fprintf(ostream, "\n\n");
@@ -112,9 +111,7 @@ void SQCompilationContext::printAllWarnings(FILE *ostream) {
 bool SQCompilationContext::enableWarning(const char *diagName, bool state) {
   for (auto &diag : diagnosticDescriptors) {
     if (strcmp(diagName, diag.textId) == 0) {
-      if (diag.severity != DS_ERROR) {
-        diag.disabled = !state;
-      }
+      diag.disabled = !state;
       return true;
     }
   }
@@ -124,9 +121,7 @@ bool SQCompilationContext::enableWarning(const char *diagName, bool state) {
 bool SQCompilationContext::enableWarning(int32_t id, bool state) {
   for (auto &diag : diagnosticDescriptors) {
     if (id == diag.id) {
-      if (diag.severity != DS_ERROR) {
-        diag.disabled = !state;
-      }
+      diag.disabled = !state;
       return true;
     }
   }
@@ -156,7 +151,6 @@ bool SQCompilationContext::isRequireDisabled(int line, int col) {
 
 bool SQCompilationContext::isDisabled(enum DiagnosticsId id, int line, int pos) {
   DiagnosticDescriptor &descriptor = diagnosticDescriptors[id];
-  if (descriptor.severity >= DS_ERROR) return false;
 
   if (descriptor.disabled) return true;
 
@@ -248,100 +242,132 @@ void SQCompilationContext::vrenderDiagnosticHeader(enum DiagnosticsId diag, std:
   message.append(tempBuffer);
 }
 
-void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
-  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+void SQCompilationContext::buildSourceWindow(int32_t line, int32_t pos, int32_t width, std::string &extraInfo) {
+  const char *l1 = findLine(line - 1);
+  const char *l2 = findLine(line);
+  const char *l3 = findLine(line + 1);
+  const char *lastSourceCodeChar = _code + _codeSize - 1;
 
-  bool terminate = false;
-
-  if (!isDisabled(diagId, line, pos)) {
-
-    auto &desc = diagnosticDescriptors[diagId];
-    bool isError = desc.severity >= DS_ERROR;
-    std::string message;
-
-    vrenderDiagnosticHeader(diagId, message, vargs);
-
-    std::string extraInfo;
-
-    const char *l1 = findLine(line - 1);
-    const char *l2 = findLine(line);
-    const char *l3 = findLine(line + 1);
-    const char *lastSourceCodeChar = _code + _codeSize - 1;
-
-    if (l1 != nullptr && !isBlankLine(l1)) {
-      extraInfo.push_back('\n');
-      int32_t j = 0;
-      while ((l1 + j <= lastSourceCodeChar) && l1[j] && l1[j] != '\n' && l1[j] != '\r') { //-V522
-        extraInfo.push_back(l1[j++]); //-V595
-      }
-    }
-
-    if (l2 != nullptr) {
-      extraInfo.push_back('\n');
-      int32_t j = 0;
-      while ((l2 + j <= lastSourceCodeChar) && l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522
-        extraInfo.push_back(l2[j++]); //-V595
-      }
-
-      extraInfo.push_back('\n');
-      j = 0;
-
-      drawUnderliner(pos, width, extraInfo);
-    }
-
-    if (l3 != nullptr && !isBlankLine(l3)) {
-      extraInfo.push_back('\n');
-      int32_t j = 0;
-      while ((l3 + j <= lastSourceCodeChar) && l3[j] && l3[j] != '\n' && l3[j] != '\r') { //-V522
-        extraInfo.push_back(l3[j++]); //-V595
-      }
-    }
-
-    const char *extra = nullptr;
-    if (l1 || l2 || l3) {
-      extraInfo.push_back('\n');
-      extraInfo.push_back('\n'); // separate with extra line
-      extra = extraInfo.c_str();
-    }
-
-    auto messageFunc = _ss(_vm)->_compilererrorhandler;
-
-    const char *msg = message.c_str();
-
-    auto diagMsgFunc = _ss(_vm)->_compilerdiaghandler;
-    if (diagMsgFunc) {
-      SQCompilerMessage cm;
-      cm.intId = desc.id;
-      cm.textId = desc.textId;
-      cm.line = line;
-      cm.column = pos;
-      cm.columnsWidth = width;
-      cm.message = msg;
-      cm.fileName = _sourceName;
-      cm.isError = isError;
-      diagMsgFunc(_vm, &cm);
-    }
-
-    if (_raiseError && messageFunc) {
-      SQMessageSeverity sev = SEV_ERROR;
-      if (desc.severity == DS_HINT) sev = SEV_HINT;
-      else if (desc.severity == DS_WARNING) sev = SEV_WARNING;
-      messageFunc(_vm, sev, msg, _sourceName, line, pos, extra);
-    }
-    if (isError) {
-      _vm->_lasterror = SQString::Create(_ss(_vm), msg, message.length());
-      terminate = true;
+  if (l1 != nullptr && !isBlankLine(l1)) {
+    extraInfo.push_back('\n');
+    int32_t j = 0;
+    while ((l1 + j <= lastSourceCodeChar) && l1[j] && l1[j] != '\n' && l1[j] != '\r') { //-V522
+      extraInfo.push_back(l1[j++]); //-V595
     }
   }
 
-  if (terminate)
-    throw CompilerError();
+  if (l2 != nullptr) {
+    extraInfo.push_back('\n');
+    int32_t j = 0;
+    while ((l2 + j <= lastSourceCodeChar) && l2[j] && l2[j] != '\n' && l2[j] != '\r') { //-V522
+      extraInfo.push_back(l2[j++]); //-V595
+    }
+
+    extraInfo.push_back('\n');
+    drawUnderliner(pos, width, extraInfo);
+  }
+
+  if (l3 != nullptr && !isBlankLine(l3)) {
+    extraInfo.push_back('\n');
+    int32_t j = 0;
+    while ((l3 + j <= lastSourceCodeChar) && l3[j] && l3[j] != '\n' && l3[j] != '\r') { //-V522
+      extraInfo.push_back(l3[j++]); //-V595
+    }
+  }
+
+  if (l1 || l2 || l3) {
+    extraInfo.push_back('\n');
+    extraInfo.push_back('\n'); // separate with extra line
+  }
+}
+
+void SQCompilationContext::emitDiagnostic(const char *msg, int32_t line, int32_t pos, int32_t width,
+                                          int32_t intId, const char *textId, SQMessageSeverity severity) {
+  std::string extraInfo;
+  buildSourceWindow(line, pos, width, extraInfo);
+  const char *extra = extraInfo.empty() ? nullptr : extraInfo.c_str();
+
+  auto diagMsgFunc = _ss(_vm)->_compilerdiaghandler;
+  if (diagMsgFunc) {
+    SQCompilerMessage cm;
+    cm.intId = intId;
+    cm.textId = textId;
+    cm.line = line;
+    cm.column = pos;
+    cm.columnsWidth = width;
+    cm.message = msg;
+    cm.fileName = _sourceName;
+    cm.isError = (severity == SEV_ERROR);
+    diagMsgFunc(_vm, &cm);
+  }
+
+  auto messageFunc = _ss(_vm)->_compilererrorhandler;
+  if (_raiseError && messageFunc) {
+    messageFunc(_vm, severity, msg, _sourceName, line, pos, extra);
+  }
+}
+
+void SQCompilationContext::vreportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, va_list vargs) {
+  assert(diagId < DI_NUM_OF_DIAGNOSTICS);
+
+  if (isDisabled(diagId, line, pos))
+    return;
+
+  auto &desc = diagnosticDescriptors[diagId];
+
+  std::string message;
+  vrenderDiagnosticHeader(diagId, message, vargs);
+
+  SQMessageSeverity sev = (desc.severity == DS_HINT) ? SEV_HINT : SEV_WARNING;
+  emitDiagnostic(message.c_str(), line, pos, width, desc.id, desc.textId, sev);
 }
 
 void SQCompilationContext::reportDiagnostic(enum DiagnosticsId diagId, int32_t line, int32_t pos, int32_t width, ...) {
   va_list vargs;
   va_start(vargs, width);
   vreportDiagnostic(diagId, line, pos, width, vargs);
+  va_end(vargs);
+}
+
+void SQCompilationContext::vthrowError(int32_t line, int32_t pos, int32_t width, const char *fmt, va_list vargs) {
+  std::string message;
+  message.append("ERROR: ");
+
+  char tempBuffer[2048] = { 0 };
+  vsnprintf(tempBuffer, sizeof tempBuffer, fmt, vargs);
+  message.append(tempBuffer);
+
+  emitDiagnostic(message.c_str(), line, pos, width, -1, "", SEV_ERROR);
+
+  _vm->_lasterror = SQString::Create(_ss(_vm), message.c_str(), message.length());
+  throw CompilerError();
+}
+
+void SQCompilationContext::throwError(int32_t line, int32_t pos, int32_t width, const char *fmt, ...) {
+  va_list vargs;
+  va_start(vargs, fmt);
+  vthrowError(line, pos, width, fmt, vargs);
+  va_end(vargs); // unreachable; vthrowError throws
+}
+
+void SQCompilationContext::throwError(const char *fmt, ...) {
+  va_list vargs;
+  va_start(vargs, fmt);
+  vthrowError(-1, -1, 0, fmt, vargs);
+  va_end(vargs); // unreachable; vthrowError throws
+}
+
+void SQCompilationContext::throwError(const Node *n, const char *fmt, ...) {
+  va_list vargs;
+  va_start(vargs, fmt);
+  vthrowError(n->lineStart(), n->columnStart(), n->textWidth(), fmt, vargs);
+  va_end(vargs); // unreachable; vthrowError throws
+}
+
+void SQCompilationContext::reportDiagnostic(enum DiagnosticsId diagId, const Node *n, ...) {
+  va_list vargs;
+  va_start(vargs, n);
+  vreportDiagnostic(diagId, n->lineStart(), n->columnStart(), n->textWidth(), vargs);
   va_end(vargs);
 }
 

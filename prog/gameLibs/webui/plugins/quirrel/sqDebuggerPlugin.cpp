@@ -24,7 +24,6 @@
 
 #include <squirrel/sqpcheader.h>
 #include <sqstdaux.h>
-#include <sqio.h>
 #include <squirrel/sqvm.h>
 #include <squirrel/sqstate.h>
 #include <squirrel/sqfuncproto.h>
@@ -533,10 +532,8 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
         SQFunctionProto *func = c->_function;
         int instructionIndex = int(ci._ip - func->_instructions);
 
-        MemoryOutputStream mem;
-        sq_dumpbytecode(vm, ci._closure, &mem, instructionIndex);
-
-        sq_output.setStr((const char *)mem.buffer(), mem.pos());
+        auto appendToString = [](const char *s, void *ud) { ((String *)ud)->append(s); };
+        sq_dumpbytecode(vm, ci._closure, appendToString, &sq_output, instructionIndex);
       }
 
       html_response_raw(params->conn, sq_output.str());

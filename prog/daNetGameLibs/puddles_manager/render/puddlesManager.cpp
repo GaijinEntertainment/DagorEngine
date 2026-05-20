@@ -118,7 +118,7 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
     Point2 ofs = point2((puddlesHelper.mainOrigin - puddlesHelper.curOrigin) % puddlesHelper.texSize) / puddlesHelper.texSize;
 
     alignedOrigin = point2(puddlesHelper.curOrigin) * texelSize;
-    d3d::set_render_target(puddles.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{puddles.getTex2D(), 0, 0}});
     // todo: we'd better align to hmap world pos ofs
     ShaderGlobal::set_float4(world_to_puddles_ofsVarId, 1.0f / fullDistance, puddleLod, -alignedOrigin.x / fullDistance + 0.5,
       -alignedOrigin.y / fullDistance + 0.5);

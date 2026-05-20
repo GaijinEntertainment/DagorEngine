@@ -203,22 +203,22 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("math"));
-    addAnnotation(das::make_smart<Color3Annotation>(lib));
-    addAnnotation(das::make_smart<Color4Annotation>(lib));
-    addAnnotation(das::make_smart<E3DCOLORAnnotation>(lib));
-    addAnnotation(das::make_smart<Mat44fAnnotation>(lib));
-    addAnnotation(das::make_smart<TMatrixAnnotation>(lib));
-    addAnnotation(das::make_smart<FrustumAnnotation>(lib));
-    addAnnotation(das::make_smart<BSphere3Annotation>(lib));
-    addAnnotation(das::make_smart<DPoint3Annotation>(lib));
-    addAnnotation(das::make_smart<BBox3Annotation>(lib));
-    addAnnotation(das::make_smart<BBox3fAnnotation>(lib));
-    addAnnotation(das::make_smart<BBox2Annotation>(lib));
-    addAnnotation(das::make_smart<CapsuleAnnotation>(lib));
-    addAnnotation(das::make_smart<QuatAnnotation>(lib));
-    addAnnotation(das::make_smart<Plane3Annotation>(lib));
-    addAnnotation(das::make_smart<InterpolateTabFloatAnnotation>(lib));
-    addAnnotation(das::make_smart<InterpolateTabMemPtrFloatAnnotation>(lib));
+    addAnnotation(new Color3Annotation(lib));
+    addAnnotation(new Color4Annotation(lib));
+    addAnnotation(new E3DCOLORAnnotation(lib));
+    addAnnotation(new Mat44fAnnotation(lib));
+    addAnnotation(new TMatrixAnnotation(lib));
+    addAnnotation(new FrustumAnnotation(lib));
+    addAnnotation(new BSphere3Annotation(lib));
+    addAnnotation(new DPoint3Annotation(lib));
+    addAnnotation(new BBox3Annotation(lib));
+    addAnnotation(new BBox3fAnnotation(lib));
+    addAnnotation(new BBox2Annotation(lib));
+    addAnnotation(new CapsuleAnnotation(lib));
+    addAnnotation(new QuatAnnotation(lib));
+    addAnnotation(new Plane3Annotation(lib));
+    addAnnotation(new InterpolateTabFloatAnnotation(lib));
+    addAnnotation(new InterpolateTabMemPtrFloatAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(make_e3dcolor_from_color4)>(*this, lib, "E3DCOLOR", das::SideEffects::none,
       "bind_dascript::make_e3dcolor_from_color4");
     das::addExtern<DAS_BIND_FUN(make_color)>(*this, lib, "E3DCOLOR", das::SideEffects::none, "bind_dascript::make_color");

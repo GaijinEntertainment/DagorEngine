@@ -66,25 +66,50 @@ struct DependencyTypeInfo
   bool visible = true;
 };
 
+
+enum class NodeId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<NodeId>>(-1)
+};
+
+enum class ResourceId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<ResourceId>>(-1)
+};
+
 enum class DependencyId : uint16_t
 {
   Invalid = static_cast<eastl::underlying_type_t<DependencyId>>(-1)
 };
 
+struct Node
+{
+  NodeNameId regId = NodeNameId::Invalid;
+
+  PassColor passColor = UNKNOWN_PASS_COLOR;
+  uint32_t executionTime = CULLED_OUT_NODE;
+  bool cycled = false;
+
+  dag::RelocatableFixedVector<DependencyId, 4> inDeps;
+  dag::RelocatableFixedVector<DependencyId, 4> outDeps;
+  dag::RelocatableFixedVector<DependencyId, 4> inHistDeps;
+  dag::RelocatableFixedVector<DependencyId, 4> outHistDeps;
+};
+
+struct Resource
+{
+  ResNameId regId = ResNameId::Invalid;
+  bool hidden = false;
+};
+
 struct Dependency
 {
   DependencyType type;
-  NodeNameId from = NodeNameId::Invalid;
-  NodeNameId to = NodeNameId::Invalid;
-  ResNameId resource = ResNameId::Invalid;
+  NodeId from = NodeId::Invalid;
+  NodeId to = NodeId::Invalid;
+  ResourceId resource = ResourceId::Invalid;
   bool disabled = false;
   bool cycled = false;
-};
-
-struct NodeDependencies
-{
-  dag::RelocatableFixedVector<DependencyId, 4> in;
-  dag::RelocatableFixedVector<DependencyId, 4> out;
 };
 
 
@@ -100,15 +125,17 @@ enum class NodeBoxDependencyId : uint16_t
 
 struct NodeBox
 {
-  dag::RelocatableFixedVector<NodeNameId, 8> nodes;
+  NameSpaceNameId nameSpace = NameSpaceNameId::Invalid;
+
+  dag::RelocatableFixedVector<NodeId, 8> nodes;
   dag::RelocatableFixedVector<NodeBoxDependencyId, 8> inDeps;
   dag::RelocatableFixedVector<NodeBoxDependencyId, 8> outDeps;
 };
 
 struct NodeBoxDependency
 {
-  NodeBoxId from;
-  NodeBoxId to;
+  NodeBoxId from = NodeBoxId::Invalid;
+  NodeBoxId to = NodeBoxId::Invalid;
   dag::Vector<DependencyId> carriedDeps;
 };
 

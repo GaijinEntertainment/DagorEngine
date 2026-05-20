@@ -1,0 +1,18 @@
+WARNING: w232 (always-true-or-false) Expression is always 'false'.
+testData/static_analyzer/w232_chained.nut:2:9
+
+function fn(x, y) {
+  return (x == 1) && (y == 2) && ((x == 2))
+         ^-------------------------------
+}
+
+
+WARNING: w232 (always-true-or-false) Expression is always 'false'.
+testData/static_analyzer/w232_chained.nut:6:9
+
+function grouped_chains(x, y, z) {
+  return ((x == 1) && (y == 2)) && ((x == 2) && (z == 3))
+         ^---------------------------------------------
+}
+
+

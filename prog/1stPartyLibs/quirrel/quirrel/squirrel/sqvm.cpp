@@ -155,7 +155,6 @@ SQVM::SQVM(SQSharedState *ss) :
     _compile_line_hook = NULL;
     _current_thread = -1;
     _get_current_thread_id_func = NULL;
-    _sq_call_hook = NULL;
     _watchdog_hook = NULL;
     _openouters = NULL;
     ci = NULL;
@@ -178,7 +177,6 @@ void SQVM::Finalize()
     _compile_line_hook = NULL;
     _debughook_closure.Null();
     _get_current_thread_id_func = NULL;
-    _sq_call_hook = NULL;
     _watchdog_hook = NULL;
     temp_reg.Null();
     _callstackdata.resize(0);
@@ -495,7 +493,6 @@ bool SQVM::Init(SQVM *friendvm, SQInteger stacksize)
         _compile_line_hook = friendvm->_compile_line_hook;
         _current_thread = friendvm->_current_thread;
         _get_current_thread_id_func = friendvm->_get_current_thread_id_func;
-        _sq_call_hook = friendvm->_sq_call_hook;
         _watchdog_hook = friendvm->_watchdog_hook;
     }
 
@@ -595,12 +592,23 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
 
     if (closure->_function->_bgenerator) {
         SQFunctionProto *f = closure->_function;
-        SQGenerator *gen = SQGenerator::Create(_ss(this), closure);
-        if(!gen->Yield(this,f->_stacksize))
+        // RAII handle: an early return below would leak gen (refcount is 0 until assigned).
+        SQObjectPtr genPtr(SQGenerator::Create(_ss(this), closure));
+        SQGenerator *gen = _generator(genPtr);
+        if(!gen->Yield(this,MAX_FUNC_STACKSIZE,f->_stacksize))
             return false;
         SQObjectPtr temp;
         Return<debughookPresent>(1, target, temp);
-        _stack._vals[_stackbase + target] = gen;
+        if (f->_isAsync) {
+            // Use a local SQObjectPtr: wrap_generator pushes onto the VM stack,
+            // which can reallocate _stack._vals and invalidate a slot reference.
+            SQObjectPtr taskPromise;
+            if (SQ_FAILED(sqasync::wrap_generator(this, gen, taskPromise)))
+                return false;
+            _stack._vals[_stackbase + target] = taskPromise;
+        } else {
+            _stack._vals[_stackbase + target] = genPtr;
+        }
     }
 
 
@@ -979,6 +987,14 @@ bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackb
             ci->_root = SQTrue;
             traps += ci->_etraps;
             break;
+        case ET_RESUME_GENERATOR_THROW:
+            // Caller pre-loaded `_lasterror` with the value to raise; mirrors ET_RESUME_THROW_VM.
+            if(!_generator(closure)->Resume(this, outres)) {
+                return false;
+            }
+            ci->_root = SQTrue;
+            traps += ci->_etraps;
+            goto exception_trap;
         case ET_RESUME_VM:
         case ET_RESUME_THROW_VM:
             traps = _suspended_traps;
@@ -1640,7 +1656,7 @@ exception_restore:
                     if(sarg1 != MAX_FUNC_STACKSIZE) temp_reg = STK(arg1);
                     if (_openouters) CloseOuters(_stkbase);
                     SYNC_IP();
-                    _GUARD(ci->_generator->Yield(this,arg2));
+                    _GUARD(ci->_generator->Yield(this,sarg1,arg2));
                     traps -= ci->_etraps;
                     if(sarg1 != MAX_FUNC_STACKSIZE) _Swap(STK(arg1),temp_reg);//STK(arg1) = temp_reg;
                 }

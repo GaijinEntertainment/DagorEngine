@@ -31,7 +31,7 @@ struct VirtualRomFsDataHdr
   unsigned fullSz;
   unsigned hw32;
 
-  unsigned packedSz() const { return hw32 & 0x3FFFFFFU; }
+  unsigned packedSz() const { return hw32 & 0x3FFFFFFFU; }
   bool zstdPacked() const { return (hw32 & 0x40000000U) != 0; }
   bool signedContents() const { return (hw32 & 0x80000000U) != 0; }
 };

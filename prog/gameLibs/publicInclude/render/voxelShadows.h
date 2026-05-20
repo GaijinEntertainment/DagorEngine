@@ -68,7 +68,7 @@ private:
   uint32_t computeOrderLastIdx = 0;
   Point3 lastViewPos = {0, 0, 0};
   Settings cfg;
-  UniqueTexHolder volTexAtlas;
+  UniqueTexWithShaderVar volTexAtlas;
 
   carray<eastl::string, maxCascadeCount> sparseProfilerNames;
   carray<eastl::string, maxCascadeCount> toroidalProfilerNames;

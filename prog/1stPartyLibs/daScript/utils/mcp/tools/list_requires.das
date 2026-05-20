@@ -28,12 +28,12 @@ def module_kind(mod : Module?) : string {
 }
 
 def do_list_requires(file : string; project : string = ""; json : bool = false) : string {
-    return compile_program(file, true, false, project) <| $(program; issues) {
+    return compile_program(file, true, false, project) $(program; issues) {
         // direct requires from allRequireDecl
         var direct_text : array<string>
         var direct_entries : array<RequireEntry>
         var direct_modules : array<string>
-        for_each_require_declaration(program) <| $(var mod : Module?; mod_name : string#; mod_file : string#; var is_public : bool; at : LineInfo&) {
+        for_each_require_declaration(program) $(var mod : Module?; mod_name : string#; mod_file : string#; var is_public : bool; at : LineInfo&) {
             let kind = module_kind(mod)
             if (!json) {
                 let pub_marker = is_public ? " public" : ""
@@ -53,7 +53,7 @@ def do_list_requires(file : string; project : string = ""; json : bool = false) 
         }
         visited |> insert("$", true)
         var queue : array<Module?>
-        module_for_each_dependency(thisMod) <| $(var dep : Module?; var is_pub : bool) {
+        module_for_each_dependency(thisMod) $(var dep : Module?; var is_pub : bool) {
             let dep_name = string(dep.name)
             if (!key_exists(visited, dep_name)) {
                 visited |> insert(dep_name, true)
@@ -71,7 +71,7 @@ def do_list_requires(file : string; project : string = ""; json : bool = false) 
             } else {
                 transitive_entries |> emplace(RequireEntry(name = mod_name, source = kind))
             }
-            module_for_each_dependency(mod) <| $(var dep : Module?; var is_pub : bool) {
+            module_for_each_dependency(mod) $(var dep : Module?; var is_pub : bool) {
                 let dep_name = string(dep.name)
                 if (!key_exists(visited, dep_name)) {
                     visited |> insert(dep_name, true)
@@ -80,14 +80,14 @@ def do_list_requires(file : string; project : string = ""; json : bool = false) 
             }
         }
         if (json) {
-            sort(transitive_entries) <| $(a, b : RequireEntry) {
+            sort(transitive_entries) $(a, b : RequireEntry) {
                 return a.name < b.name
             }
             var result = RequiresResult(direct <- direct_entries, transitive <- transitive_entries)
             return sprint_json(result, false)
         }
         sort(transitive_text)
-        return build_string() <| $(var w) {
+        return build_string() $(var w) {
             if (!empty(direct_text)) {
                 write(w, "Direct requires:\n")
                 for (d in direct_text) {

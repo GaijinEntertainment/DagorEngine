@@ -114,6 +114,12 @@ void drawList()
 
 void drv3d_vulkan::debug_ui_resources()
 {
+  // if this counter constantly grows, it is usually bad
+  {
+    WinAutoLock lk(Globals::Mem::mutex);
+    ImGui::Text("Resource allocation count %u", Globals::Mem::res.getAllocationsCounter());
+  }
+
   listUpdate();
   drawInfo();
 

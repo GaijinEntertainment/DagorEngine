@@ -1,0 +1,9 @@
+ERROR: 'await' can only be used inside an async function
+testData/diagnostics/await_outside_async.nut:6:10
+
+function f() {
+  let x = await 1
+          ^------
+  return x
+
+

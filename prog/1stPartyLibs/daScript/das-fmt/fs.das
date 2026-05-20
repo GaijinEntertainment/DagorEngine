@@ -1,7 +1,7 @@
 options gen2
 options indenting = 4
 
-module fs shared
+module fs
 
 require daslib/fio
 require strings

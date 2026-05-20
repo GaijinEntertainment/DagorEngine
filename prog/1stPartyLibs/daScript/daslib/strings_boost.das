@@ -40,7 +40,7 @@ def join(it; separator : string implicit) {
                 } else {
                     write(writer, separator)
                 }
-                if (typeinfo is_string(it)) {
+                static_if (typeinfo is_string(it)) {
                     write_char(writer, elem)
                 } else {
                     write(writer, elem)
@@ -61,7 +61,7 @@ def join(var it : iterator<auto(TT)>; separator : string implicit) {
             } else {
                 write(writer, separator)
             }
-            if (typeinfo is_string(it)) {
+            static_if (typeinfo is_numeric(type<TT>)) {
                 write_char(writer, elem)
             } else {
                 write(writer, elem)
@@ -408,3 +408,4 @@ def public glob_match(pattern, text : string) : bool {
         return *pp == 0u8
     }
 }
+

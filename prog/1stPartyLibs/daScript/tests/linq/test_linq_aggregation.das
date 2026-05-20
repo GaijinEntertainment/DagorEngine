@@ -251,24 +251,18 @@ def test_average(t : T?) {
         var query = average(
             [iterator for(x in 0..5); x]
         )
-        t |> equal(query, 2)
+        t |> equal(query, 2.0lf)
     }
-    t |> run("complex average") @(t : T?) {
+    t |> run("float average") @(t : T?) {
         var queryf = average(
             [iterator for(x in 0..5); float(x)]
         )
-        t |> equal(queryf, 2.0)
-    }
-    t |> run("complex average") @(t : T?) {
-        var qcomplex = average(
-            [iterator for(x in 0..5); ComplexType(a = [x, x * 10])]
-        )
-        t |> success(qcomplex.a.Equal([2, 20]))
+        t |> equal(queryf, 2.0lf)
     }
     t |> run("average from array of floats") @(t : T?) {
         var floats = [1.0, 2.0, 3.0, 4.0, 5.0]
         var avgFloat = average(floats.to_sequence())
-        t |> equal(avgFloat, 3.0)
+        t |> equal(avgFloat, 3.0lf)
     }
 }
 

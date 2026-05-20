@@ -10,6 +10,7 @@
 #include <debug/dag_assert.h>
 #include <gameRes/dag_collisionResource.h>
 #include <vecmath/dag_vecMath.h>
+#include <daBVH/swBLASLeafDefs.hlsli>
 
 int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt, const CollisionResource &coll_res,
   const PhysMatFilter &node_filter, float dim_as_box_dist, BuildSwrtBLASScratch &scratch)
@@ -79,6 +80,42 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
       scratch.indices.push_back((uint32_t)i2 + vertOffset);
     });
     firstVertex += vertCount;
+  }
+
+  // BLAS leaf format packs vertex offsets in 10 bits each (max spread QUAD_O*_MAX = 1023,
+  // see swBLASLeafDefs.hlsli). Triangles whose vertex indices span more than that can't
+  // be represented in one leaf and would silently truncate to a wrapped offset, producing
+  // random triangle connectivity at runtime. For each such triangle, duplicate its three
+  // verts into a fresh compact range so its indices become (base, base+1, base+2) --
+  // spread = 2, always fits.
+  // Per-triangle spread is bounded by (vertCount - 1), so meshes at or below the limit
+  // can't overflow -- skip the scan entirely. Covers the bulk of small RI pools.
+  if (scratch.verts.size() > QUAD_O1_MAX + 1)
+  {
+    const int idxCount = (int)scratch.indices.size();
+    for (int t = 0; t < idxCount; t += 3)
+    {
+      uint32_t &i0 = scratch.indices[t + 0];
+      uint32_t &i1 = scratch.indices[t + 1];
+      uint32_t &i2 = scratch.indices[t + 2];
+      const uint32_t mn = min(min(i0, i1), i2);
+      const uint32_t mx = max(max(i0, i1), i2);
+      if (mx - mn > QUAD_O1_MAX)
+      {
+        // Copy to locals first: push_back may reallocate scratch.verts, after which a
+        // reference into the old storage (scratch.verts[iN]) would dangle.
+        const Point3_vec4 v0 = scratch.verts[i0];
+        const Point3_vec4 v1 = scratch.verts[i1];
+        const Point3_vec4 v2 = scratch.verts[i2];
+        const uint32_t base = (uint32_t)scratch.verts.size();
+        scratch.verts.push_back(v0);
+        scratch.verts.push_back(v1);
+        scratch.verts.push_back(v2);
+        i0 = base;
+        i1 = base + 1;
+        i2 = base + 2;
+      }
+    }
   }
 
   const vec4f *vertsPtr = (const vec4f *)scratch.verts.data();

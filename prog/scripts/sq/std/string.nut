@@ -262,7 +262,7 @@ function tostring_any(input, tostringfunc=null, compact=true) {
   else if (typ == "userdata"){
     return "#USERDATA#"
   }
-  else if (typ == "weakreference"){
+  else if (typ == "weakref"){
     return "#WEAKREF#"
   }
   if (typ=="thread") {

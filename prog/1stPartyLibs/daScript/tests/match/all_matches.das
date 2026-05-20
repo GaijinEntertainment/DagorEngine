@@ -521,18 +521,22 @@ def test_all_match(t : T?) {
         t |> equal(23, struct_ptr_match(new Foo(a = 23)))
     }
     t |> run("match handle ptr") @@(t : T?) {
-        t |> equal("null", match_handle_ptr(default<TypeDeclPtr>))
-        var inscope tp <- new TypeDecl(baseType = Type.tPointer)
-        t |> equal("pointer", match_handle_ptr(tp))
-        var inscope tnp <- new TypeDecl(baseType = Type.tInt)
-        t |> equal("anything", match_handle_ptr(tnp))
+        ast_gc_guard() {
+            t |> equal("null", match_handle_ptr(default<TypeDeclPtr>))
+            var tp = new TypeDecl(baseType = Type.tPointer)
+            t |> equal("pointer", match_handle_ptr(tp))
+            var tnp = new TypeDecl(baseType = Type.tInt)
+            t |> equal("anything", match_handle_ptr(tnp))
+        }
     }
     t |> run("match ast expression ptr") @@(t : T?) {
-        t |> equal("null", match_ast_expr_ptr(default<ExpressionPtr>))
-        var inscope ep <- new ExprConstInt(value = 13)
-        t |> equal("int 13", match_ast_expr_ptr(ep))
-        var inscope fp <- new ExprConstFloat(value = 13.0)
-        t |> equal("anything", match_ast_expr_ptr(fp))
+        ast_gc_guard() {
+            t |> equal("null", match_ast_expr_ptr(default<ExpressionPtr>))
+            var ep <- new ExprConstInt(value = 13)
+            t |> equal("int 13", match_ast_expr_ptr(ep))
+            var fp <- new ExprConstFloat(value = 13.0)
+            t |> equal("anything", match_ast_expr_ptr(fp))
+        }
     }
     t |> run("match as is") @@(t : T?) {
         t |> equal(0., matching_as_and_is(Cmd()))

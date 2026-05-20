@@ -20,7 +20,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addEnumeration(das::make_smart<EnumerationCreateCameraFlags>());
+    addEnumeration(new EnumerationCreateCameraFlags());
 
     das::addExtern<DAS_BIND_FUN(get_cur_cam_entity)>(*this, lib, "get_cur_cam_entity", das::SideEffects::accessExternal,
       "get_cur_cam_entity");

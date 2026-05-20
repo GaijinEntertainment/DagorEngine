@@ -12,28 +12,25 @@
 #include <generic/dag_tab.h>
 #include <generic/dag_staticTab.h>
 #include "clustered_constants.hlsli"
+#include "frustumClusters.hlsli"
 
+#define SHRINK_SPHERE 1
 
 class Occlusion;
 struct FrustumClusters
 {
   static inline float getDepthAtSlice(uint32_t slice, float depthSliceScale, float depthSliceBias)
   {
-    // slice = log2f(depth) * depthSliceScale + depthSliceBias
-    return powf(2.0f, slice / depthSliceScale - depthSliceBias / depthSliceScale);
-    // return (powf( 2.0f, mExponentK * uSlice ) + minDist);
+    return frustum_clusters_get_depth_at_slice(slice, depthSliceScale, depthSliceBias);
   }
   //-----------------------------------------------------------------------------------
-  static inline float safe_log2f(float v) { return v > 1e-5f ? log2f(v) : -1000000.f; }
   static inline uint32_t getSliceAtDepth(float depth, float depthSliceScale, float depthSliceBias)
   {
-    return max(int(floorf(safe_log2f(depth) * depthSliceScale + depthSliceBias)), int(0));
-    // return uint32_t(floorf( log2f( max( depth - minDist, 1.f ) ) * mInvExponentK ) );
+    return frustum_clusters_get_slice_at_depth(depth, depthSliceScale, depthSliceBias);
   }
   static inline uint32_t getMaxSliceAtDepth(float depth, float depthSliceScale, float depthSliceBias)
   {
-    return max(int(ceilf(safe_log2f(depth) * depthSliceScale + depthSliceBias)), int(0));
-    // return uint32_t(floorf( log2f( max( depth - minDist, 1.f ) ) * mInvExponentK ) );
+    return frustum_clusters_get_max_slice_at_depth(depth, depthSliceScale, depthSliceBias);
   }
   static inline uint32_t getVecMaxSliceAtDepth(vec4f depth, vec4f depthSliceScaleBias, vec4f &maxRowSlice)
   {
@@ -75,6 +72,7 @@ struct FrustumClusters
     ItemRect3D(const FrustumScreenRect &r, uint8_t zmn, uint8_t zmx, uint16_t l) : rect(r), zmin(zmn), zmax(zmx), itemId(l) {}
   };
 
+  void updateFrustrumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist);
   void prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist, Occlusion *occlusion);
 
   typedef uint32_t MaskType;

@@ -30,7 +30,7 @@ class InstanceFunctionAnnotation : AstFunctionAnnotation {
     //!     def inst {}
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         var generic_name = ""
-        var inscope rules : Template
+        var rules : Template
         for (argv in args) {
             let val = get_annotation_argument_value(argv)
             if (val is tBool) {
@@ -50,15 +50,12 @@ class InstanceFunctionAnnotation : AstFunctionAnnotation {
             errors := "expecting name of the generic or function"
             return false
         }
-        var inscope fn <- compiling_module() |> find_unique_generic(generic_name)
+        var fn = compiling_module() |> find_unique_generic(generic_name)
         if (fn == null) {
             errors := "generic not found {generic_name}"
             return false
         }
-        func.body := null
-        unsafe {
-            func.body <- clone_expression(fn.body)
-        }
+        func.body = clone_expression(fn.body)
         apply_template(rules, func.at, func.body)
         return true
     }

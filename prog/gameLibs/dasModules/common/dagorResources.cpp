@@ -22,7 +22,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("math"));
 
-    addAnnotation(das::make_smart<GameResourceFactoryAnnotation>(lib));
+    addAnnotation(new GameResourceFactoryAnnotation(lib));
 
     das::addConstant(*this, "DynModelGameResClassId", DynModelGameResClassId);
     das::addConstant(*this, "RendInstGameResClassId", RendInstGameResClassId);

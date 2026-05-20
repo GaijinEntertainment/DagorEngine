@@ -17,7 +17,7 @@ namespace das
 {
 inline das::TypeDeclPtr make_vec4()
 {
-  auto t = das::make_smart<das::TypeDecl>(das::Type::tFloat4);
+  auto t = new das::TypeDecl(das::Type::tFloat4);
   t->alias = "vec4f";
   // t->aotAlias = true;
   return t;
@@ -109,23 +109,23 @@ ECS::ECS() : das::Module("ecs")
   addBuiltinDependency(lib, require("math"));
   addBuiltinDependency(lib, require("DagorMath"));
 
-  addEnumeration(das::make_smart<EnumerationQueryCbResult>()); // not working correctly in AOT
-  addAnnotation(das::make_smart<TagAnnotation>(lib));
-  addAnnotation(das::make_smart<EntityComponentRefAnnotation>(lib));
-  addAnnotation(das::make_smart<BakeHashFunctionAnnotation<0>>());
-  addAnnotation(das::make_smart<BakeHashFunctionAnnotation<1>>());
-  addAnnotation(das::make_smart<EntityIdAnnotation>(lib));
+  addEnumeration(new EnumerationQueryCbResult()); // not working correctly in AOT
+  addAnnotation(new TagAnnotation(lib));
+  addAnnotation(new EntityComponentRefAnnotation(lib));
+  addAnnotation(new BakeHashFunctionAnnotation<0>());
+  addAnnotation(new BakeHashFunctionAnnotation<1>());
+  addAnnotation(new EntityIdAnnotation(lib));
 
   // G_VERIFY(addAlias(das::typeFactory<vec4f>::make(lib)));
   G_VERIFY(addAlias(das::make_vec4()));
 
-  // addFunction( das::make_smart<das::BuiltInFn<das::Sim_Equ<ecs::EntityId>,         bool, ecs::EntityId,  ecs::EntityId>  >("==",
-  // lib, "Equ") ); addFunction( das::make_smart<das::BuiltInFn<das::Sim_NotEqu<ecs::EntityId>,      bool, ecs::EntityId,
-  // ecs::EntityId>  >("!=",     lib, "NotEqu") );
+  // addFunction( new das::BuiltInFn<das::Sim_Equ<ecs::EntityId>,         bool, ecs::EntityId,  ecs::EntityId> ("==",
+  // lib, "Equ") ); addFunction( new das::BuiltInFn<das::Sim_NotEqu<ecs::EntityId>,      bool, ecs::EntityId,
+  // ecs::EntityId> ("!=",     lib, "NotEqu") );
   das::addFunctionBasic<ecs::EntityId>(*this, lib);
   das::addConstant<uint32_t>(*this, "INVALID_ENTITY_ID_VAL", ecs::ECS_INVALID_ENTITY_ID_VAL);
   das::addConstant<ecs::template_t>(*this, "INVALID_TEMPLATE_INDEX", ecs::INVALID_TEMPLATE_INDEX);
-  addFunction(das::make_smart<das::BuiltInFn<das::Sim_BoolNot<ecs::EntityId>, bool, ecs::EntityId>>("!", lib, "BoolNot"));
+  addFunction(new das::BuiltInFn<das::Sim_BoolNot<ecs::EntityId>, bool, ecs::EntityId>("!", lib, "BoolNot"));
   G_STATIC_ASSERT((eastl::is_same<das::string, ecs::string>::value));
   das::addExtern<DAS_BIND_FUN(castEid)>(*this, lib, "uint", das::SideEffects::none, "bind_dascript::castEid");
   das::addExtern<DAS_BIND_FUN(eidCast)>(*this, lib, "EntityId", das::SideEffects::none, "bind_dascript::eidCast");
@@ -164,7 +164,7 @@ ECS::ECS() : das::Module("ecs")
 
   ADD_EXTERN_NAME(getSingletonEntityHint, "getSingletonEntity", das::SideEffects::accessExternal);
   auto getSingletonEntityExt = ADD_EXTERN(getSingletonEntity, das::SideEffects::accessExternal);
-  getSingletonEntityExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<0>>()));
+  getSingletonEntityExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<0>()));
 
   ADD_EXTERN(is_entity_mgr_exists, das::SideEffects::accessExternal);
 

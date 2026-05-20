@@ -69,6 +69,7 @@
     DEF_TREE_OP(STATIC_MEMO), \
     DEF_TREE_OP(INLINE_CONST), \
     DEF_TREE_OP(RESUME), \
+    DEF_TREE_OP(AWAIT), \
     DEF_TREE_OP(CLONE), \
     DEF_TREE_OP(PAREN), \
     DEF_TREE_OP(CODE_BLOCK_EXPR), \
@@ -159,6 +160,7 @@ public:
     SourceSpan sourceSpan() const { return _span; }
 
     // Only for incrementally-built nodes
+    void setSpanStart(SourceLoc start) { _span.start = start; }
     void setSpanEnd(SourceLoc end) { _span.end = end; }
 
     // Convenience accessors
@@ -717,16 +719,16 @@ protected:
     // Incremental building - call setSpanEnd() after body is set
     FunctionExpr(enum TreeOp op, Arena *arena, SourceLoc start, const char *name, Id *nameId = nullptr)
         : Expr(op, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nameId),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _async(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
 public:
     FunctionExpr(Arena *arena, SourceLoc start, Id *nameId)
         : Expr(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(nameId->name()), _nameId(nameId),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _async(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
     FunctionExpr(Arena *arena, SourceLoc start, const char *name)
         : Expr(TO_FUNCTION, {start, SourceLoc::invalid()}), _arena(arena), _parameters(arena), _name(name), _nameId(nullptr),
-        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
+        _vararg(false), _body(NULL), _lambda(false), _pure(false), _nodiscard(false), _async(false), _sourcename(NULL), _hoistingLevel(0), _resultTypeMask(~0u) {}
 
     void addParameter(SourceSpan nameSpan, const char *name, Expr *defaultVal = NULL) {
         _parameters.push_back(new (_arena) ParamDecl(nameSpan, name, defaultVal));
@@ -759,6 +761,9 @@ public:
     void setNodiscard(bool v) { _nodiscard = v; }
     bool isNodiscard() const { return _nodiscard; }
 
+    void setAsync(bool v) { _async = v; }
+    bool isAsync() const { return _async; }
+
     int hoistingLevel() const { return _hoistingLevel; }
     void hoistBy(int level) { _hoistingLevel += level; }
 
@@ -777,6 +782,7 @@ private:
     bool _lambda;
     bool _pure;
     bool _nodiscard;
+    bool _async;
 
     const char *_sourcename;
     int _hoistingLevel;
@@ -1346,6 +1352,7 @@ void Node::visit(V *visitor) {
     case TO_NEG:
     case TO_TYPEOF:
     case TO_RESUME:
+    case TO_AWAIT:
     case TO_CLONE:
     case TO_PAREN:
     case TO_DELETE:
@@ -1462,6 +1469,7 @@ Node *Node::transform(T *transformer) {
   case TO_NEG:
   case TO_TYPEOF:
   case TO_RESUME:
+  case TO_AWAIT:
   case TO_CLONE:
   case TO_PAREN:
   case TO_DELETE:

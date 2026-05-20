@@ -126,9 +126,9 @@ protected:
   float minLandHeight;
   float maxLandHeight;
 
-  UniqueTexHolder landHeightTex;
-  UniqueTexHolder landColorTex;
-  UniqueTexHolder grassTypeTex;
+  UniqueTexWithShaderVar landHeightTex;
+  UniqueTexWithShaderVar landColorTex;
+  UniqueTexWithShaderVar grassTypeTex;
   UniqueTex tmpMaskTex;
   int landTexSize;
 

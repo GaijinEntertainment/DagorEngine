@@ -517,7 +517,7 @@ struct Renderer
         d3d::settm(TM_PROJ, &c.mat);
 
         ShaderGlobal::set_texture(texArrayVarId, BAD_TEXTUREID);
-        d3d::set_render_target(0, texArray, ci, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{texArray, 0, static_cast<uint32_t>(ci)}});
         d3d::clearview(CLEAR_TARGET, 0x00000000, 0.f, 0);
       }
 

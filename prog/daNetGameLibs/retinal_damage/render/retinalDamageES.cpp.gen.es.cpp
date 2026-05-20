@@ -63,7 +63,7 @@ static constexpr ecs::ComponentDesc start_retinal_damage_ecs_query_comps[] =
 //start of 3 rw components at [0]
   {ECS_HASH("retinal_damage__remaining_time"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("retinal_damage__node_handle"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("retinal_damage__tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("retinal_damage__tex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
 //start of 3 ro components at [3]
   {ECS_HASH("retinal_damage__total_lifetime"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("retinal_damage__base_scale"), ecs::ComponentTypeInfo<float>()},
@@ -90,7 +90,7 @@ inline void start_retinal_damage_ecs_query(ecs::EntityManager &manager, Callable
             , ECS_RO_COMP(start_retinal_damage_ecs_query_comps, "retinal_damage__scale_increase_rate", float)
             , ECS_RW_COMP(start_retinal_damage_ecs_query_comps, "retinal_damage__remaining_time", float)
             , ECS_RW_COMP(start_retinal_damage_ecs_query_comps, "retinal_damage__node_handle", dafg::NodeHandle)
-            , ECS_RW_COMP(start_retinal_damage_ecs_query_comps, "retinal_damage__tex", UniqueTexHolder)
+            , ECS_RW_COMP(start_retinal_damage_ecs_query_comps, "retinal_damage__tex", UniqueTexWithShaderVar)
             );
 
         }while (++comp != compE);
@@ -101,7 +101,7 @@ static constexpr ecs::ComponentDesc stop_retinal_damage_ecs_query_comps[] =
 {
 //start of 3 rw components at [0]
   {ECS_HASH("retinal_damage__node_handle"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-  {ECS_HASH("retinal_damage__tex"), ecs::ComponentTypeInfo<UniqueTexHolder>()},
+  {ECS_HASH("retinal_damage__tex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("retinal_damage__remaining_time"), ecs::ComponentTypeInfo<float>()}
 };
 static ecs::CompileTimeQueryDesc stop_retinal_damage_ecs_query_desc
@@ -121,7 +121,7 @@ inline void stop_retinal_damage_ecs_query(ecs::EntityManager &manager, Callable 
         {
           function(
               ECS_RW_COMP(stop_retinal_damage_ecs_query_comps, "retinal_damage__node_handle", dafg::NodeHandle)
-            , ECS_RW_COMP(stop_retinal_damage_ecs_query_comps, "retinal_damage__tex", UniqueTexHolder)
+            , ECS_RW_COMP(stop_retinal_damage_ecs_query_comps, "retinal_damage__tex", UniqueTexWithShaderVar)
             , ECS_RW_COMP(stop_retinal_damage_ecs_query_comps, "retinal_damage__remaining_time", float)
             );
 

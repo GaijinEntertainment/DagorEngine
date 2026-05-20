@@ -6,6 +6,7 @@ options no_unused_function_arguments = false
 module linq shared public
 
 require math
+require daslib/option public
 
 //! LINQ-style query operations on iterators and arrays.
 //!
@@ -116,7 +117,7 @@ def to_sequence(var a : array<auto(TT)> ==const) : iterator<TT -const -&> {
 
 def to_sequence_move(var a : array<auto(TT)>) : iterator<TT -const -&> {
     //! Converts an array to an iterator, captures input
-    return generator<TT -const -&> capture(<- a) () <| $ {
+    return generator<TT -const -&> capture(<- a) {
         for (it in a) {
             yield <- it
         }
@@ -183,7 +184,7 @@ def concat_to_array(var a, b : iterator<auto(TT)>) : array<TT -const -&> {
 
 def concat(var a, b : iterator<auto(TT)>) : iterator<TT -const -&> {
     //! Concatenates two iterators
-    return generator<TT -const -&> capture(<- a, <- b) () <| $ {
+    return generator<TT -const -&> capture(<- a, <- b) {
         for (itA in a) {
             static_if (typeinfo can_copy(itA)) {
                 yield itA
@@ -231,7 +232,7 @@ def reverse(a : array<auto(TT)>) : array<TT -const -&> {
 
 def reverse(var a : iterator<auto(TT)>) : iterator<TT -const -&> {
     //! Reverses an iterator
-    return generator<TT -const -&> capture(<- a) () <| $ {
+    return generator<TT -const -&> capture(<- a) {
         var inscope buffer : array<TT -const -&>
         for (it in a) {
             buffer.push_clone(it)
@@ -504,7 +505,7 @@ def distinct_inplace(var a : array<auto(TT)>) {
 
 def distinct(var a : iterator<auto(TT)>) : iterator<TT -const -&> {
     //! Returns distinct elements from an iterator
-    return generator<TT -const -&> capture(<- a) () <| $ {
+    return generator<TT -const -&> capture(<- a) {
         var inscope seen : table<typedecl(_::unique_key(type<TT>))>
         for (it in a) {
             let k = _::unique_key(it)
@@ -648,7 +649,7 @@ def unique_by_inplace(var a : array<auto(TT)>; key : block<(arg : TT -&) : auto>
 def count(var a : iterator<auto(TT)>) : int {
     //! Counts elements in an iterator
     var count = 0
-    for (it in a) {
+    for (_it in a) {
         count ++
     }
     return count
@@ -728,6 +729,21 @@ def where_to_array(var src : iterator<auto(TT)>; predicate : block<(arg : TT -&)
     return <- where_impl(src, type<TT -& -const>, 0, predicate)
 }
 
+def having_(var src : iterator<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : iterator<TT -& -const> {
+    //! Post-aggregate filter — semantically identical to `where_`, kept distinct so the SQL translator can emit `HAVING`.
+    return <- where_(src, predicate)
+}
+
+def having_(src : array<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : array<TT -& -const> {
+    //! Post-aggregate filter on an array — semantics match `where_`; preserved as a distinct call so SQL translation can route to `HAVING`.
+    return <- where_(src, predicate)
+}
+
+def having_to_array(var src : iterator<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : array<TT -& -const> {
+    //! Post-aggregate filter returning an array — see `having_`.
+    return <- where_to_array(src, predicate)
+}
+
 def skip(arr : array<auto(TT)>; var total : int) : array<TT -& -const> {
     //! Yields all but the first `total` elements
     let len = length(arr)
@@ -755,7 +771,7 @@ def skip_inplace(var arr : array<auto(TT)>; var total : int) {
 [unused_argument(tt)]
 def private skip_impl(var src; tt : auto(TT); var total : int) : iterator<TT -& -const> {
     //! Yields all but the first `total` elements
-    return <- generator<TT -& -const> capture(<- src) () <| $() {
+    return <- generator<TT -& -const> capture(<- src) {
         for (x in src) {
             if (total > 0) {
                 total --
@@ -845,7 +861,7 @@ def take_inplace(var arr : array<auto(TT)>; var total : int) {
 [unused_argument(tt)]
 def private take_impl(var src; tt : auto(TT); var total : int) : iterator<TT -& -const> {
     //! Yields only the first `total` elements
-    return <- generator<TT -& -const> capture(<- src) () <| $() {
+    return <- generator<TT -& -const> capture(<- src) {
         for (x in src) {
             if (total <= 0) {
                 break
@@ -881,7 +897,7 @@ def take_to_array(var src : iterator<auto(TT)>; var total : int) : array<TT -& -
 
 def take(var src : iterator<auto(TT)>; from : range) : iterator<TT -& -const> {
     //! Yields a range of elements from an iterator
-    return <- generator<TT -& -const> capture(<- src) () <| $() {
+    return <- generator<TT -& -const> capture(<- src) {
         var index = 0
         for (x in src) {
             if (index >= from.x) {
@@ -1354,49 +1370,28 @@ def sum(src : array<auto(TT)>) : TT -const -& {
     }
 }
 
-[unused_argument(tt)]
-def private average_impl(var src; tt : auto(TT)) : TT -const -& {
-    var total : TT -const -&
-    var count : uint64
+def average(var src : iterator<auto(TT)>) : double {
+    //! Averages elements in an iterator. Always returns ``double``
+    //! (matches SQL ``AVG`` / C# ``Average``); element type must cast to ``double``.
+    var total : double = 0lf
+    var count : uint64 = 0ul
     for (x in src) {
-        total += x
+        total += double(x)
         count ++
     }
-    if (count != 0ul) {
-        static_if (typeinfo is_workhorse(type<TT>)) {
-            total /= TT(count)
-        } else {
-            total /= count
-        }
-    }
-    return <- total
+    return count != 0ul ? total / double(count) : 0lf
 }
 
-[unused_argument(tt)]
-def private average_impl_const(src : auto(ARGT); tt : auto(TT)) : TT -const -& {
-    static_if (typeinfo is_workhorse(type<TT>)) {
-        return average_impl(unsafe(reinterpret<ARGT -const>(src)), type<TT -const -&>)
-    } else {
-        return <- average_impl(unsafe(reinterpret<ARGT -const>(src)), type<TT -const -&>)
+def average(src : array<auto(TT)>) : double {
+    //! Averages elements in an array. Always returns ``double``
+    //! (matches SQL ``AVG`` / C# ``Average``); element type must cast to ``double``.
+    var total : double = 0lf
+    var count : uint64 = 0ul
+    for (x in src) {
+        total += double(x)
+        count ++
     }
-}
-
-def average(var src : iterator<auto(TT)>) : TT -const -& {
-    //! Averages elements in an iterator
-    static_if (typeinfo is_workhorse(type<TT>)) {
-        return average_impl(src, type<TT -const -&>)
-    } else {
-        return <- average_impl(src, type<TT -const -&>)
-    }
-}
-
-def average(src : array<auto(TT)>) : TT -const -& {
-    //! Averages elements in an array
-    static_if (typeinfo is_workhorse(type<TT>)) {
-        return average_impl_const(src, type<TT -const -&>)
-    } else {
-        return <- average_impl_const(src, type<TT -const -&>)
-    }
+    return count != 0ul ? total / double(count) : 0lf
 }
 
 [unused_argument(tt)]
@@ -1500,7 +1495,7 @@ def private join_impl(var srca; var srcb; ta : auto(TA); tb : auto(TB); keya, ke
     var inscope tableb : table<typedecl(_::unique_key(keyb(type<TB>))); array<TB -const -&>>
     for (itb in srcb) {
         let k = _::unique_key(keyb(itb))
-        unsafe(tableb[k]).push_clone(itb)
+        tableb[k].push_clone(itb) // nolint:PERF006 per-key bucket size unknown ahead of time
     }
     var buffer : array<typedecl(result(type<TA>, type<TB>)) -const -&>
     for (ita in srca) {
@@ -1539,7 +1534,7 @@ def private group_join_impl(var srca; var srcb; ta : auto(TA); tb : auto(TB); ke
     var inscope tableb : table<typedecl(_::unique_key(keyb(type<TB>))); array<TB -const -&>>
     for (itb in srcb) {
         let k = _::unique_key(keyb(itb))
-        unsafe(tableb[k]).push_clone(itb)
+        tableb[k].push_clone(itb) // nolint:PERF006 per-key bucket size unknown ahead of time
     }
     var buffer : array<typedecl(result(type<TA>, type<array<TB -const -&>>)) -const -&>
     for (ita in srca) {
@@ -1569,6 +1564,51 @@ def group_join(srca : array<auto(TA)>; srcb : array<auto(TB)>; keya, keyb; resul
 def group_join_to_array(var srca : iterator<auto(TA)>; var srcb : iterator<auto(TB)>; keya, keyb; result) : array<typedecl(result(type<TA>, type<array<TB -const -&>>)) -const -&> {
     //! we pass TA, and sequence of TB to 'result'
     return <- group_join_impl(srca, srcb, type<TA -const -&>, type<TB -const -&>, keya, keyb, result)
+}
+
+[unused_argument(ta, tb)]
+def private left_join_impl(var srca; var srcb; ta : auto(TA); tb : auto(TB); keya, keyb; result) : array<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&> {
+    //! Left outer join — every TA emits at least one row; right side is Option<TB>
+    var inscope tableb : table<typedecl(_::unique_key(keyb(type<TB>))); array<TB -const -&>>
+    for (itb in srcb) {
+        let k = _::unique_key(keyb(itb))
+        tableb[k].push_clone(itb) // nolint:PERF006 per-key bucket size unknown ahead of time
+    }
+    var buffer : array<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&>
+    for (ita in srca) {
+        let k = _::unique_key(keya(ita))
+        var matched = false
+        tableb.get(k, $(arr){
+            for (itb in arr) {
+                buffer.push_clone(result(ita, _::some(itb)))
+                matched = true
+            }
+        })
+        if (!matched) {
+            buffer.push_clone(result(ita, _::none(type<TB>)))
+        }
+    }
+    return <- buffer
+}
+
+[unused_argument(ta, tb)]
+def private left_join_impl_const(srca : auto(ARGTA); srcb : auto(ARGTB); ta : auto(TA); tb : auto(TB); keya, keyb; result) : array<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&> {
+    return <- left_join_impl(unsafe(reinterpret<ARGTA -const>(srca)), unsafe(reinterpret<ARGTB -const>(srcb)), type<TA -const -&>, type<TB -const -&>, keya, keyb, result)
+}
+
+def left_join(var srca : iterator<auto(TA)>; var srcb : iterator<auto(TB)>; keya, keyb; result) : iterator<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&> {
+    //! Left outer join — every TA emits at least one row; right side is Option<TB> (none when no match)
+    return <- left_join_impl(srca, srcb, type<TA -const -&>, type<TB -const -&>, keya, keyb, result).to_sequence_move()
+}
+
+def left_join(srca : array<auto(TA)>; srcb : array<auto(TB)>; keya, keyb; result) : array<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&> {
+    //! Left outer join — every TA emits at least one row; right side is Option<TB> (none when no match)
+    return <- left_join_impl_const(srca, srcb, type<TA -const -&>, type<TB -const -&>, keya, keyb, result)
+}
+
+def left_join_to_array(var srca : iterator<auto(TA)>; var srcb : iterator<auto(TB)>; keya, keyb; result) : array<typedecl(result(type<TA>, type<$Option<TB -const>>)) -const -&> {
+    //! Left outer join returning an array
+    return <- left_join_impl(srca, srcb, type<TA -const -&>, type<TB -const -&>, keya, keyb, result)
 }
 
 [unused_argument(tt)]
@@ -1608,6 +1648,53 @@ def group_by(source : array<auto(TT)>; key; element_selector; result_selector)  
 def group_by_to_array(var source : iterator<auto(TT)>; key; element_selector; result_selector)  {
     //! Groups the elements of an iterator according to a specified key selector function and returns an array
     return <- group_by_impl(source, type<TT -const -&>, key, element_selector, result_selector)
+}
+
+[unused_argument(tt)]
+def private group_by_lazy_impl(var source; tt : auto(TT); key)  {
+    //! IGrouping body: groups by ``key``, keeps each member directly, emits one ``(key, array<members>)`` per bucket.
+    //! Table is keyed on ``_::unique_key(key)`` (always a workhorse type) so non-workhorse user keys still group correctly;
+    //! the original key value is stored alongside the bucket in the tuple value, mirroring ``group_by_impl``.
+    typedef KeyType = typedecl(key(type<TT>)) - const - &
+    typedef UniqKeyType = typedecl(_::unique_key(key(type<TT>)))
+    typedef ResultType = tuple<KeyType, array<TT -const -&>>
+    var tab : table<UniqKeyType, ResultType>
+    for (it in source) {
+        let kIT = key(it)
+        let k = _::unique_key(kIT)
+        if (tab.key_exists(k)) {
+            tab[k]._1.push_clone(it)
+        } else {
+            tab[k] = (kIT, [it])
+        }
+    }
+    var buffer : array<ResultType -const -&>
+    for (it in values(tab)) {
+        buffer.push_clone(it)
+    }
+    return <- buffer
+}
+
+[unused_argument(tt)]
+def private group_by_lazy_impl_const(source : auto(ARGT); tt : auto(TT); key)  {
+    return <- group_by_lazy_impl(unsafe(reinterpret<ARGT -const>(source)), type<TT -const -&>, key)
+}
+
+def group_by_lazy(var source : iterator<auto(TT)>; key)  {
+    //! IGrouping shape — yields ``(key, array<TT>)`` per group; per-bucket processing is left to the caller.
+    //! Backs the ``_group_by_lazy`` macro. Per spec ``modules/dasSQLITE/API_REWORK.md "### 19-group_by"`` this form is
+    //! ``macro_error`` inside ``_sql(...)`` — per-group windowing has no general SQL form.
+    return <- group_by_lazy_impl(source, type<TT -const -&>, key).to_sequence_move()
+}
+
+def group_by_lazy(source : array<auto(TT)>; key)  {
+    //! IGrouping shape over an array — yields ``(key, array<TT>)`` per group.
+    return <- group_by_lazy_impl_const(source, type<TT -const -&>, key)
+}
+
+def group_by_lazy_to_array(var source : iterator<auto(TT)>; key)  {
+    //! IGrouping shape returning an array — see ``group_by_lazy``.
+    return <- group_by_lazy_impl(source, type<TT -const -&>, key)
 }
 
 [unused_argument(tt)]
@@ -1701,7 +1788,7 @@ def any(src : array<auto(TT)>) : bool {
 
 def any(var src : iterator<auto(TT)>) : bool {
     //! Returns true if the iterator has at least one element
-    for (it in src) {
+    for (_it in src) {
         return true
     }
     return false
@@ -1755,6 +1842,44 @@ def all(var src : iterator<auto(TT)>; predicate : block<(arg : TT -&) : bool>) :
 def all(src : array<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : bool {
     //! Returns true if all elements in the array satisfy the predicate
     return all_impl_const(src, type<TT -const -&>, predicate)
+}
+
+def none(src : array<auto(TT)>) : bool {
+    //! Returns true if the array has no elements
+    return length(src) == 0
+}
+
+def none(var src : iterator<auto(TT)>) : bool {
+    //! Returns true if the iterator has no elements
+    for (_it in src) {
+        return false
+    }
+    return true
+}
+
+[unused_argument(tt)]
+def private none_impl(var src; tt : auto(TT); predicate : block<(arg : auto(TT) -&) : bool>) : bool {
+    for (it in src) {
+        if (predicate(it)) {
+            return false
+        }
+    }
+    return true
+}
+
+[unused_argument(tt)]
+def private none_impl_const(src : auto(ARGT); tt : auto(TT); predicate : block<(arg : auto(TT) -&) : bool>) : bool {
+    return none_impl(unsafe(reinterpret<ARGT -const>(src)), type<TT -const -&>, predicate)
+}
+
+def none(var src : iterator<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : bool {
+    //! Returns true if no element in the iterator satisfies the predicate
+    return none_impl(src, type<TT -const -&>, predicate)
+}
+
+def none(src : array<auto(TT)>; predicate : block<(arg : TT -&) : bool>) : bool {
+    //! Returns true if no element in the array satisfies the predicate
+    return none_impl_const(src, type<TT -const -&>, predicate)
 }
 
 [unused_argument(tt)]
@@ -1937,14 +2062,14 @@ def contains(src : array<auto(TT)>; element : TT -&) : bool {
 [unused_argument(typ)]
 def empty(var typ : auto(TT)) : iterator<TT -const -&> {
     //! Returns an empty iterator of the specified type
-    return <- generator<TT -const -&>() <| $ {
+    return <- generator<TT -const -&> {
         return false
     }
 }
 
 def default_empty(var src : iterator<auto(TT)>) : iterator<TT -const -&> {
     //! Returns the elements of the iterator, or a default value if the iterator is empty
-    return generator<TT -const -&> capture(<- src) () <| $ {
+    return generator<TT -const -&> capture(<- src) {
         var found = false
         for (it in src) {
             found = true
@@ -1973,7 +2098,7 @@ def range_sequence(start : int; count : int) : iterator<int> {
 
 def repeat(element : auto(TT); count : int) : iterator<TT -const -&> {
     //! Generates a sequence that contains one repeated value
-    return generator<TT -const -&> capture(:= element) () <| $ {
+    return generator<TT -const -&> capture(:= element) {
         for (i in 0..count) {
             static_if (typeinfo can_copy(element)) {
                 yield element
@@ -2389,7 +2514,7 @@ def prepend_to_array(var it : iterator<auto(TT)>; value : TT -&) : array<TT -con
 
 def prepend(var it : iterator<auto(TT)>; value : TT -&) : iterator<TT -const -&> {
     //! Prepends a value to the beginning of an iterator
-    return generator<TT -const -&> capture(<- it, := value) () <| $ {
+    return generator<TT -const -&> capture(<- it, := value) {
         static_if (typeinfo can_copy(value)) {
             yield value
         } else {
@@ -2442,7 +2567,7 @@ def append_to_array(var it : iterator<auto(TT)>; value : TT -&) : array<TT -cons
 
 def append(var it : iterator<auto(TT)>; value : TT -&) : iterator<TT -const -&> {
     //! Appends a value to the end of an iterator
-    return generator<TT -const -&> capture(<- it, := value) () <| $ {
+    return generator<TT -const -&> capture(<- it, := value) {
         for (x in it) {
             static_if (typeinfo can_copy(x)) {
                 yield x

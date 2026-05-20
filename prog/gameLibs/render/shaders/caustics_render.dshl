@@ -17,7 +17,7 @@ shader caustics_render
   INIT_DYNAMIC_RESOLUTION(ps)
 
   hlsl(ps) {
-    float4 caustics_ps(VsOutput input) : SV_Target
+    float2 caustics_ps(VsOutput input) : SV_Target
     {
       input.texcoord.xy = input.texcoord.xy * current_dynamic_resolution_scale;
       return caustics(input.texcoord, input.viewVect);

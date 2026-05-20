@@ -6,6 +6,7 @@
 #include <image/dag_tga.h>
 #include <generic/dag_tab.h>
 #include <coolConsole/coolConsole.h>
+#include <EASTL/unique_ptr.h>
 
 #include "hmlPlugin.h"
 #include <de3_bitMaskMgr.h>
@@ -15,8 +16,13 @@ class HeightmapImporter
 {
 public:
   float hMin, hScale;
+  // 0 means "not quantized" (Raw32f). Otherwise the quantization bit depth
+  // (8/16/32...) of the source format. Used by post-import passes that need
+  // to recover the original pixel index from a stored float.
+  int quantizationBits = 0;
 
   HeightmapImporter() { hMin = 0, hScale = 1; }
+  virtual ~HeightmapImporter() = default;
 
   virtual bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0,
     int y0, int x1, int y1) = 0;
@@ -117,6 +123,7 @@ public:
 class Raw16HeightmapImporter : public HeightmapImporter
 {
 public:
+  Raw16HeightmapImporter() { quantizationBits = 16; }
   bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
     int x1, int y1) override
   {
@@ -180,6 +187,7 @@ public:
 class TgaHeightmapImporter : public HeightmapImporter
 {
 public:
+  TgaHeightmapImporter() { quantizationBits = 8; }
   bool importHeightmap(const char *filename, HeightMapStorage &heightmap, CoolConsole &con, HmapLandPlugin &plugin, int x0, int y0,
     int x1, int y1) override
   {
@@ -277,6 +285,7 @@ public:
       mScale = 0xFFFFu;
     else if (bm.getBitsPerPixel() == 32)
       mScale = 0xFFFFFFFFu;
+    quantizationBits = bm.getBitsPerPixel();
     for (int y = 0, cnt = 0; y < mapSizeY; y++)
     {
       if (y >= y1 - y0)
@@ -311,19 +320,19 @@ bool HmapLandPlugin::importHeightmap(String &filename, HeightmapTypes type)
   CoolConsole &con = DAGORED2->getConsole();
   con.startLog();
 
-  HeightmapImporter *importer = NULL;
+  eastl::unique_ptr<HeightmapImporter> importer;
 
   if (stricmp(ext, "r32") == 0)
-    importer = new Raw32fHeightmapImporter(false);
+    importer.reset(new Raw32fHeightmapImporter(false));
   else if (stricmp(ext, "height") == 0)
-    importer = new Raw32fHeightmapImporter(true);
+    importer.reset(new Raw32fHeightmapImporter(true));
   else if (stricmp(ext, "r16") == 0 || stricmp(ext, "raw") == 0)
-    importer = new Raw16HeightmapImporter;
+    importer.reset(new Raw16HeightmapImporter);
   else if (stricmp(ext, "tif") == 0)
-    importer = new TiffHeightmapImporter;
+    importer.reset(new TiffHeightmapImporter);
   else
   {
-    // importer=new TgaHeightmapImporter;
+    // importer.reset(new TgaHeightmapImporter);
     return false;
   }
 
@@ -332,6 +341,7 @@ bool HmapLandPlugin::importHeightmap(String &filename, HeightmapTypes type)
   float hScale = lastHeightRange[0];
   IBBox2 importRect(IPoint2(0, 0), IPoint2(heightMap.getMapSizeX(), heightMap.getMapSizeY()));
   bool importWater = false;
+  Point2 *waterRange = nullptr;
   if (type == HeightmapTypes::HEIGHTMAP_DET)
   {
     hms = &heightMapDet;
@@ -343,12 +353,15 @@ bool HmapLandPlugin::importHeightmap(String &filename, HeightmapTypes type)
   {
     hms = &waterHeightmapDet;
     importWater = true;
+    importRect[1] = IPoint2(hms->getMapSizeX(), hms->getMapSizeY());
+    waterRange = &waterHeightMinRangeDet;
   }
   else if (type == HeightmapTypes::HEIGHTMAP_WATER_MAIN)
   {
     hms = &waterHeightmapMain;
     importWater = true;
     importRect[1] = IPoint2(hms->getMapSizeX(), hms->getMapSizeY());
+    waterRange = &waterHeightMinRangeMain;
   }
   if (importWater)
   {
@@ -367,6 +380,49 @@ bool HmapLandPlugin::importHeightmap(String &filename, HeightmapTypes type)
   }
 
   con.addMessage(ILogWriter::NOTE, "Imported heightmap from '%s'", (const char *)filename);
+
+  // Snap pixels nearest to waterSurfaceLevel to the exact stored value, so
+  // quantization rounding does not nudge water-level texels off by one quantum.
+  // Only for water hmap imports from quantized formats; Q == MAX_Q (saturating
+  // top) is preserved, Q == 0 is allowed. Bound by 24 bits because the float
+  // storage mantissa cannot represent larger Q values exactly, which would
+  // make qTarget unreachable from a round-tripped float.
+  if (importWater && importer->quantizationBits > 0 && importer->quantizationBits <= 24 && waterRange != nullptr)
+  {
+    if (waterRange->y > 0)
+    {
+      const uint64_t maxQuantum = ((uint64_t)1 << importer->quantizationBits) - 1;
+      const float snapStored = (waterSurfaceLevel - waterRange->x) / waterRange->y;
+      const double ideal = (double)snapStored * (double)maxQuantum;
+      const int64_t qTarget = (int64_t)floor(ideal + 0.5);
+      if (qTarget >= 0 && qTarget < (int64_t)maxQuantum)
+      {
+        int64_t snappedCount = 0;
+        for (int y = importRect[0].y; y < importRect[1].y; ++y)
+          for (int x = importRect[0].x; x < importRect[1].x; ++x)
+          {
+            float v = hms->getInitialData(x, y);
+            int64_t q = (int64_t)floor((double)v * (double)maxQuantum + 0.5);
+            if (q == qTarget)
+            {
+              hms->setInitialData(x, y, snapStored);
+              hms->setFinalData(x, y, snapStored);
+              ++snappedCount;
+            }
+          }
+        if (snappedCount > 0)
+          con.addMessage(ILogWriter::NOTE, "Snapped %lld pixel(s) to exact water_level=%g", (long long)snappedCount,
+            waterSurfaceLevel);
+      }
+    }
+    else
+    {
+      con.addMessage(ILogWriter::WARNING,
+        "Water height range is not set (min=%g, range=%g); skipping snap-to-water-level during import. "
+        "Set the range in the heightmap properties before importing to preserve exact water-level pixels.",
+        waterRange->x, waterRange->y);
+    }
+  }
 
   if (!hms->flushData())
   {

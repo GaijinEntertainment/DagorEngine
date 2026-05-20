@@ -296,6 +296,57 @@ enum class Drv3dCommand
   // par1: XessFgParams *
   XESS_SCHEDULE_GEN_FRAME,
 
+  // Initialize or reinitialize FSR upscaling with the provided context args
+  // par1: amd::FSR::ContextArgs *
+  INIT_FSR_UPSCALING,
+
+  // Tear down the current FSR upscaling context. No parameters required
+  TEARDOWN_FSR_UPSCALING,
+
+  // Returns if FSR interface is loaded. No parameters required
+  GET_FSR_LOADED,
+
+  // Returns if FSR upscaling is supported. No parameters required
+  GET_FSR_UPSCALING_SUPPORTED,
+
+  // Return FSR rendering resolution for a target resolution and mode
+  // par1: IPoint2 *targetResolution
+  // par2: int *mode
+  // par3: IPoint2 *renderResolution
+  GET_FSR_RESOLUTION,
+
+  // Returns current FSR version as a string.
+  // par1: char *version
+  // par2: size_t versionSize
+  GET_FSR_VERSION,
+
+  // Gets the number of frames FSR can generate.
+  // par1: int* frames
+  GET_FSR_SUPPORTED_GEN_FRAMES,
+
+  // Gets the number of frames FSR was presented since the last real frame
+  // par1: int* presented_frames
+  GET_FSR_PRESENTED_FRAME_COUNT,
+
+  // Tells if FSR frame generation is active
+  // par1: bool* enabled
+  GET_FSR_FG_ENABLED,
+
+  // Tells if FSR frame generation is supported. No parameters required
+  GET_FSR_FG_SUPPORTED,
+
+  // Tells if FSR frame generation is suppressed
+  // par1: bool* suppressed
+  GET_FSR_FG_SUPPRESSED,
+
+  // Enable or disable FSR frame generation
+  // par1: bool* enable
+  FSR_ENABLE_FG,
+
+  // Suppress or continue FSR frame generation. Suppressing doesn't free up GPU resources.
+  // par1: bool* suppress
+  FSR_SUPPRESS_FG,
+
   // Execute FSR
   // par1: amd::FSR::UpscalingArgs *
   EXECUTE_FSR,
@@ -616,12 +667,12 @@ enum class Drv3dCommand
   // End the query. Must be called before frame end.
   // par1: void * - query pointer received from PIPELINE_STAT_BEGIN
   PIPELINE_STATS_END,
-  // Get the number of rasterized primitives for the query.
+  // Get the number of primitives that were sent to the rasterizer for the query.
   // par1: void * - query pointer, par2: uint64_t * - pointer to result variable
   // returns 1 if the result is ready, otherwise 0. If the result is not ready, the value pointed by par2 is not modified.
   // You must wait till the result is ready before starting a BEGIN/END pair with the same query pointer.
   // Otherwise the behavior is undefined.
-  PIPELINE_STATS_RASTERIZED_PRIMITIVES,
+  PIPELINE_STATS_INVOKED_PRIMITIVES,
   // Create pipeline statistics query. par1: void ** - query pointer.
   // After this call the query pointer is valid and can be used in PIPELINE_STAT_BEGIN/END
   PIPELINE_STATS_CREATE_QUERY,

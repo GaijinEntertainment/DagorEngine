@@ -81,7 +81,7 @@ def remove_package(var lf : LockFile; name : string) {
 
 def read_lock_file_at(path : string; var lf : LockFile) : bool {
     var ok = false
-    fopen(path, "rb") <| $(f) {
+    fopen(path, "rb") $(f) {
         if (f == null) {
             return
         }
@@ -89,7 +89,7 @@ def read_lock_file_at(path : string; var lf : LockFile) : bool {
         var error : string
         var parsed = read_json(text, error)
         if (parsed == null) {
-            print("Error reading {path}: {error}\n")
+            to_log(LOG_ERROR, "Error reading {path}: {error}\n")
             return
         }
         lf = from_JV(parsed, type<LockFile>)
@@ -101,9 +101,9 @@ def read_lock_file_at(path : string; var lf : LockFile) : bool {
 def write_lock_file_at(path : string; lf : LockFile) : bool {
     let text = sprint_json(lf, true)
     var ok = false
-    fopen(path, "wb") <| $(f) {
+    fopen(path, "wb") $(f) {
         if (f == null) {
-            print("Error: cannot write {path}\n")
+            to_log(LOG_ERROR, "Error: cannot write {path}\n")
             return
         }
         fwrite(f, text)

@@ -65,7 +65,7 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
 {
   for (uint32_t ix = 0; ix < as_count; ++ix)
   {
-    D3D_CONTRACT_ASSERTF_RETURN(as_array[ix].basbi.scratchSpaceBuffer, , "This API requires providing a scatch buffer for the AS builds");
+    D3D_CONTRACT_ASSERTF_RETURN(as_array[ix].basbi.scratchSpaceBuffer || as_array[ix].basbi.scratchSpaceBufferSizeInBytes == 0, , "This API requires providing a scatch buffer for the AS builds");
   }
 
   for (uint32_t ix = 0; ix < as_count; ++ix)

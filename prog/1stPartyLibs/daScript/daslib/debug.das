@@ -674,7 +674,6 @@ def iter_top_child_var(stack : DAStackFrame; cb : block<(res : DAVariable) : voi
 
 class private DAStackWalker : DapiStackWalker {
     //! Stack walker that collects frames for the DAP debugger.
-    dataWalkerAdapter : smart_ptr<DataWalker>
     dataWalker : DAWalker?
 
     collectAllGlobals : bool = false
@@ -687,17 +686,13 @@ class private DAStackWalker : DapiStackWalker {
     @do_not_delete pathsCache : table<string; string>?
 
     def DAStackWalker() {
-        //! Constructs a DAStackWalker and initializes its data walker adapter.
+        //! Constructs a DAStackWalker and initializes its data walker.
         dataWalker = new DAWalker()
-        unsafe {
-            dataWalkerAdapter <- make_data_walker(dataWalker)
-        }
     }
 
     def operator delete {
-        //! Cleans up the data walker and its adapter.
+        //! Cleans up the data walker.
         unsafe {
-            delete dataWalkerAdapter
             delete dataWalker
         }
     }
@@ -715,7 +710,9 @@ class private DAStackWalker : DapiStackWalker {
 
         if (ti != null) {
             dataWalker->startWalk(frame, global) $ {
-                dataWalkerAdapter |> walk_data(value, *ti)
+                make_data_walker(dataWalker) $(adapter) {
+                    adapter |> walk_data(value, *ti)
+                }
             }
         }
 
@@ -833,7 +830,9 @@ class private DAStackWalker : DapiStackWalker {
             var variable = DAVariable(uid = frame.varId++, name = vinfo.name, _type = describe(ti), address = intptr(arg), size = ti.size, typeInfo = ti)
             if (ti != null) {
                 dataWalker->startWalk(frame, variable) $ {
-                    dataWalkerAdapter |> walk_data(arg, *ti)
+                    make_data_walker(dataWalker) $(adapter) {
+                        adapter |> walk_data(arg, *ti)
+                    }
                 }
             }
 
@@ -857,7 +856,9 @@ class private DAStackWalker : DapiStackWalker {
             var variable = DAVariable(uid = frame.varId++, name = vinfo.name, _type = describe(ti), address = ti.isRef ? intptr(unsafe(reinterpret<void?> arg)) : 0ul, size = ti.size, typeInfo = ti, rawValue = arg)
             if (ti != null) {
                 dataWalker->startWalk(frame, variable) $ {
-                    dataWalkerAdapter |> walk_data(arg, *ti)
+                    make_data_walker(dataWalker) $(adapter) {
+                        adapter |> walk_data(arg, *ti)
+                    }
                 }
             }
 
@@ -954,7 +955,6 @@ def private compare_path(p1, p2 : string) {
 class private DAgent : DapiDebugAgent {
     //! Main debug agent implementing the DAP protocol.
 
-    walkerAdapter : smart_ptr<StackWalker>
     walker : DAStackWalker?
     server : DAServer?
 
@@ -990,7 +990,6 @@ class private DAgent : DapiDebugAgent {
 
         walker = new DAStackWalker()
         unsafe {
-            walkerAdapter <- make_stack_walker(walker)
             walker.workingPaths = addr(workingPaths)
             walker.pathAliases = addr(pathAliases)
             walker.pathsCache = addr(pathsCache)
@@ -1053,9 +1052,8 @@ class private DAgent : DapiDebugAgent {
     }
 
     def operator delete {
-        //! Cleans up the stack walker, walker adapter, and server resources.
+        //! Cleans up the stack walker and server resources.
         unsafe {
-            delete walkerAdapter
             delete walker
             delete server
         }
@@ -1349,7 +1347,9 @@ class private DAgent : DapiDebugAgent {
         unsafe {
             walker.ctx = addr(ctxData)
         }
-        walkerAdapter |> walk_stack(ctx, at)
+        make_stack_walker(walker) $(adapter) {
+            adapter |> walk_stack(ctx, at)
+        }
         if (length(ctxData.stack) > 0) {
             for (i in range(1, length(ctxData.stack))) {
                 let j = length(ctxData.stack) - i
@@ -1376,7 +1376,9 @@ class private DAgent : DapiDebugAgent {
                 var frame & = unsafe(ctxData.stack[0])
                 var variable = DAVariable(uid = frame.varId++, name = name, _type = describe(info), address = intptr(data), size = info.size)
                 walker.dataWalker->startWalk(frame, variable) $ {
-                    walker.dataWalkerAdapter |> walk_data(data, info)
+                    make_data_walker(walker.dataWalker) $(adapter) {
+                        adapter |> walk_data(data, info)
+                    }
                 }
                 if (variable.children == null) {
                     unsafe {
@@ -1393,7 +1395,7 @@ class private DAgent : DapiDebugAgent {
                         return
                     }
                 }
-                frame.state |> emplace <| (STATE_VARS + uint64(length(frame.state)), category, [ variable])
+                frame.state |> emplace <| (uid = STATE_VARS + uint64(length(frame.state)), name = category, vars = [ variable])
             }
         })
     }
@@ -1667,9 +1669,9 @@ class private DAServer : Server {
         //! Saves the current network session for a potential server restart.
         if (_server != null) {
             unsafe {
-                var session : smart_ptr<NetworkServer>
+                var session : NetworkServer?
                 self->save(session)
-                gc0_save_smart_ptr("telnet-session", session)
+                gc0_save_ptr("telnet-session", session)
             }
         }
     }
@@ -2472,6 +2474,10 @@ def init_stepping_debugger() {
         is_in_debug_agent_creation() || !is_compiling_macros_in_module("debug") || is_in_completion()) {
         return
     }
+    let args <- get_command_line_arguments()
+    if (has_value(args, "--no-das-debug")) {
+        return
+    }
     set_single_step(this_context(), true)
 }
 
@@ -2481,8 +2487,9 @@ def private auto_start_debug() {
         return
     }
     let args <- get_command_line_arguments()
-    if (has_value(args, "--no-das-debug")) return
-
+    if (has_value(args, "--no-das-debug")) {
+        return
+    }
     this_context().category |= context_category_flags.debugger_attached
     set_single_step(this_context(), !use_instruments() || wait_debugger())
     if (!has_debug_agent_context("~debug")) {

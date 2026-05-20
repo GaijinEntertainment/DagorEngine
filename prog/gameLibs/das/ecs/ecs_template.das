@@ -49,7 +49,8 @@ def follow_the_yellow_brick_road(expr : ExpressionPtr; var res : ExpressionPtr&)
       if ev.variable != null && ev.variable._type.flags.constant && ev.variable.init != null
         ev.variable.init |> follow_the_yellow_brick_road(res)
         return
-  res := expr
+  unsafe
+    res = reinterpret<ExpressionPtr -const> expr
 
 def get_eval_any(econst : ExpressionPtr; var errors : das_string; var any_errors : bool&; var output : auto(TT)&)
   if econst is ExprCall
@@ -72,17 +73,17 @@ def get_eval_any(econst : ExpressionPtr; var errors : das_string; var any_errors
 def get_const_expr(expr : ExpressionPtr; var res : ExpressionPtr&) : void
   if expr == null
     return
-  var inscope econst : ExpressionPtr
+  var econst : ExpressionPtr
   expr |> follow_the_yellow_brick_road(econst)
   if econst != null && econst |> is_expr_const()
-    res |> move() <| econst
+    res = econst
 
 options no_unused_function_arguments = false
 
 def get_templ_const(var expr : ExpressionPtr; var errors : das_string; var any_errors : bool&; var output : auto&)
   if expr == null
     return
-  var inscope econst : ExpressionPtr
+  var econst : ExpressionPtr
   expr |> follow_the_yellow_brick_road(econst)
   econst |> get_eval_any(errors, any_errors, output)
 
@@ -99,12 +100,11 @@ class CreateTemplateAnnotation : AstStructureAnnotation
       if is_undef(arg)
         let typeName = describe(field._type)
         let undefType = field._type.baseType == Type.tVoid || field._type.baseType == Type.autoinfer
-        field._type := null
         if undefType && !(arg is tString)
-          field._type |> move_new() <| new TypeDecl(baseType = Type.tInt)
+          field._type = new TypeDecl(baseType = Type.tInt)
         else
-          field._type |> move_new() <| new TypeDecl(baseType = Type.tInt, alias := (arg ?as tString) ?? typeName)
-        field.init := null
+          field._type = new TypeDecl(baseType = Type.tInt, alias := (arg ?as tString) ?? typeName)
+        field.init = null
       field.annotation.add_annotation_argument("safe_when_uninitialized", true)
     return true
 
@@ -151,7 +151,7 @@ class CreateTemplateAnnotation : AstStructureAnnotation
         if undefType
           set_undef(cmp, f, fieldName, string(field._type.alias))
         else
-          var inscope econst <- default<ExpressionPtr>
+          var econst = default<ExpressionPtr>
           field.init |> get_const_expr(econst)
           if field._type.baseType == Type.tBool
             set(cmp, f, fieldName, (econst ?as ExprConstBool)?.value ?? false)

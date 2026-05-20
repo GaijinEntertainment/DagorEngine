@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "objPropEditor.h"
+#include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_direct.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/container.h>
@@ -37,51 +38,70 @@ void ObjectPropertyEditor::loadProps()
   }
 }
 
-void ObjectPropertyEditor::getData(Tab<String> &node_names, Tab<String> &props)
+void ObjectPropertyEditor::makeObjPropDialogNodes(ObjPropDialogNode &dialog_node, const Data::NodeData &node_data)
 {
-  for (const ObjectPropertyEditor::Data &data : data)
-    for (const ObjectPropertyEditor::Data::NodeData &node : data.nodes)
-    {
-      node_names.push_back(node.name);
-      props.push_back(String(node.props));
-    }
+  for (const Data::NodeData &childNode : node_data.children)
+  {
+    ObjPropDialogNode &childDialogNode = dialog_node.children.push_back();
+    childDialogNode.name = childNode.name;
+    childDialogNode.script = childNode.props;
+    childDialogNode.nodeData = &childNode;
+    makeObjPropDialogNodes(childDialogNode, childNode);
+  }
 }
 
-void ObjectPropertyEditor::Data::buildProps(Tab<DagData::Node> &nodes, const String &lod)
+void ObjectPropertyEditor::Data::buildProps(NodeData &parent, Tab<DagData::Node> &nodes, const char *dag_file_name)
 {
   for (DagData::Node &node : nodes)
   {
-    SimpleString name;
+    String name;
+    bool foundScript = false;
     for (DagData::Node::NodeBlock &block : node.blocks)
+    {
       if (block.blockType == DAG_NODE_DATA)
         name = block.name;
       else if (block.blockType == DAG_NODE_SCRIPT)
-        this->nodes.emplace_back(block, name + lod, block.script);
+      {
+        if (foundScript)
+          logerr("Multiple script nodes found in \"%s\". The hierarchy will not be displayed correctly.", dag_file_name);
+        foundScript = true;
+
+        if (name.empty())
+          name = "[No block name]";
+        parent.children.emplace_back(&block, name, block.script);
+        name.clear();
+      }
+    }
+
     if (!node.children.empty())
-      buildProps(node.children, lod);
+    {
+      if (foundScript)
+        buildProps(parent.children[0], node.children, dag_file_name);
+      else
+        buildProps(parent, node.children, dag_file_name);
+    }
   }
 }
 
 void ObjectPropertyEditor::onClick()
 {
   loadProps();
-  Tab<String> nodes, props;
-  getData(nodes, props);
-  ObjPropDialog dlg("Object properties", hdpi::_pxScaled(300), hdpi::_pxScaled(450), nodes, props);
-  int dialogResult = wingw::MB_ID_CANCEL;
-  while (dialogResult == wingw::MB_ID_CANCEL)
+
+  ObjPropDialogNode dialogRootNode;
+  for (const ObjectPropertyEditor::Data &current_data : data)
   {
-    if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
-    {
-      dialogResult = wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNOCANCEL, "Object properties",
-        "You have changed Object properties. Do you want to save the "
-        "changes to the physical DAGs?");
-      if (dialogResult == wingw::MB_ID_YES)
-        saveChanges(dlg.getScripts());
-    }
-    else
-      break;
+    ObjPropDialogNode &childDialogNode = dialogRootNode.children.push_back();
+    childDialogNode.name = current_data.filename;
+    makeObjPropDialogNodes(childDialogNode, current_data.rootNode);
   }
+
+  ObjPropDialog dlg("Object properties", hdpi::_pxScaled(320), hdpi::_pxScaled(200), dialogRootNode);
+  dlg.setManualModalSizingEnabled();
+  if (!dlg.hasEverBeenShown())
+    dlg.setWindowSize(IPoint2((int)(ImGui::GetIO().DisplaySize.x * 0.5f), (int)(ImGui::GetIO().DisplaySize.y * 0.75f)));
+
+  if (dlg.showDialog() == PropPanel::DIALOG_ID_OK)
+    saveChanges(dlg.getRootDialogNode());
 }
 
 void ObjectPropertyEditor::Data::loadFromDag(const char *dag_file_name, const String &lod)
@@ -89,19 +109,32 @@ void ObjectPropertyEditor::Data::loadFromDag(const char *dag_file_name, const St
   DagData newDagData;
   load_scene(dag_file_name, newDagData, true);
   dagData = newDagData;
-  this->lod = lod;
-  nodes.clear();
-  buildProps(dagData.nodes, lod);
+  filename = get_file_name(dag_file_name);
+  rootNode.children.clear();
+  buildProps(rootNode, dagData.nodes, dag_file_name);
 }
 
-void ObjectPropertyEditor::saveChanges(const Tab<String> &props)
+void ObjectPropertyEditor::saveChangesInternal(const ObjPropDialogNode &dialog_node)
 {
-  size_t i = 0;
+  for (const ObjPropDialogNode &childDialogNode : dialog_node.children)
+  {
+    saveChangesInternal(childDialogNode);
+
+    if (childDialogNode.isScriptNode())
+    {
+      const Data::NodeData *nodeData = static_cast<const Data::NodeData *>(childDialogNode.nodeData);
+      nodeData->nodeBlock->script = childDialogNode.script;
+    }
+  }
+}
+
+void ObjectPropertyEditor::saveChanges(const ObjPropDialogNode &dialog_node)
+{
+  saveChangesInternal(dialog_node);
+
   for (Data &d : data)
   {
-    for (Data::NodeData &node : d.nodes)
-      node.nodeBlock.script = props[i++];
-    d.saveToDag(String(0, "%s/%s%s", assetSrcFolderPath.c_str(), assetName.c_str(), d.lod).c_str());
+    d.saveToDag(String(0, "%s/%s", assetSrcFolderPath.c_str(), d.filename).c_str());
   }
 }
 

@@ -207,7 +207,7 @@ NBSGbuffer init_NBSGbuffer(uint2 tc)
   #endif
 
   // only PS5 does hardware sRGB -> linear conversion on UAV read
-  #ifndef NBS_PS_DEFINED
+  #if !NBS_HW_SRGB_UAV
     nbsGbuffer.unpackedGbuffer.albedo = convertGbuffSRGBToLinear(nbsGbuffer.unpackedGbuffer.albedo);
   #endif
 

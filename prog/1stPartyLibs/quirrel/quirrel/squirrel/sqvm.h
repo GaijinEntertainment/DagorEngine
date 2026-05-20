@@ -56,7 +56,8 @@ typedef sqvector<CallInfo> CallInfoVec;
 public:
     void DebugHookProxy(SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
     static void _DebugHookProxy(HSQUIRRELVM v, SQInteger type, const char * sourcename, SQInteger line, const char * funcname);
-    enum ExecutionType { ET_CALL, ET_RESUME_GENERATOR, ET_RESUME_VM,ET_RESUME_THROW_VM };
+    // _THROW variants: caller pre-loads `v->_lasterror`; resume jumps to exception_trap.
+    enum ExecutionType { ET_CALL, ET_RESUME_GENERATOR, ET_RESUME_GENERATOR_THROW, ET_RESUME_VM,ET_RESUME_THROW_VM };
     SQVM(SQSharedState *ss);
     ~SQVM();
     bool Init(SQVM *friendvm, SQInteger stacksize);
@@ -194,7 +195,6 @@ public:
     SQInteger _current_thread;
     SQGETTHREAD _get_current_thread_id_func;
     SQCOMPILELINEHOOK _compile_line_hook;
-    SQSQCALLHOOK _sq_call_hook;
     SQWATCHDOGHOOK _watchdog_hook;
 
     SQObjectPtr temp_reg;

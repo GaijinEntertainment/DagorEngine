@@ -25,12 +25,12 @@ ECS_BIND_TYPE_LIST
     "bind_dascript::getObjectHint" #type);                                                                                        \
   auto getObjectExt##type = das::addExtern<DAS_BIND_FUN(getObject##type)>(*this, lib, "get_" #type, das::SideEffects::none,       \
     "bind_dascript::getObject" #type);                                                                                            \
-  getObjectExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));            \
+  getObjectExt##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));                         \
   das::addExtern<DAS_BIND_FUN(getObjectPtrHint##type)>(*this, lib, "get_" #type, das::SideEffects::none,                          \
     "bind_dascript::getObjectPtrHint" #type);                                                                                     \
   auto getObjectPtrExt##type = das::addExtern<DAS_BIND_FUN(getObjectPtr##type)>(*this, lib, "get_" #type, das::SideEffects::none, \
     "bind_dascript::getObjectPtr" #type);                                                                                         \
-  getObjectPtrExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  getObjectPtrExt##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_OBJECT_READ
@@ -42,7 +42,7 @@ ECS_BIND_TYPE_LIST
     das::SideEffects::modifyArgument, "bind_dascript::setObjectHint" #type);                                                         \
   auto setObjectExt##type = das::addExtern<DAS_BIND_FUN(setObject##type), das::SimNode_ExtFuncCall, das::permanentArgFn>(*this, lib, \
     "set", das::SideEffects::modifyArgument, "bind_dascript::setObject" #type);                                                      \
-  setObjectExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  setObjectExt##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_OBJECT_WRITE
@@ -54,26 +54,26 @@ ECS_BIND_TYPE_LIST
     "bind_dascript::getObjectRWHint" #type);                                                                                      \
   auto getObjectRWExt##type = das::addExtern<DAS_BIND_FUN(getObjectRW##type)>(*this, lib, "getRW_" #type,                         \
     das::SideEffects::modifyArgument, "bind_dascript::getObjectRW" #type);                                                        \
-  getObjectRWExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));          \
+  getObjectRWExt##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));                       \
   das::addExtern<DAS_BIND_FUN(getObjectPtrRWHint##type)>(*this, lib, "getRW_" #type, das::SideEffects::modifyArgumentAndExternal, \
     "bind_dascript::getObjectPtrRWHint" #type);                                                                                   \
   auto getObjectPtrRWHint##type = das::addExtern<DAS_BIND_FUN(getObjectPtrRW##type)>(*this, lib, "getRW_" #type,                  \
     das::SideEffects::modifyArgumentAndExternal, "bind_dascript::getObjectPtrRW" #type);                                          \
-  getObjectPtrRWHint##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  getObjectPtrRWHint##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_OBJECT_RW
 #endif
 
 #ifdef DAS_ECS_BIND_ENTITY_READ
-#define TYPE(type)                                                                                                             \
-  auto entityGetNullable##type = das::addExtern<DAS_BIND_FUN(entityGetNullableHint_##type)>(*this, lib, "get_" #type,          \
-    das::SideEffects::accessExternal, "bind_dascript::entityGetNullableHint_" #type);                                          \
-  entityGetNullable##type->annotations.push_back(annotation_declaration(das::make_smart<EcsGetOrFunctionAnnotation<1, 3>>())); \
-  auto entityGetNullableExt##type = das::addExtern<DAS_BIND_FUN(entityGetNullable_##type)>(*this, lib, "get_" #type,           \
-    das::SideEffects::accessExternal, "bind_dascript::entityGetNullable_" #type);                                              \
-  entityGetNullableExt##type->annotations.push_back(                                                                           \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+#define TYPE(type)                                                                                                    \
+  auto entityGetNullable##type = das::addExtern<DAS_BIND_FUN(entityGetNullableHint_##type)>(*this, lib, "get_" #type, \
+    das::SideEffects::accessExternal, "bind_dascript::entityGetNullableHint_" #type);                                 \
+  entityGetNullable##type->annotations.push_back(annotation_declaration(new EcsGetOrFunctionAnnotation<1, 3>()));     \
+  auto entityGetNullableExt##type = das::addExtern<DAS_BIND_FUN(entityGetNullable_##type)>(*this, lib, "get_" #type,  \
+    das::SideEffects::accessExternal, "bind_dascript::entityGetNullable_" #type);                                     \
+  entityGetNullableExt##type->annotations.push_back(                                                                  \
+    annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_ENTITY_READ
@@ -83,11 +83,10 @@ ECS_BIND_TYPE_LIST
 #define TYPE(type)                                                                                                             \
   das::addExtern<DAS_BIND_FUN(entitySetHint##type)>(*this, lib, "set", das::SideEffects::modifyExternal,                       \
     "bind_dascript::entitySetHint" #type)                                                                                      \
-    ->annotations.push_back(annotation_declaration(das::make_smart<EcsSetAnnotation<1, 3, /*optional*/ false>>(#type)));       \
+    ->annotations.push_back(annotation_declaration(new EcsSetAnnotation<1, 3, /*optional*/ false>(#type)));                    \
   auto entitySetExt##type = das::addExtern<DAS_BIND_FUN(entitySet##type)>(*this, lib, "set", das::SideEffects::modifyExternal, \
     "bind_dascript::entitySet" #type);                                                                                         \
-  entitySetExt##type->annotations.push_back(                                                                                   \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+  entitySetExt##type->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_ENTITY_WRITE
@@ -97,11 +96,11 @@ ECS_BIND_TYPE_LIST
 #define TYPE(type)                                                                                                       \
   das::addExtern<DAS_BIND_FUN(entitySetOptionalHint##type)>(*this, lib, "setOptional", das::SideEffects::modifyExternal, \
     "bind_dascript::entitySetOptionalHint" #type)                                                                        \
-    ->annotations.push_back(annotation_declaration(das::make_smart<EcsSetAnnotation<1, 3, /*optional*/ true>>(#type)));  \
+    ->annotations.push_back(annotation_declaration(new EcsSetAnnotation<1, 3, /*optional*/ true>(#type)));               \
   auto entitySetOptionalExt##type = das::addExtern<DAS_BIND_FUN(entitySetOptional##type)>(*this, lib, "setOptional",     \
     das::SideEffects::modifyExternal, "bind_dascript::entitySetOptional" #type);                                         \
   entitySetOptionalExt##type->annotations.push_back(                                                                     \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+    annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_ENTITY_WRITE_OPTIONAL
@@ -114,7 +113,7 @@ ECS_BIND_TYPE_LIST
   auto entityGetNullableRWExt##type = das::addExtern<DAS_BIND_FUN(entityGetNullableRW_##type)>(*this, lib, "getRW_" #type,   \
     das::SideEffects::modifyExternal, "bind_dascript::entityGetNullableRW_" #type);                                          \
   entityGetNullableRWExt##type->annotations.push_back(                                                                       \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
+    annotation_declaration(new BakeHashFunctionAnnotation<1, /*only fast call*/ true>()));
 ECS_BIND_TYPE_LIST
 #undef TYPE
 #undef DAS_ECS_BIND_ENTITY_RW

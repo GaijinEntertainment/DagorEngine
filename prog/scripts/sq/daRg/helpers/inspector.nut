@@ -36,8 +36,8 @@ function textButton(text, action, isEnabled = true) {
   let override = isEnabled
     ? {
         watch = stateFlags
-        onElemState = isEnabled ? @(val) stateFlags.set(val) : null
-        onClick = isEnabled ? action : null
+        onElemState = @(val) stateFlags.set(val)
+        onClick = action
       }
     : {}
 
@@ -144,8 +144,8 @@ function getPropValueTexts(desc, key, textLimit = 0) {
   } else if (tp == "integer" && key.tolower().contains("color")) {
     text = "".concat("0x", format("%16X", val).slice(8))
     valCtor = mkColorCtor(val)
-  } else if (tp == "userdata" || tp == "userpointer") {
-    text = "<userdata/userpointer>"
+  } else if (tp == "userdata") {
+    text = "<userdata>"
   } else {
     let s = val.tostring()
     if (textLimit <= 0)

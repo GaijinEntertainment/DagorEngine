@@ -15,7 +15,7 @@ void Module_dasIMGUI::initFunctions_15() {
 // from imgui/imgui.h:999:29
 	makeExtern< void (*)(int) , ImGui::LogToClipboard , SimNode_ExtFuncCall , imguiTempFn>(lib,"LogToClipboard","ImGui::LogToClipboard")
 		->args({"auto_open_depth"})
-		->arg_init(0,make_smart<ExprConstInt>(-1))
+		->arg_init(0,new ExprConstInt(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1000:29
 	makeExtern< void (*)() , ImGui::LogFinish , SimNode_ExtFuncCall , imguiTempFn>(lib,"LogFinish","ImGui::LogFinish")
@@ -27,13 +27,13 @@ void Module_dasIMGUI::initFunctions_15() {
 	makeExtern< bool (*)(int) , ImGui::BeginDragDropSource , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginDragDropSource","ImGui::BeginDragDropSource")
 		->args({"flags"})
 		->arg_type(0,makeType<ImGuiDragDropFlags_>(lib))
-		->arg_init(0,make_smart<ExprConstEnumeration>(0,makeType<ImGuiDragDropFlags_>(lib)))
+		->arg_init(0,new ExprConstEnumeration(0,makeType<ImGuiDragDropFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1011:29
 	makeExtern< bool (*)(const char *,const void *,uint64_t,int) , ImGui::SetDragDropPayload , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetDragDropPayload","ImGui::SetDragDropPayload")
 		->args({"type","data","sz","cond"})
 		->arg_type(3,makeType<ImGuiCond_>(lib))
-		->arg_init(3,make_smart<ExprConstEnumeration>(0,makeType<ImGuiCond_>(lib)))
+		->arg_init(3,new ExprConstEnumeration(0,makeType<ImGuiCond_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1012:29
 	makeExtern< void (*)() , ImGui::EndDragDropSource , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndDragDropSource","ImGui::EndDragDropSource")
@@ -45,7 +45,7 @@ void Module_dasIMGUI::initFunctions_15() {
 	makeExtern< const ImGuiPayload * (*)(const char *,int) , ImGui::AcceptDragDropPayload , SimNode_ExtFuncCall , imguiTempFn>(lib,"AcceptDragDropPayload","ImGui::AcceptDragDropPayload")
 		->args({"type","flags"})
 		->arg_type(1,makeType<ImGuiDragDropFlags_>(lib))
-		->arg_init(1,make_smart<ExprConstEnumeration>(0,makeType<ImGuiDragDropFlags_>(lib)))
+		->arg_init(1,new ExprConstEnumeration(0,makeType<ImGuiDragDropFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1015:37
 	makeExtern< void (*)() , ImGui::EndDragDropTarget , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndDragDropTarget","ImGui::EndDragDropTarget")
@@ -56,7 +56,7 @@ void Module_dasIMGUI::initFunctions_15() {
 // from imgui/imgui.h:1023:29
 	makeExtern< void (*)(bool) , ImGui::BeginDisabled , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginDisabled","ImGui::BeginDisabled")
 		->args({"disabled"})
-		->arg_init(0,make_smart<ExprConstBool>(true))
+		->arg_init(0,new ExprConstBool(true))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1024:29
 	makeExtern< void (*)() , ImGui::EndDisabled , SimNode_ExtFuncCall , imguiTempFn>(lib,"EndDisabled","ImGui::EndDisabled")
@@ -74,7 +74,7 @@ void Module_dasIMGUI::initFunctions_15() {
 // from imgui/imgui.h:1033:29
 	makeExtern< void (*)(int) , ImGui::SetKeyboardFocusHere , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetKeyboardFocusHere","ImGui::SetKeyboardFocusHere")
 		->args({"offset"})
-		->arg_init(0,make_smart<ExprConstInt>(0))
+		->arg_init(0,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1036:29
 	makeExtern< void (*)(bool) , ImGui::SetNavCursorVisible , SimNode_ExtFuncCall , imguiTempFn>(lib,"SetNavCursorVisible","ImGui::SetNavCursorVisible")
@@ -87,7 +87,7 @@ void Module_dasIMGUI::initFunctions_15() {
 	makeExtern< bool (*)(int) , ImGui::IsItemHovered , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsItemHovered","ImGui::IsItemHovered")
 		->args({"flags"})
 		->arg_type(0,makeType<ImGuiHoveredFlags_>(lib))
-		->arg_init(0,make_smart<ExprConstEnumeration>(0,makeType<ImGuiHoveredFlags_>(lib)))
+		->arg_init(0,new ExprConstEnumeration(0,makeType<ImGuiHoveredFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:1045:29
 	makeExtern< bool (*)() , ImGui::IsItemActive , SimNode_ExtFuncCall , imguiTempFn>(lib,"IsItemActive","ImGui::IsItemActive")

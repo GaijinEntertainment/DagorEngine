@@ -1,0 +1,63 @@
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:5:8
+
+  if (a == b) {
+    if (a == b)  // WARN 1
+        ^-----
+      return 1
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:15:8
+
+  else {
+    if (a == b)  // WARN 2
+        ^-----
+      return 2
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:43:9
+
+  else {
+    if ((a == b) && b == c)  // WARN 3
+         ^-----
+      return 2
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:53:20
+
+  else {
+    if ((w == e) && a == b)  // WARN 4
+                    ^-----
+      return 2
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:61:20
+
+  if (fn()) {
+    if ((w == e) && fn())  // WARN 5
+                    ^---
+      return 1
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:69:8
+
+  if (previewPreset.get() && !mintEditState.get()) {
+    if (previewPreset.get() && !mintEditState.get())  // WARN 6
+        ^------------------------------------------
+      return 1
+
+
+WARNING: w329 (repeated-condition) Condition repeats a condition from an outer 'if'.
+testData/static_analyzer/w329.nut:119:8
+
+    local other = value + 1
+    if (a == b)  // WARN 7
+        ^-----
+      return other
+
+

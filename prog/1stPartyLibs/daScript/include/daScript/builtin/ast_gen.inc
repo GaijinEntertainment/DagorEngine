@@ -13,9 +13,10 @@ protected:
     __fn_isCompatible = 9,
     __fn_isSpecialized = 10,
     __fn_appendToMangledName = 11,
+    __fn_isAppliedToGeneric = 12,
   };
 protected:
-  int _das_class_method_offset[12];
+  int _das_class_method_offset[13];
 public:
   AstFunctionAnnotation_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_transform] = info->fields[2]->offset;
@@ -30,94 +31,95 @@ public:
       _das_class_method_offset[__fn_isCompatible] = info->fields[11]->offset;
       _das_class_method_offset[__fn_isSpecialized] = info->fields[12]->offset;
       _das_class_method_offset[__fn_appendToMangledName] = info->fields[13]->offset;
+      _das_class_method_offset[__fn_isAppliedToGeneric] = info->fields[14]->offset;
   }
   __forceinline Func get_transform ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_transform]);
   }
-  __forceinline smart_ptr<Expression> invoke_transform ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallFunc> call, das::string & errors ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCallFunc>,das::string &>
+  __forceinline Expression * invoke_transform ( Context * __context__, Func __funcCall__, void * self, ExprCallFunc * call, das::string & errors ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCallFunc *,das::string &>
         (__context__,nullptr,__funcCall__,
-          self,call,errors).marshal();
+          self,call,errors);
   }
   __forceinline Func get_verifyCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_verifyCall]);
   }
-  __forceinline bool invoke_verifyCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallFunc> call, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_verifyCall ( Context * __context__, Func __funcCall__, void * self, ExprCallFunc * call, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprCallFunc>,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprCallFunc *,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,call,args,progArgs,errors);
   }
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,errors);
   }
   __forceinline Func get_generic_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_generic_apply]);
   }
-  __forceinline bool invoke_generic_apply ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_generic_apply ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
   __forceinline Func get_patch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_patch]);
   }
-  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors, bool & astChanged ) const {
+  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors, bool & astChanged ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &,bool &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &,bool &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors,astChanged);
   }
   __forceinline Func get_fixup ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_fixup]);
   }
-  __forceinline bool invoke_fixup ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_fixup ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
   __forceinline Func get_lint ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_lint]);
   }
-  __forceinline bool invoke_lint ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_lint ( Context * __context__, Func __funcCall__, void * self, Function * func, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,Function *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,group,args,progArgs,errors);
   }
   __forceinline Func get_complete ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_complete]);
   }
-  __forceinline void invoke_complete ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, smart_ptr_raw<Context> ctx ) const {
+  __forceinline void invoke_complete ( Context * __context__, Func __funcCall__, void * self, Function * func, smart_ptr_raw<Context> ctx ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function>,smart_ptr_raw<Context>>
+      <void *,Function *,smart_ptr_raw<Context>>
         (__context__,nullptr,__funcCall__,
           self,func,ctx);
   }
   __forceinline Func get_isCompatible ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_isCompatible]);
   }
-  __forceinline bool invoke_isCompatible ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> func, das::vector<smart_ptr<TypeDecl>> & types, AnnotationDeclaration const  & decl, das::string & errors ) const {
+  __forceinline bool invoke_isCompatible ( Context * __context__, Func __funcCall__, void * self, Function * func, das::vector<TypeDecl *> & types, AnnotationDeclaration const  & decl, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Function>,das::vector<smart_ptr<TypeDecl>> &,AnnotationDeclaration const  &,das::string &>
+      <void *,Function *,das::vector<TypeDecl *> &,AnnotationDeclaration const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,types,decl,errors);
   }
@@ -133,11 +135,20 @@ public:
   __forceinline Func get_appendToMangledName ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_appendToMangledName]);
   }
-  __forceinline void invoke_appendToMangledName ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  func, AnnotationDeclaration const  & decl, das::string & mangledName ) const {
+  __forceinline void invoke_appendToMangledName ( Context * __context__, Func __funcCall__, void * self, Function * const  func, AnnotationDeclaration const  & decl, das::string & mangledName ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const ,AnnotationDeclaration const  &,das::string &>
+      <void *,Function * const ,AnnotationDeclaration const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,func,decl,mangledName);
+  }
+  __forceinline Func get_isAppliedToGeneric ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_isAppliedToGeneric]);
+  }
+  __forceinline bool invoke_isAppliedToGeneric ( Context * __context__, Func __funcCall__, void * self ) const {
+    return das_invoke_function<bool>::invoke
+      <void *>
+        (__context__,nullptr,__funcCall__,
+          self);
   }
 };
 
@@ -157,18 +168,18 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> blk, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprBlock>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,blk,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> blk, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, ExprBlock * blk, ModuleGroup & group, AnnotationArgumentList const  & args, AnnotationArgumentList const  & progArgs, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprBlock>,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
+      <void *,ExprBlock *,ModuleGroup &,AnnotationArgumentList const  &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,blk,group,args,progArgs,errors);
   }
@@ -200,63 +211,63 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Structure>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
   __forceinline Func get_finish ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_finish]);
   }
-  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_finish ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Structure>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
   __forceinline Func get_patch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_patch]);
   }
-  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors, bool & astChanged ) const {
+  __forceinline bool invoke_patch ( Context * __context__, Func __funcCall__, void * self, Structure * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors, bool & astChanged ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Structure>,ModuleGroup &,AnnotationArgumentList const  &,das::string &,bool &>
+      <void *,Structure *,ModuleGroup &,AnnotationArgumentList const  &,das::string &,bool &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors,astChanged);
   }
   __forceinline Func get_complete ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_complete]);
   }
-  __forceinline void invoke_complete ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, smart_ptr_raw<Context> ctx ) const {
+  __forceinline void invoke_complete ( Context * __context__, Func __funcCall__, void * self, Structure * st, smart_ptr_raw<Context> ctx ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure>,smart_ptr_raw<Context>>
+      <void *,Structure *,smart_ptr_raw<Context>>
         (__context__,nullptr,__funcCall__,
           self,st,ctx);
   }
   __forceinline Func get_aotPrefix ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_aotPrefix]);
   }
-  __forceinline void invoke_aotPrefix ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
+  __forceinline void invoke_aotPrefix ( Context * __context__, Func __funcCall__, void * self, Structure * st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure>,AnnotationArgumentList const  &,StringBuilderWriter &>
+      <void *,Structure *,AnnotationArgumentList const  &,StringBuilderWriter &>
         (__context__,nullptr,__funcCall__,
           self,st,args,writer);
   }
   __forceinline Func get_aotBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_aotBody]);
   }
-  __forceinline void invoke_aotBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
+  __forceinline void invoke_aotBody ( Context * __context__, Func __funcCall__, void * self, Structure * st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure>,AnnotationArgumentList const  &,StringBuilderWriter &>
+      <void *,Structure *,AnnotationArgumentList const  &,StringBuilderWriter &>
         (__context__,nullptr,__funcCall__,
           self,st,args,writer);
   }
   __forceinline Func get_aotSuffix ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_aotSuffix]);
   }
-  __forceinline void invoke_aotSuffix ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
+  __forceinline void invoke_aotSuffix ( Context * __context__, Func __funcCall__, void * self, Structure * st, AnnotationArgumentList const  & args, StringBuilderWriter & writer ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure>,AnnotationArgumentList const  &,StringBuilderWriter &>
+      <void *,Structure *,AnnotationArgumentList const  &,StringBuilderWriter &>
         (__context__,nullptr,__funcCall__,
           self,st,args,writer);
   }
@@ -276,9 +287,9 @@ public:
   __forceinline Func get_apply ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_apply]);
   }
-  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Enumeration> st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
+  __forceinline bool invoke_apply ( Context * __context__, Func __funcCall__, void * self, Enumeration * st, ModuleGroup & group, AnnotationArgumentList const  & args, das::string & errors ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Enumeration>,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
+      <void *,Enumeration *,ModuleGroup &,AnnotationArgumentList const  &,das::string &>
         (__context__,nullptr,__funcCall__,
           self,st,group,args,errors);
   }
@@ -324,29 +335,29 @@ public:
   __forceinline Func get_visitExprIsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprIsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprIsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprIsVariant> const >
+  __forceinline Expression * invoke_visitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprIsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprIsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
   __forceinline Func get_visitExprAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprAsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprAsVariant> const >
+  __forceinline Expression * invoke_visitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprAsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprAsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
   __forceinline Func get_visitExprSafeAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSafeAsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprSafeAsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprSafeAsVariant> const >
+  __forceinline Expression * invoke_visitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprSafeAsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprSafeAsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
 };
 
@@ -364,11 +375,11 @@ public:
   __forceinline Func get_visitExprFor ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprFor]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprFor ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprFor> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprFor> const >
+  __forceinline Expression * invoke_visitExprFor ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprFor * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprFor * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
 };
 
@@ -390,27 +401,27 @@ public:
   __forceinline Func get_captureExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_captureExpression]);
   }
-  __forceinline smart_ptr<Expression> invoke_captureExpression ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, smart_ptr_raw<Expression> const  expr, smart_ptr_raw<TypeDecl> const  etype ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,Program * const ,Module * const ,smart_ptr_raw<Expression> const ,smart_ptr_raw<TypeDecl> const >
+  __forceinline Expression * invoke_captureExpression ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, Expression * const  expr, TypeDecl * const  etype ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Program * const ,Module * const ,Expression * const ,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr,etype).marshal();
+          self,prog,mod,expr,etype);
   }
   __forceinline Func get_captureFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_captureFunction]);
   }
-  __forceinline void invoke_captureFunction ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, Structure * lcs, smart_ptr_raw<Function> fun ) const {
+  __forceinline void invoke_captureFunction ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, Structure * lcs, Function * fun ) const {
     das_invoke_function<void>::invoke
-      <void *,Program * const ,Module * const ,Structure *,smart_ptr_raw<Function>>
+      <void *,Program * const ,Module * const ,Structure *,Function *>
         (__context__,nullptr,__funcCall__,
           self,prog,mod,lcs,fun);
   }
   __forceinline Func get_releaseFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_releaseFunction]);
   }
-  __forceinline void invoke_releaseFunction ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, Structure * lcs, smart_ptr_raw<Function> fun ) const {
+  __forceinline void invoke_releaseFunction ( Context * __context__, Func __funcCall__, void * self, Program * const  prog, Module * const  mod, Structure * lcs, Function * fun ) const {
     das_invoke_function<void>::invoke
-      <void *,Program * const ,Module * const ,Structure *,smart_ptr_raw<Function>>
+      <void *,Program * const ,Module * const ,Structure *,Function *>
         (__context__,nullptr,__funcCall__,
           self,prog,mod,lcs,fun);
   }
@@ -430,11 +441,11 @@ public:
   __forceinline Func get_visit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visit]);
   }
-  __forceinline smart_ptr<TypeDecl> invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<TypeDecl> const  td, smart_ptr_raw<TypeDecl> const  passT ) const {
-    return das_invoke_function<smart_ptr_raw<TypeDecl>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<TypeDecl> const ,smart_ptr_raw<TypeDecl> const >
+  __forceinline TypeDecl * invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, TypeDecl * const  td, TypeDecl * const  passT ) const {
+    return das_invoke_function<TypeDecl *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,TypeDecl * const ,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,td,passT).marshal();
+          self,prog,mod,td,passT);
   }
 };
 
@@ -507,11 +518,11 @@ public:
   __forceinline Func get_visit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprReader> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprReader> const >
+  __forceinline Expression * invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprReader * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprReader * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
 };
 
@@ -633,9 +644,9 @@ public:
   __forceinline Func get_afterStructure ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterStructure]);
   }
-  __forceinline void invoke_afterStructure ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  st, smart_ptr_raw<Program> const  prog, Module * const  mod, LineInfo const  & info ) const {
+  __forceinline void invoke_afterStructure ( Context * __context__, Func __funcCall__, void * self, Structure * const  st, smart_ptr_raw<Program> const  prog, Module * const  mod, LineInfo const  & info ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure> const ,smart_ptr_raw<Program> const ,Module * const ,LineInfo const  &>
+      <void *,Structure * const ,smart_ptr_raw<Program> const ,Module * const ,LineInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,st,prog,mod,info);
   }
@@ -678,9 +689,9 @@ public:
   __forceinline Func get_afterFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterFunction]);
   }
-  __forceinline void invoke_afterFunction ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fn, smart_ptr_raw<Program> const  prog, Module * const  mod, LineInfo const  & info ) const {
+  __forceinline void invoke_afterFunction ( Context * __context__, Func __funcCall__, void * self, Function * const  fn, smart_ptr_raw<Program> const  prog, Module * const  mod, LineInfo const  & info ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Program> const ,Module * const ,LineInfo const  &>
+      <void *,Function * const ,smart_ptr_raw<Program> const ,Module * const ,LineInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,fn,prog,mod,info);
   }
@@ -931,36 +942,36 @@ public:
   __forceinline Func get_preVisit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisit]);
   }
-  __forceinline void invoke_preVisit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprCallMacro> const  expr ) const {
+  __forceinline void invoke_preVisit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprCallMacro * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprCallMacro> const >
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
           self,prog,mod,expr);
   }
   __forceinline Func get_visit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, smart_ptr_raw<ExprCallMacro> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Program> const ,Module * const ,smart_ptr_raw<ExprCallMacro> const >
+  __forceinline Expression * invoke_visit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Program> const  prog, Module * const  mod, ExprCallMacro * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,smart_ptr_raw<Program> const ,Module * const ,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
-          self,prog,mod,expr).marshal();
+          self,prog,mod,expr);
   }
   __forceinline Func get_canVisitArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitArgument]);
   }
-  __forceinline bool invoke_canVisitArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallMacro> const  expr, int32_t argIndex ) const {
+  __forceinline bool invoke_canVisitArgument ( Context * __context__, Func __funcCall__, void * self, ExprCallMacro * const  expr, int32_t argIndex ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprCallMacro> const ,int32_t>
+      <void *,ExprCallMacro * const ,int32_t>
         (__context__,nullptr,__funcCall__,
           self,expr,argIndex);
   }
   __forceinline Func get_canFoldReturnResult ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canFoldReturnResult]);
   }
-  __forceinline bool invoke_canFoldReturnResult ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallMacro> const  expr ) const {
+  __forceinline bool invoke_canFoldReturnResult ( Context * __context__, Func __funcCall__, void * self, ExprCallMacro * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprCallMacro> const >
+      <void *,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
@@ -982,20 +993,20 @@ public:
   __forceinline Func get_getAstChange ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_getAstChange]);
   }
-  __forceinline smart_ptr<Expression> invoke_getAstChange ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeInfo> const  expr, das::string & errors ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprTypeInfo> const ,das::string &>
+  __forceinline Expression * invoke_getAstChange ( Context * __context__, Func __funcCall__, void * self, ExprTypeInfo * const  expr, das::string & errors ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprTypeInfo * const ,das::string &>
         (__context__,nullptr,__funcCall__,
-          self,expr,errors).marshal();
+          self,expr,errors);
   }
   __forceinline Func get_getAstType ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_getAstType]);
   }
-  __forceinline smart_ptr<TypeDecl> invoke_getAstType ( Context * __context__, Func __funcCall__, void * self, ModuleLibrary & lib, smart_ptr_raw<ExprTypeInfo> const  expr, das::string & errors ) const {
-    return das_invoke_function<smart_ptr_raw<TypeDecl>>::invoke
-      <void *,ModuleLibrary &,smart_ptr_raw<ExprTypeInfo> const ,das::string &>
+  __forceinline TypeDecl * invoke_getAstType ( Context * __context__, Func __funcCall__, void * self, ModuleLibrary & lib, ExprTypeInfo * const  expr, das::string & errors ) const {
+    return das_invoke_function<TypeDecl *>::invoke
+      <void *,ModuleLibrary &,ExprTypeInfo * const ,das::string &>
         (__context__,nullptr,__funcCall__,
-          self,lib,expr,errors).marshal();
+          self,lib,expr,errors);
   }
 };
 
@@ -1672,56 +1683,56 @@ public:
   __forceinline Func get_preVisitExprTypeDecl ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTypeDecl]);
   }
-  __forceinline void invoke_preVisitExprTypeDecl ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeDecl> const  expr ) const {
+  __forceinline void invoke_preVisitExprTypeDecl ( Context * __context__, Func __funcCall__, void * self, ExprTypeDecl * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTypeDecl> const >
+      <void *,ExprTypeDecl * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprTypeDecl ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprTypeDecl]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprTypeDecl ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeDecl> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprTypeDecl> const >
+  __forceinline Expression * invoke_visitExprTypeDecl ( Context * __context__, Func __funcCall__, void * self, ExprTypeDecl * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprTypeDecl * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitTypeDecl ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitTypeDecl]);
   }
-  __forceinline void invoke_preVisitTypeDecl ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<TypeDecl> const  typ ) const {
+  __forceinline void invoke_preVisitTypeDecl ( Context * __context__, Func __funcCall__, void * self, TypeDecl * const  typ ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<TypeDecl> const >
+      <void *,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
           self,typ);
   }
   __forceinline Func get_visitTypeDecl ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitTypeDecl]);
   }
-  __forceinline smart_ptr<TypeDecl> invoke_visitTypeDecl ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<TypeDecl> const  typ ) const {
-    return das_invoke_function<smart_ptr_raw<TypeDecl>>::invoke
-      <void *,smart_ptr_raw<TypeDecl> const >
+  __forceinline TypeDecl * invoke_visitTypeDecl ( Context * __context__, Func __funcCall__, void * self, TypeDecl * const  typ ) const {
+    return das_invoke_function<TypeDecl *>::invoke
+      <void *,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
-          self,typ).marshal();
+          self,typ);
   }
   __forceinline Func get_preVisitAlias ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitAlias]);
   }
-  __forceinline void invoke_preVisitAlias ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<TypeDecl> const  typ, das::string const  & name ) const {
+  __forceinline void invoke_preVisitAlias ( Context * __context__, Func __funcCall__, void * self, TypeDecl * const  typ, das::string const  & name ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<TypeDecl> const ,das::string const  &>
+      <void *,TypeDecl * const ,das::string const  &>
         (__context__,nullptr,__funcCall__,
           self,typ,name);
   }
   __forceinline Func get_visitAlias ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitAlias]);
   }
-  __forceinline smart_ptr<TypeDecl> invoke_visitAlias ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<TypeDecl> const  typ, das::string const  & name ) const {
-    return das_invoke_function<smart_ptr_raw<TypeDecl>>::invoke
-      <void *,smart_ptr_raw<TypeDecl> const ,das::string const  &>
+  __forceinline TypeDecl * invoke_visitAlias ( Context * __context__, Func __funcCall__, void * self, TypeDecl * const  typ, das::string const  & name ) const {
+    return das_invoke_function<TypeDecl *>::invoke
+      <void *,TypeDecl * const ,das::string const  &>
         (__context__,nullptr,__funcCall__,
-          self,typ,name).marshal();
+          self,typ,name);
   }
   __forceinline Func get_canVisitEnumeration ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitEnumeration]);
@@ -1735,38 +1746,38 @@ public:
   __forceinline Func get_preVisitEnumeration ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitEnumeration]);
   }
-  __forceinline void invoke_preVisitEnumeration ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Enumeration> const  enu ) const {
+  __forceinline void invoke_preVisitEnumeration ( Context * __context__, Func __funcCall__, void * self, Enumeration * const  enu ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Enumeration> const >
+      <void *,Enumeration * const >
         (__context__,nullptr,__funcCall__,
           self,enu);
   }
   __forceinline Func get_preVisitEnumerationValue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitEnumerationValue]);
   }
-  __forceinline void invoke_preVisitEnumerationValue ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Enumeration> const  enu, das::string const  & name, smart_ptr_raw<Expression> const  value, bool last ) const {
+  __forceinline void invoke_preVisitEnumerationValue ( Context * __context__, Func __funcCall__, void * self, Enumeration * const  enu, das::string const  & name, Expression * const  value, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Enumeration> const ,das::string const  &,smart_ptr_raw<Expression> const ,bool>
+      <void *,Enumeration * const ,das::string const  &,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,enu,name,value,last);
   }
   __forceinline Func get_visitEnumerationValue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitEnumerationValue]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitEnumerationValue ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Enumeration> const  enu, das::string const  & name, smart_ptr_raw<Expression> const  value, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Enumeration> const ,das::string const  &,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitEnumerationValue ( Context * __context__, Func __funcCall__, void * self, Enumeration * const  enu, das::string const  & name, Expression * const  value, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Enumeration * const ,das::string const  &,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,enu,name,value,last).marshal();
+          self,enu,name,value,last);
   }
   __forceinline Func get_visitEnumeration ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitEnumeration]);
   }
-  __forceinline smart_ptr<Enumeration> invoke_visitEnumeration ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Enumeration> const  enu ) const {
-    return das_invoke_function<smart_ptr_raw<Enumeration>>::invoke
-      <void *,smart_ptr_raw<Enumeration> const >
+  __forceinline Enumeration * invoke_visitEnumeration ( Context * __context__, Func __funcCall__, void * self, Enumeration * const  enu ) const {
+    return das_invoke_function<Enumeration *>::invoke
+      <void *,Enumeration * const >
         (__context__,nullptr,__funcCall__,
-          self,enu).marshal();
+          self,enu);
   }
   __forceinline Func get_canVisitStructure ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitStructure]);
@@ -1780,47 +1791,47 @@ public:
   __forceinline Func get_preVisitStructure ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitStructure]);
   }
-  __forceinline void invoke_preVisitStructure ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str ) const {
+  __forceinline void invoke_preVisitStructure ( Context * __context__, Func __funcCall__, void * self, Structure * const  str ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure> const >
+      <void *,Structure * const >
         (__context__,nullptr,__funcCall__,
           self,str);
   }
   __forceinline Func get_preVisitStructureField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitStructureField]);
   }
-  __forceinline void invoke_preVisitStructureField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str, Structure::FieldDeclaration const  & decl, bool last ) const {
+  __forceinline void invoke_preVisitStructureField ( Context * __context__, Func __funcCall__, void * self, Structure * const  str, Structure::FieldDeclaration const  & decl, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure> const ,Structure::FieldDeclaration const  &,bool>
+      <void *,Structure * const ,Structure::FieldDeclaration const  &,bool>
         (__context__,nullptr,__funcCall__,
           self,str,decl,last);
   }
   __forceinline Func get_canVisitStructureFieldInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitStructureFieldInit]);
   }
-  __forceinline bool invoke_canVisitStructureFieldInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  st ) const {
+  __forceinline bool invoke_canVisitStructureFieldInit ( Context * __context__, Func __funcCall__, void * self, Structure * const  st ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<Structure> const >
+      <void *,Structure * const >
         (__context__,nullptr,__funcCall__,
           self,st);
   }
   __forceinline Func get_visitStructureField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitStructureField]);
   }
-  __forceinline void invoke_visitStructureField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str, Structure::FieldDeclaration const  & decl, bool last ) const {
+  __forceinline void invoke_visitStructureField ( Context * __context__, Func __funcCall__, void * self, Structure * const  str, Structure::FieldDeclaration const  & decl, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure> const ,Structure::FieldDeclaration const  &,bool>
+      <void *,Structure * const ,Structure::FieldDeclaration const  &,bool>
         (__context__,nullptr,__funcCall__,
           self,str,decl,last);
   }
   __forceinline Func get_visitStructure ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitStructure]);
   }
-  __forceinline smart_ptr<Structure> invoke_visitStructure ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str ) const {
-    return das_invoke_function<smart_ptr_raw<Structure>>::invoke
-      <void *,smart_ptr_raw<Structure> const >
+  __forceinline Structure * invoke_visitStructure ( Context * __context__, Func __funcCall__, void * self, Structure * const  str ) const {
+    return das_invoke_function<Structure *>::invoke
+      <void *,Structure * const >
         (__context__,nullptr,__funcCall__,
-          self,str).marshal();
+          self,str);
   }
   __forceinline Func get_canVisitFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitFunction]);
@@ -1834,263 +1845,263 @@ public:
   __forceinline Func get_canVisitFunctionArgumentInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitFunctionArgumentInit]);
   }
-  __forceinline bool invoke_canVisitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  value ) const {
+  __forceinline bool invoke_canVisitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Variable * const  arg, Expression * const  value ) const {
     return das_invoke_function<bool>::invoke
-      <void *,Function * const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+      <void *,Function * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,fun,arg,value);
   }
   __forceinline Func get_preVisitFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitFunction]);
   }
-  __forceinline void invoke_preVisitFunction ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun ) const {
+  __forceinline void invoke_preVisitFunction ( Context * __context__, Func __funcCall__, void * self, Function * const  fun ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const >
+      <void *,Function * const >
         (__context__,nullptr,__funcCall__,
           self,fun);
   }
   __forceinline Func get_visitFunction ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitFunction]);
   }
-  __forceinline smart_ptr<Function> invoke_visitFunction ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun ) const {
-    return das_invoke_function<smart_ptr_raw<Function>>::invoke
-      <void *,smart_ptr_raw<Function> const >
+  __forceinline Function * invoke_visitFunction ( Context * __context__, Func __funcCall__, void * self, Function * const  fun ) const {
+    return das_invoke_function<Function *>::invoke
+      <void *,Function * const >
         (__context__,nullptr,__funcCall__,
-          self,fun).marshal();
+          self,fun);
   }
   __forceinline Func get_preVisitFunctionArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitFunctionArgument]);
   }
-  __forceinline void invoke_preVisitFunctionArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
+  __forceinline void invoke_preVisitFunctionArgument ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Variable * const  arg, bool lastArg ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Variable> const ,bool>
+      <void *,Function * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,fun,arg,lastArg);
   }
   __forceinline Func get_visitFunctionArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitFunctionArgument]);
   }
-  __forceinline smart_ptr<Variable> invoke_visitFunctionArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
-    return das_invoke_function<smart_ptr_raw<Variable>>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Variable> const ,bool>
+  __forceinline Variable * invoke_visitFunctionArgument ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Variable * const  arg, bool lastArg ) const {
+    return das_invoke_function<Variable *>::invoke
+      <void *,Function * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,fun,arg,lastArg).marshal();
+          self,fun,arg,lastArg);
   }
   __forceinline Func get_preVisitFunctionArgumentInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitFunctionArgumentInit]);
   }
-  __forceinline void invoke_preVisitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  value ) const {
+  __forceinline void invoke_preVisitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Variable * const  arg, Expression * const  value ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+      <void *,Function * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,fun,arg,value);
   }
   __forceinline Func get_visitFunctionArgumentInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitFunctionArgumentInit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  value ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitFunctionArgumentInit ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Variable * const  arg, Expression * const  value ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Function * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,fun,arg,value).marshal();
+          self,fun,arg,value);
   }
   __forceinline Func get_preVisitFunctionBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitFunctionBody]);
   }
-  __forceinline void invoke_preVisitFunctionBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitFunctionBody ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Expression> const >
+      <void *,Function * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,fun,expr);
   }
   __forceinline Func get_visitFunctionBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitFunctionBody]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitFunctionBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Function> const  fun, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Function> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitFunctionBody ( Context * __context__, Func __funcCall__, void * self, Function * const  fun, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Function * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,fun,expr).marshal();
+          self,fun,expr);
   }
   __forceinline Func get_preVisitExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExpression]);
   }
-  __forceinline void invoke_preVisitExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExpression ( Context * __context__, Func __funcCall__, void * self, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Expression> const >
+      <void *,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExpression]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitExpression ( Context * __context__, Func __funcCall__, void * self, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlock]);
   }
-  __forceinline void invoke_preVisitExprBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk ) const {
+  __forceinline void invoke_preVisitExprBlock ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const >
+      <void *,ExprBlock * const >
         (__context__,nullptr,__funcCall__,
           self,blk);
   }
   __forceinline Func get_visitExprBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlock]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const >
+  __forceinline Expression * invoke_visitExprBlock ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprBlock * const >
         (__context__,nullptr,__funcCall__,
-          self,blk).marshal();
+          self,blk);
   }
   __forceinline Func get_preVisitExprBlockArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlockArgument]);
   }
-  __forceinline void invoke_preVisitExprBlockArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
+  __forceinline void invoke_preVisitExprBlockArgument ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Variable * const  arg, bool lastArg ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Variable> const ,bool>
+      <void *,ExprBlock * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,blk,arg,lastArg);
   }
   __forceinline Func get_visitExprBlockArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlockArgument]);
   }
-  __forceinline smart_ptr<Variable> invoke_visitExprBlockArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
-    return das_invoke_function<smart_ptr_raw<Variable>>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Variable> const ,bool>
+  __forceinline Variable * invoke_visitExprBlockArgument ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Variable * const  arg, bool lastArg ) const {
+    return das_invoke_function<Variable *>::invoke
+      <void *,ExprBlock * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,blk,arg,lastArg).marshal();
+          self,blk,arg,lastArg);
   }
   __forceinline Func get_preVisitExprBlockArgumentInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlockArgumentInit]);
   }
-  __forceinline void invoke_preVisitExprBlockArgumentInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExprBlockArgumentInit ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Variable * const  arg, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprBlock * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,blk,arg,expr);
   }
   __forceinline Func get_visitExprBlockArgumentInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlockArgumentInit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprBlockArgumentInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitExprBlockArgumentInit ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Variable * const  arg, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprBlock * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,blk,arg,expr).marshal();
+          self,blk,arg,expr);
   }
   __forceinline Func get_preVisitExprBlockExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlockExpression]);
   }
-  __forceinline void invoke_preVisitExprBlockExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExprBlockExpression ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprBlock * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,blk,expr);
   }
   __forceinline Func get_visitExprBlockExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlockExpression]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprBlockExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitExprBlockExpression ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprBlock * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,blk,expr).marshal();
+          self,blk,expr);
   }
   __forceinline Func get_preVisitExprBlockFinal ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlockFinal]);
   }
-  __forceinline void invoke_preVisitExprBlockFinal ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk ) const {
+  __forceinline void invoke_preVisitExprBlockFinal ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const >
+      <void *,ExprBlock * const >
         (__context__,nullptr,__funcCall__,
           self,blk);
   }
   __forceinline Func get_visitExprBlockFinal ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlockFinal]);
   }
-  __forceinline void invoke_visitExprBlockFinal ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk ) const {
+  __forceinline void invoke_visitExprBlockFinal ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const >
+      <void *,ExprBlock * const >
         (__context__,nullptr,__funcCall__,
           self,blk);
   }
   __forceinline Func get_preVisitExprBlockFinalExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBlockFinalExpression]);
   }
-  __forceinline void invoke_preVisitExprBlockFinalExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExprBlockFinalExpression ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprBlock * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,blk,expr);
   }
   __forceinline Func get_visitExprBlockFinalExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBlockFinalExpression]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprBlockFinalExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBlock> const  blk, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprBlock> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitExprBlockFinalExpression ( Context * __context__, Func __funcCall__, void * self, ExprBlock * const  blk, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprBlock * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,blk,expr).marshal();
+          self,blk,expr);
   }
   __forceinline Func get_preVisitExprLet ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLet]);
   }
-  __forceinline void invoke_preVisitExprLet ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  expr ) const {
+  __forceinline void invoke_preVisitExprLet ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLet> const >
+      <void *,ExprLet * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprLet ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLet]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprLet ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprLet> const >
+  __forceinline Expression * invoke_visitExprLet ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprLet * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprLetVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLetVariable]);
   }
-  __forceinline void invoke_preVisitExprLetVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  expr, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
+  __forceinline void invoke_preVisitExprLetVariable ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  expr, Variable * const  arg, bool lastArg ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLet> const ,smart_ptr_raw<Variable> const ,bool>
+      <void *,ExprLet * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,lastArg);
   }
   __forceinline Func get_visitExprLetVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLetVariable]);
   }
-  __forceinline smart_ptr<Variable> invoke_visitExprLetVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  expr, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
-    return das_invoke_function<smart_ptr_raw<Variable>>::invoke
-      <void *,smart_ptr_raw<ExprLet> const ,smart_ptr_raw<Variable> const ,bool>
+  __forceinline Variable * invoke_visitExprLetVariable ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  expr, Variable * const  arg, bool lastArg ) const {
+    return das_invoke_function<Variable *>::invoke
+      <void *,ExprLet * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,arg,lastArg).marshal();
+          self,expr,arg,lastArg);
   }
   __forceinline Func get_preVisitExprLetVariableInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLetVariableInit]);
   }
-  __forceinline void invoke_preVisitExprLetVariableInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  blk, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExprLetVariableInit ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  blk, Variable * const  arg, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLet> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprLet * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,blk,arg,expr);
   }
   __forceinline Func get_visitExprLetVariableInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLetVariableInit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprLetVariableInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLet> const  blk, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprLet> const ,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitExprLetVariableInit ( Context * __context__, Func __funcCall__, void * self, ExprLet * const  blk, Variable * const  arg, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprLet * const ,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,blk,arg,expr).marshal();
+          self,blk,arg,expr);
   }
   __forceinline Func get_canVisitGlobalVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitGlobalVariable]);
@@ -2122,191 +2133,191 @@ public:
   __forceinline Func get_preVisitGlobalLetVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitGlobalLetVariable]);
   }
-  __forceinline void invoke_preVisitGlobalLetVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
+  __forceinline void invoke_preVisitGlobalLetVariable ( Context * __context__, Func __funcCall__, void * self, Variable * const  arg, bool lastArg ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Variable> const ,bool>
+      <void *,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,arg,lastArg);
   }
   __forceinline Func get_visitGlobalLetVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitGlobalLetVariable]);
   }
-  __forceinline smart_ptr<Variable> invoke_visitGlobalLetVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Variable> const  arg, bool lastArg ) const {
-    return das_invoke_function<smart_ptr_raw<Variable>>::invoke
-      <void *,smart_ptr_raw<Variable> const ,bool>
+  __forceinline Variable * invoke_visitGlobalLetVariable ( Context * __context__, Func __funcCall__, void * self, Variable * const  arg, bool lastArg ) const {
+    return das_invoke_function<Variable *>::invoke
+      <void *,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,arg,lastArg).marshal();
+          self,arg,lastArg);
   }
   __forceinline Func get_preVisitGlobalLetVariableInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitGlobalLetVariableInit]);
   }
-  __forceinline void invoke_preVisitGlobalLetVariableInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitGlobalLetVariableInit ( Context * __context__, Func __funcCall__, void * self, Variable * const  arg, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+      <void *,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,arg,expr);
   }
   __forceinline Func get_visitGlobalLetVariableInit ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitGlobalLetVariableInit]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitGlobalLetVariableInit ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Variable> const  arg, smart_ptr_raw<Expression> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<Variable> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitGlobalLetVariableInit ( Context * __context__, Func __funcCall__, void * self, Variable * const  arg, Expression * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,Variable * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,arg,expr).marshal();
+          self,arg,expr);
   }
   __forceinline Func get_preVisitExprStringBuilder ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprStringBuilder]);
   }
-  __forceinline void invoke_preVisitExprStringBuilder ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStringBuilder> const  expr ) const {
+  __forceinline void invoke_preVisitExprStringBuilder ( Context * __context__, Func __funcCall__, void * self, ExprStringBuilder * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprStringBuilder> const >
+      <void *,ExprStringBuilder * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprStringBuilder ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprStringBuilder]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprStringBuilder ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStringBuilder> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprStringBuilder> const >
+  __forceinline Expression * invoke_visitExprStringBuilder ( Context * __context__, Func __funcCall__, void * self, ExprStringBuilder * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprStringBuilder * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprStringBuilderElement ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprStringBuilderElement]);
   }
-  __forceinline void invoke_preVisitExprStringBuilderElement ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStringBuilder> const  expr, smart_ptr_raw<Expression> const  elem, bool last ) const {
+  __forceinline void invoke_preVisitExprStringBuilderElement ( Context * __context__, Func __funcCall__, void * self, ExprStringBuilder * const  expr, Expression * const  elem, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprStringBuilder> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprStringBuilder * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,elem,last);
   }
   __forceinline Func get_visitExprStringBuilderElement ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprStringBuilderElement]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprStringBuilderElement ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStringBuilder> const  expr, smart_ptr_raw<Expression> const  elem, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprStringBuilder> const ,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprStringBuilderElement ( Context * __context__, Func __funcCall__, void * self, ExprStringBuilder * const  expr, Expression * const  elem, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprStringBuilder * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,elem,last).marshal();
+          self,expr,elem,last);
   }
   __forceinline Func get_preVisitExprNew ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNew]);
   }
-  __forceinline void invoke_preVisitExprNew ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNew> const  expr ) const {
+  __forceinline void invoke_preVisitExprNew ( Context * __context__, Func __funcCall__, void * self, ExprNew * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNew> const >
+      <void *,ExprNew * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprNew ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprNew]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprNew ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNew> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprNew> const >
+  __forceinline Expression * invoke_visitExprNew ( Context * __context__, Func __funcCall__, void * self, ExprNew * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprNew * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprNewArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNewArgument]);
   }
-  __forceinline void invoke_preVisitExprNewArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNew> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
+  __forceinline void invoke_preVisitExprNewArgument ( Context * __context__, Func __funcCall__, void * self, ExprNew * const  expr, Expression * const  arg, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNew> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprNew * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,last);
   }
   __forceinline Func get_visitExprNewArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprNewArgument]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprNewArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNew> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprNew> const ,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprNewArgument ( Context * __context__, Func __funcCall__, void * self, ExprNew * const  expr, Expression * const  arg, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprNew * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,arg,last).marshal();
+          self,expr,arg,last);
   }
   __forceinline Func get_preVisitExprNamedCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNamedCall]);
   }
-  __forceinline void invoke_preVisitExprNamedCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNamedCall> const  expr ) const {
+  __forceinline void invoke_preVisitExprNamedCall ( Context * __context__, Func __funcCall__, void * self, ExprNamedCall * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNamedCall> const >
+      <void *,ExprNamedCall * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprNamedCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprNamedCall]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprNamedCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNamedCall> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprNamedCall> const >
+  __forceinline Expression * invoke_visitExprNamedCall ( Context * __context__, Func __funcCall__, void * self, ExprNamedCall * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprNamedCall * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprNamedCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNamedCallArgument]);
   }
-  __forceinline void invoke_preVisitExprNamedCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNamedCall> const  expr, smart_ptr_raw<MakeFieldDecl> const  arg, bool last ) const {
+  __forceinline void invoke_preVisitExprNamedCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprNamedCall * const  expr, MakeFieldDecl * const  arg, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNamedCall> const ,smart_ptr_raw<MakeFieldDecl> const ,bool>
+      <void *,ExprNamedCall * const ,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,last);
   }
   __forceinline Func get_visitExprNamedCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprNamedCallArgument]);
   }
-  __forceinline smart_ptr<MakeFieldDecl> invoke_visitExprNamedCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNamedCall> const  expr, smart_ptr_raw<MakeFieldDecl> const  arg, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<MakeFieldDecl>>::invoke
-      <void *,smart_ptr_raw<ExprNamedCall> const ,smart_ptr_raw<MakeFieldDecl> const ,bool>
+  __forceinline MakeFieldDecl * invoke_visitExprNamedCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprNamedCall * const  expr, MakeFieldDecl * const  arg, bool last ) const {
+    return das_invoke_function<MakeFieldDecl *>::invoke
+      <void *,ExprNamedCall * const ,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,arg,last).marshal();
+          self,expr,arg,last);
   }
   __forceinline Func get_preVisitExprLooksLikeCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLooksLikeCall]);
   }
-  __forceinline void invoke_preVisitExprLooksLikeCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLooksLikeCall> const  expr ) const {
+  __forceinline void invoke_preVisitExprLooksLikeCall ( Context * __context__, Func __funcCall__, void * self, ExprLooksLikeCall * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLooksLikeCall> const >
+      <void *,ExprLooksLikeCall * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprLooksLikeCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLooksLikeCall]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprLooksLikeCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLooksLikeCall> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprLooksLikeCall> const >
+  __forceinline Expression * invoke_visitExprLooksLikeCall ( Context * __context__, Func __funcCall__, void * self, ExprLooksLikeCall * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprLooksLikeCall * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_canVisitExprLooksLikeCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitExprLooksLikeCallArgument]);
   }
-  __forceinline bool invoke_canVisitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLooksLikeCall> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
+  __forceinline bool invoke_canVisitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprLooksLikeCall * const  expr, Expression * const  arg, bool last ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprLooksLikeCall> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprLooksLikeCall * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,last);
   }
   __forceinline Func get_preVisitExprLooksLikeCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLooksLikeCallArgument]);
   }
-  __forceinline void invoke_preVisitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLooksLikeCall> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
+  __forceinline void invoke_preVisitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprLooksLikeCall * const  expr, Expression * const  arg, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLooksLikeCall> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprLooksLikeCall * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,last);
   }
   __forceinline Func get_visitExprLooksLikeCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLooksLikeCallArgument]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLooksLikeCall> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprLooksLikeCall> const ,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprLooksLikeCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprLooksLikeCall * const  expr, Expression * const  arg, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprLooksLikeCall * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,arg,last).marshal();
+          self,expr,arg,last);
   }
   __forceinline Func get_canVisitCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitCall]);
@@ -2338,2063 +2349,2063 @@ public:
   __forceinline Func get_preVisitExprCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCall]);
   }
-  __forceinline void invoke_preVisitExprCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCall> const  expr ) const {
+  __forceinline void invoke_preVisitExprCall ( Context * __context__, Func __funcCall__, void * self, ExprCall * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCall> const >
+      <void *,ExprCall * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprCall ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprCall]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprCall ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCall> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCall> const >
+  __forceinline Expression * invoke_visitExprCall ( Context * __context__, Func __funcCall__, void * self, ExprCall * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCall * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCallArgument]);
   }
-  __forceinline void invoke_preVisitExprCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCall> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
+  __forceinline void invoke_preVisitExprCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprCall * const  expr, Expression * const  arg, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCall> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprCall * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,arg,last);
   }
   __forceinline Func get_visitExprCallArgument ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprCallArgument]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprCallArgument ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCall> const  expr, smart_ptr_raw<Expression> const  arg, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCall> const ,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprCallArgument ( Context * __context__, Func __funcCall__, void * self, ExprCall * const  expr, Expression * const  arg, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCall * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,arg,last).marshal();
+          self,expr,arg,last);
   }
   __forceinline Func get_preVisitExprNullCoalescing ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNullCoalescing]);
   }
-  __forceinline void invoke_preVisitExprNullCoalescing ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNullCoalescing> const  expr ) const {
+  __forceinline void invoke_preVisitExprNullCoalescing ( Context * __context__, Func __funcCall__, void * self, ExprNullCoalescing * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNullCoalescing> const >
+      <void *,ExprNullCoalescing * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprNullCoalescing ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprNullCoalescing]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprNullCoalescing ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNullCoalescing> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprNullCoalescing> const >
+  __forceinline Expression * invoke_visitExprNullCoalescing ( Context * __context__, Func __funcCall__, void * self, ExprNullCoalescing * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprNullCoalescing * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprNullCoalescingDefault ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprNullCoalescingDefault]);
   }
-  __forceinline void invoke_preVisitExprNullCoalescingDefault ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprNullCoalescing> const  expr, smart_ptr_raw<Expression> const  defval ) const {
+  __forceinline void invoke_preVisitExprNullCoalescingDefault ( Context * __context__, Func __funcCall__, void * self, ExprNullCoalescing * const  expr, Expression * const  defval ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprNullCoalescing> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprNullCoalescing * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,defval);
   }
   __forceinline Func get_preVisitExprAt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAt]);
   }
-  __forceinline void invoke_preVisitExprAt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAt> const  expr ) const {
+  __forceinline void invoke_preVisitExprAt ( Context * __context__, Func __funcCall__, void * self, ExprAt * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAt> const >
+      <void *,ExprAt * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAt]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAt> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAt> const >
+  __forceinline Expression * invoke_visitExprAt ( Context * __context__, Func __funcCall__, void * self, ExprAt * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAt * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprAtIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAtIndex]);
   }
-  __forceinline void invoke_preVisitExprAtIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAt> const  expr, smart_ptr_raw<Expression> const  index ) const {
+  __forceinline void invoke_preVisitExprAtIndex ( Context * __context__, Func __funcCall__, void * self, ExprAt * const  expr, Expression * const  index ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAt> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprAt * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,index);
   }
   __forceinline Func get_preVisitExprSafeAt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSafeAt]);
   }
-  __forceinline void invoke_preVisitExprSafeAt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeAt> const  expr ) const {
+  __forceinline void invoke_preVisitExprSafeAt ( Context * __context__, Func __funcCall__, void * self, ExprSafeAt * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSafeAt> const >
+      <void *,ExprSafeAt * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprSafeAt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSafeAt]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSafeAt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeAt> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprSafeAt> const >
+  __forceinline Expression * invoke_visitExprSafeAt ( Context * __context__, Func __funcCall__, void * self, ExprSafeAt * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprSafeAt * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprSafeAtIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSafeAtIndex]);
   }
-  __forceinline void invoke_preVisitExprSafeAtIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeAt> const  expr, smart_ptr_raw<Expression> const  index ) const {
+  __forceinline void invoke_preVisitExprSafeAtIndex ( Context * __context__, Func __funcCall__, void * self, ExprSafeAt * const  expr, Expression * const  index ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSafeAt> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprSafeAt * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,index);
   }
   __forceinline Func get_preVisitExprIs ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIs]);
   }
-  __forceinline void invoke_preVisitExprIs ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIs> const  expr ) const {
+  __forceinline void invoke_preVisitExprIs ( Context * __context__, Func __funcCall__, void * self, ExprIs * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIs> const >
+      <void *,ExprIs * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprIs ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprIs]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprIs ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIs> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprIs> const >
+  __forceinline Expression * invoke_visitExprIs ( Context * __context__, Func __funcCall__, void * self, ExprIs * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprIs * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprIsType ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIsType]);
   }
-  __forceinline void invoke_preVisitExprIsType ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIs> const  expr, smart_ptr_raw<TypeDecl> const  typeDecl ) const {
+  __forceinline void invoke_preVisitExprIsType ( Context * __context__, Func __funcCall__, void * self, ExprIs * const  expr, TypeDecl * const  typeDecl ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIs> const ,smart_ptr_raw<TypeDecl> const >
+      <void *,ExprIs * const ,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
           self,expr,typeDecl);
   }
   __forceinline Func get_preVisitExprOp2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp2]);
   }
-  __forceinline void invoke_preVisitExprOp2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp2> const  expr ) const {
+  __forceinline void invoke_preVisitExprOp2 ( Context * __context__, Func __funcCall__, void * self, ExprOp2 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp2> const >
+      <void *,ExprOp2 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprOp2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprOp2]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprOp2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp2> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprOp2> const >
+  __forceinline Expression * invoke_visitExprOp2 ( Context * __context__, Func __funcCall__, void * self, ExprOp2 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprOp2 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprOp2Right ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp2Right]);
   }
-  __forceinline void invoke_preVisitExprOp2Right ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp2> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprOp2Right ( Context * __context__, Func __funcCall__, void * self, ExprOp2 * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp2> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprOp2 * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_preVisitExprOp3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp3]);
   }
-  __forceinline void invoke_preVisitExprOp3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp3> const  expr ) const {
+  __forceinline void invoke_preVisitExprOp3 ( Context * __context__, Func __funcCall__, void * self, ExprOp3 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp3> const >
+      <void *,ExprOp3 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprOp3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprOp3]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprOp3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp3> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprOp3> const >
+  __forceinline Expression * invoke_visitExprOp3 ( Context * __context__, Func __funcCall__, void * self, ExprOp3 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprOp3 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprOp3Left ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp3Left]);
   }
-  __forceinline void invoke_preVisitExprOp3Left ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp3> const  expr, smart_ptr_raw<Expression> const  left ) const {
+  __forceinline void invoke_preVisitExprOp3Left ( Context * __context__, Func __funcCall__, void * self, ExprOp3 * const  expr, Expression * const  left ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp3> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprOp3 * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,left);
   }
   __forceinline Func get_preVisitExprOp3Right ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp3Right]);
   }
-  __forceinline void invoke_preVisitExprOp3Right ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp3> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprOp3Right ( Context * __context__, Func __funcCall__, void * self, ExprOp3 * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp3> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprOp3 * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_isRightFirstExprCopy ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_isRightFirstExprCopy]);
   }
-  __forceinline bool invoke_isRightFirstExprCopy ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCopy> const  expr ) const {
+  __forceinline bool invoke_isRightFirstExprCopy ( Context * __context__, Func __funcCall__, void * self, ExprCopy * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprCopy> const >
+      <void *,ExprCopy * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprCopy ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCopy]);
   }
-  __forceinline void invoke_preVisitExprCopy ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCopy> const  expr ) const {
+  __forceinline void invoke_preVisitExprCopy ( Context * __context__, Func __funcCall__, void * self, ExprCopy * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCopy> const >
+      <void *,ExprCopy * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprCopy ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprCopy]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprCopy ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCopy> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCopy> const >
+  __forceinline Expression * invoke_visitExprCopy ( Context * __context__, Func __funcCall__, void * self, ExprCopy * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCopy * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprCopyRight ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCopyRight]);
   }
-  __forceinline void invoke_preVisitExprCopyRight ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCopy> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprCopyRight ( Context * __context__, Func __funcCall__, void * self, ExprCopy * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCopy> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprCopy * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_isRightFirstExprMove ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_isRightFirstExprMove]);
   }
-  __forceinline bool invoke_isRightFirstExprMove ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMove> const  expr ) const {
+  __forceinline bool invoke_isRightFirstExprMove ( Context * __context__, Func __funcCall__, void * self, ExprMove * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprMove> const >
+      <void *,ExprMove * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprMove ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMove]);
   }
-  __forceinline void invoke_preVisitExprMove ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMove> const  expr ) const {
+  __forceinline void invoke_preVisitExprMove ( Context * __context__, Func __funcCall__, void * self, ExprMove * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMove> const >
+      <void *,ExprMove * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMove ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMove]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMove ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMove> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMove> const >
+  __forceinline Expression * invoke_visitExprMove ( Context * __context__, Func __funcCall__, void * self, ExprMove * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMove * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMoveRight ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMoveRight]);
   }
-  __forceinline void invoke_preVisitExprMoveRight ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMove> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprMoveRight ( Context * __context__, Func __funcCall__, void * self, ExprMove * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMove> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprMove * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_isRightFirstExprClone ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_isRightFirstExprClone]);
   }
-  __forceinline bool invoke_isRightFirstExprClone ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprClone> const  expr ) const {
+  __forceinline bool invoke_isRightFirstExprClone ( Context * __context__, Func __funcCall__, void * self, ExprClone * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprClone> const >
+      <void *,ExprClone * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprClone ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprClone]);
   }
-  __forceinline void invoke_preVisitExprClone ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprClone> const  expr ) const {
+  __forceinline void invoke_preVisitExprClone ( Context * __context__, Func __funcCall__, void * self, ExprClone * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprClone> const >
+      <void *,ExprClone * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprClone ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprClone]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprClone ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprClone> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprClone> const >
+  __forceinline Expression * invoke_visitExprClone ( Context * __context__, Func __funcCall__, void * self, ExprClone * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprClone * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprCloneRight ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCloneRight]);
   }
-  __forceinline void invoke_preVisitExprCloneRight ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprClone> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprCloneRight ( Context * __context__, Func __funcCall__, void * self, ExprClone * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprClone> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprClone * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_canVisitWithAliasSubexpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitWithAliasSubexpression]);
   }
-  __forceinline bool invoke_canVisitWithAliasSubexpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAssume> const  expr ) const {
+  __forceinline bool invoke_canVisitWithAliasSubexpression ( Context * __context__, Func __funcCall__, void * self, ExprAssume * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprAssume> const >
+      <void *,ExprAssume * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprAssume ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAssume]);
   }
-  __forceinline void invoke_preVisitExprAssume ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAssume> const  expr ) const {
+  __forceinline void invoke_preVisitExprAssume ( Context * __context__, Func __funcCall__, void * self, ExprAssume * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAssume> const >
+      <void *,ExprAssume * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAssume ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAssume]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAssume ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAssume> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAssume> const >
+  __forceinline Expression * invoke_visitExprAssume ( Context * __context__, Func __funcCall__, void * self, ExprAssume * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAssume * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprWith ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprWith]);
   }
-  __forceinline void invoke_preVisitExprWith ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWith> const  expr ) const {
+  __forceinline void invoke_preVisitExprWith ( Context * __context__, Func __funcCall__, void * self, ExprWith * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprWith> const >
+      <void *,ExprWith * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprWith ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprWith]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprWith ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWith> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprWith> const >
+  __forceinline Expression * invoke_visitExprWith ( Context * __context__, Func __funcCall__, void * self, ExprWith * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprWith * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprWithBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprWithBody]);
   }
-  __forceinline void invoke_preVisitExprWithBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWith> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprWithBody ( Context * __context__, Func __funcCall__, void * self, ExprWith * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprWith> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprWith * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_preVisitExprWhile ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprWhile]);
   }
-  __forceinline void invoke_preVisitExprWhile ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWhile> const  expr ) const {
+  __forceinline void invoke_preVisitExprWhile ( Context * __context__, Func __funcCall__, void * self, ExprWhile * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprWhile> const >
+      <void *,ExprWhile * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprWhile ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprWhile]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprWhile ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWhile> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprWhile> const >
+  __forceinline Expression * invoke_visitExprWhile ( Context * __context__, Func __funcCall__, void * self, ExprWhile * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprWhile * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprWhileBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprWhileBody]);
   }
-  __forceinline void invoke_preVisitExprWhileBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprWhile> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprWhileBody ( Context * __context__, Func __funcCall__, void * self, ExprWhile * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprWhile> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprWhile * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_preVisitExprTryCatch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTryCatch]);
   }
-  __forceinline void invoke_preVisitExprTryCatch ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTryCatch> const  expr ) const {
+  __forceinline void invoke_preVisitExprTryCatch ( Context * __context__, Func __funcCall__, void * self, ExprTryCatch * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTryCatch> const >
+      <void *,ExprTryCatch * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprTryCatch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprTryCatch]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprTryCatch ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTryCatch> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprTryCatch> const >
+  __forceinline Expression * invoke_visitExprTryCatch ( Context * __context__, Func __funcCall__, void * self, ExprTryCatch * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprTryCatch * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprTryCatchCatch ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTryCatchCatch]);
   }
-  __forceinline void invoke_preVisitExprTryCatchCatch ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTryCatch> const  expr, smart_ptr_raw<Expression> const  right ) const {
+  __forceinline void invoke_preVisitExprTryCatchCatch ( Context * __context__, Func __funcCall__, void * self, ExprTryCatch * const  expr, Expression * const  right ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTryCatch> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprTryCatch * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,right);
   }
   __forceinline Func get_preVisitExprIfThenElse ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIfThenElse]);
   }
-  __forceinline void invoke_preVisitExprIfThenElse ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIfThenElse> const  expr ) const {
+  __forceinline void invoke_preVisitExprIfThenElse ( Context * __context__, Func __funcCall__, void * self, ExprIfThenElse * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIfThenElse> const >
+      <void *,ExprIfThenElse * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprIfThenElse ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprIfThenElse]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprIfThenElse ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIfThenElse> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprIfThenElse> const >
+  __forceinline Expression * invoke_visitExprIfThenElse ( Context * __context__, Func __funcCall__, void * self, ExprIfThenElse * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprIfThenElse * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprIfThenElseIfBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIfThenElseIfBlock]);
   }
-  __forceinline void invoke_preVisitExprIfThenElseIfBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIfThenElse> const  expr, smart_ptr_raw<Expression> const  ifBlock ) const {
+  __forceinline void invoke_preVisitExprIfThenElseIfBlock ( Context * __context__, Func __funcCall__, void * self, ExprIfThenElse * const  expr, Expression * const  ifBlock ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIfThenElse> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprIfThenElse * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,ifBlock);
   }
   __forceinline Func get_preVisitExprIfThenElseElseBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIfThenElseElseBlock]);
   }
-  __forceinline void invoke_preVisitExprIfThenElseElseBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIfThenElse> const  expr, smart_ptr_raw<Expression> const  elseBlock ) const {
+  __forceinline void invoke_preVisitExprIfThenElseElseBlock ( Context * __context__, Func __funcCall__, void * self, ExprIfThenElse * const  expr, Expression * const  elseBlock ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIfThenElse> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprIfThenElse * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,elseBlock);
   }
   __forceinline Func get_preVisitExprFor ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprFor]);
   }
-  __forceinline void invoke_preVisitExprFor ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr ) const {
+  __forceinline void invoke_preVisitExprFor ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFor> const >
+      <void *,ExprFor * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprFor ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprFor]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprFor ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprFor> const >
+  __forceinline Expression * invoke_visitExprFor ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprFor * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprForVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprForVariable]);
   }
-  __forceinline void invoke_preVisitExprForVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr, smart_ptr_raw<Variable> const  svar, bool last ) const {
+  __forceinline void invoke_preVisitExprForVariable ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr, Variable * const  svar, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFor> const ,smart_ptr_raw<Variable> const ,bool>
+      <void *,ExprFor * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,svar,last);
   }
   __forceinline Func get_visitExprForVariable ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprForVariable]);
   }
-  __forceinline smart_ptr<Variable> invoke_visitExprForVariable ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr, smart_ptr_raw<Variable> const  svar, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Variable>>::invoke
-      <void *,smart_ptr_raw<ExprFor> const ,smart_ptr_raw<Variable> const ,bool>
+  __forceinline Variable * invoke_visitExprForVariable ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr, Variable * const  svar, bool last ) const {
+    return das_invoke_function<Variable *>::invoke
+      <void *,ExprFor * const ,Variable * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,svar,last).marshal();
+          self,expr,svar,last);
   }
   __forceinline Func get_preVisitExprForSource ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprForSource]);
   }
-  __forceinline void invoke_preVisitExprForSource ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr, smart_ptr_raw<Expression> const  source, bool last ) const {
+  __forceinline void invoke_preVisitExprForSource ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr, Expression * const  source, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFor> const ,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprFor * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,source,last);
   }
   __forceinline Func get_visitExprForSource ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprForSource]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprForSource ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr, smart_ptr_raw<Expression> const  source, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprFor> const ,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprForSource ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr, Expression * const  source, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprFor * const ,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,source,last).marshal();
+          self,expr,source,last);
   }
   __forceinline Func get_preVisitExprForStack ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprForStack]);
   }
-  __forceinline void invoke_preVisitExprForStack ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr ) const {
+  __forceinline void invoke_preVisitExprForStack ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFor> const >
+      <void *,ExprFor * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprForBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprForBody]);
   }
-  __forceinline void invoke_preVisitExprForBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFor> const  expr ) const {
+  __forceinline void invoke_preVisitExprForBody ( Context * __context__, Func __funcCall__, void * self, ExprFor * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFor> const >
+      <void *,ExprFor * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprMakeVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeVariant]);
   }
-  __forceinline void invoke_preVisitExprMakeVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeVariant> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeVariant ( Context * __context__, Func __funcCall__, void * self, ExprMakeVariant * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeVariant> const >
+      <void *,ExprMakeVariant * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeVariant> const >
+  __forceinline Expression * invoke_visitExprMakeVariant ( Context * __context__, Func __funcCall__, void * self, ExprMakeVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMakeVariantField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeVariantField]);
   }
-  __forceinline void invoke_preVisitExprMakeVariantField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeVariant> const  expr, int32_t index, smart_ptr_raw<MakeFieldDecl> const  decl, bool last ) const {
+  __forceinline void invoke_preVisitExprMakeVariantField ( Context * __context__, Func __funcCall__, void * self, ExprMakeVariant * const  expr, int32_t index, MakeFieldDecl * const  decl, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeVariant> const ,int32_t,smart_ptr_raw<MakeFieldDecl> const ,bool>
+      <void *,ExprMakeVariant * const ,int32_t,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,decl,last);
   }
   __forceinline Func get_visitExprMakeVariantField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeVariantField]);
   }
-  __forceinline smart_ptr<MakeFieldDecl> invoke_visitExprMakeVariantField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeVariant> const  expr, int32_t index, smart_ptr_raw<MakeFieldDecl> const  decl, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<MakeFieldDecl>>::invoke
-      <void *,smart_ptr_raw<ExprMakeVariant> const ,int32_t,smart_ptr_raw<MakeFieldDecl> const ,bool>
+  __forceinline MakeFieldDecl * invoke_visitExprMakeVariantField ( Context * __context__, Func __funcCall__, void * self, ExprMakeVariant * const  expr, int32_t index, MakeFieldDecl * const  decl, bool last ) const {
+    return das_invoke_function<MakeFieldDecl *>::invoke
+      <void *,ExprMakeVariant * const ,int32_t,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,index,decl,last).marshal();
+          self,expr,index,decl,last);
   }
   __forceinline Func get_canVisitExprMakeStructBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitExprMakeStructBody]);
   }
-  __forceinline bool invoke_canVisitExprMakeStructBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr ) const {
+  __forceinline bool invoke_canVisitExprMakeStructBody ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const >
+      <void *,ExprMakeStruct * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_canVisitExprMakeStructBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitExprMakeStructBlock]);
   }
-  __forceinline bool invoke_canVisitExprMakeStructBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, smart_ptr_raw<Expression> const  blk ) const {
+  __forceinline bool invoke_canVisitExprMakeStructBlock ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, Expression * const  blk ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprMakeStruct * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,blk);
   }
   __forceinline Func get_preVisitExprMakeStruct ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeStruct]);
   }
-  __forceinline void invoke_preVisitExprMakeStruct ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeStruct ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const >
+      <void *,ExprMakeStruct * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeStruct ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeStruct]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeStruct ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const >
+  __forceinline Expression * invoke_visitExprMakeStruct ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeStruct * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitStructureAlias ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitStructureAlias]);
   }
-  __forceinline void invoke_preVisitStructureAlias ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str, das::string const  & name, smart_ptr_raw<TypeDecl> const  at ) const {
+  __forceinline void invoke_preVisitStructureAlias ( Context * __context__, Func __funcCall__, void * self, Structure * const  str, das::string const  & name, TypeDecl * const  at ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<Structure> const ,das::string const  &,smart_ptr_raw<TypeDecl> const >
+      <void *,Structure * const ,das::string const  &,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
           self,str,name,at);
   }
   __forceinline Func get_visitStructureAlias ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitStructureAlias]);
   }
-  __forceinline smart_ptr<TypeDecl> invoke_visitStructureAlias ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<Structure> const  str, das::string const  & name, smart_ptr_raw<TypeDecl> const  at ) const {
-    return das_invoke_function<smart_ptr_raw<TypeDecl>>::invoke
-      <void *,smart_ptr_raw<Structure> const ,das::string const  &,smart_ptr_raw<TypeDecl> const >
+  __forceinline TypeDecl * invoke_visitStructureAlias ( Context * __context__, Func __funcCall__, void * self, Structure * const  str, das::string const  & name, TypeDecl * const  at ) const {
+    return das_invoke_function<TypeDecl *>::invoke
+      <void *,Structure * const ,das::string const  &,TypeDecl * const >
         (__context__,nullptr,__funcCall__,
-          self,str,name,at).marshal();
+          self,str,name,at);
   }
   __forceinline Func get_preVisitExprMakeStructIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeStructIndex]);
   }
-  __forceinline void invoke_preVisitExprMakeStructIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, int32_t index, bool last ) const {
+  __forceinline void invoke_preVisitExprMakeStructIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, int32_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,int32_t,bool>
+      <void *,ExprMakeStruct * const ,int32_t,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,last);
   }
   __forceinline Func get_visitExprMakeStructIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeStructIndex]);
   }
-  __forceinline void invoke_visitExprMakeStructIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, int32_t index, bool last ) const {
+  __forceinline void invoke_visitExprMakeStructIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, int32_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,int32_t,bool>
+      <void *,ExprMakeStruct * const ,int32_t,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,last);
   }
   __forceinline Func get_preVisitExprMakeStructField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeStructField]);
   }
-  __forceinline void invoke_preVisitExprMakeStructField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, int32_t index, smart_ptr_raw<MakeFieldDecl> const  decl, bool last ) const {
+  __forceinline void invoke_preVisitExprMakeStructField ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, int32_t index, MakeFieldDecl * const  decl, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,int32_t,smart_ptr_raw<MakeFieldDecl> const ,bool>
+      <void *,ExprMakeStruct * const ,int32_t,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,decl,last);
   }
   __forceinline Func get_visitExprMakeStructField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeStructField]);
   }
-  __forceinline smart_ptr<MakeFieldDecl> invoke_visitExprMakeStructField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, int32_t index, smart_ptr_raw<MakeFieldDecl> const  decl, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<MakeFieldDecl>>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,int32_t,smart_ptr_raw<MakeFieldDecl> const ,bool>
+  __forceinline MakeFieldDecl * invoke_visitExprMakeStructField ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, int32_t index, MakeFieldDecl * const  decl, bool last ) const {
+    return das_invoke_function<MakeFieldDecl *>::invoke
+      <void *,ExprMakeStruct * const ,int32_t,MakeFieldDecl * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,index,decl,last).marshal();
+          self,expr,index,decl,last);
   }
   __forceinline Func get_preVisitMakeStructureBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitMakeStructureBlock]);
   }
-  __forceinline void invoke_preVisitMakeStructureBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, smart_ptr_raw<Expression> const  blk ) const {
+  __forceinline void invoke_preVisitMakeStructureBlock ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, Expression * const  blk ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprMakeStruct * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,blk);
   }
   __forceinline Func get_visitMakeStructureBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitMakeStructureBlock]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitMakeStructureBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeStruct> const  expr, smart_ptr_raw<Expression> const  blk ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeStruct> const ,smart_ptr_raw<Expression> const >
+  __forceinline Expression * invoke_visitMakeStructureBlock ( Context * __context__, Func __funcCall__, void * self, ExprMakeStruct * const  expr, Expression * const  blk ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeStruct * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
-          self,expr,blk).marshal();
+          self,expr,blk);
   }
   __forceinline Func get_preVisitExprMakeArray ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeArray]);
   }
-  __forceinline void invoke_preVisitExprMakeArray ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeArray> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeArray ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeArray> const >
+      <void *,ExprMakeArray * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeArray ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeArray]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeArray ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeArray> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeArray> const >
+  __forceinline Expression * invoke_visitExprMakeArray ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeArray * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMakeArrayIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeArrayIndex]);
   }
-  __forceinline void invoke_preVisitExprMakeArrayIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeArray> const  expr, int32_t index, smart_ptr_raw<Expression> const  init, bool last ) const {
+  __forceinline void invoke_preVisitExprMakeArrayIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr, int32_t index, Expression * const  init, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeArray> const ,int32_t,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprMakeArray * const ,int32_t,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,init,last);
   }
   __forceinline Func get_visitExprMakeArrayIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeArrayIndex]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeArrayIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeArray> const  expr, int32_t index, smart_ptr_raw<Expression> const  init, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeArray> const ,int32_t,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprMakeArrayIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeArray * const  expr, int32_t index, Expression * const  init, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeArray * const ,int32_t,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,index,init,last).marshal();
+          self,expr,index,init,last);
   }
   __forceinline Func get_preVisitExprMakeTuple ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeTuple]);
   }
-  __forceinline void invoke_preVisitExprMakeTuple ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeTuple> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeTuple ( Context * __context__, Func __funcCall__, void * self, ExprMakeTuple * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeTuple> const >
+      <void *,ExprMakeTuple * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeTuple ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeTuple]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeTuple ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeTuple> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeTuple> const >
+  __forceinline Expression * invoke_visitExprMakeTuple ( Context * __context__, Func __funcCall__, void * self, ExprMakeTuple * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeTuple * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMakeTupleIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeTupleIndex]);
   }
-  __forceinline void invoke_preVisitExprMakeTupleIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeTuple> const  expr, int32_t index, smart_ptr_raw<Expression> const  init, bool last ) const {
+  __forceinline void invoke_preVisitExprMakeTupleIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeTuple * const  expr, int32_t index, Expression * const  init, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeTuple> const ,int32_t,smart_ptr_raw<Expression> const ,bool>
+      <void *,ExprMakeTuple * const ,int32_t,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
           self,expr,index,init,last);
   }
   __forceinline Func get_visitExprMakeTupleIndex ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeTupleIndex]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeTupleIndex ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeTuple> const  expr, int32_t index, smart_ptr_raw<Expression> const  init, bool last ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeTuple> const ,int32_t,smart_ptr_raw<Expression> const ,bool>
+  __forceinline Expression * invoke_visitExprMakeTupleIndex ( Context * __context__, Func __funcCall__, void * self, ExprMakeTuple * const  expr, int32_t index, Expression * const  init, bool last ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeTuple * const ,int32_t,Expression * const ,bool>
         (__context__,nullptr,__funcCall__,
-          self,expr,index,init,last).marshal();
+          self,expr,index,init,last);
   }
   __forceinline Func get_preVisitExprArrayComprehension ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprArrayComprehension]);
   }
-  __forceinline void invoke_preVisitExprArrayComprehension ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprArrayComprehension> const  expr ) const {
+  __forceinline void invoke_preVisitExprArrayComprehension ( Context * __context__, Func __funcCall__, void * self, ExprArrayComprehension * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprArrayComprehension> const >
+      <void *,ExprArrayComprehension * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprArrayComprehension ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprArrayComprehension]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprArrayComprehension ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprArrayComprehension> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprArrayComprehension> const >
+  __forceinline Expression * invoke_visitExprArrayComprehension ( Context * __context__, Func __funcCall__, void * self, ExprArrayComprehension * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprArrayComprehension * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprArrayComprehensionSubexpr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprArrayComprehensionSubexpr]);
   }
-  __forceinline void invoke_preVisitExprArrayComprehensionSubexpr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprArrayComprehension> const  expr, smart_ptr_raw<Expression> const  subexrp ) const {
+  __forceinline void invoke_preVisitExprArrayComprehensionSubexpr ( Context * __context__, Func __funcCall__, void * self, ExprArrayComprehension * const  expr, Expression * const  subexrp ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprArrayComprehension> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprArrayComprehension * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,subexrp);
   }
   __forceinline Func get_preVisitExprArrayComprehensionWhere ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprArrayComprehensionWhere]);
   }
-  __forceinline void invoke_preVisitExprArrayComprehensionWhere ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprArrayComprehension> const  expr, smart_ptr_raw<Expression> const  filter ) const {
+  __forceinline void invoke_preVisitExprArrayComprehensionWhere ( Context * __context__, Func __funcCall__, void * self, ExprArrayComprehension * const  expr, Expression * const  filter ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprArrayComprehension> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprArrayComprehension * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,filter);
   }
   __forceinline Func get_canVisitExprTypeInfo ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitExprTypeInfo]);
   }
-  __forceinline bool invoke_canVisitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeInfo> const  expr, smart_ptr_raw<Expression> const  expr_ ) const {
+  __forceinline bool invoke_canVisitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, ExprTypeInfo * const  expr, Expression * const  expr_ ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprTypeInfo> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprTypeInfo * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,expr_);
   }
   __forceinline Func get_preVisitExprTypeInfo ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTypeInfo]);
   }
-  __forceinline void invoke_preVisitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeInfo> const  expr ) const {
+  __forceinline void invoke_preVisitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, ExprTypeInfo * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTypeInfo> const >
+      <void *,ExprTypeInfo * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprTypeInfo ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprTypeInfo]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTypeInfo> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprTypeInfo> const >
+  __forceinline Expression * invoke_visitExprTypeInfo ( Context * __context__, Func __funcCall__, void * self, ExprTypeInfo * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprTypeInfo * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprPtr2Ref ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprPtr2Ref]);
   }
-  __forceinline void invoke_preVisitExprPtr2Ref ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprPtr2Ref> const  expr ) const {
+  __forceinline void invoke_preVisitExprPtr2Ref ( Context * __context__, Func __funcCall__, void * self, ExprPtr2Ref * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprPtr2Ref> const >
+      <void *,ExprPtr2Ref * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprPtr2Ref ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprPtr2Ref]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprPtr2Ref ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprPtr2Ref> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprPtr2Ref> const >
+  __forceinline Expression * invoke_visitExprPtr2Ref ( Context * __context__, Func __funcCall__, void * self, ExprPtr2Ref * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprPtr2Ref * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprLabel ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprLabel]);
   }
-  __forceinline void invoke_preVisitExprLabel ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLabel> const  expr ) const {
+  __forceinline void invoke_preVisitExprLabel ( Context * __context__, Func __funcCall__, void * self, ExprLabel * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprLabel> const >
+      <void *,ExprLabel * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprLabel ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprLabel]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprLabel ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprLabel> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprLabel> const >
+  __forceinline Expression * invoke_visitExprLabel ( Context * __context__, Func __funcCall__, void * self, ExprLabel * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprLabel * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprGoto ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprGoto]);
   }
-  __forceinline void invoke_preVisitExprGoto ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprGoto> const  expr ) const {
+  __forceinline void invoke_preVisitExprGoto ( Context * __context__, Func __funcCall__, void * self, ExprGoto * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprGoto> const >
+      <void *,ExprGoto * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprGoto ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprGoto]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprGoto ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprGoto> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprGoto> const >
+  __forceinline Expression * invoke_visitExprGoto ( Context * __context__, Func __funcCall__, void * self, ExprGoto * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprGoto * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprRef2Value ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprRef2Value]);
   }
-  __forceinline void invoke_preVisitExprRef2Value ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprRef2Value> const  expr ) const {
+  __forceinline void invoke_preVisitExprRef2Value ( Context * __context__, Func __funcCall__, void * self, ExprRef2Value * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprRef2Value> const >
+      <void *,ExprRef2Value * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprRef2Value ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprRef2Value]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprRef2Value ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprRef2Value> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprRef2Value> const >
+  __forceinline Expression * invoke_visitExprRef2Value ( Context * __context__, Func __funcCall__, void * self, ExprRef2Value * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprRef2Value * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprRef2Ptr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprRef2Ptr]);
   }
-  __forceinline void invoke_preVisitExprRef2Ptr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprRef2Ptr> const  expr ) const {
+  __forceinline void invoke_preVisitExprRef2Ptr ( Context * __context__, Func __funcCall__, void * self, ExprRef2Ptr * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprRef2Ptr> const >
+      <void *,ExprRef2Ptr * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprRef2Ptr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprRef2Ptr]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprRef2Ptr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprRef2Ptr> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprRef2Ptr> const >
+  __forceinline Expression * invoke_visitExprRef2Ptr ( Context * __context__, Func __funcCall__, void * self, ExprRef2Ptr * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprRef2Ptr * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprAddr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAddr]);
   }
-  __forceinline void invoke_preVisitExprAddr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAddr> const  expr ) const {
+  __forceinline void invoke_preVisitExprAddr ( Context * __context__, Func __funcCall__, void * self, ExprAddr * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAddr> const >
+      <void *,ExprAddr * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAddr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAddr]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAddr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAddr> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAddr> const >
+  __forceinline Expression * invoke_visitExprAddr ( Context * __context__, Func __funcCall__, void * self, ExprAddr * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAddr * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprAssert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAssert]);
   }
-  __forceinline void invoke_preVisitExprAssert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAssert> const  expr ) const {
+  __forceinline void invoke_preVisitExprAssert ( Context * __context__, Func __funcCall__, void * self, ExprAssert * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAssert> const >
+      <void *,ExprAssert * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAssert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAssert]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAssert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAssert> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAssert> const >
+  __forceinline Expression * invoke_visitExprAssert ( Context * __context__, Func __funcCall__, void * self, ExprAssert * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAssert * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprStaticAssert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprStaticAssert]);
   }
-  __forceinline void invoke_preVisitExprStaticAssert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStaticAssert> const  expr ) const {
+  __forceinline void invoke_preVisitExprStaticAssert ( Context * __context__, Func __funcCall__, void * self, ExprStaticAssert * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprStaticAssert> const >
+      <void *,ExprStaticAssert * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprStaticAssert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprStaticAssert]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprStaticAssert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprStaticAssert> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprStaticAssert> const >
+  __forceinline Expression * invoke_visitExprStaticAssert ( Context * __context__, Func __funcCall__, void * self, ExprStaticAssert * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprStaticAssert * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprQuote ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprQuote]);
   }
-  __forceinline void invoke_preVisitExprQuote ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprQuote> const  expr ) const {
+  __forceinline void invoke_preVisitExprQuote ( Context * __context__, Func __funcCall__, void * self, ExprQuote * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprQuote> const >
+      <void *,ExprQuote * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprQuote ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprQuote]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprQuote ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprQuote> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprQuote> const >
+  __forceinline Expression * invoke_visitExprQuote ( Context * __context__, Func __funcCall__, void * self, ExprQuote * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprQuote * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprDebug ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprDebug]);
   }
-  __forceinline void invoke_preVisitExprDebug ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprDebug> const  expr ) const {
+  __forceinline void invoke_preVisitExprDebug ( Context * __context__, Func __funcCall__, void * self, ExprDebug * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprDebug> const >
+      <void *,ExprDebug * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprDebug ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprDebug]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprDebug ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprDebug> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprDebug> const >
+  __forceinline Expression * invoke_visitExprDebug ( Context * __context__, Func __funcCall__, void * self, ExprDebug * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprDebug * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprInvoke ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprInvoke]);
   }
-  __forceinline void invoke_preVisitExprInvoke ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprInvoke> const  expr ) const {
+  __forceinline void invoke_preVisitExprInvoke ( Context * __context__, Func __funcCall__, void * self, ExprInvoke * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprInvoke> const >
+      <void *,ExprInvoke * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprInvoke ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprInvoke]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprInvoke ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprInvoke> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprInvoke> const >
+  __forceinline Expression * invoke_visitExprInvoke ( Context * __context__, Func __funcCall__, void * self, ExprInvoke * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprInvoke * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprErase ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprErase]);
   }
-  __forceinline void invoke_preVisitExprErase ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprErase> const  expr ) const {
+  __forceinline void invoke_preVisitExprErase ( Context * __context__, Func __funcCall__, void * self, ExprErase * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprErase> const >
+      <void *,ExprErase * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprErase ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprErase]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprErase ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprErase> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprErase> const >
+  __forceinline Expression * invoke_visitExprErase ( Context * __context__, Func __funcCall__, void * self, ExprErase * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprErase * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprSetInsert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSetInsert]);
   }
-  __forceinline void invoke_preVisitExprSetInsert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSetInsert> const  expr ) const {
+  __forceinline void invoke_preVisitExprSetInsert ( Context * __context__, Func __funcCall__, void * self, ExprSetInsert * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSetInsert> const >
+      <void *,ExprSetInsert * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprSetInsert ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSetInsert]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSetInsert ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSetInsert> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprSetInsert> const >
+  __forceinline Expression * invoke_visitExprSetInsert ( Context * __context__, Func __funcCall__, void * self, ExprSetInsert * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprSetInsert * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprFind ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprFind]);
   }
-  __forceinline void invoke_preVisitExprFind ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFind> const  expr ) const {
+  __forceinline void invoke_preVisitExprFind ( Context * __context__, Func __funcCall__, void * self, ExprFind * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFind> const >
+      <void *,ExprFind * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprFind ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprFind]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprFind ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFind> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprFind> const >
+  __forceinline Expression * invoke_visitExprFind ( Context * __context__, Func __funcCall__, void * self, ExprFind * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprFind * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprKeyExists ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprKeyExists]);
   }
-  __forceinline void invoke_preVisitExprKeyExists ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprKeyExists> const  expr ) const {
+  __forceinline void invoke_preVisitExprKeyExists ( Context * __context__, Func __funcCall__, void * self, ExprKeyExists * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprKeyExists> const >
+      <void *,ExprKeyExists * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprKeyExists ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprKeyExists]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprKeyExists ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprKeyExists> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprKeyExists> const >
+  __forceinline Expression * invoke_visitExprKeyExists ( Context * __context__, Func __funcCall__, void * self, ExprKeyExists * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprKeyExists * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprAscend ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAscend]);
   }
-  __forceinline void invoke_preVisitExprAscend ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAscend> const  expr ) const {
+  __forceinline void invoke_preVisitExprAscend ( Context * __context__, Func __funcCall__, void * self, ExprAscend * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAscend> const >
+      <void *,ExprAscend * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAscend ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAscend]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAscend ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAscend> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAscend> const >
+  __forceinline Expression * invoke_visitExprAscend ( Context * __context__, Func __funcCall__, void * self, ExprAscend * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAscend * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprCast ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCast]);
   }
-  __forceinline void invoke_preVisitExprCast ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCast> const  expr ) const {
+  __forceinline void invoke_preVisitExprCast ( Context * __context__, Func __funcCall__, void * self, ExprCast * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCast> const >
+      <void *,ExprCast * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprCast ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprCast]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprCast ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCast> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCast> const >
+  __forceinline Expression * invoke_visitExprCast ( Context * __context__, Func __funcCall__, void * self, ExprCast * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCast * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprDeleteSizeExpression ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprDeleteSizeExpression]);
   }
-  __forceinline void invoke_preVisitExprDeleteSizeExpression ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprDelete> const  del, smart_ptr_raw<Expression> const  expr ) const {
+  __forceinline void invoke_preVisitExprDeleteSizeExpression ( Context * __context__, Func __funcCall__, void * self, ExprDelete * const  del, Expression * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprDelete> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprDelete * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,del,expr);
   }
   __forceinline Func get_preVisitExprDelete ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprDelete]);
   }
-  __forceinline void invoke_preVisitExprDelete ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprDelete> const  expr ) const {
+  __forceinline void invoke_preVisitExprDelete ( Context * __context__, Func __funcCall__, void * self, ExprDelete * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprDelete> const >
+      <void *,ExprDelete * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprDelete ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprDelete]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprDelete ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprDelete> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprDelete> const >
+  __forceinline Expression * invoke_visitExprDelete ( Context * __context__, Func __funcCall__, void * self, ExprDelete * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprDelete * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprVar ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprVar]);
   }
-  __forceinline void invoke_preVisitExprVar ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprVar> const  expr ) const {
+  __forceinline void invoke_preVisitExprVar ( Context * __context__, Func __funcCall__, void * self, ExprVar * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprVar> const >
+      <void *,ExprVar * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprVar ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprVar]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprVar ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprVar> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprVar> const >
+  __forceinline Expression * invoke_visitExprVar ( Context * __context__, Func __funcCall__, void * self, ExprVar * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprVar * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprTag ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTag]);
   }
-  __forceinline void invoke_preVisitExprTag ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTag> const  expr ) const {
+  __forceinline void invoke_preVisitExprTag ( Context * __context__, Func __funcCall__, void * self, ExprTag * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTag> const >
+      <void *,ExprTag * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprTagValue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprTagValue]);
   }
-  __forceinline void invoke_preVisitExprTagValue ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTag> const  expr, smart_ptr_raw<Expression> const  value ) const {
+  __forceinline void invoke_preVisitExprTagValue ( Context * __context__, Func __funcCall__, void * self, ExprTag * const  expr, Expression * const  value ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprTag> const ,smart_ptr_raw<Expression> const >
+      <void *,ExprTag * const ,Expression * const >
         (__context__,nullptr,__funcCall__,
           self,expr,value);
   }
   __forceinline Func get_visitExprTag ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprTag]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprTag ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprTag> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprTag> const >
+  __forceinline Expression * invoke_visitExprTag ( Context * __context__, Func __funcCall__, void * self, ExprTag * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprTag * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprField]);
   }
-  __forceinline void invoke_preVisitExprField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprField> const  expr ) const {
+  __forceinline void invoke_preVisitExprField ( Context * __context__, Func __funcCall__, void * self, ExprField * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprField> const >
+      <void *,ExprField * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprField]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprField> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprField> const >
+  __forceinline Expression * invoke_visitExprField ( Context * __context__, Func __funcCall__, void * self, ExprField * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprField * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprSafeField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSafeField]);
   }
-  __forceinline void invoke_preVisitExprSafeField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeField> const  expr ) const {
+  __forceinline void invoke_preVisitExprSafeField ( Context * __context__, Func __funcCall__, void * self, ExprSafeField * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSafeField> const >
+      <void *,ExprSafeField * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprSafeField ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSafeField]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSafeField ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeField> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprSafeField> const >
+  __forceinline Expression * invoke_visitExprSafeField ( Context * __context__, Func __funcCall__, void * self, ExprSafeField * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprSafeField * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprSwizzle ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSwizzle]);
   }
-  __forceinline void invoke_preVisitExprSwizzle ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSwizzle> const  expr ) const {
+  __forceinline void invoke_preVisitExprSwizzle ( Context * __context__, Func __funcCall__, void * self, ExprSwizzle * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSwizzle> const >
+      <void *,ExprSwizzle * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprSwizzle ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSwizzle]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSwizzle ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSwizzle> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprSwizzle> const >
+  __forceinline Expression * invoke_visitExprSwizzle ( Context * __context__, Func __funcCall__, void * self, ExprSwizzle * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprSwizzle * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprIsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprIsVariant]);
   }
-  __forceinline void invoke_preVisitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIsVariant> const  expr ) const {
+  __forceinline void invoke_preVisitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, ExprIsVariant * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprIsVariant> const >
+      <void *,ExprIsVariant * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprIsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprIsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprIsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprIsVariant> const >
+  __forceinline Expression * invoke_visitExprIsVariant ( Context * __context__, Func __funcCall__, void * self, ExprIsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprIsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprAsVariant]);
   }
-  __forceinline void invoke_preVisitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAsVariant> const  expr ) const {
+  __forceinline void invoke_preVisitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, ExprAsVariant * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprAsVariant> const >
+      <void *,ExprAsVariant * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprAsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprAsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprAsVariant> const >
+  __forceinline Expression * invoke_visitExprAsVariant ( Context * __context__, Func __funcCall__, void * self, ExprAsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprAsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprSafeAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprSafeAsVariant]);
   }
-  __forceinline void invoke_preVisitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeAsVariant> const  expr ) const {
+  __forceinline void invoke_preVisitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, ExprSafeAsVariant * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprSafeAsVariant> const >
+      <void *,ExprSafeAsVariant * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprSafeAsVariant ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprSafeAsVariant]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprSafeAsVariant> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprSafeAsVariant> const >
+  __forceinline Expression * invoke_visitExprSafeAsVariant ( Context * __context__, Func __funcCall__, void * self, ExprSafeAsVariant * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprSafeAsVariant * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprOp1 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprOp1]);
   }
-  __forceinline void invoke_preVisitExprOp1 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp1> const  expr ) const {
+  __forceinline void invoke_preVisitExprOp1 ( Context * __context__, Func __funcCall__, void * self, ExprOp1 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprOp1> const >
+      <void *,ExprOp1 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprOp1 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprOp1]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprOp1 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprOp1> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprOp1> const >
+  __forceinline Expression * invoke_visitExprOp1 ( Context * __context__, Func __funcCall__, void * self, ExprOp1 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprOp1 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprReturn ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprReturn]);
   }
-  __forceinline void invoke_preVisitExprReturn ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprReturn> const  expr ) const {
+  __forceinline void invoke_preVisitExprReturn ( Context * __context__, Func __funcCall__, void * self, ExprReturn * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprReturn> const >
+      <void *,ExprReturn * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprReturn ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprReturn]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprReturn ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprReturn> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprReturn> const >
+  __forceinline Expression * invoke_visitExprReturn ( Context * __context__, Func __funcCall__, void * self, ExprReturn * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprReturn * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprYield ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprYield]);
   }
-  __forceinline void invoke_preVisitExprYield ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprYield> const  expr ) const {
+  __forceinline void invoke_preVisitExprYield ( Context * __context__, Func __funcCall__, void * self, ExprYield * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprYield> const >
+      <void *,ExprYield * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprYield ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprYield]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprYield ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprYield> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprYield> const >
+  __forceinline Expression * invoke_visitExprYield ( Context * __context__, Func __funcCall__, void * self, ExprYield * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprYield * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprBreak ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprBreak]);
   }
-  __forceinline void invoke_preVisitExprBreak ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBreak> const  expr ) const {
+  __forceinline void invoke_preVisitExprBreak ( Context * __context__, Func __funcCall__, void * self, ExprBreak * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprBreak> const >
+      <void *,ExprBreak * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprBreak ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprBreak]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprBreak ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprBreak> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprBreak> const >
+  __forceinline Expression * invoke_visitExprBreak ( Context * __context__, Func __funcCall__, void * self, ExprBreak * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprBreak * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprContinue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprContinue]);
   }
-  __forceinline void invoke_preVisitExprContinue ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprContinue> const  expr ) const {
+  __forceinline void invoke_preVisitExprContinue ( Context * __context__, Func __funcCall__, void * self, ExprContinue * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprContinue> const >
+      <void *,ExprContinue * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprContinue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprContinue]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprContinue ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprContinue> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprContinue> const >
+  __forceinline Expression * invoke_visitExprContinue ( Context * __context__, Func __funcCall__, void * self, ExprContinue * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprContinue * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_canVisitMakeBlockBody ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitMakeBlockBody]);
   }
-  __forceinline bool invoke_canVisitMakeBlockBody ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeBlock> const  expr ) const {
+  __forceinline bool invoke_canVisitMakeBlockBody ( Context * __context__, Func __funcCall__, void * self, ExprMakeBlock * const  expr ) const {
     return das_invoke_function<bool>::invoke
-      <void *,smart_ptr_raw<ExprMakeBlock> const >
+      <void *,ExprMakeBlock * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_preVisitExprMakeBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeBlock]);
   }
-  __forceinline void invoke_preVisitExprMakeBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeBlock> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeBlock ( Context * __context__, Func __funcCall__, void * self, ExprMakeBlock * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeBlock> const >
+      <void *,ExprMakeBlock * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeBlock ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeBlock]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeBlock ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeBlock> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeBlock> const >
+  __forceinline Expression * invoke_visitExprMakeBlock ( Context * __context__, Func __funcCall__, void * self, ExprMakeBlock * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeBlock * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMakeGenerator ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMakeGenerator]);
   }
-  __forceinline void invoke_preVisitExprMakeGenerator ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeGenerator> const  expr ) const {
+  __forceinline void invoke_preVisitExprMakeGenerator ( Context * __context__, Func __funcCall__, void * self, ExprMakeGenerator * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMakeGenerator> const >
+      <void *,ExprMakeGenerator * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMakeGenerator ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMakeGenerator]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMakeGenerator ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMakeGenerator> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMakeGenerator> const >
+  __forceinline Expression * invoke_visitExprMakeGenerator ( Context * __context__, Func __funcCall__, void * self, ExprMakeGenerator * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMakeGenerator * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprMemZero ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprMemZero]);
   }
-  __forceinline void invoke_preVisitExprMemZero ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMemZero> const  expr ) const {
+  __forceinline void invoke_preVisitExprMemZero ( Context * __context__, Func __funcCall__, void * self, ExprMemZero * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprMemZero> const >
+      <void *,ExprMemZero * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprMemZero ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprMemZero]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprMemZero ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprMemZero> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprMemZero> const >
+  __forceinline Expression * invoke_visitExprMemZero ( Context * __context__, Func __funcCall__, void * self, ExprMemZero * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprMemZero * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConst ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConst]);
   }
-  __forceinline void invoke_preVisitExprConst ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConst> const  expr ) const {
+  __forceinline void invoke_preVisitExprConst ( Context * __context__, Func __funcCall__, void * self, ExprConst * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConst> const >
+      <void *,ExprConst * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConst ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConst]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConst ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConst> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConst> const >
+  __forceinline Expression * invoke_visitExprConst ( Context * __context__, Func __funcCall__, void * self, ExprConst * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConst * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstPtr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstPtr]);
   }
-  __forceinline void invoke_preVisitExprConstPtr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstPtr> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstPtr ( Context * __context__, Func __funcCall__, void * self, ExprConstPtr * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstPtr> const >
+      <void *,ExprConstPtr * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstPtr ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstPtr]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstPtr ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstPtr> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstPtr> const >
+  __forceinline Expression * invoke_visitExprConstPtr ( Context * __context__, Func __funcCall__, void * self, ExprConstPtr * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstPtr * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstEnumeration ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstEnumeration]);
   }
-  __forceinline void invoke_preVisitExprConstEnumeration ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstEnumeration> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstEnumeration ( Context * __context__, Func __funcCall__, void * self, ExprConstEnumeration * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstEnumeration> const >
+      <void *,ExprConstEnumeration * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstEnumeration ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstEnumeration]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstEnumeration ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstEnumeration> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstEnumeration> const >
+  __forceinline Expression * invoke_visitExprConstEnumeration ( Context * __context__, Func __funcCall__, void * self, ExprConstEnumeration * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstEnumeration * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstBitfield ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstBitfield]);
   }
-  __forceinline void invoke_preVisitExprConstBitfield ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstBitfield> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstBitfield ( Context * __context__, Func __funcCall__, void * self, ExprConstBitfield * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstBitfield> const >
+      <void *,ExprConstBitfield * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstBitfield ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstBitfield]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstBitfield ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstBitfield> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstBitfield> const >
+  __forceinline Expression * invoke_visitExprConstBitfield ( Context * __context__, Func __funcCall__, void * self, ExprConstBitfield * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstBitfield * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt8 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt8]);
   }
-  __forceinline void invoke_preVisitExprConstInt8 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt8> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt8 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt8 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt8> const >
+      <void *,ExprConstInt8 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt8 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt8]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt8 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt8> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt8> const >
+  __forceinline Expression * invoke_visitExprConstInt8 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt8 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt8 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt16 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt16]);
   }
-  __forceinline void invoke_preVisitExprConstInt16 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt16> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt16 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt16 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt16> const >
+      <void *,ExprConstInt16 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt16 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt16]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt16 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt16> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt16> const >
+  __forceinline Expression * invoke_visitExprConstInt16 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt16 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt16 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt64]);
   }
-  __forceinline void invoke_preVisitExprConstInt64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt64> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt64 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt64 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt64> const >
+      <void *,ExprConstInt64 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt64]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt64> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt64> const >
+  __forceinline Expression * invoke_visitExprConstInt64 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt64 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt64 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt]);
   }
-  __forceinline void invoke_preVisitExprConstInt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt ( Context * __context__, Func __funcCall__, void * self, ExprConstInt * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt> const >
+      <void *,ExprConstInt * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt> const >
+  __forceinline Expression * invoke_visitExprConstInt ( Context * __context__, Func __funcCall__, void * self, ExprConstInt * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt2]);
   }
-  __forceinline void invoke_preVisitExprConstInt2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt2> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt2 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt2 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt2> const >
+      <void *,ExprConstInt2 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt2]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt2> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt2> const >
+  __forceinline Expression * invoke_visitExprConstInt2 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt2 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt2 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt3]);
   }
-  __forceinline void invoke_preVisitExprConstInt3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt3> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt3 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt3 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt3> const >
+      <void *,ExprConstInt3 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt3]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt3> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt3> const >
+  __forceinline Expression * invoke_visitExprConstInt3 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt3 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt3 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstInt4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstInt4]);
   }
-  __forceinline void invoke_preVisitExprConstInt4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt4> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstInt4 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt4 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstInt4> const >
+      <void *,ExprConstInt4 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstInt4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstInt4]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstInt4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstInt4> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstInt4> const >
+  __forceinline Expression * invoke_visitExprConstInt4 ( Context * __context__, Func __funcCall__, void * self, ExprConstInt4 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstInt4 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt8 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt8]);
   }
-  __forceinline void invoke_preVisitExprConstUInt8 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt8> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt8 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt8 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt8> const >
+      <void *,ExprConstUInt8 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt8 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt8]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt8 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt8> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt8> const >
+  __forceinline Expression * invoke_visitExprConstUInt8 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt8 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt8 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt16 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt16]);
   }
-  __forceinline void invoke_preVisitExprConstUInt16 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt16> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt16 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt16 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt16> const >
+      <void *,ExprConstUInt16 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt16 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt16]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt16 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt16> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt16> const >
+  __forceinline Expression * invoke_visitExprConstUInt16 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt16 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt16 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt64]);
   }
-  __forceinline void invoke_preVisitExprConstUInt64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt64> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt64 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt64 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt64> const >
+      <void *,ExprConstUInt64 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt64]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt64> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt64> const >
+  __forceinline Expression * invoke_visitExprConstUInt64 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt64 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt64 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt]);
   }
-  __forceinline void invoke_preVisitExprConstUInt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt> const >
+      <void *,ExprConstUInt * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt> const >
+  __forceinline Expression * invoke_visitExprConstUInt ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt2]);
   }
-  __forceinline void invoke_preVisitExprConstUInt2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt2> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt2 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt2 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt2> const >
+      <void *,ExprConstUInt2 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt2]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt2> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt2> const >
+  __forceinline Expression * invoke_visitExprConstUInt2 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt2 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt2 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt3]);
   }
-  __forceinline void invoke_preVisitExprConstUInt3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt3> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt3 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt3 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt3> const >
+      <void *,ExprConstUInt3 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt3]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt3> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt3> const >
+  __forceinline Expression * invoke_visitExprConstUInt3 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt3 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt3 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstUInt4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstUInt4]);
   }
-  __forceinline void invoke_preVisitExprConstUInt4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt4> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstUInt4 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt4 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt4> const >
+      <void *,ExprConstUInt4 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstUInt4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstUInt4]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstUInt4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstUInt4> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstUInt4> const >
+  __forceinline Expression * invoke_visitExprConstUInt4 ( Context * __context__, Func __funcCall__, void * self, ExprConstUInt4 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstUInt4 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstRange ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstRange]);
   }
-  __forceinline void invoke_preVisitExprConstRange ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstRange> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstRange ( Context * __context__, Func __funcCall__, void * self, ExprConstRange * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstRange> const >
+      <void *,ExprConstRange * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstRange ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstRange]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstRange ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstRange> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstRange> const >
+  __forceinline Expression * invoke_visitExprConstRange ( Context * __context__, Func __funcCall__, void * self, ExprConstRange * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstRange * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstURange ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstURange]);
   }
-  __forceinline void invoke_preVisitExprConstURange ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstURange> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstURange ( Context * __context__, Func __funcCall__, void * self, ExprConstURange * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstURange> const >
+      <void *,ExprConstURange * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstURange ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstURange]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstURange ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstURange> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstURange> const >
+  __forceinline Expression * invoke_visitExprConstURange ( Context * __context__, Func __funcCall__, void * self, ExprConstURange * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstURange * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstRange64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstRange64]);
   }
-  __forceinline void invoke_preVisitExprConstRange64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstRange64> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstRange64 ( Context * __context__, Func __funcCall__, void * self, ExprConstRange64 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstRange64> const >
+      <void *,ExprConstRange64 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstRange64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstRange64]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstRange64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstRange64> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstRange64> const >
+  __forceinline Expression * invoke_visitExprConstRange64 ( Context * __context__, Func __funcCall__, void * self, ExprConstRange64 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstRange64 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstURange64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstURange64]);
   }
-  __forceinline void invoke_preVisitExprConstURange64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstURange64> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstURange64 ( Context * __context__, Func __funcCall__, void * self, ExprConstURange64 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstURange64> const >
+      <void *,ExprConstURange64 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstURange64 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstURange64]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstURange64 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstURange64> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstURange64> const >
+  __forceinline Expression * invoke_visitExprConstURange64 ( Context * __context__, Func __funcCall__, void * self, ExprConstURange64 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstURange64 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstBool ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstBool]);
   }
-  __forceinline void invoke_preVisitExprConstBool ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstBool> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstBool ( Context * __context__, Func __funcCall__, void * self, ExprConstBool * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstBool> const >
+      <void *,ExprConstBool * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstBool ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstBool]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstBool ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstBool> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstBool> const >
+  __forceinline Expression * invoke_visitExprConstBool ( Context * __context__, Func __funcCall__, void * self, ExprConstBool * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstBool * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstFloat ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstFloat]);
   }
-  __forceinline void invoke_preVisitExprConstFloat ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstFloat ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat> const >
+      <void *,ExprConstFloat * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstFloat ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstFloat]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstFloat ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat> const >
+  __forceinline Expression * invoke_visitExprConstFloat ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstFloat * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstFloat2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstFloat2]);
   }
-  __forceinline void invoke_preVisitExprConstFloat2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat2> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstFloat2 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat2 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat2> const >
+      <void *,ExprConstFloat2 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstFloat2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstFloat2]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstFloat2 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat2> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat2> const >
+  __forceinline Expression * invoke_visitExprConstFloat2 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat2 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstFloat2 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstFloat3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstFloat3]);
   }
-  __forceinline void invoke_preVisitExprConstFloat3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat3> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstFloat3 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat3 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat3> const >
+      <void *,ExprConstFloat3 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstFloat3 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstFloat3]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstFloat3 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat3> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat3> const >
+  __forceinline Expression * invoke_visitExprConstFloat3 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat3 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstFloat3 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstFloat4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstFloat4]);
   }
-  __forceinline void invoke_preVisitExprConstFloat4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat4> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstFloat4 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat4 * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat4> const >
+      <void *,ExprConstFloat4 * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstFloat4 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstFloat4]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstFloat4 ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstFloat4> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstFloat4> const >
+  __forceinline Expression * invoke_visitExprConstFloat4 ( Context * __context__, Func __funcCall__, void * self, ExprConstFloat4 * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstFloat4 * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstString ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstString]);
   }
-  __forceinline void invoke_preVisitExprConstString ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstString> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstString ( Context * __context__, Func __funcCall__, void * self, ExprConstString * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstString> const >
+      <void *,ExprConstString * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstString ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstString]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstString ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstString> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstString> const >
+  __forceinline Expression * invoke_visitExprConstString ( Context * __context__, Func __funcCall__, void * self, ExprConstString * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstString * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprConstDouble ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprConstDouble]);
   }
-  __forceinline void invoke_preVisitExprConstDouble ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstDouble> const  expr ) const {
+  __forceinline void invoke_preVisitExprConstDouble ( Context * __context__, Func __funcCall__, void * self, ExprConstDouble * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprConstDouble> const >
+      <void *,ExprConstDouble * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprConstDouble ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprConstDouble]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprConstDouble ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprConstDouble> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprConstDouble> const >
+  __forceinline Expression * invoke_visitExprConstDouble ( Context * __context__, Func __funcCall__, void * self, ExprConstDouble * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprConstDouble * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprFakeContext ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprFakeContext]);
   }
-  __forceinline void invoke_preVisitExprFakeContext ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFakeContext> const  expr ) const {
+  __forceinline void invoke_preVisitExprFakeContext ( Context * __context__, Func __funcCall__, void * self, ExprFakeContext * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFakeContext> const >
+      <void *,ExprFakeContext * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprFakeContext ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprFakeContext]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprFakeContext ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFakeContext> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprFakeContext> const >
+  __forceinline Expression * invoke_visitExprFakeContext ( Context * __context__, Func __funcCall__, void * self, ExprFakeContext * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprFakeContext * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprFakeLineInfo ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprFakeLineInfo]);
   }
-  __forceinline void invoke_preVisitExprFakeLineInfo ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFakeLineInfo> const  expr ) const {
+  __forceinline void invoke_preVisitExprFakeLineInfo ( Context * __context__, Func __funcCall__, void * self, ExprFakeLineInfo * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprFakeLineInfo> const >
+      <void *,ExprFakeLineInfo * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprFakeLineInfo ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprFakeLineInfo]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprFakeLineInfo ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprFakeLineInfo> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprFakeLineInfo> const >
+  __forceinline Expression * invoke_visitExprFakeLineInfo ( Context * __context__, Func __funcCall__, void * self, ExprFakeLineInfo * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprFakeLineInfo * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprReader ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprReader]);
   }
-  __forceinline void invoke_preVisitExprReader ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprReader> const  expr ) const {
+  __forceinline void invoke_preVisitExprReader ( Context * __context__, Func __funcCall__, void * self, ExprReader * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprReader> const >
+      <void *,ExprReader * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprReader ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprReader]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprReader ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprReader> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprReader> const >
+  __forceinline Expression * invoke_visitExprReader ( Context * __context__, Func __funcCall__, void * self, ExprReader * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprReader * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprUnsafe ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprUnsafe]);
   }
-  __forceinline void invoke_preVisitExprUnsafe ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprUnsafe> const  expr ) const {
+  __forceinline void invoke_preVisitExprUnsafe ( Context * __context__, Func __funcCall__, void * self, ExprUnsafe * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprUnsafe> const >
+      <void *,ExprUnsafe * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprUnsafe ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprUnsafe]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprUnsafe ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprUnsafe> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprUnsafe> const >
+  __forceinline Expression * invoke_visitExprUnsafe ( Context * __context__, Func __funcCall__, void * self, ExprUnsafe * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprUnsafe * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
   __forceinline Func get_preVisitExprCallMacro ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_preVisitExprCallMacro]);
   }
-  __forceinline void invoke_preVisitExprCallMacro ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallMacro> const  expr ) const {
+  __forceinline void invoke_preVisitExprCallMacro ( Context * __context__, Func __funcCall__, void * self, ExprCallMacro * const  expr ) const {
     das_invoke_function<void>::invoke
-      <void *,smart_ptr_raw<ExprCallMacro> const >
+      <void *,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
           self,expr);
   }
   __forceinline Func get_visitExprCallMacro ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_visitExprCallMacro]);
   }
-  __forceinline smart_ptr<Expression> invoke_visitExprCallMacro ( Context * __context__, Func __funcCall__, void * self, smart_ptr_raw<ExprCallMacro> const  expr ) const {
-    return das_invoke_function<smart_ptr_raw<Expression>>::invoke
-      <void *,smart_ptr_raw<ExprCallMacro> const >
+  __forceinline Expression * invoke_visitExprCallMacro ( Context * __context__, Func __funcCall__, void * self, ExprCallMacro * const  expr ) const {
+    return das_invoke_function<Expression *>::invoke
+      <void *,ExprCallMacro * const >
         (__context__,nullptr,__funcCall__,
-          self,expr).marshal();
+          self,expr);
   }
 };
 

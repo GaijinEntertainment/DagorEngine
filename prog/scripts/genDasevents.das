@@ -67,18 +67,18 @@ def scan_dir(path : string; var res : table<string; void>; suffix = ".das")
 
 struct EventData
   mod : string
-  st : smart_ptr<ast::Structure>
+  st : ast::Structure?
 
 typedef
   EventsData = table</*name*/string; EventData>
   SqEventsData = table<string; string>
   EnumsData = table<string; array<string>>
 
-def get_annotation(var annotations : rtti::AnnotationList; tag : string) : smart_ptr<rtti::AnnotationDeclaration>
+def get_annotation(var annotations : rtti::AnnotationList; tag : string) : rtti::AnnotationDeclaration?
   for ann in annotations
     if ann.annotation.name == tag
       return ann
-  return unsafe(reinterpret<smart_ptr<rtti::AnnotationDeclaration>> null)
+  return null
 
 
 def has_annotation(var annotations : rtti::AnnotationList; tag : string)
@@ -114,11 +114,11 @@ def get_cpp_filter(filter_name : string; event_name : das_string) : string
 
 
 def gen_cpp_event(cppEvents : EventsData; output, file_name : string; exclude_events : EventsData; cpp_events_include : array<string>; verbose : bool; check : bool = false)
-  var process : array<tuple<fullName : string; mod : string; st : smart_ptr<ast::Structure>>>
+  var process : array<tuple<fullName : string; mod : string; st : ast::Structure?>>
   for eventName, eventData in keys(cppEvents), values(cppEvents)
     if exclude_events |> key_exists(eventName)
       continue
-    process |> emplace <| (eventName, eventData.mod, clone_to_move(eventData.st))
+    process |> emplace <| (fullName=eventName, mod=eventData.mod, st=eventData.st)
   process |> sort <| $(a, b)
     return a.fullName < b.fullName
 
@@ -235,7 +235,7 @@ def isSqIntType(typ)
        || typ.baseType == Type.tEnumeration || typ.baseType == Type.tEnumeration8 || typ.baseType == Type.tEnumeration16
        || typ.baseType == Type.tVariant || typ.baseType == Type.tBitfield)
 
-def get_sq_default_value(typ : smart_ptr<TypeDecl>; stub_name = "")
+def get_sq_default_value(typ : TypeDecl?; stub_name = "")
   if typ == null
     return "null"
 
@@ -266,7 +266,7 @@ def get_sq_default_value(typ : smart_ptr<TypeDecl>; stub_name = "")
 
   return "null"
 
-def get_sq_type(typ : smart_ptr<TypeDecl>)
+def get_sq_type(typ : TypeDecl?)
   if typ == null
     return "null"
 
@@ -291,7 +291,7 @@ def get_sq_type(typ : smart_ptr<TypeDecl>)
   return "instance" // float3, ecs::Object, etc
 
 
-def get_func_stub(name : string; var fn : smart_ptr<Function>)
+def get_func_stub(name : string; var fn : Function?)
   var optionalArgsNum = 0
   let n = length(fn.arguments)
   var i = n
@@ -353,7 +353,7 @@ def get_func_stub(name : string; var fn : smart_ptr<Function>)
     str |> write("\r\n  \}")
 
 
-def get_sq_stub(st : smart_ptr<Structure>; native_ctor : bool)
+def get_sq_stub(st : Structure?; native_ctor : bool)
   return build_string <| $(str)
     str |> write(st.name)
     str |> write(" = class \{")
@@ -433,13 +433,13 @@ def module_name(mod : rtti::Module?)
   return mod != null ? "{mod.name}::" : ""
 
 
-def get_sq_enum_stub(enm : smart_ptr<Enumeration>; var res : EnumsData)
+def get_sq_enum_stub(enm : Enumeration?; var res : EnumsData)
   var data <- [ for it in enm.list; "{it.name} = {describe(it.value)}"]
   let longName = "{module_name(enm._module)}{enm.name}"
   res[longName] <- data
 
 
-def gen_for_module(path : string; verbose : bool; common_paths : array<string>; var sqStubsList : SqEventsData; var sqEnums : EnumsData; var cppEvents, commonCppEvents : EventsData)
+def gen_for_module(path : string; verbose : bool; common_paths : array<string>; var sqStubsList : SqEventsData; var sqEnums : EnumsData; var cppEvents, commonCppEvents : EventsData; var keepAlive : array<smart_ptr<Program>>; var keepAliveMgs : array<ModuleGroup?>)
   print("compile {path}")
 
   var stat : DagorStat
@@ -466,11 +466,13 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
         unsafe(fio::exit(1))
         return
 
-      var progs : array<tuple<name : string; prog : smart_ptr<Program>>> = [(path, program)]
+      var progs : array<tuple<name : string; prog : smart_ptr<Program>>> = [(name=path, prog=program)]
+      keepAlive |> push_clone(program)
 
       find_loaded_das() <| $ [unused_argument(fname, ctx)] (fname, ctx, prog)
         if fname.ends_with("_events.das") || fname.ends_with("_quirrel.das")
-          progs |> emplace((fname, prog))
+          progs |> emplace((name=fname, prog=prog))
+          keepAlive |> push_clone(prog)
         return false
 
       for it in progs
@@ -509,8 +511,7 @@ def gen_for_module(path : string; verbose : bool; common_paths : array<string>; 
               get_sq_enum_stub(enm, sqEnums)
 
   access := null
-  unsafe
-    delete mg
+  keepAliveMgs |> push(mg)
 
 def bind_quirrel(dir : string; verbose : bool; var quirrelBindings : table<string; table<string; string>>)
   print(" bind quirrel... {dir}")
@@ -588,6 +589,8 @@ def main()
 
   var cppEventsData : EventsData
   var commonCppEvents : EventsData
+  var keepAlive : array<smart_ptr<Program>>
+  var keepAliveMgs : array<ModuleGroup?>
 
   var sqStubsData <- { "$::sendNetEvent" => "sendNetEvent = @(_eid, eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))",
                         "$::broadcastNetEvent" => "broadcastNetEvent = @(eventInstance, connectids = null) assert(type(eventInstance)==\"instance\" && [\"null\",\"array\"].contains(type(connectids)))" }
@@ -602,7 +605,7 @@ def main()
 
   for i in range(length(args) - 1)
     if args[i] == "--module"
-      gen_for_module(args[i + 1], verbose, commonPaths, sqStubsData, sqEnumsData, cppEventsData, commonCppEvents)
+      gen_for_module(args[i + 1], verbose, commonPaths, sqStubsData, sqEnumsData, cppEventsData, commonCppEvents, keepAlive, keepAliveMgs)
     elif args[i] == "--cpp_include"
       cppEventsInclude |> push(args[i + 1])
     elif args[i] == "--bind_quirrel"
@@ -742,5 +745,7 @@ def main()
         else
           print("write {gameGlobals}/dasenums.nut")
           sqStabs |> df_write(dasenumsCont)
-
   gen_cpp_event(cppEventsData, cppFolder, cppFile, commonCppEvents, cppEventsInclude, verbose, check)
+  for mg in keepAliveMgs
+    unsafe
+      delete mg

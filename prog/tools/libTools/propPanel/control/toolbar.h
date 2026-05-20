@@ -2,10 +2,10 @@
 #pragma once
 
 #include "controlType.h"
-#include "spinEditFloat.h"
 #include "spinEditInt.h"
 #include "toolbarSeparator.h"
 #include <propPanel/control/container.h>
+#include <propPanel/control/spinEditFloat.h>
 #include <propPanel/control/toolbarButton.h>
 #include <propPanel/control/toolbarToggleButton.h>
 #include <propPanel/control/toolbarToggleButtonGroup.h>

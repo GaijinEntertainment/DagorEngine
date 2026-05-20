@@ -177,7 +177,7 @@ def private next(var text : iterator<int>; var character, line, row : int&) : bo
 
 def private _lexer(var stext : string implicit) {
     //! creates a lexer generator from the input `stext` string.
-    return <- generator<TokenAt>() <| $() {
+    return <- generator<TokenAt> {
         var tin : iterator<int>
         unsafe {
             tin <- each(stext)

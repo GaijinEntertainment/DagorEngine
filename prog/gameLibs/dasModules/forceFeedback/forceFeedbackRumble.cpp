@@ -24,8 +24,8 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addEnumeration(das::make_smart<EnumerationRumbleBand>());
-    addAnnotation(das::make_smart<RumbleEventParamsAnnotation>(lib));
+    addEnumeration(new EnumerationRumbleBand());
+    addAnnotation(new RumbleEventParamsAnnotation(lib));
 
     das::addCtorAndUsing<RumbleEventParams>(*this, lib, "RumbleEventParams", " ::RumbleEventParams");
     das::addExtern<DAS_BIND_FUN(::force_feedback::rumble::add_event)>(*this, lib, "force_feedback_rumble_add_event",

@@ -231,8 +231,8 @@ eastl::string StcodeExpression::getFunctionCallTemplate(functional::FunctionId f
     case functional::BF_EXISTS_TEX: return string_f("exists_tex(%s)", argsPlaceholder.release().c_str());
     case functional::BF_EXISTS_BUF: return string_f("exists_buf(%s)", argsPlaceholder.release().c_str());
     case functional::BF_REQUEST_SAMPLER: return string_f("request_sampler(%s)", argsPlaceholder.release().c_str());
-    case functional::BF_INT2: return string_f("int4(%s)", argsPlaceholder.release().c_str());
-    case functional::BF_INT3: return string_f("int4(%s)", argsPlaceholder.release().c_str());
+    case functional::BF_INT2: return string_f("slice_int2(%s)", argsPlaceholder.release().c_str());
+    case functional::BF_INT3: return string_f("slice_int3(%s)", argsPlaceholder.release().c_str());
     case functional::BF_INT4: return string_f("int4(%s)", argsPlaceholder.release().c_str());
     default: G_ASSERT_RETURN(0, eastl::string());
   }

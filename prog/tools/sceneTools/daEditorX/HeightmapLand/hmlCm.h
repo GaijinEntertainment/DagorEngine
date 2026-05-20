@@ -18,10 +18,14 @@ enum
   CM_IMPORT_HEIGHTMAP,
   CM_REIMPORT,
   CM_EXPORT_HEIGHTMAP,
+  CM_EXPORT_HEIGHTMAP_MAIN,
+  CM_EXPORT_HEIGHTMAP_DETAILED,
   CM_IMPORT_WATER_DET_HMAP,
   CM_IMPORT_WATER_MAIN_HMAP,
   CM_ERASE_WATER_HEIGHTMAPS,
   CM_EXPORT_COLORMAP,
+  CM_EXPORT_WATER_HEIGHTMAP_MAIN,
+  CM_EXPORT_WATER_HEIGHTMAP_DETAILED,
   CM_REBUILD,
   CM_BUILD_COLORMAP,
   CM_BUILD_LIGHTMAP,
@@ -152,8 +156,11 @@ static constexpr const char *EXPORT_AS_COMPOSIT = "Plugin.Landscape.ExportAsComp
 static constexpr const char *SPLIT_COMPOSIT = "Plugin.Landscape.SplitComposit";
 static constexpr const char *INSTANTIATE_GENOBJ_INTO_ENTITIES = "Plugin.Landscape.InstantiateGenObjectsIntoEntities";
 static constexpr const char *EXPORT_LAND_TO_GAME = "Plugin.Landscape.ExportLandToGame";
-static constexpr const char *EXPORT_HEIGHTMAP = "Plugin.Landscape.ExportHeightmap";
+static constexpr const char *EXPORT_HEIGHTMAP_MAIN = "Plugin.Landscape.ExportHeightmap.Main";
+static constexpr const char *EXPORT_HEIGHTMAP_DETAILED = "Plugin.Landscape.ExportHeightmap.Detailed";
 static constexpr const char *EXPORT_COLORMAP = "Plugin.Landscape.ExportColormap";
+static constexpr const char *EXPORT_WATER_HEIGHTMAP_MAIN = "Plugin.Landscape.ExportWaterHeightmap.Main";
+static constexpr const char *EXPORT_WATER_HEIGHTMAP_DETAILED = "Plugin.Landscape.ExportWaterHeightmap.Detailed";
 static constexpr const char *EXPORT_LAYERS = "Plugin.Landscape.ExportLandClassLayers";
 static constexpr const char *EXPORT_LOFT_MASKS = "Plugin.Landscape.ExportLoftMasks";
 static constexpr const char *SPLINE_IMPORT_FROM_DAG = "Plugin.Landscape.ImportFromDag";
@@ -477,7 +484,15 @@ enum
   PID_SHOWMASK,
   PID_SHOW_LANDCLASS_COLORS,
   PID_ADDLAYER,
+  PID_COMMON_EXPR_EDIT,
+  PID_COMMON_EXPR_APPLY,
 
+  // Typed land variables (Float / Range / Mask / Curve). Each row gets a
+  // contiguous slice of LV_PID_PER_VAR PIDs starting at PID_LAND_VAR_PARAM_START.
+  PID_LAND_VAR_GRP,
+  PID_LAND_VAR_ADD,
+  PID_LAND_VAR_PARAM_START,
+  PID_LAST_LAND_VAR_PARAM = PID_LAND_VAR_PARAM_START + 2048,
 
   PID_HORIZONTAL_TEX_GRP,
   PID_HORIZONTAL_TEX_NAME,

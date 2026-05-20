@@ -1,0 +1,54 @@
+WARNING: w325 (invalid-type-string) Result of type() can never be 'bolean'. Did you mean 'bool'?
+testData/static_analyzer/w325.nut:3:55
+
+  //expect:w325
+  if (type(x) not in {["array"] = 1, ["integer"] = 1, ["bolean"] = 1})
+                                                       ^-------
+    println("r")
+
+
+WARNING: w325 (invalid-type-string) Result of type() can never be 'bolean'. Did you mean 'bool'?
+testData/static_analyzer/w325.nut:9:42
+
+  //expect:w325
+  if (type(x) not in ["array", "integer", "bolean"].totable())
+                                          ^-------
+    println("r")
+
+
+WARNING: w325 (invalid-type-string) Result of type() can never be 'bolean'. Did you mean 'bool'?
+testData/static_analyzer/w325.nut:15:44
+
+  //expect:w325
+  if (type(x) in const ["array", "integer", "bolean"].totable())
+                                            ^-------
+    println("w")
+
+
+WARNING: w325 (invalid-type-string) Result of type() can never be 'insance'. Did you mean 'instance'?
+testData/static_analyzer/w325.nut:21:17
+
+  //expect:w325
+  if (type(x) != "insance")
+                 ^--------
+    println("x")
+
+
+WARNING: w325 (invalid-type-string) Result of type() can never be 'talbe'. Did you mean 'table'?
+testData/static_analyzer/w325.nut:27:39
+
+//expect:w325
+if (dataType == "array" || dataType == "talbe")
+                                       ^------
+  println("a")
+
+
+WARNING: w325 (invalid-type-string) Result of type() can never be 'int'. Did you mean 'integer'?
+testData/static_analyzer/w325.nut:32:17
+
+  //expect:w325
+  if (type(x) == "int")
+                 ^----
+    println("i")
+
+

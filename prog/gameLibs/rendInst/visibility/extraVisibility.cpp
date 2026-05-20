@@ -34,6 +34,20 @@ bool rendinst::isRiGenVisibilityForcedLodLoaded(const RiGenVisibility *visibilit
   return true;
 }
 
+bool rendinst::isRiGenVisibilityResLoadingFinished(const RiGenVisibility *visibility)
+{
+  TIME_PROFILE(check_ri_visibility_any_lod);
+  const RiGenExtraVisibility &v = visibility->riex;
+  dag::ConstSpan<uint16_t> riResOrder = v.riexPoolOrder;
+  for (int k = 0, ke = riResOrder.size(); k < ke; ++k)
+  {
+    auto ri_idx = riResOrder[k] & render::RI_RES_ORDER_COUNT_MASK;
+    if (rendinst::riExtra[ri_idx].res->getResLoadingFlag())
+      return false;
+  }
+  return true;
+}
+
 void rendinst::riGenVisibilityScheduleForcedLodLoading(const RiGenVisibility *visibility)
 {
   TIME_PROFILE(update_ri_visibility_lods);
@@ -127,20 +141,17 @@ static void frustum_cull_impl(int first_scene, int last_scene, mat44f_cref globt
     const float sceneMaxDist = rendinst::riExTiledSceneMaxDist[sceneIdx];
     const float sceneMaxSize = rendinst::riExTiledSceneMaxSize[sceneIdx];
     const bool hasMinSizeToDistRatio = params.minSizeToDistRatio > 0.f;
-    bool needsSeparateTilePass = false;
-    if (hasMinSizeToDistRatio)
-      needsSeparateTilePass = true;
-    if (sceneMaxDist < 1e4)
-      needsSeparateTilePass = true;
-    if (params.tileCullBox)
-      needsSeparateTilePass = true;
+    const auto tileExternalFilter = params.tileExternalFilter;
+    const bool useTileExternalFilter = (bool)tileExternalFilter;
+    bool needsSeparateTilePass = hasMinSizeToDistRatio || sceneMaxDist < 1e4 || useTileExternalFilter;
     if (needsSeparateTilePass && sceneIdx != rendinst::DYNAMIC_SCENE)
     {
       TIME_PROFILE(frustum_cull_scene_separate)
       uint32_t totalTilesCount = 0;
       scene::TiledSceneCullContext ctx(totalTilesCount);
       ctx.needToUnlock = scene.lockForRead();
-      scene.frustumCullTilesPass<use_flags, use_pools, use_occlusion>(globtm, vpos_distscale, flags, flags, o, ctx);
+      scene.frustumCullTilesPass<use_flags, use_pools, use_occlusion>(globtm, vpos_distscale, flags, flags, o, params.tileCullBox,
+        params.disableRegionPrefilter, ctx);
       const uint32_t count = ctx.tilesCount.load(dag::mo::relaxed);
 
       const float maxDistSq =
@@ -157,27 +168,38 @@ static void frustum_cull_impl(int first_scene, int last_scene, mat44f_cref globt
           const float tileDistSq = v_extract_x(v_distance_sq_to_bbox_x(tileBox.bmin, tileBox.bmax, vpos_distscale));
           if (maxDistSq < tileDistSq)
             continue;
-          if (params.tileCullBox && !v_bbox3_test_box_intersect(*params.tileCullBox, tileBox))
+          if (params.tileCullBox && !params.disableRegionPrefilter && !v_bbox3_test_box_intersect(*params.tileCullBox, tileBox))
             continue;
         }
         tilesProcessed++;
+        auto sizeRatioNodeCb = [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) FORCE_INLINE_LAMBDA {
+          const vec4f sph = scene::get_node_bsphere(m);
+          const vec4f distSq = v_length3_sq(v_sub(sph, vpos_distscale));
+          instTotal++;
+          if (v_test_vec_x_lt(v_sqr_x(v_mul_x(v_splat_w(sph), invMinRadToDistRatio)), distSq)) // size/dist < threshold
+            return;
+          cb(scene, ni, m, distSqScaled);
+          instProcessed++;
+        };
+        auto plainNodeCb = [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled)
+                             FORCE_INLINE_LAMBDA { cb(scene, ni, m, distSqScaled); };
         if (hasMinSizeToDistRatio)
         {
-          scene.frustumCullOneTile<use_flags, use_pools, use_occlusion>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
-            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) FORCE_INLINE_LAMBDA {
-              const vec4f sph = scene::get_node_bsphere(m);
-              const vec4f distSq = v_length3_sq(v_sub(sph, vpos_distscale));
-              instTotal++;
-              if (v_test_vec_x_lt(v_sqr_x(v_mul_x(v_splat_w(sph), invMinRadToDistRatio)), distSq)) // size/dist < threshold
-                return;
-              cb(scene, ni, m, distSqScaled);
-              instProcessed++;
-            });
+          if (useTileExternalFilter)
+            scene.frustumCullOneTile<use_flags, use_pools, use_occlusion, true>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
+              tileExternalFilter, sizeRatioNodeCb);
+          else
+            scene.frustumCullOneTile<use_flags, use_pools, use_occlusion, false>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
+              nullptr, sizeRatioNodeCb);
         }
         else
         {
-          scene.frustumCullOneTile<use_flags, use_pools, use_occlusion>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
-            [&](scene::node_index ni, mat44f_cref m, vec4f distSqScaled) FORCE_INLINE_LAMBDA { cb(scene, ni, m, distSqScaled); });
+          if (useTileExternalFilter)
+            scene.frustumCullOneTile<use_flags, use_pools, use_occlusion, true>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
+              tileExternalFilter, plainNodeCb);
+          else
+            scene.frustumCullOneTile<use_flags, use_pools, use_occlusion, false>(ctx, globtm, vpos_distscale, o, ctx.tilesPtr[tileIdx],
+              nullptr, plainNodeCb);
         }
       }
 
@@ -479,10 +501,10 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
           const auto &tiled_scene = cscenes[tiled_scene_idx];
           if (visibleFlag)
             tiled_scene.frustumCullTilesPass<true, true, true>(globtm, vpos_distscale, visibleFlag, visibleFlag, use_occlusion,
-              sceneContexts[tiled_scene_idx]);
+              params.tileCullBox, params.disableRegionPrefilter, sceneContexts[tiled_scene_idx]);
           else
-            tiled_scene.frustumCullTilesPass<false, true, true>(globtm, vpos_distscale, 0, 0, use_occlusion,
-              sceneContexts[tiled_scene_idx]);
+            tiled_scene.frustumCullTilesPass<false, true, true>(globtm, vpos_distscale, 0, 0, use_occlusion, params.tileCullBox,
+              params.disableRegionPrefilter, sceneContexts[tiled_scene_idx]);
         }
 
         for (int tries = 2; tries > 0; tries--)
@@ -1393,4 +1415,87 @@ void rendinst::filterRIGenExtraVisibilityById(const RiGenVisibility *from, RiGen
   dstVisibility.riexInstCount = newVisCnt;
   if (dstVisibility.riexInstCount)
     sortByPoolSizeOrder(dstVisibility, maxLodUsed);
+}
+
+struct PerInstanceDrawStats
+{
+  int numElems = 0;
+  int totalFaces = 0;
+};
+
+static PerInstanceDrawStats gather_per_instance_draw_stats(int poolI, int lod, int start_stage, int end_stage)
+{
+  using namespace rendinst::render;
+  PerInstanceDrawStats agg;
+  if (poolI < 0 || lod < 0 || lod >= (int)rendinst::RiExtraPool::MAX_LODS)
+    return agg;
+  const int extraSize = (int)rendinst::riExtra.size();
+  if (poolI >= extraSize)
+    return agg;
+  if (allElemsIndex.size() < (((size_t)lod * extraSize + poolI + 1) * ShaderMesh::STG_COUNT + 1))
+    return agg;
+  for (int stage = start_stage; stage <= end_stage; ++stage)
+  {
+    const uint32_t startEIOfs = (lod * extraSize + poolI) * ShaderMesh::STG_COUNT + stage;
+    const uint32_t begin = allElemsIndex[startEIOfs];
+    const uint32_t end = allElemsIndex[startEIOfs + 1];
+    for (uint32_t EI = begin; EI < end; ++EI)
+      if (allElems[EI].shader)
+      {
+        ++agg.numElems;
+        agg.totalFaces += allElems[EI].numf;
+      }
+  }
+  return agg;
+}
+
+rendinst::RiVisibilityDrawStats rendinst::getRIGenExtraVisibleDrawStats(const RiGenVisibility *visibility, int start_stage,
+  int end_stage)
+{
+  RiVisibilityDrawStats stats;
+  if (!visibility)
+    return stats;
+  const RiGenExtraVisibility &v = visibility->riex;
+
+  for (int lod = 0; lod < (int)RiExtraPool::MAX_LODS; ++lod)
+  {
+    const auto &lodData = v.riexData[lod];
+    for (int poolI = 0, n = (int)lodData.size(); poolI < n; ++poolI)
+    {
+      const int cnt = (int)(lodData[poolI].size() / RIEXTRA_VECS_COUNT);
+      if (!cnt)
+        continue;
+      const PerInstanceDrawStats agg = gather_per_instance_draw_stats(poolI, lod, start_stage, end_stage);
+      if (!agg.numElems)
+        continue;
+      stats.drawCalls += agg.numElems;
+      stats.submittedInstances += cnt * agg.numElems;
+      stats.triangles += cnt * agg.totalFaces;
+      stats.visibleInstances += cnt;
+    }
+  }
+
+  if (start_stage <= ShaderMesh::STG_trans && ShaderMesh::STG_trans <= end_stage)
+  {
+    const auto &elems = v.sortedTransparentElems;
+    for (int i = 0, n = (int)elems.size(); i < n; ++i)
+    {
+      const auto &head = elems[i];
+      int count = 1;
+      while (i + 1 < n && elems[i + 1].poolId == head.poolId && elems[i + 1].lod == head.lod)
+      {
+        ++i;
+        ++count;
+      }
+      const PerInstanceDrawStats agg =
+        gather_per_instance_draw_stats(head.poolId, (int)head.lod, ShaderMesh::STG_trans, ShaderMesh::STG_trans);
+      if (!agg.numElems)
+        continue;
+      stats.drawCalls += agg.numElems;
+      stats.submittedInstances += count * agg.numElems;
+      stats.triangles += count * agg.totalFaces;
+      stats.visibleInstances += count;
+    }
+  }
+  return stats;
 }

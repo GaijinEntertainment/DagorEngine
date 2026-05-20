@@ -4,10 +4,15 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_pathDelim.h>
+#include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_threads.h>
 #include <ioSys/dag_findFiles.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
+#include <util/dag_delayedAction.h>
 #include <memory/dag_mem.h>
+#include <quirrel/sqEventBus/sqEventBus.h>
+#include <json/value.h>
 #include <zip.h>
 #include <string.h>
 
@@ -68,19 +73,13 @@ static bool add_directory_to_zip(zip_t *zip_archive, const char *dir_path, const
   return true;
 }
 
-static SQInteger sq_zip_folder(HSQUIRRELVM vm)
+static bool zip_folder_impl(const char *folder_path, const char *zip_path, eastl::string &out_error)
 {
-  const char *folder_path = nullptr;
-  const char *zip_path = nullptr;
-
-  if (SQ_FAILED(sq_getstring(vm, 2, &folder_path)))
-    return sq_throwerror(vm, "Expected folder path as first argument");
-
-  if (SQ_FAILED(sq_getstring(vm, 3, &zip_path)))
-    return sq_throwerror(vm, "Expected zip file path as second argument");
-
   if (!dd_dir_exist(folder_path))
-    return sq_throwerror(vm, String(0, "Folder '%s' does not exist", folder_path));
+  {
+    out_error.sprintf("Folder '%s' does not exist", folder_path);
+    return false;
+  }
 
   int zip_error_code = 0;
   zip_t *zip_archive = zip_open(zip_path, ZIP_CREATE | ZIP_TRUNCATE, &zip_error_code);
@@ -88,29 +87,127 @@ static SQInteger sq_zip_folder(HSQUIRRELVM vm)
   {
     zip_error_t error;
     zip_error_init_with_code(&error, zip_error_code);
-    String errorMessage(0, "Failed to create zip archive '%s': %s", zip_path, zip_error_strerror(&error));
+    out_error.sprintf("Failed to create zip archive '%s': %s", zip_path, zip_error_strerror(&error));
     zip_error_fini(&error);
-    return sq_throwerror(vm, errorMessage);
+    return false;
   }
 
   String error_details;
-
   bool success = add_directory_to_zip(zip_archive, folder_path, folder_path, &error_details);
 
   if (!success)
   {
-    String errorMessage(0, "Failed to add files to zip archive: %s%s%s", zip_strerror(zip_archive), error_details.empty() ? "" : ". ",
+    out_error.sprintf("Failed to add files to zip archive: %s%s%s", zip_strerror(zip_archive), error_details.empty() ? "" : ". ",
       error_details.empty() ? "" : error_details.str());
     zip_discard(zip_archive);
-    return sq_throwerror(vm, errorMessage);
+    return false;
   }
 
   if (zip_close(zip_archive) < 0)
   {
-    String errorMessage(0, "Failed to close zip archive: %s", zip_strerror(zip_archive));
+    out_error.sprintf("Failed to close zip archive: %s", zip_strerror(zip_archive));
     zip_discard(zip_archive);
-    return sq_throwerror(vm, errorMessage);
+    return false;
   }
+
+  return true;
+}
+
+static int zip_job_mgr_id = -1;
+
+static int get_zip_job_mgr_id()
+{
+  if (zip_job_mgr_id < 0)
+  {
+    G_ASSERT(cpujobs::is_inited());
+    zip_job_mgr_id = cpujobs::create_virtual_job_manager(128 << 10, WORKER_THREADS_AFFINITY_MASK, "ZipFolder");
+
+    if (DAGOR_UNLIKELY(zip_job_mgr_id < 0))
+    {
+      logerr("Failed to create zip job manager");
+    }
+  }
+  return zip_job_mgr_id;
+}
+
+class ZipFolderJob : public cpujobs::IJob
+{
+  eastl::string folderPath;
+  eastl::string zipPath;
+  eastl::string eventName;
+
+public:
+  ZipFolderJob(const char *folder_path, const char *zip_path, const char *event_name) :
+    folderPath(folder_path), zipPath(zip_path), eventName(event_name)
+  {}
+
+  const char *getJobName(bool &) const override { return "ZipFolderJob"; }
+
+  void doJob() override
+  {
+    eastl::string errorMsg;
+    bool success = zip_folder_impl(folderPath.c_str(), zipPath.c_str(), errorMsg);
+
+    eastl::string evtName = eastl::move(eventName);
+    eastl::string evtError = eastl::move(errorMsg);
+    bool evtSuccess = success;
+
+    run_action_on_main_thread([evtName = eastl::move(evtName), evtSuccess, evtError = eastl::move(evtError)]() {
+      Json::Value data;
+      data["success"] = evtSuccess;
+      if (!evtSuccess)
+        data["error"] = evtError.c_str();
+      sqeventbus::send_event(evtName.c_str(), data);
+    });
+  }
+
+  void releaseJob() override { delete this; }
+};
+
+static SQInteger sq_zip_folder_async(HSQUIRRELVM vm)
+{
+  const char *folder_path = nullptr;
+  const char *zip_path = nullptr;
+  const char *event_name = nullptr;
+
+  sq_getstring(vm, 2, &folder_path);
+  sq_getstring(vm, 3, &zip_path);
+  sq_getstring(vm, 4, &event_name);
+
+  if (!dd_dir_exist(folder_path))
+  {
+    return sq_throwerror(vm, String(0, "Folder '%s' does not exist", folder_path));
+  }
+
+  int mgr_id = get_zip_job_mgr_id();
+  if (DAGOR_UNLIKELY(mgr_id < 0))
+  {
+    return sq_throwerror(vm, "Zip job manager was not created");
+  }
+
+  cpujobs::add_job(mgr_id, new ZipFolderJob(folder_path, zip_path, event_name));
+
+  return 0;
+}
+
+static SQInteger sq_zip_folder(HSQUIRRELVM vm)
+{
+  const char *folder_path = nullptr;
+  const char *zip_path = nullptr;
+
+  sq_getstring(vm, 2, &folder_path);
+  sq_getstring(vm, 3, &zip_path);
+
+  if (!dd_dir_exist(folder_path))
+  {
+    return sq_throwerror(vm, String(0, "Folder '%s' does not exist", folder_path));
+  }
+
+  if (eastl::string errorMsg; !zip_folder_impl(folder_path, zip_path, errorMsg))
+  {
+    return sq_throwerror(vm, errorMsg.c_str());
+  }
+
   sq_pushbool(vm, SQTrue);
   return 1;
 }
@@ -237,6 +334,7 @@ void register_zip_archive(SqModules *module_mgr)
   ///@module zip
   exports //
     .SquirrelFuncDeclString(sq_zip_folder, "zip_folder(folder_path: string, zip_path: string): bool")
+    .SquirrelFuncDeclString(sq_zip_folder_async, "zip_folder_async(folder_path: string, zip_path: string, event_name: string): bool")
     .SquirrelFuncDeclString(sq_unzip_folder, "unzip_folder(zip_path: string, dest_path: string): bool")
     /**/;
 

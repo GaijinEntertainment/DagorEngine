@@ -305,15 +305,15 @@ public:
         ModuleLibrary lib(this);
         lib.addBuiltInModule();
         // uri
-        addAnnotation(make_smart<UriTextRangeAAnnotation>(lib));
-        addAnnotation(make_smart<UriIp4StructAnnotation>(lib));
-        addAnnotation(make_smart<UriIp6StructAnnotation>(lib));
-        addAnnotation(make_smart<UriHostDataAAnnotation>(lib));
-        auto psa = make_smart<UriPathSegmentStructAAnnotation>(lib);
+        addAnnotation(new UriTextRangeAAnnotation(lib));
+        addAnnotation(new UriIp4StructAnnotation(lib));
+        addAnnotation(new UriIp6StructAnnotation(lib));
+        addAnnotation(new UriHostDataAAnnotation(lib));
+        auto psa = new UriPathSegmentStructAAnnotation(lib);
         addAnnotation(psa);
         initRecAnnotation(psa,lib);
-        addAnnotation(make_smart<UriUriAAnnotation>(lib));
-        addAnnotation(make_smart<UriAnnotation>(lib));
+        addAnnotation(new UriUriAAnnotation(lib));
+        addAnnotation(new UriAnnotation(lib));
         addCtorAndUsing<Uri>(*this,lib,"Uri","Uri");
         addCtorAndUsing<Uri,const char *>(*this,lib,"Uri","Uri");
         addExtern<DAS_BIND_FUN(delete_uri)> (*this, lib, "finalize",

@@ -22,16 +22,16 @@ struct BakeHashFunctionAnnotation : das::TransformFunctionAnnotation
     auto arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (!starg->getValue().empty())
       {
         const char *text = starg->text.c_str();
         uint32_t hv = ecs_str_hash(text);
-        auto hconst = das::make_smart<das::ExprConstUInt>(arg->at, hv);
+        auto hconst = new das::ExprConstUInt(arg->at, hv);
         hconst->generated = true;
-        hconst->type = das::make_smart<das::TypeDecl>(das::Type::tUInt);
+        hconst->type = new das::TypeDecl(das::Type::tUInt);
         hconst->type->constant = true;
-        auto newCall = das::static_pointer_cast<das::ExprCallFunc>(call->clone());
+        auto newCall = static_cast<das::ExprCallFunc *>(call->clone());
         newCall->arguments.insert(newCall->arguments.begin() + ArgN + 1, hconst);
         if (call->func->fromGeneric)
           newCall->name = call->func->fromGeneric->name;
@@ -86,7 +86,7 @@ struct EcsGetOrFunctionAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return call->func->getAotBasicName();
       das::Type dasType;
@@ -115,7 +115,7 @@ struct EcsGetOrFunctionAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return;
       das::Type dasType;
@@ -134,7 +134,7 @@ struct EcsGetOrFunctionAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -149,7 +149,7 @@ struct EcsGetOrFunctionAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -181,7 +181,7 @@ struct EcsSetAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return call->func->getAotBasicName();
       das::Type dasType;
@@ -199,7 +199,7 @@ struct EcsSetAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return;
       das::Type dasType;
@@ -217,7 +217,7 @@ struct EcsSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -233,7 +233,7 @@ struct EcsSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -248,7 +248,7 @@ struct EcsSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -280,7 +280,7 @@ struct EcsInitSetAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return call->func->getAotBasicName();
       das::Type dasType;
@@ -298,7 +298,7 @@ struct EcsInitSetAnnotation : das::TransformFunctionAnnotation
     auto &&arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (starg->text.length() == 0)
         return;
       das::Type dasType;
@@ -316,7 +316,7 @@ struct EcsInitSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -333,7 +333,7 @@ struct EcsInitSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -348,7 +348,7 @@ struct EcsInitSetAnnotation : das::TransformFunctionAnnotation
       auto &&arg = call->arguments[ArgN];
       if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
       {
-        auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+        auto starg = static_cast<das::ExprConstString *>(arg);
         if (starg->text.length() == 0)
           return "";
         das::Type dasType;
@@ -390,7 +390,7 @@ struct ConstStringArgCallFunctionAnnotation : das::FunctionAnnotation
     auto arg = call->arguments[ArgN];
     if (arg->type && arg->type->isString() && arg->type->isConst() && arg->rtti_isConstant())
     {
-      auto starg = das::static_pointer_cast<das::ExprConstString>(arg);
+      auto starg = static_cast<das::ExprConstString *>(arg);
       if (!starg->getValue().empty())
         return true;
     }
@@ -410,19 +410,19 @@ struct LogFmtHashFunctionAnnotation : das::TransformFunctionAnnotation
     // for string builder collect all const parts of the string and calculate hash based on that
     if (strcmp(arg->__rtti, "ExprStringBuilder") == 0)
     {
-      auto builder = das::static_pointer_cast<das::ExprStringBuilder>(arg);
+      auto builder = static_cast<das::ExprStringBuilder *>(arg);
       uint32_t hash = 0;
       for (auto e : builder->elements)
       {
         if (e->type && e->type->isString() && e->type->isConst() && e->rtti_isConstant())
         {
-          auto starg = das::static_pointer_cast<das::ExprConstString>(e);
+          auto starg = static_cast<das::ExprConstString *>(e);
           hash = str_hash_fnv1<32>(starg->text.c_str(), hash);
         }
       }
-      auto exprHash = das::make_smart<das::ExprConstUInt>(arg->at, hash);
+      auto exprHash = new das::ExprConstUInt(arg->at, hash);
       exprHash->generated = true;
-      auto newCall = das::static_pointer_cast<das::ExprCallFunc>(call->clone());
+      auto newCall = static_cast<das::ExprCallFunc *>(call->clone());
       if (call->func->fromGeneric)
         newCall->name = call->func->fromGeneric->name;
       // insert our calcualted hash param after the format string, so hinted version of the log gets called
@@ -451,7 +451,7 @@ struct LogFmtHashFunctionAnnotation : das::TransformFunctionAnnotation
 
 __forceinline das::AnnotationDeclarationPtr annotation_declaration(const das::AnnotationPtr &ann)
 {
-  auto decl = das::make_smart<das::AnnotationDeclaration>();
+  auto decl = new das::AnnotationDeclaration();
   decl->annotation = ann;
   return decl;
 }

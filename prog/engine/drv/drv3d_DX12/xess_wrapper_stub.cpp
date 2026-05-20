@@ -52,3 +52,21 @@ int XessWrapper::getPresentedFrameCount() { return 1; }
 uint64_t XessWrapper::getMemoryUsage() const { return 0; }
 
 GpuLatency *create_gpu_latency_intel() { return nullptr; }
+
+#if _TARGET_PC_WIN
+bool XessWrapper::createFrameGenerationSwapchain(DXGIFactory *, ID3D12CommandQueue *, const SwapchainCreateInfo &,
+  const DXGI_SWAP_CHAIN_DESC1 &, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &, DXGISwapChain **swapchain)
+{
+  if (swapchain)
+    *swapchain = nullptr;
+  return false;
+}
+
+bool drv3d_dx12::create_xessfg_swapchain(DXGIFactory *, ID3D12CommandQueue *, const SwapchainCreateInfo &,
+  const DXGI_SWAP_CHAIN_DESC1 &, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &, DXGISwapChain **)
+{
+  return false;
+}
+
+void XessWrapper::releaseFrameGenerationSwapchainContext() {}
+#endif

@@ -15,6 +15,7 @@
 #include "version.h"
 #include "main/gameLoad.h"
 #include "main/appProfile.h"
+#include <daECS/core/entityManager.h>
 #include "main/level.h"
 
 extern "C"
@@ -27,6 +28,9 @@ extern "C"
   extern const char *dagor_exe_build_time;
 #endif
 }
+
+ECS_BROADCAST_EVENT_TYPE(SetScreenshotMetaData, /*blk*/ DataBlock *);
+ECS_REGISTER_EVENT(SetScreenshotMetaData)
 
 
 void set_screen_shot_comments(const TMatrix &view_itm)
@@ -69,6 +73,10 @@ void set_screen_shot_comments(const TMatrix &view_itm)
   DataBlock *b = output_blk.addNewBlock("skies");
   save_daskies(*b);
   save_weather_settings_to_screenshot(*output_blk.addNewBlock("weather"));
+
+  // To allow games add game specific screenshot meta data from anywhere including das.
+  g_entity_mgr->broadcastEventImmediate(SetScreenshotMetaData(&output_blk));
+
   DynamicMemGeneralSaveCB cwr(framemem_ptr(), 0, 64 << 10);
   cwr.seekto(0);
   cwr.resize(0);

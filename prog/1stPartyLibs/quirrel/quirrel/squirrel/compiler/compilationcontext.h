@@ -12,90 +12,7 @@
 
 class KeyValueFile;
 
-/*
-  Do we need identifiers for errors?
-  Unlike warninggs, errors have no id (numeric or symbolic), cannot be turned on and off,
-  cannot be of type other than ERROR.
-  So instead of reportDiagnostic(), we may just have throwError() function with printf-like args
-  and this would break the compilation process immediately.
-  And reportDiagnostic() would do just like it does now - only report warnings.
-  For convenience, adding GENERAL_COMPILE_ERROR for now - no need to add new identifiers
-  to use it in a single place.
-  Note how there are not benefits in separate ids for errors over GENERAL_COMPILE_ERROR -
-  it already does all what is needed.
-*/
-
 #define DIAGNOSTICS \
-  DEF_DIAGNOSTIC(GENERAL_COMPILE_ERROR, ERROR, LEX, -1, "", "%s"), \
-  DEF_DIAGNOSTIC(LITERAL_OVERFLOW, ERROR, LEX, -1, "", "%s constant overflow"), \
-  DEF_DIAGNOSTIC(LITERAL_UNDERFLOW, ERROR, LEX, -1, "", "%s constant underflow"), \
-  DEF_DIAGNOSTIC(FP_EXP_EXPECTED, ERROR, LEX, -1, "", "exponent expected"), \
-  DEF_DIAGNOSTIC(MALFORMED_NUMBER, ERROR, LEX, -1, "", "malformed number"), \
-  DEF_DIAGNOSTIC(HEX_DIGITS_EXPECTED, ERROR, LEX, -1, "", "expected hex digits after '0x'"), \
-  DEF_DIAGNOSTIC(HEX_TOO_MANY_DIGITS, ERROR, LEX, -1, "", "too many digits for a hex number"), \
-  DEF_DIAGNOSTIC(OCTAL_NOT_SUPPORTED, ERROR, LEX, -1, "", "leading 0 is not allowed, octal numbers are not supported"), \
-  DEF_DIAGNOSTIC(TOO_LONG_LITERAL, ERROR, LEX, -1, "", "constant too long"), \
-  DEF_DIAGNOSTIC(EMPTY_LITERAL, ERROR, LEX, -1, "", "empty constant"), \
-  DEF_DIAGNOSTIC(UNRECOGNISED_ESCAPER, ERROR, LEX, -1, "", "unrecognised escape char"), \
-  DEF_DIAGNOSTIC(NEWLINE_IN_CONST, ERROR, LEX, -1, "", "newline in a constant"), \
-  DEF_DIAGNOSTIC(UNFINISHED_STRING, ERROR, LEX, -1, "", "unfinished string"), \
-  DEF_DIAGNOSTIC(HEX_NUMBERS_EXPECTED, ERROR, LEX, -1, "", "hexadecimal number expected"), \
-  DEF_DIAGNOSTIC(UNEXPECTED_CHAR, ERROR, LEX, -1, "", "unexpected character '%s'"), \
-  DEF_DIAGNOSTIC(INVALID_TOKEN, ERROR, LEX, -1, "", "invalid token '%s'"), \
-  DEF_DIAGNOSTIC(LEX_ERROR_PARSE, ERROR, LEX, -1, "", "error parsing %s"), \
-  DEF_DIAGNOSTIC(BRACE_ORDER, ERROR, LEX, -1, "", "in brace order"), \
-  DEF_DIAGNOSTIC(NO_PARAMS_IN_STRING_TEMPLATE, ERROR, LEX, -1, "", "no params collected for string interpolation"), \
-  DEF_DIAGNOSTIC(COMMENT_IN_STRING_TEMPLATE, ERROR, LEX, -1, "", "comments inside interpolated string are not supported"), \
-  DEF_DIAGNOSTIC(EXPECTED_LEX, ERROR, LEX, -1, "", "expected %s"), \
-  DEF_DIAGNOSTIC(MACRO_RECURSION, ERROR, LEX, -1, "", "recursion in reader macro"), \
-  DEF_DIAGNOSTIC(INVALID_CHAR, ERROR, LEX, -1, "", "Invalid character"), \
-  DEF_DIAGNOSTIC(TRAILING_BLOCK_COMMENT, ERROR, LEX, -1, "", "missing \"*/\" in comment"), \
-  DEF_DIAGNOSTIC(GLOBAL_CONSTS_ONLY, ERROR, SYNTAX, -1, "", "global can be applied to const and enum only"), \
-  DEF_DIAGNOSTIC(END_OF_STMT_EXPECTED, ERROR, SYNTAX, -1, "", "end of statement expected (; or lf)"), \
-  DEF_DIAGNOSTIC(EXPECTED_TOKEN, ERROR, SYNTAX, -1, "", "expected '%s'"), \
-  DEF_DIAGNOSTIC(INVALID_TYPE_NAME_SUGGESTION, ERROR, SYNTAX, -1, "", "Invalid type name '%s', did you mean '%s'?"), \
-  DEF_DIAGNOSTIC(INVALID_TYPE_NAME, ERROR, SYNTAX, -1, "", "Invalid type name '%s'"), \
-  DEF_DIAGNOSTIC(UNSUPPORTED_DIRECTIVE, ERROR, SYNTAX, -1, "", "unsupported directive '%s'"), \
-  DEF_DIAGNOSTIC(EXPECTED_LINENUM, ERROR, SYNTAX, -1, "", "expected line number after #pos:"), \
-  DEF_DIAGNOSTIC(EXPECTED_COLNUM, ERROR, SYNTAX, -1, "", "expected column number after #pos:<line>:"), \
-  DEF_DIAGNOSTIC(TOO_BIG_AST, ERROR, SYNTAX, -1, "", "AST too big. Consider simplifying it"), \
-  DEF_DIAGNOSTIC(TOO_BIG_STATIC_MEMO, ERROR, SYNTAX, -1, "", "static expression is too big"), \
-  DEF_DIAGNOSTIC(MULTIPLE_DOCSTRINGS, ERROR, SYNTAX, -1, "", "multiple docstrings in a single block"), \
-  DEF_DIAGNOSTIC(ASSIGN_INSIDE_FORBIDDEN, ERROR, SYNTAX, -1, "", "'=' inside '%s' is forbidden"), \
-  DEF_DIAGNOSTIC(BROKEN_SLOT_DECLARATION, ERROR, SYNTAX, -1, "", "cannot break deref/or comma needed after [exp]=exp slot declaration"), \
-  DEF_DIAGNOSTIC(ROOT_TABLE_FORBIDDEN, ERROR, SYNTAX, -1, "", "Access to root table is forbidden"), \
-  DEF_DIAGNOSTIC(DELETE_OP_FORBIDDEN, ERROR, SYNTAX, -1, "", "Usage of 'delete' operator is forbidden. Use 'o.rawdelete(\"key\")' instead"), \
-  DEF_DIAGNOSTIC(COMPILER_INTERNALS_FORBIDDEN, ERROR, SYNTAX, -1, "", "Access to compiler internals is forbidden"), \
-  DEF_DIAGNOSTIC(UNINITIALIZED_BINDING, ERROR, SEMA, -1, "", "Binding '%s' must be initialized"), \
-  DEF_DIAGNOSTIC(SAME_FOREACH_KV_NAMES, ERROR, SEMA, -1, "", "foreach() key and value names are the same: '%s'"), \
-  DEF_DIAGNOSTIC(SCALAR_EXPECTED, ERROR, SYNTAX, -1, "", "scalar expected : %s"), \
-  DEF_DIAGNOSTIC(VARARG_WITH_DEFAULT_ARG, ERROR, SYNTAX, -1, "", "function with default parameters cannot have variable number of parameters"), \
-  DEF_DIAGNOSTIC(LOOP_CONTROLLER_NOT_IN_LOOP, ERROR, SEMA, -1, "", "'%s' has to be in a loop block"), \
-  DEF_DIAGNOSTIC(ASSIGN_TO_EXPR, ERROR, SEMA, -1, "", "can't assign to expression"), \
-  DEF_DIAGNOSTIC(BASE_NOT_MODIFIABLE, ERROR, SEMA, -1, "", "'base' cannot be modified"), \
-  DEF_DIAGNOSTIC(ASSIGN_TO_BINDING, ERROR, SEMA, -1, "", "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)"), \
-  DEF_DIAGNOSTIC(LOCAL_SLOT_CREATE, ERROR, SEMA, -1, "", "can't 'create' a local slot"), \
-  DEF_DIAGNOSTIC(CANNOT_INC_DEC, ERROR, SEMA, -1, "", "can't '++' or '--' %s"), \
-  DEF_DIAGNOSTIC(VARNAME_CONFLICTS, ERROR, SEMA, -1, "", "Variable name %s conflicts with function name"), \
-  DEF_DIAGNOSTIC(ONLY_SINGLE_VARIABLE_DECLARATION, ERROR, SEMA, -1, "", "Only single variable declaration is allowed here"), \
-  DEF_DIAGNOSTIC(INITIALIZATION_REQUIRED, ERROR, SEMA, -1, "", "Initialization required"), \
-  DEF_DIAGNOSTIC(INVALID_ENUM, ERROR, SEMA, -1, "", "invalid enum [no '%s' field in '%s']"), \
-  DEF_DIAGNOSTIC(UNKNOWN_SYMBOL, ERROR, SEMA, -1, "", "Unknown variable [%s]"), \
-  DEF_DIAGNOSTIC(CANNOT_EVAL_UNARY, ERROR, SEMA, -1, "", "cannot evaluate unary-op"), \
-  DEF_DIAGNOSTIC(DUPLICATE_KEY, ERROR, SEMA, -1, "", "duplicate key '%s'"), \
-  DEF_DIAGNOSTIC(DUPLICATE_FUNC_ATTR, ERROR, SEMA, -1, "", "duplicate attribute '%s'"), \
-  DEF_DIAGNOSTIC(INVALID_SLOT_INIT, ERROR, SEMA, -1, "", "Invalid slot initializer '%s' - no such variable/constant or incorrect expression"), \
-  DEF_DIAGNOSTIC(CANNOT_DELETE, ERROR, SEMA, -1, "", "can't delete %s"), \
-  DEF_DIAGNOSTIC(CONFLICTS_WITH, ERROR, SEMA, -1, "", "%s name '%s' conflicts with %s"), \
-  DEF_DIAGNOSTIC(INC_DEC_NOT_ASSIGNABLE, ERROR, SEMA, -1, "", "argument of inc/dec operation is not assignable"), \
-  DEF_DIAGNOSTIC(TYPE_DIFFERS, ERROR, SEMA, -1, "", "%s type differs from the declared type"), \
-  DEF_DIAGNOSTIC(INFERRED_TYPE_MISMATCH, ERROR, SEMA, -1, "", "expression of type '%s' cannot be assigned to type '%s'"), \
-  DEF_DIAGNOSTIC(SPACE_SEP_FIELD_NAME, ERROR, SEMA, -1, "", "Separate access operator '%s' with its following name is forbidden"), \
-  DEF_DIAGNOSTIC(TOO_MANY_SYMBOLS, ERROR, SEMA, -1, "", "internal compiler error: too many %s"), \
-  DEF_DIAGNOSTIC(NOT_ALLOWED_IN_CONST, ERROR, SEMA, -1, "", "%s is not allowed in constant"), \
-  DEF_DIAGNOSTIC(ID_IS_NOT_CONST, ERROR, SEMA, -1, "", "Identifier '%s' is not a compile-time constant"), \
-  DEF_DIAGNOSTIC(CONSTANT_SLOT_NOT_FOUND, ERROR, SEMA, -1, "", "%s slot %s not found in constant object"), \
-  DEF_DIAGNOSTIC(CONSTANT_FIELD_NOT_FOUND, ERROR, SEMA, -1, "", "Field '%s' not found in constant object"), \
   DEF_DIAGNOSTIC(PAREN_IS_FUNC_CALL, WARNING, SYNTAX, 190, "paren-is-function-call", "'(' on a new line parsed as function call."), \
   DEF_DIAGNOSTIC(STMT_SAME_LINE, WARNING, SYNTAX, 192, "statement-on-same-line", "Next statement on the same line after '%s' statement."), \
   DEF_DIAGNOSTIC(NULLABLE_OPERANDS, WARNING, SEMA, 200, "potentially-nulled-ops", "%s with potentially nullable expression."), \
@@ -190,10 +107,20 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(EMPTY_ARRAY_RESIZE, WARNING, SEMA, 319, "empty-array-resize", "'[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead."), \
   DEF_DIAGNOSTIC(CALLBACK_SHOULD_RETURN_VALUE, WARNING, SEMA, 320, "callback-should-return-value", "Callback passed to '%s' must return a value."), \
   DEF_DIAGNOSTIC(PARAM_ASSIGNMENT_IN_LAMBDA, WARNING, SEMA, 321, "param-assign-in-lambda", "Assignment to parameter '%s' in lambda has no effect. Return the expression instead."), \
-  DEF_DIAGNOSTIC(CALLBACK_SHOULD_NOT_RETURN, WARNING, SEMA, 322, "callback-should-not-return", "Callback passed to '%s' should not return a value.") \
+  DEF_DIAGNOSTIC(CALLBACK_SHOULD_NOT_RETURN, WARNING, SEMA, 322, "callback-should-not-return", "Callback passed to '%s' should not return a value."), \
+  DEF_DIAGNOSTIC(DUPLICATE_TERNARY_CONDITION, WARNING, SEMA, 323, "duplicate-ternary-condition", "Nested ternary condition duplicates the outer condition."), \
+  DEF_DIAGNOSTIC(FOR_DIRECTION, WARNING, SEMA, 324, "for-direction", "The update expression moves the for-loop variable in the wrong direction."), \
+  DEF_DIAGNOSTIC(INVALID_TYPE_STRING, WARNING, SEMA, 325, "invalid-type-string", "Result of type() can never be '%s'%s"), \
+  DEF_DIAGNOSTIC(INVALID_TYPEOF_STRING, WARNING, SEMA, 326, "invalid-typeof-string", "Result of typeof can never be '%s'%s"), \
+  DEF_DIAGNOSTIC(SUBSUMED_IF_EXPR, WARNING, SEMA, 327, "subsumed-if-expression", "Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable."), \
+  DEF_DIAGNOSTIC(REDUNDANT_AWAIT, WARNING, SEMA, 328, "redundant-await", "'await' on non-async expression has no effect."), \
+  DEF_DIAGNOSTIC(REPEATED_CONDITION, WARNING, SEMA, 329, "repeated-condition", "Condition repeats a condition from an outer 'if'."), \
+  DEF_DIAGNOSTIC(ASSIGNED_BACK, WARNING, SEMA, 330, "assigned-back", "Assignment writes back the value that was just copied from this expression.") \
 
 
 namespace SQCompilation {
+
+class Node;
 
 struct CompilerError {}; // Exception to throw
 
@@ -206,8 +133,7 @@ enum DiagnosticsId {
 
 enum DiagnosticSeverity {
   DS_HINT,
-  DS_WARNING,
-  DS_ERROR
+  DS_WARNING
 };
 
 enum CommentKind {
@@ -266,8 +192,16 @@ public:
 
   static void vrenderDiagnosticHeader(enum DiagnosticsId diag, std::string &msg, va_list args);
   static void renderDiagnosticHeader(enum DiagnosticsId diag, std::string *msg, ...);
+
   void vreportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, va_list args);
   void reportDiagnostic(enum DiagnosticsId diag, int32_t line, int32_t pos, int32_t width, ...);
+  void reportDiagnostic(enum DiagnosticsId diag, const Node *n, ...);
+
+  void vthrowError(int32_t line, int32_t pos, int32_t width, const char *fmt, va_list args);
+  void throwError(int32_t line, int32_t pos, int32_t width, const char *fmt, ...);
+  void throwError(const Node *n, const char *fmt, ...);
+  void throwError(const char *fmt, ...);
+
   bool isDisabled(enum DiagnosticsId id, int line, int pos);
   bool isRequireDisabled(int line, int col);
 
@@ -285,6 +219,11 @@ private:
 
   const char *findLine(int lineNo);
   bool isBlankLine(const char *l);
+  void buildSourceWindow(int32_t line, int32_t pos, int32_t width, std::string &extraInfo);
+  // Common emit path shared by warnings/hints (vreportDiagnostic) and errors (vthrowError):
+  // builds source window and invokes the diag/error handlers. Caller has already formatted msg.
+  void emitDiagnostic(const char *msg, int32_t line, int32_t pos, int32_t width,
+                      int32_t intId, const char *textId, SQMessageSeverity severity);
 
   const char *_sourceName;
 

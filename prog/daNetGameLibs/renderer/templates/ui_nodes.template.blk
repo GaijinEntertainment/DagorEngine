@@ -1,0 +1,8 @@
+ui_nodes{
+  _singleton:b=yes
+  _tags:t="render"
+  "before_ui_begin:dafg::NodeHandle"{}
+  "before_ui_end:dafg::NodeHandle"{}
+  "ui_render:dafg::NodeHandle"{}
+  "ui_blend:dafg::NodeHandle"{}
+}

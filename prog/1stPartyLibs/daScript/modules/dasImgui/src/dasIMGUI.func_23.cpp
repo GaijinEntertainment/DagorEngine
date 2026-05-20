@@ -16,25 +16,25 @@ void Module_dasIMGUI::initFunctions_23() {
 // from imgui/imgui.h:2946:25
 	makeExtern<DAS_CALL_METHOD(_method_52), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetIntRef","das_call_member< int * (ImGuiStorage::*)(unsigned int,int) , &ImGuiStorage::GetIntRef >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstInt>(0))
+		->arg_init(2,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_53 = das::das_call_member< bool * (ImGuiStorage::*)(unsigned int,bool),&ImGuiStorage::GetBoolRef >;
 // from imgui/imgui.h:2947:25
 	makeExtern<DAS_CALL_METHOD(_method_53), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetBoolRef","das_call_member< bool * (ImGuiStorage::*)(unsigned int,bool) , &ImGuiStorage::GetBoolRef >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstBool>(false))
+		->arg_init(2,new ExprConstBool(false))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_54 = das::das_call_member< float * (ImGuiStorage::*)(unsigned int,float),&ImGuiStorage::GetFloatRef >;
 // from imgui/imgui.h:2948:25
 	makeExtern<DAS_CALL_METHOD(_method_54), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetFloatRef","das_call_member< float * (ImGuiStorage::*)(unsigned int,float) , &ImGuiStorage::GetFloatRef >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstFloat>(0))
+		->arg_init(2,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_55 = das::das_call_member< void ** (ImGuiStorage::*)(unsigned int,void *),&ImGuiStorage::GetVoidPtrRef >;
 // from imgui/imgui.h:2949:25
 	makeExtern<DAS_CALL_METHOD(_method_55), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetVoidPtrRef","das_call_member< void ** (ImGuiStorage::*)(unsigned int,void *) , &ImGuiStorage::GetVoidPtrRef >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstPtr>())
+		->arg_init(2,new ExprConstPtr())
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_56 = das::das_call_member< void (ImGuiStorage::*)(),&ImGuiStorage::BuildSortByKey >;
 // from imgui/imgui.h:2952:25
@@ -51,7 +51,7 @@ void Module_dasIMGUI::initFunctions_23() {
 // from imgui/imgui.h:3004:21
 	makeExtern<DAS_CALL_METHOD(_method_58), SimNode_ExtFuncCall , imguiTempFn>(lib,"Begin","das_call_member< void (ImGuiListClipper::*)(int,float) , &ImGuiListClipper::Begin >::invoke")
 		->args({"self","items_count","items_height"})
-		->arg_init(2,make_smart<ExprConstFloat>(-1))
+		->arg_init(2,new ExprConstFloat(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_59 = das::das_call_member< void (ImGuiListClipper::*)(),&ImGuiListClipper::End >;
 // from imgui/imgui.h:3005:21

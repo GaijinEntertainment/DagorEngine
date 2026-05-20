@@ -69,28 +69,45 @@ public:
 
   virtual ~TreeItemInlineRenamerControl() {}
 
+  void setTreeItemRect(const ImRect &rect) { treeItemRect = rect; }
+
   // Returns with true while renaming is in progress.
   bool updateImgui()
   {
-    // Draw the controls into a separate draw channel. This way we are able to measure their size and can easily draw a
-    // background.
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    G_ASSERT(drawList->_Splitter._Current == 0);
-    drawList->ChannelsSplit(2);
-    drawList->ChannelsSetCurrent(1);
+    if (treeItemRect.GetWidth() <= 0.0f || treeItemRect.GetHeight() <= 0.0f)
+      return true;
 
-    // Position the input field that way that the text inside it starts at the same X where the tree label was.
-    const ImVec2 backgroundPadding(1.0f, 1.0f);
-    const float textDisplayStartInInput = ImGui::GetStyle().FramePadding.x;
-    const ImVec2 cursorStartPos =
-      ImGui::GetCursorScreenPos() + ImVec2(ImGui::GetTreeNodeToLabelSpacing() - backgroundPadding.x - textDisplayStartInInput, 0.0f);
-    ImGui::SetCursorScreenPos(cursorStartPos + backgroundPadding);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2());
 
-    ImGui::BeginGroup();
+    const char *popupId = "inlineRenamerPopup";
+    if (!popupShown)
+    {
+      // Position the pop-up that way that the text inside the edit box matches the tree label's position.
+      // WindowPadding is 0, so there is no need to calculate with that.
+      const ImGuiStyle &style = ImGui::GetStyle();
+      const ImVec2 popupPos(treeItemRect.GetTL() - style.FramePadding);
+      const float popupSizeWidth = treeItemRect.GetWidth() + style.FramePadding.x;
+      ImGui::SetNextWindowPos(popupPos);
+      ImGui::SetNextWindowSize(ImVec2(popupSizeWidth, 0.0f));
 
-    const float inputWidth = floorf(ImGui::GetContentRegionAvail().x + ImGui::GetScrollX() - backgroundPadding.x);
-    if (inputWidth > 0.0f)
-      ImGui::SetNextItemWidth(inputWidth);
+      ImGui::OpenPopup(popupId);
+      popupShown = true;
+    }
+
+    errorMessage.clear();
+    const bool canRename = canRenameTreeItem(newName, errorMessage);
+    const ImU32 bgColor = canRename ? OUTLINER_INPLACE_EDIT_NORMAL_BACKGROUND : OUTLINER_INPLACE_EDIT_ERROR_BACKGROUND;
+
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, bgColor);
+    popupShown = ImGui::BeginPopup(popupId);
+    ImGui::PopStyleColor();
+
+    ImGui::PopStyleVar();
+
+    if (!popupShown)
+      return false;
+
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 
     PropPanel::focus_helper.setFocusToNextImGuiControlIfRequested(&inputFocusId);
 
@@ -102,25 +119,20 @@ public:
       ImGui::IsItemFocused() && ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_None, ImGui::GetItemID());
     const bool renameInputAccepted = ImGui::IsItemDeactivated() && !renameInputCanceled;
 
-    ImGui::SameLine(0.0f, 0.0f);
-    const float cursorInputEndScreenPosX = ImGui::GetCursorScreenPos().x;
-    const float cursorInputEndPosX = ImGui::GetCursorPos().x;
-    ImGui::NewLine();
-
-    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
-
     // Draw the alert icon and the error message.
-    errorMessage.clear();
-    const bool canRename = canRenameTreeItem(newName, errorMessage);
     if (!canRename)
     {
+      // Add some vertical space before the error because of the focus rectangle on the edit box.
+      ImGui::Dummy(ImVec2());
+
       ImVec2 alertIconPos = ImGui::GetCursorScreenPos();
       const float alertIconLeftPadding = ImGui::GetStyle().ItemInnerSpacing.x;
+      const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
 
       ImGui::Dummy(fontSizedIconSize + ImVec2(alertIconLeftPadding, 0.0f)); // Just reserve the horizontal space for the alert icon.
       ImGui::SameLine();
 
-      ImGui::PushTextWrapPos(cursorInputEndPosX);
+      ImGui::PushTextWrapPos();
       ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
       ImGui::TextUnformatted(errorMessage.c_str());
       ImGui::PopStyleColor();
@@ -129,30 +141,27 @@ public:
       const ImVec2 textSize = ImGui::GetItemRectSize();
       alertIconPos.x += alertIconLeftPadding;
       alertIconPos.y += (textSize.y - fontSizedIconSize.y) * 0.5f; // Center the icon vertically.
+
+      ImDrawList *drawList = ImGui::GetWindowDrawList();
       drawList->AddImage(PropPanel::get_im_texture_id_from_icon_id(alertIcon), alertIconPos, alertIconPos + fontSizedIconSize);
+
+      // Add some vertical space after the error because there is no window padding.
+      ImGui::Dummy(ImVec2());
     }
 
-    ImGui::EndGroup();
+    ImGui::EndPopup();
 
-    // Draw the background.
-    const ImVec2 cursorEndPos(cursorInputEndScreenPosX,
-      ImGui::GetCursorScreenPos().y - (canRename ? ImGui::GetStyle().ItemSpacing.y : 0.0f));
-    const ImVec2 rectTopLeft = cursorStartPos;
-    const ImVec2 rectBottomRight(cursorEndPos + backgroundPadding);
-    drawList->ChannelsSetCurrent(0);
-    drawList->AddRectFilled(rectTopLeft, rectBottomRight,
-      canRename ? OUTLINER_INPLACE_EDIT_NORMAL_BACKGROUND : OUTLINER_INPLACE_EDIT_ERROR_BACKGROUND);
+    // Use the latest name for checking. (Error message is not cleared, because it is not used.)
+    const bool canRenameNew = canRenameTreeItem(newName, errorMessage);
 
-    drawList->ChannelsMerge();
-
-    // Add some vertical space after the error.
-    if (!canRename)
-      ImGui::Dummy(ImVec2(0.0f, 0.0f));
-
-    if (renameInputAccepted && canRename)
+    if (renameInputAccepted && canRenameNew)
     {
       renameTreeItem(newName);
       return false;
+    }
+    else if (renameInputAccepted)
+    {
+      PropPanel::focus_helper.requestFocus(&inputFocusId);
     }
     else if (renameInputCanceled)
     {
@@ -168,8 +177,10 @@ public:
 private:
   const bool inputFocusId = false; // Only the address of this member is used.
   const PropPanel::IconId alertIcon;
+  ImRect treeItemRect;
   String newName;
   String errorMessage;
+  bool popupShown = false;
 };
 
 class LayerTreeItemInlinerRenamerControl : public TreeItemInlineRenamerControl
@@ -297,6 +308,7 @@ int OutlinerWindow::onMenuItemClick(unsigned id)
     if (selectedType >= 0)
     {
       addingLayerToType = selectedType;
+      addLayerPopupShown = false;
       PropPanel::focus_helper.requestFocus(&addingLayerToType);
     }
   }
@@ -577,20 +589,13 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
   bool layer_locked, bool dim_layer_color, const ImVec4 &dimmed_text_color, float action_buttons_total_width,
   ImGuiMultiSelectIO *multiSelectIo)
 {
-  const bool selected = tree_item.isSelected();
-  if (selected && layerRenamer)
-  {
-    if (!layerRenamer->updateImgui())
-      layerRenamer.reset();
-    return false;
-  }
-
   const bool wasExpanded = tree_item.isExpanded();
   ImGui::SetNextItemOpen(wasExpanded);
 
   G_STATIC_ASSERT(sizeof(ImGuiSelectionUserData) == sizeof(&tree_item));
   ImGui::SetNextItemSelectionUserData(reinterpret_cast<ImGuiSelectionUserData>(&tree_item));
 
+  const bool selected = tree_item.isSelected();
   ImGuiTreeNodeFlags layerTreeNodeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth |
                                           ImGuiTreeNodeFlags_AllowOverlap | ImGuiTreeNodeFlags_OpenOnDoubleClick;
   if (tree_item.filteredSortedObjects.empty())
@@ -719,6 +724,13 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
         treeInterface->toggleLayerExport(type, per_type_layer_index);
     }
 
+    if (selected && layerRenamer)
+    {
+      ImRect treeItemRect = itemRect;
+      treeItemRect.Min.x = endData.textPos.x;
+      layerRenamer->setTreeItemRect(treeItemRect);
+    }
+
     ImGui::SetCursorScreenPos(originalCursorPos);
   }
 
@@ -750,13 +762,6 @@ const char *OutlinerWindow::getObjectNoun(int type, int count) const
 bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child)
 {
   const bool selected = tree_item.isSelected();
-  if (selected && objectRenamer)
-  {
-    if (!objectRenamer->updateImgui())
-      objectRenamer.reset();
-    return false;
-  }
-
   ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth;
   if (!has_child)
     treeFlags |= ImGuiTreeNodeFlags_Leaf;
@@ -827,6 +832,13 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
     else if (endData.hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
     {
       createContextMenu(type, per_type_layer_index, true);
+    }
+
+    if (selected && objectRenamer)
+    {
+      ImRect treeItemRect = itemRect;
+      treeItemRect.Min.x = endData.textPos.x;
+      objectRenamer->setTreeItemRect(treeItemRect);
     }
   }
 
@@ -1118,9 +1130,6 @@ void OutlinerWindow::renderTreeItem(OutlinerTreeItem &tree_item, const ImVec4 &d
     if (showTypeControls(*objectTypeTreeItem, typeIndex, objectTypeRenderCache.typeVisible, objectTypeRenderCache.typeLocked,
           objectTypeRenderCache.dimTypeColor, dimmed_text_color, action_buttons_total_width))
       ImGui::TreePop();
-
-    if (typeIndex == addingLayerToType)
-      showAddLayerControls();
   }
   else if (itemType == OutlinerTreeItem::ItemType::Layer)
   {
@@ -1468,23 +1477,29 @@ void OutlinerWindow::applySelectionRequests(const ImGuiMultiSelectIO &multi_sele
   }
 }
 
-void OutlinerWindow::showAddLayerControls()
+void OutlinerWindow::showAddLayerControls(const char *popup_id)
 {
   G_ASSERT(addingLayerToType >= 0);
+
+  addLayerErrorMessage.clear();
+  const bool canAddLayer = treeInterface->canAddNewLayerWithName(addingLayerToType, addLayerName.c_str(), addLayerErrorMessage);
+  const ImU32 bgColor = canAddLayer ? OUTLINER_INPLACE_EDIT_NORMAL_BACKGROUND : OUTLINER_INPLACE_EDIT_ERROR_BACKGROUND;
+
+  ImGui::PushStyleColor(ImGuiCol_PopupBg, bgColor);
+  const bool popupIsOpen = ImGui::BeginPopup(popup_id);
+  ImGui::PopStyleColor();
+
+  if (!popupIsOpen)
+  {
+    addingLayerToType = -1;
+    addLayerPopupShown = false;
+    addLayerName.clear();
+    return;
+  }
 
   // Draw the controls into a separate draw channel. This way we are able to measure their size and can easily draw a
   // background.
   ImDrawList *drawList = ImGui::GetWindowDrawList();
-  G_ASSERT(drawList->_Splitter._Current == 0);
-  drawList->ChannelsSplit(2);
-  drawList->ChannelsSetCurrent(1);
-
-  // Unlike the rename panel, the add panel has full width within the tree.
-  const ImVec2 backgroundPadding(ImGui::GetStyle().FramePadding);
-  const ImVec2 cursorStartPos(ImGui::GetCurrentWindow()->ContentRegionRect.Min.x + ImGui::GetScrollX(), ImGui::GetCursorScreenPos().y);
-  ImGui::SetCursorScreenPos(cursorStartPos + backgroundPadding);
-
-  ImGui::BeginGroup();
 
   ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
   ImGui::TextUnformatted("Enter layer name:");
@@ -1492,11 +1507,8 @@ void OutlinerWindow::showAddLayerControls()
 
   const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
   const ImVec2 imageButtonSize = PropPanel::ImguiHelper::getImageButtonFramelessFullSize(fontSizedIconSize);
-  const float imageButtonsWidth = imageButtonSize.x * 2; // We have two buttons.
-  const float inputWidth = floorf(ImGui::GetContentRegionAvail().x + ImGui::GetScrollX() - ImGui::GetStyle().ItemSpacing.x -
-                                  imageButtonsWidth - backgroundPadding.x - ImGui::GetStyle().FramePadding.x);
-  if (inputWidth > 0.0f)
-    ImGui::SetNextItemWidth(inputWidth);
+  const float inputWidth = ImGui::GetFontSize() * 16;
+  ImGui::SetNextItemWidth(inputWidth);
 
   PropPanel::focus_helper.setFocusToNextImGuiControlIfRequested(&addingLayerToType);
 
@@ -1504,9 +1516,6 @@ void OutlinerWindow::showAddLayerControls()
   const bool addInputAccepted = ImGuiDagor::InputText("##addInput", &addLayerName, ImGuiInputTextFlags_EnterReturnsTrue);
   bool addInputCanceled = !addInputAccepted && ImGui::IsItemDeactivated();
   ImGui::PopStyleColor();
-
-  addLayerErrorMessage.clear();
-  const bool canAddLayer = treeInterface->canAddNewLayerWithName(addingLayerToType, addLayerName.c_str(), addLayerErrorMessage);
 
   // Center the buttons vertically to the text input.
   const float buttonOffsetY = (ImGui::GetItemRectSize().y - imageButtonSize.y) * 0.5f;
@@ -1527,21 +1536,19 @@ void OutlinerWindow::showAddLayerControls()
   // There is no need to check the result of this, clicking anywhere (beside the add button) will cancel the process.
   PropPanel::ImguiHelper::imageButtonFrameless("addCancel", icons.close, fontSizedIconSize, "Cancel");
 
-  ImGui::SameLine(0.0f, 0.0f);
-  const float cursorInputEndScreenPosX = ImGui::GetCursorScreenPos().x;
-  const float cursorInputEndPosX = ImGui::GetCursorPos().x;
-  ImGui::NewLine();
-
   // Draw the alert icon and the error message.
   if (!canAddLayer)
   {
+    // Add some vertical space before the error because of the focus rectangle on the edit box.
+    ImGui::Dummy(ImVec2());
+
     ImVec2 alertIconPos = ImGui::GetCursorScreenPos();
     const float alertIconLeftPadding = ImGui::GetStyle().ItemInnerSpacing.x;
 
     ImGui::Dummy(fontSizedIconSize + ImVec2(alertIconLeftPadding, 0.0f)); // Just reserve the horizontal space for the alert icon.
     ImGui::SameLine();
 
-    ImGui::PushTextWrapPos(cursorInputEndPosX);
+    ImGui::PushTextWrapPos();
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
     ImGui::TextUnformatted(addLayerErrorMessage.c_str());
     ImGui::PopStyleColor();
@@ -1553,32 +1560,28 @@ void OutlinerWindow::showAddLayerControls()
     drawList->AddImage(PropPanel::get_im_texture_id_from_icon_id(icons.alert), alertIconPos, alertIconPos + fontSizedIconSize);
   }
 
-  ImGui::EndGroup();
+  // Use the latest name for checking. (Error message is not cleared, because it is not used.)
+  const bool canAddLayerNew = treeInterface->canAddNewLayerWithName(addingLayerToType, addLayerName.c_str(), addLayerErrorMessage);
 
-  // Draw the background.
-  const ImVec2 cursorEndPos(cursorInputEndScreenPosX, ImGui::GetCursorScreenPos().y - ImGui::GetStyle().ItemSpacing.y);
-  const ImVec2 rectTopLeft = cursorStartPos;
-  const ImVec2 rectBottomRight(cursorEndPos + backgroundPadding);
-  drawList->ChannelsSetCurrent(0);
-  drawList->AddRectFilled(rectTopLeft, rectBottomRight,
-    canAddLayer ? OUTLINER_INPLACE_EDIT_NORMAL_BACKGROUND : OUTLINER_INPLACE_EDIT_ERROR_BACKGROUND);
-
-  drawList->ChannelsMerge();
-
-  // Add some vertical space after the background.
-  ImGui::Dummy(ImVec2(0.0f, 0.0f));
-
-  if ((addInputAccepted || okButtonPressed) && canAddLayer)
+  if ((addInputAccepted || okButtonPressed) && canAddLayerNew)
   {
     outlinerModel->addNewLayer(*treeInterface, addingLayerToType, addLayerName);
     addingLayerToType = -1;
+    addLayerPopupShown = false;
     addLayerName.clear();
+  }
+  else if (addInputAccepted)
+  {
+    PropPanel::focus_helper.requestFocus(&addingLayerToType);
   }
   else if (addInputCanceled)
   {
     addingLayerToType = -1;
+    addLayerPopupShown = false;
     addLayerName.clear();
   }
+
+  ImGui::EndPopup();
 }
 
 void OutlinerWindow::showSettingsPanel(const char *popup_id)
@@ -1749,6 +1752,7 @@ void OutlinerWindow::updateImgui()
   if (pressedAddLayer)
   {
     addingLayerToType = selectedType;
+    addLayerPopupShown = false;
     PropPanel::focus_helper.requestFocus(&addingLayerToType);
   }
 
@@ -1792,6 +1796,24 @@ void OutlinerWindow::updateImgui()
   ImGui::SetCursorPosX(expandButtonCursorPos.x + expandButtonRegionAvailable.x - collapseAllSize.x);
   if (ImGui::Button(collapseAllTitle))
     outlinerModel->expandAll(false);
+
+  if (addingLayerToType >= 0)
+  {
+    const char *addLayerPopupId = "addLayerPopup";
+
+    if (!addLayerPopupShown)
+    {
+      ImGui::OpenPopup(addLayerPopupId);
+      addLayerPopupShown = true;
+    }
+
+    showAddLayerControls(addLayerPopupId);
+  }
+
+  if (layerRenamer && !layerRenamer->updateImgui())
+    layerRenamer.reset();
+  if (objectRenamer && !objectRenamer->updateImgui())
+    objectRenamer.reset();
 
   const ImGuiID childWindowId = ImGui::GetCurrentWindow()->GetID("c");
   const ImVec2 childRegionAvailable = ImGui::GetContentRegionAvail();

@@ -45,17 +45,17 @@ bool testBindEnumFunction ( Context * context, LineInfoArg * at ) {
 void Module_UnitTest::addEnumTest(ModuleLibrary &lib)
 {
     // enum
-    addEnumeration(make_smart<EnumerationGooEnum>());
-    addEnumeration(make_smart<EnumerationSomeEnum>());
+    addEnumeration(new EnumerationGooEnum());
+    addEnumeration(new EnumerationSomeEnum());
     addExtern<DAS_BIND_FUN(efn_takeOne_giveTwo)>(*this, lib, "free_takeOne_giveTwo", SideEffects::none, "efn_takeOne_giveTwo");
     addExtern<DAS_BIND_FUN(efn_takeOne_giveTwo)>(*this, lib, "efn_takeOne_giveTwo", SideEffects::modifyExternal, "efn_takeOne_giveTwo");
     addExtern<DAS_BIND_FUN(efn_flip)>(*this, lib, "efn_flip", SideEffects::modifyExternal, "efn_flip");
     // enum98
-    addEnumeration(make_smart<EnumerationSomeEnum98>());
+    addEnumeration(new EnumerationSomeEnum98());
     addExtern<DAS_BIND_FUN(efn_takeOne_giveTwo_98_DasProxy)>(*this, lib, "efn_takeOne_giveTwo_98",
         SideEffects::modifyExternal, "efn_takeOne_giveTwo_98");
     // enum16
-    addEnumeration(make_smart<EnumerationSomeEnum_16>());
+    addEnumeration(new EnumerationSomeEnum_16());
     // testing verifyCall
     addExtern<DAS_BIND_FUN(testBindEnumFunction)>(*this, lib, "testBindEnumFunction",
         SideEffects::worstDefault, "testBindEnumFunction");

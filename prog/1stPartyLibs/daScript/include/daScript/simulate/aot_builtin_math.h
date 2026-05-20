@@ -74,7 +74,7 @@ namespace das {
 #else
 #define DAS_FINITE_MATH
 #endif
-#if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
+#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__) && !defined(_TARGET_C3)
 #pragma float_control(push)
 #pragma float_control(precise, on)
 #endif
@@ -107,7 +107,7 @@ namespace das {
     ___noinline DAS_FINITE_MATH inline bool   disfinite(double  a) { return __builtin_isfinite(a); }
 #endif
 #undef DAS_FINITE_MATH
-#if defined(__clang__) && !defined(__arm64__) && !defined(_TARGET_C3)
+#if defined(__clang__) && !defined(__arm64__) && !defined(__e2k__) && !defined(_TARGET_C3)
 #pragma float_control(pop)
 #endif
 #else
@@ -137,6 +137,20 @@ namespace das {
     __forceinline double dtan  (double a){return tan(a);}
     __forceinline double datan (double a){return atan(a);}
     __forceinline double datan2(double a,double b){return atan2(a,b);}
+    __forceinline double dsinh (double a){return sinh(a);}
+    __forceinline double dcosh (double a){return cosh(a);}
+    __forceinline double dtanh (double a){return tanh(a);}
+    __forceinline double dasinh(double a){return asinh(a);}
+    __forceinline double dacosh(double a){return acosh(a);}
+    __forceinline double datanh(double a){return atanh(a);}
+    __forceinline double dlog10(double a){return log10(a);}
+    __forceinline double dlog1p(double a){return log1p(a);}
+    __forceinline double dexpm1(double a){return expm1(a);}
+    __forceinline double dcbrt (double a){return cbrt(a);}
+    __forceinline double dhypot(double a,double b){return hypot(a,b);}
+    __forceinline double dfmod(double a,double b){return fmod(a,b);}
+    __forceinline double dremainder(double a,double b){return remainder(a,b);}
+    __forceinline double dtrunc(double a){return trunc(a);}
 
     __forceinline float fasin (float a){return asin(a);}
     __forceinline float facos (float a){return acos(a);}
@@ -146,6 +160,20 @@ namespace das {
     __forceinline float fatan_est (float a){return v_extract_x(v_atan_est_x(v_set_x(a)));}
     __forceinline float fatan2(float a,float b){return atan2(a,b);}
     __forceinline float fatan2_est(float a,float b){return v_extract_x(v_atan2_est_x(v_set_x(a), v_set_x(b)));}
+    __forceinline float fsinh (float a){return sinh(a);}
+    __forceinline float fcosh (float a){return cosh(a);}
+    __forceinline float ftanh (float a){return tanh(a);}
+    __forceinline float fasinh(float a){return asinh(a);}
+    __forceinline float facosh(float a){return acosh(a);}
+    __forceinline float fatanh(float a){return atanh(a);}
+    __forceinline float flog10(float a){return log10(a);}
+    __forceinline float flog1p(float a){return log1p(a);}
+    __forceinline float fexpm1(float a){return expm1(a);}
+    __forceinline float fcbrt (float a){return cbrt(a);}
+    __forceinline float fhypot(float a,float b){return hypot(a,b);}
+    __forceinline float ffmod(float a,float b){return fmod(a,b);}
+    __forceinline float fremainder(float a,float b){return remainder(a,b);}
+    __forceinline float ftrunc(float a){return trunc(a);}
 
     __forceinline vec4f vasin(vec4f a){return v_asin(a);}
     __forceinline vec4f vacos(vec4f a){return v_acos(a);}
@@ -155,6 +183,111 @@ namespace das {
     __forceinline vec4f vatan_est(vec4f a){return v_atan_est(a);}
     __forceinline vec4f vatan2(vec4f a, vec4f b){return v_atan2(a,b);}
     __forceinline vec4f vatan2_est(vec4f a, vec4f b){return v_atan2_est(a,b);}
+    __forceinline vec4f vsinh(vec4f a){
+        return v_make_vec4f(
+            sinh(v_extract_x(a)),
+            sinh(v_extract_y(a)),
+            sinh(v_extract_z(a)),
+            sinh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vcosh(vec4f a){
+        return v_make_vec4f(
+            cosh(v_extract_x(a)),
+            cosh(v_extract_y(a)),
+            cosh(v_extract_z(a)),
+            cosh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vtanh(vec4f a){
+        return v_make_vec4f(
+            tanh(v_extract_x(a)),
+            tanh(v_extract_y(a)),
+            tanh(v_extract_z(a)),
+            tanh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vasinh(vec4f a){
+        return v_make_vec4f(
+            asinh(v_extract_x(a)),
+            asinh(v_extract_y(a)),
+            asinh(v_extract_z(a)),
+            asinh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vacosh(vec4f a){
+        return v_make_vec4f(
+            acosh(v_extract_x(a)),
+            acosh(v_extract_y(a)),
+            acosh(v_extract_z(a)),
+            acosh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vatanh(vec4f a){
+        return v_make_vec4f(
+            atanh(v_extract_x(a)),
+            atanh(v_extract_y(a)),
+            atanh(v_extract_z(a)),
+            atanh(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vlog10(vec4f a){
+        return v_make_vec4f(
+            log10(v_extract_x(a)),
+            log10(v_extract_y(a)),
+            log10(v_extract_z(a)),
+            log10(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vlog1p(vec4f a){
+        return v_make_vec4f(
+            log1p(v_extract_x(a)),
+            log1p(v_extract_y(a)),
+            log1p(v_extract_z(a)),
+            log1p(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vexpm1(vec4f a){
+        return v_make_vec4f(
+            expm1(v_extract_x(a)),
+            expm1(v_extract_y(a)),
+            expm1(v_extract_z(a)),
+            expm1(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vcbrt(vec4f a){
+        return v_make_vec4f(
+            cbrt(v_extract_x(a)),
+            cbrt(v_extract_y(a)),
+            cbrt(v_extract_z(a)),
+            cbrt(v_extract_w(a))
+        );
+    }
+    __forceinline vec4f vhypot(vec4f a, vec4f b){
+        return v_make_vec4f(
+            hypot(v_extract_x(a), v_extract_x(b)),
+            hypot(v_extract_y(a), v_extract_y(b)),
+            hypot(v_extract_z(a), v_extract_z(b)),
+            hypot(v_extract_w(a), v_extract_w(b))
+        );
+    }
+    __forceinline vec4f vfmod(vec4f a, vec4f b){
+        return v_make_vec4f(
+            fmod(v_extract_x(a), v_extract_x(b)),
+            fmod(v_extract_y(a), v_extract_y(b)),
+            fmod(v_extract_z(a), v_extract_z(b)),
+            fmod(v_extract_w(a), v_extract_w(b))
+        );
+    }
+    __forceinline vec4f vremainder(vec4f a, vec4f b){
+        return v_make_vec4f(
+            remainder(v_extract_x(a), v_extract_x(b)),
+            remainder(v_extract_y(a), v_extract_y(b)),
+            remainder(v_extract_z(a), v_extract_z(b)),
+            remainder(v_extract_w(a), v_extract_w(b))
+        );
+    }
+    __forceinline vec4f vtrunc(vec4f a){return v_trunc(a);}
 
     __forceinline void sincosF ( float a, float & sv, float & cv ) {
         vec4f s,c;

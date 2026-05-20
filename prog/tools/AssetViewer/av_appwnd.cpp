@@ -3422,6 +3422,17 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       return 1;
     }
 
+    case CM_OPTIONS_GRID:
+    {
+      ViewportWindow *viewport = ged.getCurrentViewport();
+      if (viewport)
+      {
+        viewport->showGridSettingsDialog();
+      }
+
+      return 1;
+    }
+
     case CM_ENVIRONMENT_SETTINGS: getModelessWindowControllers().toggleShowById(WindowIds::MAIN_SETTINGS_ENVIRONMENT); return 1;
 
     case CM_COLLISION_PREVIEW:

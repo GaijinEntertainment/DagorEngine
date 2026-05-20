@@ -22,7 +22,7 @@ G_STATIC_ASSERT(PATCH_MAX_BUFFER_SIZE > 0);
 
 struct TerraformRenderer::Patch
 {
-  UniqueTexHolder texData;
+  UniqueTexWithShaderVar texData;
   bool invalid;
   uint32_t timestep;
 };
@@ -74,8 +74,8 @@ TerraformRenderer::TerraformRenderer(Terraform &in_tform, const Desc &in_desc) :
   patchShader.init("terraform_patch", NULL, 0, "terraform_patch");
 
   const IPoint2 hmapSizes = tform.getHMapSizes();
-  hmapSavedTex =
-    UniqueTexHolder(dag::create_tex(NULL, hmapSizes.x, hmapSizes.y, TEXFMT_L16, 1, "hmap_saved", RESTAG_LAND), "terraform_hmap_saved");
+  hmapSavedTex = UniqueTexWithShaderVar(dag::create_tex(NULL, hmapSizes.x, hmapSizes.y, TEXFMT_L16, 1, "hmap_saved", RESTAG_LAND),
+    "terraform_hmap_saved");
   uint16_t *texDataPtr = NULL;
   int texStride = 0;
   hmapSavedTex.getTex2D()->lockimg((void **)&texDataPtr, texStride, 0, TEXLOCK_WRITE | TEXLOCK_DISCARD);
@@ -353,8 +353,8 @@ TerraformRenderer::Patch *TerraformRenderer::getPatch(int patch_no)
     {
       patch = new Patch();
       String name(0, "terraform_tex_data_%d", patch_no);
-      patch->texData =
-        UniqueTexHolder(dag::create_tex(NULL, PATCH_SIZE, PATCH_SIZE, TEXFMT_R8, 1, name.str(), RESTAG_LAND), "terraform_tex_data");
+      patch->texData = UniqueTexWithShaderVar(dag::create_tex(NULL, PATCH_SIZE, PATCH_SIZE, TEXFMT_R8, 1, name.str(), RESTAG_LAND),
+        "terraform_tex_data");
       d3d_err(patch->texData.getTex2D());
     }
     patch->invalid = true;

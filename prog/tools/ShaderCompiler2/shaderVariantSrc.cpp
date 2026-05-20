@@ -84,12 +84,9 @@ void VariantTableSrc::generateFromTypes(const TypeTable &type_list, const Interv
 
     if (interval)
     {
-      const char *varname = get_interval_name(*interval, ctx);
       // @NOTE: Only global assumes are used here, as in the previous implementation
-      if (auto valueMaybe = ctx.globAssumes().getAssumedVal(varname, true))
-      {
+      if (auto valueMaybe = ctx.globAssumes().getAssumedVal(interval->getNameId(), true))
         assume_val[i] = interval->normalizeValue(*valueMaybe);
-      }
     }
   }
 

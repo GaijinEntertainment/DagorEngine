@@ -52,14 +52,18 @@ hlsl (vs) {
 
     float3 worldPos_a, worldPos_b;
     ##if has_water_flowmap
+      float3 flowmapSample;
       float viewDist = length(world_view_pos - world_pos);
-      calcWaterFlowmapParams(world_pos, viewDist, worldPos_a, worldPos_b);
+      calcWaterFlowmapParamsDNG(world_pos, viewDist, worldPos_a, worldPos_b, flowmapSample);
       output.worldPos_ab = float4(worldPos_a.xz, worldPos_b.xz);
+      ##if colorPass
+        output.water_flowmap_sample = flowmapSample;
+      ##endif
     ##endif
 
     float3 displacement = getWavesDisplacement(world_pos, worldPos_a, worldPos_b, float4(1, 1, 1, 1), float4(1, 1, 1, 1), shoreData.landHeight);
     ##if has_water_flowmap
-      displacement.y += getWaterFlowmapDisplacement(world_pos) * water_flowmap_foam_displacement;
+      displacement.y += flowmapSample.z * water_flowmap_foam_displacement;
     ##endif
 
     ##if water_tess_factor == water_tess_factor_on
@@ -86,10 +90,6 @@ hlsl (vs) {
 
     ##if water_heightmap_pages != NULL
       calcWaterTBN(world_pos, useWaterHeightmap, output.tangent, output.bitangent);
-    ##endif
-
-    ##if has_water_flowmap && colorPass
-      output.water_flowmap_sample = 0; // Todo implement this
     ##endif
 
     return output;

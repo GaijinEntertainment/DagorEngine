@@ -28,7 +28,7 @@ public:
     lib.addModule(this);
     lib.addModule(require("gpuReadbackQuery"));
 
-    addAnnotation(das::make_smart<HeightmapQueryResultAnnotation>(lib));
+    addAnnotation(new HeightmapQueryResultAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(heightmap_query_start)>(*this, lib, "heightmap_query_start", das::SideEffects::modifyExternal,
       "bind_dascript::heightmap_query_start");

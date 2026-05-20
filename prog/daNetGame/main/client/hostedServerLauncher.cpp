@@ -25,8 +25,6 @@
 #include <mutex>
 #if _TARGET_C2
 
-#elif _TARGET_XBOX
-#include "platform/gdk/dedSrv/fill_init_values.h"
 #else
 static void fill_platform_specific_init_values(DataBlock &) {}
 #endif

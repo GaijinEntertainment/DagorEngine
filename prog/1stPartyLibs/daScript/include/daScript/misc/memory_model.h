@@ -9,6 +9,8 @@ namespace das {
 #endif
 
     #define DAS_PAGE_GC_MASK    0x80000000
+    #define DAS_MAX_SHOE_ALLOCATION     256
+    #define DAS_MAX_SHOE_CUNKS          (DAS_MAX_SHOE_ALLOCATION>>4)
 
     template <typename T, typename = void>
     struct has_shrink_to_fit : false_type {};
@@ -131,9 +133,6 @@ namespace das {
         uint32_t    gc_allocated = 0;
         Deck *      next = nullptr;
     };
-
-#define DAS_MAX_SHOE_ALLOCATION     256
-#define DAS_MAX_SHOE_CUNKS          (DAS_MAX_SHOE_ALLOCATION>>4)
 
     struct Shoe {
         Shoe () {
@@ -287,33 +286,28 @@ namespace das {
         bool free ( char * ptr, uint32_t size );
         char * reallocate ( char * ptr, uint32_t size, uint32_t nsize );
         __forceinline int depth() const { return shoe.depth(); }
-#if !DAS_TRACK_ALLOCATIONS
         __forceinline bool isOwnPtr( char * ptr, uint32_t size ) const {
-            if ( size<=DAS_MAX_SHOE_ALLOCATION )
+            if ( size<=maxShoeAllocation )
                 return shoe.isOwnPtr(ptr,size);
             return (bigStuff.find(ptr)!=bigStuff.end());
         }
         __forceinline bool isAllocatedPtr( char * ptr, uint32_t size ) const {
-            if ( size<=DAS_MAX_SHOE_ALLOCATION )
+            if ( size<=maxShoeAllocation )
                 return shoe.isAllocatedPtr(ptr,size);
             return (bigStuff.find(ptr)!=bigStuff.end());
         }
-#else
-        __forceinline bool isOwnPtr( char * ptr, uint32_t ) const {
-            return (bigStuff.find(ptr)!=bigStuff.end());
-        }
-        __forceinline bool isAllocatedPtr( char * ptr, uint32_t ) const {
-            return (bigStuff.find(ptr)!=bigStuff.end());
-        }
-#endif
         uint32_t bytesAllocated() const { return totalAllocated; }
         uint32_t maxBytesAllocated() const { return maxAllocated; }
         uint64_t totalAlignedMemoryAllocated() const;
+        void setTrackAllocations ( bool on );
+        __forceinline bool isTrackingAllocations() const { return trackAllocations; }
         CustomGrowFunction      customGrow;
         uint32_t                alignMask;
         uint32_t                totalAllocated;
         uint32_t                maxAllocated;
         uint32_t                initialSize = 0;
+        uint32_t                maxShoeAllocation = DAS_MAX_SHOE_ALLOCATION;
+        bool                    trackAllocations = false;
         Shoe                    shoe;
         das_hash_map<void *,uint32_t> bigStuff;  // note: can't use char *, some stl implementations try hashing it as string
 #if DAS_SANITIZER
@@ -323,11 +317,21 @@ namespace das {
         das_hash_map<void *,uint64_t> bigStuffId;
         das_hash_map<void *,const LineInfo *> bigStuffAt;
         das_hash_map<void *,const char *> bigStuffComment;
-        __forceinline void mark_location ( void * ptr, const LineInfo * at ) { bigStuffAt[ptr] = at; }
-        __forceinline void mark_comment ( void * ptr, const char * what ) { bigStuffComment[ptr] = what; }
+        __forceinline void mark_location ( void * ptr, const LineInfo * at ) {
+            if ( trackAllocations ) bigStuffAt[ptr] = at;
+        }
+        __forceinline void mark_comment ( void * ptr, const char * what ) {
+            if ( trackAllocations ) bigStuffComment[ptr] = what;
+        }
+        __forceinline const char * get_comment ( void * ptr ) const {
+            if ( !trackAllocations ) return nullptr;
+            auto it = bigStuffComment.find(ptr);
+            return it != bigStuffComment.end() ? it->second : nullptr;
+        }
 #else
         __forceinline void mark_location ( void *, const LineInfo * ) {}
         __forceinline void mark_comment ( void *, const char * ) {}
+        __forceinline const char * get_comment ( void * ) const { return nullptr; }
 #endif
     };
 
@@ -368,7 +372,7 @@ namespace das {
         HeapChunk * next;
     };
 
-    class DAS_API LinearChunkAllocator : public ptr_ref_count {
+    class DAS_API LinearChunkAllocator {
         enum { default_initial_size = 65536 };
     public:
         LinearChunkAllocator() { }

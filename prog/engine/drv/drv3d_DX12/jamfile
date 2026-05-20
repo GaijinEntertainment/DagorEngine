@@ -163,7 +163,7 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
 
   if ! [ GLOB $(_DEVTOOL)/FidelityFX-SDK-$(FidelityFXVer) : * ] { exit FATAL\: \"$(_DEVTOOL)/FidelityFX-SDK-$(FidelityFXVer)\" not found!  Please, update DEVTOOLS ; }
 
-  Sources += amdFsrD3D12_windows.cpp ;
+  Sources += amdFsrD3D12_windows.cpp fsr_wrapper.cpp ;
   AddIncludes +=
     $(FidelityFXSDKDir)
     $(FidelityFXSDKDir)/api/include
@@ -172,8 +172,11 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 {
   ;
 }
 else if $(Platform) in xboxOne scarlett {
-  Sources += amdFsrD3D12_xbox.cpp ;
+  Sources += amdFsrD3D12_xbox.cpp fsr_wrapper.cpp ;
   AddIncludes += $(3rdPartyDir)/fsr3.1.3_xbox/include ;
+}
+else {
+  Sources += fsr_wrapper_stub.cpp ;
 }
 
 if $(Platform) in windows {

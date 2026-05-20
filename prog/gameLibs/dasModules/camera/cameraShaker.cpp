@@ -23,7 +23,7 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("math"));
 
-    addAnnotation(das::make_smart<CameraShakerAnnotation>(lib));
+    addAnnotation(new CameraShakerAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::camera_shaker_update)>(*this, lib, "camera_shaker_update",
       das::SideEffects::modifyArgument, "bind_dascript::camera_shaker_update");

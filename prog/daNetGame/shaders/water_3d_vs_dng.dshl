@@ -57,7 +57,7 @@ hlsl(vs) {
     ##else
       float3 worldPos_a, worldPos_b;
       float3 flowmapSample;
-      calcWaterFlowmapParams(world_pos, worldPosDistance, worldPos_a, worldPos_b, flowmapSample);
+      calcWaterFlowmapParamsDNG(world_pos, worldPosDistance, worldPos_a, worldPos_b, flowmapSample);
 
       ##if colorPass
         output.water_flowmap_sample = flowmapSample;

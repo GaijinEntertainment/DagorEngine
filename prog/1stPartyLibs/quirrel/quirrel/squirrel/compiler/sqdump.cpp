@@ -8,11 +8,11 @@
 #include "sqtable.h"
 #include "opcodes.h"
 #include "sqvm.h"
-#include "sqio.h"
 #include "sqclosure.h"
 #include "sqarray.h"
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #define SQ_OPCODE(id) {#id},
 
@@ -23,16 +23,21 @@ SQInstructionDesc g_InstrDesc[]={
 #undef SQ_OPCODE
 
 
-static void streamprintf(OutputStream *stream, const char *fmt, ...) {
+struct StreamCB {
+    SQStreamWriteFunc write;
+    void *ud;
+};
+
+static void streamprintf(const StreamCB &stream, const char *fmt, ...) {
     static char buffer[4096] = { 0 };
     va_list vl;
     va_start(vl, fmt);
     vsnprintf(buffer, 4096, fmt, vl);
     va_end(vl);
-    stream->writeString(buffer);
+    stream.write(buffer, stream.ud);
 }
 
-static void DumpLiteral(OutputStream *stream, const SQObjectPtr &o)
+static void DumpLiteral(const StreamCB &stream, const SQObjectPtr &o)
 {
     switch (sq_type(o)) {
         case OT_NULL: streamprintf(stream, "null"); break;
@@ -83,7 +88,7 @@ static uint64_t GetUInt64FromPtr(const void *ptr)
     return res;
 }
 
-void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
+void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int nlineinfos, const SQInstruction *ii, SQInt32 i_count,
     const SQObjectPtr *_literals, SQInt32 _nliterals, const SQObjectPtr *_functions, SQInt32 _nfunctions, int instruction_index)
 {
     SQInt32 n = 0;
@@ -678,7 +683,7 @@ void DumpInstructions(OutputStream *stream, SQLineInfosHeader *lineinfos, int nl
     }
 }
 
-static void DumpLiterals(OutputStream *stream, const SQObjectPtr *_literals, SQInt32 _nliterals)
+static void DumpLiterals(const StreamCB &stream, const SQObjectPtr *_literals, SQInt32 _nliterals)
 {
     streamprintf(stream, "-----LITERALS\n");
     for (SQInt32 i = 0; i < _nliterals; ++i) {
@@ -688,7 +693,7 @@ static void DumpLiterals(OutputStream *stream, const SQObjectPtr *_literals, SQI
     }
 }
 
-static void DumpStaticMemos(OutputStream *stream, const SQObjectPtr *_staticmemos, SQInt32 _nstaticmemos)
+static void DumpStaticMemos(const StreamCB &stream, const SQObjectPtr *_staticmemos, SQInt32 _nstaticmemos)
 {
     streamprintf(stream, "-----STATIC MEMOS\n");
     for (SQInt32 i = 0; i < _nstaticmemos; ++i) {
@@ -698,7 +703,7 @@ static void DumpStaticMemos(OutputStream *stream, const SQObjectPtr *_staticmemo
     }
 }
 
-static void DumpLocals(OutputStream *stream, const SQLocalVarInfo *_localvarinfos, SQInt32 _nlocalvarinfos)
+static void DumpLocals(const StreamCB &stream, const SQLocalVarInfo *_localvarinfos, SQInt32 _nlocalvarinfos)
 {
     streamprintf(stream, "-----LOCALS\n");
     for (SQInt32 si = 0; si < _nlocalvarinfos; si++) {
@@ -707,7 +712,7 @@ static void DumpLocals(OutputStream *stream, const SQLocalVarInfo *_localvarinfo
     }
 }
 
-static void DumpLineInfo(OutputStream *stream, const SQLineInfosHeader *_lineinfos, SQInt32 _nlineinfos)
+static void DumpLineInfo(const StreamCB &stream, const SQLineInfosHeader *_lineinfos, SQInt32 _nlineinfos)
 {
     streamprintf(stream, "-----LINE INFO\n");
     for (SQInt32 i = 0; i < _nlineinfos; i++) {
@@ -729,7 +734,7 @@ static void DumpLineInfo(OutputStream *stream, const SQLineInfosHeader *_lineinf
     }
 }
 
-void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instruction_index)
+static void DumpImpl(const StreamCB &stream, SQFunctionProto *func, bool deep, int instruction_index)
 {
 
     //if (!dump_enable) return ;
@@ -738,7 +743,7 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
         for (i = 0; i < func->_nfunctions; ++i) {
             SQObjectPtr &f = func->_functions[i];
             assert(sq_isfunction(f));
-            Dump(stream, _funcproto(f), deep, -1);
+            DumpImpl(stream, _funcproto(f), deep, -1);
         }
     }
     streamprintf(stream, "SQInstruction sizeof %d\n", (SQInt32)sizeof(SQInstruction));
@@ -748,6 +753,8 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
     DumpLiterals(stream, func->_literals, func->_nliterals);
     DumpStaticMemos(stream, func->_staticmemos, func->_nstaticmemos);
     streamprintf(stream, "-----RESULT TYPE MASK = 0x%X\n", func->_result_type_mask);
+    if (func->_isAsync)
+        streamprintf(stream, "-----ASYNC\n");
     streamprintf(stream, "-----PARAMS\n");
     if (func->_varparams)
         streamprintf(stream, "<<VARPARAMS>>\n");
@@ -769,9 +776,13 @@ void Dump(OutputStream *stream, SQFunctionProto *func, bool deep, int instructio
     streamprintf(stream, "--------------------------------------------------------------------\n\n");
 }
 
+void Dump(SQStreamWriteFunc write, void *ud, SQFunctionProto *func, bool deep, int instruction_index) {
+    StreamCB stream{ write, ud };
+    DumpImpl(stream, func, deep, instruction_index);
+}
+
 void Dump(SQFunctionProto *func, int instruction_index) {
-    FileOutputStream fos(stdout);
-    Dump(&fos, func, false, instruction_index);
+    Dump(&sq_stream_write_file, stdout, func, false, instruction_index);
 }
 
 #endif

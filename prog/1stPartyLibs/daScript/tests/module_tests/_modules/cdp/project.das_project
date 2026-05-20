@@ -59,6 +59,6 @@ def module_get(req, from : string) : module_info {
 
 [export]
 def module_allowed(mod : string#; fname : string#) {
-    print("is `{mod}` allowed in `{fname}`? yes\n")
+    to_log(LOG_INFO, "is `{mod}` allowed in `{fname}`? yes\n")
     return true // false is not
 }

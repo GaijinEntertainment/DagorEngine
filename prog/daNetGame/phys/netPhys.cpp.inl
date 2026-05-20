@@ -851,7 +851,7 @@ bool PHYS_ACTOR::onLoaded(ecs::EntityManager &mgr, ecs::EntityId)
   // Level is expected to be loaded at this point. Make sure that level entity is placed before any phys actors in scene.
   // On client order of creation is same as on server
   G_ASSERT(is_level_loaded() || is_level_loading());
-  float curTimeDelayed = get_sync_time() - phys_get_present_time_delay_sec(tickrateType, phys.timeStep, clientSideOnly);
+  double curTimeDelayed = get_sync_time_d() - phys_get_present_time_delay_sec(tickrateType, phys.timeStep, clientSideOnly);
   phys.previousState.atTick = gamephys::floorPhysicsTickNumber(curTimeDelayed, phys.timeStep);
   phys.currentState.atTick = phys.previousState.atTick + 1;
   phys.currentState.lastAppliedControlsForTick = phys.previousState.atTick - calcControlsTickDelta();

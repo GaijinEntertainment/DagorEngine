@@ -5,6 +5,9 @@
     #include "daScript/ast/ast.h"
     #include "parser_state.h"
     #include "ds2_parser.hpp"
+    #if DAS_TRACK_ALLOC
+    #include "daScript/misc/lexer_alloc_track.h"
+    #endif
 
     #ifndef SCNi64
       #define SCNi64       "lli"
@@ -373,6 +376,9 @@ void das_accept_cpp_comment ( vector<CommentReader *> & crdi, yyscan_t scanner, 
 <normal>"float4"                                        return DAS_TFLOAT4;
 <normal>[_[:alpha:]][_[:alnum:]\`]* {
     yylval_param->s = new string(yytext);
+    #if DAS_TRACK_ALLOC
+    das::lexer_track_alloc(yylval_param->s, yytext);
+    #endif
     return NAME;
 }
 <normal>\"                                  {

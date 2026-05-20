@@ -23,7 +23,7 @@ void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
   va_start(vl, s);
   String msg(framemem_ptr());
   msg.cvprintf(0, s, vl);
-  logmessage(_MAKE4C('SQRL'), msg.c_str());
+  logmessage(_MAKE4C('SQRL'), "%s", msg.c_str());
   va_end(vl);
 }
 
@@ -34,7 +34,7 @@ void script_err_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
   va_start(vl, s);
   String msg(framemem_ptr());
   msg.cvprintf(0, s, vl);
-  logmessage(LOGLEVEL_ERR, msg.c_str());
+  logmessage(LOGLEVEL_ERR, "%s", msg.c_str());
   va_end(vl);
 }
 

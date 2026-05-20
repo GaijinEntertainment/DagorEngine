@@ -52,12 +52,12 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_4() {
 // from imgui-node-editor/imgui_node_editor.h:367:28
 	makeExtern< void (*)(ax::NodeEditor::NodeId,bool) , ax::NodeEditor::SelectNode , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"SelectNode","ax::NodeEditor::SelectNode")
 		->args({"nodeId","append"})
-		->arg_init(1,make_smart<ExprConstBool>(false))
+		->arg_init(1,new ExprConstBool(false))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:368:28
 	makeExtern< void (*)(ax::NodeEditor::LinkId,bool) , ax::NodeEditor::SelectLink , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"SelectLink","ax::NodeEditor::SelectLink")
 		->args({"linkId","append"})
-		->arg_init(1,make_smart<ExprConstBool>(false))
+		->arg_init(1,new ExprConstBool(false))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:369:28
 	makeExtern< void (*)(ax::NodeEditor::NodeId) , ax::NodeEditor::DeselectNode , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"DeselectNode","ax::NodeEditor::DeselectNode")

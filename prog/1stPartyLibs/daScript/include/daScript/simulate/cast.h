@@ -16,13 +16,13 @@ namespace das
     template <typename T, typename Element, Element T::*BaseField = &T::x>
     struct WrapVec2Arg : T {
         WrapVec2Arg(vec4f t) : T(vec_extract<Element>::x(t), vec_extract<Element>::y(t)) {}
-        operator vec4f() const { return das::vec_loadu(&(this->*BaseField)); }
+        operator vec4f() const { return das::vec_loadu_half(&(this->*BaseField)); }
     };
 
     template <typename T, typename Element, Element T::*BaseField = &T::x>
     struct WrapVec3Arg : T {
         WrapVec3Arg(vec4f t) : T(vec_extract<Element>::x(t), vec_extract<Element>::y(t), vec_extract<Element>::z(t)) {}
-        operator vec4f() const { return das::vec_loadu(&(this->*BaseField)); }
+        operator vec4f() const { return das::vec_loadu3(&(this->*BaseField)); }
     };
 
     template <typename T, typename Element, Element T::*BaseField = &T::x>
@@ -300,7 +300,7 @@ namespace das
     template <>
     struct cast <long double> {
         static __forceinline long double to(vec4f x)            { union { vec4f v; long double t; } A; A.v = x; return A.t; }
-        static __forceinline vec4f from ( long double x )       { union { vec4f v; long double t; } A; A.t = x; return A.v; }
+        static __forceinline vec4f from ( long double x )       { union { vec4f v; long double t; } A; A.v = v_zero(); A.t = x; return A.v; }
     };
 
     template <>
@@ -370,7 +370,7 @@ namespace das
     template <>
     struct cast <double> {
         static __forceinline double to(vec4f x)                { union { vec4f v; double t; } A; A.v = x; return A.t; }
-        static __forceinline vec4f from ( double x )           { union { vec4f v; double t; } A; A.t = x; return A.v; }
+        static __forceinline vec4f from ( double x )           { union { vec4f v; double t; } A; A.v = v_zero(); A.t = x; return A.v; }
     };
 
     template <>

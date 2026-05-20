@@ -12,40 +12,40 @@ struct Foo {
 [test]
 def test_resize_array(t : T?) {
     t |> run("emplace") @(t : T?) {
-        {
-            var inscope a : array<ExpressionPtr>
-            var inscope b <- new ExprOp2(op := "==")
+        ast_gc_guard() {
+            var a : array<ExpressionPtr>
+            var b <- new ExprOp2(op := "==")
             a |> emplace(b)
             t |> equal(1, length(a))
             t |> equal(null, b)
         }
     }
     t |> run("array init") @(t : T?) {
-        {
-            var inscope b <- new ExprOp2(op := "==")
-            var inscope a <- array<ExpressionPtr>(b)
+        ast_gc_guard() {
+            var b : ExpressionPtr <- new ExprOp2(op := "==")
+            var a <- array<ExpressionPtr>(b)
             t |> equal(1, length(a))
-            t |> equal(null, b)
+            // Note: GC-managed ExpressionPtr is not zeroed by array construction (pass by value)
         }
-        {
-            var inscope b : ExpressionPtr <- new ExprOp2(op := "==")
-            var inscope a <- array<ExpressionPtr>(move_to_local(b))
+        ast_gc_guard() {
+            var b : ExpressionPtr <- new ExprOp2(op := "==")
+            var a <- array<ExpressionPtr>(move_to_local(b))
             t |> equal(1, length(a))
-            t |> equal(null, b)
+            // Note: GC-managed ExpressionPtr is not zeroed by move_to_local
         }
     }
         /*
         if true
-            var inscope b : ExpressionPtr <- new [[ExprOp2() op:="=="]]
-            var inscope a <- [{ExpressionPtr b}]    // 40103: can't create array from smart pointer by value. did u mean [{Type[1] value}] instead of [{Type value}]
+            var b : ExpressionPtr <- new [[ExprOp2() op:="=="]]
+            var a <- [{ExpressionPtr b}]    // 40103: can't create array from smart pointer by value. did u mean [{Type[1] value}] instead of [{Type value}]
             t |> equal(1, length(a))
             t |> equal(null, b)
         */
     t |> run("struct init") @(t : T?) {
-        {
-            var inscope b <- new ExprOp2(op := "==")
-            var inscope a <- Foo(a <- b)
-            t |> equal(null, b)
+        ast_gc_guard() {
+            var b : ExpressionPtr <- new ExprOp2(op := "==")
+            var a <- Foo(a <- b)
+            // Note: GC-managed ExpressionPtr is not zeroed by struct construction move
         }
     }
 }

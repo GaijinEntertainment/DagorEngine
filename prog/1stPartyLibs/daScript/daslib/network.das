@@ -8,7 +8,7 @@ require network_core public
 require daslib/rtti
 
 class Server {
-    _server : smart_ptr<NetworkServer>
+    _server : NetworkServer?
     def Server {
         pass
     }
@@ -23,15 +23,17 @@ class Server {
     def init(port : int) : bool {
         return server_init(_server, port)
     }
-    def restore(var shared_orphan : smart_ptr<NetworkServer>&) {
-        _server |> move() <| shared_orphan
+    def restore(var shared_orphan : NetworkServer?&) {
+        _server = shared_orphan
+        shared_orphan = null
         let classInfo = class_info(self)
         unsafe {
             server_restore(_server, addr(self), classInfo)
         }
     }
-    def save(var shared_orphan : smart_ptr<NetworkServer>&) {
-        shared_orphan |> move() <|  _server
+    def save(var shared_orphan : NetworkServer?&) {
+        shared_orphan = _server
+        _server = null
     }
     def has_session : bool {
         return _server != null

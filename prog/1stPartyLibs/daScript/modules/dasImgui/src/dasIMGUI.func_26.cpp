@@ -17,7 +17,7 @@ void Module_dasIMGUI::initFunctions_26() {
 	makeExtern<DAS_CALL_METHOD(_method_106), SimNode_ExtFuncCall , imguiTempFn>(lib,"AddImageRounded","das_call_member< void (ImDrawList::*)(ImTextureRef,const ImVec2 &,const ImVec2 &,const ImVec2 &,const ImVec2 &,unsigned int,float,int) , &ImDrawList::AddImageRounded >::invoke")
 		->args({"self","tex_ref","p_min","p_max","uv_min","uv_max","col","rounding","flags"})
 		->arg_type(8,makeType<ImDrawFlags_>(lib))
-		->arg_init(8,make_smart<ExprConstEnumeration>(0,makeType<ImDrawFlags_>(lib)))
+		->arg_init(8,new ExprConstEnumeration(0,makeType<ImDrawFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_107 = das::das_call_member< void (ImDrawList::*)(),&ImDrawList::PathClear >;
 // from imgui/imgui.h:3480:21
@@ -49,14 +49,14 @@ void Module_dasIMGUI::initFunctions_26() {
 	makeExtern<DAS_CALL_METHOD(_method_112), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathStroke","das_call_member< void (ImDrawList::*)(unsigned int,int,float) , &ImDrawList::PathStroke >::invoke")
 		->args({"self","col","flags","thickness"})
 		->arg_type(2,makeType<ImDrawFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImDrawFlags_>(lib)))
-		->arg_init(3,make_smart<ExprConstFloat>(1))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImDrawFlags_>(lib)))
+		->arg_init(3,new ExprConstFloat(1))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_113 = das::das_call_member< void (ImDrawList::*)(const ImVec2 &,float,float,float,int),&ImDrawList::PathArcTo >;
 // from imgui/imgui.h:3486:21
 	makeExtern<DAS_CALL_METHOD(_method_113), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathArcTo","das_call_member< void (ImDrawList::*)(const ImVec2 &,float,float,float,int) , &ImDrawList::PathArcTo >::invoke")
 		->args({"self","center","radius","a_min","a_max","num_segments"})
-		->arg_init(5,make_smart<ExprConstInt>(0))
+		->arg_init(5,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_114 = das::das_call_member< void (ImDrawList::*)(const ImVec2 &,float,int,int),&ImDrawList::PathArcToFast >;
 // from imgui/imgui.h:3487:21
@@ -67,27 +67,27 @@ void Module_dasIMGUI::initFunctions_26() {
 // from imgui/imgui.h:3488:21
 	makeExtern<DAS_CALL_METHOD(_method_115), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathEllipticalArcTo","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,float,float,float,int) , &ImDrawList::PathEllipticalArcTo >::invoke")
 		->args({"self","center","radius","rot","a_min","a_max","num_segments"})
-		->arg_init(6,make_smart<ExprConstInt>(0))
+		->arg_init(6,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_116 = das::das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,const ImVec2 &,int),&ImDrawList::PathBezierCubicCurveTo >;
 // from imgui/imgui.h:3489:21
 	makeExtern<DAS_CALL_METHOD(_method_116), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathBezierCubicCurveTo","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,const ImVec2 &,int) , &ImDrawList::PathBezierCubicCurveTo >::invoke")
 		->args({"self","p2","p3","p4","num_segments"})
-		->arg_init(4,make_smart<ExprConstInt>(0))
+		->arg_init(4,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_117 = das::das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,int),&ImDrawList::PathBezierQuadraticCurveTo >;
 // from imgui/imgui.h:3490:21
 	makeExtern<DAS_CALL_METHOD(_method_117), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathBezierQuadraticCurveTo","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,int) , &ImDrawList::PathBezierQuadraticCurveTo >::invoke")
 		->args({"self","p2","p3","num_segments"})
-		->arg_init(3,make_smart<ExprConstInt>(0))
+		->arg_init(3,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_118 = das::das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,float,int),&ImDrawList::PathRect >;
 // from imgui/imgui.h:3491:21
 	makeExtern<DAS_CALL_METHOD(_method_118), SimNode_ExtFuncCall , imguiTempFn>(lib,"PathRect","das_call_member< void (ImDrawList::*)(const ImVec2 &,const ImVec2 &,float,int) , &ImDrawList::PathRect >::invoke")
 		->args({"self","rect_min","rect_max","rounding","flags"})
-		->arg_init(3,make_smart<ExprConstFloat>(0))
+		->arg_init(3,new ExprConstFloat(0))
 		->arg_type(4,makeType<ImDrawFlags_>(lib))
-		->arg_init(4,make_smart<ExprConstEnumeration>(0,makeType<ImDrawFlags_>(lib)))
+		->arg_init(4,new ExprConstEnumeration(0,makeType<ImDrawFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_119 = das::das_call_member< void (ImDrawList::*)(),&ImDrawList::AddDrawCmd >;
 // from imgui/imgui.h:3505:21

@@ -45,6 +45,7 @@ Sources =
   visualLabels.cpp
   occlusion.cpp
   occlusionGPU.cpp
+  assertsMonitor.cpp
 ;
 
 if $(Config) = rel {

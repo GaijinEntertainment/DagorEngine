@@ -158,17 +158,17 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
         if (arg->init->rtti_isConstant())
         {
           if (!arg->init->rtti_isStringConstant())
-            def = das::static_pointer_cast<das::ExprConst>(arg->init)->value;
+            def = static_cast<das::ExprConst *>(arg->init)->value;
           else
           {
-            defStrings.emplace_back(das::static_pointer_cast<das::ExprConstString>(arg->init)->text.c_str());
+            defStrings.emplace_back(static_cast<das::ExprConstString *>(arg->init)->text.c_str());
             def = das::cast<char *>::from(defStrings.back().c_str());
           }
           isOptional = true;
         }
         else if (!arg->init->type->isRefType() && arg->init->noSideEffects && arg->init->rtti_isVar() &&
-                 das::static_pointer_cast<das::ExprVar>(arg->init)->isGlobalVariable() &&
-                 das::static_pointer_cast<das::ExprVar>(arg->init)->variable->type->constant)
+                 static_cast<das::ExprVar *>(arg->init)->isGlobalVariable() &&
+                 static_cast<das::ExprVar *>(arg->init)->variable->type->constant)
         {
           if (arg->type->ref)
           {
@@ -176,14 +176,14 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
           }
           else
           {
-            auto var = das::static_pointer_cast<das::ExprVar>(arg->init)->variable;
+            auto var = static_cast<das::ExprVar *>(arg->init)->variable;
             if (var->init->rtti_isConstant())
             {
               if (!var->init->rtti_isStringConstant())
-                def = das::static_pointer_cast<das::ExprConst>(var->init)->value;
+                def = static_cast<das::ExprConst *>(var->init)->value;
               else
               {
-                defStrings.emplace_back(das::static_pointer_cast<das::ExprConstString>(var->init)->text.c_str());
+                defStrings.emplace_back(static_cast<das::ExprConstString *>(var->init)->text.c_str());
                 def = das::cast<char *>::from(defStrings.back().c_str());
               }
               isOptional = true;
@@ -191,7 +191,7 @@ struct ConsoleCmdFunctionAnnotation : das::FunctionAnnotation, console::ICommand
             else
             {
               das::Context ctx;
-              auto node = var->init->simulate(ctx);
+              auto node = das::simulateExpression(ctx, var->init);
               ctx.restart();
               vec4f result = ctx.evalWithCatch(node);
               if (ctx.getException())
@@ -443,23 +443,23 @@ das::recursive_mutex consoleProcessorFunctionsMutex;
 class DagorConsole final : public das::Module
 {
 public:
-  das::smart_ptr<ConsoleCmdFunctionAnnotation> consoleCmdFunctionAnnotation;
-  das::smart_ptr<ConsoleProcessorFunctionAnnotation> consoleProcessorFunctionAnnotation;
+  ConsoleCmdFunctionAnnotation *consoleCmdFunctionAnnotation;
+  ConsoleProcessorFunctionAnnotation *consoleProcessorFunctionAnnotation;
 
   DagorConsole() : das::Module("DagorConsole")
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorMath"));
 
-    addEnumeration(das::make_smart<EnumerationConVarType>());
+    addEnumeration(new EnumerationConVarType());
 
-    addAnnotation(das::make_smart<ConsoleProcessorHintAnnotation>(lib));
+    addAnnotation(new ConsoleProcessorHintAnnotation(lib));
     das::typeFactory<ConsoleProcessorHints>::make(lib);
 
-    consoleCmdFunctionAnnotation = das::make_smart<ConsoleCmdFunctionAnnotation>();
+    consoleCmdFunctionAnnotation = new ConsoleCmdFunctionAnnotation();
     addAnnotation(consoleCmdFunctionAnnotation);
     consoleProcessorFunctionAnnotation =
-      das::make_smart<ConsoleProcessorFunctionAnnotation>(consoleProcessorFunctions, consoleProcessorFunctionsMutex);
+      new ConsoleProcessorFunctionAnnotation(consoleProcessorFunctions, consoleProcessorFunctionsMutex);
     addAnnotation(consoleProcessorFunctionAnnotation);
     das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
       {
@@ -522,8 +522,8 @@ void das_add_con_proc_dagor_console()
   if (das::Module *mod = das::Module::require("DagorConsole"))
   {
     DagorConsole *dagorConsole = (DagorConsole *)mod;
-    ::add_con_proc(dagorConsole->consoleCmdFunctionAnnotation.get());
-    ::add_con_proc(dagorConsole->consoleProcessorFunctionAnnotation.get());
+    ::add_con_proc(dagorConsole->consoleCmdFunctionAnnotation);
+    ::add_con_proc(dagorConsole->consoleProcessorFunctionAnnotation);
   }
   else
   {

@@ -26,6 +26,7 @@
 #include <util/dag_string.h>
 #include <workCycle/dag_delayedAction.h>
 #include <drv/3d/dag_viewScissor.h>
+#include <workCycle/dag_workCycle.h>
 
 #include <EASTL/bitvector.h>
 #include <EASTL/vector.h>
@@ -298,13 +299,16 @@ private:
     if (is_loading_thread)
     {
       int64_t timeus = profile_ref_ticks();
+      if (!dagor_work_cycle_is_need_to_draw())
+        d3d::driver_command(Drv3dCommand::D3D_FLUSH, (void *)"shaders warmup non presenting");
       unlockGpu();
       if (perQueueFlush)
         spin_wait([&] {
           return d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH) >
                  flushEveryNPipelines * queuedPipesSoftLimitMul;
         });
-      spin_wait([&] { return interlocked_relaxed_load(was_present) <= PRESENTED_ENOUGH; });
+      if (dagor_work_cycle_is_need_to_draw())
+        spin_wait([&] { return interlocked_relaxed_load(was_present) <= PRESENTED_ENOUGH && dagor_work_cycle_is_need_to_draw(); });
       interlocked_release_store(was_present, NOT_PRESENTED);
       timeus = profile_time_usec(timeus);
       return timeus;

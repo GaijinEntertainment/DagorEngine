@@ -75,8 +75,8 @@ inline void calc_quat_omega_at_time(double at_time, const Quat &quat1, const T &
 
 // Moved from dng/phys/physUtils.h
 // TODO: Move to gamephys namespace
-template <typename Phys>
-inline float get_phys_interp_time(const Phys &phys, float at_time)
+template <typename Phys, typename F = double>
+inline F get_phys_interp_time(const Phys &phys, F at_time)
 {
   if (int tdelta = phys.currentState.atTick - phys.currentState.lastAppliedControlsForTick - 1) // correction for delayed controls mode
     return at_time + tdelta * phys.timeStep;
@@ -84,9 +84,9 @@ inline float get_phys_interp_time(const Phys &phys, float at_time)
     return at_time;
 }
 
-template <typename Phys>
-inline float get_phys_interpk_clamped(const Phys &phys, float at_time)
+template <typename Phys, typename F = double>
+inline float get_phys_interpk_clamped(const Phys &phys, F at_time)
 {
-  return cvt(get_phys_interp_time(phys, at_time), phys.previousState.atTick * phys.timeStep, phys.currentState.atTick * phys.timeStep,
-    0.f, 1.f);
+  F ts = phys.timeStep;
+  return cvt_type_<F>(get_phys_interp_time(phys, at_time), phys.previousState.atTick * ts, phys.currentState.atTick * ts, 0.f, 1.f);
 }

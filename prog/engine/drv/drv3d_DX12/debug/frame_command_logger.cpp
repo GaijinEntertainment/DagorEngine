@@ -78,7 +78,7 @@ const char *image_view_state_type_to_cstr(const int type)
   return "INVALID";
 }
 
-void append_arg(String &target, Query *const &arg, const char *) { target.aprintf(32, "%d:Query", arg->getId()); }
+void append_arg(String &target, Query *const &arg, const char *) { target.aprintf(32, "%d:Query", arg->getRaw()); }
 
 void append_arg(String &target, Image *const &arg, const char *)
 {

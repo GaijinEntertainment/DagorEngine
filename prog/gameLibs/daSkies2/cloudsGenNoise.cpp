@@ -212,7 +212,7 @@ bool GenNoise::renderCurl()
     else
     {
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target(cloudsCurl2d.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{cloudsCurl2d.getTex2D(), 0, 0}});
       genCurl2dPs.getElem()->setStates();
       d3d::draw(PRIM_TRILIST, 0, 1);
     }

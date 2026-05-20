@@ -199,7 +199,7 @@ namespace das {
         if ( !program ) context->throw_error_at(line, "Can't collect dependencies outside of compilation.");
         program->markExecutableSymbolUse();
         DependencyCollector collector;
-        collector.collect(fun.get());
+        collector.collect(fun);
         auto vecFunc = collector.getStableDependencies();
         auto vecVars = collector.getStableVariableDependencies();
         vector<const Function *> tfun;
@@ -225,7 +225,8 @@ namespace das {
         context->invoke(block, args, nullptr, line);
     }
 
-    uint64_t getFunctionAotHash ( const Function * fun ) {
+    uint64_t getFunctionAotHash ( Function * fun ) {
+        if ( fun->aotHash != 0 ) return fun->aotHash; // cached
         DependencyCollector collector;
         collector.collect(fun);
         auto vec = collector.getStableDependencies();
@@ -243,6 +244,7 @@ namespace das {
         }
         uint64_t res = hash_block64((const uint8_t *)uvec.data(), uint32_t(uvec.size()*sizeof(uint64_t)));
         debug_aot_hash("AOT HASH %" PRIx64 "\n", res);
+        fun->aotHash = res;
         return res;
     }
 

@@ -11,9 +11,9 @@ namespace das {
         if (expr->arguments.size()) {
             auto mkBlock = expr->arguments[0];
             if (mkBlock->rtti_isMakeBlock()) {
-                auto mb = (ExprMakeBlock *)(mkBlock.get());
+                auto mb = (ExprMakeBlock *)(mkBlock);
                 if (mb->block->rtti_isBlock()) {
-                    auto blk = (ExprBlock *)(mb->block.get());
+                    auto blk = (ExprBlock *)(mb->block);
                     blk->isGeneratorBlock = true;
                 }
             }
@@ -50,8 +50,8 @@ namespace das {
             error("expecting generator(closure), got " + string(expr->arguments[0]->__rtti) + " instead", "", "",
                   expr->at, CompilationError::invalid_argument_type);
         } else {
-            auto mkBlock = static_pointer_cast<ExprMakeBlock>(expr->arguments[0]);
-            auto block = static_pointer_cast<ExprBlock>(mkBlock->block);
+            auto mkBlock = static_cast<ExprMakeBlock*>(expr->arguments[0]);
+            auto block = static_cast<ExprBlock*>(mkBlock->block);
             if (auto bT = block->makeBlockType()) {
                 if (bT->isAutoOrAlias()) {
                     error("can't infer generator block type", "", "",
@@ -82,16 +82,16 @@ namespace das {
                         // add "yield" argument
                         bool makeRef = false;
                         if (!expr->iterType->isVoid()) {
-                            auto yva = make_smart<Variable>();
+                            auto yva = new Variable();
                             if (expr->iterType->ref) {
-                                yva->type = make_smart<TypeDecl>(Type::tPointer);
-                                yva->type->firstType = make_smart<TypeDecl>(*expr->iterType);
+                                yva->type = new TypeDecl(Type::tPointer);
+                                yva->type->firstType = new TypeDecl(*expr->iterType);
                                 yva->type->firstType->ref = false;
                                 yva->type->constant = false;
                                 yva->type->ref = true;
                                 makeRef = true;
                             } else {
-                                yva->type = make_smart<TypeDecl>(*expr->iterType);
+                                yva->type = new TypeDecl(*expr->iterType);
                                 yva->type->constant = false;
                                 yva->type->ref = !expr->iterType->isRefType();
                             }
@@ -106,15 +106,15 @@ namespace das {
                         bool isUnsafe = !safeExpression(expr);
                         if (verifyCapture(expr->capture, cl, isUnsafe, expr->at)) {
                             string lname = generateNewLambdaName(block->at);
-                            auto ls = generateLambdaStruct(lname, block.get(), cl.capt, expr->capture, true);
+                            auto ls = generateLambdaStruct(lname, block, cl.capt, expr->capture, true);
                             ls->generator = true;
                             if (program->addStructure(ls)) {
                                 auto jitFlags = (func && func->requestJit) ? generator_jit : 0;
                                 if (func && func->requestNoJit)
                                     jitFlags |= generator_nojit;
-                                auto pFn = generateLambdaFunction(lname, block.get(), ls, cl.capt, expr->capture, generator_needYield | jitFlags, program);
+                                auto pFn = generateLambdaFunction(lname, block, ls, cl.capt, expr->capture, generator_needYield | jitFlags, program);
                                 if (program->addFunction(pFn)) {
-                                    auto pFnFin = generateLambdaFinalizer(lname, block.get(), ls, program);
+                                    auto pFnFin = generateLambdaFinalizer(lname, block, ls, program);
                                     if (program->addFunction(pFnFin)) {
                                         if (func && func->isClassMethod) {
                                             // lambda, captured in the class is a method of that class - for the purposes of 'private'
@@ -128,7 +128,7 @@ namespace das {
                                         reportAstChanged();
                                         auto ms = generateLambdaMakeStruct(ls, pFn, pFnFin, cl.capt, expr->capture, expr->at, expr->captureAt, program);
                                         // each ( [[ ]]] )
-                                        auto cEach = make_smart<ExprCall>(block->at, makeRef ? "each_ref" : "each");
+                                        auto cEach = new ExprCall(block->at, makeRef ? "each_ref" : "each");
                                         cEach->generated = true;
                                         cEach->arguments.push_back(ms);
                                         return cEach;
@@ -211,7 +211,7 @@ namespace das {
         return true;
     }
     ExpressionPtr InferTypes::convertBlockToLambda(ExprMakeBlock *expr) {
-        auto block = static_pointer_cast<ExprBlock>(expr->block);
+        auto block = static_cast<ExprBlock*>(expr->block);
         if (auto bT = block->makeBlockType()) {
             if (bT->isAutoOrAlias()) {
                 error("can't infer lambda block type", "", "",
@@ -235,14 +235,14 @@ namespace das {
                     bool isUnsafe = !safeExpression(expr);
                     if (verifyCapture(expr->capture, cl, isUnsafe, expr->at)) {
                         string lname = generateNewLambdaName(block->at);
-                        auto ls = generateLambdaStruct(lname, block.get(), cl.capt, expr->capture, false);
+                        auto ls = generateLambdaStruct(lname, block, cl.capt, expr->capture, false);
                         if (program->addStructure(ls)) {
                             auto jitFlags = (func && func->requestJit) ? generator_jit : 0;
                             if (func && func->requestNoJit)
                                 jitFlags |= generator_nojit;
-                            auto pFn = generateLambdaFunction(lname, block.get(), ls, cl.capt, expr->capture, jitFlags, program);
+                            auto pFn = generateLambdaFunction(lname, block, ls, cl.capt, expr->capture, jitFlags, program);
                             if (program->addFunction(pFn)) {
-                                auto pFnFin = generateLambdaFinalizer(lname, block.get(), ls, program);
+                                auto pFnFin = generateLambdaFinalizer(lname, block, ls, program);
                                 if (program->addFunction(pFnFin)) {
                                     // lambda, captured in the class is a method of that class - for the purposes of 'private'
                                     if (func && func->isClassMethod) {
@@ -275,14 +275,14 @@ namespace das {
         return nullptr;
     }
     ExpressionPtr InferTypes::convertBlockToLocalFunction(ExprMakeBlock *expr) {
-        auto block = static_pointer_cast<ExprBlock>(expr->block);
+        auto block = static_cast<ExprBlock*>(expr->block);
         if (auto bT = block->makeBlockType()) {
             if (bT->isAutoOrAlias()) {
                 error("can't infer local function block type", "", "",
                       expr->at, CompilationError::invalid_block);
             } else {
                 string lname = generateNewLocalFunctionName(block->at);
-                auto pFn = generateLocalFunction(lname, block.get());
+                auto pFn = generateLocalFunction(lname, block);
                 if (func) {
                     if (auto origin = func->getOriginPtr()) {
                         pFn->fromGeneric = getOrCreateDummy(origin->module);
@@ -290,7 +290,7 @@ namespace das {
                 }
                 if (program->addFunction(pFn)) {
                     reportAstChanged();
-                    return make_smart<ExprAddr>(expr->at, "_::" + lname + "`function");
+                    return new ExprAddr(expr->at, "_::" + lname + "`function");
                 } else {
                     error("local function name mismatch", "", "",
                           expr->at, CompilationError::invalid_block);
@@ -300,7 +300,7 @@ namespace das {
         return nullptr;
     }
     ExpressionPtr InferTypes::visit(ExprMakeBlock *expr) {
-        auto block = static_pointer_cast<ExprBlock>(expr->block);
+        auto block = static_cast<ExprBlock*>(expr->block);
         // can only infer block type, if all argument types are inferred
         for (auto &arg : block->arguments) {
             if (arg->type->isAlias()) {
@@ -313,9 +313,9 @@ namespace das {
         if (expr->isLambda) {
             expr->type->baseType = Type::tLambda;
             if (!expr->type->isAutoOrAlias()) {
-                if (auto unInferred = isFullyInferredBlock(block.get())) {
+                if (auto unInferred = isFullyInferredBlock(block)) {
                     // only report block inference error if there is no error inside the block, to avoid reporting multiple errors caused by the same issue
-                    if ( ((ExprBlock *)expr->block.get())->insideErrorCount==0 ) {
+                    if ( ((ExprBlock *)expr->block)->insideErrorCount==0 ) {
                         TextWriter tt;
                         if (verbose)
                             tt << unInferred->at.describe() << ": " << unInferred->describe() << " is not fully inferred yet";
@@ -331,9 +331,9 @@ namespace das {
         } else if (expr->isLocalFunction) {
             expr->type->baseType = Type::tFunction;
             if (!expr->type->isAutoOrAlias()) {
-                if (auto unInferred = isFullyInferredBlock(block.get())) {
+                if (auto unInferred = isFullyInferredBlock(block)) {
                     // only report block inference error if there is no error inside the block, to avoid reporting multiple errors caused by the same issue
-                    if ( ((ExprBlock *)expr->block.get())->insideErrorCount==0 ) {
+                    if ( ((ExprBlock *)expr->block)->insideErrorCount==0 ) {
                         TextWriter tt;
                         if (verbose)
                             tt << unInferred->at.describe() << ": " << unInferred->describe() << " is not fully inferred yet";
@@ -379,7 +379,7 @@ namespace das {
         auto fieldVariant = expr->makeType->findArgumentIndex(decl->name);
         if (fieldVariant != -1) {
             auto fieldType = expr->makeType->argTypes[fieldVariant];
-            if (!canCopyOrMoveType(fieldType, decl->value->type, TemporaryMatters::yes, decl->value.get(),
+            if (!canCopyOrMoveType(fieldType, decl->value->type, TemporaryMatters::yes, decl->value,
                                    "can't initialize field " + decl->name, CompilationError::cant_copy, decl->value->at)) {
             } else if (decl->value->type->isTemp(true, false)) {
                 error("can't initialize variant field " + decl->name + " with temporary value", "", "",
@@ -388,7 +388,7 @@ namespace das {
             if (!fieldType->canCopy() && !decl->moveSemantics) {
                 error("field " + decl->name + " can't be copied; " + describeType(fieldType), "", "use <- instead",
                       decl->at, CompilationError::invalid_type);
-                if (canRelaxAssign(decl->value.get())) {
+                if (canRelaxAssign(decl->value)) {
                     reportAstChanged();
                     decl->moveSemantics = true;
                 }
@@ -407,7 +407,7 @@ namespace das {
             return Visitor::visit(expr);
         }
         // result type
-        auto resT = make_smart<TypeDecl>(*expr->makeType);
+        auto resT = new TypeDecl(*expr->makeType);
         if ( resT->isAlias() ) {
             auto aT = inferAlias(resT);
             if (aT) {
@@ -452,25 +452,25 @@ namespace das {
                     return;
                 dep.insert(tp->structType);
                 for (auto &field : tp->structType->fields) {
-                    describeLocalType(results, field.type.get(), prefix + "." + field.name, dep);
+                    describeLocalType(results, field.type, prefix + "." + field.name, dep);
                 }
             }
         } else if (tp->baseType == Type::tTuple || tp->baseType == Type::tVariant || tp->baseType == Type::option) {
             int argIndex = 0;
             for (const auto &arg : tp->argTypes) {
                 if (tp->argNames.size()) {
-                    describeLocalType(results, arg.get(), prefix + "." + tp->argNames[argIndex], dep);
+                    describeLocalType(results, arg, prefix + "." + tp->argNames[argIndex], dep);
                 } else {
-                    describeLocalType(results, arg.get(), prefix + "." + to_string(argIndex), dep);
+                    describeLocalType(results, arg, prefix + "." + to_string(argIndex), dep);
                 }
                 argIndex++;
             }
         } else if (tp->baseType == Type::tArray || tp->baseType == Type::tTable) {
             if (tp->firstType) {
-                describeLocalType(results, tp->firstType.get(), prefix + "[]", dep);
+                describeLocalType(results, tp->firstType, prefix + "[]", dep);
             }
             if (tp->secondType) {
-                describeLocalType(results, tp->secondType.get(), prefix + "[]", dep);
+                describeLocalType(results, tp->secondType, prefix + "[]", dep);
             }
         }
     }
@@ -525,13 +525,13 @@ namespace das {
             if (expr->makeType->isClass()) {
                 error("Class '" + expr->makeType->structType->name + "' has fields, which can't be allocated locally, which is not allowed. "
                                                                      "It contains Handled type, where isLocal() returned false.",
-                      describeLocalType(expr->makeType.get()), "",
+                      describeLocalType(expr->makeType), "",
                       expr->at, CompilationError::invalid_type);
             } else {
                 error(describeType(expr->makeType) + "() can`t be allocated locally (on the stack or as part of other data structure), which is not allowed. "
                                                      "It contains Handled type, where isLocal() returned false. "
                                                      "Allocate it on the heap (new [[...]]) or modify your C++ bindings.",
-                      describeLocalType(expr->makeType.get()), "",
+                      describeLocalType(expr->makeType), "",
                       expr->at, CompilationError::invalid_type);
             }
         } else if (expr->makeType->baseType == Type::tHandle && expr->isNewHandle && !expr->useInitializer) {
@@ -558,13 +558,13 @@ namespace das {
                   expr->at, CompilationError::invalid_type);
             return false;
         }
-        auto mkb = static_pointer_cast<ExprMakeBlock>(expr->block);
+        auto mkb = static_cast<ExprMakeBlock*>(expr->block);
         if (!mkb->block->rtti_isBlock()) {
             error("Expected block for make block, got " + mkb->block->describe(), "", "",
                   expr->at, CompilationError::invalid_type);
             return false;
         }
-        auto blk = static_pointer_cast<ExprBlock>(mkb->block);
+        auto blk = static_cast<ExprBlock*>(mkb->block);
         bool ignoreCapturedConstant = false;
         if (expr->makeType->baseType == Type::tStructure) {
             if (auto field = expr->makeType->structType->findField(decl->name)) {
@@ -593,10 +593,10 @@ namespace das {
             if (auto field = expr->makeType->structType->findField(decl->name)) {
                 auto copyFieldType = field->type;
                 if (field->capturedConstant) {
-                    copyFieldType = make_smart<TypeDecl>(*field->type);
+                    copyFieldType = new TypeDecl(*field->type);
                     copyFieldType->constant = true;
                 }
-                if (!canCopyOrMoveType(copyFieldType, decl->value->type, TemporaryMatters::yes, decl->value.get(),
+                if (!canCopyOrMoveType(copyFieldType, decl->value->type, TemporaryMatters::yes, decl->value,
                                        "can't initialize field " + decl->name, CompilationError::cant_copy, decl->value->at)) {
                 } else if (decl->value->type->isTemp(true, false)) {
                     if (expr->makeType->structType->isLambda) {
@@ -610,7 +610,7 @@ namespace das {
                 if (!field->type->canCopy() && !decl->moveSemantics) {
                     error("field " + decl->name + " can't be copied; " + describeType(field->type), "", "use <- instead",
                           decl->at, CompilationError::invalid_type);
-                    if (canRelaxAssign(decl->value.get())) {
+                    if (canRelaxAssign(decl->value)) {
                         reportAstChanged();
                         decl->moveSemantics = true;
                     }
@@ -678,13 +678,13 @@ namespace das {
                     error("field is a property, not a value; " + decl->name, "", "",
                           decl->at, CompilationError::cant_get_field);
                 }
-                if (!canCopyOrMoveType(fldt, decl->value->type, TemporaryMatters::no, decl->value.get(),
+                if (!canCopyOrMoveType(fldt, decl->value->type, TemporaryMatters::no, decl->value,
                                        "can't initialize field " + decl->name, CompilationError::cant_copy, decl->value->at)) {
                 }
                 if (!fldt->canCopy() && !decl->moveSemantics) {
                     error("field " + decl->name + " can't be copied; " + describeType(fldt), "", "use <- instead",
                           decl->at, CompilationError::invalid_type);
-                    if (canRelaxAssign(decl->value.get())) {
+                    if (canRelaxAssign(decl->value)) {
                         reportAstChanged();
                         decl->moveSemantics = true;
                     }
@@ -708,8 +708,8 @@ namespace das {
                   at, CompilationError::invalid_type);
             return nullptr;
         }
-        auto mkt = make_smart<ExprMakeTuple>(at);
-        mkt->recordType = make_smart<TypeDecl>(*makeType);
+        auto mkt = new ExprMakeTuple(at);
+        mkt->recordType = new TypeDecl(*makeType);
         mkt->values.resize(makeType->argTypes.size());
         for (auto &fld : *st) {
             auto idx = makeType->findArgumentIndex(fld->name);
@@ -727,8 +727,8 @@ namespace das {
         }
         for (size_t i = 0, s = mkt->values.size(); i != s; ++i) {
             if (!mkt->values[i]) {
-                auto mks = make_smart<ExprMakeStruct>(at);
-                mks->makeType = make_smart<TypeDecl>(*makeType->argTypes[i]);
+                auto mks = new ExprMakeStruct(at);
+                mks->makeType = new TypeDecl(*makeType->argTypes[i]);
                 mkt->values[i] = mks;
             }
         }
@@ -760,11 +760,11 @@ namespace das {
             auto st = expr->makeType->structType;
             // auto ctorName = st->module->name  + "::" + st->name;
             auto ctorName = st->module->name + "::" + st->name;
-            auto tempCall = make_smart<ExprLooksLikeCall>(expr->at, ctorName);
-            expr->constructor = inferFunctionCall(tempCall.get(), InferCallError::functionOrGeneric, nullptr, false, !expr->ignoreVisCheck).get();
+            auto tempCall = new ExprLooksLikeCall(expr->at, ctorName);
+            expr->constructor = inferFunctionCall(tempCall, InferCallError::functionOrGeneric, nullptr, false, !expr->ignoreVisCheck);
             if (!expr->constructor) {
                 tempCall->name = "_::" + st->name;
-                expr->constructor = inferFunctionCall(tempCall.get(), InferCallError::functionOrGeneric, nullptr, false, !expr->ignoreVisCheck).get();
+                expr->constructor = inferFunctionCall(tempCall, InferCallError::functionOrGeneric, nullptr, false, !expr->ignoreVisCheck);
             }
             if (!expr->constructor) {
                 if (!expr->makeType->structType->hasAnyInitializers()) {
@@ -777,7 +777,7 @@ namespace das {
                 // this one with default arguments, we demote back to call
                 reportAstChanged();
                 auto callName = expr->constructor->module->name + "::" + expr->constructor->name;
-                auto callMks = make_smart<ExprCall>(expr->at, callName);
+                auto callMks = new ExprCall(expr->at, callName);
                 return callMks;
             }
         }
@@ -789,9 +789,9 @@ namespace das {
                       "", "", expr->block->at, CompilationError::invalid_block);
                 return Visitor::visit(expr);
             }
-            auto mkb = static_pointer_cast<ExprMakeBlock>(expr->block);
+            auto mkb = static_cast<ExprMakeBlock*>(expr->block);
             DAS_ASSERT(mkb->block->rtti_isBlock());
-            auto blk = static_pointer_cast<ExprBlock>(mkb->block);
+            auto blk = static_cast<ExprBlock*>(mkb->block);
             if (blk->arguments.size() != 1) {
                 error("where closure should only have one argument", "", "",
                       expr->block->at, CompilationError::invalid_block);
@@ -801,7 +801,7 @@ namespace das {
                     int32_t rec = 0;
                     if (expr->structs.size() > 1)
                         rec = int32_t(expr->structs.size());
-                    auto passT = make_smart<TypeDecl>(*expr->makeType);
+                    auto passT = new TypeDecl(*expr->makeType);
                     passT->dim.clear();
                     if (rec)
                         passT->dim.push_back(rec);
@@ -849,8 +849,8 @@ namespace das {
                       expr->block->at, CompilationError::invalid_block);
                 return Visitor::visit(expr);
             }
-            auto mkv = make_smart<ExprMakeVariant>(expr->at);
-            mkv->makeType = make_smart<TypeDecl>(*expr->makeType);
+            auto mkv = new ExprMakeVariant(expr->at);
+            mkv->makeType = new TypeDecl(*expr->makeType);
             auto allGood = true;
             for (auto &st : expr->structs) {
                 if (st->size() != 1) {
@@ -893,8 +893,8 @@ namespace das {
                     return mkt;
                 }
             } else {
-                auto mka = make_smart<ExprMakeArray>(expr->at);
-                mka->makeType = make_smart<TypeDecl>(*expr->makeType);
+                auto mka = new ExprMakeArray(expr->at);
+                mka->makeType = new TypeDecl(*expr->makeType);
                 mka->values.resize(expr->structs.size());
                 for (size_t i = 0; i != expr->structs.size(); ++i) {
                     mka->values[i] = structToTuple(expr->makeType, expr->structs[i], expr->at);
@@ -945,7 +945,7 @@ namespace das {
                 }
                 if (!expr->structs.size()) {
                     reportAstChanged();
-                    expr->structs.emplace_back(make_smart<MakeStruct>());
+                    expr->structs.emplace_back(new MakeStruct());
                 }
                 if (!isClassCtor) {
                     for (auto &st : expr->structs) {
@@ -953,7 +953,7 @@ namespace das {
                             if (fi.init) {
                                 auto it = find_if(st->begin(), st->end(), [&](const MakeFieldDeclPtr &fd) { return fd->name == fi.name; });
                                 if (it == st->end()) {
-                                    auto msf = make_smart<MakeFieldDecl>(fi.at, fi.name, fi.init->clone(), !fi.init->type->canCopy(), false);
+                                    auto msf = new MakeFieldDecl(fi.at, fi.name, fi.init->clone(), !fi.init->type->canCopy(), false);
                                     st->push_back(msf);
                                     reportAstChanged();
                                 }
@@ -971,7 +971,7 @@ namespace das {
                     if (st->size() == expr->makeType->structType->fields.size()) {
                         for (auto &va : *st) {
                             if (va->value->rtti_isMakeLocal()) {
-                                auto mkl = static_pointer_cast<ExprMakeLocal>(va->value);
+                                auto mkl = static_cast<ExprMakeLocal*>(va->value);
                                 expr->initAllFields &= mkl->initAllFields;
                             }
                         }
@@ -996,7 +996,7 @@ namespace das {
         // if unresolved - but we still return.  cause sometimes we pass [], and then we want it resolved
         bool isAutoOrAlias = expr->makeType->isAutoOrAlias();
         // result type
-        auto resT = make_smart<TypeDecl>(*expr->makeType);
+        auto resT = new TypeDecl(*expr->makeType);
         uint32_t resDim = uint32_t(expr->structs.size());
         if (resDim == 0) {
             // resT->dim.clear();
@@ -1018,17 +1018,17 @@ namespace das {
         expr->type = resT;
         if (expr->type->isString()) {
             reportAstChanged();
-            auto ecs = make_smart<ExprConstString>(expr->at);
-            ecs->type = make_smart<TypeDecl>(Type::tString);
+            auto ecs = new ExprConstString(expr->at);
+            ecs->type = new TypeDecl(Type::tString);
             return ecs;
         } else if (expr->type->isEnumT()) {
             auto f0 = expr->type->enumType->find(0, "");
             if (!f0.empty()) {
                 reportAstChanged();
-                auto et = make_smart<TypeDecl>(*expr->type);
+                auto et = new TypeDecl(*expr->type);
                 et->ref = false;
-                auto ens = make_smart<ExprConstEnumeration>(expr->at, f0, et);
-                ens->type = make_smart<TypeDecl>(*et);
+                auto ens = new ExprConstEnumeration(expr->at, f0, et);
+                ens->type = new TypeDecl(*et);
                 ens->type->constant = true;
                 return ens;
             } else {
@@ -1039,11 +1039,11 @@ namespace das {
             if ( !isAutoOrAlias ) {
                 expr->type->ref = false;
                 reportAstChanged();
-                auto ews = make_smart<ExprConstPtr>(expr->at);
-                ews->type = make_smart<TypeDecl>(*expr->type);
+                auto ews = new ExprConstPtr(expr->at);
+                ews->type = new TypeDecl(*expr->type);
                 ews->isSmartPtr = expr->type->smartPtr;
                 if (expr->type->firstType) {
-                    ews->ptrType = make_smart<TypeDecl>(*expr->type->firstType);
+                    ews->ptrType = new TypeDecl(*expr->type->firstType);
                 }
                 return ews;
             }
@@ -1051,7 +1051,7 @@ namespace das {
             expr->type->ref = false;
             reportAstChanged();
             auto ews = Program::makeConst(expr->at, expr->type, v_zero());
-            ews->type = make_smart<TypeDecl>(*expr->type);
+            ews->type = new TypeDecl(*expr->type);
             return ews;
         } else if (!expr->type->isRefType()) {
             expr->type->ref = true;
@@ -1085,7 +1085,7 @@ namespace das {
     }
     void InferTypes::preVisit(ExprMakeTuple *expr) {
         Visitor::preVisit(expr);
-        expr->makeType.reset();
+        expr->makeType = nullptr;
         expr->initAllFields = true;
     }
     ExpressionPtr InferTypes::visitMakeTupleIndex(ExprMakeTuple *expr, int index, Expression *init, bool lastField) {
@@ -1134,7 +1134,7 @@ namespace das {
                         expr->at, CompilationError::invalid_type);
                 return Visitor::visit(expr);
             }
-            auto mkt = make_smart<TypeDecl>(Type::tTuple);
+            auto mkt = new TypeDecl(Type::tTuple);
             for (size_t ai = 0; ai != argCount; ++ai) {
                 const auto &val = expr->values[ai];
                 const auto &argT = expr->recordType->argTypes[ai];
@@ -1144,7 +1144,7 @@ namespace das {
                           "", "",
                           expr->at, CompilationError::invalid_type);
                 }
-                auto valT = make_smart<TypeDecl>(*argT);
+                auto valT = new TypeDecl(*argT);
                 valT->ref = false;
                 valT->constant = false;
                 mkt->argTypes.push_back(valT);
@@ -1154,10 +1154,10 @@ namespace das {
             }
             expr->makeType = mkt;
         } else {
-            auto mkt = make_smart<TypeDecl>(Type::tTuple);
+            auto mkt = new TypeDecl(Type::tTuple);
             mkt->at = expr->at;
             for (auto &val : expr->values) {
-                auto valT = make_smart<TypeDecl>(*val->type);
+                auto valT = new TypeDecl(*val->type);
                 if (valT->isVoid()) {
                     error("tuple element type can't be void", "", "",
                           val->at, CompilationError::invalid_type);
@@ -1241,10 +1241,10 @@ namespace das {
             if (index == 0) {
                 if (init->type && !init->type->isAutoOrAlias()) {
                     // blah[] vs blah
-                    TypeDeclPtr mkt;
+                    TypeDeclPtr mkt = nullptr;
                     if (!expr->gen2 && expr->makeType->dim.size() && !init->type->dim.size()) {
                         if (expr->makeType->dim.size() == 1 && expr->makeType->dim[0] == TypeDecl::dimAuto) {
-                            auto infT = make_smart<TypeDecl>(*expr->makeType);
+                            auto infT = new TypeDecl(*expr->makeType);
                             infT->dim.clear();
                             mkt = TypeDecl::inferGenericType(infT, init->type, false, false, nullptr);
                             if (mkt) {
@@ -1312,15 +1312,15 @@ namespace das {
                         }
                     }
                 } else {
-                    auto mkv = make_smart<ExprMakeVariant>(expr->at);
-                    mkv->variants.push_back(make_smart<MakeFieldDecl>(
+                    auto mkv = new ExprMakeVariant(expr->at);
+                    mkv->variants.push_back(new MakeFieldDecl(
                         init->at,
                         expr->recordType->argNames[uidx],
                         init->clone(),
                         false, // move
                         false  // clone
                         ));
-                    mkv->makeType = make_smart<TypeDecl>(*expr->recordType);
+                    mkv->makeType = new TypeDecl(*expr->recordType);
                     reportAstChanged();
                     return mkv;
                 }
@@ -1357,7 +1357,7 @@ namespace das {
                     canPromoteToMakeVariant = false;
                     break;
                 } else {
-                    auto emkv = static_pointer_cast<ExprMakeVariant>(eval);
+                    auto emkv = static_cast<ExprMakeVariant*>(eval);
                     if (emkv->variants.size() != 1) {
                         canPromoteToMakeVariant = false;
                         break;
@@ -1365,19 +1365,19 @@ namespace das {
                 }
             }
             if (canPromoteToMakeVariant) {
-                auto mkv = make_smart<ExprMakeVariant>(expr->at);
+                auto mkv = new ExprMakeVariant(expr->at);
                 for (const auto &eval : expr->values) {
-                    auto emkv = static_pointer_cast<ExprMakeVariant>(eval);
+                    auto emkv = static_cast<ExprMakeVariant*>(eval);
                     DAS_ASSERT(emkv->variants.size() == 1);
                     const auto &fmkv = emkv->variants[0];
-                    mkv->variants.push_back(make_smart<MakeFieldDecl>(
+                    mkv->variants.push_back(new MakeFieldDecl(
                         fmkv->at,
                         fmkv->name,
                         fmkv->value->clone(),
                         bool(fmkv->moveSemantics),
                         bool(fmkv->cloneSemantics)));
                 }
-                mkv->makeType = make_smart<TypeDecl>(*expr->makeType);
+                mkv->makeType = new TypeDecl(*expr->makeType);
                 reportAstChanged();
                 return mkv;
             }
@@ -1386,7 +1386,7 @@ namespace das {
             error("array element has to be copyable or moveable", "", "",
                   expr->at, CompilationError::invalid_type);
         }
-        auto resT = make_smart<TypeDecl>(*expr->makeType);
+        auto resT = new TypeDecl(*expr->makeType);
         uint32_t resDim = uint32_t(expr->values.size());
         if (expr->gen2) {
             resT->dim.push_back(resDim);
@@ -1408,13 +1408,13 @@ namespace das {
                 reportAstChanged();
                 auto resExpr = expr->values[0];
                 if (resExpr->rtti_isMakeTuple()) {
-                    auto mkt = static_pointer_cast<ExprMakeTuple>(resExpr);
-                    mkt->recordType = make_smart<TypeDecl>(*expr->recordType);
-                    mkt->makeType.reset();
+                    auto mkt = static_cast<ExprMakeTuple*>(resExpr);
+                    mkt->recordType = new TypeDecl(*expr->recordType);
+                    mkt->makeType = nullptr;
                 }
                 if (!expr->recordType->isSameType(*(eval->type), RefMatters::no, ConstMatters::no, TemporaryMatters::no, AllowSubstitute::no)) { // disable substitue
                     // we need a cast
-                    auto cast = make_smart<ExprCast>(expr->at, resExpr, make_smart<TypeDecl>(*expr->recordType));
+                    auto cast = new ExprCast(expr->at, resExpr, new TypeDecl(*expr->recordType));
                     resExpr = cast;
                 }
                 return resExpr;
@@ -1431,7 +1431,7 @@ namespace das {
     void InferTypes::preVisitArrayComprehensionSubexpr(ExprArrayComprehension *expr, Expression *subexpr) {
         Visitor::preVisitArrayComprehensionSubexpr(expr, subexpr);
         pushVarStack();
-        auto eFor = static_cast<ExprFor *>(expr->exprFor.get());
+        auto eFor = static_cast<ExprFor *>(expr->exprFor);
         preVisitForStack(eFor);
     }
     void InferTypes::preVisitArrayComprehensionWhere(ExprArrayComprehension *expr, Expression *where) {

@@ -47,13 +47,13 @@ void Module_dasIMGUI::initFunctions_21() {
 	addCtorAndUsing<ImGuiOnceUponAFrame>(*this,lib,"ImGuiOnceUponAFrame","ImGuiOnceUponAFrame");
 	addCtorAndUsing<ImGuiTextFilter,const char *>(*this,lib,"ImGuiTextFilter","ImGuiTextFilter")
 		->args({"default_filter"})
-		->arg_init(0,make_smart<ExprConstString>(""));
+		->arg_init(0,new ExprConstString(""));
 	using _method_28 = das::das_call_member< bool (ImGuiTextFilter::*)(const char *,float),&ImGuiTextFilter::Draw >;
 // from imgui/imgui.h:2862:25
 	makeExtern<DAS_CALL_METHOD(_method_28), SimNode_ExtFuncCall , imguiTempFn>(lib,"Draw","das_call_member< bool (ImGuiTextFilter::*)(const char *,float) , &ImGuiTextFilter::Draw >::invoke")
 		->args({"self","label","width"})
-		->arg_init(1,make_smart<ExprConstString>("Filter (inc,-exc)"))
-		->arg_init(2,make_smart<ExprConstFloat>(0))
+		->arg_init(1,new ExprConstString("Filter (inc,-exc)"))
+		->arg_init(2,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_29 = das::das_call_member< void (ImGuiTextFilter::*)(),&ImGuiTextFilter::Build >;
 // from imgui/imgui.h:2864:25

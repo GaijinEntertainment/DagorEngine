@@ -168,7 +168,7 @@ macro USE_GI_PAYLOAD(stage)
     }
     void pl_set_normal(inout RayPayload pl, float3 N)
     {
-      const uint3 shiftBits = uint3(24, 16, 8);
+      const uint3 shiftBits = uint3(16, 8, 0);
       uint3 packd = uint3((N * 0.5 + 0.5) * 255) << shiftBits;
       set_packed<24, 8>(pl.normal_smoothness_iswater_isimpostor_isfoliage, packd.x | packd.y | packd.z);
     }

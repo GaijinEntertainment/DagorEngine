@@ -50,8 +50,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addAnnotation(das::make_smart<EntityActionAnnotation>(lib));
-    addAnnotation(das::make_smart<EntityActionsAnnotation>(lib));
+    addAnnotation(new EntityActionAnnotation(lib));
+    addAnnotation(new EntityActionsAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(check_action_precondition)>(*this, lib, "check_action_precondition", das::SideEffects::accessExternal,
       "::check_action_precondition");

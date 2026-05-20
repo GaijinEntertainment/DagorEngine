@@ -1,6 +1,7 @@
 options gen2
 options indenting = 4
 options remove_unused_symbols = false
+options strict_unsafe_delete = false
 
 // This is builtin module. It included by default
 // in every other module. Compiler can freely
@@ -1132,6 +1133,17 @@ def clone(var args; var nargs : array<smart_ptr<auto(TT)>>) {
     delete nargs
 }
 
+[expect_any_vector(args), unsafe_when_not_clone_array]
+def clone(var args; var nargs : array<auto(TT)?>) {
+    _::clear(args)
+    for (narg in nargs) {
+        _::push(args, narg)
+    }
+    unsafe {
+        delete nargs
+    }
+}
+
 [unsafe_outside_of_for, nodiscard]
 def keys(a : table<auto(keyT); auto(valT)> ==const | #) : iterator<keyT -const> {
     var it : iterator<keyT -const>
@@ -1543,11 +1555,11 @@ def sort(var a : auto(TT)[] | #) {
     } else {
         unsafe {
             static_if (typeinfo is_ref_type(type<TT>)) {
-                __builtin_sort_dim_any_cblock(a, typeinfo sizeof(a[0]), length(a)) <| $(x, y  : TT) : bool {
+                __builtin_sort_dim_any_cblock(a, typeinfo sizeof(a[0]), length(a)) $(x, y  : TT) : bool {
                     return x < y
                 }
             } else {
-                __builtin_sort_dim_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a)) <| $(x, y  : TT) : bool {
+                __builtin_sort_dim_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a)) $(x, y  : TT) : bool {
                     return x < y
                 }
             }
@@ -1576,11 +1588,11 @@ def sort(var a : array<auto(TT)> | #) {
     } else {
         unsafe {
             static_if (typeinfo is_ref_type(type<TT>)) {
-                __builtin_sort_array_any_cblock(a, typeinfo sizeof(a[0]), length(a)) <| $(x, y  : TT) : bool {
+                __builtin_sort_array_any_cblock(a, typeinfo sizeof(a[0]), length(a)) $(x, y  : TT) : bool {
                     return x < y
                 }
             } else {
-                __builtin_sort_array_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a)) <| $(x, y  : TT) : bool {
+                __builtin_sort_array_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a)) $(x, y  : TT) : bool {
                     return x < y
                 }
             }

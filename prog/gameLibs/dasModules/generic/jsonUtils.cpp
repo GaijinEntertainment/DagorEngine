@@ -21,8 +21,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("rapidjson"));
 
-    addEnumeration(das::make_smart<EnumerationDecodeJwtResult>());
-    addEnumeration(das::make_smart<EnumerationJwtCompressionType>());
+    addEnumeration(new EnumerationDecodeJwtResult());
+    addEnumeration(new EnumerationJwtCompressionType());
 
     das::addExtern<DAS_BIND_FUN(bind_dascript::load_json_from_file)>(*this, lib, "load_json_from_file", das::SideEffects::worstDefault,
       "bind_dascript::load_json_from_file");

@@ -158,7 +158,7 @@ private:
   bool applyRangeSelectionRequestInternal(const ImGuiSelectionRequest &request, OutlinerTreeItem &tree_item, bool &found_first);
   void applyRangeSelectionRequest(const ImGuiSelectionRequest &request);
   void applySelectionRequests(const ImGuiMultiSelectIO &multi_select_io, bool &started_selecting);
-  void showAddLayerControls();
+  void showAddLayerControls(const char *popup_id);
   void showSettingsPanel(const char *popup_id);
 
   IOutliner *treeInterface = nullptr;
@@ -166,6 +166,7 @@ private:
 
   // Add layer.
   int addingLayerToType = -1;
+  bool addLayerPopupShown = false;
   String addLayerName;
   String addLayerErrorMessage;
 

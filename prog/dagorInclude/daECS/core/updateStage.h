@@ -58,7 +58,8 @@ struct UpdateStageInfoAct : public UpdateStageInfo
   static constexpr int STAGE = US_ACT;
   float dt = 0.f;
   float curTime = 0.f;
-  UpdateStageInfoAct(float dt_, float cur_time) : UpdateStageInfo(STAGE), dt(dt_), curTime(cur_time) {}
+  double curTimeD = 0.0;
+  UpdateStageInfoAct(float dt_, double ct) : UpdateStageInfo(STAGE), dt(dt_), curTime(ct), curTimeD(ct) {}
 };
 
 struct UpdateStageInfoBeforeRender : public UpdateStageInfo

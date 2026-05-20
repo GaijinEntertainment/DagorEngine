@@ -55,6 +55,8 @@ const char *getRIGenExtraName(uint32_t res_idx);
 void iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &cb);
 int getRIExtraMapSize();
 
+int getRIGenExtraInstancesCount();
+
 int getRIExtraPoolRef(int res_idx);
 
 uint64_t getRIExtraGlobalWorldVersion(bool add, bool del);
@@ -62,6 +64,8 @@ uint64_t getRIExtraGlobalWorldVersion(bool add, bool del);
 bool updateRiExtraReqLod(uint32_t res_idx, unsigned lod);
 
 void applyTiledScenesUpdateForRIGenExtra(int max_quota_usec, int max_maintenance_quota_usec);
+
+float getRIGenExtraTiledScenesMaxObjectHeight();
 
 riex_handle_t addRIGenExtra43(int res_idx, mat43f_cref tm, bool collision, int orig_cell, int orig_offset, int add_data_dwords = 0,
   const int32_t *add_data = nullptr, bool on_loading = false);

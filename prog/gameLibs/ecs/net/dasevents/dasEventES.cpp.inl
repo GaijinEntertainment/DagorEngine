@@ -533,17 +533,38 @@ static void das_event_handshake_msg_handler(const net::IMessage *msg_)
   }
 }
 
+template <class EventMsg>
+static eastl::string format_das_event_msg_str(const net::IMessage *msg)
+{
+  const net::MessageClass &msgCls = msg->getMsgClass();
+  auto e = msg->cast<EventMsg>();
+  G_ASSERT_RETURN(e, net::MessageClass::defaultFormatMsgStr(msg));
+  ecs::event_type_t eventType = 0;
+  e->template get<0>().Read(eventType);
+  const auto &eventsDb = get_network_manager()->getEventsDb();
+  const auto eventId = eventsDb.findEvent(eventType);
+  eastl::string result;
+  if (eventId != ecs::EventsDB::invalid_event_id)
+    result.sprintf("#%d/%s/%x (%s(0x%X))", msgCls.classId, msgCls.debugClassName, msgCls.classHash, eventsDb.getEventName(eventId),
+      eventType);
+  else
+    result.sprintf("#%d/%s/%x (0x%X)", msgCls.classId, msgCls.debugClassName, msgCls.classHash, eventType);
+  return result;
+}
+
 } // namespace net
 
 ECS_NET_IMPL_MSG(DasEventMsg, net::ROUTING_SERVER_TO_CLIENT, &net::broadcast_rcptf, RELIABLE_ORDERED, DAS_NET_EVENTS_DEF_NET_CHANNEL,
   net::MF_DEFAULT_FLAGS, ECS_NET_NO_DUP, &net::broadcast_das_event_msg_handler<DasEventMsg>);
 
 ECS_NET_IMPL_MSG(ClientDasEventMsg, net::ROUTING_CLIENT_TO_SERVER, ECS_NET_NO_RCPTF, RELIABLE_ORDERED, DAS_NET_EVENTS_DEF_NET_CHANNEL,
-  net::MF_DEFAULT_FLAGS, ECS_NET_NO_DUP, &net::broadcast_client_das_event_msg_handler<ClientDasEventMsg>);
+  net::MF_DEFAULT_FLAGS, ECS_NET_NO_DUP, &net::broadcast_client_das_event_msg_handler<ClientDasEventMsg>,
+  &net::format_das_event_msg_str<ClientDasEventMsg>);
 
 ECS_NET_IMPL_MSG(ClientControlledEntityDasEventMsg, net::ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER, ECS_NET_NO_RCPTF,
   RELIABLE_ORDERED, DAS_NET_EVENTS_DEF_NET_CHANNEL, net::MF_DEFAULT_FLAGS, ECS_NET_NO_DUP,
-  &net::broadcast_client_controlled_das_event_msg_handler<ClientControlledEntityDasEventMsg>);
+  &net::broadcast_client_controlled_das_event_msg_handler<ClientControlledEntityDasEventMsg>,
+  &net::format_das_event_msg_str<ClientControlledEntityDasEventMsg>);
 
 ECS_NET_IMPL_MSG(DasEventHandshakeMsg, net::ROUTING_CLIENT_TO_SERVER, &net::broadcast_rcptf, RELIABLE_ORDERED,
   DAS_NET_EVENTS_DEF_NET_CHANNEL, net::MF_DEFAULT_FLAGS, ECS_NET_NO_DUP, &net::das_event_handshake_msg_handler);

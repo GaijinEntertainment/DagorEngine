@@ -67,7 +67,7 @@ void Module_dasIMGUI::initFunctions_22() {
 // from imgui/imgui.h:2933:25
 	makeExtern<DAS_CALL_METHOD(_method_44), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetInt","das_call_member< int (ImGuiStorage::*)(unsigned int,int) const , &ImGuiStorage::GetInt >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstInt>(0))
+		->arg_init(2,new ExprConstInt(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_45 = das::das_call_member< void (ImGuiStorage::*)(unsigned int,int),&ImGuiStorage::SetInt >;
 // from imgui/imgui.h:2934:25
@@ -78,7 +78,7 @@ void Module_dasIMGUI::initFunctions_22() {
 // from imgui/imgui.h:2935:25
 	makeExtern<DAS_CALL_METHOD(_method_46), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetBool","das_call_member< bool (ImGuiStorage::*)(unsigned int,bool) const , &ImGuiStorage::GetBool >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstBool>(false))
+		->arg_init(2,new ExprConstBool(false))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_47 = das::das_call_member< void (ImGuiStorage::*)(unsigned int,bool),&ImGuiStorage::SetBool >;
 // from imgui/imgui.h:2936:25
@@ -89,7 +89,7 @@ void Module_dasIMGUI::initFunctions_22() {
 // from imgui/imgui.h:2937:25
 	makeExtern<DAS_CALL_METHOD(_method_48), SimNode_ExtFuncCall , imguiTempFn>(lib,"GetFloat","das_call_member< float (ImGuiStorage::*)(unsigned int,float) const , &ImGuiStorage::GetFloat >::invoke")
 		->args({"self","key","default_val"})
-		->arg_init(2,make_smart<ExprConstFloat>(0))
+		->arg_init(2,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 	using _method_49 = das::das_call_member< void (ImGuiStorage::*)(unsigned int,float),&ImGuiStorage::SetFloat >;
 // from imgui/imgui.h:2938:25

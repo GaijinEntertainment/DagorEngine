@@ -53,7 +53,7 @@ static inline void ground_holes_initialize_es(const ecs::Event &,
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 static inline void ground_holes_on_disappear_es(
-  const ecs::Event &, int hmap_holes_scale_step_offset_varId, UniqueTexHolder &hmapHolesTex)
+  const ecs::Event &, int hmap_holes_scale_step_offset_varId, UniqueTexWithShaderVar &hmapHolesTex)
 {
   ground_holes::on_disappear(hmap_holes_scale_step_offset_varId, hmapHolesTex);
 }
@@ -61,8 +61,8 @@ static inline void ground_holes_on_disappear_es(
 ECS_TAG(render)
 ECS_NO_ORDER
 static void ground_hole_render_es(const UpdateStageInfoRender &,
-  UniqueTexHolder &hmapHolesTex,
-  UniqueTexHolder &hmapHolesTmpTex,
+  UniqueTexWithShaderVar &hmapHolesTex,
+  UniqueTexWithShaderVar &hmapHolesTmpTex,
   UniqueBufHolder &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer,
   PostFxRenderer &hmapHolesMipmapRenderer,

@@ -28,7 +28,7 @@ namespace das {                                                             \
 namespace das {                                                             \
     class ModuleLibrary;                                                    \
     struct TypeDecl;                                                        \
-    typedef smart_ptr<TypeDecl> TypeDeclPtr;                                \
+    typedef TypeDecl * TypeDeclPtr;                                         \
                                                                             \
     template <typename TT>                                                  \
     struct typeFactory;                                                     \

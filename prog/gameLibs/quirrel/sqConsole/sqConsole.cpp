@@ -209,7 +209,7 @@ private:
 
   bool executeScript(const char *argv[], int argc)
   {
-    if (argc == 0 || !sqvm || !execCmd)
+    if (argc == 0 || !sqvm || execCmd.empty())
       return false;
 
     int found = console::collector_cmp(argv[0], argc, execCmd, 2, 100);

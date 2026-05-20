@@ -1,19 +1,6 @@
 #pragma once
 
-#ifndef DAS_SMART_PTR_ID
-#define DAS_SMART_PTR_ID    0
-#endif
-
-#if DAS_SMART_PTR_TRACKER
 #include <atomic>
-#endif
-
-// when enabled, smart_ptr will keep allocated memory after delete
-// that way ID of the broken object does not get overwritten
-// this is useful for debugging, but it is not a good idea to use it in production
-#ifndef DAS_SMART_PTR_BROKEN
-#define DAS_SMART_PTR_BROKEN 0
-#endif
 
 DAS_API void os_debug_break();
 
@@ -332,46 +319,44 @@ namespace das {
         return reinterpret_cast<T *>(r.get());
     }
 
-#if DAS_SMART_PTR_ID
     #define DAS_NEW_SMART_PTR_ID \
     { \
         lock_guard<mutex> guard(ref_count_mutex); \
         ref_count_id = ++ref_count_total; \
-        ref_count_ids.insert(ref_count_id); \
+        ref_count_next = ref_count_head; \
+        ref_count_prev = nullptr; \
+        if (ref_count_head) ref_count_head->ref_count_prev = this; \
+        ref_count_head = this; \
     }
     #define DAS_DELETE_SMART_PTR_ID \
     { \
         lock_guard<mutex> guard(ref_count_mutex); \
-        ref_count_ids.erase(ref_count_id); \
+        if (ref_count_prev) ref_count_prev->ref_count_next = ref_count_next; \
+        else ref_count_head = ref_count_next; \
+        if (ref_count_next) ref_count_next->ref_count_prev = ref_count_prev; \
     }
     #define DAS_TRACK_SMART_PTR_ID         if ( ref_count_id==ref_count_track ) os_debug_break();
     #define DAS_TRACK_SMART_PTR_ID_DTOR    if ( ref_count_id==ref_count_track_destructor ) os_debug_break();
-#else
-    #define DAS_NEW_SMART_PTR_ID
-    #define DAS_TRACK_SMART_PTR_ID
-    #define DAS_TRACK_SMART_PTR_ID_DTOR
-    #define DAS_DELETE_SMART_PTR_ID
-#endif
 
-#if DAS_SMART_PTR_TRACKER
     DAS_API extern atomic<uint64_t> g_smart_ptr_total;
     #define DAS_SMART_PTR_NEW     g_smart_ptr_total++;
     #define DAS_SMART_PTR_DELETE  g_smart_ptr_total--;
-#else
-    #define DAS_SMART_PTR_NEW
-    #define DAS_SMART_PTR_DELETE
-#endif
 
     class DAS_API ptr_ref_count {
     public:
-#if DAS_SMART_PTR_ID
         uint64_t                    ref_count_id;
+        ptr_ref_count *             ref_count_next = nullptr;
+        ptr_ref_count *             ref_count_prev = nullptr;
+        uint32_t                    ref_count_magic = 0;
         static uint64_t             ref_count_total;
         static uint64_t             ref_count_track;
         static uint64_t             ref_count_track_destructor;
-        static das_set<uint64_t>    ref_count_ids;
+        static ptr_ref_count *      ref_count_head;
         static mutex                ref_count_mutex;
-#endif
+        static constexpr uint32_t   TRACK_PTR_CONTEXT     = 0xDA5C7801;
+        static constexpr uint32_t   TRACK_PTR_PROGRAM     = 0xDA5C7802;
+        static constexpr uint32_t   TRACK_PTR_FILE_ACCESS = 0xDA5C7803;
+        static void DumpTrackPtr();
     public:
         __forceinline ptr_ref_count () {
             DAS_NEW_SMART_PTR_ID
@@ -391,43 +376,27 @@ namespace das {
         __forceinline ptr_ref_count & operator = ( const ptr_ref_count & ) { return *this;}
         __forceinline ptr_ref_count & operator = ( ptr_ref_count && ) { return *this; }
         virtual ~ptr_ref_count() {
-#if DAS_SMART_PTR_MAGIC
             if ( ref_count!=0 ) DAS_FATAL_ERROR("%p ref_count=%i, can't delete", (void *)this, ref_count);
             if ( magic!=0x1ee7c0de ) DAS_FATAL_ERROR("%p magic=%08x, object was deleted or corrupted", (void *)this, magic);
             magic = 0xdeadbeef;
-#else
-            DAS_ASSERTF(ref_count == 0, "can only delete when ref_count==0");
-#endif
             DAS_DELETE_SMART_PTR_ID
             DAS_SMART_PTR_DELETE
         }
         __forceinline void addRef() {
             DAS_TRACK_SMART_PTR_ID
             ref_count ++;
-#if DAS_SMART_PTR_MAGIC
             if ( ref_count==0 || magic!=0x1ee7c0de ) {
                 DAS_FATAL_ERROR("%p ref_count=%i, magic=%08x, object was deleted or corrupted", (void *)this, ref_count, magic);
             }
-#else
-            DAS_ASSERTF(ref_count, "ref_count overflow");
-#endif
         }
         __forceinline bool delRef() {
             DAS_TRACK_SMART_PTR_ID
-#if DAS_SMART_PTR_MAGIC
             if ( ref_count==0 || magic!=0x1ee7c0de ) {
                 DAS_FATAL_ERROR("%p ref_count=%i, magic=%08x, object was deleted or corrupted", (void *)this, ref_count, magic);
             }
-#else
-            DAS_ASSERTF(ref_count, "deleting reference on the object with ref_count==0");
-#endif
             if ( --ref_count==0 ) {
                 DAS_TRACK_SMART_PTR_ID_DTOR
-#if DAS_SMART_PTR_BROKEN
-                this->~ptr_ref_count(); // call destructor, but don't release memory
-#else
                 delete this;
-#endif
                 return true;
             } else {
                 return false;
@@ -437,17 +406,11 @@ namespace das {
             return ref_count;
         }
         __forceinline bool is_valid() const {
-#if DAS_SMART_PTR_MAGIC
             return magic==0x1ee7c0de && ref_count!=0;
-#else
-            return ref_count!=0;
-#endif
         }
         void serialize ( AstSerializer & ser );
     private:
-#if DAS_SMART_PTR_MAGIC
         unsigned int magic = 0x1ee7c0de;
-#endif
         unsigned int ref_count = 0;
     };
 

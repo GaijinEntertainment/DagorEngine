@@ -42,8 +42,8 @@ private:
   float shoreHmapSize = 1024.0f;
   float shoreRiversWidth = 200.0f;
   float shoreSignificantWaveThreshold = 0.1f;
-  UniqueTexHolder shoreHeightmapTex;
-  UniqueTexHolder shoreDistanceField;
+  UniqueTexWithShaderVar shoreHeightmapTex;
+  UniqueTexWithShaderVar shoreDistanceField;
 
   struct
   {

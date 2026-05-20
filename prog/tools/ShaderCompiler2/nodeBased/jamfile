@@ -14,7 +14,7 @@ ConsoleExe      = yes ;
 
 TargetType  = exe ;
 
-Target = tools/dsc2-nodeBased.exe ;
+Target = tools/dsc2-nodeBased ;
 include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 NodeBasedCompiler = yes ;
@@ -47,5 +47,7 @@ UseProgLibs =
   3rdPartyLibs/regExp
 ;
 UseMemoryDebugLevel = off ;
+
+if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox/stub ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

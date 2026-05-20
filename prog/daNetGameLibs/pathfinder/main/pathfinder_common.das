@@ -137,7 +137,7 @@ def iterate_over_polys_recursively(start : float3; depth : int; initial_extents 
   var ref : dtPolyRef
   var p = start
   if project_to_nearest_navmesh_point(p, initial_extents, ref)
-    frontier |> emplace((ref, depth))
+    frontier |> emplace((poly = ref, depth = depth))
     while (length(frontier) > 0)
       advance_poly_frontier(frontier, visited)
       if invoke(action, visited[length(visited) - 1])
@@ -157,7 +157,7 @@ def private advance_poly_frontier(var frontier : array<tuple<poly : dtPolyRef; d
     for_each_linked_poly(thisPoly) <| $(linkedPolyRef)
       let inFrontierIdx = find_index_if(frontier) <| $(item) { return item.poly == linkedPolyRef; }
       if find_index(visited, linkedPolyRef) == -1 && inFrontierIdx == -1
-        frontier |> emplace((linkedPolyRef, depth))
+        frontier |> emplace((poly = linkedPolyRef, depth = depth))
       elif inFrontierIdx != -1
         frontier[inFrontierIdx].depth = max(frontier[inFrontierIdx].depth, depth)
 

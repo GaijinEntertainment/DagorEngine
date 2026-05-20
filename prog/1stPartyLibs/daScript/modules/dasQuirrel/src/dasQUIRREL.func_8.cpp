@@ -66,9 +66,6 @@ void Module_dasQUIRREL::initFunctions_8() {
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:44:23
 	addExtern< SQRESULT (*)(SQVM *,const char *,SQBool,SQBool) , sqstd_dofile >(*this,lib,"sqstd_dofile",SideEffects::worstDefault,"sqstd_dofile")
 		->args({"v","filename","retval","printerror"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:45:23
-	addExtern< SQRESULT (*)(SQVM *,const char *) , sqstd_writeclosuretofile >(*this,lib,"sqstd_writeclosuretofile",SideEffects::worstDefault,"sqstd_writeclosuretofile")
-		->args({"v","filename"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:47:23
 	addExtern< SQRESULT (*)(SQVM *) , sqstd_init_streamclass >(*this,lib,"sqstd_init_streamclass",SideEffects::worstDefault,"sqstd_init_streamclass")
 		->args({"v"});

@@ -154,3 +154,7 @@ film_grain:i=1
 gpu_objects_is_grass:i=0
 gi_enable_lights_at_radiance_trace:i=0 // Handled by voxels lit scene.
 dynamic_lighting_texture:i=1
+has_motion_vectors:i=1
+downsampled_motion_vectors_tex:i=1
+motion_gbuf:i=1
+motion_vector_type:i=2

@@ -13,30 +13,30 @@ def tuple_field(var f : FooT) {
 }
 
 def make_tuple_cmres : FooT {
-    return (1, 0.0, "bar", 0)
+    return (a = 1, b = 0.0, c = "bar", d = 0)
 }
 
 def make_tuple_with_subtuple_cmres : BarT {
-    return (1,  (2, 3., "", 0), 4)
+    return (a = 1, foo = (a = 2, b = 3., c = "", d = 0), b = 4)
 }
 
 def FooT : FooT {
-    return (1234, 1234.0, "1234", 1234)
+    return (a = 1234, b = 1234.0, c = "1234", d = 1234)
 }
 
 def make_tuple_with_field_call_to_cmres : BarT {
-    return (1, FooT(), 4)
+    return (a = 1, foo = FooT(), b = 4)
 }
 
 def make_tuple_on_stack(which : bool) : FooT {
-    var a =  (1, 2.0, "3", 4)
-    var b =  (2, 3.0, "4", 5)
+    var a : FooT = (a = 1, b = 2.0, c = "3", d = 4)
+    var b : FooT = (a = 2, b = 3.0, c = "4", d = 5)
     return which ? a : b
 }
 
 def make_tuple_with_subtuple_on_stack(which : bool) : BarT {
-    var a =  (1,  (2, 3., "", 0), 4)
-    var b =  (2,  (3, 4., "", 0), 5)
+    var a : BarT = (a = 1, foo = (a = 2, b = 3., c = "", d = 0), b = 4)
+    var b : BarT = (a = 2, foo = (a = 3, b = 4., c = "", d = 0), b = 5)
     return which ? a : b
 }
 

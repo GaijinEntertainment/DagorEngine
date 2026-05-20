@@ -656,8 +656,9 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
     subObjects.reserve(4 + importInfos.size() + hitGroups.size());
 
-    D3D12_STATE_OBJECT_CONFIG config;
-    config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
+    D3D12_STATE_OBJECT_CONFIG config{};
+    if (pipelineInfo.expandable)
+      config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
     D3D12_STATE_SUBOBJECT configSubObject{D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config};
     subObjects.push_back(configSubObject);
 
@@ -702,8 +703,9 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
     subObjects.reserve(4 + importInfos.size() + hitGroups.size());
 
-    D3D12_STATE_OBJECT_CONFIG config;
-    config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
+    D3D12_STATE_OBJECT_CONFIG config{};
+    if (pipelineInfo.expandable)
+      config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
     D3D12_STATE_SUBOBJECT configSubObject{D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config};
     subObjects.push_back(configSubObject);
 
@@ -750,8 +752,9 @@ struct PipelineBuilder : AutoLifetimeTimer<AFP_MSEC>
     eastl::vector<D3D12_STATE_SUBOBJECT> subObjects;
     subObjects.reserve(4 + importInfos.size() + hitGroups.size() + base_imports.size() + base_hit_groups.size());
 
-    D3D12_STATE_OBJECT_CONFIG config;
-    config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
+    D3D12_STATE_OBJECT_CONFIG config{};
+    if (pipelineInfo.expandable)
+      config.Flags = D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
     D3D12_STATE_SUBOBJECT configSubObject{D3D12_STATE_SUBOBJECT_TYPE_STATE_OBJECT_CONFIG, &config};
     subObjects.push_back(configSubObject);
 

@@ -12,6 +12,14 @@
 
 namespace SQCompilation {
 
+static bool isMetaMethodName(const char *name) {
+    if (!name || name[0] != '_') return false;
+#define MM_IMPL(mm, mname) if (strcmp(name, mname) == 0) return true;
+    METAMETHODS_LIST
+#undef MM_IMPL
+    return false;
+}
+
 struct NestingChecker {
     SQParser *_p;
     const uint32_t _max_depth;
@@ -26,7 +34,7 @@ struct NestingChecker {
 
     void inc() {
         if (_p->_depth > _max_depth) {
-            _p->reportDiagnostic(DiagnosticsId::DI_TOO_BIG_AST);
+            _p->throwError("AST too big. Consider simplifying it");
         }
         _p->_depth += 1;
         _depth += 1;
@@ -61,6 +69,17 @@ void SQParser::reportDiagnostic(int32_t id, ...) {
 }
 
 
+void SQParser::throwError(const char *fmt, ...) {
+    va_list vargs;
+    va_start(vargs, fmt);
+
+    SourceSpan span = _lex.tokenSpan();
+    _ctx.vthrowError(span.start.line, span.start.column, span.textWidth(), fmt, vargs);
+
+    va_end(vargs); // unreachable; vthrowError throws
+}
+
+
 bool SQParser::ProcessPosDirective()
 {
     const char *sval = _lex._svalue;
@@ -69,16 +88,16 @@ bool SQParser::ProcessPosDirective()
 
     sval += 4;
     if (!sq_isdigit(*sval))
-        reportDiagnostic(DiagnosticsId::DI_EXPECTED_LINENUM);
+        throwError("expected line number after #pos:");
     char * next = NULL;
     _lex._currentline = scstrtol(sval, &next, 10);
     if (!next || *next != ':') {
-        reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, ":");
+        throwError("expected ':'");
         return false;
     }
     next++;
     if (!sq_isdigit(*next))
-        reportDiagnostic(DiagnosticsId::DI_EXPECTED_COLNUM);
+        throwError("expected column number after #pos:<line>:");
     _lex._currentcolumn = scstrtol(next, NULL, 10);
     return true;
 }
@@ -129,7 +148,7 @@ Statement* SQParser::parseDirectiveStatement()
     }
 
     if (pragmaDesc == nullptr) {
-      reportDiagnostic(DiagnosticsId::DI_UNSUPPORTED_DIRECTIVE, sval);
+      throwError("unsupported directive '%s'", sval);
       return nullptr;
     }
 
@@ -206,11 +225,11 @@ Expr* SQParser::Expect(SQInteger tok)
                 default:
                     etypename = _lex.Tok2Str(tok);
                 }
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, etypename);
+                throwError("expected '%s'", etypename);
             }
             else {
                 char s[2] = {(char)tok, 0};
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, s);
+                throwError("expected '%s'", s);
             }
         }
     }
@@ -239,7 +258,7 @@ void SQParser::OptionalSemicolon()
 {
     if(_token == ';') { Lex(); return; }
     if(!IsEndOfStatement()) {
-        reportDiagnostic(DiagnosticsId::DI_END_OF_STMT_EXPECTED);
+        throwError("end of statement expected (; or lf)");
     }
 }
 
@@ -280,7 +299,7 @@ Block* SQParser::parseStatements(SourceLoc start)
 void SQParser::onDocString(const char *doc_string)
 {
     if (_docObjectStack.back()->getDocString() != nullptr)
-        reportDiagnostic(DiagnosticsId::DI_MULTIPLE_DOCSTRINGS);
+        throwError("multiple docstrings in a single block");
     else {
         SQString *docStringCopy = SQString::Create(_ss(_vm), doc_string);
         if (docStringCopy)
@@ -355,6 +374,15 @@ Statement* SQParser::parseStatement(bool closeframe)
         result = parseLocalFunctionExprStmt(false, funcStart);
         break;
     }
+    case TK_ASYNC: {
+        SourceLoc asyncStart = _lex.tokenStart();
+        Lex();
+        if (_token != TK_FUNCTION) {
+            throwError("expected function");
+        }
+        result = parseLocalFunctionExprStmt(false, asyncStart, /*isAsync=*/true);
+        break;
+    }
     case TK_CLASS: {
         SourceLoc classStart = _lex.tokenStart();
         result = parseLocalClassExprStmt(false, classStart);
@@ -395,7 +423,7 @@ Statement* SQParser::parseStatement(bool closeframe)
         else if (_token == TK_ENUM)
             result = parseEnumStatement(true, globalStart);
         else
-            reportDiagnostic(DiagnosticsId::DI_GLOBAL_CONSTS_ONLY);
+            throwError("global can be applied to const and enum only");
         break;
     }
     default: {
@@ -468,22 +496,22 @@ Expr* SQParser::Expression(SQExpressionContext expression_context)
             switch (expression_context)
             {
             case SQE_IF:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "if");
+                throwError("'=' inside 'if' is forbidden");
                 break;
             case SQE_LOOP_CONDITION:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "loop condition");
+                throwError("'=' inside 'loop condition' is forbidden");
                 break;
             case SQE_SWITCH:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "switch");
+                throwError("'=' inside 'switch' is forbidden");
                 break;
             case SQE_FUNCTION_ARG:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "function argument");
+                throwError("'=' inside 'function argument' is forbidden");
                 break;
             case SQE_RVALUE:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "expression");
+                throwError("'=' inside 'expression' is forbidden");
                 break;
             case SQE_ARRAY_ELEM:
-                reportDiagnostic(DiagnosticsId::DI_ASSIGN_INSIDE_FORBIDDEN, "array element");
+                throwError("'=' inside 'array element' is forbidden");
                 break;
             case SQE_REGULAR:
                 break;
@@ -665,7 +693,7 @@ Expr* SQParser::CompExp()
                 lhs = newNode<UnExpr>(TO_NOT, notStart, lhs);
             }
             else
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "in");
+                throwError("expected 'in'");
         }
         default: return lhs;
         }
@@ -776,7 +804,7 @@ Expr* SQParser::PrefixedExpr()
             Lex();
 
             if ((_lex._prevflags & (TF_PREP_SPACE | TF_PREP_EOL)) != 0) {
-              reportDiagnostic(DiagnosticsId::DI_SPACE_SEP_FIELD_NAME, opname(tok));
+              throwError("Separate access operator '%s' with its following name is forbidden", opname(tok));
             }
 
             Expr *receiver = e;
@@ -793,7 +821,7 @@ Expr* SQParser::PrefixedExpr()
                 nextIsNullable = true;
             }
             if(_lex._prevtoken == '\n')
-                reportDiagnostic(DiagnosticsId::DI_BROKEN_SLOT_DECLARATION);
+                throwError("cannot break deref/or comma needed after [exp]=exp slot declaration");
             if (_token == '[')
               checkSuspiciousBracket();
 
@@ -872,7 +900,7 @@ Expr *SQParser::parseStringTemplate() {
     while ((tok = _token) != SQUIRREL_EOB) {
 
       if (tok != TK_TEMPLATE_PREFIX && tok != TK_TEMPLATE_INFIX && tok != TK_TEMPLATE_SUFFIX) {
-          reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "STRING_LITERAL");
+          throwError("expected 'STRING_LITERAL'");
           return nullptr;
       }
 
@@ -887,7 +915,7 @@ Expr *SQParser::parseStringTemplate() {
         args.push_back(arg);
 
         if (_token != '}') {
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "}");
+            throwError("expected '}'");
             return nullptr;
         }
 
@@ -970,7 +998,7 @@ Expr* SQParser::Factor(SQInteger &pos)
     }
     case TK_DOUBLE_COLON: { // "::"
         if (_lang_features & LF_FORBID_ROOT_TABLE)
-            reportDiagnostic(DiagnosticsId::DI_ROOT_TABLE_FORBIDDEN);
+            throwError("Access to root table is forbidden");
         SourceSpan span = _lex.tokenSpan();
         _token = '.'; /* hack: drop into PrefixExpr, case '.'*/
         r = newNode<RootTableAccessExpr>(span);
@@ -1113,6 +1141,25 @@ Expr* SQParser::Factor(SQInteger &pos)
         r = newNode<UnExpr>(TO_RESUME, opStart, PrefixedExpr());
         break;
     }
+    case TK_AWAIT: {
+        SourceLoc opStart = _lex.tokenStart();
+        Lex();
+        r = newNode<UnExpr>(TO_AWAIT, opStart, PrefixedExpr());
+        break;
+    }
+    case TK_ASYNC: {
+        SourceLoc asyncStart = _lex.tokenStart();
+        Lex();
+        if (_token != TK_FUNCTION && _token != '@') {
+            throwError("expected function or @");
+        }
+        bool isLambda = (_token == '@');
+        FunctionExpr *f = FunctionExp(isLambda);
+        f->setAsync(true);
+        f->setSpanStart(asyncStart);
+        r = f;
+        break;
+    }
     case TK_CLONE: {
         SourceLoc opStart = _lex.tokenStart();
         Lex();
@@ -1137,7 +1184,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         break;
     case TK_DELETE :
         if (_lang_features & LF_FORBID_DELETE_OP) {
-            reportDiagnostic(DiagnosticsId::DI_DELETE_OP_FORBIDDEN);
+            throwError("Usage of 'delete' operator is forbidden. Use 'o.rawdelete(\"key\")' instead");
         }
         r = DeleteExpr();
         break;
@@ -1151,7 +1198,7 @@ Expr* SQParser::Factor(SQInteger &pos)
     }
     case TK_CODE_BLOCK_EXPR: {
         if ((_lang_features & LF_ALLOW_COMPILER_INTERNALS) == 0)
-            reportDiagnostic(DiagnosticsId::DI_COMPILER_INTERNALS_FORBIDDEN);
+            throwError("Access to compiler internals is forbidden");
         SQExpressionContext saved_expression_context = _expression_context;
         _expression_context = SQE_REGULAR;
         SQUnsignedInteger savedLangFeatures = _lang_features;
@@ -1180,7 +1227,7 @@ Expr* SQParser::Factor(SQInteger &pos)
         break;
     }
     default:
-        reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "expression");
+        throwError("expected 'expression'");
     }
     return r;
 }
@@ -1193,6 +1240,8 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
     while(_token != terminator) {
         SourceSpan keySpan = _lex.tokenSpan();
         unsigned flags = 0;
+        bool isAsync = false;
+        SourceLoc asyncKeywordStart;
         //check if is an static
         if(otype == NEWOBJ_CLASS) {
             if(_token == TK_STATIC) {
@@ -1200,6 +1249,20 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
                 Lex();
                 keySpan = _lex.tokenSpan();
             }
+        }
+        if (_token == TK_ASYNC) {
+            if (otype != NEWOBJ_CLASS) {
+                throwError("'async' is only allowed on class methods, not table members");
+            }
+            asyncKeywordStart = _lex.tokenStart();
+            Lex();
+            if (_token == TK_CONSTRUCTOR) {
+                throwError("'async constructor' is not allowed: a constructor must return the new instance, not a Promise");
+            }
+            else if (_token != TK_FUNCTION) {
+                throwError("expected function");
+            }
+            isAsync = true;
         }
 
         switch (_token) {
@@ -1211,9 +1274,12 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
         case TK_FUNCTION:
         case TK_CONSTRUCTOR: {
             SQInteger tk = _token;
-            SourceLoc funcStart = _lex.tokenStart();
+            SourceLoc funcStart = isAsync ? asyncKeywordStart : _lex.tokenStart();
             Lex();
             FuncAttrFlagsType attr = ParseFunctionAttributes();
+            if (isAsync && tk == TK_FUNCTION && _token == TK_IDENTIFIER && isMetaMethodName(_lex._svalue)) {
+                throwError("'async' is not allowed on metamethod");
+            }
             Id *funcName = tk == TK_FUNCTION ? (Id *)Expect(TK_IDENTIFIER) : newNode<Id>(_lex.tokenSpan(), "constructor");
             assert(funcName);
             LiteralExpr *key = newNode<LiteralExpr>(funcName->sourceSpan(), funcName->name()); //-V522
@@ -1221,6 +1287,8 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
             FunctionExpr *f = CreateFunction(funcStart, funcName, false, tk == TK_CONSTRUCTOR);
             f->setPure(attr & FATTR_PURE);
             f->setNodiscard(attr & FATTR_NODISCARD);
+            if (isAsync)
+                f->setAsync(true);
             decl->addMember(key, f, flags);
         }
         break;
@@ -1268,7 +1336,7 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
     Lex();
 }
 
-Decl *SQParser::parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart)
+Decl *SQParser::parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart, bool isAsync)
 {
     SourceLoc funcStart = _lex.tokenStart();
 
@@ -1281,6 +1349,7 @@ Decl *SQParser::parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordSta
     FunctionExpr *f = CreateFunction(funcStart, varname, false);
     f->setPure(attr & FATTR_PURE);
     f->setNodiscard(attr & FATTR_NODISCARD);
+    f->setAsync(isAsync);
     VarDecl *d = newNode<VarDecl>(keywordStart, varname, f, assignable); //-V522
     return d;
 }
@@ -1321,7 +1390,7 @@ Decl* SQParser::parseLocalDeclStatement(bool onlySingleVariable)
 
     if (_token == '{' || _token == '[') {
         if (onlySingleVariable)
-            reportDiagnostic(DiagnosticsId::DI_ONLY_SINGLE_VARIABLE_DECLARATION);
+            throwError("Only single variable declaration is allowed here");
 
         destructurer = _token;
         Lex();
@@ -1355,7 +1424,7 @@ Decl* SQParser::parseLocalDeclStatement(bool onlySingleVariable)
         }
         else {
             if (!assignable && !destructurer)
-                _ctx.reportDiagnostic(DiagnosticsId::DI_UNINITIALIZED_BINDING, varname->lineStart(), varname->columnStart(), varname->textWidth(), varname->name()); //-V522
+                _ctx.throwError(varname, "Binding '%s' must be initialized", varname->name()); //-V522
             cur = newNode<VarDecl>(varStart, varname, nullptr, assignable, destructurer != 0);
         }
 
@@ -1386,7 +1455,7 @@ Decl* SQParser::parseLocalDeclStatement(bool onlySingleVariable)
         else {
             if (_token == ',') {
                 if (onlySingleVariable)
-                    reportDiagnostic(DiagnosticsId::DI_ONLY_SINGLE_VARIABLE_DECLARATION);
+                    throwError("Only single variable declaration is allowed here");
                 Lex();
             }
             else
@@ -1451,7 +1520,7 @@ Statement * SQParser::parseIfStatement()
         initializer = parseLocalDeclStatement(true);
         assert(initializer);
         if (initializer->asDeclaration()->asVarDecl()->initializer() == NULL) //-V522
-            reportDiagnostic(DiagnosticsId::DI_INITIALIZATION_REQUIRED);
+            throwError("Initialization required");
 
         if (_token == ';') {
             Lex();
@@ -1689,7 +1758,7 @@ ForeachStatement* SQParser::parseForEachStatement()
                 valname = (Id *)Expect(TK_IDENTIFIER);
                 assert(valname);
                 if (strcmp(idxname->name(), valname->name()) == 0) //-V522
-                    _ctx.reportDiagnostic(DiagnosticsId::DI_SAME_FOREACH_KV_NAMES, valname->lineStart(), valname->columnStart(), valname->textWidth(), valname->name());
+                    _ctx.throwError(valname, "foreach() key and value names are the same: '%s'", valname->name());
             }
         }
     }
@@ -1808,12 +1877,12 @@ LiteralExpr* SQParser::ExpectScalar()
                 ret = newNode<LiteralExpr>(span, -_lex._fvalue);
             break;
             default:
-                reportDiagnostic(DiagnosticsId::DI_SCALAR_EXPECTED, "integer, float");
+                throwError("scalar expected : integer, float");
             }
             break;
         }
         default:
-            reportDiagnostic(DiagnosticsId::DI_SCALAR_EXPECTED, "integer, float, or string");
+            throwError("scalar expected : integer, float, or string");
     }
 
     Lex();
@@ -1882,7 +1951,7 @@ EnumDecl* SQParser::parseEnumStatement(bool global, SourceLoc globalStart)
         const char* keyName = key->name(); //-V522
         for (EnumConst& ec : decl->consts())
             if (*keyName == *ec.id && !strcmp(keyName, ec.id))
-                reportDiagnostic(DiagnosticsId::DI_DUPLICATE_KEY, keyName);
+                throwError("duplicate key '%s'", keyName);
 
         LiteralExpr *valExpr = NULL;
         if(_token == '=') {
@@ -1961,14 +2030,14 @@ SQParser::FuncAttrFlagsType SQParser::ParseFunctionAttributes() {
             } else if (strcmp(_lex._svalue, "nodiscard")==0) {
                 flag = FATTR_NODISCARD;
             } else {
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "valid attribute name");
+                throwError("expected 'valid attribute name'");
             }
             if (attrVal & flag) {
-                reportDiagnostic(DiagnosticsId::DI_DUPLICATE_FUNC_ATTR, _lex._svalue);
+                throwError("duplicate attribute '%s'", _lex._svalue);
             }
             attrVal |= flag;
         } else {
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "attribute name");
+            throwError("expected 'attribute name'");
         }
 
         Lex();
@@ -2059,7 +2128,7 @@ unsigned SQParser::parseTypeMask(bool eol_breaks_type_parsing)
     }
 
     if (!can_be_type_name(_token))
-        reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "TYPE_NAME");
+        throwError("expected 'TYPE_NAME'");
 
     while (can_be_type_name(_token)) {
         const char* suggestion = nullptr;
@@ -2074,9 +2143,9 @@ unsigned SQParser::parseTypeMask(bool eol_breaks_type_parsing)
         bool found = sq_type_string_to_mask(name, currentMask, suggestion);
         if (!found) {
            if (suggestion)
-               reportDiagnostic(DiagnosticsId::DI_INVALID_TYPE_NAME_SUGGESTION, name, suggestion);
+               throwError("Invalid type name '%s', did you mean '%s'?", name, suggestion);
            else
-               reportDiagnostic(DiagnosticsId::DI_INVALID_TYPE_NAME, name);
+               throwError("Invalid type name '%s'", name);
         }
         typeMask |= currentMask;
         Lex();
@@ -2090,7 +2159,7 @@ unsigned SQParser::parseTypeMask(bool eol_breaks_type_parsing)
             break;
 
         if (!can_be_type_name(_token))
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "TYPE_NAME");
+            throwError("expected 'TYPE_NAME'");
     }
 
     if (requireParen)
@@ -2113,7 +2182,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
         SourceSpan paramSpan = _lex.tokenSpan();
         if (_token == TK_VARPARAMS) {
             if(defparams > 0)
-                reportDiagnostic(DiagnosticsId::DI_VARARG_WITH_DEFAULT_ARG);
+                throwError("function with default parameters cannot have variable number of parameters");
             f->addParameter(paramSpan, "vargv");
             f->setVararg(true);
             params.back()->setVararg();
@@ -2121,7 +2190,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
             unsigned typeMask = _token == ':' ? parseTypeMask(false) : ~0u;
             params.back()->setTypeMask(typeMask);
             if(_token != ')')
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, ")");
+                throwError("expected ')'");
             break;
         }
         else {
@@ -2158,7 +2227,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
                 }
                 else {
                     if (defparams > 0)
-                        reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "=");
+                        throwError("expected '='");
                 }
 
                 // Use Id's span for parameter name span
@@ -2169,7 +2238,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
 
             if(_token == ',') Lex();
             else if(_token != ')')
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, ") or ,");
+                throwError("expected ') or ,'");
         }
     }
 
@@ -2193,7 +2262,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
     }
     else {
         if (_token != '{')
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "{");
+            throwError("expected '{'");
         checkBraceIndentationStyle();
         body = (Block *)parseStatement(false);
     }
@@ -2215,7 +2284,7 @@ FunctionExpr* SQParser::CreateFunction(SourceLoc start, Id *name, bool lambda, b
 ImportStmt* SQParser::parseImportStatement()
 {
     if (!_are_imports_still_allowed)
-        reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, "import statements must be at the top of the file");
+        throwError("import statements must be at the top of the file");
 
     // Reuse lexer for the specific import syntax
 
@@ -2229,13 +2298,13 @@ ImportStmt* SQParser::parseImportStatement()
         Lex();
 
         if (_token != TK_STRING_LITERAL)
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "module name");
+            throwError("expected 'module name'");
 
         const char *moduleName = copyString(_lex._svalue);
         Lex();
 
         if (_token != TK_IDENTIFIER || strcmp(_lex._svalue, "import") != 0)
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "import");
+            throwError("expected 'import'");
         Lex();
 
         importStmt = newNode<ImportStmt>(arena(), start, moduleName, nullptr);
@@ -2247,7 +2316,7 @@ ImportStmt* SQParser::parseImportStatement()
             SQModuleImportSlot slot{};
 
             if (_token != '*' && _token != TK_IDENTIFIER)
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "identifier or *");
+                throwError("expected 'identifier or *'");
 
             bool isWildcard = (_token == '*');
 
@@ -2261,9 +2330,9 @@ ImportStmt* SQParser::parseImportStatement()
             if (_token == TK_IDENTIFIER && strcmp(_lex._svalue, "as") == 0) {
                 Lex();
                 if (_token != TK_IDENTIFIER)
-                    reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "identifier");
+                    throwError("expected 'identifier'");
                 if (isWildcard)
-                    reportDiagnostic(DiagnosticsId::DI_GENERAL_COMPILE_ERROR, "cannot rename *");
+                    throwError("cannot rename *");
                 slot.alias = copyString(_lex._svalue);
                 Lex();
             }
@@ -2281,7 +2350,7 @@ ImportStmt* SQParser::parseImportStatement()
         Lex();
 
         if (_token != TK_STRING_LITERAL)
-            reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "module name string");
+            throwError("expected 'module name string'");
 
         const char *moduleName = copyString(_lex._svalue);
         int32_t nameCol = _lex.tokenStart().column;
@@ -2292,7 +2361,7 @@ ImportStmt* SQParser::parseImportStatement()
         if (_token == TK_IDENTIFIER && strcmp(_lex._svalue, "as") == 0) {
             Lex();
             if (_token != TK_IDENTIFIER)
-                reportDiagnostic(DiagnosticsId::DI_EXPECTED_TOKEN, "identifier");
+                throwError("expected 'identifier'");
             moduleAlias = copyString(_lex._svalue);
             aliasCol = _lex.tokenStart().column;
             Lex();

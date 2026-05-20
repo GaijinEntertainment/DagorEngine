@@ -78,6 +78,7 @@ struct DaGIImpl final : public DaGI
   void debugRenderScreen();
   void requestUpdatePosition(const request_sdf_radiance_data_cb &sdf_cb, const cancel_sdf_radiance_data_cb &cancel_sdf_cb,
     const request_albedo_data_cb &albedo_cb, const cancel_albedo_data_cb &cancel_albedo_cb);
+  bool requiresUpdate() const;
   void updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb);
   void invalidateBox(const BBox3 &box);
   void invalidateRadianceFrustum(const Frustum &frustum);
@@ -135,6 +136,7 @@ struct DaGIImpl final : public DaGI
   UniqueBuf commonTempBuffer;
   bool unoderedTypedLoad = true;
   bool positionUpdated = false;
+  bool pendingUpdateAfterDeviceReset = false;
 
   struct RadianceInvalidation
   {
@@ -320,6 +322,7 @@ void DaGIImpl::requestUpdatePosition(const request_sdf_radiance_data_cb &, const
 
 void DaGIImpl::updatePosition(const rasterize_sdf_radiance_cb &sdf_cb, const rasterize_albedo_cb &albedo_cb)
 {
+  pendingUpdateAfterDeviceReset = false;
   if (!gi_world_sdf_update)
     return;
   positionUpdated = true;
@@ -551,6 +554,7 @@ void DaGIImpl::invalidateRadianceFrustum(const Frustum &frustum)
 
 void DaGIImpl::afterReset()
 {
+  pendingUpdateAfterDeviceReset = true;
   if (radianceGrid)
     radianceGrid->afterReset();
   if (screenProbes)
@@ -572,6 +576,8 @@ void DaGIImpl::afterReset()
   G_ASSERTF(0, "fixme: reset support are not implemented yet");
 #endif
 }
+
+bool DaGIImpl::requiresUpdate() const { return pendingUpdateAfterDeviceReset; }
 
 void DaGIImpl::afterFrameRendered(FrameData frame_featues, const bool allow_update_from_gbuf)
 {

@@ -42,8 +42,8 @@ protected:
   bool updateClip(uint32_t clip_no, const Point3 &world_pos, bool updateLast);
   void setClipVars(int clip_no, float probe_size) const;
 
-  UniqueTexHolder dagi_sky_visibility_sph;
-  UniqueTexHolder dagi_sky_visibility_age;
+  UniqueTexWithShaderVar dagi_sky_visibility_sph;
+  UniqueTexWithShaderVar dagi_sky_visibility_age;
   Sbuffer *dagi_sky_visibility_selected_probes = nullptr;
   UniqueBufHolder dagi_sky_visibility_probabilities;
   UniqueBufHolder dagi_sky_vis_indirect_buffer;

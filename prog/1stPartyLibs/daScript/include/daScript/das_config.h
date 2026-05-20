@@ -1,7 +1,13 @@
 #pragma once
 
-#ifndef DAS_SKA_HASH
-#define DAS_SKA_HASH    1
+// Pre-C++20 inclusion order note: this header is pulled in by platform.h line 94,
+// before platform.h defines __forceinline / DAS_SUPPRESS_UB / NO_ASAN_INLINE.
+// Any header we #include here must either not use those macros, or provide its
+// own defensive fallbacks. See das_hash_map/das_hash_map.h and misc/anyhash.h.
+
+// If set to 0, falls back to std::unordered_map. Default is our in-tree map.
+#ifndef DAS_CUSTOM_HASH
+#define DAS_CUSTOM_HASH 1
 #endif
 
 #include <map>
@@ -35,20 +41,17 @@ namespace das {
 }
 #endif
 
-#if DAS_SKA_HASH
-#ifdef _MSC_VER
-#pragma warning(disable:4503)    // decorated name length exceeded, name was truncated
-#endif
-#include <ska/flat_hash_map.hpp>
+#if DAS_CUSTOM_HASH
+#include <das_hash_map/das_hash_map.h>
 namespace das {
-template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
-using das_map = das_ska::flat_hash_map<K,V,H,E>;
-template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
-using das_set = das_ska::flat_hash_set<K,H,E>;
-template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
-using das_hash_map = das_ska::flat_hash_map<K,V,H,E>;
-template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
-using das_hash_set = das_ska::flat_hash_set<K,H,E>;
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_map = das::daslang_hash_map<K,V,H,E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_set = das::daslang_hash_set<K,H,E>;
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_hash_map = das::daslang_hash_map<K,V,H,E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_hash_set = das::daslang_hash_set<K,H,E>;
 template <typename K, typename V>
 using das_safe_map = std::map<K,V>;
 template <typename K, typename C=das::less<K>>

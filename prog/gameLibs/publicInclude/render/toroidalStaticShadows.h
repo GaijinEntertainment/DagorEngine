@@ -175,7 +175,8 @@ protected:
       TMatrix4_vec4 cullViewProj;
       ViewTransformData transform;
     };
-    dag::RelocatableFixedVector<RegionToRender, 8> regionsToRender;
+    static constexpr uint32_t MAX_REGIONS_TO_RENDER = 8;
+    dag::RelocatableFixedVector<RegionToRender, MAX_REGIONS_TO_RENDER> regionsToRender;
   } renderData{};
 
 #if COLLECT_STATIC_SHADOWS_STATISTICS
@@ -274,7 +275,7 @@ protected:
   bool isRendered = false;
   float maxDistance = 0; // biggest cascade distance
   float maxHtRange = 512.f;
-  UniqueTexHolder staticShadowTex;
+  UniqueTexWithShaderVar staticShadowTex;
   int texSize;
   BBox3 worldBox;
   bool useTextureSpaceAlignment = false;

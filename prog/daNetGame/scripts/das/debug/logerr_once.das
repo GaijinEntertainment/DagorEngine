@@ -19,13 +19,13 @@ def logerr_once(message : string) {}
 //      logerr(message)
 [tag_function_macro(tag="logerr_once_tag")]
 class AssertOnceMacro : AstFunctionAnnotation
-  def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr
+  def override transform(var call : ExprCallFunc?; var errors : das_string) : ExpressionPtr
     let once_name = make_unique_private_name("__logerr_once", call.at)
     if !add_global_var(compiling_module(), once_name, call.at) <| quote(true)
       errors := "can't add global variable {once_name}"
-      return <- default<ExpressionPtr>
+      return default<ExpressionPtr>
 
-    return <- qmacro_block() <|
+    return qmacro_block() <|
       if $i(once_name)
         $i(once_name) = false
         logerr($e(call.arguments[0]))

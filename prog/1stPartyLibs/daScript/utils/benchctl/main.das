@@ -8,7 +8,7 @@ require daslib/defer
 require daslib/regex_boost
 require daslib/strings_boost
 
-require sql
+require bench_sql
 require utils
 require flags
 require benchstat
@@ -22,9 +22,7 @@ def main() {
         print("[{red_str("error")}] {err}\n")
         exit_code = 1
     }
-    unsafe {
-        exit(exit_code)
-    }
+    return exit_code
 }
 
 def run_main() : string {

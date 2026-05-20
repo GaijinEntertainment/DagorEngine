@@ -1,0 +1,5 @@
+script done
+outer start
+inner start
+inner got: 7
+outer got: 42

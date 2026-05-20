@@ -146,7 +146,7 @@ namespace das {
     class Module_Ast : public Module {
     public:
         template <typename TT>
-        smart_ptr<TT> addExpressionAnnotation ( const smart_ptr<TT> & ann );
+        TT * addExpressionAnnotation ( TT * ann );
         Module_Ast();
         void registerFlags(ModuleLibrary & lib);
         void registerAdapterAnnotations(ModuleLibrary & lib);
@@ -195,10 +195,10 @@ namespace das {
     void init_expr_looks_like_call ( BasicStructureAnnotation & ann );
 
     template <typename EXPR>
-    struct AstExprAnnotation : ManagedStructureAnnotation <EXPR> {
+    struct AstExprAnnotation : ManagedStructureAnnotation <EXPR, true, false> {
         const char * parentExpression = nullptr;
         AstExprAnnotation(const string & en, ModuleLibrary & ml)
-            : ManagedStructureAnnotation<EXPR> (en, ml) {
+            : ManagedStructureAnnotation<EXPR, true, false> (en, ml) {
         }
         __forceinline void init() {
             init_expr(*this);
@@ -340,7 +340,7 @@ namespace das {
     };
 
     template <typename TT>
-    smart_ptr<TT> Module_Ast::addExpressionAnnotation ( const smart_ptr<TT> & ann ) {
+    TT * Module_Ast::addExpressionAnnotation ( TT * ann ) {
         addAnnotation(ann);
         return ann;
     }

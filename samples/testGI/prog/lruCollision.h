@@ -29,11 +29,7 @@ struct LRUCollision
     v_stu_p3(&bBox[1].x, bbox.bmax);
     BSphere3 sph;
     sph += bBox;
-    auto v = make_span(memalloc_typed<Point3_vec4>(vertices.size(), midmem), vertices.size());
-    mem_copy_from(v, vertices.data());
-    auto i = make_span(memalloc_typed<uint16_t>(indices.size(), midmem), indices.size());
-    mem_copy_from(i, indices.data());
-    eastl::unique_ptr<CollisionResource> coll(CollisionResource::createSingleMesh(v, i, bBox, sph, 0));
+    eastl::unique_ptr<CollisionResource> coll(CollisionResource::createSingleMesh(vertices, indices, bBox, sph, 0));
     collRes.push_back(eastl::move(coll));
     return collRes.size() - 1;
   }

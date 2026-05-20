@@ -12,9 +12,6 @@ namespace gpu
 {
 void update_device_attributes(uint32_t vendor_id, uint32_t device_id, DeviceAttributesBase &device_attributes);
 
-bool is_forced_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
-  eastl::span<const uint32_t> other_discrete);
-
 bool is_preferred_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete);
 

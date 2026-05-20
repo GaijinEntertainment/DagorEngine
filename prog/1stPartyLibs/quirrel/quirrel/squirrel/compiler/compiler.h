@@ -2,7 +2,6 @@
 #pragma once
 
 struct SQVM;
-class OutputStream;
 class Arena;
 
 namespace SQCompilation

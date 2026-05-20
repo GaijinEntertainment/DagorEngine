@@ -9,7 +9,7 @@
 #include <math/dag_TMatrix4.h>
 #include <math/dag_frustum.h>
 #include <3d/dag_maskedOcclusionCulling.h>
-#include <3d/dag_occlusionSystem.h>
+#include <scene/dag_occlusion.h>
 #include <3d/dag_ringCPUTextureLock.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <generic/dag_carray.h>
@@ -29,38 +29,37 @@
 CONSOLE_BOOL_VAL("occlusion", debug_reprojection, false);
 #endif
 
-class OcclusionSystemImpl final : public OcclusionSystem
+class OcclusionImpl final
 {
 public:
-  OcclusionSystemImpl() {}
-  ~OcclusionSystemImpl() { close(); }
-  void init(const char *hzb_tex_name) override;
-  void close() override;
-  void reset() override;
-  bool hasGPUFrame() const override { return currentCheckingFrame > 0; }
-  void readGPUframe() override; // can be run from any thread, but will read from gpu texture (gpu readback)
+  OcclusionImpl(OcclusionZBuffer &occ_zbuf) : occlusionZBuffer(occ_zbuf), occlusionRenderer(occ_zbuf) {}
+  ~OcclusionImpl() { close(); }
+  void init(const char *hzb_tex_name);
+  void close();
+  void reset();
+  bool hasGPUFrame() const { return currentCheckingFrame > 0; }
+  void readGPUframe(); // can be run from any thread, but will read from gpu texture (gpu readback)
   void prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
-    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim) override; // performs reprojection of latest GPU frame
-  void clear() override;                                                        // performs reprojection of latest GPU frame
-  void buildMips() override;
-  void prepareDebug() override;
+    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim); // performs reprojection of latest GPU frame
+  void clear();
+  void buildMips();
+  void prepareDebug();
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution = nullptr) override;
+    Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution = nullptr);
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution = nullptr) override;
-  void setReprojectionUseCameraTranslatedSpace(bool enabled) override;
-  bool getReprojectionUseCameraTranslatedSpace() const override;
-  void initSWRasterization() override;
-  void startRasterization(float zn) override;
-  void rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat43f *mat, int cnt) override;
-  void rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat44f *mat, int cnt) override;
-  void rasterizeQuads(mat44f_cref viewproj, const vec4f *verts, int cnt) override;
+    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution = nullptr);
+  void setReprojectionUseCameraTranslatedSpace(bool enabled);
+  bool getReprojectionUseCameraTranslatedSpace() const;
+  void initSWRasterization();
+  void startRasterization(float zn);
+  void rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat43f *mat, int cnt);
+  void rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat44f *mat, int cnt);
+  void rasterizeQuads(mat44f_cref viewproj, const vec4f *verts, int cnt);
   void rasterizeMesh(mat44f_cref viewproj, vec3f bmin, vec3f bmax, const vec4f *verts, int vert_cnt, const unsigned short *faces,
-    int tri_count) override;
-  void combineWithSWRasterization() override;
-  void prepareDebugSWRasterization() override;
-  void mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
-    uint32_t last_tile) override
+    int tri_count);
+  void combineWithSWRasterization();
+  void prepareDebugSWRasterization();
+  void mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile, uint32_t last_tile)
   {
     moc->mergeOcclusionsZmin(another_occl, occl_count, first_tile, last_tile);
   }
@@ -70,13 +69,15 @@ public:
     _height = height * 4;
   }
 
-protected:
+private:
   template <bool ignoreVr>
   void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
     Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution);
 
   void initVrRes();
   bool process(float *destData, uint32_t &frame);
+
+  OcclusionZBuffer &occlusionZBuffer;
   SmallTab<float, MidmemAlloc> lastHWdepth; // we need that in case next frame is not ready
   class MaskedOcclusionCulling *moc = 0;
 
@@ -110,12 +111,10 @@ protected:
   TEXTUREID currentTargetId = BAD_TEXTUREID;
   d3d::SamplerHandle clampPointSampler = d3d::INVALID_SAMPLER_HANDLE;
 
-  OcclusionRenderer<WIDTH, HEIGHT> occlusionRenderer{occlusionTest};
+  OcclusionRenderer occlusionRenderer;
 };
 
-OcclusionSystem *OcclusionSystem::create() { return new OcclusionSystemImpl; }
-
-void OcclusionSystemImpl::close()
+void OcclusionImpl::close()
 {
   ringTextures.close();
   downsample.clear();
@@ -130,7 +129,7 @@ void OcclusionSystemImpl::close()
 #endif
 }
 
-void OcclusionSystemImpl::initSWRasterization()
+void OcclusionImpl::initSWRasterization()
 {
   if (!moc)
   {
@@ -151,11 +150,11 @@ void OcclusionSystemImpl::initSWRasterization()
   }
 }
 
-void OcclusionSystemImpl::init(const char *hzb_tex_name)
+void OcclusionImpl::init(const char *hzb_tex_name)
 {
   close();
-  width = WIDTH;
-  height = HEIGHT;
+  width = OcclusionZBuffer::WIDTH;
+  height = OcclusionZBuffer::HEIGHT;
   currentCheckingFrame = 0;
   if (shader_exists("downsample_depth_hzb")) // we don't support GPU readback on this platform
   {
@@ -174,7 +173,7 @@ void OcclusionSystemImpl::init(const char *hzb_tex_name)
   }
 }
 
-void OcclusionSystemImpl::reset()
+void OcclusionImpl::reset()
 {
   clear();
   ringTextures.reset();
@@ -220,7 +219,7 @@ static const uint16_t box_indices[] = {
   7,
 };
 
-void OcclusionSystemImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat43f *mat, int cnt)
+void OcclusionImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat43f *mat, int cnt)
 {
   if (!moc)
     return;
@@ -254,7 +253,7 @@ void OcclusionSystemImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box
   }
 }
 
-void OcclusionSystemImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat44f *mat, int cnt)
+void OcclusionImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box, const mat44f *mat, int cnt)
 {
   if (!moc)
     return;
@@ -291,7 +290,7 @@ void OcclusionSystemImpl::rasterizeBoxes(mat44f_cref viewproj, const bbox3f *box
 // both culling
 static const uint16_t quad_indices[12] = {0, 1, 2, 1, 2, 3, 0, 2, 1, 1, 3, 2};
 
-void OcclusionSystemImpl::rasterizeQuads(mat44f_cref viewproj, const vec4f *vert, int cnt)
+void OcclusionImpl::rasterizeQuads(mat44f_cref viewproj, const vec4f *vert, int cnt)
 {
   if (!moc)
     return;
@@ -310,7 +309,7 @@ void OcclusionSystemImpl::rasterizeQuads(mat44f_cref viewproj, const vec4f *vert
   }
 }
 
-void OcclusionSystemImpl::rasterizeMesh(mat44f_cref viewproj, vec3f bmin, vec3f bmax, const vec4f *verts, int /*vert_cnt*/,
+void OcclusionImpl::rasterizeMesh(mat44f_cref viewproj, vec3f bmin, vec3f bmax, const vec4f *verts, int /*vert_cnt*/,
   const unsigned short *faces, int tri_count)
 {
   if (!moc)
@@ -324,7 +323,7 @@ void OcclusionSystemImpl::rasterizeMesh(mat44f_cref viewproj, vec3f bmin, vec3f 
     ret == Frustum::INTERSECT ? MaskedOcclusionCulling::CLIP_PLANE_ALL : MaskedOcclusionCulling::CLIP_PLANE_NONE); // CLIP_PLANE_ALL
 }
 
-void OcclusionSystemImpl::startRasterization(float zn)
+void OcclusionImpl::startRasterization(float zn)
 {
   if (!moc)
     return;
@@ -332,21 +331,21 @@ void OcclusionSystemImpl::startRasterization(float zn)
   moc->ClearBuffer();
 }
 
-void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, Texture *depth, Texture *base_depth, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+  Texture *depth, Texture *base_depth, const DynRes *dynamic_resolution)
 {
   prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, StereoIndex::Mono, dynamic_resolution);
 }
 
-void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+  Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
   prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, stereo_index, dynamic_resolution);
 }
 
 template <bool ignoreVr>
-void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
+  Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
   G_ASSERT_RETURN(depth, );
   if (ignoreVr || stereo_index != StereoIndex::Right)
@@ -529,11 +528,11 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
   }
 }
 
-void OcclusionSystemImpl::setReprojectionUseCameraTranslatedSpace(bool enabled) { reprojectionUseCameraTranslatedSpace = enabled; }
+void OcclusionImpl::setReprojectionUseCameraTranslatedSpace(bool enabled) { reprojectionUseCameraTranslatedSpace = enabled; }
 
-bool OcclusionSystemImpl::getReprojectionUseCameraTranslatedSpace() const { return reprojectionUseCameraTranslatedSpace; }
+bool OcclusionImpl::getReprojectionUseCameraTranslatedSpace() const { return reprojectionUseCameraTranslatedSpace; }
 
-void OcclusionSystemImpl::initVrRes()
+void OcclusionImpl::initVrRes()
 {
   if (isVrResInited)
     return;
@@ -542,7 +541,7 @@ void OcclusionSystemImpl::initVrRes()
   downsample_vr.reset(new_compute_shader("downsample_depth_hzb_vr"));
 }
 
-bool OcclusionSystemImpl::process(float *destData, uint32_t &frame)
+bool OcclusionImpl::process(float *destData, uint32_t &frame)
 {
   TIME_D3D_PROFILE(readback_hzb);
   int stride;
@@ -561,21 +560,21 @@ bool OcclusionSystemImpl::process(float *destData, uint32_t &frame)
   return true;
 }
 
-void OcclusionSystemImpl::readGPUframe()
+void OcclusionImpl::readGPUframe()
 {
   if (!lastHWdepth.size()) // we don't support GPU readback on this platform
     return;
   process(lastHWdepth.data(), currentCheckingFrame);
 }
 
-void OcclusionSystemImpl::clear()
+void OcclusionImpl::clear()
 {
   TIME_PROFILE(occlusion_clear);
-  occlusionTest.clear();
+  occlusionZBuffer.clear();
 }
 
-void OcclusionSystemImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj,
-  float cockpit_distance, CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim)
+void OcclusionImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
+  CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim)
 {
   {
     TIME_PROFILE(occlusion_clear);
@@ -621,29 +620,29 @@ void OcclusionSystemImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat4
   }
 }
 
-void OcclusionSystemImpl::combineWithSWRasterization()
+void OcclusionImpl::combineWithSWRasterization()
 {
   if (moc)
   {
-    float *zb = occlusionTest.getZbuffer(0);
+    float *zb = occlusionZBuffer.getZbuffer(0);
     if (currentCheckingFrame > 0)
-      moc->CombinePixelDepthBuffer2W(zb, WIDTH, HEIGHT);
+      moc->CombinePixelDepthBuffer2W(zb, OcclusionZBuffer::WIDTH, OcclusionZBuffer::HEIGHT);
     else
-      moc->DecodePixelDepthBuffer2W(zb, WIDTH, HEIGHT);
+      moc->DecodePixelDepthBuffer2W(zb, OcclusionZBuffer::WIDTH, OcclusionZBuffer::HEIGHT);
   }
 }
 
-void OcclusionSystemImpl::buildMips()
+void OcclusionImpl::buildMips()
 {
   TIME_PROFILE(occlusion_buildMips);
-  occlusionTest.buildMips();
+  occlusionZBuffer.buildMips();
 }
 
-void OcclusionSystemImpl::prepareDebug()
+void OcclusionImpl::prepareDebug()
 {
 #if DAGOR_DBGLEVEL > 0
   TIME_D3D_PROFILE(debug_occlusion);
-  constexpr auto mip_chain_cnt = OcclusionTest<WIDTH, HEIGHT>::mip_chain_count;
+  constexpr auto mip_chain_cnt = OcclusionZBuffer::mip_chain_count;
   if (!reprojected.getTex2D())
   {
     uint32_t flags = TEXCF_READABLE | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F;
@@ -656,7 +655,7 @@ void OcclusionSystemImpl::prepareDebug()
   for (int mip = 0; mip < mip_chain_cnt; ++mip)
     if (reprojected.getTex2D()->lockimg((void **)&data, stride, mip, TEXLOCK_READWRITE))
     {
-      const float *zbuffer = occlusionTest.getZbuffer(mip);
+      const float *zbuffer = occlusionZBuffer.getZbuffer(mip);
       if (mip == 0 && debug_reprojection.get())
       {
         for (int i = 0; i < height; ++i, data += stride)
@@ -672,7 +671,7 @@ void OcclusionSystemImpl::prepareDebug()
 #endif
 }
 
-void OcclusionSystemImpl::prepareDebugSWRasterization()
+void OcclusionImpl::prepareDebugSWRasterization()
 {
 #if DAGOR_DBGLEVEL > 0
   if (!moc)
@@ -702,3 +701,104 @@ void OcclusionSystemImpl::prepareDebugSWRasterization()
   }
 #endif
 }
+
+// Occlusion method bodies (pimpl forwarding to OcclusionImpl)
+
+void Occlusion::init(const char *hzb_tex_name)
+{
+  close();
+  impl = new OcclusionImpl(occlusionZBuffer);
+  impl->init(hzb_tex_name);
+}
+
+void Occlusion::close()
+{
+  delete impl;
+  impl = nullptr;
+  occlusionZBuffer.clear();
+}
+
+void Occlusion::reset() { impl->reset(); }
+void Occlusion::readbackGPU() { impl->readGPUframe(); }
+
+void Occlusion::reprojectGPUFrame()
+{
+  impl->prepareGPUDepthFrame(curViewPos, curView, curProj, curViewProj, cockpitDistance, cockpitMode, cockpitAnim);
+}
+
+void Occlusion::clear() { impl->clear(); }
+bool Occlusion::hasGPUFrame() const { return impl->hasGPUFrame(); }
+
+void Occlusion::prepareDebug()
+{
+  if (!impl)
+    return;
+  impl->prepareDebug();
+  impl->prepareDebugSWRasterization();
+}
+
+void Occlusion::setReprojectionUseCameraTranslatedSpace(bool enabled)
+{
+  if (!impl)
+    return;
+  impl->setReprojectionUseCameraTranslatedSpace(enabled);
+}
+
+bool Occlusion::getReprojectionUseCameraTranslatedSpace() const
+{
+  if (!impl)
+    return false;
+  return impl->getReprojectionUseCameraTranslatedSpace();
+}
+
+void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution)
+{
+  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, dynamic_resolution);
+}
+
+void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
+  const DynRes *dynamic_resolution)
+{
+  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index, dynamic_resolution);
+}
+
+void Occlusion::startSWOcclusion(float zn)
+{
+  impl->initSWRasterization();
+  impl->startRasterization(zn);
+}
+
+void Occlusion::finalizeBoxes(const bbox3f *box, const mat44f *mat, int cnt)
+{
+  rasterizedBoxOccluders += cnt;
+  impl->rasterizeBoxes(curViewProj, box, mat, cnt);
+}
+
+void Occlusion::finalizeQuads(const vec4f *verts, int cnt)
+{
+  rasterizedQuadOccluders += cnt;
+  impl->rasterizeQuads(curViewProj, verts, cnt);
+}
+
+void Occlusion::rasterizeMesh(mat44f_cref viewproj, vec3f bmin, vec3f bmax, const vec4f *verts, int vert_cnt,
+  const unsigned short *faces, int tri_count)
+{
+  rasterizedTriOccluders += tri_count;
+  impl->rasterizeMesh(viewproj, bmin, bmax, verts, vert_cnt, faces, tri_count);
+}
+
+void Occlusion::finalizeSWOcclusion()
+{
+  if (rasterizedQuadOccluders || rasterizedBoxOccluders || rasterizedTriOccluders || hasMergedOcclusion)
+    impl->combineWithSWRasterization();
+}
+
+void Occlusion::finalizeOcclusion() { impl->buildMips(); }
+
+void Occlusion::mergeOcclusionsZmin(MaskedOcclusionCulling **another_occl, uint32_t occl_count, uint32_t first_tile,
+  uint32_t last_tile)
+{
+  impl->mergeOcclusionsZmin(another_occl, occl_count, first_tile, last_tile);
+}
+
+void Occlusion::getMaskedResolution(uint32_t &width, uint32_t &height) const { impl->getMaskedResolution(width, height); }

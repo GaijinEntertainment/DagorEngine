@@ -17,7 +17,7 @@ class HDRDecoder : public IHDRDecoder
 {
   bool locked = false;
   UniqueTex sdrTex;
-  UniqueTexHolder copyTex;
+  UniqueTexWithShaderVar copyTex;
   eastl::unique_ptr<PostFxRenderer> decodeHDRRenderer;
 
 public:

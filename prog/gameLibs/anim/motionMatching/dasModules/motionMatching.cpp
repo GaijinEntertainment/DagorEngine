@@ -171,17 +171,17 @@ public:
   MotionMatchingModule() : das::Module("MotionMatching")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<RootMotionAnnotation>(lib));
-    addAnnotation(das::make_smart<FeatureWeightsAnnotation>(lib));
-    addAnnotation(das::make_smart<TagPresetAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimationClipAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimationDataBaseAnnotation>(lib));
-    addAnnotation(das::make_smart<AnimationFilterTagsAnnotation>(lib));
-    addAnnotation(das::make_smart<BoneInertialInfoAnnotation>(lib));
-    addAnnotation(das::make_smart<MotionMatchingControllerAnnotation>(lib));
-    addAnnotation(das::make_smart<FootLockerIKCtrlLegDataAnnotation>(lib));
-    addAnnotation(das::make_smart<FrameFeaturesAnnotation>(lib));
-    addAnnotation(das::make_smart<MatchingResultAnnotation>(lib));
+    addAnnotation(new RootMotionAnnotation(lib));
+    addAnnotation(new FeatureWeightsAnnotation(lib));
+    addAnnotation(new TagPresetAnnotation(lib));
+    addAnnotation(new AnimationClipAnnotation(lib));
+    addAnnotation(new AnimationDataBaseAnnotation(lib));
+    addAnnotation(new AnimationFilterTagsAnnotation(lib));
+    addAnnotation(new BoneInertialInfoAnnotation(lib));
+    addAnnotation(new MotionMatchingControllerAnnotation(lib));
+    addAnnotation(new FootLockerIKCtrlLegDataAnnotation(lib));
+    addAnnotation(new FrameFeaturesAnnotation(lib));
+    addAnnotation(new MatchingResultAnnotation(lib));
 
     das::typeFactory<TagPresetVector>::make(lib);
     das::addUsing<MotionMatchingSearchFeatures>(*this, lib, " MotionMatchingSearchFeatures");

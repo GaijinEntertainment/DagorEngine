@@ -705,16 +705,28 @@ namespace das
     vec4f SimNode_While::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
-        while ( cond->evalBool(context) && !context.stopFlags ) {
-            SimNode ** __restrict body = list;
-        loopbegin:;
-            for (; body!=tail; ++body) {
-                (*body)->eval(context);
-                DAS_PROCESS_LOOP_FLAGS(break);
+        if ( this->totalFinal == 0 ) {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin:;
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS(break);
+                }
+            }
+        } else {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin_fin:;
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS_LABELED(loopbegin_fin,loopend_fin,break);
+                }
+            loopend_fin:;
+                evalFinal(context);
             }
         }
     loopend:;
-        evalFinal(context);
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -724,17 +736,30 @@ namespace das
     vec4f SimNodeDebug_While::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
-        while ( cond->evalBool(context) && !context.stopFlags ) {
-            SimNode ** __restrict body = list;
-        loopbegin:;
-            for (; body!=tail; ++body) {
-                DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
-                (*body)->eval(context);
-                DAS_PROCESS_LOOP_FLAGS(break);
+        if ( this->totalFinal == 0 ) {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin:;
+                for (; body!=tail; ++body) {
+                    DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS(break);
+                }
+            }
+        } else {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin_fin:;
+                for (; body!=tail; ++body) {
+                    DAS_SINGLE_STEP(context,(*body)->debugInfo,true);
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS_LABELED(loopbegin_fin,loopend_fin,break);
+                }
+            loopend_fin:;
+                evalFinalSingleStep(context);
             }
         }
     loopend:;
-        evalFinalSingleStep(context);
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -745,17 +770,30 @@ namespace das
     vec4f SimNodeKeepAlive_While::eval ( Context & context ) {
         DAS_PROFILE_NODE
         SimNode ** __restrict tail = list + total;
-        while ( cond->evalBool(context) && !context.stopFlags ) {
-            SimNode ** __restrict body = list;
-        loopbegin:;
-            DAS_KEEPALIVE_LOOP(&context);
-            for (; body!=tail; ++body) {
-                (*body)->eval(context);
-                DAS_PROCESS_LOOP_FLAGS(break);
+        if ( this->totalFinal == 0 ) {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin:;
+                DAS_KEEPALIVE_LOOP(&context);
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS(break);
+                }
+            }
+        } else {
+            while ( cond->evalBool(context) && !context.stopFlags ) {
+                SimNode ** __restrict body = list;
+            loopbegin_fin:;
+                DAS_KEEPALIVE_LOOP(&context);
+                for (; body!=tail; ++body) {
+                    (*body)->eval(context);
+                    DAS_PROCESS_LOOP_FLAGS_LABELED(loopbegin_fin,loopend_fin,break);
+                }
+            loopend_fin:;
+                evalFinal(context);
             }
         }
     loopend:;
-        evalFinal(context);
         context.stopFlags &= ~EvalFlags::stopForBreak;
         return v_zero();
     }
@@ -967,6 +1005,7 @@ namespace das
     }
 
     Context::Context(uint32_t stackSize, bool ph) : stack(stackSize) {
+        ref_count_magic = TRACK_PTR_CONTEXT;
         code = make_shared<NodeAllocator>();
         constStringHeap = make_shared<ConstStringAllocator>();
         debugInfo = make_shared<DebugInfoAllocator>();
@@ -980,16 +1019,19 @@ namespace das
         gcEnabled = options.getBoolOption("gc", false);
         persistent = options.getBoolOption("persistent_heap", policies.persistent_heap);
         if ( persistent ) {
-            heap = make_smart<PersistentHeapAllocator>();
-            stringHeap = make_smart<PersistentStringAllocator>();
+            heap = make_unique<PersistentHeapAllocator>();
+            stringHeap = make_unique<PersistentStringAllocator>();
         } else {
-            heap = make_smart<LinearHeapAllocator>();
-            stringHeap = make_smart<LinearStringAllocator>();
+            heap = make_unique<LinearHeapAllocator>();
+            stringHeap = make_unique<LinearStringAllocator>();
         }
         heap->setInitialSize ( options.getIntOption("heap_size_hint", policies.heap_size_hint) );
         heap->setLimit ( options.getUInt64OptionEx("heap_size_limit", "max_heap_allocated", policies.max_heap_allocated) );
         stringHeap->setInitialSize ( options.getIntOption("string_heap_size_hint", policies.string_heap_size_hint) );
         stringHeap->setLimit ( options.getUInt64OptionEx("string_heap_size_limit", "max_string_heap_allocated", policies.max_string_heap_allocated) );
+        bool track = options.getBoolOption("track_allocations", policies.track_allocations);
+        heap->setTrackAllocations(track);
+        stringHeap->setTrackAllocations(track);
         constStringHeap = make_shared<ConstStringAllocator>();
         totalVariables = totalVars;
         if ( globalStringHeapSize ) {
@@ -1177,6 +1219,7 @@ namespace das
 
     Context::Context(const Context & ctx, const CopyOptions & opts)
         : stack(opts.stackSize ? opts.stackSize : ctx.stack.size()) {
+        ref_count_magic = TRACK_PTR_CONTEXT;
         verySafeContext = ctx.verySafeContext;
         persistent = ctx.persistent;
         gcEnabled = ctx.gcEnabled;
@@ -1189,18 +1232,20 @@ namespace das
         category.value = opts.category;
         ownStack = (ctx.stack.size() != 0);
         if ( persistent ) {
-            heap = make_smart<PersistentHeapAllocator>();
-            stringHeap = make_smart<PersistentStringAllocator>();
+            heap = make_unique<PersistentHeapAllocator>();
+            stringHeap = make_unique<PersistentStringAllocator>();
         } else {
-            heap = make_smart<LinearHeapAllocator>();
-            stringHeap = make_smart<LinearStringAllocator>();
+            heap = make_unique<LinearHeapAllocator>();
+            stringHeap = make_unique<LinearStringAllocator>();
         }
         // heap
         heap->setInitialSize(ctx.heap->getInitialSize());
         heap->setLimit(ctx.heap->getLimit());
+        heap->setTrackAllocations(ctx.heap->isTrackingAllocations());
         stringHeap->setInitialSize(ctx.stringHeap->getInitialSize());
         stringHeap->setIntern(ctx.stringHeap->isIntern());
         stringHeap->setLimit(ctx.stringHeap->getLimit());
+        stringHeap->setTrackAllocations(ctx.stringHeap->isTrackingAllocations());
         // globals
         annotationData = ctx.annotationData;
         globalsSize = ctx.globalsSize;
@@ -1245,7 +1290,8 @@ namespace das
                 });
             }
             if ( failed ) {
-                to_err(&exceptionAt, last_exception);
+                to_err(&exceptionAt, getException());
+                clearException();
             }
         }
         restart();
@@ -1628,12 +1674,12 @@ namespace das
         char * sp = stack.ap();
         ssw << "CALL STACK (sp=" << (stack.top() - stack.ap())
             << ",sptr=0x" << HEX  << intptr_t(sp) << DEC << "):\n";
-        auto walker = make_smart<StackWalkerTextWriter> ( ssw, this );
-        walker->showArguments = showArguments;
-        walker->showLocalVariables =  showLocalVariables;
-        walker->showOutOfScope = showOutOfScope;
-        walker->stackTopOnly = stackTopOnly;
-        dapiStackWalk ( walker, *this, at ? *at : LineInfo() );
+        StackWalkerTextWriter walker ( ssw, this );
+        walker.showArguments = showArguments;
+        walker.showLocalVariables =  showLocalVariables;
+        walker.showOutOfScope = showOutOfScope;
+        walker.stackTopOnly = stackTopOnly;
+        dapiStackWalk ( &walker, *this, at ? *at : LineInfo() );
         ssw << "\n";
     #else
         ssw << "\nCALL STACK TRACKING DISABLED:\n\n";
@@ -2096,33 +2142,38 @@ namespace das
     }
 
     void Context::onAllocateString ( void * ptr, uint64_t size, bool tempString, const LineInfo & at ) {
-        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
-            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onAllocateString(this, ptr, size, tempString, at);
-        }
+        if ( g_envTotal == 0 ) return;
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onAllocateString(this, ptr, size, tempString, at);
+        });
     }
 
     void Context::onFreeString ( void * ptr, bool tempString, const LineInfo & at ) {
-        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
-            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onFreeString(this, ptr, tempString, at);
-        }
+        if ( g_envTotal == 0 ) return;
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onFreeString(this, ptr, tempString, at);
+        });
     }
 
     void Context::onAllocate ( void * ptr, uint64_t size, const LineInfo & at ) {
-        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
-            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onAllocate(this, ptr, size, at);
-        }
+        if ( g_envTotal == 0 ) return;
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onAllocate(this, ptr, size, at);
+        });
     }
 
     void Context::onReallocate ( void * ptr, uint64_t size, void * newPtr, uint64_t newSize, const LineInfo & at ) {
-        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
-            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onReallocate(this, ptr, size, newPtr, newSize, at);
-        }
+        if ( g_envTotal == 0 ) return;
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onReallocate(this, ptr, size, newPtr, newSize, at);
+        });
     }
 
     void Context::onFree ( void * ptr, const LineInfo & at ) {
-        if ( g_envTotal > 0 && *daScriptEnvironment::g_threadLocalDebugAgent && (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent ) {
-            (*daScriptEnvironment::g_threadLocalDebugAgent)->debugAgent->onFree(this, ptr, at);
-        }
+        if ( g_envTotal == 0 ) return;
+        for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+            pAgent->onFree(this, ptr, at);
+        });
     }
 
     const LineInfo * SimFunction::getLineInfo() const { return &code->debugInfo; }

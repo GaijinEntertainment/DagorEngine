@@ -44,7 +44,7 @@ public:
   };
 
   void drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id, const ImVec2 offset);
-  void drawNode(ImDrawList *draw_list, const NodeNameId node_id, const ImVec2 node_offset, const ImVec2 node_size);
+  void drawNode(ImDrawList *draw_list, const NodeId node_id, const ImVec2 node_offset, const ImVec2 node_size);
   void drawEdges(ImDrawList *draw_list, const Layout &layout, const ImVec2 offset);
 
   void processPopup();
@@ -55,6 +55,7 @@ public:
 
   void updateVisualization();
 
+  void updateNodesRess();
   void updateIRInfo();
   void updateNameSpaces();
   void updateDependencies();
@@ -65,7 +66,7 @@ public:
   void performLayout();
   void performBoxLayout(const NodeBox &node_box, Layout &node_box_layout);
   void performCondensedLayout();
-  void calculatePositions(Layout &layout, const eastl::span<NodeNameId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
+  void calculatePositions(Layout &layout, const eastl::span<NodeId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
     const bool has_io);
 
 
@@ -82,38 +83,38 @@ private:
 
   // gathered data
 private:
-  // from InternalRegistry
-  IdIndexedMapping<NameSpaceNameId, NameSpace> nameSpaces; // Used for nodes grouping
-  dag::Vector<NodeNameId> nodeIds;                         // Node ids in namespace order
-  dag::Vector<ResNameId> resIds;                           // Resource ids in namespace order
-  dag::Vector<eastl::string_view> nodeNames;               // Node names in namespace order for ImGuiDagor::ComboWithFilter()
-  dag::Vector<eastl::string_view> resNames;                // Resource names in namespace order for ImGuiDagor::ComboWithFilter()
+  IdIndexedMapping<NodeId, Node> userNodes;               // Nodes and resources,
+  IdIndexedMapping<ResourceId, Resource> userResources;   // filtered of debug instances
+  IdIndexedMapping<NodeNameId, NodeId> regNodesRepresent; // and mappings registry id -> represantative id
+  IdIndexedMapping<ResNameId, ResourceId> regResRepresent;
+  inline NodeNameId nameIdByNodeId(const NodeId node_id) const { return userNodes[node_id].regId; };
+  inline ResNameId nameIdByResId(const ResourceId resource_id) const { return userResources[resource_id].regId; }
+  inline bool nodeIsPresented(NodeNameId id) const { return regNodesRepresent[id] != NodeId::Invalid; }
+  inline bool resIsPresented(ResNameId id) const { return regResRepresent[id] != ResourceId::Invalid; }
 
-  IdIndexedMapping<DependencyId, Dependency> registryDependencies;  // List of all dependencies, stated in InternalRegistry
-  IdIndexedMapping<NodeNameId, NodeDependencies> nodesDependencies; // Lists of dependencies per user node
-  dag::Vector<DependencyId> historyDependencies;                    // List of history reads, not used for layouting
-  dag::Vector<DependencyId> disabledDependencies;                   // Dependencies, that were disabled during check for cycles
+  IdIndexedMapping<NameSpaceNameId, NameSpace> nameSpaces; // Information about sub namespaces, nodes and resources for
+  dag::Vector<NodeNameId> nsNodeNameIds;                   // ImGuiDagor::ComboWithFilter() and treeWithFilter()
+  dag::Vector<ResNameId> nsResNameIds;
+  dag::Vector<eastl::string_view> nsNodeNames;
+  dag::Vector<eastl::string_view> nsResNames;
 
-  // from intermediate::Graph
-  IdIndexedMapping<NodeNameId, PassColor> passColors;   // Info for visualizator to show node pass colors
-  IdIndexedMapping<NodeNameId, uint32_t> executionTime; // Info for layouter to cpecify modification chain orders
+  IdIndexedMapping<DependencyId, Dependency> registryDependencies; // List of all dependencies, stated in InternalRegistry
+  dag::Vector<DependencyId> disabledDependencies;                  // Dependencies, disabled during check for cycles
 
 
   // generated data
 private:
   IdIndexedMapping<NodeBoxId, NodeBox> nodeBoxes;
+  IdIndexedMapping<NodeId, NodeBoxId> nodesNodeBox;
   IdIndexedMapping<NodeBoxDependencyId, NodeBoxDependency> nodeBoxDependencies;
-  IdIndexedMapping<NodeNameId, NodeBoxId> nodesNodeBox;
-  IdIndexedMapping<NodeBoxId, NameSpaceNameId> nodeBoxesNameSpace;
 
   IdIndexedMapping<NodeBoxId, Layout> nodeBoxesLayouts;
 
-  IdIndexedFlags<NodeNameId> nodesCycled;    // Flags to indicate, that node is participate in cycle
-  IdIndexedFlags<ResNameId> hiddenResources; // Flags to hide/show resources in resource tree view
-  Layout wholeGraphLayout;                   // Non-hierarchical layout, containing all user-defined nodes
-  Layout condensedLayout;                    // Hierarchical layout with all boxes in condensed graph
+  Layout wholeGraphLayout; // Non-hierarchical layout, containing all user-defined nodes
+  Layout condensedLayout;  // Hierarchical layout with all boxes in condensed graph
   bool layoutReady = false;
   bool hierarchicalView = false;
+  bool updateNeeded = true;
 
 
 private:
@@ -136,43 +137,49 @@ private:
   int focusedNodeIndex = UNKNOWN_INDEX;
   struct
   {
-    NodeNameId id = NodeNameId::Invalid;
+    NodeId id = NodeId::Invalid;
     bool wasChanged = false;
 
-    inline bool valid() const { return id != NodeNameId::Invalid; }
+    inline bool valid() const { return id != NodeId::Invalid; }
   } focusedNode;
 
   eastl::string resourceSearchInput;
   int focusedResourceIndex = UNKNOWN_INDEX;
   struct
   {
-    ResNameId id = ResNameId::Invalid;
+    ResourceId id = ResourceId::Invalid;
     bool wasChanged = false;
-    bool hasRenames;
-    ResourceFocusType type;
+    bool hasRenames = false;
+    ResourceFocusType type = ResourceFocusType::All;
 
-    inline bool valid() const { return id != ResNameId::Invalid; }
+    inline bool valid() const { return id != ResourceId::Invalid; }
   } focusedResource;
 
 
 private:
-  inline bool isNodeFake(NodeIdx nodeidx) { return nodeidx >= registry.nodes.size(); }
-
-  void setFocusedNode(NodeNameId node_id);
+  void setFocusedNode(NodeId node_id);
   inline void resetFocusedNode()
   {
-    setFocusedNode(NodeNameId::Invalid);
     nodeSearchInput.clear();
     focusedNodeIndex = UNKNOWN_INDEX;
+    focusedNode = {};
   };
 
-  void setFocusedResource(ResNameId res_id, ResourceFocusType focus_type = ResourceFocusType::All);
+  void setFocusedResource(ResourceId res_id, ResourceFocusType focus_type = ResourceFocusType::All);
   inline void resetFocusedResource()
   {
-    setFocusedResource(ResNameId::Invalid);
     resourceSearchInput.clear();
     focusedResourceIndex = UNKNOWN_INDEX;
+    focusedResource = {};
   };
+
+
+private:
+  inline bool isVisibleRename(ResourceId res_id) const
+  {
+    return focusedResource.type != ResourceFocusType::Resource && depData.renamingRepresentatives[nameIdByResId(res_id)] ==
+                                                                    depData.renamingRepresentatives[nameIdByResId(focusedResource.id)];
+  }
 
 
   // vars from old visualizator
@@ -214,6 +221,12 @@ private:
   }
 
   template <class EnumType>
+  inline eastl::string_view getShortName(EnumType res_id)
+  {
+    return registry.knownNames.getShortName(res_id);
+  }
+
+  template <class EnumType>
   inline dag::Vector<eastl::string_view> gatherNames(eastl::span<const EnumType> ids)
   {
     dag::Vector<eastl::string_view> names;
@@ -222,13 +235,6 @@ private:
       names.push_back(getName(id));
     return names;
   }
-
-  inline bool isVisibleRename(dafg::ResNameId res_id) const
-  {
-    return focusedResource.type != ResourceFocusType::Resource &&
-           depData.renamingRepresentatives[res_id] == depData.renamingRepresentatives[focusedResource.id];
-  }
-
 
   void hideResourcesInSubTree(NameSpaceNameId name_space_id);
 

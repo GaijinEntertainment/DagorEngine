@@ -31,12 +31,13 @@ struct TypeTables
 class ShaderContext
 {
   const char *mName;
+  int mNameId;
   const ShaderBlockLevel mBlockLevel;
   Terminal *mDeclTerm;
   eastl::unique_ptr<ShaderClass> mShaderClass;
   TypeTables mTypes;
   IntervalList mIntervals{};
-  BoolVarTable mBoolVarTable{};
+  BoolVarTable mBoolVarTable;
   PerHlslStage<String> mLocalHlslSource{};
   PerHlslStage<CodeSourceBlocks> mHlslCodeBlocks{};
   PreshaderCompilationCache mPreshaderCache{};
@@ -57,6 +58,7 @@ public:
   const CompilationContext &compCtx() const { return mCompParent; }
 
   const char *name() const { return mName; }
+  int nameId() const { return mNameId; }
   ShaderBlockLevel blockLevel() const { return mBlockLevel; }
 
   Terminal *declTerm() { return mDeclTerm; }
@@ -124,13 +126,14 @@ private:
   explicit ShaderContext(const char *shname, ShaderBlockLevel block_level, Terminal *shname_term, TargetContext &parent,
     const CompilationContext &comp_parent) :
     mName{shname},
+    mNameId{parent.shaderNameMap().addNameId(shname)},
     mBlockLevel{block_level},
     mDeclTerm{shname_term},
     mShaderClass{new ShaderClass{shname}},
     mTypes{parent}, // @TODO: a more precise reference to a needed resource?
-    mBoolVarTable{parent.globBoolVars().maxId()},
+    mBoolVarTable{parent.boolVarNameMap(), &parent.globBoolVars()},
     mLocalHlslSource{parent.globHlslSrc()},
-    mLocalAssumes{*shc::config().assumedVarsConfig->getBlockByNameEx(shname), &parent.globAssumes(), shname},
+    mLocalAssumes{*shc::config().assumedVarsConfig->getBlockByNameEx(shname), parent.intervalNameMap(), &parent.globAssumes(), shname},
     mParent{parent},
     mCompParent{comp_parent}
   {

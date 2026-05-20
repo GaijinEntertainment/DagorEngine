@@ -335,47 +335,6 @@ macro USE_GPU_GRASS_CORNER_POS(code)
       float y = abs(frac(x + 0.5) * 2. - 1.);
       return y * y * (3. - 2. * y);
     }
-
-    // Dynamic indexing on NVIDIA Vk can be compiled differently based on register preassure
-    // which can cause differences in color and depth pass -> this workaround fixes that issue
-    // (Note: This should be ensured by precise flag, but seemingly NVIDIA chooses to ignore it)
-    float getGrassStiffness(uint grassType)
-    {
-      ##if hardware.vulkan
-      if (grassType ==  0) return grass_colors_vs[ 0].stiffness;
-      if (grassType ==  1) return grass_colors_vs[ 1].stiffness;
-      if (grassType ==  2) return grass_colors_vs[ 2].stiffness;
-      if (grassType ==  3) return grass_colors_vs[ 3].stiffness;
-      if (grassType ==  4) return grass_colors_vs[ 4].stiffness;
-      if (grassType ==  5) return grass_colors_vs[ 5].stiffness;
-      if (grassType ==  6) return grass_colors_vs[ 6].stiffness;
-      if (grassType ==  7) return grass_colors_vs[ 7].stiffness;
-      if (grassType ==  8) return grass_colors_vs[ 8].stiffness;
-      if (grassType ==  9) return grass_colors_vs[ 9].stiffness;
-      if (grassType == 10) return grass_colors_vs[10].stiffness;
-      if (grassType == 11) return grass_colors_vs[11].stiffness;
-      if (grassType == 12) return grass_colors_vs[12].stiffness;
-      if (grassType == 13) return grass_colors_vs[13].stiffness;
-      if (grassType == 14) return grass_colors_vs[14].stiffness;
-      if (grassType == 15) return grass_colors_vs[15].stiffness;
-      if (grassType == 16) return grass_colors_vs[16].stiffness;
-      if (grassType == 17) return grass_colors_vs[17].stiffness;
-      if (grassType == 18) return grass_colors_vs[18].stiffness;
-      if (grassType == 19) return grass_colors_vs[19].stiffness;
-      if (grassType == 20) return grass_colors_vs[20].stiffness;
-      if (grassType == 21) return grass_colors_vs[21].stiffness;
-      if (grassType == 22) return grass_colors_vs[22].stiffness;
-      if (grassType == 23) return grass_colors_vs[23].stiffness;
-      if (grassType == 24) return grass_colors_vs[24].stiffness;
-      if (grassType == 25) return grass_colors_vs[25].stiffness;
-      if (grassType == 26) return grass_colors_vs[26].stiffness;
-      if (grassType == 27) return grass_colors_vs[27].stiffness;
-      if (grassType == 28) return grass_colors_vs[28].stiffness;
-      if (grassType == 29) return grass_colors_vs[29].stiffness;
-      if (grassType == 30) return grass_colors_vs[30].stiffness;
-      ##endif
-      return grass_colors_vs[grassType].stiffness;
-    }
     float3 compute_grass_wind_offset(float3 pos, float height, float noise_speed_mult, float stiffness, float random_wind_amp, bool use_prev_time)
     {
       FLATTEN
@@ -397,7 +356,7 @@ macro USE_GPU_GRASS_CORNER_POS(code)
     struct GrassCorner
     {
       float3 worldCornerPos;
-      PRECISE float3 worldPos;
+      float3 worldPos;
       float3 normal;
       float height_from_ground;
       float3 p2e;
@@ -501,9 +460,8 @@ GrassCorner get_gpu_grass_corner_pos(GrassInstanceUncompressed grass, float2 loc
       float3 worldPosPrev = instanceWorldPosPrev + worldCornerPosPrev;
 #endif
 
-      float stiffness = getGrassStiffness(grassType);
-      float wind_speed_mult = 2 - stiffness;
-      float wind_amp_mult = is_horizontal ? 0 : stiffness;
+      float wind_speed_mult = 2 - grass_colors_vs[grassType].stiffness;
+      float wind_amp_mult = is_horizontal ? 0 : grass_colors_vs[grassType].stiffness;
 
       if (cornerY > 0.001)
       {

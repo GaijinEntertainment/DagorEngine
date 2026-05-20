@@ -18,6 +18,7 @@ import:t="%danetlibs/renderer/templates/invalidate_hmap_displacement.template.bl
 import:t="%danetlibs/renderer/templates/render_settings.template.blk"
 import:t="%danetlibs/renderer/templates/sky_polarization_filter.template.blk"
 import:t="%danetlibs/renderer/templates/ssss.template.blk"
+import:t="%danetlibs/renderer/templates/ui_nodes.template.blk"
 import:t="%danetlibs/frame_graph_renderer/templates/frame_graph_nodes.template.blk"
 import:t="%danetlibs/ground_holes/templates/ground_holes.template.blk"
 import:t="%danetlibs/flash_blind/templates/flash_blind.template.blk"

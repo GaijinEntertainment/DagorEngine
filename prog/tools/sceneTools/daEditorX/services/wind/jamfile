@@ -9,10 +9,13 @@ AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
 ;
 
 Sources =
   windSrv.cpp
+  genericWindSrv.cpp
+  dngWindSrv.cpp
 ;
 
 UseProgLibs =

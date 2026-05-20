@@ -18,9 +18,9 @@ struct ToolsHeatHazeRendererGlue
   void term()
   {
     heatHazeRenderer.reset();
-    targetHazeOffset = UniqueTexHolder{};
-    targetHazeDepth = UniqueTexHolder{};
-    targetHazeColor = UniqueTexHolder{};
+    targetHazeOffset = UniqueTexWithShaderVar{};
+    targetHazeDepth = UniqueTexWithShaderVar{};
+    targetHazeColor = UniqueTexWithShaderVar{};
     targetHazeTemp = UniqueTex{};
     zFuncAlwaysStateId.reset();
   }
@@ -101,9 +101,9 @@ struct ToolsHeatHazeRendererGlue
 
   eastl::unique_ptr<HeatHazeRenderer> heatHazeRenderer;
 
-  UniqueTexHolder targetHazeOffset;
-  UniqueTexHolder targetHazeDepth;
-  UniqueTexHolder targetHazeColor;
+  UniqueTexWithShaderVar targetHazeOffset;
+  UniqueTexWithShaderVar targetHazeDepth;
+  UniqueTexWithShaderVar targetHazeColor;
   UniqueTex targetHazeTemp;
 
   shaders::UniqueOverrideStateId zFuncAlwaysStateId;

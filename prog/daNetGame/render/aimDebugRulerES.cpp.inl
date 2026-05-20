@@ -21,7 +21,8 @@ static IPoint2 physmap_selected_grid = IPoint2(-1, -1);
 ECS_TAG(render, dev)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(aim_ruler__drawPhysMap)
-static inline void debug_physmap_appear_es(const ecs::Event &, UniqueTexHolder &phys_map_tex, const bool &aim_ruler__drawPhysMap)
+static inline void debug_physmap_appear_es(
+  const ecs::Event &, UniqueTexWithShaderVar &phys_map_tex, const bool &aim_ruler__drawPhysMap)
 {
   phys_map_tex.close();
 

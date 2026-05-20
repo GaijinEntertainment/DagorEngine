@@ -180,6 +180,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
   StaticTab<VkAttachmentReference, Driver3dRenderTarget::MAX_SIMRT> colorRef;
   StaticTab<VkAttachmentReference, Driver3dRenderTarget::MAX_SIMRT> resolveRef;
   VkAttachmentReference depthStencilRef;
+  const bool hasDepthStencil = identifier.depthState != Identifier::NO_DEPTH;
   VkAttachmentReference shadingRateRef;
 
   VkSubpassDescription subPass;
@@ -258,7 +259,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
     subPass.colorAttachmentCount = 0;
     subPass.pColorAttachments = nullptr;
   }
-  if (identifier.depthState != RenderPassClass::Identifier::NO_DEPTH)
+  if (hasDepthStencil)
   {
     depthStencilRef.attachment = attachmentDefs.size();
 
@@ -372,7 +373,8 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
       flattAttRefs.push_back(i);
     for (const VkAttachmentReference &i : resolveRef)
       flattAttRefs.push_back(i);
-    flattAttRefs.push_back(depthStencilRef);
+    if (hasDepthStencil)
+      flattAttRefs.push_back(depthStencilRef);
     flattAttRefs.push_back(shadingRateRef);
 
     Tab<SubpassExtensions> exts;

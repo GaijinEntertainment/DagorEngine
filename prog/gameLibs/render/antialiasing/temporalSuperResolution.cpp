@@ -10,8 +10,6 @@
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderVar.h>
-#include <startup/dag_globalSettings.h>
-#include <ioSys/dag_dataBlock.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/random/dag_halton.h>
 #include <math/dag_TMatrix4D.h>
@@ -47,18 +45,13 @@
   VAR(tsr_resampling_loss_sigma)            \
   VAR(tsr_depth_overhang_sigma)             \
   VAR(tsr_process_loss)                     \
-  VAR(tsr_process_loss_dynamic)             \
   VAR(tsr_debug)                            \
   VAR(tsr_scale_base)                       \
   VAR(tsr_scale_motion_steepness)           \
   VAR(tsr_scale_motion_max)                 \
-  VAR(tsr_scale_base_dynamic)               \
-  VAR(tsr_scale_motion_steepness_dynamic)   \
-  VAR(tsr_scale_motion_max_dynamic)         \
   VAR(tsr_history_reconstruction)           \
   VAR(tsr_uv_transform)                     \
   VAR(tsr_vrs_mask)                         \
-  VAR(tsr_quality)                          \
   VAR(tsr_phase_configuration)              \
   VAR(tsr_use_precalculated_filter_weights) \
   VAR(tsr_kernel_weights)
@@ -89,12 +82,6 @@ float tsr_scale_base = 1.5f;
 float tsr_scale_motion_steepness = 1e2f;
 float tsr_scale_motion_max = 0.1f;
 bool allow_precalculated_filter_weights = true;
-
-// Low preset only
-float tsr_process_loss_dynamic = 0.93f;
-float tsr_scale_base_dynamic = 1.2f;
-float tsr_scale_motion_steepness_dynamic = 1e2f;
-float tsr_scale_motion_max_dynamic = 1000.0f;
 } // namespace
 
 static bool is_tsr_debug_window_open();
@@ -105,8 +92,7 @@ TemporalSuperResolution::Preset TemporalSuperResolution::parse_preset(bool vr_mo
   if (vr_mode)
     return P::Vr;
   else
-    return P(clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getInt("tsrQuality", eastl::to_underlying(P::High)),
-      eastl::to_underlying(P::Low), eastl::to_underlying(P::Vr)));
+    return P::High;
 }
 
 namespace
@@ -210,7 +196,7 @@ TemporalSuperResolution::TemporalSuperResolution(const IPoint2 &input_resolution
   d3d::SamplerHandle bilinearSmp = d3d::request_sampler(smpInfo);
   smpInfo.filter_mode = d3d::FilterMode::Point;
   d3d::SamplerHandle pointSmp = d3d::request_sampler(smpInfo);
-  ShaderGlobal::set_sampler(get_shader_variable_id("tsr_input_color_samplerstate"), vr_mode ? bilinearSmp : pointSmp);
+  ShaderGlobal::set_sampler(get_shader_variable_id("tsr_input_color_samplerstate", true), bilinearSmp);
   ShaderGlobal::set_sampler(get_shader_variable_id("tsr_history_color_samplerstate"), bilinearSmp);
   ShaderGlobal::set_sampler(get_shader_variable_id("tsr_history_confidence_samplerstate"), bilinearSmp);
   ShaderGlobal::set_sampler(get_shader_variable_id("tsr_reactive_mask_samplerstate"), bilinearSmp);
@@ -316,7 +302,6 @@ void TemporalSuperResolution::apply(Texture *in_color, Texture *out_color, Textu
   ShaderGlobal::set_float4(tsr_input_resolution_var_id, input_resolution.x, input_resolution.y, 0, 0);
   ShaderGlobal::set_float4(tsr_output_resolution_var_id, outputResolution.x, outputResolution.y, 0, 0);
 
-  ShaderGlobal::set_int(tsr_quality_var_id, eastl::to_underlying(preset));
   ShaderGlobal::set_int(tsr_debug_var_id, getDebugRenderTarget().getTex2D() ? 1 : 0);
   ShaderGlobal::set_float(tsr_debug_update_override_var_id, tsr_debug_update_override);
   ShaderGlobal::set_int(tsr_debug_view_var_id, tsr_debug_view);
@@ -325,20 +310,16 @@ void TemporalSuperResolution::apply(Texture *in_color, Texture *out_color, Textu
   ShaderGlobal::set_float(tsr_resampling_loss_sigma_var_id, tsr_resampling_loss_sigma);
   ShaderGlobal::set_float(tsr_depth_overhang_sigma_var_id, tsr_depth_overhang_sigma);
   ShaderGlobal::set_float(tsr_process_loss_var_id, tsr_process_loss);
-  ShaderGlobal::set_float(tsr_process_loss_dynamic_var_id, tsr_process_loss_dynamic);
   ShaderGlobal::set_float(tsr_scale_base_var_id, tsr_scale_base);
   ShaderGlobal::set_float(tsr_scale_motion_steepness_var_id, tsr_scale_motion_steepness);
   ShaderGlobal::set_float(tsr_scale_motion_max_var_id, tsr_scale_motion_max);
-  ShaderGlobal::set_float(tsr_scale_base_dynamic_var_id, tsr_scale_base_dynamic);
-  ShaderGlobal::set_float(tsr_scale_motion_steepness_dynamic_var_id, tsr_scale_motion_steepness_dynamic);
-  ShaderGlobal::set_float(tsr_scale_motion_max_dynamic_var_id, tsr_scale_motion_max_dynamic);
   ShaderGlobal::set_int(tsr_history_reconstruction_var_id, static_cast<int>(tsr_use_bicubic_history_sampling));
 
   const PhaseConfiguration phaseConfig = calculate_phase_configuration(input_resolution, outputResolution);
   ShaderGlobal::set_int4(tsr_phase_configuration_var_id, phaseConfig.Qx, phaseConfig.Qy, phaseConfig.Px, phaseConfig.Py);
 
   const unsigned totalPhases = phaseConfig.Px * phaseConfig.Py;
-  const bool usePrecalculatedWeights = allow_precalculated_filter_weights && totalPhases <= TSR_MAX_PHASES;
+  const bool usePrecalculatedWeights = allow_precalculated_filter_weights && !vrs_mask && totalPhases <= TSR_MAX_PHASES;
   ShaderGlobal::set_int(tsr_use_precalculated_filter_weights_var_id, usePrecalculatedWeights ? 1 : 0);
 
   if (usePrecalculatedWeights)
@@ -371,6 +352,10 @@ void TemporalSuperResolution::apply(Texture *in_color, Texture *out_color, Textu
   if (reactive_tex)
   {
     d3d::resource_barrier({reactive_tex, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  }
+  if (vrs_mask)
+  {
+    d3d::resource_barrier({vrs_mask, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
   }
 
   ShaderGlobal::set_texture(tsr_input_color_var_id, in_color);
@@ -414,14 +399,10 @@ static void render_imgui()
   ImGui::SliderFloat("Resampling Loss Sigma", &tsr_resampling_loss_sigma, 0.0f, 10.0f);
   ImGui::SliderFloat("Depth Overhang Sigma", &tsr_depth_overhang_sigma, 0.0f, 0.1f, "%.6f");
   ImGui::SliderFloat("Process Loss", &tsr_process_loss, 0.0f, 1.0f);
-  ImGui::SliderFloat("Process Loss Dynamic", &tsr_process_loss_dynamic, 0.0f, 1.0f);
   ImGui::SliderFloat("Debug Update Override", &tsr_debug_update_override, 0.0f, 1.0f);
   ImGui::SliderFloat("Scale Base", &tsr_scale_base, 0.0f, 10.0f);
   ImGui::SliderFloat("Scale Motion Steepness", &tsr_scale_motion_steepness, 0.0f, 1e6f);
   ImGui::SliderFloat("Scale Motion Max", &tsr_scale_motion_max, 0.0f, 10.0f);
-  ImGui::SliderFloat("Scale Base Dynamic", &tsr_scale_base_dynamic, 0.0f, 10.0f);
-  ImGui::SliderFloat("Scale Motion Steepness Dynamic", &tsr_scale_motion_steepness_dynamic, 0.0f, 1e6f);
-  ImGui::SliderFloat("Scale Motion Max Dynamic", &tsr_scale_motion_max_dynamic, 0.0f, 10.0f);
 
   if (!tsr)
     return;

@@ -6,7 +6,6 @@ shader_root_dir:t="."
 include common_inc_dirs.blk
 source
 {
-  file:t = "../deferred_shadow.dshl"
   file:t = "../no_postfx_resolve.dshl"
   file:t = "../../../prog/gameLibs/vr/shaders/vrGuiSurface.dshl"
   file:t = "ssr_ps.dshl"
@@ -62,7 +61,6 @@ Compile
     use_postfx:i = 1
     has_discard_without_prepass:i=0
     volumetric_light_assumed_off:i=1
-    froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_directional_blood_on_screen:i=0
     small_sampled_buffers:i=0
     assume_fom_shadows:i=1
@@ -73,7 +71,6 @@ Compile
     baked_impostor_multisample:i=1
     fx_apply_volfog_per_pixel:i=1
     fx_has_volfog_injection:i=1
-    froxel_fog_use_experimental_offscreen_reprojection:i = 0
     use_ssss:i=0
     ssss_quality:i=0
     rendinst_render_type:i=0

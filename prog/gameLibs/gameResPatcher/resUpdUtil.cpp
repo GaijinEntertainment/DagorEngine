@@ -1407,7 +1407,7 @@ struct SoundBankData
         int len = 0;
         for (int ch = crd.readIntP<1>(); ch != 0 && len < 4096; ch = crd.readIntP<1>(), ++len)
         {
-          if (crd.tell() + 1 >= crd.getTargetDataSize())
+          if (crd.tell() >= crd.getTargetDataSize())
           {
             logerr("ERR: not enough data while reading FSB5 sample name for sample %d at offset %d in %s", i, offset,
               crd.getTargetName());

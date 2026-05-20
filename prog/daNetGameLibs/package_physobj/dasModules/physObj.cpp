@@ -16,6 +16,18 @@ struct PhysObjActorAnnotation final : das::ManagedStructureAnnotation<PhysObjAct
   }
 
   bool canBeSubstituted(TypeAnnotation *pass_type) const override { return parentType->annotation == pass_type; }
+
+  virtual void gc_collect(das::gc_root *target, das::gc_root *from) override
+  {
+    das::ManagedStructureAnnotation<PhysObjActor, false>::gc_collect(target, from);
+    if (parentType)
+      parentType->gc_collect(target, from);
+  }
+  virtual void visitTypeDecls(const das::function<void(das::TypeDecl *)> &callback) override
+  {
+    if (parentType)
+      callback(parentType);
+  }
 };
 
 
@@ -30,7 +42,7 @@ public:
     addBuiltinDependency(lib, require("PhysObj"));
     addBuiltinDependency(lib, require("DngActor"));
 
-    addAnnotation(das::make_smart<PhysObjActorAnnotation>(lib));
+    addAnnotation(new PhysObjActorAnnotation(lib));
 
     verifyAotReady();
   }

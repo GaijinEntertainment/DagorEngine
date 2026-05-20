@@ -100,6 +100,7 @@ enum Defaults
 };
 
 static dag::AtomicInteger<bool> g_is_inited = false;
+static dag::AtomicInteger<bool> g_enable_asserts_monitor = false;
 static uint32_t g_version = 0;
 static size_t g_memory_block_size = 0;
 static void *g_memory_block = nullptr;
@@ -129,6 +130,7 @@ static int maxFADPCMCodecs = 0;
 static bool fmod_synchronous_mode = false;
 static bool enable_spatial_sound = false;
 static int samplerate = 48000;
+static bool enable_fmod_debug = true;
 #if DAGOR_DBGLEVEL > 0
 static bool memory_tracking_mode = false;
 #endif
@@ -146,6 +148,7 @@ static void settings_init(const DataBlock &blk)
   settings::fmod_synchronous_mode = blk.getBool("fmodSynchronousMode", false);
   settings::samplerate = blk.getInt("sampleRate", 48000);
   settings::enable_spatial_sound = blk.getBool("fmodEnableSpatialSound", false);
+  settings::enable_fmod_debug = blk.getBool("enableFmodDebug", true);
 #if DAGOR_DBGLEVEL > 0
   settings::memory_tracking_mode = blk.getBool("memoryTrackingMode", false);
 #endif
@@ -162,6 +165,7 @@ static void settings_init(const DataBlock &blk)
   LOG_VALUE(fmod_synchronous_mode, "%d");
   LOG_VALUE(samplerate, "%u");
   LOG_VALUE(enable_spatial_sound, "%d");
+  LOG_VALUE(enable_fmod_debug, "%d");
 #if DAGOR_DBGLEVEL > 0
   LOG_VALUE(memory_tracking_mode, "%d");
 #endif
@@ -476,7 +480,6 @@ static bool system_init(const DataBlock &blk, bool null_output)
   return true;
 }
 
-#if DAGOR_DBGLEVEL > 0
 static bool treat_fmod_errors_as_warnings = false;
 static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
 {
@@ -505,11 +508,12 @@ static FMOD_RESULT F_CALLBACK fmod_debug_cb(FMOD_DEBUG_FLAGS flags, const char *
 {
   const int ll = get_loglevel(flags, message);
 
-  logmessage(ll, "[FMOD] %s: %.*s", func, /*cut `\n' off */ strlen(message) - 1, message);
+  logmessage(ll, "[FMOD] %s: %.*s", func, /*cut `\n' off */ int(strlen(message)) - 1, message);
+
+  asserts_monitor::on_fmod_message(func, message);
 
   return FMOD_OK;
 }
-#endif
 
 #if _TARGET_PC_WIN
 static bool g_com_initialized = false;
@@ -568,21 +572,22 @@ bool init(const DataBlock &blk)
 
   settings_init(blk);
 
-#if DAGOR_DBGLEVEL > 0
-  treat_fmod_errors_as_warnings = blk.getBool("fmodErrorsAsWarnings", false);
-  const char *fmodLoglevel = blk.getStr("fmodLoglevel", "errors");
-  FMOD_DEBUG_FLAGS debugFlags = FMOD_DEBUG_LEVEL_NONE;
-  if (strcmp(fmodLoglevel, "errors") == 0)
-    debugFlags = FMOD_DEBUG_LEVEL_ERROR;
-  else if (strcmp(fmodLoglevel, "warnings") == 0)
-    debugFlags = FMOD_DEBUG_LEVEL_ERROR | FMOD_DEBUG_LEVEL_WARNING;
-  else if (strcmp(fmodLoglevel, "log") == 0)
-    debugFlags = FMOD_DEBUG_LEVEL_LOG;
-  FMOD_RESULT debugInitializeCbRes = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_CALLBACK, &fmod_debug_cb, nullptr);
-  G_VERIFYF(debugInitializeCbRes == FMOD_ERR_UNSUPPORTED || // might be if fmod built without FMOD_DEBUG
-              debugInitializeCbRes == FMOD_OK,
-    "[SNDSYS] FMOD error: %s", FMOD_ErrorString(debugInitializeCbRes));
-#endif
+  if (settings::enable_fmod_debug)
+  {
+    treat_fmod_errors_as_warnings = blk.getBool("fmodErrorsAsWarnings", false);
+    const char *fmodLoglevel = blk.getStr("fmodLoglevel", "errors");
+    FMOD_DEBUG_FLAGS debugFlags = FMOD_DEBUG_LEVEL_NONE;
+    if (strcmp(fmodLoglevel, "errors") == 0)
+      debugFlags = FMOD_DEBUG_LEVEL_ERROR;
+    else if (strcmp(fmodLoglevel, "warnings") == 0)
+      debugFlags = FMOD_DEBUG_LEVEL_ERROR | FMOD_DEBUG_LEVEL_WARNING;
+    else if (strcmp(fmodLoglevel, "log") == 0)
+      debugFlags = FMOD_DEBUG_LEVEL_LOG;
+    FMOD_RESULT debugInitializeCbRes = FMOD::Debug_Initialize(debugFlags, FMOD_DEBUG_MODE_CALLBACK, &fmod_debug_cb, nullptr);
+    G_VERIFYF(debugInitializeCbRes == FMOD_ERR_UNSUPPORTED || // might be if fmod built without FMOD_DEBUG
+                debugInitializeCbRes == FMOD_OK,
+      "[SNDSYS] FMOD error: %s", FMOD_ErrorString(debugInitializeCbRes));
+  }
 
   const bool nullOutput = blk.getBool("nullOutput", false);
   if (!memory_init(blk) || !system_init(blk, nullOutput))
@@ -673,6 +678,9 @@ void shutdown()
 }
 
 bool is_inited() { return g_is_inited.load(); }
+
+bool is_asserts_monitor_enabled() { return g_enable_asserts_monitor.load(); }
+void set_asserts_monitor_enabled(bool enabled) { g_enable_asserts_monitor.store(enabled); }
 
 void get_memory_statistics(unsigned &system_allocated, unsigned &current_allocated, unsigned &max_allocated)
 {

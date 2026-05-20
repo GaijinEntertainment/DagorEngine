@@ -561,7 +561,7 @@ public:
   }
 
 private:
-  UniqueTexHolder wireframeTex;
+  UniqueTexWithShaderVar wireframeTex;
   shaders::OverrideStateId wireframeState;
   PostFxRenderer wireframeRenderer;
   int targetW = 0, targetH = 0;

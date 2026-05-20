@@ -202,6 +202,11 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       FoamData foamData;
     };
 
+    float3 applyWaterFogInverse(float3 color, FogData fogData)
+    {
+      return max(float3(0, 0, 0), (color - fogData.fogAdd) / max(fogData.fogMul, 0.000001));
+    }
+
     SubSurfScattering getSubSurfScattering(const ViewData viewData)
     {
       // Adding subsurface scattering/double refraction to refraction color

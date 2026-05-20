@@ -1,0 +1,28 @@
+texture dynamic_lighting_texture;
+int has_any_dynamic_lights = 0;
+interval has_any_dynamic_lights : no < 1, yes;
+
+macro INIT_AND_USE_PRECOMPUTED_DYNAMIC_LIGHTS(code, use_interval)
+  (code) { dynamic_lighting_texture@tex2d = dynamic_lighting_texture; }
+  if (!use_interval)
+  {
+    (code) { has_any_dynamic_lights@i1 = has_any_dynamic_lights; }
+  }
+
+  hlsl(code) {
+    half3 get_precomputed_dynamic_lighting(float2 screenpos)
+    {
+##if use_interval
+      ##if has_any_dynamic_lights == yes
+        return texelFetch(dynamic_lighting_texture, screenpos, 0).rgb;
+      ##else
+        return 0;
+      ##endif
+##else
+      if (has_any_dynamic_lights)
+        return texelFetch(dynamic_lighting_texture, screenpos, 0).rgb;
+      return 0;
+##endif
+    }
+  }
+endmacro

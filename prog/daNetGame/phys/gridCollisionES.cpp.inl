@@ -285,7 +285,7 @@ bool query_entities_intersections_in_grid(uint32_t grid_hash,
               allNodes[i].type != COLLISION_NODE_TYPE_SPHERE)
             continue;
           Point3 resPos = tm.getcol(3);
-          if (!collres.testInclusion(allNodes[i], transform, convex, tm, &animchar.getNodeTree(), &resPos))
+          if (!collres.testInclusion(i, transform, convex, tm, &animchar.getNodeTree(), &resPos))
             continue;
           Point3 dir = resPos - tm.getcol(3);
           float len = length(dir);

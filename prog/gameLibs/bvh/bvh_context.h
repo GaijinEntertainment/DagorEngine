@@ -21,6 +21,7 @@
 #include <EASTL/string.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/numeric_limits.h>
+#include <EASTL/array.h>
 #include <EASTL/deque.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <bvh/bvh.h>
@@ -756,16 +757,8 @@ using ObjectMap = ska::flat_hash_map<uint64_t, Object>;
 static constexpr int ri_gen_thread_count = 16;
 static constexpr int ri_extra_thread_count = 8;
 
-extern int ri_thread_count_ofset;
-
-inline int get_ri_gen_worker_count()
-{
-  return max(min(ri_gen_thread_count, threadpool::get_num_workers()) + ri_thread_count_ofset, 1);
-}
-inline int get_ri_extra_worker_count()
-{
-  return max(min(ri_extra_thread_count, threadpool::get_num_workers()) + ri_thread_count_ofset, 1);
-}
+inline int get_ri_gen_worker_count() { return max(min(ri_gen_thread_count, threadpool::get_num_workers()), 1); }
+inline int get_ri_extra_worker_count() { return max(min(ri_extra_thread_count, threadpool::get_num_workers()), 1); }
 
 struct Context
 {
@@ -1028,6 +1021,7 @@ struct Context
 
   static constexpr int MaxTreeAnimIndices = 10;
   int treeAnimIndexCount[MaxTreeAnimIndices] = {};
+  OSSpinlock treeAnimIndexCountLock;
 
   OSSpinlock pendingObjectActionsLock;
   eastl::unordered_map<uint64_t, eastl::pair<uint32_t, ObjectInfo>> pendingObjectAddActions DAG_TS_GUARDED_BY(
@@ -1187,6 +1181,18 @@ struct Context
   int riGenIndexTypePerFrame = Context::MaxTreeAnimIndices;
   int riGenStartIndexType = 0;
   int lastRiGenProcessTimeUs = 0;
+  eastl::array<bool, MaxTreeAnimIndices> riGenUpdateSlots = {}; // intentionally not bitset, size is tiny and fast lookup is preferred
+
+  void rebuildUpdateSlots()
+  {
+    riGenUpdateSlots.fill(false);
+    float step = float(MaxTreeAnimIndices) / riGenIndexTypePerFrame;
+    for (int ix = 0; ix < riGenIndexTypePerFrame; ++ix)
+    {
+      int ui = (riGenStartIndexType + int(step * ix + 0.5)) % MaxTreeAnimIndices;
+      riGenUpdateSlots[ui] = true;
+    }
+  }
 
 private:
   bool releaseTextureNoLock(TEXTUREID id);

@@ -3,6 +3,7 @@
 
 static void register_builtin_modules_impl() {
     using das::Module;
+    NEED_FUSION;
     if (!Module::require("$")) {
         NEED_MODULE(Module_BuiltIn);
     }

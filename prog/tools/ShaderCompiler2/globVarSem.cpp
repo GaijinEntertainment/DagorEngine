@@ -9,6 +9,7 @@
 #include "shCompiler.h"
 #include "shCompContext.h"
 #include "cppStcode.h"
+#include "shaderSemantic.h"
 
 #include "globVar.h"
 #include "samplers.h"
@@ -291,36 +292,54 @@ void add_global_interval(ShaderTerminal::interval &interv, Parser &parser, shc::
   add_interval(intervals, interv, ShaderVariant::VARTYPE_GLOBAL_INTERVAL, parser, ctx);
 }
 
-static void add_assume_impl(ShaderAssumesTable &table, const IntervalList &intervals, auto &stat, Parser &parser,
-  shc::TargetContext &ctx)
+static void add_assume_impl(ShaderAssumesTable &table, IntervalList *intervals, auto &stat, Parser &parser, shc::TargetContext &ctx)
 {
   using stat_t = eastl::remove_cvref_t<decltype(stat)>;
   static_assert(eastl::is_same_v<stat_t, assume_stat> || eastl::is_same_v<stat_t, assume_if_not_assumed_stat>);
   constexpr bool OVERRIDE = eastl::is_same_v<stat_t, assume_stat>;
 
-  int interval_nid = ctx.intervalNameMap().getNameId(stat.interval->text);
-  int value_nid = ctx.intervalNameMap().getNameId(stat.value->text);
-  if (interval_nid < 0)
+  // Resolve the RHS value across the three grammar branches:
+  //   assume foo = ident      -> stat.value
+  //   assume foo = NULL       -> stat.null_value
+  //   assume foo != NULL      -> stat.is_not_null  (means "EXISTS" on the synthetic interval)
+  const char *valueText = nullptr;
+  Symbol *valueTerm = nullptr;
+  if (stat.value)
   {
-    report_error(parser, stat.interval, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", stat.interval->text, interval_nid);
-    return;
+    valueText = stat.value->text;
+    valueTerm = stat.value;
   }
-  if (value_nid < 0)
+  else if (stat.null_value)
   {
-    report_error(parser, stat.value, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", stat.value->text, value_nid,
-      stat.interval->text);
-    return;
+    valueText = "NULL";
+    valueTerm = stat.null_value;
   }
-
-  ShaderVariant::ExtType intervalIndex = intervals.getIntervalIndex(interval_nid);
-  const Interval *interv = nullptr;
-  if (intervalIndex != INTERVAL_NOT_INIT)
-    interv = intervals.getInterval(intervalIndex);
   else
   {
+    G_ASSERT(stat.is_not_null);
+    valueText = "EXISTS";
+    valueTerm = stat.is_not_null;
+  }
+
+  int interval_nid = ctx.intervalNameMap().getNameId(stat.interval->text);
+  if (interval_nid < 0)
+    interval_nid = ctx.intervalNameMap().addNameId(stat.interval->text);
+
+  ShaderVariant::ExtType intervalIndex = INTERVAL_NOT_INIT;
+  const Interval *interv = nullptr;
+  if (intervals)
+  {
+    // Local interval check.
+    intervalIndex = intervals->getIntervalIndex(interval_nid);
+    interv = intervals->getInterval(intervalIndex);
+  }
+  if (!interv)
+  {
+    // Global interval check.
     intervalIndex = ctx.globVars().getIntervalList().getIntervalIndex(interval_nid);
     interv = ctx.globVars().getMutableIntervalList().getInterval(intervalIndex);
 
+    // Also mark the global variable as implicitly referenced.
     if (int gvarNid = ctx.varNameMap().getVarId(ctx.intervalNameMap().getName(interval_nid)); gvarNid >= 0)
     {
       int gvarId = ctx.globVars().getVarInternalIndex(gvarNid);
@@ -328,42 +347,64 @@ static void add_assume_impl(ShaderAssumesTable &table, const IntervalList &inter
         ctx.globVars().getMutableVariableList()[gvarId].isImplicitlyReferenced = true;
     }
   }
+  if (!interv && (stat.null_value || stat.is_not_null))
+  {
+    // Create a new iterval for resource existence assumption.
+    intervalIndex = semantic::get_or_add_resource_interval(stat.interval->text, ctx, intervals).first;
+    if (intervalIndex == INTERVAL_NOT_INIT)
+    {
+      report_error(parser, stat.interval,
+        "cannot register existence interval for resource '%s' -- another interval with this name already exists with a different type",
+        stat.interval->text);
+      return;
+    }
+    const IntervalList &intervalList = intervals ? *intervals : ctx.globVars().getIntervalList();
+    interv = intervalList.getInterval(intervalIndex);
+  }
   if (!interv)
   {
-    report_error(parser, stat.interval, "Undeclared interval '%s' (nameId=%d) is used in 'assume'", stat.interval->text, interval_nid);
+    report_error(parser, stat.interval, "Invalid interval '%s' (nameId=%d) is used in 'assume'", stat.interval->text, interval_nid);
+    return;
+  }
+
+  int value_nid = ctx.intervalNameMap().getNameId(valueText);
+  if (value_nid < 0)
+  {
+    report_error(parser, valueTerm, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", valueText, value_nid,
+      stat.interval->text);
     return;
   }
 
   const IntervalValue *interv_val = interv->getValueByNameId(value_nid);
   if (!interv_val)
   {
-    report_error(parser, stat.value, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", stat.value->text, value_nid,
+    report_error(parser, valueTerm, "Bad value '%s' (nameId=%d) for interval '%s' is used in 'assume'", valueText, value_nid,
       stat.interval->text);
     return;
   }
 
-  float newval = table.addIntervalAssume(stat.interval->text, *interv_val, !OVERRIDE, parser, stat.interval);
-  debug("%s=%s -> %s %s=%g", stat.interval->text, stat.value->text, table.getDebugName(), stat.interval->text, newval);
+  float newval = table.addIntervalAssume(interval_nid, *interv_val, !OVERRIDE, parser, stat.interval);
+  debug("%s=%s -> %s %s=%g", stat.interval->text, valueText, table.getDebugName(), stat.interval->text, newval);
 }
 
 void add_shader_assume(assume_stat &s, Parser &parser, shc::ShaderContext &ctx)
 {
-  add_assume_impl(ctx.assumes(), ctx.intervals(), s, parser, ctx.tgtCtx());
+  add_assume_impl(ctx.assumes(), &ctx.intervals(), s, parser, ctx.tgtCtx());
 }
 
 void add_shader_assume_if_not_assumed(ShaderTerminal::assume_if_not_assumed_stat &s, Parser &parser, shc::ShaderContext &ctx)
 {
-  add_assume_impl(ctx.assumes(), ctx.intervals(), s, parser, ctx.tgtCtx());
+  add_assume_impl(ctx.assumes(), &ctx.intervals(), s, parser, ctx.tgtCtx());
 }
 
 void add_global_assume(ShaderTerminal::assume_stat &assume, Parser &parser, shc::TargetContext &ctx)
 {
-  add_assume_impl(ctx.globAssumes(), {}, assume, parser, ctx);
+  add_assume_impl(ctx.globAssumes(), nullptr, assume, parser, ctx);
 }
 
 void add_global_assume_if_not_assumed(ShaderTerminal::assume_if_not_assumed_stat &assume, Parser &parser, shc::TargetContext &ctx)
 {
-  add_assume_impl(ctx.globAssumes(), {}, assume, parser, ctx);
+  add_assume_impl(ctx.globAssumes(), nullptr, assume, parser, ctx);
 }
 
 } // namespace ShaderParser

@@ -17,7 +17,7 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<RegExpAnnotation>(lib));
+    addAnnotation(new RegExpAnnotation(lib));
 
     das::addUsing<RegExp>(*this, lib, "RegExp");
 

@@ -96,12 +96,50 @@ def test_clone_table(t : T?) {
     }
 }
 
+// custom clone overloads on a struct: regression for synthesized
+// tuple/variant clone constness propagation. The outer `:= ` on the
+// tuple must propagate the RHS constness to each field, so the user's
+// const-flavor clone fires for `let` (const) tuples and the non-const
+// flavor fires for `var` (non-const) tuples.
+struct CFoo {
+    a : int
+    b : array<int>
+    via : int   // 1 = const path, 2 = non-const path
+}
+
+def clone(var res : CFoo; var src : CFoo ==const) {
+    res.a = src.a
+    res.b := src.b
+    res.via = 2
+}
+
+def clone(var res : CFoo; src : CFoo) {
+    res.a = src.a
+    res.b := src.b
+    res.via = 1
+}
+
+[sideeffects]
+def test_clone_tuple_constness_dispatch(t : T?) {
+    let tup1 = (10, CFoo(a = 1))
+    var tup2 = (20, CFoo(a = 2))
+    var c1 := tup1
+    var c2 := tup2
+    t |> equal(c1._0, 10)
+    t |> equal(c1._1.a, 1)
+    t |> equal(c1._1.via, 1)
+    t |> equal(c2._0, 20)
+    t |> equal(c2._1.a, 2)
+    t |> equal(c2._1.via, 2)
+}
+
 [test]
 def test_clone(t : T?) {
     test_clone_array(t)
     test_clone_table(t)
     test_clone_struct(t)
     test_clone_complex(t)
+    test_clone_tuple_constness_dispatch(t)
 }
 
 [export]

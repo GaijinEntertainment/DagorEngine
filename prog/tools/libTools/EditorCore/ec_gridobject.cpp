@@ -478,6 +478,15 @@ void GridEditDialog::onSnapSettingChanged()
 }
 
 
+void GridEditDialog::onSnapStepChanged()
+{
+  PropPanel::ContainerPropertyControl *panel = getPanel();
+  panel->setFloat(ID_MOVE_SNAP_EDIT, mGrid.getStep());
+  panel->setFloat(ID_ROTATE_SNAP_EDIT, mGrid.getAngleStep());
+  panel->setFloat(ID_SCALE_SNAP_EDIT, mGrid.getScaleStep());
+}
+
+
 void GridEditDialog::updateImguiDialog()
 {
   const bool enabled = !getPanel()->isDefaultValueSet();

@@ -49,7 +49,7 @@ static int find_tex_slot_for_var(dag::ConstSpan<int> init_code, const shaderbind
   for (int i = 0; i < init_code.size(); i += 2)
   {
     int stVarId = init_code[i];
-    if (local_vars.v[stVarId].nameId == var_name_id && shaderopcode::getOp(init_code[i + 1]) == SHCOD_TEXTURE)
+    if (shaderopcode::getOp(init_code[i + 1]) == SHCOD_TEXTURE && local_vars.v[stVarId].nameId == var_name_id)
       return shaderopcode::getOp2p1(init_code[i + 1]);
   }
   return -1;

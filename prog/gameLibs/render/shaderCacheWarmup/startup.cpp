@@ -17,7 +17,8 @@ static bool warmup_enabled(const DataBlock *blk)
   return blk->getBool(platform, false) && blk->getBool(d3d::get_driver_name(), false);
 }
 
-static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const DataBlock *blk)
+static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const DataBlock *blk,
+  const dag::Vector<const char *> &shaders_to_skip)
 {
   const DataBlock *shaders = blk->getBlockByName(pipeline_type);
 
@@ -29,6 +30,13 @@ static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const 
     for (size_t i = 0; i < shaders->paramCount(); ++i)
     {
       const char *name = shaders->getParamName(i);
+      const bool skip = eastl::find_if(shaders_to_skip.begin(), shaders_to_skip.end(),
+                          [name](const char *s) { return strcmp(s, name) == 0; }) != shaders_to_skip.end();
+      if (skip)
+      {
+        debug("shader warmup: skipping %s (%s) due to unsupported HW feature", name, pipeline_type);
+        continue;
+      }
       shaderNames.push_back(name);
     }
   }
@@ -52,8 +60,8 @@ void warmup_shaders_from_settings(const WarmupParams &params, const bool is_load
     if (backgroundWarmup)
       warmupBlk = warmupBlk->getBlockByNameEx("backgroundWarmup");
 
-    Tab<const char *> graphicsShaders = get_shaders_to_warmup("graphics", warmupBlk);
-    Tab<const char *> computeShaders = get_shaders_to_warmup("compute", warmupBlk);
+    Tab<const char *> graphicsShaders = get_shaders_to_warmup("graphics", warmupBlk, params.shadersToSkip);
+    Tab<const char *> computeShaders = get_shaders_to_warmup("compute", warmupBlk, params.shadersToSkip);
 
     warmup_shaders(graphicsShaders, computeShaders, params, is_loading_thread);
   }

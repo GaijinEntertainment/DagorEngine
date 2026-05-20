@@ -83,16 +83,18 @@ struct RenderSWRT
 
   build_bvh::BLASData *buildBottomLevelStructures(uint32_t workers);
   build_bvh::TLASData *buildTopLevelStructures();
+  build_bvh::TLASData *buildTopLevelStructures(build_bvh::TLASData *d); // reuses TLAS, no log messages
   void copyToGPU(build_bvh::BLASData *);
   void copyToGPUAndDestroy(build_bvh::BLASData *);
   void copyToGPUAndDestroy(build_bvh::TLASData *);
+  void copyToGPUAndClear(build_bvh::TLASData *); // clear TLASData, so it can be reused without re-allocs
   static void destroy(build_bvh::BLASData *&);
   static void destroy(build_bvh::TLASData *&);
 
   void drawRT();
   void reserveAddInstances(int cnt);
   uint32_t currentInstancesCount() const { return instances.size(); }
-  void clearTLASSourceData();
+  void clearTLASSourceData(bool shrink_arrays = true);
   void clearBLASSourceData();
   void clearTLASBuffers();
   void clearBLASBuffers();
@@ -111,6 +113,8 @@ struct RenderSWRT
 protected:
   ComputeShaderElement *checkerboard_shadows_swrt_cs = nullptr, *shadows_swrt_cs = nullptr, *mask_shadow_swrt_cs = nullptr;
   void renderShadowFrustumTiles(int w, int h, const Point3 &dir_to_sun, float sun_size);
+  build_bvh::TLASData *buildTopLevelStructuresInternal(build_bvh::TLASData *d, bool do_debug);
+  void copyToGPUInternal(build_bvh::TLASData *d, bool do_del, bool do_debug);
   UniqueBufHolder bottomBuf;
   UniqueBufHolder topBuf;
   UniqueBufHolder topLeavesBuf;
@@ -138,5 +142,5 @@ protected:
   PostFxRenderer rt;
   bool inited = false;
 
-  void build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &blas_boxes);
+  void build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &blas_boxes, bool do_debug);
 };

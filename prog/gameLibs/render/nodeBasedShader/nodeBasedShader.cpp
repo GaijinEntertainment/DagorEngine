@@ -111,7 +111,7 @@ eastl::vector<String> getAvailableShaderVars()
   {
     String name(VariableMap::getVariableName(i));
     const int varId = VariableMap::getVariableId(name.c_str());
-    if (!name)
+    if (name.empty())
       continue;
     if (ShaderGlobal::get_var_type(varId) == VarType && (VarType != SHVT_TEXTURE || get_managed_texture_id(name) != BAD_TEXTUREID))
       availableShaderVars.push_back(name);

@@ -16,10 +16,10 @@ shader ui_blend {
     ui_tex@smp2d = ui_tex;
   }
   hlsl(ps) {
-    half4 main_ps(VsOutput input) : SV_Target0 {
+    half4 ui_blend_ps(VsOutput input) : SV_Target0 {
       return tex2Dlod(ui_tex, float4(input.tc, 0, 0));
     }
   }
 
-  compile("target_ps", "main_ps");
+  compile("target_ps", "ui_blend_ps");
 }

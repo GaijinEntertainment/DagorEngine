@@ -140,8 +140,17 @@ public:
         }
       }
 
+      G_STATIC_ASSERT((int)Constants::EDITBOX_MULTILINE_DEFAULT_HEIGHT == 1);
+      G_STATIC_ASSERT((int)Constants::EDITBOX_MULTILINE_8_LINES_HEIGHT == 0);
+      G_STATIC_ASSERT((int)Constants::EDITBOX_MULTILINE_FULL_HEIGHT == 2);
+      float height = mH;
+      if (mH == (int)Constants::EDITBOX_MULTILINE_DEFAULT_HEIGHT)
+        height = ImGui::GetFontSize() * 2.5f;
+      else if (mH == (int)Constants::EDITBOX_MULTILINE_FULL_HEIGHT)
+        height = -FLT_MIN;
+
       // Use full width by default.
-      const ImVec2 size(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN, mH > 0 ? mH : 0.0f);
+      const ImVec2 size(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN, height);
 
       textChanged = ImGuiDagor::InputTextMultiline(inputLabel, &controlValue, size);
     }

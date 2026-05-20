@@ -10,6 +10,9 @@ namespace dagdp
 class CSMShadowsManager
 {};
 
+struct ViewPerFrameData;
+void populate_csm_viewports(ViewPerFrameData &view_data, int max_cascades);
+
 dafg::NodeHandle create_csm_shadows_provider(const dafg::NameSpace &ns, int max_cascades);
 
 } // namespace dagdp

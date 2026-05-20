@@ -106,7 +106,7 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
     RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(coll.desc);
     if (draw_canopy && rgl && coll.desc.cellIdx >= 0 && coll.desc.pool >= 0 && coll.desc.pool < rgl->rtData->riProperties.size())
     {
-      const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[coll.desc.pool];
+      const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[coll.desc.pool];
       if (riProp.canopyOpacity > 0.f && rgl->rtData->riPosInst[coll.desc.pool])
       {
         RendInstGenData::Cell &cell = rgl->cells[coll.desc.cellIdx];
@@ -151,14 +151,14 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
         BBox3 canopyBox; // synthetical tree canopy box
         getRIGenCanopyBBox(riProp, worldBox, canopyBox);
 
-        if (riProp.canopyShape == RendInstGenData::CanopyShape::CONE)
+        if (riProp.canopyShape == rendinst::props::CanopyShape::CONE)
         {
           float canopyWidth = canopyBox.width().x * 0.5f;
           Point3 bottomCenter = {canopyBox.center().x, canopyBox.boxMin().y, canopyBox.center().z};
           float canopyHeight = canopyBox.boxMax().y - canopyBox.boxMin().y;
           draw_debug_solid_cone(bottomCenter, Point3(0, 1, 0), canopyWidth, canopyHeight, 8, color * coneColor);
         }
-        else if (riProp.canopyShape == RendInstGenData::CanopyShape::SPHEROID)
+        else if (riProp.canopyShape == rendinst::props::CanopyShape::SPHEROID)
         {
           TMatrix tm;
           tm.zero();

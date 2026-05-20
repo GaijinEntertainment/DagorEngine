@@ -16,7 +16,7 @@ public:
     addBuiltinDependency(lib, require("Grid"));
     addBuiltinDependency(lib, require("CollisionTraces"));
 
-    addEnumeration(das::make_smart<EnumerationGridHideFlag>());
+    addEnumeration(new EnumerationGridHideFlag());
 
     das::addExtern<DAS_BIND_FUN(das_trace_entities_in_grid)>(*this, lib, "trace_entities_in_grid", das::SideEffects::modifyArgument,
       "bind_dascript::das_trace_entities_in_grid");

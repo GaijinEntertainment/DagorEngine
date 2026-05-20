@@ -1,0 +1,9 @@
+ERROR: 'async' is not allowed on metamethod
+testData/diagnostics/async_metamethod_rejected.nut:7:17
+
+  constructor(x_) { this.x = x_ }
+  async function _add(other) {
+                 ^---
+    return V(this.x + other.x)
+
+

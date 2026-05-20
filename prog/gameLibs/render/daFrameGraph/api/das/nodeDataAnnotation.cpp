@@ -58,9 +58,9 @@ void setNodeSource(dafg::NodeData &node, const char *source) { node.nodeSource =
 
 void DaFgCoreModule::addNodeDataAnnotation(das::ModuleLibrary &lib)
 {
-  addAnnotation(das::make_smart<NodeStateRequirementsAnnotation>(lib));
-  addAnnotation(das::make_smart<VirtualPassRequirementsAnnotation>(lib));
-  addAnnotation(das::make_smart<NodeDataAnnotation>(lib));
+  addAnnotation(new NodeStateRequirementsAnnotation(lib));
+  addAnnotation(new VirtualPassRequirementsAnnotation(lib));
+  addAnnotation(new NodeDataAnnotation(lib));
 
   auto bindingMapType = das::makeType<dafg::BindingsMap>(lib);
   bindingMapType->alias = "BindingsMap";

@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <compare>
 #include <EASTL/type_traits.h>
 #include <drv/3d/dag_consts_base.h>
 #include <drv/3d/dag_samplerHandle.h>
@@ -97,29 +98,7 @@ struct SamplerInfo
   float anisotropic_max = 1.f;                    ///< Max anisotropic value. Only positive power of two values <= 16 are valid
   float mip_map_bias = 0.f;                       ///< MipMap bias
 
-  // clang-format off
-
-#define EQU(field) (this->field == rhs.field)
-#define CMP(field) if (this->field != rhs.field) return field < rhs.field;
-#define FOR_EACH_FIELD(op, sep) \
-  op(mip_map_mode)              \
-  sep op(filter_mode)           \
-  sep op(address_mode_u)        \
-  sep op(address_mode_v)        \
-  sep op(address_mode_w)        \
-  sep op(border_color)          \
-  sep op(anisotropic_max)       \
-  sep op(mip_map_bias)
-
-  bool operator==(const SamplerInfo &rhs) const { return FOR_EACH_FIELD(EQU, &&); }
-  bool operator!=(const SamplerInfo &rhs) const { return !(*this == rhs); }
-  bool operator<(const SamplerInfo &rhs) const { FOR_EACH_FIELD(CMP, ;); return false; }
-
-  // clang-format on
-
-#undef EQU
-#undef CMP
-#undef FOR_EACH_FIELD
+  auto operator<=>(const SamplerInfo &) const = default;
 };
 
 /**

@@ -50,7 +50,6 @@ static SQInteger debug_getlocals(HSQUIRRELVM v)
     const char *name = NULL;
 
     SQInteger seq=0;
-    SQInteger prevTop = sq_gettop(v);
     while ((name = sq_getlocal(v, level, seq))) {
         ++seq;
         if (!includeInternal && (name[0] == '@' || strcmp(name, "this")==0 || strcmp(name, "vargv")==0)) {
@@ -428,13 +427,13 @@ static bool default_quirrel_watchdog_hook(HSQUIRRELVM v, bool kick)
   return true;
 }
 
-SQInteger debug_script_watchdog_kick(HSQUIRRELVM v)
+static SQInteger debug_script_watchdog_kick(HSQUIRRELVM v)
 {
   sq_kick_watchdog(v);
   return SQ_OK;
 }
 
-SQInteger debug_set_script_watchdog_timeout_msec(HSQUIRRELVM v)
+static SQInteger debug_set_script_watchdog_timeout_msec(HSQUIRRELVM v)
 {
   SQInteger timeoutMsec = 0;
   sq_getinteger(v, 2, &timeoutMsec);

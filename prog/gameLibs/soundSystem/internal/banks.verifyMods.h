@@ -2,18 +2,14 @@
 #pragma once
 
 #include <EASTL/vector.h>
-#include <util/dag_hash.h>
 #include <util/dag_finally.h>
 #include <ioSys/dag_dataBlock.h>
+#include <soundSystem/banks.h>
 
 namespace sndsys::banks
 {
 using prohibited_hash_t = ProhibitedBankDesc::file_hash_t;
 G_STATIC_ASSERT((eastl::is_same<prohibited_hash_t, uint64_t>::value));
-__forceinline prohibited_hash_t mod_file_hash_fun(const char *data, size_t data_len, prohibited_hash_t hash)
-{
-  return mem_hash_fnv1<64>(data, data_len, hash);
-}
 
 static bool read_file_hash(const char *path, intptr_t &filesize, prohibited_hash_t &filehash, eastl::vector<char> &tmp_buffer)
 {

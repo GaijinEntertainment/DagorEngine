@@ -45,6 +45,7 @@ public:
   void setPreventUiUpdatesWhileUsingGizmo(bool prevent, bool wasCloning = false);
 
   void toggleSnapMode(int pcb_id);
+  void openGridSettings();
 
   void setEntityViewPluginInterface(IEntityViewPluginInterface &inEntityViewPluginInterface);
   IEntityViewPluginInterface &getEntityViewPluginInterface() const;

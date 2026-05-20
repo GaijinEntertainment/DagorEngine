@@ -30,6 +30,18 @@ namespace bind_dascript
     {                                                                                                                            \
       return context.code->makeNode<das::SimNode_CloneRefValueT<ecs::T>>(at, l, r);                                              \
     }                                                                                                                            \
+    virtual void gc_collect(das::gc_root *target, das::gc_root *from) override                                                   \
+    {                                                                                                                            \
+      das::ManagedVectorAnnotation<ecs::T>::gc_collect(target, from);                                                            \
+      if (parentType)                                                                                                            \
+        parentType->gc_collect(target, from);                                                                                    \
+    }                                                                                                                            \
+    virtual void visitTypeDecls(const das::function<void(das::TypeDecl *)> &cb) override                                         \
+    {                                                                                                                            \
+      das::ManagedVectorAnnotation<ecs::T>::visitTypeDecls(cb);                                                                  \
+      if (parentType)                                                                                                            \
+        cb(parentType);                                                                                                          \
+    }                                                                                                                            \
   };
 
 #define DECL_LIST_TYPE(lt, t) DECL_LIST_ANNOTATION(lt)
@@ -40,7 +52,7 @@ ECS_DECL_LIST_TYPES
 
 void ECS::addList(das::ModuleLibrary &lib)
 {
-#define DECL_LIST_TYPE(lt, t) addAnnotation(das::make_smart<lt##Annotation>(lib));
+#define DECL_LIST_TYPE(lt, t) addAnnotation(new lt##Annotation(lib));
   ECS_DECL_LIST_TYPES
 #undef DECL_LIST_TYPE
   static constexpr bool is_same = sizeof(das::vector<int>) == sizeof(ecs::List<int>::base_type); // parentType =

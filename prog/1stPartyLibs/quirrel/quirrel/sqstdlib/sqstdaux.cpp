@@ -288,7 +288,7 @@ static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
     return 0;
 }
 
-void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const char *sErr,const char *sSource,SQInteger line,SQInteger column, const char *extra)
+static void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const char *sErr,const char *sSource,SQInteger line,SQInteger column, const char *extra)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {

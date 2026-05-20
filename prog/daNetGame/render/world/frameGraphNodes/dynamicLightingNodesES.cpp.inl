@@ -34,7 +34,7 @@ static void recreate_dynamic_lighting_nodes(
   if (!WRDispatcher::isReadyToUse())
     return;
 
-  if (WRDispatcher::isBareMinimum())
+  if (!renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
   {
     prepare_resources_node = dafg::NodeHandle();
     generate_tiles_node = dafg::NodeHandle();

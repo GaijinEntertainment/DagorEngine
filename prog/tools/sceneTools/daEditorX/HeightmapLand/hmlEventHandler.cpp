@@ -135,7 +135,8 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
     case CM_ERASE_HEIGHTMAP: eraseHeightmap(); break;
 
-    case CM_EXPORT_HEIGHTMAP: exportHeightmap(); break;
+    case CM_EXPORT_HEIGHTMAP_MAIN: exportHeightmap(false); break;
+    case CM_EXPORT_HEIGHTMAP_DETAILED: exportHeightmap(true); break;
 
     case CM_RESCALE_HMAP:
     {
@@ -244,6 +245,9 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
     case CM_ERASE_WATER_HEIGHTMAPS: eraseWaterHeightmap(); break;
 
     case CM_EXPORT_COLORMAP: exportColormap(); break;
+
+    case CM_EXPORT_WATER_HEIGHTMAP_MAIN: exportWaterHeightmap(false); break;
+    case CM_EXPORT_WATER_HEIGHTMAP_DETAILED: exportWaterHeightmap(true); break;
 
     case CM_HILL_UP:
     case CM_HILL_DOWN:

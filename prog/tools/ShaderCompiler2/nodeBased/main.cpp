@@ -306,6 +306,9 @@ static String getShaderNodesJS(NodeBasedShaderType type, char *exePath)
       break;
   }
   result.aprintf(0, "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\shaderEditors\\shaderNodes\\shaderNodesCommon.js ", exePath);
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+  result.replaceAll("\\", "/");
+#endif
   return result;
 }
 
@@ -326,19 +329,19 @@ static NodeBasedShaderType plug_name_to_type(char const *plug_name)
 int DagorWinMain(bool)
 {
   // get options
-  if (__argc < 2)
+  if (dgs_argc < 2)
   {
     showUsage();
     return 1;
   }
 
-  if (dd_stricmp(__argv[1], "-h") == 0 || dd_stricmp(__argv[1], "-H") == 0 || dd_stricmp(__argv[1], "/?") == 0)
+  if (dd_stricmp(dgs_argv[1], "-h") == 0 || dd_stricmp(dgs_argv[1], "-H") == 0 || dd_stricmp(dgs_argv[1], "/?") == 0)
   {
     showUsage();
     return 0;
   }
 
-  processArguments(__argc, __argv);
+  processArguments(dgs_argc, dgs_argv);
   int res = 0;
 
   char exePath[1024];
@@ -363,6 +366,11 @@ int DagorWinMain(bool)
 
   String dshl;
   DataBlock shaderBlk;
+#if _TARGET_PC_WIN
+  const char *call_prefix = "call ", *exe_suffix = ".exe";
+#else
+  const char *call_prefix = "", *exe_suffix = "";
+#endif
 
   if (!settings.depDumpOnly)
   {
@@ -370,16 +378,19 @@ int DagorWinMain(bool)
     FINALLY([&] { dd_erase(outputJson.str()); });
 
     String cmd(0,
-      "call %s\\duktape.exe "
+      "%s%s\\duktape%s "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\offlineEditorApiStub.js "
       "%s" // Shader type based shaderNode variant
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\nodeUtils.js "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\graphEditor.js "
       "%s\\..\\..\\..\\prog\\gameLibs\\webui\\plugins\\grapheditor\\editorScripts\\rebuildShaderCode.js "
       "pluginName=%s globalSubgraphsDir=%s rootFileName=%s outputFileName=%s %s",
-      exePath, exePath, getShaderNodesJS(shaderType, exePath).str(), exePath, exePath, exePath, pluginName.str(),
-      settings.subgraphsFolder.str(), settings.singleInputJson.str(), outputJson.str(),
+      call_prefix, exePath, exe_suffix, exePath, getShaderNodesJS(shaderType, exePath).str(), exePath, exePath, exePath,
+      pluginName.str(), settings.subgraphsFolder.str(), settings.singleInputJson.str(), outputJson.str(),
       (String("includes=") + settings.optionalGraphs).str());
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+    cmd.replaceAll("\\", "/");
+#endif
 
     if (settings.verbose)
       printf("\nexecuting: %s\n\n", cmd.str());
@@ -471,10 +482,13 @@ int DagorWinMain(bool)
     } lock{platformId};
 
     String cmd(0,
-      "call %s\\dsc2-%s-dev.exe %s -q -shaderOn -nodisassembly -commentPP -codeDumpErr -r -cj0 %s -o "
+      "%s%s\\dsc2-%s-dev%s %s -q -shaderOn -nodisassembly -commentPP -codeDumpErr -r -cj0 %s -o "
       "%s\\..\\..\\..\\_output\\lshader\\shaders~%s~%s -quiet -supressLogs %s",
-      exePath, DSC_TABLE[platformId].dscSuff, outputDscBlk, DSC_TABLE[platformId].additionalArgs, exePath,
+      call_prefix, exePath, DSC_TABLE[platformId].dscSuff, exe_suffix, outputDscBlk, DSC_TABLE[platformId].additionalArgs, exePath,
       DSC_TABLE[platformId].platform, makeHashedName(outputDshl).str(), forceArgs);
+#if _TARGET_PC_LINUX | _TARGET_PC_MACOSX
+    cmd.replaceAll("\\", "/");
+#endif
 
     if (settings.depDumpOnly)
     {
@@ -488,7 +502,7 @@ int DagorWinMain(bool)
     res += system(cmd.str());
     if (res)
     {
-      printf("ERROR: failed to run dsc");
+      printf("ERROR: failed to run '%s'\n", cmd.c_str());
       return 1;
     }
   }

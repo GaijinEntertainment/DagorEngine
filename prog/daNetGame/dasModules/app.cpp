@@ -28,7 +28,7 @@ public:
   DngAppModule() : das::Module("app")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<UserGameModeContextAnnotation>(lib));
+    addAnnotation(new UserGameModeContextAnnotation(lib));
 
     addBuiltinDependency(lib, require("AppTime"), true);
 
@@ -49,8 +49,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(sceneload::load_game_scene)>(*this, lib, "load_game_scene", das::SideEffects::modifyExternal,
       "sceneload::load_game_scene")
-      ->arg_init(/*import_depth*/ 1, das::make_smart<das::ExprConstInt>(1))
-      ->arg_init(/*load_type*/ 2, das::make_smart<das::ExprConstUInt>(3 /*IMPORT*/));
+      ->arg_init(/*import_depth*/ 1, new das::ExprConstInt(1))
+      ->arg_init(/*load_type*/ 2, new das::ExprConstUInt(3 /*IMPORT*/));
     das::addExtern<DAS_BIND_FUN(das_switch_scene_1)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,
       "bind_dascript::das_switch_scene_1");
     das::addExtern<DAS_BIND_FUN(das_switch_scene_2)>(*this, lib, "switch_scene", das::SideEffects::modifyExternal,
@@ -74,7 +74,7 @@ public:
     // FIXME: return temp string somehow (gc-friendly)
     das::addExtern<const char *(*)(const char *, const char *), &::dgs_get_argv>(*this, lib, "dgs_get_argv",
       das::SideEffects::accessExternal, "::dgs_get_argv")
-      ->arg_init(1 /*def_val*/, das::make_smart<das::ExprConstString>());
+      ->arg_init(1 /*def_val*/, new das::ExprConstString());
     das::addExtern<DAS_BIND_FUN(bind_dascript::dgs_get_argv_all)>(*this, lib, "dgs_get_argv_all", das::SideEffects::accessExternal,
       "bind_dascript::dgs_get_argv_all");
 

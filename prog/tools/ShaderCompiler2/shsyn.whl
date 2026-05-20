@@ -510,6 +510,7 @@ external-var-name(external_var_name) ->
 external-var-value-single(external_var_value_single) ->
   ("globtm"|"projtm"|"viewprojtm"|"local_view_x"|"local_view_y"|"local_view_z"|"local_view_pos"|
    "world_local_x"|"world_local_y"|"world_local_z"|"world_local_pos")=builtin_var
+  | "material"=mat "."=nothing sh-mat-texture=tex [(static-attrib=attrib)*]
   | arithmetic-expr=expr;
 
 external-variable(external_variable) ->
@@ -563,13 +564,21 @@ render-stage-stat(render_stage_stat) ->
   "render_stage"=nothing (ident=name | string=name_s) ";"=nothing ;
 
 assume-stat(assume_stat) ->
-  "assume"=nothing ident=interval "="=nothing ident=value ";"=nothing ;
+  ("assume"=nothing ident=interval "="=nothing ident=value ";"=nothing) |
+  ("assume"=nothing ident=interval "="=nothing "NULL"=null_value ";"=nothing) |
+  ("assume"=nothing ident=interval "!="=is_not_null "NULL"=nothing ";"=nothing) ;
 
 assume-if-not-assumed-stat(assume_if_not_assumed_stat) ->
-  "assume_if_not_assumed"=nothing ident=interval "="=nothing ident=value ";"=nothing ;
+  ("assume_if_not_assumed"=nothing ident=interval "="=nothing ident=value ";"=nothing) |
+  ("assume_if_not_assumed"=nothing ident=interval "="=nothing "NULL"=null_value ";"=nothing) |
+  ("assume_if_not_assumed"=nothing ident=interval "!="=is_not_null "NULL"=nothing ";"=nothing) ;
 
 error-stat(error_stat) ->
   "error"=nothing "("=nothing string=message ")"=nothing ";"=nothing;
 
 supports-stat(supports_stat) ->
   "supports"=nothing iteration_pair((ident|"none")=name, ","=nothing) ";"=nothing ;
+
+code_in_class[bool_decl]={
+  int resolvedNid = -1;
+};

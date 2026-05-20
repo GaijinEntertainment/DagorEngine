@@ -105,7 +105,7 @@ bool das_get_underlying_ecs_type(das::TypeDeclPtr info, bool with_module_name,
 {
   das::string typeName;
   das::Type baseType;
-  const bool res = get_underlying_ecs_type(*info.get(), typeName, baseType, with_module_name);
+  const bool res = get_underlying_ecs_type(*info, typeName, baseType, with_module_name);
   vec4f args = das::cast<const char *>::from(typeName.c_str());
   context->invoke(block, &args, nullptr, at);
   return res;
@@ -192,16 +192,16 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("ast_core"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addEnumeration(das::make_smart<EnumerationComponentTypeFlags>());
-    addAnnotation(das::make_smart<ComponentTypeAnnotation>(lib));
-    addAnnotation(das::make_smart<ComponentTypesAnnotation>(lib));
-    addAnnotation(das::make_smart<DataComponentAnnotation>(lib));
-    addAnnotation(das::make_smart<DataComponentsAnnotation>(lib));
-    addAnnotation(das::make_smart<ComponentsListAnnotation>(lib));
-    addAnnotation(das::make_smart<TemplateDBAnnotation>(lib));
-    addAnnotation(das::make_smart<SceneAnnotation>(lib));
-    addAnnotation(das::make_smart<EntitySystemDescAnnotation>(lib));
-    addAnnotation(das::make_smart<ComponentDescAnnotation>(lib));
+    addEnumeration(new EnumerationComponentTypeFlags());
+    addAnnotation(new ComponentTypeAnnotation(lib));
+    addAnnotation(new ComponentTypesAnnotation(lib));
+    addAnnotation(new DataComponentAnnotation(lib));
+    addAnnotation(new DataComponentsAnnotation(lib));
+    addAnnotation(new ComponentsListAnnotation(lib));
+    addAnnotation(new TemplateDBAnnotation(lib));
+    addAnnotation(new SceneAnnotation(lib));
+    addAnnotation(new EntitySystemDescAnnotation(lib));
+    addAnnotation(new ComponentDescAnnotation(lib));
 
     das::addUsing<ecs::ComponentsList>(*this, lib, "ecs::ComponentsList");
 

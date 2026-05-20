@@ -10,6 +10,8 @@
 namespace bvh::ri
 {
 
+extern bool ri_enable_caching;
+
 using TreeMapper = bvh::ReferencedTransformData &(*)(ContextId context_id, uint64_t object_id, vec4f pos,
   rendinst::riex_handle_t handle, int lod_ix, uint64_t bvh_id, void *user_data, bool &recycled);
 
@@ -42,6 +44,7 @@ struct MapTreePointers
   dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
   dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> newUniqueTreeBuffers;
   dag::Span<int> treeAnimIndexCount;
+  OSSpinlock *treeAnimIndexCountLock = nullptr;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
 };
 
@@ -72,6 +75,7 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
     if constexpr (do_animation_index)
     {
       // Assign an anim index, which has the least instances
+      OSSpinlockScopedLock lock(*pointers.treeAnimIndexCountLock);
       int leastIndices = 0;
       for (int i = 1; i < Context::MaxTreeAnimIndices; ++i)
         if (pointers.treeAnimIndexCount[i] < pointers.treeAnimIndexCount[leastIndices])
@@ -97,7 +101,7 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
 
   tree->age = -1;
 
-  if (!data.buffer)
+  if (!data.buffer && ri_enable_caching)
   {
     if (auto iter = pointers.freeUniqueTreeBLASes->find(object_id); iter != pointers.freeUniqueTreeBLASes->end())
     {
@@ -253,12 +257,13 @@ template <bool do_animation_index>
 inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers)
 {
   // We make use of the fact that resize does not shrink the vector itself, only the elem count is changed
-  for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
-  {
-    if (freeTrees.second.cursor.load() < 0)
-      freeTrees.second.cursor.store(0);
-    freeTrees.second.blases.resize(freeTrees.second.cursor.load());
-  }
+  if (ri_enable_caching)
+    for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
+    {
+      if (freeTrees.second.cursor.load() < 0)
+        freeTrees.second.cursor.store(0);
+      freeTrees.second.blases.resize(freeTrees.second.cursor.load());
+    }
 
   int dropCount = 0;
 
@@ -281,8 +286,11 @@ inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers
 
       for (auto &elem : iter->second.elems)
       {
-        auto &storage = (*pointers.freeUniqueTreeBLASes)[elem.first].blases.push_back();
-        storage.swap(elem.second.blas);
+        if (ri_enable_caching)
+        {
+          auto &storage = (*pointers.freeUniqueTreeBLASes)[elem.first].blases.push_back();
+          storage.swap(elem.second.blas);
+        }
 
         context_id->freeMetaRegion(elem.second.metaAllocId);
 
@@ -297,8 +305,9 @@ inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers
       iter = lod.erase(iter);
     }
 
-  for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
-    freeTrees.second.cursor.store(freeTrees.second.blases.size());
+  if (ri_enable_caching)
+    for (auto &freeTrees : *pointers.freeUniqueTreeBLASes)
+      freeTrees.second.cursor.store(freeTrees.second.blases.size());
 
   return dropCount;
 }

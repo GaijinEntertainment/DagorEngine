@@ -170,8 +170,7 @@
   VAR(disable_dynmat_params)                  \
   VAR(camera_base_offset)                     \
   VAR(params_validation_debug_color)          \
-  VAR(use_contact_shadows)                    \
-  VAR(grass_dynamic_flag)
+  VAR(use_contact_shadows)
 
 #define GLOBAL_BLOCKS_LIST \
   VAR(globalFrame)         \

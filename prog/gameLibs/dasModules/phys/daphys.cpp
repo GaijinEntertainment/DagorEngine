@@ -31,7 +31,7 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("Dacoll"));
     addBuiltinDependency(lib, require("DagorMath"));
-    addAnnotation(das::make_smart<ResolveContactParamsAnnotation>(lib));
+    addAnnotation(new ResolveContactParamsAnnotation(lib));
     das::addCtorAndUsing<daphys::ResolveContactParams>(*this, lib, "ResolveContactParams", " ::daphys::ResolveContactParams");
     das::addExtern<DAS_BIND_FUN(daphys_resolve_penetration)>(*this, lib, "resolve_penetration",
       das::SideEffects::modifyArgumentAndExternal, "bind_dascript::daphys_resolve_penetration");

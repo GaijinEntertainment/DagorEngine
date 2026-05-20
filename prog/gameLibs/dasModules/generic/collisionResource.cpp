@@ -70,16 +70,16 @@ public:
     addBuiltinDependency(lib, require("AnimV20"));
     addBuiltinDependency(lib, require("GeomNodeTree"));
 
-    addEnumeration(das::make_smart<EnumerationCollisionResourceNodeType>());
-    addAnnotation(das::make_smart<CollisionNodeAnnotation>(lib));
-    addAnnotation(das::make_smart<CollisionResourceAnnotation>(lib));
-    addAnnotation(das::make_smart<IntersectedNodeAnnotation>(lib));
+    addEnumeration(new EnumerationCollisionResourceNodeType());
+    addAnnotation(new CollisionNodeAnnotation(lib));
+    addAnnotation(new CollisionResourceAnnotation(lib));
+    addAnnotation(new IntersectedNodeAnnotation(lib));
     das::typeFactory<CollResIntersectionsType>::make(lib);
     das::typeFactory<CollResHitNodesType>::make(lib);
     das::addUsing<CollResHitNodesType>(*this, lib, "::CollResHitNodesType");
 
-    addEnumeration(das::make_smart<EnumerationBehaviorFlag>());
-    addEnumeration(das::make_smart<EnumerationCollisionNodeFlag>());
+    addEnumeration(new EnumerationBehaviorFlag());
+    addEnumeration(new EnumerationCollisionNodeFlag());
 
     das::addExtern<DAS_BIND_FUN(collres_traceray)>(*this, lib, "collres_traceray", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::collres_traceray");

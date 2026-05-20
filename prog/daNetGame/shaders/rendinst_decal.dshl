@@ -410,8 +410,8 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
           half smoothness = packedNormalMap.r;
           half metalness = packedNormalMap.b;
 
-          half3 albedo = saturate(abs(packedNormalMap.g - 0.5) * 2 * 10);
-          half alpha = 0;
+          half3 albedo = 0;
+          half alpha = saturate(abs(packedNormalMap.g - 0.5) * 2 * 10);
           half3 normalMap = unpack_ag_normal(packedNormalMap);
           half3 vertexNormal = normalize(input.normal);
           half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );

@@ -166,7 +166,7 @@ void on_render_resolution_changed(const IPoint2 &rendering_resolution);
 
 void reinit();
 void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, IPoint2 &rendering_resolution,
-  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name);
+  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name);
 
 AntialiasingMethod get_method();
 void set_method(AntialiasingMethod method);
@@ -230,7 +230,8 @@ bool is_frame_generation_enabled_in_config();
 
 unsigned int get_frame_after_aa_flags();
 
-bool try_init_dlss(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name = nullptr);
+bool try_init_dlss(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name = nullptr,
+  const char *depth_name = nullptr);
 void apply_dlss(Texture *in_color, const ApplyContext &apply_context, Texture *target);
 bool is_ray_reconstruction_enabled();
 bool try_init_tsr(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name = nullptr);

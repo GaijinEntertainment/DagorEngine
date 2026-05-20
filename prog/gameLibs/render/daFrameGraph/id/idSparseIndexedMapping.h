@@ -472,6 +472,13 @@ public:
   ValueType &back() { return elements[eastl::to_underlying(backKey())].value; }
   const ValueType &back() const { return elements[eastl::to_underlying(backKey())].value; }
 
+  EnumType getNextUsed(EnumType key) const
+  {
+    G_ASSERT(isUsed(key));
+    uint32_t sw = subwordData()[eastl::to_underlying(key) / detail::WORD_BITS];
+    return static_cast<EnumType>(nextUsed(key, sw));
+  }
+
   void resize(SizeType new_size)
   {
     compact();

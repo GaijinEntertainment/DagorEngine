@@ -58,8 +58,8 @@ private:
   PostFxRenderer genCurl2dPs;
   VoltexRenderer genCloudShape, genCloudDetail, genMips3d;
 
-  UniqueTexHolder cloud1, cloud2;
-  UniqueTexHolder cloudsCurl2d;
+  UniqueTexWithShaderVar cloud1, cloud2;
+  UniqueTexWithShaderVar cloudsCurl2d;
   VoltexRenderer compress3D;
 
   UniqueTex cloud1Compressed, cloud2Compressed;

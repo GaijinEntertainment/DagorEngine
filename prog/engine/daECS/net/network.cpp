@@ -193,10 +193,24 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
       logerr("network message #%d/%s/%x to %d<%s> from conn #%d is failed to unpack", msgCls->classId, msgCls->debugClassName,
         msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId());
   }
-  else if (msgCls->routing != ROUTING_CLIENT_CONTROLLED_ENTITY_TO_SERVER || DAECS_EXTENSIVE_CHECKS) //-V547
-    logwarn("network message #%d/%s/%x to %d<%s> from conn #%d is dropped due to failed routing (%d) check", msgCls->classId,
-      msgCls->debugClassName, msgCls->classHash, (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId(),
-      msgCls->routing);
+  else
+  {
+    static constexpr uint32_t MAX_TOTAL_LOG_COUNT = 500;
+    static uint32_t totalLogCount = 0;
+    if (totalLogCount < MAX_TOTAL_LOG_COUNT)
+    {
+      ++totalLogCount;
+      msg->unpack(data, from);
+      const eastl::string msgStr = msgCls->formatMsgStr(msg.get());
+      logwarn("network message %s to %d<%s> from conn #%d is dropped due to failed routing (%d)", msgStr.c_str(),
+        (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId(), msgCls->routing);
+    }
+    else if (totalLogCount == MAX_TOTAL_LOG_COUNT)
+    {
+      ++totalLogCount;
+      logerr("network: too many routing failures, further warnings will be suppressed");
+    }
+  }
   msg.reset();
   if (dataPtr != tmpBuf)
     framemem_ptr()->free(dataPtr);

@@ -1391,9 +1391,14 @@ void DeviceContext::blitImageInternal(Image *src, Image *dst, const ImageBlit &r
   // setup dst related params
   cmd.dst = dst;
 
+  // force sRGB flag from src if blit image uses the same image as src and dst (i.e. generate mipmaps)
+  FormatStore srcFormat = src->getFormat();
+  FormatStore dstFormat =
+    src == dst ? (srcFormat.srgbRead ? srcFormat.getSRGBVariant() : srcFormat.getLinearVariant()) : dst->getFormat();
+
   cmd.dstView.isArray = dst->getArrayLayers().count() > 1;
   cmd.dstView.isCubemap = 0;
-  cmd.dstView.setFormat(dst->getFormat());
+  cmd.dstView.setFormat(dstFormat);
   cmd.dstView.setMipBase(region.dstSubresource.mipLevel);
   cmd.dstView.setMipCount(1);
   cmd.dstView.setArrayBase(region.dstSubresource.baseArrayLayer);
@@ -1411,7 +1416,7 @@ void DeviceContext::blitImageInternal(Image *src, Image *dst, const ImageBlit &r
 
   cmd.srcView.isArray = src->getArrayLayers().count() > 1;
   cmd.srcView.isCubemap = 0;
-  cmd.srcView.setFormat(src->getFormat());
+  cmd.srcView.setFormat(srcFormat);
   cmd.srcView.setMipBase(region.srcSubresource.mipLevel);
   cmd.srcView.setMipCount(1);
   cmd.srcView.setArrayBase(region.srcSubresource.baseArrayLayer);
@@ -2438,6 +2443,11 @@ void DeviceContext::shutdownSwapchain()
   DX12_LOCK_FRONT();
   finishInternal();
 
+#if _TARGET_PC_WIN
+  xessWrapper.releaseFrameGenerationSwapchainContext();
+  fsrWrapper.releaseFrameGenerationSwapchainContext();
+#endif
+
   back.swapchain.prepareForShutdown(device);
   back.swapchain.shutdown();
   front.swapchain.shutdown();
@@ -3299,6 +3309,8 @@ void DeviceContext::initXeSS()
 #endif
 }
 
+void DeviceContext::initFSR() { fsrWrapper.fsrInit(); }
+
 void DeviceContext::initFsr2()
 {
 #if !_TARGET_XBOX
@@ -3348,7 +3360,7 @@ void DeviceContext::shutdownDLSS()
 #endif
 }
 
-void DeviceContext::initStreamline([[maybe_unused]] ComPtr<DXGIFactory> &factory, [[maybe_unused]] DXGIAdapter *adapter)
+void DeviceContext::initStreamline([[maybe_unused]] DXGIAdapter *adapter)
 {
 #if !_TARGET_XBOX
   D3D12_FEATURE_DATA_VIDEO_EXTENSION_COMMAND_COUNT extensionCommandCount{};
@@ -3364,9 +3376,7 @@ void DeviceContext::initStreamline([[maybe_unused]] ComPtr<DXGIFactory> &factory
     supportOverride[kFeatureDLSS_G] = nv::SupportState::NoVideoExtensions;
   if (StreamlineAdapter::init(streamlineAdapter, StreamlineAdapter::RenderAPI::DX12, supportOverride))
   {
-    factory = StreamlineAdapter::hook(factory);
     const auto index = device.device.getVersionIndex();
-    device.device = StreamlineAdapter::hook(device.device.get());
     device.device.setVersionIndex(index);
     streamlineAdapter->setAdapterAndDevice(adapter, device.device.get());
   }
@@ -3378,7 +3388,6 @@ void DeviceContext::preRecoverStreamline()
 #if !_TARGET_XBOX
   if (streamlineAdapter)
   {
-    device.device = StreamlineAdapter::unhook(device.device.get());
     streamlineAdapter->preRecover();
   }
 #endif
@@ -3391,7 +3400,6 @@ void DeviceContext::recoverStreamline([[maybe_unused]] DXGIAdapter *adapter)
   {
     streamlineAdapter->recover();
     const auto index = device.device.getVersionIndex();
-    device.device = StreamlineAdapter::hook(device.device.get());
     device.device.setVersionIndex(index);
     streamlineAdapter->setAdapterAndDevice(adapter, device.device.get());
   }
@@ -3406,6 +3414,8 @@ void DeviceContext::shutdownStreamline()
 }
 
 void DeviceContext::shutdownXess() { xessWrapper.xessShutdown(); }
+
+void DeviceContext::shutdownFSR() { fsrWrapper.fsrShutdown(); }
 
 void DeviceContext::shutdownFsr2()
 {
@@ -3524,7 +3534,7 @@ void DeviceContext::scheduleXeFG(const XessFgParams &params)
 #endif
 }
 
-void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params)
+void DeviceContext::executeFSR(const amd::FSR::UpscalingArgs &params)
 {
   auto cast_to_image = [](BaseTexture *src) {
     if (src)
@@ -3542,7 +3552,7 @@ void DeviceContext::executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &par
   args.transparencyAndCompositionTexture = cast_to_image(params.transparencyAndCompositionTexture);
 
   DX12_LOCK_FRONT();
-  auto cmd = make_command<CmdDispatchFSR>(fsr, args);
+  auto cmd = make_command<CmdDispatchFSR>(args);
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSR used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -3578,7 +3588,7 @@ void DeviceContext::executeFSR2(const Fsr2Params &params)
   immediateModeExecute();
 }
 
-void DeviceContext::executeFSRFG(amd::FSR *fsr, const amd::FSR::FrameGenArgs &params)
+void DeviceContext::executeFSRFG(const amd::FSR::FrameGenArgs &params)
 {
   auto cast_to_image = [](BaseTexture *src) {
     if (src)
@@ -3593,7 +3603,7 @@ void DeviceContext::executeFSRFG(amd::FSR *fsr, const amd::FSR::FrameGenArgs &pa
   args.uiTexture = cast_to_image(params.uiTexture);
 
   DX12_LOCK_FRONT();
-  auto cmd = make_command<CmdDispatchFSRFG>(fsr, args);
+  auto cmd = make_command<CmdDispatchFSRFG>(args);
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdDispatchFSRFG used during a generic render pass");
   commandStream.pushBack(cmd);
   immediateModeExecute();
@@ -3618,8 +3628,14 @@ void DeviceContext::shutdownInternalSwapchain()
   flushCommandsAndFrontend();
   waitForCommandFence();
 
+  // FSR-FG expects releasing context before swapchain destroy
+  fsrWrapper.releaseFrameGenerationSwapchainContext();
+
   back.swapchain.prepareForShutdown(device);
   back.swapchain.shutdown();
+
+  // XeSS-FG expects refcount == 0 on swapchain destroy
+  xessWrapper.releaseFrameGenerationSwapchainContext();
 }
 
 bool DeviceContext::adoptUserSwapchain(DXGISwapChain *swapchain, SwapchainCreateInfo &&sci)
@@ -4074,13 +4090,13 @@ HostDeviceSharedMemoryRegion DeviceContext::allocatePushMemory(uint32_t size, ui
 }
 
 
-void DeviceContext::moveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+void DeviceContext::moveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to)
 {
   commandStream.pushBack(make_command<CmdMoveBuffer>(from, to));
   immediateModeExecute();
 }
 
-void DeviceContext::twoPhaseMoveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to,
+void DeviceContext::twoPhaseMoveBufferNoLock(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to,
   const ScratchBuffer &scratch)
 {
   commandStream.pushBack(make_command<CmdTwoPhaseMoveBuffer>(from, to, scratch));
@@ -4132,7 +4148,8 @@ struct BufferWriter
   void write(eastl::string_view text)
   {
     size_t spaceLeft = size - offset - 1;
-    auto copyCount = min(text.length(), spaceLeft);
+    size_t len = strnlen_s(text.data(), text.length());
+    auto copyCount = min(len, spaceLeft);
     memcpy(&buffer[offset], text.data(), copyCount);
     offset += copyCount;
   }
@@ -4228,6 +4245,10 @@ stackhelp::ext::ResolvedRecord DeviceContext::ExecutionContext::on_ext_call_stac
   {
     writer.write("No event path information\n");
   }
+
+#if DX12_HAS_CALLSTACK_EXT
+  writer.write(data.deviceContext->device.extMessage(data.callStack));
+#endif
 
   auto callStack = data.deviceContext->device.resolve(data.callStack);
   if (!callStack.empty())
@@ -7467,7 +7488,7 @@ void DeviceContext::ExecutionContext::executeFSR2(const Fsr2ParamsDx12 &params)
   contextState.cmdBuffer.dirtyAll();
 }
 
-void DeviceContext::ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscalingArgs &params)
+void DeviceContext::ExecutionContext::executeFSR(const FSRUpscalingArgs &params)
 {
   if (!readyCommandList())
   {
@@ -7485,20 +7506,11 @@ void DeviceContext::ExecutionContext::executeFSR(amd::FSR *fsr, const FSRUpscali
     },
     {});
 
-  amd::FSR::UpscalingPlatformArgs args = params;
-  args.colorTexture = get_handle(params.colorTexture);
-  args.depthTexture = get_handle(params.depthTexture);
-  args.motionVectors = get_handle(params.motionVectors);
-  args.exposureTexture = get_handle(params.exposureTexture);
-  args.outputTexture = get_handle(params.outputTexture);
-  args.reactiveTexture = get_handle(params.reactiveTexture);
-  args.transparencyAndCompositionTexture = get_handle(params.transparencyAndCompositionTexture);
-
-  contextState.cmdBuffer.recordExternalCommands([args, fsr](auto cmd) { fsr->doApplyUpscaling(args, cmd); });
+  contextState.cmdBuffer.recordExternalCommands([this, &params](auto cmd) { self.fsrWrapper.evaluateFsr(cmd, params); });
   contextState.cmdBuffer.dirtyAll();
 }
 
-void DeviceContext::ExecutionContext::executeFSRFG(amd::FSR *fsr, const FSRFrameGenArgs &params)
+void DeviceContext::ExecutionContext::executeFSRFG(const FSRFrameGenArgs &params)
 {
   if (!readyCommandList())
   {
@@ -7520,7 +7532,7 @@ void DeviceContext::ExecutionContext::executeFSRFG(amd::FSR *fsr, const FSRFrame
   args.motionVectors = get_handle(params.motionVectors);
   args.uiTexture = get_handle(params.uiTexture);
 
-  contextState.cmdBuffer.recordExternalCommands([args, fsr](auto cmd) { fsr->doScheduleGeneratedFrames(args, cmd); });
+  contextState.cmdBuffer.recordExternalCommands([this, &args](auto cmd) { self.fsrWrapper.doScheduleGeneratedFrames(args, cmd); });
   contextState.cmdBuffer.dirtyAll();
 }
 
@@ -8219,7 +8231,7 @@ void DeviceContext::ExecutionContext::twoPhaseCopyBuffer(BufferResourceReference
   dirtyBufferState(source.resourceId);
 }
 
-void DeviceContext::ExecutionContext::moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to)
+void DeviceContext::ExecutionContext::moveBuffer(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to)
 {
   // TODO: Support move on copy queue if it is effective.
   // contextState.readBackManager.moveBuffer(from, to);
@@ -8232,12 +8244,12 @@ void DeviceContext::ExecutionContext::moveBuffer(BufferResourceReferenceAndOffse
 
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  contextState.cmdBuffer.copyBuffer(to.buffer, to.offset, from.buffer, from.offset, to.size);
+  contextState.cmdBuffer.copyBuffer(to.buffer, to.offset, from.buffer, from.offset, from.size);
 
   contextState.bufferAccessTracker.updateLastFrameAccess(to.resourceId);
 }
 
-void DeviceContext::ExecutionContext::twoPhaseMoveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to,
+void DeviceContext::ExecutionContext::twoPhaseMoveBuffer(BufferResourceReferenceAndRange from, BufferResourceReferenceAndOffset to,
   ScratchBuffer scratch_memory)
 {
   if (!readyCommandList())
@@ -8248,13 +8260,13 @@ void DeviceContext::ExecutionContext::twoPhaseMoveBuffer(BufferResourceReference
   contextState.resourceStates.useScratchAsCopyDestination(contextState.graphicsCommandListBarrierBatch, scratch_memory.buffer);
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
 
-  contextState.cmdBuffer.copyBuffer(scratch_memory.buffer, scratch_memory.offset, from.buffer, from.offset, to.size);
+  contextState.cmdBuffer.copyBuffer(scratch_memory.buffer, scratch_memory.offset, from.buffer, from.offset, from.size);
 
   contextState.resourceStates.useScratchAsCopySource(contextState.graphicsCommandListBarrierBatch, scratch_memory.buffer);
   contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
   contextState.graphicsCommandListBarrierBatch.flushAlias(from.buffer, to.buffer);
 
-  contextState.cmdBuffer.copyBuffer(to.buffer, to.offset, scratch_memory.buffer, scratch_memory.offset, to.size);
+  contextState.cmdBuffer.copyBuffer(to.buffer, to.offset, scratch_memory.buffer, scratch_memory.offset, from.size);
 
   contextState.bufferAccessTracker.updateLastFrameAccess(to.resourceId);
 }

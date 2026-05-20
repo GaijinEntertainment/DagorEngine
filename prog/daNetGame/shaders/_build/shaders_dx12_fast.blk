@@ -5,6 +5,7 @@ include "shaders_pc11.blk"
   file:t = "depth_hierarchy.dshl"
   file:t = "motion_vrs.dshl"
   file:t = "shading_vrs.dshl"
+  file:t = "medium_preset_compilation_var_ref.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"

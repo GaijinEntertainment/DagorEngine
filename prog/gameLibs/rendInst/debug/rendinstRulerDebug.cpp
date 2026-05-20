@@ -31,7 +31,7 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
     int riPoolRef = desc.isRiExtra() ? rxPool.riPoolRef : desc.pool;
     if (rgl == nullptr || rgl->rtData == nullptr)
       return;
-    const RendInstGenData::RendinstProperties &riProp = rgl->rtData->riProperties[riPoolRef];
+    const rendinst::props::RendinstProperties &riProp = rgl->rtData->riProperties[riPoolRef];
 
     draw_cached_matrix_axis(tm);
 

@@ -76,12 +76,11 @@ using ConnectCb = WebSocketCallback<ConnectStatus, const eastl::string & /* actu
 using CloseCb = WebSocketCallback<CloseStatusInt, Error && /* error */>;
 using MessageCb = WebSocketCallback<PayloadView, bool>; // payload, isText
 
-// WebSocketClient has different implementations: CURL-based and Xbox-specific.
+// WebSocketClient is CURL-based.
 //
 // * All class methods must be called from the same thread. They are not thread-safe.
 // * User or WebSocketClient must be ready that application-provided callbacks can be called from different threads.
 // * Callbacks can be also called directly from inside of methods `connect`, `send`, `close` and `poll`.
-// * For example Xbox calls `onMessage` from some Microsoft internal thread.
 // * User must not call `poll()` from inside of callbacks because `poll()` is not ready for this.
 class WebSocketClient
 {

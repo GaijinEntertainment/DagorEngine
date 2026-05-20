@@ -35,11 +35,20 @@ def test_finally(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@test_block_finally))
         t |> success(test_block_finally())
     }
+    t |> run("cmres return without finally") @(t : T?) {
+        t |> success(!jit_enabled() || is_jit_function(@@cmres_return_without_finally))
+        let bag = cmres_return_without_finally()
+        t |> equal(bag.a, 1)
+        t |> equal(bag.b, 2)
+        t |> equal(bag.c, 3)
+        t |> equal(bag.d, 4)
+    }
     t |> run("for loop with early out") @(t : T?) {
         t |> success(!jit_enabled() || is_jit_function(@@early_out))
         g_steps = 0
         early_out(t, array<int>(1, 2, 3, 4))
-        t |> equal(2, g_steps)
+        // per-iter inner finally fires at aidx=1 and aidx=2 (before return); outer fires once = 3
+        t |> equal(3, g_steps)
     }
 }
 
@@ -55,7 +64,8 @@ def early_out(t : T?; var aclone : array<int>) {
         }
     } finally {
         g_steps ++
-        t |> equal(0, lock_count(aclone))
+        // per-iteration finally fires while iterator still holds the lock
+        t |> equal(1, lock_count(aclone))
     }
 } finally {
     t |> equal(0, lock_count(aclone))
@@ -149,7 +159,8 @@ def test_for_finally(max : int = 10) {
         t[9] = 13
         count += uno
     }
-    return count == 1 && t[9] == 13
+    // per-iter finally: iterations 0..5 each run finally (break after x==5's finally)
+    return count == 6 && t[9] == 13
 }
 
 var {
@@ -179,7 +190,8 @@ def test_while_finally(max : int = 10) {
         t[9] = 12 + uno
         count ++
     }
-    return count == 1 && t[9] == 13
+    // per-iter finally: iterations 0..5 each run finally (break after x==5's finally)
+    return count == 6 && t[9] == 13
 }
 
 var {
@@ -208,6 +220,23 @@ def test_block_finally() {
     var t = 0
     invoke() <| $() { t = 1; } finally { t = 2; }
     return t == 2
+}
+
+struct CmresBag {
+    a : int
+    b : int
+    c : int
+    d : int
+}
+
+// CMRES return from inside a bare block with NO finally on any enclosing block —
+// exercises has_any_finally_block's false-returning path (LLVM JIT must NOT spill
+// the return value to a temp when no finally is present).
+[jit]
+def cmres_return_without_finally() : CmresBag {
+    {
+        return CmresBag(a = 1, b = 2, c = 3, d = 4)
+    }
 }
 
 

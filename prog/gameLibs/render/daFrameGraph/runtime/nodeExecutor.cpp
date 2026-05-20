@@ -84,18 +84,35 @@ void populate_resource_provider(ResourceProvider &provider, // passed by ref to 
 struct NodeExecutor::CallstackData : private stackhelp::ext::ScopedCallStackContext
 {
   CallstackData(NodeExecutor *executor, NodeNameId nodeId, multiplexing::Index multiplexingIndex) :
-    ScopedCallStackContext{captureCallstackData, this}, data{executor, nodeId, multiplexingIndex}
+    ScopedCallStackContext{captureCallstackData, this},
+    data{
+      static_cast<uint16_t>(multiplexingIndex.superSample),
+      static_cast<uint16_t>(multiplexingIndex.subSample),
+      static_cast<uint16_t>(multiplexingIndex.viewport),
+      static_cast<uint16_t>(multiplexingIndex.subCamera),
+    },
+    ref{executor, nodeId}
   {}
 
 private:
+  // Compact packing into 1 void * on x64
   struct Data
+  {
+    uint16_t superSample;
+    uint16_t subSample;
+    uint16_t viewport;
+    uint16_t subCamera;
+  };
+  static constexpr size_t CALLSTACK_DATA_SIZE_IN_POINTERS = (sizeof(Data) + sizeof(void *) - 1) / sizeof(void *);
+  // Data is hashed, so all bytes should be filled
+  static_assert(CALLSTACK_DATA_SIZE_IN_POINTERS * sizeof(void *) == sizeof(Data));
+  Data data;
+  struct Ref
   {
     NodeExecutor *executor;
     NodeNameId nodeId;
-    multiplexing::Index multiplexingIndex;
   };
-  static constexpr size_t CALLSTACK_DATA_SIZE_IN_POINTERS = (sizeof(Data) + sizeof(void *) - 1) / sizeof(void *);
-  Data data;
+  Ref ref;
 
   static stackhelp::ext::CallStackResolverCallbackAndSizePair captureCallstackData(stackhelp::CallStackInfo stack, void *context);
   static stackhelp::ext::ResolvedRecord resolveCallStackData(char *buf, unsigned max_buf, stackhelp::CallStackInfo stack);
@@ -106,13 +123,18 @@ stackhelp::ext::CallStackResolverCallbackAndSizePair NodeExecutor::CallstackData
   void *context)
 {
   auto *ctx = static_cast<CallstackData *>(context);
+  const char *nodeName = ctx->ref.executor->registry.knownNames.getName(ctx->ref.nodeId);
+  unsigned nodeNameLen = strlen(nodeName) + 1;
+  unsigned nodeNameLenInPtr = (nodeNameLen + sizeof(void *) - 1) / sizeof(void *);
+  unsigned consumedStack = CALLSTACK_DATA_SIZE_IN_POINTERS + nodeNameLenInPtr;
 
-  if (stack.stackSize < CALLSTACK_DATA_SIZE_IN_POINTERS)
+  if (stack.stackSize < consumedStack)
     return ctx->invokePrev(stack);
 
   memcpy(&stack.stack[0], &ctx->data, sizeof(CallstackData::Data));
+  strncpy(reinterpret_cast<char *>(&stack.stack[CALLSTACK_DATA_SIZE_IN_POINTERS]), nodeName, nodeNameLenInPtr * sizeof(void *));
 
-  return ctx->invokeChain<resolveCallStackData>(stack, CALLSTACK_DATA_SIZE_IN_POINTERS);
+  return ctx->invokeChain<resolveCallStackData>(stack, consumedStack);
 }
 
 stackhelp::ext::ResolvedRecord NodeExecutor::CallstackData::resolveCallStackData(char *buf, unsigned max_buf,
@@ -121,19 +143,22 @@ stackhelp::ext::ResolvedRecord NodeExecutor::CallstackData::resolveCallStackData
   if (stack.stackSize < CALLSTACK_DATA_SIZE_IN_POINTERS)
     return {};
 
-  CallstackData::Data data;
-  memcpy(&data, stack.stack, sizeof(data));
+  const Data &data = *reinterpret_cast<const Data *>(stack.stack);
+  const char *nodeName = reinterpret_cast<const char *>(&stack.stack[CALLSTACK_DATA_SIZE_IN_POINTERS]);
+  unsigned nodeNameLen = strlen(nodeName) + 1;
+  unsigned nodeNameLenInPtr = (nodeNameLen + sizeof(void *) - 1) / sizeof(void *);
+  unsigned consumedStack = CALLSTACK_DATA_SIZE_IN_POINTERS + nodeNameLenInPtr;
 
   unsigned writtenChars = 0;
   {
-    auto ret = snprintf(buf, max_buf, "While executing node %s with sub sample %d, super sample %d, viewport %d and subCamera %d\n",
-      data.executor->registry.knownNames.getName(data.nodeId), data.multiplexingIndex.subSample, data.multiplexingIndex.superSample,
-      data.multiplexingIndex.viewport, data.multiplexingIndex.subCamera);
+    auto ret =
+      snprintf(buf, max_buf, "While executing node %s with sub sample %hd, super sample %hd, viewport %hd and subCamera %hd\n",
+        nodeName, data.subSample, data.superSample, data.viewport, data.subCamera);
     if (ret > 0)
       writtenChars += ret;
   }
 
-  return {eastl::min(writtenChars, max_buf), CALLSTACK_DATA_SIZE_IN_POINTERS};
+  return {eastl::min(writtenChars, max_buf), consumedStack};
 }
 
 #if TIME_PROFILER_ENABLED

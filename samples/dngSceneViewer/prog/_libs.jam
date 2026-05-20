@@ -42,3 +42,4 @@ include $(Root)/prog/daNetGameLibs/sound/common_sounds/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/sound/environment_sounds/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/sound/sound_utils/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/sound/sound_utils_net/_lib.jam ;
+include $(Root)/prog/daNetGameLibs/composite_entity/_lib.jam ;

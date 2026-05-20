@@ -73,6 +73,7 @@ UseProgLibs =
   gameLibs/quirrel/frp
   gameLibs/quirrel/sqJwt
   gameLibs/quirrel/base64
+  gameLibs/quirrel/asyncRuntime
 
   gameLibs/asyncHTTPClient
 ;

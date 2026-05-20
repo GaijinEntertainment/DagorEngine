@@ -33,6 +33,33 @@ static ecs::EntitySystemDesc glass_gbuffer_renderer_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc glass_reactive_mask_pass_renderer_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("rendinst_glass_reactive_mask_node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()}
+};
+static void glass_reactive_mask_pass_renderer_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    glass_reactive_mask_pass_renderer_es(evt
+        , ECS_RW_COMP(glass_reactive_mask_pass_renderer_es_comps, "rendinst_glass_reactive_mask_node", dafg::NodeHandle)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc glass_reactive_mask_pass_renderer_es_es_desc
+(
+  "glass_reactive_mask_pass_renderer_es",
+  "prog/daNetGame/render/world/glassGbufferNodeES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, glass_reactive_mask_pass_renderer_es_all_events),
+  make_span(glass_reactive_mask_pass_renderer_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ChangeRenderFeatures,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc glass_rttr_recreate_es_comps[] =
 {
 //start of 4 rq components at [0]

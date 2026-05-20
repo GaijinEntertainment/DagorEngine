@@ -23,7 +23,7 @@ public:
 private:
   static constexpr int CAPACITY = INDOOR_PROBES;
   eastl::bitset<CAPACITY> usedIndices;
-  UniqueTexHolder cubesArray;
+  UniqueTexWithShaderVar cubesArray;
   UniqueTex lastMipsBc6HTarget;
 
   struct LightProbeDestructor

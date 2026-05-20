@@ -382,8 +382,6 @@ inline void use_capsule_collision(const das::TBlock<void, CollisionObject> &bloc
   context->invoke(block, &arg, nullptr, at);
 }
 
-inline void dacoll_fetch_sim_res(bool wait) { dacoll::fetch_sim_res(wait); }
-
 inline void dacoll_add_dynamic_sphere_collision(CollisionObject &obj, float rad, bool add_to_world)
 {
   obj = dacoll::add_dynamic_sphere_collision(TMatrix::IDENT, rad, /*up*/ nullptr, add_to_world);

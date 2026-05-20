@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/daFrameGraph/daFG.h>
+#include <render/world/bvh.h>
 
 #include <daGI2/daGI2.h>
 #include <util/dag_convar.h>
@@ -17,6 +18,7 @@ dafg::NodeHandle makeGiCalcNode()
 {
   return dafg::register_node("gi_before_frame_lit", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("combine_shadows_node");
+    registry.readBlob<OrderingToken>("bvh_ready_token").optional();
     registry.createBlob<OrderingToken>("gi_before_frame_lit_token");
 
     // fixme: add ssao dependence
@@ -76,11 +78,15 @@ dafg::NodeHandle makeGiCalcNode()
     }
     auto hasAnyDynamicLights = registry.readBlob<bool>("has_any_dynamic_lights").handle();
     auto currentCameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-    return [hasAnyDynamicLights, currentCameraHndl] {
+    const auto resolution = registry.getResolution<2>("main_view");
+    return [hasAnyDynamicLights, currentCameraHndl, resolution]() {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       if (!wr.daGI2)
         return;
+
+      if (is_rtgi_enabled())
+        bvh_bind_resources(resolution.get().x);
 
       set_inv_globtm_to_shader(currentCameraHndl.ref().viewTm, currentCameraHndl.ref().jitterProjTm, false);
 

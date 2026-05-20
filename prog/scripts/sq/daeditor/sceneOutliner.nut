@@ -537,24 +537,40 @@ function initScenesList() {
 }
 
 function initEntitiesList() {
-  let entities = entity_editor?.get_instance().getEntities("") ?? []
+  let editorInstance = entity_editor?.get_instance()
+  let entities = editorInstance?.getEntities("") ?? []
+  let currentSelection = selectionStateEntities.get()
+
+  let sceneToCount = {}
+  let sceneToCurCount = {}
+  let eidToSceneId = {}
   foreach (eid in entities) {
-    let isSelected = selectionStateEntities.get()?[eid] ?? false
-    selectionStateEntities.get()[eid] <- isSelected
+    if (!(eid in currentSelection))
+      currentSelection[eid] <- false
+
+    let sceneId = editorInstance?.getEntityRecordSceneId(eid) ?? ecs.INVALID_SCENE_ID
+    eidToSceneId[eid] <- sceneId
+    let curVal = sceneToCount?[sceneId] ?? 0
+    if (curVal == 0) {
+      sceneToCurCount[sceneId] <- 0
+    }
+    sceneToCount[sceneId] <- curVal + 1
   }
-  allEntities.set({})
+
   allEntities.mutate(function(value) {
+    value.clear()
     foreach (eid in entities) {
-      local sceneId = entity_editor?.get_instance().getEntityRecordSceneId(eid) ?? ecs.INVALID_SCENE_ID
-
-      let entries = value?[sceneId]
-
-      if (entries == null) {
-        value[sceneId] <- [eid]
+      let sceneId = eidToSceneId[eid]
+      let fullCount = sceneToCount[sceneId]
+      let curCount = sceneToCurCount[sceneId]
+      if (curCount == 0) {
+        let newArray = array(fullCount, ecs.INVALID_ENTITY_ID)
+        newArray[0] = eid
+        value.rawset(sceneId, newArray)
+      } else {
+        value[sceneId][curCount] = eid
       }
-      else {
-        value[sceneId].append(eid)
-      }
+      sceneToCurCount[sceneId] = curCount + 1
     }
   })
   selectionStateEntities.trigger()

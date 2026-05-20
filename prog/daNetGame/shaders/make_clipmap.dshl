@@ -165,23 +165,6 @@ macro GET_BUMPMAPPED_PS()
     #define get_detailed(height, diffuseColor, normal, gloss, colormapA, diffusetc, bump_scale) get_detailed_base(height, diffuseColor, normal, gloss, colormapA, diffusetc, bump_scale)
   }
 endmacro
-macro GET_NORMALMAPPED_PS()
-  USE_DERIVATIVE_MAPS()
-  hlsl(ps) {
-    void get_detailed(out half height, out half3 diffuseColor, out half3 normal, out half gloss, out half colormapA, float2 diffusetc)
-    {
-      half4 combinedDiffuse = h4tex2D(colormapTex, diffusetc.xy);
-      diffuseColor.rgb = combinedDiffuse.rgb;
-      height = combinedDiffuse.r;
-      half4 normalmap = h4tex2D(normalmapTex, diffusetc.xy);
-      half3 baseNormal = unpack_ag_normal(normalmap);
-      normal.xyz = baseNormal;
-      //gloss = normalmap.r;
-      gloss = 0;//gloss!
-      colormapA = combinedDiffuse.a;
-    }
-  }
-endmacro
 
 macro USE_COMMON_LANDMESH_CLIPMAP_VS()
   hlsl {
@@ -1411,7 +1394,7 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
         USE_PIXEL_TANGENT_SPACE()
       }
       GET_BUMPMAPPED_PS()
-      //GET_NORMALMAPPED_PS()
+
       hlsl(ps) {
         void get_decal(out half3 diffuseColor, out half3 normal, out half4 smoothness_ao_reflectance_detailNo, out half height, inout half amount, inout half norm_amount, inout half r_amount, out half height_amount, float3 diffuseTexcoord__opacity, float3 worldPos)
         {
@@ -1644,12 +1627,4 @@ shader land_mesh_diffuse_modulate
   compile("target_vs", "landmesh_decal_clipmap_vs");
   compile("target_ps", "landmesh_decal_clipmap_ps");
 
-}
-
-include "tileConstantFiller.dshl"
-
-shader tileConstantFiller
-{
-  supports global_frame;
-  TILE_CONSTANT_FILLER()
 }

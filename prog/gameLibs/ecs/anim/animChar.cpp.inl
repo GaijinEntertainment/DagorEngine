@@ -268,20 +268,27 @@ static __forceinline void animchar_act_impl(float dt, float *accum_dt, const flo
     animchar.act(anim_dt, /*calc_anim*/ true);
     pnfullacts ? interlocked_increment(*pnfullacts) : 0;
   };
+  G_FAST_ASSERT(!accum_dt == !dt_threshold);
   if (!accum_dt)
     animcharAct(dt);
+  else if (*dt_threshold == 0.f)
+  {
+    animcharAct(dt);
+    *accum_dt = 0.f;
+  }
   else
   {
     *accum_dt += dt;
-    if (*accum_dt >= *dt_threshold)
-    {
-      animcharAct(*accum_dt);
-      *accum_dt = 0.f;
-    }
-    else
+    float newAccumDt = *accum_dt - *dt_threshold;
+    if (newAccumDt < 0) // only recalc wtm
     {
       animchar.recalcWtm();
       pncalcwtms ? interlocked_increment(*pncalcwtms) : 0;
+    }
+    else // full act
+    {
+      animcharAct(*dt_threshold);
+      *accum_dt = (newAccumDt < *dt_threshold) ? newAccumDt : fmodf(*accum_dt, *dt_threshold);
     }
   }
   if (!animchar_node_wtm)

@@ -12,7 +12,7 @@ public:
   OutlineModule() : das::Module("Outline")
   {
     das::ModuleLibrary lib(this);
-    addEnumeration(das::make_smart<EnumerationOutlineMode>());
+    addEnumeration(new EnumerationOutlineMode());
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

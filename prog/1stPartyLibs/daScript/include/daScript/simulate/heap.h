@@ -122,8 +122,9 @@ namespace das {
         uint32_t    stackSize = 0;
     };
 
-    class DAS_API AnyHeapAllocator : public ptr_ref_count {
+    class DAS_API AnyHeapAllocator {
     public:
+        virtual ~AnyHeapAllocator() = default;
         virtual bool breakOnFree ( void *, uint32_t ) { return false; }
         virtual char * impl_allocate ( uint32_t ) = 0;
         virtual void impl_free ( char *, uint32_t ) = 0;
@@ -148,13 +149,39 @@ namespace das {
         __forceinline uint64_t getTotalBytesAllocated() const { return totalBytesAllocated; }
         __forceinline uint64_t getTotalBytesDeleted() const { return totalBytesDeleted; }
     public:
+        // Non-virtual fast-path dispatcher. When trackAllocations is false (the default),
+        // this inlines to a single byte-load + always-predicted-false branch at every call
+        // site. Only when tracking is enabled do we make the virtual call.
+        __forceinline void mark_location ( void * ptr, const LineInfo * at ) {
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void *, const LineInfo * )  {}
-        virtual  void mark_comment ( void *, const char * ) {}
+            if ( trackAllocations ) impl_mark_location(ptr, at);
 #else
-        __forceinline void mark_location ( void *, const LineInfo * ) {}
-        __forceinline void mark_comment ( void *, const char * ) {}
+            (void)ptr; (void)at;
 #endif
+        }
+        __forceinline void mark_comment ( void * ptr, const char * what ) {
+#if DAS_TRACK_ALLOCATIONS
+            if ( trackAllocations ) impl_mark_comment(ptr, what);
+#else
+            (void)ptr; (void)what;
+#endif
+        }
+        __forceinline const char * get_comment ( void * ptr ) const {
+#if DAS_TRACK_ALLOCATIONS
+            if ( trackAllocations ) return impl_get_comment(ptr);
+            return nullptr;
+#else
+            (void)ptr;
+            return nullptr;
+#endif
+        }
+#if DAS_TRACK_ALLOCATIONS
+        virtual void impl_mark_location ( void *, const LineInfo * ) {}
+        virtual void impl_mark_comment ( void *, const char * ) {}
+        virtual const char * impl_get_comment ( void * ) const { return nullptr; }
+#endif
+        virtual void setTrackAllocations ( bool on ) { trackAllocations = on; }
+        __forceinline bool isTrackingAllocations() const { return trackAllocations; }
     public:
         char * allocateName ( const string & name );
         char * impl_allocateIterator ( uint32_t size, const char * name="", const LineInfo * info=nullptr );
@@ -164,6 +191,7 @@ namespace das {
         uint64_t totalAllocations = 0;
         uint64_t totalBytesAllocated = 0;
         uint64_t totalBytesDeleted = 0;
+        bool     trackAllocations = false;
     };
 
     struct StrHashEntry {
@@ -260,9 +288,14 @@ namespace das {
         virtual void setInitialSize ( uint32_t size ) override;
         virtual int32_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
+        virtual void setTrackAllocations ( bool on ) override {
+            AnyHeapAllocator::setTrackAllocations(on);
+            model.setTrackAllocations(on);
+        }
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void * ptr, const LineInfo * at ) override  { model.mark_location(ptr,at); };
-        virtual  void mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); };
+        virtual void impl_mark_location ( void * ptr, const LineInfo * at ) override { model.mark_location(ptr,at); }
+        virtual void impl_mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); }
+        virtual const char * impl_get_comment ( void * ptr ) const override { return model.get_comment(ptr); }
 #endif
     protected:
         MemoryModel model;
@@ -340,9 +373,14 @@ namespace das {
         virtual void setInitialSize ( uint32_t size ) override;
         virtual int32_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
+        virtual void setTrackAllocations ( bool on ) override {
+            AnyHeapAllocator::setTrackAllocations(on);
+            model.setTrackAllocations(on);
+        }
 #if DAS_TRACK_ALLOCATIONS
-        virtual void mark_location ( void * ptr, const LineInfo * at ) override { model.mark_location(ptr,at); };
-        virtual  void mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); };
+        virtual void impl_mark_location ( void * ptr, const LineInfo * at ) override { model.mark_location(ptr,at); }
+        virtual void impl_mark_comment ( void * ptr, const char * what ) override { model.mark_comment(ptr,what); }
+        virtual const char * impl_get_comment ( void * ptr ) const override { return model.get_comment(ptr); }
 #endif
     protected:
         MemoryModel model;

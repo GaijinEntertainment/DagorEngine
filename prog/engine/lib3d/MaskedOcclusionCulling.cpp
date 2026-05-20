@@ -35,7 +35,7 @@
 #include <malloc.h>
 #endif
 
-#include <math/dag_occlusionTest.h>
+#include <math/dag_occlusionZBuffer.h>
 #include <3d/dag_maskedOcclusionCulling.h>
 #include <daBVH/dag_swBLAS_ray.h>
 

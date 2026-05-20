@@ -1,4 +1,5 @@
 include "deferred_shadow_common.dshl"
+include "camera_in_camera.dshl"
 
 int depth_bounds_support = 0;
 interval depth_bounds_support: no<1, yes;
@@ -8,6 +9,8 @@ interval envi_cover_use_in_resolve : no < 1, yes;
 
 shader deferred_shadow_to_buffer
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+
   if (compatibility_mode == compatibility_mode_on)
   {
     dont_render;
@@ -35,8 +38,10 @@ shader deferred_shadow_to_buffer
 
   cull_mode = none;
 
-  //fixme: in case of (depth_bounds_support == no_bounds)
-  //z_test = false should be true ONLY for cascade other than [0, something]
+  if (depth_bounds_support == no)
+  {
+    (ps) { depth_bounds@f2 = depth_bounds; }
+  }
 
   hlsl {
     struct VsOutput
@@ -69,13 +74,15 @@ shader deferred_shadow_to_buffer
     float4 deferred_shadow_to_buffer_ps(VsOutput input HW_USE_SCREEN_POS
         ) : SV_Target0
     {
+      DISCARD_IF_INVALID_VIEW_AREA_PS(input.texcoord);
+
       float4 screenpos = GET_SCREEN_POS(input.pos);
 
       float rawDepth = loadGbufferDepth(screenpos.xy);
       ##if depth_bounds_support == no
-        BRANCH
-        if (rawDepth <= 0 || rawDepth >= 1)
-          return 0;
+      BRANCH
+      if (rawDepth < depth_bounds.x || rawDepth > depth_bounds.y)
+        return 0;
       ##endif
       float w = linearize_z(rawDepth, zn_zfar.zw);
 

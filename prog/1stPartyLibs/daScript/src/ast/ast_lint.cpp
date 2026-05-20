@@ -4,6 +4,7 @@
 #include "daScript/ast/ast_generate.h"
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/simulate/aot_builtin_ast.h"
 
 namespace das {
 
@@ -34,27 +35,8 @@ namespace das {
     };
 
 
-    das::unordered_set<string> g_cpp_keywords = {
-        /* reserved C++ names*/
-        "alignas","alignof","and","and_eq","asm","atomic_cancel","atomic_commit","atomic_noexcept","auto"
-        ,"bitand","bitor","bool","break","case","catch","char","char8_t","char16_t","char32_t","class"
-        ,"compl","concept","const","consteval","constexpr","constinit","const_cast","continue","co_await"
-        ,"co_return","co_yield","decltype","default","delete","do","double","dynamic_cast","else","enum"
-        ,"explicit","export","extern","false","float","for","friend","goto","if","inline","int","long"
-        ,"mutable","namespace","new","noexcept","not","not_eq","nullptr","operator","or","or_eq","private"
-        ,"protected","public","reflexpr","register","reinterpret_cast","requires","return","short","signed"
-        ,"sizeof","static","static_assert","static_cast","struct","switch","synchronized","template","this"
-        ,"thread_local","throw","true","try","typedef","typeid","typename","union","unsigned","using"
-        ,"virtual","void","volatile","wchar_t","while","xor","xor_eq"
-        /* extra */
-        ,"override","final","import","module","transaction_safe","transaction_safe_dynamic","super"
-    };
 
-    bool isCppKeyword(const string & str) {
-        return g_cpp_keywords.find(str) != g_cpp_keywords.end();
-    }
-
-    bool hasLabels ( const smart_ptr<ExprBlock> & block ) {
+    bool hasLabels ( const ExprBlock * block ) {
         for ( auto & be : block->list ) {
             if ( be->rtti_isLabel() ) {
                 return true;
@@ -63,11 +45,11 @@ namespace das {
         return false;
     }
 
-    bool exprReturns ( const ExpressionPtr & expr ) {
+    bool exprReturns ( ExpressionPtr expr ) {
         if ( expr->rtti_isReturn() ) {
             return true;
         } else if ( expr->rtti_isBlock() ) {
-            auto block = static_pointer_cast<ExprBlock>(expr);
+            auto block = static_cast<ExprBlock*>(expr);
             if ( hasLabels(block) ) {
                 // NOTE: block with labels assumed to always return for now. real world analysis is hard
                 return true;
@@ -82,31 +64,31 @@ namespace das {
                 }
             }
         } else if ( expr->rtti_isIfThenElse() ) {
-            auto ite = static_pointer_cast<ExprIfThenElse>(expr);
+            auto ite = static_cast<ExprIfThenElse*>(expr);
             if ( ite->if_false ) {
                 return exprReturns(ite->if_true) && exprReturns(ite->if_false);
             }
         } else if ( expr->rtti_isWith() ) {
-            auto wth = static_pointer_cast<ExprWith>(expr);
+            auto wth = static_cast<ExprWith*>(expr);
             return exprReturns(wth->body);
         } else if ( expr->rtti_isWhile() ) {
-            auto wh = static_pointer_cast<ExprWhile>(expr);
+            auto wh = static_cast<ExprWhile*>(expr);
             return exprReturns(wh->body);
         } else if ( expr->rtti_isFor() ) {
-            auto fr = static_pointer_cast<ExprFor>(expr);
+            auto fr = static_cast<ExprFor*>(expr);
             return exprReturns(fr->body);
         } else if ( expr->rtti_isUnsafe() ) {
-            auto us = static_pointer_cast<ExprUnsafe>(expr);
+            auto us = static_cast<ExprUnsafe*>(expr);
             return exprReturns(us->body);
         }
         return false;
     }
 
-   bool exprReturnsOrBreaks ( const ExpressionPtr & expr ) {
+   bool exprReturnsOrBreaks ( ExpressionPtr expr ) {
         if ( expr->rtti_isReturn() ) {
             return true;
         } else if ( expr->rtti_isBlock() ) {
-            auto block = static_pointer_cast<ExprBlock>(expr);
+            auto block = static_cast<ExprBlock*>(expr);
             if ( hasLabels(block) ) {
                 // NOTE: block with labels assumed to always return for now. real world analysis is hard
                 return true;
@@ -121,21 +103,21 @@ namespace das {
                 }
             }
         } else if ( expr->rtti_isIfThenElse() ) {
-            auto ite = static_pointer_cast<ExprIfThenElse>(expr);
+            auto ite = static_cast<ExprIfThenElse*>(expr);
             if ( ite->if_false ) {
                 return exprReturnsOrBreaks(ite->if_true) && exprReturnsOrBreaks(ite->if_false);
             }
         } else if ( expr->rtti_isWith() ) {
-            auto wth = static_pointer_cast<ExprWith>(expr);
+            auto wth = static_cast<ExprWith*>(expr);
             return exprReturnsOrBreaks(wth->body);
         } else if ( expr->rtti_isWhile() ) {
-            auto wh = static_pointer_cast<ExprWhile>(expr);
+            auto wh = static_cast<ExprWhile*>(expr);
             return exprReturns(wh->body);   // note has its own break
         } else if ( expr->rtti_isFor() ) {
-            auto fr = static_pointer_cast<ExprFor>(expr);
+            auto fr = static_cast<ExprFor*>(expr);
             return exprReturns(fr->body);   // note has its own break
         } else if ( expr->rtti_isUnsafe() ) {
-            auto us = static_pointer_cast<ExprUnsafe>(expr);
+            auto us = static_cast<ExprUnsafe*>(expr);
             return exprReturnsOrBreaks(us->body);
         }
         return false;
@@ -268,7 +250,7 @@ namespace das {
             }
         }
         bool isValidModuleName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         virtual void preVisitModule ( Module * mod ) override {
             Visitor::preVisitModule(mod);
@@ -278,10 +260,10 @@ namespace das {
             }
         }
         bool isValidEnumName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         bool isValidEnumValueName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         void lintType ( TypeDecl * td ) {
             for ( auto & name : td->argNames ) {
@@ -290,9 +272,9 @@ namespace das {
                         td->at, CompilationError::invalid_name );
                 }
             }
-            if ( td->firstType ) lintType(td->firstType.get());
-            if ( td->secondType ) lintType(td->secondType.get());
-            for ( auto & arg : td->argTypes ) lintType(arg.get());
+            if ( td->firstType ) lintType(td->firstType);
+            if ( td->secondType ) lintType(td->secondType);
+            for ( auto & arg : td->argTypes ) lintType(arg);
         }
         virtual void preVisit ( TypeDecl * td ) override {
             Visitor::preVisit(td);
@@ -322,7 +304,7 @@ namespace das {
             }
         }
         bool isValidStructureName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         virtual bool canVisitStructure ( Structure * st ) override {
             return !st->isTemplate;     // not a thing with templates
@@ -364,7 +346,7 @@ namespace das {
             }
         }
         bool isValidVarName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         virtual void preVisitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) override {
             Visitor::preVisitStructureField(var, decl, last);
@@ -418,12 +400,12 @@ namespace das {
         }
         virtual void preVisitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
             Visitor::preVisitGlobalLetInit(var,that);
-            globalVar = var.get();
+            globalVar = var;
             das_hash_set<const Variable*> visitedVar;
             das_hash_set<const Function*> visitedFunc;
             vector<PathToLoop> path;
-            path.push_back(PathToLoop{var.get(), nullptr});
-            if ( detectLoop(path, var.get(), visitedVar, visitedFunc) ) {
+            path.push_back(PathToLoop{var, nullptr});
+            if ( detectLoop(path, var, visitedVar, visitedFunc) ) {
                 TextWriter ss;
                 for ( auto & step : path ) {
                     if ( step.var ) {
@@ -463,6 +445,13 @@ namespace das {
             Visitor::preVisit(expr);
             // macro generated invisible variable
             // DAS_ASSERT(expr->visibility.line);
+            for ( size_t i=0, sz=expr->iteratorVariables.size(); i<sz; i++ ) {
+                auto & var = expr->iteratorVariables[i];
+                if (!isValidVarName(var->name)) {
+                    program->error("invalid variable name '" + var->name + "'", "", "",
+                        var->at, CompilationError::invalid_name );
+                }
+            }
         }
         virtual void preVisit(ExprDelete * expr) override {
             Visitor::preVisit(expr);
@@ -507,7 +496,7 @@ namespace das {
         }
         void verifyToTableMove ( ExprCall * expr ) {
             if ( expr->arguments[0]->rtti_isMakeArray() ) {
-                auto ma = static_cast<ExprMakeArray *>(expr->arguments[0].get());
+                auto ma = static_cast<ExprMakeArray *>(expr->arguments[0]);
                 if ( ma->values.size()==0 ) return;
                 auto recType = ma->recordType ? ma->recordType : ma->makeType;
                 if ( recType->isTuple() ) {
@@ -515,10 +504,10 @@ namespace das {
                         das_set<const char *,hash_ccs,equalto_ccs> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isMakeTuple() ) {
-                                auto mt = static_cast<ExprMakeTuple *>(arg.get());
+                                auto mt = static_cast<ExprMakeTuple *>(arg);
                                 if ( mt->values.size()==2 ) {   // its redundant
                                     if ( mt->values[0]->rtti_isStringConstant() ) {
-                                        auto mc = static_cast<ExprConstString *>(mt->values[0].get());
+                                        auto mc = static_cast<ExprConstString *>(mt->values[0]);
                                         if ( seen.find(mc->text.c_str())==seen.end() ) {
                                             seen.insert(mc->text.c_str());
                                         } else {
@@ -533,10 +522,10 @@ namespace das {
                         das_set<vec4f,hash_vec4f,equalto_vec4f> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isMakeTuple() ) {
-                                auto mt = static_cast<ExprMakeTuple *>(arg.get());
+                                auto mt = static_cast<ExprMakeTuple *>(arg);
                                 if ( mt->values.size()==2 ) {   // its redundant
                                     if ( mt->values[0]->rtti_isConstant() ) {
-                                        auto mc = static_cast<ExprConst *>(mt->values[0].get());
+                                        auto mc = static_cast<ExprConst *>(mt->values[0]);
                                         if ( seen.find(mc->value)==seen.end() ) {
                                             seen.insert(mc->value);
                                         } else {
@@ -553,7 +542,7 @@ namespace das {
                         das_set<const char *,hash_ccs,equalto_ccs> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isStringConstant() ) {
-                                auto mc = static_cast<ExprConstString *>(arg.get());
+                                auto mc = static_cast<ExprConstString *>(arg);
                                 if ( seen.find(mc->text.c_str())==seen.end() ) {
                                     seen.insert(mc->text.c_str());
                                 } else {
@@ -566,7 +555,7 @@ namespace das {
                         das_set<vec4f,hash_vec4f,equalto_vec4f> seen;
                         for ( const auto & arg : ma->values ) {
                             if ( arg->rtti_isConstant() ) {
-                                auto mc = static_cast<ExprConst *>(arg.get());
+                                auto mc = static_cast<ExprConst *>(arg);
                                 if ( seen.find(mc->value)==seen.end() ) {
                                     seen.insert(mc->value);
                                 } else {
@@ -590,13 +579,32 @@ namespace das {
         }
         virtual void preVisit ( ExprCall * expr ) override {
             Visitor::preVisit(expr);
+            if ( !expr->func ) {
+                // a resolved ExprCall must have a non-null func by this stage;
+                // reaching here means the call was produced after type inference
+                // and infer was never re-run on it. common causes:
+                //  - a structure or function annotation patch() mutated the AST
+                //    but did not set astChanged=true, so the parse loop did not
+                //    re-infer;
+                //  - a pass / optimization macro modified the AST and returned
+                //    false from apply(), suppressing the re-infer cycle;
+                //  - a substitution macro (call / reader / typeinfo / variant /
+                //    type / etc.) produced a node, but the call site forgot to
+                //    forward it as a substitute so type inference never sees it.
+                program->error("internal compilation error, call reached lint with unresolved func",
+                    "this typically means the AST was modified after type inference "
+                    "without signalling that infer needs to run again - check the "
+                    "annotation patch() / pass apply() / substitution macro that produced this node",
+                    "", expr->at, CompilationError::missing_node);
+                return;
+            }
             verifyOnlyFastAot(expr->func, expr->at);
             verifyNoWrite(expr);
             if ( checkDeprecated && expr->func->deprecated ) {
                 string message = "";
                 for ( auto & ann : expr->func->annotations ) {
                     if ( ann->annotation->rtti_isFunctionAnnotation() ) {
-                        auto fnAnn = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+                        auto fnAnn = static_cast<FunctionAnnotation*>(ann->annotation);
                         if ( fnAnn->name=="deprecated" ) {
                             for ( auto & arg : ann->arguments ) {
                                 if ( arg.name=="message" && arg.type==Type::tString ) {
@@ -613,7 +621,7 @@ namespace das {
             for ( const auto & annDecl : expr->func->annotations ) {
                 auto ann = annDecl->annotation;
                 if ( ann->rtti_isFunctionAnnotation() ) {
-                    auto fnAnn = static_pointer_cast<FunctionAnnotation>(ann);
+                    auto fnAnn = static_cast<FunctionAnnotation*>(ann);
                     string err;
                     if ( !fnAnn->verifyCall(expr, annDecl->arguments, program->options, err) ) {
                         program->error("call annotated by " + fnAnn->name + " failed", err, "",
@@ -641,7 +649,7 @@ namespace das {
                     program->error("builtin_try_recover shouldn't be called directly.",
                         "", "Use `try { ... } recover { ... }` instead.",
                         expr->at, CompilationError::invalid_argument_type );
-                } else if (exprReturns(static_pointer_cast<ExprMakeBlock>(expr->arguments.front())->block)) {
+                } else if (exprReturns(static_cast<ExprMakeBlock*>(expr->arguments.front())->block)) {
                     program->error("try { ... } recover { ... } can't have return inside in jit mode",
                         "This feature is not implemented yet.", "",
                         expr->at, CompilationError::not_expecting_return_value );
@@ -671,14 +679,14 @@ namespace das {
         virtual ExpressionPtr visit ( ExprInvoke * expr ) override {
             Visitor::visit(expr);
             if ( expr->isInvokeMethod ) {
-                auto arg0 = expr->arguments[0].get();
+                auto arg0 = expr->arguments[0];
                 if ( arg0->rtti_isR2V() ) {
-                    arg0 = static_cast<ExprRef2Value*>(arg0)->subexpr.get();
+                    arg0 = static_cast<ExprRef2Value*>(arg0)->subexpr;
                 }
                 if ( arg0->rtti_isField() ) {
                     auto field = static_cast<ExprField*>(arg0);
                     if ( field->value->rtti_isTypeDecl() ) {
-                        usedTypeExprs.erase(field->value.get());
+                        usedTypeExprs.erase(field->value);
                     }
                 }
             }
@@ -692,7 +700,7 @@ namespace das {
                     if ( arg->isAccessDummy() ) {
                         auto & earg = expr->arguments[argIndex];
                         if ( earg->rtti_isTypeDecl() ) {
-                            usedTypeExprs.erase(earg.get());
+                            usedTypeExprs.erase(earg);
                         }
                     }
                     ++argIndex;
@@ -726,19 +734,19 @@ namespace das {
                 }
             }
         }
-        string getNamelessHint ( const ExpressionPtr & left, const ExpressionPtr & right, const string & op ) const {
+        string getNamelessHint ( ExpressionPtr left, ExpressionPtr right, const string & op ) const {
             if ( left->rtti_isMakeTuple() ) {
-                auto mkt = static_pointer_cast<ExprMakeTuple>(left);
-                smart_ptr<ExprVar> firstField;
+                auto mkt = static_cast<ExprMakeTuple*>(left);
+                ExprVar * firstField = nullptr;
                 for ( const auto & val : mkt->values ) {
                     auto value = val;
                     if ( value->rtti_isR2V() ) {
-                        value = static_pointer_cast<ExprRef2Value>(value)->subexpr;
+                        value = static_cast<ExprRef2Value*>(value)->subexpr;
                     }
                     if ( value->rtti_isField() ) {
-                        auto field = static_pointer_cast<ExprField>(value);
+                        auto field = static_cast<ExprField*>(value);
                         if ( field->value->rtti_isVar() ) {
-                            auto var = static_pointer_cast<ExprVar>(field->value);
+                            auto var = static_cast<ExprVar*>(field->value);
                             if ( var->variable->type->isTuple() ) {
                                 if ( !firstField ) {
                                     firstField = var;
@@ -857,7 +865,7 @@ namespace das {
             }
         }
         bool isValidFunctionName(const string & str) const {
-            return !isCppKeyword(str);
+            return !isCppKeyword(str.c_str());
         }
         virtual bool canVisitFunction ( Function * fun ) override {
             return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
@@ -897,7 +905,7 @@ namespace das {
             }
             for ( auto & ann : fn->annotations ) {
                 if ( ann->annotation->rtti_isFunctionAnnotation() ) {
-                    auto fann = static_pointer_cast<FunctionAnnotation>(ann->annotation);
+                    auto fann = static_cast<FunctionAnnotation*>(ann->annotation);
                     string err;
                     if ( !fann->lint(fn, *program->thisModuleGroup, ann->arguments, program->options, err) ) {
                         program->error("function annotation lint failed\n", err, "", fn->at, CompilationError::annotation_failed );
@@ -1075,7 +1083,6 @@ namespace das {
         "log_nodes_aot_hash",           Type::tBool,
         "log_mem",                      Type::tBool,
         "log_debug_mem",                Type::tBool,
-        "log_cpp",                      Type::tBool,
         "log_aot",                      Type::tBool,
         "log_infer_passes",             Type::tBool,
         "log_require",                  Type::tBool,
@@ -1119,7 +1126,7 @@ namespace das {
     vector<pair<string,Type>> getCodeOfPolicyOptions();
 
     void Program::lint ( TextWriter & /*logs*/, ModuleGroup & libGroup ) {
-        if (!options.getBoolOption("lint", true)) {
+        if (!options.getBoolOption("lint", !policies.no_lint)) {
             return;
         }
         // note: build access flags is now called before patchAnnotations, and is no longer needed in lint
@@ -1170,8 +1177,13 @@ namespace das {
                       + "', expecting '" + das_to_string(optT) + "'", "", "",
                         LineInfo(), CompilationError::invalid_option);
             } else if ( optT==Type::none ){
-                error("invalid option '" + opt.name + "'",  "", "",
-                    LineInfo(), CompilationError::invalid_option);
+                if ( opt.name[0]!='_' ) {
+                    error("invalid option '" + opt.name + "'",  "", "",
+                        LineInfo(), CompilationError::invalid_option);
+                } else {
+                    // custom user option (name starts with '_'), we don't care what's in there
+                    continue;
+                }
             }
         }
         set<Module *> lints;

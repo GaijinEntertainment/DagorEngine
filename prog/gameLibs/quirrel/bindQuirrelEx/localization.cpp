@@ -58,7 +58,6 @@ static SQInteger localize(HSQUIRRELVM v)
     return 0;
 
   int top = sq_gettop(v);
-  bool caseInsensitive = false;
   const char *defVal = key;
   int paramsTblIdx = -1;
 
@@ -68,9 +67,7 @@ static SQInteger localize(HSQUIRRELVM v)
     if (SQ_FAILED(sq_getstackobj(v, idx, &argObj)) || argObj._type == OT_NULL)
       continue;
 
-    if (argObj._type == OT_BOOL)
-      caseInsensitive = sq_objtobool(&argObj);
-    else if (argObj._type == OT_STRING)
+    if (argObj._type == OT_STRING)
       defVal = sq_objtostring(&argObj);
     else if (argObj._type == OT_TABLE || argObj._type == OT_CLASS || argObj._type == OT_INSTANCE)
       paramsTblIdx = idx;
@@ -78,7 +75,7 @@ static SQInteger localize(HSQUIRRELVM v)
       return sq_throwerror(v, String(0, "Unexpected argument #%d type %X for loc(%s)", idx, argObj._type, key));
   }
 
-  return localize_with_params(v, top, get_localized_text(key, defVal, caseInsensitive), paramsTblIdx);
+  return localize_with_params(v, top, get_localized_text(key, defVal), paramsTblIdx);
 }
 
 static SQInteger localize_with_params(HSQUIRRELVM v, int top, const char *res, int paramsTblIdx)
@@ -198,29 +195,11 @@ static SQInteger localize_for_lang(HSQUIRRELVM v)
 }
 
 
-template <bool ci>
-static SQInteger script_get_loc_text_ex_(HSQUIRRELVM v)
-{
-  const char *key = NULL;
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 2, &key)));
-  LocTextId id = (sq_gettop(v) > 2) ? get_optional_localized_text_id(key, ci) : get_localized_text_id(key, ci);
-  if (id)
-    sq_pushstring(v, get_localized_text(id), -1);
-  else
-  {
-    const char *def = NULL;
-    if (sq_gettop(v) > 2)
-      G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 3, &def)));
-    sq_pushstring(v, def ? def : key, -1);
-  }
-  return 1;
-}
-
 static SQInteger script_does_localized_text_exist(HSQUIRRELVM v)
 {
   const char *key = NULL;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, 2, &key)));
-  sq_pushbool(v, does_localized_text_exist(key, false));
+  sq_pushbool(v, does_localized_text_exist(key));
   return 1;
 }
 

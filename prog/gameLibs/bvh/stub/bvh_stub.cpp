@@ -47,6 +47,8 @@ void update_instances(ContextId, const Point3 &, const Point3 &, const Frustum &
   const dag::Vector<RiGenVisibility *> &, dynrend::BVHIterateCallback, threadpool::JobPriority)
 {}
 
+void wait_dynamic_instances_jobs() {}
+
 void add_object(ContextId, uint64_t, const ObjectInfo &) {}
 
 void add_instance(ContextId, uint64_t, const mat43f &) {}

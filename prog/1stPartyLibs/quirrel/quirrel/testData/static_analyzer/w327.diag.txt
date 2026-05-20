@@ -1,0 +1,72 @@
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:12:11
+
+    return 1
+  else if (x > 10)
+           ^-----
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:20:11
+
+    return 1
+  else if (x < 0)
+           ^----
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:28:11
+
+    return 1
+  else if (10 < x)
+           ^-----
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:40:11
+
+    return 1
+  else if (x > MAX_VAL)
+           ^----------
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:45:11
+
+    return 3
+  else if (0.25 > x)
+           ^-------
+    return 4
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:54:11
+
+    return 1
+  else if (x > -5)
+           ^-----
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:62:11
+
+    return 1
+  else if (x < -10.25)
+           ^---------
+    return 2
+
+
+WARNING: w327 (subsumed-if-expression) Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable.
+testData/static_analyzer/w327.nut:72:11
+
+    return 2
+  else if (x > 5)
+           ^----
+    return 3
+
+

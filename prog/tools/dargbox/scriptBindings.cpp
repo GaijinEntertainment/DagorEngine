@@ -71,7 +71,7 @@ void bind_dargbox_script_api(SqModules *module_mgr)
 #if _TARGET_PC_WIN
   bindquirrel::register_windows_registry_module(module_mgr);
 #endif
-  sqeventbus::bind(module_mgr, "ui", sqeventbus::ProcessingMode::MANUAL_PUMP);
+  sqeventbus::bind(module_mgr, "ui");
   gamelib::sound::bind_script(module_mgr);
   gamelib::input::bind_script(module_mgr);
 

@@ -80,7 +80,7 @@ def get_beh_tree(eid : uint; id : uint64)
       if wrapper != null
         insert((jv as _object), "id", JV(wrapper.id))
         insert((jv as _object), "forceResult", JV(wrapper.forceResult))
-      nodes |> push((node, jv))
+      nodes |> push((node = node, jv = jv))
 
       if node.parent == null
         return false

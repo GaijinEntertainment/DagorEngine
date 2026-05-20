@@ -29,8 +29,10 @@ ShaderGraphRecompiler *create_envi_cover_shader_recompiler();
 
 ShaderGraphRecompiler *ShaderGraphRecompiler::activeInstance = nullptr;
 
+#if !NBSM_COMPILE_ONLY
 static eastl::unique_ptr<ShaderGraphRecompiler> g_fog_instance;
 static eastl::unique_ptr<ShaderGraphRecompiler> g_envi_cover_instance;
+#endif
 
 String get_template_text_src_fog(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
 String get_template_text_src_envi_cover(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);

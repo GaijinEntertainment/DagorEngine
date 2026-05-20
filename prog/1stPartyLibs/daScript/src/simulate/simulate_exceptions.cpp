@@ -162,6 +162,18 @@ namespace das {
         return bres;
     }
 
+    void Context::clearException() {
+        stopFlags = 0;
+        exception = nullptr;
+        last_exception = nullptr;
+    }
+
+    bool WIN_EH_NO_ASAN Context::runWithCatchAndClear ( const callable<void()> & subexpr ) {
+        bool ok = runWithCatch(subexpr);
+        if ( !ok ) clearException();
+        return ok;
+    }
+
     vec4f WIN_EH_NO_ASAN Context::evalWithCatch ( SimFunction * fnPtr, vec4f * args, void * res ) {
         auto aa = abiArg;
         auto acm = abiCMRES;

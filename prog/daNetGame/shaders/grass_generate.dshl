@@ -433,7 +433,7 @@ int grass_pass = 0;
 interval grass_pass:prepass_off<1, depth_prepass<2, prepass_on<3, visibility_pass;
 
 buffer grass_insts_buf;
-int grass_dynamic_flag = 1;
+
 buffer grass_instance_indices_buf;
 
 shader grass_render_billboards
@@ -451,15 +451,13 @@ shader grass_render_billboards
     INIT_BURNT_GRASS()
     USE_BURNT_GRASS()
 
-    (ps){grass_dynamic_flag@i1 = grass_dynamic_flag;}
-
     if (has_motion_vectors == yes && in_editor_assume == no)
     {
       USE_MOTION_VEC_ENCODE(ps)
       hlsl {
          #define MOTION_VECTORS_ENABLED
          #define HAS_PREV_OBSTACLES 1
-         #define IS_DYNAMIC grass_dynamic_flag
+         #define IS_DYNAMIC 1
       }
     }
   }

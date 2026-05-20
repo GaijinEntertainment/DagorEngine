@@ -20,10 +20,6 @@ namespace das
 
     #define DAS_CALL_METHOD(mname)              DAS_BIND_FUN(mname::invoke)
 
-    #ifndef DAS_ENABLE_SMART_PTR_TRACKING
-    #define DAS_ENABLE_SMART_PTR_TRACKING   0
-    #endif
-
     #ifndef DAS_ENABLE_STACK_WALK
     #define DAS_ENABLE_STACK_WALK   1
     #endif
@@ -178,7 +174,7 @@ namespace das
     ,   yield               = 1 << 4
     };
 
-#define DAS_PROCESS_LOOP_FLAGS(howtocontinue) \
+#define DAS_PROCESS_LOOP_FLAGS_LABELED(beginLabel,endLabel,howtocontinue) \
     {   if (context.stopFlags) { \
         if (context.stopFlags & EvalFlags::stopForContinue) { \
             context.stopFlags &= ~EvalFlags::stopForContinue; \
@@ -186,11 +182,14 @@ namespace das
         } else if (context.stopFlags&EvalFlags::jumpToLabel && context.gotoLabel<this->totalLabels) { \
             if ((body=this->list+this->labels[context.gotoLabel])>=this->list) { \
                 context.stopFlags &= ~EvalFlags::jumpToLabel; \
-                goto loopbegin; \
+                goto beginLabel; \
             } \
         } \
-        goto loopend; \
+        goto endLabel; \
     } }
+
+#define DAS_PROCESS_LOOP_FLAGS(howtocontinue) \
+    DAS_PROCESS_LOOP_FLAGS_LABELED(loopbegin,loopend,howtocontinue)
 
 #define DAS_PROCESS_LOOP1_FLAGS(howtocontinue) \
     {   if (context.stopFlags) { \
@@ -295,11 +294,10 @@ namespace das
         virtual bool onAfterCall ( Prologue * ) { return true; }
         virtual void onCorruptStack ( Prologue * ) { }
     };
-    typedef smart_ptr<StackWalker> StackWalkerPtr;
+    typedef StackWalker * StackWalkerPtr;
 
     void dapiStackWalk ( StackWalkerPtr walker, Context & context, const LineInfo & at );
     int32_t dapiStackDepth ( Context & context );
-    void dumpTrackingLeaks();
     void dapiReportContextState ( Context & ctx, const char * category, const char * name, const TypeInfo * info, void * data );
     void dapiSimulateContext ( Context & ctx );
     void dapiUserCommand ( const char * command );
@@ -351,7 +349,6 @@ namespace das
             sharedSize += sharedDiff;
             globalsSize += globalDiff;
         }
-        uint64_t getInitSemanticHash();
 
         void onAllocateString ( void * ptr, uint64_t size, bool tempString, const LineInfo & at );
         void onFreeString ( void * ptr, bool tempString, const LineInfo & at );
@@ -491,7 +488,14 @@ namespace das
 
         DAS_EVAL_ABI vec4f ___noinline evalWithCatch ( SimFunction * fnPtr, vec4f * args = nullptr, void * res = nullptr );
         DAS_EVAL_ABI vec4f ___noinline evalWithCatch ( SimNode * node );
+        // Run `subexpr`; catches dasException. Returns false on panic with the message in
+        // exception/exceptionAt for getException(). Does NOT clear state -- caller must
+        // clearException() (or use runWithCatchAndClear) before next eval, else it rethrows.
         bool ___noinline runWithCatch ( const callable<void()> & subexpr );
+        // runWithCatch + clearException on failure. For callers that don't need the message.
+        bool ___noinline runWithCatchAndClear ( const callable<void()> & subexpr );
+        // Hard-zeros exception, last_exception, stopFlags. Safe on a locked context.
+        void clearException();
         DAS_NORETURN_PREFIX void throw_error ( const char * message ) DAS_NORETURN_SUFFIX;
         DAS_NORETURN_PREFIX void throw_error_ex ( DAS_FORMAT_STRING_PREFIX const char * message, ... ) DAS_NORETURN_SUFFIX DAS_FORMAT_PRINT_ATTRIBUTE(2,3);
         DAS_NORETURN_PREFIX void throw_error_at ( const LineInfo & at, DAS_FORMAT_STRING_PREFIX const char * message, ... ) DAS_NORETURN_SUFFIX DAS_FORMAT_PRINT_ATTRIBUTE(3,4);
@@ -804,8 +808,8 @@ namespace das
             }
         }
     public:
-        smart_ptr<StringHeapAllocator>  stringHeap;
-        smart_ptr<AnyHeapAllocator>     heap;
+        unique_ptr<StringHeapAllocator>  stringHeap;
+        unique_ptr<AnyHeapAllocator>     heap;
         shared_ptr<ConstStringAllocator> constStringHeap;
         shared_ptr<NodeAllocator>       code;
         shared_ptr<DebugInfoAllocator>  debugInfo;
@@ -843,6 +847,8 @@ namespace das
         const char *    last_exception = nullptr;
         jmp_buf *       throwBuf = nullptr;
     protected:
+        friend void fusionContext( Context & context, TextWriter & logs, bool enableFusion );
+
         GlobalVariable * globalVariables = nullptr;
         SimFunction * functions = nullptr;
         SimFunction ** initFunctions = nullptr;
@@ -883,9 +889,6 @@ namespace das
     public:
         int32_t         fnDepth = 0;
     public:
-#if DAS_ENABLE_SMART_PTR_TRACKING
-        static vector<smart_ptr<ptr_ref_count>> sptrAllocations;
-#endif
         // It's better to use shared memory + finalize for things like this.
         struct JitContext {
             void *shared_lib;

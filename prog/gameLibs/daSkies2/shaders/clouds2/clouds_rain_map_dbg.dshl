@@ -39,7 +39,7 @@ shader rain_map_dbg
   }
   hlsl(ps)
   {
-    float4 main_ps(VsOutput input) : SV_Target
+    float4 rain_map_dbg_ps(VsOutput input) : SV_Target
     {
       float rawDepth = readGbufferDepth(input.tc);
       float w = linearize_z(rawDepth, zn_zfar.zw);
@@ -57,5 +57,5 @@ shader rain_map_dbg
 
     }
   }
-  compile("target_ps", "main_ps");
+  compile("target_ps", "rain_map_dbg_ps");
 }

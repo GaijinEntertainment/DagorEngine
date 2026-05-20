@@ -192,7 +192,7 @@ HidJoystickDevice::HidJoystickDevice(IOHIDDeviceRef dev) : buttons(inimem), axes
           for (int i = 0; i < axes.size(); i++)
             if (axes[i].valStorage == stor)
               stor = NULL;
-        if (name)
+        if (!name.empty())
           for (int i = 0; i < axes.size(); i++)
             if (strcmp(axes[i].name, name) == 0)
               name = NULL;

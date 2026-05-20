@@ -47,3 +47,20 @@ def test_mat_let_handle(t : T?) {
     test_mat(t, m)
     test_transpose(t)
 }
+
+struct S { m : float3x4; }
+
+def get_col3(s : S?&) : float3 {
+    // s.m[3] through ptr-ref arg used to trip SimulateVisitor::getE
+    return s.m[3]
+}
+
+[test]
+def test_mat_field_idx_through_ptr(t : T?) {
+    var s : S
+    s.m[3] = float3(1.0, 2.0, 3.0)
+    unsafe {
+        var p : S? = addr(s)
+        t |> equal(get_col3(p), float3(1.0, 2.0, 3.0))
+    }
+}

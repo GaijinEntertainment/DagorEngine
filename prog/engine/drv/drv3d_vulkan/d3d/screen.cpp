@@ -143,7 +143,15 @@ void d3d::pcwin::set_present_wnd(void *hwnd)
   Frontend::currentSwapchainToPresent = swapchain ? swapchain : &Frontend::swapchain;
 }
 
-bool d3d::pcwin::can_render_to_window() { return true; }
+bool d3d::pcwin::can_render_to_window()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  eastl::optional<StreamlineAdapter> &sl = Globals::VK::loader.streamlineAdapter;
+  return !sl.has_value() || sl->isDlssGSupported() != nv::SupportState::Supported;
+#else
+  return true;
+#endif
+}
 
 BaseTexture *d3d::pcwin::get_swapchain_for_window(void *hwnd)
 {

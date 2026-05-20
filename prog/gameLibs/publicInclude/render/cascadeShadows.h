@@ -93,6 +93,7 @@ public:
                         // artificially create high quality cascade for 'cockpit'
     float overrideZNearForCascadeDistribution;
     bool useFixedShadowCascade;
+    float cascadeTransitionZoneWidth = 0.0f;
 
     bool operator==(const ModeSettings &rhs) const = default;
   };
@@ -148,6 +149,8 @@ public:
   const TextureInfo &getShadowCascadeTexInfo() const;
   const Point2 &getZnZf(int cascade_no) const;
   dag::ConstSpan<plane3f> getShadowRegionPlanes(int cascade_no) const;
+  dag::ConstSpan<plane3f> getShadowRegionBackPlanes(int cascade_no) const;
+  dag::ConstSpan<plane3f> getShadowRegionSilhouettePlanes(int cascade_no) const;
 
   const String &setShadowCascadeDistanceDbg(const Point2 &scene_z_near_far, int tex_size, int splits_w, int splits_h,
     float shadow_distance, float pow_weight);

@@ -18,6 +18,8 @@
 #include <de3_fileTracker.h>
 #include <de3_landmesh.h>
 #include <math/dag_color.h>
+#include <EASTL/bitset.h>
+#include <generic/dag_span.h>
 
 #include <3d/dag_texMgr.h>
 
@@ -27,6 +29,7 @@
 
 #include "hmlObjectsEditor.h"
 #include "hmlLayers.h"
+#include "hmlTypedVars.h"
 #include <de3_grassSrv.h>
 #include <de3_gpuGrassService.h>
 #include <de3_waterSrv.h>
@@ -395,21 +398,21 @@ public:
   const char *pickScriptImage(const char *current_name, int bpp);
   void prepareScriptImage(const char *name, int img_size_mul, int img_bpp);
   int getScriptImage(const char *name, int img_size_mul = 0, int img_bpp = 0);
-  int getScriptImageWidth(int id);
-  int getScriptImageHeight(int id);
-  int getScriptImageBpp(int id);
-  E3DCOLOR sampleScriptImageUV(int id, real x, real y, bool clamp_x, bool clamp_y);
-  E3DCOLOR sampleScriptImagePixelUV(int id, real x, real y, bool clamp_x, bool clamp_y);
+  int getScriptImageWidth(int id) const;
+  int getScriptImageHeight(int id) const;
+  int getScriptImageBpp(int id) const;
+  E3DCOLOR sampleScriptImageUV(int id, real x, real y, bool clamp_x, bool clamp_y) const;
+  E3DCOLOR sampleScriptImagePixelUV(int id, real x, real y, bool clamp_x, bool clamp_y) const;
   bool saveImage(int idx);
 
   void paintScriptImageUV(int id, real x0, real y0, real x1, real y1, bool clamp_x, bool clamp_y, E3DCOLOR color);
 
-  float sampleMask1UV(int id, real x, real y);
-  float sampleMask1UV(int id, real x, real y, bool clamp_x, bool clamp_y);
-  float sampleMask8UV(int id, real x, real y);
-  float sampleMask8UV(int id, real x, real y, bool clamp_x, bool clamp_y);
-  float sampleMask1PixelUV(int id, real x, real y);
-  float sampleMask8PixelUV(int id, real x, real y);
+  float sampleMask1UV(int id, real x, real y) const;
+  float sampleMask1UV(int id, real x, real y, bool clamp_x, bool clamp_y) const;
+  float sampleMask8UV(int id, real x, real y) const;
+  float sampleMask8UV(int id, real x, real y, bool clamp_x, bool clamp_y) const;
+  float sampleMask1PixelUV(int id, real x, real y) const;
+  float sampleMask8PixelUV(int id, real x, real y) const;
   void paintMask1UV(int id, real x0, real y0, bool c);
   void paintMask8UV(int id, real x0, real y0, char c);
 
@@ -574,7 +577,38 @@ public:
   void addGenLayer(const char *name, int insert_before = -1);
   bool moveGenLayer(ScriptParam *gl, bool up);
   bool delGenLayer(ScriptParam *gl);
+  // Returns true if some other gen layer already has this paramName. Empty/null names
+  // are never considered "in use" so multiple unnamed layers can coexist (their masks
+  // are not exposed via mask_<name> anyway). `exclude` skips one layer from the scan,
+  // used by rename so renaming to the same name is a no-op rather than a self-conflict.
+  bool isGenLayerNameInUse(const char *name, const ScriptParam *exclude = nullptr) const;
+  // Returns true if `name` is acceptable for a gen layer's paramName. Empty names
+  // are allowed (placeholder layers); non-empty names must consist solely of
+  // [A-Za-z0-9_] so the derived mask_<name> binding is a valid identifier and can
+  // be referenced from peer / common expressions. Names with spaces or punctuation
+  // would otherwise be silently unreferenceable.
+  static bool isValidGenLayerName(const char *name);
+
+  // Snapshot every gen layer's current exprValid into `out` (parallel index). Used by
+  // the Apply paths together with findFirstRegressedGenLayer to detect a "valid layer
+  // becomes invalid" regression after a recompile and roll the change back.
+  void snapshotGenLayerValidity(Tab<bool> &out) const;
+  // Returns the index of the first gen layer whose exprValid was true in `wasValid`
+  // but is false now (filling outName/outErr with that layer's paramName / lastErr),
+  // or -1 if no regression. wasValid is expected to have exactly genLayers.size()
+  // entries (older snapshots from a different layer count are tolerated by clamping).
+  int findFirstRegressedGenLayer(const Tab<bool> &wasValid, SimpleString &outName, SimpleString &outErr) const;
   void rebuildLandSlots();
+  // Resync the shared varMap and recompile every gen-layer expression (and the common
+  // expression). add/move/del call this internally; entry point for external callers
+  // (rename, Apply, slider drag). shrink_arenas=false is the per-keystroke path.
+  void recompileGenLayerExpressions(bool shrink_arenas = true);
+  // Common-expression accessors (multi-line edit text). The setter stores newline-free
+  // text; getCommonExprDisplayText re-inserts `\n` after every `;` so the multi-line
+  // edit shows one statement per line. Setter also triggers a recompile.
+  const SimpleString &getCommonExprText() const { return commonExprText; }
+  void setCommonExprText(const char *txt);
+  eastl::string getCommonExprDisplayText() const;
 
   struct HMDetGH
   {
@@ -799,9 +833,9 @@ private:
   int numDetailTextures;
   Tab<SimpleString> detailTexBlkName;
 
-  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, lastTexImportPath, lastGATExportPath,
-    lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain, lastWaterHeightmapImportPathDet,
-    lastWaterHeightmapImportPathMain;
+  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, lastWaterHeightmapExportPath,
+    lastTexImportPath, lastGATExportPath, lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain,
+    lastWaterHeightmapImportPathDet, lastWaterHeightmapImportPathMain;
   struct FileChangeStat
   {
     int64_t size = 0, mtime = 0;
@@ -850,10 +884,69 @@ private:
   bool disableZtestForDebugNavMesh = false;
 
   PtrTab<ScriptParam> genLayers;
+  // Artist-editable typed parameters (Float / Range / Mask / Curve). Persisted
+  // under sibling block "landVars" of the genLayers BLK, surfaced in the property
+  // panel for add/delete and live edits. recompileGenLayerExpressions registers
+  // each entry into the shared landClassEval varMap with its type, builds
+  // evalCurves from Curve entries, and populates typedVarRuntime so the bake
+  // loop can write the per-pixel value into exprVars[]. Mask resolves its asset
+  // name to a script-image index at recompile and samples per-pixel via the
+  // shared sampleMask*UV path.
+  Tab<TypedVar> typedVars;
+
+  // Per-typedVar runtime binding rebuilt on every recompile, parallel-indexed to
+  // typedVars. Definition lives in hmlTypedVars.h so free helpers in
+  // hmlGenColorMap.cpp can take it by reference without poking at private state.
+  Tab<TypedVarRuntime> typedVarRuntime;
+
+  // CubicCurveSampler array fed to LcExprCurveNode via EvalCtx::userCtx. Index i
+  // is the slot stored as the float value of a Curve-typed var; CurveNode reads
+  // that float, casts to int, and samples evalCurves[idx]. Rebuilt from
+  // typedVars at every recompile; out-of-sync indices return 0 at eval time.
+  Tab<CubicCurveSampler> evalCurves;
+  // Optional "common expression": run once per pixel before any layer's expression so
+  // multiple layers can share intermediate values via `var name = ...`. Source text is
+  // stored as a single line in the .blk (newlines stripped on save, `;` -> `;\n` on
+  // load); commonExprArena holds the compiled bytecode and commonExprValid gates eval.
+  // Arena typed as Tab<uint8_t> (same as lcexpr::Arena) to avoid pulling landClassEval
+  // headers into this one. The bitset width 256 mirrors lcexpr::MAX_VAR_ID; a
+  // static_assert in hmlGenColorMap.cpp pins the two values together.
+  SimpleString commonExprText;
+  Tab<uint8_t> commonExprArena;
+  uint32_t commonExprRoot = 0;
+  eastl::bitset<256> commonExprVarMask;
+  bool commonExprValid = false;
+  // Last parse/compile error from compile_common_into; empty on success or empty text.
+  // Read by the common-expression Apply handler to surface the error in a message box.
+  SimpleString commonExprLastErr;
+  // Stashed by recompileGenLayerExpressions(): bake-time sizing for the per-pixel
+  // exprVars[] buffer and the evalFinite() bound.
+  //   commonExprNv     -- nv after compiling base + mask_<enabled_name> + common's
+  //                       var/let. Boundary between common-visible slots (shared
+  //                       across all layers) and per-layer private user-var slots.
+  //   lcMaxNv          -- max named-vars count used by any enabled layer's bytecode,
+  //                       PLUS lcexpr::MAX_TEMP_REGS reserved unconditionally for
+  //                       `{ block }`-scoped temp regs (caller-side simplification:
+  //                       cheaper to always reserve 16 floats than to track each
+  //                       expression's actual peak). Per-pixel exprVars[] is sized
+  //                       to max(VAR_COUNT + numLayers, lcMaxNv).
+  //   lcNumLayerVars   -- genLayers.size() at recompile time -- defines the per-layer
+  //                       mask slot range [VAR_COUNT, VAR_COUNT + lcNumLayerVars).
+  uint16_t commonExprNv = 0;
+  uint16_t lcMaxNv = 0;
+  int lcNumLayerVars = 0;
   bool showBlueWhiteMask;
   bool showLandClassColors = false;
   void updateBlueWhiteMask(const IBBox2 *);
   void updateLandClassColorsTex();
+  // Shared per-pixel exprVars population + commonExpr eval, factored out of
+  // generateLandColors so other consumers (e.g. a debug overlay rebuild) can
+  // hit the same code path without copy-pasting the inner loop. layer_mask_needed
+  // and used_mask_tvs are passed as ConstSpan so any small-buffer-optimised
+  // (RelocatableFixedVector / StaticTab) or heap-backed (Tab) container can be
+  // passed verbatim. See implementation comment in hmlGenColorMap.cpp.
+  void fillPerPixelExprVarsAndEvalCommon(float *expr_vars_ptr, float fx, float fy, int layer_slots,
+    dag::ConstSpan<uint8_t> layer_mask_needed, uint16_t typed_vars_end_nv, dag::ConstSpan<int> used_mask_tvs);
   void updateGenerationMask(const IBBox2 *rect);
 
   bool showMonochromeLand;
@@ -936,11 +1029,14 @@ private:
   void eraseWaterHeightmap();
   void autocenterHeightmap(PropPanel::ContainerPropertyControl *panel, bool reset_render = true);
 
-  void exportHeightmap();
+  void exportHeightmap(bool export_detailed);
   bool exportHeightmap(String &filename, real min_height, real height_range, bool exp_det_hmap);
 
   void exportColormap();
   bool exportColormap(String &filename);
+
+  void exportWaterHeightmap(bool export_detailed);
+  bool exportWaterHeightmap(const String &filename, real min_height, real height_range, bool export_detailed);
 
   void exportLand();
   bool exportLand(String &filename);
@@ -990,6 +1086,49 @@ private:
 
   bool loadGenLayers(const DataBlock &blk);
   bool saveGenLayers(DataBlock &blk);
+
+  // Scan every layer's exprText and the common expression for identifier-boundary
+  // references to the typed-var's parser-visible name(s). Returns true if any
+  // call sites were found, with human-readable descriptions in `outSites`. For
+  // Range, scans both <name>_lo and <name>_hi. Used by the Delete button to
+  // refuse removing a variable still in use.
+  bool scanTypedVarRefs(const TypedVar &v, Tab<String> &outSites) const;
+
+  // True if `name` would collide with a name the recompile path will register
+  // outside the typed-var slot range. Covers the 6 fixed builtins (height,
+  // angle, curvature, mask, world_x, world_y) and every mask_<layer> binding
+  // for the current genLayers list. Used by the Add dialog so the artist hits
+  // a clear error up front instead of silently aliasing an existing slot when
+  // recompileGenLayerExpressions runs.
+  //
+  // Public so the Add dialog (free function in hmlTypedVars.cpp) can call it
+  // through HmapLandPlugin::self.
+public:
+  bool isReservedVarName(const char *name) const;
+
+  // True if `name` is declared as `var <name>` or `let <name>` somewhere in
+  // commonExprText or any layer's exprText. lcexpr's parser rejects redeclaring
+  // a name already in the shared varMap, so a typed var sharing this name would
+  // make the next recompile fail. The Add dialog calls this so the artist hits
+  // a clear up-front error instead of seeing a recompile failure after the
+  // panel has already mutated. `outSite` returns a human-readable origin
+  // (`common expression` or `layer '<name>' expression`).
+  bool findVarLetDeclSite(const char *name, SimpleString &outSite) const;
+
+  // True if `probe` matches any current typed var's parser-visible name (bare
+  // name for non-Range, <name>_lo / <name>_hi for Range). On a hit `outConflict`
+  // returns the offending typed-var's display name. Used by the typed-var Add
+  // dialog and by the layer add/rename path (probe = "mask_<layerName>") so a
+  // collision is caught before the change commits.
+  bool collidesWithTypedVar(const char *probe, SimpleString &outConflict) const;
+
+private:
+  // Live-rebuild the CubicCurveSampler at evalCurves[typedVarRuntime[row].curveIdx]
+  // from typedVars[row]. Called from onChange when a curve var's control points or
+  // approximation type are edited so the next bake samples the updated shape
+  // without paying for a full recompileGenLayerExpressions. Safe no-op when the
+  // row is not a Curve, has no runtime binding, or the curveIdx is out of range.
+  void rebuildEvalCurveForRow(int row);
   void regenLayerTex();
   void storeLayerTex();
 
@@ -1038,15 +1177,15 @@ private:
 
     const char *getName() const { return name; }
 
-    E3DCOLOR sampleImageUV(real x, real y, bool clamp_x, bool clamp_y);
-    E3DCOLOR sampleImagePixelUV(real x, real y, bool clamp_x, bool clamp_y);
-    float sampleMask1UV(real x, real y);
-    float sampleMask1PixelUV(real x, real y);
-    float sampleMask8UV(real x, real y);
-    float sampleMask8PixelUV(real x, real y);
+    E3DCOLOR sampleImageUV(real x, real y, bool clamp_x, bool clamp_y) const;
+    E3DCOLOR sampleImagePixelUV(real x, real y, bool clamp_x, bool clamp_y) const;
+    float sampleMask1UV(real x, real y) const;
+    float sampleMask1PixelUV(real x, real y) const;
+    float sampleMask8UV(real x, real y) const;
+    float sampleMask8PixelUV(real x, real y) const;
 
-    float sampleMask1UV(real x, real y, bool clamp_x, bool clamp_y);
-    float sampleMask8UV(real x, real y, bool clamp_x, bool clamp_y);
+    float sampleMask1UV(real x, real y, bool clamp_x, bool clamp_y) const;
+    float sampleMask8UV(real x, real y, bool clamp_x, bool clamp_y) const;
 
     void paintImageUV(real x0, real y0, real x1, real y1, bool clamp_x, bool clamp_y, E3DCOLOR color);
     void paintMask1UV(real x, real y, bool val);
@@ -1060,9 +1199,9 @@ private:
     bool isSaved;
     int fileNotifyId;
 
-    inline void calcClampMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny);
-    inline void calcClampMapping(float fx, float fy, int &ix, int &iy);
-    inline void calcMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny, bool clamp_u, bool clamp_v);
+    inline void calcClampMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny) const;
+    inline void calcClampMapping(float fx, float fy, int &ix, int &iy) const;
+    inline void calcMapping(float &fx, float &fy, int &ix, int &iy, int &nx, int &ny, bool clamp_u, bool clamp_v) const;
     void registerFnotify();
     void onFileChanged(int /*file_name_id*/) override; // IFileChangedNotify
   };

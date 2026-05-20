@@ -6,8 +6,10 @@ include "dagi_rad_grid_trace_common.dshl"
 include "dagi_irrad_grid_sample.dshl"
 include "dagi_irrad_grid_uav.dshl"
 include "dagi_warp64.dshl"
-include "world_sdf_typed_load.dshl"
 include "dagi_rad_grid_temporal_common.dshl"
+
+int dagi_rad_grid_support_uav_load = 0;
+interval dagi_rad_grid_support_uav_load : off < 1, on;
 
 float dagi_rad_grid_max_quick_update_frames = 32;
 float dagi_rad_grid_quick_update_min_weight = 0.3;
@@ -29,10 +31,10 @@ shader dagi_radiance_grid_toroidal_movement_cs
   DAGI_RAD_GRID_UAV(cs)
   DAGI_RAD_GRID_CLIPMAP_MATH(cs)
 
-  if (world_sdf_support_uav_load == on)
+  if (dagi_rad_grid_support_uav_load == on)
   {
     hlsl {
-      #define DAGI_LIT_SCENE_TYPED_UAV_LOAD 1
+      #define DAGI_RAD_GRID_TYPED_UAV_LOAD 1
     }
   }
   RADIANCE_GRID_TRACE_PROBE(cs)
@@ -138,7 +140,7 @@ shader dagi_radiance_grid_calc_temporal_cs
   DAGI_RAD_GRID_CLIPMAP_MATH(cs)
 
   hlsl {
-    #define DAGI_LIT_SCENE_TYPED_UAV_LOAD 0
+    #define DAGI_RAD_GRID_TYPED_UAV_LOAD 0
   }
   RADIANCE_GRID_TRACE_PROBE(cs)
   (cs)

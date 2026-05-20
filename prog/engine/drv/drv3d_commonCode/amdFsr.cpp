@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "amdFsr.h"
+#include <3d/dag_amdFsr.h>
 
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
@@ -11,12 +11,6 @@
 
 namespace amd
 {
-
-FSR *createD3D12Win();
-FSR *createD3D12Xbox();
-FSR *createPS5();
-FSR *createVulkan();
-
 FSR::UpscalingMode FSR::getUpscalingMode(const DataBlock &video)
 {
   auto mode = video.getStr("amdfsr", "off");
@@ -71,30 +65,6 @@ int FSR::getMaximumNumberOfGeneratedFrames()
 #endif
 
   return 0;
-}
-
-void FSR::applyUpscaling(const UpscalingArgs &args) { d3d::driver_command(Drv3dCommand::EXECUTE_FSR, this, (void *)&args); }
-
-void FSR::scheduleGeneratedFrames(const FrameGenArgs &args) { d3d::driver_command(Drv3dCommand::EXECUTE_FSR_FG, this, (void *)&args); }
-
-FSR *createFSR()
-{
-#if _TARGET_PC
-#if AMDFSR_HAS_DX12
-  if (d3d::get_driver_code().is(d3d::dx12))
-    return createD3D12Win();
-#endif
-#if AMDFSR_HAS_VULKAN
-  if (d3d::get_driver_code().is(d3d::vulkan))
-    return createVulkan();
-#endif
-#elif _TARGET_XBOX
-  return createD3D12Xbox();
-#elif _TARGET_C2
-
-#endif
-
-  return nullptr;
 }
 
 } // namespace amd

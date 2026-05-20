@@ -22,9 +22,8 @@ class TemporalSuperResolution
 public:
   enum class Preset
   {
-    Low,
-    High,
-    Vr
+    High = 1,
+    Vr = 2
   };
 
   static Preset parse_preset(bool vr_mode);

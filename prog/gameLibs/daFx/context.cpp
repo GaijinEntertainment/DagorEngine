@@ -122,8 +122,6 @@ ContextId create_context(const Config &cfg)
   ctx->frameBoundaryBufferManager.init(cfg.use_render_sbuffer, cfg.approx_boundary_computation);
 
   ctx->supportsNoOverwrite = d3d::get_driver_desc().caps.hasNoOverwriteOnShaderResourceBuffers;
-  debug("dafx: using %d threads", ctx->cfg.use_async_thread ? ctx->cfg.max_async_threads : 0);
-  debug("dafx: sbuffer support: %d, multidraw: %d", cfg.use_render_sbuffer ? 1 : 0, cfg.multidraw_enabled ? 1 : 0);
 
   ctx->asyncCpuComputeJobs.reserve(ctx->cfg.max_async_threads);
   ctx->asyncCpuCullJobs.reserve(ctx->cfg.max_async_threads);
@@ -1695,6 +1693,8 @@ bool set_config(ContextId cid, const Config &ncfg)
   cfg.multidraw_enabled &= cfg.use_render_sbuffer; // no need to even try on old hw
 
   debug("dafx: enable_cpu_defragmentation:%d", cfg.enable_cpu_defragmentation);
+  debug("dafx: using %d threads", cfg.use_async_thread ? cfg.max_async_threads : 0);
+  debug("dafx: sbuffer support: %d, multidraw: %d", cfg.use_render_sbuffer ? 1 : 0, cfg.multidraw_enabled ? 1 : 0);
 
   if (!ctx.updateInProgress) // if update is not currently runnning, we can apply it immediatly
     apply_pending_config(cid);

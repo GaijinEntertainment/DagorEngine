@@ -72,6 +72,18 @@ struct CollisionContactDataAnnotation final : das::ManagedStructureAnnotation<ga
   bool canBePlacedInContainer() const override { return true; }
 
   bool canBeSubstituted(TypeAnnotation *pass_type) const override { return parentType->annotation == pass_type; }
+
+  virtual void gc_collect(das::gc_root *target, das::gc_root *from) override
+  {
+    das::ManagedStructureAnnotation<gamephys::CollisionContactData, false>::gc_collect(target, from);
+    if (parentType)
+      parentType->gc_collect(target, from);
+  }
+  virtual void visitTypeDecls(const das::function<void(das::TypeDecl *)> &callback) override
+  {
+    if (parentType)
+      callback(parentType);
+  }
 };
 
 struct CollisionLinkDataAnnotation : das::ManagedStructureAnnotation<dacoll::CollisionLinkData, false>
@@ -105,16 +117,16 @@ public:
     addBuiltinDependency(lib, require("RendInst"), true);
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addEnumeration(das::make_smart<EnumerationPhysLayer>());
+    addEnumeration(new EnumerationPhysLayer());
     das::addEnumFlagOps<dacoll::PhysLayer>(*this, lib, "dacoll::PhysLayer");
-    addEnumeration(das::make_smart<EnumerationCollType>());
+    addEnumeration(new EnumerationCollType());
     das::addEnumFlagOps<dacoll::CollType>(*this, lib, "dacoll::CollType");
-    addAnnotation(das::make_smart<TraceMeshFacesAnnotation>(lib));
-    addAnnotation(das::make_smart<CollisionObjectAnnotation>(lib));
-    addAnnotation(das::make_smart<ShapeQueryOutputAnnotation>(lib));
-    addAnnotation(das::make_smart<CollisionContactDataMinAnnotation>(lib));
-    addAnnotation(das::make_smart<CollisionContactDataAnnotation>(lib));
-    addAnnotation(das::make_smart<CollisionLinkDataAnnotation>(lib));
+    addAnnotation(new TraceMeshFacesAnnotation(lib));
+    addAnnotation(new CollisionObjectAnnotation(lib));
+    addAnnotation(new ShapeQueryOutputAnnotation(lib));
+    addAnnotation(new CollisionContactDataMinAnnotation(lib));
+    addAnnotation(new CollisionContactDataAnnotation(lib));
+    addAnnotation(new CollisionLinkDataAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(dacoll_traceray_normalized)>(*this, lib, "traceray_normalized", das::SideEffects::modifyArgument,
       "bind_dascript::dacoll_traceray_normalized");
@@ -256,8 +268,10 @@ public:
     das::addExtern<DAS_BIND_FUN(dacoll_test_capsule_collision_world)>(*this, lib, "test_capsule_collision_world",
       das::SideEffects::accessExternal, "bind_dascript::dacoll_test_capsule_collision_world");
 
-    das::addExtern<DAS_BIND_FUN(dacoll_fetch_sim_res)>(*this, lib, "dacoll_fetch_sim_res", das::SideEffects::accessExternal,
-      "bind_dascript::dacoll_fetch_sim_res");
+    das::addExtern<DAS_BIND_FUN(dacoll::fetch_sim_res)>(*this, lib, "dacoll_fetch_sim_res", das::SideEffects::accessExternal,
+      "dacoll::fetch_sim_res")
+      ->arg_init(/*wait*/ 0, new das::ExprConstBool(true));
+
     das::addExtern<DAS_BIND_FUN(dacoll::set_collision_object_tm)>(*this, lib, "dacoll_set_collision_object_tm",
       das::SideEffects::modifyArgumentAndExternal, "dacoll::set_collision_object_tm");
     das::addExtern<DAS_BIND_FUN(dacoll::set_vert_capsule_shape_size)>(*this, lib, "dacoll_set_vert_capsule_shape_size",

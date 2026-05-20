@@ -32,6 +32,7 @@ void CompositeEditorToolbar::initUi(PropPanel::ControlEventHandler &event_handle
   addCheckButton(*tb, CM_VIEW_GRID_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP, "snap_move", "Move snap");
   addCheckButton(*tb, CM_VIEW_GRID_ANGLE_SNAP, EditorCommandIds::VIEW_GRID_ANGLE_SNAP, "snap_rotate", "Rotate snap");
   addCheckButton(*tb, CM_VIEW_GRID_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP, "snap_scale", "Scale snap");
+  addButton(*tb, CM_OPTIONS_GRID, EditorCommandIds::VIEW_GRID_SETTINGS, "snap_settings", "Grid settings");
   updateSnapToolbarButtons();
 }
 
@@ -77,6 +78,16 @@ void CompositeEditorToolbar::addCheckButton(PropPanel::ContainerPropertyControl 
   IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
   G_ASSERT(commandSystem);
   commandSystem->createToolbarToggleButton(tb, id, editor_command_id, hint);
+
+  tb.setButtonPictures(id, bmp_name);
+}
+
+void CompositeEditorToolbar::addButton(PropPanel::ContainerPropertyControl &tb, int id, const char *editor_command_id,
+  const char *bmp_name, const char *hint)
+{
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+  commandSystem->createToolbarButton(tb, id, editor_command_id, hint);
 
   tb.setButtonPictures(id, bmp_name);
 }

@@ -19,5 +19,6 @@ void http_client_wait_active_requests(int timeout_ms = 0); // if 0 - wait infini
 void http_client_on_vm_shutdown(HSQUIRRELVM vm);
 void http_set_domains_whitelist(HSQUIRRELVM vm, const eastl::vector<eastl::string> &domains);
 void http_set_blocking_wait_mode(bool on); // for use in console interpreter
+bool http_has_pending_async_fetch();
 
 } // namespace bindquirrel

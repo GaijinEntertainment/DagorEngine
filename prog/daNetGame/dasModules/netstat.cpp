@@ -34,8 +34,8 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addEnumeration(das::make_smart<EnumerationAggregationType>());
-    addAnnotation(das::make_smart<NetstatSampleAnnotation>(lib));
+    addEnumeration(new EnumerationAggregationType());
+    addAnnotation(new NetstatSampleAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(netstat_get_aggregations)>(*this, lib, "netstat_get_aggregations", das::SideEffects::worstDefault,
       "bind_dascript::netstat_get_aggregations");

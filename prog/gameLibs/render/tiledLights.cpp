@@ -67,10 +67,22 @@ bool TiledLights::isGPUZBinning() const
          static_cast<bool>(zBinningClearElem);
 }
 
-TiledLights::TiledLights(float max_lights_dist) : maxLightsDist(max_lights_dist), omniLightCount(0), spotLightCount(0)
+Sbuffer *TiledLights::getLUTBuffer() { return zbinningLUT.getBuf(); }
+
+const Tab<uint32_t> &TiledLights::getZBinningData() const
+{
+  G_ASSERTF(!isGPUZBinning(), "getZBinningData is only valid for the CPU binning path");
+  return zBinningData;
+}
+
+TiledLights::TiledLights(float max_lights_dist, eastl::optional<bool> gpu_lights_override) :
+  maxLightsDist(max_lights_dist), omniLightCount(0), spotLightCount(0)
 {
   useTilesRT = d3d::get_driver_desc().issues.hasBrokenUAVOnlyPasses;
   bool useGPUBinning = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("gpuLights", true);
+
+  if (gpu_lights_override.has_value())
+    useGPUBinning = gpu_lights_override.value();
 
   if (useGPUBinning)
   {

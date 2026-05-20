@@ -77,6 +77,8 @@ void ToolBarManager::init(int toolbar_id)
   tb2->setButtonPictures(CM_VIEW_GRID_ANGLE_SNAP, "snap_rotate");
   commandSystem->createToolbarToggleButton(*tb2, CM_VIEW_GRID_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP, "Scale snap");
   tb2->setButtonPictures(CM_VIEW_GRID_SCALE_SNAP, "snap_scale");
+  commandSystem->createToolbarButton(*tb2, CM_OPTIONS_GRID, EditorCommandIds::VIEW_GRID_SETTINGS, "Grid settings");
+  tb2->setButtonPictures(CM_OPTIONS_GRID, "snap_settings");
   tb2->createSeparator();
 
   onSnapSettingChanged();

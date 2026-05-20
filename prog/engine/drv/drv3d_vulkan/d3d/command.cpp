@@ -42,6 +42,7 @@
 #include "amd_anti_lag.h"
 #include "backend.h"
 #include "pipeline/compiler.h"
+#include "amdFsr.h"
 
 #if DAGOR_DBGLEVEL > 0
 #include "3d/dag_resourceDump.h"
@@ -443,16 +444,88 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::GET_QUEUE_INDEX:
       *(uint32_t *)par1 = drv3d_vulkan::Globals::VK::queue[DeviceQueueType::GRAPHICS].getIndex();
       return 1;
+    case Drv3dCommand::INIT_FSR_UPSCALING:
+    {
+      amd::FSRVulkan &fsr = amd::FSRVulkan::getInstance();
+      fsr.teardownUpscaling();
+      return int(fsr.initUpscaling(*reinterpret_cast<const amd::FSR::ContextArgs *>(par1)));
+    }
+    case Drv3dCommand::TEARDOWN_FSR_UPSCALING:
+    {
+      if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+        fsr->teardownUpscaling();
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_LOADED:
+    {
+      return int(amd::FSRVulkan::getInstance().isLoaded());
+    }
+    case Drv3dCommand::GET_FSR_UPSCALING_SUPPORTED:
+    {
+      return int(amd::FSRVulkan::getInstance().isUpscalingSupported());
+    }
+    case Drv3dCommand::GET_FSR_RESOLUTION:
+    {
+      IPoint2 &renderResolution = *reinterpret_cast<IPoint2 *>(par3);
+      renderResolution = amd::FSRVulkan::getInstance().getRenderingResolution(
+        static_cast<amd::FSR::UpscalingMode>(*reinterpret_cast<int *>(par2)), *reinterpret_cast<IPoint2 *>(par1));
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_VERSION:
+    {
+      char *data = reinterpret_cast<char *>(par1);
+      size_t size = reinterpret_cast<size_t>(par2);
+      String version = amd::FSRVulkan::getInstance().getVersionString();
+      if (size > 0)
+      {
+        strncpy(data, version.c_str(), size);
+        data[size - 1] = '\0';
+      }
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_SUPPORTED_GEN_FRAMES:
+    {
+      auto &frames = *reinterpret_cast<int *>(par1);
+      frames = 0;
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_PRESENTED_FRAME_COUNT:
+    {
+      auto &presentedFrames = *reinterpret_cast<int *>(par1);
+      presentedFrames = 1;
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_FG_ENABLED:
+    {
+      auto &enabled = *reinterpret_cast<bool *>(par1);
+      enabled = false;
+      return 1;
+    }
+    case Drv3dCommand::GET_FSR_FG_SUPPORTED:
+    {
+      return 0;
+    }
+    case Drv3dCommand::GET_FSR_FG_SUPPRESSED:
+    {
+      auto &suppressed = *reinterpret_cast<bool *>(par1);
+      suppressed = false;
+      return 1;
+    }
+    case Drv3dCommand::FSR_ENABLE_FG:
+    case Drv3dCommand::FSR_SUPPRESS_FG:
+    {
+      return 1;
+    }
     case Drv3dCommand::EXECUTE_FSR:
     {
-      const amd::FSR::UpscalingArgs &params = *(const amd::FSR::UpscalingArgs *)par2;
+      const amd::FSR::UpscalingArgs &params = *reinterpret_cast<const amd::FSR::UpscalingArgs *>(par1);
       auto cast_to_image = [](BaseTexture *src) {
         if (src)
           return cast_to_texture_base(src)->image;
         return (Image *)nullptr;
       };
 
-      CmdExecuteFSR cmd{(amd::FSR *)par1, params};
+      CmdExecuteFSR cmd{params};
       cmd.params.colorTexture = cast_to_image(params.colorTexture);
       cmd.params.depthTexture = cast_to_image(params.depthTexture);
       cmd.params.motionVectors = cast_to_image(params.motionVectors);
@@ -462,6 +535,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       cmd.params.transparencyAndCompositionTexture = cast_to_image(params.transparencyAndCompositionTexture);
       Globals::ctx.dispatchCmd(cmd);
 
+      return 1;
+    }
+    case Drv3dCommand::EXECUTE_FSR_FG:
+    {
+      G_UNUSED(par1);
+      G_UNUSED(par2);
       return 1;
     }
     case Drv3dCommand::MAKE_TEXTURE:

@@ -207,24 +207,24 @@ void setBufferDescription(dafg::ResourceData &res, const BufferResourceDescripti
 
 void DaFgCoreModule::addStructureAnnotations(das::ModuleLibrary &lib)
 {
-  addAnnotation(das::make_smart<TextureResourceAnnotation>(lib));
-  addAnnotation(das::make_smart<VolTextureResourceAnnotation>(lib));
-  addAnnotation(das::make_smart<ArrayTextureResourceAnnotation>(lib));
-  addAnnotation(das::make_smart<CubeTextureResourceAnnotation>(lib));
-  addAnnotation(das::make_smart<ArrayCubeTextureResourceAnnotation>(lib));
-  addAnnotation(das::make_smart<CreatedResourceDataAnnotation>(lib));
-  addAnnotation(das::make_smart<ResourceDataAnnotation>(lib));
-  addAnnotation(das::make_smart<AutoResolutionDataAnnotation>(lib));
-  addAnnotation(das::make_smart<ShaderBlockLayersInfoAnnotation>(lib));
-  addAnnotation(das::make_smart<VrsStateRequirementsAnnotation>(lib));
-  addAnnotation(das::make_smart<VirtualSubresourceRefAnnotation>(lib));
-  addAnnotation(das::make_smart<BindingAnnotation>(lib));
-  addAnnotation(das::make_smart<ResourceUsageAnnotation>(lib));
-  addAnnotation(das::make_smart<ResourceRequestAnnotation>(lib));
-  addAnnotation(das::make_smart<BufferResourceDescriptionAnnotation>(lib));
-  addAnnotation(das::make_smart<BlobViewAnnotation>(lib));
-  addAnnotation(das::make_smart<TextureViewAnnotation>(lib));
-  addAnnotation(das::make_smart<BufferViewAnnotation>(lib));
+  addAnnotation(new TextureResourceAnnotation(lib));
+  addAnnotation(new VolTextureResourceAnnotation(lib));
+  addAnnotation(new ArrayTextureResourceAnnotation(lib));
+  addAnnotation(new CubeTextureResourceAnnotation(lib));
+  addAnnotation(new ArrayCubeTextureResourceAnnotation(lib));
+  addAnnotation(new CreatedResourceDataAnnotation(lib));
+  addAnnotation(new ResourceDataAnnotation(lib));
+  addAnnotation(new AutoResolutionDataAnnotation(lib));
+  addAnnotation(new ShaderBlockLayersInfoAnnotation(lib));
+  addAnnotation(new VrsStateRequirementsAnnotation(lib));
+  addAnnotation(new VirtualSubresourceRefAnnotation(lib));
+  addAnnotation(new BindingAnnotation(lib));
+  addAnnotation(new ResourceUsageAnnotation(lib));
+  addAnnotation(new ResourceRequestAnnotation(lib));
+  addAnnotation(new BufferResourceDescriptionAnnotation(lib));
+  addAnnotation(new BlobViewAnnotation(lib));
+  addAnnotation(new TextureViewAnnotation(lib));
+  addAnnotation(new BufferViewAnnotation(lib));
 
   BIND_FUNCTION(bind_dascript::setResolution, "setResolution", das::SideEffects::modifyArgumentAndExternal);
   BIND_FUNCTION(bind_dascript::setBufferDescription, "setDescription", das::SideEffects::modifyArgumentAndExternal);

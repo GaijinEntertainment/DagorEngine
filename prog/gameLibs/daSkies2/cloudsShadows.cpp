@@ -192,7 +192,7 @@ void CloudsShadows::renderShadows2D()
     return;
   TIME_D3D_PROFILE(clouds_2d_shadows);
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(cloudsShadows2d.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{cloudsShadows2d.getTex2D(), 0, 0}});
   build_shadows_2d_ps.render();
   d3d::resource_barrier({cloudsShadows2d.getTex2D(), RB_RO_SRV | RB_STAGE_ALL_GRAPHICS | RB_STAGE_COMPUTE, 0, 0});
   rerenderShadows2D = false;

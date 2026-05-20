@@ -765,7 +765,7 @@ namespace das {
             ss << call->name << "(";
         }
         virtual void preVisitNamedCallArg ( ExprNamedCall * call, MakeFieldDecl * arg, bool last ) override {
-            if (call->arguments[0] == arg) {
+            if ((*call->arguments)[0] == arg) {
                 if (call->nonNamedArguments.size() > 0) ss << ",";
                 ss << "[";
             }

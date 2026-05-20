@@ -53,7 +53,7 @@ struct GrassMaskSliceHelper
   float texelSize;
   IPoint2 maskSize;
   IPoint2 offset;
-  UniqueTexHolder maskTex, colorTex;
+  UniqueTexWithShaderVar maskTex, colorTex;
   shaders::UniqueOverrideStateId flipCullStateId;
   PostFxRenderer copy_grass_decals;
 };

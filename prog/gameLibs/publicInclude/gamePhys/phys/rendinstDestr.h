@@ -185,7 +185,7 @@ void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transfor
 void update(float dt, float current_time, const Frustum *frustum);
 void update_paused(float current_time, const Frustum *frustum);
 void fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
-  DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags);
+  const DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags);
 
 bool apply_damage_to_riextra(rendinst::riex_handle_t handle, float dmg, const Point3 &pos, const Point3 &impulse, float at_time);
 void apply_damage_to_ri(const rendinst::RendInstDesc &desc, float dmg, float impulse_to_hp, const Point3 &pos, const Point3 &impulse,

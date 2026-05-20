@@ -1,0 +1,52 @@
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:9:31
+
+let falseBranch = A == 5 ? x : A == 5 ? w : y
+                               ^-----
+//expect:w323
+
+
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:11:27
+
+//expect:w323
+let trueBranch = A == 5 ? (A == 5 ? w : y) : x
+                           ^-----
+//expect:w323
+
+
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:13:54
+
+//expect:w323
+let deeperBranch = ((A == 5)) ? x : (A == null ? w : (A == 5 ? 1 : 2))
+                                                      ^-----
+//expect:w323
+
+
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:15:47
+
+//expect:w323
+let chainOuter = x == 1 ? "a" : x == 2 ? "b" : x == 1 ? "c" : "d"
+                                               ^-----
+//expect:w323
+
+
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:17:47
+
+//expect:w323
+let chainInner = x == 1 ? "a" : x == 2 ? "b" : x == 2 ? "c" : "d"
+                                               ^-----
+
+
+WARNING: w323 (duplicate-ternary-condition) Nested ternary condition duplicates the outer condition.
+testData/static_analyzer/w323.nut:21:10
+
+  //expect:w323
+  println(A == 5 ? 1 : 2)
+          ^-----
+}
+
+

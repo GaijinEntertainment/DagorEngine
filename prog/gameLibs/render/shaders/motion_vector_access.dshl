@@ -5,7 +5,7 @@ include "assert.dshl"
 texture downsampled_motion_vectors_tex;
 texture resolved_motion_vectors;
 
-float4x4 uvz_to_prev_frame_uvz;
+float4x4 uvz_to_prev_frame_uvz always_referenced;
 float4x4 uvz_to_prev_frame_hero_bbox;
 float4x4 uvz_to_prev_frame_hero_uvz;
 float4 jitter_offset_uv;

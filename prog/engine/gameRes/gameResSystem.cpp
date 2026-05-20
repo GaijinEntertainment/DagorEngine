@@ -47,7 +47,7 @@
 #include <util/dag_fastNameMapTS.h>
 
 #if _TARGET_PC_WIN || _TARGET_XBOX
-#include <windows.h> // CRITICAL_SECTION, GetLastError, GetCurrentThreadId
+#include <windows.h> // CRITICAL_SECTION, GetCurrentThreadId
 #include <direct.h>
 #elif _TARGET_PC
 #include <unistd.h>
@@ -791,15 +791,9 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
 
   if (!vrom_data.data() && !seq_cb.open(fileName, 32 << 10))
   {
-    int errn = -1;
-    const char *errs = NULL, *cwd = NULL;
+    char errs[256], *cwd = nullptr;
+    int errn = df_get_last_error(errs, sizeof(errs));
 #if _TARGET_PC
-#if _TARGET_PC_WIN || _TARGET_XBOX
-    errn = GetLastError();
-#else
-    errn = errno;
-    errs = strerror(errn);
-#endif
     char cwdbuf[256];
     cwd = getcwd(cwdbuf, sizeof(cwdbuf));
 #endif

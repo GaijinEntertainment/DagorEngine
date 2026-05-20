@@ -22,7 +22,7 @@ enum class IrradianceDebugType
 class Irradiance
 {
   DynamicShaderHelper debug_rasterize_probes;
-  UniqueTexHolder volmap;
+  UniqueTexWithShaderVar volmap;
   // TextureIDHolder volmap_floor;// may be needed, to render it, as resolution is very small, and can include more than heightmap
   eastl::unique_ptr<ComputeShaderElement> // gi_compute_light_25d_cs,
     gi_compute_light_25d_cs_4_4, gi_compute_light_25d_cs_4_8, gi_compute_light_25d_cs_8_4, gi_mark_intersected_25d_cs;

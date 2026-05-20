@@ -68,16 +68,16 @@ def compile_and_simulate_ctx(file : string; project : string = ""; blk : block<(
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
-    using() <| $(var mg : ModuleGroup) {
-        using() <| $(var cop : CodeOfPolicies) {
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
-            compile_file(file, access, unsafe(addr(mg)), cop) <| $(ok; program; issues) {
+            compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result = "Compilation failed:\n{issues}"
                     had_error = true
                 } else {
-                    simulate(program) <| $(sok; var ctx; serrors) {
+                    simulate(program) $(sok; var ctx; serrors) {
                         if (!sok) {
                             result = "Simulation failed:\n{serrors}"
                             had_error = true
@@ -100,8 +100,8 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
-    using() <| $(var mg : ModuleGroup) {
-        using() <| $(var cop : CodeOfPolicies) {
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
             if (_export_all) {
@@ -109,13 +109,14 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
             }
             if (_no_opt) {
                 cop.no_optimizations = true
+                cop.no_infer_time_folding = true
             }
-            compile_file(file, access, unsafe(addr(mg)), cop) <| $(ok; program; issues) {
+            compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result = "Compilation failed:\n{issues}"
                     had_error = true
                 } else {
-                    simulate(program) <| $(sok; ctx; serrors) {
+                    simulate(program) $(sok; ctx; serrors) {
                         if (!sok) {
                             result = "Simulation failed:\n{serrors}"
                             had_error = true
@@ -131,15 +132,15 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
 }
 
 def compile_only(file : string; _export_all : bool; project : string = ""; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
-    return compile_only(file, _export_all, false, project) <| blk
+    return compile_only(file, _export_all, false, project, false) <| blk
 }
 
-def compile_only(file : string; _export_all : bool; _no_opt : bool; project : string = ""; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
+def compile_only(file : string; _export_all : bool; _no_opt : bool; project : string = ""; _lint : bool = false; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
-    using() <| $(var mg : ModuleGroup) {
-        using() <| $(var cop : CodeOfPolicies) {
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
             cop.ignore_shared_modules = true
             if (_export_all) {
@@ -147,8 +148,12 @@ def compile_only(file : string; _export_all : bool; _no_opt : bool; project : st
             }
             if (_no_opt) {
                 cop.no_optimizations = true
+                cop.no_infer_time_folding = true
             }
-            compile_file(file, access, unsafe(addr(mg)), cop) <| $(ok; program; issues) {
+            if (_lint) {
+                cop.lint_check = true
+            }
+            compile_file(file, access, unsafe(addr(mg)), cop) $(ok; program; issues) {
                 if (!ok) {
                     result = "Compilation failed:\n{issues}"
                     had_error = true
@@ -193,14 +198,14 @@ def write_func_signature(var w : StringBuilderWriter; func) {
 def write_handled_type(var w : StringBuilderWriter; value : Annotation const) {
     write(w, "  handled {value.name}")
     var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
-    basic_struct_for_each_parent(*ann) <| $(parent) {
+    basic_struct_for_each_parent(*ann) $(parent) {
         write(w, " : {parent.name}")
     }
     if (!empty(value.cppName)) {
         write(w, "  // C++ {value.cppName}")
     }
     write(w, "\n")
-    for_each_field(*ann) <| $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, offset) {
         if (!empty(cppName) && cppName != name) {
             write(w, "    {name} : {describe(xtype)}  // C++ {cppName}\n")
         } else {
@@ -214,7 +219,7 @@ def write_function_list(var writer : StringBuilderWriter; program : smart_ptr<Pr
     var user_funcs : array<string>
     var generic_instances : array<string>
     var class_methods : array<string>
-    for_each_function(thisMod, "") <| $(func) {
+    for_each_function(thisMod, "") $(func) {
         if (func.flags.builtIn) {
             return
         }
@@ -223,7 +228,7 @@ def write_function_list(var writer : StringBuilderWriter; program : smart_ptr<Pr
             return
         }
         if (func.fromGeneric != null) {
-            line = build_string() <| $(var w) {
+            line = build_string() $(var w) {
                 write(w, "  def {func.fromGeneric.name}")
                 write_func_signature(w, func)
             }
@@ -231,13 +236,13 @@ def write_function_list(var writer : StringBuilderWriter; program : smart_ptr<Pr
         } elif (func.flags.generated) {
             return
         } elif (func.flags.isClassMethod) {
-            line = build_string() <| $(var w) {
+            line = build_string() $(var w) {
                 write(w, "  def {func.name}")
                 write_func_signature(w, func)
             }
             class_methods |> push(line)
         } else {
-            line = build_string() <| $(var w) {
+            line = build_string() $(var w) {
                 write(w, "  def {func.name}")
                 write_func_signature(w, func)
             }
@@ -271,35 +276,23 @@ def get_daslang_exe() : string {
     return get_das_exe()
 }
 
-// Run an external command, capture stdout+stderr to a temp file, return exit_code.
+// Run an external command, capture stdout+stderr, return exit_code.
+// `args[0]` is the executable; remaining elements are positional arguments.
 // timeout_sec > 0 kills the process tree after that many seconds (returns popen_timed_out).
 // timeout_sec <= 0 means no timeout.
-def run_and_capture(cmd_line : string; var output : string&; timeout_sec : float = 0.0) : int {
-    let root = get_das_root()
-    let tmp_out = "{root}/_mcp_cmd_output_{ref_time_ticks()}.txt"
-    let full_cmd = "{cmd_line} > {tmp_out} 2>&1"
-    var exit_code = -1
-    unsafe {
-        if (timeout_sec > 0.0) {
-            exit_code = popen_timeout(full_cmd, timeout_sec) <| $(f) {
-                if (f != null) {
-                    fread(f)
-                }
-            }
-        } else {
-            exit_code = popen(full_cmd) <| $(f) {
-                if (f != null) {
-                    fread(f)
-                }
-            }
-        }
-    }
-    fopen(tmp_out, "rb") <| $(f) {
+//
+// Argv-based: `popen_argv` (Windows: CreateProcess; Unix: fork+execvp) bypasses
+// the shell entirely. No cmd.exe quote-stripping, no /bin/sh `$()`/backtick
+// expansion — every argv element reaches the child verbatim. Callers don't
+// (and shouldn't) quote arguments themselves.
+def run_and_capture(args : array<string>; var output : string&; timeout_sec : float = 0.0) : int {
+    var captured : string
+    let exit_code = unsafe(popen_argv(args, timeout_sec, $(f) {
         if (f != null) {
-            output = fread(f)
+            captured := unsafe(fread_to_eof(f))
         }
-    }
-    remove(tmp_out)
+    }))
+    output := captured
     return exit_code
 }
 
@@ -339,44 +332,50 @@ def expand_glob(pattern : string; var result : array<string>) {
         dir_part = slice(pattern, 0, last_slash)
         file_pattern = slice(pattern, last_slash + 1)
     }
-    dir(dir_part) <| $(fname) {
+    var matches : array<string>
+    dir(dir_part) $(fname) {
         if (fname == "." || fname == "..") {
             return
         }
         if (glob_match(file_pattern, fname)) {
             if (dir_part == ".") {
-                result |> push(fname)
+                matches |> push(fname)
             } else {
-                result |> push("{dir_part}/{fname}")
+                matches |> push("{dir_part}/{fname}")
             }
         }
     }
-    sort(result)
+    sort(matches)
+    result |> reserve(length(result) + length(matches))
+    for (m in matches) {
+        result |> push(m)
+    }
 }
 
-// Parse file argument: glob pattern, comma-separated list, or single file
+// Parse file argument: comma- or newline-separated list of files, dirs, and
+// globs (any part may contain `*` / `?` wildcards, expanded via expand_glob).
 def parse_file_list(file : string; var result : array<string>) {
-    if (find(file, "*") >= 0 || find(file, "?") >= 0) {
-        expand_glob(file, result)
-    } elif (find(file, ",") >= 0) {
-        var rest = file
-        while (!empty(rest)) {
-            let comma = find(rest, ",")
-            if (comma >= 0) {
-                let part = strip(slice(rest, 0, comma))
-                if (!empty(part)) {
-                    result |> push(part)
-                }
-                rest = slice(rest, comma + 1)
-            } else {
-                let part = strip(rest)
-                if (!empty(part)) {
-                    result |> push(part)
-                }
-                break
-            }
+    if (find(file, ",") < 0 && find(file, "\n") < 0) {
+        let part = strip(file)
+        if (empty(part)) {
+            return
         }
-    } else {
-        result |> push(file)
+        if (find(part, "*") >= 0 || find(part, "?") >= 0) {
+            expand_glob(part, result)
+        } else {
+            result |> push(part)
+        }
+        return
+    }
+    for (raw in split_by_chars(file, ",\n")) {
+        let part = strip(raw)
+        if (empty(part)) {
+            continue
+        }
+        if (find(part, "*") >= 0 || find(part, "?") >= 0) {
+            expand_glob(part, result)
+        } else {
+            result |> push(part)
+        }
     }
 }

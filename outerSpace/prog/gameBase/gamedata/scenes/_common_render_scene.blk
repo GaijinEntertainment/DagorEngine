@@ -9,3 +9,7 @@ entity{
 entity{
   _template:t="dynamic_lighting"
 }
+
+entity{
+  _template:t="ui_nodes"
+}

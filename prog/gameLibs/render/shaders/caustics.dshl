@@ -69,9 +69,11 @@ macro USE_CAUSTICS_BASE(code)
         return caustic;
     }
 
-    float get_ssr_caustics(in float3 worldPos, in float3 normal, in float water_height, in float distance)
+    // x - underwater, y - above water
+    float2 get_caustics(in float3 worldPos, in float3 normal, in float water_height, in float distance)
     {
-      float causticBaseLevel=0;
+      float2 causticBaseLevel = float2(0.25f, 0.0f);
+
       ##if caustics__indoor_probe_mask != NULL
         float4 ndc = mulPointTm(worldPos, caustics__indoor_probe_mask_matrix);
         float3 tc = ndc.xyz / ndc.w;
@@ -84,7 +86,7 @@ macro USE_CAUSTICS_BASE(code)
       ##endif
       //calc light weight
       float3 reflectedLight = normalize(float3(-from_sun_direction.x, from_sun_direction.y, -from_sun_direction.z));
-      float normalWeight = saturate(dot(normal, reflectedLight));
+      float NoL = saturate(dot(normal, reflectedLight));
 
       float heroDist=length(caustics_hero_pos.xyz-worldPos.xyz);
       float heightFactor=saturate(caustics_options.x*(caustics_hero_pos.w-heroDist));
@@ -93,7 +95,7 @@ macro USE_CAUSTICS_BASE(code)
       float heightWeight = saturate((maxHeight+water_height-worldPos.y)/(maxHeight+0.001));
       float3 shadowPos=worldPos-reflectedLight.xyz*(worldPos.y-water_height)/reflectedLight.y;
 
-      half vsmShadow = (worldPos.y-water_height > 0.0) ? get_shadow(float4(shadowPos, 1)) : half(1.0);
+      half vsmShadow = (worldPos.y-water_height > 0.0) ? get_shadow(float4(shadowPos, 1)) : half(0.0);
 
       // TODO workaround for not having proper terrain shadow in WT
       ##if shore_distance_field_tex != NULL
@@ -101,22 +103,20 @@ macro USE_CAUSTICS_BASE(code)
         if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
         {
           float shoreHeight = tex2Dlod(shore_distance_field_tex, float4(stc,0,0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
-          if (shoreHeight > water_height)
-            vsmShadow = half(0.0);
+          vsmShadow *= saturate(water_height - shoreHeight);
         }
       ##endif
 
       float fresnelTerm=0.7+0.3*reflectedLight.y;
 
-      float weight =normalWeight * heightWeight * fresnelTerm;
-
       float worldScale = caustics_world_scale;
 
-      float causticWeight = max(saturate(water_height-worldPos.y), weight);
+      float underWaterWeight = saturate(water_height-worldPos.y);
+      float aboveWaterWeight = vsmShadow * NoL * fresnelTerm * heightWeight;
       float distanceFade=saturate(0.015*(170-distance*worldScale));
 
       BRANCH
-      if (causticWeight*distanceFade<0.001)
+      if (max(underWaterWeight, vsmShadow)*distanceFade < 0.001)
       {
         return causticBaseLevel; // early exit
       }
@@ -132,21 +132,22 @@ macro USE_CAUSTICS_BASE(code)
 
       c /= float(NUM_ITERATIONS);
       c = 1.17-pow(c, 1.4); // parameters get from shadertoy
-      float caustics = pow(abs(c), 6.0);
+      float2 caustics = pow(abs(c), 6.0);
 
-      caustics = lerp(causticBaseLevel, caustics, causticWeight*distanceFade);
+      caustics.x = lerp(causticBaseLevel.x, caustics.x, underWaterWeight * distanceFade);
+      caustics.y = lerp(causticBaseLevel.y, caustics.y, aboveWaterWeight * distanceFade);
 
       ##if caustics__indoor_probe_mask != NULL
         caustics *= mask;
       ##endif
 
-      return vsmShadow*caustics;
+      return float2(caustics.x, caustics.y);
     }
   #endif
   }
 endmacro
 
-macro USE_SSR_CAUSTICS(code)
+macro USE_CAUSTICS(code)
   supports global_const_block;
   USE_CAUSTICS_BASE(code)
 endmacro

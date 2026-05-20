@@ -65,7 +65,7 @@ public:
 
 using FGExternalUniqueTex = FGExternalUniqueRes<UniqueTex>;
 using FGExternalUniqueBuf = FGExternalUniqueRes<UniqueBuf>;
-using FGExternalUniqueTexHolder = FGExternalUniqueRes<UniqueTexHolder>;
+using FGExternalUniqueTexWithShaderVar = FGExternalUniqueRes<UniqueTexWithShaderVar>;
 using FGExternalUniqueBufHolder = FGExternalUniqueRes<UniqueBufHolder>;
 
 template <typename ResizableResType>

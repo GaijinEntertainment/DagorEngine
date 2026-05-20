@@ -24,9 +24,9 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addAnnotation(das::make_smart<TerraformAnnotation>(lib));
+    addAnnotation(new TerraformAnnotation(lib));
 
-    addEnumeration(das::make_smart<EnumerationTerraformPrimMode>());
+    addEnumeration(new EnumerationTerraformPrimMode());
 
     using method_update = DAS_CALL_MEMBER(TerraformComponent::update);
     das::addExtern<DAS_CALL_METHOD(method_update)>(*this, lib, "terraform_update", das::SideEffects::modifyArgument,

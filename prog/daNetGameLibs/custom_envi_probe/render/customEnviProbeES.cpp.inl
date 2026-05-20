@@ -145,9 +145,9 @@ static void custom_envi_probe_render_es_event_handler(const CustomEnviProbeRende
     SCOPE_RENDER_TARGET;
     SCOPE_VIEW_PROJ_MATRIX;
     SCOPE_VIEWPORT;
-    for (int i = faceBegin; i < faceEnd; i++)
+    for (uint32_t i = faceBegin; i < faceEnd; i++)
     {
-      d3d::set_render_target(cubeTarget->getCubeTex(), i, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0u, i}});
       TMatrix4 projTm;
       d3d::setpersp(Driver3dPerspective(1, 1, 0.25, 400), &projTm); // set a square perspective, zn zf doesn't matter
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);

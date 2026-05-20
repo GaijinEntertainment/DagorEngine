@@ -52,10 +52,37 @@ extern StaticTab<void (*)(const net::IMessage *msg), (int)PhysType::NUM> snapsho
 static const int net_lod_zones_freq[] = {0, 0, 1, 3, 0}; // pow2-1: 100%, 100%, 50%, 25%
 static ConVarI sv_force_serializetype("net.sv_force_serialize_type", -1, -1, (int)PhysSnapSerializeType::HIDDEN, nullptr);
 
+void write_cur_time(danet::BitStream &bs, double ct)
+{
+  G_ASSERTF(ct >= 0, "%g", ct);
+  if (ct < (1 << 17)) [[likely]] // < ~36 hours
+    bs.Write(float(ct));
+  else
+  {
+    double negCurTime = -ct;              // set MSB; assume positive `ct`
+    bs.Write((char *)&negCurTime + 4, 4); // hi, assume little endian
+    bs.Write((char *)&negCurTime, 4);
+  }
+}
+
+void read_cur_time(const danet::BitStream &bs, double &ct)
+{
+  float curTime = 0.f;
+  G_VERIFY(bs.Read(curTime));
+  if (curTime >= 0) [[likely]]
+    ct = curTime;
+  else
+  {
+    uint32_t ctLo = 0;
+    G_VERIFY(bs.Read(ctLo));
+    ct = dag::bit_cast<double>(uint64_t(dag::bit_cast<uint32_t>(curTime) ^ (1u << 31)) << 32 | uint64_t(ctLo));
+  }
+}
+
 class PhysSnapshotsMsgSender
 {
 public:
-  PhysSnapshotsMsgSender(float ct) : bs(framemem_ptr()), curTime(ct) { reserveHeader(); } //-V730
+  PhysSnapshotsMsgSender(double ct) : bs(framemem_ptr()), curTime(ct) { reserveHeader(); } //-V730
   bool haveSpaceToWrite(danet::BitStream &tmpBs, int sizeLimit)
   {
     // try to fit in MTU (except first write in case if snapshot is bigger then MTU)
@@ -96,12 +123,12 @@ public:
     written = 0;
     bs.SetWriteOffset(0);
     bs.Write((uint8_t)0); // written
-    bs.Write(curTime);
+    write_cur_time(bs, curTime);
   }
 
   uint16_t written;
   bool sentSomething;
-  float curTime;
+  double curTime;
   danet::BitStream bs;
 };
 
@@ -130,7 +157,7 @@ enum class PhysActorSyncState // Note: shall fit in 2 bits
 static void send_phys_snapshots_impl(net::IConnection &conn,
   danet::BitStream &tmpBs,
   PhysSnapshotsMsgSender &unreliableSender,
-  float curTime,
+  double curTime,
   ecs::EntityId msg_sink_eid,
   dag::ConstSpan<SendRecordsTypeRange> sr_type_ranges,
   dag::ConstSpan<PhysActorSendRecord> send_records,
@@ -267,7 +294,7 @@ static void send_phys_snapshots_impl(net::IConnection &conn,
       {
         tmpBs.ResetWritePointer();
         if (curSyncState != PhysActorSyncState::Normal)
-          tmpBs.Write(curTime);
+          write_cur_time(tmpBs, curTime);
         DAECS_EXT_ASSERT(sr.netPhysId != USHRT_MAX);
         tmpBs.WriteCompressed(sr.netPhysId);
         unsigned pstWriteOffs = tmpBs.GetWriteOffset();
@@ -404,10 +431,10 @@ void net_rcv_phys_snapshots(const net::IMessage &,
   float tsDelay = get_timespeed_accumulated_delay_sec();
 
   uint8_t numMinusOne = 0;
-  float atTime = -1.f;
+  double atTime = -1.f;
   if (to_msg_sink)
     G_VERIFY(bs.Read(numMinusOne));
-  G_VERIFY(bs.Read(atTime));
+  read_cur_time(bs, atTime);
   G_ASSERT_RETURN(atTime >= 0, );
 
   char *snapBuf = (char *)((intptr_t(alloca(physreg::snapshotSizeMax + sizeof(void *))) + sizeof(void *) - 1) & ~(sizeof(void *) - 1));

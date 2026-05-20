@@ -231,7 +231,7 @@ def LLVMGetEnumAttributeKindForName(attr_name : string) {
 }
 
 def LLVMGetEnumAttribute(ctx : LLVMContextRef; attr_name : string) : LLVMOpaqueAttributeRef? {
-    var attr_id = LLVMGetEnumAttributeKindForName(attr_name)
+    let attr_id = LLVMGetEnumAttributeKindForName(attr_name)
     if (attr_id == 0u) {
         panic("{attr_name} attribute not found")
     }
@@ -433,27 +433,27 @@ def LLVMGetIntrinsicDeclaration(mod : LLVMOpaqueModule?; id : uint; var argTypes
 
 def describe(typ : LLVMOpaqueType?) {
     return "null" if (typ == null)
-    var st = LLVMPrintTypeToString(typ)
-    var stc = clone_string(st)
+    let st = LLVMPrintTypeToString(typ)
+    let stc = clone_string(st)
     LLVMDisposeMessage(st)
     return stc
 }
 
 def describe(typ : LLVMOpaqueValue?) {
     return "null" if (typ == null)
-    var st = LLVMPrintValueToString(typ)
-    var stc = clone_string(st)
+    let st = LLVMPrintValueToString(typ)
+    let stc = clone_string(st)
     LLVMDisposeMessage(st)
     return stc
 }
 
 def describe(blk : LLVMOpaqueBasicBlock?) {
     return "null" if (blk == null)
-    var st := LLVMGetBasicBlockName(blk)
+    let st := LLVMGetBasicBlockName(blk)
     return st
 }
 
-def isExprOp2_Func(expr : smart_ptr<ExprOp2>) {
+def isExprOp2_Func(expr : ExprOp2?) {
     if (!expr.func.flags.builtIn) {
         return true
     }
@@ -463,7 +463,7 @@ def isExprOp2_Func(expr : smart_ptr<ExprOp2>) {
     return false
 }
 
-def isExprOp1_Func(expr : smart_ptr<ExprOp1>) {
+def isExprOp1_Func(expr : ExprOp1?) {
     if (!expr.func.flags.builtIn) {
         return true
     }

@@ -150,12 +150,10 @@ public:
     D3D12_STATE_OBJECT_CONFIG config{};
     // we allow state objects to be incomplete so that they can be used to glue stuff together
     // we have to see if this is possible with other APIs
-    config.Flags = D3D12_STATE_OBJECT_FLAGS(D3D12_STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITIONS |
-                                            D3D12_STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS |
-                                            //(ci.mayBeUsedByExpandablePipeline ? D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS
-                                            //: D3D12_STATE_OBJECT_FLAG_NONE));
-                                            // always passing this flag, otherwise we can not create any derived pipeline object...
-                                            D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS);
+    config.Flags = D3D12_STATE_OBJECT_FLAGS(
+      D3D12_STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITIONS |
+      D3D12_STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS |
+      (ci.mayBeUsedByExpandablePipeline ? D3D12_STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS : D3D12_STATE_OBJECT_FLAG_NONE));
 
     D3D12_STATE_SUBOBJECT objectRefs[2]{};
     objectRefs[0].Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY;

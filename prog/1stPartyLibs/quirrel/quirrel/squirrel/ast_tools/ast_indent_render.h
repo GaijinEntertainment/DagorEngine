@@ -1,13 +1,14 @@
 #pragma once
 #include <cstdio> // for snprintf
-#include "sqio.h"
+#include <squirrel.h>
 #include <compiler/ast.h>
 #include <compiler/sqtypeparser.h>
 
 namespace SQCompilation {
 
 class IndentedTreeRenderer : public Visitor {
-    OutputStream* _out;
+    SQStreamWriteFunc _write;
+    void *_ud;
     SQInteger _indent;
     sqvector<int> indents;
     sqvector<int> vertLines;
@@ -15,6 +16,8 @@ class IndentedTreeRenderer : public Visitor {
     int lineNum;
     char loc[32];
     char scratchpad[1024];
+
+    void writeStr(const char *s) { _write(s, _ud); }
 
     void indent() {
         if (collectIndentsPass) {
@@ -41,11 +44,11 @@ class IndentedTreeRenderer : public Visitor {
 
             for (SQInteger i = 0; i < _indent; ++i) {
                 if (vertLines[i] > 1)
-                    _out->writeString(i == _indent - 1 ? "|-" : "| ");
+                    writeStr(i == _indent - 1 ? "|-" : "| ");
                 else if (vertLines[i] == 1)
-                    _out->writeString("`-");
+                    writeStr("`-");
                 else
-                    _out->writeString("  ");
+                    writeStr("  ");
 
                 if (vertLines[i] > 0)
                     vertLines[i]--;
@@ -84,6 +87,7 @@ class IndentedTreeRenderer : public Visitor {
         case TO_BNOT: return "~";
         case TO_TYPEOF: return "TYPEOF";
         case TO_RESUME: return "RESUME";
+        case TO_AWAIT: return "AWAIT";
         case TO_CLONE: return "CLONE";
         case TO_DELETE: return "DELETE";
         case TO_NEWSLOT: return "<-";
@@ -107,7 +111,7 @@ class IndentedTreeRenderer : public Visitor {
         va_start(args, fmt);
         vsnprintf(buf, sizeof(buf), fmt, args);
         va_end(args);
-        _out->writeString(buf);
+        writeStr(buf);
     }
 
     void writeIndentedFmtString(const char* fmt, ...) {
@@ -119,13 +123,13 @@ class IndentedTreeRenderer : public Visitor {
         va_start(args, fmt);
         vsnprintf(buf, sizeof(buf), fmt, args);
         va_end(args);
-        _out->writeString(buf);
+        writeStr(buf);
     }
 
 public:
     bool printNodesLocation;
 
-    IndentedTreeRenderer(OutputStream* output) : _out(output), _indent(0), indents(nullptr), vertLines(nullptr),
+    IndentedTreeRenderer(SQStreamWriteFunc write, void *ud) : _write(write), _ud(ud), _indent(0), indents(nullptr), vertLines(nullptr),
         collectIndentsPass(false), printNodesLocation(true), lineNum(0), loc(""), scratchpad("") {}
 
     void render(Node* n) {
@@ -136,7 +140,7 @@ public:
             n->visit(this);
         } else {
             indent();
-            _out->writeString("(null)");
+            writeStr("(null)");
         }
     }
 
@@ -185,6 +189,7 @@ public:
             case TO_NEG:
             case TO_TYPEOF:
             case TO_RESUME:
+            case TO_AWAIT:
             case TO_CLONE:
             case TO_PAREN:
             case TO_DELETE:
@@ -662,7 +667,7 @@ public:
                     constDecl->value()->visit(this);
                 } else {
                     indent();
-                    _out->writeString("(null)\n");
+                    writeStr("(null)\n");
                 }
                 --_indent;
                 break;
@@ -679,7 +684,7 @@ public:
                         c.val->visit(this);
                     } else {
                         indent();
-                        _out->writeString("(null)\n");
+                        writeStr("(null)\n");
                     }
                     --_indent;
                 }

@@ -55,6 +55,10 @@ sound_effect_speed_var{
   _group{
     _tags:t="sound"
     sound_effect_speed_var__pos:p3=0,0,0
+    sound_effect_speed_var__speedSq:r=-1
+    // setup
+    sound_effect_speed_var__name:t="speed"
+    sound_effect_speed_var__thresholdSq:r=0.01
     sound_effect_speed_var__speedToVar:p4=0,10,0,100
   }
 }

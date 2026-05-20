@@ -39,9 +39,10 @@ void close_fluid_wind() { fluid_wind.reset(); }
 
 void update_fluid_wind(float dt, const Point3 &origin)
 {
-  if (!(fluid_wind && dt > 0.0f))
+  if (!fluid_wind)
     return;
 
+  if (dt > 0.0f)
   {
     TIME_D3D_PROFILE(wind_effects);
     fluid_wind->update(dt, origin);
@@ -50,4 +51,10 @@ void update_fluid_wind(float dt, const Point3 &origin)
   if (fluid_wind_debug_output.get())
     fluid_wind->renderDebug();
 #endif
+}
+
+void after_device_reset_fluid_wind()
+{
+  if (fluid_wind)
+    fluid_wind->afterDeviceReset();
 }

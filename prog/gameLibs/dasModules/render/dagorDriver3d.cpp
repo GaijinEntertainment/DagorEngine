@@ -131,22 +131,22 @@ public:
   {
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorTexture3D"));
-    addAnnotation(das::make_smart<TexStreamingContextAnnotation>(lib));
-    addAnnotation(das::make_smart<Driver3dPerspectiveAnnotation>(lib));
-    addAnnotation(das::make_smart<ShadersECSAnnotation>(lib));
-    addAnnotation(das::make_smart<PostFxRendererAnnotation>(lib));
-    addAnnotation(das::make_smart<ComputeShaderAnnotation>(lib));
-    addAnnotation(das::make_smart<OverrideStateAnnotation>(lib));
-    addEnumeration(das::make_smart<EnumerationDepthAccess>());
-    addEnumeration(das::make_smart<EnumerationSamplerHandle>());
-    addEnumeration(das::make_smart<EnumerationMipMapMode>());
-    addEnumeration(das::make_smart<EnumerationFilterMode>());
-    addEnumeration(das::make_smart<EnumerationAddressMode>());
-    addEnumeration(das::make_smart<EnumerationBorderColor_Color>());
-    addAnnotation(das::make_smart<BorderColorAnnotation>(lib));
-    addAnnotation(das::make_smart<SamplerInfoAnnotation>(lib));
-    addEnumeration(das::make_smart<EnumerationDriverBackgroundProcessingMode>());
-    addEnumeration(das::make_smart<EnumerationDriverMeasurementsAction>());
+    addAnnotation(new TexStreamingContextAnnotation(lib));
+    addAnnotation(new Driver3dPerspectiveAnnotation(lib));
+    addAnnotation(new ShadersECSAnnotation(lib));
+    addAnnotation(new PostFxRendererAnnotation(lib));
+    addAnnotation(new ComputeShaderAnnotation(lib));
+    addAnnotation(new OverrideStateAnnotation(lib));
+    addEnumeration(new EnumerationDepthAccess());
+    addEnumeration(new EnumerationSamplerHandle());
+    addEnumeration(new EnumerationMipMapMode());
+    addEnumeration(new EnumerationFilterMode());
+    addEnumeration(new EnumerationAddressMode());
+    addEnumeration(new EnumerationBorderColor_Color());
+    addAnnotation(new BorderColorAnnotation(lib));
+    addAnnotation(new SamplerInfoAnnotation(lib));
+    addEnumeration(new EnumerationDriverBackgroundProcessingMode());
+    addEnumeration(new EnumerationDriverMeasurementsAction());
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 

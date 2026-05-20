@@ -60,10 +60,9 @@ def public collect_used_types(vfun : array<Function?>; vvar : array<Variable?>; 
     //! Goes through list of functions `vfun` and variables `vvar` and collects list of which enumeration and structure types are used in them.
     //! Calls `blk` with said list.
     var astVisitor = new TypeVisitor()
-    var inscope astVisitorAdapter <- make_visitor(*astVisitor)
-    for (f in vfun) {
-        unsafe {
-            visit(reinterpret<FunctionPtr> f, astVisitorAdapter)
+    make_visitor(*astVisitor) $(astVisitorAdapter) {
+        for (f in vfun) {
+            visit(f, astVisitorAdapter)
         }
     }
     for (v in vvar) {

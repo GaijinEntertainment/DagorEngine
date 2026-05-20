@@ -6,10 +6,10 @@
 
 #include <util/dag_threadPool.h>
 #include <osApiWrappers/dag_atomic_types.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <EASTL/memory.h>
 #include <EASTL/deque.h>
-#include <mutex>
 
 
 namespace threadpool

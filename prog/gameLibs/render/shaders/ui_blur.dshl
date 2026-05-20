@@ -49,7 +49,7 @@ macro COMMON_UI_DOWNSAMPLE()
   }
 
   hlsl(vs) {
-    VsOutput main_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
+    VsOutput common_ui_downsample_vs(uint vertexId : SV_VertexID, uint instance_id : SV_InstanceID)
     {
       int4 quad = quads[instance_id.x];
 
@@ -68,7 +68,7 @@ macro COMMON_UI_DOWNSAMPLE()
     }
   }
 
-  compile("target_vs", "main_vs");
+  compile("target_vs", "common_ui_downsample_vs");
 endmacro
 
 shader ui_downsample_4x4
@@ -82,7 +82,7 @@ shader ui_downsample_4x4
     texSize__bw@f2 = (blur_src_tex_size.x, blur_src_tex_size.y, 0, 0);
   }
   hlsl(ps) {
-    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 ui_downsample_4x4_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       float2 tc = IN.tc - texSize.xy;
@@ -96,7 +96,7 @@ shader ui_downsample_4x4
     }
   }
 
-  compile("target_ps", "main_ps");
+  compile("target_ps", "ui_downsample_4x4_ps");
 }
 
 shader ui_downsample_4x4_and_blend
@@ -118,7 +118,7 @@ shader ui_downsample_4x4_and_blend
 
   hlsl(ps) {
     #define backg_tex_samplerstate global_linear_clamp_sampler
-    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 ui_downsample_4x4_and_blend_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 texSize = texSize__bw.xy;
       half bw = texSize__bw.z;
@@ -149,7 +149,7 @@ shader ui_downsample_4x4_and_blend
     }
   }
 
-  compile("target_ps", "main_ps");
+  compile("target_ps", "ui_downsample_4x4_and_blend_ps");
 }
 
 shader ui_downsample_blur
@@ -165,7 +165,7 @@ shader ui_downsample_blur
     {
       return (p0 + p1 + p2 + p3) * 0.25f;
     }
-    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 ui_downsample_blur_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       float2 TexSize = texSize__bw.xy;
 
@@ -219,7 +219,7 @@ shader ui_downsample_blur
     }
   }
 
-  compile("target_ps", "main_ps");
+  compile("target_ps", "ui_downsample_blur_ps");
 }
 
 shader ui_additional_blur
@@ -255,11 +255,11 @@ shader ui_additional_blur
         #undef stepCount
     }
 
-    float4 main_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
+    float4 ui_additional_blur_ps(VsOutput IN HW_USE_SCREEN_POS): SV_Target0
     {
       return float4(GaussianBlur(IN.tc.xy, pixel_offset),1);
     }
   }
 
-  compile("target_ps", "main_ps");
+  compile("target_ps", "ui_additional_blur_ps");
 }

@@ -15,9 +15,10 @@ def test_walk_struct(t : T?) {
     t |> run("simple struct") @(t : T?) {
         var walker = new LogWalker()
         var s = SimpleStruct(x = 10, y = 2.5)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         var expected = "beforeStruct:SimpleStruct\n"
         expected += "beforeField:x:false\n"
@@ -33,9 +34,10 @@ def test_walk_struct(t : T?) {
     t |> run("nested struct") @(t : T?) {
         var walker = new LogWalker()
         var s = NestedStruct(inner = SimpleStruct(x = 1, y = 2.0), tag = "test")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         // Should see: NestedStruct → inner(SimpleStruct → x, y) → tag
         t |> equal(find(walker.log, "beforeStruct:NestedStruct") != -1, true)
@@ -49,9 +51,10 @@ def test_walk_struct(t : T?) {
         // ManyFields has 4 fields — only the last should have last=true
         var walker = new LogWalker()
         var s = ManyFields(a = 1, b = 2, c = 3, d = 4)
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(find(walker.log, "beforeField:a:false") != -1, true)
         t |> equal(find(walker.log, "beforeField:b:false") != -1, true)
@@ -67,9 +70,10 @@ def test_walk_class(t : T?) {
     t |> run("base class") @(t : T?) {
         var walker = new LogWalker()
         var a = new Animal(name = "cat")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(a), typeinfo rtti_typeinfo(a))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(a), typeinfo rtti_typeinfo(a))
+            }
         }
         // Walking a class pointer: beforePtr → beforeStruct:Animal → field:name → afterStruct → afterPtr
         t |> equal(find(walker.log, "beforeStruct:Animal") != -1, true)
@@ -79,9 +83,10 @@ def test_walk_class(t : T?) {
     t |> run("derived class") @(t : T?) {
         var walker = new LogWalker()
         var d = new Dog(name = "Rex", breed = "Shepherd")
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(d), typeinfo rtti_typeinfo(d))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(d), typeinfo rtti_typeinfo(d))
+            }
         }
         // Derived class should walk Dog fields including breed
         t |> equal(find(walker.log, "beforeStruct:Dog") != -1, true)
@@ -110,9 +115,10 @@ def test_walk_all_scalars_in_struct(t : T?) {
             i64 = 100l,
             u64 = 200ul
         )
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         // Verify all scalar callbacks fired
         t |> equal(find(walker.log, "Bool:true") != -1, true)
@@ -142,9 +148,10 @@ def test_walk_vectors_in_struct(t : T?) {
             v4 = float4(6.0, 7.0, 8.0, 9.0),
             r = range(10, 20)
         )
-        var inscope adapter <- make_data_walker(walker)
-        unsafe {
-            adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+        make_data_walker(walker) $(adapter) {
+            unsafe {
+                adapter |> walk_data(addr(s), typeinfo rtti_typeinfo(s))
+            }
         }
         t |> equal(find(walker.log, "Float2:") != -1, true)
         t |> equal(find(walker.log, "Float3:") != -1, true)

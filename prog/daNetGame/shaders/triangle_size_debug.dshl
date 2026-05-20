@@ -1,8 +1,7 @@
 int allow_triangle_size_debug = 0;
 interval allow_triangle_size_debug : no < 1, yes;
 
-// If want to use triangle size debug view either use, 'compile_shaders_dx12_triangle_size_debug.bat',
-// or assume / change below line to yes.
+// Assumed on for debug shader dump
 assume_if_not_assumed allow_triangle_size_debug = no;
 
 macro TRIANGLE_SIZE_DEBUG_PS()

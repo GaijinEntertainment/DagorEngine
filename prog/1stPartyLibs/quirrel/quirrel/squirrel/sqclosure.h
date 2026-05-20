@@ -48,8 +48,6 @@ public:
     }
     ~SQClosure();
 
-    bool Save(SQVM *v,SQUserPointer up,SQWRITEFUNC write);
-    static bool Load(SQVM *v,SQUserPointer up,SQREADFUNC read,SQObjectPtr &ret);
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
     void Finalize(){
@@ -109,7 +107,7 @@ private:
       _stack(ss->_alloc_ctx),
       _etraps(ss->_alloc_ctx)
     {
-      _closure=closure;_state=eRunning;_ci._generator=NULL;INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
+      _closure=closure;_state=eRunning;_ci._generator=NULL;_yield_arg1=MAX_FUNC_STACKSIZE;INIT_CHAIN();ADD_TO_CHAIN(&_ss(this)->_gc_chain,this);
     }
 public:
     static SQGenerator *Create(SQSharedState *ss,SQClosure *closure){
@@ -129,7 +127,10 @@ public:
         sq_delete(_sharedstate->_alloc_ctx, this,SQGenerator);
     }
 
-    bool Yield(SQVM *v,SQInteger target);
+    bool Yield(SQVM *v,SQInteger arg1,SQInteger target);
+    // Async send/throw must be delivered before calling Resume: write sendValue
+    // into `_stack[_yield_arg1]` (the saved-stack copy picks it up), or pre-set
+    // `v->_lasterror` and pass ET_RESUME_GENERATOR_THROW for rejection.
     bool Resume(SQVM *v,SQObjectPtr &dest);
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
@@ -141,6 +142,7 @@ public:
     SQVM::CallInfo _ci;
     ExceptionsTraps _etraps;
     SQGeneratorState _state;
+    SQInteger _yield_arg1;
 };
 
 #define _CALC_NATVIVECLOSURE_SIZE(noutervalues) (sizeof(SQNativeClosure) + ((noutervalues)*sizeof(SQObjectPtr)))

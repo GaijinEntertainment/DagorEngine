@@ -97,17 +97,17 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<DigitalActionAnnotation>(lib));
-    addAnnotation(das::make_smart<AnalogStickActionAnnotation>(lib));
-    addAnnotation(das::make_smart<AnalogAxisActionAnnotation>(lib));
+    addAnnotation(new DigitalActionAnnotation(lib));
+    addAnnotation(new AnalogStickActionAnnotation(lib));
+    addAnnotation(new AnalogAxisActionAnnotation(lib));
 
-    addAnnotation(das::make_smart<SingleButtonIdAnnotation>(lib));
-    addAnnotation(das::make_smart<DigitalActionBindingAnnotation>(lib));
-    addAnnotation(das::make_smart<AnalogAxisActionBindingAnnotation>(lib));
-    addAnnotation(das::make_smart<AnalogStickActionBindingAnnotation>(lib));
+    addAnnotation(new SingleButtonIdAnnotation(lib));
+    addAnnotation(new DigitalActionBindingAnnotation(lib));
+    addAnnotation(new AnalogAxisActionBindingAnnotation(lib));
+    addAnnotation(new AnalogStickActionBindingAnnotation(lib));
 
     G_STATIC_ASSERT(sizeof(dainput::action_handle_t) == sizeof(uint16_t));
-    auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt16);
+    auto pType = new das::TypeDecl(das::Type::tUInt16);
     pType->alias = "action_handle_t";
     addAlias(pType);
 

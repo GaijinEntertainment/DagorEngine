@@ -56,7 +56,7 @@ public:
     struct DeclBool
     {
       const char *name = nullptr;
-      ShaderTerminal::bool_expr *expr = nullptr;
+      String baseName{};
     };
     DeclBool declBool;
 

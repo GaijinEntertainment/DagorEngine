@@ -581,6 +581,14 @@ void RiExtraAdditionalDataManager::afterDeviceReset()
   isDirty = true;
   for (RIInfo &riInfo : sortedRiInfos)
     riInfo.lastModifiedFrameId = curFrame;
+  // no content to fill up buffer, yet it bound causing garbage read
+  // fill with fake default inited element
+  if (sortedRiInfos.empty() && additionalDataStagingBuffer && additionalDataBuffer)
+  {
+    rendinst::RiExtraPerInstanceGpuItem fakeItem = {};
+    additionalDataStagingBuffer->updateData(0, sizeof(fakeItem), &fakeItem, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    additionalDataStagingBuffer->copyTo(additionalDataBuffer.getBuf(), 0, 0, sizeof(fakeItem));
+  }
 }
 
 RiExtraPerInstanceDataPersistence RiExtraAdditionalDataManager::getPersistenceOfDataType(

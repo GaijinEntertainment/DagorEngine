@@ -505,6 +505,13 @@ class ResourceManager
 #endif
   } resPools;
 
+#if DAGOR_DBGLEVEL > 0
+  uint32_t allocsCounter;
+  void incrementAllocsCounter() { ++allocsCounter; }
+#else
+  void incrementAllocsCounter() {}
+#endif
+
 public:
   bool evictResourcesFor(VkDeviceSize desired_size, bool evict_used);
   void processPendingEvictions();
@@ -537,6 +544,7 @@ public:
   template <typename ResType>
   ResType *alloc(const typename ResType::Description desc, bool manage = true)
   {
+    incrementAllocsCounter();
     ResType *ret = resPool<ResType>().allocate(desc, manage);
     ResourceAlgorithm<ResType> alg(*ret);
     if (alg.create() != ResourceAlgorithm<ResType>::CreateResult::OK)
@@ -569,6 +577,12 @@ public:
   {
     return resPool<ResType>().size();
   }
+
+#if DAGOR_DBGLEVEL > 0
+  uint32_t getAllocationsCounter() { return allocsCounter; }
+#else
+  uint32_t getAllocationsCounter() { return 0; }
+#endif
 
   void onBackFrameEnd();
 

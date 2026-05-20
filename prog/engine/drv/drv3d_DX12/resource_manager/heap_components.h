@@ -106,6 +106,7 @@ protected:
   struct SetupInfo : BaseType::SetupInfo
   {
     DXGIAdapter *adapter;
+    bool reportMemoryInfo;
 
     DXGIAdapter *getAdapter() const { return adapter; }
   };
@@ -480,6 +481,7 @@ private:
     DISABLE_HOST_MEMORY_STATUS_QUERY,
     DISABLE_DEVICE_MEMORY_STATUS_QUERY,
     DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY,
+    PRINT_MEMORY_REPORTS,
 
     COUNT
   };

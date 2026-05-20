@@ -564,6 +564,8 @@ void TiledMapContext::setup(Sqrat::Object cfg)
 
     if (!fogOfWarTex)
       logerr("%s: fogOfWarTex = false", __FUNCTION__);
+    else
+      d3d::clear_rt({fogOfWarTex.getBaseTex()}, make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
   }
 
   if (fogOfWarEnabled)
@@ -868,7 +870,7 @@ void tiled_map_fog_of_war_before_render(const UpdateStageInfoBeforeRender &evt)
 
   ShaderGlobal::set_float4(fog_of_war_constraints, tc_lt.x, tc_lt.y, tc_rb.x, tc_rb.y);
 
-  d3d::set_render_target(s_tiled_map_ctx->fogOfWarTex.getBaseTex(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{s_tiled_map_ctx->fogOfWarTex.getBaseTex(), 0, 0}});
   s_tiled_map_ctx->fogOfWarShader.render();
 
   s_tiled_map_ctx->fogOfWarPrevVisibleRadius = visibleRadius;

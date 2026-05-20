@@ -5,6 +5,7 @@
 #include "sqfuncproto.h"
 #include "sqfuncstate.h"
 #include "codegen.h"
+#include "sqtypeparser.h"
 #include "constgen.h"
 #include "sqvm.h"
 #include "optimizer.h"
@@ -98,15 +99,6 @@ CodeGenVisitor::CodeGenVisitor(Arena *arena, const HSQOBJECT *bindings, SQVM *vm
 }
 
 
-void CodeGenVisitor::reportDiagnostic(Node *n, int32_t id, ...) {
-    va_list vargs;
-    va_start(vargs, id);
-
-    _ctx.vreportDiagnostic((enum DiagnosticsId)id, n->lineStart(), n->columnStart(), n->textWidth(), vargs);
-
-    va_end(vargs);
-}
-
 bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
     SQFuncState funcstate(_ss(_vm), NULL, _ctx);
 
@@ -149,13 +141,13 @@ bool CodeGenVisitor::generate(RootBlock *root, SQObjectPtr &out) {
 void CodeGenVisitor::CheckDuplicateLocalIdentifier(Node *n, SQObject name, const char *desc, bool ignore_global_consts) {
     SQCompiletimeVarInfo varInfo;
     if (_fs->GetLocalVariable(name, varInfo) >= 0)
-        reportDiagnostic(n, DiagnosticsId::DI_CONFLICTS_WITH, desc, _string(name)->_val, "existing local variable");
+        _ctx.throwError(n, "%s name '%s' conflicts with existing local variable", desc, _string(name)->_val);
     if (_string(name) == _string(_fs->_name))
-        reportDiagnostic(n, DiagnosticsId::DI_CONFLICTS_WITH, desc, _stringval(name), "function name");
+        _ctx.throwError(n, "%s name '%s' conflicts with function name", desc, _stringval(name));
 
     SQObjectPtr constant;
     if (ignore_global_consts ? IsLocalConstant(name, constant) : IsConstant(name, constant))
-        reportDiagnostic(n, DiagnosticsId::DI_CONFLICTS_WITH, desc, _stringval(name), "existing constant/enum/import");
+        _ctx.throwError(n, "%s name '%s' conflicts with existing constant/enum/import", desc, _stringval(name));
 }
 
 static bool compareLiterals(LiteralExpr *a, LiteralExpr *b) {
@@ -181,7 +173,7 @@ bool CodeGenVisitor::CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj) 
         Expr *vecobj = vec[i];
         if (vecobj->op() == TO_ID && obj->op() == TO_ID) {
             if (strcmp(vecobj->asId()->name(), obj->asId()->name()) == 0) {
-                reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, obj->asId()->name());
+                _ctx.throwError(obj, "duplicate key '%s'", obj->asId()->name());
                 return false;
             }
             continue;
@@ -191,12 +183,12 @@ bool CodeGenVisitor::CheckMemberUniqueness(ArenaVector<Expr *> &vec, Expr *obj) 
             LiteralExpr *b = (LiteralExpr*)obj;
             if (compareLiterals(a, b)) {
                 if (a->kind() == LK_STRING) {
-                    reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, a->s());
+                    _ctx.throwError(obj, "duplicate key '%s'", a->s());
                 }
                 else {
                     char b[32] = { 0 };
                     snprintf(b, sizeof b, "%" SQ_UINT_FMT, a->raw());
-                    reportDiagnostic(obj, DiagnosticsId::DI_DUPLICATE_KEY, b);
+                    _ctx.throwError(obj, "duplicate key '%s'", b);
                 }
                 return false;
             }
@@ -684,7 +676,7 @@ void CodeGenVisitor::visitTryStatement(TryStatement *tryStmt) {
 void CodeGenVisitor::visitBreakStatement(BreakStatement *breakStmt) {
     addLineNumber(breakStmt);
     if (_fs->_breaktargets.size() <= 0)
-        reportDiagnostic(breakStmt, DiagnosticsId::DI_LOOP_CONTROLLER_NOT_IN_LOOP, "break");
+        _ctx.throwError(breakStmt, "'break' has to be in a loop block");
     if (_fs->_breaktargets.top() > 0) {
         _fs->AddInstruction(_OP_POPTRAP, _fs->_breaktargets.top(), 0);
     }
@@ -696,7 +688,7 @@ void CodeGenVisitor::visitBreakStatement(BreakStatement *breakStmt) {
 void CodeGenVisitor::visitContinueStatement(ContinueStatement *continueStmt) {
     addLineNumber(continueStmt);
     if (_fs->_continuetargets.size() <= 0 || _fs->_continuetargets.top() < 0)
-        reportDiagnostic(continueStmt, DiagnosticsId::DI_LOOP_CONTROLLER_NOT_IN_LOOP, "continue");
+        _ctx.throwError(continueStmt, "'continue' has to be in a loop block");
     if (_fs->_continuetargets.top() > 0) {
         _fs->AddInstruction(_OP_POPTRAP, _fs->_continuetargets.top(), 0);
     }
@@ -746,7 +738,7 @@ void CodeGenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
             _fs->AddInstruction(_OP_RETURN, 1, target);
         } else {
             if ((_fs->_result_type_mask & _RT_NULL) == 0 && !_fs->_bgenerator)
-                reportDiagnostic(retStmt, DiagnosticsId::DI_TYPE_DIFFERS, "Return");
+                _ctx.throwError(retStmt, "Return type differs from the declared type");
             _fs->_returnexp = -1;
             _fs->AddInstruction(_OP_RETURN, 0xFF, 0);
         }
@@ -754,6 +746,9 @@ void CodeGenVisitor::visitReturnStatement(ReturnStatement *retStmt) {
 }
 
 void CodeGenVisitor::visitYieldStatement(YieldStatement *yieldStmt) {
+    if (_fs->_isAsync)
+        _ctx.throwError(yieldStmt, "'yield' is not allowed inside an async function; use 'await'");
+
     SQInteger retexp = _fs->GetCurrentPos() + 1;
     _fs->_bgenerator = true;
     visitTerminateStatement(yieldStmt);
@@ -767,7 +762,7 @@ void CodeGenVisitor::visitYieldStatement(YieldStatement *yieldStmt) {
     }
     else {
         if ((_fs->_result_type_mask & _RT_NULL) == 0)
-            reportDiagnostic(yieldStmt, DiagnosticsId::DI_TYPE_DIFFERS, "Yield");
+            _ctx.throwError(yieldStmt, "Yield type differs from the declared type");
         _fs->_returnexp = -1;
         _fs->AddInstruction(_OP_YIELD, 0xFF, 0, _fs->GetStackSize());
     }
@@ -1414,7 +1409,7 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
     else {
         _fs->AddInstruction(_OP_LOADNULLS, _fs->PushTarget(), 1);
         if ((var->getTypeMask() & _RT_NULL) == 0 && !var->isDestructured())
-            reportDiagnostic(var, DiagnosticsId::DI_TYPE_DIFFERS, "Assigned null");
+            _ctx.throwError(var, "Assigned null type differs from the declared type");
     }
 
     _last_declared_var_pos = _fs->PopTarget();
@@ -1484,6 +1479,13 @@ SQObjectPtr CodeGenVisitor::compileFunc(FunctionExpr *funcDecl, bool is_const, s
     _childFs->_varparams = funcDecl->isVararg();
     _childFs->_purefunction = funcDecl->isPure();
     _childFs->_nodiscard = funcDecl->isNodiscard();
+    // async functions are compiled as generators; forcing _bgenerator means
+    // even an awaitless body still goes through StartCall's generator path,
+    // and the runtime wraps it in a Promise via sqasync::wrap_generator.
+    if (funcDecl->isAsync()) {
+        _childFs->_isAsync = true;
+        _childFs->_bgenerator = true;
+    }
     _childFs->_result_type_mask = funcDecl->getResultTypeMask();
 
     SQInteger defparams = 0;
@@ -1594,7 +1596,7 @@ SQObjectPtr CodeGenVisitor::compileConstFunc(FunctionExpr *funcDecl)
     SQObjectPtr objFuncProto = compileFunc(funcDecl, true, &defParamValues);
 
     if (_funcproto(objFuncProto)->_noutervalues)
-        reportDiagnostic(funcDecl, DiagnosticsId::DI_GENERAL_COMPILE_ERROR, "const function cannot have outer variables");
+        _ctx.throwError(funcDecl, "const function cannot have outer variables");
 
     SQClosure *closure = SQClosure::Create(_ss(_vm), _funcproto(objFuncProto));
 
@@ -1840,10 +1842,43 @@ void CodeGenVisitor::emitUnaryOp(SQOpcode op, UnExpr *u) {
     visitForValueMaybeStaticMemo(arg);
 
     if (_fs->_targetstack.size() == 0)
-        reportDiagnostic(u, DiagnosticsId::DI_CANNOT_EVAL_UNARY);
+        _ctx.throwError(u, "cannot evaluate unary-op");
 
     SQInteger src = _fs->PopTarget();
     _fs->AddInstruction(op, _fs->PushTarget(), src);
+}
+
+
+// `await expr` codegen. Emits OP_YIELD with the awaitable's target as the
+// yielded value, marks the function as a generator, and leaves that same
+// target on the target stack as the await expression's result. At runtime,
+// the runner settles the awaited Promise, writes the resolved value back
+// into the yield target (or routes rejection via the throw-resume path),
+// then resumes; the next instruction reads the target as the await result.
+void CodeGenVisitor::emitAwait(UnExpr *u) {
+    if (!_fs->_isAsync)
+        _ctx.throwError(u, "'await' can only be used inside an async function");
+
+    Expr *arg = u->argument();
+    // Flag a known-sync call as a dead `await`. Native closures opt out: from
+    // script we can't tell whether they return a Promise (httpFetch, async.delay,
+    // async.nextFrame) or a plain value. deparen so `await (f())` matches.
+    Expr *probe = deparen(arg);
+    if (probe->op() == TO_CALL) {
+        ResolvedCallee info = resolveCallee(probe->asCallExpr()->callee());
+        if (info.known && !info.isAsync && !info.isNative)
+            _ctx.reportDiagnostic(DiagnosticsId::DI_REDUNDANT_AWAIT, u);
+    }
+
+    visitForValueMaybeStaticMemo(arg);
+
+    if (_fs->_targetstack.size() == 0)
+        _ctx.throwError(u, "cannot evaluate unary-op");
+
+    SQInteger src = _fs->TopTarget();  // peek -- target stays as the await result
+    _fs->_bgenerator = true;
+    _fs->_returnexp = _fs->GetCurrentPos() + 1;
+    _fs->AddInstruction(_OP_YIELD, 1, src, _fs->GetStackSize());
 }
 
 
@@ -1858,7 +1893,7 @@ void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo) {
 
     SQInteger staticIdx = _fs->_staticmemos_count++;
     if (staticIdx > STATIC_MEMO_IDX_MASK)
-        reportDiagnostic(static_memo_arg, DiagnosticsId::DI_GENERAL_COMPILE_ERROR, "too many static memos in function");
+        _ctx.throwError(static_memo_arg, "too many static memos in function");
 
     _fs->AddInstruction(_OP_DATA_NOP); // will be replaced by _OP_LOAD_STATIC_MEMO
     SQInteger loadInstrPos = _fs->GetCurrentPos();
@@ -1866,7 +1901,7 @@ void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo) {
     visitForValue(static_memo_arg);
 
     if (_fs->_targetstack.size() == 0)
-        reportDiagnostic(static_memo_arg, DiagnosticsId::DI_CANNOT_EVAL_UNARY);
+        _ctx.throwError(static_memo_arg, "cannot evaluate unary-op");
 
     SQInteger src = _fs->PopTarget();
     SQInteger dst = _fs->PushTarget();
@@ -1874,7 +1909,7 @@ void CodeGenVisitor::emitStaticMemo(Expr *static_memo_arg, bool is_auto_memo) {
     SQInteger storeInstrPos = _fs->GetCurrentPos() + 1;
     SQInteger offset = storeInstrPos - loadInstrPos;
     if (offset >= 0xFFFF)
-        reportDiagnostic(static_memo_arg, DiagnosticsId::DI_TOO_BIG_STATIC_MEMO);
+        _ctx.throwError(static_memo_arg, "static expression is too big");
 
     SQInteger encodedIdx = is_auto_memo ? (staticIdx | STATIC_MEMO_AUTO_FLAG) : staticIdx;
     _fs->SetInstructionParams(loadInstrPos, dst, encodedIdx, (offset) >> 8, (offset) & 0xFF);
@@ -1901,13 +1936,13 @@ void CodeGenVisitor::emitDelete(UnExpr *ud) {
     case TO_GETFIELD:
     case TO_GETSLOT: break;
     case TO_BASE:
-        reportDiagnostic(ud, DiagnosticsId::DI_CANNOT_DELETE, "'base'");
+        _ctx.throwError(ud, "can't delete 'base'");
         break;
     case TO_ID:
-        reportDiagnostic(ud, DiagnosticsId::DI_CANNOT_DELETE, "an (outer) local");
+        _ctx.throwError(ud, "can't delete an (outer) local");
         break;
     default:
-        reportDiagnostic(ud, DiagnosticsId::DI_CANNOT_DELETE, "an expression");
+        _ctx.throwError(ud, "can't delete an expression");
         break;
     }
 
@@ -1926,6 +1961,7 @@ void CodeGenVisitor::visitUnExpr(UnExpr *unary) {
     case TO_BNOT:emitUnaryOp(_OP_BWNOT, unary); break;
     case TO_TYPEOF: emitUnaryOp(_OP_TYPEOF, unary); break;
     case TO_RESUME: emitUnaryOp(_OP_RESUME, unary); break;
+    case TO_AWAIT: emitAwait(unary); break;
     case TO_CLONE: emitUnaryOp(_OP_CLONE, unary); break;
     case TO_PAREN: unary->argument()->visit(this); break;
     case TO_DELETE: emitDelete(unary); break;
@@ -1933,9 +1969,9 @@ void CodeGenVisitor::visitUnExpr(UnExpr *unary) {
 #if STATIC_MEMO_ENABLED
         int score = getSubtreeConstScore(unary->argument(), true);
         if (score == 0)
-            reportDiagnostic(_variable_node ? _variable_node : unary, DiagnosticsId::DI_NOT_A_CONST);
+            _ctx.reportDiagnostic(DiagnosticsId::DI_NOT_A_CONST, _variable_node ? _variable_node : unary);
         if (score > 0 && score < 3)
-            reportDiagnostic(_variable_node ? _variable_node : unary, DiagnosticsId::DI_STATIC_MEMO_TOO_SIMPLE);
+            _ctx.reportDiagnostic(DiagnosticsId::DI_STATIC_MEMO_TOO_SIMPLE, _variable_node ? _variable_node : unary);
         emitStaticMemo(unary->argument());
 #else
         unary->argument()->visit(this);
@@ -2008,7 +2044,7 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
 
         if ((pos = _fs->GetLocalVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->name());
+                _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
             SQInteger p2 = _fs->PopTarget(); //src in OP_GET
             SQInteger p1 = _fs->PopTarget(); //key in OP_GET
@@ -2020,7 +2056,7 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
         }
         else if ((pos = _fs->GetOuterVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->name());
+                _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
             SQInteger val = _fs->TopTarget();
             SQInteger tmp = _fs->PushTarget();
@@ -2032,7 +2068,7 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
             _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), pos, tmp);
         }
         else {
-            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
+            _ctx.throwError(lvalue, "can't assign to expression");
         }
     }
     else if (lvalue->isAccessExpr()) {
@@ -2043,7 +2079,7 @@ void CodeGenVisitor::emitCompoundArith(SQOpcode op, SQInteger opcode, Expr *lval
         _fs->AddInstruction(_OP_COMPARITH, _fs->PushTarget(), (src << 16) | val, key, opcode);
     }
     else {
-        reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
+        _ctx.throwError(lvalue, "can't assign to expression");
     }
 }
 
@@ -2075,7 +2111,7 @@ void CodeGenVisitor::emitNewSlot(Expr *lvalue, Expr *rvalue) {
         _fs->AddInstruction(_OP_NEWSLOT, _fs->PushTarget(), key, src, val);
     }
     else {
-        reportDiagnostic(lvalue, DiagnosticsId::DI_LOCAL_SLOT_CREATE);
+        _ctx.throwError(lvalue, "can't 'create' a local slot");
     }
 }
 
@@ -2120,7 +2156,7 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
 
         if ((pos = _fs->GetLocalVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->name());
+                _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
             SQInteger src = _fs->PopTarget();
             SQInteger dst = _fs->TopTarget();
@@ -2130,7 +2166,7 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
         }
         else if ((pos = _fs->GetOuterVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_BINDING, id->name());
+                _ctx.throwError(lvalue, "can't assign to binding '%s' (probably declaring using 'local' was intended, but 'let' was used)", id->name());
 
             SQInteger src = _fs->PopTarget();
             _fs->AddInstruction(_OP_SETOUTER, _fs->PushTarget(), pos, src);
@@ -2138,7 +2174,7 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
                 EmitCheckType(src, varInfo.type_mask);
         }
         else {
-            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
+            _ctx.throwError(lvalue, "can't assign to expression");
         }
     }
     else if (lvalue->isAccessExpr()) {
@@ -2146,11 +2182,11 @@ void CodeGenVisitor::emitAssign(Expr *lvalue, Expr * rvalue) {
             emitFieldAssign(-1);
         }
         else {
-            reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
+            _ctx.throwError(lvalue, "can't assign to expression");
         }
     }
     else {
-        reportDiagnostic(lvalue, DiagnosticsId::DI_ASSIGN_TO_EXPR);
+        _ctx.throwError(lvalue, "can't assign to expression");
     }
 }
 
@@ -2277,7 +2313,7 @@ void CodeGenVisitor::visitGetFieldExpr(GetFieldExpr *expr) {
                 }
                 else {
                     if (!CanBeTableTypeMethod(expr->fieldName())) {
-                        reportDiagnostic(expr, DiagnosticsId::DI_INVALID_ENUM, expr->fieldName(), "enum");
+                        _ctx.throwError(expr, "invalid enum [no '%s' field in 'enum']", expr->fieldName());
                         return;
                     }
                     // else fall through to normal get
@@ -2437,13 +2473,15 @@ void CodeGenVisitor::visitTerExpr(TerExpr *expr) {
 }
 
 void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
+    const char *notAssignableMsg = "argument of inc/dec operation is not assignable";
+
     maybeAddInExprLine(expr);
     Expr *arg = expr->argument();
 
     visitForTarget(arg);
 
     if ((arg->op() == TO_GETFIELD || arg->op() == TO_GETSLOT) && arg->asAccessExpr()->receiver()->op() == TO_BASE) {
-        reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+        _ctx.throwError(arg, notAssignableMsg);
     }
 
     bool isPostfix = expr->form() == IF_POSTFIX;
@@ -2462,7 +2500,7 @@ void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
 
         if ((pos = _fs->GetLocalVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+                _ctx.throwError(arg, notAssignableMsg);
 
             SQInteger src = isPostfix ? _fs->PopTarget() : _fs->TopTarget();
             SQInteger dst = isPostfix ? _fs->PushTarget() : src;
@@ -2470,7 +2508,7 @@ void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
         }
         else if ((pos = _fs->GetOuterVariable(nameObj, varInfo)) != -1) {
             if ((varInfo.var_flags & VF_ASSIGNABLE) == 0)
-                reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+                _ctx.throwError(arg, notAssignableMsg);
 
             SQInteger tmp1 = _fs->PushTarget();
             SQInteger tmp2 = isPostfix ? _fs->PushTarget() : tmp1;
@@ -2482,11 +2520,11 @@ void CodeGenVisitor::visitIncExpr(IncExpr *expr) {
             }
         }
         else {
-            reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+            _ctx.throwError(arg, notAssignableMsg);
         }
     }
     else {
-        reportDiagnostic(arg, DiagnosticsId::DI_INC_DEC_NOT_ASSIGNABLE);
+        _ctx.throwError(arg, notAssignableMsg);
     }
 }
 
@@ -2606,7 +2644,7 @@ void CodeGenVisitor::visitId(Id *id) {
     }
 
     if (_string(idObj) == _string(_fs->_name)) {
-        reportDiagnostic(id, DiagnosticsId::DI_CONFLICTS_WITH, "variable", id->name(), "function name");
+        _ctx.throwError(id, "variable name '%s' conflicts with function name", id->name());
     }
 
     if ((pos = _fs->GetLocalVariable(idObj, varInfo)) != -1) {
@@ -2645,7 +2683,7 @@ void CodeGenVisitor::visitId(Id *id) {
         }
     }
     else {
-        reportDiagnostic(id, DiagnosticsId::DI_UNKNOWN_SYMBOL, id->name());
+        _ctx.throwError(id, "Unknown variable [%s]", id->name());
     }
 }
 

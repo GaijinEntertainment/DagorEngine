@@ -43,7 +43,11 @@ def module_get(req, from : string) : tuple<string; string; string> const
 
   let mod_name = rs[length(rs) - 1]
 
-  if is_in_aot() && (path_name == "daslib/debug.das" || path_name |> ends_with("profiler.das"))
+  if is_in_aot() && (
+    path_name == "daslib/debug.das" ||
+    path_name |> ends_with("profiler.das") ||
+    path_name == "daslib/just_in_time.das"
+  )
     return ("", "", "")
 
   if rs[0] == "%daslib"

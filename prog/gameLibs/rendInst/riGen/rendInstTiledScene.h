@@ -51,6 +51,7 @@ public:
   using TiledScene::frustumCull;
   using TiledScene::frustumCullOneTile;
   using TiledScene::frustumCullTilesPass;
+  using TiledScene::getGridObjMaxHeight;
   using TiledScene::getNodeIndexInternal; // for faster visibility in dev
   using TiledScene::getNodesAliveCount;
   using TiledScene::getNodesCount;

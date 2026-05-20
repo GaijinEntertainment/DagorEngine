@@ -1,4 +1,10 @@
-macro TILE_CONSTANT_FILLER()
+include "shader_global.dshl"
+
+shader tileConstantFiller
+{
+  supports global_frame;
+  supports none;
+
   cull_mode  = none;
   z_test = false;        // D3DRS_ZFUNC = D3DCMP_ALWAYS
   z_write = false;
@@ -38,4 +44,4 @@ macro TILE_CONSTANT_FILLER()
   }
   compile("target_ps", "fill_constant_ps");
   compile("target_vs", "fill_constant_vs");
-endmacro
+}

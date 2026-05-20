@@ -48,17 +48,17 @@ let
   nodeWidth = 220f
 
 
-def has_children(links : array<tuple<int; int>>; id : int)
+def has_children(links : array<tuple<outIdx : int; inIdx : int>>; id : int)
   for it in links
-    if it._0 / nodeScale - 1 == id
+    if it.outIdx / nodeScale - 1 == id
       return true
   return false
 
 
-def collect_children(links : array<tuple<int; int>>; id : int; var buffer : array<int>)
+def collect_children(links : array<tuple<outIdx : int; inIdx : int>>; id : int; var buffer : array<int>)
   for it in links
-    if it._0 / nodeScale - 1 == id && buffer |> find_index(it._1 / nodeScale - 1) < 0
-      buffer |> push(it._1 / nodeScale - 1)
+    if it.outIdx / nodeScale - 1 == id && buffer |> find_index(it.inIdx / nodeScale - 1) < 0
+      buffer |> push(it.inIdx / nodeScale - 1)
 
 
 def get_node_idx(idx : int)
@@ -150,13 +150,13 @@ def link_child(var graph : AnimationGraph; var nod : IAnimBlendNode?; outId : in
     return
   let childNodeId = *childNode |> anim_blend_node_getAnimNodeId()
   if childNodeId >= 0
-    context.links |> emplace <|  (outId, get_input_node_idx(childNodeId))
+    context.links |> emplace <|  (outIdx=outId, inIdx=get_input_node_idx(childNodeId))
     return
 
   if *childNode |> anim_blend_node_isSubOf(AnimBlendNodeNullCID) // remap to null node
     let nullNodeId = graph |> anim_graph_getBlendNodeId("null")
     if nullNodeId >= 0
-      context.links |> emplace <|  (outId, get_input_node_idx(nullNodeId))
+      context.links |> emplace <|  (outIdx=outId, inIdx=get_input_node_idx(nullNodeId))
       return
   let name = graph |> anim_graph_getBlendNodeName(childNode)
   print("'{name}' : {*nod |> anim_blend_node_class_name()} {graph |> anim_graph_getAnimNodeName(*nod |> anim_blend_node_getAnimNodeId)} child mismatch {*childNode |> anim_blend_node_getAnimNodeId} {*childNode |> anim_blend_node_class_name()}")
@@ -229,7 +229,7 @@ def render_AnimBlendNodeNull(var nod : IAnimBlendNode?; var graph : AnimationGra
 
 def get_leaf_anim_res_ids(var nodePtr : IAnimBlendNode?) : tuple< id : int; sourceId : int>
   if !*nodePtr |> anim_blend_node_isSubOf(AnimBlendNodeLeafCID)
-    return -1, -1
+    return (id = -1, sourceId = -1)
 
   assume node = unsafe(reinterpret<AnimBlendNodeLeaf?> nodePtr)
   let anim = *node |> AnimBlendNodeLeaf_get_anim()
@@ -242,7 +242,7 @@ def get_leaf_anim_res_ids(var nodePtr : IAnimBlendNode?) : tuple< id : int; sour
     if sourceAnim != null
       sourceResId = sourceAnim.resId
 
-  return resId, sourceResId
+  return (id = resId, sourceId = sourceResId)
 
 
 [unused_argument(nod, graph, state, context)]
@@ -1429,7 +1429,7 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
                   else
                     val.active = false
                 if !wasActive && w > 0.0
-                  nodesToShow |> insert(idx, tuple(0, true))
+                  nodesToShow |> insert(idx, (generation=0, active=true))
                   activeNodesCount += 1
 
               if length(nodesToShow) - activeNodesCount > nodesToShowMaxInactiveCount
@@ -1456,7 +1456,7 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
             if drawMode == DrawNodesMode.ACTIVE_AND_HISTORY && !key_exists(nodesToShow, idx)
               continue
 
-            if *animGraphNodesFilter |> IsActive() && !(*animGraphNodesFilter |> PassFilter(node.name))
+            if *animGraphNodesFilter |> IsActive() && !(*animGraphNodesFilter |> PassFilter(node.name)) && !(*animGraphNodesFilter |> PassFilter("{node.id}"))
               continue
 
             let activeNodeBorder = drawMode != DrawNodesMode.ACTIVE && weight > 0.0
@@ -1555,7 +1555,7 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
             children |> push(rootNodeId)
             var allNodes : table<int; bool>
             for i in range(graph.animNodeCount)
-              allNodes.insert(i, has_children(ctx.links, i))
+              allNodes |> insert(i, has_children(ctx.links, i))
 
             let HGAP = 100f
             let VGAP = 50f

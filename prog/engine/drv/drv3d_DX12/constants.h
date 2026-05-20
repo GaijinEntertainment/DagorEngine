@@ -9,7 +9,7 @@ namespace drv3d_dx12
 #if _TARGET_PC_WIN
 inline constexpr uint32_t FRAME_FRAME_BACKLOG_LENGTH = 4;
 #else
-inline constexpr uint32_t FRAME_FRAME_BACKLOG_LENGTH = 2;
+inline constexpr uint32_t FRAME_FRAME_BACKLOG_LENGTH = 3;
 #endif
 // has to be two to avoid constantly triggering waits on gpu and cpu
 inline constexpr uint32_t FRAME_LATENCY = 2;

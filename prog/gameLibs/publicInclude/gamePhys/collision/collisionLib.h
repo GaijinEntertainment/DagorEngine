@@ -285,7 +285,7 @@ void draw_collision_object(const CollisionObject &co, const TMatrix &tm);
 void force_debug_draw(bool flag);
 bool is_debug_draw_forced();
 
-void fetch_sim_res(bool wait);
+void fetch_sim_res(bool wait = true);
 
 void set_obj_motion(CollisionObject obj, const TMatrix &tm, const Point3 &vel, const Point3 &omega);
 void set_obj_active(CollisionObject &coll_obj, bool active, bool is_kinematic = false);

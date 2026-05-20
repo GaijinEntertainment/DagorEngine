@@ -17,6 +17,7 @@ namespace shadercache
 struct WarmupParams
 {
   dag::Vector<eastl::pair<const char *, unsigned>> invalidVars;
+  dag::Vector<const char *> shadersToSkip;
   int colorTargetCount = 0;
   int colorTargetFormat = TEXFMT_DEFAULT;
   BaseTexture *depthTarget = nullptr;

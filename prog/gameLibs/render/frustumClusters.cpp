@@ -3,21 +3,20 @@
 #include <render/frustumClusters.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4.h>
-#include <math/dag_occlusionTest.h>
+#include <math/dag_occlusionZBuffer.h>
 #include <scene/dag_occlusion.h>
 
-#define SHRINK_SPHERE     1
 #define VALIDATE_CLUSTERS 0
 
 
 static constexpr int get_target_mip(int srcW, int destW) { return srcW <= destW ? 0 : 1 + get_target_mip(srcW / 2, destW); }
 bool get_max_occlusion_depth(vec4f *destDepth, Occlusion *occlusion) // from occlusion
 {
-  if (OCCLUSION_W / OCCLUSION_H != CLUSTERS_W / CLUSTERS_H)
+  if (OcclusionZBuffer::WIDTH / OcclusionZBuffer::HEIGHT != CLUSTERS_W / CLUSTERS_H)
     return false;
-  constexpr int occlusionMip = get_target_mip(OCCLUSION_W, CLUSTERS_W);
-  G_STATIC_ASSERT((OCCLUSION_H >> occlusionMip) == CLUSTERS_H);
-  vec4f *occlusionZ = reinterpret_cast<vec4f *>(occlusion->getOcclusionTest().getZbuffer(occlusionMip));
+  constexpr int occlusionMip = get_target_mip(OcclusionZBuffer::WIDTH, CLUSTERS_W);
+  G_STATIC_ASSERT((OcclusionZBuffer::HEIGHT >> occlusionMip) == CLUSTERS_H);
+  vec4f *occlusionZ = reinterpret_cast<vec4f *>(occlusion->getOcclusionZBuffer().getZbuffer(occlusionMip));
   for (int i = 0; i < CLUSTERS_W * CLUSTERS_H / 4; ++i, destDepth++, occlusionZ++)
     *destDepth = occlusion_convert_from_internal_zbuffer(*occlusionZ);
   return true;
@@ -25,8 +24,7 @@ bool get_max_occlusion_depth(vec4f *destDepth, Occlusion *occlusion) // from occ
 
 static __forceinline vec3f v_dist3_sq_x(vec3f a, vec3f b) { return v_length3_sq_x(v_sub(a, b)); }
 
-void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist,
-  Occlusion *occlusion) // from occlusion
+void FrustumClusters::updateFrustrumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist)
 {
   depthSliceScale = CLUSTERS_D / log2f(maxDist / minDist);
   depthSliceBias = -log2f(minDist) * depthSliceScale;
@@ -36,6 +34,12 @@ void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float
   znear = zn;
   view = view_;
   proj = proj_;
+};
+
+void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist,
+  Occlusion *occlusion) // from occlusion
+{
+  updateFrustrumVariables(view_, proj_, zn, minDist, maxDist);
 
   // constant for fixed min/max dists
   for (int z = 0; z <= CLUSTERS_D; ++z)
@@ -262,7 +266,7 @@ uint32_t FrustumClusters::fillItemsSpheresGrid(ClusterGridItemMasks &items,
           do
           { // Scan from right until with hit the sphere
             --xs;
-          } while (xs >= x && (sliceNoRow[x] < z || -dot(x_planes2.data()[xs], y_light_pos2) >= y_light_pos.w));
+          } while (xs >= x && (sliceNoRow[xs] < z || -dot(x_planes2.data()[xs], y_light_pos2) >= y_light_pos.w));
           // while (xs >= x && -dot(x_planes.data()[xs], *(Point3*)&y_light_pos) >= y_light_pos.w);
 
           --x;

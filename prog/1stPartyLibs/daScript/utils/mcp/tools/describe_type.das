@@ -15,18 +15,18 @@ def do_describe_type(name, module_name : string; project : string = "") : string
         stub = "{stub}require {module_name}\n"
     }
     stub = "{stub}[export]\ndef main() \{\}\n"
-    fopen(stub_path, "w") <| $(f) {
+    fopen(stub_path, "w") $(f) {
         fwrite(f, stub)
     }
-    let res = compile_and_simulate(stub_path, project) <| $(program; issues) {
+    let res = compile_and_simulate(stub_path, project) $(program; issues) {
         var result = ""
         // search all modules for the type
-        program_for_each_module(program) <| $(mod) {
+        program_for_each_module(program) $(mod) {
             if (!empty(result)) {
                 return
             }
             // structs and classes
-            for_each_structure(mod) <| $(value) {
+            for_each_structure(mod) $(value) {
                 if (!empty(result)) {
                     return
                 }
@@ -36,13 +36,13 @@ def do_describe_type(name, module_name : string; project : string = "") : string
                 if (value.flags.isLambda || value.flags._generator || value.flags.generated) {
                     return
                 }
-                result = build_string() <| $(var w) {
+                result = build_string() $(var w) {
                     write_struct_detail(w, value, mod)
                 }
             }
             // handled types
             if (empty(result)) {
-                module_for_each_annotation(mod) <| $(value) {
+                module_for_each_annotation(mod) $(value) {
                     if (!empty(result)) {
                         return
                     }
@@ -52,35 +52,35 @@ def do_describe_type(name, module_name : string; project : string = "") : string
                     if (string(value.name) != name) {
                         return
                     }
-                    result = build_string() <| $(var w) {
+                    result = build_string() $(var w) {
                         write_handled_type_detail(w, value, mod)
                     }
                 }
             }
             // enumerations
             if (empty(result)) {
-                for_each_enumeration(mod) <| $(value) {
+                for_each_enumeration(mod) $(value) {
                     if (!empty(result)) {
                         return
                     }
                     if (string(value.name) != name) {
                         return
                     }
-                    result = build_string() <| $(var w) {
+                    result = build_string() $(var w) {
                         write_enum_detail(w, value, mod)
                     }
                 }
             }
             // typedefs (bitfields, variants, tuples, aliases)
             if (empty(result)) {
-                for_each_typedef(mod) <| $(tname, td) {
+                for_each_typedef(mod) $(tname, td) {
                     if (!empty(result)) {
                         return
                     }
                     if (string(tname) != name) {
                         return
                     }
-                    result = build_string() <| $(var w) {
+                    result = build_string() $(var w) {
                         write_typedef_detail(w, string(tname), td, mod)
                     }
                 }
@@ -122,14 +122,14 @@ def write_struct_detail(var w : StringBuilderWriter; value; mod : Module?) {
     }
     // methods
     var methods : array<string>
-    for_each_function(mod, "") <| $(func) {
+    for_each_function(mod, "") $(func) {
         if (!func.flags.isClassMethod) {
             return
         }
         if (length(func.arguments) == 0) {
             return
         }
-        var self_type = get_ptr(func.arguments[0]._type)
+        var self_type = func.arguments[0]._type
         if (self_type == null || self_type.structType == null) {
             return
         }
@@ -139,7 +139,7 @@ def write_struct_detail(var w : StringBuilderWriter; value; mod : Module?) {
         if (func.flags.generated && func.fromGeneric == null) {
             return
         }
-        var entry = build_string() <| $(var ew) {
+        var entry = build_string() $(var ew) {
             write(ew, "  def {func.name}")
             write_func_signature(ew, func)
         }
@@ -156,7 +156,7 @@ def write_struct_detail(var w : StringBuilderWriter; value; mod : Module?) {
 def write_handled_type_detail(var w : StringBuilderWriter; value : Annotation const; mod : Module?) {
     write(w, "handled {value.name}")
     var ann = unsafe(reinterpret<BasicStructureAnnotation?> value)
-    basic_struct_for_each_parent(*ann) <| $(parent) {
+    basic_struct_for_each_parent(*ann) $(parent) {
         write(w, " : {parent.name}")
     }
     write(w, "  // module {mod.name}")
@@ -165,7 +165,7 @@ def write_handled_type_detail(var w : StringBuilderWriter; value : Annotation co
     }
     write(w, "\n")
     var field_count = 0
-    for_each_field(*ann) <| $(fname, cppName, xtype, offset) {
+    for_each_field(*ann) $(fname, cppName, xtype, offset) {
         if (field_count == 0) {
             write(w, "Fields:\n")
         }
@@ -178,21 +178,21 @@ def write_handled_type_detail(var w : StringBuilderWriter; value : Annotation co
     }
     // methods on handled types — functions where first arg matches this type
     var methods : array<string>
-    for_each_function(mod, "") <| $(func) {
+    for_each_function(mod, "") $(func) {
         if (func.flags.privateFunction || func.flags._lambda || func.flags.generated) {
             return
         }
         if (length(func.arguments) == 0) {
             return
         }
-        var first_type = get_ptr(func.arguments[0]._type)
+        var first_type = func.arguments[0]._type
         if (first_type == null) {
             return
         }
         // check if first arg is this handled type (possibly as pointer)
         if (first_type.baseType == Type.tHandle) {
             if (first_type.annotation != null && string(first_type.annotation.name) == string(value.name)) {
-                var entry = build_string() <| $(var ew) {
+                var entry = build_string() $(var ew) {
                     write(ew, "  def {func.name}")
                     write_func_signature(ew, func)
                 }
@@ -225,7 +225,7 @@ def write_enum_detail(var w : StringBuilderWriter; value; mod : Module?) {
 }
 
 def write_typedef_detail(var w : StringBuilderWriter; name : string; td; mod : Module?) {
-    let typ = get_ptr(td)
+    let typ = td
     if (typ.baseType == Type.tBitfield) {
         write(w, "bitfield {name}  // module {mod.name}\n")
         write(w, "Flags:\n")

@@ -50,13 +50,13 @@ class AddHeartbeat : AstVisitor {
         if ((body.list[0] is ExprCall) && (body.list[0] as ExprCall).name == "heartbeat") {
             return
         }
-        var inscope expr <- qmacro(heartbeat())
+        var expr = qmacro(heartbeat())
         body.list |> emplace(expr, 0)
         astChanged = true
         func.not_inferred()
     }
     def override preVisitFunction(var fun : FunctionPtr) {
-        func = get_ptr(fun)
+        func = fun
     }
     def override visitFunction(var fun : FunctionPtr) : FunctionPtr {
         if (fun.body == null || !(fun.body is ExprBlock)) {
@@ -67,14 +67,14 @@ class AddHeartbeat : AstVisitor {
         func = null
         return <- fun
     }
-    def override visitExprFor(var expr : smart_ptr<ExprFor>) : ExpressionPtr {
+    def override visitExprFor(var expr : ExprFor?) : ExpressionPtr {
         if (expr.body == null || !(expr.body is ExprBlock)) {
             return <- expr
         }
         heartbeatBlock(expr.body as ExprBlock)
         return <- expr
     }
-    def override visitExprWhile(var expr : smart_ptr<ExprWhile>) : ExpressionPtr {
+    def override visitExprWhile(var expr : ExprWhile?) : ExpressionPtr {
         if (expr.body == null || !(expr.body is ExprBlock)) {
             return <- expr
         }
@@ -88,9 +88,10 @@ class HeartbeatPass : AstPassMacro {
     //! Pass macro that instruments functions with heartbeat calls.
     def override apply(prog : ProgramPtr; mod : Module?) : bool {
         var astVisitor = new AddHeartbeat()
-        var inscope astVisitorAdapter <- make_visitor(*astVisitor)
-        visit(prog, astVisitorAdapter)
-        var result = astVisitor.astChanged
+        make_visitor(*astVisitor) $(astVisitorAdapter) {
+            visit(prog, astVisitorAdapter)
+        }
+        let result = astVisitor.astChanged
         unsafe {
             delete astVisitor
         }

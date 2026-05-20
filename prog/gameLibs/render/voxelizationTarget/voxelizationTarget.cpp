@@ -72,7 +72,7 @@ bool VoxelizationTarget::ensureSampledTarget(int w, int h, uint32_t fmt)
       return false;
     sampledTarget = eastl::move(tex);
   }
-  d3d::set_render_target(sampledTarget.get(), 0, 0);
+  d3d::set_render_target({}, DepthAccess::SampledRO, {{sampledTarget.get(), 0, 0}});
   return true;
 }
 
@@ -107,11 +107,11 @@ bool VoxelizationTarget::setSubsampledTargetAndOverride(int w, int h)
         return false;
     }
     else
-      d3d::set_render_target(backBuf, 0, 0);
+      d3d::set_render_target({}, DepthAccess::SampledRO, {{backBuf, 0, 0}});
   }
   else if (gi_use_forced_sample_count.get() && d3d::get_driver_desc().caps.hasUAVOnlyForcedSampleCount) // vulkan codepath
   {
-    d3d::set_render_target(nullptr, 0, 0);
+    d3d::set_render_target({}, DepthAccess::SampledRO, {{nullptr, 0, 0}});
   }
   // do not use pure MSAA path on vulkan, as we can't work there with pass breaks (caller code does not care about that)
   else if (d3d::get_driver_code().is(d3d::vulkan) || !ensureSampledTarget(w, h, find_max_msaa_format()))
@@ -122,7 +122,6 @@ bool VoxelizationTarget::setSubsampledTargetAndOverride(int w, int h)
   }
   if (gi_use_forced_sample_count.get()) // fixme: use different override, without forced sample count
     shaders::overrides::set(voxelizeOverride);
-  d3d::set_depth(nullptr, DepthAccess::SampledRO);
   d3d::setview(0, 0, w, h, 0, 1);
   return true;
 }

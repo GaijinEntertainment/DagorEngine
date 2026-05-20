@@ -42,7 +42,7 @@ struct typeFactory<dag::RelocatableFixedVector<TT, inplace_count>>
     if (library.findAnnotation(declN, nullptr).size() == 0)
     {
       auto declT = makeType<TT>(library);
-      auto ann = make_smart<ManagedRelocatableFixedVectorAnnotation<TT, inplace_count>>(declN, const_cast<ModuleLibrary &>(library));
+      auto ann = new ManagedRelocatableFixedVectorAnnotation<TT, inplace_count>(declN, const_cast<ModuleLibrary &>(library));
       ann->cppName = "dag::RelocatableFixedVector<" + describeCppType(declT) + ", " + to_string(inplace_count) + ">";
       auto mod = library.front();
       mod->addAnnotation(ann);

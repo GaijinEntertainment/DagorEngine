@@ -20,7 +20,7 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorMath"));
 
-    addAnnotation(das::make_smart<BitStreamAnnotation>(lib));
+    addAnnotation(new BitStreamAnnotation(lib));
 
     das::addUsing<danet::BitStream>(*this, lib, "danet::BitStream");
 

@@ -3070,3 +3070,23 @@ void rendinst::dm_iter_all_ri_layers(eastl::fixed_function<20, void(int, const d
       if (const auto *rtData = layer->rtData)
         cb(i, rtData->riResName);
 }
+
+int rendinst::getRIGenLoadedInstancesCount()
+{
+  int count = 0;
+  for (int L = 0, nL = rendinst::rgLayer.size(); L < nL; ++L)
+  {
+    RendInstGenData *rgl = rendinst::rgLayer[L];
+    if (!rgl)
+      continue;
+    for (int c = 0, nc = rgl->cells.size(); c < nc; ++c)
+    {
+      const RendInstGenData::CellRtData *crt = rgl->cells[c].rtData;
+      if (!crt)
+        continue;
+      for (uint32_t p = 0, np = crt->pools.size(); p < np; ++p)
+        count += crt->pools[p].total;
+    }
+  }
+  return count;
+}

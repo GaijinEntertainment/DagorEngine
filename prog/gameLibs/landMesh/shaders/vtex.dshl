@@ -17,6 +17,26 @@ hlsl {
 ##endif
 }
 
+macro USE_AUTO_SET_BASE(stage)
+  DETECT_LAND_REFLECTANCE_BASE(stage)
+  DETECT_LAND_SMOOTHNESS_BASE(stage)
+  hlsl(stage)
+  {
+  #ifndef AUTO_SET_DEFINED
+  #define AUTO_SET_DEFINED 1
+    void auto_set(inout Vtex vtex, float2 worldPosXZ)
+    {
+      set_smoothness(vtex, get_land_smoothness(vtex.diffuse));
+      set_reflectance(vtex, get_land_reflectance(vtex.diffuse));
+    }
+  #endif
+  }
+endmacro
+
+macro USE_AUTO_SET()
+  USE_AUTO_SET_BASE(ps)
+endmacro
+
 macro USE_VTEX_BASE(stage)
 hlsl(stage){
   struct Vtex
@@ -34,16 +54,6 @@ hlsl(stage){
   void set_ao(inout Vtex vtex, half a){vtex.ao = a;}
   void set_emission(inout Vtex vtex, half a){vtex.emission = a;}
 
-  void auto_set(inout Vtex vtex, float2 worldPosXZ)
-  {
-    #if DETECT_LAND_SMOOTHNESS_DEFINED
-    set_smoothness(vtex, get_land_smoothness(vtex.diffuse));
-    #endif
-
-    #if DETECT_LAND_REFLECTANCE
-    set_reflectance(vtex, get_land_reflectance(worldPosXZ, vtex.diffuse));
-    #endif
-  }
   Vtex lerp_vtex(Vtex a, Vtex b, half t)
   {
     Vtex r;
@@ -64,12 +74,12 @@ macro USE_VTEX()
 endmacro
 
 macro READ_PACKED_VTEX_BASE(stage)
+  USE_VTEX_BASE(stage)
   if (render_with_normalmap == no_normalmap)
   {
-    DETECT_LAND_SMOOTHNESS_BASE(stage)
-    DETECT_LAND_REFLECTANCE_BASE(stage)
+    USE_AUTO_SET_BASE(stage)
   }
-  USE_VTEX_BASE(stage)
+
   hlsl(stage) {
     Vtex unpack_vtex(half4 cache0, half2 normal, half4 cache2)
     {
@@ -87,8 +97,7 @@ macro READ_PACKED_VTEX_BASE(stage)
     ##if (render_with_normalmap == no_normalmap)
     void auto_detect_other(inout Vtex vtex, float2 worldPosXZ)
     {
-      vtex.smoothness = get_land_smoothness(vtex.diffuse);
-      vtex.reflectance = get_land_reflectance(vtex.diffuse);
+      auto_set(vtex, worldPosXZ);
     }
     ##endif
 

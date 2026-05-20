@@ -579,6 +579,11 @@ uint32_t IndoorProbeManager::getProbeState(uint32_t probe_index) const
   return PROBE_IN_PROGRESS;
 }
 
+bool IndoorProbeManager::hasActiveIndoorProbes() const
+{
+  return ShaderGlobal::get_float(indoor_probes_max_distance_or_disabledVarId) > 0;
+}
+
 void IndoorProbeManager::invalidate()
 {
   for (LightProbe &probe : activeProbes)

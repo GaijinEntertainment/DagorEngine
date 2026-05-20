@@ -123,9 +123,8 @@ private:
           break;
         if (get_time_nsec(pollStart) >= MAX_GPU_FENCE_WAIT_NS)
         {
-          D3D_ERROR("vulkan: GPU fence poll exceeded max wait time");
-          waitRet = VK_ERROR_DEVICE_LOST;
-          break;
+          logwarn("vulkan: GPU fence poll exceeded max wait time, waited for %u ms", get_time_usec(pollStart));
+          pollStart = ref_time_ticks();
         }
         sleep_usec(0);
       }

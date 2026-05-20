@@ -6,6 +6,7 @@
 #include "scriptSMat.h"
 #include <3d/dag_render.h>
 #include <generic/dag_tab.h>
+#include <generic/dag_functionRef.h>
 #include <ioSys/dag_genIo.h>
 #include <ioSys/dag_readToUncached.h>
 #include <debug/dag_debug.h>
@@ -206,6 +207,119 @@ void GlobalVertexData::unpackToBuffers(IGenLoad &zcrd, bool update_ib_vb_only, T
     getFlags(), decode_result);
 }
 
+void GlobalVertexData::unpackToReadCb(IGenLoad &zcrd, ShaderMatVDataReadCb cb, Tab<uint8_t> &tmp_buf)
+{
+  tmp_buf.clear();
+  {
+    struct VSrc final : ShaderMatVDataReadCbSrc
+    {
+      IGenLoad *zcrd = nullptr;
+      Tab<uint8_t> *tmpBuf = nullptr;
+      int sz = 0;
+      int getReadSize() override
+      {
+        G_ASSERT_RETURN(zcrd, 0);
+        return sz;
+      }
+      void skip() override
+      {
+        G_ASSERT_RETURN(zcrd, );
+        eastl::exchange(zcrd, nullptr)->seekrel(sz);
+      }
+      void read(void *data) override
+      {
+        G_ASSERT_RETURN(zcrd, );
+        eastl::exchange(zcrd, nullptr)->read(data, sz);
+      }
+      void readTmp(dag::FunctionRef<void(dag::ConstSpan<uint8_t>)> rcb) override
+      {
+        if (tmpBuf->size() + sz <= tmpBuf->capacity() || tmpBuf->size() + sz <= (1 << 20))
+        {
+          clear_and_resize(*tmpBuf, sz);
+          read(tmpBuf->data());
+          rcb(*tmpBuf);
+        }
+        else if (uint8_t *tmpData = (uint8_t *)dag::get_allocator(*tmpBuf)->tryAlloc(sz))
+        {
+          read(tmpData);
+          rcb(make_span_const(tmpData, sz));
+          dag::get_allocator(*tmpBuf)->free(tmpData);
+        }
+        else // tryAlloc failed -> update using 2 batches (to reduce peak mem usage)
+        {
+          int hsz = (sz + 1) / 2;
+          clear_and_resize(*tmpBuf, hsz);
+
+          zcrd->read(tmpBuf->data(), sz / 2);
+          rcb(make_span_const(tmpBuf->data(), sz / 2));
+
+          eastl::exchange(zcrd, nullptr)->read(tmpBuf->data(), hsz);
+          rcb(make_span_const(tmpBuf->data(), hsz));
+        }
+      }
+    } vSrc;
+    vSrc.zcrd = &zcrd;
+    vSrc.sz = vCnt * vstride;
+    vSrc.tmpBuf = &tmp_buf;
+    cb(vSrc, this, /*ib*/ false);
+    if (vSrc.zcrd)
+      vSrc.skip();
+  }
+  {
+    struct ISrc final : ShaderMatVDataReadCbSrc
+    {
+      IGenLoad *zcrd = nullptr;
+      Tab<uint8_t> *tmpBuf = nullptr;
+      int sz = 0, iPackedSz = 0, iCnt = 0;
+      unsigned cflags = 0;
+      int getReadSize() override
+      {
+        G_ASSERT_RETURN(zcrd, 0);
+        return sz + (iCnt & 1) * 2 /* align on 4-byte */;
+      }
+      void read(void *data) override
+      {
+        G_ASSERT_RETURN(zcrd, );
+        if (iPackedSz)
+        {
+          if (tmpBuf->size() < iPackedSz)
+            tmpBuf->resize(iPackedSz);
+          zcrd->read(tmpBuf->data(), iPackedSz);
+          int ret = meshopt_decodeIndexSequence((uint16_t *)data, iCnt, tmpBuf->data(), iPackedSz);
+          G_ASSERTF(ret == 0, "error unpacking IB (packedSz=%d sz=%d flags=0x%X)", iPackedSz, sz, cflags);
+          G_UNUSED(ret);
+        }
+        else
+          zcrd->read(data, sz);
+        if (iCnt & 1)
+          ((char *)data)[sz + 1] = ((char *)data)[sz] = 0;
+        zcrd = nullptr;
+      }
+      void readTmp(dag::FunctionRef<void(dag::ConstSpan<uint8_t>)> rcb) override
+      {
+        const int asz = getReadSize();
+        tmpBuf->resize(iPackedSz + asz);
+        read(tmpBuf->data() + iPackedSz);
+        rcb(make_span_const(tmpBuf->data() + iPackedSz, asz));
+      }
+      void skip() override
+      {
+        G_ASSERT_RETURN(zcrd, );
+        eastl::exchange(zcrd, nullptr)->seekrel(iPackedSz ? iPackedSz : sz);
+      }
+    } iSrc;
+    iSrc.iCnt = iCnt;
+    iSrc.sz = iCnt * sizeof(uint16_t);
+    iSrc.iPackedSz = iPackedSz;
+    iSrc.cflags = cflags;
+    iSrc.tmpBuf = &tmp_buf;
+    iSrc.zcrd = &zcrd;
+    cb(iSrc, this, /*ib*/ true);
+    if (iSrc.zcrd)
+      iSrc.skip();
+  }
+}
+
 void GlobalVertexData::unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, Ibuffer *shared_ib, int &vb_byte_pos, int &ib_byte_pos,
   Tab<uint8_t> &buf_stor)
 {
@@ -221,55 +335,46 @@ void GlobalVertexData::unpackToSharedBuffer(IGenLoad &zcrd, Vbuffer *shared_vb, 
 #else
   constexpr bool forceIntermediateBufUpdate = false;
 #endif
-  auto updateSBufData = [&](Sbuffer *sbuf, int ofs, int size, auto writecb) {
+  auto updateSBufData = [&](Sbuffer *sbuf, int ofs, int size, ShaderMatVDataReadCbSrc &src) {
     if (!forceIntermediateBufUpdate)
     {
       void *xbdata = nullptr;
       if (DAGOR_LIKELY(sbuf->lock(ofs, size, &xbdata, VBLOCK_WRITEONLY)))
       {
         G_FAST_ASSERT(xbdata);
-        writecb(xbdata);
+        src.read(xbdata);
         sbuf->unlock();
       }
       else
         d3d_err(xbdata);
     }
     else
-    {
-      buf_stor.resize(buf_stor.size() + size);
-      writecb(buf_stor.end() - size);
-      d3d_err(sbuf->updateData(ofs, size, buf_stor.end() - size, VBLOCK_WRITEONLY));
-    }
+      src.readTmp([&](dag::ConstSpan<uint8_t> buf) {
+        d3d_err(sbuf->updateData(ofs, buf.size(), buf.data(), VBLOCK_WRITEONLY));
+        ofs += buf.size();
+      });
   };
 
-  {
-    int sz = vCnt * vstride;
-    G_ASSERTF((vb_byte_pos % 4) == 0 && (sz % 4) == 0, "broken VB alignment: vb_byte_pos==%d sz=%d", vb_byte_pos, sz);
-    buf_stor.clear();
-    updateSBufData(shared_vb, vb_byte_pos, sz, [&](void *data) { zcrd.read(data, sz); });
-    vb_byte_pos += sz;
-  }
-
-  {
-    clear_and_resize(buf_stor, iPackedSz);
-    if (iPackedSz)
-      zcrd.read(buf_stor.data(), iPackedSz);
-    int sz = iCnt * sizeof(uint16_t), sza = sz + (iCnt & 1) * 2 /* align on 4-byte */;
-    updateSBufData(shared_ib, ib_byte_pos, sza, [&](void *data) {
-      if (iPackedSz)
+  unpackToReadCb(
+    zcrd,
+    [&](ShaderMatVDataReadCbSrc &src, const GlobalVertexData *, bool is_ib) {
+      if (!is_ib) // vb
       {
-        int ret = meshopt_decodeIndexSequence((uint16_t *)data, iCnt, buf_stor.data(), iPackedSz);
-        G_ASSERTF(ret == 0, "error unpacking IB (packedSz=%d sz=%d flags=0x%X)", iPackedSz, sz, cflags);
-        G_UNUSED(ret);
+        const int sz = src.getReadSize();
+        G_ASSERTF((vb_byte_pos % 4) == 0 && (sz % 4) == 0, "broken VB alignment: vb_byte_pos==%d sz=%d", vb_byte_pos, sz);
+        updateSBufData(shared_vb, vb_byte_pos, sz, src);
+        vb_byte_pos += sz;
       }
       else
-        zcrd.read(data, sz);
-      if (iCnt & 1)
-        ((char *)data)[sz + 1] = ((char *)data)[sz] = 0;
-    });
-    G_ASSERTF(!(ib_byte_pos & 3) && !(sza & 3), "broken IB alignment: ib_byte_pos==%d sz=%d", ib_byte_pos, sz);
-    ib_byte_pos += sza;
-  }
+      {
+        const int sza = src.getReadSize();
+        updateSBufData(shared_ib, ib_byte_pos, sza, src);
+        G_ASSERTF(!(ib_byte_pos & 3) && !(sza & 3), "broken IB alignment: ib_byte_pos==%d sz=%d", ib_byte_pos,
+          iCnt * sizeof(uint16_t));
+        ib_byte_pos += sza;
+      }
+    },
+    buf_stor);
 }
 
 void GlobalVertexData::free()

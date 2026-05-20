@@ -79,13 +79,13 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addEnumeration(das::make_smart<EnumerationD3DResourceType>());
+    addEnumeration(new EnumerationD3DResourceType());
 
-    addAnnotation(das::make_smart<D3DRESIDAnnotation>(lib));
-    addAnnotation(das::make_smart<TextureInfoAnnotation>(lib));
-    addAnnotation(das::make_smart<BaseTextureAnnotation>(lib));
-    addAnnotation(das::make_smart<SbufferAnnotation>(lib));
-    addAnnotation(das::make_smart<TextureFactoryAnnotation>(lib));
+    addAnnotation(new D3DRESIDAnnotation(lib));
+    addAnnotation(new TextureInfoAnnotation(lib));
+    addAnnotation(new BaseTextureAnnotation(lib));
+    addAnnotation(new SbufferAnnotation(lib));
+    addAnnotation(new TextureFactoryAnnotation(lib));
 
     // ensure that resid is actually zero-inited, in case anyone decides to
     // change that -- required for the type to work as a value inside das

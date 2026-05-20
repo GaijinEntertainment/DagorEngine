@@ -686,6 +686,8 @@ void load_config_into_memory_setup(ResourceMemoryHeap::SetupInfo &setup, const D
   }
 
 #if _TARGET_PC_WIN
+  setup.reportMemoryInfo = config->getBool("reportMemoryInfo", DAGOR_DBGLEVEL == 0);
+
   auto uploadHeapConfig = config->getBlockByNameEx("uploadHeapsGPU");
 
   if (uploadHeapConfig)
@@ -1283,9 +1285,7 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #if USE_DLSS_WITHOUT_STREAMLINE
   context.dlssInterface.Initialize(device.get(), adapter.Get());
 #else
-  // initStreamline will hook the factory in order to inject it's own swapchain
-  // which means this have to precede swapchain setup
-  context.initStreamline(factory, adapter.Get());
+  context.initStreamline(adapter.Get());
 #endif
 
   logdbg("DX12: Creating queues...");
@@ -1393,10 +1393,10 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   context.makeReadyForFrame(context.front.frameIndex);
   context.initDLSS();
   context.initXeSS();
-
+  context.initFSR();
   context.initFsr2();
 
-  if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false))
+  if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false) && GpuLatency::getInstance() == nullptr)
   {
     GpuLatency::create(vendor);
   }
@@ -1495,7 +1495,8 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
 #endif
 
 #if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
-  Finally deviceRefCountChecker{[dev = StreamlineAdapter::unhook(device.get())] {
+  device->AddRef();
+  Finally deviceRefCountChecker{[dev = device.get()] {
     const auto deviceRefCount = dev->Release();
     if (deviceRefCount != 0)
       logdbg("DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
@@ -1514,6 +1515,8 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
 
   context.shutdownSwapchain();
   context.wait();
+
+  context.shutdownFSR();
 
   context.shutdownWorkerThread();
 
@@ -2458,7 +2461,8 @@ LUID Device::preRecovery()
   pipeMan.asyncPipelineCompiler.cancelAllCompilations();
 
   // For approximating is there any resource leak during preRecovery
-  Finally cleanupDevice{[dev = StreamlineAdapter::unhook(device.get())] {
+  device->AddRef();
+  Finally cleanupDevice{[dev = device.get()] {
     ULONG refCount = dev->Release();
     if (refCount == 0)
       logdbg("DX12: device doesn't have references after preRecovery");
@@ -2734,12 +2738,12 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
   result.features.set(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR,
     cfg->getBool("AssertOnPipelineCompilationError", false));
 
-  bool enableDefragmentation = cfg->getBool("enableDefragmentation", false);
+  bool enableDefragmentation = cfg->getBool("enableDefragmentation", true);
   if (get_platform_id() == TP_XBOXONE)
     enableDefragmentation = true;
   logdbg("DX12: Memory defragmentation %s", enableDefragmentation ? "enabled" : "disabled");
   result.features.set(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION, enableDefragmentation);
-  const bool enablePanicDefragmentation = cfg->getBool("enablePanicBudgetDefragmentation", true);
+  const bool enablePanicDefragmentation = cfg->getBool("enablePanicBudgetDefragmentation", false);
   logdbg("DX12: Panic budget memory defragmentation %s", enablePanicDefragmentation ? "enabled" : "disabled");
   result.features.set(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION_ON_PANIC_BUDGET, enablePanicDefragmentation);
   const bool enableEmergencyDefragmentation = cfg->getBool("enableEmergencyDefragmentation", true);
@@ -2835,7 +2839,6 @@ uint32_t Device::getGpuMemUsageStats(uint64_t additionalVramUsageInBytes, uint32
   }
   if (available_budget > additionalVramUsageInBytes)
     available_budget -= additionalVramUsageInBytes;
-  available_budget += resources.getDeviceResidentImageMemoryFreeRangesTotalSize();
 
   if (out_mem_size)
     *out_mem_size = uint32_t(budget >> 10);

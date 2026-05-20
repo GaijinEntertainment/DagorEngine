@@ -13,7 +13,7 @@ let MEDIA = "{get_das_root()}/examples/media"
 
 def read_file_bytes(path : string) : array<uint8> {
     var result : array<uint8>
-    fopen(path, "rb") <| $(f) {
+    fopen(path, "rb") $(f) {
         if (f != null) {
             let st = fstat(f)
             if (st.is_valid) {
@@ -83,5 +83,78 @@ def test_invalid_data(t : T?) {
         }
         let sample <- load_audio_memory(garbage)
         t |> equal(length(sample.data), 0)
+    }
+}
+
+[test]
+def test_render_sample_full(t : T?) {
+    t |> run("render_sample full range matches default") <| @(t : T?) {
+        var bank : SampleBank
+        let bytes <- read_file_bytes("{MEDIA}/drums/bd/kick_0.ogg")
+        load_sound_memory(bytes, "bd", bank)
+        let full <- render_sample(bank, "bd", 0, 1.0)
+        let full_explicit <- render_sample(bank, "bd", 0, 1.0, 0.0, 1.0)
+        t |> success(length(full) > 0, "full render produced samples")
+        t |> equal(length(full), length(full_explicit), "default == explicit [0,1]")
+    }
+}
+
+[test]
+def test_render_sample_half_slice(t : T?) {
+    t |> run("render_sample begin=0.5 produces ~half") <| @(t : T?) {
+        var bank : SampleBank
+        let bytes <- read_file_bytes("{MEDIA}/drums/bd/kick_0.ogg")
+        load_sound_memory(bytes, "bd", bank)
+        let full <- render_sample(bank, "bd", 0, 1.0, 0.0, 1.0)
+        let tail_half <- render_sample(bank, "bd", 0, 1.0, 0.5, 1.0)
+        let head_half <- render_sample(bank, "bd", 0, 1.0, 0.0, 0.5)
+        // each half should be ~50% of full length (±2 frames for rounding)
+        let fullFrames = length(full) / 2
+        let tailFrames = length(tail_half) / 2
+        let headFrames = length(head_half) / 2
+        t |> success(abs(tailFrames - fullFrames / 2) <= 2, "tail half length matches")
+        t |> success(abs(headFrames - fullFrames / 2) <= 2, "head half length matches")
+    }
+}
+
+[test]
+def test_render_sample_quarter_slices(t : T?) {
+    t |> run("render_sample 4 quarters cover the full length") <| @(t : T?) {
+        var bank : SampleBank
+        let bytes <- read_file_bytes("{MEDIA}/drums/bd/kick_0.ogg")
+        load_sound_memory(bytes, "bd", bank)
+        let full <- render_sample(bank, "bd", 0, 1.0, 0.0, 1.0)
+        let fullFrames = length(full) / 2
+        var totalQuarterFrames = 0
+        for (i in range(4)) {
+            let b = float(i) * 0.25
+            let e = float(i + 1) * 0.25
+            let q <- render_sample(bank, "bd", 0, 1.0, b, e)
+            totalQuarterFrames += length(q) / 2
+        }
+        // 4 quarters should sum to ~ full length (±8 frames for rounding per slice)
+        t |> success(abs(totalQuarterFrames - fullFrames) <= 8, "quarters sum to full")
+    }
+}
+
+[test]
+def test_render_sample_head_not_equal_tail(t : T?) {
+    t |> run("head and tail slices produce different audio") <| @(t : T?) {
+        var bank : SampleBank
+        let bytes <- read_file_bytes("{MEDIA}/drums/bd/kick_0.ogg")
+        load_sound_memory(bytes, "bd", bank)
+        let head <- render_sample(bank, "bd", 0, 1.0, 0.0, 0.5)
+        let tail <- render_sample(bank, "bd", 0, 1.0, 0.5, 1.0)
+        t |> success(length(head) > 0 && length(tail) > 0, "both slices have samples")
+        // kick samples decay — peak amplitude of head should exceed tail
+        var headPeak = 0.0
+        var tailPeak = 0.0
+        for (i in range(length(head))) {
+            headPeak = max(headPeak, abs(head[i]))
+        }
+        for (i in range(length(tail))) {
+            tailPeak = max(tailPeak, abs(tail[i]))
+        }
+        t |> success(headPeak > tailPeak, "head louder than tail (natural decay)")
     }
 }

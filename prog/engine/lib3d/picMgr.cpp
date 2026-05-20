@@ -683,7 +683,9 @@ static bool reloadDiscardedPic(PICTUREID pid, DynamicPicAtlas::ItemData *d)
     // so proper way seems to execute delayed action
     //
     // happens mostly on vulkan, so treatment only for vulkan
-    if (d3d::get_driver_code().is(d3d::vulkan))
+    // yet if reload asked from main thread, writes between reload actions happen in frame begin reordered time
+    // so we must also handle this case in inverse manner
+    if (d3d::get_driver_code().is(d3d::vulkan) && !is_main_thread())
     {
       struct DelayedPicLoad : public DelayedAction
       {

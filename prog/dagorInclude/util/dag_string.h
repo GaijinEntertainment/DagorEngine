@@ -193,6 +193,7 @@ public:
   /// cast operator for convenience
   operator char *() { return str(); }
   operator const char *() const { return str(); }
+  explicit operator bool() = delete; // Did you mean `!empty()`?
 
   inline void pop_back()
   {

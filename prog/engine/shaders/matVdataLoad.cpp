@@ -6,6 +6,7 @@
 #include <3d/fileTexFactory.h>
 #include <drv/3d/dag_info.h>
 #include "scriptSMat.h"
+#include <generic/dag_functionRef.h>
 #include <ioSys/dag_zlibIo.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>
@@ -398,6 +399,38 @@ void ShaderMatVdata::unpackBuffersTo(dag::Span<Sbuffer *> buf, int *buf_byte_ofs
     interlocked_add(ml_stats.reloadDataSizeKb, matVdataSrcRef.dataSz > (1 << 10) ? (matVdataSrcRef.dataSz >> 10) : 1);
     interlocked_add(ml_stats.reloadTimeMsec, (profile_time_usec(reft) + 500) / 1000);
     interlocked_increment(ml_stats.reloadDataCount);
+  }
+}
+
+void ShaderMatVdata::unpackVData(ShaderMatVDataReadCb cb)
+{
+  FullFileLoadCB *fcrd = nullptr;
+  if (matVdataSrc.empty() && isReloadable())
+    fcrd = reload_files_open(matVdataSrcRef.fname, matVdataSrcRef.fileOfs);
+  G_ASSERTF_RETURN(data_size(matVdataSrc) || fcrd, , "%p.matVdataSrcRef.fname=%s", this, matVdataSrcRef.fname);
+  unsigned compr_type = matVdataSrcRef.comprType;
+  unsigned pack_tag = matVdataSrcRef.packTag;
+
+  InPlaceMemLoadCB mcrd(matVdataSrc.data(), data_size(matVdataSrc));
+  IGenLoad *zcrd = fcrd ? static_cast<IGenLoad *>(fcrd) : &mcrd;
+  if (compr_type == 3)
+  {
+    if (pack_tag == btag_compr::ZSTD)
+      zcrd = new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(*zcrd, matVdataSrcRef.dataSz);
+    else if (pack_tag == btag_compr::OODLE)
+      zcrd = new (alloca(sizeof(OodleLoadCB)), _NEW_INPLACE) OodleLoadCB(*zcrd, matVdataSrcRef.dataSz - 4, zcrd->readInt());
+    zcrd->seekrel(matVdataHdrSz);
+  }
+  else
+    G_ASSERTF_RETURN(compr_type == 0, , "compr_type=%d pack_tag=%d", compr_type, pack_tag);
+  Tab<uint8_t> tmpBuf(framemem_ptr());
+  for (GlobalVertexData &vd : vdata)
+    vd.unpackToReadCb(*zcrd, cb, tmpBuf);
+
+  if (zcrd != fcrd && zcrd != &mcrd)
+  {
+    zcrd->ceaseReading();
+    zcrd->~IGenLoad();
   }
 }
 

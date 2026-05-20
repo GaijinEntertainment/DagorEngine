@@ -46,23 +46,23 @@ namespace bind_dascript
 
 void DaFgCoreModule::addEnumerations(das::ModuleLibrary &lib)
 {
-  addEnumeration(das::make_smart<EnumerationNameSpaceNameId>());
-  addEnumeration(das::make_smart<EnumerationNodeNameId>());
-  addEnumeration(das::make_smart<EnumerationResNameId>());
-  addEnumeration(das::make_smart<EnumerationHistory>());
-  addEnumeration(das::make_smart<EnumerationResourceActivationAction>());
-  addEnumeration(das::make_smart<EnumerationMultiplexingMode>());
-  addEnumeration(das::make_smart<EnumerationSideEffect>());
+  addEnumeration(new EnumerationNameSpaceNameId());
+  addEnumeration(new EnumerationNodeNameId());
+  addEnumeration(new EnumerationResNameId());
+  addEnumeration(new EnumerationHistory());
+  addEnumeration(new EnumerationResourceActivationAction());
+  addEnumeration(new EnumerationMultiplexingMode());
+  addEnumeration(new EnumerationSideEffect());
 
-  addEnumeration(das::make_smart<EnumerationAccess>());
-  addEnumeration(das::make_smart<EnumerationUsage>());
+  addEnumeration(new EnumerationAccess());
+  addEnumeration(new EnumerationUsage());
   das::addEnumFlagOps<dafg::Usage>(*this, lib, "dafg::Usage");
-  addEnumeration(das::make_smart<EnumerationStage>());
+  addEnumeration(new EnumerationStage());
 
-  addEnumeration(das::make_smart<EnumerationResourceType>());
-  addEnumeration(das::make_smart<EnumerationAutoResTypeNameId>());
-  addEnumeration(das::make_smart<EnumerationVariableRateShadingCombiner>());
-  addEnumeration(das::make_smart<EnumerationBindingType>());
+  addEnumeration(new EnumerationResourceType());
+  addEnumeration(new EnumerationAutoResTypeNameId());
+  addEnumeration(new EnumerationVariableRateShadingCombiner());
+  addEnumeration(new EnumerationBindingType());
 }
 
 } // namespace bind_dascript

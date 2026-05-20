@@ -44,7 +44,7 @@
 // }
 // ```
 // add annotation in module body
-// `addAnnotation(das::make_smart<DasTypeNameAnnotation>(lib));`
+// `addAnnotation(new DasTypeNameAnnotation(lib));`
 //
 // ** FIELDS (inside DAS_TYPE_ANNOTATION body) **
 // add field:

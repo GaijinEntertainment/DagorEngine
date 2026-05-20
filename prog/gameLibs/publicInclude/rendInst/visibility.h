@@ -33,11 +33,13 @@ extern void setRIForcedLocalPoolOrder(RiGenVisibility *visibility, bool forced_l
 extern void setRIGenVisibilityAtestSkip(RiGenVisibility *visibility, bool skip_atest, bool skip_noatest);
 bool isRiGenVisibilityForcedLodLoaded(const RiGenVisibility *visibility);
 void riGenVisibilityScheduleForcedLodLoading(const RiGenVisibility *visibility);
+bool isRiGenVisibilityResLoadingFinished(const RiGenVisibility *visibility);
 
 extern void setRIGenVisibilityRendering(RiGenVisibility *visibility, VisibilityRenderingFlags r);
 
 
 using VisibilityExternalFilter = eastl::fixed_function<sizeof(vec4f), bool(vec4f bbmin, vec4f bbmax)>;
+using VisibilityTileExternalFilter = eastl::fixed_function<sizeof(vec4f), int(vec4f bbmin, vec4f bbmax)>;
 using VisibilityExternalIdFilter = eastl::fixed_function<sizeof(void *), bool(int ri_idx, const TMatrix &tm)>;
 
 struct PrepareRiGenVisibilityParams
@@ -89,12 +91,14 @@ struct PrepareRiexVisibilityParams
   Occlusion *occlusion = nullptr;
   const bbox3f *tileCullBox = nullptr;
   const VisibilityExternalFilter &externalFilter = {};
+  const VisibilityTileExternalFilter &tileExternalFilter = {};
   float minSizeToDistRatio = -1.f;
   bool forShadow = false;
   bool forVisualCollision = false;
   bool filterRendinstClipmap = false;
   bool forVsm = false;
   bool filterPreciseBBox = false;
+  bool disableRegionPrefilter = false;
 };
 bool prepareRIGenExtraVisibility(RiGenVisibility &v, mat44f_cref gtm, const PrepareRiexVisibilityParams &params);
 inline bool prepareRIGenExtraVisibility(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow,
@@ -131,5 +135,15 @@ void sortTransparentRiExtraInstancesByDistanceAndPartitionOutsideSphere(RiGenVis
   const Point4 &sphere_pos_rad);
 void sortTransparentRiExtraInstancesByDistanceAndPartitionInsideSphere(RiGenVisibility *vb, const Point3 &view_pos,
   const Point4 &sphere_pos_rad);
+
+struct RiVisibilityDrawStats
+{
+  int drawCalls = 0;
+  int submittedInstances = 0;
+  int triangles = 0;
+  int visibleInstances = 0;
+};
+RiVisibilityDrawStats getRIGenVisibleDrawStats(const RiGenVisibility *visibility, int start_stage, int end_stage);
+RiVisibilityDrawStats getRIGenExtraVisibleDrawStats(const RiGenVisibility *visibility, int start_stage, int end_stage);
 
 } // namespace rendinst

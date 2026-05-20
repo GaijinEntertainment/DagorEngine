@@ -212,6 +212,9 @@ void ToroidalStaticShadowCascade::invalidate(bool force)
   {
     helper.curOrigin = IPoint2(-1000000, 100000);
     setShadervarsToInvalid();
+    isRenderingRegionFirstTime = true;
+    scrolledDepthMin = 0;
+    scrolledDepthMax = 1;
   }
 }
 
@@ -612,6 +615,8 @@ ToroidalStaticShadowCascade::BeforeRenderReturned ToroidalStaticShadowCascade::u
 
   while (pixelsRendered < maxTexelsToUpdate)
   {
+    if (renderData.regionsToRender.size() >= renderData.MAX_REGIONS_TO_RENDER)
+      break;
     const int id = get_closest_region_and_split(helper, choosenRegions);
     if (id >= 0)
     {

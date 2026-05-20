@@ -19,13 +19,13 @@ void Module_dasIMGUI_NODE_EDITOR::initFunctions_5() {
 // from imgui-node-editor/imgui_node_editor.h:380:28
 	makeExtern< void (*)(float) , ax::NodeEditor::NavigateToContent , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"NavigateToContent","ax::NodeEditor::NavigateToContent")
 		->args({"duration"})
-		->arg_init(0,make_smart<ExprConstFloat>(-1))
+		->arg_init(0,new ExprConstFloat(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:381:28
 	makeExtern< void (*)(bool,float) , ax::NodeEditor::NavigateToSelection , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"NavigateToSelection","ax::NodeEditor::NavigateToSelection")
 		->args({"zoomIn","duration"})
-		->arg_init(0,make_smart<ExprConstBool>(false))
-		->arg_init(1,make_smart<ExprConstFloat>(-1))
+		->arg_init(0,new ExprConstBool(false))
+		->arg_init(1,new ExprConstFloat(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui-node-editor/imgui_node_editor.h:383:28
 	makeExtern< bool (*)(ax::NodeEditor::NodeId *) , ax::NodeEditor::ShowNodeContextMenu , SimNode_ExtFuncCall , imgui_node_editorTempFn>(lib,"ShowNodeContextMenu","ax::NodeEditor::ShowNodeContextMenu")

@@ -45,7 +45,7 @@ namespace das {
         }
     }
 
-    void DebugInfoHelper::appendLocalVariables ( FuncInfo * info, const ExpressionPtr & body ) {
+    void DebugInfoHelper::appendLocalVariables ( FuncInfo * info, ExpressionPtr body ) {
         CollectLocalVariables lv;
         body->visit(lv);
         info->localCount = uint32_t(lv.locals.size());
@@ -125,13 +125,15 @@ namespace das {
     }
 
     FuncInfo * DebugInfoHelper::makeInvokeableTypeDebugInfo ( const TypeDeclPtr & blk, const LineInfo & at ) {
-        Function fakeFunc;
+        gc_local<Function> fakeFuncPtr(new Function());
+        Function & fakeFunc = *fakeFuncPtr;
         fakeFunc.name = "invoke " + blk->describe();
         fakeFunc.at = at;
-        fakeFunc.result = blk->firstType ? blk->firstType : make_smart<TypeDecl>(Type::tVoid);
+        gc_local<TypeDecl> voidType(new TypeDecl(Type::tVoid));
+        fakeFunc.result = blk->firstType ? blk->firstType : (TypeDecl*)voidType;
         fakeFunc.totalStackSize = sizeof(Prologue);
         for ( size_t ai=0, ais=blk->argTypes.size(); ai!=ais; ++ ai ) {
-            auto argV = make_smart<Variable>();
+            auto argV = new Variable();
             argV->at = at;
             argV->name = blk->argNames.empty() ? ("arg_" + to_string(ai)) : blk->argNames[ai];
             argV->type = blk->argTypes[ai];
@@ -141,7 +143,7 @@ namespace das {
     }
 
     StructInfo * DebugInfoHelper::makeStructureDebugInfo ( const Structure & st ) {
-        DAS_VERIFYF(!st.isTemplate,"cannot make debug info for template structure");
+        DAS_VERIFYF(!st.isTemplate,"cannot make debug info for template structure %s", st.name.c_str());
         string mangledName = st.getMangledName();
         auto it = smn2s.find(mangledName);
         if ( it!=smn2s.end() ) return it->second;
@@ -151,13 +153,13 @@ namespace das {
         sti->flags = 0;
         if ( st.isClass ) sti->flags |= StructInfo::flag_class;
         if ( st.isLambda ) sti->flags |= StructInfo::flag_lambda;
-        auto tdecl = TypeDecl((Structure *)&st);
-        auto gcf = tdecl.gcFlags();
+        gc_local<TypeDecl> tdecl(new TypeDecl((Structure *)&st));
+        auto gcf = tdecl->gcFlags();
         if ( gcf & TypeDecl::gcFlag_heap ) sti->flags |= StructInfo::flag_heapGC;
         if ( gcf & TypeDecl::gcFlag_stringHeap ) sti->flags |= StructInfo::flag_stringHeapGC;
         sti->count = (uint32_t) st.fields.size();
         sti->size = st.getSizeOf();
-        s2cppTypeName[sti] = describeCppType(&tdecl, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
+        s2cppTypeName[sti] = describeCppType(tdecl, CpptSubstitureRef::no,CpptSkipRef::yes, CpptSkipConst::yes);
         sti->fields = (VarInfo **) debugInfo->allocate( sizeof(VarInfo *) * sti->count );
         for ( uint32_t i=0, is=sti->count; i!=is; ++i ) {
             auto & var = st.fields[i];
@@ -264,7 +266,8 @@ namespace das {
         if ( type->firstType ) {
             info->firstType = makeTypeInfo(nullptr, type->firstType);
         } else if ( type->baseType==Type::tStructure && type->structType->parent!=nullptr ) {
-            info->firstType = makeTypeInfo(nullptr, make_smart<TypeDecl>(type->structType->parent));
+            gc_local<TypeDecl> tdecl(new TypeDecl(type->structType->parent));
+            info->firstType = makeTypeInfo(nullptr, tdecl);
         } else {
             info->firstType = nullptr;
         }
@@ -314,10 +317,10 @@ namespace das {
         }
         if ( rtti && var.init && var.init->constexpression ) {
             if ( var.init->rtti_isStringConstant() ) {
-                auto sval = static_pointer_cast<ExprConstString>(var.init);
+                auto sval = static_cast<ExprConstString*>(var.init);
                 vi->sValue = debugInfo->allocateCachedName(sval->text);
             } else if ( var.init->rtti_isConstant() ) {
-                auto cval = static_pointer_cast<ExprConst>(var.init);
+                auto cval = static_cast<ExprConst*>(var.init);
                 vi->value = cval->value;
             } else {
                 vi->value = v_zero();
@@ -341,10 +344,10 @@ namespace das {
         vi->offset = 0;
         if ( rtti && var.init && var.init->constexpression ) {
             if ( var.init->rtti_isStringConstant() ) {
-                auto sval = static_pointer_cast<ExprConstString>(var.init);
+                auto sval = static_cast<ExprConstString*>(var.init);
                 vi->sValue = debugInfo->allocateCachedName(sval->text);
             } else if ( var.init->rtti_isConstant() ) {
-                auto cval = static_pointer_cast<ExprConst>(var.init);
+                auto cval = static_cast<ExprConst*>(var.init);
                 vi->value = cval->value;
             } else {
                 vi->value = v_zero();

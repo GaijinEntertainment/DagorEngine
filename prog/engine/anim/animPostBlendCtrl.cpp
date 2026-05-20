@@ -186,7 +186,7 @@ static bool load_math_op(const DataBlock &blk, int &op, float &p0, float &p1)
   return op >= 0;
 }
 
-static float process_math_op(int op, float v, float p0, float p1, float dt)
+static float process_math_op(int op, float v, float p0, float p1, float dt, volatile int &rnd_seed)
 {
   switch (op)
   {
@@ -197,7 +197,13 @@ static float process_math_op(int op, float v, float p0, float p1, float dt)
     case OPM_MOD: return fmodf(v, p0);
     case OPM_CLAMP: return clamp(v, p0, p1);
     case OPM_DIV: return safediv(v, p0);
-    case OPM_RND: return rnd_float(p0, p1);
+    case OPM_RND:
+    {
+      int seed = interlocked_relaxed_load(rnd_seed);
+      float fr = _rnd_float(seed, p0, p1);
+      interlocked_relaxed_store(rnd_seed, seed);
+      return fr;
+    }
     case OPM_APPROACH: return approach(v, p0, dt, p1);
     case OPM_FLOOR: return floorf(v);
     case OPM_SIN: return sinf(p0);
@@ -1693,9 +1699,10 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
 //
 // Controller to change state values procedurally
 //
-ApbParamCtrl::ApbParamCtrl(AnimationGraph &g, const char *param_name) : AnimPostBlendCtrl(g), rec(midmem), mapRec(midmem)
+ApbParamCtrl::ApbParamCtrl(AnimationGraph &g, const char *param_name) : AnimPostBlendCtrl(g)
 {
   wtPid = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  rndSeed = str_hash_fnv1a(param_name);
 }
 
 void ApbParamCtrl::setDefaultState(IPureAnimStateHolder &st)
@@ -1733,7 +1740,7 @@ void ApbParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, Ani
         case OPTYPE_MATH:
         {
           float res = process_math_op(ops[i].op, v, get_var_or_val(st, ops[i].v0Pid, ops[i].p0),
-            get_var_or_val(st, ops[i].v1Pid, ops[i].p1), lastDt);
+            get_var_or_val(st, ops[i].v1Pid, ops[i].p1), lastDt, rndSeed);
           if (ops[i].weighted)
             res = lerp(v, res, w);
           st.setParam(ops[i].destPid, res);
@@ -1768,7 +1775,7 @@ void ApbParamCtrl::advance(IPureAnimStateHolder &st, real dt)
   }
 }
 
-static void load_ops(const DataBlock &blk, AnimationGraph &graph, Tab<ApbParamCtrl::ParamOp> &ops, const char *name)
+static void load_ops(const DataBlock &blk, AnimationGraph &graph, dag::Vector<ApbParamCtrl::ParamOp> &ops, const char *name)
 {
   int ifNid = blk.getNameId("if");
   int mathNid = blk.getNameId("math");
@@ -2483,7 +2490,7 @@ void AnimPostBlendNodeLookatNodeCtrl::init(IPureAnimStateHolder &st, const GeomN
       DAG_FATAL("lookat node '%s' does not exist", lookatNodeName);
     valid = false;
   }
-  if (upNodeName)
+  if (!upNodeName.empty())
   {
     ldata.upNodeId = tree.findINodeIndex(upNodeName);
     if (!ldata.upNodeId)
@@ -3722,7 +3729,8 @@ void AnimPostBlendTwoBonesIK::init(IPureAnimStateHolder &st, const GeomNodeTree 
       nodes[i].startNodeId = startNodeId;
       nodes[i].middleNodeId = middleNodeId;
       nodes[i].endNodeId = endNodeId;
-      if (rec[i].flexLocalToNodeName)
+      nodes[i].alignNodeId = {};
+      if (!rec[i].flexLocalToNodeName.empty())
         nodes[i].alignNodeId = tree.findINodeIndex(rec[i].flexLocalToNodeName);
 
       const mat44f &leg_wtm = tree.getNodeWtmRel(startNodeId);

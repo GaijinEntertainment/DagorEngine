@@ -19,12 +19,12 @@ void ECS::addObjectRW(das::ModuleLibrary &lib)
     "bind_dascript::objectGetRWChildHint");
   auto objectGetRWChildExt = das::addExtern<DAS_BIND_FUN(objectGetRWChild)>(*this, lib, "getRW_child",
     das::SideEffects::accessExternal, "bind_dascript::objectGetRWChild");
-  objectGetRWChildExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectGetRWChildExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 
   das::addExtern<DAS_BIND_FUN(objectPtrGetRWChildHint)>(*this, lib, "getRW_child", das::SideEffects::none,
     "bind_dascript::objectPtrGetRWChildHint");
   auto objectPtrGetRWChildExt = das::addExtern<DAS_BIND_FUN(objectPtrGetRWChild)>(*this, lib, "getRW_child",
     das::SideEffects::accessExternal, "bind_dascript::objectPtrGetRWChild");
-  objectPtrGetRWChildExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
+  objectPtrGetRWChildExt->annotations.push_back(annotation_declaration(new BakeHashFunctionAnnotation<1>()));
 }
 } // namespace bind_dascript

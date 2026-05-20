@@ -92,28 +92,28 @@ def public force_dynamic_type_cast(instance; otherclass : auto(TT)) : TT -const?
 [variant_macro(name="ClassAsIs")]
 class ClassAsIs : AstVariantMacro {
     //! Variant macro that implements class dynamic casting via `is` and `as`.
-    def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprIsVariant>) : ExpressionPtr {
+    def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : ExprIsVariant?) : ExpressionPtr {
         assume vtype = expr.value._type
         if (!(vtype.isPointer && vtype.firstType != null && vtype.firstType.isStructure && vtype.firstType.structType.flags.isClass)) {
-            return <- default<ExpressionPtr>
+            return null
         }
-        var inscope atype <- new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
+        var atype = new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
         return <- qmacro(is_instance_of($e(expr.value), type<$t(atype)>))
     }
-    def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprAsVariant>) : ExpressionPtr {
+    def override visitExprAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprAsVariant?) : ExpressionPtr {
         assume vtype = expr.value._type
         if (!(vtype.isPointer && vtype.firstType != null && vtype.firstType.isStructure && vtype.firstType.structType.flags.isClass)) {
-            return <- default<ExpressionPtr>
+            return null
         }
-        var inscope atype <- new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
+        var atype = new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
         return <- qmacro(force_dynamic_type_cast($e(expr.value), type<$t(atype)>))
     }
-    def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprSafeAsVariant>) : ExpressionPtr {
+    def override visitExprSafeAsVariant(prog : ProgramPtr; mod : Module?; expr : ExprSafeAsVariant?) : ExpressionPtr {
         assume vtype = expr.value._type
         if (!(vtype.isPointer && vtype.firstType != null && vtype.firstType.isStructure && vtype.firstType.structType.flags.isClass)) {
-            return <- default<ExpressionPtr>
+            return null
         }
-        var inscope atype <- new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
+        var atype = new TypeDecl(at = expr.at, baseType = Type.alias, alias := expr.name)
         return <- qmacro(dynamic_type_cast($e(expr.value), type<$t(atype)>))
     }
 }

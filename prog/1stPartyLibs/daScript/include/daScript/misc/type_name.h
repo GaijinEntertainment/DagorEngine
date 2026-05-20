@@ -26,6 +26,12 @@ namespace das {
         }
     };
 
+    template <typename TT> struct typeName<TT *> {
+        static string name() {
+            return string("ptr`") + typeName<TT>::name(); // TODO: compilation time concat
+        }
+    };
+
     template <typename FT, typename ST> struct typeName<pair<FT,ST>> {
         static string name() {
             return string("pair`") + typeName<FT>::name() + "`" + typeName<ST>::name(); // TODO: compilation time concat

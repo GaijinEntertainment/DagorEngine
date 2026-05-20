@@ -82,14 +82,14 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("CollRes"));
     addBuiltinDependency(lib, require("DagorMath"));
-    addAnnotation(das::make_smart<RendInstDescAnnotation>(lib));
-    addEnumeration(das::make_smart<EnumerationDrawCollisionsFlags>());
-    addEnumeration(das::make_smart<EnumerationGatherRiTypeFlags>());
-    addAnnotation(das::make_smart<CollisionInfoAnnotation>(lib));
+    addAnnotation(new RendInstDescAnnotation(lib));
+    addEnumeration(new EnumerationDrawCollisionsFlags());
+    addEnumeration(new EnumerationGatherRiTypeFlags());
+    addAnnotation(new CollisionInfoAnnotation(lib));
     das::addUsing<rendinst::CollisionInfo>(*this, lib, " ::rendinst::CollisionInfo");
 
     G_STATIC_ASSERT(sizeof(rendinst::riex_handle_t) == sizeof(uint64_t));
-    auto pType = das::make_smart<das::TypeDecl>(das::Type::tUInt64);
+    auto pType = new das::TypeDecl(das::Type::tUInt64);
     pType->alias = "riex_handle_t";
     addAlias(pType);
 
@@ -259,7 +259,7 @@ public:
     das::addCtorAndUsing<rendinst::RendInstDesc, rendinst::riex_handle_t>(*this, lib, "RendInstDesc", "::rendinst::RendInstDesc");
     das::addCtorAndUsing<rendinst::RendInstDesc, int, int, int, uint32_t, int>(*this, lib, "RendInstDesc", "::rendinst::RendInstDesc");
 
-    addAnnotation(das::make_smart<RiExtraComponentAnnotation>(lib));
+    addAnnotation(new RiExtraComponentAnnotation(lib));
     verifyAotReady();
   }
   das::ModuleAotType aotRequire(das::TextWriter &tw) const override

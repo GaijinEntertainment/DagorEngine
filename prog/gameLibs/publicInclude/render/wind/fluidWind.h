@@ -89,6 +89,7 @@ public:
   ~FluidWind();
 
   void update(float dt, const Point3 &origin);
+  void afterDeviceReset();
   void renderDebug();
   bool isInSleep() const;
 

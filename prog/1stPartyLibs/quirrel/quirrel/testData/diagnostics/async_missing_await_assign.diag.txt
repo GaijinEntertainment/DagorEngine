@@ -1,0 +1,9 @@
+ERROR: call to async function returns a Promise, not 'int'; did you mean 'await f(...)'?
+testData/diagnostics/async_missing_await_assign.nut:14:2
+
+  local n: int = 0
+  n = f()
+  ^
+  print(n)
+
+

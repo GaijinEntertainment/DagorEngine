@@ -6,9 +6,9 @@
 namespace das {
 
     // recognize a==0, a!=0, 0==a, 0!=a
-    bool matchEquNequZero ( const ExpressionPtr & expr, ExpressionPtr & zeroCond, bool & condIfZero ) {
+    bool matchEquNequZero ( ExpressionPtr expr, ExpressionPtr & zeroCond, bool & condIfZero ) {
         if ( expr->rtti_isOp2() ) {
-            auto op2 = static_pointer_cast<ExprOp2>(expr);
+            auto op2 = static_cast<ExprOp2*>(expr);
             if ( op2->op=="==" || op2->op=="!=" ) {
                 condIfZero = op2->op == "==";
                 if ( isZeroConst(op2->left) ) {
@@ -23,31 +23,31 @@ namespace das {
         return false;
     }
 
-    bool isZeroConst ( const ExpressionPtr & expr ) {
+    bool isZeroConst ( ExpressionPtr expr ) {
         return isFloatConst(expr, 0.0f) || isIntOrUIntConst(expr, 0) || isPtrZero(expr);
     }
 
-    bool isPtrZero ( const ExpressionPtr & expr ) {
+    bool isPtrZero ( ExpressionPtr expr ) {
         if ( !expr->rtti_isConstant() ) return false;
-        auto ce = static_pointer_cast<ExprConst>(expr);
+        auto ce = static_cast<ExprConst*>(expr);
         switch ( ce->baseType ) {
             case Type::tPointer:
                                     return cast<void *>::to(ce->value) == nullptr;
             default:                return false;
         }
     }
-    bool isFloatConst ( const ExpressionPtr & expr, float value ) {
+    bool isFloatConst ( ExpressionPtr expr, float value ) {
         if ( !expr->rtti_isConstant() ) return false;
-        auto ce = static_pointer_cast<ExprConst>(expr);
+        auto ce = static_cast<ExprConst*>(expr);
         switch ( ce->baseType ) {
             case Type::tFloat:      return cast<float>::to(ce->value) == value;
             default:                return false;
         }
     }
 
-    bool isIntOrUIntConst ( const ExpressionPtr & expr, int64_t value ) {
+    bool isIntOrUIntConst ( ExpressionPtr expr, int64_t value ) {
         if ( !expr->rtti_isConstant() ) return false;
-        auto ce = static_pointer_cast<ExprConst>(expr);
+        auto ce = static_cast<ExprConst*>(expr);
         switch ( ce->baseType ) {
             case Type::tInt:        return int64_t ( cast<int32_t>::to(ce->value) ) == value;
             case Type::tInt8:       return int64_t ( cast<int8_t>::to(ce->value) ) == value;
@@ -62,9 +62,9 @@ namespace das {
         }
     }
 
-    bool isIntConst ( const ExpressionPtr & expr, int64_t value ) {
+    bool isIntConst ( ExpressionPtr expr, int64_t value ) {
         if ( !expr->rtti_isConstant() ) return false;
-        auto ce = static_pointer_cast<ExprConst>(expr);
+        auto ce = static_cast<ExprConst*>(expr);
         switch ( ce->baseType ) {
             case Type::tInt:        return int64_t ( cast<int32_t>::to(ce->value) ) == value;
             case Type::tInt8:       return int64_t ( cast<int8_t>::to(ce->value) ) == value;
@@ -74,9 +74,9 @@ namespace das {
         }
     }
 
-    bool isUIntConst ( const ExpressionPtr & expr, uint64_t value ) {
+    bool isUIntConst ( ExpressionPtr expr, uint64_t value ) {
         if ( !expr->rtti_isConstant() ) return false;
-        auto ce = static_pointer_cast<ExprConst>(expr);
+        auto ce = static_cast<ExprConst*>(expr);
         switch ( ce->baseType ) {
             case Type::tUInt:       return uint64_t ( cast<uint32_t>::to(ce->value) ) == value;
             case Type::tBitfield:   return uint64_t ( cast<uint32_t>::to(ce->value) ) == value;

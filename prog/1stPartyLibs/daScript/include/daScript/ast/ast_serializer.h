@@ -165,22 +165,17 @@ namespace das {
         AstSerializer & operator << ( Structure::FieldDeclaration & field_declaration );
         AstSerializer & operator << ( ExpressionPtr & expr );
         AstSerializer & operator << ( FunctionPtr & func );
-        AstSerializer & operator << ( Function * & func );
         AstSerializer & operator << ( Type & baseType );
         AstSerializer & operator << ( LineInfo & at );
         AstSerializer & operator << ( Module * & module );
         AstSerializer & operator << ( FileInfo * & info );
         AstSerializer & operator << ( FileInfoPtr & ptr );
         AstSerializer & operator << ( FileAccessPtr & ptr );
-        AstSerializer & operator << ( Structure * & struct_ );
         AstSerializer & operator << ( StructurePtr & struct_ );
-        AstSerializer & operator << ( Enumeration * & enum_type );
         AstSerializer & operator << ( EnumerationPtr & enum_type );
         AstSerializer & operator << ( Enumeration::EnumEntry & entry );
         AstSerializer & operator << ( TypeAnnotationPtr & type_anno );
-        AstSerializer & operator << ( TypeAnnotation * & type_anno );
         AstSerializer & operator << ( VariablePtr & var );
-        AstSerializer & operator << ( Variable * & var );
         AstSerializer & operator << ( Function::AliasInfo & alias_info );
         AstSerializer & operator << ( InferHistory & history );
         AstSerializer & operator << ( ReaderMacroPtr & ptr );
@@ -229,14 +224,14 @@ namespace das {
         template <typename K, typename V, typename H, typename E>
         void serialize_hash_map ( das_hash_map<K, V, H, E> & value );
 
-        template <typename K, typename V>
-        AstSerializer & operator << ( das_hash_map<K, V> & value );
+        template <typename K, typename V, typename H, typename E>
+        AstSerializer & operator << ( das_hash_map<K, V, H, E> & value );
 
         template <typename V>
         AstSerializer & operator << ( safebox_map<V> & box );
 
-        template <typename V>
-        AstSerializer & operator << ( safebox<V> & box );
+        template <typename V, typename VT>
+        AstSerializer & operator << ( safebox<V,VT> & box );
 
         template<typename TT>
         AstSerializer & serializePointer ( TT * & ptr );
@@ -291,4 +286,35 @@ namespace das {
             }
         }
     };
+
+    // Opaque handle to expose serializer to daslang.
+    struct AstSerializerState {
+        unique_ptr<SerializationStorageVector> storage;
+    };
+
+    // Create a writing serializer.
+    AstSerializerState * rtti_create_ast_serializer ();
+
+    // Create a reading serializer from a blob.
+    AstSerializerState * rtti_create_ast_deserializer ( const TArray<uint8_t> & data );
+
+    // Delete a serializer state.
+    void rtti_delete_ast_serializer ( AstSerializerState * state );
+
+    // Serialize one program (writing mode). Returns false on failure.
+    bool rtti_ast_serializer_serialize_program (
+            AstSerializerState * state,
+            const smart_ptr<Program> & program );
+
+    // Deserialize one program (reading mode).
+    void rtti_ast_serializer_deserialize_program (
+            AstSerializerState * state,
+            const TBlock<void,bool,smart_ptr<Program>,const string> & block,
+            Context * context, LineInfoArg * at );
+
+    // Get serialized data from a writing serializer.
+    void rtti_ast_serializer_get_data (
+            AstSerializerState * state,
+            const TBlock<void,TTemporary<TArray<uint8_t> const>> & block,
+            Context * context, LineInfoArg * at );
 }

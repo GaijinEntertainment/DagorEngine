@@ -47,12 +47,12 @@ public:
     das::onDestroyCppDebugAgent(name.c_str(), bind_dascript::clear_resource_slot);
     addBuiltinDependency(lib, require("daFgCore"));
 
-    addAnnotation(das::make_smart<NodeHandleWithSlotsAccessAnnotation>(lib));
+    addAnnotation(new NodeHandleWithSlotsAccessAnnotation(lib));
     das::addCtor<::resource_slot::NodeHandleWithSlotsAccess>(*this, lib, "NodeHandleWithSlotsAccess",
       "::resource_slot::NodeHandleWithSlotsAccess");
     das::typeFactory<::resource_slot::NodeHandleWithSlotsAccessVector>::make(lib);
 
-    addAnnotation(das::make_smart<ActionListAnnotation>(lib));
+    addAnnotation(new ActionListAnnotation(lib));
     das::addUsing<::resource_slot::detail::ActionList>(*this, lib, "::resource_slot::detail::ActionList");
 
     das::addExtern<DAS_BIND_FUN(::bind_dascript::ActionList_create)>(*this, lib, "create", das::SideEffects::modifyArgument,
@@ -65,7 +65,7 @@ public:
       "::bind_dascript::ActionList_read")
       ->args({"list", "slot_name", "priority"});
 
-    addAnnotation(das::make_smart<StateAnnotation>(lib));
+    addAnnotation(new StateAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(::bind_dascript::NodeHandleWithSlotsAccess_reset)>(*this, lib, "reset",
       das::SideEffects::modifyArgumentAndExternal, "::bind_dascript::NodeHandleWithSlotsAccess_reset")

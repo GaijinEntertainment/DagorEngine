@@ -54,28 +54,30 @@ float shadow_render_expand_from_sun_mul = 0.0f;
 
 static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferredShadowPassVarId = -1;
 
-#define GLOBAL_VARS_OPTIONAL_LIST         \
-  VAR(csm_world_view_pos)                 \
-  VAR(csm_distance)                       \
-  VAR(num_of_cascades)                    \
-  VAR(csm_range_cascade_0)                \
-  VAR(csm_range_cascade_1)                \
-  VAR(csm_range_cascade_2)                \
-  VAR(csm_meter_to_uv_cascade_0)          \
-  VAR(csm_meter_to_uv_cascade_1)          \
-  VAR(csm_meter_to_uv_cascade_2)          \
-  VAR(csm_uv_minmax_cascade_0)            \
-  VAR(csm_uv_minmax_cascade_1)            \
-  VAR(csm_uv_minmax_cascade_2)            \
-  VAR(shadow_cascade_data)                \
-  VAR(shadow_cascade_tc_mul_offset)       \
-  VAR(csm_culling_near_planes)            \
-  VAR(shadow_cascade_0_tm)                \
-  VAR(shadow_cascade_relative_scale)      \
-  VAR(shadow_cascade_relative_offset)     \
-  VAR(shadow_cascade_rcp_basis_length_sq) \
-  VAR(shadow_cascade_camera_near_plane)   \
-  VAR(shadow_cascade_splits)
+#define GLOBAL_VARS_OPTIONAL_LIST             \
+  VAR(csm_world_view_pos)                     \
+  VAR(csm_distance)                           \
+  VAR(num_of_cascades)                        \
+  VAR(has_manual_cascades)                    \
+  VAR(csm_range_cascade_0)                    \
+  VAR(csm_range_cascade_1)                    \
+  VAR(csm_range_cascade_2)                    \
+  VAR(csm_meter_to_uv_cascade_0)              \
+  VAR(csm_meter_to_uv_cascade_1)              \
+  VAR(csm_meter_to_uv_cascade_2)              \
+  VAR(csm_uv_minmax_cascade_0)                \
+  VAR(csm_uv_minmax_cascade_1)                \
+  VAR(csm_uv_minmax_cascade_2)                \
+  VAR(shadow_cascade_data)                    \
+  VAR(shadow_cascade_tc_mul_offset)           \
+  VAR(csm_culling_near_planes)                \
+  VAR(shadow_cascade_0_tm)                    \
+  VAR(shadow_cascade_relative_scale_and_near) \
+  VAR(shadow_cascade_relative_offset_and_far) \
+  VAR(shadow_cascade_rcp_basis_length_sq)     \
+  VAR(shadow_cascade_camera_near_plane)       \
+  VAR(shadow_cascade_splits)                  \
+  VAR(shadow_cascade_manual_cascade_count)
 
 #define GLOBAL_CONST_LIST
 
@@ -162,8 +164,8 @@ public:
   void disable() { numCascadesToRender = 0; }
   bool isEnabled() const { return numCascadesToRender != 0; }
   void uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
-    const Color4 *shadow_cascade_splits, const Color4 *cascade_relative_scale, const Color4 *cascade_relative_offset,
-    const Color4 *atlas_tc_mul_offset, const Color4 *cascade_rcp_basis_length_sq);
+    const Color4 *cascade_relative_scale_and_near, const Color4 *cascade_relative_offset_and_far, const Color4 *atlas_tc_mul_offset,
+    const Color4 *cascade_rcp_basis_length_sq, const int manual_cascade_count);
   void invalidate()
   {
     for (unsigned int cascadeNo = 0; cascadeNo < shadowSplits.size(); cascadeNo++)
@@ -189,6 +191,17 @@ public:
   {
     const ShadowSplit &s = shadowSplits[cascade_no];
     return dag::ConstSpan<plane3f>(s.shadowRegionPlanes.data(), s.shadowRegionPlaneCount);
+  }
+  dag::ConstSpan<plane3f> getShadowRegionBackPlanes(int cascade_no) const
+  {
+    const ShadowSplit &s = shadowSplits[cascade_no];
+    return dag::ConstSpan<plane3f>(s.shadowRegionPlanes.data(), s.shadowRegionBackPlaneCount);
+  }
+  dag::ConstSpan<plane3f> getShadowRegionSilhouettePlanes(int cascade_no) const
+  {
+    const ShadowSplit &s = shadowSplits[cascade_no];
+    return dag::ConstSpan<plane3f>(s.shadowRegionPlanes.data() + s.shadowRegionBackPlaneCount,
+      s.shadowRegionPlaneCount - s.shadowRegionBackPlaneCount);
   }
   bool shouldUpdateCascade(int cascade_no) const { return shadowSplits[cascade_no].shouldUpdate; }
   bool isCascadeValid(int cascade_no) const { return shadowSplits[cascade_no].to > shadowSplits[cascade_no].from; }
@@ -225,7 +238,7 @@ public:
 private:
   struct ShadowSplit
   {
-    ShadowSplit() : from(0), to(1), frames(0xFFFF), shouldUpdate(1), shadowRegionPlaneCount(0) {}
+    ShadowSplit() : from(0), to(1), frames(0xFFFF), shouldUpdate(1), shadowRegionPlaneCount(0), shadowRegionBackPlaneCount(0) {}
     float from, to;
     Point2 znzf;
     Point3 shadowWidth;
@@ -245,6 +258,7 @@ private:
     uint16_t shouldUpdate;
     carray<plane3f, CSM_MAX_SHADOW_REGION_PLANES> shadowRegionPlanes;
     int shadowRegionPlaneCount;
+    int shadowRegionBackPlaneCount;
   };
 
   ICascadeShadowsClient *client;
@@ -254,7 +268,7 @@ private:
   Frustum wholeCoveredSpaceFrustum;
 
 
-  UniqueTexHolder internalCascades;
+  UniqueTexWithShaderVar internalCascades;
   TextureInfo shadowCascadesTexInfo;
   d3d::SamplerHandle internalCascadesSampler = d3d::INVALID_SAMPLER_HANDLE;
 
@@ -262,18 +276,33 @@ private:
   d3d::RenderPass *mobileAreaUpdateRP;
 
   int numCascadesToRender = 0;
+  int numManualCascades = 0;
   carray<ShadowSplit, CascadeShadows::MAX_CASCADES> shadowSplits;
   carray<ShadowSplit, CascadeShadows::MAX_CASCADES> sparsedShadowSplits;
   carray<Color4, CascadeShadows::MAX_CASCADES * 3> shadowCascadeTm;
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeTcMulOffset;
   // Cascades only differ in scale and offset between each other,
   // so we can get Nth cascade space position by scaling and offseting 0th cascade space position.
-  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeScale;
-  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeOffset;
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeScaleAndNear;
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeOffsetAndFar;
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRcpBasisLengthSq;
   carray<Color4, 3> shadowCascade0Tm;
   Color4 shadowCascadeCameraNearPlane = Color4(0, 0, 1, 0);
-  carray<Color4, 2> shadowCascadeSplits = {};
+
+
+  struct CsmData
+  {
+    Color4 cameraNearPlane;
+    Color4 cascade0Tm[3];
+    Color4 relativeScaleAndNear[CascadeShadows::MAX_CASCADES];
+    Color4 relativeOffsetAndFar[CascadeShadows::MAX_CASCADES];
+    Color4 tcMulOffset[CascadeShadows::MAX_CASCADES];
+    Color4 rcpBasisLengthSq[CascadeShadows::MAX_CASCADES];
+    int32_t manualCascadeCount;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
+  };
 
   float csmDistance = 0.0f;
   carray<shaders::UniqueOverrideStateId, CascadeShadows::MAX_CASCADES> cascadeOverride;
@@ -395,8 +424,8 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
   if (settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal)
   {
     internalCascades =
-      UniqueTexHolder(dag::create_tex(NULL, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h, shadowCascadesTexInfo.cflg,
-                        shadowCascadesTexInfo.mipLevels, "shadowCascadeDepthTex2D", RESTAG_SHADOW),
+      UniqueTexWithShaderVar(dag::create_tex(NULL, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h, shadowCascadesTexInfo.cflg,
+                               shadowCascadesTexInfo.mipLevels, "shadowCascadeDepthTex2D", RESTAG_SHADOW),
         "shadow_cascade_depth_tex");
     d3d_err(internalCascades.getTex2D());
     {
@@ -424,7 +453,7 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
   }
 
   if (shadow_cascade_dataVarId != -1)
-    csmBuffer = dag::buffers::create_one_frame_cb(CascadeShadows::MAX_CASCADES * 4 + CascadeShadows::MAX_CASCADES,
+    csmBuffer = dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<CsmData>(),
       String(0, "shadow_cascade_data%s", resPostfix.c_str()).c_str(), RESTAG_LIGHTS);
 }
 
@@ -603,6 +632,7 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
     if (anchorRadius > 0.0f)
       firstRegularCascade++;
   }
+  numManualCascades = firstRegularCascade;
 
   G_ASSERT(scene_z_near_far.x > 0.f);
 
@@ -647,7 +677,7 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
     ShadowSplit ss;
     ss.frames = 0;
     ss.from = max(prevCascadeDist, znear);
-    ss.to = curCascadeDist;
+    ss.to = cascadeNo == cascades - 1 ? curCascadeDist : curCascadeDist + modeSettings.cascadeTransitionZoneWidth;
 
     G_ASSERT(ss.to > ss.from);
 
@@ -811,16 +841,16 @@ void CascadeShadowsPrivate::calcTMs()
     shadowCascadeRcpBasisLengthSq[cascadeNo] = Color4(1.0f / col0.lengthSq(), 1.0f / col1.lengthSq(), 1.0f / col2.lengthSq(), 1);
     if (cascadeNo == 0)
     {
-      shadowCascadeRelativeScale[cascadeNo] = Color4(1, 1, 1, 1);
-      shadowCascadeRelativeOffset[cascadeNo] = Color4(0, 0, 0, 0);
+      shadowCascadeRelativeScaleAndNear[cascadeNo] = Color4(1, 1, 1, ss.from);
+      shadowCascadeRelativeOffsetAndFar[cascadeNo] = Color4(0, 0, 0, ss.to);
       memcpy(shadowCascade0Tm.data(), &shadowCascadeTm[cascadeNo * 3], sizeof(Color4) * 3);
     }
     else
     {
       TMatrix4 tmp = invCascade0TexTm * texTm;
       Point4 off = tmp.getrow(3);
-      shadowCascadeRelativeScale[cascadeNo] = Color4(tmp[0][0], tmp[1][1], tmp[2][2], 1);
-      shadowCascadeRelativeOffset[cascadeNo] = Color4(off.x, off.y, off.z, 0);
+      shadowCascadeRelativeScaleAndNear[cascadeNo] = Color4(tmp[0][0], tmp[1][1], tmp[2][2], ss.from);
+      shadowCascadeRelativeOffsetAndFar[cascadeNo] = Color4(off.x, off.y, off.z, ss.to);
     }
   }
   for (unsigned int cascadeNo = numCascadesToRender; cascadeNo < CascadeShadows::MAX_CASCADES; cascadeNo++)
@@ -829,17 +859,6 @@ void CascadeShadowsPrivate::calcTMs()
     shadowCascadeTm[cascadeNo * 3 + 1] = Color4(0, 0, 0, 1);
     shadowCascadeTm[cascadeNo * 3 + 2] = Color4(0, 0, 0, 1);
     shadowCascadeTcMulOffset[cascadeNo] = Color4(1, 1, 1, 1);
-  }
-
-  shadowCascadeSplits[0] = Color4(0, 0, 0, 0);
-  shadowCascadeSplits[1] = Color4(0, 0, 0, 0);
-  for (int i = 0; i < numCascadesToRender && i < CascadeShadows::MAX_CASCADES; ++i)
-  {
-    float farDist = shadowSplits[i].to;
-    if (i < 4)
-      shadowCascadeSplits[0][i] = farDist;
-    else
-      shadowCascadeSplits[1][i - 4] = farDist;
   }
 }
 
@@ -958,13 +977,23 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
   v_stu(&shadowProjectionBox[0].x, v_frustumInLSBox.bmin);
   v_stu_p3(&shadowProjectionBox[1].x, v_frustumInLSBox.bmax);
 
-  if (anchor_radius > 0.0f)
+  bool isAnchored = anchor_radius > 0.0f;
+  if (isAnchored)
   {
     Point3 anchorPoint = shadowViewMatrix3 * anchor;
     shadowProjectionBox.lim[0].x = anchorPoint.x - anchor_radius;
     shadowProjectionBox.lim[0].y = anchorPoint.y - anchor_radius;
     shadowProjectionBox.lim[1].x = anchorPoint.x + anchor_radius;
     shadowProjectionBox.lim[1].y = anchorPoint.y + anchor_radius;
+
+    if (!settings.extendZBoxToNextCascade)
+    {
+      // from and to doesn't actually mean anything for anchored cascade cause it's always [znear, firstRegularCascadeDistance],
+      // but they're used to derive depth range of the projection.
+      // Real from and to are dot(anchorPoint +- anchor_radius * viewDir) but they're not needed to derive proper depth range.
+      shadowProjectionBox.lim[0].z = anchorPoint.z - anchor_radius;
+      shadowProjectionBox.lim[1].z = anchorPoint.z + anchor_radius;
+    }
   }
   else
   {
@@ -1046,6 +1075,24 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
   v_stu(&split.worldBox[0].x, v_add(frustumWorldBox.bmin, v_ldu(&camera_pos.x)));
   v_stu_p3(&split.worldBox[1].x, v_add(frustumWorldBox.bmax, v_ldu(&camera_pos.x)));
 
+  if (isAnchored)
+  {
+    // Anchored cascade is defined as light space axis aligned bbox with extent equal to anchor_radius.
+    // In a world space this box is aligned with sun direction so shadow region is trivial:
+    // - Silhouette planes are side planes of the orhto frustum
+    // - Back plane is far plane
+    // - Near plane is omitted
+    Frustum worldFrustum;
+    worldFrustum.construct(split.worldRenderMatrix);
+    split.shadowRegionPlaneCount = 5;
+    // Near and far are swapped for forward depth.
+    split.shadowRegionPlanes[0] = worldFrustum.camPlanes[Frustum::NEARPLANE];
+    split.shadowRegionPlanes[1] = worldFrustum.camPlanes[Frustum::TOP];
+    split.shadowRegionPlanes[2] = worldFrustum.camPlanes[Frustum::RIGHT];
+    split.shadowRegionPlanes[3] = worldFrustum.camPlanes[Frustum::BOTTOM];
+    split.shadowRegionPlanes[4] = worldFrustum.camPlanes[Frustum::LEFT];
+  }
+  else
   {
     Frustum worldFrustum;
     worldFrustum.construct(TMatrix4(view_matrix) * projTM);
@@ -1093,10 +1140,12 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
     // We classify faces relative to sun direction.
     for (int i = 0; i < 6; ++i)
     {
-      frontFace[i] = v_test_vec_x_lt_0(v_dot3_x(worldFrustum.camPlanes[i], v_dirToSun)) != 0;
+      frontFace[i] = v_test_vec_x_lt_0(v_dot3_x(worldFrustum.camPlanes[i], v_dirToSun));
       if (!frontFace[i])
         split.shadowRegionPlanes[split.shadowRegionPlaneCount++] = worldFrustum.camPlanes[i];
     }
+
+    split.shadowRegionBackPlaneCount = split.shadowRegionPlaneCount;
 
     for (int i = 0; i < 12; ++i)
     {
@@ -1186,29 +1235,19 @@ void CascadeShadowsPrivate::setFadeOutToShaders(float max_dist)
 }
 
 void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
-  const Color4 *shadow_cascade_splits, const Color4 *cascade_relative_scale, const Color4 *cascade_relative_offset,
-  const Color4 *atlas_tc_mul_offset, const Color4 *cascade_rcp_basis_length_sq)
+  const Color4 *cascade_relative_scale_and_near, const Color4 *cascade_relative_offset_and_far, const Color4 *atlas_tc_mul_offset,
+  const Color4 *cascade_rcp_basis_length_sq, const int manual_cascade_count)
 {
   if (csmBuffer)
   {
-    struct UploadData
-    {
-      Color4 cameraNearPlane;
-      Color4 cascade0Tm[3];
-      Color4 splits[2];
-      Color4 relativeScale[CascadeShadows::MAX_CASCADES];
-      Color4 relativeOffset[CascadeShadows::MAX_CASCADES];
-      Color4 tcMulOffset[CascadeShadows::MAX_CASCADES];
-      Color4 rcpBasisLengthSq[CascadeShadows::MAX_CASCADES];
-    };
-    UploadData uploadData;
+    CsmData uploadData;
     uploadData.cameraNearPlane = shadow_cascade_camera_near_plane;
     memcpy(uploadData.cascade0Tm, shadow_cascade_0_tm, sizeof(uploadData.cascade0Tm));
-    memcpy(uploadData.splits, shadow_cascade_splits, sizeof(uploadData.splits));
-    memcpy(uploadData.relativeScale, cascade_relative_scale, sizeof(uploadData.relativeScale));
-    memcpy(uploadData.relativeOffset, cascade_relative_offset, sizeof(uploadData.relativeOffset));
+    memcpy(uploadData.relativeScaleAndNear, cascade_relative_scale_and_near, sizeof(uploadData.relativeScaleAndNear));
+    memcpy(uploadData.relativeOffsetAndFar, cascade_relative_offset_and_far, sizeof(uploadData.relativeOffsetAndFar));
     memcpy(uploadData.tcMulOffset, atlas_tc_mul_offset, sizeof(uploadData.tcMulOffset));
     memcpy(uploadData.rcpBasisLengthSq, cascade_rcp_basis_length_sq, sizeof(uploadData.rcpBasisLengthSq));
+    uploadData.manualCascadeCount = manual_cascade_count;
     G_ASSERT_RETURN(csmBuffer, );
     csmBuffer->updateData(0, sizeof(uploadData), &uploadData, VBLOCK_DISCARD);
     ShaderGlobal::set_buffer(shadow_cascade_dataVarId, csmBuffer.getBufId());
@@ -1216,11 +1255,12 @@ void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_n
 
   ShaderGlobal::set_float4(shadow_cascade_camera_near_planeVarId, shadow_cascade_camera_near_plane);
   ShaderGlobal::set_float4_array(shadow_cascade_0_tmVarId, shadow_cascade_0_tm, 3);
-  ShaderGlobal::set_float4_array(shadow_cascade_splitsVarId, shadow_cascade_splits, 2);
-  ShaderGlobal::set_float4_array(shadow_cascade_relative_scaleVarId, cascade_relative_scale, maxCascadesPossible);
-  ShaderGlobal::set_float4_array(shadow_cascade_relative_offsetVarId, cascade_relative_offset, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_relative_scale_and_nearVarId, cascade_relative_scale_and_near, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_relative_offset_and_farVarId, cascade_relative_offset_and_far, maxCascadesPossible);
   ShaderGlobal::set_float4_array(shadow_cascade_tc_mul_offsetVarId, atlas_tc_mul_offset, maxCascadesPossible);
   ShaderGlobal::set_float4_array(shadow_cascade_rcp_basis_length_sqVarId, cascade_rcp_basis_length_sq, maxCascadesPossible);
+  ShaderGlobal::set_int(shadow_cascade_manual_cascade_countVarId, manual_cascade_count);
+  ShaderGlobal::set_int(has_manual_cascadesVarId, manual_cascade_count);
 }
 
 void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
@@ -1231,18 +1271,20 @@ void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
   // Cascade 0 bias propagates to cascade N: z = (f(z) + value) * mul + off = f(z) * mul + value * mul + off.
   // But we expect f(z) * mul + off + value. So we just compensate offset by value - value * mul = value * (1 - mul)
   for (int i = 1; i < numCascadesToRender; ++i)
-    shadowCascadeRelativeOffset[i].b += value * (1.0f - shadowCascadeRelativeScale[i].b);
+    shadowCascadeRelativeOffsetAndFar[i].b += value * (1.0f - shadowCascadeRelativeScaleAndNear[i].b);
 
-  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeSplits.data(), shadowCascadeRelativeScale.data(),
-    shadowCascadeRelativeOffset.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data());
+  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeRelativeScaleAndNear.data(),
+    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data(),
+    numManualCascades);
 }
 
 void CascadeShadowsPrivate::setCascadesToShader()
 {
   calcTMs();
 
-  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeSplits.data(), shadowCascadeRelativeScale.data(),
-    shadowCascadeRelativeOffset.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data());
+  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeRelativeScaleAndNear.data(),
+    shadowCascadeRelativeOffsetAndFar.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data(),
+    numManualCascades);
   ShaderGlobal::set_float4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
 }
 
@@ -1409,3 +1451,11 @@ const TextureInfo &CascadeShadows::getShadowCascadeTexInfo() const { return d->g
 
 const Point2 &CascadeShadows::getZnZf(int cascade_no) const { return d->getZnZf(cascade_no); }
 dag::ConstSpan<plane3f> CascadeShadows::getShadowRegionPlanes(int cascade_no) const { return d->getShadowRegionPlanes(cascade_no); }
+dag::ConstSpan<plane3f> CascadeShadows::getShadowRegionBackPlanes(int cascade_no) const
+{
+  return d->getShadowRegionBackPlanes(cascade_no);
+}
+dag::ConstSpan<plane3f> CascadeShadows::getShadowRegionSilhouettePlanes(int cascade_no) const
+{
+  return d->getShadowRegionSilhouettePlanes(cascade_no);
+}

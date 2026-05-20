@@ -59,7 +59,7 @@ void Module_dasIMGUI::initFunctions_7() {
 	makeExtern< bool (*)(const char *,const ImVec2 &,int) , ImGui::InvisibleButton , SimNode_ExtFuncCall , imguiTempFn>(lib,"InvisibleButton","ImGui::InvisibleButton")
 		->args({"str_id","size","flags"})
 		->arg_type(2,makeType<ImGuiButtonFlags_>(lib))
-		->arg_init(2,make_smart<ExprConstEnumeration>(0,makeType<ImGuiButtonFlags_>(lib)))
+		->arg_init(2,new ExprConstEnumeration(0,makeType<ImGuiButtonFlags_>(lib)))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:645:29
 	makeExtern< bool (*)(const char *,ImGuiDir) , ImGui::ArrowButton , SimNode_ExtFuncCall , imguiTempFn>(lib,"ArrowButton","ImGui::ArrowButton")
@@ -89,7 +89,7 @@ void Module_dasIMGUI::initFunctions_7() {
 // from imgui/imgui.h:651:29
 	makeExtern< void (*)(float,const ImVec2 &,const char *) , ImGui::ProgressBar , SimNode_ExtFuncCall , imguiTempFn>(lib,"ProgressBar","ImGui::ProgressBar")
 		->args({"fraction","size_arg","overlay"})
-		->arg_init(2,make_smart<ExprConstString>(""))
+		->arg_init(2,new ExprConstString(""))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:652:29
 	makeExtern< void (*)() , ImGui::Bullet , SimNode_ExtFuncCall , imguiTempFn>(lib,"Bullet","ImGui::Bullet")

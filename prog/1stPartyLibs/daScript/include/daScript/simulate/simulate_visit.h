@@ -33,7 +33,7 @@ namespace das {
         V_OP_TT(ForRange1);
         V_SP(this->stackTop[0]);
         V_SUB(this->sources[0]);
-        V_SUB(this->list[0]);
+        if (this->list) V_SUB(this->list[0]);
         V_FINAL();
         V_END();
     }
@@ -45,7 +45,7 @@ namespace das {
         V_OP_TT(ForRangeNF1);
         V_SP(this->stackTop[0]);
         V_SUB(this->sources[0]);
-        V_SUB(this->list[0]);
+        if (this->list) V_SUB(this->list[0]);
         V_FINAL();
         V_END();
     }

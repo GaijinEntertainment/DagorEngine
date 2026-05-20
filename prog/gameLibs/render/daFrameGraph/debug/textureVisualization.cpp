@@ -255,9 +255,9 @@ template <bool debug_focus = true>
 static dafg::NodeHandle makeDebugTextureCopyNode(const Selection &selection, dafg::InternalRegistry &internalRegistry,
   UniqueTex &texture, const char *texture_name)
 {
-  String nodeName({}, "debug_%s_copy_node", texture_name);
+  String nodeName({}, ".debug_%s_copy_node", texture_name);
   nodeName.replaceAll("/", "_");
-  String textureName({}, "debug_%s_copy", texture_name);
+  String textureName({}, ".debug_%s_copy", texture_name);
   textureName.replaceAll("/", "_");
   return dafg::register_node(nodeName, DAFG_PP_NODE_SRC,
     [selection, &internalRegistry, nodeName, &texture, textureName](dafg::Registry registry) {

@@ -76,6 +76,7 @@ struct BufferProcessor
   virtual bool isOneTimeOnly() const = 0;
   virtual bool isReady(const ProcessArgs &) const { return true; }
   virtual bool isGeneratingSecondaryVertices() const { return false; }
+  virtual uint32_t getOutputPositionFormat(uint32_t input_format) const { return input_format; }
   virtual bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const = 0;
 
@@ -117,6 +118,7 @@ struct SkinnedVertexProcessor : public BufferProcessor
   SkinnedVertexProcessor() : BufferProcessor("bvh_process_skinned_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -140,6 +142,7 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
   SkinnedVertexProcessorBatched() : BufferProcessor("bvh_process_skinned_vertices_batched") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -169,6 +172,7 @@ struct TreeVertexProcessor : public BufferProcessor
   TreeVertexProcessor() : BufferProcessor("bvh_process_tree_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -201,6 +205,7 @@ struct HeliRotorVertexProcessor : public BufferProcessor
   HeliRotorVertexProcessor() : BufferProcessor("bvh_process_heli_rotor_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -213,6 +218,7 @@ struct FlagVertexProcessor : public BufferProcessor
   FlagVertexProcessor() : BufferProcessor("bvh_process_flag_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -225,6 +231,7 @@ struct DeformedVertexProcessor : public BufferProcessor
   DeformedVertexProcessor() : BufferProcessor("bvh_process_deformed_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;
@@ -237,6 +244,7 @@ struct ImpostorVertexProcessor : public BufferProcessor
   ImpostorVertexProcessor() : BufferProcessor("bvh_process_impostor_vertices") {}
 
   bool isOneTimeOnly() const override { return true; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool isGeneratingSecondaryVertices() const override { return true; }
 
@@ -268,6 +276,7 @@ struct SplineGenVertexProcessor : public BufferProcessor
   SplineGenVertexProcessor() : BufferProcessor("bvh_process_splinegen_vertices") {}
 
   bool isOneTimeOnly() const override { return false; }
+  uint32_t getOutputPositionFormat(uint32_t) const override { return VSDT_FLOAT3; }
 
   bool process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
     UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const override;

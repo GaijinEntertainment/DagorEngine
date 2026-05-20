@@ -20,7 +20,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/unique_ptr.h>
-#include <EASTL/internal/fixed_pool.h> // aligned_buffer
+#include <EASTL/fixed_vector.h>
 #include <EASTL/fixed_string.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <util/dag_hash.h>
@@ -55,19 +55,14 @@ void sq_register_native_component(ecs::component_type_t type, SqPushCB cb)
   native_component_bindings.emplace(type, cb).first->second = cb;
 }
 
-static eastl::vector_map<HSQUIRRELVM, WinCritSec *> vm_critical_sections;
-
-void sqvm_enter_critical_section(HSQUIRRELVM vm, WinCritSec *sect)
+static eastl::vector_map<HSQUIRRELVM, WinCritSec *, eastl::less<HSQUIRRELVM>, EASTLAllocatorType,
+  eastl::fixed_vector<eastl::pair<HSQUIRRELVM, WinCritSec *>, 1>>
+  vm_critical_sections;
+void sqvm_register_critical_section(HSQUIRRELVM vm, WinCritSec &sect)
 {
-  G_ASSERT(vm_critical_sections.find(vm) == vm_critical_sections.end());
-  vm_critical_sections.emplace(vm, sect).first->second = sect;
+  vm_critical_sections.emplace(vm, &sect).first->second = &sect;
 }
-
-void sqvm_leave_critical_section(HSQUIRRELVM vm)
-{
-  G_ASSERT(vm_critical_sections.find(vm) != vm_critical_sections.end());
-  vm_critical_sections.erase(vm);
-}
+void sqvm_unregister_critical_section(HSQUIRRELVM vm) { vm_critical_sections.erase(vm); }
 
 struct ScopedLockVM
 {
@@ -76,10 +71,10 @@ struct ScopedLockVM
   ScopedLockVM(HSQUIRRELVM vm)
   {
     auto sectIt = vm_critical_sections.find(vm);
-    if (sectIt != vm_critical_sections.end())
-      critSect = sectIt->second;
-
-    if (critSect && !critSect->tryLock())
+    if (sectIt == vm_critical_sections.end())
+      return;
+    critSect = sectIt->second;
+    if (!critSect->tryLock())
     {
 #if DAGOR_DBGLEVEL > 0
       logerr("Script VM is running in a separate thread! Lock the main thread!");

@@ -60,6 +60,7 @@ public:
     SQCompilationContext &_ctx;
 
     void reportDiagnostic(int32_t id, ...);
+    void throwError(const char *fmt, ...);
 
     uint32_t _depth;
 
@@ -107,7 +108,7 @@ public:
     void ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger terminator);
 
     Decl *parseLocalDeclStatement(bool onlySingleVariable = false);
-    Decl *parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart);
+    Decl *parseLocalFunctionExprStmt(bool assignable, SourceLoc keywordStart, bool isAsync = false);
     Decl *parseLocalClassExprStmt(bool assignable, SourceLoc keywordStart);
     void parseDestructuringFields(DestructuringDecl *destr);
 

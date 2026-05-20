@@ -24,7 +24,7 @@ struct VideoPlayer final : public das::Module
     addBuiltinDependency(lib, require("DagorShaders"));
     addBuiltinDependency(lib, require("DagorDriver3D"));
 
-    addAnnotation(das::make_smart<IGenVideoPlayerAnnotation>(lib));
+    addAnnotation(new IGenVideoPlayerAnnotation(lib));
 
 #define BIND(fn, se) das::addExtern<DAS_BIND_FUN(IGenVideoPlayer::fn)>(*this, lib, #fn, se, "::IGenVideoPlayer::" #fn)
     BIND(create_av1_video_player, das::SideEffects::accessExternal);

@@ -6,30 +6,30 @@
 namespace das {
 
     // ExprVar, where name matches
-    bool isExpressionVariable(const ExpressionPtr & expr, const string & name);         // only var
-    bool isExpressionVariableDeref(const ExpressionPtr & expr, const string & name);    // r2v(var) or var
+    bool isExpressionVariable(ExpressionPtr expr, const string & name);         // only var
+    bool isExpressionVariableDeref(ExpressionPtr expr, const string & name);    // r2v(var) or var
     // ExprConstPtr, where value is nullptr
-    bool isExpressionNull(const ExpressionPtr & expr);
+    bool isExpressionNull(ExpressionPtr expr);
 
     // check if block is inferred enough to be promoted to lambda\local_function, return uninferred value or nullptr
     TypeDecl *isFullyInferredBlock ( ExprBlock * block );
 
     // make sure generated code contains line information etc
-    void verifyGenerated ( const ExpressionPtr & expr );
+    void verifyGenerated ( ExpressionPtr expr );
 
     // make sure fake context and fake line info are pre-assigned
     void assignDefaultArguments ( Function * func );
 
     // puts all expression's subexpressions at new location
-    ExpressionPtr forceAt ( const ExpressionPtr & expr, const LineInfo & at );
+    ExpressionPtr forceAt ( ExpressionPtr expr, const LineInfo & at );
     FunctionPtr forceAtFunction ( const FunctionPtr & func, const LineInfo & at );
 
     // change generated flag for all subexpressions and variables
-    ExpressionPtr forceGenerated ( const ExpressionPtr & expr, bool setGenerated );
+    ExpressionPtr forceGenerated ( ExpressionPtr expr, bool setGenerated );
     FunctionPtr forceGeneratedFunction ( const FunctionPtr & expr, bool setGenerated );
 
     // gives combined region for all subexpressions
-    LineInfo encloseAt ( const ExpressionPtr & expr );
+    LineInfo encloseAt ( ExpressionPtr expr );
 
     // replaces all occurrences of block argument name
     void renameBlockArgument ( ExprBlock * block, const string & name, const string & newName );
@@ -253,13 +253,13 @@ namespace das {
             ...
             deref(blah)
      */
-    DAS_API void replaceRef2Ptr ( const ExpressionPtr & expr, const string & name );
+    DAS_API void replaceRef2Ptr ( ExpressionPtr expr, const string & name );
 
     /*
         give variables in the scope of 'expr' block unique names
         only for the top-level block
      */
-    DAS_API void giveBlockVariablesUniqueNames  ( const ExpressionPtr & expr );
+    DAS_API void giveBlockVariablesUniqueNames  ( ExpressionPtr expr );
 
     /*
         replace break and continue of a particular loop

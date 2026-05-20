@@ -121,14 +121,14 @@ public:
     addBuiltinDependency(lib, require("DagorStdGuiRender"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
 
-    addEnumeration(das::make_smart<EnumerationInputDevice>());
+    addEnumeration(new EnumerationInputDevice());
 
-    addAnnotation(das::make_smart<ElemRenderDataAnnotation>(lib));
-    addAnnotation(das::make_smart<RenderStateAnnotation>(lib));
-    addAnnotation(das::make_smart<PropertiesAnnotation>(lib));
-    addAnnotation(das::make_smart<ScreenCoordAnnotation>(lib));
-    addAnnotation(das::make_smart<ElementAnnotation>(lib));
-    addAnnotation(das::make_smart<PictureAnnotation>(lib));
+    addAnnotation(new ElemRenderDataAnnotation(lib));
+    addAnnotation(new RenderStateAnnotation(lib));
+    addAnnotation(new PropertiesAnnotation(lib));
+    addAnnotation(new ScreenCoordAnnotation(lib));
+    addAnnotation(new ElementAnnotation(lib));
+    addAnnotation(new PictureAnnotation(lib));
 
 
     // Properties

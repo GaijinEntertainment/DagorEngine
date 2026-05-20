@@ -146,19 +146,18 @@ public:
   {
     das::ModuleLibrary lib(this);
 
-    addAnnotation(das::make_smart<SoundEventHandleAnnotation>(lib));
-    addAnnotation(das::make_smart<SoundVarIdAnnotation>(lib));
-    addAnnotation(das::make_smart<SoundEventAnnotation>(lib));
-    addAnnotation(das::make_smart<SoundGroupAnnotation>(lib));
-    addAnnotation(das::make_smart<VisualLabelAnnotation>(lib));
-    addAnnotation(das::make_smart<SoundEventsPreloadAnnotation>(lib));
-    addAnnotation(das::make_smart<SoundOcclusionBlobAnnotation>(lib));
+    addAnnotation(new SoundEventHandleAnnotation(lib));
+    addAnnotation(new SoundVarIdAnnotation(lib));
+    addAnnotation(new SoundEventAnnotation(lib));
+    addAnnotation(new SoundGroupAnnotation(lib));
+    addAnnotation(new VisualLabelAnnotation(lib));
+    addAnnotation(new SoundEventsPreloadAnnotation(lib));
+    addAnnotation(new SoundOcclusionBlobAnnotation(lib));
 
     das::addFunctionBasic<sndsys::EventHandle>(*this, lib);
     das::addFunctionBasic<SoundVarId>(*this, lib);
-    addFunction(
-      das::make_smart<das::BuiltInFn<das::Sim_BoolNot<sndsys::EventHandle>, bool, sndsys::EventHandle>>("!", lib, "BoolNot"));
-    addFunction(das::make_smart<das::BuiltInFn<das::Sim_BoolNot<SoundVarId>, bool, SoundVarId>>("!", lib, "BoolNot"));
+    addFunction(new das::BuiltInFn<das::Sim_BoolNot<sndsys::EventHandle>, bool, sndsys::EventHandle>("!", lib, "BoolNot"));
+    addFunction(new das::BuiltInFn<das::Sim_BoolNot<SoundVarId>, bool, SoundVarId>("!", lib, "BoolNot"));
 
     das::addCtorAndUsing<sndsys::VisualLabel>(*this, lib, "VisualLabel", "::sndsys::VisualLabel");
 

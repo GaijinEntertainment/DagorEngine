@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include "spinEditStandalone.h"
 #include "../tooltipHelper.h"
+#include <propPanel/control/spinEditStandalone.h>
 #include <propPanel/c_window_event_handler.h>
 #include <propPanel/imguiHelper.h>
 #include <imgui/imgui_internal.h>

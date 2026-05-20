@@ -251,3 +251,47 @@ def test_mkdir_result(t : T?) {
         t |> success(!empty(unsafe(r.error)), "error should be non-empty")
     }
 }
+
+// ---- fopen mode validation ----
+
+def expect_fopen_throws(t : T?; mode : string) {
+    var threw = false
+    try {
+        let f = fopen("_fopen_bad_mode_test_99999.tmp", mode)
+        if (f != null) {
+            fclose(f)
+        }
+    } recover {
+        threw = true
+    }
+    t |> success(threw, "fopen with mode '{mode}' should throw, not fail silently")
+}
+
+[test]
+def test_fopen_invalid_mode(t : T?) {
+    t |> run("empty mode throws") @(t : T?) {
+        expect_fopen_throws(t, "")
+    }
+    t |> run("unknown first char throws") @(t : T?) {
+        expect_fopen_throws(t, "q")
+    }
+    t |> run("unknown modifier throws") @(t : T?) {
+        expect_fopen_throws(t, "rX")
+    }
+    t |> run("garbage mode throws") @(t : T?) {
+        expect_fopen_throws(t, "zzz")
+    }
+    t |> run("valid mode does not throw") @(t : T?) {
+        var threw = false
+        try {
+            let f = fopen("_no_such_file_for_fopen_test_99999.xyz", "rb")
+            // missing file returns null, but must not throw
+            if (f != null) {
+                fclose(f)
+            }
+        } recover {
+            threw = true
+        }
+        t |> success(!threw, "valid mode should not throw even when file is missing")
+    }
+}

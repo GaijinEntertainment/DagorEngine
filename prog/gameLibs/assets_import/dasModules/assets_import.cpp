@@ -37,9 +37,9 @@ public:
   AssetsImportModule() : das::Module("AssetsImport")
   {
     das::ModuleLibrary lib(this);
-    addAnnotation(das::make_smart<DagorAssetAnnotation>(lib));
-    addAnnotation(das::make_smart<DagorAssetMgrAnnotation>(lib));
-    addEnumeration(das::make_smart<EnumerationAssetLoadingStatus>());
+    addAnnotation(new DagorAssetAnnotation(lib));
+    addAnnotation(new DagorAssetMgrAnnotation(lib));
+    addEnumeration(new EnumerationAssetLoadingStatus());
 
     using method_getName = DAS_CALL_MEMBER(DagorAsset::getName);
     das::addExtern<DAS_CALL_METHOD(method_getName)>(*this, lib, "getName", das::SideEffects::accessExternal,

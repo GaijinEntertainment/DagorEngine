@@ -38,8 +38,8 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("DagorDataBlock"));
     addBuiltinDependency(lib, require("DagorDataBlock"));
-    addAnnotation(das::make_smart<StrataCloudsAnnotation>(lib));
-    addAnnotation(das::make_smart<DngSkiesAnnotation>(lib));
+    addAnnotation(new StrataCloudsAnnotation(lib));
+    addAnnotation(new DngSkiesAnnotation(lib));
     das::addExtern<DAS_BIND_FUN(get_daskies_time)>(*this, lib, "get_daskies_time", das::SideEffects::accessExternal,
       "get_daskies_time");
     das::addExtern<DAS_BIND_FUN(set_daskies_time)>(*this, lib, "set_daskies_time", das::SideEffects::modifyExternal,

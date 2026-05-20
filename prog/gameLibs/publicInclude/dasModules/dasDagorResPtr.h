@@ -18,7 +18,7 @@ MAKE_TYPE_FACTORY(ManagedBufView, ManagedBufView)
 MAKE_TYPE_FACTORY(SharedTex, SharedTex);
 MAKE_TYPE_FACTORY(SharedTexHolder, SharedTexHolder);
 MAKE_TYPE_FACTORY(UniqueTex, UniqueTex);
-MAKE_TYPE_FACTORY(UniqueTexHolder, UniqueTexHolder);
+MAKE_TYPE_FACTORY(UniqueTexWithShaderVar, UniqueTexWithShaderVar);
 
 MAKE_TYPE_FACTORY(SharedBuf, SharedBuf);
 MAKE_TYPE_FACTORY(SharedBufHolder, SharedBufHolder);
@@ -51,7 +51,7 @@ static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
 
 #define MANAGED_TEX_TYPES         \
   MANAGED_TEX(SharedTexHolder, 1) \
-  MANAGED_TEX(UniqueTexHolder, 2)
+  MANAGED_TEX(UniqueTexWithShaderVar, 2)
 
 #define MANAGED_TEX(TYPE, suf)                                                                              \
   inline void create_tex##suf(TYPE &val, int w, int h, int flg, int levels, const char *name)               \

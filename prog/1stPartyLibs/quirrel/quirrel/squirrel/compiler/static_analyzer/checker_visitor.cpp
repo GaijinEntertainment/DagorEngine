@@ -41,6 +41,200 @@ static bool isAssignExpr(const Expr *expr) {
   return isAssignOp(expr->op());
 }
 
+static int directionFromValue(SQFloat value) {
+  if (value > 0)
+    return 1;
+  if (value < 0)
+    return -1;
+  return 0;
+}
+
+static bool isIdNamed(const Expr *expr, const char *name) {
+  expr = deparen(expr);
+  return expr && expr->op() == TO_ID && strcmp(expr->asId()->name(), name) == 0;
+}
+
+class CallExistsChecker : public Visitor
+{
+  bool result;
+
+public:
+  CallExistsChecker() : result(false) {}
+
+  void visitNode(Node *n) {
+    if (n->op() == TO_CALL) {
+      result = true;
+      return;
+    }
+
+    n->visitChildren(this);
+  }
+
+  bool check(const Expr *expr) {
+    result = false;
+    if (expr)
+      const_cast<Expr *>(expr)->visit(this);
+    return result;
+  }
+};
+
+static const char *getForLoopVariableName(Node *init) {
+  if (!init)
+    return nullptr;
+
+  if (init->op() == TO_ASSIGN) {
+    const Expr *lhs = deparen(static_cast<BinExpr *>(init)->lhs());
+    if (lhs && lhs->op() == TO_ID)
+      return lhs->asId()->name();
+  }
+
+  if (init->op() == TO_VAR) {
+    VarDecl *decl = static_cast<VarDecl *>(init);
+    return decl->name();
+  }
+
+  return nullptr;
+}
+
+static int getForLoopConditionDirection(const Expr *cond, const char *varname) {
+  cond = deparen(cond);
+  if (!cond || !isBoolRelationOperator(cond->op()))
+    return 0;
+
+  const BinExpr *bin = static_cast<const BinExpr *>(cond);
+  const bool lhsIsVar = isIdNamed(bin->lhs(), varname);
+  const bool rhsIsVar = isIdNamed(bin->rhs(), varname);
+
+  if (lhsIsVar == rhsIsVar)
+    return 0;
+
+  switch (cond->op())
+  {
+  case TO_LT:
+  case TO_LE:
+    return lhsIsVar ? 1 : -1;
+  case TO_GT:
+  case TO_GE:
+    return lhsIsVar ? -1 : 1;
+  default:
+    return 0;
+  }
+}
+
+struct SimpleCopy {
+  const Expr *lhs;
+  const Expr *rhs;
+  const Node *node;
+};
+
+static bool extractSimpleCopy(const Statement *stmt, SimpleCopy &copy) {
+  copy = { nullptr, nullptr, nullptr };
+
+  if (!stmt)
+    return false;
+
+  if (stmt->op() == TO_EXPR_STMT) {
+    const Expr *expr = static_cast<const ExprStatement *>(stmt)->expression();
+    if (expr && expr->op() == TO_ASSIGN) {
+      const BinExpr *assign = static_cast<const BinExpr *>(expr);
+      copy = { deparen(assign->lhs()), deparen(assign->rhs()), expr };
+      return copy.lhs && copy.rhs;
+    }
+  }
+
+  if (stmt->op() == TO_VAR) {
+    const VarDecl *decl = static_cast<const VarDecl *>(stmt);
+    copy = { decl->nameId(), deparen(decl->initializer()), decl };
+    return copy.rhs != nullptr;
+  }
+
+  if (stmt->op() == TO_DECL_GROUP) {
+    const DeclGroup *group = static_cast<const DeclGroup *>(stmt);
+    if (group->declarations().size() != 1)
+      return false;
+
+    const VarDecl *decl = group->declarations()[0];
+    copy = { decl->nameId(), deparen(decl->initializer()), decl };
+    return copy.rhs != nullptr;
+  }
+
+  return false;
+}
+
+static const char *runtimeTypeNames[] = {
+  "null",
+  "integer",
+  "float",
+  "bool",
+  "string",
+  "table",
+  "array",
+  "generator",
+  "function",
+  "userdata",
+  "thread",
+  "class",
+  "instance",
+  "weakref",
+  "outer",
+  nullptr
+};
+
+static bool isRuntimeTypeName(const char *name) {
+  for (const char **it = runtimeTypeNames; *it; ++it) {
+    if (strcmp(name, *it) == 0)
+      return true;
+  }
+
+  return false;
+}
+
+static size_t runtimeTypeSuggestionPrefixLength(const char *name) {
+  return strncmp(name, "in", 2) == 0 ? 3 : 2;
+}
+
+static const char *findRuntimeTypeSuggestion(const char *name) {
+  if (!name)
+    return nullptr;
+
+  const char *suggestion = nullptr;
+  const size_t nameLen = strlen(name);
+  for (const char **it = runtimeTypeNames; *it; ++it) {
+    const size_t prefixLen = runtimeTypeSuggestionPrefixLength(*it);
+    if (nameLen < prefixLen)
+      continue;
+
+    if (strncmp(name, *it, prefixLen) != 0)
+      continue;
+
+    if (suggestion)
+      return nullptr;
+
+    suggestion = *it;
+  }
+
+  return suggestion;
+}
+
+static bool startsWithLowercaseAscii(const char *name) {
+  return name && 'a' <= name[0] && name[0] <= 'z';
+}
+
+static const Expr *deparenStaticInline(const Expr *e) {
+  while (e && (e->op() == TO_PAREN || e->op() == TO_STATIC_MEMO || e->op() == TO_INLINE_CONST))
+    e = static_cast<const UnExpr *>(e)->argument();
+  return e;
+}
+
+static const LiteralExpr *findDirectStringLiteral(const Expr *e) {
+  e = deparenStaticInline(e);
+  if (!e || e->op() != TO_LITERAL)
+    return nullptr;
+
+  const LiteralExpr *lit = e->asLiteral();
+  return lit->kind() == LK_STRING ? lit : nullptr;
+}
+
 static bool looksLikeBooleanExpr(const Expr *e) {
   TreeOp op = e->op(); // -V522
   if (isBooleanResultOperator(op))
@@ -622,6 +816,36 @@ void CheckerVisitor::checkCanBeSimplified(const TerExpr *expr) {
   }
 }
 
+void CheckerVisitor::checkDuplicateTernaryCondition(const TerExpr *expr) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *condition = deparen(expr->a());
+
+  for (auto it = nodeStack.rbegin(); it != nodeStack.rend(); ++it) {
+    const StackSlot &slot = *it;
+    if (slot.sst != SST_NODE)
+      continue;
+
+    if (slot.n->op() == TO_FUNCTION)
+      break;
+
+    const Expr *outerCondition = nullptr;
+
+    if (slot.n->op() == TO_TERNARY)
+      outerCondition = static_cast<const TerExpr *>(slot.n)->a();
+    else if (slot.n->op() == TO_IF)
+      outerCondition = static_cast<const IfStatement *>(slot.n)->condition();
+    else
+      continue;
+
+    if (_equalChecker.check(deparen(outerCondition), condition)) {
+      report(expr->a(), DiagnosticsId::DI_DUPLICATE_TERNARY_CONDITION);
+      return;
+    }
+  }
+}
+
 void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
 
   if (isEffectsGatheringPass)
@@ -631,49 +855,111 @@ void CheckerVisitor::checkAlwaysTrueOrFalse(const BinExpr *bin) {
   if (op != TO_ANDAND && op != TO_OROR)
     return;
 
-  const Expr *lhs = bin->lhs();
-  const Expr *rhs = bin->rhs();
+  const Expr *lhs = deparen(bin->lhs());
+  const Expr *rhs = deparen(bin->rhs());
 
-  TreeOp cmpOp = lhs->op();
-  if (cmpOp == rhs->op() && (cmpOp == TO_NE || cmpOp == TO_EQ)) {
-    const char *constValue = nullptr;
+  if (!lhs || !rhs)
+    return;
 
-    if (op == TO_ANDAND && cmpOp == TO_EQ)
-      constValue = "false";
+  const char *constValue = op == TO_ANDAND ? "false" : "true";
 
-    if (op == TO_OROR && cmpOp == TO_NE)
-      constValue = "true";
+  auto isEqualityComparison = [](const Expr *e) {
+    e = deparen(e);
+    return e && (e->op() == TO_EQ || e->op() == TO_NE);
+  };
 
-    if (!constValue)
-      return;
+  auto isConstExpr = [](const Expr *e) {
+    e = deparen(e);
+    return e && (e->op() == TO_LITERAL || isUpperCaseIdentifier(e));
+  };
 
-    const BinExpr *lhsBin = static_cast<const BinExpr *>(lhs);
-    const BinExpr *rhsBin = static_cast<const BinExpr *>(rhs);
+  auto reportIfContradictingComparisons = [&](const BinExpr *lhsBin, const BinExpr *rhsBin) {
+    TreeOp lhsOp = lhsBin->op();
+    TreeOp rhsOp = rhsBin->op();
+    const Expr *lconst = deparen(lhsBin->rhs());
+    const Expr *rconst = deparen(rhsBin->rhs());
 
-    const Expr *lconst = lhsBin->rhs();
-    const Expr *rconst = rhsBin->rhs();
+    if (isConstExpr(lconst) && isConstExpr(rconst)) {
+      if (_equalChecker.check(deparen(lhsBin->lhs()), deparen(rhsBin->lhs()))) {
+        bool sameConst = _equalChecker.check(lconst, rconst);
+        bool alwaysResult = false;
 
-    if (lconst->op() == TO_LITERAL || isUpperCaseIdentifier(lconst)) {
-      if (rconst->op() == TO_LITERAL || isUpperCaseIdentifier(rconst)) {
-        if (_equalChecker.check(lhsBin->lhs(), rhsBin->lhs())) {
-          if (!_equalChecker.check(lconst, rconst)) {
-            report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, constValue);
-          }
+        if (op == TO_ANDAND) {
+          alwaysResult = (lhsOp == TO_EQ && rhsOp == TO_EQ && !sameConst) ||
+            (lhsOp != rhsOp && sameConst);
+        }
+        else {
+          alwaysResult = (lhsOp == TO_NE && rhsOp == TO_NE && !sameConst) ||
+            (lhsOp != rhsOp && sameConst);
+        }
+
+        if (alwaysResult) {
+          report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, constValue);
+          return true;
         }
       }
     }
-  }
-  else if ((lhs->op() == TO_NOT || rhs->op() == TO_NOT) && (lhs->op() != rhs->op())) {
+
+    return false;
+  };
+
+  auto findContradictingComparison = [&](auto &&self, const Expr *expr, const BinExpr *cmp) -> bool {
+    expr = deparen(expr);
+
+    if (!expr)
+      return false;
+
+    if (expr->op() == op) {
+      const BinExpr *chain = expr->asBinExpr();
+      return self(self, chain->lhs(), cmp) || self(self, chain->rhs(), cmp);
+    }
+
+    if (isEqualityComparison(expr))
+      return reportIfContradictingComparisons(expr->asBinExpr(), cmp);
+
+    return false;
+  };
+
+  auto findContradictingComparisons = [&](auto &&self, const Expr *lhsExpr, const Expr *rhsExpr) -> bool {
+    lhsExpr = deparen(lhsExpr);
+    rhsExpr = deparen(rhsExpr);
+
+    if (!lhsExpr || !rhsExpr)
+      return false;
+
+    if (isEqualityComparison(lhsExpr))
+      return findContradictingComparison(findContradictingComparison, rhsExpr, lhsExpr->asBinExpr());
+
+    if (lhsExpr->op() == op) {
+      const BinExpr *chain = lhsExpr->asBinExpr();
+      return self(self, chain->lhs(), rhsExpr) || self(self, chain->rhs(), rhsExpr);
+    }
+
+    if (isEqualityComparison(rhsExpr))
+      return findContradictingComparison(findContradictingComparison, lhsExpr, rhsExpr->asBinExpr());
+
+    if (rhsExpr->op() == op) {
+      const BinExpr *chain = rhsExpr->asBinExpr();
+      return self(self, lhsExpr, chain->lhs()) || self(self, lhsExpr, chain->rhs());
+    }
+
+    return false;
+  };
+
+  if (findContradictingComparisons(findContradictingComparisons, lhs, rhs))
+    return;
+
+  if ((lhs->op() == TO_NOT || rhs->op() == TO_NOT) && (lhs->op() != rhs->op())) {
     const char *v = op == TO_OROR ? "true" : "false";
     if (lhs->op() == TO_NOT) {
       const UnExpr *u = static_cast<const UnExpr *>(lhs);
-      if (_equalChecker.check(u->argument(), rhs)) {
+      if (_equalChecker.check(deparen(u->argument()), rhs)) {
         report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, v);
       }
     }
     if (rhs->op() == TO_NOT) {
       const UnExpr *u = static_cast<const UnExpr *>(rhs);
-      if (_equalChecker.check(lhs, u->argument())) {
+      if (_equalChecker.check(lhs, deparen(u->argument()))) {
         report(bin, DiagnosticsId::DI_ALWAYS_T_OR_F, v);
       }
     }
@@ -1034,6 +1320,168 @@ void CheckerVisitor::checkBoolToStrangePosition(const BinExpr *bin) {
   if (looksLikeBooleanExpr(rhs)) {
     report(bin, DiagnosticsId::DI_BOOL_PASSED_TO_STRANGE, bin->op() == TO_IN ? "in" : "instanceof");
   }
+}
+
+bool CheckerVisitor::isTypeFunctionResult(const Expr *e) {
+  e = maybeEval(e);
+  e = deparenStaticInline(e);
+  if (!e || e->op() != TO_CALL)
+    return false;
+
+  const CallExpr *call = e->asCallExpr();
+  if (call->arguments().size() != 1)
+    return false;
+
+  const Expr *callee = maybeEval(call->callee());
+  callee = deparenStaticInline(callee);
+  if (!callee || callee->op() != TO_ID || strcmp(callee->asId()->name(), "type") != 0)
+    return false;
+
+  const ValueRef *typeValue = findValueInScopes("type");
+  return !typeValue || (typeValue->info && typeValue->info->kind == SK_IMPORT && typeValue->info->declarator.imp == nullptr);
+}
+
+bool CheckerVisitor::isTypeofResult(const Expr *e) {
+  e = maybeEval(e);
+  e = deparenStaticInline(e);
+  return e && e->op() == TO_TYPEOF;
+}
+
+const LiteralExpr *CheckerVisitor::findStringLiteral(const Expr *e) {
+  e = maybeEval(e);
+  e = deparenStaticInline(e);
+  if (!e || e->op() != TO_LITERAL)
+    return nullptr;
+
+  const LiteralExpr *lit = e->asLiteral();
+  return lit->kind() == LK_STRING ? lit : nullptr;
+}
+
+void CheckerVisitor::checkRuntimeTypeLiteral(const LiteralExpr *lit) {
+  if (!lit || isRuntimeTypeName(lit->s()))
+    return;
+
+  char suggestionText[64] = ".";
+  if (const char *suggestion = findRuntimeTypeSuggestion(lit->s()))
+    snprintf(suggestionText, sizeof(suggestionText), ". Did you mean '%s'?", suggestion);
+
+  report(lit, DiagnosticsId::DI_INVALID_TYPE_STRING, lit->s(), suggestionText);
+}
+
+void CheckerVisitor::checkRuntimeTypeLiteralContainer(const Expr *e) {
+  e = maybeEval(e);
+  e = deparenStaticInline(e);
+  if (!e)
+    return;
+
+  if (e->op() == TO_TABLE) {
+    const TableExpr *table = e->asTableExpr();
+    for (const TableMember &member : table->members())
+      checkRuntimeTypeLiteral(findStringLiteral(member.key));
+    return;
+  }
+
+  if (e->op() == TO_ARRAY) {
+    const ArrayExpr *array = static_cast<const ArrayExpr *>(e);
+    for (const Expr *value : array->initializers())
+      checkRuntimeTypeLiteral(findStringLiteral(value));
+    return;
+  }
+
+  if (e->op() == TO_CALL) {
+    const CallExpr *call = e->asCallExpr();
+    if (!call->arguments().empty())
+      return;
+
+    const Expr *callee = deparenStaticInline(call->callee());
+    if (!callee || callee->op() != TO_GETFIELD)
+      return;
+
+    const GetFieldExpr *field = callee->asGetField();
+    if (strcmp(field->fieldName(), "totable") == 0)
+      checkRuntimeTypeLiteralContainer(field->receiver());
+  }
+}
+
+void CheckerVisitor::checkRuntimeTypeofLiteral(const LiteralExpr *lit) {
+  if (!lit || !startsWithLowercaseAscii(lit->s()) || isRuntimeTypeName(lit->s()))
+    return;
+
+  const char *suggestion = findRuntimeTypeSuggestion(lit->s());
+  if (!suggestion)
+    return;
+
+  char suggestionText[64];
+  snprintf(suggestionText, sizeof(suggestionText), ". Did you mean '%s'?", suggestion);
+  report(lit, DiagnosticsId::DI_INVALID_TYPEOF_STRING, lit->s(), suggestionText);
+}
+
+void CheckerVisitor::checkRuntimeTypeofLiteralContainer(const Expr *e) {
+  e = deparenStaticInline(e);
+  if (!e)
+    return;
+
+  if (e->op() == TO_TABLE) {
+    const TableExpr *table = e->asTableExpr();
+    for (const TableMember &member : table->members())
+      checkRuntimeTypeofLiteral(findDirectStringLiteral(member.key));
+    return;
+  }
+
+  if (e->op() == TO_ARRAY) {
+    const ArrayExpr *array = static_cast<const ArrayExpr *>(e);
+    for (const Expr *value : array->initializers())
+      checkRuntimeTypeofLiteral(findDirectStringLiteral(value));
+    return;
+  }
+
+  if (e->op() == TO_CALL) {
+    const CallExpr *call = e->asCallExpr();
+    if (!call->arguments().empty())
+      return;
+
+    const Expr *callee = deparenStaticInline(call->callee());
+    if (!callee || callee->op() != TO_GETFIELD)
+      return;
+
+    const GetFieldExpr *field = callee->asGetField();
+    if (strcmp(field->fieldName(), "totable") == 0)
+      checkRuntimeTypeofLiteralContainer(field->receiver());
+  }
+}
+
+void CheckerVisitor::checkInvalidTypeString(const BinExpr *expr) {
+  TreeOp op = expr->op();
+  if (op == TO_EQ || op == TO_NE) {
+    const Expr *lhs = expr->lhs();
+    const Expr *rhs = expr->rhs();
+
+    if (isTypeFunctionResult(lhs))
+      checkRuntimeTypeLiteral(findStringLiteral(rhs));
+    if (isTypeFunctionResult(rhs))
+      checkRuntimeTypeLiteral(findStringLiteral(lhs));
+    return;
+  }
+
+  if (op == TO_IN && isTypeFunctionResult(expr->lhs()))
+    checkRuntimeTypeLiteralContainer(expr->rhs());
+}
+
+void CheckerVisitor::checkInvalidTypeofString(const BinExpr *expr) {
+  TreeOp op = expr->op();
+  if (op == TO_EQ || op == TO_NE) {
+    const Expr *lhs = expr->lhs();
+    const Expr *rhs = expr->rhs();
+
+    if (isTypeofResult(lhs))
+      checkRuntimeTypeofLiteral(findDirectStringLiteral(rhs));
+    if (isTypeofResult(rhs))
+      checkRuntimeTypeofLiteral(findDirectStringLiteral(lhs));
+    return;
+  }
+
+  if (op == TO_IN && isTypeofResult(expr->lhs()))
+    checkRuntimeTypeofLiteralContainer(expr->rhs());
 }
 
 static const char *tryExtractKeyName(const Expr *e) {
@@ -2010,6 +2458,8 @@ void CheckerVisitor::visitBinExpr(BinExpr *expr) {
   checkShiftPriority(expr);
   checkCompareWithContainer(expr);
   checkBoolToStrangePosition(expr);
+  checkInvalidTypeString(expr);
+  checkInvalidTypeofString(expr);
   checkNewSlotNameMatch(expr);
   checkPlusString(expr);
   checkNewGlobalSlot(expr);
@@ -2059,6 +2509,7 @@ void CheckerVisitor::visitTerExpr(TerExpr *expr) {
   checkSameValues(expr);
   checkAlwaysTrueOrFalse(expr);
   checkCanBeSimplified(expr);
+  checkDuplicateTernaryCondition(expr);
 
   nodeStack.push_back({ SST_NODE, expr });
 
@@ -2292,6 +2743,23 @@ void CheckerVisitor::checkDuplicateIfBranches(IfStatement *ifStmt) {
   }
 }
 
+static bool isSyntheticSingleStatementBlock(const Statement *stmt) {
+  if (!stmt || stmt->op() != TO_BLOCK)
+    return false;
+
+  const Block *b = stmt->asBlock();
+
+  if (b->statements().size() != 1)
+    return false;
+
+  const Statement *wrapped = b->statements().back();
+
+  return stmt->lineStart() == wrapped->lineStart()
+    && stmt->lineEnd() == wrapped->lineEnd()
+    && stmt->columnStart() == wrapped->columnStart()
+    && stmt->columnEnd() == wrapped->columnEnd();
+}
+
 void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
 
   if (isEffectsGatheringPass)
@@ -2305,6 +2773,206 @@ void CheckerVisitor::checkDuplicateIfConditions(IfStatement *ifStmt) {
       // TODO: high-light both conditions, original and duplicated
       report(duplicated, DiagnosticsId::DI_DUPLICATE_IF_EXPR);
     }
+  }
+}
+
+static bool isSimpleDeclarationWithoutCalls(const Statement *stmt) {
+  if (!stmt)
+    return false;
+
+  if (stmt->op() == TO_VAR) {
+    const VarDecl *decl = static_cast<const VarDecl *>(stmt);
+    return !CallExistsChecker().check(decl->initializer());
+  }
+
+  if (stmt->op() == TO_DECL_GROUP) {
+    const DeclGroup *group = static_cast<const DeclGroup *>(stmt);
+
+    for (const VarDecl *decl : group->declarations()) {
+      if (CallExistsChecker().check(decl->initializer()))
+        return false;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+static const IfStatement *findFirstEligibleNestedIf(const Statement *branch) {
+  if (!branch || branch->op() != TO_BLOCK)
+    return nullptr;
+
+  if (isSyntheticSingleStatementBlock(branch))
+    return nullptr;
+
+  const Block *block = branch->asBlock();
+
+  for (const Statement *stmt : block->statements()) {
+    if (stmt->op() == TO_IF)
+      return static_cast<const IfStatement *>(stmt);
+
+    if (!isSimpleDeclarationWithoutCalls(stmt))
+      return nullptr;
+  }
+
+  return nullptr;
+}
+
+static const Expr *findRepeatedConditionAtom(const Expr *outer, const Expr *inner, const NodeEqualChecker &equalChecker) {
+  const Expr *atom = deparen(inner);
+  outer = deparen(outer);
+
+  if (!atom || !outer)
+    return nullptr;
+
+  if (equalChecker.check(outer, atom))
+    return atom;
+
+  if (atom->op() == TO_ANDAND) {
+    const BinExpr *bin = static_cast<const BinExpr *>(atom);
+
+    if (const Expr *left = findRepeatedConditionAtom(outer, bin->lhs(), equalChecker))
+      return left;
+
+    return findRepeatedConditionAtom(outer, bin->rhs(), equalChecker);
+  }
+
+  return nullptr;
+}
+
+void CheckerVisitor::checkRepeatedNestedIfConditions(IfStatement *ifStmt) {
+
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *outerCondition = ifStmt->condition();
+  const IfStatement *nestedIfs[] = {
+    findFirstEligibleNestedIf(ifStmt->thenBranch()),
+    findFirstEligibleNestedIf(ifStmt->elseBranch())
+  };
+
+  for (const IfStatement *nestedIf : nestedIfs) {
+    if (!nestedIf)
+      continue;
+
+    if (const Expr *repeated = findRepeatedConditionAtom(outerCondition, nestedIf->condition(), _equalChecker))
+      report(repeated, DiagnosticsId::DI_REPEATED_CONDITION);
+  }
+}
+
+void CheckerVisitor::checkSubsumedIfConditions(IfStatement *ifStmt) {
+
+  if (isEffectsGatheringPass)
+    return;
+
+  struct RelationalCondition
+  {
+    const Expr *condition;
+    const Expr *checkee;
+    double bound;
+    bool greater;
+    bool inclusive;
+  };
+
+  auto getNumericBound = [&](auto &&self, const Expr *expr, double &bound) -> bool {
+    expr = maybeEval(deparen(expr));
+    if (!expr)
+      return false;
+
+    if (expr->op() == TO_NEG) {
+      if (!self(self, static_cast<const UnExpr *>(expr)->argument(), bound))
+        return false;
+
+      bound = -bound;
+      return true;
+    }
+
+    if (expr->op() != TO_LITERAL)
+      return false;
+
+    const LiteralExpr *lit = expr->asLiteral();
+    if (lit->kind() == LK_INT) {
+      bound = static_cast<double>(lit->i());
+      return true;
+    }
+    if (lit->kind() == LK_FLOAT) {
+      bound = static_cast<double>(lit->f());
+      return true;
+    }
+
+    return false;
+  };
+
+  auto extractRelationalCondition = [&](const Expr *condition, RelationalCondition &result) {
+    condition = deparen(condition);
+    if (!condition || !isBoolRelationOperator(condition->op()))
+      return false;
+
+    result.condition = condition;
+    const BinExpr *bin = condition->asBinExpr();
+    const Expr *lhs = deparen(bin->lhs());
+    const Expr *rhs = deparen(bin->rhs());
+    double lhsBound = 0;
+    double rhsBound = 0;
+    bool lhsIsBound = getNumericBound(getNumericBound, lhs, lhsBound);
+    bool rhsIsBound = getNumericBound(getNumericBound, rhs, rhsBound);
+
+    if (rhsIsBound && !lhsIsBound) {
+      result.checkee = lhs;
+      result.bound = rhsBound;
+      result.greater = bin->op() == TO_GT || bin->op() == TO_GE;
+      result.inclusive = bin->op() == TO_GE || bin->op() == TO_LE;
+      return result.checkee != nullptr;
+    }
+
+    if (lhsIsBound && !rhsIsBound) {
+      result.checkee = rhs;
+      result.bound = lhsBound;
+      result.greater = bin->op() == TO_LT || bin->op() == TO_LE;
+      result.inclusive = bin->op() == TO_LE || bin->op() == TO_GE;
+      return result.checkee != nullptr;
+    }
+
+    return false;
+  };
+
+  auto subsumes = [](const RelationalCondition &earlier, const RelationalCondition &later) {
+    if (earlier.greater != later.greater)
+      return false;
+
+    if (later.bound == earlier.bound)
+      return earlier.inclusive || !later.inclusive;
+
+    return earlier.greater ? later.bound > earlier.bound : later.bound < earlier.bound;
+  };
+
+  RelationalCondition first;
+  if (!extractRelationalCondition(ifStmt->condition(), first))
+    return;
+
+  std::vector<RelationalCondition> earlierConditions;
+  earlierConditions.push_back(first);
+
+  for (const Statement *elseB = unwrapSingleBlock(ifStmt->elseBranch()); elseB && elseB->op() == TO_IF;) {
+    const IfStatement *elseIf = static_cast<const IfStatement *>(elseB);
+    RelationalCondition later;
+
+    if (extractRelationalCondition(elseIf->condition(), later)) {
+      for (const RelationalCondition &earlier : earlierConditions) {
+        if (!_equalChecker.check(earlier.condition, deparen(elseIf->condition())) &&
+            _equalChecker.check(earlier.checkee, later.checkee) &&
+            subsumes(earlier, later)) {
+          if (reportedSubsumedIfConditions.emplace(later.condition).second)
+            report(elseIf->condition(), DiagnosticsId::DI_SUBSUMED_IF_EXPR);
+          return;
+        }
+      }
+
+      earlierConditions.push_back(later);
+    }
+
+    elseB = unwrapSingleBlock(elseIf->elseBranch());
   }
 }
 
@@ -2416,6 +3084,107 @@ void CheckerVisitor::checkVariableMismatchForLoop(ForStatement *loop) {
   }
 }
 
+int CheckerVisitor::getNumericExpressionDirection(const Expr *expr) {
+  expr = maybeEval(expr);
+  expr = deparenStatic(expr);
+  if (!expr)
+    return 0;
+
+  if (expr->op() == TO_LITERAL) {
+    const LiteralExpr *lit = expr->asLiteral();
+    if (lit->kind() == LK_INT)
+      return directionFromValue((SQFloat)lit->i());
+    if (lit->kind() == LK_FLOAT)
+      return directionFromValue(lit->f());
+    return 0;
+  }
+
+  if (expr->op() == TO_NEG)
+    return -getNumericExpressionDirection(static_cast<const UnExpr *>(expr)->argument());
+
+  if (expr->op() == TO_ADD || expr->op() == TO_SUB) {
+    const BinExpr *bin = static_cast<const BinExpr *>(expr);
+    int lhsDirection = getNumericExpressionDirection(bin->lhs());
+    int rhsDirection = getNumericExpressionDirection(bin->rhs());
+
+    if (expr->op() == TO_SUB)
+      rhsDirection = -rhsDirection;
+
+    if (lhsDirection != 0 && lhsDirection == rhsDirection)
+      return lhsDirection;
+  }
+
+  return 0;
+}
+
+int CheckerVisitor::getForLoopAssignmentDirection(const Expr *rhs, const char *varname) {
+  rhs = deparen(rhs);
+  if (!rhs)
+    return 0;
+
+  if (rhs->op() == TO_ADD) {
+    const BinExpr *bin = static_cast<const BinExpr *>(rhs);
+    if (isIdNamed(bin->lhs(), varname))
+      return getNumericExpressionDirection(bin->rhs());
+    if (isIdNamed(bin->rhs(), varname))
+      return getNumericExpressionDirection(bin->lhs());
+  }
+
+  if (rhs->op() == TO_SUB) {
+    const BinExpr *bin = static_cast<const BinExpr *>(rhs);
+    if (isIdNamed(bin->lhs(), varname))
+      return -getNumericExpressionDirection(bin->rhs());
+  }
+
+  return 0;
+}
+
+int CheckerVisitor::getForLoopModifierDirection(const Expr *mod, const char *varname) {
+  mod = deparen(mod);
+  if (!mod)
+    return 0;
+
+  if (mod->op() == TO_INC) {
+    const IncExpr *inc = static_cast<const IncExpr *>(mod);
+    if (isIdNamed(inc->argument(), varname))
+      return directionFromValue((SQFloat)inc->diff());
+    return 0;
+  }
+
+  if (!isAssignExpr(mod))
+    return 0;
+
+  const BinExpr *bin = static_cast<const BinExpr *>(mod);
+  if (!isIdNamed(bin->lhs(), varname))
+    return 0;
+
+  switch (mod->op())
+  {
+  case TO_ASSIGN:
+    return getForLoopAssignmentDirection(bin->rhs(), varname);
+  case TO_PLUSEQ:
+    return getNumericExpressionDirection(bin->rhs());
+  case TO_MINUSEQ:
+    return -getNumericExpressionDirection(bin->rhs());
+  default:
+    return 0;
+  }
+}
+
+void CheckerVisitor::checkForLoopDirection(ForStatement *loop) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const char *varname = getForLoopVariableName(loop->initializer());
+  if (!varname)
+    return;
+
+  const int conditionDirection = getForLoopConditionDirection(loop->condition(), varname);
+  const int modifierDirection = getForLoopModifierDirection(loop->modifier(), varname);
+  if (conditionDirection != 0 && modifierDirection != 0 && conditionDirection != modifierDirection)
+    report(loop->modifier(), DiagnosticsId::DI_FOR_DIRECTION);
+}
+
 void CheckerVisitor::checkUnterminatedLoop(LoopStatement *loop) {
 
   if (isEffectsGatheringPass)
@@ -2507,6 +3276,35 @@ void CheckerVisitor::checkAssignedTwice(const Block *b) {
           break;
         }
       }
+    }
+  }
+}
+
+void CheckerVisitor::checkAssignedBack(const Block *b) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const auto &statements = b->statements();
+  SimpleCopy prev;
+  bool hasPrev = false;
+
+  for (Statement *stmt : statements) {
+    if (stmt->op() == TO_EMPTY)
+      continue;
+
+    SimpleCopy cur;
+    if (extractSimpleCopy(stmt, cur)) {
+      if (hasPrev && cur.node->op() == TO_ASSIGN &&
+          _equalChecker.check(prev.lhs, cur.rhs) &&
+          _equalChecker.check(prev.rhs, cur.lhs)) {
+        report(cur.node, DiagnosticsId::DI_ASSIGNED_BACK);
+      }
+
+      prev = cur;
+      hasPrev = true;
+    }
+    else {
+      hasPrev = false;
     }
   }
 }
@@ -2703,7 +3501,10 @@ void CheckerVisitor::checkUnutilizedResult(const ExprStatement *s) {
       report(e, DiagnosticsId::DI_NAME_LIKE_SHOULD_RETURN, calleeName);
     }
   }
-  else if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE) {
+  else if (!isAssignExpr(e) && e->op() != TO_INC && e->op() != TO_NEWSLOT && e->op() != TO_DELETE
+           && e->op() != TO_AWAIT && e->op() != TO_YIELD) {
+    // TO_AWAIT / TO_YIELD: the suspension itself is the effect, even when the
+    // resumed value is discarded (e.g. `await delay(0)` as a barrier).
     report(s, DiagnosticsId::DI_UNUTILIZED_EXPRESSION);
   }
 }
@@ -2754,6 +3555,7 @@ void CheckerVisitor::visitBlock(Block *b) {
   checkForgottenDo(b);
   checkUnreachableCode(b);
   checkAssignedTwice(b);
+  checkAssignedBack(b);
   checkFunctionSimilarity(b);
   checkAssignExpressionSimilarity(b);
 
@@ -2785,6 +3587,7 @@ void CheckerVisitor::visitBlock(Block *b) {
 void CheckerVisitor::visitForStatement(ForStatement *loop) {
   checkUnterminatedLoop(loop);
   checkVariableMismatchForLoop(loop);
+  checkForLoopDirection(loop);
   checkSuspiciousFormatting(loop->body(), loop);
 
   VarScope *trunkScope = currentScope;
@@ -3475,6 +4278,8 @@ void CheckerVisitor::speculateIfConditionHeuristics(const Expr *cond, VarScope *
 void CheckerVisitor::visitIfStatement(IfStatement *ifstmt) {
   checkEmptyThenBody(ifstmt);
   checkDuplicateIfConditions(ifstmt);
+  checkRepeatedNestedIfConditions(ifstmt);
+  checkSubsumedIfConditions(ifstmt);
   checkDuplicateIfBranches(ifstmt);
   checkAlwaysTrueOrFalse(ifstmt->condition());
   checkSuspiciousFormatting(ifstmt->thenBranch(), ifstmt);
@@ -3789,6 +4594,8 @@ void CheckerVisitor::visitClassExpr(ClassExpr *klass) {
 }
 
 void CheckerVisitor::visitFunctionExpr(FunctionExpr *func) {
+  nodeStack.push_back({ SST_NODE, func });
+
   VarScope *parentScope = currentScope;
   VarScope *copyScope = parentScope->copy(arena, true);
   VarScope functionScope(func, copyScope);
@@ -3823,6 +4630,8 @@ void CheckerVisitor::visitFunctionExpr(FunctionExpr *func) {
 
   currentInfo = oldInfo;
   currentScope = parentScope;
+
+  nodeStack.pop_back();
 }
 
 ValueRef *CheckerVisitor::findValueInScopes(const char *ref) {

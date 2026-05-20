@@ -40,6 +40,7 @@ static bool bvh_discard_destr_assets = false;
 static int dyn_single_lod_filter_max_faces = 0;
 static float dyn_single_lod_filter_max_range = 0;
 
+static bool dyn_enable_caching = true;
 
 void wait_tidy_up_skins();
 
@@ -307,12 +308,15 @@ static void on_relem_changed_all(const DynamicRenderableSceneLodsResource *resou
 }
 
 void wait_dynrend_instances();
+void wait_animchar_instances();
 
-void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, bool discard_destr_assets)
+void init(const AdditionalSettings &settings) // int single_lod_filter_max_faces, float single_lod_filter_max_range, bool
+                                              // discard_destr_assets)
 {
-  dyn_single_lod_filter_max_faces = single_lod_filter_max_faces;
-  dyn_single_lod_filter_max_range = single_lod_filter_max_range;
-  bvh_discard_destr_assets = discard_destr_assets;
+  dyn_single_lod_filter_max_faces = settings.singleLodFilterMaxFaces;
+  dyn_single_lod_filter_max_range = settings.singleLodFilterMaxRange;
+  bvh_discard_destr_assets = settings.discardDestrAssets;
+  dyn_enable_caching = settings.enableCaching;
   relem_changed_token = unitedvdata::dmUnitedVdata.on_mesh_relems_updated.subscribe(on_relem_changed_all);
 }
 
@@ -357,6 +361,7 @@ void on_unload_scene(ContextId context_id)
     return;
 
   wait_dynrend_instances();
+  wait_animchar_instances();
   wait_tidy_up_skins();
 
   for (auto &buffers : context_id->uniqueSkinBuffers)
@@ -869,7 +874,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           data.age = -1;
           auto &meshElem = data.elems[meshId];
 
-          if (!meshElem.buffer)
+          if (!meshElem.buffer && dyn_enable_caching)
           {
             if (auto iter = bvh_context_id->freeUniqueSkinBLASes.find(meshId); iter != bvh_context_id->freeUniqueSkinBLASes.end())
             {
@@ -1038,7 +1043,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       bool isBurnt = elem.mat->getIntVariable(burnt_tankVarId, burnt_tank) && burnt_tank > 0;
       auto camoTexture = isBurnt ? camo_data.burntCamo : elem.mat->get_texture(1);
       auto [camoValid, camoTexBindless] = hold_camo_tex(bvh_context_id, camoTexture, true);
-      camoData.x = (camoTexBindless & 0xFFFF0000U);
+      camoData.x = (camoTexBindless << 16) & 0xFFFF0000U;
       if (camoValid)
       {
         float condition = clamp<float>(camo_data.condition, 1.0f / 255, 1.0f);
@@ -1059,7 +1064,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         }
 
         constexpr uint32_t TWELVE_BIT_MASK = (1U << 12) - 1;
-        camoData.x |= (camoSkinTexBindless >> 16) & 0xFFFFU;
+        camoData.x |= camoSkinTexBindless & 0xFFFFU;
         camoData.y = uint32_t(condition * 0xFF) << 24 | uint32_t(rotation * TWELVE_BIT_MASK) << 12 | uint32_t(scale * TWELVE_BIT_MASK);
       }
 
@@ -1091,6 +1096,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
     return nullptr;
   };
 
+  dag::ConstSpan<DynamicRenderableSceneResource::RigidObject> rigids = res.getRigidsConst();
   res.getMeshes(
     [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
       G_UNUSED(radius);
@@ -1101,6 +1107,9 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       int currMeshIndex = meshIndexCounter++;
       if (!bvh_context_id->has(Features::DynrendRigidBaked | Features::DynrendRigidFull))
         return;
+
+      if (rigids[rigid_no].uniqueRefId > 0)
+        rigid_no = (rigids[rigid_no].uniqueRefId & 0xffff) - 1;
 
       auto elems = mesh->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
 
@@ -1212,7 +1221,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         data.age = -1;
         auto &meshElem = data.elems[meshId];
 
-        if (!meshElem.buffer)
+        if (!meshElem.buffer && dyn_enable_caching)
         {
           if (auto iter = bvh_context_id->freeUniqueSkinBLASes.find(meshId); iter != bvh_context_id->freeUniqueSkinBLASes.end())
           {
@@ -1269,6 +1278,42 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
   G_VERIFY(offsets.size() == meshIndexCounter);
 }
 
+struct AnimcharBVHJob : public cpujobs::IJob
+{
+  ContextId bvhContextId;
+  dynrend::ContextId dynrendContextId;
+  Point3 viewPosition;
+  dynrend::BVHIterateCallback iterateCallback;
+
+  void wait()
+  {
+    TIME_PROFILE(Wait_AnimcharBVHJob);
+    threadpool::wait(this);
+  }
+
+  void start(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id, const Point3 &view_position,
+    dynrend::BVHIterateCallback iterate_callback)
+  {
+    bvhContextId = bvh_context_id;
+    dynrendContextId = dynrend_context_id;
+    viewPosition = view_position;
+    iterateCallback = iterate_callback;
+    threadpool::add(this, threadpool::PRIO_HIGH);
+  }
+
+  void doJob() override
+  {
+    TIME_D3D_PROFILE(bvh::update_animchar_instances);
+
+    IterCtx ctx = {bvhContextId, viewPosition, false, 0, dynrendContextId};
+    iterateCallback(iterate_instances_dng, viewPosition, &ctx);
+
+    DA_PROFILE_TAG(bvh::update_animchar_instances, "count: %d", ctx.count);
+  }
+
+  const char *getJobName(bool &) const override { return "AnimcharBVHJob"; }
+} animchar_bvh_job;
+
 void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback)
 {
@@ -1276,13 +1321,10 @@ void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynr
   if (!bvh_context_id->has(Features::AnyDynrend))
     return;
 
-  TIME_D3D_PROFILE(bvh::update_animchar_instances);
-
-  IterCtx ctx = {bvh_context_id, view_position, false, 0, dynrend_context_id};
-  iterate_callback(iterate_instances_dng, view_position, &ctx);
-
-  DA_PROFILE_TAG(bvh::update_animchar_instances, "count: %d", ctx.count);
+  animchar_bvh_job.start(bvh_context_id, dynrend_context_id, view_position, iterate_callback);
 }
+
+void wait_animchar_instances() { animchar_bvh_job.wait(); }
 
 void set_up_dynrend_context_for_processing(dynrend::ContextId dynrend_context_id)
 {
@@ -1300,12 +1342,13 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
     WinAutoLock lock(contextId->tidyUpSkinsLock);
 
     // We make use of the fact that resize does not shrink the vector itself, only the elem count is changed
-    for (auto &freeBLAS : contextId->freeUniqueSkinBLASes)
-    {
-      if (freeBLAS.second.cursor.load() < 0)
-        freeBLAS.second.cursor.store(0);
-      freeBLAS.second.blases.resize(freeBLAS.second.cursor.load());
-    }
+    if (dyn_enable_caching)
+      for (auto &freeBLAS : contextId->freeUniqueSkinBLASes)
+      {
+        if (freeBLAS.second.cursor.load() < 0)
+          freeBLAS.second.cursor.store(0);
+        freeBLAS.second.blases.resize(freeBLAS.second.cursor.load());
+      }
 
     for (auto iter = eastl::begin(contextId->uniqueSkinBuffers); iter != eastl::end(contextId->uniqueSkinBuffers);)
     {
@@ -1322,8 +1365,11 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
 
       for (auto &elem : iter->second.elems)
       {
-        auto &storage = contextId->freeUniqueSkinBLASes[elem.first].blases.push_back();
-        storage.swap(elem.second.blas);
+        if (dyn_enable_caching)
+        {
+          auto &storage = contextId->freeUniqueSkinBLASes[elem.first].blases.push_back();
+          storage.swap(elem.second.blas);
+        }
 
         if (elem.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
         {
@@ -1349,8 +1395,9 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
       iter = contextId->uniqueSkinBuffers.erase(iter);
     }
 
-    for (auto &freeSkins : contextId->freeUniqueSkinBLASes)
-      freeSkins.second.cursor.store(freeSkins.second.blases.size());
+    if (dyn_enable_caching)
+      for (auto &freeSkins : contextId->freeUniqueSkinBLASes)
+        freeSkins.second.cursor.store(freeSkins.second.blases.size());
   }
 } tidy_up_skins_job;
 

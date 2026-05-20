@@ -73,6 +73,7 @@ public:
   // cast operators
   operator char *() { return str(); }
   operator const char *() const { return str(); }
+  explicit operator bool() = delete; // Did you mean `!empty()`?
 
   // space allocation (to be used as buffer)
   void allocBuffer(int sz)

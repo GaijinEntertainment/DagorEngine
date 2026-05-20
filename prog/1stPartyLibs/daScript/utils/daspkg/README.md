@@ -53,6 +53,7 @@ All package commands accept `--global` / `-g` to operate on global modules.
 | `--color` / `--no-color` | Enable/disable ANSI colored output |
 | `--verbose`, `-v` | Print debug details (git commands, resolve steps) |
 | `--json` | Machine-readable JSON output (`search`, `list`, `check`) |
+| `--branch <name>`, `-b <name>` | Install from a git branch (e.g. `master`) instead of a tag |
 
 ## Global modules
 

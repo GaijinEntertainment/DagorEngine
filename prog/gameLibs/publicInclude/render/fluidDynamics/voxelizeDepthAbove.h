@@ -30,7 +30,7 @@ public:
   Point4 getWorldToVoxelHeight() const;
 
 private:
-  UniqueTexHolder voxelTex;
+  UniqueTexWithShaderVar voxelTex;
   int numCascades;
   Tab<UniqueTex> boundaryCascades;
 

@@ -19,7 +19,7 @@ require strings
 // ──────────────────────────────────────────────────────────────────────────
 
 class WsTestServer : HvWebServer {
-    clients : table<WebSocketChannel?; string>
+    clients : table<WebSocketChannel; string>
     next_id : int = 0
 
     def override onInit {
@@ -31,7 +31,7 @@ class WsTestServer : HvWebServer {
         }
     }
 
-    def override onWsOpen(channel : WebSocketChannel?; url : string#) {
+    def override onWsOpen(channel : WebSocketChannel; url : string#) {
         next_id++
         let nickname = "user_{next_id}"
         // Notify existing clients before inserting the new one
@@ -42,7 +42,7 @@ class WsTestServer : HvWebServer {
         send(channel, "welcome {nickname}", ws_opcode.WS_OPCODE_TEXT, true)
     }
 
-    def override onWsClose(channel : WebSocketChannel?) {
+    def override onWsClose(channel : WebSocketChannel) {
         let nickname = clients?[channel] ?? "unknown"
         clients |> erase(channel)
         // Notify remaining clients
@@ -51,7 +51,7 @@ class WsTestServer : HvWebServer {
         }
     }
 
-    def override onWsMessage(channel : WebSocketChannel?; msg : string#) {
+    def override onWsMessage(channel : WebSocketChannel; msg : string#) {
         let nickname = clients?[channel] ?? "unknown"
         // Echo back to sender
         send(channel, "echo: {msg}", ws_opcode.WS_OPCODE_TEXT, true)
@@ -128,6 +128,7 @@ def with_ws_test_server(port : int; blk : block<(ws_url : string; http_url : str
                         sleep(1u)
                     }
                     server->stop()
+                    server->cleanup()
                     unsafe {
                         delete server
                     }
@@ -161,6 +162,7 @@ def test_websockets(t : T?) {
             t |> success(starts_with(client.received[0], "welcome "), "welcome message received")
             client->close()
             wait_closed(client)
+            client->cleanup()
             unsafe {
                 delete client
             }
@@ -176,6 +178,7 @@ def test_websockets(t : T?) {
             t |> equal(client.received[1], "echo: hello")
             client->close()
             wait_closed(client)
+            client->cleanup()
             unsafe {
                 delete client
             }
@@ -195,6 +198,7 @@ def test_websockets(t : T?) {
             t |> equal(client.received[3], "echo: msg3")
             client->close()
             wait_closed(client)
+            client->cleanup()
             unsafe {
                 delete client
             }
@@ -228,6 +232,8 @@ def test_websockets(t : T?) {
             bob->close()
             wait_closed(alice)
             wait_closed(bob)
+            alice->cleanup()
+            bob->cleanup()
             unsafe {
                 delete alice
                 delete bob
@@ -253,6 +259,7 @@ def test_websockets(t : T?) {
 
             client->close()
             wait_closed(client)
+            client->cleanup()
             unsafe {
                 delete client
             }
@@ -281,6 +288,8 @@ def test_websockets(t : T?) {
 
             alice->close()
             wait_closed(alice)
+            alice->cleanup()
+            bob->cleanup()
             unsafe {
                 delete alice
                 delete bob
@@ -295,6 +304,7 @@ def test_websockets(t : T?) {
             client->close()
             wait_closed(client)
             t |> success(!client->is_connected(), "disconnected after close")
+            client->cleanup()
             unsafe {
                 delete client
             }

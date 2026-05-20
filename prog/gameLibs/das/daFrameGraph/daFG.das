@@ -379,35 +379,35 @@ def private tryAddBlobSpecializations(var blobType : TypeDeclPtr; hasDefValue : 
   let blobTypeHash = hash(mangledBlobTypeName)
 
   // We add 2 new types per blob type: blob request and blob handle
-  var inscope vrr_type <- typeinfo ast_typedecl(type<VirtualResourceRequest>)
+  var vrr_type = typeinfo ast_typedecl(type<VirtualResourceRequest>)
   var vrrBase = vrr_type.structType
-  var inscope blobRequestStruct <- clone_structure(vrrBase)
+  var blobRequestStruct = clone_structure(vrrBase)
   blobRequestStruct.name := "VirtualBlobRequest`{blobTypeHash}"
-  blobRequestStruct.parent := vrrBase
+  blobRequestStruct.parent = vrrBase
   blobRequestStruct.flags |= StructureFlags.generated
 
-  var inscope vrhb_type <- typeinfo ast_typedecl(type<VirtualResourceHandleBase>)
+  var vrhb_type = typeinfo ast_typedecl(type<VirtualResourceHandleBase>)
   var vrhBase = vrhb_type.structType
-  var inscope blobHandleStruct <- clone_structure(vrhBase)
+  var blobHandleStruct = clone_structure(vrhBase)
   blobHandleStruct.name := "VirtualBlobHandle`{blobTypeHash}"
-  blobHandleStruct.parent := vrhBase
+  blobHandleStruct.parent = vrhBase
   blobHandleStruct.flags |= StructureFlags.generated
 
-  var inscope blobHandleFn <- qmacro_function("handle") <| \
+  var blobHandleFn = qmacro_function("handle") <| \
     $(self : $t(blobRequestStruct)) : $t(blobHandleStruct) {
       return <- struct<$t(blobHandleStruct)>(provider = self.registry |> getProvider(), resUid = self.resUid);
     }
   compiling_module() |> add_function(blobHandleFn)
 
   if !blobType.isRef
-    var inscope blobGetFn <- qmacro_function("get") <| \
+    var blobGetFn = qmacro_function("get") <| \
       $(self : $t(blobHandleStruct); cb : block<(var value : $t(blobType)&) : void>) : void {
         let blobView = self.provider |> getBlobView(self.resUid.nameId, self.resUid.history);
         invoke(cb) <| deref(unsafe(reinterpret<$t(blobType)?> blobView |> getData($v(mangledBlobTypeName))));
       }
     compiling_module() |> add_function(blobGetFn)
   else
-    var inscope blobGetFn <- qmacro_function("get") <| \
+    var blobGetFn = qmacro_function("get") <| \
       $(self : $t(blobHandleStruct); cb : block<(var value : $t(blobType)) : void>) : void {
         let blobView = self.provider |> getBlobView(self.resUid.nameId, self.resUid.history);
         invoke(cb) <| deref(unsafe(reinterpret<$t(blobType)?> blobView |> getData($v(mangledBlobTypeName))));
@@ -415,38 +415,38 @@ def private tryAddBlobSpecializations(var blobType : TypeDeclPtr; hasDefValue : 
     compiling_module() |> add_function(blobGetFn)
 
   if useDasCtorDtor(blobType)
-    var inscope exprReinterpret <- qmacro(unsafe(reinterpret<$t(blobType)?> self))
+    var exprReinterpret = qmacro(unsafe(reinterpret<$t(blobType)?> self))
     // NOTE: some project use the "please error out if some optimizations
     // were not possible due to aliasing restrictions" mode, so we need to
     // explicitly say that no aliasing is happening here, hence the `assumeNoAlias`
-    var inscope exprDeref <- new ExprPtr2Ref(subexpr <- exprReinterpret, assumeNoAlias = true)
-    var inscope blobCtorFn <- qmacro_function("ctor`{blobTypeHash}") <| \
+    var exprDeref = new ExprPtr2Ref(subexpr <- exprReinterpret, assumeNoAlias = true)
+    var blobCtorFn = qmacro_function("ctor`{blobTypeHash}") <| \
       $(var self : void?) : void {
         $e(exprDeref) <- struct<$t(blobType)>();
       }
     compiling_module() |> add_function(blobCtorFn)
 
-    var inscope blobDtorFn <- qmacro_function("dtor`{blobTypeHash}") <| \
+    var blobDtorFn = qmacro_function("dtor`{blobTypeHash}") <| \
       $(var self : void?) : void {
         delete deref(unsafe(reinterpret<$t(blobType)?> self));
       }
     compiling_module() |> add_function(blobDtorFn)
 
-    var inscope exprCastFrom <- qmacro(unsafe(reinterpret<$t(blobType) const?> from))
-    var inscope exprFrom <- new ExprPtr2Ref(subexpr <- exprCastFrom, assumeNoAlias = true)
-    var inscope blobCopyFn <- qmacro_function("copy`{blobTypeHash}") <| \
+    var exprCastFrom = qmacro(unsafe(reinterpret<$t(blobType) const?> from))
+    var exprFrom = new ExprPtr2Ref(subexpr <- exprCastFrom, assumeNoAlias = true)
+    var blobCopyFn = qmacro_function("copy`{blobTypeHash}") <| \
       $(var self : void?; from : void const?) : void {
         $e(clone_expression(exprDeref)) = $e(exprFrom);
       }
     compiling_module() |> add_function(blobCopyFn)
 
   if hasDefValue
-    var inscope exprReinterpret <- qmacro(unsafe(reinterpret<$t(blobType)?> self))
+    var exprReinterpret = qmacro(unsafe(reinterpret<$t(blobType)?> self))
     // NOTE: some project use the "please error out if some optimizations
     // were not possible due to aliasing restrictions" mode, so we need to
     // explicitly say that no aliasing is happening here, hence the `assumeNoAlias`
-    var inscope exprDeref <- new ExprPtr2Ref(subexpr <- exprReinterpret, assumeNoAlias = true)
-    var inscope blobDefCtorFn <- qmacro_function("ctor_def`{blobTypeHash}") <| \
+    var exprDeref = new ExprPtr2Ref(subexpr <- exprReinterpret, assumeNoAlias = true)
+    var blobDefCtorFn = qmacro_function("ctor_def`{blobTypeHash}") <| \
       $(var self : void?; def_value : $t(blobType)) : void {
         $e(exprDeref) <- def_value;
       }
@@ -460,15 +460,15 @@ def private tryAddBlobSpecializations(var blobType : TypeDeclPtr; hasDefValue : 
 // the following functions like handle, get, etc.
 [call_macro(name="blob")]
 class BlobMacro : AstCallMacro
-  [unused_argument(mod)] def override visit(prog : ProgramPtr; mod : Module ?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr
+  [unused_argument(mod)] def override visit(prog : ProgramPtr; mod : Module ?; expr : ExprCallMacro ?) : ExpressionPtr
     macro_verify(expr.arguments |> length == 2, prog, expr.at,
       "Function-like macro `blob` accepts two arguments: request and \
        blob type, e.g. registry |> read(\"sea_level\") |> blob(type<float>)")
 
     assume request = expr.arguments[0]
-    var inscope creationReqTd <- typeinfo ast_typedecl(type<VirtualResourceCreationSemiRequest>)
+    var creationReqTd = typeinfo ast_typedecl(type<VirtualResourceCreationSemiRequest>)
     let isCreationReq = is_same_type(request._type, creationReqTd, RefMatters.no, ConstMatters.no, TemporaryMatters.no)
-    var inscope regularReqTd <- typeinfo ast_typedecl(type<VirtualResourceSemiRequest>)
+    var regularReqTd = typeinfo ast_typedecl(type<VirtualResourceSemiRequest>)
     let isRegularReq = is_same_type(request._type, regularReqTd, RefMatters.no, ConstMatters.no, TemporaryMatters.no)
 
     macro_verify(isCreationReq || isRegularReq, prog, expr.at,
@@ -476,7 +476,7 @@ class BlobMacro : AstCallMacro
                   e.g. registry |> read(\"sea_level\") or registry |> create(\"sea_level\", History No)")
 
     let hasValue = !(expr.arguments[1] is ExprTypeDecl)
-    var inscope blobType := expr.arguments[1]._type
+    var blobType = clone_type(expr.arguments[1]._type)
     if hasValue
       blobType.flags &= ~TypeDeclFlags.constant
       blobType.flags &= ~TypeDeclFlags.ref

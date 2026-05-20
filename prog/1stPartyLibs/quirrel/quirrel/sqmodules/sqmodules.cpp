@@ -8,6 +8,7 @@
 #include <sqstdsystem.h>
 #include <sqstddatetime.h>
 #include <sqstdaux.h>
+#include <sqasync.h>
 
 #include <stdlib.h>
 #include <limits.h>
@@ -741,6 +742,8 @@ void SqModules::registerSystemLib() { registerStdLibNativeModule("system", sqstd
 void SqModules::registerDateTimeLib() { registerStdLibNativeModule("datetime", sqstd_register_datetimelib); }
 
 void SqModules::registerDebugLib() { registerStdLibNativeModule("debug", sqstd_register_debuglib); }
+
+void SqModules::registerAsyncLib() { registerStdLibNativeModule("async", sqasync::sqasync_register); }
 
 void SqModules::registerIoStreamLib()
 {

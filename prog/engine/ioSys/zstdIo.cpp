@@ -356,6 +356,13 @@ inline int ZstdLoadFromMemCB::tryReadImpl(void *ptr, int size)
   {
     if (ZSTD_isError(ret))
     {
+#if DAGOR_DBGLEVEL == 0
+      if (errorMode == ZstdErrorMode::Soft)
+      {
+        logerr("zstd error %d (%s) in %s\nsource: '%s'", ret, ZSTD_getErrorName(ret), "ZSTD_decompressStream", getTargetName());
+        return 0;
+      }
+#endif
       DAG_FATAL("zstd error %d (%s) in %s\nsource: '%s'\n", ret, ZSTD_getErrorName(ret), "ZSTD_decompressStream", getTargetName());
       RETURN_X_AFTER_FATAL(0);
     }

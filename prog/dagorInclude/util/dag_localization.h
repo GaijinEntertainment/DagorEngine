@@ -21,9 +21,9 @@ void set_language_to_settings(const char *lang);
 int getLangId(const char *lnag);
 const char *getLangById(int id);
 
-LocTextId get_localized_text_id(const char *key, bool ci = false);
-LocTextId get_localized_text_id_silent(const char *key, bool ci = false);
-LocTextId get_optional_localized_text_id(const char *key, bool ci = false);
+LocTextId get_localized_text_id(const char *key);
+LocTextId get_localized_text_id_silent(const char *key);
+LocTextId get_optional_localized_text_id(const char *key);
 
 
 int get_plural_form_id_for_lang(const char *lang, int num);
@@ -31,9 +31,9 @@ int get_plural_form_id(int num);
 const char *get_localized_text(LocTextId id);
 const char *get_fake_loc_for_missing_key(const char *key);
 
-__forceinline const char *get_localized_text(const char *key, bool ci = false)
+__forceinline const char *get_localized_text(const char *key)
 {
-  LocTextId locId = get_localized_text_id(key, ci);
+  LocTextId locId = get_localized_text_id(key);
   if (!locId)
 #if _TARGET_PC | DAGOR_DBGLEVEL > 0
     return get_fake_loc_for_missing_key(key);
@@ -43,9 +43,9 @@ __forceinline const char *get_localized_text(const char *key, bool ci = false)
   return get_localized_text(locId);
 }
 
-__forceinline const char *get_localized_text_silent(const char *key, bool ci = false)
+__forceinline const char *get_localized_text_silent(const char *key)
 {
-  LocTextId locId = get_localized_text_id_silent(key, ci);
+  LocTextId locId = get_localized_text_id_silent(key);
   if (!locId)
 #if _TARGET_PC | DAGOR_DBGLEVEL > 0
     return get_fake_loc_for_missing_key(key);
@@ -55,15 +55,15 @@ __forceinline const char *get_localized_text_silent(const char *key, bool ci = f
   return get_localized_text(locId);
 }
 
-__forceinline const char *get_localized_text(const char *key, const char *def, bool ci = false)
+__forceinline const char *get_localized_text(const char *key, const char *def)
 {
-  LocTextId locId = get_optional_localized_text_id(key, ci);
+  LocTextId locId = get_optional_localized_text_id(key);
   if (!locId)
     return def;
   return get_localized_text(locId);
 }
 
-bool does_localized_text_exist(const char *key, bool ci = false);
+bool does_localized_text_exist(const char *key);
 
 const char *get_localized_text_for_lang(const char *key, const char *lang);
 const char *get_localized_text_for_lang_id(const char *key, int lang_id);

@@ -47,16 +47,16 @@ protected:
   bool updateClip(uint32_t clip_no, const Point3 &world_pos);
   bool updateClipIrradiance(uint32_t clip_no, const Point3 &world_pos, bool last_clip);
 
-  UniqueTexHolder dagi_radiance_grid, dagi_radiance_grid_dist;
+  UniqueTexWithShaderVar dagi_radiance_grid, dagi_radiance_grid_dist;
   UniqueBufHolder dagi_radiance_grid_selected_probes;
-  UniqueTexHolder dagi_radiance_grid_probes_age;
+  UniqueTexWithShaderVar dagi_radiance_grid_probes_age;
   UniqueBuf dagi_rad_grid_indirect_buffer;
 
   eastl::unique_ptr<ComputeShaderElement> dagi_radiance_grid_calc_temporal_cs, dagi_radiance_grid_toroidal_movement_cs,
     dagi_radiance_grid_select_temporal_cs, dagi_radiance_grid_create_indirect_cs, dagi_radiance_grid_clear_temporal_cs;
 
-  UniqueTexHolder dagi_irradiance_grid_sph0, dagi_irradiance_grid_sph1;
-  UniqueTexHolder dagi_irradiance_grid_probes_age; // only if detailed irradiance
+  UniqueTexWithShaderVar dagi_irradiance_grid_sph0, dagi_irradiance_grid_sph1;
+  UniqueTexWithShaderVar dagi_irradiance_grid_probes_age; // only if detailed irradiance
   eastl::unique_ptr<ComputeShaderElement> dagi_radiance_grid_calc_temporal_irradiance_cs,
     dagi_radiance_grid_toroidal_movement_irradiance_cs, dagi_radiance_grid_invalidate_cs;
 

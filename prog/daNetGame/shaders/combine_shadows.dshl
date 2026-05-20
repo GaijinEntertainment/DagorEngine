@@ -12,9 +12,9 @@ endmacro
 define_macro_if_not_defined USE_OPTIONAL_COMBINE_SHADOWS_FEATURES(code)
 hlsl(code)
 {
-  float load_additional_light(float2 tc)
+  float2 load_caustics(float2 tc)
   {
-    return 0;
+    return float2(1, 0);
   }
   float calculate_clouds_shadow(float additionalLight, float2 tc, float3 viewVec)
   {
@@ -82,24 +82,26 @@ shader combine_shadows
         float ssssDepthMask : SV_Depth;
         ##endif
       };
-      CombinedShadowResult get_combined_shadows(PackedShadows shadows, float additionalLight)
+      CombinedShadowResult get_combined_shadows(PackedShadows shadows, float2 caustics)
       {
         CombinedShadowResult result;
-        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = shadows.combinedShadow;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = shadows.combinedShadow * saturate(caustics.x); // caustics.x always == 1 above water
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.y = shadows.ssssTransmittance;
-        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = additionalLight;
+        // we separate muliplicative caustics to additive and multiplicative parts
+        // mul by 0.5 needed for value packing
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = 0.5f * (shadows.combinedShadow * saturate(caustics.x - 1) + caustics.y) * shadows.cloudsShadow;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = shadows.cloudsShadow;
         ##if ssss_quality != off
         result.ssssDepthMask = shadows.ssssDepthMask;
         ##endif
         return result;
       }
-      CombinedShadowResult get_black_shadow(float additionalLight, float cloudsShadow)
+      CombinedShadowResult get_black_shadow(float2 caustics, float cloudsShadow)
       {
         CombinedShadowResult result;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.x = 0;
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.y = 0;
-        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = additionalLight;
+        result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.z = 0.5f*(caustics.y * cloudsShadow);
         result.combinedShadow_ssssTransmittance_additionalLight_cloudsShadow.w = cloudsShadow;
         ##if ssss_quality != off
         result.ssssDepthMask = 0;
@@ -113,15 +115,15 @@ shader combine_shadows
 
       ProcessedGbuffer gbuffer = readProcessedGbuffer(input.texcoord);
       float NoL = dot(gbuffer.normal, -from_sun_direction);
-      float additionalLight = load_additional_light(input.texcoord);
+      float2 caustics = load_caustics(input.texcoord);
       BRANCH
       if (!(isSubSurfaceShader(gbuffer.material) && isTranslucentProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 1.0/255) && NoL <= 0.f)
       {
-        float cloudsShadow = calculate_clouds_shadow(additionalLight, input.texcoord, input.viewVec);
-        return get_black_shadow(additionalLight, cloudsShadow);
+        float cloudsShadow = calculate_clouds_shadow(caustics.y, input.texcoord, input.viewVec);
+        return get_black_shadow(caustics, cloudsShadow);
       }
       PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, gbuffer.isHeroCockpit);
-      return get_combined_shadows(shadows, additionalLight);
+      return get_combined_shadows(shadows, caustics);
     }
   }
 

@@ -33,7 +33,7 @@ namespace das {
             DAS_ASSERT(astc.scopes.size()==0);
             DAS_ASSERT(astc.blocks.size()==0);
             DAS_ASSERT(astc.with.size()==0);
-            astc.func.reset();
+            astc.func = nullptr;
             return Visitor::visit(that);
         }
     // ExprWith

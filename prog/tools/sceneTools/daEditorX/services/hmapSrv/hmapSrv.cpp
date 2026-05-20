@@ -1050,7 +1050,7 @@ class GenericHeightMapService : public IHmapService
   FastPtrList handlesToUpdate;
 
   int lastClipTexSz;
-  UniqueTexHolder last_clip;
+  UniqueTexWithShaderVar last_clip;
   d3d::SamplerInfo last_clip_sampler;
   bool rebuilLastClip;
   bool preparingClipmap;
@@ -1980,7 +1980,7 @@ public:
 
   class HeightmapPatchesRenderer
   {
-    UniqueTexHolder hmapPatchesDepthTex, hmapPatchesTex;
+    UniqueTexWithShaderVar hmapPatchesDepthTex, hmapPatchesTex;
     PostFxRenderer processHmapPatchesDepth;
     int texSize;
     ToroidalHelper hmapPatchesData;

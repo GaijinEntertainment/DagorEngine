@@ -583,6 +583,12 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
   for (auto nodeId : deferredDeclarationQueue)
     nodeChanged[nodeId] = true;
 
+  if (randomize_order.get())
+  {
+    nodeChanged.assign(nodeChanged.size(), true);
+    resChanged.assign(resChanged.size(), true);
+  }
+
   for (const auto &[resId, oldData] : removedResources)
   {
     const auto &newData = registry.resources[resId].createdResData;

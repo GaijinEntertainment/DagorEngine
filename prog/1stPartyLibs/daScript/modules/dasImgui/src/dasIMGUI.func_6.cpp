@@ -36,8 +36,8 @@ void Module_dasIMGUI::initFunctions_6() {
 // from imgui/imgui.h:588:29
 	makeExtern< void (*)(float,float) , ImGui::SameLine , SimNode_ExtFuncCall , imguiTempFn>(lib,"SameLine","ImGui::SameLine")
 		->args({"offset_from_start_x","spacing"})
-		->arg_init(0,make_smart<ExprConstFloat>(0))
-		->arg_init(1,make_smart<ExprConstFloat>(-1))
+		->arg_init(0,new ExprConstFloat(0))
+		->arg_init(1,new ExprConstFloat(-1))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:589:29
 	makeExtern< void (*)() , ImGui::NewLine , SimNode_ExtFuncCall , imguiTempFn>(lib,"NewLine","ImGui::NewLine")
@@ -52,12 +52,12 @@ void Module_dasIMGUI::initFunctions_6() {
 // from imgui/imgui.h:592:29
 	makeExtern< void (*)(float) , ImGui::Indent , SimNode_ExtFuncCall , imguiTempFn>(lib,"Indent","ImGui::Indent")
 		->args({"indent_w"})
-		->arg_init(0,make_smart<ExprConstFloat>(0))
+		->arg_init(0,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:593:29
 	makeExtern< void (*)(float) , ImGui::Unindent , SimNode_ExtFuncCall , imguiTempFn>(lib,"Unindent","ImGui::Unindent")
 		->args({"indent_w"})
-		->arg_init(0,make_smart<ExprConstFloat>(0))
+		->arg_init(0,new ExprConstFloat(0))
 		->addToModule(*this, SideEffects::worstDefault);
 // from imgui/imgui.h:594:29
 	makeExtern< void (*)() , ImGui::BeginGroup , SimNode_ExtFuncCall , imguiTempFn>(lib,"BeginGroup","ImGui::BeginGroup")

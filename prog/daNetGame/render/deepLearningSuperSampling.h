@@ -43,6 +43,5 @@ private:
   dafg::NodeHandle frameGenerationNode;
   dafg::NodeHandle lifetimeExtenderNode;
   dafg::NodeHandle rayReconstructionPrepareNode;
-  dafg::NodeHandle rayReconstructionWaterRenameNode;
   dafg::NodeHandle colorBeforeTransparencyNode;
 };

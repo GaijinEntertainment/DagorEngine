@@ -41,9 +41,9 @@ public:
     das::ModuleLibrary lib(this);
     addBuiltinDependency(lib, require("ecs"));
 
-    addEnumeration(das::make_smart<EnumerationSortIntersections>());
-    addAnnotation(das::make_smart<IntersectedEntityDataAnnotation>(lib));
-    addAnnotation(das::make_smart<IntersectedEntityAnnotation>(lib));
+    addEnumeration(new EnumerationSortIntersections());
+    addAnnotation(new IntersectedEntityDataAnnotation(lib));
+    addAnnotation(new IntersectedEntityAnnotation(lib));
 
     das::addExtern<DAS_BIND_FUN(das_trace_to_collision_nodes)>(*this, lib, "trace_to_collision_nodes",
       das::SideEffects::accessExternal, "bind_dascript::das_trace_to_collision_nodes");

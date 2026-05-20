@@ -16,6 +16,9 @@ bool cpu_feature_avx_vnni_checked = false;
 bool cpu_family_haswell_or_better = false;
 
 #ifdef _TARGET_SIMD_SSE
+#if _TARGET_PC_WIN
+static bool osXSaveEnabled, osXSaveChecked = false;
+#endif
 
 #if !_MSC_VER || defined(__clang__)
 #include <cpuid.h>
@@ -42,7 +45,7 @@ static inline void __get_cpuid_count(uint32_t l, uint32_t sl, uint32_t *eax, uin
 }
 #endif // !_MSC_VER || defined(__clang__)
 
-static bool dag_check_cpu_features()
+bool dag_check_cpu_features()
 {
   enum CpuFeatures1Ecx : uint32_t // eax=1
   {
@@ -78,7 +81,12 @@ static bool dag_check_cpu_features()
   cpu_feature_fma_checked = ecx & CpuFeatures1Ecx::FMA3_BIT;
   bool osxsave = ecx & CpuFeatures1Ecx::OSXSAVE_BIT;
 #if _TARGET_PC_WIN
-  osxsave &= isAvxXStateFeatureEnabled();
+  if (!osXSaveChecked)
+  {
+    osXSaveChecked = true;
+    osXSaveEnabled = isAvxXStateFeatureEnabled();
+  }
+  osxsave &= osXSaveEnabled;
 #endif
   cpu_feature_avx_checked = (ecx & CpuFeatures1Ecx::AVX_BIT) && osxsave;
   cpu_feature_f16c_checked = (ecx & CpuFeatures1Ecx::F16C_BIT) && osxsave;
@@ -101,6 +109,103 @@ static bool dag_check_cpu_features()
   return true;
 }
 static bool initialized = dag_check_cpu_features();
+
+bool dag_check_cpu_features_basic()
+{
+  enum CpuFeatures1Ecx : uint32_t // eax=1
+  {
+    FMA3_BIT = 1 << 12,
+    SSE41_BIT = 1 << 19,
+    SSE42_BIT = 1 << 20,
+    POPCNT_BIT = 1 << 23,
+    OSXSAVE_BIT = 1 << 27,
+    AVX_BIT = 1 << 28,
+    F16C_BIT = 1 << 29,
+  };
+  enum CpuFeatures70Ebx : uint32_t // eax=7, ecx=0
+  {
+    BMI1_BIT = 1 << 3,
+    AVX2_BIT = 1 << 5,
+    BMI2_BIT = 1 << 8,
+  };
+  uint32_t eax, ebx, ecx, edx;
+
+#if defined(_TARGET_64BIT)
+  bool isX64 = true;
+#else
+  bool isX64 = false;
+#endif
+
+  __get_cpuid(0, &eax, &ebx, &ecx, &edx);
+  bool isAmdCpu = ebx == 0x68747541 && edx == 0x69746E65 && ecx == 0x444D4163; // AuthenticAMD
+
+  __get_cpuid(1, &eax, &ebx, &ecx, &edx);
+  cpu_feature_sse41_checked = ecx & CpuFeatures1Ecx::SSE41_BIT;
+  cpu_feature_sse42_checked = ecx & CpuFeatures1Ecx::SSE42_BIT;
+  cpu_feature_popcnt_checked = ecx & CpuFeatures1Ecx::POPCNT_BIT;
+  cpu_feature_fma_checked = ecx & CpuFeatures1Ecx::FMA3_BIT;
+  bool osxsave = ecx & CpuFeatures1Ecx::OSXSAVE_BIT;
+#if _TARGET_PC_WIN
+  if (!osXSaveChecked)
+  {
+    osXSaveChecked = true;
+    osXSaveEnabled = isAvxXStateFeatureEnabled();
+  }
+  osxsave &= osXSaveEnabled;
+#endif
+  cpu_feature_avx_checked = (ecx & CpuFeatures1Ecx::AVX_BIT) && osxsave;
+  cpu_feature_f16c_checked = (ecx & CpuFeatures1Ecx::F16C_BIT) && osxsave;
+
+  uint32_t amdJaguarFamily = 0x16;
+  uint32_t amdCpuFamily = (eax >> 8) & 0xf; // base family
+  if (amdCpuFamily == 0xf)
+    amdCpuFamily += (eax >> 20) & 0xff; // ext family
+  cpu_feature_fast_256bit_avx_checked = cpu_feature_avx_checked && (!isAmdCpu || amdCpuFamily > amdJaguarFamily) && isX64;
+  return true;
+}
+
+bool dag_check_cpu_features_without_cpuid()
+{
+  enum CpuFeatures1Ecx : uint32_t // eax=1
+  {
+    FMA3_BIT = 1 << 12,
+    SSE41_BIT = 1 << 19,
+    SSE42_BIT = 1 << 20,
+    POPCNT_BIT = 1 << 23,
+    OSXSAVE_BIT = 1 << 27,
+    AVX_BIT = 1 << 28,
+    F16C_BIT = 1 << 29,
+  };
+  volatile uint32_t ecx{};
+
+#if defined(_TARGET_64BIT)
+  bool isX64 = true;
+#else
+  bool isX64 = false;
+#endif
+
+  bool isAmdCpu = false;
+  ecx = uint32_t(-19385853);
+
+  cpu_feature_sse41_checked = bool(ecx & CpuFeatures1Ecx::SSE41_BIT);
+  cpu_feature_sse42_checked = bool(ecx & CpuFeatures1Ecx::SSE42_BIT);
+  cpu_feature_popcnt_checked = bool(ecx & CpuFeatures1Ecx::POPCNT_BIT);
+  cpu_feature_fma_checked = bool(ecx & CpuFeatures1Ecx::FMA3_BIT);
+  bool osxsave = bool(ecx & CpuFeatures1Ecx::OSXSAVE_BIT);
+#if _TARGET_PC_WIN
+  if (!osXSaveChecked)
+  {
+    osXSaveChecked = true;
+    osXSaveEnabled = isAvxXStateFeatureEnabled();
+  }
+  osxsave &= osXSaveEnabled;
+#endif
+  cpu_feature_avx_checked = (ecx & CpuFeatures1Ecx::AVX_BIT) && osxsave;
+  cpu_feature_f16c_checked = (ecx & CpuFeatures1Ecx::F16C_BIT) && osxsave;
+
+  cpu_feature_fast_256bit_avx_checked = cpu_feature_avx_checked && isAmdCpu && isX64;
+  return true;
+}
 
 #endif // _TARGET_SIMD_SSE
 

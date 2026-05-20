@@ -29,6 +29,7 @@
 #include <ispc_texcomp.h>
 #endif
 #include <libTools/dtx/astcenc.h>
+#include <libTools/dtx/makeDDS.h>
 #if !_TARGET_STATIC_LIB
 ASTCENC_DECLARE_STATIC_DATA();
 #endif
@@ -619,7 +620,7 @@ public:
     const char *mipFilt = GET_PROP(Str, "mipFilter", "");
     int mipCnt = GET_PROP(Int, "mipCnt", -1);
     int tex3d_depth = GET_PROP(Int, "texDepth", 1);
-    const float gamma = GET_PROP(Real, "gamma", 2.2);
+    float gamma = GET_PROP(Real, "gamma", 2.2);
     bool iesTexture = GET_PROP(Bool, "buildIES", false);
     bool bcFmtExpandImageTransp = GET_PROP(Bool, "bcFmtExpandImageTransp", false);
     bool splitHigh = GET_PROP(Bool, "splitHigh", false);
@@ -632,6 +633,7 @@ public:
     const char *fmt = GET_PROP(Str, "fmt", "ARGB");
     if (const DataBlock *b = blkAssetsBuildTex.getBlockByName(target_str))
       fmt = b->getBlockByNameEx("fmtSubst")->getStr(fmt, fmt);
+    fix_gamma_for_fmt(gamma, fmt);
     if (!splitOverrided)
       splitAt = a.props.getBlockByNameEx(target_str)->getInt("splitAtSize", splitAt);
     TextureMetaData tmd;
@@ -927,7 +929,7 @@ public:
     const float mipFiltWidth = 3;
     const float mipFiltAlpha = GET_PROP(Real, "mipFilterAlpha", 4);
     const float mipFiltStretch = GET_PROP(Real, "mipFilterStretch", 1);
-    const float gamma = GET_PROP(Real, "gamma", 2.2);
+    float gamma = GET_PROP(Real, "gamma", 2.2);
 
     uint64_t tc_storage = 0;
     const char *targetPlatform = mkbindump::get_target_str(cwr.getTarget(), tc_storage);
@@ -972,6 +974,11 @@ public:
 
     if (const DataBlock *b = blkAssetsBuildTex.getBlockByName(targetPlatform))
       fmt = b->getBlockByNameEx("fmtSubst")->getStr(fmt, fmt);
+
+    float old_gamma = gamma;
+    if (fix_gamma_for_fmt(gamma, fmt))
+      log.addMessage(log.WARNING, "%s: gamma=%.1f is applied to format %s that doesn't support sRGB. Resetting gamma to 1.0",
+        a.getName(), old_gamma, fmt);
 
     nvtt::Compressor compressor;
     nvtt::InputOptions inpOptions;

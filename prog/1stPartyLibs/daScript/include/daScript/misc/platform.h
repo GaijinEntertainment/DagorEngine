@@ -3,7 +3,7 @@
 #ifndef DAS_VERSION
 #define DAS_VERSION_MAJOR 0
 #define DAS_VERSION_MINOR 6
-#define DAS_VERSION_PATCH 1
+#define DAS_VERSION_PATCH 2
 #define DAS_VERSION (DAS_VERSION_MAJOR*10000 + DAS_VERSION_MINOR*100 + DAS_VERSION_PATCH)
 #endif
 
@@ -269,6 +269,11 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 #else
     #define DAS_MOD_API DAS_IMPORT_DLL
 #endif
+#ifdef DAS_CC_EXPORTS
+    #define DAS_CC_API DAS_EXPORT_DLL
+#else
+    #define DAS_CC_API DAS_IMPORT_DLL
+#endif
 #endif
 #else
 
@@ -276,6 +281,7 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 #define DAS_IMPORT_DLL
 #define DAS_API
 #define DAS_MOD_API
+#define DAS_CC_API
 
 #endif
 
@@ -283,17 +289,26 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 #include "daScript/misc/hal.h"
 
 void DAS_API os_debug_break();
+void DAS_API print_current_stack_trace();
 
 #ifndef DAS_FATAL_LOG
 #define DAS_FATAL_LOG(...)   do { printf(__VA_ARGS__); fflush(stdout); } while(0)
 #endif
 
 #ifndef DAS_FATAL_ERROR
-#define DAS_FATAL_ERROR(...) { \
-    DAS_FATAL_LOG(__VA_ARGS__); \
-    assert(0 && "fatal error"); \
-    exit(-1); \
-}
+    #ifdef DAS_NO_ASSERTIONS
+        #define DAS_FATAL_ERROR(...) { \
+            DAS_FATAL_LOG(__VA_ARGS__); \
+            exit(-1); \
+        }
+    #else
+        #define DAS_FATAL_ERROR(...) { \
+            DAS_FATAL_LOG(__VA_ARGS__); \
+            print_current_stack_trace(); \
+            os_debug_break(); \
+            exit(-1); \
+        }
+    #endif
 #endif
 
 #ifndef DAS_ASSERT
@@ -362,22 +377,64 @@ void DAS_API os_debug_break();
     #endif
 #endif
 
+// Heap-leak tracking hooks. Zero-cost when DAS_TRACK_ALLOC is off (empty inline bodies
+// fold away). When on, external implementations in src/misc/alloc_tracker.cpp record
+// every aligned allocation and symbolize survivors after Module::Shutdown().
+namespace das {
+#if DAS_TRACK_ALLOC
+    DAS_API void    track_alloc_hook(void *p, size_t sz) noexcept;
+    DAS_API void    track_free_hook(void *p) noexcept;
+    DAS_API void    arm_alloc_tracking() noexcept;
+    DAS_API size_t  dump_alloc_leaks(FILE *out);
+    // Landmark RAII: ctor walks the stack once and stores the chain; alloc-site
+    // captures that match the landmark's RSP short-circuit with a memcpy. Place
+    // one on the stack high in the call tree (e.g. top of compile_and_run) to
+    // cut per-allocation unwind cost from ~N frames to ~depth-above-landmark.
+    // Win64 only — other platforms treat it as a no-op.
+    #if defined(_MSC_VER) && defined(_M_X64)
+        DAS_API void das_fast_stack_landmark_enter() noexcept;
+        DAS_API void das_fast_stack_landmark_exit() noexcept;
+        struct AllocTrackingLandmark {
+            AllocTrackingLandmark() noexcept  { das_fast_stack_landmark_enter(); }
+            ~AllocTrackingLandmark() noexcept { das_fast_stack_landmark_exit(); }
+        };
+    #else
+        struct AllocTrackingLandmark {
+            AllocTrackingLandmark() noexcept {}
+            ~AllocTrackingLandmark() noexcept {}
+        };
+    #endif
+#else
+    inline void   track_alloc_hook(void *, size_t) noexcept {}
+    inline void   track_free_hook(void *) noexcept {}
+    inline void   arm_alloc_tracking() noexcept {}
+    inline size_t dump_alloc_leaks(FILE *) { return 0; }
+    struct AllocTrackingLandmark {
+        AllocTrackingLandmark() noexcept {}
+        ~AllocTrackingLandmark() noexcept {}
+    };
+#endif
+}
+
 #ifndef DAS_ALIGNED_ALLOC
 #define DAS_ALIGNED_ALLOC 1
 inline void *das_aligned_alloc16(size_t size) {
     DAS_ASSERTF(size != 0, "das_aligned_alloc16 called with size 0");
+    void *p;
 #if defined(_MSC_VER)
-    return _aligned_malloc(size, 16);
+    p = _aligned_malloc(size, 16);
 #else
-    void * mem = nullptr;
-    if (posix_memalign(&mem, 16, size)) {
+    p = nullptr;
+    if (posix_memalign(&p, 16, size)) {
         DAS_ASSERTF(0, "posix_memalign returned nullptr");
         return nullptr;
     }
-    return mem;
 #endif
+    das::track_alloc_hook(p, size);
+    return p;
 }
 inline void das_aligned_free16(void *ptr) {
+    das::track_free_hook(ptr);
 #if defined(_MSC_VER)
     _aligned_free(ptr);
 #else
@@ -400,10 +457,13 @@ inline size_t das_aligned_memsize(void * ptr){
 }
 #endif
 
-// when enabled, Context heap memory will track where the allocation came from
-// via mark_location and mark_comment
+// when enabled, Context heap memory can track where the allocation came from
+// via mark_location and mark_comment. This is now a compile-time kill switch —
+// the actual tracking is controlled at runtime via CodeOfPolicies::track_allocations
+// and defaults to off. Setting DAS_TRACK_ALLOCATIONS=0 dead-code-eliminates the
+// tracking infrastructure for shipping builds.
 #ifndef DAS_TRACK_ALLOCATIONS
-#define DAS_TRACK_ALLOCATIONS   0
+#define DAS_TRACK_ALLOCATIONS   1
 #endif
 
 // when enabled, Context heap memory will be filled with 0xcd when deleted
@@ -413,12 +473,6 @@ inline size_t das_aligned_memsize(void * ptr){
 
 #ifndef DAS_TRACK_INSANE_POINTERS
 #define DAS_TRACK_INSANE_POINTERS 0
-#endif
-
-// when enabled, TypeDecl, Expression, Variable, Structure, Enumeration and Function
-// will be filled with 0xcd when deleted
-#ifndef DAS_MACRO_SANITIZER
-#define DAS_MACRO_SANITIZER 0
 #endif
 
 #if defined(_M_IX86) && defined(_MSC_VER) && !defined(__clang__) && _MSC_VER <= 1900
@@ -467,27 +521,6 @@ private:
     #endif
 #endif
 
-#if DAS_SMART_PTR_DEBUG==1
-    #define DAS_SMART_PTR_TRACKER   1
-    #define DAS_SMART_PTR_MAGIC     1
-    #define DAS_SMART_PTR_ID        1
-#endif
-
-#ifndef DAS_SMART_PTR_TRACKER
-    #ifdef DAS_NO_ASSERTIONS
-        #define DAS_SMART_PTR_TRACKER   0
-    #else
-        #define DAS_SMART_PTR_TRACKER   1
-    #endif
-#endif
-
-#ifndef DAS_SMART_PTR_MAGIC
-    #ifdef DAS_NO_ASSERTIONS
-        #define DAS_SMART_PTR_MAGIC     0
-    #else
-        #define DAS_SMART_PTR_MAGIC     1
-    #endif
-#endif
 
 // if -funsafe-math-optimizations or -freciprocal-math is used, this flat needs to be 0
 // unfortunately, it's not possible to detect this flag in the preprocessor

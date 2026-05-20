@@ -59,31 +59,30 @@ class EcsInspectorAnnotation : AstFunctionAnnotation
         ann.arguments |> add_annotation_argument("patched", true)
 
     let at = func.at
-    var inscope fn <- new Function(at = at, atDecl = at, name := "register`{func.name}")
+    var fn = new Function(at = at, atDecl = at, name := "register`{func.name}")
     fn.flags |= FunctionFlags.generated
     fn.flags |= FunctionFlags.privateFunction
     fn.flags |= FunctionFlags.init
     fn.flags |= FunctionFlags.exports
-    fn.result |> move_new() <| new TypeDecl(baseType = Type.autoinfer, at = at)
+    fn.result = new TypeDecl(baseType = Type.autoinfer, at = at)
 
-    var inscope qblock <- quote() <|
+    var qblock = quote() <|
       unsafe
         lock_debug_agent() <| $()
           start_ecs_inspectors_agent()
           if not_in_ecs_inspectors_context() && !is_in_aot()
             add_inspector(type_name, field_name, tag, flags, func, this_context())
 
-    var inscope rules : Template
+    var rules : Template
     rules |> replaceVariable("type_name") <| new ExprConstString(at = at, value := "{typeNameArg}")
     rules |> replaceVariable("field_name") <| new ExprConstString(at = at, value := "{fieldName}")
     rules |> replaceVariable("tag") <| new ExprConstString(at = at, value := "{tagArg}")
     rules |> replaceVariable("flags") <| new ExprConstBitfield(at = at, value := flags)
     rules |> replaceVariable("func") <| new ExprAddr(at = at, target := "{func.name}")
     apply_template(rules, at, qblock)
-    delete rules
-    var inscope blk <- move_unquote_block(qblock)
+    var blk = move_unquote_block(qblock)
     blk.blockFlags ^= ExprBlockFlags.isClosure
-    fn.body |> move() <| blk
+    fn.body = blk
 
     compiling_module() |> add_function(fn)
     return true
@@ -109,14 +108,14 @@ class EcsEditorAnnotation : AstFunctionAnnotation
     keep_func_and_args(func)
 
     let at = func.at
-    var inscope fn <- new Function(at = at, atDecl = at, name := "register`{func.name}")
+    var fn = new Function(at = at, atDecl = at, name := "register`{func.name}")
     fn.flags |= FunctionFlags.generated
     fn.flags |= FunctionFlags.privateFunction
     fn.flags |= FunctionFlags.init
     fn.flags |= FunctionFlags.exports
-    fn.result |> move_new() <| new TypeDecl(baseType = Type.autoinfer, at = at)
+    fn.result = new TypeDecl(baseType = Type.autoinfer, at = at)
 
-    var inscope qblock <- quote() <|
+    var qblock = quote() <|
       unsafe
         lock_debug_agent() <| $()
           start_ecs_inspectors_agent()
@@ -125,23 +124,22 @@ class EcsEditorAnnotation : AstFunctionAnnotation
             add_editor(prefix, tempTags, func, this_context())
             delete tempTags
 
-    var inscope rules : Template
+    var rules : Template
     rules |> replaceVariable("prefix") <| new ExprConstBool(at = at, value = prefix)
-    var inscope tagsArr <- new ExprMakeArray(at = at, makeType <- typeinfo ast_typedecl(type<string>))
+    var tagsArr = new ExprMakeArray(at = at, makeType <- typeinfo ast_typedecl(type<string>))
     for tag in tags
       if true
-        var inscope expr <- new ExprConstString(at = at, value := tag)
+        var expr = new ExprConstString(at = at, value := tag)
         tagsArr.values |> emplace <| expr
-    var inscope tagsArrMove <- new ExprCall(at = at, name := "to_array_move")
+    var tagsArrMove = new ExprCall(at = at, name := "to_array_move")
     tagsArrMove.arguments |> emplace <| tagsArr
 
     rules |> replaceVariable("tags") <| add_ptr_ref(tagsArrMove)
     rules |> replaceVariable("func") <| new ExprAddr(at = at, target := "{func.name}")
     apply_template(rules, at, qblock)
-    delete rules
-    var inscope blk <- move_unquote_block(qblock)
+    var blk = move_unquote_block(qblock)
     blk.blockFlags ^= ExprBlockFlags.isClosure
-    fn.body |> move <| blk
+    fn.body = blk
 
     compiling_module() |> add_function(fn)
     return true
@@ -154,27 +152,26 @@ class EcsUnselectedInspectorAnnotation : AstFunctionAnnotation
     keep_func_and_args(func)
 
     let at = func.at
-    var inscope fn <- new Function(at = at, atDecl = at, name := "register`{func.name}")
+    var fn = new Function(at = at, atDecl = at, name := "register`{func.name}")
     fn.flags |= FunctionFlags.generated
     fn.flags |= FunctionFlags.privateFunction
     fn.flags |= FunctionFlags.init
     fn.flags |= FunctionFlags.exports
-    fn.result |> move_new() <| new TypeDecl(baseType = Type.autoinfer, at = at)
+    fn.result = new TypeDecl(baseType = Type.autoinfer, at = at)
 
-    var inscope qblock <- quote() <|
+    var qblock = quote() <|
       unsafe
         lock_debug_agent() <| $()
           start_ecs_inspectors_agent()
           if not_in_ecs_inspectors_context() && !is_in_aot()
             add_unselected_inspector(func, this_context())
 
-    var inscope rules : Template
+    var rules : Template
     rules |> replaceVariable("func") <| new ExprAddr(at = at, target := "{func.name}")
     apply_template(rules, at, qblock)
-    delete rules
-    var inscope blk <- move_unquote_block(qblock)
+    var blk = move_unquote_block(qblock)
     blk.blockFlags ^= ExprBlockFlags.isClosure
-    fn.body |> move <| blk
+    fn.body = blk
 
     compiling_module() |> add_function(fn)
     return true
