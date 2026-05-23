@@ -134,6 +134,7 @@ public:
   void imguiBegin(const char *name, bool *open, unsigned window_flags) override {}
   void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
   void imguiEnd() override {}
+  void *getImguiContext() override { return nullptr; }
 
   AssetTagManager *getVisibleTagManagerWindow() override { DUMMY_IMPL_0; };
   void showTagManagerWindow(bool show) override { DUMMY_IMPL; }

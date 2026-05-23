@@ -33,6 +33,7 @@ void setDebugGbufferMode(eastl::string_view mode);
 void setDebugGbufferWithVectorsMode(eastl::string_view mode, int vectorsCount, float vectorsScale);
 eastl::string getDebugGbufferUsage();
 eastl::string getDebugGbufferWithVectorsUsage();
+eastl::string getDebugGbufferModeName(DebugGbufferMode mode);
 
 class DeferredRT;
 

@@ -26,6 +26,14 @@ bool CtrlListSettingsEventHandler::onListBoxContextMenu(int pcb_id, PropPanel::I
 {
   if (pcb_id == PID_CTRLS_NODES_LIST)
   {
+    PropPanel::ContainerPropertyControl *ctrlsTree = pluginPanel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+    PropPanel::TLeafHandle selLeaf = ctrlsTree->getSelLeaf();
+    if (!selLeaf)
+      return false;
+    AnimCtrlData *ctrlData = find_data_by_handle(controllers, selLeaf);
+    if (!ctrlData || ctrlData->childs.empty())
+      return false;
+
     PropPanel::IMenu &menu = list_box_interface.createContextMenu();
     menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::EDIT, "Edit");
     menu.setEventHandler(this);

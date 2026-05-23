@@ -121,6 +121,13 @@ public:
     // Don't set `eid` setTraceContext here - as might be (incorrectly) used as pointer on actual `trace_static_multiray` calls
 
     const TMatrix &tm = mgr.getOr(eid, ECS_HASH("transform"), TMatrix::IDENT);
+    if (check_nan(tm))
+    {
+      logerr("failed to create entity <%s> with animchar with NaN tm", mgr.getEntityTemplateName(eid));
+      if (mgr.getOr(eid, ECS_HASH("animchar__removeOnBadTm"), false))
+        mgr.destroyEntity(eid);
+      return;
+    }
     bool turnDir = mgr.getOr(eid, ECS_HASH("animchar__turnDir"), false);
 
     animchar_set_tm(*this, turnDir, tm);
@@ -260,9 +267,16 @@ DAG_DECLARE_RELOCATABLE(AnimcharAttachRec);
 
 
 static __forceinline void animchar_act_impl(float dt, float *accum_dt, const float *dt_threshold,
-  AnimV20::AnimcharBaseComponent &animchar, bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm,
-  vec3f *animchar_render__root_pos, volatile int *pnfullacts = nullptr, volatile int *pncalcwtms = nullptr)
+  AnimV20::AnimcharBaseComponent &animchar, bool animchar__turnDir, ecs::EntityId eid, const TMatrix &transform,
+  AnimcharNodesMat44 *animchar_node_wtm, vec3f *animchar_render__root_pos, volatile int *pnfullacts = nullptr,
+  volatile int *pncalcwtms = nullptr, bool animchar__removeOnBadTm = false)
 {
+  if (animchar__removeOnBadTm && check_nan(transform))
+  {
+    logerr("entity <%s> removed on animchar update with NaN tm", g_entity_mgr->getEntityTemplateName(eid));
+    g_entity_mgr->destroyEntity(eid);
+    return;
+  }
   animchar_set_tm(animchar, animchar__turnDir, transform);
   auto animcharAct = [&](float anim_dt) {
     animchar.act(anim_dt, /*calc_anim*/ true);
@@ -300,13 +314,15 @@ static __forceinline void animchar_act_impl(float dt, float *accum_dt, const flo
 #endif
 }
 
-#define ANIMCHAR_ACT_EXT(fn, dt, accum_dt, dt_threshold, ...) \
-  fn(dt, accum_dt, dt_threshold, animchar, animchar__turnDir, transform, animchar_node_wtm, animchar_render__root_pos, ##__VA_ARGS__)
+#define ANIMCHAR_ACT_EXT(fn, dt, accum_dt, dt_threshold, ...)                                                               \
+  fn(dt, accum_dt, dt_threshold, animchar, animchar__turnDir, eid, transform, animchar_node_wtm, animchar_render__root_pos, \
+    ##__VA_ARGS__)
 #define ANIMCHAR_ACT(dt, accum_dt, dt_threshold) ANIMCHAR_ACT_EXT(anim::animchar_act, dt, accum_dt, dt_threshold)
 #define ANIMCHAR_ACT_0                           ANIMCHAR_ACT(0.f, nullptr, nullptr)
 
 void anim::animchar_act(float dt, float *accum_dt, const float *dt_threshold, AnimV20::AnimcharBaseComponent &animchar,
-  bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm, vec3f *animchar_render__root_pos)
+  bool animchar__turnDir, ecs::EntityId eid, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm,
+  vec3f *animchar_render__root_pos)
 {
   ANIMCHAR_ACT_EXT(animchar_act_impl, dt, accum_dt, dt_threshold);
 }
@@ -342,7 +358,7 @@ static __forceinline void animchar__updater_es(const UpdateAnimcharEvent &info, 
 #endif
   animchar_update_ecs_query(manager, [&](ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand) ECS_REQUIRE_NOT(
                                            ecs::Tag animchar__physSymDependence) AnimV20::AnimcharBaseComponent &animchar,
-                                       float *animchar__accumDt, const float *animchar__dtThreshold,
+                                       float *animchar__accumDt, const float *animchar__dtThreshold, ecs::EntityId eid,
                                        AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
                                        vec3f *animchar_render__root_pos,      // always on client, never on server
                                        const TMatrix &transform, bool animchar__updatable = true, bool animchar__turnDir = false) {
@@ -371,7 +387,7 @@ ECS_AFTER(anim_phys_es)
 ECS_REQUIRE(ecs::Tag animchar__actOnCreate)
 ECS_ON_EVENT(on_appear)
 static __forceinline void update_animchar_on_create_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
-  float *animchar__accumDt, const float *animchar__dtThreshold, AnimcharNodesMat44 *animchar_node_wtm,
+  ecs::EntityId eid, float *animchar__accumDt, const float *animchar__dtThreshold, AnimcharNodesMat44 *animchar_node_wtm,
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT(0.0, animchar__accumDt, animchar__dtThreshold);
@@ -396,7 +412,7 @@ ECS_TRACK(transform, animchar__turnDir)
 ECS_ON_EVENT(on_appear)
 static __forceinline void animchar_act_on_demand_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
-  vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
+  vec3f *animchar_render__root_pos, ecs::EntityId eid, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT_0;
 }
@@ -406,7 +422,7 @@ ECS_REQUIRE(ecs::Tag animchar__actOnDemand)
 ECS_REQUIRE(ecs::auto_type attachedToParent)
 ECS_ON_EVENT(on_appear, on_disappear)
 static __forceinline void animchar_act_on_demand_detach_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
-  AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+  ecs::EntityId eid, AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT_0;
@@ -415,7 +431,7 @@ static __forceinline void animchar_act_on_demand_detach_es_event_handler(const e
 ECS_REQUIRE(ecs::Tag disableUpdate)
 ECS_TRACK(transform, animchar__turnDir)
 ECS_ON_EVENT(on_appear)
-static __forceinline void animchar_non_updatable_es(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
+static __forceinline void animchar_non_updatable_es(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar, ecs::EntityId eid,
   AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
@@ -426,7 +442,7 @@ ECS_REQUIRE(ecs::Tag disableUpdate)
 ECS_REQUIRE(ecs::auto_type attachedToParent)
 ECS_ON_EVENT(on_appear, on_disappear)
 static __forceinline void animchar_non_updatable_detach_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar,
-  AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+  ecs::EntityId eid, AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT_0;
@@ -436,15 +452,15 @@ ECS_TRACK(skeleton_attach__attached)
 ECS_TAG(gameClient)
 ECS_REQUIRE(eastl::false_type skeleton_attach__attached)
 static __forceinline void animchar_skeleton_attach_destroy_attach_es_event_handler(const ecs::Event &,
-  AnimV20::AnimcharBaseComponent &animchar,
-  AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+  AnimV20::AnimcharBaseComponent &animchar, ecs::EntityId eid, AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on
+                                                                                                      // server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT_0;
 }
 
 static __forceinline void animchar_act_on_phys_teleport_es(const EventOnEntityTeleported &, AnimV20::AnimcharBaseComponent &animchar,
-  AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
+  ecs::EntityId eid, AnimcharNodesMat44 *animchar_node_wtm, // always on client, never on server
   vec3f *animchar_render__root_pos, const TMatrix &transform, bool animchar__turnDir = false)
 {
   ANIMCHAR_ACT_0;

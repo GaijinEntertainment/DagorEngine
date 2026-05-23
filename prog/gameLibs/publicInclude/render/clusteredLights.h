@@ -298,7 +298,7 @@ protected:
   ReallocatableConstantBuffer<sizeof(RenderOmniLight) / 16, true> visibleOmniLightsCB, visibleFarOmniLightsCB;
   ReallocatableConstantBuffer<sizeof(RenderSpotLight) / 16, true> visibleSpotLightsCB, visibleFarSpotLightsCB;
   ReallocatableConstantBuffer<1, false> commonLightShadowsBufferCB;
-  UniqueBufHolder spotLightSsssShadowDescBuffer;
+  UniqueBufWithShaderVar spotLightSsssShadowDescBuffer;
   UniqueBuf visibleSpotLightsMasksSB;
   UniqueBuf visibleOmniLightsMasksSB;
 
@@ -308,7 +308,7 @@ protected:
   // true if we already filled empty buffer. we only should do it once since buffer is persistent
   bool commonLightsShadowsAreEmpty = false;
   Point4 omniOOFBox[2], spotOOFBox[2];
-  UniqueBufHolder outOfFrustumLightsFullGridCB;
+  UniqueBufWithShaderVar outOfFrustumLightsFullGridCB;
   eastl::unique_ptr<ComputeShaderElement> cull_out_of_frustum_lights_cs, clear_out_of_frustum_grid_cs;
   shaders::UniqueOverrideStateId depthBiasOverrideId;
   shaders::UniqueOverrideStateId depthBiasTwoSidedOverrideId;

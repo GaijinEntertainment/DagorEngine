@@ -20,6 +20,7 @@ enum CollresDrawAllMode
   DEFAULT
   NORMALS
   BBOX
+  FLAGS
   MODES_COUNT
 
 
@@ -36,7 +37,7 @@ struct collres_draw_all_debug
   drawCollisionResourceDist : float
 
 
-[console_cmd(name="collres.draw_all", hint="draws collision geometry near camera, 0 - NONE, 1 - COLLIDERS, 2 - COLLIDERS and NORMALS, 3 - BBOX")]
+[console_cmd(name="collres.draw_all", hint="draws collision geometry near camera, 0 - NONE, 1 - COLLIDERS, 2 - COLLIDERS and NORMALS, 3 - BBOX, 4 - COLLIDERS COLORED BY FLAGS")]
 def console_draw_coll_res(mode : int = 1;
                           dist : float = 16.0)
   if mode < 0 || mode >= int(CollresDrawAllMode.MODES_COUNT)
@@ -62,23 +63,42 @@ def console_draw_coll_res(mode : int = 1;
 def draw_node_names(collres : CollisionResource;
                     transform : float3x4;
                     animchar : AnimcharBaseComponent const?;
-                    color : E3DCOLOR)
+                    color : E3DCOLOR;
+                    show_flags : bool)
   let numNodes = collres_get_nodesCount(collres)
   for i in range(numNodes)
     var nodeTm : float3x4
+    let node = collres_get_node(collres, i)
     collres_get_collision_node_tm(collres, i, transform, animchar != null ? animchar.nodeTree : null, nodeTm)
     let name = collres_get_node_name(collres, i)
-    add_debug_text_mark(nodeTm[3], name, -1, 0f, color)
+    let text = show_flags ? "{name}:{int(node.behaviorFlags)}" : string(name)
+    add_debug_text_mark(nodeTm[3], text, -1, 0f, color)
 
+// In `color_by_flags` mode each node's draw color is picked from its `behaviorFlags`:
+//   neither flag set  -> red    (node not collidable nor traceable -- e.g. flying turret subtree on source tank)
+//   TRACEABLE only    -> yellow (bullets hit it but rigid-body doesn't)
+//   PHYS_COLLIDABLE   -> green  (physics hits it but raycasts don't)
+//   both flags set    -> cyan   (the normal "live" state)
+// In the default mode every shape is drawn with the caller-supplied `color` (which the
+// near-camera walker uses to distinguish ECS entities (green) from rendinsts (red etc.)).
 def draw_node_collision_geometry(collres : CollisionResource;
                                  transform : float3x4;
                                  animchar : AnimcharBaseComponent const?;
                                  color : E3DCOLOR;
                                  cam_dir : float3;
-                                 draw_normals : bool = false)
+                                 draw_normals : bool = false;
+                                 color_by_flags : bool = false)
   let numNodes = collres_get_nodesCount(collres)
   for i in range(numNodes)
     let node = collres_get_node(collres, i)
+    var nodeColor = color
+    if color_by_flags
+      let isTraceable = (uint(node.behaviorFlags) & uint(BehaviorFlag.TRACEABLE)) != 0u
+      let isCollidable = (uint(node.behaviorFlags) & uint(BehaviorFlag.PHYS_COLLIDABLE)) != 0u
+      nodeColor = (!isTraceable && !isCollidable ? E3DCOLOR(0xFFFF0000) :
+                    isTraceable && !isCollidable ? E3DCOLOR(0xFFFFFF00) :
+                   !isTraceable &&  isCollidable ? E3DCOLOR(0xFF00FF00) :
+                                                   E3DCOLOR(0xFF00FFFF))
     var nodeTm : float3x4
     collres_get_collision_node_tm(collres, i, transform, animchar != null ? animchar.nodeTree : null, nodeTm)
     set_cached_debug_lines_wtm(transform)
@@ -86,9 +106,9 @@ def draw_node_collision_geometry(collres : CollisionResource;
       let camDirNodeSpace = draw_normals ? rotate(inverse(nodeTm), cam_dir) : float3()
       set_cached_debug_lines_wtm(nodeTm)
       collres_node_iterate_face_verts(collres, int(node.nodeIndex)) <| $ [unused_argument(idx)] (idx : int; v0, v1, v2 : float3)
-        draw_cached_debug_line(v0, v1, color)
-        draw_cached_debug_line(v1, v2, color)
-        draw_cached_debug_line(v2, v0, color)
+        draw_cached_debug_line(v0, v1, nodeColor)
+        draw_cached_debug_line(v1, v2, nodeColor)
+        draw_cached_debug_line(v2, v0, nodeColor)
 
         if draw_normals
           let normalVec = cross(v1 - v0, v2 - v0)
@@ -117,14 +137,14 @@ def draw_node_collision_geometry(collres : CollisionResource;
             draw_cached_debug_line(normalPoint, arrowPoint3, normalColor)
 
     elif node.nodeType == CollisionResourceNodeType.COLLISION_NODE_TYPE_BOX
-      draw_cached_debug_box(collres_get_node_bbox(collres, i), color)
+      draw_cached_debug_box(collres_get_node_bbox(collres, i), nodeColor)
     elif node.nodeType == CollisionResourceNodeType.COLLISION_NODE_TYPE_SPHERE
       let bsph = collres_get_node_bsphere(collres, i)
-      draw_cached_debug_sphere(bsph.c, bsph.r, color, 12)
+      draw_cached_debug_sphere(bsph.c, bsph.r, nodeColor, 12)
     elif node.nodeType == CollisionResourceNodeType.COLLISION_NODE_TYPE_CAPSULE
       var cap : Capsule
       if collres_get_node_capsule(collres, i, cap)
-        draw_cached_debug_capsule_w(cap, color)
+        draw_cached_debug_capsule_w(cap, nodeColor)
 
 
 def for_each_collres_near_camera(func_cb; cam_dist : float = 16.0)
@@ -169,7 +189,8 @@ def debug_dynamic_collision(info : UpdateStageInfoRenderDebug;
         set_cached_debug_lines_wtm(IDENT_TM)
       else
         let drawNormals = (drawCollisionResourceMode == int(CollresDrawAllMode.NORMALS))
-        draw_node_collision_geometry(collres, tm, animchar, color, camera_transform[2], drawNormals)
+        let colorByFlags = (drawCollisionResourceMode == int(CollresDrawAllMode.FLAGS))
+        draw_node_collision_geometry(collres, tm, animchar, color, camera_transform[2], drawNormals, colorByFlags)
     for_each_collres_near_camera(drawNodeCollisionGeometry, drawCollisionResourceDist)
     return true
 
@@ -177,19 +198,25 @@ def debug_dynamic_collision(info : UpdateStageInfoRenderDebug;
 [ecs_template]
 struct collres_names_debug
   drawCollresNames : bool
+  drawCollresNamesShowFlags : bool
 
-[console_cmd(name="collres.draw_names", hint="draws collres node names and positions near camera")]
-def toggle_draw_coll_res_names()
-  var exists = false
-  query() <| $ [es(REQUIRE=drawCollresNames)] (eid : EntityId)
-    destroyEntity(eid)
-    exists = true
-  if !exists
-    createEntity("collres_names_debug")
+[console_cmd(name="collres.draw_names", hint="draws collres node names near camera; pass 1 to also append :behaviorFlags")]
+def toggle_draw_coll_res_names(show_flags : bool = false)
+  let found = find_query() <| $ [es(REQUIRE=drawCollresNames)] (eid : EntityId; var drawCollresNamesShowFlags : bool&)
+    if drawCollresNamesShowFlags == show_flags
+      destroyEntity(eid)
+    else
+      drawCollresNamesShowFlags = show_flags
+    return true
+  if !found
+    createEntity("collres_names_debug") <| $(var init : ComponentsInitializer)
+      init |> set("drawCollresNamesShowFlags", show_flags)
 
 [es(tag=(render, dev), REQUIRE=drawCollresNames, no_order)]
-def draw_collres_node_names(info : UpdateStageInfoRenderDebug)
-  for_each_collres_near_camera(@@draw_node_names)
+def draw_collres_node_names(info : UpdateStageInfoRenderDebug; drawCollresNamesShowFlags : bool = false)
+  let drawer <- $ <| (collres : CollisionResource; tm : float3x4; animchar : AnimcharBaseComponent const ?; color : E3DCOLOR)
+    draw_node_names(collres, tm, animchar, color, drawCollresNamesShowFlags)
+  for_each_collres_near_camera(drawer)
 
 
 [ecs_template]

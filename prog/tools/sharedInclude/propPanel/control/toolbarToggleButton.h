@@ -16,6 +16,8 @@ public:
   ToolbarToggleButtonPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x, int y,
     hdpi::Px w, hdpi::Px h, const char caption[]);
 
+  int getImguiControlType() const override;
+
   unsigned getTypeMaskForSet() const override { return 0; }
   unsigned getTypeMaskForGet() const override { return 0; }
   unsigned getWidth() const override;
@@ -30,7 +32,10 @@ public:
 
   void setButtonPictureValues(const char *fname) override;
 
-  void updateImgui() override;
+  void updateImgui() override { toolbarToggleButtonUpdateImgui(ImDrawFlags_RoundCornersAll); }
+
+  // frame_draw_flags: allows specifying which side of the button should be rounded
+  void toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags);
 
 private:
   bool controlValue = false;

@@ -113,8 +113,10 @@ void dump_periodic_gpu_info()
   {
     if (unsigned commitAvailMB = dump_proc_memory(); commitAvailMB > 3072) // To consider: tune these consts for XB1
       nextProcMemDumpTime = timeNow + 60000;
-    else if (commitAvailMB > 1024) // (1024, 3072]
+    else if (commitAvailMB > 2048)
       nextProcMemDumpTime = timeNow + 15000;
+    else if (commitAvailMB > 1024)
+      nextProcMemDumpTime = timeNow + 10000;
     else // <= 1024
       nextProcMemDumpTime = timeNow + 5000;
   }

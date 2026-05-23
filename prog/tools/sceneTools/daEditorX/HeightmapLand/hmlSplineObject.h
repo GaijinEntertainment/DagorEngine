@@ -179,6 +179,7 @@ public:
   void updateChangedSegmentsRoadGeom();
   void updateChangedSegmentsLoftGeom();
 
+  static bool pointInsidePoly(const Point2 &p, dag::ConstSpan<Point3> points);
   bool pointInsidePoly(const Point2 &p);
   void applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float hm_cell_size, IBBox2 &out_dirty, const IBBox2 &dirty_clip,
     HmapBitmap *bmp = NULL);
@@ -266,6 +267,7 @@ public:
 
   bool splineChanged;
   bool modifChanged;
+  bool forceDebugDrawWhenHidden = false;
   shaders::OverrideStateId zFuncLessStateId;
 
 public:

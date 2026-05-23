@@ -1,0 +1,139 @@
+wait.project_load
+wait.textures
+wait.time 500
+
+editor.command Plugin.Landscape.TogglePropertiesAndObjectProperties
+wait.time 100
+editor.command Plugin.Landscape.TogglePropertiesAndObjectProperties
+wait.time 100
+
+editor.command Main.SelectAll
+wait.time 100
+
+// object editor
+editor.command_viewport ObjectEditor.TogglePropertiesPanel
+wait.time 100
+editor.command_viewport ObjectEditor.TogglePropertiesPanel
+wait.time 100
+editor.command_viewport ObjectEditor.SelectByName
+wait.time 100
+editor.command_viewport ObjectEditor.SelectByName
+wait.time 100
+editor.command ObjectEditor.Mode.Move
+wait.time 100
+editor.command ObjectEditor.Mode.SurfMove
+wait.time 100
+editor.command ObjectEditor.Mode.Rotate
+wait.time 100
+editor.command ObjectEditor.Mode.Scale
+wait.time 100
+editor.command ObjectEditor.Mode.Select
+wait.time 100
+
+// delete
+editor.command ObjectEditor.Delete
+wait.time 100
+editor.command Main.Undo
+wait.time 100
+editor.command Main.Redo
+wait.time 100
+editor.command Main.Undo
+wait.time 100
+
+// heightmap
+editor.command Plugin.Landscape.HillUp
+wait.time 100
+editor.command Plugin.Landscape.HillDown
+wait.time 100
+editor.command Plugin.Landscape.Align
+wait.time 100
+editor.command Plugin.Landscape.Smooth
+wait.time 100
+editor.command Plugin.Landscape.Shadows
+wait.time 100
+editor.command Plugin.Landscape.Script
+wait.time 100
+editor.command_viewport ObjectEditor.Mode.Select
+wait.time 100
+
+// toolbar
+editor.command_viewport Plugin.Landscape.XToNormal
+wait.time 100
+editor.command_viewport Plugin.Landscape.YToNormal
+wait.time 100
+editor.command_viewport Plugin.Landscape.ZToNormal
+wait.time 100
+editor.command_viewport Plugin.Landscape.NoRotation
+wait.time 100
+
+editor.command_viewport Plugin.Landscape.Create.Entity
+wait.time 100
+editor.command_viewport Plugin.Landscape.Create.Spline
+wait.time 100
+editor.command_viewport Plugin.Landscape.Create.Polygon
+wait.time 100
+editor.command_viewport Plugin.Landscape.Create.SnowSource
+wait.time 100
+editor.command_viewport Plugin.Landscape.RefineSpline
+wait.time 100
+editor.command_viewport ObjectEditor.Mode.Select
+
+// toolbar toggles
+editor.command_viewport Plugin.Landscape.Select.Points
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Points
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Splines
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Splines
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Entities
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Entities
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.SplinesAndEntities
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.SplinesAndEntities
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Snow
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.Snow
+wait.time 100
+editor.command_viewport Plugin.Landscape.Select.None
+wait.time 100
+editor.command_viewport Plugin.Landscape.HideSplines
+wait.time 100
+editor.command_viewport Plugin.Landscape.HideSplines
+wait.time 100
+editor.command_viewport Plugin.Landscape.ShowPhysmat
+wait.time 100
+editor.command_viewport Plugin.Landscape.ShowPhysmat
+wait.time 100
+editor.command_viewport Plugin.Landscape.ShowPhysmatColor
+wait.time 100
+editor.command_viewport Plugin.Landscape.ShowPhysmatColor
+wait.time 100
+editor.command_viewport Plugin.Landscape.UsePixelPerfectSelection
+wait.time 100
+editor.command_viewport Plugin.Landscape.UsePixelPerfectSelection
+wait.time 100
+editor.command_viewport Plugin.Landscape.SelectOnlyIfEntireObjectInRectangle
+wait.time 100
+editor.command_viewport Plugin.Landscape.SelectOnlyIfEntireObjectInRectangle
+wait.time 100
+editor.command_viewport Plugin.Landscape.UseManualObjGeomUpdateForSplinePoly
+wait.time 100
+editor.command_viewport Plugin.Landscape.UseManualObjGeomUpdateForSplinePoly
+wait.time 100
+
+// longer/menu:
+editor.command Plugin.Landscape.BuildColormap
+wait.time 500
+editor.command Plugin.Landscape.RebuildLighting
+wait.time 500
+editor.command Plugin.Landscape.Rebuild
+wait.time 500
+editor.command_viewport Plugin.Landscape.RebuildSplinesBitmask
+wait.time 500
+
+app.terminate 0

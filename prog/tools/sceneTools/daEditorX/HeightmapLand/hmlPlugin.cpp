@@ -88,6 +88,7 @@ int HmapLandPlugin::lmeshSubtypeMask = -1;
 int HmapLandPlugin::lmeshDetSubtypeMask = -1;
 int HmapLandPlugin::grasspSubtypeMask = -1;
 int HmapLandPlugin::navmeshSubtypeMask = -1;
+bool HmapLandPlugin::forceRiExtra = false;
 extern bool game_res_sys_v2;
 bool allow_debug_bitmap_dump = false;
 
@@ -232,6 +233,10 @@ HmapLandPlugin::HmapLandPlugin() :
   esiGridStep = 1;
   esiOrigin.set(0, 0);
   showBlueWhiteMask = true;
+  showLandClassColors = false;
+  showDebugWeightOverlay = false;
+  debugViewMode = DV_BLUE_WHITE;
+  debugLayerName = "";
   showMonochromeLand = false;
 
   shownExportedNavMeshIdx = 0;
@@ -265,6 +270,9 @@ HmapLandPlugin::HmapLandPlugin() :
   allow_debug_bitmap_dump = app_blk.getBlockByNameEx("SDK")->getBool("allow_debug_bitmap_dump", false);
 
   storeNxzInLtmapTex = app_blk.getBlockByNameEx("heightMap")->getBool("storeNxzInLtmapTex", false);
+
+  forceRiExtra =
+    app_blk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
 
   landClsLayersHandle = hmlService->createBitLayersList(DAGORED2->getWorkspace().getHmapLandClsLayersDesc());
   landClsLayer = hmlService->getBitLayersList(landClsLayersHandle);
@@ -498,6 +506,9 @@ void HmapLandPlugin::createPropPanel()
 }
 
 PropPanel::ContainerPropertyControl *HmapLandPlugin::getPropPanel() const { return propPanel ? propPanel->getPanelWindow() : NULL; }
+
+
+PropPanel::ContainerPropertyControl *HmapLandPlugin::getToolbar() const { return EDITORCORE->getCustomPanel(toolbarId); }
 
 
 //==============================================================================
@@ -928,8 +939,45 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
   for (int i = 0; i < colorGenParams.size(); ++i)
     colorGenParams[i]->fillParams(*maxGrp, pid);
 
-  maxGrp->createCheckBox(PID_SHOWMASK, "Show blue-white mask", showBlueWhiteMask);
-  maxGrp->createCheckBox(PID_SHOW_LANDCLASS_COLORS, "Show landclass weights (color)", showLandClassColors);
+  // Debug view mode combobox -- replaces the previous "show blue-white mask" /
+  // "show landclass weights" checkboxes. Item index maps to DebugViewMode:
+  //   0 DV_NONE / 1 DV_BLUE_WHITE / 2 DV_LANDCLASS_COLORS / 3 DV_DEBUG_EXPR /
+  //   4+i one entry per gen layer (selecting it sets DV_LAYER + paramName).
+  // Layer entries let the artist debug a single layer's pre-occlusion weight
+  // (no lex-sort overwrite from later layers). Layer identification is by
+  // paramName so the selection survives reorders / additions / deletions.
+  {
+    Tab<String> debugViewItems(tmpmem);
+    debugViewItems.push_back() = "no debug";
+    debugViewItems.push_back() = "Blue&white mask";
+    debugViewItems.push_back() = "Colored Landclass";
+    // The DebugExpr entry stays in the dropdown even when its text is empty so the
+    // user can switch to it after typing into the edit box; the label flags the
+    // empty state to make the situation obvious.
+    debugViewItems.push_back() = debugExprText.empty() ? String("DebugExpr(empty)") : String("DebugExpr");
+    // Picker rows mirror the bake's evaluable per-layer slot range:
+    //   - Unnamed layers (empty paramName) are skipped because DV_LAYER
+    //     identifies the target by name.
+    //   - Layers at indices >= lcNumLayerVars are skipped because the bake
+    //     only reserves exprVars[VAR_COUNT + l] for l < lcNumLayerVars; an
+    //     overflow layer's own-mask slot is never populated, so the overlay
+    //     cannot represent it correctly.
+    int curIdx = (debugViewMode == DV_LAYER) ? (int)DV_NONE : debugViewMode;
+    const int layerCap = min((int)genLayers.size(), lcNumLayerVars);
+    for (int i = 0; i < layerCap; ++i)
+    {
+      const char *lname = genLayers[i] ? genLayers[i]->paramName.str() : "";
+      if (!lname || !*lname)
+        continue;
+      const int row = (int)debugViewItems.size();
+      debugViewItems.push_back() = String(lname);
+      if (debugViewMode == DV_LAYER && strcmp(lname, debugLayerName.str()) == 0)
+        curIdx = row;
+    }
+    if (curIdx < 0 || curIdx >= debugViewItems.size())
+      curIdx = DV_NONE;
+    maxGrp->createCombo(PID_DEBUG_VIEW_MODE, "Debug view:", debugViewItems, curIdx);
+  }
 
   // Common expression: runs once per pixel before any layer's expression so var/let
   // declarations made here are visible to every layer below. The store is single-line
@@ -939,6 +987,16 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
     maxGrp->createEditBox(PID_COMMON_EXPR_EDIT, "Common expression:", display.c_str(), /*enabled*/ true, /*new_line*/ true,
       /*multiline*/ true, _pxScaled(80), /*auto_height*/ false);
     maxGrp->createButton(PID_COMMON_EXPR_APPLY, "Apply common expression");
+  }
+
+  // Debug expression: same shape as Common expression (multi-line edit + Apply).
+  // Compiled like a layer expression (sees base vars + mask_<layer> + common's
+  // var/let) but only the debug overlay reads its bytecode; the bake never does.
+  {
+    eastl::string display = getDebugExprDisplayText();
+    maxGrp->createEditBox(PID_DEBUG_EXPR_EDIT, "Debug expression:", display.c_str(), /*enabled*/ true, /*new_line*/ true,
+      /*multiline*/ true, _pxScaled(80), /*auto_height*/ false);
+    maxGrp->createButton(PID_DEBUG_EXPR_APPLY, "Apply debug expression");
   }
 
   for (int i = 0; i < genLayers.size(); ++i)
@@ -1811,8 +1869,6 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
 
         dagGeom->shaderGlobalSetInt(snowPrevievSVId, p_val);
         dagGeom->shaderGlobalSetReal(snowValSVId, dynSnowValue);
-        if (snowSpherePreview)
-          updateSnowSources();
       }
 
       panel->setEnabledById(PID_SNOW_SPHERE_PREVIEW, snowDynPreview);
@@ -2289,22 +2345,27 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
 
     case PID_SHADOW_DENSITY: shadowDensity = panel->getFloat(pcb_id) / 100; break;
 
-    case PID_SHOWMASK:
-      showBlueWhiteMask = panel->getBool(pcb_id);
-      setShowBlueWhiteMask();
-      if (editedScriptImage)
+    case PID_DEBUG_VIEW_MODE:
+    {
+      // Combobox rows 0..3 map 1:1 onto DV_NONE..DV_DEBUG_EXPR; rows >= DV_LAYER
+      // are layer entries whose label IS the layer's paramName (fillPanel skips
+      // unnamed layers). Read the label back rather than re-deriving the index,
+      // so the same skip logic doesn't have to live in two places.
+      int idx = panel->getInt(pcb_id);
+      if (idx >= (int)DV_LAYER)
       {
-        if (showBlueWhiteMask)
-          updateBlueWhiteMask(NULL);
-        DAGORED2->invalidateViewportCache();
+        SimpleString lname = panel->getText(pcb_id);
+        setDebugViewMode(DV_LAYER, lname.empty() ? nullptr : lname.str());
       }
+      else
+        setDebugViewMode(idx);
+      // Mask-edit overlay needs an explicit refresh on top of what
+      // setDebugViewMode already did, so the brush-surface flow works exactly
+      // as the old PID_SHOWMASK handler did when toggling the mask back on.
+      if (editedScriptImage && showEditedMask())
+        updateBlueWhiteMask(NULL);
       break;
-
-    case PID_SHOW_LANDCLASS_COLORS:
-      showLandClassColors = panel->getBool(pcb_id);
-      updateBlueWhiteMask(NULL);
-      DAGORED2->invalidateViewportCache();
-      break;
+    }
 
     case PID_MONOLAND:
       showMonochromeLand = panel->getBool(pcb_id);
@@ -3052,6 +3113,30 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     // Success: re-flow the stored text back into the multiline edit so the user
     // sees exactly what got persisted (newlines normalised to one-per-`;`).
     panel->setText(PID_COMMON_EXPR_EDIT, getCommonExprDisplayText().c_str());
+  }
+  else if (pcb_id == PID_DEBUG_EXPR_APPLY)
+  {
+    // Debug expression: cheaper Apply than common -- the debug expression cannot
+    // regress any layer expression's exprValid because it is compiled in a
+    // private copy of the symbol table (PARSE_DEFAULT, no var export). The only
+    // failure mode is parse/compile of the debug text itself; on failure we
+    // revert and show the parser error so the user can fix the typo without
+    // re-typing.
+    SimpleString uiText = panel->getText(PID_DEBUG_EXPR_EDIT);
+    SimpleString prev = debugExprText;
+    setDebugExprText(uiText.str());
+
+    if (!debugExprText.empty() && !debugExprValid)
+    {
+      const char *errMsg = debugExprLastErr.empty() ? "compile failed" : debugExprLastErr.str();
+      setDebugExprText(prev.str());
+      wingw::message_box(wingw::MBS_EXCL, "Debug expression error", "%s", errMsg);
+      return;
+    }
+    panel->setText(PID_DEBUG_EXPR_EDIT, getDebugExprDisplayText().c_str());
+    // The DebugExpr combobox label switches between "DebugExpr" / "DebugExpr(empty)"
+    // depending on text; rebuild the panel so the dropdown reflects the new label.
+    refillPanel();
   }
   else if (pcb_id == PID_ADDLAYER)
   {
@@ -4418,9 +4503,7 @@ void HmapLandPlugin::processGeometry(StaticGeometryContainer &container)
   DataBlock app_blk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *mgr_type = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getStr("type", NULL);
   bool snow = (!mgr_type || strcmp(mgr_type, "aces") != 0);
-  if (snow)
-    objEd.calcSnow(container);
-  else
+  if (!snow)
     removeInvisibleFaces(container);
 }
 

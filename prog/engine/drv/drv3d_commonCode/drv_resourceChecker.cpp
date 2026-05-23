@@ -10,11 +10,14 @@
 #include <3d/dag_resourceDump.h>
 #include <generic/dag_tab.h>
 #include <drv/3d/dag_resourceChecker.h>
-#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
 #include <EASTL/vector.h>
 #include <EASTL/sort.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <osApiWrappers/dag_spinlock.h>
+
+// Set to 1 to enable per-buffer framemem update tracking when the limit is exceeded.
+#ifndef RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
+#define RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG 0
 #endif
 
 uint32_t ResourceChecker::uploaded_framemem = 0;
@@ -24,14 +27,20 @@ uint32_t ResourceChecker::uploaded_total_limit = 0;
 
 #if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
 static OSSpinlock framemem_log_lock;
-static eastl::vector<ResourceChecker::FramememUpdateEntry> framemem_log_entries;
+static eastl::vector<ResourceChecker::FramememUpdateEntry> framemem_log_entries DAG_TS_GUARDED_BY(framemem_log_lock);
+#endif
 
 void ResourceChecker::recordFramememUpdate(const char *name, uint32_t size, int lock_flags)
 {
+#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
   OSSpinlockScopedLock guard(framemem_log_lock);
   framemem_log_entries.push_back({name ? name : "<unknown>", size, lock_flags});
-}
+#else
+  G_UNUSED(name);
+  G_UNUSED(size);
+  G_UNUSED(lock_flags);
 #endif
+}
 
 void ResourceChecker::init()
 {

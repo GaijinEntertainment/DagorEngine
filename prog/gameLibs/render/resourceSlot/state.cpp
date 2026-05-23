@@ -32,7 +32,7 @@ const char *resource_slot::State::resourceToReadFrom(const char *slot_name) cons
     storage.nodeMap.name(ownerNodeId));
 
   detail::SlotId slotId = resource_slot::detail::slot_map.id(slot_name);
-  const auto *slot = node.resourcesBeforeNode.find(slotId);
+  const auto slot = node.resourcesBeforeNode.find(slotId);
 
   if (slot == node.resourcesBeforeNode.end())
   {

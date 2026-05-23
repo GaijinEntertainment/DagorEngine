@@ -11,7 +11,7 @@ void holes_initialize(int &hmap_holes_scale_step_offset_varId, int &hmap_holes_t
 
 void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexWithShaderVar &hmapHolesTex);
 
-void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
+void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufWithShaderVar &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer, PostFxRenderer &hmapHolesMipmapRenderer, ShadersECS &hmapHolesPrepareRenderer,
   bool &should_render_ground_holes, int hmap_holes_scale_step_offset_varId, int hmap_holes_temp_ofs_size_varId, ecs::Point4List &holes,
   ecs::Point3List &invalidate_bboxes, const ComputeShader &heightmap_holes_process_cs);
@@ -22,11 +22,11 @@ void get_invalidation_bbox(ecs::Point3List &bboxes, const TMatrix &transform, bo
 
 void convar_helper(bool &should_render_ground_holes);
 
-void zones_before_render(UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes);
+void zones_before_render(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes);
 
-void zones_after_device_reset(UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones);
+void zones_after_device_reset(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones);
 
-void zones_manager_on_disappear(UniqueBufHolder &hmapHolesZonesBuf);
+void zones_manager_on_disappear(UniqueBufWithShaderVar &hmapHolesZonesBuf);
 
 bool get_debug_hide();
 }; // namespace ground_holes

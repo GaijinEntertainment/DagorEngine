@@ -7,7 +7,7 @@ include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
 if ! $(UseD3DMultiList) {
-  UseD3DMultiList_windows = DX11 DX12 vulkan ;
+  UseD3DMultiList_windows = DX11 vulkan ;
   UseD3DMultiList_linux   = vulkan ;
 }
 

@@ -561,6 +561,12 @@ Yuplay2Status YU2VCALL YuSession::setOptionStringSync(Yuplay2SessionOptions id, 
 template<class Cont>
 static bool getSessionStrings(Cont& container, const char** vals, unsigned count)
 {
+  if (!count)
+  {
+    container.clear();
+    return true;
+  }
+
   for (unsigned i = 0; i < count; ++i)
   {
     if (!CHECK_STRING(vals[i]))
@@ -574,58 +580,66 @@ static bool getSessionStrings(Cont& container, const char** vals, unsigned count
 
 
 //==================================================================================================
+static bool setFallbackHosts(YuStringTab& hosts, const char* name, const char** vals, unsigned count)
+{
+  YuStringTab hostBuf;
+  hostBuf.reserve(count);
+
+  if (getSessionStrings(hostBuf, vals, count))
+  {
+    if (count)
+      YuDebug::out("%u %s fallback hosts added", count, name);
+    else
+      YuDebug::out("%s fallback hosts removed", name);
+
+    hosts = hostBuf;
+    return true;
+  }
+
+  return false;
+}
+
+
+//==================================================================================================
 Yuplay2Status YU2VCALL YuSession::setOptionStringsSync(Yuplay2SessionOptions id, const char** vals,
                                                        unsigned count)
 {
   if (count && !vals)
     return YU2_WRONG_PARAMETER;
 
-  switch (id)
+  if (id == YU2_CURL_CA)
   {
-    case YU2_CURL_CA:
-      if (count < 2 || count % 2)
+    if (count < 2 || count % 2)
+      return YU2_WRONG_PARAMETER;
+
+    for (unsigned i = 0; i < count; i += 2)
+    {
+      if (!CHECK_STRING(vals[i])) //-V522
         return YU2_WRONG_PARAMETER;
 
-      for (unsigned i = 0; i < count; i += 2)
-      {
-        if (!CHECK_STRING(vals[i])) //-V522
-          return YU2_WRONG_PARAMETER;
+      YuHttp::self().setHostCA(vals[i], vals[i + 1] ? vals[i + 1] : "");
+    }
 
-        YuHttp::self().setHostCA(vals[i], vals[i + 1] ? vals[i + 1] : "");
-      }
+    return YU2_OK;
+  }
+  else if (id == YU2_DNS_SERVERS)
+  {
+    YuStringSet dns;
+    if (getSessionStrings(dns, vals, count))
+    {
+      YuHttp::self().setDns(dns);
       return YU2_OK;
-
-    case YU2_DNS_SERVERS:
-    {
-      YuStringSet dns;
-      if (getSessionStrings(dns, vals, count))
-      {
-        YuHttp::self().setDns(dns);
-        return YU2_OK;
-      }
-      break;
     }
-
-    case YU2_YUPMASTER_FALLBACK_HOSTS:
-    {
-      YuStringTab hosts;
-      hosts.reserve(count);
-
-      if (getSessionStrings(hosts, vals, count))
-      {
-        if (count)
-          YuDebug::out("%u yupmaster fallback hosts added", count);
-        else
-          YuDebug::out("yupmaster fallback hosts removed");
-
-        yupmasterFallbackHosts = hosts;
-        return YU2_OK;
-      }
-      break;
-    }
-
-    default:
-      break;
+  }
+  else if (id == YU2_YUPMASTER_FALLBACK_HOSTS)
+  {
+    if (setFallbackHosts(yupmasterFallbackHosts, "yupmaster", vals, count))
+      return YU2_OK;
+  }
+  else if (id == YU2_AUTH_FALLBACK_HOSTS)
+  {
+    if (setFallbackHosts(authFallbackHosts, "auth", vals, count))
+      return YU2_OK;
   }
 
   return YU2_WRONG_PARAMETER;

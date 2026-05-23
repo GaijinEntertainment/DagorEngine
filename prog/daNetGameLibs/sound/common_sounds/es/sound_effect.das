@@ -6,6 +6,7 @@ require soundSystem
 require DagorSystem
 require gameLibs.pufd_events.pufd_events
 require sound_utils.modules.sound_control_common
+require sound_utils.modules.sound_player_common
 
 
 [es(tag=sound, on_appear, track=sound_preset__isLoaded)]
@@ -43,6 +44,8 @@ def sound_effect_toggle(evt : Event;
                         sound_control__state : int;
                         sound_effect__path : string;
                         replicated_sound_effect__path = "";
+                        sound_effect__globalKey : string;
+                        sound_effect__globalCooldown : float;
                         sound_effect__localOffset : float3;
                         sound_effect__occlusionRadius : float;
                         var sound_effect__event : SoundEvent&;
@@ -56,7 +59,10 @@ def sound_effect_toggle(evt : Event;
     abandon(sound_effect__event)
   else
     release(sound_effect__event)
+
   if have_sound(sound_control__state)
+    if apply_global_cooldown(sound_effect__globalCooldown, sound_effect__globalKey, get_sync_time())
+      return
     sound_effect__event |> play(path, transform * sound_effect__localOffset)
     if sound_effect__occlusionRadius > 0.
       set_occlusion_radius(sound_effect__event, sound_effect__occlusionRadius)

@@ -4449,6 +4449,59 @@ const char *CheckerVisitor::findSlotNameInStack(const Node *decl) {
   return nullptr;
 }
 
+class FunctionExitValueCollector : public Visitor {
+  std::vector<Expr *> values;
+
+  void addValue(TerminateStatement *stmt) {
+    if (Expr *arg = stmt->argument())
+      values.push_back(arg);
+  }
+
+public:
+  void visitReturnStatement(ReturnStatement *stmt) override { addValue(stmt); }
+  void visitYieldStatement(YieldStatement *stmt) override { addValue(stmt); }
+  void visitFunctionExpr(FunctionExpr *) override {}
+
+  const std::vector<Expr *> &collectedValues() const { return values; }
+};
+
+static bool isWarnableReturnLiteral(const Expr *expr) {
+  if (!expr || expr->op() != TO_LITERAL)
+    return false;
+
+  switch (expr->asLiteral()->kind()) {
+  case LK_BOOL:
+  case LK_FLOAT:
+  case LK_INT:
+  case LK_STRING:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void CheckerVisitor::checkFunctionReturnsSameValue(FunctionExpr *func) {
+  FunctionExitValueCollector collector;
+  func->body()->visit(&collector);
+
+  const std::vector<Expr *> &values = collector.collectedValues();
+  if (values.size() < 2)
+    return;
+
+  if (!isWarnableReturnLiteral(values[0]))
+    return;
+
+  for (size_t i = 1; i < values.size(); ++i) {
+    if (!isWarnableReturnLiteral(values[i]))
+      return;
+
+    if (!_equalChecker.check(values[0], values[i]))
+      return;
+  }
+
+  report(func, DiagnosticsId::DI_FUNCTION_RETURNS_SAME_VALUE);
+}
+
 void CheckerVisitor::checkFunctionReturns(FunctionExpr *func) {
   if (isEffectsGatheringPass)
     return;
@@ -4461,6 +4514,8 @@ void CheckerVisitor::checkFunctionReturns(FunctionExpr *func) {
 
   bool dummy;
   unsigned returnFlags = FunctionReturnTypeEvaluator(this).compute(func->body(), dummy);
+
+  checkFunctionReturnsSameValue(func);
 
   bool reported = false;
 

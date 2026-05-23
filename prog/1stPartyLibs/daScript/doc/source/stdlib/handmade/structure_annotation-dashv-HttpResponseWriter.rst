@@ -1,1 +1,0 @@
-HTTP response writer for streaming responses. Supports chunked transfer encoding and SSE events. Obtained through async HTTP handlers registered with ``SSE``.

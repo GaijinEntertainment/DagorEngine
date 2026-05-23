@@ -70,7 +70,7 @@ void HDRDecoder::Decode()
   copyTex.setVar();
   d3d::resource_barrier({copyTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   d3d::resource_barrier({sdrTex.getTex2D(), RB_RW_RENDER_TARGET, 0, 0});
-  d3d::set_render_target(sdrTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{sdrTex.getTex2D(), 0, 0}});
   decodeHDRRenderer->render();
 }
 

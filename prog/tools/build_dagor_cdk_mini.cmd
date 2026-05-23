@@ -18,6 +18,8 @@ jam -s Root=../.. -f AssetViewer/jamfile
   if errorlevel 1 goto error
 jam -s Root=../.. -f sceneTools/findUnusedTex/jamfile
   if errorlevel 1 goto error
+jam -s Root=../.. -f blkEditor/jamfile
+  if errorlevel 1 goto error
 
 rem daImpostorBaker
 jam -s Root=../.. -f sceneTools/impostorBaker/tool/jamfile

@@ -10,7 +10,7 @@ hmap_displacement_invalidators_manager{
   _tags:t="render"
 
   hmap_displacement_invalidators__count_over_limit:b=false
-  "hmap_displacement_invalidators__buffer:UniqueBufHolder"{}
+  "hmap_displacement_invalidators__buffer:UniqueBufWithShaderVar"{}
   "hmap_displacement_invalidators__data:HmapDisplacementInvalidators"{}
   _tracked:t="hmap_displacement_invalidators__data"
 }

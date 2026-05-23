@@ -1,0 +1,74 @@
+wait.project_load
+wait.textures
+wait.time 500
+
+// grid
+editor.command Main.Grid.AngleSnap
+wait.time 100
+editor.command Main.Grid.AngleSnap
+wait.time 100
+editor.command Main.Grid.MoveSnap
+wait.time 100
+editor.command Main.Grid.MoveSnap
+wait.time 100
+editor.command Main.Grid.ScaleSnap
+wait.time 100
+editor.command Main.Grid.ScaleSnap
+wait.time 100
+
+editor.command Main.SelectAll
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+
+// camera
+editor.command Main.Camera.FPS
+wait.time 100
+editor.command Main.Camera.TPS
+wait.time 100
+editor.command Main.Camera.Free
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+
+// viewport
+editor.command_viewport Viewport.ToggleGrid
+wait.time 100
+editor.command_viewport Viewport.ToggleGrid
+wait.time 100
+editor.command_viewport Viewport.ToggleWireframe
+wait.time 100
+editor.command_viewport Viewport.ToggleWireframe
+wait.time 100
+editor.command_viewport Viewport.ToggleWireframe
+wait.time 100
+editor.command_viewport Viewport.View.Back
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Bottom
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Front
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Left
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Right
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Top
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+editor.command_viewport Viewport.View.Perspective
+wait.time 100
+editor.command Main.ZoomAndCenter
+wait.time 100
+
+app.terminate 0

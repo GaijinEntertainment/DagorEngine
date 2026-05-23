@@ -562,10 +562,9 @@ void TiledMapContext::setup(Sqrat::Object cfg)
     fogOfWarTex = dag::create_tex(nullptr, viewportWidth, viewportHeight, texcf, 1, "tiled_map_fog_of_war_tex");
     fogOfWarSampler = get_texture_separate_sampler(fogOfWarTex.getTexId());
 
+    fogOfWarTexInited = false;
     if (!fogOfWarTex)
       logerr("%s: fogOfWarTex = false", __FUNCTION__);
-    else
-      d3d::clear_rt({fogOfWarTex.getBaseTex()}, make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
   }
 
   if (fogOfWarEnabled)
@@ -872,6 +871,7 @@ void tiled_map_fog_of_war_before_render(const UpdateStageInfoBeforeRender &evt)
 
   d3d::set_render_target({}, DepthAccess::RW, {{s_tiled_map_ctx->fogOfWarTex.getBaseTex(), 0, 0}});
   s_tiled_map_ctx->fogOfWarShader.render();
+  s_tiled_map_ctx->fogOfWarTexInited = true;
 
   s_tiled_map_ctx->fogOfWarPrevVisibleRadius = visibleRadius;
   s_tiled_map_ctx->fogOfWarPrevWorldPos = worldPos;

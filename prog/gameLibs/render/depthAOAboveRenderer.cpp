@@ -282,9 +282,7 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
   const float fullDistance = 2.0f * cascadeData.depthAroundDistance;
   float texelSize = (fullDistance / texSize);
 
-  d3d::set_render_target();
-  d3d::set_render_target(0, (Texture *)NULL, 0);
-  d3d::set_depth(depthTex, cascade_no, DepthAccess::RW);
+  d3d::set_render_target({depthTex, 0, static_cast<uint32_t>(cascade_no)}, DepthAccess::RW, {});
 
   for (int i = 0; i < regions.size(); ++i)
   {
@@ -332,10 +330,8 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
 void DepthAOAboveRenderer::copyDepthAboveRegions(dag::ConstSpan<RegionToRender> regions, BaseTexture *depthTex, int cascade_no)
 {
   TIME_D3D_PROFILE(copy_depth_above_regions)
-  d3d::set_render_target();
-  d3d::set_render_target(0, (Texture *)NULL, 0);
+  d3d::set_render_target({depthTex, 0, static_cast<uint32_t>(cascade_no)}, DepthAccess::RW, {});
   shaders::overrides::set(zFuncAlwaysStateId);
-  d3d::set_depth(depthTex, cascade_no, DepthAccess::RW);
   ShaderGlobal::set_int(depth_above_copy_layerVarId, cascade_no);
 
   for (const RegionToRender &region : regions)

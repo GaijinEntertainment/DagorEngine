@@ -311,7 +311,7 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 // Adding tracking would require receiver-class inference and member walks;
 // skipped for now for simplicity.
 CodeGenVisitor::ResolvedCallee CodeGenVisitor::resolveCallee(Expr *callee) {
-    ResolvedCallee r{false, false, false, ~0u};
+    ResolvedCallee r{false, false, false, false, ~0u};
 
     if (callee->op() == TO_ID) {
         SQObjectPtr calleeName(_fs->CreateString(callee->asId()->name()));
@@ -328,6 +328,7 @@ CodeGenVisitor::ResolvedCallee CodeGenVisitor::resolveCallee(Expr *callee) {
             }
             if (calleeInfo.initializer->op() == TO_CLASS) {
                 r.known = true;
+                r.isClassCtor = true;
                 r.resultMask = _RT_INSTANCE;
                 return r;
             }

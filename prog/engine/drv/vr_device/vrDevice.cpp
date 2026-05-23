@@ -607,7 +607,7 @@ void VRDevice::prepareVrsMask(FrameData &frameData)
   {
     d3d::setview(0, 0, viewWidth, viewHeight, 0, 1);
     d3d::setscissor(0, 0, viewWidth, viewHeight);
-    d3d::set_render_target(vrs_mask_texture_gen.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{vrs_mask_texture_gen.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     auto &persp = frameData.views[ix].projection;

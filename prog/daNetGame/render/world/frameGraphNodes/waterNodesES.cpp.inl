@@ -25,7 +25,8 @@ CONSOLE_BOOL_VAL("water", distantWater, true);
 namespace var
 {
 static ShaderVariableInfo water_rt_enabled("water_rt_enabled", true);
-}
+static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_const_no");
+} // namespace var
 
 const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::COUNT_WITH_RENAMES)> WATER_SSR_DEPTH_TEX = {"downsampled_depth",
   "downsampled_depth_with_early_before_envi_water", "downsampled_depth_with_early_after_envi_water",
@@ -192,10 +193,10 @@ eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode
           return;
 
         d3d::resource_barrier({depthHndl.get(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-        d3d::settex(15, depthHndl.get());
-        d3d::set_sampler(STAGE_PS, 15, d3d::request_sampler({}));
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), depthHndl.get());
+        d3d::set_sampler(STAGE_PS, var::source_depth_for_copy_const_no.get_int(), d3d::request_sampler({}));
         renderer.render();
-        d3d::settex(15, nullptr);
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), nullptr);
       };
     }));
   }

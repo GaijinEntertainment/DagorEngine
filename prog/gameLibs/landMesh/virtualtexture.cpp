@@ -29,6 +29,7 @@
 #include <EASTL/span.h>
 #include <EASTL/numeric.h>
 #include <EASTL/bitset.h>
+#include <EASTL/array.h>
 #include <generic/dag_staticTab.h>
 #include <generic/dag_enumerate.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -540,7 +541,7 @@ class RiLandclassDataManager
     9 * MAX_RI_VTEX_CNT + 2 * MAX_RI_VTEX_CNT_WITHOUT_SECONDARY + RI_INDICES_ARR4_SIZE;
   carray<Point4, RI_LANDCLASS_DATA_BUFFER_SIZE> gpuData;
 
-  UniqueBufHolder riLandclassDataBuf;
+  UniqueBufWithShaderVar riLandclassDataBuf;
 
 public:
   void clear()
@@ -2890,7 +2891,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
         const IBBox2 tiProj = ti.tilePos.projectOnLowerMip(getMipPosition(ti.tilePos.ri_offset), targI);
         G_ASSERT_CONTINUE(!tiProj.isEmpty());
 
-        IBBox2 tiArea = tiProj; // The area that will indirect to the tile in cache texture. Can be overwriten by smaller mips.
+        IBBox2 tiArea = tiProj; // The area that will indirect to the tile in cache texture. Can be overwritten by smaller mips.
         indirectionArea.clipBox(tiArea);
         if (tiArea.isEmpty())
           continue;
@@ -2917,7 +2918,7 @@ void ClipmapImpl::GPUrestoreIndirectionFromLRUFull()
   if (::grs_draw_wire)
     d3d::setwire(false);
 
-  d3d::set_render_target(currentContext->indirection.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{currentContext->indirection.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0xFFFFFFFF, 1.f, 0);
   constantFillerBuf->unlockDataAndFlush((quad - basequad) / 4);
 
@@ -3302,9 +3303,10 @@ void ClipmapImpl::checkConsistency()
 
 void ClipmapImpl::beginUpdateTiles(ClipmapRenderer &renderer)
 {
-  d3d::set_render_target();
-  for (int i = 0; i < bindedBufferTex.size(); ++i)
-    d3d::set_render_target(i, bindedBufferTex[i], 0);
+  eastl::fixed_vector<RenderTarget, Clipmap::MAX_TEXTURES, false> tileRts(bindedBufferTex.size());
+  for (uint32_t i = 0; i < uint32_t(bindedBufferTex.size()); ++i)
+    tileRts[i] = {bindedBufferTex[i], 0, 0};
+  d3d::set_render_target({}, DepthAccess::RW, make_span_const(tileRts.data(), tileRts.size()));
   renderer.startRenderTiles(Point2::xz(viewerPosition));
 
   for (int ci = 0; ci < cacheCnt; ++ci)
@@ -3481,7 +3483,6 @@ void ClipmapImpl::finalizeCompressionQueue()
   if (hasUncompressed && directUncompressElem)
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target();
     d3d::setvsrc(0, 0, 0);
     StaticTab<Point4, COMPRESS_QUEUE_SIZE> quads;
     quads.resize(compressionQueue.size());
@@ -3505,7 +3506,7 @@ void ClipmapImpl::finalizeCompressionQueue()
           cache[ci].getTex2D()->getinfo(texInfo);
           if (texInfo.cflg & TEXCF_RTARGET)
           {
-            d3d::set_render_target(cache[ci].getTex2D(), mipNo);
+            d3d::set_render_target({}, DepthAccess::RW, {{cache[ci].getTex2D(), uint32_t(mipNo), 0}});
             ShaderGlobal::set_int(var::bypass_cache_no, ci);
             directUncompressElem->setStates(0, true);
             d3d::set_vs_const1(51, mipNo, 0, 0, 0);
@@ -3516,12 +3517,14 @@ void ClipmapImpl::finalizeCompressionQueue()
       }
       else
       {
+        eastl::array<RenderTarget, Driver3dRenderTarget::MAX_SIMRT> cacheRts = {};
         for (int ci = 0; ci < cacheCnt; ++ci)
         {
           TextureInfo texInfo;
           cache[ci].getTex2D()->getinfo(texInfo);
-          d3d::set_render_target(ci, (texInfo.cflg & TEXCF_RTARGET) ? cache[ci].getTex2D() : nullptr, mipNo);
+          cacheRts[ci] = {(texInfo.cflg & TEXCF_RTARGET) ? cache[ci].getTex2D() : nullptr, uint32_t(mipNo), 0};
         }
+        d3d::set_render_target({}, DepthAccess::RW, make_span_const(cacheRts.data(), cacheCnt));
         directUncompressElem->setStates(0, true);
         d3d::set_vs_const1(51, mipNo, 0, 0, 0);
         d3d::set_vs_const(52, &quads[0].x, quads.size());
@@ -4284,11 +4287,9 @@ void ClipmapImpl::renderFallbackFeedback(ClipmapRenderer &renderer, const TMatri
 
   setDDScale();
   const bool shouldUseFeedbackTexFilter = useFeedbackTexFilter && currentContext->feedbackTexFilterRenderer;
-  if (shouldUseFeedbackTexFilter)
-    d3d::set_render_target(currentContext->captureTexRtUnfiltered.getTex2D(), 0);
-  else
-    d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
-  d3d::set_depth(feedbackDepthTex.getTex2D(), DepthAccess::RW);
+  BaseTexture *feedbackColorTex = shouldUseFeedbackTexFilter ? currentContext->captureTexRtUnfiltered.getTex2D()
+                                                             : currentContext->captureTexRt[captureTargetIdx].getTex2D();
+  d3d::set_render_target({feedbackDepthTex.getTex2D(), 0, 0}, DepthAccess::RW, {{feedbackColorTex, 0, 0}});
   ShaderGlobal::set_float(var::rendering_feedback_view_scale, feedback_view_scale);
   TMatrix4 scaledGlobTm = globtm * TMatrix4(feedback_view_scale, 0, 0, 0, 0, feedback_view_scale, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1);
   d3d::settm(TM_PROJ, &scaledGlobTm);
@@ -4299,8 +4300,7 @@ void ClipmapImpl::renderFallbackFeedback(ClipmapRenderer &renderer, const TMatri
   renderer.renderFeedback(scaledGlobTm);
   if (shouldUseFeedbackTexFilter)
   {
-    d3d::set_render_target(currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0);
-    d3d::set_depth(nullptr, DepthAccess::SampledRO);
+    d3d::set_render_target({}, DepthAccess::SampledRO, {{currentContext->captureTexRt[captureTargetIdx].getTex2D(), 0, 0}});
     ShaderGlobal::set_texture(var::feedback_tex_unfiltered, currentContext->captureTexRtUnfiltered.getTexId());
     ShaderBlockSetter blockFrame(-1, ShaderGlobal::LAYER_FRAME);
     ShaderBlockSetter blockScene(-1, ShaderGlobal::LAYER_SCENE);

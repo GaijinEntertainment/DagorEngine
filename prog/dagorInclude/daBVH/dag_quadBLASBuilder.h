@@ -8,10 +8,23 @@
 #include <generic/dag_tab.h>
 #include <vecmath/dag_vecMath.h>
 #include <daBVH/dag_bvhBuild.h>
+#include <daBVH/swBLASLeafDefs.hlsli>
 #include <stdint.h>
 
 namespace build_bvh
 {
+// Tight upper bound on tree bytes for a quad-BVH built by create_bvh_node_sah.
+// writeQuadBVH2Impl suppresses the root internal node's own box (its parent -- the TLAS leaf
+// or single-BLAS caller -- carries that bbox), so only (internals - 1) internals emit bytes.
+// Leaves always emit. When root is itself a leaf (single-prim BLAS), internals == 0 and the
+// clamp collapses to prims_count * BVH_BLAS_LEAF_SIZE = one leaf.
+inline int calcQuadBLASTreeBytes(int total_nodes, int prims_count)
+{
+  const int internals = total_nodes - prims_count;
+  const int internalBytes = internals > 1 ? (internals - 1) * BVH_BLAS_NODE_SIZE : 0;
+  return internalBytes + prims_count * BVH_BLAS_LEAF_SIZE;
+}
+
 // Greedy edge-paired quad primitives + BVH serialization
 
 struct QuadPrim

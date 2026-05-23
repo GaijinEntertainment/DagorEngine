@@ -72,8 +72,7 @@ void TreesAbove::renderInvalidBboxes(const TMatrix &view_itm, float minZ, float 
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
 
-  d3d::set_render_target(trees2d.getTex2D(), 0);
-  d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW); // to be removed
+  d3d::set_render_target({trees2dDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{trees2d.getTex2D(), 0, 0}}); // to be removed
 
   const float fullDistance = 2 * trees2dDist;
   const float texelSize = (fullDistance / trees2dHelper.texSize);
@@ -167,8 +166,7 @@ void TreesAbove::prepareTrees2d(const Point3 &origin, const TMatrix &view_itm, f
     Point2 ofs = point2((trees2dHelper.mainOrigin - trees2dHelper.curOrigin) % trees2dHelper.texSize) / trees2dHelper.texSize;
 
     alignedOrigin = point2(trees2dHelper.curOrigin) * texelSize;
-    d3d::set_render_target(trees2d.getTex2D(), 0);
-    d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW); // to be removed
+    d3d::set_render_target({trees2dDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{trees2d.getTex2D(), 0, 0}}); // to be removed
 
     for (auto &reg : tab)
       renderRegion(reg, texelSize, minZ, maxZ, view_itm);

@@ -107,7 +107,7 @@ static constexpr ecs::ComponentDesc render_collimator_moa_lens_ecs_query_comps[]
 //start of 3 ro components at [0]
   {ECS_HASH("collimator_moa_render__active_shapes_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("collimator_moa_render__shapes_buf_reg_count"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()}
+  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()}
 };
 static ecs::CompileTimeQueryDesc render_collimator_moa_lens_ecs_query_desc
 (
@@ -127,7 +127,7 @@ inline void render_collimator_moa_lens_ecs_query(ecs::EntityManager &manager, Ca
           function(
               ECS_RO_COMP(render_collimator_moa_lens_ecs_query_comps, "collimator_moa_render__active_shapes_count", int)
             , ECS_RO_COMP(render_collimator_moa_lens_ecs_query_comps, "collimator_moa_render__shapes_buf_reg_count", int)
-            , ECS_RO_COMP(render_collimator_moa_lens_ecs_query_comps, "collimator_moa_render__current_shapes_buf", UniqueBufHolder)
+            , ECS_RO_COMP(render_collimator_moa_lens_ecs_query_comps, "collimator_moa_render__current_shapes_buf", UniqueBufWithShaderVar)
             );
 
         }while (++comp != compE);

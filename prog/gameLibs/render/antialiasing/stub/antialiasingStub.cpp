@@ -9,11 +9,6 @@ void migrate(const char *) {}
 void init(AppGlue *) {}
 void close() {}
 
-void recreate(const IPoint2 &, const IPoint2 &postfx_resolution, IPoint2 &rendering_resolution)
-{
-  rendering_resolution = postfx_resolution;
-}
-
 AntialiasingMethod get_method() { return AntialiasingMethod::None; }
 AntialiasingMethod get_method_from_settings() { return AntialiasingMethod::None; }
 AntialiasingMethod get_method_from_name(const char *) { return AntialiasingMethod::None; }

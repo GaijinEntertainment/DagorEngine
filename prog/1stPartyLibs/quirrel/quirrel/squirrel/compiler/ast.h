@@ -406,10 +406,10 @@ enum LiteralKind {
 class LiteralExpr : public Expr {
 public:
     LiteralExpr(SourceSpan span) : Expr(TO_LITERAL, span), _kind(LK_NULL) { _v.raw = 0; }
-    LiteralExpr(SourceSpan span, const char *s) : Expr(TO_LITERAL, span), _kind(LK_STRING) { _v.s = s; }
-    LiteralExpr(SourceSpan span, SQFloat f) : Expr(TO_LITERAL, span), _kind(LK_FLOAT) { _v.f = f; }
-    LiteralExpr(SourceSpan span, SQInteger i) : Expr(TO_LITERAL, span), _kind(LK_INT) { _v.i = i; }
-    LiteralExpr(SourceSpan span, bool b) : Expr(TO_LITERAL, span), _kind(LK_BOOL) { _v.b = b; }
+    LiteralExpr(SourceSpan span, const char *s) : Expr(TO_LITERAL, span), _kind(LK_STRING) { _v.raw = 0; _v.s = s; }
+    LiteralExpr(SourceSpan span, SQFloat f) : Expr(TO_LITERAL, span), _kind(LK_FLOAT) { _v.raw = 0; _v.f = f; }
+    LiteralExpr(SourceSpan span, SQInteger i) : Expr(TO_LITERAL, span), _kind(LK_INT) { _v.raw = 0; _v.i = i; }
+    LiteralExpr(SourceSpan span, bool b) : Expr(TO_LITERAL, span), _kind(LK_BOOL) { _v.raw = 0; _v.b = b; }
 
     void visitChildren(Visitor *visitor) {}
     void transformChildren(Transformer *transformer) {}

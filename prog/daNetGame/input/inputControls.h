@@ -38,6 +38,7 @@ void init_control(const char *user_game_mode_input_cfg_fn = nullptr);
 void destroy();
 
 void process_input(double dt);
+void check_system_keys();
 void bind_script_api(SqModules *moduleMgr);
 } // namespace controls
 

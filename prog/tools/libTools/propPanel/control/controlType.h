@@ -12,6 +12,7 @@ enum class ControlType
   TabPage,
   Toolbar,
   ToolbarSeparator,
+  ToolbarToggleButton,
   ToolbarToggleButtonGroup,
 };
 

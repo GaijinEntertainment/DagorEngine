@@ -23,11 +23,7 @@
 #include <TCLSProxy/TenTenioProxyHelp.h>
 #endif //YU2_WINDOWS
 
-#ifdef YUPLAY2_USE_XCURL
-#include <XCurl.h>
-#else
 #include <curl/curl.h>
-#endif //YUPLAY2_USE_XCURL
 
 #ifdef YUPLAY2_USE_GNOME
 #include <gtk/gtk.h>
@@ -37,6 +33,7 @@
 
 
 #define USER_DATA_CHUNK_SIZE            (1024 * 256)
+#define MAX_VERSION_LENGTH              32
 
 
 //==================================================================================================
@@ -1144,19 +1141,41 @@ void YuSession::ActivateAction::onHttpResponse(const YuString& url, const YuChar
 
 
 //==================================================================================================
-Yuplay2Status YuSession::CommonVersionAction::parseServerAnswer(const YuCharTab& answer,
-                                                                YuString& version)
+void YuSession::CommonVersionAction::onHttpResponse(const YuString& url, const YuCharTab& data)
 {
-  Yuplay2Status ret = checkServerAnswer(answer, YU2_UNKNOWN);
+  Yuplay2Status status = checkServerAnswer(data, YU2_UNKNOWN);
+  void* res = NULL;
 
-  if (ret == YU2_UNKNOWN)
+  if (status == YU2_UNKNOWN)
   {
-    version.assign(answer.begin(), answer.end());
-    return YU2_OK;
+    bool validVersion = !data.empty() && data.size() <= MAX_VERSION_LENGTH;
+
+    if (validVersion)
+      for (size_t i = 0; i < data.size(); ++i)
+      {
+        unsigned char c = data[i];
+
+        if (c < 32 || c > 127)
+        {
+          validVersion = false;
+          break;
+        }
+      }
+
+    if (!validVersion)
+    {
+      fallback->retry();
+      return;
+    }
+
+    YuString version(data.begin(), data.end());
+
+    status = YU2_OK;
+    res = onVersion(version);
   }
 
-  return ret;
-}
+  done(status, res);
+};
 
 
 //==================================================================================================
@@ -1177,17 +1196,9 @@ bool YuSession::GetVersionAction::run(const YuString& guid, const YuString& tag,
 
 
 //==================================================================================================
-void YuSession::GetVersionAction::onHttpResponse(const YuString& url, const YuCharTab& data)
+void* YuSession::GetVersionAction::onVersion(const YuString& version)
 {
-  IYuplay2String* version = NULL;
-  YuString ver;
-
-  Yuplay2Status st = parseServerAnswer(data, ver);
-
-  if (st == YU2_OK)
-    version = new YuSessionString(ver);
-
-  done(st, version);
+  return new YuSessionString(version);
 }
 
 
@@ -1209,31 +1220,12 @@ bool YuSession::CheckVersionAction::run(const YuPath& torrent, const YuString& g
 
 
 //==================================================================================================
-Yuplay2Status YuSession::CheckVersionAction::compareVersions(const YuCharTab& ver,
-                                                             const YuPath& torrent, bool& new_ver)
+void* YuSession::CheckVersionAction::onVersion(const YuString& version)
 {
-  new_ver = false;
+  YuString localVer = getYupVersion(torrent);
+  bool newVer = localVer != version;
 
-  YuString servVersion;
-  Yuplay2Status ret = parseServerAnswer(ver, servVersion);
-
-  if (ret == YU2_OK)
-  {
-    YuString version = getYupVersion(torrent);
-    new_ver = (servVersion != version);
-  }
-
-  return ret;
-}
-
-
-//==================================================================================================
-void YuSession::CheckVersionAction::onHttpResponse(const YuString& url, const YuCharTab& data)
-{
-  bool newVer = false;
-  Yuplay2Status st = compareVersions(data, torrent, newVer);
-
-  done(st, newVer ? &newVer : NULL);
+  return newVer ? (void*)0xFFFF : NULL;
 }
 
 

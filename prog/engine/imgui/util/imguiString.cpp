@@ -2,6 +2,7 @@
 
 #include <gui/dag_imguiUtil.h>
 #include <util/dag_string.h>
+#include <imgui/imgui_internal.h>
 
 // ImGui::InputText...() with eastl::string
 // Because text input needs dynamic resizing, we need to setup a callback to grow the capacity
@@ -91,27 +92,39 @@ bool ImGuiDagor::InputText(const char *label, String *str, ImGuiInputTextFlags f
 bool ImGuiDagor::InputTextMultiline(const char *label, eastl::string *str, const ImVec2 &size, ImGuiInputTextFlags flags,
   ImGuiInputTextCallback callback, void *user_data)
 {
-  IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-  flags |= ImGuiInputTextFlags_CallbackResize;
-
-  InputTextCallback_UserData cb_user_data;
-  cb_user_data.Str = str;
-  cb_user_data.ChainCallback = callback;
-  cb_user_data.ChainCallbackUserData = user_data;
-  return ImGui::InputTextMultiline(label, (char *)str->c_str(), str->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
+  return InputTextMultilineWithHint(label, nullptr, str, size, flags, callback, user_data);
 }
 
 bool ImGuiDagor::InputTextMultiline(const char *label, String *str, const ImVec2 &size, ImGuiInputTextFlags flags,
   ImGuiInputTextCallback callback, void *user_data)
 {
+  return InputTextMultilineWithHint(label, nullptr, str, size, flags, callback, user_data);
+}
+
+bool ImGuiDagor::InputTextMultilineWithHint(const char *label, const char *hint, eastl::string *str, const ImVec2 &size,
+  ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void *user_data)
+{
   IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
-  flags |= ImGuiInputTextFlags_CallbackResize;
+  flags |= ImGuiInputTextFlags_CallbackResize | (ImGuiInputTextFlags)ImGuiInputTextFlags_Multiline;
+
+  InputTextCallback_UserData cb_user_data;
+  cb_user_data.Str = str;
+  cb_user_data.ChainCallback = callback;
+  cb_user_data.ChainCallbackUserData = user_data;
+  return ImGui::InputTextEx(label, hint, (char *)str->c_str(), str->capacity() + 1, size, flags, InputTextCallback, &cb_user_data);
+}
+
+bool ImGuiDagor::InputTextMultilineWithHint(const char *label, const char *hint, String *str, const ImVec2 &size,
+  ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void *user_data)
+{
+  IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+  flags |= ImGuiInputTextFlags_CallbackResize | (ImGuiInputTextFlags)ImGuiInputTextFlags_Multiline;
 
   InputTextCallback_UserDataString cb_user_data;
   cb_user_data.Str = str;
   cb_user_data.ChainCallback = callback;
   cb_user_data.ChainCallbackUserData = user_data;
-  return ImGui::InputTextMultiline(label, str->str(), str->capacity(), size, flags, InputTextCallbackString, &cb_user_data);
+  return ImGui::InputTextEx(label, hint, str->str(), str->capacity(), size, flags, InputTextCallbackString, &cb_user_data);
 }
 
 bool ImGuiDagor::InputTextWithHint(const char *label, const char *hint, eastl::string *str, ImGuiInputTextFlags flags,

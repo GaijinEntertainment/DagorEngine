@@ -134,6 +134,7 @@ struct CompilerConfig
   bool purgeSha1 : 1 = false;
   bool enableFp16Override : 1 = false;
   bool saveDumpOnCrash : 1 = false;
+  bool clearBlkHashInDump : 1 = false;
   bool singleBuild : 1 = false;
   bool relinkOnly : 1 = false;
   bool cppStcodeUnityBuild : 1 = false;

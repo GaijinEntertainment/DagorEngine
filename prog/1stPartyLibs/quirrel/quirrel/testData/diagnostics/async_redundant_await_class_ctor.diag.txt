@@ -1,0 +1,9 @@
+WARNING: w328 (redundant-await) 'await' on non-async expression has no effect.
+testData/diagnostics/async_redundant_await_class_ctor.nut:10:10
+
+async function main() {
+  let w = await Widget()
+          ^-------------
+  print(w)
+
+

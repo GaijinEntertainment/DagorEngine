@@ -320,6 +320,12 @@ macro WATER_3D_HEIGHTMAP_RENDER()
   compile("target_ps", "water_nv_ps");
 endmacro
 
+macro INIT_PROJECTED_ON_WATER_EFFECTS_TEX()
+  (ps) {
+    projected_on_water_effects_tex@tex2d = projected_on_water_effects_tex;
+  }
+endmacro
+
 macro WATER_3D_DEFERRED_COMMON_PS()
   INIT_HDR(ps)
   USE_HDR(ps)
@@ -342,7 +348,6 @@ macro WATER_3D_DEFERRED_COMMON_PS()
     water_reflection_strength_tex@tex2d = water_reflection_strength_tex;
     water_rain_ripples_enabled_special_vision@i2 = (water_rain_ripples_enabled, special_vision);
     shallow_water_normal_multiplier@f1 = shallow_water_normal_multiplier;
-    projected_on_water_effects_tex@tex2d = projected_on_water_effects_tex;
     water_ssr_linear_clamp_samplerstate@sampler = water_ssr_linear_clamp_sampler;
   }
   hlsl(ps) {

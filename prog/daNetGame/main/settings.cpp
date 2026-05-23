@@ -203,6 +203,8 @@ static DataBlock console_config_blk_from_bin_folder()
   return devConfigBlk;
 }
 
+static DataBlock dgs_prepare_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter);
+
 static void load_settings_and_apply_config(const char *stg_fn, const SettingsHashMap *changed_settings = nullptr)
 {
   // [Re]load settings
@@ -214,7 +216,7 @@ static void load_settings_and_apply_config(const char *stg_fn, const SettingsHas
   DataBlock cmdBlk, configBlk = *settings_override_blk;
 #if _TARGET_PC && !_TARGET_C4
   const OverrideFilter filter = gen_default_override_filter(changed_settings);
-  cmdBlk = dgs_prepare_essential_pc_cmd_blk(&filter);
+  cmdBlk = dgs_prepare_pc_cmd_blk(&filter);
 #else
   G_UNUSED(changed_settings);
   dgs_apply_command_line_to_config(&cmdBlk);
@@ -928,12 +930,66 @@ void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_n
   dgs_apply_preset_params_impl(config_blk, preset_name, "consoleGraphicalPresets", "console");
 }
 
-void dgs_apply_essential_pc_preset_params(DataBlock &config_blk, const char *preset_name)
+static void apply_pc_preset_settings_from_block(const DataBlock &presets_blk, DataBlock &config_blk, int preset_idx, int presets_count)
 {
-  dgs_apply_preset_params_impl(config_blk, preset_name, "pcGraphicalPresets", "pc (essential)");
+  DataBlock *dstBlk = config_blk.addBlock(presets_blk.getBlockName());
+#if DAGOR_DBGLEVEL > 0
+  // Validation
+  int prevSettingNameId = -1;
+  int settingCount = 0;
+  for (int i = 0, ie = presets_blk.paramCount(); i < ie; ++i, ++settingCount)
+  {
+    int settingNameId = presets_blk.getParamNameId(i);
+    if (settingNameId != prevSettingNameId)
+    {
+      if (settingCount > 0 && settingCount != presets_count)
+        logerr("Setting '%s' has %d values instead of %d (presets count)", presets_blk.getName(prevSettingNameId), settingCount,
+          presets_count);
+      settingCount = 0;
+      prevSettingNameId = settingNameId;
+    }
+  }
+  if (settingCount > 0 && settingCount != presets_count)
+    logerr("Setting '%s' has %d values instead of %d (presets count)", presets_blk.getName(prevSettingNameId), settingCount,
+      presets_count);
+#endif
+  for (int i = preset_idx, ie = presets_blk.paramCount(); i < ie; i += presets_count)
+  {
+    dstBlk->removeParam(presets_blk.getParamName(i));
+    addOverrideParam(*dstBlk, presets_blk, i, false);
+  }
 }
 
-DataBlock dgs_prepare_essential_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter)
+void dgs_apply_pc_preset_params(DataBlock &config_blk, const char *preset_name)
+{
+  const char *presetsBlockName = "pcGraphicalPresets";
+  const DataBlock *presetsBlk = ::dgs_get_settings()->getBlockByName(presetsBlockName);
+  if (!presetsBlk)
+  {
+    logerr("Not found '%s' block in settings.blk. Cannot apply '%s' pc preset.", presetsBlockName, preset_name);
+    return;
+  }
+  int presetsCount = 0;
+  int selectedPresetIdx = -1;
+  dblk::iterate_params_by_name_and_type(*presetsBlk, "presetNames", DataBlock::TYPE_STRING, [&](int param_idx) {
+    if (!strcmp(presetsBlk->getStr(param_idx), preset_name))
+      selectedPresetIdx = presetsCount;
+    presetsCount++;
+  });
+  if (selectedPresetIdx < 0)
+  {
+    logerr("Not found '%s' pc preset in '%s' block.", preset_name, presetsBlockName);
+    return;
+  }
+  dblk::iterate_child_blocks(*presetsBlk,
+    [&](const DataBlock &b) { apply_pc_preset_settings_from_block(b, config_blk, selectedPresetIdx, presetsCount); });
+  debug("Applied pc preset '%s'.", preset_name);
+}
+
+// prepares a BLK with
+// - merged command lines
+// - merged preset params (from pcGraphicalPresets, if present)
+static DataBlock dgs_prepare_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter)
 {
   DataBlock cmdBlk;
   dgs_apply_command_line_to_config(&cmdBlk, cmd_lines_override_filter);
@@ -951,10 +1007,11 @@ DataBlock dgs_prepare_essential_pc_cmd_blk(const OverrideFilter *cmd_lines_overr
     DataBlock *graphics = consolePresetChanges.addBlock("graphics");
     graphics->addStr("preset", "custom");
 
-    // disable auto preset
+    // disable auto preset and auto upscaling by rendering resolution
     DataBlock *autoPreset = graphics->addBlock("autoPreset");
     autoPreset->addBool("forceDisable", true);
     autoPreset->addInt("targetFps", 0);
+    autoPreset->addIPoint2("renderingResolution", IPoint2::ZERO);
 
     dgs_apply_changes_to_config(consolePresetChanges, /*need_merge_cmd*/ false);
     merge_data_block(cmdBlk, consolePresetChanges);
@@ -969,7 +1026,15 @@ DataBlock dgs_prepare_essential_pc_cmd_blk(const OverrideFilter *cmd_lines_overr
 
     const char *presetName = cmdBlk.getBlockByNameEx("graphics")->getStr("preset", nullptr);
     if (presetName)
-      dgs_apply_essential_pc_preset_params(cmdBlk, presetName);
+    {
+      // disable auto preset and auto upscaling by rendering resolution
+      DataBlock *autoPreset = cmdBlk.getBlockByName("graphics")->addBlock("autoPreset");
+      autoPreset->addBool("forceDisable", true);
+      autoPreset->addInt("targetFps", 0);
+      autoPreset->addIPoint2("renderingResolution", IPoint2::ZERO);
+
+      dgs_apply_pc_preset_params(cmdBlk, presetName);
+    }
   }
 
   return cmdBlk;

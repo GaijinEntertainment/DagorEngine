@@ -1,1 +1,0 @@
-The ``[contract]`` structure annotation — registers an ``AstFunctionAnnotation`` subclass as a named function contract that validates arguments or return values.

@@ -1424,7 +1424,7 @@ struct BasicGraphicsRootSignatureGenerator
       unboundedSamplersRootParam->ShaderVisibility = currentVisibility;
       signatureCost += 1; // 1 root param for all unbounded sampler array ranges
     }
-    // Note: - We cant "OR" ShaderVisibilty flags together, so if we need this for more than one stage, just use
+    // Note: - We can't "OR" ShaderVisibility flags together, so if we need this for more than one stage, just use
     //         D3D12_SHADER_VISIBILITY_ALL
     else
     {
@@ -1501,7 +1501,7 @@ struct BasicGraphicsRootSignatureGenerator
       bindlessSRVRootParam->ShaderVisibility = currentVisibility;
       signatureCost += 1; // 1 root param for all unbounded sampler array ranges
     }
-    // Note: - We cant "OR" ShaderVisibilty flags together, so if we need this for more than one stage, just use
+    // Note: - We can't "OR" ShaderVisibility flags together, so if we need this for more than one stage, just use
     //         D3D12_SHADER_VISIBILITY_ALL
     else
     {

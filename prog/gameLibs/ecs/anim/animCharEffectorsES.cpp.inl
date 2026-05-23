@@ -12,6 +12,9 @@
 
 ECS_REGISTER_TYPE(EffectorData, nullptr);
 
+ECS_UNICAST_EVENT_TYPE(CmdApplyAnimcharEffectorsImmediate);
+ECS_REGISTER_EVENT(CmdApplyAnimcharEffectorsImmediate);
+
 static void reset_ik_effector(AnimV20::AnimcharBaseComponent &animchar, int eff_id)
 {
   if (eff_id >= 0)
@@ -53,14 +56,8 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
   }
 }
 
-ECS_TAG(render)
-ECS_AFTER(before_animchar_update_sync)
-ECS_BEFORE(animchar__updater_es) // must be before animchar update (but actually it should be 'just before')
-ECS_REQUIRE(eastl::true_type animchar__updatable)
-ECS_REQUIRE(eastl::true_type animchar__visible = true)
-ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand)
-static void animchar_effectors_update_es(const UpdateAnimcharEvent &, AnimV20::AnimcharBaseComponent &animchar,
-  const TMatrix &transform, const ecs::Object &animchar_effectors__effectorsState)
+static void apply_animchar_effectors_state(AnimV20::AnimcharBaseComponent &animchar, const TMatrix &transform,
+  const ecs::Object &animchar_effectors__effectorsState)
 {
   AnimV20::IAnimStateHolder *animState = animchar.getAnimState();
   for (auto &it : animchar_effectors__effectorsState)
@@ -84,4 +81,27 @@ static void animchar_effectors_update_es(const UpdateAnimcharEvent &, AnimV20::A
       reset_ik_attnode(animchar, eff.effWtmId);
     }
   }
+}
+
+ECS_TAG(render)
+ECS_AFTER(before_animchar_update_sync)
+ECS_BEFORE(animchar__updater_es) // must be before animchar update (but actually it should be 'just before')
+ECS_REQUIRE(eastl::true_type animchar__updatable)
+ECS_REQUIRE(eastl::true_type animchar__visible = true)
+ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand)
+static void animchar_effectors_update_es(const UpdateAnimcharEvent &, AnimV20::AnimcharBaseComponent &animchar,
+  const TMatrix &transform, const ecs::Object &animchar_effectors__effectorsState)
+{
+  apply_animchar_effectors_state(animchar, transform, animchar_effectors__effectorsState);
+}
+
+// Sync variant of animchar_effectors_update_es; see the event declaration.
+ECS_TAG(render)
+ECS_REQUIRE(eastl::true_type animchar__updatable)
+ECS_REQUIRE(eastl::true_type animchar__visible = true)
+ECS_REQUIRE_NOT(ecs::Tag animchar__actOnDemand)
+static void animchar_effectors_apply_immediate_es(const CmdApplyAnimcharEffectorsImmediate &, AnimV20::AnimcharBaseComponent &animchar,
+  const TMatrix &transform, const ecs::Object &animchar_effectors__effectorsState)
+{
+  apply_animchar_effectors_state(animchar, transform, animchar_effectors__effectorsState);
 }

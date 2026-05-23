@@ -16,7 +16,7 @@
 
 #define GLOBAL_VARS_LIST       \
   VAR(beam_trace_current_time) \
-  VAR(beam_fade_dist)          \
+  VAR(beam_fade_eye_dist)      \
   VAR(beam_min_intensity_cos)  \
   VAR(beam_max_intensity_cos)  \
   VAR(beam_min_intensity_mul)  \
@@ -200,7 +200,7 @@ int BeamTracerManager::updateTracerPos(unsigned id, const Point3 &pos, const Poi
 
 int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir, float radius, const Color4 &smoke_color,
   const Color3 &head_color, float luminosity, float burn_time, float time_to_live, float fade_dist, float begin_fade_time,
-  float end_fade_time, float scroll_speed, bool is_ray, float is_hero_laser)
+  float end_fade_time, float scroll_speed, bool is_ray, float max_length, float is_hero_laser)
 {
   if (!shader_exists("beam_tracers_head"))
     return -1;
@@ -235,7 +235,7 @@ int BeamTracerManager::createTracer(const Point3 &start_pos, const Point3 &ndir,
   tracersVaporTime[id] = time_to_live;
   createCommands.push_back(
     BeamTracerCreateCommand(id, start_pos, ndir * radius, time_to_live, reinterpret_cast<const float3 &>(head_color) * luminosity,
-      burn_time, fade_dist, is_ray ? -begin_fade_time : begin_fade_time, end_fade_time, scroll_speed, is_hero_laser));
+      burn_time, fade_dist, is_ray ? -begin_fade_time : begin_fade_time, end_fade_time, scroll_speed, is_hero_laser, max_length));
   // v_bbox3_init(tracersBox[id], v_ldu(&start_pos.x));
   // v_bbox3_add_pt(tracersBox[id], v_ldu(&next_pos.x));
 
@@ -384,7 +384,7 @@ void BeamTracerManager::renderTrans()
   d3d::resource_barrier({culledTracerTails.get(), RB_RO_SRV | RB_STAGE_VERTEX});
   d3d::resource_barrier({drawIndirectBuffer.get(), RB_RO_INDIRECT_BUFFER});
   ShaderGlobal::set_float(beam_trace_current_timeVarId, cTime);
-  ShaderGlobal::set_float(beam_fade_distVarId, tacLaserRenderSettings.fadeDistance);
+  ShaderGlobal::set_float(beam_fade_eye_distVarId, tacLaserRenderSettings.fadeEyeDistance);
   ShaderGlobal::set_float(beam_min_intensity_cosVarId, tacLaserRenderSettings.minIntensityCos);
   ShaderGlobal::set_float(beam_max_intensity_cosVarId, tacLaserRenderSettings.maxIntensityCos);
   ShaderGlobal::set_float(beam_min_intensity_mulVarId, tacLaserRenderSettings.minIntensityMul);

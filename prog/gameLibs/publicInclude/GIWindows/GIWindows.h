@@ -24,7 +24,7 @@ public:
   int bufferCount = 0, currentCount = -1, currentGridSize = 0, currentIndSize = 0;
   eastl::vector<mat43f> activeList;
   eastl::vector<bbox3f> activeListBox;
-  UniqueBufHolder currentWindowsSB, currentWindowsSBInd, currentWindowsGridSB;
+  UniqueBufWithShaderVar currentWindowsSB, currentWindowsSBInd, currentWindowsGridSB;
   UniqueBuf gridCntSB;
   eastl::unique_ptr<ComputeShaderElement> fill_windows_grid_range, clear_windows_grid_range, fill_windows_grid_range_fast;
   bool calc();

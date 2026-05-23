@@ -201,6 +201,7 @@ private:
   YuString gaijinNetApiIp;
 
   YuStringTab yupmasterFallbackHosts;
+  YuStringTab authFallbackHosts;
 
   YuString twoStepRequestId;
   YuString twoStepUserId;
@@ -284,6 +285,7 @@ private:
   const YuString& getGaijinNetFailbackIp() const { return gaijinNetApiIp; }
 
   const YuStringTab& getYupmasterFallbackHosts() const { return yupmasterFallbackHosts; }
+  const YuStringTab& getAuthFallbackHosts() const { return authFallbackHosts; }
 
   const YuString& getTwoStepRequestId() const { return twoStepRequestId; }
   const YuString& getTwoStepUserId() const { return twoStepUserId; }

@@ -107,12 +107,8 @@ public:
   IObjEntity *getEntity() { return entity; }
 
   bool usesRendinstPlacement() const override { return props.placeType == props.PT_riColl; }
-  void setCollisionIgnored() override
-  {
-    oldPerInstSeed = perInstSeed;
-    setPerInstSeed(rendinst::RI_SEED_COLLISION_IGNORE);
-  }
-  void resetCollisionIgnored() override { setPerInstSeed(oldPerInstSeed); }
+  void setCollisionIgnored() override;
+  void resetCollisionIgnored() override;
 
   struct FxProps
   {
@@ -186,6 +182,7 @@ protected:
   bool isCollidable;
   int editLayerIdx = 0;
   bool gizmoEnabled = false;
+  bool riExtraCollisionIgnored = false;
 
   static CollidersData colliders;
 
@@ -202,6 +199,7 @@ protected:
   void setPosOnCollision(Point3 pos, bool setup_ri_collision = true);
   void rePlaceAllEntities();
   void fillMaterialProps(PropPanel::ContainerPropertyControl &panel);
+  void setIgnoreRiExtraCollisionInEntity();
 
   class UndoStaticPropsChange : public UndoRedoObject
   {

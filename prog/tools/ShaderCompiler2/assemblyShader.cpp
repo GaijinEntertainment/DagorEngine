@@ -10,6 +10,7 @@
 #include "shaderSemantic.h"
 #include "transcodeCommon.h"
 #include "hwAssembly.h"
+#include "boolExpr.h"
 #include "variantAssembly.h"
 #include "shTargetContext.h"
 
@@ -323,9 +324,16 @@ void AssembleShaderEvalCB::eval_static(static_var_decl &s)
 void AssembleShaderEvalCB::eval_bool_decl(bool_decl &decl)
 {
   if (ctx.shCtx().blockLevel() == ShaderBlockLevel::SHADER)
+  {
     G_ASSERT(decl.resolvedNid >= 0);
-  else if (decl.resolvedNid < 0)
-    decl.resolvedNid = ctx.tgtCtx().boolVarNameMap().addVarId(decl.name->text);
+    G_ASSERT(decl.expr->compiled);
+  }
+  else
+  {
+    if (decl.resolvedNid < 0)
+      decl.resolvedNid = ctx.tgtCtx().boolVarNameMap().addVarId(decl.name->text);
+    compile_bool_expr_cached(*decl.expr, ctx.tgtCtx());
+  }
   ctx.localBoolVars().add(decl.resolvedNid, decl.expr, parser, decl.name);
 }
 

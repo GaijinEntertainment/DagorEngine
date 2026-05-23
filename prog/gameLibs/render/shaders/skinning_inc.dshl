@@ -55,7 +55,7 @@ hlsl(code) {
     float3 unpack_pos_ofs = pos_ofs__cnt.xyz;                                                                              \
     float2 dynrend_params_offset_count = float2(offsetToInstanceChunk + 2.5, pos_ofs__cnt.w);
 
-  #define BONES_START 9
+  #define BONES_START 11
 
   struct bone_t { float4 r0, r1, r2; };
 

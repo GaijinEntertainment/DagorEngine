@@ -475,13 +475,11 @@ void fast_grass_baker_on_render()
     }
 
     rendinst::render::endRenderInstancing();
-    d3d::set_depth(nullptr, DepthAccess::RW);
     shaders::overrides::reset();
     d3d::setind(nullptr);
     d3d::setvdecl(BAD_VDECL);
     d3d::setvsrc(0, nullptr, 0);
-    d3d::set_render_target(0, nullptr, 0);
-    d3d::set_depth(nullptr, DepthAccess::SampledRO);
+    d3d::set_render_target({}, DepthAccess::SampledRO, {});
     ShaderElement::invalidate_cached_state_block();
 
     ShaderGlobal::setBlock(lastFrameBlockId, ShaderGlobal::LAYER_FRAME);

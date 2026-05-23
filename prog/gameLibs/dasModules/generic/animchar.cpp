@@ -1139,6 +1139,8 @@ public:
       "bind_dascript::animchar_copy_nodes");
     das::addExtern<DAS_BIND_FUN(ronamemapex_get_name_id)>(*this, lib, "ronamemapex_get_name_id", das::SideEffects::none,
       "bind_dascript::ronamemapex_get_name_id");
+    das::addExtern<DAS_BIND_FUN(ronamemapex_get_name)>(*this, lib, "ronamemapex_get_name", das::SideEffects::none,
+      "bind_dascript::ronamemapex_get_name");
     using method_getNodeId = DAS_CALL_MEMBER(DynamicRenderableSceneInstance::getNodeId);
     das::addExtern<DAS_CALL_METHOD(method_getNodeId)>(*this, lib, "scene_instance_getNodeId", das::SideEffects::none,
       DAS_CALL_MEMBER_CPP(DynamicRenderableSceneInstance::getNodeId));

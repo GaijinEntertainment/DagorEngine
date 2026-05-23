@@ -6,6 +6,14 @@ texture caustics__indoor_probe_mask;
 float4x4 caustics__indoor_probe_mask_matrix;
 float caustics__indoor_probe_mask_min_strength= 0.999;
 
+float caustics_intensity_shallow = 0.005;
+float caustics_intensity_deep = 0.05;
+float caustics_intensity_blend_factor = 0.002;
+float caustics_pattern_blend_factor = 0.005;
+int caustics_use_depth_blended = 0; // WARNING: does not work currently with water hmap due to relying on worldPos.y
+interval caustics_use_depth_blended: no<1, yes;
+assume_if_not_assumed caustics_use_depth_blended = no;
+
 macro INIT_CAUSTICS_BASE_STCODE(code)
   (code)
   {
@@ -42,17 +50,29 @@ macro USE_CAUSTICS_BASE(code)
     }
   }
 
+  if (caustics_use_depth_blended == yes)
+  {
+    (code)
+    {
+      caustics_intensity_shallow@f1 = caustics_intensity_shallow;
+      caustics_intensity_deep@f1 = caustics_intensity_deep;
+      caustics_intensity_blend_factor@f1 = caustics_intensity_blend_factor;
+      caustics_pattern_blend_factor@f1 = caustics_pattern_blend_factor;
+    }
+  }
+
   hlsl(code)
   {
   #if defined(USE_CAUSTICS_RENDER)
+
+    #define CAUSTICS_DEFAULT_INTENSITY 0.005
 
     #ifndef get_shadow
       #define get_shadow(shadowPos) 1
     #endif
     // parameters get from shadertoy
-    float caustic_iteration(in float2 posXY, in float posZ, in float scaleT)
+    float caustic_iteration(in float2 posXY, in float posZ, in float scaleT, in float intensity)
     {
-        float inten = .005;
         const float TAU = 6.28318530718;
 
         float time = caustics_options.y + posZ;
@@ -65,8 +85,13 @@ macro USE_CAUSTICS_BASE(code)
         float t = time + seamlessT;
         i = p + float2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
 
-        float caustic= 1.0/length(float2(p.x / (sin(i.x+t)/inten),p.y / (cos(i.y+t)/inten)));
+        float caustic= 1.0/length(float2(p.x / (sin(i.x+t)/intensity),p.y / (cos(i.y+t)/intensity)));
         return caustic;
+    }
+
+    float caustic_iteration(in float2 posXY, in float posZ, in float scaleT)
+    {
+      return caustic_iteration(posXY, posZ, scaleT, CAUSTICS_DEFAULT_INTENSITY);
     }
 
     // x - underwater, y - above water
@@ -111,7 +136,8 @@ macro USE_CAUSTICS_BASE(code)
 
       float worldScale = caustics_world_scale;
 
-      float underWaterWeight = saturate(water_height-worldPos.y);
+      float underwaterDepth = water_height - worldPos.y;
+      float underWaterWeight = saturate(underwaterDepth);
       float aboveWaterWeight = vsmShadow * NoL * fresnelTerm * heightWeight;
       float distanceFade=saturate(0.015*(170-distance*worldScale));
 
@@ -122,13 +148,36 @@ macro USE_CAUSTICS_BASE(code)
       }
 
       const float upscale = 0.05;
-      float causticScale = 1.00+upscale*(1-sqrt(min(0.25*abs(water_height-worldPos.y), 1)));
+      float causticScale = 1.00+upscale*(1-sqrt(min(0.25*abs(underwaterDepth), 1)));
 
       const int NUM_ITERATIONS = 3;
       float c = 1.0;
-      c+=caustic_iteration(0.5*worldPos.xz*worldScale, worldPos.y*worldScale, causticScale);
-      c+=caustic_iteration(0.4*worldPos.xy*worldScale, worldPos.z*worldScale, causticScale);
-      c+=caustic_iteration(0.3*worldPos.yz*worldScale, worldPos.x*worldScale, causticScale);
+
+      ##if caustics_use_depth_blended == yes
+        float intensityBlend = 1.0 - pow((abs(underwaterDepth) * caustics_intensity_blend_factor), 4.0);
+        intensityBlend = saturate(intensityBlend);
+        float intensity = lerp(caustics_intensity_deep, caustics_intensity_shallow, intensityBlend);
+
+        float3 worldPosScaled = worldPos.xyz * worldScale;
+        c+=caustic_iteration(0.5*worldPosScaled.xz, worldPosScaled.y, causticScale, intensity);
+        c+=caustic_iteration(0.4*worldPosScaled.xy, worldPosScaled.z, causticScale, intensity);
+        c+=caustic_iteration(0.3*worldPosScaled.yz, worldPosScaled.x, causticScale, intensity);
+
+        float c2 = 1.0;
+        float worldScaleDeep = worldScale * 0.1;
+        float3 worldPosScaledDeep = worldPos.xyz * worldScaleDeep;
+        c2+=caustic_iteration(0.5*worldPosScaledDeep.xz, worldPosScaledDeep.y, causticScale, intensity);
+        c2+=caustic_iteration(0.4*worldPosScaledDeep.xy, worldPosScaledDeep.z, causticScale, intensity);
+        c2+=caustic_iteration(0.3*worldPosScaledDeep.yz, worldPosScaledDeep.x, causticScale, intensity);
+
+        float depthBlend = exp2(-underwaterDepth * caustics_pattern_blend_factor);
+        depthBlend = saturate(depthBlend);
+        c = lerp(c2, c, depthBlend);
+      ##else
+        c+=caustic_iteration(0.5*worldPos.xz*worldScale, worldPos.y*worldScale, causticScale);
+        c+=caustic_iteration(0.4*worldPos.xy*worldScale, worldPos.z*worldScale, causticScale);
+        c+=caustic_iteration(0.3*worldPos.yz*worldScale, worldPos.x*worldScale, causticScale);
+      ##endif
 
       c /= float(NUM_ITERATIONS);
       c = 1.17-pow(c, 1.4); // parameters get from shadertoy

@@ -10,6 +10,7 @@
 #include <math/dag_Point4.h>
 #include <gamePhys/collision/physLayers.h>
 #include <gamePhys/phys/destructableRendObject.h>
+#include <render/dynmodelRenderer/animcharDisintegration.h>
 
 
 // Fwd declaration
@@ -68,8 +69,7 @@ private:
   float bboxHeight = 0.0f;
   float scaleDt;
   float disintegrationTime = 0.0f;
-  float disintegrationDuration = 0;
-  float disintegrationScale = 1.f;
+  animchar_disintegration::DisintegrationParameters disintegrationParameters;
   void doAddImpulse(const Point3 &pos, const Point3 &impulse, float speedLimit, float omegaLimit);
 
 public:

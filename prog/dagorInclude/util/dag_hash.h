@@ -114,3 +114,9 @@ inline uint32_t hash_int(uint32_t x)
   x ^= x >> 15;
   return x;
 }
+
+// Boost-style seed mix followed by hash_int avalanche. Order-sensitive: hash_combine_u32(a,b) != hash_combine_u32(b,a).
+inline uint32_t hash_combine_u32(uint32_t a, uint32_t b) { return hash_int((a + UINT32_C(0x9e3779b9)) ^ b); }
+
+// Maps a 32-bit hash to a uniform float in [0, 1). 24-bit precision avoids float rounding edge cases at the top of the range.
+inline float hash_to_unit_float(uint32_t h) { return float(h & UINT32_C(0xffffff)) * (1.0f / 16777216.0f); }

@@ -21,10 +21,7 @@
 #if _TARGET_PC_WIN
 #include <winapi_helpers.h>
 #include <Windows.h>
-#else
-constexpr eastl::array<eastl::pair<uint16_t, uint16_t>, 0> getGDIs() { return {}; }
 #endif
-
 
 #if USE_MULTI_D3D_DX11
 namespace d3d_multi_dx11
@@ -54,7 +51,7 @@ namespace d3d_multi_metal
 {
 #include "d3d_api.inc.h"
 }
-bool isMetalAvailable();
+bool is_metal_available();
 #endif
 
 #if USE_MULTI_D3D_stub
@@ -64,33 +61,17 @@ namespace d3d_multi_stub
 }
 #endif
 
-D3dInterfaceTable d3di;
 
-#if USE_MULTI_D3D_DX11
-static void select_api_dx11() { d3d_multi_dx11::fill_interface_table(d3di); }
+[[maybe_unused]]
+static constexpr auto release = d3d::drivercode::matcher::Const<DAGOR_DBGLEVEL == 0>{};
+
+#if !_TARGET_PC_WIN
+static constexpr eastl::array<eastl::pair<uint16_t, uint16_t>, 0> getGDIs() { return {}; }
 #endif
-
-#if USE_MULTI_D3D_DX12
-static void select_api_dx12() { d3d_multi_dx12::fill_interface_table(d3di); }
-#endif
-
-#if USE_MULTI_D3D_vulkan
-static void select_api_vulkan() { d3d_multi_vulkan::fill_interface_table(d3di); }
-#endif
-
-#if USE_MULTI_D3D_Metal
-static void select_api_metal() { d3d_multi_metal::fill_interface_table(d3di); }
-#endif
-
-#if USE_MULTI_D3D_stub
-static void select_api_stub() { d3d_multi_stub::fill_interface_table(d3di); }
-#endif
-
 
 #if USE_MULTI_D3D_DX11
 static bool is_dx11_supported_by_os()
 {
-#if _TARGET_PC_WIN
   const char *arch = [] {
     SYSTEM_INFO si;
     GetNativeSystemInfo(&si);
@@ -123,29 +104,28 @@ static bool is_dx11_supported_by_os()
 
   if (osvi.dwMajorVersion >= 10) // Windows 10 and next
     return true;
-#endif
 
   return false;
 }
 
 static void message_box_os_compatibility_mode()
 {
-  static bool show = true;
-  if (show)
+  static bool shown = false;
+  if (!shown)
     drv_message_box(get_localized_text("msgbox/os_compatibility",
                       "The game is running in Windows compatibility mode and can have stability and performance issues."),
       get_localized_text("video/settings_adjusted_hdr"), GUI_MB_ICON_INFORMATION);
-  show = false;
+  shown = true;
 }
 #endif
 
-static bool test_prefered_driver(const DataBlock *gpuCfg, auto &gDIs)
+static bool test_preferred_driver(const DataBlock *gpu_cfg, auto &gdis)
 {
-  if (gpuCfg)
+  if (gpu_cfg)
   {
-    for (auto [vendorId, deviceId] : gDIs)
+    for (auto [vendorId, deviceId] : gdis)
     {
-      if (gpu::is_preferred_device(*gpuCfg, vendorId, deviceId, {}))
+      if (gpu::is_preferred_device(*gpu_cfg, vendorId, deviceId, {}))
         return true;
     }
   }
@@ -160,30 +140,26 @@ static bool test_prefered_driver(const DataBlock *gpuCfg, auto &gDIs)
  * This is applied only on release builds. It is assumed on dev build the users know what they are doing
  * and this function won't override their decision.
  */
-static eastl::optional<DriverCode> override_driver_preference(auto candidate_driver, auto &gDIs)
+static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] const auto candidate_driver, const auto &gdis)
 {
-#if USE_MULTI_D3D_DX11 | USE_MULTI_D3D_DX12
-  constexpr auto releaseRule = d3d::drivercode::matcher::Const<DAGOR_DBGLEVEL == 0>{} && (d3d::dx11 || d3d::dx12);
-  constexpr auto overrideRule = d3d::undefined || releaseRule;
+  eastl::optional<DriverCode> result;
 
-  if (gDIs.empty() || !candidate_driver.is(overrideRule))
-    return {};
-
-  for (auto [vendorId, deviceId] : gDIs)
+  for ([[maybe_unused]] auto [vendorId, deviceId] : gdis)
   {
     if (d3d_get_vendor(vendorId) != GpuVendor::INTEL)
       return {};
 
-    if (!gpu::IsPreXe(deviceId))
-      return DriverCode::make(d3d::dx12);
+#if USE_MULTI_D3D_DX12
+    if (candidate_driver.is((release && d3d::dx11) || d3d::undefined) && !gpu::IsPreXe(deviceId))
+      result = DriverCode::make(d3d::dx12);
+#endif
   }
 
-  return DriverCode::make(d3d::dx11);
-#else
-  G_UNUSED(candidate_driver);
-  G_UNUSED(gDIs);
-  return {};
+#if USE_MULTI_D3D_DX11
+  if (candidate_driver.is(release && d3d::dx12) && !result)
+    result = DriverCode::make(d3d::dx11);
 #endif
+  return result;
 }
 
 static DriverCode detect_driver()
@@ -224,10 +200,12 @@ static DriverCode detect_driver()
       driver = video.getStr("autoDriver");
     else
     {
-      if (test_prefered_driver(::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("gpuPreferences"), gDIs))
+      if (test_preferred_driver(::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("gpuPreferences"), gDIs))
         driver = "dx12";
     }
   }
+
+  logdbg("Mapping driver:t=%s to DriverCode", driver);
 
   auto it = codes.find(driver);
   auto candidateDriver = it == codes.end() ? DriverCode::make(d3d::undefined) : it->second;
@@ -245,9 +223,7 @@ static DriverCode detect_driver()
       {
         if (crash_fallback_helper)
           crash_fallback_helper->beforeStartup();
-        // this is divergent behavior compared to any other driver, but this was specifically
-        // requested to test proper support even when explicitly requested.
-        const bool dx12Requested = candidateDriver == d3d::dx12 && !autoDriverMode;
+
         const APISupport status = get_dx12_support_status();
         switch (status)
         {
@@ -267,7 +243,7 @@ static DriverCode detect_driver()
           }
           break;
           case APISupport::INSUFFICIENT_DEVICE:
-            if (dx12Requested)
+            if (!autoDriverMode)
             {
               if (crash_fallback_helper)
                 crash_fallback_helper->setSettingToAuto();
@@ -309,9 +285,9 @@ static DriverCode detect_driver()
 #if USE_MULTI_D3D_Metal
     if (candidateDriver == d3d::metal)
     {
-      if (isMetalAvailable())
+      if (is_metal_available())
       {
-        select_api_metal();
+        d3d_multi_metal::fill_interface_table(d3di);
         return candidateDriver;
       }
 
@@ -344,14 +320,14 @@ static DriverCode detect_driver()
 #endif
 
 #if USE_MULTI_D3D_Metal
-    if (isMetalAvailable())
+    if (is_metal_available())
     {
-      select_api_metal();
+      d3d_multi_metal::fill_interface_table(d3di);
       return DriverCode::make(d3d::metal);
     }
     else
     {
-      os_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
+      drv_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
       exit(1);
     }
 #endif
@@ -491,35 +467,35 @@ bool d3d::init_driver()
 #if USE_MULTI_D3D_DX11
     .map(d3d::dx11,
       [] {
-        select_api_dx11();
+        d3d_multi_dx11::fill_interface_table(d3di);
         return d3d_multi_dx11::init_driver();
       })
 #endif
 #if USE_MULTI_D3D_DX12
     .map(d3d::dx12,
       [] {
-        select_api_dx12();
+        d3d_multi_dx12::fill_interface_table(d3di);
         return d3d_multi_dx12::init_driver();
       })
 #endif
 #if USE_MULTI_D3D_vulkan
     .map(d3d::vulkan,
       [] {
-        select_api_vulkan();
+        d3d_multi_vulkan::fill_interface_table(d3di);
         return d3d_multi_vulkan::init_driver();
       })
 #endif
 #if USE_MULTI_D3D_Metal
     .map(d3d::metal,
       [] {
-        select_api_metal();
+        d3d_multi_metal::fill_interface_table(d3di);
         return d3d_multi_metal::init_driver();
       })
 #endif
 #if USE_MULTI_D3D_stub
     .map(d3d::stub,
       [] {
-        select_api_stub();
+        d3d_multi_stub::fill_interface_table(d3di);
         return d3d_multi_stub::init_driver();
       })
 #endif
@@ -682,6 +658,8 @@ void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &
 
   max_tex = max_vs = max_ps = max_vdecl = max_vb = max_ib = max_stblk = 0;
 }
+
+D3dInterfaceTable d3di;
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4074)

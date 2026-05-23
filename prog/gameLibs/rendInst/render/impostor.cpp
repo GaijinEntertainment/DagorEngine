@@ -21,6 +21,7 @@
 #include <fx/dag_leavesWind.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_shStateBlockBindless.h>
+#include <EASTL/array.h>
 
 
 namespace rendinst::render
@@ -1044,18 +1045,22 @@ void RendInstGenData::RtData::updateImpostors(float shadowDistance, const Point3
           name.str(), RESTAG_RENDINST);
       }
       // required to be set before block, soopengl driver use correct axis flipping
+      eastl::array<RenderTarget, Driver3dRenderTarget::MAX_SIMRT> impostorRts = {};
+      impostorRts[0] = {dstRT[0]->getBaseTex(), uint32_t(baseMip), 0};
+      uint32_t impostorRtCount = 1;
+      for (int j = 1; j < pool.impostor.tex.size(); ++j)
+        if (dstRT[j]->getBaseTex())
+        {
+          impostorRts[j] = {dstRT[j]->getBaseTex(), uint32_t(baseMip), 0};
+          impostorRtCount = j + 1;
+        }
       d3d::set_render_target({depthTexIt->second.getTex2D(), 0, 0},
         d3d::get_driver_code().is(d3d::metal) ? DepthAccess::SampledRO : DepthAccess::RW,
-        {{dstRT[0]->getBaseTex(), static_cast<uint32_t>(baseMip), 0}});
+        make_span_const(impostorRts.data(), impostorRtCount));
 
       unsigned impostor_clear_color = (::grs_draw_wire ? 0xFF000000 : 0) | rendinst::render::impostor_clear_color[0];
       if (d3d::get_driver_code().is(!d3d::metal)) // clear color/depth for non-METAL here or it is not cleared at all!
         d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, impostor_clear_color, 0.f, 0);
-      for (int j = 1; j < pool.impostor.tex.size(); ++j)
-        if (dstRT[j]->getBaseTex())
-        {
-          d3d::set_render_target(j, dstRT[j]->getBaseTex(), baseMip);
-        }
 
       // Do not split renderpass into 2 passes by doing clear before set_render_target
       // The cleared depth is not preserved between them!

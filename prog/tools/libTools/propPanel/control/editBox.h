@@ -4,6 +4,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/control/dragAndDropHandler.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/propPanel.h>
 #include "../c_constants.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <gui/dag_imguiUtil.h>
@@ -57,6 +58,12 @@ public:
 
   void setCaptionValue(const char value[]) override { controlCaption = value; }
 
+  void setButtonPictureValues(const char *fname) override
+  {
+    iconMain = load_icon(fname);
+    iconClear = iconMain == IconId::Invalid ? IconId::Invalid : load_icon("close_editor");
+  }
+
   void setBoolValue(bool value) override { needColorIndicate = value; }
 
   void setDragSourceHandlerValue(IDragSourceHandler *handler) override { controlDragHandler = handler; }
@@ -75,6 +82,8 @@ public:
   void reset() override { setTextValue(""); }
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
+
+  void setPlaceholderText(const char *text) override { placeholderText = text; }
 
   void updateImgui() override
   {
@@ -152,17 +161,25 @@ public:
       // Use full width by default.
       const ImVec2 size(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN, height);
 
-      textChanged = ImGuiDagor::InputTextMultiline(inputLabel, &controlValue, size);
+      textChanged = ImGuiDagor::InputTextMultilineWithHint(inputLabel, placeholderText, &controlValue, size);
+      textInputFocused = ImGui::IsItemFocused();
     }
     else
     {
       // Use full width by default.
       ImGui::SetNextItemWidth(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN);
 
-      textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, &controlValue, textInputFocused);
+      if (iconMain == PropPanel::IconId::Invalid)
+      {
+        textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, placeholderText, &controlValue, textInputFocused);
+        textInputFocused = ImGui::IsItemFocused();
+      }
+      else
+      {
+        textChanged =
+          ImguiHelper::searchInput(this, inputLabel, placeholderText, controlValue, iconMain, iconClear, &textInputFocused);
+      }
     }
-
-    textInputFocused = ImGui::IsItemFocused();
 
     if (useValueHighlight || useIndicatorColor)
       ImGui::PopStyleColor();
@@ -281,6 +298,7 @@ private:
   IDropTargetHandler *controlDropTargetHandler = nullptr;
   String controlCaption;
   String controlValue;
+  SimpleString placeholderText;
   bool controlEnabled = true;
   bool controlMultiline = false;
   bool needColorIndicate = false;
@@ -290,6 +308,8 @@ private:
   bool showTooltipAlways = false;
   bool autoHeight = false;
   ImVec2 hintWindowSize = ImVec2(0.0f, 0.0f);
+  IconId iconMain = IconId::Invalid;
+  IconId iconClear = IconId::Invalid;
 };
 
 } // namespace PropPanel

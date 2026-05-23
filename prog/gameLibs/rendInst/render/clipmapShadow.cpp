@@ -137,8 +137,7 @@ void ClipmapShadow::reset()
       d3d::GpuAutoLock gpuLock;
       Driver3dRenderTarget prevRt;
       d3d::get_render_target(prevRt);
-      d3d::set_render_target();
-      d3d::set_render_target(clipmapShadowTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{clipmapShadowTex.getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0xFFFFFFFF, 1.f, 0);
       d3d::set_render_target(prevRt);
       d3d::resource_barrier({clipmapShadowTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -254,7 +253,7 @@ bool ClipmapShadow::update(float min_height, float max_height, const Point3 &vie
       if (quadRegions[cascadeNo].size() == 0)
         continue;
 
-      d3d::set_render_target(clipmapShadowTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{clipmapShadowTex.getTex2D(), 0, 0}});
       d3d::settm(TM_VIEW, lookDownVtm);
 
       for (int i = 0; i < quadRegions[cascadeNo].size(); ++i)

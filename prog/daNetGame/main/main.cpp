@@ -29,6 +29,7 @@
 #include <osApiWrappers/dag_sockets.h>
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_pathDelim.h>
+#include <osApiWrappers/dag_shellExecute.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_perfTimer.h>
 #include <perfMon/dag_sleepPrecise.h>
@@ -297,6 +298,38 @@ static void init_user_system_info_cache_dir()
   uuid_cache_dir += "label";
   debug("UUID cache dir: %s", uuid_cache_dir.str());
   set_user_system_info_cache_dir(uuid_cache_dir.str());
+}
+
+
+void game_quit_and_start_launcher()
+{
+#if _TARGET_PC_WIN
+  wchar_t *path = NULL;
+  wchar_t pathBuff[MAX_PATH + 1] = {0};
+  if (GetModuleFileNameW(NULL, pathBuff, countof(pathBuff)))
+  {
+    for (int i = (int)wcslen(pathBuff) - 1; i >= 0; --i)
+      if (pathBuff[i] == L'\\' || pathBuff[i] == L'/')
+      {
+        pathBuff[i] = 0;
+        break;
+      }
+    wcsncat(pathBuff, L"\\..\\launcher.exe", countof(pathBuff) - wcslen(pathBuff) - 1);
+    pathBuff[MAX_PATH] = 0;
+    path = pathBuff;
+  }
+  os_shell_execute_w(NULL, path ? path : L"launcher.exe", NULL, NULL, true);
+  debug("quitting and launch launcher...");
+  flush_debug_file();
+  ExitProcess(1); // can't do quit_game() here
+#endif
+}
+
+
+int no_watchdog_message_box(const char *utf8_text, const char *utf8_caption, int flags = 0)
+{
+  ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
+  return os_message_box(utf8_text, utf8_caption, flags);
 }
 
 
@@ -891,6 +924,21 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   }
 
   dng_load_localization();
+
+#if _TARGET_PC_WIN && (DAGOR_DBGLEVEL == 0)
+  if (!dedicated::is_dedicated())
+  {
+    if (::dgs_get_argv("forcestart") == NULL)
+    {
+      debug("start without launcher is forbidden");
+      if (no_watchdog_message_box(get_localized_text("launcher/update"), get_localized_text("launcher/update_header"),
+            GUI_MB_YES_NO | GUI_MB_ICON_ERROR | GUI_MB_FOREGROUND) == GUI_MB_BUTTON_1)
+      {
+        game_quit_and_start_launcher();
+      }
+    }
+  }
+#endif
 
   start_purge_logs_thread(); // as soon as settings loaded & cpujobs inited, after setting up log handlers
 

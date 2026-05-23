@@ -1,1 +1,0 @@
-Writes a chunk of data through the response writer using HTTP chunked transfer encoding. Returns 0 on success.

@@ -26,6 +26,8 @@
 
 #include <mutex>
 
+#include <mimalloc.h>
+
 // clang-format on
 
 // currently turned off, breaks phase one caches for some still unknown reason
@@ -61,6 +63,35 @@ LibPin pinFxcLib;
 namespace
 {
 
+static struct MiMalloc : public IMalloc
+{
+  MiMalloc() = default;
+  MiMalloc(const MiMalloc &) = delete;
+  MiMalloc &operator=(const MiMalloc &) = delete;
+
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppv) override
+  {
+    if (IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IMalloc))
+    {
+      *ppv = this;
+      AddRef();
+      return S_OK;
+    }
+    *ppv = nullptr;
+    return E_NOINTERFACE;
+  }
+
+  ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
+  ULONG STDMETHODCALLTYPE Release() override { return 1; }
+
+  void *STDMETHODCALLTYPE Alloc(SIZE_T cb) override { return mi_malloc(cb); }
+  void *STDMETHODCALLTYPE Realloc(void *pv, SIZE_T cb) override { return mi_realloc(pv, cb); }
+  void STDMETHODCALLTYPE Free(void *pv) override { mi_free(pv); }
+  SIZE_T STDMETHODCALLTYPE GetSize(void *pv) override { return pv ? mi_usable_size(pv) : static_cast<SIZE_T>(-1); }
+  int STDMETHODCALLTYPE DidAlloc(void *pv) override { return pv ? static_cast<int>(mi_is_in_heap_region(pv)) : -1; }
+  void STDMETHODCALLTYPE HeapMinimize() override { mi_collect(true); }
+} mi_malloc_callback;
+
 eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dxil::ShaderContainerType type)
 {
   bindump::ReservingMemoryWriter writer;
@@ -70,7 +101,7 @@ eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dx
   container.data = eastl::move(data);
 
   bindump::streamWrite(container, writer);
-  writer.mData.resize((writer.mData.size() + 3) & ~3);
+  writer.mData.resize((writer.mData.size() + 3) & ~3, 0);
   return eastl::move(writer.mData);
 }
 
@@ -1165,7 +1196,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // shaders through PDBs. Ideally we don't want to do that, or at least format the preprocessing
   // result to make it look not that awful.
 
-  auto ppResult = ::dxil::preprocessHLSLWithDXC(profile, source, defines, pinDxcLib.get());
+  auto ppResult = ::dxil::preprocessHLSLWithDXC(profile, source, defines, pinDxcLib.get(), &mi_malloc_callback);
 
   // empty pp result is correct (empty in -> empty out) so lets just
   // fail on any pp error/warning whatsoever
@@ -1186,7 +1217,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
     compileConfig.defines.emplace_back(L"_AUTO_GENERATED_ROOT_SIGNATURE", compileConfig.rootSignatureDefine);
 
   auto compileResult = ::dxil::compileHLSLWithDXC({ppResult.preprocessedSource.data(), intptr_t(ppResult.preprocessedSource.size())},
-    entry, profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion);
+    entry, profile, compileConfig, pinDxcLib.get(), platformInfo.dxcVersion, &mi_malloc_callback);
 
   result.messageLog += compileResult.messageLog;
 

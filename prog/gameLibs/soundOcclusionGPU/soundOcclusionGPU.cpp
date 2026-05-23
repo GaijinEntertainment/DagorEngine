@@ -45,9 +45,10 @@ void GpuSoundOcclusion::init(const Config &in_cfg)
   resultRingBuffer.init(sizeof(Point4), cfg.maxSources, cfg.ringBufferFrames, "snd_occ_results", SBCF_UA_STRUCTURED_READBACK, 0,
     false);
 
-  inputBuf = UniqueBufHolder(dag::create_sbuffer(sizeof(Point4), cfg.maxSources,
-                               SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC, 0, "snd_occ_input"),
-    "snd_occ_input");
+  inputBuf =
+    UniqueBufWithShaderVar(dag::create_sbuffer(sizeof(Point4), cfg.maxSources,
+                             SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC, 0, "snd_occ_input"),
+      "snd_occ_input");
 
   sources.resize(cfg.maxSources);
   results.resize(cfg.maxSources);

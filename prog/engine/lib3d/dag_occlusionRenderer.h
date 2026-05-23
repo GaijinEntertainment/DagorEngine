@@ -12,6 +12,32 @@
 class OcclusionRenderer
 {
 private:
+  static vec4f computeViewCorner(mat44f_cref inv_vp, vec4f clip_pos, vec4f view_pos)
+  {
+    vec4f v = v_mat44_mul_vec3p(inv_vp, clip_pos);
+    return v_sub(v_div(v, v_splat_w(v)), view_pos);
+  }
+
+  static void setupScanlineViewVecs(vec4f LT, vec4f RT, vec4f LB, vec4f RB, vec4f scr_y, vec4f scr1_y, vec4f &vec_x, vec4f &vec_y,
+    vec4f &vec_z, vec4f &vec_inc4)
+  {
+    vec4f left = v_madd(LT, scr1_y, v_mul(LB, scr_y)), right = v_madd(RT, scr1_y, v_mul(RB, scr_y));
+    vec4f inc = v_mul(v_sub(right, left), v_splats(0.5f / OcclusionZBuffer::WIDTH));
+    vec4f v0 = v_add(left, inc);
+    inc = v_add(inc, inc);
+    vec4f v1 = v_add(v0, inc);
+    vec_x = v_perm_xaxa(v0, v1);
+    vec_y = v_perm_xaxa(v_rot_1(v0), v_rot_1(v1));
+    vec_z = v_perm_xaxa(v_rot_2(v0), v_rot_2(v1));
+    v1 = v_add(v1, inc);
+    v0 = v_add(v1, inc);
+    vec_x = v_perm_xyab(vec_x, v_perm_xaxa(v1, v0));
+    vec_y = v_perm_xyab(vec_y, v_perm_xaxa(v_rot_1(v1), v_rot_1(v0)));
+    vec_z = v_perm_xyab(vec_z, v_perm_xaxa(v_rot_2(v1), v_rot_2(v0)));
+    vec_inc4 = v_add(inc, inc);
+    vec_inc4 = v_add(vec_inc4, vec_inc4);
+  }
+
   OcclusionZBuffer &occlusionZBuffer;
   alignas(32) float zBufferReprojected[OcclusionZBuffer::WIDTH * OcclusionZBuffer::HEIGHT]; //-V730_NOINIT
 
@@ -119,21 +145,27 @@ public:
 
 
   // todo: replace with cameraspace (view separated from proj)
-  void reprojectHWDepthBuffer(mat44f_cref toWorldHW, vec4f viewPos, float zn, float zf, const mat44f &viewproj, int nStartLine,
-    int nNumLines, float *hwSrc, float cockpit_distance, CockpitReprojectionMode cockpitMode, const mat44f &cockpitAnim)
+  void reprojectHWDepthBuffer(mat44f_cref toWorldHW, mat44f_cref cockpitToWorldHW, vec4f viewPos, float zn, float zf,
+    const mat44f &viewproj, int nStartLine, int nNumLines, float *hwSrc, float cockpit_distance, CockpitReprojectionMode cockpitMode,
+    const mat44f &cockpitAnim, mat44f_cref cockpit_view_proj, bool has_separate_cockpit_proj)
   {
     const float fHeight = (float)OcclusionZBuffer::HEIGHT;
     {
       float zAt1 = zn * (zf - 1.f) / (zf - zn);
-      // todo: pass viewLT vectors
-      vec4f viewLT = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(-1, +1, zAt1, 1));
-      viewLT = v_sub(v_div(viewLT, v_splat_w(viewLT)), viewPos);
-      vec4f viewRT = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(+1, +1, zAt1, 1));
-      viewRT = v_sub(v_div(viewRT, v_splat_w(viewRT)), viewPos);
-      vec4f viewLB = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(-1, -1, zAt1, 1));
-      viewLB = v_sub(v_div(viewLB, v_splat_w(viewLB)), viewPos);
-      vec4f viewRB = v_mat44_mul_vec3p(toWorldHW, v_make_vec4f(+1, -1, zAt1, 1));
-      viewRB = v_sub(v_div(viewRB, v_splat_w(viewRB)), viewPos);
+      vec4f viewLT = computeViewCorner(toWorldHW, v_make_vec4f(-1, +1, zAt1, 1), viewPos);
+      vec4f viewRT = computeViewCorner(toWorldHW, v_make_vec4f(+1, +1, zAt1, 1), viewPos);
+      vec4f viewLB = computeViewCorner(toWorldHW, v_make_vec4f(-1, -1, zAt1, 1), viewPos);
+      vec4f viewRB = computeViewCorner(toWorldHW, v_make_vec4f(+1, -1, zAt1, 1), viewPos);
+      const bool hasCockpitReproject = cockpitMode == COCKPIT_REPROJECT_ANIMATED;
+      const bool hasSeparateCockpitReproject = hasCockpitReproject && has_separate_cockpit_proj;
+      vec4f cpViewLT = v_zero(), cpViewRT = v_zero(), cpViewLB = v_zero(), cpViewRB = v_zero();
+      if (hasSeparateCockpitReproject)
+      {
+        cpViewLT = computeViewCorner(cockpitToWorldHW, v_make_vec4f(-1, +1, zAt1, 1), viewPos);
+        cpViewRT = computeViewCorner(cockpitToWorldHW, v_make_vec4f(+1, +1, zAt1, 1), viewPos);
+        cpViewLB = computeViewCorner(cockpitToWorldHW, v_make_vec4f(-1, -1, zAt1, 1), viewPos);
+        cpViewRB = computeViewCorner(cockpitToWorldHW, v_make_vec4f(+1, -1, zAt1, 1), viewPos);
+      }
       vec4i bounds = v_make_vec4i(OcclusionZBuffer::WIDTH - 1, OcclusionZBuffer::HEIGHT - 1, 0, 0);
       vec4f znear = v_splats(zn);
       // debug("%f %f %f %f", v_extract_x(viewLT), v_extract_y(viewLT), v_extract_z(viewLT), v_extract_w(viewLT));
@@ -150,8 +182,12 @@ public:
       clipToScreen.col3 = v_make_vec4f(float(OcclusionZBuffer::WIDTH / 2), float(OcclusionZBuffer::HEIGHT / 2), 0.0f, 1.0f);
       mat44f worldToScreen;
       v_mat44_mul(worldToScreen, clipToScreen, viewproj);
-      mat44f worldToScreenCockpit;
-      v_mat44_mul43(worldToScreenCockpit, worldToScreen, cockpitAnim);
+      mat44f worldToScreenCockpit = {};
+      if (hasCockpitReproject)
+      {
+        v_mat44_mul(worldToScreenCockpit, clipToScreen, cockpit_view_proj);
+        v_mat44_mul43(worldToScreenCockpit, worldToScreenCockpit, cockpitAnim);
+      }
       constexpr int widthBits = OcclusionZBuffer::bitShiftX;
 
       vec4f zfar = v_splats(zf * 0.9f);
@@ -176,24 +212,15 @@ public:
       {
         vec4f scrY = v_splats(fY);
         vec4f scr1Y = v_splats(1.0f - fY);
-        vec4f left = v_madd(viewLT, scr1Y, v_mul(viewLB, scrY)), right = v_madd(viewRT, scr1Y, v_mul(viewRB, scrY));
-        vec4f viewVecInc = v_mul(v_sub(right, left), v_splats(0.5f / OcclusionZBuffer::WIDTH));
 
-        vec4f viewVec = v_add(left, viewVecInc);
-        viewVecInc = v_add(viewVecInc, viewVecInc);
+        vec4f viewVecX, viewVecY, viewVecZ, viewVecInc4;
+        setupScanlineViewVecs(viewLT, viewRT, viewLB, viewRB, scrY, scr1Y, viewVecX, viewVecY, viewVecZ, viewVecInc4);
 
-        vec4f viewVec2 = v_add(viewVec, viewVecInc);
-        vec4f viewVecX = v_perm_xaxa(viewVec, viewVec2);
-        vec4f viewVecY = v_perm_xaxa(v_rot_1(viewVec), v_rot_1(viewVec2));
-        vec4f viewVecZ = v_perm_xaxa(v_rot_2(viewVec), v_rot_2(viewVec2));
+        vec4f cpViewVecX = v_zero(), cpViewVecY = v_zero(), cpViewVecZ = v_zero(), cpViewVecInc4 = v_zero();
+        if (hasSeparateCockpitReproject)
+          setupScanlineViewVecs(cpViewLT, cpViewRT, cpViewLB, cpViewRB, scrY, scr1Y, cpViewVecX, cpViewVecY, cpViewVecZ,
+            cpViewVecInc4);
 
-        viewVec2 = v_add(viewVec2, viewVecInc);
-        viewVec = v_add(viewVec2, viewVecInc);
-        viewVecX = v_perm_xyab(viewVecX, v_perm_xaxa(viewVec2, viewVec));
-        viewVecY = v_perm_xyab(viewVecY, v_perm_xaxa(v_rot_1(viewVec2), v_rot_1(viewVec)));
-        viewVecZ = v_perm_xyab(viewVecZ, v_perm_xaxa(v_rot_2(viewVec2), v_rot_2(viewVec)));
-        vec4f viewVecInc4 = v_add(viewVecInc, viewVecInc);
-        viewVecInc4 = v_add(viewVecInc4, viewVecInc4);
         vec4f *z = (vec4f *)lineZ;
         vec4i *address = (vec4i *)lineAddress;
         memset(address, 0xFF, sizeof(int) * OcclusionZBuffer::WIDTH);
@@ -209,10 +236,22 @@ public:
 #if DAGOR_DBGLEVEL > 0
           *(vec4f *)&reprojectionDebug[y * OcclusionZBuffer::WIDTH + x] = v_and(isWithinCockpit, v_splats(1)); // 0 or 1 when cockpit
 #endif
-          bool shouldReprojectAnimated = v_check_xyzw_any_true(isWithinCockpit) & (cockpitMode == COCKPIT_REPROJECT_ANIMATED);
           vec4f vWorldPosX = v_madd(viewVecX, depth, viewPosX);
           vec4f vWorldPosY = v_madd(viewVecY, depth, viewPosY);
           vec4f vWorldPosZ = v_madd(viewVecZ, depth, viewPosZ);
+          bool shouldReprojectAnimated = v_check_xyzw_any_true(isWithinCockpit) & hasCockpitReproject;
+          if (shouldReprojectAnimated && hasSeparateCockpitReproject)
+          {
+            vWorldPosX = v_sel(vWorldPosX, v_madd(cpViewVecX, depth, viewPosX), isWithinCockpit);
+            vWorldPosY = v_sel(vWorldPosY, v_madd(cpViewVecY, depth, viewPosY), isWithinCockpit);
+            vWorldPosZ = v_sel(vWorldPosZ, v_madd(cpViewVecZ, depth, viewPosZ), isWithinCockpit);
+          }
+          if (hasSeparateCockpitReproject)
+          {
+            cpViewVecX = v_add(cpViewVecX, v_splat_x(cpViewVecInc4));
+            cpViewVecY = v_add(cpViewVecY, v_splat_y(cpViewVecInc4));
+            cpViewVecZ = v_add(cpViewVecZ, v_splat_z(cpViewVecInc4));
+          }
 
 #define CALC_SCREEN_POS(component, tm)             \
   v_madd(v_splat_##component(tm.col0), vWorldPosX, \

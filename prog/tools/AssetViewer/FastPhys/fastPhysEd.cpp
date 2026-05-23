@@ -767,7 +767,7 @@ void FastPhysEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   ObjectEditor::fillToolBar(toolbar);
 
-  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel();
 
   // addButton(tb, CM_CLOSE_CURRENT_EDITOR, "close_editor", "Exit FastPhys Editor");
   // tb->createSeparator();

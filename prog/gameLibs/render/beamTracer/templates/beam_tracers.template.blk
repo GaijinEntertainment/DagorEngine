@@ -8,7 +8,7 @@ tactical_laser_beam_render_settings {
   tac_laser_render__max_intensity_angle:r = 0.0
   tac_laser_render__max_intensity_mul:r = 1.0
   tac_laser_render__fog_intensity_mul:r = 0.0
-  tac_laser_render__fade_dist:r = 25.0
+  tac_laser_render__fade_eye_dist:r = 25.0
 }
 
 beam_tracer_projectile_render_settings{

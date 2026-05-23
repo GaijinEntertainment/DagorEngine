@@ -19,8 +19,9 @@ namespace PropPanel
 class ToolbarPropertyControl : public ContainerPropertyControl
 {
 public:
-  ToolbarPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, const char *caption) :
-    ContainerPropertyControl(id, event_handler, parent), controlCaption(caption)
+  ToolbarPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id,
+    bool use_tight_button_placement) :
+    ContainerPropertyControl(id, event_handler, parent), useTightButtonPlacement(use_tight_button_placement)
   {}
 
   int getImguiControlType() const override { return (int)ControlType::Toolbar; }
@@ -98,12 +99,17 @@ public:
 
   void updateImgui() override
   {
-    const float spacing = ImGui::GetStyle().ItemSpacing.x;
     const int alignRightFromChild = getAlignRightFromChild();
 
     for (int i = 0; i < mControlArray.size(); ++i)
     {
       PropertyControlBase *control = mControlArray[i];
+
+      const bool useTightSpacingForCurrentControl = useTightButtonPlacement && i != 0;
+      if (useTightSpacingForCurrentControl)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+          ImVec2(Constants::TOOLBAR_TIGHT_BUTTON_SPACING, ImGui::GetStyle().ItemSpacing.y));
+      const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
       ImGui::SameLine();
 
@@ -132,10 +138,13 @@ public:
       }
 
       ImGui::PushID(control);
-      control->updateImgui();
+      controlUpdateImgui(*control, i);
       ImGui::PopID();
 
       mControlsLastRectSize[i] = ImGui::GetItemRectSize();
+
+      if (useTightSpacingForCurrentControl)
+        ImGui::PopStyleVar();
     }
   }
 
@@ -172,8 +181,26 @@ protected:
     setControlWidth(*mControlArray.back());
   }
 
-  String controlCaption;
+  void controlUpdateImgui(PropertyControlBase &control, int control_index)
+  {
+    if (useTightButtonPlacement && control.getImguiControlType() == (int)ControlType::ToolbarToggleButton)
+    {
+      ImDrawFlags frameDrawFlags = ImDrawFlags_RoundCornersNone;
+      if (control_index == 0)
+        frameDrawFlags = ImDrawFlags_RoundCornersLeft;
+      else if ((control_index + 1) == mControlArray.size())
+        frameDrawFlags = ImDrawFlags_RoundCornersRight;
+
+      static_cast<ToolbarToggleButtonPropertyControl &>(control).toolbarToggleButtonUpdateImgui(frameDrawFlags);
+    }
+    else
+    {
+      control.updateImgui();
+    }
+  }
+
   int toolbarControlWidth = Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH;
+  const bool useTightButtonPlacement;
 };
 
 } // namespace PropPanel

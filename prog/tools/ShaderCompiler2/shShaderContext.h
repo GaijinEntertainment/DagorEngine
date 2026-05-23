@@ -24,6 +24,7 @@ struct TypeTables
   ShaderVariant::TypeTable allStaticTypes;
   ShaderVariant::TypeTable allDynamicTypes;
   ShaderVariant::TypeTable referencedTypes;
+  dag::VectorSet<int> uniqueIntervalNameIdsReferencedInBoolExpressions{};
 
   explicit TypeTables(shc::TargetContext &ctx) : allStaticTypes{ctx}, allDynamicTypes{ctx}, referencedTypes{ctx} {}
 };

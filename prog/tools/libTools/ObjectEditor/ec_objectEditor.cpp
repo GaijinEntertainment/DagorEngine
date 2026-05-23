@@ -1684,20 +1684,23 @@ void ObjectEditor::closeUi()
 
 void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel();
 
-  addEditorCommandButton(tb, CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT, "select", "Select", true);
+  {
+    PropPanel::ContainerPropertyControl *modeContainer = tb->createToolbarPanel(0, true);
+    addEditorCommandButton(modeContainer, CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT, "select", "Select", true);
+    addEditorCommandButton(modeContainer, CM_OBJED_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE, "move",
+      "Move. Use \"Shift\" for clone mode, \"Ctrl\" for snap points mode.", true);
+    addEditorCommandButton(modeContainer, CM_OBJED_MODE_SURF_MOVE, EditorCommandIds::OBJED_MODE_SURF_MOVE, "move_on_surface",
+      "Move over surface. Use \"Shift\" for clone mode.", true);
+    addEditorCommandButton(modeContainer, CM_OBJED_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE, "rotate",
+      "Rotate. Use \"Shift\" for clone mode.", true);
+    addEditorCommandButton(modeContainer, CM_OBJED_MODE_SCALE, EditorCommandIds::OBJED_MODE_SCALE, "scale",
+      "Scale. Use \"Shift\" for clone mode.", true);
+  }
 
   tb->createSeparator();
 
-  addEditorCommandButton(tb, CM_OBJED_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE, "move",
-    "Move. Use \"Shift\" for clone mode, \"Ctrl\" for snap points mode.", true);
-  addEditorCommandButton(tb, CM_OBJED_MODE_SURF_MOVE, EditorCommandIds::OBJED_MODE_SURF_MOVE, "move_on_surface",
-    "Move over surface. Use \"Shift\" for clone mode.", true);
-  addEditorCommandButton(tb, CM_OBJED_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE, "rotate",
-    "Rotate. Use \"Shift\" for clone mode.", true);
-  addEditorCommandButton(tb, CM_OBJED_MODE_SCALE, EditorCommandIds::OBJED_MODE_SCALE, "scale", "Scale. Use \"Shift\" for clone mode.",
-    true);
   addEditorCommandButton(tb, CM_OBJED_DROP, EditorCommandIds::OBJED_DROP, "drop", "Drop object");
 
   tb->createSeparator();

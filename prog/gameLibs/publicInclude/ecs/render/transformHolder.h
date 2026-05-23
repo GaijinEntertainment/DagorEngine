@@ -4,6 +4,10 @@
 //
 #pragma once
 
+#include <vecmath/dag_vecMath.h>
+#include <math/dag_TMatrix.h>
+#include <math/dag_TMatrix4.h>
+
 struct TransformHolder
 {
   TMatrix viewTm;

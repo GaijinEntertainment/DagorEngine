@@ -123,3 +123,4 @@ CMD(CmdCaptureScreen, measured, DUMP_DEFAULT);
 CMD(CmdCompleteSync, silent, DUMP_DEFAULT);
 CMD(CmdTransitShadingRate, silent, DUMP_DEFAULT);
 CMD(CmdRestartPipelineCompiler, measured, DUMP_DEFAULT);
+CMD(CmdExecuteXESS, measured, DUMP_DEFAULT);

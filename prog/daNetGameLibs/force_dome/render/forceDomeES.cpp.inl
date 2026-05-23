@@ -28,7 +28,7 @@ struct ForceDomeResources
   uint32_t vertexCount, faceCount;
 
   shaders::OverrideStateId insideSphereState, outsideSphereState;
-  UniqueBufHolder spheresBuf;
+  UniqueBufWithShaderVar spheresBuf;
 
   enum
   {

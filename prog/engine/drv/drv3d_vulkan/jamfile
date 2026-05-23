@@ -305,6 +305,13 @@ if $(UseDlss) = yes {
   Sources += dlss_stub.cpp ;
 }
 
+if $(XessEnabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/xess_sdk : * ] {
+  Target = $(Target:S=~xess.lib) ;
+  Sources += xess.cpp ;
+} else {
+  Sources += xess_stub.cpp ;
+}
+
 UseProgLibs +=
   engine/drv/drv3d_commonCode
   3rdPartyLibs/vulkan/smol-v

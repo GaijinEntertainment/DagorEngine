@@ -22,7 +22,7 @@ ground_holes_updater{
     hmapHolesMipmapRenderer_name:t="heightmap_holes_mipmap"
     "hmapHolesTex:UniqueTexWithShaderVar" {}
     "hmapHolesTmpTex:UniqueTexWithShaderVar" {}
-    "hmapHolesBuf:UniqueBufHolder" {}
+    "hmapHolesBuf:UniqueBufWithShaderVar" {}
     "holes:list<p4>" {}
     "invalidate_bboxes:list<p3>" {}
     // TODO: only temporarily, as a workaround for a PS4/PS5 bug
@@ -43,6 +43,6 @@ underground_zones_updater{
   _use:t="replicating"
   _singleton:b=yes
   _tags:t="render"
-  "hmapHolesZonesBuf:UniqueBufHolder" {}
+  "hmapHolesZonesBuf:UniqueBufWithShaderVar" {}
   should_update_ground_holes_zones:b=yes
 }

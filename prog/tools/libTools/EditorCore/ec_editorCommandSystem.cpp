@@ -29,6 +29,18 @@ const char *EditorCommandSystem::getCommandKeyChordsAsText(const char *id)
   return command ? command->getKeyChordsAsText() : nullptr;
 }
 
+int EditorCommandSystem::getCommandHotkeyCount(const char *id) const
+{
+  const EditorCommand *command = ec_editor_commands.getCommand(id);
+  return command ? command->getHotkeyCount() : 0;
+}
+
+ImGuiKeyChord EditorCommandSystem::getCommandKeyChord(const char *id, int index) const
+{
+  const EditorCommand *command = ec_editor_commands.getCommand(id);
+  return command ? command->getKeyChord(index) : 0;
+}
+
 unsigned int EditorCommandSystem::getCommandCount() const { return ec_editor_commands.getCommandCount(); }
 
 const char *EditorCommandSystem::getCommandId(int index) const { return ec_editor_commands.getCommandId(index); }

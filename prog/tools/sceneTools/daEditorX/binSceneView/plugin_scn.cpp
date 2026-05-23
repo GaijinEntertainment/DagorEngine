@@ -138,7 +138,7 @@ bool BinSceneViewPlugin::begin(int toolbar_id, unsigned menu_id)
   G_ASSERT(toolbar);
   toolbar->setEventHandler(this);
 
-  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL);
 
   tool->createButton(PID_SET_BIN_DUMP, "Set level binary dump");
   tool->setButtonPictures(PID_SET_BIN_DUMP, "import_hm");

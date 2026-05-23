@@ -184,6 +184,7 @@ public:
 
   const TMatrix4_vec4 &getRenderViewMatrix(int cascade_no) const { return shadowSplits[cascade_no].renderViewMatrix; }
   const TMatrix4_vec4 &getRenderProjMatrix(int cascade_no) const { return shadowSplits[cascade_no].renderProjMatrix; }
+  float getCameraFov() const { return modeSettings.cameraFov; }
   const Point3 &shadowWidth(int cascade_no) const { return shadowSplits[cascade_no].shadowWidth; }
 
   const BBox3 &getWorldBox(int cascade_no) const { return shadowSplits[cascade_no].worldBox; }
@@ -495,8 +496,6 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
 
-  d3d::set_render_target();
-  d3d::set_render_target(nullptr, 0);
   bool clearPerView = clear_per_view;
   for (int cascadeNo = numCascadesToRender - 1; cascadeNo >= 0; cascadeNo--)
   {
@@ -511,7 +510,7 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
   BaseTexture *cascades = settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal
                             ? internalCascades.getBaseTex()
                             : external_cascades;
-  d3d::set_depth(cascades, DepthAccess::RW);
+  d3d::set_render_target({cascades, 0, 0}, DepthAccess::RW, {});
 
   if (!clearPerView && !mobileAreaUpdateRP)
   {
@@ -1403,6 +1402,8 @@ const TMatrix4_vec4 &CascadeShadows::getRenderViewMatrix(int cascade_no) const {
 const Point3 &CascadeShadows::shadowWidth(int cascade_no) const { return d->shadowWidth(cascade_no); }
 
 const TMatrix4_vec4 &CascadeShadows::getRenderProjMatrix(int cascade_no) const { return d->getRenderProjMatrix(cascade_no); }
+
+float CascadeShadows::getCameraFov() const { return d->getCameraFov(); }
 
 const BBox3 &CascadeShadows::getWorldBox(int cascade_no) const { return d->getWorldBox(cascade_no); }
 

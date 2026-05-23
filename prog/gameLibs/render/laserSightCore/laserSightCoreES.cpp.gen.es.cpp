@@ -7,7 +7,7 @@ ECS_DEF_PULL_VAR(laserSightCore);
 static constexpr ecs::ComponentDesc create_laser_screen_spot_buffer_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("laser_screen_spot_buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("laser_screen_spot_buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
 //start of 1 ro components at [1]
   {ECS_HASH("laser_decal_manager__is_compatible"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -15,7 +15,7 @@ static void create_laser_screen_spot_buffer_es_all_events(const ecs::Event &__re
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_laser_screen_spot_buffer_es(evt
-        , ECS_RW_COMP(create_laser_screen_spot_buffer_es_comps, "laser_screen_spot_buffer", UniqueBufHolder)
+        , ECS_RW_COMP(create_laser_screen_spot_buffer_es_comps, "laser_screen_spot_buffer", UniqueBufWithShaderVar)
     , ECS_RO_COMP(create_laser_screen_spot_buffer_es_comps, "laser_decal_manager__is_compatible", bool)
     );
   while (++comp != compE);
@@ -36,7 +36,7 @@ static ecs::EntitySystemDesc create_laser_screen_spot_buffer_es_es_desc
 static constexpr ecs::ComponentDesc update_laser_spots_buffer_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("laser_screen_spot_buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("laser_screen_spot_buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("laser_screen_spot_count"), ecs::ComponentTypeInfo<int>()},
 //start of 1 ro components at [2]
   {ECS_HASH("laser_decal_manager__is_compatible"), ecs::ComponentTypeInfo<bool>()}
@@ -47,7 +47,7 @@ static void update_laser_spots_buffer_es_all_events(const ecs::Event &__restrict
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_laser_spots_buffer_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
         , components.manager()
-    , ECS_RW_COMP(update_laser_spots_buffer_es_comps, "laser_screen_spot_buffer", UniqueBufHolder)
+    , ECS_RW_COMP(update_laser_spots_buffer_es_comps, "laser_screen_spot_buffer", UniqueBufWithShaderVar)
     , ECS_RW_COMP(update_laser_spots_buffer_es_comps, "laser_screen_spot_count", int)
     , ECS_RO_COMP(update_laser_spots_buffer_es_comps, "laser_decal_manager__is_compatible", bool)
     );
@@ -202,7 +202,7 @@ static constexpr ecs::ComponentDesc update_lasers_es_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("laserBeamTracerId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("laserDecalId"), ecs::ComponentTypeInfo<int>()},
-//start of 18 ro components at [2]
+//start of 19 ro components at [2]
   {ECS_HASH("laserBeamColor"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("laserBeamMaxLength"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("laserStartSize"), ecs::ComponentTypeInfo<float>()},
@@ -220,7 +220,8 @@ static constexpr ecs::ComponentDesc update_lasers_es_comps[] =
   {ECS_HASH("laser_data__playerId"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("laser_sight__is_compatible"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("laser_data__dotIntensity"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("laserBeamDotColor"), ecs::ComponentTypeInfo<Point3>()}
+  {ECS_HASH("laserBeamDotColor"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("laserBeamFadeDistPercentage"), ecs::ComponentTypeInfo<float>()}
 };
 static void update_lasers_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -248,6 +249,7 @@ static void update_lasers_es_all_events(const ecs::Event &__restrict evt, const 
     , ECS_RO_COMP(update_lasers_es_comps, "laser_sight__is_compatible", bool)
     , ECS_RO_COMP(update_lasers_es_comps, "laser_data__dotIntensity", float)
     , ECS_RO_COMP(update_lasers_es_comps, "laserBeamDotColor", Point3)
+    , ECS_RO_COMP(update_lasers_es_comps, "laserBeamFadeDistPercentage", float)
     );
   while (++comp != compE);
 }
@@ -257,7 +259,7 @@ static ecs::EntitySystemDesc update_lasers_es_es_desc
   "prog/gameLibs/render/laserSightCore/laserSightCoreES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_lasers_es_all_events),
   make_span(update_lasers_es_comps+0, 2)/*rw*/,
-  make_span(update_lasers_es_comps+2, 18)/*ro*/,
+  make_span(update_lasers_es_comps+2, 19)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ParallelUpdateFrameDelayed>::build(),

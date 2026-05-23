@@ -1,1 +1,0 @@
-Macro for implementing custom ``typeinfo`` traits, enabling expressions like ``typeinfo YourTraitHere(...)`` that extract compile-time type information.

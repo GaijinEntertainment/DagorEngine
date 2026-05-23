@@ -4,4 +4,5 @@
 namespace cam
 {
 float deg_to_fov(float deg);
-}
+float fov_to_deg(float fov);
+} // namespace cam

@@ -27,6 +27,7 @@ public:
   void setRt();
   void resolve();
   void setVar();
+  void resetVar();
   void debugRender(int show_gbuffer);
   void initDebugTex();
   const ManagedTex &getDbgTex();

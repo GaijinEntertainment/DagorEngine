@@ -72,6 +72,9 @@ private:
   int getPerTypeLayerIndex(int type, int layer_props_index) const;
   EditLayerProps *getEditLayerProps(int type, int per_type_layer_index) const;
 
+  bool canSelectObjectOnly(RenderableEditableObject &object);
+  bool canSelectSubObjectOnly(RenderableEditableObject &object);
+
   static bool getObjectTypeAndLayerPropsIndex(RenderableEditableObject &object, int &type, int &layer_props_index);
   static const char *getAssetName(RenderableEditableObject &object);
   static bool isValidLayerName(const char *name, String &error_message);

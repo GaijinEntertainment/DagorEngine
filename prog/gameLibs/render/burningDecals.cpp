@@ -76,9 +76,9 @@ void BurningDecals::createTexturesAndBuffers()
     d3d::GpuAutoLock gpuLock;
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(bakedBurningMap.getBaseTex(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{bakedBurningMap.getBaseTex(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-    d3d::set_render_target(burningMap.getBaseTex(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{burningMap.getBaseTex(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
     // transit to SRV immediately, sometimes it used right after clear
@@ -327,7 +327,7 @@ void BurningDecals::update(float dt)
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(bakedBurningMap.getBaseTex(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{bakedBurningMap.getBaseTex(), 0, 0}});
 
     d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
 
@@ -353,7 +353,7 @@ void BurningDecals::update(float dt)
 
     SCOPE_RENDER_TARGET;
 
-    d3d::set_render_target(burningMap.getBaseTex(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{burningMap.getBaseTex(), 0, 0}});
 
     d3d::set_buffer(STAGE_VS, 8, decalDataVS.getBuf());
 

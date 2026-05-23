@@ -16,9 +16,9 @@
 class TiledLights
 {
   ResizableTex tilesRT;
-  UniqueBufHolder lightsListBuf;
-  UniqueBufHolder zbinningLUT;
-  UniqueBufHolder zBinBeginsEndsBuf;
+  UniqueBufWithShaderVar lightsListBuf;
+  UniqueBufWithShaderVar zbinningLUT;
+  UniqueBufWithShaderVar zBinBeginsEndsBuf;
   float maxLightsDist = 500;
   Tab<uint32_t> zBinningData;
   Tab<uint16_t> zBinBegins, zBinEnds;

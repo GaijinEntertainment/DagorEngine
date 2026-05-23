@@ -742,7 +742,15 @@ void ed::Node::GetGroupedNodes(std::vector<Node*>& result, bool append)
         return;
 
     const auto firstNodeIndex = result.size();
-    Editor->FindNodesInRect(m_GroupBounds, result, true, false);
+    // MODIFICATION BY GAIJIN
+    if (Editor->GetConfig().ContainGroupedNodesByCenter)
+        Editor->FindNodesByCenter(m_GroupBounds, result, true);
+    else
+        Editor->FindNodesInRect(m_GroupBounds, result, true, false);
+
+    // MODIFICATION BY GAIJIN
+    // do not self recurse, FindNodesByCenter hits this issue and with FindNodesInRect it is easily reproducable with custom UI
+    result.erase(std::remove(result.begin() + firstNodeIndex, result.end(), this), result.end());
 
     for (auto index = firstNodeIndex; index < result.size(); ++index)
         result[index]->GetGroupedNodes(result, true);
@@ -1862,6 +1870,28 @@ void ed::EditorContext::FindNodesInRect(const ImRect& r, vector<Node*>& result, 
     for (auto node : m_Nodes)
         if (node->TestHit(r, includeIntersecting))
             result.push_back(node);
+}
+
+// MODIFICATION BY GAIJIN
+void ed::EditorContext::FindNodesByCenter(const ImRect& r, vector<Node*>& result, bool append)
+{
+    if (!append)
+        result.resize(0);
+
+    if (ImRect_IsEmpty(r))
+        return;
+
+    for (auto node : m_Nodes)
+    {
+        if (!node->m_IsLive)
+            continue;
+        const auto bounds = node->GetBounds();
+        if (ImRect_IsEmpty(bounds))
+            continue;
+        const ImVec2 center((bounds.Min.x + bounds.Max.x) * 0.5f, (bounds.Min.y + bounds.Max.y) * 0.5f);
+        if (r.Contains(center))
+            result.push_back(node);
+    }
 }
 
 void ed::EditorContext::FindLinksInRect(const ImRect& r, vector<Link*>& result, bool append)

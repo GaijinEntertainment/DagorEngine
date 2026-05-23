@@ -53,4 +53,20 @@ struct CmdExecuteStreamlineDLSSG
   int viewIndex;
 };
 
+struct CmdExecuteXESS
+{
+  Image *inColor;
+  Image *inDepth;
+  Image *inMotionVectors;
+  float inJitterOffsetX;
+  float inJitterOffsetY;
+  uint32_t inInputWidth;
+  uint32_t inInputHeight;
+  uint32_t inColorDepthOffsetX;
+  uint32_t inColorDepthOffsetY;
+  bool inReset;
+
+  Image *outColor;
+};
+
 } // namespace drv3d_vulkan

@@ -18,6 +18,7 @@
 #include "render/fx/effectEntity.h"
 #include <levelSplines/levelSplines.h>
 #include "main/gameProjConfig.h"
+#include <render/dasModules/bvh.h>
 
 const char *gameproj::game_telemetry_name() { return nullptr; }
 
@@ -589,6 +590,8 @@ int worldRenderer_getDynamicResolutionTargetFps() { G_ASSERT_RETURN(false, 0); }
 void worldRenderer_setDaGdpRangeScale(float) { G_ASSERT(0); }
 void worldRenderer_setCockpitReprojectionMode(CockpitReprojectionMode) { G_ASSERT(0); }
 bool does_world_renderer_exist() { G_ASSERT_RETURN(false, 0); }
+bool is_bvh_enabled() { G_ASSERT_RETURN(false, false); }
+bool is_rr_enabled() { G_ASSERT_RETURN(false, false); }
 } // namespace bind_dascript
 
 #include <render/resolution.h>
@@ -672,6 +675,8 @@ Point2 get_collres_slice_mean_and_dispersion(const CollisionResource &collres, f
 {
   G_ASSERT_RETURN(false, {});
 }
+
+bool apply_collres_node_flag_rules(ecs::EntityManager &, ecs::EntityId, const ecs::Array &) { G_ASSERT_RETURN(false, false); }
 
 namespace systeminfo
 {

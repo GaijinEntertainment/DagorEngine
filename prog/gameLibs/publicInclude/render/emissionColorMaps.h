@@ -8,7 +8,7 @@
 
 class EmissionColorMaps
 {
-  UniqueBufHolder decodeMap;
+  UniqueBufWithShaderVar decodeMap;
   // TODO: SbufferIDHolder encodeMap;
 
   void upload();

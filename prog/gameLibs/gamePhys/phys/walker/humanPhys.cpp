@@ -3047,11 +3047,12 @@ void HumanPhys::updatePhys(double at_time, float dt, bool /*is_for_real*/)
   {
     if (!isSimplifiedPhys || fallbackFromSimplePhys || isConsideredInAir || isSliding)
     {
-      processTorsoCollision(tm, 1, 0.f, at_time);
+      TorsoCollisionResults torsoRes = processTorsoCollision(tm, 1, 0.f, at_time);
       if (justJumped && !isInAir)
       {
         currentState.spdSummaryDiff += -(velBeforeJump * currentState.walkNormal) * currentState.walkNormal;
       }
+      currentState.torsoContactMatId = torsoRes.torsoContactMatId;
     }
 
     Point3 toCcdWorldPos = tm * curCcdPos;

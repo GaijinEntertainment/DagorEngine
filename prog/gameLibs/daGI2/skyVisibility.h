@@ -45,8 +45,8 @@ protected:
   UniqueTexWithShaderVar dagi_sky_visibility_sph;
   UniqueTexWithShaderVar dagi_sky_visibility_age;
   Sbuffer *dagi_sky_visibility_selected_probes = nullptr;
-  UniqueBufHolder dagi_sky_visibility_probabilities;
-  UniqueBufHolder dagi_sky_vis_indirect_buffer;
+  UniqueBufWithShaderVar dagi_sky_visibility_probabilities;
+  UniqueBufWithShaderVar dagi_sky_vis_indirect_buffer;
 
   eastl::unique_ptr<ComputeShaderElement> dagi_sky_visibility_calc_temporal_cs, dagi_sky_visibility_toroidal_movement_interpolate_cs,
     dagi_sky_visibility_toroidal_movement_trace_cs, dagi_sky_visibility_select_temporal_cs, dagi_sky_visibility_create_indirect_cs,

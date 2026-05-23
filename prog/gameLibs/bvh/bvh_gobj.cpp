@@ -68,8 +68,8 @@ struct BVHConnection : public bvh::BVHConnection
 
         if (object && object->blas && MeshMetaAllocator::is_valid(object->metaAllocId))
         {
-          mapping.blas.x = object->blas.getGPUAddress() & 0xFFFFFFFFLLU;
-          mapping.blas.y = object->blas.getGPUAddress() >> 32;
+          mapping.blas.x = object->blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
+          mapping.blas.y = object->blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
           mapping.metaIndex = MeshMetaAllocator::decode(object->metaAllocId);
         }
         else

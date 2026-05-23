@@ -25,5 +25,7 @@
 #define QUAD_O1_MAX      (QUAD_O1_MASK)
 #define QUAD_O2_MAX      (QUAD_O2_MASK)
 #define QUAD_O3_MAX      (QUAD_O3_MASK)
+#define BVH_BLAS_NODE_SIZE 16
+#define BVH_BLAS_LEAF_SIZE 20
 
 #endif

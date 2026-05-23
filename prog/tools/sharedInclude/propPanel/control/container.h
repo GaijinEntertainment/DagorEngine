@@ -45,7 +45,7 @@ public:
   virtual ContainerPropertyControl *createVerticalSplitter(int id);
   virtual ContainerPropertyControl *createTabPanel(int id, const char caption[]);
   virtual ContainerPropertyControl *createTabPage(int id, const char caption[]);
-  virtual ContainerPropertyControl *createToolbarPanel(int id, const char caption[], bool new_line = true);
+  virtual ContainerPropertyControl *createToolbarPanel(int id = 0, bool use_tight_button_placement = false, bool new_line = true);
   virtual ContainerPropertyControl *createTree(int id, const char caption[], hdpi::Px height, bool new_line = true);
   virtual ContainerPropertyControl *createTreeCheckbox(int id, const char caption[], hdpi::Px height, bool new_line = true,
     bool icons_show = true);
@@ -432,6 +432,7 @@ public:
   virtual void setTreeEventHandler([[maybe_unused]] ITreeControlEventHandler *event_handler) {}
   virtual void setTreeCheckboxIcons([[maybe_unused]] const char *checked, [[maybe_unused]] const char *unchecked) {}
   virtual void setTreeFilter([[maybe_unused]] ITreeFilter *filter) {}
+  virtual void setTreeMessage([[maybe_unused]] const char *message) {}
   virtual void filterTree() {}
 
   virtual IDropTargetHandler *getDropTargetHandler() const { return dropTargetHandler; }

@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "vendor_exts.h"
-#include "../../driver.h"
+#include "driver.h"
 #include "backend/context.h"
 #include "execution_sync.h"
 #include "dlss.h"
-#include "../../amdFsr.h"
+#include "amdFsr.h"
+#include "xess.h"
 
 using namespace drv3d_vulkan;
 
@@ -343,4 +344,30 @@ TSPEC void BEContext::execCmd(const CmdExecuteStreamlineDLSSG &cmd)
   // same way as if command buffer was interrupted
   onFrameCoreReset();
 #endif
+}
+
+TSPEC void BEContext::execCmd(const CmdExecuteXESS &cmd)
+{
+  beginCustomStage("executeXESS");
+
+  auto prepareImage = [&](Image *src, bool out = false) {
+    if (src)
+    {
+      verifyResident(src);
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(ExtendedShaderStage::CS, out ? RegisterType::U : RegisterType::T),
+        src, out ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+    }
+  };
+
+  prepareImage(cmd.inColor);
+  prepareImage(cmd.inDepth);
+  prepareImage(cmd.inMotionVectors);
+  prepareImage(cmd.outColor, true);
+  Backend::sync.completeNeeded();
+
+  Globals::xess.evaluate(cmd);
+
+  // XESS modifies state in command buffer, so we must setup it back,
+  // same way as if command buffer was interrupted
+  onFrameCoreReset();
 }

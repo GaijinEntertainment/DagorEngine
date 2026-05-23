@@ -1,1 +1,0 @@
-The ``[reader_macro]`` structure annotation — registers an ``AstReaderMacro`` subclass as a named reader macro invoked by the ``%name~...~~`` syntax during parsing.

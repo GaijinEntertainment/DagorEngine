@@ -500,6 +500,7 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
       shaders::overrides::reset_master_state();
     }
 
+    if (drawAnyRendinst)
     {
       TIME_D3D_PROFILE(draw_collision_ui);
 
@@ -535,6 +536,7 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
     shaders::overrides::reset_master_state();
   }
 
+  if (drawAnyRendinst)
   {
     TIME_D3D_PROFILE(draw_collision_ui);
 

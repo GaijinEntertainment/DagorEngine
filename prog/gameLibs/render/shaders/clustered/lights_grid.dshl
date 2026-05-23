@@ -2,12 +2,14 @@
 
 include "shader_global.dshl"
 include "lights_cb.dshl"
+include "gpu_occlusion.dshl"
 
 float4x4 cull_lights_view_tm;
 float4x4 cull_lights_proj_tm;
-float4 cull_lights_proj_params;    // (znear, maxSliceDist, 0, 0)
+float4 cull_lights_proj_params;    // (znear, zFar, maxSliceDist, 0)
 buffer clustered_frustum_points_buf;
 buffer clustered_grid_lights_precalculated_data;
+buffer clustered_occlusion_z_slice;
 
 shader precalculate_clustered_frustum_data
 {
@@ -236,7 +238,7 @@ shader precalculate_grid_lights_data_cs
       float proj00 = cull_lights_proj_tm[0][0];
       float proj11 = cull_lights_proj_tm[1][1];
       float znear = cull_lights_proj_params.x;
-      float maxSliceDist = cull_lights_proj_params.y;
+      float maxSliceDist = cull_lights_proj_params.z;
 
       // Fetch world-space bounding sphere and transform to view space.
       float4 bsph;
@@ -259,4 +261,52 @@ shader precalculate_grid_lights_data_cs
 
   }
   compile("target_cs", "precalculate_grid_lights_data_cs");
+}
+
+shader precalculate_occlusion_z_slice_cs
+{
+  INIT_AND_USE_CLUSTERED_LIGHTS(cs)
+  BASE_GPU_OCCLUSION(cs)
+
+  (cs) {
+    cull_lights_proj_params@f4 = cull_lights_proj_params;
+    clustered_occlusion_z_slice@uav = clustered_occlusion_z_slice hlsl {
+      RWStructuredBuffer<uint> clustered_occlusion_z_slice@uav;
+    };
+  }
+
+  hlsl(cs) {
+    #include <clustered_constants.hlsli>
+    #include <clusteredLightsGrid.hlsli>
+    #include <frustumClusters.hlsli>
+    [numthreads(8, 8, 1)]
+    void precalculate_occlusion_z_slice_cs(uint2 dtId : SV_DispatchThreadID)
+    {
+      uint tileX = dtId.x;
+      uint tileY = dtId.y;
+      if (tileX >= CLUSTERS_W || tileY >= CLUSTERS_H)
+        return;
+
+      float4 tileSbox = float4(
+        (float)tileX / CLUSTERS_W,
+        (float)tileY / CLUSTERS_H,
+        (float)(tileX + 1u) / CLUSTERS_W,
+        (float)(tileY + 1u) / CLUSTERS_H);
+      float rawDepth = check_box_occl_visible_tc_base(tileSbox);
+
+      // rawDepth == 0 means sky (far plane) -> all slices visible.
+      uint maxSlice = CLUSTERS_D - 1;
+      if (rawDepth > 1e-6f)
+      {
+        float znear = cull_lights_proj_params.x;
+        float zfar  = cull_lights_proj_params.y;
+        float z_view = linearize_z(rawDepth, float2(rcp(zfar), (zfar - znear) * rcp(znear * zfar)));
+        maxSlice = min(frustum_clusters_get_slice_at_depth(z_view, depthSliceScale, depthSliceBias), uint(CLUSTERS_D - 1));
+      }
+
+      structuredBufferAt(clustered_occlusion_z_slice, tileY * CLUSTERS_W + tileX) = maxSlice;
+    }
+  }
+
+  compile("target_cs", "precalculate_occlusion_z_slice_cs");
 }

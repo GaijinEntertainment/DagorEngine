@@ -163,18 +163,15 @@ macro INIT_REFRACTION_GLASS_BASE(generate_transparent_gbuffer_pass)
   static float max_thickness = 0.2;
   static float isShell = 1;
   static float glassIoR = 1.5;
-  texture isShellTex = material.texture[1] stub=(1,1,1,1);
 
   if(!rendinst_transparent_gbuffer_pass == generate)
   {
     (ps) {
       mediumTintColor@f4 = (mediumTintColor.r, mediumTintColor.g, mediumTintColor.b, isShell);
       mediumThickness@f4 = (min_thickness, max_thickness, 1./glassIoR, ((1-glassIoR)*(1-glassIoR))/((1+glassIoR)*(1+glassIoR)));
-      isShellTex@staticSmp = isShellTex;
     }
     hlsl(ps) {
       #define isRefractionGlass 1
-      #define hasShellTex 1
     }
   }
 endmacro
@@ -319,9 +316,6 @@ hlsl(ps)
       #else
         half3 mediumColor = diffuseColor.rgb*get_mediumTintColor().rgb;//doesn't have to be same as diffuseColor!
         half isShell = get_mediumTintColor().a;
-      #endif
-      #if hasShellTex
-        isShell *= tex2DBindless(get_isShellTex(), input.texcoord).r;
       #endif
       float3 refractWorldDir = refract(-view, worldNormal, glassIoR);
       float rayLengthSolid = thickness * (0.5 + 0.5*NoV);

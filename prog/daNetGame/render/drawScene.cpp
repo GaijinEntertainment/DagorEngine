@@ -23,7 +23,7 @@
 #include <daECS/delayedAct/actInThread.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/camera/getActiveCameraSetup.h>
-#include <ecs/camera/cameraPosInCallstack.h>
+#include <ecs/camera/cameraInfoInCallstack.h>
 #include <gui/dag_visualLog.h>
 #include <startup/dag_globalSettings.h>
 #include <util/dag_convar.h>
@@ -33,6 +33,7 @@
 #include <debug/dag_textMarks.h>
 #include <render/debug3dSolidBuffered.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <workCycle/dag_workCycle.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <webui/shaderEditors.h>
@@ -172,6 +173,45 @@ public:
 
 void set_additional_game_job_next_frame_start_cb(void (*cb)()) { start_next_frame_in_additional_game_job_cb = cb; }
 
+enum : uint32_t
+{
+  AGT_NONE = 0,
+  AGT_ADDITIONAL = 1 << 0,
+  AGT_UI = 1 << 1,
+  AGT_DAFX = 1 << 2,
+  AGT_ALL = AGT_ADDITIONAL | AGT_UI | AGT_DAFX
+};
+static uint8_t async_game_tasks_started = AGT_NONE;
+
+enum class AdditionalJobState : int
+{
+  AJS_IDLE,
+  AJS_PREPARED,
+  AJS_LAUNCHED
+};
+static int additional_game_job_state = eastl::to_underlying(AdditionalJobState::AJS_IDLE);
+bool should_delay_pufd_until_bvh_jobs_done();
+void set_bvh_on_parallel_jobs_finished_cb(void (*cb)());
+
+static void launch_prepared_additional_game_job()
+{
+  if (!should_delay_pufd_until_bvh_jobs_done())
+    return;
+
+  {
+    int prev = interlocked_compare_exchange(additional_game_job_state, eastl::to_underlying(AdditionalJobState::AJS_LAUNCHED),
+      eastl::to_underlying(AdditionalJobState::AJS_PREPARED));
+    if (prev == eastl::to_underlying(AdditionalJobState::AJS_LAUNCHED))
+      return; // already launched, it is fine to call multiple times as fallbacks
+    if (prev != eastl::to_underlying(AdditionalJobState::AJS_PREPARED))
+    {
+      logerr("launch_prepared_additional_game_job called, but additional_game_job_state is NOT prepared (is %d)", prev);
+      return;
+    }
+  }
+  threadpool::add(&additional_game_job, threadpool::PRIO_LOW, /*wake*/ true);
+}
+
 void wait_additional_game_job_done()
 {
   if (!interlocked_acquire_load(additional_game_job.done))
@@ -251,11 +291,11 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
         g_entity_mgr->set(cur_cam, ECS_HASH("transform"), *tm);
   }
 
-  const CameraSetup cam = !is_level_loading() ? get_active_camera_setup() : CameraSetup{};
-  CameraPosInCallstack logCamera{cam};
-
   int w, h;
   d3d::get_screen_size(w, h);
+  const CameraSetup cam = !is_level_loading() ? get_active_camera_setup() : CameraSetup{};
+  CameraInfoInCallstack logCamera{cam, w, h};
+
   TMatrix camTransform = cam.transform;
   DPoint3 camPosition = cam.accuratePos;
   Driver3dPerspective curPersp = calc_camera_perspective(cam, w, h);
@@ -306,17 +346,11 @@ static void final_blit()
   }
 }
 
-enum
+void reset_async_game_tasks_flags()
 {
-  AGT_NONE = 0,
-  AGT_ADDITIONAL = 1,
-  AGT_UI = 2,
-  AGT_DAFX = 4,
-  AGT_ALL = 7
-};
-static uint8_t async_game_tasks_started = AGT_NONE;
-
-void reset_async_game_tasks_flags() { async_game_tasks_started = AGT_NONE; }
+  async_game_tasks_started = AGT_NONE;
+  interlocked_release_store(additional_game_job_state, eastl::to_underlying(AdditionalJobState::AJS_IDLE));
+}
 
 void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = true)
 {
@@ -329,9 +363,24 @@ void start_async_game_tasks(uint32_t frame_id, int agt = AGT_ALL, bool wake = tr
   if ((agt & AGT_ADDITIONAL) && !(async_game_tasks_started & AGT_ADDITIONAL))
   {
     if (is_level_loaded())
-      threadpool::add(additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time_d(),
-                        *das::daScriptEnvironment::bound),
-        threadpool::PRIO_LOW, wake);
+    {
+      additional_game_job.prepare(frame_id, last_gametime_elapsed_sec, get_timespeed(), get_sync_time_d(),
+        *das::daScriptEnvironment::bound);
+      if (should_delay_pufd_until_bvh_jobs_done())
+      {
+        static bool registered = false;
+        if (!registered)
+        {
+          set_bvh_on_parallel_jobs_finished_cb(&launch_prepared_additional_game_job);
+          registered = true;
+        }
+        interlocked_release_store(additional_game_job_state, eastl::to_underlying(AdditionalJobState::AJS_PREPARED));
+      }
+      else
+      {
+        threadpool::add(&additional_game_job, threadpool::PRIO_LOW, wake);
+      }
+    }
     else // we must start before render ui job when level loading in progress
       uirender::start_ui_before_render_job();
   }
@@ -520,13 +569,13 @@ void draw_scene(uint32_t frame_id)
   screencap::start_pending_request();
 
   CameraSetup cameraSetup = get_active_camera_setup();
-  CameraPosInCallstack logCamera{cameraSetup};
   TMatrix viewTm;
   TMatrix4 globTm;
   TMatrix4 projTm;
   Driver3dPerspective persp;
   int view_w, view_h;
   calc_camera_values(cameraSetup, viewTm, persp, view_w, view_h);
+  CameraInfoInCallstack logCamera{cameraSetup, view_w, view_h};
   d3d::calcproj(persp, projTm);
   globTm = TMatrix4(viewTm) * projTm;
   prepare_debug_text_marks(globTm, view_w, view_h);
@@ -548,7 +597,7 @@ void draw_scene(uint32_t frame_id)
   else
     hdrrender::set_render_target();
 
-  async_game_tasks_started = AGT_NONE;
+  reset_async_game_tasks_flags();
   if (get_world_renderer())
   {
     if (is_level_loaded())

@@ -1,1 +1,0 @@
-Macro for implementing custom lambda capture behavior. Controls how variables are captured from the enclosing scope when creating lambdas and generators.

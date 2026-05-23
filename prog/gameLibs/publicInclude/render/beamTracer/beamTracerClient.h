@@ -18,9 +18,11 @@ void init();
 void close();
 bool is_init();
 
+// fade_dist is sign sensitive: fade_dist > 0 -> fading near both end and begining, fade_dist < 0 -> fading only near the end
+// in both cases abs(fade_dist) is used
 int create_beam_tracer(const Point3 &start_pos, const Point3 &normalized_dir, float smoke_radius, const Color4 &smoke_color,
   const Color3 &head_color, float luminosity, float burn_time, float time_to_live, float fade_dist, float begin_fade_time,
-  float end_fade_time, float scroll_speed, bool is_ray, float is_hero_laser = 0.f);
+  float end_fade_time, float scroll_speed, bool is_ray, float max_length, float is_hero_laser = 0.f);
 int update_beam_tracer_pos(unsigned id, const Point3 &pos, const Point3 &start_pos);
 
 void after_device_reset();

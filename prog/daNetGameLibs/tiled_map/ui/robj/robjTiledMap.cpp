@@ -228,7 +228,7 @@ void RobjTiledMapFogOfWar::render(
   ctx.getViewTm(xf.vtm);
   ctx.set_color(bgColor);
 
-  if (tiledMapCtx->fogOfWarTex.getTexId() != BAD_TEXTUREID)
+  if (tiledMapCtx->fogOfWarTex.getTexId() != BAD_TEXTUREID && tiledMapCtx->fogOfWarTexInited)
     darg::uishader::set_mask(ctx, tiledMapCtx->fogOfWarTex.getTexId(), tiledMapCtx->fogOfWarSampler, c, 0,
       Point2(2.0f * wh.x / StdGuiRender::screen_width(), -2.0f * wh.y / StdGuiRender::screen_height()));
 

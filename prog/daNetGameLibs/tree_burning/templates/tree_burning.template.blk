@@ -28,14 +28,14 @@ tree_burning_fx{
 }
 
 tree_burning_chain_leaves_fire{
-  _use:t="fire_vegetation_tree_leaves_effect"
   _use:t="fire_source_no_effect"
+  _use:t="fire_vegetation_tree_leaves_effect"
   "serverSideEffect:tag"{}
 }
 
 tree_burning_chain_trunk_fire{
-  _use:t="fire_vegetation_tree_trunk_effect"
   _use:t="fire_source_no_effect"
+  _use:t="fire_vegetation_tree_trunk_effect"
   "serverSideEffect:tag"{}
 }
 

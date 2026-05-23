@@ -212,6 +212,7 @@ static void showUsage()
     "  -dumpRegsAlways - Always dump registers from hlsl slot allocators at the end of a pass evaluation\n"
     "  -dumpRegsMacroCallstacks - Include macro callstacks in the register dumps (may blow up log size, but also may be helpful)\n"
     "  -saveDumpOnCrash - save a dump for the proccess if there is a critical issue during compilation (could cause a process hung)\n"
+    "  -clearBlkHashInDump - clears blk hash in bindump. Will cause recomp, but won't keep inc data in the dump. For codegen\n."
     "  -cppStcode       - compile cpp stcode along with bytecode (overrides compileCppStcode:b from blk). use "
     "-cppStcode=[regular|brances] for specific mode (regular is default).\n"
     "  -noCppStcode     - complie only bytecode stcode (overrides compileCppStcode:b from blk).\n"
@@ -505,7 +506,13 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
     // Even though blk hash is already stored in the intermediate dir, we hash it in too
     // because this way the blk hash uniquely identifies a build and can be stored in the
     // bindump header (for fully correct incremental build checks)
-    blk.addStr("intermediateDir", intermediateDir.c_str());
+    auto intermediateDirKey = intermediateDir;
+    for (char &c : intermediateDirKey)
+    {
+      if (c == '\\')
+        c = '/';
+    }
+    blk.addStr("intermediateDir", intermediateDirKey.c_str());
     if (shc::config().cppStcodeMode != shader_layout::ExternalStcodeMode::NONE)
       blk.addBool("compileCppStcode", true);
     if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHED_CPP)
@@ -1342,6 +1349,10 @@ int DagorWinMain(bool debugmode)
     else if (dd_stricmp(s, "-saveDumpOnCrash") == 0)
     {
       globalConfigRW.saveDumpOnCrash = true;
+    }
+    else if (dd_stricmp(s, "-clearBlkHashInDump") == 0)
+    {
+      globalConfigRW.clearBlkHashInDump = true;
     }
     else if (dd_stricmp("-cppStcode", __argv[i]) == 0)
     {

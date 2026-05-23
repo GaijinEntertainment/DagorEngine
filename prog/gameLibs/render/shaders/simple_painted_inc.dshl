@@ -1,5 +1,6 @@
 include "paint_details_inc.dshl"
 include "const_color_inc.dshl"
+include "sheen_common_inc.dshl"
 
 macro INIT_SIMPLE_PAINTED()
   static float paint_details = 1.0; // paint_strength
@@ -24,11 +25,15 @@ macro INIT_SIMPLE_PAINTED()
 endmacro
 
 // If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
-macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_microdetail_sampler, order) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
+macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, has_char_microdetail_sampler, order) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
     WRITE_GBUFFER()
+    if (use_sheen)
+    {
+      USE_SHEEN_COMMON()
+    }
   }
   (ps) {
     diffuse_tex@staticSmp = tex;
@@ -141,6 +146,11 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
           init_metalness(gbuffer, metalnessOrTranslucency);
           init_material(gbuffer, SHADING_NORMAL);
         }
+        ##if use_sheen
+          #if OVERRIDE_MATERIAL
+            init_material_override(gbuffer);
+          #endif
+        ##endif
 
         init_ao(gbuffer, ao);
         init_smoothness(gbuffer, smoothness);
@@ -165,9 +175,9 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
   compile("target_ps", "simple_painted_ps");
 endmacro
 
-macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency, order)
+macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency, use_sheen, order)
   if (!is_triangle_size_debug)
   {
-    SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, true, order)
+    SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, true, order)
   }
 endmacro

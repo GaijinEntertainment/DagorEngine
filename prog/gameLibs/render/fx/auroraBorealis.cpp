@@ -78,7 +78,7 @@ void AuroraBorealis::beforeRender()
   }
 
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(auroraBorealisTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{auroraBorealisTex.getTex2D(), 0, 0}});
   auroraBorealisFX.render();
   d3d::resource_barrier({auroraBorealisTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }

@@ -239,7 +239,7 @@ void ToroidalHeightmap::updateHeightmap(ToroidalHeightmapRenderer &renderer, con
     if ((texelSize < min_texel_size) || (quadRegions[cascadeNo].size() == 0))
       continue;
 
-    d3d::set_render_target(toroidalHeightmap.getArrayTex(), cascadeNo, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{toroidalHeightmap.getArrayTex(), 0, static_cast<uint32_t>(cascadeNo)}});
 
     // set matrix
     renderer.startRenderTiles(Point2::xz(camera_position));

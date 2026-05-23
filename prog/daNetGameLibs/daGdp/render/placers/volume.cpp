@@ -920,7 +920,7 @@ void create_volume_nodes(const ViewInfo &view_info,
 }
 
 static bool populate_viewport_data_early(
-  const ViewInfo &info, const Point3 &cam_pos, const Frustum &cam_frustum, ViewPerFrameData &out)
+  ecs::EntityManager &manager, const ViewInfo &info, const Point3 &cam_pos, const Frustum &cam_frustum, ViewPerFrameData &out)
 {
   switch (info.kind)
   {
@@ -935,13 +935,13 @@ static bool populate_viewport_data_early(
     }
     case ViewKind::CSM_SHADOWS:
       // shadowsManager.prepareShadowsMatrices runs earlier in draw_frame, so CSM state is valid.
-      populate_csm_viewports(out, info.maxViewports);
+      populate_csm_viewports(out, manager, info.maxViewports);
       return !out.viewports.empty();
     default: return false;
   }
 }
 
-void start_gather_before_draw_volumes(const Point3 &cam_pos, const Frustum &cam_frustum)
+void start_gather_before_draw_volumes(ecs::EntityManager &manager, const Point3 &cam_pos, const Frustum &cam_frustum)
 {
   if (!is_volume_early_riex_gather_enabled())
     return;
@@ -957,7 +957,7 @@ void start_gather_before_draw_volumes(const Point3 &cam_pos, const Frustum &cam_
     ++it;
 
     ViewPerFrameData viewData;
-    if (populate_viewport_data_early(pd->constants.viewInfo, cam_pos, cam_frustum, viewData))
+    if (populate_viewport_data_early(manager, pd->constants.viewInfo, cam_pos, cam_frustum, viewData))
       gather_start(pd->mutables.riexGatherJob, pd->constants.mapping, pd->constants.viewInfo, viewData, GatherMode::Async);
   }
 }

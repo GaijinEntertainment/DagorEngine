@@ -112,14 +112,15 @@ void WorldRenderer::startVisibility()
 
 void WorldRenderer::startOcclusionAndSwRaster()
 {
-  mainCameraVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, currentFrameCamera, lmeshMgr);
+  mat44f_cref worldProjTm = reinterpret_cast<mat44f_cref>(currentFrameCamera.noJitterProjTm);
+  mainCameraVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, currentFrameCamera, lmeshMgr, worldProjTm);
 
   if (camera_in_camera::is_lens_render_active())
   {
     if (camera_in_camera::get_frame_number() < 1)
       camcamVisibilityMgr.getOcclusion()->reset();
 
-    camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr);
+    camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr, worldProjTm);
   }
 }
 

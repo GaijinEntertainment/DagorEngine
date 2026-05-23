@@ -109,7 +109,7 @@ collimator_moa_render{
   "collimator_moa_render__active_image_eid:eid"{}
   collimator_moa_render__active_shapes_count:i = 0
   collimator_moa_render__shapes_buf_reg_count:i = 0
-  "collimator_moa_render__current_shapes_buf:UniqueBufHolder"{}
+  "collimator_moa_render__current_shapes_buf:UniqueBufWithShaderVar"{}
 
   "collimator_moa_render__gun_mod_eid:eid"{}
   "collimator_moa_render__rigid_id:i"{}

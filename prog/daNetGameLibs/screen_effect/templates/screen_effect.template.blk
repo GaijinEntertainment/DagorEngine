@@ -2,7 +2,7 @@ screen_effect_renderer{
   _tags:t="render"
   _singleton:b=yes
 
-  "screen_effect__buffer:UniqueBufHolder"{}
+  "screen_effect__buffer:UniqueBufWithShaderVar"{}
 
   screen_effect__countVar:i = -1
   "screen_effect__texVars:list<i>" {}

@@ -20,7 +20,7 @@ struct WarmupParams
   dag::Vector<const char *> shadersToSkip;
   int colorTargetCount = 0;
   int colorTargetFormat = TEXFMT_DEFAULT;
-  BaseTexture *depthTarget = nullptr;
+  int depthTargetFormat = 0;
 };
 
 // NOTE: requires GPU acquire!

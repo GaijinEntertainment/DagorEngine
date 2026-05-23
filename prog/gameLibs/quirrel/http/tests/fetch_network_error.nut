@@ -1,4 +1,4 @@
-from "dagor.http" import httpFetch
+from "dagor.http" import httpFetch, HTTP_FAILED
 
 if (__name__ == "__analysis__")
   return
@@ -6,7 +6,7 @@ if (__name__ == "__analysis__")
 //-file:undefined-global
 
 // A request to a port we know nothing is listening on rejects with
-// {status = "FAILED"}. The rejection surfaces as an exception inside the
+// {status = HTTP_FAILED}. The rejection surfaces as an exception inside the
 // awaiting function, caught here.
 
 async function main() {
@@ -17,7 +17,7 @@ async function main() {
     })
     println($"unexpected resolve: http_code = {resp.http_code}")
   } catch (err) {
-    println($"caught: {err.status}")
+    println($"caught: status={err.status} HTTP_FAILED={HTTP_FAILED} match={err.status == HTTP_FAILED}")
   }
 }
 

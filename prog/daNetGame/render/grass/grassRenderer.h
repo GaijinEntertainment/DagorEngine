@@ -23,7 +23,7 @@ struct GrassRenderer
   bool needInvalidate = false;
   bool grassErasersModified = false;
   bool fastGrassChanged = false;
-  UniqueBufHolder grassEraserBuffer;
+  UniqueBufWithShaderVar grassEraserBuffer;
   DynamicShaderHelper grassEraserShader;
   PostFxRenderer grassSdfEraser;
   dag::Vector<BBox3> lastSdfBoxes;

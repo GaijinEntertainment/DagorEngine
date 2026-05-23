@@ -21,6 +21,7 @@
 #include <libTools/util/binDumpHierBitmap.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/rendInstExtraAccess.h>
+#include <rendInst/riexHashMap.h>
 #include <riGen/genObjUtil.h>
 #include <gameMath/traceUtils.h>
 #include <oldEditor/de_interface.h>
@@ -127,6 +128,7 @@ static bool perInstDataUseSeed = false;
 static bool instSeedStoreZeroForRandom = false;
 static bool delayRiResInit = true; // stays true until first HUID_BeforeMainLoop event
 static bool riExtraRenderInited = false;
+static ska::flat_hash_set<rendinst::riex_handle_t, RiexHandlerHasher> ri_extras_to_ignore_in_collision;
 
 class AcesRendInstEntity;
 class AcesRendInstEntityPool;
@@ -592,7 +594,8 @@ class AcesRendInstEntity : public VirtualAcesRendInstEntity,
                            public IEntityGatherTex,
                            public IRandomSeedHolder,
                            public IEntityGetRISceneLodsRes,
-                           IDataBlockIdHolder
+                           public IDataBlockIdHolder,
+                           public IRiExtraCollisionIgnore
 {
 public:
   AcesRendInstEntity() : VirtualAcesRendInstEntity(rendInstEntityClassId), colorIdx(DEF_COL)
@@ -622,6 +625,7 @@ public:
     RETURN_INTERFACE(huid, IRandomSeedHolder);
     RETURN_INTERFACE(huid, IEntityGetRISceneLodsRes);
     RETURN_INTERFACE(huid, IDataBlockIdHolder);
+    RETURN_INTERFACE(huid, IRiExtraCollisionIgnore);
     return NULL;
   }
 
@@ -666,6 +670,9 @@ public:
   void setDataBlockId(unsigned id) override { dataBlockId = id; }
   unsigned getDataBlockId() override { return dataBlockId; }
 
+  // IRiExtraCollisionIgnore
+  void setIgnoreRiExtraCollision(bool ignore) override;
+
   RenderableInstanceLodsResource *getSceneLodsRes() override;
   const RenderableInstanceLodsResource *getSceneLodsRes() const override;
 
@@ -681,6 +688,7 @@ public:
   unsigned short colorIdx;
   unsigned short autoInstSeed : 1;
   unsigned short dataBlockId : 15;
+  bool riExtraCollisionIgnored = false;
   int instSeed;
 };
 
@@ -2283,7 +2291,7 @@ public:
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmin));
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmax));
         TraceDownMutiRayIgnoreCbType poolFilter = [](const RendInstDesc &d) -> bool {
-          if (d.isRiExtra() && get_riextra_instance_seed(d.getRiExtraHandle()) == RI_SEED_COLLISION_IGNORE)
+          if (d.isRiExtra() && ri_extras_to_ignore_in_collision.find(d.getRiExtraHandle()) != ri_extras_to_ignore_in_collision.end())
             return true;
 
           return navmeshLayers.poolsToIgnore.size() > 0 &&
@@ -2300,9 +2308,16 @@ public:
       }
       else
       {
+        TraceRayIgnoreRiExtraCbType riExtraIgnoreFunc = [](rendinst::riex_handle_t handle) -> bool {
+          if (ri_extras_to_ignore_in_collision.find(handle) != ri_extras_to_ignore_in_collision.end())
+            return true;
+
+          return false;
+        };
+
         Point3 dummyNorm;
         Point3 &resultNorm = norm ? *norm : dummyNorm;
-        return traceRayRendInstsNormalized(p, dir, maxt, resultNorm, false, true);
+        return traceRayRendInstsNormalized(p, dir, maxt, resultNorm, false, true, nullptr, false, -1, nullptr, riExtraIgnoreFunc);
       }
       return false;
     }
@@ -3194,6 +3209,10 @@ bool AcesRendInstEntity::showRiExtraInstance(bool moved)
   if (riexHandle == rendinst::RIEX_HANDLE_NULL)
   {
     riexHandle = rendinst::addRIGenExtra44(riExtraIdx, m, true, -1, -1, 1, &instSeed);
+
+    if (riExtraCollisionIgnored)
+      ri_extras_to_ignore_in_collision.insert(riexHandle);
+
     getPool()->pendingRiExtraCount--;
     return true;
   }
@@ -3210,6 +3229,10 @@ void AcesRendInstEntity::hideRiExtraInstance()
   if (riexHandle == rendinst::RIEX_HANDLE_NULL)
     return;
   rendinst::delRIGenExtra(riexHandle);
+
+  if (riExtraCollisionIgnored)
+    ri_extras_to_ignore_in_collision.erase(riexHandle);
+
   riexHandle = rendinst::RIEX_HANDLE_NULL;
   getPool()->pendingRiExtraCount++;
 }
@@ -3218,6 +3241,10 @@ void AcesRendInstEntity::markRiExtraHandleInvalid()
 {
   if (riexHandle == rendinst::RIEX_HANDLE_NULL)
     return;
+
+  if (riExtraCollisionIgnored)
+    ri_extras_to_ignore_in_collision.erase(riexHandle);
+
   riexHandle = rendinst::RIEX_HANDLE_NULL;
   getPool()->pendingRiExtraCount++;
 }
@@ -3308,6 +3335,23 @@ void AcesRendInstEntity::setPerInstanceSeed(int seed)
       rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
   }
 }
+
+void AcesRendInstEntity::setIgnoreRiExtraCollision(bool ignore)
+{
+  if (ignore == riExtraCollisionIgnored)
+    return;
+
+  riExtraCollisionIgnored = ignore;
+
+  if (riexHandle != rendinst::RIEX_HANDLE_NULL)
+  {
+    if (ignore)
+      ri_extras_to_ignore_in_collision.insert(riexHandle);
+    else
+      ri_extras_to_ignore_in_collision.erase(riexHandle);
+  }
+}
+
 void AcesRendInstEntity::destroy()
 {
   AcesRendInstEntityPool *entPool = getPool();

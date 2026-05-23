@@ -70,6 +70,7 @@ BVH_INLINE void VECTORCALL add_instance(ContextId context_id, Context::InstanceM
     instance.uniqueTransformedBuffer = skinning_info->skinningBuffer;
     instance.uniqueBlas = skinning_info->skinningBlas;
     instance.metaAllocId = meta_alloc_id;
+    instance.skin = skinning_info->data;
   }
   else if (heli_rotor_info)
   {

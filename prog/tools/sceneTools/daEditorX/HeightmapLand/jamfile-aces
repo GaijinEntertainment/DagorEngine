@@ -54,10 +54,8 @@ Sources =
   hmlRivers.cpp
   loftObject.cpp
   hmlEntity.cpp
-  hmlLight.cpp
   hmlHoleObject.cpp
   hmlOutliner.cpp
-  hmlSnow.cpp
   landClassSlotsMgr.cpp
   entityCopyDlg.cpp
   materialMgr.cpp

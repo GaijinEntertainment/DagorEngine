@@ -63,7 +63,7 @@
 #define RESTAG_PARTIAL_DXT          "partial_dxt"
 #define RESTAG_RAIN                 "rain"
 #define RESTAG_RTR                  "rtr"
-#define RESTAG_SHADER_CAHCE         "shader_cache"
+#define RESTAG_SHADER_CACHE         "shader_cache"
 #define RESTAG_COMPRESS             "compress"
 #define RESTAG_TRACER               "tracer"
 #define RESTAG_TREES2D              "trees2d"

@@ -180,13 +180,12 @@ eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool reprojectGI)
 
   auto renderNode = dafg::register_node("deferred_light_node", DAFG_PP_NODE_SRC, [reprojectGI](dafg::Registry registry) {
     auto gbufDepthHndl = registry.read("gbuf_depth").texture();
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
     registry.read("gbuf_1").texture().atStage(dafg::Stage::PS).bindToShaderVar("normal_gbuf");
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("normal_gbuf_samplerstate");
+    registry.bindBlob("gbuf_sampler", "normal_gbuf_samplerstate");
     registry.read("gbuf_2").texture().atStage(dafg::Stage::PS).bindToShaderVar("material_gbuf");
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("material_gbuf_samplerstate");
+    registry.bindBlob("gbuf_sampler", "material_gbuf_samplerstate");
     registry.read("motion_vecs").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
-    registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
+    registry.bindBlob("gbuf_sampler", "motion_gbuf_samplerstate").optional();
 
     auto stateRequest = registry.requestState().setFrameBlock("global_frame");
 
@@ -224,14 +223,14 @@ eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool reprojectGI)
     const auto currentAmbientResolution = registry.getResolution<2>("main_view", 1);
 
 
-    registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
+    registry.readBlob("gi_before_frame_lit_token").optional();
 
     //  We apply indoor probes when resolving the gbuffer. We also use
     // them in most transparent stuff, but obviously transparent stuff
     // goes after the resolve, so no need for orderings there.
-    (registry.root() / "indoor_probes").read("probes_ready_token").blob<OrderingToken>().optional();
+    (registry.root() / "indoor_probes").readBlob("probes_ready_token").optional();
 
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob("world_view_pos", "world_view_pos");
     auto camera = use_camera_in_camera(registry);
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
     auto prevCameraHndl = read_history_camera_in_camera(registry).handle();
@@ -255,24 +254,24 @@ eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool reprojectGI)
 }
 static void bindResolvePassResources(dafg::Registry registry)
 {
-  registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
+  registry.bindBlob("gbuf_sampler", "depth_gbuf_samplerstate");
   registry.read("gbuf_0").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("albedo_gbuf");
-  registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("albedo_gbuf_samplerstate");
+  registry.bindBlob("gbuf_sampler", "albedo_gbuf_samplerstate");
   registry.read("gbuf_1").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("normal_gbuf");
-  registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("normal_gbuf_samplerstate");
+  registry.bindBlob("gbuf_sampler", "normal_gbuf_samplerstate");
   registry.read("gbuf_2").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("material_gbuf").optional();
-  registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("material_gbuf_samplerstate").optional();
+  registry.bindBlob("gbuf_sampler", "material_gbuf_samplerstate").optional();
   registry.read("motion_vecs").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("motion_gbuf").optional();
-  registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("motion_gbuf_samplerstate").optional();
+  registry.bindBlob("gbuf_sampler", "motion_gbuf_samplerstate").optional();
   registry.readTexture("close_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_close_depth_tex");
-  registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_close_depth_tex_samplerstate");
+  registry.bindBlob("close_depth_sampler", "downsampled_close_depth_tex_samplerstate");
   registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("downsampled_far_depth_tex");
-  registry.read("far_downsampled_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+  registry.bindBlob("far_downsampled_depth_sampler", "downsampled_far_depth_tex_samplerstate");
 
   if (renderer_has_feature(FeatureRenderFlags::COMBINED_SHADOWS))
   {
     registry.readTexture("combined_shadows").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("combined_shadows");
-    registry.read("combined_shadows_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("combined_shadows_samplerstate");
+    registry.bindBlob("combined_shadows_sampler", "combined_shadows_samplerstate");
   }
 
   if (renderer_has_feature(FeatureRenderFlags::DEFERRED_LIGHT))
@@ -281,14 +280,14 @@ static void bindResolvePassResources(dafg::Registry registry)
     registry.readTexture("current_ambient").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("current_ambient");
   }
   registry.readTexture("ssr_target").atStage(dafg::Stage::PS).bindToShaderVar("ssr_target").optional();
-  registry.read("ssr_target_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssr_target_samplerstate").optional();
+  registry.bindBlob("ssr_target_sampler", "ssr_target_samplerstate").optional();
 
   use_volfog(registry, dafg::Stage::PS_OR_CS);
   registry.readTexture("ssao_tex").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
-  registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
-  registry.readBlob<OrderingToken>("rtr_token").optional();
-  registry.readBlob<OrderingToken>("rtao_token").optional();
-  registry.readBlob<OrderingToken>("ptgi_token").optional();
+  registry.bindBlob("ssao_sampler", "ssao_tex_samplerstate").optional();
+  registry.readBlob("rtr_token").optional();
+  registry.readBlob("rtao_token").optional();
+  registry.readBlob("ptgi_token").optional();
   // for SSAO&SSR
   registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("upscale_sampling_tex").optional();
 }
@@ -354,8 +353,6 @@ static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_n
                                    (has_custom_sky() || waterModeHndl.ref() == WaterRenderMode::EARLY_BEFORE_ENVI);
       resolve_with_conditional_clear(resolveShader, finalTargetHndl.get(), gbufDepthHndl.get(), needTargetClear);
 
-      resolveShader.render();
-
       if (useDepthBounds)
         shaders::overrides::reset();
     };
@@ -365,7 +362,7 @@ static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_n
 static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *resolve_pshader_name)
 {
   return dafg::register_node("resolve_gbuffer_node", DAFG_PP_NODE_SRC, [resolve_pshader_name](dafg::Registry registry) {
-    registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
+    registry.read("gi_before_frame_lit_token").blob().optional();
 
     auto finalTargetHndl =
       registry.modifyTexture("opaque_resolved").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::COLOR_ATTACHMENT).handle();
@@ -511,7 +508,7 @@ static dafg::NodeHandle makeRenderOtherLightsNode()
   });
 }
 
-eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const char *resolve_pshader_name)
+static eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const char *resolve_pshader_name)
 {
   const bool isFullDeferred = renderer_has_feature(FULL_DEFERRED);
   const bool useDepthBounds = ::depth_bounds_enabled();
@@ -589,7 +586,7 @@ static void create_gbuffer_nodes_es(const OnCameraNodeConstruction &evt)
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Point;
-      registry.create("gbuf_sampler").blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo));
+      registry.create("gbuf_sampler").blob(d3d::request_sampler(smpInfo));
     }));
   }
 }

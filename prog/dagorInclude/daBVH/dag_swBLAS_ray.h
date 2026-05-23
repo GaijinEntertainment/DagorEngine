@@ -10,7 +10,6 @@
 
 #define BVH_TRACE_EPSILON 0.000004f
 
-static constexpr int BVH_BLAS_NODE_SIZE = 16;
 static constexpr uint32_t BLAS_LEAF_FLAG = QUAD_LEAF_FLAG;
 
 struct RayData // -V730
@@ -229,7 +228,7 @@ template <bool CullCCW = false, int VertStride = 8>
 struct BLASTraverse
 {
   using RayDataType = RayData;
-  static constexpr int LEAF_SIZE = 20;
+  static constexpr int LEAF_SIZE = BVH_BLAS_LEAF_SIZE;
 
   static __forceinline vec3f loadVertRaw(const uint8_t *d, int baseOfs, int vertIdx)
   {

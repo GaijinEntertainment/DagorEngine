@@ -8,6 +8,7 @@
 #include "animStates/stateListSettingsEventHandler.h"
 #include "blendNodes/blendNodeData.h"
 #include "blendNodes/blendNodeTreeEventHandler.h"
+#include "blendNodes/resetRandomSwitchListEventHandler.h"
 #include "controllers/animCtrlData.h"
 #include "controllers/ctrlTreeEventHandler.h"
 #include "controllers/ctrlListSettingsEventHandler.h"
@@ -75,6 +76,7 @@ public:
   DataBlock getPropsAnimStates(PropPanel::ContainerPropertyControl *panel, const AnimStatesData &data, String &full_path,
     bool only_includes = false);
   void saveParamsCtrlAfterIfMathReorder(PropPanel::ContainerPropertyControl *panel, int src_idx, int insert_idx);
+  void reorderResetRandomSwitchList(PropPanel::ContainerPropertyControl *panel, int from, int to);
 
 protected:
   class TreeFilter;
@@ -99,6 +101,7 @@ protected:
   ChildsDialog childsDialog;
   CtrlTreeEventHandler ctrlTreeEventHandler;
   CtrlListSettingsEventHandler ctrlListSettingsEventHandler;
+  ResetRandomSwitchListEventHandler resetRandomSwitchListEventHandler;
   BlendNodeTreeEventHandler blendNodeTreeEventHandler;
   NodeMaskTreeEventHandler nodeMaskTreeEventHandler;
   AnimStatesTreeEventHandler animStatesTreeEventHandler;
@@ -106,6 +109,9 @@ protected:
 
   AnimTreeListDragHandler statesListDragHandler;
   AnimTreeListDropHandler statesListDropHandler;
+
+  AnimTreeListDragHandler resetRandomSwitchListDragHandler;
+  AnimTreeListDropHandler resetRandomSwitchListDropHandler;
 
   IfMathDragHandler ifMathDragHandler;
   IfMathDropHandler ifMathDropHandler;
@@ -200,12 +206,16 @@ protected:
   void addIrqNodeToAnimNodesTree(PropPanel::ContainerPropertyControl *panel);
   void removeNodeFromAnimNodesTree(PropPanel::ContainerPropertyControl *panel);
   void saveSettingsAnimNodesTree(PropPanel::ContainerPropertyControl *panel);
+  void addResetRandomSwitchNodeList(PropPanel::ContainerPropertyControl *panel);
+  void removeResetRandomSwitchNodeList(PropPanel::ContainerPropertyControl *panel);
+  void selectedChangedResetRandomSwitchList(PropPanel::ContainerPropertyControl *panel);
   void selectedChangedAnimNodesTree(PropPanel::ContainerPropertyControl *panel);
   void irqTypeSelected(PropPanel::ContainerPropertyControl *panel);
   void changeAnimNodeType(PropPanel::ContainerPropertyControl *panel);
   void updateAnimNodeFields(PropPanel::ContainerPropertyControl *panel, int pid);
   void initIfMathFields(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings);
   void addLeafToBlendNodesTree(PropPanel::ContainerPropertyControl *tree, DataBlock &props);
+  void addIrqLeafsToBlendNodesTree(PropPanel::ContainerPropertyControl *tree, const DataBlock &settings, TLeafHandle parent);
   void addBlendNodeToTree(PropPanel::ContainerPropertyControl *tree, const DataBlock *node, int idx, TLeafHandle parent);
   void removeBlendNodeOrA2d(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, DataBlock *props);
 

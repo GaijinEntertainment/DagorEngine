@@ -1,1 +1,0 @@
-Opaque handle wrapping the platform-specific C FILE type used by all low-level file I/O functions.

@@ -28,8 +28,6 @@ class SplineObject;
 class SplinePointObject;
 class CrossRoadData;
 class LandscapeEntityObject;
-class SnowSourceObject;
-struct NearSnowSource;
 
 
 class HmapLandObjectEditor : public ObjectEditor, public IAssetBaseViewClient, public IAssetUpdateNotify, public IDagorEdCustomCollider
@@ -104,8 +102,8 @@ public:
   void save(DataBlock &blk);
   void load(const DataBlock &blk);
 
-  void save(DataBlock &splBlk, DataBlock &polBlk, DataBlock &entBlk, DataBlock &ltBlk, int layer);
-  void load(const DataBlock &splBlk, const DataBlock &polBlk, const DataBlock &entBlk, const DataBlock &ltBlk, int layer);
+  void save(DataBlock &splBlk, DataBlock &polBlk, DataBlock &entBlk, int layer);
+  void load(const DataBlock &splBlk, const DataBlock &polBlk, const DataBlock &entBlk, int layer);
 
   void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int stage);
   void gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, Tab<Point3> &water_border_polys, Tab<Point2> &hmap_sweep_polys);
@@ -167,9 +165,6 @@ public:
   inline int splinesCount() const { return splines.size(); }
   inline SplineObject *getSpline(int idx) { return splines[idx]; }
   inline const SplineObject *getSpline(int idx) const { return splines[idx]; }
-
-  void calcSnow(StaticGeometryContainer &container);
-  void updateSnowSources();
 
   GeomObject &getClearedWaterGeom();
   void removeWaterGeom();
@@ -302,12 +297,13 @@ protected:
   IObjectCreator *objCreator;
   bool areLandHoleBoxesVisible;
   bool hideSplines;
+  bool hidePolygons;
+  bool hideNotes;
   bool usePixelPerfectSelection;
   bool selectOnlyIfEntireObjectInRect;
   bool showPhysMat, showPhysMatColors;
 
   dag::Vector<IPixelPerfectSelectionService::Hit> pixelPerfectSelectionHitsCache;
-  Tab<NearSnowSource> nearSources;
 
   shaders::OverrideStateId zFuncLessStateId;
 

@@ -78,7 +78,7 @@ protected:
   int findGroupByObjId(int obj_id);
   int getObjectsToTestCount(int original_count);
 
-  UniqueBufHolder bboxesSBuf;
+  UniqueBufWithShaderVar bboxesSBuf;
   RingCPUBufferLock visResultRingBuffer;
   DynamicShaderHelper bboxRenderer;
   shaders::UniqueOverrideStateId visTestOverrideId;

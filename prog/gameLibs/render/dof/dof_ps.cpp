@@ -414,16 +414,14 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
 
     if (hasNearDof)
     {
-      d3d::set_render_target(useNearDof ? dof_near_layer->getTex2D() : nullptr, 0);
-      d3d::set_render_target(1, dof_coc[0].getTex2D(), 0);
-      d3d::set_render_target(2, useFarDof ? dof_far_layer->getTex2D() : nullptr, 0);
-      d3d::set_render_target(3, dof_max_coc_far.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW,
+        {{useNearDof ? dof_near_layer->getTex2D() : nullptr, 0, 0}, {dof_coc[0].getTex2D(), 0, 0},
+          {useFarDof ? dof_far_layer->getTex2D() : nullptr, 0, 0}, {dof_max_coc_far.getTex2D(), 0, 0}});
     }
     else
     {
       G_ASSERT(useFarDof);
-      d3d::set_render_target(dof_far_layer->getTex2D(), 0);
-      d3d::set_render_target(1, dof_max_coc_far.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{dof_far_layer->getTex2D(), 0, 0}, {dof_max_coc_far.getTex2D(), 0, 0}});
     }
     dofDownscale.render();
     if (hasNearDof)
@@ -447,7 +445,7 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     TIME_D3D_PROFILE(dof_tiles);
     for (int i = 1; i < dof_coc.size(); i++)
     {
-      d3d::set_render_target(dof_coc[i].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{dof_coc[i].getTex2D(), 0, 0}});
       d3d::set_tex(STAGE_PS, 0, dof_coc[i - 1].getTex2D());
       d3d::set_sampler(STAGE_PS, 0, clampPointSampler);
       dofTile.render();
@@ -493,8 +491,8 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     }
     d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
 
-    d3d::set_render_target(hasNearDof ? tmpNearDof->getTex2D() : NULL, 0);
-    d3d::set_render_target(1, hasFarDof ? tmpFarDof->getTex2D() : NULL, 0);
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{hasNearDof ? tmpNearDof->getTex2D() : NULL, 0, 0}, {hasFarDof ? tmpFarDof->getTex2D() : NULL, 0, 0}});
     // d3d::set_render_target(2, dof_coc_temp.getTex2D(), 0, false);
 
     d3d::settex(0, hasNearDof ? dof_near_layer->getTex2D() : NULL);
@@ -538,8 +536,8 @@ void DepthOfFieldPS::perform(BaseTexture *frame, BaseTexture *close_depth, float
     }
     d3d::set_ps_const(6, &vTaps[0].x, nSquareTapsSide * nSquareTapsSide);
 
-    d3d::set_render_target(hasNearDof ? dof_near_layer->getTex2D() : NULL, 0);
-    d3d::set_render_target(1, hasFarDof ? dof_far_layer->getTex2D() : NULL, 0);
+    d3d::set_render_target({}, DepthAccess::RW,
+      {{hasNearDof ? dof_near_layer->getTex2D() : NULL, 0, 0}, {hasFarDof ? dof_far_layer->getTex2D() : NULL, 0, 0}});
     // d3d::set_render_target(2, dof_coc[0].getTex2D(), 0, false);
 
     d3d::settex(0, tmpNearDof ? tmpNearDof->getTex2D() : nullptr);

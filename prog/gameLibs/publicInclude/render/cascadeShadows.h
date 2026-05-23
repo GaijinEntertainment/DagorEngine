@@ -92,6 +92,7 @@ public:
     float cascade0Dist; // if cascade0Dist is >0, it will be used as minimum of auto calculated cascade dist and this one. This is to
                         // artificially create high quality cascade for 'cockpit'
     float overrideZNearForCascadeDistribution;
+    float cameraFov = -1;
     bool useFixedShadowCascade;
     float cascadeTransitionZoneWidth = 0.0f;
 
@@ -133,6 +134,7 @@ public:
   const TMatrix4_vec4 &getWorldRenderMatrix(int cascade_no) const;
   const TMatrix4_vec4 &getRenderViewMatrix(int cascade_no) const;
   const TMatrix4_vec4 &getRenderProjMatrix(int cascade_no) const;
+  float getCameraFov() const;
   const Point3 &shadowWidth(int cascade_no) const;
   const BBox3 &getWorldBox(int cascade_no) const;
   Point2 getCascadeViewDepthRange(int cascade_no) const;

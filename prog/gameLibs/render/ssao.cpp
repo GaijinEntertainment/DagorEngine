@@ -111,7 +111,7 @@ void SSAORenderer::renderRandomPattern()
   SCOPE_RESET_SHADER_BLOCKS;
   Driver3dRenderTarget prevRt;
   d3d::get_render_target(prevRt);
-  d3d::set_render_target(randomPatternTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{randomPatternTex.getTex2D(), 0, 0}});
   PostFxRenderer randomizer;
   randomizer.init("bent_cones_random_pattern");
   randomizer.render();
@@ -167,7 +167,7 @@ void SSAORenderer::renderSSAO(BaseTexture *depth_to_use, BaseTexture *ssaoTex, B
 {
   G_UNUSED(depth_to_use);
   ShaderGlobal::set_texture(ssao_prev_texVarId, prevSsaoTex);
-  d3d::set_render_target(ssaoTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{ssaoTex, 0, 0}});
 
   if (dynamic_resolution)
   {
@@ -206,7 +206,7 @@ void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const Dy
   ssaoBlurRenderer->getMat()->set_color4_param(ssaoBlurTexelOffsetVarId, texelOffset);
 
   // Phase 1. horizontal. ssao -> blurredSsaoTex
-  d3d::set_render_target(tmpTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{tmpTex, 0, 0}});
 
   if (dynamic_resolution)
   {
@@ -223,7 +223,7 @@ void SSAORenderer::applyBlur(BaseTexture *ssaoTex, BaseTexture *tmpTex, const Dy
   d3d::resource_barrier({tmpTex, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   // Phase 2. vertical. blurredSsaoTex -> shadowBufferTex
-  d3d::set_render_target(ssaoTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{ssaoTex, 0, 0}});
 
   if (dynamic_resolution)
   {

@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-CONSOLE_BOOL_VAL("gpu_profiler", gpu_pipeline_stats, false,
+CONSOLE_BOOL_VAL("gpu_profiler", gpu_pipeline_stats, DAGOR_DBGLEVEL > 0,
   "Enable GPU pipeline statistics queries to get number of triangles for indirect draw calls.");
 
 namespace gpu_profiler
@@ -279,7 +279,7 @@ void begin_gpu_stats()
   const uint32_t index = end % PS_MAX_QUERIES;
   psStorage->queryEnd++;
 
-  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_BEGIN, &psStorage->queries[index]);
+  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_BEGIN_LAZY, &psStorage->queries[index]);
 
   psStorage->activeStack.push_back(index);
 }
@@ -296,7 +296,7 @@ void end_gpu_stats(uint64_t *result)
   if (index == ~0u)
     return;
 
-  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_END, psStorage->queries[index]);
+  d3d::driver_command(Drv3dCommand::PIPELINE_STATS_END_LAZY, psStorage->queries[index]);
   psStorage->queryResults[index] = result;
 }
 

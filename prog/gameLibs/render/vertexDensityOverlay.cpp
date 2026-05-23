@@ -21,7 +21,7 @@ CONSOLE_BOOL_VAL("vertexDensity", enableOverlay, false);
 
 namespace
 {
-UniqueBufHolder uav;
+UniqueBufWithShaderVar uav;
 int uavBindIdx;
 int halfSzVarId;
 int vertexDensityAcmRadiusVarId;
@@ -91,8 +91,8 @@ void VertexDensityOverlay::before_render()
     ShaderGlobal::set_int(halfSzVarId, uavSize.get() >> 1);
 
     uav.close();
-    uav = UniqueBufHolder(dag::create_sbuffer(1, uavSize.get() * uavSize.get(), SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, 0,
-                            "vertexDensityAccumulator", RESTAG_DEBUG),
+    uav = UniqueBufWithShaderVar(dag::create_sbuffer(1, uavSize.get() * uavSize.get(), SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, 0,
+                                   "vertexDensityAccumulator", RESTAG_DEBUG),
       "vertexDensityAccumulator");
     uav.setVar();
   }

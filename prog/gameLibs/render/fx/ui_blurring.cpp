@@ -73,7 +73,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
 
   interm_texture.getTex2D()->getinfo(info, interm_texture_mip);
   G_ASSERTF(info.w == w && info.h == h, "%dx%d (%d) != %dx%d (mip = %d)", w, h, tex_mip, info.w, info.h, interm_texture_mip);
-  d3d::set_render_target(interm_texture.getTex2D(), interm_texture_mip);
+  d3d::set_render_target({}, DepthAccess::RW, {{interm_texture.getTex2D(), uint32_t(interm_texture_mip), 0}});
   interm_texture.getTex2D()->texmiplevel(interm_texture_mip, interm_texture_mip);
   ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
   ShaderGlobal::set_texture(blur_src_texVarId, tex.getId());
@@ -95,7 +95,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
   d3d::set_vs_const(FIRST_REG, quad_buffer, quadCount);
   d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
 
-  d3d::set_render_target(tex.getTex2D(), tex_mip);
+  d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), uint32_t(tex_mip), 0}});
   d3d::resource_barrier({interm_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(interm_texture_mip), 1});
   ShaderGlobal::set_texture(blur_src_texVarId, interm_texture.getId());
   ShaderGlobal::set_float4(blur_pixel_offsetVarId, 0, 1.0f / h, 0, 0);
@@ -159,7 +159,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
   {
     TIME_D3D_PROFILE(downsample_and_blend);
 
-    d3d::set_render_target(intermediate.getTex2D(), downsampled_frame_mip);
+    d3d::set_render_target({}, DepthAccess::RW, {{intermediate.getTex2D(), uint32_t(downsampled_frame_mip), 0}});
     ShaderGlobal::set_float4(blur_src_tex_sizeVarId, 1.0f / src_info.w, 1.0f / src_info.h, 0, 0);
     ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
     ShaderGlobal::set_texture(blur_src_texVarId, src.getTex() ? src.getId() : background.getId());
@@ -208,7 +208,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       ui_mip.getTex2D()->getinfo(tex_info, uiMipI);
       const int srcW = uiMipI == 0 ? dinfo.w : (ui_info.w >> (uiMipI - 1)), srcH = uiMipI == 0 ? dinfo.h : (ui_info.h >> (uiMipI - 1));
 
-      d3d::set_render_target(ui_mip.getTex2D(), uiMipI);
+      d3d::set_render_target({}, DepthAccess::RW, {{ui_mip.getTex2D(), uint32_t(uiMipI), 0}});
       ShaderGlobal::set_float4(blur_src_tex_sizeVarId, 1.0f / srcW, 1.0f / srcH, uiMipI, 0);
       ShaderGlobal::set_float4(blur_dst_tex_sizeVarId, 1.0f / tex_info.w, 1.0f / tex_info.h, 0, 0);
 

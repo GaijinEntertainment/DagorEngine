@@ -146,7 +146,7 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
     return false;
 
   if (data->metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-    data->metaAllocId = context_id->allocateMetaRegion(1);
+    data->metaAllocId = context_id->allocateMetaRegion(1, "riTree");
 
   metaAllocId = data->metaAllocId;
 

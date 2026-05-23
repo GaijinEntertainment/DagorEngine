@@ -143,9 +143,11 @@ uint32_t setMaxNumRiCollisionCb(uint32_t new_max_num);
 
 // ======= trace ray stuff ========
 
+using TraceRayIgnoreRiExtraCbType = eastl::fixed_function<sizeof(void *), bool(riex_handle_t)>;
+
 bool traceRayRendInstsNormalized(const Point3 &from, const Point3 &dir, float &tout, Point3 &norm, bool extend_bbox = false,
   bool trace_meshes = false, rendinst::RendInstDesc *ri_desc = nullptr, bool trace_trees = false, int ray_mat_id = -1,
-  int *out_mat_id = nullptr);
+  int *out_mat_id = nullptr, TraceRayIgnoreRiExtraCbType ignore_func = {});
 bool traceRayRendInstsListNormalized(const Point3 &from, const Point3 &dir, float dist, RendInstsIntersectionsList &ri_data,
   bool trace_meshes = false);
 
@@ -167,6 +169,9 @@ bool traceRayRendInstsRayBatchAllIntersections(dag::Span<Trace> traces, RendInst
 bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id = -1,
   rendinst::RendInstDesc *ri_desc = nullptr, const TraceMeshFaces *ri_cache = nullptr,
   riex_handle_t skip_riex_handle = rendinst::RIEX_HANDLE_NULL);
+
+bool traceRayRIGenNormalizedWithIgnoreFunc(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id = -1,
+  rendinst::RendInstDesc *ri_desc = nullptr, const TraceMeshFaces *ri_cache = nullptr, TraceRayIgnoreRiExtraCbType ignore_func = {});
 
 void initTraceTransparencyParameters(float tree_trunk_opacity, float tree_canopy_opacity);
 

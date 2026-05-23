@@ -132,6 +132,8 @@ inline int ronamemapex_get_name_id(const RoNameMapEx &names, const char *node_na
   return names.getNameId(node_name ? node_name : "");
 }
 
+inline const char *ronamemapex_get_name(const RoNameMapEx &names, int name_id) { return names.getNameSlow(name_id); }
+
 inline void scene_instance_show_node(DynamicRenderableSceneInstance *scene_instance, int node_idx, bool show)
 {
   scene_instance->showNode(node_idx, show);

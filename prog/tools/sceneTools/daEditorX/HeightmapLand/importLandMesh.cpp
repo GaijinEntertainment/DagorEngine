@@ -602,6 +602,8 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
         DEBUG_DUMP_VAR(Point3::xzy(v));
     }
 
+    int prev_bottom_pts = 0;
+    eastl::unique_ptr<ctl::DelaunayTriangulation> dt;
     while (need_re_delaunay && re_delaunay_iter < 10)
     {
       debug_flush(true);
@@ -609,56 +611,64 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
       int time0l = dagTools->getTimeMsec();
       mesh_out.face.resize(0);
 
-      ctl::DelaunayTriangulation dt{boundary, 64 << 10};
-      bool detected_errors = false;
+      if (!dt)
+      {
+        dt.reset(new ctl::DelaunayTriangulation{boundary, 64 << 10});
+        bool detected_errors = false;
 
-      // add land boundary points first to force proper sides
-      for (const auto &v : mesh_out.vert)
-        if (fabs(v.x - boundary[0].x) < 1e-6 || fabs(v.z - boundary[0].y) < 1e-6 || //
-            fabs(v.x - boundary[2].x) < 1e-6 || fabs(v.z - boundary[2].y) < 1e-6)
-          dt.InsertConstrainedPoint({v.x, v.z, v.y});
+        // add land boundary points first to force proper sides
+        for (const auto &v : mesh_out.vert)
+          if (fabs(v.x - boundary[0].x) < 1e-6 || fabs(v.z - boundary[0].y) < 1e-6 || //
+              fabs(v.x - boundary[2].x) < 1e-6 || fabs(v.z - boundary[2].y) < 1e-6)
+            dt->InsertConstrainedPoint({v.x, v.z, v.y});
 
-      ctl::PointList poly_pts;
-      for (int i = 0; i < water_border_polys.size(); i++)
-        if (water_border_polys[i].x > 1e12f)
+        ctl::PointList poly_pts;
+        for (int i = 0; i < water_border_polys.size(); i++)
+          if (water_border_polys[i].x > 1e12f)
+          {
+            auto points = make_span_const(&water_border_polys[i + 1], unsigned(water_border_polys[i].y));
+            if (water_border_polys[i].z >= 2)
+            {
+              debug("skip corrupted border %d pts", points.size());
+              continue;
+            }
+            bool closed = water_border_polys[i].z < 0.5f;
+            // debug("add new border %d pts, closed=%d", points.size(), closed);
+            poly_pts.clear();
+            poly_pts.reserve(points.size());
+            for (const auto &p : points)
+              poly_pts.push_back({p.x, p.z, p.y});
+            if (closed)
+              poly_pts.push_back({poly_pts[0]});
+            dt->InsertConstrainedLineString(poly_pts);
+            if (dt->error())
+            {
+              detected_errors = true;
+              logerr("detected corrupted border %d pts, closed=%d", points.size(), closed);
+              const_cast<float &>(water_border_polys[i].z) = 2; // mark corrupted
+              // reinit DelaunayTriangulation
+              dt.reset(new ctl::DelaunayTriangulation{boundary, 64 << 10});
+            }
+            i += points.size();
+          }
+        if (detected_errors) // restart with skipping corrupted borders
         {
-          auto points = make_span_const(&water_border_polys[i + 1], unsigned(water_border_polys[i].y));
-          if (water_border_polys[i].z >= 2)
-          {
-            debug("skip corrupted border %d pts", points.size());
-            continue;
-          }
-          bool closed = water_border_polys[i].z < 0.5f;
-          // debug("add new border %d pts, closed=%d", points.size(), closed);
-          poly_pts.clear();
-          poly_pts.reserve(points.size());
-          for (const auto &p : points)
-            poly_pts.push_back({p.x, p.z, p.y});
-          if (closed)
-            poly_pts.push_back({poly_pts[0]});
-          dt.InsertConstrainedLineString(poly_pts);
-          if (dt.error())
-          {
-            detected_errors = true;
-            logerr("detected corrupted border %d pts, closed=%d", points.size(), closed);
-            const_cast<float &>(water_border_polys[i].z) = 2; // mark corrupted
-            // reinit DelaunayTriangulation
-            dt.~DelaunayTriangulation();
-            new (&dt, _NEW_INPLACE) ctl::DelaunayTriangulation{boundary, 64 << 10};
-          }
-          i += points.size();
+          dt.reset();
+          continue;
         }
-      if (detected_errors) // restart with skipping corrupted borders
-        continue;
 
-      for (const auto &v : mesh_out.vert)
-        dt.InsertConstrainedPoint({v.x, v.z, v.y});
-      for (const auto &v : add_pts)
-        dt.InsertConstrainedPoint({v.x, v.z, v.y});
-      for (const auto &v : add_bottom_pts)
-        dt.InsertConstrainedPoint({v.x, v.z, v.y});
+        for (const auto &v : mesh_out.vert)
+          dt->InsertConstrainedPoint({v.x, v.z, v.y});
+        for (const auto &v : add_pts)
+          dt->InsertConstrainedPoint({v.x, v.z, v.y});
+      }
+      else
+      {
+        for (int j = prev_bottom_pts; j < (int)add_bottom_pts.size(); j++)
+          dt->InsertConstrainedPoint({add_bottom_pts[j].x, add_bottom_pts[j].z, add_bottom_pts[j].y});
+      }
 
-      ctl::TIN tin(&dt);
+      ctl::TIN tin(dt.get());
 
       debug("");
       debug("out: %d vert, %d tri", tin.verts.size(), tin.triangles.size() / 3);
@@ -666,7 +676,7 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
       double water_lev = HmapLandPlugin::self->getWaterSurfLevel();
 
       need_re_delaunay = false;
-      int prev_bottom_pts = add_bottom_pts.size();
+      prev_bottom_pts = add_bottom_pts.size();
       for (int i = 0; i < tin.triangles.size(); i += 3)
       {
         int vi0 = tin.triangles[i + 0];
@@ -743,6 +753,7 @@ static bool delaunayGenerateCached(LandMeshMap &land, HeightMapStorage &heightma
         mesh_out.face.size() - old_fc, re_delaunay_iter);
     }
 
+    dt.reset();
     MemorySaveCB memSave(NULL, false);
     mesh_out.saveData(memSave);
     ::saveCache(fnameData, memSave.getMem(), currentHash);

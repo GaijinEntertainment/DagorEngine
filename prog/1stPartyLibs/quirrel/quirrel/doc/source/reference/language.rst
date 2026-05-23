@@ -15,6 +15,7 @@ Project source code is available at https://github.com/GaijinEntertainment/quirr
    language/functions.rst
    language/classes.rst
    language/generators.rst
+   language/async.rst
    language/constants_and_enumerations.rst
    language/destructuring_assignment.rst
    language/type_annotations.rst

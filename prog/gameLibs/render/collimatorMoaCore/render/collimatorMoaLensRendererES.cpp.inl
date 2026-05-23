@@ -177,7 +177,7 @@ void render(const IPoint2 &display_resolution)
 {
   render_collimator_moa_lens_ecs_query(*g_entity_mgr,
     [&](const int collimator_moa_render__active_shapes_count, const int collimator_moa_render__shapes_buf_reg_count,
-      const UniqueBufHolder &collimator_moa_render__current_shapes_buf) {
+      const UniqueBufWithShaderVar &collimator_moa_render__current_shapes_buf) {
       const LensRelemData relemData = setup_render();
       if (relemData && collimator_moa_render__current_shapes_buf)
       {

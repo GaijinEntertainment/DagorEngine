@@ -13,10 +13,13 @@ Sources +=
 
 AddIncludes +=
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/memAllocators/mimalloc/include
+  $(Root)/prog/3rdPartyLibs/memAllocators/mimalloc/mimalloc/include
 ;
 
 UseProgLibs +=
   3rdPartyLibs/hash
+  3rdPartyLibs/memAllocators/mimalloc
   gameLibs/dxil
 ;
 

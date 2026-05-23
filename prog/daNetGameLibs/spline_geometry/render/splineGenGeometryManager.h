@@ -125,6 +125,7 @@ private:
   bool needsAllocation = false;
   bool needsVertexGeneration = false;
   bool reactivationInProcess = false;
+  UniqueBuf instancingStagingBuffer;
   UniqueBuf instancingBuffer;
   Bitarray splineBufferDirtyMask;
   bool splineBufferDirty = false;

@@ -139,6 +139,17 @@ struct TraceRayStrat : public MaterialRayStrat
 
     return !PhysMat::isMaterialsCollide(rayMatId, mat_id);
   }
+
+  static constexpr bool hasRiExtraIgnoreFunction = false;
+};
+
+struct TraceRayStratWithRiExtraIgnoreFunction : TraceRayStrat
+{
+  using TraceRayStrat::TraceRayStrat;
+
+  TraceRayIgnoreRiExtraCbType riExtraIgnoreFunction;
+
+  static constexpr bool hasRiExtraIgnoreFunction = true;
 };
 
 struct TraceRayListStrat : public TraceRayStrat
@@ -332,6 +343,8 @@ struct RayHitStrat : public MaterialRayStrat
   {
     return cell_result; // exit of first hit cell
   }
+
+  static constexpr bool hasRiExtraIgnoreFunction = false;
 };
 
 static bool does_line_intersect_vert_circle(float r, Point3 center, Point3 line_start, Point3 line_end, float &at)
@@ -713,6 +726,8 @@ struct RaySoundOcclusionStrat
       return true;
     return false;
   }
+
+  static constexpr bool hasRiExtraIgnoreFunction = false;
 };
 
 template <typename Strategy>
@@ -1086,10 +1101,9 @@ static bool rayTraverseRiExtra(bbox3f_cref ray_box, dag::Span<Trace> traces, ren
       if (DAGOR_UNLIKELY(ri_h[i] == skip_riex_handle))
         continue;
 
-#if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
-      if (get_riextra_instance_seed(ri_h[i]) == RI_SEED_COLLISION_IGNORE)
-        continue;
-#endif
+      if constexpr (Strategy::hasRiExtraIgnoreFunction)
+        if (strategy.riExtraIgnoreFunction && strategy.riExtraIgnoreFunction(ri_h[i])) [[unlikely]]
+          continue;
 
       uint32_t riType = rendinst::handle_to_ri_type(ri_h[i]);
       if (riType != prevRiType)
@@ -1328,6 +1342,10 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
     if (DAGOR_UNLIKELY(rh == skip_riex_handle))
       return false;
 
+    if constexpr (Strategy::hasRiExtraIgnoreFunction)
+      if (strategy.riExtraIgnoreFunction && strategy.riExtraIgnoreFunction(rh)) [[unlikely]]
+        return false;
+
     rayTestRiExtraInstance<Strategy, /*CHK_BOX*/ true, /*READ_LOCK*/ false>(traces, rayBox, collRes->vFullBBox, rh, collRes,
       haveCollision, strategy, out_ri_desc);
     return haveCollision;
@@ -1369,10 +1387,10 @@ static bool rayTestIndividualNoLock(dag::Span<Trace> traces, const rendinst::Ren
   return haveCollision;
 }
 
-bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id, rendinst::RendInstDesc *out_ri_descs,
-  const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle)
+template <typename Strategy>
+bool traceRayRIGenNormalizedInternal(Strategy &strategy, dag::Span<Trace> traces, TraceFlags trace_flags,
+  rendinst::RendInstDesc *out_ri_descs, const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle)
 {
-  TraceRayStrat traceRayStrategy(ray_mat_id, trace_flags);
   bool ret = false;
   if (ri_cache)
   {
@@ -1385,16 +1403,30 @@ bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, in
       ri_cache->rendinstCache.foreachValid(rendinst::GatherRiTypeFlag::RiGenTmAndExtra,
         [&](const rendinst::RendInstDesc &ri_desc, bool) {
           if (rendinst::isRgLayerPrimary(ri_desc.layer))
-            ret |= rayTestIndividualNoLock(traces, ri_desc, {}, traceRayStrategy, rayBox, skip_riex_handle);
+            ret |= rayTestIndividualNoLock(traces, ri_desc, {}, strategy, rayBox, skip_riex_handle);
         });
 
       return ret;
     }
     trace_utils::draw_trace_handle_debug_cast_result(ri_cache, traces, false, true);
   }
-  return rayTraverse(traces, bool(trace_flags & TraceFlag::Meshes), out_ri_descs, traceRayStrategy, skip_riex_handle);
+  return rayTraverse(traces, bool(trace_flags & TraceFlag::Meshes), out_ri_descs, strategy, skip_riex_handle);
 }
 
+bool traceRayRIGenNormalized(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id, rendinst::RendInstDesc *out_ri_descs,
+  const TraceMeshFaces *ri_cache, rendinst::riex_handle_t skip_riex_handle)
+{
+  TraceRayStrat traceRayStrategy(ray_mat_id, trace_flags);
+  return traceRayRIGenNormalizedInternal(traceRayStrategy, traces, trace_flags, out_ri_descs, ri_cache, skip_riex_handle);
+}
+
+bool traceRayRIGenNormalizedWithIgnoreFunc(dag::Span<Trace> traces, TraceFlags trace_flags, int ray_mat_id,
+  rendinst::RendInstDesc *out_ri_descs, const TraceMeshFaces *ri_cache, TraceRayIgnoreRiExtraCbType ignore_func)
+{
+  TraceRayStratWithRiExtraIgnoreFunction traceRayStrategy(ray_mat_id, trace_flags);
+  traceRayStrategy.riExtraIgnoreFunction = ignore_func;
+  return traceRayRIGenNormalizedInternal(traceRayStrategy, traces, trace_flags, out_ri_descs, ri_cache, RIEX_HANDLE_NULL);
+}
 
 DECL_ALIGN16(static float, v_SUBCELL_DIV_MAX[4]) = {
   SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f, SUBCELL_DIV - 0.01f};
@@ -1666,7 +1698,8 @@ bool rayhitRendInstsNormalized(const Point3 &from, const Point3 &dir, float t, f
 }
 
 bool traceRayRendInstsNormalized(const Point3 &from, const Point3 &dir, float &tout, Point3 &norm, bool /*extend_bbox*/,
-  bool trace_meshes, rendinst::RendInstDesc *ri_desc, bool trace_trees, int ray_mat_id, int *out_mat_id)
+  bool trace_meshes, rendinst::RendInstDesc *ri_desc, bool trace_trees, int ray_mat_id, int *out_mat_id,
+  TraceRayIgnoreRiExtraCbType ignore_func)
 {
   TraceFlags traceFlags = TraceFlag::Destructible;
   if (trace_meshes)
@@ -1675,8 +1708,18 @@ bool traceRayRendInstsNormalized(const Point3 &from, const Point3 &dir, float &t
     traceFlags |= TraceFlag::Trees;
   Trace traceData(from, dir, tout, nullptr);
   traceData.outNorm = norm;
-  if (!traceRayRIGenNormalized(dag::Span<Trace>(&traceData, 1), traceFlags, ray_mat_id, ri_desc))
-    return false;
+
+  if (ignore_func)
+  {
+    if (!traceRayRIGenNormalizedWithIgnoreFunc(dag::Span<Trace>(&traceData, 1), traceFlags, ray_mat_id, ri_desc, nullptr, ignore_func))
+      return false;
+  }
+  else
+  {
+    if (!traceRayRIGenNormalized(dag::Span<Trace>(&traceData, 1), traceFlags, ray_mat_id, ri_desc))
+      return false;
+  }
+
   tout = traceData.pos.outT;
   norm = traceData.outNorm;
   if (out_mat_id)

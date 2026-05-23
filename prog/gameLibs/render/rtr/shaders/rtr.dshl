@@ -139,7 +139,10 @@ shader rt_reflection
 
   if (rtr_use_specular_occlusion == yes)
   {
-    (cs) { ssao_tex@tex2d = ssao_tex; }
+    (cs) {
+      ssao_tex@tex2d = ssao_tex;
+      ssao_apply_strength@f1 = ssao_apply_strength;
+    }
     USE_SSAO_SIMPLE_BASE_WITH_SMP(cs, envi_probe_specular_samplerstate)
     USING_RTAO(cs)
   }

@@ -36,6 +36,7 @@
 #include <EASTL/hash_map.h>
 #include <EASTL/unique_ptr.h>
 #include <shaders/dag_overrideStates.h>
+#include <generic/dag_span.h>
 #include <drv/3d/dag_renderStates.h>
 #include <shaders/dag_renderStateId.h>
 // #include <EASTL/shared_ptr.h>
@@ -560,8 +561,8 @@ public:
       }
     }
 
-    d3d::set_render_target();
     int outputsCnt = min<int>(outputs.size(), getRegCount(TSHADER_REG_TYPE_OUTPUT));
+    eastl::array<RenderTarget, Driver3dRenderTarget::MAX_SIMRT> outRts = {};
     bool textureSet = false;
     int particlesOut = 0, rtOut = 0;
     for (int i = 0; i < outputsCnt; ++i)
@@ -583,17 +584,11 @@ public:
       }
       rtOut++;
       if (!outputs[i])
-      {
-        d3d::set_render_target(rtOut - 1, 0, 0);
         continue;
-      }
 
       Texture *tex = outputs[i]->getType() == D3DResourceType::TEX ? ((Texture *)outputs[i]) : 0;
       if (!tex)
-      {
-        d3d::set_render_target(rtOut - 1, 0, 0);
         continue;
-      }
       TextureInfo tinfo;
       tex->getinfo(tinfo, 0);
       if (tinfo.cflg & TEXCF_RTARGET)
@@ -601,19 +596,18 @@ public:
         if (tinfo.cflg & TEXCF_UNORDERED)
           d3d::set_rwtex(STAGE_PS, 8 - rtOut, tex, 0, 0);
         else
-          d3d::set_render_target(rtOut - 1, tex, 0);
+          outRts[rtOut - 1] = {tex, 0, 0};
         textureSet = true;
       }
     }
 
-    if (!textureSet)
-      d3d::set_render_target((Texture *)NULL, 0);
-
+    BaseTexture *depthTex = nullptr;
     if (depth || !textureSet)
     {
       create_biggest_depth(w, h);
-      d3d::set_depth(biggest_depth.getTex2D(), DepthAccess::RW);
+      depthTex = biggest_depth.getTex2D();
     }
+    d3d::set_render_target({depthTex, 0, 0}, DepthAccess::RW, make_span_const(outRts.data(), rtOut));
 
     d3d::setview(0, 0, w, h, 0, 1);
 

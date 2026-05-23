@@ -9,6 +9,9 @@ include "translucent_inc.dshl"
 
 shader rendinst_flag_colored, rendinst_flag_layered
 {
+  static int use_sheen_shading = 0;
+  interval use_sheen_shading: no < 1, yes;
+
   if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
   {
     USE_COMBINED_WIND(vs)
@@ -26,7 +29,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
     cull_mode = none;
   }
 
-  if(shader == rendinst_flag_layered)
+  if (shader == rendinst_flag_layered)
   {
     INIT_VCOLOR_LAYERED(true)
     INIT_PAINT_DETAILS_STATIC()
@@ -50,7 +53,14 @@ shader rendinst_flag_colored, rendinst_flag_layered
   channel float2 tc[0] = tc[0];
   channel color8 vcol[0] = extra[53];
 
-  INIT_TRANSLUCENCY_SETTING(ps)
+  if (use_sheen_shading == yes)
+  {
+    INIT_SHEEN_COMMON()
+  }
+  else
+  {
+    INIT_TRANSLUCENCY_SETTING(ps)
+  }
 
   static int wind_type = 0;
   interval wind_type: fixedWind < 1, globalWindIngoreVcol < 2, globalWind;
@@ -59,7 +69,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
   //  shader vars (flag stiffness, length, stretch) is used to calculate flag movement
   //globalWindIngoreVcol is equal to globalWind is asset's vcol.x is changing lineary from zero on the flag pole to 1
   //at the very tip of the flag. It should be used if vcol hasn't been set manually.
-  if(shader == rendinst_flag_colored)
+  if (shader == rendinst_flag_colored)
   {
     INIT_SIMPLE_PAINTED()
   }
@@ -325,14 +335,14 @@ shader rendinst_flag_colored, rendinst_flag_layered
   }
   else
   {
-    if(shader == rendinst_flag_colored)
+    if (shader == rendinst_flag_colored)
     {
-      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true, GBUFFER_ORDER_STATIC)
+      SIMPLE_PAINTED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), use_sheen_shading == no, use_sheen_shading == yes, GBUFFER_ORDER_STATIC)
     }
     else
     {
       USE_VCOLOR_LAYERED(ps)
-      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, true, GBUFFER_ORDER_STATIC)
+      VCOLOR_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), false, use_sheen_shading == no, use_sheen_shading == yes, GBUFFER_ORDER_STATIC)
     }
   }
 }

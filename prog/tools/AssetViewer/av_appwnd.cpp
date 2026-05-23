@@ -907,7 +907,7 @@ void *AssetViewerApp::onWmCreateWindow(int type)
         return nullptr;
 
       themeSwitcherToolPanel = new PropPanel::ToolbarContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px(0), hdpi::Px(0));
-      PropPanel::ContainerPropertyControl *tb = themeSwitcherToolPanel->createToolbarPanel(0, "");
+      PropPanel::ContainerPropertyControl *tb = themeSwitcherToolPanel->createToolbarPanel();
       tb->setAlignRightFromChild(tb->getChildCount());
       editor_command_system.createToolbarButton(*tb, CM_THEME_TOGGLE, EditorCommandIds::THEME_TOGGLE, "Toggle theme");
       updateThemeItems();
@@ -1187,7 +1187,7 @@ void AssetViewerApp::fillPropPanel()
 
 void AssetViewerApp::fillToolBar()
 {
-  PropPanel::ContainerPropertyControl *_tb = mToolPanel->createToolbarPanel(CM_TOOLS, "");
+  PropPanel::ContainerPropertyControl *_tb = mToolPanel->createToolbarPanel(CM_TOOLS);
 
   G_ASSERT(_tb && "AssetViewerApp::fillToolBar() Toolbar not created!");
 
@@ -1518,6 +1518,18 @@ void AssetViewerApp::drawAssetInformation(IGenViewportWnd *wnd)
     StdGuiRender::set_color(COLOR_BLACK);
     StdGuiRender::draw_strf_to((r.l + r.r - tw) / 2, r.t + offset.y, str);
   }
+}
+
+
+bool AssetViewerApp::getPendingTextureLoadTotalCount(unsigned int &total_count)
+{
+  AsyncTextureLoadingState ld_state;
+  if (texconvcache::get_tex_factory_current_loading_state(ld_state))
+  {
+    total_count = ld_state.pendingLdTotal;
+    return true;
+  }
+  return false;
 }
 
 
@@ -2115,6 +2127,7 @@ void read_mount_points(const DataBlock &appblk)
 }
 bool AssetViewerApp::loadProject(const char *app_dir)
 {
+  projectLoaded = false;
   ec_set_busy(true);
   ::dagor_idle_cycle();
 
@@ -2145,6 +2158,8 @@ bool AssetViewerApp::loadProject(const char *app_dir)
   matParamsPath = appblk.getBlockByNameEx("game")->getStr("mat_params", "");
   appblk.setStr("appDir", app_dir);
   useDngBasedSceneRender = appblk.getBlockByNameEx("game")->getBool("daNetGameRender", false);
+  if (useDngBasedSceneRender)
+    appblk.setBool("initUiFonts", false);
 
   appblk.setStr("shadersAbs", tools3d::get_shaders_path(appblk, app_dir, useDngBasedSceneRender));
 
@@ -2763,6 +2778,7 @@ bool AssetViewerApp::loadProject(const char *app_dir)
 
   if (useDngBasedSceneRender)
     assetLtData.setPaintDetailsTexture();
+  projectLoaded = true;
   return true;
 }
 

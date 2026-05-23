@@ -70,6 +70,8 @@ static float g_mute_vol = FLT_EPSILON;
 using vca_name_t = eastl::fixed_string<char, 16>;
 static eastl::vector<vca_name_t> g_vca_names;
 static int g_muteable_vca_index = -1;
+static bool g_mute_inactive_app = true;
+
 
 static dag::AtomicInteger<bool> g_is_record_list_changed = false;
 static dag::AtomicInteger<bool> g_is_output_list_changed = false;
@@ -327,7 +329,8 @@ void close()
   com_uninitialize();
 }
 
-static inline const DataBlock &get_vol_blk() { return *::dgs_get_settings()->getBlockByNameEx("sound")->getBlockByNameEx("volume"); }
+static inline const DataBlock &get_snd_blk() { return *::dgs_get_settings()->getBlockByNameEx("sound"); }
+static inline const DataBlock &get_vol_blk() { return *get_snd_blk().getBlockByNameEx("volume"); }
 static inline void apply_volume(int vca_id, const DataBlock &blk_vol)
 {
   float vol = blk_vol.getReal(g_vca_names[vca_id].c_str(), 1.f);
@@ -340,7 +343,7 @@ static void update_master_volume_for_app_in_background(float dt)
 {
   if (g_muteable_vca_index == -1)
     return;
-  const bool isMute = (!::dgs_app_active || cvars::mute.get()) && !cvars::debug.get();
+  const bool isMute = ((!::dgs_app_active && g_mute_inactive_app) || cvars::mute.get()) && !cvars::debug.get();
   if (isMute && g_mute_vol > 0.f)
   {
     SNDSYS_PRESET_BLOCK;
@@ -364,6 +367,7 @@ static void update_master_volume_for_app_in_background(float dt)
 void apply_config_volumes()
 {
   SNDSYS_PRESET_BLOCK;
+  g_mute_inactive_app = get_snd_blk().getBool("muteInactiveApp", true);
   if (!is_master_preset_loaded())
     return;
   const DataBlock &blkVol = get_vol_blk();

@@ -508,7 +508,7 @@ void ECSObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   ObjectEditor::fillToolBar(toolbar);
 
-  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel();
   addEditorCommandButton(tb1, CM_ECS_EDITOR_CREATE_ENTITY, EditorCommandIds::ECS_EDITOR_CREATE_ENTITY, "create_lib_ent",
     "Create entity", true);
 

@@ -699,9 +699,11 @@ public:
         debug("%s texname conflict, skipping tex %s:%d", texNames.map[i], file->name, i);
         return false;
       }
-      if (int rc = get_managed_texture_refcount(tid))
+      int rc = get_managed_texture_refcount(tid);
+      int btrc = RMGR.getBaseTexRc(tid);
+      if (rc || btrc)
       {
-        logerr("%s already created, rc=%d, skipping tex %s:%d", texNames.map[i], rc, file->name, i);
+        logerr("%s already created, rc=%d btrc=%d, skipping tex %s:%d", texNames.map[i], rc, btrc, file->name, i);
         return false;
       }
       if (RMGR.texDesc[tid.index()].packRecIdx[TQL_base].pack < 0)

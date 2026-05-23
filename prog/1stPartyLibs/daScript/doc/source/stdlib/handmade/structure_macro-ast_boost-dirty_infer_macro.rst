@@ -1,1 +1,0 @@
-The ``[dirty_infer_macro]`` structure annotation — registers an ``AstPassMacro`` subclass that is invoked during the dirty infer compilation pass.

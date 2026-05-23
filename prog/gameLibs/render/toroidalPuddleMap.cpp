@@ -184,7 +184,7 @@ void ToroidalPuddles::updatePuddles(ToroidalPuddlesRenderer &renderer, const Poi
     if (lodData[cascadeNo].quadRegions.size() == 0)
       continue;
 
-    d3d::set_render_target(toroidalPuddles.getArrayTex(), cascadeNo, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{toroidalPuddles.getArrayTex(), 0, static_cast<uint32_t>(cascadeNo)}});
 
     // set matrix
     renderer.startRenderTiles(Point2::xz(camera_position));

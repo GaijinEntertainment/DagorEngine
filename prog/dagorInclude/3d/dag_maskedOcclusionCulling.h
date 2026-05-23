@@ -375,11 +375,16 @@ public:
    *        CACHE_INSUFFICIENT: No usable cache - walk BVH and stream indices to provided
    *                     cacheIndices. It can be faster, if significant chunk of blas is culled
    *
-   * \param cacheIndices  Caller-owned uint16 buffer, size >= maxTris*3
+   * \param cacheIndices  Caller-owned uint16 buffer, size >= cacheIndicesCapacity*3.
+   * \param cacheIndicesCapacity Max triangle count cacheIndices can hold. CACHE_FILL /
+   *                      CACHE_INSUFFICIENT walks stop early (and logerr_once) if a BLAS leaf
+   *                      range would overflow this capacity, dropping the remaining triangles
+   *                      rather than overrunning the buffer.
    * \param cacheTriCount In/out triangle count. Written by CACHE_FILL, read by CACHE_USE.
    */
   MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding = BACKFACE_CW) MOC_PURE;
+    unsigned short *cacheIndices, int cacheIndicesCapacity, int *cacheTriCount, CacheMode cacheMode,
+    BackfaceWinding bfWinding = BACKFACE_CW) MOC_PURE;
 
   /*!
    * \brief Occlusion query for a rectangle with a given depth. The rectangle is given

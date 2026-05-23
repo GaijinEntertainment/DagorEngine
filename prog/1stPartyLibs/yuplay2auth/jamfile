@@ -3,7 +3,6 @@ Location         = prog/1stPartyLibs/yuplay2auth ;
 
 Yuplay2UseGnome   ?= no ; #Set to yes in jamfile of app using webLogin on Linux
 Yuplay2NoCurlInit ?= no ;
-Yuplay2UseXcurl   ?= no ;
 
 UseZlibVer        ?= ng ;
 
@@ -28,11 +27,7 @@ AddIncludes =
   $(Root)/prog/3rdPartyLibs/Tencent
 ;
 
-if $(Platform) = nswitch {
-  #  nintendo used system curl library
-} else if $(Yuplay2UseXcurl) = yes {
-  AddIncludes += $(GDK_XCURL_INC_PATH) ;
-} else if $(UseSystemLibcurl) != yes {
+if $(Platform) != nswitch && $(UseSystemLibcurl) != yes {
   AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
 }
 
@@ -77,9 +72,7 @@ UseProgLibs =
 ;
 
 
-if $(Platform) = nswitch {
-  # nswitch using system curl library
-} else if $(Yuplay2UseXcurl) != yes && $(UseSystemLibcurl) != yes {
+if $(Platform) != nswitch && $(UseSystemLibcurl) != yes {
   UseProgLibs += 3rdPartyLibs/libcurl ;
 }
 
@@ -99,12 +92,6 @@ CPPopt =
 if $(Yuplay2NoCurlInit) = yes {
   CPPOpt +=
     -DYUPLAY2_NO_CURL_INIT
-  ;
-}
-
-if $(Yuplay2UseXcurl) = yes {
-  CPPopt +=
-    -DYUPLAY2_USE_XCURL
   ;
 }
 

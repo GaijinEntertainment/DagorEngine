@@ -226,7 +226,7 @@ protected:
   eastl::unique_ptr<ComputeShaderElement> createIndirect;
   eastl::unique_ptr<ComputeShaderElement> compactInstanceIndices;
 
-  UniqueBufHolder grassRandomTypesCB, grassColorsVSCB;
+  UniqueBufWithShaderVar grassRandomTypesCB, grassColorsVSCB;
 
   eastl::unique_ptr<ComputeShaderElement> grassGenerator;
   // PostFxRenderer grassGenerator;

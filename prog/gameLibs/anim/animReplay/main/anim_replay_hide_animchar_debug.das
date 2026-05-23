@@ -6,10 +6,13 @@ require %gameLibs/anim/animReplay/imports/anim_replay_events
 require %gameLibs/anim/animReplay/imports/anim_replay_common
 
 def iterate_animchars_recursively(parentEid : EntityId; hide : bool)
-  query(parentEid) <| $ [es] (var animchar_render__enabled : bool&; attaches_list : EidList const?)
+  query(parentEid) <| $ [es] (var animchar_render__enabled : bool&; attaches_list : EidList const?; human_weap__currentGunModEids : EidList const?)
     animchar_render__enabled = !hide
     if attaches_list != null
       for childEid in *attaches_list
+        iterate_animchars_recursively(childEid, hide);
+    if human_weap__currentGunModEids != null
+      for childEid in *human_weap__currentGunModEids
         iterate_animchars_recursively(childEid, hide);
   if (hide)
     // Some of the player's items, like a weapon, can be rendered unconditionally, so move them far away

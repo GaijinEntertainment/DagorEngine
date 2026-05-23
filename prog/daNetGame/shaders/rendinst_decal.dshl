@@ -291,6 +291,96 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
   ENABLE_MULTI_DRAW(false)
   RENDINST_INSTANCING()
   SETUP_CHARACTER_MICRODETAIL()
+
+  if (shader == rendinst_deferred_emissive_decal)
+  {
+    static int emission_anim = 0;
+    interval emission_anim : no < 1, yes;
+
+    no_ablend;
+
+    if (compatibility_mode == compatibility_mode_on)
+    {
+      dont_render;
+    }
+    static float4 emission__off_attack__min_max = (0, 3, 1, 3) no_warnings;
+    static float4 emission__on_release__min_max = (0, 3, 1, 3) no_warnings;
+
+    static float emission__on_brightness = 1 no_warnings;
+    static float emission__off_brightness = 0 no_warnings;
+
+    local float min_emission_cycle_time = (emission__off_attack__min_max.x + emission__off_attack__min_max.z +
+                                           emission__on_release__min_max.x + emission__on_release__min_max.z);
+    local float max_emission_cycle_time = (emission__off_attack__min_max.y + emission__off_attack__min_max.w +
+                                           emission__on_release__min_max.y + emission__on_release__min_max.w);
+
+    if (emission_anim == yes)
+    {
+      (vs)
+      {
+        global_time@f1 = time_phase(0, 0);
+
+        off_brightness@f1 = emission__off_brightness;
+        on_brightness@f1 = emission__on_brightness;
+
+        max_inv_cycle_time@f1 = 1 / max_emission_cycle_time;
+        min_inv_cycle_time@f1 = 1 / min_emission_cycle_time;
+
+        min_off_time@f1 = emission__off_attack__min_max.x;
+        max_off_time@f1 = emission__off_attack__min_max.y;
+        min_attack_time@f1 = emission__off_attack__min_max.z;
+        max_attack_time@f1 = emission__off_attack__min_max.w;
+        min_on_time@f1 = emission__on_release__min_max.x;
+        max_on_time@f1 = emission__on_release__min_max.y;
+        min_release_time@f1 = emission__on_release__min_max.z;
+        max_release_time@f1 = emission__on_release__min_max.w;
+      }
+      hlsl (vs) {
+        #include <pcg_hash.hlsl>
+        float random01(uint seed)
+        {
+          const float INV_MAX_UINT = 1.0 / 4294967296.0;
+          return pcg_hash(seed) * INV_MAX_UINT;
+        }
+
+        float getEmissionBrightnessMul(uint seed)
+        {
+          seed *= get_min_inv_cycle_time() + 1;
+          float inv_cycle_time = lerp(get_min_inv_cycle_time(), get_max_inv_cycle_time(), random01(seed));
+          int cycle_count = int(floor(global_time * inv_cycle_time));
+          float cycle_phase = frac(global_time * inv_cycle_time);
+
+          seed *= cycle_count;
+
+          float off_time     = lerp(get_min_off_time(),     get_max_off_time(),     random01(seed * 0x1234u));
+          float attack_time  = lerp(get_min_attack_time(),  get_max_attack_time(),  random01(seed * 0x4123u));
+          float release_time = lerp(get_min_release_time(), get_max_release_time(), random01(seed * 0x3412u));
+          float on_time      = lerp(get_min_on_time(),      get_max_on_time(),      random01(seed * 0x2341u));
+
+          float inv_rand_cycle_time = 1 / (off_time + attack_time + release_time + on_time);
+
+          float glow_start = off_time * inv_rand_cycle_time;
+          float glow_end   = (off_time + attack_time) * inv_rand_cycle_time;
+          float fade_start = 1 - release_time * inv_rand_cycle_time;
+          float fade_end   = 1;
+
+          float glow = smoothstep(glow_start, glow_end, cycle_phase);
+          float fade = 1 - smoothstep(fade_start, fade_end, cycle_phase);
+          return lerp(get_off_brightness(), get_on_brightness(), glow * fade);
+        }
+      }
+    }
+  }
+
+  if (shader == rendinst_deferred_emissive_decal && emission_anim == yes)
+  {
+    hlsl { #define VS_CALCULATED_EMISSION_MUL 1 }
+  }
+  else
+  {
+    hlsl { #define VS_CALCULATED_EMISSION_MUL 0 }
+  }
+
   hlsl {
     struct VsOutput
     {
@@ -303,6 +393,9 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
       #endif
       #if COLOR_NEEDED
       float3 colorMul : TEXCOORD3;
+      #endif
+      #if VS_CALCULATED_EMISSION_MUL
+        nointerpolation float emissionMul        :  TEXCOORD4;
       #endif
       VSOUT_DRAW_ID
     };
@@ -354,6 +447,9 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
           if (need_overlay_map_color())
             output.colorMul = get_overlay_map_color(worldPos);
         #endif
+      #endif
+      #if VS_CALCULATED_EMISSION_MUL
+        output.emissionMul = getEmissionBrightnessMul(hashVal);
       #endif
 
       return output;
@@ -453,40 +549,6 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
 
   if (shader == rendinst_deferred_emissive_decal)
   {
-    static int emission_anim = 0;
-    interval emission_anim : no < 1, yes;
-
-    no_ablend;
-
-    if (compatibility_mode == compatibility_mode_on)
-    {
-      dont_render;
-    }
-
-    static float emission__attack_time = 1 no_warnings;
-    static float emission__on_time = 1 no_warnings;
-    static float emission__release_time = 1 no_warnings;
-    static float emission__off_time = 1 no_warnings;
-    static float emission__on_brightness = 1 no_warnings;
-    static float emission__off_brightness = 0 no_warnings;
-
-    local float emission_cycle_time = (emission__off_time + emission__attack_time + emission__on_time + emission__release_time);
-
-    if (emission_anim == yes)
-    {
-      (ps)
-      {
-        glow_start@f1 = (emission__off_time) / emission_cycle_time;
-        glow_end@f1 = (emission__off_time + emission__attack_time) / emission_cycle_time;
-        fade_start@f1 = (1 - emission__release_time) / emission_cycle_time;
-        fade_end@f1 = 1;
-        global_time@f1 = time_phase(0, 0);
-        inv_cycle_time@f1 = 1 / emission_cycle_time;
-        off_brightness@f1 = emission__off_brightness;
-        on_brightness@f1 = emission__on_brightness;
-      }
-    }
-
     DECLARE_DYNAMIC_MATERIAL_PARAMS()
     assume parameters_channel = from_asset;
     INIT_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
@@ -497,20 +559,6 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
     hlsl(ps)
     {
       #if HAS_NORMAL
-        ##if emission_anim == yes
-          float getEmissionBrightnessMul()
-          {
-            // Workaround until time_phase supports material params
-            // TODO: Rewrite it once it to time_phase(emission_cycle_time, 0) once it is implemented
-            float emission_timer = frac(global_time * get_inv_cycle_time());
-            float glow = smoothstep(get_glow_start(), get_glow_end(), emission_timer);
-            float fade = 1 - smoothstep(get_fade_start(), get_fade_end(), emission_timer);
-            return lerp(get_off_brightness(), get_on_brightness(), glow * fade);
-          }
-        ##else
-          float getEmissionBrightnessMul() { return 1.f; }
-        ##endif
-
         [earlydepthstencil]
         GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS)
         {
@@ -546,7 +594,14 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
           init_albedo(result, albedo);
           init_smoothness(result, smoothness);
           init_normal(result, worldNormal);
-          init_emission(result, RemoveSRGBCurve_Fast(emissionMask).x * min(abs(emissiveColor.a), MAX_EMISSION) * getEmissionBrightnessMul());
+
+          #if VS_CALCULATED_EMISSION_MUL
+            float emissionMul = input.emissionMul;
+          #else
+            float emissionMul = 1.f;
+          #endif
+
+          init_emission(result, RemoveSRGBCurve_Fast(emissionMask).x * min(abs(emissiveColor.a), MAX_EMISSION) * emissionMul);
           init_emission_color(result, half4(emissiveColor.rgb, emissionAlbedoMult));
 
 

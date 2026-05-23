@@ -1,5 +1,6 @@
-wait.progress
-wait.time 500
+wait.project_load
+wait.textures
+wait.time 2000
 screenshot.create
 wait.time 500
 app.terminate 0

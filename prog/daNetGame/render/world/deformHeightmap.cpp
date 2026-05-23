@@ -355,10 +355,8 @@ void DeformHeightmap::afterRenderDepth()
     d3d::zero_rwbufi(deformOccupiedTilesBitvector.getBuf());
 
   // So rtarget will be available for set as deform_hmap_postfx_source_tex
-  d3d::set_depth(nullptr, DepthAccess::RW);
-  d3d::resource_barrier({depthTextures[currentRtIdx].getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
-
   d3d::set_render_target({}, DepthAccess::RW, {});
+  d3d::resource_barrier({depthTextures[currentRtIdx].getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
   d3d::resource_barrier({deformInfoTextures[currentRtIdx].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 
   // Clear mask in advance in a separate pass because deform pass needs to fill it in a way threadgroups write
@@ -462,7 +460,6 @@ void DeformHeightmap::saveStates()
 
 void DeformHeightmap::restoreStates()
 {
-  d3d::set_depth(nullptr, DepthAccess::RW);
   d3d_set_view_proj(origViewProj);
   d3d_set_render_target(origRt);
 }

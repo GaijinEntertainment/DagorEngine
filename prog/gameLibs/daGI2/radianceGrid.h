@@ -48,7 +48,7 @@ protected:
   bool updateClipIrradiance(uint32_t clip_no, const Point3 &world_pos, bool last_clip);
 
   UniqueTexWithShaderVar dagi_radiance_grid, dagi_radiance_grid_dist;
-  UniqueBufHolder dagi_radiance_grid_selected_probes;
+  UniqueBufWithShaderVar dagi_radiance_grid_selected_probes;
   UniqueTexWithShaderVar dagi_radiance_grid_probes_age;
   UniqueBuf dagi_rad_grid_indirect_buffer;
 

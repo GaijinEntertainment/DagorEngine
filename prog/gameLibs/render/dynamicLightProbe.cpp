@@ -11,6 +11,7 @@
 #include <3d/dag_resPtr.h>
 #include <render/lightCube.h>
 #include <util/dag_string.h>
+#include <EASTL/array.h>
 
 #define NUM_CUBE_FACES 6
 enum
@@ -228,8 +229,10 @@ void DynamicLightProbe::update(float dt, IRenderLightProbeFace *cb, bool cockpit
     {
       ShaderGlobal::set_float(dynamic_cube_tex_levelVarId, level);
       G_ASSERT(d3d::get_driver_desc().maxSimRT >= 6);
-      for (int f = 0; f < 6; ++f)
-        d3d::set_render_target(f, blendTo->getCubeTex(), f, level);
+      eastl::array<RenderTarget, 6> cubeRts = {};
+      for (uint32_t f = 0; f < 6; ++f)
+        cubeRts[f] = {blendTo->getCubeTex(), uint32_t(level), f};
+      d3d::set_render_target({}, DepthAccess::RW, dag::ConstSpan<RenderTarget>(cubeRts.data(), cubeRts.size()));
       blendCubesRenderer->render();
     }
     d3d::resource_barrier({blendTo->getCubeTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});

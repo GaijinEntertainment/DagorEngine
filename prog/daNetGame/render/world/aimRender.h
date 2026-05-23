@@ -16,6 +16,7 @@ struct AimRenderingData
   int lensCrosshairNodeId = -1;
   int lensCollisionNodeId = -1;
   float lensBoundingSphereRadius = 1.0f;
+  float aimingTime = 0.0f;
 };
 
 AimRenderingData get_aim_rendering_data();

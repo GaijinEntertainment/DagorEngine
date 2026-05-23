@@ -191,6 +191,7 @@ eastl::string_view get_node_mask_suffix_from_name(eastl::string_view name);
 
 int get_child_block_idx_by_list_idx(const DataBlock *settings, int list_idx);
 int get_param_name_idx_by_list_name(const DataBlock &settings, const SimpleString &list_name, int selected_idx);
+int get_block_name_idx_by_list_name(const DataBlock &settings, const SimpleString &list_name, int selected_idx);
 
 void fill_child_names(Tab<String> &child_names, PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<BlendNodeData> blend_nodes,
   dag::ConstSpan<AnimCtrlData> controllers);
@@ -204,3 +205,6 @@ void move_param_blk(DataBlock &blk, int from, int to);
 void move_block_blk(DataBlock &blk, int from, int to);
 
 bool is_comp_op_needs_p1(const char *op);
+
+Tab<String> collect_random_switch_names(PropPanel::ContainerPropertyControl *prop_panel, dag::ConstSpan<AnimCtrlData> controllers,
+  const DataBlock *settings, const char *current_selection);

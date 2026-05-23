@@ -222,7 +222,7 @@ bool DLSSSuperResolutionDirect::evaluate(const nv::DlssParams<void> &params, voi
         .Width = (UINT)inColorDesc.Width,
         .Height = inColorDesc.Height,
       },
-      .InReset = 0, // We need to support this eventually.
+      .InReset = params.inReset,
       .InMVScaleX = params.inMVScaleX * (UINT)inColorDesc.Width,
       .InMVScaleY = params.inMVScaleY * inColorDesc.Height,
       .pInExposureTexture = texture_to_resource(params.inExposure),
@@ -247,7 +247,7 @@ bool DLSSSuperResolutionDirect::evaluate(const nv::DlssParams<void> &params, voi
         .Width = (UINT)inColorDesc.Width,
         .Height = inColorDesc.Height,
       },
-      .InReset = 0, // We need to support this eventually.
+      .InReset = params.inReset,
       .InMVScaleX = params.inMVScaleX * (UINT)inColorDesc.Width,
       .InMVScaleY = params.inMVScaleY * inColorDesc.Height,
       .pInExposureTexture = texture_to_resource(params.inExposure),

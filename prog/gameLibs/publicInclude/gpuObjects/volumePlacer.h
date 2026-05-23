@@ -53,13 +53,13 @@ private:
     void calculate(Sbuffer *gathered_triangles);
   } prefixSumShaders;
 
-  UniqueBufHolder counterBuffer;
+  UniqueBufWithShaderVar counterBuffer;
   ecs::EntityId waitReadbackEntity;
   bool readbackPending;
   EventQueryHolder counterReadbackFence;
-  UniqueBufHolder gatheredTrianglesBuffer;
+  UniqueBufWithShaderVar gatheredTrianglesBuffer;
   int gatheredTrianglesBufferSize = 0;
-  UniqueBufHolder geometryMeshesBuffer;
+  UniqueBufWithShaderVar geometryMeshesBuffer;
   int geometryMeshesBufferSize = 0;
 
   DynamicShaderHelper debugGatheredTrianglesRenderer;

@@ -151,7 +151,7 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
     SCOPE_RENDER_TARGET;
     if (low_res_tex.getTex())
     {
-      d3d::set_render_target(low_res_tex.getTex(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{low_res_tex.getTex(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0, 1, 0);
     }
 

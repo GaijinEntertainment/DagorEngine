@@ -65,7 +65,7 @@ void ObjEd::registerViewportAccelerators(IWndManager &wndManager)
 
 void ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel();
 
   addEditorCommandButton(tb1, CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder",
     true);

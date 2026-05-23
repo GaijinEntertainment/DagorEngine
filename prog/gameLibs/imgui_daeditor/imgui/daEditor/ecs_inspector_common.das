@@ -705,21 +705,7 @@ def entity_to_filtered_compact_blk_text(eid : EntityId; templateName, filterStr 
 
       let compRef = mgr |> getComponentRef(eid, compName)
       let compTypeName = getComponentTypes() |> component_types_findTypeName(compRef.userType)
-      if is_cont_type(compRef.userType)
-        using() <| $(var blk : DataBlock)
-          component_to_blk_param(compName, compRef, blk)
-          var elemCount = 0
-          if blk.blockCount > 0u
-            datablock_get_block(blk, 0u) <| $(contBlk)
-              elemCount = int(contBlk.paramCount) + int(contBlk.blockCount)
-          if elemCount < maxContainerItems
-            result += "{string(blk) |> strip()}\n"
-          else
-            result += "{compName}: {compTypeName} [{elemCount} items]\n"
-      else
-        using() <| $(var blk : DataBlock)
-          component_to_blk_param(compName, compRef, blk)
-          result += "{string(blk) |> strip()}\n"
+      result += compact_component_to_blk_text(compName, compTypeName, compRef, maxContainerItems)
 
   return result
 
@@ -906,21 +892,67 @@ def entity_to_compact_blk_text(eid : EntityId; maxContainerItems : int = 10) : s
   let compsNum = mgr |> getNumComponents(eid)
   for idx in urange(compsNum >= 0 ? compsNum : 0)
     let compRef = mgr |> getEntityComponentRef(eid, idx)
+    let comp = getDataComponents() |> data_components_getComponentById(compRef.componentId)
+    if (uint(comp.flags) & uint(IS_COPY)) != 0u
+      continue
+
     let compName = getDataComponents() |> data_components_getComponentNameById(compRef.componentId)
     let typeName = getComponentTypes() |> component_types_findTypeName(compRef.userType)
-    if is_cont_type(compRef.userType)
-      using() <| $(var blk : DataBlock)
-        component_to_blk_param(compName, compRef, blk)
-        var elemCount = 0
-        if blk.blockCount > 0u
-          datablock_get_block(blk, 0u) <| $(contBlk)
-            elemCount = int(contBlk.paramCount) + int(contBlk.blockCount)
-        if elemCount < maxContainerItems
-          result += "{string(blk) |> strip()}\n"
-        else
-          result += "{compName}: {typeName} [{elemCount} items]\n"
-    else
-      using() <| $(var blk : DataBlock)
-        component_to_blk_param(compName, compRef, blk)
-        result += "{string(blk) |> strip()}\n"
+    result += compact_component_to_blk_text(compName, typeName, compRef, maxContainerItems)
   return result
+
+[no_aot]
+def compact_component_to_blk_text(compName, typeName : string; compRef : EntityComponentRef; maxContainerItems : int) : string
+  if typeName == "ecs::EntityId"
+    return entity_id_component_to_blk_text(compName, compRef)
+
+  if typeName == "ecs::EidList"
+    return eid_list_component_to_blk_text(compName, compRef, maxContainerItems)
+
+  if typeName == "ecs::SharedComponent< ::ecs::EidList>"
+    return shared_eid_list_component_to_blk_text(compName, compRef, maxContainerItems)
+
+  var result = ""
+  if is_cont_type(compRef.userType)
+    using() <| $(var blk : DataBlock)
+      component_to_blk_param(compName, compRef, blk)
+      var elemCount = 0
+      if blk.blockCount > 0u
+        datablock_get_block(blk, 0u) <| $(contBlk)
+          elemCount = int(contBlk.paramCount) + int(contBlk.blockCount)
+      if elemCount < maxContainerItems
+        result := "{string(blk) |> strip()}\n"
+      else
+        result := "{compName}: {typeName} [{elemCount} items]\n"
+    return result
+
+  using() <| $(var blk : DataBlock)
+    component_to_blk_param(compName, compRef, blk)
+    result := "{string(blk) |> strip()}\n"
+
+  return result
+
+def entity_id_component_to_blk_text(compName : string; compRef : EntityComponentRef) : string
+  let val = unsafe(reinterpret<EntityId?> compRef.rawData)
+  return "\"{compName}:eid\"\{ value:i={int(uint(*val))} \}\n"
+
+def eid_list_component_to_blk_text(compName : string; compRef : EntityComponentRef; maxContainerItems : int) : string
+  let val = unsafe(reinterpret<EidList?> compRef.rawData)
+  return eid_list_to_blk_text(compName, "ecs::EidList", *val, maxContainerItems, false)
+
+def shared_eid_list_component_to_blk_text(compName : string; compRef : EntityComponentRef; maxContainerItems : int) : string
+  let sharedVal = unsafe(reinterpret<SharedEidList?> compRef.rawData)
+  let val = sharedVal.get
+  return eid_list_to_blk_text(compName, "ecs::SharedComponent< ::ecs::EidList>", *val, maxContainerItems, true)
+
+def eid_list_to_blk_text(compName, typeName : string; val : EidList; maxContainerItems : int; isShared : bool) : string
+  let elemCount = length(val)
+  if elemCount >= maxContainerItems
+    return "{compName}: {typeName} [{elemCount} items]\n"
+
+  return build_string <| $(result)
+    let blockName = isShared ? "{compName}:shared:list<eid>" : "{compName}:list<eid>"
+    result |> write("\"{blockName}\"\{\n")
+    for eid in val
+      result |> write("  \"item:eid\"\{ value:i={int(uint(eid))} \}\n")
+    result |> write("\}\n")

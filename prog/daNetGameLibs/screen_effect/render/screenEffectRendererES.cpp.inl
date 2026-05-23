@@ -28,7 +28,7 @@ static void screen_effect_renderer_init_es_event_handler(const BeforeLoadLevel &
     return;
 
   screen_effect_renderer_ecs_query(manager, manager.getOrCreateSingletonEntity(ECS_HASH("screen_effect_renderer")),
-    [&](ecs::EntityId eid, UniqueBufHolder &screen_effect__buffer, int &screen_effect__countVar,
+    [&](ecs::EntityId eid, UniqueBufWithShaderVar &screen_effect__buffer, int &screen_effect__countVar,
       ecs::IntList &screen_effect__texVars) {
       screen_effect__texVars.reserve(MAX_SCREEN_EFFECTS);
       screen_effect__countVar = get_shader_variable_id("screen_effects_count");
@@ -62,7 +62,7 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static void screen_effect_render_es(const UpdateStageInfoBeforeRender &,
   ecs::EntityManager &manager,
-  const UniqueBufHolder &screen_effect__buffer,
+  const UniqueBufWithShaderVar &screen_effect__buffer,
   int screen_effect__countVar,
   const ecs::IntList &screen_effect__texVars,
   const bool screen_effect_renderer__enable,

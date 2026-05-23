@@ -107,7 +107,42 @@ eastl::tuple<eastl::string_view, eastl::span<char>> RegistryKey::enumValueNameAn
 
 eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
 {
-  HDEVINFO devInfo = SetupDiGetClassDevs(&GUID_DEVCLASS_DISPLAY, nullptr, nullptr, DIGCF_PRESENT);
+  // Parses "PCI\VEN_XXXX&DEV_XXXX&..." — returns false if the format doesn't match.
+  //         ^       ^    ^   ^
+  //         0       8   12   17
+  auto parseHardwareId = [](const wchar_t *hwid, uint16_t &vendor_id, uint16_t &device_id) {
+    auto parseHex4 = [](const wchar_t *s, uint16_t &out) {
+      uint16_t value = 0;
+      for (int i = 0; i < 4; ++i)
+      {
+        wchar_t c = s[i];
+        uint16_t digit;
+        if (c >= L'0' && c <= L'9')
+          digit = static_cast<uint16_t>(c - L'0');
+        else if (c >= L'A' && c <= L'F')
+          digit = static_cast<uint16_t>(c - L'A' + 10);
+        else if (c >= L'a' && c <= L'f')
+          digit = static_cast<uint16_t>(c - L'a' + 10);
+        else
+          return false;
+        value = static_cast<uint16_t>((value << 4) | digit);
+      }
+      out = value;
+      return true;
+    };
+
+    if (wcsncmp(hwid, L"PCI\\VEN_", 8) != 0)
+      return false;
+    if (!parseHex4(hwid + 8, vendor_id))
+      return false;
+    if (wcsncmp(hwid + 12, L"&DEV_", 5) != 0)
+      return false;
+    if (!parseHex4(hwid + 17, device_id))
+      return false;
+    return true;
+  };
+
+  HDEVINFO devInfo = SetupDiGetClassDevsW(&GUID_DEVCLASS_DISPLAY, nullptr, nullptr, DIGCF_PRESENT);
   if (devInfo == INVALID_HANDLE_VALUE)
     return {};
 
@@ -119,14 +154,26 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
   SP_DEVINFO_DATA devData{.cbSize = sizeof(SP_DEVINFO_DATA)};
   for (DWORD i = 0; SetupDiEnumDeviceInfo(devInfo, i, &devData); ++i)
   {
+    // Shortest valid hardware ID is "PCI\VEN_XXXX&DEV_XXXX\0" = 22 wchars.
+    constexpr DWORD minBytes = 22 * sizeof(wchar_t);
+
     DWORD bufSize = 0;
     SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, nullptr, 0, &bufSize);
+    if (bufSize < minBytes)
+      continue;
+
     hwId.resize_noinit(bufSize / sizeof(wchar_t));
-    SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, reinterpret_cast<PBYTE>(hwId.data()), bufSize,
-      nullptr);
+    if (!SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, reinterpret_cast<PBYTE>(hwId.data()), bufSize,
+          nullptr))
+      continue;
 
     uint16_t vendorId, deviceId;
-    swscanf_s(hwId.data(), L"PCI\\VEN_%hX&DEV_%hX", &vendorId, &deviceId);
+    if (!parseHardwareId(hwId.data(), vendorId, deviceId))
+      continue;
+
+    // Skip Microsoft Basic Render Driver.
+    if (vendorId == 0x1414 && deviceId == 0x008C)
+      continue;
 
     gdis.push_back({vendorId, deviceId});
   }

@@ -1604,7 +1604,7 @@ static void renderInscriptionsChunk()
   float vzn, vzf;
   d3d::getview(vl, vt, vw, vh, vzn, vzf);
 
-  d3d::set_render_target(DagorFontBinDump::inscr_atlas.texBlurred.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{DagorFontBinDump::inscr_atlas.texBlurred.getTex2D(), 0, 0}});
   ctxBlur.renderChunk(ctxBlur.currentChunk);
   ctxBlur.currentChunk = -1;
 

@@ -114,6 +114,7 @@ public:
   virtual void imguiBegin(const char *name, bool *open = nullptr, unsigned window_flags = 0) = 0;
   virtual void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr, unsigned window_flags = 0) = 0;
   virtual void imguiEnd() = 0;
+  virtual void *getImguiContext() = 0;
 
   inline const char *selectAssetX(const char *asset, const char *caption, const char *type, const char *filter_str = nullptr,
     bool open_all_grp = false)

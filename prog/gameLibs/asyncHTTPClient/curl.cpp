@@ -3,7 +3,6 @@
 #include <asyncHTTPClient/asyncHTTPClient.h>
 
 #include <debug/dag_log.h>
-#include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -19,13 +18,7 @@
 #include <EASTL/unique_ptr.h>
 #include <EASTL/fixed_vector.h>
 
-#include <ioSys/dag_brotliIo.h>
-
-#if defined(USE_XCURL)
-#include <Xcurl.h>
-#else
 #include <curl/curl.h>
-#endif
 
 #if _TARGET_XBOX
 #include <osApiWrappers/gdk/network.h>
@@ -78,11 +71,7 @@ static long timeout_ms;
 
 static const unsigned int TCP_CONNECT_TIMEOUT_SEC = 12;
 
-#if USE_XCURL
-static constexpr uint8_t MAX_ACTIVE_REQUESTS = 4;
-#else
 static constexpr uint8_t MAX_ACTIVE_REQUESTS = 32;
-#endif
 
 static eastl::string default_user_agent = "dagor2";
 static eastl::string ca_bundle_file;
@@ -147,9 +136,7 @@ static CURL *make_curl_handle(const char *url, const char *user_agent, bool veri
   CURL *curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
   // To consider: always pass header callback for pre-reserve `response` using `Content-Length` header
-#ifndef USE_XCURL // For custom decompressor (e.g. brotli) setup
   if (need_resp_headers || verbose_debug)
-#endif
   {
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, user_data);
@@ -245,10 +232,6 @@ public:
 
     for (Header const &h : params.headers)
     {
-#if defined(USE_XCURL)
-      if (nullptr != strchr(h.second, '\n'))
-        logerr("xCurl doesn't support multiline headers. URL: <%s>, HEADER: <%s>", urlStr.c_str(), h.first);
-#endif
       eastl::string hstr = h.first;
       hstr += ": ";
       hstr += h.second;
@@ -380,20 +363,6 @@ public:
   size_t updateResponse(dag::Span<char> data)
   {
     size_t downloadedSize = data.size();
-#if defined(USE_XCURL)
-    Tab<char> decoded;
-    if (decompressor)
-    {
-      auto res = decompressor->decompress(dag::Span<uint8_t>((uint8_t *)data.begin(), data.size()), decoded);
-      if (res != StreamDecompressResult::FINISH && res != StreamDecompressResult::NEED_MORE_INPUT)
-      {
-        debug("Failed to decompress data from '%s'. Request aborted", urlStr.c_str());
-        return 0;
-      }
-      data = make_span(decoded.data(), decoded.size());
-    }
-#endif
-
     if (callback->onResponseData(data))
       return downloadedSize;
 
@@ -409,26 +378,9 @@ public:
     return downloadedSize;
   }
 
-#if defined(USE_XCURL)
-  void trySetDecompressorByHeader(dag::Span<char> header)
-  {
-    eastl::string_view hv(header.data(), header.size());
-    if (eastl::string_view::size_type pos = hv.find("Content-Encoding:"); pos != hv.npos)
-    {
-      decompressor.reset();
-      pos = hv.find("br", pos);
-      if (pos != hv.npos)
-        decompressor.reset(new BrotliStreamDecompress());
-    }
-  }
-#endif
-
   void addResponseHeader(dag::Span<char> header)
   {
     DEBUG_VERBOSE("add response header:%.*s", header.size(), header.data());
-#if defined(USE_XCURL)
-    trySetDecompressorByHeader(header);
-#endif
     if (needResponseHeaders)
     {
       responseHeaders.emplace_back(header.begin(), header.end());
@@ -505,9 +457,6 @@ public:
   dag::Vector<char> response;
   dag::Vector<eastl::string> responseHeaders; // Note: string_view in `respHeadersMap` are pointing within
   httprequests::StringMap respHeadersMap;
-#ifdef USE_XCURL
-  eastl::unique_ptr<IStreamDecompress> decompressor;
-#endif
 };
 
 using RequestStatePtr = eastl::unique_ptr<RequestState>;

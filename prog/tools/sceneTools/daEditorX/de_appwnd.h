@@ -315,6 +315,9 @@ public:
 
   void showTagManager(bool show);
 
+  bool isProjectLoaded() const override { return projectLoaded; };
+  bool getPendingTextureLoadTotalCount(unsigned int &total_count) override;
+
   UndoSystem *getUndoSystem() override { return undoSystem; }
   CoolConsole &getConsole() override
   {
@@ -553,7 +556,7 @@ private:
   static bool gracefulFatalExit(const char *msg, const char *call_stack, const char *file, int line);
   static String getSwitchToPluginEditorCommandId(const IGenEditorPlugin &p);
 
-  static const int LATEST_DOCK_SETTINGS_VERSION = 2; // Increasing this will reset the dock settings.
+  static const int LATEST_DOCK_SETTINGS_VERSION = 3; // Increasing this will reset the dock settings.
 
   PropPanel::ToolbarContainerPropertyControl *mToolPanel;
   PropPanel::ToolbarContainerPropertyControl *mPlugTools;
@@ -578,6 +581,7 @@ private:
   SimpleString messageAt;
 
   Point2 viewportSplitRatio = Point2(0.5f, 0.5f);
+  bool projectLoaded = false;
   bool lastUsedLayoutLoaded = false;
   bool dockPositionsInitialized = false;
   bool consoleCommandsAndVariableWindowsVisible = false;

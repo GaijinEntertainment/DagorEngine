@@ -1,1 +1,0 @@
-The ``[type_macro]`` structure annotation — registers an ``AstTypeMacro`` subclass as a named macro that can intercept and transform type expressions.

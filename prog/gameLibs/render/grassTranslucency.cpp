@@ -97,7 +97,7 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
     Driver3dRenderTarget prevRt;
 
     d3d::get_render_target(prevRt);
-    d3d::set_render_target(grass_color_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{grass_color_tex.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     d3d::set_render_target(prevRt);
     grass_color_tex.setVar();
@@ -178,14 +178,14 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
 
     cb.start(last_grass_color_box);
 
-    d3d::set_render_target(grass_color_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{grass_color_tex.getTex2D(), 0, 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     shaders::overrides::set(flipCullOverride);
     cb.renderTranslucencyColor();
     shaders::overrides::reset();
 
-    d3d::set_render_target(grass_mask_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{grass_mask_tex.getTex2D(), 0, 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     shaders::overrides::set(flipCullAlphaOverride);
@@ -194,7 +194,7 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
     cb.renderTranslucencyMask();
     grass_mask_tex.setVar();
     ShaderGlobal::set_int(render_land_translucencyVarId, 0);
-    d3d::set_render_target(grass_color_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{grass_color_tex.getTex2D(), 0, 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
     decode_grass_mask.render();
 

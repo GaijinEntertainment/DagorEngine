@@ -164,6 +164,10 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
   if (shc::config().dependencyDumpMode)
     iterate_names_in_id_order(previousDepSet, [&ctx](int, char const *name) { ctx.reportDepFile(name); });
 
+  // Make sure dump is written
+  if (shc::config().clearBlkHashInDump)
+    return CompilerAction::LINK_ONLY;
+
   return CompilerAction::NOTHING;
 }
 

@@ -70,7 +70,7 @@ void ChopWaterRender::reinit()
 }
 
 ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_quality, int geom_quality, bool depth_renderer,
-  bool ssr_renderer, const fft_water::WaterHeightmap *water_heightmap) :
+  bool ssr_renderer, const fft_water::WaterHeightmap *water_heightmap, const HeightmapHeightCulling *heightmap_culling) :
   chopGen(chop_gen),
   renderQuality(render_quality),
   lod0AreaRadius(0.f),
@@ -84,6 +84,7 @@ ChopWaterRender::ChopWaterRender(ChopWaterGenerator &chop_gen, int render_qualit
   renderQuad(NULL)
 {
   waterHeightmap = water_heightmap;
+  heightmapCulling = heightmap_culling;
   geomQuality = max(geom_quality, 0);
   memset(maxWaveSize, 0, sizeof(maxWaveSize));
   setLevel(0);
@@ -267,7 +268,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
     minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
-    false /*not used*/, nullptr, &lodsRegion);
+    false /*not used*/, heightmapCulling, &lodsRegion);
   if (!defaultCullData.getCount())
     return;
 
@@ -289,23 +290,12 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   BBox2 heightmapRegion;
   if (geom_lod_quality == fft_water::GEOM_HIGH)
   {
+    const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;
     float lastLodCellSize = lod0CellSize * float(1 << (lodCount - 1));
-
-    for (auto &patch : defaultCullData.patches)
-    {
-      if (patch.size > lastLodCellSize * 0.75f)
-      {
-        Point2 lt(patch.originX, patch.originY);
-        float size = gridDim * patch.size;
-        Point2 rb = lt + Point2(size, size);
-        heightmapRegion += lt;
-        heightmapRegion += rb;
-      }
-    }
-
-    float border = 5.0f * 1.9f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
-    heightmapRegion.inflate(-border);
+    float border = 5.0f * 1.6f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
+    float size = float(gridDim * (lodGrid.lastLodRad << 1)) * lastLodCellSize - border;
+    heightmapRegion = BBox2(origin, size * 2);
   }
 
   ShaderGlobal::set_float4(water_originVarId, Color4(origin.x, origin.y, origin.z));

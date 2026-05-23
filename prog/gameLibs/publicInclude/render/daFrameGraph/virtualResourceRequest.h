@@ -79,6 +79,8 @@ class VirtualResourceRequest
 
   static constexpr bool hasPolicy(RRP p, const char *) { return hasPolicy(p); }
 
+  static constexpr bool isTypedBlob(const char *) { return !eastl::is_same_v<Res, AnyBlob>; }
+
   static constexpr RRP flipPolicy(RRP p) { return static_cast<RRP>(eastl::to_underlying(policy) ^ eastl::to_underlying(p)); }
 
   static constexpr RRP setPolicy(RRP p) { return static_cast<RRP>(eastl::to_underlying(policy) | eastl::to_underlying(p)); }
@@ -255,8 +257,9 @@ public:
    * See \ref dafg::VirtualResourceHandle for further details.
    */
   template <typename = void>
-    requires(!is_gpu || (hasPolicy(RRP::HasUsageStage, "ERROR: Please call .atStage(usage stage) before .handle()!") &&
-                          hasPolicy(RRP::HasUsageType, "ERROR: Please call .useAs(usage type) before .handle()!")))
+    requires(isTypedBlob("ERROR: Please specify the blob type via .blob<T>() to use .handle()!") &&
+             (!is_gpu || (hasPolicy(RRP::HasUsageStage, "ERROR: Please call .atStage(usage stage) before .handle()!") &&
+                           hasPolicy(RRP::HasUsageType, "ERROR: Please call .useAs(usage type) before .handle()!"))))
   [[nodiscard]] HandleType handle() &&
   {
     return {resUid, Base::provider()};

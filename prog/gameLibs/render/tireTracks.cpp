@@ -47,7 +47,7 @@ typedef Range<real> RealRange;
 static bool initialized = false;
 static String shaderName;
 
-UniqueBufHolder renderDataVS;
+UniqueBufWithShaderVar renderDataVS;
 
 static Tab<BBox3> updated_regions;
 

@@ -1,0 +1,11 @@
+=== after_adopt ===
+after double-resolve p.getState=pending
+after q.resolve p.getState=fulfilled
+waiter got: real
+=== after_terminal ===
+first resolve, p=fulfilled
+after extra calls p=fulfilled
+awaited value: 1
+r after extras=rejected
+r reason: first
+script done

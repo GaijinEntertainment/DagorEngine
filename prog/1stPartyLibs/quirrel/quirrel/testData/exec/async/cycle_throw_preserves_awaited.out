@@ -1,0 +1,3 @@
+cycle caught
+script done
+[sqasync] unhandled promise rejection on Promise.reject; reason: string "err"

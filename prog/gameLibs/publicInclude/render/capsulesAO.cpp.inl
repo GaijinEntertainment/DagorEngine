@@ -38,7 +38,7 @@ struct CapsulesAOHolder
     ShaderGlobal::set_int(capsuled_units_ao_countVarId, 0);
   }
 
-  UniqueBufHolder capsuled_units_ao, capsuled_units_indirection;
+  UniqueBufWithShaderVar capsuled_units_ao, capsuled_units_indirection;
   uint32_t maxAOUnitsCount = 0;
   int capsuled_units_ao_countVarId = -1;
   int capsuled_units_ao_world_to_grid_mul_addVarId = -1;

@@ -116,6 +116,7 @@ extern Tab<IRenderingService *> rendSrv;
 
 static SimpleString main_vromfs_fpath_str, main_vromfs_mount_dir_str;
 static SimpleString dng_scene_fname, dng_template_fname, dng_game_params_fname;
+static bool dng_init_ui_fonts = true;
 static IPoint2 pendingRes = {0, 0};
 static bool empty_world_created = false;
 static int last_dt_realtime_usec = 0;
@@ -601,6 +602,8 @@ public:
     if (const char *params = appblk.getBlockByNameEx("game")->getStr("params", nullptr))
       dng_based_render::dng_game_params_fname = String::mk_str_cat(app_dir, params);
     app_ecs_blk = *appblk.getBlockByNameEx("ecs");
+
+    dng_based_render::dng_init_ui_fonts = appblk.getBool("initUiFonts", true);
 
     String snapshot_dir;
     if (tools3d::get_snapshot_path(appblk, app_dir, snapshot_dir))
@@ -1115,6 +1118,9 @@ static void dng_based_render::init_dng_framework()
     config->setBool("skipSplashScreenAnimationInThread", true);
     config->addStr("esTag", "inside_tools");
     config->removeBlock("shadersWarmup");
+
+    config->addBool("initUiFonts", dng_init_ui_fonts);
+
     if (auto *graphics = config->getBlockByName("graphics"))
     {
       graphics->setStr("fxTarget", "highres");

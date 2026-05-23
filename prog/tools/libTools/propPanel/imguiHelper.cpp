@@ -179,15 +179,15 @@ bool ImguiHelper::toggleButtonWithDragSelection(const char *label, bool *value, 
   return changed;
 }
 
-bool ImguiHelper::inputTextWithEnterWorkaround(const char *label, String *str, bool focused, ImGuiInputTextFlags flags,
-  ImGuiInputTextCallback callback, void *user_data)
+bool ImguiHelper::inputTextWithEnterWorkaround(const char *label, const char *hint, String *str, bool focused,
+  ImGuiInputTextFlags flags, ImGuiInputTextCallback callback, void *user_data)
 {
   if (!focused)
-    return ImGuiDagor::InputText(label, str, flags, callback, user_data);
+    return ImGuiDagor::InputTextWithHint(label, hint, str, flags, callback, user_data);
 
   KeyDownHider enterKeyHider(ImGuiKey_Enter);
   KeyDownHider keypadEnterHider(ImGuiKey_KeypadEnter);
-  return ImGuiDagor::InputText(label, str, flags, callback, user_data);
+  return ImGuiDagor::InputTextWithHint(label, hint, str, flags, callback, user_data);
 }
 
 // Based on ImGui::LabelText.
@@ -251,6 +251,21 @@ void ImguiHelper::drawHalfFrame(float line_left_x, float line_top_y, float line_
   drawList->PathArcToFast(ImVec2(line_left_x + rounding + 0.5f, line_bottom_y - rounding + 0.5f), rounding, 6, 3);
   drawList->PathLineTo(ImVec2(line_right_x + 0.5f, line_bottom_y + 0.5f));
   drawList->PathStroke(lineColor);
+}
+
+void ImguiHelper::renderFrameWithRoundingOptions(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders, float rounding,
+  ImDrawFlags draw_flags)
+{
+  ImGuiContext &g = *GImGui;
+  ImGuiWindow *window = g.CurrentWindow;
+  window->DrawList->AddRectFilled(p_min, p_max, fill_col, rounding, draw_flags);
+  const float borderSize = g.Style.FrameBorderSize;
+  if (borders && borderSize > 0.0f)
+  {
+    window->DrawList->AddRect(p_min + ImVec2(1, 1), p_max + ImVec2(1, 1), ImGui::GetColorU32(ImGuiCol_BorderShadow), rounding,
+      draw_flags, borderSize);
+    window->DrawList->AddRect(p_min, p_max, ImGui::GetColorU32(ImGuiCol_Border), rounding, draw_flags, borderSize);
+  }
 }
 
 // Based on ImGui::TreeNodeBehavior. Taken from imgui_widgets.cpp. Modified parts are marked with GAIJIN.
@@ -976,6 +991,39 @@ bool ImguiHelper::imageButtonWithArrow(const char *str_id, IconId icon_id, const
   return imageButtonWithArrow(str_id, textureId, image_size, checked, flags);
 }
 
+bool ImguiHelper::imageButtonWithRoundingOptions(ImGuiID id, ImTextureRef tex_ref, const ImVec2 &image_size, const ImVec2 &uv0,
+  const ImVec2 &uv1, const ImVec4 &bg_col, const ImVec4 &tint_col, ImGuiButtonFlags flags, ImDrawFlags frame_draw_flags)
+{
+  ImGuiContext &g = *GImGui;
+  ImGuiWindow *window = ImGui::GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  const ImVec2 padding = g.Style.FramePadding;
+  const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + image_size + padding * 2.0f);
+  ImGui::ItemSize(bb);
+  if (!ImGui::ItemAdd(bb, id))
+    return false;
+
+  bool hovered, held;
+  const bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
+
+  // Render
+  const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+  ImGui::RenderNavCursor(bb, id);
+  renderFrameWithRoundingOptions(bb.Min, bb.Max, col, true, g.Style.FrameRounding, frame_draw_flags);
+  if (bg_col.w > 0.0f)
+    window->DrawList->AddRectFilled(bb.Min + padding, bb.Max - padding, ImGui::GetColorU32(bg_col));
+  float image_rounding = ImMax(g.Style.FrameRounding - ImMax(padding.x, padding.y), g.Style.ImageRounding);
+  if (image_rounding > 0.0f)
+    window->DrawList->AddImageRounded(tex_ref, bb.Min + padding, bb.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col),
+      image_rounding);
+  else
+    window->DrawList->AddImage(tex_ref, bb.Min + padding, bb.Max - padding, uv0, uv1, ImGui::GetColorU32(tint_col));
+
+  return pressed;
+}
+
 ImVec2 ImguiHelper::getButtonSize(const char *label, bool hide_text_after_double_hash, const ImVec2 &size_arg)
 {
   const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, hide_text_after_double_hash);
@@ -998,7 +1046,7 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
   // Extend padding so we can fit the icons in it. This is not perfect but better than copying the entire ImGui::InputTextEx.
   const ImVec2 originalFramePadding = ImGui::GetStyle().FramePadding;
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(originalFramePadding.x + inputPaddingX, originalFramePadding.y));
-  bool inputChanged = ImGuiDagor::InputTextWithHint(label, hint, &text_to_search);
+  bool inputChanged = inputTextWithEnterWorkaround(label, hint, &text_to_search, input_focused && *input_focused);
   ImGui::PopStyleVar();
 
   if (input_focused)

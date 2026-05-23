@@ -243,7 +243,7 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       bvhLod.blas = create_grass_blas(context_id, bvhLod.geometry, elem.numv, elem.numf * 3);
       HANDLE_LOST_DEVICE_STATE(bvhLod.blas, );
 
-      bvhLod.metaAllocId = context_id->allocateMetaRegion(1);
+      bvhLod.metaAllocId = context_id->allocateMetaRegion(1, "grass");
       auto &meta = context_id->meshMetaAllocator.get(bvhLod.metaAllocId)[0];
 
       meta.markInitialized();
@@ -291,8 +291,8 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       auto blasHandle = d3d::get_raytrace_acceleration_structure_gpu_handle(bvhLod.blas.get()).handle;
       auto &mapping = bvhConnection.metainfoMappingsCpu[metaIx];
 
-      mapping.blas.x = blasHandle & 0xFFFFFFFFLLU;
-      mapping.blas.y = blasHandle >> 32;
+      mapping.blas.x = blasHandle & GPU_ADDRESS_LOW_MASK;
+      mapping.blas.y = blasHandle >> GPU_ADDRESS_HIGH_SHIFT;
       mapping.metaIndex = MeshMetaAllocator::decode(bvhLod.metaAllocId);
 
       // Need to fit in 15 bits so there is enough space for the alpha value

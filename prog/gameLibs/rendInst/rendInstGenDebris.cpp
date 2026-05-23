@@ -543,7 +543,7 @@ static bool debug_verify_destroy_pool_data(const rendinst::DestroyedPoolData &po
 {
   for (int i = 0, lastI = pool.destroyedInstances.size() - 1; i <= lastI; ++i)
   {
-    if (pool.destroyedInstances[i].startOffs > pool.destroyedInstances[i].endOffs ||
+    if (pool.destroyedInstances[i].startOffs >= pool.destroyedInstances[i].endOffs ||
         (i != 0 && pool.destroyedInstances[i - 1].endOffs >= pool.destroyedInstances[i].startOffs))
     {
       logerr("==================================================");
@@ -973,7 +973,7 @@ rendinst::riex_handle_t rendinst::restoreRendInst(const RendInstBufferData &buff
         if (desc.offs < range.startOffs)
           break;
 
-        // If it's in the range
+        // If it's in the beggining range
         if (desc.offs == range.startOffs)
         {
           if (range.startOffs + stride == range.endOffs)

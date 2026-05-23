@@ -178,6 +178,9 @@ sound_irqs{
   "sound_irqs:shared:object"{
     _tags:t="sound"
   }
+  "sound_irqs__cooldown:object"{
+    _tags:t="sound"
+  }
 }
 
 sound_tags{

@@ -1,1 +1,0 @@
-Base class for creating variant macros via the ``[variant_macro]`` structure annotation; registers an ``AstVariantMacro`` with the compiler.

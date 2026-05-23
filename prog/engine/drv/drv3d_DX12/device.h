@@ -1499,11 +1499,7 @@ inline void FrontendQueryManager::shutdownPredicate(DeviceContext &ctx)
   WinAutoLock lock(predicateGuard);
   for (auto &&heap : predicateHeaps)
   {
-    for (int i = 0; i < heap_size; i++)
-    {
-      if (heap.qArr[i])
-        deleteQuery(heap.qArr[i]);
-    }
+    removeDeletedQueries({heap.querySlots, heap_size});
     ctx.destroyBuffer(eastl::move(heap.buffer));
   }
   predicateHeaps.clear();

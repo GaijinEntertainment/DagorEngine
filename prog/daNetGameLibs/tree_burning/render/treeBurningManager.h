@@ -12,7 +12,7 @@
 struct TreeBurningManager
 {
   dag::Vector<Point4> burningSources;
-  UniqueBufHolder burningSourcesConstBuffer;
+  UniqueBufWithShaderVar burningSourcesConstBuffer;
   dag::VectorMap<rendinst::riex_handle_t, uint32_t> burningTreesAdditionalData;
   dag::VectorSet<rendinst::riex_handle_t> burntTrees;
   dag::VectorSet<uint32_t> burnableRiExtraTypes;

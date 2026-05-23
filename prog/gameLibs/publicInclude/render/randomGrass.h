@@ -242,7 +242,7 @@ protected:
   void setLodStates(const GrassLod &lod);
   void closeTextures();
 
-  UniqueBufHolder layerDataVS, layerDataColor;
+  UniqueBufWithShaderVar layerDataVS, layerDataColor;
 
   float grassRadiusMul;
   float grassDensityMul;

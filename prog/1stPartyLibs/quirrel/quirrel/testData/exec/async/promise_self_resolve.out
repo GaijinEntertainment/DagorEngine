@@ -1,4 +1,5 @@
 resolve threw: Promise.resolve: cannot resolve with self
 reject threw: Promise.reject: cannot reject with self
-cross-resolve: fulfilled
+cross-resolve before b settles: pending
+cross-resolve after b settles: fulfilled
 script done

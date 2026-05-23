@@ -173,6 +173,7 @@ private:
   auto updateNodeDeclarations();
   auto resolveNames(const NodesChanged &nodes_changed);
   auto calculateDependencyData(const NodesChanged &nodes_changed);
+  void resolveBlobTypes();
   void validateRegistry(NodesChanged &nodeChanges, ResourcesChanged &resourceChanges);
   auto buildIrGraph(const ResourcesChanged &resources_changed, const NodesChanged &nodes_changed);
   void colorPasses(const IrNodesChanged &irNodesChanged);

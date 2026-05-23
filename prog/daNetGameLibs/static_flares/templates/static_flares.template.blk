@@ -24,7 +24,7 @@ static_flares_renderer{
   static_flares__count:i=0
   static_flares__copiedCount:i=0
 
-  "static_flares__instancesBuf:UniqueBufHolder"{}
+  "static_flares__instancesBuf:UniqueBufWithShaderVar"{}
   "static_flares__instances:StaticFlareInstances"{}
   "static_flares__node:dafg::NodeHandle"{}
 }

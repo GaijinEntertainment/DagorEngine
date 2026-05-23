@@ -337,13 +337,15 @@ public:
     {
       shutdown_localization();
       dup_key_err_count = 0;
-      if (!::startup_localization_V2(loc_blk, lang.langs.getName(j)) || dup_key_err_count)
+      LocKeyDump *keyDump = make_loc_key_dump();
+      if (!::startup_localization_V2(loc_blk, lang.langs.getName(j), keyDump) || dup_key_err_count)
       {
         printf("ERR: cannot load localization for lang=<%s>, task=<%s>\n", lang.langs.getName(j), task_name);
+        destroy_loc_key_dump(keyDump);
         return false;
       }
 
-      ::get_all_localization(loc_keys, loc_vals);
+      ::get_all_localization(keyDump, loc_keys, loc_vals);
       bool bad_keys = false;
       for (int k = 0; k < loc_keys.size(); k++)
         if (strchr(loc_keys[k], '\"'))
@@ -357,7 +359,10 @@ public:
           bad_keys = true;
         }
       if (bad_keys)
+      {
+        destroy_loc_key_dump(keyDump);
         return false;
+      }
       Tab<String> *v = new Tab<String>(tmpmem);
 
       if (keys.nameCount() == 0)
@@ -365,6 +370,7 @@ public:
           if (keys.addNameId(loc_keys[k]) != k)
           {
             printf("ERR: duplicate key=<%s>, task=<%s>\n", loc_keys[k], task_name);
+            destroy_loc_key_dump(keyDump);
             return false;
           }
 
@@ -375,6 +381,7 @@ public:
           (*v)[k] = loc_vals[k];
       }
       csv.push_back(v);
+      destroy_loc_key_dump(keyDump);
     }
     return true;
   }
@@ -1219,13 +1226,14 @@ static bool processTasks(const DataBlock &blk, dag::ConstSpan<char *> targets)
         {
           shutdown_localization();
           dup_key_err_count = 0;
-          if (!::startup_localization_V2(loc_blk, lang.langs.getName(j)) || dup_key_err_count)
+          LocKeyDump *keyDump = make_loc_key_dump();
+          if (!::startup_localization_V2(loc_blk, lang.langs.getName(j), keyDump) || dup_key_err_count)
           {
             result = false;
             printf("ERR: cannot load localization for lang=<%s>, task=<%s>\n", lang.langs.getName(j), name);
           }
 
-          ::get_all_localization(loc_keys, loc_vals);
+          ::get_all_localization(keyDump, loc_keys, loc_vals);
           for (int k = loc_keys.size() - 1; k >= 0; k--)
             if (!kc.keyHolds(loc_keys[k]))
             {
@@ -1271,6 +1279,7 @@ static bool processTasks(const DataBlock &blk, dag::ConstSpan<char *> targets)
             }
             csv.push_back(v);
           }
+          destroy_loc_key_dump(keyDump);
         }
 
         if (fpCsv)

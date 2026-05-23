@@ -163,28 +163,28 @@ public:
   }
 
   /// \brief Alias. See \ref read functions for details.
-  template <class T>
+  template <class T = AnyBlob>
   VirtualBlobRequest<T, NewRoRequestPolicy> readBlob(const char *name) const
   {
     return read(name).blob<T>();
   }
 
   /// \brief Alias. See \ref historyFor function for details.
-  template <class T>
+  template <class T = AnyBlob>
   VirtualBlobRequest<T, NewHistRequestPolicy> readBlobHistory(const char *name) const
   {
     return historyFor(name).blob<T>();
   }
 
   /// \brief Alias. See \ref modify function for details.
-  template <class T>
+  template <class T = AnyBlob>
   VirtualBlobRequest<T, NewRwRequestPolicy> modifyBlob(const char *name) const
   {
     return modify(name).blob<T>();
   }
 
   /// \brief Alias. See \ref rename function for details.
-  template <class T>
+  template <class T = AnyBlob>
   VirtualBlobRequest<T, NewNameRequestPolicy> renameBlob(const char *from, const char *to) const
   {
     return rename(from, to).blob<T>();

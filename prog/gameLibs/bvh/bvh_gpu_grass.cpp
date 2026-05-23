@@ -40,7 +40,7 @@ struct BVHConnection : public bvh::BVHConnection
 
 static Ptr<ComputeShaderElement> makeRTHWInstances;
 static Ptr<ComputeShaderElement> makeIndirectArgs;
-static UniqueBufHolder indirectArgs;
+static UniqueBufWithShaderVar indirectArgs;
 
 static ShaderVariableInfo gpu_grass_bvh_max_instancesVarId = ShaderVariableInfo("gpu_grass_bvh_max_instances", true);
 static ShaderVariableInfo gpu_grass_bvh_counterVarId = ShaderVariableInfo("gpu_grass_bvh_counter", true);
@@ -165,7 +165,7 @@ void make_meta(ContextId context_id, const GPUGrassBase &grass_base)
 
   auto makeMetaForOne = [&](Context::GPUGrassBillboard &grass) {
     G_ASSERT(grass.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
-    grass.metaAllocId = context_id->allocateMetaRegion(metaSize);
+    grass.metaAllocId = context_id->allocateMetaRegion(metaSize, "gpuGrass");
     grass.metaSize = metaSize;
     return context_id->meshMetaAllocator.get(grass.metaAllocId);
   };
@@ -250,9 +250,6 @@ void teardown(ContextId context_id)
 
 void on_unload_scene(ContextId context_id)
 {
-  if (!context_id->has(Features::GPUGrass))
-    return;
-
   bvhConnection.teardown();
   bvhConnection.instancesView = {};
   bvhConnection.instanceCountView = {};
@@ -296,12 +293,12 @@ void generate_instances(ContextId context_id, bool has_grass)
   makeIndirectArgs->dispatchThreads(1, 1, 1);
 
   IPoint4 blasAddress;
-  blasAddress.x = context_id->gpuGrassBillboard.blas.getGPUAddress() & 0xFFFFFFFFLLU;
-  blasAddress.y = context_id->gpuGrassBillboard.blas.getGPUAddress() >> 32;
+  blasAddress.x = context_id->gpuGrassBillboard.blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
+  blasAddress.y = context_id->gpuGrassBillboard.blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
   ShaderGlobal::set_int4(gpu_grass_bvh_blasVarId, blasAddress);
   IPoint4 blasAddressHorizontal;
-  blasAddressHorizontal.x = context_id->gpuGrassHorizontal.blas.getGPUAddress() & 0xFFFFFFFFLLU;
-  blasAddressHorizontal.y = context_id->gpuGrassHorizontal.blas.getGPUAddress() >> 32;
+  blasAddressHorizontal.x = context_id->gpuGrassHorizontal.blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
+  blasAddressHorizontal.y = context_id->gpuGrassHorizontal.blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
   ShaderGlobal::set_int4(gpu_grass_bvh_blas_horizontalVarId, blasAddressHorizontal);
   int metaIndex = MeshMetaAllocator::decode(context_id->gpuGrassBillboard.metaAllocId);
   ShaderGlobal::set_int(gpu_grass_bvh_meta_indexVarId, metaIndex);

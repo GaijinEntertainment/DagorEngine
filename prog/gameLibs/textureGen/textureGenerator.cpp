@@ -1365,7 +1365,7 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
                   if (tex)
                   {
                     SCOPE_RENDER_TARGET;
-                    d3d::set_render_target((Texture *)tex, 0);
+                    d3d::set_render_target({}, DepthAccess::RW, {{(Texture *)tex, 0, 0}});
                     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
                   }
                 }
@@ -1393,7 +1393,7 @@ bool TextureGenerator::startNode(NodeData &data, const DataBlock &node, eastl::h
                   if (tex)
                   {
                     SCOPE_RENDER_TARGET;
-                    d3d::set_render_target((Texture *)((Texture *)output), 0);
+                    d3d::set_render_target({}, DepthAccess::RW, {{(Texture *)output, 0, 0}});
                     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
                   }
                 }

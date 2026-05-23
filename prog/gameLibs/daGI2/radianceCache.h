@@ -72,14 +72,14 @@ protected:
                                 // updateInFrames*updateOldProbeFreq frames
   // the cache
   UniqueTexWithShaderVar current_radiance_cache, current_radiance_cache_hit_distance;
-  UniqueBufHolder radiance_cache_positions; // current positions of radiance cache, (currently in absolute values)
-  UniqueBufHolder radiance_cache_age;       // current age of radiance cache probes (latest frame it was used in)
-  UniqueBufHolder radiance_cache_selected_temporal_probes;
+  UniqueBufWithShaderVar radiance_cache_positions; // current positions of radiance cache, (currently in absolute values)
+  UniqueBufWithShaderVar radiance_cache_age;       // current age of radiance cache probes (latest frame it was used in)
+  UniqueBufWithShaderVar radiance_cache_selected_temporal_probes;
 
   // clipmap
-  UniqueBufHolder radiance_cache_indirection_clipmap; // positions of radiance cache
+  UniqueBufWithShaderVar radiance_cache_indirection_clipmap; // positions of radiance cache
   UniqueBuf used_radiance_cache_mask;
-  UniqueBufHolder new_radiance_cache_probes_needed, free_radiance_cache_indices_list;
+  UniqueBufWithShaderVar new_radiance_cache_probes_needed, free_radiance_cache_indices_list;
 
   UniqueBuf radiance_cache_indirect_buffer;
   eastl::unique_ptr<ComputeShaderElement> get_fake_radiance_cache_res_cs;

@@ -10,6 +10,7 @@
 
 #include <render/rendererFeatures.h>
 #include <render/resolution.h>
+#include <render/renderer.h>
 
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/resourceSlot/registerAccess.h>
@@ -31,9 +32,6 @@ GLOBAL_VARS_BLOOM
 static const auto bloomNodesNamespace = dafg::root() / "bloom";
 
 template <typename Callable>
-static void init_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
-
-template <typename Callable>
 static void disable_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_TAG(render)
@@ -50,43 +48,38 @@ static void reset_bloom_es(const ChangeRenderFeatures &evt, ecs::EntityManager &
 }
 
 ECS_TAG(render)
-static void resize_bloom_es(const SetResolutionEvent &evt, ecs::EntityManager &manager)
+ECS_ON_EVENT(on_appear, SetResolutionEvent)
+static void init_bloom_es(const ecs::Event &evt,
+  dag::Vector<dafg::NodeHandle> &bloom__downsample_chain,
+  dag::Vector<dafg::NodeHandle> &bloom__upsample_chain,
+  float bloom__upSample,
+  E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0),
+  float bloom__halation_brightness = 2,
+  float bloom__halation_mip_factor = 2,
+  int bloom__halation_end_mip = 1)
 {
-  if (evt.type != SetResolutionEvent::Type::SETTINGS_CHANGED)
+  if (evt.is<SetResolutionEvent>() && evt.cast<SetResolutionEvent>()->type != SetResolutionEvent::Type::SETTINGS_CHANGED ||
+      !evt.is<SetResolutionEvent>() && !get_world_renderer())
     return;
   if (!renderer_has_feature(FeatureRenderFlags::BLOOM))
     return;
-  init_bloom_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("bloom")),
-    [postfx_resolution = evt.postFxResolution](dag::Vector<dafg::NodeHandle> &bloom__downsample_chain,
-      dag::Vector<dafg::NodeHandle> &bloom__upsample_chain, float bloom__upSample,
-      E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
-      float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
-      const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
-      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
-      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
-        color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
-        max(0, bloom__halation_end_mip));
-    });
+
+  IPoint2 postfx_resolution =
+    evt.is<SetResolutionEvent>() ? evt.cast<SetResolutionEvent>()->postFxResolution : get_postfx_resolution();
+  const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
+  bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
+  bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
+    color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
+    max(0, bloom__halation_end_mip));
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnLevelLoaded)
-static void init_bloom_es(const ecs::Event &, ecs::EntityManager &manager)
+static void create_bloom_entity_es(const ecs::Event &, ecs::EntityManager &manager)
 {
   if (!renderer_has_feature(FeatureRenderFlags::BLOOM))
     return;
-  ecs::EntityId eid = manager.getOrCreateSingletonEntity(ECS_HASH("bloom"));
-  init_bloom_ecs_query(manager, eid,
-    [](dag::Vector<dafg::NodeHandle> &bloom__downsample_chain, dag::Vector<dafg::NodeHandle> &bloom__upsample_chain,
-      float bloom__upSample, E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
-      float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
-      IPoint2 postfx_resolution = get_postfx_resolution();
-      const float mipsCountF = floor(bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y)) + 0.999f;
-      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCountF);
-      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCountF, bloom__upSample,
-        color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
-        max(0, bloom__halation_end_mip));
-    });
+  manager.getOrCreateSingletonEntity(ECS_HASH("bloom"));
 }
 
 ECS_TAG(render)

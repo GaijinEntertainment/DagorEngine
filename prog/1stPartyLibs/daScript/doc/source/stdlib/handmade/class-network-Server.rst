@@ -1,1 +1,0 @@
-Single-socket listener that manages one client connection at a time.

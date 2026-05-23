@@ -74,7 +74,14 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
     return s0 + (s1 - s0) * locT;
   };
 
-  Point3 pt = bezierSpline.segs[0].point(0) - Point3::x0y(hm_ofs);
+  Tab<Point3> poly_pts(tmpmem);
+  Point3 pt = bezierSpline.segs[0].point(0);
+  if (poly && props.poly.smooth)
+  {
+    poly_pts.reserve(int(maxLen / step) + 1);
+    poly_pts.push_back(pt);
+  }
+  pt -= Point3::x0y(hm_ofs);
   Point3 tang = normalize(bezierSpline.segs[0].tang(0));
   int segId = 0;
   float prevScaleW = usePerPointWidth ? getScaleWAt(0, 0.0f) : 1.0f;
@@ -84,7 +91,10 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
   {
     float locT;
     int next_segId = bezierSpline.findSegment(len, locT);
-    Point3 pt_next = bezierSpline.segs[next_segId].point(locT) - Point3::x0y(hm_ofs);
+    Point3 pt_next = bezierSpline.segs[next_segId].point(locT);
+    if (poly && props.poly.smooth)
+      poly_pts.push_back(pt_next);
+    pt_next -= Point3::x0y(hm_ofs);
     pt_next.x /= hm_cell_size;
     pt_next.z /= hm_cell_size;
 
@@ -132,6 +142,12 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
     pt = pt_next;
     segId = next_segId;
     prevScaleW = nextScaleW;
+  }
+  if (poly && poly_pts.empty())
+  {
+    poly_pts.reserve(points.size());
+    for (int i = 0; i < points.size(); i++)
+      poly_pts.push_back(points[i]->getPt());
   }
 
   if (poly)
@@ -232,7 +248,7 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
             float strength = (effSplineSmooth > 1e-9f) ? (dist - effSplineWidth) / effSplineSmooth : 1.0f;
             float tx = xs * hm_cell_size + hm_ofs.x;
             float ty = ys * hm_cell_size + hm_ofs.y;
-            if (poly && pointInsidePoly(Point2(tx, ty)))
+            if (poly && pointInsidePoly(Point2(tx, ty), poly_pts))
               strength = 0;
             if (strength < 1.0f)
             {
@@ -264,7 +280,7 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
         float tx = xs * hm_cell_size + hm_ofs.x;
         float ty = ys * hm_cell_size + hm_ofs.y;
 
-        if (pointInsidePoly(Point2(tx, ty)))
+        if (pointInsidePoly(Point2(tx, ty), poly_pts))
         {
           if (props.modifParams.additive)
           {

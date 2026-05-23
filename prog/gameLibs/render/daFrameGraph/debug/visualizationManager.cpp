@@ -13,7 +13,7 @@ eastl::unique_ptr<IVisualizationManager> make_real_manager(InternalRegistry &int
 
 VisManager::VisManager(InternalRegistry &intRegistry, const NameResolver &nameResolver, const DependencyData &depData,
   const intermediate::Graph &irGraph, const PassColoring &coloring) :
-  userGraphVisualizer{intRegistry, nameResolver, depData, irGraph, coloring},
+  userGraphVisualizer{intRegistry, depData, irGraph, coloring},
   irGraphVisualizer{irGraph, coloring},
   resVisualizer{intRegistry, nameResolver, irGraph}
 {}

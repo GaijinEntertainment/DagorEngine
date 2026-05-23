@@ -1,1 +1,0 @@
-Sets ``argc``, ``argv`` to first argument, for the ``body`` block. 

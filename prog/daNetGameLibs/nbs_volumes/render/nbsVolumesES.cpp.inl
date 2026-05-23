@@ -18,7 +18,7 @@ inline void update_nbs_buffers_ecs_query(ecs::EntityManager &manager, Callable c
 
 struct NBSSpheresManager
 {
-  UniqueBufHolder spheresBuffer;
+  UniqueBufWithShaderVar spheresBuffer;
   int counterVarId = -1;
   int lastCount = 0;
 };

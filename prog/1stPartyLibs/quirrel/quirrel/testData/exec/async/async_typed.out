@@ -1,0 +1,10 @@
+=== typed function ===
+n=42
+p-pending
+resolved=42
+=== typed lambda ===
+n=7
+=== typed method ===
+r1=3
+r2=7
+script done

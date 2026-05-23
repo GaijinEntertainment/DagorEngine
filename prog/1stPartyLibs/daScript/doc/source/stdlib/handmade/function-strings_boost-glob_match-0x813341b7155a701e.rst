@@ -1,1 +1,0 @@
-Matches ``text`` against a shell-style glob ``pattern``. Supports ``*`` (any sequence of characters, including empty) and ``?`` (exactly one character). Returns true if the entire text matches the pattern.

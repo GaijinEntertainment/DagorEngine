@@ -24,6 +24,11 @@
 
 CONSOLE_INT_VAL("render", srgb_anisotropy, 0, 0, 4);
 
+namespace var
+{
+static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_const_no");
+}
+
 dafg::NodeHandle makeSSAANode()
 {
   return dafg::register_node("ssaa_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -116,11 +121,11 @@ dafg::NodeHandle makeDepthWithTransparencyNode()
 
       {
         SCOPE_RENDER_TARGET;
-        d3d::settex(15, depthHndl.get());
-        d3d::set_sampler(STAGE_PS, 15, d3d::request_sampler({}));
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), depthHndl.get());
+        d3d::set_sampler(STAGE_PS, var::source_depth_for_copy_const_no.get_int(), d3d::request_sampler({}));
         d3d::set_render_target({transparentDepthHndl.get(), 0, 0}, DepthAccess::RW, {});
         wr.copyDepth.render();
-        d3d::settex(15, nullptr);
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), nullptr);
       }
       {
         d3d::set_render_target({transparentDepthHndl.get(), 0, 0}, DepthAccess::RW, {});

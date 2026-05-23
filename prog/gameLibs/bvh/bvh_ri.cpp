@@ -260,6 +260,9 @@ void init(ContextId context_id)
 
 void wait_ri_extra_instances_update(ContextId context_id);
 void wait_ri_gen_instances_update(ContextId context_id);
+void wait_tidy_up_trees();
+void tidy_up_rigen_trees(ContextId context_id);
+void tidy_up_riex_trees(ContextId context_id);
 
 void on_scene_loaded_ri_ex(ContextId context_id);
 void on_unload_scene_ri_ex(ContextId context_id);
@@ -272,6 +275,10 @@ void on_unload_scene(ContextId context_id)
     return;
   wait_ri_extra_instances_update(context_id);
   wait_ri_gen_instances_update(context_id);
+  wait_tidy_up_trees();
+  tidy_up_rigen_trees(context_id);
+  tidy_up_riex_trees(context_id);
+
   for (auto &cnt : context_id->treeAnimIndexCount)
     cnt = 0;
   for (auto &lod : context_id->uniqueTreeBuffers)

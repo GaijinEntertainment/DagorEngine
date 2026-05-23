@@ -1,1 +1,0 @@
-Returns the AST expression tree of the provided code without evaluating or type-inferring it. Used in macro programming to capture source code as a manipulable AST.

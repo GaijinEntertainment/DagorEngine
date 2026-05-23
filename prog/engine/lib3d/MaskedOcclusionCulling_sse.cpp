@@ -360,10 +360,11 @@ MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(co
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd,
-  const float *rawToClipMatrix, unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding)
+  const float *rawToClipMatrix, unsigned short *cacheIndices, int cacheIndicesCapacity, int *cacheTriCount, CacheMode cacheMode,
+  BackfaceWinding bfWinding)
 {
-  return MOC_STATIC_DOWNCAST(this)->RenderBLAS(blasData, treeStart, treeEnd, rawToClipMatrix, cacheIndices, cacheTriCount, cacheMode,
-    bfWinding);
+  return MOC_STATIC_DOWNCAST(this)->RenderBLAS(blasData, treeStart, treeEnd, rawToClipMatrix, cacheIndices, cacheIndicesCapacity,
+    cacheTriCount, cacheMode, bfWinding);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,

@@ -139,7 +139,7 @@ void gather_process(DagdpRiexGatherJob &job,
   RelevantTiles &out_tiles,
   RelevantVolumes &out_volumes);
 
-void start_gather_before_draw_volumes(const Point3 &cam_pos, const Frustum &cam_frustum);
+void start_gather_before_draw_volumes(ecs::EntityManager &manager, const Point3 &cam_pos, const Frustum &cam_frustum);
 
 bool is_volume_early_riex_gather_enabled();
 

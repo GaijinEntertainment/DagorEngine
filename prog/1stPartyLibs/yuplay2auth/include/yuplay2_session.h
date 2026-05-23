@@ -74,6 +74,7 @@ enum Yuplay2SessionOptions
   YU2_HUAWEI_LOGIN_URL,                   // Huawei auth URL. Empty string for default. String
   YU2_YUPMASTER_FALLBACK_HOSTS,           // Yupmaster fallback hosts override. Strings
   YU2_WEB_LOGIN_TIMEOUT,                  // How long (in seconds) session will check for web login session status. Int
+  YU2_AUTH_FALLBACK_HOSTS,                // auth fallback hosts override. Strings
 };
 
 

@@ -4,10 +4,7 @@
 //
 #pragma once
 
-#include <math/dag_Point3.h>
 #include <math/dag_vecMathCompatibility.h>
-
-class TMatrix;
 
 struct Ray3
 {
@@ -15,15 +12,21 @@ struct Ray3
   vec3f dir;
   float length = 0.f;
 
-  Point3 end() const { return as_point3(&start) + as_point3(&dir) * length; }
+  vec3f end() const { return v_madd(dir, v_splats(length), start); }
 
   Ray3() : start(v_zero()), dir(v_make_vec4f(1.f, 0.f, 0.f, 0.f)) {}
-  Ray3(const Point3 &s, const Point3 &d, float l) : start(v_ldu_p3(&s.x)), dir(v_ldu_p3(&d.x)), length(l) {}
   Ray3(vec3f s, vec3f d, float l) : start(s), dir(d), length(l) {}
 };
 
-Ray3 operator*(const TMatrix &tm, const Ray3 &r);
-Ray3 operator*(mat44f_cref tm, const Ray3 &r);
+inline Ray3 operator*(mat44f_cref tm, const Ray3 &r)
+{
+  return {v_mat44_mul_vec3p(tm, r.start), v_norm3(v_mat44_mul_vec3v(tm, r.dir)), r.length};
+}
 
-Ray3 make_ray_from_segment(const Point3 &p1, const Point3 &p2);
-Ray3 make_ray_from_segment_and_t(const Point3 &p1, const Point3 &p2, float t);
+inline Ray3 make_ray_from_segment(vec3f p1, vec3f p2)
+{
+  vec3f diff = v_sub(p2, p1);
+  return {p1, v_norm3_safe(diff, v_zero()), v_extract_x(v_length3(diff))};
+}
+
+inline Ray3 make_ray_from_segment_and_t(vec3f p1, vec3f p2, float t) { return {p1, v_norm3_safe(v_sub(p2, p1), v_zero()), t}; }

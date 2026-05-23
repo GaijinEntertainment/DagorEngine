@@ -60,6 +60,7 @@ struct BufferProcessor
     eastl::function<Sbuffer *(uint32_t &)> getSplineDataFn;
     TreeData tree;
     FlagData flag;
+    SkinData skin;
 
     float impostorHeightOffset;
     Point4 impostorScale;
@@ -129,6 +130,7 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
   mutable uint32_t counter = 0;
   mutable uint32_t lastInstanceOffset = 0;
 
+  using VariantKey = uint32_t;
   struct DispatchData
   {
     eastl::vector<BvhSkinnedInstanceData> instanceData;
@@ -136,7 +138,7 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
     ~DispatchData();
   };
 
-  mutable eastl::unordered_map<Sbuffer *, DispatchData> dispatchDataMapping;
+  mutable eastl::vector_map<VariantKey, eastl::unordered_map<Sbuffer *, DispatchData>> dispatchDataMapping;
   mutable UniqueBuf instanceDataBuffer;
 
   SkinnedVertexProcessorBatched() : BufferProcessor("bvh_process_skinned_vertices_batched") {}
@@ -152,6 +154,8 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
 
 private:
   void updateData() const;
+  static VariantKey packVariants(bool is_cloth_wind);
+  static void unpackVariants(VariantKey key, bool &is_cloth_wind);
 };
 
 struct TreeVertexProcessor : public BufferProcessor

@@ -6,7 +6,7 @@ include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
 if ! $(UseD3DMultiList) {
-  UseD3DMultiList_windows = DX11 DX12 vulkan stub ;
+  UseD3DMultiList_windows = DX11 vulkan stub ;
   UseD3DMultiList_linux   = vulkan stub ;
 }
 
@@ -50,6 +50,9 @@ Sources =
   car_camera_elem.cpp
 
   pluginService/de_IDagorPhysImpl.cpp
+  pluginService/graph_tex_gen_service.cpp
+  pluginService/image_export.cpp
+  pluginService/landscape_preview_service.cpp
 ;
 
 if $(Platform) = windows {
@@ -169,6 +172,7 @@ UseProgLibs =
   commonFx/commonFxGame
   gameLibs/consoleWindow
   gameLibs/resourcePool
+  gameLibs/heightmap
   gameLibs/render
   gameLibs/rendInst
   gameLibs/rendInst/riFx/stub
@@ -189,6 +193,9 @@ UseProgLibs =
   gameLibs/vehiclePhys/vehiclePhys-BULLET
   gameLibs/landMesh
   gameLibs/textureUtil
+  gameLibs/textureGen
+
+  3rdPartyLibs/image/tiff-4.4.0
 
   gameLibs/imguiInput
   gameLibs/physMap
@@ -235,7 +242,9 @@ else {
     tools/sceneTools/daEditorX/Occluders
     tools/sceneTools/daEditorX/StaticGeom
     tools/sceneTools/daEditorX/csg
+    tools/sceneTools/daEditorX/GraphEditor
   ;
+
   Dependencies += $(Root)/prog/tools/sceneTools/assetExp/jamfile-lib.jam ;
 
   if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP

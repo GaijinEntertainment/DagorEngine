@@ -322,20 +322,25 @@ macro INIT_SAMPLE_DEPTH_TEX(code)
 endmacro
 
 macro USE_SAMPLE_DEPTH_TEX(code)
+  USE_LOWRES_TEX_SIZE(code)
   hlsl(code) {
     float sample_far_depth_tex(float2 tc, int level)
     {
-      return tex2Dlod(downsampled_far_depth_tex, float4(tc.x, tc.y, 0, (float)level)).r;
+      return tex2Dlod(downsampled_far_depth_tex, float4(tc, 0, (float)level)).r;
     }
 
-    float sample_far_depth_tex_linear(float2 tc, int level)
+    float4 gather_far_depth(float2 tc)
     {
-      return downsampled_far_depth_tex.SampleLevel(water_refraction_tex_samplerstate, tc, (float)level).r;
+      return downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, tc);
     }
 
-    float4 gather_far_depth(float2 uv)
+    float sample_floor_z(float2 tc, float waterZ)
     {
-      return downsampled_far_depth_tex.GatherRed(downsampled_far_depth_tex_samplerstate, uv);
+      float4 floorZ4 = linearize_z4(gather_far_depth(tc), zn_zfar.zw);
+      float2 bilW = frac(tc * lowres_tex_size.xy - 0.5);
+      float floorZ = lerp(lerp(floorZ4.w, floorZ4.z, bilW.x), lerp(floorZ4.x, floorZ4.y, bilW.x), bilW.y);
+      floorZ = lerp(floorZ4.w, floorZ, step(waterZ, floorZ));
+      return floorZ;
     }
   }
 endmacro

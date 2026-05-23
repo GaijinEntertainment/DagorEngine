@@ -1,1 +1,0 @@
-The ``[variant_macro]`` structure annotation — registers an ``AstVariantMacro`` subclass as a named macro that can customize ``is``, ``as``, and ``?as`` variant operations.

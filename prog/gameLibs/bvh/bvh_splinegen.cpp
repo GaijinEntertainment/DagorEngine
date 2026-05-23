@@ -47,7 +47,7 @@ static void add_splinegen_instance_to_list(ContextId context_id, uint64_t bvh_ob
   };
 
   if (data.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-    data.metaAllocId = context_id->allocateMetaRegion(1);
+    data.metaAllocId = context_id->allocateMetaRegion(1, "splinegen");
 
   splinegenBVHInstances.push_back(eastl::make_tuple(bvh_object_id, splinegenInfo, data.metaAllocId));
 }

@@ -148,6 +148,8 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
   meshInfo.isHeliRotor = isHeliRotor;
   meshInfo.ppPositionTextureId = elem.mat->get_texture(7);
   meshInfo.ppDirectionTextureId = elem.mat->get_texture(8);
+  static int clothNoiseCombinedTexVarId = get_shader_variable_id("clothNoiseCombinedTex", true);
+  elem.mat->getTextureVariable(clothNoiseCombinedTexVarId, meshInfo.clothNoiseCombinedTexTextureId);
 
   if (elem_rules)
     elem_rules(elem, meshInfo, parser, impostor_params, impostor_textures);

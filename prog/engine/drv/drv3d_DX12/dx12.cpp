@@ -270,7 +270,7 @@ struct ApiState
   dag::Vector<uint8_t> screenCaptureBuffer;
 
   DriverDesc driverDesc = {};
-  eastl::string deviceName;
+  char deviceName[eastl::size(DXGI_ADAPTER_DESC1{}.Description)] = {};
   eastl::optional<HDRCapabilities> hdrCaps = {};
   HRESULT lastErrorCode = S_OK;
 
@@ -328,7 +328,7 @@ struct ApiState
 
     device.shutdown(DeviceCapsAndShaderModel::fromDriverDesc(driverDesc));
 
-    deviceName.clear();
+    deviceName[0] = '\0';
 
     windowState.closeWindow();
 #if _TARGET_PC_WIN
@@ -872,10 +872,8 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, {eastl::move(adapter), info},
           featureLevel, eastl::move(sci), deviceCfg, []() { api_state.adjustCaps(); }))
     {
-      char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
-      const size_t size = wcstombs(strBuffer, info.Description, sizeof(strBuffer));
-      strBuffer[size] = '\0';
-      api_state.deviceName = strBuffer;
+      size_t converted = 0;
+      wcstombs_s(&converted, api_state.deviceName, info.Description, _TRUNCATE);
       return true;
     }
     return false;
@@ -951,14 +949,14 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
 
     for (auto &&adapter : adapterList)
     {
-      char strBuffer[sizeof(DXGI_ADAPTER_DESC1::Description) * 2 + 1];
-      const size_t size = wcstombs(strBuffer, adapter.info.Description, sizeof(strBuffer));
-      strBuffer[size] = '\0';
+      char strBuffer[eastl::size(DXGI_ADAPTER_DESC1{}.Description)];
+      size_t converted = 0;
+      wcstombs_s(&converted, strBuffer, adapter.info.Description, _TRUNCATE);
       logdbg("DX12: Trying with device %s", strBuffer);
       if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, eastl::move(adapter), featureLevel,
             eastl::move(sci), deviceCfg, []() { api_state.adjustCaps(); }))
       {
-        api_state.deviceName = strBuffer;
+        memcpy_s(api_state.deviceName, sizeof(api_state.deviceName), strBuffer, converted);
         break;
       }
     }
@@ -1155,7 +1153,7 @@ const char *d3d::get_driver_name() { return "DirectX 12"; }
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::dx12); }
 #endif
 
-const char *d3d::get_device_name() { return api_state.deviceName.c_str(); }
+const char *d3d::get_device_name() { return api_state.deviceName; }
 const char *d3d::get_last_error() { return drv3d_dx12::dxgi_error_code_to_string(drv3d_dx12::api_state.lastErrorCode); }
 
 uint32_t d3d::get_last_error_code() { return drv3d_dx12::api_state.lastErrorCode; }
@@ -1576,21 +1574,23 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 0;
     }
     case Drv3dCommand::PIPELINE_STATS_BEGIN:
+    case Drv3dCommand::PIPELINE_STATS_BEGIN_LAZY:
     {
       PipelineStatsQuery *&q = *static_cast<PipelineStatsQuery **>(par1);
       if (!q)
       {
         q = api_state.device.getQueryManager().newPipelineStatsQuery();
       }
-      api_state.device.getContext().beginPipelineStatsQuery(q);
+      api_state.device.getContext().beginPipelineStatsQuery(q, command == Drv3dCommand::PIPELINE_STATS_BEGIN_LAZY);
       return 1;
     }
     case Drv3dCommand::PIPELINE_STATS_END:
+    case Drv3dCommand::PIPELINE_STATS_END_LAZY:
     {
       PipelineStatsQuery *q = static_cast<PipelineStatsQuery *>(par1);
       if (q)
       {
-        api_state.device.getContext().endPipelineStatsQuery(q);
+        api_state.device.getContext().endPipelineStatsQuery(q, command == Drv3dCommand::PIPELINE_STATS_END_LAZY);
       }
       return q != nullptr;
     }
@@ -3519,7 +3519,8 @@ bool d3d::draw_base(int type, int start, int numprim, uint32_t num_instances, ui
   {
     return false;
   }
-  api_state.device.getContext().draw(topology, start, nprim_to_nverts(type, numprim), start_instance, num_instances);
+  api_state.device.getContext().draw(topology, start, nprim_to_nverts(type, numprim), start_instance, num_instances,
+    numprim * num_instances);
 
   Stat3D::updateDrawPrim();
   Stat3D::updateTriangles(numprim * num_instances);
@@ -3541,7 +3542,7 @@ bool d3d::drawind_base(int type, int startind, int numprim, int base_vertex, uin
     return false;
   }
   api_state.device.getContext().drawIndexed(topology, startind, nprim_to_nverts(type, numprim), max(base_vertex, 0), start_instance,
-    num_instances);
+    num_instances, numprim * num_instances);
 
   Stat3D::updateDrawPrim();
   Stat3D::updateTriangles(numprim * num_instances);

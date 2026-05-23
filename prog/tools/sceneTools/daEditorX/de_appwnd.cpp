@@ -1022,7 +1022,7 @@ void DagorEdAppWindow::fillMainToolBar()
 {
   ged.tbManager->init(GUI_MAIN_TOOLBAR_ID);
 
-  PropPanel::ContainerPropertyControl *tb2 = EDITORCORE->getCustomPanel(GUI_MAIN_TOOLBAR_ID)->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = EDITORCORE->getCustomPanel(GUI_MAIN_TOOLBAR_ID)->createToolbarPanel();
   tb2->createSeparator();
   editor_command_system.createToolbarToggleButton(*tb2, CM_DISCARD_TEX_MODE, EditorCommandIds::DISCARD_TEX_MODE,
     "Discard textures (show stub tex)");
@@ -1259,12 +1259,10 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
   if (wsp)
   {
     const Tab<String> &recents = wsp->getRecents();
-    const int menuResentCnt = CM_FILE_RECENT_LAST - CM_FILE_RECENT_BASE;
-    const int minRecentRemainder = (recents.size() <= menuResentCnt) ? 0 : recents.size() - menuResentCnt;
 
     if (id >= CM_FILE_RECENT_BASE && id < CM_FILE_RECENT_LAST && id - CM_FILE_RECENT_BASE < recents.size())
     {
-      String fileName = ::make_full_path(DAGORED2->getSdkDir(), recents[id - CM_FILE_RECENT_BASE + minRecentRemainder]);
+      String fileName = ::make_full_path(DAGORED2->getSdkDir(), recents[id - CM_FILE_RECENT_BASE]);
 
       simplify_fname(fileName);
 
@@ -2887,6 +2885,9 @@ bool DagorEdAppWindow::gracefulFatalExit(const char *msg, const char *call_stack
 //==============================================================================
 bool DagorEdAppWindow::loadProject(const char *filename)
 {
+  logdbg("Loading project \"%s\".", filename);
+
+  projectLoaded = false;
   bool real_3d = !d3d::is_stub_driver();
   if (!real_3d)
   {
@@ -3248,6 +3249,7 @@ bool DagorEdAppWindow::loadProject(const char *filename)
   prev_fatal_handler = dgs_fatal_handler;
   dgs_fatal_handler = DagorEdAppWindow::gracefulFatalExit;
 
+  projectLoaded = true;
   return true;
 }
 
@@ -3631,6 +3633,19 @@ void DagorEdAppWindow::showTagManager(bool show)
   {
     mManager->removeWindow(mTagManager);
   }
+}
+
+//==============================================================================
+
+bool DagorEdAppWindow::getPendingTextureLoadTotalCount(unsigned int &total_count)
+{
+  AsyncTextureLoadingState ld_state;
+  if (texconvcache::get_tex_factory_current_loading_state(ld_state))
+  {
+    total_count = ld_state.pendingLdTotal;
+    return true;
+  }
+  return false;
 }
 
 //==============================================================================
@@ -4029,8 +4044,16 @@ void DagorEdAppWindow::renderUI()
     ImGuiID dockSpaceRight3 = ImGui::DockBuilderSplitNode(dockSpaceLeft, ImGuiDir_Right, 0.25f, nullptr, &dockSpaceLeft);
     ImGuiID dockSpaceRight2 = ImGui::DockBuilderSplitNode(dockSpaceLeft, ImGuiDir_Right, 0.25f, nullptr, &dockSpaceLeft);
     ImGuiID dockSpaceRight1 = ImGui::DockBuilderSplitNode(dockSpaceLeft, ImGuiDir_Right, 0.33f, nullptr, &dockSpaceViewport);
+
+    ImGuiID dockSpaceGraph = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Right, 0.5f, nullptr, &dockSpaceViewport);
+
     dockSpaceLeft = ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Left, 0.4f, nullptr, &dockSpaceViewport);
     dockSpaceLeftBottom = ImGui::DockBuilderSplitNode(dockSpaceLeft, ImGuiDir_Down, 0.15f, nullptr, &dockSpaceLeft);
+
+    ImGuiID dockSpaceViewportBottomLeft =
+      ImGui::DockBuilderSplitNode(dockSpaceViewport, ImGuiDir_Down, 0.30f, nullptr, &dockSpaceViewport);
+    ImGuiID dockSpaceViewportBottomRight =
+      ImGui::DockBuilderSplitNode(dockSpaceViewportBottomLeft, ImGuiDir_Right, 0.5f, nullptr, &dockSpaceViewportBottomLeft);
 
     ImGuiDockNode *viewportNode = ImGui::DockBuilderGetNode(dockSpaceViewport);
     if (viewportNode)
@@ -4046,6 +4069,12 @@ void DagorEdAppWindow::renderUI()
     ImGui::DockBuilderDockWindow("Trigger / Mission Obj. Info", dockSpaceRight3);
     ImGui::DockBuilderDockWindow("Object Properties", dockSpaceRight4);
     ImGui::DockBuilderDockWindow("Scene Outliner", dockSpaceRight4);
+
+    // GraphEditorPlg panels
+    ImGui::DockBuilderDockWindow("Graph", dockSpaceGraph);
+    ImGui::DockBuilderDockWindow("Histogram", dockSpaceViewportBottomLeft);
+    ImGui::DockBuilderDockWindow("Texture Preview", dockSpaceViewportBottomRight);
+    ImGui::DockBuilderDockWindow("Landscape preview", dockSpaceViewport);
 
     ImGui::DockBuilderFinish(rootDockSpaceId);
   }

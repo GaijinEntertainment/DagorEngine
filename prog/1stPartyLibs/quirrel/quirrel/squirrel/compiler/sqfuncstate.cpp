@@ -147,7 +147,8 @@ SQInteger SQFuncState::AllocStackPos()
 {
     SQInteger npos=_vlocals.size();
     if(npos >= MAX_FUNC_STACKSIZE)
-        _ctx.throwError("internal compiler error: too many locals");
+        _ctx.throwError("too many function stack slots: bytecode supports at most %d slots per function; slot %d cannot be encoded because 0x%02X is reserved",
+            int(MAX_FUNC_STACKSIZE), int(npos), int(MAX_FUNC_STACKSIZE));
     _vlocals.push_back(SQLocalVarInfo());
     _vlocals_info.push_back(SQCompiletimeVarInfo{});
     if(_vlocals.size()>((SQUnsignedInteger)_stacksize)) {
@@ -235,6 +236,11 @@ bool SQFuncState::IsLocal(SQUnsignedInteger stkpos)
 SQInteger SQFuncState::PushLocalVariable(const SQObject &name, const SQCompiletimeVarInfo& ct_var_info)
 {
     SQInteger pos=_vlocals.size();
+    if(pos >= MAX_FUNC_STACKSIZE) {
+        const char *varName = sq_type(name) == OT_STRING ? _stringval(name) : "<anonymous>";
+        _ctx.throwError("too many function stack slots: cannot allocate local '%s' at slot %d; bytecode supports at most %d slots per function",
+            varName, int(pos), int(MAX_FUNC_STACKSIZE));
+    }
     SQLocalVarInfo lvi;
     lvi._name=name;
     lvi._start_op=GetCurrentPos()+1;

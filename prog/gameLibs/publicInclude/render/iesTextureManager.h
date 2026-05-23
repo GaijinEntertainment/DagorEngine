@@ -40,7 +40,7 @@ private:
   PostFxRenderer iesGenerator;
   IPoint3 currentResolution = IPoint3(0, 0, 0);
   UniqueTex dynamicIesTexArray;
-  UniqueBufHolder sortedPhotometryControlPointsBuf;
+  UniqueBufWithShaderVar sortedPhotometryControlPointsBuf;
   eastl::string originalTextureName;
   eastl::vector<PhotometryControlPoint> sortedPhotometryControlPoints;
   bool needsRender = true;

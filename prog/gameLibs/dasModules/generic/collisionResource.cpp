@@ -165,6 +165,9 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getGridSize)>(*this, lib, "collres_getGridSize", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(CollisionResource::getGridSize));
 
+    das::addExtern<DAS_BIND_FUN(apply_collres_node_flag_rules)>(*this, lib, "apply_collres_node_flag_rules",
+      das::SideEffects::modifyExternal, "bind_dascript::apply_collres_node_flag_rules");
+
     verifyAotReady();
   }
 

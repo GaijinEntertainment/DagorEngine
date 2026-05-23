@@ -9,6 +9,7 @@
 #include <drv/3d/dag_interface_table.h>
 #include <math/dag_math3d.h>
 #include <math/random/dag_random.h>
+#include <imgui/imgui.h>
 
 IDagorEd2Engine *IDagorEd2Engine::__dagored_global_instance = NULL;
 IDaEditor3Engine *IDaEditor3Engine::__daeditor3_global_instance = NULL;
@@ -54,6 +55,11 @@ void daeditor3_init_globals(IDagorEd2Engine &editor)
   IEditorCoreEngine::set(&editor);
   IDagorEd2Engine::set(&editor);
   IDaEditor3Engine::set(&editor3);
+
+  if (void *ctx = DAEDITOR3.getImguiContext())
+  {
+    ImGui::SetCurrentContext((ImGuiContext *)ctx);
+  }
 }
 
 String editorcore_extapi::make_full_start_path(const char *rel_path) { return ::make_full_path(exePath, rel_path); }

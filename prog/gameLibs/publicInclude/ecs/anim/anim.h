@@ -61,5 +61,6 @@ namespace anim
 {
 void dump_animchar_state(AnimV20::AnimcharBaseComponent &animchar, const bool json_format = false);
 void animchar_act(float dt, float *accum_dt, const float *dt_threshold, AnimV20::AnimcharBaseComponent &animchar,
-  bool animchar__turnDir, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm, vec4f *animchar_render__root_pos);
+  bool animchar__turnDir, ecs::EntityId eid, const TMatrix &transform, AnimcharNodesMat44 *animchar_node_wtm,
+  vec4f *animchar_render__root_pos);
 }; // namespace anim

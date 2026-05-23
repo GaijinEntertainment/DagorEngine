@@ -110,8 +110,15 @@ void WinHwExceptionUtils::parseExceptionInfo(EXCEPTION_POINTERS *eptr, const cha
 
   if (EXCEPTION_ACCESS_VIOLATION == rec.ExceptionCode)
   {
-    lbw.aprintf("  attempt to %s memory at %08llX\n", rec.ExceptionInformation[0] ? "write to" : "read",
-      (int64_t)rec.ExceptionInformation[1]);
+    // Windows EXCEPTION_RECORD::ExceptionInformation[0]: 0=read, 1=write, 8=DEP/execute
+    const char *accessType = "read";
+    switch (rec.ExceptionInformation[0])
+    {
+      case 1: accessType = "write to"; break;
+      case 8: accessType = "execute at"; break; // DEP / NX violation -- usually a call/jmp through a NULL or non-executable pointer
+      default: break;
+    }
+    lbw.aprintf("  attempt to %s memory at %08llX\n", accessType, (int64_t)rec.ExceptionInformation[1]);
   }
 
   lbw.aprintf("Exception record: .exr %p (for full dump)\n\n", eptr->ExceptionRecord);

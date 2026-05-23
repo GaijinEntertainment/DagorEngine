@@ -17,6 +17,7 @@
 #include <memory/dag_fixedBlockAllocator.h>
 #include <gameRes/dag_resourceNameResolve.h>
 #include <shaders/dag_dynSceneRes.h>
+#include <render/dynmodelRenderer/animcharDisintegration.h>
 
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/physLayers.h>
@@ -57,10 +58,10 @@ DestructableObject::DestructableObject(const destructables::DestructableCreation
   if (params.timeToStartDisintegration >= 0.0f)
     disintegrationTime = -params.timeToStartDisintegration;
   if (params.disintegrationDuration >= 0.0f)
-    disintegrationDuration = params.disintegrationDuration;
+    disintegrationParameters.duration = params.disintegrationDuration;
   constexpr float BASE_DISINTEGRATION_SCALE = 50.f; // This value looks good, so this will be the base value
   if (params.disintegrationScale >= 0.0f)
-    disintegrationScale = params.disintegrationScale * BASE_DISINTEGRATION_SCALE;
+    disintegrationParameters.scale = params.disintegrationScale * BASE_DISINTEGRATION_SCALE;
 
   BBox3 bbox;
   for (int i = 0; i < physObj->getPhysSys()->getBodyCount(); i++)
@@ -225,7 +226,7 @@ bool DestructableObject::update(float dt, float dt_scale, bool force_update_ttl)
       ttlBodies[i] -= updateDt;
     }
   }
-  if (disintegrationTime < disintegrationDuration)
+  if (disintegrationTime < disintegrationParameters.duration)
     disintegrationTime += updateDt;
   if (timeToKinematic >= 0.f)
   {
@@ -248,11 +249,10 @@ bool DestructableObject::update(float dt, float dt_scale, bool force_update_ttl)
 
 Point4 DestructableObject::getDisintegrationParams() const
 {
-  float progress = disintegrationDuration > 0 ? clamp(0.f, 1.f, disintegrationTime / disintegrationDuration) : 0.f;
-  return Point4(progress, disintegrationScale, 0, 0);
+  return animchar_disintegration::get_additional_data(disintegrationTime, disintegrationParameters);
 }
 
-bool DestructableObject::hasDisintegrationAnimation() const { return disintegrationDuration > 0; }
+bool DestructableObject::hasDisintegrationAnimation() const { return disintegrationParameters.duration > 0; }
 
 namespace destructables
 {

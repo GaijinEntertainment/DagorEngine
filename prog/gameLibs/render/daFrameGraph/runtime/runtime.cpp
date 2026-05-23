@@ -87,8 +87,42 @@ auto Runtime::calculateDependencyData(const NodesChanged &nodes_changed)
   if (verbose)
     debug("daFG: Calculating dependency data...");
   auto result = dependencyDataCalculator.recalculate(nodes_changed);
+  resolveBlobTypes();
   currentStage = CompilationStage::REQUIRES_REGISTRY_VALIDATION;
   return result;
+}
+
+void Runtime::resolveBlobTypes()
+{
+  const auto &depData = dependencyDataCalculator.depData;
+
+  auto resolveFromCreation = [&](ResNameId res_id) -> ResourceSubtypeTag {
+    const auto resolved = nameResolver.resolve(res_id);
+    const auto representative = depData.renamingRepresentatives[resolved];
+    const auto &resData = registry.resources[representative];
+    if (!resData.createdResData.has_value())
+      return ResourceSubtypeTag::Unknown;
+    if (auto *blobDesc = eastl::get_if<BlobDescription>(&resData.createdResData->creationInfo))
+      return blobDesc->typeTag;
+    return ResourceSubtypeTag::Unknown;
+  };
+
+  for (auto nodeId : registry.nodes.keys())
+  {
+    auto &nodeData = registry.nodes[nodeId];
+
+    for (auto &[resId, req] : nodeData.resourceRequests)
+      if (req.subtypeTag == ResourceSubtypeTag::Unknown)
+        req.subtypeTag = resolveFromCreation(resId);
+
+    for (auto &[resId, req] : nodeData.historyResourceReadRequests)
+      if (req.subtypeTag == ResourceSubtypeTag::Unknown)
+        req.subtypeTag = resolveFromCreation(resId);
+
+    for (auto &[bindId, binding] : nodeData.bindings)
+      if (binding.projectedTag == ResourceSubtypeTag::Unknown)
+        binding.projectedTag = resolveFromCreation(binding.resource);
+  }
 }
 
 void Runtime::validateRegistry(NodesChanged &nodeChanges, ResourcesChanged &resourceChanges)

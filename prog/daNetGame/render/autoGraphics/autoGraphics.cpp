@@ -43,7 +43,7 @@ void try_apply_auto_graphics_settings()
     autoPresetOverride->setInt("targetFps", targetFps);
     autoPresetOverride->setIPoint2("renderingResolution", selectedResolution);
 
-    dgs_apply_essential_pc_preset_params(*get_settings_override_blk(), preset.c_str());
+    dgs_apply_pc_preset_params(*get_settings_override_blk(), preset.c_str());
     save_settings(nullptr);
   }
 }

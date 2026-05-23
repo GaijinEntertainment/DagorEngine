@@ -1866,14 +1866,15 @@ void DeviceContext::drawIndexedIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t c
 }
 
 void DeviceContext::draw(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t start, uint32_t count, uint32_t first_instance,
-  uint32_t instance_count)
+  uint32_t instance_count, uint32_t num_prims_for_stats)
 {
-  auto cmd = make_command<CmdDraw>(top, start, count, first_instance, instance_count);
+  auto cmd = make_command<CmdDraw>(top, start, count, first_instance, instance_count, num_prims_for_stats);
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
 
-void DeviceContext::drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t stride, const void *vertex_data)
+void DeviceContext::drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t stride, const void *vertex_data,
+  uint32_t num_prims_for_stats)
 {
   auto vertexDataBytes = count * stride;
   // vertex data needs to be dword aligned or some GPUs will render garbage
@@ -1885,21 +1886,21 @@ void DeviceContext::drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, u
   memcpy(vertexData.cpuPointer(), vertex_data, vertexDataBytes);
   vertexData.flush();
 
-  auto cmd = make_command<CmdDrawUserData>(top, count, stride, vertexData);
+  auto cmd = make_command<CmdDrawUserData>(top, count, stride, vertexData, num_prims_for_stats);
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
 
 void DeviceContext::drawIndexed(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t index_start, uint32_t count, int32_t vertex_base,
-  uint32_t first_instance, uint32_t instance_count)
+  uint32_t first_instance, uint32_t instance_count, uint32_t num_prims_for_stats)
 {
-  auto cmd = make_command<CmdDrawIndexed>(top, index_start, count, vertex_base, first_instance, instance_count);
+  auto cmd = make_command<CmdDrawIndexed>(top, index_start, count, vertex_base, first_instance, instance_count, num_prims_for_stats);
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
 
 void DeviceContext::drawIndexedUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t vertex_stride, const void *vertex_data,
-  uint32_t vertex_count, const void *index_data)
+  uint32_t vertex_count, const void *index_data, uint32_t num_prims_for_stats)
 {
   auto vertexDataBytes = vertex_count * vertex_stride;
   // vertex data needs to be dword aligned or some GPUs will render garbage
@@ -1919,7 +1920,7 @@ void DeviceContext::drawIndexedUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t c
   vertexData.flush();
   indexData.flush();
 
-  auto cmd = make_command<CmdDrawIndexedUserData>(top, count, vertex_stride, vertexData, indexData);
+  auto cmd = make_command<CmdDrawIndexedUserData>(top, count, vertex_stride, vertexData, indexData, num_prims_for_stats);
   commandStream.pushBack(cmd);
   immediateModeExecute(true);
 }
@@ -3135,19 +3136,19 @@ void DeviceContext::endVisibilityQuery(Query *q)
   immediateModeExecute();
 }
 
-void DeviceContext::beginPipelineStatsQuery(PipelineStatsQuery *q)
+void DeviceContext::beginPipelineStatsQuery(PipelineStatsQuery *q, bool lazy)
 {
   q->setIssued();
-  auto cmd = make_command<CmdBeginPipelineStatsQuery>(q);
+  auto cmd = make_command<CmdBeginPipelineStatsQuery>(q, lazy);
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   suppressImmediateFlush();
   immediateModeExecute();
 }
 
-void DeviceContext::endPipelineStatsQuery(PipelineStatsQuery *q)
+void DeviceContext::endPipelineStatsQuery(PipelineStatsQuery *q, bool lazy)
 {
-  auto cmd = make_command<CmdEndPipelineStatsQuery>(q);
+  auto cmd = make_command<CmdEndPipelineStatsQuery>(q, lazy);
   DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   restoreImmediateFlush();
@@ -6325,6 +6326,8 @@ void DeviceContext::ExecutionContext::drawIndirect(BufferResourceReferenceAndOff
 
   if (checkDrawCallHasOutput("Skipped: drawIndirect"))
   {
+    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
+      contextState.cmdBuffer.getHandle());
     contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, buffer);
     contextState.bufferAccessTracker.updateLastFrameAccess(buffer.resourceId);
 
@@ -6358,6 +6361,8 @@ void DeviceContext::ExecutionContext::drawIndexedIndirect(BufferResourceReferenc
 
   if (checkDrawCallHasOutput("Skipped: drawIndexedIndirect"))
   {
+    contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
+      contextState.cmdBuffer.getHandle());
     contextState.resourceStates.useBufferAsIA(contextState.graphicsCommandListBarrierBatch, buffer);
     contextState.bufferAccessTracker.updateLastFrameAccess(buffer.resourceId);
 
@@ -6383,7 +6388,8 @@ void DeviceContext::ExecutionContext::drawIndexedIndirect(BufferResourceReferenc
   }
 }
 
-void DeviceContext::ExecutionContext::draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance)
+void DeviceContext::ExecutionContext::draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance,
+  uint32_t num_prims_for_stats)
 {
   if (!contextState.graphicsState.basePipeline || !readyCommandList())
   {
@@ -6392,6 +6398,12 @@ void DeviceContext::ExecutionContext::draw(uint32_t count, uint32_t instance_cou
 
   if (checkDrawCallHasOutput("Skipped: draw"))
   {
+    if (contextState.graphicsState.basePipeline->hasTessellationStage() || contextState.graphicsState.basePipeline->hasGeometryStage())
+      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
+        contextState.cmdBuffer.getHandle());
+    else
+      contextState.getFrameData().backendQueryManager.accumulateInactiveLazyQueries(contextState.cmdBuffer.getHandle(),
+        num_prims_for_stats);
     tranistionPredicationBuffer();
 
     contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
@@ -6408,7 +6420,7 @@ void DeviceContext::ExecutionContext::draw(uint32_t count, uint32_t instance_cou
 }
 
 void DeviceContext::ExecutionContext::drawIndexed(uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base,
-  uint32_t first_instance)
+  uint32_t first_instance, uint32_t num_prims_for_stats)
 {
   if (!contextState.graphicsState.basePipeline || !readyCommandList())
   {
@@ -6417,6 +6429,13 @@ void DeviceContext::ExecutionContext::drawIndexed(uint32_t count, uint32_t insta
 
   if (checkDrawCallHasOutput("Skipped: drawIndexed"))
   {
+    if (contextState.graphicsState.basePipeline->hasTessellationStage() || contextState.graphicsState.basePipeline->hasGeometryStage())
+      contextState.getFrameData().backendQueryManager.activateTopLazyPipelineStatsQuery(device.device.get(),
+        contextState.cmdBuffer.getHandle());
+    else
+      contextState.getFrameData().backendQueryManager.accumulateInactiveLazyQueries(contextState.cmdBuffer.getHandle(),
+        num_prims_for_stats);
+
     tranistionPredicationBuffer();
 
     contextState.graphicsCommandListBarrierBatch.execute(contextState.cmdBuffer);
@@ -7093,21 +7112,29 @@ void DeviceContext::ExecutionContext::endVisibilityQuery(Query *q)
   }
 }
 
-void DeviceContext::ExecutionContext::beginPipelineStatsQuery(PipelineStatsQuery *q)
+void DeviceContext::ExecutionContext::beginPipelineStatsQuery(PipelineStatsQuery *q, bool lazy)
 {
   if (readyCommandList())
   {
-    contextState.cmdBuffer.recordExternalCommands(
-      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.makePipelineStatsQuery(q, device.device.get(), cmd); });
+    contextState.cmdBuffer.recordExternalCommands([this, q, lazy](auto cmd) {
+      if (lazy)
+        contextState.getFrameData().backendQueryManager.pushLazyPipelineStatsQuery(q);
+      else
+        contextState.getFrameData().backendQueryManager.makePipelineStatsQuery(q, device.device.get(), cmd);
+    });
   }
 }
 
-void DeviceContext::ExecutionContext::endPipelineStatsQuery(PipelineStatsQuery *q)
+void DeviceContext::ExecutionContext::endPipelineStatsQuery(PipelineStatsQuery *q, bool lazy)
 {
   if (readyCommandList())
   {
-    contextState.cmdBuffer.recordExternalCommands(
-      [this, q](auto cmd) { contextState.getFrameData().backendQueryManager.endPipelineStatsQuery(q, cmd); });
+    contextState.cmdBuffer.recordExternalCommands([this, q, lazy](auto cmd) {
+      if (lazy)
+        contextState.getFrameData().backendQueryManager.popLazyPipelineStatsQuery(q);
+      else
+        contextState.getFrameData().backendQueryManager.endPipelineStatsQuery(q, cmd);
+    });
   }
 }
 

@@ -36,7 +36,6 @@ struct ClusteredLightsGrid
   uint32_t getSpotWords() const { return clustersSpotGrid.size() / CLUSTERS_PER_GRID; }
 
 private:
-  static constexpr int CLUSTERS_PER_GRID = CLUSTERS_W * CLUSTERS_H * (CLUSTERS_D + 1);
   static constexpr int MAX_FRAMES = 2;
 
   enum class FrameState : uint8_t

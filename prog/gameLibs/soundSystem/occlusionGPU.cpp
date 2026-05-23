@@ -638,7 +638,6 @@ void debug_render_3d()
     draw_cached_debug_trilist((const Point3 *)g_sphere_faces, g_num_sphere_faces, color);
     set_cached_debug_lines_wtm(TMatrix::IDENT);
 
-    draw_cached_debug_sphere(spos, blob.attachRadius, 0x800000ff);
     draw_cached_debug_sphere(spos, occlusionRadius, 0xff000000);
   });
   set_cached_debug_lines_wtm(TMatrix::IDENT);

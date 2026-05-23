@@ -70,7 +70,7 @@ static constexpr ecs::ComponentDesc ground_hole_render_es_comps[] =
 //start of 9 rw components at [0]
   {ECS_HASH("hmapHolesTex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
   {ECS_HASH("hmapHolesTmpTex"), ecs::ComponentTypeInfo<UniqueTexWithShaderVar>()},
-  {ECS_HASH("hmapHolesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmapHolesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("hmapHolesProcessRenderer"), ecs::ComponentTypeInfo<PostFxRenderer>()},
   {ECS_HASH("hmapHolesMipmapRenderer"), ecs::ComponentTypeInfo<PostFxRenderer>()},
   {ECS_HASH("hmapHolesPrepareRenderer"), ecs::ComponentTypeInfo<ShadersECS>()},
@@ -89,7 +89,7 @@ static void ground_hole_render_es_all_events(const ecs::Event &__restrict evt, c
     ground_hole_render_es(static_cast<const UpdateStageInfoRender&>(evt)
         , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTex", UniqueTexWithShaderVar)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesTmpTex", UniqueTexWithShaderVar)
-    , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesBuf", UniqueBufHolder)
+    , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesBuf", UniqueBufWithShaderVar)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesProcessRenderer", PostFxRenderer)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesMipmapRenderer", PostFxRenderer)
     , ECS_RW_COMP(ground_hole_render_es_comps, "hmapHolesPrepareRenderer", ShadersECS)
@@ -227,7 +227,7 @@ static ecs::EntitySystemDesc ground_hole_zone_on_appear_es_es_desc
 static constexpr ecs::ComponentDesc ground_holes_zones_before_render_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("should_update_ground_holes_zones"), ecs::ComponentTypeInfo<bool>()}
 };
 static void ground_holes_zones_before_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -235,7 +235,7 @@ static void ground_holes_zones_before_render_es_all_events(const ecs::Event &__r
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_zones_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(ground_holes_zones_before_render_es_comps, "hmapHolesZonesBuf", UniqueBufHolder)
+        , ECS_RW_COMP(ground_holes_zones_before_render_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
     , ECS_RW_COMP(ground_holes_zones_before_render_es_comps, "should_update_ground_holes_zones", bool)
     );
   while (++comp != compE);
@@ -255,14 +255,14 @@ static ecs::EntitySystemDesc ground_holes_zones_before_render_es_es_desc
 static constexpr ecs::ComponentDesc ground_holes_zones_after_device_reset_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("should_update_ground_holes_zones"), ecs::ComponentTypeInfo<bool>()}
 };
 static void ground_holes_zones_after_device_reset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_zones_after_device_reset_es(evt
-        , ECS_RW_COMP(ground_holes_zones_after_device_reset_es_comps, "hmapHolesZonesBuf", UniqueBufHolder)
+        , ECS_RW_COMP(ground_holes_zones_after_device_reset_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
     , ECS_RW_COMP(ground_holes_zones_after_device_reset_es_comps, "should_update_ground_holes_zones", bool)
     );
   while (++comp != compE);
@@ -282,13 +282,13 @@ static ecs::EntitySystemDesc ground_holes_zones_after_device_reset_es_es_desc
 static constexpr ecs::ComponentDesc ground_holes_zones_manager_on_disappear_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufHolder>()}
+  {ECS_HASH("hmapHolesZonesBuf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()}
 };
 static void ground_holes_zones_manager_on_disappear_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ground_holes_zones_manager_on_disappear_es(evt
-        , ECS_RW_COMP(ground_holes_zones_manager_on_disappear_es_comps, "hmapHolesZonesBuf", UniqueBufHolder)
+        , ECS_RW_COMP(ground_holes_zones_manager_on_disappear_es_comps, "hmapHolesZonesBuf", UniqueBufWithShaderVar)
     );
   while (++comp != compE);
 }

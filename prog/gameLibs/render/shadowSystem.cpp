@@ -512,8 +512,7 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       shaders::OverrideStateId originalState = shaders::overrides::get_current();
       shaders::overrides::reset();
       shaders::overrides::set(cmpfAlwaysNoBiasStateId);
-      d3d::set_render_target((Texture *)NULL, 0);
-      d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+      d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
       const int sizeInRegs = sizeof(TraceLightInfo) / 16;
       const int quant = d3d::set_vs_constbuffer_register_count(51 * sizeInRegs) / sizeInRegs + 1; // 51 must match shader
       G_ASSERT(quant > 0);
@@ -545,8 +544,7 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       copyStaticToDynamic(volume);
     }
   }
-  d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
 }
 
 void ShadowSystem::copyStaticToDynamic(const Volume &volume)
@@ -575,8 +573,7 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
     shaders::overrides::set(cmpfAlwaysStateId);
     G_ASSERT_RETURN(w <= maxShadow && h <= maxShadow, );
     G_ASSERT_RETURN(copyDepth, );
-    d3d::set_render_target((Texture *)NULL, 0);
-    d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({tempCopy.getTex2D(), 0, 0}, DepthAccess::RW, {});
     int v_from[4] = {src_x, src_y, 0, 0};
     d3d::set_ps_const(77, (float *)v_from, 1);
     if (w < maxShadow || h < maxShadow)
@@ -586,8 +583,7 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
     d3d::set_sampler(STAGE_PS, 15, shadowSampler);
     copyDepth->render();
 
-    d3d::set_render_target((Texture *)NULL, 0);
-    d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
     d3d::setview(dst_x, dst_y, w, h, 0, 1);
     d3d::resource_barrier({tempCopy.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
     d3d::settex(15, tempCopy.getTex2D());
@@ -605,8 +601,7 @@ void ShadowSystem::endRenderVolumes()
 
 void ShadowSystem::startRenderTempShadow()
 {
-  d3d::set_render_target((Texture *)NULL, 0);
-  d3d::set_depth(tempCopy.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({tempCopy.getTex2D(), 0, 0}, DepthAccess::RW, {});
   d3d::setview(0, 0, maxShadow, maxShadow, 0, 1);
   d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
 }
@@ -758,8 +753,7 @@ void ShadowSystem::startRenderVolumeView(uint32_t id, uint32_t view_id, mat44f &
 
   if (volume.isOctahedral())
   {
-    d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(octahedral_temp_shadow.getArrayTex(), view_id, DepthAccess::RW);
+    d3d::set_render_target({octahedral_temp_shadow.getArrayTex(), 0, view_id}, DepthAccess::RW, {});
     IPoint2 extent = getOctahedralTempShadowExtent(volume);
     d3d::setview(0, 0, extent.x, extent.y, 0, 1);
     if (current_render_type == RENDER_STATIC || !(render_flags & RENDER_STATIC))
@@ -795,7 +789,7 @@ void ShadowSystem::packOctahedral(uint16_t id, bool additional_dynamic_content)
     return;
 
   TIME_D3D_PROFILE(packOctahedral);
-  d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+  d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
   d3d::resource_barrier({octahedral_temp_shadow.getArrayTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
   if (additional_dynamic_content)
@@ -896,7 +890,7 @@ void ShadowSystem::endRenderVolume(uint32_t id)
     {
       // so, it is already rendered in trace stage or copied
       // restore depth target as we expect that it setted on next volume processing loop
-      d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
+      d3d::set_render_target({dynamic_light_shadows.getTex2D(), 0, 0}, DepthAccess::RW, {});
     }
     else
     {

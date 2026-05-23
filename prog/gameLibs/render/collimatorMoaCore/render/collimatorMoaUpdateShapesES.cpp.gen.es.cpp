@@ -13,7 +13,7 @@ static constexpr ecs::ComponentDesc collimator_moa_track_selected_image_es_comps
   {ECS_HASH("collimator_moa_render__active_image_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("collimator_moa_render__active_shapes_count"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("collimator_moa_render__shapes_buf_reg_count"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
 //start of 1 ro components at [4]
   {ECS_HASH("collimator_moa_render__gun_mod_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()}
 };
@@ -26,7 +26,7 @@ static void collimator_moa_track_selected_image_es_all_events(const ecs::Event &
     , ECS_RW_COMP(collimator_moa_track_selected_image_es_comps, "collimator_moa_render__active_image_eid", ecs::EntityId)
     , ECS_RW_COMP(collimator_moa_track_selected_image_es_comps, "collimator_moa_render__active_shapes_count", int)
     , ECS_RW_COMP(collimator_moa_track_selected_image_es_comps, "collimator_moa_render__shapes_buf_reg_count", int)
-    , ECS_RW_COMP(collimator_moa_track_selected_image_es_comps, "collimator_moa_render__current_shapes_buf", UniqueBufHolder)
+    , ECS_RW_COMP(collimator_moa_track_selected_image_es_comps, "collimator_moa_render__current_shapes_buf", UniqueBufWithShaderVar)
     );
   while (++comp != compE);
 }
@@ -47,7 +47,7 @@ static constexpr ecs::ComponentDesc collimator_moa_on_device_reset_es_event_hand
 //start of 3 rw components at [0]
   {ECS_HASH("collimator_moa_render__active_image_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("collimator_moa_render__shapes_buf_reg_count"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()}
+  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()}
 };
 static void collimator_moa_on_device_reset_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -55,7 +55,7 @@ static void collimator_moa_on_device_reset_es_event_handler_all_events(const ecs
     collimator_moa_on_device_reset_es_event_handler(evt
         , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__active_image_eid", ecs::EntityId)
     , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__shapes_buf_reg_count", int)
-    , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__current_shapes_buf", UniqueBufHolder)
+    , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__current_shapes_buf", UniqueBufWithShaderVar)
     );
   while (++comp != compE);
 }

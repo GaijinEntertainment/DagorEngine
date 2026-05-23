@@ -1,1 +1,0 @@
-Smart pointer to an `Enumeration` object. Used for creating and manipulating enumeration declarations in the AST.

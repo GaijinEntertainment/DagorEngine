@@ -1,1 +1,0 @@
-Base class for creating enumeration annotations via the ``[enumeration_macro]`` structure annotation; registers an ``AstEnumerationAnnotation`` with the compiler.

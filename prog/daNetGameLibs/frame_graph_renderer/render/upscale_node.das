@@ -44,7 +44,7 @@ struct AfterDeviceReset
 
 [es(on_event=AfterDeviceReset)]
 def restoreWeights(evt : Event)
-  query() <| $ [es] (upscale_weights_buffer : UniqueBufHolder)
+  query() <| $ [es] (upscale_weights_buffer : UniqueBufWithShaderVar)
     upload_weights(upscale_weights_buffer)
 
 [es(on_event=OnRenderSettingsReady, track=render_settings__upscaleSamplingTex)]
@@ -52,7 +52,7 @@ def init_upscale_node(evt : Event; render_settings__upscaleSamplingTex : bool; r
   if render_settings__upscaleSamplingTex
     createEntitySync(upscale_tex_gen_node_entity) //we should create this entity sync, because framegraph requere to know about this node immediately
 
-    query() <| $ [es] (var upscale_weights_buffer : UniqueBufHolder)
+    query() <| $ [es] (var upscale_weights_buffer : UniqueBufWithShaderVar)
       init_upscale(upscale_weights_buffer)
       upload_weights(upscale_weights_buffer)
   else

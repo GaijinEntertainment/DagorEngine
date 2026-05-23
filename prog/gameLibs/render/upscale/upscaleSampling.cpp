@@ -91,7 +91,7 @@ static const float UPSCALE_WEIGHTS_DATA[UPSCALE_WEIGHTS_COUNT * 4] = {
 }; // anonymous namespace
 static struct UpsampleTextureSingleTone
 {
-  UniqueBufHolder upscaleWeightsBuffer;
+  UniqueBufWithShaderVar upscaleWeightsBuffer;
   uint32_t upscale_weights_buffer_counter;
   OSSpinlock upscale_weights_buffer_lock;
   PostFxRenderer upscaleRenderer;
@@ -102,7 +102,7 @@ static struct UpsampleTextureSingleTone
     if (upscale_weights_buffer_counter++ == 0)
     {
       upscaleWeightsBuffer =
-        UniqueBufHolder(dag::buffers::create_persistent_cb(UPSCALE_WEIGHTS_COUNT, "upscale_sampling_weights", RESTAG_POSTFX),
+        UniqueBufWithShaderVar(dag::buffers::create_persistent_cb(UPSCALE_WEIGHTS_COUNT, "upscale_sampling_weights", RESTAG_POSTFX),
           "upscale_sampling_weights");
       upload_weights();
       upscaleRenderer.init("upscale_sampling");

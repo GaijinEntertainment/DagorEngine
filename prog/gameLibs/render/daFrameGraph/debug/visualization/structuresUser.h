@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <debug/visualization/structuresCommon.h>
 
 #include <backend/passColoring.h>
@@ -9,32 +11,39 @@
 #include <render/daFrameGraph/detail/nodeNameId.h>
 #include <render/daFrameGraph/detail/resNameId.h>
 #include <render/daFrameGraph/detail/nameSpaceNameId.h>
+#include <imgui-node-editor/imgui_bezier_math.h>
 
 
 namespace dafg::visualization::usergraph
 {
-// structures from old visualizator
+inline constexpr PassColor UNKNOWN_PASS_COLOR = static_cast<PassColor>(-1);
+inline constexpr uint32_t CULLED_OUT_NODE = static_cast<uint32_t>(-1);
+inline constexpr NodeIdx INVALID_NODE_IDX = static_cast<NodeIdx>(-1);
+inline constexpr int UNKNOWN_INDEX = -1;
 
-enum class ColorationType
+
+enum class NodeColorationType
 {
   None,
   Framebuffer,
-  Pass
+  Pass,
+  COUNT
 };
-
-
-// new structures
-
-inline constexpr PassColor UNKNOWN_PASS_COLOR = static_cast<PassColor>(-1);
-inline constexpr uint32_t CULLED_OUT_NODE = static_cast<uint32_t>(-1);
-inline constexpr int UNKNOWN_INDEX = -1;
 
 enum class ResourceFocusType
 {
   All,
   Resource,
   ResourceAndRenames,
+  COUNT
 };
+
+struct Rectangle
+{
+  ImVec2 offset = {};
+  ImVec2 size = {};
+};
+
 
 struct NameSpace
 {
@@ -59,13 +68,6 @@ enum class DependencyType : uint16_t
   COUNT
 };
 
-struct DependencyTypeInfo
-{
-  eastl::string name;
-  uint32_t imguiColor = 0;
-  bool visible = true;
-};
-
 
 enum class NodeId : uint16_t
 {
@@ -88,6 +90,9 @@ struct Node
 
   PassColor passColor = UNKNOWN_PASS_COLOR;
   uint32_t executionTime = CULLED_OUT_NODE;
+
+  ImU32 fbImColor = 0;
+  ImU32 passImColor = 0;
   bool cycled = false;
 
   dag::RelocatableFixedVector<DependencyId, 4> inDeps;
@@ -118,56 +123,80 @@ enum class NodeBoxId : uint16_t
   Invalid = static_cast<eastl::underlying_type_t<NodeBoxId>>(-1)
 };
 
-enum class NodeBoxDependencyId : uint16_t
-{
-  Invalid = static_cast<eastl::underlying_type_t<NodeBoxDependencyId>>(-1)
-};
-
 struct NodeBox
 {
   NameSpaceNameId nameSpace = NameSpaceNameId::Invalid;
+  Rectangle rect = {};
 
   dag::RelocatableFixedVector<NodeId, 8> nodes;
-  dag::RelocatableFixedVector<NodeBoxDependencyId, 8> inDeps;
-  dag::RelocatableFixedVector<NodeBoxDependencyId, 8> outDeps;
-};
-
-struct NodeBoxDependency
-{
-  NodeBoxId from = NodeBoxId::Invalid;
-  NodeBoxId to = NodeBoxId::Invalid;
-  dag::Vector<DependencyId> carriedDeps;
+  dag::RelocatableFixedVector<DependencyId, 16> inDeps;
+  dag::RelocatableFixedVector<DependencyId, 16> outDeps;
 };
 
 
-struct Edge
+enum class AnchorId : uint16_t
 {
-  NodeIdx from;
-  NodeIdx to;
+  Invalid = static_cast<eastl::underlying_type_t<AnchorId>>(-1)
+};
+
+using Anchor = ImVec2;
+
+enum class RawEdgeId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<RawEdgeId>>(-1)
+};
+
+struct RawEdge
+{
+  NodeIdx from = INVALID_NODE_IDX;
+  NodeIdx to = INVALID_NODE_IDX;
+  AnchorId fromAnchor = AnchorId::Invalid;
+  AnchorId toAnchor = AnchorId::Invalid;
   dag::RelocatableFixedVector<DependencyId, 8> carriedDeps;
 };
 
-struct CubicBezierWithNormals
+struct RawObject
 {
-  ImVec2 P0;
-  ImVec2 P1;
-  ImVec2 P2;
-  ImVec2 P3;
-  ImVec2 norm0;
-  ImVec2 norm1;
+  dag::RelocatableFixedVector<RawEdgeId, 8> inEdges;
+  dag::RelocatableFixedVector<RawEdgeId, 8> outEdges;
+  dag::RelocatableFixedVector<AnchorId, 8> inAnchors;
+  dag::RelocatableFixedVector<AnchorId, 8> outAnchors;
 };
 
-struct Layout
+struct RawLayout
 {
-  uint32_t objectsCount = 0;                      // Number of all objects in layout
-  uint32_t edgesCount = 0;                        // Number of all edges in layout
-  dag::Vector<dag::Vector<NodeIdx>> objectsRanks; // Objects indices, separated by columns in top-down order
-  dag::Vector<Edge> edges;                        // List of all edges between objects
+  dag::Vector<NodeId> userNodeIds;
+  dag::Vector<NodeBoxId> nodeBoxIds;
+  dag::Vector<dag::Vector<DependencyId>> outDeps;
 
-  ImVec2 size;                        // Layout bounding box size from left-top to right-bottom corner
-  dag::Vector<ImVec2> objectsOffsets; // Offsets of all objects
-  dag::Vector<ImVec2> objectsSizes;   // Sizes of all objects
-  dag::Vector<dag::RelocatableFixedVector<CubicBezierWithNormals, 4>> edgesSplines; // Sets of splines, that represent each edge
+  GraphLayout layouterResult;
+  dag::Vector<RawObject> rawObjects;
+  dag::Vector<ImVec2> objectsOffsets;
+  dag::Vector<ImVec2> objectsSizes;
+  dag::Vector<float> objectsColumnSizes;
+  ImVec2 size = {};
+
+  IdIndexedMapping<RawEdgeId, RawEdge> rawEdges;
+  IdIndexedMapping<AnchorId, Anchor> anchors;
+};
+
+
+enum class EdgeId : uint16_t
+{
+  Invalid = static_cast<eastl::underlying_type_t<EdgeId>>(-1)
+};
+
+struct Edge
+{
+  dag::RelocatableFixedVector<DependencyId, 2> carriedDeps;
+  dag::RelocatableFixedVector<ImCubicBezierPoints, 2> splines;
+};
+
+struct CanvasLayout
+{
+  ImVec2 size = {};
+  IdIndexedMapping<NodeId, Rectangle> nodes;
+  IdIndexedMapping<EdgeId, Edge> edges;
 };
 
 } // namespace dafg::visualization::usergraph

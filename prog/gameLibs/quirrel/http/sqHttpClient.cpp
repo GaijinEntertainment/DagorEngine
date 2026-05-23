@@ -427,9 +427,10 @@ static SQInteger request(HSQUIRRELVM vm)
 // Settle a fetch promise. Runs on the VM thread via sqasync::pump's inbox
 // drain (posted by the worker-side completion lambda via post_from_any_thread).
 // On SUCCESS the promise resolves with a {http_code, headers, body} table;
-// otherwise it rejects with the status name as a string. resolve/reject are
-// no-ops if the holder has been disowned by onVmShutdown(), so this is safe
-// to call after http_client_on_vm_shutdown.
+// otherwise it rejects with the RequestStatus enum value as an integer (matches
+// httpRequest's status field; script-side compare to HTTP_FAILED / HTTP_ABORTED
+// / HTTP_SHUTDOWN). resolve/reject are no-ops if the holder has been disowned
+// by onVmShutdown(), so this is safe to call after http_client_on_vm_shutdown.
 static void settle_fetch_on_vm(void *user)
 {
   using httprequests::RequestStatus;
@@ -465,11 +466,8 @@ static void settle_fetch_on_vm(void *user)
   }
   else
   {
-    const char *status = (ctx->status == RequestStatus::FAILED)    ? "FAILED"
-                         : (ctx->status == RequestStatus::ABORTED) ? "ABORTED"
-                                                                   : "SHUTDOWN";
     Sqrat::Table err(vm);
-    err.SetValue("status", status);
+    err.SetValue("status", (SQInteger)ctx->status);
     err.FreezeSelf();
     ctx->holder.reject(err.GetObject());
   }
@@ -486,8 +484,9 @@ static void settle_fetch_on_vm(void *user)
 
 Promise-based fetch. Resolves with `{http_code, headers, body}` on any HTTP
 response (including 4xx/5xx -- those are not failures); rejects with a frozen
-table `{status = "FAILED" | "ABORTED" | "SHUTDOWN"}` on network errors. Modeled
-on the JS `fetch` API.
+table `{status = HTTP_FAILED | HTTP_ABORTED | HTTP_SHUTDOWN}` on network errors
+(`status` is the `RequestStatus` enum as integer, same as `httpRequest`'s
+response.status). Modeled on the JS `fetch` API.
 
 Response shape matches `httpRequest`: `body` is a Blob (or null when the response
 body is empty). Use `body.as_string()` for text; `.readn` / read pointer for

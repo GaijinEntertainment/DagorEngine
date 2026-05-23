@@ -10,11 +10,8 @@
 #include <util/dag_string.h>
 #include <EASTL/unique_ptr.h>
 
-namespace d3d_multi_dx11
-{
-#include "d3d_api.inc.h"
-}
 
+#if USE_MULTI_D3D_DX11
 namespace drv3d_dx11
 {
 VPROG create_vertex_shader_unpacked(const ShaderSource &source, const void *shader_bin, uint32_t size, uint32_t vs_consts_count,
@@ -124,12 +121,13 @@ static ID3D10Blob *compile_hlsl(const char *hlsl_text, const char *entry, const 
     errors->Release();
   return bytecode;
 }
+#endif
 
 
 //
 // DX12: DXC runtime compilation (dxcompiler.dll)
 //
-#ifdef USE_MULTI_D3D_DX12
+#if USE_MULTI_D3D_DX12
 
 #include <supp/dag_comPtr.h>
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
@@ -500,11 +498,13 @@ static FSHADER create_pixel_shader_dxc(const char *hlsl_text, const char *entry,
 }
 
 } // anonymous namespace
-#endif // USE_MULTI_D3D_DX12
+#endif
 
 
-VPROG d3d::create_vertex_shader_hlsl(const char *hlsl_text, unsigned /*len*/, const char *entry, const char *profile, String *out_err)
+VPROG d3d::create_vertex_shader_hlsl([[maybe_unused]] const char *hlsl_text, unsigned /*len*/, [[maybe_unused]] const char *entry,
+  [[maybe_unused]] const char *profile, [[maybe_unused]] String *out_err)
 {
+#if USE_MULTI_D3D_DX11
   if (d3d::get_driver_code().is(d3d::dx11))
   {
     int max_const = MAX_PS_CONSTS;
@@ -525,21 +525,24 @@ VPROG d3d::create_vertex_shader_hlsl(const char *hlsl_text, unsigned /*len*/, co
       D3D_ERROR("VS compile failed: %s, %s", entry, profile);
     return vpr;
   }
-#ifdef USE_MULTI_D3D_DX12
-  else if (d3d::get_driver_code().is(d3d::dx12))
+#endif
+#if USE_MULTI_D3D_DX12
+  if (d3d::get_driver_code().is(d3d::dx12))
   {
     if (const char *p = strchr(profile, ':'))
       profile = p + 1;
     return create_vertex_shader_dxc(hlsl_text, entry, profile, out_err);
   }
 #endif
-  else if (d3d::get_driver_code().is(d3d::stub))
+  if (d3d::get_driver_code().is(d3d::stub))
     return 1;
   return BAD_VPROG;
 }
 
-FSHADER d3d::create_pixel_shader_hlsl(const char *hlsl_text, unsigned /*len*/, const char *entry, const char *profile, String *out_err)
+FSHADER d3d::create_pixel_shader_hlsl([[maybe_unused]] const char *hlsl_text, unsigned /*len*/, [[maybe_unused]] const char *entry,
+  [[maybe_unused]] const char *profile, [[maybe_unused]] String *out_err)
 {
+#if USE_MULTI_D3D_DX11
   if (d3d::get_driver_code().is(d3d::dx11))
   {
     int max_const = 64;
@@ -580,8 +583,9 @@ FSHADER d3d::create_pixel_shader_hlsl(const char *hlsl_text, unsigned /*len*/, c
       D3D_ERROR("PS compile failed: %s, %s", entry, profile);
     return fsh;
   }
-#ifdef USE_MULTI_D3D_DX12
-  else if (d3d::get_driver_code().is(d3d::dx12))
+#endif
+#if USE_MULTI_D3D_DX12
+  if (d3d::get_driver_code().is(d3d::dx12))
   {
     if (const char *p = strchr(profile, ':'))
       profile = p + 1;
@@ -593,9 +597,11 @@ FSHADER d3d::create_pixel_shader_hlsl(const char *hlsl_text, unsigned /*len*/, c
   return BAD_FSHADER;
 }
 
-bool d3d::compile_compute_shader_hlsl(const char *hlsl_text, unsigned /*len*/, const char *entry, const char *profile,
-  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
+bool d3d::compile_compute_shader_hlsl([[maybe_unused]] const char *hlsl_text, unsigned /*len*/, [[maybe_unused]] const char *entry,
+  [[maybe_unused]] const char *profile, [[maybe_unused]] Tab<uint8_t> &metadata, [[maybe_unused]] Tab<uint32_t> &shader_bin,
+  [[maybe_unused]] String &out_err)
 {
+#if USE_MULTI_D3D_DX11
   int max_const = 64;
   if (const char *p = strchr(profile, ':'))
   {
@@ -615,5 +621,6 @@ bool d3d::compile_compute_shader_hlsl(const char *hlsl_text, unsigned /*len*/, c
   }
   else
     D3D_ERROR("CS compile failed: %s, %s", entry, profile);
+#endif
   return false;
 }

@@ -40,10 +40,10 @@ void after_device_reset()
 
 int create_beam_tracer(const Point3 &start_pos, const Point3 &normalized_dir, float smoke_radius, const Color4 &smoke_color,
   const Color3 &head_color, float luminosity, float burn_time, float time_to_live, float fade_dist, float begin_fade_time,
-  float end_fade_time, float scroll_speed, bool is_ray, float is_hero_laser)
+  float end_fade_time, float scroll_speed, bool is_ray, float max_length, float is_hero_laser)
 {
   return g_ctx ? g_ctx->beam_tracers.createTracer(start_pos, normalized_dir, smoke_radius, smoke_color, head_color, luminosity,
-                   burn_time, time_to_live, fade_dist, begin_fade_time, end_fade_time, scroll_speed, is_ray, is_hero_laser)
+                   burn_time, time_to_live, fade_dist, begin_fade_time, end_fade_time, scroll_speed, is_ray, max_length, is_hero_laser)
                : -1;
 }
 
@@ -119,7 +119,7 @@ ECS_TRACK(*)
 static void tac_laser_update_render_settings_es(const ecs::Event &, const float tac_laser_render__min_intensity_angle,
   const float tac_laser_render__min_intensity_mul, const float tac_laser_render__max_intensity_angle,
   const float tac_laser_render__max_intensity_mul, const float tac_laser_render__fog_intensity_mul,
-  const float tac_laser_render__fade_dist)
+  const float tac_laser_render__fade_eye_dist)
 {
   TacLaserRenderSettings s;
   s.minIntensityCos = cosf(clamp(tac_laser_render__min_intensity_angle, 0.0f, 90.0f) * DEG_TO_RAD);
@@ -127,7 +127,7 @@ static void tac_laser_update_render_settings_es(const ecs::Event &, const float 
   s.maxIntensityCos = cosf(clamp(tac_laser_render__max_intensity_angle, 0.0f, 90.0f) * DEG_TO_RAD);
   s.maxIntensityMul = tac_laser_render__max_intensity_mul;
   s.fogIntensityMul = tac_laser_render__fog_intensity_mul;
-  s.fadeDistance = tac_laser_render__fade_dist;
+  s.fadeEyeDistance = tac_laser_render__fade_eye_dist;
 
   render::beam_tracer::update_tac_laser_settings(s);
 }

@@ -23,8 +23,8 @@ struct BVHInstanceMapper : ::BVHInstanceMapper
 
     if (object && object->blas && MeshMetaAllocator::is_valid(object->metaAllocId))
     {
-      out_blas.x = object->blas.getGPUAddress() & 0xFFFFFFFFLLU;
-      out_blas.y = object->blas.getGPUAddress() >> 32;
+      out_blas.x = object->blas.getGPUAddress() & GPU_ADDRESS_LOW_MASK;
+      out_blas.y = object->blas.getGPUAddress() >> GPU_ADDRESS_HIGH_SHIFT;
       out_meta = MeshMetaAllocator::decode(object->metaAllocId);
     }
     else

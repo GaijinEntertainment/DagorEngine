@@ -48,6 +48,7 @@
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiJoyData.h>
 #include <drv/hid/dag_hiXInputMappings.h>
+#include <drv/hid/dag_hiComposite.h>
 #include <gui/dag_stdGuiRender.h>
 #include <debug/dag_debug.h>
 #include <gui/dag_visualLog.h>
@@ -564,7 +565,15 @@ public:
 
     if (darg_scene && joystick_handler)
     {
-      joystick_handler->onJoystickStateChanged(darg_scene, joy, joy_ord_id);
+      if (auto drv = ::global_cls_composite_drv_joy; drv && joy_ord_id == 0)
+      {
+        for (int i = 1, e = drv->getRealDeviceCount(true) + 1; i < e; ++i) // offset from #0 - compositeJoy
+          if (auto realJoy = drv->getDevice(i); realJoy && realJoy->isXinputCompatible())
+            joystick_handler->onJoystickStateChanged(darg_scene, realJoy, i);
+      }
+      else
+        joystick_handler->onJoystickStateChanged(darg_scene, joy, joy_ord_id);
+
       gamelib::input::on_joystick_state_changed(darg_scene->getScriptVM(), joy, joy_ord_id);
     }
   }

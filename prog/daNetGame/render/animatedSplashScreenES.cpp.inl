@@ -49,6 +49,7 @@ CONSOLE_FLOAT_VAL("app", splashDtSkipThreshold, 10);
 extern bool grs_draw_wire;
 
 static float splash_time = 0;
+static float splash_seed = 0.f;
 static int8_t splash_id = -1;
 static bool splash_started = false;
 static PostFxRenderer loadingSplash;
@@ -66,6 +67,7 @@ static bool splash_render_func_exclusive = false;
   VAR(loading_splash_noise_64_tex_l8, false)                         \
   VAR(loading_splash_noise_128_tex_hash, false)                      \
   VAR(loading_splash_iGlobalTime_iResolution_iPaperWhiteNits, false) \
+  VAR(loading_splash_iSeed, true)                                    \
   VAR(loading_splash_title_logo, true)
 #define VAR(a, opt) static ShaderVariableInfo a##_const_no{#a "_const_no", opt};
 ANIMATED_SPLASH_SCREEN_CONST_LIST
@@ -161,6 +163,7 @@ void animated_splash_screen_start(bool do_encode)
     int maxIndex = max(minIndex1, maxIndex1), minIndex = min(minIndex1, maxIndex1);
     splash_id = dgs_get_settings()->getInt("splashId", minIndex + grnd() % max((int)1, maxIndex - minIndex + 1));
     splash_time = 0;
+    splash_seed = (grnd() % 10000) * 0.01f;
   }
   splash_started = true;
 
@@ -240,6 +243,11 @@ void animated_splash_screen_draw()
     d3d::get_target_size(w, h);
     float splashParams[4] = {splash_time, static_cast<float>(w), static_cast<float>(h), static_cast<float>(paper_white_nits)};
     d3d::set_ps_const(loading_splash_iGlobalTime_iResolution_iPaperWhiteNits_const_no.get_int(), splashParams, 1);
+    if (bool(loading_splash_iSeed_const_no))
+    {
+      float seedParams[4] = {splash_seed, 0.f, 0.f, 0.f};
+      d3d::set_ps_const(loading_splash_iSeed_const_no.get_int(), seedParams, 1);
+    }
     const SharedTexHolder &noise64 = init_and_get_l8_64_noise();
     const SharedTexHolder &noise128 = init_and_get_hash_128_noise();
     d3d::SamplerHandle smp = d3d::request_sampler({});

@@ -12,6 +12,7 @@
 #include "defer.h"
 #include "semUtils.h"
 #include "varMap.h"
+#include "boolExpr.h"
 
 namespace semantic
 {
@@ -48,208 +49,157 @@ VarLookupRes lookup_state_var(const char *name, shc::VariantContext &ctx, bool a
 
 ShVarBool VariantBoolExprEvalCB::eval_expr(bool_expr &e)
 {
-  String evalExprErrStr{};
-  String *savedStr = eastl::exchange(curEvalExprErrStr, &evalExprErrStr);
-
-  ShVarBool result = ShaderParser::eval_shader_bool<true>(e, *this);
-  curEvalExprErrStr = savedStr;
-
-  if (!evalExprErrStr.empty() && (!result.isConst || result.value))
+  if (ctx.shCtx().blockLevel() == ShaderBlockLevel::SHADER)
   {
-    if (curEvalExprErrStr)
-      curEvalExprErrStr->append(evalExprErrStr.c_str());
-    else
-    {
-      String cond;
-      ShaderParser::build_bool_expr_string(e, cond);
-      report_error(ctx.tgtCtx().sourceParseState().parser, &e, "expr \"%s\" is not const.false and gives errors:\n%s", cond,
-        evalExprErrStr.c_str());
-    }
+    G_ASSERT(e.compiled);
+  }
+  else
+  {
+    compile_bool_expr_cached(e, ctx.tgtCtx());
   }
 
-  return result;
+  const auto &variant = ctx.variant();
+  Parser &parser = ctx.tgtCtx().sourceParseState().parser;
+  const auto bytecode = bytecode_from_expr(e);
+
+  auto res = evaluate_compiled_bool_expr(
+    bytecode,
+    [&, this](int interval_nid, int value_nid, Interval::BooleanExpr cmpop) {
+      const IntervalList *intervalList = &variant.intervals;
+
+      // search interval by name
+      int intervalIndex = variant.intervals.getIntervalIndex(interval_nid);
+      if (intervalIndex == INTERVAL_NOT_INIT)
+      {
+        intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(interval_nid);
+        if (DAGOR_UNLIKELY(intervalIndex == INTERVAL_NOT_INIT))
+        {
+          report_error(parser, &e, "interval %s not found!", ctx.tgtCtx().intervalNameMap().getName(interval_nid));
+          return BoolExprEvalCbResult{.erred = true};
+        }
+
+        intervalList = &ctx.tgtCtx().globVars().getIntervalList();
+      }
+
+      const Interval *interv = intervalList->getInterval(intervalIndex);
+      G_ASSERT(interv);
+
+      ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
+      if (varValue == -1)
+      {
+        // I do not like the map->map jump through a string here.
+        // @TODO Probably having one map would've been better, it's an acceleration structure anyway, not a namespace.
+        bool isGlobal = true;
+        if (const int varNameId = ctx.tgtCtx().varNameMap().getVarId(ctx.tgtCtx().intervalNameMap().getName(interval_nid));
+            varNameId >= 0)
+        {
+          isGlobal = ctx.parsedSemCode().find_var(varNameId) < 0;
+        }
+
+        if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(interval_nid, isGlobal))
+          varValue = interv->normalizeValue(*valueMaybe);
+      }
+      const Interval *interval = intervalList->getInterval(intervalIndex);
+
+      // This is no longer validated due to pruned branches in gatherVar. Before we used a slow error accumulation and discard
+      // technique which was also bad because it hid some valid errors.
+      // Here, we have to presume that var == some_bs_value evaluates to false.
+      //
+      // @TODO we should restore this validation in gatherVar pass.
+      if (DAGOR_UNLIKELY(!ShaderVariant::ValueRange(0, interval->getValueCount() - 1).isInRange(varValue)))
+        return BoolExprEvalCbResult{.res = false};
+
+      String error_msg;
+      bool bool_result = interval->checkExpression(varValue, cmpop, value_nid, error_msg, ctx.tgtCtx());
+      if (DAGOR_UNLIKELY(!error_msg.empty()))
+      {
+        report_error(parser, &e, error_msg.str());
+        return BoolExprEvalCbResult{.erred = true};
+      }
+
+      return BoolExprEvalCbResult{.res = bool_result};
+    },
+    [&, this](int texture_nid, Interval::BooleanExpr cmpop) {
+      const IntervalList *intervalList = &variant.intervals;
+
+      // search interval by name
+      int intervalIndex = variant.intervals.getIntervalIndex(texture_nid);
+      if (intervalIndex == INTERVAL_NOT_INIT)
+      {
+        intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(texture_nid);
+        if (DAGOR_UNLIKELY(intervalIndex == INTERVAL_NOT_INIT))
+        {
+          report_error(parser, &e, "tex interval %s not found!", ctx.tgtCtx().intervalNameMap().getName(texture_nid));
+          return BoolExprEvalCbResult{.erred = true};
+        }
+        intervalList = &ctx.tgtCtx().globVars().getIntervalList();
+      }
+
+      const Interval *interv = intervalList->getInterval(intervalIndex);
+      G_ASSERT(interv);
+
+      ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
+      if (varValue == -1)
+      {
+        bool isGlobal = true;
+        if (const int varNameId = ctx.tgtCtx().varNameMap().getVarId(ctx.tgtCtx().intervalNameMap().getName(texture_nid));
+            varNameId >= 0)
+        {
+          isGlobal = ctx.parsedSemCode().find_var(varNameId) < 0;
+        }
+
+        if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(texture_nid, isGlobal))
+          varValue = interv->normalizeValue(*valueMaybe);
+      }
+
+      switch (cmpop)
+      {
+        case Interval::EXPR_EQ: return BoolExprEvalCbResult{.res = varValue != 1};
+        case Interval::EXPR_NOT_EQ: return BoolExprEvalCbResult{.res = varValue == 1};
+        default: G_ASSERT_RETURN(0, BoolExprEvalCbResult{.erred = true});
+      }
+    },
+    [&, this](int boolvar_nid) {
+      auto found = semantic::get_bool_maybe_by_name_id(boolvar_nid, ctx);
+      if (DAGOR_UNLIKELY(!found.expr))
+      {
+        report_error(parser, &e, "Bool var %s not found", ctx.tgtCtx().boolVarNameMap().getName(boolvar_nid));
+        return BoolExprFetchCbResult{.erred = true};
+      }
+      return BoolExprFetchCbResult{.program = bytecode_from_expr(*found.expr)};
+    },
+    [&, this](int maybeboolvar_nid) {
+      auto found = semantic::get_bool_maybe_by_name_id(maybeboolvar_nid, ctx);
+      if (!found.expr)
+        return BoolExprFetchCbResult{.program = BoolExprEvalProgram{{}, {false}}};
+      return BoolExprFetchCbResult{.program = bytecode_from_expr(*found.expr)};
+    },
+    [&, this] { return BoolExprEvalCbResult{.res = bool(variant.getValue(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED))}; },
+    [&, this] {
+      return BoolExprEvalCbResult{.res = bool(variant.getValue(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED))};
+    },
+    [&, this](int shader_nid, Interval::BooleanExpr cmpop) {
+      switch (cmpop)
+      {
+        case Interval::EXPR_EQ: return BoolExprEvalCbResult{.res = shader_nid == ctx.shCtx().nameId()};
+        case Interval::EXPR_NOT_EQ: return BoolExprEvalCbResult{.res = shader_nid != ctx.shCtx().nameId()};
+        default: G_ASSERT_RETURN(0, BoolExprEvalCbResult{.erred = true});
+      }
+    });
+
+  if (!res.has_value())
+  {
+    sh_debug(SHLOG_ERROR, "Bool evaluation ended with errors");
+    return ShVarBool(false, false);
+  }
+
+  return ShVarBool(res.value(), true);
 }
 
 ShVarBool VariantBoolExprEvalCB::eval_bool_value(bool_value &val)
 {
-  const auto &variant = ctx.variant();
-  auto &parser = ctx.tgtCtx().sourceParseState().parser;
-
-  if (val.two_sided)
-  {
-    return ShVarBool(variant.getValue(ShaderVariant::VARTYPE_MODE, ShaderVariant::TWO_SIDED), true);
-  }
-  else if (val.real_two_sided)
-  {
-    return ShVarBool(variant.getValue(ShaderVariant::VARTYPE_MODE, ShaderVariant::REAL_TWO_SIDED), true);
-  }
-  else if (val.shader)
-  {
-    return ShVarBool(semantic::compare_shader(val, ctx.shCtx()), true);
-  }
-  else if (val.hw)
-  {
-    return ShVarBool(semantic::compare_hw_token(val, ctx.tgtCtx().compCtx()), true);
-  }
-  else if (val.interval_ident)
-  {
-    auto [varIndex, varType, isGlobal] = lookup_state_var(*val.interval_ident, ctx, true);
-    bool has_corresponded_var = varIndex >= 0;
-
-    G_ASSERT(val.cmpop);
-    G_ASSERT(val.interval_value);
-
-    Interval::BooleanExpr expr = Interval::EXPR_NOTINIT;
-    switch (val.cmpop->op->num)
-    {
-      case SHADER_TOKENS::SHTOK_eq: expr = Interval::EXPR_EQ; break;
-      case SHADER_TOKENS::SHTOK_assign: expr = Interval::EXPR_EQ; break;
-      case SHADER_TOKENS::SHTOK_greater: expr = Interval::EXPR_GREATER; break;
-      case SHADER_TOKENS::SHTOK_greatereq: expr = Interval::EXPR_GREATER_EQ; break;
-      case SHADER_TOKENS::SHTOK_smaller: expr = Interval::EXPR_SMALLER; break;
-      case SHADER_TOKENS::SHTOK_smallereq: expr = Interval::EXPR_SMALLER_EQ; break;
-      case SHADER_TOKENS::SHTOK_noteq: expr = Interval::EXPR_NOT_EQ; break;
-      default: G_ASSERT(0);
-    }
-
-    if (expr == Interval::EXPR_NOTINIT)
-      return ShVarBool(false, false);
-
-    const IntervalList *intervalList = &variant.intervals;
-
-    // search interval by name
-    int e_interval_ident_id = ctx.tgtCtx().intervalNameMap().getNameId(val.interval_ident->text);
-    int intervalIndex = variant.intervals.getIntervalIndex(e_interval_ident_id);
-    if (intervalIndex == INTERVAL_NOT_INIT)
-    {
-      intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(e_interval_ident_id);
-
-      if (intervalIndex == INTERVAL_NOT_INIT)
-      {
-        report_error(parser, val.interval_ident, "[ERROR] interval %s not found!", val.interval_ident->text);
-        return ShVarBool(false, false);
-      }
-
-      intervalList = &ctx.tgtCtx().globVars().getIntervalList();
-
-      if (!has_corresponded_var)
-        isGlobal = true;
-    }
-
-    const Interval *interv = intervalList->getInterval(intervalIndex);
-    G_ASSERT(interv);
-
-    ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
-    if (varValue == -1)
-    {
-      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(e_interval_ident_id, isGlobal))
-        varValue = interv->normalizeValue(*valueMaybe);
-    }
-    const Interval *interval = intervalList->getInterval(intervalIndex);
-    if (!ShaderVariant::ValueRange(0, interval->getValueCount() - 1).isInRange(varValue))
-    {
-      report_bool_eval_error(
-        String{0, "  illegal normalized value (%d) for this interval (%s)\n", varValue, get_interval_name(*interval, ctx.tgtCtx())});
-      return ShVarBool(false, false);
-    }
-
-    String error_msg;
-    bool bool_result = interval->checkExpression(varValue, expr, val.interval_value->text, error_msg, ctx.tgtCtx());
-    if (!error_msg.empty())
-      report_error(parser, val.interval_ident, error_msg);
-
-    return ShVarBool(bool_result, true);
-  }
-  else if (val.texture_name)
-  {
-    auto [varIndex, varType, isGlobal] = lookup_state_var(*val.texture_name, ctx);
-    if (varIndex < 0)
-    {
-      report_bool_eval_error(String{0, "  variable <%s> not defined!\n", val.texture_name});
-      return ShVarBool(false, false);
-    }
-
-    const IntervalList *intervalList = &variant.intervals;
-
-    // search interval by name
-    int e_texture_ident_id = ctx.tgtCtx().intervalNameMap().getNameId(val.texture_name->text);
-    int intervalIndex = variant.intervals.getIntervalIndex(e_texture_ident_id);
-    if (intervalIndex == INTERVAL_NOT_INIT)
-    {
-      intervalIndex = ctx.tgtCtx().globVars().getIntervalList().getIntervalIndex(e_texture_ident_id);
-
-      if (intervalIndex == INTERVAL_NOT_INIT)
-      {
-        report_bool_eval_error(String{0, "  interval %s not found!\n", val.texture_name->text});
-        return ShVarBool(false, false);
-      }
-
-      intervalList = &ctx.tgtCtx().globVars().getIntervalList();
-    }
-
-    const Interval *interv = intervalList->getInterval(intervalIndex);
-    G_ASSERT(interv);
-
-    ShaderVariant::ValueType varValue = variant.getValue(interv->getVarType(), intervalIndex);
-    if (varValue == -1)
-    {
-      if (auto valueMaybe = ctx.shCtx().assumes().getAssumedVal(e_texture_ident_id, isGlobal))
-        varValue = interv->normalizeValue(*valueMaybe);
-    }
-
-    bool result = false;
-    G_ASSERT(val.cmpop);
-    switch (val.cmpop->op->num)
-    {
-      case SHADER_TOKENS::SHTOK_eq:
-      case SHADER_TOKENS::SHTOK_assign:
-      {
-        result = varValue != 1;
-        break;
-      }
-      case SHADER_TOKENS::SHTOK_noteq:
-      {
-        result = varValue == 1;
-        break;
-      }
-      case SHADER_TOKENS::SHTOK_greater:
-      case SHADER_TOKENS::SHTOK_greatereq:
-      case SHADER_TOKENS::SHTOK_smaller:
-      case SHADER_TOKENS::SHTOK_smallereq:
-        report_error(parser, val.cmpop->op, "[ERROR] operators '>', '>=', '<' and '<=' are not supported here!");
-        break;
-      default: G_ASSERT(0);
-    }
-
-    return ShVarBool(result, true);
-  }
-  else if (val.bool_var)
-  {
-    auto res = semantic::get_bool_expr(*val.bool_var, parser, ctx);
-    if (res)
-      return eval_expr(*res.expr);
-  }
-  else if (val.maybe)
-  {
-    auto res = semantic::get_bool_maybe(*val.maybe_bool_var, ctx);
-    if (res)
-      return eval_expr(*res.expr);
-    else
-      return ShVarBool(false, true);
-  }
-  else if (val.true_value)
-  {
-    return ShVarBool(true, true);
-  }
-  else if (val.false_value)
-  {
-    return ShVarBool(false, true);
-  }
-  else
-  {
-    G_ASSERT(0);
-  }
-  return ShVarBool(false, false);
+  G_ASSERTF_RETURN(0, ShVarBool(false, false),
+    "ICE: use bytecode for bool expr evaluation in variants! This method only exists due to interface");
 }
 
 int VariantBoolExprEvalCB::eval_interval_value(const char *ival_name)

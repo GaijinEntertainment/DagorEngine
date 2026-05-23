@@ -82,12 +82,19 @@ SQUIRREL_API SQRESULT push_promise_class(HSQUIRRELVM v);
 // or instance creation fails; `*out` is null on error.
 SQUIRREL_API SQRESULT create_promise(HSQUIRRELVM v, HSQOBJECT *out);
 
-// Resolve / reject a Promise instance from C. The `promise` handle must
-// reference an instance of the bound Promise class; `value` (or `reason`) is
-// adopted as the settled payload (an internal sq_addref keeps it alive).
-// Settling an already-settled promise is a no-op (mirrors the script-side
-// resolve()/reject() behavior). Returns SQ_ERROR if `promise` is not a
-// Promise instance, or if the value is the promise itself (self-reference).
+// Settle a Promise instance from C. An internal sq_addref keeps the payload
+// alive. Settling an already-settled or already-adopted promise is a no-op.
+//
+// resolve_promise applies the JS Promise Resolution Procedure: a Promise
+// `value` is adopted (promise mirrors its eventual settlement); other values
+// fulfill immediately. reject_promise stores `reason` verbatim regardless of
+// type.
+//
+// Returns SQ_ERROR and throws if `promise` is not a Promise instance, is a
+// task-promise, or the payload is `promise` itself. resolve_promise also throws
+// on a cycle within the adoption chain (a.resolve(b); b.resolve(a)). Cycles
+// that pass through a rejection are detected during settlement and produce a
+// diagnostic reason rather than throwing.
 SQUIRREL_API SQRESULT resolve_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT value);
 SQUIRREL_API SQRESULT reject_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT reason);
 

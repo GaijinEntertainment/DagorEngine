@@ -834,6 +834,8 @@ public:
 
   void imguiEnd() override { ImGui::End(); }
 
+  void *getImguiContext() override { return ImGui::GetCurrentContext(); }
+
   void resetInterface()
   {
     static_geom_mat_subst.setMatProcessor(nullptr);

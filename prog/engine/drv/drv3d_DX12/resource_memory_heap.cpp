@@ -2677,52 +2677,78 @@ void MetricsVisualizer::drawHeapsSummaryTable()
 {
   if (ImGui::BeginTable("DX12-Heap-Summary-Table", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
   {
+    // Prefer netCounters when their writer is active; otherwise fall back to a live walk of heap groups.
+    const bool useMetricsHeaps = isCollectingMetric(Metric::HEAPS);
+    const bool useMetricsMemory = isCollectingMetric(Metric::MEMORY);
+
+    uint64_t gpuHeapsTotal = 0, gpuMemoryAllocated = 0;
+    uint64_t cpuHeapsTotal = 0, cpuMemoryAllocated = 0;
+    if (!useMetricsHeaps || !useMetricsMemory)
+    {
+      OSSpinlockScopedLock lock{heapGroupMutex};
+      ResourceHeapProperties properties;
+      for (properties.raw = 0; properties.raw < groups.size(); ++properties.raw)
+      {
+        const bool isGpu = properties.isOnDevice(getFeatureSet());
+        for (auto &heap : groups[properties.raw])
+        {
+          if (!heap)
+            continue;
+          const uint64_t totalFree =
+            eastl::accumulate(begin(heap.freeRanges), end(heap.freeRanges), uint64_t(0), [](auto a, auto b) { return a + b.size(); });
+          const uint64_t allocated = heap.totalSize - totalFree;
+          if (isGpu)
+          {
+            gpuHeapsTotal += heap.totalSize;
+            gpuMemoryAllocated += allocated;
+          }
+          else
+          {
+            cpuHeapsTotal += heap.totalSize;
+            cpuMemoryAllocated += allocated;
+          }
+        }
+      }
+    }
+
     auto metricsAccess = accessMetrics();
     const auto &frame = metricsAccess->getLastFrameMetrics();
 
+    if (useMetricsHeaps)
+    {
+      gpuHeapsTotal = frame.netCounters.gpuHeaps.size;
+      cpuHeapsTotal = frame.netCounters.cpuHeaps.size;
+    }
+    if (useMetricsMemory)
+    {
+      gpuMemoryAllocated = frame.netCounters.gpuMemory.size;
+      cpuMemoryAllocated = frame.netCounters.cpuMemory.size;
+    }
+
     make_table_header( //
       {"Segment", "Textures", "Texture Size", "Buffers", "Buffer Size", "Allocated Size", "Free Size", "Total Size"});
-    begin_selectable_row("GPU");
 
+    auto put_size = [](uint64_t v) {
+      auto u = size_to_unit_table(v);
+      ImGui::Text("%.2f %s", compute_unit_type_size(v, u), get_unit_name(u));
+    };
+
+    begin_selectable_row("GPU");
     ImGui::TableNextColumn();
     ImGui::Text("%I64u", frame.netCounters.textures.count);
-
     ImGui::TableNextColumn();
-    auto texutreSizeUnits = size_to_unit_table(frame.netCounters.textures.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.textures.size, texutreSizeUnits), get_unit_name(texutreSizeUnits));
-
+    put_size(frame.netCounters.textures.size);
     ImGui::TableNextColumn();
     ImGui::Text("%I64u", frame.netCounters.gpuBufferHeaps.count);
-
     ImGui::TableNextColumn();
-    auto bufferHeapSizeUnits = size_to_unit_table(frame.netCounters.gpuBufferHeaps.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.gpuBufferHeaps.size, bufferHeapSizeUnits),
-      get_unit_name(bufferHeapSizeUnits));
-
+    put_size(frame.netCounters.gpuBufferHeaps.size);
     ImGui::TableNextColumn();
-    auto allocatedMemorySizeUnits = size_to_unit_table(frame.netCounters.gpuMemory.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.gpuMemory.size, allocatedMemorySizeUnits),
-      get_unit_name(allocatedMemorySizeUnits));
-
+    put_size(gpuMemoryAllocated);
     ImGui::TableNextColumn();
-    auto freeMemorySize = frame.netCounters.gpuHeaps.size - frame.netCounters.gpuMemory.size;
-    auto freeMemorySizeUnits = size_to_unit_table(freeMemorySize);
-    ImGui::Text("%.2f %s", compute_unit_type_size(freeMemorySize, freeMemorySizeUnits), get_unit_name(freeMemorySizeUnits));
-
+    put_size(gpuHeapsTotal - gpuMemoryAllocated);
     ImGui::TableNextColumn();
-    auto heapSizeMemoryUnits = size_to_unit_table(frame.netCounters.gpuHeaps.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.gpuHeaps.size, heapSizeMemoryUnits),
-      get_unit_name(heapSizeMemoryUnits));
+    put_size(gpuHeapsTotal);
 
-    begin_selectable_row("CPU");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
     auto totalCPUBufferHeapCount = frame.netCounters.cpuBufferHeaps.count;
     totalCPUBufferHeapCount += frame.netCounters.constRing.count;
     totalCPUBufferHeapCount += frame.netCounters.uploadRing.count;
@@ -2730,9 +2756,7 @@ void MetricsVisualizer::drawHeapsSummaryTable()
     totalCPUBufferHeapCount += frame.netCounters.persistentUploadBuffer.count;
     totalCPUBufferHeapCount += frame.netCounters.persistentReadBackBuffer.count;
     totalCPUBufferHeapCount += frame.netCounters.persistentBidirectionalBuffer.count;
-    ImGui::Text("%I64u", totalCPUBufferHeapCount);
 
-    ImGui::TableNextColumn();
     auto totalCPUBufferHeapSize = frame.netCounters.cpuBufferHeaps.size;
     totalCPUBufferHeapSize += frame.netCounters.constRing.size;
     totalCPUBufferHeapSize += frame.netCounters.uploadRing.size;
@@ -2740,122 +2764,63 @@ void MetricsVisualizer::drawHeapsSummaryTable()
     totalCPUBufferHeapSize += frame.netCounters.persistentUploadBuffer.size;
     totalCPUBufferHeapSize += frame.netCounters.persistentReadBackBuffer.size;
     totalCPUBufferHeapSize += frame.netCounters.persistentBidirectionalBuffer.size;
-    bufferHeapSizeUnits = size_to_unit_table(totalCPUBufferHeapSize);
-    ImGui::Text("%.2f %s", compute_unit_type_size(totalCPUBufferHeapSize, bufferHeapSizeUnits), get_unit_name(bufferHeapSizeUnits));
 
+    begin_selectable_row("CPU");
     ImGui::TableNextColumn();
-    allocatedMemorySizeUnits = size_to_unit_table(frame.netCounters.cpuMemory.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.cpuMemory.size, allocatedMemorySizeUnits),
-      get_unit_name(allocatedMemorySizeUnits));
-
+    ImGui::TextDisabled("-");
     ImGui::TableNextColumn();
-    freeMemorySize = frame.netCounters.cpuHeaps.size - frame.netCounters.cpuMemory.size;
-    freeMemorySizeUnits = size_to_unit_table(freeMemorySize);
-    ImGui::Text("%.2f %s", compute_unit_type_size(freeMemorySize, freeMemorySizeUnits), get_unit_name(freeMemorySizeUnits));
-
+    ImGui::TextDisabled("-");
     ImGui::TableNextColumn();
-    heapSizeMemoryUnits = size_to_unit_table(frame.netCounters.cpuHeaps.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.cpuHeaps.size, heapSizeMemoryUnits),
-      get_unit_name(heapSizeMemoryUnits));
+    ImGui::Text("%I64u", totalCPUBufferHeapCount);
+    ImGui::TableNextColumn();
+    put_size(totalCPUBufferHeapSize);
+    ImGui::TableNextColumn();
+    put_size(cpuMemoryAllocated);
+    ImGui::TableNextColumn();
+    put_size(cpuHeapsTotal - cpuMemoryAllocated);
+    ImGui::TableNextColumn();
+    put_size(cpuHeapsTotal);
 
     begin_selectable_row("Total");
-
     ImGui::TableNextColumn();
     ImGui::Text("%I64u", frame.netCounters.textures.count);
-
     ImGui::TableNextColumn();
-    ImGui::Text("%.2f %s", compute_unit_type_size(frame.netCounters.textures.size, texutreSizeUnits), get_unit_name(texutreSizeUnits));
-
+    put_size(frame.netCounters.textures.size);
     ImGui::TableNextColumn();
     ImGui::Text("%I64u", totalCPUBufferHeapCount + frame.netCounters.gpuBufferHeaps.count);
-
     ImGui::TableNextColumn();
-    bufferHeapSizeUnits = size_to_unit_table(totalCPUBufferHeapSize + frame.netCounters.gpuBufferHeaps.size);
-    ImGui::Text("%.2f %s", compute_unit_type_size(totalCPUBufferHeapSize + frame.netCounters.gpuBufferHeaps.size, bufferHeapSizeUnits),
-      get_unit_name(bufferHeapSizeUnits));
-
+    put_size(totalCPUBufferHeapSize + frame.netCounters.gpuBufferHeaps.size);
     ImGui::TableNextColumn();
-    allocatedMemorySizeUnits = size_to_unit_table(frame.netCounters.gpuMemory.size + frame.netCounters.cpuMemory.size);
-    ImGui::Text("%.2f %s",
-      compute_unit_type_size(frame.netCounters.gpuMemory.size + frame.netCounters.cpuMemory.size, allocatedMemorySizeUnits),
-      get_unit_name(allocatedMemorySizeUnits));
-
+    put_size(gpuMemoryAllocated + cpuMemoryAllocated);
     ImGui::TableNextColumn();
-    freeMemorySize = frame.netCounters.gpuHeaps.size - frame.netCounters.gpuMemory.size + frame.netCounters.cpuHeaps.size -
-                     frame.netCounters.cpuMemory.size;
-    freeMemorySizeUnits = size_to_unit_table(freeMemorySize);
-    ImGui::Text("%.2f %s", compute_unit_type_size(freeMemorySize, freeMemorySizeUnits), get_unit_name(freeMemorySizeUnits));
-
+    put_size((gpuHeapsTotal - gpuMemoryAllocated) + (cpuHeapsTotal - cpuMemoryAllocated));
     ImGui::TableNextColumn();
-    heapSizeMemoryUnits = size_to_unit_table(frame.netCounters.gpuHeaps.size + frame.netCounters.cpuHeaps.size);
-    ImGui::Text("%.2f %s",
-      compute_unit_type_size(frame.netCounters.gpuHeaps.size + frame.netCounters.cpuHeaps.size, heapSizeMemoryUnits),
-      get_unit_name(heapSizeMemoryUnits));
+    put_size(gpuHeapsTotal + cpuHeapsTotal);
 
 #if _TARGET_PC_WIN
-    begin_selectable_row("Overhead GPU");
-    if (ImGui::IsItemHovered())
-    {
-      ScopedTooltip tooltip;
-      ImGui::TextUnformatted("Difference between usage by all GPU memory heaps and OS reported GPU "
-                             "memory use");
-    }
+    auto put_overhead_row = [&](const char *label, const char *tooltip, uint64_t os_use, uint64_t our_heaps) {
+      begin_selectable_row(label);
+      if (ImGui::IsItemHovered())
+      {
+        ScopedTooltip tt;
+        ImGui::TextUnformatted(tooltip);
+      }
+      for (int i = 1; i < 7; ++i)
+      {
+        ImGui::TableNextColumn();
+        ImGui::TextDisabled("-");
+      }
+      ImGui::TableNextColumn();
+      if (os_use > our_heaps)
+        put_size(os_use - our_heaps);
+      else
+        ImGui::TextDisabled("-");
+    };
 
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    heapSizeMemoryUnits = size_to_unit_table(frame.deviceMemoryInUse.CurrentUsage - frame.netCounters.gpuHeaps.size);
-    ImGui::Text("%.2f %s",
-      compute_unit_type_size(frame.deviceMemoryInUse.CurrentUsage - frame.netCounters.gpuHeaps.size, heapSizeMemoryUnits),
-      get_unit_name(heapSizeMemoryUnits));
-
-    begin_selectable_row("Overhead CPU");
-    if (ImGui::IsItemHovered())
-    {
-      ScopedTooltip tooltip;
-      ImGui::TextUnformatted("Difference between usage by all CPU memory heaps and OS reported CPU "
-                             "memory use");
-    }
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("-");
-
-    ImGui::TableNextColumn();
-    heapSizeMemoryUnits = size_to_unit_table(frame.systemMemoryInUse.CurrentUsage - frame.netCounters.cpuHeaps.size);
-    ImGui::Text("%.2f %s",
-      compute_unit_type_size(frame.systemMemoryInUse.CurrentUsage - frame.netCounters.cpuHeaps.size, heapSizeMemoryUnits),
-      get_unit_name(heapSizeMemoryUnits));
+    put_overhead_row("Overhead GPU", "Difference between usage by all GPU memory heaps and OS reported GPU memory use",
+      frame.deviceMemoryInUse.CurrentUsage, gpuHeapsTotal);
+    put_overhead_row("Overhead CPU", "Difference between usage by all CPU memory heaps and OS reported CPU memory use",
+      frame.systemMemoryInUse.CurrentUsage, cpuHeapsTotal);
 #endif
 
     ImGui::EndTable();
@@ -3720,50 +3685,91 @@ void MetricsVisualizer::drawRaytraceSummaryTable()
 
   make_table_header({"Property", "Value", "Peak"});
 
+  // Aggregate live "Value" column straight from the raytrace pool state so the summary works without metrics capture.
+  uint64_t poolCount = 0, poolSize = 0;
+  uint64_t topCount = 0, topSize = 0;
+  uint64_t botCount = 0, botSize = 0;
+  uint64_t ommCount = 0, ommSize = 0;
+  iterateRayTraceAccelerationStructurePools([&](auto &pool) {
+    ++poolCount;
+    poolSize += pool.sizeInBytes;
+    pool.subStructures.iterateAllocated([&](RaytraceAccelerationStructure *as) {
+      if (as->type == RaytraceAccelerationStructure::Type::Top)
+      {
+        ++topCount;
+        topSize += as->size;
+      }
+      else if (as->type == RaytraceAccelerationStructure::Type::Bottom)
+      {
+        ++botCount;
+        botSize += as->size;
+      }
+      else if (as->type == RaytraceAccelerationStructure::Type::OpacityMicroMap)
+      {
+        ++ommCount;
+        ommSize += as->size;
+      }
+    });
+  });
+
   auto metricsAccess = accessMetrics();
   const auto &frameCounters = metricsAccess->getLastFrameMetrics();
 
   begin_selectable_row("Acceleration structure pool memory size");
-  ByteUnits poolSize = frameCounters.netCounters.raytraceAccelStructPool.size;
+  ByteUnits poolSizeUnits = poolSize;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", poolSize.units(), poolSize.name());
-  poolSize = frameCounters.netCountersPeak.raytraceAccelStructPool.size;
+  ImGui::Text("%.2f %s", poolSizeUnits.units(), poolSizeUnits.name());
+  poolSizeUnits = frameCounters.netCountersPeak.raytraceAccelStructPool.size;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", poolSize.units(), poolSize.name());
+  ImGui::Text("%.2f %s", poolSizeUnits.units(), poolSizeUnits.name());
 
   begin_selectable_row("Acceleration structure pool count");
   ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCounters.raytraceAccelStructPool.count);
+  ImGui::Text("%I64u", poolCount);
   ImGui::TableNextColumn();
   ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceAccelStructPool.count);
 
   begin_selectable_row("Top structure memory size");
-  ByteUnits topSize = frameCounters.netCounters.raytraceTopStructure.size;
+  ByteUnits topSizeUnits = topSize;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", topSize.units(), topSize.name());
-  topSize = frameCounters.netCountersPeak.raytraceTopStructure.size;
+  ImGui::Text("%.2f %s", topSizeUnits.units(), topSizeUnits.name());
+  topSizeUnits = frameCounters.netCountersPeak.raytraceTopStructure.size;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", topSize.units(), topSize.name());
+  ImGui::Text("%.2f %s", topSizeUnits.units(), topSizeUnits.name());
 
   begin_selectable_row("Top structure memory count");
   ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCounters.raytraceTopStructure.count);
+  ImGui::Text("%I64u", topCount);
   ImGui::TableNextColumn();
   ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceTopStructure.count);
 
   begin_selectable_row("Bottom structure memory size");
-  ByteUnits bottomSize = frameCounters.netCounters.raytraceBottomStructure.size;
+  ByteUnits bottomSizeUnits = botSize;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", bottomSize.units(), bottomSize.name());
-  bottomSize = frameCounters.netCountersPeak.raytraceBottomStructure.size;
+  ImGui::Text("%.2f %s", bottomSizeUnits.units(), bottomSizeUnits.name());
+  bottomSizeUnits = frameCounters.netCountersPeak.raytraceBottomStructure.size;
   ImGui::TableNextColumn();
-  ImGui::Text("%.2f %s", bottomSize.units(), bottomSize.name());
+  ImGui::Text("%.2f %s", bottomSizeUnits.units(), bottomSizeUnits.name());
 
   begin_selectable_row("Bottom structure memory count");
   ImGui::TableNextColumn();
-  ImGui::Text("%I64u", frameCounters.netCounters.raytraceBottomStructure.count);
+  ImGui::Text("%I64u", botCount);
   ImGui::TableNextColumn();
   ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceBottomStructure.count);
+
+  begin_selectable_row("OMM memory size");
+  ByteUnits ommSizeUnits = ommSize;
+  ImGui::TableNextColumn();
+  ImGui::Text("%.2f %s", ommSizeUnits.units(), ommSizeUnits.name());
+  ommSizeUnits = frameCounters.netCountersPeak.raytraceOpacityMicroMapTriangleArray.size;
+  ImGui::TableNextColumn();
+  ImGui::Text("%.2f %s", ommSizeUnits.units(), ommSizeUnits.name());
+
+  begin_selectable_row("OMM memory count");
+  ImGui::TableNextColumn();
+  ImGui::Text("%I64u", ommCount);
+  ImGui::TableNextColumn();
+  ImGui::Text("%I64u", frameCounters.netCountersPeak.raytraceOpacityMicroMapTriangleArray.count);
 
   ImGui::EndTable();
 #endif
@@ -4151,16 +4157,17 @@ void DebugView::drawUserHeapsSummaryTable()
   }
 }
 
-void DebugView::drawRaytraceTopStructureTable()
-{
 #if D3D_HAS_RAY_TRACING
-  if (!ImGui::TreeNodeEx("Top Acceleration Structures##DX12-top-structure-table-tree", ImGuiTreeNodeFlags_Framed))
+void DebugView::drawRaytraceStructureTable(const char *tree_label, const char *table_id,
+  RaytraceAccelerationStructure::Type filter_type)
+{
+  if (!ImGui::TreeNodeEx(tree_label, ImGuiTreeNodeFlags_Framed))
   {
     return;
   }
 
   // address from, address to, size
-  if (ImGui::BeginTable("DX12-top-structure-table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+  if (ImGui::BeginTable(table_id, 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
   {
     make_table_header({"Pool", "Address start", "Address end", "Size"});
 
@@ -4169,9 +4176,7 @@ void DebugView::drawRaytraceTopStructureTable()
       sprintf_s(poolName, "%016p", pool.poolResource.Get());
       pool.subStructures.iterateAllocated([&](RaytraceAccelerationStructure *as) //
         {
-          // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
-          // not if not then its bottom
-          if (0 == as->descriptor.ptr)
+          if (as->type != filter_type)
           {
             return;
           }
@@ -4194,52 +4199,30 @@ void DebugView::drawRaytraceTopStructureTable()
     ImGui::EndTable();
   }
   ImGui::TreePop();
+}
+#endif
+
+void DebugView::drawRaytraceTopStructureTable()
+{
+#if D3D_HAS_RAY_TRACING
+  drawRaytraceStructureTable("Top Acceleration Structures##DX12-top-structure-table-tree", "DX12-top-structure-table",
+    RaytraceAccelerationStructure::Type::Top);
 #endif
 }
 
 void DebugView::drawRaytraceBottomStructureTable()
 {
 #if D3D_HAS_RAY_TRACING
-  if (!ImGui::TreeNodeEx("Bottom Acceleration Structures##DX12-bottom-structure-table-tree", ImGuiTreeNodeFlags_Framed))
-  {
-    return;
-  }
+  drawRaytraceStructureTable("Bottom Acceleration Structures##DX12-bottom-structure-table-tree", "DX12-bottom-structure-table",
+    RaytraceAccelerationStructure::Type::Bottom);
+#endif
+}
 
-  // address from, address to, size
-  if (ImGui::BeginTable("DX12-bottom-structure-table", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
-  {
-    make_table_header({"Pool", "Address start", "Address end", "Size"});
-
-    iterateRayTraceAccelerationStructurePools([=](auto &pool) {
-      char poolName[64];
-      sprintf_s(poolName, "%016p", pool.poolResource.Get());
-      pool.subStructures.iterateAllocated([&](RaytraceAccelerationStructure *as) //
-        {
-          // currently the only indicator for top or bottom is to see if it has a UAV descriptor or
-          // not if not then its bottom
-          if (0 != as->descriptor.ptr)
-          {
-            return;
-          }
-
-          begin_selectable_row(poolName);
-          strcpy(poolName, "^");
-
-          ImGui::TableNextColumn();
-          ImGui::Text("%016I64X", as->gpuAddress);
-
-          ImGui::TableNextColumn();
-          ImGui::Text("%016I64X", as->gpuAddress + as->size);
-
-          ByteUnits sz = as->size;
-          ImGui::TableNextColumn();
-          ImGui::Text("%.2f %s", sz.units(), sz.name());
-        });
-    });
-
-    ImGui::EndTable();
-  }
-  ImGui::TreePop();
+void DebugView::drawRaytraceOMMStructureTable()
+{
+#if D3D_HAS_RAY_TRACING
+  drawRaytraceStructureTable("Opacity Micro Maps##DX12-omm-table-tree", "DX12-omm-table",
+    RaytraceAccelerationStructure::Type::OpacityMicroMap);
 #endif
 }
 
@@ -4682,6 +4665,7 @@ void DebugView::drawRaytracingInfoView()
 {
   drawRaytraceTopStructureTable();
   drawRaytraceBottomStructureTable();
+  drawRaytraceOMMStructureTable();
   drawRaytraceSummaryTable();
   drawRaytracePlot();
 }

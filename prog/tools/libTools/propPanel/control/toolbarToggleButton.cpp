@@ -5,6 +5,7 @@
 #include <propPanel/colors.h>
 #include <propPanel/imguiHelper.h>
 
+#include "controlType.h"
 #include "../imageHelper.h"
 #include "../scopedImguiBeginDisabled.h"
 
@@ -17,6 +18,8 @@ ToolbarToggleButtonPropertyControl::ToolbarToggleButtonPropertyControl(int id, C
 {
   controlTooltip = caption;
 }
+
+int ToolbarToggleButtonPropertyControl::getImguiControlType() const { return (int)ControlType::ToolbarToggleButton; }
 
 void ToolbarToggleButtonPropertyControl::reset()
 {
@@ -37,7 +40,7 @@ unsigned ToolbarToggleButtonPropertyControl::getWidth() const
   return ImguiHelper::getImageButtonSize(ImVec2(size, size)).x;
 }
 
-void ToolbarToggleButtonPropertyControl::updateImgui()
+void ToolbarToggleButtonPropertyControl::toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags)
 {
   ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -55,8 +58,9 @@ void ToolbarToggleButtonPropertyControl::updateImgui()
   const int size = ImGui::GetTextLineHeight();
   const IconId iconId = iconWithNameAndSize.getIconId(size);
   const ImTextureID icon = image_helper.getImTextureIdFromIconId(iconId);
-  const bool clicked = ImGui::ImageButtonEx(ImGui::GetCurrentWindow()->GetID("ib"), icon, ImVec2(size, size), ImVec2(0, 0),
-    ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1), ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+  const bool clicked = ImguiHelper::imageButtonWithRoundingOptions(ImGui::GetCurrentWindow()->GetID("ib"), icon, ImVec2(size, size),
+    ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1),
+    ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight, frame_draw_flags);
   const bool rightClicked = clicked && ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right, ImGui::GetItemID());
 
   ImGui::PopStyleColor(2);

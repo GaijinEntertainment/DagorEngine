@@ -216,7 +216,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
 
     ShaderGlobal::set_float(var::background_alpha, ctx.info->getReal("backgroundAlpha", 0.5f));
     {
-      d3d::set_depth(target->getDepth(), DepthAccess::RW);
+      d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{finalTarget.getTex2D(), 0, 0}});
       d3d::setview(0, 0, icon_ssaa.w, icon_ssaa.h, 0, 1);
       state.clear();
       SCENE_LAYER_GUARD(dynamicSceneTransBlockId);

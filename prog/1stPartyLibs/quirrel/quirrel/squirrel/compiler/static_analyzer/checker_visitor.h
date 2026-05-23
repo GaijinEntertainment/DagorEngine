@@ -253,6 +253,7 @@ class CheckerVisitor : public Visitor
 
   const char *findSlotNameInStack(const Node *);
   void checkFunctionReturns(FunctionExpr *func);
+  void checkFunctionReturnsSameValue(FunctionExpr *func);
 
   void checkAccessNullable(const DestructuringDecl *d);
   void checkAccessNullable(const AccessExpr *acc);

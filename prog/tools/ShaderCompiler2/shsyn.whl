@@ -582,3 +582,10 @@ supports-stat(supports_stat) ->
 code_in_class[bool_decl]={
   int resolvedNid = -1;
 };
+
+// @TODO(boolvar_opt): add separate production for top level bool expr -- so as not to store redundant fields
+code_in_class[bool_expr]={
+  eastl::vector<uint64_t> bytecode{};
+  eastl::optional<bool> constvalue{};
+  bool compiled = false;
+};

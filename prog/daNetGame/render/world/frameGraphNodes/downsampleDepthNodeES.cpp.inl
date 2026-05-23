@@ -14,6 +14,11 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/wrDispatcher.h>
 
+namespace var
+{
+static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_const_no");
+}
+
 static bool use_explicit_depth_write(const bool has_stencil)
 {
   // format conversion via copy results in invalid htile texture on xbox (even after resummarize)
@@ -178,10 +183,10 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
       auto farDownsampledDepthHndl =
         registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
       return [farDownsampledDepthHndl, renderer = PostFxRenderer("copy_depth")] {
-        d3d::settex(15, farDownsampledDepthHndl.get());
-        d3d::set_sampler(STAGE_PS, 15, d3d::request_sampler({}));
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), farDownsampledDepthHndl.get());
+        d3d::set_sampler(STAGE_PS, var::source_depth_for_copy_const_no.get_int(), d3d::request_sampler({}));
         renderer.render();
-        d3d::settex(15, nullptr);
+        d3d::settex(var::source_depth_for_copy_const_no.get_int(), nullptr);
       };
     });
   else

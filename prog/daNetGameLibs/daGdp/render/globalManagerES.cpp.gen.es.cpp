@@ -14,7 +14,8 @@ static void dagdp_update_es_all_events(const ecs::Event &__restrict evt, const e
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::dagdp_update_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(dagdp_update_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
+        , components.manager()
+    , ECS_RW_COMP(dagdp_update_es_comps, "dagdp__global_manager", dagdp::GlobalManager)
     );
   while (++comp != compE);
 }
@@ -163,8 +164,8 @@ static ecs::EntitySystemDesc dagdp_on_level_unload_es_es_desc
 static constexpr ecs::ComponentDesc dagdp_track_csm_cascade_es_comps[] =
 {
 //start of 2 rq components at [0]
-  {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()},
-  {ECS_HASH("dagdp__csm_max_cascades"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("dagdp__csm_max_fov"), ecs::ComponentTypeInfo<ecs::FloatList>()},
+  {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void dagdp_track_csm_cascade_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -186,7 +187,7 @@ static ecs::EntitySystemDesc dagdp_track_csm_cascade_es_es_desc
                        ecs::EventEntityDestroyed,
                        ecs::EventComponentsDisappear>::build(),
   0
-,"render","dagdp__csm_max_cascades");
+,"render","dagdp__csm_max_fov");
 static constexpr ecs::ComponentDesc dagdp_placer_changed_es_comps[] =
 {
 //start of 3 rq components at [0]

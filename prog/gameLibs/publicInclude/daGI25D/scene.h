@@ -34,7 +34,7 @@ using voxelize_scene_fun_cb = eastl::function<void(const BBox3 &box, const Point
 class Scene
 {
   DynamicShaderHelper debug_rasterize_voxels;
-  UniqueBufHolder sceneAlpha;
+  UniqueBufWithShaderVar sceneAlpha;
   eastl::unique_ptr<ComputeShaderElement> ssgi_clear_scene_25d_cs, ssgi_clear_scene_25d_full_cs;
   IPoint2 toroidalOrigin = {-1000000, 100000};
   float voxelSizeXZ = 2.35f, voxelSizeY = 2.5f;

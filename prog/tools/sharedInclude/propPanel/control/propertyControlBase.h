@@ -81,6 +81,9 @@ public:
   virtual int addStringValue(const char *value);
   virtual void removeStringValue(int idx) { G_UNUSED(idx); }
 
+  // The placeholder text is the text shown when the edit box is empty.
+  virtual void setPlaceholderText([[maybe_unused]] const char *text) {}
+
   // Gets
   virtual void *getUserDataValue() const;
   virtual int getTextValue(char *buffer, int buflen) const;

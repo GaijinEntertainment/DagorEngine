@@ -14,6 +14,8 @@
 #include <math/dag_Point3.h>
 #include <math/dag_Point2.h>
 #include "waterGPGPUData.h"
+#include <generic/dag_span.h>
+#include <EASTL/array.h>
 
 // fft
 static int current_water_timeVarId = -1;
@@ -463,7 +465,7 @@ bool GPGPUData::updateH0(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCasca
     return false;
   ShaderGlobal::set_texture(k_texVarId, BAD_TEXTUREID);
   ShaderGlobal::set_texture(gauss_texVarId, gauss);
-  d3d::set_render_target(ht0.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{ht0.getTex2D(), 0, 0}});
   h0Element->setStates(0, true);
   d3d::setind(ht0Ibuf);
   d3d::setvsrc(0, ht0Vbuf, sizeof(Ht0Vertex));
@@ -546,21 +548,22 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   ScopeRenderTarget scopeRt;
   if (!updateH0(fft, numCascades))
     return;
-  d3d::set_render_target();
-
 #if _TARGET_TVOS
-  for (int i = 0; i < 2; ++i)
+  constexpr uint32_t htRtCount = 2;
 #else
-  for (int i = 0; i < 3; ++i)
+  constexpr uint32_t htRtCount = 3;
 #endif
-    d3d::set_render_target(i, htPing[i].getTex2D(), 0);
+  eastl::array<RenderTarget, 3> htRts = {};
+  for (uint32_t i = 0; i < htRtCount; ++i)
+    htRts[i] = {htPing[i].getTex2D(), 0, 0};
+  d3d::set_render_target({}, DepthAccess::RW, make_span_const(htRts.data(), htRtCount));
   ShaderGlobal::set_texture(omega_texVarId, omega);
   ShaderGlobal::set_int(fft_sizeVarId, N);
   ShaderGlobal::set_float(current_water_timeVarId, time);
   htRenderer.render();
 
 #if _TARGET_TVOS
-  d3d::set_render_target(0, htPing[2].getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{htPing[2].getTex2D(), 0, 0}});
   htRenderer.render();
 #endif
 
@@ -667,22 +670,20 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   // d3d::setvsrc_ex(0, fftVbuf, 0, sizeof(Point3));
   for (int butterflyI = 0; butterflyI < log2N; butterflyI++)
   {
-#if _TARGET_TVOS
-    for (int i = 0; i < 2; ++i)
-#else
-    for (int i = 0; i < 3; ++i)
-#endif
+    eastl::array<RenderTarget, 3> htMrt = {};
+    for (uint32_t i = 0; i < htRtCount; ++i)
     {
-      d3d::set_render_target(i, isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0);
+      htMrt[i] = {isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0, 0};
       d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
       d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
+    d3d::set_render_target({}, DepthAccess::RW, make_span_const(htMrt.data(), htRtCount));
     // ShaderGlobal::set_texture(fft_source_textureVarId, isPing ? htPongTexId[i] : htPingTexId[i]);
     // ShaderGlobal::set_float(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 
 #if _TARGET_TVOS
-    d3d::set_render_target(0, isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0, 0}});
     d3d::settex(fft_source_texture_no + 0, isPing ? htPong[2].getTex2D() : htPing[2].getTex2D());
     d3d::set_sampler(STAGE_PS, fft_source_texture_no + 0, defaultSampler);
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
@@ -695,22 +696,20 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
   // d3d::setvsrc_ex(0, fftVbuf, 0, sizeof(Point3));
   for (int butterflyI = 0; butterflyI < log2N; butterflyI++)
   {
-#if _TARGET_TVOS
-    for (int i = 0; i < 2; ++i)
-#else
-    for (int i = 0; i < 3; ++i)
-#endif
+    eastl::array<RenderTarget, 3> htMrt = {};
+    for (uint32_t i = 0; i < htRtCount; ++i)
     {
-      d3d::set_render_target(i, isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0);
+      htMrt[i] = {isPing ? htPing[i].getTex2D() : htPong[i].getTex2D(), 0, 0};
       d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
       d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
     }
+    d3d::set_render_target({}, DepthAccess::RW, make_span_const(htMrt.data(), htRtCount));
     // ShaderGlobal::set_float(butterfly_indexVarId, float(butterfly+0.5f)/(log2N));//fixme: replace with per vertex data
     // fftVPass.render();
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
 
 #if _TARGET_TVOS
-    d3d::set_render_target(0, isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{isPing ? htPing[2].getTex2D() : htPong[2].getTex2D(), 0, 0}});
     d3d::settex(fft_source_texture_no + 0, isPing ? htPong[2].getTex2D() : htPing[2].getTex2D());
     d3d::set_sampler(STAGE_PS, fft_source_texture_no + 0, defaultSampler);
     d3d::draw(PRIM_TRILIST, butterflyI * 3, 1);
@@ -818,14 +817,16 @@ void GPGPUData::perform(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascad
     d3d::settex(fft_source_texture_no + i, isPing ? htPong[i].getTex2D() : htPing[i].getTex2D());
     d3d::set_sampler(STAGE_PS, fft_source_texture_no + i, defaultSampler);
   }
-  for (int i = 0; i < numCascades; ++i)
+  G_ASSERT(numCascades <= 5);
+  eastl::array<RenderTarget, 5> dispRts = {};
+  for (uint32_t i = 0; i < uint32_t(numCascades); ++i)
   {
     if (dispArray.getArrayTex())
-      d3d::set_render_target(i, dispArray.getArrayTex(), i, 0);
+      dispRts[i] = {dispArray.getArrayTex(), 0, i};
     else
-      d3d::set_render_target(i, dispGPU[i].getTex2D(), 0);
+      dispRts[i] = {dispGPU[i].getTex2D(), 0, 0};
   }
-  G_ASSERT(numCascades <= 5);
+  d3d::set_render_target({}, DepthAccess::RW, make_span_const(dispRts.data(), numCascades));
   if (VariableMap::isGlobVariablePresent(choppy_scale0123VarId) && ShaderGlobal::get_var_type(choppy_scale0123VarId) == SHVT_COLOR4 &&
       VariableMap::isGlobVariablePresent(choppy_scale4567VarId) && ShaderGlobal::get_var_type(choppy_scale4567VarId) == SHVT_COLOR4)
   {

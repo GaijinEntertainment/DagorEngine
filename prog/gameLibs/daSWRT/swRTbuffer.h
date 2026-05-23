@@ -14,7 +14,7 @@ enum
   SWRT_BUF_PAGE_MASK = SWRT_BUF_PAGE_SIZE - 1
 };
 
-inline void ensure_buf_size_and_update(UniqueBufHolder &buf, const uint8_t *data, uint32_t size, const char *name,
+inline void ensure_buf_size_and_update(UniqueBufWithShaderVar &buf, const uint8_t *data, uint32_t size, const char *name,
   bool do_debug = true)
 {
   const uint32_t cSize = buf ? buf.getBuf()->getSize() : 0;
@@ -35,7 +35,7 @@ inline void ensure_buf_size_and_update(UniqueBufHolder &buf, const uint8_t *data
   }
 }
 
-inline void ensure_buf_size_and_update(UniqueBufHolder &buf, const Tab<uint8_t> &data, const char *name, bool do_debug = true)
+inline void ensure_buf_size_and_update(UniqueBufWithShaderVar &buf, const Tab<uint8_t> &data, const char *name, bool do_debug = true)
 {
   ensure_buf_size_and_update(buf, data.begin(), data.size(), name, do_debug);
 }

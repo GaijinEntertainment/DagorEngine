@@ -45,6 +45,8 @@ class GatherVarShaderEvalCB : public ShaderEvalCB, public ShaderBoolEvalCB
   shc::ShaderContext &ctx;
   Parser &parser; // Cached ref from ctx
 
+  bool compilingBoolExpr = false;
+
 public:
   explicit GatherVarShaderEvalCB(shc::ShaderContext &ctx);
 

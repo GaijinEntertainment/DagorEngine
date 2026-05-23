@@ -44,4 +44,4 @@ ECS_REGISTER_MANAGED_TYPE(SharedTexHolder, nullptr,
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTex, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTexWithShaderVar, nullptr);
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueBuf, nullptr);
-ECS_REGISTER_RELOCATABLE_TYPE(UniqueBufHolder, nullptr);
+ECS_REGISTER_RELOCATABLE_TYPE(UniqueBufWithShaderVar, nullptr);

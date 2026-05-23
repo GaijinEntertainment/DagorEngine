@@ -59,7 +59,8 @@ public:
 
   WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int quality,
     int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
-    float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, bool water_heightmap_draw_patches);
+    float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, const HeightmapHeightCulling *heightmap_culling,
+    bool water_heightmap_draw_patches);
   ~WaterNVRender();
 
   void reset();
@@ -150,6 +151,7 @@ protected:
   double lastFoamTime;
   HeightmapRenderer meshRenderer[fft_water::RenderMode::MAX];
   const fft_water::WaterHeightmap *waterHeightmap = nullptr;
+  const HeightmapHeightCulling *heightmapCulling = nullptr;
   int waterHeightmapPatchesGridRes = 0;
   int waterHeightmapPatchesCount = 0;
   int waterHeightmapPatchesGridScale = 1;
@@ -172,7 +174,7 @@ protected:
   UniqueTexWithShaderVar heightmapGridTex;
   UniqueTexWithShaderVar heightmapPagesTex;
 
-  UniqueBufHolder heightmapBuf;
+  UniqueBufWithShaderVar heightmapBuf;
   eastl::unique_ptr<ShaderMaterial> heightmapShmat[fft_water::RenderMode::MAX];
   ShaderElement *heightmapShElem[fft_water::RenderMode::MAX] = {nullptr, nullptr, nullptr};
 

@@ -64,8 +64,8 @@ void GIWindows::updatePos(const Point3 &pos_)
     bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
 
     currentWindowsSB.close();
-    currentWindowsSB = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Window), bufferCount, "currentWindowsList",
-                                         d3d::buffers::Init::No, RESTAG_DAGI),
+    currentWindowsSB = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(sizeof(Window), bufferCount,
+                                                "currentWindowsList", d3d::buffers::Init::No, RESTAG_DAGI),
       "windows");
     currentWindowsSB.setVar();
   }
@@ -127,8 +127,8 @@ bool GIWindows::calc()
   {
     currentIndSize = max((int)256, max((int)cBox.size(), (int)currentIndSize * 2));
     currentWindowsSBInd.close();
-    currentWindowsSBInd = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), currentIndSize,
-                                            "currentWindowsListInd", d3d::buffers::Init::No, RESTAG_DAGI),
+    currentWindowsSBInd = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), currentIndSize,
+                                                   "currentWindowsListInd", d3d::buffers::Init::No, RESTAG_DAGI),
       "windows_grid_ind");
     currentWindowsSBInd.setVar();
   }
@@ -223,8 +223,8 @@ void GIWindows::init(eastl::unique_ptr<class scene::TiledScene> &&s)
     gridCntSB = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 1, "gridCntSB", d3d::buffers::Init::No, RESTAG_DAGI);
   currentGridSize = WINDOW_GRID_XZ * WINDOW_GRID_Y * WINDOW_GRID_XZ * 2;
   if (!currentWindowsGridSB.getBuf())
-    currentWindowsGridSB = UniqueBufHolder(dag::buffers::create_ua_sr_structured(sizeof(uint32_t), currentGridSize,
-                                             "currentWindowsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
+    currentWindowsGridSB = UniqueBufWithShaderVar(dag::buffers::create_ua_sr_structured(sizeof(uint32_t), currentGridSize,
+                                                    "currentWindowsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
       "windowsGrid");
   currentWindowsGridSB.setVar();
   fill_windows_grid_range.reset(new_compute_shader("fill_windows_grid_range_cs"));

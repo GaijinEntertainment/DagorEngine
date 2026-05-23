@@ -426,6 +426,7 @@ struct FileDownloadRequest : public DownloadRequest
     char buf1[SHA_DIGEST_LENGTH * 2 + 1], keyBuf[DAGOR_MAX_PATH];
     const char *realKey = get_real_key(key.str(), keyBuf);
     EntriesMap::iterator it = backend->entries.find(get_entry_hash_key(realKey));
+    removeThisFromInFlightJobs(); // before callCb to avoid re-entrant userCb push_back invalidating iteration storage
     if (it == backend->entries.end())
     {
       DOTRACE1("downloaded unknown file '%s': not found in index", realKey);
@@ -560,6 +561,7 @@ struct NonIndexedFileDownloadRequest : public DownloadRequest
     else
       entry->free();
     entry = NULL;
+    removeThisFromInFlightJobs(); // before callCb to avoid re-entrant userCb push_back invalidating iteration storage
     callCb(realKey, error);
     delete this;
   }

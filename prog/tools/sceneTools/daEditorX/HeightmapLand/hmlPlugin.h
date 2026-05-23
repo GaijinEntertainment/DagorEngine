@@ -553,7 +553,6 @@ public:
   bool isSnowAvailable() { return (snowValSVId != -1 && snowPrevievSVId != -1); }
   float getSnowValue() { return ambSnowValue; }
   bool hasSnowSpherePreview() { return (snowSpherePreview && snowDynPreview); }
-  void updateSnowSources() { objEd.updateSnowSources(); }
 
   void setSelectMode();
 
@@ -609,6 +608,15 @@ public:
   const SimpleString &getCommonExprText() const { return commonExprText; }
   void setCommonExprText(const char *txt);
   eastl::string getCommonExprDisplayText() const;
+  // Debug-expression accessors -- analogous to commonExpr* but the expression is
+  // evaluated only by updateDebugWeightTex() and never by the bake.
+  const SimpleString &getDebugExprText() const { return debugExprText; }
+  void setDebugExprText(const char *txt);
+  eastl::string getDebugExprDisplayText() const;
+  // Apply a new debug view mode (and a layer name when mode == DV_LAYER).
+  // Sets showBlueWhiteMask / showLandClassColors / showDebugWeightOverlay
+  // accordingly and refreshes the overlay texture.
+  void setDebugViewMode(int mode, const char *layer_name = nullptr);
 
   struct HMDetGH
   {
@@ -650,6 +658,7 @@ public:
   }
 
   PropPanel::ContainerPropertyControl *getPropPanel() const;
+  PropPanel::ContainerPropertyControl *getToolbar() const;
 
   bool insideDetRectC(int x, int y) const
   {
@@ -670,6 +679,9 @@ public:
   void onObjectsRemove();
 
   bool runLandLtmapCmd(dag::ConstSpan<const char *> params);
+
+  // Same as rendinst::forceRiExtra.
+  static bool isForceRiExtra() { return forceRiExtra; }
 
 private:
   // Caches datailed textures for LandMesh
@@ -937,14 +949,54 @@ private:
   int lcNumLayerVars = 0;
   bool showBlueWhiteMask;
   bool showLandClassColors = false;
+  // Debug view mode -- single source of truth for the panel's combobox.
+  // showBlueWhiteMask / showLandClassColors are kept derived from it. The
+  // mask-edit render-path gates in hmlIGenEditorPlugin.cpp use
+  // (editedScriptImage && showEditedMask()) -- showEditedMask() is the
+  // brush-overlay predicate that does NOT depend on showBlueWhiteMask, so
+  // selecting DV_DEBUG_EXPR / DV_LAYER cannot suppress the brush.
+  enum DebugViewMode : int
+  {
+    DV_NONE = 0,
+    DV_BLUE_WHITE = 1,
+    DV_LANDCLASS_COLORS = 2,
+    DV_DEBUG_EXPR = 3,
+    DV_LAYER = 4,
+  };
+  int debugViewMode = DV_BLUE_WHITE;
+  // For DV_LAYER: paramName of the gen layer to visualize. Identifying the layer
+  // by name (rather than by index) keeps the overlay tied to the user's choice
+  // through add/move/delete reorders without per-mutation fix-ups; if the named
+  // layer is gone (deleted, renamed, or absent in a freshly-loaded project),
+  // updateDebugWeightTex auto-clears the overlay back to DV_NONE.
+  SimpleString debugLayerName;
+  // True for DV_DEBUG_EXPR / DV_LAYER: the debug overlay tex was built by
+  // re-evaluating an expression per pixel and bound via blue_white_mask_tex
+  // (same plumbing as showLandClassColors).
+  bool showDebugWeightOverlay = false;
+  // Debug expression: artist-editable expression evaluated per pixel for visual
+  // debugging only. Compiled in the same scope as a layer expression (sees base
+  // vars + mask_<name> + common's var/let). Never affects bake output.
+  SimpleString debugExprText;
+  Tab<uint8_t> debugExprArena;
+  uint32_t debugExprRoot = 0;
+  eastl::bitset<256> debugExprVarMask;
+  bool debugExprValid = false;
+  SimpleString debugExprLastErr;
+  uint16_t debugExprNv = 0;
   void updateBlueWhiteMask(const IBBox2 *);
   void updateLandClassColorsTex();
-  // Shared per-pixel exprVars population + commonExpr eval, factored out of
-  // generateLandColors so other consumers (e.g. a debug overlay rebuild) can
-  // hit the same code path without copy-pasting the inner loop. layer_mask_needed
-  // and used_mask_tvs are passed as ConstSpan so any small-buffer-optimised
-  // (RelocatableFixedVector / StaticTab) or heap-backed (Tab) container can be
-  // passed verbatim. See implementation comment in hmlGenColorMap.cpp.
+  // Re-evaluate the debug expression / selected layer expression at every cell
+  // and pack as grayscale into bluewhiteTex (sized to detTexMap dims). Bound via
+  // blue_white_mask_tex like the colored-landclass overlay; renders alongside
+  // the lmesh without the lex-sort/blend occlusion that the bake applies.
+  void updateDebugWeightTex();
+  // Shared per-pixel exprVars population + commonExpr eval, called by both
+  // the bake (generateLandColors) and the debug overlay (updateDebugWeightTex).
+  // layer_mask_needed and used_mask_tvs are passed as ConstSpan so any small-
+  // buffer-optimised (RelocatableFixedVector / StaticTab) or heap-backed (Tab)
+  // container can be passed verbatim. See implementation comment in
+  // hmlGenColorMap.cpp.
   void fillPerPixelExprVarsAndEvalCommon(float *expr_vars_ptr, float fx, float fy, int layer_slots,
     dag::ConstSpan<uint8_t> layer_mask_needed, uint16_t typed_vars_end_nv, dag::ConstSpan<int> used_mask_tvs);
   void updateGenerationMask(const IBBox2 *rect);
@@ -1137,7 +1189,7 @@ private:
   void renderHeight();
   void renderGrassMask();
 #if defined(USE_HMAP_ACES)
-  bool getRenderNoTex() { return !(showBlueWhiteMask && editedScriptImage); }
+  bool getRenderNoTex() { return !(editedScriptImage && showEditedMask()); }
 #else
   bool getRenderNoTex() { return false; }
 #endif
@@ -1293,4 +1345,6 @@ private:
   Tab<NavmeshAreasProcessing> navmeshAreasProcessing;
 
   int settingsBaseId;
+
+  static bool forceRiExtra;
 };

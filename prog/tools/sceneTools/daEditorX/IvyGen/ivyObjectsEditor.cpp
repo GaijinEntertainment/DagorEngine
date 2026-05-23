@@ -58,7 +58,7 @@ void IvyObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   ObjectEditor::fillToolBar(toolbar);
 
-  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel();
 
   tb->createSeparator();
   addButton(tb, CM_CREATE_IVY, "create_complex", "Create ivy", true);

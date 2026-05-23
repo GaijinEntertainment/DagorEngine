@@ -554,80 +554,78 @@ CompileResult compile(IDxcCompiler3 *compiler, UINT32 major, UINT32 minor, Wrapp
 }
 } // namespace
 
-CompileResult dxil::compileHLSLWithDXC(dag::ConstSpan<char> src, const char *entry, const char *profile, const DXCSettings &settings,
-  void *dxc_lib, DXCVersion dxc_version)
+static ComPtr<IDxcCompiler3> create_compiler3(void *dxc_lib, IMalloc *allocation_cb, auto &result, const char *error_tag)
 {
-  CompileResult result;
   if (!dxc_lib)
   {
-    result.errorLog = "dxil::compileHLSLWithDXC: no valid shader compiler library handle provided";
+    result.errorLog = eastl::string{error_tag} + ": no valid shader compiler library handle provided";
+    return nullptr;
+  }
+
+  ComPtr<IDxcCompiler3> compiler3;
+  if (allocation_cb)
+  {
+    DxcCreateInstance2Proc DxcCreateInstance2 = nullptr;
+    reinterpret_cast<FARPROC &>(DxcCreateInstance2) = GetProcAddress(static_cast<HMODULE>(dxc_lib), "DxcCreateInstance2");
+    if (!DxcCreateInstance2)
+    {
+      result.errorLog = eastl::string{error_tag} + ": Missing entry point in DxcCreateInstance2 dxcompiler(_x/_xs) library";
+      return nullptr;
+    }
+
+    DxcCreateInstance2(allocation_cb, CLSID_DxcCompiler, IID_PPV_ARGS(&compiler3));
   }
   else
   {
     DxcCreateInstanceProc DxcCreateInstance = nullptr;
     reinterpret_cast<FARPROC &>(DxcCreateInstance) = GetProcAddress(static_cast<HMODULE>(dxc_lib), "DxcCreateInstance");
-
     if (!DxcCreateInstance)
     {
-      result.errorLog = "dxil::compileHLSLWithDXC: Missing entry point in DxcCreateInstance "
-                        "dxcompiler(_x/_xs) library";
+      result.errorLog = eastl::string{error_tag} + ": Missing entry point in DxcCreateInstance dxcompiler(_x/_xs) library";
+      return nullptr;
     }
-    else
-    {
-      ComPtr<IDxcCompiler3> compiler3;
-      DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler3));
 
-      if (!compiler3)
-      {
-        result.errorLog = "dxil::compileHLSLWithDXC: DxcCreateInstance failed";
-      }
-      else
-      {
-        // need to know which version we are on to decide if we have to pass some extra parameters
-        // and omit some others
-        ComPtr<IDxcVersionInfo> versionInfo;
-        compiler3.As(&versionInfo);
+    DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler3));
+  }
+  if (!compiler3)
+  {
+    result.errorLog += eastl::string{error_tag} + ": DxcCreateInstance2 failed";
+  }
+  return compiler3;
+}
 
-        UINT32 major = 1;
-        UINT32 minor = 0;
-        if (versionInfo)
-          versionInfo->GetVersion(&major, &minor);
+CompileResult dxil::compileHLSLWithDXC(dag::ConstSpan<char> src, const char *entry, const char *profile, const DXCSettings &settings,
+  void *dxc_lib, DXCVersion dxc_version, IMalloc *allocation_cb)
+{
+  CompileResult result;
 
-        WrappedBlob sourceBlob{src};
-        return compile(compiler3.Get(), major, minor, sourceBlob, entry, profile, settings, dxc_version);
-      }
-    }
+  if (auto compiler3 = create_compiler3(dxc_lib, allocation_cb, result, "dxil::compileHLSLWithDXC"))
+  {
+    // need to know which version we are on to decide if we have to pass some extra parameters
+    // and omit some others
+    ComPtr<IDxcVersionInfo> versionInfo;
+    compiler3.As(&versionInfo);
+
+    UINT32 major = 1;
+    UINT32 minor = 0;
+    if (versionInfo)
+      versionInfo->GetVersion(&major, &minor);
+
+    WrappedBlob sourceBlob{src};
+    return compile(compiler3.Get(), major, minor, sourceBlob, entry, profile, settings, dxc_version);
   }
 
   return result;
 }
 
 PreprocessResult dxil::preprocessHLSLWithDXC(const char *profile, dag::ConstSpan<char> src, dag::ConstSpan<DXCDefine> defines,
-  void *dxc_lib)
+  void *dxc_lib, IMalloc *allocation_cb)
 {
   PreprocessResult result;
-  if (!dxc_lib)
-  {
-    result.errorLog = "dxil::compileHLSLWithDXC: no valid shader compiler library handle provided";
-    return result;
-  }
 
-  DxcCreateInstanceProc DxcCreateInstance = nullptr;
-  reinterpret_cast<FARPROC &>(DxcCreateInstance) = GetProcAddress(static_cast<HMODULE>(dxc_lib), "DxcCreateInstance");
-
-  if (!DxcCreateInstance)
-  {
-    result.errorLog = "dxil::compileHLSLWithDXC: Missing entry point in DxcCreateInstance "
-                      "dxcompiler(_x/_xs) library";
-    return result;
-  }
-
-  ComPtr<IDxcCompiler3> compiler3;
-  DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&compiler3));
-
+  ComPtr<IDxcCompiler3> compiler3 = create_compiler3(dxc_lib, allocation_cb, result, "dxil::preprocessHLSLWithDXC");
   if (!compiler3)
   {
-    result.errorLog = "dxil::compileHLSLWithDXC: DxcCreateInstance failed";
     return result;
   }
 

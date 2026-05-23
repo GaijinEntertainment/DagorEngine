@@ -1965,8 +1965,10 @@ public:
   }
 
   // Walk BVH, emit triangle indices into outIndices. Returns number of triangles emitted.
+  // outIndicesCapacity is the max triangle count outIndices can hold; on overflow we drop the
+  // remaining leaves (and logerr_once) rather than overrunning the caller's scratch buffer.
   template <bool checkFrustum>
-  int EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned short *outIndices,
+  int EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned short *outIndices, int outIndicesCapacity,
     const BoxFrustumPlanes5 *boxPlanes)
   {
     int triCount = 0;
@@ -2017,6 +2019,16 @@ public:
       unsigned int o3 = ((skipWord >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
       unsigned short v1 = v0 + (unsigned short)o1, v2 = v0 + (unsigned short)o2, v3 = v0 + (unsigned short)o3;
 
+      // A quad-leaf can emit 1 or 2 triangles; bail before we'd overrun the caller's scratch.
+      int emitTris = (o3 != o2) ? 2 : 1;
+      if (triCount + emitTris > outIndicesCapacity)
+      {
+        LOGERR_ONCE("EmitBLASTriangles: BLAS leaf range [%d,%d) overflows scratch cache (capacity=%d tris); "
+                    "dropping remaining triangles. Split the source mesh or raise BLAS_TRI_CACHE_MAX.",
+          treeStart, treeEnd, outIndicesCapacity);
+        break;
+      }
+
       outIndices[triCount * 3 + 0] = v0;
       outIndices[triCount * 3 + 1] = v1;
       outIndices[triCount * 3 + 2] = v2;
@@ -2044,7 +2056,8 @@ public:
 
   FORCE_INLINE
   CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding) MOC_OVERRIDE
+    unsigned short *cacheIndices, int cacheIndicesCapacity, int *cacheTriCount, CacheMode cacheMode,
+    BackfaceWinding bfWinding) MOC_OVERRIDE
   {
     assert(mMaskedHiZBuffer != nullptr);
 
@@ -2059,12 +2072,18 @@ public:
     if (cacheMode == CACHE_INSUFFICIENT)
     {
       BoxFrustumPlanes5 boxPlanes = BuildBoxFrustumPlanes5(mCSFrustumPlanes, rawToClipMatrix);
-      triCount = EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, &boxPlanes);
+      triCount = EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes);
+      // Writeback the triangle count so callers using cacheTriCount as an out-parameter (e.g.
+      // ParallelOcclusionRasterizer, which feeds rasterJobs[i].trianglesCount into the merge
+      // filter) see the actually-emitted count, not the zero they pre-initialized. Missing this
+      // assignment caused merge skip -> empty MOC -> empty SW depth -> no occlusion even though
+      // rasterization was happening into the per-job HiZ buffer.
+      *cacheTriCount = triCount;
     }
     else
     {
       if (cacheMode == CACHE_FILL)
-        *cacheTriCount = EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, nullptr);
+        *cacheTriCount = EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr);
       triCount = *cacheTriCount;
     }
 

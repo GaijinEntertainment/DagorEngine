@@ -171,7 +171,7 @@ void TemporalAA::apply(Texture *currentFrameTex, Texture *target)
 {
   SCOPE_RENDER_TARGET;
 
-  d3d::set_render_target(target, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
 
   applyImpl(currentFrameTex);
 }

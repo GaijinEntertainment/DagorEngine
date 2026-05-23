@@ -437,6 +437,28 @@ public:
         }
       }
     }
+    CONSOLE_CHECK_NAME_EX("wait", "project_load", 1, 1,
+      "Type 'wait.project_load' to yield console command queue execution until project loading is completed", "")
+    {
+      cmdQueueYield = true;
+      if (!EDITORCORE->isProjectLoaded())
+      {
+        cmdQueueRerun = true;
+      }
+    }
+    CONSOLE_CHECK_NAME_EX("wait", "textures", 1, 1,
+      "Type 'wait.textures' to yield console command queue execution while pending textures are loaded", "")
+    {
+      cmdQueueYield = true;
+      unsigned int totalCount;
+      if (EDITORCORE->getPendingTextureLoadTotalCount(totalCount))
+      {
+        if (totalCount > 0)
+        {
+          cmdQueueRerun = true;
+        }
+      }
+    }
 
     return found != 0;
   }

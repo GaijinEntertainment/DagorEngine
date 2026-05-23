@@ -65,7 +65,7 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 22
+#define SQUIRREL_VERSION_NUMBER_MINOR 23
 #define SQUIRREL_VERSION_NUMBER_PATCH 0
 
 #define SQ_STRINGIFY_HELPER(x) #x
@@ -76,7 +76,7 @@ namespace SQCompilation
     SQ_STRINGIFY(SQUIRREL_VERSION_NUMBER_MINOR) "." \
     SQ_STRINGIFY(SQUIRREL_VERSION_NUMBER_PATCH)
 
-#define SQUIRREL_COPYRIGHT  "Copyright (C) 2003-2016 Alberto Demichelis; 2016-2025 Gaijin Games KFT"
+#define SQUIRREL_COPYRIGHT  "Copyright (C) 2003-2016 Alberto Demichelis; 2016-2026 Gaijin Games KFT"
 
 
 #define SQ_VMSTATE_IDLE         0

@@ -1,1 +1,0 @@
-Smart pointer to a `MakeFieldDecl` object. Represents a single field initializer in structure or variant construction expressions.

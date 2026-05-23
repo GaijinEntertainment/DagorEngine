@@ -1,2 +1,2 @@
-ERROR: internal compiler error: too many locals
+ERROR: too many function stack slots: bytecode supports at most 255 slots per function; slot 255 cannot be encoded because 0xFF is reserved
 testData/diagnostics/many_args_in_function_call.nut:-1:-1

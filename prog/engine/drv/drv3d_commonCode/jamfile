@@ -5,7 +5,12 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = lib ;
 Target      = engine/drv/drv3d_commonCode.lib ;
-if $(UseD3DMulti) = yes && $(UseD3DMultiList) = stub { Target = $(Target:S=-s.lib) ; }
+if $(UseD3DMulti) = yes && $(UseD3DMultiList) = stub {
+  Target = $(Target:S=-s.lib) ;
+} else if $(UseResourceCheckerDetail) = yes {
+  CPPopt += -DRESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG=1 ;
+  Target = $(Target:S=~rc.lib) ;
+}
 
 Sources =
   drvDecl.cpp

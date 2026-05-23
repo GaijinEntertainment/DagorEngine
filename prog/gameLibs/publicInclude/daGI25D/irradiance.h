@@ -26,7 +26,7 @@ class Irradiance
   // TextureIDHolder volmap_floor;// may be needed, to render it, as resolution is very small, and can include more than heightmap
   eastl::unique_ptr<ComputeShaderElement> // gi_compute_light_25d_cs,
     gi_compute_light_25d_cs_4_4, gi_compute_light_25d_cs_4_8, gi_compute_light_25d_cs_8_4, gi_mark_intersected_25d_cs;
-  UniqueBufHolder intersection;
+  UniqueBufWithShaderVar intersection;
   IPoint2 toroidalOrigin = {-1000000, 100000};
   float voxelSizeXZ = 1.75f, voxelSizeY = 2.5f; // should be at least somehow less than Scene. I.e. we need at least 32 meters around
                                                 // to trace

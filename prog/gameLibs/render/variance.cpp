@@ -78,14 +78,14 @@ void PseudoGaussBlur::render(ManagedTex src_tex, ManagedTex tmp_tex, ManagedTex 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
   if (update_state & UPDATE_BLUR_X)
   {
-    d3d::set_render_target(tmp_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{tmp_tex.getTex2D(), 0, 0}});
     blurXFx.getMat()->set_texture_param(texVarId, src_tex.getTexId());
     blurXFx.render();
     blurXFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
   }
   if (update_state & UPDATE_BLUR_Y)
   {
-    d3d::set_render_target(target_tex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target_tex.getTex2D(), 0, 0}});
     blurYFx.getMat()->set_texture_param(texVarId, tmp_tex.getTexId());
     blurYFx.render();
     blurYFx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
@@ -460,8 +460,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     clearFlags = CLEAR_ZBUFFER | CLEAR_STENCIL;
   if (vsmType == VSM_HW)
   {
-    d3d_err(d3d::set_render_target(0, (Texture *)NULL, 0));
-    d3d_err(d3d::set_depth(dest_tex.getTex2D(), DepthAccess::RW));
+    d3d::set_render_target({dest_tex.getTex2D(), 0, 0}, DepthAccess::RW, {});
     shaders::overrides::set(depthOnlyOverride);
   }
   else // VSM_BLEND
@@ -470,7 +469,7 @@ bool Variance::startShadowMap(const BBox3 &in_box, const Point3 &in_light_dir_un
     {
       temp_tex = vsmRTPool->acquire();
     }
-    d3d_err(d3d::set_render_target(temp_tex->getTex2D(), 0));
+    d3d::set_render_target({}, DepthAccess::RW, {{temp_tex->getTex2D(), 0, 0}});
     clearFlags |= CLEAR_TARGET;
   }
 

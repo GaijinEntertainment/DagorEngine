@@ -195,7 +195,7 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
   const char *inputLabel = "";
   const bool textInputWasFocused = textInputFocused;
   const bool textInputWasActive = textInputActive;
-  const bool textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, &textValue, textInputWasFocused);
+  const bool textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, nullptr, &textValue, textInputWasFocused);
   textInputFocused = ImGui::IsItemFocused();
   textInputActive = ImGui::IsItemActive();
 

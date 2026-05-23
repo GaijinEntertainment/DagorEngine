@@ -846,6 +846,16 @@ public:
   /// @return pointer to editor's render buffer
   // virtual DynRenderBuffer *getDRB() = 0;
 
+  /// Checks whether a project is fully loaded or is in progress yet.
+  /// (E.g.: viewport/UI/Gizmo/object functions are active or not)
+  ///@return @b true if a load project operation is complete.
+  virtual bool isProjectLoaded() const = 0;
+
+  /// Get the total number of pending textures loaded asynchronously.
+  /// @param[out] total_count the total number of pending textures
+  /// @return @b false if the internal texture load factory is not inited
+  virtual bool getPendingTextureLoadTotalCount(unsigned int &total_count) = 0;
+
   /// Get pointer to editor's undo system.
   /// @return pointer to editor's undo system
   virtual UndoSystem *getUndoSystem() = 0;

@@ -17,6 +17,8 @@ void BaseAnimStatesReorderHandler::handleReorder(int from, int to)
   plugin.saveProps(props, fullPath);
 }
 
+void ResetRandomSwitchReorderHandler::handleReorder(int from, int to) { plugin.reorderResetRandomSwitchList(panel, from, to); }
+
 void AnimTreeListDragHandler::onBeginDrag(int idx, const char *value)
 {
   DragDropPayloadData payloadData;

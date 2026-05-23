@@ -10,6 +10,8 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaders.h>
+#include <generic/dag_span.h>
+#include <EASTL/array.h>
 
 GenericTonemapLUT::~GenericTonemapLUT() = default;
 GenericTonemapLUT::GenericTonemapLUT() = default;
@@ -94,12 +96,13 @@ bool GenericTonemapLUT::perform()
     int maxSimRT = d3d::get_driver_desc().maxSimRT; // assume we support up to 8 render targets, and it is known per-platform
     maxSimRT = (maxSimRT >= 8) ? 8 : 4;
     ShaderGlobal::set_int(tonemap_sim_rtVarId, maxSimRT);
-    d3d::set_render_target();
-    for (int i = 0; i < lutSize; i += maxSimRT) // with geom shaders we can render all targets, but geom shaders are not supported in
-                                                // metal
+    eastl::array<RenderTarget, 8> lutRts = {};
+    for (uint32_t i = 0; i < uint32_t(lutSize); i += uint32_t(maxSimRT)) // with geom shaders we can render all targets, but geom
+                                                                         // shaders are not supported in metal
     {
-      for (int j = 0; j < maxSimRT; ++j)
-        d3d::set_render_target(j, lut.getVolTex(), i + j, 0);
+      for (uint32_t j = 0; j < uint32_t(maxSimRT); ++j)
+        lutRts[j] = {lut.getVolTex(), 0, i + j};
+      d3d::set_render_target({}, DepthAccess::RW, make_span_const(lutRts.data(), maxSimRT));
       ShaderGlobal::set_int(first_lut_rsliceVarId, i);
       renderLUT->render();
     }

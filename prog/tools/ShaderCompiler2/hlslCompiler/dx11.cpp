@@ -7,6 +7,7 @@ extern DebugLevel hlslDebugLevel;
 extern bool hlslEmbedSource;
 extern bool enableBindless;
 
+#define USE_MULTI_D3D_DX11 1
 // include prog/engine/drv/drv3d_pc_multi/hlsl_dx.cpp directly, cause it has the desired functionality
 #include <hlsl_dx.cpp>
 

@@ -61,7 +61,7 @@ bool load_occlusion(class IGenLoad &cb, Occlusion &occlusion)
   cb.read(&cockpitAnim, sizeof(cockpitAnim));
   cb.endBlock();
   occlusion.setReprojectionUseCameraTranslatedSpace(reprojectionUseCameraTranslatedSpace);
-  occlusion.startFrame(pos, view, proj, viewProj, cockpitDist, cockpitMode, cockpitAnim, 0, 0);
+  occlusion.startFrame(pos, view, proj, viewProj, cockpitDist, cockpitMode, cockpitAnim, nullptr, 0, 0);
 
   cb.beginBlock();
   OcclusionZBuffer &occlusionZBuffer = occlusion.getOcclusionZBuffer();
