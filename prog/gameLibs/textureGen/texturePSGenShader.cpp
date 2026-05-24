@@ -136,7 +136,12 @@ public:
   {
     G_ASSERT(refCount == 0);
     String outErr;
+#if _TARGET_PC_WIN
     shader = d3d::create_pixel_shader_hlsl(shader_text, len, "main_ps", "ps_5_0", &outErr);
+#else
+    shader = BAD_FSHADER, outErr = "hlsl n/a";
+    G_UNUSED(shader_text), G_UNUSED(len);
+#endif
     if (!outErr.empty())
       logger.log(shader != BAD_FSHADER ? LOGLEVEL_WARN : LOGLEVEL_ERR, outErr);
     refCount = 1;
@@ -736,7 +741,11 @@ static void init_cached_vprog(VprogCached &vprog, const char *shader)
   make_sha1_string(shader, len, sha1);
   if (memcmp(vprog.sha1, sha1, sizeof(sha1)) == 0)
     return;
+#if _TARGET_PC_WIN
   vprog.vprog = d3d::create_vertex_shader_hlsl(shader, len, "main_vs", "vs_5_0");
+#else
+  vprog.vprog = BAD_FSHADER;
+#endif
   memcpy(vprog.sha1, sha1, sizeof(sha1));
 }
 
