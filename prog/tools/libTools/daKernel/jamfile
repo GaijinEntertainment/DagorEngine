@@ -6,7 +6,7 @@ KernelLinkage = dynamic ;
 ProjectAllowsOodle = yes ;
 UseQuirrel = no ;
 UseMemoryAllocator = RTL ;
-LinuxUseGUI = no
+LinuxUseGUI = no ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType    = dll ;
