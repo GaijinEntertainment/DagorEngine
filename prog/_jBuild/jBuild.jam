@@ -1963,7 +1963,7 @@ rule DebugDigestDiff field : old : new : file
 rule ProcessDigestObjsToRebuild digest : objs_to_rebuild
 {
   local unique_list = ;
-  if $(objs_to_rebuild) { clean_cmd on $(digest) = echo ... cleaning modules for $(digest:S=) ; }
+  if $(objs_to_rebuild) { clean_cmd on $(digest) = echo ... cleaning modules for $(digest:D) ; }
   for o in $(objs_to_rebuild) {
     if ! $(o) in $(unique_list) {
       unique_list += $(o) ;
