@@ -1,0 +1,12 @@
+PlatformArch_windows ?= host_arch ;
+PlatformSpec_windows ?= clang ;
+CheckedContainers ?= yes ;
+Exceptions ?= no ;
+
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+if $(Platform)-$(PlatformArch) != windows-x86 { SSEVersion ?= 4 ; }
+if $(Platform)-$(PlatformArch) = linux-x86_64 {
+  MArch ?= haswell ;
+  if $(MArch) != -default- && ! -march=$(MArch) in $(GlobalCPPopt) { GlobalCPPopt += -march=$(MArch) ; }
+}
