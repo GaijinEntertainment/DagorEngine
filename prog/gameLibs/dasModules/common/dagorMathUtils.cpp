@@ -48,6 +48,9 @@ public:
       "::lineLineIntersect");
     das::addExtern<DAS_BIND_FUN(is_point_in_poly)>(*this, lib, "is_point_in_poly", das::SideEffects::none, "::is_point_in_poly");
     das::addExtern<DAS_BIND_FUN(reverse_bits32)>(*this, lib, "reverse_bits32", das::SideEffects::none, "::reverse_bits32");
+    das::addExtern<DAS_BIND_FUN(hash_int)>(*this, lib, "hash_int", das::SideEffects::none, "::hash_int");
+    das::addExtern<DAS_BIND_FUN(hash_combine_u32)>(*this, lib, "hash_combine_u32", das::SideEffects::none, "::hash_combine_u32");
+    das::addExtern<DAS_BIND_FUN(hash_to_unit_float)>(*this, lib, "hash_to_unit_float", das::SideEffects::none, "::hash_to_unit_float");
     das::addExtern<DAS_BIND_FUN(is_pos_outside_sphere_mesh)>(*this, lib, "is_pos_outside_sphere_mesh", das::SideEffects::none,
       "::is_pos_outside_sphere_mesh");
     das::addExtern<DAS_BIND_FUN(point3_get_positional_seed)>(*this, lib, "get_positional_seed", das::SideEffects::none,

@@ -101,7 +101,8 @@ class CompositEntity : public VirtualCompositEntity,
                        public IRandomSeedHolder,
                        public IColor,
                        public ICompositObj,
-                       public IDataBlockIdHolder
+                       public IDataBlockIdHolder,
+                       public IRiExtraCollisionIgnore
 {
 public:
   CompositEntity(int cls) : VirtualCompositEntity(cls)
@@ -140,6 +141,7 @@ public:
     if (huid == IColor::HUID && supportsColor())
       RETURN_INTERFACE(huid, IColor);
     RETURN_INTERFACE(huid, IDataBlockIdHolder);
+    RETURN_INTERFACE(huid, IRiExtraCollisionIgnore);
     return NULL;
   }
 
@@ -165,6 +167,9 @@ public:
   // IDataBlockIdHolder
   void setDataBlockId(unsigned id) override { dataBlockId = id; }
   unsigned getDataBlockId() override { return dataBlockId; }
+
+  // IRiExtraCollisionIgnore
+  void setIgnoreRiExtraCollision(bool ignore) override;
 
   BBox3 getBbox() const override;
   BSphere3 getBsph() const override;
@@ -631,6 +636,16 @@ public:
     for (int i = 0; i < realEntCnt; i++)
       if (ePool.ent[ent_idx + i])
         ePool.ent[ent_idx + i]->setSubtype(t);
+  }
+  void setIgnoreRiExtraCollision(bool ignore, int ent_idx)
+  {
+    const int realEntCnt = comp.size() - emptyComponents;
+    if (realEntCnt <= 0)
+      return;
+    for (int i = 0; i < realEntCnt; i++)
+      if (auto *e = ePool.ent[ent_idx + i])
+        if (IRiExtraCollisionIgnore *ci = e->queryInterface<IRiExtraCollisionIgnore>())
+          ci->setIgnoreRiExtraCollision(ignore);
   }
   void setEditLayerIdx(int t, int ent_idx)
   {
@@ -1347,6 +1362,7 @@ void CompositEntity::setPerInstanceSeed(int seed)
   instSeed = seed;
   pool->getPools()[poolIdx]->setTm(tm, entIdx, this);
 }
+void CompositEntity::setIgnoreRiExtraCollision(bool ignore) { pool->getPools()[poolIdx]->setIgnoreRiExtraCollision(ignore, entIdx); }
 void CompositEntity::setSubtype(int t)
 {
   subType = t;

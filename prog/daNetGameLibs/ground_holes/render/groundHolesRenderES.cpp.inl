@@ -63,7 +63,7 @@ ECS_NO_ORDER
 static void ground_hole_render_es(const UpdateStageInfoRender &,
   UniqueTexWithShaderVar &hmapHolesTex,
   UniqueTexWithShaderVar &hmapHolesTmpTex,
-  UniqueBufHolder &hmapHolesBuf,
+  UniqueBufWithShaderVar &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer,
   PostFxRenderer &hmapHolesMipmapRenderer,
   ShadersECS &hmapHolesPrepareRenderer,
@@ -147,7 +147,7 @@ static void ground_hole_zone_on_appear_es(const ecs::Event &, ecs::EntityManager
 ECS_TAG(render)
 ECS_NO_ORDER
 static void ground_holes_zones_before_render_es(
-  const UpdateStageInfoBeforeRender &, UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
+  const UpdateStageInfoBeforeRender &, UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
 {
   Tab<Point3_vec4> bboxes(framemem_ptr());
   get_underground_zones_data(bboxes);
@@ -157,14 +157,14 @@ static void ground_holes_zones_before_render_es(
 ECS_TAG(render)
 ECS_ON_EVENT(AfterDeviceReset)
 static void ground_holes_zones_after_device_reset_es(
-  const ecs::Event &, UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
+  const ecs::Event &, UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
 {
   ground_holes::zones_after_device_reset(hmapHolesZonesBuf, should_update_ground_holes_zones);
 }
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
-static void ground_holes_zones_manager_on_disappear_es(const ecs::Event &, UniqueBufHolder &hmapHolesZonesBuf)
+static void ground_holes_zones_manager_on_disappear_es(const ecs::Event &, UniqueBufWithShaderVar &hmapHolesZonesBuf)
 {
   ground_holes::zones_manager_on_disappear(hmapHolesZonesBuf);
 }

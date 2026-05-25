@@ -14,6 +14,7 @@
 #include "gatherVar.h"
 #include "globVar.h"
 #include "boolVar.h"
+#include "boolExpr.h"
 #include "codeBlocks.h"
 #include "cppStcodeAssembly.h"
 #include "cppStcode.h"
@@ -637,6 +638,20 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
         sh_debug(SHLOG_WARNING, "shader(%s): different renderStageIdx used in dynvariants: %d and %d", shname->text, render_stage_idx,
           (parsedSsc.flags & SC_STAGE_IDX_MASK));
 
+      {
+        // Storing both in shContext for persistent memory allocation
+        for (int intervalNameId : shContext.typeTables().uniqueIntervalNameIdsReferencedInBoolExpressions)
+        {
+          int varNameId = ctx.varNameMap().getVarId(ctx.intervalNameMap().getName(intervalNameId));
+          if (varNameId < 0)
+            continue;
+          int varLinearId = parsedSsc.find_var(varNameId);
+          if (varLinearId < 0)
+            continue;
+          parsedSsc.vars[varLinearId].used = true;
+        }
+      }
+
       if (!passCount)
       {
         for (const ShaderSemCode::Var &var : parsedSsc.vars)
@@ -751,8 +766,10 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
         if (!var.used && !var.noWarnings)
         {
           if (strcmp("instancing_const_begin", name) != 0 && strcmp("instancing_const_end", name) != 0)
+          {
             report_warning(parser, *var.terminal,
               "variable '" + String{name} + "' not used in static variant '" + staticVariant->getVarStringInfo() + "'");
+          }
         }
       });
 
@@ -1082,6 +1099,9 @@ void add_global_bool(ShaderTerminal::bool_decl &decl, Parser &parser, shc::Targe
 
   String hlsl_bool_var(0, "##bool %s\n", decl.name->text);
   ctx.globHlslSrc().forEach([&](String &src) { src.append(hlsl_bool_var); });
+
+  G_ASSERT(!decl.expr->compiled);
+  compile_bool_expr_cached(*decl.expr, ctx);
 }
 }; // namespace ShaderParser
 

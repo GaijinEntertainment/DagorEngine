@@ -21,6 +21,7 @@ static const float DEFAULT_FOOT_INCLINE_VISCOSITY = 0.15f;
 static const float DEFAULT_MAX_ANKLE_ANGLE = 60.0f;
 static const float DEFAULT_HIP_MOVE_VISCOSITY = 0.1f;
 static const float DEFAULT_MAX_HIP_MOVE_DOWN = 0.15f;
+static const float DEFAULT_NEED_LOCK_PARAM_THRESHOLD = 0.2f;
 
 void foot_locker_ik_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
 {
@@ -80,6 +81,10 @@ void foot_locker_ik_init_block_settings(PropPanel::ContainerPropertyControl *pan
   panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_KNEE, "knee", defaultBlock->getStr("knee", ""), isEditable);
   panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_ANKLE, "ankle", defaultBlock->getStr("ankle", ""), isEditable);
   panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_TOE, "toe", defaultBlock->getStr("toe", ""), isEditable);
+  panel->createEditFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD, "needLockParamThreshold",
+    defaultBlock->getReal("needLockParamThreshold", DEFAULT_NEED_LOCK_PARAM_THRESHOLD), isEditable);
+  panel->createEditBox(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME, "needLockParamName",
+    defaultBlock->getStr("needLockParamName", ""), isEditable);
 }
 
 void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings)
@@ -100,6 +105,8 @@ void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *pan
   const SimpleString kneeValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_KNEE);
   const SimpleString ankleValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_ANKLE);
   const SimpleString toeValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_TOE);
+  const float needLockParamThresholdValue = panel->getFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD);
+  const SimpleString needLockParamNameValue = panel->getText(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME);
   if (!selectedBlock)
     selectedBlock = settings->addNewBlock("leg");
 
@@ -110,6 +117,10 @@ void foot_locker_ik_save_block_settings(PropPanel::ContainerPropertyControl *pan
   selectedBlock->setStr("knee", kneeValue.c_str());
   selectedBlock->setStr("ankle", ankleValue.c_str());
   selectedBlock->setStr("toe", toeValue.c_str());
+  if (!is_equal_float(needLockParamThresholdValue, DEFAULT_NEED_LOCK_PARAM_THRESHOLD))
+    selectedBlock->setReal("needLockParamThreshold", needLockParamThresholdValue);
+  if (!needLockParamNameValue.empty())
+    selectedBlock->setStr("needLockParamName", needLockParamNameValue.c_str());
 
   if (listName != hipValue)
     panel->setText(PID_CTRLS_NODES_LIST, hipValue.c_str());
@@ -129,8 +140,11 @@ void foot_locker_ik_set_selected_node_list_settings(PropPanel::ContainerProperty
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_KNEE, selectedBlock->getStr("knee", ""));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_ANKLE, selectedBlock->getStr("ankle", ""));
   panel->setText(PID_CTRLS_FOOT_LOCKER_IK_TOE, selectedBlock->getStr("toe", ""));
+  panel->setFloat(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_THRESHOLD,
+    selectedBlock->getReal("needLockParamThreshold", DEFAULT_NEED_LOCK_PARAM_THRESHOLD));
+  panel->setText(PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME, selectedBlock->getStr("needLockParamName", ""));
   bool isEditable = panel->getInt(PID_CTRLS_NODES_LIST) >= 0;
-  for (int i = PID_CTRLS_FOOT_LOCKER_IK_HIP; i <= PID_CTRLS_FOOT_LOCKER_IK_TOE; ++i)
+  for (int i = PID_CTRLS_FOOT_LOCKER_IK_HIP; i <= PID_CTRLS_FOOT_LOCKER_IK_NEED_LOCK_PARAM_NAME; ++i)
     panel->setEnabledById(i, isEditable);
 }
 

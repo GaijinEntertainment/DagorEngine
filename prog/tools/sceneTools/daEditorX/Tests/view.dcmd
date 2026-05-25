@@ -1,0 +1,60 @@
+wait.project_load
+wait.textures
+wait.time 500
+
+// change viewport
+editor.command Main.ChangeViewport
+wait.time 100
+editor.command Main.ChangeViewport
+wait.time 100
+editor.command Main.ChangeViewport4
+wait.time 100
+editor.command Main.ChangeViewport1
+wait.time 100
+
+editor.command Main.LoadDefaultLayout
+wait.time 500
+
+// view menu
+editor.command Main.ToggleCurrentPluginVisibility
+wait.time 100
+editor.command Main.ToggleCurrentPluginVisibility
+wait.time 100
+editor.command Main.ToggleUseOccluders
+wait.time 100
+editor.command Main.ToggleUseOccluders
+wait.time 100
+editor.command Main.ToggleCompass
+wait.time 100
+editor.command Main.ToggleCompass
+wait.time 100
+editor.command Main.ShowCollision
+wait.time 100
+editor.command Main.ShowCollision
+wait.time 100
+editor.command Main.ToggleDiscardAssetTextures
+wait.time 100
+editor.command Main.ToggleDiscardAssetTextures
+wait.time 100
+editor.command Main.ToggleTagManager
+wait.time 100
+editor.command Main.ToggleTagManager
+wait.time 100
+editor.command Main.View.ConsoleCommandsAndVariables
+wait.time 100
+editor.command Main.View.ConsoleCommandsAndVariables
+wait.time 100
+editor.command Main.View.ControlGallery
+wait.time 100
+editor.command Main.View.ControlGallery
+wait.time 100
+editor.command Main.View.ImguiDebugger
+wait.time 100
+editor.command Main.View.ImguiDebugger
+wait.time 100
+editor.command Main.ToggleTheme
+wait.time 500
+editor.command Main.ToggleTheme
+wait.time 500
+
+app.terminate 0

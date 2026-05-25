@@ -53,7 +53,7 @@ bool get_initial_settings(D3dInitialSettings &initSetts)
   return true;
 }
 
-bool isMetalAvailable()
+bool is_metal_available()
 {
 #if _TARGET_PC_MACOSX
   NSDictionary *systemVersionDictionary = [NSDictionary dictionaryWithContentsOfFile :
@@ -121,7 +121,7 @@ extern UIWindow* createIOSDagorWindow(UIView* drawView, float scale);
 
 bool d3d::init_driver()
 {
-  if (isMetalAvailable())
+  if (is_metal_available())
     return true;
   return false;
 }

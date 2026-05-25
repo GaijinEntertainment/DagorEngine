@@ -115,9 +115,9 @@ protected:
   void renderShadowFrustumTiles(int w, int h, const Point3 &dir_to_sun, float sun_size);
   build_bvh::TLASData *buildTopLevelStructuresInternal(build_bvh::TLASData *d, bool do_debug);
   void copyToGPUInternal(build_bvh::TLASData *d, bool do_del, bool do_debug);
-  UniqueBufHolder bottomBuf;
-  UniqueBufHolder topBuf;
-  UniqueBufHolder topLeavesBuf;
+  UniqueBufWithShaderVar bottomBuf;
+  UniqueBufWithShaderVar topBuf;
+  UniqueBufWithShaderVar topLeavesBuf;
 
   // Per-registered-model tracking, pushed from addBuiltModel/addBoxModel. Sizes stay in
   // lockstep; `blasDataInfo[i]` encodes {byte offset into blasBytes, tree byte count}, or

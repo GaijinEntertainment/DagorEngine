@@ -30,7 +30,7 @@ public:
     return BaseRegistry::read(tex_name).texture().atStage(dafg::Stage::CS).bindToShaderVar(shader_var_name);
   }
 
-  template <typename T>
+  template <typename T = AnyBlob>
   auto bindBlob(const char *blob_name, const char *shader_var_name)
   {
     return BaseRegistry::read(blob_name).blob<T>().bindToShaderVar(shader_var_name);

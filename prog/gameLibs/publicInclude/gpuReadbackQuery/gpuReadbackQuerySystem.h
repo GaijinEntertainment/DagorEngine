@@ -102,7 +102,7 @@ private:
   GpuReadbackQuerySystemDescription querySystemDesc;
   eastl::unique_ptr<ComputeShaderElement> queryCs;
   RingCPUBufferLock resultRingBuffer;
-  UniqueBufHolder inputBuffer;
+  UniqueBufWithShaderVar inputBuffer;
   eastl::vector<InputT> inputs;
   ska::flat_hash_map<int, GpuReadbackQuery> queryMap;
 

@@ -1413,6 +1413,10 @@ void CodeGenVisitor::visitVarDecl(VarDecl *var) {
     }
 
     _last_declared_var_pos = _fs->PopTarget();
+    if (_fs->GetStackSize() >= MAX_FUNC_STACKSIZE) {
+        _ctx.throwError(var, "too many function stack slots: cannot allocate local '%s' at slot %d; bytecode supports at most %d slots per function",
+            _stringval(varName), int(_fs->GetStackSize()), int(MAX_FUNC_STACKSIZE));
+    }
     _fs->PushLocalVariable(varName, SQCompiletimeVarInfo{varFlags, var->getTypeMask(), var->initializer()});
 }
 
@@ -1495,6 +1499,10 @@ SQObjectPtr CodeGenVisitor::compileFunc(FunctionExpr *funcDecl, bool is_const, s
     assert(is_const == (out_defparam_values!=nullptr));
 
     for (auto param : funcDecl->parameters()) {
+        if (_childFs->GetStackSize() >= MAX_FUNC_STACKSIZE) {
+            _ctx.throwError(param, "too many function stack slots: cannot allocate parameter '%s' at slot %d; bytecode supports at most %d slots per function",
+                param->name(), int(_childFs->GetStackSize()), int(MAX_FUNC_STACKSIZE));
+        }
         _childFs->AddParameter(_fs->CreateString(param->name()), param->getTypeMask());
 
         if (is_const) {
@@ -1849,12 +1857,10 @@ void CodeGenVisitor::emitUnaryOp(SQOpcode op, UnExpr *u) {
 }
 
 
-// `await expr` codegen. Emits OP_YIELD with the awaitable's target as the
-// yielded value, marks the function as a generator, and leaves that same
-// target on the target stack as the await expression's result. At runtime,
-// the runner settles the awaited Promise, writes the resolved value back
-// into the yield target (or routes rejection via the throw-resume path),
-// then resumes; the next instruction reads the target as the await result.
+// `await expr` codegen. Emits OP_YIELD with the awaitable in a fresh result
+// slot; the runner settles the awaited Promise and swaps the resolved value
+// into that slot (or routes rejection via the throw-resume path). The slot
+// must not alias a named local, since the swap would otherwise overwrite it.
 void CodeGenVisitor::emitAwait(UnExpr *u) {
     if (!_fs->_isAsync)
         _ctx.throwError(u, "'await' can only be used inside an async function");
@@ -1862,11 +1868,17 @@ void CodeGenVisitor::emitAwait(UnExpr *u) {
     Expr *arg = u->argument();
     // Flag a known-sync call as a dead `await`. Native closures opt out: from
     // script we can't tell whether they return a Promise (httpFetch, async.delay,
-    // async.nextFrame) or a plain value. deparen so `await (f())` matches.
+    // async.nextFrame) or a plain value. Sync helpers annotated as returning an
+    // instance opt out too - chain-unwrap makes `await wrap()` do real work
+    // when wrap returns a Promise. Class constructors don't opt out (their
+    // result is never awaitable). deparen so `await (f())` matches.
     Expr *probe = deparen(arg);
     if (probe->op() == TO_CALL) {
         ResolvedCallee info = resolveCallee(probe->asCallExpr()->callee());
-        if (info.known && !info.isAsync && !info.isNative)
+        bool annotatedAsInstance = info.resultMask != ~0u
+                                && (info.resultMask & _RT_INSTANCE) != 0
+                                && !info.isClassCtor;
+        if (info.known && !info.isAsync && !info.isNative && !annotatedAsInstance)
             _ctx.reportDiagnostic(DiagnosticsId::DI_REDUNDANT_AWAIT, u);
     }
 
@@ -1875,10 +1887,13 @@ void CodeGenVisitor::emitAwait(UnExpr *u) {
     if (_fs->_targetstack.size() == 0)
         _ctx.throwError(u, "cannot evaluate unary-op");
 
-    SQInteger src = _fs->TopTarget();  // peek -- target stays as the await result
+    SQInteger src = _fs->PopTarget();
+    SQInteger dst = _fs->PushTarget();
+    if (src != dst)
+        _fs->AddInstruction(_OP_MOVE, dst, src);
     _fs->_bgenerator = true;
     _fs->_returnexp = _fs->GetCurrentPos() + 1;
-    _fs->AddInstruction(_OP_YIELD, 1, src, _fs->GetStackSize());
+    _fs->AddInstruction(_OP_YIELD, 1, dst, _fs->GetStackSize());
 }
 
 
@@ -2624,8 +2639,11 @@ bool CodeGenVisitor::isConstEvaluable(Expr *expr) {
 }
 
 void CodeGenVisitor::visitCommaExpr(CommaExpr *expr) {
-    for (auto e : expr->expressions()) {
-        visitForValue(e);
+    const auto &expressions = expr->expressions();
+    for (SQUnsignedInteger i = 0; i < expressions.size(); i++) {
+        visitForValue(expressions[i]);
+        if (i + 1 < expressions.size())
+            _fs->DiscardTarget();
     }
 }
 

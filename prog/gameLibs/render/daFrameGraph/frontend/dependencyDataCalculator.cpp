@@ -37,6 +37,8 @@ DependencyDataCalculator::ResourcesChanged DependencyDataCalculator::recalculate
       result.set(resId, true);
     if (eastl::erase_if(lifetime.readers, nodeChanged) > 0)
       result.set(resId, true);
+    if (eastl::erase_if(lifetime.historyReaders, nodeChanged) > 0)
+      result.set(resId, true);
   }
 
   lifetimes.resize(registry.knownNames.nameCount<ResNameId>());

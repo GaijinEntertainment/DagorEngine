@@ -11,9 +11,9 @@ ToolbarContainerPropertyControl::ToolbarContainerPropertyControl(int id, Control
   ContainerPropertyControl(id, event_handler, parent, x, y, w, h), toolbarControlWidth(Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH)
 {}
 
-ContainerPropertyControl *ToolbarContainerPropertyControl::createToolbarPanel(int id, const char caption[], bool new_line)
+ContainerPropertyControl *ToolbarContainerPropertyControl::createToolbarPanel(int id, bool use_tight_button_placement, bool new_line)
 {
-  ToolbarPropertyControl *newControl = new ToolbarPropertyControl(mEventHandler, this, id, caption);
+  ToolbarPropertyControl *newControl = new ToolbarPropertyControl(mEventHandler, this, id, use_tight_button_placement);
   newControl->setToolbarControlWidth(toolbarControlWidth);
   addControl(newControl, new_line);
   return newControl;

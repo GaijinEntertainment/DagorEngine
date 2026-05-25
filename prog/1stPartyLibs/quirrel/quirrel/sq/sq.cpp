@@ -554,6 +554,10 @@ static void pump_sqasync_until_idle(HSQUIRRELVM v)
 
 int sq_interpreter_main(int argc, char* argv[])
 {
+    // Preserve stdout/stderr ordering when redirected. MSVC ignores _IOLBF,
+    // so disable buffering entirely.
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     SQInteger retval = 0;
 
     HSQUIRRELVM v = sq_open(1024);

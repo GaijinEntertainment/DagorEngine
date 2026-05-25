@@ -60,10 +60,11 @@ struct Bank
   const bool isLoadToMemory = false;
   const bool isOptional = false;
   const bool isMod = false;
+  const bool isPathOptional = false;
 
   Bank() = delete;
-  Bank(const char *path, label_t label, id_t id, bool is_async, bool is_preload, bool is_load_to_memory, bool is_optional,
-    bool is_mod) :
+  Bank(const char *path, label_t label, id_t id, bool is_async, bool is_preload, bool is_load_to_memory, bool is_optional, bool is_mod,
+    bool is_path_optional) :
     path(path),
     label(label),
     id(id),
@@ -71,7 +72,8 @@ struct Bank
     isPreload(is_preload),
     isLoadToMemory(is_load_to_memory),
     isOptional(is_optional),
-    isMod(is_mod)
+    isMod(is_mod),
+    isPathOptional(is_path_optional)
   {}
 };
 
@@ -277,6 +279,16 @@ static inline void load_bank(Bank &bank, const PathTags &path_tags)
     patch_path_with_mod(taggedPath);
 
   const char *realPath = df_get_real_name(taggedPath.c_str());
+  if (!realPath && bank.isPathOptional && !bank.isMod)
+  {
+    if (const char *fileName = dd_get_fname(taggedPath.c_str()))
+    {
+      FrameStr fallback;
+      fallback.sprintf("%s/%s", g_banks_folder.c_str(), fileName);
+      taggedPath = eastl::move(fallback);
+      realPath = df_get_real_name(taggedPath.c_str());
+    }
+  }
   if (!realPath)
   {
     failed_banks.set(bank.id);
@@ -337,7 +349,7 @@ static inline void unload_bank(Bank &bank, eastl::vector<FMOD::Studio::Bank *, f
 }
 
 static inline void append_bank(const char *path, Bank::label_t label, bool is_async, bool is_preload, bool is_load_to_memory,
-  bool is_optional, bool is_mod, Preset &preset)
+  bool is_optional, bool is_mod, bool is_path_optional, Preset &preset)
 {
   auto pred = [path](const Bank &bank) { return bank.path == path; };
   auto it = eastl::find_if(all_banks.begin(), all_banks.end(), pred);
@@ -345,14 +357,14 @@ static inline void append_bank(const char *path, Bank::label_t label, bool is_as
   if (it != all_banks.end())
   {
     bankId = it - all_banks.begin();
-    G_ASSERTF(it->isMod == is_mod && it->isOptional == is_optional && it->isOptional == is_optional && it->isAsync == is_async &&
-                it->isPreload == is_preload && it->isLoadToMemory == is_load_to_memory,
+    G_ASSERTF(it->isMod == is_mod && it->isOptional == is_optional && it->isPathOptional == is_path_optional &&
+                it->isAsync == is_async && it->isPreload == is_preload && it->isLoadToMemory == is_load_to_memory,
       "Append new to existing bank parameters mismatch: there is already bank with same path but different options");
   }
   else
   {
     bankId = all_banks.size();
-    all_banks.emplace_back(path, label, bankId, is_async, is_preload, is_load_to_memory, is_optional, is_mod);
+    all_banks.emplace_back(path, label, bankId, is_async, is_preload, is_load_to_memory, is_optional, is_mod, is_path_optional);
     G_ASSERT(all_banks.size() <= max_banks);
   }
   preset.banks.set(bankId);
@@ -608,7 +620,8 @@ static void add_bank(const char *file_name, const DataBlock &blk, const char *ba
 
   G_STATIC_ASSERT((eastl::is_same<Bank::label_t, str_hash_t>::value));
   append_bank(path.c_str(), SND_HASH_SLOW(label.c_str()), blk.getBool("async", false), blk.getBool("preload", false),
-    blk.getBool("loadToMemory", false), blk.getBool("optional", false), isMod || isModAndTagged, preset);
+    blk.getBool("loadToMemory", false), blk.getBool("optional", false), isMod || isModAndTagged, blk.getBool("isPathOptional", false),
+    preset);
 };
 
 void init(const DataBlock &blk, const ProhibitedBankDescs &prohibited_bank_descs, dag::ConstSpan<const char *> no_mod_banks_names)
@@ -755,7 +768,17 @@ bool are_banks_from_preset_exist(const char *preset_name, const char *lang, cons
         if (type)
           replace(bankPath, "<type>", type);
         if (!dd_file_exist(bankPath.c_str()))
-          return false;
+        {
+          if (!bank.isPathOptional || bank.isMod)
+            return false;
+          const char *fileName = dd_get_fname(bankPath.c_str());
+          if (!fileName)
+            return false;
+          FrameStr fallback;
+          fallback.sprintf("%s/%s", g_banks_folder.c_str(), fileName);
+          if (!dd_file_exist(fallback.c_str()))
+            return false;
+        }
       }
     }
     return true;

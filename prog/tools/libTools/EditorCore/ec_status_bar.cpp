@@ -51,7 +51,7 @@ void ToolBarManager::init(int toolbar_id)
   IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
   G_ASSERT(commandSystem);
 
-  PropPanel::ContainerPropertyControl *tb1 = tool->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb1 = tool->createToolbarPanel();
 
   Tab<String> temp(tmpmem);
   tb1->createCombo(CM_GIZMO_BASIS, "", temp, 0);
@@ -68,7 +68,7 @@ void ToolBarManager::init(int toolbar_id)
   tb1->createEditFloat(CM_GIZMO_Y, "y :");
   tb1->createEditFloat(CM_GIZMO_Z, "z :");
 
-  PropPanel::ContainerPropertyControl *tb2 = tool->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = tool->createToolbarPanel();
   tb2->createSeparator();
 
   commandSystem->createToolbarToggleButton(*tb2, CM_VIEW_GRID_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP, "Move snap");

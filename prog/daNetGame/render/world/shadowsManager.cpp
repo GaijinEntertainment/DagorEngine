@@ -884,6 +884,7 @@ void ShadowsManager::prepareShadowsMatrices(
   csm_mode.powWeight = pow_weight_override.get() >= 0 ? pow_weight_override.get() : cvt(csm_mode.maxDist, 30.f, 50.f, 0.7f, 0.9f);
   csm_mode.cascade0Dist = cascade0_dist_override.get() >= 0 ? cascade0_dist_override.get() : cascade0_dist;
   csm_mode.shadowStart = p.zn + csmStartOffsetDistance;
+  csm_mode.cameraFov = min(p.hk, p.wk);
   G_ASSERT(shadowInfoProvider.getRendinstShadowVisibilities().size() >= csm_mode.numCascades);
   csm->prepareShadowCascades(csm_mode, shadowInfoProvider.getDirToSun(IShadowInfoProvider::DirToSunType::CSM),
     orthonormalized_inverse(itm), itm.getcol(3), proj_tm, frustum, Point2(p.zn, p.zf), p.zn);

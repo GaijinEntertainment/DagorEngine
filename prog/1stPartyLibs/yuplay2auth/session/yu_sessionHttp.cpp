@@ -2,11 +2,7 @@
 #include "yu_sessionHttp.h"
 #include "yu_string.h"
 
-#ifdef YUPLAY2_USE_XCURL
-#include <XCurl.h>
-#else
 #include <curl/curl.h>
-#endif //YUPLAY2_USE_XCURL
 
 
 struct YuCodeStr

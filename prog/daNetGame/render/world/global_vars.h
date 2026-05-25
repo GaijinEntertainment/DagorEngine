@@ -170,7 +170,8 @@
   VAR(disable_dynmat_params)                  \
   VAR(camera_base_offset)                     \
   VAR(params_validation_debug_color)          \
-  VAR(use_contact_shadows)
+  VAR(use_contact_shadows)                    \
+  VAR(ssao_is_gtao)
 
 #define GLOBAL_BLOCKS_LIST \
   VAR(globalFrame)         \

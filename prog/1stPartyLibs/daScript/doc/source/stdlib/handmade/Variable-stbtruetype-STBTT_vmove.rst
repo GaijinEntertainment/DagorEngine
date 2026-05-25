@@ -1,1 +1,0 @@
-Vertex type constant for a move-to command (start of a new contour).

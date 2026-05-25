@@ -27,6 +27,7 @@
 #include <math/dag_mathUtils.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
+#include <EASTL/array.h>
 #include <3d/dag_render.h>
 #include <3d/dag_lockTexture.h>
 #include <waterDecals/waterDecalsRenderer.h>
@@ -312,7 +313,8 @@ void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
 
 WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, const fft_water::SimulationParams &simulation, int q,
   int geom_quality, bool depth_renderer, bool ssr_renderer, bool one_to_four_cascades, int num_cascades, float cascade_window_length,
-  float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, bool water_heightmap_draw_patches) :
+  float cascade_facet_size, const fft_water::WaterHeightmap *water_heightmap, const HeightmapHeightCulling *heightmap_culling,
+  bool water_heightmap_draw_patches) :
   fft(NULL),
   cascadeWindowLength(cascade_window_length),
   cascadeFacetSize(cascade_facet_size),
@@ -332,6 +334,7 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
   forceTessellation(false),
   oneToFourCascades(one_to_four_cascades),
   waterHeightmap(water_heightmap),
+  heightmapCulling(heightmap_culling),
   waterHeightmapDrawPatches(water_heightmap_draw_patches),
   maxWaveHeight(0.0f),
   significantWaveHeight(0.0f),
@@ -936,13 +939,15 @@ void WaterNVRender::calculateGradients()
       shaders::overrides::set(overrideRGB);
     }
 
-    for (int i = 0; i < numFftCascades; ++i)
+    eastl::array<RenderTarget, fft_water::MAX_NUM_CASCADES> gradientRts = {};
+    for (uint32_t i = 0; i < uint32_t(numFftCascades); ++i)
     {
       if (gradientArray)
-        d3d::set_render_target(i, gradientArray.getArrayTex(), i, 0);
+        gradientRts[i] = {gradientArray.getArrayTex(), 0, i};
       else
-        d3d::set_render_target(i, gradient[i].getTex2D(), 0);
+        gradientRts[i] = {gradient[i].getTex2D(), 0, 0};
     }
+    d3d::set_render_target({}, DepthAccess::RW, make_span_const(gradientRts.data(), numFftCascades));
 
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     gradientRenderer.render();
@@ -957,9 +962,10 @@ void WaterNVRender::calculateGradients()
       shaders::overrides::reset();
       ShaderGlobal::set_int(water_foam_passVarId, 0);
 
-      d3d::set_render_target(foamGradient.getArrayTex(), 0, 0);
       if (numFftCascades > 4)
-        d3d::set_render_target(1, foamGradient.getArrayTex(), 1, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{foamGradient.getArrayTex(), 0, 0}, {foamGradient.getArrayTex(), 0, 1}});
+      else
+        d3d::set_render_target({}, DepthAccess::RW, {{foamGradient.getArrayTex(), 0, 0}});
 
       d3d::clearview(CLEAR_DISCARD, 0, 0.f, 0);
 
@@ -970,13 +976,15 @@ void WaterNVRender::calculateGradients()
       ShaderGlobal::set_int(water_foam_passVarId, 1);
       shaders::overrides::set(overrideAlpha);
 
-      for (int i = 0; i < numFftCascades; ++i)
+      eastl::array<RenderTarget, fft_water::MAX_NUM_CASCADES> gradientRts2 = {};
+      for (uint32_t i = 0; i < uint32_t(numFftCascades); ++i)
       {
         if (gradientArray)
-          d3d::set_render_target(i, gradientArray.getArrayTex(), i, 0);
+          gradientRts2[i] = {gradientArray.getArrayTex(), 0, i};
         else
-          d3d::set_render_target(i, gradient[i].getTex2D(), 0);
+          gradientRts2[i] = {gradient[i].getTex2D(), 0, 0};
       }
+      d3d::set_render_target({}, DepthAccess::RW, make_span_const(gradientRts2.data(), numFftCascades));
 
       gradientFoamRenderer.render(); // hblur and render
 
@@ -1085,7 +1093,7 @@ void WaterNVRender::calculateCascadesRoughness()
   SCOPE_RENDER_TARGET;
   FRAME_LAYER_GUARD(-1);
 
-  d3d::set_render_target(normals.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{normals.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
 
   for (int cascadeNo = 0; cascadeNo < numFftCascades; ++cascadeNo)
@@ -1345,7 +1353,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
     minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
-    false /*not used*/, nullptr, &lodsRegion, -10000.0F, nullptr, cullCb);
+    false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb);
   if (!defaultCullData.getCount())
     return;
 
@@ -1367,23 +1375,12 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   BBox2 heightmapRegion;
   if (geom_lod_quality == fft_water::GEOM_HIGH)
   {
+    const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;
     float lastLodCellSize = lod0CellSize * float(1 << (lodCount - 1));
-
-    for (auto &patch : defaultCullData.patches)
-    {
-      if (patch.size > lastLodCellSize * 0.75f)
-      {
-        Point2 lt(patch.originX, patch.originY);
-        float size = gridDim * patch.size;
-        Point2 rb = lt + Point2(size, size);
-        heightmapRegion += lt;
-        heightmapRegion += rb;
-      }
-    }
-
-    float border = 5.0f * 1.9f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
-    heightmapRegion.inflate(-border);
+    float border = 5.0f * 1.6f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
+    float size = float(gridDim * (lodGrid.lastLodRad << 1)) * lastLodCellSize - border;
+    heightmapRegion = BBox2(origin, size * 2);
   }
 
   if (autoVsamplersAdjust)

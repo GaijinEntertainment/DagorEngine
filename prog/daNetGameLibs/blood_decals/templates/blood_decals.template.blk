@@ -17,7 +17,7 @@ blood_decals_render_manager{
   blood_decals_depth_shader_name:t="blood_decals_render_depth"
 
 
-  "blood_decals_traces_buf:UniqueBufHolder"{}
+  "blood_decals_traces_buf:UniqueBufWithShaderVar"{}
   "blood_decals_traces_result:list<r>"{}
   "blood_decals_traces_queue:list<ip2>"{}
 

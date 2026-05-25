@@ -53,6 +53,7 @@ Sources =
   blendNodes/continuous.cpp
   blendNodes/still.cpp
   blendNodes/parametric.cpp
+  blendNodes/resetRandomSwitchListEventHandler.cpp
   blendNodes/blendNodeTreeEventHandler.cpp
   nodeMasks/nodeMaskTreeEventHandler.cpp
 ;

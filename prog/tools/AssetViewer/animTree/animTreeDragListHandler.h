@@ -47,6 +47,17 @@ protected:
   PropPanel::ContainerPropertyControl *panel;
 };
 
+class ResetRandomSwitchReorderHandler : public IListReorderHandler
+{
+public:
+  ResetRandomSwitchReorderHandler(AnimTreePlugin &plugin, PropPanel::ContainerPropertyControl *panel) : plugin(plugin), panel(panel) {}
+  void handleReorder(int from, int to) override;
+
+private:
+  AnimTreePlugin &plugin;
+  PropPanel::ContainerPropertyControl *panel;
+};
+
 class AnimTreeListDragHandler : public PropPanel::IListDragHandler
 {
 public:

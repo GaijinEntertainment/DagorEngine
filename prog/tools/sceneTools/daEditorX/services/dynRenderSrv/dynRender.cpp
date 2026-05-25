@@ -2326,7 +2326,7 @@ private:
   PostFxUserSettings pfx;
   const DataBlock *pfxLevelBlk;
 
-  UniqueBufHolder exposureBuffer;
+  UniqueBufWithShaderVar exposureBuffer;
   float exposure = 1.0f;
   bool hasExposureChanged = true;
 

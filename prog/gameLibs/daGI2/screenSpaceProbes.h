@@ -55,9 +55,9 @@ protected:
 
   carray<UniqueBuf, 2> screenspaceProbePos;
   UniqueBuf screenprobes_indirect_buffer;
-  UniqueBufHolder screenspace_probes_list;
-  UniqueBufHolder linked_list_additional_screenspace_probes;
-  UniqueBufHolder tileClassificator;
+  UniqueBufWithShaderVar screenspace_probes_list;
+  UniqueBufWithShaderVar linked_list_additional_screenspace_probes;
+  UniqueBufWithShaderVar tileClassificator;
   eastl::unique_ptr<ComputeShaderElement> calc_screenspace_radiance_cs, calc_screenspace_selected_radiance_cs,
     calc_screenspace_irradiance_cs, calc_screenspace_irradiance_sph3_cs, filter_screenspace_radiance_cs,
     temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace_radiance_cs;

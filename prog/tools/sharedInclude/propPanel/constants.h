@@ -52,6 +52,9 @@ public:
   // The default width of controls like combo box or edit box on the toolbar.
   static constexpr int TOOLBAR_DEFAULT_CONTROL_WIDTH = 100;
 
+  // Item spacing between a group of tightly placed buttons on the toolbar.
+  static constexpr int TOOLBAR_TIGHT_BUTTON_SPACING = 1;
+
   // The corner radius in px of modal windows.
   static constexpr float MODAL_WINDOW_ROUNDING = 6.0f;
 

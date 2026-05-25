@@ -111,11 +111,11 @@ void HmapLandObjectEditor::registerEditorCommands(IEditorCommandSystem &command_
   command_system.addCommand(EditorCommandIds::SELECT_PT, ImGuiMod_Ctrl | ImGuiKey_1);
   command_system.addCommand(EditorCommandIds::SELECT_SPLINES, ImGuiMod_Ctrl | ImGuiKey_2);
   command_system.addCommand(EditorCommandIds::SELECT_ENT, ImGuiMod_Ctrl | ImGuiKey_3);
-  command_system.addCommand(EditorCommandIds::SELECT_LT, ImGuiMod_Ctrl | ImGuiKey_4);
-  command_system.addCommand(EditorCommandIds::SELECT_SNOW, ImGuiMod_Ctrl | ImGuiKey_5);
   command_system.addCommand(EditorCommandIds::SELECT_NONE, ImGuiMod_Ctrl | ImGuiKey_6);
   command_system.addCommand(EditorCommandIds::SELECT_SPL_ENT, ImGuiMod_Ctrl | ImGuiKey_7);
-  command_system.addCommand(EditorCommandIds::HIDE_SPLINES, ImGuiMod_Ctrl | ImGuiKey_0);
+  command_system.addCommand(EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, ImGuiMod_Ctrl | ImGuiKey_0);
+  command_system.addCommand(EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS);
+  command_system.addCommand(EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS);
   command_system.addCommand(EditorCommandIds::SHOW_PHYSMAT);
   command_system.addCommand(EditorCommandIds::SHOW_PHYSMAT_COLORS);
   command_system.addCommand(EditorCommandIds::USE_PIXEL_PERFECT_SELECTION, ImGuiMod_Ctrl | ImGuiKey_Q);
@@ -127,7 +127,6 @@ void HmapLandObjectEditor::registerEditorCommands(IEditorCommandSystem &command_
   command_system.addCommand(EditorCommandIds::ROTATION_Z);
   command_system.addCommand(EditorCommandIds::CREATE_SPLINE);
   command_system.addCommand(EditorCommandIds::CREATE_POLYGON);
-  command_system.addCommand(EditorCommandIds::CREATE_SNOW_SOURCE);
   command_system.addCommand(EditorCommandIds::REFINE_SPLINE);
   command_system.addCommand(EditorCommandIds::SPLIT_SPLINE);
   command_system.addCommand(EditorCommandIds::SPLIT_POLY);
@@ -148,11 +147,11 @@ void HmapLandObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
   wndManager.addViewportAccelerator(CM_SELECT_PT, EditorCommandIds::SELECT_PT);
   wndManager.addViewportAccelerator(CM_SELECT_SPLINES, EditorCommandIds::SELECT_SPLINES);
   wndManager.addViewportAccelerator(CM_SELECT_ENT, EditorCommandIds::SELECT_ENT);
-  wndManager.addViewportAccelerator(CM_SELECT_LT, EditorCommandIds::SELECT_LT);
-  wndManager.addViewportAccelerator(CM_SELECT_SNOW, EditorCommandIds::SELECT_SNOW);
   wndManager.addViewportAccelerator(CM_SELECT_NONE, EditorCommandIds::SELECT_NONE);
   wndManager.addViewportAccelerator(CM_SELECT_SPL_ENT, EditorCommandIds::SELECT_SPL_ENT);
-  wndManager.addViewportAccelerator(CM_HIDE_SPLINES, EditorCommandIds::HIDE_SPLINES);
+  wndManager.addViewportAccelerator(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS);
+  wndManager.addViewportAccelerator(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS);
+  wndManager.addViewportAccelerator(CM_TOGGLE_NOTE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS);
   wndManager.addViewportAccelerator(CM_SHOW_PHYSMAT, EditorCommandIds::SHOW_PHYSMAT);
   wndManager.addViewportAccelerator(CM_SHOW_PHYSMAT_COLORS, EditorCommandIds::SHOW_PHYSMAT_COLORS);
   wndManager.addViewportAccelerator(CM_USE_PIXEL_PERFECT_SELECTION, EditorCommandIds::USE_PIXEL_PERFECT_SELECTION);
@@ -164,7 +163,6 @@ void HmapLandObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
   wndManager.addViewportAccelerator(CM_ROTATION_Z, EditorCommandIds::ROTATION_Z);
   wndManager.addViewportAccelerator(CM_CREATE_SPLINE, EditorCommandIds::CREATE_SPLINE);
   wndManager.addViewportAccelerator(CM_CREATE_POLYGON, EditorCommandIds::CREATE_POLYGON);
-  wndManager.addViewportAccelerator(CM_CREATE_SNOW_SOURCE, EditorCommandIds::CREATE_SNOW_SOURCE);
   wndManager.addViewportAccelerator(CM_REFINE_SPLINE, EditorCommandIds::REFINE_SPLINE);
   wndManager.addViewportAccelerator(CM_SPLIT_SPLINE, EditorCommandIds::SPLIT_SPLINE);
   wndManager.addViewportAccelerator(CM_SPLIT_POLY, EditorCommandIds::SPLIT_POLY);
@@ -1000,10 +998,18 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       updateToolbarButtons();
       DAGORED2->repaint();
       break;
-    case CM_HIDE_SPLINES:
+    case CM_TOGGLE_SPLINE_DEBUG_CONTROLS:
       hideSplines = !hideSplines;
       updateToolbarButtons();
       DAGORED2->repaint();
+      break;
+    case CM_TOGGLE_POLYGON_DEBUG_CONTROLS:
+      hidePolygons = !hidePolygons;
+      updateToolbarButtons();
+      break;
+    case CM_TOGGLE_NOTE_DEBUG_CONTROLS:
+      hideNotes = !hideNotes;
+      updateToolbarButtons();
       break;
     case CM_SHOW_PHYSMAT:
       showPhysMat = !showPhysMat;
@@ -1018,9 +1024,7 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
     case CM_SHADOWS:
     case CM_SCRIPT: HmapLandPlugin::self->onPluginMenuClick(pcb_id); break;
 
-    case CM_CREATE_HOLEBOX_MODE:
-    case CM_CREATE_LT:
-    case CM_CREATE_SNOW_SOURCE: setEditMode(pcb_id); break;
+    case CM_CREATE_HOLEBOX_MODE: setEditMode(pcb_id); break;
 
     case CM_CREATE_ENTITY:
       setEditMode(pcb_id);
@@ -1236,8 +1240,6 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
     case CM_SELECT_SPLINES:
     case CM_SELECT_ENT:
     case CM_SELECT_SPL_ENT:
-    case CM_SELECT_LT:
-    case CM_SELECT_SNOW:
       setEditMode(CM_OBJED_MODE_SELECT);
       setSelectMode(selectMode == pcb_id ? -1 : pcb_id);
       return;

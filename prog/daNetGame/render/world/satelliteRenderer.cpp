@@ -118,7 +118,7 @@ void SatelliteRenderer::ensureTargets()
   {
     riGenVisibility = rendinst::createRIGenVisibility(midmem);
     rendinst::setRIGenVisibilityMinLod(riGenVisibility, 0, 0);
-    rendinst::setRIGenVisibilityDistMul(riGenVisibility, 0);
+    rendinst::setRIGenVisibilityDistMul(riGenVisibility, 10);
   }
 }
 

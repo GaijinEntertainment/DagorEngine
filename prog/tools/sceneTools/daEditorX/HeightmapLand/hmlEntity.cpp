@@ -1088,6 +1088,40 @@ bool LandscapeEntityObject::setName(const char *nm)
   return result;
 }
 
+void LandscapeEntityObject::setIgnoreRiExtraCollisionInEntity()
+{
+  if (entity)
+    if (IRiExtraCollisionIgnore *ci = entity->queryInterface<IRiExtraCollisionIgnore>())
+      ci->setIgnoreRiExtraCollision(riExtraCollisionIgnored);
+}
+
+void LandscapeEntityObject::setCollisionIgnored()
+{
+  if (HmapLandPlugin::isForceRiExtra())
+  {
+    riExtraCollisionIgnored = true;
+    setIgnoreRiExtraCollisionInEntity();
+  }
+  else
+  {
+    oldPerInstSeed = perInstSeed;
+    setPerInstSeed(rendinst::RI_SEED_COLLISION_IGNORE);
+  }
+}
+
+void LandscapeEntityObject::resetCollisionIgnored()
+{
+  if (HmapLandPlugin::isForceRiExtra())
+  {
+    riExtraCollisionIgnored = false;
+    setIgnoreRiExtraCollisionInEntity();
+  }
+  else
+  {
+    setPerInstSeed(oldPerInstSeed);
+  }
+}
+
 void LandscapeEntityObject::setWtm(const TMatrix &wtm)
 {
   RenderableEditableObject::setWtm(wtm);
@@ -1272,6 +1306,9 @@ void LandscapeEntityObject::propsChanged(bool prevent_gen)
     IEntityCollisionState *ecs = entity->queryInterface<IEntityCollisionState>();
     if (ecs)
       ecs->setCollisionFlag(isCollidable);
+
+    if (riExtraCollisionIgnored)
+      setIgnoreRiExtraCollisionInEntity();
 
     DAGORED2->setColliders(colliders.col, colliders.getFilter());
     entity->setTm(matrix);

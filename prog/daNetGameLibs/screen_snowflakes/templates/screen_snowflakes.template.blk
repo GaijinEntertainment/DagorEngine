@@ -7,7 +7,7 @@ screen_snowflakes_renderer{
   screen_snowflakes__camera_inside_vehicle:b=false
   screen_snowflakes__time_until_next_spawn:r=0.0
 
-  "screen_snowflakes__instances_buf:UniqueBufHolder"{}
+  "screen_snowflakes__instances_buf:UniqueBufWithShaderVar"{}
   "screen_snowflakes__instances:SnowflakeInstances"{}
   "screen_snowflakes__node:dafg::NodeHandle"{}
 }

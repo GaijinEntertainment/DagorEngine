@@ -68,13 +68,16 @@ void CameraViewVisibilityMgr::prepareLightProbeRIVisibilityAsync(const mat44f &g
   lightProbeVisibilityJob.start(globtm, view_pos);
 }
 
-void CameraViewVisibilityMgr::startOcclusionAndSwRaster(
-  rendinst::RIOcclusionData &ri_occlusion_data, const CameraParams &cur_frame_cam, const LandMeshManager *lmesh_mgr)
+void CameraViewVisibilityMgr::startOcclusionAndSwRaster(rendinst::RIOcclusionData &ri_occlusion_data,
+  const CameraParams &cur_frame_cam,
+  const LandMeshManager *lmesh_mgr,
+  mat44f_cref cockpit_proj)
 {
   TMatrix4_vec4 viewTm = TMatrix4(cur_frame_cam.viewTm);
 
   startOcclusionFrame(cur_frame_cam.viewItm, reinterpret_cast<mat44f_cref>(viewTm),
-    reinterpret_cast<mat44f_cref>(cur_frame_cam.noJitterProjTm), reinterpret_cast<mat44f_cref>(cur_frame_cam.noJitterGlobtm));
+    reinterpret_cast<mat44f_cref>(cur_frame_cam.noJitterProjTm), reinterpret_cast<mat44f_cref>(cur_frame_cam.noJitterGlobtm),
+    cockpit_proj);
   startVisibilityReproject();
   startSwRasterization(ri_occlusion_data, (mat44f_cref)cur_frame_cam.noJitterGlobtm, (mat44f_cref)viewTm, cur_frame_cam.noJitterPersp,
     lmesh_mgr);
@@ -82,7 +85,8 @@ void CameraViewVisibilityMgr::startOcclusionAndSwRaster(
 
 void CameraViewVisibilityMgr::waitVisibilityReproject() { threadpool::wait(&visibilityReprojectJob, 0, visibilityReprojectJob.prio); }
 
-void CameraViewVisibilityMgr::startOcclusionFrame(const TMatrix &itm, const mat44f &viewTm, const mat44f &projTm, const mat44f &globtm)
+void CameraViewVisibilityMgr::startOcclusionFrame(
+  const TMatrix &itm, const mat44f &viewTm, const mat44f &projTm, const mat44f &globtm, mat44f_cref cockpit_proj)
 {
   TIME_PROFILE_DEV(startOcclusionFrame);
 
@@ -97,10 +101,10 @@ void CameraViewVisibilityMgr::startOcclusionFrame(const TMatrix &itm, const mat4
       if (occlusionData)
       {
         occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, occlusionData.closeGeometryBoundingRadius, cockpitMode,
-          occlusionData.closeGeometryPrevToCurrFrameTransform, 0, 0);
+          occlusionData.closeGeometryPrevToCurrFrameTransform, &cockpit_proj, 0, 0);
       }
       else
-        occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, 0, COCKPIT_NO_REPROJECT, mat44f{}, 0, 0);
+        occl->startFrame(v_ld(&viewPos.x), viewTm, projTm, (mat44f &)globtm, 0, COCKPIT_NO_REPROJECT, mat44f{}, &cockpit_proj, 0, 0);
       cockpit_distanceVarId.set_float(occlusionData ? occlusionData.closeGeometryBoundingRadius : 0);
     }
     else

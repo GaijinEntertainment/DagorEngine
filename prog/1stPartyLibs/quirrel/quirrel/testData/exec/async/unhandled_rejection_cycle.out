@@ -1,0 +1,2 @@
+script done
+[sqasync] unhandled promise rejection in async failing (testData/exec/async/unhandled_rejection_cycle.nut:12); reason: string "cycle"; launched at testData/exec/async/unhandled_rejection_cycle.nut:17 launcher

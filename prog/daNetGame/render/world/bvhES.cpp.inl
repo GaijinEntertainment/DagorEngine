@@ -65,6 +65,7 @@
 #include <bvh/bvh_processors.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <3d/dag_nvFeatures.h>
+#include <render/dasModules/bvh.h>
 
 // To reduce shader variants these got assumed in raytracing.blk
 // CONSOLE_BOOL_VAL("raytracing", rtr_shadow, false, "Also controls debug view!");
@@ -459,10 +460,13 @@ static void closeBVH(bool device_reset = false)
   }
 }
 
+static void wait_bvh_worker_threads();
+
 static void closeBVHScene()
 {
   if (bvhRenderingContextId)
   {
+    wait_bvh_worker_threads();
     bvh::finalize_async_atmosphere_update(bvhRenderingContextId);
     bvh::remove_terrain(bvhRenderingContextId);
     bvh::on_before_unload_scene(bvhRenderingContextId);
@@ -550,8 +554,6 @@ void bvh_release_bindlessly_held_textures()
     bvh::on_before_unload_scene(bvhRenderingContextId);
 }
 
-static void wait_bvh_worker_threads();
-
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 static void bvh_destroy_es(
@@ -620,7 +622,14 @@ bool is_rr_enabled() { return get_resolved_rt_settings().isRayReconstructionEnab
 bool is_bvh_dagdp_enabled() { return get_resolved_rt_settings().isDagdpEnabled; }
 
 void draw_rtr_validation() { rtr::render_validation_layer(); }
-bool delay_PUFD_after_bvh() { return is_bvh_enabled() && delay_PUFD; }
+bool should_delay_pufd_until_bvh_jobs_done() { return is_bvh_enabled() && delay_PUFD; }
+
+static void (*on_bvh_parallel_jobs_finished_cb)() = nullptr;
+void set_bvh_on_parallel_jobs_finished_cb(void (*cb)())
+{
+  on_bvh_parallel_jobs_finished_cb = cb;
+  bvh::set_on_parallel_jobs_finished_cb(cb);
+}
 void bvh_cables_changed() { cablesChanged = true; }
 
 bool is_rt_supported() { return bvh::is_available(); }
@@ -927,6 +936,26 @@ static dafg::NodeHandle makeBVHUpdateNode()
         bvh_prepare_ri_extra_instances_job.start(threadpool::JobPriority::PRIO_LOW);
       // TODO Refactor this change and restore scheme in BVH nodes, we need to get rid of this global state dependency somehow
       lights.setInsideOfFrustumLightsToShader();
+    };
+  });
+}
+
+static dafg::NodeHandle pufdFallbackNode;
+
+static dafg::NodeHandle makePUFDFallbackNode()
+{
+  if (!is_bvh_enabled())
+    return {};
+  return dafg::register_node("pufd_fallback", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.readBlob<OrderingToken>("bvh_ready_token");
+    return [](const dafg::multiplexing::Index &multiplexing_index) {
+      if (multiplexing_index != dafg::multiplexing::Index{})
+        return;
+      if (!should_delay_pufd_until_bvh_jobs_done())
+        return;
+      if (on_bvh_parallel_jobs_finished_cb)
+        on_bvh_parallel_jobs_finished_cb();
     };
   });
 }
@@ -1428,7 +1457,7 @@ static eastl::array<dafg::NodeHandle, 3> makeRTRNodes(RTPersistentTexturesECS &r
         auto &lights = WRDispatcher::getClusteredLights();
         lights.setOutOfFrustumLightsToShader();
         rtr::bind_params();
-        rtr::do_update_probes();
+        rtr::do_update_probes(true);
         lights.setInsideOfFrustumLightsToShader();
         rtr::unbind_params();
       }
@@ -1805,6 +1834,7 @@ static void recreateBVHNodes(const RTFeatureChanged &changed)
       {
         bvh__update_node = makeBVHUpdateNode();
         bvh_register_fom_shadows = makeBvhRegisterFomShadowsNode();
+        pufdFallbackNode = makePUFDFallbackNode();
       }
       if (changed.isDenoiserChanged)
       {
@@ -2555,3 +2585,9 @@ static void process_elem(const ShaderMesh::RElem &elem,
   mesh_info.hasAnimcharDecals = elem.mat->getRealVariable(tank_decals_smoothnessVarId, tank_decals_smoothness);
 }
 } // namespace bvh
+
+namespace bind_dascript
+{
+bool is_bvh_enabled() { return ::is_bvh_enabled(); }
+bool is_rr_enabled() { return ::is_rr_enabled(); }
+} // namespace bind_dascript

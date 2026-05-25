@@ -646,6 +646,13 @@ static nv::DLSS::Mode parse_mode_from_settings()
 static bool parse_ray_reconstruction_mode_from_settings()
 {
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
+  const DataBlock &blk_graphics = *dgs_get_settings()->getBlockByNameEx("graphics");
+  auto bvhMode = blk_graphics.getStr("bvhMode", "off");
+  if (!strcmp(bvhMode, "off"))
+    return false;
+  if (!strcmp(bvhMode, "custom"))
+    if (!blk_graphics.getBool("enableBVH", false))
+      return false;
   return blk_video.getBool("rayReconstruction", false);
 }
 

@@ -57,7 +57,7 @@ protected:
   PostFxRenderer dagi_world_scene_albedo_scene_debug;
   eastl::unique_ptr<ComputeShaderElement> albedo_scene_reset_cs;
   UniqueTexWithShaderVar dagi_albedo_atlas;
-  UniqueBufHolder dagi_albedo_indirection__free_indices_list;
+  UniqueBufWithShaderVar dagi_albedo_indirection__free_indices_list;
   UniqueBuf dagi_albedo_indirect_args;
   eastl::unique_ptr<ComputeShaderElement> dagi_clear_albedo_freelist_cs, dagi_clear_albedo_texture_cs, dagi_fix_empty_alpha_cs;
   eastl::unique_ptr<ComputeShaderElement> dagi_albedo_toroidal_movement_cs, dagi_albedo_after_toroidal_movement_create_indirect_cs,

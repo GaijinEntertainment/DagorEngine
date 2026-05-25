@@ -42,7 +42,7 @@ ECS_ON_EVENT(on_appear)
 static void init_static_flares_es(const ecs::Event &,
   ecs::EntityManager &manager,
   int static_flares__maxCount,
-  UniqueBufHolder &static_flares__instancesBuf,
+  UniqueBufWithShaderVar &static_flares__instancesBuf,
   StaticFlareInstances &static_flares__instances,
   dafg::NodeHandle &static_flares__node)
 {
@@ -132,7 +132,7 @@ void add_static_flare(const TMatrix &tm,
 
 ECS_REQUIRE(eastl::true_type static_flares__visible)
 static void static_flare_before_render_es(const UpdateStageInfoBeforeRender &,
-  const UniqueBufHolder &static_flares__instancesBuf,
+  const UniqueBufWithShaderVar &static_flares__instancesBuf,
   const StaticFlareInstances &static_flares__instances,
   int static_flares__count,
   int &static_flares__copiedCount)

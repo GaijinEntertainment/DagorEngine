@@ -1,1 +1,0 @@
-Performs linear interpolation between a and b using the factor t, returning a + (b - a) * t; when t is 0 the result is a, when t is 1 the result is b; works component-wise with float, double, float2, float3, and float4 types.

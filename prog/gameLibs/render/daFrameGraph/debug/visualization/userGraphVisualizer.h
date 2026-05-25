@@ -25,54 +25,57 @@ namespace dafg::visualization::usergraph
 class Visualizer
 {
 public:
-  Visualizer(InternalRegistry &int_registry, const NameResolver &name_resolver, const DependencyData &dep_data,
-    const intermediate::Graph &ir_graph, const PassColoring &coloring);
+  Visualizer(InternalRegistry &int_registry, const DependencyData &dep_data, const intermediate::Graph &ir_graph,
+    const PassColoring &coloring);
 
   void draw();
-
-  void drawUI();
-
-  void drawCanvas();
-  enum CanvasChannels
-  {
-    SUSPEND = 0,
-    NAMESPACES,
-    EDGES,
-    NODES,
-    TEXTS,
-    COUNT
-  };
-
-  void drawNodeBox(ImDrawList *draw_list, const NodeBoxId node_box_id, const ImVec2 offset);
-  void drawNode(ImDrawList *draw_list, const NodeId node_id, const ImVec2 node_offset, const ImVec2 node_size);
-  void drawEdges(ImDrawList *draw_list, const Layout &layout, const ImVec2 offset);
-
-  void processPopup();
-  void processCentering();
-  void processInput();
-  void processTextureDebug();
-
-
   void updateVisualization();
 
+
+  // draw functions
+private:
+  void drawUI();
+  void drawCanvas();
+
+  void drawNodes(ImDrawList *draw_list, const CanvasLayout &layout);
+  void drawEdges(ImDrawList *draw_list, const CanvasLayout &layout);
+  void drawNodeBoxes(ImDrawList *draw_list);
+
+  // control functions
+private:
+  void checkHovering();
+  void processInput();
+  void processPopup();
+  void processTextureDebug();
+
+  // update functions
+private:
   void updateNodesRess();
   void updateIRInfo();
   void updateNameSpaces();
   void updateDependencies();
 
+  void calculateNodesColors();
   void checkCycles();
   void condenseGraph();
 
+  // layout functions
+private:
   void performLayout();
-  void performBoxLayout(const NodeBox &node_box, Layout &node_box_layout);
   void performCondensedLayout();
-  void calculatePositions(Layout &layout, const eastl::span<NodeId> user_nodes, const eastl::span<NodeBoxId> node_boxes,
-    const bool has_io);
+
+  void generateRawEdges(RawLayout &raw_layout);
+  void generateAnchors(RawLayout &raw_layout);
+
+  void calculateObjectsSizes(RawLayout &raw_layout);
+  void calculateObjectsPositions(RawLayout &raw_layout);
+  void calculateAnchorsPositions(RawLayout &raw_layout);
+
+  void calculateNodeRectangles(CanvasLayout &layout, const RawLayout &raw_layout);
+  void calculateEdgeSplines(CanvasLayout &layout, const RawLayout &raw_layout);
 
 
   // data sources
-  const NameResolver &resolver;
-
 private:
   InternalRegistry &registry;
   const DependencyData &depData;
@@ -101,38 +104,72 @@ private:
   IdIndexedMapping<DependencyId, Dependency> registryDependencies; // List of all dependencies, stated in InternalRegistry
   dag::Vector<DependencyId> disabledDependencies;                  // Dependencies, disabled during check for cycles
 
-
-  // generated data
-private:
   IdIndexedMapping<NodeBoxId, NodeBox> nodeBoxes;
   IdIndexedMapping<NodeId, NodeBoxId> nodesNodeBox;
-  IdIndexedMapping<NodeBoxDependencyId, NodeBoxDependency> nodeBoxDependencies;
 
-  IdIndexedMapping<NodeBoxId, Layout> nodeBoxesLayouts;
 
-  Layout wholeGraphLayout; // Non-hierarchical layout, containing all user-defined nodes
-  Layout condensedLayout;  // Hierarchical layout with all boxes in condensed graph
-  bool layoutReady = false;
+  // layouts
+private:
+  eastl::unique_ptr<IGraphLayouter> layouter = make_default_layouter();
+  CanvasLayout generalLayout;   // Non-hierarchical layout, nodes are placed individually
+  CanvasLayout condensedLayout; // Hierarchical layout, nodes are grouped by name spaces
   bool hierarchicalView = false;
   bool updateNeeded = true;
 
 
 private:
   ImGuiEx::Canvas canvas;
-
-  CanvasCamera canvasCamera{
-    .initCanvasScaleId = 7,
-    .canvasScales = {0.1f, 0.15f, 0.20f, 0.25f, 0.33f, 0.5f, 0.75f, 1.0f, 1.25f, 1.50f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f,
-      8.0f},
+  enum CanvasChannels
+  {
+    SUSPEND = 0,
+    NAMESPACES,
+    EDGES,
+    NODES,
+    TEXTS,
+    COUNT
   };
 
-  ImVec2 focusedResLeftEnd;
-  ImVec2 focusedResRightEnd;
+  CanvasCamera canvasCamera{
+    .initCanvasScaleId = 8,
+    .canvasScales = {0.01f, 0.05f, 0.07f, 0.10f, 0.15f, 0.25f, 0.50f, 0.75f, 1.00f, 1.50f},
+  };
+
+  NodeColorationType coloration = NodeColorationType::None;
 
 
+  // hovering
 private:
-  bool searchBoxHovered = false;
+  struct
+  {
+    bool window = false;
+    bool searchBox = false;
+    bool canvas = false;
 
+    NodeId node = NodeId::Invalid;
+    ResourceId resource = ResourceId::Invalid;
+    dag::Vector<DependencyId> deps = {};
+
+    String tooltip;
+
+    void reset()
+    {
+      window = false;
+      searchBox = false;
+      canvas = false;
+
+      node = NodeId::Invalid;
+      resource = ResourceId::Invalid;
+      deps.clear();
+
+      tooltip.clear();
+    }
+  } hoverState;
+  NodeId popupNode = NodeId::Invalid;
+  dag::Vector<DependencyId> popupDeps = {};
+
+
+  // focusing
+private:
   eastl::string nodeSearchInput;
   int focusedNodeIndex = UNKNOWN_INDEX;
   struct
@@ -155,9 +192,8 @@ private:
     inline bool valid() const { return id != ResourceId::Invalid; }
   } focusedResource;
 
-
-private:
   void setFocusedNode(NodeId node_id);
+  void centerOnFocusedNode();
   inline void resetFocusedNode()
   {
     nodeSearchInput.clear();
@@ -166,6 +202,7 @@ private:
   };
 
   void setFocusedResource(ResourceId res_id, ResourceFocusType focus_type = ResourceFocusType::All);
+  void centerOnFocusedRes();
   inline void resetFocusedResource()
   {
     resourceSearchInput.clear();
@@ -174,60 +211,44 @@ private:
   };
 
 
+  // inspecting
 private:
-  inline bool isVisibleRename(ResourceId res_id) const
+  struct
   {
-    return focusedResource.type != ResourceFocusType::Resource && depData.renamingRepresentatives[nameIdByResId(res_id)] ==
-                                                                    depData.renamingRepresentatives[nameIdByResId(focusedResource.id)];
-  }
+    DependencyId id = DependencyId::Invalid;
+    bool wasChanged = false;
+
+    inline void set(const DependencyId dep_id)
+    {
+      id = dep_id;
+      wasChanged = true;
+    }
+    inline void reset() { set(DependencyId::Invalid); }
+  } inspectedDependency;
 
 
-  // vars from old visualizator
-private:
-  bool canvasHovered = false;
-
-  String tooltipMessage;
-  ImVec2 centerView;
-
-  eastl::unique_ptr<IGraphLayouter> layouter = make_default_layouter();
-
-  ImVec2 prevFocusedNodePos;
-
-  ColorationType coloration = ColorationType::None;
-  eastl::array<eastl::pair<const char *, ColorationType>, 3> colorationTypes = {
-    eastl::pair{(const char *)"None", ColorationType::None},
-    eastl::pair{(const char *)"Color by framebuffers", ColorationType::Framebuffer},
-    eastl::pair{(const char *)"Color by passes", ColorationType::Pass}};
-
-  dafg::ResNameId selectedResId = dafg::ResNameId::Invalid;
-  bool shouldUpdateVisualization = false;
-
-  dag::Vector<const Edge *> hoverEdges = {};
-  dag::Vector<const Edge *> popupEdges = {};
-
-
-  // functions from old visualizator
+  // misc functions
 private:
   template <class EnumType>
-  inline NameSpaceNameId getParent(EnumType id)
+  inline NameSpaceNameId getParent(EnumType id) const
   {
     return registry.knownNames.getParent(id);
   }
 
   template <class EnumType>
-  inline eastl::string_view getName(EnumType res_id)
+  inline eastl::string_view getName(EnumType res_id) const
   {
     return registry.knownNames.getName(res_id);
   }
 
   template <class EnumType>
-  inline eastl::string_view getShortName(EnumType res_id)
+  inline eastl::string_view getShortName(EnumType res_id) const
   {
     return registry.knownNames.getShortName(res_id);
   }
 
   template <class EnumType>
-  inline dag::Vector<eastl::string_view> gatherNames(eastl::span<const EnumType> ids)
+  inline dag::Vector<eastl::string_view> gatherNames(eastl::span<const EnumType> ids) const
   {
     dag::Vector<eastl::string_view> names;
     names.reserve(ids.size());
@@ -236,6 +257,19 @@ private:
     return names;
   }
 
+  inline bool isResourceVisible(const ResourceId res_id) const
+  {
+    return res_id == ResourceId::Invalid ||
+           !userResources[res_id].hidden && (!focusedResource.valid() || focusedResource.type == ResourceFocusType::All ||
+                                              focusedResource.type == ResourceFocusType::Resource && focusedResource.id == res_id ||
+                                              focusedResource.type == ResourceFocusType::ResourceAndRenames &&
+                                                depData.renamingRepresentatives[nameIdByResId(res_id)] ==
+                                                  depData.renamingRepresentatives[nameIdByResId(focusedResource.id)]);
+  }
+
+
+  // tree view functions
+private:
   void hideResourcesInSubTree(NameSpaceNameId name_space_id);
 
   void hideResourcesInNameSpace(NameSpaceNameId namespace_id);

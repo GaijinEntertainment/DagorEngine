@@ -60,10 +60,10 @@ static ecs::EntitySystemDesc volume_view_finalize_es_es_desc
 //static constexpr ecs::ComponentDesc dagdp_volume_before_draw_es_comps[] ={};
 static void dagdp_volume_before_draw_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<BeforeDraw>());
   dagdp::dagdp_volume_before_draw_es(static_cast<const BeforeDraw&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dagdp_volume_before_draw_es_es_desc
 (

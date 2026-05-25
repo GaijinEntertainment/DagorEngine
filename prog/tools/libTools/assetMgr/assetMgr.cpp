@@ -1190,9 +1190,14 @@ bool DagorAssetMgr::checkAssetNotDuplicated(DagorAssetPrivate *&ca, DagorAssetFo
   }
 
   ReadGuard guard(mutex);
+  String loaded_src_path;
+  if (loaded_assets[pa_idx]->getFolderIndex() >= 0)
+    loaded_src_path = loaded_assets[pa_idx]->getSrcFilePath();
+  else // duplicates in same folder
+    loaded_src_path = String(0, "%s/%s", folder_path, loaded_assets[pa_idx]->getSrcFileName());
   post_error_f(*msgPipe, folder_path, fname, "duplicate %s asset %s of type <%s>, existing is %s asset from %s",
     ca->isVirtual() ? "virtual" : "BLK", assetNames.getName(asset_name_id), typeNames.getName(asset_type),
-    loaded_assets[pa_idx]->isVirtual() ? "virtual" : "BLK", loaded_assets[pa_idx]->getSrcFilePath());
+    loaded_assets[pa_idx]->isVirtual() ? "virtual" : "BLK", loaded_src_path);
   return false;
 }
 

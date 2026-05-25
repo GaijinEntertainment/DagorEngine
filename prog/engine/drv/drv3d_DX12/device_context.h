@@ -22,7 +22,7 @@
 #include "query_manager.h"
 #include "resource_memory_heap.h"
 #include "resource_state_tracker.h"
-#include "ring_pipes.h"
+#include "forward_ring.h"
 #include "stacked_profile_events.h"
 #include "stateful_command_buffer.h"
 #include "streamline_adapter.h"
@@ -968,8 +968,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bindVertexUserData(HostDeviceSharedMemoryRegion bsa, uint32_t stride);
     void drawIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride);
     void drawIndexedIndirect(BufferResourceReferenceAndOffset buffer, uint32_t count, uint32_t stride);
-    void draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance);
-    void drawIndexed(uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance);
+    void draw(uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, uint32_t num_prims_for_stats);
+    void drawIndexed(uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+      uint32_t num_prims_for_stats);
     void bindIndexUser(HostDeviceSharedMemoryRegion bsa);
     void flushViewportAndScissor();
     void flushGraphicsResourceBindings();
@@ -995,8 +996,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
     void beginVisibilityQuery(Query *q);
     void endVisibilityQuery(Query *q);
-    void beginPipelineStatsQuery(PipelineStatsQuery *q);
-    void endPipelineStatsQuery(PipelineStatsQuery *q);
+    void beginPipelineStatsQuery(PipelineStatsQuery *q, bool lazy);
+    void endPipelineStatsQuery(PipelineStatsQuery *q, bool lazy);
     void cancelQuery(Query *q);
     void cancelPipelineStatsQuery(PipelineStatsQuery *q);
 #if _TARGET_PC_WIN
@@ -1395,15 +1396,17 @@ public:
   void dispatchIndirect(BufferResourceReferenceAndOffset buffer);
   void drawIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer, uint32_t stride);
   void drawIndexedIndirect(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, BufferResourceReferenceAndOffset buffer, uint32_t stride);
-  void draw(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t start, uint32_t count, uint32_t first_instance, uint32_t instance_count);
+  void draw(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t start, uint32_t count, uint32_t first_instance, uint32_t instance_count,
+    uint32_t num_prims_for_stats);
   // size of vertex_data = count * stride
-  void drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t stride, const void *vertex_data);
+  void drawUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t stride, const void *vertex_data,
+    uint32_t num_prims_for_stats);
   void drawIndexed(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t index_start, uint32_t count, int32_t vertex_base, uint32_t first_instance,
-    uint32_t instance_count);
+    uint32_t instance_count, uint32_t num_prims_for_stats);
   // size of vertex_data = vertex_stride * vertex_count
   // size of index_data = count * uint16_t
   void drawIndexedUserData(D3D12_PRIMITIVE_TOPOLOGY top, uint32_t count, uint32_t vertex_stride, const void *vertex_data,
-    uint32_t vertex_count, const void *index_data);
+    uint32_t vertex_count, const void *index_data, uint32_t num_prims_for_stats);
   void setComputePipeline(ProgramID program);
   void setGraphicsPipeline(GraphicsProgramID program);
   void copyBuffer(BufferResourceReferenceAndOffset source, BufferResourceReferenceAndOffset dest, uint32_t data_size);
@@ -1511,8 +1514,8 @@ public:
   void setStaticRenderState(StaticRenderStateID ident);
   void beginVisibilityQuery(Query *q);
   void endVisibilityQuery(Query *q);
-  void beginPipelineStatsQuery(PipelineStatsQuery *q);
-  void endPipelineStatsQuery(PipelineStatsQuery *q);
+  void beginPipelineStatsQuery(PipelineStatsQuery *q, bool lazy);
+  void endPipelineStatsQuery(PipelineStatsQuery *q, bool lazy);
 #if _TARGET_XBOX
   // Protocol for suspend:
   // 1) Locks context

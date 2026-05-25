@@ -227,6 +227,11 @@ GuiScene::~GuiScene()
   clear(true);
 
   sceneScriptHandlers.releaseFunctions();
+
+  // Drain in-flight das jobs before shutdownScript() closes sqvm: a failed async
+  // compile reports via onScriptError(), and the host error sink asserts the VM.
+  dasScriptsData->waitAllJobsDone();
+
   // Native nodes must be destroyed before sq_close() in shutdownScript().
   // Order: clear() already called frpGraph->shutdown() which released script refs;
   // destroyNativeWatches() frees native-owned slots; then sq_close() destroys

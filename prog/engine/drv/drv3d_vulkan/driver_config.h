@@ -166,6 +166,8 @@ struct DriverConfig
     bool resetOnDeviceLost : 1;
     // when enabled will add resource allocations to memory profiler
     bool profileResourceMemUsage : 1;
+    // allow loading and using XeSS (Intel super sampling). When disabled, libxess is never loaded
+    bool allowXess : 1;
   };
 
   struct DeviceBits

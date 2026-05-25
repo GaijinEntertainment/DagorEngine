@@ -24,11 +24,17 @@ try {
   print("\n")
 }
 
-// Resolving with a different promise stays legal.
+// Resolving with a different promise stays legal -- and adopts the inner
+// promise's settlement (chain-unwrap). `a` stays pending until `b` settles;
+// then `a` mirrors `b`.
 let a = Promise()
 let b = Promise()
 a.resolve(b)
-print("cross-resolve: ")
+print("cross-resolve before b settles: ")
+print(a.getState())
+print("\n")
+b.resolve(42)
+print("cross-resolve after b settles: ")
 print(a.getState())
 print("\n")
 

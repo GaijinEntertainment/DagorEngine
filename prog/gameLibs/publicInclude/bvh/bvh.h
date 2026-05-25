@@ -269,7 +269,21 @@ struct BVHGeometryBufferWithOffset
 namespace bvh
 {
 struct BufferProcessor;
-struct TreeData;
+
+struct SkinData
+{
+  bool isClothWind = false;
+  struct ClothWind
+  {
+    float noiseScaleX;
+    float noiseScaleY;
+    float timeScaleMin;
+    float timeScaleMax;
+    float ambientInfluence;
+    float noiseAmp;
+    uint32_t clothNoiseCombinedTexBindless;
+  } clothWind = {};
+};
 
 struct MeshSkinningInfo
 {
@@ -277,6 +291,7 @@ struct MeshSkinningInfo
   eastl::function<void()> setTransformsFn;
   BVHBufferReference *skinningBuffer = nullptr;
   UniqueBLAS *skinningBlas = nullptr;
+  SkinData data = {};
 };
 
 struct MeshHeliRotorInfo
@@ -421,6 +436,7 @@ struct MeshInfo
   TEXTUREID extraTextureId = BAD_TEXTUREID;
   TEXTUREID ppPositionTextureId = BAD_TEXTUREID;
   TEXTUREID ppDirectionTextureId = BAD_TEXTUREID;
+  TEXTUREID clothNoiseCombinedTexTextureId = BAD_TEXTUREID;
   bool alphaTest = false;
   // ~Only needed for meshes with textures
 
@@ -699,4 +715,7 @@ void generate_gpu_grass_instances(ContextId context_id, bool has_grass);
 void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
   uint32_t instance_vertex_count, uint32_t &bvh_id);
 void remove_spline_gen_instances(ContextId context_id);
+
+using on_parallel_jobs_finished_callback = void (*)();
+void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback callback);
 } // namespace bvh

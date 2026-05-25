@@ -130,6 +130,7 @@ private:
         bool known;       // true if statically resolvable
         bool isAsync;     // valid only when known
         bool isNative;    // resolved to a native closure -- can't tell sync vs Promise-returning
+        bool isClassCtor; // callee is a class; result is a plain class instance, not a Promise
         unsigned resultMask;
     };
     ResolvedCallee resolveCallee(Expr *callee);

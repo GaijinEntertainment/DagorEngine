@@ -24,7 +24,7 @@ struct GPUBeamTracer//todo: compress.
   float isHeroLaser;
 
   float3 dir; //changes on create only, needed for update&culling
-  float pad1;
+  float maxLength;
 
   float3 headColor;//changes on create only, needed for culling only (creates head)
   float burnTime;// for head
@@ -107,7 +107,7 @@ struct BeamTracerCreateCommand
   float beamScrollSpeed;
   float beamFadeDist;
   float isHeroLaser;
-  float createPad0;
+  float maxLength;
   float createPad1;
   float createPad2;
   #ifdef __cplusplus
@@ -115,10 +115,10 @@ struct BeamTracerCreateCommand
   BeamTracerCreateCommand(int id_, const float3 &p0, const float3 &d, float ttl_,
                           const float3 &head_color, float burn_time, float fade_dist,
                           float begin_fade_time, float end_fade_time, float scroll_speed,
-                          float is_hero_laser):
+                          float is_hero_laser, float maxLength):
     id(id_), pos0(p0), dir(d), ttl(ttl_), headColor(head_color), burnTime(burn_time),
     beamFadeDist(fade_dist), beamBeginFadeTime(begin_fade_time), beamEndFadeTime(end_fade_time),
-    beamScrollSpeed(scroll_speed), isHeroLaser(is_hero_laser), createPad0(0), createPad1(0), createPad2(0)
+    beamScrollSpeed(scroll_speed), isHeroLaser(is_hero_laser), maxLength(maxLength), createPad1(0), createPad2(0)
     {}
   #endif
 };

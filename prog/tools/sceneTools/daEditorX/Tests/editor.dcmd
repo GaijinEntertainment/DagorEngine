@@ -1,0 +1,80 @@
+wait.project_load
+wait.textures
+wait.time 500
+
+// plugin
+editor.command Main.NextPlugin
+wait.time 100
+editor.command Main.NextPlugin
+wait.time 100
+editor.command Main.NextPlugin
+wait.time 100
+editor.command Main.NextPlugin
+wait.time 100
+editor.command Main.NextPlugin
+wait.time 100
+editor.command Main.PreviousPlugin
+wait.time 100
+editor.command Main.PreviousPlugin
+wait.time 100
+editor.command Main.PreviousPlugin
+wait.time 100
+editor.command Main.PreviousPlugin
+wait.time 100
+editor.command Main.PreviousPlugin
+wait.time 100
+editor.command Main.SwitchToPlugin.Collision
+wait.time 100
+editor.command Main.SwitchToPlugin.ECSEditor
+wait.time 100
+editor.command Main.SwitchToPlugin.Environment
+wait.time 100
+editor.command Main.SwitchToPlugin.SGeometry
+wait.time 100
+editor.command Main.SwitchToPlugin.Landscape
+wait.time 100
+
+// settings menu
+editor.command Main.Settings.Camera
+wait.time 100
+editor.command Main.Settings.Camera
+wait.time 100
+editor.command Main.Settings.EditPreferences
+wait.time 100
+editor.command Main.Settings.EditPreferences
+wait.time 100
+editor.command Main.Settings.Screenshot
+wait.time 100
+editor.command Main.Settings.Screenshot
+wait.time 100
+editor.command Main.Settings.Stats
+wait.time 100
+editor.command Main.Settings.Stats
+wait.time 100
+editor.command Main.EnvironmentSettings
+wait.time 100
+editor.command Main.EnvironmentSettings
+wait.time 100
+
+// selection
+editor.command Main.InvertSelection
+wait.time 100
+editor.command Main.InvertSelection
+wait.time 100
+editor.command Main.SelectAll
+wait.time 100
+editor.command Main.InvertSelection
+wait.time 100
+editor.command Main.InvertSelection
+wait.time 100
+editor.command Main.DeselectAll
+wait.time 100
+editor.command Main.SelectAll
+wait.time 100
+editor.command Main.DeselectAll
+wait.time 100
+
+editor.command Main.DebugFlush
+wait.time 500
+
+app.terminate 0

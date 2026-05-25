@@ -1,3 +1,3 @@
 start
 end
-caught: FAILED
+caught: status=1 HTTP_FAILED=1 match=true

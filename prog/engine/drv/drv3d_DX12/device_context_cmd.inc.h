@@ -37,6 +37,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
   DX12_CONTEXT_COMMAND_PARAM(int32_t, vertexBase)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, firstInstance)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, instanceCount)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
@@ -46,7 +47,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
   ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
-  ctx.drawIndexed(count, instanceCount, indexStart, vertexBase, firstInstance);
+  ctx.drawIndexed(count, instanceCount, indexStart, vertexBase, firstInstance, numPrimsForStats);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -242,6 +243,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, Draw)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, firstInstance)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, instanceCount)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
@@ -250,7 +252,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, Draw)
   ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
-  ctx.draw(count, instanceCount, start, firstInstance);
+  ctx.draw(count, instanceCount, start, firstInstance, numPrimsForStats);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -706,6 +708,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawUserData)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, userData)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
@@ -714,7 +717,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawUserData)
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsState(top);
-  ctx.draw(count, 1, 0, 0);
+  ctx.draw(count, 1, 0, 0, numPrimsForStats);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -724,6 +727,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedUserData)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, vertexStride)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, vertexData)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, indexData)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, numPrimsForStats)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.switchActivePipeline(ActivePipeline::Graphics);
@@ -733,7 +737,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedUserData)
   ctx.flushStreamOutputBuffer();
   ctx.flushGraphicsStateResourceBindings();
   ctx.flushGraphicsState(top);
-  ctx.drawIndexed(count, 1, 0, 0, 0);
+  ctx.drawIndexed(count, 1, 0, 0, 0, numPrimsForStats);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1016,15 +1020,17 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, BeginPipelineStatsQuery)
   DX12_CONTEXT_COMMAND_PARAM(PipelineStatsQuery *, query)
+  DX12_CONTEXT_COMMAND_PARAM(bool, lazy)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.beginPipelineStatsQuery(query);
+  ctx.beginPipelineStatsQuery(query, lazy);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, EndPipelineStatsQuery)
   DX12_CONTEXT_COMMAND_PARAM(PipelineStatsQuery *, query)
+  DX12_CONTEXT_COMMAND_PARAM(bool, lazy)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.endPipelineStatsQuery(query);
+  ctx.endPipelineStatsQuery(query, lazy);
 #endif
 DX12_END_CONTEXT_COMMAND
 

@@ -164,6 +164,13 @@ public:
   virtual bool getRendInstQuantizedTm(TMatrix &out_tm) const = 0;
 };
 
+class IRiExtraCollisionIgnore
+{
+public:
+  static constexpr unsigned HUID = 0xEBC9D9EBu; // IRiExtraCollisionIgnore
+
+  virtual void setIgnoreRiExtraCollision(bool ignore) = 0;
+};
 
 class IExportToDag
 {

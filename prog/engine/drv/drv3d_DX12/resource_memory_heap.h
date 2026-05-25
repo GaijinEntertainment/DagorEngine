@@ -1188,6 +1188,10 @@ class DebugView : public MetricsVisualizer
   void drawUserHeapsSummaryTable();
   void drawRaytraceTopStructureTable();
   void drawRaytraceBottomStructureTable();
+  void drawRaytraceOMMStructureTable();
+#if D3D_HAS_RAY_TRACING
+  void drawRaytraceStructureTable(const char *tree_label, const char *table_id, RaytraceAccelerationStructure::Type filter_type);
+#endif
   void drawTempuraryUploadMemorySegmentsTable();
   void drawUploadRingSegmentsTable();
   void drawConstRingSegmentsTable();

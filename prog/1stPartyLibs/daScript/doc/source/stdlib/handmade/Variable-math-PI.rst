@@ -1,1 +1,0 @@
-The single-precision float constant pi (3.14159265...), representing the ratio of a circle's circumference to its diameter.

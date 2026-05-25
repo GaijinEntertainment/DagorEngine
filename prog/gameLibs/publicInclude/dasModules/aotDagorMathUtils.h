@@ -11,6 +11,7 @@
 #include <math/dag_mathAng.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_bits.h>
+#include <util/dag_hash.h>
 
 namespace bind_dascript
 {

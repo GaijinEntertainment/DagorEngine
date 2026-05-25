@@ -90,6 +90,7 @@ Sources +=
   prog/daNetGame/render/dasModules/worldRenderer.cpp
   prog/daNetGame/render/dasModules/heightmapQueryManager.cpp
   prog/daNetGame/render/dasModules/portalRenderer.cpp
+  prog/daNetGame/render/dasModules/bvh.cpp
 
   prog/daNetGame/main/dedicated/dasModules/dngMatching.cpp
 

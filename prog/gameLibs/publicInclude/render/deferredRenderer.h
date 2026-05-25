@@ -63,6 +63,7 @@ public:
     ShadingResolver::ClearTarget clear_target = ShadingResolver::ClearTarget::No, const TMatrix4 &gbufferTm = TMatrix4::IDENT,
     const RectInt *resolve_area = nullptr);
   void setVar() { renderTargets.setVar(); }
+  void resetVar() { renderTargets.resetVar(); }
   void changeResolution(const int w, const int h) { renderTargets.changeResolution(w, h); }
   void debugRender(BaseTexture *depth = nullptr, int show_gbuffer = USE_DEBUG_GBUFFER_MODE);
   void debugRenderVectors(int show_gbuffer = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, int vec_scale = 0.f);

@@ -2416,13 +2416,22 @@ bool SplineObject::pointInsidePoly(const Point2 &p)
   if (!poly)
     return false;
 
+  Tab<Point3> poly_pts(tmpmem);
+  poly_pts.reserve(points.size());
+  for (int i = 0; i < points.size(); i++)
+    poly_pts.push_back(points[i]->getPt());
+  return pointInsidePoly(p, poly_pts);
+}
+
+bool SplineObject::pointInsidePoly(const Point2 &p, dag::ConstSpan<Point3> points)
+{
   int pj, pk = 0;
   double wrkx, yu, yl;
 
   for (pj = 0; pj < points.size(); pj++)
   {
-    Point3 ppj = points[pj]->getPt();
-    Point3 ppj1 = points[(pj + 1) % points.size()]->getPt();
+    const Point3 &ppj = points[pj];
+    const Point3 &ppj1 = points[(pj + 1) % points.size()];
 
     yu = ppj.z > ppj1.z ? ppj.z : ppj1.z;
     yl = ppj.z < ppj1.z ? ppj.z : ppj1.z;

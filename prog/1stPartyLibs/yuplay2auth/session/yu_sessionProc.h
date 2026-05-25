@@ -419,7 +419,10 @@ public:
       s.getYupmasterFailbackIp(), s.doYupmasterFailback()) {}
 
 protected:
-  static Yuplay2Status parseServerAnswer(const YuCharTab& answer, YuString& version);
+  virtual void* onVersion(const YuString& version) = 0;
+
+private:
+  virtual void onHttpResponse(const YuString& url, const YuCharTab& data);
 };
 
 
@@ -432,7 +435,7 @@ public:
   bool run(const YuString& guid, const YuString& tag, unsigned conn_timeout, unsigned req_timeout);
 
 private:
-  virtual void onHttpResponse(const YuString& url, const YuCharTab& data);
+  void* onVersion(const YuString& version) override;
 };
 
 
@@ -447,9 +450,7 @@ public:
 private:
   YuPath torrent;
 
-  virtual void onHttpResponse(const YuString& url, const YuCharTab& data);
-
-  static Yuplay2Status compareVersions(const YuCharTab& ver, const YuPath& torrent, bool& new_ver);
+  void* onVersion(const YuString& version) override;
 };
 
 

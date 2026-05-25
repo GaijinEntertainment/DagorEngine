@@ -87,7 +87,7 @@ static constexpr ecs::ComponentDesc init_screen_snowflakes_es_comps[] =
 //start of 4 rw components at [0]
   {ECS_HASH("screen_snowflakes__enabled_on_level"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("screen_snowflakes__camera_inside_vehicle"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
 //start of 1 ro components at [4]
   {ECS_HASH("screen_snowflakes__max_count"), ecs::ComponentTypeInfo<int>()}
@@ -100,7 +100,7 @@ static void init_screen_snowflakes_es_all_events(const ecs::Event &__restrict ev
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__enabled_on_level", bool)
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)
     , ECS_RO_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__max_count", int)
-    , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
+    , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufWithShaderVar)
     , ECS_RW_COMP(init_screen_snowflakes_es_comps, "screen_snowflakes__node", dafg::NodeHandle)
     );
   while (++comp != compE);
@@ -121,7 +121,7 @@ static ecs::EntitySystemDesc init_screen_snowflakes_es_es_desc
 static constexpr ecs::ComponentDesc destroy_screen_snowflakes_es_comps[] =
 {
 //start of 3 rw components at [0]
-  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("screen_snowflakes__node"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("screen_snowflakes__enabled_on_level"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -129,7 +129,7 @@ static void destroy_screen_snowflakes_es_all_events(const ecs::Event &__restrict
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     destroy_screen_snowflakes_es(evt
-        , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
+        , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__instances_buf", UniqueBufWithShaderVar)
     , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__node", dafg::NodeHandle)
     , ECS_RW_COMP(destroy_screen_snowflakes_es_comps, "screen_snowflakes__enabled_on_level", bool)
     );
@@ -179,7 +179,7 @@ static ecs::EntitySystemDesc screen_snowflakes_on_vehicle_camera_change_es_es_de
 static constexpr ecs::ComponentDesc screen_snowflakes_before_render_es_comps[] =
 {
 //start of 3 rw components at [0]
-  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("screen_snowflakes__instances_buf"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("screen_snowflakes__time_until_next_spawn"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("screen_snowflakes__instances"), ecs::ComponentTypeInfo<SnowflakeInstances>()},
 //start of 2 ro components at [3]
@@ -195,7 +195,7 @@ static void screen_snowflakes_before_render_es_all_events(const ecs::Event &__re
       continue;
     screen_snowflakes_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
           , components.manager()
-      , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances_buf", UniqueBufHolder)
+      , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances_buf", UniqueBufWithShaderVar)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__time_until_next_spawn", float)
       , ECS_RW_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__instances", SnowflakeInstances)
       , ECS_RO_COMP(screen_snowflakes_before_render_es_comps, "screen_snowflakes__camera_inside_vehicle", bool)

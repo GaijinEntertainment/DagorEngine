@@ -149,6 +149,7 @@ struct StringTableAllocator
       ret += p.used;
     return ret;
   }
+  bool empty() const { return head.used == 0 && pages.empty(); }
   void shrink_to_fit() { pages.shrink_to_fit(); }
   void clear()
   {

@@ -96,9 +96,7 @@ void SMAA::apply(Texture *source, Texture *destination)
   ShaderGlobal::set_texture(smaa_color_tex_var_id, source);
   {
     TIME_D3D_PROFILE(edge_detect);
-    d3d::set_render_target(0, edgeDetect.getTex2D(), 0);
-    if (stencil)
-      d3d::set_depth(depthStencilTex.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({stencil ? depthStencilTex.getTex2D() : nullptr, 0, 0}, DepthAccess::RW, {{edgeDetect.getTex2D(), 0, 0}});
     unsigned depthClearFlags = 0;
     if (stencil)
       depthClearFlags = d3d::get_driver_code().is(d3d::metal) ? (CLEAR_STENCIL | CLEAR_ZBUFFER) : CLEAR_STENCIL;
@@ -108,9 +106,7 @@ void SMAA::apply(Texture *source, Texture *destination)
   }
   {
     TIME_D3D_PROFILE(blend_weights);
-    d3d::set_render_target(0, blendWeights.getTex2D(), 0);
-    if (stencil)
-      d3d::set_depth(depthStencilTex.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({stencil ? depthStencilTex.getTex2D() : nullptr, 0, 0}, DepthAccess::RW, {{blendWeights.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     blend_weights.render();
     d3d::resource_barrier({blendWeights.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -118,7 +114,7 @@ void SMAA::apply(Texture *source, Texture *destination)
   {
     TIME_D3D_PROFILE(apply_smaa);
     if (destination)
-      d3d::set_render_target(destination, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{destination, 0, 0}});
     else
       d3d::set_render_target();
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);

@@ -2,10 +2,8 @@
 
 #include "hmlOutliner.h"
 #include "hmlEntity.h"
-#include "hmlLight.h"
 #include "hmlObjectsEditor.h"
 #include "hmlPlugin.h"
-#include "hmlSnow.h"
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include <assets/asset.h>
@@ -325,7 +323,25 @@ bool HeightmapLandOutlinerInterface::isObjectSelected(RenderableEditableObject &
   return false;
 }
 
-bool HeightmapLandOutlinerInterface::canSelectObject(RenderableEditableObject &object) { return objectEditor.canSelectObj(&object); }
+bool HeightmapLandOutlinerInterface::canSelectSubObjectOnly(RenderableEditableObject &object)
+{
+  if (SplineObject *spline = RTTI_cast<SplineObject>(&object))
+    for (SplinePointObject *splinePoint : spline->points)
+      if (objectEditor.canSelectObj(splinePoint))
+        return true;
+
+  return false;
+}
+
+bool HeightmapLandOutlinerInterface::canSelectObjectOnly(RenderableEditableObject &object)
+{
+  return objectEditor.canSelectObj(&object);
+}
+
+bool HeightmapLandOutlinerInterface::canSelectObject(RenderableEditableObject &object)
+{
+  return canSelectObjectOnly(object) || canSelectSubObjectOnly(object);
+}
 
 bool HeightmapLandOutlinerInterface::canRenameObject(RenderableEditableObject &object, const char *name, String &error_message)
 {
@@ -391,16 +407,27 @@ void HeightmapLandOutlinerInterface::setObjectSelected(RenderableEditableObject 
   // Ensure that startObjectSelection has been called.
   G_ASSERT(objectEditor.getUndoSystem()->is_holding());
 
-  if (!objectEditor.canSelectObj(&object))
-    return;
+  // Spline points are not displayed in the Outliner.
+  G_ASSERT(!RTTI_cast<SplinePointObject>(&object));
 
-  object.selectObject(selected);
+  if (canSelectObjectOnly(object))
+  {
+    object.selectObject(selected);
 
-  // We must unselect all the sub-objects to be consistent with isObjectSelected.
-  if (!selected)
+    // We must unselect all the sub-objects to be consistent with isObjectSelected.
+    if (!selected)
+      if (SplineObject *spline = RTTI_cast<SplineObject>(&object))
+        for (SplinePointObject *splinePoint : spline->points)
+          splinePoint->selectObject(false);
+  }
+  else if (canSelectSubObjectOnly(object))
+  {
+    object.selectObject(false);
+
     if (SplineObject *spline = RTTI_cast<SplineObject>(&object))
       for (SplinePointObject *splinePoint : spline->points)
-        splinePoint->selectObject(false);
+        splinePoint->selectObject(selected);
+  }
 }
 
 void HeightmapLandOutlinerInterface::endObjectSelection()
@@ -576,7 +603,7 @@ bool HeightmapLandOutlinerInterface::getObjectTypeAndLayerPropsIndex(RenderableE
     return true;
   }
 
-  G_ASSERT(RTTI_cast<SplinePointObject>(&object) || RTTI_cast<SphereLightObject>(&object) || RTTI_cast<SnowSourceObject>(&object));
+  G_ASSERT(RTTI_cast<SplinePointObject>(&object));
   return false;
 }
 

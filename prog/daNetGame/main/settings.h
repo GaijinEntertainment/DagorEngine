@@ -39,10 +39,5 @@ void dgs_apply_changes_to_config(DataBlock &config_blk, bool need_merge_cmd = fa
 // apply changes by graphics preset name from .patch file
 void dgs_apply_console_preset_params(DataBlock &config_blk, const char *preset_name);
 
-// apply changes by graphics preset name from settings.blk, to avoid waiting for UI (only "essential" params, ie. texture quality)
-void dgs_apply_essential_pc_preset_params(DataBlock &config_blk, const char *preset_name);
-
-// prepares a BLK with
-// - merged command lines
-// - merged preset params (from pcGraphicalPresets, if present)
-DataBlock dgs_prepare_essential_pc_cmd_blk(const OverrideFilter *cmd_lines_override_filter = nullptr);
+// apply changes by graphics preset name from settings.blk
+void dgs_apply_pc_preset_params(DataBlock &config_blk, const char *preset_name);

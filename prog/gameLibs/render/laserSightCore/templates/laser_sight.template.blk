@@ -11,7 +11,7 @@ laser_decals_manager{
 
 
   "laser_decals_manager:LaserDecalManager"{}
-  "laser_screen_spot_buffer:UniqueBufHolder"{}
+  "laser_screen_spot_buffer:UniqueBufWithShaderVar"{}
   laser_screen_spot_count:i = 0
   laser_decal_manager__is_compatible:b=true
   laser_decal_reproj_max_correction:r=1
@@ -22,6 +22,7 @@ laser_sight{
   laserBeamColor:p3 = 0.35, 0, 0
   laserBeamDotColor:p3 = 1, 0, 0
   laserBeamMaxLength:r = 75
+  laserBeamFadeDistPercentage:r = 0.2
   laserStartSize:r = 0.02
   laserMaxSize:r = 0.2
   laserCrownAngle:r = 5.0

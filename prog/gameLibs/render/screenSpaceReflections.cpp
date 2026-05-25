@@ -54,7 +54,7 @@ void ScreenSpaceReflections::getRealQualityAndFmt(uint32_t &fmt, SSRQuality &ssr
 }
 
 ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h, const int num_views, uint32_t fmt,
-  SSRQuality ssr_quality, SSRFlags flags) :
+  SSRQuality ssr_quality, SSRFlags flags, const char *tag) :
   denoiser(!!(flags & SSRFlag::ExternalDenoiser))
 {
   // RESOLVE RESOLUTION
@@ -69,11 +69,12 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
   getRealQualityAndFmt(fmt, ssr_quality);
   quality = ssr_quality;
   ownTextures = !!(flags & SSRFlag::CreateTextures);
+  const char *tagSuffix = (tag && *tag) ? tag : "";
   if (ownTextures)
   {
     fmt |= TEXCF_CLEAR_ON_CREATE;
     ssrTarget.forTheFirstN(num_views, [&](auto &a, int view) {
-      String name(128, "ssr_target_%d", view);
+      String name(128, "ssr_target_%d%s", view, tagSuffix);
       int mipCount = getMipCount(ssr_quality);
       a = dag::create_tex(NULL, ssrW, ssrH, fmt, mipCount, name, RESTAG_SSR);
       d3d::resource_barrier({a.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -204,7 +205,7 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
   if (quality != SSRQuality::Compute)
   {
     TIME_D3D_PROFILE(ssr_ps)
-    d3d::set_render_target(target_tex, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{target_tex, 0, 0}});
     d3d::setviewscissor(0, 0, dw, dh);
     ssrQuad.render();
   }
@@ -245,7 +246,7 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
       name[8] += i;
       TIME_D3D_PROFILE_NAME(mip_levels, name);
 
-      d3d::set_render_target(ssr_tex, i);
+      d3d::set_render_target({}, DepthAccess::RW, {{ssr_tex, static_cast<uint32_t>(i), 0}});
       int w = ssrW >> i, h = ssrH >> i;
       ShaderGlobal::set_float4(ssr_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
       ssr_tex->texmiplevel(i - 1, i - 1);

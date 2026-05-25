@@ -11,6 +11,7 @@ include "sq_clouds_shadow.dshl"
 
 float scope_reflections_visibility_min_cos = 0.5;
 float scope_reflections_visibility_max_cos = 0.93;
+float scope_reflection_head_visibility = 1.0;
 float scope_alternate_reflection_dist = 40.0;
 float4 ssr_frameNo = (0,0,0,0);
 float4 SSRParams = (0.91, -2.5, 0,0);
@@ -136,6 +137,7 @@ shader scope_lens_reflections
     alternate_reflection_dist@f1 = scope_alternate_reflection_dist;
     scope_reflections_visibility_diff_cos@f1 = scope_reflections_visibility_max_cos - scope_reflections_visibility_min_cos;
     scope_reflections_visibility_min_cos@f1 = scope_reflections_visibility_min_cos;
+    scope_reflection_head_visibility@f1 = scope_reflection_head_visibility;
   }
   GET_ALTERNATE_REFLECTIONS(ps)
 
@@ -183,10 +185,10 @@ shader scope_lens_reflections
       float4 screenpos = GET_SCREEN_POS(input.pos);
 
       float VoN = abs(dot(input.normal, normalize(input.pointToEye)));
-      float reflectionsTerm = 1.0 - saturate((VoN - scope_reflections_visibility_min_cos) / scope_reflections_visibility_diff_cos);
+      float headOcclusionTerm = 1.0 - scope_reflection_head_visibility * saturate((VoN - scope_reflections_visibility_min_cos) / scope_reflections_visibility_diff_cos);
 
       float3 radiance = sample_scope_lens_reflections(input, screenpos, float2(0,0), float4(0,0,0,1));
-      return float4(radiance * reflectionsTerm, 1);
+      return float4(radiance * headOcclusionTerm, 1);
     }
   }
 

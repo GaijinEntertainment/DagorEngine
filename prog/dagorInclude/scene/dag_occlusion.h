@@ -90,11 +90,16 @@ public:
 #endif
   }
   inline void startFrame(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
-    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, float, float)
+    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, const mat44f *cockpit_proj, float, float)
   {
     rasterizedQuadOccluders = rasterizedBoxOccluders = rasterizedTriOccluders = 0;
     cockpitMode = cockpit_mode;
     cockpitAnim = cockpit_anim;
+    hasSeparateCockpitProj = cockpit_proj != nullptr;
+    if (hasSeparateCockpitProj)
+      cockpitProjTm = *cockpit_proj;
+    else
+      v_mat44_ident(cockpitProjTm);
     hasMergedOcclusion = false;
     resetStats();
     setFrameParams(viewPos, view, proj, viewProj, cockpit_distance);
@@ -104,9 +109,9 @@ public:
   void clear();
 
   inline void prepare(vec3f viewPos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
-    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, float threshold_x, float threshold_y)
+    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, const mat44f *cockpit_proj, float threshold_x, float threshold_y)
   {
-    startFrame(viewPos, view, proj, viewProj, cockpit_distance, cockpit_mode, cockpit_anim, threshold_x, threshold_y);
+    startFrame(viewPos, view, proj, viewProj, cockpit_distance, cockpit_mode, cockpit_anim, cockpit_proj, threshold_x, threshold_y);
     readbackGPU();
     reprojectGPUFrame();
   }
@@ -280,6 +285,8 @@ protected:
   float cockpitDistance = 0;
   CockpitReprojectionMode cockpitMode = COCKPIT_NO_REPROJECT;
   mat44f cockpitAnim = {};
+  mat44f cockpitProjTm = {};
+  bool hasSeparateCockpitProj = false;
   int rasterizedBoxOccluders = 0, rasterizedQuadOccluders = 0, rasterizedTriOccluders = 0;
   bool hasMergedOcclusion = false;
 #if CAN_DEBUG_OCCLUSION

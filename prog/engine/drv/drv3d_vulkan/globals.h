@@ -48,6 +48,7 @@ struct GlobalDriverLock;
 class DLSSSuperResolutionDirect;
 struct EventQueryPool;
 struct ResUpdateBufferPool;
+class Xess;
 
 struct Globals
 {
@@ -97,6 +98,7 @@ struct Globals
 #if !USE_STREAMLINE_FOR_DLSS
   static DLSSSuperResolutionDirect dlss;
 #endif
+  static Xess xess;
 
   struct VK
   {

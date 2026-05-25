@@ -501,8 +501,8 @@ struct Context
       auto qualityName = get_upscaling_name_from_config();
 
 #if _TARGET_PC_WIN
-      bool isDx12 = d3d::get_driver_code().is(d3d::dx12);
-      if (!isDx12 && (stricmp(methodName, "fsr") == 0 || stricmp(methodName, "xess") == 0))
+      bool isAllowedDriver = d3d::get_driver_code().is(d3d::dx12) || d3d::get_driver_code().is(d3d::vulkan);
+      if (!isAllowedDriver && (stricmp(methodName, "fsr") == 0 || stricmp(methodName, "xess") == 0))
       {
         methodName = "off";
         qualityName = "native";
@@ -602,8 +602,8 @@ struct Context
     return result;
   }
 
-  bool tryInitDlss(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
-    IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name)
+  bool tryInitDlss(const IPoint2 &outputResolution, bool dynamicResolutionEnabled, IPoint2 &inputResolution,
+    IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name)
   {
     if (method != AntialiasingMethod::DLSS)
       return false;
@@ -629,9 +629,18 @@ struct Context
       if (!dlss->setOptions(dlssQuality, outputResolution, getRRConfig(), dlssLegacyMode))
         return false;
 
-      inputResolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
-      min_dynamic_resolution = IPoint2(optimalSettings->renderMinWidth, optimalSettings->renderMinHeight);
-      max_dynamic_resolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+      if (dynamicResolutionEnabled)
+      {
+        inputResolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+        min_dynamic_resolution = IPoint2(optimalSettings->renderMinWidth, optimalSettings->renderMinHeight);
+        max_dynamic_resolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+      }
+      else
+      {
+        inputResolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+        min_dynamic_resolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+        max_dynamic_resolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+      }
 
       if (getRRConfig() && dlss->supportRayReconstruction())
         prepareDlssRayReconstruction = eastl::make_unique<ComputeShader>("prepare_ray_reconstruction");
@@ -655,9 +664,18 @@ struct Context
       if (!optimalSettings)
         return false;
 
-      inputResolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
-      min_dynamic_resolution = IPoint2(optimalSettings->renderMinWidth, optimalSettings->renderMinHeight);
-      max_dynamic_resolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+      if (dynamicResolutionEnabled)
+      {
+        inputResolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+        min_dynamic_resolution = IPoint2(optimalSettings->renderMinWidth, optimalSettings->renderMinHeight);
+        max_dynamic_resolution = IPoint2(optimalSettings->renderMaxWidth, optimalSettings->renderMaxHeight);
+      }
+      else
+      {
+        inputResolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+        min_dynamic_resolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+        max_dynamic_resolution = IPoint2(optimalSettings->renderWidth, optimalSettings->renderHeight);
+      }
 
       if (optimalSettings->rayReconstruction)
         prepareDlssRayReconstruction = eastl::make_unique<ComputeShader>("prepare_ray_reconstruction");
@@ -725,6 +743,7 @@ struct Context
     dlssParams.inColorDepthOffsetY = apply_context.inputOffset.y;
     dlssParams.inWidth = renderingResolution.x;
     dlssParams.inHeight = renderingResolution.y;
+    dlssParams.inReset = apply_context.resetHistory;
     dlssParams.frameId = dagor_get_global_frame_id();
     dlssParams.camera.projection = apply_context.projection;
     dlssParams.camera.projectionInverse = apply_context.projectionInverse;
@@ -772,8 +791,8 @@ struct Context
     }
   }
 
-  bool tryInitFsr(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
-    IPoint2 &max_dynamic_resolution, const char *input_name)
+  bool tryInitFsr(const IPoint2 &outputResolution, bool dynamicResolutionEnabled, IPoint2 &inputResolution,
+    IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name)
   {
     if (method != AntialiasingMethod::FSR || !isFsrLoaded() || !isFsrUpscalingSupported())
       return false;
@@ -786,10 +805,18 @@ struct Context
     if (!initFsrUpscaling(args))
       return false;
 
-    inputResolution = getFsrRenderingResolution(args.mode, outputResolution);
-
-    max_dynamic_resolution = inputResolution;
-    min_dynamic_resolution = get_min_dynamic_resolution(inputResolution);
+    if (dynamicResolutionEnabled)
+    {
+      inputResolution = outputResolution;
+      max_dynamic_resolution = inputResolution;
+      min_dynamic_resolution = get_min_dynamic_resolution(inputResolution);
+    }
+    else
+    {
+      inputResolution = getFsrRenderingResolution(args.mode, outputResolution);
+      max_dynamic_resolution = inputResolution;
+      min_dynamic_resolution = inputResolution;
+    }
 
     initCommonUpscaling("FSR", int(args.mode), inputResolution, outputResolution);
 
@@ -850,8 +877,8 @@ struct Context
     d3d::driver_command(Drv3dCommand::EXECUTE_FSR, (void *)&args);
   }
 
-  bool tryInitXess(const IPoint2 &outputResolution, IPoint2 &inputResolution, IPoint2 &min_dynamic_resolution,
-    IPoint2 &max_dynamic_resolution, const char *input_name)
+  bool tryInitXess(const IPoint2 &outputResolution, bool dynamicResolutionEnabled, IPoint2 &inputResolution,
+    IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name)
   {
     if (method != AntialiasingMethod::XeSS)
       return false;
@@ -861,6 +888,11 @@ struct Context
       return false;
 
     d3d::driver_command(Drv3dCommand::GET_XESS_RESOLUTION, &inputResolution, &min_dynamic_resolution, &max_dynamic_resolution);
+
+    if (dynamicResolutionEnabled)
+      inputResolution = max_dynamic_resolution;
+    else
+      min_dynamic_resolution = max_dynamic_resolution = inputResolution;
 
     velocityScale = Point2(0, 0); // force reset motion scale to each xess init, otherwise it will stuck with default data
     d3d::driver_command(Drv3dCommand::SET_XESS_VELOCITY_SCALE, &velocityScale.x, &velocityScale.y);
@@ -1023,7 +1055,7 @@ struct Context
     d3d::allow_render_pass_target_load();
   }
 
-  bool tryInitTsr(const IPoint2 &outputResolution, IPoint2 &inputResolution, const char *input_name,
+  bool tryInitTsr(const IPoint2 &outputResolution, bool dynamicResolutionEnabled, IPoint2 &inputResolution, const char *input_name,
     const IPoint2 &displayResolution = {0, 0})
   {
     if (method != AntialiasingMethod::TSR)
@@ -1033,7 +1065,9 @@ struct Context
 
     if (TemporalSuperResolution::parse_preset(app_glue()->isVrHmdEnabled()) == TemporalSuperResolution::Preset::High)
     {
-      if (percentage > 0)
+      if (dynamicResolutionEnabled)
+        resolutionScale = 1.0f;
+      else if (percentage > 0)
         resolutionScale = percentage;
       else
         switch (quality)
@@ -1278,7 +1312,7 @@ struct Context
 
       SCOPE_RENDER_TARGET;
       ShaderGlobal::set_texture(ui_texVarId, ctx.uiTexture);
-      d3d::set_render_target(ctx.finalImageTexture ? ctx.finalImageTexture : d3d::get_backbuffer_tex(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{ctx.finalImageTexture ? ctx.finalImageTexture : d3d::get_backbuffer_tex(), 0, 0}});
       uiBlend.render();
       ShaderGlobal::set_texture(ui_texVarId, nullptr);
     };
@@ -1764,8 +1798,9 @@ void reinit()
   g_ctx->init();
 }
 
-void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, IPoint2 &rendering_resolution,
-  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name)
+void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, bool dynamic_resolution_enabled,
+  IPoint2 &rendering_resolution, IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name,
+  const char *depth_name)
 {
   if (!g_ctx)
     return;
@@ -1796,16 +1831,18 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
 
 #endif
     case AntialiasingMethod::DLSS:
-      if (!g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, min_dynamic_resolution, max_dynamic_resolution, input_name,
-            depth_name))
+      if (!g_ctx->tryInitDlss(postfx_resolution, dynamic_resolution_enabled, rendering_resolution, min_dynamic_resolution,
+            max_dynamic_resolution, input_name, depth_name))
         fallbackToNone();
       break;
     case AntialiasingMethod::FSR:
-      if (!g_ctx->tryInitFsr(postfx_resolution, rendering_resolution, min_dynamic_resolution, max_dynamic_resolution, input_name))
+      if (!g_ctx->tryInitFsr(postfx_resolution, dynamic_resolution_enabled, rendering_resolution, min_dynamic_resolution,
+            max_dynamic_resolution, input_name))
         fallbackToNone();
       break;
     case AntialiasingMethod::XeSS:
-      if (!g_ctx->tryInitXess(postfx_resolution, rendering_resolution, min_dynamic_resolution, max_dynamic_resolution, input_name))
+      if (!g_ctx->tryInitXess(postfx_resolution, dynamic_resolution_enabled, rendering_resolution, min_dynamic_resolution,
+            max_dynamic_resolution, input_name))
         fallbackToNone();
       break;
     case AntialiasingMethod::TAA:
@@ -1813,7 +1850,7 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
         fallbackToNone();
       break;
     case AntialiasingMethod::TSR:
-      if (!g_ctx->tryInitTsr(postfx_resolution, rendering_resolution, input_name, display_resolution))
+      if (!g_ctx->tryInitTsr(postfx_resolution, dynamic_resolution_enabled, rendering_resolution, input_name, display_resolution))
         fallbackToNone();
       else
       {
@@ -2428,8 +2465,9 @@ bool is_ssaa_compatible()
   auto method = get_method_from_settings();
   // TODO: XeSS can be supported too but the driver doesn't support XeSS output resolution change for now
   // SSAA is not allowed with RT, there is no HW powerfull enough now for it, but users ofter max everyhing out without
-  // realisation of performance impact
-  return !(method == AntialiasingMethod::DLSS || method == AntialiasingMethod::XeSS || app_glue()->isRayTracingEnabled());
+  // realisation of performance impact. SSAA + RT can be enabled with isRayTracingAvailableWithSSAA for DEV build
+  return !(method == AntialiasingMethod::DLSS || method == AntialiasingMethod::XeSS ||
+           (app_glue()->isRayTracingEnabled() && !app_glue()->isRayTracingAvailableWithSSAA()));
 }
 
 bool need_gui_in_texture() { return g_ctx && g_ctx->needGuiInTexture(); }
@@ -2513,7 +2551,7 @@ bool try_init_dlss(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, con
   IPoint2 dummy;
 
   if (g_ctx)
-    return g_ctx->tryInitDlss(postfx_resolution, rendering_resolution, dummy, dummy, input_name, depth_name);
+    return g_ctx->tryInitDlss(postfx_resolution, false, rendering_resolution, dummy, dummy, input_name, depth_name);
   return false;
 }
 
@@ -2533,7 +2571,7 @@ bool is_ray_reconstruction_enabled()
 bool try_init_tsr(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, const char *input_name)
 {
   if (g_ctx)
-    return g_ctx->tryInitTsr(postfx_resolution, rendering_resolution, input_name);
+    return g_ctx->tryInitTsr(postfx_resolution, false, rendering_resolution, input_name);
   return false;
 }
 
@@ -2549,7 +2587,7 @@ bool try_init_fsr(IPoint2 postfx_resolution, IPoint2 &rendering_resolution, cons
   IPoint2 dummy;
 
   if (g_ctx)
-    return g_ctx->tryInitFsr(postfx_resolution, rendering_resolution, dummy, dummy, input_name);
+    return g_ctx->tryInitFsr(postfx_resolution, false, rendering_resolution, dummy, dummy, input_name);
   return false;
 }
 
@@ -2564,7 +2602,7 @@ bool try_init_xess(IPoint2 outputResolution, IPoint2 &inputResolution, const cha
   IPoint2 dummy;
 
   if (g_ctx)
-    return g_ctx->tryInitXess(outputResolution, inputResolution, dummy, dummy, input_name);
+    return g_ctx->tryInitXess(outputResolution, false, inputResolution, dummy, dummy, input_name);
   return false;
 }
 

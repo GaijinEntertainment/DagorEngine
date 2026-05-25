@@ -29,6 +29,35 @@ macro INIT_CLOTH_WIND_NOISE()
  }
 endmacro
 
+macro INIT_CLOTH_WIND_NOISE_COMBINED()
+  hlsl {
+    #define MAX_WIND_SPEED 35 // approximatly 12 beaufort
+    #define MAX_NOISE_AMP 1
+    #define MAX_NOISE_NORMAL_AMP 20
+
+    float get_cloth_wind_noise_vertical_offset(float strength, float time, float2 scale)
+    {
+      float windTimeMultiplier = lerp(scale.x, scale.y, saturate(strength / MAX_WIND_SPEED));
+      return time * windTimeMultiplier;
+    }
+
+    float sample_noise_combined(float3 local_pos, float time, float strength, float2 time_scale, float2 noise_scale, float noise_blend_coef,
+                                float2 noise_offset)
+    {
+      float verticalOffset = get_cloth_wind_noise_vertical_offset(
+        strength,
+        time,
+        time_scale);
+      float y = local_pos.y + verticalOffset;
+      float noiseX = sample_noise(local_pos.x * noise_scale.x + noise_offset.x, y * noise_scale.y + noise_offset.y);
+      float noiseZ = sample_noise(local_pos.z * noise_scale.x + noise_offset.x, (y + 0.5) * noise_scale.y + noise_offset.y);
+      float noiseEffect = lerp(noiseZ, noiseX, noise_blend_coef);
+
+      return noiseEffect;
+    }
+  }
+endmacro
+
 macro INIT_CLOTH_WIND(texture_index)
   channel color8 vcol = vcol; // normalize(RGB) - wind influence direction, lenght(RGB) - cloth tension
 
@@ -76,17 +105,6 @@ macro INIT_CLOTH_WIND(texture_index)
     #define NEED_POINT_TO_EYE 1
     #define NEED_CLOTH_WIND 1
 
-    #define MAX_WIND_SPEED 35 // approximatly 12 beaufort
-    #define MAX_NOISE_AMP 1
-    #define MAX_NOISE_NORMAL_AMP 20
-
-    float get_cloth_wind_noise_vertical_offset(float strength, float time, float2 scale)
-    {
-      float windTimeMultiplier = lerp(scale.x, scale.y, saturate(strength / MAX_WIND_SPEED));
-      return time * windTimeMultiplier;
-    }
-
-
     float sample_noise(float x, float y)
     {
       ##if (clothNoiseCombinedTex != NULL)
@@ -94,21 +112,6 @@ macro INIT_CLOTH_WIND(texture_index)
       ##else
         return gen_noise(x, y);
       ##endif
-    }
-
-    float sample_noise_combined(float3 local_pos, float time, float strength, float2 time_scale, float2 noise_scale, float noise_blend_coef,
-                                float2 noise_offset)
-    {
-      float verticalOffset = get_cloth_wind_noise_vertical_offset(
-        strength,
-        time,
-        time_scale);
-      float y = local_pos.y + verticalOffset;
-      float noiseX = sample_noise(local_pos.x * noise_scale.x + noise_offset.x, y * noise_scale.y + noise_offset.y);
-      float noiseZ = sample_noise(local_pos.z * noise_scale.x + noise_offset.x, (y + 0.5) * noise_scale.y + noise_offset.y);
-      float noiseEffect = lerp(noiseZ, noiseX, noise_blend_coef);
-
-      return noiseEffect;
     }
 
     float3 sample_noise_normal(float x, float y)
@@ -120,13 +123,14 @@ macro INIT_CLOTH_WIND(texture_index)
       ##endif
     }
   }
+  INIT_CLOTH_WIND_NOISE_COMBINED()
 
   USE_COMBINED_WIND(vs)
 endmacro
 
-define_macro_if_not_defined USE_CLOTH_COLLISION()
+define_macro_if_not_defined USE_CLOTH_COLLISION(code)
 
-  hlsl(vs)
+  hlsl(code)
   {
     void signed_distance_capsule( float3 position, float3 centerA, float3 centerB, float radius, out float distance, out float3 direction)
     {
@@ -168,40 +172,12 @@ define_macro_if_not_defined USE_CLOTH_COLLISION()
   }
 endmacro
 
-macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
-  hlsl(vs)
+macro USE_CLOTH_WIND_POSITION_OFFSET_BASE(code)
+  hlsl(code)
   {
-    void directional_data_skinning(VsInput input, inout float3 directional_data)
-    {
-      // TODO: This partly dublicates code from skinning_inc2.dshl
-      // Modifing original code would touch many other unrelated systems
-      // So it is needed to be done carefully
-      ##if num_bones != no_bones
-        bone_t skinnedTm = skinning_matrix(input);
-        directional_data = mul_bone3(directional_data, skinnedTm);
-      ##else
-        ##if in_editor_assume == yes || simple_skinning
-          SETUP_RENDER_VARS(input.normal.w);
-          float3 world_local_x = globtm_0.xyz;
-          float3 world_local_y = globtm_1.xyz;
-          float3 world_local_z = globtm_2.xyz;
-          float4 projNormal = directional_data.x * globtm_0 + directional_data.y * globtm_1 + directional_data.z * globtm_2;
-          directional_data = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
-        ##else
-          uint offset_id = get_immediate_dword_0();
-          offset_id += uint(input.normal.w*255.001953) * matrices_stride;
-          float4 r1 = bufferAt(instance_data_buffer, offset_id),r2 = bufferAt(instance_data_buffer, offset_id+1),r3 = bufferAt(instance_data_buffer, offset_id+2);
-          float3 world_local_x = r1.xyz;
-          float3 world_local_y = r2.xyz;
-          float3 world_local_z = r3.xyz;
-          directional_data = directional_data.x * world_local_x + directional_data.y * world_local_y + directional_data.z * world_local_z;
-        ##endif
-      ##endif
-    }
-
     void apply_cloth_wind_position_offset(
       VsInput input, inout float4 output_pos, inout float4 output_pos_prev, inout float2 wind_normal_blend_params,
-      float4 directional_data, float3 world_pos, float4 local_pos, float3 velocity, float3 prev_velocity, float2 noise_offset)
+      float4 directional_data, inout float3 world_pos, float4 local_pos, float3 velocity, float3 prev_velocity, float2 noise_offset)
     {
       float tension = directional_data.a;
       if (tension < 1.e-4)
@@ -259,9 +235,44 @@ macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
 
       output_pos += mul(float4(windDelta.xyz, 0), viewProjTm);
       output_pos_prev += mul(float4(windDeltaPrev.xyz, 0), viewProjTm);
+      world_pos += windDelta.xyz;
       wind_normal_blend_params = float2(windEffect, noiseBlendCoef);
     }
   }
+endmacro
+
+macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
+  hlsl(vs)
+  {
+    void directional_data_skinning(VsInput input, inout float3 directional_data)
+    {
+      // TODO: This partly dublicates code from skinning_inc2.dshl
+      // Modifing original code would touch many other unrelated systems
+      // So it is needed to be done carefully
+      ##if num_bones != no_bones
+        bone_t skinnedTm = skinning_matrix(input);
+        directional_data = mul_bone3(directional_data, skinnedTm);
+      ##else
+        ##if in_editor_assume == yes || simple_skinning
+          SETUP_RENDER_VARS(input.normal.w);
+          float3 world_local_x = globtm_0.xyz;
+          float3 world_local_y = globtm_1.xyz;
+          float3 world_local_z = globtm_2.xyz;
+          float4 projNormal = directional_data.x * globtm_0 + directional_data.y * globtm_1 + directional_data.z * globtm_2;
+          directional_data = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
+        ##else
+          uint offset_id = get_immediate_dword_0();
+          offset_id += uint(input.normal.w*255.001953) * matrices_stride;
+          float4 r1 = bufferAt(instance_data_buffer, offset_id),r2 = bufferAt(instance_data_buffer, offset_id+1),r3 = bufferAt(instance_data_buffer, offset_id+2);
+          float3 world_local_x = r1.xyz;
+          float3 world_local_y = r2.xyz;
+          float3 world_local_z = r3.xyz;
+          directional_data = directional_data.x * world_local_x + directional_data.y * world_local_y + directional_data.z * world_local_z;
+        ##endif
+      ##endif
+    }
+  }
+  USE_CLOTH_WIND_POSITION_OFFSET_BASE(vs)
 endmacro
 
 
@@ -306,8 +317,8 @@ macro USE_CLOTH_WIND_NORMAL_BLENDING()
   }
 endmacro
 
-macro USE_CLOTH_WIND_VS_POST_FUNCTION(use_burning_and_wounds, render_pass_normal)
-  hlsl(vs) {
+macro USE_CLOTH_WIND_VS_POST_FUNCTION(code, use_burning_and_wounds, render_pass_normal)
+  hlsl(code) {
     void get_velocity_from_additional_data(VsInput input, out float3 charCurrentVelocity, out float3 charPreviousVelocity, out float2 noiseOffset)
     {
       uint2 offset_count = get_offset_count_additional_data(AAD_CLOTH_WIND_PARAMS);
@@ -328,11 +339,11 @@ macro USE_CLOTH_WIND_VS_POST_FUNCTION(use_burning_and_wounds, render_pass_normal
       }
     }
   }
-  USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(use_burning_and_wounds, render_pass_normal, get_velocity_from_additional_data)
+  USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(code, use_burning_and_wounds, render_pass_normal, get_velocity_from_additional_data)
 endmacro
 
-macro USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(use_burning_and_wounds, render_pass_normal, get_velocity_func)
-  hlsl(vs) {
+macro USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(code, use_burning_and_wounds, render_pass_normal, get_velocity_func)
+  hlsl(code) {
     #define POST_FUNCTION_MODIFIES_POSITION 1
     void vs_post_function(VsInput input, inout VsOutput output, inout float4 prevPos)
     {
@@ -369,6 +380,7 @@ macro USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(use_burning_and_wounds, render_pass_n
           apply_cloth_wind_position_offset(input, output.pos, prevPos, dummyWindNormalBlendParams, dirDataW, worldPos,
                                           localPos, charCurrentVelocity, charPreviousVelocity, noiseOffset);
         ##endif
+        output.pointToEye = world_view_pos - worldPos;
       }
 
       ##if use_burning_and_wounds

@@ -1,1 +1,0 @@
-Clones a FileInfo structure.

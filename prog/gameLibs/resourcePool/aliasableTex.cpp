@@ -153,6 +153,12 @@ void AliasableManagedTex2D::resize(int width, int height)
   }
 }
 
+void AliasableManagedTex2D::resetDefaultSize()
+{
+  if (defaultWidth > 0 && defaultHeight > 0)
+    resize(defaultWidth, defaultHeight);
+}
+
 uint32_t AliasableManagedTex2D::getResSizeBytes() const
 {
   if (originalTexture)

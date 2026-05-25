@@ -76,7 +76,7 @@ protected:
   using batch_instances_cb_t =
     eastl::fixed_function<sizeof(void *) * 4, void(uint32_t start_instance, const uint32_t *types_counts, uint32_t count)>;
   void batchInstances(const rendinst::riex_handle_t *begin, const rendinst::riex_handle_t *end, batch_instances_cb_t cb);
-  UniqueBufHolder instanceTms;
+  UniqueBufWithShaderVar instanceTms;
   LinearHeapAllocatorSbuffer vbAllocator, ibAllocator;
   UniqueBuf multiDrawBuf;
   bool supportNoOverwrite = false;

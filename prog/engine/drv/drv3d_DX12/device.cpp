@@ -2366,6 +2366,8 @@ void Device::enumerateDisplayModesFromOutput(IDXGIOutput *dxgi_output, Tab<Strin
   static constexpr UINT MIN_MODE_HEIGHT = 600;
   UINT numModes = 0;
 
+  const bool filterInappropriate = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("filterInappropriateResolutions", true);
+
   auto recommended_resolution = get_recommended_resolution(dxgi_output);
 
   if (SUCCEEDED(dxgi_output->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, 0, &numModes, nullptr)))
@@ -2395,7 +2397,7 @@ void Device::enumerateDisplayModesFromOutput(IDXGIOutput *dxgi_output, Tab<Strin
                            { return l.Width == r.Width && l.Height == r.Height; }),
         end(displayModes));
 
-      if (recommended_resolution)
+      if (recommended_resolution && filterInappropriate)
       {
         // remove modes larger than recommended mode
         displayModes.erase(eastl::remove_if(eastl::begin(displayModes), eastl::end(displayModes),

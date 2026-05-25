@@ -1036,6 +1036,15 @@ int get_param_name_idx_by_list_name(const DataBlock &settings, const SimpleStrin
   return -1;
 }
 
+int get_block_name_idx_by_list_name(const DataBlock &settings, const SimpleString &list_name, int selected_idx)
+{
+  for (int i = selected_idx; i < settings.blockCount(); ++i)
+    if (list_name == settings.getBlock(i)->getBlockName())
+      return i;
+
+  return -1;
+}
+
 void fill_child_names(Tab<String> &child_names, PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<BlendNodeData> blend_nodes,
   dag::ConstSpan<AnimCtrlData> controllers)
 {
@@ -1120,4 +1129,26 @@ CtrlType get_selected_ctrl_type(PropPanel::ContainerPropertyControl *panel, bool
     return static_cast<CtrlType>(lup(name.c_str(), ctrl_type, ctrl_type_not_found));
   }
   return static_cast<CtrlType>(panel->getInt(PID_CTRLS_TYPE_COMBO_SELECT));
+}
+
+Tab<String> collect_random_switch_names(PropPanel::ContainerPropertyControl *prop_panel, dag::ConstSpan<AnimCtrlData> controllers,
+  const DataBlock *settings, const char *current_selection)
+{
+  PropPanel::ContainerPropertyControl *ctrlsTree = prop_panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  Tab<String> usedNames;
+  if (const DataBlock *resetBlock = settings->getBlockByName("resetRandomSwitchersOnAnimationEnd"))
+    for (int i = 0; i < resetBlock->blockCount(); ++i)
+      usedNames.emplace_back(resetBlock->getBlock(i)->getBlockName());
+
+  Tab<String> names;
+  names.emplace_back("##");
+  for (const AnimCtrlData &data : controllers)
+    if (data.type == ctrl_type_randomSwitch)
+    {
+      const String ctrlName = ctrlsTree->getCaption(data.handle);
+      bool isUsed = eastl::find(usedNames.begin(), usedNames.end(), ctrlName) != usedNames.end();
+      if (!isUsed || (current_selection && ctrlName == current_selection))
+        names.emplace_back(ctrlName);
+    }
+  return names;
 }

@@ -10,6 +10,7 @@
 
 #include "vulkan_loader.h"
 #include "dlss.h"
+#include "xess.h"
 #include "streamline_adapter.h"
 
 using namespace drv3d_vulkan;
@@ -196,6 +197,7 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
   allRequiredInstanceExtensions = instanceExtensionSet;
 
   auto injectExtensions = [&](const char *injection) {
+    bool allInjected = true;
     char *desiredRendererExtensions = const_cast<char *>(injection);
     while (desiredRendererExtensions && *desiredRendererExtensions)
     {
@@ -215,8 +217,25 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
           [currentExtension](const char *ext) { return strcmp(ext, currentExtension) == 0; }) != allRequiredInstanceExtensions.cend();
 
       if (!dupe)
-        allRequiredInstanceExtensions.push_back(currentExtension);
+      {
+        bool supported =
+          eastl::find_if(extensionList.cbegin(), extensionList.cend(), [currentExtension](const VkExtensionProperties &ext) {
+            return strcmp(ext.extensionName, currentExtension) == 0;
+          }) != extensionList.cend();
+        if (!supported)
+        {
+          allInjected &= false;
+          debug("vulkan: dropping injection of not supported instance extension %s", currentExtension);
+        }
+        else
+        {
+          debug("vulkan: injected instance extension %s", currentExtension);
+          allRequiredInstanceExtensions.push_back(currentExtension);
+        }
+      }
     }
+
+    return allInjected;
   };
 
   if (cb)
@@ -226,6 +245,15 @@ Tab<const char *> drv3d_vulkan::build_instance_extension_list(VulkanLoader &load
   for (auto &ext : Globals::dlss.getRequiredInstanceExtensions())
     injectExtensions(ext.c_str());
 #endif
+
+  for (auto &ext : Globals::xess.getRequiredInstanceExtensions())
+  {
+    if (!injectExtensions(ext.c_str()))
+    {
+      Globals::xess.failInstanceExt();
+      break;
+    }
+  }
 
   return allRequiredInstanceExtensions;
 }

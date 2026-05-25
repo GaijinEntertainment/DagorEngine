@@ -256,6 +256,7 @@ public:
   UniqueBuf fogOfWarBitsetSb;
   PostFxRenderer fogOfWarShader = PostFxRenderer("fog_of_war");
   bool fogOfWarEnabled = false;
+  bool fogOfWarTexInited = false;
   float fogOfWarResolution = 0.0f;
   Point2 fogOfWarLeftTop = Point2(0, 0);
   Point2 fogOfWarRightBottom = Point2(0, 0);

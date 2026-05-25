@@ -2966,6 +2966,35 @@ static void compile_common_into(lcexpr::Arena &arena, const char *text, uint32_t
   outValid = true;
 }
 
+// Debug-only expression compile. Mirrors compile_common_into but uses PARSE_DEFAULT
+// and takes vm/nv/vt by value: the debug expression is read-only -- its top-level
+// var/let are local to its own eval (never visible to layers, never persisted),
+// so the caller's copy is discarded after this returns and no save/restore is
+// needed. vm/nv on entry are the post-common shared table (so the debug expr sees
+// mask_<layer> and common's var/let just like a regular layer expr does).
+static void compile_debug_into(lcexpr::Arena &arena, const char *text, uint32_t &outRoot,
+  eastl::bitset<lcexpr::MAX_VAR_ID> &outVarMask, bool &outValid, SimpleString &outLastErr, uint16_t &outNv, lcexpr::NameMap vm,
+  uint16_t nv, lcexpr::VarTypeTable vt)
+{
+  outValid = false;
+  outRoot = 0;
+  outVarMask.reset();
+  outLastErr = "";
+  outNv = nv;
+  arena.clear();
+  if (!text || !*text)
+    return;
+  eastl::string err;
+  if (!compile_expression(arena, text, lcexpr::PARSE_DEFAULT, vm, nv, vt, outRoot, outVarMask, err))
+  {
+    outLastErr = err.c_str();
+    DAEDITOR3.conError("Debug expression %s (expr='%s')", err.c_str(), text);
+    return;
+  }
+  outNv = nv;
+  outValid = true;
+}
+
 // Per-layer scope model:
 //
 //   visible to layers = base vars + mask_<enabled_name> + common's var/let.
@@ -3029,6 +3058,21 @@ void HmapLandPlugin::recompileGenLayerExpressions(bool shrink_arenas)
       maxNv = gl->exprNv;
   }
 
+  // Debug expression compiles against a fresh post-common copy of the symbol
+  // table. Visible to it: base vars + mask_<layer> + common's var/let. Its
+  // exprNv may exceed the per-pixel exprVars[] slot count if the debug
+  // expression declares many local vars; track it in maxNv so the buffer is
+  // sized accordingly even when no enabled gen layer needs as many slots.
+  {
+    lcexpr::NameMap debugVm = baseVm;
+    uint16_t debugNv = baseNv;
+    lcexpr::VarTypeTable debugVt = baseVt;
+    compile_debug_into(debugExprArena, debugExprText.str(), debugExprRoot, debugExprVarMask, debugExprValid, debugExprLastErr,
+      debugExprNv, debugVm, debugNv, debugVt);
+    if (debugExprValid && debugExprNv > maxNv)
+      maxNv = debugExprNv;
+  }
+
   // Reserve MAX_TEMP_REGS slots beyond the widest named-var range for `{ block }`
   // scoped temp regs. Done unconditionally rather than tracking each expression's
   // actual peak: the buffer is per-pixel scratch and 16 floats (64 bytes) is below
@@ -3043,6 +3087,16 @@ void HmapLandPlugin::recompileGenLayerExpressions(bool shrink_arenas)
   // here too so the bake never writes per-layer mask values into slots that
   // register_typed_vars has claimed for typed-var lo/hi/curve/value reads.
   lcNumLayerVars = min((int)genLayers.size(), max(0, (int)lcexpr::MAX_VAR_ID - LcExprContext::VAR_COUNT - typedVarSlotBudget));
+
+  // Recompile invalidates any compiled bytecode the debug overlay refers to
+  // (a layer's exprArena or debugExprArena), so refresh it whenever the user's
+  // selected mode targets one. Gating on debugViewMode rather than the cached
+  // showDebugWeightOverlay flag lets a transient !targetValid (e.g. a bad
+  // debug-expression Apply) recover on the next successful recompile without
+  // forcing the user to re-pick from the combobox. Reads lcNumLayerVars set
+  // just above, so this must run last.
+  if (debugViewMode == DV_DEBUG_EXPR || debugViewMode == DV_LAYER)
+    updateDebugWeightTex();
 }
 
 // Common-expression accessors. The setter normalises by stripping `\r` and `\n` from
@@ -3063,6 +3117,31 @@ eastl::string HmapLandPlugin::getCommonExprDisplayText() const
 {
   eastl::string out;
   for (const char *p = commonExprText.str(); p && *p; p++)
+  {
+    out.push_back(*p);
+    if (*p == ';')
+      out.push_back('\n');
+  }
+  return out;
+}
+
+// Debug-expression accessors. Same single-line normalisation as commonExprText:
+// the BLK store is one line; UI display reflows by inserting `\n` after each `;`.
+void HmapLandPlugin::setDebugExprText(const char *txt)
+{
+  eastl::string normalized;
+  if (txt)
+    for (const char *p = txt; *p; p++)
+      if (*p != '\n' && *p != '\r')
+        normalized.push_back(*p);
+  debugExprText = normalized.c_str();
+  recompileGenLayerExpressions();
+}
+
+eastl::string HmapLandPlugin::getDebugExprDisplayText() const
+{
+  eastl::string out;
+  for (const char *p = debugExprText.str(); p && *p; p++)
   {
     out.push_back(*p);
     if (*p == ';')
@@ -3136,6 +3215,9 @@ bool HmapLandPlugin::loadGenLayers(const DataBlock &blk)
   // part of the persisted form. We don't reflow here -- getCommonExprDisplayText()
   // does that on the way to the UI.
   commonExprText = blk.getStr("commonExpr", "");
+  // Debug expression: same single-line format. Unlike commonExpr it is never
+  // referenced from the bake, so a missing key just leaves the overlay empty.
+  debugExprText = blk.getStr("debugExpr", "");
 
   // Pass 2.5: deduplicate paramNames. The add/rename UI rejects new duplicates,
   // but legacy BLK files (pre-mask_<name>) and hand-edited files can still feed
@@ -3352,6 +3434,8 @@ bool HmapLandPlugin::saveGenLayers(DataBlock &blk)
 {
   if (!commonExprText.empty())
     blk.setStr("commonExpr", commonExprText);
+  if (!debugExprText.empty())
+    blk.setStr("debugExpr", debugExprText);
   for (int i = 0; i < genLayers.size(); i++)
     genLayers[i]->save(*blk.addNewBlock("layer"));
   return true;
@@ -3624,6 +3708,8 @@ bool HmapLandPlugin::delGenLayer(ScriptParam *gl)
       for (; i < genLayers.size(); i++)
         static_cast<PostScriptParamLandLayer *>(genLayers[i].get())->changeSlotIdx(i);
       // Dropping a layer may shrink the unique lc1/lc2 set and shift lex slots.
+      // The debug overlay (if it targeted the deleted layer) is auto-cleared
+      // by the recompile-tail updateDebugWeightTex via the name-lookup miss.
       rebuildLandSlots();
       recompileGenLayerExpressions();
       return true;
@@ -3906,23 +3992,9 @@ inline float PostScriptParamLandLayer::calcWeight(const LandColorGenData &lcg, f
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
-// Hoist constant typed-var values out of the per-pixel loop and gather only
-// the Mask typedVars that some expression we will evaluate actually reads.
-//
-// On entry expr_vars_0 must be zero across the typed-var range. Float / Range /
-// Curve typedVars get written once into expr_vars_0 (caller fans out to other
-// per-thread slices). Mask typedVars are not written here -- they vary per
-// pixel; out_used_mask_tvs collects the indices the per-pixel loop should
-// sample. The filter is "primaryVarId is referenced by aggregate_var_mask AND
-// the mask asset resolved to a script-image". Primary/secondary varIds also
-// extend out_typed_vars_end_nv so the caller's per-pixel zero of common's
-// user-var range starts past these slots and never clobbers the constants.
-//
-// Caller initialises out_typed_vars_end_nv to the post-layer-mask boundary
-// (VAR_COUNT + lcNumLayerVars).
-// Per-pixel exprVars setup factored out of generateLandColors. Caller has
-// already populated builtins (VAR_HEIGHT/ANGLE/CURVATURE/MASK/WORLD_X/WORLD_Y)
-// at expr_vars_ptr. This helper:
+// Per-pixel exprVars setup shared by generateLandColors and updateDebugWeightTex.
+// Caller has already populated builtins (VAR_HEIGHT/ANGLE/CURVATURE/MASK/
+// WORLD_X/WORLD_Y) at expr_vars_ptr. This helper:
 //
 //   1. Samples each layer's mask into expr_vars_ptr[VAR_COUNT + l] (only for
 //      layers flagged in layer_mask_needed; others get 0).
@@ -3932,10 +4004,9 @@ inline float PostScriptParamLandLayer::calcWeight(const LandColorGenData &lcg, f
 //   3. Samples the Mask typedVars that prepare_typed_vars flagged as read.
 //   4. Runs the common expression once at this pixel.
 //
-// Caller proceeds with per-layer eval after this returns. layer_mask_needed
-// and used_mask_tvs are passed as ConstSpan so the caller can use whichever
-// container fits its lifetime (bake uses RelocatableFixedVector for stack-
-// inline storage).
+// Caller proceeds with per-layer / target eval after this returns. The
+// helper stays in this TU because PostScriptParamLandLayer::cast / getMask
+// are file-scoped here.
 void HmapLandPlugin::fillPerPixelExprVarsAndEvalCommon(float *expr_vars_ptr, float fx, float fy, int layer_slots,
   dag::ConstSpan<uint8_t> layer_mask_needed, uint16_t typed_vars_end_nv, dag::ConstSpan<int> used_mask_tvs)
 {
@@ -4557,10 +4628,16 @@ IHmapBrushImage::Channel HmapLandPlugin::getEditedChannel() const
 
 bool HmapLandPlugin::showEditedMask() const
 {
+  // Always show the brush surface while a layer mask is being edited: the
+  // editor needs to see what it is painting, regardless of which Debug View
+  // mode the panel combobox is on. 32bpp script images keep their per-image
+  // showMask toggle (RGB / mask channel selector). Pre-feature this branch
+  // returned showBlueWhiteMask, which silently dropped the brush whenever the
+  // user switched to DV_DEBUG_EXPR / DV_LAYER -- now decoupled.
   if (PostScriptParamLandLayer *gl = PostScriptParamLandLayer::cast(editedScriptImage))
-    return showBlueWhiteMask;
+    return true;
   ScriptParamImage *edImage = (ScriptParamImage *)editedScriptImage.get();
-  return edImage ? (edImage->bitsPerPixel == 32 ? edImage->showMask : showBlueWhiteMask) : true;
+  return edImage ? (edImage->bitsPerPixel == 32 ? edImage->showMask : true) : true;
 }
 
 
@@ -4572,8 +4649,10 @@ void HmapLandPlugin::setShowBlueWhiteMask()
   Color4 world_to_bw_mask;
   // Mask edit takes precedence: when a mask is being painted the user needs to see
   // the brush surface, not the colorize overlay. Colorize is the fallback when no
-  // mask is active.
-  if ((editedScriptImage && showEditedMask()) && showBlueWhiteMask)
+  // mask is active. showEditedMask() is the single predicate -- it already encodes
+  // "edit mode + this image's overlay should be visible" without leaning on
+  // showBlueWhiteMask, so DV_DEBUG_EXPR / DV_LAYER cannot suppress the brush here.
+  if (editedScriptImage && showEditedMask())
   {
     show = true;
     world_to_bw_mask.r = 1.f / (esiGridW * esiGridStep);
@@ -4581,8 +4660,11 @@ void HmapLandPlugin::setShowBlueWhiteMask()
     world_to_bw_mask.b = (-esiOrigin.x + 0.5) * world_to_bw_mask.r;
     world_to_bw_mask.a = (-esiOrigin.y + 0.5) * world_to_bw_mask.g;
   }
-  else if (showLandClassColors && bluewhiteTex && detTexMap)
+  else if ((showLandClassColors || showDebugWeightOverlay) && bluewhiteTex && detTexMap)
   {
+    // Debug overlays (single-layer / debug-expression) share the colored-landclass
+    // texture binding path: same texture (bluewhiteTex sized to detTexMap dims),
+    // same world->UV mapping, just different texel contents.
     show = true;
     const int W = detTexMap->getMapSizeX();
     const int H = detTexMap->getMapSizeY();
@@ -4752,15 +4834,341 @@ void HmapLandPlugin::updateLandClassColorsTex()
   hmlService->invalidateClipmap(false);
 }
 
+// Debug-overlay texture: per-pixel re-evaluation of either the debug expression
+// (DV_DEBUG_EXPR) or one specific layer's expression (DV_LAYER + debugLayerName),
+// packed as grayscale into bluewhiteTex and bound via blue_white_mask_tex.
+//
+// Unlike the colored-landclass overlay, this does NOT read detTexMap -- it's
+// fresh expression eval, so it visualises the layer's pre-occlusion weight
+// (what the layer would output if no later layer existed). Per-pixel context
+// (height, normal, curvature, world coords, mask slots, typed vars, common-expr
+// eval) reuses generateLandColors's prepare_typed_vars and
+// fillPerPixelExprVarsAndEvalCommon helpers, so the two paths compute the same
+// values; downstream the bake runs a per-layer pass while debug runs a single
+// target eval.
+//
+// Output dims = detTexMap dims = heightmap dims (one sample per detTexMap cell;
+// no lcmScale subdiv since detTexMap stores one (lx=0,ly=0) sample per cell).
+//
+// Parallelised the same way as the bake: a per-thread LandColorGenData slot,
+// a per-thread exprVars slice, threadpool::parallel_for_inline over rows, and
+// a paired init/shutdown when no caller already brought the pool up. Threads
+// write disjoint rows of bluewhiteTex (linear stride after lockimg), so no
+// cross-thread synchronisation is needed inside the lambda.
+void HmapLandPlugin::updateDebugWeightTex()
+{
+  static int blueWhiteMaskVarId = dagGeom->getShaderVariableId("blue_white_mask_tex");
+  if (!detTexMap)
+    return;
+
+  // Pick target expression (debug expression, or a specific layer's).
+  const Tab<uint8_t> *targetArena = nullptr;
+  uint32_t targetRoot = 0;
+  uint16_t targetNv = 0;
+  bool targetValid = false;
+  const eastl::bitset<lcexpr::MAX_VAR_ID> *targetVarMask = nullptr;
+  int targetLayer = -1;
+  if (debugViewMode == DV_DEBUG_EXPR)
+  {
+    targetArena = &debugExprArena;
+    targetRoot = debugExprRoot;
+    targetNv = debugExprNv;
+    targetValid = debugExprValid;
+    targetVarMask = &debugExprVarMask;
+  }
+  bool targetLayerFound = false;
+  if (debugViewMode == DV_LAYER && !debugLayerName.empty())
+  {
+    // Resolve the targeted layer by paramName -- stable across add/move/delete
+    // reorders. The lcNumLayerVars cap mirrors the picker (fillPanel) and the
+    // bake's per-layer-mask slot range: a name match at index >= lcNumLayerVars
+    // would be unrepresentable by the bake's exprVars layout, so treat it as a
+    // miss and let the auto-cleanup below clear the mode.
+    const int layerCap = min((int)genLayers.size(), lcNumLayerVars);
+    for (int i = 0; i < layerCap; i++)
+      if (auto *gl = PostScriptParamLandLayer::cast(genLayers[i]))
+        if (strcmp(gl->paramName.str(), debugLayerName.str()) == 0)
+        {
+          targetArena = &gl->exprArena;
+          targetRoot = gl->exprRoot;
+          targetNv = gl->exprNv;
+          targetValid = gl->exprValid;
+          targetVarMask = &gl->exprVarMask;
+          targetLayer = i;
+          targetLayerFound = true;
+          break;
+        }
+  }
+  if (!targetValid)
+  {
+    // Distinguish "permanent" failures (named layer is gone / out of cap) from
+    // "transient" ones (named layer present but its own expression is invalid
+    // mid-edit, or DV_DEBUG_EXPR text didn't compile). Permanent: drop the
+    // mode so the picker reflects the loss. Transient: keep the mode so a
+    // successful subsequent recompile-tail repaints automatically. In both
+    // cases clear the rendered-overlay flag so setShowBlueWhiteMask doesn't
+    // keep binding stale bluewhiteTex content.
+    if (debugViewMode == DV_LAYER && !targetLayerFound)
+    {
+      debugViewMode = DV_NONE;
+      debugLayerName = "";
+    }
+    showDebugWeightOverlay = false;
+    setShowBlueWhiteMask();
+    hmlService->invalidateClipmap(false);
+    return;
+  }
+
+  const int W = detTexMap->getMapSizeX();
+  const int H = detTexMap->getMapSizeY();
+  if (W <= 0 || H <= 0)
+    return;
+
+  // Per-pass scratch + setup state, mirroring generateLandColors's lcgInit.
+  // Built once and replicated into per-thread lcg slots below.
+  LandColorGenData lcgInit;
+  lcgInit.gridCellSize = gridCellSize;
+  lcgInit.heightMapSizeX = heightMap.getMapSizeX();
+  lcgInit.heightMapSizeZ = heightMap.getMapSizeY();
+  lcgInit.heightMapOffset = heightMapOffset;
+  lcgInit.hmap = &heightMap;
+  lcgInit.hmapDet = &heightMapDet;
+  lcgInit.detDiv = detDivisor;
+  lcgInit.detRectC = detRectC;
+  lcgInit.initCurvatureFilter();
+
+  // Reuse / (re)allocate bluewhiteTex at detTexMap dims. Same SRGBREAD format
+  // as the colored-landclass overlay so the shader pipeline doesn't need a
+  // special case for grayscale debug.
+  if (bluewhiteTex)
+  {
+    TextureInfo ti;
+    bluewhiteTex->getinfo(ti, 0);
+    if (ti.w != W || ti.h != H || (ti.cflg & TEXFMT_MASK) != TEXFMT_A8R8G8B8 || !(ti.cflg & TEXCF_SRGBREAD))
+    {
+      dagGeom->shaderGlobalSetTexture(blueWhiteMaskVarId, BAD_TEXTUREID);
+      dagRender->releaseManagedTexVerified(bluewhiteTexId, bluewhiteTex);
+    }
+  }
+  if (!bluewhiteTex)
+  {
+    bluewhiteTex = d3d::create_tex(NULL, W, H, TEXFMT_A8R8G8B8 | TEXCF_DYNAMIC | TEXCF_SRGBREAD, 1, "blueWhite");
+    G_ASSERT(bluewhiteTex);
+    if (!bluewhiteTex)
+    {
+      hmlService->invalidateClipmap(false);
+      return;
+    }
+    bluewhiteTexId = dagRender->registerManagedTex("bluewhiteTex", bluewhiteTex);
+  }
+
+  uint8_t *imgPtr = nullptr;
+  int stride = 0;
+  if (!bluewhiteTex->lockimg((void **)&imgPtr, stride, 0, TEXLOCK_READWRITE) || stride < W * 4)
+  {
+    if (imgPtr)
+      bluewhiteTex->unlockimg();
+    setShowBlueWhiteMask();
+    hmlService->invalidateClipmap(false);
+    return;
+  }
+
+  // Aggregate var mask: only common (once per pixel) and target (per pixel)
+  // are evaluated here, so OR'ing those two is sufficient for the same purpose
+  // anyVarMask serves in the bake.
+  eastl::bitset<lcexpr::MAX_VAR_ID> debugVarMask;
+  if (commonExprValid)
+    debugVarMask |= commonExprVarMask;
+  if (targetVarMask)
+    debugVarMask |= *targetVarMask;
+  const int numLayers = (int)genLayers.size();
+  const int layerSlots = min(numLayers, lcNumLayerVars);
+  dag::RelocatableFixedVector<uint8_t, LcExprContext::MAX_LAYER_VARS> layerMaskNeeded;
+  layerMaskNeeded.resize(layerSlots);
+  if (layerSlots > 0)
+    memset(layerMaskNeeded.data(), 0, layerSlots);
+  for (int l = 0; l < layerSlots && l < LcExprContext::MAX_LAYER_VARS; l++)
+    if (debugVarMask.test(LcExprContext::VAR_COUNT + l))
+      layerMaskNeeded[l] = 1;
+  // Single-layer mode: own-layer `mask` aliases the layer's own pre-sampled
+  // slot, so always sample it regardless of varMask. The bake mirrors this
+  // via gl->exprVarMask.test(VAR_MASK), but here only one target eval runs.
+  if (targetLayer >= 0 && targetLayer < layerSlots)
+    layerMaskNeeded[targetLayer] = 1;
+
+  // Same MAX_TEMP_REGS reservation as the bake (see lcMaxNv at the end of
+  // recompileGenLayerExpressions): the parser returns nv as the post-block
+  // nextVarId, but `{ block }` syntax with var/let writes peakTempRegs slots
+  // ABOVE that nv. Without the headroom, eval would write past exprVars's
+  // per-thread slice and corrupt the next thread's slice in threadExprVars.
+  const uint16_t maxNvHere = max(targetNv, commonExprNv);
+  const int exprVarsSize = max((int)maxNvHere + lcexpr::MAX_TEMP_REGS, LcExprContext::VAR_COUNT + lcNumLayerVars);
+
+  // Worker count + threadpool init: same lazy pattern as the bake. Adopt an
+  // outer pool when present; otherwise init() one and shutdown() it after.
+  int workers_count;
+  if (threadpool::get_num_workers() > 0)
+    workers_count = threadpool::get_num_workers();
+  else
+    workers_count = max<int>(1, min(cpujobs::get_physical_core_count(), 4));
+  const uint32_t n_threads = (uint32_t)(workers_count + 1);
+
+  Tab<LandColorGenData> lcg;
+  lcg.resize(n_threads);
+  for (uint32_t t = 0; t < n_threads; t++)
+    lcg[t] = lcgInit;
+
+  Tab<float> threadExprVars;
+  threadExprVars.resize(n_threads * exprVarsSize);
+  memset(threadExprVars.data(), 0, threadExprVars.size() * sizeof(float));
+
+  uint16_t typedVarsEndNv = uint16_t(LcExprContext::VAR_COUNT + lcNumLayerVars);
+  dag::RelocatableFixedVector<int, 8> usedMaskTVs;
+  prepare_typed_vars(typedVars, typedVarRuntime, debugVarMask, threadExprVars.data(), typedVarsEndNv, usedMaskTVs);
+  for (uint32_t t = 1; t < n_threads; t++)
+    memcpy(threadExprVars.data() + t * exprVarsSize, threadExprVars.data(), exprVarsSize * sizeof(float));
+
+  const bool useCurv = debugVarMask.test(LcExprContext::VAR_CURVATURE);
+  const int hxN = heightMap.getMapSizeX();
+  const int hyN = heightMap.getMapSizeY();
+  // Output cell count clamped to the heightmap map size (detTexMap dims match).
+  const int wCells = min(W, hxN);
+  const int hCells = min(H, hyN);
+
+  const bool need_init_threadpool = threadpool::get_num_workers() == 0;
+  if (need_init_threadpool)
+    threadpool::init(min(cpujobs::get_physical_core_count(), 4), 1024, 256 << 10);
+
+  // Aim for ~4 chunks per thread so re-balancing covers thread-skew (heavier
+  // expressions, page faults on first touch). Floor at 1 row to keep the
+  // dispatcher honest on tiny maps.
+  const uint32_t quant = max<uint32_t>(1, uint32_t(hCells) / max<uint32_t>(1, n_threads * 4));
+
+  threadpool::parallel_for_inline(0, hCells, quant, [&](uint32_t tbegin, uint32_t tend, uint32_t thread_id) {
+    LandColorGenData &tlcg = lcg[thread_id];
+    float *const exprVarsPtr = threadExprVars.data() + thread_id * exprVarsSize;
+
+    for (uint32_t yU = tbegin; yU < tend; ++yU)
+    {
+      const int y = (int)yU;
+      tlcg.curv_dy = y - LandColorGenData::FC;
+      E3DCOLOR *row = (E3DCOLOR *)(imgPtr + y * stride);
+
+      for (int x = 0; x < wCells; ++x)
+      {
+        real h = tlcg.sampleHeight(x, y);
+        real hu = (tlcg.sampleHeight(x + 1, y) - tlcg.sampleHeight(x - 1, y)) * 0.5f;
+        real hv = (tlcg.sampleHeight(x, y + 1) - tlcg.sampleHeight(x, y - 1)) * 0.5f;
+        real d = gridCellSize;
+        Point3 normal(-hu, d, -hv);
+        real len = sqrtf(d * d + hu * hu + hv * hv);
+        normal /= len;
+        tlcg.normal = normal;
+        const float angDiff = acos(normal.y) * 180 / PI;
+        tlcg.height = h;
+        tlcg.curv_dx = x - LandColorGenData::FC;
+        tlcg.curvatureReady = false;
+        tlcg.heightMapX = x;
+        tlcg.heightMapZ = y;
+        const float curv = useCurv ? tlcg.getCurvature() : 0;
+
+        exprVarsPtr[LcExprContext::VAR_HEIGHT] = h;
+        exprVarsPtr[LcExprContext::VAR_ANGLE] = angDiff;
+        exprVarsPtr[LcExprContext::VAR_CURVATURE] = curv;
+        exprVarsPtr[LcExprContext::VAR_MASK] = 0;
+        exprVarsPtr[LcExprContext::VAR_WORLD_X] = tlcg.heightMapX * tlcg.gridCellSize + tlcg.heightMapOffset.x;
+        exprVarsPtr[LcExprContext::VAR_WORLD_Y] = tlcg.heightMapZ * tlcg.gridCellSize + tlcg.heightMapOffset.y;
+
+        const float fx = tlcg.heightMapX / tlcg.heightMapSizeX;
+        const float fy = tlcg.heightMapZ / tlcg.heightMapSizeZ;
+        fillPerPixelExprVarsAndEvalCommon(exprVarsPtr, fx, fy, layerSlots, make_span_const(layerMaskNeeded), typedVarsEndNv,
+          make_span_const(usedMaskTVs));
+
+        // Single-layer mode: alias the layer's pre-sampled own-mask into VAR_MASK
+        // (mirrors the bake's per-layer setup in generateLandColors).
+        if (targetLayer >= 0 && targetLayer < lcNumLayerVars)
+          exprVarsPtr[LcExprContext::VAR_MASK] = exprVarsPtr[LcExprContext::VAR_COUNT + targetLayer];
+
+        // Zero target's private user-var range so unassigned `var x` reads 0.
+        for (int u = (int)commonExprNv; u < (int)targetNv; u++)
+          exprVarsPtr[u] = 0.f;
+
+        double wt = lcexpr::evalFinite(*targetArena, targetRoot, exprVarsPtr, (int)targetNv, &evalCurves);
+        if (wt < 0.0)
+          wt = 0.0;
+        else if (wt > 1.0)
+          wt = 1.0;
+        const uint8_t g = (uint8_t)(wt * 255.0 + 0.5);
+        row[x] = E3DCOLOR(g, g, g, 255);
+      }
+      // Pad any rightmost columns past hxN (rare: detTexMap wider than heightmap).
+      for (int x = wCells; x < W; ++x)
+        row[x] = E3DCOLOR(0, 0, 0, 255);
+    }
+  });
+  if (need_init_threadpool)
+    threadpool::shutdown();
+
+  // Pad any rows past hyN. Run on the calling thread after the parallel section
+  // because no per-thread state is needed and the row count is small.
+  for (int y = hCells; y < H; ++y)
+  {
+    E3DCOLOR *row = (E3DCOLOR *)(imgPtr + y * stride);
+    for (int x = 0; x < W; ++x)
+      row[x] = E3DCOLOR(0, 0, 0, 255);
+  }
+  bluewhiteTex->unlockimg();
+
+  // bluewhiteTex now holds a valid debug-overlay paint -- flip the rendered
+  // flag back on (it may have been cleared by a transient !targetValid path
+  // before this Apply restored a valid expression).
+  showDebugWeightOverlay = true;
+  setShowBlueWhiteMask();
+  hmlService->invalidateClipmap(false);
+}
+
+// Apply a new debug view mode and refresh the overlay texture. Single source of
+// truth for the showBlueWhiteMask / showLandClassColors / showDebugWeightOverlay
+// trio so the panel handler doesn't have to re-derive them and so callers from
+// load/refill/layer-add paths stay consistent. layer_name is meaningful only
+// when mode == DV_LAYER; ignored otherwise. DV_LAYER with an empty / null
+// layer_name normalizes to DV_NONE here -- otherwise the !showDebugWeightOverlay
+// branch below would route to updateBlueWhiteMask(nullptr) and leave the trio
+// in a persisted, non-self-healing (DV_LAYER, "") state.
+void HmapLandPlugin::setDebugViewMode(int mode, const char *layer_name)
+{
+  if (mode < DV_NONE || mode > DV_LAYER)
+    mode = DV_NONE;
+  if (mode == DV_LAYER && (!layer_name || !*layer_name))
+    mode = DV_NONE;
+
+  debugViewMode = mode;
+  debugLayerName = (mode == DV_LAYER) ? layer_name : "";
+  showBlueWhiteMask = (mode == DV_BLUE_WHITE);
+  showLandClassColors = (mode == DV_LANDCLASS_COLORS);
+  showDebugWeightOverlay = (mode == DV_DEBUG_EXPR) || (mode == DV_LAYER && !debugLayerName.empty());
+
+  if (showDebugWeightOverlay)
+    updateDebugWeightTex();
+  else if (showLandClassColors)
+    updateLandClassColorsTex();
+  else
+    updateBlueWhiteMask(nullptr);
+  if (DAGORED2)
+    DAGORED2->invalidateViewportCache();
+}
+
 void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
 {
   static int blueWhiteMaskVarId = dagGeom->getShaderVariableId("blue_white_mask_tex");
   if (!(editedScriptImage && showEditedMask()))
   {
-    // No mask being edited: colorize takes precedence when enabled, otherwise unbind.
+    // No mask being edited: pick the requested overlay (debug > colorize > unbind).
     // updateGenerationMask still has to run so per-layer editable mask textures stay
     // refreshed (used by the brush regardless of overlay mode).
-    if (showLandClassColors)
+    if (showDebugWeightOverlay)
+      updateDebugWeightTex();
+    else if (showLandClassColors)
       updateLandClassColorsTex();
     else
       setShowBlueWhiteMask();
@@ -4828,6 +5236,13 @@ void HmapLandPlugin::updateBlueWhiteMask(const IBBox2 *rect)
     bluewhiteTex->unlockimg();
   }
 
+  // Rebind blue_white_mask_tex + world_to_bw_mask to the mask-edit mapping.
+  // Without this, switching INTO mask edit while a debug-overlay was active
+  // would keep world_to_bw_mask pointing at the prior overlay's UV mapping
+  // (worldW/worldH derived from detTexMap dims, not esiGridStep). The
+  // setShowBlueWhiteMask call inside the create branch above only fires when
+  // a fresh texture is allocated, so a reused bluewhiteTex would skip it.
+  setShowBlueWhiteMask();
   updateGenerationMask(rect);
   hmlService->invalidateClipmap(false);
 }
@@ -4890,7 +5305,10 @@ void HmapLandPlugin::editScriptImage(ScriptParam *image, int idx)
     updateScriptImageList();
 
     setShowBlueWhiteMask();
-    if (showBlueWhiteMask)
+    // Always populate bluewhiteTex on edit start: the mask preview is the
+    // whole point of editing, and gating on showBlueWhiteMask would suppress
+    // it whenever the Debug View dropdown sits on DV_DEBUG_EXPR / DV_LAYER.
+    if (showEditedMask())
       updateBlueWhiteMask(NULL);
   }
 

@@ -115,7 +115,7 @@ static bool handle_leaves(ContextId context_id, uint64_t object_id, int lod_ix, 
     leavesInfo.stationary = false;
 
   if (data->metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-    data->metaAllocId = context_id->allocateMetaRegion(1);
+    data->metaAllocId = context_id->allocateMetaRegion(1, "riGenLeaves");
 
   metaAllocId = data->metaAllocId;
 
@@ -479,11 +479,16 @@ void tidy_up_rigen_trees(ContextId context_id)
     for (int flip = 0; flip < 2; ++flip)
     {
       auto &job = jobFlips[flip];
-      for (auto [index, lod] : enumerate(job.newUniqueTreeBuffers))
+      for (auto [lodIndex, lodRes] : enumerate(job.newUniqueTreeBuffers))
       {
-        for (auto &tree : lod)
-          context_id->uniqueTreeBuffers[index].insert(std::move(tree));
-        lod.clear();
+        for (auto &tree : lodRes)
+        {
+          auto [it, inserted] = context_id->uniqueTreeBuffers[lodIndex].insert(std::move(tree));
+          if (!inserted)
+            for (auto &elem : tree.second.elems)
+              context_id->freeMetaRegion(elem.second.metaAllocId);
+        }
+        lodRes.clear();
       }
     }
   }

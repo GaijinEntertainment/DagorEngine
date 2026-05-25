@@ -1,3 +1,11 @@
+global_sound_cooldown{
+  _use:t="replicating"
+  "global_sound_cooldown:object"{
+    _tags:t="sound" // pairs of key=lastTime
+  }
+  _singleton:b=yes
+}
+
 sound_effect{
   _use:t="sound_control"
 
@@ -13,6 +21,8 @@ sound_effect{
     sound_effect__occlusionRadius:r=0
     sound_effect__abandonOnReset:b=no
     sound_effect__autoRange:b=yes
+    sound_effect__globalKey:t=""
+    sound_effect__globalCooldown:r=0
     "sound_effect__event:SoundEvent"{}
   }
 }

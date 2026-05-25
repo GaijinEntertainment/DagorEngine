@@ -14,8 +14,8 @@ class YuSession::CommonLoginAction : public YuSession::FallbackAction
 public:
   CommonLoginAction(YuSession& s, ActionId id, Yuplay2Msg msg, IYuplay2Cb* cb,
                     bool use_fallback = true, bool psn = false) :
-    FallbackAction(s, id, msg, cb, s.getFailbackIp(), use_fallback && s.doAuthFailback()),
-    psnRestricted(psn) {}
+    FallbackAction(s, id, msg, cb, s. getAuthFallbackHosts(), s.getFailbackIp(),
+      use_fallback && s.doAuthFailback()), psnRestricted(psn) {}
 
 protected:
   bool psnRestricted;

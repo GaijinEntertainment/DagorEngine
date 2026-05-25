@@ -31,7 +31,7 @@ public:
   static constexpr int MAX_NUM_CASCADES = WATER_VISUAL_CASCADES_COUNT;
 
   ChopWaterRender(ChopWaterGenerator &chop_gen, int render_quality, int geom_quality, bool depth_renderer, bool ssr_renderer,
-    const fft_water::WaterHeightmap *water_heightmap = nullptr);
+    const fft_water::WaterHeightmap *water_heightmap = nullptr, const HeightmapHeightCulling *heightmap_culling = nullptr);
   ~ChopWaterRender();
 
   void reset();
@@ -97,4 +97,5 @@ protected:
   shaders::UniqueOverrideStateId overrideAlpha, overrideRGB;
 
   const fft_water::WaterHeightmap *waterHeightmap = nullptr;
+  const HeightmapHeightCulling *heightmapCulling = nullptr;
 };

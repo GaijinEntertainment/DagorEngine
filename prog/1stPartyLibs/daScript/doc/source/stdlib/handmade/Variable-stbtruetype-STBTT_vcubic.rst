@@ -1,1 +1,0 @@
-Vertex type constant for a cubic Bezier curve segment.

@@ -92,7 +92,7 @@ static void init_screen_snowflakes_es(const ecs::Event &,
   bool &screen_snowflakes__enabled_on_level,
   bool &screen_snowflakes__camera_inside_vehicle,
   int screen_snowflakes__max_count,
-  UniqueBufHolder &screen_snowflakes__instances_buf,
+  UniqueBufWithShaderVar &screen_snowflakes__instances_buf,
   dafg::NodeHandle &screen_snowflakes__node)
 {
   screen_snowflakes__enabled_on_level = true;
@@ -128,7 +128,7 @@ static void init_screen_snowflakes_es(const ecs::Event &,
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 static void destroy_screen_snowflakes_es(const ecs::Event &,
-  UniqueBufHolder &screen_snowflakes__instances_buf,
+  UniqueBufWithShaderVar &screen_snowflakes__instances_buf,
   dafg::NodeHandle &screen_snowflakes__node,
   bool &screen_snowflakes__enabled_on_level)
 {
@@ -160,7 +160,7 @@ ECS_TAG(render)
 ECS_REQUIRE(eastl::true_type screen_snowflakes__enabled_on_level)
 static void screen_snowflakes_before_render_es(const UpdateStageInfoBeforeRender &info,
   ecs::EntityManager &manager,
-  UniqueBufHolder &screen_snowflakes__instances_buf,
+  UniqueBufWithShaderVar &screen_snowflakes__instances_buf,
   float &screen_snowflakes__time_until_next_spawn,
   SnowflakeInstances &screen_snowflakes__instances,
   bool screen_snowflakes__camera_inside_vehicle)

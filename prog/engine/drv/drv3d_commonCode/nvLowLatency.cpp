@@ -6,6 +6,7 @@
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_info.h>
 #include <generic/dag_staticTab.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -131,6 +132,33 @@ public:
     if (max_count == 0 || max_count > Reflex::State::FRAME_COUNT)
       max_count = Reflex::State::FRAME_COUNT;
 
+    // Compute a frame index offset to correct Streamline's GPU work misattribution.
+    // Find it once using the latest valid report, then apply to all frames.
+    int32_t gpuFrameOffset = 0;
+    if (d3d::get_driver_code().is(d3d::vulkan))
+    {
+      const uint32_t probeIdx = Reflex::State::FRAME_COUNT - 1;
+      const Reflex::Stats &probe = state->stats[probeIdx];
+      if (is_report_valid(probe) && probe.renderSubmitEndTime > 0)
+      {
+        uint64_t bestDist = UINT64_MAX;
+        for (int32_t j = 0; j < (int32_t)Reflex::State::FRAME_COUNT; ++j)
+        {
+          const auto &candidate = state->stats[j];
+          if (candidate.gpuRenderStartTime == 0 || candidate.simStartTime == 0)
+            continue;
+          if (probe.renderSubmitEndTime > candidate.gpuRenderStartTime)
+            continue;
+          uint64_t dist = candidate.gpuRenderStartTime - probe.renderSubmitEndTime;
+          if (bestDist > dist)
+          {
+            bestDist = dist;
+            gpuFrameOffset = j - (int32_t)probeIdx;
+          }
+        }
+      }
+    }
+
     for (uint32_t i = Reflex::State::FRAME_COUNT; i > Reflex::State::FRAME_COUNT - max_count && state->stats[i - 1].frameID > frame_id;
          --i)
     {
@@ -138,9 +166,16 @@ public:
       if (!is_report_valid(report))
         continue;
       const uint64_t startTime = report.simStartTime;
-      const float gpuRenderEndTime = (report.gpuRenderEndTime - startTime) / 1000.f;
+
+      // Use GPU timings from the report offset by the cached amount
+      int32_t gpuIdx = (int32_t)(i - 1) + gpuFrameOffset;
+      const Reflex::Stats *gpuSource = &report;
+      if (gpuIdx >= 0 && gpuIdx < (int32_t)Reflex::State::FRAME_COUNT && state->stats[gpuIdx].gpuRenderEndTime != 0)
+        gpuSource = &state->stats[gpuIdx];
+
+      const float gpuRenderEndTime = (gpuSource->gpuRenderEndTime - startTime) / 1000.f;
       const float renderSubmitEndTime = (report.renderSubmitEndTime - startTime) / 1000.f;
-      const float osRenderQueueStartTime = (report.osRenderQueueStartTime - startTime) / 1000.f;
+      const float osRenderQueueStartTime = (gpuSource->osRenderQueueStartTime - startTime) / 1000.f;
 
       ret.latestFrameId = eastl::max(ret.latestFrameId, static_cast<uint32_t>(report.frameID));
 
@@ -154,11 +189,11 @@ public:
       ret.renderSubmitEndTime.apply(renderSubmitEndTime);
       ret.presentStartTime.apply((report.presentStartTime - startTime) / 1000.f);
       ret.presentEndTime.apply((report.presentEndTime - startTime) / 1000.f);
-      ret.driverStartTime.apply((report.driverStartTime - startTime) / 1000.f);
-      ret.driverEndTime.apply((report.driverEndTime - startTime) / 1000.f);
+      ret.driverStartTime.apply((gpuSource->driverStartTime - startTime) / 1000.f);
+      ret.driverEndTime.apply((gpuSource->driverEndTime - startTime) / 1000.f);
       ret.osRenderQueueStartTime.apply(osRenderQueueStartTime);
-      ret.osRenderQueueEndTime.apply((report.osRenderQueueEndTime - startTime) / 1000.f);
-      ret.gpuRenderStartTime.apply((report.gpuRenderStartTime - startTime) / 1000.f);
+      ret.osRenderQueueEndTime.apply((gpuSource->osRenderQueueEndTime - startTime) / 1000.f);
+      ret.gpuRenderStartTime.apply((gpuSource->gpuRenderStartTime - startTime) / 1000.f);
       ret.gpuRenderEndTime.apply(gpuRenderEndTime);
       ret.frameCount++;
     }

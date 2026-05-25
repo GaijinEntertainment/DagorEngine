@@ -30,9 +30,10 @@ void set_global_range_scale(float scale) { g_rangeScale = scale; }
 float get_global_range_scale() { return g_rangeScale; }
 
 ECS_TAG(render)
-static void dagdp_update_es(const UpdateStageInfoBeforeRender &, dagdp::GlobalManager &dagdp__global_manager)
+static void dagdp_update_es(
+  const UpdateStageInfoBeforeRender &, ecs::EntityManager &manager, dagdp::GlobalManager &dagdp__global_manager)
 {
-  dagdp__global_manager.update();
+  dagdp__global_manager.update(manager);
 }
 
 ECS_TAG(render)
@@ -203,9 +204,8 @@ static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, on_disappear)
-ECS_TRACK(dagdp__csm_max_cascades)
-ECS_REQUIRE(int dagdp__csm_max_cascades)
-ECS_REQUIRE(ecs::Tag dagdp_level_settings)
+ECS_TRACK(dagdp__csm_max_fov)
+ECS_REQUIRE(ecs::FloatList dagdp__csm_max_fov, ecs::Tag dagdp_level_settings)
 static void dagdp_track_csm_cascade_es(const ecs::Event &, ecs::EntityManager &manager)
 {
   manager_ecs_query(manager,

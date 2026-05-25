@@ -447,7 +447,7 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       RWTexture3D<float4> volfog_ff_accumulated_inscatter_rw@uav;
     }
     volfog_ff_initial_inscatter_rw@uav : register(volfog_ff_initial_inscatter_const_no) hlsl {
-      RWTexture3D<float3> volfog_ff_initial_inscatter_rw@uav;
+      RWTexture3D<float4> volfog_ff_initial_inscatter_rw@uav;
     }
     volfog_ff_initial_extinction_rw@uav : register(volfog_ff_initial_extinction_const_no) hlsl {
       RWTexture3D<float3> volfog_ff_initial_extinction_rw@uav;
@@ -821,7 +821,7 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       FLATTEN if (is_voxel_occluded(result_inscatter)) // justincase to avoid any NaNs
         result_inscatter = 0;
 
-      texture3DAt(volfog_ff_initial_inscatter_rw, dtId) = get_swizzled_color_inv(result_inscatter.rgb, channel_swizzle_indices.x);
+      texture3DAt(volfog_ff_initial_inscatter_rw, dtId) = float4(get_swizzled_color_inv(result_inscatter.rgb, channel_swizzle_indices.x), 0);
       texture3DAt(volfog_ff_initial_extinction_rw, dtId) = isOccluded ? NaN : float3(result_inscatter.a, temporalShadows);
 
 

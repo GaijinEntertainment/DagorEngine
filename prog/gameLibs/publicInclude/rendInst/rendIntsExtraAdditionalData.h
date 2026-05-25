@@ -182,7 +182,7 @@ private:
   uint32_t instanceWithDataCounter = 0;
 
   uint32_t additionalDataBufferSize = 0;
-  UniqueBufHolder additionalDataBuffer;
+  UniqueBufWithShaderVar additionalDataBuffer;
   UniqueBuf additionalDataStagingBuffer;
 
   mutable WinCritSec mutex;

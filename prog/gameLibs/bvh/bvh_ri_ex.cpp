@@ -81,7 +81,7 @@ static void handle_flag(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   auto &data = *dataPtr;
 
   if (data.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-    data.metaAllocId = context_id->allocateMetaRegion(1);
+    data.metaAllocId = context_id->allocateMetaRegion(1, "riExtraFlag");
 
   metaAllocId = data.metaAllocId;
 
@@ -882,11 +882,16 @@ void tidy_up_riex_trees(ContextId context_id)
     for (int flip = 0; flip < 2; ++flip)
     {
       auto &job = jobFlips[flip];
-      for (auto [index, lod] : enumerate(job.newUniqueRiExtraTreeBuffers))
+      for (auto [lodIndex, lodRes] : enumerate(job.newUniqueRiExtraTreeBuffers))
       {
-        for (auto &tree : lod)
-          context_id->uniqueRiExtraTreeBuffers[index].insert(std::move(tree));
-        lod.clear();
+        for (auto &tree : lodRes)
+        {
+          auto [it, inserted] = context_id->uniqueRiExtraTreeBuffers[lodIndex].insert(std::move(tree));
+          if (!inserted)
+            for (auto &elem : tree.second.elems)
+              context_id->freeMetaRegion(elem.second.metaAllocId);
+        }
+        lodRes.clear();
       }
     }
   }

@@ -116,8 +116,6 @@ dafg::NodeHandle makeGiScreenDebugNode();
 dafg::NodeHandle makeGiScreenDebugDepthNode();
 
 eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool need_reprojection);
-eastl::fixed_vector<dafg::NodeHandle, 2, false> makeResolveGbufferNodes(const char *resolve_pshader_name,
-  const char *resolve_cshader_name);
 
 dafg::NodeHandle makePrepareWaterNode();
 

@@ -133,7 +133,7 @@ protected:
   UniqueTexWithShaderVar volfogShadowOcclusion;
 
   UniqueTexWithShaderVar poissonSamples; // TODO: refactor and optimize it
-  UniqueBufHolder froxelFogDitheringSamples;
+  UniqueBufWithShaderVar froxelFogDitheringSamples;
 
   UniqueTexWithShaderVar distantFogFrameRaymarchInscatter;
   UniqueTexWithShaderVar distantFogFrameRaymarchExtinction;

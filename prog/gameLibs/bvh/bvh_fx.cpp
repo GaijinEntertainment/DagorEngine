@@ -115,7 +115,7 @@ static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUR
   if (iter != context_id->particleMeta.end())
     return iter->second.metaAllocId;
 
-  auto metaAllocId = context_id->allocateMetaRegion(1);
+  auto metaAllocId = context_id->allocateMetaRegion(1, "particle");
   auto &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
 
   meta.markInitialized();
@@ -188,8 +188,8 @@ struct BVHConnection : public bvh::BVHConnection
     auto shadowBlasAddress = billboard_shadow_blas.getGPUAddress();
 
     ShaderGlobal::set_int(dafx_modfx_bvh_max_countVarId, getInstancesBuffer() ? getInstancesBuffer()->getNumElements() : 0);
-    ShaderGlobal::set_int4(dafx_modfx_bvh_blas_addressVarId, blasAddress & 0xFFFFFFFFLLU, blasAddress >> 32,
-      shadowBlasAddress & 0xFFFFFFFFLLU, shadowBlasAddress >> 32);
+    ShaderGlobal::set_int4(dafx_modfx_bvh_blas_addressVarId, blasAddress & GPU_ADDRESS_LOW_MASK, blasAddress >> GPU_ADDRESS_HIGH_SHIFT,
+      shadowBlasAddress & GPU_ADDRESS_LOW_MASK, shadowBlasAddress >> GPU_ADDRESS_HIGH_SHIFT);
 
     return true;
   }

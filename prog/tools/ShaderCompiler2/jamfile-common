@@ -59,6 +59,7 @@ Sources =
   intervals.cpp
   samplers.cpp
   boolVar.cpp
+  boolExpr.cpp
   shaderVariant.cpp
   shaderSave.cpp
   shLog.cpp

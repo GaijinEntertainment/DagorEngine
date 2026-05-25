@@ -63,12 +63,12 @@ private:
   eastl::array<UniqueTex, 2> postFxTextures;
   eastl::array<UniqueTex, 2> maskGridTextures;
   eastl::array<UniqueTex, 2> deformInfoTextures;
-  UniqueBufHolder deformOccupiedTilesBitvector;
-  UniqueBufHolder reprojectionIndirectBuf;
-  UniqueBufHolder deformInfoTexClearTilesIndices;
+  UniqueBufWithShaderVar deformOccupiedTilesBitvector;
+  UniqueBufWithShaderVar reprojectionIndirectBuf;
+  UniqueBufWithShaderVar deformInfoTexClearTilesIndices;
   UniqueBuf postFxCellBuffer, clearCellBuffer;
   UniqueBuf indirectBuffer;
-  UniqueBufHolder hmapDeformParamsBuffer;
+  UniqueBufWithShaderVar hmapDeformParamsBuffer;
   eastl::unique_ptr<PostFxRenderer> reprojectPostFx;
   eastl::unique_ptr<ComputeShaderElement> clearMaskCs, deformCs, clearIndirect, dispatcherCs, edgeDetectCs, blurCs, clearerCs;
   eastl::unique_ptr<ComputeShaderElement> clearReprojectionIndirect, classifyReprojectionTiles;

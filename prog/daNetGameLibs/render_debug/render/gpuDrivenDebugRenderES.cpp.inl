@@ -194,7 +194,7 @@ private:
 
   dafg::NodeHandle beforeRenderNode, prepareNode, renderNode;
 
-  UniqueBufHolder flatSpheres, flatSpheresCount, lines, linesCount;
+  UniqueBufWithShaderVar flatSpheres, flatSpheresCount, lines, linesCount;
   bool freezeFrame = false;
 };
 

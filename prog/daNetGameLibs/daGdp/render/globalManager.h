@@ -75,7 +75,7 @@ public:
   void destroyViews();
   void invalidateViews();
   void invalidateRules();
-  void update();
+  void update(ecs::EntityManager &manager);
   const ViewInfo &getViewInfo(int view_index) const { return views[view_index].info; }
   void setTriangleDebugView(bool is_triangle_debug) { triangleSizeDebugEnabled = is_triangle_debug; }
 
@@ -90,7 +90,7 @@ private:
 
   void recreateViews();
   void rebuildRules();
-  void rebuildViews();
+  void rebuildViews(ecs::EntityManager &manager);
 };
 
 } // namespace dagdp

@@ -5,6 +5,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <util/dag_parallelFor.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_addressWait.h>
 #include <util/dag_convar.h>
 #include <3d/dag_quadIndexBuffer.h>
 
@@ -958,6 +959,13 @@ void warmup_instance_from_queue(Context &ctx, bool clear_debug_lods)
   ctx.commandQueue.instanceWarmup.clear();
 }
 
+void Context::asyncCpuJobsCompleted()
+{
+  interlocked_release_store(asyncCounter, -1);
+  interlocked_release_store(allAsyncCpuJobsDone, 1);
+  os_wake_on_address_one(&allAsyncCpuJobsDone);
+}
+
 static void start_next_cpu_cull_threads(ContextId cid)
 {
   TIME_PROFILE(dafx_process_cpu_culling);
@@ -1245,7 +1253,7 @@ void start_update(ContextId cid, float dt, bool update_gpu, bool tp_wake_up)
   }
 
   interlocked_release_store(ctx.asyncCounter, 0);
-  os_event_reset(&ctx.allAsyncCpuJobsDoneEvent);
+  interlocked_release_store(ctx.allAsyncCpuJobsDone, 0);
 
   start_job(ctx.cfg, ctx.asyncPrepareJob, tp_wake_up);
 }
@@ -1618,8 +1626,12 @@ void finish_async_update(Context &ctx)
 
   if (interlocked_acquire_load(ctx.asyncCounter) >= 0) [[unlikely]]
   {
-    os_event_wait(&ctx.allAsyncCpuJobsDoneEvent, OS_WAIT_INFINITE);
-    G_ASSERT(interlocked_acquire_load(ctx.asyncCounter) < 0);
+    const unsigned notDone = 0;
+    spin_wait([&] {
+      os_wait_on_address(&ctx.allAsyncCpuJobsDone, &notDone);
+      return interlocked_acquire_load(ctx.allAsyncCpuJobsDone) == notDone;
+    });
+    G_FAST_ASSERT(interlocked_acquire_load(ctx.asyncCounter) < 0);
   }
 
   for (int i = 0; i < ctx.asyncCpuComputeJobs.size(); ++i)

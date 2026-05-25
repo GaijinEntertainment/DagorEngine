@@ -55,7 +55,7 @@ static constexpr ecs::ComponentDesc screen_effect_render_es_comps[] =
 //start of 1 rw components at [0]
   {ECS_HASH("screen_effect__is_active"), ecs::ComponentTypeInfo<bool>()},
 //start of 4 ro components at [1]
-  {ECS_HASH("screen_effect__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("screen_effect__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("screen_effect__countVar"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("screen_effect__texVars"), ecs::ComponentTypeInfo<ecs::IntList>()},
   {ECS_HASH("screen_effect_renderer__enable"), ecs::ComponentTypeInfo<bool>()}
@@ -66,7 +66,7 @@ static void screen_effect_render_es_all_events(const ecs::Event &__restrict evt,
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     screen_effect_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
         , components.manager()
-    , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__buffer", UniqueBufHolder)
+    , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__buffer", UniqueBufWithShaderVar)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__countVar", int)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect__texVars", ecs::IntList)
     , ECS_RO_COMP(screen_effect_render_es_comps, "screen_effect_renderer__enable", bool)
@@ -149,7 +149,7 @@ static ecs::EntitySystemDesc screen_effect_node_disable_es_es_desc
 static constexpr ecs::ComponentDesc screen_effect_renderer_ecs_query_comps[] =
 {
 //start of 3 rw components at [0]
-  {ECS_HASH("screen_effect__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("screen_effect__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("screen_effect__countVar"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("screen_effect__texVars"), ecs::ComponentTypeInfo<ecs::IntList>()},
 //start of 1 ro components at [3]
@@ -172,7 +172,7 @@ inline void screen_effect_renderer_ecs_query(ecs::EntityManager &manager, ecs::E
         {
           function(
               ECS_RO_COMP(screen_effect_renderer_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RW_COMP(screen_effect_renderer_ecs_query_comps, "screen_effect__buffer", UniqueBufHolder)
+            , ECS_RW_COMP(screen_effect_renderer_ecs_query_comps, "screen_effect__buffer", UniqueBufWithShaderVar)
             , ECS_RW_COMP(screen_effect_renderer_ecs_query_comps, "screen_effect__countVar", int)
             , ECS_RW_COMP(screen_effect_renderer_ecs_query_comps, "screen_effect__texVars", ecs::IntList)
             );

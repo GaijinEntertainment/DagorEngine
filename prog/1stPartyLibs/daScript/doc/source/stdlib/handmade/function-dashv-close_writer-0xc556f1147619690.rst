@@ -1,1 +1,0 @@
-Closes the response writer's underlying connection. Use this to forcefully terminate a long-lived streaming connection. Returns 0 on success.

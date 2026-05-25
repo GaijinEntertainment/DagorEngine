@@ -1,0 +1,10 @@
+ERROR: too many function stack slots: cannot allocate parameter 'a254' at slot 255; bytecode supports at most 255 slots per function
+testData/exec/weird/2000_args.nut:27:25
+
+ a240, a241, a242, a243, a244, a245, a246, a247, a248, a249,
+ a250, a251, a252, a253, a254, a255, a256, a257, a258, a259,
+                         ^---
+ a260, a261, a262, a263, a264, a265, a266, a267, a268, a269,
+
+
+Error [Failed to compile file testData/exec/weird/2000_args.nut (testData/exec/weird/2000_args.nut)]

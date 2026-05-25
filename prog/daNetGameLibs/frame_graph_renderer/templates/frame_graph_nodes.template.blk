@@ -39,6 +39,6 @@ upscale_node {
   "upscale_shader:ComputeShader"{}
   upscale_shader_name:t="upscale_sampling_cs"
 
-  "upscale_weights_buffer:UniqueBufHolder"{}
+  "upscale_weights_buffer:UniqueBufWithShaderVar"{}
 
 }

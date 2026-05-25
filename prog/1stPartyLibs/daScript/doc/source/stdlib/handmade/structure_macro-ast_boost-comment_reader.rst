@@ -1,1 +1,0 @@
-The ``[comment_reader]`` structure annotation — registers an ``AstCommentReader`` subclass as a named comment reader invoked during parsing.

@@ -39,6 +39,10 @@ bool InputTextMultiline(const char *label, eastl::string *str, const ImVec2 &siz
   ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
 bool InputTextMultiline(const char *label, String *str, const ImVec2 &size = ImVec2(0, 0), ImGuiInputTextFlags flags = 0,
   ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
+bool InputTextMultilineWithHint(const char *label, const char *hint, eastl::string *str, const ImVec2 &size = ImVec2(0, 0),
+  ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
+bool InputTextMultilineWithHint(const char *label, const char *hint, String *str, const ImVec2 &size = ImVec2(0, 0),
+  ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
 bool InputTextWithHint(const char *label, const char *hint, eastl::string *str, ImGuiInputTextFlags flags = 0,
   ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
 bool InputTextWithHint(const char *label, const char *hint, String *str, ImGuiInputTextFlags flags = 0,

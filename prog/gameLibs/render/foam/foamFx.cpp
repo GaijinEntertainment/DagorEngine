@@ -185,12 +185,10 @@ void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
   ShaderGlobal::set_texture(foam_mask_depthVarId, maskDepth);
 
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target();
 
   overfoam = fullTargetPool->acquire();
   RTarget::Ptr underfoam = fullTargetPool->acquire();
-  d3d::set_render_target(0, overfoam->getBaseTex(), 0);
-  d3d::set_render_target(1, underfoam->getBaseTex(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{overfoam->getBaseTex(), 0, 0}, {underfoam->getBaseTex(), 0, 0}});
   foamPrepare.render();
 
   debugTextures[FoamTexture::OVERFOAM] = overfoam->getBaseTex();
@@ -201,11 +199,11 @@ void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
 
   ShaderGlobal::set_float4(texszVarId, Color4(0.5f, -0.5f, 1.0f / width, 1.0f / height));
 
-  d3d::set_render_target(temp->getBaseTex(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{temp->getBaseTex(), 0, 0}});
   ShaderGlobal::set_texture(texVarId, underfoam->getTexId());
   ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::request_sampler({}));
   foamBlurX.render();
-  d3d::set_render_target(underfoam_downsampled->getBaseTex(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{underfoam_downsampled->getBaseTex(), 0, 0}});
   ShaderGlobal::set_texture(texVarId, temp->getTexId());
   foamBlurY.render();
   ShaderGlobal::set_sampler(tex_samplerstateVarId, d3d::SamplerHandle::Invalid);
@@ -233,8 +231,7 @@ void FoamFx::renderFoam()
 
 void FoamFx::beginMaskRender()
 {
-  d3d::set_render_target(maskTarget.getBaseTex(), 0);
-  d3d::set_depth(maskDepth.getBaseTex(), DepthAccess::RW);
+  d3d::set_render_target({maskDepth.getBaseTex(), 0, 0}, DepthAccess::RW, {{maskTarget.getBaseTex(), 0, 0}});
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
 }
 

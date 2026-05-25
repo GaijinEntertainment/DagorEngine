@@ -113,9 +113,10 @@ public:
   // The default ImGui text input control reacts to Enter by making it inactive, or if ConfigInputTextEnterKeepActive
   // is set to true then it keeps active but selects the whole text.
   // We prevent that behaviour by not letting it know about Enter presses...
+  // hint: placeholder text (shown when the input is empty)
   // was_focused: whether the input is focused. Passing the previous frame's state is fine.
-  static bool inputTextWithEnterWorkaround(const char *label, String *str, bool focused, ImGuiInputTextFlags flags = 0,
-    ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
+  static bool inputTextWithEnterWorkaround(const char *label, const char *hint, String *str, bool focused,
+    ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = nullptr, void *user_data = nullptr);
 
   // Same as ImGui::CollapsingHeader but has a fixed width and no extrusion beyond the specified width.
   // Feature requests: https://github.com/ocornut/imgui/issues/6170 and https://github.com/ocornut/imgui/issues/1037.
@@ -123,6 +124,10 @@ public:
 
   // Draw the left bottom of the frame with an optionally rounded corner.
   static void drawHalfFrame(float line_left_x, float line_top_y, float line_right_x, float line_bottom_y);
+
+  // Same as ImGui::RenderFrame() but with draw_flags parameter, that allows specifying which side of the frame should be rounded.
+  static void renderFrameWithRoundingOptions(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders, float rounding,
+    ImDrawFlags draw_flags);
 
   // Display a label.
   // The label show ellipsis at the end of the visible text if the entire text cannot be displayed.
@@ -229,11 +234,17 @@ public:
   static bool imageButtonWithArrow(const char *str_id, IconId icon_id, const ImVec2 &image_size, bool checked = false,
     ImGuiButtonFlags flags = ImGuiButtonFlags_None);
 
+  // Same as ImGui::ImageButtonEx() but with frame_draw_flags parameter, that allows specifying which side of the button should be
+  // rounded.
+  static bool imageButtonWithRoundingOptions(ImGuiID id, ImTextureRef tex_ref, const ImVec2 &image_size, const ImVec2 &uv0,
+    const ImVec2 &uv1, const ImVec4 &bg_col, const ImVec4 &tint_col, ImGuiButtonFlags flags, ImDrawFlags frame_draw_flags);
+
   // Get the size of ImGui::Button.
   static ImVec2 getButtonSize(const char *label, bool hide_text_after_double_hash = false, const ImVec2 &size_arg = ImVec2(0, 0));
 
   // A search input with an search icon (typically a magnifying glass) and clear icon (typically an X). The latter is
   // only displayed when text_to_search is not empty. Clicking on it clears text_to_search.
+  // When Enter is pressed it keeps the focus. (See the comment at inputTextWithEnterWorkaround().)
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, ImTextureID search_icon,
     ImTextureID clear_icon, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, IconId search_icon_id,

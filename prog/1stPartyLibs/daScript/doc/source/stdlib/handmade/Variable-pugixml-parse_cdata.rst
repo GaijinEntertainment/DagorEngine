@@ -1,1 +1,0 @@
-Parse CDATA sections (`<![CDATA[...]]>`).

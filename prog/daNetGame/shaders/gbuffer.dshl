@@ -118,7 +118,7 @@ hlsl(code) {
     gbuffer.albedo = gbuf.albedo;
     gbuffer.translucencyColor = isTranslucentProfileValid(gbuf.sss_profile) ? (gbuffer.diffuseColor * gbuffer.translucency) : gbuf.sss_profile == SSS_PROFILE_CLOTH ? SHEEN_SSS_FACTOR : 0;
     gbuffer.translucencyColor *= gbuffer.material == SHADING_SUBSURFACE ? (gbuf.sss_profile == 0 ? BLOOD_SSS_FACTOR : NEUTRAL_SSS_FACTOR) : LEAVES_SSS_FACTOR;
-    gbuffer.sheen = gbuf.sss_profile == SSS_PROFILE_CLOTH ? gbuf.translucency : 0;
+    gbuffer.sheen = gbuf.sss_profile == SSS_PROFILE_CLOTH ? gbuf.sheen : 0;
     gbuffer.shadow = gbuf.shadow;
     gbuffer.dynamic = gbuf.dynamic;
     gbuffer.isHeroCockpit = gbuf.isHeroCockpit;

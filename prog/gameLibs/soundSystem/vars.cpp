@@ -52,57 +52,64 @@ bool get_var_desc(const FMOD::Studio::EventDescription &event_description, const
 void set_vars_fmt(const char *format, eastl::pair<EventHandle, const char *> debug_name_or_handle,
   FMOD::Studio::EventInstance &event_instance)
 {
-  if (!format || *format != '[')
-    return;
-
-  const char *start = format + 1;
-  const char *end = strchr(start, ']');
-
-  if (!end)
-    debug_trace_warn("Syntax error in event path '%s', ending ']' is missing", format);
-  else
+  const char *originalFormat = format;
+  for (; format != nullptr && *format == '[';)
   {
-    eastl::basic_string<char, framemem_allocator> varName;
-    for (; start < end;)
+    const char *start = format + 1;
+    const char *end = strchr(start, ']');
+
+    if (!end)
     {
-      const char *next = strchr(start, ';');
-      if (!next)
-        next = end;
-      const char *separator = strchr(start, '=');
-      if (!separator || separator >= next)
+      debug_trace_warn("Syntax error in event path '%s', ending ']' is missing", originalFormat);
+      return;
+    }
+    else
+    {
+      eastl::basic_string<char, framemem_allocator> varName;
+      for (; start < end;)
       {
-        debug_trace_warn("Syntax error in event path '%s', '=' is expected at '%s'", format, start);
-        return;
-      }
+        const char *next = strchr(start, ';');
+        if (!next)
+          next = end;
+        const char *separator = strchr(start, '=');
+        if (!separator || separator >= next)
+        {
+          debug_trace_warn("Syntax error in event path '%s', '=' is expected at '%s'", originalFormat, start);
+          return;
+        }
 
-      const float value = strtof(separator + 1, nullptr);
-      if (!check_finite(value) || value < -100000.f || value > 100000.f)
-      {
-        debug_trace_warn("Syntax error in event path '%s', 'real' is expected after '=' at '%s'", format, start);
-        return;
-      }
+        const float value = strtof(separator + 1, nullptr);
+        if (!check_finite(value) || value < -100000.f || value > 100000.f)
+        {
+          debug_trace_warn("Syntax error in event path '%s', 'real' is expected after '=' at '%s'", originalFormat, start);
+          return;
+        }
 
-      varName.assign(start, separator);
-      start = next + 1;
+        varName.assign(start, separator);
+        start = next + 1;
 
 #if DAGOR_DBGLEVEL > 0
-      if (varName == "dbgvol")
-      {
-        logwarn("Do not merge paths with 'dbgvol' var to any branch, use it locally '%s'", format);
-        event_instance.setVolume(value);
-        continue;
-      }
+        if (varName == "dbgvol")
+        {
+          logwarn("Do not merge paths with 'dbgvol' var to any branch, use it locally '%s'", originalFormat);
+          event_instance.setVolume(value);
+          continue;
+        }
 #endif
-      const FMOD_RESULT result = !varName.empty() ? event_instance.setParameterByName(varName.c_str(), value) : FMOD_ERR_INVALID_PARAM;
+        const FMOD_RESULT result =
+          !varName.empty() ? event_instance.setParameterByName(varName.c_str(), value) : FMOD_ERR_INVALID_PARAM;
 #if DAGOR_DBGLEVEL > 0
-      if (result != FMOD_OK)
-        debug_trace_warn("set_var \"%s\" failed (\"%s\"): \"%s\"", varName.c_str(),
-          debug_name_or_handle.second ? debug_name_or_handle.second : get_debug_name(debug_name_or_handle.first).c_str(),
-          FMOD_ErrorString(result));
+        if (result != FMOD_OK)
+          debug_trace_warn("set_var \"%s\" failed (\"%s\"): \"%s\"", varName.c_str(),
+            debug_name_or_handle.second ? debug_name_or_handle.second : get_debug_name(debug_name_or_handle.first).c_str(),
+            FMOD_ErrorString(result));
 #else
-      G_UNREFERENCED(debug_name_or_handle);
-      G_UNREFERENCED(result);
+        G_UNREFERENCED(debug_name_or_handle);
+        G_UNREFERENCED(result);
 #endif
+      }
+      G_ASSERT(end > format);
+      format = end + 1;
     }
   }
 }
@@ -390,14 +397,13 @@ bool get_param_count(const FMODGUID &event_id, int &param_count)
 
 const char *trim_vars_fmt(const char *path)
 {
-  if (!path)
-    return "";
-
-  if (*path != '[')
-    return path;
-
-  path = strchr(path, ']');
-  return path ? path + 1 : "";
+  for (; path != nullptr && *path == '[';)
+  {
+    path = strchr(path, ']');
+    if (path != nullptr)
+      ++path;
+  }
+  return path ? path : "";
 }
 
 void set_vars_fmt(const char *format, EventHandle event_handle)

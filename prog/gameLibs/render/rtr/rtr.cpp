@@ -36,10 +36,8 @@ struct PostmortemTraceScope
 };
 } // namespace
 
-#define PUSH_AFTERMATH_MARKER(name) d3d::driver_command(Drv3dCommand::AFTERMATH_MARKER, (void *)#name)
-#define GPU_POSTMORTEM_TRACE_SCOPE  PostmortemTraceScope postmortemTraceScope;
+#define GPU_POSTMORTEM_TRACE_SCOPE PostmortemTraceScope postmortemTraceScope;
 #else
-#define PUSH_AFTERMATH_MARKER(name)
 #define GPU_POSTMORTEM_TRACE_SCOPE
 #endif
 
@@ -86,6 +84,7 @@ static int rtr_probe_tresholdVarId = -1;
 static int rtr_probes_tex_slotVarId = -1;
 static int rtr_probe_locations_buf_slotVarId = -1;
 static int rtr_probe_sampler_slotVarId = -1;
+static int rtr_probe_randomize_raysVarId = -1;
 static int rt_nrVarId = -1;
 static int cameraFovYVarId = 1;
 static int downsampled_close_depth_texVarId = -1;
@@ -125,7 +124,7 @@ static float probe_size = 0.05;
 static d3d::SamplerHandle linear_sampler = d3d::INVALID_SAMPLER_HANDLE;
 
 static UniqueTexWithShaderVar rtr_probes;
-static UniqueBufHolder rtr_probe_locations;
+static UniqueBufWithShaderVar rtr_probe_locations;
 struct BindlessProbes
 {
   uint32_t probesTex, probesSampler, locationBuf;
@@ -197,6 +196,7 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
   rtr_probes_tex_slotVarId = get_shader_variable_id("rtr_probes_tex_slot", true);
   rtr_probe_locations_buf_slotVarId = get_shader_variable_id("rtr_probe_locations_buf_slot", true);
   rtr_probe_sampler_slotVarId = get_shader_variable_id("rtr_probe_sampler_slot", true);
+  rtr_probe_randomize_raysVarId = get_shader_variable_id("rtr_probe_randomize_rays", true);
   rt_nrVarId = get_shader_variable_id("rt_nr");
   cameraFovYVarId = get_shader_variable_id("cameraFovY", true);
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
@@ -307,7 +307,7 @@ void set_ray_limit_params(float ray_limit_coeff_, float ray_limit_power_, float 
 
 void set_use_anti_firefly(bool use_anti_firefly_) { use_anti_firefly = use_anti_firefly_; }
 
-void update_probes(IPoint2 res_size, IPoint2 resolution)
+void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
 {
   TIME_D3D_PROFILE(rtr::update_probes);
 
@@ -352,6 +352,7 @@ void update_probes(IPoint2 res_size, IPoint2 resolution)
 
   ShaderGlobal::set_int4(rtr_probes_countVarId, probeCountH, probeCountV, 0, 0);
   ShaderGlobal::set_int4(rtr_usable_probes_countVarId, usableProbeCountH, usableProbeCountV, 0, 0);
+  ShaderGlobal::set_int(rtr_probe_randomize_raysVarId, randomize_rays ? 1 : 0);
 
   // One thread is processing one tile
   if (!fix_probes)
@@ -482,13 +483,11 @@ void unbind_params()
   ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
 }
 
-void do_update_probes()
+void do_update_probes(bool randomize_rays)
 {
   G_ASSERT(use_probes);
   const IPoint2 &resolution = get_resolution();
-  update_probes(IPoint2{denoiser::resolution_config.rtr.width, denoiser::resolution_config.rtr.height}, resolution);
-
-  PUSH_AFTERMATH_MARKER(rtr_update_probes_completed);
+  update_probes(IPoint2{denoiser::resolution_config.rtr.width, denoiser::resolution_config.rtr.height}, resolution, randomize_rays);
 }
 
 void do_trace(const TMatrix4 &proj_tm)
@@ -506,8 +505,6 @@ void do_trace(const TMatrix4 &proj_tm)
   trace->dispatch(tiles_width, tiles_height, 1);
   d3d::set_cs_constbuffer_register_count(0);
   d3d::resource_barrier(ResourceBarrierDesc(rtr_basetex, RB_NONE, 0, 0));
-
-  PUSH_AFTERMATH_MARKER(rtr_do_trace_completed);
 }
 
 void denoise(const denoiser::TexMap &textures)
@@ -528,12 +525,10 @@ void denoise(const denoiser::TexMap &textures)
   denoiser_params.textures = textures;
 
   denoiser::denoise_reflection(denoiser_params);
-
-  PUSH_AFTERMATH_MARKER(rtr_denoise_completed);
 }
 
 void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, bool csm_shadow, const denoiser::TexMap &textures,
-  bool checkerboard)
+  bool checkerboard, bool randomize_rays)
 {
   GPU_POSTMORTEM_TRACE_SCOPE;
 
@@ -543,7 +538,7 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool rt_shadow, 
   bind_params();
   {
     if (use_probes)
-      do_update_probes();
+      do_update_probes(randomize_rays);
 
     do_trace(proj_tm);
   }

@@ -15,7 +15,7 @@ public:
   ToolbarContainerPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x = 0, int y = 0,
     hdpi::Px w = hdpi::Px(0), hdpi::Px h = hdpi::Px(0));
 
-  ContainerPropertyControl *createToolbarPanel(int id, const char caption[], bool new_line = true) override;
+  ContainerPropertyControl *createToolbarPanel(int id = 0, bool use_tight_button_placement = false, bool new_line = true) override;
 
   void setToolbarControlWidth(int width);
 

@@ -69,7 +69,6 @@ struct IntersectedNode
   };
   Point3 intersectionPos;
   unsigned int collisionNodeId;
-  int triangleIndex; // index of the triangle within the collision node (indices[triangleIndex*3])
   bool operator<(const IntersectedNode &other) const { return sortKey < other.sortKey; }
 };
 
@@ -80,6 +79,19 @@ struct MultirayIntersectedNode : IntersectedNode
   {
     return rayId != other.rayId ? (rayId < other.rayId) : (sortKey < other.sortKey);
   }
+};
+
+struct IntersectedNodeSimd
+{
+  vec3f normal;
+  union
+  {
+    float intersectionT;
+    int sortKey; // Note: signed to correctly handle -0.0 (which is mapped to INT_MIN)
+  };
+  unsigned int collisionNodeId;
+  int triangleIndex;
+  bool operator<(const IntersectedNodeSimd &other) const { return sortKey < other.sortKey; }
 };
 
 struct DegenerativeNodeData
@@ -386,7 +398,7 @@ public:
     TraceCollisionResourceStats *out_stats) const;
 
   bool traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir, float in_t,
-    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+    IntersectedNodeVector &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
     TraceCollisionResourceStats *out_stats) const;
 
   bool traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,

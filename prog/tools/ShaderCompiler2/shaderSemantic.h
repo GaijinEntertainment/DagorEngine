@@ -21,19 +21,23 @@ struct BoolVarLookupRes
   operator bool() const { return expr != nullptr; }
 };
 
-inline BoolVarLookupRes get_bool_maybe(ShaderTerminal::SHTOK_ident &ident, const auto &locvar_ctx)
+inline BoolVarLookupRes get_bool_maybe_by_name_id(int name_id, const auto &locvar_ctx)
 {
-  bool isGlobal = false;
-  int nameId = locvar_ctx.localBoolVars().getNameMap()->getVarId(ident.text);
-  if (nameId < 0)
+  if (name_id < 0)
     return {};
+  bool isGlobal = false;
   for (const BoolVarTable *tbl : {&locvar_ctx.localBoolVars(), locvar_ctx.localBoolVars().getParent()})
   {
-    if (auto found = tbl->tryGetExpr(nameId))
+    if (auto found = tbl->tryGetExpr(name_id))
       return {found.expr, isGlobal, found.hasBeenDeclaredMultipleTimes};
     isGlobal = true;
   }
   return {};
+}
+
+inline BoolVarLookupRes get_bool_maybe(ShaderTerminal::SHTOK_ident &ident, const auto &locvar_ctx)
+{
+  return get_bool_maybe_by_name_id(locvar_ctx.localBoolVars().getNameMap()->getVarId(ident.text), locvar_ctx);
 }
 
 inline BoolVarLookupRes get_bool_expr(ShaderTerminal::SHTOK_ident &ident, Parser &parser, const auto &locvar_ctx)

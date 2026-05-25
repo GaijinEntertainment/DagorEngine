@@ -8,6 +8,7 @@
 #include <daECS/core/entityManager.h>
 #include <ecs/render/shaderVar.h>
 #include <ecs/anim/anim.h>
+#include <math/dag_mathUtils.h>
 #include <render/daFrameGraph/daFG.h>
 
 template <typename Callable>
@@ -22,7 +23,8 @@ static bool prepare_aim_render(AimRenderingData &aimData)
   query_aim_data_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId, int aim_data__lensCollisionNodeId,
       float aim_data__lensBoundingSphereRadius, bool aim_data__farDofEnabled, bool aim_data__lensRenderEnabled,
-      const ecs::EntityId aim_data__entityWithScopeLensEid, bool aim_data__isAiming, int aim_data__crosshairNodeId = -1) {
+      const ecs::EntityId aim_data__entityWithScopeLensEid, bool aim_data__isAiming, int aim_data__crosshairNodeId = -1,
+      float aim_data__aimingTime = 0.0f) {
       aimData.farDofEnabled = aim_data__farDofEnabled;
       aimData.lensRenderEnabled = aim_data__lensRenderEnabled && aim_data__lensNodeId >= 0;
       aimData.isAiming = aim_data__isAiming;
@@ -31,6 +33,7 @@ static bool prepare_aim_render(AimRenderingData &aimData)
       aimData.lensCrosshairNodeId = aim_data__crosshairNodeId;
       aimData.lensCollisionNodeId = aim_data__lensCollisionNodeId;
       aimData.lensBoundingSphereRadius = aim_data__lensBoundingSphereRadius;
+      aimData.aimingTime = saturate(aim_data__aimingTime);
       gathered = true;
     });
   return gathered;

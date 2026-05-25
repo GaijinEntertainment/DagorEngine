@@ -129,7 +129,7 @@ rule ProcessLinkTarget
     ;
 
     if $(UseVersionSelector) = yes {
-      postlink += copyfile $($(Target)__TmpDir)/$(VersionSelectorMangledTarget).so $(jni_libs)/lib$(VersionSelectorMangledTarget).so "
+      postlink += copyfile $(VersionSelectorOutDir)/$(VersionSelectorMangledTarget).so $(jni_libs)/lib$(VersionSelectorMangledTarget).so "
  " ;
     }
 
@@ -149,12 +149,25 @@ rule ProcessLinkTarget
  "
     ;
 
+    if $(UseVersionSelector) = yes {
+      postlink +=
+        copyfile $(VersionSelectorOutDir)/$(VersionSelectorMangledTarget).so $(OutDir)/lib$(VersionSelectorMangledTarget).so "
+ "
+      ;
+    }
+
     if $(AndroidGenerateDebugSymbols) {
       postlink +=
         mkdir $(unstripped_libs) "
 "       copyfile $(jni_libs)/lib$(proj).so $(unstripped_libs)/lib$(proj).so "
 "
       ;
+      if $(UseVersionSelector) = yes {
+        postlink +=
+          copyfile $(VersionSelectorOutDir)/unstripped/$(VersionSelectorMangledTarget).so $(unstripped_libs)/lib$(VersionSelectorMangledTarget).so "
+"
+        ;
+      }
     }
 
     local stripOpts = --strip-debug ;
@@ -166,6 +179,13 @@ rule ProcessLinkTarget
       call $(_A_STRIP_EXE) $(stripOpts) $(jni_libs)/lib$(libName).so "
  "
     ;
+
+    if $(UseVersionSelector) = yes {
+      postlink +=
+        call $(_A_STRIP_EXE) $(stripOpts) $(jni_libs)/lib$(VersionSelectorMangledTarget).so "
+ "
+      ;
+    }
 
     AndroidExternalLibs ?= no ;
     AndroidDebug ?= no ;
@@ -457,7 +477,11 @@ rule ProcessLinkTarget
 "
         ;
 
-        build_command = call $(_A_GRADLE_CMD) $(build_cfg) --quiet --no-daemon --project-dir=$(stage_dir) ;
+        local crashlytics_task = ;
+        if $(AndroidUploadCrashlyticsSymbols) = yes && $(Config) = rel {
+          crashlytics_task = uploadCrashlyticsSymbolFileRelease ;
+        }
+        build_command = call $(_A_GRADLE_CMD) $(build_cfg) $(crashlytics_task) --quiet --no-daemon --project-dir=$(stage_dir) ;
         build_command_bundle = call $(_A_GRADLE_CMD) $(build_cfg_bundle) --quiet --no-daemon --project-dir=$(stage_dir) ;
 
       }
@@ -543,12 +567,6 @@ rule ProcessLinkTarget
       ;
     }
 
-    if $(AndroidUploadCrashlyticsSymbols) = yes && $(Config) = rel {
-      postlink +=
-        call $(_A_GRADLE_CMD) uploadCrashlyticsSymbolFileRelease --quiet --no-daemon --project-dir=$(stage_dir)"
- "    ;
-    }
-
     if $(AndroidCopyToDevice) {
       local dest_dev = ;
       if $(AndroidCopyToDevice) != "default" { dest_dev = -s $(AndroidCopyToDevice) ; }
@@ -571,6 +589,7 @@ rule ProcessLinkTarget
       -shared -nostdlib
       -Wl,--no-undefined
       -Wl,-z,noexecstack
+      -Wl,--build-id
       -Wl,--gc-sections
     ;
     _LINK_OPT += -L$(_A_NDK_DIR)/sources/cxx-stl/llvm-libc++/libs/$(PlatformArch) ;
@@ -599,7 +618,17 @@ rule ProcessLinkTarget
     $(Target)__LINK_OPT  = $(_LINK_OPT) $(LINKopt) ;
     $(Target)__POSTLINK_CMD =
         copyfile $($(Target)__TmpDir)/$(Target:D=) $(OutDir)/$(Target:D=) "
- "      call $(_A_STRIP_EXE) --strip-debug $(OutDir)/$(Target:D=)
+ "
+    ;
+    if $(AndroidUploadCrashlyticsSymbols) = yes {
+      $(Target)__POSTLINK_CMD +=
+        mkdir $(OutDir)/unstripped "
+ "      copyfile $($(Target)__TmpDir)/$(Target:D=) $(OutDir)/unstripped/$(Target:D=) "
+ "
+      ;
+    }
+    $(Target)__POSTLINK_CMD +=
+        call $(_A_STRIP_EXE) --strip-debug $(OutDir)/$(Target:D=)
     ;
     LinkExeSetBuildStamp $(Target) ;
   }

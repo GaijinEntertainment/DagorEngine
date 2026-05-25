@@ -118,7 +118,7 @@ void GlobalManager::invalidateViews()
   viewsAreBuilt = false;
 }
 
-void GlobalManager::update()
+void GlobalManager::update(ecs::EntityManager &manager)
 {
   if (!viewsAreCreated)
   {
@@ -137,7 +137,7 @@ void GlobalManager::update()
   if (!viewsAreBuilt)
   {
     const auto startRef = ref_time_ticks();
-    rebuildViews();
+    rebuildViews(manager);
     ::debug("daGdp: rebuildViews took %d us", get_time_usec(startRef));
   }
 }
@@ -170,7 +170,7 @@ void GlobalManager::rebuildRules()
   rulesAreValid = true;
 }
 
-void GlobalManager::rebuildViews()
+void GlobalManager::rebuildViews(ecs::EntityManager &manager)
 {
   FRAMEMEM_REGION;
   G_ASSERT(rulesAreValid);
@@ -261,7 +261,7 @@ void GlobalManager::rebuildViews()
         case ViewKind::CSM_SHADOWS:
         {
           const auto ns = dafg::root() / "dagdp";
-          view.nodes.push_back(create_csm_shadows_provider(ns, view.info.maxViewports));
+          view.nodes.push_back(create_csm_shadows_provider(ns, manager, view.info.maxViewports));
           break;
         }
         default: G_ASSERTF(false, "Unknown view kind");

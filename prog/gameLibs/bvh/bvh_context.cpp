@@ -3,10 +3,13 @@
 #include "bvh_context.h"
 #include <3d/dag_lockSbuffer.h>
 #include <image/dag_texPixel.h>
+#include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_enumerate.h>
 
 const PerInstanceData PerInstanceData::ZERO = {};
+
+CONSOLE_BOOL_VAL("raytracing", bvh_track_meta_origin, false);
 
 namespace bvh
 {
@@ -72,7 +75,7 @@ void Object::teardown(ContextId context_id, uint64_t object_id)
 dag::Span<MeshMeta> Object::createAndGetMeta(ContextId context_id, int size)
 {
   if (metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-    metaAllocId = context_id->allocateMetaRegion(size);
+    metaAllocId = context_id->allocateMetaRegion(size, "Object");
 
   return context_id->meshMetaAllocator.get(metaAllocId);
 }
@@ -87,6 +90,7 @@ void Mesh::teardown(ContextId context_id)
   context_id->releaseTexture(extraTextureId);
   context_id->releaseTexture(ppPositionTextureId);
   context_id->releaseTexture(ppDirectionTextureId);
+  context_id->releaseTexture(clothNoiseCombinedTexTextureId);
 
   albedoTextureId = BAD_TEXTUREID;
   alphaTextureId = BAD_TEXTUREID;
@@ -94,8 +98,10 @@ void Mesh::teardown(ContextId context_id)
   extraTextureId = BAD_TEXTUREID;
   ppPositionTextureId = BAD_TEXTUREID;
   ppDirectionTextureId = BAD_TEXTUREID;
+  clothNoiseCombinedTexTextureId = BAD_TEXTUREID;
   ppPositionBindless = 0xFFFFFFFFU;
   ppDirectionBindless = 0xFFFFFFFFU;
+  clothNoiseCombinedTexBindless = 0xFFFFFFFFU;
 
   if (geometry)
   {
@@ -166,6 +172,21 @@ void Context::teardown()
   releaseAllBindlessTexHolders();
 
   clearDeathrow();
+  if (meshMetaAllocator.allocated() != 0)
+  {
+    eastl::unordered_map<eastl::string, int> originCounts;
+    for (auto &[key, origin] : metaOriginTracker)
+      originCounts[origin]++;
+    int tracked = 0;
+    logerr("BVH meta leak by origin (total allocated=%d, tracked=%d):", meshMetaAllocator.allocated(), (int)metaOriginTracker.size());
+    for (auto &[origin, count] : originCounts)
+    {
+      logerr("  %s: %d", origin.c_str(), count);
+      tracked += count;
+    }
+    if (tracked < meshMetaAllocator.allocated())
+      logerr("  <untracked>: %d", meshMetaAllocator.allocated() - tracked);
+  }
   G_ASSERTF(meshMetaAllocator.allocated() == 0, "meshMetaAllocator still has %d meta allocated!", meshMetaAllocator.allocated());
 #if DAGOR_DBGLEVEL > 0
   for (auto [ptr, allocatorName] : bindlessBufferAllocatorNames)
@@ -239,18 +260,22 @@ void Context::getDeathRowStats(int &count, int64_t &size)
     size += buf->getSize();
 }
 
-MeshMetaAllocator::AllocId Context::allocateMetaRegion(int size)
+MeshMetaAllocator::AllocId Context::allocateMetaRegion(int size, const char *origin)
 {
   OSSpinlockScopedLock lock(meshMetaAllocatorLock);
   auto id = meshMetaAllocator.allocate(size);
   for (auto &meta : meshMetaAllocator.get(id))
     meta = MeshMeta();
+  if (bvh_track_meta_origin)
+    metaOriginTracker[id] = origin;
   return id;
 }
 
 void Context::freeMetaRegion(MeshMetaAllocator::AllocId &id)
 {
   OSSpinlockScopedLock lock(meshMetaAllocatorLock);
+  if (bvh_track_meta_origin)
+    metaOriginTracker.erase(id);
   meshMetaAllocator.free(id);
   id = MeshMetaAllocator::INVALID_ALLOC_ID;
 }

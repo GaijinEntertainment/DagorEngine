@@ -35,6 +35,8 @@ protected:
   key_t currentKey = 0;
   resid_t lastResId = Helper<ManagedTex>::BAD_ID;
   BaseTexture *originalTexture = nullptr;
+  int defaultWidth = 0;
+  int defaultHeight = 0;
 
   void swap(AliasableManagedTex2D &other)
   {
@@ -43,6 +45,8 @@ protected:
     eastl::swap(currentKey, other.currentKey);
     eastl::swap(lastResId, other.lastResId);
     eastl::swap(originalTexture, other.originalTexture);
+    eastl::swap(defaultWidth, other.defaultWidth);
+    eastl::swap(defaultHeight, other.defaultHeight);
   }
   AliasableManagedTex2D() = default;
   void calcKey();
@@ -52,6 +56,12 @@ public:
   void alias(int width, int height, int flags, int levels);
   void resize(int width, int height);
   uint32_t getResSizeBytes() const;
+  void setDefaultSize(int width, int height)
+  {
+    defaultWidth = width;
+    defaultHeight = height;
+  }
+  void resetDefaultSize();
 };
 
 class AliasableManagedTex2DHolder : public ManagedResHolder<AliasableManagedTex2D>

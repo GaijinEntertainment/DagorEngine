@@ -149,7 +149,7 @@ static PackedShapes pack_shapes(const ecs::Array &shapes)
   return packedData;
 }
 
-static ShapesBufSize update_shapes_buf(UniqueBufHolder &shapes_buf, const ecs::Array &shapes)
+static ShapesBufSize update_shapes_buf(UniqueBufWithShaderVar &shapes_buf, const ecs::Array &shapes)
 {
   FRAMEMEM_REGION;
   PackedShapes packedShapes = pack_shapes(shapes);
@@ -208,7 +208,7 @@ ECS_NO_ORDER
 static void collimator_moa_track_selected_image_es(const UpdateStageInfoBeforeRender &,
   const ecs::EntityId collimator_moa_render__gun_mod_eid, ecs::EntityId &collimator_moa_render__active_image_eid,
   int &collimator_moa_render__active_shapes_count, int &collimator_moa_render__shapes_buf_reg_count,
-  UniqueBufHolder &collimator_moa_render__current_shapes_buf)
+  UniqueBufWithShaderVar &collimator_moa_render__current_shapes_buf)
 {
   const ecs::EntityId imgEid = get_gun_mod_collimator_image_eid(collimator_moa_render__gun_mod_eid);
   if (collimator_moa_render__active_image_eid == imgEid && !always_redraw_shapes)
@@ -234,7 +234,7 @@ ECS_TAG(render)
 ECS_NO_ORDER
 ECS_ON_EVENT(AfterDeviceReset)
 static void collimator_moa_on_device_reset_es_event_handler(const ecs::Event &, ecs::EntityId &collimator_moa_render__active_image_eid,
-  int &collimator_moa_render__shapes_buf_reg_count, UniqueBufHolder &collimator_moa_render__current_shapes_buf)
+  int &collimator_moa_render__shapes_buf_reg_count, UniqueBufWithShaderVar &collimator_moa_render__current_shapes_buf)
 {
   collimator_moa_render__active_image_eid = {};
   collimator_moa_render__current_shapes_buf.close();

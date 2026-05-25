@@ -69,7 +69,7 @@ private:
   float minSampleScaleRadius = MIN_SAMPLE_SCALE_RADIUS_TEXEL_SPACE;
   Tab<int> biomeGroupIndices;
   FastNameMap biomeGroupNameMap;
-  UniqueBufHolder biomeGroupIndicesBuffer;
+  UniqueBufWithShaderVar biomeGroupIndicesBuffer;
   int numBiomeGroups = 0;
   Sbuffer *detailsCB = 0;
 #if DEBUG_DRAW_QUERIES

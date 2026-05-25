@@ -145,6 +145,7 @@ void require_project_specific_modules()
   NEED_MODULE(CompressionModule)
   NEED_MODULE(Module_StdDlg)
   NEED_MODULE(PerFrameStat)
+  NEED_MODULE(BVHModule)
   das::pull_all_auto_registered_modules();
   extern void pull_game_das();
   pull_game_das();

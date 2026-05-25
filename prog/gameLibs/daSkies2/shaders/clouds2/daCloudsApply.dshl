@@ -418,8 +418,8 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
 
       ##if is_simple_array
         half4 distPlane = 0;
-        if (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res.xy*current_inv_dynamic_resolution_scale)))
-          distPlane = tex2Dlod(clouds_color, float4(texcoord*current_inv_dynamic_resolution_scale,0,0));
+        if (HAS_EMPTY_TILES==0 || !tile_is_empty(uint2(texcoord.xy*clouds2_far_res.xy)))
+          distPlane = tex2Dlod(clouds_color, float4(texcoord,0,0));
         return half4(TAA_BRIGHTNESS_SCALE*distPlane.rgb, distPlane.a);
       ##else
         //we can exit early doing bilteral sample apply, if (for bilinear):

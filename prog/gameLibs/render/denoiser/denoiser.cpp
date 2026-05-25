@@ -1901,9 +1901,9 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_rwtex(STAGE_CS, 0, gi_diffTemp1, 0, 0);
 
     if (params.performanceMode)
-      reblurDiffusePerfPrepass->dispatch(tilesWidth * 2, tilesHeight, 1);
+      reblurDiffusePerfPrepass->dispatch(tilesWidth, tilesHeight, 1);
     else
-      reblurDiffusePrepass->dispatch(tilesWidth * 2, tilesHeight, 1);
+      reblurDiffusePrepass->dispatch(tilesWidth, tilesHeight, 1);
   }
 
   {
@@ -2093,9 +2093,9 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_rwtex(STAGE_CS, 1, rtr_hitdistForTracking, 0, 0);
 
     if (params.performanceMode)
-      reblurSpecularPerfPrepass->dispatch(tilesWidth * 2, tilesHeight, 1);
+      reblurSpecularPerfPrepass->dispatch(tilesWidth, tilesHeight, 1);
     else
-      reblurSpecularPrepass->dispatch(tilesWidth * 2, tilesHeight, 1);
+      reblurSpecularPrepass->dispatch(tilesWidth, tilesHeight, 1);
   }
 
   {

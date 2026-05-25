@@ -1,1 +1,0 @@
-Visit the program with the given visitor adapter. When sortStructures is true, struct declarations are visited in topological (dependency) order, ensuring that structs used by value in fields are visited before the structs that contain them.

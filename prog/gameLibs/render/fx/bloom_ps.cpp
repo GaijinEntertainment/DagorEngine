@@ -71,7 +71,7 @@ static void blur_bloom_mip(int tex_mip, ManagedTex &tex, ManagedTex &interm_text
 
   interm_texture.getTex2D()->getinfo(info, interm_texture_mip);
   G_ASSERTF(info.w == w && info.h == h, "%dx%d (%d) != %dx%d (mip = %d)", w, h, tex_mip, info.w, info.h, interm_texture_mip);
-  d3d::set_render_target(interm_texture.getTex2D(), interm_texture_mip);
+  d3d::set_render_target({}, DepthAccess::RW, {{interm_texture.getTex2D(), static_cast<uint32_t>(interm_texture_mip), 0}});
   interm_texture.getTex2D()->texmiplevel(interm_texture_mip, interm_texture_mip);
   ShaderGlobal::set_texture(blur_src_texVarId, tex);
   ShaderGlobal::set_float4(blur_pixel_offsetVarId, 1.0f / w, 0, 0, 0);
@@ -79,7 +79,7 @@ static void blur_bloom_mip(int tex_mip, ManagedTex &tex, ManagedTex &interm_text
 
   blur.render();
 
-  d3d::set_render_target(tex.getTex2D(), tex_mip);
+  d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), static_cast<uint32_t>(tex_mip), 0}});
   d3d::resource_barrier({interm_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(interm_texture_mip), 1});
   ShaderGlobal::set_texture(blur_src_texVarId, interm_texture.getTexId());
   ShaderGlobal::set_float4(blur_pixel_offsetVarId, 0, 1.0f / h, 0, 0);
@@ -118,7 +118,7 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
   TIME_D3D_PROFILE(downsample_mips);
   {
     // downsampled_frame.getTex2D()->texaddr(TEXADDR_CLAMP);
-    d3d::set_render_target(bloomMips.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{bloomMips.getTex2D(), 0, 0}});
     downsampled_frame.getTex2D()->texmiplevel(0, 0);
     TIME_D3D_PROFILE(firstDownsample);
     ShaderGlobal::set_texture(blur_src_texVarId, downsampled_frame);
@@ -133,7 +133,7 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
       if (i > 0)
       {
         d3d::resource_barrier({bloomMips.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i - 1), 1});
-        d3d::set_render_target(bloomMips.getTex2D(), i);
+        d3d::set_render_target({}, DepthAccess::RW, {{bloomMips.getTex2D(), static_cast<uint32_t>(i), 0}});
         bloomMips.getTex2D()->texmiplevel(i - 1, i - 1);
         ShaderGlobal::set_texture(blur_src_texVarId, bloomMips);
         ShaderGlobal::set_float4(blur_src_tex_sizeVarId, 1.0f / ((width / 2) >> i), 1.0f / ((height / 2) >> i), 0, 0);
@@ -162,7 +162,7 @@ void BloomPS::perform(ManagedTexView downsampled_frame)
       d3d::resource_barrier({bloomMips.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(mip), 1});
       // int w = (width / 2) >> i, h = (height / 2) >> i;
       // ShaderGlobal::set_float4(bloom_upsample_paramsVarId, settings.radius / w, settings.radius / h, 1. / w, 1. / h);
-      d3d::set_render_target(bloomMips.getTex2D(), mip - 1);
+      d3d::set_render_target({}, DepthAccess::RW, {{bloomMips.getTex2D(), static_cast<uint32_t>(mip - 1), 0}});
       bloomMips.getTex2D()->texmiplevel(mip, mip);
       ShaderGlobal::set_texture(blur_src_texVarId, bloomMips);
 

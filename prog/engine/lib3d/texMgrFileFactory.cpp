@@ -107,6 +107,11 @@ BaseTexture *FileTextureFactory::createTexture(TEXTUREID id)
 // Release created texture
 void FileTextureFactory::releaseTexture(BaseTexture *texture, TEXTUREID id)
 {
+  using texmgr_internal::RMGR;
+  int idx = RMGR.toIndex(id);
+  if (idx >= 0)
+    RMGR.exchangeD3dRes(idx, nullptr, texture);
+
   if (texture == missingTex && id != missingTexId)
   {
     // it's replacement for missing texture, free missingTex instead
@@ -114,11 +119,8 @@ void FileTextureFactory::releaseTexture(BaseTexture *texture, TEXTUREID id)
     return;
   }
 
-  using texmgr_internal::RMGR;
-  int idx = RMGR.toIndex(id);
-  if (RMGR.texDesc[idx].dim.stubIdx >= 0)
+  if (idx >= 0 && RMGR.texDesc[idx].dim.stubIdx >= 0)
   {
-    RMGR.setD3dRes(idx, nullptr);
     if (RMGR.resQS[idx].isReading())
       RMGR.cancelReading(idx);
     RMGR.markUpdated(idx, 0);

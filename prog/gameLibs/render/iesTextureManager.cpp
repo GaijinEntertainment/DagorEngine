@@ -287,7 +287,7 @@ void IesEditor::renderIesTexture()
 
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(dynamicIesTexArray.getBaseTex(), currentResolution.z - 1, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{dynamicIesTexArray.getBaseTex(), 0, uint32_t(currentResolution.z - 1)}});
     iesGenerator.render();
   }
 }

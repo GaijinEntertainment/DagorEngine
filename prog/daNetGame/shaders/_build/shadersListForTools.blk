@@ -7,3 +7,4 @@
   file:t = "../apply_wireframe.dshl"
   file:t = "pack_impostor_texture.dshl"
   file:t = "pack_grass_impostor_texture.dshl"
+  file:t = "landscape_preview_heightmap.dshl"

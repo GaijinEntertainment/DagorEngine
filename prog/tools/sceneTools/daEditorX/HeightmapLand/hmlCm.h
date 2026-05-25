@@ -38,7 +38,9 @@ enum
   CM_INCREASE_BRUSH_SIZE,
 
   CM_SHOW_LAND_OBJECTS,
-  CM_HIDE_SPLINES,
+  CM_TOGGLE_SPLINE_DEBUG_CONTROLS,
+  CM_TOGGLE_POLYGON_DEBUG_CONTROLS,
+  CM_TOGGLE_NOTE_DEBUG_CONTROLS,
   CM_SHOW_PHYSMAT,
   CM_SHOW_PHYSMAT_COLORS,
   CM_CREATE_HOLEBOX_MODE,
@@ -50,16 +52,12 @@ enum
   CM_SCRIPT,
 
   CM_CREATE_POLYGON,
-  CM_CREATE_LT,
-  CM_CREATE_SNOW_SOURCE,
 
   CM_SELECT_NONE,
   CM_SELECT_SPLINES,
   CM_SELECT_PT,
   CM_SELECT_ENT,
   CM_SELECT_SPL_ENT,
-  CM_SELECT_LT,
-  CM_SELECT_SNOW,
   CM_USE_PIXEL_PERFECT_SELECTION,
   CM_SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT,
 
@@ -115,11 +113,11 @@ static constexpr const char *REBUILD_SPLINES_BITMASK = "Plugin.Landscape.Rebuild
 static constexpr const char *SELECT_PT = "Plugin.Landscape.Select.Points";
 static constexpr const char *SELECT_SPLINES = "Plugin.Landscape.Select.Splines";
 static constexpr const char *SELECT_ENT = "Plugin.Landscape.Select.Entities";
-static constexpr const char *SELECT_LT = "Plugin.Landscape.Select.Lights";
-static constexpr const char *SELECT_SNOW = "Plugin.Landscape.Select.Snow";
 static constexpr const char *SELECT_NONE = "Plugin.Landscape.Select.None";
 static constexpr const char *SELECT_SPL_ENT = "Plugin.Landscape.Select.SplinesAndEntities";
-static constexpr const char *HIDE_SPLINES = "Plugin.Landscape.HideSplines";
+static constexpr const char *TOGGLE_SPLINE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleSplineDebugControls";
+static constexpr const char *TOGGLE_POLYGON_DEBUG_CONTROLS = "Plugin.Landscape.TogglePolygonDebugControls";
+static constexpr const char *TOGGLE_NOTE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleNoteDebugControls";
 static constexpr const char *SHOW_PHYSMAT = "Plugin.Landscape.ShowPhysmat";
 static constexpr const char *SHOW_PHYSMAT_COLORS = "Plugin.Landscape.ShowPhysmatColor";
 static constexpr const char *USE_PIXEL_PERFECT_SELECTION = "Plugin.Landscape.UsePixelPerfectSelection";
@@ -131,7 +129,6 @@ static constexpr const char *ROTATION_Y = "Plugin.Landscape.YToNormal";
 static constexpr const char *ROTATION_Z = "Plugin.Landscape.ZToNormal";
 static constexpr const char *CREATE_SPLINE = "Plugin.Landscape.Create.Spline";
 static constexpr const char *CREATE_POLYGON = "Plugin.Landscape.Create.Polygon";
-static constexpr const char *CREATE_SNOW_SOURCE = "Plugin.Landscape.Create.SnowSource";
 static constexpr const char *REFINE_SPLINE = "Plugin.Landscape.RefineSpline";
 static constexpr const char *SPLIT_SPLINE = "Plugin.Landscape.SplitSpline";
 static constexpr const char *SPLIT_POLY = "Plugin.Landscape.SplitPoly";
@@ -481,8 +478,9 @@ enum
   PID_GRASS_HELICOPTER_TO_DIRECT_WIND_MUL,
   PID_GRASS_HELICOPTER_FALLOFF,
 
-  PID_SHOWMASK,
-  PID_SHOW_LANDCLASS_COLORS,
+  PID_DEBUG_VIEW_MODE,
+  PID_DEBUG_EXPR_EDIT,
+  PID_DEBUG_EXPR_APPLY,
   PID_ADDLAYER,
   PID_COMMON_EXPR_EDIT,
   PID_COMMON_EXPR_APPLY,

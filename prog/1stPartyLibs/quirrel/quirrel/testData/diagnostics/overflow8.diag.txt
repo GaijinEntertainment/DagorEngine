@@ -1,0 +1,9 @@
+ERROR: too many function stack slots: cannot allocate parameter 'p254' at slot 255; bytecode supports at most 255 slots per function
+testData/diagnostics/overflow8.nut:27:105
+
+                         p237=237, p238=238, p239=239, p240=240, p241=241, p242=242, p243=243, p244=244, p245=245,
+                         p246=246, p247=247, p248=248, p249=249, p250=250, p251=251, p252=252, p253=253, p254=254,
+                                                                                                         ^-------
+                         p255=255) {
+
+

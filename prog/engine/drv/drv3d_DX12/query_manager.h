@@ -7,7 +7,8 @@
 #include <atomic>
 #include <generic/dag_objectPool.h>
 #include <osApiWrappers/dag_critSec.h>
-
+#include <generic/dag_reverseView.h>
+#include <generic/dag_span.h>
 
 namespace drv3d_dx12
 {
@@ -120,38 +121,40 @@ class FrontendQueryManager
   {
     ComPtr<ID3D12QueryHeap> heap;
     BufferState buffer;
-    Query *qArr[heap_size]{};
+    Query *querySlots[heap_size]{};
 
     bool hasAnyFree() const
     {
-      return eastl::end(qArr) != eastl::find_if(eastl::begin(qArr), eastl::end(qArr), [](const auto p) { return nullptr == p; });
+      return eastl::end(querySlots) !=
+             eastl::find_if(eastl::begin(querySlots), eastl::end(querySlots), [](const auto p) { return nullptr == p; });
     }
 
-    bool posFree(uint32_t pos) const { return pos < heap_size ? (qArr[pos] == nullptr) : false; }
+    bool posFree(uint32_t pos) const { return pos < heap_size ? (querySlots[pos] == nullptr) : false; }
 
-    uint32_t addQuery(Query *qry);
+    uint32_t addQuery(Query *query);
   };
 
   dag::Vector<HeapPredicate> predicateHeaps;
   WinCritSec predicateGuard;
 
-  ObjectPool<PipelineStatsQuery> pipelineStatsQueryPool;
   ObjectPool<Query> queryPool;
+  ObjectPool<PipelineStatsQuery> pipelineStatsQueryPool;
   WinCritSec queryGuard;
 
   dag::Vector<HeapPredicate>::iterator newPredicateHeap(Device &device, ID3D12Device *dx_device);
 
 public:
   uint64_t createPredicate(Device &device, ID3D12Device *dx_device);
-  void deletePredicate(uint64_t packedPredicateId);
+  void deletePredicate(uint64_t packed_predicate_id);
   void shutdownPredicate(DeviceContext &ctx);
   PredicateInfo getPredicateInfo(Query *query);
 
   Query *newQuery();
-  PipelineStatsQuery *newPipelineStatsQuery();
-  Query *getQueryPtrFromId(uint64_t packedQueryId);
-  void deleteQuery(Query *query_ptr);
+  Query *getQueryPtrFromId(uint64_t packed_query_id);
+  void deleteQuery(Query *query);
   void removeDeletedQueries(dag::ConstSpan<Query *> deleted_queries);
+
+  PipelineStatsQuery *newPipelineStatsQuery();
   void removeDeletedPipelineStatsQueries(dag::ConstSpan<PipelineStatsQuery *> deleted_queries);
 
   void preRecovery();
@@ -171,7 +174,7 @@ private:
     T *mappedMemory = nullptr;
   };
 
-  struct QueryFlushMapping
+  struct TimestampFlushMapping
   {
     Query *target = nullptr;
     uint64_t *result = nullptr;
@@ -198,18 +201,27 @@ private:
     uint64_t queryIndex = 0;
   };
 
-  dag::Vector<QueryHeap<uint64_t, heap_size>> timeStampHeaps;
+  struct LazyPipelineStatsQueryBackendState
+  {
+    PipelineStatsQuery *frontend = nullptr;
+    bool activated = false;
+  };
+
+  dag::Vector<QueryHeap<uint64_t, heap_size>> timestampHeaps;
   dag::Vector<QueryHeap<uint64_t, heap_size>> visibilityHeaps;
   dag::Vector<QueryHeap<D3D12_QUERY_DATA_PIPELINE_STATISTICS, pipeline_stats_heap_size>> pipelineStatsHeaps;
 
-  dag::Vector<QueryFlushMapping> tsFlushes;
-  dag::Vector<VisibilityFlushMapping> visFlushes;
+  dag::Vector<TimestampFlushMapping> timestampFlushes;
+  dag::Vector<VisibilityFlushMapping> visibilityFlushes;
   dag::Vector<PipelineStatsFlushMapping> pipelineStatsFlushes;
 
   // Will be suspended on flush and resumed on next prepareCommandExecution (unless it has already completed by then)
   dag::Vector<PipelineStatsQueryBackendState> currentPipelineStatsQueries;
   // Finished either at the end of the frame or upon the user's request
   dag::Vector<PipelineStatsQuery *> finishedPipelineStatsQueries;
+
+  dag::Vector<LazyPipelineStatsQueryBackendState> lazyPipelineStatsQueries;
+  dag::Vector<PipelineStatsQuery *> pendingDeactivationLazyPipelineStatsQueries;
 
   template <D3D12_QUERY_HEAP_TYPE type>
   auto getQuerySlot(ID3D12Device *device)
@@ -268,8 +280,9 @@ private:
       return {heap, readBackBuffer, reinterpret_cast<T *>(mappedMemory)};
     };
 
-    auto getQuerySlot = [=]<class T, size_t HeapSize>(
-                          dag::Vector<QueryHeap<T, HeapSize>> &heaps) -> eastl::tuple<QueryHeap<T, HeapSize> *, uint32_t, uint64_t> {
+    auto findOrAllocateSlot =
+      [=]<class T, size_t HeapSize>(
+        dag::Vector<QueryHeap<T, HeapSize>> &heaps) -> eastl::tuple<QueryHeap<T, HeapSize> *, uint32_t, uint64_t> {
       uint32_t slotIndex;
       uint64_t queryIndex;
       // find free position in heaps vector
@@ -305,15 +318,15 @@ private:
 
     if constexpr (type == D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
     {
-      return getQuerySlot(timeStampHeaps);
+      return findOrAllocateSlot(timestampHeaps);
     }
     else if constexpr (type == D3D12_QUERY_HEAP_TYPE_OCCLUSION)
     {
-      return getQuerySlot(visibilityHeaps);
+      return findOrAllocateSlot(visibilityHeaps);
     }
     else if constexpr (type == D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS)
     {
-      return getQuerySlot(pipelineStatsHeaps);
+      return findOrAllocateSlot(pipelineStatsHeaps);
     }
     else
     {
@@ -322,32 +335,42 @@ private:
   }
 
 public:
-  void makeTimeStampQuery(Query *query_ptr, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
-  void makeVisibilityQuery(Query *query_ptr, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
-  void endVisibilityQuery(Query *query_ptr, ID3D12GraphicsCommandList *cmd);
-  void makePipelineStatsQuery(PipelineStatsQuery *query_ptr, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
-  void endPipelineStatsQuery(PipelineStatsQuery *query_ptr, ID3D12GraphicsCommandList *cmd);
-  void cancelQuery(Query *query_ptr);
-  void cancelPipelineStatsQuery(PipelineStatsQuery *query_ptr);
-  void resolve(ID3D12GraphicsCommandList *target);
+  void makeTimeStampQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+
+  void makeVisibilityQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void endVisibilityQuery(Query *query, ID3D12GraphicsCommandList *cmd);
+
+  void makePipelineStatsQuery(PipelineStatsQuery *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void endPipelineStatsQuery(PipelineStatsQuery *query, ID3D12GraphicsCommandList *cmd);
+
+  void pushLazyPipelineStatsQuery(PipelineStatsQuery *query);
+  void activateTopLazyPipelineStatsQuery(ID3D12Device *device, ID3D12GraphicsCommandList *cmd);
+  void popLazyPipelineStatsQuery(PipelineStatsQuery *query);
+  void deactivatePendingLazyPipelineStatsQueries(ID3D12GraphicsCommandList *cmd);
+  void accumulateInactiveLazyQueries(ID3D12GraphicsCommandList *cmd, uint64_t primitives);
+
   // Suspend all active pipeline statistics queries before the command list is closed
   void suspendActiveQueries(ID3D12GraphicsCommandList *cmd);
-  // Resume all suspended pipeline statistics queries in prepareCommandExecution
   void resumePipelineStatsQueries(ID3D12GraphicsCommandList *cmd, ID3D12Device *device);
   // Finish all active pipeline statistics queries
   void finishActivePipelineStatsQueries();
+
+  void cancelQuery(Query *query);
+  void cancelPipelineStatsQuery(PipelineStatsQuery *query);
+
+  void resolve(ID3D12GraphicsCommandList *cmd);
   void flush();
   void shutdown();
 };
 
-inline uint32_t FrontendQueryManager::HeapPredicate::addQuery(Query *qry)
+inline uint32_t FrontendQueryManager::HeapPredicate::addQuery(Query *query)
 {
-  auto ref = eastl::find_if(eastl::begin(qArr), eastl::end(qArr), [](const auto p) { return nullptr == p; });
-  G_ASSERT(ref != eastl::end(qArr));
-  if (ref != eastl::end(qArr))
+  auto ref = eastl::find_if(eastl::begin(querySlots), eastl::end(querySlots), [](const auto p) { return nullptr == p; });
+  G_ASSERT(ref != eastl::end(querySlots));
+  if (ref != eastl::end(querySlots))
   {
-    *ref = qry;
-    return eastl::distance(eastl::begin(qArr), ref);
+    *ref = query;
+    return eastl::distance(eastl::begin(querySlots), ref);
   }
   return ~uint32_t(0);
 }
@@ -356,7 +379,7 @@ inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Devi
 {
   WinAutoLock lock(predicateGuard);
   auto heap = eastl::find_if(begin(predicateHeaps), end(predicateHeaps),
-    [](const FrontendQueryManager::HeapPredicate &heap) { return heap.hasAnyFree(); });
+    [](const FrontendQueryManager::HeapPredicate &predicateHeap) { return predicateHeap.hasAnyFree(); });
   if (heap == end(predicateHeaps))
   {
     heap = newPredicateHeap(device, dx_device);
@@ -365,23 +388,25 @@ inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Devi
       return ~uint64_t(0);
     }
   }
-  Query *q = newQuery();
-  uint32_t slotIndex = heap->addQuery(q);
+  Query *query = newQuery();
+  uint32_t slotIndex = heap->addQuery(query);
   uint32_t heapIndex = eastl::distance(eastl::begin(predicateHeaps), heap);
   uint64_t queryIndex = heap_size * heapIndex + slotIndex;
-  q->setQueryIndexAndType(queryIndex, Query::Qtype::SURVEY);
-  return q->getRaw();
+  query->setQueryIndexAndType(queryIndex, Query::Qtype::SURVEY);
+  return query->getRaw();
 }
 
-inline void FrontendQueryManager::deletePredicate(uint64_t packedPredicateId)
+inline void FrontendQueryManager::deletePredicate(uint64_t packed_predicate_id)
 {
   WinAutoLock lock(predicateGuard);
-  uint64_t queryIndex = packedPredicateId >> 2;
+  uint64_t queryIndex = packed_predicate_id >> 2;
   uint32_t heapIndex = queryIndex / heap_size;
   uint32_t slotIndex = queryIndex % heap_size;
-  auto &heap = predicateHeaps[heapIndex];
-  heap.qArr[slotIndex] = nullptr;
-  deleteQuery(getQueryPtrFromId(packedPredicateId));
+  auto query = eastl::exchange(predicateHeaps[heapIndex].querySlots[slotIndex], nullptr);
+  if (static_cast<Query::Qtype>(packed_predicate_id & 3) == Query::Qtype::SURVEY)
+  {
+    deleteQuery(query);
+  }
 }
 
 inline PredicateInfo FrontendQueryManager::getPredicateInfo(Query *query)
@@ -404,43 +429,49 @@ inline PredicateInfo FrontendQueryManager::getPredicateInfo(Query *query)
 inline Query *FrontendQueryManager::newQuery()
 {
   WinAutoLock lock(queryGuard);
-  Query *q = queryPool.allocate();
-  return q;
+  return queryPool.allocate();
 }
 
 inline PipelineStatsQuery *FrontendQueryManager::newPipelineStatsQuery()
 {
   WinAutoLock lock(queryGuard);
-  PipelineStatsQuery *q = pipelineStatsQueryPool.allocate();
-  return q;
+  return pipelineStatsQueryPool.allocate();
 }
 
-inline Query *FrontendQueryManager::getQueryPtrFromId(uint64_t packedQueryId)
+inline Query *FrontendQueryManager::getQueryPtrFromId(uint64_t packed_query_id)
 {
-  if (static_cast<Query::Qtype>(packedQueryId & 3) == Query::Qtype::SURVEY)
+  if (static_cast<Query::Qtype>(packed_query_id & 3) == Query::Qtype::SURVEY)
   {
-    uint64_t queryIndex = packedQueryId >> 2;
+    uint64_t queryIndex = packed_query_id >> 2;
     uint32_t heapIndex = queryIndex / heap_size;
     uint32_t slotIndex = queryIndex % heap_size;
-    return predicateHeaps[heapIndex].qArr[slotIndex];
+    return predicateHeaps[heapIndex].querySlots[slotIndex];
   }
   return nullptr;
 }
 
-inline void FrontendQueryManager::deleteQuery(Query *query_ptr) { queryPool.free(query_ptr); }
+inline void FrontendQueryManager::deleteQuery(Query *query)
+{
+  if (!query)
+    return;
+
+  WinAutoLock lock(queryGuard);
+  queryPool.free(query);
+}
 
 inline void FrontendQueryManager::removeDeletedQueries(dag::ConstSpan<Query *> deleted_queries)
 {
-  WinAutoLock l(queryGuard);
+  WinAutoLock lock(queryGuard);
   for (auto query : deleted_queries)
   {
-    queryPool.free(query);
+    if (query)
+      queryPool.free(query);
   }
 }
 
 inline void FrontendQueryManager::removeDeletedPipelineStatsQueries(dag::ConstSpan<PipelineStatsQuery *> deleted_queries)
 {
-  WinAutoLock l(queryGuard);
+  WinAutoLock lock(queryGuard);
   for (auto query : deleted_queries)
   {
     pipelineStatsQueryPool.free(query);
@@ -458,7 +489,7 @@ inline void FrontendQueryManager::preRecovery()
     heap.heap.Reset();
 }
 
-inline void BackendQueryManager::makeTimeStampQuery(Query *query_ptr, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::makeTimeStampQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
 {
   auto [heap, slotIndex, queryIndex] = getQuerySlot<D3D12_QUERY_HEAP_TYPE_TIMESTAMP>(device);
   if (!heap) [[unlikely]]
@@ -467,15 +498,15 @@ inline void BackendQueryManager::makeTimeStampQuery(Query *query_ptr, ID3D12Devi
     return;
   }
 
-  query_ptr->setQueryIndexAndType(queryIndex, Query::Qtype::TIMESTAMP);
+  query->setQueryIndexAndType(queryIndex, Query::Qtype::TIMESTAMP);
   cmd->EndQuery(heap->heap.Get(), D3D12_QUERY_TYPE_TIMESTAMP, slotIndex);
-  tsFlushes.push_back({
-    .target = query_ptr,
+  timestampFlushes.push_back({
+    .target = query,
     .result = heap->mappedMemory + slotIndex,
   });
 }
 
-inline void BackendQueryManager::makeVisibilityQuery(Query *query_ptr, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::makeVisibilityQuery(Query *query, ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
 {
   auto [heap, slotIndex, queryIndex] = getQuerySlot<D3D12_QUERY_HEAP_TYPE_OCCLUSION>(device);
   if (!heap) [[unlikely]]
@@ -485,29 +516,29 @@ inline void BackendQueryManager::makeVisibilityQuery(Query *query_ptr, ID3D12Dev
     return;
   }
 
-  query_ptr->setQueryIndexAndType(queryIndex, Query::Qtype::VISIBILITY);
+  query->setQueryIndexAndType(queryIndex, Query::Qtype::VISIBILITY);
   cmd->BeginQuery(heap->heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, slotIndex);
-  visFlushes.push_back({
-    .target = query_ptr,
+  visibilityFlushes.push_back({
+    .target = query,
     .result = heap->mappedMemory + slotIndex,
     .heap = heap->heap.Get(),
   });
 }
 
-inline void BackendQueryManager::endVisibilityQuery(Query *target, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::endVisibilityQuery(Query *query, ID3D12GraphicsCommandList *cmd)
 {
-  uint64_t queryIndex = target->getIndex();
+  uint64_t queryIndex = query->getIndex();
   uint32_t heapIndex = queryIndex / heap_size;
   uint32_t slotIndex = queryIndex % heap_size;
   cmd->EndQuery(visibilityHeaps[heapIndex].heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, slotIndex);
 }
 
-inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *query_ptr, ID3D12Device *device,
+inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *query, ID3D12Device *device,
   ID3D12GraphicsCommandList *cmd)
 {
-  G_ASSERT(!query_ptr->isFinalized());
+  G_ASSERT(!query->isFinalized());
   G_ASSERT(eastl::find_if(currentPipelineStatsQueries.begin(), currentPipelineStatsQueries.end(),
-             [query_ptr](const auto &state) { return state.frontend == query_ptr; }) == currentPipelineStatsQueries.end());
+             [query](const auto &state) { return state.frontend == query; }) == currentPipelineStatsQueries.end());
 
   auto [heap, slotIndex, queryIndex] = getQuerySlot<D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS>(device);
   if (!heap) [[unlikely]]
@@ -519,22 +550,22 @@ inline void BackendQueryManager::makePipelineStatsQuery(PipelineStatsQuery *quer
 
   cmd->BeginQuery(heap->heap.Get(), D3D12_QUERY_TYPE_PIPELINE_STATISTICS, slotIndex);
   pipelineStatsFlushes.push_back({
-    .target = query_ptr,
+    .target = query,
     .result = heap->mappedMemory + slotIndex,
     .heap = heap->heap.Get(),
   });
   currentPipelineStatsQueries.push_back({
-    .frontend = query_ptr,
+    .frontend = query,
     .suspended = false,
     .queryIndex = queryIndex,
   });
 }
 
-inline void BackendQueryManager::endPipelineStatsQuery(PipelineStatsQuery *target, ID3D12GraphicsCommandList *cmd)
+inline void BackendQueryManager::endPipelineStatsQuery(PipelineStatsQuery *query, ID3D12GraphicsCommandList *cmd)
 {
-  auto &active = currentPipelineStatsQueries;
-  auto it = eastl::find_if(active.begin(), active.end(), [target](const auto &state) { return state.frontend == target; });
-  if (it == active.end())
+  auto it = eastl::find_if(currentPipelineStatsQueries.begin(), currentPipelineStatsQueries.end(),
+    [query](const auto &state) { return state.frontend == query; });
+  if (it == currentPipelineStatsQueries.end())
   {
     return;
   }
@@ -545,49 +576,89 @@ inline void BackendQueryManager::endPipelineStatsQuery(PipelineStatsQuery *targe
   uint32_t slotIndex = queryIndex % pipeline_stats_heap_size;
   cmd->EndQuery(pipelineStatsHeaps[heapIndex].heap.Get(), D3D12_QUERY_TYPE_PIPELINE_STATISTICS, slotIndex);
 
-  active.erase_unsorted(it);
+  currentPipelineStatsQueries.erase_unsorted(it);
 
-  finishedPipelineStatsQueries.push_back(target);
+  finishedPipelineStatsQueries.push_back(query);
 }
 
-inline void BackendQueryManager::cancelQuery(Query *query_ptr)
+inline void BackendQueryManager::pushLazyPipelineStatsQuery(PipelineStatsQuery *q)
 {
-  auto removeQuery = [query_ptr](auto &vec) {
-    auto it = eastl::remove_if(vec.begin(), vec.end(), [query_ptr](const auto &flush) { return flush.target == query_ptr; });
-    vec.erase(it, vec.end());
-  };
-
-  removeQuery(tsFlushes);
-  removeQuery(visFlushes);
+  lazyPipelineStatsQueries.push_back(LazyPipelineStatsQueryBackendState{
+    .frontend = q,
+    .activated = false,
+  });
 }
 
-inline void BackendQueryManager::cancelPipelineStatsQuery(PipelineStatsQuery *query_ptr)
+inline void BackendQueryManager::activateTopLazyPipelineStatsQuery(ID3D12Device *device, ID3D12GraphicsCommandList *cmd)
 {
-  // By design, each vector does not contain duplicate pointers, so (remove_if, erase) idiom is ambiguous
+  if (lazyPipelineStatsQueries.empty() || lazyPipelineStatsQueries.back().activated)
+    return;
 
-  if (auto itFlush = eastl::find_if(pipelineStatsFlushes.begin(), pipelineStatsFlushes.end(),
-        [query_ptr](const auto &flush) { return flush.target == query_ptr; });
-      itFlush != pipelineStatsFlushes.end())
+  deactivatePendingLazyPipelineStatsQueries(cmd);
+  const auto flushesPrev = pipelineStatsFlushes.size();
+  makePipelineStatsQuery(lazyPipelineStatsQueries.back().frontend, device, cmd);
+  G_ASSERT_RETURN(flushesPrev < pipelineStatsFlushes.size(), ); // sanity check
+
+  const auto [_, topResult, topHeap] = pipelineStatsFlushes.back();
+
+  // Accumulate values for all queries lower in the stack until the first active one
+  const auto stackSizeWithoutTop = lazyPipelineStatsQueries.size() - 1;
+  for (auto [frontend, activated] : dag::ReverseView(make_span_const(lazyPipelineStatsQueries.data(), stackSizeWithoutTop)))
   {
-    pipelineStatsFlushes.erase_unsorted(itFlush);
+    if (activated)
+      break;
+
+    pipelineStatsFlushes.push_back({
+      .target = frontend,
+      .result = topResult,
+      .heap = topHeap,
+    });
   }
 
-  if (auto itCurrent = eastl::find_if(currentPipelineStatsQueries.begin(), currentPipelineStatsQueries.end(),
-        [query_ptr](const auto &current) { return current.frontend == query_ptr; });
-      itCurrent != currentPipelineStatsQueries.end())
-  {
-    currentPipelineStatsQueries.erase_unsorted(itCurrent);
-  }
+  lazyPipelineStatsQueries.back().activated = true;
+}
 
-  if (auto itFinished = eastl::find(finishedPipelineStatsQueries.begin(), finishedPipelineStatsQueries.end(), query_ptr);
-      itFinished != finishedPipelineStatsQueries.end())
+inline void BackendQueryManager::popLazyPipelineStatsQuery(PipelineStatsQuery *query)
+{
+  G_UNUSED(query);
+
+  // Ignore the query if frame was already finished
+  if (lazyPipelineStatsQueries.empty())
+    return;
+
+  D3D_CONTRACT_ASSERTF(lazyPipelineStatsQueries.back().frontend == query,
+    "DX12: LIFO order of lazy pipeline stats queries is violated");
+
+  auto top = lazyPipelineStatsQueries.back();
+  lazyPipelineStatsQueries.pop_back();
+
+  if (top.activated)
+    pendingDeactivationLazyPipelineStatsQueries.push_back(top.frontend);
+  else
+    finishedPipelineStatsQueries.push_back(top.frontend);
+}
+
+inline void BackendQueryManager::deactivatePendingLazyPipelineStatsQueries(ID3D12GraphicsCommandList *cmd)
+{
+  for (auto query : pendingDeactivationLazyPipelineStatsQueries)
+    endPipelineStatsQuery(query, cmd);
+  pendingDeactivationLazyPipelineStatsQueries.clear();
+}
+
+inline void BackendQueryManager::accumulateInactiveLazyQueries(ID3D12GraphicsCommandList *cmd, uint64_t primitives)
+{
+  deactivatePendingLazyPipelineStatsQueries(cmd);
+  for (auto [frontend, activated] : dag::ReverseView(lazyPipelineStatsQueries))
   {
-    finishedPipelineStatsQueries.erase_unsorted(itFinished);
+    if (activated)
+      break;
+    frontend->accumulate({.CInvocations = primitives});
   }
 }
 
 inline void BackendQueryManager::suspendActiveQueries(ID3D12GraphicsCommandList *cmd)
 {
+  deactivatePendingLazyPipelineStatsQueries(cmd);
   for (auto &[_, suspended, queryIndex] : currentPipelineStatsQueries)
   {
     G_ASSERT(suspended == false); // sanity check
@@ -634,30 +705,79 @@ inline void BackendQueryManager::resumePipelineStatsQueries(ID3D12GraphicsComman
 
 inline void BackendQueryManager::finishActivePipelineStatsQueries()
 {
-  for (auto &[frontend, suspended, _] : currentPipelineStatsQueries)
+  for (auto [frontend, suspended, _] : currentPipelineStatsQueries)
   {
     G_ASSERT(suspended == true); // sanity check, must be suspended to be finished
     G_ASSERT(finishedPipelineStatsQueries.end() ==
              eastl::find(finishedPipelineStatsQueries.begin(), finishedPipelineStatsQueries.end(), frontend));
     finishedPipelineStatsQueries.push_back(frontend);
   }
+  for (auto [frontend, activated] : lazyPipelineStatsQueries)
+  {
+    // active lazy queries are finished at the same time as non-lazy ones
+    if (!activated)
+      finishedPipelineStatsQueries.push_back(frontend);
+  }
+  lazyPipelineStatsQueries.clear();
   currentPipelineStatsQueries.clear();
+  pendingDeactivationLazyPipelineStatsQueries.clear();
 }
 
-inline void BackendQueryManager::resolve(ID3D12GraphicsCommandList *target)
+inline void BackendQueryManager::cancelQuery(Query *query)
 {
-  auto heapResolve = [target](auto type, auto &heaps) {
+  auto removeQuery = [query](auto &vec) {
+    auto it = eastl::remove_if(vec.begin(), vec.end(), [query](const auto &flush) { return flush.target == query; });
+    vec.erase(it, vec.end());
+  };
+
+  removeQuery(timestampFlushes);
+  removeQuery(visibilityFlushes);
+}
+
+inline void BackendQueryManager::cancelPipelineStatsQuery(PipelineStatsQuery *query)
+{
+  // Multiple invocations for same query are possible due to lazy queries accumulation
+  pipelineStatsFlushes.erase(eastl::remove_if(pipelineStatsFlushes.begin(), pipelineStatsFlushes.end(),
+                               [query](const auto &flush) { return flush.target == query; }),
+    pipelineStatsFlushes.end());
+
+  // By design, each vector does not contain duplicate pointers, so (remove_if, erase) idiom is ambiguous
+
+  if (auto itCurrent = eastl::find_if(currentPipelineStatsQueries.begin(), currentPipelineStatsQueries.end(),
+        [query](const auto &current) { return current.frontend == query; });
+      itCurrent != currentPipelineStatsQueries.end())
+  {
+    currentPipelineStatsQueries.erase_unsorted(itCurrent);
+  }
+
+  if (auto itFinished = eastl::find(finishedPipelineStatsQueries.begin(), finishedPipelineStatsQueries.end(), query);
+      itFinished != finishedPipelineStatsQueries.end())
+  {
+    finishedPipelineStatsQueries.erase_unsorted(itFinished);
+  }
+
+  if (auto itLazy = eastl::find_if(lazyPipelineStatsQueries.begin(), lazyPipelineStatsQueries.end(),
+        [query](const auto &lazy) { return lazy.frontend == query; });
+      itLazy != lazyPipelineStatsQueries.end())
+  {
+    lazyPipelineStatsQueries.erase(itLazy);
+  }
+}
+
+inline void BackendQueryManager::resolve(ID3D12GraphicsCommandList *cmd)
+{
+  auto heapResolve = [cmd](auto type, auto &heaps) {
     for (auto &heap : heaps)
     {
       for (auto [start, end] : heap.freeMask.invertedRanges())
       {
-        target->ResolveQueryData(heap.heap.Get(), type, start, end - start, heap.readBackBuffer.Get(),
+        cmd->ResolveQueryData(heap.heap.Get(), type, start, end - start, heap.readBackBuffer.Get(),
           start * sizeof(*heap.mappedMemory));
       }
     }
   };
 
-  heapResolve(D3D12_QUERY_TYPE_TIMESTAMP, timeStampHeaps);
+  heapResolve(D3D12_QUERY_TYPE_TIMESTAMP, timestampHeaps);
   heapResolve(D3D12_QUERY_TYPE_OCCLUSION, visibilityHeaps);
   heapResolve(D3D12_QUERY_TYPE_PIPELINE_STATISTICS, pipelineStatsHeaps);
 }
@@ -686,15 +806,15 @@ inline void BackendQueryManager::flush()
       heap.freeMask.set();
   };
 
-  syncReadback(timeStampHeaps);
-  for (auto &flush : tsFlushes)
+  syncReadback(timestampHeaps);
+  for (auto &flush : timestampFlushes)
   {
     flush.target->update(*flush.result);
   }
-  resetSlots(timeStampHeaps);
+  resetSlots(timestampHeaps);
 
   syncReadback(visibilityHeaps);
-  for (auto &flush : visFlushes)
+  for (auto &flush : visibilityFlushes)
   {
     flush.target->update(*flush.result);
   }
@@ -711,20 +831,22 @@ inline void BackendQueryManager::flush()
   }
   resetSlots(pipelineStatsHeaps);
 
-  tsFlushes.clear();
-  visFlushes.clear();
+  timestampFlushes.clear();
+  visibilityFlushes.clear();
   pipelineStatsFlushes.clear();
   finishedPipelineStatsQueries.clear();
 }
 
 inline void BackendQueryManager::shutdown()
 {
-  tsFlushes.clear();
-  visFlushes.clear();
+  timestampFlushes.clear();
+  visibilityFlushes.clear();
   pipelineStatsFlushes.clear();
   finishedPipelineStatsQueries.clear();
   currentPipelineStatsQueries.clear();
-  timeStampHeaps.clear();
+  lazyPipelineStatsQueries.clear();
+  pendingDeactivationLazyPipelineStatsQueries.clear();
+  timestampHeaps.clear();
   visibilityHeaps.clear();
   pipelineStatsHeaps.clear();
 }

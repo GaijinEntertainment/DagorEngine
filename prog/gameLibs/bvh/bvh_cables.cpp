@@ -33,7 +33,7 @@ void teardown() {}
 void init(ContextId context_id)
 {
   G_ASSERT(metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
-  metaAllocId = context_id->allocateMetaRegion(1);
+  metaAllocId = context_id->allocateMetaRegion(1, "cable");
   MeshMeta &meta = context_id->meshMetaAllocator.get(metaAllocId)[0];
 
   meta.markInitialized();

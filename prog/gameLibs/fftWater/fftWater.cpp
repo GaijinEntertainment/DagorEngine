@@ -51,6 +51,7 @@ class FFTWater
 {
   eastl::unique_ptr<fft_water::WaterFlowmap> waterFlowmap;
   eastl::unique_ptr<fft_water::WaterHeightmap> waterHeightmap;
+  eastl::unique_ptr<HeightmapHeightCulling> heightmapCulling;
 
   WaterRenderCommon renderCommon;
 
@@ -290,7 +291,8 @@ public:
     NVWaveWorks_FFT_CPU_Simulation::Params newParams = params;
     newParams.fft_resolution_bits = getActualFFTResolutionBits(quality);
     render = new WaterNVRender(newParams, simulation, quality, geom_quality, depth_renderer, ssr_renderer, one_to_four_cascades,
-      numRenderCascades, cascadeWindowLength, cascadeFacetSize, waterHeightmap.get(), water_heightmap_draw_patches);
+      numRenderCascades, cascadeWindowLength, cascadeFacetSize, waterHeightmap.get(), heightmapCulling.get(),
+      water_heightmap_draw_patches);
     if (chopWaterGenerator)
       initRenderChop();
 
@@ -329,7 +331,7 @@ public:
     G_ASSERT(chopWaterGenerator);
     G_ASSERT(!renderChop);
     renderChop = new ChopWaterRender(*chopWaterGenerator, render->getQuality(), render->getGeomQuality(),
-      render->isDepthRendererEnabled(), render->isSSRRendererEnabled(), waterHeightmap.get());
+      render->isDepthRendererEnabled(), render->isSSRRendererEnabled(), waterHeightmap.get(), heightmapCulling.get());
     renderChop->setLevel(waterLevel);
   }
   void initPhysicsChop()
@@ -401,10 +403,13 @@ public:
   void removeFlowmap() { waterFlowmap.reset(nullptr); }
 
   const fft_water::WaterHeightmap *getHeightmap() const { return waterHeightmap.get(); }
+  const HeightmapHeightCulling *getHeightmapCulling() const { return heightmapCulling.get(); }
   void setHeightmap(eastl::unique_ptr<fft_water::WaterHeightmap> &&water_heightmap)
   {
     waterHeightmap = eastl::move(water_heightmap);
     waterHeightmap->heightMax = waterHeightmap->heightOffset + waterHeightmap->heightScale;
+    heightmapCulling = eastl::make_unique<HeightmapHeightCulling>();
+    heightmapCulling->init(waterHeightmap.get());
     if (physics)
     {
       physics->setHeightmap(waterHeightmap.get());
@@ -418,6 +423,7 @@ public:
   }
   void removeHeightmap()
   {
+    heightmapCulling.reset(nullptr);
     waterHeightmap.reset(nullptr);
     if (physics)
     {
@@ -1399,6 +1405,7 @@ void remove_flowmap(FFTWater *handle)
 }
 
 const fft_water::WaterHeightmap *get_heightmap(const FFTWater *handle) { return handle->getHeightmap(); }
+const HeightmapHeightCulling *get_heightmap_culling(const FFTWater *handle) { return handle->getHeightmapCulling(); }
 void set_heightmap(FFTWater *handle, eastl::unique_ptr<WaterHeightmap> &&heightmap) { handle->setHeightmap(eastl::move(heightmap)); }
 void remove_heightmap(FFTWater *handle) { handle->removeHeightmap(); }
 

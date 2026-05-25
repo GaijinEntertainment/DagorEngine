@@ -4,8 +4,6 @@
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "hmlEntity.h"
-#include "hmlSnow.h"
-#include "hmlLight.h"
 #include <de3_objEntity.h>
 #include <libTools/dagFileRW/splineShape.h>
 #include <libTools/dagFileRW/dagFileShapeObj.h>
@@ -444,39 +442,15 @@ void HmapLandObjectEditor::exportToDag()
             RenderableEditableObject *o = exp_obj[i];
 
             LandscapeEntityObject *ent_obj = RTTI_cast<LandscapeEntityObject>(o);
-            SnowSourceObject *snow_obj = RTTI_cast<SnowSourceObject>(o);
-            SphereLightObject *light_obj = RTTI_cast<SphereLightObject>(o);
 
-            if (!ent_obj && !snow_obj && !light_obj)
+            if (!ent_obj)
               continue;
 
             if (dagGeom->dagSaverStartSaveNode(*save, o->getName(), o->getWtm()))
             {
               DataBlock blk;
-
-              if (ent_obj)
-              {
-                blk.addStr("entity_name", ent_obj->getProps().entityName);
-                blk.addInt("place_type", ent_obj->getProps().placeType);
-              }
-              else
-              {
-                DataBlock *props = blk.addBlock("props");
-
-                if (snow_obj)
-                {
-                  blk.addStr("object_type", "snow");
-                  snow_obj->save(*props);
-                }
-                else if (light_obj)
-                {
-                  blk.addStr("object_type", "light");
-                  light_obj->save(*props);
-                }
-
-                props->removeParam("name");
-                props->removeParam("tm");
-              }
+              blk.addStr("entity_name", ent_obj->getProps().entityName);
+              blk.addInt("place_type", ent_obj->getProps().placeType);
 
               DynamicMemGeneralSaveCB cb(tmpmem);
               if (blk.saveToTextStream(cb))
@@ -747,25 +721,6 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
             pr.placeType = coll;
             o->setProps(pr);
             addObject(o);
-          }
-          else
-          {
-            DataBlock *props = blk.addBlock("props");
-            props->setStr("name", node->name);
-            props->setTm("tm", node->wtm);
-
-            if (stricmp(objType, "snow") == 0)
-            {
-              SnowSourceObject *snow_obj = new SnowSourceObject();
-              addObject(snow_obj);
-              snow_obj->load(*props);
-            }
-            else if (stricmp(objType, "light") == 0)
-            {
-              SphereLightObject *light_obj = new SphereLightObject();
-              addObject(light_obj);
-              light_obj->load(*props);
-            }
           }
         }
       }

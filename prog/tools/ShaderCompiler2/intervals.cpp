@@ -45,7 +45,7 @@ IntervalValue *Interval::getValueByNameId(int value_name_id)
   return NULL;
 }
 
-bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, const char *right_op,
+bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, int right_op_name_id,
   String &error_msg, shc::TargetContext &ctx) const
 {
   if (expr == EXPR_NOTINIT)
@@ -61,11 +61,10 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
   }
 
   ShaderVariant::ValueType right_op_normalized = -1;
-  int right_op_id = ctx.intervalNameMap().addNameId(right_op);
 
-  if (right_op_id != -1)
+  if (right_op_name_id != -1)
     for (int i = 0; i < valueList.size(); i++)
-      if (valueList[i].getNameId() == right_op_id)
+      if (valueList[i].getNameId() == right_op_name_id)
       {
         right_op_normalized = i;
         break;
@@ -73,7 +72,8 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
 
   if (!indexRange.isInRange(right_op_normalized))
   {
-    error_msg.printf(0, 256, "undefined value (%s) for this interval (%s)", right_op, get_interval_name(*this, ctx));
+    error_msg.printf(0, 256, "undefined value (%s) for this interval (%s)", ctx.intervalNameMap().getName(right_op_name_id),
+      get_interval_name(*this, ctx));
     return false;
   }
 
@@ -85,9 +85,16 @@ bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, cons
     case EXPR_SMALLER: return left_op_normalized < right_op_normalized;
     case EXPR_SMALLER_EQ: return left_op_normalized <= right_op_normalized;
     case EXPR_NOT_EQ: return left_op_normalized != right_op_normalized;
+    default: break;
   }
 
   return false;
+}
+
+bool Interval::checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, const char *right_op,
+  String &error_msg, shc::TargetContext &ctx) const
+{
+  return checkExpression(left_op_normalized, expr, ctx.intervalNameMap().addNameId(right_op), error_msg, ctx);
 }
 
 // add new interval (return false, if interval exists)

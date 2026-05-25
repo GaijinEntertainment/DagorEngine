@@ -51,7 +51,7 @@ class MultidrawContext
   /**
    * @brief Buffer for per draw parameters.
    */
-  UniqueBufHolder perDrawArgsBuffer;
+  UniqueBufWithShaderVar perDrawArgsBuffer;
   /**
    * @brief Number of draw calls that can be stored in buffer.
    */

@@ -23,7 +23,7 @@ MAKE_TYPE_FACTORY(UniqueTexWithShaderVar, UniqueTexWithShaderVar);
 MAKE_TYPE_FACTORY(SharedBuf, SharedBuf);
 MAKE_TYPE_FACTORY(SharedBufHolder, SharedBufHolder);
 MAKE_TYPE_FACTORY(UniqueBuf, UniqueBuf);
-MAKE_TYPE_FACTORY(UniqueBufHolder, UniqueBufHolder);
+MAKE_TYPE_FACTORY(UniqueBufWithShaderVar, UniqueBufWithShaderVar);
 
 namespace bind_dascript
 {
@@ -77,7 +77,7 @@ static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
 
 #define MANAGED_BUF_TYPES         \
   MANAGED_BUF(SharedBufHolder, 1) \
-  MANAGED_BUF(UniqueBufHolder, 2)
+  MANAGED_BUF(UniqueBufWithShaderVar, 2)
 
 #define MANAGED_BUF(TYPE, suf)                                                                                                 \
   inline void create_vb##suf(TYPE &val, int size_bytes, int flags, const char *name)                                           \
@@ -102,7 +102,7 @@ MANAGED_BUF_TYPES
 inline Sbuffer *SharedBuf_get_buf(const SharedBuf &buf) { return buf.getBuf(); }
 inline Sbuffer *SharedBufHolder_get_buf(const SharedBufHolder &buf) { return buf.getBuf(); }
 inline Sbuffer *UniqueBuf_get_buf(const UniqueBuf &buf) { return buf.getBuf(); }
-inline Sbuffer *UniqueBufHolder_get_buf(const UniqueBufHolder &buf) { return buf.getBuf(); }
+inline Sbuffer *UniqueBufWithShaderVar_get_buf(const UniqueBufWithShaderVar &buf) { return buf.getBuf(); }
 } // namespace bind_dascript
 
 template <class T>

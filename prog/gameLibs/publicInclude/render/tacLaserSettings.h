@@ -9,5 +9,5 @@ struct TacLaserRenderSettings
   float minIntensityCos = 0.0f, minIntensityMul = 1.0f;
   float maxIntensityCos = 1.0f, maxIntensityMul = 1.0f;
   float fogIntensityMul = 0.0f;
-  float fadeDistance = 25.0f;
+  float fadeEyeDistance = 25.0f;
 };

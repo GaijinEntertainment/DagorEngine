@@ -103,6 +103,8 @@ void ChannelParser::enum_shader_channel(int, int, int, int, int, ChannelModifier
 
 void enable_per_frame_processing(bool) {}
 
+void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback) {}
+
 void connect_dagdp(ContextId, dagdp_connect_callback callback) { callback(nullptr); }
 
 void gpu_grass_make_meta(ContextId, const GPUGrassBase &) {}

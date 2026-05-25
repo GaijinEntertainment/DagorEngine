@@ -43,6 +43,7 @@
 #include "backend.h"
 #include "pipeline/compiler.h"
 #include "amdFsr.h"
+#include "xess.h"
 
 #if DAGOR_DBGLEVEL > 0
 #include "3d/dag_resourceDump.h"
@@ -503,7 +504,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
     case Drv3dCommand::GET_FSR_FG_SUPPORTED:
     {
-      return 0;
+      return 0; //-V1037
     }
     case Drv3dCommand::GET_FSR_FG_SUPPRESSED:
     {
@@ -850,6 +851,103 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::UNLOAD_SHADER_MEMORY:
     {
       Globals::ctx.dispatchCmd<CmdRestartPipelineCompiler>({});
+      return 1;
+    }
+
+    case Drv3dCommand::GET_XESS_STATE:
+    {
+      return (int)Globals::xess.getState();
+    }
+
+    case Drv3dCommand::IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTION:
+    {
+      IPoint2 targetResolution = *(IPoint2 *)par1;
+      if (targetResolution.x <= 0 || targetResolution.y <= 0)
+        return 0;
+      int xessQuality = *(int *)par2;
+      return Globals::xess.isQualityAvailableAtResolution(targetResolution.x, targetResolution.y, xessQuality);
+    }
+
+    case Drv3dCommand::GET_XESS_SUPPORTED_GEN_FRAMES:
+    {
+      auto &frames = *(int *)par1;
+      frames = Globals::xess.isFrameGenerationSupported() ? 1 : 0;
+      return 1;
+    }
+
+    case Drv3dCommand::GET_XESS_PRESENTED_FRAME_COUNT:
+    {
+      auto &presented_frames = *(int *)par1;
+      presented_frames = Globals::xess.getPresentedFrameCount();
+      return 1;
+    }
+
+    case Drv3dCommand::GET_XESS_FG_ENABLED:
+    {
+      auto &enabled = *(bool *)par1;
+      enabled = Globals::xess.isFrameGenerationEnabled();
+      return 1;
+    }
+
+    case Drv3dCommand::XESS_ENABLE_FG:
+    {
+      auto enable = *(bool *)par1;
+      Globals::xess.enableFrameGeneration(enable);
+      return 1;
+    }
+
+    case Drv3dCommand::XESS_SUPPRESS_FG:
+    {
+      auto suppress = *(bool *)par1;
+      Globals::xess.suppressFrameGeneration(suppress);
+      return 1;
+    }
+
+    case Drv3dCommand::XESS_SCHEDULE_GEN_FRAME:
+    {
+      return 0; //-V1037
+    }
+
+    case Drv3dCommand::GET_XESS_RESOLUTION:
+    {
+      IPoint2 &optRes = *(IPoint2 *)par1;
+      IPoint2 &minRes = *(IPoint2 *)par2;
+      IPoint2 &maxRes = *(IPoint2 *)par3;
+      Globals::xess.getRenderResolution(optRes.x, optRes.y, minRes.x, minRes.y, maxRes.x, maxRes.y);
+      return 1;
+    }
+
+    case Drv3dCommand::GET_XESS_VERSION:
+    {
+      auto maybeVersionString = Globals::xess.getVersion();
+      if (!maybeVersionString)
+        D3D_ERROR("vulkan: Failed to get XESS version string. Error: %s", Xess::errorKindToString(maybeVersionString.error()));
+
+      auto versionString = maybeVersionString.value_or("N/A");
+
+      char *data = reinterpret_cast<char *>(par1);
+      size_t size = reinterpret_cast<size_t>(par2);
+      strncpy(data, versionString.c_str(), size);
+      return 1;
+    }
+
+    case Drv3dCommand::SET_XESS_VELOCITY_SCALE:
+    {
+      Globals::xess.setVelocityScale(*(float *)par1, *(float *)par2);
+      return 1;
+    }
+
+    case Drv3dCommand::EXECUTE_XESS:
+    {
+      VERIFY_GLOBAL_LOCK_ACQUIRED();
+      G_ASSERT(par1);
+      XessParams *pars = (XessParams *)par1;
+
+      auto toImage = [](BaseTexture *t) { return t ? cast_to_texture_base(t)->image : nullptr; };
+      Globals::ctx.dispatchCmd<CmdExecuteXESS>({toImage(pars->inColor), toImage(pars->inDepth), toImage(pars->inMotionVectors),
+        pars->inJitterOffsetX, pars->inJitterOffsetY, static_cast<uint32_t>(pars->inInputWidth),
+        static_cast<uint32_t>(pars->inInputHeight), static_cast<uint32_t>(pars->inColorDepthOffsetX),
+        static_cast<uint32_t>(pars->inColorDepthOffsetY), pars->inReset, toImage(pars->outColor)});
       return 1;
     }
     default: break;

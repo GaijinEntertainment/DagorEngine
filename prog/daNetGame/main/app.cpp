@@ -205,6 +205,7 @@ void updateInput(float rtDt, float dt, double cur_time)
 {
   TIME_PROFILE(updateInput);
   controls::process_input(rtDt);
+  controls::check_system_keys();
   g_entity_mgr->broadcastEventImmediate(UpdateStageUpdateInput(cur_time, dt));
   // In order to send controls to server in start of the frame, update phys input as early as possible
   phys_enqueue_controls(cur_time);
@@ -832,7 +833,7 @@ void app_start(bool register_dagor_scene)
 
   if (!dedicated::is_dedicated())
   {
-    ::startup_gui_base("ui/fonts.blk");
+    ::startup_gui_base(settings.getBool("initUiFonts", true) ? "ui/fonts.blk" : "");
     ::startup_game(RESTART_ALL);
     if (settings.getBool("useWebVromfs", false))
     {

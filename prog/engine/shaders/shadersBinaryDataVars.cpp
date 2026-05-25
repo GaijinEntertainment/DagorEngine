@@ -250,7 +250,7 @@ dag::Vector<String> VariableMap::getPresentedGlobalVariableNames()
   if (!globalData.validateShadervarWrite(id, var_id))                                                                               \
     return false;
 
-static void set_global_interval_value_internal(int index, int v, const ScriptedShadersBinDump &dump)
+static void set_global_interval_value_internal(int index, float v, const ScriptedShadersBinDump &dump)
 {
 #if DAGOR_DBGLEVEL > 0
   if (shGlobalData().violatedAssumedIntervals.count(index) > 0)
@@ -261,9 +261,9 @@ static void set_global_interval_value_internal(int index, int v, const ScriptedS
   if (DAGOR_UNLIKELY(interval.type == shaderbindump::Interval::TYPE_ASSUMED_INTERVAL))
   {
 #if DAGOR_DBGLEVEL > 0
-    if (interval.getAssumedVal() != v)
+    if (static_cast<float>(interval.getAssumedVal()) != v)
     {
-      logwarn("`Interval Assume` violation for %s. This was assumed to %i, but set to %i", dump.varMap[interval.nameId].c_str(),
+      logwarn("`Interval Assume` violation for %s. This was assumed to %i, but set to %g", dump.varMap[interval.nameId].c_str(),
         interval.getAssumedVal(), v);
 
       shGlobalData().violatedAssumedIntervals.insert(index);
@@ -274,7 +274,7 @@ static void set_global_interval_value_internal(int index, int v, const ScriptedS
   shGlobalData().globIntervalNormValues[index] = interval.getNormalizedValue(v);
 }
 
-__forceinline void set_global_interval_value(int index, int v, const ScriptedShadersBinDump &dump)
+__forceinline void set_global_interval_value(int index, float v, const ScriptedShadersBinDump &dump)
 {
   if (index >= 0)
     set_global_interval_value_internal(index, v, dump);
@@ -420,12 +420,7 @@ void ShaderVariableInfo::nanError() const { logerr("setting <%s> variable to nan
 
 void ShaderVariableInfo::set_int_var_interval(int v) const { set_global_interval_value_internal(iid, v, shBinDump()); }
 
-void ShaderVariableInfo::set_float_var_interval(float v) const
-{
-  auto &globalData = shGlobalData();
-  auto const &dump = *globalData.backing->getDump();
-  globalData.globIntervalNormValues[iid] = dump.intervals[iid].getNormalizedValue(v);
-}
+void ShaderVariableInfo::set_float_var_interval(float v) const { set_global_interval_value_internal(iid, v, shBinDump()); }
 
 template <typename TextureType>
 static bool set_texture_internal(shaders_internal::Tex &tex, int var_id, int iid, TextureType tex_arg)
@@ -687,8 +682,7 @@ bool ShaderGlobal::set_float(int var_id, real v)
   globalData.globVarsState.set<real>(id, v);
 
   int iid = globalData.globVarIntervalIdx[id];
-  if (iid >= 0)
-    globalData.globIntervalNormValues[iid] = dump.intervals[iid].getNormalizedValue(v);
+  set_global_interval_value(iid, v, shBinDump());
   return true;
 }
 

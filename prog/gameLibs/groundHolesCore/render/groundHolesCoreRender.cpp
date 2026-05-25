@@ -48,14 +48,14 @@ CONSOLE_BOOL_VAL("render", debug_ground_hole_use_cs_workaround, true); // TODO: 
 
 CONSOLE_BOOL_VAL("render", debug_ground_holes_hide, false);
 
-static void createTempResources(int tempTexSize, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
+static void createTempResources(int tempTexSize, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufWithShaderVar &hmapHolesBuf)
 {
   hmapHolesBuf = dag::buffers::create_persistent_cb(MAX_GROUND_HOLES * 4 * 2, "hmap_holes_matrices", RESTAG_LAND);
   hmapHolesTmpTex = dag::create_tex(NULL, tempTexSize, tempTexSize, TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R8, 1,
     "temp_heightmap_holes_tex", RESTAG_LAND);
 }
 
-static void closeTempResources(UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf)
+static void closeTempResources(UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufWithShaderVar &hmapHolesBuf)
 {
   hmapHolesBuf.close();
   hmapHolesTmpTex.close();
@@ -103,7 +103,7 @@ void on_disappear(int hmap_holes_scale_step_offset_varId, UniqueTexWithShaderVar
   hmapHolesTex.close();
 }
 
-void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufHolder &hmapHolesBuf,
+void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHolesTmpTex, UniqueBufWithShaderVar &hmapHolesBuf,
   PostFxRenderer &hmapHolesProcessRenderer, PostFxRenderer &hmapHolesMipmapRenderer, ShadersECS &hmapHolesPrepareRenderer,
   bool &should_render_ground_holes, int hmap_holes_scale_step_offset_varId, int hmap_holes_temp_ofs_size_varId, ecs::Point4List &holes,
   ecs::Point3List &invalidate_bboxes, const ComputeShader &heightmap_holes_process_cs)
@@ -124,7 +124,6 @@ void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHo
   createTempResources(ground_holes_temp_tex_size, hmapHolesTmpTex, hmapHolesBuf);
   scaleStepOffset.y = getSamplingStepDist(1 / scaleStepOffset.x, ground_holes_main_tex_size);
   ShaderGlobal::set_float4(hmap_holes_scale_step_offset_varId, scaleStepOffset);
-  d3d::set_depth(nullptr, DepthAccess::RW);
   int scale = (TEX_CELL_RES * ground_holes_main_tex_size) / ground_holes_temp_tex_size;
   if (!holes.empty())
   {
@@ -140,7 +139,7 @@ void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHo
   for (int y = 0; y < scale; y++)
     for (int x = 0; x < scale; x++)
     {
-      d3d::set_render_target(hmapHolesTmpTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{hmapHolesTmpTex.getTex2D(), 0, 0}});
       d3d::setview(0, 0, ground_holes_temp_tex_size, ground_holes_temp_tex_size, 0, 1);
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       ShaderGlobal::set_float4(hmap_holes_temp_ofs_size_varId, x, y, scale, ground_holes_temp_tex_size / TEX_CELL_RES);
@@ -164,7 +163,7 @@ void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHo
       else
       {
         d3d::resource_barrier({hmapHolesTex.getTex2D(), RB_RO_SRV | RB_SOURCE_STAGE_PIXEL | RB_STAGE_PIXEL, 0, 1});
-        d3d::set_render_target(hmapHolesTex.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{hmapHolesTex.getTex2D(), 0, 0}});
         d3d::setview(x * sz, y * sz, sz, sz, 0, 1);
         hmapHolesProcessRenderer.render();
       }
@@ -179,7 +178,7 @@ void render(UniqueTexWithShaderVar &hmapHolesTex, UniqueTexWithShaderVar &hmapHo
     d3d::resource_barrier(
       {hmapHolesTex.getTex2D(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_SOURCE_STAGE_PIXEL | RB_STAGE_PIXEL, unsigned(i - 1), 1});
     hmapHolesTex.getTex2D()->texmiplevel(i - 1, i - 1);
-    d3d::set_render_target(hmapHolesTex.getTex2D(), i);
+    d3d::set_render_target({}, DepthAccess::RW, {{hmapHolesTex.getTex2D(), static_cast<uint32_t>(i), 0}});
     d3d::setview(0, 0, sz, sz, 0, 1);
     hmapHolesMipmapRenderer.render();
   }
@@ -227,7 +226,7 @@ void convar_helper(bool &should_render_ground_holes)
 }
 
 
-void zones_before_render(UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes)
+void zones_before_render(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones, Tab<Point3_vec4> &bboxes)
 {
   if (!should_update_ground_holes_zones)
     return;
@@ -248,14 +247,14 @@ void zones_before_render(UniqueBufHolder &hmapHolesZonesBuf, bool &should_update
   should_update_ground_holes_zones = false;
 }
 
-void zones_after_device_reset(UniqueBufHolder &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
+void zones_after_device_reset(UniqueBufWithShaderVar &hmapHolesZonesBuf, bool &should_update_ground_holes_zones)
 {
   should_update_ground_holes_zones = true;
   ShaderGlobal::set_int(heightmap_holes_zones_numVarId, 0);
   hmapHolesZonesBuf.close();
 }
 
-void zones_manager_on_disappear(UniqueBufHolder &hmapHolesZonesBuf)
+void zones_manager_on_disappear(UniqueBufWithShaderVar &hmapHolesZonesBuf)
 {
   ShaderGlobal::set_int(heightmap_holes_zones_numVarId, 0);
   hmapHolesZonesBuf.close();

@@ -10,6 +10,7 @@
 #include "physical_device_set.h"
 #include "device_queue.h"
 #include "dlss.h"
+#include "xess.h"
 #include "streamline_adapter.h"
 #include "globals.h"
 #include <EASTL/sort.h>
@@ -49,6 +50,7 @@
 #include "swapchain.h"
 #include "backend/cmd/vendor_exts.h"
 #include "resource_update_buffer.h"
+#include "amdFsr.h"
 
 using namespace drv3d_vulkan;
 
@@ -171,6 +173,7 @@ struct InitCtx
     fillEnabledInstanceLayers();
 
     VkApplicationInfo appInfo = create_app_info(vkCfg);
+    Globals::xess.patchApiVersion(appInfo.apiVersion);
     debug("vulkan: Reporting to Vulkan: pAppName=%s appVersion=0x%08X pEngineName=%s engineVersion=0x%08X "
           "apiVersion=0x%08X...",
       appInfo.pApplicationName, appInfo.applicationVersion, appInfo.pEngineName, appInfo.engineVersion, appInfo.apiVersion);
@@ -341,6 +344,7 @@ struct InitCtx
       }
       // enable features that live in extended descriptions
       set->enableExtendedFeatures(dci, featuresExt);
+      Globals::xess.injectRequiredFeatures(featuresExt);
     }
 
 #if VK_KHR_global_priority
@@ -434,6 +438,15 @@ struct InitCtx
       for (auto &ext : Globals::dlss.getRequiredDeviceExtensions(Globals::VK::inst.get(), Globals::VK::phy.device))
         injectExtensions(ext.c_str());
 #endif
+
+      for (auto &ext : Globals::xess.getRequiredDeviceExtensions())
+      {
+        if (!injectExtensions(ext.c_str()))
+        {
+          Globals::xess.failDeviceExt();
+          break;
+        }
+      }
 
       eastl::string lateOsSpecificExts = os_get_additional_ext_requirements(set->device, set->extensions);
       if (!lateOsSpecificExts.empty())
@@ -706,6 +719,7 @@ struct InitCtx
       if (Globals::VK::phy.vendor == GpuVendor::NVIDIA)
         Globals::dlss.Initialize(Globals::VK::inst.get(), Globals::VK::phy.device, Globals::VK::dev.get());
 #endif
+      Globals::xess.init();
 
       if (!inReset)
       {
@@ -823,6 +837,7 @@ void shutdown_device()
 #else
   Globals::dlss.Teardown(Globals::VK::dev.get());
 #endif
+  Globals::xess.shutdown();
 
   Globals::samplers.shutdown();
   Globals::timelines.shutdown();
@@ -894,11 +909,14 @@ void d3d::release_driver()
   // if pending work contains some pipe rebinds
   Globals::ctx.processAllPendingWork();
   Globals::shaderProgramDatabase.clear(Globals::ctx);
+  if (amd::FSRVulkan *fsr = amd::FSRVulkan::getExistingInstance())
+    fsr->teardownUpscaling();
   shutdown_device();
 
   Globals::Dbg::callbacks.shutdown();
   Globals::VK::inst.shutdown();
   Globals::VK::loader.unload();
+  Globals::xess.unload();
   Globals::window.closeWindow();
   Globals::shaderProgramDatabase.shutdown();
   Globals::Dbg::rdoc.shutdown();
@@ -993,6 +1011,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   ictx.initConfigs();
   dumpStateSizes();
 
+  Globals::xess.load();
   ERR_CHECK(ictx.setupInstance());
   // create draw window now, so we can determine which device
   // is able to render to the window surface
@@ -1130,6 +1149,7 @@ void delete_all_device_resources()
 #else
   Globals::dlss.Teardown(Globals::VK::dev.get());
 #endif
+  Globals::xess.shutdown();
   Backend::interop.lastGPUCompleted.id = 0;
   Backend::interop.pendingGpuWork.gpuFence = nullptr;
 }
@@ -1204,12 +1224,14 @@ bool recreate_device()
   Globals::Dbg::callbacks.shutdown();
   Globals::VK::inst.shutdown();
   Globals::VK::loader.unload();
+  Globals::xess.unload();
 
   // here vulkan is no longer inited, so any broken state/objects are no longer in use
 
   ictx.dcc.inReset = true;
   ictx.initConfigs();
   ictx.error = nullptr;
+  Globals::xess.load();
   ERR_CHECK(ictx.setupInstance());
   ERR_CHECK(ictx.setupSurfaceAndDevice());
   Globals::VK::bufProps.init();

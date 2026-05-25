@@ -17,7 +17,6 @@
 #include <util/dag_threadPool.h>
 #include <util/dag_generationReferencedData.h>
 #include <osApiWrappers/dag_spinlock.h>
-#include <osApiWrappers/dag_events.h>
 
 namespace dafx
 {
@@ -229,12 +228,8 @@ struct Context
   SimLodGenParams simLodGenParams;
 
   volatile int asyncCounter = -1;
-  os_event_t allAsyncCpuJobsDoneEvent;
-  void asyncCpuJobsCompleted()
-  {
-    interlocked_release_store(asyncCounter, -1);
-    os_event_set(&allAsyncCpuJobsDoneEvent);
-  }
+  volatile unsigned allAsyncCpuJobsDone = 0; // 0|1
+  void asyncCpuJobsCompleted();
 
   unsigned int currentFrame = 0;
   int renderBufferMaxUsage = 0;
@@ -256,8 +251,7 @@ struct Context
   os_spinlock_t queueLock;
   os_spinlock_t configLock;
 
-  Context() { os_event_create(&allAsyncCpuJobsDoneEvent); } //-V730
-  ~Context() { os_event_destroy(&allAsyncCpuJobsDoneEvent); }
+  Context() = default;
   Context(Context &&) = default;
   Context(const Context &) = delete;
   Context &operator=(const Context &) = delete;

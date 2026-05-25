@@ -63,3 +63,6 @@ if 'gui' in BUILD_COMPONENTS:
   run([FONTGEN_EXE, 'fontgenPC.blk', '-fullDynamic', '-quiet'], cwd='../develop/gui/fonts')
   run([VROMFS_PACKER_EXE, 'skin.vromfs.blk', '-quiet'], cwd='../develop/gui')
   run([VROMFS_PACKER_EXE, 'fonts.vromfs.blk', '-quiet'], cwd='../develop/gui')
+
+if 'shaders' in BUILD_COMPONENTS and 'vromfs' in BUILD_COMPONENTS:
+  run([sys.executable, './update_snapshot.py', '--no-cvs-update'], cwd='./tools')

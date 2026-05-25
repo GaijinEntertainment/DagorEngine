@@ -243,7 +243,7 @@ void TerraformRenderer::renderHeightMask(const Point2 &pivot)
   projTm = matrix_ortho_off_center_lh(bbox[0].x, bbox[1].x, bbox[1].y, bbox[0].y, -10.0f, 10.0f);
   d3d::settm(TM_PROJ, &projTm);
 
-  d3d::set_render_target(heightMaskTex.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{heightMaskTex.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(tform.getZeroAlt(), 0, 0, 0), 0.f, 0);
   ShaderGlobal::set_float4(tform_height_mask_scale_offsetVarId, safediv(1.0f, bbox.width().x), safediv(1.0f, bbox.width().y),
     safediv(-bbox.lim[0].x, bbox.width().x), safediv(-bbox.lim[0].y, bbox.width().y));

@@ -316,7 +316,8 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
 
   if (!skip_processing)
   {
-    auto &dispatchData = dispatchDataMapping[processed_buffer.get()];
+    VariantKey variantKey = packVariants(args.skin.isClothWind);
+    auto &dispatchData = dispatchDataMapping[variantKey][processed_buffer.get()];
 
     dispatchData.maxVertexCount = max(args.vertexCount, dispatchData.maxVertexCount);
 
@@ -343,6 +344,12 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
     params.instance_offset = instanceOffset;
     params.source_slot = source_buffer_bindless;
     params.pos_format_half = args.positionFormat == VSDT_SHORT4N ? 1 : 0;
+    float invNoiseScaleY = safeinv(args.skin.clothWind.noiseScaleY);
+    params.cloth_wind__noise_time_scale = float4(args.skin.clothWind.noiseScaleX, args.skin.clothWind.noiseScaleY,
+      args.skin.clothWind.timeScaleMin * invNoiseScaleY, args.skin.clothWind.timeScaleMax * invNoiseScaleY);
+    params.cloth_noise_combined_tex_slot = args.skin.clothWind.clothNoiseCombinedTexBindless;
+    params.cloth_wind__noise_amp = args.skin.clothWind.noiseAmp;
+    params.cloth_wind__ambient_influence = args.skin.clothWind.ambientInfluence;
   }
 
   args.vertexStride = vertexSize;
@@ -368,13 +375,21 @@ bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *sourc
   return !skip_processing;
 }
 
+SkinnedVertexProcessorBatched::VariantKey SkinnedVertexProcessorBatched::packVariants(bool is_cloth_wind)
+{
+  return static_cast<VariantKey>(is_cloth_wind);
+}
+
+void SkinnedVertexProcessorBatched::unpackVariants(VariantKey key, bool &is_cloth_wind) { is_cloth_wind = static_cast<bool>(key); }
+
 void SkinnedVertexProcessorBatched::begin() const {}
 
 void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
 {
-#define GLOBAL_VARS_LIST                       \
-  VAR(bvh_process_skinned_vertices_params_buf) \
-  VAR(bvh_process_skinned_vertices_is_building_prototype)
+#define GLOBAL_VARS_LIST                                  \
+  VAR(bvh_process_skinned_vertices_params_buf)            \
+  VAR(bvh_process_skinned_vertices_is_building_prototype) \
+  VAR(bvh_process_skinned_vertices_cloth)
 
 #define VAR(a) static int a##VarId = get_shader_variable_id(#a);
   GLOBAL_VARS_LIST
@@ -391,31 +406,39 @@ void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
   {
     ShaderGlobal::set_buffer(bvh_process_skinned_vertices_params_bufVarId, instanceDataBuffer);
     ShaderGlobal::set_int(bvh_process_skinned_vertices_is_building_prototypeVarId, is_protype_building);
-    for (auto &[targetBuffer, dispatchData] : dispatchDataMapping)
+    for (auto &[variantKey, mapping] : dispatchDataMapping)
     {
-      if (dispatchData.instanceData.empty())
-        continue;
-      G_ASSERT(dispatchData.maxVertexCount > 0);
+      bool isClothWind;
+      unpackVariants(variantKey, isClothWind);
+      ShaderGlobal::set_int(bvh_process_skinned_vertices_clothVarId, isClothWind);
 
-      d3d::set_rwbuffer(STAGE_CS, output_uav_no, targetBuffer);
-      uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
-      d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
+      for (auto &[targetBuffer, dispatchData] : mapping)
+      {
+        if (dispatchData.instanceData.empty())
+          continue;
+        G_ASSERT(dispatchData.maxVertexCount > 0);
 
-      G_ASSERT(shader);
-      shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
-      dispatches++;
-      instances += dispatchData.instanceData.size();
+        d3d::set_rwbuffer(STAGE_CS, output_uav_no, targetBuffer);
+        uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
+        d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
+
+        G_ASSERT(shader);
+        shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
+        dispatches++;
+        instances += dispatchData.instanceData.size();
+      }
     }
     d3d::set_immediate_const(STAGE_CS, nullptr, 0);
   }
   DA_PROFILE_TAG(SkinnedVertexProcessorBatched::end, "dispatches: %d, instances: %d", dispatches, instances);
 
   // Do NOT free memory, it'll just need to be reallocated next frame and that's slow
-  for (auto &[_, dispatchData] : dispatchDataMapping)
-  {
-    dispatchData.instanceData.clear();
-    dispatchData.maxVertexCount = 0;
-  }
+  for (auto &[_, mapping] : dispatchDataMapping)
+    for (auto &[_, dispatchData] : mapping)
+    {
+      dispatchData.instanceData.clear();
+      dispatchData.maxVertexCount = 0;
+    }
 }
 
 void SkinnedVertexProcessorBatched::updateData() const
@@ -423,8 +446,9 @@ void SkinnedVertexProcessorBatched::updateData() const
   TIME_D3D_PROFILE(updateData);
 
   uint32_t targetSize = 0;
-  for (auto &[_, dispatchData] : dispatchDataMapping)
-    targetSize += dispatchData.instanceData.size();
+  for (auto &[_, mapping] : dispatchDataMapping)
+    for (auto &[_, dispatchData] : mapping)
+      targetSize += dispatchData.instanceData.size();
 
   size_t bufferSize = instanceDataBuffer ? instanceDataBuffer->getNumElements() : 0;
   if (bufferSize < targetSize)
@@ -442,14 +466,15 @@ void SkinnedVertexProcessorBatched::updateData() const
     HANDLE_LOST_DEVICE_STATE(upload, );
 
     auto cursor = upload.get();
-    for (auto &[_, dispatchData] : dispatchDataMapping)
-    {
-      if (dispatchData.instanceData.empty())
-        continue;
-      size_t dataSize = data_size(dispatchData.instanceData);
-      memcpy(cursor, dispatchData.instanceData.data(), dataSize);
-      cursor += dataSize;
-    }
+    for (auto &[_, mapping] : dispatchDataMapping)
+      for (auto &[_, dispatchData] : mapping)
+      {
+        if (dispatchData.instanceData.empty())
+          continue;
+        size_t dataSize = data_size(dispatchData.instanceData);
+        memcpy(cursor, dispatchData.instanceData.data(), dataSize);
+        cursor += dataSize;
+      }
   }
 }
 

@@ -3,11 +3,7 @@
 #include <asyncHTTPClient/curl_global.h>
 #include <debug/dag_debug.h>
 
-#if defined(USE_XCURL)
-#include <Xcurl.h>
-#else
 #include <curl/curl.h>
-#endif
 
 #define TRACE(...) debug("[CURL_GLOBAL] " __VA_ARGS__)
 
@@ -61,16 +57,6 @@ void was_initialized_externally(bool value)
   G_ASSERT(!is_initialized);
   TRACE("was_initialized_externally(%d)", value);
   is_initialized_externally = value;
-}
-
-
-void set_requests_limit(uint32_t limit)
-{
-  G_UNUSED(limit);
-#if defined(USE_XCURL)
-  xcurl_global_set_request_limit(limit);
-  TRACE("XCurl requests limit was set to: %u", limit);
-#endif
 }
 
 } // namespace curl_global

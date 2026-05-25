@@ -553,7 +553,6 @@ void ImpostorTextureManager::start_rendering_branches(Texture *rt)
 void ImpostorTextureManager::end_rendering_slices()
 {
   rendinst::render::endRenderInstancing();
-  d3d::set_depth(nullptr, DepthAccess::RW);
   shaders::overrides::reset();
   d3d::setind(nullptr);
   d3d::setvdecl(BAD_VDECL);

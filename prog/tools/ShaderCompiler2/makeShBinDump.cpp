@@ -1924,6 +1924,8 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   memcpy(mapped->header.checksumHash, csum.data, sizeof(mapped->header.checksumHash));
 
   memcpy(mapped->header.buildBlkHash, ctx.compInfo().targetBlkHash().data(), sizeof(mapped->header.buildBlkHash));
+  if (shc::config().clearBlkHashInDump)
+    memset(mapped->header.buildBlkHash, 0, sizeof(mapped->header.buildBlkHash));
 
   sh_debug(SHLOG_NORMAL, "[INFO] Calculated checksum in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();

@@ -139,6 +139,7 @@ public:
         ImGui::SetNextItemSelectionUserData(i);
 
         const char *label = values[i].empty() ? "<empty>" : values[i].c_str();
+        ImGui::PushID(i);
         if (ImGui::Selectable(label, wasSelected, ImGuiSelectableFlags_AllowDoubleClick))
         {
           if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -149,6 +150,7 @@ public:
         {
           rightClicked = true;
         }
+        ImGui::PopID();
 
         if (wasSelected)
           ImGui::PopStyleColor();

@@ -1718,6 +1718,7 @@ void WorldRenderer::resetSSAOImpl()
 
   bool hq = aoQuality != AoQuality::LOW;
   aoFGNodes = makeAmbientOcclusionNodes(hq ? AoAlgo::GTAO : AoAlgo::SSAO, aoW, aoH, creationFlags);
+  ShaderGlobal::set_int(ssao_is_gtaoVarId, hq ? 1 : 0);
 
   if (!hq)
   {
@@ -3629,8 +3630,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   auto callBeforePUFD = []() { // `PUFD` is abbr ParallelUpdateFrameDelayed
     rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
   };
-  callBeforePUFD();            // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
-  if (!delay_PUFD_after_bvh()) // It'll be started after bvh_update_instances instead, runs parallel with bvh_update node
+  callBeforePUFD(); // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
+  if (!should_delay_pufd_until_bvh_jobs_done())                      // It'll be started after heavy parallel bvh jobs finished
     start_async_game_tasks(frame_id, AGT_ADDITIONAL, /*wake*/ true); // Note: long job - start as early as possible
 
   const TMatrix &itm = currentFrameCamera.viewItm;

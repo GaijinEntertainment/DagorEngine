@@ -1,1 +1,0 @@
-Handled type wrapping a system ``std::recursive_mutex``, used with ``lock_mutex`` for thread-safe access to shared data across contexts.

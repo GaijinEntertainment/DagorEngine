@@ -19,8 +19,9 @@ options unsafe_table_lookup = false
 
 def aotFieldName(name : string) : string {
     var result = replace(name, "`", "__");
-    // Escape names that clash with Windows SDK macros (e.g. DELETE from winnt.h)
-    if (result == "DELETE") {
+    // Escape names that clash with C++ keywords (e.g. `char`, `register`, `extern`)
+    // or with Windows SDK macros (e.g. `DELETE` from winnt.h).
+    if (is_cpp_keyword(result) || result == "DELETE") {
         result = "_f_" + result;
     }
     return result;
@@ -223,10 +224,14 @@ def hex_char(var Ch : int) {
 }
 
 def aotSuffixNameEx(funcName : das_string; suffix : string) {
-    var prefix = false;
+    return aotSuffixNameEx(string(funcName), suffix);
+}
+
+def aotSuffixNameEx(funcName : string; suffix : string) {
+    var prefix = is_cpp_keyword(funcName);
 
     let name = build_string() $(var writer) {
-        for (ch in string(funcName)) {
+        for (ch in funcName) {
             if (is_alnum(ch) || ch == '_') {
                 writer |> write_char(ch);
             } else {
@@ -269,7 +274,21 @@ def aotSuffixNameEx(funcName : das_string; suffix : string) {
 }
 
 def aotStructName(st : Structure?) {
-    return aotSuffixNameEx(st.name, "");
+    // Suffix "_S" is prepended only when `st.name` is a C++ keyword (or contains
+    // a non-alnum char, which the parser disallows for struct names — so in
+    // practice: keyword names only). Non-keyword struct names emit unchanged.
+    return aotSuffixNameEx(st.name, "_S");
+}
+
+def aotEnumName(enu : Enumeration?) {
+    // Same shape as aotStructName but for enums.
+    return aotSuffixNameEx(enu.name, "_E");
+}
+
+def aotEnumValueName(name : das_string) {
+    // Used for enum value identifiers inside `enum class { ... }` body and at access sites
+    // (`EnumName::ValueName`). Prepended `_V` only for C++ keyword names.
+    return aotSuffixNameEx(name, "_V");
 }
 
 
@@ -370,9 +389,9 @@ def describeCppTypeEx(typeDecl : TypeDeclPtr;
                 if (typeDecl.enumType.external) {
                     write(writer, "DAS_COMMENT(bound_enum) {typeDecl.enumType.cppName}");
                 } elif (typeDecl.enumType._module.name.empty()) {
-                    write(writer, "DAS_COMMENT(enum) {typeDecl.enumType.name}");
+                    write(writer, "DAS_COMMENT(enum) {aotEnumName(typeDecl.enumType)}");
                 } else {
-                    write(writer, "DAS_COMMENT(enum) {aotModuleName(typeDecl.enumType._module)}::{typeDecl.enumType.name}")
+                    write(writer, "DAS_COMMENT(enum) {aotModuleName(typeDecl.enumType._module)}::{aotEnumName(typeDecl.enumType)}")
                 }
             } else {
                 write(writer, "DAS_COMMENT(unspecified enumeration)")
@@ -723,7 +742,9 @@ class public AotDebugInfoHelper {
             writeArgTypes(writer, fld, suffix);
             writeArgNames(writer, fld, suffix);
             let prefix = (info.module_name |> length() > 0) ? "{info.module_name}::" : "";
-            write(*writer, "VarInfo {structInfoName(info)}_field_{fi} =  \{ {describeCppVarInfo(prefix + info.name, fld,suffix)} \};\n");
+            // info.name is the struct's daslang name; mangle if C++ keyword so offsetof()
+            // in describeCppVarInfo sees the same identifier the struct decl emitted.
+            write(*writer, "VarInfo {structInfoName(info)}_field_{fi} =  \{ {describeCppVarInfo(prefix + aotSuffixNameEx(info.name, "_S"), fld,suffix)} \};\n");
             if (fld.annotation_arguments != null) {
                 if (length(*fld.annotation_arguments) > 0) {
                     let annArgs = build_string() $(var sb) {
@@ -1177,10 +1198,10 @@ class public CppAot : AstVisitor {
             write(*ss, "#if 0 // external enum\n");
         }
         write(*ss, "namespace {aotModuleName(enu._module)} \{\n\n");
-        write(*ss, "enum class {enu.name} : {das_to_cppString(enu.baseType)} \{\n");
+        write(*ss, "enum class {aotEnumName(enu)} : {das_to_cppString(enu.baseType)} \{\n");
     }
     def override preVisitEnumerationValue(enu : EnumerationPtr; name : das_string; value : ExpressionPtr; last : bool) {
-        write(*ss, "    {name} = {das_to_cppString(enu.baseType)}(");
+        write(*ss, "    {aotEnumValueName(name)} = {das_to_cppString(enu.baseType)}(");
     }
     def override visitEnumerationValue(enu : EnumerationPtr; name : das_string; value : ExpressionPtr; last : bool) {
         write(*ss, ")");
@@ -2081,7 +2102,7 @@ class public CppAot : AstVisitor {
             write(*ss, ", {vtype.get_variant_field_offset(field.fieldIndex)}, {field.fieldIndex}>::get(");
         } else {
             let mod_name = (vtype.structType._module.name.empty() ? "" : string(vtype.structType._module.name) + "::");
-            write(*ss, ",&{mod_name}{vtype.structType.name}::{aotFieldName(string(field.name))}>::get(");
+            write(*ss, ",&{mod_name}{aotStructName(vtype.structType)}::{aotFieldName(string(field.name))}>::get(");
         }
     }
     def override visitExprSafeField(var field : ExprSafeField?) : ExpressionPtr {
@@ -2264,7 +2285,7 @@ class public CppAot : AstVisitor {
         let cfg = DescribeConfig(skip_ref = true, skip_const = true, redundant_const = false, cross_platform = cross_platform);
         let type_str = describeCppType(c._type, cfg);
         write(*ss, type_str);
-        var ctext = string(c.value);
+        var ctext = aotEnumValueName(c.value);
         for (ee in c.enumType.list) {
             if (ee.name == c.value) {
                 if (!ee.cppName.empty()) {

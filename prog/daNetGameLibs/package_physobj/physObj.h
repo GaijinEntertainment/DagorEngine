@@ -59,6 +59,9 @@ void PHYSOBJ_ACTOR::processSnapshotNoEntity(uint16_t netPhysId, BasePhysSnapshot
 template <>
 void PHYSOBJ_ACTOR::updateRemoteShadow(double remote_time, float dt, const BasePhysActor::UpdateContext &uctx);
 
+template <>
+void PHYSOBJ_ACTOR::loadPhysFromBlk(const DataBlock *blk, const CollisionResource *coll_res, const char *blk_name);
+
 extern template class PHYSOBJ_ACTOR;
 typedef PHYSOBJ_ACTOR PhysObjActor;
 #undef PHYSOBJ_ACTOR

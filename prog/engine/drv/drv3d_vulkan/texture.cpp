@@ -202,6 +202,18 @@ int BaseTex::updateSubRegionInternal(BaseTexture *srcBaseTex, int src_subres_idx
   region.dstOffset.x = dest_x;
   region.dstOffset.y = dest_y;
   region.dstOffset.z = dest_z;
+
+  if (src->getFormat().isBlockFormat() && getFormat().isBlockFormat())
+  {
+    uint32_t blockX, blockY;
+    getFormat().getBytesPerPixelBlock(&blockX, &blockY);
+    uint32_t mipW = max(pars.w >> region.dstSubresource.mipLevel, 1);
+    uint32_t mipH = max(pars.h >> region.dstSubresource.mipLevel, 1);
+    if (mipW < blockX && src_w > blockX)
+      src_w = mipW;
+    if (mipH < blockY && src_h > blockY)
+      src_h = mipW;
+  }
   region.extent.width = src_w;
   region.extent.height = src_h;
   region.extent.depth = src_d;

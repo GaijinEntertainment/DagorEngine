@@ -151,7 +151,10 @@ ECS_NO_ORDER static inline void volume_view_finalize_es(const dagdp::EventViewFi
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static inline void dagdp_volume_before_draw_es(const BeforeDraw &evt) { start_gather_before_draw_volumes(evt.camPos, evt.frustum); }
+static inline void dagdp_volume_before_draw_es(const BeforeDraw &evt, ecs::EntityManager &manager)
+{
+  start_gather_before_draw_volumes(manager, evt.camPos, evt.frustum);
+}
 
 static bbox3f compute_around_ri_fbox(bbox3f_cref frustum_box,
   const ecs::EidList &volume_box_eids,

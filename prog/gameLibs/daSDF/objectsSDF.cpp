@@ -197,7 +197,7 @@ struct ObjectsAtlasLru
   uint32_t currentMaxObjectsCnt = 0;
   UniqueTexWithShaderVar object_sdf_mip_atlas;
   FastNameMapTS<> files;
-  UniqueBufHolder object_sdf_mips;
+  UniqueBufWithShaderVar object_sdf_mips;
   uint16_t addFileRefSafe(const char *fileName)
   {
     auto id = files.addNameId(fileName);
@@ -609,7 +609,7 @@ struct ObjectsAtlasLru
   // one in submitGPUCommands in updateData
   // this allows us to perform everything besides actual dispatches in not main thread (even updateData can be done in other thread)
   // however, we don't use it now, so if there is enough space in dest buffer we can do just one (with lock discard), saving one memcpy
-  UniqueBufHolder indirectionsUpdateBuf, indirectionCommandsBuf, objectInfoCommandsBuf, blocksCommandsBuf;
+  UniqueBufWithShaderVar indirectionsUpdateBuf, indirectionCommandsBuf, objectInfoCommandsBuf, blocksCommandsBuf;
   enum
   {
     DEFAULT_INDIR_COMMAND_SIZE = 1024,
@@ -1081,7 +1081,7 @@ struct ObjectsSDFImpl : public ObjectsSDF
   float getMipVoxelMaxSize(int i) const { return mipVoxelMaxSizes[i]; }
   float getMipSize(int mip) const override { return 0.5 * (1 << mip); } // todo: fixme: we read approximate average
 
-  UniqueBufHolder object_sdf_instances;
+  UniqueBufWithShaderVar object_sdf_instances;
 
   uint32_t instancesCount = 0, instancesBufferSize = 0;
   uint32_t getInstances() const { return instancesCount; }

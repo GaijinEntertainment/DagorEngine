@@ -1,0 +1,14 @@
+=== inflight ===
+resolve threw: Promise.resolve: cannot resolve the promise returned by an async function
+reject threw: Promise.reject: cannot reject the promise returned by an async function
+bare: fulfilled
+consumer got: 42
+=== after_adopt ===
+resolve still throws: Promise.resolve: cannot resolve the promise returned by an async function
+reject still throws: Promise.reject: cannot reject the promise returned by an async function
+consumer got: real
+=== after_done ===
+resolve throws: Promise.resolve: cannot resolve the promise returned by an async function
+reject throws: Promise.reject: cannot reject the promise returned by an async function
+after probe, task awaits to: 42
+script done

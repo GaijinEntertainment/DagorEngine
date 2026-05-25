@@ -387,7 +387,7 @@ macro USE_CLIPMAP_INDIRECTION_SAMPLING(stage)
     {
       uint minMip = get_minimum_mip_level(texcoord);
       float fetchMip = max(smoothMip, (half)minMip); // TODO: Make me an assert.
-      bool outOfBound = fetchMip > maxMip;
+      bool outOfBound = fetchMip - maxMip >= 1.f;
 
       uint2 indirectionXY = compute_tile_coords(texcoord, (uint)fetchMip, mippos);
       uint2 indirection_index = indirectionXY + uint2((uint)min(fetchMip, maxMip), indirectionOffset) * TILE_WIDTH;

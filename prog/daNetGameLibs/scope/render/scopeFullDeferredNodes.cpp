@@ -430,11 +430,12 @@ dafg::NodeHandle makeRenderLensOpticsNode()
       if (bs->hasThermalRender.get())
         d3d::clear_rt({frameHndl.get()}, make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
 
-      d3d::set_render_target({}, DepthAccess::RW, {{frameHndl.get(), 0, 0}});
       if (bs->hasOpticsPrepass.ref())
-        d3d::set_depth(opticsPrepassDepthHndl.view().getTex2D(), bs->useROdepth ? DepthAccess::SampledRO : DepthAccess::RW);
+        d3d::set_render_target({opticsPrepassDepthHndl.view().getTex2D(), 0, 0},
+          bs->useROdepth ? DepthAccess::SampledRO : DepthAccess::RW, {{frameHndl.get(), 0, 0}});
       else
-        d3d::set_depth(depthAfterTransparentsHndl.view().getTex2D(), DepthAccess::SampledRO);
+        d3d::set_render_target({depthAfterTransparentsHndl.view().getTex2D(), 0, 0}, DepthAccess::SampledRO,
+          {{frameHndl.get(), 0, 0}});
 
       const ScopeAimRenderingData &scopeAimRenderData = scopeAimRenderDataHndl.ref();
       render_lens_optics(scopeAimRenderData, strmCtxHndl.ref(), fadingRenderer);
@@ -504,7 +505,8 @@ dafg::NodeHandle makeRenderReflectionsNode()
 
     auto scopeDataHndls = request_common_scope_state(registry);
     registry.readBlob<AimRenderingData>("aim_render_data")
-      .bindToShaderVar<&AimRenderingData::lensBoundingSphereRadius>("scope_lens_bounding_sphere_radius");
+      .bindToShaderVar<&AimRenderingData::lensBoundingSphereRadius>("scope_lens_bounding_sphere_radius")
+      .bindToShaderVar<&AimRenderingData::aimingTime>("scope_reflection_head_visibility");
 
     Ptr<ShaderMaterial> mat{new_shader_material_by_name("scope_lens_reflections")};
     Ptr<ShaderElement> elem;

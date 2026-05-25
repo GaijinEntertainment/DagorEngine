@@ -25,7 +25,7 @@ class DecalsMatrices
     vec4f row0, row1, row2;
   };
 
-  UniqueBufHolder matricesCB;
+  UniqueBufWithShaderVar matricesCB;
   uint32_t idCount = 0;
   eastl::vector<DecalMatrix> matrices; // incompatible with mat43f from vecMath
   uint32_t removedMatrixCount = 0;

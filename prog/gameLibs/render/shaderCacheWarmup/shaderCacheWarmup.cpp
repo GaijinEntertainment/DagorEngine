@@ -31,6 +31,9 @@
 #include <EASTL/bitvector.h>
 #include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
+#include <generic/dag_span.h>
+#include <memory/dag_framemem.h>
+#include <dag/dag_vector.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #if _TARGET_ANDROID || _TARGET_IOS
 #include <crashlytics/firebase_crashlytics.h>
@@ -558,9 +561,9 @@ class GraphicsShadersWarmup final : public ShadersWarmup
 {
 public:
   GraphicsShadersWarmup(DynamicD3DFlusher &flusher, InvalidIntervalsSet &intervals, const shadercache::WarmupParams &params) :
-    ShadersWarmup(flusher, intervals), depthTarget(params.depthTarget)
+    ShadersWarmup(flusher, intervals)
   {
-    initResources(params.colorTargetCount, params.colorTargetFormat);
+    initResources(params.colorTargetCount, params.colorTargetFormat, params.depthTargetFormat);
   }
 
   ~GraphicsShadersWarmup()
@@ -569,14 +572,16 @@ public:
       release_managed_tex(texBlobId);
     for (BaseTexture *tex : colorTargets)
       tex->destroy();
+    if (depthTarget)
+      depthTarget->destroy();
   }
 
 private:
-  void initResources(int colorTargetCount, int colorTargetFormat)
+  void initResources(int colorTargetCount, int colorTargetFormat, int depthTargetFormat)
   {
     sbd = &shBinDump();
 
-    BaseTexture *tex = d3d::create_tex(nullptr, 1, 1, TEXCF_RGB, 1, "shaders_warmup_blob", RESTAG_SHADER_CAHCE);
+    BaseTexture *tex = d3d::create_tex(nullptr, 1, 1, TEXCF_RGB, 1, "shaders_warmup_blob", RESTAG_SHADER_CACHE);
     if (tex)
       texBlobId = register_managed_tex("shaders_warmup_blob", tex);
 
@@ -585,9 +590,16 @@ private:
     {
       String colorTargetName(-1, "warmup_tmp_color_%d", i);
       BaseTexture *colorTarget =
-        d3d::create_tex(nullptr, 1, 1, colorTargetFormat | TEXCF_RTARGET, 1, colorTargetName.c_str(), RESTAG_SHADER_CAHCE);
+        d3d::create_tex(nullptr, 1, 1, colorTargetFormat | TEXCF_RTARGET, 1, colorTargetName.c_str(), RESTAG_SHADER_CACHE);
       G_ASSERT(colorTarget);
       colorTargets.push_back(colorTarget);
+    }
+
+    if (depthTargetFormat)
+    {
+      String depthTargetName(16, "warmup_tmp_depth");
+      depthTarget = d3d::create_tex(nullptr, 1, 1, depthTargetFormat | TEXCF_RTARGET, 1, depthTargetName.c_str(), RESTAG_SHADER_CACHE);
+      G_ASSERT(depthTarget);
     }
   }
 
@@ -620,11 +632,16 @@ private:
   {
     d3d_get_render_target(prevRT);
 
-    d3d::set_render_target();
-    for (int i = 0; i < colorTargets.size(); ++i)
-      d3d::set_render_target(i, colorTargets[i], 0);
-    if (depthTarget)
-      d3d::set_depth(depthTarget, DepthAccess::RW);
+    if (!depthTarget && colorTargets.empty())
+      d3d::set_render_target();
+    else
+    {
+      dag::Vector<RenderTarget, framemem_allocator> colorRts;
+      colorRts.reserve(colorTargets.size());
+      for (int i = 0; i < colorTargets.size(); ++i)
+        colorRts.push_back({colorTargets[i], 0, 0});
+      d3d::set_render_target({depthTarget, 0, 0}, DepthAccess::RW, make_span_const(colorRts));
+    }
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0.f, 0);
 
     // clear vertex stream binds to avoid random incompatibility with pipelines
@@ -833,10 +850,16 @@ void shadercache::draw_warmup_status()
     d3d::get_target_size(w, h);
     int barH = 32;
     int barW = (completed * w * 100) / (total * 100);
-    d3d::setview(0, h - barH, w, barH, 0, 1);
-    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
-    d3d::setview(0, h - barH, barW, barH, 0, 1);
-    d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+    if (w)
+    {
+      d3d::setview(0, h - barH, w, barH, 0, 1);
+      d3d::clearview(CLEAR_TARGET, E3DCOLOR(0), 0, 0);
+    }
+    if (barW)
+    {
+      d3d::setview(0, h - barH, barW, barH, 0, 1);
+      d3d::clearview(CLEAR_TARGET, E3DCOLOR(0xFFFFFFFF), 0, 0);
+    }
 
     // retro style load progress
     // int barHofs = barH;

@@ -152,6 +152,7 @@ struct AppGlue
   virtual bool isTiledRender() const = 0;
   virtual bool useMobileCodepath() const = 0;
   virtual bool isRayTracingEnabled() const = 0;
+  virtual bool isRayTracingAvailableWithSSAA() const { return false; }
   virtual int getTargetFormat() const = 0;
   virtual int getHangarPassValue() const = 0;
   virtual bool isVrHmdEnabled() const = 0;
@@ -165,8 +166,9 @@ void close();
 void on_render_resolution_changed(const IPoint2 &rendering_resolution);
 
 void reinit();
-void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, IPoint2 &rendering_resolution,
-  IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name, const char *depth_name);
+void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolution, bool dynamic_resolution_enabled,
+  IPoint2 &rendering_resolution, IPoint2 &min_dynamic_resolution, IPoint2 &max_dynamic_resolution, const char *input_name,
+  const char *depth_name);
 
 AntialiasingMethod get_method();
 void set_method(AntialiasingMethod method);

@@ -6,20 +6,20 @@
 #include <util/dag_globDef.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_localConv.h>
-#include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_rwSpinLock.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_fileIo.h>
 #include <debug/dag_log.h>
 #include <generic/dag_initOnDemand.h>
 #include <generic/dag_tab.h>
-#include <util/dag_strTable.h>
 #include <util/dag_oaHashNameMap.h>
-#include <util/dag_fastStrMap.h>
+#include <util/dag_hashedKeyMap.h>
+#include <util/dag_stringTableAllocator.h>
 #include <util/dag_hash.h>
+#include <hash/wyhash.h>
 #include <EASTL/vector_set.h>
 #include <ctype.h>
 #if _TARGET_C1 | _TARGET_C2
@@ -37,13 +37,117 @@
 
 extern const char *os_get_default_lang();
 
+// Defined below. Caller must hold locRwLock (read or write). The
+// LocalizationTable::loadCsv* overloads call these from inside the
+// startup/load write critical section; the public get_default_lang*()
+// would re-acquire locRwLock for read and deadlock the non-reentrant
+// NoWritersSpinLockReadWriteLock.
+static const char *get_default_lang_locked();
+static const char *get_default_lang_locked(const class DataBlock &blk);
+
 bool (*dag_on_duplicate_loc_key)(const char *key) = NULL;
 #if _TARGET_PC
 static char *force_def_lang = NULL;
 #endif
-static FastNameMapEx fakeLocKeys;
-static FastStrStrMap addRtLoc;
-static FastNameMap addRtLocStrings;
+
+// Compile-time wyhash seed for localization keys. Changing it forces a full
+// asset+binary rebuild; do so only if a real collision is observed in dev.
+// Only dev builds (DAGOR_DBGLEVEL > 0) run collision detection; release and
+// ForceLogs telemetry builds trust wyhash. Probability of a wyhash collision
+// against a 1M-entry table is ~3e-8 per insert; failure mode is wrong
+// translation, not crash.
+static constexpr uint64_t LOC_HASH_SEED = 0xa31d4f2b5e7c9018ull;
+
+static inline uint64_t loc_hash(const char *s, size_t len)
+{
+  uint64_t h = wyhash(s, len, LOC_HASH_SEED);
+  return h ? h : (1ULL << 63UL); // 0 is reserved as HashedKeyMap's EmptyKey
+}
+
+// Shared shape: hash -> StringTableAllocator offset.
+// Used three times: locTable->main values, RTA additions, optional LocKeyDump.
+struct LocStringTable
+{
+  HashedKeyMap<uint64_t, uint32_t> hashToOffset;
+  // 4KB start / 64KB max page: loc tables are MB-scale, default 256B/8KB pages would mean thousands of page pointers.
+  StringTableAllocator strings{12, 16};
+
+  const char *find(uint64_t hash) const
+  {
+    if (const uint32_t *ofs = hashToOffset.findVal(hash))
+      return strings.getDataRawUnsafe(*ofs);
+    return nullptr;
+  }
+
+  // Reserves `len` bytes (caller writes value + trailing NUL into the returned
+  // pointer) and records the (hash -> offset) mapping. If `hash` was already
+  // present, the entry is overwritten -- old bytes become unreachable until
+  // clear() reclaims the whole allocator.
+  char *reserveBytes(uint64_t hash, size_t len, uint32_t *out_offset = nullptr)
+  {
+    if (strings.head.left < len)
+      strings.addPage((uint32_t)len);
+    const uint32_t ofs = strings.getCurrentHeadOffset();
+    char *buf = strings.head.data.get() + strings.head.used;
+    strings.head.used += (uint32_t)len;
+    strings.head.left -= (uint32_t)len;
+    auto p = hashToOffset.emplace_if_missing(hash);
+    *p.first = ofs;
+    if (out_offset)
+      *out_offset = ofs;
+    return buf;
+  }
+
+  // Returns pointer to the stored bytes for `hash`. On a hash hit, returns
+  // the existing entry unchanged and, if its bytes differ from (str, len),
+  // sets *out_collided (when non-null) so the caller can surface a wyhash
+  // collision -- the new bytes are discarded. On a miss, copies (str, len)
+  // plus a trailing NUL and returns the freshly stored pointer.
+  const char *tryAddString(uint64_t hash, const char *str, size_t len, bool *out_collided = nullptr)
+  {
+    if (const uint32_t *ofs = hashToOffset.findVal(hash))
+    {
+      const char *existing = strings.getDataRawUnsafe(*ofs);
+      if (out_collided)
+        *out_collided = strncmp(existing, str, len) != 0 || existing[len] != 0;
+      return existing;
+    }
+    char *buf = reserveBytes(hash, len + 1);
+    memcpy(buf, str, len);
+    buf[len] = 0;
+    return buf;
+  }
+
+  void clear()
+  {
+    hashToOffset.clear();
+    strings.clear();
+  }
+};
+
+// LocKeyDump is just a LocStringTable holding (key_hash -> key string).
+struct LocKeyDump : LocStringTable
+{};
+
+LocKeyDump *make_loc_key_dump() { return new LocKeyDump(); }
+void destroy_loc_key_dump(LocKeyDump *d) { delete d; }
+
+// Interned placeholder strings handed out by get_fake_loc_for_missing_key for
+// keys absent from the main table. Cold path; rare wyhash collision would
+// surface as a wrong placeholder string (same failure mode as the main table).
+static LocStringTable fakeLocKeys;
+
+// RTA (runtime localization additions): hot read path (every getTextId may
+// consult it after a main-table miss), bursty writes during UGC ingest.
+static LocStringTable rtaTable;
+// rtaLock guards rtaTable only. Reader-preferring spinlock matches the
+// access pattern; 4 bytes, no OS handle.
+// rtaTable may legitimately contain entries whose hash also exists in
+// locTable->main -- getTextId checks main first, so such shadow entries are
+// harmless until clear_rta_localization() reclaims them.
+static NoWritersSpinLockReadWriteLock rtaLock;
+using RtaReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
+using RtaWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
 static SimpleString defLangOverride;
 
 static const char *remap_english_lang(const char *lang, const class DataBlock *blk)
@@ -71,31 +175,6 @@ static const char *remap_english_lang(const char *lang, const class DataBlock *b
   return lang;
 }
 
-static StrTable locStrTable;
-
-class LocalizedTextEntry
-{
-public:
-  char *text = nullptr;
-
-  LocalizedTextEntry() = default;
-  LocalizedTextEntry(LocalizedTextEntry &&e) : text(e.text) { e.text = nullptr; }
-  LocalizedTextEntry(const LocalizedTextEntry &e) : text(locStrTable.is_belong(e.text) ? e.text : str_dup(e.text, inimem)) {}
-  LocalizedTextEntry &operator=(LocalizedTextEntry &&e)
-  {
-    eastl::swap(text, e.text);
-    return *this;
-  }
-
-  ~LocalizedTextEntry()
-  {
-    if (text && !locStrTable.is_belong(text))
-      memfree(text, inimem);
-  }
-};
-DAG_DECLARE_RELOCATABLE(LocalizedTextEntry);
-
-
 class ICsvParserCB
 {
 public:
@@ -110,23 +189,38 @@ public:
 };
 
 typedef OAHashNameMap<false> LocHashNameMapType;
-// typedef FastNameMap LocHashNameMapType;
 typedef int (*PluralFormFn)(int);
 
 class LocalizationTable
 {
 public:
-  Tab<LocalizedTextEntry> table;
-  LocHashNameMapType map;
-  PluralFormFn pluralFormFn;
+  // Main runtime table: hash -> value string. Keys are not stored; tooling that
+  // needs them passes a LocKeyDump through startup_localization*.
+  LocStringTable main;
+  PluralFormFn pluralFormFn = nullptr;
 
-  static constexpr int NOT_ALIGNED_POINTER_OFS = 3;
-
-  Tab<LocalizedTextEntry> tableFull;
-  LocHashNameMapType mapFull;
+  // Editor multi-language path. Less hot than `main` but follows the same
+  // hash-only model: mapFull holds key_hash -> row_idx, and the (rows x langs)
+  // grid of translation offsets lives in tableFull. fullLangList must keep
+  // stored language names because getLangById and loadCsvFull walk names back
+  // from indices for diagnostics.
+  Tab<uint32_t> tableFull; // row_idx * fullLangList.nameCount() + lang_idx -> offset
+  StringTableAllocator stringsFull{12, 16};
+  HashedKeyMap<uint64_t, uint32_t> mapFull;
   LocHashNameMapType fullLangList;
 
   Tab<PluralFormFn> langToPluralIdxFunctions;
+
+#if DAGOR_DBGLEVEL > 0
+  // Dev-build wyhash collision dump. tryAddString detects collisions only
+  // against keys already in the dump; a per-loadCsv local dump would scope
+  // detection to a single file (silently missing cross-file collisions
+  // that the persistent main map otherwise treats as well-formed duplicates
+  // via the LocTableParserCB::getKey fallback). Lives on the table so it
+  // accumulates across every loadCsv call; cleared by demandDestroy in
+  // shutdown_localization.
+  LocKeyDump devCollisionDump;
+#endif
 
 #if DAGOR_DBGLEVEL > 0 || defined(DAGOR_FORCE_LOGS)
   static SimpleString lastFileNameForDebug;
@@ -134,50 +228,34 @@ public:
   constexpr static const char *lastFileNameForDebug = "n/a";
 #endif
 
-  LocalizationTable() : table(inimem), tableFull(inimem), pluralFormFn(NULL) {}
-
-  ~LocalizationTable()
+  // Caller holds locRwLock for read; rtaLock is taken internally only if the
+  // main map misses and we need to consult the runtime additions.
+  // LocTextId is an opaque pointer that, in this implementation, is exactly
+  // the pointer to the localized text bytes -- get_localized_text() casts back.
+  LocTextId getTextId(uint64_t key_hash)
   {
-    if (locStrTable.data)
-    {
-      mem_set_0(table);
-      mem_set_0(tableFull);
-      locStrTable.clear();
-    }
+    if (const char *text = main.find(key_hash))
+      return (LocTextId)(void *)text;
+    RtaReadLock rtaReadLock(rtaLock);
+    return (LocTextId)(void *)rtaTable.find(key_hash);
   }
 
-  int getTextIndex(const char *key) { return map.getNameId(key); }
+  LocTextId getTextId(const char *key) { return getTextId(loc_hash(key, strlen(key))); }
 
-  LocTextId getTextId(const char *key)
-  {
-    int idx = getTextIndex(key);
-    if (idx < 0)
-    {
-      if (const char *text = addRtLoc.getStrId(key))
-        return LocTextId(uintptr_t(text) | NOT_ALIGNED_POINTER_OFS);
-      return NULL;
-    }
-    G_ASSERT(idx < table.size());
-    return &table[idx];
-  }
+  bool hasMainKey(uint64_t key_hash) const { return main.hashToOffset.findVal(key_hash) != nullptr; }
 
   const char *getFullText(const char *key, int lang_idx)
   {
-    int idx = mapFull.getNameId(key);
-    if (idx < 0)
+    const uint32_t *idx_p = mapFull.findVal(loc_hash(key, strlen(key)));
+    if (!idx_p)
       return NULL;
-    G_ASSERT(idx < tableFull.size());
-    return tableFull[idx * fullLangList.nameCount() + lang_idx].text;
+    const int nLangs = fullLangList.nameCount();
+    const int slot = (int)*idx_p * nLangs + lang_idx;
+    G_ASSERT(slot < tableFull.size());
+    return stringsFull.getDataRawUnsafe(tableFull[slot]);
   }
 
-  static const char *getText(LocTextId id)
-  {
-    if (!id)
-      return "";
-    return (uintptr_t(id) & NOT_ALIGNED_POINTER_OFS) == 0
-             ? id->text
-             : (const char *)(void *)(uintptr_t(id) & ~uintptr_t(NOT_ALIGNED_POINTER_OFS));
-  }
+  static const char *getText(LocTextId id) { return id ? (const char *)(void *)id : ""; }
 
   static __forceinline int parseCsvString(const char *&p, char *out, bool key)
   {
@@ -615,22 +693,25 @@ public:
     return true;
   }
 
-  bool loadCsv(MemGeneralLoadCB *cb, int lang_col) { return loadCsv((char *)cb->data(), cb->size(), lang_col); }
+  bool loadCsv(MemGeneralLoadCB *cb, int lang_col, LocKeyDump *key_dump = nullptr)
+  {
+    return loadCsv((char *)cb->data(), cb->size(), lang_col, key_dump);
+  }
 
-  bool loadCsv(MemGeneralLoadCB *cb, const char *lang)
+  bool loadCsv(MemGeneralLoadCB *cb, const char *lang, LocKeyDump *key_dump = nullptr)
   {
     char *buffer = (char *)cb->data();
     int len = cb->size();
 
     int lang_col = getColForLang(buffer, len, lang);
     if (lang_col < 0)
-      lang_col = getColForLang(buffer, len, get_default_lang());
+      lang_col = getColForLang(buffer, len, get_default_lang_locked());
     if (lang_col < 0)
       lang_col = 0;
-    return loadCsvV2(buffer, len, lang_col);
+    return loadCsvV2(buffer, len, lang_col, key_dump);
   }
 
-  bool loadCsv(const char *filename, int lang_col)
+  bool loadCsv(const char *filename, int lang_col, LocKeyDump *key_dump = nullptr)
   {
     FullFileLoadCB cb(filename);
     if (!cb.fileHandle)
@@ -656,11 +737,11 @@ public:
 #if DAGOR_DBGLEVEL > 0 || defined(DAGOR_FORCE_LOGS)
     lastFileNameForDebug = filename;
 #endif
-    bool result = loadCsv(buffer, len, lang_col);
+    bool result = loadCsv(buffer, len, lang_col, key_dump);
     memfree(buffer, tmpmem);
     return result;
   }
-  bool loadCsv(const char *filename, const char *lang)
+  bool loadCsv(const char *filename, const char *lang, LocKeyDump *key_dump = nullptr)
   {
     FullFileLoadCB cb(filename);
     if (!cb.fileHandle)
@@ -689,15 +770,15 @@ public:
 
     int lang_col = getColForLang(buffer, len, lang);
     if (lang_col < 0)
-      lang_col = getColForLang(buffer, len, get_default_lang());
+      lang_col = getColForLang(buffer, len, get_default_lang_locked());
     if (lang_col < 0)
       lang_col = 0;
-    bool result = loadCsvV2(buffer, len, lang_col);
+    bool result = loadCsvV2(buffer, len, lang_col, key_dump);
     memfree(buffer, tmpmem);
     return result;
   }
 
-  bool loadCsvFull(const char *filename)
+  bool loadCsvFull(const char *filename, LocKeyDump *key_dump = nullptr)
   {
     FullFileLoadCB cb(filename);
     if (!cb.fileHandle)
@@ -731,14 +812,14 @@ public:
       lang_col[i] = getColForLang(buffer, len, fullLangList.getName(i));
       G_ASSERT_LOG(lang_col[i] >= 0, "Language '%s' not found.", fullLangList.getName(i));
     }
-    bool result = loadCsvV2Full(buffer, len, lang_col);
+    bool result = loadCsvV2Full(buffer, len, lang_col, key_dump);
     memfree(buffer, tmpmem);
     return result;
   }
 
-  bool loadCsv(char *buffer, int len, int lang_col);
-  bool loadCsvV2(char *buffer, int len, int lang_col);
-  bool loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int> lang_col);
+  bool loadCsv(char *buffer, int len, int lang_col, LocKeyDump *key_dump = nullptr);
+  bool loadCsvV2(char *buffer, int len, int lang_col, LocKeyDump *key_dump = nullptr);
+  bool loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int> lang_col, LocKeyDump *key_dump = nullptr);
   int getColForLang(char *buffer, int len, const char *lang);
 };
 
@@ -818,84 +899,245 @@ int LocalizationTable::getColForLang(char *buffer, int len, const char *lang)
   return -1;
 }
 
+// CSV parse state. The legacy ICsvParserCB threads `int idx` through the
+// parser as a stable row token: getKey returns it, addKey/onKeyProcessed/
+// addValue use it. With hash-keyed storage there is no natural per-row index,
+// so each path keeps its own hash -> idx map:
+//   main path: idxToHash + hashToIdx (parser-local; main's value reservation
+//              needs to look the hash back up from the row index).
+//   full path: locTbl->mapFull alone (full's addValue indexes tableFull
+//              directly from the row index, no hash lookback needed).
 class LocTableParserCB : public ICsvParserCB
 {
 public:
-  LocTableParserCB(LocalizationTable *loc_tbl) : locTbl(loc_tbl) {}
-  virtual void allocateColumns(int /*num*/) {}
-  virtual int getCount(bool full)
-  {
-    LocHashNameMapType &map = full ? locTbl->mapFull : locTbl->map;
-    return map.nameCount();
-  }
-  virtual char *addKey(int /*n*/, int len)
+  LocTableParserCB(LocalizationTable *loc_tbl, LocKeyDump *key_dump) : locTbl(loc_tbl), keyDump(key_dump) {}
+
+  void allocateColumns(int /*num*/) override {}
+  int getCount(bool full) override { return full ? (int)locTbl->mapFull.size() : (int)idxToHash.size(); }
+
+  char *addKey(int /*n*/, int len) override
   {
     G_ASSERT(len);
     return (char *)memalloc(len + 1, tmpmem);
   }
-  virtual int getKey(const char *key, bool full)
+
+  int getKey(const char *key, bool full) override
   {
-    LocHashNameMapType &map = full ? locTbl->mapFull : locTbl->map;
     G_ASSERT(key);
-    int idx = map.getNameId(key);
-    return idx;
+    const size_t key_len = strlen(key);
+    const uint64_t h = loc_hash(key, key_len);
+    const uint32_t *idx = full ? locTbl->mapFull.findVal(h) : hashToIdx.findVal(h);
+    if (idx)
+    {
+      // Hash hit. parseCsvV2 short-circuits before reaching onKeyProcessed
+      // when getKey returns a valid idx, so the LocKeyDump validation must
+      // run here too -- otherwise a wyhash collision against an earlier
+      // intra-file key would be silently treated as a duplicate (new value
+      // overwriting the first). tryAddString on an existing hash with
+      // matching bytes is a no-op; on a real collision it sets *collided.
+      if (keyDump && checkCollisionAndLog(h, key, key_len))
+        return -1;
+      return (int)*idx;
+    }
+    // Cross-file duplicate detection (main path only): hashToIdx is
+    // parser-local and a fresh LocTableParserCB is built per loadCsv call,
+    // so a key repeated in a later CSV would miss here and silently
+    // overwrite the earlier value without firing dag_on_duplicate_loc_key.
+    // Consult the persistent main map and lazy-add to the parser-local map
+    // so parseCsvV2 sees idx >= 0 (callback fires) and a subsequent
+    // addValue can resolve idx -> hash via idxToHash. The full path
+    // already uses locTbl->mapFull which persists across files.
+    if (!full && locTbl->main.hashToOffset.findVal(h))
+    {
+      // Collision check BEFORE lazy-add: on a real cross-file wyhash
+      // collision (different key bytes but same hash) we return -1 and
+      // leave the parser-local maps untouched, so the new key's value is
+      // dropped rather than overwriting the prior file's value in main.
+      // The keyDump persists across loadCsv calls (LocalizationTable's
+      // devCollisionDump when no caller dump), so this fires for
+      // cross-file collisions too.
+      if (keyDump && checkCollisionAndLog(h, key, key_len))
+        return -1;
+      const uint32_t newIdx = (uint32_t)idxToHash.size();
+      idxToHash.push_back(h);
+      auto inserted = hashToIdx.emplace_if_missing(h);
+      *inserted.first = newIdx;
+      return (int)newIdx;
+    }
+    return -1;
   }
-  virtual void onKeyProcessed(int /* n */, char *data, bool full)
+
+  void onKeyProcessed(int /*n*/, char *data, bool full) override
   {
-    Tab<LocalizedTextEntry> &tbl = full ? locTbl->tableFull : locTbl->table;
-    LocHashNameMapType &map = full ? locTbl->mapFull : locTbl->map;
-    int mul = full ? locTbl->fullLangList.nameCount() : 1;
     G_ASSERT(data);
-    int idx = map.addNameId(data);
-    G_ASSERT(idx >= 0);
-    if (tbl.size() < (idx + 1) * mul)
-      append_items(tbl, (idx + 1) * mul - tbl.size());
-    memfree(data, tmpmem); // there's strdup in addNameId
+    const size_t len = strlen(data);
+    const uint64_t h = loc_hash(data, len);
+    // Collision check BEFORE committing the new key to parser/table maps.
+    // On a wyhash collision against an earlier-seen key (intra- or cross-
+    // file), skip the row entirely: do not push to idxToHash/hashToIdx or
+    // mapFull, and do not extend tableFull. The subsequent getKey will then
+    // return -1, and addValue (which checks n < 0) writes into discardBuf
+    // so the parser-local row data is dropped without corrupting main.
+    if (keyDump && checkCollisionAndLog(h, data, len))
+    {
+      memfree(data, tmpmem);
+      return;
+    }
+    if (full)
+    {
+      // Pre-reserve offset 0 -> '\0' on the very first full-path key so that
+      // any tableFull slot left untouched (e.g. a row missing a column whose
+      // language was not found in this CSV, see loadCsvFull + parseCsvV2Full
+      // bmap_col[langColNo] < 0 path) reads as the empty string when
+      // getFullText -> stringsFull.getDataRawUnsafe(0) is called. Without
+      // this, the slot is value-initialized to 0 (see resize below) and
+      // offset 0 would alias into the first stored string -- or into
+      // uninitialized page bytes before any string is stored.
+      if (locTbl->stringsFull.empty())
+      {
+        if (locTbl->stringsFull.head.left < 1)
+          locTbl->stringsFull.addPage(1);
+        locTbl->stringsFull.head.data.get()[locTbl->stringsFull.head.used] = '\0';
+        locTbl->stringsFull.head.used += 1;
+        locTbl->stringsFull.head.left -= 1;
+      }
+      const uint32_t newIdx = (uint32_t)locTbl->mapFull.size();
+      locTbl->mapFull.emplace_if_missing(h, newIdx);
+      const int nLangs = locTbl->fullLangList.nameCount();
+      // Value-initialize new slots to 0 so any slot the parser skips (missing
+      // language column) resolves to the offset-0 NUL byte reserved above.
+      if ((int)locTbl->tableFull.size() < ((int)newIdx + 1) * nLangs)
+        locTbl->tableFull.resize(((int)newIdx + 1) * nLangs, 0u);
+    }
+    else
+    {
+      const uint32_t newIdx = (uint32_t)idxToHash.size();
+      idxToHash.push_back(h);
+      hashToIdx.emplace_if_missing(h, newIdx);
+    }
+    memfree(data, tmpmem);
   }
-  virtual char *addValue(int n, int len, int lang_idx = -1)
+
+  char *addValue(int n, int len, int lang_idx = -1) override
   {
-    Tab<LocalizedTextEntry> &tbl = lang_idx < 0 ? locTbl->table : locTbl->tableFull;
-    int mul = lang_idx < 0 ? 1 : locTbl->fullLangList.nameCount();
-
-    G_ASSERTF(tbl.size() == (lang_idx < 0 ? locTbl->map : locTbl->mapFull).nameCount() * mul,
-      "tbl.size() = %d lang_idx %d mul %d nameCount()=%d", tbl.size(), lang_idx, mul,
-      (lang_idx < 0 ? locTbl->map : locTbl->mapFull).nameCount());
-    if (lang_idx >= 0)
-      n = n * mul + lang_idx;
-    if (tbl[n].text && !locStrTable.is_belong(tbl[n].text))
-      memfree(tbl[n].text, inimem);
-    tbl[n].text = (char *)memalloc(len + 1, inimem);
-    return tbl[n].text;
+    // n < 0 signals that the row was dropped earlier (collision detected in
+    // getKey or onKeyProcessed). Return a throwaway buffer so the parser
+    // can write its value into something safe; the bytes are discarded on
+    // the next addValue / parser exit.
+    if (n < 0)
+    {
+      if ((int)discardBuf.size() < len)
+        discardBuf.resize((size_t)len);
+      return discardBuf.data();
+    }
+    if (lang_idx < 0)
+    {
+      G_ASSERTF(n < (int)idxToHash.size(), "n=%d size=%d", n, (int)idxToHash.size());
+      return locTbl->main.reserveBytes(idxToHash[n], (size_t)len);
+    }
+    const int nLangs = locTbl->fullLangList.nameCount();
+    G_ASSERTF((int)locTbl->tableFull.size() == (int)locTbl->mapFull.size() * nLangs,
+      "tableFull.size() = %d mapFull.size()=%u nLangs=%d", (int)locTbl->tableFull.size(), locTbl->mapFull.size(), nLangs);
+    const int slot = n * nLangs + lang_idx;
+    if (locTbl->stringsFull.head.left < (uint32_t)len)
+      locTbl->stringsFull.addPage((uint32_t)len);
+    const uint32_t ofs = locTbl->stringsFull.getCurrentHeadOffset();
+    char *buf = locTbl->stringsFull.head.data.get() + locTbl->stringsFull.head.used;
+    locTbl->stringsFull.head.used += (uint32_t)len;
+    locTbl->stringsFull.head.left -= (uint32_t)len;
+    locTbl->tableFull[slot] = ofs;
+    return buf;
   }
-  virtual void onValueProcessed(int /*n*/, char * /*data*/) {}
 
-  virtual void reserve(int rows) { locTbl->tableFull.reserve(rows * locTbl->fullLangList.nameCount()); }
+  void onValueProcessed(int /*n*/, char * /*data*/) override {}
+  void reserve(int rows) override { locTbl->tableFull.reserve(rows * locTbl->fullLangList.nameCount()); }
+
+  // Returns true if a wyhash collision was detected against an earlier
+  // intern of this hash in keyDump (different bytes for the same hash);
+  // logs the collision in that case. Returns false when keyDump's stored
+  // bytes match (legitimate duplicate) or when the hash is fresh and gets
+  // interned. Callers must have non-null keyDump.
+  bool checkCollisionAndLog(uint64_t h, const char *key, size_t key_len)
+  {
+    bool collided = false;
+    keyDump->tryAddString(h, key, key_len, &collided);
+    if (collided)
+    {
+      logerr("[LANG] wyhash collision on key '%s' (hash 0x%llx) -- bump LOC_HASH_SEED and rebuild", key, (unsigned long long)h);
+      return true;
+    }
+    return false;
+  }
 
   LocalizationTable *locTbl;
+  LocKeyDump *keyDump;
+  Tab<uint64_t> idxToHash;
+  HashedKeyMap<uint64_t, uint32_t> hashToIdx;
+  // Throwaway buffer used by addValue when the row was dropped due to a
+  // wyhash collision. Lives in tmpmem implicitly via Tab default.
+  Tab<char> discardBuf;
 };
 
-static InitOnDemand<WinCritSec> locCs;
+// locRwLock guards the main localization state: locTable, fakeLocKeys,
+// defLangOverride, force_def_lang.
+// NoWritersSpinLockReadWriteLock: 4 bytes, reader fast-path is a single
+// interlocked_increment (no kernel transition). Ideal here because writes
+// only happen during startup/shutdown; at runtime it is read-only.
+// Non-reentrant: caller-supplied dag_on_duplicate_loc_key must not call back
+// into localization, and locked helpers (suffix _locked) are used to avoid
+// re-acquiring the lock from inside a write critical section.
+static NoWritersSpinLockReadWriteLock locRwLock;
+using LocReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
+using LocWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
 
-bool LocalizationTable::loadCsv(char *buffer, int len, int lang_col)
+// rtaLock (declared earlier next to rtaTable) guards rtaTable only.
+// Spinlock variant: low-contention, no OS handle.
+// Lock order: locRwLock -> rtaLock. Two sites nest them:
+//   - LocalizationTable::getTextId takes rtaLock for read inside a locRwLock
+//     read, to consult RTA additions when the main map misses.
+//   - add_rta_localized_key_text holds locRwLock for read + rtaLock for write
+//     across its check-and-insert step, so a concurrent locTable writer can't
+//     add the same key between our miss-check and our RTA insert, and
+//     clear_rta_localization / shutdown_localization can't interleave a
+//     reset mid-batch.
+// RTA mutations therefore briefly block startup loaders and language-override
+// writers (which take locRwLock for write); reciprocally a long-running
+// loader stalls add_rta_localized_key_text. Both are rare paths.
+
+// LocalizationTable::loadCsv* are only ever called from functions that already
+// hold locRwLock for write (load_localization_table_from_csv*, startup_
+// localization*), so they do not acquire the lock themselves. The internal
+// fallback to get_default_lang_locked() in the (filename, lang) overloads
+// relies on that invariant -- get_default_lang() would re-enter locRwLock.
+// In dev builds, if the caller did not supply a LocKeyDump, the table's own
+// devCollisionDump is used so wyhash collision detection works across every
+// loadCsv call against the same locTable (not just within one file).
+bool LocalizationTable::loadCsv(char *buffer, int len, int lang_col, LocKeyDump *key_dump)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  LocTableParserCB cb(this);
+#if DAGOR_DBGLEVEL > 0
+  if (!key_dump)
+    key_dump = &devCollisionDump;
+#endif
+  LocTableParserCB cb(this, key_dump);
   return parseCsvV2(buffer, len, lang_col, &cb, false);
 }
 
-bool LocalizationTable::loadCsvV2(char *buffer, int len, int lang_col)
+bool LocalizationTable::loadCsvV2(char *buffer, int len, int lang_col, LocKeyDump *key_dump)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  LocTableParserCB cb(this);
+#if DAGOR_DBGLEVEL > 0
+  if (!key_dump)
+    key_dump = &devCollisionDump;
+#endif
+  LocTableParserCB cb(this, key_dump);
   return parseCsvV2(buffer, len, lang_col, &cb);
 }
-bool LocalizationTable::loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int> lang_col)
+bool LocalizationTable::loadCsvV2Full(char *buffer, int len, dag::ConstSpan<int> lang_col, LocKeyDump *key_dump)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  LocTableParserCB cb(this);
+#if DAGOR_DBGLEVEL > 0
+  if (!key_dump)
+    key_dump = &devCollisionDump;
+#endif
+  LocTableParserCB cb(this, key_dump);
   return parseCsvV2Full(buffer, len, lang_col, &cb);
 }
 
@@ -917,7 +1159,10 @@ static bool should_report_missing_key(const char *key)
 
 LocTextId get_localized_text_id(const char *key)
 {
-  if (!key || !*key || !locTable)
+  if (!key || !*key)
+    return NULL;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return NULL;
   LocTextId result = locTable->getTextId(key);
   if (result)
@@ -935,14 +1180,20 @@ LocTextId get_localized_text_id(const char *key)
 
 LocTextId get_localized_text_id_silent(const char *key)
 {
-  if (!key || !*key || !locTable)
+  if (!key || !*key)
+    return NULL;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return NULL;
   return locTable->getTextId(key);
 }
 
 LocTextId get_optional_localized_text_id(const char *key)
 {
-  if (!key || !*key || !locTable)
+  if (!key || !*key)
+    return NULL;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return NULL;
   LocTextId result = locTable->getTextId(key);
   if (result)
@@ -956,45 +1207,45 @@ LocTextId get_optional_localized_text_id(const char *key)
 
 bool does_localized_text_exist(const char *key)
 {
-  if (!key || !*key || !locTable)
+  if (!key || !*key)
     return false;
-  return locTable->getTextIndex(key) >= 0;
+  const uint64_t h = loc_hash(key, strlen(key));
+  LocReadLock lock(locRwLock);
+  return locTable && locTable->hasMainKey(h);
 }
 
-const char *get_localized_text(LocTextId id) { return locTable ? locTable->getText(id) : ""; }
-
-struct StrTblPred
+const char *get_localized_text(LocTextId id)
 {
-  char *&operator()(char **s) { return *s; }
-};
-
-static void rebuild_str_table()
-{
-  Tab<char **> allstrs(tmpmem);
-  allstrs.reserve(locTable->table.size() * 2);
-  for (int i = 0; i < locTable->table.size(); ++i)
-    if (locTable->table[i].text)
-      allstrs.push_back(&locTable->table[i].text);
-  for (int i = 0; i < locTable->tableFull.size(); ++i)
-    if (locTable->tableFull[i].text)
-      allstrs.push_back(&locTable->tableFull[i].text);
-  locStrTable.build<true>(allstrs, StrTblPred(), inimem);
+  // Lock preserves prior lifetime contract: while this call is in progress,
+  // locTable (and the StringTableAllocator that `id` points into) cannot be
+  // destroyed by shutdown_localization. RTA entries are not similarly pinned
+  // here -- same as before this refactor; callers must avoid racing
+  // clear_rta_localization with held LocTextIds.
+  LocReadLock lock(locRwLock);
+  if (!locTable)
+    return "";
+  return LocalizationTable::getText(id);
 }
 
 const char *get_localized_text_for_lang(const char *key, const char *lang)
 {
-  if (!key || !*key || !lang || !*lang || !locTable)
+  if (!key || !*key || !lang || !*lang)
     return NULL;
-  int id = getLangId(lang);
+  LocReadLock lock(locRwLock);
+  if (!locTable)
+    return NULL;
+  int id = locTable->fullLangList.getNameId(lang);
   if (id < 0)
     return NULL;
-  return get_localized_text_for_lang_id(key, id);
+  return locTable->getFullText(key, id);
 }
 
 const char *get_localized_text_for_lang_id(const char *key, int lang_id)
 {
-
   if (!key || !*key || lang_id < 0)
+    return nullptr;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return nullptr;
   return locTable->getFullText(key, lang_id);
 }
@@ -1003,80 +1254,66 @@ const char *get_fake_loc_for_missing_key(const char *key)
 {
   if (!key)
     return NULL;
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  return fakeLocKeys.getName(fakeLocKeys.addNameId(key));
+  const size_t key_len = strlen(key);
+  const uint64_t key_hash = loc_hash(key, key_len);
+  {
+    LocReadLock r(locRwLock);
+    if (const char *p = fakeLocKeys.find(key_hash))
+      return p;
+  }
+  LocWriteLock w(locRwLock);
+  bool collided = false;
+  const char *interned = fakeLocKeys.tryAddString(key_hash, key, key_len, &collided);
+  // On collision, the colliding key gets the placeholder for the first-interned
+  // key; subsequent calls hit the read-lock fast path with no further logerr.
+  if (collided)
+    logerr("[LANG] wyhash collision on fake key '%s' (hash 0x%llx) -- bump LOC_HASH_SEED and rebuild", key,
+      (unsigned long long)key_hash);
+  return interned;
 }
 
-bool load_localization_table_from_csv(const char *filename, int lang_col)
+bool load_localization_table_from_csv(const char *filename, int lang_col, LocKeyDump *out_keys)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   locTable.demandInit();
-
-  bool result = locTable->loadCsv(filename, lang_col);
-
-  // if (result) locTable->dump();
-
-  return result;
+  return locTable->loadCsv(filename, lang_col, out_keys);
 }
 
-bool load_localization_table_from_csv(MemGeneralLoadCB *cb, int lang_col)
+bool load_localization_table_from_csv(MemGeneralLoadCB *cb, int lang_col, LocKeyDump *out_keys)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   locTable.demandInit();
-
-  bool result = locTable->loadCsv(cb, lang_col);
-
-  // if (result) locTable->dump();
-
-  return result;
+  return locTable->loadCsv(cb, lang_col, out_keys);
 }
 
-bool load_localization_table_from_csv_V2(const char *filename, const char *lang)
+bool load_localization_table_from_csv_V2(const char *filename, const char *lang, LocKeyDump *out_keys)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
-  locTable.demandInit();
-
-  if (!lang)
-    lang = get_default_lang();
-  lang = ::remap_english_lang(lang, NULL);
-
-  bool result = locTable->loadCsv(filename, lang);
-
-  if (result)
-    rebuild_str_table();
-  // if (result) locTable->dump();
-
-  return result;
-}
-
-bool load_localization_table_from_csv_V2(MemGeneralLoadCB *cb, const char *lang)
-{
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   locTable.demandInit();
 
   if (!lang)
-    lang = get_default_lang();
+    lang = get_default_lang_locked();
   lang = ::remap_english_lang(lang, NULL);
 
-  bool result = locTable->loadCsv(cb, lang);
+  return locTable->loadCsv(filename, lang, out_keys);
+}
 
-  if (result)
-    rebuild_str_table();
-  // if (result) locTable->dump();
+bool load_localization_table_from_csv_V2(MemGeneralLoadCB *cb, const char *lang, LocKeyDump *out_keys)
+{
+  LocWriteLock lock(locRwLock);
+  locTable.demandInit();
 
-  return result;
+  if (!lang)
+    lang = get_default_lang_locked();
+  lang = ::remap_english_lang(lang, NULL);
+
+  return locTable->loadCsv(cb, lang, out_keys);
 }
 
 // maybe replace Tab<char*> *col with Tab<String> ?
 bool load_col_from_csv(const char *file_name, int col_no, NameMap *ids, Tab<char *> *col)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   class LoadColParserCB : public ICsvParserCB
   {
   public:
@@ -1124,10 +1361,9 @@ bool load_col_from_csv(const char *file_name, int col_no, NameMap *ids, Tab<char
   return res;
 }
 
-bool startup_localization(const class DataBlock &blk, int lang_col)
+bool startup_localization(const class DataBlock &blk, int lang_col, LocKeyDump *out_keys)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   locTable.demandInit();
 
   const DataBlock *csvListBlk = blk.getBlockByNameEx("locTable");
@@ -1141,7 +1377,7 @@ bool startup_localization(const class DataBlock &blk, int lang_col)
 
     const char *filename = csvListBlk->getStr(i);
 
-    if (!locTable->loadCsv(filename, lang_col))
+    if (!locTable->loadCsv(filename, lang_col, out_keys))
     {
       logerr("can't load localization table from %s", filename);
       ok = false;
@@ -1242,10 +1478,9 @@ static PluralFormFn get_plural_form_function_for_lang(const char *lang)
 }
 
 
-bool startup_localization_V2(const class DataBlock &blk, const char *lang)
+bool startup_localization_V2(const class DataBlock &blk, const char *lang, LocKeyDump *out_keys)
 {
-  locCs.demandInit();
-  WinAutoLock lock(*locCs);
+  LocWriteLock lock(locRwLock);
   locTable.demandInit();
 
 #if _TARGET_PC
@@ -1257,7 +1492,7 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang)
 #endif
 
   if (!lang)
-    lang = get_default_lang(blk);
+    lang = get_default_lang_locked(blk);
   lang = ::remap_english_lang(lang, &blk);
 
   const DataBlock *csvListBlk = blk.getBlockByNameEx("locTable");
@@ -1275,7 +1510,7 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang)
 
     const char *filename = csvListBlk->getStr(idx);
 
-    if (!locTable->loadCsv(filename, lang))
+    if (!locTable->loadCsv(filename, lang, out_keys))
     {
       logerr("can't load localization table from %s", filename);
       ok = false;
@@ -1307,7 +1542,7 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang)
 
       const char *filename = csvListBlk->getStr(idx);
 
-      if (!locTable->loadCsvFull(filename))
+      if (!locTable->loadCsvFull(filename, out_keys))
       {
         logerr("can't load full localization table from %s", filename);
         ok = false;
@@ -1315,45 +1550,43 @@ bool startup_localization_V2(const class DataBlock &blk, const char *lang)
     }
   }
 
-  rebuild_str_table();
-
   return ok;
 }
 
 void shutdown_localization()
 {
-  locCs.demandInit();
-  {
-    WinAutoLock lock(*locCs);
-    locTable.demandDestroy();
-    fakeLocKeys.reset(false);
-  }
-  locCs.demandDestroy();
+  LocWriteLock lock(locRwLock);
+  locTable.demandDestroy();
+  fakeLocKeys.clear();
 }
 
-void get_all_localization(Tab<const char *> &loc_keys, Tab<const char *> &loc_vals)
+void get_all_localization(const LocKeyDump *key_dump, Tab<const char *> &loc_keys, Tab<const char *> &loc_vals)
 {
-  if (!locTable)
-  {
-    loc_keys.resize(0);
-    loc_vals.resize(0);
+  loc_keys.resize(0);
+  loc_vals.resize(0);
+  if (!key_dump)
     return;
-  }
-
-  loc_keys.resize(locTable->table.size());
-  loc_vals.resize(locTable->table.size());
-  for (int i = 0; i < loc_keys.size(); i++)
-  {
-    loc_keys[i] = locTable->map.getName(i);
-    G_ASSERTF(loc_keys[i], "%d: key <%s>, val <%s>", i, loc_keys[i], locTable->table[i].text);
-    loc_vals[i] = locTable->table[i].text;
-  }
+  LocReadLock lock(locRwLock);
+  if (!locTable)
+    return;
+  loc_keys.reserve(key_dump->hashToOffset.size());
+  loc_vals.reserve(key_dump->hashToOffset.size());
+  key_dump->hashToOffset.iterate([&](uint64_t hash, const uint32_t &key_ofs) {
+    const uint32_t *val_ofs = locTable->main.hashToOffset.findVal(hash);
+    if (!val_ofs)
+      return;
+    loc_keys.push_back(key_dump->strings.getDataRawUnsafe(key_ofs));
+    loc_vals.push_back(locTable->main.strings.getDataRawUnsafe(*val_ofs));
+  });
 }
 
 
 int get_plural_form_id_for_lang(const char *lang, int num)
 {
-  if (!lang || !*lang || !locTable)
+  if (!lang || !*lang)
+    return DEFAULT_PLURAL_FORM_INDEX;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return DEFAULT_PLURAL_FORM_INDEX;
   int langId = locTable->fullLangList.getNameId(lang);
   if (langId < 0 || locTable->langToPluralIdxFunctions.size() <= langId)
@@ -1364,20 +1597,32 @@ int get_plural_form_id_for_lang(const char *lang, int num)
 
 int get_plural_form_id(int num)
 {
-  if (locTable->pluralFormFn)
-    return locTable->pluralFormFn(num);
-  return DEFAULT_PLURAL_FORM_INDEX;
+  LocReadLock lock(locRwLock);
+  if (!locTable || !locTable->pluralFormFn)
+    return DEFAULT_PLURAL_FORM_INDEX;
+  return locTable->pluralFormFn(num);
 }
 
 
-void set_default_lang_override(const char *lang) { defLangOverride = lang; }
-bool is_default_lang_override_set() { return !defLangOverride.empty(); }
-
-const char *get_default_lang()
+void set_default_lang_override(const char *lang)
 {
-  if (is_default_lang_override_set())
+  SimpleString newOverride(lang);
+  LocWriteLock lock(locRwLock);
+  defLangOverride.swap(newOverride);
+  // newOverride dtor frees the previous buffer outside the lock
+}
+bool is_default_lang_override_set()
+{
+  LocReadLock lock(locRwLock);
+  return !defLangOverride.empty();
+}
+
+// Caller must hold locRwLock (read or write).
+static const char *get_default_lang_locked()
+{
+  if (!defLangOverride.empty())
   {
-    static SimpleString lang;
+    thread_local static SimpleString lang;
     lang = ::dgs_get_settings() ? ::dgs_get_settings()->getBlockByNameEx("langAlias")->getStr(defLangOverride, defLangOverride)
                                 : defLangOverride.str();
     if (!lang.empty() && !isupper(lang[0]) && strcmp(lang, defLangOverride) == 0)
@@ -1488,9 +1733,16 @@ const char *get_default_lang()
   return "English";
 }
 
-const char *get_default_lang(const class DataBlock &blk)
+const char *get_default_lang()
 {
-  const char *system_default = get_default_lang();
+  LocReadLock lock(locRwLock);
+  return get_default_lang_locked();
+}
+
+// Caller must hold locRwLock (read or write).
+static const char *get_default_lang_locked(const DataBlock &blk)
+{
+  const char *system_default = get_default_lang_locked();
 
   const DataBlock *cb = blk.getBlockByNameEx("full_translation");
   const DataBlock *override = cb->getBlockByName(get_platform_string_id());
@@ -1516,31 +1768,94 @@ const char *get_default_lang(const class DataBlock &blk)
   return system_default;
 }
 
+const char *get_default_lang(const class DataBlock &blk)
+{
+  LocReadLock lock(locRwLock);
+  return get_default_lang_locked(blk);
+}
 
-// additional runtime localization support
+
+// Additional runtime localization support.
+//
+// Pattern (both overloads):
+//   Phase 1: ensure locTable exists, briefly under locRwLock-write. Readers
+//     short-circuit on a null locTable (see get_localized_text_id), so without
+//     this RTA additions would be invisible during the brief
+//     shutdown_localization() -> startup_localization() reload window or
+//     pre-startup.
+//   Phase 2: hold locRwLock-read + rtaLock-write together for check + insert
+//     (lock order locRwLock -> rtaLock per the doc above). Two races this
+//     closes vs. taking the locks separately:
+//       - locTable getting the same key hash added between our check and our
+//         insert (would leave a shadow RTA entry for the lifetime of the
+//         locTable revision).
+//       - clear_rta_localization() / shutdown_localization() interleaving
+//         mid-batch on the DataBlock overload (would yield a partial batch).
+// Between phase 1 and phase 2 the locks are released, so shutdown can still
+// race in and destroy locTable -- phase 2 re-checks under the read lock.
+// With hash-keyed storage, the skip-if-present check tests hash presence, not
+// actual key match; a wyhash collision against an unrelated main key would
+// cause the new RTA key to be silently skipped (resolving to the main key's
+// text). The same applies RTA-vs-RTA: rtaTable.tryAddString returns the
+// existing entry on a hash hit, so a colliding new RTA insert resolves to
+// the prior RTA value with the same identical probability and failure mode.
+// The probability is negligible (~3e-8 per insert against a 1M-entry
+// table) and the failure mode is "wrong translation," not crash.
 void add_rta_localized_key_text(const char *key, const char *text)
 {
-  locTable.demandInit();
-  if (locTable->map.getNameId(key) < 0)
+  const size_t key_len = strlen(key);
+  const uint64_t key_hash = loc_hash(key, key_len);
+  const size_t text_len = strlen(text);
+
+  if (!locTable)
   {
-    int id = addRtLocStrings.addNameId(text);
-    addRtLoc.addStrId(key, (char *)addRtLocStrings.getName(id));
+    LocWriteLock w(locRwLock);
+    locTable.demandInit();
   }
+
+  LocReadLock mainLock(locRwLock);
+  if (!locTable)
+    return;
+  if (locTable->hasMainKey(key_hash))
+    return;
+  RtaWriteLock rtaLockGuard(rtaLock);
+  rtaTable.tryAddString(key_hash, text, text_len);
 }
+
 void add_rta_localized_key_text(const DataBlock &key_text)
 {
-  locTable.demandInit();
+  if (!key_text.paramCount())
+    return;
+
+  if (!locTable)
+  {
+    LocWriteLock w(locRwLock);
+    locTable.demandInit();
+  }
+
+  LocReadLock mainLock(locRwLock);
+  if (!locTable)
+    return;
+  RtaWriteLock rtaLockGuard(rtaLock);
   for (int i = 0; i < key_text.paramCount(); i++)
-    if (key_text.getParamType(i) == DataBlock::TYPE_STRING && locTable->map.getNameId(key_text.getParamName(i)) < 0)
+    if (key_text.getParamType(i) == DataBlock::TYPE_STRING)
     {
-      int id = addRtLocStrings.addNameId((char *)key_text.getStr(i));
-      addRtLoc.addStrId(key_text.getParamName(i), (char *)addRtLocStrings.getName(id));
+      const char *key = key_text.getParamName(i);
+      const size_t key_len = strlen(key);
+      const uint64_t key_hash = loc_hash(key, key_len);
+      if (locTable->hasMainKey(key_hash))
+        continue;
+
+      const char *text = key_text.getStr(i);
+      const size_t text_len = strlen(text);
+      rtaTable.tryAddString(key_hash, text, text_len);
     }
 }
+
 void clear_rta_localization()
 {
-  addRtLoc.reset(false);
-  addRtLocStrings.reset(false);
+  RtaWriteLock lock(rtaLock);
+  rtaTable.clear();
 }
 
 const char *language_to_locale_code(const char *language)
@@ -1633,12 +1948,18 @@ int getLangId(const char *lang)
 {
   if (!lang || !*lang)
     return -1;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
+    return -1;
   return locTable->fullLangList.getNameId(lang);
 }
 
 const char *getLangById(int id)
 {
   if (id < 0)
+    return nullptr;
+  LocReadLock lock(locRwLock);
+  if (!locTable)
     return nullptr;
   return locTable->fullLangList.getName(id);
 }

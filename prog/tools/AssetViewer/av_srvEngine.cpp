@@ -446,6 +446,8 @@ public:
 
   void imguiEnd() override { ImGui::End(); }
 
+  void *getImguiContext() override { return ImGui::GetCurrentContext(); }
+
   AssetTagManager *getVisibleTagManagerWindow() override { return tagManager; }
 
   void showTagManagerWindow(bool show) override

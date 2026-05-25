@@ -99,6 +99,8 @@ struct PrepareRiexVisibilityParams
   bool forVsm = false;
   bool filterPreciseBBox = false;
   bool disableRegionPrefilter = false;
+  // Bypasses forced occlusion->getCurViewProj() in dev build.
+  bool useExactGlobtm = false;
 };
 bool prepareRIGenExtraVisibility(RiGenVisibility &v, mat44f_cref gtm, const PrepareRiexVisibilityParams &params);
 inline bool prepareRIGenExtraVisibility(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow,

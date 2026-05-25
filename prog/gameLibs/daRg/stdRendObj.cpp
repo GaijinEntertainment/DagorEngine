@@ -205,6 +205,7 @@ bool RobjParamsText::load(const Element *elem)
 
   overflowX = (TextOverflow)props.getInt(elem->csk->textOverflowX, TOVERFLOW_CLIP);
   ellipsis = props.getBool(elem->csk->ellipsis, true);
+
   discard_text_cache(elem->robjParams);
   return true;
 }
@@ -272,9 +273,6 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
 
   E3DCOLOR color = color_apply_mods(params->color, render_state.opacity, params->brightness);
 
-  const ScreenCoord &sc = elem->screenCoord;
-  scenerender::setTransformedViewPort(ctx, sc.screenPos, sc.screenPos + sc.size, render_state);
-
   ctx.set_color(color);
   ctx.reset_textures();
 
@@ -289,6 +287,10 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
   int ascent = StdGuiRender::get_font_ascent(fctx);
   int descent = StdGuiRender::get_font_descent(fctx);
   int textLength = elem->props.text.length();
+
+  const ScreenCoord &sc = elem->screenCoord;
+  float vpBottom = max((float)(sc.screenPos.y + sc.size.y), (float)(sc.screenPos.y + ascent + descent));
+  scenerender::setTransformedViewPort(ctx, sc.screenPos, Point2(sc.screenPos.x + sc.size.x, vpBottom), render_state);
 
   if (params->fontFx != FFT_NONE)
     ctx.set_draw_str_attr(params->fontFx, params->fxOffsX, params->fxOffsY,

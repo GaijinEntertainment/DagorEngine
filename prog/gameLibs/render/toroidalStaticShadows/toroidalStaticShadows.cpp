@@ -338,20 +338,19 @@ void ToroidalStaticShadows::clearTexture()
 {
   d3d::GpuAutoLock lock;
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target(nullptr, 0);
   const float shadowClearValue =
     ToroidalStaticShadows::GetShadowClearValue(cascades.empty() ? false : cascades[0].isSunBelowHorizon());
   if (staticShadowTex.getArrayTex())
   {
-    for (int i = 0; i < cascadesCount(); ++i)
+    for (uint32_t i = 0; i < cascadesCount(); ++i)
     {
-      d3d::set_depth(staticShadowTex.getArrayTex(), i, DepthAccess::RW);
+      d3d::set_render_target({staticShadowTex.getArrayTex(), 0, i}, DepthAccess::RW, {});
       d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, shadowClearValue, 0);
     }
   }
   else
   {
-    d3d::set_depth(staticShadowTex.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({staticShadowTex.getTex2D(), 0, 0}, DepthAccess::RW, {});
     d3d::clearview(CLEAR_ZBUFFER | CLEAR_STENCIL, 0, shadowClearValue, 0);
   }
   d3d::resource_barrier({staticShadowTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});

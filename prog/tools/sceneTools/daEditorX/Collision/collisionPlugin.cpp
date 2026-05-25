@@ -231,7 +231,7 @@ bool CollisionPlugin::begin(int toolbar_id, unsigned menu_id)
   G_ASSERT(toolbar);
 
   toolbar->setEventHandler(this);
-  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL);
 
   commandSystem->createToolbarButton(*tool, CM_IMPORT, EditorCommandIds::IMPORT, "Add collision from DAG");
   tool->setButtonPictures(CM_IMPORT, "import_dag");

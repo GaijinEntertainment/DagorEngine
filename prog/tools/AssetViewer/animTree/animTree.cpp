@@ -102,6 +102,7 @@ AnimTreePlugin::AnimTreePlugin() :
   animPlayer{get_app().getAssetMgr().getAssetTypeId("dynModel"), get_app().getAssetMgr()},
   ctrlTreeEventHandler(controllersData, includePaths, childsDialog),
   ctrlListSettingsEventHandler(controllersData, blendNodesData),
+  resetRandomSwitchListEventHandler(controllersData),
   childsDialog(controllersData, blendNodesData, statesData, includePaths),
   blendNodeTreeEventHandler(blendNodesData, includePaths),
   nodeMaskTreeEventHandler(nodeMasksData, includePaths),
@@ -444,12 +445,7 @@ void AnimTreePlugin::addLeafToBlendNodesTree(PropPanel::ContainerPropertyControl
     TLeafHandle nodeLeaf = tree->createTreeLeaf(leaf, oldName.c_str(), get_blend_node_icon_name(nodeType));
     addBlendNode(nodeLeaf, nodeType);
     tree->setUserData(nodeLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
-    for (int i = 0; i < settings->blockCount(); ++i)
-    {
-      TLeafHandle irqLeaf = tree->createTreeLeaf(nodeLeaf, settings->getBlock(i)->getStr("name"), IRQ_ICON);
-      addBlendNode(irqLeaf, BlendNodeType::IRQ);
-      tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
-    }
+    addIrqLeafsToBlendNodesTree(tree, *settings, nodeLeaf);
     TLeafHandle newLeaf = tree->createTreeLeaf(leaf, "new_node", BLEND_NODE_SINGLE_ICON);
     addBlendNode(newLeaf, BlendNodeType::SINGLE);
     tree->setUserData(newLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
@@ -469,6 +465,21 @@ void AnimTreePlugin::addLeafToBlendNodesTree(PropPanel::ContainerPropertyControl
     addBlendNode(newLeaf, BlendNodeType::SINGLE);
     tree->setUserData(newLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
     tree->setSelLeaf(newLeaf);
+  }
+}
+
+void AnimTreePlugin::addIrqLeafsToBlendNodesTree(PropPanel::ContainerPropertyControl *tree, const DataBlock &settings,
+  TLeafHandle parent)
+{
+  for (int i = 0; i < settings.blockCount(); ++i)
+  {
+    const DataBlock *irqBlock = settings.getBlock(i);
+    if (strcmp(irqBlock->getBlockName(), "irq") == 0)
+    {
+      TLeafHandle irqLeaf = tree->createTreeLeaf(parent, irqBlock->getStr("name"), IRQ_ICON);
+      addBlendNode(irqLeaf, BlendNodeType::IRQ);
+      tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
+    }
   }
 }
 
@@ -497,6 +508,8 @@ void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     case PID_ANIM_BLEND_NODES_ADD_LEAF: createLeafAnimNodesTree(panel); break;
     case PID_ANIM_BLEND_NODES_REMOVE_NODE: removeNodeFromAnimNodesTree(panel); break;
     case PID_NODES_SETTINGS_SAVE: saveSettingsAnimNodesTree(panel); break;
+    case PID_NODES_RESET_RANDOM_SWITCH_LIST_ADD: addResetRandomSwitchNodeList(panel); break;
+    case PID_NODES_RESET_RANDOM_SWITCH_LIST_REMOVE: removeResetRandomSwitchNodeList(panel); break;
     case PID_CTRLS_NODES_LIST_ADD: addNodeCtrlList(panel); break;
     case PID_CTRLS_NODES_LIST_REMOVE: removeNodeCtrlList(panel); break;
     case PID_CTRLS_SETTINGS_SAVE: saveControllerSettings(panel); break;
@@ -635,6 +648,7 @@ void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     case PID_ANIM_BLEND_CTRLS_TREE: fillCtrlsSettings(panel); break;
     case PID_STATES_NODES_LIST: setSelectedStateNodeListSettings(panel); break;
     case PID_CTRLS_NODES_LIST: setSelectedCtrlNodeListSettings(panel); break;
+    case PID_NODES_RESET_RANDOM_SWITCH_LIST: selectedChangedResetRandomSwitchList(panel); break;
     case PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT: changeParamSwitchType(panel); break;
     case PID_CTRLS_MULTI_CHAIN_FABRIK_BLOCK_TYPE_COMBO_SELECT: changeMultiChainFABRIKBlockType(panel); break;
     case PID_CTRLS_PARAMS_CTRL_CHANGE_RATE_SRC: params_ctrl_change_rate_src_changed(panel); break;
@@ -670,12 +684,7 @@ void AnimTreePlugin::addBlendNodeToTree(PropPanel::ContainerPropertyControl *tre
   TLeafHandle animLeaf = tree->createTreeLeaf(parent, animNode->getStr("name"), iconName);
   addBlendNode(animLeaf, type);
   tree->setUserData(animLeaf, (void *)&ANIM_BLEND_NODE_LEAF);
-  for (int i = 0; i < animNode->blockCount(); ++i)
-  {
-    TLeafHandle irqLeaf = tree->createTreeLeaf(animLeaf, animNode->getBlock(i)->getStr("name"), IRQ_ICON);
-    addBlendNode(irqLeaf, BlendNodeType::IRQ);
-    tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
-  }
+  addIrqLeafsToBlendNodesTree(tree, *animNode, animLeaf);
 }
 
 static bool blk_has_override_fields(const DataBlock &blk)
@@ -1194,6 +1203,7 @@ void AnimTreePlugin::fillTreePanels(PropPanel::ContainerPropertyControl *panel)
 
   childsDialog.setTreePanels(panel, curAsset, this);
   ctrlListSettingsEventHandler.setPluginEventHandler(panel, this);
+  resetRandomSwitchListEventHandler.setPluginEventHandler(panel, this);
   animStatesTreeEventHandler.setPluginEventHandler(panel, this);
   ifMathDragHandler.setPanel(panel);
   ifMathDropHandler.setPlugin(this, panel);
@@ -1404,6 +1414,16 @@ void AnimTreePlugin::fillAnimBlendSettings(PropPanel::ContainerPropertyControl *
         BlendNodeType type = static_cast<BlendNodeType>(lup(settings->getBlockName(), blend_node_types));
         fill_anim_blend_params_settings(type, group, animBnlParams, fieldIdx, defaultForeign);
         set_anim_blend_dependent_defaults(type, group, animBnlParams, curAsset->getMgr());
+        if (type == BlendNodeType::PARAMETRIC)
+        {
+          parametric_init_block_settings(getPluginPanel(), settings, controllersData);
+          getPluginPanel()->setListBoxEventHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListEventHandler);
+          getPluginPanel()->setListDragHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListDragHandler);
+          getPluginPanel()->setListDropHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListDropHandler);
+          resetRandomSwitchListDropHandler.panel = getPluginPanel();
+          resetRandomSwitchListDropHandler.pid = PID_NODES_RESET_RANDOM_SWITCH_LIST;
+          resetRandomSwitchListDropHandler.reorderHandler.reset(new ResetRandomSwitchReorderHandler(*this, getPluginPanel()));
+        }
       }
       group->createButton(PID_NODES_SETTINGS_PLAY_ANIMATION, "Play animation");
       animPlayer.setSelectedA2dName(group->getText(PID_NODES_PARAMS_FIELD));
@@ -1651,7 +1671,7 @@ void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl
   {
     case ctrl_type_paramSwitch:
     case ctrl_type_paramSwitchS: paramSwitchFillBlockSettings(panel, settings); break;
-    case ctrl_type_randomSwitch: random_switch_init_block_settings(panel, settings); break;
+    case ctrl_type_randomSwitch: random_switch_init_block_settings(panel, settings, ctrlDependentParams); break;
     case ctrl_type_hub: hub_init_block_settings(panel, settings); break;
     case ctrl_type_linearPoly: linear_poly_init_block_settings(panel, settings); break;
     case ctrl_type_footLockerIK: foot_locker_ik_init_block_settings(panel, settings); break;
@@ -1744,7 +1764,9 @@ void AnimTreePlugin::setSelectedCtrlNodeListSettings(PropPanel::ContainerPropert
     CtrlType type = get_selected_ctrl_type(panel, isProcChild);
     switch (type)
     {
-      case ctrl_type_randomSwitch: random_switch_set_selected_node_list_settings(panel, settings); break;
+      case ctrl_type_randomSwitch:
+        random_switch_set_selected_node_list_settings(panel, settings, ctrlDependentParams, ctrlParams);
+        break;
       case ctrl_type_paramSwitch:
       case ctrl_type_paramSwitchS: param_switch_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_hub: hub_set_selected_node_list_settings(panel, settings); break;
@@ -3863,6 +3885,8 @@ void AnimTreePlugin::updateCtrlFields(PropPanel::ContainerPropertyControl *panel
     update_dependent_param_value_by_pid(panel, ctrlDependentParams, *param, PID_CTRLS_DEPENDENT_E_KEY);
   else if (param->name == "mandatoryAnim")
     update_dependent_param_value_by_pid(panel, ctrlDependentParams, *param, PID_CTRLS_DEPENDENT_MANDATORY_ANIM);
+  else if (param->name == "maxrepeat")
+    update_dependent_param_value_by_pid(panel, ctrlDependentParams, *param, PID_CTRLS_DEPENDENT_MAXREPEAT);
 }
 
 void AnimTreePlugin::updateCtrlDependentStatus(PropPanel::ContainerPropertyControl *panel, int pid)
@@ -3884,6 +3908,8 @@ void AnimTreePlugin::updateCtrlDependentStatus(PropPanel::ContainerPropertyContr
     update_dependent_param_state(panel, ctrlParams, *param, "eKey");
   else if (param->dependentParamPid == PID_CTRLS_DEPENDENT_MANDATORY_ANIM)
     update_dependent_param_state(panel, ctrlParams, *param, "mandatoryAnim");
+  else if (param->dependentParamPid == PID_CTRLS_DEPENDENT_MAXREPEAT)
+    update_dependent_param_state(panel, ctrlParams, *param, "maxrepeat");
 }
 
 void AnimTreePlugin::addMaskToNodeMasksTree(PropPanel::ContainerPropertyControl *panel)
@@ -4326,15 +4352,86 @@ void AnimTreePlugin::removeBlendNodeOrA2d(PropPanel::ContainerPropertyControl *t
       tree->removeLeaf(anotherLeaf);
       a2dBlk->removeBlock(selectedIdx);
       DataBlock *anotherSettings = a2dBlk->getBlock(0);
-
-      for (int i = 0; i < anotherSettings->blockCount(); ++i)
-      {
-        TLeafHandle irqLeaf = tree->createTreeLeaf(a2dLeaf, anotherSettings->getBlock(i)->getStr("name"), IRQ_ICON);
-        addBlendNode(irqLeaf, BlendNodeType::IRQ);
-        tree->setUserData(irqLeaf, (void *)&ANIM_BLEND_NODE_IRQ);
-      }
+      addIrqLeafsToBlendNodesTree(tree, *anotherSettings, a2dLeaf);
     }
   }
+}
+
+void AnimTreePlugin::selectedChangedResetRandomSwitchList(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+  if (!nodeLeaf)
+    return;
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
+  int a2dIdx = -1;
+  DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(nodeLeaf), a2dIdx);
+  if (settings)
+    parametric_set_selected_reset_random_switch_list_settings(panel, *settings, controllersData);
+}
+
+void AnimTreePlugin::addResetRandomSwitchNodeList(PropPanel::ContainerPropertyControl *panel)
+{
+  parametric_add_reset_random_switch_to_list(panel);
+  selectedChangedResetRandomSwitchList(panel);
+}
+
+void AnimTreePlugin::removeResetRandomSwitchNodeList(PropPanel::ContainerPropertyControl *panel)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+  if (!nodeLeaf)
+    return;
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
+  int a2dIdx = -1;
+  DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(nodeLeaf), a2dIdx);
+  if (!settings)
+    return;
+
+  parametric_remove_reset_random_switch_from_list(panel, *settings);
+  parametric_set_selected_reset_random_switch_list_settings(panel, *settings, controllersData);
+  saveProps(props, fullPath);
+}
+
+void AnimTreePlugin::reorderResetRandomSwitchList(PropPanel::ContainerPropertyControl *panel, int from, int to)
+{
+  PropPanel::ContainerPropertyControl *tree = panel->getById(PID_ANIM_BLEND_NODES_TREE)->getContainer();
+  TLeafHandle nodeLeaf = get_anim_blend_node_leaf(tree);
+  if (!nodeLeaf)
+    return;
+
+  String fullPath;
+  DataBlock props = get_props_from_include_leaf_blend_node(includePaths, *curAsset, tree, fullPath);
+  if (fullPath.empty())
+    return;
+
+  int a2dIdx = -1;
+  DataBlock *settings = get_selected_bnl_settings(props, tree->getCaption(nodeLeaf), a2dIdx);
+  if (!settings)
+    return;
+
+  DataBlock *resetBlock = settings->getBlockByName("resetRandomSwitchersOnAnimationEnd");
+  if (!resetBlock)
+    return;
+
+  Tab<int> positions;
+  for (int i = 0; i < resetBlock->blockCount(); ++i)
+  {
+    if (!CHECK_COMMENT_PREFIX(resetBlock->getBlock(i)->getBlockName()))
+      positions.push_back(i);
+  }
+  move_block_blk(*resetBlock, positions[from], positions[to]);
+  saveProps(props, fullPath);
 }
 
 void AnimTreePlugin::removeNodeFromAnimNodesTree(PropPanel::ContainerPropertyControl *panel)
@@ -4497,6 +4594,14 @@ void AnimTreePlugin::saveSettingsAnimNodesTree(PropPanel::ContainerPropertyContr
       SimpleString newTypeName = panel->getText(PID_NODES_SETTINGS_NODE_TYPE_COMBO_SELECT);
       settings->changeBlockName(newTypeName.c_str());
       BlendNodeType type = static_cast<BlendNodeType>(lup(newTypeName.c_str(), blend_node_types));
+      if (type == BlendNodeType::PARAMETRIC)
+      {
+        dag::ConstSpan<String> names = panel->getStrings(PID_NODES_RESET_RANDOM_SWITCH_LIST);
+        if (!names.empty())
+          if (!get_bool_param_by_name(animBnlParams, panel, "eoa_irq"))
+            logerr("eoa_irq must be enabled for correct work resetRandomSwitchersOnAnimationEnd");
+        parametric_save_block_settings(panel, *settings);
+      }
       tree->setButtonPictures(leaf, get_blend_node_icon_name(type));
       BlendNodeData *data = find_data_by_handle(blendNodesData, leaf);
       const String oldName = tree->getCaption(leaf);
@@ -4615,12 +4720,25 @@ void AnimTreePlugin::changeAnimNodeType(PropPanel::ContainerPropertyControl *pan
   animBnlParams.erase(separator + 1, animBnlParams.end());
   const bool breakIfNotFound = true;
   remove_fields(panel, separator->pid + 1, PID_NODES_PARAMS_FIELD_SIZE, breakIfNotFound);
+  remove_fields(panel, PID_NODES_RESET_RANDOM_SWITCH_LIST, PID_NODES_ACTION_FIELD_SIZE);
   DataBlock fullProps(curAsset->getSrcFilePath());
   const bool defaultForeign = fullProps.getBool("defaultForeignAnim", false);
   fill_anim_blend_params_settings(type, group, animBnlParams, separator->pid + 1, defaultForeign);
   TLeafHandle leaf = tree->getSelLeaf();
   if (const DataBlock *settings = find_blend_node_settings(props, tree->getCaption(leaf)))
+  {
     fill_values_if_exists(group, settings, animBnlParams);
+    if (type == BlendNodeType::PARAMETRIC)
+    {
+      parametric_init_block_settings(panel, settings, controllersData);
+      panel->setListBoxEventHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListEventHandler);
+      panel->setListDragHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListDragHandler);
+      panel->setListDropHandler(PID_NODES_RESET_RANDOM_SWITCH_LIST, &resetRandomSwitchListDropHandler);
+      resetRandomSwitchListDropHandler.panel = panel;
+      resetRandomSwitchListDropHandler.pid = PID_NODES_RESET_RANDOM_SWITCH_LIST;
+      resetRandomSwitchListDropHandler.reorderHandler.reset(new ResetRandomSwitchReorderHandler(*this, panel));
+    }
+  }
   set_anim_blend_dependent_defaults(type, group, animBnlParams, curAsset->getMgr());
   group->moveById(PID_NODES_SETTINGS_PLAY_ANIMATION);
   group->moveById(PID_NODES_SETTINGS_SAVE);

@@ -295,7 +295,10 @@ template <typename Callable>
 static void animchar_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void human_animchar_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
+static void human_animchar_sound_voice_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
+
+template <typename Callable>
+static void human_animchar_sound_steps_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
 static void human_melee_sound_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
@@ -323,29 +326,30 @@ static void human_animchar_sound_on_appear_es(const ecs::Event &, ecs::EntityMan
   animchar_sound_ecs_query(manager, eid,
     [&](ECS_SHARED(ecs::Object) sound_irqs) { register_type_irqs(sound_irqs, human_animchar_sound.handlers->irqHandler, animchar); });
 
-  human_animchar_sound_ecs_query(manager, eid,
-    [&](ECS_SHARED(ecs::Object) human_voice_sound__irqs, ECS_SHARED(ecs::Array) human_steps_sound__irqs) {
-      register_type_irqs(human_voice_sound__irqs, human_animchar_sound.handlers->voicefxHandler, animchar);
+  human_animchar_sound_voice_ecs_query(manager, eid, [&](ECS_SHARED(ecs::Object) human_voice_sound__irqs) {
+    register_type_irqs(human_voice_sound__irqs, human_animchar_sound.handlers->voicefxHandler, animchar);
+  });
 
-      int idx = -1;
-      for (const auto &it : human_steps_sound__irqs)
-      {
-        ++idx;
-        const ecs::Object &irqObj = it.get<ecs::Object>();
-        const char *irqName = irqObj.getMemberOr(ECS_HASH("irq"), "");
+  human_animchar_sound_steps_ecs_query(manager, eid, [&](ECS_SHARED(ecs::Array) human_steps_sound__irqs) {
+    int idx = -1;
+    for (const auto &it : human_steps_sound__irqs)
+    {
+      ++idx;
+      const ecs::Object &irqObj = it.get<ecs::Object>();
+      const char *irqName = irqObj.getMemberOr(ECS_HASH("irq"), "");
 #if DAGOR_DBGLEVEL > 0
-        const char *prefix = (idx & 1) ? "right" : "left";
-        if (strncmp(irqName, prefix, strlen(prefix)) != 0)
-          logerr("Irq name '%s' in human_steps_sound__irqs should start with '%s'", irqName, prefix);
+      const char *prefix = (idx & 1) ? "right" : "left";
+      if (strncmp(irqName, prefix, strlen(prefix)) != 0)
+        logerr("Irq name '%s' in human_steps_sound__irqs should start with '%s'", irqName, prefix);
 #endif
-        const int direction = irqObj.getMemberOr(ECS_HASH("direction"), (int)forward_direction);
-        human_animchar_sound.handlers->stepHandler.registerIrq(irqName, idx, direction, animchar);
-      }
+      const int direction = irqObj.getMemberOr(ECS_HASH("direction"), (int)forward_direction);
+      human_animchar_sound.handlers->stepHandler.registerIrq(irqName, idx, direction, animchar);
+    }
 #if DAGOR_DBGLEVEL > 0
-      if (human_steps_sound__irqs.size() & 1)
-        logerr("Missing steps in human_steps_sound__irqs. Should contain pairs of steps");
+    if (human_steps_sound__irqs.size() & 1)
+      logerr("Missing steps in human_steps_sound__irqs. Should contain pairs of steps");
 #endif
-    });
+  });
 
   human_melee_sound_ecs_query(manager, eid, [&](ECS_SHARED(ecs::Object) human_melee_sound__irqs) {
     for (const auto &it : human_melee_sound__irqs)

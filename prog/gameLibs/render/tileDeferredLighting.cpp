@@ -11,6 +11,7 @@
 #include <math/dag_vecMathCompatibility.h>
 #include <math/dag_TMatrix4.h>
 #include <perfMon/dag_statDrv.h>
+#include <EASTL/array.h>
 
 #define GLOBAL_VARS_LIST      \
   VAR(allLights)              \
@@ -116,9 +117,10 @@ void TileDeferredLighting::classifyPointLights(const TextureIDPair &far_depth, c
   ShaderGlobal::set_float4(viewClipVarId, projTm[0][0], -projTm[1][1], projTm[2][0], projTm[2][1]);
 
 
-  d3d::set_render_target();
-  for (int i = 0; i < MAX_LIGHTS_PER_TILE / 4; ++i)
-    d3d::set_render_target(i, lightsIndicesArray.getArrayTex(), i, 0);
+  eastl::array<RenderTarget, MAX_LIGHTS_PER_TILE / 4> mrtRts = {};
+  for (uint32_t i = 0; i < MAX_LIGHTS_PER_TILE / 4; ++i)
+    mrtRts[i] = {lightsIndicesArray.getArrayTex(), 0, i};
+  d3d::set_render_target({}, DepthAccess::RW, dag::ConstSpan<RenderTarget>(mrtRts.data(), mrtRts.size()));
 
   far_depth.getTex2D()->texmiplevel(3, 3);
   G_ASSERT(far_depth.getTex2D()->level_count() >= 3);

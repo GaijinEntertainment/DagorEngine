@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# DEP_DOMAIN outerSpace/prog
 import os
 import sys
 import argparse
@@ -12,10 +11,11 @@ DAGOR_ROOT_FOLDER = Path(__file__).resolve().parents[2]
 def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument("--no-cvs-update", action="store_true", help="Skip CVS update, only copy files")
+  parser.add_argument("proj_name", nargs='*', help="Project name to update snapshot")
   return parser.parse_args()
 
 def update_and_copy(src, dst, skip_cvs_update=False):
-  if not skip_cvs_update:
+  if not skip_cvs_update and Path(str(src.parent)+'/CVS').exists():
     prev_cwd = os.getcwd()
     os.chdir(str(src.parent))
     print(f"cvs -q update -C {src.name}")
@@ -57,11 +57,9 @@ def update_dng_snapshot(project_root, game_folder, vromfs_list, skip_cvs_update=
 
 if __name__ == "__main__":
   args = parse_args()
-
-  project_list = [
-    "outerSpace",
-    "samples/dngSceneViewer"
-  ]
-  for project in project_list:
+  if not parse_args().proj_name:
+    print("no project specified")
+    exit(1)
+  for project in parse_args().proj_name:
     script = DAGOR_ROOT_FOLDER / project / "prog" / "tools" / "update_snapshot.py"
     subprocess.run([sys.executable, str(script)] + sys.argv[1:], check=True)

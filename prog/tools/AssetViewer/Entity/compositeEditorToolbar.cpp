@@ -20,7 +20,7 @@ void CompositeEditorToolbar::initUi(PropPanel::ControlEventHandler &event_handle
   panel->setEventHandler(&event_handler);
   panel->clear();
 
-  PropPanel::ContainerPropertyControl *tb = panel->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb = panel->createToolbarPanel();
   G_ASSERT(tb);
   addCheckButton(*tb, CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT, "select", "Select");
   tb->createSeparator();

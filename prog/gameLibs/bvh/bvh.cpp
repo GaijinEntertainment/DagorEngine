@@ -294,9 +294,11 @@ static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &m
     args.getSplineDataFn = instance->getSplineDataFn;
     args.tree = instance->tree;
     args.flag = instance->flag;
+    args.skin = instance->skin;
   }
   args.tree.ppPositionBindless = mesh.ppPositionBindless;
   args.tree.ppDirectionBindless = mesh.ppDirectionBindless;
+  args.skin.clothWind.clothNoiseCombinedTexBindless = mesh.clothNoiseCombinedTexBindless;
   return args;
 }
 
@@ -409,6 +411,8 @@ static void process_meta(ContextId context_id, MeshMeta &meta, const Mesh &mesh,
       verticesRecycled, needBlasBuild, meta);
   meta.vertexOffset = animatedVertices.getOffset();
 }
+
+static on_parallel_jobs_finished_callback on_parallel_jobs_finished_cb = nullptr;
 
 namespace parallel_instance_processing
 {
@@ -530,6 +534,9 @@ static void on_parallel_jobs_finished(ContextId context_id)
 
   TIME_PROFILE(on_parallel_jobs_finished)
 
+  if (on_parallel_jobs_finished_cb)
+    on_parallel_jobs_finished_cb();
+
   bool mainUploadDone = upload_main_data(context_id, TargetFrame::Next);
   bool perInstanceDataUploadDone = upload_per_instance_data(context_id, TargetFrame::Next);
   jobGroupParallelFinishResult = ParallelFinishResult{mainUploadDone, perInstanceDataUploadDone};
@@ -584,6 +591,8 @@ ParallelFinishResult is_parallel_jobs_finished(ContextId context_id)
   return jobGroupParallelFinishResult;
 }
 } // namespace parallel_instance_processing
+
+void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback callback) { on_parallel_jobs_finished_cb = callback; }
 
 struct BVHLinearBufferManager
 {
@@ -919,8 +928,11 @@ void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSet
   gpugrass::init();
 }
 
+static void wait_all_jobs();
+
 void teardown(bool device_reset, bool zero_bvh_ids)
 {
+  wait_all_jobs();
   terrain::teardown();
   ri::teardown(device_reset);
   dyn::teardown(device_reset, zero_bvh_ids);
@@ -994,6 +1006,7 @@ void teardown(ContextId &context_id)
   if (context_id == InvalidContextId)
     return;
 
+  wait_all_jobs();
   terrain::teardown(context_id);
   ri::teardown(context_id);
   dyn::teardown(context_id);
@@ -1243,6 +1256,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     mesh.extraTextureId = info.extraTextureId;
     mesh.ppPositionTextureId = info.ppPositionTextureId;
     mesh.ppDirectionTextureId = info.ppDirectionTextureId;
+    mesh.clothNoiseCombinedTexTextureId = info.clothNoiseCombinedTexTextureId;
     mesh.indexCount = info.indexCount;
     mesh.indexFormat = info.indices->getFlags() & SBCF_INDEX32 ? 4 : 2;
     mesh.vertexCount = info.vertexCount;
@@ -1356,6 +1370,8 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
       context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless);
     if (info.ppDirectionTextureId != BAD_TEXTUREID)
       context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless);
+    if (info.clothNoiseCombinedTexTextureId != BAD_TEXTUREID)
+      context_id->holdTexture(info.clothNoiseCombinedTexTextureId, mesh.clothNoiseCombinedTexBindless);
 
     if (mesh.materialType & MeshMeta::bvhMaterialAlphaTest && info.alphaTextureId == BAD_TEXTUREID)
     {
@@ -1486,7 +1502,7 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     if (auto iter = context_id->stationaryTreeBuffers.find(object_id); iter == context_id->stationaryTreeBuffers.end())
     {
       ReferencedTransformData data;
-      data.metaAllocId = context_id->allocateMetaRegion(1);
+      data.metaAllocId = context_id->allocateMetaRegion(1, "stationaryTree");
       context_id->stationaryTreeBuffers.insert({object_id, eastl::move(data)});
     }
   }
@@ -3286,8 +3302,16 @@ void on_scene_loaded(ContextId context_id)
   ri::on_scene_loaded(context_id);
 }
 
+static void wait_all_jobs()
+{
+  bvh_upload_meta_job.wait();
+  bvh_fallback_upload_heavy_data_job.wait();
+  threadpool::wait(&bvh_update_atmosphere_job);
+}
+
 void on_unload_scene(ContextId context_id)
 {
+  wait_all_jobs();
   dyn::on_unload_scene(context_id);
   ri::on_unload_scene(context_id);
   grass::on_unload_scene(context_id);

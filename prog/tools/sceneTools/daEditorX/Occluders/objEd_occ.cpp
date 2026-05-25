@@ -88,7 +88,7 @@ void occplugin::ObjEd::registerViewportAccelerators(IWndManager &wndManager)
 
 void occplugin::ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
-  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel();
 
   addEditorCommandButton(tb1, CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder",
     true);
@@ -97,7 +97,7 @@ void occplugin::ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 
   ObjectEditor::fillToolBar(toolbar);
 
-  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(0, "");
+  PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel();
 
   addEditorCommandButton(tb2, CM_SHOW_LOCAL_OCCLUDERS, EditorCommandIds::SHOW_LOCAL_OCCLUDERS, "show_loc_occ", "Show local occluders",
     true);

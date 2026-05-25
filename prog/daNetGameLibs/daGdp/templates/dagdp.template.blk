@@ -46,9 +46,11 @@ dagdp_level_settings {
       value:r=10
       _hide:b=yes
     }
-    "dagdp__csm_max_cascades:i"{
-      value:i=3
-      _info { desc:t="Will be rendered only to nearest N csm cascades." }
+    "dagdp__csm_max_fov:list<r>"{
+      max_fov:r=-1
+      max_fov:r=-1
+      max_fov:r=120.1
+      _info { desc:t="Will be rendered into csm[i] only if camera fov < csm_max_fov[i]." }
     }
   }
 }

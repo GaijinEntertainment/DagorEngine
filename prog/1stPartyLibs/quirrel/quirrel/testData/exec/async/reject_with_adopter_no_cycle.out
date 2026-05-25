@@ -1,0 +1,3 @@
+a=rejected b=rejected
+script done
+a reason type=string value=Promise: chaining cycle detected

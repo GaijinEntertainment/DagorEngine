@@ -19,24 +19,22 @@ YuSession::FallbackAction::FallbackAction(YuSession& s, ActionId id, Yuplay2Msg 
                                           bool use_failback) :
     YuSession::AsyncHttpAction(s, id, msg, cb)
 {
+  fallbackHosts = &fail_hosts;
+
   if (use_failback)
-  {
-    fallbackHosts = &fail_hosts;
     fallbackIp = &fail_ip;
-  }
 }
 
 
 //==================================================================================================
 YuFallbackRequest* YuSession::FallbackAction::createFallback() const
 {
-  if (fallbackIp)
-  {
-    if (fallbackHosts)
-      return new YuFallbackRequest(*fallbackHosts, *fallbackIp, true);
-
+  if (fallbackHosts && fallbackIp)
+    return new YuFallbackRequest(*fallbackHosts, *fallbackIp, true);
+  else if (fallbackHosts)
+    return new YuFallbackRequest(*fallbackHosts, "", true);
+  else if (fallbackIp)
     return new YuFallbackRequest(*fallbackIp, true);
-  }
 
   return new YuFallbackRequest(true);
 }

@@ -39,12 +39,15 @@ public:
 
   void prepareLightProbeRIVisibilityAsync(const mat44f &globtm, const Point3 &view_pos);
 
-  void startOcclusionAndSwRaster(
-    rendinst::RIOcclusionData &ri_occlusion_data, const CameraParams &cur_frame_cam, const LandMeshManager *lmesh_mgr);
+  void startOcclusionAndSwRaster(rendinst::RIOcclusionData &ri_occlusion_data,
+    const CameraParams &cur_frame_cam,
+    const LandMeshManager *lmesh_mgr,
+    mat44f_cref cockpit_proj);
 
   void waitVisibilityReproject();
 
-  void startOcclusionFrame(const TMatrix &itm, const mat44f &viewTm, const mat44f &projTm, const mat44f &globtm);
+  void startOcclusionFrame(
+    const TMatrix &itm, const mat44f &viewTm, const mat44f &projTm, const mat44f &globtm, mat44f_cref cockpit_proj);
 
   void startVisibilityReproject();
 

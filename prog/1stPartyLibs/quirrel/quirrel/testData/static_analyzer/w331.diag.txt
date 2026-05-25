@@ -1,0 +1,48 @@
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:3:0
+
+function sameReturn(x) {
+^
+  if (x)
+
+
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:15:0
+
+function sameStringReturn(x) {
+^
+  if (x)
+
+
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:21:0
+
+function sameFloatReturn(x) {
+^
+  if (x)
+
+
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:27:0
+
+function sameBoolReturn(x) {
+^
+  if (x)
+
+
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:45:0
+
+function bareReturnWithSameValue(x) {
+^
+  if (x)
+
+
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331.nut:60:0
+
+function sameYield(x) {
+^
+  if (x)
+
+

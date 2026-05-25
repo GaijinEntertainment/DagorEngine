@@ -260,13 +260,13 @@ void DaSkies::createCloudsPanoramaTex(bool blend_two, int resolution_width, int 
 
     d3d::GpuAutoLock gpuLock;
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(cloudsPanoramaTex[i].getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{cloudsPanoramaTex[i].getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
     d3d::resource_barrier({cloudsPanoramaTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
     if (skyPanoramaPatchEnabled)
     {
-      d3d::set_render_target(cloudsPanoramaPatchTex[i].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{cloudsPanoramaPatchTex[i].getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0, 0.f, 0);
       d3d::resource_barrier({cloudsPanoramaPatchTex[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
@@ -574,7 +574,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
       // for quads update with +1 pixel both sides
       TIME_D3D_PROFILE(skyPanorama)
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target(skyPanoramaTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{skyPanoramaTex.getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       ShaderGlobal::set_float4(panoramaTCVarId, 0, 0, 1, 1);
       skyPanorama.render();
@@ -629,7 +629,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
       }
       else
       {
-        d3d::set_render_target(to.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{to.getTex2D(), 0, 0}});
         if (w != 0)
           d3d::setview(x, y, w, h, 0, 1);
         cloudsPanorama.render();
@@ -708,7 +708,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
         (panoramaFrame < panoramaInvalidFrames) ? 1.f / (1.f + panoramaSubPixel) : 0);
       int x, y, w, h;
       panoramaTC(x, y, w, h, cloudsAlphaPanoramaTex);
-      d3d::set_render_target(cloudsAlphaPanoramaTex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{cloudsAlphaPanoramaTex.getTex2D(), 0, 0}});
       if (panoramaFrame == 0)
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
@@ -724,7 +724,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
     TIME_D3D_PROFILE(panoramaBlend);
     G_ASSERT(targetPanorama >= 1 && currentPanorama == 0);
     auto blendTo = [&](ManagedTex &to, ManagedTex &from) {
-      d3d::set_render_target(to.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{to.getTex2D(), 0, 0}});
       ShaderGlobal::set_texture(clouds_panorama_blend_fromVarId, from);
       cloudsPanoramaBlend.render();
       d3d::resource_barrier({to.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
@@ -770,7 +770,7 @@ bool DaSkies::updatePanorama(const Point3 &origin_)
   {
     TIME_D3D_PROFILE(panorama_lowres_mip);
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(cloudsPanoramaMipTex.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{cloudsPanoramaMipTex.getTex2D(), 0, 0}});
     ShaderGlobal::set_texture(clouds_panorama_texVarId,
       isPanoramaCompressed ? compressedCloudsPanoramaTex : cloudsPanoramaTex[currentPanorama]);
     cloudsPanoramaMip.render();

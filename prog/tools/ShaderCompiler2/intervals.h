@@ -53,7 +53,7 @@ public:
   /************************************************************************/
   /* boolean expressions for this class
   /************************************************************************/
-  enum BooleanExpr
+  enum BooleanExpr : uint8_t
   {
     EXPR_NOTINIT,
     EXPR_EQ,         // ==
@@ -62,6 +62,8 @@ public:
     EXPR_SMALLER,    // <
     EXPR_SMALLER_EQ, // <=
     EXPR_NOT_EQ,     // !=
+
+    EXPR_COUNT
   };
 
   Interval(int name_id, ShaderVariant::VarType interval_type, eastl::string file_name = "") :
@@ -112,6 +114,8 @@ public:
 
   // check boolean expression
   bool checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, const char *right_op,
+    String &error_msg, shc::TargetContext &ctx) const;
+  bool checkExpression(ShaderVariant::ValueType left_op_normalized, const Interval::BooleanExpr expr, int right_op_name_id,
     String &error_msg, shc::TargetContext &ctx) const;
 
   // return true, if intervals are identical

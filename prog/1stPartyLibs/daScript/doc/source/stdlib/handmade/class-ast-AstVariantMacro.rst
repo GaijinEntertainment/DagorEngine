@@ -1,1 +1,0 @@
-Macro for implementing custom ``is``, ``as``, and ``?as`` expressions. Allows user-defined variant-like dispatch and type-checking patterns beyond the built-in variant type.

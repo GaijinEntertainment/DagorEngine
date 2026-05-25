@@ -393,8 +393,6 @@ bool HmapLandPlugin::begin(int toolbar_id, unsigned menu_id)
   PropPanel::ContainerPropertyControl *_panel = brushDlg->getPanel();
   _panel->setEventHandler(this);
 
-  updateSnowSources();
-
   navmeshAreasProcessing.resize(MAX_NAVMESHES);
   for (int i = 0; i < MAX_NAVMESHES; i++)
     navmeshAreasProcessing[i].init(&objEd, &navMeshProps[i], i);
@@ -5063,7 +5061,6 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   CoolConsole &con = DAGORED2->getConsole();
   con.startLog();
 
-  showBlueWhiteMask = blk.getBool("showBlueWhiteMask", true);
 
   // Pre-size the heightmap buffer from heightmapLand.plugin.blk values before
   // openFile. Main heightmap is always full-extent; .r32.zst payload is the
@@ -5228,6 +5225,24 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   // until the artist edits the panel.
   recompileGenLayerExpressions();
 
+  // Apply saved debug view mode AFTER layers + typedVars are loaded and the
+  // expressions recompile, so DV_LAYER's name lookup sees the freshly-loaded
+  // genLayers and DV_DEBUG_EXPR sees a valid debugExprArena. Routing through
+  // setDebugViewMode (rather than just assigning the bool trio) also issues
+  // the matching texture refresh -- DV_BLUE_WHITE / DV_LANDCLASS_COLORS would
+  // otherwise come back with whatever shader binding the previous editor
+  // session left around. Older saves that only have the boolean
+  // 'showBlueWhiteMask' fall back to DV_BLUE_WHITE / DV_NONE.
+  {
+    int dvm = blk.getInt("debugViewMode", -1);
+    if (dvm < 0)
+      dvm = blk.getBool("showBlueWhiteMask", true) ? (int)DV_BLUE_WHITE : (int)DV_NONE;
+    if (dvm > (int)DV_LAYER)
+      dvm = DV_NONE;
+    const char *lname = (dvm == (int)DV_LAYER) ? blk.getStr("debugLayerName", "") : nullptr;
+    setDebugViewMode(dvm, lname);
+  }
+
   const DataBlock *grassBlock = blk.getBlockByNameEx("grassLayers", NULL);
   if (grassBlock)
     loadGrassLayers(*grassBlock);
@@ -5259,12 +5274,8 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   DataBlock polysBlk(blkPath);
   blkPath = String(128, "%s/entities.blk", base_path);
   DataBlock entBlk(blkPath);
-  blkPath = String(128, "%s/lights.blk", base_path);
-  DataBlock ltBlk;
-  if (dd_file_exist(blkPath))
-    ltBlk.load(blkPath);
 
-  objEd.load(splinesBlk, polysBlk, entBlk, ltBlk, -1);
+  objEd.load(splinesBlk, polysBlk, entBlk, -1);
   if (DAGORED2->curPlugin() == this)
     objEd.updateToolbarButtons();
 
@@ -5278,15 +5289,15 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
     {
       case EditLayerProps::SPL:
         splinesBlk.load(String(128, "%s/splines.%s.blk", base_path, lname));
-        objEd.load(splinesBlk, DataBlock::emptyBlock, DataBlock::emptyBlock, DataBlock::emptyBlock, i);
+        objEd.load(splinesBlk, DataBlock::emptyBlock, DataBlock::emptyBlock, i);
         break;
       case EditLayerProps::PLG:
         polysBlk.load(String(128, "%s/polys.%s.blk", base_path, lname));
-        objEd.load(DataBlock::emptyBlock, polysBlk, DataBlock::emptyBlock, DataBlock::emptyBlock, i);
+        objEd.load(DataBlock::emptyBlock, polysBlk, DataBlock::emptyBlock, i);
         break;
       case EditLayerProps::ENT:
         entBlk.load(String(128, "%s/entities.%s.blk", base_path, lname));
-        objEd.load(DataBlock::emptyBlock, DataBlock::emptyBlock, entBlk, DataBlock::emptyBlock, i);
+        objEd.load(DataBlock::emptyBlock, DataBlock::emptyBlock, entBlk, i);
         break;
     }
   }
@@ -5309,9 +5320,6 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
 
   dagGeom->shaderGlobalSetInt(snowPrevievSVId, (snowDynPreview && snowSpherePreview) ? 2 : (snowDynPreview ? 1 : 0));
   dagGeom->shaderGlobalSetReal(snowValSVId, dynSnowValue);
-
-  if (snowSpherePreview)
-    updateSnowSources();
 
   acquireVertTexRef();
 
@@ -6218,25 +6226,20 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
 
   objEd.save(newBlk);
 
-  DataBlock splinesBlk, polysBlk, entBlk, ltBlk;
+  DataBlock splinesBlk, polysBlk, entBlk;
 
-  objEd.save(splinesBlk, polysBlk, entBlk, ltBlk, -1);
+  objEd.save(splinesBlk, polysBlk, entBlk, -1);
 
   splinesBlk.saveToTextFile(String(128, "%s/splines.blk", base_path));
   polysBlk.saveToTextFile(String(128, "%s/polys.blk", base_path));
   entBlk.saveToTextFile(String(128, "%s/entities.blk", base_path));
-  if (ltBlk.blockCount() || ltBlk.paramCount())
-    ltBlk.saveToTextFile(String(128, "%s/lights.blk", base_path));
-  else if (dd_file_exist(String(128, "%s/lights.blk", base_path)))
-    ltBlk.saveToTextFile(String(128, "%s/lights.blk", base_path));
 
   for (int i = 0; i < EditLayerProps::layerProps.size(); i++)
   {
     if (EditLayerProps::layerProps[i].nameId == 0)
       continue;
     splinesBlk.clearData(), polysBlk.clearData(), entBlk.clearData();
-    ltBlk.clearData();
-    objEd.save(splinesBlk, polysBlk, entBlk, ltBlk, i);
+    objEd.save(splinesBlk, polysBlk, entBlk, i);
 
     const char *lname = EditLayerProps::layerProps[i].name();
     switch (EditLayerProps::layerProps[i].type)
@@ -6334,7 +6337,14 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
     if (scriptImages[i]->isImageModified())
       if (!scriptImages[i]->saveImage())
         con.addMessage(ILogWriter::ERROR, "Error saving script image '%s'", scriptImages[i]->getName());
-  blk.setBool("showBlueWhiteMask", showBlueWhiteMask);
+  // Persist debug view mode + (when DV_LAYER) the targeted layer's paramName.
+  // Also keep the legacy boolean so older readers (and any external tooling
+  // that touches plugin.blk) still get the right mask-overlay behaviour when
+  // reading a forward-rolled save.
+  blk.setInt("debugViewMode", debugViewMode);
+  if (debugViewMode == (int)DV_LAYER && !debugLayerName.empty())
+    blk.setStr("debugLayerName", debugLayerName.str());
+  blk.setBool("showBlueWhiteMask", debugViewMode == (int)DV_BLUE_WHITE);
 
   if (heightMapDet.isFileOpened())
     if (!flushDataTo(base_path, origBasePath, heightMapDet.getInitialMap()))
@@ -6701,7 +6711,7 @@ void HmapLandPlugin::renderHeight()
       updateVertTex();
   }
 
-  if ((st_mask & lmeshSubtypeMask) && landMeshRenderer && !(editedScriptImage && showBlueWhiteMask))
+  if ((st_mask & lmeshSubtypeMask) && landMeshRenderer && !(editedScriptImage && showEditedMask()))
   {
     hmlService->prepareLandMesh(*landMeshRenderer, *landMeshManager, dagRender->curView().pos);
 
@@ -6720,7 +6730,7 @@ void HmapLandPlugin::renderGrassMask()
     return;
 
 
-  if ((st_mask & lmeshSubtypeMask) && landMeshRenderer && !(editedScriptImage && showBlueWhiteMask) && landMeshManager)
+  if ((st_mask & lmeshSubtypeMask) && landMeshRenderer && !(editedScriptImage && showEditedMask()) && landMeshManager)
   {
     IGenViewportWnd *renderView = DAGORED2->getRenderViewport();
     IGenViewportWnd *curView = DAGORED2->getCurrentViewport();
@@ -6938,14 +6948,14 @@ void HmapLandPlugin::renderGeometry(Stage stage)
         if (getHeightmapPointHt(p, NULL))
           height = height - p.y;
         if (objEd.supportsRealtimeUpdate())
-          if (!(editedScriptImage && showBlueWhiteMask))
+          if (!(editedScriptImage && showEditedMask()))
           {
             hmlService->copyUAVFeedback();
             hmlService->prepareClipmap(*landMeshRenderer, *landMeshManager, height * 1.5);
           }
       }
 
-      if (landMeshRenderer && !(editedScriptImage && showBlueWhiteMask) && landMeshManager)
+      if (landMeshRenderer && !(editedScriptImage && showEditedMask()) && landMeshManager)
         hmlService->updateGrassTranslucency(*landMeshRenderer, *landMeshManager);
 
       if (landMeshManager)
@@ -6986,7 +6996,7 @@ void HmapLandPlugin::renderGeometry(Stage stage)
           updateVertTex();
       }
 
-      if (need_lmap && landMeshRenderer && !(editedScriptImage && showBlueWhiteMask))
+      if (need_lmap && landMeshRenderer && !(editedScriptImage && showEditedMask()))
       {
         IGenViewportWnd *renderView = DAGORED2->getRenderViewport();
         IGenViewportWnd *curView = DAGORED2->getCurrentViewport();
@@ -7068,7 +7078,7 @@ void HmapLandPlugin::renderGeometry(Stage stage)
         if (!useVertTexForHMAP)
           updateVertTex();
       }
-      if (need_lmap && landMeshRenderer && !(editedScriptImage && showBlueWhiteMask))
+      if (need_lmap && landMeshRenderer && !(editedScriptImage && showEditedMask()))
       {
         IGenViewportWnd *renderView = DAGORED2->getRenderViewport();
         IGenViewportWnd *curView = DAGORED2->getCurrentViewport();
@@ -7339,6 +7349,8 @@ void HmapLandPlugin::onAfterExport(unsigned target_code)
 
 void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
 {
+  const bool pointSelectMode = objEd.getSelectMode() == CM_SELECT_PT;
+
   objEd.getUndoSystem()->begin();
   if (EditLayerProps::layerProps[lidx].type == EditLayerProps::ENT)
   {
@@ -7353,10 +7365,19 @@ void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
       if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
         if (!o->isPoly() && o->getEditLayerIdx() == lidx)
         {
-          o->selectObject(sel);
-          if (!sel)
+          if (pointSelectMode)
+          {
+            o->selectObject(false);
             for (int j = 0; j < o->points.size(); j++)
-              o->points[j]->selectObject(false);
+              o->points[j]->selectObject(sel);
+          }
+          else
+          {
+            o->selectObject(sel);
+            if (!sel)
+              for (int j = 0; j < o->points.size(); j++)
+                o->points[j]->selectObject(false);
+          }
         }
   }
   else if (EditLayerProps::layerProps[lidx].type == EditLayerProps::PLG)
@@ -7365,10 +7386,19 @@ void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
       if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
         if (o->isPoly() && o->getEditLayerIdx() == lidx)
         {
-          o->selectObject(sel);
-          if (!sel)
+          if (pointSelectMode)
+          {
+            o->selectObject(false);
             for (int j = 0; j < o->points.size(); j++)
-              o->points[j]->selectObject(false);
+              o->points[j]->selectObject(sel);
+          }
+          else
+          {
+            o->selectObject(sel);
+            if (!sel)
+              for (int j = 0; j < o->points.size(); j++)
+                o->points[j]->selectObject(false);
+          }
         }
   }
   objEd.getUndoSystem()->accept(

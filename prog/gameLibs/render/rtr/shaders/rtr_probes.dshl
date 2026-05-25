@@ -19,6 +19,8 @@ int blue_noise_frame_index;
 
 int rtr_probes_use_csm_shadows = 0;
 
+int rtr_probe_randomize_rays = 1;
+
 hlsl {
   #include <rtr_constants.hlsli>
 }
@@ -219,6 +221,7 @@ shader rt_reflection_probe_color
     sky_mips@u1 = max(get_dimensions(envi_probe_specular, 0).z, 3);
     world_view_pos@f3 = world_view_pos;
     frame_index@u1 = blue_noise_frame_index;
+    randomize_rays@u1 = rtr_probe_randomize_rays;
   }
 
   INIT_RT_LIGHTING(cs, false, true, true, false, rtr_probes_use_csm_shadows, false)
@@ -306,7 +309,8 @@ shader rt_reflection_probe_color
       float2 uv = (gtid + 0.5) / PROBE_RESOLUTION;
       float3 direction = octDecode(uv * 2 - 1);
 
-      randomize_vector(gtid, direction);
+      if (randomize_rays)
+        randomize_vector(gtid, direction);
 
       float3 color;
       float distance;

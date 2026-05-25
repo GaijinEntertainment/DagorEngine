@@ -501,7 +501,7 @@ macro USE_ENV_WETNESS_STAGE(stage)
   USE_CUBE_RAIN_DROPLETS_STAGE(stage, wetness_use_grad)
 
   hlsl(stage) {
-    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, float cloud_shadow, inout UnpackedGbuffer g_buf, float noise_amplitude = 0.0f, float2 noise = float2(0, 0))
+    void apply_env_wetness(float3 world_pos, float3 vertical_normal, float3 view, inout UnpackedGbuffer g_buf, float noise_amplitude = 0.0f, float2 noise = float2(0, 0))
     {
       float depthInfl = 1;
       ##if compatibility_mode == compatibility_mode_off

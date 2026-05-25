@@ -8,6 +8,7 @@ require daslib/strings_boost
 require DagorImgui
 require imgui/imgui_boost
 require daslib/static_let
+require DaeditorPlotDebug
 require %gameLibs.imgui_daeditor.imgui.imgui_common
 require %gameLibs.imgui_daeditor.imgui.ecs_plot_common
 
@@ -217,6 +218,8 @@ def plot_save_entries(w : PlotWindow&; win_idx : int)
     imgui_set_blk_val(blk, "scale_max_{i}", e.scale_max)
     imgui_set_blk_val(blk, "fit_{i}",       e.fit)
     imgui_set_blk_val(blk, "hidden_{i}",    e.hidden)
+    imgui_set_blk_val(blk, "slot_{i}",      e.slot_mode)
+    imgui_set_blk_val(blk, "slotidx_{i}",   int(e.slot))
     if empty(e.name)
       imgui_set_blk_val(blk, "val_{i}",     e.committed_val)
 
@@ -238,6 +241,8 @@ def plot_load_entries(var w : PlotWindow&; win_idx : int)
     e.scale_max = imgui_get_blk_val(blk, "scale_max_{i}",  1.0f)
     e.fit       = imgui_get_blk_val(blk, "fit_{i}",       true)
     e.hidden    = imgui_get_blk_val(blk, "hidden_{i}",    false)
+    e.slot_mode = imgui_get_blk_val(blk, "slot_{i}",      false)
+    e.slot      = uint(imgui_get_blk_val(blk, "slotidx_{i}",   0))
     if empty(e.name)
       e.committed_val = imgui_get_blk_val(blk, "val_{i}", 0.0f)
       e.edit_val      = e.committed_val
@@ -386,9 +391,16 @@ def plot_sample_entries(var w : PlotWindow&)
     if w.paused
       continue
 
-    let entry_eid = EntityId(e.eid)
-    if entry_eid != INVALID_ENTITY_ID
-      plot_sample_entry(e, entry_eid)
+    if e.slot_mode
+      e.dim = 1
+      e.is_int = false
+      e.comp_idx = 0
+      e.committed_val = daeditor_plot_debug_get_signal(int(e.slot))
+      e.found = true
+    else
+      let entry_eid = EntityId(e.eid)
+      if entry_eid != INVALID_ENTITY_ID
+        plot_sample_entry(e, entry_eid)
     if !e.val_editing
       e.edit_val = e.committed_val
     let plot_val = e.committed_val
@@ -559,21 +571,35 @@ def plot_toolbar(var w : PlotWindow&; daeditor_eid : EntityId)
     let n = length(w.entries)
     w.entries |> resize(n + 1)
     var last & = unsafe(w.entries[n])
-    last.eid = w.toolbar_eid
+    if w.toolbar_slot_mode
+      last.slot_mode = true
+      last.slot = w.toolbar_slot
+    else
+      last.eid = w.toolbar_eid
     last.scale_min = -1.0f
     last.scale_max = 1.0f
     last.fit = true
     entry_resize(last, w.history_size)
     w.dirty = true
   imgui::SameLine()
-  imgui::Text("eid:")
+  let toolbar_mode_label = w.toolbar_slot_mode ? "slt:" : "eid:"
+  if imgui::SmallButton("{toolbar_mode_label}##toolbar_mode_toggle")
+    w.toolbar_slot_mode = !w.toolbar_slot_mode
   imgui::SameLine()
   imgui::PushItemWidth(80.f)
-  imgui::InputScalar("##toolbar_eid", ImGuiDataType.U32, unsafe(addr(w.toolbar_eid)), null, null, "%u", ImGuiInputTextFlags.None)
+  if w.toolbar_slot_mode
+    imgui::InputScalar("##toolbar_slot", ImGuiDataType.U32, unsafe(addr(w.toolbar_slot)), null, null, "%u", ImGuiInputTextFlags.None)
+  else
+    imgui::InputScalar("##toolbar_eid", ImGuiDataType.U32, unsafe(addr(w.toolbar_eid)), null, null, "%u", ImGuiInputTextFlags.None)
   imgui::PopItemWidth()
   imgui::SameLine()
-  if imgui::Button("Use selected##toolbar_use_sel") && daeditor_eid != INVALID_ENTITY_ID
-    w.toolbar_eid = uint(daeditor_eid)
+  // "Use selected" only makes sense in eid mode; show a same-size dummy in slot mode to keep downstream buttons aligned.
+  if w.toolbar_slot_mode
+    let use_sel_w = imgui::CalcTextSize("Use selected").x + imgui::GetStyle().FramePadding.x * 2.f
+    imgui::Dummy(float2(use_sel_w, imgui::GetFrameHeight()))
+  else
+    if imgui::Button("Use selected##toolbar_use_sel") && daeditor_eid != INVALID_ENTITY_ID
+      w.toolbar_eid = uint(daeditor_eid)
   imgui::SameLine()
   if imgui::Button("Delete all##plotdeleteall") && !empty(w.entries)
     w.entries |> clear()
@@ -584,6 +610,10 @@ def plot_toolbar(var w : PlotWindow&; daeditor_eid : EntityId)
 
 
 def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
+  var signal_count = 0
+  find_query() <| $ [es(REQUIRE=daeditor_plot_debug__signalCount)] (daeditor_plot_debug__signalCount : int)
+    signal_count = daeditor_plot_debug__signalCount
+    return true
   for i in range(length(w.entries))
     imgui::PushID(i)
     var e & = unsafe(w.entries[i])
@@ -619,44 +649,67 @@ def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
     *dl_row |> AddRectFilled(swatch_pos, swatch_pos + float2(14.f, 14.f), entry_color, 0.0f, ImDrawFlags.None)
     imgui::SameLine()
 
-    // EID field
-    let entry_eid_ui = EntityId(e.eid)
-    let eid_exists = doesEntityExist(entry_eid_ui)
-    let eid_invalid = entry_eid_ui != INVALID_ENTITY_ID && !eid_exists
-    imgui::Text("eid:")
-    imgui::SameLine()
-    imgui::PushItemWidth(90.f)
-    if eid_invalid
-      imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
-    if imgui::InputScalar("##eid", ImGuiDataType.U32, unsafe(addr(e.eid)), null, null, "%u", ImGuiInputTextFlags.None)
-      w.dirty = true
-      e.last_discovery_fail_time = 0.0f
-    if eid_invalid
-      imgui::PopStyleColor()
-    imgui::PopItemWidth()
-    imgui::SameLine()
-
-    // Component name
-    let name_not_found = !empty(e.name) && entry_eid_ui != INVALID_ENTITY_ID && !e.found
-    imgui::Text("name:")
-    imgui::SameLine()
-    imgui::PushItemWidth(200.f)
-    if name_not_found
-      imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
-    let buf <- ImGuiInputTextBuffer(e.name, 256)
-    if InputText("##name", buf, ImGuiInputTextFlags.None)
-      e.name = to_string(buf)
+    // "eid:" / "slt:" mode toggle button. In slot mode the eid field is a signal slot
+    // index (0..signal_count-1) sourced from the daeditor_plot_debug singleton's signals list.
+    let mode_label = e.slot_mode ? "slt:" : "eid:"
+    if imgui::SmallButton("{mode_label}##mode_toggle")
+      e.slot_mode = !e.slot_mode
       e.dim = 0
       e.is_int = false
       e.last_discovery_fail_time = 0.0f
       w.dirty = true
-    if name_not_found
+    imgui::SameLine()
+
+    // EID / slot field - backed by separate uint variables so toggling modes preserves
+    // both values (switching back to eid shows the previously typed eid).
+    let entry_eid_ui = EntityId(e.eid)
+    let eid_exists = doesEntityExist(entry_eid_ui)
+    let eid_invalid_as_entity = !e.slot_mode && entry_eid_ui != INVALID_ENTITY_ID && !eid_exists
+    let slot_invalid = e.slot_mode && int(e.slot) >= signal_count
+    let field_invalid = eid_invalid_as_entity || slot_invalid
+    imgui::PushItemWidth(90.f)
+    if field_invalid
+      imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
+    if e.slot_mode
+      if imgui::InputScalar("##slot", ImGuiDataType.U32, unsafe(addr(e.slot)), null, null, "%u", ImGuiInputTextFlags.None)
+        w.dirty = true
+    else
+      if imgui::InputScalar("##eid", ImGuiDataType.U32, unsafe(addr(e.eid)), null, null, "%u", ImGuiInputTextFlags.None)
+        w.dirty = true
+        e.last_discovery_fail_time = 0.0f
+    if field_invalid
       imgui::PopStyleColor()
     imgui::PopItemWidth()
-    if imgui::IsItemHovered(ImGuiHoveredFlags.None) && !empty(e.name)
-      if imgui::BeginTooltip()
-        imgui::TextUnformatted(e.name)
-        imgui::EndTooltip()
+    imgui::SameLine()
+
+    // Component name - hidden in slot mode (replaced by a Dummy of the same footprint so
+    // downstream widgets keep their column position). The backing e.name is preserved.
+    if e.slot_mode
+      let name_label_w = imgui::CalcTextSize("name:").x
+      let name_input_w = 200.f
+      let spacing = imgui::GetStyle().ItemSpacing.x
+      imgui::Dummy(float2(name_label_w + spacing + name_input_w, imgui::GetFrameHeight()))
+    else
+      let name_not_found = !empty(e.name) && entry_eid_ui != INVALID_ENTITY_ID && !e.found
+      imgui::Text("name:")
+      imgui::SameLine()
+      imgui::PushItemWidth(200.f)
+      if name_not_found
+        imgui::PushStyleColor(ImGuiCol.FrameBg, IM_COL32(50, 50, 160, 160))
+      let buf <- ImGuiInputTextBuffer(e.name, 256)
+      if InputText("##name", buf, ImGuiInputTextFlags.None)
+        e.name = to_string(buf)
+        e.dim = 0
+        e.is_int = false
+        e.last_discovery_fail_time = 0.0f
+        w.dirty = true
+      if name_not_found
+        imgui::PopStyleColor()
+      imgui::PopItemWidth()
+      if imgui::IsItemHovered(ImGuiHoveredFlags.None) && !empty(e.name)
+        if imgui::BeginTooltip()
+          imgui::TextUnformatted(e.name)
+          imgui::EndTooltip()
 
     // xyzw index button - click to cycle x->y->z->w->x; hidden for scalars but space is preserved
     let max_idx = e.dim > 0 ? e.dim - 1 : 3
@@ -698,11 +751,14 @@ def plot_entry_rows(var w : PlotWindow&; var to_delete : int&)
     if imgui::IsItemDeactivatedAfterEdit()
       let new_val = e.edit_val
       e.committed_val = new_val
-      if empty(e.name)
-        w.dirty = true
-      let set_eid = EntityId(e.eid)
-      if set_eid != INVALID_ENTITY_ID
-        plot_set_component(set_eid, e.name, e.comp_idx, e.dim, e.is_int, new_val)
+      if e.slot_mode
+        daeditor_plot_debug_signal(new_val, int(e.slot))
+      else
+        if empty(e.name)
+          w.dirty = true
+        let set_eid = EntityId(e.eid)
+        if set_eid != INVALID_ENTITY_ID
+          plot_set_component(set_eid, e.name, e.comp_idx, e.dim, e.is_int, new_val)
 
     // Y-scale: auto-fit toggle and manual min/max bounds
     imgui::SameLine()

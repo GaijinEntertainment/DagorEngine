@@ -27,3 +27,4 @@ All declarations needed for embedding the language in an application are in the 
     embedding/the_registry_table.rst
     embedding/references_from_c.rst
     embedding/debug_interface.rst
+    embedding/async_runtime.rst

@@ -6,7 +6,7 @@ ECS_DEF_PULL_VAR(aimRender);
 #include <daECS/core/internal/performQuery.h>
 static constexpr ecs::ComponentDesc query_aim_data_ecs_query_comps[] =
 {
-//start of 9 ro components at [0]
+//start of 10 ro components at [0]
   {ECS_HASH("aim_data__lensNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__lensCollisionNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__lensBoundingSphereRadius"), ecs::ComponentTypeInfo<float>()},
@@ -15,13 +15,14 @@ static constexpr ecs::ComponentDesc query_aim_data_ecs_query_comps[] =
   {ECS_HASH("aim_data__entityWithScopeLensEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("aim_data__isAiming"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__crosshairNodeId"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("aim_data__aimingTime"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc query_aim_data_ecs_query_desc
 (
   "query_aim_data_ecs_query",
   empty_span(),
-  make_span(query_aim_data_ecs_query_comps+0, 9)/*ro*/,
+  make_span(query_aim_data_ecs_query_comps+0, 10)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -43,6 +44,7 @@ inline void query_aim_data_ecs_query(ecs::EntityManager &manager, Callable funct
             , ECS_RO_COMP(query_aim_data_ecs_query_comps, "aim_data__entityWithScopeLensEid", ecs::EntityId)
             , ECS_RO_COMP(query_aim_data_ecs_query_comps, "aim_data__isAiming", bool)
             , ECS_RO_COMP_OR(query_aim_data_ecs_query_comps, "aim_data__crosshairNodeId", int(-1))
+            , ECS_RO_COMP_OR(query_aim_data_ecs_query_comps, "aim_data__aimingTime", float(0.0f))
             );
 
         }while (++comp != compE);

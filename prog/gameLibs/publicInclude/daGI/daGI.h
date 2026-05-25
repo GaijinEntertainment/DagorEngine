@@ -183,12 +183,12 @@ private:
     eastl::unique_ptr<ComputeShaderElement> ssgi_clear_volmap_cs, ssgi_copy_from_volmap_cs, ssgi_copy_to_volmap_cs;
     eastl::unique_ptr<ComputeShaderElement> move_y_from_cs, move_y_to_cs;
 
-    UniqueBufHolder frustumVisibleAmbientVoxels, frustumVisiblePointVoxels;
+    UniqueBufWithShaderVar frustumVisibleAmbientVoxels, frustumVisiblePointVoxels;
     BufPtr selectedAmbientVoxels, selectedAmbientVoxelsPlanes, traceRayResults;
     BufPtr frustumVisibleAmbientVoxelsCount, visibleAmbientVoxelsIndirect;
-    UniqueBufHolder poissonBuf;
-    UniqueBufHolder enviCube, enviCubes; // for two stage reduction
-    UniqueBufHolder volmapCB;
+    UniqueBufWithShaderVar poissonBuf;
+    UniqueBufWithShaderVar enviCube, enviCubes; // for two stage reduction
+    UniqueBufWithShaderVar volmapCB;
     UniqueTexWithShaderVar cube;
     UniqueTexWithShaderVar ssgiTemporalWeight;
 
@@ -334,11 +334,11 @@ private:
 
   void DebugInlineRt(const TMatrix &view_tm, const TMatrix4 &proj_tm);
   eastl::unique_ptr<ComputeShaderElement> debug_inline_rt_cs;
-  UniqueBufHolder debugInlineRtConstants;
+  UniqueBufWithShaderVar debugInlineRtConstants;
   UniqueTexWithShaderVar debugInlineRtTarget;
 
   Tab<bbox3f> invalidBoxes;
-  UniqueBufHolder invalidBoxesSB;
+  UniqueBufWithShaderVar invalidBoxesSB;
   static constexpr int MAX_BOXES_INV_PER_FRAME = 4;
   float cascade0Dist = -1.f;
 };

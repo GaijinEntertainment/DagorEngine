@@ -104,7 +104,7 @@ private:
   using ImpostorDataEntry = Point4;
   ska::flat_hash_map<EntryId, PaletteInfo, EntryIdHash> entityIdToPaletteInfo;
   Tab<ImpostorDataEntry> impostorData;
-  UniqueBufHolder impostorDataBuffer;
+  UniqueBufWithShaderVar impostorDataBuffer;
   Tab<PaletteEntry> rotations;
 
   PaletteInfo &addPalette(const char *asset_name, const RenderableInstanceLodsResource::ImpostorParams &impostors_params,

@@ -18,6 +18,14 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 #include "REBLUR_Common.hlsli"
 
+// IMPORTANT Gaijin modification
+// It's very important to use sample, instead of operator[] to fetch first 3 values from gIn_ViewZ,
+// frequent gpu crash on nVidia gpus will happen in other case.
+float SampleViewZ(int2 coord)
+{
+    return gIn_ViewZ.SampleLevel(gNearestClamp, (coord.xy + 0.5f) * gRectSizeInv, 0);
+}
+
 [numthreads( GROUP_X, GROUP_Y, 1 )]
 NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 {
@@ -29,7 +37,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         return;
 
     // Early out
-    float viewZ = UnpackViewZ( gIn_ViewZ[ WithRectOrigin( pixelPos ) ] );
+    float viewZ = UnpackViewZ( SampleViewZ( WithRectOrigin( pixelPos ) ) ); // Modified by Gaijin
     if( viewZ > gDenoisingRange )
         return;
 
@@ -56,8 +64,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     int3 checkerboardPos = pixelPos.xxy + int3( -1, 1, 0 );
     checkerboardPos.x = max( checkerboardPos.x, 0 );
     checkerboardPos.y = min( checkerboardPos.y, gRectSizeMinusOne.x );
-    float viewZ0 = UnpackViewZ( gIn_ViewZ[ WithRectOrigin( checkerboardPos.xz ) ] );
-    float viewZ1 = UnpackViewZ( gIn_ViewZ[ WithRectOrigin( checkerboardPos.yz ) ] );
+    float viewZ0 = UnpackViewZ( SampleViewZ( WithRectOrigin( checkerboardPos.xz ) ) ); // Modified by Gaijin
+    float viewZ1 = UnpackViewZ( SampleViewZ( WithRectOrigin( checkerboardPos.yz ) ) ); // Modified by Gaijin
     float disocclusionThresholdCheckerboard = GetDisocclusionThreshold( NRD_DISOCCLUSION_THRESHOLD, frustumSize, NoV );
     float2 wc = GetDisocclusionWeight( float2( viewZ0, viewZ1 ), viewZ, disocclusionThresholdCheckerboard );
     wc.x = ( viewZ0 > gDenoisingRange || pixelPos.x < 1 ) ? 0.0 : wc.x;

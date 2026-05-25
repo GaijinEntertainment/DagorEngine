@@ -40,11 +40,13 @@ public:
   VirtualResourceRequest<Sbuffer, policy> buffer() && { return {resUid, nodeId, registry}; }
 
   /**
-   * \brief Specifies this to be a blob request
+   * \brief Specifies this to be a blob request.
+   * The type can be omitted when a typed handle is not needed,
+   * e.g. for bindToShaderVar calls. Specify blob<T>() to use .handle().
    *
-   * \tparam T The type of the blob to be requested.
+   * \tparam T The type of the blob to be requested. Defaults to AnyBlob.
    */
-  template <class T>
+  template <class T = AnyBlob>
   VirtualResourceRequest<T, policy> blob() &&
   {
     Base::markWithTag(tag_for<T>());

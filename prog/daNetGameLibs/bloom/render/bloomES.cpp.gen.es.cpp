@@ -24,38 +24,58 @@ static ecs::EntitySystemDesc reset_bloom_es_es_desc
   ecs::EventSetBuilder<ChangeRenderFeatures>::build(),
   0
 ,"render");
-//static constexpr ecs::ComponentDesc resize_bloom_es_comps[] ={};
-static void resize_bloom_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static constexpr ecs::ComponentDesc init_bloom_es_comps[] =
 {
-  G_FAST_ASSERT(evt.is<SetResolutionEvent>());
-  resize_bloom_es(static_cast<const SetResolutionEvent&>(evt)
-        , components.manager()
-    );
-}
-static ecs::EntitySystemDesc resize_bloom_es_es_desc
-(
-  "resize_bloom_es",
-  "prog/daNetGameLibs/bloom/render/bloomES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, resize_bloom_es_all_events),
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<SetResolutionEvent>::build(),
-  0
-,"render");
-//static constexpr ecs::ComponentDesc init_bloom_es_comps[] ={};
+//start of 2 rw components at [0]
+  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
+//start of 5 ro components at [2]
+  {ECS_HASH("bloom__upSample"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("bloom__halation_color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("bloom__halation_brightness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("bloom__halation_mip_factor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("bloom__halation_end_mip"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL}
+};
 static void init_bloom_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  init_bloom_es(evt
-        , components.manager()
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    init_bloom_es(evt
+        , ECS_RW_COMP(init_bloom_es_comps, "bloom__downsample_chain", dag::Vector<dafg::NodeHandle>)
+    , ECS_RW_COMP(init_bloom_es_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
+    , ECS_RO_COMP(init_bloom_es_comps, "bloom__upSample", float)
+    , ECS_RO_COMP_OR(init_bloom_es_comps, "bloom__halation_color", E3DCOLOR(E3DCOLOR(255, 0, 0, 0)))
+    , ECS_RO_COMP_OR(init_bloom_es_comps, "bloom__halation_brightness", float(2))
+    , ECS_RO_COMP_OR(init_bloom_es_comps, "bloom__halation_mip_factor", float(2))
+    , ECS_RO_COMP_OR(init_bloom_es_comps, "bloom__halation_end_mip", int(1))
     );
+  while (++comp != compE);
 }
 static ecs::EntitySystemDesc init_bloom_es_es_desc
 (
   "init_bloom_es",
   "prog/daNetGameLibs/bloom/render/bloomES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_bloom_es_all_events),
+  make_span(init_bloom_es_comps+0, 2)/*rw*/,
+  make_span(init_bloom_es_comps+2, 5)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<SetResolutionEvent,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,"render");
+//static constexpr ecs::ComponentDesc create_bloom_entity_es_comps[] ={};
+static void create_bloom_entity_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  create_bloom_entity_es(evt
+        , components.manager()
+    );
+}
+static ecs::EntitySystemDesc create_bloom_entity_es_es_desc
+(
+  "create_bloom_entity_es",
+  "prog/daNetGameLibs/bloom/render/bloomES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, create_bloom_entity_es_all_events),
   empty_span(),
   empty_span(),
   empty_span(),
@@ -179,47 +199,6 @@ inline void disable_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId e
           function(
               ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dafg::NodeHandle>)
             , ECS_RW_COMP(disable_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
-            );
-
-        }
-    }
-  );
-}
-static constexpr ecs::ComponentDesc init_bloom_ecs_query_comps[] =
-{
-//start of 2 rw components at [0]
-  {ECS_HASH("bloom__downsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
-  {ECS_HASH("bloom__upsample_chain"), ecs::ComponentTypeInfo<dag::Vector<dafg::NodeHandle>>()},
-//start of 5 ro components at [2]
-  {ECS_HASH("bloom__upSample"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("bloom__halation_color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("bloom__halation_brightness"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("bloom__halation_mip_factor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("bloom__halation_end_mip"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL}
-};
-static ecs::CompileTimeQueryDesc init_bloom_ecs_query_desc
-(
-  "init_bloom_ecs_query",
-  make_span(init_bloom_ecs_query_comps+0, 2)/*rw*/,
-  make_span(init_bloom_ecs_query_comps+2, 5)/*ro*/,
-  empty_span(),
-  empty_span());
-template<typename Callable>
-inline void init_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
-{
-  perform_query(&manager, eid, init_bloom_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        constexpr size_t comp = 0;
-        {
-          function(
-              ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__downsample_chain", dag::Vector<dafg::NodeHandle>)
-            , ECS_RW_COMP(init_bloom_ecs_query_comps, "bloom__upsample_chain", dag::Vector<dafg::NodeHandle>)
-            , ECS_RO_COMP(init_bloom_ecs_query_comps, "bloom__upSample", float)
-            , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_color", E3DCOLOR(E3DCOLOR(255, 0, 0, 0)))
-            , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_brightness", float(2))
-            , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_mip_factor", float(2))
-            , ECS_RO_COMP_OR(init_bloom_ecs_query_comps, "bloom__halation_end_mip", int(1))
             );
 
         }

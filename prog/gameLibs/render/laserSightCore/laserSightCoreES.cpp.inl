@@ -95,7 +95,7 @@ static void destroy_decal(ecs::EntityManager &manager, uint32_t id)
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
-static void create_laser_screen_spot_buffer_es(const ecs::Event &, UniqueBufHolder &laser_screen_spot_buffer,
+static void create_laser_screen_spot_buffer_es(const ecs::Event &, UniqueBufWithShaderVar &laser_screen_spot_buffer,
   bool laser_decal_manager__is_compatible)
 {
   if (!laser_decal_manager__is_compatible)
@@ -108,7 +108,7 @@ static void create_laser_screen_spot_buffer_es(const ecs::Event &, UniqueBufHold
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es)
 static void update_laser_spots_buffer_es(const UpdateStageInfoBeforeRender &evt, ecs::EntityManager &manager,
-  UniqueBufHolder &laser_screen_spot_buffer, int &laser_screen_spot_count, bool laser_decal_manager__is_compatible)
+  UniqueBufWithShaderVar &laser_screen_spot_buffer, int &laser_screen_spot_count, bool laser_decal_manager__is_compatible)
 {
   if (!laser_decal_manager__is_compatible)
     return;
@@ -209,7 +209,8 @@ static void update_lasers_es(const ParallelUpdateFrameDelayed &, ecs::EntityMana
   float laserMaxIntensity, float laserScrollingSpeed, bool laserActive, bool laserAvailable, bool laserVisible,
   const Point3 &laser_data__rayHit, const Point3 &laser_data__fxPos, const Point3 &laser_data__fxDir,
   const float &laser_data__laserLen, const ecs::EntityId &laser_data__gunOwner, const ecs::EntityId &laser_data__playerId,
-  bool laser_sight__is_compatible, const float laser_data__dotIntensity, const Point3 &laserBeamDotColor)
+  bool laser_sight__is_compatible, const float laser_data__dotIntensity, const Point3 &laserBeamDotColor,
+  const float laserBeamFadeDistPercentage)
 {
   if (!laser_sight__is_compatible)
     return;
@@ -224,9 +225,10 @@ static void update_lasers_es(const ParallelUpdateFrameDelayed &, ecs::EntityMana
   {
     Color4 laserColor = Color4(laserBeamColor.x, laserBeamColor.y, laserBeamColor.z, 1);
     float isHeroLaser = manager.has(laser_data__playerId, ECS_HASH("hero")) ? 1.f : 0.f;
+    float laserBeamFadeDistance = laserBeamFadeDistPercentage * laserBeamMaxLength;
     laserBeamTracerId = render::beam_tracer::create_beam_tracer(laser_data__fxPos, laser_data__fxDir, laserMaxSize, laserColor,
-      reinterpret_cast<const Color3 &>(laserBeamColor), laserMaxIntensity, 1, 1e9, 0.5, 0.9, 1, laserScrollingSpeed, true,
-      isHeroLaser);
+      reinterpret_cast<const Color3 &>(laserBeamColor), laserMaxIntensity, 1, 1e9, -laserBeamFadeDistance, 0.9, 1, laserScrollingSpeed,
+      true, laserBeamMaxLength, isHeroLaser);
   }
   if (laserBeamTracerId >= 0)
   {

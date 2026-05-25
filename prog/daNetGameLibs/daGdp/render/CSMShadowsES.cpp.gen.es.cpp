@@ -38,9 +38,9 @@ static constexpr ecs::ComponentDesc recreate_views_on_shadow_settings_change_es_
 };
 static void recreate_views_on_shadow_settings_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::recreate_views_on_shadow_settings_change_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc recreate_views_on_shadow_settings_change_es_es_desc
 (
@@ -57,7 +57,7 @@ static ecs::EntitySystemDesc recreate_views_on_shadow_settings_change_es_es_desc
 static constexpr ecs::ComponentDesc level_settings_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
-  {ECS_HASH("dagdp__csm_max_cascades"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("dagdp__csm_max_fov"), ecs::ComponentTypeInfo<ecs::FloatList>()},
 //start of 1 rq components at [1]
   {ECS_HASH("dagdp_level_settings"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
@@ -77,7 +77,7 @@ inline void dagdp::level_settings_ecs_query(ecs::EntityManager &manager, Callabl
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__csm_max_cascades", int)
+              ECS_RO_COMP(level_settings_ecs_query_comps, "dagdp__csm_max_fov", ecs::FloatList)
             );
 
         }while (++comp != compE);
@@ -97,9 +97,9 @@ static ecs::CompileTimeQueryDesc shadows_query_manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::shadows_query_manager_ecs_query(Callable function)
+inline void dagdp::shadows_query_manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, shadows_query_manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, shadows_query_manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

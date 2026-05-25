@@ -66,7 +66,7 @@ void render_preintegrated_fresnel_GGX(Texture *preIntegratedGF, PostFxRenderer *
   d3d::GpuAutoLock gpuLock;
   SCOPE_RENDER_TARGET;
 
-  d3d::set_render_target(preIntegratedGF, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{preIntegratedGF, 0, 0}});
   ShaderGlobal::set_int(preintegrated_envi_frameVarId, frames <= 1 ? -1 : int(frame));
   // d3d::clearview( CLEAR_TARGET, 0xffffffff, 0.f, 0 );
 

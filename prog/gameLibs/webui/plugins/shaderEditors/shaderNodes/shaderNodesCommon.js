@@ -3728,6 +3728,15 @@ function generateAdditionalText(graph, useVarPool)
     hlsl += indent + "}" + newLine;
   }
 
+  for (var i = 0; i < graph.elemCount; i++)
+  {
+    var e = graph.elems[i];
+    if (e && (e.descName === "result" || e.descName === "gbuffer output") && !processed[i])
+    {
+      alert("Unprocessed output node: " + e.descName + " codegen failed, please notify developers!");
+      hlsl += "#error Codegen failed, processing could not reach output nodes, please investigate the graph in js!";
+    }
+  }
 
 
   blk += 'mrt_outputs_decl:t="""' + newLine + newLine +

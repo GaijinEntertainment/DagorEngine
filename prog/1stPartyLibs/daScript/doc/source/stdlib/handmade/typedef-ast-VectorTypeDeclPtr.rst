@@ -1,1 +1,0 @@
-Smart pointer to a ``das::vector<ExpressionPtr>``. Represents an ordered collection of type declarations, typically used for function argument lists and tuple fields.

@@ -210,16 +210,42 @@ void SplineGenGeometryManager::uploadGenerateData()
 {
   invalidatePrevBuffer = false;
   reactivationInProcess = false;
-  if (instancingBuffer.getBuf())
+  if (instancingStagingBuffer.getBuf() && instancingBuffer.getBuf())
   {
     if (!pendingInstanceWrites.empty())
     {
       const int lockCount = getAllocatedInstanceCount();
-      for (const auto &piw : pendingInstanceWrites)
-        if (piw.first < lockCount)
-          instancingBuffer.getBuf()->updateData(piw.first * sizeof(SplineGenInstance), sizeof(SplineGenInstance), &piw.second,
-            VBLOCK_WRITEONLY);
+#if DAGOR_DBGLEVEL > 0
+      Bitarray writtenMask;
+      writtenMask.resize(lockCount);
+      writtenMask.reset();
+#endif
+      if (auto stagingData =
+            lock_sbuffer<SplineGenInstance>(instancingStagingBuffer.getBuf(), 0, lockCount, VBLOCK_WRITEONLY | VBLOCK_DISCARD))
+      {
+        for (const auto &piw : pendingInstanceWrites)
+          if (piw.first < lockCount)
+          {
+#if DAGOR_DBGLEVEL > 0
+            writtenMask.set(piw.first);
+#endif
+            stagingData.updateDataRange(piw.first, &piw.second, 1);
+          }
+      }
+#if DAGOR_DBGLEVEL > 0
+      for (InstanceId id : usedSpots)
+        G_ASSERTF(writtenMask[id],
+          "spline_gen [%s]: used slot %u missing from pendingInstanceWrites; "
+          "VBLOCK_DISCARD lock would leak garbage into instancingBuffer",
+          templateName.c_str(), (unsigned)id);
+      for (InstanceId id : inactiveSpots)
+        G_ASSERTF(writtenMask[id],
+          "spline_gen [%s]: inactive slot %u missing from pendingInstanceWrites; "
+          "VBLOCK_DISCARD lock would leak garbage into instancingBuffer",
+          templateName.c_str(), (unsigned)id);
+#endif
     }
+    instancingStagingBuffer.getBuf()->copyTo(instancingBuffer.getBuf());
   }
   pendingInstanceWrites.clear();
   uploadSplineBuffer();
@@ -480,6 +506,10 @@ void SplineGenGeometryManager::allocateBuffers()
   needsVertexGeneration = vertex_gen_phase_exists || neededInBVH;
 
   String buffName;
+  buffName = String(0, "%i_splineGen_instancingStagingBuffer", templateName.c_str());
+  instancingStagingBuffer = dag::create_sbuffer(sizeof(SplineGenInstance), getAllocatedInstanceCount(),
+    SBCF_MISC_STRUCTURED | SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, buffName);
+
   buffName = String(0, "%s_splineGen_instancingBuffer", templateName.c_str());
   instancingBuffer = dag::create_sbuffer(sizeof(SplineGenInstance), getAllocatedInstanceCount(),
     SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0, buffName);

@@ -76,7 +76,7 @@ public:
   bool inited = false;
 
   eastl::unique_ptr<ComputeShaderElement> occlusionCs;
-  UniqueBufHolder inputBuf;
+  UniqueBufWithShaderVar inputBuf;
   RingCPUBufferLock resultRingBuffer;
 
   Point3 listenerPos = {0, 0, 0};

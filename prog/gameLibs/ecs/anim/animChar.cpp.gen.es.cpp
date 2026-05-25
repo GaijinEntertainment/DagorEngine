@@ -34,11 +34,12 @@ static constexpr ecs::ComponentDesc update_animchar_on_create_es_event_handler_c
   {ECS_HASH("animchar__accumDt"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 3 ro components at [4]
+//start of 4 ro components at [4]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar__dtThreshold"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [7]
+//start of 1 rq components at [8]
   {ECS_HASH("animchar__actOnCreate"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void update_animchar_on_create_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -46,6 +47,7 @@ static void update_animchar_on_create_es_event_handler_all_events(const ecs::Eve
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_animchar_on_create_es_event_handler(evt
         , ECS_RW_COMP(update_animchar_on_create_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(update_animchar_on_create_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(update_animchar_on_create_es_event_handler_comps, "animchar__accumDt", float)
     , ECS_RO_COMP_PTR(update_animchar_on_create_es_event_handler_comps, "animchar__dtThreshold", float)
     , ECS_RW_COMP_PTR(update_animchar_on_create_es_event_handler_comps, "animchar_node_wtm", AnimcharNodesMat44)
@@ -61,8 +63,8 @@ static ecs::EntitySystemDesc update_animchar_on_create_es_event_handler_es_desc
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_animchar_on_create_es_event_handler_all_events),
   make_span(update_animchar_on_create_es_event_handler_comps+0, 4)/*rw*/,
-  make_span(update_animchar_on_create_es_event_handler_comps+4, 3)/*ro*/,
-  make_span(update_animchar_on_create_es_event_handler_comps+7, 1)/*rq*/,
+  make_span(update_animchar_on_create_es_event_handler_comps+4, 4)/*ro*/,
+  make_span(update_animchar_on_create_es_event_handler_comps+8, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
@@ -107,10 +109,11 @@ static constexpr ecs::ComponentDesc animchar_act_on_demand_es_event_handler_comp
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 3 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [5]
+//start of 1 rq components at [6]
   {ECS_HASH("animchar__actOnDemand"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void animchar_act_on_demand_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -120,6 +123,7 @@ static void animchar_act_on_demand_es_event_handler_all_events(const ecs::Event 
         , ECS_RW_COMP(animchar_act_on_demand_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RW_COMP_PTR(animchar_act_on_demand_es_event_handler_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(animchar_act_on_demand_es_event_handler_comps, "animchar_render__root_pos", vec3f)
+    , ECS_RO_COMP(animchar_act_on_demand_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(animchar_act_on_demand_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP_OR(animchar_act_on_demand_es_event_handler_comps, "animchar__turnDir", bool(false))
     );
@@ -131,8 +135,8 @@ static ecs::EntitySystemDesc animchar_act_on_demand_es_event_handler_es_desc
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_act_on_demand_es_event_handler_all_events),
   make_span(animchar_act_on_demand_es_event_handler_comps+0, 3)/*rw*/,
-  make_span(animchar_act_on_demand_es_event_handler_comps+3, 2)/*ro*/,
-  make_span(animchar_act_on_demand_es_event_handler_comps+5, 1)/*rq*/,
+  make_span(animchar_act_on_demand_es_event_handler_comps+3, 3)/*ro*/,
+  make_span(animchar_act_on_demand_es_event_handler_comps+6, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
@@ -144,10 +148,11 @@ static constexpr ecs::ComponentDesc animchar_act_on_demand_detach_es_event_handl
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 3 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 2 rq components at [5]
+//start of 2 rq components at [6]
   {ECS_HASH("animchar__actOnDemand"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("attachedToParent"), ecs::ComponentTypeInfo<ecs::auto_type>()}
 };
@@ -156,6 +161,7 @@ static void animchar_act_on_demand_detach_es_event_handler_all_events(const ecs:
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_act_on_demand_detach_es_event_handler(evt
         , ECS_RW_COMP(animchar_act_on_demand_detach_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(animchar_act_on_demand_detach_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(animchar_act_on_demand_detach_es_event_handler_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(animchar_act_on_demand_detach_es_event_handler_comps, "animchar_render__root_pos", vec3f)
     , ECS_RO_COMP(animchar_act_on_demand_detach_es_event_handler_comps, "transform", TMatrix)
@@ -169,8 +175,8 @@ static ecs::EntitySystemDesc animchar_act_on_demand_detach_es_event_handler_es_d
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_act_on_demand_detach_es_event_handler_all_events),
   make_span(animchar_act_on_demand_detach_es_event_handler_comps+0, 3)/*rw*/,
-  make_span(animchar_act_on_demand_detach_es_event_handler_comps+3, 2)/*ro*/,
-  make_span(animchar_act_on_demand_detach_es_event_handler_comps+5, 2)/*rq*/,
+  make_span(animchar_act_on_demand_detach_es_event_handler_comps+3, 3)/*ro*/,
+  make_span(animchar_act_on_demand_detach_es_event_handler_comps+6, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
@@ -184,10 +190,11 @@ static constexpr ecs::ComponentDesc animchar_non_updatable_es_comps[] =
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 3 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [5]
+//start of 1 rq components at [6]
   {ECS_HASH("disableUpdate"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void animchar_non_updatable_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -195,6 +202,7 @@ static void animchar_non_updatable_es_all_events(const ecs::Event &__restrict ev
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_non_updatable_es(evt
         , ECS_RW_COMP(animchar_non_updatable_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(animchar_non_updatable_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(animchar_non_updatable_es_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(animchar_non_updatable_es_comps, "animchar_render__root_pos", vec3f)
     , ECS_RO_COMP(animchar_non_updatable_es_comps, "transform", TMatrix)
@@ -208,8 +216,8 @@ static ecs::EntitySystemDesc animchar_non_updatable_es_es_desc
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_non_updatable_es_all_events),
   make_span(animchar_non_updatable_es_comps+0, 3)/*rw*/,
-  make_span(animchar_non_updatable_es_comps+3, 2)/*ro*/,
-  make_span(animchar_non_updatable_es_comps+5, 1)/*rq*/,
+  make_span(animchar_non_updatable_es_comps+3, 3)/*ro*/,
+  make_span(animchar_non_updatable_es_comps+6, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
@@ -221,10 +229,11 @@ static constexpr ecs::ComponentDesc animchar_non_updatable_detach_es_event_handl
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 3 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 2 rq components at [5]
+//start of 2 rq components at [6]
   {ECS_HASH("disableUpdate"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("attachedToParent"), ecs::ComponentTypeInfo<ecs::auto_type>()}
 };
@@ -233,6 +242,7 @@ static void animchar_non_updatable_detach_es_event_handler_all_events(const ecs:
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_non_updatable_detach_es_event_handler(evt
         , ECS_RW_COMP(animchar_non_updatable_detach_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(animchar_non_updatable_detach_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(animchar_non_updatable_detach_es_event_handler_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(animchar_non_updatable_detach_es_event_handler_comps, "animchar_render__root_pos", vec3f)
     , ECS_RO_COMP(animchar_non_updatable_detach_es_event_handler_comps, "transform", TMatrix)
@@ -246,8 +256,8 @@ static ecs::EntitySystemDesc animchar_non_updatable_detach_es_event_handler_es_d
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_non_updatable_detach_es_event_handler_all_events),
   make_span(animchar_non_updatable_detach_es_event_handler_comps+0, 3)/*rw*/,
-  make_span(animchar_non_updatable_detach_es_event_handler_comps+3, 2)/*ro*/,
-  make_span(animchar_non_updatable_detach_es_event_handler_comps+5, 2)/*rq*/,
+  make_span(animchar_non_updatable_detach_es_event_handler_comps+3, 3)/*ro*/,
+  make_span(animchar_non_updatable_detach_es_event_handler_comps+6, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear,
@@ -261,7 +271,8 @@ static constexpr ecs::ComponentDesc animchar_skeleton_attach_destroy_attach_es_e
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 3 ro components at [3]
+//start of 4 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("skeleton_attach__attached"), ecs::ComponentTypeInfo<bool>()}
@@ -274,6 +285,7 @@ static void animchar_skeleton_attach_destroy_attach_es_event_handler_all_events(
       continue;
     animchar_skeleton_attach_destroy_attach_es_event_handler(evt
           , ECS_RW_COMP(animchar_skeleton_attach_destroy_attach_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
+      , ECS_RO_COMP(animchar_skeleton_attach_destroy_attach_es_event_handler_comps, "eid", ecs::EntityId)
       , ECS_RW_COMP_PTR(animchar_skeleton_attach_destroy_attach_es_event_handler_comps, "animchar_node_wtm", AnimcharNodesMat44)
       , ECS_RW_COMP_PTR(animchar_skeleton_attach_destroy_attach_es_event_handler_comps, "animchar_render__root_pos", vec3f)
       , ECS_RO_COMP(animchar_skeleton_attach_destroy_attach_es_event_handler_comps, "transform", TMatrix)
@@ -287,7 +299,7 @@ static ecs::EntitySystemDesc animchar_skeleton_attach_destroy_attach_es_event_ha
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_skeleton_attach_destroy_attach_es_event_handler_all_events),
   make_span(animchar_skeleton_attach_destroy_attach_es_event_handler_comps+0, 3)/*rw*/,
-  make_span(animchar_skeleton_attach_destroy_attach_es_event_handler_comps+3, 3)/*ro*/,
+  make_span(animchar_skeleton_attach_destroy_attach_es_event_handler_comps+3, 4)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<>::build(),
@@ -299,7 +311,8 @@ static constexpr ecs::ComponentDesc animchar_act_on_phys_teleport_es_comps[] =
   {ECS_HASH("animchar"), ecs::ComponentTypeInfo<AnimV20::AnimcharBaseComponent>()},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 2 ro components at [3]
+//start of 3 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL}
 };
@@ -309,6 +322,7 @@ static void animchar_act_on_phys_teleport_es_all_events(const ecs::Event &__rest
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_act_on_phys_teleport_es(static_cast<const EventOnEntityTeleported&>(evt)
         , ECS_RW_COMP(animchar_act_on_phys_teleport_es_comps, "animchar", AnimV20::AnimcharBaseComponent)
+    , ECS_RO_COMP(animchar_act_on_phys_teleport_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP_PTR(animchar_act_on_phys_teleport_es_comps, "animchar_node_wtm", AnimcharNodesMat44)
     , ECS_RW_COMP_PTR(animchar_act_on_phys_teleport_es_comps, "animchar_render__root_pos", vec3f)
     , ECS_RO_COMP(animchar_act_on_phys_teleport_es_comps, "transform", TMatrix)
@@ -322,7 +336,7 @@ static ecs::EntitySystemDesc animchar_act_on_phys_teleport_es_es_desc
   "prog/gameLibs/ecs/anim/animChar.cpp.inl",
   ecs::EntitySystemOps(nullptr, animchar_act_on_phys_teleport_es_all_events),
   make_span(animchar_act_on_phys_teleport_es_comps+0, 3)/*rw*/,
-  make_span(animchar_act_on_phys_teleport_es_comps+3, 2)/*ro*/,
+  make_span(animchar_act_on_phys_teleport_es_comps+3, 3)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<EventOnEntityTeleported>::build(),
@@ -430,12 +444,13 @@ static constexpr ecs::ComponentDesc animchar_update_ecs_query_comps[] =
   {ECS_HASH("animchar__accumDt"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL},
-//start of 4 ro components at [4]
+//start of 5 ro components at [4]
   {ECS_HASH("animchar__dtThreshold"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("animchar__updatable"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar__turnDir"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
-//start of 2 no components at [8]
+//start of 2 no components at [9]
   {ECS_HASH("animchar__actOnDemand"), ecs::ComponentTypeInfo<ecs::Tag>()},
   {ECS_HASH("animchar__physSymDependence"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
@@ -443,9 +458,9 @@ static ecs::CompileTimeQueryDesc animchar_update_ecs_query_desc
 (
   "animchar_update_ecs_query",
   make_span(animchar_update_ecs_query_comps+0, 4)/*rw*/,
-  make_span(animchar_update_ecs_query_comps+4, 4)/*ro*/,
+  make_span(animchar_update_ecs_query_comps+4, 5)/*ro*/,
   empty_span(),
-  make_span(animchar_update_ecs_query_comps+8, 2)/*no*/
+  make_span(animchar_update_ecs_query_comps+9, 2)/*no*/
   , 1);
 template<typename Callable>
 inline void animchar_update_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -459,6 +474,7 @@ inline void animchar_update_ecs_query(ecs::EntityManager &manager, Callable func
               ECS_RW_COMP(animchar_update_ecs_query_comps, "animchar", AnimV20::AnimcharBaseComponent)
             , ECS_RW_COMP_PTR(animchar_update_ecs_query_comps, "animchar__accumDt", float)
             , ECS_RO_COMP_PTR(animchar_update_ecs_query_comps, "animchar__dtThreshold", float)
+            , ECS_RO_COMP(animchar_update_ecs_query_comps, "eid", ecs::EntityId)
             , ECS_RW_COMP_PTR(animchar_update_ecs_query_comps, "animchar_node_wtm", AnimcharNodesMat44)
             , ECS_RW_COMP_PTR(animchar_update_ecs_query_comps, "animchar_render__root_pos", vec3f)
             , ECS_RO_COMP(animchar_update_ecs_query_comps, "transform", TMatrix)

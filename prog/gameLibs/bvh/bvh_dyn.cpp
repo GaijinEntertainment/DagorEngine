@@ -779,7 +779,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           };
 
           if (data.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-            data.metaAllocId = bvh_context_id->allocateMetaRegion(1);
+            data.metaAllocId = bvh_context_id->allocateMetaRegion(1, "heliRotor");
 
           add_dynrend_instance(bvh_context_id, instances, meshId, tm43, piDataPtr, ctx->noShadow,
             Context::Instance::AnimationUpdateMode::DO_CULLING, heliRotorInfo, data.metaAllocId);
@@ -810,7 +810,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           };
 
           if (data.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-            data.metaAllocId = bvh_context_id->allocateMetaRegion(1);
+            data.metaAllocId = bvh_context_id->allocateMetaRegion(1, "deformed");
 
           add_dynrend_instance(bvh_context_id, instances, meshId, tm43, piDataPtr, ctx->noShadow,
             Context::Instance::AnimationUpdateMode::DO_CULLING, deformedInfo, data.metaAllocId);
@@ -890,7 +890,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           skinningInfo.skinningBlas = &meshElem.blas;
 
           if (meshElem.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
-            meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1);
+            meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1, "skinned");
 
           // Tank track animation
           static int texcoord_animVarId = get_shader_variable_id("texcoord_anim", true);
@@ -1002,6 +1002,36 @@ void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynre
 }
 
 void wait_dynrend_instances() { dynrend_bvh_job.wait(); }
+
+static inline void handle_cloth_wind(const ShaderMesh::RElem &elem, SkinData &data)
+{
+  static int clothNoiseCombinedTexVarId = get_shader_variable_id("clothNoiseCombinedTex", true);
+  static int cloth_wind_enabledVarId = get_shader_variable_id("cloth_wind_enabled", true);
+  static int cloth_wind__noise_scale_xVarId = get_shader_variable_id("cloth_wind__noise_scale_x", true);
+  static int cloth_wind__noise_scale_yVarId = get_shader_variable_id("cloth_wind__noise_scale_y", true);
+  static int cloth_wind__time_scale_minVarId = get_shader_variable_id("cloth_wind__time_scale_min", true);
+  static int cloth_wind__time_scale_maxVarId = get_shader_variable_id("cloth_wind__time_scale_max", true);
+  static int cloth_wind__ambient_influenceVarId = get_shader_variable_id("cloth_wind__ambient_influence", true);
+  static int cloth_wind__noise_ampVarId = get_shader_variable_id("cloth_wind__noise_amp", true);
+
+  // First check if the texture exists, to check if the macro was pulled into the shader.
+  // Then check for the enabled shadervar. If it exists, we use its value.
+  // If it doesn't, then cloth wind is enabled.
+  TEXTUREID clothNoiseCombinedTex;
+  int isClothWind = elem.mat->getTextureVariable(clothNoiseCombinedTexVarId, clothNoiseCombinedTex);
+  elem.mat->getIntVariable(cloth_wind_enabledVarId, isClothWind);
+  if (isClothWind)
+  {
+    data.isClothWind = true;
+    elem.mat->getRealVariable(cloth_wind__noise_scale_xVarId, data.clothWind.noiseScaleX);
+    elem.mat->getRealVariable(cloth_wind__noise_scale_yVarId, data.clothWind.noiseScaleY);
+    elem.mat->getRealVariable(cloth_wind__time_scale_minVarId, data.clothWind.timeScaleMin);
+    elem.mat->getRealVariable(cloth_wind__time_scale_maxVarId, data.clothWind.timeScaleMax);
+    elem.mat->getRealVariable(cloth_wind__ambient_influenceVarId, data.clothWind.ambientInfluence);
+    elem.mat->getRealVariable(cloth_wind__noise_ampVarId, data.clothWind.noiseAmp);
+    data.clothWind.clothNoiseCombinedTexBindless = 0xFFFFFFFFu; // To be filled from mesh
+  }
+}
 
 static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, const DynamicRenderableSceneResource &res,
   const uint8_t *path_filter, uint32_t path_filter_size, uint8_t render_mask, dag::ConstSpan<int> offsets,
@@ -1238,7 +1268,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
 
         if (meshElem.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
         {
-          meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1);
+          meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1, "skinned");
           auto &meta = bvh_context_id->meshMetaAllocator.get(meshElem.metaAllocId)[0];
           meta = bvh_context_id->meshMetaAllocator.get(bvhObject->metaAllocId)[0];
           auto albedoTex = elem.mat->get_texture(0);
@@ -1270,6 +1300,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
           perInstanceDataWithIndex.z = offsets[currMeshIndex];
           perInstanceDataPtr = &perInstanceDataWithIndex;
         }
+
+        handle_cloth_wind(elem, skinningInfo.data);
 
         add_dynrend_instance(bvh_context_id, instances, meshId, tm43, perInstanceDataPtr, ctx->noShadow, animationUpdateMode,
           skinningInfo, meshElem.metaAllocId);

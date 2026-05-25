@@ -30,6 +30,9 @@ public:
   // The returned text is temporary. Do not store it.
   virtual const char *getCommandKeyChordsAsText(const char *id) = 0;
 
+  virtual int getCommandHotkeyCount(const char *id) const = 0;
+  virtual ImGuiKeyChord getCommandKeyChord(const char *id, int index) const = 0;
+
   virtual unsigned int getCommandCount() const = 0;
   virtual const char *getCommandId(int index) const = 0;
   virtual unsigned int getCommandCmdId(const char *id) = 0;
@@ -64,6 +67,8 @@ public:
   void addCommand(const char *id, ImGuiKeyChord key_chord) override;
   void addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2) override;
   const char *getCommandKeyChordsAsText(const char *id) override;
+  int getCommandHotkeyCount(const char *id) const override;
+  ImGuiKeyChord getCommandKeyChord(const char *id, int index) const override;
   unsigned int getCommandCount() const override;
   const char *getCommandId(int index) const override;
   unsigned int getCommandCmdId(const char *id) override;

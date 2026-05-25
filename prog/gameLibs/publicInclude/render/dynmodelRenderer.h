@@ -6,6 +6,7 @@
 
 #include <vecmath/dag_vecMathDecl.h>
 #include <3d/dag_textureIDHolder.h>
+#include <EASTL/functional.h>
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <generic/dag_smallTab.h>
@@ -19,12 +20,13 @@
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix4.h>
 #include <shaders/dag_overrideStateId.h>
+#include <shaders/dag_shaderVarsUtils.h>
+#include <shaders/dag_shaderMesh.h>
 #include <3d/dag_texStreamingContext.h>
 #include <drv/3d/dag_resId.h>
-#include <shaders/dag_shaderMesh.h>
-
 
 #include "dynmodel_consts.hlsli"
+#include <render/dynmodelRenderer/animcharAdditionalData.h>
 
 class DynamicRenderableSceneInstance;
 class DynamicRenderableSceneResource;
@@ -32,6 +34,7 @@ class BaseTexture;
 class GeomNodeTree;
 class ShaderElement;
 class ShaderMaterial;
+class GlobalVariableStates;
 
 #ifndef INVALID_INST_NODE_ID
 #define INVALID_INST_NODE_ID 0
@@ -121,6 +124,61 @@ struct Statistics
   int triangles;
 };
 
+class PathFilterView : public dag::ConstSpan<uint8_t>
+{
+public:
+  PathFilterView(const uint8_t *p, uint32_t n) : dag::ConstSpan<uint8_t>(p, n) {}
+  PathFilterView(const dag::ConstSpan<uint8_t> &s) : dag::ConstSpan<uint8_t>(s) {}
+
+  // Construct from a pointer to any container with data()/size() (e.g. ecs::UInt8List).
+  // A null pointer produces NULL_FILTER.
+  template <typename Container, typename = decltype(eastl::declval<const Container>().data()),
+    typename = eastl::enable_if_t<!eastl::is_same_v<eastl::decay_t<Container>, PathFilterView> &&
+                                  !eastl::is_same_v<eastl::decay_t<Container>, dag::ConstSpan<uint8_t>>>>
+  PathFilterView(const Container *c) : dag::ConstSpan<uint8_t>(c ? c->data() : nullptr, c ? (uint32_t)c->size() : 0)
+  {}
+
+  static const PathFilterView NULL_FILTER;
+};
+
+
+enum class RenderPriority : uint8_t
+{
+  HIGH = 0,
+  DEFAULT = 1,
+  LOW = 2
+};
+
+enum class NeedPreviousMatrices
+{
+  No,
+  Yes
+};
+
+struct DynamicShaderOverrides
+{
+  ShaderElement *rigidsShader = nullptr;
+  ShaderElement *skinsShader = nullptr;
+};
+
+struct PackedDrawCallsRange
+{
+  uint32_t start;
+  uint32_t count;
+};
+
+inline const PathFilterView PathFilterView::NULL_FILTER = PathFilterView(dag::ConstSpan<uint8_t>());
+
+struct DipChunkVariantState
+{
+  int curVar;
+  uint32_t prog;
+  ShaderStateBlockId state;
+  shaders::RenderStateId rstate;
+  shaders::ConstStateIdx cstate;
+  shaders::TexStateIdx tstate;
+};
+
 
 void init();
 void close();
@@ -150,7 +208,7 @@ void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMat
 void prepare_render_instances(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj, int &instanceToChunkOffset,
   const Point3 &offset_to_origin = Point3(0.f, 0.f, 0.f), TexStreamingContext texCtx = TexStreamingContext(0),
   dynrend::InstanceContextData *instanceContextData = NULL);
-void prepare_render_finalize(ContextId context_id);
+bool prepare_render_finalize(ContextId context_id);
 
 // offset_to_origin is used as a hint to the expected offset of the current view position
 // relative to the current origin in view space. The same offset is used for motion vectors calculations as well
@@ -170,6 +228,9 @@ void set_reduced_render(ContextId context_id, float min_elem_radius, bool render
 void set_prev_view_proj(const TMatrix4_vec4 &prev_view, const TMatrix4_vec4 &prev_proj);
 void get_prev_view_proj(TMatrix4_vec4 &prev_view, TMatrix4_vec4 &prev_proj);
 void set_local_offset_hint(const Point3 &hint);
+
+void set_context_view_proj(ContextId context_id, const TMatrix4 &view, const TMatrix4 &proj,
+  const TMatrix4 &prev_view = TMatrix4::IDENT, const TMatrix4 &prev_proj = TMatrix4::IDENT);
 void enable_separate_atest_pass(bool enable);
 
 ShaderElement *get_replaced_shader();
@@ -230,4 +291,48 @@ void reset_statistics();
 using InstanceIterator = void(ContextId, const DynamicRenderableSceneResource &, const DynamicRenderableSceneInstance &, bool,
   const dynrend::AddedPerInstanceRenderData &, const Tab<bool> &, int, float, int, int, const dynrend::InitialNodes *, int, void *);
 void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, void *user_data);
+
+// Animchar batch processing: produces DipChunks into the context, supports both
+// standard and packed/multidraw draw paths based on material type.
+// output_offsets, if non-null, receives one renderDataBuffer offset per visible mesh
+// (rigids then skins, same order as DynamicRenderableSceneResource::getMeshes).
+// These offsets are relative to the context's renderDataBuffer and must be added to
+// get_context_buffer_pos() after prepare_render to get the absolute GPU buffer offset.
+void add_animchar(ContextId context_id, uint32_t start_stage,
+  uint32_t end_stage, // inclusive range of stages
+  const DynamicRenderableSceneInstance *scene, const DynamicRenderableSceneResource *lodResource,
+  const dynmodel_additional_data::AnimcharAdditionalDataView additional_data,
+  NeedPreviousMatrices need_previous_matrices = NeedPreviousMatrices::No, DynamicShaderOverrides shader_overrides = {},
+  const PathFilterView path_filter = PathFilterView::NULL_FILTER, uint8_t render_mask = 0,
+  RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,
+  TexStreamingContext texCtx = TexStreamingContext(0), eastl::vector<int, framemem_allocator> *output_offsets = nullptr);
+
+// Legacy overload: gets DynamicRenderableSceneResource from scene->getCurSceneResource()
+void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
+  const dynmodel_additional_data::AnimcharAdditionalDataView additional_data,
+  NeedPreviousMatrices need_previous_matrices = NeedPreviousMatrices::No, DynamicShaderOverrides shader_overrides = {},
+  const PathFilterView path_filter = PathFilterView::NULL_FILTER, uint8_t render_mask = 0,
+  RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,
+  TexStreamingContext texCtx = TexStreamingContext(0), eastl::vector<int, framemem_allocator> *output_offsets = nullptr);
+
+// Context inspection helpers
+bool context_has_data(ContextId context_id);
+D3DRESID get_context_buffer_id(ContextId context_id);
+int get_context_buffer_pos(ContextId context_id);
+
+// Merge all DipChunks and render data from src context into dst context.
+// Used for parallel job patterns where multiple contexts are filled concurrently
+// and then merged before prepare_render/render.  Clears src after merge.
+void merge_context(ContextId dst, ContextId src);
+
+using DipsIterator = eastl::function<void(const DipChunkVariantState &, GlobalVertexData *data, ShaderElement *shader,
+  uint32_t base_vertex, uint32_t offset_and_size, uint32_t offset_to_chunk)>;
+void iterate_dips(dynrend::ContextId context_id, DipsIterator iter);
+
+// Convenience: prepare_render using the current d3d view/proj matrices.
+// Returns true if the context has data to render.
+bool prepare_render_current(ContextId context_id);
+
+// Convenience: render all ShaderMesh stages for the given context.
+void render_all_stages(ContextId context_id);
 } // namespace dynrend

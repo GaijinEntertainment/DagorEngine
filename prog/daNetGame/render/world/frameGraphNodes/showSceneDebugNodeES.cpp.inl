@@ -12,24 +12,25 @@
 
 #include "frameGraphNodes.h"
 
+namespace var
+{
+static ShaderVariableInfo source_depth_for_copy_const_no("source_depth_for_copy_const_no");
+}
+
 dafg::NodeHandle makeUpsampleDepthForSceneDebugNode()
 {
   return dafg::register_node("upsample_depth_for_scene_debug_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     auto downsampledDepthHndl =
-      registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS_OR_CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
-    auto depthHndl = registry.create("depth_for_scene_debug")
-                       .texture({get_gbuffer_depth_format() | TEXCF_RTARGET, registry.getResolution<2>("display")})
-                       .atStage(dafg::Stage::PS)
-                       .useAs(dafg::Usage::DEPTH_ATTACHMENT)
-                       .handle();
+      registry.readTexture("depth_for_postfx").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-    return [depthHndl, downsampledDepthHndl, renderer = PostFxRenderer("copy_depth")] {
-      SCOPE_RENDER_TARGET;
-      d3d::settex(15, downsampledDepthHndl.get());
-      d3d::set_sampler(STAGE_PS, 15, d3d::request_sampler({}));
-      d3d::set_render_target({depthHndl.get(), 0, 0}, DepthAccess::RW, {});
+    registry.requestRenderPass().depthRw(registry.createTexture2d("depth_for_scene_debug",
+      {get_gbuffer_depth_format() | TEXCF_RTARGET, registry.getResolution<2>("display")}));
+
+    return [downsampledDepthHndl, renderer = PostFxRenderer("copy_depth")] {
+      d3d::settex(var::source_depth_for_copy_const_no.get_int(), downsampledDepthHndl.get());
+      d3d::set_sampler(STAGE_PS, var::source_depth_for_copy_const_no.get_int(), d3d::request_sampler({}));
       renderer.render();
-      d3d::settex(15, nullptr);
+      d3d::settex(var::source_depth_for_copy_const_no.get_int(), nullptr);
     };
   });
 }

@@ -136,7 +136,7 @@ protected:
   EventQueryHolder holeReadbackQuery;
   bool useHole = true;
 
-  UniqueBufHolder holeBuf;
+  UniqueBufWithShaderVar holeBuf;
   UniqueTexWithShaderVar holeTex;
   UniqueTex holePosTex;
 

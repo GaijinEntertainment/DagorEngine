@@ -387,6 +387,8 @@ static Tab<String> get_resolutions_from_output(IDXGIOutput *dxgiOutput)
   DXGI_MODE_DESC *displayModes = nullptr;
   DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
+  const bool filterInappropriate = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("filterInappropriateResolutions", true);
+
   HRESULT hr = dxgiOutput->GetDisplayModeList(DXGI_FORMAT_B8G8R8A8_UNORM, 0, &numModes, nullptr);
 
   if (SUCCEEDED(hr))
@@ -420,7 +422,7 @@ static Tab<String> get_resolutions_from_output(IDXGIOutput *dxgiOutput)
         if (testModeNo != modeNo)
           continue;
 
-        if (recommended_resolution)
+        if (recommended_resolution && filterInappropriate)
         {
           // remove modes larger than recommended mode
           if (

@@ -1,1 +1,0 @@
-Smart pointer to a `Program` object. Represents the root of a compiled daslang program, containing all modules, functions, and structures.

@@ -17,7 +17,6 @@ Sources =
   convexUtils.cpp
   interpolateTabUtils.cpp
   mathUtils.cpp
-  ray3.cpp
   collResUtils.cpp
 ;
 

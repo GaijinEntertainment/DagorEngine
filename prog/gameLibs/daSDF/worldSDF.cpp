@@ -97,9 +97,9 @@ struct WorldSDFImpl final : public WorldSDF
   eastl::array<IPoint4, MAX_WORLD_SDF_CLIPS> world_sdf_coord_lt;
   PostFxRenderer sdf_world_debug;
   UniqueTexWithShaderVar world_sdf_clipmap;
-  UniqueBufHolder world_sdf_coord_lt_buf;
-  UniqueBufHolder world_sdf_params_buf;
-  UniqueBufHolder culled_sdf_instances, culled_sdf_instances_grid;
+  UniqueBufWithShaderVar world_sdf_coord_lt_buf;
+  UniqueBufWithShaderVar world_sdf_params_buf;
+  UniqueBufWithShaderVar culled_sdf_instances, culled_sdf_instances_grid;
   UniqueBuf world_sdf_clipmap_rasterize_owned;
   Sbuffer *world_sdf_clipmap_rasterize = nullptr;
   eastl::unique_ptr<ComputeShaderElement> world_sdf_update_cs, world_sdf_cull_instances_cs, world_sdf_cull_instances_clear_cs,

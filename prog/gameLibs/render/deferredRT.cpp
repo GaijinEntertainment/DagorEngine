@@ -130,6 +130,22 @@ void DeferredRT::setVar()
   ShaderGlobal::set_int4(gbuffer_view_sizeVarId, width, height, 0, 0);
 }
 
+void DeferredRT::resetVar()
+{
+  ShaderGlobal::set_texture(albedo_gbufVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(normal_gbufVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(material_gbufVarId, BAD_TEXTUREID);
+
+  if (numRt > 3)
+    ShaderGlobal::set_texture(motion_gbufVarId, BAD_TEXTUREID);
+
+  ShaderGlobal::set_texture(bvh_gbufVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(depth_gbufVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_float4(screen_pos_to_texcoordVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(screen_sizeVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_int4(gbuffer_view_sizeVarId, 0, 0, 0, 0);
+}
+
 uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
 {
   if (!(d3d::get_texformat_usage(targetFmt) & d3d::USAGE_DEPTH))

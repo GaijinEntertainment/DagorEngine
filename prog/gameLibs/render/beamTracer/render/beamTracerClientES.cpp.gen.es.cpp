@@ -60,7 +60,7 @@ static constexpr ecs::ComponentDesc tac_laser_update_render_settings_es_comps[] 
   {ECS_HASH("tac_laser_render__max_intensity_angle"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("tac_laser_render__max_intensity_mul"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("tac_laser_render__fog_intensity_mul"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("tac_laser_render__fade_dist"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("tac_laser_render__fade_eye_dist"), ecs::ComponentTypeInfo<float>()}
 };
 static void tac_laser_update_render_settings_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -71,7 +71,7 @@ static void tac_laser_update_render_settings_es_all_events(const ecs::Event &__r
     , ECS_RO_COMP(tac_laser_update_render_settings_es_comps, "tac_laser_render__max_intensity_angle", float)
     , ECS_RO_COMP(tac_laser_update_render_settings_es_comps, "tac_laser_render__max_intensity_mul", float)
     , ECS_RO_COMP(tac_laser_update_render_settings_es_comps, "tac_laser_render__fog_intensity_mul", float)
-    , ECS_RO_COMP(tac_laser_update_render_settings_es_comps, "tac_laser_render__fade_dist", float)
+    , ECS_RO_COMP(tac_laser_update_render_settings_es_comps, "tac_laser_render__fade_eye_dist", float)
     );
   while (++comp != compE);
 }

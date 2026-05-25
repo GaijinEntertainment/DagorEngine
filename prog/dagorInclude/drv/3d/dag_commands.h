@@ -667,6 +667,18 @@ enum class Drv3dCommand
   // End the query. Must be called before frame end.
   // par1: void * - query pointer received from PIPELINE_STAT_BEGIN
   PIPELINE_STATS_END,
+  // Lazy queries are used to get the approximate number of primitives sent to rasterizer with minimal overhead.
+  // The lazy query always use gpu metrics for indirect draw calls, or when draw/draw_indexed methods use geometry/tessellation stages.
+  // The number of primitives on the CPU side can be returned for the draw/draw_indexed methods
+  // if they are called before a call with guaranteed GPU statistics.
+  // BEGIN_LAZY
+  //   draw(6, 1) (returns 6 primitives from the CPU side if there is no gs/ts)
+  //   draw_indirect(...) (returns the number of primitives from the GPU side)
+  //   draw(6, 1) (returns the number of primitives from the GPU side - 0 (if dont_render) or 6)
+  // END_LAZY
+  // The LIFO order for lazy queries must be preserved.
+  PIPELINE_STATS_BEGIN_LAZY,
+  PIPELINE_STATS_END_LAZY,
   // Get the number of primitives that were sent to the rasterizer for the query.
   // par1: void * - query pointer, par2: uint64_t * - pointer to result variable
   // returns 1 if the result is ready, otherwise 0. If the result is not ready, the value pointed by par2 is not modified.

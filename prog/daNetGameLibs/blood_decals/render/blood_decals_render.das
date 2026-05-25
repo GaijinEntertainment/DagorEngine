@@ -14,7 +14,7 @@ let FLOAT_SIZEOF = typeinfo sizeof(type<float>)
 def blood_decals_init(evt : Event;
                       var blood_decals_manager : RingBufferDecalManager;
                       var blood_decals_depth_atlas : UniqueTexWithShaderVar;
-                      var blood_decals_traces_buf : UniqueBufHolder;
+                      var blood_decals_traces_buf : UniqueBufWithShaderVar;
                       blood_decals_init_shader : string;
                       blood_decals_generator_shader : string;
                       blood_decals_render_shader : string;
@@ -54,7 +54,7 @@ def blood_decals_init(evt : Event;
 def blood_decals_prepare_render(stg : UpdateStageInfoBeforeRender;
                                 var blood_decals_manager : RingBufferDecalManager;
                                 var blood_decals_traces_result : ecs::FloatList;
-                                blood_decals_traces_buf : UniqueBufHolder;
+                                blood_decals_traces_buf : UniqueBufWithShaderVar;
                                 var blood_decals_traces_queue : ecs::IPoint2List;
                                 blood_decals_depth_shader : PostFxRenderer;
                                 blood_decals_depth_atlas : UniqueTexWithShaderVar)

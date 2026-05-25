@@ -1,1 +1,0 @@
-Type alias for FILE const? used as the standard file handle parameter type across fio functions.

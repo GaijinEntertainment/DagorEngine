@@ -1,1 +1,0 @@
-The ``[enumeration_macro]`` structure annotation — registers an ``AstEnumerationAnnotation`` subclass as a named annotation applicable to enumerations.

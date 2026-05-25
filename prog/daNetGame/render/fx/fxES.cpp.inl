@@ -479,7 +479,7 @@ void push_gravity_zone(GravityZoneBuffer &buffer,
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void create_gravity_zone_buffer_es(
-  const ecs::Event &, UniqueBufHolder &dafx_gravity_zone_buffer_gpu, UniqueBuf &dafx_gravity_zone_buffer_gpu_staging)
+  const ecs::Event &, UniqueBufWithShaderVar &dafx_gravity_zone_buffer_gpu, UniqueBuf &dafx_gravity_zone_buffer_gpu_staging)
 {
   dafx_gravity_zone_buffer_gpu =
     dag::buffers::create_persistent_sr_structured(sizeof(GravityZoneDescriptor), GRAVITY_ZONE_MAX_COUNT, "dafx_gravity_zone_buffer");
@@ -509,7 +509,7 @@ void set_gravity_zones(GravityZoneBuffer &buffer)
   dafx_gravity_zone_buffer = dafx_gravity_zone_container.data();
 
   update_gravity_zone_buffer_ecs_query(*g_entity_mgr,
-    [](UniqueBufHolder &dafx_gravity_zone_buffer_gpu, UniqueBuf &dafx_gravity_zone_buffer_gpu_staging) {
+    [](UniqueBufWithShaderVar &dafx_gravity_zone_buffer_gpu, UniqueBuf &dafx_gravity_zone_buffer_gpu_staging) {
       d3d::GpuAutoLock gpuLock;
       dafx_gravity_zone_buffer_gpu_staging->updateData(0, dafx_gravity_zone_container.size() * sizeof(dafx_gravity_zone_container[0]),
         dafx_gravity_zone_container.data(), VBLOCK_WRITEONLY | VBLOCK_DISCARD);

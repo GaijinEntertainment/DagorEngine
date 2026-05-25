@@ -87,6 +87,11 @@ shader prepare_ray_reconstruction
         const float NoV = dot(gbuffer.normal, -normalize(getViewVecOptimized((dtId+0.5)*outputInvResolution)));
         specularAlbedo[dtId] = float4(rr_specular_albedo(gbuffer.specularColor, roughness, NoV), 0);
       }
+      else
+      {
+        normalRoughness[dtId] = 0;
+        specularAlbedo[dtId] = float4(0.5, 0.5, 0.5, 0);
+      }
     }
   }
 

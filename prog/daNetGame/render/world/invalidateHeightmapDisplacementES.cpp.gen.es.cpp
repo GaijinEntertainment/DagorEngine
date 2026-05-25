@@ -33,13 +33,13 @@ static ecs::EntitySystemDesc create_hmap_displacement_invalidators_manager_es_es
 static constexpr ecs::ComponentDesc init_hmap_displacement_invalidation_es_comps[] =
 {
 //start of 1 rw components at [0]
-  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()}
+  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()}
 };
 static void init_hmap_displacement_invalidation_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_hmap_displacement_invalidation_es(evt
-        , ECS_RW_COMP(init_hmap_displacement_invalidation_es_comps, "hmap_displacement_invalidators__buffer", UniqueBufHolder)
+        , ECS_RW_COMP(init_hmap_displacement_invalidation_es_comps, "hmap_displacement_invalidators__buffer", UniqueBufWithShaderVar)
     );
   while (++comp != compE);
 }
@@ -154,7 +154,7 @@ static constexpr ecs::ComponentDesc hmap_displacement_invalidators_count_over_li
 {
 //start of 2 rw components at [0]
   {ECS_HASH("hmap_displacement_invalidators__data"), ecs::ComponentTypeInfo<HmapDisplacementInvalidators>()},
-  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
 //start of 1 ro components at [2]
   {ECS_HASH("hmap_displacement_invalidators__count_over_limit"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -167,7 +167,7 @@ static void hmap_displacement_invalidators_count_over_limit_update_buffer_es_all
       continue;
     hmap_displacement_invalidators_count_over_limit_update_buffer_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
           , ECS_RW_COMP(hmap_displacement_invalidators_count_over_limit_update_buffer_es_comps, "hmap_displacement_invalidators__data", HmapDisplacementInvalidators)
-      , ECS_RW_COMP(hmap_displacement_invalidators_count_over_limit_update_buffer_es_comps, "hmap_displacement_invalidators__buffer", UniqueBufHolder)
+      , ECS_RW_COMP(hmap_displacement_invalidators_count_over_limit_update_buffer_es_comps, "hmap_displacement_invalidators__buffer", UniqueBufWithShaderVar)
       );
   } while (++comp != compE);
 }
@@ -187,7 +187,7 @@ static constexpr ecs::ComponentDesc add_hmap_displacement_invalidator_ecs_query_
 {
 //start of 3 rw components at [0]
   {ECS_HASH("hmap_displacement_invalidators__count_over_limit"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("hmap_displacement_invalidators__data"), ecs::ComponentTypeInfo<HmapDisplacementInvalidators>()}
 };
 static ecs::CompileTimeQueryDesc add_hmap_displacement_invalidator_ecs_query_desc
@@ -207,7 +207,7 @@ inline void add_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &mana
         {
           function(
               ECS_RW_COMP(add_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__count_over_limit", bool)
-            , ECS_RW_COMP(add_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufHolder)
+            , ECS_RW_COMP(add_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufWithShaderVar)
             , ECS_RW_COMP(add_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__data", HmapDisplacementInvalidators)
             );
 
@@ -218,7 +218,7 @@ inline void add_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &mana
 static constexpr ecs::ComponentDesc move_hmap_displacement_invalidator_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("hmap_displacement_invalidators__data"), ecs::ComponentTypeInfo<HmapDisplacementInvalidators>()}
 };
 static ecs::CompileTimeQueryDesc move_hmap_displacement_invalidator_ecs_query_desc
@@ -237,7 +237,7 @@ inline void move_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &man
         constexpr size_t comp = 0;
         {
           function(
-              ECS_RW_COMP(move_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufHolder)
+              ECS_RW_COMP(move_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufWithShaderVar)
             , ECS_RW_COMP(move_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__data", HmapDisplacementInvalidators)
             );
 
@@ -249,7 +249,7 @@ static constexpr ecs::ComponentDesc remove_hmap_displacement_invalidator_ecs_que
 {
 //start of 3 rw components at [0]
   {ECS_HASH("hmap_displacement_invalidators__count_over_limit"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufHolder>()},
+  {ECS_HASH("hmap_displacement_invalidators__buffer"), ecs::ComponentTypeInfo<UniqueBufWithShaderVar>()},
   {ECS_HASH("hmap_displacement_invalidators__data"), ecs::ComponentTypeInfo<HmapDisplacementInvalidators>()}
 };
 static ecs::CompileTimeQueryDesc remove_hmap_displacement_invalidator_ecs_query_desc
@@ -269,7 +269,7 @@ inline void remove_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &m
         {
           function(
               ECS_RW_COMP(remove_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__count_over_limit", bool)
-            , ECS_RW_COMP(remove_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufHolder)
+            , ECS_RW_COMP(remove_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__buffer", UniqueBufWithShaderVar)
             , ECS_RW_COMP(remove_hmap_displacement_invalidator_ecs_query_comps, "hmap_displacement_invalidators__data", HmapDisplacementInvalidators)
             );
 

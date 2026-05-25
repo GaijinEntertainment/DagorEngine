@@ -234,6 +234,32 @@ void PhysObjCustomPhys::onPostUpdate(float, const BasePhysActor::UpdateContext &
         CmdPostPhysUpdateRemoteShadow(physobj.phys.currentState.atTick, physobj.phys.timeStep));
 }
 
+template <>
+void PhysObjActor::loadPhysFromBlk(const DataBlock *blk, const CollisionResource *coll_res, const char *blk_name)
+{
+  const ecs::Object *propsOverride = g_entity_mgr->getNullable<ecs::Object>(eid, ECS_HASH("phys_obj__collisionPropsOverride"));
+  if (!propsOverride || propsOverride->empty())
+  {
+    phys.loadFromBlk(blk, coll_res, blk_name, true);
+    return;
+  }
+
+  DataBlock mergedBlk;
+  mergedBlk.setFrom(blk);
+  DataBlock *propsBlk = mergedBlk.addBlock("collisionResource")->addBlock("props");
+  for (const auto &entry : *propsOverride)
+  {
+    if (entry.second.is<ecs::string>())
+      propsBlk->setStr(entry.first.c_str(), entry.second.get<ecs::string>().c_str());
+    else if (entry.second.is<bool>())
+      propsBlk->setBool(entry.first.c_str(), entry.second.get<bool>());
+    else
+      logerr("phys_obj__collisionPropsOverride entry '%s' has unsupported type for entity %d<%s>", entry.first.c_str(),
+        (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid));
+  }
+  phys.loadFromBlk(&mergedBlk, coll_res, blk_name, true);
+}
+
 PHYS_IMPLEMENT_ON_TICKRATE_CHANGED_ES(PhysObjActor, phys_obj_net_phys)
 PHYS_IMPLEMENT_COMMON_ESES(PhysObjActor, phys_obj_net_phys, phys_obj_phys_es, "collidableToPhysObj")
 

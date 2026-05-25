@@ -359,20 +359,11 @@ void writeQuadBLAS(dag::Vector<uint8_t> &out_data, bbox3f box, const bbox3f *nod
   vec4f scale = v_div(v_splats(65535.f), maxExt);
   vec4f ofs = v_sub(v_splats(32767.5f), v_mul(center, scale));
 
-  // Tree byte budget. writeQuadBVH2 emits a 20-byte leaf per QuadPrim and a 16-byte internal
-  // node per non-root internal. Leaf-root writes its single leaf (20 B). Internal-root skips
-  // writing its own box entry (writeQuadBVH2Impl advances dataOffset only when node != root),
-  // so the -16 only applies in the internal-root case.
+  // For an internal root, writeQuadBVH2Impl encodes descendant count as -rootFaceIndex.
+  // For a leaf root, prims_count == 1, so calcQuadBLASTreeBytes's `internals > 1` clamp
+  // collapses internalBytes to 0 regardless of what the leaf's bmin.w decodes to.
   const int rootFaceIndex = v_extract_wi(v_cast_vec4i(nodes[root].bmin));
-  int treeBytes;
-  if (rootFaceIndex >= 0)
-    treeBytes = BVH_BLAS_LEAF_SIZE;
-  else
-  {
-    const int modelNodeCount = -rootFaceIndex + 1;
-    const int internals = modelNodeCount - prims_count;
-    treeBytes = (internals - 1) * BVH_BLAS_NODE_SIZE + prims_count * BVH_BLAS_LEAF_SIZE;
-  }
+  const int treeBytes = calcQuadBLASTreeBytes(-rootFaceIndex + 1, prims_count);
   static constexpr uint32_t vertex_size = 12;
   const int totalBytes = treeBytes + verts_count * vertex_size;
 

@@ -270,9 +270,11 @@ void WebVromfsDataCache::measureWaitTime(int usec, const char *rel_fn, void *syn
 
 static void remove_entry(datacache::Entry *ent)
 {
+  // NOTE: caller owns the entry's user reference; do NOT call ent->free() here.
+  // With delOnFree set by del(), free() in FileEntry can drop refCount to 0 and `delete this`,
+  // which then becomes a UAF when the caller's EntryHolder/explicit free() runs.
   ent->closeStream();
   ent->del();
-  ent->free();
 }
 static bool check_file_hash_and_erase_if_broken(const char *key, datacache::Entry *ent)
 {
@@ -316,11 +318,9 @@ static bool check_file_hash_and_erase_if_broken(const char *key, datacache::Entr
 
 void WebVromfsDataCache::onFileLoaded(const char *key, datacache::ErrorCode err, datacache::Entry *ent, void * /*arg*/)
 {
+  datacache::EntryHolder holder(ent);
   if (err == datacache::ERR_OK && ent)
-    if (!check_file_hash_and_erase_if_broken(key, ent))
-      return;
-  if (ent)
-    ent->free();
+    check_file_hash_and_erase_if_broken(key, ent);
 }
 void WebVromfsDataCache::onFileLoadedSync(const char *key, datacache::ErrorCode err, datacache::Entry *ent, void *arg)
 {
@@ -329,6 +329,8 @@ void WebVromfsDataCache::onFileLoadedSync(const char *key, datacache::ErrorCode 
   else
   {
     *(datacache::Entry **)arg = ENT_PTR_STATUS_FAILED;
+    if (ent) // remove_entry no longer frees; release the user reference here
+      ent->free();
     logwarn("web-vromfs: [network] failed to download %s, err=%d", key, err);
   }
 }

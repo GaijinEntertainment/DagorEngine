@@ -318,11 +318,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       deepnessData.shore_blending_coeff = 1.0h;
 ##else
       float2 floorTc = deepnessData.refractionTexcoord;
-      float floorZ = linearize_z(sample_far_depth_tex(floorTc, 0), zn_zfar.zw);
-      #if has_seabed_refraction
-        float floorZLinear = linearize_z(sample_far_depth_tex_linear(floorTc, 0), zn_zfar.zw);
-        floorZ = lerp(floorZ, floorZLinear, step(vd.screenPosZW.y, floorZLinear));
-      #endif
+      float floorZ = sample_floor_z(floorTc, vd.screenPosZW.y);
       floorZ += max(0, vd.screenPosZW.y - zn_zfar.y + 100); // Artificially increase water depth at farplane to fix transparent water over the border of the world.
       float realWaterDepth = floorZ - vd.screenPosZW.y;
       deepnessData.waterDepth = realWaterDepth > -0.5 ? abs(realWaterDepth) : 10;
@@ -456,10 +452,18 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 
       // Applying faders to normals
       vd.worldNormal = normalize(half3(vd.worldNormal.xz*vd.shoreData.gerstner_normal.y + vd.shoreData.gerstner_normal.xz*vd.worldNormal.y, vd.shoreData.gerstner_normal.y*vd.worldNormal.y).xzy);
-      ##if !hardware.ps5
+
+      ##if hardware.ps5
+        bool useBentNormals = use_bounding_vr_reprojection == 0;
+      ##else
+        bool useBentNormals = true;
+      ##endif
+      if (useBentNormals)
+      {
         vd.worldNormal.xz *= 1.0 + saturate(vd.screenPosZW.y * 0.001 - 1.0);
         vd.worldNormal = normalize(vd.worldNormal);
-      ##endif
+      }
+
       float normalEnvColorFade = saturate(lerp(-1.05, 1.05, vd.waterColorToEnvColorKoef)); // Fade normal from waterColorToEnvColorKoe*0.5 until waterColorToEnvColorKoef*0.952.
       vd.worldNormal = normalize(lerp(vd.worldNormal, float3(0, 1, 0), normalEnvColorFade));
 

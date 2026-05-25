@@ -131,6 +131,9 @@ inline uint32_t pack_color8_to_color777(uint32_t color)
   return ((color & 0xFEu) << 2) | ((color & 0xFE00u) << 1) | ((color & 0xFE0000u) << 0);
 }
 
+inline constexpr uint64_t GPU_ADDRESS_LOW_MASK = 0xFFFFFFFFu;
+inline constexpr int GPU_ADDRESS_HIGH_SHIFT = 32;
+
 inline constexpr ResourceBarrier bindlessSRVBarrier = ResourceBarrier::RB_RO_SRV | ResourceBarrier::RB_STAGE_ALL_SHADERS;
 inline constexpr ResourceBarrier bindlessUAVBarrier = ResourceBarrier::RB_RW_UAV | ResourceBarrier::RB_STAGE_ALL_SHADERS;
 inline constexpr ResourceBarrier bindlessUAVComputeBarrier = ResourceBarrier::RB_RW_UAV | ResourceBarrier::RB_STAGE_COMPUTE;
@@ -175,6 +178,12 @@ struct BVHHeapAllocatorAllocId
   unsigned char size;
 
   bool operator==(const BVHHeapAllocatorAllocId &) const = default;
+  size_t hash() const { return eastl::hash<uint32_t>{}((uint32_t(slabIndex) << 16) | (uint32_t(offset) << 8) | size); }
+};
+
+struct BVHHeapAllocatorAllocIdHash
+{
+  size_t operator()(const BVHHeapAllocatorAllocId &id) const { return id.hash(); }
 };
 
 template <typename HeapManager, int pool_size>
@@ -553,8 +562,10 @@ struct Mesh
   TEXTUREID extraTextureId = BAD_TEXTUREID;
   TEXTUREID ppPositionTextureId = BAD_TEXTUREID;
   TEXTUREID ppDirectionTextureId = BAD_TEXTUREID;
+  TEXTUREID clothNoiseCombinedTexTextureId = BAD_TEXTUREID;
   uint32_t ppPositionBindless = 0xFFFFFFFFU;
   uint32_t ppDirectionBindless = 0xFFFFFFFFU;
+  uint32_t clothNoiseCombinedTexBindless = 0xFFFFFFFFU;
   uint32_t indexCount = 0;
   uint32_t indexFormat = 0;
   uint32_t vertexCount = 0;
@@ -793,6 +804,7 @@ struct Context
 
     TreeData tree;
     FlagData flag;
+    SkinData skin;
   };
 
   struct BLASCompaction
@@ -864,7 +876,7 @@ struct Context
 
   void teardown();
 
-  MeshMetaAllocator::AllocId allocateMetaRegion(int size);
+  MeshMetaAllocator::AllocId allocateMetaRegion(int size, const char *origin);
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
 
   TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
@@ -1053,6 +1065,7 @@ struct Context
 #if DAGOR_DBGLEVEL > 0
   eastl::unordered_map<void *, String> bindlessBufferAllocatorNames;
 #endif
+  eastl::unordered_map<MeshMetaAllocator::AllocId, const char *, BVHHeapAllocatorAllocIdHash> metaOriginTracker;
 
   WinCritSec tidyUpTreesLock;
   WinCritSec tidyUpSkinsLock;

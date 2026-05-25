@@ -84,7 +84,7 @@ protected:
   Tab<CableData> cables;
   eastl::unordered_set<uint32_t> dirtyCables;
   DynamicShaderHelper cablesRenderer;
-  UniqueBufHolder cablesBuf;
+  UniqueBufWithShaderVar cablesBuf;
   unsigned int maxCables = 0;
   bool changed = false;
   struct RIExtraInfo

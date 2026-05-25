@@ -36,6 +36,7 @@
 #include <EASTL/hash_map.h>
 #include <EASTL/unique_ptr.h>
 #include <shaders/dag_overrideStates.h>
+#include <generic/dag_span.h>
 #include <drv/3d/dag_renderStates.h>
 #include <shaders/dag_renderStateId.h>
 // #include <EASTL/shared_ptr.h>
@@ -135,7 +136,12 @@ public:
   {
     G_ASSERT(refCount == 0);
     String outErr;
+#if _TARGET_PC_WIN
     shader = d3d::create_pixel_shader_hlsl(shader_text, len, "main_ps", "ps_5_0", &outErr);
+#else
+    shader = BAD_FSHADER, outErr = "hlsl n/a";
+    G_UNUSED(shader_text), G_UNUSED(len);
+#endif
     if (!outErr.empty())
       logger.log(shader != BAD_FSHADER ? LOGLEVEL_WARN : LOGLEVEL_ERR, outErr);
     refCount = 1;
@@ -560,8 +566,8 @@ public:
       }
     }
 
-    d3d::set_render_target();
     int outputsCnt = min<int>(outputs.size(), getRegCount(TSHADER_REG_TYPE_OUTPUT));
+    eastl::array<RenderTarget, Driver3dRenderTarget::MAX_SIMRT> outRts = {};
     bool textureSet = false;
     int particlesOut = 0, rtOut = 0;
     for (int i = 0; i < outputsCnt; ++i)
@@ -583,17 +589,11 @@ public:
       }
       rtOut++;
       if (!outputs[i])
-      {
-        d3d::set_render_target(rtOut - 1, 0, 0);
         continue;
-      }
 
       Texture *tex = outputs[i]->getType() == D3DResourceType::TEX ? ((Texture *)outputs[i]) : 0;
       if (!tex)
-      {
-        d3d::set_render_target(rtOut - 1, 0, 0);
         continue;
-      }
       TextureInfo tinfo;
       tex->getinfo(tinfo, 0);
       if (tinfo.cflg & TEXCF_RTARGET)
@@ -601,19 +601,18 @@ public:
         if (tinfo.cflg & TEXCF_UNORDERED)
           d3d::set_rwtex(STAGE_PS, 8 - rtOut, tex, 0, 0);
         else
-          d3d::set_render_target(rtOut - 1, tex, 0);
+          outRts[rtOut - 1] = {tex, 0, 0};
         textureSet = true;
       }
     }
 
-    if (!textureSet)
-      d3d::set_render_target((Texture *)NULL, 0);
-
+    BaseTexture *depthTex = nullptr;
     if (depth || !textureSet)
     {
       create_biggest_depth(w, h);
-      d3d::set_depth(biggest_depth.getTex2D(), DepthAccess::RW);
+      depthTex = biggest_depth.getTex2D();
     }
+    d3d::set_render_target({depthTex, 0, 0}, DepthAccess::RW, make_span_const(outRts.data(), rtOut));
 
     d3d::setview(0, 0, w, h, 0, 1);
 
@@ -742,7 +741,11 @@ static void init_cached_vprog(VprogCached &vprog, const char *shader)
   make_sha1_string(shader, len, sha1);
   if (memcmp(vprog.sha1, sha1, sizeof(sha1)) == 0)
     return;
+#if _TARGET_PC_WIN
   vprog.vprog = d3d::create_vertex_shader_hlsl(shader, len, "main_vs", "vs_5_0");
+#else
+  vprog.vprog = BAD_FSHADER;
+#endif
   memcpy(vprog.sha1, sha1, sizeof(sha1));
 }
 

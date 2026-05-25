@@ -1,0 +1,24 @@
+include "pbr.dshl"
+
+macro INIT_SHEEN_COMMON()
+  static float sheen_strength = 0;
+  (ps) { sheen_strength@f1 = sheen_strength; }
+endmacro
+
+macro USE_SHEEN_COMMON()
+  if (brdf_type == sheen)
+  {
+    hlsl(ps) {
+      #define OVERRIDE_MATERIAL 1
+
+      void init_material_override(inout UnpackedGbuffer result)
+      {
+        init_material(result, SHADING_SUBSURFACE);
+        init_sss_profile(result, SSS_PROFILE_CLOTH);
+        float sheenStrength = get_sheen_strength();
+        sheenStrength = sheenStrength < 0.0f ? result.metalness : sheenStrength;
+        init_sheen(result, sheenStrength);
+      }
+    }
+  }
+endmacro

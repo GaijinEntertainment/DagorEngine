@@ -157,7 +157,7 @@ private:
   }
 
   StaticTab<Projector, MAX_PROJECTORS> projectors;
-  UniqueBufHolder projCbuf;
+  UniqueBufWithShaderVar projCbuf;
   DynamicShaderHelper projRenderer;
   bool needUpdate = false;
   int atmosphereParamsVarId = -1;

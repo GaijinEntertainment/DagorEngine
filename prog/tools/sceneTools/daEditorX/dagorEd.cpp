@@ -405,6 +405,8 @@ extern void init_csg_mgr_service();
 extern void init_spline_gen_mgr_service();
 extern void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir);
 extern void init_webui_service();
+extern void init_texgen_service();
+extern void init_landscape_preview_service();
 
 extern void init_plugin_heightmapland();
 extern void init_plugin_csg();
@@ -449,6 +451,8 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
     ::init_webui_service();
   else
     debug("webUi disabled with game{ enable_webui_de3:b=no;");
+  ::init_texgen_service();
+  ::init_landscape_preview_service();
 
   ::init_plugin_ecs_editor();
   ::init_plugin_environment();

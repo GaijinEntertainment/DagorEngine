@@ -462,6 +462,8 @@ shader downsample_depth2x_cs
   }
 }
 
+int source_depth_for_copy_const_no = 15;
+
 shader copy_depth
 {
   supports none;
@@ -475,8 +477,8 @@ shader copy_depth
   POSTFX_VS_TEXCOORD(0, tc)
 
   (ps) {
-    tex@tex2d : register(15);
-    tex_samplerstate@sampler : register(15);
+    tex@tex2d : register(source_depth_for_copy_const_no);
+    tex_samplerstate@sampler : register(source_depth_for_copy_const_no);
   }
 
   hlsl(ps) {

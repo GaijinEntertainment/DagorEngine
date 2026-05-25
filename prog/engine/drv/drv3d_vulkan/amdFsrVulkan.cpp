@@ -26,6 +26,8 @@ namespace
 static VkResult VKAPI_PTR vkSetDebugUtilsObjectNameEXT(VkDevice, const VkDebugUtilsObjectNameInfoEXT *) { return VK_SUCCESS; }
 static void VKAPI_PTR vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer, const VkDebugUtilsLabelEXT *) {}
 static void VKAPI_PTR vkCmdEndDebugUtilsLabelEXT(VkCommandBuffer) {}
+static void VKAPI_PTR vkCmdWriteBufferMarkerAMD(VkCommandBuffer, VkPipelineStageFlagBits, VkBuffer, VkDeviceSize, uint32_t) {}
+static void VKAPI_PTR vkCmdWriteBufferMarker2AMD(VkCommandBuffer, VkPipelineStageFlags2, VkBuffer, VkDeviceSize, uint32_t) {}
 } // namespace
 
 namespace amd
@@ -69,6 +71,10 @@ static PFN_vkVoidFunction VKAPI_ATTR override_vkGetDeviceProcAddr(VkDevice devic
       addr = (PFN_vkVoidFunction)vkCmdBeginDebugUtilsLabelEXT;
     else if (strcmp(pName, "vkCmdEndDebugUtilsLabelEXT") == 0)
       addr = (PFN_vkVoidFunction)vkCmdEndDebugUtilsLabelEXT;
+    else if (strcmp(pName, "vkCmdWriteBufferMarkerAMD") == 0)
+      addr = (PFN_vkVoidFunction)vkCmdWriteBufferMarkerAMD;
+    else if (strcmp(pName, "vkCmdWriteBufferMarker2AMD") == 0)
+      addr = (PFN_vkVoidFunction)vkCmdWriteBufferMarker2AMD;
 
 #if _MSC_VER
 #pragma warning(pop)

@@ -247,4 +247,9 @@ inline bool collres_check_grid_available(const CollisionResource &collres, uint8
 {
   return collres.checkGridAvailable(behavior_filter);
 }
+
+inline bool apply_collres_node_flag_rules(ecs::EntityId eid, const ecs::Array &rules)
+{
+  return ::apply_collres_node_flag_rules(*g_entity_mgr, eid, rules);
+}
 } // namespace bind_dascript

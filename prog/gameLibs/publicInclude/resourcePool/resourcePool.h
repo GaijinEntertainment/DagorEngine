@@ -282,7 +282,10 @@ public:
 
     LeasedResource(const DescriptorType &desc, ResourcePool &owner) :
       UniqueResType(eastl::apply(resource_pool_detail::ResourceFactory<T>::create, desc)), owner(owner)
-    {}
+    {
+      if constexpr (T == ResourceType::AliasableTexture)
+        this->setDefaultSize(eastl::get<0>(desc), eastl::get<1>(desc));
+    }
 
     ~LeasedResource() { G_ASSERT(!useCount); }
 
@@ -343,6 +346,8 @@ public:
     {
       G_ASSERT(resource);
       resource.updateLastUsedFrame(::dagor_frame_no());
+      if constexpr (T == ResourceType::AliasableTexture)
+        resource.resetDefaultSize();
       freeList.emplace_back(&resource);
     }
   };

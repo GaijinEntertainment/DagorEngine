@@ -100,6 +100,10 @@ BINDUMP_BEGIN_LAYOUT(Interval)
 
   inline unsigned getNormalizedValue(real v) const
   {
+    // For TYPE_ASSUMED_INTERVAL the maxVal slot holds the assumed value, not boundary thresholds (see getAssumedVal()).
+    // Use getAssumedVal() for those intervals.
+    G_ASSERT(type != TYPE_ASSUMED_INTERVAL);
+
     for (int i = 0; i < maxVal.size(); i++)
       if (v < maxVal[i])
         return i;

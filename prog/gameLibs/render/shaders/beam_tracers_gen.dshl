@@ -63,6 +63,7 @@ shader create_beam_tracer_commands_cs
       structuredBufferAt(tracers, cmd.id).beamFadeDist = cmd.beamFadeDist;
       structuredBufferAt(tracers, cmd.id).isRay = (cmd.beamBeginFadeTime < 0.0) ? 1 : 0;
       structuredBufferAt(tracers, cmd.id).isHeroLaser = cmd.isHeroLaser;
+      structuredBufferAt(tracers, cmd.id).maxLength = cmd.maxLength;
 
       structuredBufferAt(tracersDynamic, cmd.id).movingDir = ndir;
       structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts = 1;
@@ -337,7 +338,7 @@ shader cull_beam_tracers_cs
         renderBox.beamScrollSpeed = tracers[id].beamScrollSpeed;
 
         renderBox.fadeTimeRatio = tracers[id].isRay == 0 ? min(1, min(tracerTime / tracers[id].beamBeginFadeTime,
-                                            (tracers[id].ttl - tracerTime) / tracers[id].beamEndFadeTime)) : 1;
+                                            (tracers[id].ttl - tracerTime) / tracers[id].beamEndFadeTime)) : tracers[id].maxLength;
 
         float tracerRadius = radiusStart*0.0125;
         float viewDist0 = distance(world_view_pos, p0);

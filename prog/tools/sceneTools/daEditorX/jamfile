@@ -13,6 +13,7 @@ Dependencies =
   $(Root)/$(Location)/IvyGen/jamfile
   $(Root)/$(Location)/Occluders/jamfile
   $(Root)/$(Location)/csg/jamfile
+  $(Root)/$(Location)/GraphEditor/jamfile
 ;
 
 local editor_jam = $(Root)/$(Location)/jamfile-editor ;

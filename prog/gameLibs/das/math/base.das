@@ -123,6 +123,10 @@ def cross2d(a, b : float2) : float
   return a.y * b.x - a.x * b.y
 
 [generic]
+def cross2d(a, b : float3) : float
+  return a.z * b.x - a.x * b.z
+
+[generic]
 def is_nan(a : float4)
   return is_nan(a.x) || is_nan(a.y) || is_nan(a.z) || is_nan(a.w)
 

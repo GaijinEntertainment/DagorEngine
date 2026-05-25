@@ -149,8 +149,7 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass,
   Driver3dRenderTarget prevRt;
   d3d::get_render_target(prevRt);
 
-  d3d::set_render_target(nullptr, 0);
-  d3d_err(d3d::set_depth(landHeightTex.getTex2D(), DepthAccess::RW));
+  d3d::set_render_target({landHeightTex.getTex2D(), 0, 0}, DepthAccess::RW, {});
   d3d::clearview(CLEAR_ZBUFFER, 0, 1.f, 0);
   d3d::resource_barrier({landHeightTex.getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 

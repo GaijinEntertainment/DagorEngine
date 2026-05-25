@@ -1,1 +1,0 @@
-Smart pointer to a `FunctionAnnotation` object. Used for registering and managing function annotation macros.

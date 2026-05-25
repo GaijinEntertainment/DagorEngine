@@ -33,6 +33,7 @@
 #include "renderDoc_capture_module.h"
 #include "debug_callbacks.h"
 #include "global_lock.h"
+#include "xess.h"
 
 using namespace drv3d_vulkan;
 
@@ -72,6 +73,7 @@ WindowState Globals::window;
 #if !USE_STREAMLINE_FOR_DLSS
 DLSSSuperResolutionDirect Globals::dlss;
 #endif
+Xess Globals::xess;
 
 GlobalDriverLock Globals::lock;
 thread_local uint32_t GlobalDriverLock::acquired = 0;

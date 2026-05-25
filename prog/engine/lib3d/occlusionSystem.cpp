@@ -40,14 +40,17 @@ public:
   bool hasGPUFrame() const { return currentCheckingFrame > 0; }
   void readGPUframe(); // can be run from any thread, but will read from gpu texture (gpu readback)
   void prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
-    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim); // performs reprojection of latest GPU frame
+    CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, mat44f_cref cockpit_proj,
+    bool has_separate_cockpit_proj); // performs reprojection of latest GPU frame
   void clear();
   void buildMips();
   void prepareDebug();
-  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution = nullptr);
-  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution = nullptr);
+  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth,
+    const DynRes *dynamic_resolution = nullptr);
+  void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
+    const DynRes *dynamic_resolution = nullptr);
   void setReprojectionUseCameraTranslatedSpace(bool enabled);
   bool getReprojectionUseCameraTranslatedSpace() const;
   void initSWRasterization();
@@ -71,8 +74,9 @@ public:
 
 private:
   template <bool ignoreVr>
-  void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution);
+  void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, mat44f_cref cockpit_proj,
+    bool has_separate_cockpit_proj, float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
+    const DynRes *dynamic_resolution);
 
   void initVrRes();
   bool process(float *destData, uint32_t &frame);
@@ -85,6 +89,7 @@ private:
   struct Frame
   {
     mat44f viewproj;
+    mat44f cockpitViewproj;
     vec4f pos;
     float zn, zf;
   };
@@ -331,21 +336,26 @@ void OcclusionImpl::startRasterization(float zn)
   moc->ClearBuffer();
 }
 
-void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-  Texture *depth, Texture *base_depth, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
+  mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
+  const DynRes *dynamic_resolution)
 {
-  prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, StereoIndex::Mono, dynamic_resolution);
+  prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, cockpit_proj, has_separate_cockpit_proj, zn, zf, depth, base_depth,
+    StereoIndex::Mono, dynamic_resolution);
 }
 
-void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-  Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
+  mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
+  StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
-  prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, stereo_index, dynamic_resolution);
+  prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, cockpit_proj, has_separate_cockpit_proj, zn, zf, depth, base_depth,
+    stereo_index, dynamic_resolution);
 }
 
 template <bool ignoreVr>
-void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-  Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
+void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj,
+  mat44f_cref cockpit_proj, bool has_separate_cockpit_proj, float zn, float zf, Texture *depth, Texture *base_depth,
+  StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
   G_ASSERT_RETURN(depth, );
   if (ignoreVr || stereo_index != StereoIndex::Right)
@@ -509,18 +519,27 @@ void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44
     TIME_D3D_PROFILE(start_cpu_copy_hzb);
     ringTextures.startCPUCopy();
 
+    auto &frame = globtmHistory[lastRenderedFrame % globtmHistory.size()];
     if (reprojectionUseCameraTranslatedSpace)
     {
       mat44f viewTm = view;
       viewTm.col3 = V_C_UNIT_0001;
-      v_mat44_mul(globtmHistory[lastRenderedFrame % globtmHistory.size()].viewproj, proj, viewTm);
+      v_mat44_mul(frame.viewproj, proj, viewTm);
+      if (has_separate_cockpit_proj)
+        v_mat44_mul(frame.cockpitViewproj, cockpit_proj, viewTm);
     }
     else
-      globtmHistory[lastRenderedFrame % globtmHistory.size()].viewproj = view_proj;
+    {
+      frame.viewproj = view_proj;
+      if (has_separate_cockpit_proj)
+        v_mat44_mul(frame.cockpitViewproj, cockpit_proj, view);
+    }
+    if (!has_separate_cockpit_proj)
+      frame.cockpitViewproj = frame.viewproj;
 
-    globtmHistory[lastRenderedFrame % globtmHistory.size()].pos = view_pos;
-    globtmHistory[lastRenderedFrame % globtmHistory.size()].zn = zn;
-    globtmHistory[lastRenderedFrame % globtmHistory.size()].zf = zf;
+    frame.pos = view_pos;
+    frame.zn = zn;
+    frame.zf = zf;
 
     // guard against inconsistent state when left eye not rendered
     currentTarget = nullptr;
@@ -574,7 +593,7 @@ void OcclusionImpl::clear()
 }
 
 void OcclusionImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cref proj, mat44f_cref viewProj, float cockpit_distance,
-  CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim)
+  CockpitReprojectionMode cockpit_mode, const mat44f &cockpit_anim, mat44f_cref cockpit_proj, bool has_separate_cockpit_proj)
 {
   {
     TIME_PROFILE(occlusion_clear);
@@ -587,6 +606,11 @@ void OcclusionImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cre
       int idx = currentCheckingFrame % globtmHistory.size();
       mat44f toWorldHW;
       v_mat44_inverse(toWorldHW, globtmHistory[idx].viewproj);
+      mat44f cockpitToWorldHW;
+      const bool hasSeparateCockpitInverse = has_separate_cockpit_proj && cockpit_mode == COCKPIT_REPROJECT_ANIMATED;
+      if (hasSeparateCockpitInverse)
+        v_mat44_inverse(cockpitToWorldHW, globtmHistory[idx].cockpitViewproj);
+      const mat44f &cockpitToWorldRef = hasSeparateCockpitInverse ? cockpitToWorldHW : toWorldHW;
 
       mat44f &lastAnimHistoryMatrix = cockpitAnimHistory[lastRenderedFrame % cockpitAnimHistory.size()];
       if (nextFramePrepared)
@@ -608,13 +632,23 @@ void OcclusionImpl::prepareGPUDepthFrame(vec3f pos, mat44f_cref view, mat44f_cre
         mat44f viewProjTm;
         v_mat44_mul(viewProjTm, proj, viewTm);
 
-        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, v_zero(), globtmHistory[idx].zn, globtmHistory[idx].zf, viewProjTm, 0,
-          height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
+        mat44f cockpitViewProjTm;
+        if (has_separate_cockpit_proj)
+          v_mat44_mul(cockpitViewProjTm, cockpit_proj, viewTm);
+
+        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, cockpitToWorldRef, v_zero(), globtmHistory[idx].zn, globtmHistory[idx].zf,
+          viewProjTm, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim,
+          has_separate_cockpit_proj ? cockpitViewProjTm : viewProjTm, has_separate_cockpit_proj);
       }
       else
       {
-        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, globtmHistory[idx].pos, globtmHistory[idx].zn, globtmHistory[idx].zf,
-          viewProj, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim);
+        mat44f cockpitViewProjTm;
+        if (has_separate_cockpit_proj)
+          v_mat44_mul(cockpitViewProjTm, cockpit_proj, view);
+
+        occlusionRenderer.reprojectHWDepthBuffer(toWorldHW, cockpitToWorldRef, globtmHistory[idx].pos, globtmHistory[idx].zn,
+          globtmHistory[idx].zf, viewProj, 0, height, lastHWdepth.data(), cockpit_distance, cockpit_mode, actualAnim,
+          has_separate_cockpit_proj ? cockpitViewProjTm : viewProj, has_separate_cockpit_proj);
       }
     }
   }
@@ -723,7 +757,8 @@ void Occlusion::readbackGPU() { impl->readGPUframe(); }
 
 void Occlusion::reprojectGPUFrame()
 {
-  impl->prepareGPUDepthFrame(curViewPos, curView, curProj, curViewProj, cockpitDistance, cockpitMode, cockpitAnim);
+  impl->prepareGPUDepthFrame(curViewPos, curView, curProj, curViewProj, cockpitDistance, cockpitMode, cockpitAnim, cockpitProjTm,
+    hasSeparateCockpitProj);
 }
 
 void Occlusion::clear() { impl->clear(); }
@@ -753,13 +788,15 @@ bool Occlusion::getReprojectionUseCameraTranslatedSpace() const
 
 void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution)
 {
-  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, dynamic_resolution);
+  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, cockpitProjTm, hasSeparateCockpitProj, zn, zf, mipped_depth, depth,
+    dynamic_resolution);
 }
 
 void Occlusion::prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
   const DynRes *dynamic_resolution)
 {
-  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index, dynamic_resolution);
+  impl->prepareNextFrame(curViewPos, curView, curProj, curViewProj, cockpitProjTm, hasSeparateCockpitProj, zn, zf, mipped_depth, depth,
+    stereo_index, dynamic_resolution);
 }
 
 void Occlusion::startSWOcclusion(float zn)

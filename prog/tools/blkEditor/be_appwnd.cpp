@@ -322,7 +322,7 @@ void BlkEditorApp::repaint() {}
 
 void BlkEditorApp::fillToolBar()
 {
-  PropPanel::ContainerPropertyControl *tool = mToolPanel->createToolbarPanel(CM_TOOLS, "");
+  PropPanel::ContainerPropertyControl *tool = mToolPanel->createToolbarPanel(CM_TOOLS);
 
   tool->setEventHandler(this);
 

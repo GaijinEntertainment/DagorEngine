@@ -12,6 +12,7 @@ struct PlotEntry
   comp_idx    : int
   dim         : int
   eid         : uint
+  slot        : uint  // signal slot index used when slot_mode is true; preserved across mode toggles
   scale_min   : float
   scale_max   : float
   fit         : bool
@@ -24,6 +25,7 @@ struct PlotEntry
   count       : int
   found       : bool
   val_editing : bool
+  slot_mode   : bool  // true: eid field is a signal slot index sourced from daeditor_plot_debug__signals
   last_discovery_fail_time : float  // 0 = never tried; positive = get_sync_time() of last failed attempt
   max_dq      : array<int>
   min_dq      : array<int>
@@ -46,5 +48,7 @@ struct PlotWindow
   win_size_init    : bool
   timestamps       : array<float>
   max_entry_count  : int
-  toolbar_eid      : uint
-  dirty            : bool
+  toolbar_eid       : uint
+  toolbar_slot      : uint
+  toolbar_slot_mode : bool  // false: Add creates an ECS entry; true: Add creates a debug-signal slot entry
+  dirty             : bool

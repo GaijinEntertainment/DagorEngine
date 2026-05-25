@@ -1,1 +1,0 @@
-The double-precision constant pi (3.141592653589793...), representing the ratio of a circle's circumference to its diameter.

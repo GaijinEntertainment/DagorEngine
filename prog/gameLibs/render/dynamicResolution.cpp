@@ -10,6 +10,7 @@
 #include <startup/dag_globalSettings.h>
 #include <workCycle/dag_workCyclePerf.h>
 #include <3d/dag_lowLatency.h>
+#include <drv/3d/dag_driver.h>
 
 #include <gui/dag_imgui.h>
 #include <imgui/implot.h>
@@ -65,7 +66,7 @@ static float limitByVSync(float targetFrameRate)
   return targetFrameRate;
 }
 
-void DynamicResolution::applySettings()
+void DynamicResolution::applySettings(bool target_only)
 {
   const DataBlock &videoBlk = *dgs_get_settings()->getBlockByNameEx("video");
   const DataBlock &settingsBlk = *videoBlk.getBlockByNameEx("dynamicResolution");
@@ -81,7 +82,11 @@ void DynamicResolution::applySettings()
     autoAdjust = false;
     return;
   }
-  targetMsPerFrame = 1000.0 / targetFrameRate;
+  targetMsPerFrame = 1000.0f / targetFrameRate;
+
+  if (target_only)
+    return;
+
   // This curve allows for more granular change at higher framerate, while adapts at a similar speed at low fps.
   resolutionScaleStep = 0.01f * clamp<float>(round(200.0f / targetFrameRate), 1, 5);
   minResolutionScale = settingsBlk.getReal("minResolutionScale", 0.5);
@@ -102,7 +107,7 @@ void DynamicResolution::trackCpuTime()
   currentCpuMsPerFrame = lerp(currentCpuMsPerFrame, prevFrameTimeMs, 0.05f);
 }
 
-void DynamicResolution::beginFrame()
+void DynamicResolution::beginFrame(eastl::optional<int> frame_rate_limit)
 {
   G_ASSERT_RETURN(gpuFrameState == GPU_FRAME_FINISHED, );
   gpuFrameState = GPU_FRAME_STARTED;
@@ -128,7 +133,7 @@ void DynamicResolution::beginFrame()
 
       float actualGpuTime = max(0.0f, timeMs - flipStallMs);
       currentGpuMsPerFrame = actualGpuTime;
-      adjustResolution();
+      adjustResolution(frame_rate_limit);
     }
     else
     {
@@ -159,9 +164,10 @@ void DynamicResolution::endFrame()
 }
 
 
-void DynamicResolution::calculateAllowableTimeRange(float &lower_bound, float &upper_bound)
+void DynamicResolution::calculateAllowableTimeRange(float &lower_bound, float &upper_bound, eastl::optional<int> frame_rate_limit)
 {
-  float adjustedTargetMsPerFrame = max(minimumMsPerFrame, targetMsPerFrame);
+  float adjustedTargetMsPerFrame =
+    max(minimumMsPerFrame, frame_rate_limit.has_value() ? 1000.0f / frame_rate_limit.value() : targetMsPerFrame);
   upper_bound = adjustedTargetMsPerFrame * maxThresholdToChange;
   lower_bound = adjustedTargetMsPerFrame * minThresholdToChange;
   if (considerCPUbottleneck && currentCpuMsPerFrame > adjustedTargetMsPerFrame)
@@ -173,10 +179,10 @@ void DynamicResolution::calculateAllowableTimeRange(float &lower_bound, float &u
   }
 }
 
-void DynamicResolution::adjustResolution()
+void DynamicResolution::adjustResolution(eastl::optional<int> frame_rate_limit)
 {
   float lowerBound, upperBound;
-  calculateAllowableTimeRange(lowerBound, upperBound);
+  calculateAllowableTimeRange(lowerBound, upperBound, frame_rate_limit);
   if (autoAdjust)
   {
     if (currentGpuMsPerFrame > upperBound)
@@ -304,7 +310,7 @@ void DynamicResolution::debugImguiWindow()
   float thresholdsX[4], thresholdsY[4];
   thresholdsX[0] = t;
   thresholdsX[3] = t;
-  calculateAllowableTimeRange(thresholdsY[3], thresholdsY[0]);
+  calculateAllowableTimeRange(thresholdsY[3], thresholdsY[0], eastl::nullopt);
   thresholdsX[1] = t - history - 0.1;
   thresholdsY[1] = thresholdsY[0];
   thresholdsX[2] = t - history - 0.1;

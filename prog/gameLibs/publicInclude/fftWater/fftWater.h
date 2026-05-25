@@ -227,8 +227,8 @@ struct WaterFlowmap
 
   dag::Vector<FlowmapCircularObstacle> circularObstacles;
   dag::Vector<FlowmapRectangularObstacle> rectangularObstacles;
-  UniqueBufHolder circularObstaclesBuf;
-  UniqueBufHolder rectangularObstaclesBuf;
+  UniqueBufWithShaderVar circularObstaclesBuf;
+  UniqueBufWithShaderVar rectangularObstaclesBuf;
   PostFxRenderer circularObstaclesRenderer;
   PostFxRenderer rectangularObstaclesRenderer;
 
@@ -459,6 +459,7 @@ void create_flowmap(FFTWater *handle);
 void remove_flowmap(FFTWater *handle);
 
 const WaterHeightmap *get_heightmap(const FFTWater *water);
+const HeightmapHeightCulling *get_heightmap_culling(const FFTWater *water);
 void set_heightmap(FFTWater *water, eastl::unique_ptr<WaterHeightmap> &&heightmap);
 void remove_heightmap(FFTWater *water);
 void load_heightmap(IGenLoad &loadCb, FFTWater *water);

@@ -187,6 +187,9 @@ public:
 
   void showSelectWindow(IObjectsList *obj_list, const char *obj_list_owner_name) override;
 
+  bool isProjectLoaded() const override { return projectLoaded; };
+  bool getPendingTextureLoadTotalCount(unsigned int &total_count) override;
+
   UndoSystem *getUndoSystem() override { return undoSystem; }
   CoolConsole &getConsole() override
   {
@@ -396,6 +399,7 @@ private:
   static const int LATEST_DOCK_SETTINGS_VERSION = 3; // Increasing this will reset the dock settings.
 
   Point2 viewportSplitRatio = Point2(0.5f, 0.5f);
+  bool projectLoaded = false;
   bool makingDefaultLayout = false;
   bool lastUsedLayoutLoaded = false;
   bool dockPositionsInitialized = false;

@@ -15,12 +15,6 @@ public:
   static void init();
   static void report();
 
-// Set to 1 to enable per-buffer framemem update tracking when the limit is exceeded.
-#ifndef RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
-#define RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG 0
-#endif
-
-#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
   struct FramememUpdateEntry
   {
     const char *name;
@@ -29,7 +23,6 @@ public:
   };
 
   static void recordFramememUpdate(const char *name, uint32_t size, int lock_flags);
-#endif
 
 #else
   static void init() {}
@@ -53,9 +46,7 @@ protected:
 
     interlocked_add(uploaded_framemem, size);
 
-#if RESOURCE_CHECKER_DETAILED_FRAMEMEM_LOG
     recordFramememUpdate(name, size, flags);
-#endif
 
     // this is max size of single upload, has to fit internal ring buffer chunk size
     // otherwise its gonna be always allocated/freed. could be logerr instead of assert

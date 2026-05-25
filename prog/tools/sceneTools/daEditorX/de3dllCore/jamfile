@@ -17,9 +17,11 @@ Sources =
 ;
 
 UseProgLibs =
+  3rdPartyLibs/imgui
   engine/memory/rtlOverride
   engine/math
   engine/drv/drv3d_use_d3di
+  tools/libTools/EditorCore
   tools/libTools/util
   tools/libTools/ObjectEditor
 ;

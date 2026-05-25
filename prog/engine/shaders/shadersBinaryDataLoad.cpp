@@ -20,6 +20,7 @@
 #include <generic/dag_align.h>
 #include <3d/dag_lockTexture.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_resetDevice.h>
 
 namespace shaderbindump
 {
@@ -327,7 +328,7 @@ void ScriptedShadersGlobalData::initAfterLoad(ScriptedShadersBinDumpOwner const 
     else if (dump->intervals[i].type == dump->intervals[i].TYPE_ASSUMED_INTERVAL)
     {
       int gvid = bfind_packed_uint16_x2(dump->gvMap, dump->intervals[i].nameId);
-      if (gvid >= 0 && dump->globVars.v[gvid].type == SHVT_INT)
+      if (gvid >= 0)
         globVarIntervalIdx[gvid] = i;
     }
   }
@@ -365,6 +366,27 @@ const UniqueTex &ShaderStubTexturesRepository::query(uint32_t col, ShaderVarText
   return stubTextureStore[it->second];
 }
 
+static bool write_color_to_stub_texture(UniqueTex &tex, shader_layout::StubTextureKey key)
+{
+  const bool isCube = (key.textype == SHVT_TEX_CUBE || key.textype == SHVT_TEX_CUBE_ARRAY);
+
+  for (int layer = 0, lc = isCube ? 6 : 1; layer < lc; ++layer)
+  {
+    eastl::optional<int> ll{};
+    if (isCube)
+      ll.emplace(layer);
+    if (auto lock = lock_texture<uint32_t>(tex.getBaseTex(), 0, TEXLOCK_WRITE, ll))
+    {
+      lock.at(0, 0) = key.col;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 void ShaderStubTexturesRepository::add(shader_layout::StubTextureKey key)
 {
   auto [it, isNew] = stubTexturesMap.emplace(key, stubTextureStore.size());
@@ -388,29 +410,24 @@ void ShaderStubTexturesRepository::add(shader_layout::StubTextureKey key)
     default: G_ASSERT(0);
   }
 
-  const bool isCube = (key.textype == SHVT_TEX_CUBE || key.textype == SHVT_TEX_CUBE_ARRAY);
-  bool ok = true;
-
-  for (int layer = 0, lc = isCube ? 6 : 1; layer < lc; ++layer)
-  {
-    eastl::optional<int> ll{};
-    if (isCube)
-      ll.emplace(layer);
-    if (auto lock = lock_texture<uint32_t>(stubTextureStore.back().getBaseTex(), 0, TEXLOCK_WRITE, ll))
-    {
-      lock.at(0, 0) = key.col;
-    }
-    else
-    {
-      ok = false;
-      break;
-    }
-  }
-
-  if (!ok)
+  if (!write_color_to_stub_texture(tex, key))
   {
     logerr("Failed to create stubtex for col=%x type=%d", key.col, key.textype);
     stubTexturesMap.erase(it);
     stubTextureStore.pop_back();
   }
 }
+
+void ShaderStubTexturesRepository::afterResetDevice()
+{
+  for (auto [key, texIdx] : stubTexturesMap)
+  {
+    UniqueTex &tex = stubTextureStore[texIdx];
+    if (!write_color_to_stub_texture(tex, key))
+      logerr("Failed to restore stubtex for col=%x type=%d", key.col, key.textype);
+  }
+}
+
+static void reload_stub_textures_after_reset_device(bool /*full_reset*/) { shaderbindump::g_stub_texture_repo.afterResetDevice(); }
+
+REGISTER_D3D_AFTER_RESET_FUNC(reload_stub_textures_after_reset_device);

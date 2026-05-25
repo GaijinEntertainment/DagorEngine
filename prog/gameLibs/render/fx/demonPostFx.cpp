@@ -401,7 +401,7 @@ void DemonPostFx::calcGlowGraphics()
     G_ASSERT(prevFrameLowResTex != nullptr);
     d3d::resource_barrier({prevFrameLowResTex->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     // glow
-    d3d::set_render_target(tmpTex->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{tmpTex->getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     glowBlurXFx.getMat()->set_color4_param(weight0VarId, current.hdrGlowMul * glowWeights0X);
     glowBlurXFx.getMat()->set_color4_param(weight1VarId, current.hdrGlowMul * glowWeights1X);
@@ -422,7 +422,7 @@ void DemonPostFx::calcGlowGraphics()
 
   {
     TIME_D3D_PROFILE(glowBlurYFx);
-    d3d::set_render_target(glowTex->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{glowTex->getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     glowBlurYFx.getMat()->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlurYFx.render();
@@ -432,7 +432,7 @@ void DemonPostFx::calcGlowGraphics()
 
   {
     TIME_D3D_PROFILE(glowBlur2XFx);
-    d3d::set_render_target(tmpTex->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{tmpTex->getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     glowBlur2XFx.getMat()->set_texture_param(texVarId, glowTex->getTexId());
     glowBlur2XFx.render();
@@ -442,7 +442,7 @@ void DemonPostFx::calcGlowGraphics()
 
   {
     TIME_D3D_PROFILE(glowBlur2YFx);
-    d3d::set_render_target(glowTex->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{glowTex->getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     glowBlur2YFx.getMat()->set_texture_param(texVarId, tmpTex->getTexId());
     glowBlur2YFx.render();
@@ -755,7 +755,7 @@ void DemonPostFx::prepareSkyMask(const TMatrix &view_tm)
     G_ASSERT(lowResLumTexPrepared == nullptr);
     lowResLumTexPrepared = lowResSkyRTPool->acquire();
 
-    d3d::set_render_target(lowResLumTexPrepared->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{lowResLumTexPrepared->getTex2D(), 0, 0}});
     volFogCallback->process(lowResSize.x, lowResSize.y, quadCoeffs);
     skyMaskPrepared = true;
   }
@@ -862,7 +862,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
       }
       else
       {
-        d3d::set_render_target(glowTex->getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{glowTex->getTex2D(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       }
     }
@@ -901,7 +901,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
 
       float invRange = 1.0f / current.volfogRange;
 
-      d3d::set_render_target(lowResLumTex->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{lowResLumTex->getTex2D(), 0, 0}});
 
       float step = powf(invRange, 1.0f / (BLUR_SAMPLES * BLUR_SAMPLES * BLUR_SAMPLES));
       real s = step;
@@ -918,7 +918,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
         radialBlur1Fx.render();
       }
 
-      d3d::set_render_target(lowResLumTexPrepared->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{lowResLumTexPrepared->getTex2D(), 0, 0}});
 
       step = powf(invRange, 1.0f / (BLUR_SAMPLES * BLUR_SAMPLES));
       s = step;
@@ -934,7 +934,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
         radialBlur1Fx.render();
       }
 
-      d3d::set_render_target(lowResLumTex->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{lowResLumTex->getTex2D(), 0, 0}});
 
       step = powf(invRange, 1.0f / (BLUR_SAMPLES));
       s = 1.0;
@@ -968,7 +968,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
     ShaderGlobal::set_texture(hblur_inputVarId, target_tex);
     ShaderGlobal::set_texture(hblur_outputVarId, hblurTarget->getTexId());
     ShaderGlobal::set_float(gaussian_blur_mulVarId, gaussianBlurAmount);
-    d3d::set_render_target(hblurTarget->getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{hblurTarget->getTex2D(), 0, 0}});
 
     gaussianHBlur.render();
     ShaderGlobal::set_texture(hblur_inputVarId, nullptr);
@@ -1032,9 +1032,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
   }
   else
   {
-    d3d::set_render_target();
-    if (depth_tex)
-      d3d::set_depth(depth_tex, DepthAccess::SampledRO);
+    d3d::set_render_target({depth_tex, 0, 0}, depth_tex ? DepthAccess::SampledRO : DepthAccess::RW, {});
   }
 
   if (output_viewport)

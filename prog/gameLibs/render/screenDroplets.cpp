@@ -288,7 +288,7 @@ void ScreenDroplets::render(BaseTexture *rtarget)
   TIME_D3D_PROFILE(screen_droplets);
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target(rtarget, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{rtarget, 0, 0}});
     screenDropletsFx.render();
     mipRenderer.render(rtarget);
   }

@@ -1,1 +1,0 @@
-Macro that hooks into the context simulation phase — the final compilation step where the AST is translated into executable simulation nodes.

@@ -235,21 +235,21 @@ private:
   eastl::vector<LensFlareData> lensFlares;
   // vector_set is used to sort the array, not just for quick lookups! If it's changed to another type, manual sort is needed
   eastl::vector_set<RenderConfig> globalRenderConfigs;
-  UniqueBufHolder lensFlareBuf;
-  UniqueBufHolder manualLightDataBuf;
-  UniqueBufHolder vertexPositionsBuf;
+  UniqueBufWithShaderVar lensFlareBuf;
+  UniqueBufWithShaderVar manualLightDataBuf;
+  UniqueBufWithShaderVar vertexPositionsBuf;
 
   // Instances are grouped together according to the flare configs to allow instanced draw calls
   //  First part of buffer: instance data for manual lights, there can be gaps between data for different flare configs. Starting
   //  indices are allocated first, data is culled later on GPU Second part of the buffer: continuous data for the dynamic light
   //  instances
-  UniqueBufHolder lensFlareInstancesBuf;
+  UniqueBufWithShaderVar lensFlareInstancesBuf;
 
   // This buffer stores lists of data concatenated into a single buffer (indices point into this same buffer:
   //  header: <index of data for dynamic lights> + <index of data for the i-th flare config>...
   //  data (repeated several times for dynamic lights and all used flare configs): <index of i-th draw call (for the indirect draw args
   //  buffer)> <~0u (terminating value)>
-  UniqueBufHolder drawCallIndicesBufferBuf;
+  UniqueBufWithShaderVar drawCallIndicesBufferBuf;
 
   // All parameters except for instance count are filled on CPU, compute shader fills out instance counts after culling
   UniqueBuf indirectDrawBuf;
@@ -270,7 +270,7 @@ private:
   //  = disabling it for the colliding instances
   // Hash collisions are very unlikely, but not explicitly handled.
   // In case they happen, flickering is expected if the two instances are not occluded at the same magnitude
-  UniqueBufHolder lensFlareVisibilityHistoryBuf;
+  UniqueBufWithShaderVar lensFlareVisibilityHistoryBuf;
 
   UniqueBuf flareVB;
   UniqueBuf flareIB;

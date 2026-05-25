@@ -307,7 +307,7 @@ void prepare_fixed_clip(UniqueTexWithShaderVar &last_clip, d3d::SamplerInfo &las
     d3d::setwire(0);
     {
       SCOPE_RENDER_TARGET;
-      d3d::set_render_target(tex.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{tex.getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, 0x00000000, 1.0f, 0);
       for (int y = 0; y < data.texture_size; y += partHeight)
       {

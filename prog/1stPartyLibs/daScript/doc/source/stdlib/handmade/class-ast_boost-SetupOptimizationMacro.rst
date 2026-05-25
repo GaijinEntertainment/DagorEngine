@@ -1,1 +1,0 @@
-Base class for creating optimization pass macros via the ``[optimization_macro]`` structure annotation; registers an ``AstPassMacro`` that runs during the optimization pass.

@@ -20,6 +20,11 @@ struct BvhSkinnedInstanceData
   uint instance_offset;
   uint source_slot;
   uint pos_format_half;
+  float4 cloth_wind__noise_time_scale;
+  uint cloth_noise_combined_tex_slot;
+  float cloth_wind__noise_amp;
+  float cloth_wind__ambient_influence;
+  uint pad0;
 };
 
 #endif

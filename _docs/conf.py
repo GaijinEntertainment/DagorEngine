@@ -13,8 +13,6 @@ import subprocess
 sys.path.insert(0, os.path.abspath('source/'))
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('..'))
-dagor_prog_root = os.path.abspath('../prog')
-sys.path.append(os.path.join(dagor_prog_root, "1stPartyLibs/daScript/doc/source"))
 
 # ==============================================================================
 # General configuration

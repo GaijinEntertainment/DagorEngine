@@ -1,0 +1,8 @@
+WARNING: w331 (function-returns-same-value) Function returns the same value from all value-returning paths.
+testData/static_analyzer/w331_bool.nut:1:0
+
+function sameBoolReturn(x) {
+^
+  if (x)
+
+

@@ -1,8 +1,8 @@
-from "%sqstd/asyncHttp.nut" import TaskHttpGet, TaskHttpMultiGet
+from "%sqstd/asyncHttp.nut" import TaskHttpGet
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
 
-let Promise = require("%sqstd/Promise.nut")
+let { Promise, delay } = require("async")
 let { Task } = require("%sqstd/monads.nut")
 
 function btn(text, handler){
@@ -18,15 +18,44 @@ function conlog(...){
   consoleStream.set(v)
 }
 
-function checkPromises(){
-  Promise(@(resolve, _reject)
-    gui_scene.setTimeout(0.2, @() resolve("Promise resolved first one"))
-  ).then(function(res){
-      conlog(res)
-      return Promise(@(resolve, _)
-          gui_scene.setTimeout(0.2, @() resolve("Promise resolved second one"))
-      )
-  }).then(@(res) conlog(res) )
+// Wrap a callback-shape API (gui_scene.setTimeout) into an awaitable Promise.
+// Same pattern used to adapt eventbus / httpRequest / file IO callbacks.
+// Plain function returning a Promise: chain-unwrap at the await site adopts
+// it transparently. The `: instance` annotation tells the analyzer the
+// return may be a Promise, suppressing w328 redundant-await at callers.
+function timeoutPromise(sec, value): instance {
+  let p = Promise()
+  gui_scene.setTimeout(sec, @() p.resolve(value))
+  return p
+}
+
+async function checkPromises() {
+  // Sequential awaits
+  await delay(0.2)
+  conlog("step 1: delay done")
+
+  // Wrapped callback API consumed via await
+  let wrapped = await timeoutPromise(0.2, "wrapped value")
+  conlog($"step 2: got {wrapped}")
+
+  // Parallel: start both before awaiting either. Total ~0.4s, not 0.7s.
+  let a = delay(0.4)
+  let b = delay(0.3)
+  await a
+  conlog("step 3: a (0.4s) settled")
+  await b
+  conlog("step 3: b (0.3s) was already settled")
+
+  // Rejection caught via try/catch around await.
+  let bad = Promise()
+  gui_scene.setTimeout(0.2, @() bad.reject("simulated failure"))
+  try {
+    await bad
+  } catch (e) {
+    conlog($"step 4: caught {e}")
+  }
+
+  conlog("checkPromises complete")
 }
 
 function checkObservables(){

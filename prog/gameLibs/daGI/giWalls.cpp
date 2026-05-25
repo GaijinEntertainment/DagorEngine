@@ -44,7 +44,7 @@ public:
   eastl::vector<Wall> activeList;
   eastl::vector<vec4f> planeList;
   eastl::vector<bbox3f> activeListBox;
-  UniqueBufHolder currentWallsSB, currentWallsGridSB, currentWallsConvexCB;
+  UniqueBufWithShaderVar currentWallsSB, currentWallsGridSB, currentWallsConvexCB;
   eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> frameWallsCB;
   // eastl::unique_ptr<Sbuffer, DestroyDeleter<Sbuffer>> gridCntSB;
   eastl::unique_ptr<ComputeShaderElement> fill_walls_grid_range;
@@ -100,8 +100,8 @@ void GIWalls::updatePos(const Point3 &pos_)
     bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
 
     currentWallsSB.close();
-    currentWallsSB = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Wall), bufferCount, "currentWallsList",
-                                       d3d::buffers::Init::No, RESTAG_DAGI),
+    currentWallsSB = UniqueBufWithShaderVar(dag::buffers::create_persistent_sr_structured(sizeof(Wall), bufferCount,
+                                              "currentWallsList", d3d::buffers::Init::No, RESTAG_DAGI),
       "wallsList");
     currentWallsSB.setVar();
   }
@@ -114,7 +114,7 @@ void GIWalls::updatePos(const Point3 &pos_)
 
     currentWallsConvexCB.close();
     currentWallsConvexCB =
-      UniqueBufHolder(dag::buffers::create_persistent_cb(planeCount, "currentWallsListVB", RESTAG_DAGI), "PlanesCbuffer");
+      UniqueBufWithShaderVar(dag::buffers::create_persistent_cb(planeCount, "currentWallsListVB", RESTAG_DAGI), "PlanesCbuffer");
     currentWallsConvexCB.setVar();
   }
   return validate();
@@ -313,8 +313,8 @@ void GIWalls::init(eastl::unique_ptr<class scene::TiledScene> &&s)
     if (!currentWallsGridSB.getBuf())
     {
       currentWallsGridSB =
-        UniqueBufHolder(dag::buffers::create_ua_sr_structured(sizeof(WallGridType), currentGridSize, // sizeof(plane3f)*6
-                          "currentWallsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
+        UniqueBufWithShaderVar(dag::buffers::create_ua_sr_structured(sizeof(WallGridType), currentGridSize, // sizeof(plane3f)*6
+                                 "currentWallsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
           "wallsGridList");
       currentWallsGridSB.setVar();
     }

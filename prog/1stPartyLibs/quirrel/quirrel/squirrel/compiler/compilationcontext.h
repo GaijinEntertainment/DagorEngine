@@ -115,7 +115,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(SUBSUMED_IF_EXPR, WARNING, SEMA, 327, "subsumed-if-expression", "Detected pattern 'if (A) {...} else if (B) {...}' where condition B is already covered by an earlier condition. Branch unreachable."), \
   DEF_DIAGNOSTIC(REDUNDANT_AWAIT, WARNING, SEMA, 328, "redundant-await", "'await' on non-async expression has no effect."), \
   DEF_DIAGNOSTIC(REPEATED_CONDITION, WARNING, SEMA, 329, "repeated-condition", "Condition repeats a condition from an outer 'if'."), \
-  DEF_DIAGNOSTIC(ASSIGNED_BACK, WARNING, SEMA, 330, "assigned-back", "Assignment writes back the value that was just copied from this expression.") \
+  DEF_DIAGNOSTIC(ASSIGNED_BACK, WARNING, SEMA, 330, "assigned-back", "Assignment writes back the value that was just copied from this expression."), \
+  DEF_DIAGNOSTIC(FUNCTION_RETURNS_SAME_VALUE, WARNING, SEMA, 331, "function-returns-same-value", "Function returns the same value from all value-returning paths.") \
 
 
 namespace SQCompilation {

@@ -8,6 +8,7 @@
 #include <3d/dag_texMgr.h>
 #include <util/dag_stdint.h>
 #include <EASTL/vector.h>
+#include <EASTL/optional.h>
 #include <math/integer/dag_IPoint2.h>
 
 class DynamicResolution
@@ -21,9 +22,9 @@ public:
   DynamicResolution &operator=(const DynamicResolution &) = delete;
   DynamicResolution &operator=(DynamicResolution &&) = default;
 
-  void applySettings();
+  void applySettings(bool target_only = false);
 
-  void beginFrame();
+  void beginFrame(eastl::optional<int> frame_rate_limit = eastl::nullopt);
   void endFrame();
   void getCurrentResolution(int &w, int &h) const
   {
@@ -44,8 +45,8 @@ public:
 
 private:
   void trackCpuTime();
-  void calculateAllowableTimeRange(float &lower_bound, float &upper_bound);
-  void adjustResolution();
+  void calculateAllowableTimeRange(float &lower_bound, float &upper_bound, eastl::optional<int> frame_rate_limit);
+  void adjustResolution(eastl::optional<int> frame_rate_limit);
 
   struct TimestampQueries
   {
@@ -66,16 +67,16 @@ private:
   bool considerCPUbottleneck = false;
   float maxResolutionScale = 1.0;
   float minResolutionScale = 0.5;
-  float resolutionScaleStep;
+  float resolutionScaleStep = 0;
 
   float currentCpuMsPerFrame = 0;
 
-  double gpuMsPerTick;
+  double gpuMsPerTick = 0;
 
   unsigned frameIdx = 0;
 
-  float targetFrameRate;
-  float targetMsPerFrame;
+  float targetFrameRate = 0.f;
+  float targetMsPerFrame = 0.f;
   float minimumMsPerFrame = 0.f;
   float currentGpuMsPerFrame = 0;
   float maxThresholdToChange = 0.95;
@@ -83,8 +84,8 @@ private:
   int framesAboveThreshold = 0;
   int framesUnderThreshold = 0;
 
-  int targetResolutionWidth, targetResolutionHeight;
-  int currentResolutionWidth, currentResolutionHeight;
+  int targetResolutionWidth = 0, targetResolutionHeight = 0;
+  int currentResolutionWidth = 0, currentResolutionHeight = 0;
 
   float resolutionScale = 1.0;
 

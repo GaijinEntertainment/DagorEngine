@@ -48,7 +48,7 @@ macro USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
     {
       SSAO_TYPE ao = 1;
       float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
-      ao.x = ssao.x;
+      ao.x = pow(ssao.x, ssao_apply_strength);
       ##if ssao_wsao
       ao.WSAO_ATTR = ssao.y;
       ao.WSAO_ATTR *= ao.WSAO_ATTR;
@@ -87,7 +87,7 @@ macro USE_SSAO_BILATERAL_BASE_WITH_SMP(code, _samplerstate)
       {
         SSAO_TYPE ao = 1;
         float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
-        ao.x = ssao.x;
+        ao.x = pow(ssao.x, ssao_apply_strength);
         ##if ssao_wsao
         ao.WSAO_ATTR = ssao.y;
         ao.WSAO_ATTR *= ao.WSAO_ATTR;
@@ -108,7 +108,7 @@ macro USE_SSAO_BILATERAL_BASE_WITH_SMP(code, _samplerstate)
 
       float4 ssaoValue = ssao_tex.GatherRed(half_res_close_depth_samplerstate, ssaotc).wzxy;
       SSAO_TYPE ao = 1;
-      ao.x = dot(ssaoValue, weights);
+      ao.x = pow(dot(ssaoValue, weights), ssao_apply_strength);
       ##if ssao_wsao
       float4 wsaoValue = ssao_tex.GATHER_WSAO(half_res_close_depth_samplerstate, ssaotc).wzxy;
       ao.WSAO_ATTR = dot(wsaoValue, weights);
@@ -140,7 +140,7 @@ macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
       float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
       float4 ssaoValue = ssao_tex.GatherRed(_samplerstate, ssaotc);
       SSAO_TYPE ao = 1;
-      ao.x = dot(ssaoValue, weights);
+      ao.x = pow(dot(ssaoValue, weights), ssao_apply_strength);
       ##if ssao_wsao
       float4 wsaoValue = ssao_tex.GATHER_WSAO(_samplerstate, ssaotc);
       ao.WSAO_ATTR = dot(wsaoValue, weights);

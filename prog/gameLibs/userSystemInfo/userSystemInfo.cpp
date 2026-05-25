@@ -131,6 +131,8 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
     cachedSysInfo.addStr("shadowQuality", blkGraphics.getStr("shadowQuality", "unknown"));
   }
 
+  cachedSysInfo.addBool("enableBVH", graphicsBlk->getBool("enableBVH", false));
+
 #if _TARGET_PC_WIN
   if (auto blkDirectX = dgs_get_settings()->getBlockByName("directx"); blkDirectX && blkDirectX->paramExists("msaa"))
   {

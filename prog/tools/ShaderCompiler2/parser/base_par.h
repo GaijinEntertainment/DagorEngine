@@ -5,6 +5,7 @@
 #include <util/dag_globDef.h>
 #include <EASTL/vector.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/optional.h>
 
 namespace BaseParNamespace
 {

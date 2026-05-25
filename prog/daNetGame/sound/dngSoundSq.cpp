@@ -15,7 +15,7 @@ static void apply_audio_settings(Sqrat::Array changed_fields)
     return false;
   };
 
-  if (wasChanged("sound/volume"))
+  if (wasChanged("sound/volume") || wasChanged("sound/muteInactiveApp"))
     dngsound::apply_config_volumes();
 }
 

@@ -244,8 +244,8 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
     use_occlusion = nullptr;
   mat44f globtm = globtm_cull;
 #if DAGOR_DBGLEVEL > 0
-  if (!render_for_shadow && use_occlusion)
-    globtm = use_occlusion->getCurViewProj(); // allow "frustum stop" (add_occlusion console command)
+  if (!render_for_shadow && use_occlusion && !params.useExactGlobtm)
+    globtm = use_occlusion->getCurViewProj(); // allow "frustum stop" (occlusion.stop_occlusion console command)
 #endif
   visibility.vbExtraGeneration = INVALID_VB_EXTRA_GEN;
 

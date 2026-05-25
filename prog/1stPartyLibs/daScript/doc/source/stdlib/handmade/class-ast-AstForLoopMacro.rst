@@ -1,1 +1,0 @@
-Macro for implementing custom for-loop iteration patterns. Intercepts for-loop expressions during compilation, similar to the ``visitExprFor`` callback of `AstVisitor`.

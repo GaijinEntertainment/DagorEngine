@@ -105,6 +105,13 @@ struct Config
     int                     SelectButtonIndex;      // Mouse button index select action will react to (0-left, 1-right, 2-middle)
     int                     NavigateButtonIndex;    // Mouse button index navigate action will react to (0-left, 1-right, 2-middle)
     int                     ContextMenuButtonIndex; // Mouse button index context menu action will react to (0-left, 1-right, 2-middle)
+    // MODIFICATION BY GAIJIN
+    // Opt-in: when true, Node::GetGroupedNodes treats a node as grouped if its centre lies
+    // inside the group rect, instead of requiring full rect.Contains(bounds) containment.
+    // This widens drag-with-group and z-reorder to nodes that are visually "half inside" the
+    // group. Default false preserves the historic strict-contain behaviour for callers that
+    // have not asked for the looser test.
+    bool                    ContainGroupedNodesByCenter;
 
     Config()
         : SettingsFile("NodeEditor.json")
@@ -121,6 +128,7 @@ struct Config
         , SelectButtonIndex(0)
         , NavigateButtonIndex(1)
         , ContextMenuButtonIndex(1)
+        , ContainGroupedNodesByCenter(false)
     {
     }
 };

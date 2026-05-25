@@ -1,1 +1,0 @@
-Type alias for ``smart_ptr<FileAccess>`` — a reference-counted pointer to a ``FileAccess`` object, used as the standard way to pass file access to the compiler.

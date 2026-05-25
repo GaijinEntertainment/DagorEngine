@@ -94,6 +94,12 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.robustBufferAccess = cfg->getBool("robustBufferAccess", false);
   bits.highPriorityQueues = cfg->getBool("highPriorityQueues", true);
   bits.useCustomAllocationCallbacks = cfg->getBool("useCustomAllocationCallbacks", false);
+
+  {
+    bits.allowXess = cfg->getBool("allowXESS", true);
+    if (!bits.allowXess)
+      debug("vulkan: XeSS disabled by config");
+  }
 }
 
 void DriverConfig::fillDeviceBits()
@@ -357,6 +363,14 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     bits.resetOnDeviceLost = deviceLostProp->getBool("reset", true);
     if (bits.resetOnDeviceLost)
       debug("vulkan: device lost can trigger device reset");
+  }
+
+  // patch global allowXess with per-GPU/driver allowance (driver_config "xess.allow" block)
+  if (bits.allowXess)
+  {
+    bits.allowXess = getPerDriverPropertyBlock("xess")->getBool("allow", true);
+    if (!bits.allowXess)
+      debug("vulkan: XeSS disabled by per-driver config");
   }
 }
 

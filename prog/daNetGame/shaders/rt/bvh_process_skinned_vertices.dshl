@@ -1,15 +1,31 @@
 include "shader_global.dshl"
 include "dynamic_simple_inc.dshl"
+texture perlin_noise3d;
+include "soldier/cloth.dshl"
+include_optional "trace_inline_ps5.dshl"
 
 int bvh_process_skinned_vertices_is_building_prototype;
 buffer bvh_process_skinned_vertices_params_buf;
 
 int bvh_process_skinned_vertices_output_uav_no = 0;
 
+int bvh_process_skinned_vertices_cloth = 0;
+interval bvh_process_skinned_vertices_cloth: no < 1, yes;
+
+define_macro_if_not_defined INIT_PS5_INLINE_RT(stage)
+endmacro
+
 shader bvh_process_skinned_vertices_batched
 {
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
   (cs) { immediate_dword_count = 2; }
+
+  if (hardware.ps5)
+  {
+    // For BINDLESS_NON_UNIFORM_TEX_ARRAY
+    INIT_PS5_INLINE_RT(cs)
+  }
+
   hlsl(cs)
   {
     #include "bvh_skinned_instance_data_batched.hlsli"
@@ -29,20 +45,91 @@ shader bvh_process_skinned_vertices_batched
   DYNMODEL_SHARED_DECL_BUFFER(cs)
 
   hlsl(cs) {
-    BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    ##if !hardware.ps5
+      BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    ##else
+      BINDLESS_NON_UNIFORM_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    ##endif
 
     struct VsInput
     {
-      float4 pos;
+      float3 pos;
       float4 normal;
+      ##if bvh_process_skinned_vertices_cloth == yes
+        float3 vcolMask;
+      ##endif
 
       float4 packedBoneIndices;
       float4 boneWeights;
     };
-    #define viewProjTm float4x4(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0)
+    #define viewProjTm float4x4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1)
   }
 
   HAS_SKINNING_BASE(cs)
+
+  if (bvh_process_skinned_vertices_cloth == yes)
+  {
+    // INIT_CLOTH_WIND(texture_index) reimplemented for this shader
+    (cs) {
+      cloth_wind_velocity_multiplier@f1 = cloth_wind_velocity_multiplier;
+      world_view_pos@f3 = world_view_pos;
+    }
+    INIT_CLOTH_WIND_NOISE()
+    INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
+    hlsl(cs)
+    {
+      float4 get_cloth_wind__noise_time_scale() { return params.cloth_wind__noise_time_scale; }
+      float get_cloth_wind__noise_amp() { return params.cloth_wind__noise_amp; }
+      float get_cloth_wind__ambient_influence() { return params.cloth_wind__ambient_influence; }
+
+      float sample_noise(float x, float y)
+      {
+        if (params.cloth_noise_combined_tex_slot != 0xFFFFFFFFu)
+          return NOISE_MULTIPLIER * nonUniformBindlessTex2D(bvh_textures, params.cloth_noise_combined_tex_slot).SampleLevel(global_linear_wrap_sampler, float2(x, y), 0).a;
+        else
+          return gen_noise(x, y);
+      }
+    }
+    INIT_CLOTH_WIND_NOISE_COMBINED()
+    INIT_USE_COMBINED_WIND(cs)
+    // end of INIT_CLOTH_WIND(texture_index)
+
+    hlsl(cs)
+    {
+      void directional_data_skinning(VsInput input, inout float3 directional_data)
+      {
+        // The num_bones = four_bones path from the original function
+        bone_t skinnedTm = skinning_matrix(input);
+        directional_data = mul_bone3(directional_data, skinnedTm);
+      }
+    }
+    USE_CLOTH_WIND_POSITION_OFFSET_BASE(cs)
+    USE_CLOTH_COLLISION(cs)
+    hlsl(cs)
+    {
+      struct VsOutput
+      {
+        float4 pos;
+        float3 pointToEye;
+      };
+    }
+    USE_CLOTH_WIND_VS_POST_FUNCTION(cs, false, false)
+    hlsl(cs)
+    {
+      void apply_cloth_wind(VsInput input, inout float4 pos, inout float3 eye_to_point)
+      {
+        VsOutput output;
+        output.pos = pos;
+        output.pointToEye = -eye_to_point;
+        float4 prevPos = 0; // dummy
+        vs_post_function(input, output, prevPos);
+        pos = output.pos;
+        eye_to_point = -output.pointToEye;
+      }
+    }
+  }
 
   hlsl(cs) {
     static const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
@@ -103,7 +190,7 @@ shader bvh_process_skinned_vertices_batched
         return;
 
       ByteAddressBuffer source  = nonUniformBindlessBAB(bvh_geometry, params.source_slot);
-      VsInput input;
+      VsInput input = (VsInput)0;
 
       int vertexStart = params.source_offset + (params.start_vertex + vertexId) * params.vertex_stride;
 
@@ -115,12 +202,12 @@ shader bvh_process_skinned_vertices_batched
 
         const uint3 POS_ENCODING_OFFSET = uint3(16, 0, 16);
         int3 posI = asint(packedPos.xxy << POS_ENCODING_OFFSET) >> 16;
-        input.pos = float4(posI / 32767.0, 1);
+        input.pos = posI / 32767.0;
       }
       else
       {
         uint3 packedPos = loadBuffer3(source, vertexStart + params.position_offset);
-        input.pos = float4(asfloat(packedPos), 1);
+        input.pos = asfloat(packedPos);
       }
 
       // Skinning part
@@ -133,10 +220,19 @@ shader bvh_process_skinned_vertices_batched
       input.normal            = float4((packedNormal  >> INPUT_ENCODING_OFFSET) & 255) / 255;
       input.packedBoneIndices = float4((packedIndices >> INPUT_ENCODING_OFFSET) & 255) / 255;
       input.boneWeights       = float4((packedWeights >> INPUT_ENCODING_OFFSET) & 255) / 255;
+
+      ##if bvh_process_skinned_vertices_cloth == yes
+        if (params.color_offset != 0xFFFFFFFFu)
+        {
+          uint packedVcol = loadBuffer(source, vertexStart + params.color_offset);
+          input.vcolMask = float3((packedVcol >> INPUT_ENCODING_OFFSET).rgb & 255) / 255;
+        }
+      ##endif
+
       input.pos.xyz = do_cut_sphere_for_wounds(input.pos.xyz);
-      float3 localDu = float3(1, 0, 0), localDv = float3(1, 0, 0);
+      float3 localDu = float3(1, 0, 0), localDv = float3(1, 0, 0); // Dummy
       float3 eye_to_point;
-      float4 output_pos; // Dummy
+      float4 output_pos; // Dummy, equals to eye_to_point, because viewProjTm is a unit matrix
       float3 worldNormal;
       float3 world_du; // Dummy
       float3 world_dv; // Dummy
@@ -151,6 +247,10 @@ shader bvh_process_skinned_vertices_batched
         worldNormal,
         world_du,
         world_dv);
+
+      ##if bvh_process_skinned_vertices_cloth == yes
+        apply_cloth_wind(input, output_pos, eye_to_point);
+      ##endif
 
       float3 modelPos = mul(float4(eye_to_point, 1), params.inv_wtm).xyz;
 
@@ -177,7 +277,7 @@ shader bvh_process_skinned_vertices_batched
       offset += 4;
 
       BRANCH
-      if (params.color_offset > 0)
+      if (params.color_offset != 0xFFFFFFFFu)
       {
         storeBuffer(output, params.target_offset + vertexId * params.processed_vertex_stride + offset, loadBuffer(source, vertexStart + params.color_offset));
         offset += 4;

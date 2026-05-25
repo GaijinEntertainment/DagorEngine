@@ -215,7 +215,7 @@ bool load_shaders_bindump_asset(ShadersBinDumpAssetData &dump_asset, const char 
 
 class ShaderStubTexturesRepository
 {
-  dag::VectorMap<uint64_t, size_t> stubTexturesMap;
+  dag::VectorMap<shader_layout::StubTextureKey, size_t> stubTexturesMap;
   Tab<UniqueTex> stubTextureStore;
 
   friend struct ScriptedShadersBinDumpOwner;
@@ -231,6 +231,7 @@ public:
 
   const UniqueTex &query(uint32_t col, ShaderVarTextureType shvtt) const;
   bool filled() const { return !stubTexturesMap.empty(); }
+  void afterResetDevice();
 
 private:
   void add(shader_layout::StubTextureKey key);

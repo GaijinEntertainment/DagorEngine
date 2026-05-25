@@ -501,13 +501,8 @@ shader wfx_normals
       float wfxHeight;
       float4 center = get_water_position(input.texcoord.xy, float2(0, 0), viewVec, wfxHeight);
 
-      ##if hardware.dx12
-      // Avoid sampling hmap multiple times when we know that there are no effects
-      // in this wave. May very rarely cause artifacts, but I doubt anyone will notice.
-      if (WaveActiveAllTrue(wfxHeight == 0.0f))
+      if (wfxHeight == 0.0f)
         return float4(0.5f, 0.5f, 0.0f, 0.0f);
-      ##endif
-
 
       float horOffset = 1.0 / max(-viewVec.y, OFFSET_FROM_VIEW_VEC_THRESHOLD);
       float2 offsets[DIRECTIONS] = { float2(horOffset, 0),  float2(0, 1), float2(-horOffset, 0), float2(0, -1) };

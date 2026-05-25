@@ -91,7 +91,7 @@ protected:
   SharedTexHolder albedoTex, normalTex;
   TextureIDHolderWithVar hmapTex, gmapTex, cmapTex;
   ComputeShader precompShader;
-  UniqueBufHolder grassChannelsCB, clipmapRectsCB;
+  UniqueBufWithShaderVar grassChannelsCB, clipmapRectsCB;
   dag::Vector<FastGrassType> grassChannelData;
   dag::Vector<int> clipmapScales;
 

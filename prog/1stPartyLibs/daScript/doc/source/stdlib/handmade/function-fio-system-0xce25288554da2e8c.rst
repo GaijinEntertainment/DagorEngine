@@ -1,1 +1,0 @@
-Runs a shell command via the C runtime ``system()`` function. Returns the process exit code. Unlike ``popen``, this does not capture output — it is fire-and-forget, suitable for launching detached processes (e.g. ``start`` on Windows, ``&`` on Unix).

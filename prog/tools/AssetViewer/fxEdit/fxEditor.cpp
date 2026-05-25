@@ -416,7 +416,7 @@ public:
           return nullptr;
 
         mToolPanel = IEditorCoreEngine::get()->createPropPanel(this, "Effects Tools");
-        fillToolBar(*mToolPanel->createToolbarPanel(21, ""));
+        fillToolBar(*mToolPanel->createToolbarPanel(21));
 
         return mToolPanel;
       }

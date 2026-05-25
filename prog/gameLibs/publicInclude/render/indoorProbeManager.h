@@ -58,9 +58,9 @@ public:
 
 private:
   LightProbeSpecularCubesContainer *cubesContainer;
-  UniqueBufHolder indoorActiveProbesData;
-  UniqueBufHolder indoorVisibleProbesData;
-  UniqueBufHolder cellClusters;
+  UniqueBufWithShaderVar indoorActiveProbesData;
+  UniqueBufWithShaderVar indoorVisibleProbesData;
+  UniqueBufWithShaderVar cellClusters;
   BufPtr indoorActiveProbesStaging;
   eastl::vector<uint32_t> probeIdxToNodeIdx;
   eastl::vector<Point3> probesPositions;
@@ -71,10 +71,10 @@ private:
   eastl::unique_ptr<ComputeShaderElement> clusterizator;
   float lastY;
 
-  UniqueBufHolder allIndoorProbeBoxes;
-  UniqueBufHolder allIndoorProbePosAndCubes;
+  UniqueBufWithShaderVar allIndoorProbeBoxes;
+  UniqueBufWithShaderVar allIndoorProbePosAndCubes;
 
-  UniqueBufHolder indoorProbeVisibilityMask; // For debug
+  UniqueBufWithShaderVar indoorProbeVisibilityMask; // For debug
 
   void initLightProbes();
 

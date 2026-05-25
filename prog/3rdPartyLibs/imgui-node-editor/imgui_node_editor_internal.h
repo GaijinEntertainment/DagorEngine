@@ -1343,6 +1343,11 @@ struct EditorContext
 
     Node* FindNodeAt(const ImVec2& p);
     void FindNodesInRect(const ImRect& r, vector<Node*>& result, bool append = false, bool includeIntersecting = true);
+    // MODIFICATION BY GAIJIN
+    // Counterpart to FindNodesInRect for the "centre lies inside r" test, used by
+    // Node::GetGroupedNodes when Config::ContainGroupedNodesByCenter is set so the looser
+    // half-inside heuristic stays out of the strict overlap/contain path used elsewhere.
+    void FindNodesByCenter(const ImRect& r, vector<Node*>& result, bool append = false);
     void FindLinksInRect(const ImRect& r, vector<Link*>& result, bool append = false);
 
     bool HasAnyLinks(NodeId nodeId) const;

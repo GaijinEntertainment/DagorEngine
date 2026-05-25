@@ -8,7 +8,7 @@ let UPSCALE_WEIGHTS_COUNT = 16
 let UPSCALE_DATA_SIZE = typeinfo sizeof(type<float4>)
 
 [generic]
-def upload_weights(upscale_weights_buffer : UniqueBufHolder)
+def upload_weights(upscale_weights_buffer : UniqueBufWithShaderVar)
   let UPSCALE_WEIGHTS_DATA <-  array<float>(
     1f, 1f, 1f, 1f,
     0f, 0f, 0f, 1f,
@@ -31,5 +31,5 @@ def upload_weights(upscale_weights_buffer : UniqueBufHolder)
   *getBuf(upscale_weights_buffer) |> updateData(UPSCALE_WEIGHTS_DATA, VBLOCK_WRITEONLY | VBLOCK_DISCARD)
 
 [generic]
-def init_upscale(var upscale_weights_buffer : UniqueBufHolder)
+def init_upscale(var upscale_weights_buffer : UniqueBufWithShaderVar)
   create_sbuffer(upscale_weights_buffer, UPSCALE_DATA_SIZE, UPSCALE_WEIGHTS_COUNT, SBCF_CB_PERSISTENT, uint(0), "upscale_sampling_weights")

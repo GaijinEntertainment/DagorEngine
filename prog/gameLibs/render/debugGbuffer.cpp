@@ -72,10 +72,13 @@ static void setModeHelper(eastl::string_view str, DebugGbufferMode &mode_out)
       next_found = next_found == -2 || (int)mode_out == next_found ? i : next_found;
     }
   }
+  DebugGbufferMode newMode = DebugGbufferMode::None;
   if (fnd >= -1)
-    mode_out = (DebugGbufferMode)fnd;
+    newMode = (DebugGbufferMode)fnd;
   else if (next_found >= -1)
-    mode_out = (DebugGbufferMode)next_found;
+    newMode = (DebugGbufferMode)next_found;
+
+  mode_out = newMode == mode_out ? DebugGbufferMode::None : newMode;
 }
 
 
@@ -106,6 +109,8 @@ static eastl::string getUsageHelper(const OptionsMap &options)
 
 eastl::string getDebugGbufferUsage() { return getUsageHelper(gbuffer_debug_options); }
 
+eastl::string getDebugGbufferModeName(DebugGbufferMode mode) { return eastl::string(gbuffer_debug_options[(int)mode]); }
+
 eastl::string getDebugGbufferWithVectorsUsage() { return getUsageHelper(gbuffer_debug_with_vectors_options); }
 
 class DebugGbufferRenderScope
@@ -113,10 +118,6 @@ class DebugGbufferRenderScope
 public:
   DebugGbufferRenderScope(Texture *in_depth) : depth(in_depth)
   {
-    d3d::get_render_target(renderTarget);
-    rwDepth = renderTarget.isDepthReadOnly();
-    renderTarget.setDepthReadOnly();
-
     // TODO: make a more flexible solution for stencil access
     useStencil = debug_mesh::is_enabled();
     if (useStencil)
@@ -127,17 +128,11 @@ public:
   {
     if (useStencil)
       depth->setReadStencil(false);
-
-    if (!rwDepth)
-      renderTarget.setDepthRW();
-    d3d::set_render_target(renderTarget);
   }
 
 private:
   Texture *depth;
-  bool rwDepth;
   bool useStencil;
-  Driver3dRenderTarget renderTarget;
 };
 
 static int prevMode = -1;

@@ -190,7 +190,7 @@ protected:
   SkyAtmosphereParams current;
 
   UniqueTexWithShaderVar skies_irradiance_texture, skies_transmittance_texture;
-  UniqueBufHolder gpuAtmosphereCb;
+  UniqueBufWithShaderVar gpuAtmosphereCb;
 
   // approximated MS https://sebh.github.io/publications/egsr2020.pdf
   UniqueTexWithShaderVar skies_ms_texture;

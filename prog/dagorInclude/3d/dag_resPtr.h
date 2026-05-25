@@ -604,7 +604,7 @@ using SharedBuf = SharedRes<ManagedBuf>;
 using ManagedTexHolder = resptr_detail::ManagedResHolder<ManagedTex>;
 using ManagedBufHolder = resptr_detail::ManagedResHolder<ManagedBuf>;
 using UniqueTexWithShaderVar = resptr_detail::ConcreteResHolder<UniqueTex>;
-using UniqueBufHolder = resptr_detail::ConcreteResHolder<UniqueBuf>;
+using UniqueBufWithShaderVar = resptr_detail::ConcreteResHolder<UniqueBuf>;
 using SharedTexHolder = resptr_detail::ConcreteResHolder<SharedTex>;
 using SharedBufHolder = resptr_detail::ConcreteResHolder<SharedBuf>;
 

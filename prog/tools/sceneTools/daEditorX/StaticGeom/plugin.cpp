@@ -131,7 +131,7 @@ bool StaticGeometryPlugin::begin(int toolbar_id, unsigned menu_id)
   G_ASSERT(toolbar);
   toolbar->setEventHandler(this);
 
-  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
+  PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL);
 
   commandSystem->createToolbarButton(*tool, CM_IMPORT_WITHOUT_TEX, EditorCommandIds::IMPORT_WITHOUT_TEX, "Import DAG");
   tool->setButtonPictures(CM_IMPORT_WITHOUT_TEX, "import_dag");

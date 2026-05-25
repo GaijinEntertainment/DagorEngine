@@ -1,1 +1,0 @@
-Command-line utilities for daslang scripts and standalone executables. Provides functions for locating the daslang interpreter, which is essential when a script or standalone executable needs to spawn daslang subprocesses.

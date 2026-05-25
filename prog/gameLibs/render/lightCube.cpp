@@ -2,6 +2,8 @@
 
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <generic/dag_span.h>
+#include <EASTL/array.h>
 #include <3d/dag_resPtr.h>
 #include <math/dag_TMatrix4.h>
 #include <shaders/dag_shaders.h>
@@ -100,8 +102,13 @@ public:
       for (int faceNo = 0; faceNo < (integrate_one_face ? face_count : 1); ++faceNo)
       {
         ShaderGlobal::set_int(integrate_faceVarId, integrate_one_face ? face_start + faceNo : 6);
-        for (int i = 0; i < (integrate_one_face ? 1 : 6); ++i)
-          d3d::set_render_target(i, tex.getCubeTex(), face_start + faceNo + i, mip);
+        const uint32_t faceCount = integrate_one_face ? 1 : 6;
+        const uint32_t mipU = static_cast<uint32_t>(mip);
+        const uint32_t faceBase = static_cast<uint32_t>(face_start + faceNo);
+        eastl::array<RenderTarget, 6> faceRts = {};
+        for (uint32_t i = 0; i < faceCount; ++i)
+          faceRts[i] = {tex.getCubeTex(), mipU, faceBase + i};
+        d3d::set_render_target({}, DepthAccess::RW, make_span_const(faceRts.data(), faceCount));
         if (cubTex == tex.getCubeTex())
           cubTex->texmiplevel(0, 0);
         d3d::settex(dynamic_cube_tex_reg_noVarId.get_int(), cubTex);
@@ -109,8 +116,7 @@ public:
           d3d::request_sampler({.address_mode_u = d3d::AddressMode::Clamp, .address_mode_v = d3d::AddressMode::Clamp}));
         d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
         shader.render();
-        for (int i = 0; i < (integrate_one_face ? 1 : 6); ++i)
-          d3d::set_render_target(i, nullptr, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {});
       }
     }
     d3d::settex(dynamic_cube_tex_reg_noVarId.get_int(), nullptr);

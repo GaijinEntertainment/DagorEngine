@@ -183,7 +183,7 @@ void RendInstHeightmap::prepareRiVisibilityAsync()
       rendinstHeightmapVisibilities.push_back(create_rendinst_heightmap_visibility());
 
     rendinst::prepareRIGenExtraVisibility(culling_view_proj, Point3(box.center().x, (zf - zn), box.center().y),
-      *rendinstHeightmapVisibilities[i], true, NULL, {}, rendinst::RiExtraCullIntention::MAIN, false, true);
+      *rendinstHeightmapVisibilities[i], false, NULL, {}, rendinst::RiExtraCullIntention::MAIN, false, true);
   }
 }
 
@@ -250,7 +250,7 @@ void RendInstHeightmap::updateToroidalTextureRegions(int globalFrameBlockId)
   }
   regionsToUpdate.resize(0);
 
-  d3d::set_depth(nullptr, DepthAccess::RW);
+  d3d::set_render_target({}, DepthAccess::RW, {});
   d3d::resource_barrier({depthTexture.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
 
   setVar();

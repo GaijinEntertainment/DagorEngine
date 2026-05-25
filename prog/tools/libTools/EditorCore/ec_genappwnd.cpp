@@ -1143,7 +1143,12 @@ bool GenericEditorAppWindow::canCloseScene(const char *title)
 }
 
 
-bool GenericEditorAppWindow::canClose() { return !PropPanel::is_any_modal_dialog_open() && canCloseScene("Exit"); }
+bool GenericEditorAppWindow::canClose()
+{
+  if (ec_get_busy() || (console && console->isProgressBarVisible()) || PropPanel::is_any_modal_dialog_open())
+    return false;
+  return canCloseScene("Exit");
+}
 
 
 class GenericEditorAppWindow::FovDlg : public PropPanel::DialogWindow

@@ -1,1 +1,0 @@
-The ``[call_macro]`` structure annotation — registers an ``AstCallMacro`` subclass as a named call-expression macro available during compilation.

@@ -72,9 +72,9 @@ private:
 
   Ptr<ComputeShaderElement> clearTileShader;
   Ptr<ComputeShaderElement> generateTileShader;
-  UniqueBufHolder burntTiles;
-  UniqueBufHolder burntTileIndices;
-  UniqueBufHolder fireSourcesBuf;
+  UniqueBufWithShaderVar burntTiles;
+  UniqueBufWithShaderVar burntTileIndices;
+  UniqueBufWithShaderVar fireSourcesBuf;
 
   // Vector is used with linear search, because it will contain a very few elements only
   dag::RelocatableFixedVector<int, 4> allowedBiomeGroupIds;

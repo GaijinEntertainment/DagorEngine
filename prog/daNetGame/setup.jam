@@ -207,9 +207,6 @@ if $(Platform) in nswitch {
 }
 
 if $(UseGDK) = yes {
-  if $(GdkRequiresXCurl) = yes {
-    UseSystemLibcurl = yes ;
-  }
   Yuplay2NoCurlInit = yes ;
 }
 
@@ -274,6 +271,11 @@ if $(Dedicated) = no && $(Platform) in windows linux && $(Config) = rel {
 }
 if $(EnableBreakpadSubmission) = yes {
   EnableBreakpad = yes ;
+}
+if $(UseGDK) = yes {
+  EnableBreakpad = no ;
+  EnableCrashpad = no ;
+  EnableBreakpadSubmission = no ;
 }
 
 if $(HaveWebui) = yes && $(Platform) in windows {

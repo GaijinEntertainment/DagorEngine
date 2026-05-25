@@ -29,6 +29,7 @@ void controls::process_input(double) {}
 void controls::destroy() {}
 void controls::global_init() {}
 void controls::global_destroy() {}
+void controls::check_system_keys() {}
 
 void uiinput::mask_dainput_buttons(dag::ConstSpan<darg::HotkeyButton>, bool, int) {}
 void uiinput::mask_dainput_pointers(int, int) {}

@@ -296,7 +296,7 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
   ShaderGlobal::set_sampler(heroWetnessTex_samplerstateVarId, heroPointSampler);
 
   RTarget::Ptr newTarget = heroWetnessRTPool->acquire();
-  d3d::set_render_target(newTarget->getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{newTarget->getTex2D(), 0, 0}});
 
   ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   if (!waterHeightRendererShElem)

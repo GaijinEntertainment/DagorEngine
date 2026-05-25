@@ -28,8 +28,6 @@ macro INIT_WATER_3D_DEFERRED_COLOR_DNG()
   (vs) {
     foam_time@f1 = (scroll_time);
   }
-  USE_LOWRES_TEX_SIZE(ps)
-
 endmacro
 
 macro USE_WATER_3D_DEFERRED_COLOR_DNG()
@@ -69,6 +67,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       float2 lowresTc;
 
       float3 worldPos;
+      float3 pointToEye;
       float3 pointToEyeNormalized;
       float3 worldPosUndisplaced;
 
@@ -284,14 +283,14 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       viewData.screenPos = GET_SCREEN_POS(input.screenPos);
       viewData.linearTc = screen_pos_to_tc(viewData.screenPos.xy);
       viewData.lowresTc = saturate(screen_pos_to_lowres_tc(viewData.screenPos.xy));
-      float3 pointToEye = getPointToEye(viewData.screenPos.xy, viewData.screenPos.w);
-      viewData.worldPos = world_view_pos.xyz-pointToEye.xyz;
+      viewData.pointToEye = getPointToEye(viewData.screenPos.xy, viewData.screenPos.w);
+      viewData.worldPos = world_view_pos.xyz-viewData.pointToEye.xyz;
       viewData.worldPosUndisplaced = input.worldPosUndisplaced;
-      float distSq = dot(pointToEye,pointToEye);
+      float distSq = dot(viewData.pointToEye,viewData.pointToEye);
       float invDist = rsqrt(distSq);
       viewData.dist = distSq*invDist;
       viewData.distToZfar = saturate(viewData.dist/zn_zfar.y);
-      viewData.pointToEyeNormalized = pointToEye * invDist;
+      viewData.pointToEyeNormalized = viewData.pointToEye * invDist;
       viewData.worldNormal = vertexWorldNormal;
       viewData.ripplesFoam = 0;
 
@@ -473,20 +472,20 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
 endmacro
 
 macro INIT_SELECT_WATER_3D_DEFERRED_COLOR()
-if (water_tech == wt)
-{
   INIT_AND_USE_WATER_3D_GI_SAMPLING(vs)
-  WATER_3D_COMMON_VS()
-  WATER_3D_DEFERRED_COMMON()
-  INIT_WATER_3D_DEFERRED_COLOR()
-}
-else
-{
-  INIT_AND_USE_WATER_3D_GI_SAMPLING(vs)
-  WATER_3D_COMMON()
-  WATER_3D_DEFERRED_COMMON()
-  INIT_WATER_3D_DEFERRED_COLOR_DNG()
-}
+  INIT_PROJECTED_ON_WATER_EFFECTS_TEX()
+  if (water_tech == wt)
+  {
+    WATER_3D_COMMON_VS()
+    WATER_3D_DEFERRED_COMMON()
+    INIT_WATER_3D_DEFERRED_COLOR()
+  }
+  else
+  {
+    WATER_3D_COMMON()
+    WATER_3D_DEFERRED_COMMON()
+    INIT_WATER_3D_DEFERRED_COLOR_DNG()
+  }
 endmacro
 
 macro USE_SELECT_WATER_3D_DEFERRED_COLOR()

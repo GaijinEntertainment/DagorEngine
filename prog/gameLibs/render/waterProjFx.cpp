@@ -18,6 +18,9 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderBlock.h>
 #include <generic/dag_carray.h>
+#include <generic/dag_span.h>
+#include <memory/dag_framemem.h>
+#include <dag/dag_vector.h>
 
 #include <perfMon/dag_statDrv.h>
 
@@ -245,13 +248,13 @@ void WaterProjectedFx::clear(bool forceClear)
   {
     if (internalTargets[i])
     {
-      d3d::set_render_target(internalTargets[i]->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{internalTargets[i]->getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0.f, 0);
       d3d::resource_barrier({internalTargets[i]->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
     if (emptyInternalTextures[i])
     {
-      d3d::set_render_target(emptyInternalTextures[i].getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{emptyInternalTextures[i].getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0, 0);
       d3d::resource_barrier({emptyInternalTextures[i].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     }
@@ -290,12 +293,15 @@ bool WaterProjectedFx::render(IWwaterProjFxRenderHelper *render_helper)
     // we have to clear each target separately.
     for (int i = 0; i < nTargets; ++i)
     {
-      d3d::set_render_target(internalTargets[i]->getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{internalTargets[i]->getTex2D(), 0, 0}});
       d3d::clearview(CLEAR_TARGET, targetClearColors[i], 0.f, 0);
     }
   }
+  dag::Vector<RenderTarget, framemem_allocator> mrtRts;
+  mrtRts.reserve(nTargets);
   for (int i = 0; i < nTargets; ++i)
-    d3d::set_render_target(i, internalTargets[i]->getTex2D(), 0);
+    mrtRts.push_back({internalTargets[i]->getTex2D(), 0, 0});
+  d3d::set_render_target({}, DepthAccess::RW, make_span_const(mrtRts));
 
   bool renderedAnything = renderImpl(render_helper);
 

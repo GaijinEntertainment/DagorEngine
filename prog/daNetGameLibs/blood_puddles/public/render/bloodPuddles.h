@@ -42,8 +42,8 @@ public:
 private:
   DecalsMatrices matrixManager;
   eastl::vector<PuddleInfo> puddles;
-  UniqueBufHolder puddlesBuf;
-  UniqueBufHolder perGroupParametersBuf;
+  UniqueBufWithShaderVar puddlesBuf;
+  UniqueBufWithShaderVar perGroupParametersBuf;
   SharedTexHolder puddleTex;
   SharedTexHolder flowmapTex;
   uint32_t maxSplashesPerFrame = 0;

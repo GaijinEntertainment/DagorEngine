@@ -90,9 +90,22 @@ bool RobjDasCanvasParams::load(const Element *elem)
   }
   else
   {
+    DasScript *script = scriptObj.Cast<DasScript *>();
+
+    // Async loading: load() runs on the main thread (element setup/rebuild) and the setup
+    // function is evaluated below - that must stay on the main thread, never the render thread.
+    // If the script is still compiling on the worker, drain it here (synchronous fallback) so
+    // draw/setup resolution and the setup eval all happen on the main thread.
+    if (script->isLoading())
+      scene->dasScriptsData->waitScriptResolved(script);
+    if (!script->isReady() || !script->ctx)
+    {
+      darg_assert_trace_var("DAS canvas script failed to load", scriptDesc, elem->csk->rendObj);
+      return true;
+    }
+
     das::daScriptEnvironmentGuard envGuard(scene->dasScriptsData->dasEnv, scene->dasScriptsData->dasEnv);
 
-    DasScript *script = scriptObj.Cast<DasScript *>();
     das::Context *ctx = script->ctx.get();
 
     bool isUnique = false;
@@ -197,8 +210,9 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
   {
     if (verboseExceptions > 0)
       verboseExceptions--;
-    logerr("(%s fn: %s) %s: %s", params->dasCtx->name.c_str(), params->drawFunc->name, params->dasCtx->exceptionAt.describe().c_str(),
-      ex);
+    logerr("(%s fn: %s) %s: %s%s", params->dasCtx->name.c_str(), params->drawFunc->name,
+      params->dasCtx->exceptionAt.describe().c_str(), ex,
+      darg_das_compile_in_flight() ? " [NOTE: a worker das compile was in flight - eval/compile overlap, see daRg async-load]" : "");
   }
 
   params->dasCtx->unlock();

@@ -681,12 +681,10 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
   TIME_D3D_PROFILE(staticShadowRender);
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
-  d3d_err(d3d::set_render_target(nullptr, 0));
-
   if (renderData.target->getType() == D3DResourceType::ARRTEX)
-    d3d::set_depth(renderData.target, cascade_id, DepthAccess::RW);
+    d3d::set_render_target({renderData.target, 0, static_cast<uint32_t>(cascade_id)}, DepthAccess::RW, {});
   else
-    d3d::set_depth(renderData.target, DepthAccess::RW);
+    d3d::set_render_target({renderData.target, 0, 0}, DepthAccess::RW, {});
 
   const float shadowClearValue = ToroidalStaticShadows::GetShadowClearValue(renderData.isSunBelowHorizon);
 

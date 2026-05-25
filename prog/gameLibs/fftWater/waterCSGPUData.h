@@ -45,7 +45,7 @@ private:
   inline void setConstantBuffer(int idx, int groups_z);
 
   DECL_ALIGN16(float, constantBuffer[MAX_NUM_CASCADES][6 * 4]);
-  UniqueBufHolder gpuConstBuffer;
+  UniqueBufWithShaderVar gpuConstBuffer;
 
 #if ALL_CASCADES_ARE_SAME_SIZE
   CascadeData data;

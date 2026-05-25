@@ -40,7 +40,7 @@ private:
   uint32_t removedPuddlesIndexToAdd = 0;
   uint32_t removedPuddlesActualSize = 0;
   dag::Vector<Point4> puddlesRemoved;
-  UniqueBufHolder puddlesRemovedBuf;
+  UniqueBufWithShaderVar puddlesRemovedBuf;
   PostFxRenderer puddlesRenderer;
   DynamicShaderHelper puddlesRemover;
   float puddlesDist = 512;
