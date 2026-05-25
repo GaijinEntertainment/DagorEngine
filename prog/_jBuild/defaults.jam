@@ -279,11 +279,11 @@ if ! $(__DEFAULTS_INCLUDED) {
     }
 
     if $(Fuzzer) != no {
-      target = $(target:B)-fuzz$(target:S) ;
+      target = $(target:S=-fuzz$(target:S)) ;
     }
 
     if $(Platform) = windows && $(UseGDK) = yes {
-      target = $(target:B)-gdk$(target:S) ;
+      target = $(target:S=-gdk$(target:S)) ;
     }
 
     if $(Sanitize) != disabled {
@@ -293,11 +293,11 @@ if ! $(__DEFAULTS_INCLUDED) {
       local leak = lsan ;
       local undefined = ubsan ;
       local memory = msan ;
-      target = $(target:B)-$($(Sanitize))$(target:S) ;
+      target = $(target:S=-$($(Sanitize))$(target:S)) ;
     }
 
     if $(Config) != rel {
-      if [ GetKnownExecutableSuffix $(1) ] { target = $(target:B)-$(Config)$(target:S) ; } else { target = $(target)-$(Config) ; }
+      if [ GetKnownExecutableSuffix $(1) ] { target = $(target:S=-$(Config)$(target:S)) ; } else { target = $(target)-$(Config) ; }
     }
 
     return $(target) ;

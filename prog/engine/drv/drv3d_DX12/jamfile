@@ -142,16 +142,14 @@ if $(Platform) in windows {
 }
 
 if $(XessEnabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 && [ GLOB $(3rdPartyDir)/xess_sdk : * ] {
-  Target = $(Target:B) ~xess ;
-  Target = $(Target:J="") ;
-  Target = $(Target:S=.lib) ;
+  Target = $(Target:S=~xess.lib) ;
   Sources += xess_wrapper.cpp ;
 } else {
   Sources += xess_wrapper_stub.cpp ;
 }
 
 if $(Fsr2Enabled) = yes && $(Platform)-$(PlatformArch) = windows-x86_64 {
-  Target = $(Target:B)~fsr2.lib ;
+  Target = $(Target:S=~fsr2.lib) ;
   Sources += fsr2_wrapper.cpp ;
   UseProgLibs += 3rdPartyLibs/fsr2 ;
 } else {
