@@ -35,6 +35,7 @@ UseProgLibs +=
 if $(BVHSupport) = yes {
   if $(BVHProfiling) = yes {
     CPPopt += -DBVH_PROFILING_ENABLED=1 ;
+    Target = $(Target:S=~p.lib) ;
   }
 
   Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp ;
@@ -43,72 +44,84 @@ if $(BVHSupport) = yes {
     Sources += bvh_terrain.cpp ;
   } else {
     Sources += stub/bvh_stub_terrain.cpp ;
+    Target = $(Target:S=~nt.lib) ;
   }
 
   if $(BVHRi) = yes {
     Sources += bvh_ri.cpp bvh_ri_gen.cpp bvh_ri_ex.cpp ;
   } else {
     Sources += stub/bvh_stub_ri.cpp ;
+    Target = $(Target:S=~nri.lib) ;
   }
 
   if $(BVHDynRend) = yes {
     Sources += bvh_dyn.cpp ;
   } else {
     Sources += stub/bvh_stub_dyn.cpp ;
+    Target = $(Target:S=~ndm.lib) ;
   }
 
   if $(BVHGpuObjects) = yes {
     Sources += bvh_gobj.cpp ;
   } else {
     Sources += stub/bvh_stub_gobj.cpp ;
+    Target = $(Target:S=~ngo.lib) ;
   }
 
   if $(BVHRandomGrass) = yes {
     Sources += bvh_grass.cpp ;
   } else {
     Sources += stub/bvh_stub_grass.cpp ;
+    Target = $(Target:S=~ng.lib) ;
   }
 
   if $(BVHCables) = yes {
     Sources += bvh_cables.cpp ;
   } else {
     Sources += stub/bvh_stub_cables.cpp ;
+    Target = $(Target:S=~nc.lib) ;
   }
 
   if $(BVHBinScene) = yes {
     Sources += bvh_bin_scene.cpp ;
   } else {
     Sources += stub/bvh_stub_bin_scene.cpp ;
+    Target = $(Target:S=~ns.lib) ;
   }
 
   if $(BVHFFTWater) = yes {
     Sources += bvh_fft_water.cpp ;
   } else {
     Sources += stub/bvh_stub_fft_water.cpp ;
+    Target = $(Target:S=~nw.lib) ;
   }
 
   if $(BVHDagdp) = yes {
     Sources += bvh_dagdp.cpp ;
   } else {
     Sources += stub/bvh_stub_dagdp.cpp ;
+    Target = $(Target:S=~ndp.lib) ;
   }
 
   if $(BVHGPUGrass) = yes {
     Sources += bvh_gpu_grass.cpp ;
   } else {
     Sources += stub/bvh_stub_gpu_grass.cpp ;
+    Target = $(Target:S=~ngg.lib) ;
   }
 
   if $(BVHSplineGen) = yes {
     Sources += bvh_splinegen.cpp ;
   } else {
     Sources += stub/bvh_stub_splinegen.cpp ;
+    Target = $(Target:S=~nsg.lib) ;
   }
 
   if $(BVHFx) = yes {
     Sources += bvh_fx.cpp ;
   } else {
     Sources += stub/bvh_stub_fx.cpp ;
+    Target = $(Target:S=~nfx.lib) ;
   }
 } else {
   Sources =

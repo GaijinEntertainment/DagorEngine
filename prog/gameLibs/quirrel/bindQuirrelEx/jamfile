@@ -69,6 +69,7 @@ if $(Platform) = linux {
   }
   else
   {
+    Target = $(Target:S=~nogui.lib) ;
     Sources +=
       dagorSystemLinuxStub.cpp
     ;

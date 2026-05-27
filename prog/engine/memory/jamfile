@@ -65,7 +65,7 @@ if $(UseMemoryAllocator) = RTL {
   AddIncludes += $(Root)/prog/3rdPartyLibs/memAllocators ;
   UseProgLibs += 3rdPartyLibs/memAllocators/dlmalloc ;
 } else if $(UseMemoryAllocator) = mimalloc {
-  if $(MimDebug) != 0 { Target = $(Target:B)-D$(MimDebug).lib ; }
+  if $(MimDebug) != 0 { Target = $(Target:S=-D$(MimDebug).lib) ; }
   CPPopt += -DUSE_MIMALLOC -DMI_DEBUG=$(MimDebug) ;
 
   AddIncludes +=

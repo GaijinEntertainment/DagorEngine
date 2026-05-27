@@ -3,9 +3,7 @@ UseD3DMulti = yes ;
 UseD3DMultiList = DX11 vulkan Metal ;
 if $(Headless) = yes { UseD3DMultiList = stub ; }
 
-PlatformArch_windows ?= host_arch ;
-PlatformSpec_windows ?= clang ;
-include $(Root)/prog/_jBuild/defPlatform.jam ;
+include $(Root)/prog/samples/samples_setup.jam ;
 
 TargetType  = exe ;
 Target      = samples/physTest$(PhysEngine)-$(Platform)-$(PlatformArch) ;
