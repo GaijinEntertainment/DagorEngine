@@ -457,6 +457,8 @@ public:
   }
   void writeReal(float v) { return writeFloat32e(v); }
   void writeInt32e(unsigned v) { cwr.writeInt(WRITE_BE ? le2be32(v) : v); }
+  void writeInt32e(signed v) { writeInt32e(unsigned(v)); }
+  void writeInt32e(float v) { writeInt32e(unsigned(int(floorf(v)))); }
   void writeE3dColorE(E3DCOLOR c) { cwr.writeInt(WRITE_BE ? le2be32(c) : (uint32_t)c.u); }
   void writePtr64e(unsigned ptr_ofs)
   {
@@ -489,7 +491,11 @@ public:
       cwr.write(&v, 8);
   }
   void writeInt16e(unsigned v) { cwr.writeIntP<2>(WRITE_BE ? le2be16(v) : v); }
+  void writeInt16e(signed v) { writeInt16e(unsigned(v)); }
+  void writeInt16e(float v) { writeInt16e(unsigned(int(floorf(v)))); }
   void writeInt8e(unsigned v) { cwr.writeIntP<1>(v); }
+  void writeInt8e(signed v) { writeInt8e(unsigned(v)); }
+  void writeInt8e(float v) { writeInt8e(unsigned(int(floorf(v)))); }
   void writeInt16eAt(unsigned v, int ofs)
   {
     int pos = tell();
@@ -497,6 +503,8 @@ public:
     cwr.writeIntP<2>(WRITE_BE ? le2be16(v) : v);
     seekto(pos);
   }
+  void writeInt16eAt(signed v, int ofs) { writeInt16eAt(unsigned(v), ofs); }
+  void writeInt16eAt(float v, int ofs) { writeInt16eAt(unsigned(int(floorf(v))), ofs); }
   void writeInt32eAt(unsigned v, int ofs)
   {
     int pos = tell();
@@ -504,6 +512,8 @@ public:
     cwr.writeInt(WRITE_BE ? le2be32(v) : v);
     seekto(pos);
   }
+  void writeInt32eAt(signed v, int ofs) { writeInt32eAt(unsigned(v), ofs); }
+  void writeInt32eAt(float v, int ofs) { writeInt32eAt(unsigned(int(floorf(v))), ofs); }
   void writeDwString(const char *s)
   {
     int len = s ? (int)strlen(s) : 0;
