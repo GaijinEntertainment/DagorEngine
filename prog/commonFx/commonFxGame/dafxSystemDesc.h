@@ -24,10 +24,11 @@ enum
   RTAG_VOLFOG_INJECTION = 12,
   RTAG_BVH = 13,
   RTAG_XRAY = 14,
+  RTAG_HIGHRES_ATEST = 15,
 };
 
 static const char *renderTags[] = {"lowres", "highres", "distortion", "transmittance", "thermal", "water_proj_advanced", "water_proj",
-  "vol_thickness", "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection", "bvh", "xray"};
+  "vol_thickness", "vol_depth", "vol_wboit", "fom", "underwater", "volfog_injection", "bvh", "xray", "highres_atest"};
 
 enum TransformType
 {

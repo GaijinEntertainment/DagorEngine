@@ -91,45 +91,51 @@ static void init_shader_vars()
 
 namespace var
 {
-static ShaderVariableInfo supports_uav("supports_uav", true);
-static ShaderVariableInfo requires_uav("requires_uav", true);
-static ShaderVariableInfo clipmap_use_ri_vtex("clipmap_use_ri_vtex", true);
-static ShaderVariableInfo clipmap_feedback_stride("clipmap_feedback_stride", true);
-static ShaderVariableInfo clipmap_feedback_readback_stride("clipmap_feedback_readback_stride", true);
-static ShaderVariableInfo clipmap_feedback_readback_size("clipmap_feedback_readback_size", true);
-static ShaderVariableInfo clipmap_feedback_buf("clipmap_feedback_buf", true);
-static ShaderVariableInfo clipmap_tex_mips("clipmap_tex_mips", true);
-static ShaderVariableInfo clipmap_max_tex_mips("clipmap_max_tex_mips", true);
-static ShaderVariableInfo uav_feedback_exists("uav_feedback_exists", true);
-static ShaderVariableInfo ri_landclass_changed_indicex_bits("ri_landclass_changed_indicex_bits", true);
-static ShaderVariableInfo rendering_feedback_view_scale("rendering_feedback_view_scale", true);
-static ShaderVariableInfo rendinst_landscape_area_left_top_right_bottom("rendinst_landscape_area_left_top_right_bottom", true);
-static ShaderVariableInfo clipmap_histogram_buf("clipmap_histogram_buf", true);
-static ShaderVariableInfo feedback_downsample_dim("feedback_downsample_dim", true);
-static ShaderVariableInfo clipmap_histogram_buf_rw("clipmap_histogram_buf_rw", true);
-static ShaderVariableInfo clipmap_tile_info_buf_rw("clipmap_tile_info_buf_rw", true);
-static ShaderVariableInfo clipmap_tile_info_buf_max_elements("clipmap_tile_info_buf_max_elements", true);
-static ShaderVariableInfo feedback_downsample_in("feedback_downsample_in", true);
-static ShaderVariableInfo feedback_downsample_out("feedback_downsample_out", true);
-static ShaderVariableInfo clipmap_cache_output_count("clipmap_cache_output_count", true);
-static ShaderVariableInfo clipmap_feedback_order_prefix("clipmap_feedback_order_prefix", true);
-static ShaderVariableInfo bypass_cache_no("bypass_cache_no", true);
-static ShaderVariableInfo src_mip("src_mip", true);
-static ShaderVariableInfo indirection_tex("indirection_tex", true);
-static ShaderVariableInfo landscape2uv("landscape2uv", true);
-static ShaderVariableInfo mippos_offset("mippos_offset", true);
-static ShaderVariableInfo world_dd_scale("world_dd_scale", true);
-static ShaderVariableInfo g_VTexDim("g_VTexDim", true);
-static ShaderVariableInfo g_TileSize("g_TileSize", true);
-static ShaderVariableInfo g_cache2uv("g_cache2uv", true);
-static ShaderVariableInfo fallback_info0("fallback_info0", true);
-static ShaderVariableInfo fallback_info1("fallback_info1", true);
-static ShaderVariableInfo use_secondary_terrain_vtex{"use_secondary_terrain_vtex", true};
-static ShaderVariableInfo secondary_terrain_landscape2uv{"secondary_terrain_landscape2uv", true};
-static ShaderVariableInfo secondary_terrain_mippos_offset{"secondary_terrain_mippos_offset", true};
+#define VTEX_VAR_LIST                                \
+  VAR(supports_uav)                                  \
+  VAR(requires_uav)                                  \
+  VAR(clipmap_use_ri_vtex)                           \
+  VAR(clipmap_feedback_stride)                       \
+  VAR(clipmap_feedback_readback_stride)              \
+  VAR(clipmap_feedback_readback_size)                \
+  VAR(clipmap_feedback_buf)                          \
+  VAR(clipmap_tex_mips)                              \
+  VAR(clipmap_max_tex_mips)                          \
+  VAR(uav_feedback_exists)                           \
+  VAR(ri_landclass_changed_indicex_bits)             \
+  VAR(rendering_feedback_view_scale)                 \
+  VAR(rendinst_landscape_area_left_top_right_bottom) \
+  VAR(clipmap_histogram_buf)                         \
+  VAR(feedback_downsample_dim)                       \
+  VAR(clipmap_histogram_buf_rw)                      \
+  VAR(clipmap_tile_info_buf_rw)                      \
+  VAR(clipmap_tile_info_buf_max_elements)            \
+  VAR(feedback_downsample_in)                        \
+  VAR(feedback_downsample_out)                       \
+  VAR(clipmap_cache_output_count)                    \
+  VAR(clipmap_feedback_order_prefix)                 \
+  VAR(bypass_cache_no)                               \
+  VAR(src_mip)                                       \
+  VAR(indirection_tex)                               \
+  VAR(landscape2uv)                                  \
+  VAR(mippos_offset)                                 \
+  VAR(world_dd_scale)                                \
+  VAR(g_VTexDim)                                     \
+  VAR(g_TileSize)                                    \
+  VAR(g_cache2uv)                                    \
+  VAR(fallback_info0)                                \
+  VAR(fallback_info1)                                \
+  VAR(use_secondary_terrain_vtex)                    \
+  VAR(secondary_terrain_landscape2uv)                \
+  VAR(secondary_terrain_mippos_offset)               \
+  VAR(feedback_tex_unfiltered)                       \
+  VAR(clipmap_compression_gather4_allowed)
+#define VAR(a) static ShaderVariableInfo a(#a, true);
+VTEX_VAR_LIST
+#undef VAR
+
+// shader-var name differs from the C++ identifier:
 static ShaderVariableInfo enable_debug_color{"clipmap_enable_debug_color", true};
-static ShaderVariableInfo feedback_tex_unfiltered{"feedback_tex_unfiltered", true};
-static ShaderVariableInfo clipmap_compression_gather4_allowed{"clipmap_compression_gather4_allowed", true};
 
 } // namespace var
 
@@ -177,6 +183,9 @@ struct TexTileFeedback
 // MipPosition::offset position on that grid. MipPosition::offset is not necessary aligned with the mip level's subgrid (thus the
 // flooring).
 
+// True iff a tile coordinate (x or y) lies within the [-HALF_TILE_WIDTH, HALF_TILE_WIDTH) range we use for centered tile indexing.
+static inline bool in_tile_range(int v) { return unsigned(v + HALF_TILE_WIDTH) < unsigned(TILE_WIDTH); }
+
 struct TexTilePos
 {
   int8_t x = 0, y = 0;
@@ -186,11 +195,7 @@ struct TexTilePos
   TexTilePos() = default;
   TexTilePos(int X, int Y, int MIP, int RI_OFFSET) : x(X), y(Y), mip(MIP), ri_offset(RI_OFFSET) {}
 
-  bool isValid() const
-  {
-    return x >= -HALF_TILE_WIDTH && y >= -HALF_TILE_WIDTH && x < HALF_TILE_WIDTH && y < HALF_TILE_WIDTH && mip < TEX_MIPS &&
-           ri_offset < max_ri_offset;
-  }
+  bool isValid() const { return in_tile_range(x) && in_tile_range(y) && mip < TEX_MIPS && ri_offset < max_ri_offset; }
 
   uint32_t getTileTag() const
   {
@@ -294,7 +299,7 @@ private:
     IPoint2 worldPos = IPoint2(tile.x, tile.y) + oldMipOffset;
     IPoint2 newPos = worldPos - newMipOffset;
 
-    if (newPos.x >= -HALF_TILE_WIDTH && newPos.y >= -HALF_TILE_WIDTH && newPos.x < HALF_TILE_WIDTH && newPos.y < HALF_TILE_WIDTH)
+    if (in_tile_range(newPos.x) && in_tile_range(newPos.y))
       return TexTilePos{newPos.x, newPos.y, newMip, tile.ri_offset};
     else
       return eastl::nullopt;
@@ -1576,12 +1581,12 @@ static void processTilesAroundCamera(int tex_mips, const TMatrix4 &globtm, const
     for (int y = -tilesAround; y <= tilesAround; ++y)
     {
       int cy = uv.y + y;
-      if (cy >= -HALF_TILE_WIDTH && cy < HALF_TILE_WIDTH)
+      if (in_tile_range(cy))
       {
         for (int x = -tilesAround; x <= tilesAround; ++x)
         {
           int cx = uv.x + x;
-          if (cx >= -HALF_TILE_WIDTH && cx < HALF_TILE_WIDTH)
+          if (in_tile_range(cx))
           {
             // software 2d culling to save some cache
             TexTilePos tile{cx, cy, mipToAdd, ri_offset};
@@ -1604,12 +1609,12 @@ static void processTilesAroundCamera(int tex_mips, const TMatrix4 &globtm, const
     for (int y = -tilesAround; y <= tilesAround; ++y)
     {
       int cy = uv.y + y;
-      if (cy >= -HALF_TILE_WIDTH && cy < HALF_TILE_WIDTH)
+      if (in_tile_range(cy))
       {
         for (int x = -tilesAround; x <= tilesAround; ++x)
         {
           int cx = uv.x + x;
-          if (cx >= -HALF_TILE_WIDTH && cx < HALF_TILE_WIDTH)
+          if (in_tile_range(cx))
           {
             // TODO: bbox culling for RI
             funct({cx, cy, mipToAdd, ri_offset});
@@ -2046,15 +2051,16 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
   auto &updateLRUIndices = currentContext->updateLRUIndices;
   updateLRUIndices.reserve(totalHeadroom);
 
-  // Add all visible fake tiles that are not in LRU.
-  for (int i = 0; totalHeadroom > 0 && i < fakeTilesNotInLRU.size(); i++, totalHeadroom--)
-  {
-    const TexTilePos &tile = fakeTilesNotInLRU[i];
+  auto addTileToLRU = [&](const TexTilePos &tile, bool is_used) {
     TexLRU newLRU = stealSuperfluousLRU();
-    setLRU(newLRU, tile, true);
+    setLRU(newLRU, tile, is_used);
     LRU.emplace_back(newLRU);
     updateLRUIndices.emplace_back(LRU.size() - 1);
-  }
+  };
+
+  // Add all visible fake tiles that are not in LRU.
+  for (int i = 0; totalHeadroom > 0 && i < fakeTilesNotInLRU.size(); i++, totalHeadroom--)
+    addTileToLRU(fakeTilesNotInLRU[i], true);
 
   // From the remaining totalHeadroom, at least every 4th tile should be update of existing tile or invisible fake tile draw.
   stlsort::sort(needUpdateInLRUIndicesCount.begin(), needUpdateInLRUIndicesCount.end(),
@@ -2073,12 +2079,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
   {
     G_ASSERT(totalHeadroom);
     totalHeadroom--;
-
-    const TexTilePos &tile = invisibleFakeTilesNotInLRU[i];
-    TexLRU newLRU = stealSuperfluousLRU();
-    setLRU(newLRU, tile, false);
-    LRU.emplace_back(newLRU);
-    updateLRUIndices.emplace_back(LRU.size() - 1);
+    addTileToLRU(invisibleFakeTilesNotInLRU[i], false);
   }
 
   constexpr unsigned maxTilesCascadeScoring = 32;
@@ -2089,12 +2090,7 @@ void ClipmapImpl::applyFeedback(const CaptureMetadata &capture_metadata, const b
     {
       G_ASSERT(totalHeadroom);
       totalHeadroom--;
-
-      const TexTileInfo &tile = tilesNotInLRU[i];
-      TexLRU newLRU = stealSuperfluousLRU();
-      setLRU(newLRU, tile, true);
-      LRU.emplace_back(newLRU);
-      updateLRUIndices.emplace_back(LRU.size() - 1);
+      addTileToLRU(tilesNotInLRU[i], true);
     }
   }
   else if (newTilesHeadroom > 0)
@@ -3755,12 +3751,12 @@ void ClipmapImpl::prepareSoftwarePoi(const int vx, const int vy, const int mip, 
   for (int y = -mipsize; y <= mipsize; ++y)
   {
     int cy = uv.y + y; //
-    if (!(cy >= -HALF_TILE_WIDTH && cy < HALF_TILE_WIDTH))
+    if (!in_tile_range(cy))
       continue;
     for (int x = -mipsize; x <= mipsize; ++x)
     {
       int cx = uv.x + x;
-      if (!(cx >= -HALF_TILE_WIDTH && cx < HALF_TILE_WIDTH))
+      if (!in_tile_range(cx))
         continue;
       const int type_size = sizeof(bitarrayUsed[0]) * 8;
       const int type_bits_ofs = 6;

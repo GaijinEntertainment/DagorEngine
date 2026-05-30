@@ -1,10 +1,10 @@
-from "async" import Promise
+from "async" import Future
 
-// Two task-promises chained: outer awaits inner. Both run via the runner's
-// generator dispatch; the inner's resolution settles its task-promise, which
+// Two task-futures chained: outer awaits inner. Both run via the runner's
+// generator dispatch; the inner's resolution settles its task-future, which
 // wakes the outer's parked step.
 
-let p = Promise()
+let p = Future()
 p.resolve(7)
 
 async function inner() {

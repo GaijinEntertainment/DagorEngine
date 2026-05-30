@@ -1,5 +1,6 @@
 options no_aot
 require ecs
+require ecs.safe
 require math
 require AnimV20
 require DagorSystem
@@ -57,6 +58,18 @@ def apply_interpolated_anim_state_params(var anim_state : IAnimStateHolder;
       paramValue = lerp(paramValues[prev_frame_idx], paramValues[next_frame_idx], interpK)
     anim_state_holder_setParam(anim_state, paramId, paramValue)
 
+def apply_precise_anim_state_params(var anim_state : IAnimStateHolder;
+                                    precise_anim_params : Array;
+                                    t : float)
+  unsafe
+    for animParamChildComp in precise_anim_params
+      let animParam & = *get_ecs_object(animParamChildComp)
+      let paramId = *get_int(animParam, "id")
+      let values & = *get_ecs_FloatList(animParam, "values")
+      let time & = *get_ecs_FloatList(animParam, "time")
+      let paramValue = values[get_current_timestamp_idx(t, time)]
+      anim_state_holder_setParam(anim_state, paramId, paramValue)
+
 [es(no_order)]
 def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
                                   anim_replay__animchars : Array;
@@ -68,15 +81,18 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
   iterate_alive_replay_animchars(anim_replay__animchars, anim_replay__currentTime) <| $(animcharData)
     let animcharEid = *get_Eid(animcharData, "eid")
     query(animcharEid) <| $[es] (var animchar : AnimcharBaseComponent;
-                                 var animchar__animState : Object)
-      assume animStates = *get_ecs_object(animcharData, "animTreeStates")
+                                 var animchar__animState : Object?)
+      if animchar.animGraph == null || animchar.animState == null
+        return
+      let animStates = get_ecs_object(animcharData, "animTreeStates")
       assume animParams = *get_ecs_array(animcharData, "animParams")
-      assume timeList = *get_ecs_FloatList(animStates, "time")
-      assume states = *get_ecs_array(animStates, "state")
-      assume animSpeedList = *get_ecs_FloatList(animStates, "animSpeed")
-      let nextIdx = lower_bound(timeList, anim_replay__currentTime)
-      let prevIdx = max(nextIdx - 1, 0)
-      animchar__animState := *get_ecs_object(states[prevIdx])
+      let timeList = get_ecs_FloatList(animStates, "time")
+      let states = get_ecs_array(animStates, "state")
+      let animSpeedList = get_ecs_FloatList(animStates, "animSpeed")
+      let preciseAnimParams = get_ecs_array(animcharData, "preciseAnimParams")
+      let curStateIdx = get_current_timestamp_idx(anim_replay__currentTime, timeList)
+      if animchar__animState != null && states != null
+        *animchar__animState := *get_ecs_object(states?[curStateIdx])
 
       assume animGraph = *animchar.animGraph
       assume animState = *animchar.animState
@@ -87,7 +103,7 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
       var paramsTimeIdx = 0
       let paramsLastIdx = max(lower_bound(anim_replay__timestamps, anim_replay__currentTime) - 1, 0)
       var stateTimeIdx = 0
-      let stateLastIdx = prevIdx
+      let stateLastIdx = curStateIdx
       let cache = get_ecs_array(animcharData, "cachedAnimStateParams")
       if cache != null
         for cachedStateChildComp in *cache
@@ -97,18 +113,20 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
             animStateParams = cachedState
             t = cacheTime
             paramsTimeIdx = max(lower_bound(anim_replay__timestamps, cacheTime) - 1, 0)
-            stateTimeIdx = max(lower_bound(timeList, cacheTime) - 1, 0)
+            stateTimeIdx = get_current_timestamp_idx(cacheTime, timeList)
             useInitialState = false
             break
       if anim_replay__prevTime < anim_replay__currentTime && anim_replay__prevTime >= t
         t = anim_replay__prevTime
         paramsTimeIdx = max(lower_bound(anim_replay__timestamps, t) - 1, 0)
-        stateTimeIdx = max(lower_bound(timeList, t) - 1, 0)
+        stateTimeIdx = get_current_timestamp_idx(t, timeList)
       else
         apply_anim_state_parameters(animState, *animStateParams)
       while paramsTimeIdx < paramsLastIdx || stateTimeIdx < stateLastIdx
+        if preciseAnimParams != null
+          apply_precise_anim_state_params(animState, *preciseAnimParams, t)
         let paramsTime = paramsTimeIdx < paramsLastIdx ? anim_replay__timestamps[paramsTimeIdx + 1] : anim_replay__currentTime
-        let stateTime = stateTimeIdx < stateLastIdx ? timeList[stateTimeIdx + 1] : anim_replay__currentTime
+        let stateTime = timeList.safe_at(stateTimeIdx + 1, anim_replay__currentTime)
         if paramsTime < stateTime
           // NOTE: we need only `animState.advance()` + `animGraph.blend()` here and in following `animchar_act` calls.
           // Blend method is not binded to das, so it is simpler to call whole animchar update. It is also needed only to
@@ -119,10 +137,12 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
           t = paramsTime
         else
           animchar_act(animchar, stateTime - t, true)
-          let animSpeed = animSpeedList[stateTimeIdx + 1]
-          for state in *get_ecs_object(states[stateTimeIdx + 1])
-            let stateIdx = *get_int(state.value)
-            anim_graph_enqueueState(animGraph, animState, stateIdx, -1.0f, animSpeed)
+          let animSpeed = animSpeedList.safe_at(stateTimeIdx + 1, -1f)
+          let multiState = get_ecs_object(states?[stateTimeIdx + 1])
+          if multiState != null
+            for state in *multiState
+              let stateIdx = *get_int(state.value)
+              anim_graph_enqueueState(animGraph, animState, stateIdx, -1.0f, animSpeed)
           stateTimeIdx++
           t = stateTime
       animchar_act(animchar, anim_replay__currentTime - t, true)
@@ -131,6 +151,8 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
         let interpK = ((anim_replay__currentTime - anim_replay__timestamps[paramsLastIdx]) /
           (anim_replay__timestamps[paramsLastIdx + 1] - anim_replay__timestamps[paramsLastIdx]))
         apply_interpolated_anim_state_params(animState, animParams, paramsLastIdx, paramsLastIdx + 1, interpK)
+      if preciseAnimParams != null
+        apply_precise_anim_state_params(animState, *preciseAnimParams, anim_replay__currentTime)
 
       // NOTE: It is a hack to recalculate post controllers with new anim state params.
       // The problem is that animGraph can be very dependent on dt. Updating it with interpolated
@@ -148,7 +170,7 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
       if anim_replay__prevTime > anim_replay__currentTime
         animchar_act(animchar, 0f, true)
 
-def update_anim_state_cache(animchar_eid : EntityId; current_time : float; var animchar_data : Object)
+def update_anim_state_cache(anim_graph : AnimationGraph; anim_state : IAnimStateHolder; current_time : float; var animchar_data : Object)
   let CACHE_TIME = fixed_array(1f, 5f, 30f)
   if get_ecs_array(animchar_data, "cachedAnimStateParams") == null
     using() <| $(var cache : Array)
@@ -158,8 +180,7 @@ def update_anim_state_cache(animchar_eid : EntityId; current_time : float; var a
     for i in iter_range(CACHE_TIME)
       if length(cache) <= i
         if i == 0
-          query(animchar_eid) <| $[es] (animchar : AnimcharBaseComponent)
-            save_anim_state_parameters(*animchar.animGraph, *animchar.animState, cachedState)
+          save_anim_state_parameters(anim_graph, anim_state, cachedState)
           set(cachedState, "time", current_time)
         push(cache, cachedState)
         return
@@ -167,8 +188,7 @@ def update_anim_state_cache(animchar_eid : EntityId; current_time : float; var a
       if current_time >= t && current_time <= t + CACHE_TIME[i]
         return
       if i == 0
-        query(animchar_eid) <| $[es] (animchar : AnimcharBaseComponent)
-          save_anim_state_parameters(*animchar.animGraph, *animchar.animState, cachedState)
+        save_anim_state_parameters(anim_graph, anim_state, cachedState)
         set(cachedState, "time", current_time)
       swap(cachedState, *getRW_ecs_object(cache[i]))
 
@@ -178,7 +198,7 @@ def anim_replay_cache_anim_state(evt : UpdateStageInfoAct;
                                  anim_replay__currentTime : float)
   if anim_replay__currentTime == 0f
     return
-  for animchar in anim_replay__animchars
-    assume animcharData = *getRW_ecs_object(animchar)
-    let animcharEid = *get_Eid(animcharData, "eid")
-    update_anim_state_cache(animcharEid, anim_replay__currentTime, animcharData)
+  iterate_replay_animchars(anim_replay__animchars) <| $(animchar_data; animchar_eid)
+    query(animchar_eid) <| $[es] (animchar : AnimcharBaseComponent)
+      if animchar.animGraph != null && animchar.animState != null
+        update_anim_state_cache(*animchar.animGraph, *animchar.animState, anim_replay__currentTime, animchar_data)

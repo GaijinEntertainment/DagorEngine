@@ -223,8 +223,10 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
   {
     G_ASSERT(indices_bindless_slot != -1);
 
-    patch.metaAllocId = context_id->allocateMetaRegion(1, "terrain");
-    auto &meta = context_id->meshMetaAllocator.get(patch.metaAllocId)[0];
+    TIME_PROFILE(meta_lock_terrain);
+    auto lockedMeta = context_id->allocateMeta(1, "terrain");
+    patch.metaAllocId = lockedMeta.allocId;
+    auto &meta = lockedMeta[0];
 
     meta.markInitialized();
 

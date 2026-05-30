@@ -12,9 +12,8 @@ namespace ecs
 typedef uint32_t entity_id_t;
 
 const unsigned ENTITY_INDEX_BITS = 22;
-const unsigned ENTITY_INDEX_MASK = (1 << ENTITY_INDEX_BITS) - 1;
 
-const unsigned ENTITY_GENERATION_BITS = 8;
+const unsigned ENTITY_GENERATION_BITS = 10;
 const unsigned ENTITY_GENERATION_MASK = (1 << ENTITY_GENERATION_BITS) - 1;
 const entity_id_t ECS_INVALID_ENTITY_ID_VAL = 0;
 #define INVALID_ENTITY_ID EntityId(ecs::ECS_INVALID_ENTITY_ID_VAL)
@@ -35,13 +34,13 @@ public:
   bool operator<(const EntityId &rhs) const { return handle < rhs.handle; }
   void reset() { handle = ECS_INVALID_ENTITY_ID_VAL; }
   entity_id_t value() const { return handle; }
-  unsigned index() const { return handle & ENTITY_INDEX_MASK; } // Note: trim high generation bits
+  unsigned index() const { return handle >> ENTITY_GENERATION_BITS; } // Note: trims generation bits
 
 private:
   friend class ecs::EntityManager;
   friend unsigned get_generation(const EntityId);
   entity_id_t handle = ECS_INVALID_ENTITY_ID_VAL;
-  unsigned generation() const { return (handle >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
+  unsigned generation() const { return handle & ENTITY_GENERATION_MASK; }
 };
 
 struct EidHash

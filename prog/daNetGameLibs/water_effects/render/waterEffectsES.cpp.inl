@@ -401,8 +401,8 @@ void WaterEffects::render(FFTWater &water,
     if (usingFoamFx)
     {
       foamFx->beginMaskRender();
-      fft_water::render(&water, inverse(view_tm).getcol(3), BAD_TEXTUREID, Frustum(TMatrix4(view_tm) * TMatrix4(proj_tm)), perps,
-        fft_water::GEOM_NORMAL, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
+      fft_water::render(&water, inverse(view_tm).getcol(3), BAD_TEXTUREID, Frustum(TMatrix4(view_tm) * TMatrix4(proj_tm)), nullptr,
+        perps, fft_water::GEOM_NORMAL, -1, nullptr, fft_water::RenderMode::WATER_DEPTH_SHADER);
       if (isShipWakeFxActive)
         shipWakeFx->renderFoamMask();
 

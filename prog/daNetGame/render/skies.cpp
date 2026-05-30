@@ -134,6 +134,8 @@ void DngSkies::prepare(const Point3 &dir_to_sun, bool force_update_cpu, float dt
 {
   lastScatteringEffect = scatteringEffect;
   scatteringEffect = skyLightSunAttenuation;
+  if (!cloudMovementEnabled || daSkies->panoramaEnabled())
+    dt = 0;
   DaSkies::prepare(dir_to_sun, force_update_cpu, dt);
 }
 

@@ -10,6 +10,7 @@ float4 cull_lights_proj_params;    // (znear, zFar, maxSliceDist, 0)
 buffer clustered_frustum_points_buf;
 buffer clustered_grid_lights_precalculated_data;
 buffer clustered_occlusion_z_slice;
+int use_clustered_occlusion = 0;
 
 shader precalculate_clustered_frustum_data
 {
@@ -287,26 +288,458 @@ shader precalculate_occlusion_z_slice_cs
       if (tileX >= CLUSTERS_W || tileY >= CLUSTERS_H)
         return;
 
-      float4 tileSbox = float4(
-        (float)tileX / CLUSTERS_W,
-        (float)tileY / CLUSTERS_H,
-        (float)(tileX + 1u) / CLUSTERS_W,
-        (float)(tileY + 1u) / CLUSTERS_H);
-      float rawDepth = check_box_occl_visible_tc_base(tileSbox);
-
-      // rawDepth == 0 means sky (far plane) -> all slices visible.
       uint maxSlice = CLUSTERS_D - 1;
-      if (rawDepth > 1e-6f)
-      {
-        float znear = cull_lights_proj_params.x;
-        float zfar  = cull_lights_proj_params.y;
-        float z_view = linearize_z(rawDepth, float2(rcp(zfar), (zfar - znear) * rcp(znear * zfar)));
-        maxSlice = min(frustum_clusters_get_slice_at_depth(z_view, depthSliceScale, depthSliceBias), uint(CLUSTERS_D - 1));
-      }
+      ##if downsampled_far_depth_tex != NULL
+
+        float4 tileSbox = float4(
+          (float)tileX / CLUSTERS_W,
+          (float)tileY / CLUSTERS_H,
+          (float)(tileX + 1u) / CLUSTERS_W,
+          (float)(tileY + 1u) / CLUSTERS_H
+        );
+
+        float rawDepth = check_box_occl_visible_tc_base(tileSbox);
+        // rawDepth == 0 means sky (far plane) -> all slices visible.
+
+        if (rawDepth > 1e-6f)
+        {
+          float znear = cull_lights_proj_params.x;
+          float zfar  = cull_lights_proj_params.y;
+          float z_view = linearize_z(rawDepth, float2(rcp(zfar), (zfar - znear) * rcp(znear * zfar)));
+          maxSlice = min(frustum_clusters_get_slice_at_depth(z_view, depthSliceScale, depthSliceBias), uint(CLUSTERS_D - 1));
+        }
+
+      ##endif
 
       structuredBufferAt(clustered_occlusion_z_slice, tileY * CLUSTERS_W + tileX) = maxSlice;
     }
   }
 
   compile("target_cs", "precalculate_occlusion_z_slice_cs");
+}
+
+int clusteredLightsShrinkSpheres = 0;
+interval clusteredLightsShrinkSpheres: off < 1, on;
+
+// Fills lights_full_grid -- a per-cluster bitmask that records which lights affect each cluster.
+//
+// The view frustum is divided into a 3D grid of clusters (CLUSTERS_W x CLUSTERS_H x CLUSTERS_D).
+// Each thread handles one (clusterX, clusterY, clusterZ, lightId) tuple and decides whether
+// the light's bounding sphere intersects the cluster cell. On a hit, the light's bit is set
+// via an atomic OR in the flat bitmask buffer (omni lights packed first, then spot lights).
+//
+// Culling is performed in three stages:
+//   1. Bounding-rect pre-filter -- reject the cell if it falls outside the light's precomputed
+//      screen-space 2D rect or Z-slice range (computed by precalculate_clustered_frustum_data).
+//   2. Occlusion skip (optional) -- skip cells whose Z-slice exceeds the max visible depth for
+//      that screen tile (computed by precalculate_occlusion_z_slice_cs).
+//   3. Sphere-shrink test (optional, clusteredLightsShrinkSpheres == on) -- progressively clips
+//      the bounding sphere against the Z, Y, and X boundary planes of the cluster for a tighter
+//      intersection test that reduces false positives compared to the bounding rect alone.
+//
+// Dispatch shape: (CLUSTERS_W, CLUSTERS_H, CLUSTERS_D * totalLights).
+// dtId.z encodes both the light index and the Z-slice: lightId = dtId.z / CLUSTERS_D, clusterZ = dtId.z % CLUSTERS_D.
+shader clustered_lights_fill_items_spheres_cs
+{
+  INIT_OMNI_LIGHTS_CB(cs)
+  INIT_SPOT_LIGHTS_CB(cs)
+  INIT_AND_USE_CLUSTERED_LIGHTS(cs)
+
+  (cs) {
+    cull_lights_proj_params@f4 = cull_lights_proj_params;
+    cull_lights_proj_tm@f44 = cull_lights_proj_tm;
+    clustered_grid_lights_precalculated_data@buf = clustered_grid_lights_precalculated_data hlsl {
+      #include <clusteredLightsGrid.hlsli>
+      StructuredBuffer<CLG_LightData> clustered_grid_lights_precalculated_data@buf;
+    };
+    lights_full_grid@uav = lights_full_grid hlsl { RWStructuredBuffer<uint> lights_full_grid@uav; };
+    use_clustered_occlusion@i1 = use_clustered_occlusion;
+    clustered_occlusion_z_slice@buf = clustered_occlusion_z_slice hlsl {
+      StructuredBuffer<uint> clustered_occlusion_z_slice@buf;
+    };
+  }
+
+  hlsl(cs) {
+    #include <clustered_constants.hlsli>
+    #include <clusteredLightsGrid.hlsli>
+    #include <frustumClusters.hlsli>
+
+    // Returns true if the light's bounding sphere intersects cluster cell (clusterX, clusterY, clusterZ).
+    //
+    // Two modes depending on clusteredLightsShrinkSpheres:
+    //   off -- fast bounding-rect rejection only: rejects the cell if it falls outside the light's
+    //          precomputed 2D screen-space rect or Z-slice range; always returns true otherwise.
+    //   on  -- tighter sphere test: after the bounding-rect pass, progressively clips the full sphere
+    //          against the cluster's three boundary planes in order (Z, then Y, then X).
+    //          Each clip projects the sphere onto the plane, shrinking its effective radius; if the
+    //          radius drops to zero before the X check the cell is rejected early.
+    //
+    // proj00, proj11, proj20, proj21 are the projection matrix elements required to reconstruct the
+    // view-space frustum planes that bound each cluster tile row/column.
+    bool fillItemsSpheresGrid(CLG_LightData lightData, uint clusterX, uint clusterY, uint clusterZ,
+        float proj00, float proj11, float proj20, float proj21, float znear)
+    {
+      CLG_ItemRect3D itemRect = lightData.rect3d;
+      if (clusterZ < clg_zmin(itemRect.z_bounds) || clusterZ > clg_zmax(itemRect.z_bounds))
+        return false;
+      if (clusterY < clg_rect_min_y(itemRect.fsRect) || clusterY > clg_rect_max_y(itemRect.fsRect))
+        return false;
+      if (clusterX < clg_rect_min_x(itemRect.fsRect) || clusterX > clg_rect_max_x(itemRect.fsRect))
+        return false;
+
+##if clusteredLightsShrinkSpheres == on
+
+      // --- Tighter per-axis sphere test ---
+      // The bounding rect above is conservative (it covers the full sphere projection). Here we
+      // progressively shrink the sphere against each cluster boundary plane (Z, Y, X) so that
+      // cells that touch the AABB corners but miss the sphere are rejected.
+      //
+      // The key identity used in each step: when a sphere with center C and radius R is clipped by
+      // a plane at signed distance t from C, the intersection circle has radius sqrt(R^2 - t^2)
+      // and its center is the projection of C onto the plane. We carry this smaller "shadow" sphere
+      // forward into the next axis test.
+
+      // Projection matrix non-zero elements needed to build frustum plane normals in view space.
+      // The cluster grid maps onto NDC as: ndc_x = proj00*x/z + proj20, ndc_y = proj11*y/z + proj21.
+      // Note: -proj11 because NDC Y is flipped relative to the cluster row index.
+      float4 viewClip = float4(proj00, -proj11, proj20, proj21);
+
+      float tileScaleX = 0.5f * CLUSTERS_W;
+      float tileScaleY = 0.5f * CLUSTERS_H;
+
+      float4 lightVS = lightData.viewSpaceBoundSpherePosRadius;
+      float radiusSq = lightVS.w * lightVS.w;
+
+      int center_z = (lightVS.z <= znear) ? -1 : (int)frustum_clusters_get_slice_at_depth(lightVS.z, depthSliceScale, depthSliceBias);
+      float4 pt = mul(cull_lights_proj_tm, float4(lightVS.xyz, 1.0f));
+      int center_y = (abs(pt.w) > 0.001f)
+        ? (int)floor(CLUSTERS_H * (pt.y / pt.w * -0.5f + 0.5f))
+        : itemRect.fsRect.center_y;
+
+      // --- Z-shrink ---
+      float4 z_light = lightVS;
+      float z_lightRadiusSq = radiusSq;
+      if ((int)clusterZ != center_z)
+      {
+        float planeSign = ((int)clusterZ < center_z) ? 1.0f : -1.0f;
+        uint zPlaneId   = ((int)clusterZ < center_z) ? (clusterZ + 1u) : clusterZ;
+        float sliceDist = (center_z < 0) ? znear : frustum_clusters_get_depth_at_slice(zPlaneId, depthSliceScale, depthSliceBias);
+        float zPlaneDist = planeSign * (lightVS.z - sliceDist);
+        z_lightRadiusSq = max(0.0f, radiusSq - zPlaneDist * zPlaneDist);
+        z_light.z -= zPlaneDist * planeSign;
+        z_light.w  = sqrt(z_lightRadiusSq);
+      }
+
+      // --- Y-shrink ---
+      float4 y_light = z_light;
+      float y_lightRadiusSq = z_lightRadiusSq;
+
+      if ((int)clusterY != center_y)
+      {
+        uint yPlaneId   = ((int)clusterY < center_y) ? (clusterY + 1u) : clusterY;
+        float tileBiasY = tileScaleY - (float)yPlaneId;
+
+        float3 y_plane = normalize(float3(0.0f, viewClip.y * tileScaleY, viewClip.w * tileScaleY + tileBiasY));
+        float2 plane2 = y_plane.yz;
+        if ((int)clusterY >= center_y)
+          plane2 = -plane2;
+
+        float2 z_light_pos2 = z_light.yz;
+        float yPlaneT = dot(plane2, z_light_pos2);
+
+        y_lightRadiusSq = z_lightRadiusSq - yPlaneT * yPlaneT;
+        if (y_lightRadiusSq < 0.0f)
+          return false;
+
+        y_light.y -= yPlaneT * plane2.x;
+        y_light.z -= yPlaneT * plane2.y;
+        y_light.w  = sqrt(y_lightRadiusSq);
+      }
+
+      // --- X-check ---
+      float tileBiasX_L = tileScaleX - (float)clusterX;
+      float tileBiasX_R = tileScaleX - (float)(clusterX + 1u);
+
+      float3 x_plane_L = normalize(float3(viewClip.x * tileScaleX, 0.0f, viewClip.z * tileScaleX + tileBiasX_L));
+      float3 x_plane_R = normalize(float3(viewClip.x * tileScaleX, 0.0f, viewClip.z * tileScaleX + tileBiasX_R));
+
+      float2 xplane2_L = x_plane_L.xz;
+      float2 xplane2_R = x_plane_R.xz;
+
+      float2 y_light2 = y_light.xz;
+      return dot(xplane2_R, y_light2) < y_light.w && -dot(xplane2_L, y_light2) < y_light.w;
+##else
+      return true;
+##endif
+    }
+
+    [numthreads(16, 16, 1)]
+    void clustered_lights_fill_items_spheres_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint clusterX = dtId.x;
+      uint clusterY = dtId.y;
+      uint totalOmni = (uint)omniLightsCount;
+      uint totalSpot = (uint)spotLightsCount;
+      uint totalLights = totalOmni + totalSpot;
+
+      uint lightSliceIdx = dtId.z;
+      uint lightId  = lightSliceIdx / CLUSTERS_D;
+      uint clusterZ = lightSliceIdx % CLUSTERS_D;
+
+      if (clusterX >= CLUSTERS_W || clusterY >= CLUSTERS_H || clusterZ >= CLUSTERS_D || lightId >= totalLights)
+        return;
+
+      BRANCH
+      if (use_clustered_occlusion == 1)
+      {
+        if(clusterZ > structuredBufferAt(clustered_occlusion_z_slice, clusterY * CLUSTERS_W + clusterX))
+        {
+          return;
+        }
+      }
+
+      float proj00 = cull_lights_proj_tm[0][0];
+      float proj11 = cull_lights_proj_tm[1][1];
+      float proj20 = cull_lights_proj_tm[0][2];
+      float proj21 = cull_lights_proj_tm[1][2];
+      float znear  = cull_lights_proj_params.x;
+
+      uint omniWords = (uint)omniLightsWordCount;
+      uint spotWords = (uint)spotLightsWordCount;
+
+      bool isSpot  = (lightId >= totalOmni);
+      uint localId = isSpot ? (lightId - totalOmni) : lightId;
+
+      CLG_LightData lightData = structuredBufferAt(clustered_grid_lights_precalculated_data, lightId);
+
+      if (!is_frustrum_screen_rect_valid(lightData.rect3d.fsRect))
+        return;
+      if (!fillItemsSpheresGrid(lightData, clusterX, clusterY, clusterZ, proj00, proj11, proj20, proj21, znear))
+        return;
+
+      uint clusterIndex = clusterX + clusterY * CLUSTERS_W + clusterZ * CLUSTERS_W * CLUSTERS_H;
+
+      if (!isSpot)
+      {
+        uint bufOffset = clusterIndex * omniWords + (localId >> 5);
+        InterlockedOr(structuredBufferAt(lights_full_grid, bufOffset), 1u << (localId & 31));
+      }
+      else
+      {
+        uint spotGridBase = (uint)CLUSTERS_PER_GRID * omniWords;
+        uint bufOffset = spotGridBase + clusterIndex * spotWords + (localId >> 5);
+        InterlockedOr(structuredBufferAt(lights_full_grid, bufOffset), 1u << (localId & 31));
+      }
+    }
+  }
+  compile("target_cs", "clustered_lights_fill_items_spheres_cs");
+}
+
+// Second pass of the spot light pipeline: refines the cluster bitmask set by clustered_lights_fill_items_spheres_cs.
+//
+// fill_items_spheres_cs marks a cell if the spot light's bounding *sphere* intersects it.
+// Because a spot light illuminates only a cone, many of those cells are false positives.
+// This shader clears bits for cells that lie inside the sphere footprint but miss the *cone*.
+//
+// The cone is approximated by 6 or 8 half-space planes (lateral sides + near/far caps, plus optional
+// diagonal planes) built around the spot direction. A cluster cell passes if at least one of its
+// 8 view-space corners is on the positive side of every plane (separating-axis theorem negation).
+shader clustered_lights_cull_spots_cs
+{
+  INIT_OMNI_LIGHTS_CB(cs)
+  INIT_SPOT_LIGHTS_CB(cs)
+  INIT_AND_USE_CLUSTERED_LIGHTS(cs)
+
+  (cs) {
+    cull_lights_view_tm@f44 = cull_lights_view_tm;
+    clustered_grid_lights_precalculated_data@buf = clustered_grid_lights_precalculated_data hlsl {
+      #include <clusteredLightsGrid.hlsli>
+      StructuredBuffer<CLG_LightData> clustered_grid_lights_precalculated_data@buf;
+    };
+    clustered_frustum_points_buf@buf = clustered_frustum_points_buf hlsl {
+      StructuredBuffer<float4> clustered_frustum_points_buf@buf;
+    };
+    lights_full_grid@uav = lights_full_grid hlsl { RWStructuredBuffer<uint> lights_full_grid@uav; };
+  }
+  hlsl(cs) {
+    #include <clustered_constants.hlsli>
+    #include <clusteredLightsGrid.hlsli>
+
+    float4 v_make_plane_dir(float3 p0, float3 dir0, float3 dir1)
+    {
+      float3 n = cross(dir0, dir1);
+      return float4(n, -dot(p0, n));
+    }
+
+    // Packs the sign bits of each float4 component into the low 4 bits of a uint.
+    // Bit i = 1 means component i is negative (i.e. the point is on the wrong side of plane i).
+    // Used by is_point_out to convert 4 plane-distance results into a single bitmask.
+    uint v_signmask(float4 a)
+    {
+      uint4 signs = asuint(a) >> 31;
+      return signs.x | (signs.y << 1) | (signs.z << 2) | (signs.w << 3);
+    };
+
+    // Tests a point against 4 planes simultaneously and returns a 4-bit "outside" mask.
+    // Bit i = 1 means the point is on the negative side of plane i (outside that half-space).
+    //
+    // plane03_XYZW is a *transposed* matrix: row 0 holds all X normals, row 1 all Y normals, etc.
+    // This layout turns 4 dot products into 3 scalar-broadcast MADs -- efficient on scalar GPUs.
+    uint is_point_out(float3 pt, float4x4 plane03_XYZW)
+    {
+      float4 res;
+      res  = pt.xxxx * plane03_XYZW[0] + plane03_XYZW[3];
+      res += pt.yyyy * plane03_XYZW[1];
+      res += pt.zzzz * plane03_XYZW[2];
+      return v_signmask(res);
+    };
+
+    // Tests whether the cluster cell (clusterX, clusterY, clusterZ) is intersected by the
+    // spot light's cone convex hull (6-8 planes split across plane03 and plane47).
+    // Returns true if the cell passes (might be lit), false if it is definitely outside the cone.
+    //
+    // Exact port of CPU's cullFrustum in frustumClusters.cpp.
+    bool cullFrustum(CLG_LightData lightData, float4x4 plane03, float4x4 plane47,
+        uint clusterX, uint clusterY, uint clusterZ)
+    {
+      uint d0 = clg_zmin(lightData.rect3d.z_bounds);
+      uint d1 = clg_zmax(lightData.rect3d.z_bounds);
+      uint y0 = clg_rect_min_y(lightData.rect3d.fsRect);
+      uint y1 = clg_rect_max_y(lightData.rect3d.fsRect) + 1;
+      uint x0 = clg_rect_min_x(lightData.rect3d.fsRect);
+      uint x1 = clg_rect_max_x(lightData.rect3d.fsRect) + 1;
+
+      if (d0 == d1 && y1 - y0 == 1 && x1 - x0 == 1 && x0 != 0 && y0 != 0 && x1 != CLUSTERS_W && y1 != CLUSTERS_H && d0 != 0 &&
+          d1 != CLUSTERS_D - 1) // it is very small, inside one cluster and so can't be culled
+        return true;
+
+      uint planeOut = 0xFF;
+
+      for (uint dz = 0; dz <= 1; ++dz)
+        for (uint dy = 0; dy <= 1; ++dy)
+          for (uint dx = 0; dx <= 1; ++dx)
+          {
+            uint idx = (clusterZ + dz) * (CLUSTERS_W + 1) * (CLUSTERS_H + 1)
+                    + (clusterY + dy) * (CLUSTERS_W + 1)
+                    + (clusterX + dx);
+            float3 pt = structuredBufferAt(clustered_frustum_points_buf, idx).xyz;
+            uint bits = is_point_out(pt, plane03) | (is_point_out(pt, plane47) << 4);
+            planeOut &= bits;
+          };
+
+      return planeOut == 0;
+    }
+
+    [numthreads(16, 16, 1)]
+    void clustered_lights_cull_spots_cs(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint clusterX = dtId.x;
+      uint clusterY = dtId.y;
+      uint totalSpot = (uint)spotLightsCount;
+
+      uint lightSliceIdx = dtId.z;
+      uint spotId   = lightSliceIdx / CLUSTERS_D;
+      uint clusterZ = lightSliceIdx % CLUSTERS_D;
+
+      if (clusterX >= CLUSTERS_W || clusterY >= CLUSTERS_H || clusterZ >= CLUSTERS_D || spotId >= totalSpot)
+        return;
+
+      uint omniWords = (uint)omniLightsWordCount;
+      uint spotWords = (uint)spotLightsWordCount;
+      uint clusterIndex = clusterX + clusterY * CLUSTERS_W + clusterZ * CLUSTERS_W * CLUSTERS_H;
+      uint spotGridBase = (uint)CLUSTERS_PER_GRID * omniWords;
+      uint bufOffset = spotGridBase + clusterIndex * spotWords + (spotId >> 5);
+      uint bit = 1u << (spotId & 31);
+
+      if (!(structuredBufferAt(lights_full_grid, bufOffset) & bit))
+        return;
+
+      uint lightId = (uint)omniLightsCount + spotId;
+      CLG_LightData lightData = structuredBufferAt(clustered_grid_lights_precalculated_data, lightId);
+
+      CLG_FrustumScreenRect fsr = lightData.rect3d.fsRect;
+      uint z0 = clg_zmin(lightData.rect3d.z_bounds);
+      uint z1 = clg_zmax(lightData.rect3d.z_bounds);
+
+      uint y0 = clg_rect_min_y(fsr);
+      uint y1 = clg_rect_max_y(fsr) + 1;
+      uint x0 = clg_rect_min_x(fsr);
+      uint x1 = clg_rect_max_x(fsr) + 1;
+
+
+      if (
+        z0 == z1 &&
+        y1 - y0 == 1 &&
+        x1 - x0 == 1 &&
+        x0 != 0 &&
+        y0 != 0 &&
+        x1 != CLUSTERS_W &&
+        y1 != CLUSTERS_H &&
+        z0 != 0
+      ) // it is very small, inside one cluster and so can't culled
+      {
+        return;
+      }
+
+      float4 wpos = decode_spot_light_pos_radius(spot_lights_cb[spotId]); // xyz = world pos, w = radius
+      float4 lightDirectionAngleOffset = spot_lights_cb[spotId].lightDirectionAngleOffset;
+
+      float cosHalfAngle = -lightDirectionAngleOffset.w / spot_lights_cb[spotId].lightColorAngleScale.w;
+      float sinHalfAngle = sqrt(saturate(1.0f - cosHalfAngle * cosHalfAngle));
+      float tanHalfAngle = sinHalfAngle / max(1e-6, cosHalfAngle);
+
+      float3 vpos = mul(cull_lights_view_tm, float4(wpos.xyz, 1.0f)).xyz;
+      float3 vdir = mul(cull_lights_view_tm, float4(lightDirectionAngleOffset.xyz, 0.0f)).xyz;
+
+#define TWO_MORE_PLANES 1
+
+      float3 up0 = abs(vdir.z) > 0.999f ? float3(1, 0, 0) : float3(0, 0, 1);
+      float3 left = normalize(cross(up0, vdir)), up = cross(vdir, left);
+
+      float3 vFar2 = tanHalfAngle * (left + up), vFar1 = tanHalfAngle * (left - up), vFar3 = -vFar1, vFar0 = -vFar2;
+
+#if TWO_MORE_PLANES
+      float3 leftrot = vFar2 * 0.7071067811865476f, uprot = vFar1 * 0.7071067811865476f;
+#endif
+
+      vFar0 += vdir;
+      vFar1 += vdir;
+      vFar2 += vdir;
+      vFar3 += vdir;
+
+      float4x4 plane03;
+      plane03[0] = v_make_plane_dir(vpos, vFar0, vFar1);
+      plane03[1] = v_make_plane_dir(vpos, vFar1, vFar2);
+      plane03[2] = v_make_plane_dir(vpos, vFar2, vFar3);
+      plane03[3] = v_make_plane_dir(vpos, vFar3, vFar0);
+      plane03 = transpose(plane03);
+
+      float4 planeNear = float4(vdir, -dot(vdir, vpos));
+      float4 planeFar  = float4(-vdir, wpos.w + dot(vdir, vpos));
+      float4x4 plane47;
+      plane47[0] = planeNear;
+      plane47[1] = planeFar;
+
+#if TWO_MORE_PLANES
+      vFar2 = leftrot + uprot;
+      vFar1 = leftrot - uprot;
+      vFar0 = -vFar2; // vFar3 = -vFar1;
+      vFar0 += vdir;
+      vFar1 += vdir;
+      vFar2 += vdir; // vFar3 += vdir;
+      plane47[2] = v_make_plane_dir(vpos, vFar1, vFar0);
+      plane47[3] = v_make_plane_dir(vpos, vFar2, vFar1);
+      // we can add even more planes, but it will be at a cost of additional 4 planes..
+#else
+      plane47[2] = planeNear;
+      plane47[3] = planeFar;
+#endif
+      plane47 = transpose(plane47);
+
+      bool res = cullFrustum(lightData, plane03, plane47, clusterX, clusterY, clusterZ);
+      if (!res)
+        InterlockedAnd(structuredBufferAt(lights_full_grid, bufOffset), ~bit);
+    }
+  }
+  compile("target_cs", "clustered_lights_cull_spots_cs");
 }

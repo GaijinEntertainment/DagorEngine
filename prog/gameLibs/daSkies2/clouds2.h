@@ -36,8 +36,6 @@ struct Clouds2
   }
   bool hasVisibleClouds() const; // GPU readback!
 
-  void setErosionNoiseWindDir(const Point2 &wind_dir) { windDir = wind_dir; } // normalized
-
   void setCloudsShadowCoverage();
 
   void setGameParams(const DaSkies::CloudsSettingsParams &game_params);
@@ -53,7 +51,7 @@ struct Clouds2
   void invalidateAll();
 
   void init(bool use_hole = true);
-  void update(float dt);
+  void update(float dt, const Point2 &wind_dir);
   void setCloudsOffsetVars(CloudsRendererData &data) { clouds.setCloudsOffsetVars(data, weatherParams.worldSize); }
   void setCloudsOffsetVars(float current_clouds_offset) { clouds.setCloudsOffsetVars(current_clouds_offset, weatherParams.worldSize); }
   IPoint2 getResolution(const CloudsRendererData &data) { return data.cloudTexRes; }
@@ -104,7 +102,7 @@ private:
   static Point2 alt_to_diap(float bottom, float thickness, float bigger_bottom, float bigger_thickness);
   void calcCloudsAlt();
 
-  void updateErosionNoiseWind(float dt);
+  void updateErosionNoiseWind(float dt, const Point2 &wind_dir);
 
 protected:
   GenWeather weather;
@@ -124,7 +122,7 @@ protected:
   DaSkies::CloudsRendering renderingParams;
 
   Point2 clouds_erosion_noise_wind_ofs = {0, 0};
-  Point2 windDir = {0, 0}, erosionWindChange = {0, 0};
+  Point2 erosionWindChange = {0, 0};
   Point3 holeTarget = {0, 0, 0};
   float holeDensity = 0;
   enum class HoleFindStatus

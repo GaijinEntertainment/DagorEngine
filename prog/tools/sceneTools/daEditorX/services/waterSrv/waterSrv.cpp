@@ -171,7 +171,7 @@ public:
     Driver3dPerspective persp;
     if (!d3d::getpersp(persp))
       persp.wk = persp.hk = 1;
-    fft_water::render(water, ::grs_cur_view.pos, distTex.getTexId(), globtm, persp);
+    fft_water::render(water, ::grs_cur_view.pos, distTex.getTexId(), globtm, nullptr, persp);
   }
   void set_level(float level) override
   {
@@ -231,7 +231,7 @@ public:
     Driver3dRenderTarget prevRt;
     d3d::get_render_target(prevRt);
 
-    d3d::set_render_target(heightmap.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{heightmap.getTex2D(), 0, 0}});
     d3d::clearview(CLEAR_TARGET, 0, 0, 0);
     renderHeightmap(hmap_rad, hmap_center);
     // save_tex_as_ddsx(heightmap.getTex2D(), String(0, "d:/hmap-%04d.ddsx", get_time_msec()));

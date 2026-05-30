@@ -14,9 +14,11 @@
 namespace drv3d_dx12
 {
 #if _TARGET_PC_WIN
-typedef VersionedComPtr<D3DGraphicsCommandList, ID3D12GraphicsCommandList4, ID3D12GraphicsCommandList5, ID3D12GraphicsCommandList6>
+typedef VersionedComPtr<D3DGraphicsCommandList, ID3D12GraphicsCommandList4, ID3D12GraphicsCommandList5, ID3D12GraphicsCommandList6,
+  ID3D12GraphicsCommandList7>
   AnyCommandListComPtr;
-typedef VersionedPtr<D3DGraphicsCommandList, ID3D12GraphicsCommandList4, ID3D12GraphicsCommandList5, ID3D12GraphicsCommandList6>
+typedef VersionedPtr<D3DGraphicsCommandList, ID3D12GraphicsCommandList4, ID3D12GraphicsCommandList5, ID3D12GraphicsCommandList6,
+  ID3D12GraphicsCommandList7>
   AnyCommandListPtr;
 #else
 typedef VersionedComPtr<D3DGraphicsCommandList> AnyCommandListComPtr;
@@ -398,6 +400,14 @@ public:
     ++knownWrittenCommands;
   }
   void barriers(uint32_t count, const D3D12_RESOURCE_BARRIER *barriers) { cmd.resourceBarrier(count, barriers); }
+#if !_TARGET_XBOXONE
+  void barrier(uint32_t group_count, const D3D12_BARRIER_GROUP *groups)
+  {
+    G_ASSERTF(cmd.is<ID3D12GraphicsCommandList7>(), "Trying to execute enhanced barriers on unsupported command list version");
+    cmd.barrier(group_count, groups);
+    ++knownWrittenCommands;
+  }
+#endif
 #if D3D_HAS_RAY_TRACING
   void buildRaytracingAccelerationStructure(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *desc,
     uint32_t num_post_build_info_descs, const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *post_build_info_descs)
@@ -455,13 +465,11 @@ public:
 #if D3D_HAS_RAY_TRACING
     raytraceState.dirtyAll();
 #endif
-  }
-
-  void prepareBufferForSubmit()
-  {
-    dirtyAll();
+    // force embeddedExecute to re-bind RS and pipeline on the next call.
     activeEmbeddedPipeline = nullptr;
   }
+
+  void prepareBufferForSubmit() { dirtyAll(); }
 
   enum class RecordedCommandsStatus
   {

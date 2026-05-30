@@ -454,6 +454,8 @@ VECTORCALL VECMATH_FINLINE vec4f v_perm_zwba(vec4f xyzw, vec4f abcd) { return __
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zbwa(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 2, 5, 3, 4); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xzac(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 0, 2, 4, 6); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_ywbd(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 1, 3, 5, 7); }
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xxab(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 0, 0, 4, 5); }
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzab(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 1, 2, 4, 5); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_cxyc(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 6, 0, 1, 6); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xycc(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 0, 1, 6, 6); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xbzz(vec4f xyzw, vec4f abcd) { return __builtin_shufflevector(xyzw, abcd, 0, 5, 2, 2); }
@@ -494,6 +496,16 @@ VECTORCALL VECMATH_FINLINE vec4f v_perm_zwba(vec4f xyzw, vec4f abcd) { return ve
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zbwa(vec4f xyzw, vec4f abcd) { return vzip2q_f32(xyzw, vrev64q_f32(vdupq_laneq_f64(abcd, 0))); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xzac(vec4f xyzw, vec4f abcd) { return vuzp1q_f32(xyzw, abcd); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_ywbd(vec4f xyzw, vec4f abcd) { return vuzp2q_f32(xyzw, abcd); }
+// (xyzw.x, xyzw.x, abcd.x, abcd.y): low half = duplicate-low of xyzw, high half = unchanged low of abcd.
+VECTORCALL VECMATH_FINLINE vec4f v_perm_xxab(vec4f xyzw, vec4f abcd)
+{
+  return vcombine_f32(vdup_lane_f32(vget_low_f32(xyzw), 0), vget_low_f32(abcd));
+}
+// (xyzw.y, xyzw.z, abcd.x, abcd.y): low half via vext (slide 1 across xyzw's halves) = (y, z); high half = abcd's low.
+VECTORCALL VECMATH_FINLINE vec4f v_perm_yzab(vec4f xyzw, vec4f abcd)
+{
+  return vcombine_f32(vext_f32(vget_low_f32(xyzw), vget_high_f32(xyzw), 1), vget_low_f32(abcd));
+}
 VECTORCALL VECMATH_FINLINE vec4f v_perm_cxyc(vec4f xyzw, vec4f abcd) { return v_rot_3(vcombine_f32(vget_low_f32(xyzw), vdup_lane_f32(vget_high_f32(abcd), 0))); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xycc(vec4f xyzw, vec4f abcd) { return vcombine_f32(vget_low_f32(xyzw), vdup_lane_f32(vget_high_f32(abcd), 0)); }
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xbzz(vec4f xyzw, vec4f abcd) { return vcopyq_laneq_f32(vcopyq_laneq_f32(xyzw, 1, abcd, 1), 3, xyzw, 2); }

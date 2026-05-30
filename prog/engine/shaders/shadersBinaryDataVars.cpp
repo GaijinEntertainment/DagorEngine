@@ -839,7 +839,7 @@ static bool set_buffer_internal(int var_id, BufferType buf_arg)
 
 bool ShaderGlobal::set_texture(int var_id, TEXTUREID tex_id) { return set_texture_internal(var_id, tex_id); }
 
-bool ShaderGlobal::set_texture(int var_id, BaseTexture *tex_ptr) { return set_texture_internal(var_id, tex_ptr); };
+bool ShaderGlobal::set_texture_unsafe(int var_id, BaseTexture *tex_ptr) { return set_texture_internal(var_id, tex_ptr); };
 
 bool ShaderGlobal::set_texture(int variable_id, const ManagedTex &texture)
 {
@@ -857,7 +857,7 @@ bool ShaderGlobal::set_sampler(int var_id, d3d::SamplerHandle handle)
 
 bool ShaderGlobal::set_buffer(int var_id, D3DRESID buf_id) { return set_buffer_internal(var_id, buf_id); }
 
-bool ShaderGlobal::set_buffer(int variable_id, Sbuffer *buffer_ptr) { return set_buffer_internal(variable_id, buffer_ptr); }
+bool ShaderGlobal::set_buffer_unsafe(int variable_id, Sbuffer *buffer_ptr) { return set_buffer_internal(variable_id, buffer_ptr); }
 
 bool ShaderGlobal::set_buffer(int variable_id, const ManagedBuf &buffer)
 {

@@ -33,6 +33,11 @@ enum
   PID_GRAPH_HEIGHT_SCALE = PID_GRAPH_BASE + 4,
   PID_GRAPH_HEIGHT_MIN = PID_GRAPH_BASE + 5,
   PID_GRAPH_CELL_SIZE = PID_GRAPH_BASE + 6,
+  PID_GRAPH_TEX_WIDTH = PID_GRAPH_BASE + 7,
+  PID_GRAPH_TEX_HEIGHT = PID_GRAPH_BASE + 8,
+  PID_GRAPH_TEX_DEPTH = PID_GRAPH_BASE + 9,
+  PID_GRAPH_TEX_TYPE = PID_GRAPH_BASE + 10,
+  PID_GRAPH_TEX_WRAP = PID_GRAPH_BASE + 11,
 
   PID_NODE_HEADER = 13100,
   PID_NODE_ID = 13101,
@@ -80,36 +85,6 @@ const eastl::string *find_property_value(const GraphData::Node &n, const char *p
   return nullptr;
 }
 
-// Read a `val` field from a property descriptor, normalized to a string the same way
-// makeNodeFromBaseBlk does (plugin.cpp:920-958). Empty string when absent.
-eastl::string read_descriptor_default(const DataBlock *prop_desc)
-{
-  if (!prop_desc)
-  {
-    return {};
-  }
-  const int idx = prop_desc->findParam("val");
-  if (idx < 0)
-  {
-    return {};
-  }
-  char buf[128] = {};
-  switch (prop_desc->getParamType(idx))
-  {
-    case DataBlock::TYPE_STRING: return eastl::string(prop_desc->getStr(idx));
-    case DataBlock::TYPE_INT: _snprintf(buf, sizeof(buf), "%d", prop_desc->getInt(idx)); return buf;
-    case DataBlock::TYPE_REAL: _snprintf(buf, sizeof(buf), "%g", prop_desc->getReal(idx)); return buf;
-    case DataBlock::TYPE_BOOL: return prop_desc->getBool(idx) ? eastl::string("true") : eastl::string("false");
-    case DataBlock::TYPE_POINT4:
-    {
-      const Point4 p = prop_desc->getPoint4(idx);
-      _snprintf(buf, sizeof(buf), "%g,%g,%g,%g", p.x, p.y, p.z, p.w);
-      return buf;
-    }
-    default: return {};
-  }
-}
-
 // Parse "r,g,b" or "r,g,b,a" with components in [0,1] into an E3DCOLOR. Defaults to opaque
 // black on parse failure -- matches the createColorBox documented default.
 E3DCOLOR parse_color(const char *s)
@@ -133,6 +108,28 @@ bool is_readonly_complex_type(const char *t)
 {
   return !strcmp(t, "gradient_editor") || !strcmp(t, "monotonic_curve") || !strcmp(t, "linear_curve") || !strcmp(t, "polynom_curve") ||
          !strcmp(t, "steps_curve") || !strcmp(t, "gradient_preview");
+}
+
+template <size_t N>
+int build_combo_items(Tab<String> &out_items, const char *current, const char *const (&src)[N], const char *strip_prefix = nullptr)
+{
+  out_items.clear();
+  const size_t strip_len = strip_prefix ? strlen(strip_prefix) : 0;
+  int selectedIdx = 0;
+  for (size_t i = 0; i < N; ++i)
+  {
+    const char *s = src[i];
+    if (strip_len > 0 && strncmp(s, strip_prefix, strip_len) == 0)
+    {
+      s += strip_len;
+    }
+    if (current && strcmp(current, s) == 0)
+    {
+      selectedIdx = (int)out_items.size();
+    }
+    out_items.push_back(String(s));
+  }
+  return selectedIdx;
 }
 } // namespace
 
@@ -267,6 +264,39 @@ void PropertiesPanel::rebuildForGraph()
     HEIGHT_FLOAT_PREC);
   panelWindow->createEditFloat(PID_GRAPH_CELL_SIZE, "Cell size", effective_height(gd.heightmapCellSize, DEFAULT_CELL_SIZE),
     HEIGHT_FLOAT_PREC);
+
+  panelWindow->createSeparator();
+  {
+    Tab<String> items;
+    char buf[32];
+    _snprintf(buf, sizeof(buf), "%d", gd.graphTextureWidth);
+    const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
+    panelWindow->createCombo(PID_GRAPH_TEX_WIDTH, "Texture width", items, sel);
+  }
+  {
+    Tab<String> items;
+    char buf[32];
+    _snprintf(buf, sizeof(buf), "%d", gd.graphTextureHeight);
+    const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
+    panelWindow->createCombo(PID_GRAPH_TEX_HEIGHT, "Texture height", items, sel);
+  }
+  {
+    Tab<String> items;
+    char buf[32];
+    _snprintf(buf, sizeof(buf), "%d", gd.graphTextureDepth);
+    const int sel = build_combo_items(items, buf, BASE_SIZES, "= ");
+    panelWindow->createCombo(PID_GRAPH_TEX_DEPTH, "Texture depth", items, sel);
+  }
+  {
+    Tab<String> items;
+    const int sel = build_combo_items(items, gd.graphTextureType.c_str(), BASE_TYPES);
+    panelWindow->createCombo(PID_GRAPH_TEX_TYPE, "Texture type", items, sel);
+  }
+  {
+    Tab<String> items;
+    const int sel = build_combo_items(items, gd.graphTextureWrap.c_str(), BASE_WRAPS);
+    panelWindow->createCombo(PID_GRAPH_TEX_WRAP, "Texture wrap", items, sel);
+  }
 }
 
 void PropertiesPanel::rebuildForNode(int node_id)
@@ -314,7 +344,7 @@ void PropertiesPanel::rebuildForNode(int node_id)
     {
       continue;
     }
-    const char *propType = propDesc->getStr("type", "");
+    const char *propType = infer_prop_type(propDesc);
 
     // Resolve the current value: live node value first, descriptor default second.
     eastl::string valStr;
@@ -324,7 +354,7 @@ void PropertiesPanel::rebuildForNode(int node_id)
     }
     else
     {
-      valStr = read_descriptor_default(propDesc);
+      valStr = param_as_string(propDesc, "val");
     }
 
     pidToPropertyName.emplace(pid, eastl::string(propName));
@@ -464,6 +494,40 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     return;
   }
 
+  if (pcb_id == PID_GRAPH_TEX_WIDTH || pcb_id == PID_GRAPH_TEX_HEIGHT || pcb_id == PID_GRAPH_TEX_DEPTH ||
+      pcb_id == PID_GRAPH_TEX_TYPE || pcb_id == PID_GRAPH_TEX_WRAP)
+  {
+    const char *text = static_cast<const char *>(panel->getText(pcb_id));
+    if (!text)
+    {
+      return;
+    }
+    plugin.mutateGraphData([&](GraphData &gd) {
+      if (pcb_id == PID_GRAPH_TEX_WIDTH)
+      {
+        gd.graphTextureWidth = parse_graph_size(text, gd.graphTextureWidth);
+      }
+      else if (pcb_id == PID_GRAPH_TEX_HEIGHT)
+      {
+        gd.graphTextureHeight = parse_graph_size(text, gd.graphTextureHeight);
+      }
+      else if (pcb_id == PID_GRAPH_TEX_DEPTH)
+      {
+        gd.graphTextureDepth = parse_graph_size(text, gd.graphTextureDepth);
+      }
+      else if (pcb_id == PID_GRAPH_TEX_TYPE)
+      {
+        gd.graphTextureType = text;
+      }
+      else
+      {
+        gd.graphTextureWrap = text;
+      }
+    });
+    plugin.markGraphDirtyAndRegen();
+    return;
+  }
+
   // Node-mode property edits.
   auto it = pidToPropertyName.find(pcb_id);
   if (it == pidToPropertyName.end())
@@ -484,7 +548,7 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     return;
   }
 
-  const char *t = propDesc->getStr("type", "");
+  const char *t = infer_prop_type(propDesc);
   eastl::string newVal;
 
   if (!strcmp(t, "string"))

@@ -348,19 +348,20 @@ void init_ui()
 
 static inline void overlay_ui_init_on_appstart_es_event_handler(const EventOnGameAppStarted &)
 {
-  delayed_call([]() // DA to execute this after actual scene load
-    {
-      bool doconnect = false;
+  auto onAppStart = []() // DA to execute this after actual scene load
+  {
+    bool doconnect = false;
 #if DAGOR_DBGLEVEL > 0
-      if (dgs_get_argv("connect")) // do we really need it?
-        doconnect = true;
+    if (dgs_get_argv("connect")) // do we really need it?
+      doconnect = true;
 #endif
-      if (!(app_profile::get().disableRemoteNetServices || app_profile::get().devMode || doconnect))
-        overlay_ui::init_network_services();
-      else
-        overlay_ui::init_network_voicechat_only();
-      overlay_ui::init_ui();
-    });
+    if (!(app_profile::get().disableRemoteNetServices || app_profile::get().devMode || doconnect))
+      overlay_ui::init_network_services();
+    else
+      overlay_ui::init_network_voicechat_only();
+    overlay_ui::init_ui();
+  };
+  delayed_call(eastl::move(onAppStart));
 }
 
 void shutdown_ui(bool quit)

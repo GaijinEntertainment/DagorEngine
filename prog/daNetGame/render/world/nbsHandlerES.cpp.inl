@@ -86,6 +86,7 @@ struct LoadNbsVolfogJob final : public cpujobs::IJob
   float highRange;
   float lowHeight;
   float highHeight;
+  GameResource *loadedRes = nullptr;
 
   LoadNbsVolfogJob(
     eastl::string &&res_name, const char *root_graph, float low_range, float high_range, float low_height, float high_height) :
@@ -101,18 +102,35 @@ struct LoadNbsVolfogJob final : public cpujobs::IJob
 
   void doJob() override
   {
-    if (auto res = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId))
-      release_game_resource_ex(res, LShaderGameResClassId);
+    loadedRes = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId);
+
+    if (!loadedRes)
+      logerr("Could not find volfog gameRes during loading: %s", resName.c_str());
   }
 
   void releaseJob() override
   {
     if (auto wr = static_cast<WorldRenderer *>(get_world_renderer()))
       wr->loadFogNodes(rootGraph, lowRange, highRange, lowHeight, highHeight);
+    if (loadedRes)
+      release_game_resource_ex(loadedRes, LShaderGameResClassId);
 
     delete this;
   }
 };
+
+void volfog_load_from_resources(
+  const char *root_graph, const float low_range, const float high_range, const float low_height, const float high_height)
+{
+  eastl::string fullName = node_based_shader_get_resource_name(root_graph);
+  if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
+  {
+    auto job = new LoadNbsVolfogJob(eastl::move(fullName), root_graph, low_range, high_range, low_height, high_height);
+    G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
+    return;
+  }
+  logerr("Tried to load volFog graph with name %s, but was not found in gameResources, loading failed", root_graph);
+}
 
 ECS_ON_EVENT(OnLevelLoaded)
 static void nbs_volfog_init_es(const OnLevelLoaded &,
@@ -122,15 +140,8 @@ static void nbs_volfog_init_es(const OnLevelLoaded &,
   const float volfog_nbs__low_height,
   const float volfog_nbs__high_height)
 {
-  eastl::string fullName = node_based_shader_get_resource_name(volfog_nbs__rootGraph.c_str());
-  if (get_resource_type_id(fullName.c_str()) == LShaderGameResClassId)
-  {
-    auto job = new LoadNbsVolfogJob(eastl::move(fullName), volfog_nbs__rootGraph.c_str(), volfog_nbs__low_range,
-      volfog_nbs__high_range, volfog_nbs__low_height, volfog_nbs__high_height);
-    G_VERIFY(cpujobs::add_job(ecs::get_common_loading_job_mgr(), job));
-    return;
-  }
-  logerr("Tried to load volFog graph with name %s, but was not found in gameResources, loading failed", volfog_nbs__rootGraph.c_str());
+  volfog_load_from_resources(volfog_nbs__rootGraph.c_str(), volfog_nbs__low_range, volfog_nbs__high_range, volfog_nbs__low_height,
+    volfog_nbs__high_height);
 }
 
 
@@ -138,6 +149,7 @@ struct LoadNbsEnviCoverJob final : public cpujobs::IJob
 {
   eastl::string resName;
   String rootGraph;
+  GameResource *loadedRes = nullptr;
 
   LoadNbsEnviCoverJob(eastl::string &&res_name, const char *root_graph) : resName(res_name), rootGraph(root_graph) {}
 
@@ -145,13 +157,18 @@ struct LoadNbsEnviCoverJob final : public cpujobs::IJob
 
   void doJob() override
   {
-    if (auto res = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId))
-      release_game_resource_ex(res, LShaderGameResClassId);
+    loadedRes = get_one_game_resource_ex(resName.c_str(), LShaderGameResClassId);
+
+    if (!loadedRes)
+      logerr("Could not find envi cover gameRes during loading: %s", resName.c_str());
   }
+
   void releaseJob() override
   {
     if (auto wr = static_cast<WorldRenderer *>(get_world_renderer()))
       wr->loadEnviCoverNodes(rootGraph);
+    if (loadedRes)
+      release_game_resource_ex(loadedRes, LShaderGameResClassId);
 
     delete this;
   }

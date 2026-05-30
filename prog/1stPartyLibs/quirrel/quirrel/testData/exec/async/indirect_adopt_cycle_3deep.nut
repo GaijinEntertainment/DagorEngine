@@ -1,13 +1,13 @@
-from "async" import Promise
+from "async" import Future
 
 // 3-deep adoption cycle. Walks A -> A.value=B -> B (L_Adopted) ->
 // B.value=C -> C (L_Open) -> would adopt C, but C is target after
 // A.resolve(B); B.resolve(C); C.resolve(A) -- the walk from C reaches
 // A -> B -> C == target -> cycle.
 
-let a = Promise()
-let b = Promise()
-let c = Promise()
+let a = Future()
+let b = Future()
+let c = Future()
 
 a.resolve(b)
 b.resolve(c)

@@ -18,7 +18,7 @@ ECS_AUTO_REGISTER_COMPONENT(AuroraBorealis, "aurora_borealis", nullptr, 0);
 
 ECS_ON_EVENT(on_appear, ChangeRenderFeatures)
 ECS_TRACK(*)
-void aurora_borealis_es(const ecs::Event &,
+void aurora_borealis_es(const ecs::Event &evt,
   AuroraBorealis &aurora_borealis,
   bool aurora_borealis__enabled,
   bool aurora_borealis__is_night,
@@ -60,7 +60,9 @@ void aurora_borealis_es(const ecs::Event &,
     return;
   }
 
-  if (!aurora_borealis__init || !aurora_borealis__render || !aurora_borealis__apply)
+  const auto *changedFeatures = evt.cast<ChangeRenderFeatures>();
+  const bool camcamChanged = changedFeatures && changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA);
+  if (!aurora_borealis__init || !aurora_borealis__render || !aurora_borealis__apply || camcamChanged)
   {
     uint32_t texFmt = aurora_borealis.texFmt();
     aurora_borealis__init = dafg::register_node("aurora_borealis__init", DAFG_PP_NODE_SRC,

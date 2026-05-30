@@ -43,6 +43,7 @@ enum AppendArrayType {
 #define SQ_OPCODES_LIST \
     SQ_OPCODE(_OP_DATA_NOP) \
     SQ_OPCODE(_OP_LOAD) \
+    SQ_OPCODE(_OP_LOAD_MOVE) \
     SQ_OPCODE(_OP_LOADINT) \
     SQ_OPCODE(_OP_LOADFLOAT) \
     SQ_OPCODE(_OP_DLOAD) \

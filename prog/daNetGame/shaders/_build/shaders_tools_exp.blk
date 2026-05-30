@@ -8,14 +8,9 @@ source
 {
   includePath:t="../../../prog/daNetGame/shaders"
 
-  file:t = "../rendinst_layered.dshl"
-  file:t = "../rendinst_simple.dshl"
   file:t = "../rendinst_uv_debug.dshl"
-  file:t = "../rendinst_simple_painted.dshl"
-  file:t = "../rendinst_perlin_layered.dshl"
   file:t = "../rendinst_vcolor_layered.dshl"
   file:t = "../rendinst_cliff.dshl"
-  file:t = "../rendinst_decal.dshl"
 
   file:t = "../dynamic_simple.dshl"
   file:t = "../dynamic_transparent.dshl"

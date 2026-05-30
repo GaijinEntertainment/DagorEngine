@@ -2,6 +2,7 @@
 
 #include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animBlendCtrl.h>
+#include <anim/dag_animDecl.h>
 #include <animChar/dag_animate2ndPass.h>
 namespace AnimV20
 {
@@ -68,7 +69,7 @@ void AnimationGraph::setStateSpeed(IPureAnimStateHolder &, dag::ConstSpan<StateR
 int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
 
 bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real) { G_ASSERT(0); }
+void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real, FifoMorphType) { G_ASSERT(0); }
 int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real) { G_ASSERT_RETURN(false, 0); }
 
 int AnimCommonStateHolder::getParamInt(int) const { G_ASSERT_RETURN(false, 0); }

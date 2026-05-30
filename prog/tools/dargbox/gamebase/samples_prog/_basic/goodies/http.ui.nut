@@ -34,8 +34,8 @@ function mkHttpCbButton(text, request) {
 
 function printResponse(response) {
   vlog("response", response)
-  vlog($"status = {response?.status}")
-  vlog($"http_code = {response?.http_code} ({statusText?[response?.http_code]})")
+  vlog($"status = {response?.status} ({statusText?[response?.status]})")
+  vlog($"http_code = {response?.http_code}")
   vlog($"body = {response?.body?.as_string?()}")
   vlog($"body len = {response?.body?.len?()}")
 }
@@ -81,27 +81,19 @@ let sampleBlobPostButton = mkHttpCbButton("Blob POST",{
 })
 
 async function fetchGet() {
-  try {
-    let res = await httpFetch({
-      method = "GET"
-      url = "https://gaijin.net/"
-    })
-    printResponse(res)
-  } catch (err) {
-    vlog("fetch failed", err)
-  }
+  let res = await httpFetch({
+    method = "GET"
+    url = "https://gaijin.net/"
+  })
+  printResponse(res)
 }
 
 async function fetchGetFail() {
-  try {
-    let res = await httpFetch({
-      method = "GET"
-      url = "https://127.0.0.1:0/"
-    })
-    printResponse(res)
-  } catch (err) {
-    vlog("fetch failed", err)
-  }
+  let res = await httpFetch({
+    method = "GET"
+    url = "https://127.0.0.1:0/"
+  })
+  printResponse(res)
 }
 
 function column(children) {

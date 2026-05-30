@@ -153,6 +153,7 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
 
       half reflectance = 0.5;
       half3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
+      #if !RENDINST_IMPOSTOR_VOXEL
       ##if compatibility_mode == compatibility_mode_off
         BRANCH
         if (character_micro_detail_layer >= 0)
@@ -163,6 +164,7 @@ macro MASK_LAYERED_PS(has_sampler, isDynamic)
         // Passes except normal and albedo exist? (next line should only work for normal pass)
         apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
       ##endif
+      #endif
 
       worldNormal = perturb_normal_precise( detailNormalMap, worldNormal, input.pointToEye.xyz, detail_uv );
 

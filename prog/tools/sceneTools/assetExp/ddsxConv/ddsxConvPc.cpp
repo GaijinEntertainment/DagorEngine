@@ -2,6 +2,7 @@
 
 #include <util/dag_stdint.h>
 #include <libTools/dtx/ddsxPlugin.h>
+#include <libTools/dtx/makeDDS.h>
 #include <3d/ddsxTex.h>
 #include <3d/ddsFormat.h>
 #include <drv/3d/dag_tex3d.h>
@@ -509,6 +510,11 @@ static bool convert_dds_voltex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t 
 
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  {
+    ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
+    hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+  }
   if (params.needSysMemCopy)
     hdr.flags |= hdr.FLG_HOLD_SYSMEM_COPY;
 
@@ -653,6 +659,11 @@ static bool convert_dds_cubetex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t
 
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  {
+    ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
+    hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+  }
   if (params.needSysMemCopy)
     hdr.flags |= hdr.FLG_HOLD_SYSMEM_COPY;
   if (params.splitHigh)
@@ -819,6 +830,13 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
 
   if (fabsf(params.imgGamma - 1.0f) < 1e-3f)
     hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+  float effGamma = params.imgGamma;
+  if (!(hdr.flags & hdr.FLG_GAMMA_EQ_1) && !is_srgb_capable_d3d_fmt(fmt))
+  {
+    ERR_PRINTF("gamma=%.1f is applied to D3D format %i that doesn't support sRGB. Resetting gamma to 1.0", params.imgGamma, fmt);
+    hdr.flags |= hdr.FLG_GAMMA_EQ_1;
+    effGamma = 1.0f;
+  }
   if (params.needSysMemCopy)
     hdr.flags |= hdr.FLG_HOLD_SYSMEM_COPY;
   if (params.splitHigh)
@@ -881,7 +899,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
     dp += sizeof(hdr);
 
     float *prefix_data = (float *)dp;
-    ((float *)dp)[0] = params.imgGamma;
+    ((float *)dp)[0] = effGamma;
     ((float *)dp)[1] = params.kaizerAlpha, ((float *)dp)[2] = params.kaizerStretch;
     dp += 3 * sizeof(float);
 
@@ -952,7 +970,7 @@ static bool convert_dds_tex(ddsx::Buffer &dest, DDSURFACEDESC2 &dsc, uint8_t *sp
   float *suffix_data = (float *)((char *)dest.ptr + sizeof(hdr) + hdr.memSz - suffix_sz);
 
   if (hdr.flags & (hdr.FLG_GENMIP_BOX | hdr.FLG_GENMIP_KAIZER))
-    suffix_data[0] = params.imgGamma;
+    suffix_data[0] = effGamma;
 
   if (hdr.flags & hdr.FLG_GENMIP_KAIZER)
   {

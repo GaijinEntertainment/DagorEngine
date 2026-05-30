@@ -186,9 +186,9 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
   G_ASSERT(sq_gettop(v) == 2);
 
-  const char *errMsg;
-  if (SQ_FAILED(sq_getstring(v, 2, &errMsg)))
-    errMsg = "Unknown error";
+  sqstd_aux_error_to_string(v, 2);
+  const char *errMsg = "Unknown error";
+  sq_getstring(v, -1, &errMsg);
 
   LOGERR_CTX("[SQ] %s", errMsg);
 
@@ -205,6 +205,8 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
     netErrorStr.append(callstack);
     sq_pop(v, 1);
   }
+
+  sq_poptop(v);
 
 #if DAGOR_DBGLEVEL == 0
   event_log::ErrorLogSendParams params;

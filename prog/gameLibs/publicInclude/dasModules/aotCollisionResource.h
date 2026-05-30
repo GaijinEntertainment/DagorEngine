@@ -252,4 +252,6 @@ inline bool apply_collres_node_flag_rules(ecs::EntityId eid, const ecs::Array &r
 {
   return ::apply_collres_node_flag_rules(*g_entity_mgr, eid, rules);
 }
+
+inline bool clone_collres(ecs::EntityId eid) { return ::clone_collres(*g_entity_mgr, eid); }
 } // namespace bind_dascript

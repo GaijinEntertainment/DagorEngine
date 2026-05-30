@@ -76,7 +76,8 @@ public:
 
     using method_startRagdoll = DAS_CALL_MEMBER(PhysRagdoll::startRagdoll);
     das::addExtern<DAS_CALL_METHOD(method_startRagdoll)>(*this, lib, "ragdoll_startRagdoll", das::SideEffects::modifyArgument,
-      DAS_CALL_MEMBER_CPP(PhysRagdoll::startRagdoll));
+      DAS_CALL_MEMBER_CPP(PhysRagdoll::startRagdoll))
+      ->arg_init(/*scale*/ 4, new das::ExprConstFloat(1.0f));
 
     using method_setScaleTm = DAS_CALL_MEMBER(PhysRagdoll::setScaleTm);
     das::addExtern<DAS_CALL_METHOD(method_setScaleTm)>(*this, lib, "ragdoll_setScaleTm", das::SideEffects::modifyArgument,

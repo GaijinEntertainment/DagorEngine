@@ -205,6 +205,30 @@ bool SQGenerator::Resume(SQVM *v,SQObjectPtr &dest)
     return true;
 }
 
+bool SQGenerator::RunStep(SQVM *v,SQObjectPtr &out,ResumeMode mode,const SQObjectPtr &payload)
+{
+    SQVM::ExecutionType et = SQVM::ET_RESUME_GENERATOR;
+    if (mode == ResumeThrow) {
+        v->_lasterror = payload;
+        et = SQVM::ET_RESUME_GENERATOR_THROW;
+    }
+    else if (_yield_arg1 != MAX_FUNC_STACKSIZE) {
+        // Still MAX_FUNC_STACKSIZE on the first run: nothing to deliver yet.
+        _stack[_yield_arg1] = payload;
+    }
+
+    // sq_resume's calling convention: generator + result placeholder on the stack.
+    v->Push(SQObjectPtr(this));
+    v->PushNull();
+    bool execOk = v->_debughook
+        ? v->Execute<true>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), SQFalse, et)
+        : v->Execute<false>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), SQFalse, et);
+    if (execOk)
+        out = v->GetUp(-1);
+    v->Pop(2);
+    return execOk;
+}
+
 void SQArray::Extend(const SQArray *a){
     SQInteger xlen;
     if((xlen=a->Size()))

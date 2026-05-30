@@ -59,10 +59,11 @@ shader spot_lights_tiles, omni_lights_tiles
   {
     INIT_SPOT_LIGHTS_CB(vs)
 
+    local float spot_cones_circumscribe_scale = 1.0 / cos(PI / (spot_cones_vertex_stacks - 1));
     (vs) {
       spot_cones_vertex_slices@i1 = spot_cones_vertex_slices;
       spot_cones_vertex_stacks@i1 = spot_cones_vertex_stacks;
-      spot_cones_circumscribe_scale@f1 = 1.0 / cos(PI / (spot_cones_vertex_stacks - 1));
+      spot_cones_circumscribe_scale_vec@f3 = (spot_cones_circumscribe_scale, 1, spot_cones_circumscribe_scale);
 
       if (has_conservative_rasterization == no)
       {
@@ -92,52 +93,58 @@ shader spot_lights_tiles, omni_lights_tiles
         vertexPos.z = sin(ang);
 
         ##if has_conservative_rasterization == no
-          float3 worstErrorPos = lightWorldPos - normalize(sourceToEye) * radius;
-          float4 worstErrorPosProjected = mul(float4(worstErrorPos, 1), globtm);
-          worstErrorPosProjected /= worstErrorPosProjected.w;
-          worstErrorPosProjected.xy -= tile_scale;
-          float4 worstErrorPosShifted = mul(worstErrorPosProjected, globtm_inv);
-          float noConservativeRasterizationExpansion = distance(worstErrorPos, worstErrorPosShifted.xyz);
-
-          radius += noConservativeRasterizationExpansion;
           float3 noConservativeRasterizationShift = vertexPos;
         ##endif
+
+        float lerpParam = 1;
+        float halfTan = 0;
+        float3 vertexPosNormalized = 0;
+        const float CONE_SCALE_MULTIPLIER = 1.05;
 
         int sliceNo = vertexId / spot_cones_vertex_stacks;
         if (sliceNo == 0)
         {
           vertexPos.xz = 0;
-          ##if has_conservative_rasterization == no
-            noConservativeRasterizationShift = float3(0, -noConservativeRasterizationExpansion, 0);
-          ##endif
         }
         else
         {
-          float lerpParam = float(sliceNo - 1) / float(spot_cones_vertex_slices - 2);
+          lerpParam = float(sliceNo - 1) / float(spot_cones_vertex_slices - 2);
 
           float localHalfCos = lerp(halfCos, 1, lerpParam);
 
-          float halfTan = sqrt(1 / pow2(localHalfCos) - 1);
+          halfTan = sqrt(1 / pow2(localHalfCos) - 1);
           float halfWidth = halfTan;
 
           vertexPos.xz *= halfWidth;
           vertexPos.y = 1;
-          vertexPos = normalize(vertexPos) * radius * 1.05; // enlarge area a bit
-          vertexPos.xz *= spot_cones_circumscribe_scale;
-
-          ##if has_conservative_rasterization == no
-            noConservativeRasterizationExpansion = lerp(noConservativeRasterizationExpansion, 0, lerpParam);
-            noConservativeRasterizationShift.y = -halfTan;
-            noConservativeRasterizationShift = normalize(noConservativeRasterizationShift) * noConservativeRasterizationExpansion;
-          ##endif
+          vertexPosNormalized = normalize(vertexPos);
+          vertexPos = vertexPosNormalized * radius * CONE_SCALE_MULTIPLIER;
+          vertexPos *= spot_cones_circumscribe_scale_vec;
         }
-
-        ##if has_conservative_rasterization == no
-          vertexPos += noConservativeRasterizationShift;
-        ##endif
 
         float3 worldPos = lightWorldPos + vertexPos.x * e1 + vertexPos.z * e2 +
                                           vertexPos.y * light.lightDirectionAngleOffset.xyz;
+
+        ##if has_conservative_rasterization == no
+          float4 worldPosProjected = mul(float4(worldPos, 1), globtm);
+          worldPosProjected /= worldPosProjected.w;
+          worldPosProjected.xy -= tile_scale;
+          float4 worldPosPosShifted = mul(worldPosProjected, globtm_inv);
+          worldPosPosShifted /= worldPosPosShifted.w;
+          float noConservativeRasterizationExpansion = distance(worldPos, worldPosPosShifted.xyz);
+
+          noConservativeRasterizationShift.y = -halfTan;
+
+          float3 vertexPosCorrection = sliceNo == 0 ?
+            float3(0, -1, 0) : // downward apex shift
+            vertexPosNormalized * CONE_SCALE_MULTIPLIER * spot_cones_circumscribe_scale_vec
+              + normalize(noConservativeRasterizationShift) * (1 - lerpParam); // outward cone surface shift
+
+          vertexPosCorrection *= noConservativeRasterizationExpansion;
+
+          worldPos += vertexPosCorrection.x * e1 + vertexPosCorrection.z * e2 +
+                      vertexPosCorrection.y * light.lightDirectionAngleOffset.xyz;
+        ##endif
 
         VsOutput output;
         output.pos = mul(float4(worldPos, 1), globtm);

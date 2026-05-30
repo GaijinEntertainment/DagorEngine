@@ -122,7 +122,7 @@ static void traceDir(const uint8_t *blas_data, int tree_start, int tree_bytes, v
     rd.rayDirInv = dirInv;
     rd.data = blas_data;
     rd.t = 1e9f; // shadow ray: unbounded along ray; any-hit cb breaks on first triangle
-    if (BLASTraverse<>::rayBLAS(rd, tree_start, tree_bytes, AnyHitCb{}))
+    if (rayBLAS_Free<false>(rd, tree_start, tree_bytes, AnyHitCb{}))
       blas_hits++;
   }
 }

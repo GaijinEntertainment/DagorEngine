@@ -1,0 +1,4 @@
+resolve threw: Future.resolve: cannot resolve with self
+cross-resolve before b settles: pending
+cross-resolve after b settles: fulfilled
+script done

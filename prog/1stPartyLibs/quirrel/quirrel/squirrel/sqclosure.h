@@ -102,6 +102,7 @@ public:
 struct SQGenerator : public CHAINABLE_OBJ
 {
     enum SQGeneratorState{eRunning,eSuspended,eDead};
+    enum ResumeMode{ResumeNormal,ResumeThrow};
 private:
     SQGenerator(SQSharedState *ss,SQClosure *closure) :
       _stack(ss->_alloc_ctx),
@@ -128,10 +129,12 @@ public:
     }
 
     bool Yield(SQVM *v,SQInteger arg1,SQInteger target);
-    // Async send/throw must be delivered before calling Resume: write sendValue
-    // into `_stack[_yield_arg1]` (the saved-stack copy picks it up), or pre-set
-    // `v->_lasterror` and pass ET_RESUME_GENERATOR_THROW for rejection.
+    // Low-level resume; prefer RunStep, which owns the send/throw delivery.
     bool Resume(SQVM *v,SQObjectPtr &dest);
+    // Drive one resume step: deliver payload per mode, run the generator, write
+    // the yielded value into out. Returns false on an unhandled fault, leaving
+    // the thrown value in v->_lasterror.
+    bool RunStep(SQVM *v,SQObjectPtr &out,ResumeMode mode,const SQObjectPtr &payload);
 #ifndef NO_GARBAGE_COLLECTOR
     void Mark(SQCollectable **chain);
     void Finalize(){_stack.resize(0);_closure.Null();}

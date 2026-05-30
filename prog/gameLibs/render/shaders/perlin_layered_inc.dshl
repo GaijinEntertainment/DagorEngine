@@ -403,6 +403,9 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
         half reflectance = 0.5;
         half ao = 1;
 ##if compatibility_mode == compatibility_mode_off
+  #if RENDINST_IMPOSTOR_VOXEL
+        half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
+  #else
         BRANCH
         if (character_micro_detail_layer>=0)
         {
@@ -412,6 +415,7 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
 
         half3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
         apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+  #endif
 ##else
         half3 worldNormal = input.normal.xyz;
 ##endif

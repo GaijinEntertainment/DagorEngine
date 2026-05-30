@@ -42,12 +42,6 @@ struct BindlessTexSwap
   ImageViewState viewState;
 };
 
-enum BindlessUpdateType
-{
-  RES,
-  COPY
-};
-
 // constructor is not implicitly called - intended logic
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -56,23 +50,14 @@ enum BindlessUpdateType
 
 struct BindlessTexUpdateInfo
 {
-  BindlessTexUpdateInfo(uint32_t _index, Image *img, void *owner, ImageViewState view) :
-    index(_index), count(1), type(BindlessUpdateType::RES)
+  BindlessTexUpdateInfo(uint32_t _index, Image *img, void *owner, ImageViewState view) : index(_index), count(1)
   {
     variant.res = {img, view, owner};
   }
-  BindlessTexUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) : index(dst), count(_count), type(BindlessUpdateType::COPY)
-  {
-    variant.copy.src = src;
-  }
-  BindlessTexUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count), type(BindlessUpdateType::RES)
-  {
-    variant.res = {nullptr, {}, nullptr};
-  }
+  BindlessTexUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count) { variant.res = {nullptr, {}, nullptr}; }
 
   uint32_t index;
   uint32_t count;
-  BindlessUpdateType type;
   union Variants
   {
     struct
@@ -81,10 +66,6 @@ struct BindlessTexUpdateInfo
       ImageViewState viewState;
       void *owner;
     } res;
-    struct
-    {
-      uint32_t src;
-    } copy;
 
     Variants() {}
   } variant;
@@ -93,32 +74,17 @@ struct BindlessTexUpdateInfo
 
 struct BindlessBufUpdateInfo
 {
-  BindlessBufUpdateInfo(uint32_t _index, const BufferRef &bref) : index(_index), count(1), type(BindlessUpdateType::RES)
-  {
-    variant.res.bref = bref;
-  }
-  BindlessBufUpdateInfo(uint32_t src, uint32_t dst, uint32_t _count) : index(dst), count(_count), type(BindlessUpdateType::COPY)
-  {
-    variant.copy.src = src;
-  }
-  BindlessBufUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count), type(BindlessUpdateType::RES)
-  {
-    variant.res.bref = {};
-  }
+  BindlessBufUpdateInfo(uint32_t _index, const BufferRef &bref) : index(_index), count(1) { variant.res.bref = bref; }
+  BindlessBufUpdateInfo(uint32_t _index, uint32_t _count) : index(_index), count(_count) { variant.res.bref = {}; }
 
   uint32_t index;
   uint32_t count;
-  BindlessUpdateType type;
   union Variants
   {
     struct
     {
       BufferRef bref;
     } res;
-    struct
-    {
-      uint32_t src;
-    } copy;
 
     Variants() {}
   } variant;

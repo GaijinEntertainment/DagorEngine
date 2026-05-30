@@ -175,15 +175,13 @@ void RendInstHeightmap::prepareRiVisibilityAsync()
     G_ASSERTF(region.lt.x + region.wd.x <= helper.texSize && helper.texSize - region.lt.y <= helper.texSize,
       "update region exceeds texture size left_top = %@, width = %@ texSize = %@", region.lt, region.wd, helper.texSize);
 
-    TMatrix4 globTm = TMatrix4(vtm) * projTMs[i];
-    mat44f culling_view_proj;
-    v_mat44_make_from_44cu(culling_view_proj, &globTm._11);
-
     if (rendinstHeightmapVisibilities.size() <= i)
       rendinstHeightmapVisibilities.push_back(create_rendinst_heightmap_visibility());
 
-    rendinst::prepareRIGenExtraVisibility(culling_view_proj, Point3(box.center().x, (zf - zn), box.center().y),
-      *rendinstHeightmapVisibilities[i], false, NULL, {}, rendinst::RiExtraCullIntention::MAIN, false, true);
+    bbox3f cullBox;
+    cullBox.bmin = v_make_vec4f(box[0].x, zn, box[0].y, 0.f);
+    cullBox.bmax = v_make_vec4f(box[1].x, zf, box[1].y, 0.f);
+    rendinst::prepareRIGenExtraVisibilityBoxForRIClipmapBox(cullBox, 0, 0.f, 0.f, *rendinstHeightmapVisibilities[i], nullptr);
   }
 }
 

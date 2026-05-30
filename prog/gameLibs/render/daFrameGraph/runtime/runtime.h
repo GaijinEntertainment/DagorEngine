@@ -159,6 +159,7 @@ private:
   Runtime();
   ~Runtime();
 
+  void resetIncrementalState();
   void recompile();
   void debugDanglingReferences();
   void testIncrementality();

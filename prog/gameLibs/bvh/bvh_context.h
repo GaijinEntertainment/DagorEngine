@@ -550,6 +550,35 @@ private:
 static constexpr int mm_pool_size_pow = 10;
 using MeshMetaAllocator = BVHHeapAllocator<MeshMetaHeapManager<mm_pool_size_pow, 256>, 1 << mm_pool_size_pow>;
 
+struct LockedMetaAccess
+{
+  MeshMetaAllocator::AllocId allocId;
+
+  MeshMeta &operator[](int i) { return metas[i]; }
+  const MeshMeta &operator[](int i) const { return metas[i]; }
+
+  ~LockedMetaAccess()
+  {
+    if (lock)
+      lock->unlock();
+  }
+
+  LockedMetaAccess(LockedMetaAccess &&o) noexcept : lock(o.lock), metas(o.metas), allocId(o.allocId) { o.lock = nullptr; }
+  LockedMetaAccess(const LockedMetaAccess &) = delete;
+  LockedMetaAccess &operator=(const LockedMetaAccess &) = delete;
+  LockedMetaAccess &operator=(LockedMetaAccess &&) = delete;
+
+private:
+  friend struct Context;
+  LockedMetaAccess(OSSpinlock &lk, dag::Span<MeshMeta> m, MeshMetaAllocator::AllocId id) : lock(&lk), metas(m), allocId(id)
+  {
+    lock->lock();
+  }
+
+  OSSpinlock *lock;
+  dag::Span<MeshMeta> metas;
+};
+
 struct Mesh
 {
   void teardown(ContextId context_id);
@@ -775,6 +804,7 @@ struct Context
 {
   friend struct DeathrowJob;
 
+  // TODO: split it up, use partially data oriented design + unions for mutually exclusive features
   struct Instance
   {
     enum class AnimationUpdateMode
@@ -793,18 +823,22 @@ struct Context
     eastl::function<Sbuffer *(uint32_t &)> getSplineDataFn;
     BVHBufferReference *uniqueTransformedBuffer;
     UniqueBLAS *uniqueBlas;
-    bool uniqueIsRecycled;
-    bool uniqueIsStationary;
-    bool noShadow;
     AnimationUpdateMode animationUpdateMode;
     MeshMetaAllocator::AllocId metaAllocId;
-    bool hasInstanceColor;
     eastl::optional<PerInstanceData> perInstanceData;
     int animIndex;
 
     TreeData tree;
     FlagData flag;
     SkinData skin;
+
+    bool uniqueIsRecycled;
+    bool uniqueIsStationary;
+    bool noShadow;
+    bool hasInstanceColor;
+
+    bool needsBlasBuild;
+    bool alreadyProcessed;
   };
 
   struct BLASCompaction
@@ -878,6 +912,17 @@ struct Context
 
   MeshMetaAllocator::AllocId allocateMetaRegion(int size, const char *origin);
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
+
+  LockedMetaAccess allocateMeta(int count, const char *origin)
+  {
+    auto id = allocateMetaRegion(count, origin);
+    return LockedMetaAccess(meshMetaAllocatorLock, meshMetaAllocator.get(id), id);
+  }
+
+  LockedMetaAccess lockMeta(MeshMetaAllocator::AllocId id)
+  {
+    return LockedMetaAccess(meshMetaAllocatorLock, meshMetaAllocator.get(id), id);
+  }
 
   TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexture(TEXTUREID id);
@@ -957,6 +1002,7 @@ struct Context
 
   UniqueBuf tlasUploadParticles;
 
+  OSSpinlock objectsLock;
   ObjectMap objects;
   ObjectMap impostors;
   UniqueTLAS tlasMain;

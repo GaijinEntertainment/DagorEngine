@@ -8,6 +8,7 @@
 #include <math/integer/dag_IPoint3.h>
 #include <util/dag_baseDef.h>
 #include <util/dag_string.h>
+#include <image/dag_texPixel.h>
 #include <render/deferredRenderer.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <3d/dag_resPtr.h>
@@ -38,6 +39,14 @@ class Sbuffer;
 class DagorAsset;
 class ILogWriter;
 
+namespace defaults
+{
+static constexpr float projScale = 1080; // diameter in pixels of a disk of radius R when viewed from distance R
+static constexpr float triangleThreshold = 70;
+static constexpr int maxMapSize = 256;
+static constexpr float voxelSize = -1;
+} // namespace defaults
+
 struct AOData
 {
   Color4 ao1PosScale = Color4(0, 0, 0, 0);
@@ -51,6 +60,7 @@ struct AOData
 class ImpostorBaker
 {
 public:
+  static constexpr int VOXEL_VERSION = 1;
   static const unsigned int NUM_SCALED_VERTICES = 8;
 
   explicit ImpostorBaker(ILogWriter *log_writer, bool displayExportedImages = false) noexcept;
@@ -80,17 +90,29 @@ public:
     bool operator()(const String &lhs, const String &rhs) const { return strcmp(lhs.c_str(), rhs.c_str()) < 0; }
   };
 
+  enum ImpostorTypeEnum : uint8_t
+  {
+    FLAT = 1,
+    VOXEL = 2,
+
+    ALL = FLAT | VOXEL,
+    NONE = 0,
+  };
+
+  using ImpostorType = BitFlagsMask<ImpostorTypeEnum>;
+
   ImpostorData generate(DagorAsset *asset, const ImpostorTextureManager::GenerationData &gen_data, RenderableInstanceLodsResource *res,
     const String &asset_name, DataBlock *impostor_blk = nullptr);
   ImpostorData exportToFile(const ImpostorTextureManager::GenerationData &gen_data, DagorAsset *asset,
     RenderableInstanceLodsResource *res, bool force_rebake, DataBlock *impostor_blk = nullptr);
   TexturePackingProfilingInfo exportImpostor(DagorAsset *asset, const ImpostorOptions &options, DataBlock *impostor_blk = nullptr);
+  bool exportVoxelCache(DagorAsset *asset, const ImpostorOptions &options);
   void generateFolderBlk(DagorAsset *asset, const ImpostorOptions &options);
   bool generateAssetTexBlk(DagorAsset *asset, const ImpostorTextureManager::GenerationData &gen_data, const char *folder_path,
     const char *name);
   bool updateAssetTexBlk(DagorAsset *asset, int &out_processed, int &out_changed);
-  bool hasSupportedType(DagorAsset *asset) const;
-  bool isSupported(DagorAsset *asset) const;
+  bool hasSupportedType(DagorAsset *asset, ImpostorType type) const;
+  ImpostorType getSupported(DagorAsset *asset) const;
   ska::flat_hash_map<eastl::string, int> getHashes(DagorAsset *asset) const;
   void gatherExportedFiles(DagorAsset *asset, eastl::set<String, StrLess> &files) const;
 
@@ -127,6 +149,9 @@ public:
 
   void setSimilarityThreshold(float similarity_threshold);
 
+  void setVoxelParams(const DataBlock &blk) { defaultVoxelParams = blk; }
+  void setOptions(const ImpostorOptions &options);
+
   void computeDDSxPackSizes(dag::ConstSpan<DagorAsset *> assets);
 
 
@@ -159,6 +184,7 @@ private:
   UniqueBuf treeCrown;
   eastl::unique_ptr<DeferredRenderTarget> rt;
   eastl::unique_ptr<DeferredRenderTarget> maskRt;
+  eastl::unique_ptr<DeferredRenderTarget> voxelRt;
   UniqueTexWithShaderVar impostorBranchMaskTex;
   eastl::set<eastl::string> exportedFolderBlks;
   eastl::set<eastl::string> modifiedFiles;
@@ -188,6 +214,7 @@ private:
   ImpostorTextureData prepareRt(IPoint2 extent, String asset_name, int mips) noexcept;
   static IPoint2 get_extent(const ImpostorTextureManager::GenerationData &gen_data);
   static IPoint2 get_rt_extent(const ImpostorTextureManager::GenerationData &gen_data);
+  static bool prefetch_textures(dag::ConstSpan<TEXTUREID> tex_list, int timeout = 60000000 /*start with 1 minute*/);
   SaveResult saveImage(const char *filename, Texture *tex, int mip_offset, int num_channels, float &similarity, float threshold,
     bool force_rebake);
   float compareImages(TexImage32 *img1, TexImage32 *img2, int num_channels);
@@ -199,6 +226,7 @@ private:
   eastl::vector<ImpostorPackNamePattern> defaultPackNamePatterns = {};
 
   eastl::unordered_map<eastl::string, uint32_t> ddsxPackSizes;
+  DataBlock defaultVoxelParams;
   bool preshadowsEnabled = true;
   float bottomGradient = 0.0;
   int smallestMipSize = 4;
@@ -222,4 +250,48 @@ private:
   void generateFolderBlk(const char *folder, const char *dxp_prefix, const ImpostorOptions &options);
   eastl::string getDDSxPackName(const char *folder_path);
   AOData generateAOData(RenderableInstanceLodsResource *res, const DataBlock &blk_in);
+
+  struct VoxelReadBackTextures
+  {
+    UniqueTex albedo;
+    UniqueTex normal;
+    UniqueTex extra;
+    UniqueTex depth;
+
+    bool create(int w, int h);
+  };
+
+  RenderableInstanceLodsResource *bakeRes;
+  IPoint3 bakeMapSize;
+  Point3 bakeBoxMin;
+  float bakeVoxelSize;
+
+  int voxelBakeWidth() const { return max(bakeMapSize.x, bakeMapSize.z); }
+  int voxelBakeHeight() const { return max(bakeMapSize.y, bakeMapSize.x); }
+
+  void getVoxelFaceParams(uint32_t face_id, uint32_t &view_w, uint32_t &view_h, uint32_t &view_d, Point3 &dir_x, Point3 &dir_y,
+    Point3 &dir_z) const;
+  void getVoxelFaceParams(uint32_t face_id, uint32_t &view_w, uint32_t &view_h, uint32_t &view_d, IPoint3 &dir_x, IPoint3 &dir_y,
+    IPoint3 &dir_z) const;
+
+  struct VoxelBakeRequest
+  {
+    uint32_t faceId = 0;
+    uint32_t offset = 0;
+
+    // results:
+    eastl::unique_ptr<TexImage32, tmpmemDeleter> albedo;
+    eastl::unique_ptr<TexImage32, tmpmemDeleter> normal;
+    eastl::unique_ptr<TexImage32, tmpmemDeleter> extra;
+    eastl::unique_ptr<TexImageR, tmpmemDeleter> depth;
+
+    // renderer stuff:
+    VoxelReadBackTextures readback;
+  };
+
+  bool beginVoxelBaking(RenderableInstanceLodsResource *res, const IPoint3 &map_size, const Point3 &box_min, float voxel_size);
+  bool bakeVoxels(dag::Span<VoxelBakeRequest> requests);
+  void endVoxelBaking();
+
+  float computeVoxelSize(RenderableInstanceLodsResource *res, const char *name, float proj_scale, float triangle_threshold);
 };

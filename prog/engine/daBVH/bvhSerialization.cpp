@@ -141,7 +141,7 @@ static void writeBVHTreeLeaf(const WriteBVHTreeInfo &info, const bbox3f box, uin
   {
     const uint32_t v = (info.writeByteData[index[first]] >> 3) | ((info.writeByteData[index[(first + 1) % 3]] >> 3) << 5) |
                        ((info.writeByteData[index[(first + 2) % 3]] >> 3) << 10);
-    G_ASSERT(v <= 32767);
+    G_ASSERT(v <= 32767); //-V547 by construction (3x 5-bit fields); guards against future widening of writeByteData
     nodeBbox->skip |= v << 16;
   }
   dataOffset += info.blasLeafSize;
@@ -191,7 +191,7 @@ static int writeBVHTree(const WriteBVHTreeInfo &info, const Indices *indices, in
     if (node != root)
     {
       const int offset = (dataOffset - tempdataOffset) / BVH_BLAS_ELEM_SIZE;
-      G_ASSERT(dataOffset % BVH_BLAS_ELEM_SIZE == 0 && tempdataOffset % BVH_BLAS_ELEM_SIZE == 0);
+      G_ASSERT(dataOffset % BVH_BLAS_ELEM_SIZE == 0 && tempdataOffset % BVH_BLAS_ELEM_SIZE == 0); //-V1063
       G_ASSERT(offset != info.blasLeafSize);
       BVHNodeBBox *bbox = (BVHNodeBBox *)(info.blasData + tempdataOffset - sizeof(BVHNodeBBox));
 

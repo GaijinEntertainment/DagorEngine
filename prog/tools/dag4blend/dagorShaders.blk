@@ -4996,6 +4996,11 @@ shader_category{
       default:r=1.0
     }
     parameter{
+      name:t="isShellTex"
+      type:t="b"
+      default:b=no
+    }
+    parameter{
       name:t="glassIoR"
       type:t="r"
       default:r=1.5
@@ -6268,6 +6273,11 @@ shader_category{
       name:t="num_bones"
       type:t="i"
       default:i=0
+    }
+    parameter{
+      name:t="isShellTex"
+      type:t="b"
+      default:b=no
     }
     parameter{
       name:t="glassIoR"

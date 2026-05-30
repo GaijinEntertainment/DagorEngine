@@ -60,7 +60,7 @@ shader dynamic_simple_painted
   }
   else if (dyn_model_render_pass != render_pass_normal)
   {
-    if (in_editor_assume == no) { NO_DYNSTCODE() }
+    NO_DYNSTCODE()
     if (atest == atestOn)
     {
       (ps) { diffuse_tex@staticSmp = tex; }

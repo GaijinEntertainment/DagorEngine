@@ -390,8 +390,20 @@ static bool separateAtestPass = false;
 UniqueBufWithShaderVar contextGpuDataBuffer;
 Statistics statistics = {0};
 
+static ShaderVariableInfo skinningProjToWorldTm("skinning_proj_to_world_tm", true);
+static ShaderVariableInfo skinningProjToViewTm("skinning_proj_to_view_tm", true);
+
 CONSOLE_BOOL_VAL("debug", dynrendLog, false);
 
+static void update_context_gpu_data(const ContextGpuData &data)
+{
+  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &data, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  if (skinningProjToWorldTm && skinningProjToViewTm)
+  {
+    skinningProjToWorldTm.set_float4x4(data.projToWorldTm.transpose());
+    skinningProjToViewTm.set_float4x4(data.projToViewTm.transpose());
+  }
+}
 
 ContextId create_context(const char *name)
 {
@@ -416,6 +428,13 @@ ContextId get_or_create_context(const char *name)
   return create_context(name);
 }
 
+ContextId find_context(const char *name)
+{
+  for (auto &c : contexts)
+    if (c.name == name)
+      return (ContextId)(&c - contexts.data());
+  return ContextId::INVALID;
+}
 
 void delete_context(ContextId context_id)
 {
@@ -1327,7 +1346,7 @@ void update_reprojection_data(ContextId contextId)
   ContextData &ctx = contexts[(int)contextId];
   if (!ctx.renderSkinned)
     return;
-  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  update_context_gpu_data(ctx.gpuData);
 }
 
 bool set_instance_data_buffer(unsigned stage, ContextId contextId, int node_offset_render_data, int instance_offset_render_data)
@@ -1367,17 +1386,13 @@ const Point4 *get_per_instance_render_data(ContextId contextId, int indexToPerIn
   return ctx.perInstanceRenderData[indexToPerInstanceRenderData].params.data();
 }
 
-void after_device_reset()
-{
-  uint32_t dummy = 0;
-  contextGpuDataBuffer->updateDataWithLock(0, sizeof(dummy), &dummy, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
-}
+void after_device_reset() { update_context_gpu_data({}); }
 
 static void render_context_begin(ContextData &ctx)
 {
   ShaderGlobal::set_buffer(instanceDataBufferVarId, ctx.ringBuffer->getBufId());
   ctx.ringBufferVarSet = true;
-  contextGpuDataBuffer->updateDataWithLock(0, sizeof(ContextGpuData), &ctx.gpuData, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  update_context_gpu_data(ctx.gpuData);
   int sceneBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
   ShaderGlobal::setBlock(sceneBlock, ShaderGlobal::LAYER_SCENE); // Update buffer var.
 }
@@ -1802,7 +1817,7 @@ InitialNodes::InitialNodes(const DynamicRenderableSceneInstance *instance, const
 static ShaderVariableInfo animchar_draw_order_var_info("draw_order");
 
 static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
-  const DynamicRenderableSceneResource *lodResource, const dynmodel_additional_data::AnimcharAdditionalDataView &additional_data,
+  const DynamicRenderableSceneResource *lodResource, const animchar_additional_data::AnimcharAdditionalDataView &additional_data,
   NeedPreviousMatrices need_previous_matrices, DynamicShaderOverrides shader_overrides, const PathFilterView &path_filter,
   uint8_t render_mask, RenderPriority priority, const GlobalVariableStates *gvars_state, TexStreamingContext texCtx,
   const mat44f &viewProjTmRelToOrigin, const mat44f &prevViewProjTmRelToOrigin,
@@ -2064,7 +2079,7 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
 
 
 void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
-  const DynamicRenderableSceneResource *lodResource, const dynmodel_additional_data::AnimcharAdditionalDataView additional_data,
+  const DynamicRenderableSceneResource *lodResource, const animchar_additional_data::AnimcharAdditionalDataView additional_data,
   NeedPreviousMatrices need_previous_matrices, DynamicShaderOverrides shader_overrides, const PathFilterView path_filter,
   uint8_t render_mask, RenderPriority priority, const GlobalVariableStates *gvars_state, TexStreamingContext texCtx,
   eastl::vector<int, framemem_allocator> *output_offsets)
@@ -2103,7 +2118,7 @@ void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage
 
 
 void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
-  const dynmodel_additional_data::AnimcharAdditionalDataView additional_data, NeedPreviousMatrices need_previous_matrices,
+  const animchar_additional_data::AnimcharAdditionalDataView additional_data, NeedPreviousMatrices need_previous_matrices,
   DynamicShaderOverrides shader_overrides, const PathFilterView path_filter, uint8_t render_mask, RenderPriority priority,
   const GlobalVariableStates *gvars_state, TexStreamingContext texCtx, eastl::vector<int, framemem_allocator> *output_offsets)
 {

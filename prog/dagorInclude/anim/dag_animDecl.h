@@ -69,6 +69,13 @@ class IAnimCharacter2;
 // generally internal structures
 struct AnimTmpWeightedNode;
 struct AnimFifo3Queue;
+enum FifoMorphType : unsigned char
+{
+  MT_LINEAR,
+  MT_QUAD_IN,
+  MT_QUAD_OUT,
+  MT_QUAD_IN_OUT,
+};
 
 // generally internal classes and interface implementations
 class AnimBlender;

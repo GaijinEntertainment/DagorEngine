@@ -328,7 +328,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
   }
   else if ( dafx_modfx_bboard_render_atest )
   {
-    z_write = false;
+    z_write = true;
     blend_src=one;
     blend_dst=zero;
     blend_asrc=zero;

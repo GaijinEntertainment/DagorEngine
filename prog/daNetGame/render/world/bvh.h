@@ -3,6 +3,7 @@
 
 class Point3;
 struct Frustum;
+class TMatrix;
 class TMatrix4;
 struct BVHInstanceMapper;
 namespace dafg
@@ -10,7 +11,8 @@ namespace dafg
 class NodeHandle;
 }
 
-void bvh_update_instances(const Point3 &cameraPos, const Point3 &lightDirection, const Frustum &viewFrustum);
+void bvh_update_instances(
+  const Point3 &cameraPos, const Point3 &lightDirection, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &viewFrustum);
 void prepareFXForBVH(const Point3 &cameraPos);
 bool is_bvh_enabled();
 bool is_rtsm_enabled();
@@ -34,5 +36,6 @@ void set_bvh_on_parallel_jobs_finished_cb(void (*cb)());
 TMatrix4 get_bvh_culling_matrix(const Point3 &cameraPos);
 BVHInstanceMapper *get_bvh_dagdp_instance_mapper();
 void bvh_bind_resources(int render_width);
+void bvh_unbind_resources();
 dafg::NodeHandle make_rtsm_dynamic_node();
 void toggle_rtsm_dynamic(bool enable);

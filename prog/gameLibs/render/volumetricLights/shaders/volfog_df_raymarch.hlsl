@@ -596,8 +596,10 @@ void get_occlusion_weights(float2 prev_tc, out float start_step, out float step_
     {
       UNROLL for (int x = -WEIGHT_KERNEL_SIZE; x <= WEIGHT_KERNEL_SIZE; x++)
       {
+        float2 tc = prev_tc + float2(x, y) * occlusionWeightSampleOffset;
+        tc *= distant_fog_raymarch_dyn_scales.zw;
         float2 weights = tex2Dlod(prev_distant_fog_raymarch_start_weights,
-          float4(prev_tc + float2(x, y) * occlusionWeightSampleOffset, 0, occlusion_weight_mip_level)).xy;
+          float4(tc, 0, occlusion_weight_mip_level)).xy;
         maxWeights = max(maxWeights, weights);
       }
     }

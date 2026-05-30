@@ -41,8 +41,9 @@ DestroyedHeapSet ResourceAllocator::allocateCpuHeaps(int prev_frame, const HeapR
 
     if (req.size <= cpuHeaps[heapIdx].size())
     {
-      debug("daFG: Reusing CPU pseudo-heap %d of size %dKB instead of allocating a new %dKB heap", //
-        eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
+      if (req.size != 0)
+        debug("daFG: Reusing CPU pseudo-heap %d of size %dKB instead of allocating a new %dKB heap", //
+          eastl::to_underlying(heapIdx), allocatedHeaps[heapIdx].size >> 10, req.size >> 10);
       continue;
     }
 

@@ -73,7 +73,7 @@ void EffectManager::updateLightExt(LightEffect &le)
 
 
 // NOTE: sound in vfx is unsupported in DNG
-void EffectManager::loadSoundParamsExt() {}
+void EffectManager::loadSoundParamsExt(const acesfx::FXSoundInitParams *) {}
 void EffectManager::destroyFxSoundExt(int, bool, bool) {}
 void EffectManager::setFxTmSoundExt(BaseEffect &) {}
 void EffectManager::setFxVelocitySoundExt(BaseEffect &, const Point3 &) {}

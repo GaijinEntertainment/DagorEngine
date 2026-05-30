@@ -93,6 +93,13 @@ static inline void resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline
 {
   d3di.resource_barrier(desc, gpu_pipeline);
 }
+static inline void enhanced_texture_barrier(const d3d::TextureBarrier &b, BaseTexture *t) { d3di.enhanced_texture_barrier(b, t); }
+static inline void enhanced_buffer_barrier(const d3d::BufferBarrier &b, Sbuffer *buf) { d3di.enhanced_buffer_barrier(b, buf); }
+static inline void enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem> texture_barriers,
+  dag::ConstSpan<d3d::BufferBarrierBatchItem> buffer_barriers)
+{
+  d3di.enhanced_barrier_batch(texture_barriers, buffer_barriers);
+}
 
 #if _TARGET_PC_WIN | _TARGET_PC_MACOSX
 namespace pcwin

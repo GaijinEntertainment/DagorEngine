@@ -163,7 +163,7 @@ struct FramebufferLayout
   void clearColorAttachment(uint8_t index)
   {
     colorTargetMask &= ~(1 << index);
-    colorFormats[index] = FormatStore(0);
+    colorFormats[index] = FormatStore{};
     clearColorMsaaLevel(index);
   }
 
@@ -177,7 +177,7 @@ struct FramebufferLayout
   void clearDepthStencilAttachment()
   {
     hasDepth = 0;
-    depthStencilFormat = FormatStore(0);
+    depthStencilFormat = FormatStore{};
     depthMsaaLevel = 0;
   }
 

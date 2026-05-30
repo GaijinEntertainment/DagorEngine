@@ -9,7 +9,6 @@
 #include <free_list_utils.h>
 #include <image_global_subresource_id.h>
 #include <tagged_types.h>
-#include <typed_bit_set.h>
 
 #include <dag/dag_vector.h>
 #include <debug/dag_assert.h>
@@ -309,7 +308,86 @@ public:
     RAYTRACING,
     COUNT,
   };
-  using MetricBits = TypedBitSet<Metric>;
+  struct MetricBits
+  {
+    bool eventLog : 1 = false;
+    bool metricLog : 1 = false;
+    bool memoryUse : 1 = false;
+    bool heaps : 1 = false;
+    bool memory : 1 = false;
+    bool buffers : 1 = false;
+    bool textures : 1 = false;
+    bool constRing : 1 = false;
+    bool tempRing : 1 = false;
+    bool tempMemory : 1 = false;
+    bool persistentUpload : 1 = false;
+    bool persistentReadBack : 1 = false;
+    bool persistentBidirectional : 1 = false;
+    bool scratchBuffer : 1 = false;
+    bool raytracing : 1 = false;
+
+    bool test(Metric m) const
+    {
+      switch (m)
+      {
+        using enum Metric;
+        case EVENT_LOG: return eventLog;
+        case METRIC_LOG: return metricLog;
+        case MEMORY_USE: return memoryUse;
+        case HEAPS: return heaps;
+        case MEMORY: return memory;
+        case BUFFERS: return buffers;
+        case TEXTURES: return textures;
+        case CONST_RING: return constRing;
+        case TEMP_RING: return tempRing;
+        case TEMP_MEMORY: return tempMemory;
+        case PERSISTENT_UPLOAD: return persistentUpload;
+        case PERSISTENT_READ_BACK: return persistentReadBack;
+        case PERSISTENT_BIDIRECTIONAL: return persistentBidirectional;
+        case SCRATCH_BUFFER: return scratchBuffer;
+        case RAYTRACING: return raytracing;
+        default: return false;
+      }
+    }
+
+    void set(Metric m, bool value = true)
+    {
+      switch (m)
+      {
+        using enum Metric;
+        case EVENT_LOG: eventLog = value; break;
+        case METRIC_LOG: metricLog = value; break;
+        case MEMORY_USE: memoryUse = value; break;
+        case HEAPS: heaps = value; break;
+        case MEMORY: memory = value; break;
+        case BUFFERS: buffers = value; break;
+        case TEXTURES: textures = value; break;
+        case CONST_RING: constRing = value; break;
+        case TEMP_RING: tempRing = value; break;
+        case TEMP_MEMORY: tempMemory = value; break;
+        case PERSISTENT_UPLOAD: persistentUpload = value; break;
+        case PERSISTENT_READ_BACK: persistentReadBack = value; break;
+        case PERSISTENT_BIDIRECTIONAL: persistentBidirectional = value; break;
+        case SCRATCH_BUFFER: scratchBuffer = value; break;
+        case RAYTRACING: raytracing = value; break;
+        default: break;
+      }
+    }
+
+    void set()
+    {
+      eventLog = metricLog = memoryUse = heaps = memory = buffers = textures = constRing = tempRing = tempMemory = persistentUpload =
+        persistentReadBack = persistentBidirectional = scratchBuffer = raytracing = true;
+    }
+
+    void reset() { *this = {}; }
+
+    bool any() const
+    {
+      return eventLog || metricLog || memoryUse || heaps || memory || buffers || textures || constRing || tempRing || tempMemory ||
+             persistentUpload || persistentReadBack || persistentBidirectional || scratchBuffer || raytracing;
+    }
+  };
   struct SetupInfo : BaseType::SetupInfo
   {
     MetricBits collectedMetrics;

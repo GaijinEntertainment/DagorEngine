@@ -21,7 +21,7 @@ define_macro_if_not_defined INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
 endmacro
 
 int rendinst_render_pass = 0;
-interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap < 10, rendinst_render_pass_triangle_debug;
+interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 7, rendinst_render_pass_impostor_voxel < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap < 10, rendinst_render_pass_triangle_debug;
 int fluid_wind_support_assume = 0;
 interval fluid_wind_support_assume: off < 1, on;
 
@@ -60,6 +60,13 @@ macro RENDINST_BLOCK()
   else
   {
     supports rendinst_scene;
+  }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+  {
+    hlsl
+    {
+      #define RENDINST_IMPOSTOR_VOXEL 1
+    }
   }
 endmacro
 

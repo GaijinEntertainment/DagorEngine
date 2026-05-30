@@ -209,6 +209,7 @@ bool gpu_driven_debug_renderer_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("gpu_dbg_render", "enabled", 1, 1)
   {
     ecs::EntityId dbgEntity = g_entity_mgr->getSingletonEntity(ECS_HASH("gpu_driven_debug_render"));
+    console::print_d("gpu_dbg_render: %s", dbgEntity ? "off" : "on");
     if (dbgEntity)
       g_entity_mgr->destroyEntity(dbgEntity);
     else

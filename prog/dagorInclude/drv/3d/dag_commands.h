@@ -120,6 +120,9 @@ enum class Drv3dCommand
   D3D_FLUSH,    // ID3D11DeviceContext::Flush or IDirect3DQuery9::GetData(D3DGETDATA_FLUSH).
   GPU_BARRIER_WAIT_ALL_COMMANDS,
 
+  // flushes and submits current software command queue. similar with D3D_FLUSH without gpu wait
+  D3D_FLUSH_COMMAND_BUFFER,
+
   //! flush pipeline states to compile pipeline
   // par1: uintptr_t that stores ShaderStage
   //       if par1 == STAGE_PS, compiles graphics pipeline

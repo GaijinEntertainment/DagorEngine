@@ -2,6 +2,7 @@
 
 #include <render/temporalAA.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <EASTL/array.h>
 #include <drv/3d/dag_driver.h>
 #include <math/dag_TMatrix4D.h>
 #include <math/random/dag_halton.h>
@@ -124,7 +125,7 @@ bool TemporalAA::beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter)
   return isValid();
 }
 
-void TemporalAA::applyImpl(Texture *currentFrameTex)
+void TemporalAA::applyImpl(Texture *currentFrameTex, Texture *target)
 {
   if (taaPrecomputedWeights.getTex2D() && !precomputedWeightsReady)
   {
@@ -132,8 +133,7 @@ void TemporalAA::applyImpl(Texture *currentFrameTex)
     PostFxRenderer precompute;
     precompute.init("taa_precompute");
     SCOPE_RESET_SHADER_BLOCKS;
-    d3d::set_render_target();
-    d3d::set_render_target(0, taaPrecomputedWeights.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{taaPrecomputedWeights.getTex2D(), 0, 0}});
     ShaderGlobal::set_float4(gv_taa_input_resolution, inputResolution.x, inputResolution.y, 0, 0);
     ShaderGlobal::set_float4(gv_taa_output_resolution, outputResolution.x, outputResolution.y, 0, 0);
     precompute.render();
@@ -142,14 +142,17 @@ void TemporalAA::applyImpl(Texture *currentFrameTex)
   }
 
   RTarget::Ptr nextHistory = historyTexPool->acquire();
-  d3d::set_render_target(1, nextHistory->getTex2D(), 0);
-
   RTarget::Ptr nextWasDynamic;
   if (wasDynamicTexPool)
-  {
     nextWasDynamic = wasDynamicTexPool->acquire();
-    d3d::set_render_target(2, nextWasDynamic->getTex2D(), 0);
-  }
+
+  eastl::array<RenderTarget, 3> rts = {};
+  uint32_t rtCount = 0;
+  rts[rtCount++] = {target, 0, 0};
+  rts[rtCount++] = {nextHistory->getTex2D(), 0, 0};
+  if (nextWasDynamic)
+    rts[rtCount++] = {nextWasDynamic->getTex2D(), 0, 0};
+  d3d::set_render_target({}, DepthAccess::RW, dag::ConstSpan<RenderTarget>(rts.data(), rtCount));
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
 
   const TEXTUREID historyTexId = historyTex.current() ? historyTex.current()->getTexId() : BAD_TEXTUREID;
@@ -157,7 +160,7 @@ void TemporalAA::applyImpl(Texture *currentFrameTex)
   ShaderGlobal::set_texture(gv_taa_history_tex, historyTexId);
   ShaderGlobal::set_texture(gv_taa_was_dynamic_tex, wasDynamicTexId);
 
-  ShaderGlobal::set_texture(gv_taa_frame_tex, currentFrameTex);
+  ShaderGlobal::set_texture_unsafe(gv_taa_frame_tex, currentFrameTex);
   render.render();
   ShaderGlobal::set_texture(gv_taa_frame_tex, BAD_TEXTUREID);
 
@@ -171,15 +174,13 @@ void TemporalAA::apply(Texture *currentFrameTex, Texture *target)
 {
   SCOPE_RENDER_TARGET;
 
-  d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
-
-  applyImpl(currentFrameTex);
+  applyImpl(currentFrameTex, target);
 }
 
-void TemporalAA::applyToCurrentTarget(Texture *currentFrameTex)
+void TemporalAA::applyToCurrentTarget(Texture *currentFrameTex, Texture *target)
 {
   SCOPE_RENDER_TARGET;
-  applyImpl(currentFrameTex);
+  applyImpl(currentFrameTex, target);
 }
 
 void TemporalAA::setCurrentView(int view)

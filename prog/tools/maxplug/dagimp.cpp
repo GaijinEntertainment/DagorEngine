@@ -1609,9 +1609,8 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
         ik->SetNumKeys(numk);
         IBezPoint3Key k;
         k.flags = BEZKEY_XBROKEN | BEZKEY_YBROKEN | BEZKEY_ZBROKEN;
-        DagPosKey *dk = new DagPosKey[numk];
-        assert(dk);
-        rd(dk, sizeof(*dk) * numk);
+        std::vector<DagPosKey> dk(numk);
+        rd(dk.data(), sizeof(DagPosKey) * dk.size());
         for (int i = 0; i < numk; ++i)
         {
           k.time = dk[i].t;
@@ -1635,7 +1634,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
             adj_pos(k.outtan);
           ik->SetKey(i, &k);
         }
-        delete[] dk;
         ik->SortKeys();
       }
       // rot track
@@ -2173,17 +2171,14 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
 
               rd(normalSpec->GetNormalArray(), numNormals * 12);
 
-              int *indices = new int[m.numFaces * 3];
-              rd(indices, m.numFaces * 3 * 4);
-
+              std::vector<int> indices(m.numFaces * 3);
+              rd(indices.data(), sizeof(int) * indices.size());
               for (int i = 0; i < m.numFaces; i++)
               {
                 normalSpec->SetNormalIndex(i, 0, indices[i * 3]);
                 normalSpec->SetNormalIndex(i, 1, indices[i * 3 + 2]);
                 normalSpec->SetNormalIndex(i, 2, indices[i * 3 + 1]);
               }
-
-              delete[] indices;
             }
           }
         }
@@ -3115,7 +3110,8 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
 
     for (int j = 0; j < sd.numvert; j++)
     {
-      memcpy(&wt[0], &sd.wt[j * wt.Count()], wt.Count() * sizeof(float));
+      for (int b = 0; b < sd.numb; b++)
+        wt[b] = sd.wt[b * sd.numvert + j];
       iskinImport->AddWeights(sd.skinNode, j, bn, wt);
     }
 

@@ -1,4 +1,4 @@
-// `await SomeClass()` produces a plain class instance, never a Promise, so
+// `await SomeClass()` produces a plain class instance, never a Future, so
 // the redundant-await diagnostic MUST still fire. Counterpart to
 // async_redundant_await_instance_ok.nut (function annotated `: instance`).
 

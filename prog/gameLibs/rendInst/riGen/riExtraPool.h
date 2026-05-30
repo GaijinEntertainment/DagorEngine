@@ -48,6 +48,7 @@ struct RiExtraPool
   unsigned patchesHeightmap : 1, usingClipmap : 1;
   unsigned killsNearEffects : 1, hasTransitionLod : 1;
   unsigned isGrassify : 1;
+  unsigned underwaterOnly : 1;
   struct ElemMask
   {
     uint32_t atest, cullN, tessellation, plod;
@@ -167,7 +168,8 @@ struct RiExtraPool
     usingClipmap(false),
     killsNearEffects(false),
     hasTransitionLod(false),
-    destrStopsBullets(true)
+    destrStopsBullets(true),
+    underwaterOnly(false)
   {
     memset(distSqLOD, 0, sizeof(distSqLOD));
     memset(elemMask, 0, sizeof(elemMask));

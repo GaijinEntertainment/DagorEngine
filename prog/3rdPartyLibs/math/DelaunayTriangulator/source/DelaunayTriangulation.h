@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "ConstraintMap.h"
 #include "CGrid.h"
 #include <list>
+#include <unordered_set>
 
 
 namespace ctl {
@@ -45,6 +46,7 @@ namespace ctl {
 		DelaunayBSP *minChild;
 		DelaunayBSP *maxChild;
 		std::list<Vertex *> vertices;
+		std::unordered_set<Edge *> edges;
 
 		~DelaunayBSP(void);
 		DelaunayBSP(const PointList &boundary);
@@ -52,6 +54,12 @@ namespace ctl {
 
 		void addVertex(Vertex *vertex);
 		Vertex *findSnapVertex(const Point &point, double distance = 0.01);
+		void addEdge(Edge *edge);
+		void removeEdge(Edge* edge);
+		Edge *findSnapEdge(const Point &point, double distance = 0.01) const;
+
+	private:
+		inline double getSplit() const { return vertical ? (minPoint.x + maxPoint.x) / 2 : (minPoint.y + maxPoint.y) / 2; }
 	};
 
 
@@ -576,6 +584,10 @@ namespace ctl {
 /******************************************************************************************************
 	INSERTION
 *******************************************************************************************************/
+		void BindEdge(Edge* edge, ID constraintID);
+		void BindEdge(Edge* edge, IDList constraints);
+		void FreeEdge(Edge* edge, ID constraintID);
+		void FreeEdge(Edge* edge);
 		Vertex* SnapPointToVertex(const Point& p);
 		Vertex* SnapPointToEdge(const Point& p);
 		Vertex* InsertPoint(Point p);

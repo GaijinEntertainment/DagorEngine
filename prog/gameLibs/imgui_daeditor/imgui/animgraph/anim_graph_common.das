@@ -931,7 +931,9 @@ def class_name_to_anim_tree_class_name(class_name : string)
   return "??? (Missing information about this class name)"
 
 [unused_argument(state)]
-def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : AnimationGraph; var state : IAnimStateHolder; var reset_state : bool&; var params_filter : ImGuiTextFilter&; var states_filter : ImGuiTextFilter&)
+def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bool&)
+  assume graph = *animchar.animGraph;
+  assume state = *animchar.animState;
 
   var renderers : array<tuple<uint; BlendNodeRenderer>>
   push(renderers, tuple(AnimBlendNodeNullCID, @@render_AnimBlendNodeNull))
@@ -984,6 +986,10 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
   static_let_finalize <|
     var skeletonFilter = new ImGuiTextFilter
     var animGraphNodesFilter = new ImGuiTextFilter
+    var paramsFilter = new ImGuiTextFilter
+    var statesFilter = new ImGuiTextFilter
+    var slotsFilter = new ImGuiTextFilter
+    var enumsFilter = new ImGuiTextFilter
 
   if !bookmarksLoaded
     bookmarksLoaded = true
@@ -1076,14 +1082,14 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
 
       if imgui::CollapsingHeader("States")
         imgui::Text("States filter:")
-        states_filter |> Draw("##statesFilter")
+        *statesFilter |> Draw("##statesFilter")
         Spacing()
 
         for stateId in range(graph.stateCount)
           let stateName = graph |> anim_graph_getStateName(stateId)
           let stateIdx = graph |> anim_graph_getStateIdx(stateName)
 
-          if !(states_filter |> PassFilter(stateName))
+          if !(*statesFilter |> PassFilter(stateName))
             continue
 
           if imgui::Button("{stateName} ({stateIdx})##states_{stateName}")
@@ -1202,7 +1208,7 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
           var showHiddenParams = false
         imgui::Checkbox("Show hidden params", safe_addr(showHiddenParams))
         imgui::Text("Params filter:")
-        params_filter |> Draw("##paramsFilter")
+        *paramsFilter |> Draw("##paramsFilter")
 
         Spacing()
         graph |> anim_graph_getParamNames <| $(params)
@@ -1213,7 +1219,7 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
             if !showHiddenParams && param.name |> character_at(0) == ':'
               continue
 
-            if !(params_filter |> PassFilter(param.name))
+            if !(*paramsFilter |> PassFilter(param.name))
               continue
 
             invoke(drawParam, param.id, "", "{param.name}", showHiddenParams)
@@ -1269,16 +1275,24 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
         imgui_save_blk()
 
       if imgui::CollapsingHeader("Slots")
+        imgui::Text("Slots filter:")
+        *slotsFilter |> Draw("##slotsFilter")
         for i in range(animchar |> animchar_getAttachmentSlotsCount())
           let slotId = animchar |> animchar_getAttachmentSlotId(i)
-          imgui::Text("{slotId}: {animchar_getSlotName(slotId)}")
+          let slotName = animchar_getSlotName(slotId)
+          if !(*slotsFilter |> PassFilter(slotName)) && !(*slotsFilter |> PassFilter("{slotId}"))
+            continue
+          imgui::Text("{slotId}: {slotName}")
 
       if imgui::CollapsingHeader("Enums")
+        imgui::Text("Enums filter:")
+        *enumsFilter |> Draw("##enumsFilter")
         var enumId = 0
         var enumName = animV20_get_enum_name_by_id(enumId)
         // animV20_get_enum_name_by_id returns NULL (which is "" string in das) when enumId is out of range.
         while enumName != ""
-          imgui::Text("{enumId}: {enumName}")
+          if (*enumsFilter |> PassFilter(enumName)) || (*enumsFilter |> PassFilter("{enumId}"))
+            imgui::Text("{enumId}: {enumName}")
           enumId += 1
           enumName = animV20_get_enum_name_by_id(enumId)
 
@@ -1456,14 +1470,16 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
             if drawMode == DrawNodesMode.ACTIVE_AND_HISTORY && !key_exists(nodesToShow, idx)
               continue
 
-            if *animGraphNodesFilter |> IsActive() && !(*animGraphNodesFilter |> PassFilter(node.name)) && !(*animGraphNodesFilter |> PassFilter("{node.id}"))
+            var nodePtr = graph |> anim_graph_getBlendNodePtr(node.id)
+            let className = *nodePtr |> anim_blend_node_class_name()
+
+            if *animGraphNodesFilter |> IsActive() && !(*animGraphNodesFilter |> PassFilter(node.name)) && !(*animGraphNodesFilter |> PassFilter("{node.id}")) && !(*animGraphNodesFilter |> PassFilter(className))
               continue
 
             let activeNodeBorder = drawMode != DrawNodesMode.ACTIVE && weight > 0.0
             if activeNodeBorder
               imgui_node_editor::PushStyleColor(StyleColor.NodeBorder, float4(0.58, 0.96, 0.23f, 1f))
 
-            var nodePtr = graph |> anim_graph_getBlendNodePtr(node.id)
 
             BeginNode(get_node_idx(node.id)) <|
               Dummy(float2(nodeWidth, 0f))
@@ -1484,7 +1500,6 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
 
               imgui::Spacing()
 
-              let className = *nodePtr |> anim_blend_node_class_name()
               imgui::Text(className)
 
               var foundRender = false
@@ -1509,7 +1524,6 @@ def render_anim_graph2(var animchar : AnimcharBaseComponent; var graph : Animati
               if imgui::Selectable("Copy name ({node.name})")
                 imgui::SetClipboardText(node.name)
               if nodePtr != null
-                let className = *nodePtr |> anim_blend_node_class_name()
                 let blkClassName = class_name_to_anim_tree_class_name(className)
                 if imgui::Selectable("Copy class ({className})")
                   imgui::SetClipboardText(className)

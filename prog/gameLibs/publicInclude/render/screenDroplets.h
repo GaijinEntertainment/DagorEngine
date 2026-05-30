@@ -26,7 +26,6 @@ class ScreenDroplets
   bool enabled = false;
   float intensity = 0;
   GaussMipRenderer mipRenderer;
-  d3d::SamplerHandle clampSampler;
 
   void updateShaderState() const;
   void render(BaseTexture *rtarget);

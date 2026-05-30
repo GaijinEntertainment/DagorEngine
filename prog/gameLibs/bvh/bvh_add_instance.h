@@ -55,6 +55,8 @@ BVH_INLINE void VECTORCALL add_instance(ContextId context_id, Context::InstanceM
 
   auto &instance = *static_cast<Context::Instance *>(instanceMap.push_back_uninitialized());
   memset(&instance, 0, sizeof(instance));
+  instance.needsBlasBuild = false;
+  instance.alreadyProcessed = false;
   instance.transform = transform;
   instance.objectId = object_id;
   instance.uniqueIsRecycled = false;

@@ -226,6 +226,7 @@ bool DLSSSuperResolutionDirect::evaluate(const nv::DlssParams<void> &params, voi
       .InMVScaleX = params.inMVScaleX * (UINT)inColorDesc.Width,
       .InMVScaleY = params.inMVScaleY * inColorDesc.Height,
       .pInExposureTexture = texture_to_resource(params.inExposure),
+      .pInColorBeforeTransparency = texture_to_resource(params.inColorBeforeTransparency),
       .pInScreenSpaceSubsurfaceScatteringGuide = texture_to_resource(params.inSsssGuide),
       .pInSpecularHitDistance = texture_to_resource(params.inHitDist),
     };

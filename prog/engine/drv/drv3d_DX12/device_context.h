@@ -1043,6 +1043,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
     void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
       bool force_barrier);
+    void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image);
+    void enhancedBufferBarrier(const d3d::BufferBarrier &barrier, BufferResourceReference buffer);
     void discardTexture(Image *tex, uint32_t tex_flags);
 #if D3D_HAS_RAY_TRACING
     void asBarrier(RaytraceAccelerationStructure *as, GpuPipeline queue);
@@ -1057,7 +1059,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void bindlessSetResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
     void deferBindlessSetResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
     void bindlessSetSamplerDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
-    void bindlessCopyResourceDescriptors(uint32_t src, uint32_t dst, uint32_t count);
 
     void registerFrameCompleteEvent(os_event_t event);
 
@@ -1618,6 +1619,8 @@ public:
   void bufferBarrier(BufferResourceReference buffer, ResourceBarrier barrier, GpuPipeline queue);
   void textureBarrier(Image *tex, SubresourceRange sub_res_range, uint32_t tex_flags, ResourceBarrier barrier, GpuPipeline queue,
     bool force_barrier);
+  void enhancedTextureBarrier(const d3d::TextureBarrier &barrier, BaseTexture *texture);
+  void enhancedBufferBarrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer);
   void discardTexture(BaseTex *tex);
 #if D3D_HAS_RAY_TRACING
   void blasBarrier(RaytraceAccelerationStructure *as, GpuPipeline queue);
@@ -1639,7 +1642,6 @@ public:
   void bindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
   void deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
   void bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
-  void bindlessCopyResourceDescriptorsNoLock(uint32_t src, uint32_t dst, uint32_t count);
 
   uint32_t getCurrentSwapchainIndex() const;
   BaseTex *getSwapchainColorTexture(uint32_t swapchain_index);

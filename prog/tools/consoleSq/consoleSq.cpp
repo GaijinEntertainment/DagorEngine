@@ -519,7 +519,7 @@ static void drain_async_until_idle(HSQUIRRELVM v)
     }
     sleep_msec(1);
   }
-  // Force-post leftover timers so their heap ctx / promise refs are freed
+  // Force-post leftover timers so their heap ctx / future refs are freed
   // during sqasync's shutdown drain at sq_close.
   if (async_runtime)
     async_runtime->shutdown();

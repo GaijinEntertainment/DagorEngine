@@ -63,6 +63,8 @@ public:
     const PassColoring &pass_coloring, const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
     const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed);
 
+  void resetIncrementalState() { *this = BarrierScheduler(); }
+
 private:
   using GracePoints = dag::VectorSet<uint32_t, eastl::less<uint32_t>, framemem_allocator>;
   using DirtyResources = IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator>;

@@ -167,15 +167,6 @@ bool ImpostorTextureManager::hasBcCompression() const { return shadowAtlasCompre
 
 ImpostorTextureManager::~ImpostorTextureManager() { debug("Closing impostor texture manager"); }
 
-class ImpostorGenRenderWrapperControl final : public IRenderWrapperControl
-{
-public:
-  int checkVisible(const BSphere3 & /*sph*/, const BBox3 * /*bbox*/) override { return 1; }
-  void beforeRender(int /*value*/, bool /*trans*/) override {}
-  void afterRender(int /*value*/, bool /*trans*/) override {}
-  void destroy() override {}
-};
-
 ImpostorTextureManager::GenerationData ImpostorTextureManager::load_data(const DataBlock *props, RenderableInstanceLodsResource *res,
   int smallest_mip, bool default_preshadows_enabled, const IPoint3 &default_mip_offsets_hq_mq_lq,
   const IPoint3 &default_mobile_mip_offsets_hq_mq_lq, int num_levels, const ImpostorTextureQualityLevel *sorted_levels)
@@ -337,8 +328,8 @@ Point3 ImpostorTextureManager::get_point_to_eye_octahedral(uint32_t h, uint32_t 
 
 void ImpostorTextureManager::buildRendinstElems() { rendinst::render::rebuildAllElems(); }
 
-void ImpostorTextureManager::render_instances(const TMatrix &view_to_world, float scale_x, float scale_y, float zn, float zf,
-  RenderableInstanceLodsResource *res, dag::Span<TMatrix> placement, int block_id, int lod)
+void ImpostorTextureManager::render_slice_voxels(const TMatrix &view_to_world, float size_x, float size_y, float zn, float zf,
+  RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod)
 {
   if (lod < 0)
     lod = res->getQlMinAllowedLod();
@@ -351,7 +342,7 @@ void ImpostorTextureManager::render_instances(const TMatrix &view_to_world, floa
 
   res->lods[lod].scene->getMesh()->getMesh()->getMesh()->acquireTexRefs();
 
-  TMatrix4 projTm = matrix_ortho_lh_reverse(scale_x, scale_y, zn, zf);
+  TMatrix4 projTm = matrix_ortho_lh_reverse(size_x, size_y, zn, zf);
   d3d::settm(TM_PROJ, &projTm);
 
   TMatrix viewItm = view_to_world;
@@ -362,59 +353,45 @@ void ImpostorTextureManager::render_instances(const TMatrix &view_to_world, floa
     col[i] = viewItm.getcol(i);
   LeavesWindEffect::setNoAnimShaderVars(col[0], col[1], col[2]);
 
-  IPoint2 viewOffset;
-  IPoint2 viewSize;
-  float zmin, zmax;
-  d3d::getview(viewOffset.x, viewOffset.y, viewSize.x, viewSize.y, zmin, zmax);
-  d3d::setscissor(viewOffset.x, viewOffset.y, viewSize.x, viewSize.y);
+  G_ASSERT(res->getRiExtraId() >= 0);
 
-  for (const auto &tm : placement)
-  {
-    if (auto data = lock_sbuffer<Point4>(rendinst::render::oneInstanceTmVb, 0, 4, VBLOCK_WRITEONLY))
-    {
-      data[0] = Point4(tm.col[0].x, tm.col[1].x, tm.col[2].x, tm.col[3].x);
-      data[1] = Point4(tm.col[0].y, tm.col[1].y, tm.col[2].y, tm.col[3].y);
-      data[2] = Point4(tm.col[0].z, tm.col[1].z, tm.col[2].z, tm.col[3].z);
-      data[3] = Point4(0, 0, 0, 1);
-    }
-    d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::oneInstanceTmVb);
+  const auto offsAndCnt = IPoint2(0, 1);
+  const auto riIdx = uint16_t(res->getRiExtraId());
 
-    SCENE_LAYER_GUARD(block_id);
+  if (treeCrownBufSlot >= 0)
+    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
 
-    rendinst::render::RiShaderConstBuffers cb;
-    cb.setOpacity(0, 1);
-    cb.setCrossDissolveRange(0);
-    const Point3 &sphereCenter = res->bsphCenter;
-    float sphereRadius = res->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
-    // sphere radius is needed for ellipsoid normal
-    cb.setBoundingSphere(0, 0, sphereRadius, 1, 0);
-    cb.setRandomColors(defaultColors);
-    cb.setInstancing(0, 3, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, 0);
-    cb.flushPerDraw();
+  // Hack to render desired mesh lod with rendinst
+  const uint32_t zeroLodOffsets[8] = {};
+  const auto zeroLodCount = uint32_t(eastl::min(lod + 1, 8));
 
-    // We update rendinst::render::perDrawCB inside cb.flushPerDraw() if it's not null.
-    // It causes split of renderpass in Vulkan cause of stage change.
-    // Just have to accept it unless we allocate multiple buffers and update them in advance.
-    d3d::allow_render_pass_target_load();
+  SCENE_LAYER_GUARD(block_id);
 
-    if (treeCrownBufSlot >= 0)
-      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, treeCrownDataBuf);
+  // Set perDrawCB even in multidraw because we use this instead of the perDrawBuffer
+  // See fill_rendinst_matrix_buffer
+  rendinst::render::RiShaderConstBuffers cb;
+  cb.setOpacity(0, 1);
+  cb.setCrossDissolveRange(0);
+  const Point3 &sphereCenter = res->bsphCenter;
+  float sphereRadius = res->bsphRad + sqrtf(sphereCenter.x * sphereCenter.x + sphereCenter.z * sphereCenter.z);
+  // sphere radius is needed for ellipsoid normal
+  cb.setBoundingSphere(0, 0, sphereRadius, 1, 0);
+  cb.setRandomColors(defaultColors);
+  cb.setInstancing(0, 3, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, 0);
+  cb.flushPerDraw();
 
-    ImpostorGenRenderWrapperControl rwc;
-    res->lods[lod].scene->render(TMatrix(1), rwc);
-    res->lods[lod].scene->renderTrans(TMatrix(1), rwc);
+  // We update rendinst::render::perDrawCB inside cb.flushPerDraw() if it's not null.
+  // It causes split of renderpass in Vulkan cause of stage change.
+  // Just have to accept it unless we allocate multiple buffers and update them in advance.
+  d3d::allow_render_pass_target_load();
 
-    if (treeCrownBufSlot >= 0)
-      d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
-  }
+  rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuf.getBuf(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
+    dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(zeroLodOffsets, zeroLodCount), render_pass,
+    rendinst::OptimizeDepthPass::Yes, rendinst::OptimizeDepthPrepass::Yes, rendinst::IgnoreOptimizationLimits::Yes,
+    rendinst::LayerFlag::Stages, nullptr, 1u, false, nullptr, nullptr, true);
 
-  Point4 *data = nullptr;
-  rendinst::render::oneInstanceTmVb->lock(0, sizeof(Point4) * 4, reinterpret_cast<void **>(&data), VBLOCK_WRITEONLY);
-  data[0] = Point4(1, 0, 0, 0);
-  data[1] = Point4(0, 1, 0, 0);
-  data[2] = Point4(0, 0, 1, 0);
-  data[3] = Point4(0, 0, 0, 1);
-  rendinst::render::oneInstanceTmVb->unlock();
+  if (treeCrownBufSlot >= 0)
+    d3d::set_buffer(STAGE_PS, treeCrownBufSlot, nullptr);
 }
 
 void ImpostorTextureManager::render(const Point3 &point_to_eye, const TMatrix &view_to_content, RenderableInstanceLodsResource *res,

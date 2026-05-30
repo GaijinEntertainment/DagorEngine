@@ -165,23 +165,23 @@ static __forceinline void destructables_render(int render_pass,
   state.render(buffer->curOffset);
 }
 
-void destructables::render_depth_prepass(
-  const Point3 &main_cam_pos, const TMatrix &view_tm, const Frustum &culling_frustum, Occlusion *occlusion)
+ECS_TAG(render)
+static __forceinline void destructables_depth_prepass_es(const animchar_disintegration::RenderDisintegrationDepthPrepassEvent &event)
 {
   TIME_D3D_PROFILE(destructables_render_prepass);
   if (!has_destr_objects_with_disintegration_animation())
     return;
 
-  TMatrix vtm = view_tm;
+  TMatrix vtm = event.viewTm;
   vtm.setcol(3, 0, 0, 0);
 
   d3d::settm(TM_VIEW, vtm);
   {
     STATE_GUARD_0(ShaderGlobal::set_int(enable_ri_disintegration_animationVarId, VALUE), 1);
-    destructables_render(RENDER_MAIN, DestructablesRenderStage::OPAQUE, true, main_cam_pos, culling_frustum, occlusion,
-      TEX_STREAMING_CTX_NULL);
+    destructables_render(RENDER_MAIN, DestructablesRenderStage::OPAQUE, true, event.viewItm.getcol(3), event.cullingFrustum,
+      event.occlusion, event.texCtx);
   }
-  d3d::settm(TM_VIEW, view_tm);
+  d3d::settm(TM_VIEW, event.viewTm);
 }
 
 ECS_TAG(render)

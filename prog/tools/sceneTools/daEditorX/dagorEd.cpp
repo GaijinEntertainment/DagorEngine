@@ -10,6 +10,7 @@
 
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_startup.h>
+#include <EditorCore/ec_shaders.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/util/setupTexStreaming.h>
@@ -210,11 +211,9 @@ void init3d()
 {
   const char *appdir = DAGORED2->getWorkspace().getAppDir();
   DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
-  String sh_file;
-  if (appblk.getStr("shaders", NULL))
-    sh_file.printf(260, "%s/%s", appdir, appblk.getStr("shaders", NULL));
-  else
-    sh_file.printf(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
+
+  const bool useDngBasedSceneRender = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
+  String sh_file = tools3d::get_shaders_path(appblk, appdir, useDngBasedSceneRender);
 
   // shutdown imGui, render, shaders, d3d before reiniting
   imgui_shutdown();
@@ -273,6 +272,7 @@ void init3d()
 
   bool forceRiExtra =
     appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
+  forceRiExtra |= DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
   const_cast<DataBlock *>(dgs_get_game_params())->setBool("rendinstExtraAutoSubst", forceRiExtra && !d3d::is_stub_driver());
   const_cast<DataBlock *>(dgs_get_game_params())->setInt("rendinstExtraMaxCnt", 4096);
 
@@ -404,9 +404,11 @@ extern void init_dynmodel_mgr_service(const DataBlock &app_blk);
 extern void init_csg_mgr_service();
 extern void init_spline_gen_mgr_service();
 extern void init_ecs_mgr_service(const DataBlock &app_blk, const char *app_dir);
+extern void init_ecs_animchar_mgr_service(const DataBlock &app_blk);
 extern void init_webui_service();
 extern void init_texgen_service();
 extern void init_landscape_preview_service();
+extern void init_das_mgr_service(const DataBlock &app_blk, bool dng_based_render_used);
 
 extern void init_plugin_heightmapland();
 extern void init_plugin_csg();
@@ -427,6 +429,8 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   else                                          \
     debug("skipped initing service for \"%s\", asset manager did not declare such type", TYPE_NAME);
 
+  const bool useDngBasedSceneRender = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
+
   ::setup_water_service(app_blk);
   ::setup_grass_service(app_blk);
   ::setup_gpu_grass_service(app_blk);
@@ -440,17 +444,20 @@ void dagored_init_all_plugins(const DataBlock &app_blk)
   INIT_SERVICE("gameObj", ::init_gameobj_mgr_service());
   ::init_built_scene_view_service();
   ::init_invalid_entity_service();
-  INIT_SERVICE("animChar", ::init_animchar_mgr_service(app_blk));
+  INIT_SERVICE("animChar", useDngBasedSceneRender ? ::init_ecs_animchar_mgr_service(app_blk) : ::init_animchar_mgr_service(app_blk));
   INIT_SERVICE("dynModel", ::init_dynmodel_mgr_service(app_blk));
   INIT_SERVICE("csg", ::init_csg_mgr_service());
   INIT_SERVICE("spline", ::init_spline_gen_mgr_service());
 #undef INIT_SERVICE
 
-  ::init_ecs_mgr_service(app_blk, DAGORED2->getWorkspace().getAppDir());
-  if (app_blk.getBlockByNameEx("game")->getBool("enable_webui_de3", true))
+  if (!useDngBasedSceneRender)
+    ::init_ecs_mgr_service(app_blk, DAGORED2->getWorkspace().getAppDir());
+
+  if (app_blk.getBlockByNameEx("game")->getBool("enable_webui_de3", true) && !useDngBasedSceneRender)
     ::init_webui_service();
   else
-    debug("webUi disabled with game{ enable_webui_de3:b=no;");
+    debug("webUi disabled with game{ useDngBasedSceneRender:b=yes or enable_webui_de3:b=no;");
+
   ::init_texgen_service();
   ::init_landscape_preview_service();
 

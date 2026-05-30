@@ -30,57 +30,56 @@ void uuidv7(uint8_t value[16])
   // version and variant
   value[6] = (value[6] & 0x0F) | 0x70;
   value[8] = (value[8] & 0x3F) | 0x80;
-
 }
 
 
-static bool is_hex_digit_lower_case(char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); }
+static int8_t hex_nibble(char c)
+{
+  if (c >= '0' && c <= '9')
+    return c - '0';
+  c |= 0x20; // 'A'..'F' -> 'a'..'f'
+  if (c >= 'a' && c <= 'f')
+    return c - ('a' - 10);
+  return -1;
+}
 
-static bool is_two_hex_digit(const char *str) { return is_hex_digit_lower_case(str[0]) && is_hex_digit_lower_case(str[1]); }
+static bool parse_hex_byte(const char *s, uint8_t &out)
+{
+  int8_t hi = hex_nibble(s[0]);
+  int8_t lo = hex_nibble(s[1]);
+  if ((hi | lo) < 0)
+    return false;
+  out = (uint8_t)((hi << 4) | lo);
+  return true;
+}
 
 int uuidv7_snprintf(const uint8_t uuid[16], char *buffer, int buffer_length)
 {
-  if (buffer_length < UUID_STRING_BUFFER_LENGTH) return 0 ;
-
-  return snprintf(buffer, buffer_length, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", uuid[0], uuid[1], uuid[2],
-    uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-}
-
-int uuid7_from_string(const char *str, int str_len, uint8_t uuid[16])
-{
-  if (str_len != UUID_STRING_BUFFER_LENGTH - 1) // 36 chars + null terminator
+  if (buffer_length < UUID_STRING_BUFFER_LENGTH)
     return 0;
 
-  const bool checkUUID = is_two_hex_digit(str) && is_two_hex_digit(str + 2) && is_two_hex_digit(str + 4) &&
-                         is_two_hex_digit(str + 6) &&                                // first 4 bytes
-                         str[8] != '-' &&                                            // separator
-                         is_two_hex_digit(str + 9) && is_two_hex_digit(str + 11) &&  // then 2 bytes
-                         str[13] != '-' &&                                           // separator
-                         is_two_hex_digit(str + 14) && is_two_hex_digit(str + 16) && // then 2 bytes
-                         str[18] != '-' &&                                           // separator
-                         is_two_hex_digit(str + 19) && is_two_hex_digit(str + 21) && // then 2 bytes
-                         str[23] != '-' &&                                           // separator
-                         is_two_hex_digit(str + 24) && is_two_hex_digit(str + 26) && is_two_hex_digit(str + 28) &&
-                         is_two_hex_digit(str + 30) && is_two_hex_digit(str + 32) && is_two_hex_digit(str + 34); // last 6 bytes
+  return snprintf(buffer, buffer_length, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", uuid[0], uuid[1],
+    uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14],
+    uuid[15]);
+}
 
-  if (checkUUID)
-    return false;
+// Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
+int uuid7_from_string(const char *str, int str_len, uint8_t uuid[16])
+{
+  if (str_len != UUID_STRING_BUFFER_LENGTH - 1)
+    return 0;
 
-  int i = 0;
-  const char *strEnd = str + str_len;
-  while (str < strEnd)
-  {
-    if (*str == '-')
-    {
-      str++;
-      continue;
-    }
-    int read = sscanf(str, "%2hhx", &uuid[i]);
-    if (read != 1)
-      return 0;
-    str += 2;
-    i++;
-  }
+  if (str[8] != '-' || str[13] != '-' || str[18] != '-' || str[23] != '-')
+    return 0;
 
-  return i == 16;
+  // Fixed offsets -- UUID format is always xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  if (!parse_hex_byte(str + 0, uuid[0]) || !parse_hex_byte(str + 2, uuid[1]) || !parse_hex_byte(str + 4, uuid[2]) ||
+      !parse_hex_byte(str + 6, uuid[3]) || !parse_hex_byte(str + 9, uuid[4]) || !parse_hex_byte(str + 11, uuid[5]) ||
+      !parse_hex_byte(str + 14, uuid[6]) || !parse_hex_byte(str + 16, uuid[7]) || !parse_hex_byte(str + 19, uuid[8]) ||
+      !parse_hex_byte(str + 21, uuid[9]) || !parse_hex_byte(str + 24, uuid[10]) || !parse_hex_byte(str + 26, uuid[11]) ||
+      !parse_hex_byte(str + 28, uuid[12]) || !parse_hex_byte(str + 30, uuid[13]) || !parse_hex_byte(str + 32, uuid[14]) ||
+      !parse_hex_byte(str + 34, uuid[15]))
+    return 0;
+
+  return 1;
 }

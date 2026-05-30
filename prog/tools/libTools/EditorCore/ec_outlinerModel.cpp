@@ -6,12 +6,9 @@
 namespace Outliner
 {
 
-static bool matches_search_text(const char *haystack, const char *needle)
+static bool matches_search_text(eastl::string_view haystack, eastl::string_view needle)
 {
-  if (needle == nullptr || needle[0] == 0)
-    return true;
-
-  return haystack && dd_stristr(haystack, needle) != nullptr;
+  return needle.empty() || dd_stristr(haystack, needle) != nullptr;
 }
 
 OutlinerTreeItem::~OutlinerTreeItem() { outlinerModel.onOutlinerTreeItemDeleted(*this); }
@@ -85,10 +82,11 @@ bool ObjectTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
   if (tree_interface.isSampleObject(*renderableEditableObject))
     return false;
 
-  if (objectAssetNameTreeItem && matches_search_text(objectAssetNameTreeItem->getLabel(), outlinerModel.textToSearch))
+  if (objectAssetNameTreeItem &&
+      matches_search_text(objectAssetNameTreeItem->getLabelStringView(), to_string_view(outlinerModel.textToSearch)))
     return true;
 
-  return matches_search_text(getLabel(), outlinerModel.textToSearch);
+  return matches_search_text(getLabelStringView(), to_string_view(outlinerModel.textToSearch));
 }
 
 bool LayerTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
@@ -99,7 +97,7 @@ bool LayerTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
   if (!objectTypeTreeItem->objectTypeVisible)
     return false;
 
-  return matches_search_text(getLabel(), outlinerModel.textToSearch);
+  return matches_search_text(getLabelStringView(), to_string_view(outlinerModel.textToSearch));
 }
 
 void LayerTreeItem::addToFilteredChildren(OutlinerTreeItem &tree_item)
@@ -131,7 +129,7 @@ bool ObjectTypeTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
   if (!objectTypeVisible)
     return false;
 
-  return matches_search_text(getLabel(), outlinerModel.textToSearch);
+  return matches_search_text(getLabelStringView(), to_string_view(outlinerModel.textToSearch));
 }
 
 void ObjectTypeTreeItem::addToFilteredChildren(OutlinerTreeItem &tree_item)

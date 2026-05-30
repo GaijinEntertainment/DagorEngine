@@ -11,35 +11,39 @@
 #include <imgui-node-editor/imgui_canvas.h>
 
 
-namespace dafg::visualization
+namespace dafg::visualization::irgraph
 {
 
-class IRGraphVisualizer
+class Visualizer
 {
 public:
-  IRGraphVisualizer(const intermediate::Graph &irGraph, const PassColoring &coloring);
+  Visualizer(const intermediate::Graph &ir_graph, const PassColoring &coloring);
 
   void draw();
+  void updateVisualization();
 
-  void drawCanvas(ImDrawList *drawList);
 
-  void drawEdge(ImDrawList *drawList, const EdgeId id, const eastl::pair<ImVec2, ImVec2> fromTo);
-  void drawNode(ImDrawList *drawList, const NodeId id, const ImVec2 gridPosition);
-  void drawResource(ImDrawList *drawList, const ResId id, const eastl::pair<ImVec2, ImVec2> gridBounds);
+private:
+  // draw functions
+  void drawUI();
+  void drawCanvas(ImDrawList *draw_list);
 
-  void drawTextnOnNode(const NodeId id, const ImVec2 gridPosition);
-  void drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> gridBounds);
+  void drawEdge(ImDrawList *draw_list, const EdgeId id, const eastl::pair<ImVec2, ImVec2> from_to);
+  void drawNode(ImDrawList *draw_list, const NodeId id, const ImVec2 grid_position);
+  void drawResource(ImDrawList *draw_list, const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds);
 
+  void drawTextnOnNode(const NodeId id, const ImVec2 grid_position);
+  void drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds);
+
+  // control functions
   void checkHovering();
-  void generateHoverMsg(ElementID elementId);
-  void generatePopupMsg(ElementID elementId);
+  void generateHoverMsg(ElementID element_id);
+  void generatePopupMsg(ElementID element_id);
   void processInfoMsg();
 
   void processInput();
 
-
-  void updateVisualization();
-
+  // update functions
   void clearData();
 
   void updateResourses();
@@ -50,25 +54,21 @@ public:
   void updateWholeGraphView();
   void updateFocusGraphView();
 
-  void generateAllElementsSet(GraphView &graphView);
-  void generateFocusedSet(GraphView &graphView);
+  void generateAllElementsSet(GraphView &graph_view);
+  void generateFocusedSet(GraphView &graph_view);
 
-  void placeWithGeneralLayout(GraphView &graphView);
-  void placeWithFocusedLayout(GraphView &graphView);
-  void placeResourcesByLines(GraphView &graphView);
-  void updateEdgesLayout(GraphView &graphView);
-
-
-  void updateVisibilityFlags();
-
-  void resetFocusElement();
-  void setFocusElement(ElementID id);
+  void placeWithGeneralLayout(GraphView &graph_view);
+  void placeWithFocusedLayout(GraphView &graph_view);
+  void placeResourcesByLines(GraphView &graph_view);
+  void updateEdgesLayout(GraphView &graph_view);
 
 
-private:
+  // data sources
   const intermediate::Graph &intermediateGraph;
   const PassColoring &passColoring;
 
+
+  // gathered data
   IdIndexedMapping<NodeId, IntermediateNode> nodes;
   IdIndexedMapping<ResId, IntermediateResource> resources;
   IdIndexedMapping<EdgeId, IntermediateEdge> edges;
@@ -76,6 +76,8 @@ private:
   IdIndexedMapping<intermediate::NodeIndex, NodeId> irNodeIndexToVisNodeId;
   IdIndexedMapping<intermediate::ResourceIndex, ResId> irResIndexToVisResId;
 
+
+  // canvas
   ImGuiEx::Canvas canvas;
 
   GraphView wholeGraphView{{
@@ -91,10 +93,17 @@ private:
   String hoverMessage;
   String popupMessage;
 
+
+  // focusing
   ElementID focusedElementId;
   ElementID nextFocusedElementId;
   bool focusOnly = false;
   bool compactView = false;
+
+  void updateVisibilityFlags();
+
+  void resetFocusElement();
+  void setFocusElement(ElementID id);
 };
 
-} // namespace dafg::visualization
+} // namespace dafg::visualization::irgraph

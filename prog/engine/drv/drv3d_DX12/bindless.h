@@ -99,8 +99,6 @@ public:
   uint32_t registerSampler(DeviceContext &ctx, SamplerDescriptorAndState sampler);
 
   uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count);
-  uint32_t resizeBindlessResourceRange(D3DResourceType type, DeviceContext &ctx, uint32_t index, uint32_t current_count,
-    uint32_t new_count);
 
   void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
   bool updateBindlessBuffer(DeviceContext &ctx, uint32_t index, Sbuffer *buffer);
@@ -179,7 +177,6 @@ private:
   void reportBindlessSlotsAllocationInfoNoLock();
   uint32_t allocateBindlessResourceRangeNoLock(uint32_t count);
   void freeBindlessResourceRangeNoLock(D3DResourceType type, uint32_t index, uint32_t count);
-  void copyBindlessResourceRangeNoLock(uint32_t src, uint32_t dst, uint32_t count);
 
   void checkBindlessRangeAllocatedNoLock(uint32_t index, uint32_t count) const;
 
@@ -222,7 +219,6 @@ public:
   void setSamplerDescriptor(ID3D12Device *device, uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void pushToSamplerHeaps(ID3D12Device *device, SamplerDescriptorHeapManager &target);
 
-  void copyResourceDescriptors(ID3D12Device *device, uint32_t src, uint32_t dst, uint32_t count);
   uint32_t getResourceDescriptorCount() const { return resourceDescriptorSize; }
   uint32_t getResourceDescriptorRevision() const { return resourceDescriptorHeapRevision; }
 };

@@ -260,7 +260,7 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
     h = dd.y;
   }
 
-  ShaderGlobal::set_texture(clouds_depth_gbufVarId, depth);
+  ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, depth);
   DispatchGroups2D dg = set_dispatch_groups(w, h, CLOUD_TRACE_WARP_X, CLOUD_TRACE_WARP_Y, data.lowresCloseClouds);
   {
     if (level != 0 && depthLevels != 1 && depth)
@@ -334,7 +334,7 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
       }
     }
     TIME_D3D_PROFILE(taa_clouds);
-    ShaderGlobal::set_texture(clouds_prev_depth_gbufVarId, prev_depth);
+    ShaderGlobal::set_texture_unsafe(clouds_prev_depth_gbufVarId, prev_depth);
     data.prevWorldPos.x -= cloudsOfs.x + wind_change_ofs.x - currentCloudsOfs.x;
     data.prevWorldPos.z -= cloudsOfs.y + wind_change_ofs.y - currentCloudsOfs.y;
     G_UNUSED(world_pos);
@@ -409,8 +409,8 @@ void CloudsRenderer::renderCloudsPrepare(CloudsRendererData &data, BaseTexture *
 
   currentCloudsOfs = cloudsOfs;
 
-  ShaderGlobal::set_texture(clouds_depth_gbufVarId, nullptr);
-  ShaderGlobal::set_texture(clouds_prev_depth_gbufVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(clouds_prev_depth_gbufVarId, nullptr);
 
   if (dynamic_resolution)
     data.prevDynRes = *dynamic_resolution;
@@ -460,10 +460,10 @@ void CloudsRenderer::renderCloudsApply(CloudsRendererData &data, BaseTexture *do
   TIME_D3D_PROFILE(render_clouds);
   set_viewvecs_to_shader(view_tm, proj_tm);
   ShaderGlobal::set_int(clouds_use_fullresVarId, (data.cloudResolution == CloudsResolution::ForceFullresClouds));
-  ShaderGlobal::set_texture(clouds_target_depth_gbufVarId, target_depth);
+  ShaderGlobal::set_texture_unsafe(clouds_target_depth_gbufVarId, target_depth);
   ShaderGlobal::set_float4(clouds_target_depth_gbuf_transformVarId, target_depth_transform);
   ShaderGlobal::set_int(clouds_has_close_sequenceVarId, data.clouds_color_close.getTex2D() ? 1 : 0);
-  ShaderGlobal::set_texture(clouds_depth_gbufVarId, downsampled_depth);
+  ShaderGlobal::set_texture_unsafe(clouds_depth_gbufVarId, downsampled_depth);
   if (!data.cloudsColorPoolRT)
   {
     renderDirect(data);

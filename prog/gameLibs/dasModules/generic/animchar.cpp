@@ -5,12 +5,15 @@
 #include <dasModules/dasMacro.h>
 #include <dasModules/dasDataBlock.h>
 #include <anim/dag_animBlend.h>
+#include <anim/dag_animDecl.h>
 #include <anim/dag_animPostBlendCtrl.h>
 
 DAS_BASE_BIND_ENUM_98(AnimcharVisbits, AnimcharVisbits, VISFLG_WITHIN_RANGE, VISFLG_LOD_CHOSEN, VISFLG_GEOM_TREE_UPDATED,
   VISFLG_MAIN_VISIBLE, VISFLG_MAIN_AND_SHADOW_VISIBLE, VISFLG_COCKPIT_VISIBLE, VISFLG_HMAP_DEFORM, VISFLG_OUTLINE_RENDER, VISFLG_BVH,
   VISFLG_DYNAMIC_MIRROR, VISFLG_RENDER_CUSTOM, VISFLG_SEMI_TRANS_RENDERED, VISFLG_CSM_SHADOW_RENDERED, VISFLG_MAIN_CAMERA_RENDERED,
   VISFLG_SHADOW_CASCADE_0_VISIBLE, VISFLG_SHADOW_CASCADE_LAST_VISIBLE, VISFLG_SHADOW_CASCADE_VISIBLE_MASK, VISFLG_ALL_BITS);
+
+DAS_BASE_BIND_ENUM_98(AnimV20::FifoMorphType, FifoMorphType, MT_LINEAR, MT_QUAD_IN, MT_QUAD_OUT, MT_QUAD_IN_OUT);
 
 DAS_ANNOTATE_VECTOR(BnlPtrTab, BnlPtrTab)
 DAS_ANNOTATE_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab)
@@ -1029,6 +1032,7 @@ public:
     addBuiltinDependency(lib, require("GeomNodeTree"));
     addBuiltinDependency(lib, require("PhysDecl"));
     addEnumeration(new EnumerationAnimcharVisbits());
+    addEnumeration(new EnumerationFifoMorphType());
     addAnnotation(new NameIdPairAnnotation(lib));
     addAnnotation(new AnimDataAnnotation(lib));
 

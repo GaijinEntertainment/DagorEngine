@@ -19,7 +19,7 @@
 #include <shaders/dag_shaderVarsUtils.h>
 #include <memory/dag_framemem.h>
 #include <daECS/core/componentTypes.h>
-#include "animCharRenderAdditionalData.h"
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 
 
 struct UpdateStageInfoRender;

@@ -13,3 +13,7 @@ entity{
 entity{
   _template:t="ui_nodes"
 }
+
+entity{
+  _template:t="film_grain_lut"
+}

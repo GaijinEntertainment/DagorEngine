@@ -186,7 +186,7 @@ macro USE_COMMON_LANDMESH_CLIPMAP_VS()
 
       float4 pos = inpos * pos_to_world_scale + pos_to_world_ofs;
       pos.w = 1;
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
         float3 worldPos = float3(pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos);
       ##else
         float3 worldPos = pos.xyz;
@@ -203,6 +203,7 @@ endmacro
 
 shader land_mesh_landclass_simple, land_mesh_landclass_detailed
 {
+  assume allow_forced_in_editor = yes;
   channel short4n pos[0] = extra[7];//pos[0];
 
   if (in_editor_assume == yes)
@@ -284,7 +285,7 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
           ret.color *= weight;
           ret.detail_ao_reflectance *= weight;
 
-          ##if in_editor_assume == yes
+          ##if in_editor_assume == yes || use_editor_render
             if (render_with_normalmap>1)
               ret.color =  ret.height;
           ##endif
@@ -331,6 +332,7 @@ shader land_mesh_landclass_simple, land_mesh_landclass_detailed
 
 shader land_mesh_landclass_trivial
 {
+  assume allow_forced_in_editor = yes;
   channel short4n pos[0] = extra[7];//pos[0];
 
   if (in_editor_assume == yes)
@@ -419,7 +421,7 @@ shader land_mesh_landclass_trivial
           ret.normal = half4(0.5, 0.5, smoothness, 0);
           ret.detail_ao_reflectance = half4(0, 1, 0.5, 0);
 
-          ##if in_editor_assume == yes
+          ##if in_editor_assume == yes || use_editor_render
             if (render_with_normalmap>1)
               ret.color =  ret.height;
           ##endif
@@ -889,6 +891,7 @@ endmacro
 
 shader landmesh_indexed_landclass, landmesh_indexed_landclass_weightmap
 {
+  assume allow_forced_in_editor = yes;
   channel short4n pos[0] = extra[7];//pos[0];
   
   if (in_editor_assume == yes)
@@ -978,7 +981,7 @@ shader landmesh_indexed_landclass, landmesh_indexed_landclass_weightmap
           ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(detailNo, ao, reflectance, 0.0), 0);
           ret.detail_ao_reflectance *= weight;
 
-          ##if in_editor_assume == yes
+          ##if in_editor_assume == yes || use_editor_render
             if (render_with_normalmap>1)
               ret.color =  ret.height;
           ##endif
@@ -1160,6 +1163,7 @@ int decals_overrideSampler_0_tex_ref = 0 always_referenced; // maps to colormapT
 
 shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_mix //land_mesh_combined_decal is not done
 {
+  assume allow_forced_in_editor = yes;
   //if (lmesh_rendering_mode != rendering_clipmap && lmesh_rendering_mode != grass_mask && lmesh_rendering_mode != rendering_landmesh)//fixme: rendering_landmesh_with_splatting
   if (lmesh_rendering_mode != rendering_clipmap && lmesh_rendering_mode != grass_mask)
   {
@@ -1168,7 +1172,7 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
   //static int vertex_opacity = 0;
   //interval vertex_opacity : vertex_opacity_off < 1, vertex_opacity_on;
 
-  bool override_samplers = in_editor_assume == no && lmesh_rendering_mode == rendering_clipmap;
+  bool override_samplers = in_editor_assume == no && !use_editor_render && lmesh_rendering_mode == rendering_clipmap;
   if (override_samplers)
   {
     // On rendering_clipmap, we are using additional samplers in order to override default ones with samplers without additional mipbias.
@@ -1216,15 +1220,18 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
   channel short4n pos[0] = extra[7];//pos[0];
   channel float2 tc[0]=tc[0];
 
-  if (in_editor_assume == yes)
+  if (in_editor_assume == yes || use_editor_render)
   {
     (vs) {
-      globtm@f44 = globtm;
       world_local_x@f3 = world_local_x;
       world_local_y@f3 = world_local_y;
       world_local_z@f3 = world_local_z;
       world_local_pos@f3 = world_local_pos;
     }
+  }
+  if (in_editor_assume == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
   }
   INIT_HARDCODED_WORLD_POS()
   static int write_vtexmask = -1;
@@ -1341,7 +1348,7 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
         VsOutput output;
 
         float4 pos = inpos * pos_to_world_scale + pos_to_world_ofs;
-        ##if in_editor == yes
+        ##if in_editor == yes || use_editor_render
           float3 worldPos = float3(pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos);
         ##else
           float3 worldPos = pos.xyz;
@@ -1495,7 +1502,7 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
                                                 smoothness_ao_reflectance_detailNo.z, 0),
             (saturate(r_amount*a+b)));
 
-          ##if in_editor_assume == yes
+          ##if in_editor_assume == yes || use_editor_render
             if (render_with_normalmap>1)
               ret.color =  ret.height;
           ##endif
@@ -1511,6 +1518,8 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
 
 shader land_mesh_height_patch
 {
+  assume allow_forced_in_editor = yes;
+
   if (lmesh_rendering_mode != rendering_clipmap)
   {
     dont_render;
@@ -1556,6 +1565,8 @@ shader land_mesh_height_patch
 
 shader land_mesh_diffuse_modulate
 {
+  assume allow_forced_in_editor = yes;
+
   channel short4n pos[0] = extra[7];
   channel float2 tc[0]=tc[0];
 
@@ -1576,15 +1587,18 @@ shader land_mesh_diffuse_modulate
     dont_render;
   }
 
-  if (in_editor_assume == yes)
+  if (in_editor_assume == yes || use_editor_render)
   {
     (vs) {
-      globtm@f44 = globtm;
       world_local_x@f3 = world_local_x;
       world_local_y@f3 = world_local_y;
       world_local_z@f3 = world_local_z;
       world_local_pos@f3 = world_local_pos;
     }
+  }
+  if (in_editor_assume == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
   }
 
   texture colormap = material.texture[0];
@@ -1593,7 +1607,7 @@ shader land_mesh_diffuse_modulate
     colormapTex@staticSmp = colormap;
   }
 
-  bool override_samplers = in_editor_assume == no && lmesh_rendering_mode == rendering_clipmap;
+  bool override_samplers = in_editor_assume == no && !use_editor_render && lmesh_rendering_mode == rendering_clipmap;
   if (override_samplers)
   {
     (ps) { colormapTex_overrideSampler@sampler : register(decals_overrideSampler_0_const_no); }

@@ -200,7 +200,7 @@ void DaSkies::prepare(const Point3 &dir_to_sun, bool force_update, float dt)
     clouds->setWeatherGen(cloudsWeatherGen);
     clouds->setCloudsForm(cloudsForm);
     clouds->setCloudsRendering(cloudsRendering);
-    clouds->update(dt);
+    clouds->update(dt, windDir);
     if (skies.setStatisticalCloudsInfo(cloudsRendering.ms_contribution, cloudsRendering.ms_attenuation, clouds->minimalStartAlt(),
           clouds->maximumTopAlt(), clouds->getCloudsShadowCoverage(), clouds_sigma_from_extinction(cloudsForm.extinction)))
       nextScatteringGeneration++;
@@ -920,11 +920,6 @@ Color3 DaSkies::getIrradiance(float ht, float mu) const
   if (it != irradianceRequests.end())
     return it->second;
   return (irradianceRequests[rq] = skies.getCpuIrradiance(ht, mu));
-}
-void DaSkies::setWindDirection(const Point2 &windDir)
-{
-  if (clouds)
-    clouds->setErosionNoiseWindDir(windDir);
 }
 
 void DaSkies::setSolidColorMode(bool enabled, const E3DCOLOR &val)

@@ -17,7 +17,7 @@ interval clipmap_decals_displacement_falloff_radius: no<0, yes;
 macro CLIPMAP_DECALS_COMMON()
   supports land_mesh_prepare_clipmap;
 
-  if (lmesh_rendering_mode != rendering_clipmap || in_editor_assume == yes)
+  if (lmesh_rendering_mode != rendering_clipmap || in_editor_assume == yes || use_editor_render)
   {
     dont_render;
   }

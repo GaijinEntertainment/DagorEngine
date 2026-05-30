@@ -89,31 +89,21 @@ static int console_query_id = -1;
 static int console_query_elapsed_frames = 0;
 #endif
 
+static bool get_int_slot(const char *name, int &out)
+{
+  if (ShaderGlobal::get_int_by_name(name, out))
+    return true;
+  logerr("BiomeQuery: Could not find shader variable \"%s\"", name);
+  return false;
+}
+
 bool BiomeQueryCtx::init()
 {
-  int resultBufferSlot = -1;
-  if (!ShaderGlobal::get_int_by_name("biome_query_results_buf_slot", resultBufferSlot))
-  {
-    logerr("BiomeQuery: Could not find shader variable \"biome_query_results_buf_slot\"");
+  int resultBufferSlot = -1, resultsOffsetSlot = -1;
+  if (!get_int_slot("biome_query_results_buf_slot", resultBufferSlot) ||
+      !get_int_slot("biome_results_offset_slot", resultsOffsetSlot) || !get_int_slot("num_biome_groups_slot", num_biome_groups_slot) ||
+      !get_int_slot("landmesh_indexed_landclass_lc_ps_details_cb_register", details_cb_slot))
     return false;
-  }
-  int resultsOffsetSlot = -1;
-  if (!ShaderGlobal::get_int_by_name("biome_results_offset_slot", resultsOffsetSlot))
-  {
-    logerr("BiomeQuery: Could not find shader variable \"biome_results_offset_slot\"");
-    return false;
-  }
-  if (!ShaderGlobal::get_int_by_name("num_biome_groups_slot", num_biome_groups_slot))
-  {
-    logerr("BiomeQuery: Could not find shader variable \"num_biome_groups_slot\"");
-    return false;
-  }
-
-  if (!ShaderGlobal::get_int_by_name("landmesh_indexed_landclass_lc_ps_details_cb_register", details_cb_slot))
-  {
-    logerr("BiomeQuery: Could not find shader variable \"landmesh_indexed_landclass_lc_ps_details_cb_register\"");
-    return false;
-  }
 
   GpuReadbackQuerySystemDescription grqsDesc;
   grqsDesc.maxQueriesPerFrame = MAX_BIOME_QUERIES_PER_FRAME;

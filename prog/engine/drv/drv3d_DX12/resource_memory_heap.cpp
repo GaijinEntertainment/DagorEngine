@@ -16,7 +16,9 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
   ImageCreateResult result{};
   auto desc = ii.asDesc();
 
-  result.state = propertiesToInitialState(desc.Dimension, desc.Flags, ii.memoryClass);
+  // Consider using CreatePlacedResource2 and set the initial layout for the untracked textures.
+  result.state =
+    ii.allocateSubresourceIDs ? propertiesToInitialState(desc.Dimension, desc.Flags, ii.memoryClass) : D3D12_RESOURCE_STATE_COMMON;
 
   HRESULT errorCode = S_OK;
 
@@ -30,22 +32,22 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
     }
     auto memoryProperties = getProperties(desc.Flags, ii.memoryClass, allocInfo.Alignment);
 
-    AllocationFlags allocationFlags;
+    AllocationFlags allocationFlags{};
     if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-      allocationFlags.set(AllocationFlag::IS_UAV);
+      allocationFlags.isUav = true;
     if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-      allocationFlags.set(AllocationFlag::IS_RTV);
+      allocationFlags.isRtv = true;
 
     auto oomCheckOnExit = checkForOOMOnExit(
       adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-      OomReportData{"createTexture", name, allocInfo.SizeInBytes, allocationFlags.to_ulong(), memoryProperties.raw});
+      OomReportData{"createTexture", name, allocInfo.SizeInBytes, allocationFlags.toUlong(), memoryProperties.raw});
 
     auto memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
 
     if (!memory)
     {
-      device.processEmergencyDefragmentation(memoryProperties.raw, true, allocationFlags.test(AllocationFlag::IS_UAV),
-        allocationFlags.test(AllocationFlag::IS_RTV), allocInfo.SizeInBytes, allocationFlags.test(AllocationFlag::DEDICATED_HEAP));
+      device.processEmergencyDefragmentation(memoryProperties.raw, true, allocationFlags.isUav, allocationFlags.isRtv,
+        allocInfo.SizeInBytes, allocationFlags.dedicatedHeap);
       errorCode = S_OK;
       memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
     }
@@ -174,7 +176,7 @@ Image *TextureImageFactory::adoptTexture(ID3D12Resource *texture, const char *na
 Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
   D3D12_RESOURCE_STATES initial_state)
 {
-  AllocationFlags allocationFlags{AllocationFlag::IS_RTV};
+  AllocationFlags allocationFlags{.isRtv = true};
 
   const auto [desc, allocInfo] = calculate_texture_desc_allocation_info(device.getDevice(), original);
   if (!is_valid_allocation_info(allocInfo))
@@ -199,7 +201,7 @@ Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &devi
   }
   original->getDebugName([DX12_CAPTURE_DEF_EQ](auto &name) {
     checkForOOM(adapter, (bool)memory,
-      OomReportData{"cloneRenderTarget", name.c_str(), size, allocationFlags.to_ulong(), properties.raw});
+      OomReportData{"cloneRenderTarget", name.c_str(), size, allocationFlags.toUlong(), properties.raw});
   });
   if (!memory)
     return nullptr;
@@ -357,6 +359,18 @@ D3D12_RESOURCE_DESC AliasHeapProvider::as_desc(const BasicTextureResourceDescrip
     if (format.isColor())
     {
       result.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+#if _TARGET_XBOX
+      // Keep color-compression metadata (CMask/FMask) only when the resource is activated as a cleared
+      // or rewritten RTV (the fast clear path is useful there), or when another flag already requires
+      // the metadata (MSAA -> FMask, DCC, texture-cache compat).
+      // For textures that are used as UAV the metadata would turn the aliasing discard into an unintended full clear, and we want to
+      // avoid that.
+      const bool keepCompressionData = desc.activation == ResourceActivationAction::CLEAR_AS_RTV_DSV ||
+                                       desc.activation == ResourceActivationAction::REWRITE_AS_RTV_DSV ||
+                                       (desc.cFlags & (TEXCF_SAMPLECOUNT_MASK | TEXCF_RT_COMPRESSED | TEXCF_TC_COMPATIBLE)) != 0;
+      if (!keepCompressionData)
+        result.Flags |= D3D12XBOX_RESOURCE_FLAG_DENY_COLOR_COMPRESSION_DATA;
+#endif
     }
     else
     {
@@ -486,7 +500,7 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
 {
   AliasHeap newAliasHeap{};
   newAliasHeap.memory = memory;
-  newAliasHeap.flags.set(AliasHeap::Flag::AUTO_FREE);
+  newAliasHeap.autoFree = true;
   uint32_t index = 0;
   {
     auto aliasHeapsAccess = aliasHeaps.access();
@@ -513,7 +527,7 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   AllocationFlags allocFlags{};
   if (RHCF_REQUIRES_DEDICATED_HEAP & flags)
   {
-    allocFlags.set(AllocationFlag::DEDICATED_HEAP);
+    allocFlags.dedicatedHeap = true;
   }
 
   AliasHeap newPHeap{};
@@ -528,12 +542,11 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
   if (!newPHeap.memory)
   {
-    device.processEmergencyDefragmentation(properties.raw, true, false, false, allocInfo.SizeInBytes,
-      allocFlags.test(AllocationFlag::DEDICATED_HEAP));
+    device.processEmergencyDefragmentation(properties.raw, true, false, false, allocInfo.SizeInBytes, allocFlags.dedicatedHeap);
     newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
   }
   checkForOOM(adapter, static_cast<bool>(newPHeap.memory),
-    OomReportData{"newUserHeap", nullptr, size, allocFlags.to_ulong(), properties.raw});
+    OomReportData{"newUserHeap", nullptr, size, allocFlags.toUlong(), properties.raw});
   const ResourceHeapProperties allocatedProperties{newPHeap.memory.getHeapID().group};
   if (!newPHeap.memory && !device.isIll())
   {
@@ -949,6 +962,9 @@ BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Dev
     result.memoryLocation = selectedHeap.getBufferMemory();
   }
 
+  if (desc.asBufferRes.cFlags & SBCF_NO_STATE_TRACKING)
+    result.resourceId.markExcludedFromStateTracking();
+
   recordBufferPlacedInUserResourceHeap(result.size, heapProperties.isOnDevice(getFeatureSet()), name);
 
   return result;
@@ -1050,7 +1066,7 @@ ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12De
       heap.images.push_back(base);
     }
 
-    bool isAdoptedHeap = heap.flags.test(AliasHeap::Flag::AUTO_FREE);
+    bool isAdoptedHeap = heap.autoFree;
     if (isAdoptedHeap && allocInfo.SizeInBytes > heap.memory.size())
     {
       base->getDebugName([&](auto &base_name) {
@@ -1686,7 +1702,7 @@ void DebugViewBase::restoreViewSettings()
   }
 
   // some things may set store flag, clear it or we write the config for no reason
-  setStatusFlag(StatusFlag::STORE_VIEWS_TO_CONFIG, false);
+  getStatusFlags().storeViewsToConfig = false;
 }
 
 #if DX12_SUPPORT_RESOURCE_MEMORY_METRICS
@@ -2172,11 +2188,11 @@ void MetricsVisualizer::drawMetricsEvnetsViewFilterControls()
     uint64_t frameRangeMin = 0;
     uint64_t frameRangeMax = metricsAccess->getMetricsFrameMax();
     auto range = getShownMetricFrameRange();
-    if (range.back() + 1 >= frameRangeMax || checkStatusFlag(StatusFlag::PIN_MAX_EVENT_FRAME_RANGE_TO_MAX))
+    if (range.back() + 1 >= frameRangeMax || getStatusFlags().pinMaxEventFrameRangeToMax)
     {
       range.reset(range.front(), frameRangeMax + 1);
     }
-    if (range.front() + 1 >= frameRangeMax || checkStatusFlag(StatusFlag::PIN_MIN_EVENT_FRAME_RANGE_TO_MAX))
+    if (range.front() + 1 >= frameRangeMax || getStatusFlags().pinMinEventFrameRangeToMax)
     {
       range.reset(frameRangeMax, range.back() + 1);
     }
@@ -2192,15 +2208,15 @@ void MetricsVisualizer::drawMetricsEvnetsViewFilterControls()
     ImGui::SliderScalarN("", ImGuiDataType_U64, frameRange, 2, &frameRangeMin, &frameRangeMax, nullptr);
     range.reset(frameRange[0], frameRange[1] + 1);
     setShownMetricFrameRange(range);
-    setStatusFlag(StatusFlag::PIN_MIN_EVENT_FRAME_RANGE_TO_MAX, frameRange[0] >= frameRangeMax);
-    setStatusFlag(StatusFlag::PIN_MAX_EVENT_FRAME_RANGE_TO_MAX, frameRange[1] >= frameRangeMax);
+    getStatusFlags().pinMinEventFrameRangeToMax = frameRange[0] >= frameRangeMax;
+    getStatusFlags().pinMaxEventFrameRangeToMax = frameRange[1] >= frameRangeMax;
     ImGui::TextUnformatted("Object name filter");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGui::InputText("##DX12-Live-Metrics-Event-Object-Name-Filter", getEventObjectNameFilterBasePointer(),
           getEventObjectNameFilterMaxLength()))
     {
-      setStatusFlag(StatusFlag::STORE_VIEWS_TO_CONFIG, true);
+      getStatusFlags().storeViewsToConfig = true;
     }
     if (ImGui::Button("Clear log"))
     {
@@ -5230,10 +5246,10 @@ void DebugView::debugOverlay()
   // ImPlot is a mess, division by 0, multiply by inf and other exceptions left and right...
   FloatingPointExceptionsKeeper disableFE;
 
-  if (checkStatusFlag(StatusFlag::LOAD_VIEWS_FROM_CONFIG))
+  if (getStatusFlags().loadViewsFromConfig)
   {
     restoreViewSettings();
-    setStatusFlag(StatusFlag::LOAD_VIEWS_FROM_CONFIG, false);
+    getStatusFlags().loadViewsFromConfig = false;
   }
 
   if (ImGui::TreeNodeEx("Live Metrics##DX12-Live-Metrics", ImGuiTreeNodeFlags_Framed))
@@ -5352,10 +5368,10 @@ void DebugView::debugOverlay()
     ImGui::TreePop();
   }
 
-  if (checkStatusFlag(StatusFlag::STORE_VIEWS_TO_CONFIG))
+  if (getStatusFlags().storeViewsToConfig)
   {
     storeViewSettings();
-    setStatusFlag(StatusFlag::STORE_VIEWS_TO_CONFIG, false);
+    getStatusFlags().storeViewsToConfig = false;
   }
 }
 #endif
@@ -6467,11 +6483,6 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move buffer %u, buffer is mappable", buffer_id.index());
     return ResourceMoveResolution::STAYING;
   }
-  if (hasLockedOwners(buffer_id))
-  {
-    DEFRAG_VERBOSE(true, "DX12: Unable to move buffer %u, buffer is locked", buffer_id.index());
-    return ResourceMoveResolution::STAYING;
-  }
   if (bufferHeapStateAccess->getConstHeap(buffer_id.index()).hasNoAllocations())
   {
     DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Buffer %u is is queued for deletion", buffer_id.index());
@@ -6493,6 +6504,10 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     {
       // fall through to clean up and tell the caller something happened
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: bufferPoolGuard lock failed");
+    }
+    else if (hasLockedOwners(buffer_id))
+    {
+      DEFRAG_VERBOSE(true, "DX12: Unable to move buffer %u, buffer is locked", buffer_id.index());
     }
     else
     {
@@ -6765,6 +6780,18 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
     texture->getDebugName([=](const auto &name) {
       G_UNUSED(name);
       DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, texture aliased", name.c_str());
+    });
+    return ResourceMoveResolution::STAYING;
+  }
+
+  // Layout of textures created with TEXCF_NO_STATE_TRACKING is owned by the user via
+  // enhanced_texture_barrier, so the driver cannot insert the transition to COPY_SOURCE
+  // that the relocation copy requires.
+  if (baseTex->cflg & TEXCF_NO_STATE_TRACKING)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move texture <%s>, state tracking disabled", name.c_str());
     });
     return ResourceMoveResolution::STAYING;
   }
@@ -7421,8 +7448,8 @@ bool HeapFragmentationManager::processDefragmentationStep(DeviceContext &ctx, DX
 
   auto tryMoveRangeResource = [DX12_CAPTURE_DEF_EQ, &ctx, &bindless_manager, &successCount](
                                 ResourceHeap::UsedRangeSetType::iterator selectedRes) DAG_TS_REQUIRES(heapGroupMutex) {
-    AllocationFlags allocFlags{AllocationFlag::DISALLOW_LOCKED_RANGES, AllocationFlag::DEFRAGMENTATION_OPERATION,
-      AllocationFlag::EXISTING_HEAPS_ONLY, AllocationFlag::DISABLE_ALTERNATE_HEAPS};
+    AllocationFlags allocFlags{
+      .disallowLockedRanges = true, .existingHeapsOnly = true, .defragmentationOperation = true, .disableAlternateHeaps = true};
 
     const auto resource = selectedRes->resource;
     heapGroupMutex.unlock();
@@ -7582,7 +7609,7 @@ ScratchBuffer ScratchBufferProvider::getTempScratchBufferSpace(DXGIAdapter *adap
     result = tempScratchBufferState.access()->getSpace(adapter, device.getDevice(), size, alignment, this);
   }
   checkForOOM(adapter, static_cast<bool>(result),
-    OomReportData{"getTempScratchBufferSpace", nullptr, size, AllocationFlags{}.to_ulong(), getScratchBufferHeapProperties().raw});
+    OomReportData{"getTempScratchBufferSpace", nullptr, size, AllocationFlags{}.toUlong(), getScratchBufferHeapProperties().raw});
   if (result)
   {
     recordScratchBufferTempUse(size);
@@ -7601,7 +7628,7 @@ ScratchBuffer ScratchBufferProvider::getPersistentScratchBufferSpace(DXGIAdapter
   }
   checkForOOM(adapter, static_cast<bool>(result),
     OomReportData{
-      "getPersistentScratchBufferSpace", nullptr, size, AllocationFlags{}.to_ulong(), getScratchBufferHeapProperties().raw});
+      "getPersistentScratchBufferSpace", nullptr, size, AllocationFlags{}.toUlong(), getScratchBufferHeapProperties().raw});
   if (result)
   {
     recordScratchBufferPersistentUse(size);
@@ -7647,6 +7674,18 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
       DEFRAG_VERBOSE(true, "DX12: Unable to move texture <%s>, no BaseTex found", name.c_str());
     });
     return ResourceLocationUpdateResult::FAILED;
+  }
+
+  // Layout of textures created with TEXCF_NO_STATE_TRACKING is owned by the user via
+  // enhanced_texture_barrier, so the driver cannot insert the transition to COPY_SOURCE
+  // that the relocation copy requires.
+  if (baseTex->cflg & TEXCF_NO_STATE_TRACKING)
+  {
+    texture->getDebugName([=](const auto &name) {
+      G_UNUSED(name);
+      DEFRAG_VERBOSE(true, "DX12: Unable to move texture <%s>, state tracking disabled", name.c_str());
+    });
+    return ResourceLocationUpdateResult::IMMOVABLE;
   }
 
   if (baseTex->isStub() || tql::isTexStub(baseTex))

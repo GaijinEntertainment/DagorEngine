@@ -19,6 +19,8 @@ int dynamic_cube_tex_reg_no = 15;
 shader specular_cube
 {
   SUPPORT_GLOBAL_FRAME()
+  supports none;
+
   no_ablend;
   USE_ROUGH_TO_MIP()
   USE_POSTFX_VERTEX_POSITIONS()

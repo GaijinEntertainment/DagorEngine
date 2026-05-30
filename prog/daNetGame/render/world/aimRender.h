@@ -13,7 +13,6 @@ struct AimRenderingData
   bool isAiming = false;
   ecs::EntityId entityWithScopeLensEid;
   int lensNodeId = -1;
-  int lensCrosshairNodeId = -1;
   int lensCollisionNodeId = -1;
   float lensBoundingSphereRadius = 1.0f;
   float aimingTime = 0.0f;

@@ -369,7 +369,9 @@ void on_unload_scene(ContextId context_id)
     {
       if (buffer.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
       {
-        const auto &meta = context_id->meshMetaAllocator.get(buffer.second.metaAllocId)[0];
+        TIME_PROFILE(meta_lock_skin_unload);
+        auto lockedMeta = context_id->lockMeta(buffer.second.metaAllocId);
+        const auto &meta = lockedMeta[0];
         if (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures)
         {
           context_id->releaseTexture(meta.albedoTextureIndex);
@@ -900,9 +902,10 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           {
             Point2 tcAnim = max(Point2(texcoord_anim, -texcoord_anim), Point2::ZERO);
             Point2 trackPos = Point2::xy(inst_render_data.params.data()[0]);
-            auto &meta = bvh_context_id->meshMetaAllocator.get(meshElem.metaAllocId)[0];
-            meta.texcoordAdd = uint32_t(float_to_half(dot(tcAnim, trackPos))) << 16;
-            meta.materialType |= MeshMeta::bvhMaterialTexcoordAdd;
+            TIME_PROFILE(meta_lock_track_anim);
+            auto lockedMeta = bvh_context_id->lockMeta(meshElem.metaAllocId);
+            lockedMeta[0].texcoordAdd = uint32_t(float_to_half(dot(tcAnim, trackPos))) << 16;
+            lockedMeta[0].materialType |= MeshMeta::bvhMaterialTexcoordAdd;
           }
 
           auto piDataPtr = getpiDataPtr(bvhMesh, elem, node_id);
@@ -911,7 +914,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
         }
       }
 
-      nodeOffsetRenderData += 9 + mesh->bonesCount() * 6;
+      nodeOffsetRenderData += 11 + mesh->bonesCount() * 6;
     });
 }
 
@@ -1268,8 +1271,10 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
 
         if (meshElem.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
         {
-          meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1, "skinned");
-          auto &meta = bvh_context_id->meshMetaAllocator.get(meshElem.metaAllocId)[0];
+          TIME_PROFILE(meta_lock_skinned);
+          auto lockedMeta = bvh_context_id->allocateMeta(1, "skinned");
+          meshElem.metaAllocId = lockedMeta.allocId;
+          auto &meta = lockedMeta[0];
           meta = bvh_context_id->meshMetaAllocator.get(bvhObject->metaAllocId)[0];
           auto albedoTex = elem.mat->get_texture(0);
           meta.holdAlbedoTex(bvh_context_id, albedoTex);
@@ -1405,7 +1410,9 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
 
         if (elem.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
         {
-          const auto &meta = contextId->meshMetaAllocator.get(elem.second.metaAllocId)[0];
+          TIME_PROFILE(meta_lock_skin_tidy);
+          auto lockedMeta = contextId->lockMeta(elem.second.metaAllocId);
+          const auto &meta = lockedMeta[0];
           if (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures)
           {
             contextId->releaseTexture(meta.albedoTextureIndex);

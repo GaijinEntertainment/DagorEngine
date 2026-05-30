@@ -1,12 +1,11 @@
-from "async" import Promise
+from "async" import Future
 
-// Awaiting a Pending promise that's never settled. The async function parks
+// Awaiting a Pending future that's never settled. The async function parks
 // once and the dispatcher empties cleanly (no requeue keeps it busy). Script
-// exits normally; at sq_close, the shutdown dtor rejects the live task with
-// "ShutdownError" and pre-marks awaited=true to suppress the unhandled-
-// rejection diagnostic.
+// exits normally; at sq_close, the refs-table teardown collects the live
+// task-future without firing an unhandled-error diagnostic.
 
-let p = Promise()
+let p = Future()
 
 async function consumer() {
   print("consumer waits forever\n")

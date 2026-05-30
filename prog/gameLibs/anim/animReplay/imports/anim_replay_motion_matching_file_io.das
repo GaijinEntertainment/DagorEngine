@@ -8,6 +8,7 @@ require DagorDataBlock
 require DagorSystem
 require EcsUtils
 require MotionMatching
+require %gameLibs/anim/animReplay/imports/anim_replay_common
 
 def save_mm_animchar_data_to_blk(var blk : DataBlock; animchar_data : Object)
   for elem in animchar_data
@@ -46,13 +47,11 @@ def patch_motion_matching_data(var anim_replay__loadingAnimchars : Array;
           push(clipsRemap, clipIdx)
         set(*dbObj, "clipsRemap", clipsRemap)
 
-  for animchar in anim_replay__loadingAnimchars
-    assume animcharData = *getRW_ecs_object(animchar)
-    assume mmTransitionClipIdx = *getRW_ecs_IntList(animcharData, "mmTransitionClipIdx")
-    assume mmTagsMask = *getRW_ecs_IntList(animcharData, "mmTagsMask")
-    let eid = *get_Eid(animcharData, "eid")
-    query(eid) <| $[es] (motion_matching__dataBaseEid : EntityId;
-                         motion_matching__dataBaseTemplateName : string)
+  iterate_replay_animchars(anim_replay__loadingAnimchars) <| $[es] (animchar_data; animchar_eid)
+    query(animchar_eid) <| $[es] (motion_matching__dataBaseEid : EntityId;
+                                  motion_matching__dataBaseTemplateName : string)
+      assume mmTransitionClipIdx = *getRW_ecs_IntList(animchar_data, "mmTransitionClipIdx")
+      assume mmTagsMask = *getRW_ecs_IntList(animchar_data, "mmTagsMask")
       assume originalDataBase = *getRW_ecs_object(anim_replay__mmDataBases, motion_matching__dataBaseTemplateName)
       assume clipsRemap = *getRW_ecs_IntList(originalDataBase, "clipsRemap")
       assume clipNames = *get_ecs_StringList(originalDataBase, "clips")
@@ -78,32 +77,32 @@ def patch_motion_matching_data(var anim_replay__loadingAnimchars : Array;
             mask = 0
         if originalTrajectoryFeaturesCount != dataBase.trajectorySize * 2
           logerr("trajectory features count mismatch")
-          assume mmTrajectoryFeatures = *getRW_ecs_Point2List(animcharData, "mmTrajectoryFeatures")
+          assume mmTrajectoryFeatures = *getRW_ecs_Point2List(animchar_data, "mmTrajectoryFeatures")
           clear(mmTrajectoryFeatures)
         if originalPoseFeaturesCount != dataBase.nodeCount * 2
           if originalPoseFeaturesCount > 0
             logerr("pose features count mismatch")
-            assume mmPoseFeatures = *getRW_ecs_Point3List(animcharData, "mmPoseFeatures")
+            assume mmPoseFeatures = *getRW_ecs_Point3List(animchar_data, "mmPoseFeatures")
             clear(mmPoseFeatures)
           else
             using() <| $(var mmPoseFeatures : Point3List)
-              set(animcharData, "mmPoseFeatures", mmPoseFeatures)
+              set(animchar_data, "mmPoseFeatures", mmPoseFeatures)
     // Outdated parameter, should be completely removed in future
-    let mmTransitionTrajectoryFeatures = get_ecs_Point2List(animcharData, "mmTransitionTrajectoryFeatures")
+    let mmTransitionTrajectoryFeatures = get_ecs_Point2List(animchar_data, "mmTransitionTrajectoryFeatures")
     if mmTransitionTrajectoryFeatures != null
-      verify(get_ecs_Point2List(animcharData, "mmSearchTrajectoryFeatures") == null &&
-        get_ecs_FloatList(animcharData, "mmSearchTime") == null)
-      set(animcharData, "mmSearchTrajectoryFeatures", *mmTransitionTrajectoryFeatures)
-      set(animcharData, "mmSearchTime", *get_ecs_FloatList(animcharData, "mmTransitionTime"))
+      verify(get_ecs_Point2List(animchar_data, "mmSearchTrajectoryFeatures") == null &&
+        get_ecs_FloatList(animchar_data, "mmSearchTime") == null)
+      set(animchar_data, "mmSearchTrajectoryFeatures", *mmTransitionTrajectoryFeatures)
+      set(animchar_data, "mmSearchTime", *get_ecs_FloatList(animchar_data, "mmTransitionTime"))
 
 def are_motion_matching_databases_loaded(animchars : Array)
   for animchar in animchars
     assume animcharData = *get_ecs_object(animchar)
     let eid = *get_Eid(animcharData, "eid")
-    var dataBaseLoaded = false
+    var dataBaseLoaded = true
     query(eid) <| $[es] (motion_matching__dataBaseEid : EntityId)
-      if motion_matching__dataBaseEid != INVALID_ENTITY_ID
-        dataBaseLoaded = true
+      if motion_matching__dataBaseEid == INVALID_ENTITY_ID
+        dataBaseLoaded = false
     if !dataBaseLoaded
       return false
   return true

@@ -14,6 +14,7 @@
 #include <drv/3d/dag_consts_base.h>
 #include <drv/3d/dag_samplerHandle.h>
 #include <drv/3d/dag_barrier.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_driverCode.h>
 #include <drv/3d/dag_driverDesc.inl>
@@ -162,7 +163,6 @@ struct D3dInterfaceTable
   uint32_t (*register_bindless_sampler)(d3d::SamplerHandle sampler);
 
   uint32_t (*allocate_bindless_resource_range)(D3DResourceType type, uint32_t count);
-  uint32_t (*resize_bindless_resource_range)(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count);
   void (*free_bindless_resource_range)(D3DResourceType type, uint32_t index, uint32_t count);
   void (*update_bindless_resource_range)(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *> &resources);
   bool (*update_bindless_resource)(D3DResourceType type, uint32_t index, D3dResource *res);
@@ -332,6 +332,10 @@ struct D3dInterfaceTable
 #include "rayTrace/rayTrace3di.inl.h"
 
   void (*resource_barrier)(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline /* = GpuPipeline::GRAPHICS*/);
+  void (*enhanced_texture_barrier)(const d3d::TextureBarrier &barrier, BaseTexture *texture);
+  void (*enhanced_buffer_barrier)(const d3d::BufferBarrier &barrier, Sbuffer *buffer);
+  void (*enhanced_barrier_batch)(dag::ConstSpan<d3d::TextureBarrierBatchItem> texture_barriers,
+    dag::ConstSpan<d3d::BufferBarrierBatchItem> buffer_barriers);
 
   d3d::RenderPass *(*create_render_pass)(const RenderPassDesc &rp_desc);
   void (*delete_render_pass)(d3d::RenderPass *rp);

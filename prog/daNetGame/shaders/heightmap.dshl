@@ -79,6 +79,7 @@ endmacro
 
 shader heightmap
 {
+  assume allow_forced_in_editor = yes;
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 
@@ -146,7 +147,7 @@ shader heightmap
         float3 worldPos = getWorldPosEdgeGrad(vertexId, instance_id, gradXZ);
         float hmapOfs = world_to_hmap_tex_ofs.w;//displacement down as much as possible
         //float hmapOfs = get_hmap_ofs(worldPos.xz);//uncomment this line if you have same subdiv in shadows (slow)
-        ##if in_editor_assume == no
+        ##if in_editor_assume == no && !use_editor_render
         worldPos.xyz += getWorldNormal(worldPos)*hmapOfs;
         ##endif
         float samplingStep = max(gradXZ.x, gradXZ.y);
@@ -361,7 +362,7 @@ shader heightmap
       USE_BURNT_GROUND()
     }
 
-    if (in_editor == yes && blue_white_mask_tex != NULL)//in editor
+    if ((in_editor == yes || use_editor_render) && blue_white_mask_tex != NULL)//in editor
     {
       (ps) {
         blue_white_mask_tex@smp2d = blue_white_mask_tex;
@@ -384,7 +385,7 @@ shader heightmap
 
           UnpackedGbuffer result;
           init_gbuffer(result);
-          init_albedo(result, diffuseColor);
+          init_albedo(result, diffuseColor.xyz);
           init_smoothness(result, 0);
           init_normal(result, worldNormal);
           return encode_gbuffer(result, pointToEye, GET_SCREEN_POS(input.pos));
@@ -464,7 +465,7 @@ shader heightmap
               if (dist <= HMAP_DETAILED_DISTANCE)
               {
             ##endif
-            ##if in_editor_assume == no
+            ##if in_editor_assume == no && !use_editor_render
               float deformFactor = max(0, -getDeformHeight(worldPos, 1));
               result.normal = getDeformNormal(worldPos, result.normal, world_to_hmap_tex_ofs.z);
               verticalNormal = result.normal;
@@ -555,7 +556,7 @@ shader heightmap
       }
     }
 
-    if (in_editor_assume == yes)
+    if (in_editor_assume == yes || use_editor_render)
     {
       INIT_TOROIDAL_HEIGHTMAP(vs)
       USE_TOROIDAL_HEIGHTMAP(vs)

@@ -103,22 +103,20 @@ extern "C" int dd_memicmp(const char *a, const char *b, int n)
   return d;
 }
 
-extern "C" const char *dd_stristr(const char *haystack, const char *needle)
+extern "C" const char *dd_stristr(eastl::string_view haystack, eastl::string_view needle)
 {
-  if (!haystack || !needle)
-    return haystack;
-
-  const int needleLength = strlen(needle);
+  const int needleLength = needle.length();
   if (needleLength == 0)
-    return haystack;
+    return haystack.begin();
 
-  int haystackLength = strlen(haystack);
+  const char *haystackPtr = haystack.begin();
+  int haystackLength = haystack.length();
   while (haystackLength >= needleLength)
   {
-    if (dd_memicmp(haystack, needle, needleLength) == 0)
-      return haystack;
+    if (dd_memicmp(haystackPtr, needle.begin(), needleLength) == 0)
+      return haystackPtr;
 
-    ++haystack;
+    ++haystackPtr;
     --haystackLength;
   }
 

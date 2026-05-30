@@ -6,7 +6,7 @@
 #include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 
-#include <render/world/animCharRenderAdditionalData.h>
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 
 #include <render/world/portalRenderer.h>
 #include <shaders/portal_render.hlsli>

@@ -125,15 +125,10 @@ class AliasHeapProvider : public TextureImageFactory
 
   struct AliasHeap
   {
-    enum class Flag
-    {
-      AUTO_FREE,
-      COUNT
-    };
     ResourceMemory memory;
     dag::Vector<Image *> images;
     dag::Vector<BufferGlobalId> buffers;
-    TypedBitSet<Flag> flags;
+    bool autoFree = false;
     ResourceTagType tag = nullptr;
 #if _TARGET_XBOX
     HANDLE heapRegHandle = nullptr;
@@ -148,7 +143,7 @@ class AliasHeapProvider : public TextureImageFactory
       memory = {};
     }
 
-    bool shouldBeFreed() const { return flags.test(Flag::AUTO_FREE) && images.empty() && buffers.empty(); }
+    bool shouldBeFreed() const { return autoFree && images.empty() && buffers.empty(); }
   };
 
   static D3D12_RESOURCE_DESC as_desc(const BasicTextureResourceDescription &desc);
@@ -249,7 +244,7 @@ public:
       {
         continue;
       }
-      clb.visitAliasingHeap(i, heap.memory, heap.images, heap.buffers, heap.flags.test(AliasHeap::Flag::AUTO_FREE));
+      clb.visitAliasingHeap(i, heap.memory, heap.images, heap.buffers, heap.autoFree);
     }
     clb.endVisit();
   }
@@ -959,15 +954,13 @@ class DebugViewBase : public FrameFinalizer
   using BaseType = FrameFinalizer;
 
 protected:
-  enum class StatusFlag
+  struct StatusFlags
   {
-    PIN_MIN_EVENT_FRAME_RANGE_TO_MAX,
-    PIN_MAX_EVENT_FRAME_RANGE_TO_MAX,
-    LOAD_VIEWS_FROM_CONFIG,
-    STORE_VIEWS_TO_CONFIG,
-    COUNT
+    bool pinMinEventFrameRangeToMax : 1 = false;
+    bool pinMaxEventFrameRangeToMax : 1 = false;
+    bool loadViewsFromConfig : 1 = false;
+    bool storeViewsToConfig : 1 = false;
   };
-  using StatusFlags = TypedBitSet<StatusFlag>;
 
 private:
   struct MetricsVisualizerState
@@ -986,8 +979,8 @@ private:
 protected:
   void setup(const SetupInfo &setup)
   {
-    metricsVisualizerState.statusFlags.set(StatusFlag::PIN_MAX_EVENT_FRAME_RANGE_TO_MAX);
-    metricsVisualizerState.statusFlags.set(StatusFlag::LOAD_VIEWS_FROM_CONFIG);
+    metricsVisualizerState.statusFlags.pinMaxEventFrameRangeToMax = true;
+    metricsVisualizerState.statusFlags.loadViewsFromConfig = true;
 
     BaseType::setup(setup);
   }
@@ -996,9 +989,8 @@ protected:
 
   size_t getEventObjectNameFilterMaxLength() { return countof(metricsVisualizerState.eventObjectNameFilter); }
 
-  bool checkStatusFlag(StatusFlag flag) const { return metricsVisualizerState.statusFlags.test(flag); }
-
-  void setStatusFlag(StatusFlag flag, bool value) { metricsVisualizerState.statusFlags.set(flag, value); }
+  StatusFlags &getStatusFlags() { return metricsVisualizerState.statusFlags; }
+  const StatusFlags &getStatusFlags() const { return metricsVisualizerState.statusFlags; }
 
   const GraphDisplayInfo &getGraphDisplayInfo(Graph graph)
   {
@@ -1010,7 +1002,7 @@ protected:
     auto &target = metricsVisualizerState.graphDisplayInfos[static_cast<uint32_t>(graph)];
     if (target != info)
     {
-      setStatusFlag(StatusFlag::STORE_VIEWS_TO_CONFIG, true);
+      getStatusFlags().storeViewsToConfig = true;
       target = info;
     }
   }

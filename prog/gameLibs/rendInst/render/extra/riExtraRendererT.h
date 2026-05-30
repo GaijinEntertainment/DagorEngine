@@ -102,7 +102,7 @@ public:
     layer = layer_, instanceCountMultiply = eastl::max(1u, count_multiply);
     isDepthPass = render_pass == RenderPass::ToShadow || render_pass == RenderPass::Depth;
     optimizeDepthPass = isDepthPass && optimization_depth_pass == OptimizeDepthPass::Yes;
-    isVoxelizationPass = (render_pass == RenderPass::VoxelizeAlbedo || render_pass == RenderPass::Voxelize3d);
+    isVoxelizationPass = render_pass == RenderPass::VoxelizeAlbedo;
     isDecalPass = layer == LayerFlag::Decals;
     isTransparentPass = layer == LayerFlag::Transparent;
 

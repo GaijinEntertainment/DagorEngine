@@ -386,22 +386,17 @@ void BEContext::processBindlessUpdates()
     TIME_PROFILE(vulkan_bindless_tex_update);
     for (const BindlessTexUpdateInfo &i : data->bindlessTexUpdates)
     {
-      if (i.type == BindlessUpdateType::RES)
+      if (i.variant.res.img)
+        verifyResident(i.variant.res.img);
+      bool anyUpdated = false;
+      for (int j = 0; j < i.count; ++j)
+        anyUpdated |=
+          Backend::bindless.updateBindlessTexture(i.index + j, i.variant.res.img, i.variant.res.owner, i.variant.res.viewState);
+      if (i.variant.res.img && anyUpdated)
       {
-        if (i.variant.res.img)
-          verifyResident(i.variant.res.img);
-        bool anyUpdated = false;
-        for (int j = 0; j < i.count; ++j)
-          anyUpdated |=
-            Backend::bindless.updateBindlessTexture(i.index + j, i.variant.res.img, i.variant.res.owner, i.variant.res.viewState);
-        if (i.variant.res.img && anyUpdated)
-        {
-          ImageViewState ivs = i.variant.res.viewState;
-          trackBindlessRead(i.variant.res.img, {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
-        }
+        ImageViewState ivs = i.variant.res.viewState;
+        trackBindlessRead(i.variant.res.img, {ivs.getMipBase(), ivs.getMipCount(), ivs.getArrayBase(), ivs.getArrayCount()});
       }
-      else
-        Backend::bindless.copyBindlessDescriptors(D3DResourceType::TEX, i.variant.copy.src, i.index, i.count);
     }
   }
 
@@ -455,13 +450,8 @@ void BEContext::processBindlessUpdates()
     TIME_PROFILE(vulkan_bindless_buf_update);
     for (const BindlessBufUpdateInfo &i : data->bindlessBufUpdates)
     {
-      if (i.type == BindlessUpdateType::RES)
-      {
-        for (int j = 0; j < i.count; ++j)
-          Backend::bindless.updateBindlessBuffer(i.index + j, i.variant.res.bref);
-      }
-      else
-        Backend::bindless.copyBindlessDescriptors(D3DResourceType::SBUF, i.variant.copy.src, i.index, i.count);
+      for (int j = 0; j < i.count; ++j)
+        Backend::bindless.updateBindlessBuffer(i.index + j, i.variant.res.bref);
     }
   }
 
@@ -671,7 +661,7 @@ void BEContext::transferOwnershipForOverlappedBufferUploads(DeviceQueueType src,
 void BEContext::transferOwnershipForOverlappedBufferUploads(DeviceQueueType src, DeviceQueueType dst,
   const dag::Vector<BufferCopyInfo> &uploads, const dag::Vector<VkBufferCopy> &copies)
 {
-  if (Globals::cfg.bits.ignoreQueueFamilyOwnershipTransferBarriers)
+  if (Globals::cfg.bits.ignoreQueueFamilyOwnershipTransferBarriers || !Globals::cfg.bits.allowMultiQueue)
     return;
 
   uint32_t srcFamily = Globals::VK::queue[src].getFamily();

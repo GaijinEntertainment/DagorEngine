@@ -9,6 +9,7 @@ shader rendinst_emissive
   if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render; }
   if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
       rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
       rendinst_render_pass == rendinst_render_pass_to_shadow ||
       rendinst_render_pass == rendinst_render_pass_grassify)
   {
@@ -56,7 +57,7 @@ shader rendinst_emissive
   hlsl(vs) {
 
     INSTANCING_BUFFERS
-    
+
     struct VsInput
     {
       float3 pos                  : POSITION;
@@ -109,6 +110,6 @@ shader rendinst_emissive
   {
     EMISSIVE_PS()
   }
-  
+
   compile("target_vs", "simple_vs");
 }

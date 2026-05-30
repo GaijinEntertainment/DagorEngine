@@ -6,6 +6,6 @@ waiter got: real
 first resolve, p=fulfilled
 after extra calls p=fulfilled
 awaited value: 1
-r after extras=rejected
+r after fault=faulted
 r reason: first
 script done

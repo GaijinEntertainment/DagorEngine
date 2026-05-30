@@ -58,8 +58,7 @@
   VAR(envi_probe_specular_samplerstate) \
   VAR(underwater_fade)                  \
   VAR(small_sampled_buffers)            \
-  VAR(chromatic_aberration_params)      \
-  VAR(film_grain_params)
+  VAR(chromatic_aberration_params)
 
 #define GLOBAL_VARS_OPTIONAL_LIST             \
   VAR(uv_temporal_jitter)                     \

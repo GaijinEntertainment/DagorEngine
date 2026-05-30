@@ -1,10 +1,10 @@
-from "async" import Promise
+from "async" import Future
 
-// Three async tasks all await the same Pending promise. When the resolver
+// Three async tasks all await the same Pending future. When the resolver
 // settles it, resolveTaskOrManual walks the waiters FIFO and schedules a
 // Send step for each. Each consumer must wake with the same resolved value.
 
-let p = Promise()
+let p = Future()
 
 async function consumer1() {
   print("c1 waits\n")

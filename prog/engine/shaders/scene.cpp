@@ -11,9 +11,7 @@
 
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_files.h>
-#include <util/dag_loadingProgress.h>
 #include <perfMon/dag_cpuFreq.h>
-#include <perfMon/dag_objVisDebug.h>
 #include <generic/dag_sort.h>
 #include <supp/dag_prefetch.h>
 #include <math/dag_mathUtils.h>
@@ -649,8 +647,6 @@ void RenderScene::loadTextures(IGenLoad &cb, Tab<TEXTUREID> &tex)
     tex[i] = get_managed_texture_id(name.data());
     if (tex[i] == BAD_TEXTUREID)
       tex[i] = add_managed_texture(name.data());
-    if ((i & 0x3F) == 0)
-      loading_progress_point();
 
     acquire_managed_tex(tex[i]);
   }
@@ -664,14 +660,6 @@ void RenderScene::load(const char *lmdir, bool use_vis)
   ShaderMaterial::setLoadingString(fn);
 
   int startUpTime = get_time_msec();
-// int startUpTime0=startUpTime;
-#define STARTUP_POINT(name)                                                                        \
-  {                                                                                                \
-    /*int t=get_time_msec();*/                                                                     \
-    /*debug("*** %7dms: load scene %s (line %d)", t-startUpTime, (const char*)(name), __LINE__);*/ \
-    /*startUpTime=t;*/                                                                             \
-    loading_progress_point();                                                                      \
-  }
 
   debug("loading scene %s", (char *)fn);
 
@@ -679,9 +667,6 @@ void RenderScene::load(const char *lmdir, bool use_vis)
   if (!crd.fileHandle)
     DAG_FATAL("can't open scene file '%s'", fn.str());
 
-  STARTUP_POINT("open");
-
-  loading_progress_point();
   if (crd.readInt() != _MAKE4C('scnf'))
   {
     DAG_FATAL("non-scene file"); // DAGOR_THROW(IGenLoad::LoadException("non-scene file", crd.tell()));

@@ -16,7 +16,7 @@ enum class RenderPass
   ToGrassHeight = 4,
   Depth = 5,
   VoxelizeAlbedo = 6,
-  Voxelize3d = 7,
+  ImpostorVoxel = 7,
   Grassify = 8,
   ToHeightMap = 9,
   TriangleSizeDebug = 10

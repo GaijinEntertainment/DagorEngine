@@ -29,19 +29,9 @@ struct Var<ecs::EntityId>
 
 
 template <>
-struct Var<const ecs::EntityId &>
+struct Var<const ecs::EntityId &> : public Var<ecs::EntityId>
 {
-  ecs::EntityId value;
-  Var(HSQUIRRELVM vm, SQInteger idx)
-  {
-    SQInteger intVal = ecs::ECS_INVALID_ENTITY_ID_VAL;
-    G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, idx, &intVal)));
-    value = ecs::EntityId(ecs::entity_id_t(intVal));
-  }
-
-  static void push(HSQUIRRELVM vm, const ecs::EntityId &value) { sq_pushinteger(vm, static_cast<SQInteger>((ecs::entity_id_t)value)); }
-  static const char *getVarTypeName() { return "EntityId const ref"; }
-  static bool check_type(HSQUIRRELVM vm, SQInteger idx) { return sq_gettype(vm, idx) == OT_INTEGER; }
+  using Var<ecs::EntityId>::Var;
 };
 
 SQRAT_MAKE_NONREFERENCABLE(ecs::EntityId)

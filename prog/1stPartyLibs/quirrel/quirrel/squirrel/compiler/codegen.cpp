@@ -1485,7 +1485,7 @@ SQObjectPtr CodeGenVisitor::compileFunc(FunctionExpr *funcDecl, bool is_const, s
     _childFs->_nodiscard = funcDecl->isNodiscard();
     // async functions are compiled as generators; forcing _bgenerator means
     // even an awaitless body still goes through StartCall's generator path,
-    // and the runtime wraps it in a Promise via sqasync::wrap_generator.
+    // and the runtime wraps it in a Future via sqasync::wrap_generator.
     if (funcDecl->isAsync()) {
         _childFs->_isAsync = true;
         _childFs->_bgenerator = true;
@@ -1858,7 +1858,7 @@ void CodeGenVisitor::emitUnaryOp(SQOpcode op, UnExpr *u) {
 
 
 // `await expr` codegen. Emits OP_YIELD with the awaitable in a fresh result
-// slot; the runner settles the awaited Promise and swaps the resolved value
+// slot; the runner settles the awaited Future and swaps the resolved value
 // into that slot (or routes rejection via the throw-resume path). The slot
 // must not alias a named local, since the swap would otherwise overwrite it.
 void CodeGenVisitor::emitAwait(UnExpr *u) {
@@ -1867,10 +1867,10 @@ void CodeGenVisitor::emitAwait(UnExpr *u) {
 
     Expr *arg = u->argument();
     // Flag a known-sync call as a dead `await`. Native closures opt out: from
-    // script we can't tell whether they return a Promise (httpFetch, async.delay,
+    // script we can't tell whether they return a Future (httpFetch, async.delay,
     // async.nextFrame) or a plain value. Sync helpers annotated as returning an
     // instance opt out too - chain-unwrap makes `await wrap()` do real work
-    // when wrap returns a Promise. Class constructors don't opt out (their
+    // when wrap returns a Future. Class constructors don't opt out (their
     // result is never awaitable). deparen so `await (f())` matches.
     Expr *probe = deparen(arg);
     if (probe->op() == TO_CALL) {
@@ -2017,7 +2017,6 @@ void CodeGenVisitor::emitShortCircuitLogicalOp(SQOpcode op, Expr *lhs, Expr *rhs
     SQInteger trg = _fs->PushTarget();
     _fs->AddInstruction(op, trg, 0, first_exp, 0);
     SQInteger jpos = _fs->GetCurrentPos();
-    if (trg != first_exp) _fs->AddInstruction(_OP_MOVE, trg, first_exp);
     visitForValue(rhs);
     _fs->SnoozeOpt();
     SQInteger second_exp = _fs->PopTarget();

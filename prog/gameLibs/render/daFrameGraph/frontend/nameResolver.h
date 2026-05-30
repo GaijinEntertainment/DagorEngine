@@ -39,6 +39,12 @@ public:
     {
       return IdIndexedFlags<T, framemem_allocator>::operator[](nameId);
     }
+
+    template <class T>
+    void assign(size_t count, bool value)
+    {
+      IdIndexedFlags<T, framemem_allocator>::assign(count, value);
+    }
   };
 
   using NodesChanged = IdIndexedFlags<NodeNameId, framemem_allocator>;

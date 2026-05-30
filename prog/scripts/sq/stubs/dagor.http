@@ -6,11 +6,22 @@ function request(a) {
   assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
 }
 
+function fetch(a) {
+  assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+}
+
+function download(a) {
+  assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+}
+
 return {
   httpAbort = abort
   httpRequest = request
+  httpFetch = fetch
+  httpDownload = download
 
   HTTP_SUCCESS = 0
   HTTP_FAILED = 1
   HTTP_ABORTED = 2
+  HTTP_SHUTDOWN = 3
 }

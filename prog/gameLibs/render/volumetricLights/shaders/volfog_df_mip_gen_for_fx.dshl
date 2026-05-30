@@ -12,6 +12,7 @@ texture volfog_df_mipgen_inscatter_rw;
 texture volfog_df_mipgen_reprojection_dist_rw;
 
 float4 distant_fog_reconstruction_resolution;
+float4 distant_fog_reconstruction_dyn_scales = (1, 1, 1, 1);
 
 
 // TODO: merge this shader into DF reconstruction (use 2x2 texel per thread)
@@ -21,6 +22,7 @@ shader volfog_df_fx_mipgen_cs
   (cs) {
     distant_fog_reprojection_dist@smp2d = distant_fog_reprojection_dist;
     distant_fog_result_inscatter@smp2d = distant_fog_result_inscatter;
+    distant_fog_reconstruction_dyn_scales@f2 = distant_fog_reconstruction_dyn_scales.xy;
     mip_gen_output_tex_size@f2 = (distant_fog_reconstruction_resolution.x*0.5, distant_fog_reconstruction_resolution.y*0.5, 0, 0);
     mip_gen_tr@f4 = (
       2*distant_fog_reconstruction_resolution.z,
@@ -40,7 +42,7 @@ shader volfog_df_fx_mipgen_cs
 
     half4 sample_inscatter(float2 texcoord)
     {
-      return (half4)tex2Dlod(distant_fog_result_inscatter, float4(texcoord, 0, 0));
+      return (half4)tex2Dlod(distant_fog_result_inscatter, float4(texcoord * distant_fog_reconstruction_dyn_scales, 0, 0));
     }
     half4 load_inscatter(int2 pos)
     {
@@ -78,10 +80,11 @@ shader volfog_df_fx_mipgen_cs
       linearLowResWeights /= dot(linearLowResWeights, 1);
 
       half4 result;
-      result.r = dot(distant_fog_result_inscatter.GatherRed(distant_fog_result_inscatter_samplerstate, texcoord), linearLowResWeights);
-      result.g = dot(distant_fog_result_inscatter.GatherGreen(distant_fog_result_inscatter_samplerstate, texcoord), linearLowResWeights);
-      result.b = dot(distant_fog_result_inscatter.GatherBlue(distant_fog_result_inscatter_samplerstate, texcoord), linearLowResWeights);
-      result.a = dot(distant_fog_result_inscatter.GatherAlpha(distant_fog_result_inscatter_samplerstate, texcoord), linearLowResWeights);
+      float2 scaledTexcoord = texcoord * distant_fog_reconstruction_dyn_scales;
+      result.r = dot(distant_fog_result_inscatter.GatherRed(distant_fog_result_inscatter_samplerstate, scaledTexcoord), linearLowResWeights);
+      result.g = dot(distant_fog_result_inscatter.GatherGreen(distant_fog_result_inscatter_samplerstate, scaledTexcoord), linearLowResWeights);
+      result.b = dot(distant_fog_result_inscatter.GatherBlue(distant_fog_result_inscatter_samplerstate, scaledTexcoord), linearLowResWeights);
+      result.a = dot(distant_fog_result_inscatter.GatherAlpha(distant_fog_result_inscatter_samplerstate, scaledTexcoord), linearLowResWeights);
       return result;
     }
 
@@ -93,7 +96,7 @@ shader volfog_df_fx_mipgen_cs
 
       float2 tc = float2(dtId) * mip_gen_tr.xy + mip_gen_tr.zw;
 
-      float4 reprojDist = distant_fog_reprojection_dist.GatherRed(distant_fog_reprojection_dist_samplerstate, tc);
+      float4 reprojDist = distant_fog_reprojection_dist.GatherRed(distant_fog_reprojection_dist_samplerstate, tc * distant_fog_reconstruction_dyn_scales);
       float maxDist = max4(reprojDist.x, reprojDist.y, reprojDist.z, reprojDist.w);
 
       volfog_df_mipgen_inscatter_rw[dtId] = calc_inscatter_bilateral(tc, maxDist, reprojDist);

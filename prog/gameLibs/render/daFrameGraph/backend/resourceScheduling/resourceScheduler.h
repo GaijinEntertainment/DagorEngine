@@ -44,6 +44,8 @@ public:
 
   ResourceScheduler() = default;
 
+  void resetIncrementalState() { *this = ResourceScheduler(); }
+
   const ResourceSchedule &computeSchedule(int prev_frame, const SchedulingContext &ctx);
 
   // After recompiling, the IR graph might change drastically, so we have

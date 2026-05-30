@@ -16,12 +16,12 @@ bool validate_var_const_state(int) { return true; }
 #endif
 
 bool ShaderGlobal::set_texture(int, TEXTUREID) { return true; }
-bool ShaderGlobal::set_texture(int, BaseTexture *) { return true; }
+bool ShaderGlobal::set_texture_unsafe(int, BaseTexture *) { return true; }
 bool ShaderGlobal::set_texture(int, const ManagedTex &) { return true; }
 bool ShaderGlobal::set_texture(const ShaderVariableInfo &, const ManagedTex &) { return true; }
 bool ShaderGlobal::set_buffer(const ShaderVariableInfo &, const ManagedBuf &) { return true; }
 bool ShaderGlobal::set_buffer(int, D3DRESID) { return true; }
-bool ShaderGlobal::set_buffer(int, Sbuffer *) { return true; }
+bool ShaderGlobal::set_buffer_unsafe(int, Sbuffer *) { return true; }
 bool ShaderGlobal::set_buffer(int, const ManagedBuf &) { return true; }
 bool ShaderGlobal::set_tlas(int, RaytraceTopAccelerationStructure *) { return true; }
 bool ShaderGlobal::set_sampler(int, d3d::SamplerHandle) { return true; }
@@ -70,6 +70,7 @@ bool ShaderGlobal::is_resource_used_as_umnamaged_pointer(D3dResource *, bool) { 
 #endif
 
 bool VariableMap::isGlobVariablePresent(int) { return false; }
+bool VariableMap::isGlobVariablePresent(const ShaderVariableInfo &) { return false; }
 bool VariableMap::isVariablePresent(int) { return false; }
 bool VariableMap::isVariablePresent(const ShaderVariableInfo &) { return false; }
 int VariableMap::getVariableId(const char *, bool) { return -1; }

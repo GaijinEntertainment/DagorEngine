@@ -101,6 +101,7 @@ struct PrepareRiexVisibilityParams
   bool disableRegionPrefilter = false;
   // Bypasses forced occlusion->getCurViewProj() in dev build.
   bool useExactGlobtm = false;
+  bool forceCullUnderwaterOnly = false;
 };
 bool prepareRIGenExtraVisibility(RiGenVisibility &v, mat44f_cref gtm, const PrepareRiexVisibilityParams &params);
 inline bool prepareRIGenExtraVisibility(mat44f_cref gtm, const Point3 &viewPos, RiGenVisibility &v, bool forShadow,
@@ -124,8 +125,10 @@ bool prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_lod, float 
   bbox3f *result_box = nullptr);
 bool prepareRIGenExtraVisibilityForGrassifyBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
   RiGenVisibility &vbase, bbox3f *result_box = nullptr);
+bool prepareRIGenExtraVisibilityBoxForRIClipmapBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
+  RiGenVisibility &vbase, bbox3f *result_box = nullptr);
 bool prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist, bool filter_grassify,
-  RiGenVisibility &vbase, bbox3f *result_box);
+  bool filter_ri_clipmap, RiGenVisibility &vbase, bbox3f *result_box);
 void filterVisibility(RiGenVisibility &from, RiGenVisibility &to, const VisibilityExternalFilter &external_filter);
 void filterRIGenExtraVisibilityById(const RiGenVisibility *visibility, RiGenVisibility *filteredVis,
   const VisibilityExternalIdFilter &id_filter);

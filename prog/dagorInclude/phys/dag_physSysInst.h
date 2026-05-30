@@ -17,7 +17,7 @@ class PhysSystemInstance
 public:
   // Note: if `tm` is null then bodies wont be added to phys world
   PhysSystemInstance(PhysicsResource *resource, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup = 0,
-    uint16_t fmask = 0);
+    uint16_t fmask = 0, float scale = 1.f);
   PhysSystemInstance(const PhysSystemInstance &) = delete;
   ~PhysSystemInstance();
 
@@ -67,7 +67,7 @@ protected:
     Tab<TmHelper> tmHelpers;
 
     Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
-      bool has_joints);
+      bool has_joints, float scale = 1.f);
 
     void updateTms(const PhysicsResource::Body &res_body, const TMatrix &scale_tm);
   };

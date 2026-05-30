@@ -17,7 +17,7 @@ def anim_replay_start_record(evt : AnimReplayStartRecord)
     set(init, "anim_replay__animcharsRecordingFilter", int(evt.animcharsFilter))
     set(init, "anim_replay__sampleRate", int(evt.sampleRate))
 
-def fill_tracked_anim_params(var anim_params : Array; anim_graph : AnimationGraph)
+def fill_sampled_anim_params(var anim_params : Array; anim_graph : AnimationGraph; precise_anim_params : StringList)
   clear(anim_params)
   using() <| $(var emptyAnimParam : Object)
     using() <| $(var values : FloatList)
@@ -32,18 +32,36 @@ def fill_tracked_anim_params(var anim_params : Array; anim_graph : AnimationGrap
         // maybe more?
         if character_at(param.name, 0) == ':' //internal params
           continue
+        if find_index(precise_anim_params, string(param.name)) != -1
+          continue
         push(anim_params, emptyAnimParam)
         let lastParamIdx = length(anim_params) - 1
         assume animParam = *getRW_ecs_object(anim_params[lastParamIdx])
         set(animParam, "id", param.id)
         set(animParam, "name", string(param.name))
 
-def fill_initial_animchar_data(var animchar_data : Object; eid : EntityId)
+def fill_precise_anim_params(var anim_params : Array; anim_graph : AnimationGraph; anim_state : IAnimStateHolder; precise_anim_params : StringList)
+  clear(anim_params)
+  for paramName in precise_anim_params
+    let paramId = anim_graph_getParamId(anim_graph, string(paramName), int(PT_ScalarParam))
+    if paramId < 0
+      continue
+    using() <| $(var animParam : Object)
+      using() <| $(var values : FloatList)
+        push(values, anim_state_holder_getParam(anim_state, paramId))
+        set(animParam, "values", values)
+      using() <| $(var time : FloatList)
+        push(time, 0f)
+        set(animParam, "time", time)
+      set(animParam, "id", paramId)
+      set(animParam, "name", string(paramName))
+      push(anim_params, animParam)
+
+def fill_initial_animchar_data(var animchar_data : Object; eid : EntityId; precise_anim_params : StringList)
   query(eid) <| $ [es] (animchar : AnimcharBaseComponent;
                         animchar__res : string;
-                        animchar__appliedAnimSpeed : float;
-                        animchar__animState : Object)
-    assume animGraph = *animchar.animGraph
+                        animchar__appliedAnimSpeed : float const?;
+                        animchar__animState : Object const?)
     set(animchar_data, "eid", eid)
     set(animchar_data, "animcharRes", animchar__res)
     set(animchar_data, "originalTemplate", getEntityTemplateName(eid))
@@ -51,36 +69,46 @@ def fill_initial_animchar_data(var animchar_data : Object; eid : EntityId)
       set(animchar_data, "position", position)
     using() <| $(var rotation : Point4List)
       set(animchar_data, "rotation", rotation)
-    using() <| $(var animTreeStates : Object)
-      using() <| $(var timeList : FloatList)
-        push(timeList, 0.f)
-        set(animTreeStates, "time", timeList)
-      using() <| $(var states : Array)
-        push(states, animchar__animState)
-        set(animTreeStates, "state", states)
-      using() <| $(var animSpeedList : FloatList)
-        push(animSpeedList, animchar__appliedAnimSpeed)
-        set(animTreeStates, "animSpeed", animSpeedList)
-      using() <| $(var stateNames : StringList)
-        for i in range(animGraph.stateCount)
-          let stateName = anim_graph_getStateNameByStateIdx(animGraph, i)
-          if !empty(stateName) // alias states return empty string
-            push(stateNames, stateName)
-        set(animTreeStates, "stateNames", stateNames)
-      set(animchar_data, "animTreeStates", animTreeStates)
-    using() <| $(var initialAnimStateParams : Object)
-      save_anim_state_parameters(animGraph, *animchar.animState, initialAnimStateParams)
-      set(animchar_data, "initialAnimStateParams", initialAnimStateParams)
-    using() <| $(var trackedAnimStateParams : Array)
-      fill_tracked_anim_params(trackedAnimStateParams, animGraph)
-      set(animchar_data, "animParams", trackedAnimStateParams)
+    if animchar__animState != null && animchar__appliedAnimSpeed != null && animchar.animGraph != null
+      using() <| $(var animTreeStates : Object)
+        using() <| $(var timeList : FloatList)
+          push(timeList, 0.f)
+          set(animTreeStates, "time", timeList)
+        using() <| $(var states : Array)
+          push(states, *animchar__animState)
+          set(animTreeStates, "state", states)
+        using() <| $(var animSpeedList : FloatList)
+          push(animSpeedList, *animchar__appliedAnimSpeed)
+          set(animTreeStates, "animSpeed", animSpeedList)
+        using() <| $(var stateNames : StringList)
+          assume animGraph = *animchar.animGraph
+          for i in range(animGraph.stateCount)
+            let stateName = anim_graph_getStateNameByStateIdx(animGraph, i)
+            if !empty(stateName) // alias states return empty string
+              push(stateNames, stateName)
+          set(animTreeStates, "stateNames", stateNames)
+        set(animchar_data, "animTreeStates", animTreeStates)
+    if animchar.animGraph != null && animchar.animState != null
+      assume animGraph = *animchar.animGraph
+      using() <| $(var initialAnimStateParams : Object)
+        save_anim_state_parameters(animGraph, *animchar.animState, initialAnimStateParams)
+        set(animchar_data, "initialAnimStateParams", initialAnimStateParams)
+      using() <| $(var sampledAnimStateParams : Array)
+        fill_sampled_anim_params(sampledAnimStateParams, animGraph, precise_anim_params)
+        set(animchar_data, "animParams", sampledAnimStateParams)
+      using() <| $(var preciseAnimStateParams : Array)
+        fill_precise_anim_params(preciseAnimStateParams, animGraph, *animchar.animState, precise_anim_params)
+        set(animchar_data, "preciseAnimParams", preciseAnimStateParams)
 
 [es(on_appear)]
-def anim_replay_gather_animchars_for_save(evt : Event; anim_replay__animcharsRecordingFilter : int; var anim_replay__savedAnimchars : Array)
+def anim_replay_gather_animchars_for_save(evt : Event;
+                                          anim_replay__animcharsRecordingFilter : int;
+                                          anim_replay__preciseAnimParams : StringList;
+                                          var anim_replay__savedAnimchars : Array)
   clear(anim_replay__savedAnimchars)
   let addAnimcharToList = $ <| (eid : EntityId)
     using() <| $(var animcharData : Object)
-      fill_initial_animchar_data(animcharData, eid)
+      fill_initial_animchar_data(animcharData, eid, anim_replay__preciseAnimParams)
       if !empty(animcharData)
         push(anim_replay__savedAnimchars, animcharData)
 
@@ -119,14 +147,14 @@ def anim_replay_track_animchar(evt : UpdateStageInfoAct;
       assume rotList = *getRW_ecs_Point4List(animcharData, "rotation")
       push(posList, transform[3])
       push(rotList, math::quat(transform))
-      assume animState = *animchar.animState
-      assume animParams = *getRW_ecs_array(animcharData, "animParams")
-      for animParamChildComp in animParams
-        assume animParam = *getRW_ecs_object(animParamChildComp)
-        let paramId = *get_int(animParam, "id")
-        assume paramValues = *getRW_ecs_FloatList(animParam, "values")
-        let paramValue = anim_state_holder_getParam(animState, paramId)
-        push(paramValues, paramValue)
+      var animParams = getRW_ecs_array(animcharData, "animParams")
+      if animParams != null && animchar.animState != null
+        for animParamChildComp in *animParams
+          assume animParam = *getRW_ecs_object(animParamChildComp)
+          let paramId = *get_int(animParam, "id")
+          assume paramValues = *getRW_ecs_FloatList(animParam, "values")
+          let paramValue = anim_state_holder_getParam(*animchar.animState, paramId)
+          push(paramValues, paramValue)
     if isDead || !doesEntityExist(animcharEid)
       set(animcharData, "deathTime", prevTimestamp)
 
@@ -134,12 +162,13 @@ def anim_replay_track_animchar(evt : UpdateStageInfoAct;
 def anim_replay_track_anim_states(evt : UpdateStageInfoAct;
                                   anim_replay__time : float;
                                   var anim_replay__savedAnimchars : Array)
-  for animchar in anim_replay__savedAnimchars
-    assume animcharData = *getRW_ecs_object(animchar)
-    let animcharEid = *get_Eid(animcharData, "eid")
-    query(animcharEid) <| $ [es] (animchar__appliedAnimSpeed : float;
-                                  animchar__animState : Object)
-      assume animStates = *getRW_ecs_object(animcharData, "animTreeStates")
+  iterate_replay_animchars(anim_replay__savedAnimchars) <| $(animchar_data, animchar_eid)
+    query(animchar_eid) <| $ [es] (animchar__appliedAnimSpeed : float;
+                                   animchar__animState : Object)
+      var animStatesPtr = getRW_ecs_object(animchar_data, "animTreeStates")
+      if animStatesPtr == null
+        return
+      var animStates & = unsafe(*animStatesPtr)
       assume timeList = *getRW_ecs_FloatList(animStates, "time")
       assume states = *getRW_ecs_array(animStates, "state")
       assume animSpeedList = *getRW_ecs_FloatList(animStates, "animSpeed")
@@ -155,6 +184,27 @@ def anim_replay_track_anim_states(evt : UpdateStageInfoAct;
         push(timeList, anim_replay__time)
         push(states, animchar__animState)
         push(animSpeedList, animchar__appliedAnimSpeed)
+
+[es(before=anim_replay_end_of_saving_frame)]
+def anim_replay_track_precise_anim_params(evt : UpdateStageInfoAct;
+                                          anim_replay__time : float;
+                                          var anim_replay__savedAnimchars : Array)
+  iterate_replay_animchars(anim_replay__savedAnimchars) <| $(animchar_data, animchar_eid)
+    query(animchar_eid) <| $ [es] (animchar : AnimcharBaseComponent)
+      var preciseAnimParams = getRW_ecs_array(animchar_data, "preciseAnimParams")
+      if animchar.animState == null || preciseAnimParams == null
+        return
+      assume animState = *animchar.animState
+      for animParamChildComp in *preciseAnimParams
+        unsafe
+          var animParam & = *getRW_ecs_object(animParamChildComp)
+          let paramId = *get_int(animParam, "id")
+          let paramValue = anim_state_holder_getParam(animState, paramId)
+          var values & = *getRW_ecs_FloatList(animParam, "values")
+          if back(values) != paramValue
+            push(values, paramValue)
+            var time & = *getRW_ecs_FloatList(animParam, "time")
+            push(time, anim_replay__time)
 
 // Should be before real updates (physics, animations and etc). In our case most of this
 // happens in ParallelUpdateFrameDelayed, so any order in regular update is ok.
@@ -177,11 +227,12 @@ def anim_replay_stop_record(evt : AnimReplayStopRecord;
 
 [es(on_appear)]
 def configure_anim_state_params(evt : Event; var anim_replay__animchars : Array; anim_replay__ignoredAnimParams : StringList)
-  for animcharChildComp in anim_replay__animchars
-    assume animcharData = *getRW_ecs_object(animcharChildComp)
-    let animcharEid = *get_Eid(animcharData, "eid")
-    query(animcharEid) <| $ [es] (animchar : AnimcharBaseComponent)
-      assume animParams = *getRW_ecs_array(animcharData, "animParams")
+  iterate_replay_animchars(anim_replay__animchars) <| $(animchar_data, animchar_eid)
+    var animParamsPtr = getRW_ecs_array(animchar_data, "animParams")
+    if animParamsPtr == null
+      return
+    var animParams & = unsafe(*animParamsPtr)
+    query(animchar_eid) <| $ [es] (animchar : AnimcharBaseComponent)
       var paramsCount = length(animParams)
       var i = 0
       while i < paramsCount

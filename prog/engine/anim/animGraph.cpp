@@ -23,6 +23,7 @@
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_gameResSystem.h>
 #include "animInternal.h"
+#include "animFifo.h"
 #include <ioSys/dag_dataBlock.h>
 #include <regExp/regExp.h>
 #include <ctype.h>
@@ -284,6 +285,8 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
   int nid_alias = stDescBlk.getNameId("state_alias");
   const char *def_node_name = stDescBlk.getStr("defNodeName", "");
   float defMorphTime = stDescBlk.getReal("defMorphTime", 0.15f);
+  FifoMorphType defMorphType = (FifoMorphType)lup(stDescBlk.getStr("defMorphType", "linear"), fifoMorphTypeNames,
+    countof(fifoMorphTypeNames), FifoMorphType::MT_LINEAR);
   float defMinTsc = stDescBlk.getReal("minTimeScale", 0.f);
   float defMaxTsc = stDescBlk.getReal("maxTimeScale", FLT_MAX);
 
@@ -323,6 +326,8 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
       stateStrIndices.push_back(id);
       float defDur = b.getReal("forceDur", -1);
       float defSpd = b.getReal("forceSpd", -1);
+      FifoMorphType stMorphType =
+        (FifoMorphType)lup(b.getStr("morphType", ""), fifoMorphTypeNames, countof(fifoMorphTypeNames), defMorphType);
       float stMorphTime = b.getReal("morphTime", defMorphTime);
       float stMinTsc = b.getReal("minTimeScale", defMinTsc);
       float stMaxTsc = b.getReal("maxTimeScale", defMaxTsc);
@@ -332,7 +337,11 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
       if (strcmp(def_node_name, "*") == 0)
         def_node_id = StateRec::NODEID_LEAVECUR;
       for (int j = 0; j < stDest.size(); j++)
-        stRec[sidx + j].nodeId = def_node_id, stRec[sidx + j].morphTime = stMorphTime;
+      {
+        stRec[sidx + j].nodeId = def_node_id;
+        stRec[sidx + j].morphTime = stMorphTime;
+        stRec[sidx + j].morphType = stMorphType;
+      }
 
       for (int j = 0; j < b.blockCount(); j++)
       {
@@ -377,6 +386,8 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
             dgs_get_fatal_context(tmpbuf, sizeof(tmpbuf)));
           stRec[sidx + cid].nodeId = StateRec::NODEID_NULL;
         }
+        stRec[sidx + cid].morphType =
+          (FifoMorphType)lup(b2.getStr("morphType", ""), fifoMorphTypeNames, countof(fifoMorphTypeNames), stMorphType);
         stRec[sidx + cid].morphTime = b2.getReal("morphTime", stMorphTime);
         stRec[sidx + cid].forcedStateDur = b2.getReal("forceDur", defDur);
         stRec[sidx + cid].forcedStateSpd = b2.getReal("forceSpd", defSpd);
@@ -457,7 +468,7 @@ void AnimationGraph::enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<State
     return;
   for (int i = 0; i < stDest.size(); i++)
     if (state[i].nodeId == StateRec::NODEID_NULL)
-      stDest[i].fifo->enqueueState(st, nullAnim, state[i].morphTime);
+      stDest[i].fifo->enqueueState(st, nullAnim, state[i].morphTime, state[i].morphType);
     else if (state[i].nodeId != StateRec::NODEID_LEAVECUR)
     {
       G_ASSERTF(int(stDest[i].condNodemaskTarget) < int(state.size()), "stDest[%d].condNodemaskTarget=%d state.size()=%d", i,
@@ -483,7 +494,7 @@ void AnimationGraph::enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<State
       }
       if (!stDest[i].fifo->isEnqueued(st, n))
         n->resume(st, true);
-      stDest[i].fifo->enqueueState(st, n, state[i].morphTime);
+      stDest[i].fifo->enqueueState(st, n, state[i].morphTime, state[i].morphType);
     }
 }
 
@@ -2869,6 +2880,8 @@ void AnimBlendCtrl_ParametricSwitcher::createNode(AnimationGraph &graph, const D
   AnimBlendCtrl_ParametricSwitcher *node = new AnimBlendCtrl_ParametricSwitcher(graph, var_name, blk.getStr("varname_residual", NULL));
 
   node->morphTime = blk.getReal("morphTime", 0.15f);
+  node->morphType =
+    (FifoMorphType)lup(blk.getStr("morphType", "linear"), fifoMorphTypeNames, countof(fifoMorphTypeNames), FifoMorphType::MT_LINEAR);
   graph.registerBlendNode(node, name, nm_suffix);
 }
 
@@ -2998,7 +3011,7 @@ void AnimBlendCtrl_ParametricSwitcher::initChilds(AnimationGraph &graph, const D
   const DataBlock *mtblk = blk.getBlockByName("morphTimes");
   if (mtblk)
   {
-    morphTimeOverride.reserve(mtblk->blockCount());
+    morphParamsOverride.reserve(mtblk->blockCount());
     for (int i = 0; i < mtblk->blockCount(); i++)
     {
       const DataBlock *nblk = mtblk->getBlock(i);
@@ -3006,6 +3019,8 @@ void AnimBlendCtrl_ParametricSwitcher::initChilds(AnimationGraph &graph, const D
       const char *nameFrom = nblk->getStr("from", NULL);
       const char *nameTo = nblk->getStr("to", NULL);
       real time = nblk->getReal("morphTime", 0.0);
+      FifoMorphType type = (FifoMorphType)lup(nblk->getStr("morphType", "linear"), fifoMorphTypeNames, countof(fifoMorphTypeNames),
+        FifoMorphType::MT_LINEAR);
       if (!nameFrom)
       {
         ANIM_ERR("Blend node <%s> missing 'from' blend node name parameter in morphTimes block", name);
@@ -3037,7 +3052,7 @@ void AnimBlendCtrl_ParametricSwitcher::initChilds(AnimationGraph &graph, const D
       if (!foundFrom || !foundTo)
         continue;
 
-      morphTimeOverride.push_back({from, to, time});
+      morphParamsOverride.push_back({from, to, time, type});
     }
   }
 

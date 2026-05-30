@@ -41,6 +41,27 @@ enum class PinType : uint8_t
 PinType parse_pin_type(const char *type_name);
 bool is_texture_or_particles(PinType t);
 
+// Polymorphic read of a BLK param into the canonical text form used throughout
+// GraphData (Node::propertyValues stores values as strings regardless of the
+// descriptor's declared type; the consumer re-parses with `type` in hand).
+// Handles TYPE_STRING / INT / REAL / BOOL / POINT4; returns "" when the param
+// is absent or the type isn't representable as a scalar string.
+eastl::string param_as_string(const DataBlock *blk, const char *name);
+
+// Returns the property's declared type string ("bool" / "int" / "float" /
+// "color" / "string" / ...) or "" when neither `type:t` nor the val tag yields
+// an answer.
+//
+// Reads `type:t` first; when absent, infers from the BLK tag on `val` --
+// val:b -> "bool", val:i -> "int", val:r -> "float", val:p4 -> "color",
+// val:t -> "string" (since :t is BLK's string tag). combobox / curve /
+// gradient also use val:t but always carry an explicit `type:t` for
+// disambiguation. The converters (tools/graphEditor/translate_main_nodes_to_blk.py
+// and translate_shaders_to_blk.py) drop `type:t` for the unambiguous set, so
+// consumers that previously did `desc->getStr("type", "")` should fall back
+// to this helper.
+const char *infer_prop_type(const DataBlock *prop_desc);
+
 // Pin direction role. Mirrors the descriptor "role:t" string ("in" / "out" / "any" / "ctrl").
 // `isInput` on Pin is derived from this: isInput == (role != PinRole::Out).
 enum class PinRole : uint8_t
@@ -53,9 +74,14 @@ enum class PinRole : uint8_t
 
 struct GraphData
 {
-  // `name` and `customTextureName` are per-instance state -- written by the loader / drag-drop
-  // creator and persisted to JSON. `pins[]` preserves JSON pin order so edges (which reference
-  // pins by index) keep pointing to the right slot across descriptor evolutions.
+  // `name` is per-instance state -- written by the loader / drag-drop creator and persisted.
+  // `pins[]` preserves JSON pin order so edges (which reference pins by index) keep pointing
+  // to the right slot across descriptor evolutions.
+  //
+  // `customTextureName` is a runtime cache of the texgen register name assigned by
+  // `compile_graph_to_blks`. It is repopulated by every compile's write-back loop and read
+  // only by the texture-preview panel (graph_panel.cpp). NOT persisted, NOT read from
+  // loaded files -- doing so would carry stale values across edits that re-number elements.
   //
   // `type` / `types` / `typeGroup` / `role` / `isInput` / `singleConnect` / `hidden` are a *cache*
   // resolved from base_nodes.blk by `resolve_node_pins` at well-defined moments (graph load,
@@ -65,7 +91,7 @@ struct GraphData
   struct Pin
   {
     eastl::string name;
-    eastl::string customTextureName;             // texgen register name for output pins (empty otherwise)
+    eastl::string customTextureName;             // compile-output cache; texgen register name for output pins
     eastl::fixed_vector<PinType, 4, true> types; // full multi-type list from descriptor; drives validation
     eastl::string typeGroup;                     // empty when pin is not in a typeGroup
     PinType type = PinType::Unknown;             // first listed type, used for color
@@ -172,6 +198,36 @@ bool load_graph_data(GraphData &out, const char *json_path, const char *shader_i
 // since the descriptor's types and the node's plugin are both available here.
 void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk);
 
+// For a single node{} block from base_nodes.blk: if its output pins include
+// texture1D/texture2D/texture3D/particles, append synthetic property{} blocks for
+// "texture width", "texture height" (>=2D), "texture depth" (>=3D), "texture type",
+// "texture wrap" -- but only those not already declared. Mutates the block in place.
+// Ports the property-injection portion of mainNodes.js GE_preprocessDescription
+// (lines 2923-3021). The JS editor synthesizes these at descriptor load; the C++
+// properties panel walks the BLK directly, so we have to materialize them ahead of
+// time or the panel never surfaces them. The `<graph properties>` pseudo-node is
+// skipped: in the C++ port its texture defaults live on GraphData fields and are
+// rendered by PropertiesPanel::rebuildForGraph instead.
+void preprocess_node_descriptor(DataBlock &node_desc);
+
+// Texture combobox item lists shared between preprocess_node_descriptor (per-node
+// synthetic property injection) and PropertiesPanel::rebuildForGraph (graph-level
+// defaults). The relative-mode prefix items ("parent size", "graph size", "parent
+// type", "parent wrap", etc.) are per-node only -- they have no meaning at the
+// graph level, so they stay private to graph_data.cpp.
+inline constexpr const char *BASE_SIZES[] = {
+  "= 1", "= 2", "= 4", "= 8", "= 16", "= 32", "= 64", "= 128", "= 256", "= 512", "= 1024", "= 2048", "= 4096", "= 8192"};
+inline constexpr const char *BASE_TYPES[] = {
+  "R8", "R16", "R16F", "R32F", "RG16", "RG16F", "RG32F", "ARGB8", "ARGB16", "ARGB16F", "ARGB32F", "R11G11B10F"};
+inline constexpr const char *BASE_WRAPS[] = {"wrap", "clamp"};
+
+// Parse a graph-level texture size selection -- "= 1024", "1024", or any string
+// where the first run of non-digit characters precedes an integer. Returns
+// `fallback` when no digit is found. Mirrors the lambda originally inlined in
+// load_graph_data's JSON parser; reused by the property panel's onChange handler
+// so the combobox text -> int conversion stays in sync with the JSON loader.
+int parse_graph_size(const char *s, int fallback);
+
 // Resets `out` to an empty state.
 void clear_graph_data(GraphData &out);
 
@@ -191,3 +247,38 @@ bool save_graph_data_blk(const GraphData &data, const char *blk_path);
 // (kept for signature parity with the JSON loader).
 bool load_graph_data_blk(GraphData &out, const char *blk_path, const char *shader_includes_dir,
   const DataBlock *base_nodes_blk = nullptr);
+
+// One reason a `validate_subgraph_schema` check might reject the input. Per-node errors
+// carry the offending node id + interface name + role; the NO_BOUNDARIES code is graph-
+// level and leaves node_id = -1.
+struct SubgraphSchemaError
+{
+  enum Code
+  {
+    NO_BOUNDARIES,        // graph has no `subgraph in:` / `subgraph out` nodes -- nothing to expose
+    NO_OUTPUTS,           // graph has boundary nodes but zero `subgraph out` -- parent cannot consume anything
+    EMPTY_INTERFACE_NAME, // boundary node's `name` property is empty
+    DUPLICATE_NAME,       // two boundaries share the same (role, name) -- ambiguous splice
+  };
+  Code code = NO_BOUNDARIES;
+  int nodeId = -1;
+  eastl::string interfaceName;
+  bool isInputRole = false; // true: came from `subgraph in: TYPE`; false: came from `subgraph out`
+};
+
+bool validate_subgraph_schema(const GraphData &gd, eastl::vector<SubgraphSchemaError> &out_errors);
+eastl::string format_subgraph_schema_error(const SubgraphSchemaError &err);
+eastl::string effective_subgraph_boundary_name(const GraphData &gd, int boundary_node_id);
+
+// One input boundary whose data doesn't propagate to any output. Reported by
+// `find_dead_input_boundaries`; surfaced as a "save anyway?" warning in the editor
+// when the user hits Save as subgraph. Not a hard error -- the subgraph still
+// compiles, it just has a parent input that has no observable effect on the output.
+struct DeadInputBoundary
+{
+  int nodeId = -1;
+  eastl::string interfaceName; // effective name (post-derivation); falls back to `type` if empty in the warning text
+  eastl::string type;          // pin type from the boundary's descName (e.g. "float" out of "subgraph in: float")
+};
+
+void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoundary> &out);

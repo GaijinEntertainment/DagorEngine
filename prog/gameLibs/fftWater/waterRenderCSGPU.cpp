@@ -5,6 +5,7 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_lock.h>
 #include <3d/dag_lockSbuffer.h>
 #include <perfMon/dag_statDrv.h>
 #include <FFT_CPU_Simulation.h>
@@ -59,6 +60,8 @@ void CSGPUData::close()
 
 bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
+  d3d::GpuAutoLock gpuLock;
+
   close();
 
   if (auto &driverDesc = d3d::get_driver_desc(); driverDesc.shaderModel < 5.0_sm)

@@ -147,3 +147,7 @@ IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC();
 #include <legacyCaptureImpl.cpp.inl>
 
 void d3d::visit_tagged_resources(const ResourceTypeFilter &, const ResourceVisitor &) {}
+
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &, BaseTexture *) {}
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &, Sbuffer *) {}
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem>, dag::ConstSpan<d3d::BufferBarrierBatchItem>) {}

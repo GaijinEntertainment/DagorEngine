@@ -433,6 +433,7 @@ struct Config
 #endif
   bool has_bvh_shader = false;
   bool debug_page_allocs = false;
+  bool use_seperate_highres_atest_rtag = false;
 
   static constexpr int emission_max_limit = 65536;
 

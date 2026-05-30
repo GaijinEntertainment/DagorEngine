@@ -137,7 +137,7 @@ _Maybe = class (Monad) {
  * None class wraps null values and prevents errors
  * that otherwise occur when mapping unexpected undefined or null
  * values
- * except constructor, _tostirng and isNone - everything else are optimizations
+ * except constructor, _tostring and isNone - everything else are optimizations
  */
 _None = class (_Maybe) {
   constructor(){}

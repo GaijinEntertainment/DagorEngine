@@ -3579,8 +3579,8 @@ protected:
 
     if (bvhLruMeshBase)
     {
-      bvh::update_instances(bvhCtx, Point3::ZERO, Point3(0, -1, 0), Frustum(), Frustum(), nullptr, nullptr, nullptr,
-        threadpool::PRIO_HIGH);
+      bvh::update_instances(bvhCtx, Point3::ZERO, Point3(0, -1, 0), TMatrix::IDENT, TMatrix4::IDENT, Frustum(), Frustum(), nullptr,
+        nullptr, nullptr, threadpool::PRIO_HIGH);
 
       auto accept = [](auto) { return LRUCollision::ObjectClass::Accept; };
       auto addInstance = [this](size_t i, mat43f_cref tm, bbox3f_cref, bbox3f_cref) {

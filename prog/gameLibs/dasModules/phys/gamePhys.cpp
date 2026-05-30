@@ -234,7 +234,7 @@ public:
       using method_init = DAS_CALL_MEMBER(ECSCustomPhysStateSyncer::init);
       das::addExtern<DAS_CALL_METHOD(method_init)>(*this, lib, "init", das::SideEffects::modifyArgument,
         DAS_CALL_MEMBER_CPP(ECSCustomPhysStateSyncer::init))
-        ->arg_init(/*resv*/ 1, new das::ExprConstInt(0));
+        ->arg_init(/*resv*/ 2, new das::ExprConstInt(0));
 
       using method_registerSyncComponentFloat = das::das_call_member<void (ECSCustomPhysStateSyncer::*)(const char *, float &),
         &ECSCustomPhysStateSyncer::registerSyncComponent>;

@@ -62,14 +62,15 @@ static ecs::EntitySystemDesc mark_hero_cockpit_textures_important_es_es_desc
 ,"render",nullptr,nullptr,"filter_hero_cockpit_es");
 static constexpr ecs::ComponentDesc set_hero_cockpit_params_es_comps[] =
 {
-//start of 7 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("hero_cockpit_vec"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("hero_cockpit_vec_value"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("hero_cockpit_camera_to_point"), ecs::ComponentTypeInfo<ShaderVar>()},
   {ECS_HASH("hero_cockpit_camera_to_point_value"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("hero_cockpit_bbox_min_value"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("hero_cockpit_bbox_max_value"), ecs::ComponentTypeInfo<Point4>()},
-  {ECS_HASH("hero_cockpit_camera_enabled_value"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("hero_cockpit_camera_enabled_value"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("hero_cockpit_camera_fade_value"), ecs::ComponentTypeInfo<int>()}
 };
 static void set_hero_cockpit_params_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -83,6 +84,7 @@ static void set_hero_cockpit_params_es_all_events(const ecs::Event &__restrict e
     , ECS_RO_COMP(set_hero_cockpit_params_es_comps, "hero_cockpit_bbox_min_value", Point4)
     , ECS_RO_COMP(set_hero_cockpit_params_es_comps, "hero_cockpit_bbox_max_value", Point4)
     , ECS_RO_COMP(set_hero_cockpit_params_es_comps, "hero_cockpit_camera_enabled_value", int)
+    , ECS_RO_COMP(set_hero_cockpit_params_es_comps, "hero_cockpit_camera_fade_value", int)
     );
   while (++comp != compE);
 }
@@ -92,7 +94,7 @@ static ecs::EntitySystemDesc set_hero_cockpit_params_es_es_desc
   "prog/daNetGameLibs/hero_cockpit_render/render/renderHeroCockpitES.cpp.inl",
   ecs::EntitySystemOps(nullptr, set_hero_cockpit_params_es_all_events),
   empty_span(),
-  make_span(set_hero_cockpit_params_es_comps+0, 7)/*ro*/,
+  make_span(set_hero_cockpit_params_es_comps+0, 8)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),

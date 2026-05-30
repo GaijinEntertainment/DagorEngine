@@ -19,6 +19,7 @@ float gtao_half_hfov_tan = 1.0;
 float gtao_temporal_directions = 0;
 float gtao_temporal_offset = 0;
 int4 temporal_shadow_frame;
+int4 gtao_dispatch_grid_dim = (1, 1, 0, 0);
 float4 hero_cockpit_vec = (0, 0, 0, 0);
 texture raw_gtao_tex;
 texture gtao_tex;
@@ -369,23 +370,32 @@ shader gtao_main_cs
   USE_AND_INIT_VIEW_VEC_CS()
   GTAO_MAIN_CORE(cs)
 
+  (cs) {
+    gtao_dispatch_grid_dim@i2 = gtao_dispatch_grid_dim;
+  }
+
   hlsl(cs) {
+    #include "thread_group_swizzle.hlsli"
+
     RWTexture2D<SSAO_TYPE> gtao_target : register(u0);
 
     [numthreads( 8, 8, 1 )]
-    void gtao_resolve_cs(uint3 DTid : SV_DispatchThreadID)
+    void gtao_resolve_cs(uint2 group_id : SV_GroupID, uint2 group_thread_id : SV_GroupThreadID)
     {
-      if (any(DTid.xy >= gtao_texel_size.zw))
+      const uint GTAO_COL_WIDTH = 16;
+      uint2 DTid = thread_group_swizzle_x(gtao_dispatch_grid_dim, uint2(8, 8), GTAO_COL_WIDTH, group_thread_id, group_id);
+
+      if (any(DTid >= (uint2)gtao_texel_size.zw))
         return;
 
-      float2 pixelCenter = DTid.xy + 0.5;
+      float2 pixelCenter = DTid + 0.5;
       float2 texcoord = pixelCenter * gtao_texel_size.xy * current_inv_dynamic_resolution_scale;
 
       DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord.xy);
 
       float3 worldDir    = lerp_view_vec(texcoord);
       SSAO_TYPE ao = gtao_resolve(pixelCenter, texcoord, worldDir);
-      texture2DAt(gtao_target, DTid.xy) = ao;
+      texture2DAt(gtao_target, DTid) = ao;
     }
   }
   compile("target_cs", "gtao_resolve_cs");

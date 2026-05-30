@@ -7,16 +7,8 @@
 namespace bvh_traverse
 {
 
-bool rayBLASQuadOOL(RayData &r, int startOffset, int blasSize)
-{
-  using B = BLASTraverse<false>;
-  return B::rayBLAS(r, startOffset, blasSize);
-}
+bool rayBLASQuadOOL(RayData &r, int startOffset, int blasSize) { return rayBLAS_Free<false>(r, startOffset, blasSize); }
 
-bool rayBLASQuadOOLCullCCW(RayData &r, int startOffset, int blasSize)
-{
-  using B = BLASTraverse<true>;
-  return B::rayBLAS(r, startOffset, blasSize);
-}
+bool rayBLASQuadOOLCullCCW(RayData &r, int startOffset, int blasSize) { return rayBLAS_Free<true>(r, startOffset, blasSize); }
 
 } // namespace bvh_traverse

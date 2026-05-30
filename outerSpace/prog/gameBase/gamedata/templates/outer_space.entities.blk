@@ -813,3 +813,18 @@ capsules_ao{
     _tags:t="render"
   }
 }
+
+film_grain_lut{
+  _singleton:b=yes
+  film_grain_lut__wh:i=256
+  film_grain_lut__d:i=64
+  film_grain_lut__gen_params:p4=2.5,0.5,1.0,64
+
+  _tracked:t="film_grain_lut__wh"
+  _tracked:t="film_grain_lut__d"
+  _tracked:t="film_grain_lut__gen_params"
+
+  film_grain_lut{
+    _tags:t="render"
+  }
+}

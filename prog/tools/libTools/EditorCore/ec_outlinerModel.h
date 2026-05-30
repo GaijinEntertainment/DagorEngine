@@ -4,7 +4,7 @@
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_outlinerInterface.h>
 #include <ioSys/dag_dataBlock.h>
-#include <util/dag_string.h>
+#include <util/dag_strUtil.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/vector_set.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -42,6 +42,7 @@ public:
 
   virtual ItemType getType() const = 0;
   virtual const char *getLabel() const = 0;
+  virtual eastl::string_view getLabelStringView() const = 0;
   virtual int getUnfilteredChildCount() const = 0;
   virtual OutlinerTreeItem *getUnfilteredChild(int index) const = 0;
   virtual int getFilteredChildCount() const = 0;
@@ -96,6 +97,7 @@ public:
 
   ItemType getType() const override { return ItemType::ObjectAssetName; }
   const char *getLabel() const override { return assetName; }
+  eastl::string_view getLabelStringView() const override { return to_string_view(assetName); }
   int getUnfilteredChildCount() const override { return 0; }
   OutlinerTreeItem *getUnfilteredChild(int index) const override { return nullptr; }
   int getFilteredChildCount() const override { return 0; }
@@ -114,6 +116,7 @@ public:
 
   ItemType getType() const override { return ItemType::Object; }
   const char *getLabel() const override { return renderableEditableObject->getName(); }
+  eastl::string_view getLabelStringView() const override { return renderableEditableObject->getNameStringView(); }
   int getUnfilteredChildCount() const override { return objectAssetNameTreeItem.get() ? 1 : 0; }
   OutlinerTreeItem *getUnfilteredChild(int index) const override { return objectAssetNameTreeItem.get(); }
   int getFilteredChildCount() const override { return objectAssetNameTreeItem.get() ? 1 : 0; }
@@ -148,7 +151,7 @@ struct ObjectTreeItemLess
 {
   bool operator()(ObjectTreeItem *a, ObjectTreeItem *b) const
   {
-    const int result = strcmp(a->getLabel(), b->getLabel());
+    const int result = a->getLabelStringView().compare(b->getLabelStringView());
     if (result < 0)
       return true;
     else if (result > 0)
@@ -180,6 +183,7 @@ public:
 
   ItemType getType() const override { return ItemType::Layer; }
   const char *getLabel() const override { return layerName; }
+  eastl::string_view getLabelStringView() const override { return to_string_view(layerName); }
   int getUnfilteredChildCount() const override { return sortedObjects.size(); }
   OutlinerTreeItem *getUnfilteredChild(int index) const override { return sortedObjects[index]; }
   int getFilteredChildCount() const override { return filteredSortedObjects.size(); }
@@ -276,6 +280,7 @@ public:
 
   ItemType getType() const override { return ItemType::ObjectType; }
   const char *getLabel() const override { return objectTypeName; }
+  eastl::string_view getLabelStringView() const override { return to_string_view(objectTypeName); }
   int getUnfilteredChildCount() const override { return layers.size(); }
   OutlinerTreeItem *getUnfilteredChild(int index) const override { return layers[index]; }
   int getFilteredChildCount() const override { return filteredLayers.size(); }
@@ -337,6 +342,7 @@ public:
 
   ItemType getType() const override { return ItemType::Root; }
   const char *getLabel() const override { return nullptr; }
+  eastl::string_view getLabelStringView() const override { return eastl::string_view(); }
   int getUnfilteredChildCount() const override { return objectTypes.size(); }
   OutlinerTreeItem *getUnfilteredChild(int index) const override { return objectTypes[index]; }
   int getFilteredChildCount() const override { return filteredObjectTypes.size(); }

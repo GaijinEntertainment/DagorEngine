@@ -32,6 +32,7 @@
 #include <drv/3d/dag_platform_pc.h>
 #include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_renderStates.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <math/dag_viewMatrix.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <gui/dag_imgui.h>
@@ -75,6 +76,7 @@
 #include <render/antialiasing.h>
 #include <rendInst/riexSync.h>
 #include <rendInst/rendInstGen.h>
+#include <adaptation/render/adaptation_manager.h>
 #include <phys/physUtils.h>
 #include <folders/folders.h>
 #include <dasModules/dasSystem.h>
@@ -110,6 +112,8 @@ extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
 extern ShaderBlockIdHolder globalFrameBlockId;
 extern void init_fx();
 
+static ShaderVariableInfo forceInEditorVarInfo("force_in_editor");
+
 namespace dng_based_render
 {
 extern Tab<IRenderingService *> rendSrv;
@@ -124,6 +128,10 @@ static float last_gametime_sec = 0.f;
 static UniqueTex nullTarget;
 static TexStreamingContext currentTexCtx = {0};
 static DataBlock riGenExtraConfig;
+static bool disable_postfx = false, postfx_toggle_changed = false;
+static float saved_motion_blur_strength = 0.f;
+static int32_t suppress_motion_blur_count = 0;
+static SimpleString saved_aa_setting;
 
 static void init_dng_framework();
 static void term_dng_framework();
@@ -135,6 +143,7 @@ static void before_render(const Driver3dPerspective &persp, const TMatrix4D &pro
 static const ManagedTex &get_final_target();
 static void draw_scene();
 static void after_draw_scene();
+static void set_motion_blur_enabled(bool enabled);
 }; // namespace dng_based_render
 
 using dng_based_render::rendSrv;
@@ -143,7 +152,6 @@ static bool render_enabled = false;
 static float wireframeZBias = 0.1;
 static bool enable_wireframe = false;
 static bool prevIsOrtho = false;
-static float saved_motion_blur_strength = -1.f;
 
 // Starting with draw skipping by default. This way we ensure that before the first drawScene call actScene was called
 static bool skip_next_frame = true;
@@ -345,7 +353,7 @@ public:
 
       if (dng_based_render::scene_ready_for_render())
         beforeRender(vpw->getViewTm(), vpw->getPerspective(), vpw->isOrthogonal(), vpw->getW());
-      d3d::set_render_target(getRenderBuffer(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{getRenderBuffer(), 0, 0}});
       if (getRenderBuffer() == rt.getColor(0).tex)
         d3d::setview(viewportX, viewportY, viewportW, viewportH, 0, 1);
       else
@@ -430,7 +438,7 @@ public:
 
     dng_based_render::before_draw_scene(1, 1e-6f);
     beforeRender(viewTm, persp, isOrtho, viewportW);
-    d3d::set_render_target(getRenderBuffer(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{getRenderBuffer(), 0, 0}});
     d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(64, 64, 64, 0), 0, 0);
     dng_based_render::draw_scene();
@@ -449,7 +457,7 @@ public:
 
     // fill alfa mask using depthBuf
     {
-      d3d::set_render_target(rt.getColor(0).tex, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{rt.getColor(0).tex, 0, 0}});
       d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
       shaders::overrides::reset();
@@ -488,18 +496,7 @@ public:
     {
       if (auto *daSkies = get_daskies())
         daSkies->setSolidColorMode(isOrtho, E3DCOLOR(0, 0, 0));
-
-      if (auto settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings")))
-      {
-        if (isOrtho)
-        {
-          saved_motion_blur_strength = g_entity_mgr->getOr(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), -1.f);
-          g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), 0.f);
-        }
-        else if (saved_motion_blur_strength > 0.f)
-          g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), saved_motion_blur_strength);
-      }
-
+      dng_based_render::set_motion_blur_enabled(!isOrtho);
       prevIsOrtho = isOrtho;
     }
 
@@ -510,11 +507,13 @@ public:
     ::grs_cur_view.itm = inverse(::grs_cur_view.tm);
     ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
     dng_based_render::before_render(persp, projTm, viewportWidth);
+    forceInEditorVarInfo.set_int(1);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     IEditorCoreEngine::get()->beforeRenderObjects();
     TIME_D3D_PROFILE_NAME(render_vsm, "before_render");
     for (auto *srv : rendSrv)
       srv->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
+    forceInEditorVarInfo.set_int(0);
   }
 
   void renderUI(int client_rect_width, int client_rect_height)
@@ -739,10 +738,29 @@ public:
     return true;
   }
 
-  const char *getRenderOptName(int ropt) override { return nullptr; }
-  bool getRenderOptSupported(int ropt) override { return false; }
-  void setRenderOptEnabled(int ropt, bool enable) override {}
-  bool getRenderOptEnabled(int ropt) override { return false; }
+  const char *getRenderOptName(int ropt) override
+  {
+    if (ropt == ROPT_NO_POSTFX)
+      return "no postfx";
+    return nullptr;
+  }
+  bool getRenderOptSupported(int ropt) override { return ropt == ROPT_NO_POSTFX; }
+  void setRenderOptEnabled(int ropt, bool enable) override
+  {
+    if (ropt == ROPT_NO_POSTFX)
+    {
+      if (enable)
+        dng_based_render::saved_aa_setting = dgs_get_settings()->getBlockByNameEx("video")->getStr("antialiasing_mode", "off");
+      dng_based_render::disable_postfx = enable;
+      dng_based_render::postfx_toggle_changed = true;
+    }
+  }
+  bool getRenderOptEnabled(int ropt) override
+  {
+    if (ropt == ROPT_NO_POSTFX)
+      return dng_based_render::disable_postfx;
+    return false;
+  }
 
   dag::ConstSpan<const char *> getShadowQualityNames() const override { return {}; }
   int getShadowQuality() const override { return 0; }
@@ -988,11 +1006,29 @@ static void dng_based_render::act_scene()
 
 static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_gametime_sec)
 {
-  if (auto wr = get_world_renderer(); wr && pendingRes.x)
+  if (auto wr = get_world_renderer())
   {
-    debug("update final target resolution: %dx%d", pendingRes.x, pendingRes.y);
-    wr->overrideResolution(pendingRes);
-    pendingRes.set(0, 0);
+    if (pendingRes.x)
+    {
+      debug("update final target resolution: %dx%d", pendingRes.x, pendingRes.y);
+      wr->overrideResolution(pendingRes);
+      pendingRes.set(0, 0);
+    }
+    if (postfx_toggle_changed)
+    {
+      DataBlock changes;
+      changes.addBlock("video")->setStr("antialiasing_mode", disable_postfx ? "off" : saved_aa_setting.c_str());
+      dgs_apply_config_blk(changes, false, false);
+      console::command(String(0, "render.toggleFeatures postFx %d", disable_postfx ? 0 : 1));
+      console::command(String(0, "render.toggleFeatures adaptation %d", disable_postfx ? 0 : 1));
+      console::command("render.on_setting_change video/antialiasing_mode");
+      set_motion_blur_enabled(!disable_postfx);
+      if (disable_postfx)
+        if (auto *mgr = g_entity_mgr->getNullableRW<AdaptationManager>(
+              g_entity_mgr->getSingletonEntity(ECS_HASH("adaptation_manager")), ECS_HASH("adaptation__manager")))
+          mgr->writeExposure(1.0f);
+      postfx_toggle_changed = false;
+    }
   }
 
   last_dt_realtime_usec = dt_realtime_usec;
@@ -1065,7 +1101,7 @@ static void dng_based_render::draw_scene()
   if (auto wr = get_world_renderer(); wr && (is_level_loaded() || empty_world_created))
   {
     wr->updateFinalTargetFrame();
-    d3d::set_render_target(wr->getFinalTargetTex().getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{wr->getFinalTargetTex().getTex2D(), 0, 0}});
     bool prevAutoBlockFlag = ShaderGlobal::enableAutoBlockChange(false);
     wr->draw(0, last_dt_realtime_usec * 1e-6f);
     ShaderGlobal::enableAutoBlockChange(prevAutoBlockFlag);
@@ -1077,6 +1113,24 @@ static void dng_based_render::after_draw_scene()
 {
   if (g_entity_mgr->isConstrainedMTMode())
     g_entity_mgr->setConstrainedMTMode(false);
+}
+
+static void dng_based_render::set_motion_blur_enabled(bool enabled)
+{
+  auto settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings"));
+  if (!settingsEid)
+    return;
+  if (!enabled)
+  {
+    if (++suppress_motion_blur_count == 1)
+      saved_motion_blur_strength = g_entity_mgr->getOr(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), 0.f);
+    g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), 0.0f);
+  }
+  else if (suppress_motion_blur_count > 0)
+  {
+    float strength = (--suppress_motion_blur_count == 0) ? saved_motion_blur_strength : 0.0f;
+    g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), strength);
+  }
 }
 
 const char *gameproj::main_vromfs_fpath() { return dng_based_render::main_vromfs_fpath_str; }

@@ -36,6 +36,7 @@
 // Prediction scheme support
 #define DRACO_MESH_PREDICTION_SCHEMES 1
 #define DRACO_POINT_CLOUD_PREDICTION_SCHEMES 1
+#define DRACO_STANDARD_EDGEBREAKER_SUPPORTED 1
 
 // Decoding optimization flags
 #define DRACO_SEQUENTIAL_DECODING 1

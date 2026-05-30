@@ -66,9 +66,10 @@ class JsonRpcMatch : Matcher
       tryParse ||= oc > 0 || ac > 0
       if tryParse && oc == 0 && ac == 0 && (ch == '}' || ch == ']')
         tryParse = false
-        if self->parseReq(str |> slice(start, idx + 1))
-          start = idx + 1
+        let nextStart = idx + 1
+        if self->parseReq(str |> slice(start, nextStart))
           end = idx + 1
+        start = nextStart
 
     if start < strLen - 1
       if self->parseReq(str |> slice(start, strLen))

@@ -5,7 +5,6 @@
 #include <util/dag_globDef.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_cpuFreq.h>
-#include <util/dag_loadingProgress.h>
 
 #define debug(...) logmessage(_MAKE4C('RSRT'), __VA_ARGS__)
 
@@ -162,7 +161,6 @@ void startup_game(int f, void (*on_before_proc)(const char *), void (*on_after_p
       (*on_before_proc)(rproc[i]->procname());
 
     int t1 = get_time_msec();
-    loading_progress_point();
     VERBOSE_DEBUG("* starting %s", rproc[i]->procname());
     rproc[i]->startupf(f);
     VERBOSE_DEBUG("* started %s", rproc[i]->procname());
@@ -180,7 +178,6 @@ void startup_game(int f, void (*on_before_proc)(const char *), void (*on_after_p
 
   rflg &= ~(f | RESTART_GO);
   // reset_cur_time();
-  loading_progress_point();
 }
 
 void shutdown_game(int f)

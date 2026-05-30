@@ -17,6 +17,8 @@ float4 distant_fog_test_params = (5000.0, 0.0, 0.01, 0); // {DISTANT_FOG_MAX_LER
 
 texture distant_fog_reprojection_dist;
 
+float4 distant_fog_reconstruction_dyn_scales = (1, 1, 1, 1);
+
 int volumetric_light_assumed_off;
 interval volumetric_light_assumed_off:no<1, yes;
 
@@ -44,6 +46,7 @@ macro INIT_VOLUMETRIC_LIGHT_BASE(code)
       volume_fog_use_params@f4 = (volfog_use_params_base.x, volfog_use_params_base.y, volfog_froxel_range_params.y, volfog_use_params_base.z);
 
       distant_fog_result_inscatter@tex2d = distant_fog_result_inscatter;
+      distant_fog_reconstruction_dyn_scales@f4 = distant_fog_reconstruction_dyn_scales;
 
       volfog_froxel_slice_mul@f1 = (volfog_froxel_slice_transform_scale);
       volfog_froxel_slice_max@f1 = (volfog_froxel_slice_end_offset);
@@ -172,10 +175,11 @@ macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
 
       half4 sample_distant_fog_raw(float2 texcoord)
       {
-        return (half4)tex2Dlod(distant_fog_result_inscatter, float4(texcoord, 0, DISTANT_FOG_MIP));
+        return (half4)tex2Dlod(distant_fog_result_inscatter, float4(texcoord * distant_fog_reconstruction_dyn_scales.xy, 0, DISTANT_FOG_MIP));
       }
       half4 load_distant_fog_raw(int2 pos)
       {
+        // pos is expected to be DRS scaled, which in DNG comes from lowres_tex_size
         return (half4)texture2DAt(distant_fog_result_inscatter, pos);
       }
 
@@ -266,7 +270,7 @@ macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
           half froxelRange = volfog_froxel_range.x;
           half blendRange = froxelRange; // rather arbitrary, can be anything > 0, but froxel range seems fine
           half rangeLimit = volfog_blended_slice_start_depth; // must be < froxelRange, and consistent with get_volfog_from_blend_start caller (see get_fast_volfog_transition_weight)
-          half reprojectionDist = (half)tex2Dlod(distant_fog_reprojection_dist, float4(screen_tc, 0, DISTANT_FOG_MIP)).x;
+          half reprojectionDist = (half)tex2Dlod(distant_fog_reprojection_dist, float4(screen_tc * distant_fog_reconstruction_dyn_scales.xy, 0, DISTANT_FOG_MIP)).x;
           reprojectionDist = max(reprojectionDist, froxelRange);
           half blendStartDist = max(reprojectionDist - blendRange, rangeLimit);
           half ds = w - blendStartDist;

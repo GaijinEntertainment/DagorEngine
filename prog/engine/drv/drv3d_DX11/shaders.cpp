@@ -1409,34 +1409,16 @@ ID3D11InputLayout *InputLayoutCache::getInputLayout(int vdecl)
    */
 
 
-void delete_programs_for_vs(VPROG vpr)
+void reset_state_for_vs(VPROG vpr)
 {
   RenderState &rs = g_render_state;
-  ITERATE_OVER_OBJECT_POOL(g_programs, i)
-    if (g_programs[i].vertexShader == vpr && g_programs[i].refCntX2 >= 2)
-    {
-      g_programs[i].refCntX2 = 0;
-      g_programs[i].destroyObject();
-      g_programs.releaseEntryUnsafe(i); // Note: replace to fillEntryAsInvalid(i) if don't want to re-use this index/slot anymore
-    }
-  ITERATE_OVER_OBJECT_POOL_RESTORE(g_programs);
-
   if (gpuAcquireRefCount && gpuThreadId == GetCurrentThreadId() && rs.nextVertexShader == vpr)
     d3d::set_vertex_shader(BAD_FSHADER);
 }
 
-void delete_programs_for_ps(FSHADER fsh)
+void reset_state_for_ps(FSHADER fsh)
 {
   RenderState &rs = g_render_state;
-  ITERATE_OVER_OBJECT_POOL(g_programs, i)
-    if (g_programs[i].pixelShader == fsh && g_programs[i].refCntX2 >= 2)
-    {
-      g_programs[i].refCntX2 = 0;
-      g_programs[i].destroyObject();
-      g_programs.releaseEntryUnsafe(i); // Note: replace to fillEntryAsInvalid(i) if don't want to re-use this index/slot anymore
-    }
-  ITERATE_OVER_OBJECT_POOL_RESTORE(g_programs);
-
   if (gpuAcquireRefCount && gpuThreadId == GetCurrentThreadId() && rs.nextPixelShader == fsh)
     d3d::set_pixel_shader(BAD_FSHADER);
 }
@@ -1537,7 +1519,7 @@ void d3d::delete_pixel_shader(FSHADER handle)
 {
   G_ASSERT(!g_pixel_shaders.isIndexInFreeList(handle));
   g_pixel_shaders.release(handle);
-  delete_programs_for_ps(handle);
+  reset_state_for_ps(handle);
 }
 
 VPROG d3d::create_vertex_shader_hlsl(const char * /*hlsl_text*/, unsigned /*len*/, const char * /*entry*/, const char * /*profile*/,
@@ -1558,7 +1540,7 @@ void d3d::delete_vertex_shader(VPROG handle)
 {
   G_ASSERT(!g_vertex_shaders.isIndexInFreeList(handle));
   g_vertex_shaders.release(handle);
-  delete_programs_for_vs(handle);
+  reset_state_for_vs(handle);
 }
 
 bool d3d::set_pixel_shader(FSHADER handle)

@@ -953,7 +953,7 @@ void app_start(bool register_dagor_scene)
   });
 
   // this DA will be executed after actual scene load
-  delayed_call([]() {
+  auto onSceneLoaded = []() {
 #if DAGOR_DBGLEVEL > 0
     if (::dgs_get_settings()->getBlockByNameEx("debug")->getBool("imguiStartWithOverlay", false))
       imgui_request_state_change(ImGuiState::OVERLAY);
@@ -963,7 +963,8 @@ void app_start(bool register_dagor_scene)
 
     memoryreport::init();
     memoryreport::start_report();
-  });
+  };
+  delayed_call(eastl::move(onSceneLoaded));
 }
 
 static int (*defaultRIGenLodSkip)(const char *name, bool has_impostors, int total_lods);

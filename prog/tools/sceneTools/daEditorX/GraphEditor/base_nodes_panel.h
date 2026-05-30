@@ -21,9 +21,16 @@ public:
 
   void updateImgui();
 
+  // Tears down the existing panel contents and re-builds the reload button + categorised tree
+  // against the plugin's current baseNodesBlk. Called by GraphEditorPlg::reloadBaseNodes after
+  // the descriptor registry has been refreshed; safe to call repeatedly.
+  void refresh();
+
   void onBeginDrag(PropPanel::TLeafHandle leaf) override;
+  void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
+  void buildPanelContents();
   void populateTree(PropPanel::ContainerPropertyControl *tree);
 
   PropPanel::PanelWindowPropertyControl *panelWindow = nullptr;

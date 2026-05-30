@@ -4,6 +4,8 @@
 #include <osApiWrappers/dag_files.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/gpuLatency.h>
+#include <math/integer/dag_IPoint2.h>
+#include <debug/dag_logSys.h>
 #include "driver.h"
 #include "vulkan_instance.h"
 #include "vulkan_device.h"
@@ -273,6 +275,63 @@ struct InitCtx
       return fail("vulkan: Unable to create surface definition of the output window");
   }
 
+  void verifyBlacklistedDevices()
+  {
+#if _TARGET_ANDROID
+    auto matchesAny = [&](const DataBlock &deviceList) {
+      bool found = false;
+      dblk::iterate_child_blocks_by_name(deviceList, "entry", [&](const DataBlock &entry) {
+        bool fitsType = true, vendorMatch = true, gpuMatch = true, driverMatch = true;
+        if (entry.paramExists("vendor"))
+        {
+          vendorMatch = false;
+          String vendor = Globals::VK::phy.vendorName;
+          dblk::iterate_params_by_name(entry, "vendor", [&](int idx, int, int) { vendorMatch |= (vendor == entry.getStr(idx)); });
+        }
+        if (entry.getBlockByName("gpu", -1))
+        {
+          gpuMatch = false;
+          eastl::string_view gpu = Globals::VK::phy.properties.deviceName;
+          dblk::iterate_child_blocks_by_name(entry, "gpu", [&](const DataBlock &gpuBlock) {
+            bool matches = true;
+            eastl::string_view gpuIncludes = gpuBlock.getStr("includes", "");
+            if (gpuIncludes != "")
+              matches &= gpu.find(gpuIncludes) != eastl::string_view::npos;
+            eastl::string_view gpuMask = gpuBlock.getStr("mask", "");
+            size_t pos = gpu.find(gpuMask);
+            if (gpuMask != "")
+              matches &=
+                pos != eastl::string_view::npos && (pos + gpuMask.size() == gpu.size() || !isdigit(gpu[pos + gpuMask.size()]));
+            gpuMatch |= matches;
+          });
+        }
+        if (entry.paramExists("majorDriverVersionRange"))
+        {
+          driverMatch = false;
+          uint32_t majorVersion = Globals::VK::phy.driverVersionDecoded[0];
+          dblk::iterate_params_by_name(entry, "majorDriverVersionRange", [&](int idx, int, int) {
+            IPoint2 range = entry.getIPoint2(idx);
+            driverMatch |= (range.x == -1 ? true : majorVersion >= range.x) && (range.y == -1 ? true : majorVersion <= range.y);
+          });
+        }
+        if (entry.paramExists("hwType"))
+          fitsType = Globals::VK::phy.properties.deviceType == entry.getInt("hwType", -1);
+        if (fitsType && vendorMatch && gpuMatch && driverMatch)
+          found = true;
+      });
+      return found;
+    };
+    if (matchesAny(*::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("blacklisted_devices")))
+    {
+      D3D_ERROR("vulkan: running on a blacklisted device");
+      ::flush_debug_file();
+      ::terminate_process(1);
+    }
+    if (matchesAny(*::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("reported_devices")))
+      D3D_ERROR("vulkan: running on device classified as \"reported\" by blacklist");
+#endif
+  }
+
   void verifyDeviceCreated()
   {
     if (Globals::VK::dev.isValid())
@@ -284,6 +343,7 @@ struct InitCtx
       if (!dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowSoftwareDevice", false) &&
           Globals::VK::phy.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
         return fail("vulkan: Usage of software device is not allowed, check driver installation integrity/presence of GPU");
+      verifyBlacklistedDevices();
       return;
     }
     VULKAN_LOG_CALL(Globals::VK::inst.vkDestroySurfaceKHR(Globals::VK::inst.get(), surface, nullptr));
@@ -1337,8 +1397,11 @@ bool d3d::reset_device()
   if (!Globals::window.setRenderWindowParams())
     return false;
 
-  if (isDLSSSupported())
-    closeDLSS();
+  {
+    if (isDLSSSupported())
+      closeDLSS();
+    Globals::xess.shutdown();
+  }
 
   if (dagor_d3d_force_driver_reset || Backend::interop.deviceLost.load())
     full_device_reset();
@@ -1369,8 +1432,11 @@ bool d3d::reset_device()
   Frontend::swapchain.nextFrame();
   Frontend::currentSwapchainToPresent = &Frontend::swapchain;
 
-  if (isDLSSSupported())
-    initDLSS();
+  {
+    if (isDLSSSupported())
+      initDLSS();
+    Globals::xess.init();
+  }
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
     os_set_display_mode(Globals::window.settings.resolutionX, Globals::window.settings.resolutionY);

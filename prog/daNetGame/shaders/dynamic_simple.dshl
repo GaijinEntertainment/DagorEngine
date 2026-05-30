@@ -7,7 +7,7 @@ shader dynamic_simple
 {
   SUPPORT_MULTIDRAW(false)
   DYNAMIC_BLOCK()
-  if (in_editor_assume == no) { NO_DYNSTCODE() }
+  NO_DYNSTCODE()
 
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];

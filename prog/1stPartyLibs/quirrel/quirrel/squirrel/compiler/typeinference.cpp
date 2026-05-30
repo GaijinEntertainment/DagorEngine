@@ -227,7 +227,7 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
             return inferExprTypeMask(call->arguments()[0]);
 
         ResolvedCallee info = resolveCallee(callee);
-        // For an async function, the call value is the Promise wrapper (an
+        // For an async function, the call value is the Future wrapper (an
         // instance), not the resolved type. The resolved type is what
         // `await call(...)` produces; see TO_AWAIT below.
         unsigned retMask = info.known ? (info.isAsync ? _RT_INSTANCE : info.resultMask) : ~0u;
@@ -271,7 +271,7 @@ unsigned CodeGenVisitor::inferExprTypeMaskImpl(Expr *expr) {
 
 
     // Only await-on-direct-async-call is handled; flowing through a variable
-    // (`let p = f(); await p`) would need Promise<T> generics, which Quirrel lacks.
+    // (`let p = f(); await p`) would need Future<T> generics, which Quirrel lacks.
     case TO_AWAIT: {
         Expr *arg = deparen(static_cast<UnExpr *>(expr)->argument());
         if (arg->op() == TO_CALL) {
@@ -372,8 +372,8 @@ bool CodeGenVisitor::checkInferredType(Node *reportNode, Expr *expr, unsigned de
     if (declaredMask == ~0u)
         return false;
 
-    // Non-Promise lvalue assigned an async-function call: that's a forgotten `await`.
-    // Skip when the lvalue accepts 'instance' -- user intentionally captured the Promise.
+    // Non-Future lvalue assigned an async-function call: that's a forgotten `await`.
+    // Skip when the lvalue accepts 'instance' -- user intentionally captured the Future.
     // deparen so `let x: int = (asyncFn())` is also caught.
     Expr *call = deparen(expr);
     if ((declaredMask & _RT_INSTANCE) == 0 && call->op() == TO_CALL) {
@@ -384,7 +384,7 @@ bool CodeGenVisitor::checkInferredType(Node *reportNode, Expr *expr, unsigned de
             char declaredBuf[160];
             sq_stringify_type_mask(declaredBuf, sizeof(declaredBuf), declaredMask);
             _ctx.throwError(reportNode,
-                "call to async function returns a Promise, not '%s'; did you mean 'await %s(...)'?",
+                "call to async function returns a Future, not '%s'; did you mean 'await %s(...)'?",
                 declaredBuf, fnName);
             return false; // unreachable
         }

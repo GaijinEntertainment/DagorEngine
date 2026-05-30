@@ -1,0 +1,238 @@
+macro INIT_VEGETATION_INTERACTIONS()
+  static int interactions = 0;
+  interval interactions: interactionsOff < 1, interactionsTrees < 2, interactionsBushes;
+  if (interactions == interactionsTrees || interactions == interactionsBushes)
+  {
+    static float interaction_strength = 1.0 no_warnings;
+    static float interaction_force_max = 15.0 no_warnings;
+    static float interaction_min_bounding_sphere_rad = 0.3 no_warnings;
+  }
+endmacro
+
+macro USE_VEGETATION_INTERACTIONS()
+  if (interactions == interactionsTrees || interactions == interactionsBushes)
+  {
+    (vs) {
+      interaction_strength@f1 = (interaction_strength);
+      interaction_force_max@f1 = (interaction_force_max);
+      interaction_min_bounding_sphere_rad@f1 = (interaction_min_bounding_sphere_rad);
+    }
+  }
+
+  if (interactions == interactionsTrees || interactions == interactionsBushes) {
+    hlsl(vs){
+      float sdBox(float3 localPos, float3 boxExt)
+      {
+        float3 dist = abs(localPos) - boxExt;
+        float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
+        float3 ptOnBox = max(dist, 0);
+        float outsideDist = length(ptOnBox);
+        float signedDist = outsideDist + insideDist;
+        return signedDist;
+      }
+
+      void calculate_obstacles_interaction_force(
+        float3 objWorldPos, float3 worldPivot, float height, inout float2 affect_direction, inout float affect_force,
+        uint obstIndStart, uint obstIndEnd)
+      {
+        float total_radius = height * 0.5;
+        float non_interactable_range = length(objWorldPos.xz - worldPivot.xz);
+        float radius = total_radius - non_interactable_range;
+        radius = max(radius, get_interaction_min_bounding_sphere_rad());
+
+        // Getting resultant force from all obstacles
+        for (uint i = obstIndStart; i < obstIndEnd; ++i)
+        {
+          uint index = obstacle_indices[i];
+          float3 center = float3(obstacles.obstacles[index].dir_x.w, obstacles.obstacles[index].dir_y.w, obstacles.obstacles[index].dir_z.w);
+          float3 delta = center - worldPivot;
+
+          float3x3 dir_mat = float3x3(obstacles.obstacles[index].dir_x.xyz,
+                                      obstacles.obstacles[index].dir_y.xyz,
+                                      obstacles.obstacles[index].dir_z.xyz);
+          float3 local_pos = mul(dir_mat, delta);
+
+          float3 half_bbox = obstacles.obstacles[index].box.xyz * 0.5;
+          float interaction_range = length(half_bbox.xz) + radius;
+
+          // Distance to a wall of the box. Negative if sphere's center is inside.
+          float dist_to_box = sdBox(local_pos, half_bbox);
+          float dist_from_box_to_sphere = dist_to_box - radius;
+          if (dist_from_box_to_sphere < 0)
+          {
+            float penetration = min(-dist_from_box_to_sphere, interaction_range);
+            float inv_interaction_range = 1.0 / interaction_range;
+            float normalized_dist = penetration * inv_interaction_range;
+
+            // interactions_strength is the maximum magnitude of the force
+            // The actual magnitude is calculated as a linear interpolation between 0 and interactions_strength
+            // based on the normalized distance (0 - outside, 1 - furthest inside) to the box wall.
+          ##if (is_pivoted == yes)
+            float force_magnitude = get_interaction_force_max() * normalized_dist;
+          ##else
+            float force_magnitude = get_interaction_strength() * normalized_dist;
+          ##endif
+
+            // Affect direction is the actual force vector.
+            // delta is the vector pointing from the pivot to the obstacle center,
+            // which is normalized, then multiplied by the calculated force.
+            float2 normalized_acting_force = delta.xz * inv_interaction_range;
+            affect_direction += force_magnitude * normalized_acting_force;
+          }
+        }
+
+      ##if (is_pivoted == yes)
+        affect_force = min(length(affect_direction), get_interaction_force_max());
+      ##else
+        affect_force = min(length(affect_direction), get_interaction_strength());
+      ##endif
+      }
+
+    ##if (is_pivoted == yes)
+      float3 apply_obstacles_joints(float3 worldPivot, float3 worldPos, float3 localPos, float height, HierarchyData input)
+      {
+        if (obstacles.indirection_wd == 0 || disable_obstacle_interaction)
+          return float3(0, 0, 0);
+
+        float2 pos = worldPivot.xz - obstacles.indirection_lt;
+        pos.xy /= obstacles.indirection_cell;
+
+        uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd - 1);
+        uint index = coord.x + coord.y * obstacles.indirection_wd;
+
+        float3 totalOfs = 0;
+        uint obstIndCount = obstacle_indices[index];
+        uint obstIndStart = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
+        uint obstIndEnd = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+        float parentAngleAnimation = 0.0;
+        float3 offset = float3(0,0,0);
+        float rotationAngleAnimation = 0.0;
+        float4 unusedRotQuat = float4(0, 0, 0, 1);
+
+        // Iterate starting from trunk at 0
+        for(int idx=0; idx <= input.maxHierarchyLevel; ++idx)
+        {
+          // Because HierarchyData and this loop have reversed ordering, we need reversed index
+          int revIdx = max(input.maxHierarchyLevel - idx, 0);
+
+          float3 branchPivotPos = input.branchPivotPos[revIdx];
+          float3 branchDir = input.branchDirExtent[revIdx].xyz;
+          float branchExtent = input.branchDirExtent[revIdx].w;
+
+          float3 branchTipPos = branchPivotPos + branchDir*branchExtent;
+
+          float2 affect_direction = float2(0,0);
+          float affect_force = 0;
+          calculate_obstacles_interaction_force(worldPivot, branchTipPos, height, affect_direction, affect_force, obstIndStart, obstIndEnd);
+          BRANCH
+          if (affect_force <= 0.0001)
+            continue;
+
+          float3 used_direction = -normalize(float3(affect_direction.x, 0, affect_direction.y));
+          offset += evaluate_wind_animation(used_direction, affect_force, idx, branchPivotPos,
+                                            branchDir, branchExtent, worldPos, parentAngleAnimation,
+                                            rotationAngleAnimation, unusedRotQuat);
+
+          parentAngleAnimation += rotationAngleAnimation;
+        }
+
+        return offset;
+      }
+    ##endif
+
+      float3 apply_obstacles(float3 worldPivot, float3 worldPos, float3 localPos, float height)
+      {
+        if (obstacles.indirection_wd == 0 || disable_obstacle_interaction)
+          return float3(0, 0, 0);
+        float2 pos = worldPivot.xz - obstacles.indirection_lt;
+        pos.xy /= obstacles.indirection_cell;
+
+        uint2 coord = clamp(uint2(pos.xy), 0U, obstacles.indirection_wd - 1);
+        uint index = coord.x + coord.y * obstacles.indirection_wd;
+
+        float3 totalOfs = 0;
+        uint obstIndCount = obstacle_indices[index];
+        uint obstIndStart = obstIndCount >> OBSTACLE_OFFSET_BIT_SHIFT;
+        uint obstIndEnd = (obstIndCount & ((1U << OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+        ##if (interactions == interactionsTrees)
+          float2 affect_direction = float2(0.001, 0);
+          float affect_force = 0;
+          calculate_obstacles_interaction_force(worldPivot, worldPivot, height, affect_direction, affect_force, obstIndStart, obstIndEnd);
+          if (affect_force <= 0.0001)
+            return float3(0, 0, 0);
+
+          float curve_k = max(affect_force * 3.14 * .5 * .7 / height, 0.0001);
+          half2 basis_d = -normalize(affect_direction);
+          float x = dot(localPos.xz, basis_d);
+          float y = localPos.y * height;
+          float sinky, cosky;
+          sincos(curve_k * y, sinky, cosky);
+          float dx = (1 - cosky) / curve_k + x * cosky - x;
+          float dy = sinky / curve_k - x * sinky - y;
+          return float3(basis_d.x * dx, dy, basis_d.y * dx);
+        ##elif (interactions == interactionsBushes)
+          float3 result_delta = float3(0, 0, 0);
+          for (uint i = obstIndStart; i < obstIndEnd; ++i)
+          {
+            uint index = obstacle_indices[i];
+            float3 center = float3(obstacles.obstacles[index].dir_x.w, obstacles.obstacles[index].dir_y.w, obstacles.obstacles[index].dir_z.w);
+            float radius_sq = dot(obstacles.obstacles[index].dir_x.xyz, obstacles.obstacles[index].dir_x.xyz) +
+                              dot(obstacles.obstacles[index].dir_z.xyz, obstacles.obstacles[index].dir_z.xyz);
+            float obst_height_sq = dot(obstacles.obstacles[index].dir_y.xyz, obstacles.obstacles[index].dir_y.xyz);
+
+            float3 initial = worldPos + result_delta;
+            float3 delta = initial - center;
+            //below is the same as (delta.y /= (obst_h/radius)) ** 2
+            float delta_sq = dot(delta * float3(1, radius_sq / obst_height_sq, 1), delta);
+            if (delta_sq > radius_sq)
+              continue;
+
+            float obst_height = sqrt(obst_height_sq);
+            float radius = sqrt(radius_sq);
+            float delta_len = sqrt(delta_sq);
+            float init_len = length(initial - worldPivot);
+            float diff = radius - delta_len;
+            delta.y *= obst_height / radius;
+            // the same as (normalize(delta) * radius + center) but quadratically smoothed
+            result_delta = (delta * (1 + diff * diff / (delta_len * radius))) + center;
+            result_delta = normalize(result_delta - worldPivot) * init_len + worldPivot - worldPos;
+          }
+          return get_interaction_strength() * result_delta;
+        ##endif
+      }
+    }
+  }
+endmacro
+
+macro APPLY_VEGETATION_INTERACTIONS(conditions)
+  if (conditions) {
+    if (is_pivoted == yes)
+    {
+      hlsl(vs) {
+        #define APPLY_INTERACTIONS\
+          worldPos += apply_obstacles_joints(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY), Data);
+      }
+    }
+    else
+    {
+      hlsl(vs) {
+        #define APPLY_INTERACTIONS\
+          worldPos += apply_obstacles(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY));
+      }
+    }
+  } else {
+    hlsl(vs) {
+      #define APPLY_INTERACTIONS /*Interactions disabled*/
+    }
+  }
+endmacro
+
+macro USE_AND_APPLY_VEGETATION_INTERACTIONS(conditions)
+  if (conditions)
+  {
+    USE_VEGETATION_INTERACTIONS()
+  }
+  APPLY_VEGETATION_INTERACTIONS(conditions)
+endmacro

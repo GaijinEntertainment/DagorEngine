@@ -14,7 +14,7 @@ HostDeviceSharedMemoryRegion FramePushRingMemoryProvider::allocatePushMemory(DXG
   // flushGraphics). It makes such call here deadlock and gpu-crash prone. So I think it is better to try to handle OOM here in another
   // way.
   if (checkForOOM(adapter, static_cast<bool>(result),
-        OomReportData{"allocatePushMemory", nullptr, size, AllocationFlags{}.to_ulong(), getPushHeapProperties().raw}))
+        OomReportData{"allocatePushMemory", nullptr, size, AllocationFlags{}.toUlong(), getPushHeapProperties().raw}))
   {
     recordConstantRingUsed(size);
   }
@@ -31,7 +31,7 @@ HostDeviceSharedMemoryRegion UploadRingMemoryProvider::allocateUploadRingMemory(
     result = uploadRing.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
-        OomReportData{"allocateUploadRingMemory", nullptr, size, AllocationFlags{}.to_ulong(), getPushHeapProperties().raw}))
+        OomReportData{"allocateUploadRingMemory", nullptr, size, AllocationFlags{}.toUlong(), getPushHeapProperties().raw}))
   {
     recordUploadRingUsed(size);
   }
@@ -47,7 +47,7 @@ HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUpload(D
     D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   auto oomCheckOnExit = checkForOOMOnExit(
     adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"allocateTempUpload", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw});
+    OomReportData{"allocateTempUpload", nullptr, size, AllocationFlags{}.toUlong(), properties.raw});
   HostDeviceSharedMemoryRegion result = tryAllocateTempUpload(adapter, device.getDevice(), size, alignment, should_flush, errorCode);
   if (!result)
   {
@@ -93,7 +93,7 @@ HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocateTempUploadFo
     D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   auto oomCheckOnExit = checkForOOMOnExit(
     adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"allocateTempUploadForUploadBuffer", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw});
+    OomReportData{"allocateTempUploadForUploadBuffer", nullptr, size, AllocationFlags{}.toUlong(), properties.raw});
   HostDeviceSharedMemoryRegion result = tryAllocateTempUploadForUploadBuffer(adapter, device.getDevice(), size, alignment, errorCode);
   if (is_oom_error_code(errorCode))
   {
@@ -119,7 +119,7 @@ HostDeviceSharedMemoryRegion PersistentUploadMemoryProvider::allocatePersistentU
     result = uploadMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
-        OomReportData{"allocatePersistentUploadMemory", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw}))
+        OomReportData{"allocatePersistentUploadMemory", nullptr, size, AllocationFlags{}.toUlong(), properties.raw}))
   {
     recordPersistentUploadMemoryAllocated(size);
   }
@@ -138,7 +138,7 @@ HostDeviceSharedMemoryRegion PersistentReadBackMemoryProvider::allocatePersisten
     result = readBackMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
-        OomReportData{"allocatePersistentReadBack", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw}))
+        OomReportData{"allocatePersistentReadBack", nullptr, size, AllocationFlags{}.toUlong(), properties.raw}))
   {
     recordPersistentReadBackMemoryAllocated(size);
   }
@@ -157,7 +157,7 @@ HostDeviceSharedMemoryRegion PersistentBidirectionalMemoryProvider::allocatePers
     result = bidirectionalMemory.access()->allocate(this, adapter, device.getDevice(), size, alignment);
   }
   if (checkForOOM(adapter, static_cast<bool>(result),
-        OomReportData{"allocatePersistentReadBack", nullptr, size, AllocationFlags{}.to_ulong(), properties.raw}))
+        OomReportData{"allocatePersistentReadBack", nullptr, size, AllocationFlags{}.toUlong(), properties.raw}))
   {
     recordPersistentBidirectionalMemoryAllocated(size);
   }

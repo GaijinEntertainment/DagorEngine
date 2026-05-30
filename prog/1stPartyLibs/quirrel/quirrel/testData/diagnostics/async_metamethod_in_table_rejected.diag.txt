@@ -1,0 +1,9 @@
+ERROR: 'async' is not allowed on metamethod
+testData/diagnostics/async_metamethod_in_table_rejected.nut:5:17
+
+let delegate = {
+  async function _add(other) {
+                 ^---
+    return other
+
+

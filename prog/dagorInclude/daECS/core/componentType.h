@@ -550,12 +550,7 @@ inline ComponentTypeManager *ComponentTypes::createTypeManager(type_index_t t)
 {
   if (t >= types.size())
     return nullptr;
-  // We should use acquire load to get CTM for it to be completely thread-safe, otherwise we can't guarantee we read fully
-  // constructed state of CTM, if it was constructed in other thread. However race here is already a very rare case, and
-  // acquire load has noticeable performance penalty, so we decided to use relaxed load instead.
-  // To consider: pre-create all CTMs for types, declared in loaded templates. This will eliminate the issue
-  // entirely, but can introduce other problems.
-  if (ComponentTypeManager *ctm = interlocked_relaxed_load_ptr(types.get<ComponentTypeManager *>()[t]))
+  if (ComponentTypeManager *ctm = interlocked_acquire_load_ptr(types.get<ComponentTypeManager *>()[t]))
     return ctm;
   if (!types.get<create_ctm_t>()[t])
     return nullptr;

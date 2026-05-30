@@ -10,6 +10,7 @@
 #include <gamePhys/phys/rendinstDestr.h>
 #include <gamePhys/collision/cachedCollisionObject.h>
 #include <gamePhys/phys/destructableObject.h>
+#include <phys/dag_physObject.h> // for destructable_object_get_phys_sys_instance impl
 
 MAKE_TYPE_FACTORY(DestructableObject, gamephys::DestructableObject);
 

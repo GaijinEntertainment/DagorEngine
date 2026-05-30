@@ -17,6 +17,8 @@
 #include <generic/dag_sort.h>
 
 #include <math/dag_mathAng.h>
+#include <osApiWrappers/dag_localConv.h>
+#include <util/dag_strUtil.h>
 
 #include <debug/dag_debug.h>
 #include <de3_interface.h>
@@ -443,10 +445,9 @@ bool ObjectEditor::checkObjSelFilter(RenderableEditableObject &obj)
 {
   if (filterStrings.size())
   {
-    String objName(obj.getName());
-    objName.toLower();
+    eastl::string_view objName = obj.getNameStringView();
     for (int i = 0; i < filterStrings.size(); i++)
-      if (strstr(objName, filterStrings[i]))
+      if (dd_stristr(objName, to_string_view(filterStrings[i])))
         return !invFilter;
     return invFilter;
   }

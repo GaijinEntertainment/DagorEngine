@@ -86,6 +86,13 @@ shader bvh_debug
 
   hlsl(cs)
   {
+    bool trace_ray_safe(float3 origin, float3 direction, float tmin, float tmax, float bias, uint group, out HitInfo hitInfo)
+    {
+      if (!bvhMainValid)
+        return false;
+      return trace_ray(bvhMain, origin, direction, tmin, tmax, bias, group, hitInfo);
+    }
+
     RT_GROUP_SIZE
     void main(uint2 thread : SV_DispatchThreadID)
     {
@@ -101,7 +108,7 @@ shader bvh_debug
       bool isHit = false;
 
       HitInfo hitInfo;
-      if (trace_ray(bvhMain, 0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo))
+      if (trace_ray_safe(0, direction, bvh_debug_min_t, 100000, 0, bvhGroupRender, hitInfo))
       {
         isHit = true;
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);

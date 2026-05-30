@@ -529,11 +529,17 @@ void VolumeLight::initFroxelFog()
 
 void VolumeLight::initDistantFog()
 {
-  G_ASSERT_RETURN(reconstructionFrameRes.x > 0 && reconstructionFrameRes.y > 0, );
+  G_ASSERT_RETURN(currReconstructionFrameRes.x > 0 && currReconstructionFrameRes.y > 0, );
 
-  raymarchFrameRes = DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION ? reconstructionFrameRes : (reconstructionFrameRes / 2);
-  ShaderGlobal::set_float4(vars.distant_fog_raymarch_resolution, raymarchFrameRes.x, raymarchFrameRes.y, 1.0 / raymarchFrameRes.x,
-    1.0 / raymarchFrameRes.y);
+  currRaymarchFrameRes = prevRaymarchFrameRes =
+    DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION ? currReconstructionFrameRes : (currReconstructionFrameRes / 2);
+
+  ShaderGlobal::set_float4(vars.distant_fog_raymarch_resolution, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
+    1.0f / currRaymarchFrameRes.x, 1.0f / currRaymarchFrameRes.y);
+  ShaderGlobal::set_float4(vars.distant_fog_raymarch_dyn_scales, 1.0f, 1.0f, 1.0f, 1.0f);
+  ShaderGlobal::set_float4(vars.distant_fog_reconstruction_resolution, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
+    1.0f / currReconstructionFrameRes.x, 1.0f / currReconstructionFrameRes.y);
+  ShaderGlobal::set_float4(vars.distant_fog_reconstruction_dyn_scales, 1.0f, 1.0f, 1.0f, 1.0f);
 
   d3d::SamplerHandle clampPointSampler;
   {
@@ -544,14 +550,14 @@ void VolumeLight::initDistantFog()
     ShaderGlobal::set_sampler(get_shader_variable_id("distant_fog_raymarch_inscatter_samplerstate", true), clampPointSampler);
     ShaderGlobal::set_sampler(get_shader_variable_id("distant_fog_raymarch_extinction_samplerstate", true), clampPointSampler);
   }
-  distantFogFrameRaymarchInscatter = dag::create_tex(nullptr, raymarchFrameRes.x, raymarchFrameRes.y,
+  distantFogFrameRaymarchInscatter = dag::create_tex(nullptr, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
     TEXFMT_A2B10G10R10 | TEXCF_UNORDERED, 1, "distant_fog_raymarch_inscatter", RESTAG_VOLFOG);
 
-  distantFogFrameRaymarchExtinction = dag::create_tex(nullptr, raymarchFrameRes.x, raymarchFrameRes.y, TEXFMT_R16F | TEXCF_UNORDERED,
-    1, "distant_fog_raymarch_extinction", RESTAG_VOLFOG);
+  distantFogFrameRaymarchExtinction = dag::create_tex(nullptr, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
+    TEXFMT_R16F | TEXCF_UNORDERED, 1, "distant_fog_raymarch_extinction", RESTAG_VOLFOG);
 
 #if DEBUG_DISTANT_FOG_RAYMARCH
-  distantFogFrameRaymarchDebug = dag::create_tex(nullptr, raymarchFrameRes.x, raymarchFrameRes.y,
+  distantFogFrameRaymarchDebug = dag::create_tex(nullptr, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
     TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "distant_fog_raymarch_debug", RESTAG_VOLFOG);
   ShaderGlobal::set_sampler(get_shader_variable_id("distant_fog_raymarch_debug_samplerstate", true), clampPointSampler);
 #endif
@@ -561,18 +567,18 @@ void VolumeLight::initDistantFog()
   for (int i = 0; i < distantFogFrameReconstruct.size(); ++i)
   {
     String name(128, "distant_fog_inscatter_%d", i);
-    distantFogFrameReconstruct[i] = dag::create_tex(nullptr, reconstructionFrameRes.x, reconstructionFrameRes.y,
+    distantFogFrameReconstruct[i] = dag::create_tex(nullptr, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
       TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1 + FX_RESULT_MIP_CNT, name, RESTAG_VOLFOG);
   }
 
   for (int i = 0; i < distantFogFrameReconstructionWeight.size(); ++i)
   {
     String name(128, "distant_fog_reconstruction_weight_%d", i);
-    distantFogFrameReconstructionWeight[i] = dag::create_tex(nullptr, reconstructionFrameRes.x, reconstructionFrameRes.y,
+    distantFogFrameReconstructionWeight[i] = dag::create_tex(nullptr, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
       TEXFMT_R8 | TEXCF_UNORDERED, 1, name, RESTAG_VOLFOG);
   }
 
-  distantFogFrameReprojectionDist = dag::create_tex(nullptr, reconstructionFrameRes.x, reconstructionFrameRes.y,
+  distantFogFrameReprojectionDist = dag::create_tex(nullptr, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
     TEXFMT_R16F | TEXCF_UNORDERED, 1 + FX_RESULT_MIP_CNT, "distant_fog_reprojection_dist", RESTAG_VOLFOG);
   {
     d3d::SamplerInfo smpInfo;
@@ -583,24 +589,50 @@ void VolumeLight::initDistantFog()
   }
 
   distantFogFrameRaymarchDist.close();
-  distantFogFrameRaymarchDist = dag::create_tex(nullptr, raymarchFrameRes.x, raymarchFrameRes.y, TEXFMT_R16F | TEXCF_UNORDERED, 1,
-    "distant_fog_raymarch_dist", RESTAG_VOLFOG);
+  distantFogFrameRaymarchDist = dag::create_tex(nullptr, currRaymarchFrameRes.x, currRaymarchFrameRes.y, TEXFMT_R16F | TEXCF_UNORDERED,
+    1, "distant_fog_raymarch_dist", RESTAG_VOLFOG);
   ShaderGlobal::set_sampler(get_shader_variable_id("distant_fog_raymarch_dist_samplerstate", true), clampPointSampler);
 
   for (int i = 0; i < distantFogRaymarchStartWeights.size(); ++i)
   {
     String name(128, "distant_fog_raymarch_start_weights_%d", i);
-    distantFogRaymarchStartWeights[i] = dag::create_tex(nullptr, raymarchFrameRes.x, raymarchFrameRes.y, TEXFMT_R8G8 | TEXCF_UNORDERED,
-      DISTANT_FOG_OCCLUSION_WEIGHT_MIP_CNT, name, RESTAG_VOLFOG);
+    distantFogRaymarchStartWeights[i] = dag::create_tex(nullptr, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
+      TEXFMT_R8G8 | TEXCF_UNORDERED, DISTANT_FOG_OCCLUSION_WEIGHT_MIP_CNT, name, RESTAG_VOLFOG);
   }
 
 #if DEBUG_DISTANT_FOG_RECONSTRUCT
   distantFogDebug.close();
-  distantFogDebug = dag::create_tex(nullptr, reconstructionFrameRes.x, reconstructionFrameRes.y,
+  distantFogDebug = dag::create_tex(nullptr, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
     TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "distant_fog_debug", RESTAG_VOLFOG);
   ShaderGlobal::set_sampler(get_shader_variable_id("distant_fog_debug_samplerstate", true), clampPointSampler);
   distantFogDebug.setVar();
 #endif
+}
+
+void VolumeLight::prepareDistantFog(const IPoint2 &main_resolution)
+{
+  G_ASSERT_RETURN(displayResolution.x > 0 && displayResolution.y > 0, );
+
+  prevReconstructionFrameRes = currReconstructionFrameRes;
+  currReconstructionFrameRes = main_resolution / 2;
+  prevRaymarchFrameRes = currRaymarchFrameRes;
+  currRaymarchFrameRes =
+    DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION ? currReconstructionFrameRes : (currReconstructionFrameRes / 2);
+
+  IPoint2 maxReconstructionRes = displayResolution / 2;
+  IPoint2 maxRaymarchRes = DEBUG_DISTANT_FOG_DISABLE_4_WAY_RECONSTRUCTION ? maxReconstructionRes : (maxReconstructionRes / 2);
+
+  ShaderGlobal::set_float4(vars.distant_fog_raymarch_resolution, currRaymarchFrameRes.x, currRaymarchFrameRes.y,
+    1.0f / currRaymarchFrameRes.x, 1.0f / currRaymarchFrameRes.y);
+  ShaderGlobal::set_float4(vars.distant_fog_raymarch_dyn_scales, (float)currRaymarchFrameRes.x / maxRaymarchRes.x,
+    (float)currRaymarchFrameRes.y / maxRaymarchRes.y, (float)prevRaymarchFrameRes.x / maxRaymarchRes.x,
+    (float)prevRaymarchFrameRes.y / maxRaymarchRes.y);
+
+  ShaderGlobal::set_float4(vars.distant_fog_reconstruction_resolution, currReconstructionFrameRes.x, currReconstructionFrameRes.y,
+    1.0f / currReconstructionFrameRes.x, 1.0f / currReconstructionFrameRes.y);
+  ShaderGlobal::set_float4(vars.distant_fog_reconstruction_dyn_scales, (float)currReconstructionFrameRes.x / maxReconstructionRes.x,
+    (float)currReconstructionFrameRes.y / maxReconstructionRes.y, (float)prevReconstructionFrameRes.x / maxReconstructionRes.x,
+    (float)prevReconstructionFrameRes.y / maxReconstructionRes.y);
 }
 
 void VolumeLight::setResolution(int resW, int resH, int resD, int screenW, int screenH)
@@ -616,13 +648,11 @@ void VolumeLight::setResolution(int resW, int resH, int resD, int screenW, int s
   IPoint2 targetReconstructionFrameRes = IPoint2(screenW, screenH) / 2;
   bool reinitFroxelFog = targetFroxelResolution != froxelResolution;
   bool reinitVolfogShadows = enableVolfogShadows && reinitFroxelFog;
-  bool reinitDistantFog = distantFogQuality != DistantFogQuality::Disabled && targetReconstructionFrameRes != reconstructionFrameRes;
+  bool reinitDistantFog = distantFogQuality != DistantFogQuality::Disabled && targetReconstructionFrameRes != displayResolution / 2;
 
+  displayResolution = IPoint2(screenW, screenH);
   froxelResolution = targetFroxelResolution;
-  reconstructionFrameRes = targetReconstructionFrameRes;
-
-  ShaderGlobal::set_float4(vars.distant_fog_reconstruction_resolution, reconstructionFrameRes.x, reconstructionFrameRes.y,
-    1.0 / reconstructionFrameRes.x, 1.0 / reconstructionFrameRes.y);
+  currReconstructionFrameRes = prevReconstructionFrameRes = targetReconstructionFrameRes;
 
   if (reinitFroxelFog)
     initFroxelFog();
@@ -981,7 +1011,7 @@ void VolumeLight::performDistantFogRaymarch(const bool is_main_view)
 #endif
 
     IPoint2 dispatchRes =
-      IPoint2(raymarchFrameRes.x + RAYMARCH_WARP_SIZE - 1, raymarchFrameRes.y + RAYMARCH_WARP_SIZE - 1) / RAYMARCH_WARP_SIZE;
+      IPoint2(currRaymarchFrameRes.x + RAYMARCH_WARP_SIZE - 1, currRaymarchFrameRes.y + RAYMARCH_WARP_SIZE - 1) / RAYMARCH_WARP_SIZE;
     if (useNodeBasedInput)
       nodeBasedDistantFogRaymarchCs->dispatch(dispatchRes.x, dispatchRes.y, 1);
     else
@@ -1013,7 +1043,7 @@ void VolumeLight::generateDistantFogOcclusionWeightsMips()
     const UniqueTex &mipTex = distantFogRaymarchStartWeights[nextFrame];
     ShaderGlobal::set_texture(vars.mip_gen_input_tex, mipTex.getTexId());
 
-    IPoint2 mipTexSize = raymarchFrameRes;
+    IPoint2 mipTexSize = currRaymarchFrameRes;
     for (int mip = 1; mip < DISTANT_FOG_OCCLUSION_WEIGHT_MIP_CNT; ++mip)
     {
       int prevMip = mip - 1;
@@ -1117,7 +1147,7 @@ void VolumeLight::performDistantFogReconstruct()
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, volfog_df_reconstruct_debug_tex_const_no, VALUE, 0, 0), distantFogDebug.getTex2D());
 #endif
 
-      distantFogReconstructCs->dispatchThreads(reconstructionFrameRes.x, reconstructionFrameRes.y, 1);
+      distantFogReconstructCs->dispatchThreads(currReconstructionFrameRes.x, currReconstructionFrameRes.y, 1);
     }
   }
 }
@@ -1137,7 +1167,7 @@ void VolumeLight::performDistantFogReconstructFxMipGen()
       distantFogFrameReprojectionDist.getTex2D()->texmiplevel(prevMip, prevMip);
       distantFogFrameReconstruct[nextFrame].getTex2D()->texmiplevel(prevMip, prevMip);
 
-      IPoint2 mipTexSize = IPoint2(reconstructionFrameRes.x >> 1, reconstructionFrameRes.y >> 1);
+      IPoint2 mipTexSize = IPoint2(currReconstructionFrameRes.x >> 1, currReconstructionFrameRes.y >> 1);
       const ResourceBarrier flags = RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE;
       d3d::resource_barrier({distantFogFrameReprojectionDist.getTex2D(), flags, (uint)prevMip, 1});
       d3d::resource_barrier({distantFogFrameReconstruct[nextFrame].getTex2D(), flags, (uint)prevMip, 1});

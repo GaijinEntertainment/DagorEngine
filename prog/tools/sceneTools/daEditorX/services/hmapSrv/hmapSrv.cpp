@@ -31,6 +31,7 @@
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <EASTL/array.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_shader.h>
@@ -2115,8 +2116,7 @@ public:
             newTexelsOrigin.y = hmapPatchesData.curOrigin.y;
         }
         SCOPE_RENDER_TARGET;
-        d3d::set_render_target((Texture *)nullptr, 0);
-        d3d::set_depth(hmapPatchesDepthTex.getTex2D(), DepthAccess::RW);
+        d3d::set_render_target({hmapPatchesDepthTex.getTex2D(), 0, 0}, DepthAccess::RW, {});
         BBox3 landBox = provider.getBBox();
         float minZ = landBox[0].y - 100;
         float maxZ = landBox[1].y + 500;
@@ -2124,8 +2124,7 @@ public:
         toroidal_update(newTexelsOrigin, hmapPatchesData, fullUpdateThresholdTexels, patchCb);
 
         d3d::resource_barrier({hmapPatchesDepthTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-        d3d::set_render_target(0, hmapPatchesTex.getTex2D(), 0);
-        d3d::set_depth((Texture *)nullptr, DepthAccess::RW);
+        d3d::set_render_target({}, DepthAccess::RW, {{hmapPatchesTex.getTex2D(), 0, 0}});
         processHmapPatchesDepth.render();
         d3d::resource_barrier({hmapPatchesTex.getTex2D(), RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_COMPUTE, 0, 0});
         Point2 ofs =
@@ -3120,12 +3119,9 @@ public:
       projection = matrix_ortho_off_center_lh(w0.x, w1.x, w0.z, w1.z, -w0.y, -w1.y);
       d3d::settm(TM_PROJ, &projection);
 
-      d3d::set_render_target(texM, 0);
-      if (texId)
-        d3d::set_render_target(1, texId, 0);
-      if (texF)
-        d3d::set_render_target(2, texF, 0);
-      d3d::set_depth(texD, DepthAccess::RW);
+      eastl::array<RenderTarget, 3> exportRts = {{{texM, 0, 0}, {texId, 0, 0}, {texF, 0, 0}}};
+      const uint32_t exportRtCount = texF ? 3 : (texId ? 2 : 1);
+      d3d::set_render_target({texD, 0, 0}, DepthAccess::RW, dag::ConstSpan<RenderTarget>(exportRts.data(), exportRtCount));
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(0, 0, 0, 0), 0, 0);
       shaders::overrides::set(disableDepthClipStateId);
       GeomObject::setNodeNameHashToShaders = true;

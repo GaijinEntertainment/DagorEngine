@@ -24,7 +24,7 @@ shader rendinst_layered
   INIT_LAYERED_FULL(true)
   INIT_HMAP_BLEND_STATIC()
 
-  if (rendinst_render_pass != rendinst_render_pass_to_heightmap)
+  if (rendinst_render_pass != rendinst_render_pass_to_heightmap && !use_editor_render)
   {
     NO_DYNSTCODE() // TODO: we can keep dynstcode, if we use hardcoded registers for vtex feedback UAV
   }
@@ -95,6 +95,7 @@ shader rendinst_layered
     }
 
     if (rendinst_render_pass == rendinst_render_pass_normal ||
+        rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
         rendinst_render_pass == rendinst_render_pass_to_heightmap)
     {
       USE_HMAP_BLEND_VS_PARAMS()
@@ -207,7 +208,7 @@ shader rendinst_layered
     }
     else if (!is_triangle_size_debug)
     {
-      if (rendinst_render_pass == rendinst_render_pass_normal)
+      if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
       {
         WRITE_GBUFFER()
         USE_HMAP_BLEND(true)
@@ -320,7 +321,8 @@ shader rendinst_mask_layered
       }
     }
 
-    if (rendinst_render_pass == rendinst_render_pass_normal)
+    if (rendinst_render_pass == rendinst_render_pass_normal ||
+        rendinst_render_pass == rendinst_render_pass_impostor_voxel)
     {
       USE_HMAP_BLEND_VS_PARAMS()
     }
@@ -329,7 +331,7 @@ shader rendinst_mask_layered
       struct VsOutput
       {
         PRECISE VS_OUT_POSITION(pos)
-        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
         float3 normal  : TEXCOORD0;
         float2 uv12           : TEXCOORD1;
         VOXEL_CENTROID float3 pointToEye     : TEXCOORD2;
@@ -353,7 +355,7 @@ shader rendinst_mask_layered
       struct VsInput
       {
         float3 pos                  : POSITION;
-        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
         float3 normal               : NORMAL;
         int2 uv0                    : TEXCOORD0;
         ##endif
@@ -419,7 +421,7 @@ shader rendinst_mask_layered
     }
     else
     {
-      if ((rendinst_render_pass == rendinst_render_pass_normal))
+      if ((rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_impostor_voxel))
       {
         WRITE_GBUFFER()
         USE_HMAP_BLEND(true)

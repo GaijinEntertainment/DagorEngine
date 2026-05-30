@@ -1,0 +1,12 @@
+script done
+
+AN ERROR HAS OCCURRED [boom]
+
+CALLSTACK
+
+LOCALS
+
+ERROR TRACE
+    at inner (testData/exec/async/unhandled_error_await_chain.nut:9)
+    awaited at mid (testData/exec/async/unhandled_error_await_chain.nut:13)
+    awaited at top (testData/exec/async/unhandled_error_await_chain.nut:17)

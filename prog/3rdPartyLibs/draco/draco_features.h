@@ -50,6 +50,7 @@
 
 // Standard attribute types support
 #define DRACO_STANDARD_EDGEBREAKER 1
+#define DRACO_STANDARD_EDGEBREAKER_SUPPORTED 1
 
 // SSE, AVX, NEON optimizations - comment out if not supported on your platform
 #define DRACO_USE_INTRINSICS 1

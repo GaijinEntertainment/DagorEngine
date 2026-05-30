@@ -130,7 +130,8 @@ class BufferGlobalId
   static constexpr uint32_t used_as_uav_buffer = 1u << 25;
   static constexpr uint32_t used_in_bindless_heap = 1u << 24;
   static constexpr uint32_t report_state_transitions = 1u << 23;
-  static constexpr uint32_t index_mask = report_state_transitions - 1;
+  static constexpr uint32_t excluded_from_state_tracking = 1u << 22;
+  static constexpr uint32_t index_mask = excluded_from_state_tracking - 1;
   uint32_t value = ~uint32_t(0);
 
 public:
@@ -155,6 +156,7 @@ public:
   void markUsedInBlindessHeap() { value |= used_in_bindless_heap; }
   void removeMarkedAsUAVBuffer() { value &= ~used_as_uav_buffer; }
   void resetStatusBits() { value &= index_mask; }
+  void markExcludedFromStateTracking() { value |= excluded_from_state_tracking; }
 
   bool isUsedAsVertexOrConstBuffer() const { return value & used_as_vertex_or_const_buffer; }
   bool isUsedAsIndexBuffer() const { return value & used_as_index_buffer; }
@@ -164,6 +166,7 @@ public:
   bool isUsedAsCopySourceBuffer() const { return value & used_as_copy_source_buffer; }
   bool isUsedAsUAVBuffer() const { return value & used_as_uav_buffer; }
   bool isUsedInBindlessHeap() const { return value & used_in_bindless_heap; }
+  bool isExcludedFromStateTracking() const { return value & excluded_from_state_tracking; }
   uint32_t index() const { return index_mask & value; }
 
   void updateUsedInBindlessHeap(bool is_used)

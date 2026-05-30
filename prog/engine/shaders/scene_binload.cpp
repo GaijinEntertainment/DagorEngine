@@ -10,7 +10,6 @@
 #include <ioSys/dag_baseIo.h>
 #include <ioSys/dag_zlibIo.h>
 #include <workCycle/dag_gameSettings.h>
-#include <util/dag_loadingProgress.h>
 #include <osApiWrappers/dag_files.h>
 #include "sceneBinaryData.h"
 #include <debug/dag_log.h>
@@ -26,19 +25,7 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
 
   ShaderMaterial::setLoadingString("binary-dump");
 
-// int startUpTime=get_time_msec();
-// int startUpTime0=startUpTime;
-#define STARTUP_POINT(name)                                                                        \
-  {                                                                                                \
-    /*int t=get_time_msec();*/                                                                     \
-    /*debug("*** %7dms: load scene %s (line %d)", t-startUpTime, (const char*)(name), __LINE__);*/ \
-    /*startUpTime=t;*/                                                                             \
-    loading_progress_point();                                                                      \
-  }
-
   int i;
-
-  loading_progress_point();
 
   DAGOR_TRY
   {
@@ -60,7 +47,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
 
     LoadCB cb(crd, "binary-dump");
 
-    loading_progress_point();
     SceneHdr sHdr;
 
     cb.read(&sHdr, sizeof(sHdr));
@@ -82,7 +68,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
     dagor_set_sm_tex_load_ctx_name(crd.getTargetName());
     smvd = ShaderMatVdata::create(sHdr.texNum, sHdr.matNum, sHdr.vdataNum, sHdr.mvhdrSz);
     smvd->loadTexIdx(cb, texMap);
-    STARTUP_POINT(String(100, "textures %d", sHdr.texNum));
 
     G_ASSERT(sHdr.ltmapNum == 0);
 
@@ -90,10 +75,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
     bool useSRVBuffers = d3d::get_driver_desc().caps.hasRayQuery;
     smvd->loadMatVdata(String(200, "%s ldBin", crd.getTargetName()).str(), cb, useSRVBuffers ? VDATA_BIND_SHADER_RES : 0);
     dagor_reset_sm_tex_load_ctx();
-
-    STARTUP_POINT(String(100, "mats %d, vdata %d", sHdr.matNum, sHdr.vdataNum));
-
-    loading_progress_point();
 
     robjMem = memalloc(sHdr.objDataSize, midmem);
     // debug("sHdr.objDataSize=%d sHdr.objNum=%d robjMem=%p ofs=%p",
@@ -126,9 +107,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
         o.lods[li].mesh->acquireTexRefs();
       }
 
-      if (!(i & 15))
-        loading_progress_point();
-
       o.update();
 
       // when not using portals of visibility, also disable range check (useful for envi)
@@ -141,8 +119,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
 
     // Load lighting objects data.
     z_crd.close();
-
-    STARTUP_POINT(String(100, "load objs (%d)", obj.size()));
 
     smvd->preloadTex();
 
@@ -255,10 +231,6 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
 #endif
   }
 
-
-  STARTUP_POINT("closed");
-
-  loading_progress_point();
 
   ShaderMaterial::setLoadingString(NULL);
   if (obj.empty())

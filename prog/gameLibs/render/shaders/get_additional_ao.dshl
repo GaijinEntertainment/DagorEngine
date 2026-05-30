@@ -17,26 +17,35 @@ interval additional_ao_use_full_occlusion: no<1, yes;
 assume_if_not_assumed additional_ao_use_full_occlusion = yes;
 
 macro APPLY_ADDITIONAL_AO(code)
-  if (in_editor_assume == no)
+  bool apply_depth_above_ao = in_editor_assume == no && gi_quality == off;
+  if (apply_depth_above_ao)
   {
     INIT_DEPTH_AO_STAGE(code)
     USE_DEPTH_AO_STAGE(code)
+  }
+
+  if (additional_ao_use_full_occlusion == yes && in_editor_assume == no)
+  {
     USE_CAPSULE_AO(code)
 
     INIT_HERO_AO(code)
     USE_HERO_AO(code)
+
+    if (esm_ao_target_tex != NULL)
+    {
+      (code) { esm_ao_target_tex@smp2d = esm_ao_target_tex; }
+    }
   }
+
   INIT_DYNAMIC_RESOLUTION(code)
-  if (esm_ao_target_tex != NULL)
-  {
-    (code) { esm_ao_target_tex@smp2d = esm_ao_target_tex; }
-  }
+
   hlsl(code) {
     float getAdditionalAmbientOcclusion(float ao, float3 worldPos, float3 worldNormal, float2 screenTc)
     {
-      ##if in_editor_assume == no && gi_quality == off
+      ##if apply_depth_above_ao
         ao *= 0.5 + 0.5 * get_depth_above_ao(worldPos);
       ##endif
+
       ##if additional_ao_use_full_occlusion == yes
         ##if in_editor_assume == no
           ao = getCapsulesOcclusion(ao, worldPos, worldNormal);
@@ -60,6 +69,7 @@ macro APPLY_ADDITIONAL_AO(code)
           #endif
         ##endif
       ##endif
+
       return ao;
     }
   }

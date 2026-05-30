@@ -74,7 +74,7 @@ void OutlineRenderer::render(IGenViewportWnd &wnd, const RIElementsCache &riElem
   Driver3dRenderTarget prevRT;
   d3d::get_render_target(prevRT);
 
-  d3d::set_render_target(colorRt.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{colorRt.getTex2D(), 0, 0}});
   d3d::clearview(CLEAR_TARGET, 0, 1, 0);
 
   const int lastFrameBlockId = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);

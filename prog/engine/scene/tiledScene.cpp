@@ -965,19 +965,15 @@ void scene::TiledScene::setTransformImm(node_index node, mat44f_cref transform)
   int t_idx = selectTileIndex(index, false);
   G_ASSERTF_RETURN(t_idx != INVALID_INDEX, , "node=%08X pos=%f %f %f", node, V4D(nodes.data()[index].col3));
   mat44f oldTransform = nodes.data()[index];
-  vec3f move = v_sub(transform.col3, oldTransform.col3);
   SimpleScene::setTransform(node, transform);
 
-  if (t_idx != OUTER_TILE_INDEX && v_test_vec_x_gt_0(v_length3_sq(move)))
+  int nt_idx = selectTileIndex(index, true);
+  G_ASSERT(nt_idx != INVALID_INDEX);
+  if (nt_idx != t_idx)
   {
-    int nt_idx = selectTileIndex(index, true);
-    G_ASSERT(nt_idx != INVALID_INDEX);
-    if (nt_idx != t_idx)
-    {
-      removeNode(getTileByIndex(t_idx), node);
-      insertNode(getTileByIndex(nt_idx), node);
-      t_idx = nt_idx;
-    }
+    removeNode(getTileByIndex(t_idx), node);
+    insertNode(getTileByIndex(nt_idx), node);
+    t_idx = nt_idx;
   }
 
   updateTile(t_idx, index, &oldTransform);

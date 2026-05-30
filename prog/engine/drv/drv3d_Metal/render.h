@@ -9,6 +9,7 @@
 #include <EASTL/atomic.h>
 #include <EASTL/array.h>
 #include <EASTL/unordered_map.h>
+#include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_sampler.h>
 
 #include <mutex>
@@ -191,8 +192,8 @@ public:
   // there's 32kb limit for query buffer so use it
   static constexpr int MAX_SAMPLE_SAMPLES = 32768 / sizeof(MTLCounterResultTimestamp);
 
-  static constexpr uint32_t BINDLESS_TEXTURE_COUNT = 4096;
-  static constexpr uint32_t BINDLESS_BUFFER_COUNT = 16384;
+  static constexpr uint32_t BINDLESS_TEXTURE_COUNT = ::bindless::MAX_RESOURCE_INDEX_COUNT;
+  static constexpr uint32_t BINDLESS_BUFFER_COUNT = ::bindless::MAX_RESOURCE_INDEX_COUNT;
   static constexpr uint32_t BINDLESS_SAMPLER_COUNT = 512;
 
   struct Caps
@@ -1386,7 +1387,6 @@ public:
   int setSampler(unsigned stage, int slot, int sampler, float bias = 0.f);
 
   bool updateBindlessResource(D3DResourceType range_type, uint32_t index, D3dResource *res);
-  int copyBindlessResources(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
   int updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count);
 
   void prepareBindlessResources(uint32_t requestedTypes);

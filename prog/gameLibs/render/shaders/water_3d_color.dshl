@@ -328,13 +328,17 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       return deepnessData;
     }
 
-    float calcDetailFactor(float d, float fovy)
+    float calcDetailFactor(float d, float fov_log_bias)
     {
-      float fov_factor = tan(fovy * 0.5);
-      float log_d = log2(d * fov_factor);
-      float log_min = 3.322; //log2(10.0);
-      float log_max = 9.966; //log2(1000.0);
-      return saturate((log_d - log_min) / (log_max - log_min));
+      // Originally we did:
+      // saturate((log2(d * tan(fovy/2)) - log2(10)) / (log2(1000) - log2(10)))
+      // Which can be simplified to:
+      // saturate((log2(d) + log2(tan(fovy/2)) - log2(10)) / (log2(100)))
+      // saturate(log2(d) * 1/log2(100) + (log2(tan(fovy/2)) - log2(10)) / log2(100)
+      // So we precompute:
+      // fov_log_bias = (log2(tan(fovy/2)) - log2(10)) / log2(100)
+      // 1/log2(100) = 0.15051499
+      return saturate(log2(d) * 0.15051499 + fov_log_bias);
     }
 
     WaterBaseContext computeWaterBaseContext(PsInput input INPUT_VFACE, ShoreData shoreData, ChopWaterData chopWaterData, float foam_color, float2 perlin_surf, float perlinSpotInfluence)
@@ -387,8 +391,9 @@ macro USE_WATER_3D_DEFERRED_COLOR()
         {
           float waterHeight = water_level_max_wave_height.x;
           get_water_height(vd.worldPos.xz, waterHeight);
+          const float EPS = 0.0001;
           BRANCH
-          if (vd.worldPos.y > waterHeight + water_level_max_wave_height.y)
+          if (vd.worldPos.y - EPS > waterHeight + water_level_max_wave_height.y)
             discard;
         }
       ##endif
@@ -451,7 +456,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       vd.worldNormal = RNM_ndetail_normalized(vd.worldNormal.xzy, vd.wakeGradient.xzy).xzy;
 
       // Applying faders to normals
-      vd.worldNormal = normalize(half3(vd.worldNormal.xz*vd.shoreData.gerstner_normal.y + vd.shoreData.gerstner_normal.xz*vd.worldNormal.y, vd.shoreData.gerstner_normal.y*vd.worldNormal.y).xzy);
+      vd.worldNormal = half3(vd.worldNormal.xz*vd.shoreData.gerstner_normal.y + vd.shoreData.gerstner_normal.xz*vd.worldNormal.y, vd.shoreData.gerstner_normal.y*vd.worldNormal.y).xzy;
 
       ##if hardware.ps5
         bool useBentNormals = use_bounding_vr_reprojection == 0;
@@ -459,10 +464,8 @@ macro USE_WATER_3D_DEFERRED_COLOR()
         bool useBentNormals = true;
       ##endif
       if (useBentNormals)
-      {
         vd.worldNormal.xz *= 1.0 + saturate(vd.screenPosZW.y * 0.001 - 1.0);
-        vd.worldNormal = normalize(vd.worldNormal);
-      }
+      vd.worldNormal = normalize(vd.worldNormal);
 
       float normalEnvColorFade = saturate(lerp(-1.05, 1.05, vd.waterColorToEnvColorKoef)); // Fade normal from waterColorToEnvColorKoe*0.5 until waterColorToEnvColorKoef*0.952.
       vd.worldNormal = normalize(lerp(vd.worldNormal, float3(0, 1, 0), normalEnvColorFade));
@@ -506,7 +509,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       vd.roughness = saturate(1 - (wfxDetails.r + 0.99 * wfxDetails.a));
 ##if chop_water_enabled == yes
       float storminessDamped = lerp(storminess * 0.1, storminess, vd.shoreData.oceanWavesMultiplier.x);
-      vd.detail_factor = calcDetailFactor(vd.dist, chop_fov);
+      vd.detail_factor = calcDetailFactor(vd.dist, chop_fov_log_bias);
       vd.roughness = max(vd.roughness, lerp(lerp(0.05, 0.05, storminessDamped), lerp(0.2, 0.25, storminessDamped), vd.detail_factor));
 ##else
       vd.roughness = max(vd.roughness, get_cascades_roughness(distLog2));

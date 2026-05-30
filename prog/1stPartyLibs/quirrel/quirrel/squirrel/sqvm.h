@@ -228,6 +228,42 @@ struct AutoDec{
     SQInteger *_n;
 };
 
+// `ip` picks which instruction's line to report; the fault path
+// passes ci._ip - 1 to land on the faulting (or call-site) instruction.
+// funcnameObj/sourceObj alias the live SQString when one exists, so a trace
+// snapshot can reuse it instead of re-interning; OT_NULL when the name is a
+// literal fallback. funcname/source stay a valid C-string view either way.
+struct SQFrameInfo {
+    const char *funcname; const char *source; SQInteger line;
+    SQObject funcnameObj; SQObject sourceObj;
+};
+void sq_get_frame_info(const SQVM::CallInfo &ci, const SQInstruction *ip, SQFrameInfo &out);
+
+// Snapshot the live call stack from v->ci down to its root frame as an array of
+// { func, source, line } tables, innermost first.
+SQObjectPtr sq_capture_error_trace(SQVM *v);
+
+// Append errVal's captured trace to buf, one "at <func> (<source>:<line>)" line
+// per frame (`awaited at` for await-hops). Returns true if anything was
+// appended; false (buf untouched) for a non-Error or missing trace.
+bool sq_append_error_trace(SQVM *v, const SQObjectPtr &errVal, sqvector<char> &buf);
+
+// Render an Error instance's captured trace (one "at <func> (<source>:<line>)"
+// line per frame) through errfn. No-op when errVal is not an Error carrying an
+// array trace.
+void sq_print_error_trace(SQVM *v, const SQObjectPtr &errVal, SQPRINTFUNCTION errfn);
+
+// Append an `awaited at` frame to errVal's trace, read from a suspended
+// generator's saved _ci. The settle-time ancestry walk calls this per parked
+// async ancestor. No-op when errVal cannot carry a trace (value-types).
+void sq_append_awaited_frame(SQVM *v, const SQObjectPtr &errVal, const SQVM::CallInfo &ci);
+
+// Per-consumer carrier for a fork: shallow-clone an Error and give the clone its
+// own copy of the trace array, so each fork branch stitches its own `awaited at`
+// chain without polluting siblings. Returns errVal unchanged for non-Error
+// values (they have no carrier; the fork shares them as before).
+SQObjectPtr sq_clone_error_for_branch(SQVM *v, const SQObjectPtr &errVal);
+
 inline SQObjectPtr &stack_get(HSQUIRRELVM v,SQInteger idx){return ((idx>=0)?(v->GetAt(idx+v->_stackbase-1)):(v->GetUp(idx)));}
 
 #define _ss(_vm_) (_vm_)->_sharedstate

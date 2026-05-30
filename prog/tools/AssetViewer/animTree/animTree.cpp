@@ -44,6 +44,7 @@
 #include "nodeMasks/nodeMaskType.h"
 
 #include <util/dag_lookup.h>
+#include <util/dag_strUtil.h>
 
 #include <assetsGui/av_selObjDlg.h>
 #include <assets/assetMgr.h>
@@ -87,7 +88,7 @@ class AnimTreePlugin::TreeFilter final : public PropPanel::ITreeFilter
 public:
   bool filterNode(const PropPanel::TreeNode &node) override
   {
-    return filterString.empty() || dd_stristr(node.getTitle(), filterString.c_str());
+    return filterString.empty() || dd_stristr(to_string_view(node.getTitle()), to_string_view(filterString));
   }
 
   bool hasAnyFilter() const override { return !filterString.empty(); }

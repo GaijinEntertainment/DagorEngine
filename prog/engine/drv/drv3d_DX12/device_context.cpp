@@ -3669,6 +3669,38 @@ void DeviceContext::textureBarrier(Image *tex, SubresourceRange sub_res_range, u
   immediateModeExecute();
 }
 
+void DeviceContext::enhancedTextureBarrier(const d3d::TextureBarrier &barrier, BaseTexture *texture)
+{
+  DX12_LOCK_FRONT();
+  auto baseTex = cast_to_texture_base(texture);
+  auto image = baseTex->getDeviceImage();
+  if (!image)
+  {
+    if (!device.isRecovering())
+      D3D_ERROR("DX12: enhanced_texture_barrier for <%s>, image was null", baseTex->getName());
+    return;
+  }
+  auto cmd = make_command<CmdEnhancedTextureBarrier>(barrier, image);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
+void DeviceContext::enhancedBufferBarrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer)
+{
+  DX12_LOCK_FRONT();
+  auto gbuf = static_cast<GenericBufferInterface *>(buffer);
+  auto bufferRef = get_any_buffer_ref(gbuf);
+  if (!bufferRef.buffer)
+  {
+    if (!device.isRecovering())
+      D3D_ERROR("DX12: enhanced_buffer_barrier for <%s>, buffer resource was null", buffer->getBufName());
+    return;
+  }
+  auto cmd = make_command<CmdEnhancedBufferBarrier>(barrier, bufferRef);
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
 void DeviceContext::discardTexture(BaseTex *tex)
 {
   DX12_LOCK_FRONT();
@@ -3763,13 +3795,6 @@ void DeviceContext::deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, I
 void DeviceContext::bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
   auto cmd = make_command<CmdBindlessSetSamplerDescriptor>(slot, descriptor);
-  commandStream.pushBack(cmd);
-  immediateModeExecute();
-}
-
-void DeviceContext::bindlessCopyResourceDescriptorsNoLock(uint32_t src, uint32_t dst, uint32_t count)
-{
-  auto cmd = make_command<CmdBindlessCopyResourceDescriptors>(src, dst, count);
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -8007,6 +8032,168 @@ void DeviceContext::ExecutionContext::asBarrier(RaytraceAccelerationStructure *a
 }
 #endif
 
+namespace
+{
+#if !_TARGET_XBOXONE
+inline D3D12_BARRIER_SYNC translate_pipeline_stage_to_d3d12(d3d::PipelineStageFlags stages, d3d::AccessFlags access)
+{
+  if (stages & d3d::PipelineStageFlag::All)
+    return D3D12_BARRIER_SYNC_ALL;
+  D3D12_BARRIER_SYNC sync = D3D12_BARRIER_SYNC_NONE;
+  if (stages & d3d::PipelineStageFlag::ExecuteIndirect)
+    sync |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+  if (stages & d3d::PipelineStageFlag::IndexInput)
+    sync |= D3D12_BARRIER_SYNC_INDEX_INPUT;
+  if (stages & (d3d::PipelineStageFlag::VertexAttributeInput | d3d::PipelineStageFlag::AllVertexShading))
+    sync |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+  if (stages & (d3d::PipelineStageFlag::EarlyFragmentTests | d3d::PipelineStageFlag::LateFragmentTests))
+    sync |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+  if (stages & (d3d::PipelineStageFlag::PixelShading | d3d::PipelineStageFlag::Rasterization))
+    sync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+  if (stages & d3d::PipelineStageFlag::OutputMerging)
+    sync |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+  if (stages & d3d::PipelineStageFlag::ComputeShading)
+    sync |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+  if (stages & d3d::PipelineStageFlag::Copy)
+    sync |= D3D12_BARRIER_SYNC_COPY;
+  if (stages & d3d::PipelineStageFlag::Blit)
+  {
+    if (access & d3d::AccessFlag::BlitWrite)
+      sync |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+    if (access & d3d::AccessFlag::BlitRead)
+      sync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+  }
+  if (stages & d3d::PipelineStageFlag::Clear)
+    sync |= D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
+  if (stages & d3d::PipelineStageFlag::Resolve)
+    sync |= D3D12_BARRIER_SYNC_RESOLVE;
+  return sync;
+}
+
+inline D3D12_BARRIER_ACCESS translate_access_flags_to_d3d12(d3d::AccessFlags access)
+{
+  if (access == d3d::AccessFlag::NoAccess)
+    return D3D12_BARRIER_ACCESS_NO_ACCESS;
+  D3D12_BARRIER_ACCESS out = D3D12_BARRIER_ACCESS_COMMON;
+  if (access & d3d::AccessFlag::IndirectArgument)
+    out |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+  if (access & d3d::AccessFlag::VertexBuffer)
+    out |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+  if (access & d3d::AccessFlag::IndexBuffer)
+    out |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+  if (access & d3d::AccessFlag::ConstantBuffer)
+    out |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+  if (access & (d3d::AccessFlag::RenderTargetRead | d3d::AccessFlag::RenderTargetWrite))
+    out |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+  if (access & d3d::AccessFlag::UnorderedAccess)
+    out |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+  if (access & d3d::AccessFlag::DepthStencilWrite)
+    out |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+  if (access & d3d::AccessFlag::DepthStencilRead)
+    out |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+  if (access & (d3d::AccessFlag::ShaderResource | d3d::AccessFlag::InputAttachment))
+    out |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+  if (access & d3d::AccessFlag::CopyRead)
+    out |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+  if (access & d3d::AccessFlag::CopyWrite)
+    out |= D3D12_BARRIER_ACCESS_COPY_DEST;
+  // In DX12 blits are implemented through draw calls: source is read as SRV, destination is written as RTV.
+  if (access & d3d::AccessFlag::BlitRead)
+    out |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+  if (access & d3d::AccessFlag::BlitWrite)
+    out |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+  if (access & d3d::AccessFlag::ResolveRead)
+    out |= D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
+  if (access & d3d::AccessFlag::ResolveWrite)
+    out |= D3D12_BARRIER_ACCESS_RESOLVE_DEST;
+  if (access & d3d::AccessFlag::ShadingRate)
+    out |= D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE;
+  return out;
+}
+
+inline D3D12_BARRIER_LAYOUT translate_texture_layout_to_d3d12(d3d::TextureLayout layout)
+{
+  switch (layout)
+  {
+    case d3d::TextureLayout::Undefined: return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    case d3d::TextureLayout::GenericRead: return D3D12_BARRIER_LAYOUT_GENERIC_READ;
+    case d3d::TextureLayout::RenderTarget: return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+    case d3d::TextureLayout::UnorderedAccess: return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+    case d3d::TextureLayout::DepthRwStencilRw:
+    case d3d::TextureLayout::DepthRwStencilRo:
+    case d3d::TextureLayout::DepthRoStencilRw:
+    case d3d::TextureLayout::DepthRw: return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+    case d3d::TextureLayout::DepthRoStencilRo:
+    case d3d::TextureLayout::DepthRo: return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+    case d3d::TextureLayout::ShaderResource: return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    case d3d::TextureLayout::CopySource: return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+    case d3d::TextureLayout::CopyDest: return D3D12_BARRIER_LAYOUT_COPY_DEST;
+    // In DX12 blits are implemented through draw calls, so the source is bound as SRV
+    // and the destination as RTV.
+    case d3d::TextureLayout::BlitSource: return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    case d3d::TextureLayout::BlitDest: return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+    case d3d::TextureLayout::ResolveSource: return D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
+    case d3d::TextureLayout::ResolveDest: return D3D12_BARRIER_LAYOUT_RESOLVE_DEST;
+    case d3d::TextureLayout::ShadingRateSource: return D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE;
+    default: G_ASSERTF(false, "unhandled TextureLayout %d", int(layout)); return D3D12_BARRIER_LAYOUT_UNDEFINED;
+  }
+}
+#endif // !_TARGET_XBOXONE
+} // namespace
+
+void DeviceContext::ExecutionContext::enhancedTextureBarrier(const d3d::TextureBarrier &barrier, Image *image)
+{
+#if !_TARGET_XBOXONE
+  if (!readyCommandList())
+    return;
+
+  D3D12_TEXTURE_BARRIER textureBarrier{};
+  textureBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src);
+  textureBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst);
+  textureBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src);
+  textureBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst);
+  textureBarrier.LayoutBefore = translate_texture_layout_to_d3d12(barrier.layoutTransition.src);
+  textureBarrier.LayoutAfter = translate_texture_layout_to_d3d12(barrier.layoutTransition.dst);
+  textureBarrier.pResource = image->getHandle();
+  textureBarrier.Subresources.IndexOrFirstMipLevel = barrier.subresources.mips.first;
+  textureBarrier.Subresources.NumMipLevels = barrier.subresources.mips.count;
+  textureBarrier.Subresources.FirstArraySlice = barrier.subresources.layers.first;
+  textureBarrier.Subresources.NumArraySlices = barrier.subresources.layers.count;
+  textureBarrier.Subresources.FirstPlane = barrier.subresources.planes.first;
+  textureBarrier.Subresources.NumPlanes = barrier.subresources.planes.count;
+  textureBarrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+  if (barrier.layoutTransition.src == d3d::TextureLayout::Undefined)
+    textureBarrier.Flags |= D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+
+  contextState.graphicsCommandListBarrierBatch.addEnhancedTextureBarrier(textureBarrier);
+#else
+  G_UNUSED(barrier);
+  G_UNUSED(image);
+#endif
+}
+
+void DeviceContext::ExecutionContext::enhancedBufferBarrier(const d3d::BufferBarrier &barrier, BufferResourceReference buffer)
+{
+#if !_TARGET_XBOXONE
+  if (!readyCommandList())
+    return;
+
+  D3D12_BUFFER_BARRIER bufferBarrier{};
+  bufferBarrier.SyncBefore = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.src, barrier.memorySync.src);
+  bufferBarrier.SyncAfter = translate_pipeline_stage_to_d3d12(barrier.pipelineSync.dst, barrier.memorySync.dst);
+  bufferBarrier.AccessBefore = translate_access_flags_to_d3d12(barrier.memorySync.src);
+  bufferBarrier.AccessAfter = translate_access_flags_to_d3d12(barrier.memorySync.dst);
+  bufferBarrier.pResource = buffer.buffer;
+  bufferBarrier.Offset = 0;
+  bufferBarrier.Size = UINT64_MAX;
+
+  contextState.graphicsCommandListBarrierBatch.addEnhancedBufferBarrier(bufferBarrier);
+#else
+  G_UNUSED(barrier);
+  G_UNUSED(buffer);
+#endif
+}
+
 #if _TARGET_XBOX
 void DeviceContext::ExecutionContext::enterSuspendState()
 {
@@ -8048,11 +8235,6 @@ void DeviceContext::ExecutionContext::deferBindlessSetResourceDescriptor(uint32_
 void DeviceContext::ExecutionContext::bindlessSetSamplerDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
 {
   contextState.bindlessSetManager.setSamplerDescriptor(device.device.get(), slot, descriptor);
-}
-
-void DeviceContext::ExecutionContext::bindlessCopyResourceDescriptors(uint32_t src, uint32_t dst, uint32_t count)
-{
-  contextState.bindlessSetManager.copyResourceDescriptors(device.device.get(), src, dst, count);
 }
 
 void DeviceContext::ExecutionContext::registerFrameCompleteEvent(os_event_t event) { self.back.frameCompleteEvents.push_back(event); }

@@ -180,6 +180,7 @@ struct RendInstGenData
     Tab<uint16_t> predicateIndices;
     vec4f occlusionBoxHalfSize;
     bbox3f maxCellBbox;
+    float maxRiGenBsphereRad = 0.f;
     enum class GlobalShadowPhase
     {
       // Render impostor into small texture

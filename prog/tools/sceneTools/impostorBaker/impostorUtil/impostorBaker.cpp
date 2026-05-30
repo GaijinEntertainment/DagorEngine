@@ -37,6 +37,7 @@
 #include <workCycle/dag_workCycle.h>
 
 #include <de3_interface.h>
+#include <libTools/voxel/voxelCache.h>
 #include <rendInst/rendInstGenRender.h>
 #include <rendInst/rendInstExtra.h>
 
@@ -65,7 +66,7 @@ extern Vbuffer *oneInstanceTmVb;
 #define NORMAL_TRANSLUCENCY_NAME "nt"
 #define AO_SMOOTHNESS_NAME       "as"
 
-#define FILE_REGEX "^.*_(aa|nt|as)\\.(tiff|tex\\.blk)$"
+#define FILE_REGEX "^.*_((aa|nt|as)\\.(tiff|tex\\.blk)|voxCache\\.bin)$"
 
 #define GLOBAL_VARS_LIST                   \
   VAR(impostor_sdf_max_distance)           \
@@ -284,7 +285,7 @@ static void perform_padding(const PostFxRenderer &padder, ImpostorBaker::Imposto
   padder.render();
 }
 
-static inline bool prefetch_textures(dag::ConstSpan<TEXTUREID> tex_list, int timeout = 60000000 /*start with 1 minute*/)
+bool ImpostorBaker::prefetch_textures(dag::ConstSpan<TEXTUREID> tex_list, int timeout)
 {
   static constexpr int timeout_max = 10 * 60 * 1000000 /*10 minutes max!*/, timeout_inc = 60 * 1000000 /*1 min increment*/;
   int64_t reft = ref_time_ticks(), reft_report = reft;
@@ -1007,7 +1008,7 @@ void ImpostorBaker::computeDDSxPackSizes(dag::ConstSpan<DagorAsset *> assets)
   DA_PROFILE;
   for (auto *asset : assets)
   {
-    if (!isSupported(asset))
+    if ((getSupported(asset) & FLAT) == NONE)
       continue;
     const char *folderPath = asset->getFolderPath();
     eastl::string ddsxPackName = getDDSxPackName(folderPath);
@@ -1025,17 +1026,18 @@ void ImpostorBaker::generateFolderBlk(DagorAsset *asset, const ImpostorOptions &
   generateFolderBlk(getAssetFolder(asset), getDDSxPackName(folderPath).c_str(), options);
 }
 
-bool ImpostorBaker::hasSupportedType(DagorAsset *asset) const
+bool ImpostorBaker::hasSupportedType(DagorAsset *asset, ImpostorType) const
 {
   static int rendInstEntityClassId = DAEDITOR3.getAssetTypeId("rendInst");
   return asset->getType() == rendInstEntityClassId;
 }
 
-bool ImpostorBaker::isSupported(DagorAsset *asset) const
+ImpostorBaker::ImpostorType ImpostorBaker::getSupported(DagorAsset *asset) const
 {
   DA_PROFILE;
-  if (!hasSupportedType(asset))
-    return false;
+  if (!hasSupportedType(asset, ALL))
+    return NONE;
+  ImpostorType type = NONE;
   int nid = asset->props.getNameId("lod");
   for (int i = 0; DataBlock *lodBlk = asset->props.getBlock(i); i++)
   {
@@ -1044,9 +1046,15 @@ bool ImpostorBaker::isSupported(DagorAsset *asset) const
     if (!lodBlk->paramExists("fname"))
       continue;
     if (strstr(lodBlk->getStr("fname", ""), "billboard_octagon_impostor") != nullptr)
-      return true;
+    {
+      type |= FLAT;
+      break;
+    }
   }
-  return false;
+  auto vblk = asset->props.getBlockByName("voxel_impostor");
+  if (vblk ? vblk->getBool("enabled", true) : defaultVoxelParams.getBool("enabled", false))
+    type |= VOXEL;
+  return type;
 }
 
 static int to_sh(float v) { return int(round(v * 1000.f)); }
@@ -1098,7 +1106,29 @@ ska::flat_hash_map<eastl::string, int> ImpostorBaker::getHashes(DagorAsset *asse
     aoFalloffStopLocal = impostorBlock->getReal("aoFalloffStop", aoFalloffStop);
     ret["aoBrightness"] = to_sh(aoBrightnessLocal);
     ret["aoFalloffStart"] = to_sh(aoFalloffStartLocal);
-    ret["aoFalloffStart"] = to_sh(aoFalloffStopLocal);
+    ret["aoFalloffStop"] = to_sh(aoFalloffStopLocal);
+  }
+
+  auto voxelBlk = asset->props.getBlockByName("voxel_impostor");
+  if (voxelBlk || defaultVoxelParams.getBool("enabled", false))
+  {
+    auto getReal = [this, voxelBlk](const char *name, float defval) {
+      defval = defaultVoxelParams.getReal(name, defval);
+      if (voxelBlk)
+        return voxelBlk->getReal(name, defval);
+      return defval;
+    };
+    auto getInt = [this, voxelBlk](const char *name, int defval) {
+      defval = defaultVoxelParams.getInt(name, defval);
+      if (voxelBlk)
+        return voxelBlk->getInt(name, defval);
+      return defval;
+    };
+
+    ret["projScale"] = to_sh(getReal("projScale", defaults::projScale));
+    ret["triangleThreshold"] = to_sh(getReal("triangleThreshold", defaults::triangleThreshold));
+    ret["maxMapSize"] = getInt("maxMapSize", defaults::maxMapSize);
+    ret["voxelSize"] = to_sh(getReal("voxelSize", defaults::voxelSize));
   }
 
   return ret;
@@ -1152,12 +1182,13 @@ ImpostorBaker::ImpostorData ImpostorBaker::exportToFile(const ImpostorTextureMan
 
 void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, StrLess> &files) const
 {
-  if (!isSupported(asset))
+  auto type = getSupported(asset);
+  if (type == NONE)
     return;
 
   String baseFolder = getAssetFolder(asset);
 
-  if (asset->props.blockExists("impostor"))
+  if (asset->props.blockExists("impostor") && (type & FLAT))
   {
     files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), ALBEDO_ALPHA_NAME));
     files.insert(String(0, "%s/%s_%s.tiff", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
@@ -1166,11 +1197,19 @@ void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, St
     files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), NORMAL_TRANSLUCENCY_NAME));
     files.insert(String(0, "%s/%s_%s.tex.blk", baseFolder.c_str(), asset->getName(), AO_SMOOTHNESS_NAME));
   }
+
+  if (type & VOXEL)
+  {
+    files.insert(String(0, "%s/%s_%s", baseFolder.c_str(), asset->getName(), voxelcache::VOXEL_CACHE_NAME));
+  }
 }
+
+void ImpostorBaker::setOptions(const ImpostorOptions &options) { defaultVoxelParams.setBool("enabled", options.defaultVoxelImpostor); }
 
 void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOptions &options)
 {
   DA_PROFILE;
+  setOptions(options);
   std::regex impostorTexReg{FILE_REGEX};
   eastl::set<String, StrLess> files;
   eastl::set<String, StrLess> folders;

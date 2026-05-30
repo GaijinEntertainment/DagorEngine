@@ -94,6 +94,22 @@ static void apply_flag_rules_to_nodes(CollisionResource &coll_res, const ecs::Ar
   }
 }
 
+bool clone_collres(ecs::EntityManager &mgr, ecs::EntityId eid)
+{
+  const ecs::component_index_t cidx = mgr.getDataComponents().findComponentId(ECS_HASH("collres").hash);
+  if (cidx == ecs::INVALID_COMPONENT_INDEX)
+    return false;
+  CollisionResource **storage = (CollisionResource **)mgr.getComponentRefRW(eid, cidx).getRawData();
+  if (!storage || !*storage)
+    return false;
+  if (is_owned_collres(*storage))
+    return false;
+  CollisionResource *originalPtr = *storage;
+  track_owned_collres(*storage = originalPtr->deepCopy());
+  originalPtr->delRef();
+  return true;
+}
+
 bool apply_collres_node_flag_rules(ecs::EntityManager &mgr, ecs::EntityId eid, const ecs::Array &rules)
 {
   if (rules.empty())

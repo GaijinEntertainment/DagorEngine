@@ -1159,14 +1159,16 @@ void OutlinerWindow::renderTreeItem(OutlinerTreeItem &tree_item, const ImVec4 &d
     ObjectTreeItem *objectTreeItem = static_cast<ObjectTreeItem *>(&tree_item);
     ObjectAssetNameTreeItem *objectAssetNameTreeItem = objectTreeItem->objectAssetNameTreeItem.get();
     const bool hasAssetName = objectAssetNameTreeItem != nullptr;
+    const bool dimObject =
+      layerRenderCache.dimLayerChildColor || !treeInterface->canSelectObject(*objectTreeItem->renderableEditableObject);
 
-    if (layerRenderCache.dimLayerChildColor)
+    if (dimObject)
       ImGui::PushStyleColor(ImGuiCol_Text, dimmed_text_color);
 
     if (showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName))
       ImGui::TreePop();
 
-    if (layerRenderCache.dimLayerChildColor)
+    if (dimObject)
       ImGui::PopStyleColor();
   }
   else if (itemType == OutlinerTreeItem::ItemType::ObjectAssetName)

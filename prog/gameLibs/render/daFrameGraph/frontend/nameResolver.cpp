@@ -3,10 +3,13 @@
 #include "nameResolver.h"
 
 #include <common/genericPoint.h>
+#include <util/dag_convar.h>
 
 
 namespace dafg
 {
+
+extern ConVarT<bool, false> recompile_from_scratch;
 
 NameResolver::Changes NameResolver::update(const NodesChanged &node_changed)
 {
@@ -39,6 +42,13 @@ NameResolver::Changes NameResolver::update(const NodesChanged &node_changed)
     result.nameResolutionChanged.set<AutoResTypeNameId>(autoResTypeId, wasResolvedTo != resolve(autoResTypeId));
 
   updateInverseMapping(result.nodesWithChangedRequests, prevResolvedNameForResource, node_changed, result.nameResolutionChanged);
+
+  if (recompile_from_scratch.get())
+  {
+    result.nameResolutionChanged.assign<ResNameId>(registry.knownNames.nameCount<ResNameId>(), true);
+    result.nameResolutionChanged.assign<AutoResTypeNameId>(registry.knownNames.nameCount<AutoResTypeNameId>(), true);
+    result.nodesWithChangedRequests.assign(registry.knownNames.nameCount<NodeNameId>(), true);
+  }
 
   return result;
 }

@@ -81,6 +81,8 @@ float cpu_viewpos_water_level_outer_radius = 1.5;
 
 int downsampled_depth_mip_count;
 
+float4 water_cull_extent_mul = (0.2, 0.5, 0, 0);
+
 macro INIT_SAMPLE_WFX_NORMALS()
   INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
   (ps) { wfx_normals@tex2d = wfx_normals; }
@@ -507,14 +509,10 @@ endmacro
 macro WATER_3D_DEFERRED_SHADERS_COMMON()
   if (water_tess_factor == water_tess_factor_on) {
     (vs) {
-      water_tess_factor__max_wave_height__tess_distance__water_quality@f4 = (water_tess_factor, max_wave_height, tess_distance, water_quality);
-    }
-
-    hlsl {
-      #define water_tess_factor (water_tess_factor__max_wave_height__tess_distance__water_quality.x)
-      #define max_wave_height   (water_tess_factor__max_wave_height__tess_distance__water_quality.y)
-      #define tess_distance     (water_tess_factor__max_wave_height__tess_distance__water_quality.z)
-      #define water_quality     (water_tess_factor__max_wave_height__tess_distance__water_quality.w)
+      water_tess_factor@f1 = water_tess_factor;
+      tess_distance@f1 = tess_distance;
+      water_quality@f1 = water_quality;
+      water_cull_bbox_extent@f2 = (max_wave_height * water_cull_extent_mul.x, max_wave_height * water_cull_extent_mul.y);
     }
 
     INIT_AND_USE_FRUSTUM_CHECK_BASE(vs)
@@ -572,9 +570,8 @@ macro WATER_3D_DEFERRED_SHADERS_COMMON()
           t = pow4(one4 - dists);
         float4 distFade = (t * max(0, water_tess_factor - 6)) + 1;
 
-        float3 boxExtentExpansion = float3(0, 1, 0);
-        float3 minPoint   = min(min(positions[0], positions[1]), min(positions[2], positions[3])) - boxExtentExpansion;
-        float3 maxPoint   = max(max(positions[0], positions[1]), max(positions[2], positions[3])) + boxExtentExpansion;
+        float3 minPoint   = min(min(positions[0], positions[1]), min(positions[2], positions[3])) - water_cull_bbox_extent.xyx;
+        float3 maxPoint   = max(max(positions[0], positions[1]), max(positions[2], positions[3])) + water_cull_bbox_extent.xyx;
         float  tessFactor = testBoxB(minPoint, maxPoint) ? water_tess_factor : 0;
 
         float4 minTessFactor = min(tessFactor.xxxx, distFade);

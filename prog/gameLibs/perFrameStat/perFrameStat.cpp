@@ -29,6 +29,7 @@ struct GPUWatchWrapper
     gpu_timings.resize(prevSize);
     start = 0;
     end = 0;
+    issued = false;
   }
 
   void close() { gpu_timings.clear(); }
@@ -40,24 +41,42 @@ struct GPUWatchWrapper
     if (!active())
       return;
 
-    if (buffer_index != 0)
+    if (issued)
     {
       auto e = end % gpu_timings.size();
       gpu_timings[e].first.stop();
 
       end++;
+      issued = false;
       if (DAGOR_UNLIKELY(end - start == gpu_timings.size()))
       {
         logerr("benchmark_perframe_stat: GPU timestamp buffer is full. Increasing the buffer...");
-        start = start % gpu_timings.size();
-        end = gpu_timings.size();
-        gpu_timings.resize(gpu_timings.size() * 2);
+        auto prevSize = gpu_timings.size();
+        decltype(gpu_timings) increasedTimings(gpu_timings.size() * 2);
+
+        auto offset = start % gpu_timings.size();
+        auto st = gpu_timings.begin() + offset;
+        eastl::move(st, gpu_timings.end(), increasedTimings.begin());
+        eastl::move(gpu_timings.begin(), st, increasedTimings.begin() + prevSize - offset);
+        gpu_timings.swap(increasedTimings);
+
+        start = 0;
+        end = prevSize;
       }
+    }
+
+    // ignore GPU time for inactive frames to avoid ring buffer polution
+    if (!dgs_app_active)
+    {
+      // -1ms in the result
+      perframe_stat_buffer[buffer_index].gpuTimeUsec = -1000;
+      return;
     }
 
     const auto e = end % gpu_timings.size();
     gpu_timings[e].second = buffer_index;
     gpu_timings[e].first.start();
+    issued = true;
     update_one_frame();
   }
 
@@ -78,7 +97,7 @@ private:
   {
     const auto s = start % gpu_timings.size();
     uint64_t gpuFrameTimeUsec = 0;
-    if (gpu_timings[s].first.read(gpuFrameTimeUsec, 1000000))
+    if (start != end && gpu_timings[s].first.read(gpuFrameTimeUsec, 1000000))
     {
       perframe_stat_buffer[gpu_timings[s].second].gpuTimeUsec = static_cast<int>(gpuFrameTimeUsec);
       start++;
@@ -87,10 +106,11 @@ private:
     return false;
   }
 
-  constexpr static int GPU_TIMESTAMP_LATENCY = 16;
+  constexpr static uint32_t GPU_TIMESTAMP_LATENCY = 16;
   eastl::fixed_vector<eastl::pair<GPUWatchMs, uint32_t>, GPU_TIMESTAMP_LATENCY> gpu_timings{};
   uint32_t start = 0;
   uint32_t end = 0;
+  bool issued = false;
 } gpu_watch;
 
 void init()
@@ -157,9 +177,9 @@ void add_last_frame()
             "buffer size on next run. The current limit is %zu.",
       capacity);
 
-  gpu_time::gpu_watch.add_last_frame(perframe_stat_buffer.size());
   perframe_stat_buffer.push_back({workcycleperf::last_workcycle_time_usec, workcycleperf::last_cpu_only_cycle_time_usec,
     memoryreport::get_device_vram_used_kb(), 0});
+  gpu_time::gpu_watch.add_last_frame(perframe_stat_buffer.size() - 1);
   prev_frame_id = frameId;
 }
 

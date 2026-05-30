@@ -15,7 +15,6 @@
 #include <heightmap/heightmapCulling.h>
 
 class HeightmapLandRenderer;
-class IHeightmapLandProvider;
 class LandMeshRenderer;
 class LandMeshManager;
 class IBBox2;

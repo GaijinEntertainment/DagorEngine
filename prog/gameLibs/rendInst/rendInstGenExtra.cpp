@@ -204,6 +204,7 @@ static void update_ri_extra_game_resources(const char *ri_res_name, int id, Rend
   const DataBlock &params_block, GameResource *(*get_game_res_cb)(const char *, unsigned) = &get_one_game_resource_ex);
 
 static dag::VectorSet<uint32_t> riExtraForceDisableShadowList;
+static dag::VectorSet<uint32_t> riExtraUnderwaterOnlyList;
 
 int riExSize();
 int riExCount();
@@ -514,6 +515,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
   int id = riExtraMap.getNameId(ri_res_name);
   const DataBlock &paramsBlock = getRiParamsBlockByName(ri_res_name);
   bool indestructibleByNuke = false;
+  bool underwaterOnly = false;
 
   if (!immortal)
   {
@@ -530,6 +532,12 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
     debug("Force disable shadow casting for %s", ri_res_name);
   }
 
+  if (rendinst::riExtraUnderwaterOnlyList.find(str_hash_fnv1(ri_res_name)) != rendinst::riExtraUnderwaterOnlyList.end())
+  {
+    underwaterOnly = true;
+    debug("Render only underwater: %s", ri_res_name);
+  }
+
   if (id >= 0)
   {
     if (useShadow || forceDisableShadow)
@@ -543,6 +551,7 @@ int rendinst::addRIGenExtraResIdx(const char *ri_res_name, int ri_pool_ref, int 
       debug("updated riPoolRef=%d (@%d) for %s", ri_pool_ref, ri_pool_ref_layer, ri_res_name);
     }
     riExtra[id].rendinstHeight = combinedRendinstHeight;
+    riExtra[id].underwaterOnly = underwaterOnly;
     return id;
   }
   if (riExtra.size() >= riex_max_type())
@@ -1108,14 +1117,24 @@ void rendinst::updateRiExtraBBoxScalesForPrepasses(const DataBlock &blk)
   dblk::iterate_params(blk, iterateBBoxScales);
 }
 
+static void updateRiExtraSetFromBlk(dag::VectorSet<uint32_t> &set, const DataBlock &blk)
+{
+  set.clear();
+  set.reserve(blk.paramCount());
+  dblk::iterate_params_by_name_and_type(blk, "ri", DataBlock::TYPE_STRING, [&blk, &set](int paramIdx) {
+    const char *riExName = blk.getStr(paramIdx);
+    set.insert(str_hash_fnv1(riExName));
+  });
+}
+
 void rendinst::updateRiExtraForceDisableShadowList(const DataBlock &blk)
 {
-  rendinst::riExtraForceDisableShadowList.clear();
-  rendinst::riExtraForceDisableShadowList.reserve(blk.paramCount());
-  dblk::iterate_params_by_name_and_type(blk, "ri", DataBlock::TYPE_STRING, [&blk](int paramIdx) {
-    const char *riExName = blk.getStr(paramIdx);
-    rendinst::riExtraForceDisableShadowList.insert(str_hash_fnv1(riExName));
-  });
+  updateRiExtraSetFromBlk(rendinst::riExtraForceDisableShadowList, blk);
+}
+
+void rendinst::updateRiExtraUnderwaterOnlyList(const DataBlock &blk)
+{
+  updateRiExtraSetFromBlk(rendinst::riExtraUnderwaterOnlyList, blk);
 }
 
 int rendinst::cloneRIGenExtraResIdx(const char *source_res_name, const char *dst_res_name)

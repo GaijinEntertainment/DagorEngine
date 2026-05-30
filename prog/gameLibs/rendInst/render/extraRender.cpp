@@ -312,6 +312,8 @@ static uint16_t get_pool_flags(rendinst::RiExtraPool &pool)
     flag |= rendinst::RendinstTiledScene::VISIBLE_IN_VSM;
   if (pool.usedInLandmaskHeight)
     flag |= rendinst::RendinstTiledScene::VISIBLE_IN_LANDMASK;
+  if (pool.underwaterOnly)
+    flag |= rendinst::RendinstTiledScene::UNDERWATER_ONLY;
   return flag;
 }
 

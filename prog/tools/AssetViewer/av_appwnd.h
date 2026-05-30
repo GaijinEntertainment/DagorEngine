@@ -51,6 +51,7 @@ struct ImpostorOptions;
 class CompositeEditor;
 class ColorDialogAppMat;
 class MainAssetSelector;
+class KeyboardShortcutsPanel;
 
 class AssetViewerApp;
 AssetViewerApp &get_app();
@@ -340,6 +341,8 @@ private:
   eastl::unique_ptr<ColorDialogAppMat> colorPaletteDlg;
   CompositeEditor compositeEditor;
 
+  KeyboardShortcutsPanel *mShortcutsPanel = nullptr;
+
   // int allUpToDateFlags;
 
   bool blockSave;
@@ -363,6 +366,7 @@ private:
 
   void showPropWindow(bool is_show);
   void showAdditinalToolWindow(bool is_show);
+  void showShortcutsEditor(bool is_show);
 
   void generate_impostors(const ImpostorOptions &options);
   void clear_impostors(const ImpostorOptions &options);

@@ -37,6 +37,7 @@ enum
   CM_OPTIONS_PREFERENCES_ASSET_TREE,
   CM_OPTIONS_PREFERENCES_ASSET_TREE_COPY_SUBMENU,
   CM_OPTIONS_EDIT_PREFERENCES,
+  CM_OPTIONS_KEYBOARD_SHORTCUTS,
   CM_CUR_PLUGIN_VIS_CHANGE,
 
   CM_WINDOW_TOOLBAR,
@@ -151,6 +152,7 @@ static constexpr const char *OPTIONS_SCREENSHOT = "Main.Settings.Screenshot";
 static constexpr const char *OPTIONS_STAT_DISPLAY_SETTINGS = "Main.Settings.Stats";
 static constexpr const char *FILE_SETTINGS = "Main.Settings.Project";
 static constexpr const char *OPTIONS_EDIT_PREFERENCES = "Main.Settings.EditPreferences";
+static constexpr const char *OPTIONS_KEYBOARD_SHORTCUTS = "Main.Settings.KeyboardShortcuts";
 
 static constexpr const char *SWITCH_PLUGIN_F5 = "Main.SwitchPlugin.F5";
 static constexpr const char *SWITCH_PLUGIN_F6 = "Main.SwitchPlugin.F6";

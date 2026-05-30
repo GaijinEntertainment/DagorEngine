@@ -193,8 +193,8 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
   info.adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &poolStates[device_local_memory_pool]);
   info.adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &poolStates[host_local_memory_pool]);
 
-  behaviorStatus.set(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
-  behaviorStatus.set(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
+  behaviorStatus.disableDeviceMemoryStatusQuery = true;
+  behaviorStatus.disableHostMemoryStatusQuery = true;
 
   const char *memorySectionNames[total_memory_pool_count];
   uint64_t minMemoryReq[total_memory_pool_count];
@@ -216,7 +216,7 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
     }
   }
 
-  behaviorStatus.set(BehaviorBits::PRINT_MEMORY_REPORTS, info.reportMemoryInfo);
+  behaviorStatus.printMemoryReports = info.reportMemoryInfo;
 
   updateBudgetLevelStatus();
 }
@@ -306,14 +306,14 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
 
   auto adapter = info.adapter;
 
-  if (!behaviorStatus.test(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY) && adapter)
+  if (!behaviorStatus.disableDeviceMemoryStatusQuery && adapter)
   {
     adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &poolStates[device_local_memory_pool]);
-    behaviorStatus.set(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+    behaviorStatus.disableDeviceMemoryStatusQuery = true;
 
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[device_local_memory_pool], poolStates[device_local_memory_pool],
       usageSizeReportingThreshold);
-    const bool shouldPrint = !isEqual && behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS);
+    const bool shouldPrint = !isEqual && behaviorStatus.printMemoryReports;
 
     if (shouldPrint)
       report_budget_info(poolStates[device_local_memory_pool], "Device Local", as_string(getDeviceLocalBudgetLevel()));
@@ -323,15 +323,15 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     if (shouldPrint)
       reportedPoolStates[device_local_memory_pool] = poolStates[device_local_memory_pool];
   }
-  if (!behaviorStatus.test(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY) && adapter)
+  if (!behaviorStatus.disableHostMemoryStatusQuery && adapter)
   {
     adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &poolStates[host_local_memory_pool]);
-    behaviorStatus.set(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
-    behaviorStatus.reset(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY);
+    behaviorStatus.disableHostMemoryStatusQuery = true;
+    behaviorStatus.disableVirtualAddressSpaceStatusQuery = false;
 
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[host_local_memory_pool], poolStates[host_local_memory_pool],
       usageSizeReportingThreshold);
-    const bool shouldPrint = !isEqual && behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS);
+    const bool shouldPrint = !isEqual && behaviorStatus.printMemoryReports;
 
     if (shouldPrint)
       report_budget_info(poolStates[host_local_memory_pool], "Host Local", as_string(getHostLocalBudgetLevel()));
@@ -342,7 +342,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
       reportedPoolStates[host_local_memory_pool] = poolStates[host_local_memory_pool];
   }
 
-  if (!behaviorStatus.test(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY))
+  if (!behaviorStatus.disableVirtualAddressSpaceStatusQuery)
   {
     MEMORYSTATUSEX systemMemoryStatus{sizeof(MEMORYSTATUSEX)};
     GlobalMemoryStatusEx(&systemMemoryStatus);
@@ -352,9 +352,9 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     //                     sizeof(memUsage));
 
     processVirtualAddressUse = systemMemoryStatus.ullTotalVirtual - systemMemoryStatus.ullAvailVirtual;
-    behaviorStatus.set(BehaviorBits::DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY);
+    behaviorStatus.disableVirtualAddressSpaceStatusQuery = true;
 
-    if (behaviorStatus.test(BehaviorBits::PRINT_MEMORY_REPORTS))
+    if (behaviorStatus.printMemoryReports)
     {
       logdbg("DX12: GlobalMemoryStatusEx report:");
       logdbg("DX12: dwLoad: %u", systemMemoryStatus.dwMemoryLoad);
@@ -461,7 +461,7 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   uint64_t maxPerHeapBudget = align_value(totalBudget * scale / budget_scale_range, page_size);
 
   // dedicated heaps do not scale
-  if (flags.test(AllocationFlag::DEDICATED_HEAP))
+  if (flags.dedicatedHeap)
   {
     scale = 1;
     pageCount = 1;
@@ -535,13 +535,13 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
 {
   BaseType::completeFrameExecution(info, data);
 
-  if (!behaviorStatus.test(BehaviorBits::DISABLE_MEMORY_STATUS_QUERY))
+  if (!behaviorStatus.disableMemoryStatusQuery)
   {
     size_t gameLimit = 0, gameUsed = 0;
     xbox_get_memory_status(gameUsed, gameLimit);
     currentUsage = gameUsed;
     checkEnoughSizeForRender(gameLimit);
-    behaviorStatus.set(BehaviorBits::DISABLE_MEMORY_STATUS_QUERY);
+    behaviorStatus.disableMemoryStatusQuery = true;
     const auto currentUsageUnitsIndex = size_to_unit_table(currentUsage);
     const auto currentUsageUnitsSize = compute_unit_type_size(currentUsage, currentUsageUnitsIndex);
     const auto lastUsageUnitsIndex = size_to_unit_table(lastReportedUsage);
@@ -631,7 +631,7 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   uint64_t maxPerHeapBudget = align_value(totalBudget * scale / budget_scale_divider, page_size);
 
   // dedicated heaps do not scale
-  if (flags.test(AllocationFlag::DEDICATED_HEAP))
+  if (flags.dedicatedHeap)
   {
     scale = 1;
     minSize = page_size;
@@ -870,12 +870,12 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
 
   auto &group = groups[heap_properties.raw];
 
-  if (!flags.test(AllocationFlag::DEDICATED_HEAP) && hasSpace)
+  if (!flags.dedicatedHeap && hasSpace)
   {
     struct SourceMaskType
     {
       AllocationFlags flags;
-      bool canAllocateFromLockedRange() const { return !flags.test(AllocationFlag::DISALLOW_LOCKED_RANGES); }
+      bool canAllocateFromLockedRange() const { return !flags.disallowLockedRanges; }
     };
     result = try_allocate_from_heap_group(alloc_info, group, heap_properties.raw, SourceMaskType{flags});
   }
@@ -883,7 +883,7 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
   if (!result && error_code != nullptr)
     *error_code = E_OUTOFMEMORY;
 
-  if (!result && !flags.test(AllocationFlag::EXISTING_HEAPS_ONLY))
+  if (!result && !flags.existingHeapsOnly)
   {
     TIME_PROFILE_DEV(DX12_AllocateHeap);
     // neither a active nor a zombie heap could provide memory, create a new one
@@ -973,18 +973,18 @@ ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12
 
   OSSpinlockScopedLock lock{heapGroupMutex};
 
-  if (flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION) && !checkDefragmentationGeneration(properties.raw))
+  if (flags.defragmentationOperation && !checkDefragmentationGeneration(properties.raw))
     return {};
 
   ResourceMemory result = tryAllocateFromMemoryWithProperties(device, properties, flags, alloc_info, error_code);
 
-  if (!flags.test(AllocationFlag::DISABLE_ALTERNATE_HEAPS))
+  if (!flags.disableAlternateHeaps)
   {
     for (ResourceHeapProperties currentProperties = {}; !result && currentProperties.raw < groups.size(); currentProperties.raw++)
     {
       if (currentProperties.raw == properties.raw)
         continue;
-      if (!properties.isCompatible(currentProperties, getFeatureSet(), flags.test(AllocationFlag::IS_UAV)))
+      if (!properties.isCompatible(currentProperties, getFeatureSet(), flags.isUav))
         continue;
       result = tryAllocateFromMemoryWithProperties(device, currentProperties, flags, alloc_info, error_code);
       if (result)

@@ -127,9 +127,9 @@ struct SQPrintCollector
 
     SQPrintCollector *self = getFromVm(vm);
 
-    const char *errMsg = "";
-    if (SQ_FAILED(sq_getstring(vm, 2, &errMsg)))
-      errMsg = "Unknown error";
+    sqstd_aux_error_to_string(vm, 2);
+    const char *errMsg = "Unknown error";
+    sq_getstring(vm, -1, &errMsg);
 
     self->appendBuf(String(0, "\n%s\n", errMsg));
 
@@ -142,6 +142,8 @@ struct SQPrintCollector
       self->appendBuf(callstack);
       sq_pop(vm, 1);
     }
+
+    sq_poptop(vm);
 
     return 0;
   }

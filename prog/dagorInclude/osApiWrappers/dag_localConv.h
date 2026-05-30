@@ -8,6 +8,8 @@
 
 #include <supp/dag_define_KRNLIMP.h>
 
+#include <EASTL/string_view.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -41,7 +43,7 @@ extern "C"
   // Find string within a string (case-insensitive).
   // If needle is empty then it returns with haystack (just like strstr).
   // strcasestr() and StrStrIA() analogue
-  KRNLIMP const char *dd_stristr(const char *haystack, const char *needle);
+  KRNLIMP const char *dd_stristr(eastl::string_view haystack, eastl::string_view needle);
 
   //! returns pointer to internal uptab[256]
   extern KRNLIMP const unsigned char *dd_local_cmp_uptab;

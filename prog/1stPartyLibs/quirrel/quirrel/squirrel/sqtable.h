@@ -23,12 +23,22 @@ inline SQUnsignedInteger32 sq_float_hash32(float v)
     return i ^ (i >> 23);
 }
 
+inline SQUnsignedInteger32 sq_integer_hash32(SQInteger v)
+{
+    SQUnsignedInteger32 i = (SQUnsignedInteger32)(v ^ (v >> 31));
+    i ^= i >> 16;
+    i *= 0x45d9f3bu;
+    i ^= i >> 16;
+    return i;
+}
+
 inline SQHash HashObj(const SQObject &key)
 {
     switch(sq_type(key)) {
         case OT_STRING:     return _string(key)->_hash;
         case OT_FLOAT:      return (SQHash)(sq_float_hash32(_float(key)));
-        case OT_BOOL: case OT_INTEGER:  return (SQHash)((SQInteger)_integer(key));
+        case OT_BOOL:       return (SQHash)((SQInteger)_integer(key));
+        case OT_INTEGER:    return (SQHash)(sq_integer_hash32(_integer(key)));
         default:            return hashptr(key._unVal.pRefCounted);
     }
 }

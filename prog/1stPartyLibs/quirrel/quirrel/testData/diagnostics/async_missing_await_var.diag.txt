@@ -1,4 +1,4 @@
-ERROR: call to async function returns a Promise, not 'int'; did you mean 'await f(...)'?
+ERROR: call to async function returns a Future, not 'int'; did you mean 'await f(...)'?
 testData/diagnostics/async_missing_await_var.nut:13:2
 
 async function main() {

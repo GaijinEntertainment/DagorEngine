@@ -23,7 +23,7 @@
 #include <render/clusteredLights.h>
 #include <rendInst/rendInstExtra.h>
 #include <landMesh/lmeshCulling.h>
-#include "gpuDeformObjects.h"
+#include <render/gpuDeformObjects.h>
 #include <EASTL/unique_ptr.h>
 #include <scene/dag_occlusion.h>
 #include <shaders/dag_overrideStateId.h>
@@ -175,7 +175,7 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend dafg::NodeHandle makeAcesFxTransparentNode();
 
   friend dafg::NodeHandle makeAfterWorldRenderNode();
-  friend eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes();
+  friend eastl::array<dafg::NodeHandle, 10> makeVolumetricLightsNodes();
   friend dafg::NodeHandle makeWaterNode(WaterRenderMode mode);
   friend eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode mode);
   friend void acesfx::finish_update(const TMatrix4 &tm, Occlusion *occlusion);
@@ -495,7 +495,7 @@ public:
   FeatureRenderFlagMask getPresetFeatures();
   void setFeatureFromSettings(const FeatureRenderFlags f);
   void setChromaticAberrationFromSettings();
-  void setFilmGrainFromSettings();
+
   void toggleFeatures(const FeatureRenderFlagMask &f, bool turn_on);
   void changeFeatures(const FeatureRenderFlagMask &f);
   void validateFeatures(FeatureRenderFlagMask &features, const FeatureRenderFlagMask &changed_features);

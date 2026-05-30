@@ -67,6 +67,7 @@ endmacro
 float4 distant_fog_local_view_z;
 float4 distant_fog_raymarch_resolution;
 float4 distant_fog_reconstruction_resolution;
+float4 distant_fog_raymarch_dyn_scales= (1, 1, 1, 1);
 
 float4 distant_fog_raymarch_params_0;
 float4 distant_fog_raymarch_params_1;
@@ -102,6 +103,8 @@ shader distant_fog_raymarch_cs
     distant_fog_raymarch_params_0@f4 = distant_fog_raymarch_params_0;
     distant_fog_raymarch_params_1@f4 = distant_fog_raymarch_params_1;
     distant_fog_raymarch_params_2@f4 = distant_fog_raymarch_params_2;
+    distant_fog_raymarch_dyn_scales@f4 = distant_fog_raymarch_dyn_scales;
+    distant_fog_reconstruction_dyn_scales@f4 = distant_fog_reconstruction_dyn_scales;
     volfog_blended_slice_start_depth@f1 = (volfog_blended_slice_start_depth);
     distant_fog_use_static_shadows@i1 = distant_fog_use_static_shadows;
   }

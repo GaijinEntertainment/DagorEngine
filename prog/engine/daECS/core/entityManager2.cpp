@@ -20,7 +20,7 @@
 #define ASYNC_RESOURCES                         "render"
 #define REQUEST_RESOURCES_CAN_RECREATE_ENTITIES 1
 
-static constexpr int MINIMUM_FREE_INDICES = 256;
+static constexpr int MINIMUM_FREE_INDICES = 1 << ecs::ENTITY_GENERATION_BITS;
 
 
 #if DAECS_EXTENSIVE_CHECKS
@@ -1034,7 +1034,7 @@ EntityId EntityManager::allocateOneEid()
   else
   {
   alloc_free_indices:
-    idx = findices.front() & ENTITY_INDEX_MASK;
+    idx = EntityId(findices.front()).index();
     G_FAST_ASSERT(idx < entDescs.size());
     findices.pop_front();
   }
@@ -1074,7 +1074,7 @@ EntityId EntityManager::allocateOneEidDelayed(bool delayed)
   else
   {
   alloc_free_indices:
-    idx = findices.front() & ENTITY_INDEX_MASK;
+    idx = EntityId(findices.front()).index();
     G_FAST_ASSERT(idx < entDescs.allocated_size());
     findices.pop_front();
   }
@@ -1091,7 +1091,7 @@ void EntityManager::allocateInvalid()
   eidsReservationMode = oldMode;
   DAECS_EXT_ASSERT(invalidEid.index() == INVALID_ENTITY_ID.index());
   G_UNUSED(invalidEid);
-  entDescs[0].generation = eastl::numeric_limits<decltype(entDescs[0].generation)>::max();
+  entDescs[0].generation = ENTITY_GENERATION_MASK;
   DAECS_EXT_ASSERT(!doesEntityExist(INVALID_ENTITY_ID));
 }
 
@@ -1169,7 +1169,7 @@ void EntityManager::clear()
   // sendEvent.
   static const int max_destroy_attempts = 1024;
   int clearAttempts = max_destroy_attempts;
-  decltype(EntityDesc::generation) minGen = eastl::numeric_limits<decltype(EntityDesc::generation)>::max(), maxGen = 0;
+  uint32_t minGen = ENTITY_GENERATION_MASK, maxGen = 0;
   bool destroyed = false;
   do
   {
@@ -1243,7 +1243,7 @@ void EntityManager::clear()
   --lastEsGen; // Note: EntitySystem's ctor does increment but we do decrement here to avoid collision
   resetEsOrder();
 
-  if ((int)min(minGen, entDescs.globalGen) > 255 - (int)max(entDescs.globalGen, maxGen))
+  if ((int)min(minGen, entDescs.globalGen) > (int)ENTITY_GENERATION_MASK - (int)max(entDescs.globalGen, maxGen))
     entDescs.globalGen = 0;
   else
     entDescs.globalGen = maxGen;
@@ -1344,7 +1344,7 @@ void EntityManager::destroyEntityImmediate(EntityId eid, decltype(freeIndices) *
 #if DAECS_EXTENSIVE_CHECKS
     int j = 0;
     for (auto it = findices->begin(), ite = findices->end(); it != ite && j++ < MINIMUM_FREE_INDICES * 4; ++it)
-      G_ASSERTF(((*it) & ENTITY_INDEX_MASK) != idx, "eid %d<%s> index %d is already in freeIndices (occupied with %d)",
+      G_ASSERTF(EntityId(*it).index() != idx, "eid %d<%s> index %d is already in freeIndices (occupied with %d)",
         (ecs::entity_id_t)eid, getEntityTemplateName(eid), idx, *it);
 #endif
     findices->push_back((entity_id_t)eid);
@@ -1353,7 +1353,7 @@ void EntityManager::destroyEntityImmediate(EntityId eid, decltype(freeIndices) *
   // currently no (fast) way to distinguish allocated entity id from freed one (before assign of arch/templ)
   // To consider: may be using some bit or value of `EntityDesc` for that state?
   else if (auto fit = eastl::find(findices->begin(), findices->end(), (ecs::entity_id_t)idx,
-             [](auto it, auto v) { return (it & ENTITY_INDEX_MASK) == v; });
+             [](auto it, auto v) { return EntityId(it).index() == v; });
            fit == findices->end())
     findices->push_back((entity_id_t)eid);
   else

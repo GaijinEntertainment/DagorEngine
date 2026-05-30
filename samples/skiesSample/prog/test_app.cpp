@@ -1980,7 +1980,7 @@ public:
         shvars::details_weight.set_float4(Color4::xyzw(
           lerp(detailsWeightMin, detailsWeightMax, cvt(originAlt, detailsWeightDist.x, detailsWeightDist.y, 0.0f, 1.0f))));
 
-        fft_water::render(fftWater.get(), cam.worldPos, BAD_TEXTUREID, cam.globTm, cam.persp, fft_water::GEOM_NORMAL);
+        fft_water::render(fftWater.get(), cam.worldPos, BAD_TEXTUREID, cam.globTm, nullptr, cam.persp, fft_water::GEOM_NORMAL);
       };
     });
 

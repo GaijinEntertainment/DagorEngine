@@ -318,6 +318,108 @@ bool RayTriangleIntersectInfXZ(
   return true;
 }
 
+// Jolt-style 2-wide SoA ray-vs-2-triangles for closest-hit rays. Sized for our quad-leaf use case
+// (2 triangles per leaf). Behavior-preserving against the scalar RayTriangleIntersect in this
+// file -- read its cull and bary-tolerance code first.
+// Returns 2 distances (+inf = miss) and SoA bary coords (u, v) per lane.
+//
+// Cull / degeneracy contract matches scalar RayTriangleIntersect:
+//   * BACKFACE_CULLING: reject only signed det < -kEpsilon (front-facing tiny-det hits are kept;
+//     near-degenerate is rejected later by bary-tolerance check via |det|-scaled thresholds).
+//   * Zero-area / degenerate triangles (det effectively zero) are rejected by the algorithm itself.
+//     Real meshes can contain degenerates (T-junctions, bad authoring, FTZ-flushed thin geom);
+//     the Jolt sign-flip trick has a blind spot at det=u=v=t=0 where all bary checks trivially
+//     pass, so an explicit "true-zero" guard is required. Threshold is "true zero / denormal"
+//     (~FLT_MIN) -- well below any real triangle's area, so not a precision compromise.
+//
+// Bary tolerance: u >= -eps*|det|, v >= -eps*|det|, u+v <= |det|*(1+2*eps). Mirrors scalar's
+// `bc.x < -TRACE_EPSILON || bc.y < -TRACE_EPSILON || bc.x+bc.y > TRACE_ONE_PLUS_EPSILON2` checks.
+// NOTE: GPU scalar does NOT have a `bc.x > 1+eps` upper-bound check (CPU scalar does); we omit it
+// here to match the GPU contract.
+void RayTriangle2_SoA(
+    float3 orig, float3 dir,
+    float2 v0x, float2 v0y, float2 v0z,
+    float2 v1x, float2 v1y, float2 v1z,
+    float2 v2x, float2 v2y, float2 v2z,
+    out float2 outT, out float2 outU, out float2 outV)
+{
+  float2 e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
+  float2 e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+  float2 px = dir.y * e2z - dir.z * e2y;
+  float2 py = dir.z * e2x - dir.x * e2z;
+  float2 pz = dir.x * e2y - dir.y * e2x;
+  float2 det = e1x * px + e1y * py + e1z * pz;
+  uint2 detSignMask = asuint(det) & 0x80000000u;
+  float2 absDet = asfloat(asuint(det) ^ detSignMask);
+#if BACKFACE_CULLING
+  // Match scalar's `det < -kEpsilon`: reject only strong backfaces. Front-facing 0 <= det < kEpsilon
+  // hits must still be considered; bary tolerance below filters near-degenerate naturally.
+  bool2 cullReject = det < -kEpsilon;
+#else
+  bool2 cullReject = bool2(false, false);
+#endif
+  // NaN guard for the division: clamp true-zero/denormal det to 1.0 so rcp doesn't produce inf.
+  // Uses the SAME threshold as the `degenerate` mask below so the two cannot disagree -- if a lane
+  // is bumped to detSafe=1, it must also be excluded from noHit, otherwise t/bc are computed with
+  // the wrong divisor.
+  bool2 degenerate = absDet < 1.0e-37f;
+  float2 detSafe = select(degenerate, 1.0f, absDet);
+
+  float2 sx = orig.x - v0x, sy = orig.y - v0y, sz = orig.z - v0z;
+  float2 u = asfloat(asuint(sx * px + sy * py + sz * pz) ^ detSignMask);
+  float2 qx = sy * e1z - sz * e1y;
+  float2 qy = sz * e1x - sx * e1z;
+  float2 qz = sx * e1y - sy * e1x;
+  float2 v = asfloat(asuint(dir.x * qx + dir.y * qy + dir.z * qz) ^ detSignMask);
+  float2 t = asfloat(asuint(e2x * qx + e2y * qy + e2z * qz) ^ detSignMask);
+
+  float2 epsAbsDet = absDet * TRACE_EPSILON;
+  bool2 noHit = cullReject | degenerate |
+                (u < -epsAbsDet) | (v < -epsAbsDet) | ((u + v) > absDet + 2.0f * epsAbsDet) | (t < 0);
+  float2 invDet = rcp(detSafe);
+  outU = u * invDet;
+  outV = v * invDet;
+  outT = select(noHit, asfloat(0x7F800000u), t * invDet); // +inf for misses
+}
+
+// Lean 2-wide ray-vs-2-triangles for any-hit (shadow) rays. No epsilon, no division, no t/u/v
+// output -- just "does any lane hit?". Saves a rcp + 3 muls + the select vs RayTriangle2_SoA.
+//
+// Degenerate (zero-area) triangles are rejected internally via `absDet < 1e-37` -- the algorithm
+// cannot trust the caller to filter them (real meshes have degenerates from T-junctions, bad
+// authoring, single-leaf padding, etc.). The Jolt sign-flip trick has a blind spot at det=u=v=t=0
+// where all bary checks trivially pass, so an explicit "true-zero" guard is required.
+//
+// NOT behavior-preserving against the scalar RayTriangleIntersectShadow: this path drops the
+// TRACE_EPSILON edge band (u/v < 0 instead of < -eps*|det|, u+v > |det| instead of |det|*(1+2eps)).
+// Intentional trade-off: shadow rays don't need shared-edge precision -- soft-sun-disk sampling
+// and blue-noise dither already mask single-pixel edge misses. Use RayTriangle2_SoA for closest-hit.
+bool RayTriangle2_SoA_AnyHit(
+    float3 orig, float3 dir,
+    float2 v0x, float2 v0y, float2 v0z,
+    float2 v1x, float2 v1y, float2 v1z,
+    float2 v2x, float2 v2y, float2 v2z)
+{
+  float2 e1x = v1x - v0x, e1y = v1y - v0y, e1z = v1z - v0z;
+  float2 e2x = v2x - v0x, e2y = v2y - v0y, e2z = v2z - v0z;
+  float2 px = dir.y * e2z - dir.z * e2y;
+  float2 py = dir.z * e2x - dir.x * e2z;
+  float2 pz = dir.x * e2y - dir.y * e2x;
+  float2 det = e1x * px + e1y * py + e1z * pz;
+  uint2 detSignMask = asuint(det) & 0x80000000u;
+  float2 absDet = asfloat(asuint(det) ^ detSignMask);
+  float2 sx = orig.x - v0x, sy = orig.y - v0y, sz = orig.z - v0z;
+  float2 u = asfloat(asuint(sx * px + sy * py + sz * pz) ^ detSignMask);
+  float2 qx = sy * e1z - sz * e1y;
+  float2 qy = sz * e1x - sx * e1z;
+  float2 qz = sx * e1y - sy * e1x;
+  float2 v = asfloat(asuint(dir.x * qx + dir.y * qy + dir.z * qz) ^ detSignMask);
+  float2 t = asfloat(asuint(e2x * qx + e2y * qy + e2z * qz) ^ detSignMask);
+  bool2 degenerate = absDet < 1.0e-37f;
+  bool2 noHit = degenerate | (u < 0) | (v < 0) | ((u + v) > absDet) | (t < 0);
+  return !noHit.x || !noHit.y;
+}
+
 bool RayTriangleIntersectShadow(
     float3 orig,
     float3 dir,

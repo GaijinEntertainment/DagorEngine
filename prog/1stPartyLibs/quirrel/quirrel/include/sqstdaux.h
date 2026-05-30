@@ -9,6 +9,7 @@ extern "C" {
 SQUIRREL_API void sqstd_seterrorhandlers(HSQUIRRELVM v);
 SQUIRREL_API void sqstd_printcallstack(HSQUIRRELVM v);
 SQUIRREL_API SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v);
+SQUIRREL_API void sqstd_aux_error_to_string(HSQUIRRELVM v, SQInteger idx);
 
 SQUIRREL_API SQRESULT sqstd_throwerrorf(HSQUIRRELVM v,const char *err,...);
 

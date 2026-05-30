@@ -471,8 +471,6 @@ def gen_es_simd(esFunction):
       genCode += '''{indent2}if (!{funcName}_should_process({infoCasted}))
 {indent2}  return;\n'''.format(indent2=indent2, funcName=esFunction.funcName, infoCasted=infoCasted)
     if (esFunction.contextsTypes[index] != ''):
-#     genCode += indent2 + 'if (!ecs::optional_should_process<{context_type}>({infoCasted}))\n'.format(context_type = esFunction.contextsTypes[index], infoCasted = infoCasted)
-#     genCode += indent2+'  return;\n'
       genCode += indent2
       genCode += esFunction.contextsTypes[index] + ' ctx({info});\n'.format(info=infoCasted)
 

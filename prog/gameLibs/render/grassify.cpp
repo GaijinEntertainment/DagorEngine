@@ -15,8 +15,12 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <shaders/dag_overrideStates.h>
+#include <util/dag_threadPool.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 
 static int globalFrameBlockId = -1;
+
+CONSOLE_BOOL_VAL("grassify", disable_async_visibility_filtering, false);
 
 #define GLOBAL_VARS_LIST                             \
   VAR(world_to_grass_slice)                          \
@@ -58,6 +62,42 @@ struct GrassMaskSliceHelper
   PostFxRenderer copy_grass_decals;
 };
 
+struct FilterVisibilityJob : public cpujobs::IJob
+{
+  void start(RiGenVisibility *global_vis, RiGenVisibility *frame_vis, const Frustum &cull_frustum)
+  {
+    wait();
+    globalVis = global_vis;
+    frameVis = frame_vis;
+    frustum = cull_frustum;
+    started = true;
+    threadpool::add(this, threadpool::PRIO_NORMAL, true);
+  }
+
+  void wait()
+  {
+    if (!started)
+      return;
+    threadpool::wait(this);
+    started = false;
+  }
+
+  bool isStarted() const { return started; }
+
+  void doJob() override
+  {
+    rendinst::filterVisibility(*globalVis, *frameVis, [this](vec4f min, vec4f max) { return frustum.testBox(min, max); });
+  }
+  void releaseJob() override {}
+  const char *getJobName(bool &) const override { return "grassify_filter_visibility"; }
+
+private:
+  RiGenVisibility *globalVis = nullptr;
+  RiGenVisibility *frameVis = nullptr;
+  Frustum frustum;
+  bool started = false;
+};
+
 struct GrassGenerateHelper
 {
   GrassGenerateHelper(float maxDistance) : maxDistance(maxDistance) {}
@@ -79,6 +119,7 @@ struct GrassGenerateHelper
 
   ~GrassGenerateHelper()
   {
+    filterJob.wait();
     rendinst::destroyRIGenVisibility(globalVis);
     rendinst::destroyRIGenVisibility(frameVis);
   }
@@ -87,7 +128,10 @@ struct GrassGenerateHelper
     float grassMaskTexelSize, const TMatrix &view_itm, Driver3dPerspective perspective, const GPUGrassBase &gpuGrassBase);
   void render(const Point3 &position, const TMatrix &view_itm, const GPUGrassBase &gpuGrassBase);
 
+  void startFilterJob(const TMatrix &itm, Driver3dPerspective perspective);
+
 private:
+  Frustum buildFrustum(const TMatrix &itm, Driver3dPerspective perspective) const;
   TMatrix getViewMatrix() const;
   TMatrix4 getProjectionMatrix(const Point3 &position, float distance) const;
 
@@ -96,6 +140,7 @@ private:
   RiGenVisibility *globalVis = nullptr;
   RiGenVisibility *frameVis = nullptr;
   int rendinstGrassifySceneBlockId = ShaderGlobal::getBlockId("rendinst_grassify_scene");
+  FilterVisibilityJob filterJob;
 };
 
 void GrassMaskSliceHelper::renderMask(IRandomGrassRenderHelper &grassRenderHelper)
@@ -130,6 +175,21 @@ TMatrix4 GrassGenerateHelper::getProjectionMatrix(const Point3 &position, float 
   return matrix_ortho_off_center_lh(bbox3[0].x, bbox3[1].x, bbox3[1].z, bbox3[0].z, bbox3[0].y, bbox3[1].y);
 }
 
+Frustum GrassGenerateHelper::buildFrustum(const TMatrix &itm, Driver3dPerspective perspective) const
+{
+  perspective.zf = maxDistance; // Fix far to cull based on distance
+  TMatrix4 projTm;
+  d3d::calcproj(perspective, projTm);
+  return Frustum(TMatrix4(inverse(itm)) * projTm);
+}
+
+void GrassGenerateHelper::startFilterJob(const TMatrix &itm, Driver3dPerspective perspective)
+{
+  if (!globalVis || disable_async_visibility_filtering)
+    return;
+  filterJob.start(globalVis, frameVis, buildFrustum(itm, perspective));
+}
+
 void GrassGenerateHelper::generate(const GrassView view, const Point3 &position, const IPoint2 &grassMaskOffset,
   const IPoint2 &grassMaskSize, float grassMaskTexelSize, const TMatrix &itm, Driver3dPerspective perspective,
   const GPUGrassBase &gpuGrassBase)
@@ -144,12 +204,13 @@ void GrassGenerateHelper::generate(const GrassView view, const Point3 &position,
   Point3 alignedCenterPos = Point3(position2D.x, position.y, position2D.y);
   Point2 grassMaskDistance = Point2(grassMaskSize) * grassMaskTexelSize;
 
-  TMatrix4 projTm;
-  // Fix far to cull based on distance.
-  perspective.zf = maxDistance;
-  d3d::calcproj(perspective, projTm);
-  Frustum frustum(TMatrix4(inverse(itm)) * projTm);
-  rendinst::filterVisibility(*globalVis, *frameVis, [&frustum](vec4f min, vec4f max) { return frustum.testBox(min, max); });
+  if (filterJob.isStarted())
+    filterJob.wait();
+  else
+  {
+    Frustum frustum = buildFrustum(itm, perspective);
+    rendinst::filterVisibility(*globalVis, *frameVis, [&frustum](vec4f min, vec4f max) { return frustum.testBox(min, max); });
+  }
 
   {
     SCOPE_VIEW_PROJ_MATRIX;
@@ -215,6 +276,11 @@ Grassify::Grassify(const DataBlock &grassifyBlock, float grassDistance)
 }
 
 void Grassify::initGrassifyRendinst() { grassGenHelper->initGrassifyRendinst(); }
+
+void Grassify::startFilterJob(const TMatrix &view_tm, const Driver3dPerspective &perspective)
+{
+  grassGenHelper->startFilterJob(view_tm, perspective);
+}
 
 void Grassify::generate(GrassView view, const Point3 &pos, const TMatrix &view_itm, const Driver3dPerspective &perspective,
   Texture *grass_mask, IRandomGrassRenderHelper &grassRenderHelper, const GPUGrassBase &gpuGrassBase)

@@ -35,6 +35,8 @@ void free_and_reset_staging_memory(HostDeviceSharedMemoryRegion &staging_memory)
 
 bool needs_subresource_tracking(uint32_t cflags)
 {
+  if (cflags & TEXCF_NO_STATE_TRACKING)
+    return false;
   // In addition to RT, UA and copy target, dynamic textures also need state tracking, as they can (and will) be
   // updated multiple times during the same frame and we need to update them during GPU timeline.
   return 0 != (cflags & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION | TEXCF_DYNAMIC));
@@ -42,6 +44,9 @@ bool needs_subresource_tracking(uint32_t cflags)
 
 void clear_or_discard_full_rt_resource_with_default_value(BaseTex &tex, const ImageInfo &desc)
 {
+  if (tex.cflg & TEXCF_NO_STATE_TRACKING)
+    return;
+
   auto &ctx = get_device().getContext();
   auto image = tex.image;
 
@@ -333,7 +338,14 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
   if ((flg & (TEXCF_READABLE | TEXCF_SYSMEM)) == TEXCF_READABLE && !tex.stagingMemory)
     tex.stagingMemory = BaseTex::allocate_read_write_staging_memory(tex.image, tex.image->getSubresourceRange());
 
-  if (initial_data)
+  if (flg & TEXCF_NO_STATE_TRACKING)
+  {
+    D3D_CONTRACT_ASSERTF_RETURN(!initial_data, false,
+      "DX12: texture <%s>: TEXCF_NO_STATE_TRACKING is incompatible with initial_data; "
+      "initialize the texture after creation via enhanced_texture_barrier with DISCARD",
+      tex.getName());
+  }
+  else if (initial_data)
   {
     if (!upload_initial_data_texture2d(tex, desc, initial_data))
       return false;
@@ -465,7 +477,14 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
   {
     return device.isIll();
   }
-  if (initial_data)
+  if (flg & TEXCF_NO_STATE_TRACKING)
+  {
+    D3D_CONTRACT_ASSERTF_RETURN(!initial_data, false,
+      "DX12: texture <%s>: TEXCF_NO_STATE_TRACKING is incompatible with initial_data; "
+      "initialize the texture after creation via enhanced_texture_barrier with DISCARD",
+      tex.getName());
+  }
+  else if (initial_data)
   {
     if (!upload_initial_data_texture3d(tex, desc, initial_data))
       return false;
@@ -1662,9 +1681,9 @@ int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
     setWasUsed();
 #endif
     lockFlags = 0;
-    if (getFormat().isDepth())
+    if (getFormat().isDepth() && getFormat().isStencil())
     {
-      D3D_CONTRACT_ERROR("DX12: can't lock depth format for texture %p <%s>", this, getName());
+      D3D_CONTRACT_ERROR("DX12: can't lock depth-stencil format for texture %p <%s>", this, getName());
       return 0;
     }
 
@@ -2576,7 +2595,7 @@ unsigned d3d::pcwin::get_texture_format(const BaseTexture *tex)
   auto bt = getbasetex(tex);
   if (!bt)
     return 0;
-  return bt->getFormat();
+  return bt->getFormat().asTexFlags();
 }
 const char *d3d::pcwin::get_texture_format_str(const BaseTexture *tex)
 {

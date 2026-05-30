@@ -228,6 +228,8 @@ static bool is_depth_format_flg(uint32_t cflg)
 
 static void update_filtered_textures()
 {
+  eastl::string_view filterNameStringView(filterName);
+
   filteredTextures.clear();
   for (auto [iterIx, iter] : enumerate(textures))
   {
@@ -244,11 +246,11 @@ static void update_filtered_textures()
     if (filterDepth && !is_depth_format_flg(info.cflg))
       continue;
 
-    if (filterName[0])
+    if (!filterNameStringView.empty())
     {
       if (!caseSensitiveSearch)
       {
-        if (!dd_stristr(iter.first.data(), filterName))
+        if (!dd_stristr(iter.first, filterNameStringView))
           continue;
       }
       else if (!strstr(iter.first.data(), filterName))

@@ -115,12 +115,16 @@ struct FxLightParams
 class EffectManager
 {
 public:
+  static constexpr size_t SFX_PATH_BUF_SIZE = 48;
+  static constexpr size_t SFX_EVENT_BUF_SIZE = 24;
+
   friend class AcesEffect;
   friend struct EffectManagerAsyncLoad;
   friend void acesfx::start_effect_client(int, const TMatrix &, const TMatrix &, bool, bool, AcesEffect **, float, FxErrorType *);
   friend void acesfx::start_effect_client(const acesfx::StartFxParams &, AcesEffect **, FxErrorType *);
 
-  EffectManager(const char *_name, const DataBlock *blk, const char *effect_name, acesfx::PrefetchType prefetch_type);
+  EffectManager(const char *_name, const DataBlock *blk, const char *effect_name, acesfx::PrefetchType prefetch_type,
+    const acesfx::FXSoundInitParams *sound_init = nullptr);
   ~EffectManager();
 
   void initAsync();
@@ -184,9 +188,9 @@ private:
     float spawnRangeLimit = 0;
     int maxNumInstances = 0;
     bool lightEnabled = false;
-    char sfxPath[48] = {0};
-    char sfxPathInf[24] = {0};
-    char sfxEvent[24] = {0};
+    char sfxPath[SFX_PATH_BUF_SIZE] = {0};
+    char sfxPathInf[SFX_EVENT_BUF_SIZE] = {0};
+    char sfxEvent[SFX_EVENT_BUF_SIZE] = {0};
     sndsys::VarId intenseParamId = sndsys::VarId(sndsys::INVALID_VAR_ID);
     eastl::string name;
     eastl::string resName;
@@ -245,7 +249,7 @@ private:
   void unsetFxEmitter(BaseEffect &fx);
   void stopFx(BaseEffect &fx);
   void setFxLight(BaseEffect &fx);
-  void loadSoundParamsExt();
+  void loadSoundParamsExt(const acesfx::FXSoundInitParams *sound_init = nullptr);
   void tryPlayFxSoundExt(SoundEffect &se);
   void pauseFxSoundExt(BaseEffect &fx, bool paused);
   void createFxRes(AcesEffect::FxId fx_id, bool is_player, const Point3 &pos);

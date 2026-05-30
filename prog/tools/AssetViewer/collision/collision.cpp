@@ -327,7 +327,9 @@ static bool trace_ray_through_nodes(CollisionResource *collision_res, IGenViewpo
   intersected_nodes_list.insert(intersected_nodes_list.end(), physIntersectedNodesList.begin(), physIntersectedNodesList.end());
   stlsort::sort_branchless(intersected_nodes_list.begin(), intersected_nodes_list.end());
 
-  auto compare = [](const IntersectedNode &lhs, const IntersectedNode &rhs) { return lhs.collisionNodeId == rhs.collisionNodeId; };
+  auto compare = [](const IntersectedNode &lhs, const IntersectedNode &rhs) {
+    return tri_ref::nodeIndex(lhs.triRef) == tri_ref::nodeIndex(rhs.triRef);
+  };
 
   intersected_nodes_list.erase(eastl::unique(intersected_nodes_list.begin(), intersected_nodes_list.end(), compare),
     intersected_nodes_list.end());
@@ -345,7 +347,7 @@ bool CollisionPlugin::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, b
     dag::ConstSpan<CollisionNode> nodes = collisionRes->getAllNodes();
     for (int i = 0; i < (int)sortedIntersectedNodesList.size(); ++i)
     {
-      const int candidateId = sortedIntersectedNodesList[i].collisionNodeId;
+      const int candidateId = (int)tri_ref::nodeIndex(sortedIntersectedNodesList[i].triRef);
       dag::Vector<bool> &hiddenNodes = nodesProcessing.selectionNodesProcessing.hiddenNodes;
       const bool isVisible =
         getNodeVisibility(nodes[candidateId], showPhysCollidable, showTraceable) != CollisionNodeVisibility::INVISIBLE;

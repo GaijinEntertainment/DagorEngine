@@ -198,6 +198,57 @@ inline vec3f closestPointOnTriVec(vec3f p, vec3f a, vec3f b, vec3f c)
   return v_add(v_add(v_mul(v_splats(u), b), v_mul(v_splats(v), c)), v_mul(v_splats(w), a));
 }
 
+// Jolt-style 4-wide SoA ray-vs-triangle. Tests 4 triangles in parallel; returns 4 distances
+// (FLT_MAX for misses). u,v bary coords per lane in outU/outV. Lanes the caller wants to ignore
+// (e.g. degenerate padding) should have all-zero vertex data so det == 0 -> miss.
+// CullCCW = true rejects lanes where det <= eps (backfacing or degenerate), matching the
+// behavior of RayTriangleIntersect<true>.
+template <bool CullCCW>
+__forceinline vec4f rayTriangle4_SoA(vec3f orig, vec3f dir, vec4f v0x, vec4f v0y, vec4f v0z, vec4f v1x, vec4f v1y, vec4f v1z,
+  vec4f v2x, vec4f v2y, vec4f v2z, vec4f &outU, vec4f &outV)
+{
+  vec4f e1x = v_sub(v1x, v0x), e1y = v_sub(v1y, v0y), e1z = v_sub(v1z, v0z);
+  vec4f e2x = v_sub(v2x, v0x), e2y = v_sub(v2y, v0y), e2z = v_sub(v2z, v0z);
+  vec4f dx = v_splat_x(dir), dy = v_splat_y(dir), dz = v_splat_z(dir);
+  vec4f ox = v_splat_x(orig), oy = v_splat_y(orig), oz = v_splat_z(orig);
+  vec4f px = v_sub(v_mul(dy, e2z), v_mul(dz, e2y));
+  vec4f py = v_sub(v_mul(dz, e2x), v_mul(dx, e2z));
+  vec4f pz = v_sub(v_mul(dx, e2y), v_mul(dy, e2x));
+  vec4f det = v_add(v_add(v_mul(e1x, px), v_mul(e1y, py)), v_mul(e1z, pz));
+  vec4f signBit = v_cast_vec4f(v_splatsi(0x80000000));
+  vec4f detSign = v_and(det, signBit);
+  vec4f absDet = v_xor(det, detSign);
+  // CullCCW: reject signed det < kEpsilon (matches scalar RayTriangleIntersect<true>'s `det < kEpsilon` cull).
+  // !CullCCW: reject |det| < V_C_VERY_SMALL_VAL (~sqrt(FLT_MIN), 4e-19f). Scalar uses
+  // v_rcp_safe(det, V_C_MAX_VAL) which substitutes 1e32 for the inverse when |det| < V_C_VERY_SMALL_VAL,
+  // so subsequent bary checks reject. We reject explicitly with the same threshold for equivalent behavior.
+  vec4f detTooSmall = CullCCW ? v_cmp_lt(det, v_splats(float(kEpsilon))) : v_cmp_lt(absDet, V_C_VERY_SMALL_VAL);
+  vec4f detSafe = v_sel(absDet, v_splats(1.f), detTooSmall);
+  vec4f sx = v_sub(ox, v0x), sy = v_sub(oy, v0y), sz = v_sub(oz, v0z);
+  vec4f u = v_xor(v_add(v_add(v_mul(sx, px), v_mul(sy, py)), v_mul(sz, pz)), detSign);
+  vec4f qx = v_sub(v_mul(sy, e1z), v_mul(sz, e1y));
+  vec4f qy = v_sub(v_mul(sz, e1x), v_mul(sx, e1z));
+  vec4f qz = v_sub(v_mul(sx, e1y), v_mul(sy, e1x));
+  vec4f vp = v_xor(v_add(v_add(v_mul(dx, qx), v_mul(dy, qy)), v_mul(dz, qz)), detSign);
+  vec4f t = v_xor(v_add(v_add(v_mul(e2x, qx), v_mul(e2y, qy)), v_mul(e2z, qz)), detSign);
+  vec4f zero = v_zero();
+  // Edge-grazing tolerance in det-space (matches scalar RayTriangleIntersect's BVH_TRACE_EPSILON
+  // applied to barycentric coords): accept u in [-eps*|det|, |det|*(1+eps)], v in [-eps*|det|, ...],
+  // and u+v in [..., |det|*(1+2*eps)]. Without this, edge rays on external/cross-leaf edges that the
+  // scalar path would have hit can fall through both lanes' strict u<0/v<0/u+v>det rejects.
+  vec4f epsAbsDet = v_mul(absDet, v_splats(BVH_TRACE_EPSILON));
+  vec4f negEpsAbsDet = v_xor(epsAbsDet, signBit); // -eps*|det|
+  vec4f detPlusEps = v_add(absDet, epsAbsDet);
+  vec4f detPlus2Eps = v_add(detPlusEps, epsAbsDet);
+  vec4f noHit = v_or(v_or(detTooSmall, v_or(v_cmp_lt(u, negEpsAbsDet), v_cmp_gt(u, detPlusEps))),
+    v_or(v_or(v_cmp_lt(vp, negEpsAbsDet), v_cmp_gt(v_add(u, vp), detPlus2Eps)), v_cmp_lt(t, zero)));
+  vec4f invDet = v_rcp(detSafe);
+  outU = v_mul(u, invDet);
+  outV = v_mul(vp, invDet);
+  vec4f tDist = v_mul(t, invDet);
+  return v_sel(tDist, v_splats(3.4e38f), noHit);
+}
+
 inline void distBLASLeafTri(DistData &d, vec3f v0, vec3f v1, vec3f v2, int dataOffset)
 {
   vec3f cp = closestPointOnTriVec(d.pos, v0, v1, v2);
@@ -218,6 +269,45 @@ namespace bvh_traverse
 bool rayBLASQuadOOL(RayData &r, int startOffset, int blasSize);
 bool rayBLASQuadOOLCullCCW(RayData &r, int startOffset, int blasSize);
 } // namespace bvh_traverse
+
+// Forward decl needed before BLASTraverse so rayBLAS_Free can call back into BLASTraverse helpers.
+template <bool CullCCW, int VertStride>
+struct BLASTraverse;
+
+// Canonical fast-path BLAS rayCast: free template function, calls into BLASTraverse static helpers
+// for the leaf decode + 4-wide SoA ray-tri.
+// Use this in preference to BLASTraverse<CullCCW>::rayBLAS(). Measured ~10% faster than the class-
+// member equivalent in dagRayBench -- clang generates tighter code for templated free functions
+// than for templated class members, even with __forceinline on both and identical bodies.
+// VertStride defaults to 8 (vert21 packed); pass 12 for raw float3 BLAS data.
+template <bool CullCCW, int VertStride = 8, class HitCb = BestHitCb>
+__forceinline bool rayBLAS_Free(RayData &r, int startOffset, int blasSize, const HitCb &cb = HitCb())
+{
+  using B = BLASTraverse<CullCCW, VertStride>;
+  int dataOffset = startOffset;
+  const int endOffset = startOffset + blasSize;
+  vec3f rayOriginScaled = v_neg(v_mul(r.rayOrigin, r.rayDirInv));
+  for (; dataOffset < endOffset;)
+  {
+    vec3f bboxMin, bboxMax;
+    uint offsetToNextNode;
+    B::decodeRaw(r.data, dataOffset, bboxMin, bboxMax, offsetToNextNode);
+    bool collision =
+      RayIntersectsBoxT0T1(v_madd(bboxMin, r.rayDirInv, rayOriginScaled), v_madd(bboxMax, r.rayDirInv, rayOriginScaled), r.t);
+    dataOffset += BVH_BLAS_NODE_SIZE;
+    const uint32_t isLeaf = offsetToNextNode & BLAS_LEAF_FLAG;
+    if (!collision)
+      dataOffset += isLeaf ? BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE : offsetToNextNode;
+    else if (isLeaf)
+    {
+      if (B::rayLeaf_SoA(r, dataOffset, offsetToNextNode))
+        if (cb(r, dataOffset))
+          break;
+      dataOffset += BVH_BLAS_LEAF_SIZE - BVH_BLAS_NODE_SIZE;
+    }
+  }
+  return (r.bestTriOffset > 0);
+}
 
 // ============================================================================
 // Quad-encoded BLAS traversal (UINT16 boxes, quad leaf encoding)
@@ -329,6 +419,111 @@ struct BLASTraverse
     __forceinline vec3f operator()(const uint8_t *d, int baseOfs, uint vertIdx) const { return loadVert(d, baseOfs, vertIdx); }
   };
 
+  // ---- SoA 4-wide leaf decode + ray-tri (always decodes 4 verts; single leaves get a degenerate lane 1) ----
+
+  // Decode 4 quad-leaf verts in parallel as SoA (xs/ys/zs each holds (v0,v1,v2,v3) per axis).
+  // VertStride 8 -> packed vert21 (contiguous-Y, 21 bits per axis); else raw float3.
+  static __forceinline void decodeQuadVertsSoA(const uint8_t *data, int dataOffset, uint skip, vec4f &xs, vec4f &ys, vec4f &zs,
+    bool &isSingle)
+  {
+    int ofs1 = dataOffset + ((const int *)(data + dataOffset))[0];
+    uint o1 = (skip & QUAD_O1_MASK) + 1;
+    uint o2 = ((skip >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
+    uint o3 = ((skip >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
+    isSingle = (o3 == o2);
+    if constexpr (VertStride == 8)
+    {
+      // vert21 packed uint64 = X[0:20] | Y[21:41] | Z[42:62]
+      // As 2x uint32 LE: c1 = X[0:20] | Y_low_11[21:31];  c2 = Y_high_10[0:9] | Z[10:30] | unused[31]
+      const int *p0 = (const int *)(data + ofs1);
+      const int *p1 = (const int *)(data + ofs1 + o1 * VertStride);
+      const int *p2 = (const int *)(data + ofs1 + o2 * VertStride);
+      const int *p3 = (const int *)(data + ofs1 + o3 * VertStride);
+      vec4i c1 = v_make_vec4i(p0[0], p1[0], p2[0], p3[0]);
+      vec4i c2 = v_make_vec4i(p0[1], p1[1], p2[1], p3[1]);
+      vec4i mask21 = v_splatsi(0x1FFFFF);
+      vec4i mask10 = v_splatsi(0x3FF);
+      vec4i xsi = v_andi(c1, mask21);
+      vec4i ysi = v_ori(v_srli(c1, 21), v_slli(v_andi(c2, mask10), 11));
+      vec4i zsi = v_andi(v_srli(c2, 10), mask21);
+      vec4f inv32 = v_splats(1.f / 32.f);
+      xs = v_mul(v_cvt_vec4f(xsi), inv32);
+      ys = v_mul(v_cvt_vec4f(ysi), inv32);
+      zs = v_mul(v_cvt_vec4f(zsi), inv32);
+    }
+    else
+    {
+      // Raw float3 verts (12 B each). Load each as (x,y,z,_) then SIMD-transpose to SoA.
+      // v_ldu_p3 reads 4 floats (the 4th is harmless as long as the BLAS buffer has any trailing
+      // bytes — true for our packed vert array which is followed by the BVH tree).
+      vec4f v0 = v_ldu_p3((const float *)(data + ofs1));
+      vec4f v1 = v_ldu_p3((const float *)(data + ofs1 + o1 * VertStride));
+      vec4f v2 = v_ldu_p3((const float *)(data + ofs1 + o2 * VertStride));
+      vec4f v3 = v_ldu_p3((const float *)(data + ofs1 + o3 * VertStride));
+      v_mat44_transpose(v0, v1, v2, v3); // AoS rows -> SoA columns: v0=xs, v1=ys, v2=zs, v3=ws(unused)
+      xs = v0;
+      ys = v1;
+      zs = v2;
+    }
+  }
+
+  // SoA leaf processor: decode 4 verts, run one 4-wide ray-tri across (tri A, tri B, degenerate, degenerate).
+  // For singles (v3==v2) the lane-1 triangle is degenerate via shared corner -> rejected naturally.
+  static __forceinline bool rayLeaf_SoA(RayData &r, int dataOffset, uint skip)
+  {
+    vec4f xs, ys, zs;
+    bool isSingle;
+    decodeQuadVertsSoA(r.data, dataOffset, skip, xs, ys, zs, isSingle);
+    // Tri-corner SoA layout: lane 0 = tri A = (v0, v1, v2), lane 1 = tri B, lanes 2-3 = degenerate (zeros).
+    // Strip: tri B = (v2, v1, v3). Fan or single: tri B = (v0, v2, v3).
+    bool useStrip = !isSingle && (skip & QUAD_FAN_FLAG) == 0;
+    vec4f z = v_zero();
+    vec4f c0x, c1x, c2x, c0y, c1y, c2y, c0z, c1z, c2z;
+    if (useStrip)
+    {
+      // corner SoA per axis: ((a,c,0,0), (b,b,0,0), (c,d,0,0)) -- all 3 map to existing v_perm_*
+      c0x = v_perm_xzac(xs, z);
+      c1x = v_perm_yybb(xs, z);
+      c2x = v_perm_zwcd(xs, z);
+      c0y = v_perm_xzac(ys, z);
+      c1y = v_perm_yybb(ys, z);
+      c2y = v_perm_zwcd(ys, z);
+      c0z = v_perm_xzac(zs, z);
+      c1z = v_perm_yybb(zs, z);
+      c2z = v_perm_zwcd(zs, z);
+    }
+    else
+    {
+      // corner SoA per axis: ((a,a,0,0), (b,c,0,0), (c,d,0,0)) -- all 3 map to v_perm_*
+      c0x = v_perm_xxab(xs, z);
+      c1x = v_perm_yzab(xs, z);
+      c2x = v_perm_zwcd(xs, z);
+      c0y = v_perm_xxab(ys, z);
+      c1y = v_perm_yzab(ys, z);
+      c2y = v_perm_zwcd(ys, z);
+      c0z = v_perm_xxab(zs, z);
+      c1z = v_perm_yzab(zs, z);
+      c2z = v_perm_zwcd(zs, z);
+    }
+    vec4f us, vs;
+    vec4f ts = rayTriangle4_SoA<CullCCW>(r.rayOrigin, r.rayDir, c0x, c0y, c0z, c1x, c1y, c1z, c2x, c2y, c2z, us, vs);
+    // mask t >= r.t to FLT_MAX so a farther hit can't win the min reduce
+    vec4f tCurr = v_splats(r.t);
+    ts = v_sel(ts, v_splats(3.4e38f), v_cmp_ge(ts, tCurr));
+    alignas(16) float tArr[4], uArr[4], vArr[4];
+    v_st(tArr, ts);
+    int bestLane = (tArr[1] < tArr[0]) ? 1 : 0;
+    if (tArr[bestLane] >= r.t)
+      return false;
+    v_st(uArr, us);
+    v_st(vArr, vs);
+    r.t = tArr[bestLane];
+    r.bCoord.x = uArr[bestLane];
+    r.bCoord.y = vArr[bestLane];
+    r.bestSubTri = (int8_t)bestLane;
+    return true;
+  }
+
   // ---- Leaf intersection functions ----
 
   static inline bool rayLeaf(RayData &r, int dataOffset, uint skip)
@@ -380,36 +575,14 @@ struct BLASTraverse
 
   // ---- Full BLAS traversal functions ----
 
+  // PERF NOTE: callers that want maximum throughput should prefer rayBLAS_Free<CullCCW>(...) instead
+  // of QuadBLAS::rayBLAS(...) -- clang generates ~10-15% worse code for templated class-member functions
+  // than equivalent templated free functions (measured in dagRayBench). This member is kept for
+  // backwards compatibility with existing callers.
   template <class HitCb = BestHitCb>
-  static inline bool rayBLAS(RayData &r, int startOffset, int blasSize, const HitCb &cb = HitCb())
+  static __forceinline bool rayBLAS(RayData &r, int startOffset, int blasSize, const HitCb &cb = HitCb())
   {
-    int dataOffset = startOffset;
-    const int endOffset = startOffset + blasSize;
-    vec3f rayOriginScaled = v_neg(v_mul(r.rayOrigin, r.rayDirInv));
-    for (; dataOffset < endOffset;)
-    {
-      vec3f bboxMin, bboxMax;
-      uint offsetToNextNode;
-      decodeRaw(r.data, dataOffset, bboxMin, bboxMax, offsetToNextNode);
-      bool collision =
-        RayIntersectsBoxT0T1(v_madd(bboxMin, r.rayDirInv, rayOriginScaled), v_madd(bboxMax, r.rayDirInv, rayOriginScaled), r.t);
-      dataOffset += BVH_BLAS_NODE_SIZE;
-      const uint32_t isLeaf = offsetToNextNode & BLAS_LEAF_FLAG;
-      if (!collision)
-      {
-        dataOffset += isLeaf ? LEAF_SIZE - BVH_BLAS_NODE_SIZE : offsetToNextNode;
-      }
-      else if (isLeaf)
-      {
-        if (rayLeaf(r, dataOffset, offsetToNextNode))
-        {
-          if (cb(r, dataOffset))
-            break;
-        }
-        dataOffset += LEAF_SIZE - BVH_BLAS_NODE_SIZE;
-      }
-    }
-    return (r.bestTriOffset > 0);
+    return rayBLAS_Free<CullCCW, VertStride, HitCb>(r, startOffset, blasSize, cb);
   }
 
   // Out-of-line BLAS traversal (separate compilation unit to reduce i-cache pressure in TLAS lambda)

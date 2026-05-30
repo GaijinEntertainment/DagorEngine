@@ -338,7 +338,8 @@ macro USE_SAMPLE_DEPTH_TEX(code)
     {
       float4 floorZ4 = linearize_z4(gather_far_depth(tc), zn_zfar.zw);
       float2 bilW = frac(tc * lowres_tex_size.xy - 0.5);
-      float floorZ = lerp(lerp(floorZ4.w, floorZ4.z, bilW.x), lerp(floorZ4.x, floorZ4.y, bilW.x), bilW.y);
+      float4 weights = float4(1 - bilW, bilW);
+      float floorZ = dot(floorZ4, weights.xzzx * weights.wwyy);
       floorZ = lerp(floorZ4.w, floorZ, step(waterZ, floorZ));
       return floorZ;
     }
@@ -381,6 +382,7 @@ macro USE_UNDERWATER_SCATTERING(code)
 endmacro
 
 macro INIT_WATER_FOAM(stage)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
   INIT_FOAM_PARAMS(stage)
   (stage){
     foam_tex@tex = foam_tex hlsl{ Texture2D<float>foam_tex@tex; };
@@ -418,7 +420,7 @@ macro USE_WATER_FOAM(stage)
     };
 
     #define water_flowmap_tex_add_1_samplerstate water_flowmap_tex_add_0_samplerstate
-    #define foam_tex_samplerstate global_linear_clamp_sampler
+    #define foam_tex_samplerstate global_linear_wrap_sampler
 
     #define water_flowmap_foam_power (water_flowmap_foam.x)
     #define water_flowmap_foam_scale (water_flowmap_foam.y)

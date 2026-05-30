@@ -21,7 +21,7 @@ float4 pcf_lerp = (0, 0, 0, 0);
 float csm_dither_cascade_scale = 0.1;
 
 int num_of_cascades = 4;
-interval num_of_cascades:csm_off<1, one<2, two<3, three<4, four<5, five<6, six;
+interval num_of_cascades:csm_off<1, one<2, two<3, three<4, four<5, six;
 
 int has_manual_cascades = 0;
 interval has_manual_cascades: no<1, yes;
@@ -42,10 +42,6 @@ macro BASE_USE_CSM_SHADOW_DEF_NUM(code, get_csm_shadow_func)
   else if (num_of_cascades == four)
   {
     USE_CSM_SHADOW(code, 4, get_csm_shadow_func)
-  }
-  else if (num_of_cascades == five)
-  {
-    USE_CSM_SHADOW(code, 5, get_csm_shadow_func)
   }
   else
   {
@@ -153,9 +149,7 @@ macro USE_CSM_SHADOW_TC_BASE_DEF_NUM(code)
   if (num_of_cascades == csm_off)    { USE_CSM_SHADOW_TC_BASE(code, 0) }
   else if (num_of_cascades == one)   { USE_CSM_SHADOW_TC_BASE(code, 1) }
   else if (num_of_cascades == two)   { USE_CSM_SHADOW_TC_BASE(code, 2) }
-  else if (num_of_cascades == three) { USE_CSM_SHADOW_TC_BASE(code, 3) }
   else if (num_of_cascades == four)  { USE_CSM_SHADOW_TC_BASE(code, 4) }
-  else if (num_of_cascades == five)  { USE_CSM_SHADOW_TC_BASE(code, 5) }
   else if (num_of_cascades == six)   { USE_CSM_SHADOW_TC_BASE(code, 6) }
 endmacro
 

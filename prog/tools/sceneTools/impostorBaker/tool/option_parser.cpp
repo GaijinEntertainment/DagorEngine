@@ -42,8 +42,9 @@ void print_impostor_options()
   printf("\n              if specified, only assets from these packs will be processed");
   printf("\n  -clean:     <yes|no> ");
   printf("\n              Default is no. If set to yes, all unused impostor files are removed");
-  printf("\n  -skipGen:   <yes|no> ");
-  printf("\n              Default is no. If set to yes, update *.tex.blk and skip generating impostors");
+  printf("\n  -skipGen    Skip baking any impostors, just update *.tex.blk etc.");
+  printf("\n  -voxelOnly  Bake only voxel impostors.");
+  printf("\n  -flatOnly   Bake only flat impostors.");
   printf("\n  -folderblk: <disabled|dont_replace|replace> ");
   printf("\n              Default is dont_replace. Specifies when the .folder.blk of the impostors "
          "should be created/replaced");
@@ -51,6 +52,8 @@ void print_impostor_options()
   printf("\n  -dry    Run baker but only prints list of what assets and why need baking, ");
   printf("\n  -force_rebake  Rebake assets even if they weren't change");
   printf("\n  -profile    Profile the baker, and save .dap file in .logs folder");
+  printf("\n  -voxelDefault: <yes|no>");
+  printf("\n              Whether to bake voxel impostors by default");
 }
 
 ImpostorOptions parse_impostor_options()
@@ -111,12 +114,12 @@ ImpostorOptions parse_impostor_options()
           ret.valid = false;
         }
       }
-      else if (key == "skipGen")
+      else if (key == "voxelDefault")
       {
         if (value == "yes")
-          ret.skipGen = true;
+          ret.defaultVoxelImpostor = true;
         else if (value == "no")
-          ret.skipGen = false;
+          ret.defaultVoxelImpostor = false;
         else
         {
           DEBUG_CTX("Invalid option for '': '%s'", key.c_str(), value.c_str());
@@ -157,6 +160,21 @@ ImpostorOptions parse_impostor_options()
         ret.forceRebake = true;
       else if (flag == "profile")
         ret.profile = true;
+      else if (flag == "skipGen")
+      {
+        ret.bakeFlat = false;
+        ret.bakeVoxel = false;
+      }
+      else if (flag == "voxelOnly")
+      {
+        ret.bakeFlat = false;
+        ret.bakeVoxel = true;
+      }
+      else if (flag == "flatOnly")
+      {
+        ret.bakeFlat = true;
+        ret.bakeVoxel = false;
+      }
       else
       {
         DEBUG_CTX("Unknown flag: -%s", flag.c_str());

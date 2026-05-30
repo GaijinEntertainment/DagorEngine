@@ -93,7 +93,7 @@ void SMAA::apply(Texture *source, Texture *destination)
   TIME_D3D_PROFILE(smaa);
   bool stencil = depthStencilTex.getTex() != nullptr && useStencil;
   ShaderGlobal::set_int(smaa_stencil_test_var_id, stencil);
-  ShaderGlobal::set_texture(smaa_color_tex_var_id, source);
+  ShaderGlobal::set_texture_unsafe(smaa_color_tex_var_id, source);
   {
     TIME_D3D_PROFILE(edge_detect);
     d3d::set_render_target({stencil ? depthStencilTex.getTex2D() : nullptr, 0, 0}, DepthAccess::RW, {{edgeDetect.getTex2D(), 0, 0}});
@@ -121,5 +121,5 @@ void SMAA::apply(Texture *source, Texture *destination)
     apply_smaa.render();
   }
 
-  ShaderGlobal::set_texture(smaa_color_tex_var_id, nullptr);
+  ShaderGlobal::set_texture_unsafe(smaa_color_tex_var_id, nullptr);
 }

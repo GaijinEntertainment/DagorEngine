@@ -2,6 +2,8 @@
 
 #include "../collision_builder.h"
 #include <phys/dag_physics.h>
+#include <btBulletDynamicsCommon.h>
+#include <BulletCollision/CollisionShapes/btMaterial.h>
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 #include <scene/dag_physMat.h>
@@ -22,6 +24,8 @@
 #include "../physMesh.h"
 
 #define BULLET_SCENE_COLLISION_VERSION 1
+extern void init_bullet_physics_engine(bool = false);
+extern void close_bullet_physics_engine();
 
 extern Tab<BBox3> phys_actors_bbox;
 extern Tab<TMatrix> phys_box_actors;

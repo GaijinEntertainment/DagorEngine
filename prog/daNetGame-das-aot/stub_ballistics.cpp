@@ -53,7 +53,19 @@ float get_fire_delay_0(const RocketMotorProps &prop)
 
 void add_propulsion_time(float, const RocketMotorPropulsionsValue &, RocketMotorPropulsionsValue &) { G_ASSERT(0); }
 
+void calc_propulsion_time_mult(const RocketMotorProps &,
+  float,
+  float,
+  const RocketMotorPropulsionsValue &,
+  const RocketMotorPropulsionsValue &,
+  RocketMotorPropulsionsValue &)
+{
+  G_ASSERT(0);
+}
+
 void calc_rocket_motor_thrust_mass(const RocketMotorProps &,
+  float,
+  float,
   const Point2 &,
   const Point2 &,
   const RocketMotorPropulsionsValue &,
@@ -66,8 +78,14 @@ void calc_rocket_motor_thrust_mass(const RocketMotorProps &,
 {
   G_ASSERT(0);
 }
-void calc_rocket_motor_propulsion_mass(
-  const RocketMotorProps &, const RocketMotorPropulsionsValue &, const RocketMotorPropulsionsValue &, float &, float &, float &)
+void calc_rocket_motor_propulsion_mass(const RocketMotorProps &,
+  float,
+  float,
+  const RocketMotorPropulsionsValue &,
+  const RocketMotorPropulsionsValue &,
+  float &,
+  float &,
+  float &)
 {
   G_ASSERT(0);
 }

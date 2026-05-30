@@ -22,7 +22,7 @@ public:
       const unsigned char *to_lower_lut = dd_local_cmp_lwtab;
       ret = FNV1Params<hbits>::offset_basis;
       for (size_t i = 0; i < len; ++i)
-        ret = fnv1_step<hbits>(to_lower_lut[(uint8_t)s[i]], ret);
+        ret = fnv1a_step<hbits>(to_lower_lut[(uint8_t)s[i]], ret);
     }
     else
     {

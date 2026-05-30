@@ -219,9 +219,6 @@ def anim_replay_track_motion_matching_search(evt : ParallelUpdateFrameDelayed;
     assume animcharData = *getRW_ecs_object(animcharChildComp)
     if is_animchar_dead(animcharData, anim_replay__time)
       continue
-    var mmSearchTime & = unsafe(*getRW_ecs_FloatList(animcharData, "mmSearchTime"))
-    var mmSearchDistanceFactor & = unsafe(*getRW_ecs_FloatList(animcharData, "mmSearchDistanceFactor"))
-    var mmSearchTrajectoryFeatures & = unsafe(*getRW_ecs_Point2List(animcharData, "mmSearchTrajectoryFeatures"))
     let animcharEid = *get_Eid(animcharData, "eid")
     query(animcharEid) <| $ [es] (motion_matching__controller : MotionMatchingController;
                                   mm_trajectory__featurePositions : Point3List;
@@ -230,6 +227,9 @@ def anim_replay_track_motion_matching_search(evt : ParallelUpdateFrameDelayed;
                                   motion_matching__distanceFactor : float)
       if !motion_matching__controller.hasActiveAnimation()
         return
+      var mmSearchTime & = unsafe(*getRW_ecs_FloatList(animcharData, "mmSearchTime"))
+      var mmSearchDistanceFactor & = unsafe(*getRW_ecs_FloatList(animcharData, "mmSearchDistanceFactor"))
+      var mmSearchTrajectoryFeatures & = unsafe(*getRW_ecs_Point2List(animcharData, "mmSearchTrajectoryFeatures"))
       let eps = 1e-6f;
       let hadTransition = (motion_matching__controller.lastTransitionTime <= evt.dt + eps &&
         (empty(mmSearchTime) || anim_replay__prevTime - back(mmSearchTime) > 2f * eps))
@@ -250,7 +250,10 @@ def anim_replay_finalize_motion_matching_state(evt : AnimReplayStopRecord;
                                                var anim_replay__savedAnimchars : Array)
   for animcharChildComp in anim_replay__savedAnimchars
     assume animcharData = *getRW_ecs_object(animcharChildComp)
-    assume mmEnabledRanges = *getRW_ecs_Point2List(animcharData, "mmEnabledRanges")
+    var mmEnabledRangesPtr = getRW_ecs_Point2List(animcharData, "mmEnabledRanges")
+    if mmEnabledRangesPtr == null
+      continue
+    var mmEnabledRanges & = unsafe(*mmEnabledRangesPtr)
     if !empty(mmEnabledRanges) && back(mmEnabledRanges).y == 0f
       back(mmEnabledRanges).y = anim_replay__time
     var trajectoryFeaturesCount = 0

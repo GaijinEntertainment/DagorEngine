@@ -2773,6 +2773,23 @@ void rendinst::prepareRIGen(bool init_sec_ri_extra_here, const DataBlock *level_
     for (int i = 0; i < riExtraIdxPair.size(); i += 2)
       riMaxDist[riExtraIdxPair[i]] = sqrtf(rendinst::riExtra[riExtraIdxPair[i + 1]].distSqLOD[rendinst::RiExtraPool::MAX_LODS - 1]);
 
+    for (int riGenIdx = 0; riGenIdx < rgl->rtData->riCollRes.size(); riGenIdx++)
+    {
+      bool isExtra = false;
+      for (int i = 0; i < riExtraIdxPair.size(); i += 2)
+      {
+        if (riGenIdx == riExtraIdxPair[i])
+        {
+          isExtra = true;
+          break;
+        }
+      }
+      if (isExtra)
+        continue;
+      if (CollisionResource *collRes = rgl->rtData->riCollRes[riGenIdx].collRes)
+        rgl->rtData->maxRiGenBsphereRad = max(rgl->rtData->maxRiGenBsphereRad, collRes->boundingSphereRad);
+    }
+
     for (int z = 0; z < rgl->cellNumH; z++)
       for (int x = 0; x < rgl->cellNumW; x++)
       {

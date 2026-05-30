@@ -442,15 +442,6 @@ void DeviceContext::updateBindlessSampler(uint32_t index, const SamplerResource 
   Frontend::replay->bindlessSamplerUpdates.push_back({index, sampler_res});
 }
 
-void DeviceContext::copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count)
-{
-  VULKAN_LOCK_FRONT();
-  if (D3DResourceType::SBUF != type)
-    Frontend::replay->bindlessTexUpdates.push_back(BindlessTexUpdateInfo(src, dst, count));
-  else
-    Frontend::replay->bindlessBufUpdates.push_back(BindlessBufUpdateInfo(src, dst, count));
-}
-
 void DeviceContext::wait()
 {
   TIME_PROFILE(vulkan_sync_wait);

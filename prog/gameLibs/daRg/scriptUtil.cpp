@@ -65,11 +65,9 @@ SQInteger runtime_error_handler(HSQUIRRELVM v)
   G_ASSERT(sq_gettop(v) == 2);
   SqStackChecker stackCheck(v);
 
-  const char *errMsg = nullptr;
-  if (SQ_FAILED(sq_getstring(v, 2, &errMsg)))
-    errMsg = "Unknown error";
-
-  stackCheck.check();
+  sqstd_aux_error_to_string(v, 2);
+  const char *errMsg = "Unknown error";
+  sq_getstring(v, -1, &errMsg);
 
   const char *callstack = nullptr;
   if (SQ_SUCCEEDED(sqstd_formatcallstackstring(v)))
@@ -81,6 +79,9 @@ SQInteger runtime_error_handler(HSQUIRRELVM v)
   String fullMsg(0, "%s\n%s", errMsg, callstack ? callstack : "No callstack");
   if (callstack)
     sq_pop(v, 1);
+  sq_poptop(v);
+
+  stackCheck.check();
 
   GuiScene *scene = GuiScene::get_from_sqvm(v);
   scene->errorMessageWithCb(fullMsg);

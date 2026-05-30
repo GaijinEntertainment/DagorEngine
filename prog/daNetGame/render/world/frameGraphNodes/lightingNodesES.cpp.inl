@@ -230,7 +230,7 @@ dafg::NodeHandle makePrepareTiledLightsNode()
 }
 
 
-eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
+eastl::array<dafg::NodeHandle, 10> makeVolumetricLightsNodes()
 {
   auto bindShaderVar = [](dafg::Registry registry, const char *res_name, const char *shader_var_name) {
     return eastl::move(registry.read(res_name)).texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar(shader_var_name);
@@ -372,9 +372,7 @@ eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
     dafg::register_node("volfog_df_raymarch_node", DAFG_PP_NODE_SRC, [bindShaderVar](dafg::Registry registry) {
       registry.modifyBlob<OrderingToken>("volfog_df_raymarch_token");
       registry.modifyBlob<OrderingToken>("volfog_df_mipgen_token");
-
-      registry.readBlob<OrderingToken>("volfog_ff_occlusion_token"); // for performStartFrame only, but it's better not to create a
-                                                                     // separate node for that
+      registry.readBlob<OrderingToken>("volfog_df_prepared");
 
       registry.readTexture("checkerboard_depth")
         .atStage(dafg::Stage::PS_OR_CS)
@@ -428,6 +426,7 @@ eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
   auto volfog_df_occlusion_weights_mip_gen_node =
     dafg::register_node("volfog_df_occlusion_weights_mip_gen_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       registry.modifyBlob<OrderingToken>("volfog_df_raymarch_token");
+      registry.readBlob<OrderingToken>("volfog_df_prepared");
       registry.readBlob<OrderingToken>("volfog_df_mipgen_token");
 
       return [] {
@@ -544,17 +543,21 @@ eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes()
     };
   });
 
-  return {
-    eastl::move(volfog_ff_occlusion_node),
-    eastl::move(volfog_ff_fill_media_node),
-    eastl::move(volfog_shadow_node),
-    eastl::move(volfog_df_per_camera_resources_node),
-    eastl::move(volfog_df_raymarch_node),
-    eastl::move(volfog_df_occlusion_weights_mip_gen_node),
-    eastl::move(volfog_ff_result_node),
-    eastl::move(volfog_df_result_node),
-    eastl::move(volfog_df_fx_mipgen_node),
-  };
+  auto volfog_df_prepare_node = dafg::register_node("volfog_df_prepare", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto resHndl = registry.getResolution<2>("main_view");
+    registry.readBlob<OrderingToken>("volfog_ff_occlusion_token");
+    registry.createBlob<OrderingToken>("volfog_df_prepared");
+
+    return [resHndl]() {
+      auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
+      wr.volumeLight->prepareDistantFog(resHndl.get());
+    };
+  });
+
+  return {eastl::move(volfog_ff_occlusion_node), eastl::move(volfog_ff_fill_media_node), eastl::move(volfog_shadow_node),
+    eastl::move(volfog_df_per_camera_resources_node), eastl::move(volfog_df_raymarch_node),
+    eastl::move(volfog_df_occlusion_weights_mip_gen_node), eastl::move(volfog_ff_result_node), eastl::move(volfog_df_result_node),
+    eastl::move(volfog_df_fx_mipgen_node), eastl::move(volfog_df_prepare_node)};
 }
 
 ECS_TAG(render)

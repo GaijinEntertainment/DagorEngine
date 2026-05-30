@@ -1251,13 +1251,10 @@ void SQParser::ParseTableOrClass(TableExpr *decl, SQInteger separator, SQInteger
             }
         }
         if (_token == TK_ASYNC) {
-            if (otype != NEWOBJ_CLASS) {
-                throwError("'async' is only allowed on class methods, not table members");
-            }
             asyncKeywordStart = _lex.tokenStart();
             Lex();
             if (_token == TK_CONSTRUCTOR) {
-                throwError("'async constructor' is not allowed: a constructor must return the new instance, not a Promise");
+                throwError("'async constructor' is not allowed: a constructor must return the new instance, not a Future");
             }
             else if (_token != TK_FUNCTION) {
                 throwError("expected function");

@@ -5,19 +5,17 @@
 #pragma once
 
 #include <generic/dag_smallTab.h>
-#include <phys/dag_physSysInst.h>
+#include <phys/dag_physDecl.h>
 #include <phys/dag_physUserData.h>
-#include <phys/dag_physTwistCtrl.h>
+#include <generic/dag_tab.h>
 #include <util/dag_index16.h>
-
 
 class TMatrix;
 class GeomNodeTree;
 class DynamicPhysObjectData;
-
+struct TwistCtrlParams;
 class DynamicRenderableSceneLodsResource;
 class DynamicRenderableSceneInstance;
-
 
 #define DynamicPhysObject DynamicPhysObjectClass<PhysWorld>
 
@@ -26,8 +24,9 @@ class DynamicPhysObjectClass
 {
 public:
   DynamicPhysObjectClass();
+  DynamicPhysObjectClass(const DynamicPhysObjectClass &) = delete;
+  DynamicPhysObjectClass &operator=(const DynamicPhysObjectClass &) = delete;
   ~DynamicPhysObjectClass();
-
 
   static DynamicPhysObjectClass *create(const DynamicPhysObjectData *data, PhysWorld *world, const TMatrix &tm, uint16_t fgroup = 0,
     uint16_t fmask = 0);
@@ -62,8 +61,8 @@ protected:
   };
   SmallTab<ModelEntry *> modelEntries;
 
-  PhysSystemInstance *physSys;
-  GeomNodeTree *nodeTree;
+  PhysSystemInstance *physSys = nullptr;
+  GeomNodeTree *nodeTree = nullptr;
 
-  PhysObjectUserData ud = {_MAKE4C('DPOJ')};
+  PhysObjectUserData ud;
 };

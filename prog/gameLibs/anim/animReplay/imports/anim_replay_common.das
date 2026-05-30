@@ -3,6 +3,11 @@ options no_aot
 require ecs
 require daslib/algorithm
 
+def safe_at(t : FloatList const?; idx : int; default_value : float) : float
+  if t != null && uint(idx) < uint(length(*t))
+    return (*t)[idx]
+  return default_value
+
 def make_tm(quat : float4; pos : float3)
   return float3x4(compose(pos, quat, float3(1)))
 
@@ -20,6 +25,9 @@ def sample_timestamps(t : float; timestamps : FloatList; blk : block<(prev_idx, 
 
 def get_current_timestamp_idx(t : float; timestamps : FloatList)
   return max(lower_bound(timestamps, t, $(a, b) => a <= b) - 1, 0)
+
+def get_current_timestamp_idx(t : float; timestamps : FloatList const?)
+  return timestamps != null ? get_current_timestamp_idx(t, *timestamps) : 0
 
 def get_next_timestamp_idx(t : float; timestamps : FloatList)
   return min(lower_bound(timestamps, t, $(a, b) => a <= b), length(timestamps) - 1)
@@ -39,3 +47,10 @@ def iterate_alive_replay_animchars(animchars : Array; cur_time : float; blk : bl
       if is_animchar_dead(animcharData, cur_time)
         continue
       invoke(blk, animcharData)
+
+def iterate_replay_animchars(var animchars : Array; blk : block<(var animchar_data : Object; eid : EntityId) : void>)
+  for animcharChildComp in animchars
+    unsafe
+      var animcharData & = *getRW_ecs_object(animcharChildComp)
+      let eid = *get_Eid(animcharData, "eid")
+      invoke(blk, animcharData, eid)

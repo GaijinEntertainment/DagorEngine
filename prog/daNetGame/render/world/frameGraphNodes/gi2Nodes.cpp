@@ -85,8 +85,7 @@ dafg::NodeHandle makeGiCalcNode()
       if (!wr.daGI2)
         return;
 
-      if (is_rtgi_enabled())
-        bvh_bind_resources(resolution.get().x);
+      bvh_bind_resources(resolution.get().x);
 
       set_inv_globtm_to_shader(currentCameraHndl.ref().viewTm, currentCameraHndl.ref().jitterProjTm, false);
 
@@ -94,6 +93,8 @@ dafg::NodeHandle makeGiCalcNode()
       wr.setGILightsToShader(allowFrustumLights);
 
       wr.daGI2->beforeFrameLit(wr.canChangeAltitudeUnexpectedly ? 0 : wr.giDynamicQuality);
+
+      bvh_unbind_resources();
     };
   });
 }
@@ -102,6 +103,7 @@ dafg::NodeHandle makeGiFeedbackNode()
 {
   return dafg::register_node("gi_after_frame_lit", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("resolve_gbuffer_node");
+    registry.readBlob<OrderingToken>("bvh_ready_token").optional();
     registry.executionHas(dafg::SideEffects::External);
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
     if (wr.hasFeature(FeatureRenderFlags::FULL_DEFERRED))
@@ -140,11 +142,14 @@ dafg::NodeHandle makeGiFeedbackNode()
 
     auto hasAnyDynamicLights = registry.readBlob<bool>("has_any_dynamic_lights").handle();
     auto currentCameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-    return [hasAnyDynamicLights, currentCameraHndl]() {
+    const auto resolution = registry.getResolution<2>("main_view");
+    return [hasAnyDynamicLights, currentCameraHndl, resolution]() {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
 
       if (!wr.daGI2)
         return;
+
+      bvh_bind_resources(resolution.get().x);
 
       set_inv_globtm_to_shader(currentCameraHndl.ref().viewTm, currentCameraHndl.ref().jitterProjTm, false);
       const auto flags =
@@ -155,6 +160,8 @@ dafg::NodeHandle makeGiFeedbackNode()
 
       const bool allowUpdateFromGbuf = !camera_in_camera::is_lens_render_active();
       wr.daGI2->afterFrameRendered(flags, allowUpdateFromGbuf);
+
+      bvh_unbind_resources();
     };
   });
 }

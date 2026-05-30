@@ -230,7 +230,7 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
 
   ShaderGlobal::set_float4(downsample_fromVarId, w, h, 0, 0);
   ShaderGlobal::set_float4(downsample_toVarId, w >> 1, h >> 1, 0, 0);
-  ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth);
+  ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, from_depth);
 
   // TODO: This barrier can be managed externally (external_barriers)
   d3d::resource_barrier({from_depth, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
@@ -305,12 +305,12 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
 
     if (!farHasDepthFormat)
     {
-      ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[0]);
+      ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, far_depth_array[0]);
     }
 
     if (close_depth)
     {
-      ShaderGlobal::set_texture(downsample_closest_depth_fromVarId, close_depth);
+      ShaderGlobal::set_texture_unsafe(downsample_closest_depth_fromVarId, close_depth);
     }
 
     ShaderGlobal::set_int(downsampled_depth_mip_countVarId, far_depth_mip_count);
@@ -339,7 +339,7 @@ void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *
         farDepthSource.mip_level, 1});
       if (farHasDepthFormat)
       {
-        ShaderGlobal::set_texture(downsample_depth_fromVarId, far_depth_array[unsigned(i - 1)]); // farDepthSource texture ID
+        ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, far_depth_array[unsigned(i - 1)]); // farDepthSource texture ID
       }
       else
       {
@@ -449,7 +449,7 @@ void generate_depth_mips(const TextureIDPair &tex)
 
   tex.getTex2D()->texmiplevel(-1, -1);
 
-  ShaderGlobal::set_texture(downsample_depth_fromVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, nullptr);
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
 }
@@ -482,7 +482,7 @@ void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count)
     {depth_mips[depth_mip_count - 1].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE | RB_RO_COPY_SOURCE, 0, 1});
 
   shaders::overrides::reset();
-  ShaderGlobal::set_texture(downsample_depth_fromVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, nullptr);
 
   // Preserve state of `has_motion_vectors`.
   ShaderGlobal::set_int(has_motion_vectorsVarId, savedHasMotionVectors);
@@ -521,7 +521,7 @@ void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture 
       {{far_depth, 0, 0}, {close_depth, 0, 0}, {checkerboard_depth, 0, 0}, {far_normals, 0, 0}, {motion_vectors, 0, 0}});
     d3d::set_rwtex(STAGE_PS, 5, normal_gbuf, 0, 0);
     ShaderGlobal::set_float4(downsample_fromVarId, w, h, 0, 0);
-    ShaderGlobal::set_texture(downsample_depth_fromVarId, from_depth);
+    ShaderGlobal::set_texture_unsafe(downsample_depth_fromVarId, from_depth);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
     downsampleDepth.render(); // first pass
   }

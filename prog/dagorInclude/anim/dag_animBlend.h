@@ -491,6 +491,7 @@ public:
     };
     int nodeId;
     float morphTime;
+    FifoMorphType morphType;
     float forcedStateDur, forcedStateSpd;
     float minTimeScale, maxTimeScale;
   };

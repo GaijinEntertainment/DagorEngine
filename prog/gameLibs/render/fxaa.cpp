@@ -56,10 +56,10 @@ void Antialiasing::apply(Texture *source_color_tex, Texture *source_depth_tex, c
 
   // One pass.
   if (sourceDepthTexVarId >= 0)
-    ShaderGlobal::set_texture(sourceDepthTexVarId, source_depth_tex);
+    ShaderGlobal::set_texture_unsafe(sourceDepthTexVarId, source_depth_tex);
 
   if (sourceColorTexVarId >= 0)
-    ShaderGlobal::set_texture(sourceColorTexVarId, source_color_tex);
+    ShaderGlobal::set_texture_unsafe(sourceColorTexVarId, source_color_tex);
   antialiasingRenderer->render();
 
   if (sourceDepthTexVarId >= 0)

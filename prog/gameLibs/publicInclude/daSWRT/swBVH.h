@@ -94,6 +94,10 @@ struct RenderSWRT
   void drawRT();
   void reserveAddInstances(int cnt);
   uint32_t currentInstancesCount() const { return instances.size(); }
+
+  uint32_t getBLASCount() const { return blasDataInfo.size(); }
+  uint32_t getBLASBytes() const { return blasBytes.size(); }
+
   void clearTLASSourceData(bool shrink_arrays = true);
   void clearBLASSourceData();
   void clearTLASBuffers();

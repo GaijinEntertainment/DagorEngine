@@ -129,6 +129,7 @@ struct SkinnedVertexProcessorBatched : public BufferProcessor
 {
   mutable uint32_t counter = 0;
   mutable uint32_t lastInstanceOffset = 0;
+  mutable uint32_t instanceDataBaseOffset = 0;
 
   using VariantKey = uint32_t;
   struct DispatchData
@@ -370,6 +371,11 @@ struct ProcessorInstances
     if (!splineGenVertex)
       splineGenVertex.reset(new SplineGenVertexProcessor());
     return *splineGenVertex;
+  }
+
+  static bool isVertexProcessorBatched(const BufferProcessor &processor)
+  {
+    return &processor == skinnedVertexBatched.get() || &processor == treeVertex.get();
   }
 
   static void teardown()

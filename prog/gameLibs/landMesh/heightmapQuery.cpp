@@ -49,26 +49,21 @@ static eastl::unique_ptr<HeightmapQueryCtx> heightmap_query_ctx;
 static int num_heightmap_groups_slot = -1;
 static int details_cb_slot = -1;
 
+static bool get_int_slot(const char *name, int &out)
+{
+  if (ShaderGlobal::get_int_by_name(name, out))
+    return true;
+  logerr("HeightmapQuery: Could not find shader variable \"%s\"", name);
+  return false;
+}
+
 bool HeightmapQueryCtx::init()
 {
-  int resultBufferSlot = -1;
-  if (!ShaderGlobal::get_int_by_name("hmap_query_dispatch_buf_const_no", resultBufferSlot))
-  {
-    logerr("HeightmapQuery: Could not find shader variable \"hmap_query_dispatch_buf_const_no\"");
+  int resultBufferSlot = -1, resultsOffsetSlot = -1, numInputsSlot = -1;
+  if (!get_int_slot("hmap_query_dispatch_buf_const_no", resultBufferSlot) ||
+      !get_int_slot("hmap_query_dispatch_results_offset_no", resultsOffsetSlot) ||
+      !get_int_slot("hmap_query_dispatch_cnt_const_no", numInputsSlot))
     return false;
-  }
-  int resultsOffsetSlot = -1;
-  if (!ShaderGlobal::get_int_by_name("hmap_query_dispatch_results_offset_no", resultsOffsetSlot))
-  {
-    logerr("HeightmapQuery: Could not find shader variable \"hmap_query_dispatch_results_offset_no\"");
-    return false;
-  }
-  int numInputsSlot = -1;
-  if (!ShaderGlobal::get_int_by_name("hmap_query_dispatch_cnt_const_no", numInputsSlot))
-  {
-    logerr("HeightmapQuery: Could not find shader variable \"hmap_query_dispatch_cnt_const_no\"");
-    return false;
-  }
 
   GpuReadbackQuerySystemDescription grqsDesc;
   grqsDesc.maxQueriesPerFrame = MAX_HEIGHTMAP_QUERIES_PER_FRAME;

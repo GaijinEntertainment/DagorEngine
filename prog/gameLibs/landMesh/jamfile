@@ -7,7 +7,9 @@ Target      = gameLibs/landMesh.lib ;
 Sources =
   landMicroDetails.cpp
   lmeshManager.cpp
+  lmeshLandClasses.cpp
   lmeshRenderer.cpp
+  lmeshRendererLandClasses.cpp
 #  clipmap.cpp
   virtualtexture.cpp
   landRayTracer.cpp

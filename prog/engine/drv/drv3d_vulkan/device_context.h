@@ -235,7 +235,6 @@ public:
   bool updateBindlessResource(uint32_t index, D3dResource *res);
   void updateBindlessResourceRange(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *> &resources);
   void updateBindlessSampler(uint32_t index, const SamplerResource *sampler_res);
-  void copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
   void updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count);
 
   void deleteAsyncCompletionStateOnFinish(AsyncCompletionState &sync);

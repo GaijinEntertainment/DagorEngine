@@ -24,6 +24,7 @@ Sources =
   impostorBaker.cpp
   impostorTexturePacker.cpp
   impostorGenerator.cpp
+  impostorVoxel.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

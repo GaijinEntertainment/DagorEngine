@@ -1084,10 +1084,10 @@ void AnimBlendCtrl_Fifo3::setDefaultState(IPureAnimStateHolder &st)
   fifo->reset(false);
 }
 
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time)
+void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType morph_type)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
-  fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, n, overlap_time);
+  fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, n, overlap_time, morph_type);
 }
 void AnimBlendCtrl_Fifo3::resetQueue(IPureAnimStateHolder &st, bool leave_cur_state)
 {
@@ -1631,19 +1631,21 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
     set_rewind_bit(newAnim, st, rewindBitmapParamsIds);
     list[newAnim].node->resume(st, !continuousAnimMode);
     real time = morphTime;
-    if (fifo->state != AnimFifo3Queue::ST_0 && morphTimeOverride.size())
+    FifoMorphType type = morphType;
+    if (fifo->state != AnimFifo3Queue::ST_0 && morphParamsOverride.size())
     {
       IAnimBlendNode *fromNode = fifo->state == AnimFifo3Queue::ST_1 ? fifo->node[0] : fifo->node[1];
-      for (auto &override : morphTimeOverride)
+      for (auto &override : morphParamsOverride)
       {
         if (override.from == fromNode && override.to == list[newAnim].node)
         {
           time = override.morphTime;
+          type = override.morphType;
           break;
         }
       }
     }
-    fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, list[newAnim].node, time);
+    fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, list[newAnim].node, time, type);
     st.setParamInt(lastAnimParamId, newAnim + 1);
   }
   else if (newAnim == -1 && !continuousAnimMode)

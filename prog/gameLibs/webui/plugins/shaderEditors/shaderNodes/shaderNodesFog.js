@@ -237,7 +237,9 @@ var GE_defaultExternalsAdditional =
     {type: "texture2D_nosampler", name:"downsampled_close_depth_tex"},
     {type: "texture2D", name:"prev_distant_fog_raymarch_start_weights"},
     {type: "float4",  name:"distant_fog_raymarch_resolution"},
+    {type: "float4",  name:"distant_fog_raymarch_dyn_scales"},
     {type: "float4",  name:"distant_fog_reconstruction_resolution"},
+    {type: "float4",  name:"distant_fog_reconstruction_dyn_scales"},
     {type: "float4",  name:"distant_fog_raymarch_params_0"},
     {type: "float4",  name:"distant_fog_raymarch_params_1"},
     {type: "float4",  name:"distant_fog_raymarch_params_2"},
@@ -285,5 +287,4 @@ var GE_defaultExternalsAdditional =
     {type:"float", name:"camera_in_camera_postfx_lens_view"},
     {type:"float", name:"camera_in_camera_active"},
   ];
-
 

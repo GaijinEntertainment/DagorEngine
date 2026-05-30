@@ -1849,10 +1849,12 @@ void emit_particle_bypass(int elem_idx, int pin_idx, const GraphData &g, const N
 } // namespace
 
 bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
-  DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk)
+  DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names)
 {
   out_main_graph_blk.reset();
   out_shader_list_blk.reset();
+  out_pin_custom_texture_names.clear();
 
   NodeIndex index;
   index.build(g);
@@ -2023,6 +2025,32 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
       break;
     }
   } while (changed);
+
+  // Snapshot PinCompileState::customTextureName into the output parameter so the
+  // caller can apply it onto GraphData::Pin::customTextureName from the main
+  // thread. The texture-preview panel (graph_panel.cpp) reads that Pin field
+  // without taking graphMutex; writing it from the worker thread (compile runs
+  // here, plugin.cpp:84) would race against those reads. Bypassed nodes get an
+  // empty inner vector since they never run emit_pass_block.
+  out_pin_custom_texture_names.resize(g.nodes.size());
+  for (int i = 0; i < static_cast<int>(g.nodes.size()); ++i)
+  {
+    if (states[i].bypassed)
+    {
+      continue;
+    }
+    const GraphData::Node &n = g.nodes[i];
+    out_pin_custom_texture_names[i].resize(n.pins.size());
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      const PinCompileState *st = get_pin_state(states, i, j);
+      if (!st)
+      {
+        continue;
+      }
+      out_pin_custom_texture_names[i][j] = st->customTextureName;
+    }
+  }
 
   for (const auto &s : finals.finals)
   {

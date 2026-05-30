@@ -253,6 +253,8 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
     d3d::set_cs_constbuffer_register_count(0);
   }
 
+  bvh::unbind_resources();
+
   d3d::resource_barrier(ResourceBarrierDesc(gi_value->second, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
 
   denoiser::denoise_gi(params);

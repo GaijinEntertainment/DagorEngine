@@ -19,9 +19,11 @@ namespace PropPanel
 class ToolbarPropertyControl : public ContainerPropertyControl
 {
 public:
-  ToolbarPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id,
-    bool use_tight_button_placement) :
-    ContainerPropertyControl(id, event_handler, parent), useTightButtonPlacement(use_tight_button_placement)
+  ToolbarPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, bool use_tight_button_placement,
+    int toolbar_control_width) :
+    ContainerPropertyControl(id, event_handler, parent),
+    toolbarControlWidth(toolbar_control_width),
+    useTightButtonPlacement(use_tight_button_placement)
   {}
 
   int getImguiControlType() const override { return (int)ControlType::Toolbar; }
@@ -89,9 +91,9 @@ public:
 
   void clear() override { ContainerPropertyControl::clear(); }
 
-  void setToolbarControlWidth(int width)
+  void setToolbarScalePercent(int scale_percent)
   {
-    toolbarControlWidth = width;
+    toolbarScalePercent = scale_percent;
 
     for (PropertyControlBase *control : mControlArray)
       setControlWidth(*control);
@@ -170,7 +172,11 @@ protected:
     return -1;
   }
 
-  void setControlWidth(PropertyControlBase &control) { control.setWidth(hdpi::_pxScaled(toolbarControlWidth)); }
+  void setControlWidth(PropertyControlBase &control)
+  {
+    const int controlWidth = (int)(toolbarControlWidth * toolbarScalePercent * 0.01f);
+    control.setWidth(hdpi::_pxScaled(controlWidth));
+  }
 
   void addControl(PropertyControlBase *pcontrol, bool new_line) override
   {
@@ -199,7 +205,8 @@ protected:
     }
   }
 
-  int toolbarControlWidth = Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH;
+  int toolbarScalePercent = 100;
+  const int toolbarControlWidth;
   const bool useTightButtonPlacement;
 };
 

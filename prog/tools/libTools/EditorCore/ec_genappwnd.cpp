@@ -407,11 +407,12 @@ public:
 
       unsigned int count = commandSystem->getCommandCount();
       const char *filter = params.size() == 1 ? params[0] : "";
+      eastl::string_view filterStringView(filter);
       Tab<String> commandIds;
       for (unsigned int i = 0; i < count; ++i)
       {
         const char *commandId = commandSystem->getCommandId(i);
-        if (commandId && dd_stristr(commandId, filter))
+        if (commandId && dd_stristr(commandId, filterStringView))
           commandIds.emplace_back(commandId);
       }
       sort(commandIds, compare_command_ids);

@@ -769,10 +769,19 @@ namespace das {
         static __forceinline VecT & at ( MatT & value, int32_t index, Context * __context__ ) {
             uint32_t idx = uint32_t(index);
             if ( idx>=uint32_t(size) ) __context__->throw_error_ex("matrix index out of range, %u of %u", idx, size);
+#if defined(__clang__) && defined(DAS_STRICT_ALIASING)
+            // Compiler barrier: prevents ThinLTO SROA from substituting a stale virtual-register
+            // value for value.m[idx] after a write through an aliased pointer of a different type
+            // (e.g. TMatrix & aliasing float3x4). No machine instruction is emitted.
+            std::atomic_signal_fence(std::memory_order_seq_cst);
+#endif
             return value.m[idx];
         }
         static __forceinline VecT & at ( MatT & value, uint32_t idx, Context * __context__ ) {
             if ( idx>=uint32_t(size) ) __context__->throw_error_ex("matrix index out of range, %u of %u", idx, size);
+#if defined(__clang__) && defined(DAS_STRICT_ALIASING)
+            std::atomic_signal_fence(std::memory_order_seq_cst);
+#endif
             return value.m[idx];
         }
     };

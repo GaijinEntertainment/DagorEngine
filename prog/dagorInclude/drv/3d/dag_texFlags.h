@@ -64,6 +64,9 @@ enum
   TEXCF_SAMPLECOUNT_MASK = 0x00060000U,
   TEXCF_SAMPLECOUNT_OFFSET = 17,
 
+  // Disable tracking in the driver. Use enhanced barriers.
+  TEXCF_NO_STATE_TRACKING = 0x00000800U,
+
 #if _TARGET_C1 | _TARGET_C2
 
 

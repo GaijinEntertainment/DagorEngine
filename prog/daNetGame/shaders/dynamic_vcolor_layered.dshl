@@ -12,10 +12,7 @@ shader dynamic_vcolor_layered
   INIT_VCOLOR_LAYERED(true)
   INIT_RANDOMIZED_TC(vs)
   DYNAMIC_DESTR_DISAPPEAR_INIT()
-  if (in_editor_assume == no)
-  {
-    NO_DYNSTCODE()
-  }
+  NO_DYNSTCODE()
 
   static int num_bones = 0;
   interval num_bones: no_bones<1, four_bones;

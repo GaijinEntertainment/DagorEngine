@@ -29,7 +29,7 @@ public:
     VISIBLE_IN_VSM = 1 << 11,
     DRAFT_DEPTH = 1 << 12,
     VISIBLE_IN_LANDMASK = 1 << 13,
-    // EMPTY = 1 << 14,
+    UNDERWATER_ONLY = 1 << 14,
     HAS_PER_INSTANCE_RENDER_ADDITIONAL_DATA = 1 << 15,
   };
   using SimpleScene::calcNodeBox;

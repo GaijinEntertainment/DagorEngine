@@ -105,7 +105,7 @@ bool trace_entities_in_grid(uint32_t grid_hash,
             IntersectedEntity &ent = *(IntersectedEntity *)intersected_entities.push_back_uninitialized();
             ent.eid = eid;
             ent.t = isect.intersectionT;
-            ent.collNodeId = isect.collisionNodeId;
+            ent.collNodeId = tri_ref::nodeIndex(isect.triRef);
             ent.norm = isect.normal;
             ent.pos = isect.intersectionPos;
             ent.depth = 0;
@@ -163,7 +163,7 @@ bool trace_entities_in_grid_by_capsule(uint32_t grid_hash,
           IntersectedEntity &ent = *(IntersectedEntity *)intersected_entities.push_back_uninitialized();
           ent.eid = eid;
           ent.t = isect.intersectionT;
-          ent.collNodeId = isect.collisionNodeId;
+          ent.collNodeId = tri_ref::nodeIndex(isect.triRef);
           ent.norm = isect.normal;
           ent.pos = isect.intersectionPos;
           ent.depth = 0;
@@ -214,7 +214,7 @@ bool trace_entities_in_grid_by_capsule(uint32_t grid_hash,
             IntersectedEntity &ent = *(IntersectedEntity *)intersected_entities.push_back_uninitialized();
             ent.eid = eid;
             ent.t = isect.intersectionT;
-            ent.collNodeId = isect.collisionNodeId;
+            ent.collNodeId = tri_ref::nodeIndex(isect.triRef);
             ent.norm = isect.normal;
             ent.pos = isect.intersectionPos;
             ent.depth = 0;

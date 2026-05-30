@@ -2,7 +2,6 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
-include "ThreadGroupTilingX.dshl"
 include "rt/rt_lighting.dshl"
 include "use_prefiltered_gf.dshl"
 include "wetness_inc.dshl"
@@ -316,7 +315,7 @@ shader rt_reflection_probe_color
       float distance;
 
       BRANCH
-      if (probePosition.w == 0)
+      if (probePosition.w == 0 || !bvhMainValid)
       {
         color = texCUBElod(envi_probe_specular, float4(direction, skyMip)).rgb * apply_sky_polarization_filter();
         distance = NRD_FP16_MAX;

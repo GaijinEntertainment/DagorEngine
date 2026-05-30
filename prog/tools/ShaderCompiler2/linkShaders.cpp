@@ -584,9 +584,27 @@ struct RecompileJobBase : shc::Job
   }
 };
 
+static eastl::optional<size_t> lookup_comp_prog(const dx12::dxil::CombinedShaderData &uncompiled, const shc::TargetContext &ctx)
+{
+  const ShaderTargetStorage &stor = ctx.storage();
+  auto ref = stor.shadersCompProg.begin();
+  for (; ref != stor.shadersCompProg.end(); ref += 2)
+  {
+    if ((uint8_t *)(*ref)->data() == uncompiled.metadata.data() && (*(ref + 1))->data() == uncompiled.bytecode.data())
+    {
+      return ref - stor.shadersCompProg.begin();
+    }
+  }
+
+  return eastl::nullopt;
+}
+
 struct RecompileVPRogJob : RecompileJobBase
 {
   using RecompileJobBase::RecompileJobBase;
+
+  size_t compProgIndex = 0;
+  RecompileVPRogJob(size_t ct, size_t ci, shc::TargetContext &cref) : RecompileJobBase{ct, cref}, compProgIndex{ci} {}
 
   void doJobBody() override
   {
@@ -609,14 +627,7 @@ struct RecompileVPRogJob : RecompileJobBase
     }
     if (recompiledVProgBlob.metadata && recompiledVProgBlob.bytecode)
     {
-      auto ref = stor.shadersCompProg.begin();
-      for (; ref != stor.shadersCompProg.end(); ref += 2)
-      {
-        if ((uint8_t *)(*ref)->data() == uncompiled.metadata.data() && (*(ref + 1))->data() == uncompiled.bytecode.data())
-        {
-          break;
-        }
-      }
+      auto *ref = &stor.shadersCompProg[compProgIndex];
 
       REPORT("vprog size %u -> %u", data_size(uncompiled.metadata) + data_size(uncompiled.bytecode),
         data_size(recompiledVProgBlob.metadata) + data_size(recompiledVProgBlob.bytecode));
@@ -648,6 +659,9 @@ struct RecompilePShJob : RecompileJobBase
 {
   using RecompileJobBase::RecompileJobBase;
 
+  size_t compProgIndex = 0;
+  RecompilePShJob(size_t ct, size_t ci, shc::TargetContext &cref) : RecompileJobBase{ct, cref}, compProgIndex{ci} {}
+
   void doJobBody() override
   {
     ShaderTargetStorage &stor = ctx.storage();
@@ -669,14 +683,7 @@ struct RecompilePShJob : RecompileJobBase
     }
     if (recompiledFShBlob.metadata && recompiledFShBlob.bytecode)
     {
-      auto ref = stor.shadersCompProg.begin();
-      for (; ref != stor.shadersCompProg.end(); ref += 2)
-      {
-        if ((uint8_t *)(*ref)->data() == uncompiled.metadata.data() && (*(ref + 1))->data() == uncompiled.bytecode.data())
-        {
-          break;
-        }
-      }
+      auto *ref = &stor.shadersCompProg[compProgIndex];
 
       REPORT("fsh size %u -> %u", data_size(uncompiled.metadata) + data_size(uncompiled.bytecode),
         data_size(*recompiledFShBlob.metadata) + data_size(*recompiledFShBlob.bytecode));
@@ -703,6 +710,23 @@ struct RecompilePShJob : RecompileJobBase
   }
   void releaseJobBody() override {}
 };
+
+static eastl::optional<RecompileVPRogJob> make_recompile_vpr_job(size_t ct, shc::TargetContext &ctx)
+{
+  return lookup_comp_prog(dx12::dxil::CombinedShaderData{ctx.storage().shadersVprMetadata[ct], ctx.storage().shadersVpr[ct]}, ctx) //
+    .transform([&](size_t ci) { return RecompileVPRogJob{ct, ci, ctx}; })                                                          //
+    .or_else([] {
+      G_ASSERTF(0, "ICE: Trying to recompile missing VPR prog, stored data probably corrupted.");
+      return eastl::optional<RecompileVPRogJob>{};
+    });
+}
+
+static eastl::optional<RecompilePShJob> make_recompile_psh_job(size_t ct, shc::TargetContext &ctx)
+{
+  // No assert here -- compute shaders share the same storage (shadersFsh/shadersFshMetadata) but not the CompProg, so we skip them
+  return lookup_comp_prog(dx12::dxil::CombinedShaderData{ctx.storage().shadersFshMetadata[ct], ctx.storage().shadersFsh[ct]}, ctx) //
+    .transform([&](size_t ci) { return RecompilePShJob{ct, ci, ctx}; });
+}
 } // namespace
 
 struct IndexReplacmentInfo
@@ -873,11 +897,13 @@ void recompile_shaders(shc::TargetContext &ctx)
     // generate all jobs first
     for (size_t i = 0; i < stor.shadersVpr.size(); ++i)
     {
-      vprogRecompileJobList.emplace_back(i, ctx);
+      if (auto vj = make_recompile_vpr_job(i, ctx))
+        vprogRecompileJobList.emplace_back(eastl::move(*vj));
     }
     for (size_t i = 0; i < stor.shadersFsh.size(); ++i)
     {
-      fshRecompileJobList.emplace_back(i, ctx);
+      if (auto pj = make_recompile_psh_job(i, ctx))
+        fshRecompileJobList.emplace_back(eastl::move(*pj));
     }
 
     allJobs.reserve(vprogRecompileJobList.size() + fshRecompileJobList.size());
@@ -907,15 +933,19 @@ void recompile_shaders(shc::TargetContext &ctx)
   {
     for (size_t i = 0; i < stor.shadersVpr.size(); ++i)
     {
-      RecompileVPRogJob job{i, ctx};
-      job.doJob();
-      job.releaseJob();
+      if (auto job = make_recompile_vpr_job(i, ctx))
+      {
+        job->doJob();
+        job->releaseJob();
+      }
     }
     for (size_t i = 0; i < stor.shadersFsh.size(); ++i)
     {
-      RecompilePShJob job{i, ctx};
-      job.doJob();
-      job.releaseJob();
+      if (auto job = make_recompile_psh_job(i, ctx))
+      {
+        job->doJob();
+        job->releaseJob();
+      }
     }
   }
 

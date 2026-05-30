@@ -3,15 +3,20 @@
 #include <graphEditor/graph_data.h>
 
 #include <debug/dag_debug.h>
+#include <math/dag_Point4.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_string.h>
 
 #include <rapidjson/document.h>
 
+#include <EASTL/hash_map.h>
+#include <EASTL/hash_set.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <float.h>
+#include <format>
 
 namespace
 {
@@ -192,6 +197,143 @@ const char *pin_type_to_string(PinType t)
   }
   return "";
 }
+
+// Reconciles a freshly-loaded Node's templateUid + descName against the descriptor
+// registry. Runs once per node, after parse and before resolve_node_pins.
+//
+// Three paths:
+//   1. templateUid set + descriptor found -> refresh node.descName from descriptor's
+//      current name:t (so renamed templates show their new name in saved files on
+//      round-trip; the uid is the stable lookup key).
+//   2. templateUid empty + base_nodes_blk non-null -> legacy migration: linear-scan
+//      by descName, populate templateUid from the matched descriptor's templateUid:t.
+//      Silent auto-migrate: next save upgrades the BLK to carry templateUid.
+//   3. Neither resolves -> leave both fields as-loaded; resolve_node_pins will render
+//      pins hidden, properties panel shows "(no descriptor)".
+//
+// debug() logs the migrate and the miss so unexpected divergence is grep-able from
+// the editor console without noisy con*().
+void reconcile_template_uid(GraphData::Node &node, const DataBlock *base_nodes_blk)
+{
+  if (!base_nodes_blk)
+  {
+    return;
+  }
+
+  if (!node.templateUid.empty())
+  {
+    for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
+    {
+      const DataBlock *b = base_nodes_blk->getBlock(i);
+      if (strcmp(b->getBlockName(), "node") != 0)
+      {
+        continue;
+      }
+      if (strcmp(b->getStr("templateUid", ""), node.templateUid.c_str()) == 0)
+      {
+        node.descName = b->getStr("name", "");
+        return;
+      }
+    }
+    debug("graphEditor: node id=%d templateUid '%s' (descName '%s') not found in base_nodes.blk", node.id, node.templateUid.c_str(),
+      node.descName.c_str());
+    return;
+  }
+
+  if (node.descName.empty())
+  {
+    return;
+  }
+
+  for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
+  {
+    const DataBlock *b = base_nodes_blk->getBlock(i);
+    if (strcmp(b->getBlockName(), "node") != 0)
+    {
+      continue;
+    }
+    if (strcmp(b->getStr("name", ""), node.descName.c_str()) == 0)
+    {
+      node.templateUid = b->getStr("templateUid", "");
+      debug("graphEditor: migrated node id=%d descName '%s' -> templateUid '%s'", node.id, node.descName.c_str(),
+        node.templateUid.c_str());
+      return;
+    }
+  }
+  // shader_editor sub-graph nodes (mask_from_index, multi_max, etc.) carry their
+  // pin shape inside the JSON instance and have no base_nodes.blk descriptor by
+  // design -- silence the miss for those; resolve_node_pins handles them via the
+  // "descriptor missing" branch.
+  if (!node.plugin.empty())
+  {
+    return;
+  }
+  debug("graphEditor: node id=%d descName '%s' not found in base_nodes.blk (no templateUid, no name match)", node.id,
+    node.descName.c_str());
+}
+
+// Item lists mirror mainNodes.js:2982-2999. BASE_SIZES/TYPES/WRAPS live in graph_data.h
+// because PropertiesPanel reuses them verbatim for the graph-level "<graph properties>"
+// view. The SIZE/TYPE/WRAP_PREFIXES are the relative-mode items prepended for per-node
+// descriptors only; they have no meaning at the graph level so they stay private here.
+// Order matters: the val string we write below is the items[0] of the non-graph branch,
+// and combobox selection in PropertiesPanel matches by string equality.
+constexpr const char *SIZE_PREFIXES[] = {
+  "parent size", "graph size", "x 2", "x 4", "x 8", "x 16", "x 32", "/ 2", "/ 4", "/ 8", "/ 16", "/ 32"};
+constexpr const char *TYPE_PREFIXES[] = {"parent type", "graph type"};
+constexpr const char *WRAP_PREFIXES[] = {"parent wrap", "graph wrap"};
+
+// Read the first comma-separated type token out of a pin's `types:t` value. Returns empty
+// when the field is missing/empty.
+eastl::string first_type_token(const char *types_csv)
+{
+  if (!types_csv || !*types_csv)
+  {
+    return {};
+  }
+  const char *comma = strchr(types_csv, ',');
+  return comma ? eastl::string(types_csv, size_t(comma - types_csv)) : eastl::string(types_csv);
+}
+
+void push_size_items(DataBlock &items, bool include_width)
+{
+  if (include_width)
+  {
+    items.addStr("item", "width");
+  }
+  for (const char *p : SIZE_PREFIXES)
+  {
+    items.addStr("item", p);
+  }
+  for (const char *s : BASE_SIZES)
+  {
+    items.addStr("item", s);
+  }
+}
+
+void push_type_items(DataBlock &items)
+{
+  for (const char *p : TYPE_PREFIXES)
+  {
+    items.addStr("item", p);
+  }
+  for (const char *t : BASE_TYPES)
+  {
+    items.addStr("item", t);
+  }
+}
+
+void push_wrap_items(DataBlock &items)
+{
+  for (const char *p : WRAP_PREFIXES)
+  {
+    items.addStr("item", p);
+  }
+  for (const char *w : BASE_WRAPS)
+  {
+    items.addStr("item", w);
+  }
+}
 } // namespace
 
 PinType parse_pin_type(const char *type_name)
@@ -286,78 +428,63 @@ bool is_texture_or_particles(PinType t)
   return t == PinType::Texture1D || t == PinType::Texture2D || t == PinType::Texture3D || t == PinType::Particles;
 }
 
-// Reconciles a freshly-loaded Node's templateUid + descName against the descriptor
-// registry. Runs once per node, after parse and before resolve_node_pins.
-//
-// Three paths:
-//   1. templateUid set + descriptor found -> refresh node.descName from descriptor's
-//      current name:t (so renamed templates show their new name in saved files on
-//      round-trip; the uid is the stable lookup key).
-//   2. templateUid empty + base_nodes_blk non-null -> legacy migration: linear-scan
-//      by descName, populate templateUid from the matched descriptor's templateUid:t.
-//      Silent auto-migrate: next save upgrades the BLK to carry templateUid.
-//   3. Neither resolves -> leave both fields as-loaded; resolve_node_pins will render
-//      pins hidden, properties panel shows "(no descriptor)".
-//
-// debug() logs the migrate and the miss so unexpected divergence is grep-able from
-// the editor console without noisy con*().
-static void reconcile_template_uid(GraphData::Node &node, const DataBlock *base_nodes_blk)
+const char *infer_prop_type(const DataBlock *prop_desc)
 {
-  if (!base_nodes_blk)
+  if (!prop_desc)
   {
-    return;
+    return "";
   }
+  const char *t = prop_desc->getStr("type", "");
+  if (t[0])
+  {
+    return t;
+  }
+  const int idx = prop_desc->findParam("val");
+  if (idx < 0)
+  {
+    return "";
+  }
+  // Inverse of the converter's type-tag mapping. val:t -> "string" because :t
+  // is BLK's string tag, so a val:t with no explicit type:t reads as plain
+  // string. combobox / curve / gradient also use val:t but always carry an
+  // explicit type:t for disambiguation, so they don't reach this default.
+  switch (prop_desc->getParamType(idx))
+  {
+    case DataBlock::TYPE_BOOL: return "bool";
+    case DataBlock::TYPE_INT: return "int";
+    case DataBlock::TYPE_REAL: return "float";
+    case DataBlock::TYPE_POINT4: return "color";
+    case DataBlock::TYPE_STRING: return "string";
+    default: return "";
+  }
+}
 
-  if (!node.templateUid.empty())
+eastl::string param_as_string(const DataBlock *blk, const char *name)
+{
+  if (!blk || !name)
   {
-    for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
+    return {};
+  }
+  const int idx = blk->findParam(name);
+  if (idx < 0)
+  {
+    return {};
+  }
+  char buf[128] = {};
+  switch (blk->getParamType(idx))
+  {
+    case DataBlock::TYPE_STRING: return eastl::string(blk->getStr(idx));
+    case DataBlock::TYPE_INT: snprintf(buf, sizeof(buf), "%d", blk->getInt(idx)); return buf;
+    case DataBlock::TYPE_REAL: snprintf(buf, sizeof(buf), "%g", blk->getReal(idx)); return buf;
+    case DataBlock::TYPE_BOOL: return blk->getBool(idx) ? eastl::string("true") : eastl::string("false");
+    case DataBlock::TYPE_POINT4:
     {
-      const DataBlock *b = base_nodes_blk->getBlock(i);
-      if (strcmp(b->getBlockName(), "node") != 0)
-      {
-        continue;
-      }
-      if (strcmp(b->getStr("templateUid", ""), node.templateUid.c_str()) == 0)
-      {
-        node.descName = b->getStr("name", "");
-        return;
-      }
+      const Point4 p = blk->getPoint4(idx);
+      snprintf(buf, sizeof(buf), "%g,%g,%g,%g", p.x, p.y, p.z, p.w);
+      return buf;
     }
-    debug("graphEditor: node id=%d templateUid '%s' (descName '%s') not found in base_nodes.blk", node.id, node.templateUid.c_str(),
-      node.descName.c_str());
-    return;
+    default: return {};
   }
-
-  if (node.descName.empty())
-  {
-    return;
-  }
-
-  for (uint32_t i = 0; i < base_nodes_blk->blockCount(); ++i)
-  {
-    const DataBlock *b = base_nodes_blk->getBlock(i);
-    if (strcmp(b->getBlockName(), "node") != 0)
-    {
-      continue;
-    }
-    if (strcmp(b->getStr("name", ""), node.descName.c_str()) == 0)
-    {
-      node.templateUid = b->getStr("templateUid", "");
-      debug("graphEditor: migrated node id=%d descName '%s' -> templateUid '%s'", node.id, node.descName.c_str(),
-        node.templateUid.c_str());
-      return;
-    }
-  }
-  // shader_editor sub-graph nodes (mask_from_index, multi_max, etc.) carry their
-  // pin shape inside the JSON instance and have no base_nodes.blk descriptor by
-  // design -- silence the miss for those; resolve_node_pins handles them via the
-  // "descriptor missing" branch.
-  if (!node.plugin.empty())
-  {
-    return;
-  }
-  debug("graphEditor: node id=%d descName '%s' not found in base_nodes.blk (no templateUid, no name match)", node.id,
-    node.descName.c_str());
 }
 
 void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
@@ -462,6 +589,160 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
   }
 }
 
+void preprocess_node_descriptor(DataBlock &node_desc)
+{
+  // The "<graph properties>" pseudo-node carries the graph-level texture defaults in the JS
+  // editor (mainNodes.js:2974-3008 inflates it with texture/heightmap/dir properties). In the
+  // C++ port those defaults live on GraphData fields (graphTextureWidth etc.) and are
+  // rendered by PropertiesPanel::rebuildForGraph, so injecting per-node properties here
+  // would duplicate the controls.
+  if (strcmp(node_desc.getStr("name", ""), "<graph properties>") == 0)
+  {
+    return;
+  }
+
+  // Walk output pins to derive outDimension / outParticles (mainNodes.js:2931-2948). We
+  // match the JS behaviour of looking only at types[0] -- a pin tagged "float,texture2D"
+  // counts as a float output and contributes nothing.
+  int outDimension = 0;
+  bool outParticles = false;
+  for (uint32_t i = 0; i < node_desc.blockCount(); ++i)
+  {
+    const DataBlock *pinBlk = node_desc.getBlock(i);
+    if (strcmp(pinBlk->getBlockName(), "pin") != 0)
+    {
+      continue;
+    }
+    if (strcmp(pinBlk->getStr("role", "in"), "out") != 0)
+    {
+      continue;
+    }
+    const eastl::string firstType = first_type_token(pinBlk->getStr("types", ""));
+    int pinDim = 0;
+    if (firstType == "texture1D")
+    {
+      pinDim = 1;
+    }
+    else if (firstType == "texture2D")
+    {
+      pinDim = 2;
+    }
+    else if (firstType == "particles")
+    {
+      pinDim = 2;
+      outParticles = true;
+    }
+    else if (firstType == "texture3D")
+    {
+      pinDim = 3;
+    }
+    if (pinDim > outDimension)
+    {
+      outDimension = pinDim;
+    }
+  }
+
+  if (outDimension == 0)
+  {
+    return;
+  }
+
+  // Skip injection for properties the descriptor already declares (e.g. the "raw texture"
+  // node in base_nodes.blk hard-codes texture width/height/type/wrap).
+  bool haveTexWidth = false;
+  bool haveTexHeight = false;
+  bool haveTexDepth = false;
+  bool haveTexType = false;
+  bool haveTexWrap = false;
+  for (uint32_t i = 0; i < node_desc.blockCount(); ++i)
+  {
+    const DataBlock *propBlk = node_desc.getBlock(i);
+    if (strcmp(propBlk->getBlockName(), "property") != 0)
+    {
+      continue;
+    }
+    const char *propName = propBlk->getStr("name", "");
+    if (strcmp(propName, "texture width") == 0)
+    {
+      haveTexWidth = true;
+    }
+    else if (strcmp(propName, "texture height") == 0)
+    {
+      haveTexHeight = true;
+    }
+    else if (strcmp(propName, "texture depth") == 0)
+    {
+      haveTexDepth = true;
+    }
+    else if (strcmp(propName, "texture type") == 0)
+    {
+      haveTexType = true;
+    }
+    else if (strcmp(propName, "texture wrap") == 0)
+    {
+      haveTexWrap = true;
+    }
+  }
+
+  // Default values mirror mainNodes.js:3001-3021 for the non-graph-properties branch:
+  // size defaults to SIZE_PREFIXES[0] ("parent size"), height/depth to "width", type to
+  // TYPE_PREFIXES[0] ("parent type"), wrap to WRAP_PREFIXES[0] ("parent wrap"). Particles
+  // outputs override width to "= 512" and height to "= 1" so they map naturally to a
+  // 1D particle buffer rather than inheriting upstream texture dimensions.
+  const char *defaultWidth = outParticles ? "= 512" : SIZE_PREFIXES[0];
+  const char *defaultHeight = outParticles ? "= 1" : "width";
+  const char *defaultDepth = "width";
+  const char *defaultType = TYPE_PREFIXES[0];
+  const char *defaultWrap = WRAP_PREFIXES[0];
+
+  auto appendCombobox = [&](const char *name, const char *val) -> DataBlock * {
+    DataBlock *p = node_desc.addNewBlock("property");
+    p->setStr("name", name);
+    p->setStr("type", "combobox");
+    p->setStr("val", val);
+    return p->addNewBlock("items");
+  };
+
+  if (outDimension >= 1 && !haveTexWidth)
+  {
+    push_size_items(*appendCombobox("texture width", defaultWidth), /*include_width=*/false);
+  }
+  if (outDimension >= 2 && !haveTexHeight)
+  {
+    push_size_items(*appendCombobox("texture height", defaultHeight), /*include_width=*/true);
+  }
+  if (outDimension >= 3 && !haveTexDepth)
+  {
+    push_size_items(*appendCombobox("texture depth", defaultDepth), /*include_width=*/true);
+  }
+  if (!haveTexType)
+  {
+    push_type_items(*appendCombobox("texture type", defaultType));
+  }
+  if (!haveTexWrap)
+  {
+    push_wrap_items(*appendCombobox("texture wrap", defaultWrap));
+  }
+}
+
+int parse_graph_size(const char *s, int fallback)
+{
+  if (!s || !*s)
+  {
+    return fallback;
+  }
+  const char *p = s;
+  while (*p && !((*p >= '0' && *p <= '9') || *p == '-'))
+  {
+    ++p;
+  }
+  if (!*p)
+  {
+    return fallback;
+  }
+  return atoi(p);
+}
+
 void clear_graph_data(GraphData &out)
 {
   out.nodes.clear();
@@ -480,6 +761,301 @@ void clear_graph_data(GraphData &out)
   out.graphTextureType = "R16F";
   out.graphTextureWrap = "wrap";
   out.sourcePath.clear();
+}
+
+bool validate_subgraph_schema(const GraphData &gd, eastl::vector<SubgraphSchemaError> &out_errors)
+{
+  // Snapshot the starting error count so the return value reflects whether THIS call
+  // added anything -- callers can pre-populate `out_errors` with their own context and
+  // still get a meaningful boolean back.
+  const size_t startSize = out_errors.size();
+
+  struct Seen
+  {
+    eastl::string name;
+    bool isInput;
+    int nodeId;
+  };
+  eastl::vector<Seen> boundaries;
+
+  for (const GraphData::Node &n : gd.nodes)
+  {
+    const char *dn = n.descName.c_str();
+    const bool isIn = strncmp(dn, "subgraph in:", 12) == 0;
+    const bool isOut = strcmp(dn, "subgraph out") == 0;
+    if (!isIn && !isOut)
+    {
+      continue;
+    }
+
+    // Effective name = `name` property if set, else the name of the pin on the other end
+    // of the boundary's first edge. An unnamed boundary connected to (say) a `shape_height`
+    // consumer still has a usable interface name -- so we only flag EMPTY_INTERFACE_NAME
+    // when the boundary is BOTH unnamed AND unconnected.
+    eastl::string ifaceName = effective_subgraph_boundary_name(gd, n.id);
+    if (ifaceName.empty())
+    {
+      SubgraphSchemaError err;
+      err.code = SubgraphSchemaError::EMPTY_INTERFACE_NAME;
+      err.nodeId = n.id;
+      err.isInputRole = isIn;
+      out_errors.push_back(eastl::move(err));
+      continue;
+    }
+
+    boundaries.push_back(Seen{ifaceName, isIn, n.id});
+  }
+
+  if (boundaries.empty())
+  {
+    // Could either be a graph with no boundary nodes at all (which is the typical
+    // "user hit Save as subgraph by accident" case) OR a graph where every boundary
+    // had an empty name (already reported above). In the latter case we still want
+    // the user to see NO_BOUNDARIES is implied -- but only if no EMPTY_INTERFACE_NAME
+    // was added in this call (otherwise it's redundant noise).
+    if (out_errors.size() == startSize)
+    {
+      SubgraphSchemaError err;
+      err.code = SubgraphSchemaError::NO_BOUNDARIES; // -V1048
+      out_errors.push_back(eastl::move(err));
+    }
+  }
+  else
+  {
+    // At least one boundary -- the subgraph IS attempting to be useful. Require at least
+    // one `subgraph out` so the parent has something to read; an outputs-zero subgraph is
+    // pure side-effect-on-nothing as far as the texgen pipeline cares, since every
+    // interior compile result gets discarded at expansion time.
+    bool hasOutput = false;
+    for (const Seen &b : boundaries)
+    {
+      if (!b.isInput)
+      {
+        hasOutput = true;
+        break;
+      }
+    }
+    if (!hasOutput)
+    {
+      SubgraphSchemaError err;
+      err.code = SubgraphSchemaError::NO_OUTPUTS;
+      out_errors.push_back(eastl::move(err));
+    }
+  }
+
+  // Duplicate-name check: (role, name) must be unique across the whole boundary set
+  for (size_t i = 0; i < boundaries.size(); ++i)
+  {
+    for (size_t j = 0; j < i; ++j)
+    {
+      if (boundaries[i].isInput == boundaries[j].isInput && boundaries[i].name == boundaries[j].name)
+      {
+        SubgraphSchemaError err;
+        err.code = SubgraphSchemaError::DUPLICATE_NAME;
+        err.nodeId = boundaries[i].nodeId;
+        err.interfaceName = boundaries[i].name;
+        err.isInputRole = boundaries[i].isInput;
+        out_errors.push_back(eastl::move(err));
+        break;
+      }
+    }
+  }
+
+  return out_errors.size() == startSize;
+}
+
+eastl::string format_subgraph_schema_error(const SubgraphSchemaError &err)
+{
+  const char *roleStr = err.isInputRole ? "input" : "output";
+  switch (err.code)
+  {
+    case SubgraphSchemaError::NO_BOUNDARIES:
+      return eastl::string("graph has no `subgraph in:` / `subgraph out` boundary nodes -- nothing to expose");
+    case SubgraphSchemaError::NO_OUTPUTS:
+      return eastl::string("graph has no `subgraph out` boundary node -- parent cannot consume anything from this subgraph");
+    case SubgraphSchemaError::EMPTY_INTERFACE_NAME:
+    {
+      const std::string s = std::format(
+        "node id={}: {} boundary has empty `name` property and no incident edges to derive a name from", err.nodeId, roleStr);
+      return eastl::string(s.c_str(), s.size());
+    }
+    case SubgraphSchemaError::DUPLICATE_NAME:
+    {
+      const std::string s = std::format("node id={}: duplicate {} boundary named '{}' (another boundary already exposes this name)",
+        err.nodeId, roleStr, err.interfaceName.c_str());
+      return eastl::string(s.c_str(), s.size());
+    }
+  }
+  return eastl::string("unknown subgraph schema error");
+}
+
+void find_dead_input_boundaries(const GraphData &gd, eastl::vector<DeadInputBoundary> &out)
+{
+  // Build id -> node-index map once; the BFS below does up to N lookups per input boundary
+  // and a hash hit beats the linear scan effective_subgraph_boundary_name uses (the helper
+  // is fine for one-shot calls but this loop runs O(boundaries * edges) at worst).
+  eastl::hash_map<int, int> idToIdx;
+  idToIdx.reserve(gd.nodes.size());
+  for (int i = 0; i < static_cast<int>(gd.nodes.size()); ++i)
+  {
+    idToIdx[gd.nodes[i].id] = i;
+  }
+
+  for (const GraphData::Node &startNode : gd.nodes)
+  {
+    if (strncmp(startNode.descName.c_str(), "subgraph in:", 12) != 0)
+    {
+      continue;
+    }
+
+    // Forward BFS following data flow direction: an edge contributes a step from src to
+    // dst only when the src-side pin is an out-role pin (so the edge actually carries data
+    // FROM src TO dst). visited prevents both cycles and re-visiting through a different
+    // edge to the same node.
+    eastl::hash_set<int> visited;
+    eastl::vector<int> stack;
+    visited.insert(startNode.id);
+    stack.push_back(startNode.id);
+
+    bool reachesOutput = false;
+    while (!stack.empty())
+    {
+      const int curId = stack.back();
+      stack.pop_back();
+      auto idxIt = idToIdx.find(curId);
+      if (idxIt == idToIdx.end())
+      {
+        continue;
+      }
+      const GraphData::Node &cur = gd.nodes[idxIt->second];
+
+      // `subgraph out` boundary reached -- this input has a path to an output.
+      if (curId != startNode.id && cur.descName == "subgraph out")
+      {
+        reachesOutput = true;
+        break;
+      }
+
+      // Walk outgoing edges (the ones leaving an out-role pin on `cur`).
+      for (const GraphData::Edge &e : gd.edges)
+      {
+        int nextId = -1;
+        if (e.elemA == curId && e.pinA >= 0 && e.pinA < static_cast<int>(cur.pins.size()) && cur.pins[e.pinA].role == PinRole::Out)
+        {
+          nextId = e.elemB;
+        }
+        else if (
+          e.elemB == curId && e.pinB >= 0 && e.pinB < static_cast<int>(cur.pins.size()) && cur.pins[e.pinB].role == PinRole::Out)
+        {
+          nextId = e.elemA;
+        }
+        if (nextId >= 0 && visited.insert(nextId).second)
+        {
+          stack.push_back(nextId);
+        }
+      }
+    }
+
+    if (reachesOutput)
+    {
+      continue;
+    }
+
+    // This input boundary is dead -- record it for the warning.
+    DeadInputBoundary entry;
+    entry.nodeId = startNode.id;
+    entry.interfaceName = effective_subgraph_boundary_name(gd, startNode.id);
+    // descName "subgraph in: <type>" -- slice the type token for the fallback label when
+    // the interface name is unavailable (rare; would already have been flagged by the
+    // schema validator before this function ran).
+    const char *colon = strchr(startNode.descName.c_str(), ':');
+    if (colon)
+    {
+      const char *t = colon + 1;
+      while (*t == ' ')
+      {
+        ++t;
+      }
+      entry.type = t;
+    }
+    out.push_back(eastl::move(entry));
+  }
+}
+
+eastl::string effective_subgraph_boundary_name(const GraphData &gd, int boundary_node_id)
+{
+  // Locate the boundary node by id. Linear scan -- boundary lookup is cold-path (synthesis,
+  // validation, expander pre-pass) and the node count for a subgraph file stays small even
+  // for index_coloring_64 (489 nodes).
+  const GraphData::Node *boundary = nullptr;
+  for (const GraphData::Node &n : gd.nodes)
+  {
+    if (n.id == boundary_node_id)
+    {
+      boundary = &n;
+      break;
+    }
+  }
+  if (!boundary)
+  {
+    return {};
+  }
+
+  // Step 1: explicit `name` property wins. Most boundaries in the converted subgraphs are
+  // authored with a meaningful name (e.g. "indicies input"); only the occasional unnamed
+  // float / int parameter falls through to step 2.
+  for (const auto &pv : boundary->propertyValues)
+  {
+    if (pv.first == "name" && !pv.second.empty())
+    {
+      return pv.second;
+    }
+  }
+
+  // Step 2: derive from the first edge touching the boundary. Both `subgraph in: TYPE`
+  // (out-role pin) and `subgraph out` (in-role pin) boundaries have exactly one pin in
+  // base_nodes.blk, so we look at any edge whose endpoint is this node id and pull the
+  // "other side" pin's name. If a `subgraph in` fans out to multiple interior consumers
+  // we pick the first by edge-vector order -- deterministic across reloads since edges
+  // are persisted in stable order, and the consumer names are usually the same anyway
+  // (the boundary connects to one named param on the downstream node).
+  for (const GraphData::Edge &e : gd.edges)
+  {
+    int otherNodeId = -1;
+    int otherPinIdx = -1;
+    if (e.elemA == boundary_node_id)
+    {
+      otherNodeId = e.elemB;
+      otherPinIdx = e.pinB;
+    }
+    else if (e.elemB == boundary_node_id)
+    {
+      otherNodeId = e.elemA;
+      otherPinIdx = e.pinA;
+    }
+    if (otherNodeId < 0)
+    {
+      continue;
+    }
+    for (const GraphData::Node &n : gd.nodes)
+    {
+      if (n.id != otherNodeId)
+      {
+        continue;
+      }
+      if (otherPinIdx >= 0 && otherPinIdx < static_cast<int>(n.pins.size()))
+      {
+        const eastl::string &name = n.pins[otherPinIdx].name;
+        if (!name.empty())
+        {
+          return name;
+        }
+      }
+      break;
+    }
+  }
+
+  return {};
 }
 
 bool load_graph_data(GraphData &out, const char *json_path, const char *shader_includes_dir, const DataBlock *base_nodes_blk)
@@ -553,13 +1129,15 @@ bool load_graph_data(GraphData &out, const char *json_path, const char *shader_i
       }
       if (e.HasMember("pins") && e["pins"].IsArray())
       {
-        // Per-instance pin state. `name` and `customTextureName` are always read; `role` and
-        // `types` are read so they can serve as a fallback in resolve_node_pins for nodes
-        // whose descriptor isn't in base_nodes.blk (shader_editor-generated nodes like
-        // mask_from_index / multi_max get their pin shape only from per-instance JSON).
-        // When the descriptor IS present, resolve_node_pins resets these and re-derives
-        // from the descriptor, so the JSON-loaded values are the authoritative source only
-        // in the descriptor-missing case.
+        // Per-instance pin state. `name`, `role` and `types` are read so they can serve as
+        // a fallback in resolve_node_pins for nodes whose descriptor isn't in base_nodes.blk
+        // (shader_editor-generated nodes like mask_from_index / multi_max get their pin shape
+        // only from per-instance JSON). When the descriptor IS present, resolve_node_pins
+        // resets these and re-derives from the descriptor, so the JSON-loaded values are the
+        // authoritative source only in the descriptor-missing case. customTextureName is
+        // intentionally NOT read: it's a compile-output cache repopulated by every
+        // compile_graph_to_blks via its write-back loop, and the texture-preview panel only
+        // reads the field after a compile has run.
         const rapidjson::Value &pins = e["pins"];
         n.pins.reserve(pins.Size());
         for (rapidjson::SizeType j = 0; j < pins.Size(); ++j)
@@ -571,10 +1149,6 @@ bool load_graph_data(GraphData &out, const char *json_path, const char *shader_i
             if (p.HasMember("name") && p["name"].IsString())
             {
               pin.name = p["name"].GetString();
-            }
-            if (p.HasMember("customTextureName") && p["customTextureName"].IsString())
-            {
-              pin.customTextureName = p["customTextureName"].GetString();
             }
             if (p.HasMember("role") && p["role"].IsString())
             {
@@ -758,34 +1332,17 @@ bool load_graph_data(GraphData &out, const char *json_path, const char *shader_i
       }
       return gp[key].GetString();
     };
-    auto parseSize = [](const char *s, int fallback) -> int {
-      if (!s || !*s)
-      {
-        return fallback;
-      }
-      const char *p = s;
-      while (*p && !((*p >= '0' && *p <= '9') || *p == '-'))
-      {
-        ++p;
-      }
-      if (!*p)
-      {
-        return fallback;
-      }
-      return atoi(p);
-    };
-
     if (const char *w = getStr("texture width"))
     {
-      out.graphTextureWidth = parseSize(w, out.graphTextureWidth);
+      out.graphTextureWidth = parse_graph_size(w, out.graphTextureWidth);
     }
     if (const char *h = getStr("texture height"))
     {
-      out.graphTextureHeight = (strcmp(h, "width") == 0) ? out.graphTextureWidth : parseSize(h, out.graphTextureHeight);
+      out.graphTextureHeight = (strcmp(h, "width") == 0) ? out.graphTextureWidth : parse_graph_size(h, out.graphTextureHeight);
     }
     if (const char *d = getStr("texture depth"))
     {
-      out.graphTextureDepth = (strcmp(d, "width") == 0) ? out.graphTextureWidth : parseSize(d, out.graphTextureDepth);
+      out.graphTextureDepth = (strcmp(d, "width") == 0) ? out.graphTextureWidth : parse_graph_size(d, out.graphTextureDepth);
     }
     if (const char *t = getStr("texture type"))
     {
@@ -928,10 +1485,6 @@ bool save_graph_data_blk(const GraphData &d, const char *blk_path)
     {
       DataBlock *pb = nb->addNewBlock("pin");
       pb->setStr("name", p.name.c_str());
-      if (!p.customTextureName.empty())
-      {
-        pb->setStr("customTextureName", p.customTextureName.c_str());
-      }
       pb->setStr("role", pin_role_to_string(p.role));
 
       // CSV types list mirrors base_nodes.blk's `types:t = "float,texture2D"` convention,
@@ -963,6 +1516,12 @@ bool save_graph_data_blk(const GraphData &d, const char *blk_path)
       }
     }
 
+    // Elem-level property values are per-instance current values; the
+    // descriptor (resolved via templateUid + property name at consumption
+    // time) carries the type. Keeping val:t (string) here makes save/load
+    // descriptor-independent -- shader-editor base nodes (texValue, lerp, ...)
+    // and other elems without a matching descriptor would otherwise silently
+    // lose type information on a typed save.
     for (const eastl::pair<eastl::string, eastl::string> &pv : n.propertyValues)
     {
       DataBlock *qb = nb->addNewBlock("property");
@@ -1047,7 +1606,6 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
         {
           GraphData::Pin pin;
           pin.name = c->getStr("name", "");
-          pin.customTextureName = c->getStr("customTextureName", "");
           pin.role = parse_pin_role(c->getStr("role", "in"));
           pin.isInput = (pin.role != PinRole::Out);
           parse_pin_types_csv(c->getStr("types", ""), pin.types);
@@ -1064,11 +1622,11 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
         else if (strcmp(cn, "property") == 0)
         {
           eastl::string name = c->getStr("name", "");
-          eastl::string val = c->getStr("val", "");
           if (name.empty())
           {
             continue;
           }
+          eastl::string val = c->getStr("val", "");
           n.propertyValues.emplace_back(eastl::move(name), eastl::move(val));
         }
       }

@@ -7,7 +7,7 @@ include "sky_shader_global.dshl"
 include "contact_shadows.dshl"
 include "clouds_vars.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
-include "film_grain_inc.dshl"
+include "film_grain_lut_inc.dshl"
 include "vignette_inc.dshl"
 include "flare_inc.dshl"
 include "postfx_modifier.dshl"
@@ -21,8 +21,6 @@ texture blood_texture;
 texture fire_on_screen_tex;
 texture flash_blind_screen_tex;
 texture smoke_blackout_tex;
-texture film_grain;
-
 float dash_ability_factor = 0;
 
 float confusion_effect_time_start = -1000;
@@ -100,8 +98,13 @@ endmacro
 
 shader postfx
 {
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
+
   hlsl(ps)
   {
+    #define frame_tex_samplerstate global_linear_clamp_sampler
+    #define screen_droplets_tex_samplerstate global_linear_clamp_sampler
+
     ##if antialiasing_type == temporal
       #define DOF_FAR_POSTFX_9_TAP 1
     ##elif antialiasing_type == tsr
@@ -121,13 +124,13 @@ shader postfx
   (ps) {
     inv_screen_size@f2 = (rendering_res.z, rendering_res.w, 0, 0);
     dof_rt_size@f4 = dof_rt_size;
-    frame_tex@smp2d = frame_tex;
+    frame_tex@tex2d = frame_tex;
     frame_tex_resolution@f4 = (frame_tex_resolution.xy, 1/frame_tex_resolution.xy);
     damage_indicator_color@f4 = (damage_indicator_color.x, damage_indicator_color.y, damage_indicator_color.z, damage_indicator);
     // 0.21 and 0.09 are arbitrary values, which look good with the effect
     damage_indicator_size__blood@f2 = (damage_indicator_size + 0.21 + 0.09*damage_indicator, blood_on_screen, 0, 0);
     blood_texture@smp2d = blood_texture;
-    screen_droplets_tex@smp2d = screen_droplets_tex;
+    screen_droplets_tex@tex2d = screen_droplets_tex;
     confusion_params@f4 = ((time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * confusion_effect_speed * 20,
                            (time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * confusion_effect_speed * 11,
                            (time_phase(0, 0) - confusion_effect_time_start) / confusion_effect_duration * -3.5,
@@ -157,16 +160,7 @@ shader postfx
   USE_SHADER_GAMMA()
   INIT_VIGNETTE()
   USE_VIGNETTE()
-  if (film_grain == NULL)
-  {
-    INIT_FILM_GRAIN(true)
-    USE_FILM_GRAIN()
-  }
-  else
-  {
-    INIT_BAKED_FILM_GRAIN()
-    USE_BAKED_FILM_GRAIN()
-  }
+  INIT_FILM_GRAIN_LUT()
   if (cinematic_mode_on == on)
   {
     INIT_FLARE_TEXTURES(blood_texture_samplerstate)
@@ -232,6 +226,7 @@ shader postfx
   USE_POSTFX_MODIFIER()
   USE_POSTFX_POST_TONEMAP_EFFECTS_MODIFIER()
   USE_LOCAL_TONE_MAPPING(ps)
+  USE_FILM_GRAIN_LUT()
 
 
   hlsl(ps)
@@ -385,12 +380,8 @@ shader postfx
     void apply_cinematic_mode_pre_tonemap_effects(inout float3 result, float2 tc, float2 pos)
     {
       BRANCH
-      if (film_grain_params.x > 0.0)
-      ##if (film_grain == NULL)
-        result = apply_film_grain(result, pos);
-      ##else
-        result = apply_film_grain_baked(result, texelFetch(film_grain, pos % 128, 0).xyz);
-      ##endif
+      if (film_grain_lut_params.x > 0.0)
+        result = apply_film_grain_lut(result, pos);
       ##if cinematic_mode_on == on
         BRANCH
         if ((flare_params.x > 0.0 || flare_params.y > 0.0) && flare_enabled())

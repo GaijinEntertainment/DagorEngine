@@ -151,6 +151,8 @@ actions together quietly link_target
   del $(outfile:E=$(1))
   $(DEL_)$(pdb_path)
   set_filter nul /warning LNK4099/
+  set_filter nul /xinput9_1_0\.lib\: skipping imported DllMain symbol/
+  set_filter nul /NOTE\: this might be a mistake when the DLL\/library/
   call_filtered $(link) $(link_opt) #\( $(link_libs) $(resources) $(DEBUG_PDB_)$(pdb_path) -out:$(outfile:E=$(1)) $(obj_list) )\#
   if errorlevel 1 goto after_postlink
   $(postlink_cmd)

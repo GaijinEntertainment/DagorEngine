@@ -8,6 +8,7 @@ shader rendinst_monochrome
   assume instancing_type = tm_vb;
   if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
       rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
       rendinst_render_pass == rendinst_render_pass_grassify ||
       rendinst_render_pass == rendinst_render_pass_to_heightmap)
   {

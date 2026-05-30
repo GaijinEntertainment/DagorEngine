@@ -156,6 +156,16 @@ public:
   // so that passes targeting unrelated resolutions keep their cached render passes.
   void invalidateCachesForAutoResType(AutoResTypeNameId id);
 
+  void resetIncrementalState()
+  {
+    rpCache.clear();
+    rpCacheKeysByAutoResType.clear();
+    firstActivationPosition.clear();
+    firstAccessPosition.clear();
+    baseInitialized.clear();
+    cachedForcePassBreak.clear();
+  }
+
 private:
   // Use this overload set to add special processing for fields
   // that change type.

@@ -14,6 +14,14 @@ static constexpr int USE_DEBUG = 0;
 
 namespace AnimV20
 {
+
+static const char *fifoMorphTypeNames[] = {
+  "linear",
+  "quad_in",
+  "quad_out",
+  "quad_in_out",
+};
+
 struct AnimFifo3Queue
 {
 public:
@@ -27,11 +35,13 @@ public:
   real morphTime[2];
   int state;
   real t0;
+  FifoMorphType morphType[2];
 
   AnimFifo3Queue() : state(ST_0), t0(0)
   {
     node[0] = node[1] = node[2] = NULL;
     morphTime[0] = morphTime[1] = 0.f;
+    morphType[0] = morphType[1] = MT_LINEAR;
   }
 
   void save(IGenSave &cb, AnimationGraph & /*graph*/)
@@ -88,7 +98,7 @@ public:
     }
   }
 
-  void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time)
+  void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType type)
   {
     if (overlap_time < 0.0f)
       overlap_time = 0.0f;
@@ -113,6 +123,7 @@ public:
         {
           node[1] = n;
           morphTime[0] = overlap_time;
+          morphType[0] = type;
           t0 = ctime;
           state = ST_1_2;
         }
@@ -144,6 +155,7 @@ public:
             node[0] = node[1];
             node[1] = n;
             morphTime[0] = overlap_time;
+            morphType[0] = type;
             t0 = ctime - a0 * overlap_time;
           }
           else
@@ -161,6 +173,7 @@ public:
         // enqueue node2 and its morph time
         node[2] = n;
         morphTime[1] = overlap_time;
+        morphType[1] = type;
         node[2]->pause(st);
         node[0]->resume(st, false);
         node[1]->resume(st, false);
@@ -195,6 +208,7 @@ public:
       {
         node[1] = node[2];
         morphTime[0] = morphTime[1];
+        morphType[0] = morphType[1];
         node[2] = NULL;
         t0 = ctime;
         state = ST_1_2;
@@ -212,6 +226,18 @@ public:
         node[1] = NULL;
         state = ST_1;
       }
+    }
+  }
+
+  float getActiveMorphWeight(real ctime)
+  {
+    real p = (ctime - t0) / morphTime[0];
+    switch (morphType[0])
+    {
+      case MT_QUAD_IN: return saturate(p * p);
+      case MT_QUAD_OUT: return saturate(-(p * (p - 2.0f)));
+      case MT_QUAD_IN_OUT: return saturate(p < 0.5f ? 2.f * p * p : (-2.f * p * p) + (4.f * p) - 1.f);
+      default: return saturate(p);
     }
   }
 
@@ -237,7 +263,7 @@ public:
     }
 
     // ST_1_2 case
-    real a1 = saturate((ctime - t0) / morphTime[0]);
+    real a1 = getActiveMorphWeight(ctime);
     node[0]->buildBlendingList(bctx, w0 * (1 - a1));
     if (state > ST_1 && node[1])
       node[1]->buildBlendingList(bctx, w0 * a1);
@@ -254,7 +280,7 @@ public:
       return node[1] == n ? 1 : 0;
 
     // ST_1_2 case
-    real a1 = saturate((ctime - t0) / morphTime[0]);
+    real a1 = getActiveMorphWeight(ctime);
     if (node[0] == n)
       return (1 - a1);
     if (state > ST_1 && node[1] == n)

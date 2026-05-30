@@ -1,4 +1,4 @@
-from "async" import Promise
+from "async" import Future
 
 // Long chain of `await scalar` and `await alreadyResolved` calls inside a
 // single async function. Two properties are exercised:
@@ -14,15 +14,15 @@ from "async" import Promise
 // other() runs (FIFO), and only then fastChain's remaining 1999 iterations
 // drain in order. So expected output is "other ran" before "fastChain done".
 
-let p = Promise()
+let p = Future()
 p.resolve("R")
 
 async function fastChain() {
   local last = null
   for (local i = 0; i < 1000; i++)
-    last = await i           // non-Promise scalar
+    last = await i           // non-Future scalar
   for (local i = 0; i < 1000; i++)
-    last = await p           // already-fulfilled Promise
+    last = await p           // already-fulfilled Future
   print($"fastChain done last={last}\n")
 }
 

@@ -39,8 +39,7 @@ static constexpr uint32_t max_alignment = 1 << max_alignment_bits; // if we wil 
 
 typedef uint8_t chunk_type_t;
 typedef uint16_t id_in_chunk_type_t;
-// #define ECS_MAX_CHUNK_ID_BITS 16
-static constexpr int ECS_MAX_CHUNK_ID_BITS = sizeof(id_in_chunk_type_t) * 8;
+static constexpr int ECS_MAX_CHUNK_ID_BITS = 14; // 16K
 static constexpr int MAX_CHUNKS_COUNT = eastl::numeric_limits<chunk_type_t>::max();
 
 typedef uint16_t archetype_t;

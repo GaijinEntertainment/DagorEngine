@@ -3,6 +3,7 @@ dynamic_lighting{
   _tags:t="render"
   dynamic_lighting_is_rtsm:b=no
   "prepare_dynamic_lighting_texture_per_camera:dafg::NodeHandle"{}
+  "prepare_dynamic_lighting_args_per_camera_view:dafg::NodeHandle"{}
   "dynamic_lighting_generate_tiles_node:dafg::NodeHandle"{}
   "dynamic_lighting_node:dafg::NodeHandle"{}
 }

@@ -182,7 +182,9 @@ if $(Platform) in windows xboxOne scarlett {
 
   if $(PlatformSpec) in gcc {
     # false positive from gcc13 "rsaz_exp_x2.c:496:16: error: iteration 19 invokes undefined behavior"
-    Copt += -Wno-aggressive-loop-optimizations ;
+    Copt += -Wno-aggressive-loop-optimizations
+            -Wno-discarded-qualifiers
+    ;
   }
 }
 

@@ -1151,9 +1151,15 @@ public:
     {
       bool allow_mipstripe = GET_PROP(Bool, "useDDSmips", true);
       int initial_mipCnt = mipCnt;
-      img = decode_image_from_dds(a, allow_mipstripe, mipCnt, mipCustomFilt, alpha_used, log);
+      uint32_t dds_d3dfmt = 0;
+      img = decode_image_from_dds(a, allow_mipstripe, mipCnt, mipCustomFilt, alpha_used, dds_d3dfmt, log);
       if (allow_mipstripe && initial_mipCnt != mipCnt && mipCnt > 0)
         mipCnt -= tmd.hqMip;
+      if (img && fabsf(gamma - 1.0f) > 1e-3f && !is_srgb_capable_d3d_fmt(dds_d3dfmt))
+      {
+        gamma = 1.0f;
+        inpOptions.setGamma(1.0f, 1.0f);
+      }
     }
 
     if (!img)
@@ -3537,7 +3543,7 @@ public:
   }
 
   static TexImage32 *decode_image_from_dds(DagorAsset &a, bool allow_mipstripe, int &out_mipCnt, int &mipCustomFilt, bool &alpha_used,
-    ILogWriter &log)
+    uint32_t &d3dFormat, ILogWriter &log)
   {
     nv::DirectDrawSurface dds(a.getTargetFilePath());
     if (!dds.isValid())
@@ -3551,6 +3557,22 @@ public:
       log.addMessage(log.ERROR, "%s: not Tex2D %s", a.getName(), a.getTargetFilePath());
       return NULL;
     }
+
+    if (file_ptr_t f = df_open(a.getTargetFilePath(), DF_READ))
+    {
+      DDSURFACEDESC2 base_dds_hdr;
+      df_seek_to(f, 4);
+      df_read(f, &base_dds_hdr, sizeof(base_dds_hdr));
+      df_close(f);
+      ddsx::Header tmp_hdr;
+      make_ddsx_hdr(tmp_hdr, base_dds_hdr);
+      d3dFormat = tmp_hdr.d3dFormat;
+    }
+    else
+    {
+      d3dFormat = D3DFMT_UNKNOWN;
+    }
+
     TexImage32 *img = TexImage32::create(dds.width() * (allow_mipstripe && dds.mipmapCount() > 1 ? 2 : 1), dds.height());
     if (dds.mipmapCount() > 1 && allow_mipstripe)
       mipCustomFilt = MMF_stripe;

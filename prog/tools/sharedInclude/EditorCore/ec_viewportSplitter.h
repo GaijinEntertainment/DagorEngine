@@ -6,7 +6,7 @@
 #include <imgui/imgui_internal.h>
 
 // This is a heavily modified version of ImGui::SplitterBehavior that handles two splitters that are placed like a crosshair.
-inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect &bbVertical, ImGuiID id, float *newLeftWidth,
+inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect &bbVertical, float *newLeftWidth,
   float *newRightWidth, float *newTopHeight, float *newBottomHeight, float min_size, float hover_extend, float hover_visibility_delay,
   ImU32 bg_col)
 {
@@ -16,20 +16,23 @@ inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect
   ImGuiContext &g = *GImGui;
   ImGuiWindow *window = g.CurrentWindow;
 
-  if (!ImGui::ItemAdd(bbHorizontal, id, NULL, ImGuiItemFlags_NoNav))
+  const ImGuiID horizontalId = ImGui::GetID("H");
+  if (!ImGui::ItemAdd(bbHorizontal, horizontalId, NULL, ImGuiItemFlags_NoNav))
     return false;
 
   bool horizontalHovered, horizontalHeld;
   ImRect bbHorizontalInteract = bbHorizontal;
   bbHorizontalInteract.Expand(ImVec2(0.0f, hover_extend));
-  ImGui::ButtonBehavior(bbHorizontalInteract, id, &horizontalHovered, &horizontalHeld,
-    ImGuiButtonFlags_FlattenChildren | ImGuiButtonFlags_AllowOverlap);
+  ImGui::ButtonBehavior(bbHorizontalInteract, horizontalId, &horizontalHovered, &horizontalHeld, ImGuiButtonFlags_FlattenChildren);
+
+  const ImGuiID verticalId = ImGui::GetID("V");
+  if (!ImGui::ItemAdd(bbVertical, verticalId, NULL, ImGuiItemFlags_NoNav))
+    return false;
 
   bool verticalHovered, verticalHeld;
   ImRect bbVerticalInteract = bbVertical;
-  bbVerticalInteract.Expand(ImVec2(0.0f, hover_extend));
-  ImGui::ButtonBehavior(bbVerticalInteract, id, &verticalHovered, &verticalHeld,
-    ImGuiButtonFlags_FlattenChildren | ImGuiButtonFlags_AllowOverlap);
+  bbVerticalInteract.Expand(ImVec2(hover_extend, 0.0f));
+  ImGui::ButtonBehavior(bbVerticalInteract, verticalId, &verticalHovered, &verticalHeld, ImGuiButtonFlags_FlattenChildren);
 
   bool hovered = horizontalHovered || verticalHovered;
   bool held = horizontalHeld || verticalHeld;
@@ -37,7 +40,8 @@ inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect
   if (hovered)
     g.LastItemData.StatusFlags |= ImGuiItemStatusFlags_HoveredRect; // for IsItemHovered(), because bb_interact is larger than bb
 
-  if (held || (hovered && g.HoveredIdPreviousFrame == id && g.HoveredIdTimer >= hover_visibility_delay))
+  if (held || (hovered && (g.HoveredIdPreviousFrame == horizontalId || g.HoveredIdPreviousFrame == verticalId) &&
+                g.HoveredIdTimer >= hover_visibility_delay))
     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
 
   if (draggingSplitter != held)
@@ -66,7 +70,7 @@ inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect
       {
         *newTopHeight = ImMax(*newTopHeight + mouse_delta, min_size);
         *newBottomHeight = ImMax(*newBottomHeight - mouse_delta, min_size);
-        ImGui::MarkItemEdited(id);
+        ImGui::MarkItemEdited(horizontalHeld ? horizontalId : verticalId);
       }
     }
 
@@ -86,7 +90,7 @@ inline bool crosshair_splitter_behavior(const ImRect &bbHorizontal, const ImRect
       {
         *newLeftWidth = ImMax(*newLeftWidth + mouse_delta, min_size);
         *newRightWidth = ImMax(*newRightWidth - mouse_delta, min_size);
-        ImGui::MarkItemEdited(id);
+        ImGui::MarkItemEdited(horizontalHeld ? horizontalId : verticalId);
       }
     }
 
@@ -135,9 +139,10 @@ inline void render_imgui_viewport_splitter(Point2 &viewport_split_ratio, const P
   float newTopHeight = top_height;
   float newBottomHeight = bottom_height;
 
-  if (
-    crosshair_splitter_behavior(horizontalRect, verticalRect, ImGui::GetID("ViewportSplitter"), &newLeftWidth, &newRightWidth,
-      &newTopHeight, &newBottomHeight, minimumSize, WINDOWS_HOVER_PADDING, WINDOWS_RESIZE_FROM_EDGES_FEEDBACK_TIMER, backgroundColor))
+  ImGui::PushID("ViewportSplitter");
+
+  if (crosshair_splitter_behavior(horizontalRect, verticalRect, &newLeftWidth, &newRightWidth, &newTopHeight, &newBottomHeight,
+        minimumSize, WINDOWS_HOVER_PADDING, WINDOWS_RESIZE_FROM_EDGES_FEEDBACK_TIMER, backgroundColor))
   {
     if (newLeftWidth != left_width)
       viewport_split_ratio.x = newLeftWidth / region_available.x;
@@ -145,4 +150,6 @@ inline void render_imgui_viewport_splitter(Point2 &viewport_split_ratio, const P
     if (newTopHeight != top_height)
       viewport_split_ratio.y = newTopHeight / region_available.y;
   }
+
+  ImGui::PopID();
 }

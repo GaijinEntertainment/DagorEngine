@@ -602,6 +602,9 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   bool useBVH = cfg.has_bvh_shader;
   useBVH &= (rtag == dafx_ex::RTAG_LOWRES || rtag == dafx_ex::RTAG_HIGHRES);
 
+  bool seperateHighresAtest = cfg.use_seperate_highres_atest_rtag;
+  seperateHighresAtest &= rtag == dafx_ex::RTAG_HIGHRES;
+
   if (parRenderShader.shader == RSHADER_DEFAULT)
   {
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
@@ -618,7 +621,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
   else if (parRenderShader.shader == RSHADER_BBOARD_ATEST && logerr_if_ribbon("modfx_bboard_atest"))
   {
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_render_atest"});
+    ddesc.renderDescs.push_back(
+      {dafx_ex::renderTags[seperateHighresAtest ? dafx_ex::RTAG_HIGHRES_ATEST : rtag], "dafx_modfx_bboard_render_atest"});
     if (useBVH)
       ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_BVH], "dafx_modfx_bvh"});
   }

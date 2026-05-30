@@ -25,6 +25,12 @@ public:
 
   ResourcesChanged recalculate(const NodesChanged &node_changed);
 
+  void resetIncrementalState()
+  {
+    depData = {};
+    depDataClone = {};
+  }
+
 private:
   InternalRegistry &registry;
   const NameResolver &nameResolver;

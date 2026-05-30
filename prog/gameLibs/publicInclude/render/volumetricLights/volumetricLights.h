@@ -62,6 +62,7 @@ public:
   void afterReset(bool reset_shaders = true);
   void invalidate();
 
+  void prepareDistantFog(const IPoint2 &main_resolution);
   bool performStartFrame(const TMatrix4 &view_tm, const TMatrix4 &proj_tm, const TMatrix4_vec4 &glob_tm,
     const Point3 &camera_pos); // true if on
   void performFroxelFogOcclusion();
@@ -166,10 +167,14 @@ protected:
   eastl::unique_ptr<NodeBasedShader> nodeBasedDistantFogRaymarchCs;
   eastl::unique_ptr<NodeBasedShader> nodeBasedFogShadowCs;
 
+  IPoint2 displayResolution = IPoint2::ZERO;
+  IPoint2 currReconstructionFrameRes = IPoint2::ZERO;
+  IPoint2 currRaymarchFrameRes = IPoint2::ZERO;
+  IPoint2 prevReconstructionFrameRes = IPoint2::ZERO;
+  IPoint2 prevRaymarchFrameRes = IPoint2::ZERO;
+
   IPoint3 froxelOrigResolution = IPoint3::ZERO;
   IPoint3 froxelResolution = IPoint3::ZERO;
-  IPoint2 raymarchFrameRes = IPoint2::ZERO;
-  IPoint2 reconstructionFrameRes = IPoint2::ZERO;
   float currentRange = 128; // arbitrary, setRange should be called to not rely on it
   Point3 prevCameraPos = IPoint3::ZERO;
 
@@ -222,6 +227,8 @@ protected:
     ShaderVariableInfo distant_fog_result_inscatter_samplerstate = ShaderVariableInfo("distant_fog_result_inscatter_samplerstate");
     ShaderVariableInfo distant_fog_raymarch_resolution = ShaderVariableInfo("distant_fog_raymarch_resolution");
     ShaderVariableInfo distant_fog_reconstruction_resolution = ShaderVariableInfo("distant_fog_reconstruction_resolution");
+    ShaderVariableInfo distant_fog_raymarch_dyn_scales = ShaderVariableInfo("distant_fog_raymarch_dyn_scales");
+    ShaderVariableInfo distant_fog_reconstruction_dyn_scales = ShaderVariableInfo("distant_fog_reconstruction_dyn_scales");
     ShaderVariableInfo fog_raymarch_frame_id = ShaderVariableInfo("fog_raymarch_frame_id");
     ShaderVariableInfo distant_fog_local_view_z = ShaderVariableInfo("distant_fog_local_view_z");
     ShaderVariableInfo prev_distant_fog_raymarch_start_weights = ShaderVariableInfo("prev_distant_fog_raymarch_start_weights");

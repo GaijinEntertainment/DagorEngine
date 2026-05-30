@@ -6,11 +6,9 @@
 #include <driver.h>
 #include <pipeline.h>
 #include <resource_memory.h>
-#include <typed_bit_set.h>
 
 #include <debug/dag_log.h>
 #include <drv/3d/dag_heap.h>
-#include <EASTL/bitset.h>
 #include <EASTL/numeric.h>
 #include <EASTL/variant.h>
 #include <EASTL/vector.h>
@@ -476,16 +474,14 @@ private:
   BudgetPressureLevels poolBudgetLevelstatus[total_memory_pool_count]{};
   uint64_t processVirtualAddressUse = 0;
   uint64_t processVirtualTotal = 0;
-  enum class BehaviorBits
+  struct BehaviorStatus
   {
-    DISABLE_HOST_MEMORY_STATUS_QUERY,
-    DISABLE_DEVICE_MEMORY_STATUS_QUERY,
-    DISABLE_VIRTUAL_ADDRESS_SPACE_STATUS_QUERY,
-    PRINT_MEMORY_REPORTS,
-
-    COUNT
+    bool disableHostMemoryStatusQuery : 1 = false;
+    bool disableDeviceMemoryStatusQuery : 1 = false;
+    bool disableVirtualAddressSpaceStatusQuery : 1 = false;
+    bool printMemoryReports : 1 = false;
   };
-  TypedBitSet<BehaviorBits> behaviorStatus;
+  BehaviorStatus behaviorStatus;
   // offsets are used to artificially shrink the available budget value we use for further calculations
   uint64_t heapBudgetOffset[total_memory_pool_count]{};
 
@@ -541,12 +537,12 @@ protected:
     if (is_gpu)
     {
       poolStates[device_local_memory_pool].CurrentUsage += size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableDeviceMemoryStatusQuery = false;
     }
     else
     {
       poolStates[host_local_memory_pool].CurrentUsage += size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableHostMemoryStatusQuery = false;
     }
 
     updateBudgetLevelStatus();
@@ -561,12 +557,12 @@ protected:
     if (is_gpu)
     {
       poolStates[device_local_memory_pool].CurrentUsage += size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableDeviceMemoryStatusQuery = false;
     }
     else
     {
       poolStates[host_local_memory_pool].CurrentUsage += size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableHostMemoryStatusQuery = false;
     }
 
     updateBudgetLevelStatus();
@@ -578,12 +574,12 @@ protected:
     if (is_gpu)
     {
       poolStates[device_local_memory_pool].CurrentUsage -= size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableDeviceMemoryStatusQuery = false;
     }
     else
     {
       poolStates[host_local_memory_pool].CurrentUsage -= size;
-      behaviorStatus.reset(BehaviorBits::DISABLE_HOST_MEMORY_STATUS_QUERY);
+      behaviorStatus.disableHostMemoryStatusQuery = false;
     }
 
     updateBudgetLevelStatus();
@@ -594,7 +590,7 @@ protected:
   {
     BaseType::recordRaytraceAccelerationStructurePoolAllocated(size);
     poolStates[device_local_memory_pool].CurrentUsage += size;
-    behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+    behaviorStatus.disableDeviceMemoryStatusQuery = false;
   }
 
   // pools are using committed resources so they are bypassing heaps, so we need to count them against the usage too
@@ -602,7 +598,7 @@ protected:
   {
     BaseType::recordRaytraceAccelerationStructurePoolFreed(size);
     poolStates[device_local_memory_pool].CurrentUsage -= size;
-    behaviorStatus.reset(BehaviorBits::DISABLE_DEVICE_MEMORY_STATUS_QUERY);
+    behaviorStatus.disableDeviceMemoryStatusQuery = false;
   }
 
   void setup(const SetupInfo &info);
@@ -623,20 +619,22 @@ protected:
   // the memory usage pressure.
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data);
 
-  enum class AllocationFlag
+  struct AllocationFlags
   {
-    DEDICATED_HEAP,
-    DISALLOW_LOCKED_RANGES,
-    EXISTING_HEAPS_ONLY,
-    DEFRAGMENTATION_OPERATION,
-    DISABLE_ALTERNATE_HEAPS,
-    IS_UAV,
-    IS_RTV,
+    bool dedicatedHeap : 1 = false;
+    bool disallowLockedRanges : 1 = false;
+    bool existingHeapsOnly : 1 = false;
+    bool defragmentationOperation : 1 = false;
+    bool disableAlternateHeaps : 1 = false;
+    bool isUav : 1 = false;
+    bool isRtv : 1 = false;
 
-    COUNT
+    uint32_t toUlong() const
+    {
+      return (dedicatedHeap ? 1u : 0u) | (disallowLockedRanges ? 2u : 0u) | (existingHeapsOnly ? 4u : 0u) |
+             (defragmentationOperation ? 8u : 0u) | (disableAlternateHeaps ? 16u : 0u) | (isUav ? 32u : 0u) | (isRtv ? 64u : 0u);
+    }
   };
-
-  using AllocationFlags = TypedBitSet<AllocationFlag>;
 
   uint64_t getHeapSizeFromAllocationSize(uint64_t size, ResourceHeapProperties properties, AllocationFlags flags);
 };

@@ -26,7 +26,7 @@
 #include <drv/3d/dag_resId.h>
 
 #include "dynmodel_consts.hlsli"
-#include <render/dynmodelRenderer/animcharAdditionalData.h>
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 
 class DynamicRenderableSceneInstance;
 class DynamicRenderableSceneResource;
@@ -263,6 +263,7 @@ struct MaterialFilterScope
 
 ContextId create_context(const char *name);
 ContextId get_or_create_context(const char *name);
+ContextId find_context(const char *name);
 void delete_context(ContextId context_id);
 
 void update_reprojection_data(ContextId contextId);
@@ -301,7 +302,7 @@ void iterate_instances(dynrend::ContextId context_id, InstanceIterator iter, voi
 void add_animchar(ContextId context_id, uint32_t start_stage,
   uint32_t end_stage, // inclusive range of stages
   const DynamicRenderableSceneInstance *scene, const DynamicRenderableSceneResource *lodResource,
-  const dynmodel_additional_data::AnimcharAdditionalDataView additional_data,
+  const animchar_additional_data::AnimcharAdditionalDataView additional_data,
   NeedPreviousMatrices need_previous_matrices = NeedPreviousMatrices::No, DynamicShaderOverrides shader_overrides = {},
   const PathFilterView path_filter = PathFilterView::NULL_FILTER, uint8_t render_mask = 0,
   RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,
@@ -309,7 +310,7 @@ void add_animchar(ContextId context_id, uint32_t start_stage,
 
 // Legacy overload: gets DynamicRenderableSceneResource from scene->getCurSceneResource()
 void add_animchar(ContextId context_id, uint32_t start_stage, uint32_t end_stage, const DynamicRenderableSceneInstance *scene,
-  const dynmodel_additional_data::AnimcharAdditionalDataView additional_data,
+  const animchar_additional_data::AnimcharAdditionalDataView additional_data,
   NeedPreviousMatrices need_previous_matrices = NeedPreviousMatrices::No, DynamicShaderOverrides shader_overrides = {},
   const PathFilterView path_filter = PathFilterView::NULL_FILTER, uint8_t render_mask = 0,
   RenderPriority priority = RenderPriority::DEFAULT, const GlobalVariableStates *gvars_state = nullptr,

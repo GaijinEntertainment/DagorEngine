@@ -355,7 +355,7 @@ DemonPostFx::~DemonPostFx()
   if (downsample4x.getMat())
     downsample4x.getMat()->set_texture_param(srcTexVarId, BAD_TEXTUREID);
 
-  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(glob_demon_postfix_combine_texVarId, nullptr);
   ShaderGlobal::set_sampler(glob_demon_postfix_combine_tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
 
   postFx = NULL;
@@ -965,13 +965,13 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
   {
     hblurTarget = lowResDefRTPool->acquire();
 
-    ShaderGlobal::set_texture(hblur_inputVarId, target_tex);
+    ShaderGlobal::set_texture_unsafe(hblur_inputVarId, target_tex);
     ShaderGlobal::set_texture(hblur_outputVarId, hblurTarget->getTexId());
     ShaderGlobal::set_float(gaussian_blur_mulVarId, gaussianBlurAmount);
     d3d::set_render_target({}, DepthAccess::RW, {{hblurTarget->getTex2D(), 0, 0}});
 
     gaussianHBlur.render();
-    ShaderGlobal::set_texture(hblur_inputVarId, nullptr);
+    ShaderGlobal::set_texture_unsafe(hblur_inputVarId, nullptr);
     ShaderGlobal::set_texture(gaussian_blur_texVarId, hblurTarget->getTexId());
   }
   else
@@ -1046,7 +1046,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
   d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0.f, 0);
 
 
-  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, target_tex);
+  ShaderGlobal::set_texture_unsafe(glob_demon_postfix_combine_texVarId, target_tex);
 
   combineFx.getMat()->set_color4_param(texUvTransformVarId, reinterpret_cast<const Color4 &>(target_uv_transform));
   int outW, outH;
@@ -1084,7 +1084,7 @@ void DemonPostFx::apply(bool vr_mode, Texture *target_tex, Texture *output_tex, 
   combineFx.getMat()->set_texture_param(volfogTexVarId, BAD_TEXTUREID);
   radialBlur1Fx.getMat()->set_texture_param(texVarId, BAD_TEXTUREID);
 
-  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(glob_demon_postfix_combine_texVarId, nullptr);
 }
 
 void DemonPostFx::delayedCombineFx(TEXTUREID textureId)
@@ -1094,5 +1094,5 @@ void DemonPostFx::delayedCombineFx(TEXTUREID textureId)
   ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, textureId);
   combineFx.render();
   ShaderGlobal::set_int_fast(renderCombinePassGVarId, 0);
-  ShaderGlobal::set_texture(glob_demon_postfix_combine_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(glob_demon_postfix_combine_texVarId, nullptr);
 }

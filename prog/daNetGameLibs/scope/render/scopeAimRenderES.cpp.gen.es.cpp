@@ -680,10 +680,10 @@ inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityManager &manager, ec
 }
 static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_comps[] =
 {
-//start of 15 ro components at [0]
+//start of 13 ro components at [0]
   {ECS_HASH("aim_data__lensNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__lensCollisionNodeId"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("aim_data__crosshairNodeId"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("aim_data__crosshairNodeIds"), ecs::ComponentTypeInfo<int64_t>()},
   {ECS_HASH("aim_data__entityWithScopeLensEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("aim_data__gunEid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("aim_data__scopeLensCockpitEntities"), ecs::ComponentTypeInfo<ecs::EidList>()},
@@ -693,15 +693,13 @@ static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_c
   {ECS_HASH("aim_data__nearDofEnabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__simplifiedAimDof"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__legacyScopeWeaponLensZoomFactor"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("aim_data__crosshairFfpNodeId"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
-  {ECS_HASH("aim_data__firstFocalPlaneZoomFactor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc prepare_scope_aim_rendering_data_ecs_query_desc
 (
   "prepare_scope_aim_rendering_data_ecs_query",
   empty_span(),
-  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 15)/*ro*/,
+  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 13)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
@@ -717,7 +715,7 @@ inline void prepare_scope_aim_rendering_data_ecs_query(ecs::EntityManager &manag
           function(
               ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__lensNodeId", int)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__lensCollisionNodeId", int)
-            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__crosshairNodeId", int)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__crosshairNodeIds", int64_t)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__entityWithScopeLensEid", ecs::EntityId)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__gunEid", ecs::EntityId)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeLensCockpitEntities", ecs::EidList)
@@ -727,8 +725,6 @@ inline void prepare_scope_aim_rendering_data_ecs_query(ecs::EntityManager &manag
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nearDofEnabled", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__simplifiedAimDof", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__legacyScopeWeaponLensZoomFactor", float)
-            , ECS_RO_COMP_OR(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__crosshairFfpNodeId", int(-1))
-            , ECS_RO_COMP_OR(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__firstFocalPlaneZoomFactor", float(1.0f))
             );
 
         }while (++comp != compE);

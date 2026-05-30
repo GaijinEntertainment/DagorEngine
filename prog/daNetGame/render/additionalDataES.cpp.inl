@@ -3,7 +3,7 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/render/updateStageRender.h>
-#include <render/world/animCharRenderAdditionalData.h>
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <ecs/anim/anim.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <shaders/dynamic_material_params.hlsli>

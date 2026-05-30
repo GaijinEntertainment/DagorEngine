@@ -926,7 +926,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   dng_load_localization();
 
 #if _TARGET_PC_WIN && (DAGOR_DBGLEVEL == 0)
-  if (!dedicated::is_dedicated())
+  if (!dedicated::is_dedicated() && !::dgs_execute_quiet)
   {
     if (::dgs_get_argv("forcestart") == NULL)
     {

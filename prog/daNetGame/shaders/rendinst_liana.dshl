@@ -15,6 +15,7 @@ shader rendinst_liana
   if (rendinst_render_pass == rendinst_render_pass_voxelize_albedo) { dont_render; }
   if (rendinst_render_pass == rendinst_render_pass_grassify) { dont_render; }
   if (rendinst_render_pass == rendinst_render_pass_to_heightmap) { dont_render; }
+  if (rendinst_render_pass == rendinst_render_pass_impostor_voxel) { dont_render; }
   if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||  rendinst_render_pass == rendinst_render_pass_impostor_shadow)
   {
     dont_render;

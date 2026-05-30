@@ -16,6 +16,7 @@ AddIncludes =
 
 Sources =
   base_nodes_panel.cpp
+  canvas_clipboard.cpp
   graph_compile.cpp
   graph_panel.cpp
   graph_validation.cpp

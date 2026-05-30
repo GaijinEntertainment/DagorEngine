@@ -1,14 +1,14 @@
-from "async" import Promise
+from "async" import Future
 
 // `async function method()` is allowed inside a class body. The method's
-// `this` is the receiver; the method returns a Promise that resolves with the
-// return value (or rejects with a thrown error).
+// `this` is the receiver; the method returns a Future that resolves with the
+// return value (or faults with a thrown error).
 
 class Counter {
   count = 0
 
   async function bump(n) {
-    let p = Promise()
+    let p = Future()
     p.resolve(n)
     let delta = await p
     this.count = this.count + delta

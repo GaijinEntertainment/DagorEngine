@@ -538,7 +538,7 @@ private:
 
   int suffixDigitsCount;
   String filterString;
-  Tab<SimpleString> filterStrings;
+  Tab<String> filterStrings;
   bool invFilter = false;
 
   static bool placeTypeRadio;

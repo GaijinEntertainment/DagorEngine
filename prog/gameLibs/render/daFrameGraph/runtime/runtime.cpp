@@ -33,6 +33,7 @@ CONSOLE_BOOL_VAL("dafg", debug_dangling_reference, false);
 CONSOLE_BOOL_VAL("dafg", pedantic, false);
 CONSOLE_BOOL_VAL("dafg", verbose, true);
 CONSOLE_INT_VAL("dafg", test_incrementality_nodes, 0, 0, 1000);
+CONSOLE_BOOL_VAL("dafg", recompile_from_scratch, false);
 
 InitOnDemand<Runtime, false> Runtime::instance;
 
@@ -571,17 +572,15 @@ void Runtime::updateHistory()
 
 void Runtime::updateVisualization()
 {
-  if (debug_graph_generation)
-  {
-    TIME_PROFILE(updateVisualization);
+  TIME_PROFILE(updateVisualization);
+  if (verbose)
     debug("daFG: Updating visualization...");
 
-    fgVisManager->updateUserGraphVisualization();
+  fgVisManager->updateUserGraphVisualization();
 
-    fgVisManager->updateIRGraphVisualization();
+  fgVisManager->updateIRGraphVisualization();
 
-    fgVisManager->updateResourceVisualization();
-  }
+  fgVisManager->updateResourceVisualization();
 
   currentStage = CompilationStage::UP_TO_DATE;
 }
@@ -642,9 +641,6 @@ bool Runtime::runNodes()
     debug("daFG: Bad resolution tracker requested a resource rescheduling!");
     markStageDirty(CompilationStage::REQUIRES_RESOURCE_SCHEDULING);
   }
-
-  if (should_update_visualization())
-    markStageDirty(CompilationStage::REQUIRES_VISUALIZATION_UPDATE);
 
   if (debug_dangling_reference)
     debugDanglingReferences();
@@ -747,13 +743,44 @@ void Runtime::testIncrementality()
   markStageDirty(CompilationStage::REQUIRES_FULL_RECOMPILATION);
 }
 
+void Runtime::resetIncrementalState()
+{
+  if (!recompile_from_scratch.get())
+    return;
+
+  currentStage = CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE;
+
+  intermediateGraph.clear();
+  prevPermutation.clear();
+  passColoring.clear();
+  perNodeStateDeltas.clear();
+  for (auto &events : allResourceEvents)
+    events.clear();
+
+  unsortedIntermediateGraph.clear();
+  prevMultiplexingExtents = {};
+  irMapping = {};
+
+  dependencyDataCalculator.resetIncrementalState();
+  irGraphBuilder.resetIncrementalState();
+  passColorer.resetIncrementalState();
+  barrierScheduler.resetIncrementalState();
+  deltaCalculator.resetIncrementalState();
+  resourceScheduler.resetIncrementalState();
+}
+
 void Runtime::recompile()
 {
+  if (currentStage == CompilationStage::UP_TO_DATE)
+    return;
+
   TIME_PROFILE(UpdateGraph);
   FRAMEMEM_VALIDATE;
 
   NodesChanged nodeChanges;
   ResourcesChanged resourceChanges;
+
+  resetIncrementalState();
 
   if (currentStage > CompilationStage::REQUIRES_NODE_DECLARATION_UPDATE)
   {

@@ -32,7 +32,7 @@ macro INIT_BURNT_GROUND_COMMON(need_perlin_noise)
 endmacro
 
 macro USE_BURNT_GROUND_COMMON()
-  if (in_editor_assume == no)
+  if (in_editor_assume == no && !use_editor_render)
   {
     USE_GRASS_TC(ps)
   }
@@ -82,7 +82,7 @@ macro USE_BURNT_GROUND_COMMON()
       float intensity = noisyDistance <= burnRadius
         ? 1
         : saturate(1.0 + (burnRadius - noisyDistance) * edge_params.w);
-      ##if in_editor_assume == no
+      ##if in_editor_assume == no && !use_editor_render
         float2 grass_mask_tc = getGrassTC(float3(world_xz.x, 0, world_xz.y));
         float grassMask = tex2Dlod(grass_mask_tex, float4(grass_mask_tc, 0, 0)).a;
         // Without the multiplier, the decal is partially visible on parts of masked areas, like roads

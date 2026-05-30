@@ -1,11 +1,11 @@
-from "async" import Promise
+from "async" import Future
 
 // `await` inside for / foreach. The codegen RM_PLAIN path yields loop
 // counters/iterators through their own stack slot; this test exercises both
 // loop forms with an OP_YIELD inside the body so a regression in counter
 // preservation across the suspension would surface here.
 
-let p = Promise()
+let p = Future()
 p.resolve("ok")
 
 async function main() {

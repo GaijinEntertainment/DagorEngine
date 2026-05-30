@@ -45,7 +45,8 @@ public:
   virtual ContainerPropertyControl *createVerticalSplitter(int id);
   virtual ContainerPropertyControl *createTabPanel(int id, const char caption[]);
   virtual ContainerPropertyControl *createTabPage(int id, const char caption[]);
-  virtual ContainerPropertyControl *createToolbarPanel(int id = 0, bool use_tight_button_placement = false, bool new_line = true);
+  virtual ContainerPropertyControl *createToolbarPanel(int id = 0, bool use_tight_button_placement = false, bool new_line = true,
+    int toolbar_control_width = Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH);
   virtual ContainerPropertyControl *createTree(int id, const char caption[], hdpi::Px height, bool new_line = true);
   virtual ContainerPropertyControl *createTreeCheckbox(int id, const char caption[], hdpi::Px height, bool new_line = true,
     bool icons_show = true);

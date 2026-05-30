@@ -16,6 +16,8 @@ float4 camera_base_offset = (0, 0, 0, 0);
 // land_mesh_clipmap is a fixed name, it is filtered out in many places
 shader land_mesh_clipmap // aka prefab_clipmap
 {
+  assume allow_forced_in_editor = yes;
+
   supports global_frame;
 
   if (two_sided)
@@ -73,15 +75,18 @@ shader land_mesh_clipmap // aka prefab_clipmap
     lightmap_tex@smp2d = lightmap_tex;
   }
 
-  if (in_editor == yes)
+  if (in_editor == yes || use_editor_render)
   {
-    (vs) { globtm@f44 = globtm; }
     (vs) {
       world_local_x@f3 = world_local_x;
       world_local_y@f3 = world_local_y;
       world_local_z@f3 = world_local_z;
       world_local_pos@f3 = world_local_pos;
     }
+  }
+  if (in_editor == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
   }
 
   WRITE_GBUFFER()
@@ -119,13 +124,13 @@ shader land_mesh_clipmap // aka prefab_clipmap
     {
       VsOutput output;
 
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
         float3 worldPos = float3(input.pos.x * world_local_x + input.pos.y * world_local_y + input.pos.z * world_local_z + world_local_pos);
       ##else
         float3 worldPos = input.pos.xyz;
       ##endif
 
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
         float3 normal = input.packedNormal * 2. - 1.;
         float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
       ##else

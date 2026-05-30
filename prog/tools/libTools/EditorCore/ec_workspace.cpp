@@ -29,7 +29,8 @@ const char *make_short_name(const char *fpath)
 }
 
 //==================================================================================================
-EditorWorkspace::EditorWorkspace() : deDisabled(midmem), reDisabled(midmem), wspData(NULL), platforms(midmem), maxTraceDistance(1000.0)
+EditorWorkspace::EditorWorkspace() :
+  deDisabled(midmem), reDisabled(midmem), wspData(NULL), platforms(midmem), maxTraceDistance(1000.0), useDngBasedSceneRender(false)
 {}
 
 
@@ -281,6 +282,10 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   const DataBlock *paramsBlk = appBlk.getBlockByName("parameters");
   if (paramsBlk)
     maxTraceDistance = paramsBlk->getReal("maxTraceDistance", 1000.0);
+
+  const DataBlock *gameSettingBlk = appBlk.getBlockByName("game");
+  if (gameSettingBlk)
+    useDngBasedSceneRender = gameSettingBlk->getBool("daNetGameEditorRender", false);
 
   collisionName = appBlk.getStr("collision", "Bullet");
   if (stricmp(collisionName, "unigine") == 0)

@@ -127,6 +127,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     texture alpha_tex = material.texture[1];
 
     if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
+        rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
         rendinst_render_pass == rendinst_render_pass_to_shadow ||
         rendinst_render_pass == rendinst_render_pass_depth ||
         (rendinst_render_pass == rendinst_render_pass_normal && (in_editor_assume == yes || has_discard_without_prepass == discardOn)))

@@ -20,7 +20,7 @@ constexpr float BORDER_FRACTION_THICKNESS = 0.01f;
 constexpr ImVec2 GRID_SIZE = {GRID_HORISONTAL_SIZE, GRID_HORISONTAL_SIZE *GRID_YX_RATIO};
 constexpr ImVec2 TEXT_PADDING = {TEXT_FRACTION_PADDING, TEXT_FRACTION_PADDING / GRID_YX_RATIO};
 constexpr ImVec2 BORDER_PADDING = {BORDER_FRACTION_THICKNESS, BORDER_FRACTION_THICKNESS / GRID_YX_RATIO};
-static ImVec2 gridToVec(ImVec2 gridCoords) { return gridCoords * GRID_SIZE; }
+static ImVec2 grid_to_vec(ImVec2 grid_coords) { return grid_coords * GRID_SIZE; }
 
 constexpr float NODE_VERT_OFFSET = 3.f;
 constexpr float PASS_HOR_OFFSET = 2.f;
@@ -34,16 +34,16 @@ namespace dafg
 
 extern ConVarT<bool, false> recompile_graph;
 
-namespace visualization
+namespace visualization::irgraph
 {
 
-IRGraphVisualizer::IRGraphVisualizer(const intermediate::Graph &irGraph, const PassColoring &coloring) :
-  intermediateGraph{irGraph}, passColoring(coloring)
+Visualizer::Visualizer(const intermediate::Graph &ir_graph, const PassColoring &coloring) :
+  intermediateGraph{ir_graph}, passColoring(coloring)
 {
   REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_IRG_WIN_NAME, [&]() { this->draw(); });
 }
 
-void IRGraphVisualizer::draw()
+void Visualizer::draw()
 {
   ImDrawList *drawList = ImGui::GetWindowDrawList();
 
@@ -147,7 +147,7 @@ void IRGraphVisualizer::draw()
   processInput();
 }
 
-void IRGraphVisualizer::drawCanvas(ImDrawList *drawList)
+void Visualizer::drawCanvas(ImDrawList *draw_list)
 {
   if (!canvas.Begin("##scrolling_region", ImVec2(0, 0)))
     return;
@@ -157,30 +157,30 @@ void IRGraphVisualizer::drawCanvas(ImDrawList *drawList)
   const SetLayout &graphLayout = curGraphView.elementsLayout;
 
   // Layer 0 for edges, 1 for nodes, 2 for text
-  drawList->ChannelsSplit(3);
+  draw_list->ChannelsSplit(3);
 
   // drawing ...
   {
-    drawList->ChannelsSetCurrent(0);
+    draw_list->ChannelsSetCurrent(0);
 
     // ... edges
     for (const EdgeId edgeId : graphSubset.edges)
-      drawEdge(drawList, edgeId, graphLayout.edgesFrTo[edgeId]);
+      drawEdge(draw_list, edgeId, graphLayout.edgesFrTo[edgeId]);
 
-    drawList->ChannelsSetCurrent(1);
+    draw_list->ChannelsSetCurrent(1);
 
     // ... nodes
     for (const NodeId nodeId : graphSubset.nodes)
-      drawNode(drawList, nodeId, graphLayout.nodesGridCoords[nodeId]);
+      drawNode(draw_list, nodeId, graphLayout.nodesGridCoords[nodeId]);
 
     // ... and resourses
     for (const ResId resId : graphSubset.resources)
-      drawResource(drawList, resId, graphLayout.resGridBounds[resId]);
+      drawResource(draw_list, resId, graphLayout.resGridBounds[resId]);
   }
 
   // drawing text ...
   {
-    drawList->ChannelsSetCurrent(2);
+    draw_list->ChannelsSetCurrent(2);
 
     // ... on nodes
     for (const NodeId nodeId : graphSubset.nodes)
@@ -193,101 +193,101 @@ void IRGraphVisualizer::drawCanvas(ImDrawList *drawList)
 
   // canvas.Suspend() can only be called with channel 0
   // and switching it during drawing elements kinda odd
-  drawList->ChannelsSetCurrent(0);
+  draw_list->ChannelsSetCurrent(0);
   checkHovering();
 
-  drawList->ChannelsMerge();
+  draw_list->ChannelsMerge();
   canvas.End();
 }
 
-void IRGraphVisualizer::drawEdge(ImDrawList *drawList, const EdgeId id, const eastl::pair<ImVec2, ImVec2> fromTo)
+void Visualizer::drawEdge(ImDrawList *draw_list, const EdgeId id, const eastl::pair<ImVec2, ImVec2> from_to)
 {
   const auto &edge = edges[id];
 
   if (edge.isVisible)
   {
-    const ImVec2 edgeStart = gridToVec(fromTo.first);
-    const ImVec2 edgeEnd = gridToVec(fromTo.second);
+    const ImVec2 edgeStart = grid_to_vec(from_to.first);
+    const ImVec2 edgeEnd = grid_to_vec(from_to.second);
     const int focusedColor = edge.focused ? 192 : 127;
     const ImColor edgeColor = {focusedColor, 255, focusedColor, edge.outOfFocus ? 63 : 255};
 
-    drawList->AddLine(edgeStart, edgeEnd, edgeColor);
+    draw_list->AddLine(edgeStart, edgeEnd, edgeColor);
   }
 }
 
-void IRGraphVisualizer::drawNode(ImDrawList *drawList, const NodeId id, const ImVec2 gridPosition)
+void Visualizer::drawNode(ImDrawList *draw_list, const NodeId id, const ImVec2 grid_position)
 {
   const auto &node = nodes[id];
 
   if (node.isVisible)
   {
-    const ImVec2 nodeStart = gridToVec(gridPosition);
-    const ImVec2 nodeEnd = gridToVec(gridPosition + ImVec2(1.f, 1.f));
+    const ImVec2 nodeStart = grid_to_vec(grid_position);
+    const ImVec2 nodeEnd = grid_to_vec(grid_position + ImVec2(1.f, 1.f));
     const ImColor nodeColor = {255, 127, 127, node.outOfFocus ? 63 : 255};
 
     if (node.focused)
     {
-      const ImVec2 borderStart = gridToVec(gridPosition - BORDER_PADDING);
-      const ImVec2 borderEnd = gridToVec(gridPosition + ImVec2(1.f, 1.f) + BORDER_PADDING);
+      const ImVec2 borderStart = grid_to_vec(grid_position - BORDER_PADDING);
+      const ImVec2 borderEnd = grid_to_vec(grid_position + ImVec2(1.f, 1.f) + BORDER_PADDING);
 
-      drawList->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
+      draw_list->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
     }
 
-    drawList->AddRectFilled(nodeStart, nodeEnd, nodeColor);
+    draw_list->AddRectFilled(nodeStart, nodeEnd, nodeColor);
   }
 }
 
-void IRGraphVisualizer::drawResource(ImDrawList *drawList, const ResId id, const eastl::pair<ImVec2, ImVec2> gridBounds)
+void Visualizer::drawResource(ImDrawList *draw_list, const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds)
 {
   const auto resource = resources[id];
 
   if (resource.isVisible)
   {
-    const ImVec2 resourceStart = gridToVec(gridBounds.first);
-    const ImVec2 resourceEnd = gridToVec(gridBounds.second + ImVec2(1.f, 1.f));
+    const ImVec2 resourceStart = grid_to_vec(grid_bounds.first);
+    const ImVec2 resourceEnd = grid_to_vec(grid_bounds.second + ImVec2(1.f, 1.f));
     const ImColor resourceColor = {127, 127, 255, resource.outOfFocus ? 63 : 255};
 
     if (resource.focused)
     {
-      const ImVec2 borderStart = gridToVec(gridBounds.first - BORDER_PADDING);
-      const ImVec2 borderEnd = gridToVec(gridBounds.second + ImVec2(1.f, 1.f) + BORDER_PADDING);
+      const ImVec2 borderStart = grid_to_vec(grid_bounds.first - BORDER_PADDING);
+      const ImVec2 borderEnd = grid_to_vec(grid_bounds.second + ImVec2(1.f, 1.f) + BORDER_PADDING);
 
-      drawList->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
+      draw_list->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
     }
 
-    drawList->AddRectFilled(resourceStart, resourceEnd, resourceColor);
+    draw_list->AddRectFilled(resourceStart, resourceEnd, resourceColor);
   }
 }
 
-void IRGraphVisualizer::drawTextnOnNode(const NodeId id, const ImVec2 gridPosition)
+void Visualizer::drawTextnOnNode(const NodeId id, const ImVec2 grid_position)
 {
   const auto &node = nodes[id];
 
   if (node.isVisible)
   {
-    ImGui::SetCursorScreenPos(gridToVec(gridPosition + TEXT_PADDING));
+    ImGui::SetCursorScreenPos(grid_to_vec(grid_position + TEXT_PADDING));
     ImGui::TextUnformatted(node.name.c_str());
-    ImGui::SetCursorScreenPos(gridToVec(gridPosition + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
+    ImGui::SetCursorScreenPos(grid_to_vec(grid_position + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
     ImGui::Text("x%u", node.multiplexingCount);
   }
 }
 
-void IRGraphVisualizer::drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> gridBounds)
+void Visualizer::drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds)
 {
   const auto &resource = resources[id];
 
   if (resource.isVisible)
   {
-    const auto [startPos, _] = gridBounds;
+    const auto [startPos, _] = grid_bounds;
 
-    ImGui::SetCursorScreenPos(gridToVec(startPos + TEXT_PADDING));
+    ImGui::SetCursorScreenPos(grid_to_vec(startPos + TEXT_PADDING));
     ImGui::TextUnformatted(resource.name.c_str());
-    ImGui::SetCursorScreenPos(gridToVec(startPos + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
+    ImGui::SetCursorScreenPos(grid_to_vec(startPos + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
     ImGui::Text("x%u", resource.multiplexingCount);
   }
 }
 
-void IRGraphVisualizer::checkHovering()
+void Visualizer::checkHovering()
 {
   const GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
   const GraphSubset &graphSubset = curGraphView.elementsSet;
@@ -358,7 +358,7 @@ void IRGraphVisualizer::checkHovering()
   }
 }
 
-void IRGraphVisualizer::generateHoverMsg(ElementID id)
+void Visualizer::generateHoverMsg(ElementID id)
 {
   if (eastl::holds_alternative<NodeId>(id))
   {
@@ -382,7 +382,7 @@ void IRGraphVisualizer::generateHoverMsg(ElementID id)
   hoverMessage += "\nright click for more...";
 }
 
-void IRGraphVisualizer::generatePopupMsg(ElementID id)
+void Visualizer::generatePopupMsg(ElementID id)
 {
   if (eastl::holds_alternative<NodeId>(id))
   {
@@ -400,7 +400,7 @@ void IRGraphVisualizer::generatePopupMsg(ElementID id)
   }
 }
 
-void IRGraphVisualizer::processInfoMsg()
+void Visualizer::processInfoMsg()
 {
   if (ImGui::BeginPopup("element_info"))
   {
@@ -415,7 +415,7 @@ void IRGraphVisualizer::processInfoMsg()
   }
 }
 
-void IRGraphVisualizer::processInput()
+void Visualizer::processInput()
 {
   GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
 
@@ -442,7 +442,7 @@ void IRGraphVisualizer::processInput()
 }
 
 
-void IRGraphVisualizer::updateVisualization()
+void Visualizer::updateVisualization()
 {
   clearData();
 
@@ -454,7 +454,7 @@ void IRGraphVisualizer::updateVisualization()
 }
 
 
-void IRGraphVisualizer::clearData()
+void Visualizer::clearData()
 {
   nodes.clear();
   resources.clear();
@@ -467,7 +467,7 @@ void IRGraphVisualizer::clearData()
   resetFocusElement();
 }
 
-void IRGraphVisualizer::updateResourses()
+void Visualizer::updateResourses()
 {
   for (const auto [irResourceIndex, irResource] : intermediateGraph.resources.enumerate())
     if (irResource.multiplexingIndex == 0)
@@ -482,7 +482,7 @@ void IRGraphVisualizer::updateResourses()
     }
 }
 
-void IRGraphVisualizer::updateNodes()
+void Visualizer::updateNodes()
 {
   for (const auto [irNodeIndex, irNode] : intermediateGraph.nodes.enumerate())
     if (irNode.multiplexingIndex == 0)
@@ -525,7 +525,7 @@ void IRGraphVisualizer::updateNodes()
     }
 }
 
-void IRGraphVisualizer::updateEdges()
+void Visualizer::updateEdges()
 {
   for (auto [nodeId, node] : nodes.enumerate())
   {
@@ -546,23 +546,23 @@ void IRGraphVisualizer::updateEdges()
 }
 
 
-void IRGraphVisualizer::updateWholeGraphView()
+void Visualizer::updateWholeGraphView()
 {
   generateAllElementsSet(wholeGraphView);
 
   placeWithGeneralLayout(wholeGraphView);
 }
 
-void IRGraphVisualizer::updateFocusGraphView()
+void Visualizer::updateFocusGraphView()
 {
   generateFocusedSet(focusedGraphView);
 
   placeWithFocusedLayout(focusedGraphView);
 }
 
-void IRGraphVisualizer::generateAllElementsSet(GraphView &graphView)
+void Visualizer::generateAllElementsSet(GraphView &graph_view)
 {
-  GraphSubset &subset = graphView.elementsSet;
+  GraphSubset &subset = graph_view.elementsSet;
 
   subset.reset();
 
@@ -580,9 +580,9 @@ void IRGraphVisualizer::generateAllElementsSet(GraphView &graphView)
     subset.edges.insert(edgeId);
 }
 
-void IRGraphVisualizer::generateFocusedSet(GraphView &graphView)
+void Visualizer::generateFocusedSet(GraphView &graph_view)
 {
-  GraphSubset &subset = graphView.elementsSet;
+  GraphSubset &subset = graph_view.elementsSet;
 
   subset.reset();
 
@@ -628,10 +628,10 @@ void IRGraphVisualizer::generateFocusedSet(GraphView &graphView)
   }
 }
 
-void IRGraphVisualizer::placeWithGeneralLayout(GraphView &graphView)
+void Visualizer::placeWithGeneralLayout(GraphView &graph_view)
 {
-  const GraphSubset &subset = graphView.elementsSet;
-  SetLayout &layout = graphView.elementsLayout;
+  const GraphSubset &subset = graph_view.elementsSet;
+  SetLayout &layout = graph_view.elementsLayout;
 
   // placing nodes ...
   {
@@ -664,7 +664,7 @@ void IRGraphVisualizer::placeWithGeneralLayout(GraphView &graphView)
   // placing resources ...
   {
     // ... by lines
-    placeResourcesByLines(graphView);
+    placeResourcesByLines(graph_view);
 
     // ... on grid
     for (const auto resId : subset.resources)
@@ -679,10 +679,10 @@ void IRGraphVisualizer::placeWithGeneralLayout(GraphView &graphView)
   }
 
   // placing edges
-  updateEdgesLayout(graphView);
+  updateEdgesLayout(graph_view);
 }
 
-void IRGraphVisualizer::placeResourcesByLines(GraphView &graphView)
+void Visualizer::placeResourcesByLines(GraphView &graph_view)
 {
   /*
   we represent each resource as a segment on an integer line, where the ends are the first and last use
@@ -694,7 +694,7 @@ void IRGraphVisualizer::placeResourcesByLines(GraphView &graphView)
 
   FRAMEMEM_VALIDATE;
 
-  const GraphSubset &subset = graphView.elementsSet;
+  const GraphSubset &subset = graph_view.elementsSet;
 
   struct Lifetime
   {
@@ -735,10 +735,10 @@ void IRGraphVisualizer::placeResourcesByLines(GraphView &graphView)
   }
 }
 
-void IRGraphVisualizer::placeWithFocusedLayout(GraphView &graphView)
+void Visualizer::placeWithFocusedLayout(GraphView &graph_view)
 {
-  const GraphSubset &subset = graphView.elementsSet;
-  SetLayout &layout = graphView.elementsLayout;
+  const GraphSubset &subset = graph_view.elementsSet;
+  SetLayout &layout = graph_view.elementsLayout;
 
   layout.reset();
 
@@ -772,7 +772,7 @@ void IRGraphVisualizer::placeWithFocusedLayout(GraphView &graphView)
     }
 
     // placing edges
-    updateEdgesLayout(graphView);
+    updateEdgesLayout(graph_view);
   }
   // focused on resource
   else if (eastl::holds_alternative<ResId>(focusedElementId))
@@ -792,14 +792,14 @@ void IRGraphVisualizer::placeWithFocusedLayout(GraphView &graphView)
     }
 
     // placing edges
-    updateEdgesLayout(graphView);
+    updateEdgesLayout(graph_view);
   }
 }
 
-void IRGraphVisualizer::updateEdgesLayout(GraphView &graphView)
+void Visualizer::updateEdgesLayout(GraphView &graph_view)
 {
-  const GraphSubset &subset = graphView.elementsSet;
-  SetLayout &layout = graphView.elementsLayout;
+  const GraphSubset &subset = graph_view.elementsSet;
+  SetLayout &layout = graph_view.elementsLayout;
 
   for (const auto edgeId : subset.edges)
   {
@@ -823,7 +823,7 @@ void IRGraphVisualizer::updateEdgesLayout(GraphView &graphView)
 }
 
 
-void IRGraphVisualizer::updateVisibilityFlags()
+void Visualizer::updateVisibilityFlags()
 {
   const bool anyFocus = !eastl::holds_alternative<eastl::monostate>(focusedElementId);
 
@@ -898,7 +898,7 @@ void IRGraphVisualizer::updateVisibilityFlags()
   }
 }
 
-void IRGraphVisualizer::resetFocusElement()
+void Visualizer::resetFocusElement()
 {
   focusedElementId = {};
 
@@ -908,7 +908,7 @@ void IRGraphVisualizer::resetFocusElement()
 }
 
 
-void IRGraphVisualizer::setFocusElement(ElementID id)
+void Visualizer::setFocusElement(ElementID id)
 {
   focusedElementId = id;
 
@@ -917,6 +917,6 @@ void IRGraphVisualizer::setFocusElement(ElementID id)
   updateFocusGraphView();
 }
 
-} // namespace visualization
+} // namespace visualization::irgraph
 
 } // namespace dafg

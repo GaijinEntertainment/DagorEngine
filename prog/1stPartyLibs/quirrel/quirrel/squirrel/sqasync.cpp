@@ -18,54 +18,55 @@
 namespace sqasync
 {
 
-static int promise_type_tag_anchor = 0;
+static int future_type_tag_anchor = 0;
 
-static inline SQUserPointer promiseTypeTag() { return (SQUserPointer)&promise_type_tag_anchor; }
+static inline SQUserPointer futureTypeTag() { return (SQUserPointer)&future_type_tag_anchor; }
 
 
 enum Lifecycle : SQUnsignedInteger32
 {
     L_Open = 0,        // pending; settle-able
-    L_Adopted = 1,     // pending; locked on another Promise (`value` is that instance)
+    L_Adopted = 1,     // pending; locked on another Future (`value` is that instance)
     L_Fulfilled = 2,
-    L_Rejected = 3,
+    L_Faulted = 3,
 };
 
 
 enum ResumeKind
 {
-    Resume_Initial = 0,   // task-promise has never run; first step
+    Resume_Initial = 0,   // task-future has never run; first step
     Resume_Send = 1,      // await resolved; inject value at the parked yield slot
-    Resume_Throw = 2,     // await rejected; raise inside the resumed frame
+    Resume_Throw = 2,     // await faulted; raise inside the resumed frame
 };
 
 
-struct PromiseImpl
+struct FutureImpl
 {
     Lifecycle lifecycle;
-    bool isTask;                // latched true in buildTaskPromise
+    bool isTask;                // latched true in buildTaskFuture
     bool awaited;               // someone has been (or is being) parked on this
+    bool reported;              // unhandled-fault diagnostic has fired (sweep or releasehook)
 
     HSQOBJECT value;            // addref'd when non-null; adoption-target instance when L_Adopted
     HSQOBJECT generator;        // addref'd when non-null; valid only while isTask && L_Open
 
     sqvector<HSQOBJECT> waiters; // each addref'd; mix of awaiting tasks and chain-locked adopters
 
-    SQAllocContext alloc_ctx;   // free path in promise_releasehook when vm is null
+    SQAllocContext alloc_ctx;   // free path in future_releasehook when vm is null
 
-    // Unhandled-rejection diagnostic context. Leaf SQStrings only: an
+    // Unhandled-fault diagnostic context. Leaf SQStrings only: an
     // SQString has no outgoing refs, so addref'ing one cannot form a GC
     // cycle (same safety class as `value`). Captured at creation, not
-    // reject - the async closure is Kill()'d during the throwing Execute.
-    HSQOBJECT asyncSourceName;      // null for a bare Promise (no generator)
+    // at fault - the async closure is Kill()'d during the throwing Execute.
+    HSQOBJECT asyncSourceName;      // null for a bare Future (no generator)
     HSQOBJECT asyncFuncName;
     HSQOBJECT launchSourceName;     // null for a native/root immediate caller
     HSQOBJECT launchFuncName;
     SQInt32 asyncDefLine;
     SQInt32 launchLine;
 
-    PromiseImpl(SQAllocContext ctx)
-        : lifecycle(L_Open), isTask(false), awaited(false),
+    FutureImpl(SQAllocContext ctx)
+        : lifecycle(L_Open), isTask(false), awaited(false), reported(false),
           waiters(ctx), alloc_ctx(ctx), asyncDefLine(0), launchLine(0)
     {
         sq_resetobject(&value);
@@ -103,7 +104,7 @@ struct AsyncState
     HSQUIRRELVM rootVm;
 
     // bound class object; addref'd
-    HSQOBJECT promiseClass;
+    HSQOBJECT futureClass;
 
     // VM-thread-only step queue (no lock)
     sqvector<QueueEntry> queue;
@@ -118,10 +119,15 @@ struct AsyncState
     // written under inboxLock so producers see it
     bool shuttingDown;
 
+    // Faulted Futures that settled since the previous pump-end sweep. Each
+    // entry owns one strong ref on the Future instance, released at sweep
+    // time (or in shutdown's final drain). VM-thread-only - no lock.
+    sqvector<HSQOBJECT> unhandledCandidates;
+
     AsyncState(HSQUIRRELVM v, SQAllocContext ctx)
-        : rootVm(v), queue(ctx), inbox(ctx), shuttingDown(false)
+        : rootVm(v), queue(ctx), inbox(ctx), shuttingDown(false), unhandledCandidates(ctx)
     {
-        sq_resetobject(&promiseClass);
+        sq_resetobject(&futureClass);
     }
 };
 
@@ -135,43 +141,43 @@ inline AsyncState *getAsyncState(HSQUIRRELVM v)
 }
 
 
-inline PromiseImpl *getPromiseFromInstance(HSQUIRRELVM v, const HSQOBJECT &inst)
+inline FutureImpl *getFutureFromInstance(HSQUIRRELVM v, const HSQOBJECT &inst)
 {
     if (sq_type(inst) != OT_INSTANCE)
         return nullptr;
     SQClass *cls = _instance(inst)->_class;
-    if (cls->_typetag != promiseTypeTag())
+    if (cls->_typetag != futureTypeTag())
         return nullptr;
-    // _userpointer is nullptr until promise_constructor (or buildTaskPromise/the
-    // await fast path) installs the PromiseImpl. A subclass that skips
+    // _userpointer is nullptr until future_constructor (or buildTaskFuture/the
+    // await fast path) installs the FutureImpl. A subclass that skips
     // super.constructor() lands here with a matching typetag but no impl.
-    return (PromiseImpl *)_instance(inst)->_userpointer;
+    return (FutureImpl *)_instance(inst)->_userpointer;
 }
 
 
-// Resolve `this` (stack slot 1) into a PromiseImpl for the script-callable
-// methods. Throws and returns nullptr if the receiver isn't a Promise instance,
+// Resolve `this` (stack slot 1) into a FutureImpl for the script-callable
+// methods. Throws and returns nullptr if the receiver isn't a Future instance,
 // or is a subclass instance whose super.constructor() was never invoked.
-PromiseImpl *requirePromiseSelf(HSQUIRRELVM v, const char *errMsg)
+FutureImpl *requireFutureSelf(HSQUIRRELVM v, const char *errMsg)
 {
     SQUserPointer up = nullptr;
-    if (SQ_FAILED(sq_getinstanceup(v, 1, &up, promiseTypeTag())) || up == nullptr) {
+    if (SQ_FAILED(sq_getinstanceup(v, 1, &up, futureTypeTag())) || up == nullptr) {
         sq_throwerror(v, errMsg);
         return nullptr;
     }
-    return (PromiseImpl *)up;
+    return (FutureImpl *)up;
 }
 
 
 void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValue);
 void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue);
-SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInstance, const HSQOBJECT &value, bool reject);
-SQRESULT resolveAndAdopt(HSQUIRRELVM v, PromiseImpl *target, HSQOBJECT targetInstance, HSQOBJECT valueIn, bool throwOnCycle);
-SQRESULT externalSettle(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &p_inst, const HSQOBJECT &value, bool reject);
+SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInstance, const HSQOBJECT &value, bool reject);
+SQRESULT resolveAndAdopt(HSQUIRRELVM v, FutureImpl *target, HSQOBJECT targetInstance, HSQOBJECT valueIn, bool throwOnCycle);
+SQRESULT externalSettle(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &p_inst, const HSQOBJECT &value, bool reject);
 
 
 //-----------------------------------------------------------------------------
-// Promise script-class methods.
+// Future script-class methods.
 
 // Render a rejection reason without invoking script metamethods and
 // without recursion (the hook runs in a decref/GC context), and with no
@@ -206,46 +212,59 @@ static void format_reason(const HSQOBJECT &o, char *buf, size_t n)
 }
 
 
-SQInteger promise_releasehook(HSQUIRRELVM vm, SQUserPointer p, SQInteger SQ_UNUSED_ARG(size))
+// One-line unhandled-fault diagnostic to the VM's error stream. Callers
+// are responsible for marking self->reported.
+static void emitReleaseHookDiag(HSQUIRRELVM vm, FutureImpl *self)
 {
-    PromiseImpl *self = (PromiseImpl *)p;
+    SQPRINTFUNCTION errfn = _ss(vm)->_errorfunc;
+    if (!errfn)
+        return;
+
+    char reason[160];
+    format_reason(self->value, reason, sizeof(reason));
+
+    char line[768];
+    if (sq_type(self->asyncSourceName) == OT_STRING) {
+        // Task-future: an async function threw.
+        const char *an = sq_type(self->asyncFuncName) == OT_STRING ? _stringval(self->asyncFuncName) : "";
+        if (sq_type(self->launchSourceName) == OT_STRING) {
+            const char *ln = sq_type(self->launchFuncName) == OT_STRING ? _stringval(self->launchFuncName) : "";
+            scsprintf(line, sizeof(line),
+                "[sqasync] unhandled error in async %.80s (%.160s:%d); reason: %s; launched at %.160s:%d %.80s\n",
+                an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason,
+                _stringval(self->launchSourceName), (int)self->launchLine, ln);
+        } else {
+            // Native / root immediate caller: no launch clause.
+            scsprintf(line, sizeof(line),
+                "[sqasync] unhandled error in async %.80s (%.160s:%d); reason: %s\n",
+                an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason);
+        }
+    } else {
+        // Bare Future faulted from native code via future_throw.
+        scsprintf(line, sizeof(line),
+            "[sqasync] unhandled error on Future faulted from native code; reason: %s\n", reason);
+    }
+    errfn(vm, line);
+
+    // When the faulting value is an Error, append its captured throw-site trace.
+    sq_print_error_trace(vm, SQObjectPtr(self->value), errfn);
+}
+
+
+SQInteger future_releasehook(HSQUIRRELVM vm, SQUserPointer p, SQInteger SQ_UNUSED_ARG(size))
+{
+    FutureImpl *self = (FutureImpl *)p;
 
     // vm is null when we're called from _refs_table.Finalize() during shutdown:
     // ~SQSharedState already Null'd _root_vm. The ref table is nulling every
     // slot we'd sq_release from anyway, so the per-object refcount still balances.
     if (vm) {
-        // Unhandled-rejection diagnostic. v1 default: a one-line warning to
-        // the VM's error stream when a Rejected promise dies without ever
-        // being awaited. No hook in v1 (see design decision 15).
-        if (self->lifecycle == L_Rejected && !self->awaited) {
-            SQPRINTFUNCTION errfn = _ss(vm)->_errorfunc;
-            if (errfn) {
-                char reason[160];
-                format_reason(self->value, reason, sizeof(reason));
-
-                char line[768];
-                if (sq_type(self->asyncSourceName) == OT_STRING) {
-                    // Task-promise: an async function rejected.
-                    const char *an = sq_type(self->asyncFuncName) == OT_STRING ? _stringval(self->asyncFuncName) : "";
-                    if (sq_type(self->launchSourceName) == OT_STRING) {
-                        const char *ln = sq_type(self->launchFuncName) == OT_STRING ? _stringval(self->launchFuncName) : "";
-                        scsprintf(line, sizeof(line),
-                            "[sqasync] unhandled promise rejection in async %.80s (%.160s:%d); reason: %s; launched at %.160s:%d %.80s\n",
-                            an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason,
-                            _stringval(self->launchSourceName), (int)self->launchLine, ln);
-                    } else {
-                        // Native / root immediate caller: no launch clause.
-                        scsprintf(line, sizeof(line),
-                            "[sqasync] unhandled promise rejection in async %.80s (%.160s:%d); reason: %s\n",
-                            an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason);
-                    }
-                } else {
-                    // Bare Promise().reject(...) with no generator.
-                    scsprintf(line, sizeof(line),
-                        "[sqasync] unhandled promise rejection on Promise.reject; reason: %s\n", reason);
-                }
-                errfn(vm, line);
-            }
+        // Defensive net for a fault GC'd before either the pump-tick sweep
+        // or the shutdown drain ran (e.g. manual collectgarbage() with no
+        // pump in between).
+        if (self->lifecycle == L_Faulted && !self->awaited && !self->reported) {
+            emitReleaseHookDiag(vm, self);
+            self->reported = true;
         }
 
         sq_release(vm, &self->value);
@@ -259,49 +278,50 @@ SQInteger promise_releasehook(HSQUIRRELVM vm, SQUserPointer p, SQInteger SQ_UNUS
     }
 
     SQAllocContext ctx = self->alloc_ctx;
-    self->~PromiseImpl();
-    sq_free(ctx, self, sizeof(PromiseImpl));
+    self->~FutureImpl();
+    sq_free(ctx, self, sizeof(FutureImpl));
     return 1;
 }
 
 
-SQInteger promise_constructor(HSQUIRRELVM v)
+SQInteger future_constructor(HSQUIRRELVM v)
 {
     SQUserPointer existing = nullptr;
-    if (SQ_SUCCEEDED(sq_getinstanceup(v, 1, &existing, promiseTypeTag())) && existing != nullptr)
-        return sq_throwerror(v, "Promise: constructor called more than once");
+    if (SQ_SUCCEEDED(sq_getinstanceup(v, 1, &existing, futureTypeTag())) && existing != nullptr)
+        return sq_throwerror(v, "Future: constructor called more than once");
 
     SQAllocContext ctx = sq_getallocctx(v);
-    void *mem = sq_malloc(ctx, sizeof(PromiseImpl));
-    PromiseImpl *p = new (mem) PromiseImpl(ctx);
+    void *mem = sq_malloc(ctx, sizeof(FutureImpl));
+    FutureImpl *p = new (mem) FutureImpl(ctx);
 
     if (SQ_FAILED(sq_setinstanceup(v, 1, p))) {
-        p->~PromiseImpl();
-        sq_free(ctx, p, sizeof(PromiseImpl));
-        return sq_throwerror(v, "cannot create Promise");
+        p->~FutureImpl();
+        sq_free(ctx, p, sizeof(FutureImpl));
+        return sq_throwerror(v, "cannot create Future");
     }
-    sq_setreleasehook(v, 1, promise_releasehook);
+    sq_setreleasehook(v, 1, future_releasehook);
     return 0;
 }
 
 
-SQInteger promise_getState(HSQUIRRELVM v)
+SQInteger future_getState(HSQUIRRELVM v)
 {
-    PromiseImpl *p = requirePromiseSelf(v, "Promise.getState: invalid 'this'");
+    FutureImpl *p = requireFutureSelf(v, "Future.getState: invalid 'this'");
     if (!p) return SQ_ERROR;
     const char *s = "pending";
     if (p->lifecycle == L_Fulfilled) s = "fulfilled";
-    else if (p->lifecycle == L_Rejected) s = "rejected";
+    else if (p->lifecycle == L_Faulted) s = "faulted";
     // L_Adopted reports as "pending" - it is, from the outside.
     sq_pushstring(v, s, -1);
     return 1;
 }
 
 
-// Shared script entry for Promise._resolve and Promise._reject.
-SQInteger promise_settle(HSQUIRRELVM v, bool reject)
+// Script entry for Future.resolve. The faulted side is only reachable from
+// native code via future_throw, or from a throw escaping an async body.
+SQInteger future_resolve_method(HSQUIRRELVM v)
 {
-    PromiseImpl *p = requirePromiseSelf(v, "Promise: invalid 'this'");
+    FutureImpl *p = requireFutureSelf(v, "Future: invalid 'this'");
     if (!p) return SQ_ERROR;
 
     HSQOBJECT v_obj;
@@ -313,12 +333,8 @@ SQInteger promise_settle(HSQUIRRELVM v, bool reject)
     sq_resetobject(&self_obj);
     sq_getstackobj(v, 1, &self_obj);
 
-    return SQ_FAILED(externalSettle(v, p, self_obj, v_obj, reject)) ? SQ_ERROR : 0;
+    return SQ_FAILED(externalSettle(v, p, self_obj, v_obj, /*reject*/false)) ? SQ_ERROR : 0;
 }
-
-
-SQInteger promise_resolve_method(HSQUIRRELVM v) { return promise_settle(v, false); }
-SQInteger promise_reject_method(HSQUIRRELVM v)  { return promise_settle(v, true); }
 
 
 //-----------------------------------------------------------------------------
@@ -326,17 +342,22 @@ SQInteger promise_reject_method(HSQUIRRELVM v)  { return promise_settle(v, true)
 
 struct CascadeJob
 {
-    PromiseImpl *p;
+    // K_Adopt unwinds an L_Adopted chain lock; K_FoldFault settles a parked
+    // async ancestor (no catch on its frame) inline rather than via a queued
+    // Resume_Throw.
+    enum Kind { K_Adopt, K_FoldFault };
+    Kind kind;
+    FutureImpl *p;
     HSQOBJECT instance;  // owns one ref; pins `p` against sq_release teardown
     HSQOBJECT pinned;    // owns one ref; transfers into p->value
-    bool reject;
+    bool reject;         // K_FoldFault is always true
 };
 
 // selfInstance feeds the per-iteration cycle check below; required.
-SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInstance,
+SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInstance,
                         const HSQOBJECT &value, bool reject)
 {
-    if (p->lifecycle == L_Fulfilled || p->lifecycle == L_Rejected)
+    if (p->lifecycle == L_Fulfilled || p->lifecycle == L_Faulted)
         return SQ_OK;
 
     // Pin `value` BEFORE releasing the old p->value: in the L_Adopted ->
@@ -348,8 +369,11 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
     sqvector<CascadeJob> worklist(p->alloc_ctx);
     SQUnsignedInteger32 head = 0;
 
-    PromiseImpl *cur = p;
+    FutureImpl *cur = p;
     bool curReject = reject;
+    // Only folded ancestors get an `awaited at` frame; the initial fault `p` is
+    // the throwing step, whose origin sub-stack is already on the trace.
+    bool curIsFold = false;
 
     HSQOBJECT curInstance = selfInstance;
     sq_addref(v, &curInstance);
@@ -357,10 +381,10 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
     bool more = true;
     while (more) {
         // cur->value = cur would form an uncollectable refcount cycle.
-        // Substitute and force reject. Matches JS PRP on a chaining cycle.
+        // Substitute and force fault. Matches JS PRP on a chaining cycle.
         if (sq_type(curPinned) == OT_INSTANCE && sq_type(curInstance) == OT_INSTANCE
             && _instance(curPinned) == _instance(curInstance)) {
-            sq_pushstring(v, "Promise: chaining cycle detected", -1);
+            sq_pushstring(v, "Future: chaining cycle detected", -1);
             HSQOBJECT subst;
             sq_resetobject(&subst);
             sq_getstackobj(v, -1, &subst);
@@ -376,8 +400,27 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
             sq_resetobject(&cur->value);
         }
 
-        cur->lifecycle = curReject ? L_Rejected : L_Fulfilled;
+        cur->lifecycle = curReject ? L_Faulted : L_Fulfilled;
         cur->value = curPinned;  // ref transfers from curPinned into cur->value
+
+        // Push every fault unconditionally; the pump-end sweep filters by
+        // !awaited && !reported so an intra-tick await suppresses it.
+        if (curReject) {
+            AsyncState *st = getAsyncState(v);
+            if (st) {
+                HSQOBJECT pinned = curInstance;
+                sq_addref(v, &pinned);
+                st->unhandledCandidates.push_back(pinned);
+            }
+        }
+
+        // A folded ancestor never resumes: Kill it before the generator is
+        // released below.
+        if (curIsFold && cur->isTask && sq_type(cur->generator) == OT_GENERATOR) {
+            SQGenerator *gen = _generator(cur->generator);
+            sq_append_awaited_frame(v, SQObjectPtr(cur->value), gen->_ci);
+            gen->Kill();
+        }
 
         sq_release(v, &cur->generator);
         sq_resetobject(&cur->generator);
@@ -389,19 +432,31 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
         if (drained.size() > 0) {
             cur->awaited = true;
             ResumeKind kind = curReject ? Resume_Throw : Resume_Send;
+            // At a reject fork each consumer branch needs its own carrier; the
+            // Future's stored value keeps only the pre-fork prefix, so a late
+            // awaiter sees no branch frames.
+            bool forkReject = curReject && drained.size() > 1;
             for (SQUnsignedInteger32 i = 0; i < drained.size(); ++i) {
-                PromiseImpl *w = getPromiseFromInstance(v, drained._vals[i]);
-                if (w && w->lifecycle == L_Adopted) {
+                FutureImpl *w = getFutureFromInstance(v, drained._vals[i]);
+                bool foldFault = curReject && w && w->isTask && w->lifecycle == L_Open
+                    && sq_type(w->generator) == OT_GENERATOR
+                    && _generator(w->generator)->_ci._etraps == 0;
+                // foldFault reads _etraps while w is still L_Open, before it
+                // becomes `cur` and has its generator torn down.
+                SQObjectPtr branchVal = forkReject ? sq_clone_error_for_branch(v, SQObjectPtr(cur->value))
+                                                   : SQObjectPtr(cur->value);
+                if ((w && w->lifecycle == L_Adopted) || foldFault) {
                     CascadeJob job;
+                    job.kind = foldFault ? CascadeJob::K_FoldFault : CascadeJob::K_Adopt;
                     job.p = w;
                     job.instance = drained._vals[i];  // waiters-list ref transfers in
-                    job.pinned = cur->value;
+                    job.pinned = branchVal;
                     sq_addref(v, &job.pinned);
                     job.reject = curReject;
                     worklist.push_back(job);
                 }
                 else {
-                    scheduleStep(v, drained._vals[i], kind, cur->value);
+                    scheduleStep(v, drained._vals[i], kind, branchVal);
                     sq_release(v, &drained._vals[i]);
                 }
             }
@@ -418,7 +473,7 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
             // Defensive: each adopter sits in exactly one waiters list, so
             // a popped target shouldn't already be terminal. Balance both
             // refs if invariants ever drift.
-            if (job.p->lifecycle == L_Fulfilled || job.p->lifecycle == L_Rejected) {
+            if (job.p->lifecycle == L_Fulfilled || job.p->lifecycle == L_Faulted) {
                 sq_release(v, &job.pinned);
                 sq_release(v, &job.instance);
                 continue;
@@ -427,6 +482,7 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
             curInstance = job.instance;
             curPinned = job.pinned;
             curReject = job.reject;
+            curIsFold = (job.kind == CascadeJob::K_FoldFault);
             more = true;
             break;
         }
@@ -438,7 +494,7 @@ SQRESULT settleTerminal(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &selfInst
 // Caller MUST hold one strong ref on `targetInstance`; this function
 // always consumes it (transferred into q->waiters on adoption, released
 // otherwise). Indirect cycles are caught by the L_Adopted forward-follow.
-SQRESULT resolveAndAdopt(HSQUIRRELVM v, PromiseImpl *target,
+SQRESULT resolveAndAdopt(HSQUIRRELVM v, FutureImpl *target,
                          HSQOBJECT targetInstance, HSQOBJECT valueIn,
                          bool throwOnCycle)
 {
@@ -449,17 +505,17 @@ SQRESULT resolveAndAdopt(HSQUIRRELVM v, PromiseImpl *target,
 
     // No addref: each visited q is held alive transitively via the chain
     // from valueIn through L_Adopted->value links for the walk duration.
-    sqvector<PromiseImpl *> visited(target->alloc_ctx);
+    sqvector<FutureImpl *> visited(target->alloc_ctx);
 
     HSQOBJECT current = valueIn;
-    while (PromiseImpl *q = getPromiseFromInstance(v, current)) {
+    while (FutureImpl *q = getFutureFromInstance(v, current)) {
         if (q == target) {
             if (throwOnCycle) {
                 sq_release(v, &targetInstance);
-                return sq_throwerror(v, "Promise.resolve: cannot resolve with self");
+                return sq_throwerror(v, "Future.resolve: cannot resolve with self");
             }
             // Async-return path: no script frame to throw into.
-            sq_pushstring(v, "Promise chain-unwrap: self-cycle", -1);
+            sq_pushstring(v, "Future chain-unwrap: self-cycle", -1);
             HSQOBJECT errObj;
             sq_resetobject(&errObj);
             sq_getstackobj(v, -1, &errObj);
@@ -484,7 +540,7 @@ SQRESULT resolveAndAdopt(HSQUIRRELVM v, PromiseImpl *target,
             case L_Fulfilled:
                 current = q->value;
                 continue;
-            case L_Rejected:
+            case L_Faulted:
                 for (SQUnsignedInteger32 i = 0; i < visited.size(); ++i)
                     visited._vals[i]->awaited = true;
                 settleTerminal(v, target, targetInstance, q->value, /*reject*/true);
@@ -500,23 +556,23 @@ SQRESULT resolveAndAdopt(HSQUIRRELVM v, PromiseImpl *target,
 }
 
 
-SQRESULT externalSettle(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &p_inst,
+SQRESULT externalSettle(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &p_inst,
                         const HSQOBJECT &value, bool reject)
 {
-    // Task-promise terminal state is owned by runStep's exit paths.
+    // Task-future terminal state is owned by runStep's exit paths.
     if (p->isTask)
         return sq_throwerror(v, reject
-            ? "Promise.reject: cannot reject the promise returned by an async function"
-            : "Promise.resolve: cannot resolve the promise returned by an async function");
+            ? "future_throw: cannot fault the future returned by an async function"
+            : "Future.resolve: cannot resolve the future returned by an async function");
 
     if (p->lifecycle != L_Open)
         return SQ_OK;
 
     if (reject) {
-        // Direct self-reject is a script error (uncollectable refcount cycle).
+        // Direct self-fault is a script error (uncollectable refcount cycle).
         if (sq_type(value) == OT_INSTANCE && sq_type(p_inst) == OT_INSTANCE
             && _instance(value) == _instance(p_inst))
-            return sq_throwerror(v, "Promise.reject: cannot reject with self");
+            return sq_throwerror(v, "future_throw: cannot fault with self");
         return settleTerminal(v, p, p_inst, value, /*reject*/true);
     }
 
@@ -527,7 +583,7 @@ SQRESULT externalSettle(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &p_inst,
 
 
 //-----------------------------------------------------------------------------
-// Runner: drives a parked task-promise one step at a time.
+// Runner: drives a parked task-future one step at a time.
 
 
 void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue)
@@ -551,7 +607,7 @@ void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind,
 // Resumes a parked async task one step. The caller has addref'd taskInstance
 // and resumeValueIn for us once each; we sq_release both on every return,
 // except when we park on a pending await - there taskInstance's ref transfers
-// into that promise's waiters list.
+// into that future's waiters list.
 void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValueIn)
 {
     // Pin resumeValueIn into a local SQObjectPtr so it survives Execute and
@@ -562,38 +618,17 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
     sq_release(v, &resumeValueIn);
 
     AsyncState *st = getAsyncState(v);
-    PromiseImpl *p = getPromiseFromInstance(v, taskInstance);
+    FutureImpl *p = getFutureFromInstance(v, taskInstance);
     if (!st || st->shuttingDown || !p || p->lifecycle != L_Open) {
         sq_release(v, &taskInstance);
         return;
     }
 
-    // Resume_Send: write the value into the generator's parked yield slot; when
-    //   Execute resumes the generator, it picks the value up as the await result.
-    // Resume_Throw: preload _lasterror and switch ExecutionType so Execute jumps
-    //   straight into the exception trap inside the resumed frame.
-    // Resume_Initial: nothing to deliver - this is the generator's first run.
     SQGenerator *gen = _generator(p->generator);
-    SQVM::ExecutionType et = SQVM::ET_RESUME_GENERATOR;
-    if (kind == Resume_Send) {
-        if (gen->_yield_arg1 != MAX_FUNC_STACKSIZE)
-            gen->_stack[gen->_yield_arg1] = resumeValue;
-    }
-    else if (kind == Resume_Throw) {
-        v->_lasterror = resumeValue;
-        et = SQVM::ET_RESUME_GENERATOR_THROW;
-    }
-
-    // Mirror sq_resume's calling convention exactly.
-    sq_pushobject(v, p->generator);
-    sq_pushnull(v);
-    bool execOk = v->_debughook
-        ? v->Execute<true>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), SQFalse, et)
-        : v->Execute<false>(v->GetUp(-2), 0, v->_top, v->GetUp(-1), SQFalse, et);
+    SQGenerator::ResumeMode mode =
+        (kind == Resume_Throw) ? SQGenerator::ResumeThrow : SQGenerator::ResumeNormal;
     SQObjectPtr outres;
-    if (execOk)
-        outres = v->GetUp(-1);
-    sq_pop(v, 2);  // pop generator + placeholder
+    bool execOk = gen->RunStep(v, outres, mode, resumeValue);
 
     if (!execOk) {
         // Generator threw an unhandled error. Take a strong ref before clearing
@@ -610,49 +645,49 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
         return;
     }
 
-    // Yielded an awaitable: either park on a pending Promise, or scheduleStep
+    // Yielded an awaitable: either park on a pending Future, or scheduleStep
     // the next step right away. Chains of already-resolved awaits still unwind
     // in a single tick - pump drains entries pushed during dispatch up to maxSteps.
-    PromiseImpl *q = getPromiseFromInstance(v, outres);
+    FutureImpl *q = getFutureFromInstance(v, outres);
     if (!q) {
         scheduleStep(v, taskInstance, Resume_Send, outres);
         sq_release(v, &taskInstance);
         return;
     }
     q->awaited = true;
-    if (q->lifecycle != L_Fulfilled && q->lifecycle != L_Rejected) {
+    if (q->lifecycle != L_Fulfilled && q->lifecycle != L_Faulted) {
         q->waiters.push_back(taskInstance);  // ref transfers; do NOT release
         return;
     }
-    ResumeKind nextKind = (q->lifecycle == L_Rejected) ? Resume_Throw : Resume_Send;
+    ResumeKind nextKind = (q->lifecycle == L_Faulted) ? Resume_Throw : Resume_Send;
     scheduleStep(v, taskInstance, nextKind, q->value);
     sq_release(v, &taskInstance);
 }
 
 
 //-----------------------------------------------------------------------------
-// Push a fresh Promise instance with PromiseImpl + releasehook installed.
+// Push a fresh Future instance with FutureImpl + releasehook installed.
 // Returns the impl pointer (also gettable via _userpointer); on failure,
 // returns nullptr with the stack restored to the entry top.
-PromiseImpl *createPromiseInstanceOnStack(HSQUIRRELVM v, AsyncState *st)
+FutureImpl *createFutureInstanceOnStack(HSQUIRRELVM v, AsyncState *st)
 {
-    sq_pushobject(v, st->promiseClass);
+    sq_pushobject(v, st->futureClass);
     if (SQ_FAILED(sq_createinstance(v, -1))) {
         sq_pop(v, 1);
         return nullptr;
     }
 
     SQAllocContext ctx = sq_getallocctx(v);
-    void *mem = sq_malloc(ctx, sizeof(PromiseImpl));
-    PromiseImpl *p = new (mem) PromiseImpl(ctx);
+    void *mem = sq_malloc(ctx, sizeof(FutureImpl));
+    FutureImpl *p = new (mem) FutureImpl(ctx);
 
     if (SQ_FAILED(sq_setinstanceup(v, -1, p))) {
-        p->~PromiseImpl();
-        sq_free(ctx, p, sizeof(PromiseImpl));
+        p->~FutureImpl();
+        sq_free(ctx, p, sizeof(FutureImpl));
         sq_pop(v, 2);  // drop instance + class
         return nullptr;
     }
-    sq_setreleasehook(v, -1, promise_releasehook);
+    sq_setreleasehook(v, -1, future_releasehook);
     sq_remove(v, -2);  // drop class; instance on top
     return p;
 }
@@ -669,10 +704,10 @@ static inline void captureProtoString(HSQUIRRELVM v, const SQObjectPtr &src, HSQ
 }
 
 
-// Capture the diagnostic context. Must run at creation, not reject: the
+// Capture the diagnostic context. Must run at creation, not fault: the
 // async closure is Kill()'d (its _closure Null'd) while the throwing
-// Execute unwinds, and the caller frame is gone by reject time.
-static void captureDiag(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &gen)
+// Execute unwinds, and the caller frame is gone by fault time.
+static void captureDiag(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &gen)
 {
     if (sq_type(gen) == OT_GENERATOR) {
         const SQObjectPtr &cl = _generator(gen)->_closure;
@@ -696,15 +731,15 @@ static void captureDiag(HSQUIRRELVM v, PromiseImpl *p, const HSQOBJECT &gen)
 }
 
 
-// Build a fresh task-promise wrapping `gen`, schedule its initial step, and
-// write the promise instance handle through `outInstance`. Called from the
+// Build a fresh task-future wrapping `gen`, schedule its initial step, and
+// write the future instance handle through `outInstance`. Called from the
 // engine's StartCall via sqasync::wrap_generator.
-bool buildTaskPromise(HSQUIRRELVM v, const HSQOBJECT &gen, HSQOBJECT &outInstance)
+bool buildTaskFuture(HSQUIRRELVM v, const HSQOBJECT &gen, HSQOBJECT &outInstance)
 {
     AsyncState *st = getAsyncState(v);
     if (!st || st->shuttingDown) return false;
 
-    PromiseImpl *p = createPromiseInstanceOnStack(v, st);
+    FutureImpl *p = createFutureInstanceOnStack(v, st);
     if (!p) {
         sq_resetobject(&outInstance);
         return false;
@@ -734,33 +769,71 @@ bool buildTaskPromise(HSQUIRRELVM v, const HSQOBJECT &gen, HSQOBJECT &outInstanc
 //-----------------------------------------------------------------------------
 // bind helpers.
 
-void buildAndCachePromiseClass(HSQUIRRELVM v, AsyncState *st)
+void buildAndCacheFutureClass(HSQUIRRELVM v, AsyncState *st)
 {
     SQInteger top = sq_gettop(v);
 
     sq_newclass(v, SQFalse);
-    sq_settypetag(v, -1, promiseTypeTag());
+    sq_settypetag(v, -1, futureTypeTag());
 
-    static const struct { const char *name; SQFUNCTION fn; } kPromiseMethods[] = {
-        {"constructor", promise_constructor},
-        {"getState",    promise_getState},
-        {"resolve",     promise_resolve_method},
-        {"reject",      promise_reject_method},
+    static const struct { const char *name; SQFUNCTION fn; } kFutureMethods[] = {
+        {"constructor", future_constructor},
+        {"getState",    future_getState},
+        {"resolve",     future_resolve_method},
     };
-    for (const auto &m : kPromiseMethods) {
+    for (const auto &m : kFutureMethods) {
         sq_pushstring(v, m.name, -1);
         sq_newclosure(v, m.fn, 0);
         sq_newslot(v, -3, SQFalse);
     }
 
-    sq_resetobject(&st->promiseClass);
-    sq_getstackobj(v, -1, &st->promiseClass);
-    sq_addref(v, &st->promiseClass);
+    sq_resetobject(&st->futureClass);
+    sq_getstackobj(v, -1, &st->futureClass);
+    sq_addref(v, &st->futureClass);
 
     sq_settop(v, top);
 }
 
 }  // anonymous namespace
+
+
+// Route each still-unhandled fault in unhandledCandidates[0, limit) through
+// VM::CallErrorHandler, or fall back to the legacy console line if no
+// handler is installed. Entries at [limit, size) stay queued for the next
+// sweep - pump() uses this to defer faults that settled during its drain.
+// forcedFallback skips the handler unconditionally - see shutdown.
+static void sweepUnhandledFaults(HSQUIRRELVM v, AsyncState *st, bool forcedFallback, SQUnsignedInteger32 limit)
+{
+    if (limit > st->unhandledCandidates.size())
+        limit = st->unhandledCandidates.size();
+    if (limit == 0)
+        return;
+
+    sqvector<HSQOBJECT> batch(st->unhandledCandidates._alloc_ctx);
+    for (SQUnsignedInteger32 i = 0; i < limit; ++i)
+        batch.push_back(st->unhandledCandidates._vals[i]);
+
+    SQUnsignedInteger32 remaining = st->unhandledCandidates.size() - limit;
+    if (remaining > 0)
+        memmove(&st->unhandledCandidates._vals[0],
+                &st->unhandledCandidates._vals[limit],
+                remaining * sizeof(HSQOBJECT));
+    st->unhandledCandidates.resize(remaining);
+
+    for (SQUnsignedInteger32 i = 0; i < batch.size(); ++i) {
+        HSQOBJECT inst = batch._vals[i];
+        FutureImpl *p = getFutureFromInstance(v, inst);
+        if (p && p->lifecycle == L_Faulted && !p->awaited && !p->reported) {
+            if (!forcedFallback && sq_type(v->_errorhandler) != OT_NULL) {
+                v->CallErrorHandler(SQObjectPtr(p->value));
+            } else {
+                emitReleaseHookDiag(v, p);
+            }
+            p->reported = true;
+        }
+        sq_release(v, &inst);
+    }
+}
 
 
 //-----------------------------------------------------------------------------
@@ -780,10 +853,10 @@ SQRESULT wrap_generator(HSQUIRRELVM v, struct SQGenerator *gen, SQObjectPtr &out
 
     HSQOBJECT taskInstance;
     sq_resetobject(&taskInstance);
-    bool ok = buildTaskPromise(v, genObj, taskInstance);
+    bool ok = buildTaskFuture(v, genObj, taskInstance);
 
     if (!ok)
-        return sq_throwerror(v, "sqasync: cannot create task-promise (runtime missing or shutting down)");
+        return sq_throwerror(v, "sqasync: cannot create task-future (runtime missing or shutting down)");
 
     // Transfer the addref'd taskInstance into the engine's caller slot.
     out = taskInstance;
@@ -822,11 +895,16 @@ void shutdown(struct SQSharedState *ss)
     }
     st->queue.resize(0);
 
-    // Pending task-promises are torn down by _refs_table.Finalize() later in
+    // Report any faults that no pump-tick sweep claimed. forcedFallback
+    // skips _errorhandler: script code is unsafe during teardown -
+    // subsystems between "last pump" and "shutdown" may already be gone.
+    sweepUnhandledFaults(v, st, /*forcedFallback*/true, st->unhandledCandidates.size());
+
+    // Pending task-futures are torn down by _refs_table.Finalize() later in
     // ~SQSharedState: dropping p->generator's slot starts the closure->outer->
-    // instance cascade, and promise_releasehook's null-vm path handles cleanup
+    // instance cascade, and future_releasehook's null-vm path handles cleanup
     // without needing the (already-Null'd) root VM. No force-settle needed.
-    sq_release(v, &st->promiseClass);
+    sq_release(v, &st->futureClass);
 
     st->~AsyncState();
     sq_free(ctx, st, sizeof(AsyncState));
@@ -849,7 +927,7 @@ SQUIRREL_API SQRESULT bind(HSQUIRRELVM v)
     void *mem = sq_malloc(ctx, sizeof(AsyncState));
     AsyncState *st = new (mem) AsyncState(rootVm, ctx);
 
-    buildAndCachePromiseClass(v, st);
+    buildAndCacheFutureClass(v, st);
 
     _ss(v)->_asyncState = st;
     return SQ_OK;
@@ -861,6 +939,10 @@ SQUIRREL_API SQInteger pump(HSQUIRRELVM v, SQInteger maxSteps)
     AsyncState *st = _ss(v)->_asyncState;
     if (!st || st->shuttingDown)
         return 0;
+
+    // Snapshot pre-drain: faults added during this tick defer to the next
+    // sweep so a consumer queued behind them can mark them awaited.
+    SQUnsignedInteger32 sweepable = st->unhandledCandidates.size();
 
     // Splice the inbox into the queue tail under the lock. Posts arriving
     // after the splice wait on the now-empty inbox until the next pump.
@@ -897,20 +979,23 @@ SQUIRREL_API SQInteger pump(HSQUIRRELVM v, SQInteger maxSteps)
             memmove(&st->queue._vals[0], &st->queue._vals[head], remaining * sizeof(QueueEntry));
         st->queue.resize(remaining);
     }
+
+    sweepUnhandledFaults(v, st, /*forcedFallback*/false, sweepable);
     return drained;
 }
 
 
 SQUIRREL_API SQBool has_pending(HSQUIRRELVM v)
 {
-    // "Pending" means pump() has work to drive forward (queue or inbox).
-    // Tasks parked on a never-settling Promise are NOT pending - they
-    // need external input. Drain loops should OR this with external
-    // producers' own pending state (timer queues, HTTP, etc).
+    // "Pending" means pump() has work to drive forward (queue, inbox, or a
+    // deferred unhandled-fault sweep). Tasks parked on a never-settling
+    // Future are NOT pending - they need external input. Drain loops
+    // should OR this with external producers' own pending state (timer
+    // queues, HTTP, etc).
     AsyncState *st = _ss(v)->_asyncState;
     if (!st)
         return SQFalse;
-    if (st->queue.size() > 0)
+    if (st->queue.size() > 0 || st->unhandledCandidates.size() > 0)
         return SQTrue;
     std::lock_guard<std::mutex> lk(st->inboxLock);
     return (st->inbox.size() > 0) ? SQTrue : SQFalse;
@@ -956,26 +1041,26 @@ SQUIRREL_API SQRESULT post_from_any_thread(HSQUIRRELVM v, VmCallback fn, void *u
 }
 
 
-SQUIRREL_API SQRESULT push_promise_class(HSQUIRRELVM v)
+SQUIRREL_API SQRESULT future_push_class(HSQUIRRELVM v)
 {
     AsyncState *st = _ss(v)->_asyncState;
-    if (!st || sq_isnull(st->promiseClass))
-        return sq_throwerror(v, "sqasync: bind() must be called before push_promise_class()");
-    sq_pushobject(v, st->promiseClass);
+    if (!st || sq_isnull(st->futureClass))
+        return sq_throwerror(v, "sqasync: bind() must be called before future_push_class()");
+    sq_pushobject(v, st->futureClass);
     return SQ_OK;
 }
 
 
-SQUIRREL_API SQRESULT create_promise(HSQUIRRELVM v, HSQOBJECT *out)
+SQUIRREL_API SQRESULT future_create(HSQUIRRELVM v, HSQOBJECT *out)
 {
     sq_resetobject(out);
 
     AsyncState *st = _ss(v)->_asyncState;
     if (!st || st->shuttingDown)
-        return sq_throwerror(v, "sqasync::create_promise: runtime not bound");
+        return sq_throwerror(v, "sqasync::future_create: runtime not bound");
 
-    if (!createPromiseInstanceOnStack(v, st))
-        return sq_throwerror(v, "sqasync::create_promise: cannot create Promise");
+    if (!createFutureInstanceOnStack(v, st))
+        return sq_throwerror(v, "sqasync::future_create: cannot create Future");
 
     sq_getstackobj(v, -1, out);
     sq_addref(v, out);
@@ -984,28 +1069,28 @@ SQUIRREL_API SQRESULT create_promise(HSQUIRRELVM v, HSQOBJECT *out)
 }
 
 
-SQUIRREL_API SQRESULT resolve_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT value)
+SQUIRREL_API SQRESULT future_resolve(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value)
 {
-    PromiseImpl *p = getPromiseFromInstance(v, promise);
+    FutureImpl *p = getFutureFromInstance(v, future);
     if (!p)
-        return sq_throwerror(v, "sqasync::resolve_promise: handle is not a Promise instance");
-    return externalSettle(v, p, promise, value, /*reject*/false);
+        return sq_throwerror(v, "sqasync::future_resolve: handle is not a Future instance");
+    return externalSettle(v, p, future, value, /*reject*/false);
 }
 
 
-SQUIRREL_API SQRESULT reject_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT reason)
+SQUIRREL_API SQRESULT future_throw(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value)
 {
-    PromiseImpl *p = getPromiseFromInstance(v, promise);
+    FutureImpl *p = getFutureFromInstance(v, future);
     if (!p)
-        return sq_throwerror(v, "sqasync::reject_promise: handle is not a Promise instance");
-    return externalSettle(v, p, promise, reason, /*reject*/true);
+        return sq_throwerror(v, "sqasync::future_throw: handle is not a Future instance");
+    return externalSettle(v, p, future, value, /*reject*/true);
 }
 
 
 SQUIRREL_API SQInteger sqasync_register(HSQUIRRELVM v)
 {
-    sq_pushstring(v, "Promise", -1);
-    if (SQ_FAILED(push_promise_class(v))) {
+    sq_pushstring(v, "Future", -1);
+    if (SQ_FAILED(future_push_class(v))) {
         sq_pop(v, 1);  // pop the key
         return SQ_ERROR;
     }

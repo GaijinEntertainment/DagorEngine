@@ -216,6 +216,24 @@ DX12_BEGIN_CONTEXT_COMMAND(true, BufferBarrier)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, EnhancedTextureBarrier)
+  DX12_CONTEXT_COMMAND_PARAM(d3d::TextureBarrier, barrier)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, image)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.enhancedTextureBarrier(barrier, image);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, EnhancedBufferBarrier)
+  DX12_CONTEXT_COMMAND_PARAM(d3d::BufferBarrier, barrier)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReference, buffer)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.enhancedBufferBarrier(barrier, buffer);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 #if D3D_HAS_RAY_TRACING
 DX12_BEGIN_CONTEXT_COMMAND(true, AsBarrier)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
@@ -1368,17 +1386,6 @@ DX12_BEGIN_CONTEXT_COMMAND(false, BindlessSetSamplerDescriptor)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.bindlessSetSamplerDescriptor(slot, descriptor);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(false, BindlessCopyResourceDescriptors)
-  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, src)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, dst)
-  DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.bindlessCopyResourceDescriptors(src, dst, count);
 #endif
 DX12_END_CONTEXT_COMMAND
 

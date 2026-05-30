@@ -11,6 +11,7 @@ shader rendinst_animated_flow
   if (instancing_type != tm_vb ||
     rendinst_render_pass == rendinst_render_pass_impostor_color ||
     rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+    rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
     rendinst_render_pass == rendinst_render_pass_to_shadow ||
     rendinst_render_pass == rendinst_render_pass_grassify ||
     rendinst_render_pass == rendinst_render_pass_to_heightmap)

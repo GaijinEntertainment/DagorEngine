@@ -3745,11 +3745,15 @@ ed::EditorAction::AcceptResult ed::SizeAction::Accept(const Control& control)
 
     if (control.ActiveNode && IsGroup(control.ActiveNode) && ImGui::IsMouseDragging(Editor->GetConfig().DragButtonIndex, 1))
     {
-        //const auto mousePos     = to_point(ImGui::GetMousePos());
-        //const auto closestPoint = control.ActiveNode->Bounds.get_closest_point_hollow(mousePos, static_cast<int>(control.ActiveNode->Rounding));
-
-        auto pivot = GetRegion(control.ActiveNode);
-        if (pivot != NodeRegion::Header && pivot != NodeRegion::Center)
+        // MODIFICATION BY GAIJIN
+        // pivot from click position, not current cursor. If the user drags outward
+        // from an edge, the cursor can leave m_Bounds before
+        // IsMouseDragging returns true, making GetRegion return None and the resize a
+        // silent no-op. MouseClickedPos is canvas-space inside ne::Begin/End
+        // (imgui_canvas.cpp:484). Rejecting None too prevents a no-op SizeAction start.
+        const ImVec2 clickPos = ImGui::GetIO().MouseClickedPos[Editor->GetConfig().DragButtonIndex];
+        auto pivot = control.ActiveNode->GetRegion(clickPos);
+        if (pivot != NodeRegion::Header && pivot != NodeRegion::Center && pivot != NodeRegion::None)
         {
             m_StartBounds      = control.ActiveNode->m_Bounds;
             m_StartGroupBounds = control.ActiveNode->m_GroupBounds;

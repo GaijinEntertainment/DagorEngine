@@ -148,9 +148,11 @@ ContainerPropertyControl *ContainerPropertyControl::createTabPage(int id, const 
   return nullptr;
 }
 
-ContainerPropertyControl *ContainerPropertyControl::createToolbarPanel(int id, bool use_tight_button_placement, bool new_line)
+ContainerPropertyControl *ContainerPropertyControl::createToolbarPanel(int id, bool use_tight_button_placement, bool new_line,
+  int toolbar_control_width)
 {
-  ToolbarPropertyControl *newControl = new ToolbarPropertyControl(mEventHandler, this, id, use_tight_button_placement);
+  ToolbarPropertyControl *newControl =
+    new ToolbarPropertyControl(mEventHandler, this, id, use_tight_button_placement, toolbar_control_width);
 
   addControl(newControl, new_line);
   return newControl;

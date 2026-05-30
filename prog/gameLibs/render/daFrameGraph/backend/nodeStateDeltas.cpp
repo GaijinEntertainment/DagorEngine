@@ -453,7 +453,7 @@ IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(cons
   }
 
   for (auto [cur, next] : dag::PairwiseView(result.keys()))
-    if (!graph.nodeStates.isMapped(cur))
+    if (!graph.nodeStates.isMapped(cur) || !graph.nodeStates.isMapped(next))
       dirtyDeltas[cur] = dirtyDeltas[next] = true;
 
   const auto requestedResChanged = [&](intermediate::NodeIndex cur) {

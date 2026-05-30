@@ -380,6 +380,12 @@ struct FeatureID<D3D12_FEATURE_DATA_D3D12_OPTIONS11>
 {
   static constexpr D3D12_FEATURE value = D3D12_FEATURE_D3D12_OPTIONS11;
 };
+
+template <>
+struct FeatureID<D3D12_FEATURE_DATA_D3D12_OPTIONS12>
+{
+  static constexpr D3D12_FEATURE value = D3D12_FEATURE_D3D12_OPTIONS12;
+};
 #endif
 #if _TARGET_PC_WIN
 template <>
@@ -819,11 +825,6 @@ public:
   uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count)
   {
     return bindlessManager.allocateBindlessResourceRange(type, count);
-  }
-
-  uint32_t resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
-  {
-    return bindlessManager.resizeBindlessResourceRange(type, context, index, current_count, new_count);
   }
 
   void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
@@ -1749,9 +1750,7 @@ inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::cr
   uint32_t discard_count, MemoryClass memory_class, uint32_t buf_flags, const char *name)
 {
   auto &device = get_device();
-  BufferType buf =
-    device.createBuffer(size, structure_size, discard_count, memory_class, getResourceFlags(buf_flags), buf_flags, name);
-  return buf;
+  return device.createBuffer(size, structure_size, discard_count, memory_class, getResourceFlags(buf_flags), buf_flags, name);
 }
 
 inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::discardBuffer(GenericBufferInterface *self,

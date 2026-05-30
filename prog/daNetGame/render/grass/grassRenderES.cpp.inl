@@ -418,10 +418,12 @@ template <typename Callable>
 static void fast_grass_types_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
-static void grass_render_update_es(const UpdateStageInfoBeforeRender &, GrassRenderer &grass_render)
+static void grass_render_update_es(const UpdateStageInfoBeforeRender &evt, GrassRenderer &grass_render)
 {
   if (grass_render.fastGrassChanged)
     grass_render.initOrUpdateFastGrass();
+  if (grass_render.grassify)
+    grass_render.grassify->startFilterJob(evt.viewItm, evt.persp);
 }
 
 ECS_TAG(render)

@@ -188,8 +188,8 @@ void SQSharedState::Init()
 SQSharedState::~SQSharedState()
 {
     // Tear down the async runtime first, while the registry, root VM and refs table
-    // are still live: shutdown releases HSQOBJECTs (live task-promises, the bound
-    // Promise class, etc.) and those releases route through the refs table.
+    // are still live: shutdown releases HSQOBJECTs (live task-futures, the bound
+    // Future class, etc.) and those releases route through the refs table.
     if (_asyncState)
         sqasync::shutdown(this);
     if(_releasehook) { _releasehook(_thread(_root_vm),_foreignptr,0); _releasehook = NULL; }
@@ -223,6 +223,7 @@ SQSharedState::~SQSharedState()
     _instance_class.Null();
     _weakref_class.Null();
     _userdata_class.Null();
+    _error_class.Null();
 
     _refs_table.Finalize();
 #ifndef NO_GARBAGE_COLLECTOR
@@ -310,6 +311,7 @@ void SQSharedState::RunMark(SQVM* SQ_UNUSED_ARG(vm),SQCollectable **tchain)
     MarkObject(_instance_class,tchain);
     MarkObject(_weakref_class,tchain);
     MarkObject(_userdata_class,tchain);
+    MarkObject(_error_class,tchain);
 
     MarkObject(doc_objects,tchain);
 }

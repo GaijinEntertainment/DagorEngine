@@ -2,7 +2,7 @@ from "%sqstd/asyncHttp.nut" import TaskHttpGet
 from "%darg/ui_imports.nut" import *
 from "%darg/laconic.nut" import *
 
-let { Promise, delay } = require("async")
+let { Future, delay } = require("async")
 let { Task } = require("%sqstd/monads.nut")
 
 function btn(text, handler){
@@ -18,24 +18,32 @@ function conlog(...){
   consoleStream.set(v)
 }
 
-// Wrap a callback-shape API (gui_scene.setTimeout) into an awaitable Promise.
+// Wrap a callback-shape API (gui_scene.setTimeout) into an awaitable Future.
 // Same pattern used to adapt eventbus / httpRequest / file IO callbacks.
-// Plain function returning a Promise: chain-unwrap at the await site adopts
+// Plain function returning a Future: chain-unwrap at the await site adopts
 // it transparently. The `: instance` annotation tells the analyzer the
-// return may be a Promise, suppressing w328 redundant-await at callers.
-function timeoutPromise(sec, value): instance {
-  let p = Promise()
+// return may be a Future, suppressing w328 redundant-await at callers.
+function timeoutFuture(sec, value): instance {
+  let p = Future()
   gui_scene.setTimeout(sec, @() p.resolve(value))
   return p
 }
 
-async function checkPromises() {
+// Async function that throws after a delay -- only way to faulted state
+// from script (script-side has no .reject(); throw inside async surfaces
+// via the await-throw channel for bug-shaped failures).
+async function delayedThrow(sec, reason) {
+  await delay(sec)
+  throw reason
+}
+
+async function checkFutures() {
   // Sequential awaits
   await delay(0.2)
   conlog("step 1: delay done")
 
   // Wrapped callback API consumed via await
-  let wrapped = await timeoutPromise(0.2, "wrapped value")
+  let wrapped = await timeoutFuture(0.2, "wrapped value")
   conlog($"step 2: got {wrapped}")
 
   // Parallel: start both before awaiting either. Total ~0.4s, not 0.7s.
@@ -46,16 +54,15 @@ async function checkPromises() {
   await b
   conlog("step 3: b (0.3s) was already settled")
 
-  // Rejection caught via try/catch around await.
-  let bad = Promise()
-  gui_scene.setTimeout(0.2, @() bad.reject("simulated failure"))
+  // Bug-shaped failure caught via try/catch around await.
+  // (For documented failures, resolve with {ok=false, err=...} instead.)
   try {
-    await bad
+    await delayedThrow(0.2, "simulated bug")
   } catch (e) {
     conlog($"step 4: caught {e}")
   }
 
-  conlog("checkPromises complete")
+  conlog("checkFutures complete")
 }
 
 function checkObservables(){
@@ -178,7 +185,7 @@ return {
   children = [
     vflow(
       Gap(hdpx(2))
-      btn("check promise", checkPromises)
+      btn("check future", checkFutures)
       btn("check HttpTask monad", checkHttpTask)
       btn("check observables", checkObservables)
       helloTaskBtn

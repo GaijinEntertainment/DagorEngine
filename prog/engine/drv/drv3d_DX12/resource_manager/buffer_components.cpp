@@ -10,6 +10,9 @@ namespace drv3d_dx12::resource_manager
 
 bool BufferHeap::can_use_sub_alloc(uint32_t cflags)
 {
+  if (cflags & SBCF_NO_STATE_TRACKING)
+    return false;
+
   constexpr uint32_t any_read_flag_mask =
     SBCF_BIND_VERTEX | SBCF_BIND_INDEX | SBCF_BIND_CONSTANT | SBCF_BIND_SHADER_RES | SBCF_MISC_DRAWINDIRECT;
   constexpr uint32_t uav_flag_mask = SBCF_BIND_UNORDERED | SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE;
@@ -192,12 +195,12 @@ BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uin
   auto heapProperties = getProperties(flags, memory_class, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
   AllocationFlags allocationFlags{};
   if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-    allocationFlags.set(AllocationFlag::IS_UAV);
+    allocationFlags.isUav = true;
 
   HRESULT errorCode = S_OK;
   auto oomCheckOnExit = checkForOOMOnExit(
     adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"allocateBuffer", name, size, allocationFlags.to_ulong(), heapProperties.raw});
+    OomReportData{"allocateBuffer", name, size, allocationFlags.toUlong(), heapProperties.raw});
 
   auto result = allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
     name, disable_sub_alloc, heapProperties, allocationFlags, errorCode);
@@ -210,6 +213,8 @@ BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uin
     result = allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
       name, disable_sub_alloc, heapProperties, allocationFlags, errorCode);
   }
+  if (result && (cflags & SBCF_NO_STATE_TRACKING))
+    result.resourceId.markExcludedFromStateTracking();
   return result;
 }
 
@@ -396,7 +401,7 @@ BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *de
   auto &heap = bufferHeapStateAccess->getConstHeap(buffer_id.index());
   auto &memory = heap.getBufferMemory();
   if (heap.getFlags() & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
-    allocation_flags.set(AllocationFlag::IS_UAV);
+    allocation_flags.isUav = true;
   const auto [resIndex, errorCode] =
     bufferHeapStateAccess->createBufferHeap(this, adapter, device, buffer_resource_size, getPropertiesFromMemory(memory),
       heap.getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);

@@ -91,7 +91,8 @@ static void showUsage()
          "    [-sortby:NAME|PASS](default:NAME)\n"
          "    [-disasm:dx11|dx12|spirv|metal|ps4|ps5]\n"
          "    [-headeronly] [-locvars] [-stinit] [-varsummary] [-stvartable]\n"
-         "    [-codes] [-stvarmap] [-vtxchnl] [-dynvartable] [-variants]\n");
+         "    [-codes] [-stvarmap] [-vtxchnl] [-dynvartable] [-variants]\n"
+         "    [-fullprecision]\n");
 }
 static void dumpCurrentShaders(const char *single_shader, shaderbindump::DumpDetails details, shaderbindump::SortType sortby,
   const char *sh_dir);
@@ -226,6 +227,8 @@ int DagorWinMain(bool debugmode)
       userOutputDetails.shaderDetails.dynamicVariantTable = true;
     else if (strcmp(__argv[i], "-variants") == 0)
       userOutputDetails.shaderDetails.dumpVariants = true;
+    else if (strcmp(__argv[i], "-fullprecision") == 0)
+      shaderbindump::g_full_float_precision = true;
 
     else
     {

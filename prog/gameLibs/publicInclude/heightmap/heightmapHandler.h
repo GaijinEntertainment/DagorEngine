@@ -147,8 +147,9 @@ protected:
   int lodDistance;
   int lodCount;
   float hmapDistanceMul = 1.0f;
+  // These hardcoded displacements are required to account for additional GPU displacements which can be both up and downwards
   float maxUpwardDisplacement = 0.5f;
-  float maxDownwardDisplacement = 0.0f;
+  float maxDownwardDisplacement = 0.5f;
   ska::flat_hash_set<int> heightChangesIndex;
   ska::flat_hash_map<uint32_t, uint16_t> visualHeights;
   UniqueTex hmapUploadTex;

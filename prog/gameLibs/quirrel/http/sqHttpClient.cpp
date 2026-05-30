@@ -38,8 +38,8 @@ struct Request
 
 static eastl::vector<eastl::unique_ptr<Request>> active_requests;
 
-// Heap context for a single httpFetch invocation. PromiseHolder owns the
-// strong ref on the awaiting Promise.
+// Heap context for a single httpFetch invocation. FutureHolder owns the
+// strong ref on the awaiting Future.
 //
 // Lifecycle:
 //   1. [VM thread]      http_fetch creates the ctx, kicks off async_request.
@@ -49,7 +49,7 @@ static eastl::vector<eastl::unique_ptr<Request>> active_requests;
 //                       settles the holder, erases from active_fetches.
 struct FetchCtx
 {
-  sqasync_helpers::PromiseHolder holder;
+  sqasync_helpers::FutureHolder holder;
   // POD result fields filled on the worker thread before post_from_any_thread:
   httprequests::RequestStatus status = httprequests::RequestStatus::SUCCESS;
   int httpCode = 0;
@@ -426,51 +426,48 @@ static SQInteger request(HSQUIRRELVM vm)
 
 // Settle a fetch promise. Runs on the VM thread via sqasync::pump's inbox
 // drain (posted by the worker-side completion lambda via post_from_any_thread).
-// On SUCCESS the promise resolves with a {http_code, headers, body} table;
-// otherwise it rejects with the RequestStatus enum value as an integer (matches
-// httpRequest's status field; script-side compare to HTTP_FAILED / HTTP_ABORTED
-// / HTTP_SHUTDOWN). resolve/reject are no-ops if the holder has been disowned
-// by onVmShutdown(), so this is safe to call after http_client_on_vm_shutdown.
+// Always resolves with a frozen response table {status, http_code, headers?,
+// body?}: status is the RequestStatus enum as integer (HTTP_SUCCESS /
+// HTTP_FAILED / HTTP_ABORTED / HTTP_SHUTDOWN, same as httpRequest's status),
+// http_code is 0 when no server response was received, and headers / body are
+// only present when non-empty -- mirroring httpRequest's callback shape.
+// Documented HTTP failure (4xx/5xx) is a resolved value, not a fault.
+// resolve is a no-op if the holder has been disowned by onVmShutdown(), so
+// this is safe to call after http_client_on_vm_shutdown.
 static void settle_fetch_on_vm(void *user)
 {
-  using httprequests::RequestStatus;
   auto *ctx = static_cast<FetchCtx *>(user);
   HSQUIRRELVM vm = ctx->holder.vm();
 
-  if (ctx->status == RequestStatus::SUCCESS)
-  {
-    Sqrat::Table resp(vm);
-    resp.SetValue("http_code", (SQInteger)ctx->httpCode);
+  Sqrat::Table resp(vm);
+  resp.SetValue("status", (SQInteger)ctx->status);
+  resp.SetValue("http_code", (SQInteger)ctx->httpCode);
 
+  if (!ctx->headersOwned.empty())
+  {
     Sqrat::Table hdrs(vm);
     for (const auto &kv : ctx->headersOwned)
       hdrs.SetValue(kv.first.c_str(), kv.second.c_str());
     resp.SetValue("headers", hdrs);
-
-    // Body is delivered as a Blob to match httpRequest's response shape (script
-    // gets it via body.as_string() for text, or .readn / read pointer for binary).
-    // Empty body leaves the slot unset (resp.body == null), again matching httpRequest.
-    if (!ctx->bodyOwned.empty())
-    {
-      SQUserPointer ptr = sqstd_createblob(vm, ctx->bodyOwned.size());
-      G_ASSERT(ptr); // null only if the blob library was not registered for this VM
-      if (ptr)
-      {
-        memcpy(ptr, ctx->bodyOwned.data(), ctx->bodyOwned.size());
-        resp.SetValue("body", Sqrat::Var<Sqrat::Object>(vm, -1).value);
-        sq_pop(vm, 1);
-      }
-    }
-
-    ctx->holder.resolve(resp.GetObject());
   }
-  else
+
+  // Body is delivered as a Blob to match httpRequest's response shape (script
+  // gets it via body.as_string() for text, or .readn / read pointer for binary).
+  // Empty body leaves the slot unset (resp.body == null), again matching httpRequest.
+  if (!ctx->bodyOwned.empty())
   {
-    Sqrat::Table err(vm);
-    err.SetValue("status", (SQInteger)ctx->status);
-    err.FreezeSelf();
-    ctx->holder.reject(err.GetObject());
+    SQUserPointer ptr = sqstd_createblob(vm, ctx->bodyOwned.size());
+    G_ASSERT(ptr); // null only if the blob library was not registered for this VM
+    if (ptr)
+    {
+      memcpy(ptr, ctx->bodyOwned.data(), ctx->bodyOwned.size());
+      resp.SetValue("body", Sqrat::Var<Sqrat::Object>(vm, -1).value);
+      sq_pop(vm, 1);
+    }
   }
+
+  resp.FreezeSelf();
+  ctx->holder.resolve(resp.GetObject());
 
   auto it = eastl::find_if(active_fetches.begin(), active_fetches.end(),
     [ctx](const eastl::unique_ptr<FetchCtx> &p) { return p.get() == ctx; });
@@ -482,20 +479,22 @@ static void settle_fetch_on_vm(void *user)
 /* qdox @module dagor.http
 @function httpFetch
 
-Promise-based fetch. Resolves with `{http_code, headers, body}` on any HTTP
-response (including 4xx/5xx -- those are not failures); rejects with a frozen
-table `{status = HTTP_FAILED | HTTP_ABORTED | HTTP_SHUTDOWN}` on network errors
-(`status` is the `RequestStatus` enum as integer, same as `httpRequest`'s
-response.status). Modeled on the JS `fetch` API.
+Future-based fetch. Always resolves with a frozen response table; never
+faults. The script checks `response.status` against `HTTP_SUCCESS` /
+`HTTP_FAILED` / `HTTP_ABORTED` / `HTTP_SHUTDOWN` -- the same status values
+`httpRequest`'s callback receives. Documented HTTP failure (4xx/5xx) is a
+resolved `HTTP_SUCCESS` response with a non-2xx `http_code`.
 
-Response shape matches `httpRequest`: `body` is a Blob (or null when the response
-body is empty). Use `body.as_string()` for text; `.readn` / read pointer for
-binary. This deliberately mirrors `httpRequest` so migrations from the legacy
-callback shape are a near-drop-in.
+Response shape matches `httpRequest`'s callback:
+  - `status` : int (always present)
+  - `http_code` : int (0 when no server response was received)
+  - `headers` : table (optional; present only when non-empty)
+  - `body` : Blob (optional; present only when non-empty). Use
+            `body.as_string()` for text; `.readn` / read pointer for binary.
 
 @param params t : same shape as httpRequest, minus callback / respEventId / context / waitable
-       (the Promise is the awaitable).
-@return p : Promise
+       (the Future is the awaitable).
+@return p : Future
 */
 static SQInteger http_fetch(HSQUIRRELVM vm)
 {
@@ -515,7 +514,7 @@ static SQInteger http_fetch(HSQUIRRELVM vm)
 
   auto ctxOwner = eastl::make_unique<FetchCtx>(vm);
   if (sq_isnull(ctxOwner->holder.instance()))
-    return SQ_ERROR;                              // create_promise raised
+    return SQ_ERROR;                              // future_create raised
   sq_pushobject(vm, ctxOwner->holder.instance()); // for `return 1`
   FetchCtx *ctx = ctxOwner.get();
   active_fetches.emplace_back(eastl::move(ctxOwner));

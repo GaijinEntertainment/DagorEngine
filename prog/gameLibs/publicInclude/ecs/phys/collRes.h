@@ -19,3 +19,4 @@ class Array;
 } // namespace ecs
 
 bool apply_collres_node_flag_rules(ecs::EntityManager &mgr, ecs::EntityId eid, const ecs::Array &rules);
+bool clone_collres(ecs::EntityManager &mgr, ecs::EntityId eid);

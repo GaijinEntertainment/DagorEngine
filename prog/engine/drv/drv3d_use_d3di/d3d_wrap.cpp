@@ -146,10 +146,6 @@ uint32_t allocate_bindless_resource_range(D3DResourceType type, uint32_t count)
 {
   return d3di.allocate_bindless_resource_range(type, count);
 }
-uint32_t resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
-{
-  return d3di.resize_bindless_resource_range(type, index, current_count, new_count);
-}
 void free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count)
 {
   d3di.free_bindless_resource_range(type, index, count);

@@ -21,7 +21,7 @@ macro COMMON_MASKED_CHROME_SHADER_INIT()
   {
     dont_render;
   }
-  if (compatibility_mode != compatibility_mode_on && in_editor_assume == no){ NO_DYNSTCODE() }
+  if (compatibility_mode != compatibility_mode_on){ NO_DYNSTCODE() }
 
   texture diffuseTex = material.texture.diffuse;
 
