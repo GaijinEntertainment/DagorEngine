@@ -2627,6 +2627,7 @@ void DagorEdAppWindow::pluginHelp(const char *url) const
 
   ::HtmlHelp(NULL, help.str(), HH_DISPLAY_TOPIC, 0);
 #else
+  G_UNUSED(url);
   LOGERR_CTX("TODO: tools Linux porting: DagorEdAppWindow::pluginHelp");
 #endif
 }

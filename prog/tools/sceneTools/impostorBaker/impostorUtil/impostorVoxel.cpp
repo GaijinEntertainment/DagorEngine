@@ -250,7 +250,7 @@ static bool texture_to_image(BaseTexture *texture, eastl::unique_ptr<Image, tmpm
 {
   G_ASSERT(texture);
   G_ASSERT(image);
-  auto locked = lock_texture<const eastl::remove_pointer<decltype(image->getPixels())>::type>(texture, 0, TEXLOCK_READ);
+  auto locked = lock_texture<const typename eastl::remove_pointer<decltype(image->getPixels())>::type>(texture, 0, TEXLOCK_READ);
   if (!bool(locked))
     return false;
   uint32_t w = locked.getWidthInElems();

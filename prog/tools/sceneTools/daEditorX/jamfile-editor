@@ -233,6 +233,7 @@ else if $(Platform) = linux {
   UseProgLibs +=
     engine/drv/hid_joystick_linux
   ;
+  dasStdDlg_UserProvidedPlatform = yes ;
 }
 else {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;

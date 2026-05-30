@@ -43,7 +43,7 @@ private:
 class AboutDlg
 {
 public:
-  AboutDlg(void *hwnd) {}
+  AboutDlg(void *) {}
   ~AboutDlg() {}
 
   void show() {}

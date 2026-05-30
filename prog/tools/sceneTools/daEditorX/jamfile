@@ -13,8 +13,8 @@ Dependencies =
   $(Root)/$(Location)/IvyGen/jamfile
   $(Root)/$(Location)/Occluders/jamfile
   $(Root)/$(Location)/csg/jamfile
-  $(Root)/$(Location)/GraphEditor/jamfile
 ;
+if $(Platform) = windows { Dependencies += $(Root)/$(Location)/GraphEditor/jamfile ; }
 
 local editor_jam = $(Root)/$(Location)/jamfile-editor ;
 platform on $(editor_jam:G=JAM) = -sPlatform=$(Platform) -sPlatformArch=$(PlatformArch) -sCPPStd=$(CPPStd) ;
