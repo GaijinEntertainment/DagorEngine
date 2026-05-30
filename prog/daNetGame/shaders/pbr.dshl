@@ -1,5 +1,6 @@
 int brdf_type = 0;
-interval brdf_type : standard < 1, sheen;
+//add toon brdf type
+interval brdf_type : standard < 1, sheen<2, toon;
 
 macro STANDARD_BRDF_SHADING_BASE(code)
 hlsl(code) {
@@ -14,6 +15,17 @@ macro SHEEN_BRDF_SHADING(code)
       #define SHEEN_SPECULAR 1
     ##else
       #define SHEEN_SPECULAR 0
+    ##endif
+  }
+endmacro
+
+macro TOON_BRDF_SHADING(code)
+  hlsl(code)
+  {
+    ##if brdf_type == toon
+      #define TOON_BRDF 1
+    ##else
+      #define TOON_BRDF 0
     ##endif
   }
 endmacro
