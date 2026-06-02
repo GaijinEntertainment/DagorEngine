@@ -11,6 +11,7 @@
 #include <propPanel/control/treeNode.h>
 #include <propPanel/propPanel.h>
 #include <propPanel/toastManager.h>
+#include <util/dag_strUtil.h>
 #include <winGuiWrapper/wgw_input.h>
 #include "ecsSceneOutlinerDragDrop.h"
 #include "ecsSceneOutlinerEventHandler.h"
@@ -720,7 +721,7 @@ bool ECSSceneOutlinerPanel::drawFilterControls()
 
 bool ECSSceneOutlinerPanel::filterNode(const PropPanel::TreeNode &node)
 {
-  if (!filters.filterString.empty() && !dd_stristr(node.getTitle(), filters.filterString))
+  if (!filters.filterString.empty() && !dd_stristr(to_string_view(node.getTitle()), to_string_view(filters.filterString)))
   {
     return false;
   }

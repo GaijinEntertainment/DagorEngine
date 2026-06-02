@@ -51,10 +51,8 @@ hlsl(code) {
     q.v2 = loadQuadVert(blas_data, ofs1 + o2*QUAD_VERT_STRIDE);
     if (o3 != o2)
       q.v3 = loadQuadVert(blas_data, ofs1 + o3*QUAD_VERT_STRIDE);
-    #if ALWAYS_PROCESS_QUAD
     else
       q.v3 = q.v2;
-    #endif
     return q;
   }
 
@@ -65,6 +63,11 @@ hlsl(code) {
                   inout float t, inout float2 bCoord,
                   inout int bestTriOffset)
   {
+    // Scalar two-triangle test. The SoA equivalent RayTriangle2_SoA (in swRTCommon.hlsl) measured
+    // SLOWER on real GPU hardware due to register pressure -- closest-hit needs t/u/v outputs and
+    // the per-lane closest-min reduction, both of which inflate live-register count vs two sequential
+    // scalar tests. SoA still wins for shadow rays (no outputs, single bool reduce) -- see
+    // rayShadowBLASLeaf, which uses RayTriangle2_SoA_AnyHit.
     QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
     bool anyHit = false;
     if (RayTriangleIntersect(rayOrigin, rayDir, q.v0, q.v1, q.v2, t, bCoord))
@@ -281,15 +284,24 @@ hlsl(code) {
                   uint dataOffset,
                   uint skip, float3 bmin, float3 bmax)
   {
+    // SoA 2-wide for shadow: any hit in lane 0 or 1 means shadowed.
     QuadLeafVerts q = decodeQuadLeafVerts(blas_data, dataOffset, skip);
-    if (RayTriangleIntersectShadow(rayOrigin, rayDir, q.v0, q.v1, q.v2))
-      return true;
-    if (!q.isSingle)
-    {
-      float3 t2a = q.isFan ? q.v0 : q.v2, t2b = q.isFan ? q.v2 : q.v1;
-      return RayTriangleIntersectShadow(rayOrigin, rayDir, t2a, t2b, q.v3);
-    }
-    return false;
+    float3 b0 = q.isFan ? q.v0 : q.v2;
+    float3 b1 = q.isFan ? q.v2 : q.v1;
+    float2 c0x = float2(q.v0.x, b0.x);
+    float2 c0y = float2(q.v0.y, b0.y);
+    float2 c0z = float2(q.v0.z, b0.z);
+    float2 c1x = float2(q.v1.x, b1.x);
+    float2 c1y = float2(q.v1.y, b1.y);
+    float2 c1z = float2(q.v1.z, b1.z);
+    float2 c2x = float2(q.v2.x, q.v3.x);
+    float2 c2y = float2(q.v2.y, q.v3.y);
+    float2 c2z = float2(q.v2.z, q.v3.z);
+    // Lean any-hit: no t/u/v output, no edge-tolerance epsilon, no rcp (shadow doesn't need shared-edge
+    // precision -- prioritize speed). Saves ~1 rcp + 3 muls + 1 select vs the closest-hit RayTriangle2_SoA.
+    // Degenerate triangles (single-leaf lane 1 via v3==v2, real-mesh degenerates) are rejected
+    // inside RayTriangle2_SoA_AnyHit via its absDet < 1e-37 guard.
+    return RayTriangle2_SoA_AnyHit(rayOrigin, rayDir, c0x, c0y, c0z, c1x, c1y, c1z, c2x, c2y, c2z);
   }
 
   bool rayShadowBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv, int startOffset, int blasSize)

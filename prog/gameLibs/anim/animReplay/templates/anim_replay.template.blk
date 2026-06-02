@@ -16,6 +16,7 @@ anim_replay_save_context{
           "values:list<r>"{}
         }
       }
+      "preciseAnimParams:array"{}
       "initialAnimStateParams:object"{}
       "animTreeStates:object"{
         "time:list<r>"{}
@@ -53,6 +54,7 @@ anim_replay_save_context{
   anim_replay__prevTime:r=0
   anim_replay__sampleRate:i=30
   anim_replay__animcharsRecordingFilter:i=0
+  "anim_replay__preciseAnimParams:list<t>"{}
 }
 
 anim_replay_load_context{

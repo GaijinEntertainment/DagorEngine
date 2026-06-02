@@ -1,0 +1,195 @@
+...patience...
+...patience...
+...patience...
+...patience...
+...patience...
+...found 5599 target(s)...
+...updating 86 target(s)...
+assetExpCache.cpp
+resExport.cpp
+texConvCache.cpp
+daBuild.cpp
+assetExport.cpp
+assetExport.cpp
+cmain.cpp
+cmain-job.cpp
+texExport.cpp
+daBuild.cpp
+assetBuildCache.cpp
+resExport.cpp
+texExport.cpp
+D:\dagor\prog\dagorInclude\startup/dag_mainCon.inc.cpp(96): warning C4535: calling _set_se_translator() requires /EHa
+D:\dagor\prog\dagorInclude\startup/dag_mainCon.inc.cpp(96): warning C4535: calling _set_se_translator() requires /EHa
+creating lib assetMgrHlp.lib
+meshDataSave.cpp
+resExport.cpp
+dynSceneResSrc.cpp
+shaderMeshData.cpp
+modelExpUtil.cpp
+shSkinMeshData.cpp
+daBuild.cpp
+a2dExp.cpp
+rendInstResSrc.cpp
+texExport.cpp
+assetExport.cpp
+modelExp.cpp
+exp_rendInst.cpp
+exp_dynModel.cpp
+----------------------------------------------------------------------
+SUCCESSFULLY built assetMgrHlp.lib  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+buildStamp0.c
+buildStamp0.c
+exp_rndGrass.cpp
+phObjExp.cpp
+exp_skeleton.cpp
+linking daBuild-dev.dll
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/daBuild-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/daBuild-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built daBuild-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+scriptCurves.cpp
+scriptGradientBox.cpp
+linking daBuild-dev.exe
+linking daBuild-job-dev.exe
+linking phObjExp-dev.dll
+scriptLoad.cpp
+scriptGui.cpp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/phObjExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/phObjExp-imp.exp
+outdatedFxTools.cpp
+----------------------------------------------------------------------
+SUCCESSFULLY built phObjExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+lightFx_tools.cpp
+----------------------------------------------------------------------
+SUCCESSFULLY built daBuild-job-dev.exe  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+----------------------------------------------------------------------
+SUCCESSFULLY built daBuild-dev.exe  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+dafxSparks_tools.cpp
+dafxModFx_tools.cpp
+dafxCompound_tools.cpp
+dafxEmitter_tools.cpp
+creating lib scriptHelpersLt.lib
+lightfxShadow_tools.cpp
+----------------------------------------------------------------------
+SUCCESSFULLY built scriptHelpersLt.lib  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+fxExp.cpp
+texExp.cpp
+exp_animTree.cpp
+exp_stateGraph.cpp
+exp_animChar.cpp
+fp_edActions.cpp
+creating lib commonFxTools.lib
+----------------------------------------------------------------------
+SUCCESSFULLY built commonFxTools.lib  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking fxExp-dev.dll
+fp_edbone.cpp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/fxExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/fxExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built fxExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+fp_edclipper.cpp
+fp_edpoint.cpp
+fp_export.cpp
+fastPhysExp.cpp
+landClsExp.cpp
+matExp.cpp
+locShadersExp.cpp
+linking efxRefProv-dev.dll
+creating lib shaderResBuilder.lib
+linking splineRefProv-dev.dll
+linking compositRefProv-dev.dll
+exp_collision.cpp
+exp_impostorData.cpp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/efxRefProv-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/efxRefProv-imp.exp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/splineRefProv-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/splineRefProv-imp.exp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/compositRefProv-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/compositRefProv-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built shaderResBuilder.lib  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking a2dExp-dev.dll
+----------------------------------------------------------------------
+SUCCESSFULLY built compositRefProv-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+----------------------------------------------------------------------
+SUCCESSFULLY built splineRefProv-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking modelExp-dev.dll
+linking animCharExp-dev.dll
+----------------------------------------------------------------------
+SUCCESSFULLY built efxRefProv-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/a2dExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/a2dExp-imp.exp
+vehicleExp.cpp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/modelExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/modelExp-imp.exp
+LINK : warning LNK4199: /DELAYLOAD:WinPixEventRuntime.dll ignored; no imports found from WinPixEventRuntime.dll
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/animCharExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/animCharExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built a2dExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+LINK : warning LNK4199: /DELAYLOAD:WinPixEventRuntime.dll ignored; no imports found from WinPixEventRuntime.dll
+sectionsExp.cpp
+----------------------------------------------------------------------
+SUCCESSFULLY built animCharExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+----------------------------------------------------------------------
+SUCCESSFULLY built modelExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking matExp-dev.dll
+creating lib fastPhysData.lib
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/matExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/matExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built fastPhysData.lib  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking fastPhysExp-dev.dll
+----------------------------------------------------------------------
+SUCCESSFULLY built matExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/fastPhysExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/fastPhysExp-imp.exp
+LINK : warning LNK4199: /DELAYLOAD:WinPixEventRuntime.dll ignored; no imports found from WinPixEventRuntime.dll
+linking vehicleExp-dev.dll
+----------------------------------------------------------------------
+SUCCESSFULLY built fastPhysExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/gameLibs/vehiclePhys/exporters/vehicleExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/gameLibs/vehiclePhys/exporters/vehicleExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built vehicleExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking landClsExp-dev.dll
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/landClsExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/landClsExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built landClsExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking locShadersExp-dev.dll
+linking sectionsExp-dev.dll
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/locShadersExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/locShadersExp-imp.exp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/sectionsExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/sectionsExp-imp.exp
+LINK : warning LNK4199: /DELAYLOAD:WinPixEventRuntime.dll ignored; no imports found from WinPixEventRuntime.dll
+linking texExp-dev.dll
+----------------------------------------------------------------------
+SUCCESSFULLY built locShadersExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+----------------------------------------------------------------------
+SUCCESSFULLY built sectionsExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/texExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/texExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built texExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+linking impostorExp-dev.dll
+linking collisionExp-dev.dll
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/impostorExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/impostorExp-imp.exp
+   Creating library ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/collisionExp-imp.lib and object ../../../../_output/windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex/tools/sceneTools/collisionExp-imp.exp
+----------------------------------------------------------------------
+SUCCESSFULLY built impostorExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+----------------------------------------------------------------------
+SUCCESSFULLY built collisionExp-dev.dll  [windows-100~arm64~dev~vc17-17.14.4~krnlimp~fp~ex]
+.
+...updated 86 target(s)...
+
+build time: 0.2 sec (graph), 31.4 sec (actions), using 13 job(s)

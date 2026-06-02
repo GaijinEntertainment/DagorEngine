@@ -113,10 +113,10 @@ void Flare::apply(Texture *src_tex)
     // texture is same size, don't need to downsample
 
     flareDownsample->getMat()->set_color4_param(texelOffsetVarId, texelOffset);
-    ShaderGlobal::set_texture(flareSrcDownsampledVarId, src_tex);
+    ShaderGlobal::set_texture_unsafe(flareSrcDownsampledVarId, src_tex);
     flareDownsample->render();
     d3d::resource_barrier({tmpFlareTex->getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    ShaderGlobal::set_texture(flareSrcDownsampledVarId, nullptr);
+    ShaderGlobal::set_texture_unsafe(flareSrcDownsampledVarId, nullptr);
   }
 
   // feature

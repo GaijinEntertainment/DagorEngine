@@ -87,6 +87,7 @@ enum
   CM_PREFERENCES_ASSET_TREE,
   CM_PREFERENCES_ASSET_TREE_COPY_SUBMENU,
   CM_OPTIONS_EDIT_PREFERENCES,
+  CM_OPTIONS_KEYBOARD_SHORTCUTS,
 
   CM_WINDOW,
   CM_LOAD_DEFAULT_LAYOUT,
@@ -259,6 +260,7 @@ static constexpr const char *CAMERAS = "Main.Settings.Camera";
 static constexpr const char *SCREENSHOT = "Main.Settings.Screenshot";
 static constexpr const char *OPTIONS_STAT_DISPLAY_SETTINGS = "Main.Settings.Stats";
 static constexpr const char *OPTIONS_EDIT_PREFERENCES = "Main.Settings.EditPreferences";
+static constexpr const char *OPTIONS_KEYBOARD_SHORTCUTS = "Main.Settings.KeyboardShortcuts";
 
 static constexpr const char *VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES = "Main.View.ConsoleCommandsAndVariables";
 static constexpr const char *VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER = "Main.View.ImguiDebugger";

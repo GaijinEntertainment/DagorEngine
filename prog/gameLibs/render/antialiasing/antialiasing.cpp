@@ -1049,7 +1049,7 @@ struct Context
     ShaderGlobal::setBlock(global_frameBlockId, ShaderGlobal::LAYER_FRAME);
 
     d3d::set_render_target({}, DepthAccess::RW, {{dest_tex, 0, 0}});
-    taa->applyToCurrentTarget(source_tex);
+    taa->applyToCurrentTarget(source_tex, dest_tex);
 
     // We have change of attachments inside TAA, so we have to start subsequent pass from loading backbuffer.
     d3d::allow_render_pass_target_load();

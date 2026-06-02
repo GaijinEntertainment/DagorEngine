@@ -3,6 +3,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
+#include <drv/3d/dag_resource.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/motionVectorAccess.h>
 
@@ -90,7 +91,7 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     registry.multiplex(dafg::multiplexing::Mode::Viewport);
     registry.requestState().setFrameBlock("global_frame");
 
-    if (!shouldRenderGbufferDebug() && !renderer_has_feature(FeatureRenderFlags::POSTFX))
+    if (is_resolve_target_external())
     {
       registry.registerTexture("opaque_resolved", [](const dafg::multiplexing::Index &) -> ManagedTexView {
         const AntiAliasingMode currentAA = static_cast<AntiAliasingMode>(WRDispatcher::getCurrentAntiAliasingMode());
@@ -103,7 +104,8 @@ static void create_camera_setup_nodes_es(const OnCameraNodeConstruction &evt)
     else
     {
       registry.create("opaque_resolved")
-        .texture({get_frame_render_target_format() | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>("main_view")});
+        .texture({get_frame_render_target_format() | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>("main_view")})
+        .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
     }
     {
       d3d::SamplerInfo smpInfo;

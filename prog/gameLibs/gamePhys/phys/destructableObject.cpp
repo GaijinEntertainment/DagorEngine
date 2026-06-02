@@ -10,6 +10,7 @@
 #include <math/dag_geomTree.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physObject.h>
+#include <phys/dag_physSysInst.h>
 #include <phys/dag_physics.h>
 #include <math/random/dag_random.h>
 #include <math/dag_mathUtils.h>

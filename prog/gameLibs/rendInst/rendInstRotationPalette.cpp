@@ -7,6 +7,7 @@
 #include <math/dag_mathBase.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <util/dag_delayedAction.h>
+#include <drv/3d/dag_lock.h>
 
 
 uint32_t rendinst::gen::RotationPaletteManager::version = 0;
@@ -30,7 +31,10 @@ rendinst::gen::RotationPaletteManager::RotationPaletteManager() : impostorData(m
   // If one rendinst uses palettes, it will be turned on globally
   // The reason for this is to avoid extra cpu overhead of switching
   if (RendInstGenData::renderResRequired)
+  {
+    d3d::GpuAutoLock gpuLock;
     ShaderGlobal::set_int(ScopedDisablePaletteRotation::get_var_id(), 0);
+  }
   clear();
 }
 
@@ -133,7 +137,10 @@ void rendinst::gen::RotationPaletteManager::createPalette(const RendintsInfo &ri
   }
 
   if (RendInstGenData::renderResRequired)
+  {
+    d3d::GpuAutoLock gpuLock;
     ShaderGlobal::set_int(ScopedDisablePaletteRotation::get_var_id(), 1);
+  }
   deferBufferRecreationToMT();
 }
 

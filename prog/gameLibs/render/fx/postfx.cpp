@@ -464,15 +464,13 @@ void PostFx::apply(Texture *source, Texture *target, const TMatrix &view_tm, con
   if (genPostFx)
   {
     static int varId = get_shader_variable_id("frame_tex", true);
-    static int samplerVarId = get_shader_variable_id("frame_tex_samplerstate", true);
     Driver3dRenderTarget rt;
     d3d::get_render_target(rt);
 
     d3d::set_render_target({}, DepthAccess::RW, {{target, 0, 0}});
-    ShaderGlobal::set_texture(varId, source);
-    ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
+    ShaderGlobal::set_texture_unsafe(varId, source);
     genPostFx->render();
-    ShaderGlobal::set_texture(varId, nullptr);
+    ShaderGlobal::set_texture_unsafe(varId, nullptr);
     d3d::set_render_target(rt);
     return;
   }

@@ -1,4 +1,4 @@
-from "async" import Promise
+from "async" import Future
 
 // Typed async declarations: a declared return type on an async function lets
 // the resolved value flow through `await` into typed lvalues without false
@@ -10,13 +10,13 @@ from "async" import Promise
 async function section_typed_function() {
   print("=== typed function ===\n")
   async function f(): int {
-    let p = Promise()
+    let p = Future()
     p.resolve(42)
     return await p
   }
   let n: int = await f()
   print("n=" + n + "\n")
-  // Capturing the Promise wrapper as `instance` then awaiting it is also fine.
+  // Capturing the Future wrapper as `instance` then awaiting it is also fine.
   let p: instance = f()
   print(p.getState() == "pending" ? "p-pending\n" : "p-other\n")
   let resolved: int = await p
@@ -26,7 +26,7 @@ async function section_typed_function() {
 async function section_typed_lambda() {
   print("=== typed lambda ===\n")
   let g = async function(): int {
-    let p = Promise()
+    let p = Future()
     p.resolve(7)
     return await p
   }
@@ -39,7 +39,7 @@ async function section_typed_method() {
   class Counter {
     count = 0
     async function bump(n: int): int {
-      let p = Promise()
+      let p = Future()
       p.resolve(n)
       let delta: int = await p
       this.count = this.count + delta

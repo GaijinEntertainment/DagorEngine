@@ -12,11 +12,13 @@
 #include <perfMon/dag_statDrv.h>
 #include <shaders/dag_shaders.h>
 #include <math/integer/dag_IPoint2.h>
+#include <math/integer/dag_IPoint4.h>
 
 #define GLOBAL_VARS_LIST          \
   VAR(gtao_temporal_directions)   \
   VAR(gtao_temporal_offset)       \
   VAR(gtao_half_hfov_tan)         \
+  VAR(gtao_dispatch_grid_dim)     \
   VAR(raw_gtao_tex)               \
   VAR(raw_gtao_tex_samplerstate)  \
   VAR(gtao_prev_tex)              \
@@ -131,6 +133,8 @@ void GTAORenderer::renderGTAO(BaseTexture *rawTex, const DynRes *dynamic_resolut
 
   if (aoRendererCS)
   {
+    // Must match the [numthreads(8, 8, 1)] in gtao_resolve_cs.
+    ShaderGlobal::set_int4(gtao_dispatch_grid_dimVarId, IPoint4((sres.x + 7) / 8, (sres.y + 7) / 8, 0, 0));
     d3d::set_rwtex(STAGE_CS, 0, rawTex, 0, 0);
     aoRendererCS->dispatchThreads(sres.x, sres.y, 1);
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);

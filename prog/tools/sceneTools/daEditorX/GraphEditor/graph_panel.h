@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "canvas_clipboard.h"
+
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/control/panelWindow.h>
 
@@ -62,13 +64,34 @@ public:
   // across the rest of the frame so other panels (e.g. PropertiesPanel) can read it.
   int getSelectedNodeId() const { return selectedNodeId; }
 
-private:
+  // Fills out_child_ids with the ids of every node (other than the block itself) whose
+  // on-screen rect centre lies inside the block's on-screen rect. Uses ne::GetNodePosition
+  // / ne::GetNodeSize so the layout reflects the live view (post-resize, post-pan). The
+  // BLOCK_CONTAINMENT_GAP sentinel ensures the block is never seen as its own child.
+  // Recursion is implicit: a nested block's centre is inside the outer rect, so the nested
+  // block and everything inside it land in the output too -- one pass picks up the whole
+  // transitive set. Public so the canvas Copy/Cut helpers (in canvas_clipboard.cpp) can
+  // build the selection closure for block nodes.
+  void collectNodesInsideBlock(int block_node_id, eastl::vector<int> &out_child_ids) const;
+
   static uint64_t makePinId(int node_id, int pin_index)
   {
     return ((uint64_t(uint32_t(node_id)) + 1) << 20) | (uint64_t(uint32_t(pin_index)) + 1);
   }
   static uint64_t makeNodeId(int node_id) { return uint64_t(uint32_t(node_id)) + 1; }
   static uint64_t makeLinkId(int edge_id) { return uint64_t(uint32_t(edge_id)) + 1; }
+
+private:
+  // Node deletes captured during the deletion loop but waiting for the next actObjects tick
+  // to resolve as a batch (so one prompt covers the whole selection and Cancel can roll back
+  // all-or-nothing). For block nodes, childIds is the spatial-containment snapshot taken at
+  // queue time -- ne::GetNodePosition / GetNodeSize would not be valid by actObjects time.
+  // For non-block nodes childIds stays empty.
+  struct PendingNodeDelete
+  {
+    int nodeId;
+    eastl::vector<int> childIds;
+  };
 
   PropPanel::PanelWindowPropertyControl *panelWindow = nullptr;
   GraphEditorPlg &plugin;
@@ -81,41 +104,24 @@ private:
   // (each drag-drop insert). Drained per-id during the render loop; cleared on graph reload.
   eastl::hash_set<int> pendingPositionIds;
 
+  CanvasClipboard canvasClipboard;
+
   eastl::string lastSelectedNodeName;
   int selectedNodeId = -1;
   int navigationFramesLeft = 5;
 
+  eastl::vector<PendingNodeDelete> pendingNodeDeletes;
+
+  // Perf overlay.
+  float lastFrameMs = 0.0f;
+  float emaFrameMs = 0.0f;
+
   void drawCommentNode(const GraphData::Node &n);
   void drawBlockNode(const GraphData::Node &n);
-
-  // Fills out_child_ids with the ids of every node (other than the block itself) whose
-  // on-screen rect centre lies inside the block's on-screen rect. Uses ne::GetNodePosition
-  // / ne::GetNodeSize so the layout reflects the live view (post-resize, post-pan). The
-  // BLOCK_CONTAINMENT_GAP sentinel ensures the block is never seen as its own child.
-  // Recursion is implicit: a nested block's centre is inside the outer rect, so the nested
-  // block and everything inside it land in the output too -- one pass picks up the whole
-  // transitive set.
-  void collectNodesInsideBlock(int block_node_id, eastl::vector<int> &out_child_ids) const;
-
-  // Node deletes captured during the deletion loop but waiting for the next actObjects tick
-  // to resolve as a batch (so one prompt covers the whole selection and Cancel can roll back
-  // all-or-nothing). For block nodes, childIds is the spatial-containment snapshot taken at
-  // queue time -- ne::GetNodePosition / GetNodeSize would not be valid by actObjects time.
-  // For non-block nodes childIds stays empty.
-  struct PendingNodeDelete
-  {
-    int nodeId;
-    eastl::vector<int> childIds;
-  };
-  eastl::vector<PendingNodeDelete> pendingNodeDeletes;
 
   // After-frame pass: mirror each block's current ne::GetNodeSize back into GraphData so a
   // user-driven resize (handled internally by ne::SizeAction for group nodes) round-trips
   // through save / reload. Must run while the imgui-node-editor is still current (between
   // ne::End and ne::SetCurrentEditor(nullptr)).
   void syncBlockSizes();
-
-  // Perf overlay.
-  float lastFrameMs = 0.0f;
-  float emaFrameMs = 0.0f;
 };

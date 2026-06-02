@@ -73,7 +73,7 @@ DelayedAction *make_delayed_action(F &&func)
 };
 
 template <class F>
-void delayed_call(F &&func, const char *debug_name = NULL)
+void delayed_call(F &&func, const char *debug_name = NULL, [[maybe_unused]] const char *dummy = NULL)
 {
   add_delayed_action(make_delayed_action(eastl::forward<F>(func)), debug_name);
 }
@@ -114,6 +114,7 @@ auto make_delayed_func(F func)
 #define add_delayed_action_buffered(...)   add_delayed_action_buffered(__VA_ARGS__, "DelayedAction(buf)" ACTION_DEBUG_NAMES_LOC)
 #define add_delayed_callback(...)          add_delayed_callback(__VA_ARGS__, "DelayedActionCB" ACTION_DEBUG_NAMES_LOC)
 #define add_delayed_callback_buffered(...) add_delayed_callback_buffered(__VA_ARGS__, "DelayedActionCB(buf)" ACTION_DEBUG_NAMES_LOC)
+#define delayed_call(...)                  delayed_call(__VA_ARGS__, "DelayedCall" ACTION_DEBUG_NAMES_LOC)
 #endif
 
 #include <supp/dag_undef_KRNLIMP.h>

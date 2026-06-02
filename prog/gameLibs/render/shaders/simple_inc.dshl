@@ -14,6 +14,14 @@ hlsl(ps)
   #ifndef SAMPLE_TEX
     #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
   #endif
+#if RENDINST_IMPOSTOR_VOXEL
+      void simple_ps(VsOutput input,
+        out float4 out_0 : SV_Target0,
+        out float4 out_1 : SV_Target1,
+        out float4 out_2 : SV_Target2,
+        out float  out_3 : SV_Target3
+        INPUT_VFACE HW_USE_SCREEN_POS)
+#else
   #if VOXELIZE_ALBEDO_PASS
     void simple_ps(VsOutput input INPUT_VFACE)
   #else
@@ -24,6 +32,7 @@ hlsl(ps)
       GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #endif
   #endif
+#endif
   {
     #if SET_UP_MULTIDRAW
       #if RENDINST_SHADER_MULTIDRAW
@@ -78,12 +87,14 @@ hlsl(ps)
 
     half reflectance = 0.5;
     half ao = 1;
+#if !RENDINST_IMPOSTOR_VOXEL
     BRANCH
     if (character_micro_detail_layer>=0)
     {
       apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
       diffuseColor.rgb, normalMap, reflectance, smoothness);
     }
+#endif
 
     half3 worldNormal = perturb_normal_precise( normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy );
 
@@ -130,8 +141,35 @@ hlsl(ps)
     #ifdef PLOD_PS_GEN
       PLOD_PS_GEN(input, pack_gbuffer(gbuffer), normalMap)
     #endif
+#if RENDINST_IMPOSTOR_VOXEL
+    half alpha = 1;
+    ##if atest == atestOn
+      alpha = diffuseColor.a;
+    ##endif
+
+    ##if shader == rendinst_simple_colored
+      half coloring = 1;
+    ##else
+      half coloring = 0;
+    ##endif
+
+    float depth = dot(impostor_depth_proj, float4(worldPos, 1));
+    float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
+    if (depth < sliceDepth + 1) discard;
+
+    out_0.a = alpha;
+    out_0.rgb = gbuffer.albedo.rgb;
+    out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
+    out_1.a = coloring;
+    out_2.r = gbuffer.smoothness;
+    out_2.g = gbuffer.reflectance;
+    out_2.b = gbuffer.metalness;
+    out_2.a = 0;
+    out_3 = depth;
+#else
     return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
-  #endif
+#endif
+  #endif // VOXELIZE_ALBEDO_PASS
   }
 }
 compile("target_ps", "simple_ps");

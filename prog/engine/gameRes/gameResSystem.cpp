@@ -793,12 +793,30 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
   {
     char errs[256], *cwd = nullptr;
     int errn = df_get_last_error(errs, sizeof(errs));
-#if _TARGET_PC
-    char cwdbuf[256];
-    cwd = getcwd(cwdbuf, sizeof(cwdbuf));
+
+#if _TARGET_ANDROID
+    bool isOpened = false;
+    // Retry on transient errors (e.g. EACCES/ENOENT from FUSE on Android, EMFILE spikes)
+    for (int attempt = 1; attempt <= 3 && errn != 0; ++attempt)
+    {
+      logwarn("Can't open GameResPack '%s', error %d(%s), retrying (%d/3)...", fileName.str(), errn, errs, attempt);
+      sleep_msec(10 * attempt);
+      isOpened = seq_cb.open(fileName, 32 << 10);
+      if (isOpened)
+        break;
+      errn = df_get_last_error(errs, sizeof(errs));
+    }
+    if (!isOpened)
 #endif
-    DAG_FATAL("Can't open GameResPack file '%s', error %d(%s), cwd '%s'", fileName.str(), errn, errs, cwd);
-    return;
+    {
+#if _TARGET_PC
+      char cwdbuf[256];
+      cwd = getcwd(cwdbuf, sizeof(cwdbuf));
+#endif
+
+      DAG_FATAL("Can't open GameResPack file '%s', error %d(%s), cwd '%s'", fileName.str(), errn, errs, cwd);
+      return;
+    }
   }
   DEBUG_CTX("loading GRP %s", (char *)fileName);
   int file_sz = vrom_data.data() ? data_size(vrom_data) : seq_cb.getSize();

@@ -1,17 +1,17 @@
-from "async" import Promise
+from "async" import Future
 
-// Two task-promises waiting on each other through manual promises pa/pb:
+// Two task-futures waiting on each other through manual futures pa/pb:
 // fa awaits pb (which only fb could resolve, but only after its own await),
 // fb awaits pa (which only fa could resolve). Symmetric deadlock. Both
-// task-promises remain in liveTasks; pa->waiters holds fb's task; pb->waiters
+// task-futures remain in liveTasks; pa->waiters holds fb's task; pb->waiters
 // holds fa's task; fa's closure captures pa+pb, fb's captures pa+pb. At
-// sq_close, shutdown must force-reject both task-promises symmetrically --
+// sq_close, the teardown must release both task-futures symmetrically --
 // the cycle break has to handle the case where releasing one task's
-// generator triggers a settle on the manual Promise the other task is
+// generator triggers a settle on the manual Future the other task is
 // parked on.
 
-let pa = Promise()
-let pb = Promise()
+let pa = Future()
+let pb = Future()
 
 async function fa() {
   print("fa start\n")

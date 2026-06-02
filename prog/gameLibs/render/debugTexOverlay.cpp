@@ -440,7 +440,7 @@ void DebugTexOverlay::TextureWrapper::render(const Point2 &target_size, const Po
   offset = mul(offsetF, csz);
   size = mul(sizeF, csz);
 
-  ShaderGlobal::set_texture(texVarId, texPtr);
+  ShaderGlobal::set_texture_unsafe(texVarId, texPtr);
   ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
 
   for (int i = 0; i < 4; ++i)

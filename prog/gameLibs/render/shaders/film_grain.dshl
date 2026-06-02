@@ -2,16 +2,298 @@ include "shader_global.dshl"
 include "postfx_inc.dshl"
 include "film_grain_inc.dshl"
 
+// Film Grain 3D LUT Generation
+//
+// Implements the pixel-wise algorithm (Algorithm 4) from:
+//   "A Stochastic Film Grain Model for Resolution-Independent Rendering"
+//   Newson, Delon, Galerne - Computer Graphics Forum, 2017
+//
+// Generates a tileable 3D texture:
+//   X, Y = spatial grain pattern (wraps seamlessly)
+//   Z    = input grey level (0 = black, 1 = white)
+//
+// Each Z slice contains the Gaussian-filtered output of an inhomogeneous
+// Boolean model (random overlapping discs) at the corresponding grey level.
+// The Poisson intensity lambda is chosen per Eq. 2 of the paper so that
+// the expected coverage equals the grey level.
+
+float4 film_grain_gen_params = (2.5, 0.5, 1.0, 64);
+// x: grain_radius - mean grain radius in LUT texels (visual size baked into LUT)
+// y: sigma_r      - std dev of grain radius, 0 = constant (recommended for perf)
+// z: blur_sigma   - Gaussian filter sigma in LUT texels (softness of grain edges)
+// w: num_mc       - Monte Carlo samples per texel (quality vs generation time)
+
+float4 film_grain_gen_size = (256, 256, 64, 0);
+// x: LUT width  (texels)
+// y: LUT height (texels)
+// z: LUT depth  (grey level slices)
+// w: Z slice offset for incremental generation
+
+texture film_grain_lut;
+
+shader film_grain_generate_lut
+{
+  (cs)
+  {
+    film_grain_gen_params@f4 = film_grain_gen_params;
+    film_grain_gen_size@f4 = film_grain_gen_size;
+    film_grain_lut@uav = film_grain_lut hlsl {
+      RWTexture3D<float4> film_grain_lut@uav;
+    }
+  }
+
+  hlsl(cs)
+  {
+    #define FG_TWO_PI 6.28318530717959
+    #define MAX_MC_SAMPLES 128
+
+    // --- RNG: PCG hash for deterministic, high-quality pseudo-random numbers ---
+
+    uint fg_pcg(uint v)
+    {
+      uint state = v * 747796405u + 2891336453u;
+      uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+      return (word >> 22u) ^ word;
+    }
+
+    uint fg_hash_combine(uint a, uint b)
+    {
+      return fg_pcg(a ^ (b * 0x9E3779B9u + 0x517CC1B7u));
+    }
+
+    float fg_next_float(inout uint seed)
+    {
+      seed = fg_pcg(seed);
+      return float(seed) * (1.0 / 4294967295.0);
+    }
+
+    // Box-Muller: two uniform randoms -> two independent Gaussians
+    float2 fg_gaussian_pair(inout uint seed)
+    {
+      float u1 = max(fg_next_float(seed), 1e-8);
+      float u2 = fg_next_float(seed);
+      float r = sqrt(-2.0 * log(u1));
+      return float2(r * cos(FG_TWO_PI * u2), r * sin(FG_TWO_PI * u2));
+    }
+
+    // Poisson variate via Knuth's method (efficient for lambda < ~15)
+    uint fg_poisson(float lambda, inout uint seed)
+    {
+      if (lambda <= 0.0)
+        return 0;
+      float L = exp(-lambda);
+      uint k = 0;
+      float p = 1.0;
+      LOOP
+      for (uint i = 0; i < 32; i++)
+      {
+        p *= fg_next_float(seed);
+        if (p <= L)
+          break;
+        k++;
+      }
+      return k;
+    }
+
+    // --- Main LUT generation kernel ---
+
+    [numthreads(8, 8, 1)]
+    void cs_generate_lut(uint3 dtid : SV_DispatchThreadID)
+    {
+      uint3 lut_dim = uint3(film_grain_gen_size.xyz);
+      dtid.z += uint(film_grain_gen_size.w);
+      if (any(dtid >= lut_dim))
+        return;
+
+      float grain_radius = film_grain_gen_params.x;
+      float sigma_r      = film_grain_gen_params.y;
+      float blur_sigma   = film_grain_gen_params.z;
+      uint  num_mc       = uint(film_grain_gen_params.w);
+
+      float lut_w = float(lut_dim.x);
+      float lut_h = float(lut_dim.y);
+
+      // Grey level for this slice, centered in the texel
+      float grey = (float(dtid.z) + 0.5) / float(lut_dim.z);
+
+      // Trivial slices: no grain at black, full coverage at white
+      if (grey < 0.004)
+      {
+        film_grain_lut[dtid] = 0.0;
+        return;
+      }
+      if (grey > 0.996)
+      {
+        film_grain_lut[dtid] = 1.0;
+        return;
+      }
+
+      // --- Paper Eq. 2: Poisson intensity from grey level ---
+      // lambda = (1 / E[A]) * log(1 / (1 - u_tilde))
+      // where E[A] = pi * (mu_r^2 + sigma_r^2) is the expected grain area
+      // and u_tilde = u / (1 + epsilon) keeps lambda finite
+      float u_tilde = grey / 1.005;
+      float expected_area = PI * (grain_radius * grain_radius + sigma_r * sigma_r);
+      float lambda = (1.0 / expected_area) * log(1.0 / (1.0 - u_tilde));
+
+      // Cell-based spatial partitioning for the Poisson process.
+      // Cell size = grain radius so that each grain can only affect
+      // its own cell and immediate neighbors.
+      float cell_size = max(grain_radius, 0.5);
+      float lambda_per_cell = lambda * cell_size * cell_size;
+
+      // For very high density, the surface is fully covered - skip MC
+      if (lambda_per_cell > 15.0)
+      {
+        film_grain_lut[dtid] = 1.0;
+        return;
+      }
+
+      // Search neighborhood: how many cells away a grain could reach.
+      // For constant radius, search_cells = 1 (3x3 neighborhood).
+      // For variable radius, expand to accommodate the largest grains.
+      float max_r = grain_radius;
+      if (sigma_r > 0.001)
+        max_r = min(grain_radius + 4.0 * sigma_r, grain_radius * 3.0);
+      int search_cells = int(ceil(max_r / cell_size)) + 1;
+
+      int num_cells_x = int(ceil(lut_w / cell_size));
+      int num_cells_y = int(ceil(lut_h / cell_size));
+
+      float2 pos = float2(dtid.xy) + 0.5; // texel center
+
+      // --- Monte Carlo evaluation of the Gaussian-filtered Boolean model ---
+      // For N random offsets drawn from N(0, blur_sigma^2), check whether
+      // the offset point is covered by any grain disc. Average gives the
+      // filtered indicator function value (Eq. 4-5 of the paper).
+
+      float accumulator[3];
+      LOOP
+      for (uint i = 0; i < 3; i++)
+      {
+        accumulator[i] = 0;
+      ##if hardware.dx11
+        // FXC wants to unroll this despite loop hint
+        // make range fixed while keeping iteration amount dynamic
+        for (uint k = 0; k < MAX_MC_SAMPLES; k++)
+      ##else
+        LOOP
+        for (uint k = 0; k < num_mc; k++)
+      ##endif
+        {
+        ##if hardware.dx11
+          if (k >= num_mc)
+            break;
+        ##endif
+          // RNG seed for this MC sample (depends on texel + slice + iteration)
+          uint mc_seed = fg_hash_combine(
+            fg_pcg(dtid.x | (dtid.y << 16u)),
+            fg_pcg((i << 26) | (k << 16u) | dtid.z)
+          );
+
+          // Random Gaussian offset for the blur kernel
+          float2 offset = fg_gaussian_pair(mc_seed) * blur_sigma;
+          float2 sample_pos = pos + offset;
+
+          // Wrap for seamless tiling
+          sample_pos.x = sample_pos.x - floor(sample_pos.x / lut_w) * lut_w;
+          sample_pos.y = sample_pos.y - floor(sample_pos.y / lut_h) * lut_h;
+
+          // Which cell contains the sample point
+          int2 center_cell = int2(floor(sample_pos / cell_size));
+
+          bool covered = false;
+
+          // Check surrounding cells for grains that might cover the sample point
+          LOOP
+          for (int dy = -search_cells; dy <= search_cells && !covered; dy++)
+          {
+            LOOP
+            for (int dx = -search_cells; dx <= search_cells && !covered; dx++)
+            {
+              int2 cell = center_cell + int2(dx, dy);
+
+              // Wrap cell coordinates for tiling
+              int2 wcell;
+              wcell.x = ((cell.x % num_cells_x) + num_cells_x) % num_cells_x;
+              wcell.y = ((cell.y % num_cells_y) + num_cells_y) % num_cells_y;
+
+              // Deterministic seed for this cell + grey level slice.
+              // Independent of MC iteration k - the grain positions are fixed,
+              // only the blur sample offset varies.
+              uint cell_seed = fg_hash_combine(
+                uint(wcell.x) + uint(wcell.y) * uint(num_cells_x),
+                (dtid.z * 0x45D9F3Bu + i * 0x9E3779B9u) + 0xDEADBEEFu
+              );
+
+              // How many grains in this cell? Poisson(lambda * cell_area)
+              uint num_grains = fg_poisson(lambda_per_cell, cell_seed);
+
+              LOOP
+              for (uint g = 0; g < num_grains; g++)
+              {
+                // Grain center: uniform random within the cell
+                float gx = fg_next_float(cell_seed);
+                float gy = fg_next_float(cell_seed);
+                float2 grain_center = (float2(cell) + float2(gx, gy)) * cell_size;
+
+                // Grain radius: constant or log-normal
+                float r = grain_radius;
+                if (sigma_r > 0.001)
+                {
+                  // Log-normal parametrization from the paper (Eq. 6):
+                  // mu_ln    = log(mu_r^2 / sqrt(mu_r^2 + sigma_r^2))
+                  // sigma_ln = sqrt(log(1 + sigma_r^2 / mu_r^2))
+                  float mu_r2 = grain_radius * grain_radius;
+                  float sig_r2 = sigma_r * sigma_r;
+                  float mu_ln = log(mu_r2 / sqrt(mu_r2 + sig_r2));
+                  float sig_ln = sqrt(log(1.0 + sig_r2 / mu_r2));
+                  float z = fg_gaussian_pair(cell_seed).x;
+                  r = min(exp(mu_ln + sig_ln * z), max_r);
+                }
+
+                // Distance check with toroidal wrapping
+                float2 diff = abs(sample_pos - grain_center);
+                diff = min(diff, float2(lut_w, lut_h) - diff);
+
+                if (dot(diff, diff) <= r * r)
+                {
+                  covered = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          accumulator[i] += covered ? 1.0 : 0.0;
+        }
+      }
+
+      // Filtered Boolean model value: fraction of MC samples that were covered.
+      // This converges to the true Gaussian-filtered indicator as N -> infinity.
+      film_grain_lut[dtid] = float4(accumulator[0], accumulator[1], accumulator[2], 0) / float(num_mc);
+    }
+  }
+  compile("target_cs", "cs_generate_lut");
+}
+
+// Legacy raster shader: bakes grain from the 3D LUT to a 2D texture.
+// Samples at grey = 0.5 (maximum variance) and returns values around 1.0
+// for multiplicative blending via apply_film_grain_baked().
+
 shader film_grain
 {
-  cull_mode=none;
-  z_write=false;
-  z_test=false;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
   color_write = rgb;
+
   POSTFX_VS_TEXCOORD(0, tc)
   INIT_FILM_GRAIN(false)
   USE_FILM_GRAIN()
-  hlsl(ps) {
+
+  hlsl(ps)
+  {
     float3 film_grain_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       return get_film_grain(GET_SCREEN_POS(input.pos).xy);
@@ -19,4 +301,3 @@ shader film_grain
   }
   compile("target_ps", "film_grain_ps");
 }
-

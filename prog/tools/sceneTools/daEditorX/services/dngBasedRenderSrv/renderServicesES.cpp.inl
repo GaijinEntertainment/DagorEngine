@@ -12,39 +12,44 @@
 
 extern bool dynmodel_mgr_has_active_entities();
 
+static ShaderVariableInfo forceInEditorVarInfo("force_in_editor");
+
 namespace dng_based_render
 {
 Tab<IRenderingService *> rendSrv(tmpmem);
 
-struct PreserveShaderBlocksAndAllowAutoChange
+struct RenderServiceBlock
 {
   int prevF, prevS, prevO;
   bool prevAutoChange;
 
-  PreserveShaderBlocksAndAllowAutoChange()
+  RenderServiceBlock()
   {
+    forceInEditorVarInfo.set_int(1);
     prevF = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
     prevS = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
     prevO = ShaderGlobal::getBlock(ShaderGlobal::LAYER_OBJECT);
     prevAutoChange = ShaderGlobal::enableAutoBlockChange(true);
   }
-  ~PreserveShaderBlocksAndAllowAutoChange()
+  ~RenderServiceBlock()
   {
     ShaderGlobal::enableAutoBlockChange(prevAutoChange);
     ShaderGlobal::setBlock(prevF, ShaderGlobal::LAYER_FRAME);
     ShaderGlobal::setBlock(prevS, ShaderGlobal::LAYER_SCENE);
     ShaderGlobal::setBlock(prevO, ShaderGlobal::LAYER_OBJECT);
+    forceInEditorVarInfo.set_int(0);
   }
 };
 }; // namespace dng_based_render
-using dng_based_render::PreserveShaderBlocksAndAllowAutoChange;
+using dng_based_render::RenderServiceBlock;
 using dng_based_render::rendSrv;
 
 
 ECS_TAG(render)
 static void render_services_opaque_es(const UpdateStageInfoRender &)
 {
-  PreserveShaderBlocksAndAllowAutoChange shBlkPreserve;
+  TIME_D3D_PROFILE(render_services_opaque);
+  RenderServiceBlock renderBlk;
   for (auto *srv : rendSrv)
     srv->renderGeometry(IRenderingService::STG_RENDER_STATIC_OPAQUE);
   for (auto *srv : rendSrv)
@@ -54,7 +59,8 @@ static void render_services_opaque_es(const UpdateStageInfoRender &)
 ECS_TAG(render)
 static void render_services_transp_es(const UpdateStageInfoRenderTrans &)
 {
-  PreserveShaderBlocksAndAllowAutoChange shBlkPreserve;
+  TIME_D3D_PROFILE(render_services_transp);
+  RenderServiceBlock renderBlk;
   for (auto *srv : rendSrv)
     srv->renderGeometry(IRenderingService::STG_RENDER_STATIC_TRANS);
   for (auto *srv : rendSrv)
@@ -71,7 +77,8 @@ static void render_services_has_any_visible_distortion_es(UpdateStageInfoNeedDis
 ECS_TAG(render)
 static void render_services_distortion_es(const UpdateStageInfoRenderDistortion &)
 {
-  PreserveShaderBlocksAndAllowAutoChange shBlkPreserve;
+  TIME_D3D_PROFILE(render_services_distortion);
+  RenderServiceBlock renderBlk;
   for (auto *srv : rendSrv)
     srv->renderGeometry(IRenderingService::STG_RENDER_STATIC_DISTORTION);
   for (auto *srv : rendSrv)
@@ -82,10 +89,11 @@ ECS_NO_ORDER
 ECS_TAG(render)
 static void render_services_debug_es(const UpdateStageInfoRenderDebug &)
 {
+  TIME_D3D_PROFILE(render_services_debug);
   if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
     if (rs->getRenderType() != rs->RTYPE_DNG_BASED)
       return;
-  PreserveShaderBlocksAndAllowAutoChange shBlkPreserve;
+  RenderServiceBlock renderBlk;
   IEditorCoreEngine::get()->renderObjects();
   IEditorCoreEngine::get()->renderTransObjects();
 

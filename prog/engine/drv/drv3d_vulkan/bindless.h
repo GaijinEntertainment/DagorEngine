@@ -29,7 +29,6 @@ public:
   void afterDeviceReset();
 
   uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count);
-  uint32_t resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t currentCount, uint32_t newCount);
   void queueFreeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
   uint32_t registerBindlessSampler(const SamplerResource *sampler);
 
@@ -86,7 +85,6 @@ public:
   void updateBindlessBuffer(uint32_t index, const BufferRef &buf);
 
   void updateBindlessSampler(uint32_t index, const SamplerInfo *samplerInfo);
-  void copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
 
   void fillSetLayouts(BindlessSetLayouts &tgt) const { tgt = layouts; }
 

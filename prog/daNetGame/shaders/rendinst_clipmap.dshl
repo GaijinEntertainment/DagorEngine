@@ -118,7 +118,8 @@ shader rendinst_clipmap, rendinst_landclass
     dont_render;
   }
   if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
-      rendinst_render_pass == rendinst_render_pass_impostor_shadow)
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_impostor_voxel)
   {
     dont_render;
   }

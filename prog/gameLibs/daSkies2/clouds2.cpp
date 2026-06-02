@@ -22,9 +22,9 @@ bool Clouds2::hasVisibleClouds() const // GPU readback!
   return false;
 }
 
-void Clouds2::updateErosionNoiseWind(float dt)
+void Clouds2::updateErosionNoiseWind(float dt, const Point2 &wind_dir)
 {
-  erosionWindChange = windDir * (renderingParams.erosionWindSpeed * dt);
+  erosionWindChange = wind_dir * (renderingParams.erosionWindSpeed * dt);
   clouds_erosion_noise_wind_ofs += erosionWindChange;
   float erosionNoiseSize = renderingParams.erosion_noise_size * 32.f;
   clouds_erosion_noise_wind_ofs =
@@ -224,10 +224,9 @@ void Clouds2::init(bool use_hole)
   setCloudRenderingVars();
 }
 
-void Clouds2::update(float dt)
+void Clouds2::update(float dt, const Point2 &wind_dir)
 {
-  updateErosionNoiseWind(dt);
-  light.update(dt);
+  updateErosionNoiseWind(dt, wind_dir);
 
   ShaderGlobal::set_float4(clouds_erosion_noise_wind_ofsVarId, clouds_erosion_noise_wind_ofs.x, 0, clouds_erosion_noise_wind_ofs.y, 0);
 }

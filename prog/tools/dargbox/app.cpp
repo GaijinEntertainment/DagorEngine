@@ -790,11 +790,11 @@ public:
 
         for (auto index : {StereoIndex::Left, StereoIndex::Right})
         {
-          d3d::set_render_target(vr::get_frame_target(index), 0);
+          d3d::set_render_target({}, DepthAccess::RW, {{vr::get_frame_target(index), 0, 0}});
           d3d::clearview(CLEAR_TARGET, E3DCOLOR(30, 40, 50), 0, 0);
         }
 
-        d3d::set_render_target(vr::get_gui_texture(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{vr::get_gui_texture(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
 
         renderUi();

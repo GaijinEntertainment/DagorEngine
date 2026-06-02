@@ -13,6 +13,8 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_tabHlp.h>
 
+bool shaderbindump::g_full_float_precision = false;
+
 #if DAGOR_DBGLEVEL > 0
 
 struct ExecStcodeTime
@@ -97,7 +99,10 @@ static void dump_variant_intervals(ScriptedShadersBinDump const &dump, const sha
     {
       debug_("%*sintervals: ", indent + 2, "");
       for (int j = 0; j < ival.maxVal.size(); j++)
-        debug_("[%d] < %.3f, ", j, ival.maxVal[j]);
+        if (shaderbindump::g_full_float_precision)
+          debug_("[%d] < %.9g, ", j, ival.maxVal[j]);
+        else
+          debug_("[%d] < %.3f, ", j, ival.maxVal[j]);
       debug_("[%d]other", ival.maxVal.size());
 
       const VarList *vars = nullptr;
@@ -200,7 +205,12 @@ static void dumpVarImpl(const shaderbindump::VarList &vars, const T &states, int
   switch (vars.getType(i))
   {
     case SHVT_INT: debug_("int(%d)\n", states.template get<int>(i)); break;
-    case SHVT_REAL: debug_("real(%.3f)\n", states.template get<real>(i)); break;
+    case SHVT_REAL:
+      if (shaderbindump::g_full_float_precision)
+        debug_("real(%.9g)\n", states.template get<real>(i));
+      else
+        debug_("real(%.3f)\n", states.template get<real>(i));
+      break;
     case SHVT_COLOR4:
     {
       Color4 c = states.template get<Color4>(i);

@@ -475,6 +475,8 @@ void bind_params()
 
 void unbind_params()
 {
+  bvh::unbind_resources();
+
   ShaderGlobal::set_texture(denoiser_view_zVarId, nullptr);
   ShaderGlobal::set_texture(rtr_denoisedVarId, nullptr);
   ShaderGlobal::set_texture(rtr_targetVarId, nullptr);

@@ -19,10 +19,36 @@ macro DYNMODEL_SHARED_DECL_BUFFER(code)
   }
 endmacro
 
+float4x4 skinning_proj_to_world_tm;
+float4x4 skinning_proj_to_view_tm;
+
+macro DYNMODEL_SHARED_WORLD_LOCAL(code)
+  (code)
+  {
+    proj_to_world_tm@f44 = skinning_proj_to_world_tm;
+    proj_to_view_tm@f44 = skinning_proj_to_view_tm;
+  }
+endmacro
+
+macro USE_DYNMODEL_SHARED_WORLD_LOCAL(code)
+  hlsl(code) {
+    #define proj_to_world_tm_0 proj_to_world_tm[0]
+    #define proj_to_world_tm_1 proj_to_world_tm[1]
+    #define proj_to_world_tm_2 proj_to_world_tm[2]
+    #define proj_to_world_tm_3 proj_to_world_tm[3]
+    #define proj_to_view_tm_0 proj_to_view_tm[0]
+    #define proj_to_view_tm_1 proj_to_view_tm[1]
+    #define proj_to_view_tm_2 proj_to_view_tm[2]
+    #define proj_to_view_tm_3 proj_to_view_tm[3]
+  }
+endmacro
+
 macro DYNMODEL_SHARED_DECL()
   supports global_frame;
   DYNMODEL_SHARED_DECL_BUFFER(vs)
   DYNMODEL_SHARED_DECL_BUFFER(ps)
+  DYNMODEL_SHARED_WORLD_LOCAL(vs)
+  DYNMODEL_SHARED_WORLD_LOCAL(ps)
   (vs) {
     viewProjTm@f44 = viewprojtm;
     matrices_stride@i1 = (matrices_stride);
@@ -210,7 +236,8 @@ if (in_editor_assume == yes)
     #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
     #define INSTANCE_DATA_BUFFER instance_data_buffer
   }
-  WORLD_LOCAL_VS()
+  USE_WORLD_LOCAL_VS()
+  USE_DYNMODEL_SHARED_WORLD_LOCAL(vs)
 }
 INIT_PER_INSTANCE_DATA(vs)
 INIT_PER_INSTANCE_DATA(ps)
@@ -280,7 +307,6 @@ if (in_editor_assume == yes)
     #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
     #define INSTANCE_DATA_BUFFER instance_data_buffer
   }
-  INIT_WORLD_LOCAL_BASE(code)
   USE_WORLD_LOCAL_BASE(code)
 }
 

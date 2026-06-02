@@ -3137,49 +3137,6 @@ namespace drv3d_metal
     return true;
   }
 
-  int Render::copyBindlessResources(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count)
-  {
-    checkRenderAcquired();
-
-    if (D3DResourceType::SBUF == type)
-    {
-      for (uint32_t i = 0; i < count; i++)
-      {
-        bindlessBuffers.update(dst + i, bindlessBuffers.cache[src + i].buf);
-        bindlessBuffers.update(src + i, nullptr);
-      }
-      bindless_resources_bound &= ~BindlessTypeBuffer;
-    }
-    else if (D3DResourceType::TEX == type)
-    {
-      for (uint32_t i = 0; i < count; i++)
-      {
-        bindlessTextures2D.update(dst + i, bindlessTextures2D.cache[src + i].tex);
-        bindlessTextures2D.update(src + i, nullptr);
-      }
-      bindless_resources_bound &= ~BindlessTypeTexture2D;
-    }
-    else if (D3DResourceType::CUBETEX == type)
-    {
-      for (uint32_t i = 0; i < count; i++)
-      {
-        bindlessTexturesCube.update(dst + i, bindlessTexturesCube.cache[src + i].tex);
-        bindlessTexturesCube.update(src + i, nullptr);
-      }
-      bindless_resources_bound &= ~BindlessTypeTextureCube;
-    }
-    else if (D3DResourceType::ARRTEX == type)
-    {
-      for (uint32_t i = 0; i < count; i++)
-      {
-        bindlessTextures2DArray.update(dst + i, bindlessTextures2DArray.cache[src + i].tex);
-        bindlessTextures2DArray.update(src + i, nullptr);
-      }
-      bindless_resources_bound &= ~BindlessTypeTexture2DArray;
-    }
-    return 1;
-  }
-
   int Render::updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count)
   {
     checkRenderAcquired();

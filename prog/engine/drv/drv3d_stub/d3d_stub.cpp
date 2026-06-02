@@ -1493,7 +1493,6 @@ uint32_t d3d::register_bindless_sampler([[maybe_unused]] SamplerHandle hnd)
 }
 
 uint32_t d3d::allocate_bindless_resource_range(D3DResourceType, uint32_t) { return 0; }
-uint32_t d3d::resize_bindless_resource_range(D3DResourceType, uint32_t, uint32_t, uint32_t) { return 0; }
 void d3d::free_bindless_resource_range(D3DResourceType, uint32_t, uint32_t) {}
 void d3d::update_bindless_resource_range(D3DResourceType, uint32_t, const dag::ConstSpan<D3dResource *> &) {}
 bool d3d::update_bindless_resource(D3DResourceType, uint32_t, D3dResource *) { return false; }
@@ -1887,6 +1886,9 @@ void d3d::set_stream_output_buffer(int, const StreamOutputBufferSetup &) {}
 void d3d::set_variable_rate_shading_texture(BaseTexture *) {}
 
 void d3d::resource_barrier(const ResourceBarrierDesc &, GpuPipeline) {}
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &, BaseTexture *) {}
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &, Sbuffer *) {}
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem>, dag::ConstSpan<d3d::BufferBarrierBatchItem>) {}
 
 Texture *d3d::alias_tex(Texture *, TexImage32 *, int, int, int, int, const char *) { return nullptr; }
 

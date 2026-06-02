@@ -801,6 +801,8 @@ void CascadeShadowsPrivate::calcTMs()
     return;
   }
   G_ASSERT(numCascadesToRender <= CascadeShadows::MAX_CASCADES);
+  G_ASSERT(eastl::find(CascadeShadows::ALLOWED_CASCADES_VALUES.begin(), CascadeShadows::ALLOWED_CASCADES_VALUES.end(),
+             numCascadesToRender) != CascadeShadows::ALLOWED_CASCADES_VALUES.end());
 
   if (ShaderGlobal::is_var_assumed(num_of_cascadesVarId) &&
       ShaderGlobal::get_interval_assumed_value(num_of_cascadesVarId) < numCascadesToRender)

@@ -8,6 +8,7 @@
 #include "pipeline.h"
 #include "tagged_types.h"
 
+#include <drv/3d/dag_enhanced_barrier.h>
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
 #include <value_range.h>
 #include <EASTL/fixed_vector.h>

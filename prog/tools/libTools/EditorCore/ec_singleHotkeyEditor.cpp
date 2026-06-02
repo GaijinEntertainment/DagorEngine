@@ -280,6 +280,8 @@ int closedFrame = -1;
 
 } // namespace
 
+bool ec_is_single_hotkey_editor_open() { return single_hotkey_editor != nullptr || pending_single_hotkey_editor_request.has_value(); }
+
 void ec_create_single_hotkey_editor(const char *editor_command_id, int hotkey_index)
 {
   pending_single_hotkey_editor_request = PendingEditorRequest(editor_command_id, hotkey_index, ImGui::GetMousePos());

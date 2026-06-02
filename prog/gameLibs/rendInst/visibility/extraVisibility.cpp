@@ -341,6 +341,8 @@ bool rendinst::prepareExtraVisibilityInternal(RiGenVisibility &vbase, mat44f_cre
                                   const RendinstTiledScene &tiled_scene, float distSqScaledNormalized, int forcedExtraLod,
                                   unsigned int &lod) -> bool {
     G_UNUSED(ni);
+    if (params.forceCullUnderwaterOnly && scene::check_node_flags(m, RendinstTiledScene::UNDERWATER_ONLY))
+      return false;
     if (distSqScaledNormalized < 0.0f) // hidden riExtra instance
       return false;
     if (render_for_shadow &&
@@ -1164,17 +1166,23 @@ bool rendinst::prepareRIGenExtraVisibility(RiGenVisibility &vbase, mat44f_cref g
 bool rendinst::prepareRIGenExtraVisibilityForGrassifyBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
   RiGenVisibility &vbase, bbox3f *result_box)
 {
-  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, true, vbase, result_box);
+  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, true, false, vbase, result_box);
 }
 
 bool rendinst::prepareRIGenExtraVisibilityBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
   RiGenVisibility &vbase, bbox3f *result_box)
 {
-  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, false, vbase, result_box);
+  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, false, false, vbase, result_box);
+}
+
+bool rendinst::prepareRIGenExtraVisibilityBoxForRIClipmapBox(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
+  RiGenVisibility &vbase, bbox3f *result_box)
+{
+  return prepareRIGenExtraVisibilityBoxInternal(box_cull, forced_lod, min_size, min_dist, false, true, vbase, result_box);
 }
 
 bool rendinst::prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int forced_lod, float min_size, float min_dist,
-  bool filter_grassify, RiGenVisibility &vbase, bbox3f *result_box)
+  bool filter_grassify, bool filter_ri_clipmap, RiGenVisibility &vbase, bbox3f *result_box)
 {
   if (!RendInstGenData::renderResRequired || !maxExtraRiCount || RendInstGenData::isLoading)
     return false;
@@ -1233,6 +1241,8 @@ bool rendinst::prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int 
     const auto &tiled_scene = riExTiledScenes[scnI];
     tiled_scene.boxCull<false, true>(box_cull, 0, 0, [&](scene::node_index ni, mat44f_cref m) {
       if (v_test_vec_x_lt(scene::get_node_bsphere_vrad(m), min_size_v))
+        return;
+      if (filter_ri_clipmap && !scene::check_node_flags(m, RendinstTiledScene::IS_RENDINST_CLIPMAP))
         return;
       const scene::pool_index poolId = scene::get_node_pool(m);
       const auto &riPool = poolInfo[poolId];

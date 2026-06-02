@@ -10,8 +10,8 @@
 #include <math/dag_mathBase.h>
 #include <osApiWrappers/dag_files.h>
 
-String export_any_tga(const char *file_name, void *data, int width, int height, int stride, int in_channels, int in_bits_per_channel,
-  bool in_float, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)
+String export_any_tga(const char *file_name, void *data, int width, int height, int /*stride*/, int in_channels,
+  int in_bits_per_channel, bool in_float, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)
 {
   if ((out_channels != 1 && out_channels != 4) || out_bits_per_channel != 8 || out_float)
   {
@@ -45,8 +45,8 @@ String export_any_tga(const char *file_name, void *data, int width, int height, 
 }
 
 
-String export_any_raw(const char *file_name, void *data, int width, int height, int stride, int in_channels, int in_bits_per_channel,
-  bool in_float, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)
+String export_any_raw(const char *file_name, void *data, int width, int height, int /*stride*/, int in_channels,
+  int in_bits_per_channel, bool in_float, int out_channels, int out_bits_per_channel, bool out_float, bool swap_rb)
 {
   int in_stride = width * in_channels * in_bits_per_channel / 8;
   int out_stride = width * out_channels * out_bits_per_channel / 8;
@@ -83,9 +83,12 @@ String export_any_raw(const char *file_name, void *data, int width, int height, 
 }
 
 
-static void tiff_warning_handler(const char *module, const char *fmt, va_list ap) { DAEDITOR3.conWarning("TIFF Warning: %s", fmt); }
+static void tiff_warning_handler(const char * /*module*/, const char *fmt, va_list /*ap*/)
+{
+  DAEDITOR3.conWarning("TIFF Warning: %s", fmt);
+}
 
-static void tiff_error_handler(const char *module, const char *fmt, va_list ap) { DAEDITOR3.conError("TIFF Error: %s", fmt); }
+static void tiff_error_handler(const char * /*module*/, const char *fmt, va_list /*ap*/) { DAEDITOR3.conError("TIFF Error: %s", fmt); }
 
 
 String export_any_tiff(const char *file_name, void *data, int width, int height, int stride, int in_channels, int in_bits_per_channel,

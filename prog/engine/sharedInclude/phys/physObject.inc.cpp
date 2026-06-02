@@ -1,6 +1,7 @@
 #include <phys/dag_physObject.h>
 #include <phys/dag_physSysInst.h>
 #include <phys/dag_physics.h>
+#include <phys/dag_physTwistCtrl.h>
 #include <math/dag_geomTree.h>
 #include <math/dag_geomNodeUtils.h>
 #include <shaders/dag_dynSceneRes.h>
@@ -10,9 +11,8 @@
 
 
 template <>
-DynamicPhysObject::DynamicPhysObjectClass() : physSys(NULL), nodeTree(NULL)
+DynamicPhysObject::DynamicPhysObjectClass() : ud{_MAKE4C('DPOJ')}
 {}
-
 
 template <>
 DynamicPhysObject::~DynamicPhysObjectClass()

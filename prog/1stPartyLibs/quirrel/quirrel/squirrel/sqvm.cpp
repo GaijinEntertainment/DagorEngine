@@ -602,10 +602,10 @@ bool SQVM::StartCall(SQClosure *closure,SQInteger target,SQInteger args,SQIntege
         if (f->_isAsync) {
             // Use a local SQObjectPtr: wrap_generator pushes onto the VM stack,
             // which can reallocate _stack._vals and invalidate a slot reference.
-            SQObjectPtr taskPromise;
-            if (SQ_FAILED(sqasync::wrap_generator(this, gen, taskPromise)))
+            SQObjectPtr taskFuture;
+            if (SQ_FAILED(sqasync::wrap_generator(this, gen, taskFuture)))
                 return false;
-            _stack._vals[_stackbase + target] = taskPromise;
+            _stack._vals[_stackbase + target] = taskFuture;
         } else {
             _stack._vals[_stackbase + target] = genPtr;
         }
@@ -981,20 +981,16 @@ bool SQVM::Execute(const SQObjectPtr &closure, SQInteger nargs, SQInteger stackb
                       }
             break;
         case ET_RESUME_GENERATOR:
-            if(!_generator(closure)->Resume(this, outres)) {
-                return false;
-            }
-            ci->_root = SQTrue;
-            traps += ci->_etraps;
-            break;
         case ET_RESUME_GENERATOR_THROW:
-            // Caller pre-loaded `_lasterror` with the value to raise; mirrors ET_RESUME_THROW_VM.
+            // The _THROW variant raises the caller's pre-loaded `_lasterror` at
+            // the resumed await point, mirroring ET_RESUME_THROW_VM below.
             if(!_generator(closure)->Resume(this, outres)) {
                 return false;
             }
             ci->_root = SQTrue;
             traps += ci->_etraps;
-            goto exception_trap;
+            if(et == ET_RESUME_GENERATOR_THROW) { goto exception_trap; }
+            break;
         case ET_RESUME_VM:
         case ET_RESUME_THROW_VM:
             traps = _suspended_traps;
@@ -1037,6 +1033,10 @@ exception_restore:
             {
             case _OP_DATA_NOP: continue;
             case _OP_LOAD: TARGET = ci->_literals[arg1]; continue;
+            case _OP_LOAD_MOVE:
+                TARGET = ci->_literals[arg1];
+                STK(arg2) = STK(arg3);
+                continue;
             case _OP_LOADINT:
 #ifndef _SQ64
                 TARGET = (SQInteger)arg1; continue;
@@ -1817,6 +1817,17 @@ exception_trap:
         SQObjectPtr currerror = _lasterror;
 //      dumpstack(_stackbase);
         SQInteger last_top = _top;
+
+        // Attach an origin trace to a thrown Error without one. The ci chain is
+        // still live here; the unwind below destroys the inner frames.
+        if (sq_type(currerror) == OT_INSTANCE) {
+            const SQObjectPtr &ecls = _ss(this)->_error_class;
+            if (sq_type(ecls) == OT_CLASS && _instance(currerror)->InstanceOf(_class(ecls))) {
+                SQObjectPtr traceKey(SQString::Create(_ss(this), "trace")), cur;
+                if (_instance(currerror)->Get(traceKey, cur) && sq_isnull(cur))
+                    _instance(currerror)->Set(traceKey, sq_capture_error_trace(this));
+            }
+        }
 
         if ((_ss(this)->_notifyallexceptions || (!traps && invoke_err_handler)) && !sq_isnull(currerror))
             CallErrorHandler(currerror);

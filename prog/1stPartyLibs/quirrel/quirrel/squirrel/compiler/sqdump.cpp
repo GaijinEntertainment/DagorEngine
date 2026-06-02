@@ -167,6 +167,10 @@ void DumpInstructions(const StreamCB &stream, SQLineInfosHeader *lineinfos, int 
                 streamprintf(stream, "  // -> r%d", int(inst._arg0));
                 break;
 
+            case _OP_LOAD_MOVE:
+                streamprintf(stream, "  // -> r%d, r%d -> r%d", int(inst._arg0), int(inst._arg3), int(inst._arg2));
+                break;
+
             case _OP_LOADNULLS:
                 streamprintf(stream, "  // null -> [r%d .. r%d]", int(inst._arg0), int(inst._arg0 + inst._arg1 - 1));
                 break;

@@ -18,6 +18,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driver.h>
 #include <render/world/dynModelRenderPass.h>
 #include <render/world/postfxRender.h>
 #include <render/renderEvent.h>
@@ -156,8 +157,7 @@ dafg::NodeHandle makeDownsampleDepthWithTransparencyNode()
     registry.readTexture("close_depth").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("downsampled_close_depth_tex");
 
     const auto halfMainViewRes = registry.getResolution<2>("main_view", 0.5f);
-    auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
-    auto depthTexCreateInfo = dafg::Texture2dCreateInfo{TEXFMT_R32F | TEXCF_RTARGET, halfMainViewRes, wr.downsampledTexturesMipCount};
+    auto depthTexCreateInfo = dafg::Texture2dCreateInfo{TEXFMT_R32F | TEXCF_RTARGET, halfMainViewRes, 0};
     registry.requestRenderPass().color({registry.createTexture2d("far_depth_with_transparency", depthTexCreateInfo),
       registry.createTexture2d("near_depth_with_transparency", depthTexCreateInfo)});
 
@@ -214,7 +214,6 @@ resource_slot::NodeHandleWithSlotsAccess makePostFxNode()
       postfx_bind_additional_textures_from_namespace(closeupsNs);
 
       registry.readTexture("flash_blind_tex").atStage(dafg::Stage::PS).bindToShaderVar("flash_blind_screen_tex").optional();
-      registry.readTexture("film_grain").atStage(dafg::Stage::PS).bindToShaderVar().optional();
 
       // TODO: we can pass a per-project callbacks which requests such textures for postfx.
       (registry.root() / "sprite_glare")
@@ -322,15 +321,6 @@ dafg::NodeHandle makeFrameBeforeDistortionProducerNode()
   });
 }
 
-dafg::NodeHandle makeFilmGrainNode()
-{
-  return dafg::register_node("make_film_grain", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().color({"film_grain"});
-    registry.create("film_grain").texture({TEXFMT_A16B16G16R16F | TEXCF_RTARGET, IPoint2(128, 128)});
-    return [shader = PostFxRenderer("film_grain")]() { shader.render(); };
-  });
-}
-
 dafg::NodeHandle makeDistortionFxNode()
 {
   return dafg::register_node("distortion_postfx_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -379,7 +369,4 @@ static void create_postfx_nodes_es(const OnCameraNodeConstruction &evt)
   evt.nodes->push_back(makePrepareDepthAfterTransparent());
   evt.nodes->push_back(makeFrameBeforeDistortionProducerNode());
   evt.nodes->push_back(makeDistortionFxNode());
-  // Enable only on platforms that support resource heaps because this semi-baked texture is free on them
-  if (d3d::get_driver_desc().caps.hasResourceHeaps)
-    evt.nodes->push_back(makeFilmGrainNode());
 }

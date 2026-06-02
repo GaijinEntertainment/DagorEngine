@@ -600,7 +600,7 @@ private:
   void combineShadowsPass()
   {
     SCOPE_RENDER_TARGET_NAME(_combinedShadows);
-    d3d::set_render_target(combinedShadows.getBaseTex(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{combinedShadows.getBaseTex(), 0, 0}});
     // Clear to white = "no shadow" everywhere. The daNetGame combine_shadows
     // shader does full-resolution contact-shadow raycasting against
     // depth_gbuf_read + viewProjectionMatrixNoOfs; running it from our
@@ -618,7 +618,7 @@ private:
     }
   }
 
-  void renderFrame(float dt)
+  void renderFrame(float /*dt*/)
   {
     // Save the host's reprojection globals (globtm_no_ofs_psf_*, view_vec*,
     // prev_world_view_pos, etc.) for the duration of our render. They are
@@ -785,8 +785,7 @@ private:
     // plugin; we just render it from our view.
     if (skiesService)
     {
-      d3d::set_render_target(frame.getBaseTex(), 0);
-      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+      d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{frame.getBaseTex(), 0, 0}});
 
       DagorCurView savedView = ::grs_cur_view;
       TMatrix itm = orthonormalized_inverse(viewTm);
@@ -797,13 +796,13 @@ private:
       skiesService->renderSky();
 
       ::grs_cur_view = savedView;
-      d3d::set_depth(target->getDepth(), DepthAccess::RW);
+      d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{frame.getBaseTex(), 0, 0}});
     }
 
     // Postfx: tonemap frame -> postfxOut
     {
       SCOPE_RENDER_TARGET_NAME(_postfx);
-      d3d::set_render_target(postfxOut.getBaseTex(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{postfxOut.getBaseTex(), 0, 0}});
       static int frame_texVarId = get_shader_variable_id("frame_tex", true);
       if (frame_texVarId >= 0)
       {

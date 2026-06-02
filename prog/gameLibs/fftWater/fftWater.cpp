@@ -1044,7 +1044,7 @@ void setGridLod0AdditionalTesselation(FFTWater *handle, float additional_tessela
     handle->getRenderChop()->setGridLod0AdditionalTesselation(additional_tesselation);
 }
 
-void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum,
+void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,
   const Driver3dPerspective &persp, int geom_lod_quality, int survey_id, IWaterDecalsRenderHelper *decals_renderer,
   RenderMode render_mode, eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
 {
@@ -1053,8 +1053,8 @@ void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id
   if (handle->chopEnabled())
   {
     if (handle->getRenderChop())
-      handle->getRenderChop()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, persp, handle->getRenderCommon(),
-        decals_renderer, render_mode);
+      handle->getRenderChop()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, occlusion, persp,
+        handle->getRenderCommon(), decals_renderer, render_mode);
   }
   else
   {
@@ -1062,8 +1062,8 @@ void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id
       return;
     // render() call runs begin_survey, becouse we have a fence inside function, fence cannot be between
     // start survey and end survey. So here we should just call end_survey.
-    handle->getRender()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, persp, handle->getRenderCommon(),
-      decals_renderer, render_mode, cullCb);
+    handle->getRender()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, occlusion, persp,
+      handle->getRenderCommon(), decals_renderer, render_mode, cullCb);
 
     d3d::end_survey(survey_id);
   }

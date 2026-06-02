@@ -196,9 +196,9 @@ def guess_type_convert(str):
     if str.find('[') > -1:
         value = to_matrix(str)[0]
 # bool ?
-    elif str.lower() in ['1', 'yes', 'true']:
+    elif str.lower() in ['yes', 'true']:
         value = True
-    elif str.lower() in ['0', 'no', 'false']:
+    elif str.lower() in ['no', 'false']:
         value = False
 # vector ?
     elif str.find(',')>-1:

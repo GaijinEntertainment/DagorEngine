@@ -195,11 +195,6 @@ macro USE_CLIPMAP_NORMAL()
 endmacro
 
 
-macro USE_CLIPMAP()
-  USE_CLIPMAP_NORMAL()
-endmacro
-
-
 float4 world_dd_scale = (0.25,0.25,1,1);
 int clipmap_feedback_order_prefix = 0;
 

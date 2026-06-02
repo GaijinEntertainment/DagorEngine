@@ -124,7 +124,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(register_bindless_sampler);
 
   FILL_ENTRY(allocate_bindless_resource_range);
-  FILL_ENTRY(resize_bindless_resource_range);
   FILL_ENTRY(free_bindless_resource_range);
   FILL_ENTRY(update_bindless_resource_range);
   FILL_ENTRY(update_bindless_resource);
@@ -312,6 +311,9 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 #endif
 
   FILL_ENTRY(resource_barrier);
+  FILL_ENTRY(enhanced_texture_barrier);
+  FILL_ENTRY(enhanced_buffer_barrier);
+  FILL_ENTRY(enhanced_barrier_batch);
 
   FILL_ENTRY(create_render_pass);
   FILL_ENTRY(delete_render_pass);

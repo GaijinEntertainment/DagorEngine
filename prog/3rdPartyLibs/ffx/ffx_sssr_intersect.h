@@ -185,7 +185,7 @@ FFX_RaymarchResult FFX_SSSR_HierarchicalRaymarch(FfxFloat32x3 origin, FfxFloat32
     bool valid_hit = isRayInsideBorders && (i < max_traversal_intersections) && (current_mip < most_detailed_mip) && (surface_z > 0);
 
     FFX_RaymarchResult result;
-    result.backSurfaceEndUVZ = position.xyz;
+    result.backSurfaceEndUVZ = saturate(position);
     result.hitUVZw = float4(float3(position.xy, surface_z), valid_hit);
 
     if (back_surface_begin_pos.w > 0)

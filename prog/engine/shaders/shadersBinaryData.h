@@ -253,6 +253,8 @@ extern bool autoBlockStateWordChange;
 
 extern ShaderStubTexturesRepository g_stub_texture_repo;
 
+extern bool g_full_float_precision;
+
 #if DAGOR_DBGLEVEL > 0
 extern const ShaderClass *shClassUnderDebug;
 

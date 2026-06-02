@@ -677,6 +677,7 @@ Point2 get_collres_slice_mean_and_dispersion(const CollisionResource &collres, f
 }
 
 bool apply_collres_node_flag_rules(ecs::EntityManager &, ecs::EntityId, const ecs::Array &) { G_ASSERT_RETURN(false, false); }
+bool clone_collres(ecs::EntityManager &, ecs::EntityId) { G_ASSERT_RETURN(false, false); }
 
 namespace systeminfo
 {

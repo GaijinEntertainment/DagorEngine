@@ -155,6 +155,8 @@ void render_noisy(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *h
 
   trace->dispatchThreads(divide_up(resolution.x, checkerboard ? 2 : 1), resolution.y, 1);
 
+  bvh::unbind_resources();
+
   d3d::resource_barrier(ResourceBarrierDesc(rtao_tex_unfiltered, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
 
   ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);

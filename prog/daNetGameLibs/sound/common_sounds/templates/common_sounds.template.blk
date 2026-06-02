@@ -103,6 +103,20 @@ phys_obj_collision_sound{
   }
 }
 
+phys_obj_fall_sound{ // simple alternative for phys_obj_collision_sound
+  _group{
+    _tags:t="sound"
+    phys_obj_fall_sound__prevSpeed:r=0
+    phys_obj_fall_sound__nextTime:r=0
+    // setup
+    phys_obj_fall_sound__path:t="missing phys_obj_fall_sound__path"
+    phys_obj_fall_sound__minSpeedDrop:r=3
+    phys_obj_fall_sound__minSpeed:r=2
+    phys_obj_fall_sound__cooldown:r=2
+    phys_obj_fall_sound__cooldownOnAppear:r=1
+  }
+}
+
 fx_destruction_sound{
   _group{
     _tags:t="sound"

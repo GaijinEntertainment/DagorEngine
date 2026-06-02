@@ -6,6 +6,7 @@
 
 #include <drv/3d/dag_decl.h>
 #include <drv/3d/dag_barrier.h>
+#include <drv/3d/dag_enhanced_barrier.h>
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_resource.h>
 #include <drv/3d/dag_tex3d.h>
@@ -192,6 +193,10 @@ bool enable_vsync(bool enable);
 // See ResourceBarrierDesc and
 // https://dagor.rtd.gaijin.lan/en/latest/api-references/dagor-render/index/resource_and_execution_barriers.html
 void resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS);
+void enhanced_texture_barrier(const TextureBarrier &barrier, BaseTexture *texture);
+void enhanced_buffer_barrier(const BufferBarrier &barrier, Sbuffer *buffer);
+void enhanced_barrier_batch(dag::ConstSpan<TextureBarrierBatchItem> texture_barriers,
+  dag::ConstSpan<BufferBarrierBatchItem> buffer_barriers);
 
 #endif
 

@@ -92,7 +92,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <int N>
-FORCE_INLINE void VtxFetch4(__mw *v, const unsigned short *inTrisPtr, int triVtx, const float *inVtx, int numLanes)
+FORCE_INLINE void VtxFetch4(__mw *v, const uint16_t *inTrisPtr, int triVtx, const float *inVtx, int numLanes)
 {
   // Fetch 4 vectors (matching 1 sse part of the SIMD register), and continue to the next
   const int ssePart = (SIMD_LANES / 4) - N;
@@ -106,7 +106,7 @@ FORCE_INLINE void VtxFetch4(__mw *v, const unsigned short *inTrisPtr, int triVtx
 }
 
 template <>
-FORCE_INLINE void VtxFetch4<0>(__mw *v, const unsigned short *inTrisPtr, int triVtx, const float *inVtx, int numLanes)
+FORCE_INLINE void VtxFetch4<0>(__mw *v, const uint16_t *inTrisPtr, int triVtx, const float *inVtx, int numLanes)
 {
   // Workaround for unused parameter warning
   (void)v;
@@ -116,9 +116,11 @@ FORCE_INLINE void VtxFetch4<0>(__mw *v, const unsigned short *inTrisPtr, int tri
   (void)numLanes;
 }
 
-// Vert21 variant: same gather pattern but loads from 8-byte vert21 packed vertices
+// Vert21 variant: same gather pattern but loads from 8-byte vert21 packed vertices.
+// Indices are uint32 because BLAS vert indices come from a per-BLAS byte offset divided by
+// VERT21_STRIDE -- BLAS sizes are not capped at 65535 verts, so 16-bit indices would wrap.
 template <int N>
-FORCE_INLINE void VtxFetch4Vert21(__mw *v, const unsigned short *inTrisPtr, int triVtx, const unsigned char *vert21Data, int numLanes)
+FORCE_INLINE void VtxFetch4Vert21(__mw *v, const uint32_t *inTrisPtr, int triVtx, const unsigned char *vert21Data, int numLanes)
 {
   const int ssePart = (SIMD_LANES / 4) - N;
   for (int k = 0; k < 4; k++)
@@ -126,7 +128,7 @@ FORCE_INLINE void VtxFetch4Vert21(__mw *v, const unsigned short *inTrisPtr, int 
     int lane = 4 * ssePart + k;
     if (numLanes > lane)
     {
-      const uint8_t *src = vert21Data + inTrisPtr[lane * 3 + triVtx] * 8;
+      const uint8_t *src = vert21Data + (size_t)inTrisPtr[lane * 3 + triVtx] * 8;
       __m128 decoded = RayData::unpackVert21Raw(src);
       v[k] = _mmw_insertf32x4_ps(v[k], decoded, ssePart);
     }
@@ -135,8 +137,7 @@ FORCE_INLINE void VtxFetch4Vert21(__mw *v, const unsigned short *inTrisPtr, int 
 }
 
 template <>
-FORCE_INLINE void VtxFetch4Vert21<0>(__mw *v, const unsigned short *inTrisPtr, int triVtx, const unsigned char *vert21Data,
-  int numLanes)
+FORCE_INLINE void VtxFetch4Vert21<0>(__mw *v, const uint32_t *inTrisPtr, int triVtx, const unsigned char *vert21Data, int numLanes)
 {
   (void)v;
   (void)inTrisPtr;
@@ -1863,7 +1864,7 @@ public:
   }
 
   FORCE_INLINE void GatherVerticesVert21Z(__mw *vtxX, __mw *vtxY, __mw *vtxW, const unsigned char *vert21Data,
-    const unsigned short *inTrisPtr, int numLanes)
+    const unsigned int *inTrisPtr, int numLanes)
   {
     assert(numLanes >= 1);
     __mw v[4], swz[4];
@@ -1882,14 +1883,14 @@ public:
   }
 
   // Render a flat vert21-indexed trilist through the SIMD pipeline.
-  int RenderVert21TriList(const unsigned char *blasData, const unsigned short *indices, int triCount, const float *rawToClipMatrix,
+  int RenderVert21TriList(const unsigned char *blasData, const uint32_t *indices, uint32_t triCount, const float *rawToClipMatrix,
     BackfaceWinding bfWinding, ClipPlanes clipMask)
   {
     int clipHead = 0, clipTail = 0;
     __m128 clipTriBuffer[MAX_CLIPPED * 3];
     int cullResult = CullingResult::VIEW_CULLED;
-    const unsigned short *idxPtr = indices;
-    int triIndex = 0;
+    const unsigned int *idxPtr = indices;
+    uint32_t triIndex = 0;
     while (triIndex < triCount || clipHead != clipTail)
     {
       __mw vtxX[3], vtxY[3], vtxW[3];
@@ -1901,7 +1902,7 @@ public:
 #if CLIPPING_PRESERVES_ORDER != 0
         int numNewTris = 0;
 #else
-        int numNewTris = max(0, min(SIMD_LANES - clippedTris, triCount - triIndex));
+        int numNewTris = max(0, min<int>(SIMD_LANES - clippedTris, triCount - triIndex));
 #endif
         if (numNewTris > 0)
         {
@@ -1926,7 +1927,7 @@ public:
       }
       else
       {
-        int numTris = min(SIMD_LANES, triCount - triIndex);
+        uint32_t numTris = min<uint32_t>(SIMD_LANES, triCount - triIndex);
         triMask = (1U << numTris) - 1;
         triClipMask = triMask;
         GatherVerticesVert21Z(vtxX, vtxY, vtxW, blasData, idxPtr, numTris);
@@ -1967,13 +1968,21 @@ public:
   // Walk BVH, emit triangle indices into outIndices. Returns number of triangles emitted.
   // outIndicesCapacity is the max triangle count outIndices can hold; on overflow we drop the
   // remaining leaves (and logerr_once) rather than overrunning the caller's scratch buffer.
+  //
+  // triSkip / triLimit partition the walk in BLAS-order: triangles whose 0-based logical index
+  // is below triSkip are walked over but not written; emission stops once triLimit triangles
+  // have been written. With checkFrustum=true the logical index counts triangles whose leaf
+  // passes frustum culling (culled leaves contribute 0). This lets callers partition a BLAS
+  // into bounded sub-jobs without resizing the scratch cache.
   template <bool checkFrustum>
-  int EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned short *outIndices, int outIndicesCapacity,
-    const BoxFrustumPlanes5 *boxPlanes)
+  uint32_t EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned int *outIndices,
+    uint32_t outIndicesCapacity, const BoxFrustumPlanes5 *boxPlanes, uint32_t triSkip = 0, uint32_t triLimit = 1u << 31)
   {
-    int triCount = 0;
+    uint32_t triCount = 0;
+    uint32_t logicalIdx = 0;
     int offset = treeStart;
     int noClipEnd = treeStart;
+    const uint32_t capacity = (uint32_t)outIndicesCapacity;
 
     while (offset < treeEnd)
     {
@@ -2010,54 +2019,83 @@ public:
         }
       }
 
-      // Decode leaf -> emit triangle indices
+      // Decode leaf -> emit triangle indices. v0 is the per-BLAS vert index (byte offset /
+      // VERT21_STRIDE); BLAS vert counts are not capped at 65535, so the index is kept as 32 bits
+      // here and in the cache. The per-quad offsets (o1/o2/o3) are 10-bit, so v1..v3 stay safely
+      // within uint32 range.
       int relOfs = *(const int *)(blasData + offset);
       int vtxByteOfs = offset + relOfs;
-      unsigned short v0 = (unsigned short)(vtxByteOfs / VERT21_STRIDE);
+      unsigned int v0 = (unsigned int)(vtxByteOfs / VERT21_STRIDE);
       unsigned int o1 = (skipWord & QUAD_O1_MASK) + 1;
       unsigned int o2 = ((skipWord >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
       unsigned int o3 = ((skipWord >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
-      unsigned short v1 = v0 + (unsigned short)o1, v2 = v0 + (unsigned short)o2, v3 = v0 + (unsigned short)o3;
+      unsigned int v1 = v0 + o1, v2 = v0 + o2, v3 = v0 + o3;
 
-      // A quad-leaf can emit 1 or 2 triangles; bail before we'd overrun the caller's scratch.
-      int emitTris = (o3 != o2) ? 2 : 1;
-      if (triCount + emitTris > outIndicesCapacity)
+      uint32_t emitTris = (o3 != o2) ? 2u : 1u;
+      offset += BVH_LEAF_EXTRA;
+
+      // Below the partition window: walk over without writing.
+      if (logicalIdx + emitTris <= triSkip)
       {
-        LOGERR_ONCE("EmitBLASTriangles: BLAS leaf range [%d,%d) overflows scratch cache (capacity=%d tris); "
-                    "dropping remaining triangles. Split the source mesh or raise BLAS_TRI_CACHE_MAX.",
-          treeStart, treeEnd, outIndicesCapacity);
+        logicalIdx += emitTris;
+        continue;
+      }
+      // At/above the partition window's end: stop entirely.
+      if (triCount >= triLimit)
+        break;
+
+      // A quad-leaf can emit 1 or 2 triangles, but the per-triangle triLimit guards below never emit
+      // past the partition window. Clamp the capacity test by the window's remaining room so a quad
+      // straddling the window end (first tri inside the window, second tri owned by the next task)
+      // still emits its first triangle instead of being dropped wholesale. triCount < triLimit is
+      // guaranteed by the triLimit break above, so (triLimit - triCount) >= 1.
+      const uint32_t leafEmit = emitTris <= triLimit - triCount ? emitTris : triLimit - triCount;
+      if (triCount + leafEmit > capacity)
+      {
+        LOGERR_ONCE("EmitBLASTriangles: BLAS leaf range [%d,%d) overflows scratch cache (capacity=%u tris); "
+                    "dropping remaining triangles. This could not happen, as we should always allocate enough space.",
+          treeStart, treeEnd, capacity);
         break;
       }
 
-      outIndices[triCount * 3 + 0] = v0;
-      outIndices[triCount * 3 + 1] = v1;
-      outIndices[triCount * 3 + 2] = v2;
-      triCount++;
-      if (o3 != o2)
+      // First triangle of the quad. The triCount < triLimit guard above already broke us out
+      // if the window was full, so only the mid-quad-skip check is needed here.
+      if (logicalIdx >= triSkip)
       {
-        if (skipWord & QUAD_FAN_FLAG)
-        {
-          outIndices[triCount * 3 + 0] = v0;
-          outIndices[triCount * 3 + 1] = v2;
-          outIndices[triCount * 3 + 2] = v3;
-        }
-        else
-        {
-          outIndices[triCount * 3 + 0] = v1;
-          outIndices[triCount * 3 + 1] = v3;
-          outIndices[triCount * 3 + 2] = v2;
-        }
+        outIndices[triCount * 3 + 0] = v0;
+        outIndices[triCount * 3 + 1] = v1;
+        outIndices[triCount * 3 + 2] = v2;
         triCount++;
       }
-      offset += BVH_LEAF_EXTRA;
+      logicalIdx++;
+      if (o3 != o2)
+      {
+        if (logicalIdx >= triSkip && triCount < triLimit)
+        {
+          if (skipWord & QUAD_FAN_FLAG)
+          {
+            outIndices[triCount * 3 + 0] = v0;
+            outIndices[triCount * 3 + 1] = v2;
+            outIndices[triCount * 3 + 2] = v3;
+          }
+          else
+          {
+            outIndices[triCount * 3 + 0] = v1;
+            outIndices[triCount * 3 + 1] = v3;
+            outIndices[triCount * 3 + 2] = v2;
+          }
+          triCount++;
+        }
+        logicalIdx++;
+      }
     }
     return triCount;
   }
 
   FORCE_INLINE
   CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    unsigned short *cacheIndices, int cacheIndicesCapacity, int *cacheTriCount, CacheMode cacheMode,
-    BackfaceWinding bfWinding) MOC_OVERRIDE
+    uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding,
+    ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit) MOC_OVERRIDE
   {
     assert(mMaskedHiZBuffer != nullptr);
 
@@ -2067,27 +2105,36 @@ public:
 #endif
 
     int cullResult;
-    int triCount = 0;
+    uint32_t triCount = 0;
+
+    // CLIP_PLANE_NONE means the caller has frustum-tested the BLAS bounds and knows it is fully
+    // inside; the per-node frustum walk in CACHE_INSUFFICIENT becomes pure overhead. Promote to
+    // CACHE_FILL so EmitBLASTriangles<false> runs (no frustum check) while keeping the same
+    // emit-then-render flow and cacheTriCount writeback.
+    if (cacheMode == CACHE_INSUFFICIENT && clipPlaneMask == CLIP_PLANE_NONE)
+      cacheMode = CACHE_FILL;
 
     if (cacheMode == CACHE_INSUFFICIENT)
     {
       BoxFrustumPlanes5 boxPlanes = BuildBoxFrustumPlanes5(mCSFrustumPlanes, rawToClipMatrix);
-      triCount = EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes);
+      triCount =
+        EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes, triSkip, triLimit);
       // Writeback the triangle count so callers using cacheTriCount as an out-parameter (e.g.
       // ParallelOcclusionRasterizer, which feeds rasterJobs[i].trianglesCount into the merge
       // filter) see the actually-emitted count, not the zero they pre-initialized. Missing this
       // assignment caused merge skip -> empty MOC -> empty SW depth -> no occlusion even though
       // rasterization was happening into the per-job HiZ buffer.
-      *cacheTriCount = triCount;
+      cacheTriCount = triCount;
     }
     else
     {
       if (cacheMode == CACHE_FILL)
-        *cacheTriCount = EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr);
-      triCount = *cacheTriCount;
+        cacheTriCount =
+          EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr, triSkip, triLimit);
+      triCount = cacheTriCount;
     }
 
-    cullResult = RenderVert21TriList(blasData, cacheIndices, triCount, rawToClipMatrix, bfWinding, CLIP_PLANE_ALL);
+    cullResult = RenderVert21TriList(blasData, cacheIndices, (int)triCount, rawToClipMatrix, bfWinding, clipPlaneMask);
 
 #if PRECISE_COVERAGE != 0
     _MM_SET_ROUNDING_MODE(originalRoundingMode);

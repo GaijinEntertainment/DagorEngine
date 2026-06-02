@@ -24,6 +24,7 @@ class BBox2;
 struct IWaterDecalsRenderHelper;
 class DataBlock;
 class GlobalSharedMemStorage;
+class Occlusion;
 
 class RiverRendererCB
 {
@@ -307,7 +308,7 @@ void delete_water(FFTWater *&);
 void simulate(FFTWater *handle, double time);
 void before_render(const FFTWater *handle);
 void set_render_quad(FFTWater *handle, const BBox2 &quad);
-void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum,
+void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id, const Frustum &frustum, Occlusion *occlusion,
   const Driver3dPerspective &persp, int geom_lod_quality = GEOM_NORMAL, int survey_id = -1,
   IWaterDecalsRenderHelper *decals_renderer = NULL, RenderMode render_mode = WATER_SHADER,
   eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});

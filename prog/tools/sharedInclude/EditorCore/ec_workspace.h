@@ -71,6 +71,8 @@ public:
 
   const Tab<String> &getMountPoints() const { return mountPoints; }
 
+  inline bool isUsingDngBasedSceneRender() const { return useDngBasedSceneRender; }
+
 protected:
   String blkPath;
 
@@ -124,6 +126,8 @@ private:
   float maxTraceDistance;
 
   Tab<String> mountPoints;
+
+  bool useDngBasedSceneRender;
 
   DataBlock *findWspBlk(DataBlock &blk, const char *wsp_name, bool create_new);
 

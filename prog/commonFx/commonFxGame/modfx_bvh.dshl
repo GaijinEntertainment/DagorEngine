@@ -4,7 +4,7 @@ include "bvh_common_includes.dshl"
 int dafx_modfx_bvh_instance_buffer_regno = 2 always_referenced;
 int dafx_modfx_bvh_instance_count_regno = 3 always_referenced;
 int dafx_modfx_bvh_instance_data_regno = 4 always_referenced;
-int dafx_modfx_bvh_meta_id_regno = 90 always_referenced;
+int dafx_modfx_bvh_meta_id_regno = 91 always_referenced;
 
 int dafx_modfx_bvh_max_count = 0;
 int4 dafx_modfx_bvh_blas_address = 0;

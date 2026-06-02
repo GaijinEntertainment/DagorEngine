@@ -14,5 +14,6 @@ hero_cockpit_renderer{
   hero_cockpit_bbox_min_value:p4=0, 0, 0, 0
   hero_cockpit_bbox_max_value:p4=0, 0, 0, 0
   hero_cockpit_camera_enabled_value:i=0
+  hero_cockpit_camera_fade_value:i=0
   is_hero_crawling:b=no
 }

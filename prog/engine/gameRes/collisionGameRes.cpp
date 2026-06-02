@@ -238,7 +238,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
     dag::Vector<CollisionTrace> initialTraces(traces.begin(), traces.end());
 #endif
 
-    auto cb_wrapper = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, int tri_index) {
+    auto cb_wrapper = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
       pos = v_add(pos, woffset); // Fix isect position for callback. Warning: trace.vFrom and trace.vTo isn't fixed!
 
 #if VERIFY_TRACE_RESULTS
@@ -268,7 +268,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(mat44f original_tm,
           logerr("Normal calculation is not supported in ray hit traces");
       }
 #endif
-      return callback(trace_id, node, t, normal, pos, tri_index);
+      return callback(trace_id, node, t, normal, pos, tri_ref);
     };
 
     if (DAGOR_LIKELY(bIsOrthonormalizedTm))
@@ -498,7 +498,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
               vIntersectionPos = v_mat44_mul_vec3p(nodeTm, vNodeLocalCapsuleHitPos);
             }
             profileStats.meshTrianglesHits++;
-            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+              tri_ref::makeForNonTri(meshNode->nodeIndex));
             if (trace_mode == ANY_ONE_INTERSECTION)
               return hasCollision;
             if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -551,7 +552,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                   normTm = titm33;
                 vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, n_t));
               }
-              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, retTriIndices[j]);
+              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+                tri_ref::make(meshNode->nodeIndex, (uint32_t)retTriIndices[j], false));
             }
             profileStats.meshTrianglesHits += ret.size();
           }
@@ -638,7 +640,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             break;
           lastFaceId = faceId;
 
-          int nodeIndex = getNodeIndexByFaceId(faceId, behavior_filter);
+          int localFaceId = 0;
+          int nodeIndex = getNodeIndexByFaceId(faceId, behavior_filter, localFaceId);
           if (DAGOR_LIKELY(nodeIndex >= 0))
           {
             const CollisionNode *meshNode = &allNodesList[nodeIndex];
@@ -672,7 +675,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                   vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
                 }
               }
-              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+                tri_ref::make(meshNode->nodeIndex, (uint32_t)localFaceId, false));
               if (trace_mode == ANY_ONE_INTERSECTION)
                 return hasCollision;
               if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -706,7 +710,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           }
           for (auto hit : hits)
           {
-            int nodeIndex = getNodeIndexByFaceId(hit.faceId, behavior_filter);
+            int localFaceId = 0;
+            int nodeIndex = getNodeIndexByFaceId(hit.faceId, behavior_filter, localFaceId);
             if (DAGOR_LIKELY(nodeIndex >= 0))
             {
               const CollisionNode *meshNode = &allNodesList[nodeIndex];
@@ -724,7 +729,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
                     normTm = titm33;
                   vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, vLocalNorm));
                 }
-                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+                  tri_ref::make(meshNode->nodeIndex, (uint32_t)localFaceId, false));
               }
             }
           }
@@ -783,7 +789,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           if (side < 3)
             vIntersectionNorm = v_neg(vIntersectionNorm);
         }
-        callback(traceId, boxNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+        callback(traceId, boxNode, intersectionT, vIntersectionNorm, vIntersectionPos, tri_ref::makeForNonTri(boxNode->nodeIndex));
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -857,7 +863,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             vIntersectionPos = v_mat44_mul_vec3p(tm, vLocalPos);
           }
         }
-        callback(traceId, sphereNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+        callback(traceId, sphereNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+          tri_ref::makeForNonTri(sphereNode->nodeIndex));
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -917,7 +924,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
         {
           vIntersectionPos = v_mat44_mul_vec3p(tm, vOutLocalPos);
         }
-        callback(traceId, capsuleNode, intersectionT, vIntersectionNorm, vIntersectionPos, -1);
+        callback(traceId, capsuleNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+          tri_ref::makeForNonTri(capsuleNode->nodeIndex));
         if (trace_mode == ANY_ONE_INTERSECTION)
           return hasCollision;
         if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
@@ -943,7 +951,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -968,7 +976,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -989,7 +997,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const Point3 &
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
     in_out_t = t;
     if (out_normal)
       v_stu_p3(&out_normal->x, normal);
@@ -1011,12 +1019,12 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNode
     return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
     v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->collisionNodeId = node->nodeIndex;
+    inode->triRef = tri_ref;
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
@@ -1040,12 +1048,12 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
     return node->checkBehaviorFlags(behaviorFilter) && (!filter || filter(node->nodeIndex));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
     v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->collisionNodeId = node->nodeIndex;
+    inode->triRef = tri_ref;
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
@@ -1070,12 +1078,12 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
     return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
     v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->collisionNodeId = node->nodeIndex;
+    inode->triRef = tri_ref;
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, v_ldu(&from.x), v_ldu(&dir.x), in_t,
@@ -1087,7 +1095,7 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const TMatrix &instance_tm, cons
 }
 
 DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir,
-  float in_t, IntersectedNodeVector &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+  float in_t, CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
   TraceCollisionResourceStats *out_stats) const
 {
   intersected_nodes_list.clear();
@@ -1097,12 +1105,12 @@ DAGOR_NOINLINE bool CollisionResource::traceRay(const mat44f &tm, const GeomNode
     return node->checkBehaviorFlags(behaviorFilter) && collision_node_mask.test(node->nodeIndex, true);
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int tri_index) {
-    IntersectedNodeSimd *inode = (IntersectedNodeSimd *)intersected_nodes_list.push_back_uninitialized();
-    inode->normal = normal;
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
+    IntersectedNode *inode = (IntersectedNode *)intersected_nodes_list.push_back_uninitialized();
+    v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
-    inode->collisionNodeId = node->nodeIndex;
-    inode->triangleIndex = tri_index;
+    v_stu_p3(&inode->intersectionPos.x, pos);
+    inode->triRef = tri_ref;
   };
 
   forEachIntersectedNode<ALL_INTERSECTIONS, CollisionTraceType::TRACE_RAY>(tm, geom_node_tree, from, dir, in_t, true /*calc_normal*/,
@@ -1133,7 +1141,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
     return node->checkBehaviorFlags(behavior_filter) && (!filter || filter(node->nodeIndex));
   };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     vec3f cl = closest_point_on_line(pos, in.vFrom, in.vDir);
     float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
     if (dist < closest)
@@ -1142,7 +1150,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
       v_stu_p3(&intersected_node.normal.x, normal);
       intersected_node.intersectionT = t;
       v_stu_p3(&intersected_node.intersectionPos.x, pos);
-      intersected_node.collisionNodeId = node->nodeIndex;
+      intersected_node.triRef = tri_ref;
     }
   };
 
@@ -1161,7 +1169,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t /*tri_ref*/) {
     in_out_t = t;
     v_stu_p3(&out_normal.x, normal);
     v_stu_p3(&out_pos.x, pos);
@@ -1200,7 +1208,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behavior_filter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int /*trace_id*/, const CollisionNode * /*node*/, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     vec3f cl = closest_point_on_line(pos, in.vFrom, in.vDir);
     float dist = v_extract_x(v_length3_sq_x(v_sub(cl, pos)));
     if (dist < closest)
@@ -1209,7 +1217,7 @@ DAGOR_NOINLINE bool CollisionResource::traceCapsule(const TMatrix &instance_tm, 
       v_stu_p3(&intersected_node.normal.x, normal);
       intersected_node.intersectionT = t;
       v_stu_p3(&intersected_node.intersectionPos.x, pos);
-      intersected_node.collisionNodeId = node->nodeIndex;
+      intersected_node.triRef = tri_ref;
     }
   };
 
@@ -1227,7 +1235,7 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const mat44f &tm, dag::Span
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, int /*tri_index*/) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f /*pos*/, tri_ref_t /*tri_ref*/) {
     CollisionTrace &trace = traces[trace_id];
     v_stu_p3(&trace.norm.x, normal);
     trace.t = t;
@@ -1262,7 +1270,7 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm,
     return node->checkBehaviorFlags(behavior_filter) && (!collision_node_mask || collision_node_mask->test(node->nodeIndex, true));
   };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, int /*tri_index*/) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float t, vec3f normal, vec3f pos, tri_ref_t tri_ref) {
     traces[trace_id].outMatId = node->physMatId;
     traces[trace_id].outNodeId = node->nodeIndex;
     traces[trace_id].isHit = true;
@@ -1271,8 +1279,8 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm,
     v_stu_p3(&inode->normal.x, normal);
     inode->intersectionT = t;
     v_stu_p3(&inode->intersectionPos.x, pos);
-    inode->collisionNodeId = node->nodeIndex;
     inode->rayId = trace_id;
+    inode->triRef = tri_ref;
   };
 
   for (CollisionTrace &trace : traces)
@@ -1336,7 +1344,7 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
     n.intersectionT = v_extract_w(normAndT);
     v_stu_p3(&n.intersectionPos.x, v_madd(vLocalDir, v_splat_w(normAndT), vLocalFrom));
     v_stu_p3(&n.normal.x, normAndT);
-    n.collisionNodeId = node.nodeIndex;
+    n.triRef = tri_ref::make(node.nodeIndex, (uint32_t)allTriIndices[k], false);
   }
   if (sort_intersections)
     sort_collres_intersections(intersected_nodes_list);
@@ -1755,7 +1763,7 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const Coll
   return false;
 }
 
-int CollisionResource::getNodeIndexByFaceId(int face_id, uint8_t behavior_filter) const
+int CollisionResource::getNodeIndexByFaceId(int face_id, uint8_t behavior_filter, int &local_face_id) const
 {
   int facesNum = 0;
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
@@ -1763,11 +1771,26 @@ int CollisionResource::getNodeIndexByFaceId(int face_id, uint8_t behavior_filter
     const CollisionNode *meshNode = &allNodesList[mi];
     if (!meshNode->checkBehaviorFlags(behavior_filter))
       continue;
+    const int prevFacesNum = facesNum;
     facesNum += meshNode->indicesCount / 3;
     if (face_id < facesNum)
+    {
+      local_face_id = face_id - prevFacesNum;
       return meshNode->nodeIndex;
+    }
   }
   return -1;
+}
+
+// The tri_ref encoding lays out the lookup-token field as a source-node face index (see the
+// doc comment on tri_ref_t in dag_collResDecl.h), so the decode is a direct dispatch to
+// getNodeFaceVerts without any BLAS-byte-offset round-trip. Non-mesh hits (box/sphere/capsule
+// leaves emit tri_ref::makeForNonTri so hasTri() returns false) and invalid refs short-circuit.
+bool CollisionResource::getNodeFaceVertsByRef(tri_ref_t ref, Point3 &v0, Point3 &v1, Point3 &v2) const
+{
+  if (!tri_ref::hasTri(ref))
+    return false;
+  return getNodeFaceVerts((int)tri_ref::nodeIndex(ref), (int)tri_ref::dataOffset(ref), v0, v1, v2);
 }
 
 bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list) const
@@ -1784,28 +1807,28 @@ bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsTy
     TMatrix itm = meshNode->getInverseTmFlags();
     Point3 localPos = itm * pos;
     if (meshNode->modelBBox & localPos)
-      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = meshNode->nodeIndex;
+      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(meshNode->nodeIndex);
   }
 
   for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
   {
     const CollisionNode *boxNode = &allNodesList[bi];
     if (boxNode->modelBBox & pos)
-      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = boxNode->nodeIndex;
+      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(boxNode->nodeIndex);
   }
 
   for (uint16_t si = sphereNodesHead; si != CollisionNode::INVALID_IDX; si = allNodesList[si].nextNode)
   {
     const CollisionNode *sphNode = &allNodesList[si];
     if (lengthSq(pos - sphNode->boundingSphere.c) <= get_bsphere_r2(sphNode->boundingSphere.r))
-      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = sphNode->nodeIndex;
+      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(sphNode->nodeIndex);
   }
 
   for (uint16_t ci = capsuleNodesHead; ci != CollisionNode::INVALID_IDX; ci = allNodesList[ci].nextNode)
   {
     const CollisionNode *capNode = &allNodesList[ci];
     if (capsules[capNode->capsuleIndex].isInside(pos))
-      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->collisionNodeId = capNode->nodeIndex;
+      ((IntersectedNode *)intersected_nodes_list.push_back_uninitialized())->triRef = tri_ref::makeForNonTri(capNode->nodeIndex);
   }
 
   return !intersected_nodes_list.empty();
@@ -2124,9 +2147,8 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const mat44f &tm, const Point3 &fr
     return node->checkBehaviorFlags(behavior_filter) &&
            (ray_mat_id == PHYSMAT_INVALID || PhysMat::isMaterialsCollide(ray_mat_id, node->physMatId));
   };
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/, int /*tri_index*/) {
-    out_mat_id = node->physMatId;
-  };
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/,
+                    tri_ref_t /*tri_ref*/) { out_mat_id = node->physMatId; };
 
   return forEachIntersectedNode<ANY_ONE_INTERSECTION, CollisionTraceType::RAY_HIT>(tm, nullptr /*geom_node_tree*/, v_ldu(&from.x),
     v_ldu(&dir.x), in_t, false /*out_normal*/, 1.f /*bsphere_scale*/, behavior_filter, nodeFilter, callback, nullptr /*stats*/,
@@ -2145,7 +2167,7 @@ DAGOR_NOINLINE bool CollisionResource::rayHit(const TMatrix &instance_tm, const 
   };
 
   auto callback = [out_mat_id](int /*trace_id*/, const CollisionNode *node, float /*t*/, vec3f /*normal*/, vec3f /*pos*/,
-                    int /*tri_index*/) {
+                    tri_ref_t /*tri_ref*/) {
     if (out_mat_id)
       *out_mat_id = node->physMatId;
   };
@@ -2171,7 +2193,9 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHit(const TMatrix &instance_tm, co
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f, int) { nodes_hit.push_back(node->nodeIndex); };
+  auto callback = [&](int /*trace_id*/, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
+    nodes_hit.push_back(node->nodeIndex);
+  };
 
   constexpr bool is_single_ray = true;
   dag::Span<CollisionTrace> traces(&in, 1);
@@ -2189,7 +2213,7 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 
   auto nodeFilter = [&](const CollisionNode *node) -> bool { return node->checkBehaviorFlags(behaviorFilter); };
 
-  auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f, int) {
+  auto callback = [&](int trace_id, const CollisionNode *node, float, vec3f, vec3f, tri_ref_t) {
     traces[trace_id].isHit = true;
     traces[trace_id].outMatId = node->physMatId;
     traces[trace_id].outNodeId = node->nodeIndex;

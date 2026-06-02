@@ -240,6 +240,7 @@ int getRiGenExtraInstances(Tab<riex_handle_t> &out_handles, uint32_t res_idx, co
 
 void updateRiExtraBBoxScalesForPrepasses(const DataBlock &blk);
 void updateRiExtraForceDisableShadowList(const DataBlock &blk);
+void updateRiExtraUnderwaterOnlyList(const DataBlock &blk);
 
 bool hasRIExtraOnLayers(const RiGenVisibility *visibility, LayerFlags layer_flags);
 

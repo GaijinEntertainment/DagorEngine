@@ -1,4 +1,4 @@
-options stack = 102400 // render_anim_graph2 is actaully huge and we run out of stack otherwise
+options stack = 102400 // render_anim_graph is actaully huge and we run out of stack otherwise
 options persistent_heap
 require ecs
 require DagorSystem
@@ -23,9 +23,7 @@ def select_asset(event : AnimGraphViewerSelectAssetResource)
 [es(REQUIRE=animTreeViewer)]
 def anim_tree_ui(event : ImGuiStage)
   if imgui::Begin("anim tree")
-    static_let_finalize <|
-      var paramsFilter = new ImGuiTextFilter
-      var statesFilter = new ImGuiTextFilter
+
     static_let <|
       var selectedChar = 0
 
@@ -69,6 +67,6 @@ def anim_tree_ui(event : ImGuiStage)
           animchar = ch._0
 
       var resetState = false
-      render_anim_graph2(*animchar, *animchar.animGraph, *animchar.animState, resetState, *paramsFilter, *statesFilter)
+      render_anim_graph(*animchar, resetState)
 
   imgui::End()

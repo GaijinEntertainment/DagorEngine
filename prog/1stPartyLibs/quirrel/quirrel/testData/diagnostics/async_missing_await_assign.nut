@@ -1,10 +1,10 @@
 // Forgotten 'await' on assignment to a typed local: same diagnostic fires at
 // the assignment site (codegen.cpp:2166).
 
-from "async" import Promise
+from "async" import Future
 
 async function f(): int {
-  let p = Promise()
+  let p = Future()
   p.resolve(7)
   return await p
 }

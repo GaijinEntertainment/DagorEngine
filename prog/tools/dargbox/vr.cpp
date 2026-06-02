@@ -131,7 +131,7 @@ void render_panels_and_gui_surface_if_needed(darg::IGuiScene &gui_scene, int glo
     {
       auto &view = vrViewConfig.views[viewIx];
 
-      d3d::set_render_target(vrViewConfig.frameTargets[viewIx].getBaseTex(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{vrViewConfig.frameTargets[viewIx].getBaseTex(), 0, 0}});
 
       auto persp = view.projection;
       persp.zn = 1;

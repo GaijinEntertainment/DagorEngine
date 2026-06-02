@@ -1,0 +1,10 @@
+script done
+
+AN ERROR HAS OCCURRED [boom]
+
+CALLSTACK
+
+LOCALS
+
+ERROR TRACE
+    at failing (testData/exec/async/unhandled_error_trace.nut:8)

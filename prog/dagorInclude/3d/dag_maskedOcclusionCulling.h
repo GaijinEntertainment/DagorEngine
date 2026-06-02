@@ -368,23 +368,38 @@ public:
   /*!
    * \brief Renders a BLAS quad-BVH with optional index caching.
    *
-   *        CACHE_FILL:  Walk BVH with frustum culling, emit triangle indices into
+   *        CACHE_FILL:  Walk BVH without frustum culling, emit triangle indices into
    *                     cacheIndices, render via indexed vert21 gather. On return
    *                     *cacheTriCount holds the emitted triangle count.
    *        CACHE_USE:   Skip BVH walk, render *cacheTriCount triangles from cacheIndices.
-   *        CACHE_INSUFFICIENT: No usable cache - walk BVH and stream indices to provided
-   *                     cacheIndices. It can be faster, if significant chunk of blas is culled
+   *        CACHE_INSUFFICIENT: No usable cache - walk BVH with frustum culling and stream
+   *                     indices to provided cacheIndices. It can be faster, if significant
+   *                     chunk of blas is culled. When clipPlaneMask == CLIP_PLANE_NONE the
+   *                     frustum walk is skipped and this falls back to the CACHE_FILL path.
    *
-   * \param cacheIndices  Caller-owned uint16 buffer, size >= cacheIndicesCapacity*3.
-   * \param cacheIndicesCapacity Max triangle count cacheIndices can hold. CACHE_FILL /
+   * \param cacheIndices  Caller-owned uint32 buffer, size >= cacheIndicesCapacity*3. uint32 is
+   *                      required because BLAS vert indices are derived from a per-BLAS byte
+   *                      offset (vtxByteOfs / VERT21_STRIDE) and BLAS sizes are not capped at
+   *                      65535 verts -- truncating to uint16 would wrap silently.
+   * \param cacheIndicesCapacityTriangles Max triangle count cacheIndices can hold. CACHE_FILL /
    *                      CACHE_INSUFFICIENT walks stop early (and logerr_once) if a BLAS leaf
    *                      range would overflow this capacity, dropping the remaining triangles
    *                      rather than overrunning the buffer.
    * \param cacheTriCount In/out triangle count. Written by CACHE_FILL, read by CACHE_USE.
+   * \param clipPlaneMask Clip planes active for the final rasterization. Pass CLIP_PLANE_NONE
+   *                      when the caller has already established that the BLAS bounds are fully
+   *                      inside the frustum; this also skips the per-node frustum walk in
+   *                      CACHE_INSUFFICIENT.
+   * \param triSkip       Number of BLAS-order triangles to walk past without emitting before
+   *                      writing into cacheIndices. Lets the caller partition a BLAS into
+   *                      bounded sub-jobs sharing one walk order.
+   * \param triLimit      Max triangles to emit before the walk stops. The default (1u<<31) is
+   *                      effectively unbounded; only cacheIndicesCapacity caps the output.
    */
   MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    unsigned short *cacheIndices, int cacheIndicesCapacity, int *cacheTriCount, CacheMode cacheMode,
-    BackfaceWinding bfWinding = BACKFACE_CW) MOC_PURE;
+    uint32_t *cacheIndices, uint32_t cacheIndicesCapacityTriangles, uint32_t &cacheTriCount, CacheMode cacheMode,
+    BackfaceWinding bfWinding = BACKFACE_CW, ClipPlanes clipPlaneMask = CLIP_PLANE_ALL, uint32_t triSkip = 0,
+    uint32_t triLimit = 1u << 31) MOC_PURE;
 
   /*!
    * \brief Occlusion query for a rectangle with a given depth. The rectangle is given

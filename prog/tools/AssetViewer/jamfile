@@ -15,6 +15,7 @@ if $(Platform) = windows && ! $(Sanitize) {
   PlatformSpec = vc17 ;
 }
 
+if $(CheckOnly) = yes { DisableUsingPCH = yes ; }
 Exceptions = yes ;
 CheckedContainers = no ;
 UseMemoryDebugLevel = def ;

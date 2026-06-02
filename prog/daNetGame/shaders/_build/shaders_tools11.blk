@@ -51,6 +51,7 @@ Compile
     envi_cover_intensity_map:i = 0
     current_ambient:i = 0
     in_editor:i = 1
+    force_in_editor:i = 0 // only for game shaders
     use_contact_shadows:i = 1
     use_vr_reprojection:i = 0
     depth_bounds_support:i = 0

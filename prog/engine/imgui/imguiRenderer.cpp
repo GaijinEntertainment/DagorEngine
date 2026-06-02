@@ -338,13 +338,13 @@ void DagImGuiRenderer::processDrawDataToRT(const ImDrawData *draw_data, int &glo
 
           BaseTexture *tPtr = reinterpret_cast<BaseTexture *>(pcmd->GetTexID());
 
-          ShaderGlobal::set_texture(imgui_texVarId, tPtr);
+          ShaderGlobal::set_texture_unsafe(imgui_texVarId, tPtr);
 
           renderer.shader->setStates();
 
           d3d::drawind(PRIM_TRILIST, pcmd->IdxOffset + global_idx_offset, pcmd->ElemCount / 3, pcmd->VtxOffset + global_vtx_offset);
 
-          ShaderGlobal::set_texture(imgui_texVarId, nullptr);
+          ShaderGlobal::set_texture_unsafe(imgui_texVarId, nullptr);
         }
       }
     }

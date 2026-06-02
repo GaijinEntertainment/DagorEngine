@@ -139,8 +139,8 @@ void PixelPerfectSelection::getHitsAt(IGenViewportWnd &wnd, int pickX, int pickY
   const float fov = wnd.getFov();
   const TMatrix4 projMatrix = makeProjectionMatrixForViewRegion(viewportWidth, viewportHeight, fov, zNear, zFar, pickX, pickY, 1, 1);
 
-  d3d::set_render_target(nullptr, 0); // We only use the depth buffer.
-  d3d::set_depth(depthRt.getTex2D(), DepthAccess::RW);
+  // We only use the depth buffer.
+  d3d::set_render_target({depthRt.getTex2D(), 0, 0}, DepthAccess::RW, {});
   d3d::setview(0, 0, 1, 1, prevViewMinZ, prevViewMaxZ);
   d3d::settm(TM_PROJ, &projMatrix);
 

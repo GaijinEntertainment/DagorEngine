@@ -260,8 +260,11 @@ macro PROJECT_LIGHT_POINT_VOXELIZE(code) // when voxelizing radiance of radiance
 endmacro
 
 macro PROJECT_LIGHT_POINT_VOXELIZE_OFF_SCREEN_VOXEL_LIT_SCENE(code)
-  GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
-  GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    GI_DYNLIGHTS_MIN_PROCESSED_GBUFFER(code)
+    GI_OUT_OF_SCREEN_VOXELIZE_LIGHT_HELPER(code)
+  }
   PROJECT_LIGHT_POINT_VOXELIZE(code)
 endmacro
 

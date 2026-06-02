@@ -2,6 +2,7 @@
 
 #include <max.h>
 #include <stdio.h>
+#include <vector>
 #include "loadta.h"
 
 TexAnimFile::~TexAnimFile() { clear(); }
@@ -505,15 +506,9 @@ bool TexAnimFile::load(const char *fn)
     return false;
   }
   fseek(h, 0, SEEK_SET);
-  char *text = (char *)malloc(l + 1);
-  if (!text)
+  std::vector<char> text(l + 1);
+  if (fread(text.data(), l, 1, h) != 1)
   {
-    fclose(h);
-    return false;
-  }
-  if (fread(text, l, 1, h) != 1)
-  {
-    free(text);
     fclose(h);
     return false;
   }
@@ -523,7 +518,6 @@ bool TexAnimFile::load(const char *fn)
   text[l] = 0;
   fclose(h);
   setbasefile(fn);
-  bool res = parse(text);
-  free(text);
+  bool res = parse(text.data());
   return res;
 }

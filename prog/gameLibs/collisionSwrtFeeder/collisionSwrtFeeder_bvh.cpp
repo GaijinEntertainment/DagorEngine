@@ -6,14 +6,16 @@
 #include <daBVH/dag_bvhSerialization.h>
 #include <daBVH/dag_quadBLASBuilder.h>
 #include <daSWRT/swBVH.h>
+#include <daSWRT/swBLASBoxResemblance.h>
 #include <generic/dag_tab.h>
 #include <debug/dag_assert.h>
 #include <gameRes/dag_collisionResource.h>
+#include <math/dag_mathBase.h>
 #include <vecmath/dag_vecMath.h>
 #include <daBVH/swBLASLeafDefs.hlsli>
 
 int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt, const CollisionResource &coll_res,
-  const PhysMatFilter &node_filter, float dim_as_box_dist, BuildSwrtBLASScratch &scratch)
+  const PhysMatFilter &node_filter, float dim_as_box_min, float dim_as_box_max, BuildSwrtBLASScratch &scratch)
 {
   // Clear every caller-owned vector up front so both success and failure paths leave scratch in a
   // known-empty state; the header promises this contract.
@@ -143,5 +145,16 @@ int CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource(RenderSWRT &swrt
   build_bvh::writeQuadBLAS(blasBytes, box, nodes.data(), root, prims.data(), (int)prims.size(),
     reinterpret_cast<const uint8_t *>(scratch.verts.data()), (int)sizeof(Point3_vec4), vertCountTotal);
 
-  return swrt.addPreBuiltModel(box, eastl::move(blasBytes), vertCountTotal, (int)nodes.size(), (int)prims.size(), dim_as_box_dist);
+  // Score box-resemblance on the SWRT BuiltBLAS itself (FP16-encoded tree)
+  // if its already a box, we have early exit above (build_bvh::checkIfIsBox)
+  float dimAsBoxDist = dim_as_box_max;
+  if (dim_as_box_max > dim_as_box_min)
+  {
+    const int treeBytes = (int)blasBytes.size() - vertCountTotal * 12;
+    float boxLike = daSWRT::computeBlasBoxResemblanceVoxel(blasBytes.data(), 0, treeBytes, box, daSWRT::BlasBoxEncoding::Quantized16);
+    boxLike = powf(boxLike, 1.5f);
+    dimAsBoxDist = lerp(dim_as_box_max, dim_as_box_min, boxLike);
+  }
+
+  return swrt.addPreBuiltModel(box, eastl::move(blasBytes), vertCountTotal, (int)nodes.size(), (int)prims.size(), dimAsBoxDist);
 }

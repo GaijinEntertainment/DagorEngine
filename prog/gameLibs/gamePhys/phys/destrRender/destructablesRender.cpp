@@ -8,6 +8,7 @@
 #include <3d/dag_render.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physObject.h>
+#include <phys/dag_physResource.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <math/dag_frustum.h>
 

@@ -206,11 +206,6 @@ void PuddlesManager::init(const LandMeshManager *lmesh_mgr, const DataBlock &set
     debug("init puddles map rex %d^2, %f texel heightmapLod = %f", puddlesRes, puddlesTexelSize, puddleLod);
     // puddles.set(d3d::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET|TEXFMT_R8, 1, "puddles"), "puddles");
     puddles = dag::create_tex(NULL, puddlesRes, puddlesRes, TEXCF_RTARGET | TEXFMT_L16, 1, "puddles");
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-      ShaderGlobal::set_sampler(get_shader_variable_id("puddles_samplerstate"), d3d::request_sampler(smpInfo));
-    }
     puddles.setVar();
     puddlesRenderer.init("make_puddles");
     puddlesRemover.init("remove_puddles_in_craters", nullptr, 0, "remove_puddles_in_craters");

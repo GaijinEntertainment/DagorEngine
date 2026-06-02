@@ -31,8 +31,8 @@ public:
 
 private:
   usergraph::Visualizer userGraphVisualizer;
+  irgraph::Visualizer irGraphVisualizer;
 
-  IRGraphVisualizer irGraphVisualizer;
   ResourseVisualizer resVisualizer;
   TextureVisualizer texVisualizer;
 };

@@ -103,7 +103,7 @@ static bool prepare_vr_frame(VRDevice::FrameData &frameData)
 
       for (int eye : {0, 1})
       {
-        d3d::set_render_target(0, frameData.frameTargets[eye].getTex2D(), 0, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{frameData.frameTargets[eye].getTex2D(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0), 0, 0);
       }
     }
@@ -116,7 +116,7 @@ static void render_vr_views(VRDevice::FrameData &frameData, TEXTUREID videoTextu
 {
   for (int eye : {0, 1})
   {
-    d3d::set_render_target(0, frameData.frameTargets[eye].getTex2D(), 0, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{frameData.frameTargets[eye].getTex2D(), 0, 0}});
 
     TMatrix world = TMatrix::IDENT;
     Matrix44 view = Matrix44(frameData.views[eye].viewTransform);
@@ -274,7 +274,7 @@ static void play_movie(const char *fname, const char *audio_fname, const char *s
     d3d::enable_vsync(!vrActive);
 
     if (vrActive)
-      d3d::set_render_target(0, videoTexture.getTex2D(), 0, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{videoTexture.getTex2D(), 0, 0}});
     else
       d3d::set_render_target();
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 1, 0);

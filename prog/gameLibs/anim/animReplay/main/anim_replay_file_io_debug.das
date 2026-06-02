@@ -21,13 +21,15 @@ def save_optional_component_to_blk(animchar_data : Object; comp_name : string; v
 def save_animchar_data_to_blk(var blk : DataBlock; animchar_data : Object)
   let eid = *get_Eid(animchar_data, "eid")
   query(eid) <| $ [es] (animchar : AnimcharBaseComponent)
-    assume animGraph = *animchar.animGraph
     component_to_blk_param("position", getEntityComponentRef(*get_child(animchar_data, "position")), blk)
     component_to_blk_param("rotation", getEntityComponentRef(*get_child(animchar_data, "rotation")), blk)
-    component_to_blk_param("animParams", getEntityComponentRef(*get_child(animchar_data, "animParams")), blk)
-    datablock_add_block(blk, "_initialAnimStateParams") <| $(var initialAnimStateParams : DataBlock)
-      copy_anim_state_parameters_to_blk(animGraph, *get_ecs_object(animchar_data, "initialAnimStateParams"), initialAnimStateParams)
-    component_to_blk_param("animTreeStates", getEntityComponentRef(*get_child(animchar_data, "animTreeStates")), blk)
+    save_optional_component_to_blk(animchar_data, "animParams", blk)
+    save_optional_component_to_blk(animchar_data, "preciseAnimParams", blk)
+    let initialAnimStateParams = get_ecs_object(animchar_data, "initialAnimStateParams")
+    if initialAnimStateParams != null && animchar.animGraph != null
+      datablock_add_block(blk, "_initialAnimStateParams") <| $(var initialAnimStateParamsBlk : DataBlock)
+        copy_anim_state_parameters_to_blk(*animchar.animGraph, *initialAnimStateParams, initialAnimStateParamsBlk)
+    save_optional_component_to_blk(animchar_data, "animTreeStates", blk)
     component_to_blk_param("animcharRes", getEntityComponentRef(*get_child(animchar_data, "animcharRes")), blk)
     component_to_blk_param("originalTemplate", getEntityComponentRef(*get_child(animchar_data, "originalTemplate")), blk)
     component_to_blk_param("additionalTemplates", getEntityComponentRef(*get_child(animchar_data, "additionalTemplates")), blk)
@@ -57,10 +59,9 @@ def save_anim_replay_to_file(evt : AnimReplaySaveRecord;
 def patch_animchar_data(var animchar_data : Object; blk : DataBlock; animchar_idx : int; num_timestamps : int)
   let eid = *get_Eid(animchar_data, "eid")
   query(eid) <| $[es] (animchar : AnimcharBaseComponent)
-    assume animGraph = *animchar.animGraph
-    assume animState = *animchar.animState
     let initialParamsBlk = datablock_get_block_by_name(blk, "_initialAnimStateParams")
-    patch_anim_graph_data(animchar_data, animGraph, animState, *initialParamsBlk)
+    if initialParamsBlk != null && animchar.animGraph != null && animchar.animState != null
+      patch_anim_graph_data(animchar_data, *animchar.animGraph, *animchar.animState, *initialParamsBlk)
   if get_float(animchar_data, "deathTime") == null
     var validData = true
     validData &&= length(*get_ecs_Point3List(animchar_data, "position")) == num_timestamps

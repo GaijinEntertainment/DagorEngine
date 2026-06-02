@@ -24,6 +24,26 @@ static ecs::EntitySystemDesc destructables_before_render_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,nullptr,"animchar_before_render_es");
+//static constexpr ecs::ComponentDesc destructables_depth_prepass_es_comps[] ={};
+static void destructables_depth_prepass_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<animchar_disintegration::RenderDisintegrationDepthPrepassEvent>());
+  destructables_depth_prepass_es(static_cast<const animchar_disintegration::RenderDisintegrationDepthPrepassEvent&>(evt)
+        );
+}
+static ecs::EntitySystemDesc destructables_depth_prepass_es_es_desc
+(
+  "destructables_depth_prepass_es",
+  "prog/daNetGame/render/world/destructablesRenderES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, destructables_depth_prepass_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<animchar_disintegration::RenderDisintegrationDepthPrepassEvent>::build(),
+  0
+,"render");
 //static constexpr ecs::ComponentDesc destructables_render_es_comps[] ={};
 static void destructables_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {

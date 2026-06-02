@@ -16,7 +16,7 @@
     DECL_CTRL(attachNode), DECL_CTRL(lookat), DECL_CTRL(lookatNode), DECL_CTRL(effFromAttachment), DECL_CTRL(effectorFromChildIK), \
     DECL_CTRL(matFromNode), DECL_CTRL(nodesFromAttachement), DECL_CTRL(paramFromNode), DECL_CTRL(compoundRotateShift),             \
     DECL_CTRL(setParam), DECL_CTRL(twistCtrl), DECL_CTRL(eyeCtrl), DECL_CTRL(footLockerIK), DECL_CTRL(hasAttachment),              \
-    DECL_CTRL(humanAim)
+    DECL_CTRL(humanAim), DECL_CTRL(twoBonesIK)
 
 #define PROC_CONTROLLERS_LIST                                                                                        \
   DECL_CTRL(moveNode), DECL_CTRL(scaleNode), DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(alignEx), \

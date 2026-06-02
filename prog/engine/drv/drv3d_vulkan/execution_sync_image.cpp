@@ -213,6 +213,22 @@ void ImageSyncOp::onConflictWithDst(ImageSyncOp &dst)
   dst.conflictingLAddr.merge(laddr);
 
   bool differentLayouts = dst.layout != layout;
+
+  // when dst area is larger than src AND overlapping ones have same layout
+  // non overlapping subresources layouts need to be properly processed
+  // with special logic, because otherwise layout transition will be filtered out
+  if (!differentLayouts && !dst.changesLayout && (area.arrayRange < dst.area.arrayRange || area.mipRange < dst.area.mipRange))
+  {
+    auto hasMismatchingLayouts = [&]() {
+      for (uint32_t mip = dst.area.mipIndex; mip < dst.area.mipIndex + dst.area.mipRange; ++mip)
+        for (uint32_t array = dst.area.arrayIndex; array < dst.area.arrayIndex + dst.area.arrayRange; ++array)
+          if (obj->layout.get(mip, array) != dst.layout)
+            return true;
+      return false;
+    };
+    differentLayouts |= hasMismatchingLayouts();
+  }
+
   changesLayout |= differentLayouts;
   dst.changesLayout |= differentLayouts;
 

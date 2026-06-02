@@ -72,6 +72,7 @@
 #include <EditorCore/ec_wndGlobal.h>
 #include <EditorCore/ec_shaders.h>
 #include <EditorCore/ec_workspace.h>
+#include <EditorCore/ec_keyboardShortcutsPanel.h>
 
 #include <consoleWindow/dag_consoleWindow.h>
 #include <daECS/core/entityManager.h>
@@ -225,6 +226,7 @@ enum
   TOOLBAR_THEME_SWITCHER_TYPE,
   COMPOSITE_EDITOR_TREEVIEW_TYPE,
   COMPOSITE_EDITOR_PPANEL_TYPE,
+  SHORTCUTS_EDITOR_TYPE,
 };
 
 
@@ -572,6 +574,7 @@ void AssetViewerApp::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::SCREENSHOT);
   editor_command_system.addCommand(EditorCommandIds::OPTIONS_STAT_DISPLAY_SETTINGS);
   editor_command_system.addCommand(EditorCommandIds::OPTIONS_EDIT_PREFERENCES);
+  editor_command_system.addCommand(EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS);
 
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
   editor_command_system.addCommand(EditorCommandIds::VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER, ImGuiMod_Ctrl | ImGuiKey_F12);
@@ -665,6 +668,7 @@ void AssetViewerApp::addAccelerators()
     mManager->addAccelerator(CM_SCREENSHOT, EditorCommandIds::SCREENSHOT);
     mManager->addAccelerator(CM_OPTIONS_STAT_DISPLAY_SETTINGS, EditorCommandIds::OPTIONS_STAT_DISPLAY_SETTINGS);
     mManager->addAccelerator(CM_OPTIONS_EDIT_PREFERENCES, EditorCommandIds::OPTIONS_EDIT_PREFERENCES);
+    mManager->addAccelerator(CM_OPTIONS_KEYBOARD_SHORTCUTS, EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS);
 
     mManager->addAccelerator(CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES,
       EditorCommandIds::VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES);
@@ -949,6 +953,16 @@ void *AssetViewerApp::onWmCreateWindow(int type)
     }
     break;
 
+    case SHORTCUTS_EDITOR_TYPE:
+    {
+      if (mShortcutsPanel)
+        return nullptr;
+
+      mShortcutsPanel = new KeyboardShortcutsPanel();
+      getMainMenu()->setCheckById(CM_OPTIONS_KEYBOARD_SHORTCUTS, true);
+      return mShortcutsPanel;
+    }
+
     default: return nullptr;
   }
 }
@@ -1012,6 +1026,13 @@ bool AssetViewerApp::onWmDestroyWindow(void *window)
   if (themeSwitcherToolPanel && themeSwitcherToolPanel == window)
   {
     del_it(themeSwitcherToolPanel);
+    return true;
+  }
+
+  if (mShortcutsPanel && mShortcutsPanel == window)
+  {
+    del_it(mShortcutsPanel);
+    getMainMenu()->setCheckById(CM_OPTIONS_KEYBOARD_SHORTCUTS, false);
     return true;
   }
 
@@ -1086,6 +1107,23 @@ void AssetViewerApp::showAdditinalToolWindow(bool is_show)
   else
   {
     mManager->setWindowType(nullptr, TOOLBAR_PLUGIN_TYPE);
+  }
+}
+
+void AssetViewerApp::showShortcutsEditor(bool is_show)
+{
+  const bool isCurrentlyShown = mShortcutsPanel != nullptr;
+  if (is_show == isCurrentlyShown)
+    return;
+
+  if (mShortcutsPanel)
+  {
+    mManager->removeWindow(mShortcutsPanel);
+    mShortcutsPanel = nullptr;
+  }
+  else
+  {
+    mManager->setWindowType(nullptr, SHORTCUTS_EDITOR_TYPE);
   }
 }
 
@@ -1278,6 +1316,8 @@ void AssetViewerApp::fillMenu(PropPanel::IMenu *menu)
   menu->addItem(CM_PREFERENCES, CM_PREFERENCES_ASSET_TREE_COPY_SUBMENU, "Move \"Copy\" to submenu");
   editor_command_system.addMenuItem(*menu, CM_SETTINGS, CM_OPTIONS_EDIT_PREFERENCES, EditorCommandIds::OPTIONS_EDIT_PREFERENCES,
     "Toolbar preferences..."); // The name is temporary, this will be the general preferences window.
+  editor_command_system.addMenuItem(*menu, CM_SETTINGS, CM_OPTIONS_KEYBOARD_SHORTCUTS, EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS,
+    "Keyboard Shortcuts...");
 
   // fill view menu
   menu->addSubMenu(ROOT_MENU_ITEM, CM_WINDOW, "View");
@@ -3305,7 +3345,7 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     }
     case CM_EXPORT_CURRENT_IMPOSTOR:
     {
-      if (curAsset && impostorApp && impostorApp->getImpostorBaker()->isSupported(curAsset))
+      if (curAsset && impostorApp && impostorApp->getImpostorBaker()->getSupported(curAsset))
       {
         ImpostorOptions options;
         options.assetsToBuild.push_back(eastl::string{curAsset->getName()});
@@ -3522,6 +3562,8 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
     case CM_OPTIONS_EDIT_PREFERENCES:
       getModelessWindowControllers().toggleShowById(WindowIds::MAIN_SETTINGS_EDIT_PREFERENCES);
       return 1;
+
+    case CM_OPTIONS_KEYBOARD_SHORTCUTS: showShortcutsEditor(mShortcutsPanel == nullptr); return 1;
 
     case CM_DISCARD_ASSET_TEX:
       discardAssetTexMode = !discardAssetTexMode;
@@ -4202,15 +4244,12 @@ void AssetViewerApp::setToolbarScalePercent(int scale_percent)
 
   toolbarScalePercent = scale_percent;
 
-  const float toolbarScale = scale_percent / 100.0f;
-  const int toolbarControlWidth = (int)(PropPanel::Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH * toolbarScale);
-
   if (mToolPanel)
-    mToolPanel->setToolbarControlWidth(toolbarControlWidth);
+    mToolPanel->setToolbarScalePercent(toolbarScalePercent);
   if (mPluginTool)
-    mPluginTool->setToolbarControlWidth(toolbarControlWidth);
+    mPluginTool->setToolbarScalePercent(toolbarScalePercent);
   if (themeSwitcherToolPanel)
-    themeSwitcherToolPanel->setToolbarControlWidth(toolbarControlWidth);
+    themeSwitcherToolPanel->setToolbarScalePercent(toolbarScalePercent);
 }
 
 void AssetViewerApp::onImguiDelayedCallback(void *user_data)
@@ -4351,8 +4390,6 @@ void AssetViewerApp::renderUI()
     ImGui::PopStyleVar();
     PropPanel::popToolBarColorOverrides();
 
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * toolbarScalePercent * 0.01f);
-
     if (mToolPanel)
       mToolPanel->updateImgui();
 
@@ -4378,8 +4415,6 @@ void AssetViewerApp::renderUI()
 
       themeSwitcherToolPanel->updateImgui();
     }
-
-    ImGui::PopFont();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
     ImGui::EndChild();
@@ -4506,6 +4541,20 @@ void AssetViewerApp::renderUI()
 
     if (!open)
       console->hide();
+  }
+
+  if (mShortcutsPanel)
+  {
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.3f, viewport->Size.y * 0.7f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(viewport->Size.x * 0.35f, viewport->Size.y * 0.15f), ImGuiCond_FirstUseEver);
+
+    bool open = true;
+    DAEDITOR3.imguiBegin("Keyboard Shortcuts", &open);
+    mShortcutsPanel->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+      mManager->removeWindow(mShortcutsPanel);
   }
 
   g_entity_mgr->broadcastEventImmediate(ImGuiStage());

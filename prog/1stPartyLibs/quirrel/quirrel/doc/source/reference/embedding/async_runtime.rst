@@ -15,7 +15,7 @@ cooperative scheduler with C-level entry points declared in
 
 1. Calling :cpp:func:`sqasync::bind` once per shared state, before any
    ``async`` function in script can run.
-2. Publishing the ``Promise`` class to script (typically through
+2. Publishing the ``Future`` class to script (typically through
    ``SqModules::registerAsyncLib`` or by calling
    :cpp:func:`sqasync::sqasync_register` directly).
 3. Calling :cpp:func:`sqasync::pump` periodically - once per host frame,
@@ -50,7 +50,7 @@ Lifecycle API
 .. cpp:function:: SQRESULT sqasync::bind(HSQUIRRELVM v)
 
     Install the async runtime into ``v``'s shared state and build the
-    ``Promise`` class. Cache the class internally so further publishing
+    ``Future`` class. Cache the class internally so further publishing
     paths see the same object.
 
     Call it once per shared state, before any ``async`` function runs.
@@ -71,16 +71,16 @@ Lifecycle API
 .. cpp:function:: SQBool sqasync::has_pending(HSQUIRRELVM v)
 
     ``SQTrue`` iff the runtime has work it can drive forward on its own
-    (step queue or inbox non-empty). Returns ``SQFalse`` when the
-    runtime is not bound.
+    (step queue or inbox non-empty, or a deferred unhandled-fault sweep
+    pending). Returns ``SQFalse`` when the runtime is not bound.
 
-    A task parked on an unsettled Promise does not count here: the
+    A task parked on an unsettled Future does not count here: the
     runtime cannot wake it on its own, only the producer that started
     the work (timer, in-flight HTTP, eventbus, ...) can, by calling
-    ``resolve_promise`` / ``reject_promise``. A drain loop that only
-    checks ``has_pending`` will therefore exit too soon while such
-    producers still have work to deliver - OR the check with whatever
-    in-flight signals you already track for them::
+    ``future_resolve`` (or ``future_throw`` for a worker-thread bug).
+    A drain loop that only checks ``has_pending`` will therefore exit
+    too soon while such producers still have work to deliver - OR the
+    check with whatever in-flight signals you already track for them::
 
         while (sqasync::has_pending(v) || timers.has_due() || http_in_flight)
             sqasync::pump(v);
@@ -123,65 +123,73 @@ callback's responsibility to free or reinterpret ``user`` as
 appropriate.
 
 ---------------------
-Promise class & C API
+Future class & C API
 ---------------------
 
-.. cpp:function:: SQRESULT sqasync::push_promise_class(HSQUIRRELVM v)
+.. cpp:function:: SQRESULT sqasync::future_push_class(HSQUIRRELVM v)
 
-    Push the cached ``Promise`` class onto the stack. Useful for
-    embedders that want to instantiate a Promise from C (for example,
+    Push the cached ``Future`` class onto the stack. Useful for
+    embedders that want to instantiate a Future from C (for example,
     an ``async.delay`` native that returns one). Returns ``SQ_ERROR``
     (and raises an error) if :cpp:func:`sqasync::bind` has not been
     called.
 
-.. cpp:function:: SQRESULT sqasync::create_promise(HSQUIRRELVM v, HSQOBJECT *out)
+.. cpp:function:: SQRESULT sqasync::future_create(HSQUIRRELVM v, HSQOBJECT *out)
 
-    Create a fresh ``Promise`` instance and write an addref'd handle
+    Create a fresh ``Future`` instance and write an addref'd handle
     into ``*out``. Nothing is left on the stack. Caller owns one
     strong ref and must either:
 
-    * settle the promise via ``resolve_promise`` / ``reject_promise``
-      and then ``sq_release(v, out)``, or
-    * ``sq_release(v, out)`` directly to discard the promise.
+    * settle the future via ``future_resolve`` (or ``future_throw``
+      for a worker-thread bug) and then ``sq_release(v, out)``, or
+    * ``sq_release(v, out)`` directly to discard the future.
 
     Returns ``SQ_ERROR`` (raised) if the runtime is not bound or
     instance creation fails; ``*out`` is reset to null on error.
 
-.. cpp:function:: SQRESULT sqasync::resolve_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT value)
-.. cpp:function:: SQRESULT sqasync::reject_promise(HSQUIRRELVM v, HSQOBJECT promise, HSQOBJECT reason)
+.. cpp:function:: SQRESULT sqasync::future_resolve(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value)
+.. cpp:function:: SQRESULT sqasync::future_throw(HSQUIRRELVM v, HSQOBJECT future, HSQOBJECT value)
 
-    Settle a manually-created Promise from C. The payload is kept
+    Settle a manually-created Future from C. The payload is kept
     alive by an internal ``sq_addref``. Settling an already-settled
-    or already-adopted promise is a silent no-op.
+    or already-adopted future is a silent no-op.
 
-    ``resolve_promise`` applies the JS Promise Resolution Procedure:
-    a Promise ``value`` is adopted (``promise`` mirrors its eventual
-    settlement); a non-Promise ``value`` fulfills immediately.
-    ``reject_promise`` stores ``reason`` verbatim regardless of type.
+    ``future_resolve`` applies the JS Promise Resolution Procedure:
+    a Future ``value`` is adopted (``future`` mirrors its eventual
+    settlement); a non-Future ``value`` fulfills immediately.
 
-    Both return ``SQ_ERROR`` and throw if ``promise`` is not a
-    Promise instance, is a task-promise (returned by an ``async``
-    function), or the payload is ``promise`` itself.
-    ``resolve_promise`` additionally throws on a cycle that lies
+    ``future_throw`` is reserved for surfacing bugs from native code
+    when a Quirrel call stack is not available - typically a
+    worker-thread I/O completion that discovers an internal invariant
+    violation. Documented failures should travel as values through
+    ``future_resolve``. A native binding that detects a bug and is
+    itself running inside a Quirrel call should use
+    ``sq_throwerror``, which the runtime routes into the surrounding
+    async body's task-Future via the throw-escape path. ``value`` is
+    stored verbatim regardless of type.
+
+    Both return ``SQ_ERROR`` and throw if ``future`` is not a
+    Future instance, is a task-future (returned by an ``async``
+    function), or the payload is ``future`` itself.
+    ``future_resolve`` additionally throws on a cycle that lies
     entirely within the adoption chain
     (``a.resolve(b); b.resolve(a)``). Cycles that pass through a
-    rejection (``a.resolve(b); b.reject(a)`` or
-    ``b.reject(a); a.resolve(b)``) are detected during settlement
-    and produce a diagnostic reason rather than throwing.
+    fault are detected during settlement and produce a diagnostic
+    value rather than throwing.
 
 Typical worker -> VM result delivery looks like::
 
     struct OpCtx {
-      HSQOBJECT promise;     // addref'd via create_promise
+      HSQOBJECT future;      // addref'd via future_create
       HSQOBJECT result;      // built on the VM thread
     };
 
-    // VM thread: kick off the op and hand the promise to script
-    HSQOBJECT prom;
-    sqasync::create_promise(v, &prom);
-    OpCtx *ctx = new OpCtx { prom, /*result=*/{} };
+    // VM thread: kick off the op and hand the future to script
+    HSQOBJECT fut;
+    sqasync::future_create(v, &fut);
+    OpCtx *ctx = new OpCtx { fut, /*result=*/{} };
     start_worker(ctx);
-    // push the promise back to script as the call result, etc.
+    // push the future back to script as the call result, etc.
 
     // Worker thread: do the work, then post the completion
     sqasync::post_from_any_thread(v, &on_complete, ctx);
@@ -190,8 +198,8 @@ Typical worker -> VM result delivery looks like::
     static void on_complete(void *user) {
       OpCtx *ctx = static_cast<OpCtx *>(user);
       // build ctx->result here (we are on the VM thread)
-      sqasync::resolve_promise(v, ctx->promise, ctx->result);
-      sq_release(v, &ctx->promise);
+      sqasync::future_resolve(v, ctx->future, ctx->result);
+      sq_release(v, &ctx->future);
       delete ctx;
     }
 
@@ -203,7 +211,7 @@ Publishing the ``async`` module
 
     SqModules-shaped registration entry point. On entry the new module
     table is expected on top of the stack; the function adds
-    ``"Promise"`` -> class into it and leaves the table on top.
+    ``"Future"`` -> class into it and leaves the table on top.
 
     Suitable for ``SqModules::registerStdLibNativeModule`` and
     ``SqModules::registerAsyncLib``.
@@ -211,13 +219,13 @@ Publishing the ``async`` module
 The simplest wiring for an embedder using ``SqModules`` is::
 
     sqasync::bind(v);
-    module_mgr->registerAsyncLib();   // adds "async" -> { Promise }
+    module_mgr->registerAsyncLib();   // adds "async" -> { Future }
 
-After that, script code can write ``from "async" import Promise``.
+After that, script code can write ``from "async" import Future``.
 
 Embedders that do not use ``SqModules`` can publish the class manually
-by pushing it via :cpp:func:`sqasync::push_promise_class` and storing it
-wherever they want script to see it.
+by pushing it via :cpp:func:`sqasync::future_push_class` and storing
+it wherever they want script to see it.
 
 --------------------------------
 Async function call integration
@@ -227,13 +235,39 @@ When the engine encounters a call to a script-side ``async`` function
 in ``SQVM::StartCall``, it does not run the body. Instead it builds a
 generator from the function's bytecode and hands it to the runtime
 through a hidden entry point (``sqasync::wrap_generator``). The
-runtime builds a task-promise around the generator, schedules the
-first step, and returns the task-promise as the call result. Subsequent
+runtime builds a task-future around the generator, schedules the
+first step, and returns the task-future as the call result. Subsequent
 ``pump()`` calls drive the generator one ``await`` at a time.
 
 This means an embedder does not need a per-async-function binding:
 any Quirrel function declared ``async`` is wired automatically once
 :cpp:func:`sqasync::bind` has installed the runtime.
+
+-------------------------
+Unhandled fault reporting
+-------------------------
+
+When a task-future faults and no awaiter is there to receive the thrown
+value, the pump-tick sweep routes the fault to the VM's installed error
+handler (``sq_seterrorhandler``), passing the thrown value. If no handler
+is installed, the runtime emits a one-line console diagnostic instead.
+
+By the time an async fault surfaces, the throwing generator's call stack
+has already unwound, so the handler's live call stack
+(:cpp:func:`sqstd_printcallstack`) is empty. The origin is recovered from
+the thrown value instead: when an :ref:`Error <builtin_error_class>`
+instance is thrown, the runtime captures its throw-site stack into
+``e.trace`` at the throw point, and as the fault propagates the settle-time
+ancestry walk appends one ``awaited at`` frame per uncaught async ancestor
+that was parked awaiting the faulting step, so ``e.trace`` carries the path
+from throw site out through those ``await`` hops.
+An embedder error handler can read ``e.trace`` directly; the standard
+handler installed by ``sqstd_seterrorhandlers`` prints it under an
+``ERROR TRACE`` heading.
+
+Non-``Error`` thrown values (strings, tables) carry no trace - the
+single-channel convention is to throw ``Error`` (or a subclass) across
+async boundaries precisely so the fault carries this context.
 
 --------
 Shutdown
@@ -243,7 +277,7 @@ The runtime is owned by the shared state and freed automatically
 during ``sq_close``. Once shutdown begins, ``post_from_any_thread``
 returns ``SQ_ERROR`` and the caller retains ownership of ``user``;
 any queued callbacks are still dispatched so they can release their
-refs, and tasks still parked on unsettled promises are reclaimed
+refs, and tasks still parked on unsettled futures are reclaimed
 without completing their bodies.
 
 To drain pending work cleanly before ``sq_close``, loop on

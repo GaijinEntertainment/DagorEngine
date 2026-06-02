@@ -41,8 +41,11 @@ endmacro
 
 macro INIT_PUDDLE(stage)
   INIT_PUDDLE_WITHOUT_TEX(stage)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(stage)
   (stage) {
-    puddles @smp2d = puddles;
+    puddles @tex2d = puddles hlsl {
+      #define puddles_samplerstate global_linear_wrap_sampler
+    };
   }
 endmacro
 

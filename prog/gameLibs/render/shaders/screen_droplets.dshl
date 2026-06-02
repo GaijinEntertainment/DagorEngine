@@ -44,11 +44,12 @@ shader screen_droplets
     }
   }
   USE_AND_INIT_VIEW_VEC_PS()
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(ps)
 
   (ps) {
     current_time@f1 = (time_phase(0, 0));
     screen_droplets_setup@f4 = (screen_droplets_setup);
-    frame_tex@smp2d = frame_tex;
+    frame_tex@tex2d = frame_tex;
     screen_droplets_intensity@f1 = (screen_droplets_intensity);
     screen_droplets_has_leaks@i1 = (screen_droplets_has_leaks);
     GRID_X@f1 = screen_droplets_grid_x;
@@ -56,6 +57,8 @@ shader screen_droplets
 
   hlsl(ps)
   {
+    #define frame_tex_samplerstate global_linear_clamp_sampler
+
     #define rainStarted (screen_droplets_setup.x)
     #define rainEnded (screen_droplets_setup.y)
     #define rainForce (screen_droplets_setup.z)

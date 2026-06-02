@@ -19,6 +19,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_lock.h>
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <math/integer/dag_IPoint2.h>
@@ -270,6 +271,7 @@ void WaterNVRender::performGPUFFT()
 
 void WaterNVRender::setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p)
 {
+  d3d::GpuAutoLock gpuLock;
   cascadesRoughnessInvalid = true;
 
   for (int cascadeNo = 0; cascadeNo < numCascades; ++cascadeNo)
@@ -555,9 +557,12 @@ WaterNVRender::WaterNVRender(const NVWaveWorks_FFT_CPU_Simulation::Params &p, co
     initFoam();
   water_vs_cascadesVarId = get_shader_variable_id("water_vs_cascades", true);
   water_cascadesVarId = get_shader_variable_id("water_cascades", true);
-  ShaderGlobal::set_int(water_cascadesVarId, oneToFourCascades ? fft_water::MAX_NUM_CASCADES + 1 : numCascades);
 
-  setAnisotropy(renderQuality >= fft_water::RENDER_GOOD ? 1 : 0, 0.f);
+  {
+    d3d::GpuAutoLock gpuLock;
+    ShaderGlobal::set_int(water_cascadesVarId, oneToFourCascades ? fft_water::MAX_NUM_CASCADES + 1 : numCascades);
+    setAnisotropy(renderQuality >= fft_water::RENDER_GOOD ? 1 : 0, 0.f);
+  }
 }
 
 void WaterNVRender::setLevel(float water_level)
@@ -1227,8 +1232,9 @@ WaterRenderCommon::SavedStates WaterNVRender::setStates(const WaterRenderCommon 
 
 
 void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
-  const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon, IWaterDecalsRenderHelper *decals_renderer,
-  fft_water::RenderMode render_mode, eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
+  Occlusion *occlusion, const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon,
+  IWaterDecalsRenderHelper *decals_renderer, fft_water::RenderMode render_mode,
+  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
 {
   d3d::insert_wait_on_fence(async_compute_gradients_fence, GpuPipeline::GRAPHICS);
   // We cannot have fence between begin_survey and end_survey.
@@ -1352,7 +1358,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   int hmap_tess_factorVarId = renderer ? renderer->get_hmap_tess_factorVarId() : -1;
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
-    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
+    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
     false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb);
   if (!defaultCullData.getCount())
     return;
@@ -1378,7 +1384,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;
     float lastLodCellSize = lod0CellSize * float(1 << (lodCount - 1));
-    float border = 5.0f * 1.6f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
+    float border = 5.0f * 3.1f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
     float size = float(gridDim * (lodGrid.lastLodRad << 1)) * lastLodCellSize - border;
     heightmapRegion = BBox2(origin, size * 2);
   }

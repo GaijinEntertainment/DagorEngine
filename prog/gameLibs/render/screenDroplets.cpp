@@ -16,8 +16,7 @@
   VAR(screen_droplets_intensity) \
   VAR(screen_droplets_has_leaks) \
   VAR(screen_droplets_grid_x)    \
-  VAR(frame_tex)                 \
-  VAR(frame_tex_samplerstate)
+  VAR(frame_tex)
 
 #define VAR(a) static int a##VarId = -1;
 SCREEN_DROPLETS_VARS
@@ -69,9 +68,6 @@ ScreenDroplets::ScreenDroplets(int w, int h, uint32_t rtFmt)
   mipRenderer.init(d3d::AddressMode::Clamp);
 
   rtTemp = RTargetPool::get(w, h, rtFmt | TEXCF_RTARGET, 2);
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-  clampSampler = d3d::request_sampler(smpInfo);
 }
 
 
@@ -82,9 +78,6 @@ ScreenDroplets::ScreenDroplets()
   SCREEN_DROPLETS_VARS
 #undef VAR
   mipRenderer.init(d3d::AddressMode::Clamp);
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-  clampSampler = d3d::request_sampler(smpInfo);
 }
 
 ScreenDroplets::~ScreenDroplets() { abortDrops(); }
@@ -261,13 +254,11 @@ RTarget::CPtr ScreenDroplets::renderToTmpTarget(BaseTexture *frame_tex)
 
   // TODO This is using full resolution current frame.
   // Wanted to use downsampled previous frame, but that doesn't contain transparent objects.
-  ShaderGlobal::set_texture(frame_texVarId, frame_tex);
-  ShaderGlobal::set_sampler(frame_tex_samplerstateVarId, clampSampler);
+  ShaderGlobal::set_texture_unsafe(frame_texVarId, frame_tex);
 
   RTarget::Ptr rTargetTemp = rtTemp->acquire();
   render(rTargetTemp->getTex2D());
-  ShaderGlobal::set_sampler(frame_tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
-  ShaderGlobal::set_texture(frame_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(frame_texVarId, nullptr);
 
   return rTargetTemp;
 }
@@ -276,11 +267,9 @@ void ScreenDroplets::render(BaseTexture *rtarget, BaseTexture *frame_tex)
 {
   if (!isVisible())
     return;
-  ShaderGlobal::set_texture(frame_texVarId, frame_tex);
-  ShaderGlobal::set_sampler(frame_tex_samplerstateVarId, clampSampler);
+  ShaderGlobal::set_texture_unsafe(frame_texVarId, frame_tex);
   render(rtarget);
-  ShaderGlobal::set_sampler(frame_tex_samplerstateVarId, d3d::INVALID_SAMPLER_HANDLE);
-  ShaderGlobal::set_texture(frame_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(frame_texVarId, nullptr);
 }
 
 void ScreenDroplets::render(BaseTexture *rtarget)

@@ -32,7 +32,7 @@ struct TimerEntry
 
 struct ResolveCtx
 {
-  sqasync_helpers::PromiseHolder holder;
+  sqasync_helpers::FutureHolder holder;
   explicit ResolveCtx(HSQUIRRELVM vm) : holder(vm) {}
 };
 
@@ -46,8 +46,8 @@ void resolve_with_null_cb(void *user)
 }
 
 
-// Create a paired heap ResolveCtx with a fresh Promise. On success: leaves
-// the Promise instance on the stack (so the native can return 1) and returns
+// Create a paired heap ResolveCtx with a fresh Future. On success: leaves
+// the Future instance on the stack (so the native can return 1) and returns
 // the heap ctx. On failure: nothing left on the stack, returns nullptr.
 ResolveCtx *make_pending_resolve_ctx(HSQUIRRELVM vm)
 {
@@ -87,7 +87,7 @@ struct AsyncRuntimeScope::Impl
 };
 
 
-// Native binding for `async.delay(seconds): Promise`.
+// Native binding for `async.delay(seconds): Future`.
 // Stack on entry: 1=this, 2=seconds, -1=scope userpointer (free var).
 static SQInteger async_delay_native(HSQUIRRELVM vm)
 {
@@ -112,16 +112,16 @@ static SQInteger async_delay_native(HSQUIRRELVM vm)
 
   if (SQ_FAILED(scope->postDelayed((double)seconds, &resolve_with_null_cb, ctx)))
   {
-    sq_pop(vm, 1); // drop the instance we pushed for return
+    sq_pop(vm, 1); // drop the future we pushed for return
     delete ctx;
     return sq_throwerror(vm, "async.delay: runtime is shutting down");
   }
 
-  return 1; // promise instance left on stack
+  return 1; // future instance left on stack
 }
 
 
-// Native binding for `async.nextFrame(): Promise`.
+// Native binding for `async.nextFrame(): Future`.
 // Resolves on the next sqasync::pump() invocation.
 static SQInteger async_next_frame_native(HSQUIRRELVM vm)
 {
@@ -131,12 +131,12 @@ static SQInteger async_next_frame_native(HSQUIRRELVM vm)
 
   if (SQ_FAILED(sqasync::post_on_vm_thread(vm, &resolve_with_null_cb, ctx)))
   {
-    sq_pop(vm, 1); // drop the instance we pushed for return
+    sq_pop(vm, 1); // drop the future we pushed for return
     delete ctx;
     return sq_throwerror(vm, "async.nextFrame: runtime is shutting down");
   }
 
-  return 1; // promise instance left on stack
+  return 1; // future instance left on stack
 }
 
 
@@ -146,9 +146,9 @@ static bool push_async_module_table(HSQUIRRELVM vm, AsyncRuntimeScope &scope)
   sq_newtable(vm);
   const SQInteger tableIdx = sq_gettop(vm);
 
-  // Promise class slot.
-  sq_pushstring(vm, "Promise", -1);
-  if (SQ_FAILED(sqasync::push_promise_class(vm)))
+  // Future class slot.
+  sq_pushstring(vm, "Future", -1);
+  if (SQ_FAILED(sqasync::future_push_class(vm)))
   {
     sq_settop(vm, tableIdx - 1); // drop key + table
     return false;

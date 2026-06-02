@@ -761,10 +761,13 @@ void rendinst::playRIGenDestrEffect(const RendInstBufferData &buffer, ri_damage_
   const RendInstGenData *rgl = RendInstGenData::getGenDataByLayer(desc);
   if (desc.isRiExtra())
   {
-    const bool isBurntTree = rendinst::getRiExtraPerInstanceRenderAdditionalDataFlags(desc.getRiExtraHandle()) &
-                             static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING);
-    if (isBurntTree)
-      return;
+    {
+      rendinst::ScopedRIExtraReadLock rl;
+      const bool isBurntTree = rendinst::getRiExtraPerInstanceRenderAdditionalDataFlags(desc.getRiExtraHandle()) &
+                               static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING);
+      if (isBurntTree)
+        return;
+    }
     if (rgl)
       play_destroy_effect(rgl->rtData, riExtra[desc.pool].riPoolRef, buffer.tm, effect_cb, false, coll_point);
     // NOTE: The RI in question is already destroyed at this point, however the handle in question is only used

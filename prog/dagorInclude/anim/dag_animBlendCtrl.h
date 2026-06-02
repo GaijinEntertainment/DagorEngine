@@ -113,7 +113,8 @@ public:
   virtual void setDefaultState(IPureAnimStateHolder &st);
 
   // run-time routines
-  void enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time);
+  void enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time,
+    FifoMorphType morph_type = FifoMorphType::MT_LINEAR);
   void resetQueue(IPureAnimStateHolder &st, bool leave_cur_state);
   bool isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n);
 
@@ -196,21 +197,23 @@ public:
     real baseVal;
   };
 
-  struct MorphTimeOverride
+  struct MorphParamsOverride
   {
     IAnimBlendNode *from;
     IAnimBlendNode *to;
     real morphTime;
+    FifoMorphType morphType;
   };
 
   Tab<ItemAnim> list;
   Tab<int> rewindBitmapParamsIds;
-  Tab<MorphTimeOverride> morphTimeOverride;
+  Tab<MorphParamsOverride> morphParamsOverride;
   real morphTime;
   int paramId;
   int residualParamId;
   int lastAnimParamId;
   int fifoParamId;
+  FifoMorphType morphType;
   bool continuousAnimMode;
 
   AnimBlendCtrl_ParametricSwitcher(AnimationGraph &graph, const char *param_name, const char *res_pname = NULL);

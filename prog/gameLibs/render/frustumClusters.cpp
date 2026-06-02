@@ -24,7 +24,7 @@ bool get_max_occlusion_depth(vec4f *destDepth, Occlusion *occlusion) // from occ
 
 static __forceinline vec3f v_dist3_sq_x(vec3f a, vec3f b) { return v_length3_sq_x(v_sub(a, b)); }
 
-void FrustumClusters::updateFrustrumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist)
+void FrustumClusters::updateFrustumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist)
 {
   depthSliceScale = CLUSTERS_D / log2f(maxDist / minDist);
   depthSliceBias = -log2f(minDist) * depthSliceScale;
@@ -39,7 +39,7 @@ void FrustumClusters::updateFrustrumVariables(mat44f_cref view_, mat44f_cref pro
 void FrustumClusters::prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist,
   Occlusion *occlusion) // from occlusion
 {
-  updateFrustrumVariables(view_, proj_, zn, minDist, maxDist);
+  updateFrustumVariables(view_, proj_, zn, minDist, maxDist);
 
   // constant for fixed min/max dists
   for (int z = 0; z <= CLUSTERS_D; ++z)

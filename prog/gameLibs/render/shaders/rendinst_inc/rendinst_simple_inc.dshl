@@ -240,7 +240,7 @@ macro COMMON_RENDINST_SIMPLE_INIT(for_dng)
   if (for_dng)
   {
     assume instancing_type = tm_vb;
-    if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+    if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
         rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
         rendinst_render_pass == rendinst_render_pass_grassify ||
         rendinst_render_pass == rendinst_render_pass_to_heightmap)
@@ -255,7 +255,7 @@ macro COMMON_RENDINST_SIMPLE_INIT(for_dng)
       dont_render;
     }
 
-    if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+    if (rendinst_render_pass == rendinst_render_pass_impostor_color ||
         rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
         rendinst_render_pass == rendinst_render_pass_grass_height)
     {
@@ -334,6 +334,10 @@ macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
 
     #ifndef VSOUT_DRAW_ID
       #define VSOUT_DRAW_ID
+    #endif
+
+    #if RENDINST_IMPOSTOR_VOXEL
+      #define HLSL_FULL_VS_OUTPUT 1
     #endif
 
     #define COMMON_OUTPUT_MEMBERS  \

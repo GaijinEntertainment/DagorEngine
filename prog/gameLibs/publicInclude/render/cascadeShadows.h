@@ -48,6 +48,8 @@ public:
   static constexpr int MAX_CASCADES = CSM_MAX_CASCADES;
   static constexpr int SSSS_CASCADES = CSM_SSSS_CASCADES;
 
+  static constexpr eastl::array<int, 5> ALLOWED_CASCADES_VALUES = {1, 2, 3, 4, 6};
+
   struct Settings
   {
     int cascadeWidth = 1024;

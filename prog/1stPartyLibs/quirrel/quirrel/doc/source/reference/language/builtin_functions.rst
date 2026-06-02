@@ -86,6 +86,102 @@ Given an object handle, returns its flags that may be:
   * 0 - no special flags
   * SQOBJ_FLAG_IMMUTABLE - bit set if the object handle is immutable
 
+.. _builtin_error_class:
+
+^^^^^^^^^^^^^^^^^^^^
+Built-in Error Class
+^^^^^^^^^^^^^^^^^^^^
+
+.. sq:class:: Error([message: string, cause])
+
+``Error`` is the standard class for thrown values that represent bugs
+(programmer errors, internal invariant violations, conditions a contract
+does not document). Documented failures from fallible APIs are returned
+as values, not thrown; ``throw`` is reserved for the bug channel.
+
+Fields:
+
+  * ``message`` - string. Defaults to ``""``.
+  * ``cause`` - arbitrary value. Defaults to ``null``. Used to chain a
+    rewrapped error to its underlying cause; may be another ``Error``.
+  * ``trace`` - origin stack trace. Populated automatically the first
+    time the ``Error`` is thrown (see below); defaults to ``null`` until
+    then.
+
+``Error._tostring()`` returns ``message``, so ``print(e)`` and
+``"prefix " + e`` read the same as if ``e`` were the raw message string.
+
+``Error.formatTrace()`` returns the ``message`` line followed by the
+captured ``trace`` frames (``at`` for origin frames, ``awaited at`` for
+await hops) - the same text the default handler prints under ``ERROR
+TRACE``, or just the message when no trace was captured.
+
+Origin trace
+""""""""""""
+
+When an ``Error`` instance is thrown and its ``trace`` slot is still
+``null``, the runtime fills it with the call stack at the throw site: an
+array of ``{ func, source, line }`` tables, innermost frame first. ::
+
+    function inner() { throw Error("boom") }
+    try { inner() }
+    catch (e) {
+        // e.trace[0] == { func = "inner", source = "...", line = ... }
+    }
+
+Capture only fills a ``null`` slot, so a pre-set ``trace`` (or one from a
+prior throw) is preserved across a re-throw. A fault that crosses an
+``await`` keeps the trace from its original throw site. Non-``Error``
+thrown values (strings, tables, other instances) carry no trace.
+
+Await chain
+"""""""""""
+
+As the fault propagates across ``await`` boundaries, each async ancestor
+that was parked awaiting the faulting step and does not catch it appends
+its own frame to the same ``trace``, tagged ``awaited = true``. The array
+therefore reads inner-to-outer: the synchronous origin frames (no
+``awaited`` field) first, then one ``awaited`` frame per await hop. The
+default handler renders an origin frame as ``at`` and an await hop as
+``awaited at``.
+
+Two cases are out of scope for now and contribute no ``awaited`` frame:
+awaiting a Future that has *already* faulted, and a fault that forks to
+more than one awaiting ancestor (frames stop at the fork to avoid mixing
+branches on the shared ``trace``).
+
+When an unhandled ``Error`` reaches the default error handler, its trace
+is printed under an ``ERROR TRACE`` heading - useful for async faults,
+whose live call stack has already unwound by the time the fault surfaces.
+A script ``catch`` can obtain the same text from ``e.formatTrace()``, or
+read the structured frames directly from ``e.trace``.
+
+``Error`` is subclassable:
+
+::
+
+    class MyError(Error) {
+        code = null
+        constructor(m, c) { base.constructor(m); this.code = c }
+    }
+
+    try {
+        throw MyError("nope", 42)
+    } catch (e) {
+        if (e instanceof MyError)
+            log($"{e.message} [code={e.code}]")
+    }
+
+Cycle safety
+""""""""""""
+
+``cause`` is a writable slot, so ``Error`` chains can form cycles
+(``e1.cause = e2; e2.cause = e1``). The runtime does not prevent this.
+Any code that follows ``.cause`` recursively (formatters, error reporters,
+log builders) must cap traversal depth or maintain a seen-set; a depth
+limit of 64 is recommended.
+
+
 .. _builtin_type_classes:
 
 ----------------------

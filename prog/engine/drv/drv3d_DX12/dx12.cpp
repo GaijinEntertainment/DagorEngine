@@ -4809,6 +4809,13 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipe
       BufferReference ref;
       if (gbuf)
       {
+        if (gbuf->getFlags() & SBCF_NO_STATE_TRACKING)
+        {
+          D3D_CONTRACT_ERROR("DX12: legacy resource_barrier called on buffer <%s>, which is excluded from legacy state tracking. "
+                             "Use enhanced_buffer_barrier instead.",
+            gbuf->getBufName());
+          return;
+        }
         if (RB_NONE == (RB_RW_UAV & state))
         {
           gbuf->updateDeviceBuffer([](auto &buf) { buf.resourceId.removeMarkedAsUAVBuffer(); });
@@ -4826,6 +4833,13 @@ void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipe
     }
 
     auto btex = cast_to_texture_base(tex);
+    if (btex->cflg & TEXCF_NO_STATE_TRACKING)
+    {
+      D3D_CONTRACT_ERROR("DX12: legacy resource_barrier called on texture <%s>, which is excluded from legacy state tracking. "
+                         "Use enhanced_texture_barrier instead.",
+        btex->getName());
+      return;
+    }
     if (!validate_texture_barrier(state, btex->getFormat().isDepth(), btex->isRenderTarget(), btex->isUav(),
           btex->isUpdateDestination(), gpu_pipeline))
     {
@@ -5221,28 +5235,11 @@ uint32_t d3d::allocate_bindless_resource_range(D3DResourceType type, uint32_t co
   return api_state.device.allocateBindlessResourceRange(type, count);
 }
 
-uint32_t d3d::resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
-{
-  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, 0, "Bindless resources are not supported on this hardware");
-  D3D_CONTRACT_ASSERTF_RETURN(new_count >= current_count, index, "Can not shrink ranges with resize");
-  STORE_RETURN_ADDRESS();
-  if (current_count > 0)
-  {
-    return api_state.device.resizeBindlessResourceRange(type, index, current_count, new_count);
-  }
-  else
-  {
-    return api_state.device.allocateBindlessResourceRange(type, new_count);
-  }
-}
-
 void d3d::free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count)
 {
   D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
-  if (count > 0)
-  {
-    api_state.device.freeBindlessResourceRange(type, index, count);
-  }
+  D3D_CONTRACT_ASSERTF_RETURN(count > 0, , "d3d::free_bindless_resource_range: 'count' must be larger than 0");
+  api_state.device.freeBindlessResourceRange(type, index, count);
 }
 
 void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *> &resources)
@@ -5730,4 +5727,157 @@ void initialize_dlss_on_backend(int mode, int output_width, int output_height, b
 void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
 {
   api_state.device.visitTaggedResources(filter, visitor);
+}
+
+namespace
+{
+constexpr d3d::AccessFlags buffer_only_access_mask =
+  d3d::AccessFlag::IndirectArgument | d3d::AccessFlag::VertexBuffer | d3d::AccessFlag::IndexBuffer | d3d::AccessFlag::ConstantBuffer;
+
+constexpr d3d::AccessFlags texture_only_access_mask =
+  d3d::AccessFlag::RenderTargetRead | d3d::AccessFlag::RenderTargetWrite | d3d::AccessFlag::DepthStencilWrite |
+  d3d::AccessFlag::DepthStencilRead | d3d::AccessFlag::InputAttachment | d3d::AccessFlag::BlitRead | d3d::AccessFlag::BlitWrite |
+  d3d::AccessFlag::ResolveRead | d3d::AccessFlag::ResolveWrite | d3d::AccessFlag::ShadingRate;
+
+constexpr d3d::AccessFlags write_access_mask = d3d::AccessFlag::RenderTargetWrite | d3d::AccessFlag::UnorderedAccess |
+                                               d3d::AccessFlag::DepthStencilWrite | d3d::AccessFlag::CopyWrite |
+                                               d3d::AccessFlag::BlitWrite | d3d::AccessFlag::ResolveWrite;
+
+bool is_depth_layout(d3d::TextureLayout layout)
+{
+  return layout == d3d::TextureLayout::DepthRwStencilRw || layout == d3d::TextureLayout::DepthRwStencilRo ||
+         layout == d3d::TextureLayout::DepthRoStencilRw || layout == d3d::TextureLayout::DepthRoStencilRo ||
+         layout == d3d::TextureLayout::DepthRw || layout == d3d::TextureLayout::DepthRo;
+}
+
+bool has_multiple_write_accesses(d3d::AccessFlags access)
+{
+  auto writes = (access & write_access_mask).asInteger();
+  return (writes & (writes - 1)) != 0;
+}
+
+bool sync_stage_is_none_for_non_empty_access(d3d::PipelineStageFlags stages, d3d::AccessFlags access)
+{
+  return access != d3d::AccessFlags{} && stages == d3d::PipelineStageFlags{};
+}
+
+void validate_enhanced_buffer_barrier(const d3d::BufferBarrier &barrier)
+{
+  if (barrier.memorySync.src & texture_only_access_mask)
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier source access mask contains texture-only flags");
+  if (barrier.memorySync.dst & texture_only_access_mask)
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier destination access mask contains texture-only flags");
+  if (has_multiple_write_accesses(barrier.memorySync.src))
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier source access mask sets more than one write access bit");
+  if (has_multiple_write_accesses(barrier.memorySync.dst))
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier destination access mask sets more than one write access bit");
+  if (sync_stage_is_none_for_non_empty_access(barrier.pipelineSync.src, barrier.memorySync.src))
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier has source access flags but no source pipeline stage");
+  if (sync_stage_is_none_for_non_empty_access(barrier.pipelineSync.dst, barrier.memorySync.dst))
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier has destination access flags but no destination pipeline stage");
+}
+
+void validate_enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseTex *btex)
+{
+  const char *texName = btex->getName();
+  if (barrier.memorySync.src & buffer_only_access_mask)
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: source access mask contains buffer-only flags", texName);
+  if (barrier.memorySync.dst & buffer_only_access_mask)
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination access mask contains buffer-only flags", texName);
+  if (has_multiple_write_accesses(barrier.memorySync.src))
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: source access mask sets more than one write access bit", texName);
+  if (has_multiple_write_accesses(barrier.memorySync.dst))
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination access mask sets more than one write access bit",
+      texName);
+  if (sync_stage_is_none_for_non_empty_access(barrier.pipelineSync.src, barrier.memorySync.src))
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: source access flags require a non-empty source pipeline stage",
+      texName);
+  if (sync_stage_is_none_for_non_empty_access(barrier.pipelineSync.dst, barrier.memorySync.dst))
+    D3D_CONTRACT_ERROR(
+      "DX12: enhanced_texture_barrier for <%s>: destination access flags require a non-empty destination pipeline stage", texName);
+  bool isUav = btex->isUav();
+  bool isRt = btex->isRenderTarget();
+  bool isDepth = btex->getFormat().isDepth();
+  auto requiresUav = [](d3d::TextureLayout l) { return l == d3d::TextureLayout::UnorderedAccess; };
+  auto requiresRt = [](d3d::TextureLayout l) { return l == d3d::TextureLayout::RenderTarget; };
+  if ((requiresUav(barrier.layoutTransition.src) || requiresUav(barrier.layoutTransition.dst)) && !isUav)
+    D3D_CONTRACT_ERROR(
+      "DX12: enhanced_texture_barrier for <%s>: UnorderedAccess layout requires a texture created with TEXCF_UNORDERED", texName);
+  if ((requiresRt(barrier.layoutTransition.src) || requiresRt(barrier.layoutTransition.dst)) && !isRt)
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: RenderTarget layout requires a texture created with TEXCF_RTARGET",
+      texName);
+  if ((is_depth_layout(barrier.layoutTransition.src) || is_depth_layout(barrier.layoutTransition.dst)) && !isDepth)
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: Depth/stencil layout requires a depth-format texture", texName);
+  if (barrier.layoutTransition.dst == d3d::TextureLayout::Undefined)
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier for <%s>: destination layout cannot be Undefined", texName);
+  if (barrier.layoutTransition.src == d3d::TextureLayout::Undefined && barrier.memorySync.src != d3d::AccessFlags{})
+    D3D_CONTRACT_ERROR(
+      "DX12: enhanced_texture_barrier for <%s>: Undefined source layout requires NoAccess source access mask (D3D12 spec)", texName);
+}
+
+void dispatch_enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseTexture *texture)
+{
+  if (!texture)
+  {
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier with null texture");
+    return;
+  }
+  auto btex = cast_to_texture_base(texture);
+  if (0 == (btex->cflg & TEXCF_NO_STATE_TRACKING))
+  {
+    D3D_CONTRACT_ERROR("DX12: enhanced_texture_barrier called on texture <%s>, which is still tracked by the legacy state machine. "
+                       "Create the texture with TEXCF_NO_STATE_TRACKING to use enhanced barriers.",
+      btex->getName());
+    return;
+  }
+  validate_enhanced_texture_barrier(barrier, btex);
+  api_state.device.getContext().enhancedTextureBarrier(barrier, texture);
+}
+
+void dispatch_enhanced_buffer_barrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer)
+{
+  if (!buffer)
+  {
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier with null buffer");
+    return;
+  }
+  auto gbuf = static_cast<GenericBufferInterface *>(buffer);
+  if (0 == (gbuf->getFlags() & SBCF_NO_STATE_TRACKING))
+  {
+    D3D_CONTRACT_ERROR("DX12: enhanced_buffer_barrier called on buffer <%s>, which is still tracked by the legacy state machine. "
+                       "Create the buffer with SBCF_NO_STATE_TRACKING to use enhanced barriers.",
+      buffer->getBufName());
+    return;
+  }
+  validate_enhanced_buffer_barrier(barrier);
+  api_state.device.getContext().enhancedBufferBarrier(barrier, buffer);
+}
+} // namespace
+
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &barrier, BaseTexture *texture)
+{
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasEnhancedResourceBarriers, ,
+    "DX12: enhanced_texture_barrier is not supported on this hardware");
+  dispatch_enhanced_texture_barrier(barrier, texture);
+}
+
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &barrier, Sbuffer *buffer)
+{
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasEnhancedResourceBarriers, ,
+    "DX12: enhanced_buffer_barrier is not supported on this hardware");
+  dispatch_enhanced_buffer_barrier(barrier, buffer);
+}
+
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem> texture_barriers,
+  dag::ConstSpan<d3d::BufferBarrierBatchItem> buffer_barriers)
+{
+  STORE_RETURN_ADDRESS();
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasEnhancedResourceBarriers, ,
+    "DX12: enhanced_barrier_batch is not supported on this hardware");
+  for (const auto &item : texture_barriers)
+    dispatch_enhanced_texture_barrier(item.barrier, item.texture);
+  for (const auto &item : buffer_barriers)
+    dispatch_enhanced_buffer_barrier(item.barrier, item.buffer);
 }

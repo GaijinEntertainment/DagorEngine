@@ -180,8 +180,6 @@ static void set_shvars(const RTSMContext &ctx, const TMatrix4 &inv_proj_tm, Poin
   auto view_z = ctx.denoiserParams.textures.find(denoiser::TextureNames::denoiser_view_z);
   ShaderGlobal::set_texture(denoiser_view_zVarId, (view_z != ctx.denoiserParams.textures.end() ? view_z->second : nullptr));
 
-  bvh::bind_resources(ctx.ctxId, ctx.resolution.x);
-
   ShaderGlobal::set_float4(rt_shadow_resolutionVarId, ctx.resolution.x, ctx.resolution.y);
   ShaderGlobal::set_int4(rt_shadow_resolutionIVarId, ctx.resolution.x, ctx.resolution.y, 0, 0);
   ShaderGlobal::set_float4(world_view_posVarId, view_pos);
@@ -264,6 +262,7 @@ void do_trace(const RTSMContext &ctx, const TMatrix4 &inv_proj_tm, const Point3 
   const IPoint2 &resolution = ctx.resolution;
 
   set_shvars(ctx, inv_proj_tm, view_pos);
+  bvh::bind_resources(ctx.ctxId, ctx.resolution.x);
 
   switch (ctx.qualityMode)
   {
@@ -295,6 +294,8 @@ void do_trace(const RTSMContext &ctx, const TMatrix4 &inv_proj_tm, const Point3 
       }
       break;
   }
+
+  bvh::unbind_resources();
 }
 
 void denoise(const RTSMContext &ctx)
@@ -360,6 +361,8 @@ void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_
   const float zero[4] = {0, 0, 0, 0};
   d3d::clear_rwtexf(dynamic_lighting_texture, zero, 0, 0);
   traceDynamic->dispatchThreads(ti.w, ti.h, 1);
+
+  bvh::unbind_resources();
 }
 
 void turn_off() { ShaderGlobal::set_int(rtsm_bindless_slotVarId, -1); }

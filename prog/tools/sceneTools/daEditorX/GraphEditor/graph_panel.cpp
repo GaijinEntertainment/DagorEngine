@@ -17,6 +17,7 @@
 
 #include <EASTL/algorithm.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/hash_set.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -82,6 +83,7 @@ void initEditorConfig(ne::Config &cfg)
 {
   cfg.SettingsFile = nullptr; // do not persist anything to disk
   cfg.ContainGroupedNodesByCenter = true;
+  cfg.NavigateButtonIndex = ImGuiMouseButton_Middle;
   for (float z : GRAPH_EDITOR_ZOOM_LEVELS)
   {
     cfg.CustomZoomLevels.push_back(z);
@@ -112,6 +114,35 @@ bool shortcut_fired(const char *command_id)
     }
   }
   return false;
+}
+
+// Queues every currently-selected node and link into imgui-node-editor's deletion queue.
+// The existing ne::BeginDelete loop later in the frame picks them up and runs the
+// deferred / block-prompt path. Shared by the Delete and Cut shortcut dispatches.
+// Requires ne::SetCurrentEditor active.
+void queue_selected_for_delete()
+{
+  const int objCount = ne::GetSelectedObjectCount();
+  if (objCount == 0)
+  {
+    return;
+  }
+  eastl::vector<ne::NodeId> selNodes;
+  eastl::vector<ne::LinkId> selLinks;
+  selNodes.resize(objCount);
+  selLinks.resize(objCount);
+  const int nodeCount = ne::GetSelectedNodes(selNodes.data(), objCount);
+  const int linkCount = ne::GetSelectedLinks(selLinks.data(), objCount);
+  selNodes.resize(nodeCount);
+  selLinks.resize(linkCount);
+  for (ne::NodeId id : selNodes)
+  {
+    ne::DeleteNode(id);
+  }
+  for (ne::LinkId id : selLinks)
+  {
+    ne::DeleteLink(id);
+  }
 }
 
 const eastl::string *find_property_value(const GraphData::Node &n, const char *prop_name)
@@ -266,6 +297,10 @@ void GraphPanel::onGraphDataChanged()
   navigationFramesLeft = 5;
   lastFrameMs = 0.0f;
   emaFrameMs = 0.0f;
+
+  // Clear any stale selection -- the previous graph's selected node id is meaningless
+  // against the new node set (most often: previous was non-empty, new is empty).
+  selectedNodeId = -1;
 
   // Every loaded node needs its position pushed to ne::SetNodePosition once on first render.
   pendingPositionIds.clear();
@@ -649,13 +684,6 @@ void GraphPanel::updateImgui()
   const ImVec2 canvasAvail = ImGui::GetContentRegionAvail();
   const ImVec2 canvasMax(canvasMin.x + canvasAvail.x, canvasMin.y + canvasAvail.y);
 
-  if (graphData.nodes.empty())
-  {
-    selectedNodeId = -1;
-    ImGui::TextDisabled("Graph not loaded.");
-    return;
-  }
-
   const int64_t tStart = ref_time_ticks();
 
   ne::SetCurrentEditor(editor);
@@ -668,28 +696,23 @@ void GraphPanel::updateImgui()
   {
     ne::NavigateToSelection(/*zoomIn=*/true);
   }
+  if (shortcut_fired(CANVAS_COPY))
+  {
+    canvasClipboard.captureSelection(*this, graphData);
+  }
+  if (shortcut_fired(CANVAS_CUT))
+  {
+    canvasClipboard.captureSelection(*this, graphData);
+    queue_selected_for_delete();
+  }
+  if (shortcut_fired(CANVAS_PASTE))
+  {
+    const ImVec2 mouseCanvas = ne::ScreenToCanvas(ImGui::GetMousePos());
+    canvasClipboard.paste(*this, mouseCanvas);
+  }
   if (shortcut_fired(CANVAS_DELETE_SELECTED))
   {
-    const int objCount = ne::GetSelectedObjectCount();
-    if (objCount > 0)
-    {
-      eastl::vector<ne::NodeId> selNodes;
-      eastl::vector<ne::LinkId> selLinks;
-      selNodes.resize(objCount);
-      selLinks.resize(objCount);
-      const int nodeCount = ne::GetSelectedNodes(selNodes.data(), objCount);
-      const int linkCount = ne::GetSelectedLinks(selLinks.data(), objCount);
-      selNodes.resize(nodeCount);
-      selLinks.resize(linkCount);
-      for (ne::NodeId id : selNodes)
-      {
-        ne::DeleteNode(id);
-      }
-      for (ne::LinkId id : selLinks)
-      {
-        ne::DeleteLink(id);
-      }
-    }
+    queue_selected_for_delete();
   }
 
   ne::Begin("perf_graph", ImVec2(0.0f, 0.0f));
@@ -934,14 +957,7 @@ void GraphPanel::updateImgui()
     const ImRect dropRect(canvasMin, canvasMax);
     if (ImGui::BeginDragDropTargetCustom(dropRect, dropId))
     {
-      if (graphData.nodes.empty())
-      {
-        if (ImGui::AcceptDragDropPayload("DAGOR_BASE_NODE", ImGuiDragDropFlags_AcceptBeforeDelivery))
-        {
-          ImGui::SetMouseCursor(ImGuiMouseCursor_NotAllowed);
-        }
-      }
-      else if (const ImGuiPayload *p = ImGui::AcceptDragDropPayload("DAGOR_BASE_NODE"))
+      if (const ImGuiPayload *p = ImGui::AcceptDragDropPayload("DAGOR_BASE_NODE"))
       {
         if (p->IsDelivery())
         {

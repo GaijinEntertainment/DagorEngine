@@ -613,7 +613,8 @@ void EffectManager::unsetFxEmitter(BaseEffect &fx)
 
 int EffectManager::getAliveFxCount() const { return fxList.totalSize() - fxList.freeIndicesSize(); }
 
-EffectManager::EffectManager(const char *_name, const DataBlock *_blk, const char *effect_name, acesfx::PrefetchType prefetch_type)
+EffectManager::EffectManager(const char *_name, const DataBlock *_blk, const char *effect_name, acesfx::PrefetchType prefetch_type,
+  const acesfx::FXSoundInitParams *sound_init)
 {
   G_ASSERT(_name && *_name);
   G_ASSERT(!_blk || _blk->isValid());
@@ -636,13 +637,16 @@ EffectManager::EffectManager(const char *_name, const DataBlock *_blk, const cha
 
   params.distanceOffset = blk.getReal("sortDistanceOffset", 0.f);
   params.lifeTime = blk.getReal("lifeTime", 0.f);
-  params.soundEnableDistanceSq = blk.getReal("soundEnableDistance", -1.f);
-  if (params.soundEnableDistanceSq > 0)
-    params.soundEnableDistanceSq *= params.soundEnableDistanceSq;
+  if (!sound_init)
+  {
+    params.soundEnableDistanceSq = blk.getReal("soundEnableDistance", -1.f);
+    if (params.soundEnableDistanceSq > 0)
+      params.soundEnableDistanceSq *= params.soundEnableDistanceSq;
+  }
   params.maxNumInstances = -1;
   params.spawnRangeLimit = 0;
 
-  loadSoundParamsExt();
+  loadSoundParamsExt(sound_init);
 
   effectBase = nullptr;
 

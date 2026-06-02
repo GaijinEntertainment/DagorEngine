@@ -12,6 +12,7 @@ AddIncludes =
 
 Sources =
   graph_data.cpp
+  graph_subgraph_expand.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

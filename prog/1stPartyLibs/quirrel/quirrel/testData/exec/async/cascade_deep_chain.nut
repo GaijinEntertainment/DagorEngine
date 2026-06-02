@@ -1,4 +1,4 @@
-from "async" import Promise
+from "async" import Future
 
 // N-deep adopter chain: chain[i+1] adopts chain[i] while chain[i] is
 // still L_Open, so chain[i+1] lands directly in chain[i]->waiters.
@@ -9,7 +9,7 @@ let N = 1000
 
 let chain = array(N + 1, null)
 for (local i = 0; i <= N; i++)
-  chain[i] = Promise()
+  chain[i] = Future()
 
 for (local i = N; i >= 1; i--)
   chain[i].resolve(chain[i-1])

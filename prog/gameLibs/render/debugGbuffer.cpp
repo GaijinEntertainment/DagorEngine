@@ -141,7 +141,7 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuff
 {
   gbuffer.setVar();
   if (depth)
-    ShaderGlobal::set_texture(get_shader_variable_id("depth_gbuf"), depth);
+    ShaderGlobal::set_texture_unsafe(get_shader_variable_id("depth_gbuf"), depth);
 
   if (mode == USE_DEBUG_GBUFFER_MODE)
     mode = (int)show_gbuffer;

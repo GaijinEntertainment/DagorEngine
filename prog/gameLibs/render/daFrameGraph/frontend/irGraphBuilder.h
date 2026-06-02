@@ -47,6 +47,13 @@ public:
   Changes build(intermediate::Graph &graph, multiplexing::Extents extents, multiplexing::Extents prev_extents,
     const intermediate::Mapping &mapping, const ResourcesChanged &resources_changed, const NodesChanged &nodes_changed);
 
+  void resetIncrementalState()
+  {
+    rawGraph.clear();
+    rawMapping = {};
+    oldDisplacement.clear();
+  }
+
 private:
   const InternalRegistry &registry;
   const DependencyData &depData;

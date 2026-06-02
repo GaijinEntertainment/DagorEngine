@@ -40,8 +40,7 @@ void FxRenderer::render(IGenViewportWnd &wnd, eastl::function<void()> render_fx_
 
   {
     SCOPE_RENDER_TARGET;
-    d3d::set_render_target();
-    d3d::set_render_target(colorRt.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{colorRt.getTex2D(), 0, 0}});
 
     d3d::clearview(CLEAR_TARGET, E3DCOLOR_MAKE(0, 0, 0, 255), 0, 0);
 

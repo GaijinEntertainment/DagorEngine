@@ -46,21 +46,20 @@
 CONSOLE_BOOL_VAL("scope_debug", fire_assert, false);
 
 
-#define SCOPE_AIM_RENDER_VARS  \
-  VAR(lens_zoom_factor)        \
-  VAR(scope_mask)              \
-  VAR(scope_lens_local_x)      \
-  VAR(scope_lens_local_y)      \
-  VAR(scope_lens_local_z)      \
-  VAR(scope_reticle_tex)       \
-  VAR(scope_radius)            \
-  VAR(scope_length)            \
-  VAR(night_vision_tex)        \
-  VAR(use_depth_val_as_mask)   \
-  VAR(guiGlobTm)               \
-  VAR(use_gui_glob_tm)         \
-  VAR(gui_use_inv_viewport_tm) \
-  VAR(crosshair_scale)
+#define SCOPE_AIM_RENDER_VARS \
+  VAR(lens_zoom_factor)       \
+  VAR(scope_mask)             \
+  VAR(scope_lens_local_x)     \
+  VAR(scope_lens_local_y)     \
+  VAR(scope_lens_local_z)     \
+  VAR(scope_reticle_tex)      \
+  VAR(scope_radius)           \
+  VAR(scope_length)           \
+  VAR(night_vision_tex)       \
+  VAR(use_depth_val_as_mask)  \
+  VAR(guiGlobTm)              \
+  VAR(use_gui_glob_tm)        \
+  VAR(gui_use_inv_viewport_tm)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 SCOPE_AIM_RENDER_VARS
@@ -360,26 +359,10 @@ static void render_scope_reticle_quad(ecs::EntityId eid, int lens_node_id)
 
 static void render_scope_crosshair(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
 {
-  struct CrosshairRender
-  {
-    int nodeId;
-    float zoom;
-  };
-  const CrosshairRender crosshairs[] = {
-    {scopeAimData.crosshairNodeId, 1.0f},
-    {scopeAimData.crosshairFfpNodeId, scopeAimData.firstFocalPlaneZoomFactor},
-  };
+  for (uint8_t nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))
+    render_scope_trans(scopeAimData.entityWithScopeLensEid, nodeId, texCtx);
 
-  for (const auto &ch : crosshairs)
-  {
-    if (ch.nodeId >= 0)
-    {
-      ShaderGlobal::set_float(crosshair_scaleVarId, ch.zoom);
-      render_scope_trans(scopeAimData.entityWithScopeLensEid, ch.nodeId, texCtx);
-    }
-  }
-
-  if (crosshairs[0].nodeId < 0 && crosshairs[1].nodeId < 0)
+  if (scopeAimData.crosshairNodeIds == -1)
     render_scope_reticle_quad(scopeAimData.entityWithScopeLensEid, scopeAimData.lensNodeId);
 }
 
@@ -409,30 +392,23 @@ void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, c
         return;
       DynamicRenderableSceneInstance &scopeLensInst = *animchar_render.getSceneInstance();
       bool lensVisible = false, crosshairVisible = false;
-      const int crosshairNodeIds[] = {scopeAimData.crosshairNodeId, scopeAimData.crosshairFfpNodeId};
       if (scopeAimData.lensNodeId >= 0)
       {
         lensVisible = !scopeLensInst.isNodeHidden(scopeAimData.lensNodeId);
         scopeLensInst.showNode(scopeAimData.lensNodeId, false);
       }
-      for (int nodeId : crosshairNodeIds)
+      for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))
       {
-        if (nodeId >= 0)
-        {
-          crosshairVisible |= !scopeLensInst.isNodeHidden(nodeId);
-          scopeLensInst.showNode(nodeId, false);
-        }
+        crosshairVisible |= !scopeLensInst.isNodeHidden(nodeId);
+        scopeLensInst.showNode(nodeId, false);
       }
       process_animchars_and_render(make_span_const(&scopeAimData.entityWithScopeLensEid, 1), ShaderMesh::STG_trans,
         ShaderMesh::STG_trans, dynamicSceneTransBlockId, VISFLG_COCKPIT_VISIBLE, false, dynmodel_renderer::NeedPreviousMatrices::No,
         texCtx, -1);
       if (scopeAimData.lensNodeId >= 0)
         scopeLensInst.showNode(scopeAimData.lensNodeId, lensVisible);
-      for (int nodeId : crosshairNodeIds)
-      {
-        if (nodeId >= 0)
-          scopeLensInst.showNode(nodeId, crosshairVisible);
-      }
+      for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))
+        scopeLensInst.showNode(nodeId, crosshairVisible);
     });
 }
 
@@ -767,19 +743,16 @@ static ScopeAimRenderingData prepare_scope_aim_rendering_data()
   ScopeAimRenderingData scopeAimData;
   prepare_scope_aim_rendering_data_ecs_query(*g_entity_mgr,
     [&scopeAimData](ECS_REQUIRE(eastl::true_type camera__active) int aim_data__lensNodeId, int aim_data__lensCollisionNodeId,
-      int aim_data__crosshairNodeId, ecs::EntityId aim_data__entityWithScopeLensEid, ecs::EntityId aim_data__gunEid,
+      int64_t aim_data__crosshairNodeIds, ecs::EntityId aim_data__entityWithScopeLensEid, ecs::EntityId aim_data__gunEid,
       const ecs::EidList &aim_data__scopeLensCockpitEntities, bool aim_data__isAiming, bool aim_data__isAimingThroughScope,
       bool aim_data__nightVision, bool aim_data__nearDofEnabled, bool aim_data__simplifiedAimDof,
-      const float aim_data__legacyScopeWeaponLensZoomFactor, int aim_data__crosshairFfpNodeId = -1,
-      float aim_data__firstFocalPlaneZoomFactor = 1.0f) {
+      const float aim_data__legacyScopeWeaponLensZoomFactor) {
       ShaderGlobal::set_float(lens_zoom_factorVarId, aim_data__legacyScopeWeaponLensZoomFactor);
       scopeAimData.scopeWeaponLensZoomFactor = aim_data__legacyScopeWeaponLensZoomFactor;
 
       scopeAimData.lensNodeId = aim_data__lensNodeId;
       scopeAimData.lensCollisionNodeId = aim_data__lensCollisionNodeId;
-      scopeAimData.crosshairNodeId = aim_data__crosshairNodeId;
-      scopeAimData.crosshairFfpNodeId = aim_data__crosshairFfpNodeId;
-      scopeAimData.firstFocalPlaneZoomFactor = aim_data__firstFocalPlaneZoomFactor;
+      scopeAimData.crosshairNodeIds = aim_data__crosshairNodeIds;
       scopeAimData.entityWithScopeLensEid = aim_data__entityWithScopeLensEid;
       scopeAimData.gunEid = aim_data__gunEid;
       scopeAimData.scopeLensCockpitEntities.assign(aim_data__scopeLensCockpitEntities.begin(),
@@ -853,14 +826,13 @@ void scope_fire_debug_assert(const AimRenderingData &aimRenderData)
     lensRenderEnabled:%d\n,\
     entityWithScopeLensEid:%d\n,\
     lensNodeId:%d\n,\
-    lensCrosshairNodeId:%d\n,\
    lensBoundingSphereRadius:%f\n\
     worldTm:\n  %f %f %f | %f %f %f | %f %f %f | %f %f %f",
         v_extract_x(animchar_render__root_pos), v_extract_y(animchar_render__root_pos), v_extract_z(animchar_render__root_pos),
         animchar_render__enabled, animchar_visbits, isLensNodeVisible, aimRenderData.lensRenderEnabled,
-        aimRenderData.entityWithScopeLensEid, aimRenderData.lensNodeId, aimRenderData.lensCrosshairNodeId,
-        aimRenderData.lensBoundingSphereRadius, worldTm.m[0][0], worldTm.m[0][1], worldTm.m[0][2], worldTm.m[1][0], worldTm.m[1][1],
-        worldTm.m[1][2], worldTm.m[2][0], worldTm.m[2][1], worldTm.m[2][2], worldTm.m[3][0], worldTm.m[3][1], worldTm.m[3][2]);
+        aimRenderData.entityWithScopeLensEid, aimRenderData.lensNodeId, aimRenderData.lensBoundingSphereRadius, worldTm.m[0][0],
+        worldTm.m[0][1], worldTm.m[0][2], worldTm.m[1][0], worldTm.m[1][1], worldTm.m[1][2], worldTm.m[2][0], worldTm.m[2][1],
+        worldTm.m[2][2], worldTm.m[3][0], worldTm.m[3][1], worldTm.m[3][2]);
     });
 
   fire_assert = false;

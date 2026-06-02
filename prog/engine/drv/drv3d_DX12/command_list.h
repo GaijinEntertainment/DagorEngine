@@ -2450,6 +2450,12 @@ public:
       thread_group_count_z);
     CommandListLogger::dispatchMesh(thread_group_count_x, thread_group_count_y, thread_group_count_z);
   }
+
+  void barrier(UINT num_groups, const D3D12_BARRIER_GROUP *groups)
+  {
+    this->list.template as<ID3D12GraphicsCommandList7>()->Barrier(num_groups, groups);
+    CommandListLogger::barrier(num_groups, groups);
+  }
 };
 
 template <typename T>
@@ -2614,6 +2620,63 @@ public:
     DX12_FINALIZE_VALIDATION();
 #undef DX12_VALIDATION_CONTEXT
     BaseType::dispatchMesh(thread_group_count_x, thread_group_count_y, thread_group_count_z);
+  }
+
+  void barrier(UINT num_groups, const D3D12_BARRIER_GROUP *groups)
+  {
+#define DX12_VALIDATION_CONTEXT "barrier"
+    DX12_BEGIN_VALIDATION();
+    auto device = this->getDevice();
+    if (device)
+    {
+      D3D12_FEATURE_DATA_D3D12_OPTIONS12 opt12{};
+      device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &opt12, sizeof(opt12));
+      DX12_VALIDATE_CONDITION(opt12.EnhancedBarriersSupported,
+        "used barrier() while enhanced barriers are not supported by the device");
+    }
+    else
+    {
+      D3D_ERROR("DX12: ID3D12GraphicsCommandList::GetDevice returned null as a device");
+    }
+    DX12_VALIDATE_CONDITION(num_groups > 0, "barrier called with no groups");
+    DX12_VALIDATE_CONDITION(groups != nullptr, "barrier called with null group pointer");
+    if (groups)
+    {
+      for (UINT g = 0; g < num_groups; ++g)
+      {
+        const auto &group = groups[g];
+        DX12_VALIDATE_CONDITION(group.NumBarriers > 0, "barrier group %u is empty (NumBarriers == 0)", g);
+        switch (group.Type)
+        {
+          case D3D12_BARRIER_TYPE_TEXTURE:
+            DX12_VALIDATE_CONDITION(group.pTextureBarriers != nullptr,
+              "texture barrier group %u has %u barriers but null barrier pointer", g, group.NumBarriers);
+            for (UINT b = 0; b < group.NumBarriers; ++b)
+            {
+              DX12_VALIDATE_CONDITION(group.pTextureBarriers[b].pResource != nullptr,
+                "texture barrier %u in group %u has null resource", b, g);
+            }
+            break;
+          case D3D12_BARRIER_TYPE_BUFFER:
+            DX12_VALIDATE_CONDITION(group.pBufferBarriers != nullptr,
+              "buffer barrier group %u has %u barriers but null barrier pointer", g, group.NumBarriers);
+            for (UINT b = 0; b < group.NumBarriers; ++b)
+            {
+              DX12_VALIDATE_CONDITION(group.pBufferBarriers[b].pResource != nullptr, "buffer barrier %u in group %u has null resource",
+                b, g);
+            }
+            break;
+          case D3D12_BARRIER_TYPE_GLOBAL:
+            DX12_VALIDATE_CONDITION(group.pGlobalBarriers != nullptr,
+              "global barrier group %u has %u barriers but null barrier pointer", g, group.NumBarriers);
+            break;
+          default: DX12_VALIDATE_CONDITION(false, "barrier group %u has invalid type %d", g, group.Type); break;
+        }
+      }
+    }
+    DX12_FINALIZE_VALIDATION();
+#undef DX12_VALIDATION_CONTEXT
+    BaseType::barrier(num_groups, groups);
   }
 };
 #endif

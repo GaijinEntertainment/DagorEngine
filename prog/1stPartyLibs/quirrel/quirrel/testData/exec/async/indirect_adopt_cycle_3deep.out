@@ -1,4 +1,4 @@
-3-deep cycle detected: Promise.resolve: cannot resolve with self
+3-deep cycle detected: Future.resolve: cannot resolve with self
 a=pending b=pending c=pending
 after c.resolve a=fulfilled b=fulfilled c=fulfilled
 script done

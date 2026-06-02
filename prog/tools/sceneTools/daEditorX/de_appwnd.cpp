@@ -68,6 +68,7 @@
 #include <EditorCore/ec_startup.h>
 #include <EditorCore/ec_viewportSplitter.h>
 #include <EditorCore/ec_wndGlobal.h>
+#include <EditorCore/ec_keyboardShortcutsPanel.h>
 
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/renderViewports/cachedViewports.h>
@@ -174,6 +175,8 @@ typedef void(__fastcall *ReleasePluginFunc)();
 
 extern void *get_generic_render_helper_service();
 extern void *get_generic_dyn_render_service();
+extern void *get_dng_based_render_service();
+extern void *get_dng_based_skies_service();
 extern void *get_tiff_bit_mask_image_mgr();
 extern void *get_generic_hmap_service();
 extern void *get_generic_asset_service();
@@ -252,6 +255,7 @@ enum
   PLUGTOOLS_TYPE,
   VIEWPORT_TYPE,
   TAGMANAGER_TYPE,
+  SHORTCUTS_EDITOR_TYPE,
 };
 
 
@@ -619,6 +623,7 @@ void DagorEdAppWindow::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::OPTIONS_STAT_DISPLAY_SETTINGS);
   editor_command_system.addCommand(EditorCommandIds::FILE_SETTINGS);
   editor_command_system.addCommand(EditorCommandIds::OPTIONS_EDIT_PREFERENCES);
+  editor_command_system.addCommand(EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS);
 
   editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_MOVE_SNAP, ImGuiKey_S);
   editor_command_system.addCommand(EditorCommandIds::VIEW_GRID_ANGLE_SNAP, ImGuiKey_A);
@@ -728,6 +733,7 @@ void DagorEdAppWindow::addEditorAccelerators()
     mManager->addAccelerator(CM_ENVIRONMENT_SETTINGS, EditorCommandIds::ENVIRONMENT_SETTINGS);
     mManager->addAccelerator(CM_FILE_SETTINGS, EditorCommandIds::FILE_SETTINGS);
     mManager->addAccelerator(CM_OPTIONS_EDIT_PREFERENCES, EditorCommandIds::OPTIONS_EDIT_PREFERENCES);
+    mManager->addAccelerator(CM_OPTIONS_KEYBOARD_SHORTCUTS, EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS);
 
     mManager->addAccelerator(CM_VIEW_GRID_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP);
     mManager->addAccelerator(CM_VIEW_GRID_ANGLE_SNAP, EditorCommandIds::VIEW_GRID_ANGLE_SNAP);
@@ -966,6 +972,17 @@ void *DagorEdAppWindow::onWmCreateWindow(int type)
       return mTagManager;
     }
     break;
+
+    case SHORTCUTS_EDITOR_TYPE:
+    {
+      if (mShortcutsPanel)
+        return nullptr;
+
+      mShortcutsPanel = new KeyboardShortcutsPanel();
+      getMainMenu()->setCheckById(CM_OPTIONS_KEYBOARD_SHORTCUTS, true);
+      return mShortcutsPanel;
+    }
+    break;
   }
 
   return nullptr;
@@ -999,6 +1016,13 @@ bool DagorEdAppWindow::onWmDestroyWindow(void *window)
   {
     mTagManager = nullptr;
     getMainMenu()->setCheckById(CM_WINDOW_TAGMANAGER, false);
+    return true;
+  }
+
+  if (mShortcutsPanel && window == mShortcutsPanel)
+  {
+    del_it(mShortcutsPanel);
+    getMainMenu()->setCheckById(CM_OPTIONS_KEYBOARD_SHORTCUTS, false);
     return true;
   }
 
@@ -1189,6 +1213,8 @@ void DagorEdAppWindow::fillMenu(PropPanel::IMenu *menu)
   menu->addItem(CM_OPTIONS_PREFERENCES, CM_OPTIONS_PREFERENCES_ASSET_TREE_COPY_SUBMENU, "Move \"Copy\" to submenu");
   editor_command_system.addMenuItem(*menu, CM_OPTIONS, CM_OPTIONS_EDIT_PREFERENCES, EditorCommandIds::OPTIONS_EDIT_PREFERENCES,
     "Toolbar preferences..."); // The name is temporary, this will be the general preferences window.
+  editor_command_system.addMenuItem(*menu, CM_OPTIONS, CM_OPTIONS_KEYBOARD_SHORTCUTS, EditorCommandIds::OPTIONS_KEYBOARD_SHORTCUTS,
+    "Keyboard Shortcuts...");
 
   // Help
   menu->addSubMenu(ROOT_MENU_ITEM, CM_HELP, "Help");
@@ -1581,6 +1607,8 @@ int DagorEdAppWindow::onMenuItemClick(unsigned id)
     case CM_OPTIONS_EDIT_PREFERENCES:
       getModelessWindowControllers().toggleShowById(WindowIds::MAIN_SETTINGS_EDIT_PREFERENCES);
       return 1;
+
+    case CM_OPTIONS_KEYBOARD_SHORTCUTS: showShortcutsEditor(mShortcutsPanel == nullptr); return 1;
 
     case CM_FILE_OPEN_AND_LOCK: handleOpenProject(true); return 1;
 
@@ -2284,6 +2312,7 @@ void DagorEdAppWindow::startWithWorkspace(const char *wspName)
 
 void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
 {
+  const bool useDngBasedSceneRender = DAGORED2->getWorkspace().isUsingDngBasedSceneRender();
   if (huid == HUID_IDaEditor3Engine)
     return static_cast<IDaEditor3Engine *>(&IDaEditor3Engine::get());
 
@@ -2309,7 +2338,7 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
     return get_generic_file_change_tracking_service();
 
   if (huid == HUID_ISkiesService)
-    return get_generic_skies_service();
+    return useDngBasedSceneRender ? get_dng_based_skies_service() : get_generic_skies_service();
 
   if (huid == HUID_IColorRangeService)
     return get_generic_color_range_service();
@@ -2327,7 +2356,7 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
     return get_generic_water_service();
 
   if (huid == HUID_IDynRenderService)
-    return get_generic_dyn_render_service();
+    return useDngBasedSceneRender ? get_dng_based_render_service() : get_generic_dyn_render_service();
 
   if (huid == HUID_IRenderHelperService)
     return get_generic_render_helper_service();
@@ -2336,13 +2365,13 @@ void *DagorEdAppWindow::queryEditorInterfacePtr(unsigned huid)
     return get_generic_water_proj_fx_service();
 
   if (huid == HUID_ICableService)
-    return get_generic_cable_service();
+    return useDngBasedSceneRender ? nullptr : get_generic_cable_service();
 
   if (huid == HUID_ISplineGenService)
     return get_generic_spline_gen_service();
 
   if (huid == HUID_IWindService)
-    return get_generic_wind_service();
+    return useDngBasedSceneRender ? nullptr : get_generic_wind_service();
 
   if (huid == HUID_IPixelPerfectSelectionService)
     return get_pixel_perfect_selection_service();
@@ -2598,6 +2627,7 @@ void DagorEdAppWindow::pluginHelp(const char *url) const
 
   ::HtmlHelp(NULL, help.str(), HH_DISPLAY_TOPIC, 0);
 #else
+  G_UNUSED(url);
   LOGERR_CTX("TODO: tools Linux porting: DagorEdAppWindow::pluginHelp");
 #endif
 }
@@ -2607,10 +2637,11 @@ void DagorEdAppWindow::pluginHelp(const char *url) const
 void DagorEdAppWindow::getDocTitleText(String &text)
 {
   unsigned drv = d3d::get_driver_code().asFourCC();
+  const char *dng_label = DAGORED2->getWorkspace().isUsingDngBasedSceneRender() ? "dngBasedRender | " : "";
   if (sceneFname[0])
-    text.printf(300, "DaEditorX  [%c%c%c%c]  - %s", _DUMP4C(drv), sceneFname);
+    text.printf(300, "DaEditorX  [%s%c%c%c%c]  - %s", dng_label, _DUMP4C(drv), sceneFname);
   else
-    text.printf(300, "%s  [%c%c%c%c]", IDagorEd2Engine::getBuildVersion(), _DUMP4C(drv));
+    text.printf(300, "%s  [%s%c%c%c%c]", IDagorEd2Engine::getBuildVersion(), dng_label, _DUMP4C(drv));
 }
 
 
@@ -3635,6 +3666,23 @@ void DagorEdAppWindow::showTagManager(bool show)
   }
 }
 
+void DagorEdAppWindow::showShortcutsEditor(bool show)
+{
+  const bool isCurrentlyShown = mShortcutsPanel != nullptr;
+  if (show == isCurrentlyShown)
+    return;
+
+  if (mShortcutsPanel)
+  {
+    mManager->removeWindow(mShortcutsPanel);
+    mShortcutsPanel = nullptr;
+  }
+  else
+  {
+    mManager->setWindowType(nullptr, SHORTCUTS_EDITOR_TYPE);
+  }
+}
+
 //==============================================================================
 
 bool DagorEdAppWindow::getPendingTextureLoadTotalCount(unsigned int &total_count)
@@ -3848,13 +3896,10 @@ void DagorEdAppWindow::setToolbarScalePercent(int scale_percent)
 
   toolbarScalePercent = scale_percent;
 
-  const float toolbarScale = scale_percent / 100.0f;
-  const int toolbarControlWidth = (int)(PropPanel::Constants::TOOLBAR_DEFAULT_CONTROL_WIDTH * toolbarScale);
-
   if (mToolPanel)
-    mToolPanel->setToolbarControlWidth(toolbarControlWidth);
+    mToolPanel->setToolbarScalePercent(toolbarScalePercent);
   if (mPlugTools)
-    mPlugTools->setToolbarControlWidth(toolbarControlWidth);
+    mPlugTools->setToolbarScalePercent(toolbarScalePercent);
 }
 
 void DagorEdAppWindow::onImguiDelayedCallback(void *user_data)
@@ -3992,11 +4037,7 @@ void DagorEdAppWindow::renderUI()
     PropPanel::popToolBarColorOverrides();
 
     if (mToolPanel)
-    {
-      ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * toolbarScalePercent * 0.01f);
       mToolPanel->updateImgui();
-      ImGui::PopFont();
-    }
 
     if (mTabWindow)
     {
@@ -4008,10 +4049,20 @@ void DagorEdAppWindow::renderUI()
     }
 
     if (mPlugTools)
-    {
-      ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * toolbarScalePercent * 0.01f);
       mPlugTools->updateImgui();
-      ImGui::PopFont();
+
+    if (mShortcutsPanel)
+    {
+      ImGui::SetNextWindowSize(ImVec2(viewport->Size.x * 0.3f, viewport->Size.y * 0.7f), ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowPos(ImVec2(viewport->Size.x * 0.35f, viewport->Size.y * 0.15f), ImGuiCond_FirstUseEver);
+
+      bool open = true;
+      DAEDITOR3.imguiBegin("Keyboard Shortcuts", &open);
+      mShortcutsPanel->updateImgui();
+      DAEDITOR3.imguiEnd();
+
+      if (!open)
+        mManager->removeWindow(mShortcutsPanel);
     }
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));

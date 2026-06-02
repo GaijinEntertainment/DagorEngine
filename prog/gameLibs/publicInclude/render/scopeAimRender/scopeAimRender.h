@@ -19,13 +19,56 @@ class NodeHandle;
 class Registry;
 } // namespace dafg
 
+constexpr int SCOPE_CROSSHAIR_LAST_IDX = 254;
+constexpr int SCOPE_CROSSHAIR_INVALID_IDX = 255;
+constexpr int SCOPE_CROSSHAIR_MAX_COUNT = 8;
+
+inline uint64_t pack_crosshair_node_id(uint64_t node_ids, const uint64_t node_id, const int crosshair_idx)
+{
+  node_ids &= ~(0xFFull << (crosshair_idx * 8));
+  node_ids |= node_id << (crosshair_idx * 8);
+  return node_ids;
+}
+
+class ScopeCrosshairNodeIterator
+{
+  int64_t nodeIds;
+  uint8_t idx = 0;
+  uint8_t endIdx = SCOPE_CROSSHAIR_MAX_COUNT;
+
+  uint8_t get(const int i) const { return (nodeIds >> (i * 8)) & 0xFF; }
+  uint8_t findEndIdx() const
+  {
+    for (uint8_t i = 0; i < SCOPE_CROSSHAIR_MAX_COUNT; ++i)
+    {
+      if (get(i) == SCOPE_CROSSHAIR_INVALID_IDX)
+        return i;
+    }
+    return SCOPE_CROSSHAIR_MAX_COUNT;
+  }
+
+  ScopeCrosshairNodeIterator(int64_t v, uint8_t idx, uint8_t end_idx) : nodeIds(v), idx(idx), endIdx(end_idx) {}
+
+public:
+  ScopeCrosshairNodeIterator(int64_t v) : nodeIds(v), idx(0), endIdx(findEndIdx()) {}
+
+  uint8_t operator*() const { return get(idx); }
+  ScopeCrosshairNodeIterator &operator++()
+  {
+    ++idx;
+    return *this;
+  }
+  bool operator!=(const ScopeCrosshairNodeIterator &o) const { return idx != o.idx; }
+
+  ScopeCrosshairNodeIterator begin() const { return *this; }
+  ScopeCrosshairNodeIterator end() const { return ScopeCrosshairNodeIterator(-1, endIdx, endIdx); }
+};
+
 struct ScopeAimRenderingData
 {
   int lensNodeId = -1;
   int lensCollisionNodeId = -1;
-  int crosshairNodeId = -1;
-  int crosshairFfpNodeId = -1;
-  float firstFocalPlaneZoomFactor = 1.0f;
+  int64_t crosshairNodeIds = -1;
   float scopeWeaponLensZoomFactor = 1.0f;
   ecs::EntityId entityWithScopeLensEid;
   ecs::EntityId gunEid;

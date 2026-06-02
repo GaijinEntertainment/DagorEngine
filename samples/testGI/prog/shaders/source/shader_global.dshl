@@ -57,6 +57,15 @@ interval in_editor : no<1, yes;
 int in_editor_assume=0;
 interval in_editor_assume : no<1, yes;
 
+int allow_forced_in_editor = 0 always_referenced;
+interval allow_forced_in_editor : no < 1, yes;
+assume_if_not_assumed allow_forced_in_editor = no; // assumed to yes in some shaders to include tool variant into game
+
+int force_in_editor = 0 always_referenced;
+interval force_in_editor : no < 1, yes;
+
+bool use_editor_render = allow_forced_in_editor == yes && force_in_editor == yes;
+
 int use_postfx = 1;
 interval use_postfx : off<1, on;
 

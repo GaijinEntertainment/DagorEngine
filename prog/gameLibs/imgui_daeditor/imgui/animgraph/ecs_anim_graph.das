@@ -25,10 +25,6 @@ def ecs_anim_graph2()
   if IsWindowCollapsed()
     return
 
-  static_let_finalize <|
-    var paramsFilter = new ImGuiTextFilter
-    var statesFilter = new ImGuiTextFilter
-
   static_let <|
     var selectedCharEid = INVALID_ENTITY_ID
     var useDaeditorSelected = true
@@ -85,7 +81,7 @@ def ecs_anim_graph2()
       return
 
     var resetState = false
-    render_anim_graph2(animchar, *animchar.animGraph, *animchar.animState, resetState, *paramsFilter, *statesFilter)
+    render_anim_graph(animchar, resetState)
     if resetState
       eid |> addSubTemplate("animchar_lock_anim_state_change")
       if animchar__animState != null

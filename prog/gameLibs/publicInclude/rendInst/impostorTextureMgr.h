@@ -81,10 +81,10 @@ public:
     int lod = -1);
   void render_slice_octahedral(uint32_t h, uint32_t v, const TMatrix &view_to_content, const GenerationData &gen_data,
     RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod = -1);
-  void render_instances(const TMatrix &view_to_world, float scale_x, float scale_y, float zn, float zf,
-    RenderableInstanceLodsResource *res, dag::Span<TMatrix> placement, int block_id, int lod = -1);
   void render_slice_billboard(uint32_t sliceId, const TMatrix &view_to_content, RenderableInstanceLodsResource *res,
     rendinst::RenderPass render_pass, int block_id, int lod = -1);
+  void render_slice_voxels(const TMatrix &view_to_model, float width, float height, float zn, float zf,
+    RenderableInstanceLodsResource *res, rendinst::RenderPass render_pass, int block_id, int lod = 0);
   void generate_mask_billboard(uint32_t sliceId, RenderableInstanceLodsResource *res, DeferredRenderTarget *rt, Texture *mask_tex,
     int lod = -1);
   void generate_mask_octahedral(uint32_t h, uint32_t v, const GenerationData &gen_data, RenderableInstanceLodsResource *res,

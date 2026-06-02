@@ -11,50 +11,53 @@
 namespace sqasync_helpers
 {
 
-// RAII handle around a freshly-created Promise instance.
+// RAII handle around a freshly-created Future instance.
 // Replaces the per-binding push-class / sq_call / sq_remove / sq_addref dance
 // and the per-feature `bool dead` flag for VMs that may be torn down before
 // an in-flight async op completes.
-class PromiseHolder
+class FutureHolder
 {
 public:
   // On runtime-not-bound or OOM, leaves instance() null and the VM's last
-  // error set; resolve/reject become no-ops.
-  explicit PromiseHolder(HSQUIRRELVM v) : vmHandle(v)
+  // error set; resolve / throwFault become no-ops.
+  explicit FutureHolder(HSQUIRRELVM v) : vmHandle(v)
   {
-    sq_resetobject(&promise);
-    if (sqasync::create_promise(v, &promise) != SQ_OK)
-      sq_resetobject(&promise);
+    sq_resetobject(&future);
+    if (sqasync::future_create(v, &future) != SQ_OK)
+      sq_resetobject(&future);
   }
 
-  ~PromiseHolder()
+  ~FutureHolder()
   {
-    if (!sq_isnull(promise))
-      sq_release(vmHandle, &promise);
+    if (!sq_isnull(future))
+      sq_release(vmHandle, &future);
   }
 
-  PromiseHolder(const PromiseHolder &) = delete;
-  PromiseHolder &operator=(const PromiseHolder &) = delete;
-  PromiseHolder(PromiseHolder &&) = delete;
-  PromiseHolder &operator=(PromiseHolder &&) = delete;
+  FutureHolder(const FutureHolder &) = delete;
+  FutureHolder &operator=(const FutureHolder &) = delete;
+  FutureHolder(FutureHolder &&) = delete;
+  FutureHolder &operator=(FutureHolder &&) = delete;
 
   // No-op if already settled or after onVmShutdown().
   void resolve(const HSQOBJECT &value)
   {
-    if (sq_isnull(promise))
+    if (sq_isnull(future))
       return;
-    sqasync::resolve_promise(vmHandle, promise, value);
-    sq_release(vmHandle, &promise);
-    sq_resetobject(&promise);
+    sqasync::future_resolve(vmHandle, future, value);
+    sq_release(vmHandle, &future);
+    sq_resetobject(&future);
   }
 
-  void reject(const HSQOBJECT &reason)
+  // Worker-thread-bug channel. Documented failures must travel as values
+  // through resolve(); reserve throwFault() for invariant violations the
+  // binding's contract does not document.
+  void throwFault(const HSQOBJECT &value)
   {
-    if (sq_isnull(promise))
+    if (sq_isnull(future))
       return;
-    sqasync::reject_promise(vmHandle, promise, reason);
-    sq_release(vmHandle, &promise);
-    sq_resetobject(&promise);
+    sqasync::future_throw(vmHandle, future, value);
+    sq_release(vmHandle, &future);
+    sq_resetobject(&future);
   }
 
   void resolveNull()
@@ -64,23 +67,23 @@ public:
     resolve(n);
   }
 
-  // Called by the embedder before sq_close so any later resolve/reject from
-  // a still-in-flight async op short-circuits without touching freed memory.
+  // Called by the embedder before sq_close so any later resolve / throwFault
+  // from a still-in-flight async op short-circuits without touching freed memory.
   void onVmShutdown()
   {
-    if (sq_isnull(promise))
+    if (sq_isnull(future))
       return;
-    sq_release(vmHandle, &promise);
-    sq_resetobject(&promise);
+    sq_release(vmHandle, &future);
+    sq_resetobject(&future);
   }
 
   // sq_isnull() iff construction failed or the holder has settled / been disowned.
-  const HSQOBJECT &instance() const { return promise; }
+  const HSQOBJECT &instance() const { return future; }
   HSQUIRRELVM vm() const { return vmHandle; }
 
 private:
   HSQUIRRELVM vmHandle = nullptr;
-  HSQOBJECT promise{};
+  HSQOBJECT future{};
 };
 
 } // namespace sqasync_helpers

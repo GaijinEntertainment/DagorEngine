@@ -13,6 +13,8 @@
 #include <EASTL/hash_map.h>
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>
+#include <EASTL/utility.h>
+#include <EASTL/vector.h>
 
 #include <graphEditor/graph_data.h>
 
@@ -136,6 +138,26 @@ public:
   // it wipes preview state.
   void notifyGraphSourceChanged();
 
+  // Drains per-pin customTextureName values produced by the most recent worker-thread
+  // compile (stashed by GraphCompilerImpl::compile under graphMutex) into
+  // graphData.nodes[].pins[].customTextureName. Must run on the main thread: the
+  // texture-preview lookup (graph_panel.cpp) reads that Pin field without taking
+  // graphMutex, so the write itself must originate from the same thread to
+  // preserve the "main is the only writer of nodes / pins" invariant. Called once
+  // per tick from actObjects. Cheap no-op when no compile has finished since last
+  // drain. Entries are keyed by node id so deletes between compile and apply just
+  // drop their entry instead of corrupting a now-different node at that index.
+  void applyPendingPinCustomTextureNames();
+
+  // Hand-off used by GraphCompilerImpl::compile (worker thread, inside the
+  // mutateGraphData critical section): replaces the pending-names buffer with the
+  // most recent compile's output. The buffer is consumed on the main thread by
+  // applyPendingPinCustomTextureNames -- see that method for the threading rationale.
+  void setPendingPinCustomTextureNames(eastl::vector<eastl::pair<int, eastl::vector<eastl::string>>> names)
+  {
+    pendingPinCustomTextureNames = eastl::move(names);
+  }
+
   // Accessors for sibling panels (in particular PropertiesPanel) that need to read shared
   // state without reaching into private members. GraphPanel may be null when the user has
   // closed it; texGenService may be null until the texgen service initialises.
@@ -162,14 +184,33 @@ public:
   }
 
   const char *getShaderIncludesDir() const { return resourcePaths.shaderIncludesDir; }
+  const char *getMainGraphsDir() const { return resourcePaths.mainGraphsDir; }
+  const char *getSubgraphsDir() const { return resourcePaths.subgraphsDir; }
+
+  // Drops the cached base-nodes blk + uid index and re-runs the lazy load + synthesis pipeline,
+  // then re-populates the BaseNodesPanel tree so newly added shader / subgraph files appear
+  // without restarting the editor. Cheap: the load itself is bounded (~100 base nodes plus a
+  // small fixed set of shader / subgraph files on disk). Triggered from the panel's reload button.
+  void reloadBaseNodes();
 
 private:
   void initResourcePaths();
+  void newEmptyGraph();
   void promptAndLoadGraph();
   void loadGraphFromFile(const char *path);
   void promptAndLoadGraphBlk();
   void promptAndSaveGraphBlk();
+  void promptAndSaveAsSubgraphBlk();
   bool loadBaseNodesBlkIfNeeded();
+
+  void appendShaderTemplatesToBaseNodes();
+  // Mirrors appendShaderTemplatesToBaseNodes for *.json / *.blk files under
+  // resourcePaths.mainGraphsDir. Each graph file becomes a synthesized node{} descriptor in
+  // baseNodesBlk with category "Subgraphs", plugin "subgraph", and one pin{} per
+  // `subgraph in: TYPE` / `subgraph out` boundary node found inside the child. The pin's
+  // interface name comes from the boundary's `name` property value (not its descriptor
+  // pin name), so multiple boundaries in one child stay distinguishable.
+  void appendSubgraphTemplatesToBaseNodes();
 
   bool isVisible = false;
   int toolBarId = -1;
@@ -201,6 +242,15 @@ private:
   // Constructed once the texgen service is resolved; cleared from the service
   // before the impl is destroyed at shutdown.
   eastl::unique_ptr<IGraphCompiler> graphCompiler;
+
+  // Per-pin texgen register names produced by the most recent compile_graph_to_blks,
+  // keyed by GraphData::Node::id (not array index, so a node-delete between compile
+  // and drain just drops its entry rather than aliasing onto a different node).
+  // Inner vector is parallel to that node's pins[] at compile time. Filled inside
+  // the worker's mutateGraphData critical section; drained by
+  // applyPendingPinCustomTextureNames on the main thread inside its own
+  // mutateGraphData critical section -- so the actual Pin write happens on main.
+  eastl::vector<eastl::pair<int, eastl::vector<eastl::string>>> pendingPinCustomTextureNames;
 
   DataBlock baseNodesBlk;
   // uid -> node{} block pointer into baseNodesBlk. Built once in

@@ -1097,8 +1097,8 @@ void on_apply_sync_vroms_diffs_msg(const net::IMessage *_msg)
     updater::binarycache::set_cache_version(updater::binarycache::get_cache_folder().c_str(), maxVersion);
 
     // Do not reload templates while inside ES event hanlder hence the delayed call.
-    delayed_call(
-      []() {
+    add_delayed_callback(
+      [](void *) {
         const int remountedCount = remount_changed_vroms();
         debug("[SyncVroms]: Remounted %d vroms after diffs has been applied", remountedCount);
 
@@ -1126,7 +1126,7 @@ void on_apply_sync_vroms_diffs_msg(const net::IMessage *_msg)
         debug("[SyncVroms]: Templates has been reloaded: %s", isOk ? "success" : "fail");
         G_VERIFY(send_net_msg(net::get_msg_sink(), SyncVromsDone()) > 0);
       },
-      "SyncVromsReloadTemplatesDelayedCall");
+      nullptr, "SyncVromsReloadTemplatesDelayedCall");
   }
   else
     G_VERIFY(send_net_msg(net::get_msg_sink(), SyncVromsDone()) > 0);

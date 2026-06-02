@@ -231,7 +231,7 @@ public:
     bool _bgenerator;
     bool _purefunction;
     bool _nodiscard;
-    bool _isAsync;     // true: function body is a generator wrapped as a Promise on call
+    bool _isAsync;     // true: function body is a generator wrapped as a Future on call
     SQInt32 _stacksize;
     SQInt32 _varparams;
 

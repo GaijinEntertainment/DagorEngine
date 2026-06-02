@@ -24,6 +24,7 @@ namespace dafg
 // Will shuffle nodes while preserving all ordering constraints.
 // If anything depends on a "lucky" node order, this should break it.
 CONSOLE_BOOL_VAL("dafg", randomize_order, false);
+extern ConVarT<bool, false> recompile_from_scratch;
 
 NodeTracker::PreRegisteredNameSpace *NodeTracker::preRegisteredNameSpaces = nullptr;
 NodeTracker::PreRegisteredNode *NodeTracker::preRegisteredNodes = nullptr;
@@ -575,8 +576,9 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
 
   NodeTracker::Changes result;
   auto &[nodeChanged, resChanged] = result;
-  nodeChanged.resize(registry.knownNames.nameCount<NodeNameId>(), false);
-  resChanged.resize(registry.knownNames.nameCount<ResNameId>(), false);
+  const bool forceChanged = recompile_from_scratch.get();
+  nodeChanged.resize(registry.knownNames.nameCount<NodeNameId>(), forceChanged);
+  resChanged.resize(registry.knownNames.nameCount<ResNameId>(), forceChanged);
 
   for (auto nodeId : unregisteredNodes)
     nodeChanged[nodeId] = true;
@@ -609,7 +611,7 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
   registry.resources.resize(registry.knownNames.nameCount<ResNameId>());
   registry.nodes.resize(registry.knownNames.nameCount<NodeNameId>());
   registry.autoResTypes.resize(registry.knownNames.nameCount<AutoResTypeNameId>());
-  registry.autoResTypesChanged.resize(registry.knownNames.nameCount<AutoResTypeNameId>(), false);
+  registry.autoResTypesChanged.resize(registry.knownNames.nameCount<AutoResTypeNameId>(), forceChanged);
   registry.resourceSlots.resize(registry.knownNames.nameCount<ResNameId>());
 
   for (auto [resId, changed] : resChanged.enumerate())
@@ -617,7 +619,7 @@ NodeTracker::Changes NodeTracker::updateNodeDeclarations()
       if (auto &resolution = registry.resources[resId].createdResData->resolution)
         if (registry.autoResTypesChanged.test(resolution->id))
           changed = true;
-  registry.autoResTypesChanged.assign(registry.autoResTypesChanged.size(), false);
+  registry.autoResTypesChanged.assign(registry.autoResTypesChanged.size(), forceChanged);
 
   // If we are recompiling the entire graph before contexts are destroyed,
   // the resources will be wiped automatically if need be.

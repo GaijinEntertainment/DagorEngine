@@ -147,6 +147,13 @@ static ImpostorGenerator::GenerateResponse impostor_export_callback(DagorAsset *
   return ImpostorGenerator::GenerateResponse::PROCESS;
 }
 
+static int log_cb_with_stack(int lev_tag, const char *fmt, const void *arg, int anum, const char *ctx_file, int ctx_line)
+{
+  if ((lev_tag & 0x0F) <= LOGLEVEL_ERR)
+    debug_dump_stack("logerr callstack");
+  return 1; // continue normal logging
+}
+
 int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 {
   signal(SIGINT, ctrl_break_handler);
@@ -171,6 +178,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
     start_debug_system(__argv[0]);
   char stamp_buf[256];
   debug(dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), "\n"));
+  debug_set_log_callback(log_cb_with_stack);
 
   if (!::symhlp_load("daKernel" DAGOR_DLL))
     DEBUG_CTX("can't load sym for: %s", "daKernel" DAGOR_DLL);
@@ -249,7 +257,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   init_res_factories();
 
   ShaderGlobal::enableAutoBlockChange(true);
-  ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 0);
+  ShaderGlobal::set_int(get_shader_variable_id("in_editor", true), 1);
 
   ShaderGlobal::set_int(get_shader_variable_id("dgs_tex_anisotropy", true), ::dgs_tex_anisotropy);
   ShaderGlobal::set_float(get_shader_variable_id("mip_bias", true), 0.f);

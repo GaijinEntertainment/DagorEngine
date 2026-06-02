@@ -240,51 +240,6 @@ uint32_t frontend::BindlessManager::allocateBindlessResourceRangeNoLock(uint32_t
   return range.front();
 }
 
-uint32_t frontend::BindlessManager::resizeBindlessResourceRange(D3DResourceType type, DeviceContext &ctx, uint32_t index,
-  uint32_t current_count, uint32_t new_count)
-{
-  checkTypesRange(type, index, current_count);
-
-  if (new_count == current_count)
-  {
-    return index;
-  }
-
-  // need to take the lock here to keep consistent ordering
-  ScopedCommitLock ctxLock{ctx};
-  OSSpinlockScopedLock stateLock{get_state_guard()};
-
-  checkBindlessRangeAllocatedNoLock(index, current_count);
-
-  const uint32_t rangeEnd = index + current_count;
-  const uint32_t rangeExtendEnd = index + new_count;
-  const uint32_t extraSpace = new_count - current_count;
-  if ((rangeExtendEnd <= ::bindless::MAX_RESOURCE_INDEX_COUNT) && (rangeEnd == state.resourceSlotInfo.size()))
-  {
-    // the range is in the end of the heap, so we just update the heap size
-    state.resourceSlotInfo.resize(rangeExtendEnd, eastl::monostate{});
-    setTypesRange(type, rangeEnd, extraSpace);
-    return index;
-  }
-
-  if (free_list_try_resize(state.freeSlotRanges, make_value_range(index, current_count), new_count))
-  {
-    setTypesRange(type, rangeEnd, extraSpace);
-    return index;
-  }
-
-  // we are unable to expand the resource range, so we have to reallocate elsewhere and copy the
-  // existing descriptors :/
-  const uint32_t newIndex = allocateBindlessResourceRangeNoLock(new_count);
-  copyBindlessResourceRangeNoLock(index, newIndex, current_count);
-  ctx.bindlessCopyResourceDescriptorsNoLock(index, newIndex, current_count);
-  freeBindlessResourceRangeNoLock(type, index, current_count);
-
-  setTypesRange(type, newIndex, new_count);
-
-  return newIndex;
-}
-
 void frontend::BindlessManager::freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
 {
   OSSpinlockScopedLock stateLock{get_state_guard()};
@@ -314,14 +269,6 @@ void frontend::BindlessManager::freeBindlessResourceRangeNoLock(D3DResourceType 
   }
   state.resourceSlotInfo.resize(newSize, eastl::monostate{});
   // TODO: should send a command to the backend heap to shrink the size there too
-}
-
-void frontend::BindlessManager::copyBindlessResourceRangeNoLock(uint32_t src, uint32_t dst, uint32_t count)
-{
-  G_ASSERT(src + count <= state.resourceSlotInfo.size());
-  G_ASSERT(dst + count <= state.resourceSlotInfo.size());
-
-  eastl::copy_n(state.resourceSlotInfo.begin() + src, count, state.resourceSlotInfo.begin() + dst);
 }
 
 void frontend::BindlessManager::checkBindlessRangeAllocatedNoLock(uint32_t index, uint32_t count) const
@@ -946,19 +893,6 @@ void backend::BindlessSetManager::applyDeferredResourceDescriptors(ID3D12Device 
   deferredResourceDescriptors.clear();
 }
 
-void backend::BindlessSetManager::copyResourceDescriptors(ID3D12Device *device, uint32_t src, uint32_t dst, uint32_t count)
-{
-  if (!resourceDescriptorHeap)
-  {
-    return;
-  }
-  resourceDescriptorSize = max(resourceDescriptorSize, dst + count);
-  ++resourceDescriptorHeapRevision;
-  device->CopyDescriptorsSimple(count, resourceDescriptorStart + dst * resourceDescriptorWidth,
-    resourceDescriptorStart + src * resourceDescriptorWidth, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  BINDLESS_REPORT("%d bindless resources copied from %u to %u", count, (resourceDescriptorStart + src * resourceDescriptorWidth).ptr,
-    (resourceDescriptorStart + dst * resourceDescriptorWidth).ptr);
-}
 
 void backend::BindlessSetManager::pushToResourceHeap(ID3D12Device *device, ShaderResourceViewDescriptorHeapManager &target)
 {

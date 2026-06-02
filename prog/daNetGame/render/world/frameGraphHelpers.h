@@ -4,6 +4,7 @@
 #include <render/world/defaultVrsSettings.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/debugMesh.h>
+#include <render/debugGbuffer.h>
 #include <render/rendererFeatures.h>
 #include <render/world/cameraParams.h>
 #include <render/world/cameraInCamera.h>
@@ -172,6 +173,8 @@ inline void end_transparent_region(dafg::Registry registry)
     .color({registry.rename("color_target", "color_target_done").texture()})
     .depthRo(registry.rename("depth", "depth_done").texture());
 }
+
+inline bool is_resolve_target_external() { return !shouldRenderGbufferDebug() && !renderer_has_feature(FeatureRenderFlags::POSTFX); }
 
 inline uint32_t get_frame_render_target_format()
 {

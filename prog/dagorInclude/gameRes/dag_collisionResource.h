@@ -68,7 +68,14 @@ struct IntersectedNode
     int sortKey; // Note: signed to correctly handle -0.0 (which is mapped to INT_MIN)
   };
   Point3 intersectionPos;
-  unsigned int collisionNodeId;
+  // Self-describing hit identifier -- the single source of truth for node identity and (when
+  // applicable) per-node face index. Consumers must read it via the tri_ref:: accessors
+  // (nodeIndex / hasTri / faceIndex / subTri) so the encoding can evolve under them. The
+  // getCollisionNodeId() helper exists for the daScript binding (which exposes it as a
+  // property under the historical "collisionNodeId" name) -- C++ callers should prefer the
+  // tri_ref:: free functions.
+  tri_ref_t triRef = tri_ref::invalid();
+  unsigned int getCollisionNodeId() const { return tri_ref::nodeIndex(triRef); }
   bool operator<(const IntersectedNode &other) const { return sortKey < other.sortKey; }
 };
 
@@ -79,19 +86,6 @@ struct MultirayIntersectedNode : IntersectedNode
   {
     return rayId != other.rayId ? (rayId < other.rayId) : (sortKey < other.sortKey);
   }
-};
-
-struct IntersectedNodeSimd
-{
-  vec3f normal;
-  union
-  {
-    float intersectionT;
-    int sortKey; // Note: signed to correctly handle -0.0 (which is mapped to INT_MIN)
-  };
-  unsigned int collisionNodeId;
-  int triangleIndex;
-  bool operator<(const IntersectedNodeSimd &other) const { return sortKey < other.sortKey; }
 };
 
 struct DegenerativeNodeData
@@ -398,7 +392,7 @@ public:
     TraceCollisionResourceStats *out_stats) const;
 
   bool traceRay(const mat44f &tm, const GeomNodeTree *geom_node_tree, vec3f from, vec3f dir, float in_t,
-    IntersectedNodeVector &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
+    CollResIntersectionsType &intersected_nodes_list, bool sort_intersections, const CollisionNodeMask &collision_node_mask,
     TraceCollisionResourceStats *out_stats) const;
 
   bool traceCapsule(const TMatrix &instance_tm, const GeomNodeTree *geom_node_tree, const Point3 &from, const Point3 &dir,
@@ -582,6 +576,12 @@ public:
     v2 = verts[idx[face_idx * 3 + 2]];
     return true;
   }
+
+  // Decode a tri_ref_t produced by the BVH trace path back to the three vertices of the source
+  // triangle. In commit 1 the encoding is provisional (dataOffset is treated as a source-face
+  // index inside the named CollisionNode); commit 2 redefines dataOffset as a BLAS-internal
+  // byte offset and the implementation is swapped to walk the BLAS quad leaf directly.
+  bool getNodeFaceVertsByRef(tri_ref_t ref, Point3 & v0, Point3 & v1, Point3 & v2) const;
 
   template <class CB> // void(int face_idx, uint16_t i0, uint16_t i1, uint16_t i2)
   void iterateNodeFaces(int node_id, CB cb) const
@@ -871,7 +871,12 @@ protected:
     eastl::unique_ptr<SSRT16, DestroyDeleter<SSRT16>> tracer;
   };
 
-  int getNodeIndexByFaceId(int face_id, uint8_t behavior_filter) const;
+  // face_id is FRT-wide (face index across all behavior-matching mesh nodes); local_face_id is
+  // set to the node-local face index (face_id minus the cumulative face count of preceding
+  // behavior-matching mesh nodes) on success. Returns -1 and leaves local_face_id untouched on
+  // miss. The local face index is what getNodeFaceVerts / getNodeFaceVertsByRef expect, so trace
+  // dispatch should store local_face_id (not face_id) in the tri_ref lookup-token field.
+  int getNodeIndexByFaceId(int face_id, uint8_t behavior_filter, int &local_face_id) const;
   static DAGOR_NOINLINE void addTracesProfileTag(dag::Span<CollisionTrace> traces);
   static DAGOR_NOINLINE void addMeshNodesProfileTag(const struct CollResProfileStats &profile_stats);
 

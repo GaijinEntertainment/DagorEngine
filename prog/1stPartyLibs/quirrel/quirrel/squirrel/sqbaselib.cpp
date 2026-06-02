@@ -354,6 +354,94 @@ static SQInteger base_classof(HSQUIRRELVM v)
     return 0;
 }
 
+
+static SQInteger error_constructor(HSQUIRRELVM v)
+{
+    SQInteger nargs = sq_gettop(v);
+    if (nargs >= 2) {
+        sq_pushstring(v, "message", -1);
+        sq_push(v, 2);
+        if (SQ_FAILED(sq_set(v, 1)))
+            return SQ_ERROR;
+    }
+    if (nargs >= 3) {
+        sq_pushstring(v, "cause", -1);
+        sq_push(v, 3);
+        if (SQ_FAILED(sq_set(v, 1)))
+            return SQ_ERROR;
+    }
+    return 0;
+}
+
+static SQInteger error_tostring(HSQUIRRELVM v)
+{
+    SQObjectPtr &self = stack_get(v, 1);
+    SQObjectPtr key(SQString::Create(_ss(v), "message"));
+    SQObjectPtr val;
+    if (_instance(self)->Get(key, val) && sq_type(val) == OT_STRING) {
+        v->Push(val);
+        return 1;
+    }
+    v->Push(SQObjectPtr(SQString::Create(_ss(v), "Error")));
+    return 1;
+}
+
+// The message line followed by the captured trace frames (origin "at" frames
+// plus "awaited at" await-hop frames). Opt-in, so the verbose trace never leaks
+// into incidental tostring(e) / "..." + e uses.
+static SQInteger error_formatTrace(HSQUIRRELVM v)
+{
+    SQObjectPtr &self = stack_get(v, 1);
+    SQObjectPtr msgKey(SQString::Create(_ss(v), "message")), msg;
+    const char *msgStr = (_instance(self)->Get(msgKey, msg) && sq_type(msg) == OT_STRING)
+        ? _stringval(msg) : "Error";
+
+    sqvector<char> buf(_ss(v)->_alloc_ctx);
+    for (const char *p = msgStr; *p; ++p)
+        buf.push_back(*p);
+    SQInteger msgEnd = buf.size();
+    buf.push_back('\n');
+    if (!sq_append_error_trace(v, self, buf))
+        buf.resize(msgEnd);
+
+    v->Push(SQObjectPtr(SQString::Create(_ss(v), buf.empty() ? "" : buf._vals, (SQInteger)buf.size())));
+    return 1;
+}
+
+static const SQRegFunctionFromStr error_methods[] = {
+    { error_constructor, "constructor([message: string, cause]): instance",
+                         "Creates an Error with an optional message and an arbitrary cause value." },
+    { error_tostring,    "instance._tostring(): string",
+                         "Formats the error as a string" },
+    { error_formatTrace, "instance.formatTrace(): string",
+                         "Returns the message plus the captured origin and await-chain trace as a formatted string." },
+    { NULL, NULL, NULL }
+};
+
+static void registerErrorClass(HSQUIRRELVM v)
+{
+    sq_pushstring(v, "Error", -1);
+    sq_newclass(v, SQFalse);
+
+    sq_pushstring(v, "message", -1);
+    sq_pushstring(v, "", -1);
+    sq_newslot(v, -3, SQFalse);
+
+    sq_pushstring(v, "trace", -1);
+    sq_pushnull(v);
+    sq_newslot(v, -3, SQFalse);
+
+    sq_pushstring(v, "cause", -1);
+    sq_pushnull(v);
+    sq_newslot(v, -3, SQFalse);
+
+    for (const SQRegFunctionFromStr *m = error_methods; m->f; ++m)
+        sq_new_closure_slot_from_decl_string(v, m->f, 0, m->declstring, m->docstring);
+
+    _ss(v)->_error_class = stack_get(v, -1);
+    sq_newslot(v, -3, SQFalse);
+}
+
 static const SQRegFunctionFromStr base_funcs[] = {
     { base_getroottable, "getroottable(): table" },
     { base_getconsttable, "getconsttable(): table" },
@@ -382,6 +470,8 @@ SQRESULT sq_registerbaselib(HSQUIRRELVM v)
         sq_new_closure_slot_from_decl_string(v, base_funcs[i].f, 0, base_funcs[i].declstring, base_funcs[i].docstring);
         i++;
     }
+
+    registerErrorClass(v);
 
     return SQ_OK;
 }

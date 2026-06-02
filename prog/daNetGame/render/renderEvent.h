@@ -21,7 +21,7 @@
 #include <daECS/core/componentTypes.h>
 #include <generic/dag_fixedMoveOnlyFunction.h>
 #include <ecs/anim/animchar_visbits.h>
-#include <render/world/animCharRenderAdditionalData.h>
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <ecs/render/renderEvent.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 

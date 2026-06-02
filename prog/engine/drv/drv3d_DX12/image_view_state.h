@@ -32,7 +32,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
     IS_CUBEMAP_SHIFT = TYPE_BITS + TYPE_SHIFT,
     IS_ARRAY_BITS = 1,
     IS_ARRAY_SHIFT = IS_CUBEMAP_BITS + IS_CUBEMAP_SHIFT,
-    FORMAT_STORE_BITS = FormatStore::BITS,
+    FORMAT_STORE_BITS = FormatStore::bits,
     FORMAT_STORE_SHIFT = IS_ARRAY_SHIFT + IS_ARRAY_BITS,
     MIPMAP_OFFSET_BITS = BitsNeeded<15>::VALUE,
     MIPMAP_OFFSET_SHIFT = FORMAT_STORE_SHIFT + FORMAT_STORE_BITS,
@@ -412,7 +412,7 @@ BEGIN_BITFIELD_TYPE(ImageViewState, uint64_t)
   }
 
   void setFormat(FormatStore fmt) { format = fmt.index; }
-  FormatStore getFormat() const { return FormatStore(format); }
+  FormatStore getFormat() const { return FormatStore{.index = static_cast<uint8_t>(format)}; }
   void setMipBase(MipMapIndex u) { mipmapOffset = u.index(); }
   MipMapIndex getMipBase() const { return MipMapIndex::make(mipmapOffset); }
   void setMipCount(uint8_t u) { mipmapRange = u - MIPMAP_RANGE_OFFSET; }

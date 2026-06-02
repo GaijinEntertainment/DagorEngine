@@ -10,11 +10,11 @@
 #include <workCycle/dag_workCycle.h>
 #include <drv/3d/dag_info.h>
 #include <render/priorityManagedShadervar.h>
+#include "filmGrain.h"
 
 #define CINEMATIC_MODE_SHADERVARS  \
   VAR(cinematic_mode_on)           \
   VAR(chromatic_aberration_params) \
-  VAR(film_grain_params)           \
   VAR(vignette_strength)           \
   VAR(flare_halo_space_mul)        \
   VAR(flare_ghosts_space_mul)      \
@@ -39,8 +39,8 @@ CinematicMode::~CinematicMode()
   dagor_set_game_act_rate(getOrigActRate());
   ShaderGlobal::set_int(cinematic_mode_onVarId, 0);
   PriorityShadervar::clear(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY);
-  PriorityShadervar::clear(film_grain_paramsVarId, FILM_GRAIN_PRIORITY);
   PriorityShadervar::clear(vignette_strengthVarId, VIGNETTE_PRIORITY);
+  FilmGrainLutHolder::disableExternalModifier();
   reset_default_color_grading();
   videoEncoder.stop();
   videoEncoder.shutdown();
@@ -59,10 +59,7 @@ void CinematicMode::setChromaticAberration(Point3 chromatic_aberration)
   PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
 }
 
-void CinematicMode::setFilmGrain(Point3 film_grain)
-{
-  PriorityShadervar::set_float4(film_grain_paramsVarId, FILM_GRAIN_PRIORITY, Point4::xyz0(film_grain));
-}
+void CinematicMode::setFilmGrain(Point4 film_grain) { FilmGrainLutHolder::enableExternalModifier(film_grain); }
 
 void CinematicMode::setFps(int fps) { settings.videoSettings.fps = fps; }
 

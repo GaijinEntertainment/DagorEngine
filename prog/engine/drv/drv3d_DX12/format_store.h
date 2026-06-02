@@ -11,27 +11,39 @@
 namespace drv3d_dx12
 {
 // stores formats and offers some utility members
-BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
-  enum
+struct FormatStore
+{
+  static constexpr uint32_t create_flags_format_shift = 24;
+  // one additional entry for the default
+  static constexpr uint32_t max_format_count =
+    (TEXFMT_LAST_DEPTH >> create_flags_format_shift) - (TEXFMT_A2R10G10B10 >> create_flags_format_shift) + 1 + 1;
+  static constexpr uint32_t bits_format = BitsNeeded<max_format_count>::VALUE;
+  static constexpr uint32_t bits = bits_format + 2;
+  static_assert(bits <= sizeof(uint8_t) * 8);
+
+  union
   {
-    CREATE_FLAGS_FORMAT_SHIFT = 24,
-    // one additional entry for the default
-    MAX_FORMAT_COUNT = (TEXFMT_LAST_DEPTH >> CREATE_FLAGS_FORMAT_SHIFT) - (TEXFMT_A2R10G10B10 >> CREATE_FLAGS_FORMAT_SHIFT) + 1 + 1,
-    BITS_FORMAT = BitsNeeded<MAX_FORMAT_COUNT>::VALUE,
-    BITS = BITS_FORMAT + 2
+    struct
+    {
+      uint8_t linearFormat : bits_format;
+      uint8_t srgbWrite : 1;
+      uint8_t srgbRead : 1;
+    };
+    uint8_t index = 0;
   };
-  ADD_BITFIELD_MEMBER(srgbRead, BITS_FORMAT + 1, 1)
-  ADD_BITFIELD_MEMBER(srgbWrite, BITS_FORMAT, 1)
-  ADD_BITFIELD_MEMBER(linearFormat, 0, BITS_FORMAT)
-  ADD_BITFIELD_MEMBER(index, 0, BITS)
 
-  BEGIN_BITFIELD_TYPE(CreateFlagFormat, uint32_t)
-    ADD_BITFIELD_MEMBER(format, 24, 8)
-    ADD_BITFIELD_MEMBER(srgbRead, 22, 1)
-    ADD_BITFIELD_MEMBER(srgbWrite, 21, 1)
-  END_BITFIELD_TYPE()
+  struct CreateFlagFormat
+  {
+    uint32_t value = 0;
 
-  FormatStore(DXGI_FORMAT fmt) = delete;
+    uint32_t getLinearFormat() const { return (value & TEXFMT_MASK) >> create_flags_format_shift; }
+    bool isSrgbRead() const { return 0 != (value & TEXCF_SRGBREAD); }
+    bool isSrgbWrite() const { return 0 != (value & TEXCF_SRGBWRITE); }
+
+    void setLinearFormat(uint32_t fmt) { value = (value & ~TEXFMT_MASK) | (fmt << create_flags_format_shift); }
+    void setSrgbRead(bool enable) { value = enable ? (value | TEXCF_SRGBREAD) : (value & ~TEXCF_SRGBREAD); }
+    void setSrgbWrite(bool enable) { value = enable ? (value | TEXCF_SRGBWRITE) : (value & ~TEXCF_SRGBWRITE); }
+  };
   // only valid to call if fmt was tested with canBeStored
   static FormatStore fromDXGIFormat(DXGI_FORMAT fmt);
   static FormatStore fromDXGIDepthFormat(DXGI_FORMAT fmt);
@@ -62,55 +74,55 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   }
   void setFromFlagTexFlags(uint32_t flags)
   {
-    CreateFlagFormat fmt(flags);
-    linearFormat = fmt.format;
-    srgbRead = fmt.srgbRead;
-    srgbWrite = fmt.srgbWrite;
+    CreateFlagFormat fmt{flags};
+    linearFormat = fmt.getLinearFormat();
+    srgbRead = fmt.isSrgbRead();
+    srgbWrite = fmt.isSrgbWrite();
   }
   uint32_t asTexFlags() const
   {
     CreateFlagFormat fmt;
-    fmt.format = linearFormat;
-    fmt.srgbRead = srgbRead;
-    fmt.srgbWrite = srgbWrite;
-    return fmt.wrapper.value;
+    fmt.setLinearFormat(linearFormat);
+    fmt.setSrgbRead(srgbRead);
+    fmt.setSrgbWrite(srgbWrite);
+    return fmt.value;
   }
   bool isSampledAsFloat() const
   {
     switch (linearFormat)
     {
-      case TEXFMT_DEFAULT >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A2R10G10B10 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A2B10G10R10 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A16B16G16R16 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A16B16G16R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A32B32G32R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_G16R16 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_G16R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_G32R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DXT1 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DXT3 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DXT5 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_L16 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A8 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R8 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A1R5G5B5 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A4R4G4B4 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R5G6B5 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A16B16G16R16S >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_ATI1N >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_ATI2N >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R8G8B8A8 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R11G11B10F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R9G9B9E5 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R8G8 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R8G8S >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DEPTH24 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DEPTH16 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DEPTH32 >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_DEPTH32_S8 >> CREATE_FLAGS_FORMAT_SHIFT: return true;
+      case TEXFMT_DEFAULT >> create_flags_format_shift:
+      case TEXFMT_A2R10G10B10 >> create_flags_format_shift:
+      case TEXFMT_A2B10G10R10 >> create_flags_format_shift:
+      case TEXFMT_A16B16G16R16 >> create_flags_format_shift:
+      case TEXFMT_A16B16G16R16F >> create_flags_format_shift:
+      case TEXFMT_A32B32G32R32F >> create_flags_format_shift:
+      case TEXFMT_G16R16 >> create_flags_format_shift:
+      case TEXFMT_G16R16F >> create_flags_format_shift:
+      case TEXFMT_G32R32F >> create_flags_format_shift:
+      case TEXFMT_R16F >> create_flags_format_shift:
+      case TEXFMT_R32F >> create_flags_format_shift:
+      case TEXFMT_DXT1 >> create_flags_format_shift:
+      case TEXFMT_DXT3 >> create_flags_format_shift:
+      case TEXFMT_DXT5 >> create_flags_format_shift:
+      case TEXFMT_L16 >> create_flags_format_shift:
+      case TEXFMT_A8 >> create_flags_format_shift:
+      case TEXFMT_R8 >> create_flags_format_shift:
+      case TEXFMT_A1R5G5B5 >> create_flags_format_shift:
+      case TEXFMT_A4R4G4B4 >> create_flags_format_shift:
+      case TEXFMT_R5G6B5 >> create_flags_format_shift:
+      case TEXFMT_A16B16G16R16S >> create_flags_format_shift:
+      case TEXFMT_ATI1N >> create_flags_format_shift:
+      case TEXFMT_ATI2N >> create_flags_format_shift:
+      case TEXFMT_R8G8B8A8 >> create_flags_format_shift:
+      case TEXFMT_R11G11B10F >> create_flags_format_shift:
+      case TEXFMT_R9G9B9E5 >> create_flags_format_shift:
+      case TEXFMT_R8G8 >> create_flags_format_shift:
+      case TEXFMT_R8G8S >> create_flags_format_shift:
+      case TEXFMT_DEPTH24 >> create_flags_format_shift:
+      case TEXFMT_DEPTH16 >> create_flags_format_shift:
+      case TEXFMT_DEPTH32 >> create_flags_format_shift:
+      case TEXFMT_DEPTH32_S8 >> create_flags_format_shift: return true;
     }
     return false;
   }
@@ -118,14 +130,14 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   {
     switch (linearFormat)
     {
-      case TEXFMT_A16B16G16R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_A32B32G32R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_G16R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_G32R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R16F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R32F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R11G11B10F >> CREATE_FLAGS_FORMAT_SHIFT:
-      case TEXFMT_R9G9B9E5 >> CREATE_FLAGS_FORMAT_SHIFT: return true;
+      case TEXFMT_A16B16G16R16F >> create_flags_format_shift:
+      case TEXFMT_A32B32G32R32F >> create_flags_format_shift:
+      case TEXFMT_G16R16F >> create_flags_format_shift:
+      case TEXFMT_G32R32F >> create_flags_format_shift:
+      case TEXFMT_R16F >> create_flags_format_shift:
+      case TEXFMT_R32F >> create_flags_format_shift:
+      case TEXFMT_R11G11B10F >> create_flags_format_shift:
+      case TEXFMT_R9G9B9E5 >> create_flags_format_shift: return true;
       default: return false;
     }
   }
@@ -136,12 +148,12 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   bool isStencil() const;
   bool isBlockCompressed() const;
   uint32_t getBytesPerPixelBlock(uint32_t *block_x = NULL, uint32_t *block_y = NULL) const;
-  uint32_t getBytesPerPixelBlockPerPlane(uint32_t * block_x, uint32_t * block_y, uint32_t plane_index) const;
+  uint32_t getBytesPerPixelBlockPerPlane(uint32_t *block_x, uint32_t *block_y, uint32_t plane_index) const;
   template <bool use_for_read>
   const char *getNameString() const;
   // returns true if the format can be represented with this storage
   static bool canBeStored(DXGI_FORMAT fmt);
-  static void configureFormatTable(ID3D12Device * device, uint32_t vendor = 0);
+  static void configureFormatTable(ID3D12Device *device, uint32_t vendor = 0);
   FormatPlaneCount getPlanes() const;
   uint32_t getChannelMask() const;
   // isSupported section
@@ -165,7 +177,7 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   int32_t getMaxSampleCount() const;
   // returns true if a format can be mem copied by the GPU
   bool isCopyConvertible(FormatStore other) const;
-END_BITFIELD_TYPE()
+};
 inline bool operator==(FormatStore l, FormatStore r) { return l.index == r.index; }
 inline bool operator!=(FormatStore l, FormatStore r) { return l.index != r.index; }
 } // namespace drv3d_dx12

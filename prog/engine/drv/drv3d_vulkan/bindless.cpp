@@ -6,11 +6,13 @@
 #include "image_resource.h"
 #include "texture.h"
 
+#include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_d3dResource.h>
 #include <util/dag_globDef.h>
 #include "free_list_utils.h"
 
 #include <debug/dag_assert.h>
+#include <debug/dag_fatal.h>
 #include <vulkan_api.h>
 
 #include "globals.h"
@@ -80,6 +82,13 @@ uint32_t BindlessManager::allocateBindlessResourceRange(D3DResourceType type, ui
   if (range.empty())
   {
     auto r = size[slotIdx];
+    if (r + count > ::bindless::MAX_RESOURCE_INDEX_COUNT)
+    {
+      D3D_CONTRACT_ERROR("Vulkan: Out of bindless slots, asked for %u while limit is %u and %u is already allocated", count,
+        ::bindless::MAX_RESOURCE_INDEX_COUNT, r);
+      DAG_FATAL("Vulkan: Critical D3D contract violation, out of bindless slots, can not continue");
+      return 0;
+    }
     size[slotIdx] += count;
     return r;
   }
@@ -87,35 +96,6 @@ uint32_t BindlessManager::allocateBindlessResourceRange(D3DResourceType type, ui
   {
     return range.front();
   }
-}
-
-uint32_t BindlessManager::resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t currentCount, uint32_t newCount)
-{
-  if (newCount == currentCount)
-  {
-    return index;
-  }
-
-  uint32_t slotIdx = resTypeToSlotIdx(type);
-  uint32_t rangeEnd = index + currentCount;
-
-  WinAutoLock lock(rangeMutexes[slotIdx]);
-  if (rangeEnd == size[slotIdx])
-  {
-    // the range is in the end of the heap, so we just update the heap size
-    size[slotIdx] = index + newCount;
-    return index;
-  }
-  if (free_list_try_resize(freeSlotRanges[slotIdx], make_value_range(index, currentCount), newCount))
-  {
-    return index;
-  }
-  // we are unable to expand the resource range, so we have to reallocate elsewhere and copy the existing descriptors :/
-  uint32_t newIndex = allocateBindlessResourceRange(type, newCount);
-  Globals::ctx.copyBindlessDescriptors(type, index, newIndex, currentCount);
-  // cleanup later to avoid mixing up old and new slot updates on same frame
-  queueFreeBindlessResourceRange(type, index, currentCount);
-  return newIndex;
 }
 
 void BindlessManager::queueFreeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count)
@@ -618,60 +598,6 @@ void BindlessManagerBackend::copyDescriptors(uint32_t set_idx, uint32_t ring_src
 
   auto &vulkan_device = Globals::VK::dev;
   vulkan_device.vkUpdateDescriptorSets(vulkan_device.get(), 0, nullptr, 1, &copyDescriptorSet);
-}
-
-void BindlessManagerBackend::copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count)
-{
-  uint32_t setIdx = resTypeToSetIdx(type);
-  copyDescriptors(setIdx, actualSetId, actualSetId, src, dst, count);
-
-  {
-    TIME_PROFILE(vulkan_copy_bindless_slots);
-    if (type != D3DResourceType::SBUF)
-    {
-      for (uint32_t i = 0; i < count; ++i)
-      {
-        auto srcSlot = imageSlots.find(src + i);
-        if (srcSlot == imageSlots.end())
-          continue;
-        auto dstSlot = imageSlots.find(dst + i);
-        if (dstSlot != imageSlots.end())
-        {
-          G_ASSERTF(!dstSlot->second.img,
-            "vulkan: bindless slot %u most be empty when used as dst for %u slot copy, src slot obj %p:%s, dst slot obj %p:%s",
-            dst + i, src + i, srcSlot->second.img, srcSlot->second.img ? srcSlot->second.img->getDebugName() : "<none>",
-            dstSlot->second.img, dstSlot->second.img ? dstSlot->second.img->getDebugName() : "<none>");
-        }
-        BindlessImageSlot srcSlotValue = srcSlot->second;
-        if (srcSlotValue.img)
-          srcSlotValue.img->addBindlessSlot(dst + i);
-        imageSlots[dst + i] = srcSlotValue;
-      }
-    }
-    else
-    {
-      for (uint32_t i = 0; i < count; ++i)
-      {
-        auto srcSlot = bufferSlots.find(src + i);
-        if (srcSlot == bufferSlots.end())
-          continue;
-        auto dstSlot = bufferSlots.find(dst + i);
-        if (dstSlot != bufferSlots.end())
-        {
-          G_ASSERTF(!dstSlot->second,
-            "vulkan: bindless slot %u most be empty when used as dst for %u slot copy, src slot obj %p:%s, dst slot obj %p:%s",
-            dst + i, src + i, srcSlot->second, srcSlot->second ? srcSlot->second->getDebugName() : "<none>", dstSlot->second,
-            dstSlot->second ? dstSlot->second->getDebugName() : "<none>");
-        }
-        Buffer *srcSlotValue = srcSlot->second;
-        if (srcSlotValue)
-          srcSlotValue->addBindlessSlot(dst + i);
-        bufferSlots[dst + i] = srcSlotValue;
-      }
-    }
-  }
-
-  markDirtyRange(setIdx, dst, count);
 }
 
 void BindlessManagerBackend::bindSets(VkPipelineBindPoint bindPoint, VulkanPipelineLayoutHandle pipelineLayout, uint8_t sets_to_use)

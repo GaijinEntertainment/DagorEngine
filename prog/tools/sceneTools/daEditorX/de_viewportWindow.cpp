@@ -81,5 +81,6 @@ BaseTexture *DagorEdViewportWindow::getDepthBuffer()
 
 void DagorEdViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance)
 {
+  G_UNUSED(include_camera_distance);
   ViewportWindow::fillStatSettingsDialog(dialog, false);
 }

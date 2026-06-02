@@ -21,6 +21,7 @@
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 #include <util/dag_globDef.h>
+#include <util/dag_strUtil.h>
 #include <workCycle/dag_workCycle.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_unicode.h>
@@ -538,6 +539,8 @@ void CoolConsole::runHelp(const char *command)
 //==============================================================================
 void CoolConsole::runCmdList(const char *filter)
 {
+  eastl::string_view filterStringView(filter);
+
   addTextToLog("Registered commands:", PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
 
   console::CommandList mlist;
@@ -546,7 +549,7 @@ void CoolConsole::runCmdList(const char *filter)
   for (int i = 0; i < mlist.size(); ++i)
   {
     const console::CommandStruct &cmd = mlist[i];
-    if (!dd_stristr(cmd.command, filter))
+    if (!dd_stristr(cmd.command.c_str(), filterStringView))
       continue;
 
     addTextToLog(cmd.command, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
@@ -666,7 +669,7 @@ void CoolConsole::fillAutocompletePopup(bool show_on_empty_input)
     console::CommandList commandList;
     get_sorted_command_list_wihout_duplicates(commandList);
     for (const console::CommandStruct &cmd : commandList)
-      if (dd_stristr(cmd.command, commandInputText))
+      if (dd_stristr(cmd.command.c_str(), to_string_view(commandInputText)))
         autocomplete_popup->addItem(cmd.command, cmd.description);
   }
 

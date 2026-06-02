@@ -12,6 +12,7 @@
 #include <render/world/cameraViewVisibilityManager.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <scene/dag_occlusion.h>
+#include <render/dynmodelRenderer/animcharDisintegration.h>
 #include "frameGraphNodes.h"
 
 dafg::NodeHandle makeDestructablesDepthPrepassNode()
@@ -28,7 +29,8 @@ dafg::NodeHandle makeDestructablesDepthPrepassNode()
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
       Occlusion *occlusion = camera.jobsMgr->getOcclusion();
-      destructables::render_depth_prepass(camera.viewItm.getcol(3), camera.viewTm, camera.jitterFrustum, occlusion);
+      g_entity_mgr->broadcastEventImmediate(animchar_disintegration::RenderDisintegrationDepthPrepassEvent(camera.viewTm,
+        camera.jitterProjTm, camera.viewItm, camera.jitterFrustum, occlusion));
     };
   });
 }

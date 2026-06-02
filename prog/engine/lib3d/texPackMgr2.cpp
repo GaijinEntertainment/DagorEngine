@@ -1491,7 +1491,28 @@ bool DDSxTexturePack2::Factory::performDelayedLoad(int prio)
   SmallTab<FastSeqReader::Range, InimemAlloc> &rangesBuf = rangesBufP[prio];
 
   FATAL_CONTEXT_AUTO_SCOPE(pack.file->name);
-  if (void *handle = pack.file->getHandle())
+  void *handle = pack.file->getHandle();
+
+#if _TARGET_ANDROID
+  if (!handle)
+  {
+    char errs[256];
+    int errn = df_get_last_error(errs, sizeof(errs));
+    // Retry on transient errors (e.g. EACCES/ENOENT from FUSE on Android, EMFILE spikes)
+    for (int attempt = 1; attempt <= 3 && errn != 0; ++attempt)
+    {
+      logwarn("Can't open TexPack '%s', error %d(%s), retrying (%d/3)...", pack.file->name, errn, errs, attempt);
+      sleep_msec(10 * attempt);
+      pack.file->closeHandle();
+      handle = pack.file->getHandle();
+      if (handle)
+        break;
+      errn = df_get_last_error(errs, sizeof(errs));
+    }
+  }
+#endif
+
+  if (handle)
     fastSeqCrd->assignFile(handle, pack.file->baseOfs, pack.file->getSize(), pack.file->packName, pack.file->chunk, 32);
   else
     DAG_FATAL("Can't open TexPack '%s'", pack.file->name);

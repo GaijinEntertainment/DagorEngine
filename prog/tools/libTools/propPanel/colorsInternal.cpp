@@ -63,9 +63,10 @@ ColorOverride colors[ColorOverride::COUNT] = {
   ColorOverride("EditBoxNonDefaultValueBackground", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxIndicatorBackground", ImGuiCol_FrameBg),
   ColorOverride("AssetBrowserItemBackgroundHovered", ImGuiCol_COUNT + 1),
-  ColorOverride("AssetBrowserItemBackgroundSelected", ImGuiCol_COUNT + 1)};
+  ColorOverride("AssetBrowserItemBackgroundSelected", ImGuiCol_COUNT + 1),
+  ColorOverride("KeyboardShortcutsItemNonDefault", ImGuiCol_COUNT + 1)};
 // clang-format on
-G_STATIC_ASSERT(ColorOverride::COUNT == 56);
+G_STATIC_ASSERT(ColorOverride::COUNT == 57);
 
 void applyClassicOverrides()
 {
@@ -123,6 +124,7 @@ void applyClassicOverrides()
   colors[ColorOverride::EDIT_BOX_INDICATOR_BACKGROUND].setColorU32(IM_COL32(0, 255, 0, 255));
   colors[ColorOverride::ASSET_BROWSER_ITEM_BACKGROUND_HOVERED].setColorU32(IM_COL32(229, 243, 255, 255));
   colors[ColorOverride::ASSET_BROWSER_ITEM_BACKGROUND_SELECTED].setColorU32(IM_COL32(179, 209, 255, 255));
+  colors[ColorOverride::KEYBOARD_SHORTCUTS_ITEM_NON_DEFAULT].setColorU32(IM_COL32(236, 189, 131, 255));
 }
 
 static float debugFlashColorOverrideTime = 0.0f;

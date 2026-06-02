@@ -41,7 +41,7 @@ public:
   void setScaleTm(const TMatrix &scaleTm);
 
   // Create instance.
-  void startRagdoll(int interact_layer = 1, int interact_mask = 0xffffffff, const GeomNodeTree *tree = nullptr);
+  void startRagdoll(int interact_layer = 1, int interact_mask = 0xffffffff, const GeomNodeTree *tree = nullptr, float scale = 1.f);
 
   // Destroy instance, removing physical bodies from physical world.
   void endRagdoll();

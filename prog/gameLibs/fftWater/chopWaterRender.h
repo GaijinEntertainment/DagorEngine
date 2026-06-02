@@ -44,8 +44,8 @@ public:
   void calcWaveHeight(float &out_max_wave_height, float &out_significant_wave_height);
 
   void render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
-    const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon, IWaterDecalsRenderHelper *decals_renderer = NULL,
-    fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER);
+    Occlusion *occlusion, const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon,
+    IWaterDecalsRenderHelper *decals_renderer = NULL, fft_water::RenderMode render_mode = fft_water::RenderMode::WATER_SHADER);
 
   void setWaterDim(int dim_bits);
   int getGeomQuality() const { return geomQuality; }

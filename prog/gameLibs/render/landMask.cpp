@@ -275,8 +275,8 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
 
     d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{landColorTex.getTex2D(), 0}});
     d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
-    ShaderGlobal::set_texture(filterHmapInputVar, landHeightTex.getTex2D());
-    ShaderGlobal::set_texture(filterTypeInputVar, grassTypeTex.getTex2D());
+    ShaderGlobal::set_texture_unsafe(filterHmapInputVar, landHeightTex.getTex2D());
+    ShaderGlobal::set_texture_unsafe(filterTypeInputVar, grassTypeTex.getTex2D());
     filterRenderer->render();
 
     shaders::overrides::reset();
@@ -287,7 +287,7 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
       // blur grass mask
       d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{tmpMaskTex.getTex2D(), 0}});
       d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
-      ShaderGlobal::set_texture(filterMaskInputVar, landColorTex.getTex2D());
+      ShaderGlobal::set_texture_unsafe(filterMaskInputVar, landColorTex.getTex2D());
       blurRenderer->render();
       d3d::resource_barrier({tmpMaskTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
@@ -296,7 +296,7 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
 
       d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{landColorTex.getTex2D(), 0}});
       d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
-      ShaderGlobal::set_texture(shaderVars[SHV_TMP_GRASS_MASK], tmpMaskTex.getTex2D());
+      ShaderGlobal::set_texture_unsafe(shaderVars[SHV_TMP_GRASS_MASK], tmpMaskTex.getTex2D());
       copyMaskRenderer->render();
 
       shaders::overrides::reset();

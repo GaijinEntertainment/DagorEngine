@@ -703,13 +703,13 @@ void NodeExecutor::bindShaderVar(int bind_idx, const intermediate::Binding &bind
     case SHVT_TEXTURE:
     {
       BaseTexture *texPtr = binding.resource ? getTexture(*binding.resource, frameToGet) : nullptr;
-      ShaderGlobal::set_texture(bind_idx, texPtr);
+      ShaderGlobal::set_texture_unsafe(bind_idx, texPtr);
       break;
     }
     case SHVT_BUFFER:
     {
       Sbuffer *bufPtr = binding.resource ? getBuffer(*binding.resource, frameToGet) : nullptr;
-      ShaderGlobal::set_buffer(bind_idx, bufPtr);
+      ShaderGlobal::set_buffer_unsafe(bind_idx, bufPtr);
       break;
     }
     case SHVT_TLAS: logerr("daFG: set_tlas is not implemented yet"); break;

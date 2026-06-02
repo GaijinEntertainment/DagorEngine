@@ -21,7 +21,7 @@ const component_index_t *replicatedComponentsList(template_t t, uint32_t &cnt) c
 }
 bool isReplicatedComponent(template_t t, component_index_t cidx) const { return templates.isReplicatedComponent(t, cidx); }
 void forceServerEidGeneration(EntityId); // only for replication, create server eid on client
-static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return index | (gen << ENTITY_INDEX_BITS); }
+static inline entity_id_t make_eid(uint32_t index, uint32_t gen) { return (index << ENTITY_GENERATION_BITS) | gen; }
 
 void updateAllQueries()
 {
@@ -178,16 +178,16 @@ archetype_component_id componentIndexInEntityArchetype(EntityId eid, const Hashe
 struct alignas(size_t) EntityDesc // 64 bit.
 {
   archetype_t archetype = INVALID_ARCHETYPE;       // 16bit
-  chunk_type_t chunkId = 0;                        // 8 bit
-  uint8_t generation = 0;                          // 8 bit
   template_t template_id = INVALID_TEMPLATE_INDEX; // 16bit
-  id_in_chunk_type_t idInChunk = 0;                // 16bit
+  uint32_t chunkId : 8 = 0;
+  uint32_t generation : ENTITY_GENERATION_BITS = 0;
+  uint32_t idInChunk : ECS_MAX_CHUNK_ID_BITS = 0;
   void reset()
   {
     template_id = INVALID_TEMPLATE_INDEX;
     archetype = INVALID_ARCHETYPE;
 #if DAECS_EXTENSIVE_CHECKS
-    idInChunk = eastl::numeric_limits<id_in_chunk_type_t>::max();
+    idInChunk = (1u << ECS_MAX_CHUNK_ID_BITS) - 1;
 #endif
   }
 };

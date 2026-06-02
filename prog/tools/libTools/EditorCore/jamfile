@@ -24,6 +24,7 @@ Sources =
   ec_camera_dlg.cpp
   ec_editorCommand.cpp
   ec_editorCommandSystem.cpp
+  ec_keyboardShortcutsPanel.cpp
   ec_geneditordata.cpp
   ec_hotkeyEditorContextMenu.cpp
   ec_imguiInitialization.cpp

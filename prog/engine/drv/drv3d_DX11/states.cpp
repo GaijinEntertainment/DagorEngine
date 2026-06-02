@@ -1271,12 +1271,6 @@ uint32_t d3d::allocate_bindless_resource_range(D3DResourceType, uint32_t)
   return 0;
 }
 
-uint32_t d3d::resize_bindless_resource_range(D3DResourceType, uint32_t, uint32_t, uint32_t)
-{
-  G_ASSERTF(false, "d3d::resize_bindless_resource_range called on API without support");
-  return 0;
-}
-
 void d3d::free_bindless_resource_range(D3DResourceType, uint32_t, uint32_t)
 {
   G_ASSERTF(false, "d3d::free_bindless_resource_range called on API without support");
@@ -1468,3 +1462,6 @@ void d3d::set_variable_rate_shading_texture(BaseTexture *)
 void d3d::set_stream_output_buffer(int, const StreamOutputBufferSetup &) {}
 
 void d3d::resource_barrier(const ResourceBarrierDesc &, GpuPipeline) {}
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &, BaseTexture *) {}
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &, Sbuffer *) {}
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem>, dag::ConstSpan<d3d::BufferBarrierBatchItem>) {}

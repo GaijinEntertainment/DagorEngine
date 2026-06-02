@@ -4,6 +4,7 @@
 #include <webui/httpserver.h>
 #include <webui/helpers.h>
 #include <webui/websocket/webSocketStream.h>
+#include <webui/editVarPlugin.h>
 #include <startup/dag_globalSettings.h>
 
 class WebUIAdapter : public IEditorService
@@ -28,6 +29,7 @@ public:
     webui::startup(&cfg);
     webui::init_ecsviewer_plugin();
     websocket::start(webSocketPort);
+    de3_webui_init();
   }
 
   ~WebUIAdapter() override

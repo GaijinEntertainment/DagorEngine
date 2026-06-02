@@ -15,6 +15,7 @@ float4 camera_base_offset = (0, 0, 0, 0);
 
 shader land_mesh//, land_mesh_combined
 {
+  assume allow_forced_in_editor = yes;
   if ((allow_triangle_size_debug == no && lmesh_triangle_size_debug == on) || (!hardware.dx12 && lmesh_triangle_size_debug == on))
   {
     dont_render;
@@ -86,15 +87,19 @@ shader land_mesh//, land_mesh_combined
     USE_PIXEL_TANGENT_SPACE()
   }
 
-  if (in_editor_assume == yes)
+  if (in_editor_assume == yes || use_editor_render)
   {
     (vs) {
-      globtm@f44 = globtm;
       world_local_x@f3 = world_local_x;
       world_local_y@f3 = world_local_y;
       world_local_z@f3 = world_local_z;
       world_local_pos@f3 = world_local_pos;
     }
+  }
+
+  if (in_editor_assume == yes)
+  {
+    (vs) { globtm@f44 = globtm; }
   }
   INIT_HARDCODED_WORLD_POS()
 
@@ -368,8 +373,8 @@ shader land_mesh//, land_mesh_combined
         float4 inpos = decode_pos_shader(inputpos);
         float4 pos = decode_pos(inpos);
         float3 worldPos = pos.xyz;
-  ##if in_editor_assume == yes
-        output.pos = mulPointTm(pos, globtm);
+  ##if in_editor_assume == yes || use_editor_render
+        output.pos = mulPointTm(pos.xyz, globtm);
         worldPos = pos.x * world_local_x + pos.y * world_local_y + pos.z * world_local_z + world_local_pos;
   ##else
         output.pos = mulPointTm(worldPos + camera_base_offset.xyz, globtm);

@@ -612,6 +612,7 @@ void LandscapeEntityObject::rePlaceAllEntitiesOnCollision(HmapLandObjectEditor &
       o->updateEntityPosition(false, false);
       o->resetCollisionIgnored();
     }
+    DAGORED2->restoreEditorColliders();
     EDITORCORE->setupColliderParams(0, BBox3());
   }
 

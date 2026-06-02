@@ -92,7 +92,7 @@ eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *leve
 
 dafg::NodeHandle makeCascadeShadowsNode();
 
-eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes();
+eastl::array<dafg::NodeHandle, 10> makeVolumetricLightsNodes();
 
 enum
 {
@@ -158,7 +158,6 @@ dafg::NodeHandle makeDepthWithTransparencyNode();
 dafg::NodeHandle makeDownsampleDepthWithTransparencyNode();
 
 resource_slot::NodeHandleWithSlotsAccess makePostFxNode();
-dafg::NodeHandle makeFilmGrainNode();
 
 dafg::NodeHandle makeUpsampleDepthForSceneDebugNode();
 dafg::NodeHandle makeShowSceneDebugNode();

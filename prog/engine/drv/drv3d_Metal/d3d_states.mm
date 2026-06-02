@@ -389,6 +389,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
       break;
     case Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED:
     case Drv3dCommand::FLUSH_STATES:
+    case Drv3dCommand::D3D_FLUSH_COMMAND_BUFFER:
       @autoreleasepool
       {
         render.acquireOwnership();

@@ -703,6 +703,11 @@ public:
   {
     logCommand<DX12_COMMAND_LOG_ITEM_TYPE::DISPATCH_MESH>(thread_group_count_x, thread_group_count_y, thread_group_count_z);
   }
+
+  void barrier(UINT num_groups, const D3D12_BARRIER_GROUP * /*groups*/)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::BARRIER>(num_groups /*, groups*/);
+  }
 #endif
 
 #if D3D_HAS_RAY_TRACING

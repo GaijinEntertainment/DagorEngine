@@ -55,7 +55,9 @@ struct IntersectedNodeAnnotation : das::ManagedStructureAnnotation<IntersectedNo
     addField<DAS_BIND_MANAGED_FIELD(normal)>("normal");
     addField<DAS_BIND_MANAGED_FIELD(intersectionT)>("intersectionT");
     addField<DAS_BIND_MANAGED_FIELD(intersectionPos)>("intersectionPos");
-    addField<DAS_BIND_MANAGED_FIELD(collisionNodeId)>("collisionNodeId");
+    // collisionNodeId is no longer a real field; it now decodes from triRef. Keep the das
+    // name stable so existing scripts (e.g. damage_decals, render_debug) need no rewrite.
+    addProperty<DAS_BIND_MANAGED_PROP(getCollisionNodeId)>("collisionNodeId", "getCollisionNodeId");
   }
 };
 
@@ -167,6 +169,9 @@ public:
 
     das::addExtern<DAS_BIND_FUN(apply_collres_node_flag_rules)>(*this, lib, "apply_collres_node_flag_rules",
       das::SideEffects::modifyExternal, "bind_dascript::apply_collres_node_flag_rules");
+
+    das::addExtern<DAS_BIND_FUN(clone_collres)>(*this, lib, "clone_collres", das::SideEffects::modifyExternal,
+      "bind_dascript::clone_collres");
 
     verifyAotReady();
   }

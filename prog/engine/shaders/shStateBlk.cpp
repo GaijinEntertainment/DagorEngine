@@ -133,7 +133,7 @@ bool shaders_internal::reload_shaders_materials( //
           }
           else
           {
-            ShaderGlobal::set_texture(varNid, tex.tex);
+            ShaderGlobal::set_texture_unsafe(varNid, tex.tex);
           }
           break;
         };
@@ -146,7 +146,7 @@ bool shaders_internal::reload_shaders_materials( //
           }
           else
           {
-            ShaderGlobal::set_buffer(varNid, buf.buf);
+            ShaderGlobal::set_buffer_unsafe(varNid, buf.buf);
           }
           break;
         }

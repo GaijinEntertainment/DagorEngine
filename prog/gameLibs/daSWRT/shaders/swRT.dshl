@@ -50,7 +50,7 @@ hlsl (code) {
     fade = 1.f;
     return false;
   }
-  float get_project_defined_swrt_blend(float swrt_shadow, float external_shadow, float fade)
+  float get_project_defined_swrt_blend(float swrt_shadow, float fade)
   {
     return swrt_shadow;
   }
@@ -443,9 +443,13 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       if (any(pixelCoord > target_size.zw))
         return;
       uint startOfs = 0, endOfs = 0;
+##if shader == checkerboard_shadows_swrt_cs && !(hardware.scarlett || hardware.ps5)
       uint2 tileCoord = pixelCoord/uint(SWRT_TILE_SIZE);
+##else
+      uint2 tileCoord = gId;
+##endif
       #if !HW_RT_SHADOWS
-        uint address = tileCoord.x + tileCoord.y*(uint(uint(target_size.z)+1+SWRT_TILE_SIZE-1)/SWRT_TILE_SIZE);
+        uint address = tileCoord.x + tileCoord.y*(uint(uint(target_size.z)+1+SWRT_TILE_SIZE-1)/uint(SWRT_TILE_SIZE));
         #if LIMIT_AT_END
         uint2 leafRange = loadBuffer2(swrt_shadow_mask, address*8);
         startOfs = leafRange.x;
@@ -470,7 +474,6 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       {
         half3 wsNormal = normalize(half3(texelFetch(half_res_close_depth_normals, pixelCoord, 0).xyz) * 2.h - 1.h);
         half shadow_strength = saturate(dot(wsNormal, half3(swrt_dir_to_sun_basis[2].xyz))*2.h + sqrt(0.5h));
-        shadow_strength*=shadow_strength;
         if (shadow_strength <= 0)
         {
           WRITE_MASK(0);
@@ -481,12 +484,12 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       //if we first calculate full res shadows, than we can and should skip completely darkened
       float2 uv = pixelCoord*inv_target_size.xy + inv_target_size.zw;
       half4 shadows = (half4)combined_shadows.GatherRed(combined_shadows_samplerstate, uv);
-      if (all(shadows == 0))
+      bool allShadowed = all(shadows == 0);
+      if (allShadowed)
       {
         WRITE_MASK(0);
         return;
       }
-      float externalShadow = dot(shadows, 0.25f);
 
       float3 viewVect = getViewVecOptimized(uv);
       float w = linearize_z(rawDepth, zn_zfar.zw);
@@ -497,7 +500,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       float fade = 1.f;
       if (get_project_defined_swrt_fade_discard(cameraPos, fade))
       {
-        WRITE_MASK(externalShadow);
+        WRITE_MASK(1);
         return;
       }
 
@@ -510,7 +513,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         uint extraFlags = 0;
 
         bool shadowHit = !trace_ray(bvhMain, cameraPos.xyz, to_sun_dir, 0, 100000, w, groupMask, hitInfo, rayColor, translucentT, 1, extraFlags);
-        WRITE_MASK(get_project_defined_swrt_blend(shadowHit, externalShadow, fade));
+        WRITE_MASK(get_project_defined_swrt_blend(shadowHit, fade));
         return;
       }
       #endif
@@ -523,7 +526,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
       #endif
       );
 
-      WRITE_MASK(get_project_defined_swrt_blend(shadowHit, externalShadow, fade));
+      WRITE_MASK(get_project_defined_swrt_blend(shadowHit, fade));
       //swrt_shadow_target[pixelCoord] = shadowHit && !mask;
       //swrt_shadow_target[pixelCoord] = !shadowHit;
       //swrt_shadow_target[pixelCoord] = !mask;

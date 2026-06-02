@@ -96,23 +96,26 @@ struct StringTableAllocator
   uint8_t page_shift = DEFAULT_PAGE_SIZE_SHIFT;
   uint8_t max_page_shift = MAX_PAGE_SIZE_SHIFT;
   uint8_t padding = 0;
-  __forceinline void addDataRaw_(const char *name, size_t len)
-  {
-    if (DAGOR_UNLIKELY(head.left < len))
-      addPage((uint32_t)len);
-    memcpy(head.data.get() + head.used, name, len);
-  }
   uint32_t getCurrentHeadOffset() const
   {
     const uint32_t pagesCount = (uint32_t)pages.size();
     return (pagesCount << max_page_shift) + head.used;
   }
-  uint32_t addDataRaw(const char *name, size_t len)
+  char *addDataRawUninitialized(size_t len, uint32_t *ret = nullptr)
   {
-    addDataRaw_(name, len);
-    const uint32_t ret = getCurrentHeadOffset();
+    if (DAGOR_UNLIKELY(head.left < len))
+      addPage((uint32_t)len);
+    char *r = head.data.get() + head.used;
+    if (ret)
+      *ret = getCurrentHeadOffset();
     head.used += (uint32_t)len;
     head.left -= (uint32_t)len;
+    return r;
+  }
+  uint32_t addDataRaw(const char *name, size_t len)
+  {
+    uint32_t ret;
+    memcpy(addDataRawUninitialized(len, &ret), name, len);
     return ret;
   }
   const char *getDataRawUnsafe(uint32_t ofs, uint32_t &max_len) const // returns pointer to data, if ofs was previously returned by

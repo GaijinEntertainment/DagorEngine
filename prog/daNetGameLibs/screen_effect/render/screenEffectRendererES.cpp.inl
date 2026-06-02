@@ -132,14 +132,14 @@ static void screen_effect_node_enable_es(const ecs::Event &, resource_slot::Node
       registry.createTexture2d(slotsState.resourceToCreateFor("postfx_input_slot"),
         {TEXFMT_R11G11B10F | TEXCF_RTARGET, registry.getResolution<2>("post_fx")});
       registry.requestRenderPass().color({slotsState.resourceToCreateFor("postfx_input_slot")});
-      registry.readTexture(slotsState.resourceToReadFrom("postfx_input_slot")).atStage(dafg::Stage::PS).bindToShaderVar("frame_tex");
-      registry.read("postfx_input_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("frame_tex_samplerstate");
-      registry.read("downsampled_depth_with_late_water").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_depth");
+      registry.bindTexPs(slotsState.resourceToReadFrom("postfx_input_slot"), "frame_tex");
+      registry.bindBlob("postfx_input_sampler", "frame_tex_samplerstate");
+      registry.bindTexPs("downsampled_depth_with_late_water", "downsampled_depth");
       registry.create("downsampled_depth_with_late_water_sampler")
-        .blob<d3d::SamplerHandle>(d3d::request_sampler({}))
+        .blob(d3d::request_sampler({}))
         .bindToShaderVar("downsampled_depth_samplerstate");
-      registry.read("prev_frame_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar();
-      registry.read("prev_frame_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate");
+      registry.bindTexPs("prev_frame_tex", "prev_frame_tex");
+      registry.bindBlob("prev_frame_sampler", "prev_frame_tex_samplerstate");
 
       return [shader = PostFxRenderer("screen_effect")] { shader.render(); };
     });

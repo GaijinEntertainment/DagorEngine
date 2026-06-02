@@ -90,6 +90,7 @@ private:
   bool layoutBarriers = false;
   bool layoutIR = false;
   bool compactView = true;
+  bool updateNeeded = true;
 
   dag::Vector<ResourcePlacementEntry> resourcePlacemantEntries;
   dag::Vector<ResourceBarrierEntry> resourceBarrierEntries;

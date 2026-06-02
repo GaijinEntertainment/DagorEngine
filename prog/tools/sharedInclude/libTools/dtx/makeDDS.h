@@ -83,6 +83,12 @@ inline bool create_dds_header(void *data, int size, int w, int h, int bpp, int m
   return true;
 }
 
+inline bool is_srgb_capable_d3d_fmt(int fmt)
+{
+  return fmt == D3DFMT_A8R8G8B8 || fmt == D3DFMT_X8R8G8B8 || fmt == D3DFMT_A8B8G8R8 || fmt == D3DFMT_DXT1 || fmt == D3DFMT_DXT3 ||
+         fmt == D3DFMT_DXT5 || fmt == _MAKE4C('BC7 ') || fmt == _MAKE4C('ASTC') || fmt == _MAKE4C('AST4') || fmt == _MAKE4C('AST8');
+}
+
 inline bool is_srgb_capable_fmt(const char *fmt)
 {
   static const char *const srgbFmts[] = {"ARGB", "RGB", "DXT1", "DXT1a", "DXT3", "DXT5", "DXT1|DXT5", "DXT1|BC7", "BC7"};

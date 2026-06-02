@@ -29,7 +29,9 @@ public:
   void shutdown()
   {
     StdGuiRender::close_render();
-    StdGuiRender::close_fonts();
+
+    if (!fontsBlkFilename.empty())
+      StdGuiRender::close_fonts();
   }
 };
 static InitOnDemand<GuiBaseRestartProc> gui_base_rproc;

@@ -46,6 +46,9 @@
 CONSOLE_INT_VAL("render", bvh_riGen_budget_us, 10000, 100, 10000);
 CONSOLE_BOOL_VAL("render", bvh_disable_parallel_instance_processing_finish, false);
 
+CONSOLE_BOOL_VAL("render", bvh_disable_rigen_meta_prebuild, false);
+CONSOLE_BOOL_VAL("render", bvh_disable_dynrend_meta_prebuild, false);
+
 static eastl::array<int, 3> per_frame_blas_model_budget = {10, 15, 30};
 static eastl::array<int, 3> per_frame_compaction_budget = {20, 30, 60};
 
@@ -426,6 +429,143 @@ static constexpr int COPY_DONE_VALUE = -666;
 static dag::AtomicInteger<int> jobGroupReleaseCounter;
 static ParallelFinishResult jobGroupParallelFinishResult = {false, false};
 
+static class PrebuildMetaJob : public cpujobs::IJob
+{
+  enum class PrebuildMetaJobState
+  {
+    IDLE,
+    PREPARED,
+    RUNNING,
+  };
+  ContextId contextId;
+  PrebuildMetaJobState state = PrebuildMetaJobState::IDLE;
+  Point3 cameraPos;
+  Point3 lightDir;
+  TMatrix itm;
+  TMatrix4 projTm;
+
+public:
+  const char *getJobName(bool &) const override { return "PrebuildMetaJob"; }
+
+  void doJob() override
+  {
+    auto vLightDir = light_direction_for_animation(lightDir);
+    auto itmRelative = itm;
+    itmRelative.setcol(3, Point3::ZERO);
+    auto frustumRelative = Frustum(TMatrix4(orthonormalized_inverse(itmRelative)) * projTm);
+    auto frustumAbsolute = Frustum(TMatrix4(orthonormalized_inverse(itm)) * projTm);
+
+    auto processInstance = [&](Context::Instance &instance, const Frustum &frustum, vec4f_const viewPos) {
+      if (contextId->halfBakedObjects.count(instance.objectId))
+        return;
+      auto iter = contextId->objects.find(instance.objectId);
+      if (iter == contextId->objects.end())
+        return;
+      auto &object = iter->second;
+      if (!object.hasVertexProcessor)
+        return;
+
+      const auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
+      const auto baseMetaRegion = contextId->meshMetaAllocator.get(object.metaAllocId);
+      auto metaRegion = contextId->meshMetaAllocator.get(metaAllocId);
+
+      auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
+      const bool needsProcessing = [&]() {
+        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+        {
+          if (!mesh.vertexProcessor)
+            continue;
+          if (!ProcessorInstances::isVertexProcessorBatched(*mesh.vertexProcessor))
+            return false;
+          G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
+          if (animatedVertices.needAllocation())
+            return false;
+        }
+        return true;
+      }();
+      if (needsProcessing)
+      {
+        const bool stationary = instance.uniqueIsStationary;
+        const bool skipUpdate = instance.animIndex > -1 ? !contextId->riGenUpdateSlots[instance.animIndex] : false;
+        bool needBlasBuild = false;
+        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+        {
+          if (!mesh.vertexProcessor)
+            continue;
+          process_meta(contextId, meta, mesh, needBlasBuild, instance, frustum, viewPos, vLightDir, animatedVertices, stationary,
+            skipUpdate, baseMeta);
+        }
+        instance.alreadyProcessed = true;
+        instance.needsBlasBuild = needBlasBuild;
+      }
+      else
+      {
+        instance.alreadyProcessed = false;
+        instance.needsBlasBuild = false;
+      }
+    };
+
+    auto vCameraPos = v_ldu_p3_safe(&cameraPos.x);
+    if (!bvh_disable_rigen_meta_prebuild)
+    {
+      TIME_PROFILE(rigen_meta_prepare);
+      OSSpinlockScopedLock objectsGuard(contextId->objectsLock);
+      OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock);
+      for (auto &instances : contextId->riGenInstances)
+        for (auto &instance : instances)
+          processInstance(instance, frustumAbsolute, vCameraPos);
+    }
+
+    if (!bvh_disable_dynrend_meta_prebuild)
+    {
+      TIME_PROFILE(dynrend_meta_prepare);
+      dyn::wait_dynrend_instances();
+      dyn::wait_animchar_instances();
+      OSSpinlockScopedLock objectsGuard(contextId->objectsLock);
+      OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock);
+      for (auto &instances : contextId->dynrendInstances)
+        for (auto &instance : instances.second)
+          processInstance(instance, frustumRelative, v_zero());
+    }
+  }
+
+  void wait()
+  {
+    if (!delay_sync)
+      return;
+    TIME_PROFILE(wait_rigen_cache_build)
+    threadpool::wait(this);
+    if (state == PrebuildMetaJobState::RUNNING)
+      state = PrebuildMetaJobState::IDLE;
+  }
+
+  void start()
+  {
+    if (!delay_sync)
+      return;
+    wait();
+    G_ASSERT_RETURN(state == PrebuildMetaJobState::PREPARED, );
+    state = PrebuildMetaJobState::RUNNING;
+    if (bvh_disable_rigen_meta_prebuild && bvh_disable_dynrend_meta_prebuild)
+      return;
+    threadpool::add(this, threadpool::JobPriority::PRIO_NORMAL);
+  }
+
+  void prepare(ContextId ctx_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &in_itm,
+    const TMatrix4 &in_projTm)
+  {
+    if (!delay_sync)
+      return;
+    wait();
+    contextId = ctx_id;
+    cameraPos = view_position;
+    lightDir = light_direction;
+    itm = in_itm;
+    projTm = in_projTm;
+    state = PrebuildMetaJobState::PREPARED;
+  }
+} prebuild_meta_job;
+
 enum class TargetFrame
 {
   Current,
@@ -533,6 +673,8 @@ static void on_parallel_jobs_finished(ContextId context_id)
     G_ASSERT(context_id->riExtraInstances[i].size() == context_id->riExtraInstanceData[i].size());
 
   TIME_PROFILE(on_parallel_jobs_finished)
+
+  parallel_instance_processing::prebuild_meta_job.start();
 
   if (on_parallel_jobs_finished_cb)
     on_parallel_jobs_finished_cb();
@@ -720,7 +862,11 @@ static struct BVHUploadMetaJob : public cpujobs::IJob
   {
     contextId = context_id;
 
-    int metaCount = contextId->meshMetaAllocator.size();
+    int metaCount;
+    {
+      OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock); // for safety, it should never block
+      metaCount = contextId->meshMetaAllocator.size();
+    }
 
     if (contextId->meshMeta && contextId->meshMeta->getNumElements() < metaCount)
       contextId->meshMeta.close();
@@ -733,6 +879,7 @@ static struct BVHUploadMetaJob : public cpujobs::IJob
   }
   void doJob() override
   {
+    OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock); // for safety, it should never block
     if (auto upload = lock_sbuffer<MeshMeta>(contextId->meshMeta.getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE))
     {
       auto dst = upload.get();
@@ -981,26 +1128,6 @@ bool has_features(ContextId context_id, uint32_t features)
   return context_id->has(features);
 }
 
-static void unbind_tlases()
-{
-  // The shadervars are optional, since this function might get called after switching to compatibility binary
-#if !_TARGET_C2
-  static int bvh_mainVarId = get_shader_variable_id("bvh_main", true);
-  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain", true);
-  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles", true);
-  ShaderGlobal::set_tlas(bvh_mainVarId, nullptr);
-  ShaderGlobal::set_tlas(bvh_terrainVarId, nullptr);
-  ShaderGlobal::set_tlas(bvh_particlesVarId, nullptr);
-#endif
-
-  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid", true);
-  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid", true);
-  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid", true);
-  ShaderGlobal::set_int(bvh_main_validVarId, 0);
-  ShaderGlobal::set_int(bvh_terrain_validVarId, 0);
-  ShaderGlobal::set_int(bvh_particles_validVarId, 0);
-}
-
 void teardown(ContextId &context_id)
 {
   if (context_id == InvalidContextId)
@@ -1031,8 +1158,6 @@ void teardown(ContextId &context_id)
   delete context_id;
 
   context_id = InvalidContextId;
-
-  unbind_tlases();
 }
 
 void start_frame()
@@ -1050,8 +1175,8 @@ void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transfor
     MeshMetaAllocator::INVALID_ALLOC_ID);
 }
 
-void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction,
-  const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
+void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
   dynrend::ContextId *dynrend_no_shadow_context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
   dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
 {
@@ -1092,6 +1217,7 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
   if (bvh_context_id->has(Features::AnyRI))
   {
     ri::wait_tidy_up_trees();
+    parallel_instance_processing::prebuild_meta_job.prepare(bvh_context_id, view_position, light_direction, itm, projTm);
     parallel_instance_processing::start_frame(bvh_context_id);
     ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
     ri::update_ri_extra_instances(bvh_context_id, view_position, bvh_frustum, view_frustum, light_direction, prio);
@@ -1099,22 +1225,22 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
   }
 }
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
-  RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio)
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
+  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, light_direction, bvh_frustum, view_frustum, dynrend_context_id,
+  update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, dynrend_context_id,
     dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, prio);
 }
 
 // daNetGame doesn't use dynrend, but these can be used to identify contexts in BVH
 static dynrend::ContextId bvh_dynrend_context = dynrend::ContextId{-1};
 static dynrend::ContextId bvh_dynrend_no_shadow_context = dynrend::ContextId{-2};
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
-  threadpool::JobPriority prio)
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, light_direction, bvh_frustum, view_frustum, &bvh_dynrend_context,
+  update_instances_impl(bvh_context_id, view_position, light_direction, itm, projTm, bvh_frustum, view_frustum, &bvh_dynrend_context,
     &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, prio);
 }
 
@@ -1248,253 +1374,256 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
   object.hasVertexProcessor =
     eastl::any_of(object_info.meshes.begin(), object_info.meshes.end(), [](const auto &m) { return m.vertexProcessor; });
   auto metaRegion = object.createAndGetMeta(context_id, object_info.meshes.size());
-  for (auto [info, mesh, meta] : zip(object_info.meshes, object.meshes, metaRegion))
   {
-    mesh.albedoTextureId = info.albedoTextureId;
-    mesh.alphaTextureId = info.alphaTextureId;
-    mesh.normalTextureId = info.normalTextureId;
-    mesh.extraTextureId = info.extraTextureId;
-    mesh.ppPositionTextureId = info.ppPositionTextureId;
-    mesh.ppDirectionTextureId = info.ppDirectionTextureId;
-    mesh.clothNoiseCombinedTexTextureId = info.clothNoiseCombinedTexTextureId;
-    mesh.indexCount = info.indexCount;
-    mesh.indexFormat = info.indices->getFlags() & SBCF_INDEX32 ? 4 : 2;
-    mesh.vertexCount = info.vertexCount;
-    mesh.vertexStride = info.vertexSize;
-    mesh.positionFormat = info.positionFormat;
-    mesh.positionOffset = info.positionOffset;
-    mesh.processedPositionFormat =
-      info.vertexProcessor ? info.vertexProcessor->getOutputPositionFormat(info.positionFormat) : info.positionFormat;
-    mesh.texcoordOffset = info.texcoordOffset;
-    mesh.texcoordFormat = info.texcoordFormat;
-    mesh.secTexcoordOffset = info.secTexcoordOffset;
-    mesh.normalOffset = info.normalOffset;
-    mesh.colorOffset = info.colorOffset;
-    mesh.indicesOffset = info.indicesOffset;
-    mesh.weightsOffset = info.weightsOffset;
-    mesh.vertexProcessor = info.vertexProcessor;
-    mesh.startIndex = info.startIndex;
-    mesh.baseVertex = info.baseVertex;
-    mesh.startVertex = info.startVertex;
-    mesh.posMul = info.posMul;
-    mesh.posAdd = info.posAdd;
-    mesh.boundingSphere = info.boundingSphere;
-    mesh.impostorHeightOffset = info.impostorHeightOffset;
-    mesh.impostorScale = info.impostorScale;
-    mesh.impostorSliceTm1 = info.impostorSliceTm1;
-    mesh.impostorSliceTm2 = info.impostorSliceTm2;
-    mesh.impostorSliceClippingLines1 = info.impostorSliceClippingLines1;
-    mesh.impostorSliceClippingLines2 = info.impostorSliceClippingLines2;
-    mesh.isHeliRotor = info.isHeliRotor;
-    mesh.hasColorMod = info.hasColorMod;
-    memcpy(mesh.impostorOffsets, info.impostorOffsets, sizeof(mesh.impostorOffsets));
-    if (info.isInterior)
-      mesh.materialType = MeshMeta::bvhMaterialInterior;
-    else if (info.isClipmap)
-      mesh.materialType = MeshMeta::bvhMaterialTerrain;
-    else if (info.isRiLandclass)
-      mesh.materialType = MeshMeta::bvhMaterialLandclass;
-    else if (info.isMonochrome)
-      mesh.materialType = MeshMeta::bvhMaterialMonochrome;
-    else
-      mesh.materialType = MeshMeta::bvhMaterialRendinst;
-
-    if (info.hasInstanceColor)
-      mesh.materialType |= MeshMeta::bvhInstanceColor;
-
-    if (info.isImpostor)
-      mesh.materialType |= MeshMeta::bvhMaterialImpostor;
-
-    if (info.alphaTest)
-      mesh.materialType |= MeshMeta::bvhMaterialAlphaTest;
-
-    if (info.painted)
+    OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock); // for safety, it should never block
+    for (auto [info, mesh, meta] : zip(object_info.meshes, object.meshes, metaRegion))
     {
-      mesh.materialType |= MeshMeta::bvhMaterialPainted;
-      if (info.paintData.y >= 1.0001f)
-        mesh.isPaintedHeightLocked = true;
+      mesh.albedoTextureId = info.albedoTextureId;
+      mesh.alphaTextureId = info.alphaTextureId;
+      mesh.normalTextureId = info.normalTextureId;
+      mesh.extraTextureId = info.extraTextureId;
+      mesh.ppPositionTextureId = info.ppPositionTextureId;
+      mesh.ppDirectionTextureId = info.ppDirectionTextureId;
+      mesh.clothNoiseCombinedTexTextureId = info.clothNoiseCombinedTexTextureId;
+      mesh.indexCount = info.indexCount;
+      mesh.indexFormat = info.indices->getFlags() & SBCF_INDEX32 ? 4 : 2;
+      mesh.vertexCount = info.vertexCount;
+      mesh.vertexStride = info.vertexSize;
+      mesh.positionFormat = info.positionFormat;
+      mesh.positionOffset = info.positionOffset;
+      mesh.processedPositionFormat =
+        info.vertexProcessor ? info.vertexProcessor->getOutputPositionFormat(info.positionFormat) : info.positionFormat;
+      mesh.texcoordOffset = info.texcoordOffset;
+      mesh.texcoordFormat = info.texcoordFormat;
+      mesh.secTexcoordOffset = info.secTexcoordOffset;
+      mesh.normalOffset = info.normalOffset;
+      mesh.colorOffset = info.colorOffset;
+      mesh.indicesOffset = info.indicesOffset;
+      mesh.weightsOffset = info.weightsOffset;
+      mesh.vertexProcessor = info.vertexProcessor;
+      mesh.startIndex = info.startIndex;
+      mesh.baseVertex = info.baseVertex;
+      mesh.startVertex = info.startVertex;
+      mesh.posMul = info.posMul;
+      mesh.posAdd = info.posAdd;
+      mesh.boundingSphere = info.boundingSphere;
+      mesh.impostorHeightOffset = info.impostorHeightOffset;
+      mesh.impostorScale = info.impostorScale;
+      mesh.impostorSliceTm1 = info.impostorSliceTm1;
+      mesh.impostorSliceTm2 = info.impostorSliceTm2;
+      mesh.impostorSliceClippingLines1 = info.impostorSliceClippingLines1;
+      mesh.impostorSliceClippingLines2 = info.impostorSliceClippingLines2;
+      mesh.isHeliRotor = info.isHeliRotor;
+      mesh.hasColorMod = info.hasColorMod;
+      memcpy(mesh.impostorOffsets, info.impostorOffsets, sizeof(mesh.impostorOffsets));
+      if (info.isInterior)
+        mesh.materialType = MeshMeta::bvhMaterialInterior;
+      else if (info.isClipmap)
+        mesh.materialType = MeshMeta::bvhMaterialTerrain;
+      else if (info.isRiLandclass)
+        mesh.materialType = MeshMeta::bvhMaterialLandclass;
+      else if (info.isMonochrome)
+        mesh.materialType = MeshMeta::bvhMaterialMonochrome;
+      else
+        mesh.materialType = MeshMeta::bvhMaterialRendinst;
+
+      if (info.hasInstanceColor)
+        mesh.materialType |= MeshMeta::bvhInstanceColor;
+
+      if (info.isImpostor)
+        mesh.materialType |= MeshMeta::bvhMaterialImpostor;
+
+      if (info.alphaTest)
+        mesh.materialType |= MeshMeta::bvhMaterialAlphaTest;
+
+      if (info.painted)
+      {
+        mesh.materialType |= MeshMeta::bvhMaterialPainted;
+        if (info.paintData.y >= 1.0001f)
+          mesh.isPaintedHeightLocked = true;
+      }
+
+      if (info.useAtlas)
+        mesh.materialType |= MeshMeta::bvhMaterialAtlas;
+
+      if (info.isCamo)
+        mesh.materialType |= MeshMeta::bvhMaterialCamo;
+
+      if (info.isMFD)
+        mesh.materialType |= MeshMeta::bvhMaterialMFD;
+
+      if (info.isLayered)
+        mesh.materialType |= MeshMeta::bvhMaterialLayered;
+
+      if (info.isEmissive)
+        mesh.materialType |= MeshMeta::bvhMaterialEmissive;
+
+      if (info.isPerlinLayered)
+        mesh.materialType |= MeshMeta::bvhMaterialPerlinLayered;
+
+      if (info.isEye)
+        mesh.materialType |= MeshMeta::bvhMaterialEye;
+
+      if (info.hasAnimcharDecals)
+        mesh.materialType |= MeshMeta::bvhMaterialAnimcharDecals;
+
+      meta.markInitialized();
+
+      meta.materialType = mesh.materialType;
+      meta.setIndexBitAndTexcoordFormat(mesh.indexFormat, info.texcoordFormat);
+      meta.texcoordOffset = info.texcoordOffset;
+      meta.normalOffset = info.normalOffset;
+      meta.colorOffset = info.colorOffset;
+      meta.vertexStride = info.vertexSize;
+      meta.startIndex = info.startIndex;
+      meta.startVertex = info.baseVertex;
+      meta.texcoordScale = info.texcoordScale;
+      meta.forceNonMetal = info.forceNonMetal;
+      meta.hasColorMod = info.hasColorMod;
+      meta.setIndexBufferIndex(0);
+      meta.setVertexBufferIndex(0);
+
+      meta.holdAlphaTex(context_id, mesh.alphaTextureId);
+      meta.holdNormalTex(context_id, mesh.normalTextureId);
+      meta.holdExtraTex(context_id, mesh.extraTextureId);
+      meta.holdAlbedoTex(context_id, mesh.albedoTextureId);
+
+      if (info.albedoTextureId != BAD_TEXTUREID)
+      {
+        mesh.albedoTextureLevel = D3dResManagerData::getLevDesc(info.albedoTextureId.index(), TQL_thumb);
+        mark_managed_tex_lfu(info.albedoTextureId, mesh.albedoTextureLevel);
+      }
+
+      if (info.ppPositionTextureId != BAD_TEXTUREID)
+        context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless);
+      if (info.ppDirectionTextureId != BAD_TEXTUREID)
+        context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless);
+      if (info.clothNoiseCombinedTexTextureId != BAD_TEXTUREID)
+        context_id->holdTexture(info.clothNoiseCombinedTexTextureId, mesh.clothNoiseCombinedTexBindless);
+
+      if (mesh.materialType & MeshMeta::bvhMaterialAlphaTest && info.alphaTextureId == BAD_TEXTUREID)
+      {
+        // If we need alpha testing, lets set the albedo texture to the alpha texture.
+        meta.alphaTextureIndex = meta.albedoTextureIndex;
+      }
+
+      if (info.painted || info.isEmissive)
+      {
+        meta.materialData1 = info.paintData;
+        meta.materialData2 = info.colorOverride;
+      }
+
+      if (info.useAtlas)
+      {
+        meta.atlasTileSize = uint32_t(float_to_half(info.atlasTileU)) | uint32_t(float_to_half(info.atlasTileV)) << 16;
+        meta.atlasFirstLastTile = info.atlasFirstTile | (info.atlasLastTile - info.atlasFirstTile + 1) << 16;
+      }
+
+      if (info.isCamo)
+        meta.atlasTileSize = info.secTexcoordOffset;
+
+      if (info.isLayered)
+      {
+        meta.layerData[0] = uint32_t(float_to_half(info.maskGammaStart)) | uint32_t(float_to_half(info.maskGammaEnd)) << 16;
+        meta.layerData[1] = uint32_t(float_to_half(info.maskTileU)) | uint32_t(float_to_half(info.maskTileV)) << 16;
+        meta.layerData[2] = uint32_t(float_to_half(info.detail1TileU)) | uint32_t(float_to_half(info.detail1TileV)) << 16;
+        meta.layerData[3] = uint32_t(float_to_half(info.detail2TileU)) | uint32_t(float_to_half(info.detail2TileV)) << 16;
+
+        // Mask texture is extraTextureAndSamplerIndex
+        // tile1diffuse is alphaTextureAndSamplerIndex
+        // tile2diffuse is normalTextureAndSamplerIndex
+
+        meta.texcoordScale = info.secTexcoordOffset;
+      }
+
+      if (info.isPerlinLayered)
+      {
+        meta.layerData[0] = info.detailsData1;
+        meta.layerData[1] = info.detailsData2;
+        meta.layerData[2] = info.detailsData3;
+        meta.layerData[3] = info.detailsData4;
+
+        meta.materialData1 = info.paintData;
+        meta.materialData2 = info.colorOverride;
+
+        meta.atlasTileSize = uint32_t(info.atlasTileU);
+        meta.atlasFirstLastTile = uint32_t(info.atlasTileV);
+
+        // Mask texture is extraTextureAndSamplerIndex
+        // tile1diffuse is alphaTextureAndSamplerIndex
+        // tile2diffuse is normalTextureAndSamplerIndex
+      }
+
+      if (info.isRiLandclass)
+      {
+        meta.materialData1 = info.landclassMapping;
+        meta.materialData2 = float4(eastl::bit_cast<float>(info.riLandclassIndex), 0.0, 0.0, 0.0);
+      }
+
+      if (info.isMonochrome)
+      {
+        meta.materialData1 = info.colorOverride;
+        meta.materialData2 = info.monochromeData;
+      }
+
+      // Always process indices/vertices to be independent from the streaming system.
+
+      G_ASSERT(mesh.indexFormat == 2);
+
+      int ibDwordCount = (info.indexCount + 1) / 2;
+      int vbDwordCount = (mesh.vertexStride * mesh.vertexCount + 3) / 4;
+
+      bool forceUniqueGeomBuffer = !!info.vertexProcessor; // TODO: fix the root cause that breaks these
+
+      {
+        TIME_PROFILE(geometry_buffer_alloc);
+        auto dwordCount = ibDwordCount + vbDwordCount;
+        auto alloc = context_id->allocateSourceGeometry(dwordCount, forceUniqueGeomBuffer);
+
+        mesh.geometry.heapIndex = alloc.heapIx;
+        mesh.geometry.bindlessIndex = alloc.bindlessId;
+        mesh.geometry.bufferRegion = alloc.region;
+        mesh.geometry.ibOffset = context_id->getSourceBufferOffset(alloc.heapIx, alloc.region);
+        mesh.geometry.vbOffset = mesh.geometry.ibOffset + ibDwordCount * 4;
+
+        G_ASSERT(mesh.geometry.ibOffset % 4 == 0);
+        G_ASSERT(mesh.geometry.vbOffset % 4 == 0);
+
+        HANDLE_LOST_DEVICE_STATE(mesh.geometry, 1);
+      }
+
+      {
+        // Indices
+
+        ProcessorInstances::getIndexProcessor().process(info.indices, mesh.geometry, mesh.indexFormat, mesh.indexCount,
+          mesh.startIndex, mesh.startVertex, context_id);
+
+        // Subtracts mesh.startVertex from all indices
+
+        mesh.startIndex = meta.startIndex = mesh.geometry.ibOffset / mesh.indexFormat;
+        mesh.piBindlessIndex = mesh.geometry.bindlessIndex;
+        meta.setIndexBit(mesh.indexFormat);
+        meta.setIndexBufferIndex(mesh.piBindlessIndex);
+
+        // Vertices
+
+        info.vertices->copyTo(mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset,
+          mesh.vertexStride * (mesh.baseVertex + mesh.startVertex), mesh.vertexStride * mesh.vertexCount);
+        mesh.startVertex = 0;
+        mesh.baseVertex = 0;
+        meta.startVertex = 0;
+        meta.vertexOffset = mesh.geometry.vbOffset;
+        mesh.pvBindlessIndex = mesh.geometry.bindlessIndex;
+
+        meta.setVertexBufferIndex(mesh.pvBindlessIndex);
+
+        // Also transitions the vertex buffer (in fact the whole heap)
+        d3d::resource_barrier(ResourceBarrierDesc(mesh.geometry.getIndexBuffer(context_id), bindlessSRVBarrier));
+      }
+
+      if (!info.isImpostor)
+        process_ahs_vertices(context_id, mesh, meta);
     }
-
-    if (info.useAtlas)
-      mesh.materialType |= MeshMeta::bvhMaterialAtlas;
-
-    if (info.isCamo)
-      mesh.materialType |= MeshMeta::bvhMaterialCamo;
-
-    if (info.isMFD)
-      mesh.materialType |= MeshMeta::bvhMaterialMFD;
-
-    if (info.isLayered)
-      mesh.materialType |= MeshMeta::bvhMaterialLayered;
-
-    if (info.isEmissive)
-      mesh.materialType |= MeshMeta::bvhMaterialEmissive;
-
-    if (info.isPerlinLayered)
-      mesh.materialType |= MeshMeta::bvhMaterialPerlinLayered;
-
-    if (info.isEye)
-      mesh.materialType |= MeshMeta::bvhMaterialEye;
-
-    if (info.hasAnimcharDecals)
-      mesh.materialType |= MeshMeta::bvhMaterialAnimcharDecals;
-
-    meta.markInitialized();
-
-    meta.materialType = mesh.materialType;
-    meta.setIndexBitAndTexcoordFormat(mesh.indexFormat, info.texcoordFormat);
-    meta.texcoordOffset = info.texcoordOffset;
-    meta.normalOffset = info.normalOffset;
-    meta.colorOffset = info.colorOffset;
-    meta.vertexStride = info.vertexSize;
-    meta.startIndex = info.startIndex;
-    meta.startVertex = info.baseVertex;
-    meta.texcoordScale = info.texcoordScale;
-    meta.forceNonMetal = info.forceNonMetal;
-    meta.hasColorMod = info.hasColorMod;
-    meta.setIndexBufferIndex(0);
-    meta.setVertexBufferIndex(0);
-
-    meta.holdAlphaTex(context_id, mesh.alphaTextureId);
-    meta.holdNormalTex(context_id, mesh.normalTextureId);
-    meta.holdExtraTex(context_id, mesh.extraTextureId);
-    meta.holdAlbedoTex(context_id, mesh.albedoTextureId);
-
-    if (info.albedoTextureId != BAD_TEXTUREID)
-    {
-      mesh.albedoTextureLevel = D3dResManagerData::getLevDesc(info.albedoTextureId.index(), TQL_thumb);
-      mark_managed_tex_lfu(info.albedoTextureId, mesh.albedoTextureLevel);
-    }
-
-    if (info.ppPositionTextureId != BAD_TEXTUREID)
-      context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless);
-    if (info.ppDirectionTextureId != BAD_TEXTUREID)
-      context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless);
-    if (info.clothNoiseCombinedTexTextureId != BAD_TEXTUREID)
-      context_id->holdTexture(info.clothNoiseCombinedTexTextureId, mesh.clothNoiseCombinedTexBindless);
-
-    if (mesh.materialType & MeshMeta::bvhMaterialAlphaTest && info.alphaTextureId == BAD_TEXTUREID)
-    {
-      // If we need alpha testing, lets set the albedo texture to the alpha texture.
-      meta.alphaTextureIndex = meta.albedoTextureIndex;
-    }
-
-    if (info.painted || info.isEmissive)
-    {
-      meta.materialData1 = info.paintData;
-      meta.materialData2 = info.colorOverride;
-    }
-
-    if (info.useAtlas)
-    {
-      meta.atlasTileSize = uint32_t(float_to_half(info.atlasTileU)) | uint32_t(float_to_half(info.atlasTileV)) << 16;
-      meta.atlasFirstLastTile = info.atlasFirstTile | (info.atlasLastTile - info.atlasFirstTile + 1) << 16;
-    }
-
-    if (info.isCamo)
-      meta.atlasTileSize = info.secTexcoordOffset;
-
-    if (info.isLayered)
-    {
-      meta.layerData[0] = uint32_t(float_to_half(info.maskGammaStart)) | uint32_t(float_to_half(info.maskGammaEnd)) << 16;
-      meta.layerData[1] = uint32_t(float_to_half(info.maskTileU)) | uint32_t(float_to_half(info.maskTileV)) << 16;
-      meta.layerData[2] = uint32_t(float_to_half(info.detail1TileU)) | uint32_t(float_to_half(info.detail1TileV)) << 16;
-      meta.layerData[3] = uint32_t(float_to_half(info.detail2TileU)) | uint32_t(float_to_half(info.detail2TileV)) << 16;
-
-      // Mask texture is extraTextureAndSamplerIndex
-      // tile1diffuse is alphaTextureAndSamplerIndex
-      // tile2diffuse is normalTextureAndSamplerIndex
-
-      meta.texcoordScale = info.secTexcoordOffset;
-    }
-
-    if (info.isPerlinLayered)
-    {
-      meta.layerData[0] = info.detailsData1;
-      meta.layerData[1] = info.detailsData2;
-      meta.layerData[2] = info.detailsData3;
-      meta.layerData[3] = info.detailsData4;
-
-      meta.materialData1 = info.paintData;
-      meta.materialData2 = info.colorOverride;
-
-      meta.atlasTileSize = uint32_t(info.atlasTileU);
-      meta.atlasFirstLastTile = uint32_t(info.atlasTileV);
-
-      // Mask texture is extraTextureAndSamplerIndex
-      // tile1diffuse is alphaTextureAndSamplerIndex
-      // tile2diffuse is normalTextureAndSamplerIndex
-    }
-
-    if (info.isRiLandclass)
-    {
-      meta.materialData1 = info.landclassMapping;
-      meta.materialData2 = float4(eastl::bit_cast<float>(info.riLandclassIndex), 0.0, 0.0, 0.0);
-    }
-
-    if (info.isMonochrome)
-    {
-      meta.materialData1 = info.colorOverride;
-      meta.materialData2 = info.monochromeData;
-    }
-
-    // Always process indices/vertices to be independent from the streaming system.
-
-    G_ASSERT(mesh.indexFormat == 2);
-
-    int ibDwordCount = (info.indexCount + 1) / 2;
-    int vbDwordCount = (mesh.vertexStride * mesh.vertexCount + 3) / 4;
-
-    bool forceUniqueGeomBuffer = !!info.vertexProcessor; // TODO: fix the root cause that breaks these
-
-    {
-      TIME_PROFILE(geometry_buffer_alloc);
-      auto dwordCount = ibDwordCount + vbDwordCount;
-      auto alloc = context_id->allocateSourceGeometry(dwordCount, forceUniqueGeomBuffer);
-
-      mesh.geometry.heapIndex = alloc.heapIx;
-      mesh.geometry.bindlessIndex = alloc.bindlessId;
-      mesh.geometry.bufferRegion = alloc.region;
-      mesh.geometry.ibOffset = context_id->getSourceBufferOffset(alloc.heapIx, alloc.region);
-      mesh.geometry.vbOffset = mesh.geometry.ibOffset + ibDwordCount * 4;
-
-      G_ASSERT(mesh.geometry.ibOffset % 4 == 0);
-      G_ASSERT(mesh.geometry.vbOffset % 4 == 0);
-
-      HANDLE_LOST_DEVICE_STATE(mesh.geometry, 1);
-    }
-
-    {
-      // Indices
-
-      ProcessorInstances::getIndexProcessor().process(info.indices, mesh.geometry, mesh.indexFormat, mesh.indexCount, mesh.startIndex,
-        mesh.startVertex, context_id);
-
-      // Subtracts mesh.startVertex from all indices
-
-      mesh.startIndex = meta.startIndex = mesh.geometry.ibOffset / mesh.indexFormat;
-      mesh.piBindlessIndex = mesh.geometry.bindlessIndex;
-      meta.setIndexBit(mesh.indexFormat);
-      meta.setIndexBufferIndex(mesh.piBindlessIndex);
-
-      // Vertices
-
-      info.vertices->copyTo(mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset,
-        mesh.vertexStride * (mesh.baseVertex + mesh.startVertex), mesh.vertexStride * mesh.vertexCount);
-      mesh.startVertex = 0;
-      mesh.baseVertex = 0;
-      meta.startVertex = 0;
-      meta.vertexOffset = mesh.geometry.vbOffset;
-      mesh.pvBindlessIndex = mesh.geometry.bindlessIndex;
-
-      meta.setVertexBufferIndex(mesh.pvBindlessIndex);
-
-      // Also transitions the vertex buffer (in fact the whole heap)
-      d3d::resource_barrier(ResourceBarrierDesc(mesh.geometry.getIndexBuffer(context_id), bindlessSRVBarrier));
-    }
-
-    if (!info.isImpostor)
-      process_ahs_vertices(context_id, mesh, meta);
   }
 
   if (object_info.isAnimated && object_info.meshes[0].vertexProcessor == &ProcessorInstances::getTreeVertexProcessor())
@@ -1663,6 +1792,10 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
   FRAMEMEM_REGION;
 
+  parallel_instance_processing::prebuild_meta_job.wait();
+
+  OSSpinlockScopedLock objectsGuard(context_id->objectsLock); // for safety, it should never block
+
   handle_pending_mesh_actions(context_id, budget);
 
   const bool isCompactionCheap = is_blas_compaction_cheap();
@@ -1719,111 +1852,115 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
     RaytraceGeometryDescription *desc = &geomDescriptors[MAX_GEOMETRIES_PER_BLAS * blasCount];
     memset(desc, 0, sizeof(RaytraceGeometryDescription) * descCount);
-    auto metaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
-    for (int i = 0; auto &mesh : object.meshes)
+
     {
-      auto &meta = metaRegion[i];
-
-      bool needBlasBuild = false;
-      UniqueBVHBuffer transformedVertices;
-      UniqueOrReferencedBVHBuffer pb(transformedVertices);
-      process_mesh_vertices(context_id, objectId, mesh, pb, needBlasBuild, meta);
-
-      CHECK_LOST_DEVICE_STATE();
-
-      G_ASSERT(!mesh.vertexProcessor || mesh.vertexProcessor->isOneTimeOnly());
-      const bool hasSecondaryGeometry = mesh.vertexProcessor && mesh.vertexProcessor->isGeneratingSecondaryVertices();
-      mesh.vertexProcessor = nullptr;
-
-      if (transformedVertices)
+      OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock); // for safety, it should never block
+      auto metaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
+      for (int i = 0; auto &mesh : object.meshes)
       {
-        mesh.geometry.processedVertexBuffer.swap(transformedVertices);
-        mesh.geometry.vbOffset = 0;
-        meta.vertexOffset = 0;
-        transformedVertices.reset();
-      }
+        auto &meta = metaRegion[i];
 
-      if (meta.materialType & MeshMeta::bvhMaterialImpostor)
-        process_ahs_vertices(context_id, mesh, meta);
+        bool needBlasBuild = false;
+        UniqueBVHBuffer transformedVertices;
+        UniqueOrReferencedBVHBuffer pb(transformedVertices);
+        process_mesh_vertices(context_id, objectId, mesh, pb, needBlasBuild, meta);
 
-      bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
+        CHECK_LOST_DEVICE_STATE();
 
-      desc[i].type = RaytraceGeometryDescription::Type::TRIANGLES;
-      desc[i].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
-      desc[i].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
-      desc[i].data.triangles.vertexCount = mesh.vertexCount;
-      desc[i].data.triangles.vertexStride = meta.vertexStride;
-      desc[i].data.triangles.vertexOffset = mesh.baseVertex;
-      desc[i].data.triangles.vertexOffsetExtraBytes = mesh.positionOffset + mesh.geometry.vbOffset;
-      desc[i].data.triangles.vertexFormat = mesh.processedPositionFormat;
-      desc[i].data.triangles.indexCount = mesh.indexCount;
-      desc[i].data.triangles.indexOffset = meta.startIndex;
-      desc[i].data.triangles.flags =
-        (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+        G_ASSERT(!mesh.vertexProcessor || mesh.vertexProcessor->isOneTimeOnly());
+        const bool hasSecondaryGeometry = mesh.vertexProcessor && mesh.vertexProcessor->isGeneratingSecondaryVertices();
+        mesh.vertexProcessor = nullptr;
 
-      if (mesh.posMul != Point4::ONE || mesh.posAdd != Point4::ZERO)
-      {
-        float m[12];
+        if (transformedVertices)
+        {
+          mesh.geometry.processedVertexBuffer.swap(transformedVertices);
+          mesh.geometry.vbOffset = 0;
+          meta.vertexOffset = 0;
+          transformedVertices.reset();
+        }
+
+        if (meta.materialType & MeshMeta::bvhMaterialImpostor)
+          process_ahs_vertices(context_id, mesh, meta);
+
+        bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
+
+        desc[i].type = RaytraceGeometryDescription::Type::TRIANGLES;
+        desc[i].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
+        desc[i].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
+        desc[i].data.triangles.vertexCount = mesh.vertexCount;
+        desc[i].data.triangles.vertexStride = meta.vertexStride;
+        desc[i].data.triangles.vertexOffset = mesh.baseVertex;
+        desc[i].data.triangles.vertexOffsetExtraBytes = mesh.positionOffset + mesh.geometry.vbOffset;
+        desc[i].data.triangles.vertexFormat = mesh.processedPositionFormat;
+        desc[i].data.triangles.indexCount = mesh.indexCount;
+        desc[i].data.triangles.indexOffset = meta.startIndex;
+        desc[i].data.triangles.flags =
+          (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+
+        if (mesh.posMul != Point4::ONE || mesh.posAdd != Point4::ZERO)
+        {
+          float m[12];
 #if _TARGET_APPLE
-        m[0] = mesh.posMul.x;
-        m[3] = 0;
-        m[6] = 0;
-        m[9] = mesh.posAdd.x;
+          m[0] = mesh.posMul.x;
+          m[3] = 0;
+          m[6] = 0;
+          m[9] = mesh.posAdd.x;
 
-        m[1] = 0;
-        m[4] = mesh.posMul.y;
-        m[7] = 0;
-        m[10] = mesh.posAdd.y;
+          m[1] = 0;
+          m[4] = mesh.posMul.y;
+          m[7] = 0;
+          m[10] = mesh.posAdd.y;
 
-        m[2] = 0;
-        m[5] = 0;
-        m[8] = mesh.posMul.z;
-        m[11] = mesh.posAdd.z;
+          m[2] = 0;
+          m[5] = 0;
+          m[8] = mesh.posMul.z;
+          m[11] = mesh.posAdd.z;
 #else
-        m[0] = mesh.posMul.x;
-        m[1] = 0;
-        m[2] = 0;
-        m[3] = mesh.posAdd.x;
+          m[0] = mesh.posMul.x;
+          m[1] = 0;
+          m[2] = 0;
+          m[3] = mesh.posAdd.x;
 
-        m[4] = 0;
-        m[5] = mesh.posMul.y;
-        m[6] = 0;
-        m[7] = mesh.posAdd.y;
+          m[4] = 0;
+          m[5] = mesh.posMul.y;
+          m[6] = 0;
+          m[7] = mesh.posAdd.y;
 
-        m[8] = 0;
-        m[9] = 0;
-        m[10] = mesh.posMul.z;
-        m[11] = mesh.posAdd.z;
+          m[8] = 0;
+          m[9] = 0;
+          m[10] = mesh.posMul.z;
+          m[11] = mesh.posAdd.z;
 #endif
 
-        desc[i].data.triangles.transformBuffer = transform_buffer_manager.alloc(1, desc[i].data.triangles.transformOffset); //-V522
-        HANDLE_LOST_DEVICE_STATE(desc[i].data.triangles.transformBuffer, );                                                 //-V522
-        desc[i].data.triangles.transformBuffer->updateDataWithLock(sizeof(m) * desc[i].data.triangles.transformOffset,      //-V522
-          sizeof(m),                                                                                                        //-V522
-          m, 0);
+          desc[i].data.triangles.transformBuffer = transform_buffer_manager.alloc(1, desc[i].data.triangles.transformOffset); //-V522
+          HANDLE_LOST_DEVICE_STATE(desc[i].data.triangles.transformBuffer, );                                                 //-V522
+          desc[i].data.triangles.transformBuffer->updateDataWithLock(sizeof(m) * desc[i].data.triangles.transformOffset,      //-V522
+            sizeof(m),                                                                                                        //-V522
+            m, 0);
+        }
+
+        if (hasSecondaryGeometry)
+        {
+          desc[i + 1].type = RaytraceGeometryDescription::Type::TRIANGLES;
+          desc[i + 1].data.triangles.transformBuffer = desc[i].data.triangles.transformBuffer;
+          desc[i + 1].data.triangles.transformOffset = desc[i].data.triangles.transformOffset;
+          desc[i + 1].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
+          desc[i + 1].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
+          desc[i + 1].data.triangles.vertexCount = mesh.vertexCount;
+          desc[i + 1].data.triangles.vertexOffset = mesh.vertexCount;
+          desc[i + 1].data.triangles.vertexStride = meta.vertexStride;
+          desc[i + 1].data.triangles.vertexFormat = mesh.processedPositionFormat;
+          desc[i + 1].data.triangles.vertexOffsetExtraBytes = mesh.geometry.vbOffset;
+          desc[i + 1].data.triangles.indexCount = mesh.indexCount;
+          desc[i + 1].data.triangles.indexOffset = meta.startIndex;
+          desc[i + 1].data.triangles.flags =
+            (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+        }
+
+        triangleCount += mesh.indexCount / 3;
+
+        i += hasSecondaryGeometry ? 2 : 1;
       }
-
-      if (hasSecondaryGeometry)
-      {
-        desc[i + 1].type = RaytraceGeometryDescription::Type::TRIANGLES;
-        desc[i + 1].data.triangles.transformBuffer = desc[i].data.triangles.transformBuffer;
-        desc[i + 1].data.triangles.transformOffset = desc[i].data.triangles.transformOffset;
-        desc[i + 1].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
-        desc[i + 1].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
-        desc[i + 1].data.triangles.vertexCount = mesh.vertexCount;
-        desc[i + 1].data.triangles.vertexOffset = mesh.vertexCount;
-        desc[i + 1].data.triangles.vertexStride = meta.vertexStride;
-        desc[i + 1].data.triangles.vertexFormat = mesh.processedPositionFormat;
-        desc[i + 1].data.triangles.vertexOffsetExtraBytes = mesh.geometry.vbOffset;
-        desc[i + 1].data.triangles.indexCount = mesh.indexCount;
-        desc[i + 1].data.triangles.indexOffset = meta.startIndex;
-        desc[i + 1].data.triangles.flags =
-          (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
-      }
-
-      triangleCount += mesh.indexCount / 3;
-
-      i += hasSecondaryGeometry ? 2 : 1;
     }
 
     raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
@@ -2230,16 +2367,29 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
     auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
     auto metaRegion = context_id->meshMetaAllocator.get(metaAllocId);
     auto baseMetaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
-    auto stationary = instance.uniqueIsStationary;
-    auto skipUpdate = false;
-    if (instance.animIndex > -1)
-      skipUpdate = !context_id->riGenUpdateSlots[instance.animIndex];
 
     if (object.hasVertexProcessor)
     {
-      bool needBlasBuild = false;
+      const bool stationary = instance.uniqueIsStationary;
+      bool needBlasBuild = instance.needsBlasBuild;
 
       auto &geoms = updateGeoms.emplace_back();
+
+      if (!instance.alreadyProcessed) // prebuilt on a worker thread
+      {
+        const bool skipUpdate = instance.animIndex > -1 ? !context_id->riGenUpdateSlots[instance.animIndex] : false;
+        needBlasBuild = false;
+        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+        {
+          if (!mesh.vertexProcessor)
+            continue;
+          G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
+
+          auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
+          process_meta(context_id, meta, mesh, needBlasBuild, instance, *frustum, cameraPos, lightDirection, animatedVertices,
+            stationary, skipUpdate, baseMeta);
+        }
+      }
 
       for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
       {
@@ -2248,8 +2398,6 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
         G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
 
         auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
-        process_meta(context_id, meta, mesh, needBlasBuild, instance, *frustum, cameraPos, lightDirection, animatedVertices,
-          stationary, skipUpdate, baseMeta);
 
 #if DAGOR_DBGLEVEL > 0
         static bool check_alpha = true;
@@ -2635,8 +2783,14 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> allBlasUpdatesAs;
 
+  parallel_instance_processing::prebuild_meta_job.wait();
+
   {
     TIME_D3D_PROFILE(add_and_animate_instances);
+
+    // for safety, they should never block
+    OSSpinlockScopedLock objectsGuard(context_id->objectsLock);
+    OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock);
 
     context_id->blasUpdates.clear();
     context_id->updateGeoms.clear();
@@ -3251,7 +3405,10 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_int(bvh_terrain_validVarId, context_id->tlasTerrainValid ? 1 : 0);
   ShaderGlobal::set_int(bvh_particles_validVarId, context_id->tlasParticlesValid ? 1 : 0);
 
-  ShaderGlobal::set_int(bvh_meta_countVarId, context_id->meshMetaAllocator.size());
+  {
+    OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock);
+    ShaderGlobal::set_int(bvh_meta_countVarId, context_id->meshMetaAllocator.size());
+  }
   ShaderGlobal::set_buffer(bvh_metaVarId, context_id->meshMeta.getBufId());
   ShaderGlobal::set_buffer(bvh_per_instance_dataVarId, context_id->perInstanceData.getBufId());
 
@@ -3282,6 +3439,32 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_float(rtr_max_water_depthVarId, rtr_max_water_depth);
 }
 
+void unbind_resources()
+{
+#if !_TARGET_C2
+  static int bvh_mainVarId = get_shader_variable_id("bvh_main");
+  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
+  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
+  ShaderGlobal::set_tlas(bvh_mainVarId, nullptr);
+  ShaderGlobal::set_tlas(bvh_terrainVarId, nullptr);
+  ShaderGlobal::set_tlas(bvh_particlesVarId, nullptr);
+#else
+
+
+
+
+
+
+#endif
+
+  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid", true);
+  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid", true);
+  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid", true);
+  ShaderGlobal::set_int(bvh_main_validVarId, 0);
+  ShaderGlobal::set_int(bvh_terrain_validVarId, 0);
+  ShaderGlobal::set_int(bvh_particles_validVarId, 0);
+}
+
 void set_for_gpu_objects(ContextId context_id) { gobj::init(context_id); }
 
 void add_bin_scene(ContextId context_id, BaseStreamingSceneHolder &bin_scene) { binscene::add_meshes(context_id, bin_scene); }
@@ -3307,6 +3490,7 @@ static void wait_all_jobs()
   bvh_upload_meta_job.wait();
   bvh_fallback_upload_heavy_data_job.wait();
   threadpool::wait(&bvh_update_atmosphere_job);
+  parallel_instance_processing::prebuild_meta_job.wait();
 }
 
 void on_unload_scene(ContextId context_id)

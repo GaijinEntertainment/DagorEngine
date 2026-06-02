@@ -399,6 +399,12 @@ void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
   static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_output_uav_no");
 
   TIME_D3D_PROFILE(SkinnedVertexProcessorBatched::end)
+
+  for (auto &[_, mapping] : dispatchDataMapping)
+    for (auto &[_, dispatchData] : mapping)
+      for (auto &params : dispatchData.instanceData)
+        params.instance_offset += instanceDataBaseOffset;
+
   updateData();
 
   int dispatches = 0;

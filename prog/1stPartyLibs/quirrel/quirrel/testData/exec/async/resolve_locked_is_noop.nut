@@ -1,15 +1,15 @@
-from "async" import Promise
+from "async" import Future
 
-// A bare Promise that is "locked" against further settlement silently ignores
-// extra .resolve()/.reject() calls. Locked has two flavors:
-//   - after_adopt: adopted another Promise (L_Adopted); inner's settlement wins
-//   - after_terminal: already fulfilled or rejected; terminal is final
-// Matches JS spec for the Promise Resolution Procedure on a locked promise.
+// A bare Future that is "locked" against further settlement silently ignores
+// extra .resolve() calls. Locked has two flavors:
+//   - after_adopt: adopted another Future (L_Adopted); inner's settlement wins
+//   - after_terminal: already fulfilled or faulted; terminal is final
+// Matches JS spec for the Promise Resolution Procedure on a locked future.
 
 async function section_after_adopt() {
   print("=== after_adopt ===\n")
-  let p = Promise()
-  let q = Promise()
+  let p = Future()
+  let q = Future()
   p.resolve(q)         // p adopts q; p is locked
   p.resolve(42)        // no-op
   p.resolve("xyz")     // no-op
@@ -22,23 +22,21 @@ async function section_after_adopt() {
 
 async function section_after_terminal() {
   print("=== after_terminal ===\n")
-  let p = Promise()
+  let p = Future()
   p.resolve(1)
   print("first resolve, p=" + p.getState() + "\n")
   p.resolve(2)         // no-op
-  p.reject("err")      // no-op too -- terminal is locked-in
   print("after extra calls p=" + p.getState() + "\n")
   let v = await p
   print("awaited value: " + v + "\n")
-  // Same for a rejected promise.
-  let r = Promise()
-  r.reject("first")
-  r.resolve(99)
-  r.reject("second")
-  print("r after extras=" + r.getState() + "\n")
+  // Same for a faulted (task) future via throw-from-async.
+  async function failer() { throw "first" }
+  let r = failer()
+  try { let _ = await r } catch (_) {}
+  print("r after fault=" + r.getState() + "\n")
   try {
-    let rv = await r
-    print("BUG: r resolved with " + rv + "\n")
+    let _ = await r
+    print("BUG: r resolved\n")
   } catch (e) {
     print("r reason: " + e + "\n")
   }

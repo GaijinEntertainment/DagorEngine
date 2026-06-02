@@ -118,14 +118,18 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
         half ao = 1;
         half3 worldNormal = normalize(input.normal.xyz);
         ##if compatibility_mode == compatibility_mode_off
-          BRANCH
-          if (character_micro_detail_layer>=0)
-          {
-            apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
-                                    diffuseColor.rgb, normalMap, reflectance, smoothness);
-          }
-          worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
-          apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+          #if RENDINST_IMPOSTOR_VOXEL
+            worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
+          #else
+            BRANCH
+            if (character_micro_detail_layer>=0)
+            {
+              apply_character_micro_detail(sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
+                                      diffuseColor.rgb, normalMap, reflectance, smoothness);
+            }
+            worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
+            apply_wetness_by_microdetail(character_micro_detail_layer, worldPos, diffuseColor.rgb, worldNormal, reflectance, smoothness, ao);
+          #endif
         ##else
           worldNormal = perturb_normal_precise(normalMap, worldNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy);
         ##endif

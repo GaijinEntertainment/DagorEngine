@@ -597,6 +597,11 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
   }
 
   TIME_D3D_PROFILE(gi2_update_pos)
+  {
+    int rw, rh;
+    getRenderingResolution(rw, rh);
+    bvh_bind_resources(rw);
+  }
   daGI2->updatePosition(
     [&](int sdf_clip, const BBox3 &box, float voxelSize, uintptr_t &) {
       G_UNUSED(sdf_clip);
@@ -673,6 +678,7 @@ void WorldRenderer::updateGIPos(const Point3 &pos, const TMatrix &view_itm, floa
       const bool intersectLevel = baseVoxelizeRI(box, Point3(voxelSize, voxelSize, voxelSize));
       return intersectLevel ? UpdateGiQualityStatus::RENDERED : UpdateGiQualityStatus::NOTHING;
     });
+  bvh_unbind_resources();
 
   if (!lightsInsideFrustum)
     lights.setInsideOfFrustumLightsToShader();

@@ -119,6 +119,7 @@ public:
     SQObjectPtr _instance_class;
     SQObjectPtr _weakref_class;
     SQObjectPtr _userdata_class;
+    SQObjectPtr _error_class;
 
     static const SQRegFunction _table_default_type_methods_funcz[];
     static const SQRegFunction _array_default_type_methods_funcz[];

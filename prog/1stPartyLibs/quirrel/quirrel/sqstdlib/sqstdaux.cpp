@@ -12,7 +12,9 @@
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
 #include <squirrel/sqtable.h>
+#include <squirrel/sqclass.h>
 #include <squirrel/sqarray.h>
+#include <squirrel/sqstring.h>
 #include <squirrel/sqvm.h>
 
 #define ARRAY_ELEMENTS_IN_BRIEF_DUMP 4
@@ -270,19 +272,49 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
     return SQ_OK;
 }
 
+void sqstd_aux_error_to_string(HSQUIRRELVM v, SQInteger idx)
+{
+    SQObjectPtr &o = stack_get(v, idx);
+
+    if (sq_type(o) == OT_STRING) {
+        SQObjectPtr copy = o;
+        v->Push(copy);
+        return;
+    }
+
+    if (sq_type(o) == OT_INSTANCE) {
+        const SQObjectPtr &errClass = _ss(v)->_error_class;
+        if (sq_type(errClass) == OT_CLASS &&
+            _instance(o)->InstanceOf(_class(errClass)))
+        {
+            SQObjectPtr key(SQString::Create(_ss(v), "message"));
+            SQObjectPtr val;
+            if (_instance(o)->Get(key, val) && sq_type(val) == OT_STRING) {
+                v->Push(val);
+                return;
+            }
+            v->Push(SQObjectPtr(SQString::Create(_ss(v), "Error")));
+            return;
+        }
+    }
+
+    char buf[32];
+    scsprintf(buf, sizeof(buf), "<%s>", GetTypeName(o));
+    v->Push(SQObjectPtr(SQString::Create(_ss(v), buf)));
+}
+
 static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {
-        const char *sErr = 0;
         if(sq_gettop(v)>=1) {
-            if(SQ_SUCCEEDED(sq_getstring(v,2,&sErr)))   {
-                pf(v,"\nAN ERROR HAS OCCURRED [%s]\n",sErr);
-            }
-            else{
-                pf(v,"\nAN ERROR HAS OCCURRED [unknown]\n");
-            }
+            sqstd_aux_error_to_string(v, 2);
+            const char *sErr = "unknown";
+            sq_getstring(v, -1, &sErr);
+            pf(v,"\nAN ERROR HAS OCCURRED [%s]\n",sErr);
+            sq_poptop(v);
             sqstd_printcallstack(v);
+            sq_print_error_trace(v, stack_get(v, 2), pf);
         }
     }
     return 0;

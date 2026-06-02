@@ -1,7 +1,7 @@
 import bpy, os
 from ..helpers.names    import ensure_no_extension, texture_basename
 from ..helpers.getters  import get_preferences
-from ..helpers.props    import prop_value_to_string, fix_type
+from ..helpers.props    import prop_value_to_string, fix_type, get_property_type
 from ..constants        import DAGTEXNUM
 
 
@@ -18,7 +18,9 @@ def _get_prop_value_corrected(prop_name, prop_owner, known_prop_parameters):
     value = prop_owner.get(prop_name)
     raw_value = prop_owner.get(prop_name)
     if known_prop_parameters is None:
-        return raw_value
+        known_prop_parameters = {
+            'type': get_property_type(prop_owner, prop_name)
+            }
     if raw_value is None:
         raw_walue = known_prop_parameters.get('default')
     prop_type = known_prop_parameters.get('type')
@@ -60,14 +62,11 @@ def compare_dagormats(material_a, material_b):
     pref = get_preferences()
     current_shader_config = pref.shaders.get(dagormat_a.shader_class)
     if current_shader_config is None:
-        current_shader_config = []
+        current_shader_config = {'props':{}}
     for key in keys_joined:
-        known_prop_parameters = current_shader_config.get(key)
-        if known_prop_parameters is None:
-            known_prop_parameters = {}
+        known_prop_parameters = current_shader_config['props'].get(key)
         value_a = _get_prop_value_corrected(key, parameters_a, known_prop_parameters)
         value_b = _get_prop_value_corrected(key, parameters_b, known_prop_parameters)
         if value_a != value_b:
             return False
-#        if current_shader_config is None:  # types are unknown, default values are unknown
     return True

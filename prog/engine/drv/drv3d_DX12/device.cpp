@@ -696,9 +696,9 @@ void load_config_into_memory_setup(ResourceMemoryHeap::SetupInfo &setup, const D
 
     setup.gpuHeapMemoryMappingConfig.mapRenderTargetTextureMSAAMemory =
       uploadHeapConfig->getBool("mapRenderTargetTextureMSAAMemory", false);
-    setup.gpuHeapMemoryMappingConfig.mapRenderTargetTextureMemory = uploadHeapConfig->getBool("mapRenderTargetTextureMemory", true);
-    setup.gpuHeapMemoryMappingConfig.mapTextureMemory = uploadHeapConfig->getBool("mapTextureMemory", true);
-    setup.gpuHeapMemoryMappingConfig.mapDeviceResidentBufferMemory = uploadHeapConfig->getBool("mapDeviceResidentBufferMemory", true);
+    setup.gpuHeapMemoryMappingConfig.mapRenderTargetTextureMemory = uploadHeapConfig->getBool("mapRenderTargetTextureMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapTextureMemory = uploadHeapConfig->getBool("mapTextureMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapDeviceResidentBufferMemory = uploadHeapConfig->getBool("mapDeviceResidentBufferMemory", false);
     setup.gpuHeapMemoryMappingConfig.mapHostResidentHostReadOnlyBufferMemory =
       uploadHeapConfig->getBool("mapHostResidentHostReadOnlyBufferMemory", false);
     setup.gpuHeapMemoryMappingConfig.mapHostResidentHostReadWriteBufferMemory =
@@ -1685,6 +1685,7 @@ void Device::adjustCaps(DriverDesc &capabilities)
   auto op7 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS7>();
   // auto op8 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS8>();
   auto op9 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS9>();
+  auto op12 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS12>();
   auto sm = get_shader_model(device.get());
 
   capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
@@ -1833,6 +1834,7 @@ void Device::adjustCaps(DriverDesc &capabilities)
   capabilities.caps.hasNvidiaRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_SER_NV);
   capabilities.caps.hasBarrierNone = true;
   capabilities.caps.hasPipelineStatisticsQuery = true;
+  capabilities.caps.hasEnhancedResourceBarriers = FALSE != op12.EnhancedBarriersSupported;
 #endif
 
   capabilities.raytrace.opacityMicroMapInputBufferAlignment = getOpacityMicroMapInputBufferAlignment();

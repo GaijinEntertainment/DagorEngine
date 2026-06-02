@@ -641,23 +641,28 @@ namespace vargs
     return make_vars_i<Args...>(vm, idx, SQRAT_STD::index_sequence_for<Args...>());
   }
 
+  inline bool check_var_type_failed(HSQUIRRELVM vm, int idx, const char *expected)
+  {
+    const char *argTypeName = "unknown";
+    SQInteger prevTop = sq_gettop(vm);
+    if (SQ_SUCCEEDED(sq_typeof(vm, idx)) && SQ_SUCCEEDED(sq_tostring(vm, -1))) {
+      sq_getstring(vm, -1, &argTypeName);
+    }
+
+    char errMsg[128];
+    snprintf(errMsg, sizeof(errMsg), "Wrong argument type, expected '%s', got '%s'",
+             expected, argTypeName);
+    sq_settop(vm, prevTop);
+    (void)sq_throwerror(vm, errMsg);
+
+    return false;
+  }
+
   template <typename T>
   bool check_var_types(HSQUIRRELVM vm, int idx)
   {
-    if (!Var<T>::check_type(vm, idx)) {
-      const char *argTypeName = "unknown";
-      SQInteger prevTop = sq_gettop(vm);
-      if (SQ_SUCCEEDED(sq_typeof(vm, idx)) && SQ_SUCCEEDED(sq_tostring(vm, -1))) {
-        sq_getstring(vm, -1, &argTypeName);
-      }
-
-      char errMsg[128];
-      snprintf(errMsg, sizeof(errMsg), "Wrong argument type, expected '%s', got '%s'",
-                    Var<T>::getVarTypeName(), argTypeName);
-      sq_settop(vm, prevTop);
-      (void)sq_throwerror(vm, errMsg);
-      return false;
-    }
+    if (!Var<T>::check_type(vm, idx))
+      return check_var_type_failed(vm, idx, Var<T>::getVarTypeName());
     return true;
   }
 

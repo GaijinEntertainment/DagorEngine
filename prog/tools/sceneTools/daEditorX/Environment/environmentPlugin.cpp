@@ -906,6 +906,8 @@ void EnvironmentPlugin::getSettingsFromPlugins()
 
 void EnvironmentPlugin::setSettingsToPlugins()
 {
+  if (DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
+    return;
   d3d::GpuAutoLock gpuLock;
   G_ASSERT(!skiesSrv || selectedWeatherPreset != -1);
   G_ASSERT(!skiesSrv || selectedWeatherType != -1);

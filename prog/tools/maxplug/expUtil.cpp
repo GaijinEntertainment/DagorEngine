@@ -3426,8 +3426,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
   }
   static void make_rottrack(AnimKeyQuat *k, RotKey *s, int num)
   {
-    char *h = (char *)malloc(num * 2 - 1);
-    char *x = h + num - 1;
+    std::vector<char> h(num * 2 - 1);
+    char *x = h.data() + num - 1;
 
     int i;
     for (i = 0; i < num - 1; ++i)
@@ -3500,8 +3500,6 @@ bool wr_hlp( const void * p, int l, FILE * h )
       else
         k[i].sinpw = sinf(k[i].pw = acosf(k[i].pw));
     }
-
-    free(h);
   }
 
   int save_anim2(FILE *fp, Interface *ip)
@@ -3688,7 +3686,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
     // write keys pool
     //  write pos keys
-    AnimKeyPoint3 *point3AnimKey = new AnimKeyPoint3[maxSizePoint3AnimKey];
+    std::vector<AnimKeyPoint3> point3AnimKey(maxSizePoint3AnimKey);
     //   write origin velocitiy keys
     if (originLinVel.Count())
       fwrite(originLinVel.Addr(0), sizeof(AnimKeyPoint3), originLinVel.Count(), fp);
@@ -3701,9 +3699,9 @@ bool wr_hlp( const void * p, int l, FILE * h )
     {
       if (!pos[i]->key.Count())
         continue;
-      memset(point3AnimKey, 0, sizeof(AnimKeyPoint3) * maxSizePoint3AnimKey);
-      make_postrack(point3AnimKey, pos[i]->key.Addr(0), pos[i]->key.Count());
-      fwrite(point3AnimKey, sizeof(AnimKeyPoint3), pos[i]->key.Count(), fp);
+      memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * maxSizePoint3AnimKey);
+      make_postrack(point3AnimKey.data(), pos[i]->key.Addr(0), pos[i]->key.Count());
+      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), pos[i]->key.Count(), fp);
     }
 
     //  write scl keys
@@ -3711,23 +3709,21 @@ bool wr_hlp( const void * p, int l, FILE * h )
     {
       if (!scl[i]->key.Count())
         continue;
-      memset(point3AnimKey, 0, sizeof(AnimKeyPoint3) * maxSizePoint3AnimKey);
-      make_postrack(point3AnimKey, scl[i]->key.Addr(0), scl[i]->key.Count());
-      fwrite(point3AnimKey, sizeof(AnimKeyPoint3), scl[i]->key.Count(), fp);
+      memset(point3AnimKey.data(), 0, sizeof(AnimKeyPoint3) * maxSizePoint3AnimKey);
+      make_postrack(point3AnimKey.data(), scl[i]->key.Addr(0), scl[i]->key.Count());
+      fwrite(point3AnimKey.data(), sizeof(AnimKeyPoint3), scl[i]->key.Count(), fp);
     }
-    delete[] point3AnimKey;
 
     //  write rot keys
-    AnimKeyQuat *quatAnimKey = new AnimKeyQuat[maxSizeQuatAnimKey];
+    std::vector<AnimKeyQuat> quatAnimKey(maxSizeQuatAnimKey);
     for (int i = 0; i < exportNodes.Count(); ++i)
     {
       if (!rot[i]->key.Count())
         continue;
-      memset(quatAnimKey, 0, sizeof(AnimKeyQuat) * maxSizeQuatAnimKey);
-      make_rottrack(quatAnimKey, rot[i]->key.Addr(0), rot[i]->key.Count());
-      fwrite(quatAnimKey, sizeof(AnimKeyQuat), rot[i]->key.Count(), fp);
+      memset(quatAnimKey.data(), 0, sizeof(AnimKeyQuat) * maxSizeQuatAnimKey);
+      make_rottrack(quatAnimKey.data(), rot[i]->key.Addr(0), rot[i]->key.Count());
+      fwrite(quatAnimKey.data(), sizeof(AnimKeyQuat), rot[i]->key.Count(), fp);
     }
-    delete[] quatAnimKey;
 
     // write note track pool
     if (noteTrackKeys.Count())
@@ -4740,8 +4736,6 @@ public:
       float w, fov, wFollow;
     };
     AdvCameraFileHdr hdr;
-    AdvCameraDataRec *data;
-    AdvCameraKey *key;
     int i, j;
 
     hdr.label = 'MACa';
@@ -4759,8 +4753,8 @@ public:
 
     fwrite(&hdr, 1, sizeof(hdr), fp);
 
-    data = new AdvCameraDataRec[hdr.cameraNum];
-    key = new AdvCameraKey[hdr.keyPoolSz];
+    std::vector<AdvCameraDataRec> data(hdr.cameraNum);
+    std::vector<AdvCameraKey> key(hdr.keyPoolSz);
 
     // store names
     for (i = 0; i < hdr.cameraNum; i++)
@@ -4845,15 +4839,10 @@ public:
     }
 
     // store keys
-    fwrite(key, hdr.keyPoolSz, sizeof(AdvCameraKey), fp);
+    fwrite(key.data(), hdr.keyPoolSz, sizeof(AdvCameraKey), fp);
 
     // store cameras
-    fwrite(data, hdr.cameraNum, sizeof(AdvCameraDataRec), fp);
-
-    if (data)
-      delete[] data;
-    if (key)
-      delete[] key;
+    fwrite(data.data(), hdr.cameraNum, sizeof(AdvCameraDataRec), fp);
   }
 
   void getPos(INode *node, INode *parent, Point3 &pos, TimeValue t)

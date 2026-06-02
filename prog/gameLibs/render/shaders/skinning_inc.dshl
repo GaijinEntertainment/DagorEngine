@@ -1,5 +1,5 @@
 
-buffer context_gpu_data;
+buffer context_gpu_data always_referenced;
 
 macro INIT_WORLD_LOCAL_BASE(code)
 (code) {

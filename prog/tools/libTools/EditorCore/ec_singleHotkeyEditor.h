@@ -5,3 +5,5 @@
 void ec_create_single_hotkey_editor(const char *editor_command_id, int hotkey_index);
 
 void ec_update_imgui_single_hotkey_editor();
+
+bool ec_is_single_hotkey_editor_open();

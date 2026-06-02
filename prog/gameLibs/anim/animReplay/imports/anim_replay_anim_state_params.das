@@ -190,27 +190,31 @@ def erase_if(var arr : Array; blk : block<(key : ChildComponent) : bool>)
     i--
 
 def patch_anim_graph_data(var animchar_data : Object; anim_graph : AnimationGraph; anim_state : IAnimStateHolder; anim_state_params : DataBlock)
-  var animParams & = unsafe(*getRW_ecs_array(animchar_data, "animParams"))
-  for animParamChildComp in animParams
-    assume animParam = *getRW_ecs_object(animParamChildComp)
-    let paramName = string(*get_ecs_string(animParam, "name"))
-    let paramId = anim_graph_getParamId(anim_graph, paramName, int(PT_ScalarParam))
-    set(animParam, "id", paramId)
-    if paramId < 0
-      logwarn("anim param '{paramName}' not found")
-  erase_if(animParams) <| $(animParamChildComp)
-    assume animParam = *get_ecs_object(animParamChildComp)
-    return *get_int(animParam, "id") < 0
+  for animParamsCompName in ["animParams", "preciseAnimParams"]
+    var animParams = getRW_ecs_array(animchar_data, animParamsCompName)
+    if animParams == null
+      continue
+    for animParamChildComp in *animParams
+      assume animParam = *getRW_ecs_object(animParamChildComp)
+      let paramName = string(*get_ecs_string(animParam, "name"))
+      let paramId = anim_graph_getParamId(anim_graph, paramName, int(PT_ScalarParam))
+      set(animParam, "id", paramId)
+      if paramId < 0
+        logwarn("anim param '{paramName}' not found")
+    erase_if(*animParams) <| $(animParamChildComp)
+      assume animParam = *get_ecs_object(animParamChildComp)
+      return *get_int(animParam, "id") < 0
   using() <| $(var initialAnimStateParams : Object)
     load_anim_state_parameters(anim_graph, anim_state, initialAnimStateParams, anim_state_params)
     set(animchar_data, "initialAnimStateParams", initialAnimStateParams)
-  assume animTreeStates = *getRW_ecs_object(animchar_data, "animTreeStates")
-  assume stateNames = *get_ecs_StringList(animTreeStates, "stateNames")
-  for combinedState in *getRW_ecs_array(animTreeStates, "state")
-    for state in *getRW_ecs_object(combinedState)
-      assume stateIdx = *getRW_int(state.value)
-      let stateName = string(stateNames[stateIdx])
-      stateIdx = anim_graph_getStateIdx(anim_graph, stateName)
-      if stateIdx < 0
-        logerr("state '{stateName}' ({state.key}) not found")
-        stateIdx = 0
+  let animTreeStates = getRW_ecs_object(animchar_data, "animTreeStates")
+  if animTreeStates != null
+    let stateNames & = unsafe(*get_ecs_StringList(animTreeStates, "stateNames"))
+    for combinedState in *getRW_ecs_array(animTreeStates, "state")
+      for state in *getRW_ecs_object(combinedState)
+        var stateIdx & = unsafe(*getRW_int(state.value))
+        let stateName = string(stateNames[stateIdx])
+        stateIdx = anim_graph_getStateIdx(anim_graph, stateName)
+        if stateIdx < 0
+          logerr("state '{stateName}' ({state.key}) not found")
+          stateIdx = 0

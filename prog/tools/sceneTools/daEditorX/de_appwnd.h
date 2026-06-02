@@ -39,6 +39,7 @@ class AboutDlg;
 class IWaterService;
 class StartupDlg;
 class AssetTagManager;
+class KeyboardShortcutsPanel;
 
 enum
 {
@@ -314,6 +315,7 @@ public:
   void showSelectWindow(IObjectsList *obj_list, const char *obj_list_owner_name) override;
 
   void showTagManager(bool show);
+  void showShortcutsEditor(bool show);
 
   bool isProjectLoaded() const override { return projectLoaded; };
   bool getPendingTextureLoadTotalCount(unsigned int &total_count) override;
@@ -563,6 +565,7 @@ private:
   PropPanel::ContainerPropertyControl *mTabWindow;
   PropPanel::ContainerPropertyControl *mTabPanel;
   AssetTagManager *mTagManager;
+  KeyboardShortcutsPanel *mShortcutsPanel = nullptr;
 
   bool mNeedSuppress;
   int mMsgBoxResult;

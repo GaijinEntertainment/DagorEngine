@@ -129,16 +129,19 @@ bool Xess::init()
   if (!libxess)
     return false;
 
+  if (state != XessState::DISABLED)
+    return false;
+
   if (!requiredInstanceExtPass || !requiredDeviceExtPass)
   {
     logwarn("vulkan: XeSS: disabled due to missing %s exts", requiredInstanceExtPass ? "instance" : "device");
-    state = XessState::DISABLED;
+    state = XessState::DISABLED; //-V1048
     return false;
   }
 
   if (!Globals::cfg.bits.allowXess)
   {
-    state = XessState::DISABLED;
+    state = XessState::DISABLED; //-V1048
     return false;
   }
 

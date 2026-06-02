@@ -34,6 +34,7 @@ SourceES =
   shadersES.cpp.inl
   computeShaderES.cpp.inl
   samplerHandleES.cpp.inl
+  gpuDeformObjectsES.cpp.inl
 ;
 
 if [ GLOB $(Root)/prog/gameLibs/ecs/phys : * ] && [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {

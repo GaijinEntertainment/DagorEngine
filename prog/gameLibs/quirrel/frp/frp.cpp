@@ -884,10 +884,10 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
 
   if (subscriberCallsQueue.size() > MAX_ALLOWED_SUBSCRIBERS_QUEUE_LENGTH)
   {
+    dumpSubscribersQueue(subscriberCallsQueue);
     logerr_graph_error(vm,
       String(0, "Max subscribers queue length exceeded (current size = %d), see log for details", subscriberCallsQueue.size())
         .c_str());
-    dumpSubscribersQueue(subscriberCallsQueue);
     subscriberCallsQueue.clear();
     return false;
   }

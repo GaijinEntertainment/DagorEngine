@@ -9,7 +9,7 @@ macro COMMON_RENDINST_VCOLOR_INIT(use_tessellation, for_dng)
   INIT_VCOLOR_LAYERED(true)
 
   hlsl {
-    ##if (rendinst_render_is_normal_or_vox_albedo || use_tessellation) // tessellation needs it in depth/shadow pass too
+    ##if (rendinst_render_is_normal_or_vox_albedo || rendinst_render_pass == rendinst_render_pass_impostor_color || rendinst_render_pass == rendinst_render_pass_impostor_voxel || use_tessellation) // tessellation needs it in depth/shadow pass too
       #define HAS_VERTEX_COLOR_MASK 1
     ##endif
   }

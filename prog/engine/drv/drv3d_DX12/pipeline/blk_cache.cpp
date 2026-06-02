@@ -320,7 +320,7 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeDX12(const DataBloc
     int lastParamIndex = blk.findParam(formatNameId);
     while (lastParamIndex != -1)
     {
-      FormatStore fmt(blk.getInt(lastParamIndex));
+      FormatStore fmt{.index = static_cast<uint8_t>(blk.getInt(lastParamIndex))};
       for (uint32_t i = 0; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
       {
         auto bit = 1u << i;
@@ -339,7 +339,8 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::decodeDX12(const DataBloc
     target.colorMsaaLevels = blk.getInt("colorMsaaLevels", 0);
   }
   if (blk.paramExists("depthStencilFormat"))
-    target.setDepthStencilAttachment(blk.getInt("depthMsaaLevel", 0), FormatStore(blk.getInt("depthStencilFormat", 0)));
+    target.setDepthStencilAttachment(blk.getInt("depthMsaaLevel", 0),
+      FormatStore{.index = static_cast<uint8_t>(blk.getInt("depthStencilFormat", 0))});
 
   hash = decode_hash(blk, target);
   return true;
@@ -406,13 +407,13 @@ bool drv3d_dx12::pipeline::FramebufferLayoutDeEncoder::encode(DataBlock &blk, co
       {
         continue;
       }
-      blk.addInt("colorFormats", source.colorFormats[i].wrapper.value);
+      blk.addInt("colorFormats", source.colorFormats[i].index);
     }
     blk.addInt("colorMsaaLevels", source.colorMsaaLevels);
   }
   if (0 != source.hasDepth)
   {
-    blk.setInt("depthStencilFormat", source.depthStencilFormat.wrapper.value);
+    blk.setInt("depthStencilFormat", source.depthStencilFormat.index);
     blk.setInt("depthMsaaLevel", source.depthMsaaLevel);
   }
   return true;

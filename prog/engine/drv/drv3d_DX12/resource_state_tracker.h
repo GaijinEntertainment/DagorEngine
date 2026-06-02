@@ -10,12 +10,12 @@
 #include "pipeline.h"
 #include "resource_manager/image.h"
 #include "stateful_command_buffer.h"
-#include "typed_bit_set.h"
 
 #include <dag/dag_vector.h>
 #include <debug/dag_log.h>
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_heap.h>
+#include <EASTL/array.h>
 #include <EASTL/bitvector.h>
 #include <EASTL/optional.h>
 #include <generic/dag_enumerate.h>
@@ -35,9 +35,25 @@ struct is_type_init_constructing<D3D12_RESOURCE_BARRIER>
 {
   static constexpr bool value = false;
 };
+#if !_TARGET_XBOXONE
+template <>
+struct is_type_init_constructing<D3D12_TEXTURE_BARRIER>
+{
+  static constexpr bool value = false;
+};
+template <>
+struct is_type_init_constructing<D3D12_BUFFER_BARRIER>
+{
+  static constexpr bool value = false;
+};
+#endif
 } // namespace dag
 
 DAG_DECLARE_RELOCATABLE(D3D12_RESOURCE_BARRIER);
+#if !_TARGET_XBOXONE
+DAG_DECLARE_RELOCATABLE(D3D12_TEXTURE_BARRIER);
+DAG_DECLARE_RELOCATABLE(D3D12_BUFFER_BARRIER);
+#endif
 
 namespace drv3d_dx12
 {
@@ -151,20 +167,23 @@ inline bool has_single_write_state(D3D12_RESOURCE_STATES state)
   return true;
 }
 
-enum class ResourceStateValidationFailBits
+struct ResourceStateValidationFailState
 {
-  MULTPLE_WRITE_BITS_CONFLICT,
-  READ_WRITE_BITS_CONFLICT,
-  INVALID_READ_BITS_COMBINATION,
-  UAV_ON_INCOMPATIBE_RESOURCE,
-  RENDER_TARGET_ON_INCOMPATIBLE_RESOURCE,
-  DEPTH_STENCIL_ON_INCOMPATIBLE_RESOURCE,
-  SRV_ON_INCOMPATILBE_RESOURCE,
+  bool multipleWriteBitsConflict : 1 = false;
+  bool readWriteBitsConflict : 1 = false;
+  bool invalidReadBitsCombination : 1 = false;
+  bool uavOnIncompatibleResource : 1 = false;
+  bool renderTargetOnIncompatibleResource : 1 = false;
+  bool depthStencilOnIncompatibleResource : 1 = false;
+  bool srvOnIncompatibleResource : 1 = false;
 
-  COUNT
+  bool any() const
+  {
+    return multipleWriteBitsConflict || readWriteBitsConflict || invalidReadBitsCombination || uavOnIncompatibleResource ||
+           renderTargetOnIncompatibleResource || depthStencilOnIncompatibleResource || srvOnIncompatibleResource;
+  }
+  bool none() const { return !any(); }
 };
-
-using ResourceStateValidationFailState = TypedBitSet<ResourceStateValidationFailBits>;
 
 inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_RESOURCE_STATES state, uint32_t resource_flags,
   bool is_buffer)
@@ -175,7 +194,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if (!has_single_write_state(state))
     {
-      errorBits.set(ResourceStateValidationFailBits::MULTPLE_WRITE_BITS_CONFLICT);
+      errorBits.multipleWriteBitsConflict = true;
     }
 
     if (has_read_state(state))
@@ -186,7 +205,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
       // ifdef ugliness.
       if (!is_buffer || (D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE != state))
       {
-        errorBits.set(ResourceStateValidationFailBits::READ_WRITE_BITS_CONFLICT);
+        errorBits.readWriteBitsConflict = true;
       }
     }
   }
@@ -195,7 +214,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if (!has_valid_read_state_combination(state))
     {
-      errorBits.set(ResourceStateValidationFailBits::INVALID_READ_BITS_COMBINATION);
+      errorBits.invalidReadBitsCombination = true;
     }
   }
 
@@ -205,7 +224,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if (D3D12_RESOURCE_STATE_UNORDERED_ACCESS & state)
     {
-      errorBits.set(ResourceStateValidationFailBits::UAV_ON_INCOMPATIBE_RESOURCE);
+      errorBits.uavOnIncompatibleResource = true;
     }
   }
 #endif
@@ -214,7 +233,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if (D3D12_RESOURCE_STATE_RENDER_TARGET & state)
     {
-      errorBits.set(ResourceStateValidationFailBits::RENDER_TARGET_ON_INCOMPATIBLE_RESOURCE);
+      errorBits.renderTargetOnIncompatibleResource = true;
     }
   }
 
@@ -222,7 +241,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if (D3D12_RESOURCE_STATE_DEPTH_WRITE & state)
     {
-      errorBits.set(ResourceStateValidationFailBits::DEPTH_STENCIL_ON_INCOMPATIBLE_RESOURCE);
+      errorBits.depthStencilOnIncompatibleResource = true;
     }
   }
 
@@ -230,7 +249,7 @@ inline ResourceStateValidationFailState validate_resource_state_elements(D3D12_R
   {
     if ((D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) & state)
     {
-      errorBits.set(ResourceStateValidationFailBits::SRV_ON_INCOMPATILBE_RESOURCE);
+      errorBits.srvOnIncompatibleResource = true;
     }
   }
 
@@ -243,31 +262,31 @@ inline bool validate_resource_state(D3D12_RESOURCE_STATES state, uint32_t resour
 
   if (errors.any())
   {
-    if (errors.test(ResourceStateValidationFailBits::MULTPLE_WRITE_BITS_CONFLICT))
+    if (errors.multipleWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid resource state, multiple write bits set, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::READ_WRITE_BITS_CONFLICT))
+    if (errors.readWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid resource state, read and write bits set, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::INVALID_READ_BITS_COMBINATION))
+    if (errors.invalidReadBitsCombination)
     {
       D3D_ERROR("DX12: Invalid resource state, invalid combination of read bits set, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::UAV_ON_INCOMPATIBE_RESOURCE))
+    if (errors.uavOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid resource state, UAV state without proper resource flags, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::RENDER_TARGET_ON_INCOMPATIBLE_RESOURCE))
+    if (errors.renderTargetOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid resource state, RTV state without proper resource flags, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::DEPTH_STENCIL_ON_INCOMPATIBLE_RESOURCE))
+    if (errors.depthStencilOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid resource state, DSV state without proper resource flags, with 0x%08X", state);
     }
-    if (errors.test(ResourceStateValidationFailBits::SRV_ON_INCOMPATILBE_RESOURCE))
+    if (errors.srvOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid resource state, SRV state without proper resource flags, with 0x%08X", state);
     }
@@ -332,86 +351,86 @@ inline bool validate_transition_barrier(const D3D12_RESOURCE_TRANSITION_BARRIER 
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
 
-    if (beforeErrors.test(ResourceStateValidationFailBits::MULTPLE_WRITE_BITS_CONFLICT))
+    if (beforeErrors.multipleWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid transition barrier, multiple write bits set, for <%s> (%s) %u with "
                 "StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::READ_WRITE_BITS_CONFLICT))
+    if (beforeErrors.readWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid transition barrier, read and write bits set, for <%s> (%s) %u with "
                 "StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::INVALID_READ_BITS_COMBINATION))
+    if (beforeErrors.invalidReadBitsCombination)
     {
       D3D_ERROR("DX12: Invalid transition barrier, invalid combination of read bits set, for <%s> "
                 "(%s) %u with StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::UAV_ON_INCOMPATIBE_RESOURCE))
+    if (beforeErrors.uavOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, UAV state without proper resource flags, for <%s> "
                 "(%s) %u with StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::RENDER_TARGET_ON_INCOMPATIBLE_RESOURCE))
+    if (beforeErrors.renderTargetOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, RTV state without proper resource flags, for <%s> "
                 "(%s) %u with StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::DEPTH_STENCIL_ON_INCOMPATIBLE_RESOURCE))
+    if (beforeErrors.depthStencilOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, DSV state without proper resource flags, for <%s> "
                 "(%s) %u with StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
-    if (beforeErrors.test(ResourceStateValidationFailBits::SRV_ON_INCOMPATILBE_RESOURCE))
+    if (beforeErrors.srvOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, SRV state without proper resource flags, for <%s> "
                 "(%s) %u with StateBefore as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateBefore);
     }
 
-    if (afterErrors.test(ResourceStateValidationFailBits::MULTPLE_WRITE_BITS_CONFLICT))
+    if (afterErrors.multipleWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid transition barrier, multiple write bits set, for <%s> (%s) %u with "
                 "StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::READ_WRITE_BITS_CONFLICT))
+    if (afterErrors.readWriteBitsConflict)
     {
       D3D_ERROR("DX12: Invalid transition barrier, read and write bits set, for <%s> (%s) %u with "
                 "StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::INVALID_READ_BITS_COMBINATION))
+    if (afterErrors.invalidReadBitsCombination)
     {
       D3D_ERROR("DX12: Invalid transition barrier, invalid combination of read bits set, for <%s> "
                 "(%s) %u with StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::UAV_ON_INCOMPATIBE_RESOURCE))
+    if (afterErrors.uavOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, UAV state without proper resource flags, for <%s> "
                 "(%s) %u with StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::RENDER_TARGET_ON_INCOMPATIBLE_RESOURCE))
+    if (afterErrors.renderTargetOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, RTV state without proper resource flags, for <%s> "
                 "(%s) %u with StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::DEPTH_STENCIL_ON_INCOMPATIBLE_RESOURCE))
+    if (afterErrors.depthStencilOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, DSV state without proper resource flags, for <%s> "
                 "(%s) %u with StateAfter as 0x%08X",
         resnameBuffer, to_string(desc.Dimension), barrier.Subresource, barrier.StateAfter);
     }
-    if (afterErrors.test(ResourceStateValidationFailBits::SRV_ON_INCOMPATILBE_RESOURCE))
+    if (afterErrors.srvOnIncompatibleResource)
     {
       D3D_ERROR("DX12: Invalid transition barrier, SRV state without proper resource flags, for <%s> "
                 "(%s) %u with StateAfter as 0x%08X",
@@ -1086,9 +1105,20 @@ inline void print_barrier(const D3D12_RESOURCE_BARRIER &barrier)
 class BarrierBatcher
 {
   dag::Vector<D3D12_RESOURCE_BARRIER> dataSet;
+#if !_TARGET_XBOXONE
+  dag::Vector<D3D12_TEXTURE_BARRIER> enhancedTextureBarriers;
+  dag::Vector<D3D12_BUFFER_BARRIER> enhancedBufferBarriers;
+#endif
 
 public:
-  void purgeAll() { dataSet.clear(); }
+  void purgeAll()
+  {
+    dataSet.clear();
+#if !_TARGET_XBOXONE
+    enhancedTextureBarriers.clear();
+    enhancedBufferBarriers.clear();
+#endif
+  }
 
   size_t batchSize() const { return dataSet.size(); }
 
@@ -1317,16 +1347,53 @@ public:
 
   void flushAliasAll() { flushAlias(nullptr, nullptr); }
 
-  bool hasBarriers() const { return !dataSet.empty(); }
+  bool hasBarriers() const
+  {
+    return !dataSet.empty()
+#if !_TARGET_XBOXONE
+           || !enhancedTextureBarriers.empty() || !enhancedBufferBarriers.empty()
+#endif
+      ;
+  }
+
+#if !_TARGET_XBOXONE
+  void addEnhancedTextureBarrier(const D3D12_TEXTURE_BARRIER &barrier) { enhancedTextureBarriers.push_back(barrier); }
+  void addEnhancedBufferBarrier(const D3D12_BUFFER_BARRIER &barrier) { enhancedBufferBarriers.push_back(barrier); }
+#endif
 
   template <typename T>
   void execute(T &cmd)
   {
-    if (hasBarriers())
+    if (!dataSet.empty())
     {
       cmd.resourceBarrier(static_cast<UINT>(dataSet.size()), dataSet.data());
       dataSet.clear();
     }
+#if !_TARGET_XBOXONE
+    if (!enhancedTextureBarriers.empty() || !enhancedBufferBarriers.empty())
+    {
+      eastl::array<D3D12_BARRIER_GROUP, 2> groups{};
+      UINT groupCount = 0;
+      if (!enhancedTextureBarriers.empty())
+      {
+        groups[groupCount].Type = D3D12_BARRIER_TYPE_TEXTURE;
+        groups[groupCount].NumBarriers = static_cast<UINT>(enhancedTextureBarriers.size());
+        groups[groupCount].pTextureBarriers = enhancedTextureBarriers.data();
+        ++groupCount;
+      }
+      if (!enhancedBufferBarriers.empty())
+      {
+        groups[groupCount].Type = D3D12_BARRIER_TYPE_BUFFER;
+        groups[groupCount].NumBarriers = static_cast<UINT>(enhancedBufferBarriers.size());
+        groups[groupCount].pBufferBarriers = enhancedBufferBarriers.data();
+        ++groupCount;
+      }
+      G_ASSERTF(groupCount > 0, "Enhanced barrier flush built no groups despite having pending barriers");
+      cmd.barrier(groupCount, groups.data());
+      enhancedTextureBarriers.clear();
+      enhancedBufferBarriers.clear();
+    }
+#endif
   }
 };
 
@@ -2325,7 +2392,7 @@ public:
   // buffers
   void useBufferAsCBV(BarrierBatcher &barriers, uint32_t stage, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2335,7 +2402,7 @@ public:
 
   void useBufferAsSRV(BarrierBatcher &barriers, uint32_t stage, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2346,14 +2413,17 @@ public:
 
   void useBufferAsUAV(BarrierBatcher &barriers, uint32_t stage, BufferResourceReference buffer)
   {
-    G_ASSERT(buffer.resourceId);
+    if (buffer.resourceId.isExcludedFromStateTracking())
+    {
+      return;
+    }
     G_UNUSED(stage);
     transitionBuffer(barriers, buffer.buffer, buffer.resourceId, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
   }
 
   void useBufferAsIB(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2362,7 +2432,7 @@ public:
 
   void useBufferAsVB(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2371,7 +2441,7 @@ public:
 
   void useBufferAsRTASBuildSource(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2380,7 +2450,7 @@ public:
 
   void useBufferAsOpacityMicroMapInputBuffer(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2389,7 +2459,7 @@ public:
 
   void useBufferAsOpacityMicroMapDescriptionBuffer(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2398,7 +2468,7 @@ public:
 
   void useBufferAsIA(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2407,7 +2477,7 @@ public:
 
   void useBufferAsStreamOutput(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2418,7 +2488,7 @@ public:
 
   void useBufferAsStreamOutputCounter(BarrierBatcher &barriers, BufferResourceReference buffer, bool is_intel_gpu)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2429,7 +2499,7 @@ public:
 
   void useBufferAsCopySource(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2438,20 +2508,29 @@ public:
 
   void useBufferAsCopyDestination(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    G_ASSERT(buffer.resourceId);
+    if (buffer.resourceId.isExcludedFromStateTracking())
+    {
+      return;
+    }
     transitionBuffer(barriers, buffer.buffer, buffer.resourceId, D3D12_RESOURCE_STATE_COPY_DEST);
   }
 
   void useBufferAsUAVForClear(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    G_ASSERT(buffer.resourceId);
+    if (buffer.resourceId.isExcludedFromStateTracking())
+    {
+      return;
+    }
     UnorderedAccessTracker::beginImplicitAccess(buffer.buffer);
     transitionBuffer(barriers, buffer.buffer, buffer.resourceId, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
   }
 
   void useBufferAsQueryResultDestination(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    G_ASSERT(buffer.resourceId);
+    if (buffer.resourceId.isExcludedFromStateTracking())
+    {
+      return;
+    }
     transitionBuffer(barriers, buffer.buffer, buffer.resourceId, D3D12_RESOURCE_STATE_COPY_DEST);
   }
 
@@ -2465,7 +2544,7 @@ public:
 
   void useBufferAsPredication(BarrierBatcher &barriers, BufferResourceReference buffer)
   {
-    if (!buffer.resourceId)
+    if (buffer.resourceId.isExcludedFromStateTracking())
     {
       return;
     }
@@ -2535,7 +2614,10 @@ public:
   void useTextureAsUAV(BarrierBatcher &barriers, SplitTransitionTracker &stt, uint32_t stage, Image *texture, ArrayLayerRange arrays,
     MipMapRange mips)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     G_UNUSED(stage);
     auto mipBase = mips.front();
     auto mipCount = mips.size();
@@ -2591,12 +2673,20 @@ public:
 
   void useTextureAsReadBack(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), sub_res, 1,
       SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_COPY_QUEUE_SOURCE);
   }
 
   void useTextureAsSwapImageOutput(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
       SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_PRESENT);
   }
@@ -2604,6 +2694,10 @@ public:
   void useTextureAsDSVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerIndex array_layer,
     MipMapIndex mip_level)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
       texture->mipAndLayerResourceIndex(mip_level, array_layer, FormatPlaneIndex::make(0)), 1, texture->getSubresourcesPerPlane(),
       texture->getPlaneCount(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -2617,6 +2711,10 @@ public:
   void useTextureAsRTVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerIndex array_layer,
     MipMapIndex mip_level)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
       texture->mipAndLayerResourceIndex(mip_level, array_layer, FormatPlaneIndex::make(0)), 1, texture->getSubresourcesPerPlane(),
       texture->getPlaneCount(), D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -2651,7 +2749,10 @@ public:
 
   void useTextureAsCopyDestinationForWholeCopy(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0),
       texture->getSubresourcesPerPlane().count(), texture->getSubresourcesPerPlane(), texture->getPlaneCount(),
       D3D12_RESOURCE_STATE_COPY_DEST);
@@ -2695,7 +2796,10 @@ public:
 
   void useTextureAsCopyDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), sub_res, 1, texture->getSubresourcesPerPlane(),
       texture->getPlaneCount(), D3D12_RESOURCE_STATE_COPY_DEST);
   }
@@ -2703,7 +2807,10 @@ public:
   void finishUseTextureAsCopyDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture,
     SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     if (texture->isGPUChangeable())
     {
       return;
@@ -2715,14 +2822,20 @@ public:
   // now only resolving one subresource
   void useTextureAsResolveSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
       texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
   }
 
   void useTextureAsResolveDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
       texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_RESOLVE_DEST);
   }
@@ -2740,6 +2853,10 @@ public:
 
   void useTextureAsBlitDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
       texture->mipAndLayerResourceIndex(view.getMipBase(), view.getArrayBase(), FormatPlaneIndex::make(0)), 1,
       SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -2748,6 +2865,10 @@ public:
   void useTextureAsRTV(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerRange arrays,
     MipMapIndex mip_level)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     auto arrayCount = arrays.size();
     if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == texture->getType())
     {
@@ -2766,6 +2887,10 @@ public:
   void useTextureAsDSV(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerIndex array_layer,
     MipMapIndex mip_level)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
       texture->mipAndLayerResourceIndex(mip_level, array_layer, FormatPlaneIndex::make(0)), 1, texture->getSubresourcesPerPlane(),
       texture->getPlaneCount(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
@@ -2778,6 +2903,10 @@ public:
 
   void useTextureAsDSVConst(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(),
       texture->mipAndLayerResourceIndex(view.getMipBase(), view.getArrayBase(), FormatPlaneIndex::make(0)), 1,
       texture->getSubresourcesPerPlane(), texture->getPlaneCount(), D3D12_RESOURCE_STATE_DEPTH_READ);
@@ -2786,6 +2915,9 @@ public:
   void useTextureAsUAVForClear(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ArrayLayerRange arrays,
     MipMapRange mips)
   {
+    if (!texture->hasTrackedState())
+      return;
+
     auto mipBase = mips.front();
     auto mipCount = mips.size();
     if (D3D12_RESOURCE_DIMENSION_TEXTURE3D == texture->getType())
@@ -2853,6 +2985,10 @@ public:
 
   void useTextureAsDLSSOutput(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0), 1,
       SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -2861,7 +2997,10 @@ public:
 
   void useTextureAsUploadDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), sub_res, 1,
       SubresourcePerFormatPlaneCount::make(1), FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_COPY_DEST);
   }
@@ -2869,6 +3008,10 @@ public:
   void finishUseTextureAsUploadDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture,
     SubresourceIndex sub_res)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     if (texture->isGPUChangeable())
     {
       return;
@@ -2879,6 +3022,10 @@ public:
 
   void useTextureToAliasFrom(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, uint32_t tex_flags)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
     if (TEXCF_RTARGET & tex_flags)
     {
@@ -2905,6 +3052,10 @@ public:
 
   void useTextureToAliasToAndDiscard(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, uint32_t tex_flags)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     D3D12_RESOURCE_STATES state;
     if (TEXCF_RTARGET & tex_flags)
     {
@@ -2984,6 +3135,10 @@ public:
 
   void beginTextureCPUAccess(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0),
       (texture->getSubresourcesPerPlane() * texture->getPlaneCount()).count(), SubresourcePerFormatPlaneCount::make(1),
       FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_COMMON);
@@ -2991,6 +3146,10 @@ public:
 
   void endTextureCPUAccess(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
+    if (!texture->hasTrackedState())
+    {
+      return;
+    }
     transitionTexture(barriers, stt, texture, texture->getGlobalSubResourceIdBase(), SubresourceIndex::make(0),
       (texture->getSubresourcesPerPlane() * texture->getPlaneCount()).count(), SubresourcePerFormatPlaneCount::make(1),
       FormatPlaneCount::make(1), D3D12_RESOURCE_STATE_COMMON);
@@ -3861,7 +4020,7 @@ class ResourceUsageManagerWithHistory : protected ResourceUsageManager
     {
       return false;
     }
-    return static_cast<bool>(buffer.resourceId) && buffer.resourceId.isUsedAsUAVBuffer();
+    return !buffer.resourceId.isExcludedFromStateTracking() && buffer.resourceId.isUsedAsUAVBuffer();
   }
 
 public:
@@ -4095,10 +4254,6 @@ public:
   void useTextureAsSRV(BarrierBatcher &barriers, SplitTransitionTracker &stt, uint32_t stage, Image *texture, ImageViewState view,
     bool as_const_ds)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       ResourceBarrier barrier = RB_RO_SRV;
@@ -4293,10 +4448,6 @@ public:
 
   void useTextureAsCopySourceForWholeCopy(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4309,10 +4460,6 @@ public:
 
   void useTextureAsCopySourceForWholeCopyOnReadbackQueue(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4325,7 +4472,6 @@ public:
 
   void useTextureAsCopyDestinationForWholeCopy(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    G_ASSERT(texture->hasTrackedState());
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4338,10 +4484,6 @@ public:
 
   void useTextureAsCopyDestinationForWholeCopyOnReadbackQueue(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4360,10 +4502,6 @@ public:
 
   void useTextureAsCopySource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       recordTexture(texture, sub_res, RB_RO_COPY_SOURCE, UsageEntryType::COPY_SOURCE);
@@ -4377,7 +4515,6 @@ public:
 
   void useTextureAsCopyDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
     if (shouldRecordData(texture))
     {
       recordTexture(texture, sub_res, RB_RW_COPY_DEST, UsageEntryType::COPY_DESTINATION);
@@ -4392,7 +4529,6 @@ public:
   void finishUseTextureAsCopyDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture,
     SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
     // for textures where shouldRecordData would return true, this is a noop, so nothing to track
     BaseType::finishUseTextureAsCopyDestination(barriers, stt, texture, sub_res);
   }
@@ -4410,10 +4546,6 @@ public:
 
   void useTextureAsBlitSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, ImageViewState view)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       view.iterateSubresources(texture->getType(), texture->getMipLevelRange(),
@@ -4545,10 +4677,6 @@ public:
 #if !_TARGET_XBOXONE
   void useTextureAsVRSSource(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4562,10 +4690,6 @@ public:
 
   void useTextureAsDLSSInput(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4590,7 +4714,6 @@ public:
 
   void useTextureAsUploadDestination(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture, SubresourceIndex sub_res)
   {
-    G_ASSERT(texture->hasTrackedState());
     if (shouldRecordData(texture))
     {
       recordTexture(texture, sub_res, RB_RW_COPY_DEST, UsageEntryType::UPLOAD_DESTINATION);
@@ -4686,10 +4809,6 @@ public:
 
   void beginTextureCPUAccess(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4702,10 +4821,6 @@ public:
 
   void endTextureCPUAccess(BarrierBatcher &barriers, SplitTransitionTracker &stt, Image *texture)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     if (shouldRecordData(texture))
     {
       for (auto s : texture->getSubresourceRange())
@@ -4730,19 +4845,11 @@ public:
   bool beginUseTextureAsUploadDestinationOnCopyQueue(BarrierBatcher &bb, InititalResourceStateSet &initial_state, Image *texture,
     SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return true;
-    }
     return BaseType::beginUseTextureAsUploadDestinationOnCopyQueue(bb, initial_state, texture, sub_res);
   }
 
   void finishUseTextureAsUploadDestinationOnCopyQueue(BarrierBatcher &bb, Image *texture, SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     BaseType::finishUseTextureAsUploadDestinationOnCopyQueue(bb, texture, sub_res);
   }
 
@@ -4822,38 +4929,22 @@ public:
   bool beginUseTextureAsMipTransferDestinationOnCopyQueue(BarrierBatcher &bb, InititalResourceStateSet &initial_state, Image *texture,
     SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return true;
-    }
     return BaseType::beginUseTextureAsMipTransferDestinationOnCopyQueue(bb, initial_state, texture, sub_res);
   }
 
   void finishUseTextureAsMipTransferDestinationOnCopyQueue(BarrierBatcher &bb, Image *texture, SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     BaseType::finishUseTextureAsMipTransferDestinationOnCopyQueue(bb, texture, sub_res);
   }
 
   bool beginUseTextureAsMipTransferSourceOnCopyQueue(BarrierBatcher &bb, InititalResourceStateSet &initial_state, Image *texture,
     SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return true;
-    }
     return BaseType::beginUseTextureAsMipTransferDestinationOnCopyQueue(bb, initial_state, texture, sub_res);
   }
 
   void finishUseTextureAsMipTransferSourceOnCopyQueue(BarrierBatcher &bb, Image *texture, SubresourceIndex sub_res)
   {
-    if (!texture->hasTrackedState())
-    {
-      return;
-    }
     BaseType::finishUseTextureAsMipTransferSourceOnCopyQueue(bb, texture, sub_res);
   }
 };

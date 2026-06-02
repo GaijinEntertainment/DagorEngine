@@ -24,7 +24,9 @@ def save_anim_graph_data_before_reload(evt : AssetChangedEvent; anim_replay__ani
     let eid = *get_Eid(animcharData, "eid")
     query(eid) <| $ [es] (animchar : AnimcharBaseComponent)
       datablock_add_block(*persistent_anim_graph_data, "animchar{i}") <| $(var anim_state_params : DataBlock)
-        copy_anim_state_parameters_to_blk(*animchar.animGraph, *get_ecs_object(*animcharData, "initialAnimStateParams"), anim_state_params)
+        let initialAnimStateParams = get_ecs_object(*animcharData, "initialAnimStateParams")
+        if animchar.animGraph != null && initialAnimStateParams != null
+          copy_anim_state_parameters_to_blk(*animchar.animGraph, *initialAnimStateParams, anim_state_params)
 
 [es(after=track_animchar_assets_es)]
 def update_anim_graph_data_after_reload(evt : AssetChangedEvent; var anim_replay__animchars : Array)
@@ -34,6 +36,8 @@ def update_anim_graph_data_after_reload(evt : AssetChangedEvent; var anim_replay
     var animcharData = getRW_ecs_object(animcharChildComp)
     let eid = *get_Eid(animcharData, "eid")
     query(eid) <| $ [es] (animchar : AnimcharBaseComponent)
+      if animchar.animGraph == null || animchar.animState == null
+        return
       datablock_get_block(*persistent_anim_graph_data, uint(i)) <| $(anim_state_params)
         patch_anim_graph_data(*animcharData, *animchar.animGraph, *animchar.animState, anim_state_params)
     var cachedAnimStateParams = getRW_ecs_array(animcharData, "cachedAnimStateParams")

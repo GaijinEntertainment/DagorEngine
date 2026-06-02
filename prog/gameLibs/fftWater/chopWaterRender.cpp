@@ -50,6 +50,7 @@ static const carray<carray<eastl::pair<float, int>, 7>, fft_water::RENDER_GOOD> 
 
 #define GLOBAL_VARS_LIST      \
   VAR(chop_fov)               \
+  VAR(chop_fov_log_bias)      \
   VAR(water_origin)           \
   VAR(water_heightmap_region) \
   VAR(water_vertical_lod)     \
@@ -172,8 +173,8 @@ void ChopWaterRender::setWaterDim(int dim_bits)
 }
 
 void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom_lod_quality, int survey_id, const Frustum &frustum,
-  const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon, IWaterDecalsRenderHelper *decals_renderer,
-  fft_water::RenderMode render_mode)
+  Occlusion *occlusion, const Driver3dPerspective &persp, const WaterRenderCommon &waterRenderCommon,
+  IWaterDecalsRenderHelper *decals_renderer, fft_water::RenderMode render_mode)
 {
   HeightmapRenderer *renderer = nullptr;
   if (render_mode < fft_water::RenderMode::MAX)
@@ -201,6 +202,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
 
   float chopFov = 2.0f * atanf(1.0f / persp.hk);
   ShaderGlobal::set_float(chop_fovVarId, chopFov);
+  ShaderGlobal::set_float(chop_fov_log_biasVarId, (log2f(1.0f / persp.hk) - 3.32192809f) * 0.15051499f);
 
   ShaderGlobal::set_int(chop_detail_waves_enabledVarId, isDetailWavesEnabled() ? 1 : 0);
 
@@ -267,7 +269,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   int hmap_tess_factorVarId = renderer ? renderer->get_hmap_tess_factorVarId() : -1;
   BBox2 lodsRegion;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
-    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, NULL, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
+    minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
     false /*not used*/, heightmapCulling, &lodsRegion);
   if (!defaultCullData.getCount())
     return;
@@ -293,7 +295,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
     const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;
     float lastLodCellSize = lod0CellSize * float(1 << (lodCount - 1));
-    float border = 5.0f * 1.6f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
+    float border = 5.0f * 3.1f * lastLodCellSize; // aligned to LAST_LOD_HEIGHTMAP_BORDER with some overlap
     float size = float(gridDim * (lodGrid.lastLodRad << 1)) * lastLodCellSize - border;
     heightmapRegion = BBox2(origin, size * 2);
   }

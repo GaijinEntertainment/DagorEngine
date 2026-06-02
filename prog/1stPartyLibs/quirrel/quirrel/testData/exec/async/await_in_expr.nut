@@ -1,4 +1,4 @@
-from "async" import Promise
+from "async" import Future
 
 // Multiple `await` in a single expression. Each suspension must preserve the
 // partial expression evaluation state on the stack so the second OP_YIELD
@@ -6,10 +6,10 @@ from "async" import Promise
 //   - additive composition: `await a + await b`
 //   - nested call composition: `await f(await g())`
 
-let pa = Promise()
+let pa = Future()
 pa.resolve(10)
 
-let pb = Promise()
+let pb = Future()
 pb.resolve(20)
 
 async function add() {

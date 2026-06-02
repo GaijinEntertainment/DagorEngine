@@ -133,6 +133,16 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
           debug("vulkan: flush %u:%s taken %u us", (uintptr_t)par2, (const char *)par1, flushTime);
       }
       break;
+    case Drv3dCommand::D3D_FLUSH_COMMAND_BUFFER:
+    {
+      TIME_PROFILE(vulkan_wait_for_backend_drain);
+      Globals::lock.acquire();
+      Globals::ctx.flushDraws(); // submits current replay to backend
+      while (!Globals::timelines.get<TimelineManager::CpuReplay>().waitAdvance(0, MAX_REPLAY_WAIT_TRIES))
+        ;
+      Globals::lock.release();
+    }
+    break;
     case Drv3dCommand::COMPILE_PIPELINE:
     {
       G_ASSERTF(Globals::lock.isAcquired(), "pipeline compilation requires gpu lock");

@@ -27,7 +27,7 @@ hlsl(stage) {
     return y * y * (3. - 2. * y);
   }
   float3 ApplyTreeWind(float3 vcol, float4 tree_wind_params, float3 worldLocalPos, float3 worldPos, float3 inputPos, float3 worldNormal,
-                        float weight, float noise_speed_mult)
+                        float weight, float noise_speed_mult, bool use_prev)
   {
     const float BASE_TREE_WIND_SPEED_MULT = 0.1;
     const float BASE_TREE_WAVE_AMP = 0.2;
@@ -36,7 +36,7 @@ hlsl(stage) {
     float fTime = tree_wind_params.x;
     float fBranchAmp = tree_wind_params.y;
     float fDetailAmp = tree_wind_params.z;
-    float3 wind = BASE_TREE_WIND_SPEED_MULT*sampleWindCurrentTime(worldPos, noise_speed_mult,0);
+    float3 wind = BASE_TREE_WIND_SPEED_MULT * (use_prev ? sampleWindPreviousTime(worldPos, noise_speed_mult, 0) : sampleWindCurrentTime(worldPos, noise_speed_mult,0));
     float fSpeedSq = dot(wind.xz, wind.xz);
     FLATTEN
     if (fSpeedSq < MIN_WIND_SPEED*MIN_WIND_SPEED)
@@ -65,6 +65,11 @@ hlsl(stage) {
     if (len > 0.0001) //prevent zero vector normalize
       newPos /= len;
     return newPos * fLength;
+  }
+
+  float3 ApplyTreeWind(float3 vcol, float4 tree_wind_params, float3 worldLocalPos, float3 worldPos, float3 inputPos, float3 worldNormal, float weight, float noise_speed_mult)
+  {
+    return ApplyTreeWind(vcol, tree_wind_params, worldLocalPos, worldPos, inputPos, worldNormal, weight, noise_speed_mult, false);
   }
 }
 endmacro

@@ -1,3 +1,8 @@
 file:t = "../rendinst_vegetation.dshl"
 file:t = "../rendinst_tree_perlin_layered.dshl"
 file:t = "../rendinst_impostor.dshl"
+file:t = "../rendinst_simple.dshl"
+file:t = "../rendinst_simple_painted.dshl"
+file:t = "../rendinst_layered.dshl"
+file:t = "../rendinst_perlin_layered.dshl"
+file:t = "../rendinst_decal.dshl"

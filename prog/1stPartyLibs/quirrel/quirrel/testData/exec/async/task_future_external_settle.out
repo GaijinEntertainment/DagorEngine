@@ -1,0 +1,11 @@
+=== inflight ===
+resolve threw: Future.resolve: cannot resolve the future returned by an async function
+bare: fulfilled
+consumer got: 42
+=== after_adopt ===
+resolve still throws: Future.resolve: cannot resolve the future returned by an async function
+consumer got: real
+=== after_done ===
+resolve throws: Future.resolve: cannot resolve the future returned by an async function
+after probe, task awaits to: 42
+script done

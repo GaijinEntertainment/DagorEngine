@@ -13,6 +13,7 @@ AddIncludes =
 
 Sources =
   dynmodelRenderer.cpp
+  animCharRenderAdditionalData.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -24,6 +24,7 @@
 #include <memory/dag_framemem.h>
 #include <dasModules/dasManagedTab.h>
 #include <generic/dag_patchTab.h>
+#include <anim/dag_animDecl.h>
 
 #include <../engine/anim/animFifo.h>
 
@@ -109,6 +110,8 @@ MAKE_TYPE_FACTORY(AnimBlender, AnimV20::AnimBlender);
 MAKE_TYPE_FACTORY(AnimcharDebugContext, AnimV20::AnimcharDebugContext);
 
 DAS_BIND_ENUM_CAST_98(AnimcharVisbits);
+
+DAS_BIND_ENUM_CAST_98_IN_NAMESPACE(AnimV20::FifoMorphType, FifoMorphType);
 
 template <>
 struct das::isCloneable<AnimV20::AnimationGraph> : false_type

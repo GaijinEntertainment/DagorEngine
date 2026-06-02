@@ -95,6 +95,18 @@ static __forceinline void clouds_rendering_es_event_handler(const ecs::Event &, 
   manager.broadcastEventImmediate(CmdSkiesInvalidate());
 }
 
+ECS_ON_EVENT(on_appear, EventSkiesLoaded)
+ECS_TRACK(*)
+static inline void sky_wind_es(const ecs::Event &, float wind__dir)
+{
+  DaSkies *skies = get_daskies_impl();
+  if (!skies)
+    return;
+
+  Point2 windDir = Point2(cosf(DegToRad(wind__dir)), sinf(DegToRad(wind__dir)));
+  skies->setWindDirection(windDir);
+}
+
 // strata_clouds
 ECS_REQUIRE(ecs::Tag skies_settings_tag)
 ECS_TRACK(*)

@@ -52,6 +52,12 @@ public:
   // BLAS build phase (scratch is caller-owned); the final hand-off to swrt (either addBoxModel or
   // addPreBuiltModel) mutates shared RenderSWRT state and is not thread-safe, so concurrent
   // callers must serialize that step.
+  // dim_as_box_min/max: distance range (metres) for the runtime "treat-as-box" shadow
+  // optimization. The actual per-BLAS distance is interpolated from a voxel-rasterized box-
+  // resemblance score: a near-box mesh gets `dim_as_box_min` (aggressive: collapses to AABB
+  // even up close), a non-box mesh gets `dim_as_box_max` (conservative: only collapses far
+  // away). Pass max==min to disable scoring and pin every mesh to a single distance. Pure
+  // axis-aligned boxes (checkIfIsBox) bypass this entirely via addBoxModel.
   static int buildSwrtBLASFromCollisionResource(RenderSWRT &swrt, const CollisionResource &coll_res, const PhysMatFilter &node_filter,
-    float dim_as_box_dist, BuildSwrtBLASScratch &scratch);
+    float dim_as_box_min, float dim_as_box_max, BuildSwrtBLASScratch &scratch);
 };

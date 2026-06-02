@@ -275,7 +275,7 @@ static constexpr ecs::ComponentDesc cinematic_mode_settings_changed_es_event_han
   {ECS_HASH("cinematic_mode__lenseFlareIntensity"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("cinematic_mode__lenseDust"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("cinematic_mode__chromaticAberration"), ecs::ComponentTypeInfo<Point3>()},
-  {ECS_HASH("cinematic_mode__filmGrain"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("cinematic_mode__filmGrain"), ecs::ComponentTypeInfo<Point4>()},
   {ECS_HASH("cinematic_mode__fps"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("cinematic_mode__subPixels"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("cinematic_mode__superPixels"), ecs::ComponentTypeInfo<int>()},
@@ -295,7 +295,7 @@ static void cinematic_mode_settings_changed_es_event_handler_all_events(const ec
     , ECS_RW_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__lenseRadialTex", ecs::string)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__lenseDust", bool)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__chromaticAberration", Point3)
-    , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__filmGrain", Point3)
+    , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__filmGrain", Point4)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__fps", int)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__subPixels", int)
     , ECS_RO_COMP(cinematic_mode_settings_changed_es_event_handler_comps, "cinematic_mode__superPixels", int)

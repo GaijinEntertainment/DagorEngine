@@ -43,7 +43,6 @@ Sources =
   shFunc.cpp
   shSkinnedMesh.cpp
   dynSceneRes.cpp
-  objVisDebugData.cpp
   rendInstRes.cpp
   instShaderMeshRes.cpp
   matVdata.cpp

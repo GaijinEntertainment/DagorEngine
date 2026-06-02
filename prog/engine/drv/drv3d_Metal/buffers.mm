@@ -183,7 +183,6 @@ namespace drv3d_metal
         pTexDesc.usage |= MTLTextureUsageShaderWrite;
     }
 
-    checkLockParams(0, bufSize, VBLOCK_DISCARD, bufFlags, getName(), bufSize);
     isDynamic = bufFlags & SBCF_DYNAMIC;
     fast_discard = bufFlags & SBCF_FRAMEMEM;
 

@@ -444,7 +444,7 @@ static void convar_all(eastl::vector<eastl::string> &favourite_convars, bool &fa
     ConVarIterator cit;
     while (ConVarBase *cv = cit.nextVar())
     {
-      if (dd_stristr(cv->getName(), convarSearchText.c_str()))
+      if (dd_stristr(cv->getName(), convarSearchText))
       {
         uniqueLabel.sprintf("Pin##%s", cv->getName());
         if (ImGui::Button(uniqueLabel.c_str()))
@@ -654,7 +654,7 @@ static void shadervar_all(eastl::vector<eastl::string> &favourite_shvars, bool &
     for (int i = 0, ie = VariableMap::getGlobalVariablesCount(); i < ie; ++i)
     {
       const char *varName = VariableMap::getGlobalVariableName(i);
-      if (varName && dd_stristr(varName, shaderVarSearchText.c_str()))
+      if (varName && dd_stristr(varName, shaderVarSearchText))
       {
         const int varId = VariableMap::getVariableId(varName);
         const int varType = ShaderGlobal::get_var_type(varId);

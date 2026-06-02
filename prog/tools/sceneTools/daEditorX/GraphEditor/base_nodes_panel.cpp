@@ -17,6 +17,7 @@ namespace
 {
 enum
 {
+  PID_BASE_NODES_RELOAD = 11999,
   PID_BASE_NODES_TREE = 12000,
 };
 
@@ -27,10 +28,7 @@ constexpr size_t BASE_NODE_NAME_BUF_SIZE = 128;
 BaseNodesPanel::BaseNodesPanel(GraphEditorPlg &plg) : plugin(plg)
 {
   panelWindow = IEditorCoreEngine::get()->createPropPanel(this, "Base nodes");
-
-  PropPanel::ContainerPropertyControl *tree = panelWindow->createTree(PID_BASE_NODES_TREE, "Nodes:", hdpi::_pxScaled(0));
-  populateTree(tree);
-  tree->setTreeDragHandler(this);
+  buildPanelContents();
 }
 
 BaseNodesPanel::~BaseNodesPanel() { IEditorCoreEngine::get()->deleteCustomPanel(panelWindow); }
@@ -40,6 +38,39 @@ void BaseNodesPanel::updateImgui()
   if (panelWindow)
   {
     panelWindow->updateImgui();
+  }
+}
+
+void BaseNodesPanel::refresh()
+{
+  if (!panelWindow)
+  {
+    return;
+  }
+  // Mirrors the PropertiesPanel rebuild pattern: clear() wipes every control on the panel,
+  // dropping the previous tree's leaf-handle indices. Re-populate from scratch against the
+  // plugin's current baseNodesBlk -- any newly added shader / subgraph file will surface.
+  panelWindow->clear();
+  leafToTemplateUid.clear();
+  buildPanelContents();
+}
+
+void BaseNodesPanel::buildPanelContents()
+{
+  panelWindow->createButton(PID_BASE_NODES_RELOAD, "Reload base nodes");
+  PropPanel::ContainerPropertyControl *tree = panelWindow->createTree(PID_BASE_NODES_TREE, "Nodes:", hdpi::_pxScaled(0));
+  populateTree(tree);
+  tree->setTreeDragHandler(this);
+}
+
+void BaseNodesPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl * /*panel*/)
+{
+  if (pcb_id == PID_BASE_NODES_RELOAD)
+  {
+    // plugin.reloadBaseNodes drops the cached descriptor state, re-runs the lazy loader
+    // (which re-scans shader templates and mainGraphs/*.{json,blk} for subgraphs), then
+    // calls back into this->refresh() to rebuild the tree against the fresh blk.
+    plugin.reloadBaseNodes();
   }
 }
 

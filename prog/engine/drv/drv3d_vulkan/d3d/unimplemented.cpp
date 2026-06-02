@@ -104,4 +104,8 @@ void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const Resourc
   G_ASSERTF(false, "Not implemented");
 }
 
+void d3d::enhanced_texture_barrier(const d3d::TextureBarrier &, BaseTexture *) {}
+void d3d::enhanced_buffer_barrier(const d3d::BufferBarrier &, Sbuffer *) {}
+void d3d::enhanced_barrier_batch(dag::ConstSpan<d3d::TextureBarrierBatchItem>, dag::ConstSpan<d3d::BufferBarrierBatchItem>) {}
+
 #include <legacyCaptureImpl.cpp.inl>

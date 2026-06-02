@@ -366,6 +366,9 @@ void ResourseVisualizer::draw()
   if (ImGui::IsWindowCollapsed())
     return;
 
+  if (updateNeeded)
+    updateVisualization();
+
   showTooltips = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 
   if (nodeCount == 0)
@@ -1239,6 +1242,13 @@ void ResourseVisualizer::processInput()
 
 void ResourseVisualizer::updateVisualization()
 {
+  TIME_PROFILE(update_resource_visualization);
+
+  updateNeeded = true;
+
+  if (!imgui_window_is_visible(nullptr, IMGUI_RES_WIN_NAME) || imgui_window_is_collapsed(nullptr, IMGUI_RES_WIN_NAME))
+    return;
+
   using ResourceIndex = intermediate::ResourceIndex;
 
   nodeCount = intermediateGraph.nodes.totalKeys();
@@ -1536,6 +1546,8 @@ void ResourseVisualizer::updateVisualization()
   layoutUsages = false;
   layoutBarriers = false;
   currentLayout = ColumnLayout();
+
+  updateNeeded = false;
 }
 
 void ResourseVisualizer::clearResourcePlacements() { resourcePlacemantEntries.clear(); }

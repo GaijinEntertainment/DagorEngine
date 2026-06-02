@@ -187,7 +187,7 @@ void PhysRagdoll::setOverrideOmega(const Point3 &omega)
 
 void PhysRagdoll::setDriveBodiesToAnimchar(bool doDrive) { driveBodiesToAnimchar = doDrive; }
 
-void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const GeomNodeTree *tree)
+void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const GeomNodeTree *tree, float scale)
 {
   if (physSys) // Wake up if it's already started
     wakeUp();
@@ -196,7 +196,8 @@ void PhysRagdoll::startRagdoll(int interact_layer, int interact_mask, const Geom
 
   TIME_PROFILE(startRagdoll);
 
-  physSys = new PhysSystemInstance(physRes, physWorld, nullptr, &ud, interact_layer, interact_mask);
+  const TMatrix *noAddToWorld = nullptr;
+  physSys = new PhysSystemInstance(physRes, physWorld, noAddToWorld, &ud, interact_layer, interact_mask, scale);
   clear_and_shrink(lastNodeTms);
 
   if (tree)

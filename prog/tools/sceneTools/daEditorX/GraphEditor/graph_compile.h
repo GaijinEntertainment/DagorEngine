@@ -20,5 +20,14 @@ class DataBlock;
 // emits BLK directly (no /*MAIN_GRAPH_START*/ marker comments) since the
 // pipeline never reads the marker form -- the JS only emits markers so the
 // BLK can be embedded in a JSON file.
+//
+// `out_pin_custom_texture_names` is parallel to `data.nodes`:
+// `out_pin_custom_texture_names[nodeIdx][pinIdx]` is the texgen register name
+// assigned to that output pin (empty for input pins, non-texture outputs, and
+// bypassed nodes). Compile writes here instead of mutating `data` so the
+// preview panel's non-locked read of `Pin::customTextureName` on the main
+// thread doesn't race with the worker-thread compile. Callers must apply the
+// names to `GraphData::Pin::customTextureName` on the main thread.
 bool compile_graph_to_blks(const GraphData &data, const DataBlock &base_nodes_blk, const char *shader_includes_dir,
-  DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk);
+  DataBlock &out_main_graph_blk, DataBlock &out_shader_list_blk,
+  eastl::vector<eastl::vector<eastl::string>> &out_pin_custom_texture_names);

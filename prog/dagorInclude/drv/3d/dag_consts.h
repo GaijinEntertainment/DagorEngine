@@ -123,7 +123,8 @@ enum
   SBCF_UNUSED_BIT_8 = 0x400000,
   // <- overlaps with SBCF_BIND_MASK
   SBCF_UNUSED_BIT_9 = 0x40000000,
-  SBCF_UNUSED_BIT_A = 0x80000000,
+  // Disable state tracking in the driver. Use enhanced barriers.
+  SBCF_NO_STATE_TRACKING = 0x80000000,
   /// Buffer can be used as a shader binding table.
   /// Should not be used directly, use get_shader_binding_table_buffer_properties
   /// to calculate all properties, including create flags.

@@ -20,8 +20,10 @@ struct ImpostorOptions
   bool valid = true;
   bool clean = false;
   bool dryMode = false;
-  bool skipGen = false;
   bool forceRebake = false;
   bool profile = false;
+  bool defaultVoxelImpostor = false;
+  bool bakeFlat = true;
+  bool bakeVoxel = true;
   FolderBlkGenMode folderBlkGenMode = FolderBlkGenMode::REPLACE;
 };

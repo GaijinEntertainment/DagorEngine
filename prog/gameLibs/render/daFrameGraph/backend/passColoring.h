@@ -27,6 +27,8 @@ public:
 
   PassColoring performColoring(const intermediate::Graph &graph, const NodesChanged &node_changes);
 
+  void resetIncrementalState() { *this = PassColorer(); }
+
 private:
   enum class SubpassColor : uint32_t
   {

@@ -7,6 +7,8 @@
 #include <util/dag_string.h>
 #include <generic/dag_DObject.h>
 
+#include <EASTL/string_view.h>
+
 
 /// Helper macro for RTTI implementation.
 /// static DClassID @b getStaticClassId() - Returns class ID\n
@@ -47,6 +49,7 @@ public:
   /// Get object name.
   /// @return pointer to object name
   virtual const char *getName() const { return (const char *)name; }
+  virtual eastl::string_view getNameStringView() const { return eastl::string_view(name.begin(), name.length()); }
 
   /// Get object position.
   /// @return object position

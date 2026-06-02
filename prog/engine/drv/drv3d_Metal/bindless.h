@@ -22,7 +22,6 @@ class BindlessManager
 {
 public:
   uint32_t allocateBindlessResourceRange(D3DResourceType type, uint32_t count);
-  uint32_t resizeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t currentCount, uint32_t newCount);
   void freeBindlessResourceRange(D3DResourceType type, uint32_t index, uint32_t count);
 
   uint32_t registerBindlessSampler(int index, float bias);
@@ -44,6 +43,9 @@ private:
              ? buffers
              : (type == D3DResourceType::TEX ? textures2d : (type == D3DResourceType::CUBETEX ? texturesCube : textures2dArray));
   }
+
+  uint32_t allocateBindlessResourceRangeNoLock(D3DResourceType type, uint32_t count);
+  void freeBindlessResourceRangeNoLock(D3DResourceType type, uint32_t index, uint32_t count);
 
   ResourceArray textures2d;
   ResourceArray texturesCube;

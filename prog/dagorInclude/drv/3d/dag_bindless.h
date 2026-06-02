@@ -52,41 +52,33 @@ uint32_t register_bindless_sampler(SamplerHandle sampler);
 /**
  * \brief Allocates a persistent bindless slot range of the given 'type' resource type.
  *
+ * Thread-safe: drivers serialize internally, callers do not need to hold any lock.
+ * Fatals (DAG_FATAL) if the total number of allocated slots for 'type' would
+ * exceed bindless::MAX_RESOURCE_INDEX_COUNT.
+ *
  * \param type The type of resource to allocate the slot range for.
  * \param count The number of slots to allocate. Must be larger than 0.
- * \return The first slot index into the bindless heap of the requested range.
+ * \return The first slot index into the bindless heap of the requested range,
+ *         or 0 if 'caps.hasBindless == false' or 'count == 0' (contract assert).
  */
 uint32_t allocate_bindless_resource_range(D3DResourceType type, uint32_t count);
 
 /**
- * \brief Resizes a previously allocated bindless slot range.
- *
- * It can shrink and enlarge a slot range. The contents of all slots of the old range are migrated to the new range,
- * so only new entries have to be updated.
- *
- * \Note This function is considered deprecated, causes more problems when used and fosters bad use cases.
- *
- * \param type The type of resource to resize the slot range for.
- * \param index The index of the slot range to resize. Must be in a previously allocated bindless range,
- *              or any value if 'current_count' is 0.
- * \param current_count The current count of slots in the range. Must be within a previously allocated bindless slot range
- *                      or 0, when 0 then it behaves like 'allocate_bindless_resource_range'.
- * \param new_count The new count of slots in the range. Can be larger or smaller than 'current_count',
- *                  shrinks or enlarges the slot range accordingly.
- * \return The first slot of the new range.
- */
-uint32_t resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count);
-
-/**
  * \brief Frees a previously allocated slot range.
  *
- * This can also be used to shrink ranges, similarly to 'resize_bindless_resource_range'.
+ * This can also be used to shrink ranges.
+ *
+ * Thread-safe: drivers serialize internally, callers do not need to hold any lock.
+ * Requires 'caps.hasBindless == true' (contract assert otherwise).
+ *
+ * Freed slots are not guaranteed to be available for re-allocation in the same frame.
+ * They become available no later than after the next 'd3d::update_screen()' returns.
+ * Backends may release them earlier.
  *
  * \param type The type of resource to free the slot range for.
- * \param index The index of the slot range to free. Must be in a previously allocated bindless range,
- *              or any value if 'count' is 0.
- * \param count The number of slots to free. Must not exceed the previously allocated bindless slot range.
- *              Can be 0 which will be a no-op.
+ * \param index The index of the slot range to free. Must be in a previously allocated bindless range.
+ * \param count The number of slots to free. Must be larger than 0 (contract assert otherwise).
+ *              Must not exceed the previously allocated bindless slot range.
  */
 void free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count);
 
@@ -177,11 +169,6 @@ inline uint32_t register_bindless_sampler(SamplerHandle sampler) { return d3di.r
 inline uint32_t allocate_bindless_resource_range(D3DResourceType type, uint32_t count)
 {
   return d3di.allocate_bindless_resource_range(type, count);
-}
-
-inline uint32_t resize_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t current_count, uint32_t new_count)
-{
-  return d3di.resize_bindless_resource_range(type, index, current_count, new_count);
 }
 
 inline void free_bindless_resource_range(D3DResourceType type, uint32_t index, uint32_t count)

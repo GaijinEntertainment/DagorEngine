@@ -84,7 +84,7 @@ rule DepRule
 rule CheckHeaders
 {
   Depends $(<) : $(>) ;
-  NoCare $(>) ; # tolerant to .d absence
+  if $(StrictHeaderDeps) != yes || ! [ GLOB $(<:D) : $(<:D=) ] { NoCare $(>) ; } # tolerant to .d absence (also on fresh builds when .obj missing too)
   NOUPDATE $(>) ; # tolerant to .d timestamp
 
   # scan line for header, skipping any ../ at the beginning [will be prefixed with $(Root)]

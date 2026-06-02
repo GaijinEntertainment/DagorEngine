@@ -378,6 +378,12 @@ static void initBVH()
     if (rtSettings.isBvhDynModelsEnabled)
       features |= bvh::Features::DynrendRigidFull | bvh::Features::DynrendSkinnedFull;
 
+    bbox_width = dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhCullingBboxWidth", bbox_width);
+    rtsm_quality = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("bvhRTSMQuality", rtsm_quality);
+    animate_all_animchars_range =
+      dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhAnimateAllAnimcharsRange", animate_all_animchars_range);
+    grass_range = dgs_get_settings()->getBlockByNameEx("graphics")->getReal("bvhGrassRange", grass_range);
+
     constexpr float ULTRA_PERF_LOD_BIAS = 200.0f;
 
     bvh::AdditionalSettings additionalSettings;
@@ -635,7 +641,16 @@ void bvh_cables_changed() { cablesChanged = true; }
 bool is_rt_supported() { return bvh::is_available(); }
 int rt_support_error_code() { return eastl::to_underlying(bvh::is_available_verbose()); }
 
-void bvh_bind_resources(int render_width) { bvh::bind_resources(bvhRenderingContextId, render_width); }
+void bvh_bind_resources(int render_width)
+{
+  if (bvhRenderingContextId)
+    bvh::bind_resources(bvhRenderingContextId, render_width);
+}
+void bvh_unbind_resources()
+{
+  if (bvhRenderingContextId)
+    bvh::unbind_resources();
+}
 
 static bool use_bvh_ri_culling_job = false;
 struct BVHRICullingJob final : public cpujobs::IJob
@@ -824,6 +839,8 @@ static void upload_dynmodel_instance_data()
     bvhDynmodelState->setVars(bvhDynmodelInstanceBuffer->buffer.getBufId());
     ShaderGlobal::set_buffer(bvh_instance_data_bufferVarId, bvhDynmodelInstanceBuffer->buffer.getBufId());
     ShaderGlobal::set_int(bvh_instance_data_buffer_cur_offsetVarId, bvhDynmodelInstanceBuffer->curOffset);
+    static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
+      .instanceDataBaseOffset = bvhDynmodelInstanceBuffer->curOffset;
   }
 }
 
@@ -839,7 +856,8 @@ static void set_animate_out_of_frustum_trees_es(const RendinstLodRangeIncreasedE
   rigen_cull_dist_was_increased = evt.get<0>() || evt.get<1>();
 }
 
-void bvh_update_instances(const Point3 &cameraPos, const Point3 &lightDirection, const Frustum &viewFrustum)
+void bvh_update_instances(
+  const Point3 &cameraPos, const Point3 &lightDirection, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &viewFrustum)
 {
   if (!is_bvh_enabled())
     return;
@@ -850,8 +868,8 @@ void bvh_update_instances(const Point3 &cameraPos, const Point3 &lightDirection,
     visibilities.push_back(get_bvh_rigen_visibility());
   if (use_bvh_ri_oof_culling_job)
     visibilities.push_back(get_bvh_rigen_oof_visibility());
-  bvh::update_instances(bvhRenderingContextId, cameraPos, lightDirection, get_bvh_culling_matrix(cameraPos), viewFrustum, visibilities,
-    bvh_iterate_over_animchars, threadpool::PRIO_LOW);
+  bvh::update_instances(bvhRenderingContextId, cameraPos, lightDirection, itm, projTm, get_bvh_culling_matrix(cameraPos), viewFrustum,
+    visibilities, bvh_iterate_over_animchars, threadpool::PRIO_LOW);
   bvh::set_for_gpu_objects(bvhRenderingContextId);
   rigen_cull_dist_was_increased = false; // Avoid state being stuck when shooter cam is not used next frame
 }
@@ -1582,6 +1600,7 @@ static dafg::NodeHandle makeRTTRNode()
         d3d::set_cs_constbuffer_register_count(256);
         glass_rt->dispatchThreads(glassGbufferTi.w, glassGbufferTi.h, 1);
         d3d::set_cs_constbuffer_register_count(0);
+        bvh::unbind_resources();
         lights.setInsideOfFrustumLightsToShader();
       };
   });
@@ -1802,6 +1821,7 @@ dafg::NodeHandle makeWaterRTNode(WaterRenderMode mode)
       d3d::set_cs_constbuffer_register_count(256);
       water_rt->dispatchThreads(res.x, res.y, 1);
       d3d::set_cs_constbuffer_register_count(0);
+      bvh::unbind_resources();
       lights.setInsideOfFrustumLightsToShader();
     };
   });
@@ -2098,7 +2118,7 @@ static void bvh_set_dynmodel_instance_data(int istance_offset)
   if (!bvhDynmodelInstanceBuffer)
     return;
   static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
-    .lastInstanceOffset = (uint32_t)(bvhDynmodelInstanceBuffer->curOffset + istance_offset);
+    .lastInstanceOffset = (uint32_t)istance_offset;
 }
 
 template <typename Callable>

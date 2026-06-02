@@ -745,8 +745,8 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
       ImGui::SetCursorScreenPos(leftTopPos + NODE_BORDER_PADDING);
       ImGui::BeginGroup();
       {
-        static const auto conditionalPopup = [&, nodeId = nodeId](const char *label, const bool condition,
-                                               const char *popup_name = nullptr, const char *hover_msg = "R-click for details") {
+        const auto conditionalPopup = [this, draw_list, mouseRclick, nodeId = nodeId](const char *label, const bool condition,
+                                        const char *popup_name = nullptr, const char *hover_msg = "R-click for details") {
           ImGui::TextUnformatted(label);
           ImGui::SameLine();
           ImGui::PushStyleColor(ImGuiCol_Text, condition ? OPT_POPUP_POS_COLOR : OPT_POPUP_NEG_COLOR);

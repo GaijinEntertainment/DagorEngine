@@ -34,7 +34,9 @@ block(scene) nbs_fog_block
     prev_distant_fog_raymarch_start_weights@tex2d = prev_distant_fog_raymarch_start_weights;
     prev_distant_fog_raymarch_start_weights_samplerstate@sampler = prev_distant_fog_raymarch_start_weights_samplerstate;
     distant_fog_raymarch_resolution@f4 = distant_fog_raymarch_resolution;
+    distant_fog_raymarch_dyn_scales@f4 = distant_fog_raymarch_dyn_scales;
     distant_fog_reconstruction_resolution@f4 = distant_fog_reconstruction_resolution;
+    distant_fog_reconstruction_dyn_scales@f4 = distant_fog_reconstruction_dyn_scales;
     distant_fog_raymarch_params_0@f4 = distant_fog_raymarch_params_0;
     distant_fog_raymarch_params_1@f4 = distant_fog_raymarch_params_1;
     distant_fog_raymarch_params_2@f4 = distant_fog_raymarch_params_2;

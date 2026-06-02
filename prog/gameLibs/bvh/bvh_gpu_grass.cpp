@@ -163,14 +163,19 @@ void make_meta(ContextId context_id, const GPUGrassBase &grass_base)
   int metaSize = names.diffuse.size();
   G_ASSERT(metaSize == names.alpha.size() && metaSize == names.normal.size());
 
-  auto makeMetaForOne = [&](Context::GPUGrassBillboard &grass) {
+  auto allocateForOne = [&](Context::GPUGrassBillboard &grass) {
     G_ASSERT(grass.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
     grass.metaAllocId = context_id->allocateMetaRegion(metaSize, "gpuGrass");
     grass.metaSize = metaSize;
-    return context_id->meshMetaAllocator.get(grass.metaAllocId);
   };
-  auto metas = makeMetaForOne(context_id->gpuGrassBillboard);
-  auto metasHorizontal = makeMetaForOne(context_id->gpuGrassHorizontal);
+  allocateForOne(context_id->gpuGrassBillboard);
+  allocateForOne(context_id->gpuGrassHorizontal);
+
+
+  TIME_PROFILE(meta_lock_gpu_grass);
+  OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock);
+  auto metas = context_id->meshMetaAllocator.get(context_id->gpuGrassBillboard.metaAllocId);
+  auto metasHorizontal = context_id->meshMetaAllocator.get(context_id->gpuGrassHorizontal.metaAllocId);
 
   int counter = 0;
   for (auto [diffuse, normal, alpha, meta, metaHorizontal] : zip(names.diffuse, names.normal, names.alpha, metas, metasHorizontal))

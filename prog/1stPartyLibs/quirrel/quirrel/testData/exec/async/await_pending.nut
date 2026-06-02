@@ -1,9 +1,9 @@
-from "async" import Promise
+from "async" import Future
 
-// Pending promise: outer awaits, parks. A separate async function later
-// resolves the promise, waking the outer task.
+// Pending future: outer awaits, parks. A separate async function later
+// resolves the future, waking the outer task.
 
-let p = Promise()
+let p = Future()
 
 async function resolver() {
   print("resolver runs\n")

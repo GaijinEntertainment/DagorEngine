@@ -107,6 +107,9 @@ ImpostorGenerator::ImpostorGenerator(const char *app_dir, DataBlock &app_blk, Da
 
   appDir = app_dir;
 
+  if (auto vblk = assetsBlk->getBlockByName("voxel_impostor"))
+    impostorBaker.setVoxelParams(*vblk);
+
   String folder;
   if (impostorBlock)
   {
@@ -281,10 +284,10 @@ void ImpostorGenerator::cleanUp(const ImpostorOptions &options)
   impostorBaker.clean(assets, options);
   for (int i = 0; i < assets.size(); ++i)
   {
-    if (!impostorBaker.hasSupportedType(assets[i]))
-      continue;
-    if (!impostorBaker.isSupported(assets[i]))
+    if (impostorBaker.getSupported(assets[i]) == ImpostorBaker::NONE)
     {
+      if (!impostorBaker.hasSupportedType(assets[i], ImpostorBaker::ALL))
+        continue;
       if (impostorDataBlk.getBlockByName(assets[i]->getName()) != nullptr)
       {
         impostorBaker.conlog("Removing impostor data <%s> from impostor_data.bin", assets[i]->getName());
@@ -316,7 +319,7 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBaking(bool forceRebak
   threadpool::JobPool pool(16);
   for (auto &asset : assets)
   {
-    if (!impostorBaker.isSupported(asset))
+    if (impostorBaker.getSupported(asset) == ImpostorBaker::NONE)
       continue;
     if (forceRebake)
       assetsForBaking.add(asset);
@@ -340,7 +343,7 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingWithPacks(const 
   threadpool::JobPool pool(16);
   for (auto asset : assets)
   {
-    if (!impostorBaker.isSupported(asset))
+    if (impostorBaker.getSupported(asset) == ImpostorBaker::NONE)
       continue;
     if (packs.count(eastl::string{asset->getDestPackName()}) <= 0)
       continue;
@@ -371,7 +374,7 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingFromArgs(const e
     }
     else
     {
-      if (!impostorBaker.isSupported(asset))
+      if (impostorBaker.getSupported(asset) == ImpostorBaker::NONE)
       {
         impostorBaker.conerror("Asset not supported: %s", assetName.c_str());
       }
@@ -388,6 +391,8 @@ dag::Vector<DagorAsset *> ImpostorGenerator::gatherListForBakingFromArgs(const e
 bool ImpostorGenerator::run(const ImpostorOptions &options)
 {
   DA_PROFILE;
+  impostorBaker.setOptions(options);
+
   struct CharacterMicrodetailsSetupRaii
   {
     int svid_cmd = get_shader_variable_id("character_micro_details");
@@ -424,16 +429,23 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
     TIME_PROFILE(update_tex_blk);
     int a_num = 0, a_changed = 0;
     for (auto *asset : assetManager->getAssets())
-      if (impostorBaker.isSupported(asset))
+      if (impostorBaker.getSupported(asset) & ImpostorBaker::FLAT)
         impostorBaker.updateAssetTexBlk(asset, a_num, a_changed);
     impostorBaker.conlog("Force update *.tex.blk: %d (%d changed)", a_num, a_changed);
-    if (options.skipGen)
-      return true;
   }
+
+  ImpostorBaker::ImpostorType impostorTypeMask = ImpostorBaker::NONE;
+  if (options.bakeFlat)
+    impostorTypeMask |= ImpostorBaker::FLAT;
+  if (options.bakeVoxel)
+    impostorTypeMask |= ImpostorBaker::VOXEL;
+  if (impostorTypeMask == ImpostorBaker::NONE)
+    return true;
 
   const auto processAsset = [&, this](DagorAsset *asset, const char *name) {
     const GenerateResponse response =
       callback ? callback(asset, ind++, count) : asset_export_callback(getImpostorBaker(), asset, ind++, count);
+    auto impostorType = impostorBaker.getSupported(asset);
     if (response != GenerateResponse::ABORT)
       impostorBaker.generateFolderBlk(asset, options);
     switch (response)
@@ -442,24 +454,43 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
       case GenerateResponse::SKIP: return true;
       case GenerateResponse::PROCESS: break;
     }
+
+    impostorType &= impostorTypeMask;
+    if (impostorType == ImpostorBaker::NONE)
+      return true;
     DataBlock *impostorBlk = impostorDataBlk.addBlock(asset->getName());
     int impostorNormalMipNumber = 0;
     if (DataBlock *assetImpostorBlock = asset->props.getBlockByName("impostor"))
       if (assetImpostorBlock->paramExists("impostorNormalMip"))
         impostorNormalMipNumber = assetImpostorBlock->getInt("impostorNormalMip");
     ShaderGlobal::set_int(impostor_normal_mipVarId, impostorNormalMipNumber);
-    TexturePackingProfilingInfo quality = impostorBaker.exportImpostor(asset, options, impostorBlk->addBlock("content"));
-    if (!quality)
+
+    if (impostorType & ImpostorBaker::FLAT)
     {
-      impostorBaker.conerror("Could not process the rendinst: %s", name);
-      return false;
+      TexturePackingProfilingInfo quality = impostorBaker.exportImpostor(asset, options, impostorBlk->addBlock("content"));
+      if (!quality)
+      {
+        impostorBaker.conerror("Could not process the rendinst: %s", name);
+        return false;
+      }
+      qualitySummary.push_back(quality);
     }
-    qualitySummary.push_back(quality);
+
+    if (impostorType & ImpostorBaker::VOXEL)
+    {
+      if (!impostorBaker.exportVoxelCache(asset, options))
+      {
+        impostorBaker.conerror("Could not process the rendinst: %s", name);
+        return false;
+      }
+    }
+
     riDataBlock(asset, *impostorBlk, false);
     return true;
   };
 
-  ::win32_set_window_title("Scanning...");
+  if (!callback)
+    ::win32_set_window_title("Scanning...");
   dag::Vector<DagorAsset *> assets = {};
   if (options.assetsToBuild.size() > 0)
   {
@@ -779,6 +810,7 @@ bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk, bool comp
   blk.setStr(compute_md5 ? "sourceHash" : "sourceHashXXH3", encode_hash(sourceHash).c_str());
   blk.setStr(compute_md5 ? "propsHash" : "propsHashXXH3", encode_hash(propsHash).c_str());
   blk.setInt("impostorBakerVersion", ImpostorTextureManager::GenerationData::VERSION_NUMBER);
+  blk.setInt("voxelBakerVersion", ImpostorBaker::VOXEL_VERSION);
   DataBlock *hashesBlk = blk.addBlock("hashes");
   hashesBlk->clearData();
   for (const auto &itr : impostorBaker.getHashes(asset))
@@ -789,6 +821,9 @@ bool ImpostorGenerator::riDataBlock(DagorAsset *asset, DataBlock &blk, bool comp
 bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
 {
   DA_PROFILE;
+  auto type = impostorBaker.getSupported(asset);
+  if (type == ImpostorBaker::NONE)
+    return false;
   if (!context.rendintsRefProvider)
   {
     static bool logged = false;
@@ -812,9 +847,9 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
   DataBlock assetBlk;
   if (!riDataBlock(asset, assetBlk, false))
   {
-    impostorBaker.conwarning("Baking asset <%s>, because exported textures are not present "
+    impostorBaker.conwarning("Baking asset <%s>, because baked files are not present "
                              "(impostor_data.impostorData.blk might "
-                             "be updated in cvs, but textures not)",
+                             "be updated in cvs, but baked files not)",
       asset->getName());
     return true;
   }
@@ -874,7 +909,7 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
 
   if (strcmp(assetBlk.getStr("exportHashXXH3", ""), storedBlock->getStr("exportHashXXH3", "-")) != 0)
   {
-    impostorBaker.conwarning("Baking asset <%s>, because exported textures are inconsistent with "
+    impostorBaker.conwarning("Baking asset <%s>, because baked files are inconsistent with "
                              "impostor_data.impostorData.blk "
                              "(maybe they are not updated in cvs)",
       asset->getName());
@@ -892,10 +927,16 @@ bool ImpostorGenerator::hasAssetChanged(DagorAsset *asset)
       impostorBaker.conlog("Baking asset <%s>, because asset properties have changed", asset->getName());
     return true;
   }
-  if (assetBlk.getInt("impostorBakerVersion", 0) != storedBlock->getInt("impostorBakerVersion", -1))
+  if ((type & ImpostorBaker::FLAT) && assetBlk.getInt("impostorBakerVersion", 0) != storedBlock->getInt("impostorBakerVersion", -1))
   {
     if (verbose)
       impostorBaker.conlog("Baking asset <%s>, because impostor baker version has changed", asset->getName());
+    return true;
+  }
+  if ((type & ImpostorBaker::VOXEL) && assetBlk.getInt("voxelBakerVersion", 0) != storedBlock->getInt("voxelBakerVersion", -1))
+  {
+    if (verbose)
+      impostorBaker.conlog("Baking asset <%s>, because voxel baker version has changed", asset->getName());
     return true;
   }
   return false;

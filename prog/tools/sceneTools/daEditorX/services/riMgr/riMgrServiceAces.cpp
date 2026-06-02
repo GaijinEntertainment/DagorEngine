@@ -1355,6 +1355,14 @@ public:
     rendinst::forceRiExtra =
       appBlk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
     allowRiExtraUsage = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("allowRiExtra", true);
+    if (DAGORED2 && DAGORED2->getWorkspace().isUsingDngBasedSceneRender())
+    {
+      rendinst::forceRiExtra = true;
+      allowRiExtraUsage = true;
+      debug("forceRiExtra is forced to true, due to daNetGameEditorRender:b=yes");
+      debug("allowRiExtraUsage is forced to true, due to daNetGameEditorRender:b=yes");
+    }
+
     riExtraRenderInited = rendinst::forceRiExtra && allowRiExtraUsage;
     rendinst::persistentRiExtraInstances = appBlk.getBlockByNameEx("assets")
                                              ->getBlockByNameEx("build")

@@ -1,0 +1,3 @@
+getState: Future.getState: invalid 'this'
+resolve: Future: invalid 'this'
+plain: pending

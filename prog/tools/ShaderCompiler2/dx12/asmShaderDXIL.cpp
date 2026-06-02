@@ -226,12 +226,12 @@ DecodedShaderContainer get_null_shader_container(::dxil::ShaderHeader &default_h
   {
     memcpy(store, encodedSource, sizeof(encodedSource));
     // patch to the same flag set as vs
-    encodedSource[encoded_bits::SkipValidation] = '0' + skip_validation;
-    encodedSource[encoded_bits::Optimize] = '0' + optimize;
-    encodedSource[encoded_bits::DebugInfo] = '0' + debug_info;
-    encodedSource[encoded_bits::ScarlettW32] = '0' + scarlett_w32;
-    encodedSource[encoded_bits::HLSL2021] = '0' + hlsl_2021;
-    encodedSource[encoded_bits::EnableFp16] = '0' + enable_fp16;
+    store[encoded_bits::SkipValidation] = '0' + skip_validation;
+    store[encoded_bits::Optimize] = '0' + optimize;
+    store[encoded_bits::DebugInfo] = '0' + debug_info;
+    store[encoded_bits::ScarlettW32] = '0' + scarlett_w32;
+    store[encoded_bits::HLSL2021] = '0' + hlsl_2021;
+    store[encoded_bits::EnableFp16] = '0' + enable_fp16;
     store_size = sizeof(encodedSource);
   }
   else

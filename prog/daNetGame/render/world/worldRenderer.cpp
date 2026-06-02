@@ -207,6 +207,8 @@ extern void term_fx();
 extern void add_volfog_optional_graphs();
 extern void add_envi_cover_optional_graphs();
 extern void set_nightly_spot_lights();
+extern void volfog_load_from_resources(
+  const char *root_graph, const float low_range, const float high_range, const float low_height, const float high_height);
 
 void compute_csm_visibility(const Occlusion &occlusion, const Point3 &dir_from_sun);
 void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float csm_shadows_max_dist);
@@ -1481,10 +1483,6 @@ void WorldRenderer::onSettingsChanged(const FastNameMap &changed_fields, bool ap
       changed_fields.getNameId("cinematicEffects/chromaticAberration") >= 0 || changed_fields.getNameId("graphics/preset") >= 0 ||
       changed_fields.getNameId("graphics/consolePreset") >= 0)
     setChromaticAberrationFromSettings();
-
-  if (changed_fields.getNameId("graphics/filmGrain") >= 0 || changed_fields.getNameId("cinematicEffects/filmGrain") >= 0 ||
-      changed_fields.getNameId("graphics/preset") >= 0 || changed_fields.getNameId("graphics/consolePreset") >= 0)
-    setFilmGrainFromSettings();
 }
 
 void WorldRenderer::beforeDeviceReset(bool full_reset)
@@ -2764,7 +2762,6 @@ void WorldRenderer::ctorDeferred()
 
   setSharpeningFromSettings();
   setChromaticAberrationFromSettings();
-  setFilmGrainFromSettings();
   setEnvironmentDetailsQuality();
 
   camera_in_camera::setup(hasFeature(CAMERA_IN_CAMERA));
@@ -2787,17 +2784,6 @@ void WorldRenderer::setChromaticAberrationFromSettings()
     PriorityShadervar::set_float4(chromatic_aberration_paramsVarId.get_var_id(), CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(value));
   else
     PriorityShadervar::clear(chromatic_aberration_paramsVarId.get_var_id(), CHROMATIC_ABERRATION_PRIORITY);
-}
-
-void WorldRenderer::setFilmGrainFromSettings()
-{
-  static constexpr int FILM_GRAIN_PRIORITY = 0;
-  bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && !bareMinimumPreset;
-  Point3 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint3("filmGrain", Point3(0.2, 1.0, 0.75));
-  if (filmGrain)
-    PriorityShadervar::set_float4(film_grain_paramsVarId.get_var_id(), FILM_GRAIN_PRIORITY, Point4::xyz0(value));
-  else
-    PriorityShadervar::clear(film_grain_paramsVarId.get_var_id(), FILM_GRAIN_PRIORITY);
 }
 
 template <typename T>
@@ -4086,8 +4072,8 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   startGroundVisibility();           // we have to call it after all other ground renders are complete
   startGroundReflectionVisibility(); // we have to call it after all other ground renders are complete
   startLightsCullingJob();
-  bvh_update_instances(viewPos, get_daskies() ? -get_daskies()->getPrimarySunDir() : Point3(0, -1, 0),
-    currentFrameCamera.noJitterFrustum);
+  bvh_update_instances(viewPos, get_daskies() ? -get_daskies()->getPrimarySunDir() : Point3(0, -1, 0), itm,
+    reinterpret_cast<const TMatrix4 &>(proj), currentFrameCamera.noJitterFrustum);
   start_async_game_tasks(frame_id, AGT_ALL, /*wake*/ false); // Start the rest of tasks in case it wasnt started earlier
   bool tpEarlyWakeUp = hasGpuObjs || rendinst::render::pendingRebuild() || enviProbeInvalid || enviProbeNeedsReload;
   if (tpEarlyWakeUp)
@@ -4544,7 +4530,7 @@ void WorldRenderer::updateSky(float realDt)
   }
 
   get_daskies()->updateSkyLightParams();
-  get_daskies()->prepare(get_daskies()->getSunDir(), false, 0);
+  get_daskies()->prepare(get_daskies()->getSunDir(), false, realDt);
   setDirToSun();
 
   Color3 amb, moon, moonamb;
@@ -5634,7 +5620,7 @@ void WorldRenderer::renderWaterSSR(const TMatrix &itm, const Driver3dPerspective
     return;
 
   TIME_D3D_PROFILE(reflection)
-  fft_water::render(water, itm.getcol(3), shoreRenderer.getDistanceFieldTexId(), currentFrameCamera.noJitterFrustum, persp,
+  fft_water::render(water, itm.getcol(3), shoreRenderer.getDistanceFieldTexId(), currentFrameCamera.noJitterFrustum, nullptr, persp,
     fft_water::GEOM_NORMAL, water_ssr_id, nullptr, fft_water::RenderMode::WATER_SSR_SHADER);
 }
 
@@ -5651,8 +5637,8 @@ void WorldRenderer::renderWater(const CameraParams &camera, DistantWater render_
     d3d::begin_conditional_render(water_ssr_id);
   ShaderGlobal::set_int(far_water_transparencyVarId, 0);
   ShaderGlobal::set_float4(water_fresnel_reflectanceVarId, Color4(0.02, 0.2, 0.5, 0)); // TODO: make it configurable
-  fft_water::render(water, camera.viewItm.getcol(3), shoreRenderer.getDistanceFieldTexId(), camera.noJitterFrustum, camera.jitterPersp,
-    fft_water::GEOM_NORMAL);
+  fft_water::render(water, camera.viewItm.getcol(3), shoreRenderer.getDistanceFieldTexId(), camera.noJitterFrustum, nullptr,
+    camera.jitterPersp, fft_water::GEOM_NORMAL);
   if (render_ssr)
     d3d::end_conditional_render(water_ssr_id);
 
@@ -6359,7 +6345,7 @@ void WorldRenderer::changeFeatures(const FeatureRenderFlagMask &f)
   if (changedFeatures.test(FeatureRenderFlags::VOLUME_LIGHTS))
   {
     resetVolumeLights();
-    loadFogNodes(root_fog_graph, volumeLightLowRange, volumeLightHighRange, volumeLightLowHeight, volumeLightHighHeight);
+    volfog_load_from_resources(root_fog_graph, volumeLightLowRange, volumeLightHighRange, volumeLightLowHeight, volumeLightHighHeight);
     reapplySettings |= true;
   }
 

@@ -72,7 +72,7 @@ struct FrustumClusters
     ItemRect3D(const FrustumScreenRect &r, uint8_t zmn, uint8_t zmx, uint16_t l) : rect(r), zmin(zmn), zmax(zmx), itemId(l) {}
   };
 
-  void updateFrustrumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist);
+  void updateFrustumVariables(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist);
   void prepareFrustum(mat44f_cref view_, mat44f_cref proj_, float zn, float minDist, float maxDist, Occlusion *occlusion);
 
   typedef uint32_t MaskType;

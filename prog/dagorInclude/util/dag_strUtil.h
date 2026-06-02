@@ -8,6 +8,9 @@
 #include <util/dag_simpleString.h>
 #include <util/dag_baseDef.h>
 #include <generic/dag_tab.h>
+
+#include <EASTL/string_view.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -185,3 +188,5 @@ static inline String urlencode(const String &src)
 
   return ret;
 }
+
+inline eastl::string_view to_string_view(const String &str) { return eastl::string_view(str.begin(), str.length()); }

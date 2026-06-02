@@ -28,8 +28,11 @@ static dafg::Texture2dCreateInfo get_dynamic_lighting_tex_create_info(dafg::Regi
 
 static int divide_up(int x, int y) { return (x + y - 1) / y; }
 
-static void recreate_dynamic_lighting_nodes(
-  bool is_rtsm, dafg::NodeHandle &prepare_resources_node, dafg::NodeHandle &generate_tiles_node, dafg::NodeHandle &lighting_node)
+static void recreate_dynamic_lighting_nodes(bool is_rtsm,
+  dafg::NodeHandle &prepare_resources_node,
+  dafg::NodeHandle &prepare_args_per_view_node,
+  dafg::NodeHandle &generate_tiles_node,
+  dafg::NodeHandle &lighting_node)
 {
   if (!WRDispatcher::isReadyToUse())
     return;
@@ -37,6 +40,7 @@ static void recreate_dynamic_lighting_nodes(
   if (!renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
   {
     prepare_resources_node = dafg::NodeHandle();
+    prepare_args_per_view_node = dafg::NodeHandle();
     generate_tiles_node = dafg::NodeHandle();
     lighting_node = dafg::NodeHandle();
     return;
@@ -48,6 +52,7 @@ static void recreate_dynamic_lighting_nodes(
       dafg::register_node("prepare_dynamic_lighting_texture_per_camera", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
         registry.createTexture2d("dynamic_lighting_texture", get_dynamic_lighting_tex_create_info(registry));
       });
+    prepare_args_per_view_node = dafg::NodeHandle();
     generate_tiles_node = dafg::NodeHandle();
     lighting_node = make_rtsm_dynamic_node();
   }
@@ -65,6 +70,19 @@ static void recreate_dynamic_lighting_nodes(
         registry.create("render_direct_lights_tiles").byteAddressBuffer(maxTileCount);
       });
 
+    prepare_args_per_view_node =
+      dafg::register_node("prepare_dynamic_lighting_args_per_camera_view", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+        registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
+
+        auto argsHndl = registry.create("render_direct_lights_args")
+                          .indirectBuffer(d3d::buffers::Indirect::Dispatch, 1)
+                          .atStage(dafg::Stage::COMPUTE)
+                          .useAs(dafg::Usage::SHADER_RESOURCE)
+                          .handle();
+
+        return [argsHndl](const dafg::multiplexing::Index &) { d3d::zero_rwbufi(argsHndl.view().getBuf()); };
+      });
+
     generate_tiles_node = dafg::register_node("dynamic_lighting_generate_tiles", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       registry.readBlob<OrderingToken>("tiled_lights_ready_token").optional();
       registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
@@ -72,11 +90,7 @@ static void recreate_dynamic_lighting_nodes(
       auto camera = read_camera_in_camera(registry);
       auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
-      auto argsHndl = registry.create("render_direct_lights_args")
-                        .indirectBuffer(d3d::buffers::Indirect::Dispatch, 1)
-                        .atStage(dafg::Stage::COMPUTE)
-                        .bindToShaderVar("render_direct_lights_args")
-                        .handle();
+      registry.modify("render_direct_lights_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("render_direct_lights_args");
 
       registry.modify("render_direct_lights_tiles")
         .buffer()
@@ -91,13 +105,11 @@ static void recreate_dynamic_lighting_nodes(
       auto hasAnyDynamicLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
       auto dynamicLightingTexResolution = get_dynamic_lighting_texture_resolution(registry);
 
-      return [argsHndl, cameraHndl, hasAnyDynamicLightsHndl, dynamicLightingTexResolution,
+      return [cameraHndl, hasAnyDynamicLightsHndl, dynamicLightingTexResolution,
                generate_dynamic_lighting_tiles = Ptr(new_compute_shader("generate_dynamic_lighting_tiles"))](
                const dafg::multiplexing::Index &multiplexing_index) {
         if (!hasAnyDynamicLightsHndl.ref())
           return;
-
-        d3d::zero_rwbufi(argsHndl.view().getBuf());
 
         camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref()};
 
@@ -166,18 +178,20 @@ ECS_ON_EVENT(on_appear, OnRenderSettingsReady)
 static void dynamic_lighting_on_appear_es(const ecs::Event &,
   bool &dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
+  dafg::NodeHandle &prepare_dynamic_lighting_args_per_camera_view,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
   dafg::NodeHandle &dynamic_lighting_node)
 {
   dynamic_lighting_is_rtsm = is_rtsm_dynamic_enabled();
   recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
-    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+    prepare_dynamic_lighting_args_per_camera_view, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 ECS_TAG(render)
 static void dynamic_lighting_on_change_render_features_es(const ChangeRenderFeatures &evt,
   bool dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
+  dafg::NodeHandle &prepare_dynamic_lighting_args_per_camera_view,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
   dafg::NodeHandle &dynamic_lighting_node)
 {
@@ -186,13 +200,14 @@ static void dynamic_lighting_on_change_render_features_es(const ChangeRenderFeat
     return;
 
   recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
-    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+    prepare_dynamic_lighting_args_per_camera_view, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 ECS_TAG(render)
 static void dynamic_lighting_on_set_resolution_es(const SetResolutionEvent &evt,
   bool dynamic_lighting_is_rtsm,
   dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
+  dafg::NodeHandle &prepare_dynamic_lighting_args_per_camera_view,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
   dafg::NodeHandle &dynamic_lighting_node)
 {
@@ -200,7 +215,7 @@ static void dynamic_lighting_on_set_resolution_es(const SetResolutionEvent &evt,
     return;
 
   recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
-    dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+    prepare_dynamic_lighting_args_per_camera_view, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }
 
 template <typename Callable>
@@ -211,12 +226,13 @@ void toggle_rtsm_dynamic(bool enable)
   if (ecs::EntityId eid = g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_lighting")))
     set_dynamic_lighting_state_ecs_query(eid,
       [enable](bool &dynamic_lighting_is_rtsm, dafg::NodeHandle &prepare_dynamic_lighting_texture_per_camera,
-        dafg::NodeHandle &dynamic_lighting_generate_tiles_node, dafg::NodeHandle &dynamic_lighting_node) {
+        dafg::NodeHandle &prepare_dynamic_lighting_args_per_camera_view, dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
+        dafg::NodeHandle &dynamic_lighting_node) {
         if (dynamic_lighting_is_rtsm == enable)
           return;
 
         dynamic_lighting_is_rtsm = enable;
         recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
-          dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
+          prepare_dynamic_lighting_args_per_camera_view, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
       });
 }

@@ -62,7 +62,7 @@ public:
   bool beforeRenderFrame();
   bool beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter);
   void apply(Texture *currentFrameTex, Texture *target);
-  void applyToCurrentTarget(Texture *currentFrameTex);
+  void applyToCurrentTarget(Texture *currentFrameTex, Texture *target);
 
   void invalidate()
   {
@@ -80,7 +80,7 @@ public:
 
 private:
   Params getDefaultParams() const;
-  void applyImpl(Texture *currentFrameTex);
+  void applyImpl(Texture *currentFrameTex, Texture *target);
 
   const IPoint2 inputResolution;
   const IPoint2 outputResolution;

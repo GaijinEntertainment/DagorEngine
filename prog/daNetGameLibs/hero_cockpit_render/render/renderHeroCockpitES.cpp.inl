@@ -44,6 +44,7 @@ namespace var
 static ShaderVariableInfo hero_cockpit_bbox_min = ShaderVariableInfo("hero_cockpit_bbox_min", true);
 static ShaderVariableInfo hero_cockpit_bbox_max = ShaderVariableInfo("hero_cockpit_bbox_max", true);
 static ShaderVariableInfo hero_cockpit_camera_enabled = ShaderVariableInfo("hero_cockpit_camera_enabled", true);
+static ShaderVariableInfo hero_cockpit_camera_fade = ShaderVariableInfo("hero_cockpit_camera_fade", true);
 } // namespace var
 
 static void process_animchar(dynmodel_renderer::DynModelRenderingState &state,
@@ -287,13 +288,15 @@ static void set_hero_cockpit_params_es(const UpdateStageInfoBeforeRender &,
   const Point4 &hero_cockpit_camera_to_point_value,
   const Point4 &hero_cockpit_bbox_min_value,
   const Point4 &hero_cockpit_bbox_max_value,
-  int hero_cockpit_camera_enabled_value)
+  int hero_cockpit_camera_enabled_value,
+  int hero_cockpit_camera_fade_value)
 {
   ShaderGlobal::set_float4(hero_cockpit_vec, hero_cockpit_vec_value);
   ShaderGlobal::set_float4(hero_cockpit_camera_to_point, hero_cockpit_camera_to_point_value);
   ShaderGlobal::set_float4(var::hero_cockpit_bbox_min, hero_cockpit_bbox_min_value);
   ShaderGlobal::set_float4(var::hero_cockpit_bbox_max, hero_cockpit_bbox_max_value);
   ShaderGlobal::set_int(var::hero_cockpit_camera_enabled, hero_cockpit_camera_enabled_value);
+  ShaderGlobal::set_int(var::hero_cockpit_camera_fade, hero_cockpit_camera_fade_value);
 }
 
 ECS_TAG(render)

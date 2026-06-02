@@ -86,6 +86,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   UseLtoJobs    ?= 0 ;
   TencentEnabled ?= no ;
   CheckOnly     ?= no ;
+  StrictHeaderDeps ?= no ; # Fail on missing *.d (header deps) files
   ForcePdb      ?= no ;
   DefOpenSSLVer = 3.x ;
   OpenSSLVer    ?= $(DefOpenSSLVer) ;

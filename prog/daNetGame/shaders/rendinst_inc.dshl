@@ -28,6 +28,9 @@ buffer ri_vertex_data;
 
 float4 params_validation_debug_color = (1, 0, 1, 16);
 
+float4 impostor_depth_proj = (0, 0, 1, 0);
+texture impostor_depth_slice;
+
 macro RENDINST_SW_VERTEX_FETCH(stage)
   (stage) {
     ri_vertex_data@buf : register(ri_vertex_data_no)
@@ -415,6 +418,8 @@ macro RENDINST_SCENE_COMMON()
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
       Buffer<float4> impostor_data_buffer@buf;
     }
+    impostor_depth_proj@f4 = impostor_depth_proj;
+    impostor_depth_slice@tex2d = impostor_depth_slice;
   }
   (vs) {
     ri_per_draw_args@buf = ri_gen_multidraw_perDrawArgsBuffer hlsl {

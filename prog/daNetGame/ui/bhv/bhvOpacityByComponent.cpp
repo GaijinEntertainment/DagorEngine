@@ -5,7 +5,7 @@
 #include <daRg/dag_element.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/componentTypes.h>
-
+#include <ecs/scripts/sqEntity.h>
 
 SQ_PRECACHED_STRINGS_REGISTER_WITH_BHV(BhvOpacityByComponent, bhv_opacity_by_component, cstr);
 

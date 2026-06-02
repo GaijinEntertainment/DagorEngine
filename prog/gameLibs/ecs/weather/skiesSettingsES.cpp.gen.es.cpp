@@ -133,6 +133,33 @@ static ecs::EntitySystemDesc clouds_rendering_es_event_handler_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,nullptr,"*");
+static constexpr ecs::ComponentDesc sky_wind_es_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("wind__dir"), ecs::ComponentTypeInfo<float>()}
+};
+static void sky_wind_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    sky_wind_es(evt
+        , ECS_RO_COMP(sky_wind_es_comps, "wind__dir", float)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc sky_wind_es_es_desc
+(
+  "sky_wind_es",
+  "prog/gameLibs/ecs/weather/skiesSettingsES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, sky_wind_es_all_events),
+  empty_span(),
+  make_span(sky_wind_es_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventSkiesLoaded,
+                       ecs::EventEntityCreated,
+                       ecs::EventComponentsAppear>::build(),
+  0
+,nullptr,"*");
 static constexpr ecs::ComponentDesc strata_clouds_es_event_handler_comps[] =
 {
 //start of 2 ro components at [0]

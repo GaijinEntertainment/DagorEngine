@@ -18,8 +18,6 @@ struct DependencyData;
 class NodeTracker;
 using DebugPassColoration = IdIndexedMapping<NodeNameId, PassColor>;
 
-extern bool debug_graph_generation;
-bool should_update_visualization();
 void reset_texture_visualization();
 
 void debug_clear_resource_placements();

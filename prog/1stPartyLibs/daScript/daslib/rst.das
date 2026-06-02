@@ -1155,6 +1155,25 @@ def document_class_method(doc_file : file; mod : Module?; value; var fld) {
     document_function_topic(doc_file, func.result, topic("function", mod, "{value.name}-{function_label_file(fld.name, fld.init._type, 1)}"), "def {fld.name} : {describe(fld._type)}", args)
 }
 
+def document_deprecated_unsafe(doc_file : file; func) {
+    if (func.flags.unsafeOperation) {
+        document_warning(doc_file, "This is unsafe operation.")
+    }
+    if (func.moreFlags.deprecated) {
+        for (ann in func.annotations) {
+            if (ann.annotation.name == "deprecated") {
+                for (arg in ann.arguments) {
+                    if (arg.name == "message") {
+                        document_warning(doc_file, "{arg.sValue}")
+                        return
+                    }
+                }
+            }
+        }
+        document_warning(doc_file, "This function is deprecated.")
+    }
+}
+
 def document_struct_method(doc_file : file; mod : Module?; value; var func) {
     // For structs (not classes), methods become module-level functions with isClassMethod flag.
     // Static methods get names like "BoolArray`clear"; non-static keep names like "[]", "finalize".
@@ -1173,12 +1192,7 @@ def document_struct_method(doc_file : file; mod : Module?; value; var func) {
     (document_function_declaration(doc_file, "das:function", "{value.name}.{fname}",
         argNames, argTypes, argInits, func.result, /*drop args*/1))
 
-    if (func.flags.unsafeOperation) {
-        document_warning(doc_file, "This is unsafe operation.")
-    }
-    if (func.moreFlags.deprecated) {
-        document_warning(doc_file, "This function is deprecated.")
-    }
+    document_deprecated_unsafe(doc_file, func)
 
     var args <- document_function_arguments(doc_file, argNames, argTypes, /*skip args*/1)
 
@@ -1795,7 +1809,10 @@ def function_needs_documenting(func : FunctionPtr) {
 
 def document_warning(doc_file : file; issue : string) {
     fwrite(doc_file, ".. warning::")
-    fwrite(doc_file, "\n  {issue}\n\n")
+    for (str in issue |> split("\n")) {
+        fwrite(doc_file, "\n   {str}\n")
+    }
+    fwrite(doc_file, "\n")
 }
 
 def function_name(func : FunctionPtr) {
@@ -1854,12 +1871,7 @@ def document_function(doc_file : file; mod : Module?; var func : FunctionPtr; dr
     if (skip_body) return
     // if func.result != null && !func.result.isVoid
     //     fwrite(doc_file,"``{funcSafeName}`` returns {describe_type(func.result)}\n\n")
-    if (func.flags.unsafeOperation) {
-        document_warning(doc_file, "This is unsafe operation.")
-    }
-    if (func.moreFlags.deprecated) {
-        document_warning(doc_file, "This function is deprecated.")
-    }
+    document_deprecated_unsafe(doc_file, func)
 
     var args <- document_function_arguments(doc_file, argNames, argTypes, drop_args)
     document_function_topic(doc_file, func.result, topic("function", mod, "{prefix}{function_label_file(func,drop_args)}"), "def {rst_describe_function_short(func)}", args)
@@ -1879,7 +1891,7 @@ def document_functions(doc_file : file; mods : array<Module?>; var groups : arra
                 if (grp.hidden) {
                     document_warning(doc_file, "This group of functions is hidden. It will not be in the final documentation.")
                 }
-                grp.func |> sort($(a, b) => function_name(a.fn) < function_name(b.fn))
+                grp.func |> sort($(a, b) => rst_describe_function_short(a.fn) < rst_describe_function_short(b.fn))
                 for (func in grp.func) {
                     if (!key_exists(tab, func.fn)) {
                         let descr = rst_describe_function_short(func.fn)

@@ -504,13 +504,13 @@ void OcclusionImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44
 
       ShaderGlobal::set_int(depthLodVarId, lod);
 
-      ShaderGlobal::set_texture(depthSourceVarId, depth);
+      ShaderGlobal::set_texture_unsafe(depthSourceVarId, depth);
       ShaderGlobal::set_texture(depthTargetVarId, currentTargetId);
 
       downsample_vr->dispatchThreads(sourceSize.x, sourceSize.y, 1);
 
-      ShaderGlobal::set_texture(depthSourceVarId, nullptr);
-      ShaderGlobal::set_texture(depthTargetVarId, nullptr);
+      ShaderGlobal::set_texture_unsafe(depthSourceVarId, nullptr);
+      ShaderGlobal::set_texture_unsafe(depthTargetVarId, nullptr);
     }
   }
 

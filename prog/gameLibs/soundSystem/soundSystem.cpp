@@ -494,6 +494,9 @@ static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
     if (strstr(message, "returned 0x88890004")) // suppress FMOD assert (0x88890004 = AUDCLNT_E_DEVICE_INVALIDATED)
       return LOGLEVEL_WARN; // e.g. "IAudioCaptureClient::GetCurrentPadding returned 0x88890004. Device was unplugged!"
 
+    if (strstr(message, "HTTP Error ")) // suppress FMOD network errors (e.g. "HTTP Error 404 : Not Found.")
+      return LOGLEVEL_WARN;
+
     return LOGLEVEL_ERR;
   }
 

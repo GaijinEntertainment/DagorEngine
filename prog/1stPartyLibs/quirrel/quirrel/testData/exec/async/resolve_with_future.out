@@ -1,0 +1,11 @@
+=== already_fulfilled ===
+outer=fulfilled
+waiter got: 123
+=== pending ===
+after outer.resolve(inner) outer=pending inner=pending
+resolver settled inner
+waiter got: late
+=== faulted ===
+outer=faulted
+caught: inner-failed
+script done

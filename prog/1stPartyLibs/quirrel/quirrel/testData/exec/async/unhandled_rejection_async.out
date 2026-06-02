@@ -1,2 +1,0 @@
-script done
-[sqasync] unhandled promise rejection in async failing (testData/exec/async/unhandled_rejection_async.nut:10); reason: string "boom"; launched at testData/exec/async/unhandled_rejection_async.nut:16 launcher

@@ -1,18 +1,18 @@
-from "async" import Promise
+from "async" import Future
 
 // Regression: an L_Adopted waiter whose only ref lives in the parent's
 // waiters list must survive the cascade through settleTerminal. Pre-fix,
-// the cascade loop pushed a CascadeJob carrying a raw PromiseImpl* and
+// the cascade loop pushed a CascadeJob carrying a raw FutureImpl* and
 // then sq_release'd the waiters-list ref, freeing the adopter before
 // the worklist pop dereferenced it (use-after-free).
 
-let outer = Promise()
-Promise().resolve(outer)   // fresh adopter has no script binding; only ref is outer.waiters
+let outer = Future()
+Future().resolve(outer)   // fresh adopter has no script binding; only ref is outer.waiters
 
 // Same shape with a scoped local that goes out of scope before settle.
-let other = Promise()
+let other = Future()
 {
-  let tmp = Promise()
+  let tmp = Future()
   tmp.resolve(other)       // tmp adopts other; tmp_inst lives only in other.waiters
 }
 

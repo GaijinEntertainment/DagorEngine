@@ -57,9 +57,9 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
   G_ASSERT(sq_gettop(v) == 2);
 
-  const char *errMsg = nullptr;
-  if (SQ_FAILED(sq_getstring(v, 2, &errMsg)))
-    errMsg = "Unknown error";
+  sqstd_aux_error_to_string(v, 2);
+  const char *errMsg = "Unknown error";
+  sq_getstring(v, -1, &errMsg);
 
   logerr("[STORAGE VM] %s", errMsg);
 
@@ -70,6 +70,8 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
     LOGERR_CTX("[STORAGE VM] %s", callstack);
     sq_pop(v, 1);
   }
+
+  sq_poptop(v);
 
   return 0;
 }

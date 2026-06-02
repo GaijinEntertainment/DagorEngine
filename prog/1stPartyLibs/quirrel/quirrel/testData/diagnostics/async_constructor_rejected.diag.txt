@@ -1,4 +1,4 @@
-ERROR: 'async constructor' is not allowed: a constructor must return the new instance, not a Promise
+ERROR: 'async constructor' is not allowed: a constructor must return the new instance, not a Future
 testData/diagnostics/async_constructor_rejected.nut:2:8
 
 class Foo {

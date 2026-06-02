@@ -37,6 +37,7 @@ enum FxErrorType
 namespace acesfx
 {
 struct StartFxParams;
+struct FXSoundInitParams; // defined in fx/fx.h (skyquake-specific)
 enum class PrefetchType : int
 {
   DEFAULT = 0,

@@ -1,10 +1,10 @@
 // Negative test: when the declared type explicitly accepts 'instance', the
-// user is consciously capturing the Promise wrapper -- no DI_MISSING_AWAIT.
+// user is consciously capturing the Future wrapper -- no DI_MISSING_AWAIT.
 
-from "async" import Promise
+from "async" import Future
 
 async function f(): int {
-  let p = Promise()
+  let p = Future()
   p.resolve(1)
   return await p
 }

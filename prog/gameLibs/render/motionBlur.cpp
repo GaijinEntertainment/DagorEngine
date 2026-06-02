@@ -97,18 +97,18 @@ void MotionBlur::accumulateDepthVersion(BaseTexture *source_color_tex, BaseTextu
   d3d::setglobtm(currentGlobTm);
   set_viewvecs_to_shader(view_tm, proj_tm);
 
-  ShaderGlobal::set_texture(blur_depth_texVarId, blur_depth_tex);
+  ShaderGlobal::set_texture_unsafe(blur_depth_texVarId, blur_depth_tex);
   ShaderGlobal::set_int(motion_blur_depth_typeVarId, static_cast<int>(depth_type));
   accumulateInternal(source_color_tex, motionBlurShElem.get(), accumulationTex);
-  ShaderGlobal::set_texture(blur_depth_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(blur_depth_texVarId, nullptr);
 }
 
 void MotionBlur::accumulateMotionVectorVersion(BaseTexture *source_color_tex, BaseTexture *motion_vector_tex,
   BaseTexture *accumulationTex)
 {
-  ShaderGlobal::set_texture(blur_motion_vector_texVarId, motion_vector_tex);
+  ShaderGlobal::set_texture_unsafe(blur_motion_vector_texVarId, motion_vector_tex);
   accumulateInternal(source_color_tex, motionBlurMvShElem.get(), accumulationTex);
-  ShaderGlobal::set_texture(blur_motion_vector_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(blur_motion_vector_texVarId, nullptr);
 }
 
 void MotionBlur::accumulateInternal(BaseTexture *source_color_tex, ShaderElement *elem, BaseTexture *accumulationTex)
@@ -119,7 +119,7 @@ void MotionBlur::accumulateInternal(BaseTexture *source_color_tex, ShaderElement
   TIME_D3D_PROFILE(MotionBlur);
   SCOPE_RENDER_TARGET;
 
-  ShaderGlobal::set_texture(blur_source_texVarId, source_color_tex);
+  ShaderGlobal::set_texture_unsafe(blur_source_texVarId, source_color_tex);
 
   // build accum
   d3d::set_render_target({}, DepthAccess::RW, {{accumulationTex, 0, 0}});
@@ -143,7 +143,7 @@ void MotionBlur::accumulateInternal(BaseTexture *source_color_tex, ShaderElement
   if (elem->setStates(0, true))
     d3d::draw(PRIM_LINELIST, 0, accumulationWidth * accumulationHeight);
 
-  ShaderGlobal::set_texture(blur_source_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(blur_source_texVarId, nullptr);
 }
 
 void MotionBlur::combine(BaseTexture *target_tex, BaseTexture *accumulationTex)
@@ -152,9 +152,9 @@ void MotionBlur::combine(BaseTexture *target_tex, BaseTexture *accumulationTex)
     return;
 
   d3d::set_render_target({}, DepthAccess::RW, {{target_tex, 0, 0}});
-  ShaderGlobal::set_texture(accumulation_texVarId, accumulationTex);
+  ShaderGlobal::set_texture_unsafe(accumulation_texVarId, accumulationTex);
   applyMotionBlurRenderer.render();
-  ShaderGlobal::set_texture(accumulation_texVarId, nullptr);
+  ShaderGlobal::set_texture_unsafe(accumulation_texVarId, nullptr);
 }
 
 void MotionBlur::useSettings(const Settings &settings)

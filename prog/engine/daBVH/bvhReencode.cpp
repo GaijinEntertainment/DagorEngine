@@ -13,7 +13,7 @@ namespace build_bvh
 
 // Re-encode a single box node from uint16 [0,65535] pairs to FP16 [-1,1] pairs.
 // Conservative: min rounds down, max rounds up.
-static void reencodeBoxNodeToFP16(uint8_t *nodeData)
+void reencodeBoxNodeToFP16(uint8_t *nodeData)
 {
   alignas(16) uint32_t mm[4];
   memcpy(mm, nodeData, 16);

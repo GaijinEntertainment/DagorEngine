@@ -721,6 +721,8 @@ void render_debug_context(ContextId context_id, float min_t)
 
   d3d::set_cs_constbuffer_register_count(0);
 
+  bvh::unbind_resources();
+
   if (debug_mode == DebugMode::Lit)
   {
     ShaderGlobal::set_texture(bvh_postx_source, intermediateDebugTex.getTexId());

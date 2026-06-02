@@ -178,7 +178,7 @@ namespace ctl {
 
 		for (size_t i = 0; i < n; i++)
 		{
-			cmap_.BindEdge(edges[i],0);
+			BindEdge(edges[i],0);
 			subdivision_->Splice(edges[i]->Sym(), edges[(i+1)%n]);
 		}
 
@@ -706,7 +706,7 @@ namespace ctl {
 
 		//	Remove constraintID from all edges
 			for (std::vector<Edge*>::iterator it = edges.begin(); it != edges.end(); ++ it)
-				cmap_.FreeEdge(*it,constraintID);
+				FreeEdge(*it,constraintID);
 
 		//	gather all verts of this constraint
 
@@ -1355,7 +1355,7 @@ namespace ctl {
 
 	void DelaunayTriangulation::RemoveEdge(Edge* edge)
 	{
-		cmap_.FreeEdge(edge);
+		FreeEdge(edge);
 		subdivision_->RemoveEdge(edge);
 	}
 
@@ -1507,29 +1507,37 @@ namespace ctl {
 	INSERTION
 *******************************************************************************************************/
 
+	void DelaunayTriangulation::BindEdge(Edge* edge, ID constraintID) {
+		cmap_.BindEdge(edge, constraintID);
+		bsp->addEdge(edge);
+	}
+
+	void DelaunayTriangulation::BindEdge(Edge* edge, IDList constraints) {
+		cmap_.BindEdge(edge, constraints);
+		if (!constraints.empty()) bsp->addEdge(edge);
+	}
+
+	void DelaunayTriangulation::FreeEdge(Edge* edge, ID constraintID) {
+		cmap_.FreeEdge(edge, constraintID);
+		if (!cmap_.IsEdgeBound(edge))
+			bsp->removeEdge(edge);
+	}
+
+	void DelaunayTriangulation::FreeEdge(Edge* edge) {
+		cmap_.FreeEdge(edge);
+		bsp->removeEdge(edge);
+	}
+
 	Vertex* DelaunayTriangulation::SnapPointToVertex(const Point& p)
 	{
 		return bsp->findSnapVertex(p);
-		//TODO - use BSP
-		for (int i = 0, n = subdivision_->getMaxVerts(); i < n; ++i)
-		{
-			Vertex* v = subdivision_->getVertex(i);
-			if (v && (v->point - p).length2D2() < 0.01)
-				return v;
-		}
-		return NULL;
 	}
 
 	Vertex* DelaunayTriangulation::SnapPointToEdge(const Point& p)
 	{
-		//TODO - use BSP
-		for (int i = 0, n = subdivision_->getMaxEdges(); i < n; ++i)
-		{
-			Edge* e = subdivision_->getEdge(i);
-			if (e && cmap_.IsEdgeBound(e) && (LocatePointOnLine(p, e->Org()->point, e->Dest()->point, 0.01) == PL_ON_LINE))
-				return InsertPointInEdge(p, e);
-		}
-		return NULL;
+		if (Edge* e = bsp->findSnapEdge(p))
+			return InsertPointInEdge(p, e);
+		return nullptr;
 	}
 
 	Vertex* DelaunayTriangulation::InsertPoint(Point p)
@@ -1579,7 +1587,7 @@ namespace ctl {
 	//	Create new edge
 		Vertex* vert = subdivision_->CreateVertex(p);
 		Edge* base = subdivision_->CreateEdge(edge->Org(),vert);
-		cmap_.BindEdge(base,constraints);
+		BindEdge(base,constraints);
 		Edge::Splice(base,edge);
 
 	//	Connect right side
@@ -1589,7 +1597,7 @@ namespace ctl {
 	//	Connect other side
 		base = subdivision_->Connect(edge,base->Sym());
 		edge = base->Oprev();
-		cmap_.BindEdge(base,constraints);
+		BindEdge(base,constraints);
 
 	//	Connect left side
 		base = subdivision_->Connect(edge,base->Sym());
@@ -1620,7 +1628,7 @@ namespace ctl {
 
 	//	Create first half of boundary edge
 		Edge* base = subdivision_->CreateEdge(edge->Org(),vert);
-		cmap_.BindEdge(base,constraints);
+		BindEdge(base,constraints);
 		Edge::Splice(edge,base);
 
 	//	Connect right side
@@ -1629,7 +1637,7 @@ namespace ctl {
 
 	//	Connect other side
 		base = subdivision_->Connect(edge, base->Sym());
-		cmap_.BindEdge(base, constraints);
+		BindEdge(base, constraints);
 		edge = base->Oprev();
 
 		FlipEdges(p,edge);
@@ -1733,7 +1741,7 @@ namespace ctl {
 							edge = GetConnection(left_vert,right_vert);
 						}
 
-						cmap_.BindEdge(edge,left_cmap);
+						BindEdge(edge,left_cmap);
 					}
 					else	// SPECIAL CASE OF BOUNDARY VERTEX REMOVAL
 					{
@@ -1751,7 +1759,7 @@ namespace ctl {
 							base = Connect(left_vert,right_vert);
 
 						//	Constrain new edge
-							cmap_.BindEdge(base,left_cmap);
+							BindEdge(base,left_cmap);
 
 						//	Retriangulate inner face only
 							if (!(IsLeft(boundary_[0],base) || IsLeft(boundary_[1],base))) base = base->Sym();
@@ -1843,7 +1851,7 @@ namespace ctl {
 			if (!connection) 
 			{
 				connection = Connect(verts[i-1],verts[i]);
-				cmap_.BindEdge(connection,constraintID);
+				BindEdge(connection,constraintID);
 				
 				RetriangulateFace(connection);
 				if (error_) break;
@@ -1851,7 +1859,7 @@ namespace ctl {
 				RetriangulateFace(connection->Sym());
 				if (error_) break;
 			}
-			else cmap_.BindEdge(connection,constraintID);
+			else BindEdge(connection,constraintID);
 		}
 	}
 
@@ -2035,7 +2043,7 @@ namespace ctl {
 	{
 		if(minChild)
 		{
-			double split = vertical ? (minPoint.x + maxPoint.x) / 2 : (minPoint.y + maxPoint.y) / 2;
+			double split = getSplit();
 			double axis = vertical ? vertex->point.x : vertex->point.y;
 			if(axis < split)
 				minChild->addVertex(vertex);
@@ -2055,15 +2063,14 @@ namespace ctl {
 		Point minMaxPoint(maxPoint);
 		Point maxMinPoint(minPoint);
 		Point maxMaxPoint(maxPoint);
+		double split = getSplit();
 		if(vertical)
 		{
-			double split = (minPoint.x + maxPoint.x) / 2;
 			minMaxPoint.x = split;
 			maxMinPoint.x = split;
 		}
 		else
 		{
-			double split = (minPoint.y + maxPoint.y) / 2;
 			minMaxPoint.y = split;
 			maxMinPoint.y = split;
 		}
@@ -2074,16 +2081,22 @@ namespace ctl {
 		vertices.clear();
 		for(std::list<Vertex *>::iterator it = tmp.begin(), end = tmp.end(); it != end; ++it)
 			addVertex(*it);
+
+		auto tmpE = edges;
+		edges.clear();
+		for(auto &e : tmpE)
+			addEdge(e);
 	}
 
 	Vertex *DelaunayBSP::findSnapVertex(const Point &point, double distance)
 	{
+		double dist2 = distance * distance;
 		for(std::list<Vertex *>::iterator it = vertices.begin(), end = vertices.end(); it != end; ++it)
 		{
-			if(((*it)->point - point).length2D() < 0.01)
+			if(((*it)->point - point).length2D2() < dist2)
 				return *it;
 		}
-		double split = vertical ? (minPoint.x + maxPoint.x) / 2 : (minPoint.y + maxPoint.y) / 2;
+		double split = getSplit();
 		double axis = vertical ? point.x : point.y;
 		if(minChild && (axis < split))
 			return minChild->findSnapVertex(point, distance);
@@ -2092,6 +2105,71 @@ namespace ctl {
 		return NULL;
 	}
 
+	void DelaunayBSP::addEdge(Edge *edge)
+	{
+		if (!edge) return;
+		if (minChild)
+		{
+			const double split = getSplit();
+			const Point &p1 = edge->Org()->point;
+			const Point &p2 = edge->Dest()->point;
+			double axis = vertical ? std::max(p1.x, p2.x) : std::max(p1.y, p2.y);
+			if (axis <= split)
+			{
+				minChild->addEdge(edge);
+				return;
+			}
+			axis = vertical ? std::min(p1.x, p2.x) : std::min(p1.y, p2.y);
+			if (axis >= split)
+			{
+				maxChild->addEdge(edge);
+				return;
+			}
+		}
+		edges.insert(edge);
+	}
+
+	void DelaunayBSP::removeEdge(Edge* edge)
+	{
+		if (minChild)
+		{
+			const double split = getSplit();
+			const Point &p1 = edge->Org()->point;
+			const Point &p2 = edge->Dest()->point;
+			double axis = vertical ? std::max(p1.x, p2.x) : std::max(p1.y, p2.y);
+			if (axis <= split)
+			{
+				minChild->removeEdge(edge);
+				return;
+			}
+			axis = vertical ? std::min(p1.x, p2.x) : std::min(p1.y, p2.y);
+			if (axis >= split)
+			{
+				maxChild->removeEdge(edge);
+				return;
+			}
+		}
+		edges.erase(edge);
+	}
+
+	Edge *DelaunayBSP::findSnapEdge(const Point &point, double distance) const
+	{
+		if (minChild)
+		{
+			const double split = getSplit();
+			const double axis = vertical ? point.x : point.y;
+			if (axis <= split)
+				if (Edge *e = minChild->findSnapEdge(point, distance))
+					return e;
+			if (axis >= split)
+				if (Edge *e = maxChild->findSnapEdge(point, distance))
+					return e;
+		}
+		for (auto &e : edges)
+			if (LocatePointOnLine(point, e->Org()->point, e->Dest()->point, distance) == PL_ON_LINE)
+				return e;
+		return nullptr;
+	}
 
 
 }

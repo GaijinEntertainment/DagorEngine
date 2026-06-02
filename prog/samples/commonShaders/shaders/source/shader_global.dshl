@@ -229,3 +229,9 @@ interval in_editor_assume : no<1, yes;
 int support_texture_array = 0;//should be assumed
 interval support_texture_array : off<1, on;
 
+int allow_forced_in_editor = 0 always_referenced;
+interval allow_forced_in_editor : no < 1, yes;
+assume_if_not_assumed allow_forced_in_editor = no; // assumed to yes in some shaders to include tool variant into game
+
+int force_in_editor = 0 always_referenced;
+interval force_in_editor : no < 1, yes;

@@ -376,7 +376,7 @@ public:
   float getCloudsTopAlt();   // effective, i.e. can change based on gpu readback
   float getCloudsStartAltSettings() const;
   float getCloudsTopAltSettings() const;
-  void setWindDirection(const Point2 &windDir);
+  void setWindDirection(const Point2 &wind_dir) { windDir = wind_dir; }
   void setSolidColorMode(bool enabled, const E3DCOLOR &val = E3DCOLOR());
   bool isSolidColorMode() const { return solidColorMode; }
 
@@ -680,6 +680,7 @@ protected:
   CloudsWeatherGen cloudsWeatherGen;
   CloudsForm cloudsForm;
   CloudsRendering cloudsRendering;
+  Point2 windDir = Point2::ZERO;
 
   bool cpuOnly; // server
   bool solidColorMode = false;

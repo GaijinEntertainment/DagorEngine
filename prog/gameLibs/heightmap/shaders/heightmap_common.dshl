@@ -1,6 +1,6 @@
 include "edge_tesselation.dshl"
 
-bool has_high_texture = in_editor == yes;
+bool has_high_texture = in_editor == yes || use_editor_render;
 
 float4 world_to_hmap_high = (10e+3, 10e+3, 10e+10, 10e+10);
 float4 world_to_hmap_low = (10e+3, 10e+3, 10e+10, 10e+10);
@@ -11,7 +11,7 @@ float4 tex_hmap_inv_sizes = (1/2048,1/2048,1/2048,1/2048);
 float4 heightmap_region = (-65536, -65536, 65536, 65536);
 float4 heightmap_scale = (1,0,1,0);
 hlsl {
-  ##if in_editor == yes
+  ##if in_editor == yes || (allow_forced_in_editor == yes && force_in_editor == yes)
     #define decode_height(a) a
   ##else
     #define decode_height(a) ((a)*heightmap_scale.x+heightmap_scale.y)
@@ -74,14 +74,14 @@ endmacro
 // TODO unify this with USE_HEIGHTMAP_COMMON_BASE
 macro USE_HEIGHTMAP_COMMON_FOR_VERTICES(code)
   hlsl(code) {
-  ##if in_editor != yes
+  ##if in_editor != yes && !use_editor_render
     #define sizeInMeters (sizes.x)
   ##endif
   }
   hlsl(code) {
     half3 getNormalLow(float2 pos)
     {
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
       float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
       ##endif
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
@@ -93,7 +93,7 @@ macro USE_HEIGHTMAP_COMMON_FOR_VERTICES(code)
     }
     half3 getNormalLod(float2 pos, float lod)
     {
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
       float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
       ##endif
       float lodScale = exp2(lod);
@@ -172,7 +172,7 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
     #ifndef HEIGHTMAP_COMMON_INCLUDED
     #define HEIGHTMAP_COMMON_INCLUDED 1
 
-  ##if in_editor != yes
+  ##if in_editor == no && !use_editor_render
     #define sizeInMeters (heightmap_scale.z)
     #define tex_hmap_inv_sizes (heightmap_scale.ww)
   ##endif
@@ -231,7 +231,7 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
     }
     half3 getNormalLod(float2 pos, float lod)
     {
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
       float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
       ##endif
       float lodScale = exp2(lod);
@@ -247,7 +247,7 @@ BEGIN_ONCE_STAGE(use_heightmap_common_base_included, code)
       #if NO_GRADIENTS_IN_SHADER
         return getNormalLod(pos, 0);
       #else
-      ##if in_editor == yes
+      ##if in_editor == yes || use_editor_render
       float sizeInMeters = 2*tex_hmap_inv_sizes.x/world_to_hmap_low.x;
       ##endif
       float3 offset = float3(tex_hmap_inv_sizes.x, 0, tex_hmap_inv_sizes.y);
@@ -377,7 +377,7 @@ macro INIT_WORLD_HEIGHTMAP_FOR_VERTICES(code)
     world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y, world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x, world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
     heightmap_region@f4 = heightmap_region;
   }
-  if (in_editor == yes)
+  if (in_editor == yes || use_editor_render)
   {
     (code) {
       tex_hmap_inv_sizes@f4 = tex_hmap_inv_sizes;
@@ -405,7 +405,7 @@ endmacro
 macro INIT_WORLD_HEIGHTMAP_BASE(code)
 BEGIN_ONCE_STAGE(init_world_heightmap_base_included, code)
   // Dynamic intervals impossible to fit in the shader blocks
-  if (in_editor_assume == yes)
+  if (in_editor_assume == yes || use_editor_render)
   {
     (code) {
       world_to_hmap_high@f4 = world_to_hmap_high;

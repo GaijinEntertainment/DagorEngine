@@ -11,7 +11,6 @@
 #include <libTools/util/de_TextureName.h>
 #include <libTools/util/makeBindump.h>
 #include <libTools/dagFileRW/textureNameResolver.h>
-#include <util/dag_loadingProgress.h>
 
 #include <render/waterObjects.h>
 

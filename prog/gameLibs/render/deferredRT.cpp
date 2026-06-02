@@ -121,7 +121,7 @@ void DeferredRT::setVar()
 
   if (depth.getTex2D())
   {
-    ShaderGlobal::set_texture(depth_gbufVarId, depth.getTex2D());
+    ShaderGlobal::set_texture_unsafe(depth_gbufVarId, depth.getTex2D());
     ShaderGlobal::set_sampler(depth_gbuf_samplerstateVarId, baseSampler);
   }
 
@@ -166,7 +166,7 @@ uint32_t DeferredRT::recreateDepthInternal(uint32_t targetFmt)
 
   if (depth.getTex2D() == ShaderGlobal::get_tex_ptr_fast(depth_gbufVarId))
   {
-    ShaderGlobal::set_texture(depth_gbufVarId, nullptr);
+    ShaderGlobal::set_texture_unsafe(depth_gbufVarId, nullptr);
   }
   depth.close();
 

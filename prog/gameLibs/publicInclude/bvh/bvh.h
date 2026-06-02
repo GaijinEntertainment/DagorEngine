@@ -636,11 +636,12 @@ void set_ri_dist_mul(float mul);
 
 void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
-  RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio);
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
+  dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio);
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
+  const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum,
+  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
   threadpool::JobPriority prio);
 
 void wait_dynamic_instances_jobs();
@@ -673,6 +674,7 @@ void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Textur
 void bind_fom_textures(ContextId context_id, Texture *fom_sin, Texture *fom_cos, const d3d::SamplerHandle *fom_sampler);
 
 void bind_resources(ContextId context_id, int render_width);
+void unbind_resources();
 
 void on_load_scene(ContextId context_id);
 
