@@ -25,6 +25,7 @@
 #include <util/dag_hash.h>
 #include <debug/dag_debug.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <rendInst/rendInstGen.h>
 
 using namespace objgenerator; // prng
 
@@ -822,7 +823,7 @@ public:
       bbox = bsph = BSphere3(Point3(0, 0, 0), 0.4);
   }
 
-  bool getQuantizeTm() const { return quantizeTm; }
+  bool getQuantizeTm() const { return quantizeTm && !rendinst::tmInst12x32bit; }
 
   void enumGameObjs(int ent_idx, IObjEntity *parent, int gameobj_atype)
   {
@@ -1333,25 +1334,13 @@ void CompositEntity::setTm(const TMatrix &_tm)
   if (autoRndSeed)
     rndSeed += *(int *)&tm.m[3][0] + *(int *)&tm.m[3][1] + *(int *)&tm.m[3][2];
 
-#define QUANTIZE_R(V) (V) = floorf((V) * 256.0f) / 256.0f
-#define QUANTIZE_P(V) (V) = floorf((V) * 32.0f) / 32.0f
   if (pool->getPools()[poolIdx]->getQuantizeTm())
   {
-    QUANTIZE_R(tm[0][0]);
-    QUANTIZE_R(tm[0][1]);
-    QUANTIZE_R(tm[0][2]);
-    QUANTIZE_P(tm[0][3]);
-    QUANTIZE_R(tm[1][0]);
-    QUANTIZE_R(tm[1][1]);
-    QUANTIZE_R(tm[1][2]);
-    QUANTIZE_P(tm[1][3]);
-    QUANTIZE_R(tm[2][0]);
-    QUANTIZE_R(tm[2][1]);
-    QUANTIZE_R(tm[2][2]);
-    QUANTIZE_P(tm[2][3]);
+    for (int i = 0; i < 9; ++i)
+      tm.array[i] = floorf(tm.array[i] * 256.f) / 256.f; // rot/scl
+    for (int i = 9; i < 12; ++i)
+      tm.array[i] = floorf(tm.array[i] * 32.f) / 32.f; // pos
   }
-#undef QUANTIZE_R
-#undef QUANTIZE_P
 
   pool->getPools()[poolIdx]->setTm(tm, entIdx, this);
   if (autoRndSeed)

@@ -1183,6 +1183,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     uint64_t nextWorkItemProgress = 2;
     uint64_t recordingWorkItemProgress = 1;
     uint64_t completedFrameProgress = 0;
+    // video/cpuGpuOverlap:b=off forces the frontend to block until the GPU finished the submitted frame
+    bool disableCpuGpuOverlap = false;
     dag::Vector<FrameEvents *> frameEventCallbacks;
     frontend::Swapchain swapchain;
 #if DX12_RECORD_TIMING_DATA
@@ -1440,6 +1442,7 @@ public:
   void beginFrame(uint32_t frame_id, bool allow_wait);
   void setLatencyMarker(uint32_t frame_id, lowlatency::LatencyMarkerType type);
   void finishFrame(uint32_t frame_id, bool present_on_swapchain = true);
+  void disableCpuGpuOverlap() { front.disableCpuGpuOverlap = true; }
   void changePresentInterval(int interval);
   int getPresentInterval();
   void changeCurrentSwapchainExtents(Extent2D size, bool should_change_hdr);
@@ -1641,6 +1644,7 @@ public:
   void bindlessSetResourceDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void bindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
   void deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
+  void deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
 
   uint32_t getCurrentSwapchainIndex() const;

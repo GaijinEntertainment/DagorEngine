@@ -285,10 +285,10 @@ bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int 
 
   if (orient == O_HORIZONTAL)
   {
-    if (elem->screenCoord.size.x <= 1e-3f)
+    float knobW = knob ? knob->screenCoord.size.x : 0;
+    if (elem->screenCoord.size.x - knobW <= 1e-3f)
       return false;
 
-    float knobW = knob ? knob->screenCoord.size.x : 0;
     float dragOffs = 0;
     if (knob_drag)
       dragOffs = bhvData->inKnobPtrOffset;
@@ -300,10 +300,10 @@ bool BhvSlider::getValueFromMousePos(BhvSliderData *bhvData, Element *elem, int 
   }
   else if (orient == O_VERTICAL)
   {
-    if (elem->screenCoord.size.y <= 1e-3f)
+    float knobH = knob ? knob->screenCoord.size.y : 0;
+    if (elem->screenCoord.size.y - knobH <= 1e-3f)
       return false;
 
-    float knobH = knob ? knob->screenCoord.size.y : 0;
     float dragOffs = 0;
     if (knob_drag)
       dragOffs = bhvData->inKnobPtrOffset;

@@ -23,6 +23,7 @@ float tsr_scale_motion_max = 0.1;
 float4 tsr_input_resampling_filter_0;
 float4 tsr_input_resampling_filter_1;
 float4 tsr_input_resampling_filter_2;
+float tsr_reactive_mask_gamma = 0.125;
 
 float4x4 jitteredCamPosToUnjitteredHistoryClip;
 texture tsr_vrs_mask;

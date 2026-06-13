@@ -219,7 +219,7 @@ struct WaterFlowmap
   bool usingFoamFx = false;
   bool hasSlopes = false;
 
-  SharedTexHolder tex;
+  SharedTexWithShaderVar tex;
   UniqueTex blurTex;
   PostFxRenderer builder;
   PostFxRenderer fluidSolver;
@@ -246,6 +246,12 @@ struct WaterHeightmap : public IHeightmapHandler
   Point4 tcOffsetScale;
   int gridSize = 0, pagesX = 0, pagesY = 0, scale = 1;
   float heightOffset = 0.0f, heightScale = 0.0f, heightMax = 0.0f;
+  // Global water level used for flat (no heightmap data) regions. They are rendered at this level, not at heightOffset,
+  // so the culling bounds must use it; otherwise flat water gets a culling box offset from where it is actually drawn.
+  float waterLevel = 0.0f;
+  // Max wave height the surface can reach above/below its static level, fed from the active renderer. Reported as the culling
+  // displacement so the height culling boxes (flat ocean included) stay thick enough to contain the moving waves.
+  float waveCullingMargin = 0.0f;
   dag::ConstSpan<Point2> patchHeights;
   void *dataPtr = nullptr;
 
@@ -280,8 +286,9 @@ void close();
 enum
 {
   GEOM_INVISIBLE = 0,
-  GEOM_NORMAL = 1,
-  GEOM_HIGH = 2
+  GEOM_LOW = 1,
+  GEOM_NORMAL = 2,
+  GEOM_HIGH = 3
 };
 enum RenderMode
 {
@@ -393,6 +400,8 @@ void shore_enable(FFTWater *handle, bool enable);
 bool is_shore_enabled(const FFTWater *handle);
 float get_shore_wave_threshold(const FFTWater *handle);
 void set_shore_wave_threshold(FFTWater *handle, float value);
+float get_shore_damp_min(const FFTWater *handle);
+void set_shore_damp_min(FFTWater *handle, float value);
 int get_fft_resolution(const FFTWater *handle);
 void set_fft_resolution(FFTWater *handle, int res_bits);
 float get_render_significant_wave_height(FFTWater *handle);

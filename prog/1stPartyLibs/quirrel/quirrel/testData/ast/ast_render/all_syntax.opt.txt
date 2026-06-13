@@ -1721,6 +1721,150 @@ local_str3"
 |           |   Id 'k'
 |           `-Argument #2
 |               Id 'v'
+|-VarDecl 'let', name = 'arr888', type = 'any'
+|   Initializer
+|     ArrayExpr
+|     |-Element #1
+|     |   ArrayExpr
+|     |   |-Element #1
+|     |   |   LiteralExpr LK_INT 1
+|     |   |-Element #2
+|     |   |   LiteralExpr LK_INT 2
+|     |   `-Element #3
+|     |       LiteralExpr LK_STRING "a"
+|     `-Element #2
+|         ArrayExpr
+|         |-Element #1
+|         |   LiteralExpr LK_INT 3
+|         |-Element #2
+|         |   LiteralExpr LK_INT 4
+|         `-Element #3
+|             LiteralExpr LK_STRING "b"
+|-ForeachStatement
+| |-ValueVariable
+| |   VarDecl 'let', name = '@FE_VAL0', type = 'any'
+| |-Container
+| |   Id 'arr888'
+| `-Body
+|     Block isRoot = 0, isBody = 0
+|     |-DestructuringDecl type = 'array'
+|     | |-Initializer
+|     | |   Id '@FE_VAL0'
+|     | |-VarDecl 'let', name = 'a', type = 'any'
+|     | |-VarDecl 'let', name = 'b', type = 'any'
+|     | `-VarDecl 'let', name = 'c', type = 'any'
+|     `-Block isRoot = 0, isBody = 0
+|         ExprStatement
+|           CallExpr
+|           |-Callee
+|           |   Id 'println'
+|           `-Arguments
+|             |-Argument #1
+|             |   Id 'a'
+|             |-Argument #2
+|             |   Id 'b'
+|             `-Argument #3
+|                 Id 'c'
+|-ForeachStatement
+| |-ValueVariable
+| |   VarDecl 'let', name = '@FE_VAL1', type = 'any'
+| |-Container
+| |   Id 'arr888'
+| `-Body
+|     Block isRoot = 0, isBody = 0
+|     |-DestructuringDecl type = 'array'
+|     | |-Initializer
+|     | |   Id '@FE_VAL1'
+|     | |-VarDecl 'let', name = 'a', type = 'any'
+|     | |-VarDecl 'let', name = 'b', type = 'int'
+|     | `-VarDecl 'let', name = 'c', type = 'string|null'
+|     |     Initializer
+|     |       LiteralExpr LK_NULL
+|     `-Block isRoot = 0, isBody = 0
+|         ExprStatement
+|           CallExpr
+|           |-Callee
+|           |   Id 'println'
+|           `-Arguments
+|             |-Argument #1
+|             |   Id 'a'
+|             |-Argument #2
+|             |   Id 'b'
+|             `-Argument #3
+|                 Id 'c'
+|-VarDecl 'let', name = 'arr889', type = 'any'
+|   Initializer
+|     ArrayExpr
+|     |-Element #1
+|     |   TableExpr
+|     |   |-Field
+|     |   | |-Key
+|     |   | |   LiteralExpr LK_STRING "x"
+|     |   | `-Value
+|     |   |     LiteralExpr LK_INT 1
+|     |   `-Field
+|     |     |-Key
+|     |     |   LiteralExpr LK_STRING "y"
+|     |     `-Value
+|     |         LiteralExpr LK_STRING "a"
+|     `-Element #2
+|         TableExpr
+|         |-Field
+|         | |-Key
+|         | |   LiteralExpr LK_STRING "x"
+|         | `-Value
+|         |     LiteralExpr LK_INT 10
+|         `-Field
+|           |-Key
+|           |   LiteralExpr LK_STRING "y"
+|           `-Value
+|               LiteralExpr LK_STRING "b"
+|-ForeachStatement
+| |-ValueVariable
+| |   VarDecl 'let', name = '@FE_VAL2', type = 'any'
+| |-Container
+| |   Id 'arr889'
+| `-Body
+|     Block isRoot = 0, isBody = 0
+|     |-DestructuringDecl type = 'table'
+|     | |-Initializer
+|     | |   Id '@FE_VAL2'
+|     | |-VarDecl 'let', name = 'x', type = 'any'
+|     | `-VarDecl 'let', name = 'y', type = 'any'
+|     `-Block isRoot = 0, isBody = 0
+|         ExprStatement
+|           CallExpr
+|           |-Callee
+|           |   Id 'println'
+|           `-Arguments
+|             |-Argument #1
+|             |   Id 'x'
+|             `-Argument #2
+|                 Id 'y'
+|-ForeachStatement
+| |-ValueVariable
+| |   VarDecl 'let', name = '@FE_VAL3', type = 'any'
+| |-Container
+| |   Id 'arr889'
+| `-Body
+|     Block isRoot = 0, isBody = 0
+|     |-DestructuringDecl type = 'table'
+|     | |-Initializer
+|     | |   Id '@FE_VAL3'
+|     | |-VarDecl 'let', name = 'x', type = 'int'
+|     | `-VarDecl 'let', name = 'y', type = 'string|null'
+|     |     Initializer
+|     |       LiteralExpr LK_NULL
+|     `-Block isRoot = 0, isBody = 0
+|         ExprStatement
+|           CallExpr
+|           |-Callee
+|           |   Id 'println'
+|           `-Arguments
+|             |-Argument #1
+|             |   Id 'x'
+|             `-Argument #2
+|                 Id 'y'
 |-ForStatement
 |   Body
 |     Block isRoot = 0, isBody = 0
@@ -1796,6 +1940,50 @@ local_str3"
 |       `-Arguments
 |           Argument #1
 |             LiteralExpr LK_INT 718
+|-VarDecl 'let', name = 'ApiError', type = 'any'
+|   Initializer
+|     ClassExpr
+|     |-Key: <anonymous>
+|     `-Members
+|-VarDecl 'let', name = 'NetError', type = 'any'
+|   Initializer
+|     ClassExpr
+|     |-Key: <anonymous>
+|     `-Members
+|-TryStatement
+| |-TryBlock
+| |   Block isRoot = 0, isBody = 0
+| |     ThrowStatement
+| |       CallExpr
+| |         Callee
+| |           Id 'ApiError'
+| |-CatchBlock type = 'ApiError' exceptionId = 'e'
+| |   Block isRoot = 0, isBody = 0
+| |     ExprStatement
+| |       CallExpr
+| |       |-Callee
+| |       |   Id 'println'
+| |       `-Arguments
+| |           Argument #1
+| |             LiteralExpr LK_STRING "api"
+| |-CatchBlock type = 'NetError' exceptionId = 'e'
+| |   Block isRoot = 0, isBody = 0
+| |     ExprStatement
+| |       CallExpr
+| |       |-Callee
+| |       |   Id 'println'
+| |       `-Arguments
+| |           Argument #1
+| |             LiteralExpr LK_STRING "net"
+| `-CatchBlock exceptionId = 'e'
+|     Block isRoot = 0, isBody = 0
+|       ExprStatement
+|         CallExpr
+|         |-Callee
+|         |   Id 'println'
+|         `-Arguments
+|             Argument #1
+|               LiteralExpr LK_STRING "other"
 |-DirectiveStmt
 |-VarDecl 'local', name = 'w', type = 'any'
 |   Initializer
@@ -1907,7 +2095,7 @@ local_str3"
 |         Id 'A'
 |-VarDecl 'let', name = '$ch3', type = 'any'
 |   Initializer
-|     FunctionExpr name = '(all_syntax.nut:396)', pure = 0, nodiscard = 0, resultType = 'any'
+|     FunctionExpr name = '(all_syntax.nut:430)', pure = 0, nodiscard = 0, resultType = 'any'
 |     |-Parameters count = 0
 |     `-Body
 |         Block isRoot = 0, isBody = 1

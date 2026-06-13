@@ -88,7 +88,7 @@ bool LandMeshRenderer::reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassM
 }
 
 // Landclasses are rendered on clipmap or on grassmask. We use seperate sampler in order to avoid additional mipbias.
-d3d::SamplerInfo LandMeshRenderer::getTextureSamplerInfo(TEXTUREID tid)
+d3d::SamplerInfo landmesh::get_texture_sampler_info(TEXTUREID tid)
 {
   if (tid == BAD_TEXTUREID)
     return {};
@@ -96,9 +96,9 @@ d3d::SamplerInfo LandMeshRenderer::getTextureSamplerInfo(TEXTUREID tid)
   return get_sampler_info(get_texture_meta_data(tid));
 }
 
-d3d::SamplerInfo LandMeshRenderer::getTextureSamplerInfo(TEXTUREID tid, float anisotropic_max)
+d3d::SamplerInfo landmesh::get_texture_sampler_info(TEXTUREID tid, float anisotropic_max)
 {
-  d3d::SamplerInfo samplerInfo = getTextureSamplerInfo(tid);
+  d3d::SamplerInfo samplerInfo = landmesh::get_texture_sampler_info(tid);
   samplerInfo.anisotropic_max = anisotropic_max;
   return samplerInfo;
 }
@@ -116,7 +116,8 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     // landClassesLoaded[i].lcDetailParamsPS = landClasses[i].lcDetailParamsPS;
 
     landClassesLoaded[i].colorMap.tid = query_tex_loading(landClasses[i].colormapId);
-    landClassesLoaded[i].colorMap.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].colorMap.tid, 1.f));
+    landClassesLoaded[i].colorMap.sampler =
+      d3d::request_sampler(landmesh::get_texture_sampler_info(landClassesLoaded[i].colorMap.tid, 1.f));
 
     if (BaseTexture *t = D3dResManagerData::getBaseTex(landClassesLoaded[i].colorMap.tid))
     {
@@ -126,7 +127,8 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     }
 
     landClassesLoaded[i].grassMask.tid = query_tex_loading(landClasses[i].grassMaskTexId);
-    landClassesLoaded[i].grassMask.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].grassMask.tid, 1.f));
+    landClassesLoaded[i].grassMask.sampler =
+      d3d::request_sampler(landmesh::get_texture_sampler_info(landClassesLoaded[i].grassMask.tid, 1.f));
 
     landClassesLoaded[i].lcType = landClasses[i].lcType;
     if (landClassesLoaded[i].lcType != LC_SIMPLE)
@@ -136,7 +138,7 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
       {
         landClassesLoaded[i].lcTextures[j].tid = query_tex_loading(landClasses[i].lcTextures[j]);
 
-        d3d::SamplerInfo lcSamplerInfo = getTextureSamplerInfo(landClassesLoaded[i].lcTextures[j].tid, 1.f);
+        d3d::SamplerInfo lcSamplerInfo = landmesh::get_texture_sampler_info(landClassesLoaded[i].lcTextures[j].tid, 1.f);
         if (auto *tex = D3dResManagerData::getBaseTex(landClassesLoaded[i].lcTextures[j].tid);
             landClassesLoaded[i].lcType == LC_CUSTOM && tex && tex->level_count() == 1)
         {
@@ -158,7 +160,8 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     landClassesLoaded[i].waterDecalBumpScale = landClasses[i].waterDecalBumpScale;
 
     landClassesLoaded[i].flowmapTex.tid = query_tex_loading(landClasses[i].flowmapTex);
-    landClassesLoaded[i].flowmapTex.sampler = d3d::request_sampler(getTextureSamplerInfo(landClassesLoaded[i].flowmapTex.tid, 1.f));
+    landClassesLoaded[i].flowmapTex.sampler =
+      d3d::request_sampler(landmesh::get_texture_sampler_info(landClassesLoaded[i].flowmapTex.tid, 1.f));
 
     landClassesLoaded[i].physmatIDs = landClasses[i].physmatIds;
 
@@ -205,10 +208,10 @@ void LandMeshRenderer::updateCustomSamplers(LandMeshManager &provider)
 {
   for (int dtype = 0; dtype < NUM_TEXTURES_STACK; ++dtype)
     for (int i = 0; i < megaDetails[dtype].size(); ++i)
-      megaDetails[dtype][i].sampler = d3d::request_sampler(getTextureSamplerInfo(megaDetails[dtype][i].tid));
+      megaDetails[dtype][i].sampler = d3d::request_sampler(landmesh::get_texture_sampler_info(megaDetails[dtype][i].tid));
 
   for (int i = 0; i < megaDetailsArray.size(); ++i)
-    megaDetailsArray[i].first.sampler = d3d::request_sampler(getTextureSamplerInfo((megaDetailsArray[i].first.tid)));
+    megaDetailsArray[i].first.sampler = d3d::request_sampler(landmesh::get_texture_sampler_info((megaDetailsArray[i].first.tid)));
 
   ShaderGlobal::set_sampler(var::decals_detail_overrideSampler,
     d3d::request_sampler({.anisotropic_max = (float)::dgs_tex_anisotropy}));

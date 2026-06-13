@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "assemblyShader.h"
+#include "shExprParser.h"
 #include <shaders/shOpcodeFormat.h>
 #include <shaders/shOpcode.h>
 #include <shaders/shUtils.h>
@@ -344,6 +345,9 @@ void AssembleShaderEvalCB::decl_bool_alias(const char *name, const char *base_na
 
 void AssembleShaderEvalCB::eval_init_stat(SHTOK_ident *var, shader_init_value &v, bool is_referenced)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
   int varNameId = ctx.tgtCtx().varNameMap().getVarId(var->text);
 
   int vi = code.find_var(varNameId);
@@ -466,6 +470,8 @@ static inline int channel_usage(int token)
 
 void AssembleShaderEvalCB::eval_channel_decl(channel_decl &s, int str_idx)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   ShaderChannelId ch;
 
   int tp = ::channel_type(s.type->type->num);
@@ -692,6 +698,8 @@ void AssembleShaderEvalCB::eval_blend_value(const Terminal &blend_func_tok, cons
 
 void AssembleShaderEvalCB::eval_state(state_stat &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   if (s.var)
   {
 
@@ -963,6 +971,8 @@ void AssembleShaderEvalCB::eval_state(state_stat &s)
 
 void AssembleShaderEvalCB::eval_zbias_state(zbias_state_stat &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   switch (s.var->num)
   {
     case SHADER_TOKENS::SHTOK_slope_z_bias:
@@ -991,6 +1001,173 @@ void AssembleShaderEvalCB::eval_zbias_state(zbias_state_stat &s)
     break;
     default: G_ASSERT(0);
   }
+}
+
+void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderStage stage)
+{
+  semantic::VariableType vt = semantic::parse_named_const_type(s);
+  if (vt == semantic::VariableType::Unknown)
+  {
+    report_error(parser, s.var->var->name, "#rb var <%s> has unknown type", s.var->var->name->text);
+    return;
+  }
+
+  const bool isNumeric = semantic::vt_is_numeric(vt);
+  const bool isTexOrBuf = semantic::vt_is_tex(vt) || semantic::vt_is_buf(vt);
+  if (!isNumeric && !isTexOrBuf)
+  {
+    report_error(parser, s.var->var->name, "#rb var <%s> must have a numeric, texture, buffer type", s.var->var->name->text);
+    return;
+  }
+
+  if (!s.var->val || !s.var->val->expr)
+  {
+    report_error(parser, s.var->var->name, "#rb var <%s> must have a value", s.var->var->name->text);
+    return;
+  }
+
+  const char *hlslName = s.var->var->name->text;
+  auto &allocator = ctx.compCtx().rbAllocator();
+  auto &rbNameIdToReg = ctx.compCtx().rbVars();
+  auto &rbNameMap = ctx.compCtx().rbVarNameMap();
+  auto &layout = ctx.tgtCtx().refinedBlockLayout();
+
+  // Resolve or reuse the rb var id stored in the AST node.
+  int rbVarId = s.var->var->rbVarId;
+  if (rbVarId < 0)
+    rbVarId = s.var->var->rbVarId = rbNameMap.addVarId(hlslName);
+
+  Terminal *shaderVarTerm = s.var->val->expr->lhs ? s.var->val->expr->lhs->lhs->var_name : nullptr;
+  if (!shaderVarTerm)
+  {
+    // Complex expression path: RHS is an arithmetic expression, not a simple global var ref.
+    if (!semantic::vt_is_numeric(vt) || semantic::vt_is_integer(vt) || semantic::vt_float_size(vt) > 4)
+    {
+      report_error(parser, s.var->var->name, "#rb var <%s>: computed expressions are only supported for float types (@f1..@f4)",
+        hlslName);
+      return;
+    }
+
+    const int slotCount = semantic::vt_float_size(vt);
+    auto [var, isNewVar] =
+      layout.addVar(rbVarId, {.varName = hlslName,
+                               .globVarId = -1,
+                               .varType = vt,
+                               .svType = static_cast<ShaderVarType>(semantic::vt_float_size(vt) == 1 ? SHVT_REAL : SHVT_COLOR4)});
+
+    if (isNewVar)
+    {
+      auto [cache, isNewCache] = rbNameIdToReg.emplace(rbVarId, shc::RefinedBlockRegister{});
+      if (isNewCache)
+      {
+        const int offset = int(allocator.allocCbufSlot(slotCount));
+        cache->second.cbufOffsetAndCount = eastl::make_pair(offset, slotCount);
+      }
+      G_ASSERT(cache->second.cbufOffsetAndCount.has_value());
+      var.cbufOffset = cache->second.cbufOffsetAndCount.value().first;
+    }
+
+    const bool isInt = semantic::vt_is_integer(vt);
+    shexpr::ValueType shexprVT = semantic::vt_float_size(vt) == 1 ? shexpr::VT_REAL : shexpr::VT_COLOR4;
+    ShaderParser::ComplexExpression colorExpr{s.var->val->expr, shexprVT};
+    if (!exprParser.parseExpression(*s.var->val->expr, &colorExpr,
+          ShaderParser::ExpressionParser::Context{shexprVT, isInt, s.var->var->name}))
+    {
+      report_error(parser, s.var->var->name, "#rb var <%s>: invalid expression", hlslName);
+      return;
+    }
+    colorExpr.collapseNumbers(parser);
+
+    ShaderParser::CodeTable computedStcode;
+    StcodeVMRegisterAllocator regAlloc{parser};
+    Register dr = regAlloc.add_vec_reg();
+    colorExpr.assembleBytecode(computedStcode, dr, regAlloc, isInt);
+    computedStcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_SET_CONST_PACKED, int(dr), slotCount, var.cbufOffset.value()));
+
+    var.computedStcode = eastl::move(computedStcode);
+    return;
+  }
+
+  // Simple path: RHS is a direct global var reference.
+  auto [globVarId, valType, isGlobal] = semantic::lookup_state_var(shaderVarTerm->text, ctx, /*allow_not_found=*/false, shaderVarTerm);
+  if (globVarId < 0)
+    return; // error already reported by lookup_state_var
+  if (!isGlobal)
+  {
+    report_error(parser, shaderVarTerm, "#rb var <%s>: <%s> is a local shader variable, must reference a global variable", hlslName,
+      shaderVarTerm->text);
+    return;
+  }
+
+  const bool requiresHlsl = (vt == semantic::VariableType::buf || vt == semantic::VariableType::tex);
+  if (requiresHlsl && !s.var->hlsl_var_text)
+  {
+    const char *nsText = s.var->var->nameSpace->text;
+    report_error(parser, s.var->var->name,
+      "#rb var <%s> has type <%s> and requires an inline hlsl declaration, "
+      "e.g.:  hlsl { ByteAddressBuffer %s%s }",
+      hlslName, nsText, hlslName, nsText);
+    return;
+  }
+
+  eastl::string hlslDecl;
+  if (s.var->hlsl_var_text)
+  {
+    hlslDecl = s.var->hlsl_var_text->text;
+    const auto first = hlslDecl.find_first_not_of(" \t\n\r");
+    const auto last = hlslDecl.find_last_of(";\n\t\r");
+    if (first == eastl::string::npos)
+      hlslDecl.clear();
+    else
+      hlslDecl = hlslDecl.substr(first, last - first);
+  }
+
+  const auto allocSlot = [&](HlslRegisterSpace space) {
+    auto [var, _] = layout.addVar(rbVarId, {.varName = hlslName,
+                                             .globVarId = globVarId,
+                                             .varType = vt,
+                                             .svType = static_cast<ShaderVarType>(valType),
+                                             .space = space,
+                                             .hlslDecl = hlslDecl});
+    if (!var.slot[stage].has_value())
+    {
+      auto [cache, isNewCache] = rbNameIdToReg.emplace(rbVarId, shc::RefinedBlockRegister{});
+      G_UNUSED(isNewCache);
+      G_ASSERT(isNewCache || cache->second.space == space);
+
+      cache->second.space = space;
+      if (!cache->second.slot[stage].has_value())
+        cache->second.slot[stage] = allocator.allocSlot(stage, space);
+
+      var.slot[stage] = cache->second.slot[stage];
+    }
+    return var;
+  };
+
+  const bool allocateBindlessId = shc::config().enableBindless && !requiresHlsl;
+
+  if (isNumeric || (isTexOrBuf && allocateBindlessId))
+  {
+    auto [var, isNewVar] = layout.addVar(rbVarId, {.varName = hlslName,
+                                                    .globVarId = globVarId,
+                                                    .varType = vt,
+                                                    .svType = static_cast<ShaderVarType>(valType),
+                                                    .hlslDecl = hlslDecl});
+    if (isNewVar)
+    {
+      auto [cache, isNewCache] = rbNameIdToReg.emplace(rbVarId, shc::RefinedBlockRegister{});
+      if (isNewCache)
+      {
+        const int slotCount = isNumeric ? semantic::vt_float_size(vt) : 1;
+        const int offset = int(allocator.allocCbufSlot(slotCount));
+        cache->second.cbufOffsetAndCount = eastl::make_pair(offset, slotCount);
+      }
+      G_ASSERT(cache->second.cbufOffsetAndCount.has_value());
+      var.cbufOffset = cache->second.cbufOffsetAndCount.value().first;
+    }
+  }
+  else if (isTexOrBuf)
+    allocSlot(HlslRegisterSpace::HLSL_RSPACE_T);
 }
 
 void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block)
@@ -1041,6 +1218,15 @@ void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block
 
 void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderStage stage)
 {
+  if (s.var && s.var->var->refined_tag)
+  {
+    eval_refined_block_var(s, stage);
+    return;
+  }
+
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
   semantic::VariableType vt = semantic::parse_named_const_type(s);
   if (vt == semantic::VariableType::Unknown)
   {
@@ -1062,6 +1248,8 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderS
 
 void AssembleShaderEvalCB::eval_render_stage(render_stage_stat &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   String stage_nm;
   if (s.name_s)
     stage_nm.printf(0, "%.*s", strlen(s.name_s->text) - 2, s.name_s->text + 1);
@@ -1085,6 +1273,8 @@ void AssembleShaderEvalCB::eval_render_stage(render_stage_stat &s)
 }
 void AssembleShaderEvalCB::eval_command(shader_directive &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   switch (s.command->num)
   {
     case SHADER_TOKENS::SHTOK_no_ablend: curpass->force_noablend = true; return;
@@ -1310,6 +1500,9 @@ end:
 
 void AssembleShaderEvalCB::end_eval(shader_decl &sh)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
   static_assert(STAGE_PS < STAGE_VS && STAGE_CS < STAGE_VS);
 
   preshaderSource.isCompute = isCompute();
@@ -1409,6 +1602,8 @@ void AssembleShaderEvalCB::end_eval(shader_decl &sh)
 
 void AssembleShaderEvalCB::eval_hlsl_compile(hlsl_compile_class &hlsl_compile)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   semantic::HlslCompileClass compile = semantic::parse_hlsl_compilation_info(hlsl_compile, parser, ctx.tgtCtx().compCtx());
 
   HlslCompile &hlslXS = hlsls.all[compile.stage];
@@ -1458,6 +1653,8 @@ void AssembleShaderEvalCB::eval_hlsl_compile(hlsl_compile_class &hlsl_compile)
 
 void AssembleShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
   if (sh.ident)
     addBlockType(sh.ident->text, sh.ident);
 }

@@ -32,3 +32,4 @@ String param_switch_get_child_prefix_name(const DataBlock &settings, int idx, co
 void param_switch_update_child_name(DataBlock &settings, const char *name, const String &old_name);
 void param_switch_update_enum_gen_child_name(DataBlock &enum_props, const char *controller_name, const char *name,
   const String &old_name, dag::Vector<int> &dependent_items);
+void validate_param_switch_morph_times_names(const Tab<String> &nodeNames, const DataBlock &morph_times_blk, const char *ctrl_name);

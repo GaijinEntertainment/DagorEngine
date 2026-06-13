@@ -601,6 +601,28 @@ public:
       eventHandler->onWcChange(windowBaseForEventHandler);
   }
 
+  void setSelectedLeafs(dag::ConstSpan<TLeafHandle> leafs)
+  {
+    G_ASSERT(multiSelectionEnabled);
+
+    deselectAllChildren(rootNode);
+    lastSelected = nullptr;
+    ensureVisibleRequested = nullptr;
+
+    for (TLeafHandle leaf : leafs)
+    {
+      TreeNode *node = leafHandleAsNode(leaf);
+      node->setFlagValue(TreeNode::SELECTED, true);
+
+      setExpandedTillRoot(leaf);
+      lastSelected = node;
+      ensureVisibleRequested = node;
+    }
+
+    if (selectionChangeEventsByCode && eventHandler)
+      eventHandler->onWcChange(windowBaseForEventHandler);
+  }
+
   TLeafHandle getSelectedLeaf() const { return nodeAsLeafHandle(lastSelected); }
 
   // Visible means that the item's parents are expanded, and the item might be visible.
@@ -1048,6 +1070,29 @@ private:
           }
         }
       }
+    }
+
+    return selectionChanged;
+  }
+
+  bool deselectAllChildren(TreeNode &node)
+  {
+    G_ASSERT(multiSelectionEnabled);
+
+    bool selectionChanged = false;
+
+    for (TreeNode *child = node.getFirstChild(); child; child = child->getNextSibling())
+    {
+      if (child->getFlagValue(TreeNode::SELECTED))
+      {
+        child->setFlagValue(TreeNode::SELECTED, false);
+        selectionChanged = true;
+
+        if (child == lastSelected)
+          lastSelected = nullptr;
+      }
+
+      selectionChanged |= deselectAllChildren(*child);
     }
 
     return selectionChanged;

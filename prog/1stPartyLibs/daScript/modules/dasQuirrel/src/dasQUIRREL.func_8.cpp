@@ -60,12 +60,6 @@ void Module_dasQUIRREL::initFunctions_8() {
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:40:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger,void **) , sqstd_getfile >(*this,lib,"sqstd_getfile",SideEffects::worstDefault,"sqstd_getfile")
 		->args({"v","idx","file"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:43:23
-	addExtern< SQRESULT (*)(SQVM *,const char *,SQBool) , sqstd_loadfile >(*this,lib,"sqstd_loadfile",SideEffects::worstDefault,"sqstd_loadfile")
-		->args({"v","filename","printerror"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:44:23
-	addExtern< SQRESULT (*)(SQVM *,const char *,SQBool,SQBool) , sqstd_dofile >(*this,lib,"sqstd_dofile",SideEffects::worstDefault,"sqstd_dofile")
-		->args({"v","filename","retval","printerror"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\sqstdio.h:47:23
 	addExtern< SQRESULT (*)(SQVM *) , sqstd_init_streamclass >(*this,lib,"sqstd_init_streamclass",SideEffects::worstDefault,"sqstd_init_streamclass")
 		->args({"v"});

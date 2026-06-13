@@ -1497,7 +1497,7 @@ public:
       Driver3dPerspective p;
       G_VERIFY(d3d::getpersp(p));
       alignas(16) TMatrix4 viewTm = TMatrix4(view);
-      clusteredLights->cullFrustumLights(v_ldu_p3(itm[3]), globtm, (mat44f_cref)viewTm, (mat44f_cref)projTm, p.zn, nullptr,
+      clusteredLights->cullFrustumLights(v_ldu_p3(itm[3]), globtm, (mat44f_cref)viewTm, (mat44f_cref)projTm, p.zn, p.zf, nullptr,
         SpotLightMaskType::SPOT_LIGHT_MASK_NONE, OmniLightMaskType::OMNI_LIGHT_MASK_NONE);
 
       vec4f vpos = v_ldu_p3(itm[3]);

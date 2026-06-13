@@ -30,32 +30,35 @@ static ecs::EntitySystemDesc attempt_to_enable_water_effects_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
-static constexpr ecs::ComponentDesc set_up_foam_tex_request_es_comps[] =
+static constexpr ecs::ComponentDesc water_effects_foam_fx_es_comps[] =
 {
-//start of 1 rw components at [0]
-  {ECS_HASH("use_foam_tex"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 ro components at [1]
-  {ECS_HASH("water_effects"), ecs::ComponentTypeInfo<WaterEffects>()}
+//start of 2 rw components at [0]
+  {ECS_HASH("water_effects"), ecs::ComponentTypeInfo<WaterEffects>()},
+  {ECS_HASH("use_foam_tex"), ecs::ComponentTypeInfo<bool>()}
 };
-static void set_up_foam_tex_request_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+static void water_effects_foam_fx_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    set_up_foam_tex_request_es(evt
-        , ECS_RO_COMP(set_up_foam_tex_request_es_comps, "water_effects", WaterEffects)
-    , ECS_RW_COMP(set_up_foam_tex_request_es_comps, "use_foam_tex", bool)
+    water_effects_foam_fx_es(evt
+        , components.manager()
+    , ECS_RW_COMP(water_effects_foam_fx_es_comps, "water_effects", WaterEffects)
+    , ECS_RW_COMP(water_effects_foam_fx_es_comps, "use_foam_tex", bool)
     );
   while (++comp != compE);
 }
-static ecs::EntitySystemDesc set_up_foam_tex_request_es_es_desc
+static ecs::EntitySystemDesc water_effects_foam_fx_es_es_desc
 (
-  "set_up_foam_tex_request_es",
+  "water_effects_foam_fx_es",
   "prog/daNetGameLibs/water_effects/render/waterEffectsES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, set_up_foam_tex_request_es_all_events),
-  make_span(set_up_foam_tex_request_es_comps+0, 1)/*rw*/,
-  make_span(set_up_foam_tex_request_es_comps+1, 1)/*ro*/,
+  ecs::EntitySystemOps(nullptr, water_effects_foam_fx_es_all_events),
+  make_span(water_effects_foam_fx_es_comps+0, 2)/*rw*/,
   empty_span(),
   empty_span(),
-  ecs::EventSetBuilder<ecs::EventEntityCreated,
+  empty_span(),
+  ecs::EventSetBuilder<OnRenderSettingsReady,
+                       OnRenderSettingsUpdated,
+                       SetResolutionEvent,
+                       ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
@@ -135,42 +138,6 @@ static ecs::EntitySystemDesc update_water_effects_es_es_desc
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
-  0
-,"render");
-static constexpr ecs::ComponentDesc set_up_foam_params_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("water_effects"), ecs::ComponentTypeInfo<WaterEffects>()}
-};
-static void set_up_foam_params_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-if (evt.is<SetResolutionEvent>()) {
-    auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-      set_up_foam_params_es(static_cast<const SetResolutionEvent&>(evt)
-            , ECS_RW_COMP(set_up_foam_params_es_comps, "water_effects", WaterEffects)
-      );
-    while (++comp != compE);
-  } else {
-    auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-      set_up_foam_params_es(evt
-            , components.manager()
-      , ECS_RW_COMP(set_up_foam_params_es_comps, "water_effects", WaterEffects)
-      );
-    while (++comp != compE);
-  }
-}
-static ecs::EntitySystemDesc set_up_foam_params_es_es_desc
-(
-  "set_up_foam_params_es",
-  "prog/daNetGameLibs/water_effects/render/waterEffectsES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, set_up_foam_params_es_all_events),
-  make_span(set_up_foam_params_es_comps+0, 1)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<SetResolutionEvent,
-                       ecs::EventEntityCreated,
-                       ecs::EventComponentsAppear>::build(),
   0
 ,"render");
 static constexpr ecs::ComponentDesc change_effects_resolution_es_comps[] =

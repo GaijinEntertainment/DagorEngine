@@ -54,8 +54,8 @@ SMAA::SMAA(const IPoint2 &resolution) : resolution(resolution)
   blendWeights.setVar();
 
 
-  areaTex = SharedTexHolder(dag::get_tex_gameres("smaa_area_tex"), "smaa_area_tex");
-  searchTex = SharedTexHolder(dag::get_tex_gameres("smaa_search_tex"), "smaa_search_tex");
+  areaTex = SharedTexWithShaderVar(dag::get_tex_gameres("smaa_area_tex"), "smaa_area_tex");
+  searchTex = SharedTexWithShaderVar(dag::get_tex_gameres("smaa_search_tex"), "smaa_search_tex");
 
   {
     d3d::SamplerInfo smpInfo{};

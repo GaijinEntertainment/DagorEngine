@@ -1,0 +1,216 @@
+wait.progress
+wait.time 500
+
+//animchar
+app.select_asset "mg42_char"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "ussr_summer_1_char"
+wait.time 1500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//collision
+app.select_asset "1fl_Door_b_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "ussr_summer_1_collision"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//composit
+app.select_asset "fx_background_scene"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "fx_back_box_grid"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "stalingrad_city_building_dmg_07_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "stalingrad_city_building_dmg_11_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "stalingrad_city_building_dmg_13_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "stalingrad_city_building_dmg_15_cmp"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//dynmodel
+app.select_asset "mg42_dynmodel"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//fastPhys
+app.select_asset "ussr_summer_1_fastphys"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+// fx
+app.select_asset "hit_ground_wave_p_leaves_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "hit_ground_wave_p_grass_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "envir_destr_buildings_big_cmps_fx"
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//gameobj
+app.select_asset "spot_light_workshop_wall_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "truck_spawn_box"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "bm_13n_gameobj"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//prefab
+app.select_asset "russia_prison_camp_barn_a_ground"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "stalingrad_city_building_c_ground"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//physobj
+app.select_asset "ussr_summer_1_phobj"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+// rendInst
+app.select_asset "stalingrad_city_building_dmg_01"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+editor.command Plugin.Entity.ChangeLod.0
+wait.time 500
+screenshot.window
+wait.time 500
+editor.command Plugin.Entity.ChangeLod.2
+wait.time 500
+screenshot.window
+wait.time 500
+app.select_asset "1fl_Window_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "tree_autumn_medium_b"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+editor.command Plugin.Entity.ChangeLod.0
+wait.time 500
+screenshot.window
+wait.time 500
+editor.command Plugin.Entity.ChangeLod.2
+wait.time 500
+
+//skeleton
+app.select_asset "ussr_summer_1_skeleton"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+//template
+app.select_asset "ab_41_turret_01_20mm_breda_m35_l6"
+wait.time 500
+
+// tex
+app.select_asset "misc_leaf_a_4x4_tex_a"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "cloth_noise_combined"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "gen_cloud_shape_128"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+app.select_asset "droplet_splash"
+wait.time 500
+editor.command Main.AutoZoomAndCenter
+wait.time 100
+screenshot.window
+wait.time 500
+
+app.terminate 0

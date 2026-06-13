@@ -25,6 +25,7 @@ from ..helpers.texts                import log
 from ..helpers.version              import get_blender_version
 from ..tools.tools_panel            import apply_modifiers, fix_mat_slots, optimize_mat_slots, preserve_sharp
 from ..tools.tools_functions        import *
+from ..dagormat.rw_dagormat_text    import dagormat_prop_to_string
 
 from ..smooth_groups.smooth_groups              import int_to_uint
 from ..smooth_groups.mesh_calc_smooth_groups    import objects_calc_smooth_groups
@@ -510,19 +511,9 @@ class DagExporter(Operator, ExportHelper):
         dagormat_scripts = []
         if DM.sides == 2:
             dagormat_scripts.append("real_two_sided=yes")
-        for param in optional.keys():
-            try:
-                values = optional[param].to_list()
-                value = ''
-                for el in values:
-                    value+=f'{round(el,7)}, '
-                value = value[:-2]
-            except:
-                try:
-                    value = f'{round(optional[param],7)}'
-                except:
-                    value=f'{optional[param]}'
-            dagormat_scripts.append(param+ "=" + value)
+        for key in optional.keys():
+            prop_string = dagormat_prop_to_string(optional, key, short = True)
+            dagormat_scripts.append(prop_string)
         return "\r\n".join(dagormat_scripts)
 
     def saveMesh(self, node):

@@ -86,4 +86,9 @@ typedef SQInteger SQRESULT;
 #define SQ_STORE_DOC_OBJECTS 1
 #endif
 
+// if SQ_RANDOMIZE_FOREACH == 1, the foreach loop for tables will be randomized
+#ifndef SQ_RANDOMIZE_FOREACH
+#define SQ_RANDOMIZE_FOREACH 0
+#endif
+
 #define MIN_SQ_INTEGER SQInteger(1ULL << (sizeof(SQInteger) * 8 - 1))

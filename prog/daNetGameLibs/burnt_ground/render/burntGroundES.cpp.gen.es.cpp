@@ -23,9 +23,9 @@ static constexpr ecs::ComponentDesc burnt_ground_renderer_on_appear_es_comps[] =
   {ECS_HASH("burnt_ground_renderer__decals_indices_staging_buf"), ecs::ComponentTypeInfo<UniqueBuf>()},
   {ECS_HASH("burnt_ground_renderer__clipmap_decal_type"), ecs::ComponentTypeInfo<int>()},
 //start of 7 ro components at [4]
-  {ECS_HASH("burnt_ground_renderer__tex_d"), ecs::ComponentTypeInfo<SharedTexHolder>()},
-  {ECS_HASH("burnt_ground_renderer__tex_n"), ecs::ComponentTypeInfo<SharedTexHolder>()},
-  {ECS_HASH("burnt_ground_renderer__tex_m"), ecs::ComponentTypeInfo<SharedTexHolder>()},
+  {ECS_HASH("burnt_ground_renderer__tex_d"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
+  {ECS_HASH("burnt_ground_renderer__tex_n"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
+  {ECS_HASH("burnt_ground_renderer__tex_m"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
   {ECS_HASH("burnt_ground_renderer__edge_noise_scale"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("burnt_ground_renderer__edge_width"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("burnt_ground_renderer__max_clipmap_decal_count"), ecs::ComponentTypeInfo<int>()},
@@ -39,9 +39,9 @@ static void burnt_ground_renderer_on_appear_es_all_events(const ecs::Event &__re
     , ECS_RW_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__prepare_decals_node", dafg::NodeHandle)
     , ECS_RW_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__decals_staging_buf", UniqueBuf)
     , ECS_RW_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__decals_indices_staging_buf", UniqueBuf)
-    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_d", SharedTexHolder)
-    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_n", SharedTexHolder)
-    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_m", SharedTexHolder)
+    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_d", SharedTexWithShaderVar)
+    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_n", SharedTexWithShaderVar)
+    , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__tex_m", SharedTexWithShaderVar)
     , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__edge_noise_scale", float)
     , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__edge_width", float)
     , ECS_RO_COMP(burnt_ground_renderer_on_appear_es_comps, "burnt_ground_renderer__max_clipmap_decal_count", int)

@@ -173,25 +173,23 @@ public:
     crd->read((char *)b.ptr + sizeof(ddsx::Header), rec[id].packedDataSize);
     return true;
   }
+  int findDDSx(const char *name) const
+  {
+    int namelen = (int)strlen(name);
+    for (int i = 0; i < texNames.map.size(); i++)
+      if (strnicmp(texNames.map[i], name, namelen) == 0 && texNames.map[i][namelen] == '*')
+        return i;
+    return -1;
+  }
   void removeDDSx(const char *name)
   {
-    int namelen = (int)strlen(name);
-    for (int i = 0; i < texNames.map.size(); i++)
-      if (strnicmp(texNames.map[i], name, namelen) == 0 && texNames.map[i][namelen] == '*')
-      {
-        debug("removed changed %s: %s", name, texNames.map[i]);
-        rec[i].packedDataSize = -1;
-        return;
-      }
+    if (int i = findDDSx(name); i >= 0)
+    {
+      debug("removed changed %s: %s", name, texNames.map[i]);
+      rec[i].packedDataSize = -1;
+    }
   }
-  bool hasDDSx(const char *name)
-  {
-    int namelen = (int)strlen(name);
-    for (int i = 0; i < texNames.map.size(); i++)
-      if (strnicmp(texNames.map[i], name, namelen) == 0 && texNames.map[i][namelen] == '*')
-        return true;
-    return false;
-  }
+  bool hasDDSx(const char *name) const { return findDDSx(name) >= 0; }
 };
 
 class Pack2TexGatherHelper

@@ -32,16 +32,6 @@ struct IrGraphBuilderFixture
   eastl::optional<dafg::IrGraphBuilder> builder;
   dafg::intermediate::Mapping lastMapping;
 
-  dafg::NodeNameId addSideEffectNode(const char *name)
-  {
-    auto root = registry.knownNames.root();
-    auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, name);
-    registry.nodes.expandMapping(nodeId);
-    registry.nodes[nodeId].sideEffect = dafg::SideEffects::External;
-    validityInfo.nodeValid.set(nodeId, true);
-    return nodeId;
-  }
-
   void finalize()
   {
     const auto resCount = registry.knownNames.nameCount<dafg::ResNameId>();
@@ -109,56 +99,113 @@ struct IrGraphBuilderFixture
     return changes;
   }
 
+
+  dafg::NodeNameId addNode(const char *name, dafg::SideEffects side_effects = dafg::SideEffects::External)
+  {
+    auto root = registry.knownNames.root();
+    auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, name);
+
+    registry.nodes.expandMapping(nodeId);
+    registry.nodes[nodeId].sideEffect = side_effects;
+    validityInfo.nodeValid.set(nodeId, true);
+
+    return nodeId;
+  }
+
   dafg::ResNameId addResource(const char *res_name)
   {
     auto root = registry.knownNames.root();
     auto resId = registry.knownNames.addNameId<dafg::ResNameId>(root, res_name);
-    registry.resources.expandMapping(resId);
-    dafg::CreatedResourceData resData;
-    resData.creationInfo = dafg::Texture2dCreateInfo{TEXFMT_R8G8B8A8, IPoint2{4, 4}};
-    resData.type = dafg::ResourceType::Texture;
-    registry.resources[resId].createdResData = eastl::move(resData);
+
+    dafg::CreatedResourceData resData{
+      .creationInfo = dafg::Texture2dCreateInfo{TEXFMT_R8G8B8A8, IPoint2{4, 4}},
+      .type = dafg::ResourceType::Texture,
+    };
+
+    registry.resources.set(resId, {.createdResData = eastl::move(resData)});
     validityInfo.resourceValid.set(resId, true);
+
     depData.resourceLifetimes.expandMapping(resId);
+
     return resId;
   }
 
-  dafg::NodeNameId addNodeCreatingResource(const char *node_name, const char *res_name, dafg::SideEffects side_effects)
+  dafg::ResNameId addSinkResource(const char *res_name)
   {
     auto resId = addResource(res_name);
+    registry.sinkExternalResources.insert(resId);
+    return resId;
+  }
 
-    auto root = registry.knownNames.root();
-    auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, node_name);
-    registry.nodes.expandMapping(nodeId);
-    registry.nodes[nodeId].sideEffect = side_effects;
-    registry.nodes[nodeId].createdResources.insert(resId);
+  dafg::NodeNameId addNodeCreatingResource(const char *node_name, const char *res_name,
+    dafg::SideEffects side_effects = dafg::SideEffects::External)
+  {
+    auto nodeId = addNode(node_name, side_effects);
+    auto resId = addResource(res_name);
 
     dafg::ResourceRequest req;
     req.usage = {dafg::Usage::COLOR_ATTACHMENT, dafg::Access::READ_WRITE, dafg::Stage::PS};
-    registry.nodes[nodeId].resourceRequests[resId] = req;
 
-    validityInfo.nodeValid.set(nodeId, true);
-    depData.resourceLifetimes.expandMapping(resId);
+    registry.nodes[nodeId].createdResources.insert(resId);
+    registry.nodes[nodeId].resourceRequests[resId] = req;
     depData.resourceLifetimes[resId].introducedBy = nodeId;
+
     return nodeId;
   }
 
-  void addNodeReadingResource(const char *node_name, const char *res_name)
+  dafg::NodeNameId addNodeCreatingSinkResource(const char *node_name, const char *res_name,
+    dafg::SideEffects side_effects = dafg::SideEffects::External)
   {
-    auto root = registry.knownNames.root();
-    auto nodeId = registry.knownNames.addNameId<dafg::NodeNameId>(root, node_name);
-    auto resId = registry.knownNames.addNameId<dafg::ResNameId>(root, res_name);
+    auto nodeId = addNodeCreatingResource(node_name, res_name, side_effects);
+    addSinkResource(res_name);
 
-    registry.nodes.expandMapping(nodeId);
-    registry.nodes[nodeId].sideEffect = dafg::SideEffects::External;
-    registry.nodes[nodeId].readResources.insert(resId);
+    return nodeId;
+  }
+
+  dafg::NodeNameId addNodeModifyingResource(const char *node_name, const char *res_name,
+    dafg::SideEffects side_effects = dafg::SideEffects::External)
+  {
+    auto nodeId = addNode(node_name, side_effects);
+    auto resId = addResource(res_name);
+
+    dafg::ResourceRequest req;
+    req.usage = {dafg::Usage::SHADER_RESOURCE, dafg::Access::READ_WRITE, dafg::Stage::PS};
+
+    registry.nodes[nodeId].modifiedResources.insert(resId);
+    registry.nodes[nodeId].resourceRequests[resId] = req;
+    depData.resourceLifetimes[resId].modificationChain.push_back(nodeId);
+
+    return nodeId;
+  }
+
+  dafg::NodeNameId addNodeReadingResource(const char *node_name, const char *res_name,
+    dafg::SideEffects side_effects = dafg::SideEffects::External)
+  {
+    auto nodeId = addNode(node_name, side_effects);
+    auto resId = addResource(res_name);
 
     dafg::ResourceRequest req;
     req.usage = {dafg::Usage::SHADER_RESOURCE, dafg::Access::READ_ONLY, dafg::Stage::PS};
-    registry.nodes[nodeId].resourceRequests[resId] = req;
 
-    validityInfo.nodeValid.set(nodeId, true);
+    registry.nodes[nodeId].readResources.insert(resId);
+    registry.nodes[nodeId].resourceRequests[resId] = req;
     depData.resourceLifetimes[resId].readers.push_back(nodeId);
+
+    return nodeId;
+  }
+
+  dafg::NodeNameId addNodeRenamingResource(const char *node_name, const char *old_res_name, const char *new_res_name,
+    dafg::SideEffects side_effects = dafg::SideEffects::External)
+  {
+    auto nodeId = addNode(node_name, side_effects);
+    auto oldResId = addResource(old_res_name);
+    auto newResId = addResource(new_res_name);
+
+    registry.nodes[nodeId].renamedResources.emplace(newResId, oldResId);
+    depData.resourceLifetimes[oldResId].consumedBy = nodeId;
+    depData.resourceLifetimes[newResId].introducedBy = nodeId;
+
+    return nodeId;
   }
 
   dafg::NodeNameId addNodeReadingAndBindingShVar(const char *node_name, const char *res_name, int sv_id, bool is_optional,
@@ -211,8 +258,8 @@ TEST_CASE("first build marks all nodes changed", "[irGraphBuilder]")
 {
   FRAMEMEM_REGION;
   IrGraphBuilderFixture f;
-  f.addSideEffectNode("node_a");
-  f.addSideEffectNode("node_b");
+  f.addNode("node_a");
+  f.addNode("node_b");
   f.finalize();
   auto changes = f.build();
 
@@ -224,8 +271,8 @@ TEST_CASE("no-op rebuild marks nothing changed", "[irGraphBuilder]")
 {
   FRAMEMEM_REGION;
   IrGraphBuilderFixture f;
-  f.addSideEffectNode("node_a");
-  f.addSideEffectNode("node_b");
+  f.addNode("node_a");
+  f.addNode("node_b");
   f.finalize();
   f.build();
 
@@ -239,8 +286,8 @@ TEST_CASE("destination sentinel has empty requests", "[irGraphBuilder]")
 {
   FRAMEMEM_REGION;
   IrGraphBuilderFixture f;
-  f.addSideEffectNode("node_a");
-  f.addSideEffectNode("node_b");
+  f.addNode("node_a");
+  f.addNode("node_b");
   f.finalize();
   f.build();
 
@@ -270,8 +317,8 @@ TEST_CASE("graph structure after first build", "[irGraphBuilder]")
 {
   FRAMEMEM_REGION;
   IrGraphBuilderFixture f;
-  f.addSideEffectNode("node_a");
-  f.addSideEffectNode("node_b");
+  f.addNode("node_a");
+  f.addNode("node_b");
   f.finalize();
   f.build();
 
@@ -321,8 +368,8 @@ TEST_CASE("removing node leaves clean sentinel", "[irGraphBuilder]")
 {
   FRAMEMEM_REGION;
   IrGraphBuilderFixture f;
-  auto nodeA = f.addSideEffectNode("node_a");
-  f.addSideEffectNode("node_b");
+  auto nodeA = f.addNode("node_a");
+  f.addNode("node_b");
   f.finalize();
 
   // First build
@@ -465,4 +512,232 @@ TEST_CASE("mandatory shader-var binding does not set IR optional flag", "[irGrap
     foundBinding = true;
   }
   CHECK(foundBinding);
+}
+
+
+TEST_CASE("no-effect reader is culled away", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify
+  f.addNodeCreatingResource("A", "texture");
+  f.addNodeModifyingResource("B", "texture");
+
+  // then read with no effect
+  f.addNodeReadingResource("C", "texture", dafg::SideEffects::None);
+
+  f.finalize();
+  f.build();
+
+  // C has no effect and should be culled away
+  // 2 sentinels + A + B = 4
+  CHECK(f.graph.nodes.used() == 4);
+}
+
+TEST_CASE("no-effect node, renaming resource for external node, survives pruning", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify
+  f.addNodeCreatingResource("A", "texture");
+  f.addNodeModifyingResource("B", "texture");
+
+  // no effect rename ...
+  f.addNodeRenamingResource("C", "texture", "texture_2", dafg::SideEffects::None);
+
+  // ..., that used by external node
+  f.addNodeReadingResource("D", "texture_2", dafg::SideEffects::External);
+
+  f.finalize();
+  f.build();
+
+  // C has no effect, but renames resource for ext-effect D
+  // so everyone should survive
+  // 2 sentinels + A + B + C + D = 6
+  CHECK(f.graph.nodes.used() == 6);
+}
+
+TEST_CASE("no-effect renaming chain after last usage is culled away", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify
+  f.addNodeCreatingResource("A", "texture");
+  f.addNodeModifyingResource("B", "texture");
+
+  // a couple of renames with no effects
+  f.addNodeRenamingResource("C", "texture", "texture_2", dafg::SideEffects::None);
+  f.addNodeRenamingResource("D", "texture_2", "texture_3", dafg::SideEffects::None);
+
+  f.finalize();
+  f.build();
+
+  // C and D rename resource, but it is not used
+  // so they should be culled away
+  // 2 sentinels + A + B = 4
+  CHECK(f.graph.nodes.used() == 4);
+}
+
+
+TEST_CASE("internal nodes, operating with resource for external node, survive pruning", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify resource with internal nodes
+  f.addNodeCreatingResource("A", "texture", dafg::SideEffects::Internal);
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::Internal);
+
+  // then read it with external node
+  f.addNodeReadingResource("C", "texture", dafg::SideEffects::External);
+
+  f.finalize();
+  f.build();
+
+  // A and B are int-effect, but operate resource, used by ext-effect node C,
+  // so everyone should survive
+  // 2 sentinels + A + B + C = 5
+  CHECK(f.graph.nodes.used() == 5);
+}
+
+TEST_CASE("internal nodes, operating with resource for internal node, are culled away", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify resource
+  f.addNodeCreatingResource("A", "texture", dafg::SideEffects::External);
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::External);
+
+  // create and modify another resource, but with internal nodes
+  f.addNodeCreatingResource("C", "buffer", dafg::SideEffects::Internal);
+  f.addNodeModifyingResource("D", "buffer", dafg::SideEffects::Internal);
+  f.addNodeReadingResource("E", "buffer", dafg::SideEffects::Internal);
+
+  f.finalize();
+  f.build();
+
+  // C, D, E - int-effect nodes, operating resource with no external uses
+  // so they should be culled away
+  // 2 sentinels + A + B = 4
+  CHECK(f.graph.nodes.used() == 4);
+}
+
+TEST_CASE("internal reader after last external usage is culled away", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify resource
+  f.addNodeCreatingResource("A", "texture", dafg::SideEffects::External);
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::External);
+
+  // then read, but with internal node
+  f.addNodeReadingResource("C", "texture", dafg::SideEffects::Internal);
+
+  f.finalize();
+  f.build();
+
+  // C is int-effect node, that actually has no effect
+  // so it should be culled away
+  // 2 sentinels + A + B = 4
+  CHECK(f.graph.nodes.used() == 4);
+}
+
+TEST_CASE("internal rename/modify chain after last external usage is culled away", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify resource
+  f.addNodeCreatingResource("A", "texture", dafg::SideEffects::External);
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::External);
+
+  // then rename and modify it twice, but with internal nodes
+  f.addNodeRenamingResource("D", "texture", "texture_2", dafg::SideEffects::Internal);
+  f.addNodeModifyingResource("E", "texture_2", dafg::SideEffects::Internal);
+  f.addNodeRenamingResource("F", "texture_2", "texture_3", dafg::SideEffects::Internal);
+  f.addNodeModifyingResource("G", "texture_3", dafg::SideEffects::Internal);
+
+  f.finalize();
+  f.build();
+
+  // D, E, F, G - int-effect nodes, that operate resources with no external uses
+  // so, they should be culled away
+  // 2 sentinels + A + B = 4
+  CHECK(f.graph.nodes.used() == 4);
+}
+
+TEST_CASE("sink resource make introducer survive pruning", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create and modify resource
+  f.addNodeCreatingResource("A", "texture", dafg::SideEffects::External);
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::External);
+
+  // create and read sink resource
+  f.addNodeReadingResource("C", "texture", dafg::SideEffects::Internal);
+  f.addNodeCreatingSinkResource("C", "buffer", dafg::SideEffects::Internal);
+
+  f.finalize();
+  f.build();
+
+  // C is int-effect node, but introduces sink resource,
+  // so it should survive
+  // 2 sentinels + A + B + C = 5
+  CHECK(f.graph.nodes.used() == 5);
+}
+
+TEST_CASE("sink resource make modifiers survive pruning", "[irGraphBuilder][pruning]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // create sink resource
+  f.addNodeCreatingSinkResource("A", "texture", dafg::SideEffects::External);
+
+  // modify it
+  f.addNodeModifyingResource("B", "texture", dafg::SideEffects::Internal);
+  f.addNodeModifyingResource("C", "texture", dafg::SideEffects::Internal);
+
+  // and read
+  f.addNodeReadingResource("D", "texture", dafg::SideEffects::Internal);
+
+  f.finalize();
+  f.build();
+
+  // B and C are int-effect nodes, but modifiy sink resource,
+  // so they should survive, unlike D, that dies
+  // 2 sentinels + A + B + C = 5
+  CHECK(f.graph.nodes.used() == 5);
+}
+
+
+TEST_CASE("no-effect creation and renaming chain requests are cleared", "[irGraphBuilder]")
+{
+  FRAMEMEM_REGION;
+  IrGraphBuilderFixture f;
+
+  // no effect create and rename
+  const auto creatorNode = f.addNodeCreatingResource("A", "texture", dafg::SideEffects::None);
+  const auto renamerNode = f.addNodeRenamingResource("B", "texture", "texture_2", dafg::SideEffects::None);
+
+  // and only then modify and read
+  f.addNodeModifyingResource("C", "texture_2");
+  f.addNodeReadingResource("D", "texture_2");
+
+  f.finalize();
+  f.build();
+
+  // A and B have no effects, so resource requsts should be cleared for them
+  bool hasRequests = false;
+  for (auto [idx, irNode] : f.graph.nodes.enumerate())
+    if (irNode.frontendNode && (*irNode.frontendNode == creatorNode || *irNode.frontendNode == renamerNode))
+      hasRequests |= !irNode.resourceRequests.empty();
+  CHECK(!hasRequests);
 }

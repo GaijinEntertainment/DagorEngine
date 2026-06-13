@@ -209,13 +209,21 @@ class NodeDiffComputer
     if (tryDiff > limit)
       return tryDiff;
 
-    int32_t exIdDiff = diffNodes(lhs->exceptionId(), rhs->exceptionId());
-    int32_t catchDiff = diffNodes(lhs->catchStatement(), rhs->catchStatement());
+    const auto &lc = lhs->catches();
+    const auto &rc = rhs->catches();
+    int32_t total = tryDiff;
+    uint32_t common = lc.size() < rc.size() ? lc.size() : rc.size();
+    for (uint32_t i = 0; i < common; ++i) {
+      total += diffNodes(lc[i].type, rc[i].type);
+      total += diffNodes(lc[i].exception, rc[i].exception);
+      int32_t bodyDiff = diffNodes(lc[i].body, rc[i].body);
+      if (bodyDiff > limit)
+        return bodyDiff;
+      total += bodyDiff;
+    }
+    total += (int32_t)(lc.size() > rc.size() ? lc.size() - rc.size() : rc.size() - lc.size());
 
-    if (catchDiff > limit)
-      return catchDiff;
-
-    return tryDiff + exIdDiff + catchDiff;
+    return total;
   }
 
   int32_t diffExprStmt(const ExprStatement *lhs, const ExprStatement *rhs) {

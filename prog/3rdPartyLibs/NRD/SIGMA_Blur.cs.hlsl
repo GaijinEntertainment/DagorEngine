@@ -69,7 +69,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float viewZ = centerData.y;
 
     // Early out
-    if( viewZ > gDenoisingRange )
+    if( !IsInDenoisingRange( viewZ ) )
         return;
 
     // Tile-based early out ( potentially )
@@ -134,10 +134,9 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
                 float3 Xvs = Geometry::ReconstructViewPosition( uv, gFrustum, zs, gOrthoMode );
                 float NoX = dot( Nv, Xvs );
 
-                w *= ComputeWeight( NoX, geometryWeightParams.x, geometryWeightParams.y );
                 w *= AreBothLitOrUnlit( centerPenumbra, penum );
                 w *= GetGaussianWeight( length( float2( i - NRD_BORDER, j - NRD_BORDER ) / NRD_BORDER ) );
-                w = zs < gDenoisingRange ? w : 0.0; // |NoX| can be ~0 if "zs" is out of range
+                w = ApplyGeometryWeightLast( w, zs, NoX, geometryWeightParams );
             }
 
             // Accumulate
@@ -254,13 +253,13 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float NoX = dot( Nv, Xvs );
 
         float w = IsInScreenNearest( uv );
-        w *= ComputeWeight( NoX, geometryWeightParams.x, geometryWeightParams.y );
         w *= AreBothLitOrUnlit( centerPenumbra, penum );
         w *= GetGaussianWeight( offset.z );
-        w = zs < gDenoisingRange ? w : 0.0; // |NoX| can be ~0 if "zs" is out of range
 
         // Avoid umbra leaking inside wide penumbra
         w *= saturate( penum * invEstimatedPenumbra ); // TODO: it works surprisingly well, keep an eye on it!
+
+        w = ApplyGeometryWeightLast( w, zs, NoX, geometryWeightParams );
 
         // Accumulate
         result += w == 0.0 ? 0.0 : s * w;

@@ -122,13 +122,13 @@ shader tex_debug
         ##endif
       ##elif tex_debug_type == cube
         float3 cuv;
-        readback_uv = readback_uv * 2 - 1;
-        if (slice < 0.5)      cuv = float3(1, -readback_uv.y, -readback_uv.x);
-        else if (slice < 1.5) cuv = float3(-1, -readback_uv.y, readback_uv.x);
-        else if (slice < 2.5) cuv = float3(readback_uv.x, 1, readback_uv.y);
-        else if (slice < 3.5) cuv = float3(readback_uv.x, -1, -readback_uv.y);
-        else if (slice < 4.5) cuv = float3(readback_uv.x, -readback_uv.y, 1);
-        else                  cuv = float3(-readback_uv, -1);
+        float2 mod_readback_uv = readback_uv * 2 - 1;
+        if (slice < 0.5)      cuv = float3(1, -mod_readback_uv.y, -mod_readback_uv.x);
+        else if (slice < 1.5) cuv = float3(-1, -mod_readback_uv.y, mod_readback_uv.x);
+        else if (slice < 2.5) cuv = float3(mod_readback_uv.x, 1, mod_readback_uv.y);
+        else if (slice < 3.5) cuv = float3(mod_readback_uv.x, -1, -mod_readback_uv.y);
+        else if (slice < 4.5) cuv = float3(mod_readback_uv.x, -mod_readback_uv.y, 1);
+        else                  cuv = float3(-mod_readback_uv, -1);
         float4 texel = debugged_texture.SampleLevel(point_sampler, cuv, mip_level);
         ##if tex_debug_texture_for_diff != NULL
           texel -= debugged_texture_for_diff.SampleLevel(point_sampler, cuv, mip_level);

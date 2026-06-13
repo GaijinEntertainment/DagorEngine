@@ -96,7 +96,7 @@ NOISY INPUTS:
 #endif
 
 #ifndef NRD_REJITTER_AMPLITUDE
-    #define NRD_REJITTER_AMPLITUDE                                                      NRD_PI // [1 / x; x]
+    #define NRD_REJITTER_AMPLITUDE                                                      2.0 // [1 / x; x]
 #endif
 
 #ifndef NRD_MATERIAL_FACTOR_MIN_SCALE
@@ -263,6 +263,8 @@ NOISY INPUTS:
 
     #define NRD_EXPORT
 
+    #pragma warning( disable: 3577 ) // value cannot be NaN, isnan() may not be necessary. /Gis may force isnan() to be performed
+
 #endif
 
 //=================================================================================================================================
@@ -342,7 +344,7 @@ NOISY INPUTS:
 // Constants
 #define NRD_FP16_MAX                                                                    65504.0
 #define NRD_PI                                                                          3.14159265358979323846
-#define NRD_EPS                                                                         1e-6
+#define NRD_EPS                                                                         1e-6 // must fit into FP16
 #define NRD_INF                                                                         1e6
 
 // Misc
@@ -544,21 +546,24 @@ float3 _NRD_EnvironmentTerm_Rtg( float3 Rf0, float NoV, float roughness )
 }
 
 // Hit distance normalization
-float _REBLUR_GetHitDistanceNormalization( float viewZ, float4 hitDistParams, float roughness )
+float _NRD_GetSpecMagicCurve( float roughness, float power )
 {
-    return ( hitDistParams.x + abs( viewZ ) * hitDistParams.y ) * lerp( 1.0, hitDistParams.z, saturate( exp2( hitDistParams.w * roughness * roughness ) ) );
+    // https://www.desmos.com/calculator/fb1h5kiouj
+    float f = 1.0 - exp2( -200.0 * roughness * roughness );
+    f *= pow( saturate( roughness ), power );
+
+    return f;
 }
 
-// Is valid?
-bool _NRD_IsInvalid( float3 x )
+float _REBLUR_GetHitDistanceNormalization( float viewZ, float3 hitDistParams, float roughness )
 {
-    return any( isnan( x ) ) || any( isinf( x ) );
+    float smc = _NRD_GetSpecMagicCurve( roughness, 0.5 );
+
+    return ( hitDistParams.x + abs( viewZ ) * hitDistParams.y ) * lerp( hitDistParams.z, 1.0, smc );
 }
 
-bool _NRD_IsInvalid( float x )
-{
-    return isnan( x ) || isinf( x );
-}
+// Is invalid?
+#define _NRD_IsInvalid( x ) ( any( isnan( x ) ) || any( isinf( x ) ) )
 
 //==============================================================================================================================================
 // SPHERICAL HARMONICS: https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/gdc2018-precomputedgiobalilluminationinfrostbite.pdf
@@ -765,12 +770,16 @@ void NRD_FrontEnd_SpecHitDistAveraging_End( inout float accumulatedSpecHitDist )
 
 // FRONT-END
 
-// This function returns AO / SO which REBLUR can decode back to "hit distance" internally
-float REBLUR_FrontEnd_GetNormHitDist( float hitDist, float viewZ, float4 hitDistParams, float roughness )
+// This function returns AO / SO which REBLUR can decode back to "hit distance" internally.
+// Use this function only if a diffuse or specular lobe was not skipped due to probabilistic selection
+float REBLUR_FrontEnd_GetNormHitDist( float hitDist, float viewZ, float3 hitDistParams, float roughness )
 {
     float f = _REBLUR_GetHitDistanceNormalization( viewZ, hitDistParams, roughness );
+    hitDist = saturate( hitDist / f );
 
-    return saturate( hitDist / f );
+    // "hitDist = 0" means "no data", i.e. the lobe is skipped due to probabilistic selection of diffuse or specular.
+    // But if this function is called, we assume that the lobe was not skipped, thus we need to avoid 0
+    return max( hitDist, NRD_EPS );
 }
 
 // X => IN_DIFF_RADIANCE_HITDIST
@@ -840,14 +849,14 @@ float4 REBLUR_BackEnd_UnpackRadianceAndNormHitDist( float4 data )
 
 // OUT_DIFF_SH0 and OUT_DIFF_SH1 => X
 // OUT_SPEC_SH0 and OUT_SPEC_SH1 => X
-NRD_SG REBLUR_BackEnd_UnpackSh( float4 sh0, float4 sh1 )
+NRD_SG REBLUR_BackEnd_UnpackSh( float4 sh0, float3 sh1 )
 {
     NRD_SG sg;
     sg.c0 = sh0.x;
     sg.chroma = sh0.yz;
     sg.normHitDist = sh0.w;
-    sg.c1 = sh1.xyz;
-    sg.sharpness = sh1.w;
+    sg.c1 = sh1;
+    sg.sharpness = 0.0; // computed in resolve
 
     return sg;
 }
@@ -860,7 +869,7 @@ NRD_SG REBLUR_BackEnd_UnpackDirectionalOcclusion( float4 data )
     sg.chroma = float2( 0, 0 );
     sg.normHitDist = data.w;
     sg.c1 = data.xyz;
-    sg.sharpness = 0.0;
+    sg.sharpness = 0.0; // computed in resolve
 
     return sg;
 }
@@ -915,14 +924,14 @@ float4 RELAX_BackEnd_UnpackRadiance( float4 color )
 
 // OUT_DIFF_SH0 and OUT_DIFF_SH1 => X
 // OUT_SPEC_SH0 and OUT_SPEC_SH1 => X
-NRD_SG RELAX_BackEnd_UnpackSh( float4 sh0, float4 sh1 )
+NRD_SG RELAX_BackEnd_UnpackSh( float4 sh0, float3 sh1 )
 {
     NRD_SG sg;
     sg.c0 = sh0.x;
     sg.chroma = sh0.yz;
     sg.normHitDist = sh0.w;
-    sg.c1 = sh1.xyz;
-    sg.sharpness = sh1.w;
+    sg.c1 = sh1;
+    sg.sharpness = 0.0;
 
     return sg;
 }
@@ -987,11 +996,6 @@ float3 NRD_SG_ExtractDirection( NRD_SG sg )
     return _NRD_SG_ExtractDirection( sg );
 }
 
-float NRD_SG_ExtractRoughnessAA( NRD_SG sg )
-{
-    return sg.sharpness;
-}
-
 void NRD_SG_Rotate( inout NRD_SG sg, float3x3 rotation )
 {
     sg.c1 = mul( rotation, sg.c1 );
@@ -1043,7 +1047,7 @@ float3 NRD_SG_ResolveDiffuse( NRD_SG sg, float3 N, float3 V, float roughness )
 float3 NRD_SG_ResolveSpecular( NRD_SG sg, float3 N, float3 V, float roughness )
 {
     // Clamp roughness to avoid numerical imprecisions
-    roughness = max( roughness, 0.03 );
+    roughness = max( roughness, 0.05 );
 
     float m = roughness * roughness;
     float m2 = m * m;
@@ -1173,7 +1177,7 @@ bool NRD_IsValidRadiance( float3 radiance )
 }
 
 // Scales normalized hit distance back to real length
-float REBLUR_GetHitDist( float normHitDist, float viewZ, float4 hitDistParams, float roughness )
+float REBLUR_GetHitDist( float normHitDist, float viewZ, float3 hitDistParams, float roughness )
 {
     float scale = _REBLUR_GetHitDistanceNormalization( viewZ, hitDistParams, roughness );
 

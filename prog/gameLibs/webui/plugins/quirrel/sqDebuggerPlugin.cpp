@@ -132,7 +132,8 @@ static SQInteger stub_debug_table_data(HSQUIRRELVM v)
 
 static SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
-  G_ASSERT(sq_gettop(v) == 2);
+  // (this, error, trace): async faults carry the captured trace as a third arg.
+  G_ASSERT(sq_gettop(v) == 3);
   SqStackChecker stackCheck(v);
 
   sqstd_aux_error_to_string(v, 2);
@@ -473,6 +474,7 @@ void on_sqdebug_internal(int debugger_index, RequestInfo *params)
 
         Sqrat::Object prevRuntimeErrorHandler(sq_geterrorhandler(vm), vm);
         sq_newclosure(vm, runtime_error_handler, 0);
+        sq_setparamscheck(vm, 3, nullptr);
         sq_seterrorhandler(vm);
 
         stackCheck.check();

@@ -54,7 +54,7 @@ int DagorWinMain(bool debugmode)
 {
   debug_enable_timestamps(false);
   printf("Dagor Unused Texture Checker\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n");
 
   if (__argc < 2)
   {

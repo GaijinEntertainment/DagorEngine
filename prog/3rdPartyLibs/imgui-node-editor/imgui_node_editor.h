@@ -359,6 +359,8 @@ IMGUI_NODE_EDITOR_API void SetGroupSize(NodeId nodeId, const ImVec2& size);
 IMGUI_NODE_EDITOR_API ImVec2 GetNodePosition(NodeId nodeId);
 IMGUI_NODE_EDITOR_API ImVec2 GetNodeSize(NodeId nodeId);
 IMGUI_NODE_EDITOR_API void CenterNodeOnScreen(NodeId nodeId);
+// MODIFICATION BY GAIJIN
+IMGUI_NODE_EDITOR_API ImVec2 GetPinPosition(PinId pinId); // pin centre in editor/canvas space (0,0 if not found)
 IMGUI_NODE_EDITOR_API void SetNodeZPosition(NodeId nodeId, float z); // Sets node z position, nodes with higher value are drawn over nodes with lower value
 IMGUI_NODE_EDITOR_API float GetNodeZPosition(NodeId nodeId); // Returns node z position, defaults is 0.0f
 
@@ -392,6 +394,9 @@ IMGUI_NODE_EDITOR_API int BreakLinks(PinId pinId); // Break all links connected 
 
 IMGUI_NODE_EDITOR_API void NavigateToContent(float duration = -1);
 IMGUI_NODE_EDITOR_API void NavigateToSelection(bool zoomIn = false, float duration = -1);
+// MODIFICATION BY GAIJIN
+// Pan the view (keeping zoom) so that canvasPoint (editor/canvas space) lands at screenPoint (screen pixels).
+IMGUI_NODE_EDITOR_API void ScrollCanvasPointToScreen(const ImVec2& canvasPoint, const ImVec2& screenPoint);
 
 IMGUI_NODE_EDITOR_API bool ShowNodeContextMenu(NodeId* nodeId);
 IMGUI_NODE_EDITOR_API bool ShowPinContextMenu(PinId* pinId);

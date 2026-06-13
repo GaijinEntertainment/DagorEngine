@@ -126,22 +126,18 @@ static struct StaticShadowsLandmeshCullingJob final : public cpujobs::IJob
   Frustum frustum;
   TMatrix4 projTm;
   Point3 hmapOrigin;
-  float hmapCameraHeight;
-  float hmapWaterLevel;
   LandMeshCullingState lmeshState;
   LandMeshCullingData cullingData;
   void start(const Frustum &frustum_,
     const TMatrix4 &proj,
     LandMeshManager *lmesh_mgr,
     LandMeshRenderer *lmesh_renderer,
-    const HeightmapHandler *hmap_handler)
+    const Point3 &hmap_origin)
   {
     lmeshMgr = lmesh_mgr;
     projTm = proj;
     frustum = frustum_;
-    hmapOrigin = hmap_handler ? hmap_handler->getPreparedOriginPos() : Point3::ZERO;
-    hmapCameraHeight = hmap_handler ? hmap_handler->getPreparedCameraHeight() : 0.f;
-    hmapWaterLevel = hmap_handler ? hmap_handler->getPreparedWaterLevel() : 0.f;
+    hmapOrigin = hmap_origin;
     lmeshState = {};
     lmeshState.copyLandmeshState(*lmeshMgr, *lmesh_renderer);
     threadpool::add(this, threadpool::PRIO_HIGH);
@@ -154,8 +150,8 @@ static struct StaticShadowsLandmeshCullingJob final : public cpujobs::IJob
   virtual void doJob() override
   {
     lmeshState.frustumCulling(*lmeshMgr, cullingData, nullptr, 0,
-      HeightmapFrustumCullingInfo{hmapOrigin, hmapCameraHeight, hmapWaterLevel, frustum, NULL, NULL, 0, 0, 1,
-        {proj_to_distance_scale(projTm), 0, HeightmapMetricsQuality::FASTEST}});
+      HeightmapFrustumCullingInfo{
+        hmapOrigin, frustum, NULL, NULL, true, {proj_to_distance_scale(projTm), 0, HeightmapMetricsQuality::FASTEST}});
   }
 } static_shadows_lmesh_cull_job;
 
@@ -366,7 +362,7 @@ void ShadowsManager::initCombineShadowsNode()
       registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);
       auto camera = read_camera_in_camera(registry);
       auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
-      registry.requestRenderPass().depthRw("ssss_depth_mask").color({"combined_shadows"});
+      registry.requestRenderPass().depth("ssss_depth_mask").color({"combined_shadows"});
 
       return
         [this, cameraHndl](const dafg::multiplexing::Index multiplex_index) { combineShadows(multiplex_index, cameraHndl.ref()); };
@@ -396,7 +392,7 @@ void ShadowsManager::initCombineShadowsNode()
       registry.requestState().setFrameBlock("global_frame").enableOverride(pipelineStateOverride);
       combined_shadows_bind_additional_textures(registry);
 
-      registry.requestRenderPass().color({"combined_shadows"}).depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+      registry.requestRenderPass().color({"combined_shadows"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
       registry.bindBlob<d3d::SamplerHandle>("gbuf_sampler", "depth_gbuf_samplerstate");
       registry.readTexture("csm_texture").atStage(dafg::Stage::POST_RASTER);
 
@@ -1395,6 +1391,7 @@ void ShadowsManager::renderShadowsOpaque(int cascade, bool only_dynamic, const T
 void ShadowsManager::renderGroundShadows(
   const Point3 &origin, int displacement_subdiv, const Frustum &culling_frustum, const TMatrix4 &viewProjTm)
 {
+  G_UNUSED(displacement_subdiv); // displaced heightmap is not rendered to shadows (see call site); kept for API
   auto *lmeshMgr = WRDispatcher::getLandMeshManager();
 
   if (!lmeshMgr)
@@ -1415,14 +1412,11 @@ void ShadowsManager::renderGroundShadows(
   lmeshState.frustumCulling(*lmeshMgr, cullingData, NULL, 0,
     HeightmapFrustumCullingInfo{
       origin,
-      shadowInfoProvider.getCameraHeight(),
-      shadowInfoProvider.getWaterLevel(),
       culling_frustum,
       NULL,
       NULL,
-      0,
-      displacement_subdiv,
-      1,
+      true,
+      mq,
     });
 
   lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_DEPTH);
@@ -1461,17 +1455,14 @@ void ShadowsManager::renderStaticShadowsRegion(
   LandMeshManager *lmeshMgr = WRDispatcher::getLandMeshManager();
   LandMeshRenderer *lmeshRenderer = WRDispatcher::getLandMeshRenderer();
   float oldInvGeomDist = 0;
-  int oldHmapLodDist = 0;
   if (lmeshMgr)
   {
     oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
     lmeshRenderer->setInvGeomLodDist(1. / 30000);
-    oldHmapLodDist = lmeshMgr->getHmapLodDistance();
-    lmeshMgr->setHmapLodDistance(16);
 
     // For ortho shadows cull with culling matrix, because it may not render the whole depth range.
     Frustum lmeshCullingFrustum = staticShadows->isOrthoShadow() ? cullingFrustum : Frustum(shadow_glob_tm);
-    static_shadows_lmesh_cull_job.start(lmeshCullingFrustum, shadow_glob_tm, lmeshMgr, lmeshRenderer, lmeshMgr->getHmapHandler());
+    static_shadows_lmesh_cull_job.start(lmeshCullingFrustum, shadow_glob_tm, lmeshMgr, lmeshRenderer, camera_pos);
   }
 
   shaders::overrides::set(staticShadowsOverride.get());
@@ -1514,7 +1505,6 @@ void ShadowsManager::renderStaticShadowsRegion(
     threadpool::wait(&static_shadows_lmesh_cull_job, 0, threadpool::PRIO_HIGH);
     lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, static_shadows_lmesh_cull_job.cullingData, camera_pos);
 
-    lmeshMgr->setHmapLodDistance(oldHmapLodDist);
     lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
   }
 
@@ -1601,8 +1591,6 @@ void ShadowsManager::prepareVSM(const Point3 &camera_pos)
 
     float oldInvGeomDist = lmeshRenderer->getInvGeomLodDist();
     lmeshRenderer->setInvGeomLodDist(1. / 30000);
-    float oldHmapLodDist = lmeshMgr->getHmapLodDistance();
-    lmeshMgr->setHmapLodDistance(16);
 
     TMatrix4 shadow_glob_tm = vsmCullingInfo.viewProj;
     Frustum frustum = shadow_glob_tm;
@@ -1611,14 +1599,9 @@ void ShadowsManager::prepareVSM(const Point3 &camera_pos)
     LandMeshCullingData cullingData;
     {
       TIME_PROFILE(vsm_lmesh_cull)
-      const HeightmapHandler *hmap_handler = lmeshMgr->getHmapHandler();
-      Point3 hmapOrigin = hmap_handler ? hmap_handler->getPreparedOriginPos() : Point3::ZERO;
-      float hmapCameraHeight = hmap_handler ? hmap_handler->getPreparedCameraHeight() : 0.f;
-      float hmapWaterLevel = hmap_handler ? hmap_handler->getPreparedWaterLevel() : 0.f;
       lmeshState.copyLandmeshState(*lmeshMgr, *lmeshRenderer);
       lmeshState.frustumCulling(*lmeshMgr, cullingData, nullptr, 0,
-        HeightmapFrustumCullingInfo{
-          hmapOrigin, hmapCameraHeight, hmapWaterLevel, frustum, NULL, NULL, 0, 0, 1, {0, -1, HeightmapMetricsQuality::FASTEST}});
+        HeightmapFrustumCullingInfo{camera_pos, frustum, NULL, NULL, true, {0, -1, HeightmapMetricsQuality::FASTEST}});
     }
 
     lmeshRenderer->setLMeshRenderingMode(LMeshRenderingMode::RENDERING_VSM);
@@ -1634,7 +1617,6 @@ void ShadowsManager::prepareVSM(const Point3 &camera_pos)
       lmeshRenderer->renderCulled(*lmeshMgr, LandMeshRenderer::RENDER_ONE_SHADER, cullingData, camera_pos);
     }
 
-    lmeshMgr->setHmapLodDistance(oldHmapLodDist);
     lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
 
     vsm.endShadowMap();

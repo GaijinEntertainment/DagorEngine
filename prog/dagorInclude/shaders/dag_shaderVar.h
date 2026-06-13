@@ -145,7 +145,7 @@ bool set_texture(const ShaderVariableInfo &, const ManagedTex &texture);
 bool set_buffer(const ShaderVariableInfo &, const ManagedBuf &buffer);
 bool set_tlas(int variable_id, RaytraceTopAccelerationStructure *ptr);
 #if DAGOR_DBGLEVEL > 0
-bool is_resource_used_as_umnamaged_pointer(D3dResource *resource_ptr, bool log_usage = false);
+bool is_resource_used_as_unmanaged_pointer(D3dResource *resource_ptr, bool log_usage = false);
 #endif
 /// @note If using this, always call set_texture_unsafe(id, nullptr) or set_texture(id, BAD_TEXTUREID) after manually
 bool set_texture_unsafe(int variable_id, BaseTexture *texture_ptr);

@@ -34,7 +34,6 @@ shader downsample_depth_hzb
     depth_source_sz@f2 = depth_source_sz;
     depth_target_sz@f2 = depth_target_sz;
     depth_source_rcp@f2 = (1.0 / depth_source_sz.x, 1.0 / depth_source_sz.y);
-    half_target_rcp@f2 = (0.5 / depth_target_sz.x, 0.5 / depth_target_sz.y);
     downsample_depth_from@tex2d : register(downsample_depth_from_const_no);
     downsample_depth_from_samplerstate@sampler : register(downsample_depth_from_const_no);
   }
@@ -98,7 +97,10 @@ shader downsample_depth_hzb
         src = depth_max(src, (downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, lt, int2(2, 2) )));
         float src0 = src.x, src1 = src.y, src2 = src.z, src3=src.w;
       ##else
-        float2 tc = floor((IN.tc.xy + half_target_rcp) * depth_source_sz) * depth_source_rcp;
+        // gather at the inner corner of the 2x2 source block: footprint is exactly the block,
+        // with half a texel of rounding margin on both sides
+        float2 posFloored2 = floor(pos.xy);
+        float2 tc = (floor(posFloored2*(depth_source_sz/depth_target_sz)) + 1.0) * depth_source_rcp;
         float4 src = downsample_depth_from.GatherRed(downsample_depth_from_samplerstate, tc);
         float src0 = src.x, src1 = src.y, src2 = src.z, src3=src.w;
       ##endif

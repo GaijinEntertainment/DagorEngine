@@ -230,6 +230,7 @@ static constexpr const char *RELOAD_SHADERS = "Main.ReloadShaders";
 static constexpr const char *LOAD_DEFAULT_LAYOUT = "Main.LoadDefaultLayout";
 static constexpr const char *LOAD_LAYOUT = "Main.LoadLayout";
 static constexpr const char *SAVE_LAYOUT = "Main.SaveLayout";
+static constexpr const char *TOGGLE_DABUILD = "Main.ToggleDaBuild";
 static constexpr const char *TOGGLE_TAG_MANAGER = "Main.ToggleTagManager";
 static constexpr const char *TOGGLE_PROPERTY_PANEL = "Main.TogglePropertiesPanel";
 static constexpr const char *COMPOSITE_EDITOR = "Main.CompositeEditor";

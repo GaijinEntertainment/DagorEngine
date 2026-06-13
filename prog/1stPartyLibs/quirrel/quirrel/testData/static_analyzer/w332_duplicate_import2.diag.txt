@@ -1,0 +1,8 @@
+WARNING: w332 (duplicate-import) Imported field 'cos' is listed more than once.
+testData/static_analyzer/w332_duplicate_import2.nut:3:19
+
+from "string" import format
+from "math" import cos
+                   ^--
+
+

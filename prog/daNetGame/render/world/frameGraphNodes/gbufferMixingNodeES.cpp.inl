@@ -31,7 +31,7 @@ static void create_gbuffer_mixing_nodes_es(const OnCameraNodeConstruction &evt)
     registry.requestRenderPass()
       .color({registry.createTexture2d("unpacked_normals",
         {TEXFMT_A2B10G10R10 | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>("main_view")})})
-      .depthRoAndBindToShaderVars(prev_ns.rename("gbuf_depth_done", "gbuf_depth").texture(), {"depth_gbuf"});
+      .depthReadTestAndSample(prev_ns.rename("gbuf_depth_done", "gbuf_depth").texture(), {"depth_gbuf"});
 
     prev_ns.rename("gbuf_0_done", "gbuf_0").texture();
     prev_ns.rename("gbuf_2_done", "gbuf_2").texture().optional();

@@ -31,6 +31,9 @@ float4 globtm_no_ofs_psf_3;
 
 float contact_shadow_min_len = 0.25;
 
+int hero_cockpit_camera_fade = 0;
+interval hero_cockpit_camera_fade : off < 1, on;
+
 hlsl{
   float decode_depth(float depth, float2 decode_depth)
   {
@@ -315,14 +318,16 @@ macro GTAO_MAIN_CORE(code)
       ##endif
 
 
-      ##if gbuffer_has_hero_cockpit
+      ##if gbuffer_has_hero_cockpit && hero_cockpit_camera_fade == on
         BRANCH
         if (isGbufferHeroCockpit(texcoord * current_dynamic_resolution_scale))
         {
           float fade = saturate(dot(float4(pixelPos, 1), hero_cockpit_vec));
-          GTAO_VALUE_X = lerp(GTAO_VALUE_X, 1.0f, fade);
+          float fadeGtao = getAdditionalAmbientOcclusion(1.f, pixelPos, wsNormal, texcoord);
+          GTAO_VALUE_X = lerp(GTAO_VALUE_X, fadeGtao, fade);
           ##if maybe(ssao_contact_shadows)
-            gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, 1.0f, fade);
+            float fadeShadow = getAdditionalShadow(1.f, cameraToPoint,  texcoord * current_dynamic_resolution_scale, w);
+            gtao_value.CONTACT_SHADOWS_ATTR = lerp(gtao_value.CONTACT_SHADOWS_ATTR, fadeShadow, fade);
           ##endif
         }
       ##endif

@@ -281,7 +281,7 @@ static void interp_loc_snapshots_es(const ecs::UpdateStageInfoAct &info,
     if (curSnap.atTime > interpTime)
       continue;
     // curSnap time is _before_ our curtime, use this pair to interpolate
-    float interpK = nextSnap.blink ? 1.0 : cvt(interpTime, curSnap.atTime, nextSnap.atTime, 0.f, 1.f);
+    float interpK = nextSnap.blink ? 1.f : cvt_double(interpTime, curSnap.atTime, nextSnap.atTime, 0., 1.);
     transform = makeTM(qinterp(curSnap.quat, nextSnap.quat, interpK));
     transform.setcol(3, lerp(curSnap.pos, nextSnap.pos, interpK));
     if (nextSnap.blink && interpTime - info.dt <= curSnap.atTime)

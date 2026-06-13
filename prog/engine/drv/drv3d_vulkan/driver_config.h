@@ -120,6 +120,8 @@ struct DriverConfig
     bool autoPredictedLatencyWaitApp : 1;
     // allow predicted latency wait in worker code, compensating for worker-GPU latency
     bool allowPredictedLatencyWaitWorker : 1;
+    // video/cpuGpuOverlap:b=off forces a full CPU->GPU sync after every present (no frames in flight)
+    bool disableCpuGpuOverlap : 1;
     // issue fatal when NRP split is detected
     bool fatalOnNRPSplit : 1;
     // trigger assertion when validation fails, otherwise trigger D3D_ERROR

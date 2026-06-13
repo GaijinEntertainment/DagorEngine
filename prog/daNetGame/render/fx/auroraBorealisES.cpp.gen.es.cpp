@@ -35,12 +35,13 @@ static ecs::EntitySystemDesc aurora_borealis_switch_es_es_desc
 ,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc aurora_borealis_es_comps[] =
 {
-//start of 4 rw components at [0]
+//start of 5 rw components at [0]
   {ECS_HASH("aurora_borealis"), ecs::ComponentTypeInfo<AuroraBorealis>()},
   {ECS_HASH("aurora_borealis__init"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
+  {ECS_HASH("aurora_borealis__init_cam"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("aurora_borealis__render"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
   {ECS_HASH("aurora_borealis__apply"), ecs::ComponentTypeInfo<dafg::NodeHandle>()},
-//start of 13 ro components at [4]
+//start of 13 ro components at [5]
   {ECS_HASH("aurora_borealis__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aurora_borealis__is_night"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aurora_borealis__tex_res_multiplier"), ecs::ComponentTypeInfo<float>()},
@@ -74,6 +75,7 @@ static void aurora_borealis_es_all_events(const ecs::Event &__restrict evt, cons
     , ECS_RO_COMP(aurora_borealis_es_comps, "aurora_borealis__ripples_speed", float)
     , ECS_RO_COMP(aurora_borealis_es_comps, "aurora_borealis__ripples_strength", float)
     , ECS_RW_COMP(aurora_borealis_es_comps, "aurora_borealis__init", dafg::NodeHandle)
+    , ECS_RW_COMP(aurora_borealis_es_comps, "aurora_borealis__init_cam", dafg::NodeHandle)
     , ECS_RW_COMP(aurora_borealis_es_comps, "aurora_borealis__render", dafg::NodeHandle)
     , ECS_RW_COMP(aurora_borealis_es_comps, "aurora_borealis__apply", dafg::NodeHandle)
     );
@@ -84,8 +86,8 @@ static ecs::EntitySystemDesc aurora_borealis_es_es_desc
   "aurora_borealis_es",
   "prog/daNetGame/render/fx/auroraBorealisES.cpp.inl",
   ecs::EntitySystemOps(nullptr, aurora_borealis_es_all_events),
-  make_span(aurora_borealis_es_comps+0, 4)/*rw*/,
-  make_span(aurora_borealis_es_comps+4, 13)/*ro*/,
+  make_span(aurora_borealis_es_comps+0, 5)/*rw*/,
+  make_span(aurora_borealis_es_comps+5, 13)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeatures,

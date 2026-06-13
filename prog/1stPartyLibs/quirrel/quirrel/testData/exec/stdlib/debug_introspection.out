@@ -1,0 +1,11 @@
+getstackinfos func: string
+fixed requiredArgs: 3
+variadic requiredArgs: 2
+noargs requiredArgs: 0
+mask 1: null
+mask 6: number
+mask 0xFFFFFFFF: any
+gc: enabled, resurrect type null
+native decl string: string
+callstack locals: 10
+debug introspection: OK

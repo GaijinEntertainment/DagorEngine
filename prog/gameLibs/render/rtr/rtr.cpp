@@ -64,7 +64,6 @@ static int rtr_rough_ray_lengthVarId = -1;
 static int rtr_ray_limit_coeffVarId = -1;
 static int rtr_ray_limit_powerVarId = -1;
 static int rtr_water_hit_dist_paramsVarId = -1;
-static int rtr_resolutionVarId = -1;
 static int rtr_resolutionIVarId = -1;
 static int rtr_texture_resolutionVarId = -1;
 static int rtr_uv_maxVarId = -1;
@@ -174,7 +173,6 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
   rtr_ray_limit_coeffVarId = get_shader_variable_id("rtr_ray_limit_coeff", true);
   rtr_ray_limit_powerVarId = get_shader_variable_id("rtr_ray_limit_power", true);
   rtr_water_hit_dist_paramsVarId = get_shader_variable_id("rtr_water_hit_dist_params", true);
-  rtr_resolutionVarId = get_shader_variable_id("rtr_resolution");
   rtr_resolutionIVarId = get_shader_variable_id("rtr_resolutionI");
   rtr_texture_resolutionVarId = get_shader_variable_id("rtr_texture_resolution");
   rtr_uv_maxVarId = get_shader_variable_id("rtr_uv_max");
@@ -449,7 +447,6 @@ void bind_params()
   ShaderGlobal::set_float(rtr_ray_limit_coeffVarId, ray_limit_coeff);
   ShaderGlobal::set_float(rtr_ray_limit_powerVarId, ray_limit_power);
   ShaderGlobal::set_float4(rtr_water_hit_dist_paramsVarId, waterHitDistParams);
-  ShaderGlobal::set_float4(rtr_resolutionVarId, resolution.x, resolution.y, 0, 0);
   ShaderGlobal::set_int4(rtr_resolutionIVarId, resolution.x, resolution.y, tiles_width, tiles_height);
   ShaderGlobal::set_int4(rtr_texture_resolutionVarId, denoiser::resolution_config.rtr.width, denoiser::resolution_config.rtr.height, 0,
     0);

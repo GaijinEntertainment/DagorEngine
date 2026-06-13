@@ -1326,8 +1326,8 @@ shader land_mesh_height_decal, land_mesh_combined_decal, land_mesh_height_decal_
         ##if grass_decal_id_tex != NULL
           float2 wd_ht;
           get_grass_decal_id_tex().tex.GetDimensions(wd_ht.x, wd_ht.y);
-          //float f_decal_id = tex2Dlod(grass_decal_id_tex, float4(input.diffuseTexcoord__opacity.xy-frac(input.diffuseTexcoord__opacity.xy*wd_ht)/wd_ht,0,0)).r;
-          float f_decal_id = tex2DLodBindless(get_grass_decal_id_tex(), float4(fmod(input.diffuseTexcoord__opacity.xy, wd_ht)+0.5*wd_ht,0,0)).r;
+          // snap to texel center: ids are discrete, bilinear between them is meaningless
+          float f_decal_id = tex2DLodBindless(get_grass_decal_id_tex(), float4((floor(input.diffuseTexcoord__opacity.xy*wd_ht)+0.5)/wd_ht,0,0)).r;
           ret.colorTex.a = floor(f_decal_id*255+0.5)/255.;
         ##else
           ret.colorTex.a = get_grass_decal_id()/255.;

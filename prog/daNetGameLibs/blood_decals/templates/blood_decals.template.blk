@@ -9,7 +9,7 @@ blood_decals_render_manager{
   blood_decals_render_shader:t= "blood_projective_decal_decals"
   blood_decals_culler_shader:t= "blood_projective_decal_cull"
 
-  "blood_decals_tex:SharedTexHolder"{}
+  "blood_decals_tex:SharedTexWithShaderVar"{}
   blood_decals_tex_res:t= "decal_growth_liquid_projection_splash_tex_n"
   blood_decals_tex_var:t= "blood_decals_diff_tex"
 

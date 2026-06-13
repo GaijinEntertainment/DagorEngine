@@ -9,6 +9,8 @@
 #include <util/dag_threadPool.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_rwSpinLock.h>
+#include <osApiWrappers/dag_rwLock.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <dag/dag_vector.h>
 #include <perfMon/dag_statDrv.h>
@@ -550,32 +552,29 @@ private:
 static constexpr int mm_pool_size_pow = 10;
 using MeshMetaAllocator = BVHHeapAllocator<MeshMetaHeapManager<mm_pool_size_pow, 256>, 1 << mm_pool_size_pow>;
 
-struct LockedMetaAccess
+struct DAG_TS_SCOPED_CAPABILITY LockedMetaAccess
 {
   MeshMetaAllocator::AllocId allocId;
 
   MeshMeta &operator[](int i) { return metas[i]; }
   const MeshMeta &operator[](int i) const { return metas[i]; }
+  dag::Span<MeshMeta> span() const { return metas; }
 
-  ~LockedMetaAccess()
+  LockedMetaAccess(Context &ctx, MeshMetaAllocator::AllocId id);
+
+  ~LockedMetaAccess() DAG_TS_RELEASE()
   {
     if (lock)
       lock->unlock();
   }
 
-  LockedMetaAccess(LockedMetaAccess &&o) noexcept : lock(o.lock), metas(o.metas), allocId(o.allocId) { o.lock = nullptr; }
+  LockedMetaAccess(LockedMetaAccess &&) = delete;
   LockedMetaAccess(const LockedMetaAccess &) = delete;
   LockedMetaAccess &operator=(const LockedMetaAccess &) = delete;
   LockedMetaAccess &operator=(LockedMetaAccess &&) = delete;
 
 private:
-  friend struct Context;
-  LockedMetaAccess(OSSpinlock &lk, dag::Span<MeshMeta> m, MeshMetaAllocator::AllocId id) : lock(&lk), metas(m), allocId(id)
-  {
-    lock->lock();
-  }
-
-  OSSpinlock *lock;
+  OSSpinlock *lock = nullptr;
   dag::Span<MeshMeta> metas;
 };
 
@@ -653,7 +652,7 @@ struct Object
 
   void teardown(ContextId context_id, uint64_t object_id);
 
-  dag::Span<MeshMeta> createAndGetMeta(ContextId context_id, int size);
+  void ensureMetaAllocated(ContextId context_id, int size);
 };
 
 struct PhysTrackData
@@ -913,17 +912,6 @@ struct Context
   MeshMetaAllocator::AllocId allocateMetaRegion(int size, const char *origin);
   void freeMetaRegion(MeshMetaAllocator::AllocId &id);
 
-  LockedMetaAccess allocateMeta(int count, const char *origin)
-  {
-    auto id = allocateMetaRegion(count, origin);
-    return LockedMetaAccess(meshMetaAllocatorLock, meshMetaAllocator.get(id), id);
-  }
-
-  LockedMetaAccess lockMeta(MeshMetaAllocator::AllocId id)
-  {
-    return LockedMetaAccess(meshMetaAllocatorLock, meshMetaAllocator.get(id), id);
-  }
-
   TextureHandle holdTexture(TEXTUREID id, uint32_t &texture_bindless_index, bool forceRefreshSrvsWhenLoaded = false);
   bool releaseTexture(TEXTUREID id);
   bool releaseTexture(uint32_t texture_and_sampler_bindless_indices);
@@ -1002,9 +990,11 @@ struct Context
 
   UniqueBuf tlasUploadParticles;
 
-  OSSpinlock objectsLock;
-  ObjectMap objects;
-  ObjectMap impostors;
+  using BvhObjectReadLock = ScopedLockReadTemplate<NoWritersSpinLockReadWriteLock>;
+  using BvhObjectWriteLock = ScopedLockWriteTemplate<NoWritersSpinLockReadWriteLock>;
+  NoWritersSpinLockReadWriteLock objectsLock;
+  ObjectMap objects DAG_TS_GUARDED_BY(objectsLock);
+  ObjectMap impostors DAG_TS_GUARDED_BY(objectsLock);
   UniqueTLAS tlasMain;
   UniqueTLAS tlasTerrain;
   UniqueTLAS tlasParticles;
@@ -1019,7 +1009,7 @@ struct Context
   eastl::unordered_map<TEXTUREID, BindlessTexture, TextureIdHash> usedTextures;
   eastl::unordered_map<Sbuffer *, BindlessBuffer> usedBuffers;
 
-  eastl::unordered_set<uint64_t> halfBakedObjects;
+  eastl::unordered_set<uint64_t> halfBakedObjects DAG_TS_GUARDED_BY(objectsLock);
 
   using CompQueue = eastl::deque<eastl::optional<BLASCompaction>>;
   CompQueue blasCompactions;
@@ -1078,7 +1068,7 @@ struct Context
   eastl::unordered_map<uint64_t, ReferencedTransformData> stationaryTreeBuffers;
 
   static constexpr int MaxTreeAnimIndices = 10;
-  int treeAnimIndexCount[MaxTreeAnimIndices] = {};
+  int treeAnimIndexCount[MaxTreeAnimIndices] DAG_TS_GUARDED_BY(treeAnimIndexCountLock) = {};
   OSSpinlock treeAnimIndexCountLock;
 
   OSSpinlock pendingObjectActionsLock;
@@ -1101,7 +1091,7 @@ struct Context
   TerrainPatch terrainPatchTemplate;
 
   OSSpinlock meshMetaAllocatorLock;
-  MeshMetaAllocator meshMetaAllocator;
+  MeshMetaAllocator meshMetaAllocator DAG_TS_GUARDED_BY(meshMetaAllocatorLock);
 
   WinCritSec bindlessTextureLock;
   BindlessTextureAllocator bindlessTextureAllocator;
@@ -1259,6 +1249,13 @@ private:
   OSSpinlock deathrowLock;
   dag::Vector<UniqueBVHBuffer> deathrow DAG_TS_GUARDED_BY(deathrowLock);
 };
+
+inline LockedMetaAccess::LockedMetaAccess(Context &ctx, MeshMetaAllocator::AllocId id) DAG_TS_ACQUIRE(ctx.meshMetaAllocatorLock) :
+  lock(&ctx.meshMetaAllocatorLock), allocId(id)
+{
+  ctx.meshMetaAllocatorLock.lock();
+  metas = ctx.meshMetaAllocator.get(id);
+}
 
 inline int divide_up(int x, int y) { return (x + y - 1) / y; }
 

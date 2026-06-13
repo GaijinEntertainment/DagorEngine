@@ -339,7 +339,7 @@ const attrPanelDelEntityTemplateUID = "attr_panel_del_entity_template"
 function doDelTemplate(templateName) {
   let eid = selectedEntity.get()
   if (eid != ecs.INVALID_ENTITY_ID) {
-    local tname = removeSelectedByEditorTemplate(ecs.g_entity_mgr.getEntityTemplateName(eid))
+    local tname = removeSelectedByEditorTemplate(ecs.g_entity_mgr.getEntityTemplateName(eid) ?? "")
     if (tname == templateName) {
       infoBox("You can't remove last template")
     } else if (ecs.g_entity_mgr.getTemplateDB().getTemplateByName(templateName) == null) {
@@ -752,7 +752,10 @@ function doContainerOp(eid, comp_name, cont_path, op) {
         return
       }
       try {
-        ccobj.remove(ckey)
+        if (type(ccobj)=="table")
+          ccobj.rawdelete(ckey)
+        else
+          ccobj.remove(ckey)
       } catch(e) {
         logerr($"Failed to remove value {ckey}, reason: {e}")
       }

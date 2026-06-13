@@ -48,7 +48,7 @@ static void __cdecl ctrl_break_handler(int) { quit_game(0); }
 static void print_title()
 {
   printf("Extract decals tool v1.0\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 int DagorWinMain(bool debugmode)

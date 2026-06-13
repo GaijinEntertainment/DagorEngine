@@ -22,6 +22,7 @@ void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, flo
 void tilecache_ri_start_add(const ska::flat_hash_set<uint32_t> &res_name_hashes, float walkable_climb, rendinst::riex_handle_t handle,
   tile_check_cb_t tile_check_cb);
 bool tilecache_ri_is_blocking(rendinst::riex_handle_t handle);
+obstacle_handle_t tilecache_ri_get_obstacle_handle(rendinst::riex_handle_t handle);
 void tilecache_ri_update(float dt);
 void tilecache_ri_stop();
 }; // namespace pathfinder

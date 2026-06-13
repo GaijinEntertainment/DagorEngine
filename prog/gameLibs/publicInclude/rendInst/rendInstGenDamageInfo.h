@@ -28,7 +28,7 @@ struct DestroyedPoolData
 struct DestroyedCellData
 {
   Tab<DestroyedPoolData> destroyedPoolInfo;
-  int cellId;
+  int cellId = 0;
 
   const DestroyedPoolData *getPool(uint16_t pool_idx) const;
 };

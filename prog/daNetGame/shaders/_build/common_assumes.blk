@@ -77,6 +77,7 @@ water_ripples_normal:i=1
 plod_gen:i=0
 water_rt_enabled:i=0
 glass_rt_reflection:i=0
+allow_rt_glass_reflection:i=0
 bvh_usable:i=0
 water_distant
 {
@@ -115,6 +116,7 @@ water_heightmap_tex_enabled:i=0
 foam_occlusion_test:i=1
 wfx_foam_z_enable:i=1
 rtsm_is_half_precision:i=0 // Remove me, once it can be half in DNG as well.
+rtsm_has_nuke:i=0
 cloud_volume:i=0
 palette_rotation_mode:i=1
 dynamic_texture_hdr_pass:i=0 // Only needed if dynamic mirrors are rendered

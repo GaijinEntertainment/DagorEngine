@@ -64,6 +64,7 @@ public:
   int query(const InputT &input);
   GpuReadbackResultState getQueryResult(int query_id, ResultT &result);
   bool getQueryInput(int query_id, InputT &input);
+  void cancelQuery(int query_id);
 
 private:
   enum class GpuReadbackQueryState
@@ -225,6 +226,14 @@ bool GpuReadbackQuerySystem<InputT, ResultT>::getQueryInput(int query_id, InputT
     return true;
   }
   return false;
+}
+
+template <typename InputT, typename ResultT>
+void GpuReadbackQuerySystem<InputT, ResultT>::cancelQuery(int query_id)
+{
+  auto queryIt = queryMap.find(query_id);
+  if (queryIt != queryMap.end())
+    queryIt->second.state = GpuReadbackQueryState::READ;
 }
 
 template <typename InputT, typename ResultT>

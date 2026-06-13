@@ -67,6 +67,7 @@
 #include <propPanel/messageQueue.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/menu.h>
+#include <propPanel/immediateFocusLossHandler.h>
 
 #include <de3_waterSrv.h>
 #include <gui/dag_stdGuiRenderEx.h>
@@ -1169,6 +1170,8 @@ PropPanel::DialogWindow *DagorEdAppWindow::createDialog(hdpi::Px w, hdpi::Px h, 
 }
 
 void DagorEdAppWindow::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
+
+void DagorEdAppWindow::sendImmediateFocusLossNotification() { PropPanel::send_immediate_focus_loss_notification(); }
 
 
 eastl::unique_ptr<PropPanel::IMenu> DagorEdAppWindow::createContextMenu()

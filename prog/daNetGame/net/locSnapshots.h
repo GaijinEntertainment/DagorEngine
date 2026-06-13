@@ -11,7 +11,7 @@ struct LocSnapshot
 {
   Quat quat;
   Point3 pos;
-  float atTime;
+  double atTime;
   float interval;
   bool blink;
 

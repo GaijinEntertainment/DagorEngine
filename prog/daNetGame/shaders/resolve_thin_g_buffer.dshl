@@ -227,7 +227,7 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
 
       half3 distanceVec = worldPos.xyz - lightPosRadius.xyz;
       half distance = length(distanceVec);
-      distanceVec /= distance;
+      distanceVec /= max(distance, 0.0001); // distanceVec feeds photometry below even when distance == 0
       half ret = 0.0f;
 
       if (lightPosRadius.w > distance)
@@ -336,7 +336,8 @@ shader thin_g_resolve, deferred_shadow_bare_minimum
         float NdotV = dot(gbuffer.normal, view);
         float NoV = abs(NdotV) + 1e-5;
         half3 specularColor = gbuffer.specularColor * gbuffer.extracted_albedo_ao;
-        half3 dynamicLight = get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w,
+        // view must be normalized: it goes into the BRDF half-vector
+        half3 dynamicLight = get_dynamic_lighting(gbuffer, worldPos.xyz, view, w,
             screenpos.xy, NoV, specularColor, input.texcoord.xy, gbuffer.ao);
         result += dynamicLight * get_exposure_mul();
       ##endif

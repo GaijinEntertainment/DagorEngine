@@ -62,8 +62,7 @@ shader dagi_radiance_grid_toroidal_movement_cs
       float probeSize = asfloat(dagi_rad_grid_update_sz_coord.w);
       uint3 targetProbeCoord = dagi_rad_grid_wrapped_coord_from_abs_coord(absCoord);
       if (tid == 0)
-        texture3DAt(dagi_radiance_grid_probes_age, targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = RAD_GRID_TEMPORAL_MAX_REV_AGE / 255.0;
-
+        texture3DAt(dagi_radiance_grid_probes_age, targetProbeCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = (RAD_GRID_TEMPORAL_MAX_REV_AGE + 0.5) / 255.0;
       uint3 targetCoord = uint3(targetProbeCoord.xy*DAGI_RAD_GRID_OCT_RES + gtid, targetProbeCoord.z);
       texture3DAt(dagi_radiance_grid, targetCoord + uint3(0,0,clip*dagi_rad_grid_get_clip_size().y)) = radiance;
     }

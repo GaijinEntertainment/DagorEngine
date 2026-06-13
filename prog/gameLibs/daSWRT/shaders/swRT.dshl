@@ -202,11 +202,13 @@ shader mask_shadow_swrt_cs
   USE_DECODE_DEPTH_STAGE(cs)
   PROJECT_STEP_SWRT_SHADOW_OFFSET(cs)
   local float4 dim = swrt_shadow_target_size;
+  local float4 tile_mip_dim = get_dimensions(downsampled_close_depth_tex, 3);
   (cs) {
     downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
     swrt_shadow_planes@f4[] = swrt_shadow_planes;
     target_size@i4 = swrt_shadow_target_size;
-    inv_target_size@f4 = (1./(dim.z+1), 1./(dim.w+1), 0.5/(dim.z+1), 0.5/(dim.z+1));
+    inv_target_size@f4 = (1./(dim.z+1), 1./(dim.w+1), 0.5/(dim.z+1), 0.5/(dim.w+1));
+    swrt_tile_mip_max@f2 = (tile_mip_dim.x - 1, tile_mip_dim.y - 1);
     swrt_shadow_mask@uav = swrt_shadow_mask hlsl { RWByteAddressBuffer swrt_shadow_mask@uav;}
     swrt_dir_to_sun_basis@f4[] = swrt_dir_to_sun_basis;
     //swrt_shadow_target@uav = swrt_shadow_target hlsl { RWTexture2D<float> swrt_shadow_target@uav;}
@@ -220,6 +222,9 @@ shader mask_shadow_swrt_cs
   }
 
   hlsl(cs) {
+    #if SWRT_TILE_MIP != 3
+      #error "swrt_tile_mip_max preshader value uses a hardcoded mip 3 that *must* match SWRT_TILE_MIP"
+    #endif
     void get_bbox(float2 uv0, float2 uv1, float df, float dn, out float3 bmin, out float3 bmax)
     {
       float3 vmin = min(min(getViewVecOptimized(float2(uv0.x, uv0.y)), getViewVecOptimized(float2(uv1.x, uv0.y))),
@@ -256,14 +261,14 @@ shader mask_shadow_swrt_cs
       if (any(start > target_size.zw))
         return;
       float maxRawDepth, minRawDepth;
-      //fixme: check if within bounds of mip
-      maxRawDepth = texelFetch(half_res_close_depth, dtId, SWRT_TILE_MIP).x;
+      uint2 tileTc = min(dtId, uint2(swrt_tile_mip_max));
+      maxRawDepth = texelFetch(half_res_close_depth, tileTc, SWRT_TILE_MIP).x;
       if (maxRawDepth == 0)
       {
         storeResult(dtId, 0);
         return;
       }
-      minRawDepth = texelFetch(downsampled_far_depth_tex, dtId, SWRT_TILE_MIP).x;
+      minRawDepth = texelFetch(downsampled_far_depth_tex, tileTc, SWRT_TILE_MIP).x;
       float2 uv = start*inv_target_size.xy;
       BRANCH
       if (minRawDepth == 0)
@@ -359,11 +364,13 @@ macro COMMON_SWRT_SHADOW(code)
 
   INIT_ZNZFAR_STAGE(code)
   local float4 dim = swrt_shadow_target_size;
+  local float4 src_dim = get_dimensions(downsampled_close_depth_tex, 0);
   (code) {
     swrt_dir_to_sun_basis@f4[] = swrt_dir_to_sun_basis;
     combined_shadows@smp2d = combined_shadows;
     target_size@i4 = swrt_shadow_target_size;
-    inv_target_size@f4 = (1./(dim.z+1), 1./(dim.w+1), 0.5/(dim.z+1), 0.5/(dim.z+1));
+    swrt_src_pixel_max@f2 = (src_dim.x - 1, src_dim.y - 1);
+    inv_target_size@f4 = (1./(dim.z+1), 1./(dim.w+1), 0.5/(dim.z+1), 0.5/(dim.w+1));
     //swrt_shadow_target@uav = swrt_shadow_target hlsl { RWTexture2D<float> swrt_shadow_target@uav;}
     //to_sun_direction@f3 = -from_sun_direction;
     //inv_to_sun_direction@f3 = (-1./from_sun_direction.x, -1./from_sun_direction.y, -1./from_sun_direction.z, 0);
@@ -440,7 +447,7 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         pixelCoord.x += pixelCoord.x + uint( (swrt_checkerboard_frame & 1) == (pixelCoord.y & 1) );
       #endif
       #define WRITE_MASK(v) {swrt_shadow_target[dtId] = v;}
-      if (any(pixelCoord > target_size.zw))
+      if (any(pixelCoord > uint2(swrt_src_pixel_max)))
         return;
       uint startOfs = 0, endOfs = 0;
 ##if shader == checkerboard_shadows_swrt_cs && !(hardware.scarlett || hardware.ps5)

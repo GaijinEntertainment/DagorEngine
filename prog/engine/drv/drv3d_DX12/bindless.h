@@ -126,7 +126,7 @@ public:
   void updateTextureReferencesNoLock(DeviceContext &ctx, BaseTex *tex, Image *old_image, uint32_t search_offset,
     uint32_t change_max_count, bool deferred = false);
   bool updateBufferReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
-    D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
+    D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor, bool deferred = false);
 
   bool hasValidTextureReference(BaseTex *tex);
   bool hasValidTextureReferenceNoLock(BaseTex *tex);

@@ -50,7 +50,7 @@ constexpr Base85OutputBlock encode_32_bit_word_to_base_85_block(uint32_t word, c
   uint32_t v1 = (word / 85) % 85;
   uint32_t v2 = (word / (85 * 85)) % 85;
   uint32_t v3 = (word / (85 * 85 * 85)) % 85;
-  uint32_t v4 = (word / (85 * 85 * 85 * 85)) % 85;
+  uint32_t v4 = (word / (85 * 85 * 85 * 85));
   if (!word && settings.allowZCode)
   {
     result.data[0] = 'z';
@@ -128,4 +128,4 @@ constexpr Base85DecodeResult dencode_32_bit_word_from_base_85_string(const char 
 /// @brief Calculates the max string length (without 0 terminator) the data of the given length in bytes needs.
 /// @param len The number of bytes that should be encoded.
 /// @return The number of chars needed to encode the number of bytes.
-constexpr size_t calculate_max_base_86_string_length(size_t len) { return ((len + 3) / 4) * 5; }
+constexpr size_t calculate_max_base_85_string_length(size_t len) { return ((len + 3) / 4) * 5; }

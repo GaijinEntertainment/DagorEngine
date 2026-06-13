@@ -87,6 +87,7 @@ struct VolumeMappingItem
   int targetMeshLod;
   Point3 axis;
   bool axisLocal;
+  int csmCascadeCount;
 };
 
 using VolumeMapping = dag::VectorMap<ecs::EntityId, VolumeMappingItem>;

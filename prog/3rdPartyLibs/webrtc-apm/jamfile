@@ -46,7 +46,7 @@ if $(PlatformSpec) in clang gcc {
   CPPopt += -Wno-return-type -Wno-unused-parameter ;
 }
 
-if $(PlatformSpec) in vc17 vc16 {
+if $(PlatformSpec) in vc16 vc17 msvc {
   CPPopt +=  /wd4715 ;
 }
 

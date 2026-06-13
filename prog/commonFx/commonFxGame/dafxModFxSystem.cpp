@@ -1951,14 +1951,17 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     if (parDepthMask.zfar_fadeout.enabled)
     {
       float minDist = parDepthMask.zfar_fadeout.zfar_start_to_clip;
-      float maxDist = parGlobals.spawn_range_limit;
+      float maxDist = parDepthMask.zfar_fadeout.zfar_finish_to_clip;
       if (maxDist < minDist)
       {
         String resName;
         get_game_resource_name(sdesc.gameResId, resName);
-        logerr("fx: modfx: '%s' - depth mask: zfar fade out min distance is greater than spawn range limit", resName.c_str());
+        logerr("fx: modfx: '%s' - depth mask: zfar fade out min distance is greater than max distance! (Swapping them)",
+          resName.c_str());
+        order_swap(minDist, maxDist, 0.f);
       }
-      else if (maxDist != minDist)
+
+      if (maxDist != minDist)
       {
         ModfxDeclZfarFadeout pp;
         pp.negative_inv_dist_diff = -safeinv(max(maxDist - minDist, 0.01f));

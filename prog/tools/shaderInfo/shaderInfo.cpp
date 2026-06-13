@@ -102,7 +102,7 @@ eastl::optional<shader_blob_disasm::Target> disasmTarget = {};
 int DagorWinMain(bool debugmode)
 {
   printf("Shader Info Tool v1.2\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n");
 
   if (__argc < 2)
   {

@@ -14,7 +14,7 @@ int DagorWinMain(bool debugmode)
 {
   debug_enable_timestamps(false);
   printf("Dagor datablock inheritance diff creator\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   const char *parent_fn = NULL, *source_fn = NULL, *result_fn = NULL;
 

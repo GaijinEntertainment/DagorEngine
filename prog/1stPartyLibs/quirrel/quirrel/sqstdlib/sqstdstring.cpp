@@ -255,13 +255,25 @@ static void _addrexmatch(HSQUIRRELVM v,const char *str,const char *begin,const c
     sq_rawset(v,-3);
 }
 
+static SQRESULT _regexp_get_string_and_start(HSQUIRRELVM v, const char **str, SQInteger *strLen, SQInteger *start)
+{
+    *start = 0;
+    if (SQ_FAILED(sq_getstringandsize(v, 2, str, strLen)))
+        return sq_throwerror(v, "string expected");
+    if (sq_gettop(v) > 2 && SQ_FAILED(sq_getinteger(v, 3, start)))
+        return sq_throwerror(v, "integer expected");
+    if (*start < 0 || *start > *strLen)
+        return sq_throwerror(v, "start index out of range");
+    return SQ_OK;
+}
+
 static SQInteger _regexp_search(HSQUIRRELVM v)
 {
     SETUP_REX(v);
-    const char *str,*begin,*end;
-    SQInteger start = 0;
-    sq_getstring(v,2,&str);
-    if(sq_gettop(v) > 2) sq_getinteger(v,3,&start);
+    const char *str, *begin, *end;
+    SQInteger strLen, start;
+    if (SQ_FAILED(_regexp_get_string_and_start(v, &str, &strLen, &start)))
+        return SQ_ERROR;
     if(sqstd_rex_search(self,str+start,&begin,&end) == SQTrue) {
         _addrexmatch(v,str,begin,end);
         return 1;
@@ -272,10 +284,10 @@ static SQInteger _regexp_search(HSQUIRRELVM v)
 static SQInteger _regexp_capture(HSQUIRRELVM v)
 {
     SETUP_REX(v);
-    const char *str,*begin,*end;
-    SQInteger start = 0;
-    sq_getstring(v,2,&str);
-    if(sq_gettop(v) > 2) sq_getinteger(v,3,&start);
+    const char *str, *begin, *end;
+    SQInteger strLen, start;
+    if (SQ_FAILED(_regexp_get_string_and_start(v, &str, &strLen, &start)))
+        return SQ_ERROR;
     if(sqstd_rex_search(self,str+start,&begin,&end) == SQTrue) {
         SQInteger n = sqstd_rex_getsubexpcount(self);
         SQRexMatch match;

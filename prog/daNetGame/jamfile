@@ -752,6 +752,11 @@ if $(Dedicated) = yes {
         gameLibs/quirrel/appsFlyer
         gameLibs/quirrel/android/platform
         gameLibs/android/platform/stub
+        gameLibs/android/permissions/stub
+        gameLibs/android/deeplink/stub
+        gameLibs/android/thermal/stub
+        gameLibs/android/network/stub
+        gameLibs/android/apkinstall/stub
       ;
 
       if $(UseFacebook) = yes {
@@ -782,6 +787,11 @@ if $(Dedicated) = yes {
       gameLibs/android/ads
       gameLibs/android/billing
       gameLibs/android/platform
+      gameLibs/android/permissions
+      gameLibs/android/deeplink
+      gameLibs/android/thermal
+      gameLibs/android/network
+      gameLibs/android/apkinstall
       gameLibs/android/account/googleplay
       gameLibs/android/account/facebook
       gameLibs/android/account/firebaseguest

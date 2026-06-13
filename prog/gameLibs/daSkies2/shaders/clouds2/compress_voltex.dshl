@@ -101,6 +101,10 @@ shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
     hlsl(cs) {
       [numthreads(4, 4, 4)]
       void cs_main(uint3 tid : SV_DispatchThreadID) {
+        uint3 outDim;
+        output.GetDimensions(outDim.x, outDim.y, outDim.z);
+        if (any(tid >= outDim))
+          return;
         uint3 inp = tid*2;
         float up = texture3DAt(source, inp + uint3(0,0,0)).x + texture3DAt(source, inp + uint3(1,0,0)).x + texture3DAt(source, inp + uint3(0,1,0)).x + texture3DAt(source, inp + uint3(1,1,0)).x;
         ##if clouds_gen_mips_3d_one_layer == no

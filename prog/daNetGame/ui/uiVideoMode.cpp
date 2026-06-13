@@ -506,6 +506,15 @@ static SQInteger is_intel_gpu(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger get_vsync_refresh_rate(HSQUIRRELVM vm)
+{
+  double refreshRate = 0;
+  d3d::driver_command(Drv3dCommand::GET_VSYNC_REFRESH_RATE, &refreshRate);
+  int roundedRefreshRate = round(refreshRate);
+  sq_pushinteger(vm, roundedRefreshRate);
+  return 1;
+}
+
 ///@module videomode
 void bind_script(SqModules *moduleMgr)
 {
@@ -530,6 +539,7 @@ void bind_script(SqModules *moduleMgr)
     .SquirrelFunc("is_nvidia_gpu", is_nvidia_gpu, 1)
     .SquirrelFunc("is_amd_gpu", is_amd_gpu, 1)
     .SquirrelFunc("is_intel_gpu", is_intel_gpu, 1)
+    .SquirrelFunc("get_vsync_refresh_rate", get_vsync_refresh_rate, 1)
     .SquirrelFunc("is_inline_rt_supported", is_inline_rt_supported, 1)
     .SquirrelFunc("is_dx12", is_dx12, 1)
     .SquirrelFunc("is_vulkan", is_vulkan, 1)

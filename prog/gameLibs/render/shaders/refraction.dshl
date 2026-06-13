@@ -1,5 +1,6 @@
 include "skyLight.dshl"
 include "globtm_no_ofs.dshl"
+include "dynamic_resolution.dshl"
 
 texture prev_frame_tex;
 
@@ -37,6 +38,7 @@ macro USE_FETCH_REFRACTED_PIXEL(stage)
 endmacro
 
 macro USE_FETCH_REFRACTED_PIXEL_IMPL(stage)
+  INIT_DYNAMIC_RESOLUTION(stage)
   USE_HDR(stage)
 hlsl(stage) {
   float4 fetchRefractedPixel_impl(float2 screenUV, float3 cameraToPoint, float3 worldRayDir, float rayLen, float roughnessMip)
@@ -44,6 +46,7 @@ hlsl(stage) {
     float4 ndcSamplePosition = mul(float4(cameraToPoint + worldRayDir*rayLen, 1.0), viewProjectionMatrixNoOfs);
     float2 refractUV = (ndcSamplePosition.xy/ndcSamplePosition.w);
     refractUV = refractUV*float2(0.5, -0.5) + 0.5;
+    refractUV *= current_dynamic_resolution_scale;
     return float4(unpack_hdr(tex2Dlod(prev_frame_tex, float4(frac(abs(floor(refractUV))%2 ? -refractUV : refractUV), 0, roughnessMip)).xyz), 1);//simulate mirror addressing
   }
 }

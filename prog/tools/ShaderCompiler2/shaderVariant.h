@@ -42,6 +42,7 @@ public:
   inline void shrinkTo(int cnt) { return types.resize(cnt); }
 
   inline const VariantType &getType(int i) const { return types[i]; }
+  inline VariantType &getTypeMut(int i) { return types[i]; }
 
   void addType(BaseType init_type, ExtType init_exttype, bool unique);
 

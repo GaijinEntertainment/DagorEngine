@@ -106,35 +106,20 @@ std::vector<TSTR> glob(const TSTR &dir, bool recursive)
 }
 
 
-M_STD_STRING strToWide(const char *sz)
+std::wstring strToWide(const char *sz)
 {
-#ifdef _UNICODE
-  size_t n = strlen(sz) + 1;
-  TCHAR *sw = new TCHAR[n];
-  mbstowcs(sw, sz, n);
-
-  M_STD_STRING res(sw);
-  delete[] sw;
-#else
-  M_STD_STRING res(sz);
-#endif
+  int len = MultiByteToWideChar(CP_UTF8, 0, sz, -1, NULL, 0);
+  std::wstring res(len - 1, 0);
+  MultiByteToWideChar(CP_UTF8, 0, sz, -1, &res[0], len);
   return res;
 }
 
 
-std::string wideToStr(const TCHAR *sw)
+std::string wideToStr(const wchar_t *sw)
 {
-#ifdef _UNICODE
-  size_t n = _tcslen(sw) * 3 + 1;
-  char *sz = new char[n];
-  _locale_t locale = _create_locale(LC_ALL, "ru-RU");
-  _wcstombs_l(sz, sw, n, locale);
-  _free_locale(locale);
-  std::string res(sz);
-  delete[] sz;
-#else
-  std::string res(sw);
-#endif
+  int len = WideCharToMultiByte(CP_UTF8, 0, sw, -1, NULL, 0, NULL, NULL);
+  std::string res(len - 1, 0);
+  WideCharToMultiByte(CP_UTF8, 0, sw, -1, &res[0], len, NULL, NULL);
   return res;
 }
 

@@ -61,7 +61,7 @@ static Tab<Element *> trace_elements(ElementTree *etree, Element *picker, const 
 int BhvInspectPicker::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
   int /*button_id*/, Point2 p, int /*accum_res*/)
 {
-  HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd->getDevice(0);
+  HumanInput::IGenKeyboard *kbd = global_cls_drv_kbd ? global_cls_drv_kbd->getDevice(0) : nullptr;
   bool includeNoRendObj = kbd && (kbd->getRawState().shifts & HumanInput::KeyboardRawState::CTRL_BITS);
 
   if (event == INP_EV_POINTER_MOVE)

@@ -1121,7 +1121,7 @@ static void shutdown_dagor() {}
 static void show_usage()
 {
   printf("DAG asset material analyser tool\n"
-         "Copyright (c) Gaijin Games KFT, 2025\n"
+         "Copyright (c) Gaijin Games KFT, 2026\n"
          "usage: mat_analyser <path to assets> [<specific shader>] [<options>]\n"
          "where\n"
          "<path to assets>   path to scan for DAG files\n"

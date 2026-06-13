@@ -2243,8 +2243,7 @@ int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *
   // Prune points in the beginning of the path which are too close.
   while (ncorners)
   {
-    if ((corner_flags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION) ||
-        dtVdist2DSqr(&corner_verts[0], corridor.getPos()) > dtSqr(MIN_TARGET_DIST))
+    if (corner_flags[0] & DT_STRAIGHTPATH_OFFMESH_CONNECTION)
       break;
     uint16_t polyFlags = 0;
     // cut-off almost passed offmesh connections
@@ -2259,6 +2258,8 @@ int find_corridor_corners_ex(int nav_mesh_idx, dtPathCorridor &corridor, float *
         break;
       }
     }
+    if (dtVdist2DSqr(&corner_verts[0], corridor.getPos()) > dtSqr(MIN_TARGET_DIST))
+      break;
     ncorners--;
     if (ncorners)
     {
@@ -2449,7 +2450,8 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     static const float MIN_TARGET_DIST_SQ = 0.01f;
     static const float MAX_HEIGHT_OVER = 0.25f;
     static const float MIN_JUMP_THRESHOLD = 2.5f;
-    if (lengthSq(end - pos) < MIN_TARGET_DIST_SQ)
+    const float distToEndSq = lengthSq(end - pos);
+    if (distToEndSq < MIN_TARGET_DIST_SQ)
       overConnection = false;
     else if (pos.y > start.y + MAX_HEIGHT_OVER && pos.y > end.y + MAX_HEIGHT_OVER)
       overConnection = false;
@@ -2460,6 +2462,12 @@ int move_over_offmesh_link_in_corridor(dtPathCorridor &corridor, const Point3 &p
     insert_item_at(corners, 0, end);
     if (curRef == endRef) // we're over final polygon - prune
     {
+      over_link = 0;
+      corridor.moveOverOffmeshConnection(connRef, refs, &tmp.x, &end.x, navQuery);
+    }
+    else if (standaloneJumpLink && distToEndSq < lengthSq(end - start) && lengthSq(start - pos) >= sqr(0.3f))
+    {
+      // we moved far enough from start to end - prune
       over_link = 0;
       corridor.moveOverOffmeshConnection(connRef, refs, &tmp.x, &end.x, navQuery);
     }

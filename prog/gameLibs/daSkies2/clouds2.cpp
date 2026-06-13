@@ -99,6 +99,9 @@ void Clouds2::setCloudLightVars()
     0.001f / clouds_thickness2, -clouds_start_altitude2 / clouds_thickness2, 1.0f / clouds_weather_size, -1000 * clouds_thickness2);
   ShaderGlobal::set_float(nbs_clouds_start_altitude2_metersVarId, cloudsStartAt * 1000);
 
+  ShaderGlobal::set_float(clouds_perlin_worley_dilationVarId, formParams.perlin_worley_dilation);
+  ShaderGlobal::set_float(clouds_worley_erosionVarId, formParams.worley_erosion);
+  ShaderGlobal::set_float(clouds_shape_gammaVarId, formParams.shape_gamma);
   setCloudsShadowCoverage();
 }
 

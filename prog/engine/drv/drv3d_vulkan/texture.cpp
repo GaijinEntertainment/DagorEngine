@@ -212,7 +212,7 @@ int BaseTex::updateSubRegionInternal(BaseTexture *srcBaseTex, int src_subres_idx
     if (mipW < blockX && src_w > blockX)
       src_w = mipW;
     if (mipH < blockY && src_h > blockY)
-      src_h = mipW;
+      src_h = mipH;
   }
   region.extent.width = src_w;
   region.extent.height = src_h;

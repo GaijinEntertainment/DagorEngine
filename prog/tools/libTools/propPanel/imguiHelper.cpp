@@ -1033,7 +1033,8 @@ ImVec2 ImguiHelper::getButtonSize(const char *label, bool hide_text_after_double
 }
 
 bool ImguiHelper::searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search,
-  ImTextureID search_icon, ImTextureID clear_icon, bool *input_focused, ImGuiID *input_id)
+  ImTextureID search_icon, ImTextureID clear_icon, bool *input_focused, ImGuiID *input_id, ImRect *input_rect,
+  bool *deactivated_after_edit)
 {
   const ImVec2 fontSizedIconSize = getFontSizedIconSize();
   const float iconPaddingX = ImGui::GetStyle().ItemInnerSpacing.x;
@@ -1053,6 +1054,12 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
     *input_focused = ImGui::IsItemFocused();
   if (input_id)
     *input_id = ImGui::GetItemID();
+  if (input_rect)
+    *input_rect = ImGui::GetCurrentContext()->LastItemData.Rect;
+  // Read deactivation-after-edit here, while the text input is still the current item: the search
+  // icon and clear button submitted below would otherwise become the "last item".
+  if (deactivated_after_edit)
+    *deactivated_after_edit = ImGui::IsItemDeactivatedAfterEdit();
 
   const ImVec2 inputRectMin = ImGui::GetItemRectMin();
   const ImVec2 inputRectMax = ImGui::GetItemRectMax();
@@ -1068,11 +1075,18 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
     const ImVec2 clearButtonPos = ImVec2(inputRectMax.x - iconPaddingX - fontSizedIconSize.x, iconPos.y);
     ImGui::SetCursorScreenPos(clearButtonPos);
     const bool clearButtonPressed = imageButtonFrameless("searchInputClear", clear_icon, fontSizedIconSize, "Clear");
+    const bool clearButtonActive = ImGui::IsItemActive();
     ImGui::SetCursorScreenPos(originalCursorPos + ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
 
     // Ensure correct position for the next item after the search input (needed because the image button).
     ImGui::SameLine();
     ImGui::Dummy(ImVec2(0.0f, 0.0f));
+
+    // Pressing / holding the clear button deactivates the text input for a frame, but focus is
+    // requested right back to it -- so that is a value change (reported via inputChanged), not an
+    // edit commit. Don't report it as deactivated-after-edit.
+    if (deactivated_after_edit && (clearButtonPressed || clearButtonActive))
+      *deactivated_after_edit = false;
 
     if (clearButtonPressed)
     {
@@ -1086,11 +1100,12 @@ bool ImguiHelper::searchInput(const void *focus_id, const char *label, const cha
 }
 
 bool ImguiHelper::searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, IconId search_icon_id,
-  IconId clear_icon_id, bool *input_focused, ImGuiID *input_id)
+  IconId clear_icon_id, bool *input_focused, ImGuiID *input_id, ImRect *input_rect, bool *deactivated_after_edit)
 {
   const ImTextureID searchIcon = image_helper.getImTextureIdFromIconId(search_icon_id);
   const ImTextureID clearIcon = image_helper.getImTextureIdFromIconId(clear_icon_id);
-  return searchInput(focus_id, label, hint, text_to_search, searchIcon, clearIcon, input_focused, input_id);
+  return searchInput(focus_id, label, hint, text_to_search, searchIcon, clearIcon, input_focused, input_id, input_rect,
+    deactivated_after_edit);
 }
 
 // The changed parts compared to ImGui::MenuItemEx are marked with GAIJIN.

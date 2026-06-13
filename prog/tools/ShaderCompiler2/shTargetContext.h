@@ -17,6 +17,7 @@
 #include "namedConst.h"
 #include "shAssumes.h"
 #include "globalConfig.h"
+#include "refinedBlockLayout.h"
 #include <EASTL/optional.h>
 
 
@@ -42,17 +43,21 @@ class TargetContext
   SCFastNameMap mGlobalMessages{};
   ShaderTargetStorage mDataStorage{};
   ShaderBytecodeCache mShBytecodeCache{}; // @TODO: this lifetime conforms with previous impl. But maybe we want a persistent cache?
+  RefinedBlockLayout mRefinedBlockLayout{};
 
   //...
+
+  bool preshaderOnlyMode = false;
 
   // Only valid when target is source file -> obj
   eastl::optional<SourceFileParseState> mSourceFileState{};
 
-  const CompilationContext &mParent;
+  CompilationContext &mParent;
 
 public:
   PINNED_TYPE(TargetContext)
 
+  CompilationContext &compCtx() { return mParent; }
   const CompilationContext &compCtx() const { return mParent; }
 
   const char *fname() const { return mFname; }
@@ -99,6 +104,9 @@ public:
   ShaderBytecodeCache &bytecodeCache() { return mShBytecodeCache; }
   const ShaderBytecodeCache &bytecodeCache() const { return mShBytecodeCache; }
 
+  RefinedBlockLayout &refinedBlockLayout() { return mRefinedBlockLayout; }
+  const RefinedBlockLayout &refinedBlockLayout() const { return mRefinedBlockLayout; }
+
   SourceFileParseState &sourceParseState()
   {
     G_ASSERT(mSourceFileState);
@@ -109,6 +117,8 @@ public:
     G_ASSERT(mSourceFileState);
     return *mSourceFileState;
   }
+
+  bool isPreshaderOnly() const { return preshaderOnlyMode; }
 
   class SourceFileScope
   {
@@ -128,19 +138,23 @@ public:
 private:
   friend class CompilationContext;
 
-  explicit TargetContext(const char *fname, const CompilationContext &parent) :
+  explicit TargetContext(const char *fname, CompilationContext &parent, bool preshader_only = false) :
     mFname{fname},
     mGvarTable{mVarNameMap, mIntervalNameMap},
     mSamplerTable{mVarNameMap, mGvarTable, mCppstcodeAccum},
     mBoolVarTable{mBoolVarNameMap},
     mGlobalAssumes{*shc::config().assumedVarsConfig, mIntervalNameMap},
-    mParent{parent}
+    mParent{parent},
+    preshaderOnlyMode{preshader_only}
   {
     if (fname)
       mCppstcodeAccum.shaderName = stcode::extract_shader_name_from_path(fname);
   }
 };
 
-inline TargetContext CompilationContext::makeTargetContext(const char *fname) const { return TargetContext{fname, *this}; }
+inline TargetContext CompilationContext::makeTargetContext(const char *fname, bool preshader_only)
+{
+  return TargetContext{fname, *this, preshader_only};
+}
 
 } // namespace shc

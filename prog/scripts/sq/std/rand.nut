@@ -13,7 +13,7 @@ function new_rnd_seed() {//setting new rnd
 }
 
 const DEFAULT_MAX_INT_RAND = 32767
-const maxrndfloat = 16777215.0 // float can only hold 23-bits integers without data loss
+const maxrndfloat = 16777216.0 // float can only hold 23-bits integers without data loss
 const maxrndfloatmask = 16777215 // (1<24)-1
 const maxnoiseint = 0xffffffff // 32 bits
 
@@ -49,7 +49,7 @@ class Rand{
     this._count += 1
     let start_ = math.min(end,start)
     let end_ = math.max(end,start)
-    let runit = (random.uint_noise1D(this._count, this._seed) & maxrndfloatmask) / maxrndfloat // [0,1]
+    let runit = (random.uint_noise1D(this._count, this._seed) & maxrndfloatmask) / maxrndfloat // [0,1)
     return runit * (end_-start_) + start_
   }
 

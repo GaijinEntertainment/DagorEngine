@@ -110,7 +110,7 @@ static RendInstGenData::CellRtData *get_cell_rt_at(int layer_idx, float x, float
   int idx = get_cell_idx_at(layer_idx, x, z);
   if (idx < 0)
     return nullptr;
-  return rgl->cells[idx].rtData;
+  return rgl->cells[idx].cellRtData;
 }
 
 static void rendinst_alloc_coll_props(int layer_idx)
@@ -187,7 +187,7 @@ static void clearRigenRtdataAndReinitPregenEnt(RendInstGenData *rgl, unsigned ne
         p->riRes->addRef();
 
     for (int i = 0; i < rgl->cells.size(); i++)
-      del_it(rgl->cells[i].rtData);
+      del_it(rgl->cells[i].cellRtData);
     if (rendinst::unregCollCb)
       for (RendInstGenData::CollisionResData &collResData : rgl->rtData->riCollRes)
         rendinst::unregCollCb(collResData.handle);
@@ -369,14 +369,14 @@ void rendinst::discard_rigen_rect(int gx0, int gz0, int gx1, int gz1)
     int cell_stride = rgl->cellNumW;
     int cell_sz = rgl->cellSz;
     for (int i = 0; i < rgl->cells.size(); i++)
-      if (rgl->cells[i].rtData)
+      if (rgl->cells[i].cellRtData)
       {
         int cx = i % cell_stride, cz = i / cell_stride;
         IBBox2 r_cell(IPoint2(cx * cell_sz, cz * cell_sz), IPoint2(cx * cell_sz + cell_sz, cz * cell_sz + cell_sz));
         if (r_discard & r_cell)
         {
           rgl->rtData->loaded.delInt(i);
-          del_it(rgl->cells[i].rtData);
+          del_it(rgl->cells[i].cellRtData);
           rigenNeedSyncPrepare = true;
         }
       }
@@ -393,7 +393,7 @@ void rendinst::discard_rigen_all()
 
   FOR_EACH_RG_LAYER_DO (rgl)
     for (int i = 0; i < rgl->cells.size(); i++)
-      del_it(rgl->cells[i].rtData);
+      del_it(rgl->cells[i].cellRtData);
 }
 
 void rendinst::set_rigen_sweep_mask(rendinst::EditableHugeBitmask *bm, float ox, float oz, float scale)
@@ -473,13 +473,13 @@ bool rendinst::compute_rt_rigen_tight_ht_limits(int layer_idx, int cx, int cz, f
     return false;
   int idx = cx + cz * rgl->cellNumW;
   G_ASSERT(idx >= 0 && idx < rgl->cells.size());
-  del_it(rgl->cells[idx].rtData);
+  del_it(rgl->cells[idx].cellRtData);
   {
     RendInstGenData::CellRtData *crt = rgl->generateCell(cx, cz);
     if (RendInstGenData::riGenValidateGeneratedCell && crt && crt->bbox.size())
       crt = RendInstGenData::riGenValidateGeneratedCell(rgl, crt, idx, cx, cz);
     del_it(crt);
-    del_it(rgl->cells[idx].rtData);
+    del_it(rgl->cells[idx].cellRtData);
     rgl->rtData->loaded.delInt(idx);
   }
   out_hmin = rgl->cells[idx].htMin;
@@ -514,7 +514,7 @@ static void gen_rt_rigen_cells(RendInstGenData *rgl, const BBox3 &area)
       rgl->rtData->toLoad.delInt(idx);
       if (crt->sysMemData) // if is ready
         rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
-      interlocked_release_store_ptr(rgl->cells[idx].rtData, crt); // This makes cell "ready"
+      interlocked_release_store_ptr(rgl->cells[idx].cellRtData, crt); // This makes cell "ready"
     }
   DEBUG_CP();
 }
@@ -805,11 +805,11 @@ void rendinst::notify_ri_moved(int ri_idx, float ox, float oz, float nx, float n
     ScopedLockWrite lock(rgl->rtData->riRwCs);
     if (rgl->rtData->loaded.hasInt(idx0))
       rgl->rtData->loaded.delInt(idx0);
-    if (rgl->cells[idx0].rtData)
+    if (rgl->cells[idx0].cellRtData)
     {
-      rgl->cells[idx0].rtData->clearAllWithRiEx();
-      if (rgl->cells[idx0].rtData->pregenAdd)
-        rgl->cells[idx0].rtData->pregenAdd->needsUpdate = true;
+      rgl->cells[idx0].cellRtData->clearAllWithRiEx();
+      if (rgl->cells[idx0].cellRtData->pregenAdd)
+        rgl->cells[idx0].cellRtData->pregenAdd->needsUpdate = true;
     }
   }
   else
@@ -819,13 +819,13 @@ void rendinst::notify_ri_moved(int ri_idx, float ox, float oz, float nx, float n
     {
       if (rgl->rtData->loaded.hasInt(idx0))
         rgl->rtData->loaded.delInt(idx0);
-      del_it(rgl->cells[idx0].rtData);
+      del_it(rgl->cells[idx0].cellRtData);
     }
     if (idx1 >= 0)
     {
       if (rgl->rtData->loaded.hasInt(idx1))
         rgl->rtData->loaded.delInt(idx1);
-      del_it(rgl->cells[idx1].rtData);
+      del_it(rgl->cells[idx1].cellRtData);
     }
   }
   rigenNeedSyncPrepare = true;
@@ -842,7 +842,7 @@ void rendinst::notify_ri_deleted(int ri_idx, float ox, float oz)
     ScopedLockWrite lock(rgl->rtData->riRwCs);
     if (rgl->rtData->loaded.hasInt(idx))
       rgl->rtData->loaded.delInt(idx);
-    del_it(rgl->cells[idx].rtData);
+    del_it(rgl->cells[idx].cellRtData);
   }
   rigenNeedSyncPrepare = true;
 }

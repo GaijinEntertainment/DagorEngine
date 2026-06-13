@@ -320,6 +320,16 @@ macro USE_LAND_MICRODETAILS_PS()
     {
       return sample_single_microdetail_tc(tc, detail_level, land_micro_details_samplerstate);
     }
+
+    half4 sample_microdetails_no_grad_land(UvWithDerivates uv, DetailDesc detail_level)
+    {
+      ##if micro_details_quality == simplified_land
+        return sample_microdetails_single(uv, detail_level);
+      ##else
+        return sample_microdetails_lerped_no_grad(uv, detail_level);
+      ##endif
+    }
+
     float2 get_microdetails_world_tc(float2 worldPosXZ) {return worldPosXZ*land_micro_details_uv_scale;}
 
     UvWithDerivates microdetails_get_uv_and_derivates(float2 tc_world_posXZ)
@@ -341,11 +351,7 @@ macro USE_LAND_MICRODETAILS_PS()
     void apply_microdetails_tc_no_grad_land(UvWithDerivates uv, DetailDesc detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness, inout half ao)
     {
       EARLY_SAMPLE
-      ##if micro_details_quality == simplified_land && !maybe(force_micro_details_quality_dice_hack)
-        apply_microdetails_full_land(sample_microdetails_single(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness, ao);
-      ##else
-        apply_microdetails_full_land(sample_microdetails_lerped_no_grad(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness, ao);
-      ##endif
+      apply_microdetails_full_land(sample_microdetails_no_grad_land(uv, detail_level), microDetailNTS, diffuse, reflectance, smoothness, ao);
     }
 
     void apply_single_microdetail_tc(float2 tc, half detail_level, out half2 microDetailNTS, inout half3 diffuse, inout half reflectance, inout half smoothness)

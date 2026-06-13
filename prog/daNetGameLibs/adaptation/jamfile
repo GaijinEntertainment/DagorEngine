@@ -17,6 +17,8 @@ local AllSrcFolder_DAS = ;
 if $(HaveRenderer) = yes {
   AllSrcFolder_ES += render ;
 
+  UseProgLibs += gameLibs/render/adaptation ;
+
   if $(Config) in dbg dev {
     AllSrcFolder_ES += debug ;
     AddIncludes += $(Root)/prog/3rdPartyLibs/imgui ;

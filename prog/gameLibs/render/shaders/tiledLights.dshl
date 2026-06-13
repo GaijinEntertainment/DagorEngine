@@ -324,9 +324,26 @@ shader spot_lights_tiles, omni_lights_tiles
       ##if use_downsampled_depth_in_tiled_lights == no
         InterlockedOr(structuredBufferAt(perTileLights, finalIdx), 1u << (index % BITS_IN_UINT));
       ##else
-        float farDepth = linearize_z(texelFetch(downsampled_far_depth_tex, depthTile * current_dynamic_resolution_scale, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+        depthTile = int2(float2(depthTile) * current_dynamic_resolution_scale);
+        float farDepth = texelFetch(downsampled_far_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x;
+        if (any(current_dynamic_resolution_scale < 1.0))
+        {
+          farDepth = min(
+            min(farDepth, texelFetch(downsampled_far_depth_tex, int2(depthTile.x + 1, depthTile.y), DIVIDE_RESOLUTION_BITS - 1).x),
+            min(texelFetch(downsampled_far_depth_tex, int2(depthTile.x, depthTile.y + 1), DIVIDE_RESOLUTION_BITS - 1).x,
+                texelFetch(downsampled_far_depth_tex, int2(depthTile.x + 1, depthTile.y + 1), DIVIDE_RESOLUTION_BITS - 1).x));
+        }
+        farDepth = linearize_z(farDepth, zn_zfar.zw);
         ##if use_downsampled_depth_in_tiled_lights == far_and_close
-          float closeDepth = linearize_z(texelFetch(close_depth_tex, depthTile * current_dynamic_resolution_scale, DIVIDE_RESOLUTION_BITS - 1).x, zn_zfar.zw);
+          float closeDepth = texelFetch(close_depth_tex, depthTile, DIVIDE_RESOLUTION_BITS - 1).x;
+          if (any(current_dynamic_resolution_scale < 1.0))
+          {
+            closeDepth = max(
+              max(closeDepth, texelFetch(close_depth_tex, int2(depthTile.x + 1, depthTile.y), DIVIDE_RESOLUTION_BITS - 1).x),
+              max(texelFetch(close_depth_tex, int2(depthTile.x, depthTile.y + 1), DIVIDE_RESOLUTION_BITS - 1).x,
+                  texelFetch(close_depth_tex, int2(depthTile.x + 1, depthTile.y + 1), DIVIDE_RESOLUTION_BITS - 1).x));
+          }
+          closeDepth = linearize_z(closeDepth, zn_zfar.zw);
         ##else
           float closeDepth = 0;
         ##endif

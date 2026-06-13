@@ -20,6 +20,17 @@ int use_glass_backface_light = 0;
 interval use_glass_backface_light : no < 1, yes;
 assume_if_not_assumed use_glass_backface_light = no;
 
+int allow_rt_glass_reflection = 1;
+interval allow_rt_glass_reflection : no < 1, yes;
+assume_if_not_assumed allow_rt_glass_reflection = no;
+
+macro INIT_RT_GLASS_REFLECTION_SUPPORT()
+  static int asset_supports_rt_glass_reflection = 1 no_warnings;
+  interval asset_supports_rt_glass_reflection: no < 1, yes;
+
+  bool use_rt_glass_reflection = asset_supports_rt_glass_reflection == yes && allow_rt_glass_reflection == yes;
+endmacro
+
 macro INIT_COMMON_GLASS(generate_transparent_gbuffer_pass)
   texture tex = material.texture.diffuse;
 
@@ -164,7 +175,7 @@ macro INIT_REFRACTION_GLASS_BASE(generate_transparent_gbuffer_pass)
   static float isShell = 1;
   static float glassIoR = 1.5;
 
-  if(!rendinst_transparent_gbuffer_pass == generate)
+  if(rendinst_transparent_gbuffer_pass != generate)
   {
     (ps) {
       mediumTintColor@f4 = (mediumTintColor.r, mediumTintColor.g, mediumTintColor.b, isShell);

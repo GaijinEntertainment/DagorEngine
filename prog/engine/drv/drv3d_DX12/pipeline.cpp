@@ -9,6 +9,8 @@
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_perfTimer.h>
 #include <EASTL/unordered_set.h>
+#include <util/dag_base85.h>
+#include <3d/gpu_pipeline_serialization.h>
 
 
 using namespace drv3d_dx12;
@@ -242,10 +244,15 @@ bool PipelineVariant::generateRasterDescription(const RenderStateSystem::StaticS
 }
 
 PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-  PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-  backend::PipelineNameGenerator &name_generator, const PipelineLoadBehavior &load_behavior)
+  PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const GraphicsPipelineVariantCreateInfo &info)
 {
+  const auto &input_layout = info.inputLayout;
+  const auto is_wire_frame = info.isWireFrame;
+  const auto &static_state = info.staticState;
+  const auto &fb_layout = info.framebufferLayout;
+  const auto top = info.topology;
+  const auto on_error = info.onError;
+  const auto &load_behavior = info.loadBehavior;
   int64_t tSetupBegin = ref_time_ticks();
   PipelineLoadResult loadResult;
   bool hasGS = false;
@@ -472,6 +479,7 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
   LoadVariantsStats::setupUsec += get_time_usec(tSetupBegin);
 
   int64_t tCacheLoad = ref_time_ticks();
+
 #if _TARGET_PC_WIN
   pipeline = pipe_cache.loadGraphicsPipelineVariant(base.cacheId, top, input_layout, is_wire_frame, static_state, fb_layout, gpciDesc,
     cacheTarget);
@@ -521,6 +529,9 @@ PipelineLoadResult PipelineVariant::create(Device &device, backend::ShaderModule
         logdbg("DX12: CreatePipelineState E_OUTOFMEMORY for <%s> (graphics), desc size %llu, VS %llu, PS %llu, cachedBlob %llu",
           name.c_str(), gpciDesc.SizeInBytes, tmpstorageVs.size(), tmpstoragePs.size(), cacheTarget.CachedBlobSizeInBytes);
       }
+      info.toLog.serialize(base.signature, gpciDesc);
+#else
+      info.toLog.serialize(base.signature, desc);
 #endif
 
       if (is_recoverable_error(result))
@@ -679,10 +690,13 @@ bool PipelineVariant::validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, co
 
 #if !_TARGET_XBOXONE
 PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-  PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
-  const PipelineLoadBehavior &load_behavior)
+  PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const MeshPipelineVariantCreateInfo &info)
 {
+  const auto is_wire_frame = info.isWireFrame;
+  const auto &static_state = info.staticState;
+  const auto &fb_layout = info.framebufferLayout;
+  const auto on_error = info.onError;
+  const auto &load_behavior = info.loadBehavior;
   PipelineLoadResult loadResult;
 #if !_TARGET_PC_WIN
   auto
@@ -784,6 +798,8 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
     {
       loadResult.runtimeError = true;
 
+      info.toLog.serialize(base.signature, gpciDesc);
+
       if (is_recoverable_error(result))
       {
         String fb_layout_info;
@@ -851,54 +867,43 @@ PipelineLoadResult PipelineVariant::createMesh(Device &device, backend::ShaderMo
 
 
 PipelineLoadResult PipelineVariant::load(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-  PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-  backend::PipelineNameGenerator &name_generator, const PipelineLoadBehavior &load_behavior,
-  [[maybe_unused]] PipelineBuildInitiator build_initiator)
+  PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const GraphicsPipelineVariantCreateInfo &info)
 {
   if (pipeline)
   {
     return {.objectCreated = true, .objectPreExisted = true};
   }
 #if _TARGET_PC_WIN
-  buildInitiator = build_initiator;
+  buildInitiator = info.buildInitiator;
 #endif
-  dynamicMask = static_state.getDynamicStateMask();
+  dynamicMask = info.staticState.getDynamicStateMask();
 #if !_TARGET_XBOXONE
   G_ASSERT(!base.isMesh());
 #endif
-  return create(device, shader_bytecodes, base, pipe_cache, input_layout, is_wire_frame, static_state, fb_layout, top, on_error,
-    name_generator, load_behavior);
+  return create(device, shader_bytecodes, base, pipe_cache, name_generator, info);
 }
 
 PipelineLoadResult PipelineVariant::loadMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-  PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-  const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
-  const PipelineLoadBehavior &load_behavior, [[maybe_unused]] PipelineBuildInitiator build_initiator)
+  PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const MeshPipelineVariantCreateInfo &info)
 {
   if (pipeline)
   {
     return {.objectCreated = true, .objectPreExisted = true};
   }
 #if _TARGET_PC_WIN
-  buildInitiator = build_initiator;
+  buildInitiator = info.buildInitiator;
 #endif
-  dynamicMask = static_state.getDynamicStateMask();
+  dynamicMask = info.staticState.getDynamicStateMask();
 #if !_TARGET_XBOXONE
   G_ASSERT(base.isMesh());
-  return createMesh(device, shader_bytecodes, base, pipe_cache, is_wire_frame, static_state, fb_layout, on_error, name_generator,
-    load_behavior);
+  return createMesh(device, shader_bytecodes, base, pipe_cache, name_generator, info);
 #else
   G_UNUSED(device);
   G_UNUSED(shader_bytecodes);
   G_UNUSED(base);
   G_UNUSED(pipe_cache);
-  G_UNUSED(is_wire_frame);
-  G_UNUSED(static_state);
-  G_UNUSED(fb_layout);
-  G_UNUSED(on_error);
   G_UNUSED(name_generator);
-  G_UNUSED(load_behavior);
+  G_UNUSED(info);
   return {};
 #endif
 }
@@ -1057,8 +1062,10 @@ void PipelineManager::createClearSignature(ID3D12Device *device)
   ComPtr<ID3DBlob> rootSignBlob;
   ComPtr<ID3DBlob> errorBlob;
   if (DX12_CHECK_FAIL(D3D12SerializeRootSignature(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
+  {
     DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s",
       errorBlob ? reinterpret_cast<const char *>(errorBlob->GetBufferPointer()) : "unknown error");
+  }
 
   DX12_CHECK_RESULT(
     device->CreateRootSignature(0, rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize(), COM_ARGS(&clearSignature)));
@@ -1640,6 +1647,300 @@ struct GraphicsMeshRootSignatureGenerator : BasicGraphicsRootSignatureGenerator<
   void setVisibilityAmplificationShader() { currentVisibility = D3D12_SHADER_VISIBILITY_AMPLIFICATION; }
 };
 #endif
+
+struct ComputeRootSignatureGenerator
+{
+  ComputePipelineSignature *signature = nullptr;
+  D3D12_DESCRIPTOR_RANGE ranges[dxil::MAX_T_REGISTERS + dxil::MAX_S_REGISTERS + dxil::MAX_U_REGISTERS + dxil::MAX_B_REGISTERS] = {};
+  // cbuffer each one param, then srv, uav and sampler each one and one for each bindless sampler and srv globally
+  D3D12_ROOT_PARAMETER params[dxil::MAX_B_REGISTERS + 1 + 1 + 1 + 2] = {};
+  D3D12_ROOT_SIGNATURE_DESC desc = {};
+  D3D12_DESCRIPTOR_RANGE *rangePosition = &ranges[0];
+  D3D12_ROOT_PARAMETER *unboundedSamplersRootParam = nullptr;
+  D3D12_ROOT_PARAMETER *bindlessSRVRootParam = nullptr;
+  uint32_t rangeSize = 0;
+  uint32_t signatureCost = 0;
+  uint32_t vendorExtensionLocation = 0;
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  bool useConstantBufferRootDescriptors = false;
+  bool shouldUseConstantBufferRootDescriptors() const { return useConstantBufferRootDescriptors; }
+#else
+  constexpr bool shouldUseConstantBufferRootDescriptors() const { return true; }
+#endif
+  void begin()
+  {
+    desc.NumStaticSamplers = 0;
+    desc.pStaticSamplers = nullptr;
+    desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+    desc.pParameters = params;
+  }
+  void end()
+  {
+#if _TARGET_PC_WIN
+    if (vendorExtensionLocation)
+    {
+      rangePosition->RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+      rangePosition->NumDescriptors = 1;
+      rangePosition->BaseShaderRegister = 0;
+      rangePosition->RegisterSpace = vendorExtensionLocation;
+      rangePosition->OffsetInDescriptorsFromTableStart = 0;
+
+      auto &pTarget = params[desc.NumParameters++];
+      pTarget.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      pTarget.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+      pTarget.DescriptorTable.NumDescriptorRanges = 1;
+      pTarget.DescriptorTable.pDescriptorRanges = rangePosition;
+
+      ++rangePosition;
+      G_ASSERT(rangePosition <= eastl::end(ranges));
+
+      signatureCost += 1; // offset into active descriptor heap
+    }
+#endif
+  }
+  void beginFlags() {}
+  void endFlags() {}
+  void hasAccelerationStructure()
+  {
+#if _TARGET_SCARLETT
+    desc.Flags |= ROOT_SIGNATURE_FLAG_RAYTRACING;
+    signature->def.hasAccelerationStructure = true;
+#endif
+  }
+  void addRootParameterConstant(uint32_t space, uint32_t index, uint32_t dwords)
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+
+    auto &target = params[desc.NumParameters++];
+    target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    target.Constants.ShaderRegister = index;
+    target.Constants.RegisterSpace = space;
+    target.Constants.Num32BitValues = dwords;
+
+    signatureCost += dwords;
+  }
+  void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+
+    signature->def.csLayout.rootConstantsParamIndex = desc.NumParameters;
+
+    addRootParameterConstant(space, index, dwords);
+  }
+  void specialConstants(uint32_t space, uint32_t index) { addRootParameterConstant(space, index, 1); }
+  void nvidiaExtension(uint32_t space, uint32_t index)
+  {
+    G_UNUSED(index);
+    vendorExtensionLocation = space;
+  }
+  void amdExtension(uint32_t space, uint32_t index)
+  {
+    G_UNUSED(index);
+    vendorExtensionLocation = space;
+  }
+  void useResourceDescriptorHeapIndexing()
+  {
+    signature->def.useResourceDescriptorHeapIndexing = true;
+    desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+  }
+  void useSamplerDescriptorHeapIndexing()
+  {
+    signature->def.useSamplerDescriptorHeapIndexing = true;
+    desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+  }
+  void beginConstantBuffers()
+  {
+    signature->def.csLayout.setConstBufferDescriptorIndex(desc.NumParameters, shouldUseConstantBufferRootDescriptors());
+  }
+  void endConstantBuffers()
+  {
+    if (!shouldUseConstantBufferRootDescriptors())
+    {
+      G_ASSERT(desc.NumParameters < countof(params));
+      G_ASSERT(rangeSize > 0);
+
+      auto &target = params[desc.NumParameters++];
+      target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+      target.DescriptorTable.NumDescriptorRanges = rangeSize;
+      target.DescriptorTable.pDescriptorRanges = rangePosition;
+
+      rangePosition += rangeSize;
+      rangeSize = 0;
+      G_ASSERT(rangePosition <= eastl::end(ranges));
+
+      signatureCost += 1; // offset into active descriptor heap
+    }
+  }
+  void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
+  {
+    if (shouldUseConstantBufferRootDescriptors())
+    {
+      G_UNUSED(linear_index);
+      G_ASSERT(desc.NumParameters < countof(params));
+
+      auto &target = params[desc.NumParameters++];
+      target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+      target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+      target.Descriptor.ShaderRegister = slot;
+      target.Descriptor.RegisterSpace = space;
+
+      signatureCost += 2; // cbuffer is a 64bit gpu address
+    }
+    else
+    {
+      auto &target = rangePosition[rangeSize++];
+      G_ASSERT(&target < eastl::end(ranges));
+      target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+      target.NumDescriptors = 1;
+      target.BaseShaderRegister = slot;
+      target.RegisterSpace = space;
+      target.OffsetInDescriptorsFromTableStart = linear_index;
+    }
+  }
+  void beginSamplers() { signature->def.csLayout.samplersParamIndex = desc.NumParameters; }
+  void endSamplers()
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+    G_ASSERT(rangeSize > 0);
+
+    auto &target = params[desc.NumParameters++];
+    target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    target.DescriptorTable.NumDescriptorRanges = rangeSize;
+    target.DescriptorTable.pDescriptorRanges = rangePosition;
+
+    rangePosition += rangeSize;
+    rangeSize = 0;
+    G_ASSERT(rangePosition <= eastl::end(ranges));
+
+    signatureCost += 1; // offset into active descriptor heap
+  }
+  void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
+  {
+    G_UNUSED(linear_index); // rangeSize will be the same as linear_index
+    auto &target = rangePosition[rangeSize];
+    G_ASSERT(&target < eastl::end(ranges));
+    target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    target.NumDescriptors = 1;
+    target.BaseShaderRegister = slot;
+    target.RegisterSpace = space;
+    target.OffsetInDescriptorsFromTableStart = rangeSize++;
+  }
+  void beginBindlessSamplers()
+  {
+    // compute has only one stage, all unbounded samplers should be added within a single begin-end block
+    G_ASSERT(unboundedSamplersRootParam == nullptr);
+    G_ASSERT(desc.NumParameters < countof(params));
+    signature->def.layout.bindlessSamplersParamIndex = desc.NumParameters++;
+    unboundedSamplersRootParam = &params[signature->def.layout.bindlessSamplersParamIndex];
+    unboundedSamplersRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    unboundedSamplersRootParam->DescriptorTable.pDescriptorRanges = rangePosition;
+    unboundedSamplersRootParam->ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    signatureCost += 1; // 1 root param for all unbounded sampler array ranges
+  }
+  void endBindlessSamplers() { G_ASSERT(unboundedSamplersRootParam->DescriptorTable.NumDescriptorRanges != 0); }
+  void bindlessSamplers(uint32_t space, uint32_t slot)
+  {
+    G_ASSERT(space < dxil::MAX_UNBOUNDED_REGISTER_SPACES);
+
+    auto &smpRange = rangePosition[0];
+    G_ASSERT(&smpRange < eastl::end(ranges));
+    smpRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    smpRange.NumDescriptors = UINT_MAX; // UINT_MAX means unbounded
+    smpRange.BaseShaderRegister = slot;
+    smpRange.RegisterSpace = space;
+    smpRange.OffsetInDescriptorsFromTableStart = 0;
+
+    unboundedSamplersRootParam->DescriptorTable.NumDescriptorRanges++;
+    rangePosition++;
+    G_ASSERT(rangePosition <= eastl::end(ranges));
+  }
+  void beginShaderResourceViews() { signature->def.csLayout.shaderResourceViewParamIndex = desc.NumParameters; }
+  void endShaderResourceViews()
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+    G_ASSERT(rangeSize > 0);
+
+    auto &target = params[desc.NumParameters++];
+    target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    target.DescriptorTable.NumDescriptorRanges = rangeSize;
+    target.DescriptorTable.pDescriptorRanges = rangePosition;
+
+    rangePosition += rangeSize;
+    rangeSize = 0;
+    G_ASSERT(rangePosition <= eastl::end(ranges));
+
+    signatureCost += 1; // offset into active descriptor heap
+  }
+  void shaderResourceView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
+  {
+    auto &target = rangePosition[rangeSize++];
+    G_ASSERT(&target < eastl::end(ranges));
+    target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    target.NumDescriptors = descriptor_count;
+    target.BaseShaderRegister = slot;
+    target.RegisterSpace = space;
+    target.OffsetInDescriptorsFromTableStart = linear_index;
+  }
+  void beginBindlessShaderResourceViews()
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+    signature->def.layout.bindlessShaderResourceViewParamIndex = desc.NumParameters++;
+    bindlessSRVRootParam = &params[signature->def.layout.bindlessShaderResourceViewParamIndex];
+    bindlessSRVRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    bindlessSRVRootParam->DescriptorTable.pDescriptorRanges = rangePosition;
+    bindlessSRVRootParam->ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    signatureCost += 1; // 1 root param for all unbounded sampler array ranges
+  }
+  void endBindlessShaderResourceViews() {}
+  void bindlessShaderResourceViews(uint32_t space, uint32_t slot)
+  {
+    G_ASSERT(space < dxil::MAX_UNBOUNDED_REGISTER_SPACES);
+
+    auto &registerRange = rangePosition[0];
+    G_ASSERT(&registerRange < eastl::end(ranges));
+    registerRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    registerRange.NumDescriptors = UINT_MAX; // UINT_MAX means unbounded
+    registerRange.BaseShaderRegister = slot;
+    registerRange.RegisterSpace = space;
+    registerRange.OffsetInDescriptorsFromTableStart = 0;
+
+    bindlessSRVRootParam->DescriptorTable.NumDescriptorRanges++;
+    rangePosition++;
+    G_ASSERT(rangePosition <= eastl::end(ranges));
+  }
+  void beginUnorderedAccessViews() { signature->def.csLayout.unorderedAccessViewParamIndex = desc.NumParameters; }
+  void endUnorderedAccessViews()
+  {
+    G_ASSERT(desc.NumParameters < countof(params));
+    G_ASSERT(rangeSize > 0);
+
+    auto &target = params[desc.NumParameters++];
+    target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    target.DescriptorTable.NumDescriptorRanges = rangeSize;
+    target.DescriptorTable.pDescriptorRanges = rangePosition;
+
+    rangePosition += rangeSize;
+    rangeSize = 0;
+    G_ASSERT(rangePosition <= eastl::end(ranges));
+
+    signatureCost += 1; // offset into active descriptor heap
+  }
+  void unorderedAccessView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
+  {
+    auto &target = rangePosition[rangeSize++];
+    G_ASSERT(&target < eastl::end(ranges));
+    target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    target.NumDescriptors = descriptor_count;
+    target.BaseShaderRegister = slot;
+    target.RegisterSpace = space;
+    target.OffsetInDescriptorsFromTableStart = linear_index;
+  }
+};
 } // namespace
 
 // TODO: add signature 1.1 support
@@ -1671,7 +1972,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
              (gps->def.domainShaderRegisters == *ds_header) && (gps->def.hasVertexInputs == properties.hasVertexInputs) &&
              (gps->def.hasStreamOutput == properties.hasStreamOutput) &&
              (gps->def.useResourceDescriptorHeapIndexing == properties.useResourceDescriptorHeapIndexing) &&
-             (gps->def.useSamplerDescriptorHeapIndexing == properties.useSamplerDescriptorHeapIndexing)
+             (gps->def.useSamplerDescriptorHeapIndexing == properties.useSamplerDescriptorHeapIndexing) && (false == gps->def.isMesh)
 #if _TARGET_SCARLETT
              && (gps->def.hasAccelerationStructure == properties.hasAccelerationStructure)
 #endif
@@ -1688,6 +1989,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsPipelineSignature(ID3D12D
     newSign->def.hasStreamOutput = properties.hasStreamOutput;
     newSign->def.useResourceDescriptorHeapIndexing = properties.useResourceDescriptorHeapIndexing;
     newSign->def.useSamplerDescriptorHeapIndexing = properties.useSamplerDescriptorHeapIndexing;
+    newSign->def.isMesh = false;
 #if _TARGET_SCARLETT
     newSign->def.hasAccelerationStructure = properties.hasAccelerationStructure;
 #endif
@@ -1749,7 +2051,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
       return (gps->def.vertexShaderRegisters == ms_header) && (gps->def.pixelShaderRegisters == ps_header) &&
              (gps->def.geometryShaderRegisters == safeAsHeader) && (gps->def.hasStreamOutput == properties.hasStreamOutput) &&
              (gps->def.useResourceDescriptorHeapIndexing == properties.useResourceDescriptorHeapIndexing) &&
-             (gps->def.useSamplerDescriptorHeapIndexing == properties.useSamplerDescriptorHeapIndexing)
+             (gps->def.useSamplerDescriptorHeapIndexing == properties.useSamplerDescriptorHeapIndexing) && (true == gps->def.isMesh)
 #if _TARGET_SCARLETT
              && (gps->def.hasAccelerationStructure == properties.hasAccelerationStructure) &&
              (gps->def.hasAmplificationShader == hasAs)
@@ -1767,6 +2069,7 @@ GraphicsPipelineSignature *PipelineManager::getGraphicsMeshPipelineSignature(ID3
     newSign->def.hasStreamOutput = properties.hasStreamOutput;
     newSign->def.useResourceDescriptorHeapIndexing = properties.useResourceDescriptorHeapIndexing;
     newSign->def.useSamplerDescriptorHeapIndexing = properties.useSamplerDescriptorHeapIndexing;
+    newSign->def.isMesh = true;
 #if _TARGET_SCARLETT
     newSign->def.hasAccelerationStructure = properties.hasAccelerationStructure;
     newSign->def.hasAmplificationShader = hasAs;
@@ -1836,301 +2139,7 @@ ComputePipelineSignature *PipelineManager::getComputePipelineSignature(ID3D12Dev
     auto newSign = eastl::make_unique<ComputePipelineSignature>();
     newSign->def.registers = cs_header;
 
-    struct GeneratorCallback
-    {
-      ComputePipelineSignature *signature = nullptr;
-      D3D12_DESCRIPTOR_RANGE ranges[dxil::MAX_T_REGISTERS + dxil::MAX_S_REGISTERS + dxil::MAX_U_REGISTERS + dxil::MAX_B_REGISTERS] =
-        {};
-      // cbuffer each one param, then srv, uav and sampler each one and one for each bindless sampler and srv globally
-      D3D12_ROOT_PARAMETER params[dxil::MAX_B_REGISTERS + 1 + 1 + 1 + 2] = {};
-      D3D12_ROOT_SIGNATURE_DESC desc = {};
-      D3D12_DESCRIPTOR_RANGE *rangePosition = &ranges[0];
-      D3D12_ROOT_PARAMETER *unboundedSamplersRootParam = nullptr;
-      D3D12_ROOT_PARAMETER *bindlessSRVRootParam = nullptr;
-      uint32_t rangeSize = 0;
-      uint32_t signatureCost = 0;
-      uint32_t vendorExtensionLocation = 0;
-#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
-      bool useConstantBufferRootDescriptors = false;
-      bool shouldUseConstantBufferRootDescriptors() const { return useConstantBufferRootDescriptors; }
-#else
-      constexpr bool shouldUseConstantBufferRootDescriptors() const { return true; }
-#endif
-      void begin()
-      {
-        desc.NumStaticSamplers = 0;
-        desc.pStaticSamplers = nullptr;
-        desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-        desc.pParameters = params;
-      }
-      void end()
-      {
-#if _TARGET_PC_WIN
-        if (vendorExtensionLocation)
-        {
-          rangePosition->RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-          rangePosition->NumDescriptors = 1;
-          rangePosition->BaseShaderRegister = 0;
-          rangePosition->RegisterSpace = vendorExtensionLocation;
-          rangePosition->OffsetInDescriptorsFromTableStart = 0;
-
-          auto &pTarget = params[desc.NumParameters++];
-          pTarget.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-          pTarget.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-          pTarget.DescriptorTable.NumDescriptorRanges = 1;
-          pTarget.DescriptorTable.pDescriptorRanges = rangePosition;
-
-          ++rangePosition;
-          G_ASSERT(rangePosition <= eastl::end(ranges));
-
-          signatureCost += 1; // offset into active descriptor heap
-        }
-#endif
-      }
-      void beginFlags() {}
-      void endFlags() {}
-      void hasAccelerationStructure()
-      {
-#if _TARGET_SCARLETT
-        desc.Flags |= ROOT_SIGNATURE_FLAG_RAYTRACING;
-        signature->def.hasAccelerationStructure = true;
-#endif
-      }
-      void addRootParameterConstant(uint32_t space, uint32_t index, uint32_t dwords)
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-
-        auto &target = params[desc.NumParameters++];
-        target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        target.Constants.ShaderRegister = index;
-        target.Constants.RegisterSpace = space;
-        target.Constants.Num32BitValues = dwords;
-
-        signatureCost += dwords;
-      }
-      void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-
-        signature->def.csLayout.rootConstantsParamIndex = desc.NumParameters;
-
-        addRootParameterConstant(space, index, dwords);
-      }
-      void specialConstants(uint32_t space, uint32_t index) { addRootParameterConstant(space, index, 1); }
-      void nvidiaExtension(uint32_t space, uint32_t index)
-      {
-        G_UNUSED(index);
-        vendorExtensionLocation = space;
-      }
-      void amdExtension(uint32_t space, uint32_t index)
-      {
-        G_UNUSED(index);
-        vendorExtensionLocation = space;
-      }
-      void useResourceDescriptorHeapIndexing()
-      {
-        signature->def.useResourceDescriptorHeapIndexing = true;
-        desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
-      }
-      void useSamplerDescriptorHeapIndexing()
-      {
-        signature->def.useSamplerDescriptorHeapIndexing = true;
-        desc.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
-      }
-      void beginConstantBuffers()
-      {
-        signature->def.csLayout.setConstBufferDescriptorIndex(desc.NumParameters, shouldUseConstantBufferRootDescriptors());
-      }
-      void endConstantBuffers()
-      {
-        if (!shouldUseConstantBufferRootDescriptors())
-        {
-          G_ASSERT(desc.NumParameters < countof(params));
-          G_ASSERT(rangeSize > 0);
-
-          auto &target = params[desc.NumParameters++];
-          target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-          target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-          target.DescriptorTable.NumDescriptorRanges = rangeSize;
-          target.DescriptorTable.pDescriptorRanges = rangePosition;
-
-          rangePosition += rangeSize;
-          rangeSize = 0;
-          G_ASSERT(rangePosition <= eastl::end(ranges));
-
-          signatureCost += 1; // offset into active descriptor heap
-        }
-      }
-      void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
-      {
-        if (shouldUseConstantBufferRootDescriptors())
-        {
-          G_UNUSED(linear_index);
-          G_ASSERT(desc.NumParameters < countof(params));
-
-          auto &target = params[desc.NumParameters++];
-          target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-          target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-          target.Descriptor.ShaderRegister = slot;
-          target.Descriptor.RegisterSpace = space;
-
-          signatureCost += 2; // cbuffer is a 64bit gpu address
-        }
-        else
-        {
-          auto &target = rangePosition[rangeSize++];
-          G_ASSERT(&target < eastl::end(ranges));
-          target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-          target.NumDescriptors = 1;
-          target.BaseShaderRegister = slot;
-          target.RegisterSpace = space;
-          target.OffsetInDescriptorsFromTableStart = linear_index;
-        }
-      }
-      void beginSamplers() { signature->def.csLayout.samplersParamIndex = desc.NumParameters; }
-      void endSamplers()
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-        G_ASSERT(rangeSize > 0);
-
-        auto &target = params[desc.NumParameters++];
-        target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        target.DescriptorTable.NumDescriptorRanges = rangeSize;
-        target.DescriptorTable.pDescriptorRanges = rangePosition;
-
-        rangePosition += rangeSize;
-        rangeSize = 0;
-        G_ASSERT(rangePosition <= eastl::end(ranges));
-
-        signatureCost += 1; // offset into active descriptor heap
-      }
-      void sampler(uint32_t space, uint32_t slot, uint32_t linear_index)
-      {
-        G_UNUSED(linear_index); // rangeSize will be the same as linear_index
-        auto &target = rangePosition[rangeSize];
-        G_ASSERT(&target < eastl::end(ranges));
-        target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-        target.NumDescriptors = 1;
-        target.BaseShaderRegister = slot;
-        target.RegisterSpace = space;
-        target.OffsetInDescriptorsFromTableStart = rangeSize++;
-      }
-      void beginBindlessSamplers()
-      {
-        // compute has only one stage, all unbounded samplers should be added within a single begin-end block
-        G_ASSERT(unboundedSamplersRootParam == nullptr);
-        G_ASSERT(desc.NumParameters < countof(params));
-        signature->def.layout.bindlessSamplersParamIndex = desc.NumParameters++;
-        unboundedSamplersRootParam = &params[signature->def.layout.bindlessSamplersParamIndex];
-        unboundedSamplersRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        unboundedSamplersRootParam->DescriptorTable.pDescriptorRanges = rangePosition;
-        unboundedSamplersRootParam->ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        signatureCost += 1; // 1 root param for all unbounded sampler array ranges
-      }
-      void endBindlessSamplers() { G_ASSERT(unboundedSamplersRootParam->DescriptorTable.NumDescriptorRanges != 0); }
-      void bindlessSamplers(uint32_t space, uint32_t slot)
-      {
-        G_ASSERT(space < dxil::MAX_UNBOUNDED_REGISTER_SPACES);
-
-        auto &smpRange = rangePosition[0];
-        G_ASSERT(&smpRange < eastl::end(ranges));
-        smpRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-        smpRange.NumDescriptors = UINT_MAX; // UINT_MAX means unbounded
-        smpRange.BaseShaderRegister = slot;
-        smpRange.RegisterSpace = space;
-        smpRange.OffsetInDescriptorsFromTableStart = 0;
-
-        unboundedSamplersRootParam->DescriptorTable.NumDescriptorRanges++;
-        rangePosition++;
-        G_ASSERT(rangePosition <= eastl::end(ranges));
-      }
-      void beginShaderResourceViews() { signature->def.csLayout.shaderResourceViewParamIndex = desc.NumParameters; }
-      void endShaderResourceViews()
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-        G_ASSERT(rangeSize > 0);
-
-        auto &target = params[desc.NumParameters++];
-        target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        target.DescriptorTable.NumDescriptorRanges = rangeSize;
-        target.DescriptorTable.pDescriptorRanges = rangePosition;
-
-        rangePosition += rangeSize;
-        rangeSize = 0;
-        G_ASSERT(rangePosition <= eastl::end(ranges));
-
-        signatureCost += 1; // offset into active descriptor heap
-      }
-      void shaderResourceView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
-      {
-        auto &target = rangePosition[rangeSize++];
-        G_ASSERT(&target < eastl::end(ranges));
-        target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        target.NumDescriptors = descriptor_count;
-        target.BaseShaderRegister = slot;
-        target.RegisterSpace = space;
-        target.OffsetInDescriptorsFromTableStart = linear_index;
-      }
-      void beginBindlessShaderResourceViews()
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-        signature->def.layout.bindlessShaderResourceViewParamIndex = desc.NumParameters++;
-        bindlessSRVRootParam = &params[signature->def.layout.bindlessShaderResourceViewParamIndex];
-        bindlessSRVRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        bindlessSRVRootParam->DescriptorTable.pDescriptorRanges = rangePosition;
-        bindlessSRVRootParam->ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        signatureCost += 1; // 1 root param for all unbounded sampler array ranges
-      }
-      void endBindlessShaderResourceViews() {}
-      void bindlessShaderResourceViews(uint32_t space, uint32_t slot)
-      {
-        G_ASSERT(space < dxil::MAX_UNBOUNDED_REGISTER_SPACES);
-
-        auto &registerRange = rangePosition[0];
-        G_ASSERT(&registerRange < eastl::end(ranges));
-        registerRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-        registerRange.NumDescriptors = UINT_MAX; // UINT_MAX means unbounded
-        registerRange.BaseShaderRegister = slot;
-        registerRange.RegisterSpace = space;
-        registerRange.OffsetInDescriptorsFromTableStart = 0;
-
-        bindlessSRVRootParam->DescriptorTable.NumDescriptorRanges++;
-        rangePosition++;
-        G_ASSERT(rangePosition <= eastl::end(ranges));
-      }
-      void beginUnorderedAccessViews() { signature->def.csLayout.unorderedAccessViewParamIndex = desc.NumParameters; }
-      void endUnorderedAccessViews()
-      {
-        G_ASSERT(desc.NumParameters < countof(params));
-        G_ASSERT(rangeSize > 0);
-
-        auto &target = params[desc.NumParameters++];
-        target.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-        target.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-        target.DescriptorTable.NumDescriptorRanges = rangeSize;
-        target.DescriptorTable.pDescriptorRanges = rangePosition;
-
-        rangePosition += rangeSize;
-        rangeSize = 0;
-        G_ASSERT(rangePosition <= eastl::end(ranges));
-
-        signatureCost += 1; // offset into active descriptor heap
-      }
-      void unorderedAccessView(uint32_t space, uint32_t slot, uint32_t descriptor_count, uint32_t linear_index)
-      {
-        auto &target = rangePosition[rangeSize++];
-        G_ASSERT(&target < eastl::end(ranges));
-        target.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-        target.NumDescriptors = descriptor_count;
-        target.BaseShaderRegister = slot;
-        target.RegisterSpace = space;
-        target.OffsetInDescriptorsFromTableStart = linear_index;
-      }
-    };
-    GeneratorCallback generator;
+    ComputeRootSignatureGenerator generator;
     generator.signature = newSign.get();
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
     generator.useConstantBufferRootDescriptors = !rootSignaturesUsesCBVDescriptorRanges;
@@ -2220,8 +2229,9 @@ void PipelineManager::addCompute(Device &device, PipelineCache &cache, ProgramID
     if (preloaded == CSPreloaded::Yes && hasFeatureSetInCache)
       needToUpdateCache = true;
 
-    pipelineGroup[index] = eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, *this, *this,
-      byte_code_cache_hit, build_initiator);
+    pipelineGroup[index] =
+      eastl::make_unique<ComputePipeline>(*signature, eastl::move(shader), device, cache, on_error, *this, *this, byte_code_cache_hit,
+        build_initiator, PipelineLogSerializer{D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
   }
 }
 
@@ -2344,7 +2354,8 @@ eastl::unique_ptr<BasePipeline> PipelineManager::createGraphics(Device &device, 
 
   bool allOk = base->loadVariantsFromCache(device, cache, static_cast<backend::ShaderModuleManager &>(*this),
     static_cast<backend::StaticRenderStateManager &>(*this), static_cast<backend::InputLayoutManager &>(*this), fbs, on_error,
-    static_cast<backend::PipelineNameGenerator &>(*this));
+    static_cast<backend::PipelineNameGenerator &>(*this), D3D12SerializeRootSignature,
+    shouldUseRootSignaturesUsesCBVDescriptorRanges());
 
   if (!allOk)
   {
@@ -3724,7 +3735,7 @@ bool ComputePipeline::loadRayTracePipeline(Device &device, PipelineCache &cache,
 ComputePipeline::ComputePipeline(ComputePipelineSignature &sign, ComputeShaderModule module, Device &device, PipelineCache &cache,
   RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
   [[maybe_unused]] ShaderBindingTablePool &shader_binding_table_pool, bool byte_code_cache_hit,
-  [[maybe_unused]] PipelineBuildInitiator build_initiator) :
+  [[maybe_unused]] PipelineBuildInitiator build_initiator, const PipelineLogSerializer &log_serializer) :
   shaderModule{eastl::move(module)},
   signature{sign}
 #if _TARGET_PC_WIN
@@ -3735,6 +3746,12 @@ ComputePipeline::ComputePipeline(ComputePipelineSignature &sign, ComputeShaderMo
 #if D3D_HAS_RAY_TRACING
   if (isRayTracePipeline())
   {
+    if (!device.hasRaytraceSupport())
+    {
+      logdbg("DX12: Skipping ray tracing pipeline preload for <%s>, because ray tracing is unsupported",
+        name_generator.generateComputePipelineName(shaderModule).c_str());
+      return;
+    }
     const bool skipPreload = (build_initiator == PipelineBuildInitiator::STATIC_CACHE) && !device.isRaytracePipelinePreloadAllowed();
     if (skipPreload)
     {
@@ -3748,11 +3765,34 @@ ComputePipeline::ComputePipeline(ComputePipelineSignature &sign, ComputeShaderMo
   }
 #endif
 
-  loadRegularComputeShader(device, cache, on_error, true, name_generator, byte_code_cache_hit);
+  loadRegularComputeShader(device, cache, on_error, true, name_generator, byte_code_cache_hit, log_serializer);
 }
 
+#if D3D_HAS_RAY_TRACING
+bool ComputePipeline::readyRayTracePipeline(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
+  backend::PipelineNameGenerator &name_generator, ShaderBindingTablePool &shader_binding_table_pool,
+  [[maybe_unused]] PipelineBuildInitiator build_initiator)
+{
+  if (!device.hasRaytraceSupport())
+  {
+    logdbg("DX12: Ready ray tracing pipeline for <%s> invoked on device without support",
+      name_generator.generateComputePipelineName(shaderModule).c_str());
+    return false;
+  }
+  if (!isLoaded())
+  {
+#if _TARGET_PC_WIN
+    buildInitiator = build_initiator;
+#endif
+    return loadRayTracePipeline(device, cache, on_error, false, name_generator, shader_binding_table_pool, true);
+  }
+  return true;
+}
+#endif
+
 bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
-  bool from_cache_only, backend::PipelineNameGenerator &name_generator, bool byte_code_cache_hit)
+  bool from_cache_only, backend::PipelineNameGenerator &name_generator, bool byte_code_cache_hit,
+  const PipelineLogSerializer &log_serializer)
 {
   if (computePipeline)
   {
@@ -3859,6 +3899,13 @@ bool ComputePipeline::loadRegularComputeShader(Device &device, PipelineCache &ca
     // if it still fails then something else is not ok
     if (FAILED(result))
     {
+
+#if _TARGET_PC_WIN
+      log_serializer.serialize(signature, cpciDesc);
+#else
+      log_serializer.serialize(signature, desc);
+#endif
+
       if (is_recoverable_error(result))
       {
         switch (on_error)
@@ -4044,9 +4091,8 @@ void AsyncPipelineCompiler::init(Device &device_ref, RecoverablePipelineCompileB
   onError = on_error;
 }
 
-bool AsyncPipelineCompiler::enqueueGraphicsPipeline(PipelineVariant *variant, BasePipeline &base, const InputLayout &input_layout,
-  bool is_wire_frame, const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout,
-  D3D12_PRIMITIVE_TOPOLOGY_TYPE top, PipelineBuildInitiator build_initiator)
+bool AsyncPipelineCompiler::enqueueGraphicsPipeline(PipelineVariant *variant, BasePipeline &base,
+  const GraphicsPipelineVariantCreateInfo &info)
 {
   G_ASSERT(workerThread.isThreadRunnning());
 
@@ -4064,20 +4110,15 @@ bool AsyncPipelineCompiler::enqueueGraphicsPipeline(PipelineVariant *variant, Ba
   PendingGraphicsPipeline pending;
   pending.variant = variant;
   pending.basePipeline = &base;
-  pending.inputLayout = input_layout;
-  pending.isWireFrame = is_wire_frame;
-  pending.staticState = static_state;
-  pending.framebufferLayout = fb_layout;
-  pending.topology = top;
-  pending.buildInitiator = build_initiator;
+  pending.info = info;
 
   graphicsPipelinesQueue.push_back(pending);
 
   return true;
 }
 
-bool AsyncPipelineCompiler::enqueueMeshPipeline(PipelineVariant *variant, BasePipeline &base, bool is_wire_frame,
-  const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, PipelineBuildInitiator build_initiator)
+bool AsyncPipelineCompiler::enqueueMeshPipeline(PipelineVariant *variant, BasePipeline &base,
+  const MeshPipelineVariantCreateInfo &info)
 {
   G_ASSERT(workerThread.isThreadRunnning());
 
@@ -4095,10 +4136,7 @@ bool AsyncPipelineCompiler::enqueueMeshPipeline(PipelineVariant *variant, BasePi
   PendingMeshPipeline pending;
   pending.variant = variant;
   pending.basePipeline = &base;
-  pending.isWireFrame = is_wire_frame;
-  pending.staticState = static_state;
-  pending.framebufferLayout = fb_layout;
-  pending.buildInitiator = build_initiator;
+  pending.info = info;
 
   meshPipelinesQueue.push_back(pending);
 
@@ -4317,9 +4355,11 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
 
       if (pendingGraphics)
       {
+        auto info = pendingGraphics->info;
+        info.onError = onError;
+        info.loadBehavior = {.ignoreValidationFails = true};
         pendingGraphics->variant->load(*device, device->pipeMan, *pendingGraphics->basePipeline, device->pipelineCache,
-          pendingGraphics->inputLayout, pendingGraphics->isWireFrame, pendingGraphics->staticState, pendingGraphics->framebufferLayout,
-          pendingGraphics->topology, onError, device->pipeMan, {.ignoreValidationFails = true}, pendingGraphics->buildInitiator);
+          device->pipeMan, info);
       }
     }
 
@@ -4338,9 +4378,11 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
       }
       if (pendingMesh)
       {
-        pendingMesh->variant->loadMesh(*device, device->pipeMan, *pendingMesh->basePipeline, device->pipelineCache,
-          pendingMesh->isWireFrame, pendingMesh->staticState, pendingMesh->framebufferLayout, onError, device->pipeMan,
-          {.ignoreValidationFails = true}, pendingMesh->buildInitiator);
+        auto info = pendingMesh->info;
+        info.onError = onError;
+        info.loadBehavior = {.ignoreValidationFails = true};
+        pendingMesh->variant->loadMesh(*device, device->pipeMan, *pendingMesh->basePipeline, device->pipelineCache, device->pipeMan,
+          info);
       }
     }
 
@@ -4360,7 +4402,8 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
       if (pendingCompute)
       {
         pendingCompute->pipeline->loadAndGetHandle(*device, device->pipelineCache, onError, device->pipeMan,
-          pendingCompute->buildInitiator);
+          pendingCompute->buildInitiator,
+          {device->pipeMan.getD3D12SerializeRootSignature(), device->pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()});
       }
     }
 
@@ -4381,4 +4424,227 @@ void AsyncPipelineCompiler::processQueue(volatile int &terminating)
       });
     }
   }
+}
+
+static eastl::string encode_base_85(eastl::span<const uint8_t> data)
+{
+  eastl::string outString;
+  outString.reserve(calculate_max_base_85_string_length(data.size() + 4));
+  auto encodedSize = encode_32_bit_word_to_base_85_block(data.size());
+  outString += encodedSize.data;
+  while (data.size() >= 4)
+  {
+    auto encodedBlock = encode_32_bit_word_to_base_85_block(uint32_t(data[0]) | (data[1] << 8) | (data[2] << 16) | (data[3] << 24));
+    outString += encodedBlock.data;
+    data = data.subspan(4);
+  }
+  if (!data.empty())
+  {
+    uint32_t word = data[0];
+    if (data.size() > 1)
+    {
+      word |= uint32_t(data[1]) << 8;
+    }
+    if (data.size() > 2)
+    {
+      word |= uint32_t(data[2]) << 16;
+    }
+    // can not be > 3
+    auto encodedBlock = encode_32_bit_word_to_base_85_block(word);
+    outString += encodedBlock.data;
+  }
+  return outString;
+}
+
+struct RootSignatureGenerator
+{
+  dag::Vector<uint8_t> dataStore;
+
+  operator RootSignatureByteCode() const { return {dataStore.data(), static_cast<intptr_t>(dataStore.size())}; }
+
+  void write(const void *ptr, size_t bytes) { memcpy(dataStore.append_default(bytes), ptr, bytes); }
+
+  void generate(const GraphicsPipelineSignature &sign, const PipelineLogSerializer &serializer)
+  {
+    GraphicsPipelineSignature dummySign{};
+#if !_TARGET_XBOXONE
+    if (sign.def.isMesh)
+    {
+      GraphicsMeshRootSignatureGenerator generator;
+      generator.signature = &dummySign;
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+      generator.useConstantBufferRootDescriptors = !serializer.useConstBufferDescriptorRanges;
+#endif
+      dxil::GraphicsMeshRootSignatureExtraProperties properties{
+        .hasStreamOutput = sign.def.hasStreamOutput,
+#if _TARGET_SCARLETT
+        .hasAccelerationStructure = sign.def.hasAccelerationStructure,
+#else
+        // PC does not care about this extra property
+        .hasAccelerationStructure = false,
+#endif
+        .useResourceDescriptorHeapIndexing = sign.def.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = sign.def.useSamplerDescriptorHeapIndexing,
+      };
+      decode_graphics_mesh_root_signature(properties, sign.def.vertexShaderRegisters, sign.def.pixelShaderRegisters,
+        &sign.def.geometryShaderRegisters, generator);
+
+      ComPtr<ID3DBlob> rootSignBlob;
+      ComPtr<ID3DBlob> errorBlob;
+      if (DX12_CHECK_FAIL(
+            serializer.D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
+      {
+        DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s",
+          errorBlob ? reinterpret_cast<const char *>(errorBlob->GetBufferPointer()) : "unknown error");
+      }
+      write(rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize());
+    }
+    else
+#endif
+    {
+      GraphicsRootSignatureGenerator generator;
+      generator.signature = &dummySign;
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+      generator.useConstantBufferRootDescriptors = !serializer.useConstBufferDescriptorRanges;
+#endif
+      dxil::GraphicsRootSignatureExtraProperties properties{
+        .hasVertexInputs = sign.def.hasVertexInputs,
+        .hasStreamOutput = sign.def.hasStreamOutput,
+#if _TARGET_SCARLETT
+        .hasAccelerationStructure = sign.def.hasAccelerationStructure,
+#else
+        // PC does not care about this extra property
+        .hasAccelerationStructure = false,
+#endif
+        .useResourceDescriptorHeapIndexing = sign.def.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = sign.def.useSamplerDescriptorHeapIndexing,
+      };
+      decode_graphics_root_signature(properties, sign.def.vertexShaderRegisters, sign.def.pixelShaderRegisters,
+        sign.def.hullShaderRegisters, sign.def.domainShaderRegisters, sign.def.geometryShaderRegisters, generator);
+
+      ComPtr<ID3DBlob> rootSignBlob;
+      ComPtr<ID3DBlob> errorBlob;
+      if (DX12_CHECK_FAIL(
+            serializer.D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
+      {
+        DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s",
+          errorBlob ? reinterpret_cast<const char *>(errorBlob->GetBufferPointer()) : "unknown error");
+      }
+      write(rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize());
+    }
+  }
+  void generate(const ComputePipelineSignature &sign, const PipelineLogSerializer &serializer)
+  {
+    ComputePipelineSignature dummySign{};
+
+    ComputeRootSignatureGenerator generator;
+    generator.signature = &dummySign;
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+    generator.useConstantBufferRootDescriptors = !serializer.useConstBufferDescriptorRanges;
+#endif
+
+    [[maybe_unused]] dxil::ComputeRootSignatureExtraProperties properties{
+#if _TARGET_SCARLETT
+      .hasAccelerationStructure = sign.def.hasAccelerationStructure,
+#else
+      .hasAccelerationStructure = false,
+#endif
+      .useResourceDescriptorHeapIndexing = sign.def.useResourceDescriptorHeapIndexing,
+      .useSamplerDescriptorHeapIndexing = sign.def.useSamplerDescriptorHeapIndexing,
+    };
+    decode_compute_root_signature(properties, sign.def.registers, generator);
+
+    ComPtr<ID3DBlob> rootSignBlob;
+    ComPtr<ID3DBlob> errorBlob;
+    if (DX12_CHECK_FAIL(
+          serializer.D3D12SerializeRootSignature(&generator.desc, D3D_ROOT_SIGNATURE_VERSION_1, &rootSignBlob, &errorBlob)))
+    {
+      DAG_FATAL("DX12: D3D12SerializeRootSignature failed with %s",
+        errorBlob ? reinterpret_cast<const char *>(errorBlob->GetBufferPointer()) : "unknown error");
+    }
+    write(rootSignBlob->GetBufferPointer(), rootSignBlob->GetBufferSize());
+  }
+};
+
+static void print_to_log(const SerializedGpuPipeline &data_store)
+{
+  if (data_store.empty())
+  {
+    return;
+  }
+  union
+  {
+    struct
+    {
+      uint32_t dataSize;
+      dxil::HashValue hash;
+    };
+    uint8_t bytes[1];
+  } startBlob{
+    .dataSize = static_cast<uint32_t>(data_store.size()),
+    .hash = dxil::HashValue::calculate(data_store.data(), data_store.size()),
+  };
+  auto startBlob85 = encode_base_85({startBlob.bytes, sizeof(startBlob)});
+  auto dataBlob85 = encode_base_85({data_store.data(), data_store.size()});
+  logdbg("DX12: Serializing pipeline for %u bytes -> %u chars (%u%%)", data_store.size(), dataBlob85.size(),
+    (100 * dataBlob85.size()) / data_store.size());
+  logdbg("DX12: BeginPipelineBlob: ~%s~", startBlob85);
+  eastl::string_view dataView = dataBlob85;
+  constexpr size_t block_size = 512;
+  char blockPrintBuffer[block_size + 1];
+  blockPrintBuffer[block_size] = '\0';
+  // have to copy of blocks into a separate buffer as string views are printed until null terminator is found and not end is reached
+  while (dataView.size() > block_size)
+  {
+    memcpy(blockPrintBuffer, dataView.data(), block_size);
+    logdbg("DX12: PipelineBlob: ~%s~", blockPrintBuffer);
+    dataView = dataView.substr(block_size);
+  }
+  // should anything be left after printing blocks, print the rest as is
+  if (!dataView.empty())
+  {
+    logdbg("DX12: PipelineBlob: ~%s~", dataView.data());
+  }
+  logdbg("DX12: EndPipelineBlob");
+}
+
+void PipelineLogSerializer::serialize([[maybe_unused]] const GraphicsPipelineSignature &sign,
+  [[maybe_unused]] const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info) const
+{
+#if _TARGET_PC_WIN
+  RootSignatureGenerator signatureStore;
+  signatureStore.generate(sign, *this);
+  auto serializedCode = serialize_graphics_pipeline({.shaderHashes = false}, info, signatureStore);
+  print_to_log(serializedCode);
+#endif
+}
+void PipelineLogSerializer::serialize([[maybe_unused]] const ComputePipelineSignature &sign,
+  [[maybe_unused]] const D3D12_COMPUTE_PIPELINE_STATE_DESC &info) const
+{
+#if _TARGET_PC_WIN
+  RootSignatureGenerator signatureStore;
+  signatureStore.generate(sign, *this);
+  auto serializedCode = serialize_compute_pipeline({.shaderHashes = false}, info, signatureStore);
+  print_to_log(serializedCode);
+#endif
+}
+void PipelineLogSerializer::serialize([[maybe_unused]] const GraphicsPipelineSignature &sign,
+  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info) const
+{
+#if _TARGET_PC_WIN
+  RootSignatureGenerator signatureStore;
+  signatureStore.generate(sign, *this);
+  auto serializedCode = serialize_pipeline({.shaderHashes = false}, info, signatureStore);
+  print_to_log(serializedCode);
+#endif
+}
+void PipelineLogSerializer::serialize([[maybe_unused]] const ComputePipelineSignature &sign,
+  [[maybe_unused]] const D3D12_PIPELINE_STATE_STREAM_DESC &info) const
+{
+#if _TARGET_PC_WIN
+  RootSignatureGenerator signatureStore;
+  signatureStore.generate(sign, *this);
+  auto serializedCode = serialize_pipeline({.shaderHashes = false}, info, signatureStore);
+  print_to_log(serializedCode);
+#endif
 }

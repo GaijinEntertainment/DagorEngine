@@ -300,6 +300,7 @@ void tilecache_start(tile_check_cb_t tile_check_cb = nullptr, const char *obstac
 void tilecache_start_add_ri(tile_check_cb_t tile_check_cb, rendinst::riex_handle_t riex_handle);
 void tilecache_start_ladders(const scene::TiledScene *ladders);
 bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle);
+obstacle_handle_t tilecache_get_obstacle_handle(rendinst::riex_handle_t riex_handle);
 bool tilecache_is_working();
 bool tilecache_is_loaded();
 bool tilecache_is_inside(const BBox3 &box);

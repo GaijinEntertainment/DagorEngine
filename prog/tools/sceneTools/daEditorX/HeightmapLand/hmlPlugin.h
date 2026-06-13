@@ -314,6 +314,7 @@ public:
     return max((mapSize / meshCells) * getGridCellSize(), 1.0f);
   }
   Point3 getOffset() const;
+  float getRIMinCellSz() const { return riMinCellSz; }
   float getRIMaxCellSz() const { return riMaxCellSz; }
   int getRIMaxGenLayerCellDiv() const { return riMaxGenLayerCellDivisor; }
 
@@ -1312,6 +1313,7 @@ private:
   int numMeshVertices;
   int lod1TrisDensity;
   float importanceMaskScale;
+  float riMinCellSz = 0.f;
   float riMaxCellSz = 2048.f;
   int riMaxGenLayerCellDivisor = 8;
 

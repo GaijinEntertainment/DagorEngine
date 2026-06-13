@@ -1008,7 +1008,6 @@ void ObjectEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pan
     case CM_OBJED_SELECT_FILTER:
     {
       filterString = panel->getText(CM_OBJED_SELECT_FILTER);
-      panel->setBool(CM_OBJED_SELECT_FILTER, filterString.length() > 0);
 
       // parse comma-separated strings with optional '!' start symbol
       invFilter = filterString.length() > 0 && filterString[0] == '!';
@@ -1029,6 +1028,9 @@ void ObjectEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pan
         }
         filterStrings.push_back() = s.toLower();
       }
+
+      updateFilterByNameEditBox();
+
       break;
     }
   }
@@ -1716,8 +1718,18 @@ void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 
   setButton(CM_OBJED_OBJPROP_PANEL, (bool)objectPropBar);
 
-  tb->createEditBox(CM_OBJED_SELECT_FILTER, "", filterString);
-  tb->setBool(CM_OBJED_SELECT_FILTER, filterString.length() > 0);
+  {
+    PropPanel::ContainerPropertyControl *filterContainer = toolbar->createToolbarPanel(0, false, true, 120);
+
+    filterContainer->createSearchEditBox(CM_OBJED_SELECT_FILTER, "", filterString);
+    PropPanel::PropertyControlBase *filterEdit = filterContainer->getById(CM_OBJED_SELECT_FILTER);
+    filterEdit->setPlaceholderText("Filter by name");
+    filterEdit->setTooltip("Select only those objects whose name match the filter.\n"
+                           "Filter can contain multiple words separated by a comma.\n"
+                           "Starting the filter with the ! character negates the filter.");
+
+    updateFilterByNameEditBox();
+  }
 }
 
 
@@ -1828,4 +1840,58 @@ bool ObjectEditor::setUniqName(RenderableEditableObject *o, const char *n)
   lastNumberedName = newName;
   o->setName(newName);
   return false;
+}
+
+void ObjectEditor::updateFilterByNameEditBox()
+{
+  PropPanel::ContainerPropertyControl *toolbar = EDITORCORE->getCustomPanel(toolBarId);
+  if (!toolbar)
+    return;
+
+  PropPanel::PropertyControlBase *filterEdit = toolbar->getById(CM_OBJED_SELECT_FILTER);
+  if (!filterEdit)
+    return;
+
+  if (filterString.empty())
+  {
+    filterEdit->setButtonPictureValues("search");
+    filterEdit->setValueHighlight(PropPanel::ColorOverride::NONE);
+    filterEdit->setErrorMessageToast("");
+  }
+  else
+  {
+    enum class FilterResult
+    {
+      NoMatch,
+      NameMatch,
+      CanSelect,
+    };
+
+    FilterResult filterResult = FilterResult::NoMatch;
+    for (int i = 0; i < objects.size(); ++i)
+    {
+      if (canSelectObj(objects[i]))
+      {
+        filterResult = FilterResult::CanSelect;
+        break;
+      }
+
+      if (filterResult != FilterResult::NameMatch && checkObjSelFilter(*objects[i]))
+        filterResult = FilterResult::NameMatch;
+    }
+
+    if (filterResult == FilterResult::CanSelect)
+    {
+      filterEdit->setButtonPictureValues("search");
+      filterEdit->setValueHighlight(PropPanel::ColorOverride::EDIT_BOX_SEARCH_TEXT_SET_BACKGROUND);
+      filterEdit->setErrorMessageToast("");
+    }
+    else
+    {
+      filterEdit->setButtonPictureValues("alert");
+      filterEdit->setValueHighlight(PropPanel::ColorOverride::EDIT_BOX_SEARCH_NO_MATCH_BACKGROUND);
+      filterEdit->setErrorMessageToast(
+        filterResult == FilterResult::NoMatch ? "No objects found." : "No objects found in the currently available layers.");
+    }
+  }
 }

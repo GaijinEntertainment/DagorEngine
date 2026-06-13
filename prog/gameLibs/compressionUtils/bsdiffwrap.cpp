@@ -269,11 +269,15 @@ BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<
         {
           dblk::release_vromfs_blk_ddict(ddict_old);
           dblk::release_vromfs_blk_ddict(ddict_new);
+          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
+          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_new.get());
           return BSDIFF_INTERNAL_ERROR;
         }
       }
     dblk::release_vromfs_blk_ddict(ddict_old);
     dblk::release_vromfs_blk_ddict(ddict_new);
+    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
+    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_new.get());
 #if defined(MIMIC_WRONG_SIGNATURE_OFFSET_DIFF_CREATION)
     // it's known to be off by the size of headers but we need that for compatibility with old clients
     md5_hash_ofs_new = get_vromfs_dump_full_body_size(new_dump);
@@ -592,6 +596,7 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
         {
           zstd_destroy_cdict(cdict_new);
           dblk::release_vromfs_blk_ddict(ddict_old);
+          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
           return cleanup(BSDIFF_CORRUPT_PATCH);
         }
       }
@@ -600,6 +605,7 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
     }
     zstd_destroy_cdict(cdict_new);
     dblk::release_vromfs_blk_ddict(ddict_old);
+    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
 
     cwr_new.setsize(0);
     char buf[512];

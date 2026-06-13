@@ -17,10 +17,15 @@ ECS_UNICAST_EVENT_TYPE(EventCreateTreeBurningChain,
   int /*canopyType*/,
   Point3 /*canopyBoxMin*/,
   Point3 /*canopyBoxMax*/,
-  Point3 /*burningSourceWpos*/);
+  Point3 /*burningSourceWpos*/,
+  bool /*isBush*/);
 ECS_UNICAST_EVENT_TYPE(EventAddTreeBurningChainSource, Point3 /*burningSourceWpos*/);
 
 ECS_NET_DECL_MSG(TreeBurningInitialSyncMsg, danet::BitStream);
+
+// True if the rendinst's collision uses a "soft" (slowing) material like bushes, i.e. has
+// SoftMaterialProps with physViscosity != 1 - the same property that slows the soldier down.
+bool riex_collision_is_soft(rendinst::riex_handle_t handle);
 
 void serialize_tree_burning_data(danet::BitStream &bs, const BurntTreesRiExHandles &burnt_trees);
 void deserialize_tree_burning_data(const danet::BitStream &bs);

@@ -2,7 +2,7 @@ custom_envi_probe {
   _tags:t = render
   "custom_envi_probe__postfx:PostFxRenderer"{}
   custom_envi_probe__postfx_name:t="custom_envi_probe_transform"
-  "custom_envi_probe__cubemap:SharedTexHolder"{}
+  "custom_envi_probe__cubemap:SharedTexWithShaderVar"{}
   custom_envi_probe__cubemap_res:t=""
   custom_envi_probe__cubemap_var:t="envi_probe_source"
   custom_envi_probe__x_rotation:r=0.0; //degrees

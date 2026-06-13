@@ -423,6 +423,14 @@ void ax::NodeEditor::CenterNodeOnScreen(NodeId nodeId)
         node->CenterOnScreenInNextFrame();
 }
 
+// MODIFICATION BY GAIJIN
+ImVec2 ax::NodeEditor::GetPinPosition(PinId pinId)
+{
+    if (auto pin = s_Editor->FindPin(pinId))
+        return pin->m_Bounds.GetCenter();
+    return ImVec2(0.0f, 0.0f);
+}
+
 void ax::NodeEditor::SetNodeZPosition(NodeId nodeId, float z)
 {
     s_Editor->SetNodeZPosition(nodeId, z);
@@ -584,6 +592,12 @@ void ax::NodeEditor::NavigateToContent(float duration)
 void ax::NodeEditor::NavigateToSelection(bool zoomIn, float duration)
 {
     s_Editor->NavigateTo(s_Editor->GetSelectionBounds(), zoomIn, duration);
+}
+
+// MODIFICATION BY GAIJIN
+void ax::NodeEditor::ScrollCanvasPointToScreen(const ImVec2& canvasPoint, const ImVec2& screenPoint)
+{
+    s_Editor->ScrollCanvasPointToScreen(canvasPoint, screenPoint);
 }
 
 bool ax::NodeEditor::ShowNodeContextMenu(NodeId* nodeId)

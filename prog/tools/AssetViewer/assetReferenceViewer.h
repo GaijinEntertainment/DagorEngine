@@ -6,28 +6,67 @@
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
 #include <assets/assetRefs.h>
+#include <assetsGui/av_assetSelectorCommon.h>
 #include <de3_interface.h>
 
-class AssetReferenceViewer
+class AssetReferenceViewer : public AssetSearchResultsWindow
 {
 public:
-  static void show(DagorAsset &asset)
+  AssetReferenceViewer() : AssetSearchResultsWindow("Asset references")
   {
-    asset_search_results_window.reset(new AssetSearchResultsWindow("Asset references"));
-    asset_search_results_window->setWindowSubtitle(asset.getNameTypified());
-    asset_search_results_window->addColumnTitle("Asset name");
-    asset_search_results_window->addColumnTitle("Broken");
-    asset_search_results_window->addColumnTitle("External");
-    asset_search_results_window->addColumnTitle("Optional");
+    addColumnTitle("Asset name");
+    addColumnTitle("Broken");
+    addColumnTitle("External");
+    addColumnTitle("Optional");
+  }
 
-    getReferences(asset);
+  void setAsset(DagorAsset *asset)
+  {
+    assetNameTypified = asset ? asset->getNameTypified() : String();
+    setWindowSubtitle(asset ? asset->getName() : "");
+    setWindowSubtitleIcon(asset ? AssetSelectorCommon::getAssetTypeIcon(asset->getType()) : PropPanel::IconId::Invalid);
+    clearResults();
 
-    asset_search_results_window->fillResultsList();
-    asset_search_results_window->show();
+    if (asset)
+      getReferences(*asset);
+
+    fillResultsList();
   }
 
 private:
-  static void getReferences(DagorAsset &asset)
+  void saveResultsToBlk(DataBlock &blk) const override
+  {
+    blk.addStr("asset", assetNameTypified);
+
+    AssetSearchResultsWindow::saveResultsToBlk(blk);
+  }
+
+  bool loadResultsFromBlk(const DataBlock &blk, const char *path) override
+  {
+    assetNameTypified = blk.getStr("asset", "");
+    if (assetNameTypified.empty())
+    {
+      logerr("Loading results from \"%s\" has failed. It does not contain the asset name.", path);
+      return false;
+    }
+
+    DagorAsset *asset = DAEDITOR3.getAssetByName(assetNameTypified);
+    if (!asset)
+    {
+      logerr("Loading results from \"%s\" has failed. Asset \"%s\" cannot be found.", path, assetNameTypified);
+      return false;
+    }
+
+    if (!AssetSearchResultsWindow::loadResultsFromBlk(blk, path))
+      return false;
+
+    setAsset(asset);
+    setPinned(true); // Pin it because the loaded asset like does not match the currently selected asset in the Assets Tree.
+
+    return true;
+  }
+
+  void getReferences(DagorAsset &asset)
   {
     IDagorAssetRefProvider *refProvider = asset.getMgr().getAssetRefProvider(asset.getType());
     if (!refProvider)
@@ -71,7 +110,9 @@ private:
       const char *optionalText = (ref.flags & IDagorAssetRefProvider::RFLG_OPTIONAL) == 0 ? "-" : "Optional";
       outputSearchResult.additionalColumns.emplace_back(optionalText);
 
-      asset_search_results_window->addResult(eastl::move(outputSearchResult));
+      addResult(eastl::move(outputSearchResult));
     }
   }
+
+  String assetNameTypified;
 };

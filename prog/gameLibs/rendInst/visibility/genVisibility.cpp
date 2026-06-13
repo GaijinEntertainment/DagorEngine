@@ -431,7 +431,7 @@ bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frust
       int z = visData.cells[vi].z;
       int cellId = x + z * cellNumW;
       RendInstGenData::Cell &cell = cells[cellId];
-      RendInstGenData::CellRtData &crt = *cell.rtData;
+      RendInstGenData::CellRtData &crt = *cell.cellRtData;
       v_cell_add[vi] = crt.cellOrigin;
       v_cell_mul[vi] = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(grid2worldcellSz, crt.cellHeight, grid2worldcellSz, 0));
     }

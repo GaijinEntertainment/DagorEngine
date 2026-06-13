@@ -16,7 +16,7 @@ static void showUsage() { printf("\nUsage:\n  findDup-dev <start_dir> [-all]\n\n
 int DagorWinMain(bool debugmode)
 {
   printf("Dagor File Duplicate Finder\n"
-         "Copyright (c) Gaijin Games KFT, 2023\n\n");
+         "Copyright (c) Gaijin Games KFT, 2026\n\n");
   // get options
   if (__argc < 2)
   {

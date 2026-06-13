@@ -4,6 +4,7 @@
 #include <squirrel.h>
 #include <sqstdio.h>
 #include <assert.h>
+#include <limits.h>
 #include "sqstdstream.h"
 
 #define SQSTD_FILE_TYPE_TAG ((SQUnsignedInteger)(SQSTD_STREAM_TYPE_TAG | 0x00000001))
@@ -26,6 +27,11 @@ SQInteger sqstd_fwrite(const SQUserPointer buffer, SQInteger size, SQInteger cou
 
 SQInteger sqstd_fseek(SQFILE file, SQInteger offset, SQInteger origin)
 {
+#ifdef _SQ64
+    if (offset > INT_MAX || offset < INT_MIN)
+        return -1;
+#endif
+
     SQInteger realorigin;
     switch(origin) {
         case SQ_SEEK_CUR: realorigin = SEEK_CUR; break;
@@ -251,53 +257,6 @@ SQRESULT sqstd_getfile(HSQUIRRELVM v, SQInteger idx, SQFILE *file)
     return sq_throwerror(v,"not a file");
 }
 
-
-static char *readFileData(HSQUIRRELVM v, SQFILE f, SQInteger &s) {
-    sqstd_fseek(f, 0, SQ_SEEK_SET);
-    SQInteger size = sqstd_fseek(f, 0, SQ_SEEK_END);
-    char *buffer = (char *)sq_malloc(sq_getallocctx(v), size * sizeof(char));
-
-    sqstd_fseek(f, 0, SQ_SEEK_SET);
-    s = sqstd_fread(buffer, sizeof(char), size, f);
-
-    return buffer;
-}
-
-SQRESULT sqstd_loadfile(HSQUIRRELVM v,const char *filename,SQBool printerror)
-{
-    SQFILE file = sqstd_fopen(filename,"rb");
-
-    if(file){
-        SQInteger size = 0;
-        char *buffer = readFileData(v, file, size);
-        SQRESULT r = SQ_ERROR;
-
-        if(SQ_SUCCEEDED(sq_compile(v,buffer,size,filename,printerror))){
-            r = SQ_OK;
-        }
-        sq_free(sq_getallocctx(v), buffer, size);
-        sqstd_fclose(file);
-        return r;
-    }
-    return sq_throwerror(v,"cannot open the file");
-}
-
-SQRESULT sqstd_dofile(HSQUIRRELVM v,const char *filename,SQBool retval,SQBool printerror)
-{
-    //at least one entry must exist in order for us to push it as the environment
-    if(sq_gettop(v) == 0)
-        return sq_throwerror(v,"environment table expected");
-
-    if(SQ_SUCCEEDED(sqstd_loadfile(v,filename,printerror))) {
-        sq_push(v,-2);
-        if(SQ_SUCCEEDED(sq_call(v,1,retval,SQTrue))) {
-            sq_remove(v,retval?-2:-1); //removes the closure
-            return 1;
-        }
-        sq_pop(v,1); //removes the closure
-    }
-    return SQ_ERROR;
-}
 
 static const SQRegFunctionFromStr iolib_funcs[] = {
     { NULL, NULL, NULL }

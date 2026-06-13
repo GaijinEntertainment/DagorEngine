@@ -4,6 +4,7 @@
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/control/dragAndDropHandler.h>
 #include <propPanel/imguiHelper.h>
+#include <propPanel/immediateFocusLossHandler.h>
 #include <propPanel/propPanel.h>
 #include "../c_constants.h"
 #include "../scopedImguiBeginDisabled.h"
@@ -14,7 +15,7 @@
 namespace PropPanel
 {
 
-class EditBoxPropertyControl : public PropertyControlBase
+class EditBoxPropertyControl : public PropertyControlBase, public IImmediateFocusLossHandler
 {
 public:
   EditBoxPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x, int y, hdpi::Px w,
@@ -35,6 +36,9 @@ public:
     // case EditBoxPropertyControl gets re-created with the exact same address, so it gets the same ImGuiID, and it gets
     // the value of the previous control because of the re-apply on focus loss code in ImGui. So prevent that.
     preventReapplyingEditAtFocusLoss();
+
+    if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
   }
 
   unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_CAPTION | CONTROL_DATA_TYPE_BOOL; }
@@ -58,12 +62,6 @@ public:
 
   void setCaptionValue(const char value[]) override { controlCaption = value; }
 
-  void setButtonPictureValues(const char *fname) override
-  {
-    iconMain = load_icon(fname);
-    iconClear = iconMain == IconId::Invalid ? IconId::Invalid : load_icon("close_editor");
-  }
-
   void setBoolValue(bool value) override { needColorIndicate = value; }
 
   void setDragSourceHandlerValue(IDragSourceHandler *handler) override { controlDragHandler = handler; }
@@ -80,6 +78,8 @@ public:
   }
 
   void reset() override { setTextValue(""); }
+
+  void onImmediateFocusLoss() override { onWcChangeFinished(nullptr); }
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
 
@@ -124,9 +124,11 @@ public:
         inputState->ReloadUserBufAndMoveToEnd();
     }
 
-    // NOTE: if you add an option to this that will require the changes to be confirmed (for example with the Enter key)
-    // and the changes also will be saved on focus loss then you will have to use IImmediateFocusLossHandler.
+    // onWcChange fires on every change; onWcChangeFinished fires only when the edit is committed
+    // (Enter below, or ImGui reporting deactivation-after-edit on focus loss). IImmediateFocusLossHandler
+    // additionally covers focus taken away immediately (tree selection / control destruction).
     bool textChanged;
+    bool deactivatedAfterEdit = false;
     if (controlMultiline)
     {
       if (autoHeight && textInputFocused)
@@ -163,22 +165,14 @@ public:
 
       textChanged = ImGuiDagor::InputTextMultilineWithHint(inputLabel, placeholderText, &controlValue, size);
       textInputFocused = ImGui::IsItemFocused();
+      deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
     }
     else
     {
       // Use full width by default.
       ImGui::SetNextItemWidth(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN);
 
-      if (iconMain == PropPanel::IconId::Invalid)
-      {
-        textChanged = ImguiHelper::inputTextWithEnterWorkaround(inputLabel, placeholderText, &controlValue, textInputFocused);
-        textInputFocused = ImGui::IsItemFocused();
-      }
-      else
-      {
-        textChanged =
-          ImguiHelper::searchInput(this, inputLabel, placeholderText, controlValue, iconMain, iconClear, &textInputFocused);
-      }
+      updateImguiInput(inputLabel, textChanged, deactivatedAfterEdit);
     }
 
     if (useValueHighlight || useIndicatorColor)
@@ -218,6 +212,14 @@ public:
       onWcChange(nullptr);
     }
 
+    if (deactivatedAfterEdit)
+      onWcChangeFinished(nullptr);
+
+    if (textInputFocused)
+      set_focused_immediate_focus_loss_handler(this);
+    else if (get_focused_immediate_focus_loss_handler() == this)
+      set_focused_immediate_focus_loss_handler(nullptr);
+
     if (textInputFocused && !controlMultiline)
     {
       // TODO: ImGui porting: hardcoding these three keys that are used by the TreeListWindow is really hacky. But
@@ -228,6 +230,7 @@ public:
         ImGui::SetKeyOwner(ImGuiKey_Enter, ImGuiKeyOwner_Any, ImGuiInputFlags_LockUntilRelease);
 
         onWcKeyDown(nullptr, wingw::V_ENTER);
+        onWcChangeFinished(nullptr);
       }
       else if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
       {
@@ -263,7 +266,14 @@ public:
     }
   }
 
-private:
+protected:
+  virtual void updateImguiInput(const char *input_label, bool &text_changed, bool &deactivated_after_edit)
+  {
+    text_changed = ImguiHelper::inputTextWithEnterWorkaround(input_label, placeholderText, &controlValue, textInputFocused);
+    textInputFocused = ImGui::IsItemFocused();
+    deactivated_after_edit = ImGui::IsItemDeactivatedAfterEdit();
+  }
+
   // ImGui does not like when the contents of an active (edited) edit box is changed from code the same frame when
   // the InputText loses focus.
   // See https://github.com/ocornut/imgui/issues/3878 for the issue.
@@ -308,8 +318,6 @@ private:
   bool showTooltipAlways = false;
   bool autoHeight = false;
   ImVec2 hintWindowSize = ImVec2(0.0f, 0.0f);
-  IconId iconMain = IconId::Invalid;
-  IconId iconClear = IconId::Invalid;
 };
 
 } // namespace PropPanel

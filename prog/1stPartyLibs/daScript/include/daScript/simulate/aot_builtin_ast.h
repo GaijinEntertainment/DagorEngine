@@ -515,6 +515,8 @@ namespace das {
     __forceinline void verify_expression_gc ( ExpressionPtr value ) { if ( value ) value->gc_verify(); }
     __forceinline StructurePtr clone_structure ( const Structure * value ) { return value ? value->clone() : nullptr; }
     __forceinline VariablePtr clone_variable ( VariablePtr value ) { return value ? value->clone() : nullptr; }
+    DAS_API void delete_expression ( ExpressionPtr expr );
+    DAS_API void delete_type ( TypeDeclPtr typ );
     DAS_API void forceAtRaw ( Expression * expr, const LineInfo & at );
     DAS_API void getAstContext ( smart_ptr_raw<Program> prog, Expression * expr, const TBlock<void,bool,AstContext> & block, Context * context, LineInfoArg * at );
     DAS_API char * get_mangled_name ( Function * func, Context * context, LineInfoArg * at );
@@ -528,6 +530,7 @@ namespace das {
     DAS_API bool isExprConst ( ExpressionPtr expr );
     DAS_API bool isTempType ( TypeDeclPtr ptr, bool refMatters );
     DAS_API float4 evalSingleExpression ( ExpressionPtr expr, bool & ok );
+    DAS_API float4 evalSingleExpressionInContext ( ExpressionPtr expr, smart_ptr_raw<Context> useCtx, bool & ok );
     DAS_API ExpressionPtr makeCall ( const LineInfo & at, const char * name );
     DAS_API bool builtin_isVisibleDirectly ( Module * from, Module * too );
     DAS_API bool builtin_hasField ( TypeDeclPtr ptr, const char * field, bool constant );

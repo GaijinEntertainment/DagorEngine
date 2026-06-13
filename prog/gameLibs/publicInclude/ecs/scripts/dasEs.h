@@ -16,6 +16,11 @@ namespace ecs
 class EntityManager;
 }
 
+namespace das
+{
+struct daScriptEnvironment;
+}
+
 namespace bind_dascript
 {
 enum class HotReload;
@@ -87,6 +92,14 @@ struct LoadingDasEcsContextRAII
 bool get_always_use_main_thread_env();
 void set_always_use_main_thread_env(bool value);
 void set_worker_threads_mode(bool on);
+
+struct RAIIDasEnvBound
+{
+  das::daScriptEnvironment *savedBound = nullptr;
+  RAIIDasEnvBound();
+  ~RAIIDasEnvBound();
+};
+
 bool is_in_worker_threads_mode();
 bool is_in_documentation();
 bool enable_das_rtti();

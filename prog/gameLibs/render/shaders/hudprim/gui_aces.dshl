@@ -4,6 +4,7 @@ include "gui_aces_helpers.dshl"
 include "gbuffer.dshl"
 include "gui_aces_common.dshl"
 include "flexible_scale_rasterization.dshl"
+include "dynamic_resolution.dshl"
 
 float4 gui_to_scene_point_to_eye = (0, 0, 0, 0);
 
@@ -44,6 +45,8 @@ shader gui_aces
   INIT_LOAD_DEPTH_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
   USE_FSR(ps)
+
+  INIT_DYNAMIC_RESOLUTION(ps)
 
   channel float4 pos = pos;
 
@@ -120,7 +123,7 @@ shader gui_aces
             #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-gui_cockpit_depth);}
           ##else
             #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy * rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
-            clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-gui_cockpit_depth);}
+            clip(linearize_z(readGbufferDepth(ftc * current_dynamic_resolution_scale), zn_zfar.zw)-gui_cockpit_depth);}
           ##endif
         }
       } else
@@ -134,7 +137,7 @@ shader gui_aces
             #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-VSOUT.screenPosition.z);}
           ##else
             #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy *rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
-            clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-VSOUT.screenPosition.z);}
+            clip(linearize_z(readGbufferDepth(ftc * current_dynamic_resolution_scale), zn_zfar.zw)-VSOUT.screenPosition.z);}
           ##endif
         }
       }

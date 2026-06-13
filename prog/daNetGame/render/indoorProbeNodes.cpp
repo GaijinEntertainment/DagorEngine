@@ -151,7 +151,7 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
       // probes would be culled away and not used :/
       registry.create("probes_ready_token").blob<OrderingToken>();
 
-      registry.requestRenderPass().depthRw("downsampled_depth");
+      registry.requestRenderPass().depth("downsampled_depth");
       shaders::OverrideState state;
       state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
       registry.requestState()
@@ -181,7 +181,14 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
 
         STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_PS, indoor_probe_visible_pixels_count_const_no, VALUE),
           visiblePixelsCountHndl.get());
+      // On Sony platforms d3d::set_rwbuffer() unbinds the buffer from ALL stages before binding it
+      // to the requested one (see drv3d_commonCode/sony: set_rwbuffer -> ShaderState::unbind(DataBuffer*))
+      // So here we disable the VS write manually so that PS pixel counting logic works correctly on PS4/5
+#if _TARGET_C1 || _TARGET_C2
+
+#else
         const bool hasUavInVSCapability = d3d::get_driver_desc().caps.hasUAVOnEveryStage;
+#endif
         STATE_GUARD_NULLPTR(
           hasUavInVSCapability ? d3d::set_rwbuffer(STAGE_VS, indoor_probe_visible_pixels_count_const_no, VALUE) : false,
           visiblePixelsCountHndl.get());

@@ -43,8 +43,8 @@ bool is_dag_file(const TSTR &path);
 std::vector<TSTR> glob(const TSTR &dir, bool recursive);
 
 
-M_STD_STRING strToWide(const char *sz);
-std::string wideToStr(const TCHAR *sw);
+std::wstring strToWide(const char *sz);
+std::string wideToStr(const wchar_t *sw);
 
 // "\foo\bar.baz" --> \foo\bar.baz
 TSTR drop_quotation_marks(const TSTR &s);
@@ -97,7 +97,7 @@ std::string escape_string(const std::string &input);
 template <typename T>
 T parse_param_value(const std::wstring &in)
 {
-  M_STD_ISTRINGSTREAM str(in);
+  std::wistringstream str(in);
   str.imbue(std::locale::classic());
   T out = 0;
   str >> out;
@@ -107,7 +107,7 @@ T parse_param_value(const std::wstring &in)
 template <typename T, int C>
 T parse_param_value(const std::wstring &in)
 {
-  M_STD_ISTRINGSTREAM str(in);
+  std::wistringstream str(in);
   str.imbue(std::locale::classic());
   T out;
   for (int i = 0; i < C; ++i)

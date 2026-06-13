@@ -358,6 +358,12 @@ void IrGraphBuilder::scanPhysicalResourceUsages(ResNameId res_id, const F &proce
           process_history_reader(historyReader, unresolvedResId);
       }
 
+    // Even though we'll visit this node on the next iteration of the cycle,
+    // it will be under a different ResNameId, and we need to account for both.
+    const auto consumedBy = depData.resourceLifetimes[resIdCandidate].consumedBy;
+    if (consumedBy != NodeNameId::Invalid && validityInfo.nodeValid[consumedBy])
+      scanNodeSlotsOrResource(consumedBy, resIdCandidate, process_modifier);
+
     // The renaming chain might've been "torn" by an invalid node.
     if (!validityInfo.resourceValid[depData.renamingChains[resIdCandidate]])
       break;
@@ -1574,8 +1580,24 @@ intermediate::RequiredNodeState IrGraphBuilder::calcNodeState(NodeNameId node_id
 
     SET(wire, supportsWireframe);
     SET(vrs, vrsState);
-    SET(shaderOverrides, pipelineStateOverride);
 #undef SET
+  }
+
+  // Compute effective shader override: user's pipelineStateOverride from
+  // stateRequirements (if any) merged with FG-injected implicit bits.
+  {
+    eastl::optional<shaders::OverrideState> effective;
+    if (nodeData.stateRequirements && nodeData.stateRequirements->pipelineStateOverride)
+      effective = *nodeData.stateRequirements->pipelineStateOverride;
+
+    if (nodeData.renderingRequirements && nodeData.renderingRequirements->implicitZWriteDisable)
+    {
+      if (!effective)
+        effective.emplace();
+      effective->set(shaders::OverrideState::Z_WRITE_DISABLE);
+    }
+
+    setter.set(result.shaderOverrides, effective);
   }
   setter.set(result.asyncPipelines, nodeData.allowAsyncPipelines);
   setter.set(result.pass, nodeData.renderingRequirements);

@@ -237,6 +237,10 @@ float4 rain_ripple_params2 = (1.5, 1.0, 1.5, 4.0);
 //z - max normal strength
 //w - ripples power
 
+// Fade water rain ripples out on steep/uneven water (waves) where they look bad.
+float4 water_rain_ripples_slope_fade_params = float4(0.7, 0.95, 0, 0);
+//x,y - smoothstep range of dot(geometryNormal, up): below x ripples fully off, above y fully on
+
 float rain_gbuf_fade = 1.0;
 
 int heightmap_puddles = 0;
@@ -346,6 +350,7 @@ if (compatibility_mode == compatibility_mode_off)
   (stage) {
     rain_ripple_params@f4 = rain_ripple_params;
     rain_ripple_params2@f4 = rain_ripple_params2;
+    water_rain_ripples_slope_fade_params@f4 = water_rain_ripples_slope_fade_params;
   }
 
   hlsl(stage) {
@@ -415,6 +420,12 @@ if (compatibility_mode == compatibility_mode_off)
       }
     }
 
+    // Returns a 0..1 rain ripple strength multiplier; 0 on steep slopes, 1 on flat water.
+    float water_rain_ripples_slope_fade(half geometryNdotUp)
+    {
+      return smoothstep(water_rain_ripples_slope_fade_params.x, water_rain_ripples_slope_fade_params.y, geometryNdotUp);
+    }
+
     void apply_rain_ripples_water(float3 world_pos, float dist, float strength, inout float3 world_normal)
     {
       const float fadeInvRange = 1.0 / (RAIN_RIPPLES_FADE_END - RAIN_RIPPLES_FADE_START);
@@ -428,6 +439,7 @@ else
   hlsl(stage) {
     #define apply_rain_ripples(world_pos, vertical_norm, smoothness, strength, world_normal)
     #define apply_rain_ripples_water(world_pos, dist, strength, world_normal)
+    #define water_rain_ripples_slope_fade(geometryNdotUp) 1.0
   }
 }
 

@@ -12,11 +12,12 @@ class StaticPropertyControl : public PropertyControlBase
 {
 public:
   StaticPropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
-    const char caption[], hdpi::Px h, bool use_text_width = false, bool word_wrap = false) :
+    const char caption[], hdpi::Px h, bool use_text_width = false, bool word_wrap = false, bool monospace = false) :
     PropertyControlBase(id, event_handler, parent, x, y, w, h),
     controlCaption(caption),
     useTextWidth(use_text_width),
-    wordWrap(word_wrap)
+    wordWrap(word_wrap),
+    monospace(monospace)
   {}
 
   unsigned getTypeMaskForSet() const override { return CONTROL_CAPTION | CONTROL_DATA_TYPE_STRING; }
@@ -45,6 +46,8 @@ public:
 
     if (bold)
       ImGui::PushFont(imgui_get_bold_font(), 0.0f);
+    if (monospace)
+      ImGui::PushFont(imgui_get_mono_font(), 0.0f); // 0.0f keeps the current size
 
     if (wordWrap)
     {
@@ -64,6 +67,8 @@ public:
       labelWithTooltip(controlCaption.begin(), controlCaption.end(), useTextWidth);
     }
 
+    if (monospace)
+      ImGui::PopFont();
     if (bold)
       ImGui::PopFont();
   }
@@ -74,6 +79,7 @@ private:
   bool bold = false;
   bool useTextWidth = false;
   bool wordWrap = false;
+  bool monospace = false;
 };
 
 } // namespace PropPanel

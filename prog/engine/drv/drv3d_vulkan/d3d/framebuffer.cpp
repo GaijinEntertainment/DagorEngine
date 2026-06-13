@@ -211,6 +211,38 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
   return true;
 }
 
+// Bulk setter: sets all color targets, clears unused slots, and sets depth in one call.
+void d3d::set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  LocalAccessor la;
+  using Bind = StateFieldFramebufferAttachment;
+
+  int i = 0;
+  for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+  {
+    if (colors[i].tex)
+      la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
+        {(uint32_t)i, {colors[i].tex, (int)colors[i].mip_level, (int)colors[i].layer}});
+    else
+      la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
+        {(uint32_t)i, Bind::empty});
+  }
+  for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
+      {(uint32_t)i, Bind::empty});
+
+  if (depth.tex)
+    la.pipeState.set<StateFieldFramebufferAttachments, Bind::RawIndexed, FrontGraphicsState, FrontFramebufferState>(
+      {MRT_INDEX_DEPTH_STENCIL, {depth.tex, 0, (int)depth.layer}});
+  else
+    la.pipeState.set<StateFieldFramebufferAttachments, Bind::Indexed, FrontGraphicsState, FrontFramebufferState>(
+      {MRT_INDEX_DEPTH_STENCIL, Bind::empty});
+
+  la.pipeState.set<StateFieldGraphicsViewport, StateFieldGraphicsViewport::RestoreFromFramebuffer, FrontGraphicsState>({});
+  la.pipeState.set<StateFieldFramebufferReadOnlyDepth, bool, FrontGraphicsState, FrontFramebufferState>(
+    depth_access == DepthAccess::SampledRO);
+}
+
 void d3d::get_render_target(Driver3dRenderTarget &out_rt)
 {
   LocalAccessor la;

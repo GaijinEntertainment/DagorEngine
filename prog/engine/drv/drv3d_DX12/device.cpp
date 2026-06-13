@@ -106,8 +106,10 @@ void to_debuglog(const dxil::ShaderDeviceRequirement &req)
     uint8_t vendor;
     uint16_t mask;
   };
+  using enum dxil::ExtensionVendor;
+  using enum dxil::VendorExtensionBits;
   static const ExtensionTableEntry extensionTable[] = {
-#define ADD_E(vendor, name) {#vendor ": " #name, dxil::ExtensionVendor::##vendor, dxil::VendorExtensionBits::vendor##_##name}
+#define ADD_E(vendor, name) {#vendor ": " #name, vendor, vendor##_##name}
     ADD_E(NVIDIA, DXR_SHADER_EXECUTION_REORDER),
     ADD_E(NVIDIA, DXR_MICRO_MAP),
     ADD_E(NVIDIA, WAVE_MULTI_PREFIX),
@@ -204,8 +206,10 @@ void to_debuglog(const dxil::ShaderDeviceRequirement &avail, const dxil::ShaderD
     uint8_t vendor;
     uint16_t mask;
   };
+  using enum dxil::ExtensionVendor;
+  using enum dxil::VendorExtensionBits;
   static const ExtensionTableEntry extensionTable[] = {
-#define ADD_E(vendor, name) {#vendor ": " #name, dxil::ExtensionVendor::##vendor, dxil::VendorExtensionBits::vendor##_##name}
+#define ADD_E(vendor, name) {#vendor ": " #name, vendor, vendor##_##name}
     ADD_E(NVIDIA, DXR_SHADER_EXECUTION_REORDER),
     ADD_E(NVIDIA, DXR_MICRO_MAP),
     ADD_E(NVIDIA, WAVE_MULTI_PREFIX),
@@ -687,6 +691,7 @@ void load_config_into_memory_setup(ResourceMemoryHeap::SetupInfo &setup, const D
 
 #if _TARGET_PC_WIN
   setup.reportMemoryInfo = config->getBool("reportMemoryInfo", DAGOR_DBGLEVEL == 0);
+  setup.reportOverBudget = config->getBool("reportOverBudget", true);
 
   auto uploadHeapConfig = config->getBlockByNameEx("uploadHeapsGPU");
 
@@ -731,7 +736,6 @@ void load_config_into_memory_setup(ResourceMemoryHeap::SetupInfo &setup, const D
   setup.collectedMetrics.set(ResourceMemoryHeap::Metric::BUFFERS, metricsConfig->getBool("buffers", default_state));
   setup.collectedMetrics.set(ResourceMemoryHeap::Metric::TEXTURES, metricsConfig->getBool("textures", default_state));
   setup.collectedMetrics.set(ResourceMemoryHeap::Metric::CONST_RING, metricsConfig->getBool("const-ring", default_state));
-  setup.collectedMetrics.set(ResourceMemoryHeap::Metric::TEMP_RING, metricsConfig->getBool("temp-ring", default_state));
   setup.collectedMetrics.set(ResourceMemoryHeap::Metric::TEMP_MEMORY, metricsConfig->getBool("temp-memory", default_state));
   setup.collectedMetrics.set(ResourceMemoryHeap::Metric::PERSISTENT_UPLOAD,
     metricsConfig->getBool("persistent-upload", default_state));
@@ -916,7 +920,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
   return handle;
 }
 
-Device::~Device() { shutdown({}); }
+Device::~Device() { shutdown(); }
 
 void Device::setupNullViews()
 {
@@ -1119,11 +1123,11 @@ bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D
 }
 
 bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
-  AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
-  eastl::fixed_function<8, void()> caps_init)
+  AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg)
 {
   adapter = eastl::move(adapter_info.adapter);
 
+  DeviceCapsOverrides deviceCapsOverrides;
   PipelineManager::SetupParameters pipelineManagerSetup;
 
   logdbg("DX12: D3D12CreateDevice...");
@@ -1145,13 +1149,10 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   if (!isToolDevice && !createD3d12DeviceWithCheck(d3d_env, feature_level))
   {
     logdbg("DX12: Failed...");
-    shutdown({});
+    shutdown();
     return false;
   }
   logdbg("DX12: ...Device has been successfully created");
-
-  if (caps_init)
-    caps_init();
 
   const auto vendor = d3d_get_vendor(adapter_info.info.VendorId);
 
@@ -1224,10 +1225,11 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
     logdbg("DX12: ReBAR is %s", rebarStatus);
   }
 
-  config = cfg;
-  psoSlowThresholdUsec = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("psoSlowThresholdMsec", 1000) * 1000;
+  auto &dxCfg = *::dgs_get_settings()->getBlockByNameEx("dx12");
 
-#if _TARGET_PC_WIN
+  config = cfg;
+  psoSlowThresholdUsec = dxCfg.getInt("psoSlowThresholdMsec", 1000) * 1000;
+
   if (GpuVendor::AMD == vendor)
   {
     auto driverDate = gpu::get_driver_date(adapter_info.info.VendorId, adapter_info.info.DeviceId);
@@ -1236,18 +1238,18 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
       config.features.set(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE);
       logwarn("DX12: Old AMD driver detected (%02d.%02d.%04d), disabling pipeline library cache as it might cause crashes",
         driverDate.day, driverDate.month, driverDate.year);
+      deviceCapsOverrides.forceOffRayTracing = true;
     }
   }
 
   {
-    const bool isNvidia = (GpuVendor::NVIDIA == d3d_get_vendor(adapter_info.info.VendorId));
-    const bool blkSkip = ::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("skipPreloadRaytracingPipelinesOnNvidia", false);
+    const bool isNvidia = GpuVendor::NVIDIA == vendor;
+    const bool blkSkip = dxCfg.getBool("skipPreloadRaytracingPipelinesOnNvidia", false);
     allowRaytracePipelinePreload = !(isNvidia && blkSkip);
     if (!allowRaytracePipelinePreload)
       logdbg("DX12: Raytracing pipeline preload disabled as NVIDIA driver crash workaround"
              " (skipPreloadRaytracingPipelinesOnNvidia)");
   }
-#endif
 
   const bool validationLayerAvailable = debug::DeviceState::setup(debug_state, device.get(), d3d_env);
 
@@ -1277,7 +1279,7 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #if DAGOR_DBGLEVEL > 0
     logdbg("DX12: Debug build, allowing target without DXIL support");
 #else
-    shutdown({});
+    shutdown();
     return false;
 #endif
   }
@@ -1292,17 +1294,26 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   if (!queues.init(device.get(), *this))
   {
     logdbg("DX12: Failed...");
-    shutdown({});
+    shutdown();
     return false;
   }
 
   logdbg("DX12: Creating swapchain...");
   if (!context.back.swapchain.setup(*this, context.front.swapchain, factory.Get(), queues[DeviceQueueType::GRAPHICS].getHandle(),
-        eastl::move(swapchain_create_info), 0, !::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false)))
+        eastl::move(swapchain_create_info), 0, !dxCfg.getBool("disableLowLatency", false)))
   {
     logdbg("DX12: Failed...");
-    shutdown({});
+    shutdown();
     return false;
+  }
+
+  if (auto output = context.back.swapchain.getOutput())
+  {
+    DXGI_OUTPUT_DESC desc;
+    output->GetDesc(&desc);
+    auto name = get_name(desc);
+    auto rational = get_refresh_rate(desc);
+    logdbg("DX12: Display: %s, refresh rate: %.02f", name.c_str(), (float)rational.Numerator / (float)rational.Denominator);
   }
 
   driverVersion = get_driver_version_from_adapter(adapter.Get());
@@ -1369,11 +1380,9 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 
   pipeMan.init(pipelineManagerSetup);
 
-#if _TARGET_PC_WIN
   pipeMan.asyncPipelineCompiler.init(*this,
     get_recover_behavior_from_cfg(config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
       config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)));
-#endif
 
 #if !DX12_FIXED_EXECUTION_MODE
   CommandExecutionMode execMode = CommandExecutionMode::IMMEDIATE;
@@ -1396,7 +1405,9 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   context.initFSR();
   context.initFsr2();
 
-  if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false) && GpuLatency::getInstance() == nullptr)
+  adjustCaps(deviceCapsOverrides);
+
+  if (!dxCfg.getBool("disableLowLatency", false) && GpuLatency::getInstance() == nullptr)
   {
     GpuLatency::create(vendor);
   }
@@ -1408,6 +1419,7 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 
   return true;
 }
+
 uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIFactory> &factory)
 {
   const auto indexOpt = context.front.swapchain.findSwapchainByWindow(window);
@@ -1485,7 +1497,7 @@ void Device::destroySecondarySwapchainForWindow(HWND window)
 
 bool Device::isInitialized() const { return nullptr != device.get(); }
 
-void Device::shutdown(const DeviceCapsAndShaderModel &features)
+void Device::shutdown()
 {
   if (!isInitialized())
     return;
@@ -1547,22 +1559,10 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
   pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
 #endif
   auto dxBlock = dgs_get_settings()->getBlockByNameEx("dx12");
-  pipelineCacheSetup.features = features;
-  // smNone is a indicator for default constructed, eg on error case
-  if (features.shaderModel != d3d::smNone)
-  {
-    pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
-    pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
-  }
-  else
-  {
-    pipelineCacheSetup.generateBlks = false;
-    pipelineCacheSetup.alwaysGenerateBlks = false;
-  }
+  pipelineCacheSetup.generateBlks = dxBlock->getBool("generateCacheBlks", pipeMan.needToUpdateCache);
+  pipelineCacheSetup.alwaysGenerateBlks = dxBlock->getBool("alwaysGenerateCacheBlks", pipeMan.needToUpdateCache);
 
   pipelineCache.shutdown(pipelineCacheSetup);
-#else
-  G_UNUSED(features);
 #endif
 
   resources.shutdown(getDXGIAdapter(), &bindlessManager);
@@ -1595,85 +1595,74 @@ void Device::initializeBindlessManager(bool enable_types_validation)
     &nullResourceTable, enable_types_validation);
 }
 
-void Device::adjustCaps(DriverDesc &capabilities)
+void Device::adjustCaps([[maybe_unused]] const DeviceCapsOverrides &overrides)
 {
-  capabilities.info = {};
-  capabilities.caps = {};
-  capabilities.issues = {};
+  driverDesc.info = {};
+  driverDesc.caps = {};
+  driverDesc.issues = {};
+
+  driverDesc.mintexw = 1;
+  driverDesc.mintexh = 1;
+  driverDesc.mincubesize = 1;
+  driverDesc.minvolsize = 1;
+  driverDesc.maxtexw = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+  driverDesc.maxtexh = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+  driverDesc.maxcubesize = D3D12_REQ_TEXTURECUBE_DIMENSION;
+  driverDesc.maxvolsize = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
+  driverDesc.maxtexcoord = D3D12_VS_INPUT_REGISTER_COUNT;
+  driverDesc.maxsimtex = (int)dxil::MAX_T_REGISTERS;
+  driverDesc.maxstreams = D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT;
+  driverDesc.maxstreamstr = 0x10000;
+  driverDesc.maxvpconsts = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT;
+  driverDesc.maxprims = (int)min(0x7FFFFFFFull, 1llu << D3D12_REQ_DRAW_VERTEX_COUNT_2_TO_EXP);
+  driverDesc.maxvertind = (int)min(0x7FFFFFFFull, 1llu << D3D12_REQ_DRAWINDEXED_INDEX_COUNT_2_TO_EXP);
+  driverDesc.maxSimRT = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
+  driverDesc.is20ArbitrarySwizzleAvailable = true;
+#if !_TARGET_XBOXONE
+  driverDesc.raytrace.topAccelerationStructureInstanceElementSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
+  driverDesc.raytrace.accelerationStructureBuildScratchBufferOffsetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
+  driverDesc.raytrace.maxRecursionDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
+  driverDesc.raytrace.accelerationStructurePoolSizeAlignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+  driverDesc.raytrace.accelerationStructurePoolOffsetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
+#endif
 
   D3D12_FEATURE_DATA_D3D12_OPTIONS2 opt2 = {};
   device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &opt2, sizeof(opt2));
   caps.set(Caps::DEPTH_BOUNDS_TEST, opt2.DepthBoundsTestSupported != FALSE);
 
 #if _TARGET_PC_WIN
+  driverDesc.caps.hasDepthReadOnly = true;
+  driverDesc.caps.hasStructuredBuffers = true;
+  driverDesc.caps.hasNoOverwriteOnShaderResourceBuffers = true;
+  driverDesc.caps.hasForcedSamplerCount = true;
+  driverDesc.caps.hasVolMipMap = true;
+  driverDesc.caps.hasOcclusionQuery = true;
+  driverDesc.caps.hasConstBufferOffset = true;
+  driverDesc.caps.hasDepthBoundsTest = hasDepthBoundsTest();
+  driverDesc.caps.hasConditionalRender = true;
+  driverDesc.caps.hasResourceCopyConversion = true;
+  driverDesc.caps.hasReadMultisampledDepth = true;
+  driverDesc.caps.hasInstanceID = true;
+  driverDesc.caps.hasQuadTessellation = true;
+  driverDesc.caps.hasGather4 = true;
+  driverDesc.caps.hasWellSupportedIndirect = true;
+  driverDesc.caps.hasAliasedTextures = true;
+  driverDesc.caps.hasResourceHeaps = true;
+  driverDesc.caps.hasBufferOverlapCopy = true;
+  driverDesc.caps.hasBufferOverlapRegionsCopy = true;
+  driverDesc.caps.hasUAVOnlyForcedSampleCount = true;
+  driverDesc.caps.hasDrawID = true;
+  driverDesc.caps.hasUAVOnEveryStage = true;
+  driverDesc.caps.hasStreamOutput = true;
+  driverDesc.caps.hasProperUAVSupport = true;
+  driverDesc.caps.hasBarrierNone = true;
+  driverDesc.caps.hasPipelineStatisticsQuery = true;
+
   auto info = getAdapterInfo();
-  capabilities.info.isUMA = info.integrated;
-  capabilities.info.driverVersion = driverVersion;
-  capabilities.info.driverDate = gpu::get_driver_date(info.info.VendorId, info.info.DeviceId);
-  gpu::update_device_attributes(info.info.VendorId, info.info.DeviceId, capabilities.info);
-
-  capabilities.caps.hasDepthReadOnly = true;
-  capabilities.caps.hasStructuredBuffers = true;
-  capabilities.caps.hasNoOverwriteOnShaderResourceBuffers = true;
-  capabilities.caps.hasForcedSamplerCount = true;
-  capabilities.caps.hasVolMipMap = true;
-  capabilities.caps.hasAsyncCompute = false;
-  capabilities.caps.hasOcclusionQuery = true;
-  capabilities.caps.hasConstBufferOffset = true;
-  capabilities.caps.hasDepthBoundsTest = hasDepthBoundsTest();
-  capabilities.caps.hasConditionalRender = true;
-  capabilities.caps.hasResourceCopyConversion = true;
-  capabilities.caps.hasReadMultisampledDepth = true;
-  capabilities.caps.hasInstanceID = true;
-  capabilities.caps.hasQuadTessellation = true;
-  capabilities.caps.hasGather4 = true;
-  capabilities.caps.hasWellSupportedIndirect = true;
-  capabilities.caps.hasNVApi = false;
-  capabilities.caps.hasATIApi = false;
-  capabilities.caps.hasAliasedTextures = true;
-  capabilities.caps.hasResourceHeaps = true;
-  capabilities.caps.hasBufferOverlapCopy = true;
-  capabilities.caps.hasBufferOverlapRegionsCopy = true;
-  capabilities.caps.hasUAVOnlyForcedSampleCount = true;
-  capabilities.caps.hasNativeRenderPassSubPasses = false;
-  capabilities.caps.hasDrawID = true;
-  capabilities.caps.hasRenderPassDepthResolve = false;
-  capabilities.caps.hasUAVOnEveryStage = true;
-  capabilities.caps.hasStreamOutput = true;
-  capabilities.caps.hasProperUAVSupport = true;
-
-  if (GpuVendor::NVIDIA == capabilities.info.vendor)
-  {
-    // This is a bloody workaround for broken terrain tessellation.
-    // All versions newer than 460.79 are affected.
-    // TODO: remove this code snippet when those nvidia driver versions aren't supported anymore.
-    const auto version = to_nvidia_version(capabilities.info.driverVersion);
-    if (version >= TwoComponentVersion{.major = 460, .minor = 79} && version < TwoComponentVersion{.major = 461, .minor = 40})
-    {
-      capabilities.caps.hasQuadTessellation = false;
-    }
-    if (version >= TwoComponentVersion{.major = 572, .minor = 00} && version < TwoComponentVersion{.major = 572, .minor = 99})
-    {
-      capabilities.issues.hasBrokenNvApiGetSleepStatus = true;
-    }
-
-#if HAS_NVAPI
-    if (isNvapiInitialized)
-    {
-      capabilities.caps.hasNVApi = true;
-      NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS nvOmmCaps{};
-      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_OPACITY_MICROMAP, &nvOmmCaps, sizeof(nvOmmCaps));
-      caps.set(Caps::RAY_TRACING_OMM_NV,
-        NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_NONE != (NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_STANDARD & nvOmmCaps));
-
-      NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS nvSerCaps{};
-      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_THREAD_REORDERING, &nvSerCaps, sizeof(nvSerCaps));
-      caps.set(Caps::RAY_TRACING_SER_NV,
-        NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_NONE != (NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_STANDARD & nvSerCaps));
-    }
-#endif
-  }
-  capabilities.issues.hasBrokenUAVOnlyPasses = false;
+  driverDesc.info.isUMA = info.integrated;
+  driverDesc.info.driverVersion = driverVersion;
+  driverDesc.info.driverDate = gpu::get_driver_date(info.info.VendorId, info.info.DeviceId);
+  gpu::update_device_attributes(info.info.VendorId, info.info.DeviceId, driverDesc.info);
 
   auto op0 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS>();
   auto op1 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>();
@@ -1688,46 +1677,46 @@ void Device::adjustCaps(DriverDesc &capabilities)
   auto op12 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS12>();
   auto sm = get_shader_model(device.get());
 
-  capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
-  logdbg("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
-  if (capabilities.shaderModel >= 6.6_sm)
+  driverDesc.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
+  logdbg("DX12: GPU has support for Shader Model %u.%u", driverDesc.shaderModel.major, driverDesc.shaderModel.minor);
+  if (driverDesc.shaderModel >= 6.6_sm)
   {
     // according to https://d3d12infodb.boolka.dev/FeatureTable.html there is no DX12 HW that actually supports sm 6.6+ and has
     // resource binding tier lower than 3, so this should never happen, but this just ensures we never allow this unusual combination
     // of features
     if (op0.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_3)
     {
-      capabilities.shaderModel = 6.5_sm;
+      driverDesc.shaderModel = 6.5_sm;
       logwarn("DX12: Downgrading shader model to 6.5 as the device has no resource binding tier 3 or higher");
     }
   }
 
-  capabilities.caps.hasConservativeRassterization =
+  driverDesc.caps.hasConservativeRassterization =
     D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED != op0.ConservativeRasterizationTier;
 
-  capabilities.caps.hasTiled2DResources = D3D12_TILED_RESOURCES_TIER_1 <= op0.TiledResourcesTier;
-  capabilities.caps.hasTiledMemoryAliasing = D3D12_TILED_RESOURCES_TIER_1 <= op0.TiledResourcesTier;
-  capabilities.caps.hasTiledSafeResourcesAccess = D3D12_TILED_RESOURCES_TIER_2 <= op0.TiledResourcesTier;
-  capabilities.caps.hasTiled3DResources = D3D12_TILED_RESOURCES_TIER_3 <= op0.TiledResourcesTier;
+  driverDesc.caps.hasTiled2DResources = D3D12_TILED_RESOURCES_TIER_1 <= op0.TiledResourcesTier;
+  driverDesc.caps.hasTiledMemoryAliasing = D3D12_TILED_RESOURCES_TIER_1 <= op0.TiledResourcesTier;
+  driverDesc.caps.hasTiledSafeResourcesAccess = D3D12_TILED_RESOURCES_TIER_2 <= op0.TiledResourcesTier;
+  driverDesc.caps.hasTiled3DResources = D3D12_TILED_RESOURCES_TIER_3 <= op0.TiledResourcesTier;
   // We don't support the limited max 128 SRVs per stage tier 1 supports.
   // Xbox always supports full heap of SRVs
-  capabilities.caps.hasBindless = D3D12_RESOURCE_BINDING_TIER_2 <= op0.ResourceBindingTier;
+  driverDesc.caps.hasBindless = D3D12_RESOURCE_BINDING_TIER_2 <= op0.ResourceBindingTier;
 
   if (config.features.test(DeviceFeaturesConfig::DISABLE_BINDLESS))
   {
-    capabilities.caps.hasBindless = false;
+    driverDesc.caps.hasBindless = false;
   }
-  capabilities.caps.hasWaveOps = op1.WaveOps;
-  capabilities.minWarpSize = op1.WaveLaneCountMin;
-  capabilities.maxWarpSize = op1.WaveLaneCountMax;
+  driverDesc.caps.hasWaveOps = op1.WaveOps;
+  driverDesc.minWarpSize = op1.WaveLaneCountMin;
+  driverDesc.maxWarpSize = op1.WaveLaneCountMax;
 
   logdbg("GPU has tier %d for view instancing.", op3.ViewInstancingTier);
-  capabilities.caps.castingFullyTypedFormatsSupported = op3.CastingFullyTypedFormatSupported;
-  capabilities.caps.hasBasicViewInstancing = D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier;
-  capabilities.caps.hasOptimizedViewInstancing = D3D12_VIEW_INSTANCING_TIER_2 <= op3.ViewInstancingTier;
-  capabilities.caps.hasAcceleratedViewInstancing = D3D12_VIEW_INSTANCING_TIER_3 <= op3.ViewInstancingTier;
+  driverDesc.caps.castingFullyTypedFormatsSupported = op3.CastingFullyTypedFormatSupported;
+  driverDesc.caps.hasBasicViewInstancing = D3D12_VIEW_INSTANCING_TIER_1 <= op3.ViewInstancingTier;
+  driverDesc.caps.hasOptimizedViewInstancing = D3D12_VIEW_INSTANCING_TIER_2 <= op3.ViewInstancingTier;
+  driverDesc.caps.hasAcceleratedViewInstancing = D3D12_VIEW_INSTANCING_TIER_3 <= op3.ViewInstancingTier;
 
-  capabilities.caps.hasShaderFloat16Support = op4.Native16BitShaderOpsSupported;
+  driverDesc.caps.hasShaderFloat16Support = op4.Native16BitShaderOpsSupported;
 
   caps.set(Caps::RAY_TRACING, D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier);
   caps.set(Caps::RAY_TRACING_T1_1, D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier);
@@ -1737,107 +1726,117 @@ void Device::adjustCaps(DriverDesc &capabilities)
   caps.set(Caps::RAY_TRACING_T1_2, false);
 #endif
 
-  capabilities.caps.hasRayAccelerationStructure = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
-  capabilities.caps.hasRayQuery = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
-  capabilities.caps.hasRayDispatch = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
-  capabilities.caps.hasIndirectRayDispatch = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
-  capabilities.caps.hasGeometryIndexInRayAccelerationStructure =
-    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
-  capabilities.caps.hasSkipPrimitiveTypeInRayTracingShaders =
-    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
-  capabilities.caps.hasNativeRayTracePipelineExpansion = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
-  capabilities.caps.hasPersistentShaderHandles = capabilities.caps.hasRayDispatch;
+  driverDesc.caps.hasRayAccelerationStructure = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
+  driverDesc.caps.hasRayQuery = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (driverDesc.shaderModel >= 6.5_sm);
+  driverDesc.caps.hasRayDispatch = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
+  driverDesc.caps.hasIndirectRayDispatch = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
+  driverDesc.caps.hasGeometryIndexInRayAccelerationStructure =
+    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (driverDesc.shaderModel >= 6.5_sm);
+  driverDesc.caps.hasSkipPrimitiveTypeInRayTracingShaders =
+    D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (driverDesc.shaderModel >= 6.5_sm);
+  driverDesc.caps.hasNativeRayTracePipelineExpansion = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier;
+  driverDesc.caps.hasPersistentShaderHandles = driverDesc.caps.hasRayDispatch;
 
+  driverDesc.caps.hasVariableRateShading = D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier;
+  caps.set(Caps::SHADING_RATE_T1, D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier);
+
+  driverDesc.caps.hasVariableRateShadingTexture = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
+  driverDesc.caps.hasVariableRateShadingShaderOutput = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
+  driverDesc.caps.hasVariableRateShadingCombiners = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
+  caps.set(Caps::SHADING_RATE_T2, D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier);
+
+  driverDesc.variableRateTextureTileSizeX = driverDesc.variableRateTextureTileSizeY = op6.ShadingRateImageTileSize;
+
+  driverDesc.caps.hasVariableRateShadingBy4 = FALSE != op6.AdditionalShadingRatesSupported;
+
+  driverDesc.caps.hasMeshShader = D3D12_MESH_SHADER_TIER_1 <= op7.MeshShaderTier;
+  driverDesc.caps.hasMeshShaderIndirectCount = driverDesc.caps.hasMeshShader;
+
+  driverDesc.caps.hasShader64BitIntegerResources =
+    (FALSE != op9.AtomicInt64OnTypedResourceSupported) && (driverDesc.shaderModel >= 6.6_sm);
+  driverDesc.caps.hasAtomicInt64OnGroupShared = (FALSE != op9.AtomicInt64OnGroupSharedSupported) && (driverDesc.shaderModel >= 6.6_sm);
+
+  driverDesc.caps.hasDLSS =
+    getContext().streamlineAdapter && getContext().streamlineAdapter->isDlssSupported() == nv::SupportState::Supported;
+  driverDesc.caps.hasXESS = getContext().getXessState() >= XessState::SUPPORTED;
+
+  auto tightAlignment = checkFeatureSupport<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT>();
+  caps.set(Caps::TIGHT_BUFFER_ALIGNMENT, D3D12_TIGHT_ALIGNMENT_TIER_1 <= tightAlignment.SupportTier);
+
+  if (GpuVendor::NVIDIA == driverDesc.info.vendor)
+  {
+    // This is a bloody workaround for broken terrain tessellation.
+    // All versions newer than 460.79 are affected.
+    // TODO: remove this code snippet when those nvidia driver versions aren't supported anymore.
+    const auto version = to_nvidia_version(driverDesc.info.driverVersion);
+    if (version >= TwoComponentVersion{.major = 460, .minor = 79} && version < TwoComponentVersion{.major = 461, .minor = 40})
+    {
+      driverDesc.caps.hasQuadTessellation = false;
+    }
+    if (version >= TwoComponentVersion{.major = 572, .minor = 00} && version < TwoComponentVersion{.major = 572, .minor = 99})
+    {
+      driverDesc.issues.hasBrokenNvApiGetSleepStatus = true;
+    }
+
+#if HAS_NVAPI
+    if (isNvapiInitialized)
+    {
+      driverDesc.caps.hasNVApi = true;
+      NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS nvOmmCaps{};
+      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_OPACITY_MICROMAP, &nvOmmCaps, sizeof(nvOmmCaps));
+      caps.set(Caps::RAY_TRACING_OMM_NV,
+        NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_NONE != (NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_STANDARD & nvOmmCaps));
+
+      NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS nvSerCaps{};
+      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_THREAD_REORDERING, &nvSerCaps, sizeof(nvSerCaps));
+      caps.set(Caps::RAY_TRACING_SER_NV,
+        NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_NONE != (NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_STANDARD & nvSerCaps));
+    }
+#endif
+  }
+
+  bool disableRayTracing = overrides.forceOffRayTracing;
   if (D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier)
   {
     bool isSoftwareRT = deviceUsesSoftwareRaytracing(op5);
     bool allowSoftwareRT = dgs_get_settings()->getBlockByNameEx("dx12")->getBool("allowSoftwareRT", false);
     if (isSoftwareRT && !allowSoftwareRT)
     {
-      caps.set(Caps::RAY_TRACING, false);
-      caps.set(Caps::RAY_TRACING_T1_1, false);
-      caps.set(Caps::RAY_TRACING_T1_2, false);
-      caps.set(Caps::RAY_TRACING_OMM_NV, false);
-      capabilities.caps.hasRayAccelerationStructure = false;
-      capabilities.caps.hasRayQuery = false;
-      capabilities.caps.hasRayDispatch = false;
-      capabilities.caps.hasIndirectRayDispatch = false;
-      capabilities.caps.hasGeometryIndexInRayAccelerationStructure = false;
-      capabilities.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
-      capabilities.caps.hasNativeRayTracePipelineExpansion = false;
-      capabilities.caps.hasPersistentShaderHandles = false;
+      disableRayTracing = true;
     }
   }
 
-  capabilities.caps.hasVariableRateShading = D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier;
-  caps.set(Caps::SHADING_RATE_T1, D3D12_VARIABLE_SHADING_RATE_TIER_1 <= op6.VariableShadingRateTier);
+  if (disableRayTracing)
+  {
+    caps.set(Caps::RAY_TRACING, false);
+    caps.set(Caps::RAY_TRACING_T1_1, false);
+    caps.set(Caps::RAY_TRACING_T1_2, false);
+    caps.set(Caps::RAY_TRACING_OMM_NV, false);
+    caps.set(Caps::RAY_TRACING_SER_NV, false);
+    driverDesc.caps.hasRayAccelerationStructure = false;
+    driverDesc.caps.hasRayQuery = false;
+    driverDesc.caps.hasRayDispatch = false;
+    driverDesc.caps.hasIndirectRayDispatch = false;
+    driverDesc.caps.hasGeometryIndexInRayAccelerationStructure = false;
+    driverDesc.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
+    driverDesc.caps.hasNativeRayTracePipelineExpansion = false;
+    driverDesc.caps.hasPersistentShaderHandles = false;
+  }
 
-  capabilities.caps.hasVariableRateShadingTexture = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
-  capabilities.caps.hasVariableRateShadingShaderOutput = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
-  capabilities.caps.hasVariableRateShadingCombiners = D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier;
-  caps.set(Caps::SHADING_RATE_T2, D3D12_VARIABLE_SHADING_RATE_TIER_2 <= op6.VariableShadingRateTier);
-
-  capabilities.variableRateTextureTileSizeX = capabilities.variableRateTextureTileSizeY = op6.ShadingRateImageTileSize;
-
-  capabilities.caps.hasVariableRateShadingBy4 = FALSE != op6.AdditionalShadingRatesSupported;
-
-  capabilities.caps.hasMeshShader = D3D12_MESH_SHADER_TIER_1 <= op7.MeshShaderTier;
-  capabilities.caps.hasMeshShaderIndirectCount = capabilities.caps.hasMeshShader;
-
-  capabilities.caps.hasShader64BitIntegerResources =
-    (FALSE != op9.AtomicInt64OnTypedResourceSupported) && (capabilities.shaderModel >= 6.6_sm);
-  capabilities.caps.hasAtomicInt64OnGroupShared =
-    (FALSE != op9.AtomicInt64OnGroupSharedSupported) && (capabilities.shaderModel >= 6.6_sm);
-
-  capabilities.caps.hasDLSS =
-    getContext().streamlineAdapter && getContext().streamlineAdapter->isDlssSupported() == nv::SupportState::Supported;
-  capabilities.caps.hasXESS = getContext().getXessState() >= XessState::SUPPORTED;
-
-  auto tightAlignment = checkFeatureSupport<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT>();
-  caps.set(Caps::TIGHT_BUFFER_ALIGNMENT, D3D12_TIGHT_ALIGNMENT_TIER_1 <= tightAlignment.SupportTier);
-
-#else
-  xbox_adjust_caps<Caps>(capabilities, caps, config);
-#endif
-
-  capabilities.maxtexw = min(capabilities.maxtexw, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
-  capabilities.maxtexh = min(capabilities.maxtexh, D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
-  capabilities.maxcubesize = min(capabilities.maxcubesize, D3D12_REQ_TEXTURECUBE_DIMENSION);
-  capabilities.maxvolsize = min(capabilities.maxvolsize, D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION);
-  capabilities.maxtexaspect = max(capabilities.maxtexaspect, 0);
-  capabilities.maxtexcoord = min(capabilities.maxtexcoord, D3D12_VS_INPUT_REGISTER_COUNT);
-  capabilities.maxsimtex = min(capabilities.maxsimtex, (int)dxil::MAX_T_REGISTERS);
-  capabilities.maxvertexsamplers = min(capabilities.maxvertexsamplers, D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT);
-  capabilities.maxclipplanes = min(capabilities.maxclipplanes, 0);
-  capabilities.maxstreams = min(capabilities.maxstreams, D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
-  capabilities.maxstreamstr = min(capabilities.maxstreamstr, 0x10000);
-  capabilities.maxvpconsts = min(capabilities.maxvpconsts, D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
-  // do not overflow into negative numbers
-  capabilities.maxprims = min(capabilities.maxprims, (int)min(0x7FFFFFFFull, 1llu << D3D12_REQ_DRAW_VERTEX_COUNT_2_TO_EXP));
-  capabilities.maxvertind = min(capabilities.maxvertind, (int)min(0x7FFFFFFFull, 1llu << D3D12_REQ_DRAWINDEXED_INDEX_COUNT_2_TO_EXP));
-  capabilities.maxSimRT = min(capabilities.maxSimRT, D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT);
-#if !_TARGET_XBOXONE
-  capabilities.raytrace.topAccelerationStructureInstanceElementSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC);
-  capabilities.raytrace.accelerationStructureBuildScratchBufferOffsetAlignment =
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
-  capabilities.raytrace.maxRecursionDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
-  capabilities.raytrace.accelerationStructurePoolSizeAlignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-  capabilities.raytrace.accelerationStructurePoolOffsetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
-#endif
-
-#if _TARGET_PC_WIN
-  capabilities.caps.hasRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Core == getOpacityMicroMapAvailability();
-  capabilities.caps.hasNvidiaRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Nvidia == getOpacityMicroMapAvailability();
+  driverDesc.caps.hasRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Core == getOpacityMicroMapAvailability();
+  driverDesc.caps.hasNvidiaRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Nvidia == getOpacityMicroMapAvailability();
   logdbg("DX12: Opacity micro map support implemented by %s", as_string(getOpacityMicroMapAvailability()));
 
-  capabilities.caps.hasRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_T1_2);
-  capabilities.caps.hasNvidiaRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_SER_NV);
-  capabilities.caps.hasBarrierNone = true;
-  capabilities.caps.hasPipelineStatisticsQuery = true;
-  capabilities.caps.hasEnhancedResourceBarriers = FALSE != op12.EnhancedBarriersSupported;
+  driverDesc.caps.hasRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_T1_2);
+  driverDesc.caps.hasNvidiaRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_SER_NV);
+  driverDesc.caps.hasEnhancedResourceBarriers = FALSE != op12.EnhancedBarriersSupported;
+
+#else
+  xbox_adjust_caps<Caps>(driverDesc, caps, config);
 #endif
 
-  capabilities.raytrace.opacityMicroMapInputBufferAlignment = getOpacityMicroMapInputBufferAlignment();
+  driverDesc.maxvertexsamplers = driverDesc.caps.hasBindless ? driverDesc.maxsimtex : D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+  driverDesc.raytrace.opacityMicroMapInputBufferAlignment = getOpacityMicroMapInputBufferAlignment();
 }
 
 uint64_t Device::getGpuTimestampFrequency()
@@ -2430,7 +2429,7 @@ void Device::enumerateActiveMonitors(Tab<String> &result)
   clear_and_shrink(result);
   ComPtr<IDXGIOutput> activeOutput;
   for (uint32_t outputIndex = 0; SUCCEEDED(adapter->EnumOutputs(outputIndex, &activeOutput)); outputIndex++)
-    result.push_back(get_monitor_name_from_output(activeOutput.Get()));
+    result.push_back(get_name(activeOutput.Get()));
 }
 
 HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
@@ -2454,6 +2453,23 @@ HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
       *out_desc = desc.BufferDesc;
   }
   return hr;
+}
+
+DISPLAYCONFIG_RATIONAL Device::getCurrentDisplayRefreshRate()
+{
+  DXGI_OUTPUT_DESC desc;
+  {
+    ScopedCommitLock ctxLock{context};
+    if (auto output = context.back.swapchain.getOutput())
+    {
+      output->GetDesc(&desc);
+    }
+    else
+    {
+      return {.Numerator = 0, .Denominator = 1};
+    }
+  }
+  return get_refresh_rate(desc);
 }
 #endif
 
@@ -2512,7 +2528,7 @@ LUID Device::preRecovery()
 }
 
 bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
-  D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&sci, HWND wnd, eastl::fixed_function<8, void()> caps_init)
+  D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&sci, HWND wnd)
 {
   logdbg("DX12: Attempting to enter recovering state...");
   if (!enterRecoveringState())
@@ -2535,8 +2551,11 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
 
   context.recoverStreamline(adapter.Get());
 
-  if (caps_init)
-    caps_init();
+  adjustCaps({
+    // somewhat hacky way to carry forward the deactivation of RT, but if RT is off now, and the device may support it, we shut it off
+    // previously for a reason
+    .forceOffRayTracing = !caps.test(Caps::RAY_TRACING),
+  });
 
   debug::DeviceState::recover(device.get(), d3d_env);
   startDeviceErrorObserver(device.get());

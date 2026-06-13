@@ -17,7 +17,6 @@ texture rt_nr;
 
 float4 ptgi_hit_dist_params;
 
-float4 ptgi_resolution = (1,1,1,1);
 int4 ptgi_resolutionI = (1,1,1,1);
 int ptgi_res_mul = 1;
 int ptgi_use_rr = 1;
@@ -58,7 +57,7 @@ shader rt_gi
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = ptgi_resolutionI.xy;
-    inv_aligned_resolution@f2 = (1.0 / ptgi_resolution.xy);
+    inv_aligned_resolution@f2 = (ptgi_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
     output@uav = ptgi_target hlsl { RWTexture2D<float4> output@uav; };
     impostor_shadow_offset@f1 = impostor_shadow_offset;
     ptgi_res_mul@i1 = ptgi_res_mul;
@@ -67,7 +66,7 @@ shader rt_gi
     nr_texture@tex2d = rt_nr;
     history_weight@f1 = ptgi_history_weight;
     max_bounces@u1 = ptgi_max_bounces;
-    hit_dist_params@f4 = ptgi_hit_dist_params;
+    hit_dist_params@f3 = ptgi_hit_dist_params;
     frame_index@i1 = blue_noise_frame_index;
     boost@f1 = ptgi_boost;
     boost_range@f1 = ptgi_boost_range;

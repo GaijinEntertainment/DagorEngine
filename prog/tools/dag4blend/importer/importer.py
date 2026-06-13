@@ -465,6 +465,8 @@ class DagImporter(Operator, ImportHelper):
 
 #> fixing apex if material was renamed on import
         apex_mat=o.dagorprops.get('apex_interior_material:t')
+        if apex_mat is not None:
+            apex_mat = apex_mat.replace('"','')
         if apex_mat is not None and o.data.materials.get(apex_mat) is None:
             for m in self.materials:
                 found=False

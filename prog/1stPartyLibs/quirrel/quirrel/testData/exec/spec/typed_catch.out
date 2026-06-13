@@ -1,0 +1,9 @@
+match: api
+catchall: net
+second: net
+string: boom
+integer: 42
+subclass: api
+propagated: net
+rethrow-to-outer: net
+bool: true

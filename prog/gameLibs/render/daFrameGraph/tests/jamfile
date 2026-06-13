@@ -73,6 +73,7 @@ Sources =
   irGraphBuilder.cpp
   nodeStateDeltas.cpp
   resourceScheduler.cpp
+  virtualPassRequest.cpp
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

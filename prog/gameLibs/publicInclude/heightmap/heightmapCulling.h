@@ -142,14 +142,10 @@ static inline float proj_to_distance_scale(const TMatrix4 &proj) { return proj._
 struct HeightmapFrustumCullingInfo
 {
   Point3 world_pos = {0, 0, 0};
-  float camera_height = 0;
-  float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   Frustum frustum;
   const Occlusion *occlusion = nullptr;
   const vec4f *world_bbox_xzs = nullptr;
-  int min_tank_lod = 0;
-  int lod0subdiv = 0;
-  float lod0scale = 1.0f;
+  bool useDetailedHmap = true;
   HeightmapMetricsQuality metrics;
 };
 
@@ -159,7 +155,8 @@ void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float 
   const Occlusion *occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId = -1, int dim = default_patch_dim,
   bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, BBox2 *lodsRegion = nullptr,
   float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});
+  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {},
+  void (*on_patch_cb)(const BBox3 &box) = nullptr);
 
 struct MetricsErrors;
 void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, const Frustum &frustum, const Occlusion *use_occlusion,

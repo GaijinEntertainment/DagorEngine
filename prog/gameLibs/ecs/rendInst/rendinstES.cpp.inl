@@ -388,7 +388,9 @@ static void riextra_spawn_ri_es(const ecs::Event &, ecs::EntityManager &manager,
         *ri_extra__savedSeed = (int)rendinst::get_riextra_instance_seed(*ri_extra__handle);
 #if DAGOR_DBGLEVEL > 0
       else
-        logerr("Invalid riExtra handle on spawn for <%s>, random seed couldn't be cached", ri_extra__name);
+        // We don't logerr because sometimes it's impossible to avoid this situation from the gameplay code.
+        // i.e. if we detete RI while it is queued to become an entity we get invalid ri_extra__handle here
+        logwarn("Invalid riExtra handle on spawn for <%s>, random seed couldn't be cached", ri_extra__name);
 #endif
     }
     return;

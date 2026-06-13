@@ -15,7 +15,7 @@ CONSOLE_FLOAT_VAL("render", mirror_sky_prepare_altitude_tolerance, 100.0f);
 dafg::NodeHandle create_dynamic_mirror_envi_node(DynamicMirrorRenderer &mirror_renderer)
 {
   return get_dynamic_mirrors_namespace().registerNode("render_envi", DAFG_PP_NODE_SRC, [&mirror_renderer](dafg::Registry registry) {
-    registry.requestRenderPass().depthRoAndBindToShaderVars("mirror_gbuf_depth", {"depth_gbuf"}).color({"mirror_texture"});
+    registry.requestRenderPass().depthReadTestAndSample("mirror_gbuf_depth", {"depth_gbuf"}).color({"mirror_texture"});
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
 
     auto mirrorActiveHndl = registry.readBlob<bool>("is_mirror_active").handle();

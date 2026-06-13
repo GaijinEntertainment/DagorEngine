@@ -21,6 +21,7 @@
 #include <generic/dag_carray.h>
 #include <landMesh/lmeshTools.h>
 #include <landMesh/landClass.h>
+#include <landMesh/lmeshRenderFlags.h>
 #include <shaders/dag_overrideStateId.h>
 #include <EASTL/vector_map.h>
 #include <EASTL/vector.h>
@@ -42,12 +43,10 @@ struct OptimizedScene;
 }
 struct LandClassDetailTextures;
 
-class BaseTexture;
-typedef BaseTexture Texture;
-typedef BaseTexture ArrayTexture;
+// BaseTexture / Texture / ArrayTexture typedefs and NUM_TEXTURES_STACK live in
+// landMesh/lmeshTools.h (included above), so the land-class / virtual-texture code
+// can use them without depending on this header.
 struct LCTexturesLoaded;
-
-static constexpr int NUM_TEXTURES_STACK = 3;
 
 struct CellState;
 struct Frustum;
@@ -109,14 +108,17 @@ public:
     d3d::SamplerHandle sampler = {};
   };
 
+  // Render-control flags relocated to the neutral header landMesh/lmeshRenderFlags.h
+  // so virtual-texture code does not depend on LandMeshRenderer. These are compat
+  // aliases; lmesh_render_flags references the single landmesh:: storage.
   enum
   {
-    RENDER_DECALS = 1,
-    RENDER_COMBINED = 2,
-    RENDER_LANDMESH = 4,
-    RENDER_HEIGHTMAP = 8
+    RENDER_DECALS = landmesh::RENDER_DECALS,
+    RENDER_COMBINED = landmesh::RENDER_COMBINED,
+    RENDER_LANDMESH = landmesh::RENDER_LANDMESH,
+    RENDER_HEIGHTMAP = landmesh::RENDER_HEIGHTMAP
   };
-  static uint32_t lmesh_render_flags;
+  static uint32_t &lmesh_render_flags;
   enum RenderPurpose
   {
     DEFAULT_RENDERING_PURPOSE,
@@ -225,8 +227,6 @@ public:
   TEXTUREID getDetailTileTex() { return tileTexId; }
   d3d::SamplerHandle getDetailTileSmp() const { return tileTexSmp; }
   bool reloadGrassMaskTex(int land_class_id, TEXTUREID newGrassMaskTexId);
-  static d3d::SamplerInfo getTextureSamplerInfo(TEXTUREID tid);
-  static d3d::SamplerInfo getTextureSamplerInfo(TEXTUREID tid, float anisotropic_max);
 
   Tab<LandClassDetailTextures> &getLandClasses() { return landClasses; }
   void updateCustomSamplers(LandMeshManager &provider);

@@ -53,6 +53,7 @@ Point4 getRIGenExtraBSphereByTM(uint32_t pool, const TMatrix &tm);
 int getRIGenExtraParentForDestroyedRiIdx(uint32_t pool);
 bool isRIGenExtraDestroyedPhysResExist(uint32_t pool);
 int getRIGenExtraDestroyedRiIdx(uint32_t pool);
+bool isRIGenExtraRendinstClipmap(uint32_t pool);
 vec4f getRIGenExtraBSphere(riex_handle_t id);
 // special values: 0 (default HP with regen), -1 (default HP no regen), -2 (invincible)
 void setRiGenExtraHp(riex_handle_t id, float hp);

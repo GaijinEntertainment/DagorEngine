@@ -60,6 +60,7 @@
 #include <startup/dag_restart.h>
 
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_GizmoSettingsDialog.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_input.h>
@@ -74,7 +75,6 @@
 #include <EditorCore/ec_workspace.h>
 #include <EditorCore/ec_keyboardShortcutsPanel.h>
 
-#include <consoleWindow/dag_consoleWindow.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/event.h>
 #include <drv/3d/dag_texture.h>
@@ -205,6 +205,8 @@ ISkiesService *av_skies_srv = NULL;
 SimpleString av_skies_preset, av_skies_env, av_skies_wtype;
 EditorCommandSystem editor_command_system;
 static FastPtrList changedAssetsList;
+static eastl::unique_ptr<AssetReferenceViewer> asset_reference_viewer_dialog;
+static eastl::unique_ptr<AssetBackReferenceViewer> asset_back_reference_viewer_dialog;
 
 enum
 {
@@ -405,7 +407,9 @@ AssetViewerApp::~AssetViewerApp()
     imgui_window_set_visible("VR", "VR controls", false);
 
   console->destroyConsole(); // Prevent the console from issuing draw commands during shut down.
-  asset_search_results_window.reset();
+  asset_reference_viewer_dialog.reset();
+  asset_back_reference_viewer_dialog.reset();
+  release_suboptimal_asset_collector_dialog();
   getModelessWindowControllers().releaseAllWindows();
   mManager->unregisterWindowHandler(this);
   PropPanel::remove_delayed_callback(*this);
@@ -529,6 +533,7 @@ void AssetViewerApp::registerEditorCommands()
   editor_command_system.addCommand(EditorCommandIds::LOAD_DEFAULT_LAYOUT);
   editor_command_system.addCommand(EditorCommandIds::LOAD_LAYOUT);
   editor_command_system.addCommand(EditorCommandIds::SAVE_LAYOUT);
+  editor_command_system.addCommand(EditorCommandIds::TOGGLE_DABUILD);
   editor_command_system.addCommand(EditorCommandIds::TOGGLE_TAG_MANAGER);
   editor_command_system.addCommand(EditorCommandIds::TOGGLE_PROPERTY_PANEL, ImGuiKey_P);
   editor_command_system.addCommand(EditorCommandIds::COMPOSITE_EDITOR, ImGuiKey_C);
@@ -617,6 +622,7 @@ void AssetViewerApp::addAccelerators()
     mManager->addAccelerator(CM_LOAD_DEFAULT_LAYOUT, EditorCommandIds::LOAD_DEFAULT_LAYOUT);
     mManager->addAccelerator(CM_LOAD_LAYOUT, EditorCommandIds::LOAD_LAYOUT);
     mManager->addAccelerator(CM_SAVE_LAYOUT, EditorCommandIds::SAVE_LAYOUT);
+    mManager->addAccelerator(CM_WINDOW_DABUILD, EditorCommandIds::TOGGLE_DABUILD);
     mManager->addAccelerator(CM_WINDOW_TAGMANAGER, EditorCommandIds::TOGGLE_TAG_MANAGER);
     mManager->addAccelerator(CM_WINDOW_PPANEL_ACCELERATOR, EditorCommandIds::TOGGLE_PROPERTY_PANEL);
     mManager->addAccelerator(CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR, EditorCommandIds::COMPOSITE_EDITOR);
@@ -708,6 +714,7 @@ ModelessWindowControllerList AssetViewerApp::getModelessWindowControllers()
   controllers.addWindowController(*get_camera_object_config_modeless_dialog_handler());
   controllers.addWindowController(*environment::get_environment_settings_dialog_controller());
   controllers.addWindowController(*get_preferences_dialog_controller());
+  controllers.addWindowController(*get_gizmo_settings_dialog_controller());
   controllers.addWindowController(*get_work_cycle_act_rate_dialog_controller());
 
   return controllers;
@@ -731,7 +738,9 @@ void AssetViewerApp::makeDefaultLayout(bool for_initial_layout)
     getMainMenu()->setCheckById(CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES, consoleCommandsAndVariableWindowsVisible);
   }
 
-  asset_search_results_window.reset();
+  asset_reference_viewer_dialog.reset();
+  asset_back_reference_viewer_dialog.reset();
+  release_suboptimal_asset_collector_dialog();
 
   mManager->reset();
   mManager->setWindowType(nullptr, VIEWPORT_TYPE);
@@ -1334,7 +1343,7 @@ void AssetViewerApp::fillMenu(PropPanel::IMenu *menu)
   menu->addItem(CM_WINDOW, CM_WINDOW_VIEWPORT, "Viewport");
   editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_WINDOW_COMPOSITE_EDITOR, EditorCommandIds::COMPOSITE_EDITOR,
     "Composit Editor");
-  menu->addItem(CM_WINDOW, CM_WINDOW_DABUILD, "daBuild");
+  editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_WINDOW_DABUILD, EditorCommandIds::TOGGLE_DABUILD, "daBuild");
   editor_command_system.addMenuItem(*menu, CM_WINDOW, CM_DISCARD_ASSET_TEX, EditorCommandIds::DISCARD_ASSET_TEX,
     "Discard textures (show stub tex)");
   menu->addSeparator(CM_WINDOW);
@@ -3784,11 +3793,19 @@ int AssetViewerApp::onMenuItemClick(unsigned id)
       return 1;
     case CM_SHOW_ASSET_REFS:
       if (curAsset)
-        AssetReferenceViewer::show(*curAsset);
+      {
+        asset_reference_viewer_dialog.reset(new AssetReferenceViewer());
+        asset_reference_viewer_dialog->setAsset(curAsset);
+        asset_reference_viewer_dialog->show();
+      }
       return 1;
     case CM_SHOW_ASSET_BACK_REFS:
       if (curAsset)
-        AssetBackReferenceViewer::show(*curAsset, getConsole());
+      {
+        asset_back_reference_viewer_dialog.reset(new AssetBackReferenceViewer());
+        asset_back_reference_viewer_dialog->setAsset(curAsset);
+        asset_back_reference_viewer_dialog->show();
+      }
       return 1;
     case CM_COPY_FOLDER_ASSETS_PROPS_BLK:
     case CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK:
@@ -4023,6 +4040,13 @@ void AssetViewerApp::onAvSelectAsset(DagorAsset *asset, const char *name)
 
   if (mTagManager)
     mTagManager->onAvSelectAsset(asset, name);
+
+  if (asset_reference_viewer_dialog && asset_reference_viewer_dialog->isVisible() && !asset_reference_viewer_dialog->isPinned())
+    asset_reference_viewer_dialog->setAsset(curAsset);
+
+  if (asset_back_reference_viewer_dialog && asset_back_reference_viewer_dialog->isVisible() &&
+      !asset_back_reference_viewer_dialog->isPinned())
+    asset_back_reference_viewer_dialog->setAsset(curAsset);
 }
 
 
@@ -4623,5 +4647,3 @@ void AssetViewerApp::updateImgui()
 }
 
 const char *daeditor3_get_appblk_fname() { return ::get_app().getWorkspace().getAppBlkPath(); }
-
-REGISTER_IMGUI_WINDOW("General", "Console commands and variables", console::imgui_window);

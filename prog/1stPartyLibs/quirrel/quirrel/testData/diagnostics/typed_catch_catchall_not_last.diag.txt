@@ -1,0 +1,8 @@
+ERROR: a catch-all clause '(e)' must be the last catch
+testData/diagnostics/typed_catch_catchall_not_last.nut:3:6
+
+catch (e) { }
+catch (SomeType x) { }
+      ^
+
+

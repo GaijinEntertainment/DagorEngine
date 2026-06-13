@@ -117,6 +117,8 @@ public:
     FifoMorphType morph_type = FifoMorphType::MT_LINEAR);
   void resetQueue(IPureAnimStateHolder &st, bool leave_cur_state);
   bool isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n);
+  // Returns blend node which will be in front of a newly added node. NULL if queue is empty.
+  IAnimBlendNode *getNextInQueue(IPureAnimStateHolder &st);
 
   const char *class_name() const override { return "AnimBlendCtrl_Fifo3"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_Fifo3CID || IAnimBlendNode::isSubOf(id); }

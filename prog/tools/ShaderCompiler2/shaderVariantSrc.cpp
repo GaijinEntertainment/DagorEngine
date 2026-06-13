@@ -125,6 +125,22 @@ void VariantTableSrc::fillVariantTable(VariantTable &tab) const
 {
   tab.types = types;
   tab.intervals = intervals;
+
+  // Patch interval pointers in types
+  for (int i = 0; i < types.getCount(); ++i)
+  {
+    auto &type = tab.types.getTypeMut(i);
+    const auto *intervalPtr = type.interval;
+    for (int intervalIndex = 0; intervalIndex < tab.intervals.getCount(); ++intervalIndex)
+    {
+      if (intervals.getInterval(intervalIndex) == intervalPtr)
+      {
+        type.interval = tab.intervals.getInterval(intervalIndex);
+        break;
+      }
+    }
+  }
+
   tab.variants.resize(variants.size());
   for (int i = 0; i < variants.size(); i++)
     variants[i].fillVariant(tab.variants[i]);

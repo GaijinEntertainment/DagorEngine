@@ -7,7 +7,7 @@ ECS_DEF_PULL_VAR(volfogMask);
 static constexpr ecs::ComponentDesc volfog_mask_appear_es_event_handler_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("volfog_mask__tex_holder"), ecs::ComponentTypeInfo<SharedTexHolder>()},
+  {ECS_HASH("volfog_mask__tex_holder"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
   {ECS_HASH("volfog_mask__do_update"), ecs::ComponentTypeInfo<bool>()},
 //start of 3 ro components at [2]
   {ECS_HASH("volfog_mask__size"), ecs::ComponentTypeInfo<int>()},
@@ -18,7 +18,7 @@ static void volfog_mask_appear_es_event_handler_all_events(const ecs::Event &__r
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     volfog_mask_appear_es_event_handler(evt
-        , ECS_RW_COMP(volfog_mask_appear_es_event_handler_comps, "volfog_mask__tex_holder", SharedTexHolder)
+        , ECS_RW_COMP(volfog_mask_appear_es_event_handler_comps, "volfog_mask__tex_holder", SharedTexWithShaderVar)
     , ECS_RO_COMP(volfog_mask_appear_es_event_handler_comps, "volfog_mask__size", int)
     , ECS_RW_COMP(volfog_mask_appear_es_event_handler_comps, "volfog_mask__do_update", bool)
     , ECS_RO_COMP(volfog_mask_appear_es_event_handler_comps, "volfog_mask__bounds", Point4)
@@ -42,7 +42,7 @@ static ecs::EntitySystemDesc volfog_mask_appear_es_event_handler_es_desc
 static constexpr ecs::ComponentDesc volfog_mask_render_es_comps[] =
 {
 //start of 2 rw components at [0]
-  {ECS_HASH("volfog_mask__tex_holder"), ecs::ComponentTypeInfo<SharedTexHolder>()},
+  {ECS_HASH("volfog_mask__tex_holder"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
   {ECS_HASH("volfog_mask__do_update"), ecs::ComponentTypeInfo<bool>()},
 //start of 3 ro components at [2]
   {ECS_HASH("volfog_mask__size"), ecs::ComponentTypeInfo<int>()},
@@ -57,7 +57,7 @@ static void volfog_mask_render_es_all_events(const ecs::Event &__restrict evt, c
     if ( !(ECS_RW_COMP(volfog_mask_render_es_comps, "volfog_mask__do_update", bool)) )
       continue;
     volfog_mask_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-          , ECS_RW_COMP(volfog_mask_render_es_comps, "volfog_mask__tex_holder", SharedTexHolder)
+          , ECS_RW_COMP(volfog_mask_render_es_comps, "volfog_mask__tex_holder", SharedTexWithShaderVar)
       , ECS_RO_COMP(volfog_mask_render_es_comps, "volfog_mask__size", int)
       , ECS_RW_COMP(volfog_mask_render_es_comps, "volfog_mask__do_update", bool)
       , ECS_RO_COMP(volfog_mask_render_es_comps, "volfog_mask__bounds", Point4)

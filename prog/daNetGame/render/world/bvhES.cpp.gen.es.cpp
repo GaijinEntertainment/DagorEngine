@@ -483,6 +483,65 @@ inline void get_bvh_rigen_oof_visibility_ecs_query(ecs::EntityManager &manager, 
     }
   );
 }
+static constexpr ecs::ComponentDesc copy_animchar_visbits_ecs_query_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("animchar_visbits_copy_for_bvh"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
+//start of 1 ro components at [1]
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()}
+};
+static ecs::CompileTimeQueryDesc copy_animchar_visbits_ecs_query_desc
+(
+  "copy_animchar_visbits_ecs_query",
+  make_span(copy_animchar_visbits_ecs_query_comps+0, 1)/*rw*/,
+  make_span(copy_animchar_visbits_ecs_query_comps+1, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void copy_animchar_visbits_ecs_query(Callable function)
+{
+  perform_query(g_entity_mgr, copy_animchar_visbits_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(copy_animchar_visbits_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RW_COMP(copy_animchar_visbits_ecs_query_comps, "animchar_visbits_copy_for_bvh", animchar_visbits_t)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc get_bvh_accumulated_speed_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("bvh__accumulated_speed"), ecs::ComponentTypeInfo<float>()}
+};
+static ecs::CompileTimeQueryDesc get_bvh_accumulated_speed_ecs_query_desc
+(
+  "get_bvh_accumulated_speed_ecs_query",
+  empty_span(),
+  make_span(get_bvh_accumulated_speed_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_bvh_accumulated_speed_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, get_bvh_accumulated_speed_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(get_bvh_accumulated_speed_ecs_query_comps, "bvh__accumulated_speed", float)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
 static constexpr ecs::ComponentDesc bvh_check_is_binocular_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]
@@ -707,7 +766,7 @@ static constexpr ecs::ComponentDesc bvh_iterate_over_animchars_ecs_query_comps[]
 {
 //start of 6 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
+  {ECS_HASH("animchar_visbits_copy_for_bvh"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__nodeVisibleStgFilters"), ecs::ComponentTypeInfo<ecs::UInt8List>(), ecs::CDF_OPTIONAL},
@@ -733,7 +792,7 @@ inline void bvh_iterate_over_animchars_ecs_query(ecs::EntityManager &manager, Ca
         {
           function(
               ECS_RO_COMP(bvh_iterate_over_animchars_ecs_query_comps, "eid", ecs::EntityId)
-            , ECS_RO_COMP(bvh_iterate_over_animchars_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RO_COMP(bvh_iterate_over_animchars_ecs_query_comps, "animchar_visbits_copy_for_bvh", animchar_visbits_t)
             , ECS_RO_COMP(bvh_iterate_over_animchars_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
             , ECS_RO_COMP_PTR(bvh_iterate_over_animchars_ecs_query_comps, "additional_data", ecs::Point4List)
             , ECS_RO_COMP_PTR(bvh_iterate_over_animchars_ecs_query_comps, "animchar_render__nodeVisibleStgFilters", ecs::UInt8List)

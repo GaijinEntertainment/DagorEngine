@@ -62,10 +62,10 @@ public:
   }
 };
 
-class ResizableManagedTexHolder : public ManagedResHolder<ResizableManagedTex>
+class ResizableManagedTexWithShaderVar : public ManagedResHolder<ResizableManagedTex>
 {
 protected:
-  ResizableManagedTexHolder() = default;
+  ResizableManagedTexWithShaderVar() = default;
 
 public:
   void resize(int width, int height, int d = 1)
@@ -76,9 +76,9 @@ public:
 };
 
 using ResizableTex = UniqueRes<ResizableManagedTex>;
-using ResizableTexHolder = ConcreteResHolder<UniqueRes<ResizableManagedTexHolder>>;
+using ResizableTexWithShaderVar = ConcreteResHolder<UniqueRes<ResizableManagedTexWithShaderVar>>;
 
 } // namespace resptr_detail
 
 using ResizableTex = resptr_detail::ResizableTex;
-using ResizableTexHolder = resptr_detail::ResizableTexHolder;
+using ResizableTexWithShaderVar = resptr_detail::ResizableTexWithShaderVar;

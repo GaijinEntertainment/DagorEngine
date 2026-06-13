@@ -36,10 +36,6 @@ int bvh_impostor_end_offset = 0;
 int bvh_decals = 0;
 interval bvh_decals: no < 1, yes;
 
-int bvh_per_instance_albedo_replacement = 0;
-interval bvh_per_instance_albedo_replacement: no < 1, yes;
-assume_if_not_assumed bvh_per_instance_albedo_replacement = no;
-
 hlsl
 {
   #define INF 1e6
@@ -328,6 +324,8 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
 
   hlsl(stage)
   {
+    #include "bvh_magic_constants.hlsli"
+
     static const uint bvhMaterialTerrain    = 0;
     static const uint bvhMaterialRendinst   = 1;
     static const uint bvhMaterialInterior   = 2;
@@ -811,10 +809,8 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
       if (hitInfo.isLayered)
         hitInfo.layerData = get_layer_data(meta, to_world);
 
-      ##if bvh_per_instance_albedo_replacement == yes
-        if (hitInfo.perInstanceDataCompressed.x == 0xA1B3D0U)
-          hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceDataCompressed.y));
-      ##endif
+      if (hitInfo.perInstanceDataCompressed.x == BVH_MAGIC_ALBEDO_REPLACEMENT)
+        hitInfo.albedoTextureIndex = get_texture_index(asuint(hitInfo.perInstanceDataCompressed.y));
 
       if (is_terrain || get_material_type(meta.materialType) == bvhMaterialTerrain)
       {

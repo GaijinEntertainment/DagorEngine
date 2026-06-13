@@ -9,14 +9,14 @@ static constexpr ecs::ComponentDesc custom_envi_probe_created_es_event_handler_c
 //start of 1 rw components at [0]
   {ECS_HASH("custom_envi_probe__needs_render"), ecs::ComponentTypeInfo<bool>()},
 //start of 1 ro components at [1]
-  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexHolder>()}
+  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()}
 };
 static void custom_envi_probe_created_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   G_FAST_ASSERT(evt.is<ecs::EventEntityCreated>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     custom_envi_probe_created_es_event_handler(static_cast<const ecs::EventEntityCreated&>(evt)
-        , ECS_RO_COMP(custom_envi_probe_created_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexHolder)
+        , ECS_RO_COMP(custom_envi_probe_created_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexWithShaderVar)
     , ECS_RW_COMP(custom_envi_probe_created_es_event_handler_comps, "custom_envi_probe__needs_render", bool)
     );
   while (++comp != compE);
@@ -36,7 +36,7 @@ static ecs::EntitySystemDesc custom_envi_probe_created_es_event_handler_es_desc
 static constexpr ecs::ComponentDesc custom_cube_texture_name_changed_es_event_handler_comps[] =
 {
 //start of 4 rw components at [0]
-  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexHolder>()},
+  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
   {ECS_HASH("custom_envi_probe__needs_render"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("custom_envi_probe__spherical_harmonics_outside"), ecs::ComponentTypeInfo<ecs::Point4List>()},
   {ECS_HASH("custom_envi_probe__spherical_harmonics_inside"), ecs::ComponentTypeInfo<ecs::Point4List>()},
@@ -49,7 +49,7 @@ static void custom_cube_texture_name_changed_es_event_handler_all_events(const e
   G_FAST_ASSERT(evt.is<ecs::EventComponentChanged>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     custom_cube_texture_name_changed_es_event_handler(static_cast<const ecs::EventComponentChanged&>(evt)
-        , ECS_RW_COMP(custom_cube_texture_name_changed_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexHolder)
+        , ECS_RW_COMP(custom_cube_texture_name_changed_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexWithShaderVar)
     , ECS_RO_COMP(custom_cube_texture_name_changed_es_event_handler_comps, "custom_envi_probe__cubemap_res", ecs::string)
     , ECS_RO_COMP(custom_cube_texture_name_changed_es_event_handler_comps, "custom_envi_probe__cubemap_var", ecs::string)
     , ECS_RW_COMP(custom_cube_texture_name_changed_es_event_handler_comps, "custom_envi_probe__needs_render", bool)
@@ -111,7 +111,7 @@ static constexpr ecs::ComponentDesc custom_cube_texture_before_render_es_comps[]
   {ECS_HASH("custom_envi_probe__needs_render"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("custom_envi_probe__is_inside"), ecs::ComponentTypeInfo<bool>()},
 //start of 1 ro components at [2]
-  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexHolder>()}
+  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()}
 };
 static void custom_cube_texture_before_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -120,7 +120,7 @@ static void custom_cube_texture_before_render_es_all_events(const ecs::Event &__
     custom_cube_texture_before_render_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
         , ECS_RW_COMP(custom_cube_texture_before_render_es_comps, "custom_envi_probe__needs_render", bool)
     , ECS_RW_COMP(custom_cube_texture_before_render_es_comps, "custom_envi_probe__is_inside", bool)
-    , ECS_RO_COMP(custom_cube_texture_before_render_es_comps, "custom_envi_probe__cubemap", SharedTexHolder)
+    , ECS_RO_COMP(custom_cube_texture_before_render_es_comps, "custom_envi_probe__cubemap", SharedTexWithShaderVar)
     );
   while (++comp != compE);
 }
@@ -171,7 +171,7 @@ static constexpr ecs::ComponentDesc custom_envi_probe_render_es_event_handler_co
   {ECS_HASH("custom_envi_probe__y_rotation"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("custom_envi_probe__outside_mul"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("custom_envi_probe__inside_mul"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexHolder>()}
+  {ECS_HASH("custom_envi_probe__cubemap"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()}
 };
 static void custom_envi_probe_render_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -184,7 +184,7 @@ static void custom_envi_probe_render_es_event_handler_all_events(const ecs::Even
     , ECS_RO_COMP(custom_envi_probe_render_es_event_handler_comps, "custom_envi_probe__y_rotation", float)
     , ECS_RO_COMP(custom_envi_probe_render_es_event_handler_comps, "custom_envi_probe__outside_mul", float)
     , ECS_RO_COMP(custom_envi_probe_render_es_event_handler_comps, "custom_envi_probe__inside_mul", float)
-    , ECS_RO_COMP(custom_envi_probe_render_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexHolder)
+    , ECS_RO_COMP(custom_envi_probe_render_es_event_handler_comps, "custom_envi_probe__cubemap", SharedTexWithShaderVar)
     );
   while (++comp != compE);
 }

@@ -11,7 +11,7 @@
 ECS_DECLARE_RELOCATABLE_TYPE(SharedTex);
 
 // supports init components *name*_res:t="res_name" *name*_var:t="var_name"
-ECS_DECLARE_RELOCATABLE_TYPE(SharedTexHolder);
+ECS_DECLARE_RELOCATABLE_TYPE(SharedTexWithShaderVar);
 
 // no any init components
 ECS_DECLARE_RELOCATABLE_TYPE(UniqueTex);

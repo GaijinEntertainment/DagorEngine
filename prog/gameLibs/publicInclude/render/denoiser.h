@@ -142,6 +142,8 @@ struct FrameParams
   Point3 motionMultiplier = Point3::ZERO;
   bool reset = false;
   eastl::optional<DynamicResolutionParams> dynRes;
+  // Anything closer than this to the camera is marked camera attached
+  float denoiserCameraAttachedRadius = 0;
 
   TexMap textures;
 };

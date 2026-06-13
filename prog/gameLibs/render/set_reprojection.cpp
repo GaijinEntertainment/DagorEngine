@@ -11,14 +11,14 @@
 SET_REPROJECTION_VARS_LIST
 #undef VAR
 
-void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 &prev_tr_proj_tm, const TMatrix4 &glob_tm,
+void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 &prev_tr_proj_tm, const TMatrix4 &glob_tm_no_ofs,
   const TMatrix4 &prev_glob_tm, const DPoint3 &prev_world_pos, const DPoint3 &world_pos, const Point4 &prev_view_vec_lt,
   const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb)
 {
-  ShaderGlobal::set_float4(globtm_no_ofs_psf_0VarId, Color4(glob_tm[0]));
-  ShaderGlobal::set_float4(globtm_no_ofs_psf_1VarId, Color4(glob_tm[1]));
-  ShaderGlobal::set_float4(globtm_no_ofs_psf_2VarId, Color4(glob_tm[2]));
-  ShaderGlobal::set_float4(globtm_no_ofs_psf_3VarId, Color4(glob_tm[3]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_0VarId, Color4(glob_tm_no_ofs[0]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_1VarId, Color4(glob_tm_no_ofs[1]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_2VarId, Color4(glob_tm_no_ofs[2]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_3VarId, Color4(glob_tm_no_ofs[3]));
 
   ShaderGlobal::set_float4(projtm_psf_0VarId, Color4(tr_proj_tm[0]));
   ShaderGlobal::set_float4(projtm_psf_1VarId, Color4(tr_proj_tm[1]));
@@ -63,35 +63,35 @@ void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 
   ShaderGlobal::set_float4(prev_world_view_posVarId, Color4(prev_world_pos.x, prev_world_pos.y, prev_world_pos.z, 0));
 }
 
-void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 &glob_tm, const TMatrix4 &prev_glob_tm,
+void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 &glob_tm_no_ofs, const TMatrix4 &prev_glob_tm,
   const DPoint3 &prev_world_pos, const DPoint3 &world_pos, const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt,
   const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb)
 {
-  set_shadervars_for_reprojection(tr_proj_tm, tr_proj_tm, glob_tm, prev_glob_tm, prev_world_pos, world_pos, prev_view_vec_lt,
+  set_shadervars_for_reprojection(tr_proj_tm, tr_proj_tm, glob_tm_no_ofs, prev_glob_tm, prev_world_pos, world_pos, prev_view_vec_lt,
     prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb);
 }
 
-void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const TMatrix4 &prev_proj_tm, const TMatrix4 &prev_glob_tm,
-  const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb,
-  const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb,
-  const DPoint3 &world_pos, const DPoint3 &prev_world_pos)
+void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm_no_ofs, const TMatrix4 &prev_proj_tm,
+  const TMatrix4 &prev_glob_tm, const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb,
+  const Point4 &view_vec_rb, const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb,
+  const Point4 &prev_view_vec_rb, const DPoint3 &world_pos, const DPoint3 &prev_world_pos)
 {
   set_viewvecs_to_shader(view_vec_lt, view_vec_rt, view_vec_lb, view_vec_rb);
   TMatrix4 trProjTm = proj_tm.transpose();
   TMatrix4 prevTrProjTm = prev_proj_tm.transpose();
-  TMatrix4 globTm = glob_tm.transpose();
+  TMatrix4 globTmNoOfs = glob_tm_no_ofs.transpose();
   TMatrix4 prevGlobTm = prev_glob_tm.transpose();
-  set_shadervars_for_reprojection(trProjTm, prevTrProjTm, globTm, prevGlobTm, prev_world_pos, world_pos, prev_view_vec_lt,
+  set_shadervars_for_reprojection(trProjTm, prevTrProjTm, globTmNoOfs, prevGlobTm, prev_world_pos, world_pos, prev_view_vec_lt,
     prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb);
 }
 
-void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const Point2 &prev_zn_zfar, const TMatrix4 &prev_glob_tm,
-  const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb,
-  const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb,
-  const DPoint3 &world_pos, const DPoint3 &prev_world_pos)
+void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm_no_ofs, const Point2 &prev_zn_zfar,
+  const TMatrix4 &prev_glob_tm, const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb,
+  const Point4 &view_vec_rb, const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb,
+  const Point4 &prev_view_vec_rb, const DPoint3 &world_pos, const DPoint3 &prev_world_pos)
 {
-  set_reprojection(proj_tm, glob_tm, proj_tm, prev_glob_tm, view_vec_lt, view_vec_rt, view_vec_lb, view_vec_rb, prev_view_vec_lt,
-    prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb, world_pos, prev_world_pos);
+  set_reprojection(proj_tm, glob_tm_no_ofs, proj_tm, prev_glob_tm, view_vec_lt, view_vec_rt, view_vec_lb, view_vec_rb,
+    prev_view_vec_lt, prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb, world_pos, prev_world_pos);
   ShaderGlobal::set_float4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
 }
 

@@ -47,4 +47,11 @@ struct VolumetricDamageData
     return damage > 0.f && timer > timerTreshold;
   }
 };
+
+struct VolumetricDamageVisual
+{
+  Point3 point;
+  Point3 normal;
+  float str;
+};
 }; // namespace gamephys

@@ -115,16 +115,18 @@ inline auto request_common_transparent_state(dafg::Registry &registry, const cha
       registry.allowAsyncPipelines()
         .requestRenderPass()
         .color({"color_target", reactiveMask})
-        .depthRoAndBindToShaderVars("depth", {depth_bind});
+        .depthReadTestAndSample("depth", {depth_bind});
     else
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target", reactiveMask}).depthRo("depth");
+      // TODO: replace depthReadTestAndSample with depthReadTestOnly when we fix it
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target", reactiveMask}).depthReadTestAndSample("depth", {});
   }
   else
   {
     if (depth_bind)
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthRoAndBindToShaderVars("depth", {depth_bind});
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {depth_bind});
     else
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthRo("depth");
+      // TODO: replace depthReadTestAndSample with depthReadTestOnly when we fix it
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {});
   }
 
   registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
@@ -135,11 +137,11 @@ inline auto request_common_published_transparent_state(dafg::Registry &registry,
   if (use_reactive_mask)
   {
     auto reactiveMask = registry.modify("reactive_mask").texture().optional();
-    registry.requestRenderPass().color({"target_for_transparency", reactiveMask}).depthRw("depth_for_transparency");
+    registry.requestRenderPass().color({"target_for_transparency", reactiveMask}).depth("depth_for_transparency");
   }
   else
   {
-    registry.requestRenderPass().color({"target_for_transparency"}).depthRw("depth_for_transparency");
+    registry.requestRenderPass().color({"target_for_transparency"}).depth("depth_for_transparency");
   }
   registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
   return use_camera_in_camera(registry);
@@ -164,14 +166,14 @@ inline void start_transparent_region(dafg::Registry registry, dafg::NameSpaceReq
 {
   registry.requestRenderPass()
     .color({previous_region_ns.rename("color_target_done", "color_target").texture()})
-    .depthRo(previous_region_ns.rename("depth_done", "depth").texture());
+    .depthReadTestOnly(previous_region_ns.rename("depth_done", "depth").texture());
 }
 
 inline void end_transparent_region(dafg::Registry registry)
 {
   registry.requestRenderPass()
     .color({registry.rename("color_target", "color_target_done").texture()})
-    .depthRo(registry.rename("depth", "depth_done").texture());
+    .depthReadTestOnly(registry.rename("depth", "depth_done").texture());
 }
 
 inline bool is_resolve_target_external() { return !shouldRenderGbufferDebug() && !renderer_has_feature(FeatureRenderFlags::POSTFX); }
@@ -258,13 +260,13 @@ inline auto render_to_gbuffer(dafg::Registry registry)
 {
   return registry.allowAsyncPipelines()
     .requestRenderPass()
-    .depthRw("gbuf_depth")
+    .depth("gbuf_depth")
     .color({"gbuf_0", "gbuf_1", registry.modify("gbuf_2").texture().optional(), registry.modify("gbuf_3").texture().optional()});
 }
 
 inline auto render_to_gbuffer_prepass(dafg::Registry registry)
 {
-  return registry.allowAsyncPipelines().requestRenderPass().depthRw("gbuf_depth_prepass");
+  return registry.allowAsyncPipelines().requestRenderPass().depth("gbuf_depth_prepass");
 }
 
 // Depth can be sampled through depth_gbuf
@@ -274,7 +276,7 @@ inline auto render_to_gbuffer_but_sample_depth(dafg::Registry registry)
   {
     return registry.allowAsyncPipelines()
       .requestRenderPass()
-      .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
+      .depthReadTestAndSample("gbuf_depth", {"depth_gbuf"})
       .color({"gbuf_0", "unpacked_normals", registry.modify("gbuf_2").texture().optional(),
         registry.modify("gbuf_3").texture().optional()});
   }
@@ -282,7 +284,7 @@ inline auto render_to_gbuffer_but_sample_depth(dafg::Registry registry)
   {
     return registry.allowAsyncPipelines()
       .requestRenderPass()
-      .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
+      .depthReadTestAndSample("gbuf_depth", {"depth_gbuf"})
       .color({"gbuf_0", "gbuf_1", registry.modify("gbuf_2").texture().optional(), registry.modify("gbuf_3").texture().optional()});
   }
 }
@@ -290,7 +292,7 @@ inline auto render_to_gbuffer_but_sample_depth(dafg::Registry registry)
 inline auto use_and_sample_ro_gbuffer_depth(dafg::Registry registry)
 {
   registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_gbuf_samplerstate");
-  return registry.allowAsyncPipelines().requestRenderPass().depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+  return registry.allowAsyncPipelines().requestRenderPass().depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
 }
 
 inline void start_gbuffer_rendering_region(dafg::Registry registry, dafg::NameSpaceRequest previous_region_ns, bool use_prepass)
@@ -303,12 +305,12 @@ inline void start_gbuffer_rendering_region(dafg::Registry registry, dafg::NameSp
       previous_region_ns.rename("gbuf_2_done", "gbuf_2").texture().optional(),
       previous_region_ns.rename("gbuf_3_done", "gbuf_3").texture().optional(),
     })
-    .depthRw(previous_region_ns.rename("gbuf_depth_done", use_prepass ? "gbuf_depth_prepass" : "gbuf_depth").texture());
+    .depth(previous_region_ns.rename("gbuf_depth_done", use_prepass ? "gbuf_depth_prepass" : "gbuf_depth").texture());
 }
 
 inline void complete_prepass_of_gbuffer_rendering_region(dafg::Registry registry)
 {
-  registry.requestRenderPass().depthRw(registry.rename("gbuf_depth_prepass", "gbuf_depth").texture());
+  registry.requestRenderPass().depth(registry.rename("gbuf_depth_prepass", "gbuf_depth").texture());
 }
 
 inline void end_gbuffer_rendering_region(dafg::Registry registry)
@@ -328,7 +330,7 @@ inline void end_gbuffer_rendering_region(dafg::Registry registry)
       registry.rename("gbuf_2", "gbuf_2_done").texture().optional(),
       registry.rename("gbuf_3", "gbuf_3_done").texture().optional(),
     })
-    .depthRw(registry.rename("gbuf_depth", "gbuf_depth_done").texture());
+    .depth(registry.rename("gbuf_depth", "gbuf_depth_done").texture());
 }
 
 inline const vec4f &get_jitter_frustumPlane03X(const CameraParams &params) { return params.jitterFrustum.plane03X; }

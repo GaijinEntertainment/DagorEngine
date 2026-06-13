@@ -909,8 +909,8 @@ void TracerManager::initTrails()
 
   // Hack for validation of acquired shvar ids (debug mode) -- without this line,
   // the shvar id for "tracer_tail_tex" is acquired twice in the middle of assignment
-  tailTex = SharedTexHolder{};
-  tailTex = SharedTexHolder(eastl::move(texture), "tracer_tail_tex");
+  tailTex = SharedTexWithShaderVar{};
+  tailTex = SharedTexWithShaderVar(eastl::move(texture), "tracer_tail_tex");
 
   ShaderGlobal::set_sampler(tracer_tail_tex_samplerstateVarId, get_texture_separate_sampler(tailTex.getTexId()));
   Ptr<MaterialData> matNull = new MaterialData;

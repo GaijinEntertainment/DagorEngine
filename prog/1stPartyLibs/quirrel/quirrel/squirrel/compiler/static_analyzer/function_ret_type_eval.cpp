@@ -212,10 +212,14 @@ StmtEvalResult FunctionReturnTypeEvaluator::evalSwitch(const SwitchStatement *sw
 
 StmtEvalResult FunctionReturnTypeEvaluator::evalTry(const TryStatement *stmt) {
   StmtEvalResult tryResult = evalStmt(stmt->tryStatement());
-  StmtEvalResult catchResult = evalStmt(stmt->catchStatement());
 
-  unsigned combinedFlags = tryResult.flags | catchResult.flags;
-  bool allReturn = tryResult.allPathsReturn && catchResult.allPathsReturn;
+  unsigned combinedFlags = tryResult.flags;
+  bool allReturn = tryResult.allPathsReturn;
+  for (auto &c : stmt->catches()) {
+    StmtEvalResult catchResult = evalStmt(c.body);
+    combinedFlags |= catchResult.flags;
+    allReturn = allReturn && catchResult.allPathsReturn;
+  }
 
   return StmtEvalResult(combinedFlags, allReturn);
 }

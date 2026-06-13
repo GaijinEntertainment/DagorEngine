@@ -120,12 +120,12 @@ hlsl(ps) {
       half4 dBs, dBt;
       dBs.x = tex3D(detailAlbedoTex, float3(tc1 + ddx(tc1), detailArraySlicesUse.x)).a *bump_scale.x - bumpheights.x;
       dBt.x = tex3D(detailAlbedoTex, float3(tc1 + ddy(tc1), detailArraySlicesUse.x)).a *bump_scale.x - bumpheights.x;
-      dBs.y = tex3D(detailAlbedoTex, float3(tc2 + ddx(tc2), detailArraySlicesUse.y)).a *bump_scale.x - bumpheights.x;
-      dBt.y = tex3D(detailAlbedoTex, float3(tc2 + ddy(tc2), detailArraySlicesUse.y)).a *bump_scale.x - bumpheights.x;
-      dBs.z = tex3D(detailAlbedoTex, float3(tc3 + ddx(tc3), detailArraySlicesUse.z)).a *bump_scale.x - bumpheights.x;
-      dBt.z = tex3D(detailAlbedoTex, float3(tc3 + ddy(tc3), detailArraySlicesUse.z)).a *bump_scale.x - bumpheights.x;
-      dBs.w = tex3D(detailAlbedoTex, float3(tc4 + ddx(tc4), detailArraySlicesUse.w)).a *bump_scale.x - bumpheights.x;
-      dBt.w = tex3D(detailAlbedoTex, float3(tc4 + ddy(tc4), detailArraySlicesUse.w)).a *bump_scale.x - bumpheights.x;
+      dBs.y = tex3D(detailAlbedoTex, float3(tc2 + ddx(tc2), detailArraySlicesUse.y)).a *bump_scale.y - bumpheights.y;
+      dBt.y = tex3D(detailAlbedoTex, float3(tc2 + ddy(tc2), detailArraySlicesUse.y)).a *bump_scale.y - bumpheights.y;
+      dBs.z = tex3D(detailAlbedoTex, float3(tc3 + ddx(tc3), detailArraySlicesUse.z)).a *bump_scale.z - bumpheights.z;
+      dBt.z = tex3D(detailAlbedoTex, float3(tc3 + ddy(tc3), detailArraySlicesUse.z)).a *bump_scale.z - bumpheights.z;
+      dBs.w = tex3D(detailAlbedoTex, float3(tc4 + ddx(tc4), detailArraySlicesUse.w)).a *bump_scale.w - bumpheights.w;
+      dBt.w = tex3D(detailAlbedoTex, float3(tc4 + ddy(tc4), detailArraySlicesUse.w)).a *bump_scale.w - bumpheights.w;
       half3 combinedNormal = 
                           weights.x*perturb_normal_height2d(tc1, dBs.x, dBt.x).xzy+
                           weights.y*perturb_normal_height2d(tc2, dBs.y, dBt.y).xzy+//diffuseTc

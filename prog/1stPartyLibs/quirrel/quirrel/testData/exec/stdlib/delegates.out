@@ -65,6 +65,8 @@ class.getfuncinfos: null
 class.hasindex 'value': true
 class.is_frozen initially: false
 class.is_frozen after freeze: false
+class.rawset locked: error
+class.rawin lockedDynamic: false
 instance.rawget 'value': 21
 instance.rawget after set: 42
 instance.rawin 'method': true

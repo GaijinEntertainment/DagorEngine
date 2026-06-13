@@ -62,6 +62,7 @@ shader tsr_cs
     aabbScaleBase@f1 = tsr_scale_base;
     aabbScaleMotionSteepness@f1 = tsr_scale_motion_steepness;
     aabbScaleMotionMax@f1 = tsr_scale_motion_max;
+    ractiveMaskGamma@f1 = tsr_reactive_mask_gamma;
 
     inputResolution@f4 = (tsr_input_resolution.x, tsr_input_resolution.y, 1/tsr_input_resolution.x, 1/tsr_input_resolution.y);
     inputTextureResolution@f4 = (input_tex_resolution.x, input_tex_resolution.y, 1/input_tex_resolution.x, 1/input_tex_resolution.y);
@@ -468,6 +469,7 @@ shader tsr_cs
       float2 historyUV = screenTc + motionVector.xy;
       ##if tsr_reactive_mask != NULL
         float reactive = tex2Dlod(reactiveMask, float4(inputTexelCoordToUv(jitteredInputTexelCoord), 0, 0)).x;
+        reactive = pow(reactive, ractiveMaskGamma);
       ##else
         float reactive = 0;
       ##endif

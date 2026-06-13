@@ -120,8 +120,9 @@ macro USE_COMBINE_SHADOWS()
       return min(min(v4.x, v4.y), min(v4.z, v4.w));
       //return tex2Dlod(tex, float4(uv,0,0)).x;
     }
-    half getStaticShadowHardening(float3 worldPos, SamplerState depthSampler, float dither, float radiusScale = 1)
+    half getStaticShadowHardening(float3 worldPos, SamplerState depthSampler, float dither, out uint cascade_id, float radiusScale)
     {
+      cascade_id = 2;
       float4 tc;
 
       float4 staticShadowWorldRenderMatrix_0[4] = {
@@ -171,6 +172,7 @@ macro USE_COMBINE_SHADOWS()
           radScale = lerp(minRad, maxRad, saturate(log2(distToOccluder*2+1)));//fixme: distToOccluder should be in meters, we should pass zscale somewhere
           radScale *= staticShadowWorldRenderMatrix_0[2].w;
         }
+        cascade_id = 0;
         return 1-static_shadow_sample_opt(
          tc.xy, tc.z, static_shadow_tex_0, static_shadow_tex_0_cmpSampler, radScale, global_static_shadow_fxaa_dir, staticShadowWorldRenderMatrix_0[3].w, dither) * tc.w;
       }
@@ -181,6 +183,7 @@ macro USE_COMBINE_SHADOWS()
       BRANCH
       if ( tc.w > 0 && tc.z <= 1.f )
       {
+        cascade_id = 1;
         return 1-static_shadow_sample_opt(
           tc.xy, tc.z, static_shadow_tex_1, static_shadow_tex_1_cmpSampler, staticShadowWorldRenderMatrix_1[2].w, global_static_shadow_fxaa_dir, staticShadowWorldRenderMatrix_1[3].w, dither) * tc.w;
       }

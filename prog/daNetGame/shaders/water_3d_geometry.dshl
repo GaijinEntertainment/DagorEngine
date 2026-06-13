@@ -373,7 +373,7 @@ endmacro
 
 macro USE_WATER_NORMALS_PS()
   hlsl(ps) {
-    float3 get_water_normal(ShoreData shoreData, float3 worldPos, float dist, float3 worldNormal, float2 wfxTc, out float distortion)
+    float3 get_water_normal(ShoreData shoreData, float3 worldPos, float dist, float3 worldNormal, float2 wfxTc, half rainRipplesFade, out float distortion)
     {
       ##if water_ripples_normal != NULL
         worldNormal = RNM_ndetail_normalized(worldNormal.xzy, get_water_ripples_normal(worldPos, distortion).xzy).xzy;
@@ -387,7 +387,7 @@ macro USE_WATER_NORMALS_PS()
         worldNormal.y * shoreData.gerstner_normal.xz,
         worldNormal.y * shoreData.gerstner_normal.y).xzy);
       ##if compatibility_mode == compatibility_mode_off
-        float rainRipplesStrength = getRainRipplesStrength(worldPos);
+        float rainRipplesStrength = getRainRipplesStrength(worldPos) * rainRipplesFade;
         apply_rain_ripples_water(worldPos, dist, rainRipplesStrength, worldNormal);
       ##endif
       return worldNormal;

@@ -46,10 +46,26 @@ void DeltaCalculator::invalidateCachesForAutoResType(AutoResTypeNameId id)
 {
   if (!rpCacheKeysByAutoResType.isMapped(id))
     return;
+
   auto &keys = rpCacheKeysByAutoResType[id];
-  for (const auto &key : keys)
-    rpCache.erase(key);
-  keys.clear();
+  for (auto it = keys.begin(); it != keys.end();)
+  {
+    const auto cacheIt = rpCache.find(*it);
+    if (cacheIt == rpCache.end())
+    {
+      it = keys.erase(it);
+      continue;
+    }
+
+    if (usedRenderPasses.find(cacheIt->second.get()) != usedRenderPasses.end())
+    {
+      ++it;
+      continue;
+    }
+
+    rpCache.erase(cacheIt);
+    it = keys.erase(it);
+  }
 }
 
 IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> DeltaCalculator::precomputeResourceState(
@@ -479,6 +495,25 @@ IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(cons
   return dirtyDeltas;
 }
 
+void DeltaCalculator::recalculateUsedRenderPasses(const NodeStateDeltas &result)
+{
+  usedRenderPasses.clear();
+
+  for (const auto [_, state] : result.enumerate())
+  {
+    if (!state.pass.has_value())
+      continue;
+
+    const auto *passChange = eastl::get_if<PassChange>(&*state.pass);
+    if (!passChange)
+      continue;
+
+    const auto *begin = eastl::get_if<BeginRenderPass>(&passChange->beginAction);
+    if (begin && begin->rp)
+      usedRenderPasses.insert(begin->rp);
+  }
+}
+
 void DeltaCalculator::calculatePerNodeStateDeltas(NodeStateDeltas &result, const BarrierScheduler::EventsCollection &events,
   const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
   const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed)
@@ -487,6 +522,7 @@ void DeltaCalculator::calculatePerNodeStateDeltas(NodeStateDeltas &result, const
   {
     result.clear();
     result.emplaceAt(intermediate::NodeIndex{0});
+    recalculateUsedRenderPasses(result);
     return;
   }
 
@@ -533,6 +569,8 @@ void DeltaCalculator::calculatePerNodeStateDeltas(NodeStateDeltas &result, const
     }
     ++schedulePos;
   }
+
+  recalculateUsedRenderPasses(result);
 }
 
 } // namespace sd

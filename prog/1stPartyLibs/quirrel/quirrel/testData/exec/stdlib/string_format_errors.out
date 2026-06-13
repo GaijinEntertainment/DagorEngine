@@ -1,0 +1,12 @@
+err: missing-arg
+err: missing-arg2
+err: s-needs-string
+err: d-needs-int
+err: x-needs-int
+err: c-needs-int
+err: f-needs-number
+err: g-needs-number
+err: width-too-long
+err: prec-too-long
+n=7, 2.5, ff
+format errors: OK

@@ -15,6 +15,8 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define RELAX_MAX_ACCUM_FRAME_NUM                           255
 #define RELAX_ANTILAG_ACCELERATION_AMOUNT_SCALE             10.0 // Multiplier used to put RelaxAntilagSettings::accelerationAmount to convenient [0; 1] range
 
+#define RELAX_SH_TYPE                                       float3
+
 // Shared constants
 #define RELAX_SHARED_CONSTANTS \
     NRD_CONSTANT( float4x4, gWorldToClip ) \

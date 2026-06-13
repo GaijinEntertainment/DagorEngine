@@ -153,7 +153,7 @@ struct RendInstGenData
     Tab<DebrisPool> riDebris;
     Tab<eastl::unique_ptr<rendinst::DestroyedRi>> riDebrisDelayedRi; // TODO: remove indirection (put by value)
     Tab<rendinst::props::DestrProps> riDestr;
-    Tab<rendinst::DestroyedCellData> riDestrCellData;
+    Tab<rendinst::DestroyedCellData> riDestrCellData DAG_TS_GUARDED_BY(riRwCs);
     Tab<uint16_t> riExtraIdxPair;
     carray<int, 2> maxDebris, curDebris;
     uint32_t dynamicImpostorToUpdateNo;
@@ -167,8 +167,8 @@ struct RendInstGenData
     IBBox2 loadedCellsBBox;
     Point2 lastPoi;
     float lastPreloadDistance = 0.f;
-    SmartReadWriteFifoLock riRwCs;
-    WinCritSec updateVbResetCS; // TODO: ensure that `cellsVb` mutation is done in main thread only and remove this
+    SmartReadWriteFifoLock riRwCs; // TODO: add more DAG_TS_GUARDED_BY
+    WinCritSec updateVbResetCS;    // TODO: ensure that `cellsVb` mutation is done in main thread only and remove this
     float rendinstFarPlane;
     float rendinstMaxLod0Dist;
     float rendinstMaxDestructibleSizeSum;
@@ -180,7 +180,8 @@ struct RendInstGenData
     Tab<uint16_t> predicateIndices;
     vec4f occlusionBoxHalfSize;
     bbox3f maxCellBbox;
-    float maxRiGenBsphereRad = 0.f;
+    float maxCellMargin DAG_TS_GUARDED_BY(riRwCs) = 0.f;
+    float maxSubcellMargin DAG_TS_GUARDED_BY(riRwCs) = 0.f;
     enum class GlobalShadowPhase
     {
       // Render impostor into small texture
@@ -462,7 +463,7 @@ struct RendInstGenData
       int msq;
     };
     PatchableTab<LandClassCoverage> cls;
-    PATCHABLE_DATA64(CellRtData *, rtData);
+    PATCHABLE_DATA64(CellRtData *, cellRtData);
     int16_t htMin, htDelta;
 
     // fixed (non-generated) RI data
@@ -471,7 +472,7 @@ struct RendInstGenData
 
     CellRtData *isReady()
     {
-      if (CellRtData *crt = interlocked_acquire_load_ptr(rtData))
+      if (CellRtData *crt = interlocked_acquire_load_ptr(cellRtData))
         if (crt->sysMemData)
           return crt;
       return nullptr;
@@ -479,7 +480,7 @@ struct RendInstGenData
     const CellRtData *isReady() const { return const_cast<Cell *>(this)->isReady(); }
     bool isLoaded() const
     {
-      if (const CellRtData *crt = interlocked_acquire_load_ptr((const CellRtData *const volatile &)rtData))
+      if (const CellRtData *crt = interlocked_acquire_load_ptr((const CellRtData *const volatile &)cellRtData))
         return crt->sysMemData || crt->riexHandles.data() || (crt->vbSize <= 0 && !crt->riexHandles.size());
       return false;
     }
@@ -545,8 +546,8 @@ public:
   void applyBurnDecal(const bbox3f &decal)
   {
     for (auto &c : cells)
-      if (c.rtData)
-        c.rtData->applyBurnDecal(decal);
+      if (c.cellRtData)
+        c.cellRtData->applyBurnDecal(decal);
   }
 
   static RendInstGenData *create(IGenLoad &crd, int layer_idx);

@@ -69,6 +69,7 @@
 #include <EditorCore/ec_viewportSplitter.h>
 #include <EditorCore/ec_wndGlobal.h>
 #include <EditorCore/ec_keyboardShortcutsPanel.h>
+#include <EditorCore/ec_GizmoSettingsDialog.h>
 
 #include <libTools/staticGeom/geomObject.h>
 #include <libTools/renderViewports/cachedViewports.h>
@@ -90,7 +91,6 @@
 #include <osApiWrappers/dag_symHlp.h>
 #include <osApiWrappers/dag_miscApi.h>
 
-#include <consoleWindow/dag_consoleWindow.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 #include <assetsGui/av_globalState.h>
 #include <assetsGui/av_tagManagement.h>
@@ -796,6 +796,7 @@ ModelessWindowControllerList DagorEdAppWindow::getModelessWindowControllers()
   controllers.addWindowController(*get_camera_object_config_modeless_dialog_handler());
   controllers.addWindowController(*environment::get_environment_settings_dialog_controller());
   controllers.addWindowController(*get_preferences_dialog_controller());
+  controllers.addWindowController(*get_gizmo_settings_dialog_controller());
 
   return controllers;
 }
@@ -4238,5 +4239,3 @@ void DagorEdAppWindow::updateImgui()
 const char *daeditor3_get_appblk_fname() { return DAGORED2->getWorkspace().getAppBlkPath(); }
 
 DagorEdAppWindow &get_app() { return *((DagorEdAppWindow *)IDagorEd2Engine::get()); }
-
-REGISTER_IMGUI_WINDOW("General", "Console commands and variables", console::imgui_window);

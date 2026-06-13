@@ -661,6 +661,8 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
     for (const BSphere3 &ccd : ccdSpheres)
     {
       Point3 constrainedVelocity = currentState.velocity;
+      Point3 previousVelocity = currentState.velocity;
+      G_UNUSED(previousVelocity);
 
       Point3 pos = ccd.c;
       currentState.location.transform(pos);
@@ -674,6 +676,8 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
       hasRiDestroyingCollision |=
         apply_impulse_to_ri(ri_desc, at_time, currentState.velocity, linearImpulse, impulseDir, ccdHitPos, speed);
       ri_desc.invalidate();
+      G_ASSERTF(lengthSq(currentState.velocity) < sqr(10000.f), "ccdResultVelocity len > 10000, previousVelocity=%@",
+        previousVelocity);
 
       if (currentState.logCCD)
         ccdLog.push_back(CCDCheck(pos, posTo, offset));
@@ -685,7 +689,7 @@ void PhysObj::updateAwakePhys(double at_time, float dt, bool)
         ccdOffset = offset;
         ccdContactPoint = contactPoint;
         ccdResultVelocity = constrainedVelocity;
-        G_ASSERT(lengthSq(ccdResultVelocity) < sqr(10000.f));
+        G_ASSERTF(lengthSq(ccdResultVelocity) < sqr(10000.f), "ccdResultVelocity len > 10000, previousVelocity=%@", previousVelocity);
       }
     }
 

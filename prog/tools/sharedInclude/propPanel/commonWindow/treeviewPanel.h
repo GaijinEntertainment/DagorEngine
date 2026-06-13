@@ -46,7 +46,7 @@ class TreeBaseWindow : public WindowControlEventHandler
 {
 public:
   TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h, const char *caption,
-    bool icons_show, bool state_icons_show = false);
+    bool icons_show, bool state_icons_show = false, bool multi_select = false);
 
   ~TreeBaseWindow() override;
 
@@ -76,7 +76,9 @@ public:
   bool isSelected(TLeafHandle item) const;
 
   TLeafHandle getSelectedItem() const;
+  void getSelectedItems(dag::Vector<TLeafHandle> &items, bool search_in_collapsed, bool include_filtered_out) const;
   void setSelectedItem(TLeafHandle item);
+  void setSelectedItems(dag::ConstSpan<TLeafHandle> items);
   TLeafHandle getRoot() const;
 
   // Get the unfiltered internal root node.

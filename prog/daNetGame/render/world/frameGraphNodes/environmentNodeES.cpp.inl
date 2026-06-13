@@ -136,9 +136,8 @@ eastl::fixed_vector<dafg::NodeHandle, 5> makeEnvironmentNodes()
     use_volfog(registry, dafg::Stage::PS_OR_CS);
 
     // Optimization: keep the depth in RO state
-    auto pass = registry.requestRenderPass()
-                  .color({"opaque_with_envi"})
-                  .depthRoAndBindToShaderVars({"opaque_depth_with_water_before_clouds"}, {});
+    auto pass =
+      registry.requestRenderPass().color({"opaque_with_envi"}).depthReadTestAndSample({"opaque_depth_with_water_before_clouds"}, {});
 
     registry.rename(from, to).blob<OrderingToken>();
     auto mainPovSkiesDataHndl = registry.read("main_pov_skies_data").blob<SkiesData *>().handle();
@@ -193,27 +192,26 @@ eastl::fixed_vector<dafg::NodeHandle, 5> makeEnvironmentNodes()
         };
       }));
 
-    result.push_back(
-      dafg::register_node("render_skies_env", DAFG_PP_NODE_SRC, [execSkies, requestCommonSkiesState](dafg::Registry registry) {
-        auto [_, mainPovSkiesDataHndl] =
-          requestCommonSkiesState(registry, "prepare_skies_token_before_env", "prepare_skies_token_after_skies");
-        auto camera = use_camera_in_camera(registry);
-        auto currentCameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
+    result.push_back(dafg::register_node("render_skies_env", DAFG_PP_NODE_SRC, [requestCommonSkiesState](dafg::Registry registry) {
+      auto [_, mainPovSkiesDataHndl] =
+        requestCommonSkiesState(registry, "prepare_skies_token_before_env", "prepare_skies_token_after_skies");
+      auto camera = use_camera_in_camera(registry);
+      auto currentCameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
-        return [execSkies, currentCameraHndl = currentCameraHndl, mainPovSkiesDataHndl = mainPovSkiesDataHndl](
-                 const dafg::multiplexing::Index &multiplexing_index) {
-          if (DAGOR_UNLIKELY(has_custom_sky()))
-            return;
+      return [currentCameraHndl = currentCameraHndl, mainPovSkiesDataHndl = mainPovSkiesDataHndl](
+               const dafg::multiplexing::Index &multiplexing_index) {
+        if (DAGOR_UNLIKELY(has_custom_sky()))
+          return;
 
-          const CameraParams &cam = currentCameraHndl.ref();
-          camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cam, camera_in_camera::USE_STENCIL};
-          auto *skies = get_daskies();
-          G_ASSERT_RETURN(skies, );
+        const CameraParams &cam = currentCameraHndl.ref();
+        camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cam, camera_in_camera::USE_STENCIL};
+        auto *skies = get_daskies();
+        G_ASSERT_RETURN(skies, );
 
-          TMatrix viewTm = skies->calcViewTm(cam.viewTm);
-          skies->renderSkyOverlay(mainPovSkiesDataHndl.ref(), viewTm, cam.jitterProjTm, cam.jitterPersp);
-        };
-      }));
+        TMatrix viewTm = skies->calcViewTm(cam.viewTm);
+        skies->renderSkyOverlay(mainPovSkiesDataHndl.ref(), viewTm, cam.jitterProjTm, cam.jitterPersp);
+      };
+    }));
   }
 
   result.push_back(dafg::register_node("render_clouds", DAFG_PP_NODE_SRC, [panorama](dafg::Registry registry) {
@@ -234,7 +232,7 @@ eastl::fixed_vector<dafg::NodeHandle, 5> makeEnvironmentNodes()
     auto finalTargetHndlReq = registry.modify("opaque_with_envi").texture();
     auto gbufDepthAfterResolveReq = registry.read("opaque_depth_with_water_before_clouds").texture();
 
-    auto pass = registry.requestRenderPass().color({finalTargetHndlReq}).depthRoAndBindToShaderVars(gbufDepthAfterResolveReq, {});
+    auto pass = registry.requestRenderPass().color({finalTargetHndlReq}).depthReadTestAndSample(gbufDepthAfterResolveReq, {});
 
     // Only enable VRS with panorama
     if (panorama)

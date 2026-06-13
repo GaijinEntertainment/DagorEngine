@@ -1,6 +1,5 @@
 #include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <random>
 #include <functional>
 #include <algorithm>
@@ -53,14 +52,28 @@ static bool parse_hex_byte(const char *s, uint8_t &out)
   return true;
 }
 
+// String offsets of each UUID byte in xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+static const uint8_t kUuidHexOffsets[16] = {0, 2, 4, 6, 9, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34};
+static const uint8_t kUuidDashOffsets[4] = {8, 13, 18, 23};
+
+static void write_hex_byte(char *p, uint8_t v)
+{
+  static const char hex[] = "0123456789abcdef";
+  p[0] = hex[v >> 4];
+  p[1] = hex[v & 0xF];
+}
+
 int uuidv7_snprintf(const uint8_t uuid[16], char *buffer, int buffer_length)
 {
   if (buffer_length < UUID_STRING_BUFFER_LENGTH)
     return 0;
 
-  return snprintf(buffer, buffer_length, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", uuid[0], uuid[1],
-    uuid[2], uuid[3], uuid[4], uuid[5], uuid[6], uuid[7], uuid[8], uuid[9], uuid[10], uuid[11], uuid[12], uuid[13], uuid[14],
-    uuid[15]);
+  for (int i = 0; i < 16; i++)
+    write_hex_byte(buffer + kUuidHexOffsets[i], uuid[i]);
+  for (int i = 0; i < 4; i++)
+    buffer[kUuidDashOffsets[i]] = '-';
+  buffer[36] = '\0';
+  return 36;
 }
 
 // Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
@@ -69,17 +82,13 @@ int uuid7_from_string(const char *str, int str_len, uint8_t uuid[16])
   if (str_len != UUID_STRING_BUFFER_LENGTH - 1)
     return 0;
 
-  if (str[8] != '-' || str[13] != '-' || str[18] != '-' || str[23] != '-')
-    return 0;
+  for (int i = 0; i < 4; i++)
+    if (str[kUuidDashOffsets[i]] != '-')
+      return 0;
 
-  // Fixed offsets -- UUID format is always xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  if (!parse_hex_byte(str + 0, uuid[0]) || !parse_hex_byte(str + 2, uuid[1]) || !parse_hex_byte(str + 4, uuid[2]) ||
-      !parse_hex_byte(str + 6, uuid[3]) || !parse_hex_byte(str + 9, uuid[4]) || !parse_hex_byte(str + 11, uuid[5]) ||
-      !parse_hex_byte(str + 14, uuid[6]) || !parse_hex_byte(str + 16, uuid[7]) || !parse_hex_byte(str + 19, uuid[8]) ||
-      !parse_hex_byte(str + 21, uuid[9]) || !parse_hex_byte(str + 24, uuid[10]) || !parse_hex_byte(str + 26, uuid[11]) ||
-      !parse_hex_byte(str + 28, uuid[12]) || !parse_hex_byte(str + 30, uuid[13]) || !parse_hex_byte(str + 32, uuid[14]) ||
-      !parse_hex_byte(str + 34, uuid[15]))
-    return 0;
+  for (int i = 0; i < 16; i++)
+    if (!parse_hex_byte(str + kUuidHexOffsets[i], uuid[i]))
+      return 0;
 
   return 1;
 }

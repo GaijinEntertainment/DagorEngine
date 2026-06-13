@@ -60,6 +60,7 @@ struct VirtualPassRequirements
   dag::RelocatableFixedVector<VirtualSubresourceRef, 8> colorAttachments;
   VirtualSubresourceRef depthAttachment;
   bool depthReadOnly = true;
+  bool implicitZWriteDisable = false;
   // Mapping of a color/depth attachment to a resource that they should
   // be (MSAA) resolved to
   dag::FixedVectorMap<ResNameId, ResNameId, 2> resolves;

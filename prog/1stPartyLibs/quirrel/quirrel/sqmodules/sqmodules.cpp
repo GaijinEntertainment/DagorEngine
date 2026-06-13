@@ -775,7 +775,10 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
 {
   resetStaticMemos();
 
-  for (const Sqrat::Object &f : onModuleUnload)
+  vector<Sqrat::Object> unloadHandlers;
+  unloadHandlers.swap(onModuleUnload);
+
+  for (const Sqrat::Object &f : unloadHandlers)
   {
     SQInteger nparams = 0, nfreevars = 0;
     sq_pushobject(sqvm, f.GetObject());
@@ -790,7 +793,6 @@ void SqModules::callAndClearUnloadHandlers(bool is_closing)
     else
       SQRAT_ASSERT(0);
   }
-  onModuleUnload.clear();
 }
 
 

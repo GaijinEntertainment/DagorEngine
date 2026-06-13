@@ -24,6 +24,8 @@ void assemble_local_var(LocalVar *var, ShaderParser::ComplexExpression *rootExpr
     G_ASSERT(out_bytecode);
     Tab<int> &code = out_bytecode->get_alt_curstcode(isDynamic);
 
+    out_bytecode->regAllocator->dropCachedStvars();
+
     Register varReg;
     if (var->valueType == shexpr::VT_REAL)
       varReg = out_bytecode->regAllocator->add_reg();
@@ -45,7 +47,77 @@ void assemble_local_var(LocalVar *var, ShaderParser::ComplexExpression *rootExpr
   }
 }
 
-static eastl::string build_placement_specifier(int dest_reg, bool is_array, int elem_count, HlslRegisterSpace rspace,
+eastl::pair<const char *, const char *> build_hlsl_type(semantic::VariableType vt)
+{
+  const char *varTypeStr = nullptr;
+  const char *samplerTypeStr = nullptr;
+  using semantic::VariableType;
+  switch (vt)
+  {
+    case VariableType::f1: varTypeStr = "float"; break;
+    case VariableType::f2: varTypeStr = "float2"; break;
+    case VariableType::f3: varTypeStr = "float3"; break;
+    case VariableType::f4: varTypeStr = "float4"; break;
+    case VariableType::i1: varTypeStr = "int"; break;
+    case VariableType::i2: varTypeStr = "int2"; break;
+    case VariableType::i3: varTypeStr = "int3"; break;
+    case VariableType::i4: varTypeStr = "int4"; break;
+    case VariableType::u1: varTypeStr = "uint"; break;
+    case VariableType::u2: varTypeStr = "uint2"; break;
+    case VariableType::u3: varTypeStr = "uint3"; break;
+    case VariableType::u4: varTypeStr = "uint4"; break;
+    case VariableType::f44: varTypeStr = "float4x4"; break;
+    case VariableType::tex2d: varTypeStr = "Texture2D"; break;
+    case VariableType::staticSmpArray:
+    case VariableType::staticTexArray:
+    case VariableType::texArray:
+      varTypeStr = "Texture2DArray";
+      samplerTypeStr = "TextureArraySampler";
+      break;
+    case VariableType::staticTex3D:
+    case VariableType::staticSmp3D:
+    case VariableType::tex3d:
+    case VariableType::smp3d:
+      varTypeStr = "Texture3D";
+      samplerTypeStr = "Texture3DSampler";
+      break;
+    case VariableType::smpCube:
+    case VariableType::texCube:
+    case VariableType::staticSmpCube:
+    case VariableType::staticTexCube:
+      varTypeStr = "TextureCube";
+      samplerTypeStr = "TextureSamplerCube";
+      break;
+    case VariableType::staticSmpCubeArray:
+    case VariableType::staticTexCubeArray:
+    case VariableType::texCubeArray:
+      varTypeStr = "TextureCubeArray";
+      samplerTypeStr = "TextureCubeArraySampler";
+      break;
+    case VariableType::staticSmp:
+    case VariableType::staticTex:
+    case VariableType::smp2d:
+      varTypeStr = "Texture2D";
+      samplerTypeStr = "TextureSampler";
+      break;
+#if (_CROSS_TARGET_C1 | _CROSS_TARGET_C2)
+
+
+
+#else
+    case VariableType::shdArray:
+    case VariableType::smpArray: varTypeStr = "Texture2DArray"; break;
+    case VariableType::smpCubeArray: varTypeStr = "TextureCubeArray"; break;
+#endif
+    case VariableType::sampler: varTypeStr = "SamplerState"; break;
+    case VariableType::cmpSampler: varTypeStr = "SamplerComparisonState"; break;
+    case VariableType::shd: varTypeStr = "Texture2D"; break;
+    case VariableType::tlas: varTypeStr = "RaytracingAccelerationStructure"; break;
+  }
+  return {varTypeStr, samplerTypeStr};
+}
+
+eastl::string build_placement_specifier(int dest_reg, bool is_array, int elem_count, HlslRegisterSpace rspace,
   ShaderBlockLevel block_level, bool is_dynamic)
 {
   eastl::string res{};
@@ -163,70 +235,7 @@ eastl::optional<NamedConstDeclarationHlsl> build_hlsl_decl_for_named_const(const
 
   const bool isGlobalConstBlock = ctx.shCtx().blockLevel() == ShaderBlockLevel::GLOBAL_CONST;
 
-  const char *varTypeStr = nullptr;
-  const char *samplerTypeStr = nullptr;
-  switch (def.type)
-  {
-    case VariableType::f1: varTypeStr = "float"; break;
-    case VariableType::f2: varTypeStr = "float2"; break;
-    case VariableType::f3: varTypeStr = "float3"; break;
-    case VariableType::f4: varTypeStr = "float4"; break;
-    case VariableType::i1: varTypeStr = "int"; break;
-    case VariableType::i2: varTypeStr = "int2"; break;
-    case VariableType::i3: varTypeStr = "int3"; break;
-    case VariableType::i4: varTypeStr = "int4"; break;
-    case VariableType::u1: varTypeStr = "uint"; break;
-    case VariableType::u2: varTypeStr = "uint2"; break;
-    case VariableType::u3: varTypeStr = "uint3"; break;
-    case VariableType::u4: varTypeStr = "uint4"; break;
-    case VariableType::f44: varTypeStr = "float4x4"; break;
-    case VariableType::tex2d: varTypeStr = "Texture2D"; break;
-    case VariableType::staticSmpArray:
-    case VariableType::staticTexArray:
-    case VariableType::texArray:
-      varTypeStr = "Texture2DArray";
-      samplerTypeStr = "TextureArraySampler";
-      break;
-    case VariableType::staticTex3D:
-    case VariableType::staticSmp3D:
-    case VariableType::tex3d:
-    case VariableType::smp3d:
-      varTypeStr = "Texture3D";
-      samplerTypeStr = "Texture3DSampler";
-      break;
-    case VariableType::smpCube:
-    case VariableType::texCube:
-    case VariableType::staticSmpCube:
-    case VariableType::staticTexCube:
-      varTypeStr = "TextureCube";
-      samplerTypeStr = "TextureSamplerCube";
-      break;
-    case VariableType::staticSmpCubeArray:
-    case VariableType::staticTexCubeArray:
-    case VariableType::texCubeArray:
-      varTypeStr = "TextureCubeArray";
-      samplerTypeStr = "TextureCubeArraySampler";
-      break;
-    case VariableType::staticSmp:
-    case VariableType::staticTex:
-    case VariableType::smp2d:
-      varTypeStr = "Texture2D";
-      samplerTypeStr = "TextureSampler";
-      break;
-#if (_CROSS_TARGET_C1 | _CROSS_TARGET_C2)
-
-
-
-#else
-    case VariableType::shdArray:
-    case VariableType::smpArray: varTypeStr = "Texture2DArray"; break;
-    case VariableType::smpCubeArray: varTypeStr = "TextureCubeArray"; break;
-#endif
-    case VariableType::sampler: varTypeStr = "SamplerState"; break;
-    case VariableType::cmpSampler: varTypeStr = "SamplerComparisonState"; break;
-    case VariableType::shd: varTypeStr = "Texture2D"; break;
-    case VariableType::tlas: varTypeStr = "RaytracingAccelerationStructure"; break;
-  }
+  auto [varTypeStr, samplerTypeStr] = build_hlsl_type(def.type);
 
   {
     const eastl::string regSpecification =

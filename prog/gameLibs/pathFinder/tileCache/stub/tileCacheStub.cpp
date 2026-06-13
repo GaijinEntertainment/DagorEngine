@@ -22,6 +22,12 @@ bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle)
   return false;
 }
 
+obstacle_handle_t tilecache_get_obstacle_handle(rendinst::riex_handle_t riex_handle)
+{
+  G_UNUSED(riex_handle);
+  return 0;
+}
+
 void tilecache_stop() {}
 
 bool tilecache_is_loaded() { return false; }

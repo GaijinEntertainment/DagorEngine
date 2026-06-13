@@ -38,7 +38,7 @@ dafg::NodeHandle create_dynamic_mirror_prepare_node(DynamicMirrorRenderer &mirro
 
       registry.requestState().setFrameBlock("global_frame");
 
-      registry.requestRenderPass().depthRw("mirror_prepass_gbuf_depth");
+      registry.requestRenderPass().depth("mirror_prepass_gbuf_depth");
 
       auto mirrorActiveHndl = registry.createBlob<bool>("is_mirror_active").handle();
       auto mirrorCameraHndl = registry.createBlob<DynamicMirrorRenderer::CameraData>("mirror_camera").handle();

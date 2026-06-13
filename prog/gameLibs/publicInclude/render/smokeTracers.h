@@ -78,7 +78,7 @@ protected:
   int currentUsed;
   DynamicShaderHelper headRenderer, tailRenderer;
   float cTime, lastDt;
-  SharedTexHolder tailTex;
+  SharedTexWithShaderVar tailTex;
 #if DAGOR_DBGLEVEL > 0
   unsigned int lastGpuUpdateFrame = 0;
 #endif

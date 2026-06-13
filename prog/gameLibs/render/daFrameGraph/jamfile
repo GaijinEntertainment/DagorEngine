@@ -107,6 +107,7 @@ if $(Config) in dbg dev {
     debug/backendDebug.cpp
 
     debug/visualizationManager.cpp
+    debug/visualization/structuresCommon.cpp
     debug/visualization/userGraphVisualizer.cpp
     debug/visualization/irGraphVisualizer.cpp
     debug/visualization/resourceVisualizer.cpp

@@ -5,7 +5,6 @@
 #include <ioSys/dag_dataBlock.h>
 #include <3d/tql.h>
 
-
 using namespace drv3d_dx12;
 using namespace drv3d_dx12::resource_manager;
 
@@ -217,6 +216,7 @@ void MemoryBudgetObserver::setup(const SetupInfo &info)
   }
 
   behaviorStatus.printMemoryReports = info.reportMemoryInfo;
+  behaviorStatus.reportOverBudget = info.reportOverBudget;
 
   updateBudgetLevelStatus();
 }
@@ -260,16 +260,23 @@ void report_budget_info(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *na
   auto CurrentUsageUnits = size_to_unit_table(info.CurrentUsage);
   logdbg("DX12: CurrentUsage %.2f %s (level: %s)", compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits),
     get_unit_name(CurrentUsageUnits), level);
-  if (info.CurrentUsage > info.Budget)
-    D3D_ERROR("DX12: %s memory CurrentUsage %.2f %s exceeds Budget %.2f %s", name,
-      compute_unit_type_size(info.CurrentUsage, CurrentUsageUnits), get_unit_name(CurrentUsageUnits),
-      compute_unit_type_size(info.Budget, BudgetUnits), get_unit_name(BudgetUnits));
   auto AvailableForReservationUnits = size_to_unit_table(info.AvailableForReservation);
   logdbg("DX12: AvailableForReservation %.2f %s", compute_unit_type_size(info.AvailableForReservation, AvailableForReservationUnits),
     get_unit_name(AvailableForReservationUnits));
   auto CurrentReservationUnits = size_to_unit_table(info.CurrentReservation);
   logdbg("DX12: CurrentReservation %.2f %s", compute_unit_type_size(info.CurrentReservation, CurrentReservationUnits),
     get_unit_name(CurrentReservationUnits));
+}
+
+void report_over_budget(const DXGI_QUERY_VIDEO_MEMORY_INFO &info, const char *name)
+{
+  if (info.CurrentUsage <= info.Budget)
+    return;
+  auto currentUsageUnits = size_to_unit_table(info.CurrentUsage);
+  auto budgetUnits = size_to_unit_table(info.Budget);
+  logwarn("DX12: %s memory CurrentUsage %.2f %s exceeds Budget %.2f %s", name,
+    compute_unit_type_size(info.CurrentUsage, currentUsageUnits), get_unit_name(currentUsageUnits),
+    compute_unit_type_size(info.Budget, budgetUnits), get_unit_name(budgetUnits));
 }
 
 void update_reservation(DXGIAdapter *adapter, DXGI_QUERY_VIDEO_MEMORY_INFO &info, DXGI_MEMORY_SEGMENT_GROUP group, const char *name,
@@ -311,6 +318,9 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &poolStates[device_local_memory_pool]);
     behaviorStatus.disableDeviceMemoryStatusQuery = true;
 
+    if (behaviorStatus.reportOverBudget)
+      report_over_budget(poolStates[device_local_memory_pool], "Device Local");
+
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[device_local_memory_pool], poolStates[device_local_memory_pool],
       usageSizeReportingThreshold);
     const bool shouldPrint = !isEqual && behaviorStatus.printMemoryReports;
@@ -328,6 +338,9 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     adapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &poolStates[host_local_memory_pool]);
     behaviorStatus.disableHostMemoryStatusQuery = true;
     behaviorStatus.disableVirtualAddressSpaceStatusQuery = false;
+
+    if (behaviorStatus.reportOverBudget) // unlikely we need it, but just in case
+      report_over_budget(poolStates[host_local_memory_pool], "Host Local");
 
     const bool isEqual = is_video_memory_info_equal(reportedPoolStates[host_local_memory_pool], poolStates[host_local_memory_pool],
       usageSizeReportingThreshold);
@@ -374,16 +387,16 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
   }
 
   auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
-  auto oldTrimUploadRingBuffer = shouldTrimUploadRingBuffer();
-  auto oldDeviceLocalBudgetLevel = getDeviceLocalBudgetLevel();
 
   updateBudgetLevelStatus();
 
-  if (getDeviceLocalBudgetLevel() <= BudgetPressureLevels::PANIC && oldDeviceLocalBudgetLevel > BudgetPressureLevels::PANIC)
+  const bool deviceLocalAtPanic = getDeviceLocalBudgetLevel() <= BudgetPressureLevels::PANIC;
+  if (deviceLocalAtPanic && !deviceLocalPanicTrimScheduled)
   {
     logwarn("DX12: Device local budget reached PANIC level, scheduling texture memory trim");
     tql::schedule_trim_discardable_tex_mem();
   }
+  deviceLocalPanicTrimScheduled = deviceLocalAtPanic;
 
   if (oldTrimFramePushRingBuffer != shouldTrimFramePushRingBuffer())
   {
@@ -394,17 +407,6 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     else
     {
       logdbg("DX12: Stopped to trim FramePushRingBuffer");
-    }
-  }
-  if (oldTrimUploadRingBuffer != shouldTrimUploadRingBuffer())
-  {
-    if (!oldTrimUploadRingBuffer)
-    {
-      logdbg("DX12: Starting to trim UploadRingBuffer");
-    }
-    else
-    {
-      logdbg("DX12: Stopped to trim UploadRingBuffer");
     }
   }
 }
@@ -486,6 +488,30 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   return min(budget, align_value(align_value(size * scale, pageCount * page_size), properties.getAlignment()));
 }
 
+MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT error_code, uint64_t size,
+  ResourceHeapProperties properties)
+{
+  const bool onDevice = properties.isOnDevice(getFeatureSet());
+
+  MEMORYSTATUSEX systemMemoryStatus{sizeof(MEMORYSTATUSEX)};
+  GlobalMemoryStatusEx(&systemMemoryStatus);
+
+  // TODO: May call DXGI to get the current status and compare it what we think is the current status?
+  const auto poolSize = onDevice ? getDeviceLocalPhysicalLimit() : getHostLocalPhysicalLimit();
+  const auto poolBudget = onDevice ? getDeviceLocalBudget() : getHostLocalBudget();
+  const auto poolAvail = onDevice ? getDeviceLocalAvailablePoolBudget() : getHostLocalAvailablePoolBudget();
+
+  return {
+    .errorCode = error_code,
+    .requestSize = size,
+    .poolSize = poolSize,
+    .poolBudget = poolBudget,
+    .poolAvail = poolAvail,
+    .pageFileSpace = systemMemoryStatus.ullAvailPageFile,
+    .systemMemoryLoadPercentage = systemMemoryStatus.dwMemoryLoad,
+  };
+}
+
 #else
 
 void MemoryBudgetObserver::updateBudgetLevelStatus()
@@ -556,7 +582,7 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
       if (isOverBudget)
       {
         auto budgetUnits = size_to_unit_table(gameLimit);
-        D3D_ERROR("DX12: Device Local memory CurrentUsage %.2f %s exceeds Budget %.2f %s", currentUsageUnitsSize,
+        logwarn("DX12: Device Local memory CurrentUsage %.2f %s exceeds Budget %.2f %s", currentUsageUnitsSize,
           get_unit_name(currentUsageUnitsIndex), compute_unit_type_size(gameLimit, budgetUnits), get_unit_name(budgetUnits));
       }
       lastReportedUsage = currentUsage;
@@ -564,7 +590,6 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
   }
 
   auto oldTrimFramePushRingBuffer = shouldTrimFramePushRingBuffer();
-  auto oldTrimUploadRingBuffer = shouldTrimUploadRingBuffer();
 
   updateBudgetLevelStatus();
 
@@ -577,17 +602,6 @@ void MemoryBudgetObserver::completeFrameExecution(const CompletedFrameExecutionI
     else
     {
       logdbg("DX12: Stopped to trim FramePushRingBuffer");
-    }
-  }
-  if (oldTrimUploadRingBuffer != shouldTrimUploadRingBuffer())
-  {
-    if (!oldTrimUploadRingBuffer)
-    {
-      logdbg("DX12: Starting to trim UploadRingBuffer");
-    }
-    else
-    {
-      logdbg("DX12: Stopped to trim UploadRingBuffer");
     }
   }
 }
@@ -660,6 +674,21 @@ uint64_t MemoryBudgetObserver::getHeapSizeFromAllocationSize(uint64_t size, Reso
   }
 
   return min(budget, align_value(size * scale, minSize));
+}
+
+MemoryAllocationError MemoryBudgetObserver::makeMemoryAllocationError(HRESULT error_code, uint64_t size, ResourceHeapProperties)
+{
+  size_t used = 0;
+  size_t limit = 0;
+  xbox_get_memory_status(used, limit);
+  return {
+    .errorCode = error_code,
+    .requestSize = size,
+    .poolSize = getDeviceLocalRawBudget(),
+    .poolBudget = getDeviceLocalBudget(),
+    .poolAvail = getDeviceLocalAvailablePoolBudget(),
+    .systemMemoryLoadPercentage = (used * 100) / limit,
+  };
 }
 #endif
 
@@ -862,8 +891,9 @@ ResourceMemoryHeapProvider::getInitialTextureResourceState(D3D12_RESOURCE_FLAGS 
   return propertiesToInitialState(D3D12_RESOURCE_DIMENSION_TEXTURE2D, flags, DeviceMemoryClass::DEVICE_RESIDENT_IMAGE);
 }
 
-ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(ID3D12Device *device,
-  ResourceHeapProperties heap_properties, AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HRESULT *error_code)
+ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(
+  ID3D12Device *device, ResourceHeapProperties heap_properties, AllocationFlags flags,
+  const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info)
 {
   ResourceMemory result;
   auto hasSpace = getHeapGroupFreeMemorySize(heap_properties.raw) >= alloc_info.SizeInBytes;
@@ -880,15 +910,16 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
     result = try_allocate_from_heap_group(alloc_info, group, heap_properties.raw, SourceMaskType{flags});
   }
 
-  if (!result && error_code != nullptr)
-    *error_code = E_OUTOFMEMORY;
+  uint64_t attemptedAllocationSize = alloc_info.SizeInBytes;
+  HRESULT errorCode = result ? S_OK : E_OUTOFMEMORY;
 
   if (!result && !flags.existingHeapsOnly)
   {
     TIME_PROFILE_DEV(DX12_AllocateHeap);
+    attemptedAllocationSize = getHeapSizeFromAllocationSize(alloc_info.SizeInBytes, heap_properties, flags);
     // neither a active nor a zombie heap could provide memory, create a new one
     D3D12_HEAP_DESC newHeapDesc;
-    newHeapDesc.SizeInBytes = getHeapSizeFromAllocationSize(alloc_info.SizeInBytes, heap_properties, flags);
+    newHeapDesc.SizeInBytes = attemptedAllocationSize;
     newHeapDesc.Properties.Type = heap_properties.getHeapType();
     newHeapDesc.Properties.CPUPageProperty = heap_properties.getCpuPageProperty(getFeatureSet());
     newHeapDesc.Properties.MemoryPoolPreference = heap_properties.getMemoryPool(getFeatureSet());
@@ -904,9 +935,8 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
     G_ASSERT(newHeap.totalSize == newHeapDesc.SizeInBytes);
     newHeap.freeRanges.push_back(make_value_range(0ull, newHeap.totalSize));
 
-    auto errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
-    if (error_code != nullptr)
-      *error_code = errorCode;
+    errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(device->CreateHeap(&newHeapDesc, COM_ARGS(&newHeap.heap)));
+
     if (SUCCEEDED(errorCode) && newHeap.heap)
     {
       addHeapGroupFreeSpace(heap_properties.raw, newHeap.totalSize);
@@ -958,42 +988,47 @@ ResourceMemory ResourceMemoryHeapProvider::tryAllocateFromMemoryWithProperties(I
     recordMemoryAllocated(result.size(), heap_properties.isOnDevice(getFeatureSet()));
 
     updateHeapGroupGeneration(heap_properties.raw);
+
+    return result;
   }
 
-  return result;
+  return dag::Unexpected{makeMemoryAllocationError(errorCode, attemptedAllocationSize, heap_properties)};
 }
 
-ResourceMemory ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties properties,
-  const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *error_code)
+ResourceMemoryHeapProvider::ResourceMemoryAllocationResult ResourceMemoryHeapProvider::allocate(DXGIAdapter *adapter,
+  ID3D12Device *device, ResourceHeapProperties properties, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags)
 {
   TIME_PROFILE_DEV(DX12_AllocateMemory);
   G_UNUSED(adapter);
-  if (error_code != nullptr)
-    *error_code = S_OK;
 
   OSSpinlockScopedLock lock{heapGroupMutex};
 
   if (flags.defragmentationOperation && !checkDefragmentationGeneration(properties.raw))
-    return {};
-
-  ResourceMemory result = tryAllocateFromMemoryWithProperties(device, properties, flags, alloc_info, error_code);
-
-  if (!flags.disableAlternateHeaps)
   {
-    for (ResourceHeapProperties currentProperties = {}; !result && currentProperties.raw < groups.size(); currentProperties.raw++)
-    {
-      if (currentProperties.raw == properties.raw)
-        continue;
-      if (!properties.isCompatible(currentProperties, getFeatureSet(), flags.isUav))
-        continue;
-      result = tryAllocateFromMemoryWithProperties(device, currentProperties, flags, alloc_info, error_code);
-      if (result)
-        logwarn("DX12: Alternate heap allocation: size: %u, group: %u (requested group: %u)", alloc_info.SizeInBytes,
-          currentProperties.raw, properties.raw);
-    }
+    return dag::Unexpected<MemoryAllocationError>{{.errorCode = E_ABORT}};
   }
 
-  return result;
+  return tryAllocateFromMemoryWithProperties(device, properties, flags, alloc_info)
+    .or_else([&, this](auto error) -> ResourceMemoryAllocationResult {
+      if (!flags.disableAlternateHeaps)
+      {
+        for (ResourceHeapProperties currentProperties = {}; currentProperties.raw < groups.size(); currentProperties.raw++)
+        {
+          if (currentProperties.raw == properties.raw)
+            continue;
+          if (!properties.isCompatible(currentProperties, getFeatureSet(), flags.isUav))
+            continue;
+          auto newAllocationResult = tryAllocateFromMemoryWithProperties(device, currentProperties, flags, alloc_info);
+          if (newAllocationResult)
+          {
+            logwarn("DX12: Alternate heap allocation: size: %u, group: %u (requested group: %u)", alloc_info.SizeInBytes,
+              currentProperties.raw, properties.raw);
+            return newAllocationResult;
+          }
+        }
+      }
+      return dag::Unexpected{error};
+    });
 }
 
 void ResourceMemoryHeapProvider::free(ResourceMemory allocation)

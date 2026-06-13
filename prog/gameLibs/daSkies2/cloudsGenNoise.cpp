@@ -34,17 +34,17 @@ void GenNoise::close()
   closeCompressor();
 }
 
-bool GenNoise::loadVolmap(const char *resname, int resolution, SharedTexHolder &tex)
+bool GenNoise::loadVolmap(const char *resname, int resolution, SharedTexWithShaderVar &tex)
 {
   tex.close();
 
   if (compressSupported)
-    tex = SharedTexHolder(dag::get_tex_gameres(String(128, "%s_%d", resname, resolution)), resname);
+    tex = SharedTexWithShaderVar(dag::get_tex_gameres(String(128, "%s_%d", resname, resolution)), resname);
 
   if (!tex) // There may not be a compressed variant, in which case load the uncompressed variant, even if compression is supported.
   {
     tex.close();
-    tex = SharedTexHolder(dag::get_tex_gameres(String(128, "%s_%d_raw", resname, resolution)), resname);
+    tex = SharedTexWithShaderVar(dag::get_tex_gameres(String(128, "%s_%d_raw", resname, resolution)), resname);
   }
 
   if (!tex)

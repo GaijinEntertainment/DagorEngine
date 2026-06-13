@@ -2,6 +2,8 @@ script done
 
 AN ERROR HAS OCCURRED [cycle]
 
-CALLSTACK
-
-LOCALS
+ERROR TRACE
+    at failing (testData/exec/async/unhandled_error_cycle.nut:13)
+      this = null
+    task root: failing (testData/exec/async/unhandled_error_cycle.nut:12)
+    launched at testData/exec/async/unhandled_error_cycle.nut:17 launcher

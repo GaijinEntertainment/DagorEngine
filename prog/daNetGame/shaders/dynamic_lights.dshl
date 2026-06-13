@@ -132,7 +132,8 @@ shader render_dynamic_lighting
       half AO = processedGbuffer.ao * ssao.x;
 
       float3 specularColor = special_vision ? 0 : processedGbuffer.specularColor;
-      float3 result = get_dynamic_lighting(processedGbuffer, worldPos.xyz, -viewVect, w, screenCoordCenter, NoV,
+      // view must be normalized: it goes into the BRDF half-vector
+      float3 result = get_dynamic_lighting(processedGbuffer, worldPos.xyz, view, w, screenCoordCenter, NoV,
         specularColor, curViewTc, AO);
       texture2DAt(dynamic_lights, pixelCoord) = result;
     }

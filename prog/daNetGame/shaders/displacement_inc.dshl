@@ -58,7 +58,6 @@ macro INIT_HEIGHTMAP_DISPLACEMENT(code)
 endmacro
 
 macro USE_HEIGHTMAP_DISPLACEMENT()
-  (vs) {
   USE_DISPLACEMENT_PHYSMAT(vs)
   hlsl(vs){
     half get_displacement_scale(float distance)

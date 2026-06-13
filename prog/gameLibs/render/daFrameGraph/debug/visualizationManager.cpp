@@ -5,22 +5,26 @@
 namespace dafg::visualization
 {
 
-eastl::unique_ptr<IVisualizationManager> make_real_manager(InternalRegistry &intRegistry, const NameResolver &nameResolver,
-  const DependencyData &depData, const intermediate::Graph &irGraph, const PassColoring &coloring)
+eastl::unique_ptr<IVisualizationManager> make_real_manager(InternalRegistry &int_registry, const NameResolver &name_resolver,
+  const DependencyData &dep_data, const intermediate::Graph &ir_graph, const PassColoring &coloring,
+  const sd::NodeStateDeltas &state_deltas)
 {
-  return eastl::make_unique<VisManager>(intRegistry, nameResolver, depData, irGraph, coloring);
+  return eastl::make_unique<VisManager>(int_registry, name_resolver, dep_data, ir_graph, coloring, state_deltas);
 }
 
-VisManager::VisManager(InternalRegistry &intRegistry, const NameResolver &nameResolver, const DependencyData &depData,
-  const intermediate::Graph &irGraph, const PassColoring &coloring) :
-  userGraphVisualizer{intRegistry, depData, irGraph, coloring},
-  irGraphVisualizer{irGraph, coloring},
-  resVisualizer{intRegistry, nameResolver, irGraph}
+VisManager::VisManager(InternalRegistry &int_registry, const NameResolver &name_resolver, const DependencyData &dep_data,
+  const intermediate::Graph &ir_graph, const PassColoring &coloring, const sd::NodeStateDeltas &state_deltas) :
+  userGraphVisualizer{int_registry, dep_data, ir_graph, coloring},
+  irGraphVisualizer{int_registry, ir_graph, coloring, state_deltas},
+  resVisualizer{int_registry, name_resolver, ir_graph}
 {}
 
 VisManager::~VisManager() { close_visualization_texture(); }
 
-void VisManager::updateUserGraphVisualization() { userGraphVisualizer.updateVisualization(); }
+void VisManager::updateUserGraphVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed)
+{
+  userGraphVisualizer.updateVisualization(nodes_changed);
+}
 
 void VisManager::updateIRGraphVisualization() { irGraphVisualizer.updateVisualization(); }
 

@@ -39,7 +39,7 @@ function mkButton(desc, onClick) {
       }
 
       onClick
-    }
+    }.__update(desc?.customStyle ?? {})
   }
 }
 
@@ -246,8 +246,8 @@ function showMsgbox(params) {
           curBtnIdx.set(idx)
           conHover?()
         }
-        local behavior = desc?.customStyle?.behavior ?? desc?.customStyle?.behavior
-        behavior = type(behavior) == "array" ? behavior : [behavior]
+        local behavior = desc?.customStyle?.behavior ?? desc?.behavior
+        behavior = behavior == null ? [] : type(behavior) == "array" ? clone behavior : [behavior]
         behavior.append(Behaviors.Button)
         let customStyle = (desc?.customStyle ?? {}).__merge({
           onHover

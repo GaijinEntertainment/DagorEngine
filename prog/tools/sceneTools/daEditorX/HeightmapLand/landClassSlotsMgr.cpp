@@ -198,7 +198,8 @@ void LandClassSlotsManager::reinitRIGen(bool reset_lc_cache)
     w0y -= outer_border * gridCellSize;
   }
 
-  float minGridCellSize = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getReal("minGridCellSize", 32);
+  float minGridCellSize = max(appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getReal("minGridCellSize", 32),
+    HmapLandPlugin::self->getRIMinCellSz());
   int minGridCellCount = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getInt("minGridCellCount", 4);
 
   int ri_cell_sz = meshCellSize / gridCellSize;
@@ -673,7 +674,8 @@ void LandClassSlotsManager::exportEntityGenDataLayer(MapStorage<uint32_t> &land_
 
   float gridCellSize = grid2world;
   float meshCellSize = HmapLandPlugin::self->getMeshCellSize();
-  float minGridCellSize = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getReal("minGridCellSize", 32);
+  float minGridCellSize = max(appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getReal("minGridCellSize", 32),
+    HmapLandPlugin::self->getRIMinCellSz());
   int minGridCellCount = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getInt("minGridCellCount", 4);
   float w0x = world0x, w0y = world0y;
   float border_w = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getReal("outerLandBorder", 1024.0f);

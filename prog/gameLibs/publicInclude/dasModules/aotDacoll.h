@@ -111,6 +111,12 @@ inline bool dacoll_rayhit_normalized(const Point3 &p, const Point3 &dir, real t,
 {
   return dacoll::rayhit_normalized(p, dir, t, flags, ray_mat_id);
 }
+inline bool trace_game_objects_with_grid_filter(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel,
+  int ignore_game_obj_id, int ray_mat_id, const das::TArray<uint32_t> &grid_types)
+{
+  return dacoll::trace_game_objects_with_grid_filter(from, dir, t, out_vel, ignore_game_obj_id, ray_mat_id,
+    dag::ConstSpan<uint32_t>(reinterpret_cast<uint32_t *>(grid_types.data), grid_types.size));
+}
 
 inline bool dacoll_rayhit_normalized_trace_handle(const Point3 &p, const Point3 &dir, real t, int flags, int ray_mat_id,
   TraceMeshFaces *trace_handle, rendinst::riex_handle_t skip_riex_handle)

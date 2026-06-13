@@ -152,7 +152,7 @@ bool convert_ltoutput(const char *lto_fname, const char *img_fname)
 int DagorWinMain(bool debugmode)
 {
   printf("LToutput->image Conversion Tool v1.1\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n");
 
   // get options
   if (__argc < 2)

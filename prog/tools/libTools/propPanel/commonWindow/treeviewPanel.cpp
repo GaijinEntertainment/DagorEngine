@@ -33,8 +33,10 @@ static bool TreeBaseWindowFilterStub(void *param, TreeNode &node)
 }
 
 TreeBaseWindow::TreeBaseWindow(ITreeViewEventHandler *event_handler, void *phandle, int x, int y, hdpi::Px w, hdpi::Px h,
-  const char *caption, bool icons_show, bool state_icons_show) :
-  mTree(new TreeControlStandalone(true)), mEventHandler(event_handler), treeFilter(eastl::make_unique<StubTreeFilter>(*this))
+  const char *caption, bool icons_show, bool state_icons_show, bool multi_select) :
+  mTree(new TreeControlStandalone(true, false, multi_select)),
+  mEventHandler(event_handler),
+  treeFilter(eastl::make_unique<StubTreeFilter>(*this))
 {
   // The window base pointer is only used for comparison. It is intentionally a bad pointer.
   treeWindowBase = reinterpret_cast<WindowBase *>(~reinterpret_cast<uintptr_t>(mTree));
@@ -146,7 +148,14 @@ const TreeNode &TreeBaseWindow::getRootNode() const { return mTree->getRootNode(
 
 TLeafHandle TreeBaseWindow::getSelectedItem() const { return mTree->getSelectedLeaf(); }
 
+void TreeBaseWindow::getSelectedItems(dag::Vector<TLeafHandle> &items, bool search_in_collapsed, bool include_filtered_out) const
+{
+  mTree->getSelectedLeafs(items, search_in_collapsed, include_filtered_out);
+}
+
 void TreeBaseWindow::setSelectedItem(TLeafHandle item) { mTree->setSelectedLeaf(item); }
+
+void TreeBaseWindow::setSelectedItems(dag::ConstSpan<TLeafHandle> items) { mTree->setSelectedLeafs(items); }
 
 void TreeBaseWindow::setDragHandler(ITreeDragHandler *drag_handler) { mTree->setDragHandler(drag_handler); }
 

@@ -76,6 +76,7 @@ block(scene) rendinst_scene
 
   (vs) {
     tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    tree_wind_anim_fade_params@f2 = tree_wind_anim_fade_params;
     paint_details_tex@smp2d = paint_details_tex;
     tess_quality@f1 = (tess_quality);
     cliff_color_overlay_map_tex@smp2d = cliff_color_overlay_map_tex;
@@ -128,6 +129,7 @@ block(scene) rendinst_depth_scene
 
   (vs) {
     tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    tree_wind_anim_fade_params@f2 = tree_wind_anim_fade_params;
     tess_quality@f1 = (tess_quality);
     from_sun_direction_for_shadow_offset@f3 = from_sun_direction;
     disable_obstacle_interaction@i1 = disable_obstacle_interaction;
@@ -165,6 +167,7 @@ block(scene) rendinst_voxelize_scene
 
   (vs) {
     tree_wind_params@f4 = (time_phase(1000, 0) * 1000, tree_wind_branch_amp, tree_wind_detail_amp, tree_wind_speed);
+    tree_wind_anim_fade_params@f2 = tree_wind_anim_fade_params;
     paint_details_tex@smp2d = paint_details_tex;
     cliff_color_overlay_map_tex@smp2d = cliff_color_overlay_map_tex;
     cliff_color_overlay_map_tex_exists@i1 = exists_tex(cliff_color_overlay_map_tex);

@@ -378,6 +378,29 @@ bool d3d::set_render_target(const Driver3dRenderTarget& rt)
   return true;
 }
 
+// Bulk setter: sets all color targets, clears unused slots, and sets depth in one call.
+void d3d::set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  nextRtState.changed = true;
+  vp.used = false;
+
+  int i = 0;
+  for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+  {
+    if (colors[i].tex)
+      nextRtState.setColor(i, colors[i].tex, colors[i].mip_level, colors[i].layer);
+    else
+      nextRtState.removeColor(i);
+  }
+  for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    nextRtState.removeColor(i);
+
+  if (depth.tex)
+    nextRtState.setDepth(depth.tex, depth.layer, depth_access == DepthAccess::SampledRO);
+  else
+    nextRtState.removeDepth();
+}
+
 bool d3d::get_target_size(int &w, int &h)
 {
   TrackDriver3dRenderTarget* rt = &currentRtState;

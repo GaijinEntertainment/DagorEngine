@@ -26,7 +26,7 @@ eastl::array<dafg::NodeHandle, 2> make_blood_accumulation_prepass_node()
     auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
     registry.requestRenderPass()
-      .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
+      .depthReadTestAndSample("gbuf_depth", {"depth_gbuf"})
       .color({"blood_acc_buf0", "blood_acc_normals"})
       .vrsRate(VRS_RATE_TEXTURE_NAME);
 

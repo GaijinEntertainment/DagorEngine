@@ -38,11 +38,10 @@ static constexpr ecs::ComponentDesc update_ground_effect_params_es_event_handler
 {
 //start of 1 rw components at [0]
   {ECS_HASH("ground_effect__manager"), ecs::ComponentTypeInfo<GroundEffectManager>()},
-//start of 18 ro components at [1]
+//start of 17 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("ground_effect__fx_name"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("ground_effect__biome_group_name"), ecs::ComponentTypeInfo<ecs::string>()},
-  {ECS_HASH("ground_effect__biome_ids"), ecs::ComponentTypeInfo<ecs::Array>()},
   {ECS_HASH("ground_effect__grid_cell_size"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("ground_effect__grid_world_origin"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("ground_effect__vis_radius"), ecs::ComponentTypeInfo<float>()},
@@ -67,7 +66,6 @@ static void update_ground_effect_params_es_event_handler_all_events(const ecs::E
     , ECS_RW_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__manager", GroundEffectManager)
     , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__fx_name", ecs::string)
     , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__biome_group_name", ecs::string)
-    , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__biome_ids", ecs::Array)
     , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__grid_cell_size", float)
     , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__grid_world_origin", Point2)
     , ECS_RO_COMP(update_ground_effect_params_es_event_handler_comps, "ground_effect__vis_radius", float)
@@ -91,7 +89,7 @@ static ecs::EntitySystemDesc update_ground_effect_params_es_event_handler_es_des
   "prog/daNetGame/render/fx/groundEffectES.cpp.inl",
   ecs::EntitySystemOps(nullptr, update_ground_effect_params_es_event_handler_all_events),
   make_span(update_ground_effect_params_es_event_handler_comps+0, 1)/*rw*/,
-  make_span(update_ground_effect_params_es_event_handler_comps+1, 18)/*ro*/,
+  make_span(update_ground_effect_params_es_event_handler_comps+1, 17)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,

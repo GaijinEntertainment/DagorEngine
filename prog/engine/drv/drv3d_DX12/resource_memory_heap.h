@@ -308,11 +308,13 @@ protected:
       allocInfo.Alignment = desc.Alignment;
 
       auto memoryProperties = heap->getScratchBufferHeapProperties();
-      auto memory = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
-      if (!memory)
+      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
+      if (!allocationResult.has_value())
       {
         return false;
       }
+
+      auto &memory = allocationResult.value();
 
       auto errorCode = buffer.create(device, desc, memory, D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE, false);
 
@@ -401,12 +403,14 @@ protected:
 
     auto memoryProperties =
       getProperties(D3D12_RESOURCE_FLAG_NONE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
-    auto memory = allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
+    auto allocationResult = allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
     BasicBuffer newBuffer;
-    if (!memory)
+    if (!allocationResult.has_value())
     {
       return newBuffer;
     }
+    auto &memory = allocationResult.value();
+
     const auto errorCode = newBuffer.create(device, desc, memory, D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE, false);
     if (DX12_CHECK_OK(errorCode))
     {
@@ -695,9 +699,6 @@ private:
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PushRingBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
   ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
-    frontend::BindlessManager &bindless_manager, HeapID heap_id, UploadRingBufferReference ref, AllocationFlags allocation_flags,
-    bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
   ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
@@ -725,7 +726,6 @@ private:
     ScratchBufferWrapper::AccessToken scratchBuffer;
     BufferHeapStateWrapper::AccessToken bufferHeapState;
     PushRingMemoryStateWrapper::AccessToken pushRingState;
-    UploadRingMemoryStateWrapper::AccessToken uploadRingState;
     TempMemoryStateWrapper::AccessToken tempBufferState;
   };
 
@@ -756,8 +756,6 @@ private:
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PushRingBufferReference ref,
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
-  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, UploadRingBufferReference ref,
-    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, TempUploadBufferReference ref,
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentUploadBufferReference ref,
@@ -773,7 +771,6 @@ private:
   uint64_t getAlignmentRequirement(AliasHeapReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(ScratchBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(PushRingBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(UploadRingBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(TempUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(PersistentUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(PersistentReadBackBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
@@ -1115,8 +1112,6 @@ protected:
   void drawBuffersPlot();
   void drawConstRingMemoryPlot();
   void drawConstRingBasicMetricsTable();
-  void drawUploadRingMemoryPlot();
-  void drawUploadRingBasicMetricsTable();
   void drawTempuraryUploadMemoryPlot();
   void drawTemporaryUploadMemoryBasicMetrics();
   void drawRaytracePlot();
@@ -1149,8 +1144,6 @@ protected:
   void drawBuffersPlot();
   void drawConstRingMemoryPlot();
   void drawConstRingBasicMetricsTable();
-  void drawUploadRingMemoryPlot();
-  void drawUploadRingBasicMetricsTable();
   void drawTempuraryUploadMemoryPlot();
   void drawTemporaryUploadMemoryBasicMetrics();
   void drawRaytracePlot();
@@ -1185,7 +1178,6 @@ class DebugView : public MetricsVisualizer
   void drawRaytraceStructureTable(const char *tree_label, const char *table_id, RaytraceAccelerationStructure::Type filter_type);
 #endif
   void drawTempuraryUploadMemorySegmentsTable();
-  void drawUploadRingSegmentsTable();
   void drawConstRingSegmentsTable();
   void drawTextureTable();
   void drawBuffersTable();
@@ -1194,7 +1186,6 @@ class DebugView : public MetricsVisualizer
   void drawESRamInfoView();
 #endif
   void drawTemporaryUploadMemoryInfoView();
-  void drawUploadRingBufferInfoView();
   void drawConstRingBufferInfoView();
   void drawBuffersInfoView();
   void drawTexturesInfoView();
@@ -1329,14 +1320,12 @@ public:
 
   using BaseType::getResourceAllocationProperties;
 
+  using BaseType::getActiveTextureObjectCount;
   using BaseType::getFramePushRingMemorySize;
   using BaseType::getPersistentBidirectionalMemorySize;
   using BaseType::getPersistentReadBackMemorySize;
   using BaseType::getPersistentUploadMemorySize;
   using BaseType::getTemporaryUploadMemorySize;
-  using BaseType::getUploadRingMemorySize;
-
-  using BaseType::getActiveTextureObjectCount;
   using BaseType::getTextureObjectCapacity;
   using BaseType::reserveTextureObjects;
 
@@ -1352,7 +1341,6 @@ public:
   using BaseType::allocatePushMemory;
   using BaseType::allocateTempUpload;
   using BaseType::allocateTempUploadForUploadBuffer;
-  using BaseType::allocateUploadRingMemory;
   using BaseType::freeHostDeviceSharedMemoryRegionForUploadBufferOnFrameCompletion;
   using BaseType::freeHostDeviceSharedMemoryRegionOnFrameCompletion;
 
@@ -1461,6 +1449,7 @@ public:
 
   using BaseType::AliasHeapReference;
   using BaseType::AnyResourceReference;
+  using BaseType::isImageAlive;
   using BaseType::PersistentBidirectionalBufferReference;
   using BaseType::PersistentReadBackBufferReference;
   using BaseType::PersistentUploadBufferReference;
@@ -1468,9 +1457,6 @@ public:
   using BaseType::reportOOMInformation;
   using BaseType::ScratchBufferReference;
   using BaseType::TempUploadBufferReference;
-  using BaseType::UploadRingBufferReference;
-
-  using BaseType::isImageAlive;
 
   using BaseType::createSampler;
   using BaseType::getSampler;

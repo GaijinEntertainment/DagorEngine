@@ -16,6 +16,8 @@ include "gpu_occlusion.dshl"
 include "taa_inc.dshl"
 include_optional "burnt_ground/shaders/burnt_grass.dshl"
 
+float grass_wet_max_smoothness = 0.8;
+
 define_macro_if_not_defined INIT_BURNT_GRASS()
 endmacro
 
@@ -275,9 +277,10 @@ shader grass_generate_cs
       float2 dim;
       grass_mask_tex.GetDimensions(dim.x, dim.y);
       float2 bilW = frac(grass_mask_tc * dim - 0.5f);
+      // gather order is (-,+),(+,+),(+,-),(-,-): pairs are (left, right), pick right when bilW.x > 0.5
       float4 red = grass_mask_tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
       float2 redX = bilW.y>0.5 ? red.xy : red.wz;
-      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      float redChannel = bilW.x>0.5 ? redX.y : redX.x;
       uint grassChannel = redChannel*255;
 
       float maskScale;
@@ -653,6 +656,10 @@ shader grass_render_billboards
     }
   }
 
+  if (grass_pass != depth_prepass && grass_pass != visibility_pass)
+  {
+    (ps) { grass_wet_max_smoothness@f1 = grass_wet_max_smoothness; }
+  }
   (ps) {mip_bias@f1 = (mip_bias);}
   if (grass_pass != prepass_on)
   {
@@ -691,7 +698,8 @@ shader grass_render_billboards
         uint maxWaveInstanceDword = WaveActiveMax(instanceDword);
         uint instanceBitMask = 1u << instanceLocalBit;
         // 1st path (unoptimized). If we try to access bits in dwords that are too far from each other (we can't encode dword index in a bitmask) we just execute interlocked write for each instance.
-        if (maxWaveInstanceDword - minWaveInstanceDword > min(WaveGetLaneCount(), DWORD_BITS))
+        // >=: a spread of exactly 32 would shift by 32 below, and HLSL shifts wrap mod 32
+        if (maxWaveInstanceDword - minWaveInstanceDword >= min(WaveGetLaneCount(), DWORD_BITS))
         {
           InterlockedOr(grass_visibility_buf[instanceDword], instanceBitMask);
         }
@@ -768,7 +776,7 @@ shader grass_render_billboards
 
       float opacity = input.tc_opacity.w;
 
-      half3 worldPos = world_view_pos - input.p2e.xyz;
+      float3 worldPos = world_view_pos - input.p2e.xyz; // world positions do not fit in half
       float burnOffset = tc.y;
       float burntProgress = get_burnt_grass_progress(input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, float3(tc.xy, 0), burnOffset);
 
@@ -839,7 +847,7 @@ shader grass_render_billboards
       smoothness *= smoothnessfade;
       reflectance *= smoothnessfade;
       //end of filter
-      apply_wetness_by_porosity(input.color_mask_g_to__porosity.w, worldPos, grassAlbedo.rgb, worldNormal, reflectance, smoothness, ao);
+      apply_wetness_to_grass(worldPos, worldNormal, input.color_mask_g_to__porosity.w, grass_wet_max_smoothness, grassAlbedo.rgb, smoothness);
 
       init_gbuffer(gbuffer);
 

@@ -122,6 +122,10 @@ struct DlssGParams
   uint32_t inUIState = UINT_MAX;
   uint32_t inDepthState = UINT_MAX;
   uint32_t inMotionVectorsState = UINT_MAX;
+
+  // When true, frame generation keeps its resources alive but does not generate frames this frame.
+  // Passed per-frame instead of being stored on the feature so the value is owned by the caller's thread.
+  bool suppressed = false;
 };
 
 template <typename InHandleType, typename F>
@@ -130,7 +134,7 @@ auto convertDlssGParams(const DlssGParams<InHandleType> &in,
 {
   return {converter(in.inHUDless), converter(in.inUI), converter(in.inDepth), converter(in.inMotionVectors), in.inJitterOffsetX,
     in.inJitterOffsetY, in.inMVScaleX, in.inMVScaleY, in.frameId, in.inReset, in.camera, in.inHUDlessState, in.inUIState,
-    in.inDepthState, in.inMotionVectorsState};
+    in.inDepthState, in.inMotionVectorsState, in.suppressed};
 }
 
 struct DLSS
@@ -191,7 +195,6 @@ struct DLSSFrameGeneration
   virtual void setEnabled(int frames_to_generate) = 0;
   virtual bool isEnabled() const = 0;
   virtual unsigned getActualFramesPresented() const = 0;
-  virtual void setSuppressed(bool suppressed) = 0;
 };
 
 struct Streamline

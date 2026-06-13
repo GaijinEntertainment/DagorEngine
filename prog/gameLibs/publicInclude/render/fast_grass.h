@@ -88,7 +88,7 @@ public:
   int precompCascades = 5;
 
 protected:
-  SharedTexHolder albedoTex, normalTex;
+  SharedTexWithShaderVar albedoTex, normalTex;
   TextureIDHolderWithVar hmapTex, gmapTex, cmapTex;
   ComputeShader precompShader;
   UniqueBufWithShaderVar grassChannelsCB, clipmapRectsCB;

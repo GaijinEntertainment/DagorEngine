@@ -135,7 +135,7 @@ private:
   {
     for (int row = 0; row < 3; ++row)
       for (int col = 0; col < 4; ++col)
-        spinEdit[row][col].sendWcChangeIfVarChanged(*this);
+        spinEdit[row][col].sendWcChangeAndFinishIfVarChanged(*this);
   }
 
   String controlCaption;

@@ -1,0 +1,5 @@
+daeditor_plot_debug{
+  _singleton:b=true
+  "daeditor_plot_debug__signals:list<r>"{}
+  daeditor_plot_debug__signalCount:i=40
+}

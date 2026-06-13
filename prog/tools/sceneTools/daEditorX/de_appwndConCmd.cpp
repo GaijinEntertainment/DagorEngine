@@ -496,6 +496,15 @@ void DagorEdAppWindow::runCameraPosCmd(dag::ConstSpan<const char *> params)
 
     return;
   }
+  else if (params.size() == 1)
+  {
+    const char *s = (*params[0] == '(') ? params[0] + 1 : params[0];                  // tolerate "%@"-style "(x,y,z)" paste
+    if (const char *cb = strchr(s, ','), *ce = strrchr(s, ','); cb && ce && cb != ce) // E.g "123,456,678"
+    {
+      vpw->setCameraPos(Point3(atof(s), atof(cb + 1), atof(ce + 1)));
+      return;
+    }
+  }
   else if (params.size() >= 3)
   {
     vpw->setCameraPos(to_point3(params, 0));

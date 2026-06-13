@@ -7,6 +7,7 @@ require daslib/strings_boost
 require AnimV20
 require DagorSystem
 require DagorDataBlock
+require %gameLibs/anim/animReplay/imports/anim_replay_common
 
 
 // ParametricSwitcher controller uses pointers in some parameter names, like fifo_00007FF0078186F0 or :lastAnim_00007FF0078186F0
@@ -181,13 +182,6 @@ def apply_anim_state_parameters(var anim_state : IAnimStateHolder; src_obj : Obj
       let copySizeInBytes = (nextOffset - paramOffset) * 4
       unsafe
         memcpy(ptr, addr(rawData[paramOffset]), copySizeInBytes)
-
-def erase_if(var arr : Array; blk : block<(key : ChildComponent) : bool>)
-  var i = length(arr) - 1
-  while i >= 0
-    if invoke(blk, arr[i])
-      erase(arr, i)
-    i--
 
 def patch_anim_graph_data(var animchar_data : Object; anim_graph : AnimationGraph; anim_state : IAnimStateHolder; anim_state_params : DataBlock)
   for animParamsCompName in ["animParams", "preciseAnimParams"]

@@ -1,0 +1,8 @@
+ERROR: duplicate catch type 'SomeType'
+testData/diagnostics/typed_catch_duplicate_type.nut:3:19
+
+catch (SomeType a) { }
+catch (SomeType b) { }
+                   ^
+
+

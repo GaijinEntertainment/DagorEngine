@@ -45,6 +45,7 @@ thread_local int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse) = NUL
 int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse) = NULL;
 #endif
 void (*dgs_report_fatal_error)(const char *title, const char *msg, const char *call_stack) = NULL;
+void (*dgs_report_video_driver_init_failed)() = NULL;
 void (*dgs_on_swap_callback)() = NULL;
 void (*dgs_on_dagor_cycle_start)() = NULL;
 void (*dgs_on_promoted_log_tag)(int tag, const char *fmt, const void *arg, int anum) = NULL;

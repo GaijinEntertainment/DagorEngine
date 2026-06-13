@@ -146,7 +146,7 @@ static int do_main(bool debugmode)
   if (__argc < 4)
   {
     printf("daBuild job v1.21\n"
-           "Copyright (C) Gaijin Games KFT, 2023\n\n"
+           "Copyright (C) Gaijin Games KFT, 2026\n\n"
            "usage: daBuild-job-dev.exe <application.blk> <pid> <index>\n");
     return 1;
   }

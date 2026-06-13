@@ -170,7 +170,8 @@ void *FastPhysPlugin::onWmCreateWindow(int type)
         return nullptr;
 
       mActionTreeCB = new ActionsTreeCB(*this);
-      mActionTree = new PropPanel::TreeBaseWindow(mActionTreeCB, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "", false);
+      mActionTree =
+        new PropPanel::TreeBaseWindow(mActionTreeCB, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "", false, false, true);
 
       return mActionTree;
     }
@@ -210,40 +211,62 @@ void FastPhysPlugin::showActionPanel(bool show)
 }
 */
 
+void FastPhysPlugin::makeObjectToTreeNodeMap(ObjectToTreeNodeMap &map, PropPanel::TLeafHandle parent) const
+{
+  const int childrenCount = mActionTree->getChildrenCount(parent);
+  for (int i = 0; i < childrenCount; ++i)
+  {
+    const PropPanel::TLeafHandle child = mActionTree->getChild(parent, i);
+    FpdAction *action = (FpdAction *)mActionTree->getItemData(child);
+    if (action && action->getObject())
+      map.insert({action->getObject(), child});
+
+    makeObjectToTreeNodeMap(map, child);
+  }
+}
+
 void FastPhysPlugin::updateActionPanel()
 {
-  if (mActionTree)
+  if (!mActionTree)
+    return;
+
+  dag::Vector<IFPObject *> objects;
+  mFastPhysEditor.getSelectedObjects(objects);
+
+  ObjectToTreeNodeMap objectToTreeNodeMap;
+  makeObjectToTreeNodeMap(objectToTreeNodeMap, nullptr);
+
+  dag::Vector<PropPanel::TLeafHandle> selectedTreeNodes;
+  mActionTree->getSelectedItems(selectedTreeNodes, true, true);
+
+  dag::Vector<PropPanel::TLeafHandle> treeNodesToSelect;
+  for (IFPObject *object : objects)
   {
-    PropPanel::TLeafHandle sr = mActionTree->getRoot();
+    auto [rangeBegin, rangeEnd] = objectToTreeNodeMap.equal_range_small(object->getObject());
 
-    IFPObject *wobj = mFastPhysEditor.getSelObject();
+    // When the user selects an object and a tree node mapped to that object was already selected then only select that
+    // tree node, not all tree nodes that map to that object. This way the selection is probably more user friendly.
+    bool selectAll = true;
 
-    if (wobj && wobj->getObject())
+    for (auto it = rangeBegin; it != rangeEnd; ++it)
     {
-      FastPtrList found_idx;
-      for (;;)
+      PropPanel::TLeafHandle treeNode = it->second;
+      if (eastl::find(selectedTreeNodes.begin(), selectedTreeNodes.end(), treeNode) != selectedTreeNodes.end())
       {
-        sr = mActionTree->search(wobj->getObject()->getName(), sr, true);
-        if (!found_idx.addPtr(sr))
-          break;
-
-        FpdAction *action = NULL;
-
-        if (sr)
-          action = (FpdAction *)mActionTree->getItemData(sr);
-        else
-          return;
-
-        if (action && action->getObject() == wobj->getObject())
-        {
-          mActionTree->setSelectedItem(sr);
-          return;
-        }
+        selectAll = false;
+        break;
       }
     }
 
-    mActionTree->setSelectedItem(sr);
+    for (auto it = rangeBegin; it != rangeEnd; ++it)
+    {
+      PropPanel::TLeafHandle treeNode = it->second;
+      if (selectAll || eastl::find(selectedTreeNodes.begin(), selectedTreeNodes.end(), treeNode) != selectedTreeNodes.end())
+        treeNodesToSelect.push_back(it->second);
+    }
   }
+
+  mActionTree->setSelectedItems(treeNodesToSelect);
 }
 
 

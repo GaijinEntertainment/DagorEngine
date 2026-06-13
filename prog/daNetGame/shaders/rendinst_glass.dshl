@@ -20,7 +20,8 @@ shader rendinst_refraction
     USE_BRUNETON_FOG()
   }
   ENABLE_MULTI_DRAW(false)
-
+  RT_GLASS_APPLY(ps)
+  INIT_RT_GLASS_REFLECTION_SUPPORT()
   INIT_REFRACTION_GLASS(use_hw_raytracing && rendinst_transparent_gbuffer_pass == generate)
   if (rendinst_reactive_mask_pass == yes)
   {
@@ -117,7 +118,14 @@ shader rendinst_refraction
   }
   else if (rendinst_transparent_gbuffer_pass == generate)
   {
-    GENERATE_TRANSPARENT_GBUFFER_PS()
+    if (use_rt_glass_reflection)
+    {
+      GENERATE_TRANSPARENT_GBUFFER_PS()
+    }
+    else
+    {
+      dont_render;
+    }
   }
   else if (rendinst_reactive_mask_pass == yes)
   {
@@ -125,7 +133,6 @@ shader rendinst_refraction
   }
   else
   {
-    RT_GLASS_APPLY(ps)
     GLASS_PS()
   }
 }

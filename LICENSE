@@ -89,6 +89,7 @@ third-party component as follows:
   prog/3rdPartyLibs/arc/zstd-1.4.5/LICENSE
   prog/3rdPartyLibs/arc/zstd-1.5.7/COPYING
   prog/3rdPartyLibs/arc/zstd-1.5.7/LICENSE
+  prog/3rdPartyLibs/arm_asr/LICENSE
   prog/3rdPartyLibs/assimp/contrib/poly2tri/LICENSE
   prog/3rdPartyLibs/assimp/LICENSE
   prog/3rdPartyLibs/bencode/LICENSE

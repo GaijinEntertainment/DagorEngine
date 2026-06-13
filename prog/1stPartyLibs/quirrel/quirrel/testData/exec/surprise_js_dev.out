@@ -1,9 +1,9 @@
 === Part 1: Truthy/falsy differences ===
 
-  zero 0 is FALSY
-  empty table {} is TRUTHY
-  empty string "" is TRUTHY
   empty array [] is TRUTHY
+  empty string "" is TRUTHY
+  empty table {} is TRUTHY
+  zero 0 is FALSY
   zero 0.0 is FALSY
 
   Note: unlike JS, empty string is truthy in Quirrel.

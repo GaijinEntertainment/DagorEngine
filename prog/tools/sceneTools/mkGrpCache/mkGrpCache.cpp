@@ -15,7 +15,7 @@ void __cdecl ctrl_break_handler(int) { quit_game(0); }
 static void print_header()
 {
   printf("Make GRP cache v1.1\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 int DagorWinMain(bool debugmode)

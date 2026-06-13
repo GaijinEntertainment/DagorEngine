@@ -37,11 +37,11 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         #if( NRD_MODE == SH )
             diff.xyz = _NRD_LinearToYCoCg( diff.xyz ); // TODO: RELAX uses RGB for SH instead of SG_Create (see NRD.hlsli)
         #endif
-        gOut_Diff[ pixelPos ] = diff * float( viewZ < gDenoisingRange );
+        gOut_Diff[ pixelPos ] = diff * float( IsInDenoisingRange(viewZ) );
 
         #if( NRD_MODE == SH )
-            float4 diffSh = gIn_DiffSh[ checkerboardPos ];
-            gOut_DiffSh[ pixelPos ] = diffSh * float( viewZ < gDenoisingRange );
+            RELAX_SH_TYPE diffSh = gIn_DiffSh[ checkerboardPos ];
+            gOut_DiffSh[ pixelPos ] = diffSh * float( IsInDenoisingRange(viewZ) );
         #endif
     #endif
 
@@ -52,11 +52,11 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         #if( NRD_MODE == SH )
             spec.xyz = _NRD_LinearToYCoCg( spec.xyz ); // TODO: RELAX uses RGB for SH instead of SG_Create (see NRD.hlsli)
         #endif
-        gOut_Spec[ pixelPos ] = spec * float( viewZ < gDenoisingRange );
+        gOut_Spec[ pixelPos ] = spec * float( IsInDenoisingRange(viewZ) );
 
         #if( NRD_MODE == SH )
-            float4 specSh = gIn_SpecSh[ checkerboardPos ];
-            gOut_SpecSh[ pixelPos ] = specSh * float( viewZ < gDenoisingRange );
+            RELAX_SH_TYPE specSh = gIn_SpecSh[ checkerboardPos ];
+            gOut_SpecSh[ pixelPos ] = specSh * float( IsInDenoisingRange(viewZ) );
         #endif
     #endif
 }

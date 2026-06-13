@@ -161,7 +161,7 @@ int DagorWinMain(bool debugmode)
   signal(SIGINT, ctrl_break_handler);
 
   printf("DAG to daEditorX composit converter\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   if (__argc < 3)
   {

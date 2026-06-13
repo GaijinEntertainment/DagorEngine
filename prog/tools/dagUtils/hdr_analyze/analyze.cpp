@@ -70,7 +70,7 @@ int DagorWinMain(bool debugmode)
   startup_game(RESTART_ALL);
 
   fprintf(stderr, "\n HDR texture analyze Tool v0.01\n"
-                  "Copyright (C) Gaijin Games KFT, 2023\n\n");
+                  "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   if (__argc < 2)
   {

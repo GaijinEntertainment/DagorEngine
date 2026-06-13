@@ -496,6 +496,14 @@ public:
     float minTimeScale, maxTimeScale;
   };
 
+  struct MorphParamsOverride
+  {
+    IAnimBlendNode *from;
+    IAnimBlendNode *to;
+    real morphTime;
+    FifoMorphType morphType;
+  };
+
 private:
   AnimBlender blender;
   Ptr<IAnimBlendNode> root;
@@ -511,6 +519,7 @@ private:
 public:
   PtrTab<IAnimBlendNode> resetRandomOnIRQFromNode;
   PtrTab<IAnimBlendNode> resetRandomOnIRQFromNodeTarget;
+  Tab<MorphParamsOverride> morphParamsOverride;
 
 private:
   FastNameMap rangeNames;
@@ -779,6 +788,11 @@ class IMotionMatchingController
 public:
   virtual bool getPose(AnimBlender::TlsContext &tls, const Tab<AnimMap> &) const = 0;
 };
+
+typedef bool (*blend_node_creator_t)(AnimationGraph &graph, const DataBlock &blk);
+void register_blend_node_creator(blend_node_creator_t creator);
+// Returns true if some registered creator handled the block and created a node.
+bool create_blend_node_from_creators(AnimationGraph &graph, const DataBlock &blk);
 
 } // end of namespace AnimV20
 DAG_DECLARE_RELOCATABLE(AnimV20::AnimBlender::ChannelMap);

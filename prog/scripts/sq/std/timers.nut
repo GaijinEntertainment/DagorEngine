@@ -47,38 +47,39 @@ function debounceImmediate(func, delay_s){
   Creates and returns a new, throttled version of the passed function, that, when invoked repeatedly, will only actually call the original function at most once per every wait milliseconds.
   Useful for rate-limiting events that occur faster than you can keep up with.
 
-  By default, throttle will execute the function as soon as you call it for the first time, and, if you call it again any number of times during the wait period, as soon as that period is over.
-  If you'd like to disable the leading-edge call, pass {leading: false}, and if you'd like to disable the execution on the trailing-edge, pass {trailing: false}.
+  By default, throttle will execute the function as soon as you call it for the first time and ignore subsequent calls made during the wait period.
+  If you'd like to disable the leading-edge call, pass {leading: false}, and if you'd like the last call made during the wait period to be executed when that period is over, pass {trailing: true}.
 */
 let defThrottleOptions = {leading = true, trailing=false}
 function throttle(func, delay_s, options=defThrottleOptions){
   let leading = options?.leading ?? defThrottleOptions.leading
   let trailing = options?.trailing ?? defThrottleOptions.trailing
-  local needCallByTimer = false //only for !trailing version
   assert(leading || trailing, "throttle should be called with at least one front call leading or trailing")
-  local curAction = null
-  function throttled(...){
-    let doWait = curAction != null
-    curAction = @() func.acall([null].extend(vargv))
-    if (doWait) {
-      needCallByTimer = !trailing
+  local isWaiting = false
+  local pendingAction = null
+  function onWindowEnd(){
+    if (trailing && pendingAction != null) {
+      let action = pendingAction
+      pendingAction = null
+      setTimeout(delay_s, onWindowEnd)
+      action()
       return
     }
-    function clearThrottled(){
-      if (trailing)
-        curAction()
-      else if (needCallByTimer) {
-        needCallByTimer = false
-        curAction()
-        setTimeout(delay_s, clearThrottled)
-        return
-      }
-      curAction = null
+    pendingAction = null
+    isWaiting = false
+  }
+  function throttled(...){
+    let action = @() func.acall([null].extend(vargv))
+    if (isWaiting) {
+      pendingAction = action
+      return
     }
-    if (leading){
-      curAction()
-    }
-    setTimeout(delay_s, clearThrottled)
+    isWaiting = true
+    setTimeout(delay_s, onWindowEnd)
+    if (leading)
+      action()
+    else
+      pendingAction = action
   }
   return throttled
 }

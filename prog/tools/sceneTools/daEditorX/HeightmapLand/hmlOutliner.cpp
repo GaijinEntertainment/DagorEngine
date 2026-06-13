@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "hmlOutliner.h"
+#include "hmlCm.h"
 #include "hmlEntity.h"
 #include "hmlObjectsEditor.h"
 #include "hmlPlugin.h"
@@ -38,6 +39,21 @@ bool HeightmapLandOutlinerInterface::isTypeVisible(int type) { return objectType
 
 bool HeightmapLandOutlinerInterface::isTypeLocked(int type) { return objectTypeStates[type].locked; }
 
+bool HeightmapLandOutlinerInterface::doesSelectionModeAllowSelectingType(int type)
+{
+  G_STATIC_ASSERT(EditLayerProps::TYPENUM == 3);
+
+  switch (objectEditor.getSelectMode())
+  {
+    case CM_SELECT_PT:
+    case CM_SELECT_SPLINES: return type == EditLayerProps::SPL || type == EditLayerProps::PLG;
+    case CM_SELECT_ENT: return type == EditLayerProps::ENT;
+    case CM_SELECT_SPL_ENT: return type == EditLayerProps::ENT || type == EditLayerProps::SPL || type == EditLayerProps::PLG;
+
+    default: return true;
+  }
+}
+
 bool HeightmapLandOutlinerInterface::canAddNewLayerWithName(int type, const char *name, String &error_message)
 {
   if (EditLayerProps::layerProps.size() >= EditLayerProps::MAX_LAYERS)
@@ -56,6 +72,17 @@ bool HeightmapLandOutlinerInterface::canAddNewLayerWithName(int type, const char
   }
 
   return true;
+}
+
+const char *HeightmapLandOutlinerInterface::getTypeUnselectabilityReason(int type)
+{
+  if (!isTypeVisible(type))
+    return "This cannot be selected because the type is not visible.";
+  if (isTypeLocked(type))
+    return "This cannot be selected because the type is locked.";
+  if (!doesSelectionModeAllowSelectingType(type))
+    return "This cannot be selected because of the current selection mode.";
+  return nullptr;
 }
 
 void HeightmapLandOutlinerInterface::selectAllTypeObjects(int type, bool select)
@@ -223,6 +250,17 @@ bool HeightmapLandOutlinerInterface::canRenameLayerTo(int type, int per_type_lay
   }
 
   return true;
+}
+
+const char *HeightmapLandOutlinerInterface::getLayerUnselectabilityReason(int type, int per_type_layer_index)
+{
+  if (const char *reason = getTypeUnselectabilityReason(type))
+    return reason;
+  if (!isLayerVisible(type, per_type_layer_index))
+    return "This cannot be selected because the layer is not visible.";
+  if (isLayerLocked(type, per_type_layer_index))
+    return "This cannot be selected because the layer is locked.";
+  return nullptr;
 }
 
 void HeightmapLandOutlinerInterface::setLayerActive(int type, int per_type_layer_index)
@@ -399,6 +437,18 @@ int HeightmapLandOutlinerInterface::getObjectAssetType(RenderableEditableObject 
 }
 
 bool HeightmapLandOutlinerInterface::isSampleObject(RenderableEditableObject &object) { return objectEditor.isSampleObject(object); }
+
+const char *HeightmapLandOutlinerInterface::getObjectUnselectabilityReason(RenderableEditableObject &object, int type,
+  int per_type_layer_index)
+{
+  if (const char *reason = getLayerUnselectabilityReason(type, per_type_layer_index))
+    return reason;
+  if (!objectEditor.checkObjSelFilter(object))
+    return "This cannot be selected because its name does not match the name filter on the toolbar.";
+  if (!canSelectObject(object))
+    return "This cannot be selected.";
+  return nullptr;
+}
 
 void HeightmapLandOutlinerInterface::startObjectSelection() { objectEditor.getUndoSystem()->begin(); }
 

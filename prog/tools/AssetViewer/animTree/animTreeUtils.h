@@ -80,6 +80,8 @@ bool add_edit_point4_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel
   const char *name, Point4 default_value = Point4(0.f, 0.f, 0.f, 0.f));
 bool add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, bool default_value = false);
+bool add_combo_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, const Tab<String> &values, const char *default_value = "");
 bool add_edit_matrix_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, const TMatrix &default_value = TMatrix::IDENT);
 void add_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);

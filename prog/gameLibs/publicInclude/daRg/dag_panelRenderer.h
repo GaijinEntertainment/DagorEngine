@@ -21,6 +21,7 @@ enum class RenderPass : int
   Shadow,
   GBuffer,
   ReactiveMask,
+  TranslucentAfterAA,
 };
 
 enum RenderFeatures

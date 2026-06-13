@@ -6,6 +6,7 @@
 
 #include <render/omniLightsManager.h>
 #include <render/spotLightsManager.h>
+#include <render/clusteredLightsSorter.h>
 #include <render/frustumClusters.h>
 #include <render/tiledLights.h>
 #include <render/clusteredLightsGrid.h>
@@ -78,8 +79,9 @@ struct ClusteredLights
   void setMaxShadowDist(const float max_shadow_dist) { maxShadowDist = max_shadow_dist; }
   void changeShadowResolution(uint32_t shadows_quality, bool dynamic_shadow_32bit);
   void close();
-  void cullFrustumLights(vec3f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear, Occlusion *occlusion,
-    SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask, float light_cutoff_dist_sq = 0.f);
+  void cullFrustumLights(vec3f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear, float zfar,
+    Occlusion *occlusion, SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask,
+    float light_cutoff_dist_sq = 0.f);
   void prepareTiledLights(const bool clear_lights = true)
   {
     if (tiledLights)
@@ -324,8 +326,9 @@ protected:
   UniqueBuf coneSphereIb;
   static constexpr int INVALID_VOLUME = 0xFFFF;
 
-  OmniLightsManager omniLights DAG_TS_GUARDED_BY(lightLock);               //-V730_NOINIT
-  SpotLightsManager spotLights DAG_TS_GUARDED_BY(lightLock);               //-V730_NOINIT
+  OmniLightsManager omniLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
+  SpotLightsManager spotLights DAG_TS_GUARDED_BY(lightLock); //-V730_NOINIT
+  ClusteredLightsSorter lightsSorter;
   float closeSliceDist = 4, maxClusteredDist = 500;                        //?
   int maxShadowsToUpdateOnFrame = DEFAULT_MAX_SHADOWS_TO_UPDATE_PER_FRAME; // quality param
   float maxShadowDist = 120.f;                                             // quality and scene param

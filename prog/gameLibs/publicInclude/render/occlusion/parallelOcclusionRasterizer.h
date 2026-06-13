@@ -11,6 +11,8 @@
 #include <EASTL/fixed_function.h>
 
 #include <3d/dag_maskedOcclusionCulling.h>
+#include <generic/dag_tab.h>
+#include <memory/dag_framemem.h>
 #include <scene/dag_occlusion.h>
 #include <math/dag_frustum.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -24,14 +26,31 @@ class Occlusion;
 class ParallelOcclusionRasterizer
 {
 public:
-  struct RasterizationTaskData
+  struct RasterizationTaskData //-V730
   {
     mat44f viewproj;
     vec3f bmin;
     vec3f bmax;
-    const float *verts;
-    const uint16_t *faces;
-    uint32_t tri_count;
+    // Two modes, picked at job time:
+    //   1) Legacy verts/faces: caller supplies a vertex array + uint16 index buffer for the slice
+    //      (callers that already have a raw triangle soup).
+    //   2) BLAS: caller supplies a pointer to vert21-packed BLAS data and a tree slice (treeStart,
+    //      treeEnd). The job calls RenderBLAS, which walks the subtree, frustum-culls per BVH node,
+    //      and emits triangle indices into a job-local cache RenderVert21TriList consumes. Used by
+    //      the CollisionResource BLAS feeder. blasData must outlive rasterizeMeshes -- safe because
+    //      CollisionResource grids are persistent.
+    //   verts != nullptr selects mode 1; verts == nullptr && blasData != nullptr selects mode 2.
+    // tri_count is the exact triangle count for the slice in both modes; in mode 2 it is RenderBLAS's
+    // triLimit cap. triSkip is the BLAS-order triangle offset for mode 2, non-zero only for the 2nd+
+    // slice of a BLAS partitioned by triangles_partition. doJob also uses tri_count to decide between
+    // the per-job static index cache and a framemem-backed buffer.
+    const float *verts = nullptr;
+    const uint16_t *faces = nullptr;
+    uint32_t tri_count = 0;
+    const uint8_t *blasData = nullptr;
+    uint32_t treeStart = 0;
+    uint32_t treeEnd = 0;
+    uint32_t triSkip = 0;
   };
 
 private:
@@ -66,6 +85,12 @@ private:
       threadpool::add(this, prio, qpos, threadpool::AddFlags::None);
     }
     const char *getJobName(bool &) const override { return "rasterizer_all_tasks"; }
+    // Per-job triangle index cache, reused across BLAS-mode tasks. The feeder partitions tasks to
+    // triangles_partition slices so tri_count normally fits this static cap; a single unpartitioned
+    // BLAS slice could exceed it and falls back to a framemem-backed spill.
+    static constexpr int BLAS_TRI_CACHE_MAX = 4096;
+    alignas(16) uint32_t blasTriCache[BLAS_TRI_CACHE_MAX * 3];
+
     virtual void doJob() override
     {
       uint32_t taskId = context->processedTasks.fetch_add(1);
@@ -78,9 +103,35 @@ private:
         {
           auto clipPlanes =
             (ret == Frustum::INTERSECT) ? MaskedOcclusionCulling::CLIP_PLANE_ALL : MaskedOcclusionCulling::CLIP_PLANE_NONE;
-          occlusion->RenderTriangles(task.verts, task.faces, task.tri_count, (float *)&task.viewproj, context->backfaceWinding,
-            clipPlanes);
-          trianglesCount += task.tri_count;
+          if (task.verts)
+          {
+            // Legacy verts/faces path (raw triangle soup).
+            occlusion->RenderTriangles(task.verts, task.faces, task.tri_count, (float *)&task.viewproj, context->backfaceWinding,
+              clipPlanes);
+            trianglesCount += task.tri_count;
+          }
+          else if (task.blasData)
+          {
+            // BLAS-walk path (combined-per-behavior CollisionResource BLAS). RenderBLAS frustum-culls
+            // and emits triangles directly to RenderVert21TriList -- no caller-side vert/face arrays,
+            // and blasData is persistent so it satisfies the async task lifetime a decoded scratch
+            // could not. CACHE_INSUFFICIENT = walk-and-emit on this call; triSkip/tri_count select
+            // this slice of the partitioned BLAS triangle range.
+            uint32_t triCount = 0;
+            uint32_t *indexCache = blasTriCache;
+            uint32_t indexCacheCap = (uint32_t)BLAS_TRI_CACHE_MAX;
+            dag::Vector<uint32_t, framemem_allocator, false> spillCache;
+            if (task.tri_count > indexCacheCap)
+            {
+              spillCache.resize(task.tri_count * 3);
+              indexCache = spillCache.data();
+              indexCacheCap = task.tri_count;
+            }
+            occlusion->RenderBLAS(task.blasData, (int)task.treeStart, (int)task.treeEnd, (float *)&task.viewproj, indexCache,
+              indexCacheCap, triCount, MaskedOcclusionCulling::CACHE_INSUFFICIENT, context->backfaceWinding, clipPlanes, task.triSkip,
+              task.tri_count);
+            trianglesCount += triCount;
+          }
         }
         taskId = context->processedTasks.fetch_add(1);
       }

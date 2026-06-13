@@ -1,7 +1,6 @@
 #pragma once
 
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include <algorithm>
 #include "lexer.h"
 #include "lex_tokens.h"
@@ -153,5 +152,3 @@ private:
 };
 
 } // namespace SQCompilation
-
-#endif

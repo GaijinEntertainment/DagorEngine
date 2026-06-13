@@ -99,7 +99,8 @@ public:
     _inTry = true;
     stmt->tryStatement()->visit(this);
     _inTry = old;
-    stmt->catchStatement()->visit(this);
+    for (auto &c : stmt->catches())
+      c.body->visit(this);
   }
 
   void visitSwitchStatement(SwitchStatement *stmt) override {

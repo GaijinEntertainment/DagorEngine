@@ -97,7 +97,7 @@ dafg::NodeHandle makeScopeTransNode()
   return dafg::register_node("render_scope_transparency_except_lens", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("transparent_scene_late_node");
     registry.requestState().allowWireframe().setFrameBlock("global_frame");
-    registry.requestRenderPass().color({"target_for_transparency"}).depthRo("depth_for_transparency");
+    registry.requestRenderPass().color({"target_for_transparency"}).depthReadTestOnly("depth_for_transparency");
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
@@ -131,7 +131,7 @@ dafg::NodeHandle makeScopeLensMaskNode()
     overrideState.set(shaders::OverrideState::Z_WRITE_DISABLE);
     registry.requestState().enableOverride(overrideState).setFrameBlock("global_frame");
 
-    registry.requestRenderPass().color({"scope_lens_mask"}).depthRw("gbuf_depth");
+    registry.requestRenderPass().color({"scope_lens_mask"}).depth("gbuf_depth");
 
     auto scopeDataHndls = request_common_scope_state(registry);
 
@@ -222,7 +222,7 @@ dafg::NodeHandle makeScopeDownsampleStencilNode(const char *node_name, const cha
     stateOverride.stencil.set(CMPF_ALWAYS, STNCLOP_KEEP, STNCLOP_KEEP, STNCLOP_REPLACE, 0xFF, 0xFF);
 
     // TODO: restore this when have requestRenderPass().clearStencil()
-    // registry.requestRenderPass().depthRw(registry.renameTexture(depth_name, depth_rename_to));
+    // registry.requestRenderPass().depth(registry.renameTexture(depth_name, depth_rename_to));
     auto depthHndl = registry.renameTexture(depth_name, depth_rename_to)
                        .atStage(dafg::Stage::POST_RASTER)
                        .useAs(dafg::Usage::DEPTH_ATTACHMENT)
@@ -272,7 +272,7 @@ dafg::NodeHandle makeScopeCutDepthNode()
 
     // We modify the "done" version of the gbuffer to ensure that
     // everything else has already been rendered
-    registry.requestRenderPass().color({registry.modify("gbuf_2_done").texture().optional()}).depthRw("gbuf_depth_done");
+    registry.requestRenderPass().color({registry.modify("gbuf_2_done").texture().optional()}).depth("gbuf_depth_done");
 
     registry.readTexture("scope_lens_mask").atStage(dafg::Stage::PS).bindToShaderVar("scope_lens_mask");
     registry.read("scope_lens_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("scope_lens_mask_samplerstate");

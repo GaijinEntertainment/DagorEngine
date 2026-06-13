@@ -383,12 +383,12 @@ void RenderAnimCharIconBase::clear_to(E3DCOLOR col, Texture *to, int x, int y, i
 GLOBAL_VARS_ANIMCHAR_ICONS_LIST
 #undef VAR
 
-eastl::optional<SharedTexHolder> RenderAnimCharIconBase::setEnviParams(const DataBlock &info)
+eastl::optional<SharedTexWithShaderVar> RenderAnimCharIconBase::setEnviParams(const DataBlock &info)
 {
   const char *defaultEnviPanoramaTexName = dgs_get_game_params()->getStr("icon_render_panorama", "");
   const char *enviPanoramaGameresTex = info.getStr("enviPanoramaTex", defaultEnviPanoramaTexName);
   const EnviPanoramaCache::Id enviId = enviPanoramaCache.addEnvi(enviPanoramaGameresTex);
-  SharedTexHolder enviPanoramaScoped;
+  SharedTexWithShaderVar enviPanoramaScoped;
   if (enviId)
   {
     if (!enviPanoramaCache.prefetch(enviId))
@@ -1012,7 +1012,7 @@ RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::bef
   if (animcharPrefetch.status != IconPrepareStatus::Ready)
     return {animcharPrefetch.status};
 
-  eastl::optional<SharedTexHolder> previousEnviPanoramaScoped = setEnviParams(info);
+  eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped = setEnviParams(info);
   if (!previousEnviPanoramaScoped.has_value())
     return {IconPrepareStatus::RetryAgain};
 

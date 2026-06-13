@@ -79,7 +79,7 @@ void DagorWinMainInit(int, bool)
   char stamp_buf[256];
   printf("--------------------------------------------\n"
          "DaImpostor v1.00\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n"
+         "Copyright (C) Gaijin Games KFT, 2026\n"
          "--------------------------------------------\n"
          "%s\n\n\n",
     dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), ""));

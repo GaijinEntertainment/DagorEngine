@@ -27,7 +27,6 @@ static ComputeShaderElement *trace = nullptr;
 static int inv_proj_tmVarId = -1;
 static int rtao_targetVarId = -1;
 static int rtao_hit_dist_paramsVarId = -1;
-static int rtao_resolutionVarId = -1;
 static int rtao_resolutionIVarId = -1;
 static int rtao_texture_resolutionVarId = -1;
 static int rtao_uv_maxVarId = -1;
@@ -70,7 +69,6 @@ void initialize(bool half_res)
     return;
 
   rtao_hit_dist_paramsVarId = get_shader_variable_id("rtao_hit_dist_params");
-  rtao_resolutionVarId = get_shader_variable_id("rtao_resolution");
   rtao_resolutionIVarId = get_shader_variable_id("rtao_resolutionI");
   rtao_texture_resolutionVarId = get_shader_variable_id("rtao_texture_resolution");
   rtao_uv_maxVarId = get_shader_variable_id("rtao_uv_max");
@@ -137,7 +135,6 @@ void render_noisy(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *h
 
   const Point4 hitDistParams = Point4(ray_length, distance_factor, scatter_factor, roughness_factor);
   ShaderGlobal::set_float4(rtao_hit_dist_paramsVarId, hitDistParams);
-  ShaderGlobal::set_float4(rtao_resolutionVarId, resolution.x, resolution.y, 0, 0);
   ShaderGlobal::set_int4(rtao_resolutionIVarId, resolution.x, resolution.y, 0, 0);
   ShaderGlobal::set_int4(rtao_texture_resolutionVarId, denoiser::resolution_config.rtao.width, denoiser::resolution_config.rtao.height,
     0, 0);

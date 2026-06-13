@@ -1,17 +1,16 @@
 // A fault that forks with NO catch on either branch: two fire-and-forget
 // chains (branchA, branchB) both await the same faulting future `f`. Both reach
 // the unhandled path and are reported through the installed error handler. Each
-// branch carries its own Error clone, so each reported root must show exactly
+// branch carries its own trace clone, so each reported root must show exactly
 // its own branch's await-hop (and the pre-fork origin), never the sibling's.
 
 from "async" import Future
 from "debug" import seterrorhandler
 
-seterrorhandler(function(err) {
-    assert(err instanceof Error)
+seterrorhandler(function(err, trace) {
     local awaitedFuncs = []
     local sawOrigin = false
-    foreach (fr in err.trace) {
+    foreach (fr in trace) {
         if (("awaited" in fr) && fr.awaited)
             awaitedFuncs.append(fr.func)
         else if (fr.func == "shared")
@@ -26,7 +25,7 @@ let gate = Future()
 
 async function shared() {
     await gate                 // park so both branches attach to `f` first
-    throw Error("forked boom")
+    throw "forked boom"
 }
 
 let f = shared()

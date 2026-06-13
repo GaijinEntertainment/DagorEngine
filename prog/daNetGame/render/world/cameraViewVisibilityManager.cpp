@@ -18,6 +18,8 @@
 #include <render/world/occlusionLandMeshManager.h>
 #include <render/world/worldRendererQueries.h>
 
+#include <render/dynmodelRenderer.h>
+
 #include <EASTL/fixed_string.h>
 
 
@@ -137,6 +139,8 @@ void add_sw_rasterization_tasks(rendinst::RIOcclusionData &od,
 void gather_animchars_for_occlusion_rasterization(
   mat44f_cref globtm, const vec3f &origin, eastl::vector<ParallelOcclusionRasterizer::RasterizationTaskData> &tasks);
 
+void add_occlusion_mask_tasks(OcclusionMaskApplier &, const bool is_sub_view);
+
 void CameraViewVisibilityMgr::startSwRasterization(rendinst::RIOcclusionData &ri_occlusion_data,
   mat44f_cref globtm,
   mat44f_cref view,
@@ -158,6 +162,7 @@ void CameraViewVisibilityMgr::startSwRasterization(rendinst::RIOcclusionData &ri
   }
   else
     cullgtm = globtm;
+
   auto &rasterizationTasks = occlusionRasterizer->acquireTasksNext();
   if (sw_hmap_occlusion.get() && occlusionLandMeshManager && lmesh_mgr && lmesh_mgr->getHmapHandler())
     occlusionLandMeshManager->makeRasterizeLandMeshTasks(*lmesh_mgr->getHmapHandler(), lmesh_mgr->getHolesManager(), *occl,
@@ -166,6 +171,8 @@ void CameraViewVisibilityMgr::startSwRasterization(rendinst::RIOcclusionData &ri
   if (sw_animchars_occlusion.get())
     gather_animchars_for_occlusion_rasterization(globtm, occl->getCurViewPos(), rasterizationTasks);
   occlusionRasterizer->rasterizeMeshes(eastl::move(rasterizationTasks), p.zn);
+
+  add_occlusion_mask_tasks(occlusionMaskApplier, isSubView);
 }
 
 void CameraViewVisibilityMgr::startVisibility(const CameraParams &cur_frame_camera,
@@ -177,12 +184,12 @@ void CameraViewVisibilityMgr::startVisibility(const CameraParams &cur_frame_came
   Occlusion *occl = getOcclusion();
   lodsByDistanceJob.start(cur_frame_camera.viewItm.getcol(3));
   visibilityJob.start(&jobsCtx, occl, occlusionRasterizer.get(), rendinstMainVisibility, cur_frame_camera,
-    transparent_partition_sphere, rendering_resolution, shadow_ctx);
+    transparent_partition_sphere, rendering_resolution, shadow_ctx,
+    occlusionMaskApplier.hasScheduledTasks() ? &occlusionMaskApplier : nullptr);
 }
 
 void CameraViewVisibilityMgr::startGroundVisibility(LandMeshManager *lmesh_mgr,
   LandMeshRenderer *lmesh_renderer,
-  const float hmap_camera_height,
   const float water_level,
   const int displacement_sub_div,
   const float displacement_radius,
@@ -193,8 +200,8 @@ void CameraViewVisibilityMgr::startGroundVisibility(LandMeshManager *lmesh_mgr,
   // Norm prio to be executed before dafx jobs
   lmeshCullingData.heightmapData.useHWTesselation = true; // will be switched off by frustumCulling
   groundCullJob.start(&jobsCtx, &lmeshCullingData, lmesh_mgr, lmesh_renderer, occl, cur_frame_camera.noJitterFrustum,
-    cur_frame_camera.viewItm.getcol(3), cur_frame_camera.noJitterProjTm, hmap_camera_height, water_level, displacement_sub_div,
-    displacement_radius, threadpool::PRIO_NORMAL);
+    cur_frame_camera.viewItm.getcol(3), cur_frame_camera.noJitterProjTm, water_level, displacement_sub_div, displacement_radius,
+    threadpool::PRIO_NORMAL);
 }
 
 void CameraViewVisibilityMgr::startGroundReflectionVisibility(LandMeshManager *lmesh_mgr,
@@ -202,11 +209,10 @@ void CameraViewVisibilityMgr::startGroundReflectionVisibility(LandMeshManager *l
   const Frustum &frustum,
   const Point3 &viewPos,
   const TMatrix4 &viewProj,
-  const float hmap_camera_height,
   const float water_level)
 {
   groundReflectionCullJob.start(&jobsCtx, &lmeshReflectionCullingData, lmesh_mgr, lmesh_renderer, frustum, viewPos, viewProj,
-    hmap_camera_height, water_level, threadpool::PRIO_LOW);
+    water_level, threadpool::PRIO_LOW);
 }
 
 void CameraViewVisibilityMgr::startLightsCullingJob(const CameraParams &cur_frame_camera, const bool use_occlusion_culling)
@@ -335,12 +341,25 @@ rendinst::render::RiExtraRenderer *CameraViewVisibilityMgr::waitAsyncRIGenExtraO
   return riExtraRenderJob.wait(rendinstMainVisibility);
 }
 
-void CameraViewVisibilityMgr::startAsyncAnimcharMainRender(
-  const Frustum &fg_cam_blob_frustum, uint32_t hints, TexStreamingContext tex_ctx)
+void CameraViewVisibilityMgr::startAsyncAnimcharMainRender(const Frustum &fg_cam_blob_frustum,
+  uint32_t hints,
+  TexStreamingContext tex_ctx,
+  const TMatrix4 &view_tm,
+  const TMatrix4 &proj_tm,
+  const TMatrix4 &prev_view_tm,
+  const TMatrix4 &prev_proj_tm)
 {
   G_ASSERT(g_entity_mgr->isConstrainedMTMode());
 
   animcharMainRenderJobCtx.jobs = animcharMainRenderJobs;
+
+  animcharMainRenderJobCtx.viewTm = view_tm;
+  animcharMainRenderJobCtx.projTm = proj_tm;
+  animcharMainRenderJobCtx.prevViewTm = prev_view_tm;
+  animcharMainRenderJobCtx.prevProjTm = prev_proj_tm;
+
+  animcharMainRenderJobCtx.viewTm.setrow(3, 0, 0, 0, 1);
+  animcharMainRenderJobCtx.prevViewTm.setrow(3, 0, 0, 0, 1);
 
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
   G_ASSERT(animcharMainRenderJobCtx.globalVarsState.empty() /* Expected to be cleared by previous `waitAsyncAnimcharMainRender` */);

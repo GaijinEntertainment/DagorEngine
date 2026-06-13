@@ -111,7 +111,7 @@ function register_es(name, onEvents={}, compsDesc={}, params = {}) {
     if ((comps?.comps_ro ?? []).filter(@(v) type(v)!="array").len()!=0)
      logerr($"{name} register error: all read only components should be specified with type")
     if ((comps?.comps_rw ?? []).filter(@(v) type(v)!="array").len()!=0)
-      logerr($"{name} register error: all read only components should be specified with type")
+      logerr($"{name} register error: all read-write components should be specified with type")
     verbose_print($"registering {name};")
     ecs_register_entity_system(name, remappedEvents, comps, params)
     verbose_print($"ecs: {name} registered;")
@@ -187,7 +187,7 @@ let recreateEntityWithTemplates = kwarg(function(eid=ecs.INVALID_ENTITY_ID, remo
       if (checkComps) {
         let templComps = type(templN)=="string" ? [templN] : templN?.comps
         if (templComps == null || templName == null) {
-          logerr($"addTemplates should have specified components that should be added. {templName}") //todo: check that components exists in removed templates
+          logerr($"removeTemplates should have specified components that should be removed. {templName}") //todo: check that components exists in removed templates
         }
         else {
           let templ = templName != null ? ecs.g_entity_mgr.getTemplateDB().getTemplateByName(templName) : null

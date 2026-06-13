@@ -86,7 +86,7 @@ MAKE_TYPE_FACTORY(AnimPostBlendParamFromNode, AnimV20::AnimPostBlendParamFromNod
 MAKE_TYPE_FACTORY(AttachGeomNodeCtrlVarId, AnimV20::AttachGeomNodeCtrl::VarId);
 using AttachGeomNodeCtrlVarIdTab = Tab<AnimV20::AttachGeomNodeCtrl::VarId>;
 DAS_BIND_VECTOR(AttachGeomNodeCtrlVarIdTab, AttachGeomNodeCtrlVarIdTab, AnimV20::AttachGeomNodeCtrl::VarId,
-  " ::Tab<AnimV20::AttachGeomNodeCtrl::VarId>");
+  " ::Tab<::AnimV20::AttachGeomNodeCtrl::VarId>");
 MAKE_TYPE_FACTORY(AttachGeomNodeCtrlAttachDesc, AnimV20::AttachGeomNodeCtrl::AttachDesc);
 MAKE_TYPE_FACTORY(AttachGeomNodeCtrl, AnimV20::AttachGeomNodeCtrl);
 
@@ -103,8 +103,8 @@ MAKE_TYPE_FACTORY(Animate2ndPassCtx, Animate2ndPassCtx);
 using BnlPtrTab = PtrTab<AnimV20::AnimBlendNodeLeaf>;
 using PbCtrlPtrTab = PtrTab<AnimV20::AnimPostBlendCtrl>;
 
-DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<AnimV20::AnimBlendNodeLeaf>");
-DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<AnimV20::AnimPostBlendCtrl>");
+DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<::AnimV20::AnimBlendNodeLeaf>");
+DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<::AnimV20::AnimPostBlendCtrl>");
 
 MAKE_TYPE_FACTORY(AnimBlender, AnimV20::AnimBlender);
 MAKE_TYPE_FACTORY(AnimcharDebugContext, AnimV20::AnimcharDebugContext);
@@ -176,6 +176,16 @@ inline int anim_graph_getBlendNodeId(const ::AnimV20::AnimationGraph &animGraph,
 inline int anim_graph_getParamId(const ::AnimV20::AnimationGraph &animGraph, const char *state_name, int type)
 {
   return animGraph.getParamId(state_name ? state_name : "", type);
+}
+
+inline int anim_graph_addParamId(::AnimV20::AnimationGraph &animGraph, const char *param_name, int type)
+{
+  return animGraph.addParamIdEx(param_name, type);
+}
+
+inline int anim_graph_addInlinePtrParamId(::AnimV20::AnimationGraph &animGraph, const char *param_name, int size_bytes)
+{
+  return (param_name && *param_name) ? animGraph.addInlinePtrParamId(param_name, (size_t)size_bytes) : -1;
 }
 
 inline ::AnimV20::AnimBlendCtrl_Fifo3 *anim_graph_getFifo3NodePtr(::AnimV20::AnimationGraph &animGraph, int node_idx)
@@ -398,13 +408,13 @@ inline void anim_graph_setStateSpeed(::AnimV20::AnimationGraph &anim_graph, ::An
 
 inline bool anim_graph_enqueueNode(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimCommonStateHolder &state, const char *anim)
 {
-  if (anim_graph.getRoot() && anim_graph.getRoot()->isSubOf(AnimV20::AnimBlendCtrl_Fifo3CID))
+  if (anim_graph.getRoot() && anim_graph.getRoot()->isSubOf(::AnimV20::AnimBlendCtrl_Fifo3CID))
   {
-    AnimV20::IAnimBlendNode *n = anim_graph.getBlendNodePtr(anim);
+    ::AnimV20::IAnimBlendNode *n = anim_graph.getBlendNodePtr(anim);
     if (!n)
       return false;
 
-    AnimV20::AnimBlendCtrl_Fifo3 *fifo = (AnimV20::AnimBlendCtrl_Fifo3 *)anim_graph.getRoot();
+    ::AnimV20::AnimBlendCtrl_Fifo3 *fifo = (::AnimV20::AnimBlendCtrl_Fifo3 *)anim_graph.getRoot();
     if (!fifo->isEnqueued(state, n))
       n->resume(state, true);
     fifo->enqueueState(state, n, /*overlap_time*/ 0.15f);

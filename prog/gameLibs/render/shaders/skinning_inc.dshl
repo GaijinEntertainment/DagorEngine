@@ -15,6 +15,11 @@ macro INIT_WORLD_LOCAL_BASE(code)
       float4 proj_to_view_tm_1;
       float4 proj_to_view_tm_2;
       float4 proj_to_view_tm_3;
+
+      float4 relative_world_to_proj_tm_0;
+      float4 relative_world_to_proj_tm_1;
+      float4 relative_world_to_proj_tm_2;
+      float4 relative_world_to_proj_tm_3;
     }
   }
 }

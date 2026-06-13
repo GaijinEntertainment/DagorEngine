@@ -55,7 +55,8 @@ static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity severity,
 
 static SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
-  G_ASSERT(sq_gettop(v) == 2);
+  // (this, error, trace): async faults carry the captured trace as a third arg.
+  G_ASSERT(sq_gettop(v) == 3);
 
   sqstd_aux_error_to_string(v, 2);
   const char *errMsg = "Unknown error";
@@ -90,6 +91,7 @@ void init()
   sq_setcompilererrorhandler(sqvm, compile_error_handler);
 
   sq_newclosure(sqvm, runtime_error_handler, 0);
+  sq_setparamscheck(sqvm, 3, nullptr);
   sq_seterrorhandler(sqvm);
 
   sq_newtable(sqvm); // dummy bound class holder

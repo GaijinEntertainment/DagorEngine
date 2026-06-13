@@ -25,18 +25,18 @@ NRD_INPUTS_START
         NRD_INPUT( Texture2D, float4, gIn_Spec, t, 3 )
         NRD_INPUT( Texture2D, float4, gIn_Diff, t, 4 )
         #if( NRD_MODE == SH )
-            NRD_INPUT( Texture2D, float4, gIn_SpecSh, t, 5 )
-            NRD_INPUT( Texture2D, float4, gIn_DiffSh, t, 6 )
+            NRD_INPUT( Texture2D, RELAX_SH_TYPE, gIn_SpecSh, t, 5 )
+            NRD_INPUT( Texture2D, RELAX_SH_TYPE, gIn_DiffSh, t, 6 )
         #endif
     #elif( NRD_DIFF )
         NRD_INPUT( Texture2D, float4, gIn_Diff, t, 3 )
         #if( NRD_MODE == SH )
-            NRD_INPUT( Texture2D, float4, gIn_DiffSh, t, 4 )
+            NRD_INPUT( Texture2D, RELAX_SH_TYPE, gIn_DiffSh, t, 4 )
         #endif
     #else
         NRD_INPUT( Texture2D, float4, gIn_Spec, t, 3 )
         #if( NRD_MODE == SH )
-            NRD_INPUT( Texture2D, float4, gIn_SpecSh, t, 4 )
+            NRD_INPUT( Texture2D, RELAX_SH_TYPE, gIn_SpecSh, t, 4 )
         #endif
     #endif
 NRD_INPUTS_END
@@ -46,18 +46,18 @@ NRD_OUTPUTS_START
         NRD_OUTPUT( RWTexture2D, float4, gOut_Spec, u, 0 )
         NRD_OUTPUT( RWTexture2D, float4, gOut_Diff, u, 1 )
         #if( NRD_MODE == SH )
-            NRD_OUTPUT( RWTexture2D, float4, gOut_SpecSh, u, 2 )
-            NRD_OUTPUT( RWTexture2D, float4, gOut_DiffSh, u, 3 )
+            NRD_OUTPUT( RWTexture2D, RELAX_SH_TYPE, gOut_SpecSh, u, 2 )
+            NRD_OUTPUT( RWTexture2D, RELAX_SH_TYPE, gOut_DiffSh, u, 3 )
         #endif
     #elif( NRD_DIFF )
         NRD_OUTPUT( RWTexture2D, float4, gOut_Diff, u, 0 )
         #if( NRD_MODE == SH )
-            NRD_OUTPUT( RWTexture2D, float4, gOut_DiffSh, u, 1 )
+            NRD_OUTPUT( RWTexture2D, RELAX_SH_TYPE, gOut_DiffSh, u, 1 )
         #endif
     #else
         NRD_OUTPUT( RWTexture2D, float4, gOut_Spec, u, 0 )
         #if( NRD_MODE == SH )
-            NRD_OUTPUT( RWTexture2D, float4, gOut_SpecSh, u, 1 )
+            NRD_OUTPUT( RWTexture2D, RELAX_SH_TYPE, gOut_SpecSh, u, 1 )
         #endif
     #endif
 NRD_OUTPUTS_END

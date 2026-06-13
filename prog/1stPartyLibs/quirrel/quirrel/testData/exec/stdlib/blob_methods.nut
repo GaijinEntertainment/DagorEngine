@@ -6,6 +6,10 @@ assert(typeof b == "blob")
 
 b.resize(4)
 assert(b.len() == 4)
+b.resize(10)
+assert(b.len() == 10)
+b.resize(4)
+assert(b.len() == 4)
 
 b[0] = 0xAA
 b[1] = 0xBB

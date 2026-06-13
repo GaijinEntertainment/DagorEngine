@@ -16,9 +16,7 @@
 #include <render/world/bvh.h>
 
 
-ECS_ON_EVENT(OnRenderSettingsReady,
-  ChangeRenderFeatures,
-  OnRenderSettingsUpdated) // todo: remove OnRenderSettingsUpdated from here once graphics preset applying is removed from UI code
+ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures)
 ECS_TRACK(render_settings__ssssQuality, render_settings__waterQuality, render_settings__combinedShadows)
 ECS_AFTER(ssss_settings_tracking_es)
 ECS_REQUIRE(const ecs::string &render_settings__waterQuality, bool render_settings__combinedShadows)

@@ -18,7 +18,11 @@ Sources =
   base_nodes_panel.cpp
   canvas_clipboard.cpp
   graph_compile.cpp
+  graph_edge_reconnect.cpp
+  graph_hotkeys_bar.cpp
   graph_panel.cpp
+  graph_shortcuts_panel.cpp
+  graph_status_bar.cpp
   graph_validation.cpp
   histogram_panel.cpp
   landscape_preview_panel.cpp

@@ -5,7 +5,10 @@
 #include "commonUtils.h"
 #include "hwAssembly.h"
 #include "globalConfig.h"
+#include "refinedBlockRegisterAllocator.h"
+#include "varMap.h"
 #include <ioSys/dag_dataBlock.h>
+#include <dag/dag_vectorMap.h>
 
 
 namespace shc
@@ -18,6 +21,9 @@ class CompilationContext
   const ShCompilationInfo *mInfo = nullptr;
   eastl::string commonHlslDefinesCached;
   FILE *dependencyDumpFile = nullptr;
+  RefinedBlockRegisterAllocator mRbAllocator;
+  VarNameMap mRbVarNameMap;
+  dag::VectorMap<int, RefinedBlockRegister> mRbVarIdToRegInfo;
 
 public:
   CompilationContext(const ShCompilationInfo &info) : mInfo{&info}
@@ -54,7 +60,16 @@ public:
 
   const eastl::string &commonHlslDefines() const { return commonHlslDefinesCached; }
 
-  TargetContext makeTargetContext(const char *fname) const;
+  auto &rbAllocator() { return mRbAllocator; }
+  const auto &rbAllocator() const { return mRbAllocator; }
+
+  auto &rbVarNameMap() { return mRbVarNameMap; }
+  const auto &rbVarNameMap() const { return mRbVarNameMap; }
+
+  auto &rbVars() { return mRbVarIdToRegInfo; }
+  const auto &rbVars() const { return mRbVarIdToRegInfo; }
+
+  TargetContext makeTargetContext(const char *fname, bool preshader_scan = false);
 
   bool isOnlyCollectingDependencies() const { return dependencyDumpFile != nullptr; }
   void reportDepFile(char const *name) const

@@ -245,10 +245,20 @@ public:
   // A search input with an search icon (typically a magnifying glass) and clear icon (typically an X). The latter is
   // only displayed when text_to_search is not empty. Clicking on it clears text_to_search.
   // When Enter is pressed it keeps the focus. (See the comment at inputTextWithEnterWorkaround().)
+  // input_focused: optional input and output parameter. As an input it should contain whether the input is focused. Passing the
+  //   previous frame's state is fine. As an output parameter it contains whether the input is focused.
+  // input_id: optional output parameter. Contains the ID of the input control. Use this instead of ImGui::GetItemID() because of the
+  //   clear button.
+  // input_rect: optional output parameter. Contains the full rectangle of the input control. Use this instead of ImGui::GetItemRect*()
+  //   because of the clear button.
+  // deactivated_after_edit: optional output parameter. ImGui::IsItemDeactivatedAfterEdit() for the text input, captured before the
+  //   clear button is submitted (a plain IsItemDeactivatedAfterEdit() after this call would read the clear button instead).
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, ImTextureID search_icon,
-    ImTextureID clear_icon, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
+    ImTextureID clear_icon, bool *input_focused = nullptr, ImGuiID *input_id = nullptr, ImRect *input_rect = nullptr,
+    bool *deactivated_after_edit = nullptr);
   static bool searchInput(const void *focus_id, const char *label, const char *hint, String &text_to_search, IconId search_icon_id,
-    IconId clear_icon_id, bool *input_focused = nullptr, ImGuiID *input_id = nullptr);
+    IconId clear_icon_id, bool *input_focused = nullptr, ImGuiID *input_id = nullptr, ImRect *input_rect = nullptr,
+    bool *deactivated_after_edit = nullptr);
 
   // Same as ImGui::BeginMenuEx but meant to be used along with menuItemExWithLeftSideCheckmark. It aligns sub-menu
   // items the same way as menuItemExWithLeftSideCheckmark.

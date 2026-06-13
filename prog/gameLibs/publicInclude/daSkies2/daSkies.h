@@ -136,7 +136,10 @@ public:
   _PARAM_RAND(float, turbulenceStrength, 0.21f)                                                                                   \
   _PARAM(int, shapeNoiseScale, 9)                                                                                                 \
   _PARAM(int, cumulonimbusShapeScale, 4)                                                                                          \
-  _PARAM(int, turbulenceFreq, 2)
+  _PARAM(int, turbulenceFreq, 2)                                                                                                  \
+  _PARAM_RAND(float, perlin_worley_dilation, 0.3)                                                                                 \
+  _PARAM_RAND(float, worley_erosion, 1.0)                                                                                         \
+  _PARAM_RAND(float, shape_gamma, 1.25)
     struct Layer
     {
       float startAt, thickness, density;
@@ -153,6 +156,7 @@ public:
     int shapeNoiseScale = 9, cumulonimbusShapeScale = 4;
     int turbulenceFreq = 2;
     float turbulenceStrength = 0.21;
+    float perlin_worley_dilation = 0.3f, worley_erosion = 1.0f, shape_gamma = 1.25f;
     // float gradient_per1km = 1000;//both FB and HZD papers suggest to skew clouds in wind direction. I don't see the benefit, it
     // doesn't look natural
     bool operator==(const CloudsForm &a) const;
@@ -491,6 +495,8 @@ public:
 
   void getCloudsTextureResourceDependencies(Tab<TEXTUREID> &dependencies) const;
 
+  void debugUI();
+
 protected:
   // internal
   union Request
@@ -667,7 +673,7 @@ protected:
   PostFxRenderer strata;
   PostFxRenderer skiesApply;
   DynamicShaderHelper skiesSphereApplyShader;
-  SharedTexHolder strataClouds;
+  SharedTexWithShaderVar strataClouds;
   MipRenderer mipRenderer;
   float averageCloudsDensity = 0.5; // todo:
 

@@ -239,15 +239,20 @@ void NameShadowingChecker::visitTryStatement(TryStatement *stmt) {
 
   stmt->tryStatement()->visit(this);
 
-  Scope catchScope(this, scope->owner);
+  for (auto &c : stmt->catches()) {
+    Scope catchScope(this, scope->owner);
 
-  SymbolInfo *info = newSymbolInfo(SK_EXCEPTION);
-  info->declaration.x = stmt->exceptionId();
-  info->ownerScope = scope;
-  info->name = stmt->exceptionId()->name();
-  declareSymbol(stmt->exceptionId()->name(), info);
+    if (c.type)
+      c.type->visit(this);
 
-  stmt->catchStatement()->visit(this);
+    SymbolInfo *info = newSymbolInfo(SK_EXCEPTION);
+    info->declaration.x = c.exception;
+    info->ownerScope = scope;
+    info->name = c.exception->name();
+    declareSymbol(c.exception->name(), info);
+
+    c.body->visit(this);
+  }
 
   nodeStack.pop_back();
 }

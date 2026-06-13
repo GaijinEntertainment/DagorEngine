@@ -14,6 +14,13 @@
 #include "sqclosure.h"
 #include "squtils.h"
 
+// Futures form reference cycles only the collector can break (a pending Future owns its
+// suspended generator, whose frame closes back over the Future; adoption adds mutual
+// Future refs), so without it nothing reclaims them - not even sq_close, whose chain
+// sweep is itself GC-gated - and binding the module would leak every pending Future.
+#if defined(NO_GARBAGE_COLLECTOR)
+#error "sqasync requires the cycle collector"
+#endif
 
 namespace sqasync
 {
@@ -50,18 +57,22 @@ struct FutureImpl
     HSQOBJECT value;            // addref'd when non-null; adoption-target instance when L_Adopted
     HSQOBJECT generator;        // addref'd when non-null; valid only while isTask && L_Open
 
+    // Trace carrier for a non-Error fault (acyclic SQArray of leaf frame tables).
+    // SQObjectPtr + future_markhook keep it alive and GC-reachable with no
+    // _refs_table rooting, so it lives iff the owning Future does.
+    SQObjectPtr faultTrace;
+
     sqvector<HSQOBJECT> waiters; // each addref'd; mix of awaiting tasks and chain-locked adopters
 
     SQAllocContext alloc_ctx;   // free path in future_releasehook when vm is null
 
-    // Unhandled-fault diagnostic context. Leaf SQStrings only: an
-    // SQString has no outgoing refs, so addref'ing one cannot form a GC
-    // cycle (same safety class as `value`). Captured at creation, not
-    // at fault - the async closure is Kill()'d during the throwing Execute.
-    HSQOBJECT asyncSourceName;      // null for a bare Future (no generator)
-    HSQOBJECT asyncFuncName;
-    HSQOBJECT launchSourceName;     // null for a native/root immediate caller
-    HSQOBJECT launchFuncName;
+    // Unhandled-fault diagnostic context (leaf SQStrings). Captured at creation,
+    // not at fault: the async closure is Kill()'d during the throwing Execute.
+    // SQObjectPtr + future_markhook, like faultTrace.
+    SQObjectPtr asyncSourceName;    // null for a bare Future (no generator)
+    SQObjectPtr asyncFuncName;
+    SQObjectPtr launchSourceName;   // null for a native/root immediate caller
+    SQObjectPtr launchFuncName;
     SQInt32 asyncDefLine;
     SQInt32 launchLine;
 
@@ -71,10 +82,6 @@ struct FutureImpl
     {
         sq_resetobject(&value);
         sq_resetobject(&generator);
-        sq_resetobject(&asyncSourceName);
-        sq_resetobject(&asyncFuncName);
-        sq_resetobject(&launchSourceName);
-        sq_resetobject(&launchFuncName);
     }
 };
 
@@ -93,6 +100,7 @@ struct QueueEntry
     void *user;              // K_Callback only
     HSQOBJECT taskInstance;  // K_Resume only; addref'd
     HSQOBJECT resumeValue;   // K_Resume only; addref'd
+    HSQOBJECT faultTrace;    // K_Resume + Resume_Throw of a non-Error value; addref'd, may be null
 };
 
 
@@ -145,12 +153,15 @@ inline FutureImpl *getFutureFromInstance(HSQUIRRELVM v, const HSQOBJECT &inst)
 {
     if (sq_type(inst) != OT_INSTANCE)
         return nullptr;
-    SQClass *cls = _instance(inst)->_class;
-    if (cls->_typetag != futureTypeTag())
+    // Consider reviewing if we need Future subclassing at all
+    bool isFuture = false;
+    for (const SQClass *cls = _instance(inst)->_class; cls; cls = cls->_base) {
+        if (cls->_typetag == futureTypeTag()) { isFuture = true; break; }
+    }
+    if (!isFuture)
         return nullptr;
-    // _userpointer is nullptr until future_constructor (or buildTaskFuture/the
-    // await fast path) installs the FutureImpl. A subclass that skips
-    // super.constructor() lands here with a matching typetag but no impl.
+    // null until future_constructor installs the impl, so a subclass that skips
+    // super.constructor() returns null here (treated as "not a Future").
     return (FutureImpl *)_instance(inst)->_userpointer;
 }
 
@@ -169,8 +180,9 @@ FutureImpl *requireFutureSelf(HSQUIRRELVM v, const char *errMsg)
 }
 
 
-void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValue);
-void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue);
+void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValue, HSQOBJECT faultTrace);
+void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue,
+                  const HSQOBJECT *faultTrace = nullptr);
 SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInstance, const HSQOBJECT &value, bool reject);
 SQRESULT resolveAndAdopt(HSQUIRRELVM v, FutureImpl *target, HSQOBJECT targetInstance, HSQOBJECT valueIn, bool throwOnCycle);
 SQRESULT externalSettle(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &p_inst, const HSQOBJECT &value, bool reject);
@@ -179,36 +191,39 @@ SQRESULT externalSettle(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &p_inst, c
 //-----------------------------------------------------------------------------
 // Future script-class methods.
 
-// Render a rejection reason without invoking script metamethods and
-// without recursion (the hook runs in a decref/GC context), and with no
-// pointers/sizes so the test goldens stay stable. Cf. SQVM::PrintObjVal.
+// Assemble the fault's report trace: a private clone of the captured origin /
+// await-hop frames (FutureImpl.faultTrace, the sole carrier) plus the task-root
+// and launch-site tail frames. Cloned first so the report-only tail never leaks
+// back into the stored carrier (a late awaiter / adoption read must not inherit
+// it). Returns null when there is no trace to report.
+static SQObjectPtr buildReportTrace(HSQUIRRELVM v, FutureImpl *p)
+{
+    SQObjectPtr trace;
+    if (sq_type(p->faultTrace) == OT_ARRAY)
+        trace = _array(p->faultTrace)->Clone();
+    if (sq_type(p->asyncSourceName) == OT_STRING) {
+        if (sq_isnull(trace))
+            trace = SQArray::Create(_ss(v), 0);
+        _array(trace)->Append(sq_make_diag_frame(v, SQObjectPtr(p->asyncSourceName),
+            SQObjectPtr(p->asyncFuncName), p->asyncDefLine, "taskroot"));
+        if (sq_type(p->launchSourceName) == OT_STRING)
+            _array(trace)->Append(sq_make_diag_frame(v, SQObjectPtr(p->launchSourceName),
+                SQObjectPtr(p->launchFuncName), p->launchLine, "launched"));
+    }
+    return trace;
+}
+
 static void format_reason(const HSQOBJECT &o, char *buf, size_t n)
 {
-    switch (sq_type(o)) {
-        case OT_STRING: {
-            const SQInteger kMax = 96;
-            SQInteger len = _string(o)->_len;
-            scsprintf(buf, n, "string \"%.*s%s\"",
-                (int)(len > kMax ? kMax : len), _stringval(o),
-                len > kMax ? "..." : "");
-            break;
-        }
-        case OT_INTEGER:
-            scsprintf(buf, n, "integer " _PRINT_INT_FMT, _integer(o));
-            break;
-        case OT_FLOAT:
-            scsprintf(buf, n, "float %.14g", _float(o));
-            break;
-        case OT_BOOL:
-            scsprintf(buf, n, "bool %s", _integer(o) ? "true" : "false");
-            break;
-        case OT_NULL:
-            scsprintf(buf, n, "null");
-            break;
-        default:
-            scsprintf(buf, n, "%s", GetTypeName(o));
-            break;
+    if (sq_type(o) == OT_STRING) {
+        const SQInteger kMax = 96;
+        SQInteger len = _string(o)->_len;
+        scsprintf(buf, n, "string \"%.*s%s\"",
+            (int)(len > kMax ? kMax : len), _stringval(o),
+            len > kMax ? "..." : "");
+        return;
     }
+    sq_describe_fault_value(o, buf, n);
 }
 
 
@@ -223,22 +238,16 @@ static void emitReleaseHookDiag(HSQUIRRELVM vm, FutureImpl *self)
     char reason[160];
     format_reason(self->value, reason, sizeof(reason));
 
+    SQObjectPtr trace = buildReportTrace(vm, self);
+
     char line[768];
     if (sq_type(self->asyncSourceName) == OT_STRING) {
-        // Task-future: an async function threw.
+        // Task-future: an async function threw. The launch site renders as the
+        // trace's `launched at` frame (buildReportTrace always carries it).
         const char *an = sq_type(self->asyncFuncName) == OT_STRING ? _stringval(self->asyncFuncName) : "";
-        if (sq_type(self->launchSourceName) == OT_STRING) {
-            const char *ln = sq_type(self->launchFuncName) == OT_STRING ? _stringval(self->launchFuncName) : "";
-            scsprintf(line, sizeof(line),
-                "[sqasync] unhandled error in async %.80s (%.160s:%d); reason: %s; launched at %.160s:%d %.80s\n",
-                an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason,
-                _stringval(self->launchSourceName), (int)self->launchLine, ln);
-        } else {
-            // Native / root immediate caller: no launch clause.
-            scsprintf(line, sizeof(line),
-                "[sqasync] unhandled error in async %.80s (%.160s:%d); reason: %s\n",
-                an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason);
-        }
+        scsprintf(line, sizeof(line),
+            "[sqasync] unhandled error in async %.80s (%.160s:%d); reason: %s\n",
+            an, _stringval(self->asyncSourceName), (int)self->asyncDefLine, reason);
     } else {
         // Bare Future faulted from native code via future_throw.
         scsprintf(line, sizeof(line),
@@ -246,8 +255,25 @@ static void emitReleaseHookDiag(HSQUIRRELVM vm, FutureImpl *self)
     }
     errfn(vm, line);
 
-    // When the faulting value is an Error, append its captured throw-site trace.
-    sq_print_error_trace(vm, SQObjectPtr(self->value), errfn);
+    sq_print_error_trace(vm, trace, errfn);
+}
+
+
+// Mark-hook counterpart to future_releasehook (see SQMARKHOOK). value/generator/
+// waiters keep their _refs_table rooting. Marking the diag strings is a no-op
+// (SQStrings aren't cycle-collectable), kept uniform.
+static void future_markhook(SQUserPointer p, SQCollectable **chain)
+{
+#ifndef NO_GARBAGE_COLLECTOR
+    FutureImpl *self = (FutureImpl *)p;
+    SQSharedState::MarkObject(self->faultTrace, chain);
+    SQSharedState::MarkObject(self->asyncSourceName, chain);
+    SQSharedState::MarkObject(self->asyncFuncName, chain);
+    SQSharedState::MarkObject(self->launchSourceName, chain);
+    SQSharedState::MarkObject(self->launchFuncName, chain);
+#else
+    (void)p; (void)chain;
+#endif
 }
 
 
@@ -258,6 +284,7 @@ SQInteger future_releasehook(HSQUIRRELVM vm, SQUserPointer p, SQInteger SQ_UNUSE
     // vm is null when we're called from _refs_table.Finalize() during shutdown:
     // ~SQSharedState already Null'd _root_vm. The ref table is nulling every
     // slot we'd sq_release from anyway, so the per-object refcount still balances.
+    // (faultTrace + diag strings are SQObjectPtr now; ~FutureImpl releases them.)
     if (vm) {
         // Defensive net for a fault GC'd before either the pump-tick sweep
         // or the shutdown drain ran (e.g. manual collectgarbage() with no
@@ -271,10 +298,6 @@ SQInteger future_releasehook(HSQUIRRELVM vm, SQUserPointer p, SQInteger SQ_UNUSE
         sq_release(vm, &self->generator);
         for (SQUnsignedInteger32 i = 0; i < self->waiters.size(); ++i)
             sq_release(vm, &self->waiters._vals[i]);
-        sq_release(vm, &self->asyncSourceName);
-        sq_release(vm, &self->asyncFuncName);
-        sq_release(vm, &self->launchSourceName);
-        sq_release(vm, &self->launchFuncName);
     }
 
     SQAllocContext ctx = self->alloc_ctx;
@@ -348,10 +371,26 @@ struct CascadeJob
     enum Kind { K_Adopt, K_FoldFault };
     Kind kind;
     FutureImpl *p;
-    HSQOBJECT instance;  // owns one ref; pins `p` against sq_release teardown
-    HSQOBJECT pinned;    // owns one ref; transfers into p->value
-    bool reject;         // K_FoldFault is always true
+    HSQOBJECT instance;    // owns one ref; pins `p` against sq_release teardown
+    HSQOBJECT pinned;      // owns one ref; transfers into p->value
+    HSQOBJECT faultTrace;  // owns one ref (may be null); value-type trace for this branch
+    bool reject;           // K_FoldFault is always true
 };
+
+// Each reject branch gets its own trace container (frame tables stay shared).
+// Cloned unconditionally: a folded branch appends its `awaited at` frame, so a
+// shared array would leak that hop back into the source future's carrier even
+// with a single waiter.
+static void makeBranchTrace(HSQUIRRELVM v, const HSQOBJECT &src, HSQOBJECT &out)
+{
+    SQObjectPtr cloned;  // must outlive the addref below, else its dtor drops the only ref
+    sq_resetobject(&out);
+    if (sq_isnull(src))
+        return;
+    cloned = _array(src)->Clone();
+    out = cloned;
+    sq_addref(v, &out);
+}
 
 // selfInstance feeds the per-iteration cycle check below; required.
 SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInstance,
@@ -375,6 +414,12 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
     // the throwing step, whose origin sub-stack is already on the trace.
     bool curIsFold = false;
 
+    // Non-Error fault: await-hop frames accumulate on this per-node carrier
+    // (seeded from p->faultTrace, where runStep or adoption left the origin)
+    // instead of on the value, which has no trace slot.
+    HSQOBJECT curFaultTrace = p->faultTrace;
+    sq_addref(v, &curFaultTrace);
+
     HSQOBJECT curInstance = selfInstance;
     sq_addref(v, &curInstance);
 
@@ -393,6 +438,9 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
             sq_release(v, &curPinned);
             curPinned = subst;
             curReject = true;
+            // The substitution discards the original fault value; drop its origin trace too.
+            sq_release(v, &curFaultTrace);
+            sq_resetobject(&curFaultTrace);
         }
 
         if (cur->lifecycle == L_Adopted) {
@@ -418,8 +466,21 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
         // released below.
         if (curIsFold && cur->isTask && sq_type(cur->generator) == OT_GENERATOR) {
             SQGenerator *gen = _generator(cur->generator);
-            sq_append_awaited_frame(v, SQObjectPtr(cur->value), gen->_ci);
+            // Frame + locals are read from gen's saved _ci/_stack here, before Kill() (below)
+            // resizes _stack to 0.
+            if (sq_isnull(curFaultTrace)) {
+                SQObjectPtr arr(SQArray::Create(_ss(v), 0));  // keep a ref across the addref below
+                curFaultTrace = arr;
+                sq_addref(v, &curFaultTrace);
+            }
+            sq_append_awaited_frame_to(v, _array(curFaultTrace), gen->_ci, gen);
             gen->Kill();
+        }
+
+        // Carry the trace onto this node (buildReportTrace reports it).
+        // Aliasing the still-held curFaultTrace at the root node is safe.
+        if (curReject && !sq_isnull(curFaultTrace)) {
+            cur->faultTrace = curFaultTrace;
         }
 
         sq_release(v, &cur->generator);
@@ -432,10 +493,6 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
         if (drained.size() > 0) {
             cur->awaited = true;
             ResumeKind kind = curReject ? Resume_Throw : Resume_Send;
-            // At a reject fork each consumer branch needs its own carrier; the
-            // Future's stored value keeps only the pre-fork prefix, so a late
-            // awaiter sees no branch frames.
-            bool forkReject = curReject && drained.size() > 1;
             for (SQUnsignedInteger32 i = 0; i < drained.size(); ++i) {
                 FutureImpl *w = getFutureFromInstance(v, drained._vals[i]);
                 bool foldFault = curReject && w && w->isTask && w->lifecycle == L_Open
@@ -443,8 +500,15 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
                     && _generator(w->generator)->_ci._etraps == 0;
                 // foldFault reads _etraps while w is still L_Open, before it
                 // becomes `cur` and has its generator torn down.
-                SQObjectPtr branchVal = forkReject ? sq_clone_error_for_branch(v, SQObjectPtr(cur->value))
-                                                   : SQObjectPtr(cur->value);
+                SQObjectPtr branchVal(cur->value);
+                // The value is shared across waiters; per-branch divergence lives
+                // only in the trace carrier, so each reject branch gets its own
+                // clone (a folded branch appends its `awaited at` hop to it).
+                HSQOBJECT branchTrace;
+                if (curReject)
+                    makeBranchTrace(v, curFaultTrace, branchTrace);
+                else
+                    sq_resetobject(&branchTrace);
                 if ((w && w->lifecycle == L_Adopted) || foldFault) {
                     CascadeJob job;
                     job.kind = foldFault ? CascadeJob::K_FoldFault : CascadeJob::K_Adopt;
@@ -452,11 +516,13 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
                     job.instance = drained._vals[i];  // waiters-list ref transfers in
                     job.pinned = branchVal;
                     sq_addref(v, &job.pinned);
+                    job.faultTrace = branchTrace;  // ref transfers into the job
                     job.reject = curReject;
                     worklist.push_back(job);
                 }
                 else {
-                    scheduleStep(v, drained._vals[i], kind, branchVal);
+                    scheduleStep(v, drained._vals[i], kind, branchVal, &branchTrace);
+                    sq_release(v, &branchTrace);
                     sq_release(v, &drained._vals[i]);
                 }
             }
@@ -466,21 +532,26 @@ SQRESULT settleTerminal(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &selfInsta
         // free cur synchronously via its releasehook.
         sq_release(v, &curInstance);
         sq_resetobject(&curInstance);
+        // This node's carrier ref is done; the next node gets its own from the job.
+        sq_release(v, &curFaultTrace);
+        sq_resetobject(&curFaultTrace);
 
         more = false;
         while (head < worklist.size()) {
             CascadeJob job = worklist._vals[head++];
             // Defensive: each adopter sits in exactly one waiters list, so
-            // a popped target shouldn't already be terminal. Balance both
+            // a popped target shouldn't already be terminal. Balance all
             // refs if invariants ever drift.
             if (job.p->lifecycle == L_Fulfilled || job.p->lifecycle == L_Faulted) {
                 sq_release(v, &job.pinned);
                 sq_release(v, &job.instance);
+                sq_release(v, &job.faultTrace);
                 continue;
             }
             cur = job.p;
             curInstance = job.instance;
             curPinned = job.pinned;
+            curFaultTrace = job.faultTrace;  // ref transfers from the job
             curReject = job.reject;
             curIsFold = (job.kind == CascadeJob::K_FoldFault);
             more = true;
@@ -543,6 +614,11 @@ SQRESULT resolveAndAdopt(HSQUIRRELVM v, FutureImpl *target,
             case L_Faulted:
                 for (SQUnsignedInteger32 i = 0; i < visited.size(); ++i)
                     visited._vals[i]->awaited = true;
+                // Seed the adopter's carrier so a value-type trace survives
+                // adoption (settleTerminal reads target->faultTrace).
+                if (!sq_isnull(q->faultTrace)) {
+                    target->faultTrace = q->faultTrace;
+                }
                 settleTerminal(v, target, targetInstance, q->value, /*reject*/true);
                 sq_release(v, &targetInstance);
                 return SQ_OK;
@@ -586,7 +662,8 @@ SQRESULT externalSettle(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &p_inst,
 // Runner: drives a parked task-future one step at a time.
 
 
-void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue)
+void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind, const HSQOBJECT &resumeValue,
+                  const HSQOBJECT *faultTrace)
 {
     AsyncState *st = getAsyncState(v);
     if (!st || st->shuttingDown) return;
@@ -600,22 +677,31 @@ void scheduleStep(HSQUIRRELVM v, const HSQOBJECT &taskInstance, ResumeKind kind,
     sq_addref(v, &e.taskInstance);
     e.resumeValue = resumeValue;
     sq_addref(v, &e.resumeValue);
+    sq_resetobject(&e.faultTrace);
+    if (faultTrace && !sq_isnull(*faultTrace)) {
+        e.faultTrace = *faultTrace;
+        sq_addref(v, &e.faultTrace);
+    }
     st->queue.push_back(e);
 }
 
 
-// Resumes a parked async task one step. The caller has addref'd taskInstance
-// and resumeValueIn for us once each; we sq_release both on every return,
-// except when we park on a pending await - there taskInstance's ref transfers
-// into that future's waiters list.
-void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValueIn)
+// Resumes a parked async task one step. The caller has addref'd taskInstance,
+// resumeValueIn, and faultTraceIn (the last may be null) for us once each.
+// resumeValueIn and faultTraceIn are pinned into locals and released here right
+// away; taskInstance is released on every return, except when we park on a
+// pending await - there its ref transfers into that future's waiters list.
+void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT resumeValueIn, HSQOBJECT faultTraceIn)
 {
-    // Pin resumeValueIn into a local SQObjectPtr so it survives Execute and
-    // releases automatically on scope exit. The release + assignment below is
+    // Pin resumeValueIn / faultTraceIn into locals so they survive Execute and
+    // release automatically on scope exit. Each release + assignment below is
     // one ownership transfer.
     SQObjectPtr resumeValue;
     resumeValue = resumeValueIn;
     sq_release(v, &resumeValueIn);
+    SQObjectPtr resumeTrace;
+    resumeTrace = faultTraceIn;
+    sq_release(v, &faultTraceIn);
 
     AsyncState *st = getAsyncState(v);
     FutureImpl *p = getFutureFromInstance(v, taskInstance);
@@ -627,6 +713,11 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
     SQGenerator *gen = _generator(p->generator);
     SQGenerator::ResumeMode mode =
         (kind == Resume_Throw) ? SQGenerator::ResumeThrow : SQGenerator::ResumeNormal;
+    // Seed the carrier from the awaited future: if this re-injected throw
+    // escapes uncaught, exception_trap keeps the inherited trace instead of
+    // overwriting it with an await-site snapshot.
+    if (mode == SQGenerator::ResumeThrow && !sq_isnull(resumeTrace))
+        v->_pendingValueFaultTrace = resumeTrace;
     SQObjectPtr outres;
     bool execOk = gen->RunStep(v, outres, mode, resumeValue);
 
@@ -635,10 +726,19 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
         // _lasterror so we don't lose the value if it was the last holder.
         SQObjectPtr err = v->_lasterror;
         v->_lasterror.Null();  // don't leak across steps
+        // Move the throw-site origin (exception_trap) onto the carrier before
+        // settleTerminal stitches the await-hop frames onto it.
+        if (!sq_isnull(v->_pendingValueFaultTrace)) {
+            p->faultTrace = v->_pendingValueFaultTrace;
+        }
+        v->_pendingValueFaultTrace.Null();
         settleTerminal(v, p, taskInstance, err, true);
         sq_release(v, &taskInstance);
         return;
     }
+    // Drop a snapshot left by a fault caught inside the body, so it cannot bleed
+    // into a later fault.
+    v->_pendingValueFaultTrace.Null();
     if (gen->_state == SQGenerator::eDead) {
         // resolveAndAdopt consumes taskInstance.
         resolveAndAdopt(v, p, taskInstance, outres, /*throwOnCycle*/false);
@@ -660,7 +760,10 @@ void runStep(HSQUIRRELVM v, HSQOBJECT taskInstance, ResumeKind kind, HSQOBJECT r
         return;
     }
     ResumeKind nextKind = (q->lifecycle == L_Faulted) ? Resume_Throw : Resume_Send;
-    scheduleStep(v, taskInstance, nextKind, q->value);
+    // Carry the awaited future's trace so a re-injected throw escaping this
+    // task uncaught still reports its origin.
+    scheduleStep(v, taskInstance, nextKind, q->value,
+                 q->lifecycle == L_Faulted ? &q->faultTrace : nullptr);
     sq_release(v, &taskInstance);
 }
 
@@ -693,14 +796,12 @@ FutureImpl *createFutureInstanceOnStack(HSQUIRRELVM v, AsyncState *st)
 }
 
 
-// No-op unless `src` is a string, so a handle left null reliably means
-// "structurally unavailable" rather than an addref that silently failed.
-static inline void captureProtoString(HSQUIRRELVM v, const SQObjectPtr &src, HSQOBJECT &dst)
+// No-op unless `src` is a string, so a null dst reliably means "structurally
+// unavailable" rather than an addref that silently failed.
+static inline void captureProtoString(const SQObjectPtr &src, SQObjectPtr &dst)
 {
-    if (sq_type(src) == OT_STRING) {
+    if (sq_type(src) == OT_STRING)
         dst = src;
-        sq_addref(v, &dst);
-    }
 }
 
 
@@ -713,8 +814,8 @@ static void captureDiag(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &gen)
         const SQObjectPtr &cl = _generator(gen)->_closure;
         if (sq_type(cl) == OT_CLOSURE) {
             SQFunctionProto *fp = _closure(cl)->_function;
-            captureProtoString(v, fp->_sourcename, p->asyncSourceName);
-            captureProtoString(v, fp->_name, p->asyncFuncName);
+            captureProtoString(fp->_sourcename, p->asyncSourceName);
+            captureProtoString(fp->_name, p->asyncFuncName);
             p->asyncDefLine = (SQInt32)(fp->_nlineinfos > 0 ? fp->_lineinfos->_first_line : 0);
         }
     }
@@ -724,8 +825,8 @@ static void captureDiag(HSQUIRRELVM v, FutureImpl *p, const HSQOBJECT &gen)
     SQVM::CallInfo *cci = v->ci;
     if (cci && sq_type(cci->_closure) == OT_CLOSURE) {
         SQFunctionProto *cfp = _closure(cci->_closure)->_function;
-        captureProtoString(v, cfp->_sourcename, p->launchSourceName);
-        captureProtoString(v, cfp->_name, p->launchFuncName);
+        captureProtoString(cfp->_sourcename, p->launchSourceName);
+        captureProtoString(cfp->_name, p->launchFuncName);
         p->launchLine = (SQInt32)cfp->GetLine(cci->_ip);
     }
 }
@@ -769,29 +870,100 @@ bool buildTaskFuture(HSQUIRRELVM v, const HSQOBJECT &gen, HSQOBJECT &outInstance
 //-----------------------------------------------------------------------------
 // bind helpers.
 
+void installCombinators(HSQUIRRELVM v, AsyncState *st)
+{
+    static const char *combinatorSrc = R"SQ(
+        Future.all <- function all(arr = null) {
+            if (type(arr) != "array") throw "Future.all: expected an array"
+            let n = arr.len()
+            let results = array(n)
+            if (n == 0) {
+                let d = Future(); d.resolve(results); return d
+            }
+            let done = Future()
+            local left = n
+            foreach (idx, fut in arr) {
+                (async function() {
+                    try {
+                        results[idx] = await fut;
+                        if (--left == 0)
+                            done.resolve(results)
+                    }
+                    catch (_) {
+                        done.resolve(fut)
+                    }
+                })()
+            }
+            return done
+        }
+        Future.race <- function race(arr = null) {
+            if (type(arr) != "array") throw "Future.race: expected an array"
+            if (arr.len() == 0) throw "Future.race: empty array"
+            let done = Future()
+            foreach (fut in arr) {
+                (async function() {
+                    try {
+                        done.resolve(await fut)
+                    }
+                    catch (_) {
+                        done.resolve(fut)
+                    }
+                })()
+            }
+            return done
+        }
+    )SQ";
+
+    SQInteger prevTop = sq_gettop(v);
+    sq_newtable(v);
+    sq_registerbaselib(v);
+    sq_pushstring(v, "Future", -1);
+    sq_pushobject(v, st->futureClass);
+    sq_rawset(v, -3);
+
+    HSQOBJECT bindings;
+    sq_resetobject(&bindings);
+    sq_getstackobj(v, -1, &bindings);
+
+    if (SQ_FAILED(sq_compile(v, combinatorSrc, (SQInteger)strlen(combinatorSrc),
+                             "sqasync_combinators", SQTrue, &bindings))) {
+        assert(!"[sqasync] combinator source failed to compile");
+        sq_settop(v, prevTop);
+        return;
+    }
+
+    sq_pushnull(v);  // 'this'
+    if (SQ_FAILED(sq_call(v, 1, SQFalse, SQTrue)))
+        assert(!"[sqasync] combinator install failed");
+    sq_settop(v, prevTop);
+}
+
 void buildAndCacheFutureClass(HSQUIRRELVM v, AsyncState *st)
 {
     SQInteger top = sq_gettop(v);
 
     sq_newclass(v, SQFalse);
     sq_settypetag(v, -1, futureTypeTag());
+    _class(stack_get(v, -1))->_markhook = future_markhook;
 
-    static const struct { const char *name; SQFUNCTION fn; } kFutureMethods[] = {
-        {"constructor", future_constructor},
-        {"getState",    future_getState},
-        {"resolve",     future_resolve_method},
+    static const SQRegFunctionFromStr kFutureMethods[] = {
+        {future_constructor,    "instance.constructor()",
+            "Constructs a pending Future"},
+        {future_getState,       "instance.getState(): string",
+            "Returns the lifecycle state: 'pending', 'fulfilled' or 'faulted'"},
+        {future_resolve_method, "instance.resolve([value])",
+            "Settles a pending Future with value (default null); ignored if already settled"},
     };
-    for (const auto &m : kFutureMethods) {
-        sq_pushstring(v, m.name, -1);
-        sq_newclosure(v, m.fn, 0);
-        sq_newslot(v, -3, SQFalse);
-    }
+    for (const auto &m : kFutureMethods)
+        sq_new_closure_slot_from_decl_string(v, m.f, 0, m.declstring, m.docstring);
 
     sq_resetobject(&st->futureClass);
     sq_getstackobj(v, -1, &st->futureClass);
     sq_addref(v, &st->futureClass);
 
     sq_settop(v, top);
+
+    installCombinators(v, st);
 }
 
 }  // anonymous namespace
@@ -825,7 +997,7 @@ static void sweepUnhandledFaults(HSQUIRRELVM v, AsyncState *st, bool forcedFallb
         FutureImpl *p = getFutureFromInstance(v, inst);
         if (p && p->lifecycle == L_Faulted && !p->awaited && !p->reported) {
             if (!forcedFallback && sq_type(v->_errorhandler) != OT_NULL) {
-                v->CallErrorHandler(SQObjectPtr(p->value));
+                v->CallErrorHandler(SQObjectPtr(p->value), buildReportTrace(v, p));
             } else {
                 emitReleaseHookDiag(v, p);
             }
@@ -891,7 +1063,7 @@ void shutdown(struct SQSharedState *ss)
         if (e.kind == QueueEntry::K_Callback)
             e.fn(e.user);
         else
-            runStep(v, e.taskInstance, e.resumeKind, e.resumeValue);
+            runStep(v, e.taskInstance, e.resumeKind, e.resumeValue, e.faultTrace);
     }
     st->queue.resize(0);
 
@@ -969,7 +1141,7 @@ SQUIRREL_API SQInteger pump(HSQUIRRELVM v, SQInteger maxSteps)
         if (e.kind == QueueEntry::K_Callback)
             e.fn(e.user);
         else
-            runStep(v, e.taskInstance, e.resumeKind, e.resumeValue);
+            runStep(v, e.taskInstance, e.resumeKind, e.resumeValue, e.faultTrace);
         ++drained;
     }
 
@@ -1011,6 +1183,7 @@ static QueueEntry makeCallbackEntry(VmCallback fn, void *user)
     e.resumeKind = Resume_Send;      // unused on Callback
     sq_resetobject(&e.taskInstance); // unused on Callback
     sq_resetobject(&e.resumeValue);  // unused on Callback
+    sq_resetobject(&e.faultTrace);   // unused on Callback
     return e;
 }
 

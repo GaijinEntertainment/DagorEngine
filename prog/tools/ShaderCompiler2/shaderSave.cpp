@@ -5,3 +5,6 @@
 
 const char *VarMapAdapter::getName(int id) { return get_shaders_de_serialization_ctx()->varNameMap().getName(id); }
 int VarMapAdapter::addName(const char *name) { return get_shaders_de_serialization_ctx()->varNameMap().addVarId(name); }
+
+const char *RbVarMapAdapter::getName(int id) { return get_shaders_de_serialization_ctx()->compCtx().rbVarNameMap().getName(id); }
+int RbVarMapAdapter::addName(const char *name) { return get_shaders_de_serialization_ctx()->compCtx().rbVarNameMap().addVarId(name); }

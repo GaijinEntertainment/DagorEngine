@@ -29,6 +29,7 @@ lens_zoom_factor:r=1.0
 water_rt_enabled:i=0
 clouds_panorama_mip:i=1
 glass_rt_reflection:i=0
+allow_rt_glass_reflection:i=0
 antialiasing_type:i=2
 dof_focus_near_mode:i = 0;
 dof_focus_far_mode:i = 0;

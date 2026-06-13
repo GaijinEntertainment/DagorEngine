@@ -77,7 +77,7 @@ bool Process::spawn(unsigned short port,
     DBG("spawned %S: %s", this->executable, pi.hProcess == INVALID_HANDLE_VALUE ? "invalid" : "valid");
     this->pid = pi.hProcess;
     this->channel = port;
-    int inited = ::WaitForInputIdle(pi.hProcess, INFINITE /*100*/);
+    int inited = ::WaitForInputIdle(pi.hProcess, 5000);
     DBG("waited for child %d", inited);
     DWORD exited = 0;
     if (::GetExitCodeProcess(pi.hProcess, &exited) && exited != STILL_ACTIVE)

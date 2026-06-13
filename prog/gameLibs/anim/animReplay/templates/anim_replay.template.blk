@@ -78,14 +78,23 @@ anim_replay{
   anim_replay__disableMMTransitionBlend:b=false
 }
 
-replay_animchar{
+replay_animchar_base{
   _use:t="animchar"
-  animchar__turnDir:b=yes
   animchar__res:t=""
-  "animchar__animState:object"{}
   animchar_render__enabled:b=yes
+}
+
+replay_animchar{
+  _use:t="replay_animchar_base"
+  animchar__turnDir:b=yes
+  "animchar__animState:object"{}
   "anim_replay_character:tag"{}
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+}
+
+replay_attached_animchar{
+  _use:t="replay_animchar_base"
+  "anim_replay__parentEid:eid"{}
 }
 
 anim_replay_camera{

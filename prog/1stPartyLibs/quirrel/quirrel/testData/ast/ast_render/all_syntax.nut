@@ -347,6 +347,24 @@ foreach (k, v in t7)
   fa2(k, v)
 
 
+let arr888 = [[1, 2, "a"], [3, 4, "b"]]
+
+foreach ([a, b, c] in arr888)
+  println(a, b, c)
+
+foreach ([a, b: int, c: string|null = null] in arr888) {
+  println(a, b, c)
+}
+
+let arr889 = [{x = 1, y = "a"}, {x = 10, y = "b"}]
+
+foreach ({x, y} in arr889)
+  println(x, y)
+
+foreach ({x: int, y: string|null = null} in arr889) {
+  println(x, y)
+}
+
 for (;;)
   break
 
@@ -368,6 +386,22 @@ try
   throw null
 catch (e)
   fa1(718)
+
+class ApiError {}
+class NetError {}
+
+try {
+  throw ApiError()
+}
+catch (ApiError e) {
+  println("api")
+}
+catch (NetError e) {
+  println("net")
+}
+catch (e) {
+  println("other")
+}
 
 
 #forbid-auto-freeze

@@ -18,7 +18,42 @@
 #include <rendInst/rendInstExtraAccess.h>
 #include <rendInst/rendInstGen.h>
 #include <phys/quantization.h>
+#include <gameRes/dag_collisionResource.h>
+#include <gamePhys/props/softMaterialProps.h>
 #include "treeBurningCommon.h"
+
+static bool collision_mat_is_soft(int mat_id)
+{
+  if (mat_id < 0)
+    return false;
+  const physmat::SoftMaterialProps *soft = physmat::SoftMaterialProps::get_props(mat_id);
+  return soft && soft->physViscosity != 1.f;
+}
+
+// A bush has only soft (viscous) physical collision; a tree has a hard trunk node. We treat a
+// rendinst as a bush when every physically-collidable node is soft, so we never accidentally
+// drop the trunk collision of a burned tree that happens to have a soft canopy node.
+bool riex_collision_is_soft(rendinst::riex_handle_t handle)
+{
+  const CollisionResource *collRes = rendinst::getRIGenExtraCollRes(rendinst::handle_to_ri_type(handle));
+  if (!collRes)
+    return false;
+  const int poolMatId = rendinst::getRIGenMaterialId(rendinst::RendInstDesc(handle));
+  bool hasSoftNode = false;
+  for (const CollisionNode &node : collRes->getAllNodes())
+  {
+    if (!(node.behaviorFlags & CollisionNode::PHYS_COLLIDABLE))
+      continue;
+    int matId = node.physMatId;
+    if (matId == PHYSMAT_INVALID || matId == PHYSMAT_DEFAULT) // node has no own material -> the pool override is used
+      matId = poolMatId;
+    if (collision_mat_is_soft(matId))
+      hasSoftNode = true;
+    else
+      return false; // a hard collidable node (e.g. a tree trunk) -> not a bush, keep its collision
+  }
+  return hasSoftNode;
+}
 
 ECS_REGISTER_EVENT(EventDestroyBurnedTree);
 ECS_REGISTER_EVENT(EventCreateTreeBurningChain);
@@ -38,7 +73,7 @@ ECS_TAG(server)
 static void tree_burning_destroy_burned_tree_es(const EventDestroyBurnedTree &evt)
 {
   rendinst::riex_handle_t handle = evt.get<0>();
-  if (handle == rendinst::RIEX_HANDLE_NULL)
+  if (handle == rendinst::RIEX_HANDLE_NULL || !rendinst::isRiGenExtraValid(handle))
     return;
 
   rendinst::RendInstDesc riDesc(handle);
@@ -166,6 +201,10 @@ void deserialize_tree_burning_data(const danet::BitStream &bs)
     v_mat44_compose(tm, v_ldu(&pos.x), v_ldu(&rot.x), v_splats(scl));
     rendinst::riex_handle_t handle = rendinst::addRIGenExtra44(pool, tm, true, cellIdx, offset);
     G_ASSERT_CONTINUE(handle != rendinst::RIEX_HANDLE_NULL);
+    // Already-burned bushes (late-join sync): keep the model but drop the soft collision,
+    // the same way we do at ignition, so they don't slow the soldier down.
+    if (riex_collision_is_soft(handle))
+      rendinst::removeRIGenExtraFromGrid(handle);
     burnt_trees.push_back(handle);
   }
   apply_tree_burning_data_for_render(burnt_trees);

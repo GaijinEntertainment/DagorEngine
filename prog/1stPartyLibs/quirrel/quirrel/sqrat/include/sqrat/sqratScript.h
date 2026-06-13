@@ -74,31 +74,6 @@ public:
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// Sets up the Script using a file containing a Squirrel script
-    ///
-    /// \param path   File path containing a Squirrel script
-    /// \param errMsg String that is filled with any errors that may occur
-    ///
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    bool CompileFile(const string& path, string& errMsg) {
-        if(!sq_isnull(obj)) {
-            sq_release(vm, &obj);
-            sq_resetobject(&obj);
-        }
-
-        if(SQ_FAILED(sqstd_loadfile(vm, path.c_str(), true))) {
-            errMsg = LastErrorString(vm);
-            return false;
-        }
-
-        sq_getstackobj(vm,-1,&obj);
-        sq_addref(vm, &obj);
-        sq_pop(vm, 1);
-        return true;
-    }
-
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// Runs the script
     ///
     /// \param errMsg String that is filled with any errors that may occur

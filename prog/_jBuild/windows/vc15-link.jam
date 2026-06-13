@@ -98,6 +98,10 @@ rule ProcessLinkTarget
       _LINK_OPT += /PROFILE ;
     }
 
+    if $(ClangCoverage) = yes {
+      _ADD_LIBS += clang_rt.profile-x86_64.lib ;
+    }
+
     if $(PdbCompressOpt) != no && $(UseLLDLink) != yes {
       _LINK_OPT += /pdbcompress ;
     }
@@ -151,10 +155,10 @@ actions together quietly link_target
   del $(outfile:E=$(1))
   $(DEL_)$(pdb_path)
   set_filter nul /warning LNK4099/
-  set_filter nul /xinput9_1_0\.lib\: skipping imported DllMain symbol/
-  set_filter nul /NOTE\: this might be a mistake when the DLL\/library/
   call_filtered $(link) $(link_opt) #\( $(link_libs) $(resources) $(DEBUG_PDB_)$(pdb_path) -out:$(outfile:E=$(1)) $(obj_list) )\#
   if errorlevel 1 goto after_postlink
+  rem errorlevel 1 can miss a negative crash exit code the missing-output check below is the real guard and also skips postlink mt
+  if not exist $(outfile:E=$(1)) goto failed
   $(postlink_cmd)
   :after_postlink
   echo ----------------------------------------------------------------------

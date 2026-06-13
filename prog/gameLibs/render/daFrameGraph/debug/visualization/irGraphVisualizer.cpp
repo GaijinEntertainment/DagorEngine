@@ -10,23 +10,111 @@
 #include <memory/dag_framemem.h>
 #include <util/dag_convar.h>
 #include <generic/dag_sort.h>
+#include <generic/dag_reverseView.h>
 
 
-constexpr float GRID_HORISONTAL_SIZE = 400.f;
-constexpr float GRID_YX_RATIO = 0.5f;
-constexpr float TEXT_FRACTION_PADDING = 0.1f;
-constexpr float BORDER_FRACTION_THICKNESS = 0.01f;
+constexpr float NODE_MIN_X_SIZE = 300.f;
+constexpr float NODE_MIN_Y_SIZE = 200.f;
+constexpr ImVec2 NODE_BORDER_PADDING = ImVec2{10.f, 10.f};
 
-constexpr ImVec2 GRID_SIZE = {GRID_HORISONTAL_SIZE, GRID_HORISONTAL_SIZE *GRID_YX_RATIO};
-constexpr ImVec2 TEXT_PADDING = {TEXT_FRACTION_PADDING, TEXT_FRACTION_PADDING / GRID_YX_RATIO};
-constexpr ImVec2 BORDER_PADDING = {BORDER_FRACTION_THICKNESS, BORDER_FRACTION_THICKNESS / GRID_YX_RATIO};
-static ImVec2 grid_to_vec(ImVec2 grid_coords) { return grid_coords * GRID_SIZE; }
+constexpr float NODE_BLOCK_WIDTH = 300.f;
+constexpr float NODE_BLOCK_BORDER_WIDTH = 2.f;
+constexpr ImVec2 NODE_BLOCK_BORDER_PADDING = ImVec2{10.f, 10.f};
 
-constexpr float NODE_VERT_OFFSET = 3.f;
-constexpr float PASS_HOR_OFFSET = 2.f;
+constexpr float NODE_IN_PASS_MARGIN = 150.f;
+constexpr float NODE_BETWEEN_PASS_MARGIN = 600.f;
 
-constexpr float RES_LINE_START = -4.f;
-constexpr float RES_LINE_OFFSET = -3.f;
+constexpr float PASS_BRACKET_OFFSET = 50.f;
+constexpr float PASS_BRACKET_WIDTH = 10.f;
+constexpr float PASS_BLOCK_WIDTH = 300.f;
+constexpr ImVec2 PASS_BLOCK_BORDER_PADDING = ImVec2{PASS_BRACKET_WIDTH, PASS_BRACKET_WIDTH};
+
+constexpr float STATE_DELTA_BLOCK_WIDTH = 300.f;
+constexpr ImVec2 STATE_DELTA_BLOCK_BORDER_PADDING = ImVec2{10.f, 10.f};
+constexpr float STATE_DELTA_BLOCK_MARGIN = 50.f;
+
+
+constexpr float RES_BLOCK_OFFSCREEN_PADDING = 20.f;
+constexpr ImVec2 RES_BORDER_PADDING = ImVec2{10.f, 10.f};
+
+constexpr float RES_BLOCK_WIDTH = 500.f;
+constexpr float RES_BLOCK_BORDER_WIDTH = 2.f;
+constexpr ImVec2 RES_BLOCK_BORDER_PADDING = ImVec2{10.f, 10.f};
+
+constexpr float RES_LINE_OFFSET = 300.f;
+constexpr float RES_LINE_Y_SIZE = 150.f;
+constexpr float RES_LINE_MARGIN = 100.f;
+
+
+constexpr ImVec2 TAG_BORDER_PADDING = ImVec2{5.f, 5.f};
+constexpr float FOCUS_BORDER_WIDTH = 5.f;
+
+constexpr float ORDERING_WIDTH = 5.f;
+constexpr float ORDERINGS_MARGIN = 5.f;
+
+constexpr float USAGE_WIDTH = 10.f;
+constexpr float USAGES_MARGIN = 15.f;
+
+
+constexpr ImU32 NODE_BASE_COLOR = IM_COL32(128, 128, 128, 255); // rgb(128, 128, 128)
+constexpr ImU32 NODE_BLOCK_COLOR = IM_COL32(64, 64, 64, 255);   // rgb(64, 64, 64)
+
+constexpr ImU32 NODE_START_PASS_COLOR = IM_COL32(64, 196, 64, 255);        // rgb(64, 196, 64)
+constexpr ImU32 NODE_END_PASS_COLOR = IM_COL32(196, 64, 64, 255);          // rgb(196, 64, 64)
+constexpr ImU32 NODE_START_LEGACY_PASS_COLOR = IM_COL32(64, 64, 196, 255); // rgb(64, 64, 196)
+constexpr ImU32 NODE_END_LEGACY_PASS_COLOR = IM_COL32(196, 64, 196, 255);  // rgb(196, 64, 196)
+constexpr ImU32 NODE_NEXT_SUBPASS_COLOR = IM_COL32(196, 196, 64, 255);     // rgb(196, 196, 64)
+
+constexpr ImU32 RES_BASE_COLOR = IM_COL32(64, 64, 64, 255);  // rgb(64, 64, 64)
+constexpr ImU32 RES_BLOCK_COLOR = IM_COL32(32, 32, 32, 255); // rgb(32, 32, 32)
+
+constexpr ImU32 RES_TEX_TYPE_COLOR = IM_COL32(16, 192, 16, 255);   // rgb(16, 192, 16)
+constexpr ImU32 RES_TEX_TAG_COLOR = IM_COL32(16, 96, 16, 255);     // rgb(16, 96, 16)
+constexpr ImU32 RES_BUF_TYPE_COLOR = IM_COL32(16, 16, 192, 255);   // rgb(16, 16, 192)
+constexpr ImU32 RES_BUF_TAG_COLOR = IM_COL32(16, 16, 96, 255);     // rgb(16, 16, 96)
+constexpr ImU32 RES_BLOB_TYPE_COLOR = IM_COL32(192, 128, 16, 255); // rgb(192, 128, 16)
+constexpr ImU32 RES_BLOB_TAG_COLOR = IM_COL32(96, 64, 16, 255);    // rgb(96, 64, 16)
+
+constexpr ImU32 RES_SHC_TYPE_COLOR = IM_COL32(64, 192, 192, 255); // rgb(64, 192, 192)
+constexpr ImU32 RES_SHC_TAG_COLOR = IM_COL32(64, 96, 96, 255);    // rgb(64, 96, 96)
+constexpr ImU32 RES_EXT_TYPE_COLOR = IM_COL32(192, 64, 192, 255); // rgb(192, 64, 192)
+constexpr ImU32 RES_EXT_TAG_COLOR = IM_COL32(96, 64, 96, 255);    // rgb(96, 64, 96)
+constexpr ImU32 RES_DEF_TYPE_COLOR = IM_COL32(0, 128, 64, 255);   // rgb(0, 128, 64)
+constexpr ImU32 RES_DEF_TAG_COLOR = IM_COL32(0, 64, 64, 255);     // rgb(0, 64, 64)
+constexpr ImU32 RES_HIS_TAG_COLOR = IM_COL32(128, 128, 0, 255);   // rgb(128, 128, 0)
+
+constexpr ImU32 ORDERING_BASE_COLOR = IM_COL32(128, 255, 128, 255); // rgb(128, 192, 128)
+constexpr ImU32 USAGE_BASE_COLOR = IM_COL32(255, 128, 255, 255);    // rgb(192, 128, 192)
+
+constexpr ImU32 POS_COLOR = IM_COL32(64, 192, 64, 255); // rgb(64, 192, 64)
+constexpr ImU32 NEG_COLOR = IM_COL32(192, 64, 64, 255); // rgb(192, 64, 64)
+
+
+constexpr const char *NODE_NOOPT_LABEL = " - NONE";
+constexpr const char *NODE_NORESREF_LABEL = "  NULL";
+constexpr const char *NODE_VRS_MAX_LABEL = "VRS state:\n  rates X/Y: x x\n  vtx combiner: PASSTHROUGH\n  pix combiner: PASSTHROUGH\n";
+
+constexpr const char *NODE_START_PASS_TAG = "START PASS";
+constexpr const char *NODE_END_PASS_TAG = "END PASS";
+constexpr const char *NODE_START_LEGACY_PASS_TAG = "START PASS (LEGACY)";
+constexpr const char *NODE_END_LEGACY_PASS_TAG = "END PASS (LEGACY)";
+constexpr const char *NODE_NEXT_SUBPASS_TAG = "NEXT SUBPASS";
+
+
+constexpr const char *RES_INV_TYPE_TAG = "INVALID TYPE";
+constexpr const char *RES_TEXTURE_TAG = "TEXTURE";
+constexpr const char *RES_BUFFER_TAG = "BUFFER";
+constexpr const char *RES_BLOB_TAG = "BLOB";
+
+constexpr const char *RES_UNKNOWN_STATUS_TAG = "Unknown resource status !(Scheduled || External || Backbuffer)";
+constexpr const char *RES_SHCEDULE_TAG = "SCHEDULED";
+constexpr const char *RES_EXTERNAL_TAG = "EXTERNAL";
+constexpr const char *RES_DEFERRED_TAG = "BACKBUFFER";
+
+constexpr const char *RES_HISTORY_CLEAR_TAG = "HISTORY : CLEAR";
+constexpr const char *RES_HISTORY_DISCARD_TAG = "HISTORY : DISCARD";
+
+constexpr const char *RES_FRONTEND_POPUP = "res_frontend_resources";
 
 
 namespace dafg
@@ -37,653 +125,1532 @@ extern ConVarT<bool, false> recompile_graph;
 namespace visualization::irgraph
 {
 
-Visualizer::Visualizer(const intermediate::Graph &ir_graph, const PassColoring &coloring) :
-  intermediateGraph{ir_graph}, passColoring(coloring)
+Visualizer::Visualizer(const InternalRegistry &int_registry, const intermediate::Graph &ir_graph, const PassColoring &coloring,
+  const sd::NodeStateDeltas &state_deltas) :
+  registry{int_registry}, intermediateGraph{ir_graph}, passColoring(coloring), stateDeltas(state_deltas)
 {
   REGISTER_IMGUI_WINDOW(IMGUI_WINDOW_GROUP_FG2, IMGUI_IRG_WIN_NAME, [&]() { this->draw(); });
 }
 
 void Visualizer::draw()
 {
-  ImDrawList *drawList = ImGui::GetWindowDrawList();
+  if (ImGui::IsWindowCollapsed())
+    return;
 
-  // drawing ui
+  if (updateNeeded)
+    updateVisualization();
 
-  // first line
+  hoverState.reset();
+  hoverState.window = ImGui::IsWindowHovered();
+
+
+  drawUI();
+
+  drawCanvas();
+
+  processInput();
+
+  processPopup();
+}
+
+
+void Visualizer::drawUI()
+{
+  // 1 line
   {
-    const bool focusedOnNode = eastl::holds_alternative<NodeId>(focusedElementId);
-    const NodeId focusedNodeId = focusedOnNode ? eastl::get<NodeId>(focusedElementId) : NodeId::INVALID;
-
-    if (ImGui::BeginCombo("##node_search", focusedOnNode ? nodes[focusedNodeId].name.c_str() : "Node Search"))
+    if (ImGui::BeginCombo("##node_search",
+          focusState.nodeValid() ? intermediateGraph.nodeNames[nodes[focusState.node].irIndex].c_str() : "Node Search"))
     {
       for (auto [nodeId, node] : nodes.enumerate())
       {
-        bool selected = nodeId == focusedNodeId;
-        if (ImGui::Selectable(node.name.c_str(), selected))
-          setFocusElement(nodeId);
+        const bool selected = nodeId == focusState.node;
+        if (ImGui::Selectable(intermediateGraph.nodeNames[node.irIndex].c_str(), selected))
+          focusState.set(nodeId);
         if (selected)
           ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
+    hoverState.searchBox |= ImGui::IsItemHovered();
   }
 
-  // second line
+  // 2 line
   {
-    const bool focusedOnResource = eastl::holds_alternative<ResId>(focusedElementId);
-    const ResId focusedResourceId = focusedOnResource ? eastl::get<ResId>(focusedElementId) : ResId::INVALID;
-
-    if (ImGui::BeginCombo("##resource_search", focusedOnResource ? resources[focusedResourceId].name.c_str() : "Resource Search"))
+    if (ImGui::BeginCombo("##resource_search",
+          focusState.resValid() ? intermediateGraph.resourceNames[resources[focusState.resource].irIndex].c_str() : "Resource Search"))
     {
       for (auto [resId, resource] : resources.enumerate())
       {
-        bool selected = resId == focusedResourceId;
-        if (ImGui::Selectable(resource.name.c_str(), selected))
-          setFocusElement(resId);
+        const bool selected = resId == focusState.resource;
+        if (ImGui::Selectable(intermediateGraph.resourceNames[resource.irIndex].c_str(), selected))
+          focusState.set(resId);
         if (selected)
           ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
+    hoverState.searchBox |= ImGui::IsItemHovered();
   }
 
-  // third line
+  // 3 line
   {
     if (ImGui::Button("Recompile"))
-    {
-      wholeGraphView.resetView();
-      canvas.SetView(wholeGraphView.getOffset(), wholeGraphView.getZoom());
-
       recompile_graph.set(true);
-    }
 
     ImGui::SameLine();
     if (ImGui::Button("Reset view"))
     {
-      GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
-
-      curGraphView.resetView();
-      canvas.SetView(curGraphView.getOffset(), curGraphView.getZoom());
+      canvasCamera.reset();
+      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
     }
 
     ImGui::SameLine();
     if (ImGui::Button("Reset focus"))
-    {
-      focusOnly = false;
-      compactView = false;
-
-      canvas.SetView(wholeGraphView.getOffset(), wholeGraphView.getZoom());
-
-      resetFocusElement();
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Checkbox("Focus Only", &focusOnly))
-    {
-      updateVisibilityFlags();
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Checkbox("Compact View", &compactView))
-    {
-      GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
-
-      canvas.SetView(curGraphView.getOffset(), curGraphView.getZoom());
-    }
+      focusState.reset();
   }
 
-  // forth line
+  // 4 line
   {
     ImGui::TextUnformatted("double left click on element to set focus");
   }
-
-  // drawing canvas
-  drawCanvas(drawList);
-
-  // tooltip and popup
-  processInfoMsg();
-
-  // zoom and pan
-  processInput();
 }
 
-void Visualizer::drawCanvas(ImDrawList *draw_list)
+void Visualizer::drawCanvas()
 {
   if (!canvas.Begin("##scrolling_region", ImVec2(0, 0)))
     return;
 
-  const GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
-  const GraphSubset &graphSubset = curGraphView.elementsSet;
-  const SetLayout &graphLayout = curGraphView.elementsLayout;
+  hoverState.canvas = canvas.ViewRect().Contains(ImGui::GetMousePos());
+  checkHovering(generalLayout);
 
-  // Layer 0 for edges, 1 for nodes, 2 for text
-  draw_list->ChannelsSplit(3);
 
-  // drawing ...
+  ImDrawList *drawList = ImGui::GetWindowDrawList();
+
+  drawList->ChannelsSplit(CanvasChannels::COUNT);
   {
-    draw_list->ChannelsSetCurrent(0);
-
-    // ... edges
-    for (const EdgeId edgeId : graphSubset.edges)
-      drawEdge(draw_list, edgeId, graphLayout.edgesFrTo[edgeId]);
-
-    draw_list->ChannelsSetCurrent(1);
-
-    // ... nodes
-    for (const NodeId nodeId : graphSubset.nodes)
-      drawNode(draw_list, nodeId, graphLayout.nodesGridCoords[nodeId]);
-
-    // ... and resourses
-    for (const ResId resId : graphSubset.resources)
-      drawResource(draw_list, resId, graphLayout.resGridBounds[resId]);
+    drawNodes(drawList, generalLayout);
+    drawResources(drawList, generalLayout);
+    drawOrderings(drawList, generalLayout);
+    drawUsages(drawList, generalLayout);
   }
+  drawList->ChannelsMerge();
 
-  // drawing text ...
-  {
-    draw_list->ChannelsSetCurrent(2);
-
-    // ... on nodes
-    for (const NodeId nodeId : graphSubset.nodes)
-      drawTextnOnNode(nodeId, graphLayout.nodesGridCoords[nodeId]);
-
-    // ... on resourses
-    for (const ResId resId : graphSubset.resources)
-      drawTextnOnResource(resId, graphLayout.resGridBounds[resId]);
-  }
-
-  // canvas.Suspend() can only be called with channel 0
-  // and switching it during drawing elements kinda odd
-  draw_list->ChannelsSetCurrent(0);
-  checkHovering();
-
-  draw_list->ChannelsMerge();
   canvas.End();
 }
 
-void Visualizer::drawEdge(ImDrawList *draw_list, const EdgeId id, const eastl::pair<ImVec2, ImVec2> from_to)
+void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
 {
-  const auto &edge = edges[id];
-
-  if (edge.isVisible)
+  for (const auto [nodeId, rect] : layout.nodes.enumerate())
   {
-    const ImVec2 edgeStart = grid_to_vec(from_to.first);
-    const ImVec2 edgeEnd = grid_to_vec(from_to.second);
-    const int focusedColor = edge.focused ? 192 : 127;
-    const ImColor edgeColor = {focusedColor, 255, focusedColor, edge.outOfFocus ? 63 : 255};
+    const auto nodeStart = rect.offset;
+    const auto nodeEnd = nodeStart + rect.size;
 
-    draw_list->AddLine(edgeStart, edgeEnd, edgeColor);
-  }
-}
 
-void Visualizer::drawNode(ImDrawList *draw_list, const NodeId id, const ImVec2 grid_position)
-{
-  const auto &node = nodes[id];
+    draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
 
-  if (node.isVisible)
-  {
-    const ImVec2 nodeStart = grid_to_vec(grid_position);
-    const ImVec2 nodeEnd = grid_to_vec(grid_position + ImVec2(1.f, 1.f));
-    const ImColor nodeColor = {255, 127, 127, node.outOfFocus ? 63 : 255};
-
-    if (node.focused)
-    {
-      const ImVec2 borderStart = grid_to_vec(grid_position - BORDER_PADDING);
-      const ImVec2 borderEnd = grid_to_vec(grid_position + ImVec2(1.f, 1.f) + BORDER_PADDING);
-
-      draw_list->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
-    }
-
-    draw_list->AddRectFilled(nodeStart, nodeEnd, nodeColor);
-  }
-}
-
-void Visualizer::drawResource(ImDrawList *draw_list, const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds)
-{
-  const auto resource = resources[id];
-
-  if (resource.isVisible)
-  {
-    const ImVec2 resourceStart = grid_to_vec(grid_bounds.first);
-    const ImVec2 resourceEnd = grid_to_vec(grid_bounds.second + ImVec2(1.f, 1.f));
-    const ImColor resourceColor = {127, 127, 255, resource.outOfFocus ? 63 : 255};
-
-    if (resource.focused)
-    {
-      const ImVec2 borderStart = grid_to_vec(grid_bounds.first - BORDER_PADDING);
-      const ImVec2 borderEnd = grid_to_vec(grid_bounds.second + ImVec2(1.f, 1.f) + BORDER_PADDING);
-
-      draw_list->AddRectFilled(borderStart, borderEnd, IM_COL32_WHITE);
-    }
-
-    draw_list->AddRectFilled(resourceStart, resourceEnd, resourceColor);
-  }
-}
-
-void Visualizer::drawTextnOnNode(const NodeId id, const ImVec2 grid_position)
-{
-  const auto &node = nodes[id];
-
-  if (node.isVisible)
-  {
-    ImGui::SetCursorScreenPos(grid_to_vec(grid_position + TEXT_PADDING));
-    ImGui::TextUnformatted(node.name.c_str());
-    ImGui::SetCursorScreenPos(grid_to_vec(grid_position + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
-    ImGui::Text("x%u", node.multiplexingCount);
-  }
-}
-
-void Visualizer::drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds)
-{
-  const auto &resource = resources[id];
-
-  if (resource.isVisible)
-  {
-    const auto [startPos, _] = grid_bounds;
-
-    ImGui::SetCursorScreenPos(grid_to_vec(startPos + TEXT_PADDING));
-    ImGui::TextUnformatted(resource.name.c_str());
-    ImGui::SetCursorScreenPos(grid_to_vec(startPos + ImVec2(1.0f, 1.0f) - TEXT_PADDING));
-    ImGui::Text("x%u", resource.multiplexingCount);
-  }
-}
-
-void Visualizer::checkHovering()
-{
-  const GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
-  const GraphSubset &graphSubset = curGraphView.elementsSet;
-  const SetLayout &graphLayout = curGraphView.elementsLayout;
-
-  const ImVec2 mouseGridPosition = ImGui::GetIO().MousePos / GRID_SIZE;
-
-  const bool doubleLeftClick = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
-  const bool rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-
-  hoverMessage.clear();
-
-  // ... for nodes
-  for (const NodeId nodeId : graphSubset.nodes)
-  {
-    const ImVec2 position = graphLayout.nodesGridCoords[nodeId];
-
-    if (ImRect{position, position + ImVec2(1.f, 1.f)}.Contains(mouseGridPosition))
-    {
-      generateHoverMsg(nodeId);
-
-      if (doubleLeftClick)
-        nextFocusedElementId = nodeId;
-
-      if (rightClick)
-      {
-        generatePopupMsg(nodeId);
-
-        canvas.Suspend();
-        ImGui::OpenPopup("element_info");
-        canvas.Resume();
-      }
-    }
-  }
-
-  // ... for resourses
-  for (const ResId resId : graphSubset.resources)
-  {
-    const auto [start, end] = graphLayout.resGridBounds[resId];
-
-    if (ImRect{start, end + ImVec2(1.f, 1.f)}.Contains(mouseGridPosition))
-    {
-      generateHoverMsg(resId);
-
-      if (doubleLeftClick)
-        nextFocusedElementId = resId;
-
-      if (rightClick)
-      {
-        generatePopupMsg(resId);
-
-        canvas.Suspend();
-        ImGui::OpenPopup("element_info");
-        canvas.Resume();
-      }
-    }
-  }
-
-  if (doubleLeftClick)
-  {
-    if (eastl::holds_alternative<eastl::monostate>(nextFocusedElementId))
-      resetFocusElement();
-    else
-    {
-      setFocusElement(nextFocusedElementId);
-      nextFocusedElementId = {};
-    }
-  }
-}
-
-void Visualizer::generateHoverMsg(ElementID id)
-{
-  if (eastl::holds_alternative<NodeId>(id))
-  {
-    const NodeId nodeId = eastl::get<NodeId>(id);
     const auto &node = nodes[nodeId];
+    const auto &irNode = intermediateGraph.nodes[node.irIndex];
+    const auto &state = intermediateGraph.nodeStates[node.irIndex];
+    const auto &nodeName = intermediateGraph.nodeNames[node.irIndex];
 
-    hoverMessage = "Node\n\n";
-    hoverMessage += "Name: " + String(node.name.c_str()) + "\n";
-    hoverMessage += "Multiplexing: x\n";
+    static String label;
+    ImVec2 selectibleMaxSize = {NODE_BLOCK_WIDTH, 0.f};
+    const ImVec2 contentsStart = nodeStart + NODE_BORDER_PADDING;
+
+    const ImVec2 nameBlockStart = contentsStart;
+    ImGui::SetCursorScreenPos(nameBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::TextUnformatted(nodeName.c_str());
+
+      if (irNode.frontendNode)
+      {
+        label.printf(0, "frontend node##%u", static_cast<uint32_t>(nodeId));
+
+        ImGui::SameLine();
+        if (ImGui::Button(label, selectibleMaxSize / 2.5f))
+        {
+          request_user_node_focus(*irNode.frontendNode);
+          imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_USG_WIN_NAME, true);
+        }
+      }
+
+      ImGui::Text("priority: %d  multiplex: %d  side effects: %c", irNode.priority, irNode.multiplexingIndex,
+        irNode.hasSideEffects ? 'Y' : 'N');
+    }
+    ImGui::EndGroup();
+    const ImVec2 nameBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 passBlockStart = contentsStart + ImVec2{0.f, nameBlockSize.y};
+    ImGui::SetCursorScreenPos(passBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::Text("RENDER PASS%s", state.pass ? (state.pass->isLegacyPass ? " (LEGACY)" : "") : NODE_NOOPT_LABEL);
+      if (state.pass)
+      {
+        const auto rp = *state.pass;
+
+        if (!rp.colorAttachments.empty())
+        {
+          ImGui::TextUnformatted("Color attachments");
+          for (const auto &colAtt : rp.colorAttachments)
+            if (colAtt)
+            {
+              const auto irResIndex = colAtt->resource;
+              label.printf(0, "  (%d,%d) %s##%u", colAtt->mipLevel, colAtt->layer, intermediateGraph.resourceNames[irResIndex],
+                static_cast<uint32_t>(nodeId));
+
+              if (ImGui::Selectable(label, focusState.resource == irResRepresent[irResIndex], 0, selectibleMaxSize))
+                focusState.set(irResRepresent[irResIndex]);
+              if (ImGui::IsItemHovered())
+              {
+                hoverState.node = NodeId::Invalid;
+                hoverState.resource = irResRepresent[irResIndex];
+              }
+            }
+            else
+            {
+              ImGui::TextUnformatted(NODE_NORESREF_LABEL);
+            }
+        }
+
+        if (rp.depthAttachment)
+        {
+          ImGui::Text("Depth attachment (%s)", rp.depthReadOnly ? "RO" : "RW");
+
+          const auto irResIndex = rp.depthAttachment->resource;
+          label.printf(0, "  (%d,%d) %s##%u", rp.depthAttachment->mipLevel, rp.depthAttachment->layer,
+            intermediateGraph.resourceNames[irResIndex], static_cast<uint32_t>(nodeId));
+
+          if (ImGui::Selectable(label, focusState.resource == irResRepresent[irResIndex], 0, selectibleMaxSize))
+            focusState.set(irResRepresent[irResIndex]);
+          if (ImGui::IsItemHovered())
+          {
+            hoverState.node = NodeId::Invalid;
+            hoverState.resource = irResRepresent[irResIndex];
+          }
+        }
+
+        if (rp.vrsRateAttachment)
+        {
+          ImGui::TextUnformatted("VRS texture");
+
+          const auto irResIndex = rp.vrsRateAttachment->resource;
+          label.printf(0, "  (%d,%d) %s##%u", rp.vrsRateAttachment->mipLevel, rp.vrsRateAttachment->layer,
+            intermediateGraph.resourceNames[irResIndex], static_cast<uint32_t>(nodeId));
+
+          if (ImGui::Selectable(label, focusState.resource == irResRepresent[irResIndex], 0, selectibleMaxSize))
+            focusState.set(irResRepresent[irResIndex]);
+          if (ImGui::IsItemHovered())
+          {
+            hoverState.node = NodeId::Invalid;
+            hoverState.resource = irResRepresent[irResIndex];
+          }
+        }
+
+        if (!rp.resolves.empty())
+        {
+          ImGui::TextUnformatted("MSAA resolves");
+          for (const auto &pair : rp.resolves)
+          {
+            label.printf(0, "%s##%u", intermediateGraph.resourceNames[pair.first], static_cast<uint32_t>(nodeId));
+            if (ImGui::Button(label, selectibleMaxSize / 2.5f))
+              focusState.set(irResRepresent[pair.first]);
+            ImGui::SameLine();
+            ImGui::TextUnformatted(" -> ");
+            ImGui::SameLine();
+            label.printf(0, "%s##%u", intermediateGraph.resourceNames[pair.second], static_cast<uint32_t>(nodeId));
+            if (ImGui::Button(label, selectibleMaxSize / 2.5f))
+              focusState.set(irResRepresent[pair.second]);
+          }
+        }
+      }
+    }
+    ImGui::EndGroup();
+    const ImVec2 passBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 ivbBlockStart = contentsStart + ImVec2{0.f, nameBlockSize.y + passBlockSize.y};
+    ImGui::SetCursorScreenPos(ivbBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      bool hasIBuf = bool(state.indexSource);
+      bool hasVBuf = false;
+      for (const auto &vtxBuf : state.vertexSources)
+        hasVBuf |= bool(vtxBuf);
+
+      ImGui::Text("IDX/VTX BUF%s", hasIBuf || hasVBuf ? "" : NODE_NOOPT_LABEL);
+
+      if (hasIBuf)
+      {
+        ImGui::TextUnformatted("Index buffer");
+
+        if (state.indexSource->buffer)
+        {
+          const auto irBufIndex = *(state.indexSource->buffer);
+          label.printf(0, "  %s##%u", intermediateGraph.resourceNames[irBufIndex], static_cast<uint32_t>(nodeId));
+
+          if (ImGui::Selectable(label, focusState.resource == irResRepresent[irBufIndex], 0, selectibleMaxSize))
+            focusState.set(irResRepresent[irBufIndex]);
+          if (ImGui::IsItemHovered())
+          {
+            hoverState.node = NodeId::Invalid;
+            hoverState.resource = irResRepresent[irBufIndex];
+          }
+        }
+        else
+        {
+          ImGui::TextUnformatted(NODE_NORESREF_LABEL);
+        }
+      }
+
+      if (hasVBuf)
+      {
+        ImGui::TextUnformatted("Vertex buffer");
+
+        for (const auto &bufSrc : state.vertexSources)
+        {
+          if (bufSrc && bufSrc->buffer)
+          {
+            const auto irBufIndex = *(bufSrc->buffer);
+            label.printf(0, "  (%d) %s##%u", bufSrc->stride, intermediateGraph.resourceNames[irBufIndex],
+              static_cast<uint32_t>(nodeId));
+
+            if (ImGui::Selectable(label, focusState.resource == irResRepresent[irBufIndex], 0, selectibleMaxSize))
+              focusState.set(irResRepresent[irBufIndex]);
+            if (ImGui::IsItemHovered())
+            {
+              hoverState.node = NodeId::Invalid;
+              hoverState.resource = irResRepresent[irBufIndex];
+            }
+          }
+          else
+          {
+            ImGui::TextUnformatted(NODE_NORESREF_LABEL);
+          }
+        }
+      }
+    }
+    ImGui::EndGroup();
+    const ImVec2 ivbBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 bindBlockStart = contentsStart + ImVec2{max(passBlockSize.x, ivbBlockSize.x), nameBlockSize.y};
+    ImGui::SetCursorScreenPos(bindBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::Text("BINDINGS%s", !state.bindings.empty() ? "" : NODE_NOOPT_LABEL);
+      if (!state.bindings.empty())
+      {
+        ImGui::TextUnformatted("idx: type (hist?)(reset?)(opt?) name");
+        if (ImGui::IsItemHovered())
+          hoverState.tooltip.printf(0, "SV - ShaderVar\nVM - ViewMatrix\nPM - ProjMatrix\nIN - Invalid\n");
+        for (const auto &[index, binding] : state.bindings)
+        {
+          if (binding.resource)
+          {
+            label.printf(0, "  %d: %s %c%c%c %s##%u", index, bind_type_name(binding.type), binding.history ? '+' : '-',
+              binding.reset ? '+' : '-', binding.optional ? '+' : '-', intermediateGraph.resourceNames[*binding.resource],
+              static_cast<uint32_t>(nodeId));
+
+            const auto bindResource = irResRepresent[*binding.resource];
+            if (ImGui::Selectable(label, focusState.resource == bindResource, 0, selectibleMaxSize))
+              focusState.set(bindResource);
+            if (ImGui::IsItemHovered())
+            {
+              hoverState.node = NodeId::Invalid;
+              hoverState.resource = bindResource;
+            }
+          }
+          else
+          {
+            ImGui::Text("  %d: %s", index, NODE_NORESREF_LABEL);
+          }
+        }
+      }
+    }
+    ImGui::EndGroup();
+    const ImVec2 bindBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 overrideBlockStart = contentsStart + ImVec2{max(passBlockSize.x, ivbBlockSize.x) + bindBlockSize.x, nameBlockSize.y};
+    ImGui::SetCursorScreenPos(overrideBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::Text("STATE OVERRIDES%s", state.shaderOverrides ? "" : NODE_NOOPT_LABEL);
+      if (state.shaderOverrides)
+        ImGui::TextUnformatted(override_state_descr(*state.shaderOverrides));
+    }
+    ImGui::EndGroup();
+    const ImVec2 overrideBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 vrsBlockStart =
+      contentsStart + ImVec2{max(passBlockSize.x, ivbBlockSize.x) + bindBlockSize.x, nameBlockSize.y + overrideBlockSize.y};
+    ImGui::SetCursorScreenPos(vrsBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::Text("VRS state:\n  rates X/Y: %d %d\n  vtx combiner: %s\n  pix combiner: %s\n", state.vrs.rateX, state.vrs.rateY,
+        vrs_combiner_name(state.vrs.vertexCombiner), vrs_combiner_name(state.vrs.pixelCombiner));
+    }
+    ImGui::EndGroup();
+    const ImVec2 vrsBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const ImVec2 miscBlockStart = contentsStart + ImVec2{max(passBlockSize.x, ivbBlockSize.x) + bindBlockSize.x,
+                                                    nameBlockSize.y + overrideBlockSize.y + vrsBlockSize.y};
+    ImGui::SetCursorScreenPos(miscBlockStart + NODE_BLOCK_BORDER_PADDING);
+    ImGui::BeginGroup();
+    {
+      ImGui::Text("async pipelines: %c", state.asyncPipelines ? 'Y' : 'N');
+      ImGui::Text("wireframe: %c", state.wire ? 'Y' : 'N');
+      ImGui::Text("sh block layers (ob,fr,sc): %d %d %d", state.shaderBlockLayers.objectLayer, state.shaderBlockLayers.frameLayer,
+        state.shaderBlockLayers.sceneLayer);
+    }
+    ImGui::EndGroup();
+    const ImVec2 miscBlockSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    {
+      const auto &stateDelta = stateDeltas[node.irIndex];
+
+      ImVec2 deltaBlockStart = {(nodeStart.x + nodeEnd.x) / 2.f - STATE_DELTA_BLOCK_WIDTH / 2.f, nodeStart.y};
+      {
+        selectibleMaxSize = {STATE_DELTA_BLOCK_WIDTH - 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.x, 0.f};
+        const float lineHeight = ImGui::GetFrameHeight();
+        const auto startSDBlock = [=, &deltaBlockStart](const float block_height) {
+          deltaBlockStart.y -= STATE_DELTA_BLOCK_MARGIN + block_height;
+          draw_list->ChannelsSetCurrent(CanvasChannels::NODES);
+          draw_list->AddRectFilled(deltaBlockStart, deltaBlockStart + ImVec2{STATE_DELTA_BLOCK_WIDTH, block_height}, NODE_BASE_COLOR,
+            2.f, 0);
+          draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+          ImGui::SetCursorScreenPos(deltaBlockStart + STATE_DELTA_BLOCK_BORDER_PADDING);
+          ImGui::BeginGroup();
+        };
+        const auto endSDBlock = []() { ImGui::EndGroup(); };
+
+        if (stateDelta.shaderBlockLayers.objectLayer || stateDelta.shaderBlockLayers.frameLayer ||
+            stateDelta.shaderBlockLayers.sceneLayer)
+        {
+          startSDBlock(lineHeight + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Shader Block Layers:");
+            ImGui::SameLine();
+            if (stateDelta.shaderBlockLayers.objectLayer)
+              ImGui::Text("%d", *stateDelta.shaderBlockLayers.objectLayer);
+            else
+              ImGui::TextUnformatted("_");
+            ImGui::SameLine();
+            if (stateDelta.shaderBlockLayers.frameLayer)
+              ImGui::Text("%d", *stateDelta.shaderBlockLayers.frameLayer);
+            else
+              ImGui::TextUnformatted("_");
+            ImGui::SameLine();
+            if (stateDelta.shaderBlockLayers.sceneLayer)
+              ImGui::Text("%d", *stateDelta.shaderBlockLayers.sceneLayer);
+            else
+              ImGui::TextUnformatted("_");
+          }
+          endSDBlock();
+        }
+        if (!stateDelta.bindings.empty())
+        {
+          startSDBlock(lineHeight * (1 + stateDelta.bindings.size()) + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Set Bindings:");
+            if (ImGui::IsItemHovered())
+              hoverState.tooltip.printf(0,
+                "idx: type (hist?)(reset?)(opt?) name\nSV - ShaderVar\nVM - ViewMatrix\nPM - ProjMatrix\nIN - Invalid\n");
+
+            for (const auto &[index, binding] : stateDelta.bindings)
+            {
+              if (binding.resource)
+              {
+                label.printf(0, "  %d: %s %s%s%s %s##sd%u", index, bind_type_name(binding.type), binding.history ? "+" : "-",
+                  binding.reset ? "+" : "-", binding.optional ? "+" : "-", intermediateGraph.resourceNames[*binding.resource],
+                  static_cast<uint32_t>(nodeId));
+
+                const auto bindResource = irResRepresent[*binding.resource];
+                if (ImGui::Selectable(label, focusState.resource == bindResource, 0, selectibleMaxSize))
+                  focusState.set(bindResource);
+                if (ImGui::IsItemHovered())
+                {
+                  hoverState.node = NodeId::Invalid;
+                  hoverState.resource = bindResource;
+                }
+              }
+              else
+              {
+                ImGui::Text("  %d: %s", index, NODE_NORESREF_LABEL);
+              }
+            }
+          }
+          endSDBlock();
+        }
+
+        uint32_t vtxBufDeltas = 0;
+        for (const auto optBuf : stateDelta.vertexSources)
+          vtxBufDeltas += bool(optBuf) ? 1 : 0;
+        if (vtxBufDeltas > 0)
+        {
+          startSDBlock(lineHeight * (1 + vtxBufDeltas) + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Set Vervex Buffers:");
+            for (const auto optBuf : stateDelta.vertexSources)
+              if (optBuf && optBuf->buffer)
+              {
+                const auto irBufIndex = *(optBuf->buffer);
+                label.printf(0, "  (%d) %s##%u", intermediateGraph.resourceNames[irBufIndex], optBuf->stride,
+                  static_cast<uint32_t>(nodeId));
+
+                if (ImGui::Selectable(label, focusState.resource == irResRepresent[irBufIndex], 0, selectibleMaxSize))
+                  focusState.set(irResRepresent[irBufIndex]);
+                if (ImGui::IsItemHovered())
+                {
+                  hoverState.node = NodeId::Invalid;
+                  hoverState.resource = irResRepresent[irBufIndex];
+                }
+              }
+              else
+              {
+                ImGui::TextUnformatted(NODE_NORESREF_LABEL);
+              }
+          }
+          endSDBlock();
+        }
+
+        if (stateDelta.indexSource)
+        {
+          startSDBlock(2.f * lineHeight + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Set Index Buffer:");
+            if (stateDelta.indexSource->buffer)
+            {
+              const auto irBufIndex = *(stateDelta.indexSource->buffer);
+              label.printf(0, "  %s##%u", intermediateGraph.resourceNames[irBufIndex], static_cast<uint32_t>(nodeId));
+
+              if (ImGui::Selectable(label, focusState.resource == irResRepresent[irBufIndex], 0, selectibleMaxSize))
+                focusState.set(irResRepresent[irBufIndex]);
+              if (ImGui::IsItemHovered())
+              {
+                hoverState.node = NodeId::Invalid;
+                hoverState.resource = irResRepresent[irBufIndex];
+              }
+            }
+            else
+            {
+              ImGui::TextUnformatted(NODE_NORESREF_LABEL);
+            }
+          }
+          endSDBlock();
+        }
+
+        if (stateDelta.shaderOverrides)
+        {
+          const char *soLabel = override_state_descr(shaders::overrides::get(*stateDelta.shaderOverrides));
+          startSDBlock(lineHeight + ImGui::CalcTextSize(soLabel).y + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Set State Overrides:");
+            ImGui::TextUnformatted(soLabel);
+          }
+          endSDBlock();
+        }
+
+        if (stateDelta.vrs)
+        {
+          const auto &vrsState = *stateDelta.vrs;
+          startSDBlock(lineHeight + ImGui::CalcTextSize(NODE_VRS_MAX_LABEL).y + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          {
+            ImGui::TextUnformatted("Set VRS state:");
+            ImGui::Text("  rates X/Y: %d %d\n  vtx combiner: %s\n  pix combiner: %s\n", vrsState.rateX, vrsState.rateY,
+              vrs_combiner_name(vrsState.vertexCombiner), vrs_combiner_name(vrsState.pixelCombiner));
+          }
+          endSDBlock();
+        }
+
+        if (stateDelta.wire)
+        {
+          startSDBlock(lineHeight + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          ImGui::Text("Set wireframe: %s", *stateDelta.wire ? "Y" : "N");
+          endSDBlock();
+        }
+
+        if (stateDelta.asyncPipelines)
+        {
+          startSDBlock(lineHeight + 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y);
+          ImGui::Text("Set async pipelines: %s", *stateDelta.asyncPipelines ? "Y" : "N");
+          endSDBlock();
+        }
+      }
+
+      {
+        ImU32 passTagColor = 0;
+        const char *passLabel = nullptr;
+
+        const float leftPos = nodeStart.x - PASS_BRACKET_OFFSET;
+        const float rightPos = nodeEnd.x + PASS_BRACKET_OFFSET;
+        float topPos = 0.f;
+        float middlePos = 0.f;
+        float bottomPos = 0.f;
+
+        const auto drawBracket = [=, &passTagColor, &passLabel, &topPos, &middlePos, &bottomPos]() {
+          const ImVec2 bracketP0 = ImVec2{leftPos, bottomPos};
+          const ImVec2 bracketP1 = ImVec2{leftPos, topPos};
+          const ImVec2 bracketP2 = ImVec2{leftPos, middlePos};
+          const ImVec2 bracketP3 = ImVec2{rightPos, middlePos};
+          const ImVec2 bracketP4 = ImVec2{rightPos, topPos};
+          const ImVec2 bracketP5 = ImVec2{rightPos, bottomPos};
+
+          const ImVec2 passTagSize = ImGui::CalcTextSize(passLabel) + 2.f * TAG_BORDER_PADDING;
+          const ImVec2 passTagStart = ImVec2{leftPos - TAG_BORDER_PADDING.x, middlePos - passTagSize.y / 2.f};
+          const ImVec2 passTagEnd = passTagStart + passTagSize;
+
+          draw_list->AddLine(bracketP0, bracketP1, passTagColor, PASS_BRACKET_WIDTH);
+          draw_list->AddLine(bracketP2, bracketP3, passTagColor, PASS_BRACKET_WIDTH);
+          draw_list->AddLine(bracketP4, bracketP5, passTagColor, PASS_BRACKET_WIDTH);
+
+          draw_list->AddRectFilled(passTagStart, passTagEnd, passTagColor, passTagSize.y / 2.f);
+          ImGui::SetCursorScreenPos(passTagStart + TAG_BORDER_PADDING);
+          ImGui::TextUnformatted(passLabel);
+        };
+
+        if (stateDelta.pass)
+        {
+          bool firstInPass = false;
+
+          if (eastl::holds_alternative<sd::PassChange>(*stateDelta.pass))
+          {
+            firstInPass = true;
+            bottomPos = deltaBlockStart.y;
+            middlePos = deltaBlockStart.y - PASS_BRACKET_OFFSET;
+            topPos = middlePos - PASS_BRACKET_WIDTH / 2.f;
+
+            const auto &passChange = eastl::get<sd::PassChange>(*stateDelta.pass);
+            if (eastl::holds_alternative<sd::BeginRenderPass>(passChange.beginAction))
+            {
+              {
+                const auto &beginRenderPass = eastl::get<sd::BeginRenderPass>(passChange.beginAction);
+
+                const ImVec2 passInfoStart = ImVec2{leftPos - PASS_BLOCK_WIDTH, topPos};
+
+                selectibleMaxSize = {PASS_BLOCK_WIDTH - 2.f * PASS_BLOCK_BORDER_PADDING.x, 0.f};
+                ImGui::SetCursorScreenPos(passInfoStart + PASS_BLOCK_BORDER_PADDING);
+                ImGui::BeginGroup();
+                {
+                  ImGui::TextUnformatted("Attachments:");
+                  if (ImGui::IsItemHovered())
+                    hoverState.tooltip.printf(0, "(mip,layer) name");
+                  for (const auto &attachment : beginRenderPass.attachments)
+                  {
+                    label.printf(0, "  (%d,%d) %s##sd%u", attachment.mipLevel, attachment.layer,
+                      intermediateGraph.resourceNames[attachment.res], static_cast<uint32_t>(nodeId));
+                    if (ImGui::Selectable(label, focusState.resource == irResRepresent[attachment.res], 0, selectibleMaxSize))
+                      focusState.set(irResRepresent[attachment.res]);
+                    if (ImGui::IsItemHovered())
+                    {
+                      hoverState.node = NodeId::Invalid;
+                      hoverState.resource = irResRepresent[attachment.res];
+                    }
+
+                    ImGui::TextUnformatted("    clear value:");
+                    ImGui::SameLine();
+                    if (eastl::holds_alternative<ResourceClearValue>(attachment.clearValue))
+                    {
+                      const auto &clearVal = eastl::get<ResourceClearValue>(attachment.clearValue);
+                      ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+                      ImGui::TextUnformatted("[...]");
+                      if (ImGui::IsItemHovered())
+                        hoverState.tooltip.printf(0, clear_value_descr(clearVal));
+                      ImGui::PopStyleColor();
+                    }
+                    else
+                    {
+                      ImVec2 selectSize = ImGui::GetItemRectSize();
+                      selectSize = ImVec2{PASS_BLOCK_WIDTH - 2.f * PASS_BLOCK_BORDER_PADDING.x - selectSize.x, selectSize.y};
+
+                      const auto irResIndex = eastl::get<intermediate::DynamicParameter>(attachment.clearValue).resource;
+                      label.printf(0, "%s##%u", intermediateGraph.resourceNames[irResIndex], static_cast<uint32_t>(nodeId));
+                      if (ImGui::Selectable(label, focusState.resource == irResRepresent[irResIndex], 0, selectSize))
+                        focusState.set(irResRepresent[irResIndex]);
+                    }
+                  }
+
+                  ImGui::TextUnformatted("Use VRS:");
+                  ImGui::SameLine();
+                  if (beginRenderPass.useVrs)
+                  {
+                    ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+                    ImGui::TextUnformatted("YES");
+                  }
+                  else
+                  {
+                    ImGui::PushStyleColor(ImGuiCol_Text, NEG_COLOR);
+                    ImGui::TextUnformatted("NO");
+                  }
+                  ImGui::PopStyleColor();
+                }
+                ImGui::EndGroup();
+                ImVec2 passInfoSize = ImGui::GetItemRectSize() + 2.f * NODE_BLOCK_BORDER_PADDING;
+                passInfoSize = ImVec2{PASS_BLOCK_WIDTH, passInfoSize.y};
+
+                draw_list->ChannelsSetCurrent(CanvasChannels::NODES);
+                draw_list->AddRectFilled(passInfoStart, passInfoStart + passInfoSize, NODE_BASE_COLOR, 0.f, 0);
+                draw_list->AddRect(passInfoStart, passInfoStart + passInfoSize, NODE_START_PASS_COLOR, 0.f, 0, PASS_BRACKET_WIDTH);
+                draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+              }
+
+              passTagColor = NODE_START_PASS_COLOR;
+              passLabel = NODE_START_PASS_TAG;
+            }
+            else if (eastl::holds_alternative<sd::LegacyBackbufferPass>(passChange.beginAction))
+            {
+              passTagColor = NODE_START_LEGACY_PASS_COLOR;
+              passLabel = NODE_START_LEGACY_PASS_TAG;
+            }
+          }
+          else
+          {
+            firstInPass = true;
+            bottomPos = deltaBlockStart.y;
+            middlePos = deltaBlockStart.y - PASS_BRACKET_OFFSET;
+            topPos = middlePos - PASS_BRACKET_OFFSET;
+
+            passTagColor = NODE_NEXT_SUBPASS_COLOR;
+            passLabel = NODE_NEXT_SUBPASS_TAG;
+          }
+
+          if (firstInPass)
+            drawBracket();
+        }
+
+        {
+          bool lastInPass = false;
+
+          const auto nextNodeIndex = intermediateGraph.nodes.getNextUsed(node.irIndex);
+          if (nextNodeIndex < intermediateGraph.nodes.totalKeys() && stateDeltas[nextNodeIndex].pass &&
+              eastl::holds_alternative<sd::PassChange>(*stateDeltas[nextNodeIndex].pass))
+          {
+            const auto &passChange = eastl::get<sd::PassChange>(*stateDeltas[nextNodeIndex].pass);
+            if (eastl::holds_alternative<sd::FinishRenderPass>(passChange.endAction))
+            {
+              lastInPass = true;
+              passTagColor = NODE_END_PASS_COLOR;
+              passLabel = NODE_END_PASS_TAG;
+            }
+            else if (eastl::holds_alternative<sd::LegacyBackbufferPass>(passChange.endAction))
+            {
+              lastInPass = true;
+              passTagColor = NODE_END_LEGACY_PASS_COLOR;
+              passLabel = NODE_END_LEGACY_PASS_TAG;
+            }
+          }
+
+          if (lastInPass)
+          {
+            topPos = nodeEnd.y;
+            middlePos = nodeEnd.y + PASS_BRACKET_OFFSET;
+            bottomPos = middlePos + PASS_BRACKET_WIDTH / 2.f;
+
+            drawBracket();
+          }
+        }
+      }
+    }
+
+
+    draw_list->ChannelsSetCurrent(CanvasChannels::NODES);
+
+    if (focusState.node == nodeId)
+      draw_list->AddRect(nodeStart - ImVec2{FOCUS_BORDER_WIDTH, FOCUS_BORDER_WIDTH},
+        nodeEnd + ImVec2{FOCUS_BORDER_WIDTH, FOCUS_BORDER_WIDTH}, IM_COL32_WHITE, 2.f, 0, FOCUS_BORDER_WIDTH);
+    draw_list->AddRectFilled(nodeStart, nodeEnd, NODE_BASE_COLOR, 2.f);
+
+    draw_list->AddRect(nodeStart, nodeEnd, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(nameBlockStart, nameBlockStart + nameBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(passBlockStart, passBlockStart + passBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(ivbBlockStart, ivbBlockStart + ivbBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(bindBlockStart, bindBlockStart + bindBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(overrideBlockStart, overrideBlockStart + overrideBlockSize, NODE_BLOCK_COLOR, 0.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(vrsBlockStart, vrsBlockStart + vrsBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
+    draw_list->AddRect(miscBlockStart, miscBlockStart + miscBlockSize, NODE_BLOCK_COLOR, 2.f, 0, NODE_BLOCK_BORDER_WIDTH);
   }
-  else if (eastl::holds_alternative<ResId>(id))
+}
+
+void Visualizer::drawResources(ImDrawList *draw_list, const CanvasLayout &layout)
+{
+  static String label;
+  const ImRect &canvasView = canvas.ViewRect();
+  ImVec2 resNameMaxSize = {RES_BLOCK_WIDTH - 2.f * RES_BLOCK_BORDER_PADDING.x - ImGui::CalcTextSize("x000k").x, 0.f};
+
+  for (const auto [resId, rect] : layout.resources.enumerate())
   {
-    const ResId resId = eastl::get<ResId>(id);
     const auto &resource = resources[resId];
+    const auto &irResource = intermediateGraph.resources[resource.irIndex];
+    const char *irResName = intermediateGraph.resourceNames[resource.irIndex].c_str();
+    const auto irResType = irResource.getResType();
 
-    hoverMessage = "Resource\n\n";
-    hoverMessage += "Name: " + String(resource.name.c_str()) + "\n";
-    hoverMessage += "Multiplexing: x\n";
+    const ImVec2 resourceStart = rect.offset;
+    const ImVec2 resourceEnd = resourceStart + rect.size;
+    const ImVec2 visibleResStart = ImVec2{
+      clamp(resourceStart.x, canvasView.Min.x + RES_BLOCK_OFFSCREEN_PADDING, resourceEnd.x - (RES_BLOCK_WIDTH + RES_BORDER_PADDING.x)),
+      resourceStart.y};
+
+    const ImVec2 contentsStart = visibleResStart + RES_BORDER_PADDING;
+    ImVec2 contentsEnd = contentsStart;
+
+    ImU32 typeFillColor = RES_BASE_COLOR;
+    ImU32 typeTagColor = RES_BASE_COLOR;
+    const char *typeLabel = RES_INV_TYPE_TAG;
+    switch (irResType)
+    {
+      case ResourceType::Texture:
+        typeFillColor = RES_TEX_TYPE_COLOR;
+        typeTagColor = RES_TEX_TAG_COLOR;
+        typeLabel = RES_TEXTURE_TAG;
+        break;
+      case ResourceType::Buffer:
+        typeFillColor = RES_BUF_TYPE_COLOR;
+        typeTagColor = RES_BUF_TAG_COLOR;
+        typeLabel = RES_BUFFER_TAG;
+        break;
+      case ResourceType::Blob:
+        typeFillColor = RES_BLOB_TYPE_COLOR;
+        typeTagColor = RES_BLOB_TAG_COLOR;
+        typeLabel = RES_BLOB_TAG;
+        break;
+      default: break;
+    }
+
+    ImU32 statusFillColor = RES_BASE_COLOR;
+    ImU32 statusTagColor = RES_BASE_COLOR;
+    const char *statusLabel = RES_UNKNOWN_STATUS_TAG;
+    if (irResource.isScheduled())
+    {
+      statusFillColor = RES_SHC_TYPE_COLOR;
+      statusTagColor = RES_SHC_TAG_COLOR;
+      statusLabel = RES_SHCEDULE_TAG;
+    }
+    else if (irResource.isExternal())
+    {
+      statusFillColor = RES_EXT_TYPE_COLOR;
+      statusTagColor = RES_EXT_TAG_COLOR;
+      statusLabel = RES_EXTERNAL_TAG;
+    }
+    else if (irResource.isDriverDeferredTexture())
+    {
+      statusFillColor = RES_DEF_TYPE_COLOR;
+      statusTagColor = RES_DEF_TAG_COLOR;
+      statusLabel = RES_DEFERRED_TAG;
+    }
+
+    const ImVec2 typeTagSize = ImGui::CalcTextSize(typeLabel) + 2.f * TAG_BORDER_PADDING;
+    const ImVec2 typeTagStart = ImVec2{visibleResStart.x - TAG_BORDER_PADDING.x, visibleResStart.y - typeTagSize.y / 2.f};
+    const ImVec2 typeTagEnd = typeTagStart + typeTagSize;
+
+    const ImVec2 statusTagSize = ImGui::CalcTextSize(statusLabel) + 2.f * TAG_BORDER_PADDING;
+    const ImVec2 statusTagStart = ImVec2{visibleResStart.x - TAG_BORDER_PADDING.x, resourceEnd.y - statusTagSize.y / 2.f};
+    const ImVec2 statusTagEnd = statusTagStart + statusTagSize;
+
+
+    draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+    {
+      ImGui::SetCursorScreenPos(contentsStart + RES_BLOCK_BORDER_PADDING);
+      ImGui::BeginGroup();
+      {
+        if (ImGui::Button(irResName, resNameMaxSize) && !irResource.frontendResources.empty())
+        {
+          popupResource = resId;
+          draw_list->ChannelsSetCurrent(CanvasChannels::SUSPEND);
+          canvas.Suspend();
+          ImGui::OpenPopup(RES_FRONTEND_POPUP);
+          canvas.Resume();
+          draw_list->ChannelsSetCurrent(CanvasChannels::TEXTS);
+        }
+        if (ImGui::IsItemHovered())
+        {
+          if (!irResource.frontendResources.empty())
+            hoverState.tooltip.printf(0, "see frontend resources...\n");
+          else
+            hoverState.tooltip.printf(0, "no frontend resources\n");
+        }
+
+        ImVec2 subBlockStart =
+          contentsStart + RES_BLOCK_BORDER_PADDING + ImVec2{0.f, ImGui::GetItemRectSize().y + RES_BLOCK_BORDER_PADDING.y};
+
+        ImGui::SameLine();
+        ImGui::Text("x%d", irResource.multiplexingIndex);
+        if (ImGui::IsItemHovered())
+          hoverState.tooltip.printf(0, "multiplex iteration");
+
+
+        struct SubBlockHandler
+        {
+          ImDrawList *drawList;
+          ImVec2 &startPos;
+
+          SubBlockHandler(ImDrawList *draw_list, ImVec2 &start) : drawList(draw_list), startPos(start)
+          {
+            ImGui::SetCursorScreenPos(startPos);
+            ImGui::BeginGroup();
+          }
+
+          ~SubBlockHandler()
+          {
+            ImGui::EndGroup();
+            const ImVec2 blockSize = ImGui::GetItemRectSize();
+            drawList->AddRect(startPos - RES_BLOCK_BORDER_PADDING / 2.f, startPos + blockSize + RES_BLOCK_BORDER_PADDING / 2.f,
+              RES_BLOCK_COLOR, 2.f, 0, RES_BLOCK_BORDER_WIDTH);
+            startPos += ImVec2{blockSize.x + RES_BLOCK_BORDER_PADDING.x, 0.f};
+          }
+        };
+
+#define SUBBLOCK_SCOPED auto sbh = SubBlockHandler(draw_list, subBlockStart);
+
+        if (irResource.isScheduled())
+        {
+          const auto &scheduledRes = irResource.asScheduled();
+
+          if (irResType == ResourceType::Texture)
+          {
+            const auto &resDescr = eastl::get<ResourceDescription>(scheduledRes.description);
+
+            {
+              SUBBLOCK_SCOPED
+
+              format_pretty(draw_list, resDescr.asBasicRes.cFlags & TEXFMT_MASK);
+              ImGui::Text("%s - %s", texture_type_name(resDescr.type),
+                (resDescr.asBasicRes.cFlags & TEXCF_RTARGET) ? "RTARGET" : "UAV");
+              {
+                if (resDescr.type == D3DResourceType::TEX)
+                  ImGui::Text("%dx%d", resDescr.asTexRes.width, resDescr.asTexRes.height);
+                else if (resDescr.type == D3DResourceType::VOLTEX)
+                  ImGui::Text("%dx%dx%d", resDescr.asVolTexRes.width, resDescr.asVolTexRes.height, resDescr.asVolTexRes.depth);
+                else if (resDescr.type == D3DResourceType::ARRTEX)
+                  ImGui::Text("%dx%d [%d]", resDescr.asArrayTexRes.width, resDescr.asArrayTexRes.height,
+                    resDescr.asArrayTexRes.arrayLayers);
+                else if (resDescr.type == D3DResourceType::CUBETEX)
+                  ImGui::Text("extent: %d", resDescr.asCubeTexRes.extent);
+                else if (resDescr.type == D3DResourceType::CUBEARRTEX)
+                  ImGui::Text("extent: %d [%d]", resDescr.asArrayCubeTexRes.extent, resDescr.asArrayCubeTexRes.cubes);
+              }
+              {
+                ImGui::Text("mips: %d%s, flags:", resDescr.asBasicTexRes.mipLevels, scheduledRes.autoMipCount ? "(auto)" : "");
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+                ImGui::TextUnformatted("[...]");
+                if (ImGui::IsItemHovered())
+                  hoverState.tooltip.printf(0, texture_flags_descr(resDescr.asBasicRes.cFlags));
+                ImGui::PopStyleColor();
+              }
+            }
+
+            if (scheduledRes.resolutionType)
+            {
+              SUBBLOCK_SCOPED
+
+              const auto autoResData = registry.autoResTypes[scheduledRes.resolutionType->id];
+              ImGui::TextUnformatted(auto_res_data_descr(autoResData, scheduledRes.resolutionType->multiplier));
+              if (ImGui::IsItemHovered())
+                hoverState.tooltip.printf(0, "Static\nDynamic\nLast applied dynamic\nMultiplier, Countdown");
+            }
+          }
+          else if (irResType == ResourceType::Buffer)
+          {
+            SUBBLOCK_SCOPED
+
+            const auto &bufferDescr = eastl::get<ResourceDescription>(scheduledRes.description).asBufferRes;
+
+            ImGui::Text("%d byte x %d", bufferDescr.elementSizeInBytes, bufferDescr.elementCount);
+            ImGui::Text("size: %d byte", bufferDescr.elementSizeInBytes * bufferDescr.elementCount);
+            ImGui::Text("view: %u", bufferDescr.viewFormat);
+            ImGui::TextUnformatted("flags:");
+            ImGui::SameLine();
+            {
+              ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+              ImGui::TextUnformatted("[...]");
+              if (ImGui::IsItemHovered())
+                hoverState.tooltip.printf(0, buffer_flags_descr(bufferDescr.cFlags));
+              ImGui::PopStyleColor();
+            }
+          }
+          else if (irResType == ResourceType::Blob)
+          {
+            SUBBLOCK_SCOPED
+
+            const auto &blobDescr = eastl::get<intermediate::BlobDescription>(scheduledRes.description);
+            ImGui::Text("size: %zu byte", blobDescr.size);
+            ImGui::Text("align: %zu byte", blobDescr.alignment);
+          }
+
+
+          {
+            SUBBLOCK_SCOPED
+
+            if (irResType == ResourceType::Texture || irResType == ResourceType::Buffer)
+              ImGui::Text("activation: %s",
+                activation_action_name(eastl::get<ResourceDescription>(scheduledRes.description).asBasicRes.activation));
+            ImGui::Text("clear stage: %s", clear_stage_name(scheduledRes.clearStage));
+            if (scheduledRes.clearStage != intermediate::ClearStage::None)
+            {
+              ImGui::Text("clear flags: %s", res_clear_flag_name(scheduledRes.clearFlags));
+              ImGui::TextUnformatted("clear value:");
+              ImVec2 selectSize = ImGui::GetItemRectSize();
+              ImGui::SameLine();
+              if (eastl::holds_alternative<ResourceClearValue>(scheduledRes.clearValue))
+              {
+                const auto &clearVal = eastl::get<ResourceClearValue>(scheduledRes.clearValue);
+                ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+                ImGui::TextUnformatted("[...]");
+                if (ImGui::IsItemHovered())
+                  hoverState.tooltip.printf(0, clear_value_descr(clearVal));
+                ImGui::PopStyleColor();
+              }
+              else
+              {
+                const auto irResIndex = eastl::get<intermediate::DynamicParameter>(scheduledRes.clearValue).resource;
+                label.printf(0, "%s##%u", intermediateGraph.resourceNames[irResIndex], static_cast<uint32_t>(resId));
+                if (ImGui::Selectable(label, focusState.resource == irResRepresent[irResIndex], 0, selectSize))
+                  focusState.set(irResRepresent[irResIndex]);
+              }
+            }
+          }
+
+          if (scheduledRes.history != History::No)
+          {
+            const char *historyLabel =
+              scheduledRes.history == History::ClearZeroOnFirstFrame ? RES_HISTORY_CLEAR_TAG : RES_HISTORY_DISCARD_TAG;
+            const ImVec2 historyTagSize = ImGui::CalcTextSize(historyLabel) + 2.f * TAG_BORDER_PADDING;
+            const ImVec2 historyTagStart = ImVec2{typeTagEnd.x, typeTagStart.y};
+            const ImVec2 historyTagEnd = historyTagStart + historyTagSize;
+
+            draw_list->AddRectFilled(historyTagStart, historyTagEnd, RES_HIS_TAG_COLOR, historyTagSize.y / 2.f);
+            ImGui::SetCursorScreenPos(historyTagStart + TAG_BORDER_PADDING);
+            ImGui::TextUnformatted(historyLabel);
+          }
+        }
+        else if (irResource.isExternal())
+        {
+          SUBBLOCK_SCOPED
+
+          if (irResType == ResourceType::Texture)
+          {
+            const auto &extTexInfo = eastl::get<TextureInfo>(irResource.asExternal().info);
+
+            format_pretty(draw_list, extTexInfo.cflg & TEXFMT_MASK & TEXFMT_MASK);
+            ImGui::Text("%s - %s", texture_type_name(extTexInfo.type), (extTexInfo.cflg & TEXCF_RTARGET) ? "RTARGET" : "UAV");
+            if (extTexInfo.type == D3DResourceType::VOLTEX)
+              ImGui::Text("%dx%dx%d", extTexInfo.w, extTexInfo.h, extTexInfo.d);
+            else
+              ImGui::Text("%dx%d", extTexInfo.w, extTexInfo.h);
+
+            if (extTexInfo.type == D3DResourceType::ARRTEX)
+            {
+              ImGui::SameLine();
+              ImGui::Text("[%d]", extTexInfo.a);
+            }
+            else if (extTexInfo.type == D3DResourceType::CUBEARRTEX)
+            {
+              ImGui::SameLine();
+              ImGui::Text("[6 * %d]", extTexInfo.a / 6);
+            }
+
+            ImGui::Text("mips: %d, flags:", extTexInfo.mipLevels);
+            ImGui::SameLine();
+            {
+              ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+              ImGui::TextUnformatted("[...]");
+              if (ImGui::IsItemHovered())
+                hoverState.tooltip.printf(0, texture_flags_descr(extTexInfo.cflg));
+              ImGui::PopStyleColor();
+            }
+            ImGui::SameLine();
+            {
+              if (extTexInfo.isCommitted)
+              {
+                ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+                ImGui::TextUnformatted("commited");
+              }
+              else
+              {
+                ImGui::PushStyleColor(ImGuiCol_Text, NEG_COLOR);
+                ImGui::TextUnformatted("NOT commited");
+              }
+              ImGui::PopStyleColor();
+            }
+          }
+          else if (irResType == ResourceType::Buffer)
+          {
+            const auto extBufInfo = eastl::get<intermediate::BufferInfo>(irResource.asExternal().info);
+
+            ImGui::TextUnformatted("Creation flags:");
+            ImGui::SameLine();
+            {
+              ImGui::PushStyleColor(ImGuiCol_Text, POS_COLOR);
+              ImGui::TextUnformatted("[...]");
+              if (ImGui::IsItemHovered())
+                hoverState.tooltip.printf(0, buffer_flags_descr(extBufInfo.flags));
+              ImGui::PopStyleColor();
+            }
+          }
+        }
+#undef SUBBLOCK_SCOPED
+      }
+      ImGui::EndGroup();
+      const ImVec2 resBlockSize = ImGui::GetItemRectSize() + 2.f * RES_BLOCK_BORDER_PADDING;
+      contentsEnd += resBlockSize;
+
+
+      draw_list->AddRectFilled(typeTagStart, typeTagEnd, typeTagColor, typeTagSize.y / 2.f);
+      ImGui::SetCursorScreenPos(typeTagStart + TAG_BORDER_PADDING);
+      ImGui::TextUnformatted(typeLabel);
+
+      draw_list->AddRectFilled(statusTagStart, statusTagEnd, statusTagColor, statusTagSize.y / 2.f);
+      ImGui::SetCursorScreenPos(statusTagStart + TAG_BORDER_PADDING);
+      ImGui::TextUnformatted(statusLabel);
+    }
+
+
+    draw_list->ChannelsSetCurrent(CanvasChannels::RESOURCES);
+    {
+      if (focusState.resource == resId)
+        draw_list->AddRect(resourceStart - ImVec2{FOCUS_BORDER_WIDTH, FOCUS_BORDER_WIDTH},
+          resourceEnd + ImVec2{FOCUS_BORDER_WIDTH, FOCUS_BORDER_WIDTH}, IM_COL32_WHITE, 2.f, 0, FOCUS_BORDER_WIDTH);
+
+      draw_list->AddRectFilled(resourceStart, resourceEnd, typeFillColor, 2.f);
+      draw_list->AddRectFilled(ImVec2{resourceStart.x, resourceStart.y + 0.75f * (resourceEnd.y - resourceStart.y)}, resourceEnd,
+        statusFillColor, 2.f);
+      draw_list->AddRectFilled(contentsStart, contentsEnd, RES_BASE_COLOR, 2.f);
+    }
   }
-
-  hoverMessage += "\nright click for more...";
 }
 
-void Visualizer::generatePopupMsg(ElementID id)
+void Visualizer::drawOrderings(ImDrawList *draw_list, const CanvasLayout &layout)
 {
-  if (eastl::holds_alternative<NodeId>(id))
-  {
-    // const NodeId nodeId = eastl::get<NodeId>(id);
-    // const auto &node = nodes[nodeId];
+  draw_list->ChannelsSetCurrent(CanvasChannels::ORDERINGS);
 
-    popupMessage = "Node Info:\n\n";
-  }
-  else if (eastl::holds_alternative<ResId>(id))
+  for (const auto [orderingId, rect] : layout.orderings.enumerate())
   {
-    // const ResId resId = eastl::get<ResId>(id);
-    // const auto &resource = resources[resId];
+    const auto &ordering = orderings[orderingId];
+    const auto [start, end] = rect;
 
-    popupMessage = "Resource Info:\n\n";
+    const bool highlight = focusState.nodeValid() && (focusState.node == ordering.from || focusState.node == ordering.to) ||
+                           ordering.from != NodeId::Invalid && hoverState.node == ordering.from ||
+                           ordering.to != NodeId::Invalid && hoverState.node == ordering.to;
+
+    ImColor color = ORDERING_BASE_COLOR;
+    if (!highlight)
+      color = apply_alpha_coeff(color, 0.1f);
+
+    draw_list->AddLine(start, end, color, ORDERING_WIDTH);
   }
 }
 
-void Visualizer::processInfoMsg()
+void Visualizer::drawUsages(ImDrawList *draw_list, const CanvasLayout &layout)
 {
-  if (ImGui::BeginPopup("element_info"))
+  draw_list->ChannelsSetCurrent(CanvasChannels::USAGES);
+
+  for (const auto [usageId, rect] : layout.usages.enumerate())
   {
-    ImGui::TextUnformatted(popupMessage);
-    ImGui::EndPopup();
+    const auto &usage = usages[usageId];
+    const auto [start, end] = rect;
+    const bool highlight = focusState.nodeValid() && focusState.node == usage.node ||
+                           focusState.resValid() && focusState.resource == usage.resource ||
+                           hoverState.node != NodeId::Invalid && hoverState.node == usage.node ||
+                           hoverState.resource != ResourceId::Invalid && hoverState.resource == usage.resource;
+
+    ImColor color = USAGE_BASE_COLOR;
+    if (!highlight)
+      color = apply_alpha_coeff(color, 0.1f);
+
+    draw_list->AddLine(start, end, color, USAGE_WIDTH);
+    draw_list->AddCircleFilled(start, 1.5f * USAGE_WIDTH, color);
+    draw_list->AddCircleFilled(end, 1.5f * USAGE_WIDTH, color);
   }
-  else if (!hoverMessage.empty())
-  {
-    ImGui::BeginTooltip();
-    ImGui::TextUnformatted(hoverMessage);
-    ImGui::EndTooltip();
-  }
+}
+
+
+void Visualizer::checkHovering(const CanvasLayout &layout)
+{
+  const ImVec2 mouseGridPosition = ImGui::GetIO().MousePos;
+
+  for (const auto [nodeId, rect] : layout.nodes.enumerate())
+    if (ImRect{rect.offset, rect.offset + rect.size}.Contains(mouseGridPosition))
+      hoverState.node = nodeId;
+
+  for (const auto [resId, rect] : layout.resources.enumerate())
+    if (ImRect{rect.offset, rect.offset + rect.size}.Contains(mouseGridPosition))
+      hoverState.resource = resId;
 }
 
 void Visualizer::processInput()
 {
-  GraphView &curGraphView = compactView ? focusedGraphView : wholeGraphView;
-
-  const bool canvasHovered = canvas.ViewRect().Contains(canvas.ToLocal(ImGui::GetIO().MousePos));
-  if (ImGui::IsWindowHovered() && canvasHovered)
+  if (hoverState.window && hoverState.canvas)
   {
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f))
     {
-      curGraphView.getOffset() += ImGui::GetIO().MouseDelta;
-      canvas.SetView(curGraphView.getOffset(), curGraphView.getZoom());
+      canvasCamera.canvasOffset += ImGui::GetIO().MouseDelta;
+      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
     }
-    if (abs(ImGui::GetIO().MouseWheel) > 0.1)
+    if (abs(ImGui::GetIO().MouseWheel) > 0.1 && !hoverState.searchBox)
     {
-      ImGui::GetIO().MouseWheel > 0 ? curGraphView.zoomIn() : curGraphView.zoomOut();
+      ImGui::GetIO().MouseWheel > 0 ? canvasCamera.zoomIn() : canvasCamera.zoomOut();
 
       ImVec2 oldPos = canvas.ToLocal(ImGui::GetIO().MousePos);
-      canvas.SetView(curGraphView.getOffset(), curGraphView.getZoom());
+      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
       ImVec2 newPos = canvas.ToLocal(ImGui::GetIO().MousePos);
 
-      curGraphView.getOffset() += canvas.FromLocalV(newPos - oldPos);
-      canvas.SetView(curGraphView.getOffset(), curGraphView.getZoom());
+      canvasCamera.canvasOffset += canvas.FromLocalV(newPos - oldPos);
+      canvas.SetView(canvasCamera.canvasOffset, canvasCamera.getZoom());
     }
+  }
+
+  if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+  {
+    if (hoverState.node != NodeId::Invalid)
+      focusState.set(hoverState.node);
+    else if (hoverState.resource != ResourceId::Invalid)
+      focusState.set(hoverState.resource);
+    else
+      focusState.reset();
+  }
+}
+
+void Visualizer::processPopup()
+{
+  if (ImGui::BeginPopup(RES_FRONTEND_POPUP))
+  {
+    static String label;
+
+    const auto resource = resources[popupResource];
+    const auto irResource = intermediateGraph.resources[resource.irIndex];
+    for (const auto resNameId : irResource.frontendResources)
+    {
+      label.printf(0, "%s", registry.knownNames.getName(resNameId));
+      if (ImGui::Selectable(label))
+      {
+        request_user_resource_focus(resNameId);
+        imgui_window_set_visible(IMGUI_WINDOW_GROUP_FG2, IMGUI_USG_WIN_NAME, true);
+      }
+    }
+
+    ImGui::EndPopup();
+  }
+
+  if (!hoverState.tooltip.empty() && !hoverState.searchBox)
+  {
+    ImGui::BeginTooltip();
+    ImGui::TextUnformatted(hoverState.tooltip);
+    ImGui::EndTooltip();
   }
 }
 
 
 void Visualizer::updateVisualization()
 {
-  clearData();
+  TIME_PROFILE(update_intermediate_visualization);
 
-  updateResourses();
+  updateNeeded = true;
+  focusState.reset();
+
+  if (!imgui_window_is_visible(nullptr, IMGUI_IRG_WIN_NAME) || imgui_window_is_collapsed(nullptr, IMGUI_IRG_WIN_NAME))
+    return;
+
   updateNodes();
-  updateEdges();
+  updateResourses();
+  updateConnections();
 
-  updateWholeGraphView();
-}
+  performLayout();
 
-
-void Visualizer::clearData()
-{
-  nodes.clear();
-  resources.clear();
-  edges.clear();
-  irNodeIndexToVisNodeId.clear();
-  irResIndexToVisResId.clear();
-
-  focusOnly = false;
-  compactView = false;
-  resetFocusElement();
-}
-
-void Visualizer::updateResourses()
-{
-  for (const auto [irResourceIndex, irResource] : intermediateGraph.resources.enumerate())
-    if (irResource.multiplexingIndex == 0)
-    {
-      auto [newResId, newResourse] = resources.appendNew();
-      irResIndexToVisResId.set(irResourceIndex, newResId);
-
-      newResourse.name = intermediateGraph.resourceNames[irResourceIndex].c_str();
-      newResourse.frontendResources = irResource.frontendResources;
-      newResourse.intermediateResource = irResourceIndex;
-      newResourse.multiplexingCount = 1;
-    }
+  updateNeeded = false;
 }
 
 void Visualizer::updateNodes()
 {
+  TIME_PROFILE(update_nodes);
+
+  const uint32_t irNodesCount = intermediateGraph.nodes.used();
+  const uint32_t irNodesRange = intermediateGraph.nodes.totalKeys();
+
+  nodes.clear();
+  irNodeRepresent.clear();
+
+  nodes.reserve(irNodesCount);
+  irNodeRepresent.resize(irNodesRange, NodeId::Invalid);
+
+
+  int currentPassNumber = -1;
+  PassColor previousPassColor = UNKNOWN_PASS_COLOR;
+  uint32_t curExecTime = 0;
+
   for (const auto [irNodeIndex, irNode] : intermediateGraph.nodes.enumerate())
-    if (irNode.multiplexingIndex == 0)
+    if (intermediateGraph.nodes.isMapped(irNodeIndex))
     {
       auto [newNodeId, newNode] = nodes.appendNew();
-      irNodeIndexToVisNodeId.set(irNodeIndex, newNodeId);
+      irNodeRepresent[irNodeIndex] = newNodeId;
+      newNode.irIndex = irNodeIndex;
+      newNode.executionTime = curExecTime;
 
-      newNode.name = intermediateGraph.nodeNames[irNodeIndex].c_str();
-      newNode.frontendNode = irNode.frontendNode;
-      newNode.intermediateNode = irNodeIndex;
-      newNode.multiplexingCount = 1;
-
-      for (const auto predIrNodeIndex : irNode.predecessors)
-      {
-        const NodeId predNodeId = irNodeIndexToVisNodeId[predIrNodeIndex];
-
-        newNode.previousNodes.push_back(predNodeId);
-        nodes[predNodeId].followingNodes.push_back(newNodeId);
-      }
-
-      for (const auto &request : irNode.resourceRequests)
-      {
-        const ResId curResId = irResIndexToVisResId[request.resource];
-        IntermediateResource &curRes = resources[curResId];
-
-        newNode.resourceUsages.push_back(curResId);
-        resources[curResId].requestedBy.push_back(newNodeId);
-
-        if (curRes.firstUsage != NodeId::INVALID)
-        {
-          curRes.firstUsage = newNodeId < curRes.firstUsage ? newNodeId : curRes.firstUsage;
-          curRes.lastUsage = newNodeId > curRes.lastUsage ? newNodeId : curRes.lastUsage;
-        }
-        else
-        {
-          curRes.firstUsage = newNodeId;
-          curRes.lastUsage = newNodeId;
-        }
-      }
-    }
-}
-
-void Visualizer::updateEdges()
-{
-  for (auto [nodeId, node] : nodes.enumerate())
-  {
-    for (const auto prevNodeId : node.previousNodes)
-    {
-      auto [newEdgeId, newEdge] = edges.appendNew();
-      newEdge.fromNode = prevNodeId;
-      newEdge.toNode = nodeId;
-    }
-
-    for (const auto resId : node.resourceUsages)
-    {
-      auto [newEdgeId, newEdge] = edges.appendNew();
-      newEdge.fromNode = nodeId;
-      newEdge.toRes = resId;
-    }
-  }
-}
-
-
-void Visualizer::updateWholeGraphView()
-{
-  generateAllElementsSet(wholeGraphView);
-
-  placeWithGeneralLayout(wholeGraphView);
-}
-
-void Visualizer::updateFocusGraphView()
-{
-  generateFocusedSet(focusedGraphView);
-
-  placeWithFocusedLayout(focusedGraphView);
-}
-
-void Visualizer::generateAllElementsSet(GraphView &graph_view)
-{
-  GraphSubset &subset = graph_view.elementsSet;
-
-  subset.reset();
-
-  subset.nodes.reserve(nodes.size());
-  subset.resources.reserve(resources.size());
-  subset.edges.reserve(edges.size());
-
-  for (auto nodeId : nodes.keys())
-    subset.nodes.insert(nodeId);
-
-  for (auto resId : resources.keys())
-    subset.resources.insert(resId);
-
-  for (auto edgeId : edges.keys())
-    subset.edges.insert(edgeId);
-}
-
-void Visualizer::generateFocusedSet(GraphView &graph_view)
-{
-  GraphSubset &subset = graph_view.elementsSet;
-
-  subset.reset();
-
-  // focused on node
-  if (eastl::holds_alternative<NodeId>(focusedElementId))
-  {
-    const NodeId focusedNodeId = eastl::get<NodeId>(focusedElementId);
-
-    subset.nodes.insert(focusedNodeId);
-
-    // picking corresponded elements
-    const IntermediateNode &node = nodes[focusedNodeId];
-
-    for (const auto nodeId : node.previousNodes)
-      subset.nodes.insert(nodeId);
-
-    for (const auto nodeId : node.followingNodes)
-      subset.nodes.insert(nodeId);
-
-    for (const auto resId : node.resourceUsages)
-      subset.resources.insert(resId);
-
-    for (auto [edgeId, edge] : edges.enumerate())
-      if (edge.fromNode == focusedNodeId || edge.toNode == focusedNodeId)
-        subset.edges.insert(edgeId);
-  }
-  // focused on resource
-  else if (eastl::holds_alternative<ResId>(focusedElementId))
-  {
-    const ResId focusedResourceId = eastl::get<ResId>(focusedElementId);
-
-    subset.resources.insert(focusedResourceId);
-
-    // picking corresponded elements
-    const IntermediateResource &res = resources[focusedResourceId];
-
-    for (const auto nodeId : res.requestedBy)
-      subset.nodes.insert(nodeId);
-
-    for (auto [edgeId, edge] : edges.enumerate())
-      if (edge.toRes == focusedResourceId)
-        subset.edges.insert(edgeId);
-  }
-}
-
-void Visualizer::placeWithGeneralLayout(GraphView &graph_view)
-{
-  const GraphSubset &subset = graph_view.elementsSet;
-  SetLayout &layout = graph_view.elementsLayout;
-
-  // placing nodes ...
-  {
-    uint32_t currentPassSize = 0;
-    uint32_t currentPassNumber = 0;
-    PassColor previousColor = PassColor{eastl::underlying_type_t<PassColor>(-1)};
-
-    for (const auto nodeId : subset.nodes)
-    {
-      // ... by passes
-      auto &node = nodes[nodeId];
-      const auto currentColor = passColoring[node.intermediateNode];
-
-      if (previousColor != currentColor)
+      if (previousPassColor != passColoring[irNodeIndex])
       {
         ++currentPassNumber;
-        currentPassSize = 0;
-        previousColor = currentColor;
+        previousPassColor = passColoring[irNodeIndex];
       }
+      newNode.renderPassNumber = currentPassNumber;
 
-      node.renderPassNumber = currentPassNumber - 1;
-
-      // ... on grid
-      layout.nodesGridCoords.set(nodeId, ImVec2(node.renderPassNumber * PASS_HOR_OFFSET, currentPassSize * NODE_VERT_OFFSET));
-
-      ++currentPassSize;
+      ++curExecTime;
     }
-  }
-
-  // placing resources ...
-  {
-    // ... by lines
-    placeResourcesByLines(graph_view);
-
-    // ... on grid
-    for (const auto resId : subset.resources)
-    {
-      const auto &resource = resources[resId];
-      const ImVec2 &firstNodePos = layout.nodesGridCoords[resource.firstUsage];
-      const ImVec2 &lastNodePos = layout.nodesGridCoords[resource.lastUsage];
-
-      layout.resGridBounds.set(resId, {{firstNodePos.x, RES_LINE_START + RES_LINE_OFFSET * resource.line},
-                                        {lastNodePos.x, RES_LINE_START + RES_LINE_OFFSET * resource.line}});
-    }
-  }
-
-  // placing edges
-  updateEdgesLayout(graph_view);
 }
 
-void Visualizer::placeResourcesByLines(GraphView &graph_view)
+void Visualizer::updateResourses()
 {
+  TIME_PROFILE(update_resources);
+
+  const uint32_t irResCount = intermediateGraph.resources.used();
+  const uint32_t irResRange = intermediateGraph.resources.totalKeys();
+
+  resources.clear();
+  irResRepresent.clear();
+
+  resources.reserve(irResCount);
+  irResRepresent.resize(irResRange, ResourceId::Invalid);
+
+
+  for (const auto [irResourceIndex, irResource] : intermediateGraph.resources.enumerate())
+    if (intermediateGraph.resources.isMapped(irResourceIndex))
+    {
+      auto [newResId, newResourse] = resources.appendNew();
+      irResRepresent[irResourceIndex] = newResId;
+      newResourse.irIndex = irResourceIndex;
+    }
+}
+
+void Visualizer::updateConnections()
+{
+  TIME_PROFILE(update_connections);
+
+  orderings.clear();
+  usages.clear();
+
+  for (auto [nodeId, node] : nodes.enumerate())
+  {
+    for (const auto prevIrNodeIndex : intermediateGraph.nodes[node.irIndex].predecessors)
+    {
+      const auto prevNodeId = irNodeRepresent[prevIrNodeIndex];
+      auto &prevNode = nodes[prevNodeId];
+
+      const auto newOrderingId = orderings.appendNew(Ordering{prevNodeId, nodeId}).first;
+
+      node.previous.push_back(newOrderingId);
+      prevNode.following.push_back(newOrderingId);
+    }
+
+    for (const auto &request : intermediateGraph.nodes[node.irIndex].resourceRequests)
+    {
+      const auto requestedResId = irResRepresent[request.resource];
+      auto &requestedRes = resources[requestedResId];
+
+      const auto newUsageId = usages.appendNew(Usage{nodeId, requestedResId, request}).first;
+
+      node.resourceUsages.push_back(newUsageId);
+      requestedRes.usages.push_back(newUsageId);
+    }
+  }
+
+  for (auto &node : nodes)
+  {
+    eastl::sort(node.previous.begin(), node.previous.end(), [&](const OrderingId a, const OrderingId b) {
+      return nodes[orderings[a].from].executionTime < nodes[orderings[b].from].executionTime;
+    });
+
+    eastl::sort(node.following.begin(), node.following.end(), [&](const OrderingId a, const OrderingId b) {
+      return nodes[orderings[a].to].executionTime < nodes[orderings[b].to].executionTime;
+    });
+  }
+
+  for (auto &resource : resources)
+  {
+    eastl::sort(resource.usages.begin(), resource.usages.end(),
+      [&](const UsageId a, const UsageId b) { return nodes[usages[a].node].executionTime < nodes[usages[b].node].executionTime; });
+
+    resource.firstUser = usages[resource.usages.front()].node;
+    resource.lastUser = usages[resource.usages.back()].node;
+  }
+}
+
+
+void Visualizer::performLayout()
+{
+  TIME_PROFILE(layout);
+
+  generalLayout = {};
+
+  placeNodesByPasses(generalLayout);
+  placeResourcesByLines(generalLayout);
+  placeOrderings(generalLayout);
+  placeUsages(generalLayout);
+}
+
+void Visualizer::placeNodesByPasses(CanvasLayout &layout)
+{
+  TIME_PROFILE(place_nodes);
+
+  const uint32_t nodesCount = nodes.size();
+  if (nodesCount == 0)
+    return;
+
+
+  layout.nodes.resize(nodesCount, {});
+
+  const auto &style = ImGui::GetStyle();
+  const float lineHeight = ImGui::GetFrameHeight();
+  for (auto [nodeId, node] : nodes.enumerate())
+  {
+    const auto &state = intermediateGraph.nodeStates[node.irIndex];
+
+    ImVec2 nameBlockSize = ImVec2{ImGui::CalcTextSize(intermediateGraph.nodeNames[node.irIndex].c_str()).x, 2.f * lineHeight} +
+                           2.f * NODE_BLOCK_BORDER_PADDING;
+
+    ImVec2 rpBlockSize = ImVec2{NODE_BLOCK_WIDTH, lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
+    if (state.pass)
+    {
+      const auto rp = *state.pass;
+      if (!rp.colorAttachments.empty())
+        rpBlockSize.y += (1 + rp.colorAttachments.size()) * lineHeight;
+
+      if (rp.depthAttachment)
+        rpBlockSize.y += 2.f * lineHeight;
+
+      if (rp.vrsRateAttachment)
+        rpBlockSize.y += 2.f * lineHeight;
+
+      if (!rp.resolves.empty())
+        rpBlockSize.y += (1 + rp.resolves.size()) * lineHeight;
+    }
+
+    ImVec2 ivbBlockSize = ImVec2{NODE_BLOCK_WIDTH, lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
+    {
+      bool hasIBuf = bool(state.indexSource);
+      bool hasVBuf = false;
+      for (const auto &vtxBuf : state.vertexSources)
+        hasVBuf |= bool(vtxBuf);
+
+      if (hasIBuf)
+        ivbBlockSize.y += 2.f * lineHeight;
+
+      if (hasVBuf)
+        ivbBlockSize.y += (1 + state.vertexSources.size()) * lineHeight;
+    }
+
+    ImVec2 bindBlockSize = ImVec2{NODE_BLOCK_WIDTH, (2 + state.bindings.size()) * lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+    ImVec2 overrideBlockSize = ImVec2{NODE_BLOCK_WIDTH, lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
+    if (state.shaderOverrides)
+      overrideBlockSize.y += ImGui::CalcTextSize(override_state_descr(*state.shaderOverrides)).y + 2.f * style.FramePadding.y;
+
+
+    ImVec2 vrsBlockSize = ImGui::CalcTextSize(NODE_VRS_MAX_LABEL) + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+    ImVec2 miscBlockSize = ImVec2{NODE_BLOCK_WIDTH, 3.f * lineHeight} + 2.f * NODE_BLOCK_BORDER_PADDING;
+
+
+    const float nodeContentsSizeX =
+      max(rpBlockSize.x, ivbBlockSize.x) + bindBlockSize.x + max(overrideBlockSize.x, max(vrsBlockSize.x, miscBlockSize.x));
+    const float nodeContentsSizeY = nameBlockSize.y + max(rpBlockSize.y + ivbBlockSize.y,
+                                                        max(bindBlockSize.y, overrideBlockSize.y + vrsBlockSize.y + miscBlockSize.y));
+
+    const float orderingsHeight = max(2.f * ORDERINGS_MARGIN + 3.f * ORDERING_WIDTH * node.previous.size(),
+      2.f * ORDERINGS_MARGIN + 3.f * ORDERING_WIDTH * node.following.size());
+
+    layout.nodes[nodeId].size =
+      ImVec2{
+        max(nodeContentsSizeX, NODE_MIN_X_SIZE),
+        max(max(nodeContentsSizeY, orderingsHeight), NODE_MIN_Y_SIZE),
+      } +
+      2.f * NODE_BORDER_PADDING;
+  }
+
+  const uint32_t passesCount = nodes.back().renderPassNumber + 1;
+  dag::Vector<float, framemem_allocator> passesWidths(passesCount, 0.f);
+  for (const auto &node : nodes)
+    passesWidths[node.renderPassNumber] += 2.f * USAGES_MARGIN + 3.f * USAGE_WIDTH * node.resourceUsages.size();
+  for (auto [nodeId, node] : nodes.enumerate())
+    passesWidths[node.renderPassNumber] = max(passesWidths[node.renderPassNumber], layout.nodes[nodeId].size.x);
+
+
+  float horOffset = 0.f;
+  float vertOffset = 0.f;
+  uint32_t currentPassNumber = nodes.front().renderPassNumber;
+  for (auto [nodeId, node] : nodes.enumerate())
+  {
+    if (node.renderPassNumber != currentPassNumber)
+    {
+      horOffset += passesWidths[currentPassNumber] + NODE_BETWEEN_PASS_MARGIN;
+      vertOffset = 0.f;
+      currentPassNumber = node.renderPassNumber;
+    }
+
+    const float nodeWidth = passesWidths[node.renderPassNumber];
+    const float nodeHeight = layout.nodes[nodeId].size.y;
+
+    {
+      const float betweenLines = 2.f * STATE_DELTA_BLOCK_BORDER_PADDING.y + STATE_DELTA_BLOCK_MARGIN;
+      float deltaBlocksHeight = 0.f;
+
+      const auto &stateDelta = stateDeltas[node.irIndex];
+
+      if (stateDelta.asyncPipelines)
+        deltaBlocksHeight += lineHeight + betweenLines;
+      if (stateDelta.wire)
+        deltaBlocksHeight += lineHeight + betweenLines;
+
+      if (stateDelta.vrs)
+        deltaBlocksHeight += lineHeight + ImGui::CalcTextSize(NODE_VRS_MAX_LABEL).y + betweenLines;
+
+      if (stateDelta.shaderOverrides)
+        deltaBlocksHeight += lineHeight +
+                             ImGui::CalcTextSize(override_state_descr(shaders::overrides::get(*stateDelta.shaderOverrides))).y +
+                             betweenLines;
+
+      if (stateDelta.indexSource)
+        deltaBlocksHeight += 2.f * lineHeight + betweenLines;
+
+      uint32_t vtxBufDeltas = 0;
+      for (const auto optBuf : stateDelta.vertexSources)
+        vtxBufDeltas += bool(optBuf) ? 1 : 0;
+      if (vtxBufDeltas > 0)
+        deltaBlocksHeight += lineHeight * (1 + vtxBufDeltas) + betweenLines;
+
+      if (!stateDelta.bindings.empty())
+        deltaBlocksHeight += lineHeight * (1 + stateDelta.bindings.size()) + betweenLines;
+
+      if (
+        stateDelta.shaderBlockLayers.objectLayer || stateDelta.shaderBlockLayers.frameLayer || stateDelta.shaderBlockLayers.sceneLayer)
+        deltaBlocksHeight += lineHeight + betweenLines;
+
+      if (vertOffset != 0.f)
+        vertOffset += deltaBlocksHeight + NODE_IN_PASS_MARGIN;
+      else
+        vertOffset += deltaBlocksHeight;
+    }
+
+    layout.nodes[nodeId] = Rectangle{ImVec2{horOffset, vertOffset}, ImVec2{nodeWidth, nodeHeight}};
+
+    vertOffset += nodeHeight;
+  }
+}
+
+void Visualizer::placeResourcesByLines(CanvasLayout &layout)
+{
+  TIME_PROFILE(place_resources);
+
+  const uint32_t resCount = resources.size();
+  if (resCount == 0)
+    return;
+
+
+  layout.resources.resize(resCount, {});
+
   /*
   we represent each resource as a segment on an integer line, where the ends are the first and last use
   (the location in memory is not taken into account yet, only in time)
@@ -692,229 +1659,139 @@ void Visualizer::placeResourcesByLines(GraphView &graph_view)
   so we get the layout of resources along lines without intersections and with the smallest number of lines
   */
 
-  FRAMEMEM_VALIDATE;
-
-  const GraphSubset &subset = graph_view.elementsSet;
-
-  struct Lifetime
+  IdIndexedMapping<ResourceId, uint32_t, framemem_allocator> resourcesLines(resCount);
   {
-    size_t startPass;
-    size_t endPass;
-    ResId resId;
-  };
+    struct Lifetime
+    {
+      uint32_t startPass;
+      uint32_t endPass;
+      ResourceId resId;
+    };
 
-  dag::Vector<Lifetime, framemem_allocator> times;
-  times.reserve(subset.resources.size());
-  for (const auto resId : subset.resources)
-  {
-    const auto resource = resources[resId];
-    const IntermediateNode &firstNode = nodes[resource.firstUsage];
-    const IntermediateNode &lastNode = nodes[resource.lastUsage];
+    dag::Vector<Lifetime, framemem_allocator> times;
+    times.reserve(resCount);
+    for (auto [resId, resource] : resources.enumerate())
+      times.push_back(Lifetime{nodes[resource.firstUser].renderPassNumber, nodes[resource.lastUser].renderPassNumber, resId});
 
-    times.push_back({firstNode.renderPassNumber, lastNode.renderPassNumber, resId});
+    eastl::sort(times.begin(), times.end(), [](const Lifetime &a, const Lifetime &b) {
+      return a.startPass == b.startPass ? a.endPass < b.endPass : a.startPass < b.startPass;
+    });
+
+    dag::Vector<uint32_t, framemem_allocator> lastTimeInLine;
+    for (const Lifetime &time : times)
+    {
+      uint32_t lineToPlace = 0;
+
+      while (lineToPlace < lastTimeInLine.size() && lastTimeInLine[lineToPlace] >= time.startPass)
+        ++lineToPlace;
+
+      if (lineToPlace >= lastTimeInLine.size())
+        lastTimeInLine.push_back(0);
+
+      resourcesLines[time.resId] = lineToPlace;
+      lastTimeInLine[lineToPlace] = time.endPass;
+    }
   }
 
-  eastl::sort(times.begin(), times.end(), [](const Lifetime &a, const Lifetime &b) {
-    return a.startPass == b.startPass ? a.endPass < b.endPass : a.startPass < b.startPass;
-  });
-
-  dag::Vector<uint32_t, framemem_allocator> lastTimeInLine;
-
-  for (const Lifetime &time : times)
+  for (auto [resId, resource] : resources.enumerate())
   {
-    size_t lineToPlace = 0;
+    const auto &firstNodeRect = layout.nodes[resource.firstUser];
+    const auto &lastNodeRect = layout.nodes[resource.lastUser];
 
-    while (lineToPlace < lastTimeInLine.size() && lastTimeInLine[lineToPlace] >= time.startPass)
-      ++lineToPlace;
+    const float leftBorder = firstNodeRect.offset.x;
+    const float rightBorder = lastNodeRect.offset.x + lastNodeRect.size.x;
+    const float bottomBorder = -(RES_LINE_OFFSET + resourcesLines[resId] * (RES_LINE_Y_SIZE + RES_LINE_MARGIN));
 
-    if (lineToPlace >= lastTimeInLine.size())
-      lastTimeInLine.push_back(0);
+    layout.resources[resId] =
+      Rectangle{ImVec2{leftBorder, bottomBorder - RES_LINE_Y_SIZE}, ImVec2{rightBorder - leftBorder, RES_LINE_Y_SIZE}};
+  }
 
-    resources[time.resId].line = lineToPlace;
-    lastTimeInLine[lineToPlace] = time.endPass;
+  for (auto &node : nodes)
+    eastl::sort(node.resourceUsages.begin(), node.resourceUsages.end(),
+      [&](const UsageId a, const UsageId b) { return resourcesLines[usages[a].resource] < resourcesLines[usages[b].resource]; });
+}
+
+void Visualizer::placeOrderings(CanvasLayout &layout)
+{
+  TIME_PROFILE(place_orderings);
+
+  const uint32_t orderingsCount = orderings.size();
+  if (orderingsCount == 0)
+    return;
+
+
+  layout.orderings.resize(orderingsCount, {});
+
+  for (auto [orderingId, ordering] : orderings.enumerate())
+  {
+    const auto &fromNode = nodes[ordering.from];
+    const auto &toNode = nodes[ordering.to];
+
+    const float startOrderingAreaHeight = 3.f * ORDERING_WIDTH * fromNode.following.size();
+    const float endOrderingAreaHeight = 3.f * ORDERING_WIDTH * toNode.previous.size();
+    const uint32_t startOrderingPosition =
+      eastl::find(fromNode.following.begin(), fromNode.following.end(), orderingId) - fromNode.following.begin();
+    const uint32_t endOrderingPosition =
+      eastl::find(toNode.previous.begin(), toNode.previous.end(), orderingId) - toNode.previous.begin();
+
+    const auto &fromNodeRect = layout.nodes[ordering.from];
+    const auto &toNodeRect = layout.nodes[ordering.to];
+
+    const ImVec2 fromNodeCenter = fromNodeRect.offset + ImVec2{fromNodeRect.size.x, fromNodeRect.size.y / 2.f};
+    const ImVec2 toNodeCenter = toNodeRect.offset + ImVec2{0.f, toNodeRect.size.y / 2.f};
+
+    const ImVec2 fromAnchor =
+      fromNodeCenter + ImVec2{0.f, -startOrderingAreaHeight / 2.f + (1.5f + 3.f * startOrderingPosition) * ORDERING_WIDTH};
+    const ImVec2 toAnchor =
+      toNodeCenter + ImVec2{0.f, -endOrderingAreaHeight / 2.f + (1.5f + 3.f * endOrderingPosition) * ORDERING_WIDTH};
+
+    layout.orderings[orderingId] = Rectangle{fromAnchor, toAnchor};
   }
 }
 
-void Visualizer::placeWithFocusedLayout(GraphView &graph_view)
+void Visualizer::placeUsages(CanvasLayout &layout)
 {
-  const GraphSubset &subset = graph_view.elementsSet;
-  SetLayout &layout = graph_view.elementsLayout;
+  TIME_PROFILE(place_usages);
 
-  layout.reset();
+  const uint32_t usagesCount = usages.size();
+  if (usagesCount == 0)
+    return;
 
-  // focused on node
-  if (eastl::holds_alternative<NodeId>(focusedElementId))
+
+  layout.usages.resize(usagesCount, {});
+
+  const uint32_t passesCount = nodes.back().renderPassNumber + 1;
+  dag::Vector<dag::Vector<NodeId, framemem_allocator>, framemem_allocator> nodesByPasses(passesCount);
+  for (auto [nodeId, node] : dag::ReverseView{nodes.enumerate()})
+    nodesByPasses[node.renderPassNumber].push_back(nodeId);
+
+
+  float horOffset = 0.f;
+  for (const auto &column : nodesByPasses)
   {
-    const NodeId focusedNodeId = eastl::get<NodeId>(focusedElementId);
-    const IntermediateNode &focusedNode = nodes[focusedNodeId];
+    horOffset = 0.f;
 
+    for (const auto nodeId : dag::ReverseView{column})
     {
-      const float prevGridMiddle = (NODE_VERT_OFFSET * (focusedNode.previousNodes.size() - 1) + 1) / 2;
-      const float follGridMiddle = (NODE_VERT_OFFSET * (focusedNode.followingNodes.size() - 1) + 1) / 2;
-      const float halfVerticalGridSpan = max(prevGridMiddle, follGridMiddle);
-      const float prevGridOffset = halfVerticalGridSpan - prevGridMiddle;
-      const float follGridOffset = halfVerticalGridSpan - follGridMiddle;
-
-      // placing nodes
-      for (size_t i = 0; i < focusedNode.previousNodes.size(); ++i)
-        layout.nodesGridCoords.set(focusedNode.previousNodes[i], ImVec2(0.0f, prevGridOffset + i * NODE_VERT_OFFSET));
-
-      layout.nodesGridCoords.set(focusedNodeId, ImVec2(PASS_HOR_OFFSET * 2, halfVerticalGridSpan - 0.5f));
-
-      for (size_t i = 0; i < focusedNode.followingNodes.size(); ++i)
-        layout.nodesGridCoords.set(focusedNode.followingNodes[i],
-          ImVec2(2 * PASS_HOR_OFFSET * 2, follGridOffset + i * NODE_VERT_OFFSET));
-
-      // placing resources
-      for (size_t i = 0; i < subset.resources.size(); ++i)
-        layout.resGridBounds.set(subset.resources[i],
-          {{0.0, RES_LINE_START + i * RES_LINE_OFFSET}, {2 * PASS_HOR_OFFSET * 2, RES_LINE_START + i * RES_LINE_OFFSET}});
-    }
-
-    // placing edges
-    updateEdgesLayout(graph_view);
-  }
-  // focused on resource
-  else if (eastl::holds_alternative<ResId>(focusedElementId))
-  {
-    const ResId focusedResourceId = eastl::get<ResId>(focusedElementId);
-    const IntermediateResource &focusedResource = resources[focusedResourceId];
-
-    {
-      const float horGridSpan = PASS_HOR_OFFSET * (focusedResource.requestedBy.size() - 1) + 1;
-
-      // placing resource
-      layout.resGridBounds.set(focusedResourceId, {{0.0, 0.0}, {horGridSpan, 0.0}});
-
-      // placing nodes
-      for (size_t i = 0; i < focusedResource.requestedBy.size(); ++i)
-        layout.nodesGridCoords.set(focusedResource.requestedBy[i], ImVec2(i * PASS_HOR_OFFSET, -RES_LINE_START));
-    }
-
-    // placing edges
-    updateEdgesLayout(graph_view);
-  }
-}
-
-void Visualizer::updateEdgesLayout(GraphView &graph_view)
-{
-  const GraphSubset &subset = graph_view.elementsSet;
-  SetLayout &layout = graph_view.elementsLayout;
-
-  for (const auto edgeId : subset.edges)
-  {
-    const IntermediateEdge &edge = edges[edgeId];
-
-    if (edge.toRes == ResId::INVALID)
-    {
-      const ImVec2 &fromNodePos = layout.nodesGridCoords[edge.fromNode];
-      const ImVec2 &toNodePos = layout.nodesGridCoords[edge.toNode];
-
-      layout.edgesFrTo.set(edgeId, {{fromNodePos.x + 1.0f, fromNodePos.y + 0.5f}, {toNodePos.x, toNodePos.y + 0.5f}});
-    }
-    else
-    {
-      const ImVec2 &fromNodePos = layout.nodesGridCoords[edge.fromNode];
-      const ImVec2 &toResPos = layout.resGridBounds[edge.toRes].first;
-
-      layout.edgesFrTo.set(edgeId, {{fromNodePos.x + 0.5f, fromNodePos.y}, {fromNodePos.x + 0.5f, toResPos.y + 1.0f}});
-    }
-  }
-}
-
-
-void Visualizer::updateVisibilityFlags()
-{
-  const bool anyFocus = !eastl::holds_alternative<eastl::monostate>(focusedElementId);
-
-  auto resetFocuses = [this, anyFocus](auto &array) {
-    for (auto &elem : array)
-    {
-      elem.focused = false;
-      elem.outOfFocus = anyFocus;
-      elem.isVisible = !focusOnly || !anyFocus;
-    }
-  };
-
-  resetFocuses(nodes);
-  resetFocuses(resources);
-  resetFocuses(edges);
-
-
-  if (eastl::holds_alternative<NodeId>(focusedElementId))
-  {
-    const NodeId focusedNodeId = eastl::get<NodeId>(focusedElementId);
-
-    for (const auto nodeId : nodes[focusedNodeId].previousNodes)
-    {
-      nodes[nodeId].outOfFocus = false;
-      nodes[nodeId].isVisible = true;
-    }
-    for (const auto nodeId : nodes[focusedNodeId].followingNodes)
-    {
-      nodes[nodeId].outOfFocus = false;
-      nodes[nodeId].isVisible = true;
-    }
-    for (const auto resId : nodes[focusedNodeId].resourceUsages)
-    {
-      resources[resId].outOfFocus = false;
-      resources[resId].isVisible = true;
-    }
-
-    nodes[focusedNodeId].focused = true;
-    nodes[focusedNodeId].outOfFocus = false;
-    nodes[focusedNodeId].isVisible = true;
-
-    for (auto &edge : edges)
-      if (edge.fromNode == focusedNodeId || edge.toNode == focusedNodeId)
+      horOffset += USAGES_MARGIN;
+      for (const auto usageId : nodes[nodeId].resourceUsages)
       {
-        edge.focused = true;
-        edge.outOfFocus = false;
-        edge.isVisible = true;
+        horOffset += 1.5f * USAGE_WIDTH;
+
+        const auto &usage = usages[usageId];
+        const auto &fromNodeRect = layout.nodes[usage.node];
+        const auto &toResourceRect = layout.resources[usage.resource];
+
+        const ImVec2 fromAnchor = fromNodeRect.offset + ImVec2{horOffset, 0.f};
+        const ImVec2 toAnchor = ImVec2{fromAnchor.x, toResourceRect.offset.y + toResourceRect.size.y};
+
+        layout.usages[usageId] = Rectangle{fromAnchor, toAnchor};
+
+        horOffset += 1.5f * USAGE_WIDTH;
       }
-  }
-
-  if (eastl::holds_alternative<ResId>(focusedElementId))
-  {
-    const ResId focusedResourceId = eastl::get<ResId>(focusedElementId);
-
-    for (const auto nodeId : resources[focusedResourceId].requestedBy)
-    {
-      nodes[nodeId].outOfFocus = false;
-      nodes[nodeId].isVisible = true;
+      horOffset += USAGES_MARGIN;
     }
-
-    resources[focusedResourceId].focused = true;
-    resources[focusedResourceId].outOfFocus = false;
-    resources[focusedResourceId].isVisible = true;
-
-    for (auto &edge : edges)
-      if (edge.toRes == focusedResourceId)
-      {
-        edge.focused = true;
-        edge.outOfFocus = false;
-        edge.isVisible = true;
-      }
   }
-}
-
-void Visualizer::resetFocusElement()
-{
-  focusedElementId = {};
-
-  updateVisibilityFlags();
-
-  updateFocusGraphView();
-}
-
-
-void Visualizer::setFocusElement(ElementID id)
-{
-  focusedElementId = id;
-
-  updateVisibilityFlags();
-
-  updateFocusGraphView();
 }
 
 } // namespace visualization::irgraph

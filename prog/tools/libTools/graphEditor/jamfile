@@ -7,7 +7,6 @@ Target      = tools/libTools/graphEditor.lib ;
 AddIncludes =
   $(Root)/prog/tools/sharedInclude
   $(Root)/prog/3rdPartyLibs/imgui-node-editor
-  $(Root)/prog/3rdPartyLibs/rapidjson/include
 ;
 
 Sources =

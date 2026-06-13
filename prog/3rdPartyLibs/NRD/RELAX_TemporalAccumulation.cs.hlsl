@@ -61,8 +61,8 @@ float loadSurfaceMotionBasedPrevData(
     , out float4 prevDiffuseIllumAnd2ndMoment
     , out float3 prevDiffuseResponsiveIllum
     #if( NRD_MODE == SH )
-        , out float4 prevDiffuseSH
-        , out float4 prevDiffuseResponsiveSH
+        , out RELAX_SH_TYPE prevDiffuseSH
+        , out RELAX_SH_TYPE prevDiffuseResponsiveSH
     #endif
 #endif
 #if( NRD_SPEC )
@@ -70,8 +70,8 @@ float loadSurfaceMotionBasedPrevData(
     , out float3 prevSpecularResponsiveIllum
     , out float  prevReflectionHitT
     #if( NRD_MODE == SH )
-        , out float4 prevSpecularSH
-        , out float4 prevSpecularResponsiveSH
+        , out RELAX_SH_TYPE prevSpecularSH
+        , out RELAX_SH_TYPE prevSpecularResponsiveSH
     #endif
 #endif
 )
@@ -194,12 +194,12 @@ float loadSurfaceMotionBasedPrevData(
     // Fitering previous SH data
 #if( NRD_MODE == SH )
     #if( NRD_DIFF )
-        prevDiffuseSH = BilinearWithCustomWeightsFloat4(gHistory_DiffSh, bilinearOrigin, bilinearCustomWeights);
-        prevDiffuseResponsiveSH = BilinearWithCustomWeightsFloat4(gHistory_DiffShFast, bilinearOrigin, bilinearCustomWeights);
+        prevDiffuseSH = BilinearWithCustomWeightsSH(gHistory_DiffSh, bilinearOrigin, bilinearCustomWeights);
+        prevDiffuseResponsiveSH = BilinearWithCustomWeightsSH(gHistory_DiffShFast, bilinearOrigin, bilinearCustomWeights);
     #endif
     #if( NRD_SPEC )
-        prevSpecularSH = BilinearWithCustomWeightsFloat4(gHistory_SpecSh, bilinearOrigin, bilinearCustomWeights);
-        prevSpecularResponsiveSH = BilinearWithCustomWeightsFloat4(gHistory_SpecShFast, bilinearOrigin, bilinearCustomWeights);
+        prevSpecularSH = BilinearWithCustomWeightsSH(gHistory_SpecSh, bilinearOrigin, bilinearCustomWeights);
+        prevSpecularResponsiveSH = BilinearWithCustomWeightsSH(gHistory_SpecShFast, bilinearOrigin, bilinearCustomWeights);
     #endif
 #endif
 
@@ -250,8 +250,8 @@ float loadVirtualMotionBasedPrevData(
     out float prevReflectionHitT,
     out float2 prevUVVMB
     #if( NRD_MODE == SH )
-        , out float4 prevSpecularSH
-        , out float4 prevSpecularResponsiveSH
+        , out RELAX_SH_TYPE prevSpecularSH
+        , out RELAX_SH_TYPE prevSpecularResponsiveSH
     #endif
     )
 {
@@ -332,8 +332,8 @@ float loadVirtualMotionBasedPrevData(
 
         // Fitering previous SH data
         #if( NRD_MODE == SH )
-            prevSpecularSH = BilinearWithCustomWeightsFloat4(gHistory_SpecSh, bilinearOrigin, bilinearCustomWeights);
-            prevSpecularResponsiveSH = BilinearWithCustomWeightsFloat4(gHistory_SpecShFast, bilinearOrigin, bilinearCustomWeights);
+            prevSpecularSH = BilinearWithCustomWeightsSH(gHistory_SpecSh, bilinearOrigin, bilinearCustomWeights);
+            prevSpecularResponsiveSH = BilinearWithCustomWeightsSH(gHistory_SpecShFast, bilinearOrigin, bilinearCustomWeights).xyz;
         #endif
 
         // Fitering previous data that does not need bicubic
@@ -382,7 +382,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Early out if linearZ is beyond denoising range
     float currentLinearZ = UnpackViewZ(gIn_ViewZ[WithRectOrigin(pixelPos)]);
-    if (currentLinearZ > gDenoisingRange)
+    if (!IsInDenoisingRange(currentLinearZ))
         return;
 
     int2 sharedMemoryIndex = threadPos.xy + int2(NRD_BORDER, NRD_BORDER);
@@ -422,14 +422,14 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 #if( NRD_DIFF )
     float3 diffuseIllumination = gIn_Diff[pixelPos].rgb;
     #if( NRD_MODE == SH )
-        float4 diffuseSH = gIn_DiffSh[pixelPos];
+        RELAX_SH_TYPE diffuseSH = gIn_DiffSh[pixelPos];
     #endif
 #endif
 
 #if( NRD_SPEC )
     float4 specularIllumination = gIn_Spec[pixelPos];
     #if( NRD_MODE == SH )
-        float4 specularSH = gIn_SpecSh[pixelPos];
+        RELAX_SH_TYPE specularSH = gIn_SpecSh[pixelPos];
     #endif
 #endif
 
@@ -501,8 +501,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float4 prevDiffuseIlluminationAnd2ndMomentSMB;
     float3 prevDiffuseIlluminationAnd2ndMomentSMBResponsive;
     #if( NRD_MODE == SH )
-        float4 prevDiffuseSH;
-        float4 prevDiffuseResponsiveSH;
+        RELAX_SH_TYPE prevDiffuseSH;
+        RELAX_SH_TYPE prevDiffuseResponsiveSH;
     #endif
 #endif
 
@@ -511,8 +511,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float3 prevSpecularIlluminationAnd2ndMomentSMBResponsive;
     float  prevReflectionHitTSMB;
     #if( NRD_MODE == SH )
-        float4 prevSpecularSMBSH;
-        float4 prevSpecularSMBResponsiveSH;
+        RELAX_SH_TYPE prevSpecularSMBSH;
+        RELAX_SH_TYPE prevSpecularSMBResponsiveSH;
     #endif
 #endif
 
@@ -623,10 +623,10 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     gOut_DiffFast[pixelPos] = float4(accumulatedDiffuseIlluminationResponsive, 0);
 
     #if( NRD_MODE == SH )
-        float4 accumulatedDiffuseSH = lerp(prevDiffuseSH, diffuseSH, diffuseAlpha);
-        float4 accumulatedDiffuseResponsiveSH = lerp(prevDiffuseResponsiveSH, diffuseSH, diffuseAlphaResponsive);
+        RELAX_SH_TYPE accumulatedDiffuseSH = lerp(prevDiffuseSH, diffuseSH, diffuseAlpha);
+        RELAX_SH_TYPE accumulatedDiffuseResponsiveSH = lerp(prevDiffuseResponsiveSH, diffuseSH, diffuseAlphaResponsive);
         gOut_DiffSh[pixelPos] = accumulatedDiffuseSH;
-        gOut_DiffShFast[pixelPos] = float4(accumulatedDiffuseResponsiveSH);
+        gOut_DiffShFast[pixelPos] = accumulatedDiffuseResponsiveSH;
     #endif
 #endif
 
@@ -713,7 +713,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             float2 geometryWeightParams = GetGeometryWeightParams( NRD_CURVATURE_HIGH_PARALLAX_DISOCCLUSION_THRESHOLD, frustumSize, currentWorldPos, currentNormal );
             float NoX = dot( currentNormal, xHigh );
 
-            float w = ComputeWeight( NoX, geometryWeightParams.x, geometryWeightParams.y );
+            float w = ApplyGeometryWeightLast( 1.0, zHigh, NoX, geometryWeightParams );
             bool cmp = w > 0.5;
 
             n = cmp ? nHigh : n;
@@ -745,8 +745,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float prevRoughnessVMB;
     float prevReflectionHitTVMB;
     #if( NRD_MODE == SH )
-        float4 prevSpecularVMBSH;
-        float4 prevSpecularVMBResponsiveSH;
+        RELAX_SH_TYPE prevSpecularVMBSH;
+        RELAX_SH_TYPE prevSpecularVMBResponsiveSH;
     #endif
 
     float VMBReprojectionFound = loadVirtualMotionBasedPrevData(
@@ -910,15 +910,15 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float accumulatedSpecular2ndMoment = lerp(accumulatedSpecularM2SMB, accumulatedSpecularM2VMB, virtualHistoryAmount);
 
     #if( NRD_MODE == SH )
-        float4 accumulatedSpecularSMBSH = lerp(prevSpecularSMBSH, specularSH, specSMBAlpha);
-        float4 accumulatedSpecularSMBResponsiveSH = lerp(prevSpecularSMBResponsiveSH, specularSH, specSMBResponsiveAlpha);
+        RELAX_SH_TYPE accumulatedSpecularSMBSH = lerp(prevSpecularSMBSH, specularSH, specSMBAlpha);
+        RELAX_SH_TYPE accumulatedSpecularSMBResponsiveSH = lerp(prevSpecularSMBResponsiveSH, specularSH, specSMBResponsiveAlpha);
 
-        float4 accumulatedSpecularVMBSH = lerp(prevSpecularVMBSH, specularSH, specVMBAlpha);
-        float4 accumulatedSpecularVMBResponsiveSH = lerp(prevSpecularVMBResponsiveSH, specularSH, specVMBResponsiveAlpha);
+        RELAX_SH_TYPE accumulatedSpecularVMBSH = lerp(prevSpecularVMBSH, specularSH, specVMBAlpha);
+        RELAX_SH_TYPE accumulatedSpecularVMBResponsiveSH = lerp(prevSpecularVMBResponsiveSH, specularSH, specVMBResponsiveAlpha);
 
-        float4 accumulatedSpecularSH = lerp(accumulatedSpecularSMBSH, accumulatedSpecularVMBSH, virtualHistoryAmount);
-        float4 accumulatedSpecularResponsiveSH = lerp(accumulatedSpecularSMBResponsiveSH, accumulatedSpecularVMBResponsiveSH, virtualHistoryAmount);
-        gOut_SpecSh[pixelPos] = float4(accumulatedSpecularSH.rgb, currentRoughnessModified);
+        RELAX_SH_TYPE accumulatedSpecularSH = lerp(accumulatedSpecularSMBSH, accumulatedSpecularVMBSH, virtualHistoryAmount);
+        RELAX_SH_TYPE accumulatedSpecularResponsiveSH = lerp(accumulatedSpecularSMBResponsiveSH, accumulatedSpecularVMBResponsiveSH, virtualHistoryAmount);
+        gOut_SpecSh[pixelPos] = accumulatedSpecularSH;
         gOut_SpecShFast[pixelPos] = accumulatedSpecularResponsiveSH;
     #endif
 

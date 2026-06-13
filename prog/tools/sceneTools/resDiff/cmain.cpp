@@ -14,7 +14,7 @@ extern bool game_resources_diff_strict_tex;
 static void print_header()
 {
   printf("GRP/DxP data diff v1.2\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 static bool ctrl_c_pressed = false;
 static void __cdecl ctrl_break_handler(int) { ctrl_c_pressed = true; }

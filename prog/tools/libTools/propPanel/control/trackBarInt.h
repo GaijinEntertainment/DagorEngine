@@ -77,6 +77,7 @@ public:
       const bool changed =
         ImGui::SliderInt("##s", &value, spinEdit.getMinValue(), spinEdit.getMaxValue(), "", ImGuiSliderFlags_NoInput);
       popTrackBarColorOverrides();
+      const bool sliderDeactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
 
       setPreviousImguiControlTooltip();
 
@@ -87,6 +88,9 @@ public:
 
         onWcChange(nullptr);
       }
+
+      if (sliderDeactivatedAfterEdit)
+        onWcChangeFinished(nullptr);
 
       ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
       ImGui::SetNextItemWidth(spinEditWidth);
@@ -106,7 +110,7 @@ public:
   }
 
 private:
-  void onImmediateFocusLoss() override { spinEdit.sendWcChangeIfVarChanged(*this); }
+  void onImmediateFocusLoss() override { spinEdit.sendWcChangeAndFinishIfVarChanged(*this); }
 
   String controlCaption;
   bool controlEnabled = true;

@@ -1847,11 +1847,11 @@ public:
     dag::ConstSpan<AcesRendInstEntityPool *> p = static_cast<AcesRendInstEntityManagementService *>(rigenSrv)->riPool.getPools();
     if (p[idx]->pregenId != pregen_id)
       return;
-    if (p[idx]->useRiExtra())
-      return p[idx]->assureRiExtraCreated(x0, z0, x1, z1);
     BBox2 box(x0, z0, x1, z1);
     if (!p[idx]->precalculatedBox.isempty() && !(p[idx]->precalculatedBox & box))
       return;
+    if (p[idx]->useRiExtra())
+      return p[idx]->assureRiExtraCreated(x0, z0, x1, z1);
     p[idx]->gatherRiTM(dest, dest_per_inst_data, add_per_inst_data, x0, z0, x1, z1);
   }
   static void exp_pregen_gather_tm_cb(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,

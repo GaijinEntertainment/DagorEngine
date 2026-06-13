@@ -22,7 +22,11 @@ public:
   void updateImgui();
 
   // Fire & forget api to queue and display toast messages.
-  void setToastMessage(ToastMessage message);
+  uint64_t setToastMessage(ToastMessage message);
+
+  const ToastMessage *getToastMessage(uint64_t id) const;
+
+  void removeToastMessage(uint64_t id);
 
   void updateImguiDebugPanel();
 

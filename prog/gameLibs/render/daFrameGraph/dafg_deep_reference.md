@@ -254,9 +254,9 @@ Bindings connect resources to shader variables or matrices:
 
 `requestRenderPass()` returns a builder for specifying:
 - `.color({...})` -- MRT color attachments (up to 8)
-- `.depthRw(attachment)` -- depth with write
-- `.depthRo(attachment)` -- depth read-only (deprecated)
-- `.depthRoAndBindToShaderVars(attachment, {shader_vars})` -- simultaneous depth test + sampling
+- `.depth(attachment)` -- normal RW depth target (no decompression, no Z-write override)
+- `.depthReadTestOnly(attachment)` -- depth test without write; no decompression, Z-write force-disabled for the node
+- `.depthReadTestAndSample(attachment, {shader_vars})` -- simultaneous depth test + sampling
 - `.resolve(from, to)` -- MSAA resolve
 - `.vrsRate(attachment)` -- variable rate shading texture
 

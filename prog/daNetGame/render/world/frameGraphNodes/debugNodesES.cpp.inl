@@ -59,7 +59,7 @@ DynamicShaderHelper static_shadow_debug_mesh_shader;
 
 static void setupTargetForDebug(dafg::Registry registry)
 {
-  registry.requestRenderPass().color({"target_for_debug"}).depthRo("depth_for_postfx");
+  registry.requestRenderPass().color({"target_for_debug"}).depthReadTestOnly("depth_for_postfx");
 }
 
 void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handles)
@@ -446,7 +446,7 @@ void makeDebugVisualizationNodes(eastl::vector<dafg::NodeHandle> &fg_node_handle
     auto cameraHndl = prevNs.readBlob<CameraParams>("current_camera").handle();
     registry.createTexture2d("wireframe_tex", {TEXFMT_R8 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
       .clear(make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
-    registry.requestRenderPass().color({"wireframe_tex"}).depthRo("depth_for_postfx");
+    registry.requestRenderPass().color({"wireframe_tex"}).depthReadTestOnly("depth_for_postfx");
     registry.requestState().setFrameBlock("global_frame");
 
     shaders::OverrideState state;

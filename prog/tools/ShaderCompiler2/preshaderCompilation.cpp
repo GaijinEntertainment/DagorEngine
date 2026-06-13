@@ -638,6 +638,24 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
   if (vctx.tgtCtx().blocks().countBlock(ShaderBlockLevel::GLOBAL_CONST) > 0)
     CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_GLOBAL_CONST_CBUF, GLOBAL_CONST_BUF_REGISTER, ctx));
 
+  if (!vctx.tgtCtx().refinedBlockLayout().empty())
+  {
+    outNcTable.mRefinedBlockLayout = &vctx.tgtCtx().refinedBlockLayout();
+    CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_REFINED_BLOCK_CBUF, REFINED_BLOCK_CONST_BUF_REGISTER, ctx));
+    auto &rbAlloc = vctx.tgtCtx().compCtx().rbAllocator();
+    for (auto space : {HLSL_RSPACE_T})
+    {
+      auto vsResult = outNcTable.vertexRegAllocators[space].reserveAllFrom(rbAlloc.vsAllocator(space));
+      auto psOrCsResult = outNcTable.pixelOrComputeRegAllocators[space].reserveAllFrom(rbAlloc.psOrCsAllocator(space));
+      if (!vsResult || !psOrCsResult)
+      {
+        sh_debug(SHLOG_ERROR, "refined_block: %d-space conflict -- refined block slots overlap with other register allocations",
+          eastl::to_underlying(space));
+        return eastl::nullopt;
+      }
+    }
+  }
+
   // Finally, reservations are completed, and we process automatic preshaders decls for dynamic resources
   // @TODO: use the fact that we know these to be dynamic and don't recalculate
   for (auto &s : input.dynamicResourceStats)

@@ -223,7 +223,7 @@ public:
     shvars::zn_zfar.set_float4(zn, zf, 0, 0);
     static ShaderVariableInfo light_probe_pos("light_probe_pos", true);
     light_probe_pos.set_float4(pos.x, pos.y, pos.z, 1);
-    for (int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
       target->setRt();
       TMatrix4 projTm;
@@ -239,14 +239,13 @@ public:
 
       target->resolve(shadedTarget.getTex2D(), viewTm, projTm);
 
-      d3d::set_render_target(shadedTarget.getTex2D(), 0); // because of cube depth
-      d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+      d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, {{shadedTarget.getTex2D(), 0, 0}});
 
       // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
       cb.renderLightProbeEnvi();
       // save_rt_image_as_tga(shadedTarget.getTex2D(), String(128, "cube%s.tga", i));
 
-      d3d::set_render_target(cubeTarget->getCubeTex(), i, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0, i}});
       d3d::settex(2, shadedTarget.getTex2D());
       d3d::set_sampler(STAGE_PS, 2, d3d::request_sampler({}));
       copy.render();
@@ -1361,7 +1360,7 @@ public:
             dafg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
           .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
+      registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depth(depth_tex_name);
     });
 
     result.deferredShading = dafg::register_node("deferred_shading", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
@@ -1508,7 +1507,7 @@ public:
 
 
       auto depthReq = registry.read("depth_for_transparent").texture();
-      registry.requestRenderPass().color({"color_for_transparent"}).depthRo(depthReq);
+      registry.requestRenderPass().color({"color_for_transparent"}).depthReadTestAndSample(depthReq, {});
       auto depthHndl =
         eastl::move(depthReq).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
 
@@ -1826,7 +1825,7 @@ public:
         registry.createTexture2d(refl_gbuf_names[i], dafg::Texture2dCreateInfo{gbuf_fmts[i] | TEXCF_RTARGET, resolution})
           .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-      registry.requestRenderPass().color({refl_gbuf_names[0], refl_gbuf_names[1], refl_gbuf_names[2]}).depthRw("depth_gbuf_refl");
+      registry.requestRenderPass().color({refl_gbuf_names[0], refl_gbuf_names[1], refl_gbuf_names[2]}).depth("depth_gbuf_refl");
     });
 
     result.waterReflResolve = reflNs.registerNode("water_reflections_resolve", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
@@ -1874,7 +1873,7 @@ public:
       auto reflSkiesDataHndl = registry.read("refl_cam_skies_data").blob<SkiesData *>().handle();
 
       auto depthReq = registry.read("depth_gbuf_refl").texture();
-      registry.requestRenderPass().color({"water_reflection_tex_temp"}).depthRo(depthReq);
+      registry.requestRenderPass().color({"water_reflection_tex_temp"}).depthReadTestAndSample(depthReq, {});
       auto depthHndl =
         eastl::move(depthReq).atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT_AND_SHADER_RESOURCE).handle();
       return [this, camHndl, depthHndl, reflSkiesDataHndl]() {
@@ -1948,7 +1947,7 @@ public:
         .bindToShaderVar("water_reflection_tex_samplerstate");
 
       registry.setPriority(-100);
-      registry.requestRenderPass().color({"color_for_transparent"}).depthRw("depth_for_transparent");
+      registry.requestRenderPass().color({"color_for_transparent"}).depth("depth_for_transparent");
 
       registry.requestState().allowWireframe();
 
@@ -2021,13 +2020,13 @@ public:
   static auto render_to_gbuffer(dafg::Registry registry)
   {
     registry.requestState().allowWireframe();
-    registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depthRw(depth_tex_name);
+    registry.requestRenderPass().color({gbuf_tex_names[0], gbuf_tex_names[1], gbuf_tex_names[2]}).depth(depth_tex_name);
     return bind_camera(registry, "main_camera").handle();
   }
 
   static auto render_to_refl_gbuffer(dafg::Registry registry)
   {
-    registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depthRw("depth_gbuf_refl");
+    registry.requestRenderPass().color({"albedo_gbuf_refl", "normal_gbuf_refl", "material_gbuf_refl"}).depth("depth_gbuf_refl");
     return bind_camera(registry, "refl_camera").handle();
   }
 
@@ -2080,7 +2079,7 @@ public:
     }));
 
     result.transparentRendering.emplace_back(dafg::register_node("render_trans", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
-      registry.requestRenderPass().color({"color_for_transparent"}).depthRo("depth_for_transparent");
+      registry.requestRenderPass().color({"color_for_transparent"}).depthReadTestOnly("depth_for_transparent");
 
       // Pretend that we are actually rendering particles here
       registry.read("cloud_volume").texture().atStage(dafg::Stage::PS_OR_CS).bindToShaderVar();
@@ -2155,9 +2154,9 @@ public:
     if (first)
     {
       SCOPE_RENDER_TARGET;
-      for (int i = 0; i < 6; ++i)
+      for (uint32_t i = 0; i < 6; ++i)
       {
-        d3d::set_render_target(light_probe::getManagedTex(enviProbe.get())->getCubeTex(), i, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{light_probe::getManagedTex(enviProbe.get())->getCubeTex(), 0, i}});
         d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       }
       for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)

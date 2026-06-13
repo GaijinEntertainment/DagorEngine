@@ -29,16 +29,13 @@
 #include <d3d9types.h>
 #include <ihardwarematerial.h>
 
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
-
 //////////////////////////////////////////////////////////////////////////////////
 
 #define TX_MODULATE   0
 #define TX_ALPHABLEND 1
 #define BMIDATA(x)    ((UBYTE *)((BYTE *)(x) + sizeof(BITMAPINFOHEADER)))
 
-static const TSTR DEFAULT_SHADER_NAME(_T("gi_black"));
+static const std::wstring DEFAULT_SHADER_NAME(_T("gi_black"));
 static const TSTR DAGOR_SHADERS_CONFIG(_T("dagorShaders.blk"));
 static const TCHAR *REAL_TWO_SIDED(_T("real_two_sided"));
 
@@ -531,7 +528,7 @@ class Dagormat2Dialog;
 class NewParameterDialog
 {
 public:
-  NewParameterDialog(Dagormat2Dialog *p, M_STD_STRING &shdr);
+  NewParameterDialog(Dagormat2Dialog *p, std::wstring &shdr);
   virtual ~NewParameterDialog();
 
   const std::vector<std::wstring> &GetNewParamNames() const { return selected_names; }
@@ -545,7 +542,7 @@ private:
 
   HWND hWnd;
   Dagormat2Dialog *parent;
-  M_STD_STRING shader;
+  std::wstring shader;
   std::vector<std::wstring> selected_names;
 };
 
@@ -611,7 +608,7 @@ public:
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING &v);
+  void SetValue(const std::wstring &v);
 
   ICustEdit *edit;
 };
@@ -628,7 +625,7 @@ public:
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING &v);
+  void SetValue(const std::wstring &v);
 
   IColorSwatch *col;
 };
@@ -645,7 +642,7 @@ public:
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING &v);
+  void SetValue(const std::wstring &v);
 };
 
 class WidgetNumeric : public AbstractWidget
@@ -666,7 +663,7 @@ public:
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING &v);
+  void SetValue(const std::wstring &v);
   void UpdateColorSwatch(float f[4]);
 
   bool is_float;
@@ -725,14 +722,14 @@ public:
 
   void FillSlotNames();
 
-  M_STD_STRING GetShaderName();
+  std::wstring GetShaderName();
   void UpdateShaderNameWidget();
   void ChangeShaderName();
   void Update2SidedWidget();
   void AddParam(ParamInfo param);
-  AbstractWidget *GetParam(const M_STD_STRING &name);
-  void RemParam(const M_STD_STRING &name);
-  void RemParamGroup(const M_STD_STRING &group_name);
+  AbstractWidget *GetParam(const std::wstring &name);
+  void RemParam(const std::wstring &name);
+  void RemParamGroup(const std::wstring &group_name);
   void MarkUnknownParams(const DataBlock *dataBlk);
   std::vector<RECT> GetParamGroupRectangles() const;
 
@@ -791,7 +788,7 @@ public:
   float power;
   Color cola, cold, cols, cole;
   Sides twosided;
-  TSTR classname, script;
+  std::wstring classname, script;
   DagorMat2PostLoadCallback postLoadCallback;
   static ToolTipExtender tooltip;
 
@@ -1170,7 +1167,7 @@ static INT_PTR CALLBACK ParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM 
     case WM_COMMAND:
       if (wParam == MAKEWPARAM(IDC_PARAM_NEW, BN_CLICKED))
       {
-        M_STD_STRING shader = dlg->GetShaderName();
+        std::wstring shader = dlg->GetShaderName();
         NewParameterDialog new_par(dlg, shader);
         if (new_par.DoModal() == IDOK)
         {
@@ -1403,7 +1400,7 @@ void Dagormat2Dialog::MarkUnknownParams(const DataBlock *dataBlk)
   if (!dataBlk)
     return;
 
-  M_STD_STRING shader_name = GetShaderName();
+  std::wstring shader_name = GetShaderName();
   if (shader_name.empty())
     return;
 
@@ -1561,7 +1558,7 @@ void Dagormat2Dialog::RestoreParams()
   parameters.clear();
   DagorMat2::tooltip.RemoveToolTips();
 
-  M_STD_STRING shader_name = theMtl->classname.data();
+  std::wstring shader_name = theMtl->classname.data();
   if (shader_name.empty())
     return;
 
@@ -1573,7 +1570,7 @@ void Dagormat2Dialog::RestoreParams()
 
   // collect user-specified params
   std::vector<ParamInfo> user_params;
-  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+  std::wstring script = simplifyRN(std::wstring(theMtl->script));
   std::vector<std::wstring> lines = split(script, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
@@ -1671,7 +1668,7 @@ void Dagormat2Dialog::RestoreParams()
 
 void Dagormat2Dialog::SaveParams()
 {
-  M_STD_STRING buffer;
+  std::wstring buffer;
 
   for (size_t i = 0; i < parameters.size(); ++i)
   {
@@ -1704,9 +1701,9 @@ int Dagormat2Dialog::FindSubTexFromHWND(HWND hw)
   return -1;
 }
 
-M_STD_STRING Dagormat2Dialog::GetShaderName()
+std::wstring Dagormat2Dialog::GetShaderName()
 {
-  M_STD_STRING name;
+  std::wstring name;
   HWND hwnd = GetDlgItem(hShader, IDC_CLASSNAME);
   long length = GetWindowTextLength(hwnd);
   if (length > 0)
@@ -1726,7 +1723,7 @@ void Dagormat2Dialog::UpdateShaderNameWidget()
 
 void Dagormat2Dialog::ChangeShaderName()
 {
-  M_STD_STRING str = GetShaderName();
+  std::wstring str = GetShaderName();
   theMtl->classname = str.c_str();
   UpdateShaderNameWidget();
   theMtl->NotifyChanged();
@@ -1775,7 +1772,7 @@ void Dagormat2Dialog::AddParam(ParamInfo param)
   parameters.emplace_back(std::unique_ptr<AbstractWidget>(par));
 }
 
-AbstractWidget *Dagormat2Dialog::GetParam(const M_STD_STRING &name)
+AbstractWidget *Dagormat2Dialog::GetParam(const std::wstring &name)
 {
   for (auto &p : parameters)
     if (iequal(p->param.name, name))
@@ -1783,9 +1780,9 @@ AbstractWidget *Dagormat2Dialog::GetParam(const M_STD_STRING &name)
   return nullptr;
 }
 
-void Dagormat2Dialog::RemParam(const M_STD_STRING &name)
+void Dagormat2Dialog::RemParam(const std::wstring &name)
 {
-  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+  std::wstring script = simplifyRN(std::wstring(theMtl->script));
 
   // cut the script into lines
   std::vector<std::wstring> lines = split(script, L'\n');
@@ -1819,9 +1816,9 @@ void Dagormat2Dialog::RemParam(const M_STD_STRING &name)
   RestoreParams();
 }
 
-void Dagormat2Dialog::RemParamGroup(const M_STD_STRING &group_name)
+void Dagormat2Dialog::RemParamGroup(const std::wstring &group_name)
 {
-  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+  std::wstring script = simplifyRN(std::wstring(theMtl->script));
 
   // cut the script into lines
   std::vector<std::wstring> lines = split(script, L'\n');
@@ -2145,7 +2142,10 @@ void DagorMat2::ActivateTexDisplay(BOOL onoff)
 }
 
 
-bool DagorMat2::hasAlpha() { return _tcsstr(script, _T("atest" )) || _tcsstr(classname, _T("alpha")); }
+bool DagorMat2::hasAlpha()
+{
+  return (script.find(L"atest") != std::wstring::npos) || (classname.find(L"alpha") != std::wstring::npos);
+}
 
 
 void DagorMat2::updateViewportTexturesState()
@@ -2432,7 +2432,7 @@ RefTargetHandle DagorMat2::Clone(RemapDir &remap)
   mtl->ReplaceReference(PB_REF, remap.CloneRef(pblock));
   mtl->ReplaceReference(TEX_REF, remap.CloneRef(texmaps));
   mtl->twosided = twosided;
-  mtl->classname = (!classname.isNull() ? classname : DEFAULT_SHADER_NAME);
+  mtl->classname = (!classname.empty() ? classname : DEFAULT_SHADER_NAME);
   mtl->script = script;
 #if MAX_RELEASE >= 4000
   BaseClone(this, mtl, remap);
@@ -2511,12 +2511,12 @@ IOResult DagorMat2::Save(ISave *isave)
     isave->EndChunk();
   }
   isave->BeginChunk(CH_CLASSNAME);
-  res = isave->WriteCString(classname);
+  res = isave->WriteCString(classname.data());
   if (res != IO_OK)
     return res;
   isave->EndChunk();
   isave->BeginChunk(CH_SCRIPT);
-  res = isave->WriteCString(script);
+  res = isave->WriteCString(script.data());
   if (res != IO_OK)
     return res;
   isave->EndChunk();
@@ -2668,9 +2668,9 @@ float DagorMat2::get_power()
 
 IDagorMat::Sides DagorMat2::get_2sided() { return twosided; }
 
-const TCHAR *DagorMat2::get_classname() { return classname; }
+const TCHAR *DagorMat2::get_classname() { return classname.data(); }
 
-const TCHAR *DagorMat2::get_script() { return script; }
+const TCHAR *DagorMat2::get_script() { return script.data(); }
 
 const TCHAR *DagorMat2::get_texname(int i)
 {
@@ -2698,7 +2698,7 @@ void DagorMat2::enumerate_textures(EnumTexCB &cb)
 
 void DagorMat2::enumerate_parameters(EnumParamCB &cb)
 {
-  M_STD_STRING shader_name = classname.data();
+  std::wstring shader_name = classname.data();
   if (shader_name.empty())
     return;
 
@@ -2710,7 +2710,7 @@ void DagorMat2::enumerate_parameters(EnumParamCB &cb)
 
   // collect user-specified params
   std::vector<ParamInfo> user_params;
-  M_STD_STRING s = simplifyRN(M_STD_STRING(script));
+  std::wstring s = simplifyRN(std::wstring(script));
   std::vector<std::wstring> lines = split(s, L'\n');
   for (std::wstring &line : lines)
     if (!line.empty())
@@ -2834,7 +2834,7 @@ void DagorMat2::set_2sided(Sides b)
 
 void DagorMat2::set_classname(const TCHAR *s)
 {
-  if (s)
+  if (s && *s)
     classname = s;
   else
     classname = DEFAULT_SHADER_NAME;
@@ -2865,10 +2865,8 @@ void DagorMat2::set_texname(int i, const TCHAR *s)
     bm = NewDefaultBitmapTex();
     assert(bm);
 
-    M_STD_STRING path = strToWide(dagor_path);
-    path += M_STD_STRING(s);
-
-    bm->SetMapName((TCHAR *)path.c_str());
+    std::wstring path = dagor_path + s;
+    bm->SetMapName(path.c_str());
   }
   texmaps->settex(i, bm);
 }
@@ -2894,7 +2892,7 @@ static INT_PTR CALLBACK NewParameterDialogProc(HWND hWnd, UINT msg, WPARAM wPara
   return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, M_STD_STRING &shdr) : parent(p), hWnd(NULL), shader(shdr) {}
+NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, std::wstring &shdr) : parent(p), hWnd(NULL), shader(shdr) {}
 
 NewParameterDialog::~NewParameterDialog() {}
 
@@ -2903,7 +2901,7 @@ int NewParameterDialog::DoModal()
   return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, parent->hParam, NewParameterDialogProc, (LPARAM)this);
 }
 
-static bool is_parameter_name_valid(const M_STD_STRING &name)
+static bool is_parameter_name_valid(const std::wstring &name)
 {
   return std::all_of(name.begin(), name.end(),
     [](wchar_t c) { return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || (c == '_'); });
@@ -3266,7 +3264,7 @@ void WidgetText::GetValue()
   parent->SaveParams();
 }
 
-void WidgetText::SetValue(const M_STD_STRING &v)
+void WidgetText::SetValue(const std::wstring &v)
 {
   edit->SetText(v.c_str());
   param.value = v;
@@ -3330,7 +3328,7 @@ void WidgetColor::GetValue()
   parent->SaveParams();
 }
 
-void WidgetColor::SetValue(const M_STD_STRING &v)
+void WidgetColor::SetValue(const std::wstring &v)
 {
   float r = 0, g = 0, b = 0, a = 0;
   int res = _stscanf(v.c_str(), _T(" %f , %f , %f , %f"), &r, &g, &b, &a);
@@ -3382,7 +3380,7 @@ void WidgetBool::GetValue()
   parent->SaveParams();
 }
 
-void WidgetBool::SetValue(const M_STD_STRING &v)
+void WidgetBool::SetValue(const std::wstring &v)
 {
   CheckDlgButton(hPanel, IDC_PAR_BOOL_VALUE, iequal(v, L"yes") || iequal(v, L"true"));
   param.value = v;
@@ -3594,7 +3592,7 @@ INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 void WidgetNumeric::GetValue()
 {
   float f[4] = {};
-  M_STD_OSTRINGSTREAM str;
+  std::wostringstream str;
   str.imbue(std::locale::classic());
   for (int i = 0; i < size; ++i)
   {
@@ -3612,10 +3610,10 @@ void WidgetNumeric::GetValue()
     UpdateColorSwatch(f);
 }
 
-void WidgetNumeric::SetValue(const M_STD_STRING &v)
+void WidgetNumeric::SetValue(const std::wstring &v)
 {
   float f[4] = {};
-  M_STD_ISTRINGSTREAM str(v);
+  std::wistringstream str(v);
   str.imbue(std::locale::classic());
   for (int i = 0; i < size; ++i)
   {

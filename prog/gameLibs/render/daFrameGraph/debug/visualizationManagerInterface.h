@@ -9,6 +9,7 @@
 
 #include <backend/intermediateRepresentation.h>
 #include <backend/passColoring.h>
+#include <backend/nodeStateDeltas.h>
 
 
 namespace dafg::visualization
@@ -22,7 +23,7 @@ class IVisualizationManager
 {
 public:
   virtual ~IVisualizationManager() {}
-  virtual void updateUserGraphVisualization() {}
+  virtual void updateUserGraphVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &) {}
   virtual void updateIRGraphVisualization() {}
   virtual void updateResourceVisualization() {}
   virtual void updateTextureVisualization() {}
@@ -35,7 +36,8 @@ public:
 
 inline eastl::unique_ptr<IVisualizationManager> make_dummy_manager() { return eastl::make_unique<IVisualizationManager>(); }
 
-eastl::unique_ptr<IVisualizationManager> make_real_manager(InternalRegistry &intRegistry, const NameResolver &nameResolver,
-  const DependencyData &depData, const intermediate::Graph &irGraph, const PassColoring &coloring);
+eastl::unique_ptr<IVisualizationManager> make_real_manager(InternalRegistry &int_registry, const NameResolver &name_resolver,
+  const DependencyData &dep_data, const intermediate::Graph &ir_graph, const PassColoring &coloring,
+  const sd::NodeStateDeltas &state_deltas);
 
 } // namespace dafg::visualization

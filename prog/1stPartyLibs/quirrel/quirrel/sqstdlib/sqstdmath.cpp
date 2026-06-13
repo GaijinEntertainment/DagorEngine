@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <squirrel/sqvm.h>
 #include <squirrel/sqstate.h>
-#include <chrono>
 #include "sqstdhash.h"
 
 #define SINGLE_ARG_FUNC(_funcname) static SQInteger math_##_funcname(HSQUIRRELVM v){ \
@@ -29,9 +28,7 @@
 
 
 static void math_randomize_seed(HSQUIRRELVM v) {
-    SQUnsignedInteger32 s = SQUnsignedInteger32(size_t(v->_sharedstate)) * 123 + SQUnsignedInteger32(size_t(&v));
-    s ^= SQUnsignedInteger32(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    v->_sharedstate->rand_seed += s ^ (s >> 10);
+    v->_sharedstate->rand_seed += sq_generate_seed();
 }
 
 static SQInteger math_srand(HSQUIRRELVM v)
@@ -60,8 +57,13 @@ static SQInteger math_abs(HSQUIRRELVM v)
     sq_getstackobj(v, 2, &arg);
     if (sq_type(arg) == OT_FLOAT)
         sq_pushfloat(v, fabs(_float(arg)));
-    else
+    else {
+#ifdef _SQ64
+        sq_pushinteger(v, llabs(_integer(arg)));
+#else
         sq_pushinteger(v, abs(_integer(arg)));
+#endif
+    }
     return 1;
 }
 

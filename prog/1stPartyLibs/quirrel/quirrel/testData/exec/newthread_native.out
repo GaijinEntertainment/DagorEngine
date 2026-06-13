@@ -1,0 +1,3 @@
+calling newthread(print)...
+error: newthread expects a non-native closure
+SURVIVED (no crash)

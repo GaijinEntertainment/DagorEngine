@@ -232,6 +232,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_is_blocking)>(*this, lib, "tilecache_is_blocking",
       das::SideEffects::accessExternal, "::pathfinder::tilecache_is_blocking");
+    das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_get_obstacle_handle)>(*this, lib, "tilecache_get_obstacle_handle",
+      das::SideEffects::accessExternal, "::pathfinder::tilecache_get_obstacle_handle");
     das::addExtern<DAS_BIND_FUN(pathfinder::tilecache_is_working)>(*this, lib, "tilecache_is_working",
       das::SideEffects::accessExternal, "::pathfinder::tilecache_is_working");
 

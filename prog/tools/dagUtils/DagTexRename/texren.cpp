@@ -23,7 +23,7 @@ static void analyze_mat(MaterialData *m, Tab<String> &tex_list);
 int _cdecl main(int argc, char **argv)
 {
   printf("DAG texture rename\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
 
   if (argc < 3)
   {

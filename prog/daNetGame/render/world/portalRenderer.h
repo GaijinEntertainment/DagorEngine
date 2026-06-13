@@ -230,7 +230,7 @@ private:
 
   BakingData bakingData;
 
-  SharedTexHolder shatteredGlassMaskTex;
+  SharedTexWithShaderVar shatteredGlassMaskTex;
 
   int skipFrameCount = 0;
 };

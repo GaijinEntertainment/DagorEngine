@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <dasModules/aotAnimchar.h>
+#include <dasModules/aotDasAnimBlendNode.h>
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/dasMacro.h>
 #include <dasModules/dasDataBlock.h>
@@ -13,7 +14,7 @@ DAS_BASE_BIND_ENUM_98(AnimcharVisbits, AnimcharVisbits, VISFLG_WITHIN_RANGE, VIS
   VISFLG_DYNAMIC_MIRROR, VISFLG_RENDER_CUSTOM, VISFLG_SEMI_TRANS_RENDERED, VISFLG_CSM_SHADOW_RENDERED, VISFLG_MAIN_CAMERA_RENDERED,
   VISFLG_SHADOW_CASCADE_0_VISIBLE, VISFLG_SHADOW_CASCADE_LAST_VISIBLE, VISFLG_SHADOW_CASCADE_VISIBLE_MASK, VISFLG_ALL_BITS);
 
-DAS_BASE_BIND_ENUM_98(AnimV20::FifoMorphType, FifoMorphType, MT_LINEAR, MT_QUAD_IN, MT_QUAD_OUT, MT_QUAD_IN_OUT);
+DAS_BASE_BIND_ENUM_98(::AnimV20::FifoMorphType, FifoMorphType, MT_LINEAR, MT_QUAD_IN, MT_QUAD_OUT, MT_QUAD_IN_OUT);
 
 DAS_ANNOTATE_VECTOR(BnlPtrTab, BnlPtrTab)
 DAS_ANNOTATE_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab)
@@ -370,7 +371,7 @@ struct AnimBlendCtrl_1axisAnimSliceAnnotation : das::ManagedStructureAnnotation<
 {
   AnimBlendCtrl_1axisAnimSliceAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendCtrl_1axisAnimSlice", ml)
   {
-    cppName = " AnimV20::AnimBlendCtrl_1axis::AnimSlice";
+    cppName = " ::AnimV20::AnimBlendCtrl_1axis::AnimSlice";
     addField<DAS_BIND_MANAGED_FIELD(start)>("start");
     addField<DAS_BIND_MANAGED_FIELD(end)>("end");
     addField<DAS_BIND_MANAGED_FIELD(node)>("node");
@@ -1015,6 +1016,14 @@ struct Animate2ndPassCtxAnnotation : das::ManagedStructureAnnotation<Animate2ndP
   }
 };
 
+struct AnimPostBlendCtrlContextAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimPostBlendCtrl::Context, false>
+{
+  AnimPostBlendCtrlContextAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimPostBlendCtrlContext", ml)
+  {
+    cppName = " ::AnimV20::AnimPostBlendCtrl::Context";
+  }
+};
+
 namespace bind_dascript
 {
 static char animchar_das[] =
@@ -1031,6 +1040,7 @@ public:
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, require("GeomNodeTree"));
     addBuiltinDependency(lib, require("PhysDecl"));
+    addBuiltinDependency(lib, require("DagorDataBlock"));
     addEnumeration(new EnumerationAnimcharVisbits());
     addEnumeration(new EnumerationFifoMorphType());
     addAnnotation(new NameIdPairAnnotation(lib));
@@ -1124,6 +1134,16 @@ public:
     addAnnotation(new IAnimCharacter2Annotation(lib));
     addAnnotation(new AnimcharNodesMat44Annotation(lib));
     addAnnotation(new Animate2ndPassCtxAnnotation(lib));
+    addAnnotation(new AnimPostBlendCtrlContextAnnotation(lib));
+    // [anim_post_blend_controller(name="...")] - lets a daScript class become a post-blend controller
+    addAnnotation(new AnimDasPostBlendControlerAnnotation());
+    register_das_blend_node_creator();
+    das::onDestroyCppDebugAgent(name.c_str(), [](das::Context *ctx) {
+      das::lock_guard<das::mutex> lock(dasPostBlendControllerContextsMutex);
+      for (auto &pair : dasPostBlendControllerContexts)
+        if (pair.second->context == ctx)
+          pair.second->reset();
+    });
     das::addExtern<DAS_BIND_FUN(::AnimV20::addEnumValue)>(*this, lib, "animV20_add_enum_value", das::SideEffects::modifyExternal,
       "::AnimV20::addEnumValue");
     das::addExtern<DAS_BIND_FUN(::AnimV20::getEnumValueByName)>(*this, lib, "animV20_get_enum_value_by_name",
@@ -1207,6 +1227,10 @@ public:
     das::addExtern<DAS_CALL_METHOD(method_getParamId)>(*this, lib, "anim_graph_getParamId", das::SideEffects::none,
       "das_call_member<int(::AnimCharV20::AnimationGraph::*)(const char *) const, "
       "&::AnimCharV20::AnimationGraph::getParamId>::invoke");
+    das::addExtern<DAS_BIND_FUN(anim_graph_addParamId)>(*this, lib, "anim_graph_addParamId", das::SideEffects::modifyArgument,
+      "bind_dascript::anim_graph_addParamId");
+    das::addExtern<DAS_BIND_FUN(anim_graph_addInlinePtrParamId)>(*this, lib, "anim_graph_addInlinePtrParamId",
+      das::SideEffects::modifyArgument, "bind_dascript::anim_graph_addInlinePtrParamId");
     das::addExtern<DAS_BIND_FUN(anim_graph_getFifo3NodePtr)>(*this, lib, "anim_graph_getFifo3NodePtr",
       das::SideEffects::modifyArgument, "bind_dascript::anim_graph_getFifo3NodePtr");
 
@@ -1594,6 +1618,7 @@ public:
   virtual das::ModuleAotType aotRequire(das::TextWriter &tw) const override
   {
     tw << "#include <dasModules/aotAnimchar.h>\n";
+    tw << "#include <dasModules/aotDasAnimBlendNode.h>\n";
     return das::ModuleAotType::cpp;
   }
 };

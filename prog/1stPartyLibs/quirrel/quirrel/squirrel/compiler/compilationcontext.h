@@ -116,7 +116,9 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(REDUNDANT_AWAIT, WARNING, SEMA, 328, "redundant-await", "'await' on non-async expression has no effect."), \
   DEF_DIAGNOSTIC(REPEATED_CONDITION, WARNING, SEMA, 329, "repeated-condition", "Condition repeats a condition from an outer 'if'."), \
   DEF_DIAGNOSTIC(ASSIGNED_BACK, WARNING, SEMA, 330, "assigned-back", "Assignment writes back the value that was just copied from this expression."), \
-  DEF_DIAGNOSTIC(FUNCTION_RETURNS_SAME_VALUE, WARNING, SEMA, 331, "function-returns-same-value", "Function returns the same value from all value-returning paths.") \
+  DEF_DIAGNOSTIC(FUNCTION_RETURNS_SAME_VALUE, WARNING, SEMA, 331, "function-returns-same-value", "Function returns the same value from all value-returning paths."), \
+  DEF_DIAGNOSTIC(DUPLICATE_IMPORT, WARNING, SEMA, 332, "duplicate-import", "Imported field '%s' is listed more than once."), \
+  DEF_DIAGNOSTIC(WILDCARD_AND_NAMED_IMPORT, WARNING, SEMA, 333, "wildcard-and-named-import", "Module '%s' is imported both with '*' and by explicit names.") \
 
 
 namespace SQCompilation {

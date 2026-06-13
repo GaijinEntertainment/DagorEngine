@@ -18,6 +18,7 @@
 
 #include <math/dag_hlsl_floatx.h>
 #include <render/decals/planar_decals_params.hlsli>
+#include "shaders/bvh_magic_constants.hlsli"
 
 #if DAGOR_DBGLEVEL > 0
 extern bool bvh_dyn_range_enable;
@@ -370,7 +371,7 @@ void on_unload_scene(ContextId context_id)
       if (buffer.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
       {
         TIME_PROFILE(meta_lock_skin_unload);
-        auto lockedMeta = context_id->lockMeta(buffer.second.metaAllocId);
+        LockedMetaAccess lockedMeta(*context_id, buffer.second.metaAllocId);
         const auto &meta = lockedMeta[0];
         if (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures)
         {
@@ -613,8 +614,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
       auto [skinValid, skinTexBindless] = hold_camo_tex(bvh_context_id, skinTexture, false);
       if (skinValid)
       {
-        // Totally random numbers, indicating that this per instance data is replacing the albedo texture;
-        skinData.x = 0xA1B3D0U; // ALBEDO ;)
+        skinData.x = BVH_MAGIC_ALBEDO_REPLACEMENT;
         skinData.y = skinTexBindless;
         return &skinData;
       }
@@ -750,6 +750,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
       if (v_check_xyz_all_true(v_cmp_eq(tm43.row0, v_zero())))
         return;
 
+      Context::BvhObjectReadLock objectsGuard(bvh_context_id->objectsLock);
       for (auto [elemIx, elem] : enumerate(elems))
       {
         bool hasIndices;
@@ -858,6 +859,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
           dynrend::set_instance_data_buffer(STAGE_CS, dynrend_context_id, nodeOffsetRenderData, instance_offset_render_data);
         };
 
+        Context::BvhObjectReadLock objectsGuard(bvh_context_id->objectsLock);
         for (auto [elemIx, elem] : enumerate(elems))
         {
           bool hasIndices;
@@ -903,7 +905,7 @@ static void iterate_instances(dynrend::ContextId dynrend_context_id, const Dynam
             Point2 tcAnim = max(Point2(texcoord_anim, -texcoord_anim), Point2::ZERO);
             Point2 trackPos = Point2::xy(inst_render_data.params.data()[0]);
             TIME_PROFILE(meta_lock_track_anim);
-            auto lockedMeta = bvh_context_id->lockMeta(meshElem.metaAllocId);
+            LockedMetaAccess lockedMeta(*bvh_context_id, meshElem.metaAllocId);
             lockedMeta[0].texcoordAdd = uint32_t(float_to_half(dot(tcAnim, trackPos))) << 16;
             lockedMeta[0].materialType |= MeshMeta::bvhMaterialTexcoordAdd;
           }
@@ -1046,6 +1048,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
   Context::Instance::AnimationUpdateMode animationUpdateMode =
     animate ? Context::Instance::AnimationUpdateMode::FORCE_ON : Context::Instance::AnimationUpdateMode::FORCE_OFF;
 
+  ++ctx->count;
+
   auto bvhId = inst.getLodsResource()->getBvhId();
   if (!bvhId)
   {
@@ -1129,6 +1133,23 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
     return nullptr;
   };
 
+  PerInstanceData skinData;
+  auto getSkinData = [&](const Mesh &mesh, const ShaderMesh::RElem &elem) -> PerInstanceData * {
+    auto skinTexture = elem.mat->get_texture(0);
+    if (skinTexture != BAD_TEXTUREID && skinTexture != mesh.albedoTextureId)
+    {
+      auto [skinValid, skinTexBindless] = hold_camo_tex(bvh_context_id, skinTexture, false);
+      if (skinValid)
+      {
+        skinData.x = BVH_MAGIC_ALBEDO_REPLACEMENT;
+        skinData.y = skinTexBindless;
+        return &skinData;
+      }
+    }
+
+    return nullptr;
+  };
+
   dag::ConstSpan<DynamicRenderableSceneResource::RigidObject> rigids = res.getRigidsConst();
   res.getMeshes(
     [&](const ShaderMesh *mesh, int node_id, float radius, int rigid_no) {
@@ -1172,6 +1193,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
       if (v_check_xyz_all_true(v_cmp_eq(tm43.row0, v_zero())))
         return;
 
+      Context::BvhObjectReadLock objectsGuard(bvh_context_id->objectsLock);
       for (auto [elemIx, elem] : enumerate(elems))
       {
         bool hasIndices;
@@ -1187,6 +1209,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
 
         PerInstanceData perInstanceDataWithIndex = PerInstanceData::ZERO;
         const PerInstanceData *perInstanceDataPtr = getCamoData(bvhMesh, elem);
+        if (!perInstanceDataPtr)
+          perInstanceDataPtr = getSkinData(bvhMesh, elem);
         if (bvhMesh.materialType & MeshMeta::bvhMaterialAnimcharDecals)
         {
           if (perInstanceDataPtr)
@@ -1236,6 +1260,7 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         set_instance_data(instance_offset);
       };
 
+      Context::BvhObjectReadLock objectsGuard(bvh_context_id->objectsLock);
       for (auto [elemIx, elem] : enumerate(elems))
       {
         bool hasIndices;
@@ -1272,8 +1297,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         if (meshElem.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
         {
           TIME_PROFILE(meta_lock_skinned);
-          auto lockedMeta = bvh_context_id->allocateMeta(1, "skinned");
-          meshElem.metaAllocId = lockedMeta.allocId;
+          meshElem.metaAllocId = bvh_context_id->allocateMetaRegion(1, "skinned");
+          LockedMetaAccess lockedMeta(*bvh_context_id, meshElem.metaAllocId);
           auto &meta = lockedMeta[0];
           meta = bvh_context_id->meshMetaAllocator.get(bvhObject->metaAllocId)[0];
           auto albedoTex = elem.mat->get_texture(0);
@@ -1298,6 +1323,8 @@ static void iterate_instances_dng(const DynamicRenderableSceneInstance &inst, co
         const PerInstanceData *perInstanceDataPtr = getCamoData(bvhMesh, elem);
         if (!perInstanceDataPtr)
           perInstanceDataPtr = getColorModData(bvhMesh, elem);
+        if (!perInstanceDataPtr)
+          perInstanceDataPtr = getSkinData(bvhMesh, elem);
         if (bvhMesh.materialType & MeshMeta::bvhMaterialAnimcharDecals)
         {
           if (perInstanceDataPtr)
@@ -1411,7 +1438,7 @@ static struct TidyUpSkinsJob : public cpujobs::IJob
         if (elem.second.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
         {
           TIME_PROFILE(meta_lock_skin_tidy);
-          auto lockedMeta = contextId->lockMeta(elem.second.metaAllocId);
+          LockedMetaAccess lockedMeta(*contextId, elem.second.metaAllocId);
           const auto &meta = lockedMeta[0];
           if (meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures)
           {

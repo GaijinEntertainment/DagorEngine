@@ -16,19 +16,19 @@ MAKE_TYPE_FACTORY(ManagedTexView, ManagedTexView)
 MAKE_TYPE_FACTORY(ManagedBufView, ManagedBufView)
 
 MAKE_TYPE_FACTORY(SharedTex, SharedTex);
-MAKE_TYPE_FACTORY(SharedTexHolder, SharedTexHolder);
+MAKE_TYPE_FACTORY(SharedTexWithShaderVar, SharedTexWithShaderVar);
 MAKE_TYPE_FACTORY(UniqueTex, UniqueTex);
 MAKE_TYPE_FACTORY(UniqueTexWithShaderVar, UniqueTexWithShaderVar);
 
 MAKE_TYPE_FACTORY(SharedBuf, SharedBuf);
-MAKE_TYPE_FACTORY(SharedBufHolder, SharedBufHolder);
+MAKE_TYPE_FACTORY(SharedBufWithShaderVar, SharedBufWithShaderVar);
 MAKE_TYPE_FACTORY(UniqueBuf, UniqueBuf);
 MAKE_TYPE_FACTORY(UniqueBufWithShaderVar, UniqueBufWithShaderVar);
 
 namespace bind_dascript
 {
 static inline void get_tex_gameres1(SharedTex &val, const char *res_name) { val = dag::get_tex_gameres(res_name); }
-static inline void get_tex_gameres2(SharedTexHolder &val, const char *res_name, const char *shader_var)
+static inline void get_tex_gameres2(SharedTexWithShaderVar &val, const char *res_name, const char *shader_var)
 {
   val = dag::get_tex_gameres(res_name, shader_var);
 }
@@ -36,7 +36,8 @@ static inline void add_managed_array_texture1(SharedTex &val, const char *name, 
 {
   val = dag::add_managed_array_texture(name, make_span_const((const char **)&textures.data, textures.size));
 }
-static inline void add_managed_array_texture2(SharedTexHolder &val, const char *name, const das::Array &textures, const char *varname)
+static inline void add_managed_array_texture2(SharedTexWithShaderVar &val, const char *name, const das::Array &textures,
+  const char *varname)
 {
   val = dag::add_managed_array_texture(name, make_span_const((const char **)&textures.data, textures.size), varname);
 }
@@ -49,8 +50,8 @@ static inline D3DRESID get_res_id(ManagedTexView tex) { return tex.getTexId(); }
 
 static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
 
-#define MANAGED_TEX_TYPES         \
-  MANAGED_TEX(SharedTexHolder, 1) \
+#define MANAGED_TEX_TYPES                \
+  MANAGED_TEX(SharedTexWithShaderVar, 1) \
   MANAGED_TEX(UniqueTexWithShaderVar, 2)
 
 #define MANAGED_TEX(TYPE, suf)                                                                              \
@@ -75,8 +76,8 @@ static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
     val = dag::create_cube_array_tex(side, d, flg, levels, name, RESTAG_DASRES);                            \
   }
 
-#define MANAGED_BUF_TYPES         \
-  MANAGED_BUF(SharedBufHolder, 1) \
+#define MANAGED_BUF_TYPES                \
+  MANAGED_BUF(SharedBufWithShaderVar, 1) \
   MANAGED_BUF(UniqueBufWithShaderVar, 2)
 
 #define MANAGED_BUF(TYPE, suf)                                                                                                 \
@@ -100,7 +101,7 @@ MANAGED_BUF_TYPES
 #undef MANAGED_BUF
 
 inline Sbuffer *SharedBuf_get_buf(const SharedBuf &buf) { return buf.getBuf(); }
-inline Sbuffer *SharedBufHolder_get_buf(const SharedBufHolder &buf) { return buf.getBuf(); }
+inline Sbuffer *SharedBufWithShaderVar_get_buf(const SharedBufWithShaderVar &buf) { return buf.getBuf(); }
 inline Sbuffer *UniqueBuf_get_buf(const UniqueBuf &buf) { return buf.getBuf(); }
 inline Sbuffer *UniqueBufWithShaderVar_get_buf(const UniqueBufWithShaderVar &buf) { return buf.getBuf(); }
 } // namespace bind_dascript

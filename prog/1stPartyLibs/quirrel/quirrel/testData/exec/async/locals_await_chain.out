@@ -1,0 +1,17 @@
+script done
+
+AN ERROR HAS OCCURRED [deep boom]
+
+ERROR TRACE
+    at inner (testData/exec/async/locals_await_chain.nut:8)
+      this = null
+    awaited at mid (testData/exec/async/locals_await_chain.nut:14)
+      inner (captured) = function inner (testData/exec/async/locals_await_chain.nut:7)
+      count = 7
+      stage = 'loading'
+      this = null
+    awaited at top (testData/exec/async/locals_await_chain.nut:19)
+      mid (captured) = function mid (testData/exec/async/locals_await_chain.nut:11)
+      this = null
+    task root: top (testData/exec/async/locals_await_chain.nut:18)
+    launched at testData/exec/async/locals_await_chain.nut:23 __main__

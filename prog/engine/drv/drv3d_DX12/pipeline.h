@@ -768,6 +768,41 @@ struct PipelineLoadBehavior
   bool reportValidationFailsAsNotice : 1 = false;
 };
 
+struct PipelineLogSerializer
+{
+  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature;
+  bool useConstBufferDescriptorRanges;
+
+  void serialize(const GraphicsPipelineSignature &sign, const D3D12_GRAPHICS_PIPELINE_STATE_DESC &info) const;
+  void serialize(const ComputePipelineSignature &sign, const D3D12_COMPUTE_PIPELINE_STATE_DESC &info) const;
+  void serialize(const GraphicsPipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info) const;
+  void serialize(const ComputePipelineSignature &sign, const D3D12_PIPELINE_STATE_STREAM_DESC &info) const;
+};
+
+struct GraphicsPipelineVariantCreateInfo
+{
+  InputLayout inputLayout;
+  bool isWireFrame;
+  RenderStateSystem::StaticState staticState;
+  FramebufferLayout framebufferLayout;
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
+  RecoverablePipelineCompileBehavior onError;
+  PipelineLoadBehavior loadBehavior;
+  PipelineBuildInitiator buildInitiator;
+  PipelineLogSerializer toLog;
+};
+
+struct MeshPipelineVariantCreateInfo
+{
+  bool isWireFrame;
+  RenderStateSystem::StaticState staticState;
+  FramebufferLayout framebufferLayout;
+  RecoverablePipelineCompileBehavior onError;
+  PipelineLoadBehavior loadBehavior;
+  PipelineBuildInitiator buildInitiator;
+  PipelineLogSerializer toLog;
+};
+
 class PipelineVariant
 {
   ComPtr<ID3D12PipelineState> pipeline;
@@ -796,28 +831,19 @@ class PipelineVariant
     GraphicsPipelineCreateInfoData &target) const;
 
   PipelineLoadResult create(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-    PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-    backend::PipelineNameGenerator &name_generator, const PipelineLoadBehavior &load_behavior);
+    PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const GraphicsPipelineVariantCreateInfo &info);
 #if !_TARGET_XBOXONE
   PipelineLoadResult createMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-    PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
-    const PipelineLoadBehavior &load_behavior);
+    PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const MeshPipelineVariantCreateInfo &info);
 #endif
 
   static bool validate_blend_desc(const D3D12_BLEND_DESC &blend_desc, const FramebufferLayout &fb_layout, uint32_t color_write_mask);
 
 public:
-  // Returns false if any error was discovered, in some cases the pipeline may be created anyway
   PipelineLoadResult load(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-    PipelineCache &pipe_cache, const InputLayout &input_layout, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top, RecoverablePipelineCompileBehavior on_error,
-    backend::PipelineNameGenerator &name_generator, const PipelineLoadBehavior &load_behavior, PipelineBuildInitiator initiator);
+    PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const GraphicsPipelineVariantCreateInfo &info);
   PipelineLoadResult loadMesh(Device &device, backend::ShaderModuleManager &shader_bytecodes, BasePipeline &base,
-    PipelineCache &pipe_cache, bool is_wire_frame, const RenderStateSystem::StaticState &static_state,
-    const FramebufferLayout &fb_layout, RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
-    const PipelineLoadBehavior &load_behavior, PipelineBuildInitiator initiator);
+    PipelineCache &pipe_cache, backend::PipelineNameGenerator &name_generator, const MeshPipelineVariantCreateInfo &info);
 
   bool isReady() const { return nullptr != pipeline.Get(); }
 
@@ -1071,7 +1097,8 @@ public:
   bool loadVariantsFromCache(Device &device, PipelineCache &cache, backend::ShaderModuleManager &shader_bytecodes,
     backend::StaticRenderStateManager &static_states, backend::InputLayoutManager &input_layouts,
     FramebufferLayoutManager &framebuffer_layouts, RecoverablePipelineCompileBehavior on_error,
-    backend::PipelineNameGenerator &name_generator)
+    backend::PipelineNameGenerator &name_generator, PFN_D3D12_SERIALIZE_ROOT_SIGNATURE D3D12SerializeRootSignature,
+    bool use_const_buffer_descriptor_ranges)
   {
     cacheId = cache.getGraphicsPipeline({.vs = vsModule.header.hash, .ps = psModule.header.hash});
     auto cnt = cache.getGraphicsPipelineVariantCount(cacheId);
@@ -1102,9 +1129,9 @@ public:
           top, isWireFrame);
 
         int64_t tLoad = ref_time_ticks();
-        auto loadResult =
-          variant.load(device, shader_bytecodes, *this, cache, inputLayout, isWireFrame, staticState, framebufferLayout, top, on_error,
-            name_generator, {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::DISK_CACHE);
+        auto loadResult = variant.load(device, shader_bytecodes, *this, cache, name_generator,
+          {inputLayout, isWireFrame, staticState, framebufferLayout, top, on_error, {.reportValidationFailsAsNotice = true},
+            PipelineBuildInitiator::DISK_CACHE, D3D12SerializeRootSignature, use_const_buffer_descriptor_ranges});
         int64_t loadUs = get_time_usec(tLoad);
         LoadVariantsStats::loadUsec += loadUs;
         if (loadUs > LoadVariantsStats::maxLoadUsec)
@@ -1124,8 +1151,9 @@ public:
           getMeshVariantFromConfiguration(staticRenderStateID, framebuffer_layouts.getLayoutID(framebufferLayout), isWireFrame);
 
         int64_t tLoad = ref_time_ticks();
-        auto loadResult = variant.loadMesh(device, shader_bytecodes, *this, cache, isWireFrame, staticState, framebufferLayout,
-          on_error, name_generator, {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::DISK_CACHE);
+        auto loadResult = variant.loadMesh(device, shader_bytecodes, *this, cache, name_generator,
+          {isWireFrame, staticState, framebufferLayout, on_error, {.reportValidationFailsAsNotice = true},
+            PipelineBuildInitiator::DISK_CACHE, D3D12SerializeRootSignature, use_const_buffer_descriptor_ranges});
         int64_t loadUs = get_time_usec(tLoad);
         LoadVariantsStats::loadUsec += loadUs;
         if (loadUs > LoadVariantsStats::maxLoadUsec)
@@ -1397,7 +1425,8 @@ class ComputePipeline
     backend::PipelineNameGenerator &name_generator, ShaderBindingTablePool &shader_binding_table_pool, bool byte_code_cache_hit);
 #endif
   bool loadRegularComputeShader(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
-    bool from_cache_only, backend::PipelineNameGenerator &name_generator, bool byte_code_cache_hit);
+    bool from_cache_only, backend::PipelineNameGenerator &name_generator, bool byte_code_cache_hit,
+    const PipelineLogSerializer &log_serializer);
 
 public:
 #if D3D_HAS_RAY_TRACING
@@ -1408,7 +1437,8 @@ public:
 
   ComputePipelineSignature &getSignature() const { return signature; };
   ID3D12PipelineState *loadAndGetHandle(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
-    backend::PipelineNameGenerator &name_generator, [[maybe_unused]] PipelineBuildInitiator build_initiator)
+    backend::PipelineNameGenerator &name_generator, [[maybe_unused]] PipelineBuildInitiator build_initiator,
+    const PipelineLogSerializer &log_serializer)
   {
 #if D3D_HAS_RAY_TRACING
     const auto isRT = isRayTracePipeline();
@@ -1420,14 +1450,15 @@ public:
 #if _TARGET_PC_WIN
       buildInitiator = build_initiator;
 #endif
-      loadRegularComputeShader(device, cache, on_error, false, name_generator, true);
+      loadRegularComputeShader(device, cache, on_error, false, name_generator, true, log_serializer);
     }
     return computePipeline.Get();
   }
 
   ComputePipeline(ComputePipelineSignature &sign, ComputeShaderModule module, Device &device, PipelineCache &cache,
     RecoverablePipelineCompileBehavior on_error, backend::PipelineNameGenerator &name_generator,
-    ShaderBindingTablePool &shader_binding_table_pool, bool byte_code_cache_hit, PipelineBuildInitiator build_initiator);
+    [[maybe_unused]] ShaderBindingTablePool &shader_binding_table_pool, bool byte_code_cache_hit,
+    [[maybe_unused]] PipelineBuildInitiator build_initiator, const PipelineLogSerializer &log_serializer);
   const dxil::ShaderHeader &getHeader() const { return shaderModule.header; }
   const ComputeShaderModule &getModule() const { return shaderModule; }
 
@@ -1459,17 +1490,7 @@ public:
   ID3D12StateObject *getRayTracePipeline() const { return rayTracePipeline ? rayTracePipeline->get() : nullptr; }
   bool readyRayTracePipeline(Device &device, PipelineCache &cache, RecoverablePipelineCompileBehavior on_error,
     backend::PipelineNameGenerator &name_generator, ShaderBindingTablePool &shader_binding_table_pool,
-    [[maybe_unused]] PipelineBuildInitiator build_initiator)
-  {
-    if (!isLoaded())
-    {
-#if _TARGET_PC_WIN
-      buildInitiator = build_initiator;
-#endif
-      return loadRayTracePipeline(device, cache, on_error, false, name_generator, shader_binding_table_pool, true);
-    }
-    return true;
-  }
+    [[maybe_unused]] PipelineBuildInitiator build_initiator);
   const BufferResourceReferenceAndAddressRange &getRayGenGroup() const { return rayTraceShaderBindingTableLocation.rayGenGroup; }
   const ShaderBindingTablePool::BindingTableGroup &getMissGroup() const { return rayTraceShaderBindingTableLocation.missGroup; }
   const ShaderBindingTablePool::BindingTableGroup &getHitGroup() const { return rayTraceShaderBindingTableLocation.hitGroup; }
@@ -1573,11 +1594,8 @@ public:
 
   void init(Device &device_ref, RecoverablePipelineCompileBehavior on_error);
 
-  bool enqueueGraphicsPipeline(PipelineVariant *variant, BasePipeline &base, const InputLayout &input_layout, bool is_wire_frame,
-    const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, D3D12_PRIMITIVE_TOPOLOGY_TYPE top,
-    PipelineBuildInitiator build_initiator);
-  bool enqueueMeshPipeline(PipelineVariant *variant, BasePipeline &base, bool is_wire_frame,
-    const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, PipelineBuildInitiator build_initiator);
+  bool enqueueGraphicsPipeline(PipelineVariant *variant, BasePipeline &base, const GraphicsPipelineVariantCreateInfo &info);
+  bool enqueueMeshPipeline(PipelineVariant *variant, BasePipeline &base, const MeshPipelineVariantCreateInfo &info);
   bool enqueueComputePipeline(ComputePipeline *pipeline, PipelineBuildInitiator build_initiator);
 
   bool waitForOutstandingCompilationAndSuspend(bool force_evict);
@@ -1598,22 +1616,14 @@ private:
   {
     PipelineVariant *variant;
     BasePipeline *basePipeline;
-    InputLayout inputLayout;
-    RenderStateSystem::StaticState staticState;
-    D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
-    FramebufferLayout framebufferLayout;
-    bool isWireFrame;
-    PipelineBuildInitiator buildInitiator;
+    GraphicsPipelineVariantCreateInfo info;
   };
 
   struct PendingMeshPipeline
   {
     PipelineVariant *variant;
     BasePipeline *basePipeline;
-    bool isWireFrame;
-    RenderStateSystem::StaticState staticState;
-    FramebufferLayout framebufferLayout;
-    PipelineBuildInitiator buildInitiator;
+    MeshPipelineVariantCreateInfo info;
   };
 
   struct PendingComputePipeline
@@ -1713,6 +1723,14 @@ public:
   PipelineManager &operator=(const PipelineManager &) = delete;
   PipelineManager(PipelineManager &&) = delete;
   PipelineManager &operator=(PipelineManager &&) = delete;
+
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+  bool shouldUseRootSignaturesUsesCBVDescriptorRanges() const { return rootSignaturesUsesCBVDescriptorRanges; }
+#else
+  constexpr bool shouldUseRootSignaturesUsesCBVDescriptorRanges() const { return false; }
+#endif
+
+  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE getD3D12SerializeRootSignature() const { return D3D12SerializeRootSignature; }
 
   struct SetupParameters
   {
@@ -2838,9 +2856,10 @@ public:
 
           if (!pipelineVariant.isReady())
           {
-            auto loadResult = pipelineVariant.loadMesh(device, *this, *base, pipeline_cache, variant.isWireFrame,
-              getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout), RecoverablePipelineCompileBehavior::REPORT_ERROR,
-              *this, {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::STATIC_CACHE);
+            auto loadResult = pipelineVariant.loadMesh(device, *this, *base, pipeline_cache, *this,
+              {variant.isWireFrame, getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout),
+                RecoverablePipelineCompileBehavior::REPORT_ERROR, {.reportValidationFailsAsNotice = true},
+                PipelineBuildInitiator::STATIC_CACHE, D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
 
             if (!loadResult.objectCreated)
             {
@@ -2863,11 +2882,11 @@ public:
 
           if (!pipelineVariant.isReady())
           {
-            auto loadResult =
-              pipelineVariant.load(device, *this, *base, pipeline_cache, InputLayoutManager::getInputLayout(inputLayout),
-                variant.isWireFrame, getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout),
-                static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(variant.topology), RecoverablePipelineCompileBehavior::REPORT_ERROR, *this,
-                {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::STATIC_CACHE);
+            auto loadResult = pipelineVariant.load(device, *this, *base, pipeline_cache, *this,
+              {InputLayoutManager::getInputLayout(inputLayout), variant.isWireFrame, getStaticRenderState(staticRenderStateID),
+                fbs.getLayout(fbLayout), static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(variant.topology),
+                RecoverablePipelineCompileBehavior::REPORT_ERROR, {.reportValidationFailsAsNotice = true},
+                PipelineBuildInitiator::STATIC_CACHE, D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
 
             if (!loadResult.objectCreated)
             {
@@ -2962,9 +2981,10 @@ public:
 
           if (!pipelineVariant.isReady())
           {
-            auto loadResult = pipelineVariant.loadMesh(device, *this, *base, pipeline_cache, variant.isWireFrame,
-              getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout), RecoverablePipelineCompileBehavior::REPORT_ERROR,
-              *this, {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::STATIC_CACHE);
+            auto loadResult = pipelineVariant.loadMesh(device, *this, *base, pipeline_cache, *this,
+              {variant.isWireFrame, getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout),
+                RecoverablePipelineCompileBehavior::REPORT_ERROR, {.reportValidationFailsAsNotice = true},
+                PipelineBuildInitiator::STATIC_CACHE, D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
 
             if (!loadResult.objectCreated)
             {
@@ -2987,11 +3007,11 @@ public:
 
           if (!pipelineVariant.isReady())
           {
-            auto loadResult =
-              pipelineVariant.load(device, *this, *base, pipeline_cache, InputLayoutManager::getInputLayout(inputLayout),
-                variant.isWireFrame, getStaticRenderState(staticRenderStateID), fbs.getLayout(fbLayout),
-                static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(variant.topology), RecoverablePipelineCompileBehavior::REPORT_ERROR, *this,
-                {.reportValidationFailsAsNotice = true}, PipelineBuildInitiator::STATIC_CACHE);
+            auto loadResult = pipelineVariant.load(device, *this, *base, pipeline_cache, *this,
+              {InputLayoutManager::getInputLayout(inputLayout), variant.isWireFrame, getStaticRenderState(staticRenderStateID),
+                fbs.getLayout(fbLayout), static_cast<D3D12_PRIMITIVE_TOPOLOGY_TYPE>(variant.topology),
+                RecoverablePipelineCompileBehavior::REPORT_ERROR, {.reportValidationFailsAsNotice = true},
+                PipelineBuildInitiator::STATIC_CACHE, D3D12SerializeRootSignature, shouldUseRootSignaturesUsesCBVDescriptorRanges()});
 
             if (!loadResult.objectCreated)
             {

@@ -11,8 +11,8 @@ import signal
 error_detected = False
 process_timeout = 4
 batchSize = 80
-csqArgsOpt = "--check-stack --opt-closure-hoisting --hide-compilation-error"
-csqArgsNoOpt = "--check-stack --hide-compilation-error"
+csqArgsOpt = "--check-stack --iter-seed:0 --opt-closure-hoisting --hide-compilation-error"
+csqArgsNoOpt = "--check-stack --iter-seed:0 --hide-compilation-error"
 csq = "csq"
 csq2 = ""
 cwd = os.getcwd().replace("\\", "/")

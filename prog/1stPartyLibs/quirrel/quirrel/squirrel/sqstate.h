@@ -119,7 +119,11 @@ public:
     SQObjectPtr _instance_class;
     SQObjectPtr _weakref_class;
     SQObjectPtr _userdata_class;
-    SQObjectPtr _error_class;
+
+    struct TraceSchema {
+        SQObjectPtr func, source, line, awaited, kind, locals, localsMore;
+        SQObjectPtr name, type, value, count, gstate, captured;
+    } _traceSchema;
 
     static const SQRegFunction _table_default_type_methods_funcz[];
     static const SQRegFunction _array_default_type_methods_funcz[];
@@ -155,6 +159,7 @@ public:
     SQObjectPtr doc_objects;
     int doc_object_index;
     SQUnsignedInteger32 rand_seed;
+    SQUnsignedInteger32 table_iter_seed;
     SQUnsignedInteger32 watchdog_last_alive_time_msec;
     SQUnsignedInteger32 watchdog_threshold_msec;
 private:
@@ -166,6 +171,6 @@ private:
 #define _spval (_sharedstate->GetScratchPad(-1))
 
 bool CompileTypemask(SQIntVec &res,const char *typemask);
-
+SQUnsignedInteger32 sq_generate_seed();
 
 #endif //_SQSTATE_H_

@@ -65,8 +65,14 @@ void AnimcharBaseComponent::forcePostRecalcWtm(real) { G_ASSERT(0); }
 void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *, bool) const { G_ASSERT(0); }
 
 void AnimationGraph::enqueueState(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float, float) { G_ASSERT(0); }
+int AnimationGraph::addParamId(const char *, int) { G_ASSERT_RETURN(0, 0); }
+int AnimationGraph::addInlinePtrParamId(const char *, size_t, int) { G_ASSERT_RETURN(0, 0); }
 void AnimationGraph::setStateSpeed(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float) { G_ASSERT(0); }
 int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
+int AnimationGraph::registerBlendNode(AnimV20::IAnimBlendNode *, char const *, char const *) { G_ASSERT_RETURN(0, 0); }
+
+void register_blend_node_creator(blend_node_creator_t) {}
+bool create_blend_node_from_creators(AnimationGraph &, const DataBlock &) { G_ASSERT_RETURN(0, false); }
 
 bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
 void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real, FifoMorphType) { G_ASSERT(0); }
@@ -85,6 +91,12 @@ void AnimCommonStateHolder::init() { G_ASSERT(0); }
 
 void AnimBlender::buildNodeList() { G_ASSERT(0); }
 void AnimCommonStateHolder::dumpStateText(String &) const { G_ASSERT(0); }
+
+bool IAnimBlendNode::isAnimNodeNameValid(const char *) { G_ASSERT_RETURN(0, false); }
+AnimPostBlendCtrl::AnimPostBlendCtrl(AnimV20::AnimationGraph &g) : graph(g), pbcId(-1) { G_ASSERT(0); }
+AnimPostBlendCtrl::~AnimPostBlendCtrl() { G_ASSERT(0); }
+void AnimPostBlendCtrl::buildBlendingList(BlendCtx &, real) { G_ASSERT(0); }
+
 } // namespace AnimV20
 
 void Animate2ndPass::release() { G_ASSERT(0); }

@@ -107,6 +107,9 @@ Copt += -DBITDEPTH=8 ;
 
 if $(Platform) in windows xboxOne scarlett && $(PlatformSpec) != clang {
   Copt += /wd4028 /wd4244 /wd4267 /wd4996 /wd4090 /wd4133 ;
+  if $(PlatformSpec) = msvc {
+    Copt +=  /std:c11 /experimental:c11atomics ;
+  }
 } else if $(Platform) = linux && $(PlatformSpec) = gcc && $(PlatformArch) = e2k {
   Copt += -w167 -w513 -Wno-bad-initializer-type -Wno-incompatible-pointer-types -Wno-reduced-alignment ;
 } else {

@@ -34,15 +34,11 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 // Switches ( default 0 )
 #define REBLUR_USE_SCREEN_SPACE_SAMPLING_FOR_SPECULAR           0 // specular is more complicated
 #define REBLUR_USE_DECOMPRESSED_HIT_DIST_IN_RECONSTRUCTION      0 // compression helps to preserve "lobe important" values
-#define REBLUR_USE_OLD_SMB_FALLBACK_LOGIC                       0 // TODO: here to avoid regressions
 
 #if( NRD_MODE == OCCLUSION || NRD_MODE == DO )
     #undef NRD_SUPPORTS_ANTIFIREFLY
     #define NRD_SUPPORTS_ANTIFIREFLY                            0 // not needed in occlusion mode
 #endif
-
-// Switches ( default 2 )
-#define REBLUR_VIRTUAL_HISTORY_AMOUNT                           2 // 0 - debug surface motion, 1 - debug virtual motion
 
 // Show
 #define REBLUR_SHOW_FAST_HISTORY                                1 // requires "blurRadius" = 0
@@ -50,17 +46,17 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define REBLUR_SHOW_CURVATURE_SIGN                              3
 #define REBLUR_SHOW_SURFACE_HISTORY_CONFIDENCE                  4
 #define REBLUR_SHOW_VIRTUAL_HISTORY_CONFIDENCE                  5
-#define REBLUR_SHOW_VIRTUAL_HISTORY_NORMAL_CONFIDENCE           6
-#define REBLUR_SHOW_VIRTUAL_HISTORY_ROUGHNESS_CONFIDENCE        7
-#define REBLUR_SHOW_VIRTUAL_HISTORY_PARALLAX_CONFIDENCE         8
-#define REBLUR_SHOW_HIT_DIST_FOR_TRACKING                       9
+#define REBLUR_SHOW_HIT_DIST_FOR_TRACKING                       6
 
 #define REBLUR_SHOW                                             0 // 0 or REBLUR_SHOW_X
 
 // Constants
-#define REBLUR_PRE_BLUR                                         0
+#define REBLUR_PRE_PASS                                         0
 #define REBLUR_BLUR                                             1
 #define REBLUR_POST_BLUR                                        2
+
+#define REBLUR_DIFF                                             0
+#define REBLUR_SPEC                                             1
 
 // Storage
 #define REBLUR_ACCUMSPEED_BITS                                  6
@@ -69,22 +65,24 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #define REBLUR_MAX_MATERIALID_NUM                               ( ( 1 << REBLUR_MATERIALID_BITS ) - 1 )
 
 // Settings
-#define REBLUR_PRE_BLUR_POISSON_SAMPLE_NUM                      8
-#define REBLUR_PRE_BLUR_POISSON_SAMPLES( i )                    g_Special8[ i ]
+#define REBLUR_PRE_PASS_POISSON_SAMPLE_NUM                      8
+#define REBLUR_PRE_PASS_POISSON_SAMPLES( i )                    g_Special8[ i ]
 
 #define REBLUR_POISSON_SAMPLE_NUM                               8
 #define REBLUR_POISSON_SAMPLES( i )                             g_Special8[ i ]
 
-#define REBLUR_PRE_BLUR_ROTATOR_MODE                            NRD_FRAME
-#define REBLUR_PRE_BLUR_FRACTION_SCALE                          2.0
-#define REBLUR_PRE_BLUR_NON_LINEAR_ACCUM_SPEED                  ( 1.0 / ( 1.0 + 10.0 ) )
+#define REBLUR_PRE_PASS_ROTATOR_MODE                            NRD_FRAME
+#define REBLUR_PRE_PASS_FRACTION_SCALE                          2.0
+#define REBLUR_PRE_PASS_RADIUS_SCALE                            1.0
+#define REBLUR_PRE_PASS_NON_LINEAR_ACCUM_SPEED                  ( 1.0 / ( 1.0 + 10.0 ) )
 
 #define REBLUR_BLUR_ROTATOR_MODE                                NRD_FRAME
 #define REBLUR_BLUR_FRACTION_SCALE                              1.0
+#define REBLUR_BLUR_RADIUS_SCALE                                1.0
 
 #define REBLUR_POST_BLUR_ROTATOR_MODE                           NRD_FRAME
-#define REBLUR_POST_BLUR_FRACTION_SCALE                         0.5 // TODO: adjust based on sum of non-noisy data based weights...
-#define REBLUR_POST_BLUR_RADIUS_SCALE                           2.0 // ... ( normalized to number of taps ) from the blur pass?
+#define REBLUR_POST_BLUR_FRACTION_SCALE                         0.5
+#define REBLUR_POST_BLUR_RADIUS_SCALE                           2.0
 
 #define REBLUR_NORMAL_ULP                                       0.0 // was "NRD_NORMAL_ENCODING_ERROR"
 #define REBLUR_ALMOST_ZERO_ANGLE                                cos( Math::DegToRad( 89.0 ) )
@@ -108,7 +106,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     #define REBLUR_TYPE                                         float4
 #endif
 
-#define REBLUR_SH_TYPE                                          float4
+#define REBLUR_SH_TYPE                                          float3
 #define REBLUR_FAST_TYPE                                        float
 #define REBLUR_DATA1_TYPE                                       float2
 #define REBLUR_TILE_TYPE                                        float
@@ -142,7 +140,6 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float2, gResolutionScale ) \
     NRD_CONSTANT( float2, gResolutionScalePrev ) \
     NRD_CONSTANT( float2, gRectOffset ) \
-    NRD_CONSTANT( float2, gSpecProbabilityThresholdsForMvModification ) \
     NRD_CONSTANT( float2, gJitter ) \
     NRD_CONSTANT( uint2, gPrintfAt ) \
     NRD_CONSTANT( uint2, gRectOrigin ) \
@@ -231,14 +228,14 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     #undef REBLUR_POISSON_SAMPLES
     #define REBLUR_POISSON_SAMPLES( i )                         g_Special6[ i ]
 
-    #undef REBLUR_PRE_BLUR_POISSON_SAMPLE_NUM
-    #define REBLUR_PRE_BLUR_POISSON_SAMPLE_NUM                  6
+    #undef REBLUR_PRE_PASS_POISSON_SAMPLE_NUM
+    #define REBLUR_PRE_PASS_POISSON_SAMPLE_NUM                  6
 
-    #undef REBLUR_PRE_BLUR_POISSON_SAMPLES
-    #define REBLUR_PRE_BLUR_POISSON_SAMPLES( i )                g_Special6[ i ]
+    #undef REBLUR_PRE_PASS_POISSON_SAMPLES
+    #define REBLUR_PRE_PASS_POISSON_SAMPLES( i )                g_Special6[ i ]
 
-    #undef REBLUR_PRE_BLUR_ROTATOR_MODE
-    #define REBLUR_PRE_BLUR_ROTATOR_MODE                        NRD_FRAME
+    #undef REBLUR_PRE_PASS_ROTATOR_MODE
+    #define REBLUR_PRE_PASS_ROTATOR_MODE                        NRD_FRAME
 
     #undef REBLUR_BLUR_ROTATOR_MODE
     #define REBLUR_BLUR_ROTATOR_MODE                            NRD_FRAME

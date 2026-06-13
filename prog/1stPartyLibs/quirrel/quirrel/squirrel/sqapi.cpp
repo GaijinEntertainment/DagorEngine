@@ -193,15 +193,11 @@ void sq_close(HSQUIRRELVM v)
 SQRESULT sq_compile(HSQUIRRELVM v, const char *s, SQInteger size, const char *sourcename, SQBool raiseerror, const HSQOBJECT *bindings)
 {
     SQObjectPtr o;
-#ifndef NO_COMPILER
     if (Compile(v, s, size, bindings, sourcename, o, raiseerror ? true : false)) {
         v->Push(SQObjectPtr(SQClosure::Create(_ss(v), _funcproto(o))));
         return SQ_OK;
     }
     return SQ_ERROR;
-#else
-    return sq_throwerror(v,"this is a no compiler build");
-#endif
 }
 
 void sq_lineinfo_in_expressions(HSQUIRRELVM v, SQBool enable)
@@ -423,8 +419,7 @@ static SQRESULT rawset_impl(HSQUIRRELVM v, const SQObjectPtr &self,
         _table(self)->NewSlot(key, val);
         return SQ_OK;
     case OT_CLASS:
-        _class(self)->NewSlot(_ss(v), key, val, false);
-        return SQ_OK;
+        return _class(self)->NewSlot(_ss(v), key, val, false) ? SQ_OK : SQ_ERROR;
     case OT_INSTANCE:
         return _instance(self)->Set(key, val) == SLOT_STATUS_OK ? SQ_OK : SQ_ERROR;
     case OT_ARRAY:
@@ -1393,6 +1388,10 @@ SQRESULT sq_rawset(HSQUIRRELVM v,SQInteger idx)
     }
 
     SQObjectType tp = sq_type(self);
+    if (tp == OT_CLASS && _class(self)->isLocked()) {
+        v->Pop(2);
+        return sq_throwerror(v, "trying to modify a class that has already been instantiated, inherited or is locked manually");
+    }
     if (tp == OT_TABLE || tp == OT_CLASS || tp == OT_INSTANCE || tp == OT_ARRAY) {
         v->Raise_IdxError(v->GetUp(-2));
         return SQ_ERROR;
@@ -1706,6 +1705,11 @@ SQRELEASEHOOK sq_getreleasehook(HSQUIRRELVM v,SQInteger idx)
     case OT_CLASS:      return _class(ud)->_hook;       break;
     default: return NULL;
     }
+}
+
+void sq_set_table_iter_seed(HSQUIRRELVM v, SQUnsignedInteger32 iter_seed)
+{
+    _ss(v)->table_iter_seed = iter_seed;
 }
 
 void sq_setcompilererrorhandler(HSQUIRRELVM v,SQCOMPILERERROR f)

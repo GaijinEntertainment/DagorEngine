@@ -161,7 +161,7 @@ public:
 
       auto debugNs = registry.root() / "debug";
       auto colorTarget = debugNs.modifyTexture("target_for_debug");
-      registry.requestRenderPass().color({colorTarget}).depthRo("depth_for_postfx");
+      registry.requestRenderPass().color({colorTarget}).depthReadTestOnly("depth_for_postfx");
 
       auto indirectSpheresBufHndl = registry.read("gpu_debug_render_spheres_indirect_cmd_buf")
                                       .buffer()

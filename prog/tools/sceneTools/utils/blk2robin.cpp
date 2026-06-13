@@ -19,7 +19,7 @@ void showUsage()
 int DagorWinMain(bool debugmode)
 {
   printf("BLK -> Read-only BLK bindump  Conversion Tool v1.0\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n");
 
   // get options
   if (dgs_argc < 2)

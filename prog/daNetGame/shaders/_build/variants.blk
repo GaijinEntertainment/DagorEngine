@@ -13,3 +13,6 @@ invalid {rendinst_render_pass:i=10; allow_triangle_size_debug:i=0;}
 invalid {dyn_model_render_pass:i=3; allow_triangle_size_debug:i=0;}
 invalid {lmesh_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}
 invalid {rendinst_transparent_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}
+
+// Exclude impostor-baker only passes -- rendinst_render_pass_impostor_voxel
+invalid {rendinst_render_pass:i=7}

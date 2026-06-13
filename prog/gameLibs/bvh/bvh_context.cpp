@@ -72,12 +72,10 @@ void Object::teardown(ContextId context_id, uint64_t object_id)
   }
 }
 
-dag::Span<MeshMeta> Object::createAndGetMeta(ContextId context_id, int size)
+void Object::ensureMetaAllocated(ContextId context_id, int size)
 {
   if (metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
     metaAllocId = context_id->allocateMetaRegion(size, "Object");
-
-  return context_id->meshMetaAllocator.get(metaAllocId);
 }
 
 void Mesh::teardown(ContextId context_id)
@@ -128,9 +126,12 @@ void Context::teardown()
 {
   threadpool::wait(&deathrowJob);
 
-  for (auto &[object_id, object] : objects)
-    object.teardown(this, object_id);
-  objects.clear();
+  {
+    BvhObjectWriteLock objectsGuard(objectsLock);
+    for (auto &[object_id, object] : objects)
+      object.teardown(this, object_id);
+    objects.clear();
+  }
 
   meshMeta.close();
   perInstanceData.close();
@@ -172,6 +173,7 @@ void Context::teardown()
   releaseAllBindlessTexHolders();
 
   clearDeathrow();
+  OSSpinlockScopedLock metaGuard(meshMetaAllocatorLock);
   if (meshMetaAllocator.allocated() != 0)
   {
     eastl::unordered_map<eastl::string, int> originCounts;

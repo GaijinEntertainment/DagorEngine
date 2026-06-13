@@ -513,7 +513,7 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
   if (endData.draw)
   {
     const ImVec2 leftIconPos = endData.textPos;
-    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
     const float iconWidthWithSpacing = fontSizedIconSize.x + ImGui::GetStyle().ItemSpacing.x;
     const bool hasActionButton =
       endData.hovered || (showActionButtonVisibility && !type_visible) || (showActionButtonLock && type_locked);
@@ -539,11 +539,18 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
 
     const ImVec2 originalCursorPos = ImGui::GetCursorScreenPos();
 
+    if (endData.hovered && dim_type_color)
+      PropPanel::set_previous_imgui_control_tooltip(&tree_item, treeInterface->getTypeUnselectabilityReason(type));
+
     ImGui::SetCursorScreenPos(leftIconPos);
     const ImTextureID typeIcon = PropPanel::get_im_texture_id_from_icon_id(icons.getForType(type));
     ImGui::Image(typeIcon, fontSizedIconSize);
 
     ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, endData.textPos.y));
+
+    const bool canToggleSelection = treeInterface->doesSelectionModeAllowSelectingType(type);
+    if (!canToggleSelection)
+      ImGui::BeginDisabled();
 
     const OutlinerSelectionState selectionState = tree_item.getSelectionState();
     const PropPanel::IconId typeSelectionIcon = icons.getSelectionIcon(selectionState);
@@ -553,6 +560,9 @@ bool OutlinerWindow::showTypeControls(ObjectTypeTreeItem &tree_item, int type, b
       const bool select = selectionState == OutlinerSelectionState::None || selectionState == OutlinerSelectionState::Partial;
       treeInterface->selectAllTypeObjects(type, select);
     }
+
+    if (!canToggleSelection)
+      ImGui::EndDisabled();
 
     if (showActionButtonVisibility)
     {
@@ -644,6 +654,10 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
     const ImVec2 originalCursorPos = ImGui::GetCursorScreenPos();
 
+    if (endData.hovered && dim_layer_color)
+      PropPanel::set_previous_imgui_control_tooltip(&tree_item,
+        treeInterface->getLayerUnselectabilityReason(type, per_type_layer_index));
+
     ImGui::SetCursorScreenPos(leftIconPos);
     if (layer_locked)
     {
@@ -665,6 +679,10 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
 
     ImGui::SetCursorScreenPos(ImVec2(actionButtonsStartX, endData.textPos.y));
 
+    const bool canToggleSelection = treeInterface->doesSelectionModeAllowSelectingType(type);
+    if (!canToggleSelection)
+      ImGui::BeginDisabled();
+
     const OutlinerSelectionState selectionState = tree_item.getSelectionState();
     const PropPanel::IconId layerSelectionIcon = icons.getSelectionIcon(selectionState);
     if (PropPanel::ImguiHelper::imageButtonFramelessOrPlaceholder("layer_select", layerSelectionIcon, fontSizedIconSize,
@@ -673,6 +691,9 @@ bool OutlinerWindow::showLayerControls(LayerTreeItem &tree_item, int type, int p
       const bool select = selectionState == OutlinerSelectionState::None || selectionState == OutlinerSelectionState::Partial;
       treeInterface->selectAllLayerObjects(type, per_type_layer_index, select);
     }
+
+    if (!canToggleSelection)
+      ImGui::EndDisabled();
 
     if (showActionButtonVisibility)
     {
@@ -759,7 +780,8 @@ const char *OutlinerWindow::getObjectNoun(int type, int count) const
     return treeInterface->getTypeName(type, count > 1);
 }
 
-bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child)
+bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child,
+  bool dim_object_color)
 {
   const bool selected = tree_item.isSelected();
   ImGuiTreeNodeFlags treeFlags = ImGuiTreeNodeFlags_NavLeftJumpsToParent | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -822,16 +844,25 @@ bool OutlinerWindow::showObjectControls(ObjectTreeItem &tree_item, int type, int
       isExpanded, PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_HIERARCHY_LINE),
       PropPanel::getOverriddenColorU32(PropPanel::ColorOverride::TREE_OPEN_CLOSE_ICON_INNER));
 
-    if (endData.hovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+    if (endData.hovered)
     {
       G_ASSERT(tree_item.getType() == OutlinerTreeItem::ItemType::Object);
       ObjectTreeItem &objectTreeItem = static_cast<ObjectTreeItem &>(tree_item);
-      treeInterface->zoomAndCenterObject(*objectTreeItem.renderableEditableObject);
-    }
-    // Imitate Windows where the context menu comes up on mouse button release. (BeginPopupContextItem also does this.)
-    else if (endData.hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-    {
-      createContextMenu(type, per_type_layer_index, true);
+
+      if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+      {
+        treeInterface->zoomAndCenterObject(*objectTreeItem.renderableEditableObject);
+      }
+      // Imitate Windows where the context menu comes up on mouse button release. (BeginPopupContextItem also does this.)
+      else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+      {
+        createContextMenu(type, per_type_layer_index, true);
+      }
+      else if (dim_object_color)
+      {
+        PropPanel::set_previous_imgui_control_tooltip(&tree_item,
+          treeInterface->getObjectUnselectabilityReason(*objectTreeItem.renderableEditableObject, type, per_type_layer_index));
+      }
     }
 
     if (selected && objectRenamer)
@@ -926,7 +957,7 @@ void OutlinerWindow::fillTypeContextMenu(int type)
     contextMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
   }
 
-  const bool canChangeSelection = !treeInterface->isTypeLocked(type);
+  const bool canChangeSelection = !treeInterface->isTypeLocked(type) && treeInterface->doesSelectionModeAllowSelectingType(type);
 
   contextMenu->addItem(PropPanel::ROOT_MENU_ITEM, (unsigned)MenuItemId::SelectAllTypeObjects, "Select all objects");
   contextMenu->setEnabledById((unsigned)MenuItemId::SelectAllTypeObjects, canChangeSelection);
@@ -947,7 +978,8 @@ void OutlinerWindow::fillLayerContextMenu(int type, int per_type_layer_index)
     contextMenu->addSeparator(PropPanel::ROOT_MENU_ITEM);
   }
 
-  const bool canChangeSelection = !treeInterface->isLayerLocked(type, per_type_layer_index);
+  const bool canChangeSelection =
+    !treeInterface->isLayerLocked(type, per_type_layer_index) && treeInterface->doesSelectionModeAllowSelectingType(type);
 
   contextMenu->addItem(PropPanel::ROOT_MENU_ITEM, (unsigned)MenuItemId::SelectAllLayerObjects, "Select all objects");
   contextMenu->setEnabledById((unsigned)MenuItemId::SelectAllLayerObjects, canChangeSelection);
@@ -1165,7 +1197,7 @@ void OutlinerWindow::renderTreeItem(OutlinerTreeItem &tree_item, const ImVec4 &d
     if (dimObject)
       ImGui::PushStyleColor(ImGuiCol_Text, dimmed_text_color);
 
-    if (showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName))
+    if (showObjectControls(*objectTreeItem, typeIndex, layerIndex, hasAssetName, dimObject))
       ImGui::TreePop();
 
     if (dimObject)
@@ -1229,7 +1261,8 @@ void OutlinerWindow::fillTree(ImGuiMultiSelectIO *multi_select_io)
     ObjectTypeTreeItem::RenderCache &objectTypeRenderCache = objectTypeTreeItem->renderCache;
     objectTypeRenderCache.typeVisible = treeInterface->isTypeVisible(typeIndex);
     objectTypeRenderCache.typeLocked = treeInterface->isTypeLocked(typeIndex);
-    objectTypeRenderCache.dimTypeColor = !objectTypeRenderCache.typeVisible;
+    objectTypeRenderCache.dimTypeColor =
+      !objectTypeRenderCache.typeVisible || !treeInterface->doesSelectionModeAllowSelectingType(typeIndex);
 
     for (LayerTreeItem *layerTreeItem : objectTypeTreeItem->filteredLayers)
     {

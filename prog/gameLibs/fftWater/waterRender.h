@@ -133,6 +133,7 @@ public:
   }
 
   float getSignificantWaveHeight() { return significantWaveHeight; }
+  float getMaxWaveHeight() { return maxWaveHeight; }
 
 protected:
   void setCascades(const NVWaveWorks_FFT_CPU_Simulation::Params &p);

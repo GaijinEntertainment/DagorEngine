@@ -127,6 +127,7 @@ public:
     SQObjectPtr _metamethods[MT_NUM_METHODS];
     SQUserPointer _typetag;
     SQRELEASEHOOK _hook;
+    SQMARKHOOK _markhook;   // per-class, inherited from _base (unlike _hook)
     SQInteger _constructoridx;
     SQInteger _udsize;
     uint64_t _lockedTypeId;

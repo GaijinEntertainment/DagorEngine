@@ -164,7 +164,8 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend dafg::NodeHandle makeGiFeedbackNode();
 
   friend dafg::NodeHandle makePrepareWaterNode();
-  friend eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling);
+  friend eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(
+    bool sub_sampling, bool super_sampling, bool is_screenshot);
   friend dafg::NodeHandle makeFrameToPresentProducerNode();
   friend eastl::array<dafg::NodeHandle, 2> makeExternalFinalFrameControlNodes(bool requires_multisampling);
   friend dafg::NodeHandle makePostfxTargetProducerNode(bool requires_multisampling);
@@ -434,7 +435,8 @@ public:
   void invalidateGI(const BBox3 &model_bbox, const TMatrix &tm, const BBox3 &approx) override;
   void invalidateVolumeLight();
 
-  void cullFrustumLights(Occlusion *occlusion, vec3f viewPos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float zn);
+  void cullFrustumLights(
+    Occlusion *occlusion, vec3f viewPos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float zn, float zf);
   void getMaxPossibleRenderingResolution(int &width, int &height) const;
   void getRenderingResolution(int &w, int &h) const override;
   void getPostFxInternalResolution(int &w, int &h) const override;
@@ -710,7 +712,6 @@ protected:
     hasPendingFgRecreation = true;
   }
 
-  void updateLevelGraphicsSettings(const DataBlock &level_blk);
   bool forceStaticResolutionOff = false;
 
   void invalidateLightProbes();
@@ -1146,7 +1147,7 @@ private:
 
   HeroWtmAndBox heroData;
   CameraViewVisibilityMgr mainCameraVisibilityMgr{RI_EXTRA_VB_CTX_ASYNC, "main_cam"};
-  CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam"};
+  CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam", CameraViewVisibilityMgr::SUB_VIEW};
   eastl::optional<CameraParams> camcamParams;
   eastl::optional<CameraParams> prevCamcamParams;
   CameraParams currentFrameCamera;
@@ -1216,6 +1217,7 @@ private:
   int subPixels = 1;
   bool requiresSubsampling = false;
   bool requiresSupersampling = false;
+  bool isScreenshotScheduled = false;
   bool ssrWantsAlternateReflections = false;
 
 private:

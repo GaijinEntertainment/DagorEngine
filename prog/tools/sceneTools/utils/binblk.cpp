@@ -443,7 +443,7 @@ static void show_usage()
 static void show_copyright()
 {
   printf("BLK file converter & validator\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
 
   copy_shown = true;
 }

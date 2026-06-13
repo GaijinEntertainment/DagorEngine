@@ -84,6 +84,7 @@ public:
 
       float value = spinEdit.getValue();
       const bool changed = controlPower == TRACKBAR_DEFAULT_POWER ? sliderFloat(value) : sliderFloatPower(value);
+      const bool sliderDeactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
 
       setPreviousImguiControlTooltip();
 
@@ -103,6 +104,9 @@ public:
         onWcChange(nullptr);
       }
 
+      if (sliderDeactivatedAfterEdit)
+        onWcChangeFinished(nullptr);
+
       ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
       ImGui::SetNextItemWidth(spinEditWidth);
     }
@@ -121,7 +125,7 @@ public:
   }
 
 private:
-  void onImmediateFocusLoss() override { spinEdit.sendWcChangeIfVarChanged(*this); }
+  void onImmediateFocusLoss() override { spinEdit.sendWcChangeAndFinishIfVarChanged(*this); }
 
   bool sliderFloat(float &value)
   {

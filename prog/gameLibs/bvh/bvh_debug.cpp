@@ -50,6 +50,7 @@ namespace bvh
 MemoryStatistics get_memory_statistics(ContextId context_id)
 {
   TIME_PROFILE(bvh::get_memory_statistics);
+  Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
 
   MemoryStatistics stats = {};
 

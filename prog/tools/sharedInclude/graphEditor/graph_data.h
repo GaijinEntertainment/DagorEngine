@@ -10,8 +10,8 @@
 #include <float.h>
 #include <stdint.h>
 
-// Shared between the daEditorX GraphEditor plugin (which owns the instance and populates it from
-// JSON) and the in-editor texgen service (which reads the BLKs + dirs to drive generation). Lives
+// Shared between the daEditorX GraphEditor plugin (which owns the instance and populates it from a
+// saved .blk graph) and the in-editor texgen service (which reads the BLKs + dirs to drive generation). Lives
 // in sharedInclude so the dynamically-loaded plugin and the editor binary can both include it
 // without crossing source-tree boundaries.
 enum class PinType : uint8_t
@@ -75,7 +75,7 @@ enum class PinRole : uint8_t
 struct GraphData
 {
   // `name` is per-instance state -- written by the loader / drag-drop creator and persisted.
-  // `pins[]` preserves JSON pin order so edges (which reference pins by index) keep pointing
+  // `pins[]` preserves the saved pin order so edges (which reference pins by index) keep pointing
   // to the right slot across descriptor evolutions.
   //
   // `customTextureName` is a runtime cache of the texgen register name assigned by
@@ -86,11 +86,15 @@ struct GraphData
   // `type` / `types` / `typeGroup` / `role` / `isInput` / `singleConnect` / `hidden` are a *cache*
   // resolved from base_nodes.blk by `resolve_node_pins` at well-defined moments (graph load,
   // drag-drop insert, BLK reload). They are NOT authoritative -- the descriptor is. Never
-  // serialize them back to JSON. `hidden` defaults to true so a pin not present in the
+  // serialize them back to the saved graph. `hidden` defaults to true so a pin not present in the
   // descriptor renders as hidden (safe default for unknown / dangling pins).
   struct Pin
   {
     eastl::string name;
+    // Free-text per-instance pin annotation (the C shortcut). Cosmetic in this port: shown as a dim
+    // caption by the renderer and round-tripped through save/load. Unlike the JS editor it does NOT
+    // drive subgraph export (the C++ port uses subgraph in/out boundary nodes for that).
+    eastl::string comment;
     eastl::string customTextureName;             // compile-output cache; texgen register name for output pins
     eastl::fixed_vector<PinType, 4, true> types; // full multi-type list from descriptor; drives validation
     eastl::string typeGroup;                     // empty when pin is not in a typeGroup
@@ -99,7 +103,7 @@ struct GraphData
     bool isInput = true;                         // derived: role != PinRole::Out
     bool singleConnect = false;
     bool hidden = true;
-    // Per-instance pin data, populated from the JSON pin's "data" object.
+    // Per-instance pin data, populated from the saved pin's `data{}` block.
     // For regular nodes this overlaps with the descriptor's pin data sub-block in
     // base_nodes.blk; for shader_editor sub-graph nodes (mask_from_index etc.)
     // the descriptor isn't in base_nodes.blk and instance data is the only source
@@ -110,8 +114,8 @@ struct GraphData
   struct Node
   {
     int id = 0;
-    // Position in imgui-node-editor canvas-space. Loaded from JSON view.x/view.y as-is
-    // (the JS editor saves canvas-space coords); drag-drop sets it from ne::ScreenToCanvas.
+    // Position in imgui-node-editor canvas-space. Loaded as-is from the saved x/y
+    // (canvas-space coords); drag-drop sets it from ne::ScreenToCanvas.
     // First render after load/insert pushes it to ne via SetNodePosition; from then on
     // imgui-node-editor owns the live position (user drags don't write back here).
     float x = 0.0f;
@@ -125,7 +129,7 @@ struct GraphData
     // loaders, which populates templateUid in memory; the next save upgrades the file.
     eastl::string templateUid;
     eastl::string descName;
-    eastl::string plugin; // from JSON "plugin" field; e.g. "shader_editor"; empty for built-ins
+    eastl::string plugin; // from the saved "plugin" field; e.g. "shader_editor"; empty for built-ins
     eastl::vector<Pin> pins;
     // Property values keyed by name. Constraints (type / minVal / maxVal / items[]) live in
     // the descriptor. Values are stored as strings so the descriptor's declared type drives
@@ -156,13 +160,13 @@ struct GraphData
   DataBlock mainGraphBlk;
   DataBlock shaderListBlk;
 
-  // Output directories extracted from the graph JSON markers.
+  // Output directories loaded from the graph .blk (textureRootDir / renderDir / entityDir).
   eastl::string textureRootDir;
   eastl::string renderDir;
   eastl::string entityDir;
 
-  // Heightmap metadata extracted from the graph JSON markers (for landscape preview).
-  // FLT_MAX when the marker is absent.
+  // Heightmap metadata loaded from the graph .blk (for landscape preview).
+  // FLT_MAX when absent.
   float heightmapScale = FLT_MAX;
   float heightmapMin = FLT_MAX;
   float heightmapCellSize = FLT_MAX;
@@ -183,12 +187,6 @@ struct GraphData
   // Source path, retained for display.
   eastl::string sourcePath;
 };
-
-// `base_nodes_blk` is the loaded `tools/dagor_cdk/commonData/graphEditor/base_nodes.blk`. The
-// loader uses it to fill the resolved-cache fields on each Node's pins (type / isInput / hidden)
-// via `resolve_node_pins`. Pass nullptr to leave pins unresolved (all stay `hidden = true`).
-bool load_graph_data(GraphData &out, const char *json_path, const char *shader_includes_dir,
-  const DataBlock *base_nodes_blk = nullptr);
 
 // Fills the resolved-cache fields (type, isInput, hidden) on each pin of `node` by looking
 // up `node.descName` in `base_nodes_blk` and matching pins by name. Pins whose name is not in
@@ -223,9 +221,8 @@ inline constexpr const char *BASE_WRAPS[] = {"wrap", "clamp"};
 
 // Parse a graph-level texture size selection -- "= 1024", "1024", or any string
 // where the first run of non-digit characters precedes an integer. Returns
-// `fallback` when no digit is found. Mirrors the lambda originally inlined in
-// load_graph_data's JSON parser; reused by the property panel's onChange handler
-// so the combobox text -> int conversion stays in sync with the JSON loader.
+// `fallback` when no digit is found. Used by the property panel's onChange handler
+// so the combobox text -> int conversion stays consistent with the graph loader.
 int parse_graph_size(const char *s, int fallback);
 
 // Resets `out` to an empty state.
@@ -243,8 +240,7 @@ bool save_graph_data_blk(const GraphData &data, const char *blk_path);
 // `clear_graph_data` first, re-derives the descriptor-cache pin fields via
 // `resolve_node_pins`, and sets `sourcePath = blk_path`. `mainGraphBlk` /
 // `shaderListBlk` are left empty; the caller must invoke
-// compile_graph_to_blks to repopulate them. `shader_includes_dir` is unused
-// (kept for signature parity with the JSON loader).
+// compile_graph_to_blks to repopulate them. `shader_includes_dir` is currently unused.
 bool load_graph_data_blk(GraphData &out, const char *blk_path, const char *shader_includes_dir,
   const DataBlock *base_nodes_blk = nullptr);
 

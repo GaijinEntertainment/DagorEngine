@@ -42,7 +42,7 @@ static dynrender::RElem capsuleCylElem;
 
 static ShaderMaterial *debugCollisionMatShaded = NULL;
 static dynrender::RElem debugCollisionElemShaded;
-SharedTexHolder debugTex;
+SharedTexWithShaderVar debugTex;
 UniqueBuf debugVb;
 UniqueBuf debugIb;
 static shaders::OverrideStateId flip_face_ovid;

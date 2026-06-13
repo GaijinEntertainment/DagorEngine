@@ -764,7 +764,16 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   if (canAddRestorable)
     call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_CREATED);
   rendinst::riex_handle_t createdDestroyedRiexHandle = rendinst::RIEX_HANDLE_NULL; // New riex replacing destroyed
+
+  // Rendinst system can invalidate static shadows for very large cells in `rendinst::doRIGenDestr`. But it is not
+  // needed if we have special callback with invalidation for only instance bbox (called below).
+  // Save/restore instead of set/reset because we can be called inside an already guarded scope (tree destr).
+  const bool prevAvoidStaticShadowRecalc = rendinst::render::avoidStaticShadowRecalc;
+  if (rendinstdestr::get_destr_settings().hasStaticShadowsInvalidationCallback)
+    rendinst::render::avoidStaticShadowRecalc = true;
   const bool outRiRemoved = rendinst::doRIGenDestr(desc, createdDestroyedRiexHandle, flags);
+
+  rendinst::render::avoidStaticShadowRecalc = prevAvoidStaticShadowRecalc;
   // if not destroyed - call restored cb to rollback previous call
   if (!outRiRemoved)
     call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_RESTORED);
@@ -1837,6 +1846,17 @@ static void deserialize_destr_update_impl(const danet::BitStream &bs, F &&cb)
   G_ASSERT(readCount == updateSize);
 }
 
+// Batched cell VB update after applying net destruction: precise per-instance static shadow invalidation
+// already happened in on_rendinst_destroyed callbacks for every instance of the batch, no need to
+// invalidate static shadows for the whole cell
+static void update_ri_gen_vb_cell_after_destr_batch(int layer_idx, int cell_idx)
+{
+  const bool prevAvoidStaticShadowRecalc = rendinst::render::avoidStaticShadowRecalc;
+  if (rendinstdestr::get_destr_settings().hasStaticShadowsInvalidationCallback)
+    rendinst::render::avoidStaticShadowRecalc = true;
+  rendinst::updateRiGenVbCell(layer_idx, cell_idx);
+  rendinst::render::avoidStaticShadowRecalc = prevAvoidStaticShadowRecalc;
+}
 
 bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
 {
@@ -1855,7 +1875,7 @@ bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
       if (prevCellIdx != desc.cellIdx)
       {
         if (shouldUpdateVb && prevCellIdx >= 0)
-          rendinst::updateRiGenVbCell(0, prevCellIdx);
+          update_ri_gen_vb_cell_after_destr_batch(0, prevCellIdx);
         shouldUpdateVb = false;
         prevCellIdx = desc.cellIdx;
       }
@@ -1880,7 +1900,7 @@ bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
       shouldUpdateVb = true;
     });
   if (shouldUpdateVb && prevCellIdx >= 0)
-    rendinst::updateRiGenVbCell(0, prevCellIdx);
+    update_ri_gen_vb_cell_after_destr_batch(0, prevCellIdx);
   flush_temp_delayed_destruction_list(eastl::move(delayedRiExtraDestruction));
   return true;
 }
@@ -2128,7 +2148,7 @@ bool rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
       }
     }
     if (shouldUpdateVb && cell.cellId >= 0)
-      rendinst::updateRiGenVbCell(0, cell.cellId);
+      update_ri_gen_vb_cell_after_destr_batch(0, cell.cellId);
   }
 
   debug("Finished ridestr snapshot deserialize. updateSize=%i delayedRiExtraDestruction=%i", updateSize,
@@ -2229,13 +2249,16 @@ static void do_delayed_ri_extra_destruction_impl() DAG_TS_REQUIRES_SHARED(rendin
   if (!g_delayed_net_destr_list.isEnabled)
     return;
 
-  WinAutoLock lock(g_delayed_net_destr_list.mutex);
-  if (g_delayed_net_destr_list.list.empty())
+  g_delayed_net_destr_list.mutex.lock();
+  const uint64_t version = rendinst::getRIExtraGlobalWorldVersion(true, false);
+  auto list = eastl::move(g_delayed_net_destr_list.list);
+  g_delayed_net_destr_list.mutex.unlock();
+  if (list.empty())
     return;
   TIME_PROFILE(do_delayed_ri_extra_destruction)
 
   int destrCnt = 0;
-  for (auto it = g_delayed_net_destr_list.list.begin(); it != g_delayed_net_destr_list.list.end();)
+  for (auto it = list.begin(); it != list.end();)
   {
     DelayedRendInstNetDestr &destr = *it;
 
@@ -2258,22 +2281,26 @@ static void do_delayed_ri_extra_destruction_impl() DAG_TS_REQUIRES_SHARED(rendin
     // try destroy, skip, if failed, otherwise erase
     if (destroy_rend_inst_from_net<true>(destr.desc, false, Point3::ZERO, Point3::ZERO, --simultaneous_destrs_count >= 0))
     {
-      it = g_delayed_net_destr_list.list.erase_unsorted(it);
+      it = list.erase_unsorted(it);
       destrCnt++;
     }
     else
       ++it;
   }
-  const uint64_t version = rendinst::getRIExtraGlobalWorldVersion(true, false);
+
+  WinAutoLock lock(g_delayed_net_destr_list.mutex);
   if (destrCnt > 0)
     debug("delayed rend inst net destr: version:%llu->%llu destroyed:%i pending:%i", g_delayed_net_destr_list.lastUpdatedWorldVersion,
-      version, destrCnt, int(g_delayed_net_destr_list.list.size()));
-
-  {
-    // NOTE: ccExtra locked for read
-    g_delayed_net_destr_list.lastUpdatedWorldVersion = version;
-    g_delayed_net_destr_list.isForcedUpdatePending = false;
-  }
+      version, destrCnt, int(list.size()));
+  auto &allDestrList = g_delayed_net_destr_list.list;
+  g_delayed_net_destr_list.lastUpdatedWorldVersion = version;
+  g_delayed_net_destr_list.isForcedUpdatePending = !allDestrList.empty(); // if there are new entries, we need to re-run it
+  if (allDestrList.empty())
+    allDestrList.swap(list);
+  else
+    for (const auto &d : list)
+      if (eastl::find(allDestrList.begin(), allDestrList.end(), d) == allDestrList.end())
+        allDestrList.push_back(d);
 }
 
 

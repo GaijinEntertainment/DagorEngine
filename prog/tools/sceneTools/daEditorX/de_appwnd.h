@@ -264,6 +264,7 @@ public:
 
   PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
   void deleteDialog(PropPanel::DialogWindow *dlg) override;
+  void sendImmediateFocusLossNotification() override;
 
   // viewport methods
   int getViewportCount() override;

@@ -27,12 +27,14 @@ void sq_base_register(HSQUIRRELVM v);
 struct SQExceptionTrap{
     SQExceptionTrap() {}
     SQExceptionTrap(SQInteger ss, SQInteger stackbase,SQInstruction *ip, SQInteger ex_target){ _stacksize = ss; _stackbase = stackbase; _ip = ip; _extarget = ex_target;}
+    SQExceptionTrap(SQInteger ss, SQInteger stackbase,SQInstruction *ip, SQInteger ex_target, const SQObjectPtr &cls){ _stacksize = ss; _stackbase = stackbase; _ip = ip; _extarget = ex_target; _exclass = cls;}
     SQExceptionTrap(const SQExceptionTrap &et) { (*this) = et;  }
     SQExceptionTrap &operator=(const SQExceptionTrap &et) = default;
     SQInteger _stackbase;
     SQInteger _stacksize;
     SQInstruction *_ip;
     SQInteger _extarget;
+    SQObjectPtr _exclass; // OT_CLASS catch type for a typed catch clause; OT_NULL is a catch-all
 };
 
 typedef sqvector<SQExceptionTrap> ExceptionsTraps;
@@ -79,7 +81,7 @@ public:
     bool GetVarTrace(const SQObjectPtr &self, const SQObjectPtr &key, char * buf, int buf_size);
 
     void CallDebugHook(SQInteger type,SQInteger forcedline=0);
-    void CallErrorHandler(const SQObjectPtr &e);
+    void CallErrorHandler(const SQObjectPtr &e, const SQObjectPtr &trace);
     SQInteger GetImpl(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags);
     bool Get(const SQObjectPtr &self, const SQObjectPtr &key, SQObjectPtr &dest, SQUnsignedInteger getflags);
     SQInteger FallBackGet(const SQObjectPtr &self,const SQObjectPtr &key,SQObjectPtr &dest);
@@ -94,6 +96,8 @@ public:
     bool StringCat(const SQObjectPtr &str, const SQObjectPtr &obj, SQObjectPtr &dest);
     static bool IsEqual(const SQObject &o1,const SQObject &o2);
     static bool IsInstanceOf(const SQObject &obj, const SQClass *cls);
+    // A catch-all trap (null _exclass) matches anything; a typed trap matches when the thrown value is an instance of its class.
+    bool trapMatches(const SQExceptionTrap &et, const SQObjectPtr &err);
     bool ToString(const SQObjectPtr &o,SQObjectPtr &res);
     SQString *PrintObjVal(const SQObject &o);
 
@@ -187,6 +191,9 @@ public:
     SQOuter *_openouters;
     SQObjectPtr _roottable;
     SQObjectPtr _lasterror;
+    // Origin snapshot for a non-Error async fault, set at exception_trap (where
+    // the value cannot carry its own trace) and consumed by sqasync's runStep.
+    SQObjectPtr _pendingValueFaultTrace;
     SQObjectPtr _errorhandler;
 
     bool _debughook;
@@ -240,29 +247,38 @@ struct SQFrameInfo {
 void sq_get_frame_info(const SQVM::CallInfo &ci, const SQInstruction *ip, SQFrameInfo &out);
 
 // Snapshot the live call stack from v->ci down to its root frame as an array of
-// { func, source, line } tables, innermost first.
+// frame tables, innermost first. Each frame is { func, source, line } plus, when
+// the frame has in-scope locals/captured outers, a `locals` array of per-local
+// records (and a `localsMore` count when the per-frame cap truncates).
+// Tracks each frame's stackbase down the chain so locals read from the right window.
 SQObjectPtr sq_capture_error_trace(SQVM *v);
 
-// Append errVal's captured trace to buf, one "at <func> (<source>:<line>)" line
-// per frame (`awaited at` for await-hops). Returns true if anything was
-// appended; false (buf untouched) for a non-Error or missing trace.
-bool sq_append_error_trace(SQVM *v, const SQObjectPtr &errVal, sqvector<char> &buf);
+// Append a captured trace array to buf, one line per frame. A `kind` slot of
+// "taskroot"/"launched" renders as `task root:`/`launched at` (the async tail);
+// otherwise an `awaited` flag picks `awaited at` over plain `at`. Returns true
+// if anything was appended; false (buf untouched) when trace is not an array.
+bool sq_append_error_trace(SQVM *v, const SQObject &trace, sqvector<char> &buf);
 
-// Render an Error instance's captured trace (one "at <func> (<source>:<line>)"
-// line per frame) through errfn. No-op when errVal is not an Error carrying an
-// array trace.
-void sq_print_error_trace(SQVM *v, const SQObjectPtr &errVal, SQPRINTFUNCTION errfn);
+// Render a captured trace array (one "at <func> (<source>:<line>)" line per
+// frame) through errfn, under an "ERROR TRACE" header. No-op when trace is not
+// an array.
+void sq_print_error_trace(SQVM *v, const SQObject &trace, SQPRINTFUNCTION errfn);
 
-// Append an `awaited at` frame to errVal's trace, read from a suspended
-// generator's saved _ci. The settle-time ancestry walk calls this per parked
-// async ancestor. No-op when errVal cannot carry a trace (value-types).
-void sq_append_awaited_frame(SQVM *v, const SQObjectPtr &errVal, const SQVM::CallInfo &ci);
+// Append an `awaited at` frame directly to a raw trace array, read from a
+// suspended generator's saved _ci (and `gen`'s saved _stack, for this hop's
+// locals). The settle-time ancestry walk calls this per parked async ancestor,
+// before gen->Kill(). This is the sole async-fault trace carrier (FutureImpl.faultTrace).
+void sq_append_awaited_frame_to(SQVM *v, SQArray *trace, const SQVM::CallInfo &ci, const SQGenerator *gen);
 
-// Per-consumer carrier for a fork: shallow-clone an Error and give the clone its
-// own copy of the trace array, so each fork branch stitches its own `awaited at`
-// chain without polluting siblings. Returns errVal unchanged for non-Error
-// values (they have no carrier; the fork shares them as before).
-SQObjectPtr sq_clone_error_for_branch(SQVM *v, const SQObjectPtr &errVal);
+// Build a tail frame from captured strings (not a live CallInfo). `kind`
+// ("taskroot"/"launched") selects the renderer's prefix and layout; `func` may
+// be an empty string for the launched-from-root case (rendered as <root>).
+SQObjectPtr sq_make_diag_frame(SQVM *v, const SQObjectPtr &source, const SQObjectPtr &func, SQInteger line, const char *kind);
+
+// Describe a non-string fault value for a diagnostic line: scalars render with
+// their value ("integer 42", "float 1.5", "bool true", "null"), everything else
+// as "<type>". The string case is the caller's (bare vs quoted differs per surface).
+void sq_describe_fault_value(const SQObject &value, char *buf, size_t buf_size);
 
 inline SQObjectPtr &stack_get(HSQUIRRELVM v,SQInteger idx){return ((idx>=0)?(v->GetAt(idx+v->_stackbase-1)):(v->GetUp(idx)));}
 

@@ -1,0 +1,28 @@
+script done
+
+AN ERROR HAS OCCURRED [caps 190]
+
+ERROR TRACE
+    at manyLocals (testData/exec/async/locals_caps.nut:12)
+      s = 190
+      b9 = 19
+      b8 = 18
+      b7 = 17
+      b6 = 16
+      b5 = 15
+      b4 = 14
+      b3 = 13
+      b2 = 12
+      b1 = 11
+      b0 = 10
+      a9 = 9
+      a8 = 8
+      a7 = 7
+      a6 = 6
+      a5 = 5
+      ... (6 more)
+    at failing (testData/exec/async/locals_caps.nut:16)
+      manyLocals (captured) = function manyLocals (testData/exec/async/locals_caps.nut:6)
+      this = null
+    task root: failing (testData/exec/async/locals_caps.nut:15)
+    launched at testData/exec/async/locals_caps.nut:20 __main__

@@ -331,7 +331,7 @@ int DagorWinMain(bool debugmode)
   ::register_avif_tex_load_factory();
 
   printf("DDS converter\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
   close_debug_files();
 
   if (dgs_argc < 2)

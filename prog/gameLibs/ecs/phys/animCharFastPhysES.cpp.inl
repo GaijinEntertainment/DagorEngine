@@ -74,3 +74,13 @@ static void animchar_fast_phys_destroy_es_event_handler(const ecs::Event &, Anim
     delete fastPhys;
   }
 }
+
+// Stop the sim on dead vehicles -- no point swaying antennas on a wreck.
+ECS_REQUIRE(FastPhysTag animchar_fast_phys)
+ECS_TRACK(isExploded)
+ECS_ON_EVENT(ecs::EventEntityCreated, ecs::EventComponentsAppear)
+static void animchar_fast_phys_explode_es_event_handler(const ecs::Event &, AnimV20::AnimcharBaseComponent &animchar, bool isExploded)
+{
+  if (FastPhysSystem *fp = animchar.getFastPhysSystem())
+    fp->enabled = !isExploded;
+}

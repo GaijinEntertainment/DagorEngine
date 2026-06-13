@@ -67,7 +67,7 @@ function fieldEditText_(params={}) {
       }
       if (val != null && setVal(val)) {
         anim_start($"{comp_name}{"".join(path??[])}")
-        gui_scene.clearTimer(updateTextFromEcsTimeout)
+        gui_scene.clearTimer(uniqueTimerKey)
         gui_scene.resetTimeout(0.1, updateTextFromEcs) //do this in case when some es changes components
         return
       }
@@ -119,6 +119,7 @@ function fieldEditText_(params={}) {
     size = FLEX_H
     rendObj = ROBJ_SOLID
     color = colors.ControlBg
+    onDetach = @() gui_scene.clearTimer(uniqueTimerKey)
 
     animations = [
       { prop=AnimProp.color, from=colors.HighlightSuccess, duration=0.5, trigger=$"{comp_name}{"".join(path??[])}" }

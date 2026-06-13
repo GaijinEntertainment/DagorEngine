@@ -1,5 +1,4 @@
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include "opcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -642,35 +641,82 @@ void CodeGenVisitor::visitSwitchStatement(SwitchStatement *swtch) {
 
 void CodeGenVisitor::visitTryStatement(TryStatement *tryStmt) {
     addLineNumber(tryStmt);
-    _fs->AddInstruction(_OP_PUSHTRAP, 0, 0);
-    _fs->_traps++;
 
-    if (_fs->_breaktargets.size()) _fs->_breaktargets.top()++;
-    if (_fs->_continuetargets.size()) _fs->_continuetargets.top()++;
+    ArenaVector<CatchClause> &clauses = tryStmt->catches();
+    const SQInteger n = (SQInteger)clauses.size();
 
-    SQInteger trappos = _fs->GetCurrentPos();
+    if (_fs->_traps + n > 255)
+        _ctx.throwError(tryStmt, "too many active catch clauses: bytecode supports at most 255 simultaneously active traps per function");
+
+    for (SQInteger i = 0; i < n; ++i) {
+        if (!clauses[i].type) continue;
+        visitForValue(clauses[i].type);
+        _fs->AddInstruction(_OP_CHECK_TYPE, _fs->TopTarget(), _RT_CLASS);
+        _fs->PopTarget();
+    }
+
+    ArenaVector<SQInteger> trappos(_arena);
+    for (SQInteger i = 0; i < n; ++i) trappos.push_back(0);
+
+    // One trap per clause, pushed in reverse declaration order so clause 0 ends up on
+    // top of the VM trap stack and the unwinder matches it first. _OP_PUSHTRAP arg2 is
+    // the class slot, arg3 the has-type flag; the VM copies the class into the trap.
+    for (SQInteger i = n - 1; i >= 0; --i) {
+        CatchClause &c = clauses[i];
+        SQInteger classSlot = 0, hasType = 0;
+        if (c.type) {
+            visitForValue(c.type);
+            classSlot = _fs->TopTarget();
+            hasType = 1;
+        }
+        _fs->AddInstruction(_OP_PUSHTRAP, 0, 0, classSlot, hasType);
+        trappos[i] = _fs->GetCurrentPos();
+        if (c.type) _fs->PopTarget();
+        _fs->_traps++;
+    }
+
+    if (_fs->_breaktargets.size()) _fs->_breaktargets.top() += n;
+    if (_fs->_continuetargets.size()) _fs->_continuetargets.top() += n;
+
     {
         BEGIN_SCOPE();
         tryStmt->tryStatement()->visit(this);
         END_SCOPE();
     }
 
-    _fs->_traps--;
-    _fs->AddInstruction(_OP_POPTRAP, 1, 0);
-    if (_fs->_breaktargets.size()) _fs->_breaktargets.top()--;
-    if (_fs->_continuetargets.size()) _fs->_continuetargets.top()--;
+    _fs->_traps -= n;
+    _fs->AddInstruction(_OP_POPTRAP, n, 0);
+    if (_fs->_breaktargets.size()) _fs->_breaktargets.top() -= n;
+    if (_fs->_continuetargets.size()) _fs->_continuetargets.top() -= n;
     _fs->AddInstruction(_OP_JMP, 0, 0);
     SQInteger jmppos = _fs->GetCurrentPos();
-    _fs->SetInstructionParam(trappos, 1, (_fs->GetCurrentPos() - trappos));
 
-    {
+    ArenaVector<SQInteger> bodyJmp(_arena);
+    for (SQInteger i = 0; i < n; ++i) {
+        CatchClause &c = clauses[i];
+        _fs->SetInstructionParam(trappos[i], 1, (_fs->GetCurrentPos() - trappos[i]));
+
         BEGIN_SCOPE();
-        SQInteger ex_target = _fs->PushLocalVariable(_fs->CreateString(tryStmt->exceptionId()->name()), SQCompiletimeVarInfo{});
-        _fs->SetInstructionParam(trappos, 0, ex_target);
-        tryStmt->catchStatement()->visit(this);
-        _fs->SetInstructionParams(jmppos, 0, (_fs->GetCurrentPos() - jmppos), 0);
+        SQInteger ex_target = _fs->PushLocalVariable(_fs->CreateString(c.exception->name()), SQCompiletimeVarInfo{});
+        _fs->SetInstructionParam(trappos[i], 0, ex_target);
+        // The unwinder pops the clauses above-and-including this one; the later clauses
+        // are still armed below it, so drop them before the body runs (a throw inside the
+        // body must reach the outer try, not a sibling clause).
+        if (n - 1 - i > 0)
+            _fs->AddInstruction(_OP_POPTRAP, n - 1 - i, 0);
+        c.body->visit(this);
         END_SCOPE();
+
+        if (i < n - 1) {                              // last body falls through to the end
+            _fs->AddInstruction(_OP_JMP, 0, 0);
+            bodyJmp.push_back(_fs->GetCurrentPos());
+        }
     }
+
+    SQInteger endpos = _fs->GetCurrentPos();
+    _fs->SetInstructionParams(jmppos, 0, (endpos - jmppos), 0);
+    for (SQInteger i = 0; i < (SQInteger)bodyJmp.size(); ++i)
+        _fs->SetInstructionParams(bodyJmp[i], 0, (endpos - bodyJmp[i]), 0);
 }
 
 void CodeGenVisitor::visitBreakStatement(BreakStatement *breakStmt) {
@@ -2762,5 +2808,3 @@ bool CodeGenVisitor::visitForValueMaybeStaticMemo(Node *n) {
 }
 
 } // namespace SQCompilation
-
-#endif

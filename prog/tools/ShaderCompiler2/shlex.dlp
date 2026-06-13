@@ -248,7 +248,6 @@ string      <MAIN> ==> string;
 'maybe' <MAIN> => maybe;
 'error' <MAIN> => _error;
 'mesh' <MAIN> => mesh;
-
 'stencil' <MAIN> => stencil;
 'stencil_func' <MAIN> => stencil_func;
 'stencil_ref' <MAIN> => stencil_ref;
@@ -446,6 +445,7 @@ keyword ->
 '/'  <MAIN> ==> div;
 
 "##" <MAIN> ==> macro_concat;
+'#rb' <MAIN> ==> rb_tag;
 
 //----- Error handling ------------------------------------------------------
 

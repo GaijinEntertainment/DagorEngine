@@ -5,6 +5,7 @@
 
 #include <backend/intermediateRepresentation.h>
 #include <backend/passColoring.h>
+#include <backend/nodeStateDeltas.h>
 
 #include <imgui.h>
 #include <gui/dag_imgui.h>
@@ -17,7 +18,8 @@ namespace dafg::visualization::irgraph
 class Visualizer
 {
 public:
-  Visualizer(const intermediate::Graph &ir_graph, const PassColoring &coloring);
+  Visualizer(const InternalRegistry &int_registry, const intermediate::Graph &ir_graph, const PassColoring &coloring,
+    const sd::NodeStateDeltas &state_deltas);
 
   void draw();
   void updateVisualization();
@@ -26,84 +28,121 @@ public:
 private:
   // draw functions
   void drawUI();
-  void drawCanvas(ImDrawList *draw_list);
+  void drawCanvas();
 
-  void drawEdge(ImDrawList *draw_list, const EdgeId id, const eastl::pair<ImVec2, ImVec2> from_to);
-  void drawNode(ImDrawList *draw_list, const NodeId id, const ImVec2 grid_position);
-  void drawResource(ImDrawList *draw_list, const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds);
-
-  void drawTextnOnNode(const NodeId id, const ImVec2 grid_position);
-  void drawTextnOnResource(const ResId id, const eastl::pair<ImVec2, ImVec2> grid_bounds);
+  void drawNodes(ImDrawList *draw_list, const CanvasLayout &layout);
+  void drawResources(ImDrawList *draw_list, const CanvasLayout &layout);
+  void drawOrderings(ImDrawList *draw_list, const CanvasLayout &layout);
+  void drawUsages(ImDrawList *draw_list, const CanvasLayout &layout);
 
   // control functions
-  void checkHovering();
-  void generateHoverMsg(ElementID element_id);
-  void generatePopupMsg(ElementID element_id);
-  void processInfoMsg();
-
+  void checkHovering(const CanvasLayout &layout);
   void processInput();
+  void processPopup();
 
   // update functions
-  void clearData();
-
-  void updateResourses();
   void updateNodes();
-  void updateEdges();
+  void updateResourses();
+  void updateConnections();
 
-
-  void updateWholeGraphView();
-  void updateFocusGraphView();
-
-  void generateAllElementsSet(GraphView &graph_view);
-  void generateFocusedSet(GraphView &graph_view);
-
-  void placeWithGeneralLayout(GraphView &graph_view);
-  void placeWithFocusedLayout(GraphView &graph_view);
-  void placeResourcesByLines(GraphView &graph_view);
-  void updateEdgesLayout(GraphView &graph_view);
+  void performLayout();
+  void placeNodesByPasses(CanvasLayout &layout);
+  void placeResourcesByLines(CanvasLayout &layout);
+  void placeOrderings(CanvasLayout &layout);
+  void placeUsages(CanvasLayout &layout);
 
 
   // data sources
+  const InternalRegistry &registry;
   const intermediate::Graph &intermediateGraph;
   const PassColoring &passColoring;
+  const sd::NodeStateDeltas &stateDeltas;
 
 
   // gathered data
-  IdIndexedMapping<NodeId, IntermediateNode> nodes;
-  IdIndexedMapping<ResId, IntermediateResource> resources;
-  IdIndexedMapping<EdgeId, IntermediateEdge> edges;
+  IdIndexedMapping<NodeId, Node> nodes;
+  IdIndexedMapping<ResourceId, Resource> resources;
+  IdIndexedMapping<intermediate::NodeIndex, NodeId> irNodeRepresent;
+  IdIndexedMapping<intermediate::ResourceIndex, ResourceId> irResRepresent;
+  inline intermediate::NodeIndex irIndexByNodeId(const NodeId node_id) const { return nodes[node_id].irIndex; };
+  inline intermediate::ResourceIndex irIndexByResId(const ResourceId resource_id) const { return resources[resource_id].irIndex; }
 
-  IdIndexedMapping<intermediate::NodeIndex, NodeId> irNodeIndexToVisNodeId;
-  IdIndexedMapping<intermediate::ResourceIndex, ResId> irResIndexToVisResId;
+  IdIndexedMapping<OrderingId, Ordering> orderings;
+  IdIndexedMapping<UsageId, Usage> usages;
 
 
   // canvas
   ImGuiEx::Canvas canvas;
+  enum CanvasChannels
+  {
+    SUSPEND = 0,
+    ORDERINGS,
+    USAGES,
+    NODES,
+    RESOURCES = NODES,
+    TEXTS,
+    COUNT
+  };
 
-  GraphView wholeGraphView{{
-    .initCanvasScaleId = 7,
-    .canvasScales = {0.01f, 0.025f, 0.05f, 0.1f, 0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.50f},
-  }};
+  CanvasCamera canvasCamera{};
 
-  GraphView focusedGraphView{{
-    .initCanvasScaleId = 4,
-    .canvasScales = {0.05f, 0.1f, 0.5f, 0.75f, 1.0f, 1.25f, 1.50f, 2.0f, 2.5f, 3.0f},
-  }};
+  CanvasLayout generalLayout;
+  bool updateNeeded = true;
 
-  String hoverMessage;
-  String popupMessage;
+
+  // hovering
+  struct
+  {
+    bool window = false;
+    bool searchBox = false;
+    bool canvas = false;
+
+    NodeId node = NodeId::Invalid;
+    ResourceId resource = ResourceId::Invalid;
+
+    String tooltip;
+
+    void reset()
+    {
+      window = false;
+      searchBox = false;
+      canvas = false;
+
+      node = NodeId::Invalid;
+      resource = ResourceId::Invalid;
+
+      tooltip.clear();
+    }
+  } hoverState;
+  ResourceId popupResource = ResourceId::Invalid;
 
 
   // focusing
-  ElementID focusedElementId;
-  ElementID nextFocusedElementId;
-  bool focusOnly = false;
-  bool compactView = false;
+  const struct
+  {
+    mutable NodeId node = NodeId::Invalid;
+    mutable ResourceId resource = ResourceId::Invalid;
 
-  void updateVisibilityFlags();
 
-  void resetFocusElement();
-  void setFocusElement(ElementID id);
+    inline bool nodeValid() const { return node != NodeId::Invalid; }
+    inline bool resValid() const { return resource != ResourceId::Invalid; }
+
+    inline void set(NodeId id) const
+    {
+      node = id;
+      resource = ResourceId::Invalid;
+    }
+    inline void set(ResourceId id) const
+    {
+      node = NodeId::Invalid;
+      resource = id;
+    }
+    inline void reset() const
+    {
+      node = NodeId::Invalid;
+      resource = ResourceId::Invalid;
+    };
+  } focusState;
 };
 
 } // namespace dafg::visualization::irgraph

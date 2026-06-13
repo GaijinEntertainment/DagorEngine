@@ -97,8 +97,10 @@
   VAR(clouds_use_blur_apply, true)                                                        \
   VAR(clouds_invalidate_taa_frames, true)                                                 \
   VAR(clouds_ignore_close_objects, true)                                                  \
-  VAR(clouds_rain_map_max_height, true)
-
+  VAR(clouds_rain_map_max_height, true)                                                   \
+  VAR(clouds_perlin_worley_dilation, true)                                                \
+  VAR(clouds_worley_erosion, true)                                                        \
+  VAR(clouds_shape_gamma, true)
 
 #define VAR(a, opt) extern int a##VarId;
 CLOUDS_VARS_LIST

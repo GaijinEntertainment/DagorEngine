@@ -664,6 +664,10 @@ void DeviceContext::present(uint32_t engine_present_frame_id)
     else
       Frontend::latencyWaiter.markAsyncWait();
   }
+
+  // video/cpuGpuOverlap:b=off: block until the GPU finished this frame before the CPU starts the next one
+  if (DAGOR_UNLIKELY(Globals::cfg.bits.disableCpuGpuOverlap))
+    wait();
 }
 
 void DeviceContext::flushBufferToHost(const BufferRef &buffer, ValueRange<uint32_t> range)

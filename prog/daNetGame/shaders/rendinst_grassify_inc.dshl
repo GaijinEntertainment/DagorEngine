@@ -117,9 +117,10 @@ macro COMPILE_GRASSIFY_PS()
       #define GRASS_MASK_COMPRESSED 1
 
       float2 bilW = frac(grass_mask_tc * grass_mask_islands_size - 0.5f);
+      // gather order is (-,+),(+,+),(+,-),(-,-): pairs are (left, right), pick right when bilW.x > 0.5
       float4 red = grass_mask_islands_tex.GatherRed(grass_mask_islands_tex_samplerstate, grass_mask_tc);
       float2 redX = bilW.y>0.5 ? red.xy : red.wz;
-      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      float redChannel = bilW.x>0.5 ? redX.y : redX.x;
       uint grassChannel = redChannel*255;
 
       float maskScale;

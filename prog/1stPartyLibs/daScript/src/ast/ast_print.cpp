@@ -87,8 +87,11 @@ namespace das {
                 printAliases= program->options.getBoolOption("log_aliasing");
                 printUse = program->options.getBoolOption("print_use");
                 gen2 = program->policies.version_2_syntax;
-                printCStyle = program->options.getBoolOption("print_c_style") || gen2;
+                printCStyle = program->options.getBoolOption("print_c_style");
             }
+            // gen2 always implies C-style braces; keep these consistent even when
+            // there is no program (describe_function / describe_expression path).
+            printCStyle = printCStyle || gen2;
         }
         string str() const { return ss.str(); };
         bool printRef = false;

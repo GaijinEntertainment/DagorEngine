@@ -533,10 +533,15 @@ public:
                 ++_indent;
                 tr->tryStatement()->visit(this);
                 --_indent;
-                writeIndentedFmtString("CatchBlock exceptionId = '%s'\n", tr->exceptionId()->name());
-                ++_indent;
-                tr->catchStatement()->visit(this);
-                --_indent;
+                for (auto &c : tr->catches()) {
+                    if (c.type)
+                        writeIndentedFmtString("CatchBlock type = '%s' exceptionId = '%s'\n", c.type->name(), c.exception->name());
+                    else
+                        writeIndentedFmtString("CatchBlock exceptionId = '%s'\n", c.exception->name());
+                    ++_indent;
+                    c.body->visit(this);
+                    --_indent;
+                }
                 --_indent;
                 break;
             }

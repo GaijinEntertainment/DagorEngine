@@ -809,6 +809,13 @@ void WsJsonRpcConnection::onEvent(eastl::unique_ptr<DisconnectEvent> &&event)
 
   verifyState(state == State::AUTHENTICATING || state == State::CONNECTED || state == State::CLOSING, "onEvent(DisconnectEvent)");
 
+  if (state == State::AUTHENTICATING)
+  {
+    // This is a rare case. The connection was lost during authentication process.
+    // Update the connection time tick to improve accuracy of statistics.
+    onConnectTimeTick = abstraction::get_current_tick_count();
+  }
+
   if (state != State::CLOSING)
   {
     switchState(state, State::CLOSING);
@@ -858,6 +865,8 @@ void WsJsonRpcConnection::processAuthenticationResult(RpcResponsePtr &&response)
 {
   G_ASSERT(config.waitForAuthenticationResponse);
   G_ASSERT(state == State::AUTHENTICATING);
+
+  onConnectTimeTick = abstraction::get_current_tick_count();
 
   authenticationFailed = response->isError();
   if (authenticationFailed)

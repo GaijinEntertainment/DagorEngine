@@ -107,6 +107,7 @@ macro INIT_SHORE(stage)
   (stage) {
     shore_damp@f4 = (1.0 / (shore_damp.y - shore_damp.x), -shore_damp.x / (shore_damp.y - shore_damp.x), 0.5 * distance_field_texture_size, 2.0 / distance_field_texture_size);
     shore_waves_on@i1 = shore_waves_on;
+    shore_distance_field_tex_exists@i1 = exists_tex(shore_distance_field_tex);
     gspeed__hmap_size__depth_damp@f3 = (shore_gerstner_speed, 1.0 / world_to_heightmap.x, shore_foam_depth_damping);
     shore_rivers_wave_multiplier@f1 = shore_rivers_wave_multiplier;
 

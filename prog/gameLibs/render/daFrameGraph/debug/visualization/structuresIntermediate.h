@@ -4,6 +4,7 @@
 #include <debug/visualization/structuresCommon.h>
 
 #include <backend/intermediateRepresentation.h>
+#include <backend/passColoring.h>
 
 #include <EASTL/fixed_string.h>
 #include <EASTL/variant.h>
@@ -18,128 +19,80 @@
 
 namespace dafg::visualization::irgraph
 {
+inline constexpr PassColor UNKNOWN_PASS_COLOR = static_cast<PassColor>(-1);
+inline constexpr uint32_t UNKNOWN_VALUE = static_cast<uint32_t>(-1);
+
+
+struct Rectangle
+{
+  ImVec2 offset = {};
+  ImVec2 size = {};
+};
+
 
 enum class NodeId : uint16_t
 {
-  INVALID = static_cast<eastl::underlying_type_t<NodeId>>(-1)
+  Invalid = static_cast<eastl::underlying_type_t<NodeId>>(-1)
 };
 
-enum class ResId : uint16_t
+enum class ResourceId : uint16_t
 {
-  INVALID = static_cast<eastl::underlying_type_t<ResId>>(-1)
+  Invalid = static_cast<eastl::underlying_type_t<ResourceId>>(-1)
 };
 
-enum class EdgeId : uint16_t
+enum class OrderingId : uint16_t
 {
-  INVALID = static_cast<eastl::underlying_type_t<EdgeId>>(-1)
+  Invalid = static_cast<eastl::underlying_type_t<OrderingId>>(-1)
 };
 
-using ElementID = eastl::variant<eastl::monostate, NodeId, ResId, EdgeId>;
-
-using NodeName = eastl::fixed_string<char, 64>;
-
-using ResName = eastl::fixed_string<char, 128>;
-
-
-struct VisualElement
+enum class UsageId : uint16_t
 {
-  bool isVisible = true;
-  bool focused = false;
-  bool outOfFocus = false;
-};
-
-struct IntermediateNode : VisualElement
-{
-  NodeName name;
-
-  eastl::optional<NodeNameId> frontendNode = eastl::nullopt;
-  intermediate::NodeIndex intermediateNode = static_cast<intermediate::NodeIndex>(-1);
-
-  dag::RelocatableFixedVector<NodeId, 16> previousNodes;
-  dag::RelocatableFixedVector<NodeId, 16> followingNodes;
-  dag::RelocatableFixedVector<ResId, 16> resourceUsages;
-
-  uint32_t renderPassNumber = 0;
-
-  uint32_t multiplexingCount = 0;
-};
-
-struct IntermediateResource : VisualElement
-{
-  ResName name;
-
-  dag::RelocatableFixedVector<ResNameId, 8> frontendResources;
-  intermediate::ResourceIndex intermediateResource = static_cast<intermediate::ResourceIndex>(-1);
-
-  dag::RelocatableFixedVector<NodeId, 16> requestedBy;
-
-  NodeId firstUsage = NodeId::INVALID;
-  NodeId lastUsage = NodeId::INVALID;
-
-  uint32_t line = 0;
-
-  uint32_t multiplexingCount = 0;
-};
-
-struct IntermediateEdge : VisualElement
-{
-  NodeId fromNode = NodeId::INVALID;
-  NodeId toNode = NodeId::INVALID;
-  ResId toRes = ResId::INVALID;
+  Invalid = static_cast<eastl::underlying_type_t<UsageId>>(-1)
 };
 
 
-struct GraphSubset
+struct Node
 {
-  dag::VectorSet<NodeId> nodes;
-  dag::VectorSet<ResId> resources;
-  dag::VectorSet<EdgeId> edges;
+  intermediate::NodeIndex irIndex = static_cast<intermediate::NodeIndex>(-1);
+  uint32_t executionTime = UNKNOWN_VALUE;
+  uint32_t renderPassNumber = UNKNOWN_VALUE;
 
-public:
-  void reset()
-  {
-    nodes.clear();
-    resources.clear();
-    edges.clear();
-  }
+  dag::RelocatableFixedVector<OrderingId, 16> previous;
+  dag::RelocatableFixedVector<OrderingId, 16> following;
+
+  dag::RelocatableFixedVector<UsageId, 16> resourceUsages;
 };
 
-struct SetLayout
+struct Resource
 {
-  IdIndexedMapping<NodeId, ImVec2> nodesGridCoords;
-  IdIndexedMapping<ResId, eastl::pair<ImVec2, ImVec2>> resGridBounds;
-  IdIndexedMapping<EdgeId, eastl::pair<ImVec2, ImVec2>> edgesFrTo;
+  intermediate::ResourceIndex irIndex = static_cast<intermediate::ResourceIndex>(-1);
 
-public:
-  void reset()
-  {
-    nodesGridCoords.clear();
-    resGridBounds.clear();
-    edgesFrTo.clear();
-  }
+  NodeId firstUser = NodeId::Invalid;
+  NodeId lastUser = NodeId::Invalid;
+
+  dag::RelocatableFixedVector<UsageId, 16> usages;
+};
+
+struct Ordering
+{
+  NodeId from = NodeId::Invalid;
+  NodeId to = NodeId::Invalid;
+};
+
+struct Usage
+{
+  NodeId node = NodeId::Invalid;
+  ResourceId resource = ResourceId::Invalid;
+  intermediate::Request irRequest = {};
 };
 
 
-struct GraphView
+struct CanvasLayout
 {
-  CanvasCamera camera;
-  GraphSubset elementsSet;
-  SetLayout elementsLayout;
-
-public:
-  ImVec2 &getOffset() { return camera.canvasOffset; }
-  float getZoom() const { return camera.getZoom(); }
-  void zoomIn() { camera.zoomIn(); }
-  void zoomOut() { camera.zoomOut(); }
-
-  void resetView() { camera.reset(); }
-
-  void clearData()
-  {
-    camera.reset();
-    elementsSet.reset();
-    elementsLayout.reset();
-  }
+  IdIndexedMapping<NodeId, Rectangle> nodes;
+  IdIndexedMapping<ResourceId, Rectangle> resources;
+  IdIndexedMapping<OrderingId, Rectangle> orderings;
+  IdIndexedMapping<UsageId, Rectangle> usages;
 };
 
 } // namespace dafg::visualization::irgraph

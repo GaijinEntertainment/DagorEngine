@@ -55,14 +55,7 @@ public:
   static constexpr int BASE_HMAP_LOD_COUNT = 8;
 
   ~HeightmapHandler() { close(); }
-  HeightmapHandler() :
-    preparedOriginPos(0.f, 0.f, 0.f),
-    preparedCameraHeight(0.f),
-    preparedWaterLevel(HeightmapHeightCulling::NO_WATER_ON_LEVEL),
-    lodDistance(1),
-    lodCount(BASE_HMAP_LOD_COUNT),
-    hmapDimBits(0)
-  {}
+  HeightmapHandler() : preparedOriginPos(0.f, 0.f, 0.f), hmapDimBits(0) {}
 
   bool init(int dim_bits = 0);
   void afterDeviceReset();
@@ -76,9 +69,8 @@ public:
   void setEnableMipsUpdating(bool enable) { enabledMipsUpdating = enable; }
 
   // Returns true if we should render it
-  bool prepare(const Point3 &world_pos, float camera_height, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL);
+  bool prepare(const Point3 &world_pos);
   void prepareHmapModificaton(); // called from prepare, unless pushHmapModificationOnPrepare is off
-  void render(int min_tank_lod); // Uses parameters from prepare call.
   void frustumCulling(LodGridCullData &data, const HeightmapFrustumCullingInfo &fi); // Independent from prepare for multithreading.
   void renderCulled(const LodGridCullData &);
 
@@ -111,13 +103,8 @@ public:
     heightChangesIndex.insert(changesIndex);
   }
 
-  int getLodDistance() const { return lodDistance; }
-  void setLodDistance(int lodD) { lodDistance = lodD; }
-  void setLodCount(int lods) { lodCount = lods; }
   void setHmapDistanceMul(float hmap_distance_mul) { hmapDistanceMul = hmap_distance_mul; }
   Point3 getPreparedOriginPos() const { return preparedOriginPos; }
-  float getPreparedCameraHeight() const { return preparedCameraHeight; }
-  float getPreparedWaterLevel() const { return preparedWaterLevel; }
   // incremented when terrain changes
   int getTerrainStateVersion() const { return terrainStateVersion; }
 
@@ -134,18 +121,13 @@ public:
   const MetricsErrors *getMetricsRaw() const { return metrics; }
 
 protected:
-  int calcLod(int min_lod, const Point3 &origin_pos, float camera_height) const;
   void fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 region_width, bool updateMips, BaseTexture *upload_tex,
     LockedImageRawBytes upload_texlock, eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame = false);
   HeightmapRenderer renderer;
   Point3 preparedOriginPos;
-  float preparedCameraHeight;
-  float preparedWaterLevel; // this is constant loaded water level
   eastl::unique_ptr<HeightmapRenderData> renderData;
   bool fillHmapTexturesNeeded = false;
   int hmapDimBits;
-  int lodDistance;
-  int lodCount;
   float hmapDistanceMul = 1.0f;
   // These hardcoded displacements are required to account for additional GPU displacements which can be both up and downwards
   float maxUpwardDisplacement = 0.5f;

@@ -15,7 +15,7 @@ int DagorWinMain(bool debugmode)
 {
   debug_enable_timestamps(false);
   printf("UTF8 text range detectors\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   if (dgs_argc < 2)
   {

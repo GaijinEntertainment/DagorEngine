@@ -2,7 +2,6 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include "sqstring.h"
 #include "sqfuncproto.h"
 #include "sqtable.h"
@@ -670,5 +669,3 @@ SQFuncState::~SQFuncState()
         PopChildState();
     }
 }
-
-#endif

@@ -1,4 +1,3 @@
-from "string.nut" import tostring_r
 //local pp = @(...) print(vargv.reduce(@(a,b) a+", " +b) + "\n")
 
 /*
@@ -82,7 +81,7 @@ function mkClassFields(fields){
   return fields.map(@(v) _cfield(v[0], valToStr(v[1]))).reduce(addNewline1)
 }
 
-let mkPosFieldInit = @(fieldname, def) $"this.{fieldname} = {valToStr(def)}"
+let mkPosFieldInit = @(fieldname, _def) $"this.{fieldname} = {fieldname}"
 
 function mkTableFieldInit(fieldname, firstarg, def){
   def = valToStr(def)
@@ -97,9 +96,8 @@ function mkArg(name, def){
 
 function mkCtor(fields, args){
   let firstarg = fields[0][0]
-  pp(tostring_r(fields))
   let kwargs_inits = fields.map(@(v) mkTableFieldInit(v[0], firstarg, v[1])).reduce(addNewline3)
-  let pargs_inits = fields.map(@(v) mkPosFieldInit(v[0], v[1])).filter(@(_idx, v) v!="" && v!=null).reduce(addNewline3) ?? ""
+  let pargs_inits = fields.map(@(v) mkPosFieldInit(v[0], v[1])).reduce(addNewline3) ?? ""
 
   let ret = @"
   constructor({0}){

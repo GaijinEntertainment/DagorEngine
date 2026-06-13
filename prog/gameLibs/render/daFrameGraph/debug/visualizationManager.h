@@ -15,11 +15,11 @@ namespace dafg::visualization
 class VisManager final : public IVisualizationManager
 {
 public:
-  VisManager(InternalRegistry &intRegistry, const NameResolver &nameResolver, const DependencyData &depData,
-    const intermediate::Graph &irGraph, const PassColoring &coloring);
+  VisManager(InternalRegistry &int_registry, const NameResolver &name_resolver, const DependencyData &dep_data,
+    const intermediate::Graph &ir_graph, const PassColoring &coloring, const sd::NodeStateDeltas &state_deltas);
   ~VisManager() override;
 
-  void updateUserGraphVisualization() override;
+  void updateUserGraphVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed) override;
   void updateIRGraphVisualization() override;
   void updateResourceVisualization() override;
   void updateTextureVisualization() override;

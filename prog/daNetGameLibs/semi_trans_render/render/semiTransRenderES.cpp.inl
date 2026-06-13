@@ -16,7 +16,7 @@
 #include <render/renderEvent.h>
 #include <rendInst/rendInstExtraRender.h>
 
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/renderPrecise.h>
 #include <ecs/anim/animchar_visbits.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
@@ -58,7 +58,7 @@ ECS_REGISTER_RELOCATABLE_TYPE(SemiTransRenderManager, nullptr);
 extern ShaderBlockIdHolder dynamicSceneTransBlockId;
 extern ShaderBlockIdHolder rendinstTransSceneBlockId;
 
-using namespace dynmodel_renderer;
+using namespace dynrend;
 
 template <typename Callable>
 static inline void semi_trans_manager_ecs_query(ecs::EntityManager &manager, Callable);
@@ -90,7 +90,8 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
   if (!semiTransMgr || ((animchar_visbits & (VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_MAIN_VISIBLE)) == 0))
     return;
 
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+  clear(ctx);
 
   animchar_visbits |= VISFLG_SEMI_TRANS_RENDERED;
 
@@ -102,22 +103,18 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
     semi_transparent__placingColorAlpha);
   auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_PLACING_COLOR>(make_span_const(&params, 1));
 
-  state.process_animchar(0, semi_transparent__endStage, animchar_render.getSceneInstance(), additionalData,
-    dynmodel_renderer::NeedPreviousMatrices::No,
-    {semiTransMgr->dynamicObjectsRenderer.shader, semiTransMgr->dynamicSkinnedObjectsRenderer.shader},
-    dynmodel_renderer::PathFilterView::NULL_FILTER, 0, RenderPriority::HIGH, nullptr, event.texCtx);
+  add_animchar(ctx, 0, semi_transparent__endStage, animchar_render.getSceneInstance(), additionalData, NeedPreviousMatrices::No,
+    {semiTransMgr->dynamicObjectsRenderer.shader, semiTransMgr->dynamicSkinnedObjectsRenderer.shader}, PathFilterView::NULL_FILTER, 0,
+    RenderPriority::HIGH, nullptr, event.texCtx);
 
-  state.prepareForRender();
-  const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::TRANSPARENT_MAIN);
-  if (!buffer)
+  if (!prepare_render_current(ctx))
     return;
 
   TMatrix vtm = event.viewTm;
   vtm.setcol(3, 0, 0, 0);
   d3d::settm(TM_VIEW, vtm);
-  state.setVars(buffer->buffer.getBufId());
   SCENE_LAYER_GUARD(dynamicSceneTransBlockId);
-  state.render(buffer->curOffset);
+  render_all_stages(ctx);
   d3d::settm(TM_VIEW, event.viewTm);
 }
 

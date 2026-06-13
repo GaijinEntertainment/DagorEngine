@@ -731,6 +731,18 @@ IFPObject *FastPhysEditor::getSelObject()
 }
 
 
+void FastPhysEditor::getSelectedObjects(dag::Vector<IFPObject *> &objects)
+{
+  const int count = selectedCount();
+  for (int i = 0; i < count; ++i)
+  {
+    RenderableEditableObject *o = getSelected(i);
+    if (o && o->isSubOf(IFPObject::HUID))
+      objects.push_back(static_cast<IFPObject *>(o));
+  }
+}
+
+
 void FastPhysEditor::updateSelection()
 {
   if (!selProcess)

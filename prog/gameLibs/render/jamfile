@@ -78,6 +78,7 @@ Sources =
   frustumClusters.cpp
   shadowSystem.cpp
   clusteredLights.cpp
+  clusteredLightsSorter.cpp
   clusteredLightsGrid.cpp
   dstReadbackLights.cpp
   temporalAA.cpp

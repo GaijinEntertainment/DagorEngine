@@ -86,10 +86,13 @@ def dagormat_textures_to_string(textures):
         string += '\n'
     return string
 
-def dagormat_prop_to_string(props, prop_name):
+def dagormat_prop_to_string(props, prop_name, short = False):
     prop_type = get_property_type(props, prop_name)
     prop_str = prop_value_to_string(props[prop_name], prop_type)
-    string = f'script:t="{prop_name}={prop_str}"'
+    if short:
+        string = f'{prop_name}={prop_str}'
+    else:
+        string = f'script:t="{prop_name}={prop_str}"'
     return string
 
 def dagormat_properties_to_string(props):

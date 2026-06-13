@@ -12,7 +12,7 @@
 static void print_header()
 {
   printf("GRP/DxP cleanup util v1.0\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 static bool clean_extra_res_files(const char *root_dir, const char *vrom_name, const char *res_blk_name, bool clean, bool validate)

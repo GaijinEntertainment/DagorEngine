@@ -26,7 +26,7 @@ namespace
 enum
 {
   PID_GRAPH_BASE = 13000,
-  PID_GRAPH_SOURCE_PATH = PID_GRAPH_BASE + 0,
+  PID_GRAPH_TEX_WRAP = PID_GRAPH_BASE + 0,
   PID_GRAPH_TEXROOT = PID_GRAPH_BASE + 1,
   PID_GRAPH_RENDER_DIR = PID_GRAPH_BASE + 2,
   PID_GRAPH_ENTITY_DIR = PID_GRAPH_BASE + 3,
@@ -37,7 +37,6 @@ enum
   PID_GRAPH_TEX_HEIGHT = PID_GRAPH_BASE + 8,
   PID_GRAPH_TEX_DEPTH = PID_GRAPH_BASE + 9,
   PID_GRAPH_TEX_TYPE = PID_GRAPH_BASE + 10,
-  PID_GRAPH_TEX_WRAP = PID_GRAPH_BASE + 11,
 
   PID_NODE_HEADER = 13100,
   PID_NODE_ID = 13101,
@@ -46,15 +45,12 @@ enum
   PID_NODE_PROP_BASE = 13200,
 };
 
-// Fallbacks for the heightmap fields when the loaded graph JSON has no markers.
+// Fallbacks for the heightmap fields when the loaded graph has no heightmap metadata.
 // Mirrors the defaults the standalone graphEditor app reads from landSettings (app.cpp:3074-3077)
 // so the user always sees an editable value rather than FLT_MAX.
 constexpr float DEFAULT_HEIGHT_SCALE = 2000.0f;
 constexpr float DEFAULT_HEIGHT_MIN = -0.05f;
 constexpr float DEFAULT_CELL_SIZE = 4.0f;
-
-constexpr const char *EMPTY_DIR_PLACEHOLDER = "<empty>";
-constexpr const char *NO_GRAPH_PLACEHOLDER = "<none>";
 
 constexpr int HEIGHT_FLOAT_PREC = 4;
 
@@ -218,6 +214,8 @@ void PropertiesPanel::updateImgui()
 
   if (needRebuild)
   {
+    IEditorCoreEngine::get()->sendImmediateFocusLossNotification();
+
     panelWindow->clear();
     pidToPropertyName.clear();
 
@@ -247,14 +245,9 @@ void PropertiesPanel::rebuildForGraph()
 
   const GraphData &gd = plugin.getGraphData();
 
-  panelWindow->createStatic(PID_GRAPH_SOURCE_PATH,
-    String(0, "Source: %s", gd.sourcePath.empty() ? NO_GRAPH_PLACEHOLDER : gd.sourcePath.c_str()));
-  panelWindow->createStatic(PID_GRAPH_TEXROOT,
-    String(0, "Texture root: %s", gd.textureRootDir.empty() ? EMPTY_DIR_PLACEHOLDER : gd.textureRootDir.c_str()));
-  panelWindow->createStatic(PID_GRAPH_RENDER_DIR,
-    String(0, "Render dir: %s", gd.renderDir.empty() ? EMPTY_DIR_PLACEHOLDER : gd.renderDir.c_str()));
-  panelWindow->createStatic(PID_GRAPH_ENTITY_DIR,
-    String(0, "Entity dir: %s", gd.entityDir.empty() ? EMPTY_DIR_PLACEHOLDER : gd.entityDir.c_str()));
+  panelWindow->createEditBox(PID_GRAPH_TEXROOT, "Texture root", gd.textureRootDir.c_str());
+  panelWindow->createEditBox(PID_GRAPH_RENDER_DIR, "Render dir", gd.renderDir.c_str());
+  panelWindow->createEditBox(PID_GRAPH_ENTITY_DIR, "Entity dir", gd.entityDir.c_str());
 
   panelWindow->createSeparator();
 
@@ -466,34 +459,6 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     return;
   }
 
-  // Graph-mode heightmap edits.
-  if (pcb_id == PID_GRAPH_HEIGHT_SCALE || pcb_id == PID_GRAPH_HEIGHT_MIN || pcb_id == PID_GRAPH_CELL_SIZE)
-  {
-    plugin.mutateGraphData([&](GraphData &gd) {
-      if (pcb_id == PID_GRAPH_HEIGHT_SCALE)
-      {
-        gd.heightmapScale = panel->getFloat(pcb_id);
-      }
-      else if (pcb_id == PID_GRAPH_HEIGHT_MIN)
-      {
-        gd.heightmapMin = panel->getFloat(pcb_id);
-      }
-      else
-      {
-        gd.heightmapCellSize = panel->getFloat(pcb_id);
-      }
-    });
-
-    if (IGraphTexGenService *svc = plugin.getTexGenService())
-    {
-      const GraphData &gd = plugin.getGraphData();
-      svc->setHeightmapParams(effective_height(gd.heightmapScale, DEFAULT_HEIGHT_SCALE),
-        effective_height(gd.heightmapMin, DEFAULT_HEIGHT_MIN), effective_height(gd.heightmapCellSize, DEFAULT_CELL_SIZE));
-      svc->requestRegenerate();
-    }
-    return;
-  }
-
   if (pcb_id == PID_GRAPH_TEX_WIDTH || pcb_id == PID_GRAPH_TEX_HEIGHT || pcb_id == PID_GRAPH_TEX_DEPTH ||
       pcb_id == PID_GRAPH_TEX_TYPE || pcb_id == PID_GRAPH_TEX_WRAP)
   {
@@ -528,7 +493,98 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
     return;
   }
 
-  // Node-mode property edits.
+  commitNodeProperty(pcb_id, panel, /*finished=*/false);
+}
+
+void PropertiesPanel::onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  if (!panel)
+  {
+    return;
+  }
+
+  // Heightmap spin edits commit here (Enter / spin-button release / focus loss) rather than on every
+  // intermediate onChange, so holding a spin button doesn't regenerate every frame.
+  if (pcb_id == PID_GRAPH_HEIGHT_SCALE || pcb_id == PID_GRAPH_HEIGHT_MIN || pcb_id == PID_GRAPH_CELL_SIZE)
+  {
+    plugin.mutateGraphData([&](GraphData &gd) {
+      if (pcb_id == PID_GRAPH_HEIGHT_SCALE)
+      {
+        gd.heightmapScale = panel->getFloat(pcb_id);
+      }
+      else if (pcb_id == PID_GRAPH_HEIGHT_MIN)
+      {
+        gd.heightmapMin = panel->getFloat(pcb_id);
+      }
+      else
+      {
+        gd.heightmapCellSize = panel->getFloat(pcb_id);
+      }
+    });
+
+    if (IGraphTexGenService *svc = plugin.getTexGenService())
+    {
+      const GraphData &gd = plugin.getGraphData();
+      svc->setHeightmapParams(effective_height(gd.heightmapScale, DEFAULT_HEIGHT_SCALE),
+        effective_height(gd.heightmapMin, DEFAULT_HEIGHT_MIN), effective_height(gd.heightmapCellSize, DEFAULT_CELL_SIZE));
+      svc->requestRegenerate();
+    }
+    return;
+  }
+
+  // Output directory edits commit here -- on Enter, on focus loss, or just before the panel
+  // is rebuilt (see send_immediate_focus_loss_notification in updateImgui) -- rather than on
+  // every keystroke. Skipping an unchanged value avoids a needless recompile/regen (and the
+  // transient "texgen failed" it would otherwise surface for a half-typed path).
+  if (pcb_id == PID_GRAPH_TEXROOT || pcb_id == PID_GRAPH_RENDER_DIR || pcb_id == PID_GRAPH_ENTITY_DIR)
+  {
+    const SimpleString text = panel->getText(pcb_id);
+    bool changed = false;
+    plugin.mutateGraphData([&](GraphData &gd) {
+      if (pcb_id == PID_GRAPH_TEXROOT)
+      {
+        if (gd.textureRootDir != text.str())
+        {
+          gd.textureRootDir = text.str();
+          changed = true;
+        }
+      }
+      else if (pcb_id == PID_GRAPH_RENDER_DIR)
+      {
+        if (gd.renderDir != text.str())
+        {
+          gd.renderDir = text.str();
+          changed = true;
+        }
+      }
+      else
+      {
+        if (gd.entityDir != text.str())
+        {
+          gd.entityDir = text.str();
+          changed = true;
+        }
+      }
+    });
+    if (changed)
+    {
+      if (pcb_id == PID_GRAPH_TEXROOT)
+      {
+        plugin.markGraphForceRebuild();
+      }
+      else
+      {
+        plugin.markGraphDirtyAndRegen();
+      }
+    }
+    return;
+  }
+
+  commitNodeProperty(pcb_id, panel, /*finished=*/true);
+}
+
+void PropertiesPanel::commitNodeProperty(int pcb_id, PropPanel::ContainerPropertyControl *panel, bool finished)
+{
   auto it = pidToPropertyName.find(pcb_id);
   if (it == pidToPropertyName.end())
   {
@@ -549,8 +605,18 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
   }
 
   const char *t = infer_prop_type(propDesc);
-  eastl::string newVal;
 
+  // Discrete controls (checkbox / combobox / color) commit per onChange and have no onChangeFinished;
+  // continuous ones (editBox / spin / slider) commit on onChangeFinished (Enter / spin or slider
+  // release / focus loss) so typing or holding a button doesn't recompile every frame. So onChange
+  // (finished == false) handles only discrete, onChangeFinished (finished == true) only continuous.
+  const bool discrete = !strcmp(t, "bool") || !strcmp(t, "combobox") || !strcmp(t, "color");
+  if (finished == discrete)
+  {
+    return;
+  }
+
+  eastl::string newVal;
   if (!strcmp(t, "string"))
   {
     newVal = static_cast<const char *>(panel->getText(pcb_id));
@@ -585,12 +651,12 @@ void PropertiesPanel::onChange(int pcb_id, PropPanel::ContainerPropertyControl *
   }
   else
   {
-    return; // read-only stub types -- onChange is not expected, but ignore defensively.
+    return; // read-only stub types -- not editable.
   }
 
-  // Re-find the node inside mutateGraphData so the mutable reference comes from the
-  // locked-access path. lastRenderedNodeId is stable across the lambda; main is the
-  // only writer that could remove a node and we're on main.
+  // Re-find the node inside mutateGraphData so the mutable reference comes from the locked-access
+  // path. lastRenderedNodeId is stable across the lambda; main is the only writer that could remove
+  // a node and we're on main.
   plugin.mutateGraphData([&](GraphData &gd) {
     for (auto &node : gd.nodes)
     {

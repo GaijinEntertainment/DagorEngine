@@ -1171,12 +1171,13 @@ ScriptHelpers::TunedElement *FxRenderShader::createTunedElement(const char *name
 ScriptHelpers::TunedElement *FxFadeByDist::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(2);
+  elems.reserve(3);
 
   elems.push_back(ScriptHelpers::create_tuned_bool_param("enabled", false));
   elems.push_back(ScriptHelpers::create_tuned_real_param("zfar_start_to_clip", 0));
+  elems.push_back(ScriptHelpers::create_tuned_real_param("zfar_finish_to_clip", 0));
 
-  return ScriptHelpers::create_tuned_struct(name, 1, elems);
+  return ScriptHelpers::create_tuned_struct(name, 2, elems);
 }
 
 

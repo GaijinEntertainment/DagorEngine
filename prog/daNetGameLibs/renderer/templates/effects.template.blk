@@ -19,7 +19,6 @@ ground_effect{
     ground_effect__scale_x:p2=1, 0
     ground_effect__scale_y:p2=1, 0
     ground_effect__scale_z:p2=1, 0
-    "ground_effect__biome_ids:array"{}
   }
 
   ground_effect__manager{

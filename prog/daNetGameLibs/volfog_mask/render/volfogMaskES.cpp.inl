@@ -26,7 +26,7 @@ VARS
 
 
   inline bool
-  update_volfog_mask_texture(SharedTexHolder &tex_holder, int tex_size, Point4 bounds, const ecs::FloatList &data)
+  update_volfog_mask_texture(SharedTexWithShaderVar &tex_holder, int tex_size, Point4 bounds, const ecs::FloatList &data)
 {
   if (!data.size())
     return false;
@@ -73,7 +73,7 @@ VARS
 
 ECS_ON_EVENT(on_appear)
 inline void volfog_mask_appear_es_event_handler(const ecs::Event &,
-  SharedTexHolder &volfog_mask__tex_holder,
+  SharedTexWithShaderVar &volfog_mask__tex_holder,
   int volfog_mask__size,
   bool &volfog_mask__do_update,
   Point4 volfog_mask__bounds,             // minx, minz, maxx, maxz
@@ -94,7 +94,7 @@ inline void volfog_mask_appear_es_event_handler(const ecs::Event &,
 ECS_TAG(render)
 ECS_REQUIRE(eastl::true_type volfog_mask__do_update)
 inline void volfog_mask_render_es(const UpdateStageInfoBeforeRender &stg,
-  SharedTexHolder &volfog_mask__tex_holder,
+  SharedTexWithShaderVar &volfog_mask__tex_holder,
   int volfog_mask__size,
   bool &volfog_mask__do_update,
   Point4 volfog_mask__bounds,             // minx, minz, maxx, maxz

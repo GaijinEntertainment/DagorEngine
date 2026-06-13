@@ -41,12 +41,25 @@
     enviPanoramaScale = rcp(max(get_exposure_mul(), 0.8)) * 0.7;
   #endif
     float roughnessMip = ComputeReflectionCaptureMipFromRoughness(linearRoughness);
-    #if !HAS_RT_GLASS_FUNCTIONS
-    float4 indoorRefl__localWeight = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, roughnessMip, dist);
-    reflectedEnvi = enviPanoramaScale
-                  * glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, roughnessMip, cameraToPoint).rgb
-                  * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb;
+
+    // Decide once whether RT reflection has valid normal-derived data for this pixel. Pixels whose
+    // glass shader skipped the normal generate pass (e.g. rendinst_refraction) leave alpha=0 in
+    // rt_glass_gbuffer and fall through to the raster reflection path instead.
+    bool useRTReflection = false;
+    #if HAS_RT_GLASS_FUNCTIONS
+    float2 rttc = input.pos.xy * inv_resolution;
+    float2 rtwMinMax = RTReflectionDepthRange(rttc);
+    useRTReflection = input.pos.w >= rtwMinMax.x && input.pos.w <= rtwMinMax.y && SampleRTReflectionValidity(rttc) > 0;
     #endif
+
+    BRANCH
+    if (!useRTReflection)
+    {
+      float4 indoorRefl__localWeight = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, roughnessMip, dist);
+      reflectedEnvi = enviPanoramaScale
+                    * glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, roughnessMip, cameraToPoint).rgb
+                    * indoorRefl__localWeight.w + indoorRefl__localWeight.rgb;
+    }
 
     float enviBRDF = EnvBRDFApproxNonmetal(linearRoughness, NoV);
     #ifdef FIXED_ENVI_BRDF
@@ -64,36 +77,42 @@
       float noise = 0;//interleavedGradientNoise( screenpos.xy );
       half3 giSpecular = reflectedEnvi;
 
+      // GI still has to run because it also fills `ambient`, which is used outside the reflection path.
+      // The giSpecular adjustments below are raster-only: when RT replaces reflectedEnvi later they would
+      // just be thrown away.
       if (get_directional_irradiance_radiance(ambient, giSpecular, world_view_pos.xyz, screenUV, input.clipPos.w, worldPos.xyz, worldNormal, reflectionVec, view, dist, normalFiltering ? input.normal : 0, noise))
       {
-        #if !HAS_RT_GLASS_FUNCTIONS
-        giSpecular *= skylight_gi_weight_atten;
         BRANCH
-        if (linearRoughness < 0.5)
+        if (!useRTReflection)
         {
-          float4 indoorRefl__localWeight_blurred = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, 4, dist);
-          float3 reflectedEnviBlurred = glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, 4, cameraToPoint)
-                                      * indoorRefl__localWeight_blurred.w + indoorRefl__localWeight_blurred.rgb;
-          giSpecular = lerp(giSpecular, reflectedEnvi*(giSpecular/max(1e-6, reflectedEnviBlurred)), 1 - linearRoughness*2);
+          giSpecular *= skylight_gi_weight_atten;
+          BRANCH
+          if (linearRoughness < 0.5)
+          {
+            float4 indoorRefl__localWeight_blurred = use_indoor_probes(worldPos.xyz, worldNormal, reflectionVec, 4, dist);
+            float3 reflectedEnviBlurred = glass_sample_envi_probe(GET_SCREEN_POS(input.pos).xy, worldNormal, reflectionVec, 4, cameraToPoint)
+                                        * indoorRefl__localWeight_blurred.w + indoorRefl__localWeight_blurred.rgb;
+            giSpecular = lerp(giSpecular, reflectedEnvi*(giSpecular/max(1e-6, reflectedEnviBlurred)), 1 - linearRoughness*2);
+          }
         }
-        #endif
       }
       ambient *= skylight_gi_weight_atten;
-      #if !HAS_RT_GLASS_FUNCTIONS
-      //alternatively, we always use Treyarch trick
-      float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
-      float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
-      maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
-      float adjustedMaxSpec = luminance(ambient) * maximumSpecValue;
-      float specLum = luminance( giSpecular );
-      reflectedEnvi = giSpecular * (adjustedMaxSpec / max(1e-6,( adjustedMaxSpec + specLum )));
-      #endif
+      BRANCH
+      if (!useRTReflection)
+      {
+        //alternatively, we always use Treyarch trick
+        float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
+        float maximumSpecValue = max3( 1.26816, 9.13681 * exp2( 6.85741 - 2 * mipForTrick ) * NdotV, 9.70809 * exp2( 7.085 - mipForTrick - 0.403181 * pow2(mipForTrick)) * NdotV );
+        maximumSpecValue = min(maximumSpecValue, 32);//to be removed with envi light probes in rooms
+        float adjustedMaxSpec = luminance(ambient) * maximumSpecValue;
+        float specLum = luminance( giSpecular );
+        reflectedEnvi = giSpecular * (adjustedMaxSpec / max(1e-6,( adjustedMaxSpec + specLum )));
+      }
     #endif
 
     #if HAS_RT_GLASS_FUNCTIONS
-    float2 rttc = input.pos.xy * inv_resolution;
-    float2 rtwMinMax = RTReflectionDepthRange(rttc);
-    if (input.pos.w >= rtwMinMax.x && input.pos.w <= rtwMinMax.y)
+    BRANCH
+    if (useRTReflection)
     {
       reflectedEnvi = AdaptiveSampleRTReflection(rttc);
     }

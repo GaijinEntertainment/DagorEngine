@@ -9,6 +9,7 @@
 #include <render/resolution.h>
 #include <render/rendererFeatures.h>
 #include <render/renderEvent.h>
+#include <render/renderSettings.h>
 #include <main/water.h>
 #include <main/level.h>
 #include <daECS/core/coreEvents.h>
@@ -32,8 +33,22 @@ static CONSOLE_FLOAT_VAL_MINMAX("render.waterfoam", minSpeed, 3.00f, 0, 1000);
 static CONSOLE_FLOAT_VAL_MINMAX("render.waterfoam", maxSpeed, 12.00f, 0, 1000);
 static CONSOLE_FLOAT_VAL_MINMAX("render.ship", waveScale, 5.00f, 0, 100);
 
-extern uint32_t get_water_quality();
 extern float get_mipmap_bias();
+
+static int water_quality_str_to_int(const ecs::string &q) { return q == "high" ? 2 : (q == "medium" ? 1 : 0); }
+
+static int get_water_quality_ecs(ecs::EntityManager &manager)
+{
+  ecs::EntityId eid = manager.getSingletonEntity(ECS_HASH("render_settings"));
+  const ecs::string *q = manager.getNullable<ecs::string>(eid, ECS_HASH("render_settings__waterQuality"));
+  return q ? water_quality_str_to_int(*q) : 0;
+}
+
+// foam fx is meant to be on only at high water quality and when enabled in graphics settings
+static bool want_foam_fx(int water_quality)
+{
+  return water_quality >= 2 && ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("useFoamFx", false);
+}
 
 class WaterEffectsCTM final : public ecs::ComponentTypeManager
 {
@@ -48,9 +63,6 @@ public:
     settings.rtWidth = w;
     settings.rtHeight = h;
     settings.maxRenderingResolution = get_max_possible_rendering_resolution();
-    const DataBlock *graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
-    settings.foamFxOn = (get_water_quality() >= 2) && graphicsBlk->getBool("useFoamFx", false); // FoamFx from high water quality
-    settings.waterQuality = get_water_quality();
     settings.lodBias = get_mipmap_bias();
     *(ecs::PtrComponentType<WaterEffects>::ptr_type(d)) = new WaterEffects(settings);
   }
@@ -83,6 +95,21 @@ FFTWater *get_water()
   return waterPtr;
 }
 
+static void apply_foam_fx_params(ecs::EntityManager &manager, WaterEffects &water_effects)
+{
+  get_foam_params_ecs_query(manager,
+    [&water_effects](float foamfx__tile_uv_scale, float foamfx__distortion_scale, float foamfx__normal_scale,
+      float foamfx__pattern_gamma, float foamfx__mask_gamma, float foamfx__gradient_gamma, float foamfx__underfoam_threshold,
+      float foamfx__overfoam_threshold, float foamfx__underfoam_weight, float foamfx__overfoam_weight,
+      const Point3 &foamfx__underfoam_color, const Point3 &foamfx__overfoam_color, float foamfx__reflectivity,
+      const ecs::string &foamfx__tile_tex, const ecs::string &foamfx__gradient_tex) {
+      water_effects.setFoamFxParams(FoamFx::prepareParams(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
+        foamfx__pattern_gamma, foamfx__mask_gamma, foamfx__gradient_gamma, foamfx__underfoam_threshold, foamfx__overfoam_threshold,
+        foamfx__underfoam_weight, foamfx__overfoam_weight, foamfx__underfoam_color, foamfx__overfoam_color, foamfx__reflectivity,
+        String(foamfx__tile_tex.c_str()), String(foamfx__gradient_tex.c_str())));
+    });
+}
+
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, EventLevelLoaded, ChangeRenderFeatures)
 ECS_REQUIRE(const FFTWater &water)
@@ -98,11 +125,29 @@ static void attempt_to_enable_water_effects_es(const ecs::Event &, ecs::EntityMa
   water_effects_eid = manager.createEntityAsync("water_effects");
 }
 
+// foamFx follows the authoritative water quality. Recompute on appear, on any render-settings change and on resize
+// (resize recreates the foamFx render targets, dropping their params). use_foam_tex is published for setWater() to read.
 ECS_TAG(render)
-ECS_ON_EVENT(on_appear)
-static void set_up_foam_tex_request_es(const ecs::Event &, const WaterEffects &water_effects, bool &use_foam_tex)
+ECS_ON_EVENT(on_appear, OnRenderSettingsReady, OnRenderSettingsUpdated, SetResolutionEvent)
+static void water_effects_foam_fx_es(
+  const ecs::Event &evt, ecs::EntityManager &manager, WaterEffects &water_effects, bool &use_foam_tex)
 {
-  use_foam_tex = water_effects.isUsingFoamFx();
+  const int waterQuality = get_water_quality_ecs(manager);
+  if (const SetResolutionEvent *res = evt.cast<SetResolutionEvent>())
+    water_effects.setResolution(res->renderingResolution.x, res->renderingResolution.y, get_mipmap_bias(), waterQuality);
+
+  use_foam_tex = want_foam_fx(waterQuality);
+  water_effects.setFoamFxEnabled(use_foam_tex, waterQuality);
+  if (use_foam_tex)
+    apply_foam_fx_params(manager, water_effects);
+
+  get_water_ecs_query(manager, [use_foam_tex](FFTWater &water) {
+    if (fft_water::WaterFlowmap *waterFlowmap = fft_water::get_flowmap(&water))
+    {
+      waterFlowmap->usingFoamFx = use_foam_tex;
+      fft_water::set_flowmap_params(&water);
+    }
+  });
 }
 
 ECS_TAG(render)
@@ -128,33 +173,9 @@ static void update_water_effects_es(
 }
 
 ECS_TAG(render)
-static void set_up_foam_params_es(const SetResolutionEvent &evt, WaterEffects &water_effects)
-{
-  water_effects.setResolution(evt.renderingResolution.x, evt.renderingResolution.y, get_mipmap_bias(), get_water_quality());
-}
-
-ECS_TAG(render)
 static void change_effects_resolution_es(const SetFxQuality &, WaterEffects &water_effects)
 {
   water_effects.effectsResolutionChanged();
-}
-
-ECS_TAG(render)
-ECS_ON_EVENT(on_appear)
-static void set_up_foam_params_es(const ecs::Event &, ecs::EntityManager &manager, WaterEffects &water_effects)
-{
-  get_foam_params_ecs_query(manager,
-    [&water_effects](float foamfx__tile_uv_scale, float foamfx__distortion_scale, float foamfx__normal_scale,
-      float foamfx__pattern_gamma, float foamfx__mask_gamma, float foamfx__gradient_gamma, float foamfx__underfoam_threshold,
-      float foamfx__overfoam_threshold, float foamfx__underfoam_weight, float foamfx__overfoam_weight,
-      const Point3 &foamfx__underfoam_color, const Point3 &foamfx__overfoam_color, float foamfx__reflectivity,
-      const ecs::string &foamfx__tile_tex, const ecs::string &foamfx__gradient_tex) {
-      FoamFxParams waterFoamFxParams = FoamFx::prepareParams(foamfx__tile_uv_scale, foamfx__distortion_scale, foamfx__normal_scale,
-        foamfx__pattern_gamma, foamfx__mask_gamma, foamfx__gradient_gamma, foamfx__underfoam_threshold, foamfx__overfoam_threshold,
-        foamfx__underfoam_weight, foamfx__overfoam_weight, foamfx__underfoam_color, foamfx__overfoam_color, foamfx__reflectivity,
-        String(foamfx__tile_tex.c_str()), String(foamfx__gradient_tex.c_str()));
-      water_effects.setFoamFxParams(waterFoamFxParams);
-    });
 }
 
 ECS_TAG(render)
@@ -261,9 +282,6 @@ WaterEffects::WaterEffects(const Settings &in_settings) : settings(in_settings)
   effects_depth_texVarId = ::get_shader_variable_id("effects_depth_tex");
   wfx_normal_pixel_sizeVarId = ::get_shader_variable_id("wfx_normals_pixel_size");
   wfx_hmapVarId = ::get_shader_variable_id("wfx_hmap");
-
-  if (settings.foamFxOn)
-    createFoamFx(settings.rtWidth, settings.rtHeight, settings.waterQuality);
 
   if (settings.unitWakeOn)
   {
@@ -533,6 +551,7 @@ void WaterEffects::useWaterTextures()
 
 void WaterEffects::setResolution(uint32_t rtWidth, uint32_t rtHeight, float lodBias, int water_quality)
 {
+  const bool rtSizeChanged = settings.rtWidth != rtWidth || settings.rtHeight != rtHeight;
   settings.rtWidth = rtWidth;
   settings.rtHeight = rtHeight;
   settings.lodBias = lodBias;
@@ -549,7 +568,7 @@ void WaterEffects::setResolution(uint32_t rtWidth, uint32_t rtHeight, float lodB
   else
     setProjFxResolution();
 
-  if (foamFx)
+  if (foamFx && rtSizeChanged)
   {
     clearFoamFx();
     createFoamFx(settings.rtWidth, settings.rtHeight, water_quality);
@@ -589,6 +608,16 @@ void WaterEffects::effectsResolutionChanged()
 }
 
 void WaterEffects::clearFoamFx() { foamFx.reset(); }
+
+void WaterEffects::setFoamFxEnabled(bool enabled, int water_quality)
+{
+  if (enabled == (bool)foamFx)
+    return;
+  if (enabled)
+    createFoamFx(settings.rtWidth, settings.rtHeight, water_quality);
+  else
+    clearFoamFx();
+}
 
 bool test_box_is_in_water(FFTWater &water, const TMatrix &transform, const BBox3 &box)
 {

@@ -1124,6 +1124,7 @@ public:
 
   void beginTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, );
     D3D12_RESOURCE_BARRIER newBarrier;
     newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
@@ -1137,6 +1138,7 @@ public:
 
   void endTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, );
     D3D12_RESOURCE_BARRIER newBarrier;
     newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
@@ -1150,6 +1152,7 @@ public:
 
   void transition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, );
     if (tryUpdateTransition(res, sub_res, from, to))
     {
       return;
@@ -1167,6 +1170,7 @@ public:
 
   bool tryEraseTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(begin(dataSet), end(dataSet),
       [res, sub_res, from, to](const auto &barrier) //
       {
@@ -1195,6 +1199,7 @@ public:
 
   bool tryUpdateTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(rbegin(dataSet), rend(dataSet),
       [res, sub_res](const auto &barrier) //
       {
@@ -1258,6 +1263,7 @@ public:
 
   bool tryFixMissingEndTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(begin(dataSet), end(dataSet),
       [res, sub_res](const auto &barrier) //
       {
@@ -1283,6 +1289,7 @@ public:
 
   bool tryFuseBeginEndTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
   {
+    G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(begin(dataSet), end(dataSet),
       [res, sub_res](const auto &barrier) //
       {
@@ -1311,6 +1318,7 @@ public:
 
   bool hasTranistionFor(ID3D12Resource *res, SubresourceIndex sub_res)
   {
+    G_ASSERT_RETURN(nullptr != res, false);
     auto ref = eastl::find_if(begin(dataSet), end(dataSet),
       [res, sub_res](const auto &barrier) //
       {
@@ -1326,6 +1334,7 @@ public:
 
   void flushUAV(ID3D12Resource *res)
   {
+    // nullptr may be valid, no assert
     D3D12_RESOURCE_BARRIER newBarrier;
     newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
     newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -1337,6 +1346,7 @@ public:
 
   void flushAlias(ID3D12Resource *from, ID3D12Resource *to)
   {
+    // from or to can be nullptr, no assert
     D3D12_RESOURCE_BARRIER newBarrier;
     newBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
     newBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;

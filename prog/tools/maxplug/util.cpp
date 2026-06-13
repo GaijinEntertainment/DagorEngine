@@ -38,7 +38,7 @@
 
 static Tab<char *> dagpath;
 
-char dagor_path[256] = "";
+std::wstring dagor_path;
 void debug(char *s, ...);
 
 void explog(const TCHAR *s, ...);
@@ -658,7 +658,7 @@ void AppendSlash(char *p)
 
 void load_dagorpath_cfg()
 {
-  TCHAR fname[256];
+  TCHAR fname[MAX_PATH];
 
   CfgShader::GetCfgFilename(_T("DagorPath.cfg"), fname);
   FILE *h = _tfopen(fname, _T("rt"));
@@ -670,9 +670,9 @@ void load_dagorpath_cfg()
     dagpath.ZeroCount();
 
 
-    char fn[256];
+    char fn[MAX_PATH];
 
-    while (fgets(fn, 256, h))
+    while (fgets(fn, MAX_PATH, h))
     {
       for (i = (int)strlen(fn) - 1; i >= 0; --i)
         if (fn[i] != '\r' && fn[i] != '\n' && fn[i] != '\t' && fn[i] != ' ')
@@ -694,26 +694,26 @@ void load_dagorpath_cfg()
     }
     fclose(h);
     if (dagpath.Count())
-      strcpy(dagor_path, dagpath[0]);
+      dagor_path = strToWide(dagpath[0]);
     else
-      strcpy(dagor_path, "");
+      dagor_path.clear();
   }
 }
 
 
-void set_dagor_path(const char *p)
+void set_dagor_path(const std::wstring &p)
 {
-  if (!p)
-    return;
   load_dagorpath_cfg();
 
-  strcpy(dagor_path, p);
-  // BMMAppendSlash(dagor_path);
+  dagor_path = p;
 
-  AppendSlash(dagor_path);
-  add_dagpath(dagor_path, true);
+  if (!dagor_path.empty())
+    if (dagor_path.back() != L'\\' && dagor_path.back() != L'/')
+      dagor_path += L'\\';
 
-  TCHAR fn[256];
+  add_dagpath(&wideToStr(dagor_path.data())[0], true);
+
+  TCHAR fn[MAX_PATH];
   CfgShader::GetCfgFilename(_T("DagorPath.cfg"), fn);
   FILE *h = _tfopen(fn, _T("wt"));
   if (h)
@@ -891,14 +891,14 @@ BOOL DagUtil::dagor_util_dlg_proc(HWND hw, UINT msg, WPARAM wParam, LPARAM lPara
         case IDC_SELECT_FLOOR: selectFloorFaces(); break;
         case IDC_SET_DAGORPATH:
         {
-          TCHAR dir[256];
-          _tcscpy(dir, strToWide(dagor_path).c_str());
+          TCHAR dir[MAX_PATH];
+          _tcscpy(dir, dagor_path.c_str());
 
           ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
           {
-            set_dagor_path(wideToStr(dir).c_str());
-            SetDlgItemText(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
+            set_dagor_path(dir);
+            SetDlgItemText(hw, IDC_DAGORPATH, dagor_path.c_str());
           }
           break;
         }
@@ -1412,9 +1412,7 @@ void DagUtil::EndEditParams(Interface *ip, IUtil *iu)
 void DagUtil::dagor_util_update_ui(HWND hw)
 {
   if (hw)
-  {
-    SetDlgItemText(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
-  }
+    SetDlgItemText(hw, IDC_DAGORPATH, dagor_path.c_str());
 }
 
 

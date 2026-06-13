@@ -736,7 +736,7 @@ public:
     G_ASSERT(current_encoder);
 
     if (resource.heap)
-      return resource.heap->track_resource_write(resource);
+      resource.heap->track_resource_write(resource);
 
     // remove reads that are already executed and we don't care about
     resource.encoders_read_in.erase(eastl::remove_if(resource.encoders_read_in.begin(), resource.encoders_read_in.end(),
@@ -790,7 +790,7 @@ public:
       return;
 
     if (resource.heap)
-      return resource.heap->track_resource_read(resource);
+      resource.heap->track_resource_read(resource);
 
     // remove reads that are already executed and we don't care about
     resource.encoders_read_in.erase(eastl::remove_if(resource.encoders_read_in.begin(), resource.encoders_read_in.end(),
@@ -1182,6 +1182,8 @@ public:
   bool validate_framemem_bounds = false;
 
   bool report_gpu_errors = false;
+  // video/cpuGpuOverlap:b=off forces a full CPU->GPU sync after every present (no frames in flight)
+  bool disable_cpu_gpu_overlap = false;
   std::atomic<int> hadError;
 
   std::atomic<bool> report_stalls;

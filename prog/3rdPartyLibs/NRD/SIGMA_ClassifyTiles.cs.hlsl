@@ -47,7 +47,7 @@ NRD_EXPORT void NRD_CS_MAIN( uint2 threadPos : SV_GroupThreadId, uint2 tilePos :
             float h = gIn_Penumbra[ pos ];
             float viewZ = UnpackViewZ( gIn_ViewZ[ WithRectOrigin( pos ) ] );
 
-            bool isInf = viewZ > gDenoisingRange;
+            bool isInf = !IsInDenoisingRange( viewZ );
             bool isShadow = h == 0;
             bool isLit = IsLit( h );
 

@@ -300,6 +300,7 @@ void GuiScene::initScript()
   sq_setcompilererrorhandler(sqvm, compile_error_handler);
 
   sq_newclosure(sqvm, runtime_error_handler, 0);
+  sq_setparamscheck(sqvm, 3, nullptr);
   sq_seterrorhandler(sqvm);
   stackCheck.check();
 
@@ -4113,6 +4114,9 @@ void GuiScene::onPictureLoaded(const Picture *pic)
   dag::Vector<Element *, framemem_allocator> collected;
 
   for (auto &[id, sc] : screens)
+  {
+    collected.clear();
+    bool fullRecalc = false;
     for (RenderEntry &re : sc->renderList.list)
     {
       Element *elem = re.elem;
@@ -4129,17 +4133,18 @@ void GuiScene::onPictureLoaded(const Picture *pic)
       collected.push_back(elem);
       if (collected.size() > 32)
       {
-        // fallback to full recalc
-        collected.clear();
         if (sc->etree.root)
           sc->etree.root->recalcLayout();
         logerr("[daRg] Too many images [%s] sized to content", pic->getName());
+        fullRecalc = true;
         break;
       }
     }
 
-  for (Element *elem : collected)
-    elem->recalcLayout();
+    if (!fullRecalc)
+      for (Element *elem : collected)
+        elem->recalcLayout();
+  }
 }
 
 
@@ -4692,6 +4697,7 @@ bool GuiScene::setFocusedScreen(Screen *screen)
 
   pressedClickButtons.clear();
   kbFocus.setFocus(nullptr);
+  doSetXmbFocus(nullptr);
   keptXmbFocus.clear();
 
   return true;

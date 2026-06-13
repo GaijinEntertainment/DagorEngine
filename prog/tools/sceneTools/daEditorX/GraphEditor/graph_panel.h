@@ -2,13 +2,17 @@
 #pragma once
 
 #include "canvas_clipboard.h"
+#include "graph_edge_reconnect.h"
 
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/control/panelWindow.h>
 
 #include <EASTL/hash_set.h>
 #include <EASTL/string.h>
+#include <EASTL/utility.h>
 #include <EASTL/vector.h>
+
+#include <imgui/imgui.h>
 
 #include <graphEditor/graph_data.h>
 
@@ -105,10 +109,16 @@ private:
   eastl::hash_set<int> pendingPositionIds;
 
   CanvasClipboard canvasClipboard;
+  GraphEdgeReconnect edgeReconnect;
 
   eastl::string lastSelectedNodeName;
   int selectedNodeId = -1;
+  int previewNodeId = -1;
   int navigationFramesLeft = 5;
+  int lastShownSelectedNodeId = -1;
+  // Pin whose comment the C shortcut queued for editing; resolved (modal dialog) in actObjects.
+  int pendingCommentNodeId = -1;
+  int pendingCommentPinIndex = -1;
 
   eastl::vector<PendingNodeDelete> pendingNodeDeletes;
 
@@ -116,8 +126,25 @@ private:
   float lastFrameMs = 0.0f;
   float emaFrameMs = 0.0f;
 
+  struct NodeCull
+  {
+    ImVec2 rectMin;       // node rect in canvas space (ne::GetNodePosition)
+    ImVec2 rectMax;       // rectMin + ne::GetNodeSize
+    bool visible = false; // rect meets the margin-inflated viewport, or bounds not yet known
+    bool needed = false;  // visible, or holds an endpoint of a link whose span meets the viewport
+  };
+  eastl::vector<NodeCull> cullNodes;
+  eastl::vector<eastl::pair<int, int>> cullNodeOrder;
+
   void drawCommentNode(const GraphData::Node &n);
   void drawBlockNode(const GraphData::Node &n);
+
+  void showNextSelectedNode();
+  void removeSelectedKeepingConnections();
+  void removeEdgesUnderCursor();
+  void jumpToOppositePin();
+
+  int cullNodeIndex(int node_id) const;
 
   // After-frame pass: mirror each block's current ne::GetNodeSize back into GraphData so a
   // user-driven resize (handled internally by ne::SizeAction for group nodes) round-trips

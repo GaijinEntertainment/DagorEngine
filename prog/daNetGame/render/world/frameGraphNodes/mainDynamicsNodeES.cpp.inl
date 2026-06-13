@@ -9,7 +9,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <frustumCulling/frustumPlanes.h>
 #include <triangleSizeDebug/triangleSizeDebug.h>
 
@@ -73,7 +73,7 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
     use_camera_in_camera_jitter_frustum_plane_shader_vars(registry);
 
     if (debugTriangle)
-      registry.requestRenderPass().depthRo("gbuf_depth").color({"triangle_size_tex"});
+      registry.requestRenderPass().depthReadTestOnly("gbuf_depth").color({"triangle_size_tex"});
     else
       render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
@@ -82,6 +82,7 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
     return [cameraHndl = cameraHndl, strmCtxHndl, debugTriangle,
              dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass")](
              const dafg::multiplexing::Index &multiplexing_index) {
+      debug_mesh::activate_mesh_coloring_master_override();
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       const auto &camera = cameraHndl.ref();
 
@@ -92,11 +93,11 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
                              UpdateStageInfoRender::RENDER_MAIN |
                              (wr.hasMotionVectors ? UpdateStageInfoRender::RENDER_MOTION_VECS : 0);
 
-      const dynmodel_renderer::DynModelRenderingState *pState = nullptr;
+      dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::INVALID;
       if (async_animchars_main.get() && !debugTriangle)
       {
         camera.jobsMgr->waitAsyncAnimcharMainRender();
-        pState = camera.jobsMgr->getAsyncAnimcharMainRenderState();
+        asyncAnimcharCtx = camera.jobsMgr->getAsyncAnimcharMainRenderCtx();
       }
 
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -112,8 +113,9 @@ dafg::NodeHandle makeOpaqueDynamicsNode(MainNodeRenderPass mode)
         Occlusion *occlusion = camera.jobsMgr->getOcclusion();
         g_entity_mgr->broadcastEventImmediate(UpdateStageInfoRender(hints, camera.jitterFrustum, camera.viewItm, camera.viewTm,
           camera.jitterProjTm, camera.viewItm.getcol(3), camera.negRoundedCamPos, camera.negRemainderCamPos, occlusion, RENDER_MAIN,
-          pState, strmCtxHndl.ref()));
+          asyncAnimcharCtx, strmCtxHndl.ref()));
       }
+      debug_mesh::deactivate_mesh_coloring_master_override();
     };
   });
 }

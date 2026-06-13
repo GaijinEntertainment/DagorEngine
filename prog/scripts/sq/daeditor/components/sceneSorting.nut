@@ -14,6 +14,8 @@ function sortScenesByPaths(scene1, scene2) {
   let path2 = scene2.path
   if (path1 != null && path2 != null)
     return path1 <=> path2
+  if (path1 == null && path2 == null)
+    return scene1.index <=> scene2.index
   return path1 != null ? 1 : -1
 }
 

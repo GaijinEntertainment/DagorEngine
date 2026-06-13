@@ -128,7 +128,7 @@ static void show_header()
 #else
 #error "DX9 support dropped"
 #endif
-            "\n\nCopyright (C) Gaijin Games KFT, 2023\n",
+            "\n\nCopyright (C) Gaijin Games KFT, 2026\n",
     shc::config().version, _DUMP4C(SHADER_BINDUMP_VER), _DUMP4C(SHADER_CACHE_VER), sha1_cache_version
 #if _CROSS_TARGET_C1
 
@@ -640,6 +640,13 @@ static void compile(Tab<String> &&source_files, const char *fn, const char *bind
   {
     if (shc::config().shortMessages && !shc::config().singleCompilationShName)
       sh_printf("[INFO] Building '%s'...\n", compilation.dest().c_str());
+    if (proc::is_multiproc() && !shc::config().singleCompilationShName && compAction != CompilerAction::LINK_ONLY)
+    {
+      // Master process: scan all sources to build a consistent refined block
+      // before spawning workers, so every worker starts with the same layout.
+      shc::runPreshaderParse(compilation, compilationCtx);
+    }
+
     if (proc::is_multiproc())
     {
       const bool compileResult = doCompileModulesAsync(compilation);

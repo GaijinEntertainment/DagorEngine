@@ -125,17 +125,13 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
       if (bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
       {
-        registry.read("checkerboard_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_checkerboard_depth_tex");
-        registry.read("checkerboard_depth_sampler")
-          .blob<d3d::SamplerHandle>()
-          .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate");
+        registry.bindTexPs("checkerboard_depth", "downsampled_checkerboard_depth_tex");
+        registry.bindBlob("checkerboard_depth_sampler", "downsampled_checkerboard_depth_tex_samplerstate");
       }
       else
       {
-        registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
-        registry.read("far_downsampled_depth_sampler")
-          .blob<d3d::SamplerHandle>()
-          .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
+        registry.bindTexPs("far_downsampled_depth", "downsampled_far_depth_tex");
+        registry.bindBlob("far_downsampled_depth_sampler", "downsampled_far_depth_tex_samplerstate");
       }
 
       registry.requestState().setFrameBlock("global_frame");
@@ -195,7 +191,7 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
 
       request_common_transparent_state(registry);
 
-      registry.read("low_res_forcefield").texture().atStage(dafg::Stage::PS).bindToShaderVar("low_res_forcefield");
+      registry.bindTexPs("low_res_forcefield", "low_res_forcefield");
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.filter_mode = bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED) ? d3d::FilterMode::Point
@@ -205,7 +201,7 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
           .bindToShaderVar("low_res_forcefield_samplerstate");
       }
 
-      registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar("upscale_sampling_tex").optional();
+      registry.bindTexPs("upscale_sampling_tex", "upscale_sampling_tex").optional();
 
       // Distortion is only used in some games
       (registry.root() / "transparent" / "far")

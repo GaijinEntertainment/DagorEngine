@@ -71,8 +71,8 @@
   resource. For example, they can be used to own game resources:
 
   SharedTex res = dag::get_tex_gameres("res_name");
-  SharedTexHolder res_holder = dag::get_tex_gameres("res_name", "var_name");
-  SharedTexHolder other_res_holder(eastl::move(res), "var_name");
+  SharedTexWithShaderVar res_holder = dag::get_tex_gameres("res_name", "var_name");
+  SharedTexWithShaderVar other_res_holder(eastl::move(res), "var_name");
 */
 
 namespace resptr_detail
@@ -601,12 +601,12 @@ using SharedRes = resptr_detail::SharedRes<ManagedResType>;
 using SharedTex = SharedRes<ManagedTex>;
 using SharedBuf = SharedRes<ManagedBuf>;
 
-using ManagedTexHolder = resptr_detail::ManagedResHolder<ManagedTex>;
-using ManagedBufHolder = resptr_detail::ManagedResHolder<ManagedBuf>;
+using ManagedTexWithShaderVar = resptr_detail::ManagedResHolder<ManagedTex>;
+using ManagedBufWithShaderVar = resptr_detail::ManagedResHolder<ManagedBuf>;
 using UniqueTexWithShaderVar = resptr_detail::ConcreteResHolder<UniqueTex>;
 using UniqueBufWithShaderVar = resptr_detail::ConcreteResHolder<UniqueBuf>;
-using SharedTexHolder = resptr_detail::ConcreteResHolder<SharedTex>;
-using SharedBufHolder = resptr_detail::ConcreteResHolder<SharedBuf>;
+using SharedTexWithShaderVar = resptr_detail::ConcreteResHolder<SharedTex>;
+using SharedBufWithShaderVar = resptr_detail::ConcreteResHolder<SharedBuf>;
 
 template <typename ResType>
 using ResPtr = resptr_detail::ResPtr<ResType>;
@@ -800,18 +800,18 @@ inline ResFactory<Sbuffer> create_raytrace_scratch_buffer(uint32_t size_in_bytes
 } // namespace buffers
 
 static inline SharedTex get_tex_gameres(const char *resname) { return SharedTex(::get_tex_gameres(resname, false)); }
-static inline SharedTexHolder get_tex_gameres(const char *resname, const char *varname)
+static inline SharedTexWithShaderVar get_tex_gameres(const char *resname, const char *varname)
 {
-  return SharedTexHolder(dag::get_tex_gameres(resname), varname);
+  return SharedTexWithShaderVar(dag::get_tex_gameres(resname), varname);
 }
 static inline SharedTex add_managed_array_texture(const char *name, dag::ConstSpan<const char *> tex_slice_nm)
 {
   return SharedTex(::add_managed_array_texture(name, tex_slice_nm));
 }
-static inline SharedTexHolder add_managed_array_texture(const char *name, dag::ConstSpan<const char *> tex_slice_nm,
+static inline SharedTexWithShaderVar add_managed_array_texture(const char *name, dag::ConstSpan<const char *> tex_slice_nm,
   const char *varname)
 {
-  return SharedTexHolder(dag::add_managed_array_texture(name, tex_slice_nm), varname);
+  return SharedTexWithShaderVar(dag::add_managed_array_texture(name, tex_slice_nm), varname);
 }
 static inline ResFactory<BaseTexture> place_texture_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc,
   size_t offset, const ResourceAllocationProperties &alloc_info, const char *name)
@@ -842,18 +842,21 @@ static inline ResFactory<BaseTexture> make_texture_raw(Drv3dMakeTextureParams &m
   });
 }
 
-static inline SharedTexHolder set_texture(int var_id, SharedTex tex) { return SharedTexHolder(eastl::move(tex), var_id); }
-
-static inline SharedBufHolder set_buffer(int var_id, SharedBuf buf) { return SharedBufHolder(eastl::move(buf), var_id); }
-
-static inline SharedTexHolder set_texture(int var_id, const SharedTexHolder &tex)
+static inline SharedTexWithShaderVar set_texture(int var_id, SharedTex tex)
 {
-  return SharedTexHolder(SharedTex(tex.getTexId()), var_id);
+  return SharedTexWithShaderVar(eastl::move(tex), var_id);
 }
 
-static inline SharedBufHolder set_buffer(int var_id, const SharedBufHolder &buf)
+static inline SharedBufWithShaderVar set_buffer(int var_id, SharedBuf buf) { return SharedBufWithShaderVar(eastl::move(buf), var_id); }
+
+static inline SharedTexWithShaderVar set_texture(int var_id, const SharedTexWithShaderVar &tex)
 {
-  return SharedBufHolder(SharedBuf(buf.getBufId()), var_id);
+  return SharedTexWithShaderVar(SharedTex(tex.getTexId()), var_id);
+}
+
+static inline SharedBufWithShaderVar set_buffer(int var_id, const SharedBufWithShaderVar &buf)
+{
+  return SharedBufWithShaderVar(SharedBuf(buf.getBufId()), var_id);
 }
 
 } // namespace dag

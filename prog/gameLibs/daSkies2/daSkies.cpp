@@ -36,6 +36,10 @@
 #include <math/dag_frustum.h>
 #include <3d/dag_textureIDHolder.h>
 
+#if DAGOR_DBGLEVEL > 0
+#include <imgui/imgui.h>
+#endif
+
 #define USE_CONSOLE_BOOL_VAL         CONSOLE_BOOL_VAL
 #define USE_CONSOLE_INT_VAL          CONSOLE_INT_VAL
 #define USE_CONSOLE_FLOAT_VAL_MINMAX CONSOLE_FLOAT_VAL_MINMAX
@@ -1201,4 +1205,56 @@ void DaSkies::getCloudsTextureResourceDependencies(Tab<TEXTUREID> &dependencies)
   {
     clouds->getTextureResourceDependencies(dependencies);
   }
+}
+
+void DaSkies::debugUI()
+{
+#if DAGOR_DBGLEVEL > 0
+  ImGui::Text("Clouds rendering");
+  ImGui::SliderFloat("forward_eccentricity", &cloudsRendering.forward_eccentricity, 0.1, 0.9999);
+  ImGui::SliderFloat("back_eccentricity", &cloudsRendering.back_eccentricity, 0.01, 0.9999);
+  ImGui::SliderFloat("forward_eccentricity_weight", &cloudsRendering.forward_eccentricity_weight, 0.0, 1.0);
+  ImGui::SliderFloat("erosion_noise_size", &cloudsRendering.erosion_noise_size, 1.0, 73);
+  ImGui::SliderFloat("erosionWindSpeed", &cloudsRendering.erosionWindSpeed, -100, 100);
+  ImGui::SliderFloat("ambient_desaturation", &cloudsRendering.ambient_desaturation, 0, 1);
+  ImGui::SliderFloat("ms_contribution", &cloudsRendering.ms_contribution, 0, 1);
+  ImGui::SliderFloat("ms_attenuation", &cloudsRendering.ms_attenuation, 0.02, 1.0);
+  ImGui::SliderFloat("ms_ecc_attenuation", &cloudsRendering.ms_ecc_attenuation, 0.02, 0.99);
+
+  ImGui::Text("Clouds generation");
+  ImGui::SliderFloat("cumulonimbusCoverage", &cloudsWeatherGen.cumulonimbusCoverage, 0.0, 1.0);
+  ImGui::SliderFloat("cumulonimbusSeed", &cloudsWeatherGen.cumulonimbusSeed, 0.0, 100.0);
+  ImGui::SliderFloat("epicness", &cloudsWeatherGen.epicness, 0.0, 1.0);
+  ImGui::SliderFloat("layers[0].coverage", &cloudsWeatherGen.layers[0].coverage, 0.0, 1.0);
+  ImGui::SliderFloat("layers[0].freq", &cloudsWeatherGen.layers[0].freq, 1, 8);
+  ImGui::SliderFloat("layers[0].seed", &cloudsWeatherGen.layers[0].seed, 0, 100);
+  ImGui::SliderFloat("layers[1].coverage", &cloudsWeatherGen.layers[1].coverage, 0.0, 1.0);
+  ImGui::SliderFloat("layers[1].freq", &cloudsWeatherGen.layers[1].freq, 1, 8);
+  ImGui::SliderFloat("layers[1].seed", &cloudsWeatherGen.layers[1].seed, 0, 100);
+
+  ImGui::Text("Clouds formation");
+  ImGui::SliderInt("shapeNoiseScale", &cloudsForm.shapeNoiseScale, 2, 16);
+  ImGui::SliderInt("cumulonimbusShapeScale", &cloudsForm.cumulonimbusShapeScale, 2, 16);
+  ImGui::SliderInt("turbulenceFreq", &cloudsForm.turbulenceFreq, 1, 6);
+  ImGui::SliderFloat("turbulenceStrength", &cloudsForm.turbulenceStrength, 0., 2.0);
+  ImGui::SliderFloat("extinction", &cloudsForm.extinction, 0.5, 6.0);
+  ImGui::SliderFloat("layers[0].density", &cloudsForm.layers[0].density, 0.5, 2.0);
+  ImGui::SliderFloat("layers[0].startAt", &cloudsForm.layers[0].startAt, 0.02, 8.0);
+  ImGui::SliderFloat("layers[0].thickness", &cloudsForm.layers[0].thickness, 1.0, 10.0);
+  ImGui::SliderFloat("layers[0].clouds_type", &cloudsForm.layers[0].clouds_type, 0, 1.0);
+  ImGui::SliderFloat("layers[0].clouds_type_variance", &cloudsForm.layers[0].clouds_type_variance, 0, 1.0);
+  ImGui::SliderFloat("layers[1].density", &cloudsForm.layers[1].density, 0.5, 2.0);
+  ImGui::SliderFloat("layers[1].startAt", &cloudsForm.layers[1].startAt, 0.02, 10.0);
+  ImGui::SliderFloat("layers[1].thickness", &cloudsForm.layers[1].thickness, 1.0, 10.0);
+  ImGui::SliderFloat("layers[1].clouds_type", &cloudsForm.layers[1].clouds_type, 0, 1.0);
+  ImGui::SliderFloat("layers[1].clouds_type_variance", &cloudsForm.layers[1].clouds_type_variance, 0, 1.0);
+
+  ImGui::Text("Clouds shape");
+  bool changed = false;
+  changed = ImGui::SliderFloat("perlin_worley_dilation", &cloudsForm.perlin_worley_dilation, 0.0, 1.0);
+  changed |= ImGui::SliderFloat("worley_erosion", &cloudsForm.worley_erosion, 0.0, 2.0);
+  changed |= ImGui::SliderFloat("shape_gamma", &cloudsForm.shape_gamma, 0.0, 2.0);
+  if (changed)
+    clouds->reset();
+#endif
 }

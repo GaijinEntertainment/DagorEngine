@@ -373,9 +373,6 @@ void FastGrassRenderer::prepare(PreparedData &pd, const TMatrix4 &globtm, Height
   fi.metrics.quality = HeightmapMetricsQuality::FASTEST;
   fi.metrics.maxRelativeTexelTess = get_log2i(int(floorf(handler.getHeightmapCellSize() / hmapCellSize + 0.5f)));
 
-  fi.lod0subdiv = 0;
-  fi.lod0scale = hmapCellSize / handler.hmapCellSize;
-
   vec4f grassBox = v_add(v_make_vec4f(view_pos.x, view_pos.z, -view_pos.x, -view_pos.z), v_splats(hmapRange));
   fi.world_bbox_xzs = &grassBox;
 

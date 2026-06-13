@@ -51,6 +51,7 @@ terminal
          "<=" (SHTOK_smallereq),
          ">=" (SHTOK_greatereq),
          "##" (SHTOK_macro_concat),
+         "#rb" (SHTOK_rb_tag),
          "always_referenced" (SHTOK_always_referenced),
          "no_warnings" (SHTOK_no_warnings),
          "ambient" (SHTOK_ambient),
@@ -505,7 +506,8 @@ zbias-state-stat(zbias_state_stat) ->
 external-var-name(external_var_name) ->
   (ident|"diffuse"|"specular"|"globtm"|"projtm"|"viewprojtm"|"local_view_x"|"local_view_y"|"local_view_z"|"local_view_pos"|
   "world_local_x"|"world_local_y"|"world_local_z"|"world_local_pos")=name
-  type_ident=nameSpace;
+  type_ident=nameSpace
+  ["#rb"=refined_tag];
 
 external-var-value-single(external_var_value_single) ->
   ("globtm"|"projtm"|"viewprojtm"|"local_view_x"|"local_view_y"|"local_view_z"|"local_view_pos"|
@@ -588,4 +590,8 @@ code_in_class[bool_expr]={
   eastl::vector<uint64_t> bytecode{};
   eastl::optional<bool> constvalue{};
   bool compiled = false;
+};
+
+code_in_class[external_var_name]={
+  int rbVarId = -1;
 };

@@ -48,17 +48,19 @@ CompilerAction should_recompile(const CompilationContext &ctx);
 bool should_recompile_sh(const CompilationContext &ctx, const String &sourceFileName);
 
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &comp);
+void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, shc::CompilationContext &comp);
 
 // build shader binary dump from compiled shaders (*.cached files)
 bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags pack_flags,
-  const shc::CompilationContext &comp);
+  shc::CompilationContext &comp);
 
 bool try_enter_shutdown();
 bool try_lock_shutdown();
 void unlock_shutdown();
 
 String get_obj_file_name_from_source(const String &source_file_name, const ShCompilationInfo &comp);
+
+void runPreshaderParse(const ShCompilationInfo &compInfo, CompilationContext &comp);
 
 void clearFlobVarRefList();
 void addExplicitGlobVarRef(const char *var_name);

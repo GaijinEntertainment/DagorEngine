@@ -11,7 +11,7 @@ macro GET_BASE_DEPTH_MASK()
 ##if effects_depth_tex != NULL
       float srcZ = screen_texcoord.w;
       float dstDepth = linearize_z(tex2Dproj(effects_depth_tex, screen_texcoord).x, zn_zfar.zw);
-      float dstZ = dstDepth;  // depth_tex is linear on PC.
+      float dstZ = dstDepth;
       float diff = dstZ - srcZ;
       half depthMask = saturate(softness_depth_rcp * diff);
 ##else

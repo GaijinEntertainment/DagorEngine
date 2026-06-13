@@ -94,6 +94,7 @@ extern const char *macosx_get_location();
 #include <unistd.h>
 #include <osApiWrappers/dag_files.h>
 #include <android/android_platform.h>
+#include <android/android_thermal.h>
 #include <android/and_java_helpers.h>
 #endif
 

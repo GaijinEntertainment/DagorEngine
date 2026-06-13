@@ -2066,7 +2066,7 @@ int DagorWinMain(bool debugmode)
   extension = ".tga";
 
   fprintf(stderr, "\n BSP Tool v0.01\n"
-                  "Copyright (C) Gaijin Games KFT, 2023\n\n");
+                  "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   String input[3];
   input[2] = "./";

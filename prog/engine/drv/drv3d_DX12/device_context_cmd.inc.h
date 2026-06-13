@@ -1370,12 +1370,12 @@ DX12_BEGIN_CONTEXT_COMMAND(false, BindlessSetTextureDescriptor)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(false, DeferBindlessSetTextureDescriptor)
+DX12_BEGIN_CONTEXT_COMMAND(false, DeferBindlessSetResourceDescriptor)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
-  DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, view)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, descriptor)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.deferBindlessSetResourceDescriptor(slot, view);
+  ctx.deferBindlessSetResourceDescriptor(slot, descriptor);
 #endif
 DX12_END_CONTEXT_COMMAND
 

@@ -18,7 +18,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/global_vars.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/renderPrecise.h>
 #include <render/world/defaultVrsSettings.h>
 #include <render/world/cameraViewVisibilityManager.h>
@@ -50,20 +50,14 @@ extern ConVarT<bool, false> sort_transparent_riex_instances;
 
 extern void render_mainhero_trans(const TMatrix &view_tm);
 
-static void render_state(
-  dynmodel_renderer::DynModelRenderingState &state, dynmodel_renderer::BufferType buf_type, const TMatrix &vtm, int block)
+static void render_dynrend_ctx(dynrend::ContextId ctx, const TMatrix &vtm, int block)
 {
-  state.prepareForRender();
-
-  const dynmodel_renderer::DynamicBufferHolder *buffer = state.requestBuffer(buf_type);
-  if (!buffer)
+  d3d::settm(TM_VIEW, vtm);
+  if (!dynrend::prepare_render_current(ctx))
     return;
 
-  d3d::settm(TM_VIEW, vtm);
-
-  state.setVars(buffer->buffer.getBufId());
   SCENE_LAYER_GUARD(block);
-  state.render(buffer->curOffset);
+  dynrend::render_all_stages(ctx);
 }
 
 ECS_TAG(render)
@@ -92,7 +86,7 @@ static void glass_gbuffer_renderer_es(
           .clear(make_clear_value(0.f, 0));
       if (only_depth)
       {
-        registry.allowAsyncPipelines().requestRenderPass().depthRw(depth);
+        registry.allowAsyncPipelines().requestRenderPass().depth(depth);
       }
       else
       {
@@ -101,7 +95,7 @@ static void glass_gbuffer_renderer_es(
                           {TEXFMT_A16B16G16R16F | TEXCF_RTARGET | TEXCF_UNORDERED, registry.getResolution<2>("main_view", targetSize)})
                         .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
 
-        registry.allowAsyncPipelines().requestRenderPass().color({target}).depthRw(depth);
+        registry.allowAsyncPipelines().requestRenderPass().color({target}).depth(depth);
       }
 
       registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
@@ -123,29 +117,30 @@ static void glass_gbuffer_renderer_es(
 
         const auto &camera = cameraHndl.ref();
         const auto &texCtx = strmCtxHndl.ref();
-        dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+        dynrend::ContextId ctx = dynrend::get_or_create_context("dynmodel_immediate");
+        dynrend::clear(ctx);
 
         // we need to exlude tank cockpit glass from processs because this cocpit is complete fake  a gives a incorrect reflcetion
         // result
         animchar_render_trans_ecs_query(manager,
-          [&state, &texCtx](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render,
-                              ecs::Tag cockpitEntity) AnimV20::AnimcharRendComponent &animchar_render,
+          [&ctx, &texCtx](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render,
+                            ecs::Tag cockpitEntity) AnimV20::AnimcharRendComponent &animchar_render,
             const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
             const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
             if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
             {
               const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-              auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+              auto filter = dynrend::PathFilterView(animchar_render__nodeVisibleStgFilters);
               G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
-              state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
-                animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
-                UpdateStageInfoRender::RENDER_MAIN, dynmodel_renderer::RenderPriority::HIGH, nullptr, texCtx);
+              dynrend::add_animchar(ctx, ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
+                animchar_additional_data::get_optional_data(additional_data), dynrend::NeedPreviousMatrices::No, {}, filter,
+                UpdateStageInfoRender::RENDER_MAIN, dynrend::RenderPriority::HIGH, nullptr, texCtx);
             }
           });
 
         TMatrix vtm = camera.viewTm;
         vtm.setcol(3, 0, 0, 0);
-        render_state(state, dynmodel_renderer::BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+        render_dynrend_ctx(ctx, vtm, dynamicSceneTransBlockId);
         d3d::settm(TM_VIEW, camera.viewTm);
 
         render_mainhero_trans(cameraHndl.ref().viewTm);
@@ -165,7 +160,7 @@ static void glass_reactive_mask_pass_renderer_es(const ecs::Event &evt, dafg::No
   rendinst_glass_reactive_mask_node =
     nodeNs.registerNode("rendinst_glass_reactive_mask", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       auto reactiveMask = registry.modify("reactive_mask").texture().optional();
-      registry.allowAsyncPipelines().requestRenderPass().color({reactiveMask}).depthRo("depth");
+      registry.allowAsyncPipelines().requestRenderPass().color({reactiveMask}).depthReadTestOnly("depth");
 
 
       registry.bindBlob<Point4>("world_view_pos", "world_view_pos");

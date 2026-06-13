@@ -27,6 +27,7 @@ constexpr int get_log2(int w) { return 1 + (w > 2 ? get_log2(w >> 1) : 0); }
 class OcclusionZBuffer
 {
 public:
+  static constexpr float Z_SCALE = 1. / 1.01f;
   static constexpr int WIDTH = 256;
   static constexpr int HEIGHT = 128;
   static constexpr int mip_chain_count = occlusion_details::mip_count(WIDTH, HEIGHT);

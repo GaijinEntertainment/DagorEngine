@@ -1029,7 +1029,7 @@ FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,114,147,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,170,147,50,14
-    COMBOBOX        IDC_SHADER_CLASS_LIST,7,16,212,128,CBS_SIMPLE | CBS_SORT | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP | CBS_AUTOHSCROLL
+    COMBOBOX        IDC_SHADER_CLASS_LIST,7,16,212,128,CBS_SIMPLE | CBS_AUTOHSCROLL | CBS_SORT | CBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Shaders:",IDC_STATIC,10,8,209,8
 END
 
@@ -1875,6 +1875,7 @@ BEGIN
     IDS_IMPUTIL_PARAM_ROLL  "Dagor Scene Import Parameters"
     IDS_IMPUTIL_HELP_ROLL   "Help"
     IDS_EXPORT_TO_JSON      "Export to JSON"
+    IDS_NON_DAGOR_LIGHTS    "There are non-dagor lights in the scene, see export log."
     IDS_NO_SMOOTHING        "There triangles in the scene with NO smoothing, see export log."
 END
 

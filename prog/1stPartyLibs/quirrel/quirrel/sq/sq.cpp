@@ -371,6 +371,10 @@ int getargs(HSQUIRRELVM v,int argc, char* argv[],SQInteger *retval)
                 if ((index + 1) < argc && argv[index + 1][0] != '-' && !ends_with(argv[index + 1], ".nut"))
                     dumpOpt.astDumpFileName = argv[++index];
             }
+            else if (strncmp("-iter-seed:", arg, 11) == 0)
+            {
+                sq_set_table_iter_seed(v, atoi(arg + 11));
+            }
             else if (strcmp("-nodes-location", arg) == 0)
             {
                 dumpOpt.nodesLocation = true;

@@ -1,0 +1,6 @@
+ints ok: 17
+floats ok
+bool/null ok
+strings ok, long len 400
+nested ok
+serialization scalars: OK

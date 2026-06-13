@@ -278,7 +278,7 @@ RendInstGenData::~RendInstGenData()
     delete landCls[i].mask;
   }
   for (int i = 0; i < cells.size(); i++)
-    del_it(cells[i].rtData);
+    del_it(cells[i].cellRtData);
 
   if (unregCollCb && rtData)
     for (int i = 0; i < rtData->riCollRes.size(); i++)
@@ -884,6 +884,7 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
   rendinst::gen::SingleEntityPool::cell_xz_sz = SUBCELL_DIV * box_sz;
   rendinst::gen::SingleEntityPool::cell_y_sz = crt.cellHeight;
   rendinst::gen::SingleEntityPool::per_pool_local_bb = rtData->riResBb.data();
+  rendinst::gen::SingleEntityPool::pool_names = rtData->riResName.data();
   rendinst::gen::SingleEntityPool::cur_cell_id = cellIdx;
   rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
   rendinst::gen::SingleEntityPool::persistent_ri_extra_instances = rendinst::persistentRiExtraInstances;
@@ -921,24 +922,24 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
     }
   }
 
-  rtData->riRwCs.lockRead();
   rendinst::DestroyedCellData extraDestrData;
-  extraDestrData.cellId = 0;
-  for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
   {
-    if (rtData->riDestrCellData[i].cellId != -(cellIdx + 1))
-      continue;
-    extraDestrData = rtData->riDestrCellData[i];
-    extraDestrData.cellId = 1; // "Found"
-    break;
+    ScopedLockRead lock{rtData->riRwCs};
+    for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
+    {
+      if (rtData->riDestrCellData[i].cellId != -(cellIdx + 1))
+        continue;
+      extraDestrData = rtData->riDestrCellData[i];
+      extraDestrData.cellId = 1; // "Found"
+      break;
+    }
   }
-  rtData->riRwCs.unlockRead();
 
   // null-generate to determine capacity requirements
   for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
   {
-    float x0 = (x * SUBCELL_DIV + (s % SUBCELL_DIV)) * box_sz;
-    float z0 = (z * SUBCELL_DIV + (s / SUBCELL_DIV)) * box_sz;
+    float x0 = float(x * SUBCELL_DIV + (s % SUBCELL_DIV)) * box_sz;
+    float z0 = float(z * SUBCELL_DIV + (s / SUBCELL_DIV)) * box_sz;
     gather_and_set_sweep_boxes(sbm_subcell, x0 + world0x(), z0 + world0z(), box_sz, box_sz, sbm_cell);
 
     if (zcrd)
@@ -1140,14 +1141,14 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   TIME_PROFILE_DEV(generateCell);
   int cellId = x + z * cellNumW;
   RendInstGenData::Cell &cell = cells[cellId];
-  CellRtData *crt_ptr = cell.rtData;
+  CellRtData *crt_ptr = cell.cellRtData;
   if (!crt_ptr)
   {
     crt_ptr = new CellRtData(rtData->riRes.size(), rtData);
     precomputeCell(*crt_ptr, x, z);
   }
   else
-    interlocked_release_store_ptr(cell.rtData, (RendInstGenData::CellRtData *)nullptr); // mark as not ready
+    interlocked_release_store_ptr(cell.cellRtData, (RendInstGenData::CellRtData *)nullptr); // mark as not ready
 
   RendInstGenData::CellRtData &crt = *crt_ptr;
   if (crt.vbSize <= 0 && !crt.riexHandles.size())
@@ -1213,6 +1214,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   rendinst::gen::SingleEntityPool::cell_xz_sz = SUBCELL_DIV * box_sz;
   rendinst::gen::SingleEntityPool::cell_y_sz = crt.cellHeight;
   rendinst::gen::SingleEntityPool::per_pool_local_bb = rtData->riResBb.data();
+  rendinst::gen::SingleEntityPool::pool_names = rtData->riResName.data();
   rendinst::gen::SingleEntityPool::cur_cell_id = cellId;
   rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
   rendinst::gen::SingleEntityPool::persistent_ri_extra_instances = rendinst::persistentRiExtraInstances;
@@ -1265,10 +1267,9 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   char *pregenData = crt.pregenAdd ? (char *)crt.pregenAdd->dataStor.data() : nullptr;
 
   rendinst::DestroyedCellData extraDestrData;
-  extraDestrData.cellId = 0;
   if (!rendinst::persistentRiExtraInstances)
   {
-    rtData->riRwCs.lockRead();
+    ScopedLockRead lock{rtData->riRwCs};
     for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
     {
       if (rtData->riDestrCellData[i].cellId != -(cellId + 1))
@@ -1277,7 +1278,6 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
       extraDestrData.cellId = 1; // "Found"
       break;
     }
-    rtData->riRwCs.unlockRead();
   }
 
   // debug("cell[%d,%d] origin=(%.3f,%.3f,%.3f) + sz=(%.3f,%.3f,%.3f)", x, z, P3D(as_point4(&crt.cellOrigin)),
@@ -1288,8 +1288,8 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   SmallTab<uint8_t, TmpmemAlloc> pregenUnpData;
   for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
   {
-    float x0 = (x * SUBCELL_DIV + (s % SUBCELL_DIV)) * box_sz;
-    float z0 = (z * SUBCELL_DIV + (s / SUBCELL_DIV)) * box_sz;
+    float x0 = float(x * SUBCELL_DIV + (s % SUBCELL_DIV)) * box_sz;
+    float z0 = float(z * SUBCELL_DIV + (s / SUBCELL_DIV)) * box_sz;
     gather_and_set_sweep_boxes(sbm_subcell, x0 + world0x(), z0 + world0z(), box_sz, box_sz, sbm_cell);
 
     v_bbox3_init_empty(rendinst::gen::SingleEntityPool::bbox);
@@ -1354,7 +1354,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
           processRiGenFromPregenData(p->riResIdx, pool, v_cell_add, v_cell_mul, ptr, cnt, stride, buf_tm32, buf_w16, vbPtr, true);
       }
 
-    if (pregenData)
+    if (pregenData && crt.pregenAdd)
       for (PregenEntCounter *p = crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s],
                             *pe = crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s + 1];
            p < pe; p++)
@@ -1505,6 +1505,31 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     v_bbox3_add_box(rtData->maxCellBbox, b);
   }
 #endif
+  bbox3f cellMathBox = {crt.cellOrigin, v_add(crt.cellOrigin, v_splats(grid2world * cellSz))};
+  vec4f maxOf = v_sub(crt.bbox[0].bmax, cellMathBox.bmax);
+  vec4f minOf = v_sub(cellMathBox.bmin, crt.bbox[0].bmin);
+  float cellMargin = v_extract_x(v_hmax(v_max(v_perm_xzxz(v_max(minOf, maxOf)), v_zero())));
+  float maxSubcellMargin = 0.f;
+
+  for (int i = 0; i < SUBCELL_DIV; i++)
+  {
+    for (int j = 0; j < SUBCELL_DIV; j++)
+    {
+      bbox3f subcellMathBox = cellMathBox;
+      vec3f offs = v_make_vec3f(box_sz * j, 0.f, box_sz * i);
+      subcellMathBox.bmin = v_add(subcellMathBox.bmin, offs);
+      subcellMathBox.bmax = v_add(subcellMathBox.bmax, offs);
+      int idx = i * SUBCELL_DIV + j;
+      vec4f maxOffs = v_sub(crt.bbox[idx + 1].bmax, subcellMathBox.bmax);
+      vec4f minOffs = v_sub(subcellMathBox.bmin, crt.bbox[idx + 1].bmin);
+      maxSubcellMargin = max(maxSubcellMargin, v_extract_x(v_hmax(v_max(v_perm_xzxz(v_max(minOffs, maxOffs)), v_zero()))));
+    }
+  }
+  {
+    ScopedLockWrite lock{rtData->riRwCs};
+    rtData->maxCellMargin = max(rtData->maxCellMargin, cellMargin);
+    rtData->maxSubcellMargin = max(rtData->maxSubcellMargin, maxSubcellMargin);
+  }
 
   rendinst::gen::SingleEntityPool::sweep_boxes_itm.reset();
   clear_and_shrink(buf_tm32);
@@ -1564,7 +1589,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
   if (!rtData->rtPoolData.empty()) // Resized for render only (see `RendInstGenData::initRender)
   {
-    rtData->riRwCs.lockRead();
+    ScopedLockRead lock{rtData->riRwCs};
     auto mrange = make_span_const(vbPtr, crt.vbSize);
     for (const auto &cellDestr : rtData->riDestrCellData)
     {
@@ -1599,7 +1624,6 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
       }
       break;
     }
-    rtData->riRwCs.unlockRead();
   }
 
   if (zcrd)
@@ -1680,19 +1704,20 @@ void RendInstGenData::generateRiExFromPregenData(int riex_idx, RendInstGenData::
       cur_ri_extra_ord += 16 * (riPool.destrDepth + 1);
       continue;
     }
+
     mat44f tm;
     if (!rendinst::tmInst12x32bit)
-    {
       rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
-      // Note: 16-bit quantization is quite inaccurate so orthonormalize it to match with collision
-      vec3f ls = v_sqrt(v_perm_xzac(v_perm_xycd(v_length3_sq(tm.col0), v_length3_sq(tm.col1)), v_length3_sq(tm.col2)));
-      v_mat44_orthonormalize33(tm, tm);
-      tm.col0 = v_mul(tm.col0, v_splat_x(ls));
-      tm.col1 = v_mul(tm.col1, v_splat_y(ls));
-      tm.col2 = v_mul(tm.col2, v_splat_z(ls));
-    }
     else
       rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
+
+    // Orthonormalize to match collision (Jolt re-orthos too), preserving per-axis scale
+    vec3f ls = v_sqrt(v_mat44_scale43_sq(tm));
+    v_mat44_orthonormalize33(tm, tm);
+    tm.col0 = v_mul(tm.col0, v_splat_x(ls));
+    tm.col1 = v_mul(tm.col1, v_splat_y(ls));
+    tm.col2 = v_mul(tm.col2, v_splat_z(ls));
+
     tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs), rendinst::gen::SingleEntityPool::cell_y_sz,
       rendinst::gen::SingleEntityPool::oy);
     if (v_extract_x(v_mat44_det43(tm)) < 0.f)
@@ -2170,7 +2195,7 @@ void rendinst::registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list)
       dag::ConstSpan<int> ld = rgl->rtData->loaded.getList();
       debug("reset %d loaded cells (due to sweep areas changed)", ld.size());
       for (auto ldi : ld)
-        if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
+        if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].cellRtData)
           crt->clearAllWithRiEx();
 
       rgl->rtData->loaded.reset();
@@ -2190,7 +2215,7 @@ void rendinst::regenerateRIGen()
       dag::ConstSpan<int> ld = rgl->rtData->loaded.getList();
       debug("reset %d loaded cells", ld.size());
       for (auto ldi : ld)
-        if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
+        if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].cellRtData)
           crt->clearAllWithRiEx();
 
       rgl->rtData->loaded.reset();
@@ -2292,7 +2317,7 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
     {
       ScopedLockWrite lock(rgl->rtData->riRwCs);
       bool wasReady = rgl->cells[idx].isReady();
-      RendInstGenData::CellRtData *crt = rgl->cells[idx].rtData;
+      RendInstGenData::CellRtData *crt = rgl->cells[idx].cellRtData;
       dag::Span<rendinst::riex_handle_t> riex = {nullptr, 0};
       if (crt) // Note: actual data deleted in dtor (to be able safely read it from main thread)
         unloadedCellData = eastl::move((RendInstGenData::CellRtDataLoaded &)*crt);
@@ -2379,7 +2404,7 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         canceled = !rgl->rtData->toLoad.delInt(idx);
         if (crt->sysMemData) // if is ready
           rgl->rtData->loadedCellsBBox += IPoint2(cx, cz);
-        interlocked_release_store_ptr(rgl->cells[idx].rtData, crt); // This makes cell "ready"
+        interlocked_release_store_ptr(rgl->cells[idx].cellRtData, crt); // This makes cell "ready"
         isLastJob = rgl->rtData->toLoad.empty();
       }
 
@@ -2773,29 +2798,12 @@ void rendinst::prepareRIGen(bool init_sec_ri_extra_here, const DataBlock *level_
     for (int i = 0; i < riExtraIdxPair.size(); i += 2)
       riMaxDist[riExtraIdxPair[i]] = sqrtf(rendinst::riExtra[riExtraIdxPair[i + 1]].distSqLOD[rendinst::RiExtraPool::MAX_LODS - 1]);
 
-    for (int riGenIdx = 0; riGenIdx < rgl->rtData->riCollRes.size(); riGenIdx++)
-    {
-      bool isExtra = false;
-      for (int i = 0; i < riExtraIdxPair.size(); i += 2)
-      {
-        if (riGenIdx == riExtraIdxPair[i])
-        {
-          isExtra = true;
-          break;
-        }
-      }
-      if (isExtra)
-        continue;
-      if (CollisionResource *collRes = rgl->rtData->riCollRes[riGenIdx].collRes)
-        rgl->rtData->maxRiGenBsphereRad = max(rgl->rtData->maxRiGenBsphereRad, collRes->boundingSphereRad);
-    }
-
     for (int z = 0; z < rgl->cellNumH; z++)
       for (int x = 0; x < rgl->cellNumW; x++)
       {
         int cellId = x + z * rgl->cellNumW;
         RendInstGenData::Cell &cell = rgl->cells[cellId];
-        RendInstGenData::CellRtData *crt = cell.rtData;
+        RendInstGenData::CellRtData *crt = cell.cellRtData;
         if (crt)
           continue;
         if (!cell.hasFarVisiblePregenInstances(rgl, 125000.f, riMaxDist))
@@ -2805,7 +2813,7 @@ void rendinst::prepareRIGen(bool init_sec_ri_extra_here, const DataBlock *level_
         crt = new RendInstGenData::CellRtData(rgl->rtData->riRes.size(), rgl->rtData);
         rgl->precomputeCell(*crt, x, z);
         ScopedLockWrite lock(rgl->rtData->riRwCs);
-        cell.rtData = crt;
+        cell.cellRtData = crt;
       }
   }
   DEBUG_CP();
@@ -2822,11 +2830,11 @@ void rendinst::precomputeRIGenCellsAndPregenerateRIExtra()
       {
         int cellId = x + z * rgl->cellNumW;
         RendInstGenData::Cell &cell = rgl->cells[cellId];
-        RendInstGenData::CellRtData *crt = cell.rtData;
+        RendInstGenData::CellRtData *crt = cell.cellRtData;
         G_ASSERT(!crt);
         crt = new RendInstGenData::CellRtData(rgl->rtData->riRes.size(), rgl->rtData);
         ri_count += rgl->precomputeCell(*crt, x, z);
-        cell.rtData = crt;
+        cell.cellRtData = crt;
       }
   shrinkToFitRiEx();
   debug("%s done, ri_count=%d", __FUNCTION__, ri_count);
@@ -2958,7 +2966,7 @@ void rendinst::enableSecLayer(bool en)
         dag::ConstSpan<int> ld = rgl->rtData->loaded.getList();
         debug("reset %d loaded cells", ld.size());
         for (auto ldi : ld)
-          if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
+          if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].cellRtData)
             crt->clearAllWithRiEx();
 
         rgl->rtData->loaded.reset();
@@ -3098,7 +3106,7 @@ int rendinst::getRIGenLoadedInstancesCount()
       continue;
     for (int c = 0, nc = rgl->cells.size(); c < nc; ++c)
     {
-      const RendInstGenData::CellRtData *crt = rgl->cells[c].rtData;
+      const RendInstGenData::CellRtData *crt = rgl->cells[c].cellRtData;
       if (!crt)
         continue;
       for (uint32_t p = 0, np = crt->pools.size(); p < np; ++p)

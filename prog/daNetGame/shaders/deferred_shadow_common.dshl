@@ -415,7 +415,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         }
       }
       ##if in_editor_assume == yes
-        result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
+        // view must be normalized: it goes into the BRDF half-vector
+        result += get_dynamic_lighting(gbuffer, worldPos.xyz, view, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
       ##else
         result += get_precomputed_dynamic_lighting(screenpos);
       ##endif

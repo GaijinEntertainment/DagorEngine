@@ -144,9 +144,9 @@ void CloudsField::init()
   initDownsampledField();
 
   layersPixelCount.close();
-  layersPixelCount =
-    dag::create_tex(nullptr, resY, 1, (genCloudsField.isComputeLoaded() ? TEXCF_UNORDERED : 0) | TEXCF_RTARGET | TEXFMT_R32F, 1,
-      "cloud_layers_non_empty", RESTAG_DASKIES2);
+  layersPixelCount = dag::create_tex(nullptr, resY, 1,
+    ((genCloudsField.isComputeLoaded() || genCloudsFieldCmpr.isComputeLoaded()) ? TEXCF_UNORDERED : 0) | TEXCF_RTARGET | TEXFMT_R32F,
+    1, "cloud_layers_non_empty", RESTAG_DASKIES2);
 
   if (VoltexRenderer::is_compute_supported())
     refineAltitudes.reset(new_compute_shader("clouds_refine_altitudes", false));

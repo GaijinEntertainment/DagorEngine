@@ -251,6 +251,36 @@ inline void update_camcam_transforms_ecs_query(ecs::EntityManager &manager, Call
     }
   );
 }
+static constexpr ecs::ComponentDesc get_scope_lens_node_wtm_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+  {ECS_HASH("animchar_node_wtm"), ecs::ComponentTypeInfo<AnimcharNodesMat44>()}
+};
+static ecs::CompileTimeQueryDesc get_scope_lens_node_wtm_ecs_query_desc
+(
+  "get_scope_lens_node_wtm_ecs_query",
+  empty_span(),
+  make_span(get_scope_lens_node_wtm_ecs_query_comps+0, 2)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_scope_lens_node_wtm_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, get_scope_lens_node_wtm_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(get_scope_lens_node_wtm_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            , ECS_RO_COMP(get_scope_lens_node_wtm_ecs_query_comps, "animchar_node_wtm", AnimcharNodesMat44)
+            );
+
+        }
+    }
+  );
+}
 static constexpr ecs::ComponentDesc get_camcam_uv_remapping_ecs_query_comps[] =
 {
 //start of 1 ro components at [0]

@@ -151,16 +151,7 @@ inline bool set_render_target(BaseTexture *t, int fc, uint8_t level)
  * @param colors The color render targets.
  * @return True if the render target was set successfully, false otherwise.
  */
-inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
-{
-  int i = 0;
-  for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-    set_render_target(i, colors[i].tex, colors[i].layer, colors[i].mip_level);
-  for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-    set_render_target(i, nullptr, 0);
-
-  set_depth(depth.tex, depth.layer, depth_access);
-}
+void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors);
 
 /**
  * @brief Sets the render target for rendering. All other render targets will be set to nullptr.
@@ -275,6 +266,10 @@ inline bool set_render_target(int rt_index, BaseTexture *t, int fc, uint8_t leve
 inline bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3di.set_render_target(rt_index, t, level); }
 inline void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 inline bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
+inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  d3di.set_render_target_4(depth, depth_access, colors);
+}
 inline bool get_target_size(int &w, int &h) { return d3di.get_target_size(w, h); }
 inline bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)
 {

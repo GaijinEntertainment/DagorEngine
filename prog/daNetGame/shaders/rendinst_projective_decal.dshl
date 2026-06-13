@@ -132,10 +132,11 @@ shader rendinst_projective_decal
       #if SET_UP_MULTIDRAW
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
       #endif
-      half4 screen = GET_SCREEN_POS(input.pos);
-      half3 pointToEye = -get_decal_eye_to_point(screen);
-      half3 worldPos = world_view_pos - pointToEye;
-      half3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.center, input.normal, input.tangent);
+      // pixel coords and world positions do not fit in half on real fp16 targets
+      float4 screen = GET_SCREEN_POS(input.pos);
+      float3 pointToEye = -get_decal_eye_to_point(screen);
+      float3 worldPos = world_view_pos - pointToEye;
+      float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.center, input.normal, input.tangent);
       decalTC *= input.invBoxSize.xzy;
       half depthScale = saturate(1 - abs(decalTC.z) * 2);
       ##if mapping_mode == cone_mapping

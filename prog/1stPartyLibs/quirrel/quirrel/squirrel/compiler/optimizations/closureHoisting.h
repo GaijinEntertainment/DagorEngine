@@ -161,6 +161,18 @@ private:
     void registerFunctionParams(FunctionExpr *f, ScopeContext &scope);
     void tryHoistFunction(FunctionExpr *f, ScopeContext &funcScope);
 
+    // Block-scoped names live in the per-function localNames union, which has no block
+    // notion: add a construct's names on entry and remove them on exit so they do not
+    // leak past their block and mislead capture analysis. hiddenDirect handles a block
+    // name shadowing a same-scope direct local (only a foreach var can) -- it is hidden
+    // from directLocalNames for the block so the capture is seen as indirect.
+    static void collectDeclNames(Node *n, ArenaVector<const char *> &out);
+    void enterScopeNames(const ArenaVector<const char *> &names, ArenaVector<const char *> &added,
+                         ArenaVector<const char *> &hiddenDirect);
+    void leaveScopeNames(const ArenaVector<const char *> &added,
+                         const ArenaVector<const char *> &hiddenDirect);
+    void visitScopedBody(Statement *body);
+
   public:
     HoistingVisitor(ClosureHoistingOpt *o, ScopeContext *root)
         : owner(o), currentScope(root) {}
@@ -172,6 +184,7 @@ private:
     void visitParamDecl(ParamDecl *p) override;
     void visitConstDecl(ConstDecl *c) override;
     void visitTryStatement(TryStatement *stmt) override;
+    void visitForStatement(ForStatement *f) override;
     void visitForeachStatement(ForeachStatement *fe) override;
   };
 

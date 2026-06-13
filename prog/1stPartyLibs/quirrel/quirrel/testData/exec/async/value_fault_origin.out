@@ -1,0 +1,12 @@
+script done
+
+AN ERROR HAS OCCURRED [integer 42]
+
+ERROR TRACE
+    at helper (testData/exec/async/value_fault_origin.nut:8)
+      this = null
+    at failing (testData/exec/async/value_fault_origin.nut:12)
+      helper (captured) = function helper (testData/exec/async/value_fault_origin.nut:7)
+      this = null
+    task root: failing (testData/exec/async/value_fault_origin.nut:11)
+    launched at testData/exec/async/value_fault_origin.nut:17 launcher

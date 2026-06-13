@@ -46,7 +46,7 @@ void GrassRenderer::makeFastGrassNodes()
 
   fastGrassPrecompNode = ns.registerNode("fast_grass_precomp_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     auto cameraHndl = use_camera_in_camera(registry).handle();
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob("world_view_pos", "world_view_pos");
     const auto grassPrepDataHndl = registry.createBlob<FastGrassRenderer::PreparedData>("gatheredInfo").handle();
 
     return [cameraHndl, grassPrepDataHndl](const dafg::multiplexing::Index &) {
@@ -60,7 +60,6 @@ void GrassRenderer::makeFastGrassNodes()
             auto &cam = cameraHndl.ref();
             HeightmapFrustumCullingInfo fi{
               .world_pos = cam.cameraWorldPos,
-              .water_level = hmapHandler->getPreparedWaterLevel(),
               .frustum = cam.jitterFrustum,
               .metrics =
                 {
@@ -110,8 +109,8 @@ static dafg::NodeHandle make_grass_per_camera_res_node()
 
 static bool use_occlusion_culling()
 {
-  const bool hasGpuOcclusion = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasGpuOcclusion", false);
-  const bool hasVisibilityPrepass = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasVisibilityPrepass", true);
+  static bool hasGpuOcclusion = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasGpuOcclusion", false);
+  static bool hasVisibilityPrepass = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasVisibilityPrepass", true);
   if (hasGpuOcclusion && hasVisibilityPrepass)
   {
     LOGERR_ONCE("Grass: GPU occlusion culling enabled. But it is incompatible with graphics/grassHasVisibilityPrepass:b=yes. Disable "
@@ -130,9 +129,9 @@ static dafg::NodeHandle make_grass_generation_node()
     auto cameraHistory = read_history_camera_in_camera(registry).handle();
 
     auto hzbHndl = registry.readTexture("reprojected_hzb").atStage(dafg::Stage::CS).useAs(dafg::Usage::SHADER_RESOURCE).handle();
-    registry.readBlob<int>("reprojected_hzb_mip_count").bindToShaderVar("reprojected_hzb_depth_mip_count");
+    registry.bindBlob("reprojected_hzb_mip_count", "reprojected_hzb_depth_mip_count");
 
-    registry.modifyBlob<OrderingToken>("grass_generated_token");
+    registry.modifyBlob("grass_generated_token");
 
     return [cameraHndl, cameraHistory, hzbHndl](const dafg::multiplexing::Index &multiplexing_index) {
       camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref()};
@@ -176,10 +175,10 @@ void init_grass_render_es(const ecs::Event &evt,
 
   auto decoNs = dafg::root() / "opaque" / "decorations";
   grass_node = decoNs.registerNode("fullres_grass_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.readBlob<OrderingToken>("grass_generated_token").optional();
+    registry.readBlob("grass_generated_token").optional();
 
     auto grassNs = registry.root() / "burnt_grass";
-    grassNs.readBlob<OrderingToken>("burnt_grass_prepared_token").optional();
+    grassNs.readBlob("burnt_grass_prepared_token").optional();
 
     shaders::OverrideState st;
     const uint32_t zWrite = prepass ? shaders::OverrideState::Z_WRITE_DISABLE : 0;
@@ -192,10 +191,10 @@ void init_grass_render_es(const ecs::Event &evt,
     render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 
     if (grass_supports_visibility_prepass())
-      registry.read("grass_visibility_resolved").blob<OrderingToken>();
+      registry.read("grass_visibility_resolved").blob();
 
     // For grass billboards
-    registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
+    registry.bindBlob("world_view_pos", "world_view_pos");
 
     return [cameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
       const camera_in_camera::ApplyMasterState camcam{
@@ -228,7 +227,7 @@ static void create_grass_prepass_nodes_es(const OnCameraNodeConstruction &evt)
     render_to_gbuffer_prepass(registry);
     auto [cameraHndl, _] = request_common_opaque_state(registry);
 
-    registry.readBlob<OrderingToken>("grass_generated_token").optional();
+    registry.readBlob("grass_generated_token").optional();
     registry.create("grass_prepass_done").blob<OrderingToken>();
 
     return [cameraHndl = cameraHndl](const dafg::multiplexing::Index &multiplexing_index) {
@@ -245,9 +244,9 @@ static void create_grass_prepass_nodes_es(const OnCameraNodeConstruction &evt)
     // gamesLibs and we should replace the stupid tokens with proper buffers that
     // we are filling in & reading from.
     evt.nodes->push_back(ns.registerNode("grass_visibility_pass_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      registry.read("grass_prepass_done").blob<OrderingToken>();
+      registry.read("grass_prepass_done").blob();
 
-      registry.allowAsyncPipelines().requestRenderPass().depthRo("gbuf_depth").vrsRate(VRS_RATE_TEXTURE_NAME);
+      registry.allowAsyncPipelines().requestRenderPass().depthReadTestOnly("gbuf_depth").vrsRate(VRS_RATE_TEXTURE_NAME);
       auto [cameraHndl, _] = request_common_opaque_state(registry);
 
       registry.create("grass_visibility_prepared").blob<OrderingToken>();
@@ -261,7 +260,7 @@ static void create_grass_prepass_nodes_es(const OnCameraNodeConstruction &evt)
     }));
 
     evt.nodes->push_back(dafg::root().registerNode("grass_visibility_resolve", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-      (registry.root() / "opaque" / "statics").read("grass_visibility_prepared").blob<OrderingToken>();
+      (registry.root() / "opaque" / "statics").read("grass_visibility_prepared").blob();
       registry.create("grass_visibility_resolved").blob<OrderingToken>();
 
       return [](const dafg::multiplexing::Index &multiplexing_index) {

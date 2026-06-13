@@ -172,7 +172,7 @@ int DagorWinMain(bool debugmode)
   signal(SIGINT, ctrl_break_handler);
 
   printf("Prefabs and Resources to daEditorX entities converter v2.1\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   if (__argc < 4)
   {

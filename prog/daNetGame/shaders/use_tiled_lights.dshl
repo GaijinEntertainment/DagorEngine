@@ -120,7 +120,9 @@ macro USE_TILED_LIGHTS(code, force_disable_ssss, shadow_callback)
       half dynamicLightsSpecularStrength = gbuffer.extracted_albedo_ao;
       half dynamicAO = applyDynamicAoEffect(gbuffer.ao);
       #if (OMNI_CONTACT_SHADOWS || SPOT_CONTACT_SHADOWS)
-        float3 contactStartCameraToPoint = -w*view;
+        // derive the ray start from worldPos: view is the normalized to-eye direction,
+        // -w*view is not the camera-to-point vector (w is depth, not distance)
+        float3 contactStartCameraToPoint = worldPos - world_view_pos.xyz;
         float dither = interleavedGradientNoiseFramed(screenpos, shadow_frame);//if we have temporal aa
 
         #if OMNI_CONTACT_SHADOWS

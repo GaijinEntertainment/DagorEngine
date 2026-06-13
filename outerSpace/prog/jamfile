@@ -219,7 +219,6 @@ if $(Dedicated) != yes {
         platform/android.bundle/$(Game)/src/$(JavaActivitySrcName).java      src/com/gaijinent/$(BundleName)/$(JavaActivitySrcName).java
         @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorCommonActivity.java      src/$(AndroidCommonPath)/DagorCommonActivity.java
         @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorBaseActivity.java      src/$(AndroidCommonPath)/DagorBaseActivity.java
-        @$(Root)/prog/gameLibs/android/platform/android.bundle/src/$(AndroidCommonPackage)/DagorThermal.java      src/$(AndroidCommonPath)/DagorThermal.java
         @$(FmodStudioLowLibPath)/../fmod.jar       libs/fmod.jar
         @$(upd_so) libs/$(PlatformArch)/libupdater.so
         platform/android/config.blk assets/config.blk

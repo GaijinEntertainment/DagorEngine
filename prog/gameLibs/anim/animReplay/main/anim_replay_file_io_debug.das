@@ -30,6 +30,10 @@ def save_animchar_data_to_blk(var blk : DataBlock; animchar_data : Object)
       datablock_add_block(blk, "_initialAnimStateParams") <| $(var initialAnimStateParamsBlk : DataBlock)
         copy_anim_state_parameters_to_blk(*animchar.animGraph, *initialAnimStateParams, initialAnimStateParamsBlk)
     save_optional_component_to_blk(animchar_data, "animTreeStates", blk)
+    save_optional_component_to_blk(animchar_data, "slotTime", blk)
+    save_optional_component_to_blk(animchar_data, "slotIdx", blk)
+    save_optional_component_to_blk(animchar_data, "slotName", blk)
+    save_optional_component_to_blk(animchar_data, "parentAnimcharIdx", blk)
     component_to_blk_param("animcharRes", getEntityComponentRef(*get_child(animchar_data, "animcharRes")), blk)
     component_to_blk_param("originalTemplate", getEntityComponentRef(*get_child(animchar_data, "originalTemplate")), blk)
     component_to_blk_param("additionalTemplates", getEntityComponentRef(*get_child(animchar_data, "additionalTemplates")), blk)
@@ -62,6 +66,13 @@ def patch_animchar_data(var animchar_data : Object; blk : DataBlock; animchar_id
     let initialParamsBlk = datablock_get_block_by_name(blk, "_initialAnimStateParams")
     if initialParamsBlk != null && animchar.animGraph != null && animchar.animState != null
       patch_anim_graph_data(animchar_data, *animchar.animGraph, *animchar.animState, *initialParamsBlk)
+  var slotIndices = getRW_ecs_IntList(animchar_data, "slotIdx")
+  let slotNames = get_ecs_StringList(animchar_data, "slotName")
+  if slotIndices != null && slotNames != null
+    for slotIdx, slotName in *slotIndices, *slotNames
+      peek(slotName) $(slotNameString)
+        slotIdx = animchar_getSlotId(slotNameString)
+
   if get_float(animchar_data, "deathTime") == null
     var validData = true
     validData &&= length(*get_ecs_Point3List(animchar_data, "position")) == num_timestamps

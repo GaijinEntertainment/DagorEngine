@@ -18,7 +18,7 @@ int _cdecl main(int argc, char **argv)
 {
   dd_get_fname(""); //== pull in directoryService.obj
   printf("Quake map to DagorEditor Prefabs convertion tool\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
 
   if (argc < MIN_ARG_COUNT)
   {

@@ -3,6 +3,7 @@
 
 #include <shaders/dag_shaderVarsUtils.h>
 #include <util/dag_threadPool.h>
+#include <math/dag_TMatrix4.h>
 
 #include <render/renderEvent.h>
 
@@ -13,6 +14,10 @@ struct AnimcharRenderMainJobCtx
   GlobalVariableStates globalVarsState;
   struct AnimcharRenderMainJob *jobs = nullptr;
   uint32_t lastJobTPQPos = 0;
+  TMatrix4 viewTm = TMatrix4::IDENT;
+  TMatrix4 projTm = TMatrix4::IDENT;
+  TMatrix4 prevViewTm = TMatrix4::IDENT;
+  TMatrix4 prevProjTm = TMatrix4::IDENT;
 };
 
 struct AnimcharRenderMainJob final : public cpujobs::IJob
@@ -22,7 +27,7 @@ struct AnimcharRenderMainJob final : public cpujobs::IJob
   uint32_t hints;
   const Occlusion *occlusion;
   const Frustum *frustum; // Note: points to `current_camera` blob within dafg
-  dynmodel_renderer::DynModelRenderingState *dstate;
+  dynrend::ContextId dynCtx = dynrend::ContextId::INVALID;
   TexStreamingContext texCtx = TexStreamingContext(0);
 
   void start(AnimcharRenderMainJobCtx *ctx,

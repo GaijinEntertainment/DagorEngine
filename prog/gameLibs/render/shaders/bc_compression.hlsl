@@ -69,7 +69,8 @@
 
   // Find reference colors using Principal Component Analysis for RGB colors.
   static const float scale = pow(2, 10);
-  static const float epsilon = scale*(1./128.)*pow(1./255., 2);
+  static const float epsilon = (1./128.)*pow(1./255., 2);
+  static const float epsilonScaled = scale * epsilon;
   void find_base_colors_pca_rgb( half4 texels[16], out half4 min_color, out half4 max_color )
   {
     half2 minMaxAlpha = half2(1, 0);
@@ -97,14 +98,29 @@
       Erb += ctex.r * ctex.b;
     }
 
-    Err = Err*scale + 1*epsilon;
-    Egg = Egg*scale + 2*epsilon;
-    Ebb = Ebb*scale + 3*epsilon;
-    Erg = Erg*scale - 1.5*epsilon;
-    Egb = Egb*scale - 2.5*epsilon;
-    Erb = Erb*scale - 3.5*epsilon;
+    bool4 boolNoVar = float4(Err, Egg, Ebb, 0 /*dirty*/) < epsilon;
+    boolNoVar.w = all(boolNoVar.xyz);
 
-    float3 majorVec = normalize(majorEigenvector3x3sym(Err, Egg, Ebb, Erg, Egb, Erb));
+    Err = Err*scale + 1*epsilonScaled;
+    Egg = Egg*scale + 2*epsilonScaled;
+    Ebb = Ebb*scale + 3*epsilonScaled;
+    Erg = Erg*scale - 1.5*epsilonScaled;
+    Egb = Egb*scale - 2.5*epsilonScaled;
+    Erb = Erb*scale - 3.5*epsilonScaled;
+
+    float3 majorVecDirty = majorEigenvector3x3sym(Err, Egg, Ebb, Erg, Egb, Erb);
+
+    // Keeping constant values across block always constant.
+    if (boolNoVar.x)
+      majorVecDirty.x = 0;
+    if (boolNoVar.y)
+      majorVecDirty.y = 0;
+    if (boolNoVar.z)
+      majorVecDirty.z = 0;
+    if (boolNoVar.w)
+      majorVecDirty = float3(1, 0, 0); // it doesn't matter, any vector with length > 0. minMaxProj = manMaxProj = 0.
+
+    float3 majorVec = normalize(majorVecDirty);
 
     float2 minMaxProj = float2(100, -100);
     for (i = 0; i < 16; ++i)

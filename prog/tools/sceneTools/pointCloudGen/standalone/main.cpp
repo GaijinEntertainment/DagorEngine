@@ -78,7 +78,7 @@ void DagorWinMainInit(int, bool)
   char stamp_buf[256];
   printf("--------------------------------------------\n"
          "PLOD generator v0.1\n"
-         "Copyright (C) Gaijin Games KFT, 2024\n"
+         "Copyright (C) Gaijin Games KFT, 2026\n"
          "--------------------------------------------\n"
          "%s\n\n\n",
     dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), ""));

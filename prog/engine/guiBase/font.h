@@ -184,6 +184,7 @@ public:
   inline void fetch() { selfData || isFullyDynamicFont() ? (void)0 : doFetch(); }
 
   bool isFullyDynamicFont() const { return dfont.ttfNid >= 0; }
+  int getTtfNid() const { return dfont.ttfNid; }
   int getInitialFontHt() const { return isFullyDynamicFont() ? dfont.initialPixHt : fontHt; }
   int getFontHt() const { return isFullyDynamicFont() ? dfont.pixHt : fontHt; }
   bool setFontHt(int ht);
@@ -668,3 +669,12 @@ static inline const BBox2 *find_bbox(hash_t hash, Hash2IdxStratum h2i, unsigned 
   return nullptr;
 }
 } // namespace strboxcache
+
+// Returns the FreeType face handle (FT_Face as void*) for a given font ID.
+// Returns nullptr if font has no FreeType data or font ID is invalid.
+// Used by Slug text rendering to extract glyph outlines.
+void *dagor_font_get_freetype_face(int font_id);
+
+// Returns the FreeType glyph index for a Unicode character in the given font.
+// Returns 0 if the character is not found in the font.
+unsigned dagor_font_get_glyph_index(int font_id, unsigned unicode_char);

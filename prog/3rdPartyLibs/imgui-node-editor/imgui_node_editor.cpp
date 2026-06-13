@@ -3580,6 +3580,15 @@ void ed::NavigateAction::StopNavigation()
     m_Animation.Stop();
 }
 
+// MODIFICATION BY GAIJIN
+void ed::NavigateAction::ScrollCanvasPointToScreen(const ImVec2& canvasPoint, const ImVec2& screenPoint)
+{
+    // Pan (keeping zoom) so canvasPoint lands at screenPoint. Same math as CalcCenterView /
+    // SetViewRect, but with an arbitrary screen target instead of the widget centre.
+    StopNavigation();
+    m_Scroll += m_Canvas.FromLocalV(canvasPoint - m_Canvas.ToLocal(screenPoint));
+}
+
 void ed::NavigateAction::FinishNavigation()
 {
     m_Animation.Finish();

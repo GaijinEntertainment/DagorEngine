@@ -64,6 +64,7 @@ if $(SqVarTrace) = yes {
 
 if $(Config) != rel && $(Config) != irel {
   CPPopt += -DSQ_CHECK_THREAD ;
+  CPPopt += -DSQ_RANDOMIZE_FOREACH=1 ;
 } else {
   CPPopt += -DSQ_RUNTIME_TYPE_CHECK=0 ;
 }

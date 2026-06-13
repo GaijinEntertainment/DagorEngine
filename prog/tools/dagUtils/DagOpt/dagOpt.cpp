@@ -81,7 +81,7 @@ int _cdecl main(int argc, char **argv)
   if (showCopyright)
   {
     printf("Dag optimization tool\n");
-    printf("Copyright (c) Gaijin Games KFT, 2023\n");
+    printf("Copyright (c) Gaijin Games KFT, 2026\n");
   }
 
   StaticGeometryContainer cont;

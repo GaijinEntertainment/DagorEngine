@@ -229,6 +229,10 @@ void DriverConfig::configurePerDeviceDriverFeatures()
     latencyWaitMaxUs = latWaitProp->getInt64("maxWaitUs", 33 * 1000);
   }
 
+  bits.disableCpuGpuOverlap = !::dgs_get_settings()->getBlockByNameEx("video")->getBool("cpuGpuOverlap", true);
+  if (bits.disableCpuGpuOverlap)
+    debug("vulkan: CPU-GPU overlap disabled (video/cpuGpuOverlap:b=off), GPU will be synced after every frame");
+
   {
     const DataBlock *execTrackerProp = getPerDriverPropertyBlock("executionTracker");
     // enable on device reset caused by device lost

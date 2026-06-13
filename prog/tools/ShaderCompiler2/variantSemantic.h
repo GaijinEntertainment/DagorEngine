@@ -162,6 +162,21 @@ inline constexpr bool vt_is_static_sampled_texture(VariableType vt)
   }
 }
 
+inline constexpr bool vt_is_tex(VariableType vt)
+{
+  switch (vt)
+  {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_TEX()
+    return true;
+#undef TYPE
+
+    default: return false;
+  }
+}
+
+inline constexpr bool vt_is_buf(VariableType vt) { return vt == VariableType::buf; }
+
 inline constexpr int vt_float_size(VariableType vt)
 {
   switch (vt)
@@ -197,6 +212,18 @@ inline VariableType name_space_to_type(const char *name_space)
     return VariableType::Unknown;
 
   return found->second;
+}
+
+inline const char *type_to_namespace(VariableType type)
+{
+  switch (type)
+  {
+#define TYPE(type) \
+  case VariableType::type: return "@" #type;
+    PRESHADER_VARIABLE_TYPE_LIST
+#undef TYPE
+    default: G_ASSERTF(false, "unknown variable type %d", eastl::to_underlying(type)); return "";
+  };
 }
 
 struct NamedConstInitializerElement

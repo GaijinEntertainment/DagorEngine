@@ -309,7 +309,17 @@ void RenderObjectText::render(StdGuiRender::GuiContext &ctx, const Element *elem
     if (const char *e = (const char *)memchr(elem->props.text.c_str(), 0, textLength))
       textLength = e - elem->props.text.c_str();
 
-    wchar_t *textU16 = (wchar_t *)alloca((textLength + 2) * sizeof(wchar_t));
+    constexpr int stackTextLimit = 1024;
+    Tab<wchar_t> heapTextU16(framemem_ptr());
+    wchar_t *textU16;
+    if (textLength + 2 <= stackTextLimit)
+      textU16 = (wchar_t *)alloca((textLength + 2) * sizeof(wchar_t));
+    else
+    {
+      // prevent stack overflow due to a pathological text
+      heapTextU16.resize(textLength + 2);
+      textU16 = heapTextU16.data();
+    }
     int used = utf8_to_wcs_ex(elem->props.text.c_str(), textLength, textU16, textLength + 1);
     G_ASSERT(used <= textLength);
     textU16[used] = 0;

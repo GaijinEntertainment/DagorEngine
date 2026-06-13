@@ -45,7 +45,7 @@ struct BVHConnection : public bvh::BVHConnection
     buffer_id = BAD_D3DRESID;
 
     auto riRes = rendinst::getRIGenExtraRes(id);
-    if (riRes->getBvhId() == 0)
+    if (!riRes || riRes->getBvhId() == 0)
       return false;
 
     auto &mapping = metainfoMappingsById[id];
@@ -60,6 +60,8 @@ struct BVHConnection : public bvh::BVHConnection
 
     if (mapping.dirty)
     {
+      TIME_PROFILE(bvh_objects_lock_gobj);
+      Context::BvhObjectReadLock objectsGuard((*contexts.begin())->objectsLock);
       GpuObjectsBvhMapping mappings[maxLodCount];
       for (auto [lodIx, mapping] : enumerate(mappings))
       {

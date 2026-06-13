@@ -56,6 +56,7 @@ protected:
   TacLaserRenderSettings tacLaserRenderSettings;
   Tab<BeamTracerCreateCommand> createCommands;
   Tab<BeamTracerUpdateCommand> updateCommands;
+  carray<int, MAX_BEAM_TRACERS> pendingUpdateCommands;
   void updateAlive();
   void performGPUCommands();
 
@@ -84,6 +85,6 @@ protected:
   int currentUsed;
   DynamicShaderHelper headRenderer, tailRenderer;
   float cTime, lastDt;
-  SharedTexHolder tailTex;
-  SharedTexHolder beamTex;
+  SharedTexWithShaderVar tailTex;
+  SharedTexWithShaderVar beamTex;
 };

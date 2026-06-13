@@ -47,6 +47,12 @@ bool tilecache_ri_is_blocking(rendinst::riex_handle_t handle)
   return setup->overrideTypeValue == 1;
 }
 
+obstacle_handle_t tilecache_ri_get_obstacle_handle(rendinst::riex_handle_t handle)
+{
+  auto it = riHandle2obstacle.find(handle);
+  return it != riHandle2obstacle.end() ? it->second.obstacle_handle : 0;
+}
+
 void tilecache_log_obstacle(rendinst::riex_handle_t handle);
 void tilecache_log_final();
 
@@ -55,7 +61,7 @@ static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle, 
 {
   rendinst::RendInstDesc desc(handle);
   TMatrix tm = rendinst::getRIGenMatrix(desc);
-  BBox3 oobb = rendinst::getRIGenBBox(desc);
+  BBox3 oobb = rendinst::get_ri_extra_obstacle_bbox(desc);
 
   if (tile_check_cb && !tile_check_cb(tm * oobb))
     return;
@@ -202,7 +208,8 @@ void tilecache_ri_walk_obstacles(ri_obstacle_cb_t ri_obstacle_cb)
     rendinst::RendInstDesc desc(it.first);
     Point3 c, ext;
     float angY;
-    tilecache_calc_obstacle_pos(rendinst::getRIGenMatrix(desc), rendinst::getRIGenBBox(desc), riCellSize, riPadding, c, ext, angY);
+    tilecache_calc_obstacle_pos(rendinst::getRIGenMatrix(desc), rendinst::get_ri_extra_obstacle_bbox(desc), riCellSize, riPadding, c,
+      ext, angY);
     TMatrix tm = rotyTM(-angY);
     tm.setcol(3, c);
     ri_obstacle_cb(it.first, tm, BBox3(-ext, ext));
@@ -222,8 +229,8 @@ void tilecache_ri_enable_obstacle(rendinst::riex_handle_t ri_handle, bool enable
   {
     rendinst::RendInstDesc desc(ri_handle);
     const bool block = tilecache_ri_is_blocking(ri_handle);
-    it->second.obstacle_handle =
-      tilecache_obstacle_add(rendinst::getRIGenMatrix(desc), rendinst::getRIGenBBox(desc), riPadding, block, false, sync);
+    it->second.obstacle_handle = tilecache_obstacle_add(rendinst::getRIGenMatrix(desc), rendinst::get_ri_extra_obstacle_bbox(desc),
+      riPadding, block, false, sync);
   }
   else if (tilecache_obstacle_remove(it->second.obstacle_handle, sync))
     it->second.obstacle_handle = 0;
@@ -240,7 +247,7 @@ bool tilecache_ri_obstacle_add(rendinst::riex_handle_t ri_handle, const BBox3 &o
   rendinst::RendInstDesc desc(ri_handle);
   RiObstacle obstacle;
   obstacle.dynamic = true;
-  BBox3 oobb = rendinst::getRIGenBBox(desc);
+  BBox3 oobb = rendinst::get_ri_extra_obstacle_bbox(desc);
   oobb.lim[0] += oobb_inflate.lim[0];
   oobb.lim[1] += oobb_inflate.lim[1];
   const bool block = tilecache_ri_is_blocking(ri_handle);

@@ -47,7 +47,7 @@ class ShaderContext
   bool mDebugModeEnabled = false;
 
   TargetContext &mParent;
-  const CompilationContext &mCompParent;
+  CompilationContext &mCompParent;
 
   carray<ShaderTerminal::external_state_block *, STAGE_MAX> mShaderAssertPreshaderBlocks{};
 
@@ -56,6 +56,7 @@ public:
 
   TargetContext &tgtCtx() { return mParent; }
   const TargetContext &tgtCtx() const { return mParent; }
+  CompilationContext &compCtx() { return mCompParent; }
   const CompilationContext &compCtx() const { return mCompParent; }
 
   const char *name() const { return mName; }
@@ -125,7 +126,7 @@ private:
   // @TODO: include option to not initialize shader-only systems (for blocks)
 
   explicit ShaderContext(const char *shname, ShaderBlockLevel block_level, Terminal *shname_term, TargetContext &parent,
-    const CompilationContext &comp_parent) :
+    CompilationContext &comp_parent) :
     mName{shname},
     mNameId{parent.shaderNameMap().addNameId(shname)},
     mBlockLevel{block_level},

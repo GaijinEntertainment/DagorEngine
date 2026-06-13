@@ -13,6 +13,7 @@
 class DagorAsset;
 class DagorAssetMgr;
 class DataBlock;
+struct ImVec2;
 
 class AssetSearchResultsWindow : public PropPanel::DialogWindow, public PropPanel::ICustomControl, public PropPanel::IMenuEventHandler
 {
@@ -21,6 +22,7 @@ public:
 
   // Set optional subtitle displayed at the top of the window. If it is empty then nothing is displayed.
   void setWindowSubtitle(const char *window_subtitle) { windowSubtitle = window_subtitle; }
+  void setWindowSubtitleIcon(PropPanel::IconId icon) { windowSubtitleIcon = icon; }
 
   void addColumnTitle(const char *title) { searchResultsList.addColumnTitle(title); }
   void clearColumnTitles() { searchResultsList.clearColumnTitles(); }
@@ -34,6 +36,17 @@ public:
 
   void fillResultsList() { searchResultsList.fill(); }
 
+  bool isPinned() const { return pinned; }
+
+protected:
+  virtual void saveResultsToBlk(DataBlock &blk) const;
+
+  // path: it can be used for error reporting
+  // return false in case of failure
+  virtual bool loadResultsFromBlk(const DataBlock &blk, const char *path);
+
+  void setPinned(bool new_pinned) { pinned = new_pinned; }
+
 private:
   // PropPanel::ICustomControl
   void customControlUpdate(int id) override;
@@ -43,19 +56,22 @@ private:
 
   const DagorAsset *getSelectedAsset() { return searchResultsList.getSelectedAsset(); }
   void fillContextMenu(PropPanel::IMenu &menu, const AssetSearchResultsListControl::SearchResult &search_result);
-  void saveResults(const char *path) const;
+  void saveResultsToFile(const char *path) const;
   void loadResult(const DataBlock &result_blk, int column_name_id);
-  void loadResults(const char *path);
+  void loadResultsFromFile(const char *path);
+  void updateImguiSubtitle(const ImVec2 &start_pos, float available_width);
 
   static constexpr int CustomControlHolderId = 1;
 
   AssetSearchResultsListControl searchResultsList;
   eastl::unique_ptr<PropPanel::IMenu> contextMenu;
-  SimpleString windowSubtitle;
+  String windowSubtitle;
   String textToSearch;
   PropPanel::IconId closeIcon = PropPanel::IconId::Invalid;
   PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId windowSubtitleIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId pinIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId unpinIcon = PropPanel::IconId::Invalid;
+  bool pinned = false;
   const bool searchInputFocusId = false; // Only the address of this member is used.
 };
-
-extern eastl::unique_ptr<AssetSearchResultsWindow> asset_search_results_window;

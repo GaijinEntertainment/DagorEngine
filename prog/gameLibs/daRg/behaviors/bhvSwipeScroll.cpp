@@ -25,7 +25,6 @@ struct BhvSwipeScrollData
   int activePointer = -1;
   int activeButton = -1;
   Point2 lastPointerPos = Point2(0, 0);
-  Sqrat::Function onChange;
 
   bool isActive() { return activeDevice != DEVID_NONE; }
 
@@ -54,21 +53,34 @@ void BhvSwipeScroll::onAttach(Element *elem)
 {
   BhvSwipeScrollData *bhvData = new BhvSwipeScrollData();
   elem->props.storage.SetValue(dataSlotName, bhvData);
+}
 
+static void validate_change_handler_signature(Element *elem)
+{
   Sqrat::Table &scriptDesc = elem->props.scriptDesc;
-  HSQUIRRELVM vm = scriptDesc.GetVM();
-  bhvData->onChange = Sqrat::Function(vm, scriptDesc, scriptDesc.RawGetSlot(elem->csk->onChange));
-
-  if (!bhvData->onChange.IsNull())
+  Sqrat::Object onChange = scriptDesc.RawGetSlot(elem->csk->onChange);
+  if (!onChange.IsNull())
   {
+    HSQUIRRELVM vm = scriptDesc.GetVM();
+    Sqrat::Function f(vm, Sqrat::Object(vm), onChange);
     SQInteger nparams = 0, nfreevars = 0;
-    G_VERIFY(get_closure_info(bhvData->onChange, &nparams, &nfreevars));
+    G_VERIFY(get_closure_info(f, &nparams, &nfreevars));
     if (nparams != 3)
-    {
       darg_assert_trace_var("onChange must have 2 args", scriptDesc, elem->csk->onChange);
-    }
   }
 }
+
+static void call_on_change(Element *elem, int idx, bool swipe_is_active)
+{
+  Sqrat::Object onChange = elem->props.scriptDesc.RawGetSlot(elem->csk->onChange);
+  if (onChange.IsNull())
+    return;
+  HSQUIRRELVM vm = onChange.GetVM();
+  Sqrat::Function f(vm, Sqrat::Object(vm), onChange);
+  f(idx, swipe_is_active);
+}
+
+void BhvSwipeScroll::onElemSetup(Element *elem, SetupMode) { validate_change_handler_signature(elem); }
 
 void BhvSwipeScroll::onDetach(Element *elem, DetachMode)
 {
@@ -124,7 +136,7 @@ static int getChildIdx(Element *elem, Element *scroll)
   for (auto *c : elem->children)
   {
     auto size = c->calcTransformedBbox().size()[dim];
-    if (offset - size < size)
+    if (offset < size)
     {
       if (2 * offset > size) // more than half of current child size
         result++;
@@ -202,7 +214,7 @@ int BhvSwipeScroll::pointingEvent(ElementTree *etree, Element *elem, InputDevice
       }
       scroll->scrollTo(acc);
       bhvData->finish();
-      bhvData->onChange(idx, /*swipeIsActive*/ false);
+      call_on_change(elem, idx, /*swipeIsActive*/ false);
       etree->releaseOverscroll(scroll);
 
       result = R_PROCESSED;
@@ -219,7 +231,7 @@ int BhvSwipeScroll::pointingEvent(ElementTree *etree, Element *elem, InputDevice
         etree->setOverscroll(scroll, overscroll);
 
         int idx = getChildIdx(elem, scroll);
-        bhvData->onChange(idx, /*swipeIsActive*/ true);
+        call_on_change(elem, idx, /*swipeIsActive*/ true);
       }
 
       bhvData->lastPointerPos = pointer_pos;

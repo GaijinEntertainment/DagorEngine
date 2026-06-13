@@ -31,6 +31,9 @@ struct WaterRenderCommon
 
   float getShoreWaveThreshold() const { return shoreWaveThreshold; }
   void setShoreWaveThreshold(float value);
+  float getShoreDampMin() const { return shoreDampMin; }
+  void setShoreDampMin(float value) { shoreDampMin = value; }
+
   bool isShoreEnabled() const { return shoreEnabled; }
   void shoreEnable(bool enable);
 
@@ -52,4 +55,5 @@ private:
 
   bool shoreEnabled = false;
   float shoreWaveThreshold = 0.4f;
+  float shoreDampMin = 0.f;
 };

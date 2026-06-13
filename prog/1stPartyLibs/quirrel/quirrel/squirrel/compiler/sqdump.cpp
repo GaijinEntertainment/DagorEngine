@@ -2,7 +2,6 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include "sqstring.h"
 #include "sqfuncproto.h"
 #include "sqtable.h"
@@ -788,5 +787,3 @@ void Dump(SQStreamWriteFunc write, void *ud, SQFunctionProto *func, bool deep, i
 void Dump(SQFunctionProto *func, int instruction_index) {
     Dump(&sq_stream_write_file, stdout, func, false, instruction_index);
 }
-
-#endif

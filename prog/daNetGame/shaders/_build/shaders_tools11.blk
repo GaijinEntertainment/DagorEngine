@@ -83,6 +83,7 @@ Compile
     dagi_warp64_irradiance:i=0
     use_gui_glob_tm:i=0
     glass_rt_reflection:i=0
+    allow_rt_glass_reflection:i=0
     can_use_half_precision:i=0
     deform_occupied_tiles_bitvector:i=0
     need_character_microdetails_texture_check:i=1

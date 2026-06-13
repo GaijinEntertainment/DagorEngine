@@ -42,6 +42,7 @@ static ShaderTarget to_shader_target(RenderPass render_pass)
   {
     case RenderPass::Translucent: return ShaderTarget::FrameBuffer;
 
+    case RenderPass::TranslucentAfterAA:
     case RenderPass::TranslucentWithoutDepth: return ShaderTarget::FrameBufferWithoutDepth;
 
     case RenderPass::Shadow: return ShaderTarget::Depth;

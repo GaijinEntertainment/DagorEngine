@@ -917,6 +917,7 @@ SimpleString get_intent_string_extra(JavaVM *jvm, jobject activity, const char *
 
 extern void setup_debug_system(const char *exe_fname, const char *prefix, const char *debug_fname, bool datetime_name,
   const size_t rotatedCount);
+extern void jni_register_all_natives();
 
 static constexpr int MAX_ARGS_COUNT = 64;
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
@@ -1022,6 +1023,8 @@ void android_main(struct android_app *state)
   state->externalInputProcessing = 1;
 
   apply_hinstance(state, NULL);
+
+  jni_register_all_natives();
 
   android_exit_app_ptr = &android_exit_app;
 

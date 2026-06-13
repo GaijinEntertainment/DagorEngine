@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/render/adaptation ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/adaptation.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  exposureCompute.cpp
+  adaptationSettingsEcs.cpp
+;
+
+if $(Config) in dbg dev {
+  Sources += adaptationDebug.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/imgui ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

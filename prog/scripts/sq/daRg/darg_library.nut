@@ -95,7 +95,7 @@ function wrap(elems, params=wrapParams) {
     foreach (i, elem in elems) {
       let esize = calc_comp_size(elem)[flowSizeIdx]
       let gapsize = isDargComponent(gap) ? calc_comp_size(gap)[flowSizeIdx] : gap
-      if (i==0 && ((curwidth + esize) <= dimensionLim)) {
+      if (i==0) {
         children.append(elem)
         curwidth = curwidth + esize
         tailidx = i
@@ -120,9 +120,9 @@ function wrap(elems, params=wrapParams) {
   do {
     buildFlowElem(tail, gap, flowElemProto, dimensionLim)
   } while (tail.len()>0)
-  if (paddingTop && isFlowHor)
+  if (paddingBottom && isFlowHor)
     flowElems.append(paddingBottom)
-  if (paddingLeft && !isFlowHor)
+  if (paddingRight && !isFlowHor)
     flowElems.append(paddingRight)
   return {flow=isFlowHor ? FLOW_VERTICAL : FLOW_HORIZONTAL gap=secondaryGap children=flowElems halign = params?.halign valign=params?.valign hplace=params?.hplace vplace=params?.vplace size=[width ?? SIZE_TO_CONTENT, height ?? SIZE_TO_CONTENT]}
 }
@@ -172,7 +172,7 @@ let FLEX_V = const [SIZE_TO_CONTENT, flex()]
 let FLEX = const flex()
 let flex_v = function [pure] (val=null) {
   if (val == null)
-    return FLEX_H
+    return FLEX_V
   assert(typeof val in numerics, @() $"val can be only numerics, got {type(val)}")
   return [SIZE_TO_CONTENT, flex(val)]
 }

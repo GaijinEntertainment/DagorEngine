@@ -76,10 +76,16 @@ static bool camera_console_handler(const char *argv[], int argc)
     }
     lastPos = pos;
     if (argc == 2)
-      itm.setcol(3, pos.x, atof(argv[1]), pos.z);
-    if (argc == 3)
+    {
+      const char *s = (*argv[1] == '(') ? argv[1] + 1 : argv[1];                        // tolerate "%@"-style "(x,y,z)" paste
+      if (const char *cb = strchr(s, ','), *ce = strrchr(s, ','); cb && ce && cb != ce) // E.g "123,456,678"
+        itm.setcol(3, atof(s), atof(cb + 1), atof(ce + 1));
+      else
+        itm.setcol(3, pos.x, atof(argv[1]), pos.z);
+    }
+    else if (argc == 3)
       itm.setcol(3, atof(argv[1]), pos.y, atof(argv[2]));
-    if (argc == 4)
+    else if (argc == 4)
       itm.setcol(3, atof(argv[1]), atof(argv[2]), atof(argv[3]));
 
     if (argc > 1)

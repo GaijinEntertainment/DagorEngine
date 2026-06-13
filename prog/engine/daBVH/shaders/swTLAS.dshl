@@ -277,7 +277,7 @@ hlsl(code) {
       if (!offsetToNextNode)
         break;
       #else
-      if (dataOffset > endAt)
+      if (dataOffset > endAt || !offsetToNextNode)
         break;
       #endif
 

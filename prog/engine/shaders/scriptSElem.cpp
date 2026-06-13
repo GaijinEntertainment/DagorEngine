@@ -912,6 +912,10 @@ static void check_state_blocks_conformity(const shaderbindump::ShaderCode &code,
         shscene >= 0 ? (const char *)globdataDump.blockNameMap[shscene] : "NULL",
         shobj >= 0 ? (const char *)globdataDump.blockNameMap[shobj] : "NULL");
 
+      if (strncmp((const char *)shClass.name, "rendinst_", 9) == 0)
+        errorMessage.aprintf(0, "\nTry reproducing with `render.check_dynrend_shaders` enabled."
+                                "\nThe asset name will appear in '[E] Rendinst shader used in dynrend: <assetName>'.\n");
+
       logerr("%s", errorMessage);
 
       G_ASSERTF_ONCE(0, "%s", errorMessage);

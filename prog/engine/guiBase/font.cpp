@@ -2073,3 +2073,25 @@ uint64_t strboxcache::cacheTimeTicks = 0, strboxcache::calcTimeTicks = 0, strbox
 #if CHECK_HASH_COLLISIONS
 Tab<uint32_t> strboxcache::hcc_hash2;
 #endif
+
+void *dagor_font_get_freetype_face(int font_id)
+{
+  DagorFontBinDump *f = StdGuiRender::get_font(font_id);
+  if (!f)
+    return nullptr;
+  int nid = f->getTtfNid();
+  if (nid < 0 || nid >= ttfRec.size())
+    return nullptr;
+  return (void *)ttfRec[nid].face;
+}
+
+unsigned dagor_font_get_glyph_index(int font_id, unsigned unicode_char)
+{
+  DagorFontBinDump *f = StdGuiRender::get_font(font_id);
+  if (!f)
+    return 0;
+  int nid = f->getTtfNid();
+  if (nid < 0 || nid >= ttfRec.size() || !ttfRec[nid].face)
+    return 0;
+  return FT_Get_Char_Index(ttfRec[nid].face, (FT_ULong)unicode_char);
+}

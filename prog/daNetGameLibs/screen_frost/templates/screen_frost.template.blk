@@ -6,10 +6,10 @@ screen_frost_renderer{
   screen_frost__roughness:r=0.2
   screen_frost__opacity:r=0.4
 
-  "frost_tex:SharedTexHolder"{}
+  "frost_tex:SharedTexWithShaderVar"{}
   frost_tex_res:t="frost_screen_tile_tex_n"
   frost_tex_var:t="screen_frost_tile_tex"
-  "corruption_tex:SharedTexHolder"{}
+  "corruption_tex:SharedTexWithShaderVar"{}
   corruption_tex_res:t="corruption_screen_tile_tex_n"
   corruption_tex_var:t="screen_corruption_tile_tex"
 

@@ -37,6 +37,22 @@ using namespace AnimV20;
 
 static constexpr int PROFILE_BLENDING = 0;
 
+static eastl::vector<AnimV20::blend_node_creator_t> blend_node_creators;
+
+void AnimV20::register_blend_node_creator(AnimV20::blend_node_creator_t creator)
+{
+  if (creator && eastl::find(blend_node_creators.begin(), blend_node_creators.end(), creator) == blend_node_creators.end())
+    blend_node_creators.push_back(creator);
+}
+
+bool AnimV20::create_blend_node_from_creators(AnimationGraph &graph, const DataBlock &blk)
+{
+  for (AnimV20::blend_node_creator_t creator : blend_node_creators)
+    if (creator(graph, blk))
+      return true;
+  return false;
+}
+
 
 struct AnimBlender::NodeSamplers
 {
@@ -186,6 +202,7 @@ const DataBlock &AnimationGraph::getEnumList(const char *enum_cls) const
 void AnimationGraph::initChannelsForStates(const DataBlock &stDescBlk, dag::ConstSpan<AnimResManagerV20::NodeMask *> nodemask)
 {
   char tmpbuf[SIZE_OF_FATAL_CTX_TMPBUF];
+  int nid_morph = stDescBlk.getNameId("morph");
   int nid_chan = stDescBlk.getNameId("chan");
   int nid_state = stDescBlk.getNameId("state");
   int nid_alias = stDescBlk.getNameId("state_alias"), alias_cnt = 0;
@@ -197,7 +214,7 @@ void AnimationGraph::initChannelsForStates(const DataBlock &stDescBlk, dag::Cons
       state_num++;
     else if (stDescBlk.getBlock(i)->getBlockNameId() == nid_alias)
       alias_cnt++;
-    else
+    else if (stDescBlk.getBlock(i)->getBlockNameId() != nid_morph)
       logerr("unsupported block %s%s", stDescBlk.getBlock(i)->getBlockName(), dgs_get_fatal_context(tmpbuf, sizeof(tmpbuf)));
 
   clear_and_resize(stDest, chan_num);
@@ -494,7 +511,24 @@ void AnimationGraph::enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<State
       }
       if (!stDest[i].fifo->isEnqueued(st, n))
         n->resume(st, true);
-      stDest[i].fifo->enqueueState(st, n, state[i].morphTime, state[i].morphType);
+
+      real time = state[i].morphTime;
+      FifoMorphType type = state[i].morphType;
+      IAnimBlendNode *fromNode = stDest[i].fifo->getNextInQueue(st);
+      if (morphParamsOverride.size() && fromNode != NULL)
+      {
+        for (auto &override : morphParamsOverride)
+        {
+          if (override.from == fromNode && override.to == n)
+          {
+            time = override.morphTime;
+            type = override.morphType;
+            break;
+          }
+        }
+      }
+
+      stDest[i].fifo->enqueueState(st, n, time, type);
     }
 }
 
@@ -1910,6 +1944,9 @@ void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix)
   else if (dd_stricmp(blk.getBlockName(), "animateAndProcNode") == 0)
     createNodeApbAnimateAndPostBlendProc(graph, blk, nm_suffix, add_bn);
 
+  else if (AnimV20::create_blend_node_from_creators(graph, blk))
+    ; // handled by a registered custom node creator (e.g. a daScript-defined controller)
+
   else if (dd_stricmp(blk.getBlockName(), "alias") != 0)
   {
     logerr("unknown BlendNode class <%s>", blk.getBlockName());
@@ -2320,6 +2357,49 @@ static bool load_generic_graph(AnimationGraph &graph, const DataBlock &blk, dag:
   if (null_used > 0)
     logerr("missing (Null) animNode is used for %d blendNodes, see logerr for details", null_used);
 #endif
+
+  int nid_morph = stDescBlk.getNameId("morph");
+  for (int i = 0; i < stDescBlk.blockCount(); i++)
+    if (stDescBlk.getBlock(i)->getBlockNameId() == nid_morph)
+    {
+      const DataBlock *nblk = stDescBlk.getBlock(i);
+
+      const char *nameFrom = nblk->getStr("from", NULL);
+      const char *nameTo = nblk->getStr("to", NULL);
+      real time = nblk->getReal("morphTime", 0.0);
+      FifoMorphType type = (FifoMorphType)lup(nblk->getStr("morphType", "linear"), fifoMorphTypeNames, countof(fifoMorphTypeNames),
+        FifoMorphType::MT_LINEAR);
+      if (!nameFrom)
+      {
+        ANIM_ERR("missing 'from' blend node name parameter in morph block");
+        continue;
+      }
+      if (!nameTo)
+      {
+        ANIM_ERR("missing 'to' blend node name parameter in morph block");
+        continue;
+      }
+      IAnimBlendNode *from = graph.getBlendNodePtr(nameFrom);
+      IAnimBlendNode *to = graph.getBlendNodePtr(nameTo);
+
+      if (!from)
+      {
+        ANIM_ERR("Node <%s> referenced in 'from' parameter of a morph block does not exist", nameFrom);
+        continue;
+      }
+
+      if (!to)
+      {
+        ANIM_ERR("Node <%s> referenced in 'to' parameter of a morph block does not exist", nameTo);
+        continue;
+      }
+
+      graph.morphParamsOverride.push_back({from, to, time, type});
+      if (nblk->getBool("twoSided", false))
+        graph.morphParamsOverride.push_back({to, from, time, type});
+    }
+
+  graph.morphParamsOverride.shrink_to_fit();
 
   if (stDescBlk.blockCount())
     graph.initStates(stDescBlk);

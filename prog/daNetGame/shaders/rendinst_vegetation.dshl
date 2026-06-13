@@ -148,7 +148,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
   if (use_cross_dissolve == off)
   {
-   INIT_VEGETATION_INTERACTIONS()
+   INIT_VEGETATION_INTERACTIONS(false)
   }
 
   if (shader != rendinst_grass_alpha_split)
@@ -447,7 +447,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
             prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
           ##endif
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, prevWorldPos, movementAmount);
+          float pivotWindAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * pivotWindAnimWeight, prevWorldPos, movementAmount);
           #ifdef TREE_BURNING_VSOUTPUT
             ##if need_tree_burning_for_leaves
               output.leavesPivotLength = float4(Data.localBranchPivotPos[0], Data.branchDirExtent[0].w);
@@ -461,8 +462,9 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           float dissolveVal = 1;
           float dissolveDist = -0.0001;
           ##if rendinst_render_pass != rendinst_render_pass_impostor_color
+          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * distToInstance + tree_wind_anim_fade_params.y);
           float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
-          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,dissolveVal,1);
+          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,dissolveVal * windAnimWeight,1);
           movementAmount = max3(tree_wind_params.z*windVcol.x, tree_wind_params.y*windVcol.z, movementAmount);
           ##endif
         ##endif
@@ -549,7 +551,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
   endmacro
   APPLY_VEGETATION_INTERACTIONS(use_cross_dissolve == off && (interactions == interactionsTrees || interactions == interactionsBushes)
-                                && rendinst_render_pass != rendinst_render_pass_impostor_color)
+                                && rendinst_render_pass != rendinst_render_pass_impostor_color, false)
 
   if (rendinst_render_pass == rendinst_render_pass_impostor_color)
   {
@@ -654,7 +656,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     }
     if (use_cross_dissolve == off)
     {
-      USE_VEGETATION_INTERACTIONS()
+      USE_VEGETATION_INTERACTIONS(false)
     }
 
     if (need_tree_burning_for_leaves)
@@ -720,10 +722,11 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 unusedPrevPos;
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, unusedPrevPos);
+          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
 
           float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
-          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,1,1);
+          worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,windAnimWeight,1);
 
           #ifdef TREE_BURNING_VSOUTPUT
             ##if need_tree_burning_for_leaves
@@ -845,7 +848,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       }
       if (use_cross_dissolve == off)
       {
-        USE_VEGETATION_INTERACTIONS()
+        USE_VEGETATION_INTERACTIONS(false)
       }
       DEFAULT_VERTEX_SHADER()
       USE_WEIGHT_FOR_AO()
@@ -859,7 +862,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       }
       if (use_cross_dissolve == off)
       {
-        USE_VEGETATION_INTERACTIONS()
+        USE_VEGETATION_INTERACTIONS(false)
       }
       DEFAULT_VERTEX_SHADER()
       if (need_tree_burning_for_leaves)

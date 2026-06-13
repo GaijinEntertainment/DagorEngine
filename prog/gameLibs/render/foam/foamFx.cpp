@@ -165,10 +165,10 @@ void FoamFx::setParams(const FoamFxParams &params)
   ShaderGlobal::set_float(foam_reflectivityVarId, params.reflectivity);
 
   foamGeneratorTileTex.close();
-  foamGeneratorTileTex = SharedTexHolder(dag::get_tex_gameres(params.tileTex), "foam_generator_tile");
+  foamGeneratorTileTex = SharedTexWithShaderVar(dag::get_tex_gameres(params.tileTex), "foam_generator_tile");
   G_ASSERT(foamGeneratorTileTex);
   foamGeneratorGradientTex.close();
-  foamGeneratorGradientTex = SharedTexHolder(dag::get_tex_gameres(params.gradientTex), "foam_generator_gradient");
+  foamGeneratorGradientTex = SharedTexWithShaderVar(dag::get_tex_gameres(params.gradientTex), "foam_generator_gradient");
   G_ASSERT(foamGeneratorGradientTex);
 
   debugTextures[FoamTexture::TILE] = foamGeneratorTileTex.getBaseTex();

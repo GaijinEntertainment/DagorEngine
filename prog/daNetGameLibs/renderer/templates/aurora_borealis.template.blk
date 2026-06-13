@@ -4,6 +4,7 @@ aurora_borealis{
 
   aurora_borealis{}
   "aurora_borealis__init:dafg::NodeHandle"{}
+  "aurora_borealis__init_cam:dafg::NodeHandle"{}
   "aurora_borealis__render:dafg::NodeHandle"{}
   "aurora_borealis__apply:dafg::NodeHandle"{}
 

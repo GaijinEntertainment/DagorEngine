@@ -8,92 +8,21 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <util/dag_string.h>
 
-#include <rapidjson/document.h>
-
 #include <EASTL/hash_map.h>
 #include <EASTL/hash_set.h>
 
 #include <cstdlib>
 #include <cstring>
 #include <float.h>
-#include <format>
 
 namespace
 {
-String read_file_to_string(const char *file_name)
-{
-  file_ptr_t h = df_open(file_name, DF_READ | DF_IGNORE_MISSING);
-  if (!h)
-  {
-    return String("");
-  }
-
-  const int len = df_length(h);
-  String res;
-  res.resize(len + 1);
-  if (df_read(h, &res[0], len) < 0)
-  {
-    df_close(h);
-    return String("");
-  }
-  res.back() = '\0';
-  df_close(h);
-  return res;
-}
-
 // Pin shape (type/role/hidden) is derived from the descriptor at render time, not stored on
 // the loaded Node. Both rules that previously lived here -- the shader_editor "non-texture
 // outputs hidden" rule and the per-(desc,pin) flat hidden table mirroring mainNodes.js's
 // `hidden:true` flags -- now live on the descriptor side: base_nodes.blk encodes
 // `pin{ hidden:b = yes }` directly, and the shader_editor visibility rule is evaluated by
 // graph_panel.cpp against the descriptor's `types:t` / `role:t`.
-
-// Stringify a JSON value for storage in Node::propertyValues. The descriptor's declared
-// property `type` drives parsing at consumption time -- here we just preserve the value
-// in a canonical text form so the consumer can re-interpret it.
-String json_value_to_string(const rapidjson::Value &v)
-{
-  if (v.IsString())
-  {
-    return String(v.GetString());
-  }
-  if (v.IsBool())
-  {
-    return String(v.GetBool() ? "true" : "false");
-  }
-  if (v.IsNumber())
-  {
-    String s;
-    s.printf(64, "%g", v.GetDouble());
-    return s;
-  }
-  return String("");
-}
-
-// Extract content between two markers from a graph JSON file. The markers live inside JSON string
-// values (the "code" field), so the captured slice is JSON-string-escaped -- undo \\, \n and \"
-// the same way webui::GraphEditor::getSubstring did.
-String extract_marker_section(const String &text, const char *begin_marker, const char *end_marker)
-{
-  const char *begin = strstr(text.str(), begin_marker);
-  if (!begin)
-  {
-    return String("");
-  }
-  const char *end = strstr(begin, end_marker);
-  if (!end)
-  {
-    return String("");
-  }
-
-  String res(tmpmem);
-  res.setSubStr(begin + strlen(begin_marker), end);
-  res.replaceAll("\\\\", "\x01");
-  res.replaceAll("\\n", "\n");
-  res.replaceAll("\\\"", "\"");
-  res.replaceAll("\x01", "\\");
-  return res;
-}
 
 // Walk the comma-delimited pin `types:t` value and append each token's PinType to `out`. Skips
 // whitespace around tokens; unknown tokens map to PinType::Unknown (still appended so the slot
@@ -261,7 +190,7 @@ void reconcile_template_uid(GraphData::Node &node, const DataBlock *base_nodes_b
     }
   }
   // shader_editor sub-graph nodes (mask_from_index, multi_max, etc.) carry their
-  // pin shape inside the JSON instance and have no base_nodes.blk descriptor by
+  // pin shape inside the saved instance and have no base_nodes.blk descriptor by
   // design -- silence the miss for those; resolve_node_pins handles them via the
   // "descriptor missing" branch.
   if (!node.plugin.empty())
@@ -518,9 +447,9 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
   if (!desc)
   {
     // Descriptor missing from base_nodes.blk -- happens for shader_editor-generated nodes
-    // (mask_from_index, multi_max, etc.) which carry their pin shape only in per-instance
-    // JSON. The loader has already populated role / types / type / isInput / singleConnect
-    // from JSON; we just need to mark pins visible and apply the shader_editor visibility
+    // (mask_from_index, multi_max, etc.) which carry their pin shape only in the per-instance
+    // saved data. The loader has already populated role / types / type / isInput / singleConnect
+    // from it; we just need to mark pins visible and apply the shader_editor visibility
     // rule so output pins that aren't textures/particles stay hidden, matching the JS
     // editor's rendering.
     for (GraphData::Pin &p : node.pins)
@@ -536,7 +465,7 @@ void resolve_node_pins(GraphData::Node &node, const DataBlock *base_nodes_blk)
   }
 
   // Descriptor found -- it's the source of truth. Reset pin metadata (overriding what the
-  // loader read out of JSON) and re-derive from the descriptor.
+  // loader read from the saved graph) and re-derive from the descriptor.
   for (GraphData::Pin &p : node.pins)
   {
     p.type = PinType::Unknown;
@@ -874,17 +803,12 @@ eastl::string format_subgraph_schema_error(const SubgraphSchemaError &err)
     case SubgraphSchemaError::NO_OUTPUTS:
       return eastl::string("graph has no `subgraph out` boundary node -- parent cannot consume anything from this subgraph");
     case SubgraphSchemaError::EMPTY_INTERFACE_NAME:
-    {
-      const std::string s = std::format(
-        "node id={}: {} boundary has empty `name` property and no incident edges to derive a name from", err.nodeId, roleStr);
-      return eastl::string(s.c_str(), s.size());
-    }
+      return eastl::string(eastl::string::CtorSprintf(),
+        "node id=%d: %s boundary has empty `name` property and no incident edges to derive a name from", err.nodeId, roleStr);
     case SubgraphSchemaError::DUPLICATE_NAME:
-    {
-      const std::string s = std::format("node id={}: duplicate {} boundary named '{}' (another boundary already exposes this name)",
-        err.nodeId, roleStr, err.interfaceName.c_str());
-      return eastl::string(s.c_str(), s.size());
-    }
+      return eastl::string(eastl::string::CtorSprintf(),
+        "node id=%d: duplicate %s boundary named '%s' (another boundary already exposes this name)", err.nodeId, roleStr,
+        err.interfaceName.c_str());
   }
   return eastl::string("unknown subgraph schema error");
 }
@@ -1058,356 +982,6 @@ eastl::string effective_subgraph_boundary_name(const GraphData &gd, int boundary
   return {};
 }
 
-bool load_graph_data(GraphData &out, const char *json_path, const char *shader_includes_dir, const DataBlock *base_nodes_blk)
-{
-  clear_graph_data(out);
-
-  const int64_t tStart = ref_time_ticks();
-
-  String text = read_file_to_string(json_path);
-  if (text.empty())
-  {
-    debug("load_graph_data: failed to read '%s'", json_path);
-    return false;
-  }
-
-  // Parse (not ParseInsitu): the marker-extraction pass below scans the original buffer with
-  // strstr, and ParseInsitu would null-terminate string values mid-buffer and break the scan.
-  rapidjson::Document root;
-  root.Parse(text.str());
-  if (root.HasParseError() || !root.IsObject())
-  {
-    debug("load_graph_data: '%s' is not a JSON object (parse error %d)", json_path, (int)root.GetParseError());
-    clear_graph_data(out);
-    return false;
-  }
-
-  if (root.HasMember("elems") && root["elems"].IsArray())
-  {
-    const rapidjson::Value &elems = root["elems"];
-    out.nodes.reserve(elems.Size());
-    for (rapidjson::SizeType i = 0; i < elems.Size(); ++i)
-    {
-      const rapidjson::Value &e = elems[i];
-      if (!e.IsObject())
-      {
-        continue; // sparse array contains nulls
-      }
-
-      GraphData::Node n;
-      if (e.HasMember("id") && e["id"].IsNumber())
-      {
-        n.id = e["id"].GetInt();
-      }
-      if (e.HasMember("descName") && e["descName"].IsString())
-      {
-        n.descName = e["descName"].GetString();
-      }
-      if (e.HasMember("plugin") && e["plugin"].IsString())
-      {
-        n.plugin = e["plugin"].GetString();
-      }
-      if (e.HasMember("view") && e["view"].IsObject())
-      {
-        const rapidjson::Value &v = e["view"];
-        if (v.HasMember("x") && v["x"].IsNumber())
-        {
-          n.x = static_cast<float>(v["x"].GetDouble());
-        }
-        if (v.HasMember("y") && v["y"].IsNumber())
-        {
-          n.y = static_cast<float>(v["y"].GetDouble());
-        }
-      }
-      if (e.HasMember("blockWidth") && e["blockWidth"].IsNumber())
-      {
-        n.blockWidth = static_cast<float>(e["blockWidth"].GetDouble());
-      }
-      if (e.HasMember("blockHeight") && e["blockHeight"].IsNumber())
-      {
-        n.blockHeight = static_cast<float>(e["blockHeight"].GetDouble());
-      }
-      if (e.HasMember("pins") && e["pins"].IsArray())
-      {
-        // Per-instance pin state. `name`, `role` and `types` are read so they can serve as
-        // a fallback in resolve_node_pins for nodes whose descriptor isn't in base_nodes.blk
-        // (shader_editor-generated nodes like mask_from_index / multi_max get their pin shape
-        // only from per-instance JSON). When the descriptor IS present, resolve_node_pins
-        // resets these and re-derives from the descriptor, so the JSON-loaded values are the
-        // authoritative source only in the descriptor-missing case. customTextureName is
-        // intentionally NOT read: it's a compile-output cache repopulated by every
-        // compile_graph_to_blks via its write-back loop, and the texture-preview panel only
-        // reads the field after a compile has run.
-        const rapidjson::Value &pins = e["pins"];
-        n.pins.reserve(pins.Size());
-        for (rapidjson::SizeType j = 0; j < pins.Size(); ++j)
-        {
-          const rapidjson::Value &p = pins[j];
-          GraphData::Pin pin;
-          if (p.IsObject())
-          {
-            if (p.HasMember("name") && p["name"].IsString())
-            {
-              pin.name = p["name"].GetString();
-            }
-            if (p.HasMember("role") && p["role"].IsString())
-            {
-              pin.role = parse_pin_role(p["role"].GetString());
-              pin.isInput = (pin.role != PinRole::Out);
-            }
-            if (p.HasMember("types") && p["types"].IsArray())
-            {
-              const rapidjson::Value &types = p["types"];
-              for (rapidjson::SizeType k = 0; k < types.Size(); ++k)
-              {
-                if (types[k].IsString())
-                {
-                  pin.types.push_back(parse_pin_type(types[k].GetString()));
-                }
-              }
-              if (!pin.types.empty())
-              {
-                pin.type = pin.types.front();
-              }
-            }
-            // JSON has no singleConnect; mirror the descriptor-side default
-            // (outputs are single-connect, inputs are not).
-            pin.singleConnect = (pin.role == PinRole::Out);
-            // Per-instance pin data ("data" object on the JSON pin). Stored as a
-            // DataBlock so compile_graph_to_blks can use the same getStr / getBool
-            // API regardless of whether the data ultimately came from per-instance
-            // JSON (shader_editor sub-graph nodes) or from base_nodes.blk
-            // (regular nodes' descriptor pins).
-            if (p.HasMember("data") && p["data"].IsObject())
-            {
-              const rapidjson::Value &dataObj = p["data"];
-              for (auto m = dataObj.MemberBegin(); m != dataObj.MemberEnd(); ++m)
-              {
-                if (!m->name.IsString())
-                {
-                  continue;
-                }
-                const char *key = m->name.GetString();
-                const rapidjson::Value &v = m->value;
-                if (v.IsString())
-                {
-                  pin.data.setStr(key, v.GetString());
-                }
-                else if (v.IsBool())
-                {
-                  pin.data.setBool(key, v.GetBool());
-                }
-                else if (v.IsInt())
-                {
-                  pin.data.setInt(key, v.GetInt());
-                }
-                else if (v.IsNumber())
-                {
-                  pin.data.setReal(key, static_cast<float>(v.GetDouble()));
-                }
-                // Nested objects / arrays in pin.data are not used by the compile
-                // step today -- skip rather than serialise to a string.
-              }
-            }
-          }
-          n.pins.push_back(pin);
-        }
-      }
-      if (e.HasMember("properties") && e["properties"].IsArray())
-      {
-        // Property *values* by name. Constraints (type / minVal / maxVal / items[]) live in
-        // the descriptor; values stored as strings, parsed by consumers per descriptor type.
-        const rapidjson::Value &props = e["properties"];
-        n.propertyValues.reserve(props.Size());
-        for (rapidjson::SizeType j = 0; j < props.Size(); ++j)
-        {
-          const rapidjson::Value &pp = props[j];
-          if (!pp.IsObject() || !pp.HasMember("name") || !pp["name"].IsString())
-          {
-            continue;
-          }
-          eastl::string name = pp["name"].GetString();
-          eastl::string val;
-          if (pp.HasMember("value"))
-          {
-            val = json_value_to_string(pp["value"]).c_str();
-          }
-          n.propertyValues.emplace_back(eastl::move(name), eastl::move(val));
-        }
-      }
-      // JSON files come from the legacy JS editor and never carry templateUid; the
-      // reconciliation pass falls back to descName lookup and populates templateUid
-      // in memory so the next save (to BLK) upgrades the file.
-      reconcile_template_uid(n, base_nodes_blk);
-      // Resolve descriptor-derived pin state once, here -- avoids per-frame strcmp scans
-      // in the renderer. Pins whose name isn't in the descriptor stay `hidden = true`.
-      resolve_node_pins(n, base_nodes_blk);
-      out.nodes.push_back(eastl::move(n));
-    }
-  }
-
-  if (root.HasMember("edges") && root["edges"].IsArray())
-  {
-    const rapidjson::Value &edgeArr = root["edges"];
-    out.edges.reserve(edgeArr.Size());
-    for (rapidjson::SizeType i = 0; i < edgeArr.Size(); ++i)
-    {
-      const rapidjson::Value &c = edgeArr[i];
-      if (!c.IsObject())
-      {
-        continue;
-      }
-
-      GraphData::Edge ed;
-      if (c.HasMember("id") && c["id"].IsNumber())
-      {
-        ed.id = c["id"].GetInt();
-      }
-      if (c.HasMember("elemA") && c["elemA"].IsNumber())
-      {
-        ed.elemA = c["elemA"].GetInt();
-      }
-      if (c.HasMember("pinA") && c["pinA"].IsNumber())
-      {
-        ed.pinA = c["pinA"].GetInt();
-      }
-      if (c.HasMember("elemB") && c["elemB"].IsNumber())
-      {
-        ed.elemB = c["elemB"].GetInt();
-      }
-      if (c.HasMember("pinB") && c["pinB"].IsNumber())
-      {
-        ed.pinB = c["pinB"].GetInt();
-      }
-      out.edges.push_back(ed);
-    }
-  }
-
-  // Pull the embedded BLK sections + dirs out of the JSON. Use the original (non-ASCII-stripped)
-  // text to keep the BLK content byte-identical.
-  String mainGraphBlk = extract_marker_section(text, "/*MAIN_GRAPH_START*/", "/*MAIN_GRAPH_END*/");
-  String shaderListBlk = extract_marker_section(text, "/*SHADER_LIST_START*/", "/*SHADER_LIST_END*/");
-  String rootDir = extract_marker_section(text, "/*ROOT_DIR_START*/", "/*ROOT_DIR_END*/");
-  String renderDir = extract_marker_section(text, "/*RENDER_DIR_START*/", "/*RENDER_DIR_END*/");
-  String entityDir = extract_marker_section(text, "/*ENTITY_DIR_START*/", "/*ENTITY_DIR_END*/");
-
-  if (!mainGraphBlk.empty())
-  {
-    out.mainGraphBlk.loadText(mainGraphBlk.str(), mainGraphBlk.length());
-  }
-  if (!shaderListBlk.empty())
-  {
-    // The shader list BLK uses `include _foo.blk` directives that resolve relative to the dirname
-    // of the file argument. Synthesize a path under shader_includes_dir so the parser looks in
-    // the right place; the file itself is never read.
-    String syntheticFname(0, "%sshadersList.blk", shader_includes_dir ? shader_includes_dir : "");
-    out.shaderListBlk.loadText(shaderListBlk.str(), shaderListBlk.length(), syntheticFname.str());
-  }
-
-  out.textureRootDir = rootDir.str();
-  out.renderDir = renderDir.str();
-  out.entityDir = entityDir.str();
-
-  String heightScaleStr = extract_marker_section(text, "/*HEIGHT_SCALE_START*/", "/*HEIGHT_SCALE_END*/");
-  String heightMinStr = extract_marker_section(text, "/*HEIGHT_MIN_START*/", "/*HEIGHT_MIN_END*/");
-  String cellSizeStr = extract_marker_section(text, "/*CELL_SIZE_START*/", "/*CELL_SIZE_END*/");
-  out.heightmapScale = heightScaleStr.empty() ? FLT_MAX : (float)atof(heightScaleStr.str());
-  out.heightmapMin = heightMinStr.empty() ? FLT_MAX : (float)atof(heightMinStr.str());
-  out.heightmapCellSize = cellSizeStr.empty() ? FLT_MAX : (float)atof(cellSizeStr.str());
-
-  // Read graph-level texture properties from `graphElemProps` (the JS serialises
-  // editor.graphElem.propValues here as a name->string dict, mainNodes.js around
-  // graphEditor.js:4015-4023). New JSONs always have this; old ones may not.
-  // Texture width / height / depth are stored in the JS form ("= 4096" / "width" /
-  // "x 2" etc.). Translate to ints; only "= N" and "width" are meaningful at the
-  // graph level (the rest only make sense for per-node propagation). Type / wrap
-  // are stored as plain strings.
-  if (root.HasMember("graphElemProps") && root["graphElemProps"].IsObject())
-  {
-    const rapidjson::Value &gp = root["graphElemProps"];
-    auto getStr = [&](const char *key) -> const char * {
-      if (!gp.HasMember(key) || !gp[key].IsString())
-      {
-        return nullptr;
-      }
-      return gp[key].GetString();
-    };
-    if (const char *w = getStr("texture width"))
-    {
-      out.graphTextureWidth = parse_graph_size(w, out.graphTextureWidth);
-    }
-    if (const char *h = getStr("texture height"))
-    {
-      out.graphTextureHeight = (strcmp(h, "width") == 0) ? out.graphTextureWidth : parse_graph_size(h, out.graphTextureHeight);
-    }
-    if (const char *d = getStr("texture depth"))
-    {
-      out.graphTextureDepth = (strcmp(d, "width") == 0) ? out.graphTextureWidth : parse_graph_size(d, out.graphTextureDepth);
-    }
-    if (const char *t = getStr("texture type"))
-    {
-      out.graphTextureType = t;
-    }
-    if (const char *a = getStr("texture wrap"))
-    {
-      out.graphTextureWrap = a;
-    }
-
-    // Same fields are also present in the marker sections above; graphElemProps
-    // is the newer source of truth. Overwrite the marker-derived values when
-    // graphElemProps carries them (the marker form is an older serialisation).
-    if (const char *s = getStr("texture root dir"))
-    {
-      if (*s)
-      {
-        out.textureRootDir = s;
-      }
-    }
-    if (const char *s = getStr("render dir"))
-    {
-      if (*s)
-      {
-        out.renderDir = s;
-      }
-    }
-    if (const char *s = getStr("entity dir"))
-    {
-      if (*s)
-      {
-        out.entityDir = s;
-      }
-    }
-    if (const char *s = getStr("height scale"))
-    {
-      if (*s)
-      {
-        out.heightmapScale = (float)atof(s);
-      }
-    }
-    if (const char *s = getStr("height min"))
-    {
-      if (*s)
-      {
-        out.heightmapMin = (float)atof(s);
-      }
-    }
-    if (const char *s = getStr("cell size"))
-    {
-      if (*s)
-      {
-        out.heightmapCellSize = (float)atof(s);
-      }
-    }
-  }
-
-  out.sourcePath = json_path;
-
-  const int loadMs = static_cast<int>(ref_time_delta_to_usec(tStart) / 1000);
-  debug("load_graph_data: loaded '%s' in %d ms (%d nodes, %d edges, mainBlk=%d blocks, shaderBlk=%d blocks)", json_path, loadMs,
-    (int)out.nodes.size(), (int)out.edges.size(), out.mainGraphBlk.blockCount(), out.shaderListBlk.blockCount());
-  return true;
-}
-
 bool save_graph_data_blk(const GraphData &d, const char *blk_path)
 {
   const int64_t tStart = ref_time_ticks();
@@ -1508,6 +1082,10 @@ bool save_graph_data_blk(const GraphData &d, const char *blk_path)
       {
         pb->setStr("types", typesCsv.c_str());
       }
+      if (!p.comment.empty())
+      {
+        pb->setStr("comment", p.comment.c_str());
+      }
       // Per-instance pin data, only present for shader_editor sub-graph nodes
       // and other pins whose source-of-truth data isn't in base_nodes.blk.
       if (p.data.paramCount() > 0 || p.data.blockCount() > 0)
@@ -1606,11 +1184,12 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
         {
           GraphData::Pin pin;
           pin.name = c->getStr("name", "");
+          pin.comment = c->getStr("comment", "");
           pin.role = parse_pin_role(c->getStr("role", "in"));
           pin.isInput = (pin.role != PinRole::Out);
           parse_pin_types_csv(c->getStr("types", ""), pin.types);
           pin.type = pin.types.empty() ? PinType::Unknown : pin.types.front();
-          // JSON-loader parity: outputs default to single-connect, inputs do not.
+          // graphEditor.js parity: outputs default to single-connect, inputs do not.
           // resolve_node_pins below overrides this when the descriptor is present.
           pin.singleConnect = (pin.role == PinRole::Out);
           if (const DataBlock *pinData = c->getBlockByName("data"))
@@ -1635,7 +1214,7 @@ bool load_graph_data_blk(GraphData &out, const char *blk_path, const char * /*sh
       // resolution. Legacy BLK files (no templateUid) get auto-migrated here; recent
       // files get descName refreshed from the descriptor's current `name:t`.
       reconcile_template_uid(n, base_nodes_blk);
-      // Same one-shot descriptor-cache resolve the JSON loader does.
+      // One-shot descriptor-cache resolve.
       // Pins whose name isn't in the descriptor stay hidden = true.
       resolve_node_pins(n, base_nodes_blk);
       out.nodes.push_back(eastl::move(n));

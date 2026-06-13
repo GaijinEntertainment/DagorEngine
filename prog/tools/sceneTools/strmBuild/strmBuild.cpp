@@ -32,7 +32,7 @@ static void showUsage()
 int DagorWinMain(bool debugmode)
 {
   printf("strmBuild v1.0\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   signal(SIGINT, ctrl_break_handler);
 

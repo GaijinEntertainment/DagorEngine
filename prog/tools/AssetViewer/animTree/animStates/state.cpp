@@ -7,8 +7,10 @@
 #include "../animParamData.h"
 #include "../animTreePanelPids.h"
 #include "../animTree.h"
+#include "../animMorphType.h"
 
 #include <propPanel/control/container.h>
+#include <util/dag_lookup.h>
 
 static const float DEFAULT_DEF_MORPH_TIME = 0.15f;
 static const float DEFAULT_FORCE_DUR = -1.f;
@@ -25,6 +27,7 @@ void state_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPr
   add_edit_float_if_not_exists(params, panel, field_idx, "forceDur", DEFAULT_FORCE_DUR);
   add_edit_float_if_not_exists(params, panel, field_idx, "forceSpd", DEFAULT_FORCE_SPD);
   add_edit_float_if_not_exists(params, panel, field_idx, "morphTime", defMorphTime);
+  add_combo_if_not_exists(params, panel, field_idx, "morphType", morph_type_names, props.getStr("morphType", DEFAULT_MORPH_TYPE));
   add_edit_float_if_not_exists(params, panel, field_idx, "minTimeScale", defMinTimeScale);
   add_edit_float_if_not_exists(params, panel, field_idx, "maxTimeScale", defMaxTimeScale);
 }
@@ -38,6 +41,7 @@ void state_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::Contain
   remove_param_if_default_float(params, panel, "forceDur", DEFAULT_FORCE_DUR);
   remove_param_if_default_float(params, panel, "forceSpd", DEFAULT_FORCE_SPD);
   remove_param_if_default_float(params, panel, "morphTime", defMorphTime);
+  remove_param_if_default_str(params, panel, "morphType", DEFAULT_MORPH_TYPE);
   remove_param_if_default_float(params, panel, "minTimeScale", defMinTimeScale);
   remove_param_if_default_float(params, panel, "maxTimeScale", defMaxTimeScale);
 }
@@ -83,12 +87,14 @@ void state_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, 
   const float defForceDur = settings.getReal("forceDur", DEFAULT_FORCE_DUR);
   const float defForceSpd = settings.getReal("forceSpd", DEFAULT_FORCE_SPD);
   const float defMorphTime = settings.getReal("morphTime", state_desc.getReal("defMorphTime", DEFAULT_DEF_MORPH_TIME));
+  const char *defMorphType = settings.getStr("morphType", state_desc.getStr("morphType", DEFAULT_MORPH_TYPE));
   const float defMinTimeScale = settings.getReal("minTimeScale", state_desc.getReal("minTimeScale", 0.f));
   const float defMaxTimeScale = settings.getReal("maxTimeScale", state_desc.getReal("maxTimeScale", FLT_MAX));
 
   const float forceDurValue = defaultBlock->getReal("forceDur", defForceDur);
   const float forceSpdValue = defaultBlock->getReal("forceSpd", defForceSpd);
   const float morphTimeValue = defaultBlock->getReal("morphTime", defMorphTime);
+  const char *morphTypeValue = defaultBlock->getStr("morphType", defMorphType);
   const float minTimeScaleValue = defaultBlock->getReal("minTimeScale", defMinTimeScale);
   const float maxTimeScaleValue = defaultBlock->getReal("maxTimeScale", defMaxTimeScale);
 
@@ -102,8 +108,9 @@ void state_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, 
   panel->createEditFloat(PID_STATES_STATE_NODE_MORPH_TIME, "morphTime", morphTimeValue);
   panel->createEditFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, "minTimeScale", minTimeScaleValue);
   panel->createEditFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, "maxTimeScale", maxTimeScaleValue);
+  panel->createCombo(PID_STATES_STATE_NODE_MORPH_TYPE, "morphType", morph_type_names, lup(morphTypeValue, morph_type_names, 0));
   if (names.empty())
-    for (int i = PID_STATES_STATE_NODE_CHANNEL; i <= PID_STATES_STATE_NODE_MAX_TIME_SCALE; ++i)
+    for (int i = PID_STATES_STATE_NODE_CHANNEL; i <= PID_STATES_STATE_NODE_MORPH_TYPE; ++i)
       panel->setEnabledById(i, /*enabled*/ false);
 
   // Use same pids for pid and dependentParamPid becuse this fields didn't duplicate anyware
@@ -117,6 +124,8 @@ void state_init_block_settings(PropPanel::ContainerPropertyControl *prop_panel, 
     PID_STATES_STATE_NODE_MIN_TIME_SCALE, PID_STATES_STATE_NODE_MIN_TIME_SCALE, is_equal_float(minTimeScaleValue, defMinTimeScale)});
   params.emplace_back(DependentParamData{
     PID_STATES_STATE_NODE_MAX_TIME_SCALE, PID_STATES_STATE_NODE_MAX_TIME_SCALE, is_equal_float(maxTimeScaleValue, defMaxTimeScale)});
+  params.emplace_back(
+    DependentParamData{PID_STATES_STATE_NODE_MORPH_TYPE, PID_STATES_STATE_NODE_MORPH_TYPE, strcmp(morphTypeValue, defMorphType) == 0});
 }
 
 void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings,
@@ -136,12 +145,14 @@ void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *
   const float defForceDur = settings.getReal("forceDur", DEFAULT_FORCE_DUR);
   const float defForceSpd = settings.getReal("forceSpd", DEFAULT_FORCE_SPD);
   const float defMorphTime = settings.getReal("morphTime", state_desc.getReal("defMorphTime", DEFAULT_DEF_MORPH_TIME));
+  const char *defMorphType = settings.getStr("morphType", state_desc.getStr("morphType", DEFAULT_MORPH_TYPE));
   const float defMinTimeScale = settings.getReal("minTimeScale", state_desc.getReal("minTimeScale", 0.f));
   const float defMaxTimeScale = settings.getReal("maxTimeScale", state_desc.getReal("maxTimeScale", FLT_MAX));
 
   const float forceDurValue = selectedBlock->getReal("forceDur", defForceDur);
   const float forceSpdValue = selectedBlock->getReal("forceSpd", defForceSpd);
   const float morphTimeValue = selectedBlock->getReal("morphTime", defMorphTime);
+  const char *morphTypeValue = selectedBlock->getStr("morphType", defMorphType);
   const float minTimeScaleValue = selectedBlock->getReal("minTimeScale", defMinTimeScale);
   const float maxTimeScaleValue = selectedBlock->getReal("maxTimeScale", defMaxTimeScale);
 
@@ -154,6 +165,7 @@ void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *
   panel->setFloat(PID_STATES_STATE_NODE_FORCE_DUR, forceDurValue);
   panel->setFloat(PID_STATES_STATE_NODE_FORCE_SPD, forceSpdValue);
   panel->setFloat(PID_STATES_STATE_NODE_MORPH_TIME, morphTimeValue);
+  panel->setInt(PID_STATES_STATE_NODE_MORPH_TYPE, lup(morphTypeValue, morph_type_names, 0));
   panel->setFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE, minTimeScaleValue);
   panel->setFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE, maxTimeScaleValue);
 
@@ -173,6 +185,11 @@ void state_set_selected_node_list_settings(PropPanel::ContainerPropertyControl *
     {
       param.dependent = is_equal_float(morphTimeValue, defMorphTime);
       update_dependent_param_value_by_name(panel, base_params, param, "morphTime");
+    }
+    else if (param.dependentParamPid == PID_STATES_STATE_NODE_MORPH_TYPE)
+    {
+      param.dependent = strcmp(morphTypeValue, defMorphType) == 0;
+      update_dependent_param_value_by_name(panel, base_params, param, "morphType");
     }
     else if (param.dependentParamPid == PID_STATES_STATE_NODE_MIN_TIME_SCALE)
     {
@@ -206,6 +223,7 @@ void AnimTreePlugin::stateSaveBlockSettings(PropPanel::ContainerPropertyControl 
   const float defForceDur = settings.getReal("forceDur", DEFAULT_FORCE_DUR);
   const float defForceSpd = settings.getReal("forceSpd", DEFAULT_FORCE_SPD);
   const float defMorphTime = settings.getReal("morphTime", state_desc.getReal("defMorphTime", DEFAULT_DEF_MORPH_TIME));
+  const char *defMorphType = settings.getStr("morphType", state_desc.getStr("morphType", DEFAULT_MORPH_TYPE));
   const float defMinTimeScale = settings.getReal("minTimeScale", state_desc.getReal("minTimeScale", 0.f));
   const float defMaxTimeScale = settings.getReal("maxTimeScale", state_desc.getReal("maxTimeScale", FLT_MAX));
 
@@ -214,6 +232,7 @@ void AnimTreePlugin::stateSaveBlockSettings(PropPanel::ContainerPropertyControl 
   const float forceDurValue = panel->getFloat(PID_STATES_STATE_NODE_FORCE_DUR);
   const float forceSpdValue = panel->getFloat(PID_STATES_STATE_NODE_FORCE_SPD);
   const float morphTimeValue = panel->getFloat(PID_STATES_STATE_NODE_MORPH_TIME);
+  const SimpleString morphTypeValue = panel->getText(PID_STATES_STATE_NODE_MORPH_TYPE);
   const float minTimeScaleValue = panel->getFloat(PID_STATES_STATE_NODE_MIN_TIME_SCALE);
   const float maxTimeScaleValue = panel->getFloat(PID_STATES_STATE_NODE_MAX_TIME_SCALE);
 
@@ -243,6 +262,8 @@ void AnimTreePlugin::stateSaveBlockSettings(PropPanel::ContainerPropertyControl 
     selectedBlock->setReal("minTimeScale", minTimeScaleValue);
   if (!is_equal_float(maxTimeScaleValue, defMaxTimeScale))
     selectedBlock->setReal("maxTimeScale", maxTimeScaleValue);
+  if (morphTypeValue != defMorphType)
+    selectedBlock->setStr("morphType", morphTypeValue);
 }
 
 void state_remove_node_from_list(PropPanel::ContainerPropertyControl *panel, DataBlock &settings)

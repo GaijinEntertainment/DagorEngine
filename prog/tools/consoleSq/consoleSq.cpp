@@ -74,7 +74,7 @@
 #include "scriptapi.h"
 
 
-#define APP_VERSION "1.0.36"
+#define APP_VERSION "1.0.39"
 
 // Stubs
 
@@ -106,6 +106,7 @@ static bool check_stack_mode = false;
 static bool closure_hoisting_optimization = false;
 static bool hide_compilation_error = false;
 static String sqconfig_dir;
+static unsigned iter_seed = ~0u;
 
 static HSQUIRRELVM sqvm = nullptr;
 static SqModules *module_manager = nullptr;
@@ -539,6 +540,8 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   sq_forbidglobalconstrewrite(sqvm, true);
   sq_setprintfunc(sqvm, ::script_print_function, ::script_error_function);
   sq_setcompilererrorhandler(sqvm, hide_compilation_error ? nullptr : ::compiler_error_cb);
+  if (iter_seed != ~0u)
+    sq_set_table_iter_seed(sqvm, iter_seed);
 
   bool useLibsByDefault = config_blk.getBool("use_libs_by_default", true);
 
@@ -894,6 +897,7 @@ static void print_usage()
   printf("  --nodes-location - dump AST nodes location in format [line:column]\n");
   printf("  --parse-types - just parse function types in given files, one type per line\n");
   printf("  --stack-check - check stack state after script execution\n");
+  printf("  --iter-seed:<seed> - table iterator randomization seed\n");
   printf("  --opt-closure-hoisting - enable closure hoisting optimization\n");
   printf("  --hide-compilation-error - don't print compilation error text, just show common message\n");
   printf("  --sqversion - print version of quirrel\n");
@@ -1264,6 +1268,11 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("hide-compilation-error"))
   {
     hide_compilation_error = true;
+  }
+
+  if (const char *iter_seed_str = ::dgs_get_argv("iter-seed"))
+  {
+    iter_seed = atoi(iter_seed_str);
   }
 
   if (const char *dir = ::dgs_get_argv("set-blk-root"))

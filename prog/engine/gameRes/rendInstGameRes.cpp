@@ -124,18 +124,23 @@ public:
     {
       if (rrl && is_res_required(rrl, gameRes[i].resId))
         continue;
-      std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
-      // 1 ref for riUnitedVdata, 1 ref for res
-      if (gameRes[i].sceneRes && gameRes[i].sceneRes->getRefCount() >
-                                   1 + (ri_factory ? 1 : 0) + (find_value_idx(pendingReloadResList, gameRes[i].sceneRes) >= 0 ? 1 : 0))
+      RenderableInstanceLodsResource *res = gameRes[i].sceneRes;
       {
-        if (!forced_free_unref_packs)
-          continue;
-        else
-          FATAL_ON_UNLOADING_USED_RES(gameRes[i].resId, gameRes[i].sceneRes->getRefCount());
+        std::lock_guard<std::mutex> scopedLock(pendingReloadResListMutex);
+        // 1 ref for riUnitedVdata, 1 ref for res
+        if (res && res->getRefCount() > 1 + (ri_factory ? 1 : 0) + (find_value_idx(pendingReloadResList, res) >= 0 ? 1 : 0))
+        {
+          if (!forced_free_unref_packs)
+            continue;
+          else
+            FATAL_ON_UNLOADING_USED_RES(gameRes[i].resId, res->getRefCount());
+        }
       }
-      if (ri_factory && RenderableInstanceLodsResource::on_higher_lod_required)
-        riUnitedVdata.delRes(gameRes[i].sceneRes);
+      if (ri_factory && res && RenderableInstanceLodsResource::on_higher_lod_required)
+      {
+        if (!riUnitedVdata.delRes(res) && res->getRefCount() > 1)
+          continue; // this resource was not referenced in streaming, so only free it if this is the only ref
+      }
       gameRes.erase(gameRes.begin() + i);
       result = true;
       if (once)

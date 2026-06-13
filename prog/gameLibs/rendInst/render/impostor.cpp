@@ -665,6 +665,29 @@ bool RendInstGenData::RtData::updateImpostorsPreshadow(int poolNo, const Point3 
   const rendinst::gen::RotationPaletteManager::Palette palette =
     rendinst::gen::get_rotation_palette_manager()->getPalette({layerIdx, poolNo});
 
+  struct PinWindStateToZero
+  {
+    float savedTime;
+    Color4 savedAmbientWind;
+    int ambientWindId;
+    PinWindStateToZero()
+    {
+      static int varId = -1;
+      if (varId < 0)
+        varId = ::get_shader_variable_id("ambient_wind__speed__current_time__previous_time", true);
+      ambientWindId = varId;
+      savedTime = get_shader_global_time();
+      savedAmbientWind = ShaderGlobal::get_float4(ambientWindId);
+      set_shader_global_time(0.0f);
+      ShaderGlobal::set_float4(ambientWindId, Color4(0, 0, 0, 0));
+    }
+    ~PinWindStateToZero()
+    {
+      set_shader_global_time(savedTime);
+      ShaderGlobal::set_float4(ambientWindId, savedAmbientWind);
+    }
+  } pinWindStateToZero;
+
   get_impostor_texture_mgr()->buildRendinstElems();
   UniqueTex depthAtlas = get_impostor_texture_mgr()->renderDepthAtlasForShadow(riRes[poolNo]);
   G_ASSERT_RETURN(depthAtlas, false);

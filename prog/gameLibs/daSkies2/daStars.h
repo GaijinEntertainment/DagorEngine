@@ -35,7 +35,7 @@ protected:
   dynrender::RElem starsRendElem;
   UniqueBuf starsVb;
   UniqueBuf starsIb;
-  SharedTexHolder starsTex, moonTex;
+  SharedTexWithShaderVar starsTex, moonTex;
   float moonSize = 0.f;
 
   void generateStars();

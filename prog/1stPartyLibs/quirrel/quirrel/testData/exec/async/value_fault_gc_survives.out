@@ -1,0 +1,12 @@
+script done
+
+AN ERROR HAS OCCURRED [boom from value fault]
+
+ERROR TRACE
+    at origin (testData/exec/async/value_fault_gc_survives.nut:16)
+      this = null
+    at thrower (testData/exec/async/value_fault_gc_survives.nut:20)
+      origin (captured) = function origin (testData/exec/async/value_fault_gc_survives.nut:15)
+      this = null
+    task root: thrower (testData/exec/async/value_fault_gc_survives.nut:19)
+    launched at testData/exec/async/value_fault_gc_survives.nut:28 __main__

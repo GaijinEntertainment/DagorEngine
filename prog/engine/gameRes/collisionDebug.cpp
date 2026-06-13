@@ -29,19 +29,19 @@ void CollisionResource::drawDebug(const TMatrix &instance_tm, const GeomNodeTree
         add_debug_text_mark(tm.getcol(3), getNodeName(meshNode->nodeIndex), -1, 0.f);
 
       set_cached_debug_lines_wtm(tm);
-      const Point3_vec4 *meshVerts = meshVertsBase + meshNode->verticesOfs;
-      const uint16_t *meshIdx = meshIndicesBase + meshNode->indicesOfs;
-      for (unsigned int indexNo = 0; indexNo < meshNode->indicesCount; indexNo += 3)
-      {
-        const Point3 *points[3] = {
-#define _P3(n) points[n] = &meshVerts[meshIdx[indexNo + (n)]]
-          _P3(0), _P3(1), _P3(2)
-#undef _P3
-        };
-        draw_cached_debug_line(*points[0], *points[1], debug_data.color);
-        draw_cached_debug_line(*points[1], *points[2], debug_data.color);
-        draw_cached_debug_line(*points[2], *points[0], debug_data.color);
-      }
+      // Consume faces through the node iterator instead of indexing meshVertsBase/meshIndicesBase
+      // directly, so this keeps working once a node's vertex/index slices may be dropped (its
+      // verticesOfs/indicesOfs no longer addressing ownVertices/ownIndices). For directly-stored
+      // nodes the iterator reads the same ownVertices/ownIndices, so behavior is unchanged.
+      iterateNodeFacesVerts(meshNode->nodeIndex, [&](int, vec4f v0, vec4f v1, vec4f v2) {
+        Point3_vec4 p0, p1, p2;
+        v_st(&p0.x, v0);
+        v_st(&p1.x, v1);
+        v_st(&p2.x, v2);
+        draw_cached_debug_line(p0, p1, debug_data.color);
+        draw_cached_debug_line(p1, p2, debug_data.color);
+        draw_cached_debug_line(p2, p0, debug_data.color);
+      });
 
       // draw_cached_debug_sphere(
       //   tm * meshNode->boundingSphere.c,

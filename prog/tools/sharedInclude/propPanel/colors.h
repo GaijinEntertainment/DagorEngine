@@ -133,6 +133,12 @@ struct ColorOverride
     // Background color for edit boxes that are using a highlight as a manually controllable indicator.
     EDIT_BOX_INDICATOR_BACKGROUND,
 
+    // Optional background color of the search input when the text is non-empty.
+    EDIT_BOX_SEARCH_TEXT_SET_BACKGROUND,
+
+    // Optional background color of the search input when the text is non-empty and there is no result.
+    EDIT_BOX_SEARCH_NO_MATCH_BACKGROUND,
+
     // Background color of the asset browser items when they are hovered.
     ASSET_BROWSER_ITEM_BACKGROUND_HOVERED,
 

@@ -299,7 +299,7 @@ void AnimcharBaseComponent::postRecalcWtm()
   if (postCtrl)
     postCtrl->update(totalDeltaTime, nodeTree, this);
 
-  if (fastPhysSystem && totalDeltaTime > 0)
+  if (fastPhysSystem && fastPhysSystem->enabled && totalDeltaTime > 0)
     fastPhysSystem->update(totalDeltaTime, nodeTree.getWtmOfs());
 
   if (recalcableAttachments || attachment.size() > sizeof(recalcableAttachments) * CHAR_BIT)
@@ -310,7 +310,7 @@ void AnimcharBaseComponent::postRecalcWtm()
 
 void AnimcharBaseComponent::updateFastPhys(const float dt)
 {
-  if (fastPhysSystem)
+  if (fastPhysSystem && fastPhysSystem->enabled)
     fastPhysSystem->update(dt, nodeTree.getWtmOfs());
 }
 

@@ -53,12 +53,14 @@ public:
   virtual ContainerPropertyControl *createMultiSelectTree(int id, const char caption[], hdpi::Px height, bool new_line = true);
   virtual ContainerPropertyControl *createMultiSelectTreeCheckbox(int id, const char caption[], hdpi::Px height, bool new_line = true);
 
-  virtual void createStatic(int id, const char caption[], bool new_line = true, bool use_text_width = false, bool word_wrap = false);
+  virtual void createStatic(int id, const char caption[], bool new_line = true, bool use_text_width = false, bool word_wrap = false,
+    bool monospace = false);
 
   // You can also use Constants::EDITBOX_MULTILINE_8_LINES_HEIGHT and Constants::EDITBOX_MULTILINE_FULL_HEIGHT for height.
   virtual void createEditBox(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true,
     bool multiline = false, hdpi::Px multi_line_height = Constants::EDITBOX_MULTILINE_DEFAULT_HEIGHT, bool auto_height = false);
 
+  virtual void createSearchEditBox(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true);
   virtual void createFileEditBox(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createFileButton(int id, const char caption[], const char file[] = "", bool enabled = true, bool new_line = true);
   virtual void createTargetButton(int id, const char caption[], const char text[] = "", bool enabled = true, bool new_line = true);

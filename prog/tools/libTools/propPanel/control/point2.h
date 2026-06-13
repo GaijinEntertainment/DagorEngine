@@ -131,8 +131,8 @@ private:
 
   void onImmediateFocusLoss() override
   {
-    spinEditX.sendWcChangeIfVarChanged(*this);
-    spinEditY.sendWcChangeIfVarChanged(*this);
+    spinEditX.sendWcChangeAndFinishIfVarChanged(*this);
+    spinEditY.sendWcChangeAndFinishIfVarChanged(*this);
   }
 
   String controlCaption;

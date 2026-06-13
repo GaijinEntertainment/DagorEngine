@@ -54,7 +54,7 @@ size_t BufferHeap::BufferHeapState::freeBufferHeap(BufferHeap *manager, uint32_t
   return freeBufferHeap(manager, index, name, true);
 }
 
-eastl::pair<BufferGlobalId, HRESULT> BufferHeap::BufferHeapState::createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device,
+BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device,
   uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc,
   const ResourceMemory &allocation, ResourceHeapProperties allocatedProperties, bool can_suballocate)
 {
@@ -63,7 +63,7 @@ eastl::pair<BufferGlobalId, HRESULT> BufferHeap::BufferHeapState::createBufferHe
   auto errorCode = newHeap.create(device, desc, allocation, initial_state, allocatedProperties.isCPUVisible(manager->getFeatureSet()));
   if (DX12_CHECK_FAIL(errorCode))
   {
-    return {result, errorCode};
+    return dag::Unexpected<MemoryAllocationError>{{.errorCode = errorCode}};
   }
 
   newHeap.init(allocation_size);
@@ -72,34 +72,32 @@ eastl::pair<BufferGlobalId, HRESULT> BufferHeap::BufferHeapState::createBufferHe
   result = adoptBufferHeap(eastl::move(newHeap), can_suballocate);
   G_ASSERT(result);
 
-  return {result, S_OK};
+  return result;
 }
 
-eastl::pair<BufferGlobalId, HRESULT> BufferHeap::BufferHeapState::createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter,
+BufferHeap::BufferHeapAllocationResult BufferHeap::BufferHeapState::createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter,
   ID3D12Device *device, uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags,
   D3D12_RESOURCE_STATES initial_state, const char *name, bool can_suballocate, AllocationFlags allocation_flags)
 {
-  BufferGlobalId buffer;
-  Heap newHeap;
-
   auto [desc, allocInfo] = calculate_buffer_desc_allocation_info(device, allocation_size, flags);
 
-  const auto allocation = manager->allocate(adapter, device, properties, allocInfo, allocation_flags);
+  auto allocationResult = manager->allocate(adapter, device, properties, allocInfo, allocation_flags);
+  if (!allocationResult.has_value())
+  {
+    return dag::Unexpected{allocationResult.error()};
+  }
+  auto &allocation = allocationResult.value();
   const ResourceHeapProperties allocatedProperties{allocation.getHeapID().group};
 
-  if (!allocation)
-  {
-    return {buffer, E_OUTOFMEMORY};
-  }
-
-  HRESULT result = S_OK;
-  eastl::tie(buffer, result) = createBufferHeapInMemory(manager, device, allocInfo.SizeInBytes, flags, initial_state, desc, allocation,
+  auto createResult = createBufferHeapInMemory(manager, device, allocInfo.SizeInBytes, flags, initial_state, desc, allocation,
     allocatedProperties, can_suballocate);
-  if (FAILED(result))
+  if (!createResult.has_value())
   {
     manager->free(allocation);
-    return {buffer, result};
+    return createResult;
   }
+
+  auto &buffer = createResult.value();
 
   char strBuf[64];
   if (!name)
@@ -110,7 +108,7 @@ eastl::pair<BufferGlobalId, HRESULT> BufferHeap::BufferHeapState::createBufferHe
   manager->recordBufferHeapAllocated(allocation_size, allocatedProperties.isOnDevice(manager->getFeatureSet()), name);
   manager->updateMemoryRangeUse(allocation, buffer);
 
-  return {buffer, S_OK};
+  return createResult;
 }
 
 eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> BufferHeap::calculate_buffer_desc_allocation_info(

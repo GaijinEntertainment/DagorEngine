@@ -236,7 +236,7 @@ public:
   float calculateCascadeDistance(int cascade, int cascade_count, float max_distance) const;
 
   float getDistance() const { return maxDistance; }
-  const ManagedTexHolder &getTex() { return staticShadowTex; }
+  const ManagedTexWithShaderVar &getTex() { return staticShadowTex; }
   void restoreShadowSampler();
   void setMaxHtRange(float max_ht_range); // that is only for skewed matrix
   float getSmallestTexelSize() const { return cascades.empty() ? -1 : cascades[0].texelSize; }

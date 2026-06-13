@@ -121,14 +121,14 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
     half3 tangentToWorldspace(PsInput input, half3 normal)
     {
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(input.tangent, cross(input.bitangent, input.tangent), input.bitangent);
+        float3x3 tangentSpace = float3x3(input.tangent, normalize(cross(input.bitangent, input.tangent)), input.bitangent);
         return mul(normal, tangentSpace);
       ##else
         return normal;
       ##endif
     }
 
-    float sample_floor_z(float2 uv, float waterZ)
+    float sample_floor_dng_z(float2 uv, float waterZ)
     {
       float4 Zs = linearize_z4(gather_far_depth(uv), zn_zfar.zw).wzxy;
       float2 pixelCoords = uv * lowres_tex_size.xy - 0.5;
@@ -143,7 +143,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       DeepnessData deepnessData;
 
       // Getting water depth and opacity for blending
-      float floorZ = sample_floor_z(viewData.lowresTc, viewData.screenPos.w);
+      float floorZ = sample_floor_dng_z(viewData.lowresTc, viewData.screenPos.w);
 
       half2 refractionDisturbance;
       deepnessData.waterDepth = max(0, floorZ - viewData.screenPos.w);
@@ -154,7 +154,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       refractionDisturbance.y =refractionDistortion*distortionVector.y;
       float2 refrTc = viewData.lowresTc + refractionDisturbance;
 
-      float refractedWaterDepth = sample_floor_z(refrTc, viewData.screenPos.w);
+      float refractedWaterDepth = sample_floor_dng_z(refrTc, viewData.screenPos.w);
       if (refractedWaterDepth < viewData.screenPos.w)
         refrTc = viewData.lowresTc;
       else
@@ -323,7 +323,12 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
         ##endif
 
         float distortion = 0;
-        viewData.worldNormal = get_water_normal(viewData.shoreData, viewData.worldPos, viewData.dist, viewData.surfaceAttributes.normal, viewData.wfxTc, distortion);
+        ##if water_heightmap_pages != NULL
+          half rainRipplesFade = water_rain_ripples_slope_fade(normalize(cross(input.bitangent, input.tangent)).y);
+        ##else
+          half rainRipplesFade = 1.0;
+        ##endif
+        viewData.worldNormal = get_water_normal(viewData.shoreData, viewData.worldPos, viewData.dist, viewData.surfaceAttributes.normal, viewData.wfxTc, rainRipplesFade, distortion);
         viewData.ripplesFoam = distortion;
       ##endif
 

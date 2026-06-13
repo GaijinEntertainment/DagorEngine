@@ -9,14 +9,14 @@
     DECL_CTRL(randomSwitch), DECL_CTRL(fifo3), DECL_CTRL(setMotionMatchingTag), DECL_CTRL(animateAndProcNode), DECL_CTRL(BIS), \
     DECL_CTRL(blender), DECL_CTRL(stub), DECL_CTRL(linear)
 
-#define POST_BLEND_CONTROLLERS_LIST                                                                                                \
-  DECL_CTRL(deltaRotateShiftCalc), DECL_CTRL(deltaAnglesCalc), DECL_CTRL(alignNode), DECL_CTRL(alignEx), DECL_CTRL(rotateNode),    \
-    DECL_CTRL(rotateAroundNode), DECL_CTRL(scaleNode), DECL_CTRL(moveNode), DECL_CTRL(condHide), DECL_CTRL(aim),                   \
-    DECL_CTRL(paramsCtrl), DECL_CTRL(defClampCtrl), DECL_CTRL(animateNode), DECL_CTRL(legsIK), DECL_CTRL(multiChainFABRIK),        \
-    DECL_CTRL(attachNode), DECL_CTRL(lookat), DECL_CTRL(lookatNode), DECL_CTRL(effFromAttachment), DECL_CTRL(effectorFromChildIK), \
-    DECL_CTRL(matFromNode), DECL_CTRL(nodesFromAttachement), DECL_CTRL(paramFromNode), DECL_CTRL(compoundRotateShift),             \
-    DECL_CTRL(setParam), DECL_CTRL(twistCtrl), DECL_CTRL(eyeCtrl), DECL_CTRL(footLockerIK), DECL_CTRL(hasAttachment),              \
-    DECL_CTRL(humanAim), DECL_CTRL(twoBonesIK)
+#define POST_BLEND_CONTROLLERS_LIST                                                                                             \
+  DECL_CTRL(deltaRotateShiftCalc), DECL_CTRL(deltaAnglesCalc), DECL_CTRL(alignNode), DECL_CTRL(alignEx), DECL_CTRL(rotateNode), \
+    DECL_CTRL(rotateAroundNode), DECL_CTRL(scaleNode), DECL_CTRL(moveNode), DECL_CTRL(condHide), DECL_CTRL(aim),                \
+    DECL_CTRL(paramsCtrl), DECL_CTRL(defClampCtrl), DECL_CTRL(animateNode), DECL_CTRL(legsIK), DECL_CTRL(multiChainFABRIK),     \
+    DECL_CTRL(twoBonesIK), DECL_CTRL(attachNode), DECL_CTRL(lookat), DECL_CTRL(lookatNode), DECL_CTRL(effFromAttachment),       \
+    DECL_CTRL(effectorFromChildIK), DECL_CTRL(matFromNode), DECL_CTRL(nodesFromAttachement), DECL_CTRL(paramFromNode),          \
+    DECL_CTRL(compoundRotateShift), DECL_CTRL(setParam), DECL_CTRL(twistCtrl), DECL_CTRL(eyeCtrl), DECL_CTRL(footLockerIK),     \
+    DECL_CTRL(hasAttachment), DECL_CTRL(humanAim)
 
 #define PROC_CONTROLLERS_LIST                                                                                        \
   DECL_CTRL(moveNode), DECL_CTRL(scaleNode), DECL_CTRL(rotateNode), DECL_CTRL(rotateAroundNode), DECL_CTRL(alignEx), \

@@ -11,7 +11,8 @@ function dtext(val, params={}, addchildren = null) {
   local children = params?.children
   if (children && type(children) !="array")
     children = [children]
-  if (addchildren && children) {
+  if (addchildren) {
+    children = children ?? []
     if (type(addchildren) == "array")
       children.extend(addchildren)
     else

@@ -241,7 +241,7 @@ int DagorWinMain(bool /*debugmode*/)
   if (showCopyright)
   {
     printf("Dag CSG tool\n");
-    printf("Copyright (c) Gaijin Games KFT, 2023\n");
+    printf("Copyright (c) Gaijin Games KFT, 2026\n");
   }
   BaseCSG::OpType op_tp = parse_type(argv[2]);
   if (argc > 4 && op_tp != BaseCSG::UNKNOWN && strstr(argv[3], ".dag") && strstr(argv[4], ".dag"))

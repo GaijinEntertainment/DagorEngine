@@ -238,6 +238,11 @@ public:
     ska::flat_hash_set<uint32_t> obstacleResHashes;
     ska::flat_hash_set<uint32_t> materialResHashes;
 
+    const DataBlock *obstacleSettingsBlk = dmgblk.getBlockByName("obstacleSettings");
+    bool isObstacleByDefault = obstacleSettingsBlk ? obstacleSettingsBlk->getBool("destructibleRiIsObstacleByDefault", true) : true;
+    bool nonDestructiblesCanBeObstacles =
+      obstacleSettingsBlk ? obstacleSettingsBlk->getBool("nonDestructiblesCanBeObstacles", false) : false;
+
     for (int blkIt = 0; blkIt < riExtraBlk->blockCount(); blkIt++)
     {
       const DataBlock *blk = riExtraBlk->getBlock(blkIt);
@@ -248,8 +253,12 @@ public:
       // additionally you can specify isObstacle=false to not make it an obstacle. One use case for this
       // are RIs that have very large bounding boxes and you don't want the bots to avoid them. Another use case
       // are RIs that looks like they're 80% or so destroyed and a bot can walk through even when RI isn't totally destroyed.
+      // The obstacleSettings block (read above) can invert defaults: destructibleRiIsObstacleByDefault flips the isObstacle default,
+      // nonDestructiblesCanBeObstacles drops the hp/destructionImpulse requirement.
       int pool_id = rendinst::RendinstVertexDataCbBase::make_pool_id(pool, true);
-      if ((blk->getReal("hp", 0.0f) > 0.0f || blk->getReal("destructionImpulse", 0.0f) > 0.0f) && blk->getBool("isObstacle", true))
+      bool canBeObstacle =
+        nonDestructiblesCanBeObstacles || blk->getReal("hp", 0.0f) > 0.0f || blk->getReal("destructionImpulse", 0.0f) > 0.0f;
+      if (canBeObstacle && blk->getBool("isObstacle", isObstacleByDefault))
         if (obstaclePools.count(pool_id) == 0)
         {
           uint32_t hash = str_hash_fnv1(blk->getBlockName());
@@ -347,7 +356,7 @@ struct RendinstVertexDataCbGame : public rendinst::RendinstVertexDataCbBase
     if (obstacleIt != navmeshLayers.obstaclePools.end())
     {
       TMatrix tm = rendinst::getRIGenMatrix(coll_info.desc);
-      BBox3 oobb = rendinst::getRIGenBBox(coll_info.desc);
+      BBox3 oobb = rendinst::get_ri_extra_obstacle_bbox(coll_info.desc);
 
       Point3 c, ext;
       float angY;

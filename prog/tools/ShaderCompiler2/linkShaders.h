@@ -21,6 +21,22 @@ namespace shaders
 struct RenderState;
 }
 
+struct RefinedBlockLayoutBindumpEntry
+{
+  bindump::string varName;
+  int cbufOffset = -1;
+  int slotCount = -1;
+  int slot[STAGE_MAX] = {-1, -1, -1};
+  int space = -1;
+};
+
+struct BindumpRefinedBlockLayout
+{
+  int cache_sign = -1;
+  int cache_version = -1;
+  bindump::vector<RefinedBlockLayoutBindumpEntry> vars;
+};
+
 struct ShadersBindump
 {
   SerializableTab<ShaderGlobal::Var> variable_list;
@@ -42,6 +58,8 @@ struct ShadersBindump
   SerializableTab<bindump::string> staticCppcodeRoutineNames;
   SerializableTab<SerializableTab<int32_t>> cppcodeRegisterTables;
   SerializableTab<int32_t> cppcodeRegisterTableOffsets;
+  SerializableTab<shc::SerializedRefinedBlockVar> refinedBlockVars;
+  SerializableTab<int32_t> refinedBlockComputedStcode;
 
   // Only used if shc::config().generateCppStcodeValidationData
   SerializableTab<shader_layout::StcodeConstValidationMask *> stcodeConstMasks{};
@@ -54,6 +72,7 @@ struct ShadersBindumpHeader
   BlkHashBytes last_blk_hash = {};
   bindump::EnableHash<ShadersBindump> hash;
   bindump::vector<bindump::string> dependency_files;
+  BindumpRefinedBlockLayout refined_block_layout;
 };
 
 struct CompressedShadersBindump : ShadersBindumpHeader

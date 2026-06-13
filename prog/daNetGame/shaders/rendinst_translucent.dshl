@@ -204,7 +204,6 @@ shader rendinst_translucent
 
           half smoothness = packedNormalMap.r;
           half3 normalMap = unpack_ag_normal(packedNormalMap);
-          half3 worldNormal = perturb_normal(normalMap, normalize(input.normal_ao.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
 
         ##if translucency_override == on
           half translucency = get_translucency_override();
@@ -222,6 +221,9 @@ shader rendinst_translucent
               reflectance,
               smoothness);
           }
+
+          // after micro detail, so its normal perturbation is not lost
+          half3 worldNormal = perturb_normal(normalMap, normalize(input.normal_ao.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
 
           init_ao(gbuffer, input.normal_ao.a);
           init_translucency(gbuffer, translucency);

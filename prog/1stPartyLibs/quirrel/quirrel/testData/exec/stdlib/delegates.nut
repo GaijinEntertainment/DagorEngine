@@ -87,6 +87,15 @@ println("closure.pcall error: " + (res.len() == 2 ? res[1] : "success"))
 local finfo = closure.getfuncinfos()
 println("closure.getfuncinfos keys: " + finfo.rawin("name") + ", " + finfo.rawin("nclosures"))
 
+local native_finfo = compilestring.getfuncinfos()
+assert(native_finfo.parameters[0] == "this")
+assert(native_finfo.parameters[1] == "source")
+assert(native_finfo.parameters[2] == "name")
+assert(native_finfo.parameters[3] == "bindings")
+assert(native_finfo.defparams.len() == 2)
+assert(native_finfo.defparams[0] == null)
+assert(native_finfo.defparams[1] == null)
+
 local fvinfo = closure.getfreevar(0)
 println("closure.getfreevar name: '" + fvinfo.name + "', value: '" + fvinfo.value + "'")
 
@@ -116,6 +125,14 @@ println("class.hasindex 'value': " + TestClass.hasindex("value"))
 println("class.is_frozen initially: " + TestClass.is_frozen())
 TestClass.lock()
 println("class.is_frozen after freeze: " + TestClass.is_frozen())
+try {
+    TestClass.rawset("lockedDynamic", 200)
+    println("class.rawset locked: no error")
+}
+catch(e) {
+    println("class.rawset locked: error")
+}
+println("class.rawin lockedDynamic: " + TestClass.rawin("lockedDynamic"))
 
 local inst = TestClass(21)
 

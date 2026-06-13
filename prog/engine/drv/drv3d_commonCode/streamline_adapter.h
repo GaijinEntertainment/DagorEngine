@@ -7,6 +7,8 @@
 #include <supp/dag_comPtr.h>
 #include <3d/gpuLatency.h>
 
+#include <osApiWrappers/dag_atomic_types.h>
+
 #include <EASTL/array.h>
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
@@ -32,6 +34,8 @@ struct FrameTracker
 {
   sl::FrameToken &getFrameToken(uint32_t frame_id);
   void startFrame(uint32_t frame_id);
+  // Resets all tracked frame state. Not thread safe: only call when no frame is in flight (e.g. device recovery).
+  void reset();
 
   template <typename Params>
   void initConstants(const Params &f, int viewport_id);
@@ -39,7 +43,7 @@ struct FrameTracker
 private:
   static constexpr size_t MAX_CONCURRENT_FRAMES = 8;
   static constexpr size_t MAX_VIEWPORTS = 2;
-  eastl::array<sl::FrameToken *, MAX_CONCURRENT_FRAMES> frameTokens = {};
+  eastl::array<dag::AtomicPointer<sl::FrameToken>, MAX_CONCURRENT_FRAMES> frameTokens = {};
   eastl::array<eastl::array<bool, MAX_VIEWPORTS>, MAX_CONCURRENT_FRAMES> constantsInitialized = {};
 };
 
@@ -102,7 +106,6 @@ public:
   void setEnabled(int frames_to_generate) override;
   bool isEnabled() const override { return framesToGenerate > 0; }
   unsigned getActualFramesPresented() const override;
-  void setSuppressed(bool suppressed) override;
 
   bool evaluate(const nv::DlssGParams<void> &params, void *commandBuffer);
 
@@ -112,7 +115,6 @@ public:
 private:
   int viewportId;
   FrameTracker &frameTracker;
-  bool suppressed = false;
   int framesToGenerate = 0;
 };
 

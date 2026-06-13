@@ -28,7 +28,7 @@ void __cdecl ctrl_break_handler(int) { quit_game(0); }
 static void print_header()
 {
   printf("DBLD import/export/dep utility v1.4\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 static bool exportDbldFields(BinDumpReader &crd, unsigned exp_tag, const char *exp_fname)

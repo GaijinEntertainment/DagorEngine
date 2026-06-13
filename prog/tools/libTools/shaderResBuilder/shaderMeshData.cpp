@@ -1211,7 +1211,8 @@ static float calculateTextureScale(Mesh &m, int startf, int numf, const ShaderCh
   {
     if (!indicesTc[tc_channel].size() || !tc[tc_channel].size())
       continue;
-    for (int face = startf; face < numf; face++)
+    const int endf = startf + numf;
+    for (int face = startf; face < endf; face++)
     {
       const Face &fp = indicesPos[face];
       const TFace &ft = indicesTc[tc_channel][face];

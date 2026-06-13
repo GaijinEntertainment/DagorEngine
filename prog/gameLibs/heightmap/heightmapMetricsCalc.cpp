@@ -567,7 +567,7 @@ void MetricsErrors::updateHeightBounds(const HeightmapHandler &h, const IBBox2 &
 }
 
 void MetricsErrors::recalc_lod_errors(const HeightmapHandler &h, uint16_t min_level, uint16_t max_err_level, uint16_t max_order_level,
-  uint16_t dim_, float water_level, float shore_error_meters_at_best)
+  uint16_t dim_, float water_level_, float shore_error_meters_at_best)
 {
   dim = dim_;
   minLevel = min_level;
@@ -605,7 +605,7 @@ void MetricsErrors::recalc_lod_errors(const HeightmapHandler &h, uint16_t min_le
     const float shoreMeters = shore_error_meters_at_best * (is - i);
     const hmap_err_t fixedShoreError = shoreMeters / h.getHeightScaleRaw();
     calc_lod_error(h, i, dim, err, prevErr, highestOfs + highestSz <= data.size() ? data.data() + highestOfs : nullptr, pOrder,
-      pOrder ? exactOrder.data() + ofs * bytesPerPatch : nullptr, ofs, water_level, fixedShoreError, lodsRiverMasks);
+      pOrder ? exactOrder.data() + ofs * bytesPerPatch : nullptr, ofs, water_level_, fixedShoreError, lodsRiverMasks);
     prevErr = err;
     debug("level %d in %fms hasErr=%d hasHighErr= %d, shore error %f (%d)", i, profile_time_usec(reft) / 1000.f, bool(err),
       highestOfs + highestSz <= data.size(), shoreMeters, fixedShoreError);
@@ -619,7 +619,7 @@ void MetricsErrors::recalc_lod_errors(const HeightmapHandler &h, uint16_t min_le
 }
 
 void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_level, uint16_t max_level, uint16_t dim_,
-  float water_level, float shore_error_at_best_lod)
+  float water_level_, float shore_error_at_best_lod)
 {
   int res = max(h.getHeightmapSizeX(), h.getHeightmapSizeY()) / dim_;
   uint8_t maxResShiftValue = get_bigger_log2(res);
@@ -627,8 +627,9 @@ void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_leve
   if (maxErrLevel == max_level && data.size() == get_level_ofs(max_level) - get_level_ofs(min_level) &&
       order.size() == get_level_ofs(max_level + 1) - get_level_ofs(min_level) && dim == dim_)
     return;
+  this->water_level = water_level_;
   debug("levels %d..%d dim %d res = %d, water level = %f (encoded = %f) encoding %f %f + %f", min_level, max_level, dim_, res,
-    water_level, (water_level - h.getHeightMin()) / h.getHeightScaleRaw(), h.getHeightScaleRaw() * 65535., h.getHeightScale(),
+    water_level_, (water_level_ - h.getHeightMin()) / h.getHeightScaleRaw(), h.getHeightScaleRaw() * 65535., h.getHeightScale(),
     h.getHeightMin());
   debug("worldSize %@ worldPosOfs = %@, clip %@", h.worldSize, h.worldPosOfs, h.worldBox2);
   maxResShift = maxResShiftValue;
@@ -639,7 +640,7 @@ void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_leve
   // Build LodsRiverMasks from heightmap water connectivity
   {
     const int w = max(h.getHeightmapSizeX(), h.getHeightmapSizeY());
-    const float encodedWaterLevel = (water_level - h.getHeightMin()) / h.getHeightScaleRaw();
+    const float encodedWaterLevel = (water_level_ - h.getHeightMin()) / h.getHeightScaleRaw();
 
     int bitmask_words = (w * w + 31) / 32;
     dag::Vector<uint32_t> water_mask(bitmask_words, 0);
@@ -681,6 +682,6 @@ void MetricsErrors::calc_lod_errors(const HeightmapHandler &h, uint16_t min_leve
     }
   }
 
-  recalc_lod_errors(h, min_level, max_level, max_level + 1, dim_, (water_level - h.getHeightMin()) / errorHeightScale,
+  recalc_lod_errors(h, min_level, max_level, max_level + 1, dim_, (water_level_ - h.getHeightMin()) / errorHeightScale,
     shore_error_at_best_lod);
 }

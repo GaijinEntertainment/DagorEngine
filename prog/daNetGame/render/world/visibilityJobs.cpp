@@ -9,6 +9,7 @@
 #include <scene/dag_occlusion.h>
 #include <util/dag_convar.h>
 #include <render/occlusion/parallelOcclusionRasterizer.h>
+#include <render/occlusion/occlusionMaskApplier.h>
 
 #define INSIDE_RENDERER 1
 #include <render/world/private_worldRenderer.h>
@@ -147,7 +148,8 @@ void VisibilityPrepareJob::start(const VisibilityJobsContext *jc,
   const CameraParams &cur_frame_camera,
   const PartitionSphere &transparentPartitionSphere_,
   const IPoint2 &rendering_resolution,
-  const ShadowVisibilityContext &shadow_ctx)
+  const ShadowVisibilityContext &shadow_ctx,
+  OcclusionMaskApplier *occlusion_mask_applier)
 {
   threadpool::wait(this, 0, threadpool::NUM_PRIO);
   TMatrix4_vec4 viewTm = TMatrix4(cur_frame_camera.viewTm);
@@ -164,6 +166,7 @@ void VisibilityPrepareJob::start(const VisibilityJobsContext *jc,
   transparentPartitionSphere = transparentPartitionSphere_;
   target = rendering_resolution;
   shadowCtx = shadow_ctx;
+  occlusionMaskApplier = occlusion_mask_applier;
   threadpool::add(this, VisibilityReprojectJob::prio);
 }
 
@@ -200,6 +203,9 @@ void VisibilityPrepareJob::prepareVisibility()
       TIME_PROFILE_DEV(finalize_sw_occlusion);
       occlusion->finalizeSWOcclusion();
     }
+
+    if (occlusionMaskApplier)
+      occlusionMaskApplier->apply(*occlusion);
 
     occlusion->finalizeOcclusion();
   }
@@ -264,7 +270,6 @@ void GroundCullingJob::start(const VisibilityJobsContext *jc,
   const Frustum &frustum_,
   const Point3 &viewPos_,
   const TMatrix4 &viewProj_,
-  const float hmap_camera_height,
   const float water_level,
   const int displacement_sub_div,
   const float displacement_radius,
@@ -283,7 +288,6 @@ void GroundCullingJob::start(const VisibilityJobsContext *jc,
   frustum = frustum_;
   viewPos = viewPos_;
   viewProj = viewProj_;
-  hmapCameraHeight = hmap_camera_height;
   waterLevel = water_level;
   displacementSubDiv = displacement_sub_div;
   displacementRadius = displacement_radius;
@@ -299,7 +303,7 @@ void GroundCullingJob::doJob()
   mq.displacementFalloff = 0.25f;
 
   lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{viewPos, hmapCameraHeight, waterLevel, frustum, occlusion, nullptr, 0, displacementSubDiv, 1, mq});
+    HeightmapFrustumCullingInfo{viewPos, frustum, occlusion, nullptr, true, mq});
 }
 
 void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
@@ -309,7 +313,6 @@ void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
   const Frustum &frustum_,
   const Point3 &viewPos_,
   const TMatrix4 &viewProj_,
-  const float hmap_camera_height,
   const float water_level,
   threadpool::JobPriority prio)
 {
@@ -324,7 +327,6 @@ void GroundReflectionCullingJob::start(const VisibilityJobsContext *jc,
   lmeshRenderer = lmesh_renderer;
   frustum = frustum_;
   viewPos = viewPos_;
-  hmapCameraHeight = hmap_camera_height;
   viewProj = viewProj_;
   waterLevel = water_level;
   threadpool::add(this, prio, /*wake*/ false);
@@ -334,8 +336,8 @@ void GroundReflectionCullingJob::doJob()
 {
   threadpool::wait(jobs->visibilityJob, 0, threadpool::NUM_PRIO);
   lmeshCullingState.frustumCulling(*lmeshMgr, *lmeshCullingData, NULL, 0,
-    HeightmapFrustumCullingInfo{viewPos, hmapCameraHeight, waterLevel, frustum, nullptr, nullptr, 0, 0, 1,
-      {proj_to_distance_scale(viewProj), -1, HeightmapMetricsQuality::FASTEST}});
+    HeightmapFrustumCullingInfo{
+      viewPos, frustum, nullptr, nullptr, true, {proj_to_distance_scale(viewProj), -1, HeightmapMetricsQuality::FASTEST}});
 }
 
 void LightsCullingJob::start(Occlusion *occlusion_, const CameraParams &cur_frame_camera, threadpool::JobPriority prio)
@@ -349,6 +351,7 @@ void LightsCullingJob::start(Occlusion *occlusion_, const CameraParams &cur_fram
   proj = (mat44f_cref)cur_frame_camera.noJitterProjTm;
   viewPos = v_ldu(cur_frame_camera.viewItm.m[3]);
   zn = cur_frame_camera.noJitterPersp.zn;
+  zf = cur_frame_camera.noJitterPersp.zf;
   threadpool::add(this, prio, /*wake*/ false);
 }
 
@@ -356,7 +359,7 @@ void LightsCullingJob::doJob()
 {
   // int64_t reft = ref_time_ticks();
   if (get_world_renderer())
-    ((WorldRenderer *)get_world_renderer())->cullFrustumLights(occlusion, viewPos, globtm, view, proj, zn);
+    ((WorldRenderer *)get_world_renderer())->cullFrustumLights(occlusion, viewPos, globtm, view, proj, zn, zf);
   // debug("lights done %dus", get_time_usec(reft));
 }
 

@@ -38,17 +38,17 @@ dafg::NodeHandle makeRendinstTransparentNode(bool is_early, bool is_triangle_deb
   auto nodeNs = is_triangle_debug ? dafg::root() / "tringle_size_debug" / "transparent"
                                   : dafg::root() / "transparent" / (is_early ? "far" : "close");
   return nodeNs.registerNode("rendinst_node", DAFG_PP_NODE_SRC, [is_early, is_triangle_debug](dafg::Registry registry) {
-    // We use depthRw to allow z-writes for:
+    // We use depth to allow z-writes for:
     // 1. Transparent rendinsts that mimic refraction (they draw distorted read_prev_frame_tex).
     // 2. Opaque glasses on thermal vision.
 
     if (is_triangle_debug)
     {
       auto ns = registry.root() / "transparent" / (is_early ? "far" : "close");
-      registry.requestRenderPass().depthRo(ns.readTexture("depth")).color({"triangle_size_tex"});
+      registry.requestRenderPass().depthReadTestOnly(ns.readTexture("depth")).color({"triangle_size_tex"});
     }
     else
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthRw("depth");
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depth("depth");
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     auto cameraHndl = use_camera_in_camera(registry).handle();
 

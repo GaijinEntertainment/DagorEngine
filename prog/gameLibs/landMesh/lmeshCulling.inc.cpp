@@ -267,7 +267,7 @@ void LandMeshCullingState::frustumCulling(LandMeshManager &provider, LandMeshCul
   else
   {
     // front-to-back sorting and cullingMng
-    if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && fi.min_tank_lod >= 0)
+    if (!provider.isInTools() && useExclBox && provider.getHmapHandler() && fi.useDetailedHmap)
     {
       provider.getHmapHandler()->frustumCulling(data.heightmapData, fi);
     }

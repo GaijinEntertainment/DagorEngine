@@ -28,6 +28,7 @@
   file:t = "./clustered/sample_deferred_lights.dshl"
   file:t = "clustered/debug_deferred_lights.dshl"
   file:t = "clustered/cull_out_of_frustum.dshl"
+  file:t = "clustered/lights_grid.dshl"
   file:t = "copy_depth_region.dshl"
   file:t = "find_max_depth_2d.dshl"
   file:t = "octahedral_shadow.dshl"

@@ -34,8 +34,8 @@ void init(ContextId context_id)
 {
   G_ASSERT(metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
   TIME_PROFILE(meta_lock_cable_init);
-  auto lockedMeta = context_id->allocateMeta(1, "cable");
-  metaAllocId = lockedMeta.allocId;
+  metaAllocId = context_id->allocateMetaRegion(1, "cable");
+  LockedMetaAccess lockedMeta(*context_id, metaAllocId);
   auto &meta = lockedMeta[0];
 
   meta.markInitialized();
@@ -139,7 +139,7 @@ void on_cables_changed(Cables *cables, ContextId context_id)
     context_id->holdBuffer(context_id->cableVertices.getBuf(), bindlessIndex);
 
     TIME_PROFILE(meta_lock_cable_vb);
-    context_id->lockMeta(metaAllocId)[0].setVertexBufferIndex(bindlessIndex);
+    LockedMetaAccess(*context_id, metaAllocId)[0].setVertexBufferIndex(bindlessIndex);
   }
 
   if (!context_id->cableIndices)
@@ -152,7 +152,7 @@ void on_cables_changed(Cables *cables, ContextId context_id)
     context_id->holdBuffer(context_id->cableIndices.getBuf(), bindlessIndex);
 
     TIME_PROFILE(meta_lock_cable_ib);
-    context_id->lockMeta(metaAllocId)[0].setIndexBufferIndex(bindlessIndex);
+    LockedMetaAccess(*context_id, metaAllocId)[0].setIndexBufferIndex(bindlessIndex);
   }
 
   static int bvh_cables_vertices_buf_reg_no = ShaderGlobal::get_int(get_shader_variable_id("bvh_cables_vertices_buf_reg_no"));

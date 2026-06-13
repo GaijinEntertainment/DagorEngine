@@ -34,6 +34,13 @@ public:
 
   cable_handle_t addCable(const Point3 &start, const Point3 &end, float radius, float sag) override
   {
+    if (check_nan(start) || check_nan(end) || check_nan(radius) || check_nan(sag))
+    {
+      DAEDITOR3.conError("NaNs in %s(start=%@, end=%@, radius=%g, sag=%g)", __FUNCTION__, start, end, radius, sag);
+      debug_dump_stack("NaNs detected!");
+      return ~0u;
+    }
+
     if (removed_cables.size())
     {
       cable_handle_t id = removed_cables.back();
@@ -46,7 +53,10 @@ public:
 
   void removeCable(cable_handle_t id) override
   {
-    removed_cables.push_back(id);
+    if (find_value_idx(removed_cables, id) >= 0)
+      DAEDITOR3.conError("double %s(%d) call", __FUNCTION__, id);
+    else
+      removed_cables.push_back(id);
     cables_mgr->setCable(id, Point3(0, 0, 0), Point3(0, 0, 0), 0, 0);
   }
 
@@ -56,9 +66,16 @@ public:
 
   void exportCables(BinDumpSaveCB &cwr) override
   {
+    G_STATIC_ASSERT(sizeof(CableData) == 4 * 4 * 2);
+
     Tab<CableData> *data = cables_mgr->getCablesData();
     if (data->size() - removed_cables.size() == 0)
       return;
+    for (const CableData &cable : *data)
+      if (check_nan(cable.point1_rad) || check_nan(cable.point2_sag))
+        DAEDITOR3.conError("NaNs in getCablesData[%d]=(point1_rad=%@, point2_sag=%@), getCablesData.size=%d", //
+          &cable - data->data(), cable.point1_rad, cable.point2_sag, data->size());
+
     cwr.beginTaggedBlock(_MAKE4C('Wire'));
     if (!removed_cables.size())
     {
@@ -69,13 +86,19 @@ public:
     {
       fast_sort(removed_cables, eastl::less<int>());
       Tab<CableData> to_export;
-      int skipped = 0;
-      for (int i = 0; i < data->size() - removed_cables.size(); ++i)
+      to_export.reserve(data->size() - removed_cables.size());
+      for (int i = 0, skipped = 0; i < data->size() - removed_cables.size(); ++i)
       {
-        while (i + skipped == removed_cables[skipped])
+        while (skipped < removed_cables.size() && i + skipped == removed_cables[skipped])
           ++skipped;
         to_export.push_back(data->at(i + skipped));
       }
+
+      for (const CableData &cable : to_export)
+        if (check_nan(cable.point1_rad) || check_nan(cable.point2_sag))
+          DAEDITOR3.conError("NaNs in to_export[%d]=(point1_rad=%@, point2_sag=%@), to_export.size=%d, getCablesData.size=%d",
+            &cable - to_export.data(), cable.point1_rad, cable.point2_sag, to_export.size(), data->size());
+
       cwr.writeInt32e(to_export.size());
       cwr.writeTabData32ex(to_export);
     }

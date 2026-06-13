@@ -1,0 +1,6 @@
+script done
+single waits forever
+chained outer start
+mutual fa start
+mutual fb start
+chained inner start

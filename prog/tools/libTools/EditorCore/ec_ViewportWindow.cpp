@@ -1107,7 +1107,6 @@ void ViewportWindow::getModelessWindowControllers(ModelessWindowControllerList &
 {
   controllers.addWindowController(*grid_settings_dialog_controller);
   controllers.addWindowController(*stat_settings_dialog_controller);
-  controllers.addWindowController(*get_gizmo_settings_dialog_controller());
 }
 
 void ViewportWindow::OnChangePosition()

@@ -21,8 +21,8 @@
 #include <daECS/core/componentTypes.h>
 #include <generic/dag_fixedMoveOnlyFunction.h>
 #include <ecs/anim/animchar_visbits.h>
-#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <ecs/render/renderEvent.h>
+#include <render/dynmodelRenderer.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 
 struct RiGenVisibility;
@@ -259,10 +259,6 @@ struct RenderSetExposure : public ecs::Event
   RenderSetExposure(bool value) : ECS_EVENT_CONSTRUCTOR(RenderSetExposure), value(value) {}
 };
 
-namespace dynmodel_renderer
-{
-struct DynModelRenderingState;
-}
 class AnimCharShadowOcclusionManager;
 class Occlusion;
 class GlobalVariableStates;
@@ -281,7 +277,7 @@ static_assert(is_pow2(AnimcharRenderAsyncFilter::ARF_IDX_COUNT), "AnimcharRender
 
 struct AnimcharRenderAsyncEvent : public ecs::Event
 {
-  dynmodel_renderer::DynModelRenderingState &state;
+  dynrend::ContextId ctx;
   const GlobalVariableStates *globVarsState;
   const Occlusion *occlusion;
   const Frustum cullingFrustum;
@@ -291,11 +287,10 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
   const AnimcharRenderAsyncFilter eidFilter;
   TexStreamingContext texCtx;
   ECS_INSIDE_EVENT_DECL(AnimcharRenderAsyncEvent, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE)
-  AnimcharRenderAsyncEvent(dynmodel_renderer::DynModelRenderingState &state_,
+  AnimcharRenderAsyncEvent(dynrend::ContextId ctx_,
     const GlobalVariableStates *gvars_state,
     const Occlusion *occlusion_,
     const Frustum &frustum_,
-    // uint32_t hints_,
     animchar_visbits_t add_vis_bits_,
     animchar_visbits_t check_bits_,
     uint8_t filter_mask,
@@ -303,11 +298,10 @@ struct AnimcharRenderAsyncEvent : public ecs::Event
     AnimcharRenderAsyncFilter eid_filter,
     TexStreamingContext tex_context = TexStreamingContext(0)) :
     ECS_EVENT_CONSTRUCTOR(AnimcharRenderAsyncEvent),
-    state(state_),
+    ctx(ctx_),
     globVarsState(gvars_state),
     occlusion(occlusion_),
     cullingFrustum(frustum_),
-    // hints(hints_),
     add_vis_bits(add_vis_bits_),
     check_bits(check_bits_),
     filterMask(filter_mask),

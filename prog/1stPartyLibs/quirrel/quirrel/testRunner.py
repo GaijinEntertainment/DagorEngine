@@ -10,6 +10,7 @@ import subprocess
 from subprocess import Popen, PIPE
 import platform
 import threading
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CRED = '\33[31m'
@@ -24,6 +25,13 @@ ciRun=False
 
 THREADS = 12
 printLock = threading.Lock()
+
+RANDOMIZED_ITERATION_PATTERNS = [
+    re.compile(r'.*foreach.*,.*'),
+    re.compile(r'\.map'),
+    re.compile(r'\.reduce'),
+    re.compile(r'\.each'),
+]
 
 
 def xprint(str, color = ''):
@@ -81,28 +89,22 @@ def updateExpectedFromActualIfNeed(marker, actualFile, expectedFile):
             f.write(result)
 
 
-def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs, stdoutFile):
+def needsRandomizedIterationSeeds(testFilePath):
+    with open(testFilePath, encoding='utf-8') as f:
+        content = f.read()
+    return any(pattern.search(content) for pattern in RANDOMIZED_ITERATION_PATTERNS)
+
+
+def runTestCommand(compiler, testFilePath, actualResultFilePath, expectedResultFilePath, kind, iterSeedArgs, extraargs, stdoutFile):
     global numOfFailedTests
     global verbose
-    testFilePath = computePath(dirname, name + '.nut')
 
-    if (not path.exists(testFilePath)):
-        testFilePath = computePath(dirname, name + '.nut.txt')
-
-    testFilePath = testFilePath.replace('\\', '/')
-
-    expectedResultFilePath = computePath(dirname, name + suffix)
-    outputDir = computePath(workingDir, dirname)
-
-    os.makedirs(outputDir, exist_ok=True)
-
-    actualResultFilePath = computePath(workingDir, expectedResultFilePath)
+    compilationCommand = [compiler, "-optCH"]
+    compilationCommand += iterSeedArgs
+    compilationCommand += extraargs
 
     if path.exists(actualResultFilePath):
         os.remove(actualResultFilePath)
-
-    compilationCommand = [compiler, "-optCH"]
-    compilationCommand += extraargs
 
     if stdoutFile:
         outredirect = open(actualResultFilePath, 'w+')
@@ -157,6 +159,28 @@ def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs,
                 xprint(f"PASSED: {testFilePath}", CBOLD + CGREEN)
 
             updateExpectedFromActualIfNeed(kind, actualResultFilePath, expectedResultFilePath)
+
+
+def runTestGeneric(compiler, workingDir, dirname, name, kind, suffix, extraargs, stdoutFile):
+    testFilePath = computePath(dirname, name + '.nut')
+
+    if (not path.exists(testFilePath)):
+        testFilePath = computePath(dirname, name + '.nut.txt')
+
+    testFilePath = testFilePath.replace('\\', '/')
+
+    expectedResultFilePath = computePath(dirname, name + suffix)
+    outputDir = computePath(workingDir, dirname)
+
+    os.makedirs(outputDir, exist_ok=True)
+
+    actualResultFilePath = computePath(workingDir, expectedResultFilePath)
+
+    runTestCommand(compiler, testFilePath, actualResultFilePath, expectedResultFilePath, kind, [], extraargs, stdoutFile)
+
+    if needsRandomizedIterationSeeds(testFilePath):
+        for seed in (0, 255):
+            runTestCommand(compiler, testFilePath, actualResultFilePath, expectedResultFilePath, kind, [f"-iter-seed:{seed}"], extraargs, stdoutFile)
 
 
 def runDiagTest(compiler, workingDir, dirname, name):

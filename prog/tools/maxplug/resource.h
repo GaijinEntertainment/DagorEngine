@@ -144,6 +144,7 @@
 #define IDD_OBJECT_PROPERTIES_EDITOR      119
 #define IDS_EXPORT_TO_JSON                119
 #define IDD_RBDUMMY_PARAM                 120
+#define IDS_NON_DAGOR_LIGHTS              120
 #define IDD_GENERATE_OBJECTS_ON_SURFACE   121
 #define IDD_SCATTER                       121
 #define IDD_SPLINES_AND_SMOOTH            122

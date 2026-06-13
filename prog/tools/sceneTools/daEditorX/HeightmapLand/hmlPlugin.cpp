@@ -789,6 +789,7 @@ void HmapLandPlugin::fillPanel(PropPanel::ContainerPropertyControl &panel)
 
   exportGroup->createCombo(PID_HM_EXPORT_TYPE, "Export type:", typesExport, exportType);
   exportGroup->createCheckBox(PID_HM_LOFT_BELOW_ALL, "Geom: render loft below all", geomLoftBelowAll);
+  exportGroup->createEditFloat(PID_RI_MIN_CELL_SIZE, "Min cell size limit for RendInst", riMinCellSz);
   exportGroup->createEditFloat(PID_RI_MAX_CELL_SIZE, "Max cell size for RendInst", riMaxCellSz);
   exportGroup->createEditInt(PID_RI_MAX_GEN_LAYER_CELL_DIVISOR, "Limit genLayer cell divisor for RI", riMaxGenLayerCellDivisor);
   panel.setBool(PID_HM_EXPORT_GRP, true);
@@ -1795,6 +1796,10 @@ void HmapLandPlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
 
       return;
 
+    case PID_RI_MIN_CELL_SIZE:
+      riMinCellSz = panel->getFloat(pcb_id);
+      lcMgr->reinitRIGen();
+      break;
     case PID_RI_MAX_CELL_SIZE:
       riMaxCellSz = panel->getFloat(pcb_id);
       lcMgr->reinitRIGen();
@@ -3107,7 +3112,8 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     if (!failMsg.empty())
     {
       setCommonExprText(prev.str());
-      wingw::message_box(wingw::MBS_EXCL, failTitle.str(), "%s", failMsg.str());
+      // Monospace so the parser's space-aligned error caret lines up under the token.
+      wingw::message_box(wingw::MBS_EXCL | wingw::MBS_MONOSPACE, failTitle.str(), "%s", failMsg.str());
       return;
     }
     // Success: re-flow the stored text back into the multiline edit so the user
@@ -3130,7 +3136,8 @@ void HmapLandPlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     {
       const char *errMsg = debugExprLastErr.empty() ? "compile failed" : debugExprLastErr.str();
       setDebugExprText(prev.str());
-      wingw::message_box(wingw::MBS_EXCL, "Debug expression error", "%s", errMsg);
+      // Monospace so the parser's space-aligned error caret lines up under the token.
+      wingw::message_box(wingw::MBS_EXCL | wingw::MBS_MONOSPACE, "Debug expression error", "%s", errMsg);
       return;
     }
     panel->setText(PID_DEBUG_EXPR_EDIT, getDebugExprDisplayText().c_str());

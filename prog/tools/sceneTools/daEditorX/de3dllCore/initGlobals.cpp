@@ -3,6 +3,7 @@
 #include <startup/dag_dllMain.inc.cpp>
 #include <EditorCore/ec_IEditorCore.h>
 #include <de3_interface.h>
+#include <propPanel/propPanelService.h>
 #include <de3_huid.h>
 #include <oldEditor/de_interface.h>
 #include <libTools/util/strUtil.h>
@@ -56,9 +57,12 @@ void daeditor3_init_globals(IDagorEd2Engine &editor)
   IDagorEd2Engine::set(&editor);
   IDaEditor3Engine::set(&editor3);
 
-  if (void *ctx = DAEDITOR3.getImguiContext())
+  if (PropPanel::IPropPanelService *svc = DAEDITOR3.getPropPanelService())
   {
-    ImGui::SetCurrentContext((ImGuiContext *)ctx);
+    if (void *ctx = svc->getImguiContext())
+    {
+      ImGui::SetCurrentContext((ImGuiContext *)ctx);
+    }
   }
 }
 

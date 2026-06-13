@@ -1007,7 +1007,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
         IDXGIOutput *output;
         for (uint32_t outputIndex = 0; SUCCEEDED(dxgiAdapter->EnumOutputs(outputIndex, &output)); outputIndex++)
         {
-          monitorList.push_back(get_monitor_name_from_output(output));
+          monitorList.push_back(get_name(output));
           output->Release();
         }
         dxgiAdapter->Release();

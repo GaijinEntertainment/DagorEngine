@@ -37,11 +37,11 @@ static const uint16_t PALETTE_ID_MASK = (1 << PALETTE_BITS) - 1;
 #if _TARGET_SIMD_SSE
 #define REPLICATE4(X) X, X, X, X
 alignas(16) static const vec4i_const VCI_PALETTE_ID_MASK = {REPLICATE4(PALETTE_ID_MASK)};
-alignas(16) static const vec4i_const VCI_SCALE_MASK = {REPLICATE4(0xFFFF & ~PALETTE_ID_BIT_COUNT)};
+alignas(16) static const vec4i_const VCI_SCALE_MASK = {REPLICATE4(0xFFFF & ~PALETTE_ID_MASK)};
 #undef REPLICATE4
 #elif _TARGET_SIMD_NEON
 alignas(16) static const vec4i_const VCI_PALETTE_ID_MASK = v_splatsi(PALETTE_ID_MASK);
-alignas(16) static const vec4i_const VCI_SCALE_MASK = v_splatsi(0xFFFF & ~PALETTE_ID_BIT_COUNT);
+alignas(16) static const vec4i_const VCI_SCALE_MASK = v_splatsi(0xFFFF & ~PALETTE_ID_MASK);
 #endif
 
 struct InstancePackData
@@ -299,6 +299,7 @@ struct SingleEntityPool
   static float ox, oy, oz, cell_xz_sz, cell_y_sz;
   static bbox3f bbox;
   static bbox3f *per_pool_local_bb;
+  static inline const char *const *pool_names = nullptr;
   static dag::ConstSpan<const TMatrix *> sweep_boxes_itm;
   static dag::ConstSpan<E3DCOLOR> ri_col_pair;
   static int cur_cell_id, cur_ri_extra_ord;
@@ -329,24 +330,27 @@ struct SingleEntityPool
   }
 
   template <typename F>
-  static inline void verifyInstanceScale(const mat44f &m, int pool, F get_pool_name)
+  static inline void verifyInstanceScale(const mat44f &m, int pool, F get_pool_name, const float *scl_thres = nullptr)
   {
 #if DAGOR_DBGLEVEL > 0 && !_TARGET_PC_TOOLS_BUILD
-    vec4f instScaleSq = v_perm_xzac(v_perm_xycd(v_length3_sq(m.col0), v_length3_sq(m.col1)), v_length3_sq(m.col2));
-    if (DAGOR_UNLIKELY(v_signmask(v_cmp_lt(instScaleSq, v_splats(/* 1% */ 1e-4f)))))
+    vec4f instScaleSq = v_mat44_scale43_sq(m);
+    // 16/256=1/16=6.25% which is the end of first non-zero scale bucket for a palette-rotated posInst
+    if (v_signmask(v_cmp_le(instScaleSq, v_splats(scl_thres ? *scl_thres : 3.9e-3f)))) [[unlikely]]
       if (!v_test_all_bits_zeros(instScaleSq)) // Assume that zero scale is destroyed one (so not an error)
       {
         Point3_vec4 instScale;
         v_st(&instScale.x, v_sqrt(instScaleSq));
         Point3_vec4 instPos;
         v_st(&instPos.x, m.col3);
-        logerr("Insane ri%s[%d](%s) instance scale: (%g, %g, %g) @ %@", pool >= 0 ? "" : "Extra", pool >= 0 ? pool : (-pool - 1),
-          get_pool_name(pool), P3D(instScale), instPos);
+        logerr("ri%s[%d](%s) collision-unsafe scale (%g, %g, %g), min axis %g, pos (%f, %f, %f)", pool >= 0 ? "" : "Extra",
+          pool >= 0 ? pool : (-pool - 1), get_pool_name(pool), P3D(instScale), min(min(instScale.x, instScale.y), instScale.z),
+          P3D(instPos));
       }
 #else
     G_UNUSED(m);
     G_UNUSED(pool);
     G_UNUSED(get_pool_name);
+    G_UNUSED(scl_thres);
 #endif
   }
 
@@ -356,7 +360,7 @@ struct SingleEntityPool
     v_mat44_make_from_43cu_unsafe(m, tm.m[0]);
     if (avail > 0)
     {
-      verifyInstanceScale(m, pool_idx, [](int) { return (const char *)nullptr; });
+      verifyInstanceScale(m, pool_idx, [](int p) { return pool_names[p]; });
 
       int16_t *ptr = reinterpret_cast<int16_t *>(topPtr);
       InstancePackData data{ox, oy, oz, cell_xz_sz, cell_y_sz, per_inst_data_dwords};

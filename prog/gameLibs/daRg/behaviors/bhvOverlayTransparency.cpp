@@ -67,7 +67,7 @@ BhvOverlayTransparency bhv_overlay_transparency;
 BhvOverlayTransparency::BhvOverlayTransparency() : Behavior(darg::Behavior::STAGE_BEFORE_RENDER, 0) {}
 
 
-int BhvOverlayTransparency::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)
+int BhvOverlayTransparency::update(UpdateStage /*stage*/, darg::Element *elem, float dt)
 {
   TIME_PROFILE(bhv_overlay_transparency_update);
 
@@ -106,12 +106,12 @@ int BhvOverlayTransparency::update(UpdateStage /*stage*/, darg::Element *elem, f
 
     if (underlayed && opacity > MIN_OPACITY)
     {
-      opacity = max(opacity - ::dagor_game_act_time * OPACITY_CHANGE_SPEED, MIN_OPACITY);
+      opacity = max(opacity - dt * OPACITY_CHANGE_SPEED, MIN_OPACITY);
       elem->props.setCurrentOpacity(opacity);
     }
     else if (!underlayed && opacity < 1.f)
     {
-      opacity = min(opacity + ::dagor_game_act_time * OPACITY_CHANGE_SPEED, 1.f);
+      opacity = min(opacity + dt * OPACITY_CHANGE_SPEED, 1.f);
       elem->props.setCurrentOpacity(opacity);
     }
     float opacityCenterMinMult = data.RawGetSlotValue<float>(elem->csk->opacityCenterMinMult, -1.f);

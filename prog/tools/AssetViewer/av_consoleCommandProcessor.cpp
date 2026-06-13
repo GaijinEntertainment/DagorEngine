@@ -94,14 +94,22 @@ void AssetViewerConsoleCommandProcessor::runCameraPos(dag::ConstSpan<const char 
   if (params.size() == 3)
   {
     vpw->setCameraPos(to_point3(params));
+    return;
   }
-  else
+  if (params.size() == 1)
   {
-    TMatrix tm;
-    vpw->getCameraTransform(tm);
-
-    get_app().getConsole().addMessage(ILogWriter::NOTE, "Current camera position: %g, %g, %g", P3D(tm.getcol(3)));
+    const char *s = (*params[0] == '(') ? params[0] + 1 : params[0];                  // tolerate "%@"-style "(x,y,z)" paste
+    if (const char *cb = strchr(s, ','), *ce = strrchr(s, ','); cb && ce && cb != ce) // E.g "123,456,678"
+    {
+      vpw->setCameraPos(Point3(atof(s), atof(cb + 1), atof(ce + 1)));
+      return;
+    }
   }
+
+  TMatrix tm;
+  vpw->getCameraTransform(tm);
+
+  get_app().getConsole().addMessage(ILogWriter::NOTE, "Current camera position: %g, %g, %g", P3D(tm.getcol(3)));
 }
 
 void AssetViewerConsoleCommandProcessor::runPerfDump()

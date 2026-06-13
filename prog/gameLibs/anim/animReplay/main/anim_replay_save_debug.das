@@ -61,7 +61,8 @@ def fill_initial_animchar_data(var animchar_data : Object; eid : EntityId; preci
   query(eid) <| $ [es] (animchar : AnimcharBaseComponent;
                         animchar__res : string;
                         animchar__appliedAnimSpeed : float const?;
-                        animchar__animState : Object const?)
+                        animchar__animState : Object const?;
+                        slot_attach__slotId : int const?)
     set(animchar_data, "eid", eid)
     set(animchar_data, "animcharRes", animchar__res)
     set(animchar_data, "originalTemplate", getEntityTemplateName(eid))
@@ -88,6 +89,16 @@ def fill_initial_animchar_data(var animchar_data : Object; eid : EntityId; preci
               push(stateNames, stateName)
           set(animTreeStates, "stateNames", stateNames)
         set(animchar_data, "animTreeStates", animTreeStates)
+    if slot_attach__slotId != null
+      using() <| $(var slotTime : FloatList)
+        push(slotTime, 0.f)
+        set(animchar_data, "slotTime", slotTime)
+      using() <| $(var slotIdx : IntList)
+        push(slotIdx, *slot_attach__slotId)
+        set(animchar_data, "slotIdx", slotIdx)
+      using() <| $(var slotName : StringList)
+        push(slotName, animchar_getSlotName(*slot_attach__slotId))
+        set(animchar_data, "slotName", slotName)
     if animchar.animGraph != null && animchar.animState != null
       assume animGraph = *animchar.animGraph
       using() <| $(var initialAnimStateParams : Object)
@@ -122,6 +133,31 @@ def anim_replay_gather_animchars_for_save(evt : Event;
     query() <| $ [es(REQUIRE=(motion_matching__controller))] (eid : EntityId)
       addAnimcharToList(eid)
 
+  for animcharIdx in range(length(anim_replay__savedAnimchars))
+    let animcharData = get_ecs_object(anim_replay__savedAnimchars[animcharIdx])
+    let animcharEid = *get_Eid(*animcharData, "eid")
+    query(animcharEid) <| $ [es] (human_weap__gunEids : EidList)
+      for gunEid in human_weap__gunEids
+        using() <| $(var attachedAnimcharData : Object)
+          fill_initial_animchar_data(attachedAnimcharData, gunEid, anim_replay__preciseAnimParams)
+          if !empty(attachedAnimcharData)
+            set(attachedAnimcharData, "parentAnimcharIdx", animcharIdx)
+            push(anim_replay__savedAnimchars, attachedAnimcharData)
+
+[es(before=anim_replay_end_of_saving_frame)]
+def anim_replay_track_slot_attachments(evt : UpdateStageInfoAct;
+                                       anim_replay__time : float;
+                                       var anim_replay__savedAnimchars : Array)
+  iterate_replay_animchars(anim_replay__savedAnimchars) <| $(animchar_data, animchar_eid)
+    query(animchar_eid) <| $ [es] (slot_attach__slotId : int)
+      var slotTime & = unsafe(*getRW_ecs_FloatList(animchar_data, "slotTime"))
+      var slotIdx & = unsafe(*getRW_ecs_IntList(animchar_data, "slotIdx"))
+      var slotName & = unsafe(*getRW_ecs_StringList(animchar_data, "slotName"))
+      if empty(slotIdx) || back(slotIdx) != slot_attach__slotId
+        push(slotIdx, slot_attach__slotId)
+        push(slotTime, anim_replay__time)
+        push(slotName, animchar_getSlotName(slot_attach__slotId))
+
 [es(before=anim_replay_end_of_saving_frame)]
 def anim_replay_track_animchar(evt : UpdateStageInfoAct;
                                anim_replay__sampleRate : int;
@@ -140,13 +176,19 @@ def anim_replay_track_animchar(evt : UpdateStageInfoAct;
     let animcharEid = *get_Eid(animcharData, "eid")
     var isDead = false
     query(animcharEid) <| $ [es] (animchar : AnimcharBaseComponent;
-                                  transform : float3x4;
+                                  transform : float3x4 const?;
                                   deadEntity : Tag const?)
       isDead = deadEntity != null
-      assume posList = *getRW_ecs_Point3List(animcharData, "position")
-      assume rotList = *getRW_ecs_Point4List(animcharData, "rotation")
-      push(posList, transform[3])
-      push(rotList, math::quat(transform))
+      var posList = getRW_ecs_Point3List(animcharData, "position")
+      var rotList = getRW_ecs_Point4List(animcharData, "rotation")
+      if posList != null && rotList != null
+        var animcharTm : float3x4
+        if transform != null
+          animcharTm = *transform
+        else
+          animchar_get_tm(animchar, animcharTm)
+        push(*posList, animcharTm[3])
+        push(*rotList, math::quat(animcharTm))
       var animParams = getRW_ecs_array(animcharData, "animParams")
       if animParams != null && animchar.animState != null
         for animParamChildComp in *animParams
@@ -218,8 +260,13 @@ def anim_replay_end_of_saving_frame(evt : UpdateStageInfoAct;
 [es]
 def anim_replay_stop_record(evt : AnimReplayStopRecord;
                             eid : EntityId;
-                            anim_replay__savedAnimchars : Array;
+                            var anim_replay__savedAnimchars : Array;
                             anim_replay__timestamps : FloatList)
+  erase_if(anim_replay__savedAnimchars) <| $(animcharChildComp)
+    let animcharData & = unsafe(*get_ecs_object(animcharChildComp))
+    let slotIdx = get_ecs_IntList(animcharData, "slotIdx")
+    let hiddenAttachment = slotIdx != null && length(*slotIdx) == 1 && (*slotIdx)[0] == -1
+    return hiddenAttachment
   createEntitySync("anim_replay_load_context") <| $(var init : ComponentsInitializer)
     set(init, "anim_replay__timestamps", anim_replay__timestamps)
     set(init, "anim_replay__loadingAnimchars", anim_replay__savedAnimchars)

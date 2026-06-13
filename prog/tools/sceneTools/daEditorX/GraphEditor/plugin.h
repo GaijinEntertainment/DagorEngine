@@ -28,6 +28,7 @@ class TexturePreviewPanel;
 class HistogramPanel;
 class LandscapePreviewPanel;
 class PropertiesPanel;
+class ShortcutsPanel;
 
 class GraphEditorPlg final : public IGenEditorPlugin,
                              public IGenEventHandler,
@@ -131,7 +132,14 @@ public:
   // instantly; coalesces with other pending marks before the worker picks them up.
   void markGraphDirtyAndRegen();
 
-  // Use after a graph load (JSON / BLK / initial registration). Pushes heightmap
+  // Like markGraphDirtyAndRegen, but forces a full texture-pipeline rebuild (closes texGenReg /
+  // clears regcache) so source textures reload from scratch. Use when a change invalidates
+  // already-registered textures that a plain regen would reuse -- e.g. a textureRootDir edit
+  // (textures are keyed by their root-independent reference name, so the new root wouldn't take
+  // effect otherwise).
+  void markGraphForceRebuild();
+
+  // Use after a graph load (BLK / initial registration). Pushes heightmap
   // params, hands the GraphData pointer to the service (which resets pipeline
   // state -- preview-final, selected texture, etc.), then marks dirty so the
   // worker compiles the freshly-loaded graph. Do NOT call this from edit paths;
@@ -193,19 +201,20 @@ public:
   // small fixed set of shader / subgraph files on disk). Triggered from the panel's reload button.
   void reloadBaseNodes();
 
+  bool promptPinComment(eastl::string &inout_comment);
+
 private:
   void initResourcePaths();
+  void toggleShortcutsPanel();
   void newEmptyGraph();
-  void promptAndLoadGraph();
-  void loadGraphFromFile(const char *path);
   void promptAndLoadGraphBlk();
   void promptAndSaveGraphBlk();
   void promptAndSaveAsSubgraphBlk();
   bool loadBaseNodesBlkIfNeeded();
 
   void appendShaderTemplatesToBaseNodes();
-  // Mirrors appendShaderTemplatesToBaseNodes for *.json / *.blk files under
-  // resourcePaths.mainGraphsDir. Each graph file becomes a synthesized node{} descriptor in
+  // Mirrors appendShaderTemplatesToBaseNodes for *.subgraph.blk files under
+  // resourcePaths.subgraphsDir. Each graph file becomes a synthesized node{} descriptor in
   // baseNodesBlk with category "Subgraphs", plugin "subgraph", and one pin{} per
   // `subgraph in: TYPE` / `subgraph out` boundary node found inside the child. The pin's
   // interface name comes from the boundary's `name` property value (not its descriptor
@@ -221,6 +230,7 @@ private:
   eastl::unique_ptr<LandscapePreviewPanel> landscapePanel;
   eastl::unique_ptr<BaseNodesPanel> baseNodesPanel;
   eastl::unique_ptr<PropertiesPanel> propertiesPanel;
+  eastl::unique_ptr<ShortcutsPanel> shortcutsPanel;
 
   ResourcePaths resourcePaths;
   GraphData graphData;
@@ -265,4 +275,5 @@ private:
   bool isGraphVisible = true;
   bool isBaseNodesVisible = false;
   bool isPropertiesVisible = true;
+  bool isShortcutsVisible = false;
 };

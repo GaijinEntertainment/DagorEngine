@@ -1100,6 +1100,13 @@ bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n
   return fifo->isEnqueued(n);
 }
 
+IAnimBlendNode *AnimBlendCtrl_Fifo3::getNextInQueue(IPureAnimStateHolder &st)
+{
+  AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
+  return fifo->getNextInQueue();
+}
+
+
 //
 // Random switcher
 //
@@ -1137,8 +1144,10 @@ IAnimBlendNode *AnimBlendCtrl_RandomSwitcher::getCurAnim(IPureAnimStateHolder &s
   int id = st.getParamInt(paramId);
   if (id < 0 || id >= list.size())
   {
-    st.setParamInt(paramId, -1);
-    return NULL;
+    setRandomAnim(st);
+    id = st.getParamInt(paramId);
+    if (id < 0 || id >= list.size())
+      return NULL;
   }
   return list[id].node;
 }
@@ -1632,9 +1641,10 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
     list[newAnim].node->resume(st, !continuousAnimMode);
     real time = morphTime;
     FifoMorphType type = morphType;
-    if (fifo->state != AnimFifo3Queue::ST_0 && morphParamsOverride.size())
+    IAnimBlendNode *fromNode = fifo->getNextInQueue();
+    // These checks are needed for optimisation only
+    if (morphParamsOverride.size() && fromNode != NULL)
     {
-      IAnimBlendNode *fromNode = fifo->state == AnimFifo3Queue::ST_1 ? fifo->node[0] : fifo->node[1];
       for (auto &override : morphParamsOverride)
       {
         if (override.from == fromNode && override.to == list[newAnim].node)

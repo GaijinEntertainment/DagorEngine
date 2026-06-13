@@ -244,8 +244,8 @@ void reload_grass(ContextId context_id, RandomGrass *grass)
       HANDLE_LOST_DEVICE_STATE(bvhLod.blas, );
 
       TIME_PROFILE(meta_lock_grass);
-      auto lockedMeta = context_id->allocateMeta(1, "grass");
-      bvhLod.metaAllocId = lockedMeta.allocId;
+      bvhLod.metaAllocId = context_id->allocateMetaRegion(1, "grass");
+      LockedMetaAccess lockedMeta(*context_id, bvhLod.metaAllocId);
       auto &meta = lockedMeta[0];
 
       meta.markInitialized();

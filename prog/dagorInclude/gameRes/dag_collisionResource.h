@@ -9,7 +9,7 @@
 #include <gameRes/dag_stdGameResId.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_index16.h>
-#include <util/dag_globDef.h> // DestroyDeleter
+#include <util/dag_globDef.h>
 #include <math/dag_TMatrix.h>
 #include <ioSys/dag_genIo.h>
 #include <math/dag_bounds3.h>
@@ -22,10 +22,9 @@
 #include <memory/dag_framemem.h>
 #include <math/dag_e3dColor.h>
 #include <EASTL/fixed_function.h>
-#include <EASTL/unique_ptr.h>
 #include <EASTL/bitvector.h>
-#include <sceneRay/dag_sceneRayDecl.h>
 #include <dag/dag_vector.h>
+#include <daBVH/dag_swBLAS_ray.h> // RayData::unpackVert21 -- inlined into iterateNodeVerts/FacesVerts for BLAS-resident nodes
 
 class GeomNodeTree;
 class Bitarray;
@@ -61,13 +60,13 @@ inline CollisionTrace make_collision_trace(const Point3 &from, const Point3 &dir
 
 struct IntersectedNode
 {
-  Point3 normal;
+  Point3 normal = Point3(0, 0, 0);
   union
   {
     float intersectionT;
-    int sortKey; // Note: signed to correctly handle -0.0 (which is mapped to INT_MIN)
+    int sortKey = 0; // Note: signed to correctly handle -0.0 (which is mapped to INT_MIN)
   };
-  Point3 intersectionPos;
+  Point3 intersectionPos = Point3(0, 0, 0);
   // Self-describing hit identifier -- the single source of truth for node identity and (when
   // applicable) per-node face index. Consumers must read it via the tri_ref:: accessors
   // (nodeIndex / hasTri / faceIndex / subTri) so the encoding can evolve under them. The
@@ -117,9 +116,18 @@ enum CollisionResourceFlags : uint32_t
   COLLISION_RES_FLAG_HAS_BEHAVIOUR_FLAGS = 1 << 1,
   COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID = 1 << 2,
   COLLISION_RES_FLAG_OPTIMIZED = 1 << 3,
+  // Bit 4: TRACEABLE and PHYS_COLLIDABLE share one combined BLAS in gridForTraceable. Originally
+  // named for FRT-grid reuse; now means BLAS reuse (same bit value, same on-disk semantics).
   COLLISION_RES_FLAG_REUSE_TRACE_FRT = 1 << 4,
+  // Bits 5/6: legacy FRT presence markers. Runtime no longer uses FRT but the load path reads them
+  // to skip past old exporters' FRT blocks; new exports clear them.
   COLLISION_RES_FLAG_HAS_TRACE_FRT = 1 << 5,
   COLLISION_RES_FLAG_HAS_COLL_FRT = 1 << 6,
+  // Bit 7: persisted BLAS cull mode. Set when the resource would have built a two-sided CULL_BOTH
+  // FRT (so the BLAS is built two-sided); clear means backface-cull CCW. The BLAS is rebuilt at load,
+  // not serialized, so this bit is the only on-disk cull signal. Legacy assets predating it fall back
+  // to the HAS_*_FRT bits (CULL_BOTH iff those were set).
+  COLLISION_RES_FLAG_BLAS_TWO_SIDED = 1 << 7,
 };
 
 struct CollisionNode
@@ -138,6 +146,16 @@ struct CollisionNode
     TRANSLATE = 2,       // Identity tm with offset
     ORTHONORMALIZED = 4, // Unscaled
     ORTHOUNIFORM = 8,    // With uniform scale
+
+    // Backend marker (not a transform type). Set by compactOwnVertices on mesh nodes that went
+    // into a per-behavior BLAS. When set: the ownVertices slice is compacted out (meshVertsBase +
+    // verticesOfs is invalid); verticesOfs is reinterpreted as a vert21-array index (8 B/vert) into
+    // the grid chosen by getBlasGridForResidentNode(); verticesCount = count-1 over the post-dup
+    // block; ownIndices is dropped (getNodeIndices() returns EMPTY). Only MESH ever goes resident --
+    // CONVEX keeps ownIndices (AssetViewer plane<->face correlation; BVH DFS leaf order would not
+    // preserve it). Read verts/faces via iterateNodeVerts / iterateNodeFaces(Verts) / getNodeFaceVerts,
+    // each of which dispatches on this flag; raw meshVertsBase/meshIndicesBase access is unsupported.
+    BLAS_RESIDENT = 16,
   };
 
   enum BehaviorFlag : uint16_t
@@ -251,9 +269,9 @@ using TraceCollisionResourceStats = dag::Vector<int, framemem_allocator>;
 
 decl_dclass_and_id(CollisionResource, DObject, CollisionGameResClassId)
 public:
-  bbox3f vFullBBox;      // all nodes, including box
-  vec4f vBoundingSphere; // center|r^2 in w
-  alignas(16) BBox3 boundingBox;
+  bbox3f vFullBBox = {};      // all nodes, including box
+  vec4f vBoundingSphere = {}; // center|r^2 in w
+  alignas(16) BBox3 boundingBox = {};
   float boundingSphereRad = 0;
   uint32_t collisionFlags = 0;
 
@@ -315,6 +333,14 @@ public:
     uint8_t flags = CollisionNode::IDENT | CollisionNode::ORTHONORMALIZED);
 
   void collapseAndOptimize(const char *res_name, bool need_frt = false, bool frt_build_fast = true);
+
+  // Recompute COLLISION_RES_FLAG_REUSE_TRACE_FRT from the current node behavior flags (set when every
+  // mesh node's TRACEABLE and PHYS_COLLIDABLE bits match, cleared otherwise). This is the authoritative
+  // gate for whether gridForCollidable is built separately; the persisted on-disk bit is not trusted
+  // because a stale value set when the sets differ would route getBlasGrid(PHYS_COLLIDABLE) to
+  // gridForTraceable and skip gridForCollidable, dropping collidable-only IDENT mesh nodes from
+  // collision. Called from both collapseAndOptimize and the direct-load OPTIMIZED path before buildBLAS.
+  void recomputeTraceReuseFlagFromNodeSets();
 
   CollisionNode *getNode(uint32_t index);
   const CollisionNode *getNode(uint32_t index) const;
@@ -548,39 +574,40 @@ public:
     return n ? (int)n->indicesCount : 0;
   }
 
-  dag::ConstSpan<Point3_vec4> getNodeVertices(int node_id) const
-  {
-    const CollisionNode *n = getNode(node_id);
-    if (!n || n->indicesCount == 0)
-      return {};
-    return dag::ConstSpan<Point3_vec4>(meshVertsBase + n->verticesOfs, (uint32_t)n->verticesCount + 1u);
-  }
-
+  // Span over a node's ownIndices slice. EMPTY for BLAS-resident MESH nodes (ownIndices dropped;
+  // face data lives in the BLAS leaves) -- consume those via iterateNodeFaces. Only MESH goes
+  // BLAS-resident; CONVEX keeps ownIndices.
   dag::ConstSpan<uint16_t> getNodeIndices(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
     if (!n || n->indicesCount == 0)
       return {};
+    if (n->flags & CollisionNode::BLAS_RESIDENT)
+      return {}; // ownIndices slice dropped; use iterateNodeFaces
     return dag::ConstSpan<uint16_t>(meshIndicesBase + n->indicesOfs, n->indicesCount);
   }
 
-  bool getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, Point3 &v1, Point3 &v2) const
+  // Span over a non-resident node's ownVertices slice. EMPTY for BLAS_RESIDENT nodes (verts live in
+  // the grid's vert21 array, not a contiguous Point3_vec4 region). Consume those via iterateNodeVerts
+  // or the renderBLAS feeder (CollisionGeometryFeeder::buildSwrtBLASFromCollisionResource).
+  dag::ConstSpan<Point3_vec4> getNodeVertices(int node_id) const
   {
     const CollisionNode *n = getNode(node_id);
-    if (!n || (uint32_t)(face_idx * 3 + 2) >= n->indicesCount)
-      return false;
-    const uint16_t *idx = meshIndicesBase + n->indicesOfs;
-    const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
-    v0 = verts[idx[face_idx * 3 + 0]];
-    v1 = verts[idx[face_idx * 3 + 1]];
-    v2 = verts[idx[face_idx * 3 + 2]];
-    return true;
+    if (!n || n->indicesCount == 0)
+      return {};
+    if (n->flags & CollisionNode::BLAS_RESIDENT)
+      return {}; // verts live in vert21; meshVertsBase + verticesOfs is invalid here
+    return dag::ConstSpan<Point3_vec4>(meshVertsBase + n->verticesOfs, (uint32_t)n->verticesCount + 1u);
   }
 
-  // Decode a tri_ref_t produced by the BVH trace path back to the three vertices of the source
-  // triangle. In commit 1 the encoding is provisional (dataOffset is treated as a source-face
-  // index inside the named CollisionNode); commit 2 redefines dataOffset as a BLAS-internal
-  // byte offset and the implementation is swapped to walk the BLAS quad leaf directly.
+  // Three vertices of a node's source face by per-node face index. Works for BLAS_RESIDENT nodes
+  // (decoded from vert21) and non-resident nodes (read from ownVertices). False if face_idx is out
+  // of range or the node has no triangles.
+  bool getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, Point3 &v1, Point3 &v2) const;
+
+  // Decode a tri_ref_t back to its source triangle's three verts. BLAS refs (type=1) walk the quad
+  // leaf at blasOffset and rebuild the sub_tri-selected triangle from vert21 (no side table);
+  // non-BLAS refs (type=0) dispatch to getNodeFaceVerts on the encoded srcFace.
   bool getNodeFaceVertsByRef(tri_ref_t ref, Point3 & v0, Point3 & v1, Point3 & v2) const;
 
   template <class CB> // void(int face_idx, uint16_t i0, uint16_t i1, uint16_t i2)
@@ -589,6 +616,11 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n)
       return;
+    if (n->flags & CollisionNode::BLAS_RESIDENT)
+    {
+      walkBlasResidentNodeLeavesForFaces(*n, cb);
+      return;
+    }
     const uint16_t *idx = meshIndicesBase + n->indicesOfs;
     for (uint32_t i = 0, fi = 0, e = n->indicesCount; i < e; i += 3, ++fi)
       cb((int)fi, idx[i], idx[i + 1], idx[i + 2]);
@@ -600,9 +632,25 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n || n->indicesCount == 0)
       return;
-    const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
-    for (uint32_t i = 0, e = (uint32_t)n->verticesCount + 1u; i < e; ++i)
-      cb((int)i, v_ld(&verts[i].x));
+    const uint32_t vertCount = (uint32_t)n->verticesCount + 1u;
+    if (n->flags & CollisionNode::BLAS_RESIDENT)
+    {
+      const Grid &g = getBlasGridForResidentNode(*n);
+      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+      const vec3f invScale = g.blasInvScale;
+      const vec3f bmin = g.blasBBox.bmin;
+      for (uint32_t i = 0; i < vertCount; ++i)
+      {
+        vec3f q = RayData::unpackVert21(vbase + i * 8u);
+        cb((int)i, v_madd(q, invScale, bmin));
+      }
+    }
+    else
+    {
+      const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
+      for (uint32_t i = 0; i < vertCount; ++i)
+        cb((int)i, v_ld(&verts[i].x));
+    }
   }
 
   template <class CB> // void(int face_idx, vec4f v0, vec4f v1, vec4f v2)
@@ -611,10 +659,124 @@ public:
     const CollisionNode *n = getNode(node_id);
     if (!n)
       return;
+    if (n->flags & CollisionNode::BLAS_RESIDENT)
+    {
+      // Resident nodes are always MESH; ownIndices was dropped. Walk leaves and decode each
+      // sub-triangle's verts from the leaf encoding.
+      const Grid &g = getBlasGridForResidentNode(*n);
+      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+      const vec3f invScale = g.blasInvScale;
+      const vec3f bmin = g.blasBBox.bmin;
+      auto unq = [vbase, invScale, bmin](uint32_t li) -> vec3f {
+        return v_madd(RayData::unpackVert21(vbase + li * 8u), invScale, bmin);
+      };
+      walkBlasResidentNodeLeavesForFaces(*n,
+        [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) { cb(fi, unq(i0), unq(i1), unq(i2)); });
+      return;
+    }
     const uint16_t *idx = meshIndicesBase + n->indicesOfs;
     const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
     for (uint32_t i = 0, fi = 0, e = n->indicesCount; i < e; i += 3, ++fi)
       cb((int)fi, v_ld(&verts[idx[i]].x), v_ld(&verts[idx[i + 1]].x), v_ld(&verts[idx[i + 2]].x));
+  }
+
+  // Decoded BLAS leaf layout: where the leaf's verts start (vertBytesOfs into blasData) plus the
+  // three sub-tri offsets o1/o2/o3 relative to v0. Emits a leaf's sub-triangles (one for single-tri
+  // leaves, two for quads). Encoding in swBLASLeafDefs.hlsli.
+  struct BlasLeafLayout
+  {
+    uint32_t vertBytesOfs; // absolute byte offset into blasData where v0 lives
+    uint32_t o1, o2, o3;   // 1-based vert offsets relative to v0 (in 8-byte vert21 strides)
+    bool isSingle;         // single-triangle leaf (only sub-tri 0 valid)
+    bool isFan;            // sub-tri 1 layout for quads: fan (true) vs strip (false); ignored if isSingle
+  };
+  static inline BlasLeafLayout decodeBlasLeafLayout(const uint8_t *blas_data, uint32_t data_ofs)
+  {
+    // data_ofs is the leaf body offset = leafBoxStart + BVH_BLAS_NODE_SIZE; the skip word sits at
+    // [-1] (4th uint32 of the 16-byte node header).
+    const uint32_t skip = ((const uint32_t *)(blas_data + data_ofs))[-1];
+    const int ofs1Rel = ((const int *)(blas_data + data_ofs))[0];
+    BlasLeafLayout L;
+    L.vertBytesOfs = (uint32_t)((int)data_ofs + ofs1Rel);
+    L.o1 = (skip & QUAD_O1_MASK) + 1u;
+    L.o2 = ((skip >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1u;
+    L.o3 = ((skip >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1u;
+    L.isSingle = (L.o3 == L.o2);
+    L.isFan = !L.isSingle && (skip & QUAD_FAN_FLAG);
+    return L;
+  }
+
+  // Walks a BLAS-resident MESH node's leaves, calling cb(face_idx, local_i0, local_i1, local_i2)
+  // per sub-triangle in DFS order. Local indices are node-local 0..verticesCount (same convention
+  // ownIndices used). Used by iterateNodeFaces / iterateNodeFacesVerts on BLAS-resident nodes
+  // (always MESH). Each leaf's owning node is identified by its first vert21 index vs the node's
+  // NodeRange. Low-frequency / one-shot materialisation (Jolt mesh build, AssetViewer, long-form
+  // intersection).
+  template <class CB> // void(int face_idx, uint16_t i0, uint16_t i1, uint16_t i2)
+  void walkBlasResidentNodeLeavesForFaces(const CollisionNode &node, CB cb) const
+  {
+    const Grid &g = getBlasGridForResidentNode(node);
+    if (g.blasData.empty())
+      return;
+    const Grid::NodeRange *nr = nullptr;
+    for (const auto &r : g.blasNodeRanges)
+      if (r.nodeIndex == node.nodeIndex)
+      {
+        nr = &r;
+        break;
+      }
+    if (!nr)
+      return;
+    const uint8_t *bData = g.blasData.data();
+    // Traversal bound is the BVH tree region only ([0, blasTreeBytes)); vert21 follows the tree, so
+    // a larger bound would decode verts as node headers (matches the .cpp BLAS walkers).
+    const int bSize = (int)g.blasTreeBytes;
+    const uint32_t vertsOfs = g.blasVertsOfs();
+    const uint32_t nodeVOfs = nr->verticesOfs;
+    const uint32_t nodeVEnd = nr->verticesEnd;
+    int fi = 0;
+    // iterateFiltered fires the leaf callback once per sub-triangle (twice per quad, same dataOfs),
+    // but our callback emits the leaf's full sub-tri set. The last-leaf-offset guard drops the quad's
+    // second call so its faces aren't emitted twice (overrunning getNodeFaceCount()-sized buffers).
+    int lastLeafOfs = -1;
+    // Spatial prune to this node's bbox (box-space) is an optimisation -- skips sibling-node subtrees
+    // of the combined BLAS. The node is IDENT, so modelBBox is in the BLAS quant frame and contains
+    // every leaf of this node (a few-unit pad absorbs quantization rounding), so the prune never drops
+    // an owned leaf. The v0Idx NodeRange check below is the authoritative ownership filter.
+    const vec3f nodeBoxMin = v_ldu(&node.modelBBox.lim[0].x);
+    const vec3f nodeBoxMax = v_ldu_p3(&node.modelBBox.lim[1].x);
+    const vec3f boxPad = v_splats(4.f);
+    const vec3f nodeBoxMinQ = v_sub(v_madd(nodeBoxMin, g.blasScale, g.blasOfs), boxPad);
+    const vec3f nodeBoxMaxQ = v_add(v_madd(nodeBoxMax, g.blasScale, g.blasOfs), boxPad);
+    // The leaf callback only consumes `dataOfs` (unquantised vert args unused), so any VertexLoader
+    // works. Use the built-in RDVertexLoader to keep the resource-local unquantiser out of this header.
+    BLASTraverse<false>::iterateFiltered(
+      bData, 0, bSize,
+      [nodeBoxMinQ, nodeBoxMaxQ](vec3f bmn, vec3f bmx) {
+        return v_check_xyz_all_true(v_and(v_cmp_ge(nodeBoxMaxQ, bmn), v_cmp_ge(bmx, nodeBoxMinQ)));
+      },
+      [&](vec3f, vec3f, vec3f, int dataOfs) -> bool {
+        if (dataOfs == lastLeafOfs)
+          return false; // second per-sub-tri callback for the same quad leaf -- already emitted
+        lastLeafOfs = dataOfs;
+        const BlasLeafLayout L = decodeBlasLeafLayout(bData, (uint32_t)dataOfs);
+        const uint32_t v0Idx = (L.vertBytesOfs - vertsOfs) / 8u;
+        if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
+          return false; // sibling-node leaf
+        const uint32_t baseLocal = v0Idx - nodeVOfs;
+        // Sub-triangle 0: (v0, v1, v2) at local (base, base+o1, base+o2).
+        cb(fi++, (uint16_t)baseLocal, (uint16_t)(baseLocal + L.o1), (uint16_t)(baseLocal + L.o2));
+        if (!L.isSingle)
+        {
+          // Sub-triangle 1: fan -> (v0, v2, v3); strip -> (v2, v1, v3).
+          if (L.isFan)
+            cb(fi++, (uint16_t)baseLocal, (uint16_t)(baseLocal + L.o2), (uint16_t)(baseLocal + L.o3));
+          else
+            cb(fi++, (uint16_t)(baseLocal + L.o2), (uint16_t)(baseLocal + L.o1), (uint16_t)(baseLocal + L.o3));
+        }
+        return false; // continue walking
+      },
+      BLASTraverse<false>::RDVertexLoader{});
   }
 
   int getNodeConvexPlaneCount(int node_id) const
@@ -746,13 +908,7 @@ public:
 
   CollisionNode &createNode() { return allNodesList.push_back(); }
 
-  auto *getTracer(uint8_t behavior_filter) const
-  {
-    if (behavior_filter == CollisionNode::PHYS_COLLIDABLE && !(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-      return gridForCollidable.tracer.get();
-    return gridForTraceable.tracer.get();
-  }
-  bool checkGridAvailable(uint8_t behavior_filter) const { return getTracer(behavior_filter) != nullptr; }
+  bool checkGridAvailable(uint8_t behavior_filter) const { return hasBlas(behavior_filter); }
   int getMemoryUsed() const;
   bool getGridSize(uint8_t behavior_filter, IPoint3 & width, Point3 & leaf_size) const;
   int getTrianglesCount(uint8_t behavior_filter) const;
@@ -773,6 +929,13 @@ public:
   void rebuildNodesLL(); //< rebuild *NodesHead linked lists for actual nodes
 
 private:
+  // Per-pair tri-tri test for testIntersection's mesh-vs-mesh inner loop. A static member (not a
+  // free function) so it inherits CollisionNode's friend grant -- it dereferences node1's protected
+  // tm / modelBBox / nodeIndex. Defined in collisionGameRes.cpp next to testIntersection.
+  static bool testMeshNodePair(const CollisionNode *node1, dag::ConstSpan<Point3_vec4> node1Faces, const CollisionResource *res2,
+    const CollisionNode *node2, const TMatrix &tm1ToWorld, const TMatrix &tm2, const TMatrix &tm2to1, Point3 &cp1, Point3 &cp2,
+    uint16_t *node_index1, uint16_t *node_index2);
+
   template <class CB>
   void forEachNodeImpl(uint16_t headIdx, CB & cb) const
   {
@@ -829,8 +992,12 @@ private:
   template <bool check_bounding, uint32_t mainBatchSize = 8>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
     const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, vec4f *v_out_norm);
-  DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
-    float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const;
+  // verts_base + node.verticesOfs must point at `node`'s vert block. For BLAS-resident nodes the
+  // caller decodes vert21 into a temp buffer and passes (buffer.data(), node-copy-with-ofs0); for
+  // non-resident nodes it passes (meshVertsBase, *meshNode) unchanged.
+  DAGOR_NOINLINE bool traceCapsuleMeshNodeLocalCullCCW(const Point3_vec4 *verts_base, const uint16_t *idx_base,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, float &radius, vec4f &v_out_norm,
+    vec4f &v_out_pos) const;
 
   template <bool check_bounding>
   DAGOR_NOINLINE static bool traceRayMeshNodeLocalAllHits(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
@@ -848,11 +1015,118 @@ private:
   DAGOR_NOINLINE static bool rayHitMeshNodeLocalCullCCW_AVX256(const Point3_vec4 *verticesBase, const uint16_t *indicesBase,
     const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t);
 
-  DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
-    float in_t, float radius) const;
+  // Same verts_base / idx_base convention as traceCapsuleMeshNodeLocalCullCCW above.
+  DAGOR_NOINLINE bool capsuleHitMeshNodeLocalCullCCW(const Point3_vec4 *verts_base, const uint16_t *idx_base,
+    const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t, float radius) const;
+
+  // For BLAS-resident nodes: decode verts (and, for MESH, indices) from the active grid into the
+  // caller's framemem scratches, build a CollisionNode copy with verticesOfs/indicesOfs rebased to 0,
+  // and point out_* at the scratches + copy. For non-resident nodes: point out_* at (meshVertsBase,
+  // meshIndicesBase, &node) unchanged (no allocation). Returned pointers are valid until the scratches
+  // go out of scope or are resized. The rebased node copy lets the existing pointer+offset idioms
+  // ((base + node.verticesOfs) / (base + node.indicesOfs)) work unchanged.
+  void resolveNodeVertsForCall(const CollisionNode &node, dag::Vector<Point3_vec4, framemem_allocator> &vertsScratch,
+    dag::Vector<uint16_t, framemem_allocator> &idxScratch, CollisionNode &node_copy, const Point3_vec4 *&out_verts_base,
+    const uint16_t *&out_idx_base, const CollisionNode *&out_node) const;
 
   __forceinline mat44f getMeshNodeTmInline(const CollisionNode *node, mat44f_cref instance_tm, vec3f instance_woffset,
     const GeomNodeTree *geom_node_tree) const;
+
+public:
+  // Per-behavior container holding the combined BLAS over all behavior_flag-matching IDENT mesh
+  // nodes. Public for read access only; mutators (reset, buildBLAS) are for CollisionResource and
+  // the friends below. External consumers walk blasData via getBlasGrid(behavior_filter) (e.g.
+  // mesh-vs-mesh candidate enumeration).
+  struct Grid
+  {
+    Grid();
+    void reset();
+    // Build the combined-per-behavior BLAS over all behavior_flag-matching IDENT mesh nodes; not
+    // persisted (rebuilt at load). two_sided -> blasTwoSided: whether this grid stands in for a
+    // two-sided (CULL_BOTH) FRT or the backface-culling per-node path. See blasTwoSided.
+    void buildBLAS(CollisionResource *parent, uint8_t behavior_flag, bool two_sided);
+
+    // BLAS storage. Empty when buildBLAS gates eliminate the build (small resource, non-IDENT mesh,
+    // SOLID-behavior). Layout [daBVH tree bytes][pad to 8][vert21 array]; vert base = blasVertsOfs().
+    dag::Vector<uint8_t> blasData;      // [BVH tree bytes][pad][vert21 array]
+    bbox3f blasBBox = {};               // resource-local bbox over all triangles in the BLAS
+    vec3f blasScale = {}, blasOfs = {}; // quantization frame (scale = 65535/extent, ofs = -bmin*scale)
+    vec3f blasInvScale = {};            // cached 1/blasScale (per-axis), set in buildBLAS; used by all vert21 decode paths
+    uint32_t blasTreeBytes = 0;         // byte size of the BVH tree portion (tree-walk bound)
+    // Byte offset of the vert21 stream in blasData. 8-aligned: MOC RenderBLAS derives vertex indices
+    // as absolute byte offset / 8 from the buffer base, so the stream must start on an 8-byte
+    // boundary (the tree's 20 B leaves leave treeBytes % 8 == 4 for odd prim counts).
+    uint32_t blasVertsOfs() const { return (blasTreeBytes + 7u) & ~7u; }
+
+    // Per-node vert21 range table, one entry per BLAS-resident MESH node in this grid (CONVEX never
+    // goes into the BLAS), sorted by verticesOfs (= per-node flatten insertion order). vert21 indices
+    // are contiguous within a node (the fetch-remap pass is dropped). Used two ways: (1) trace dispatch
+    // derives a hit's source CollisionNode by upper_bound-ing a leaf's first vert21 index; (2)
+    // iterateNodeFaces / getNodeFaceVerts walk the BLAS and filter leaves whose first vert21 index lies
+    // in [verticesOfs, verticesEnd). ~50 entries x 16 B on jaguar_ebrc_dm.
+    struct NodeRange
+    {
+      uint32_t verticesOfs; // start of node's vert block in vert21 (inclusive)
+      uint32_t verticesEnd; // end of node's vert block in vert21 (exclusive) -- = next node's verticesOfs
+      uint16_t nodeIndex;   // source CollisionNode index
+    };
+    dag::Vector<NodeRange> blasNodeRanges;
+
+    // Cull mode for this grid's BLAS ray test. true = two-sided (matching the CULL_BOTH FRT it
+    // replaces); false = backface-cull CCW (matching the per-node traceRayMeshNodeLocalCullCCW path).
+    // Set in buildBLAS from need_frt or the persisted HAS_*_FRT disk flag, so trace dispatch
+    // reproduces the pre-BLAS cull behavior. Only the per-leaf cull test honors it -- the BLAS is
+    // built unconditionally.
+    bool blasTwoSided = false;
+  };
+
+  // Selector: with COLLISION_RES_FLAG_REUSE_TRACE_FRT set, both behaviors share gridForTraceable;
+  // otherwise PHYS_COLLIDABLE uses gridForCollidable and TRACEABLE uses gridForTraceable.
+  const Grid &getBlasGrid(uint8_t behavior_filter) const
+  {
+    if (behavior_filter == CollisionNode::PHYS_COLLIDABLE && !(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
+      return gridForCollidable;
+    return gridForTraceable;
+  }
+  bool hasBlas(uint8_t behavior_filter) const { return !getBlasGrid(behavior_filter).blasData.empty(); }
+
+  // True when getBlasGrid(behavior_filter) returns gridForCollidable. Trace dispatch stamps the
+  // tri_ref::make_blas grid bit from this so a post-trace getNodeFaceVertsByRef picks the right grid.
+  bool isCollidableGridForTrace(uint8_t behavior_filter) const
+  {
+    return behavior_filter == CollisionNode::PHYS_COLLIDABLE && !(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT);
+  }
+
+  // Pick the grid a BLAS_RESIDENT node's verticesOfs indexes into. Must mirror the exporter's
+  // snap-box choice (exp_collision.cpp vert21 weld): PHYS_COLLIDABLE feeds Jolt, so its grid is
+  // authoritative for a node carrying that bit -- the exporter welds such a node's verts onto the
+  // COLLIDABLE grid's vert21 cell centers, and only a decode through that grid's quantization frame
+  // reproduces them exactly. When the trace and collidable node sets differ the two boxes differ, and
+  // decoding a TRACEABLE|PHYS_COLLIDABLE node through gridForTraceable would hand Jolt verts rounded
+  // off their snapped cell centers (re-creating the degenerate slivers the snap removes).
+  //  - PHYS_COLLIDABLE bit set: gridForCollidable, unless REUSE_TRACE_FRT (single shared grid).
+  //  - trace-only node: gridForTraceable.
+  // compactOwnVertices stamps verticesOfs via this same selector, keeping stamp and resolve in sync.
+  // Caller must ensure the node is BLAS_RESIDENT first (else the returned grid may have empty blasData).
+  const Grid &getBlasGridForResidentNode(const CollisionNode &node) const
+  {
+    if ((node.behaviorFlags & CollisionNode::PHYS_COLLIDABLE) && !(collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
+      return gridForCollidable;
+    return gridForTraceable;
+  }
+
+  // After both buildBLAS calls, drop ownVertices/ownIndices for nodes that landed in either grid's
+  // BLAS, stamping BLAS_RESIDENT + reinterpreted verticesOfs (= vert21 index) + verticesCount
+  // (= post-dup count-1) on each (gridForCollidable wins for nodes in both grids -- it feeds Jolt and
+  // the exporter snapped to its box; see getBlasGridForResidentNode). indicesOfs is
+  // zeroed but indicesCount kept; face data is recovered by walking the grid's BLAS leaves filtered
+  // to the node's vert21 range. Non-resident nodes get their slices copied to the head of fresh
+  // buffers with offsets rewritten, and keep ownIndices.
+  //
+  // Idempotent. Intentionally NOT invoked from collapseAndOptimize -- the exporter/editor read back
+  // ownVertices to write the asset binary and must not lose it. Runtime-load callers
+  // (CollisionResource::load, rendInst's optimize_collres_on_load wrapper) invoke it explicitly.
+  void compactOwnVertices();
 
 protected:
   friend class CollisionGameResFactory;
@@ -860,23 +1134,6 @@ protected:
   friend dabuildExp_collision::CollisionExporter;
   friend struct CollisionResourceUnittest;
 
-  struct Grid
-  {
-    Grid();
-    ~Grid(); // in order to allow forward declaration
-    void reset();
-    void buildFRT(CollisionResource *parent, uint8_t behavior_flag, bool frt_build_fast);
-
-    using SSRT16 = const StaticSceneRayTracerT<uint16_t>;
-    eastl::unique_ptr<SSRT16, DestroyDeleter<SSRT16>> tracer;
-  };
-
-  // face_id is FRT-wide (face index across all behavior-matching mesh nodes); local_face_id is
-  // set to the node-local face index (face_id minus the cumulative face count of preceding
-  // behavior-matching mesh nodes) on success. Returns -1 and leaves local_face_id untouched on
-  // miss. The local face index is what getNodeFaceVerts / getNodeFaceVertsByRef expect, so trace
-  // dispatch should store local_face_id (not face_id) in the tri_ref lookup-token field.
-  int getNodeIndexByFaceId(int face_id, uint8_t behavior_filter, int &local_face_id) const;
   static DAGOR_NOINLINE void addTracesProfileTag(dag::Span<CollisionTrace> traces);
   static DAGOR_NOINLINE void addMeshNodesProfileTag(const struct CollResProfileStats &profile_stats);
 

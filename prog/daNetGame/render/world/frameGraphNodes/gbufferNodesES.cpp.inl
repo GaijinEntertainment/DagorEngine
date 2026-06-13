@@ -81,7 +81,7 @@ dafg::NodeHandle makePrepareGbufferNode(
       registry.requestState().setFrameBlock("global_frame");
 
       registry.requestRenderPass()
-        .depthRw("gbuf_depth_done")
+        .depth("gbuf_depth_done")
         .color({"gbuf_0_done", "gbuf_1_done", registry.modify("gbuf_2_done").texture().optional(),
           registry.modify("gbuf_3_done").texture().optional()});
 
@@ -92,8 +92,6 @@ dafg::NodeHandle makePrepareGbufferNode(
                gbufferViewSizeVarId = get_shader_variable_id("gbuffer_view_size")]() {
         if (Clipmap *clipmap = WRDispatcher::getClipmap())
           clipmap->resetUAVAtomicPrefix(); // Reset is required before each multiplex pass.
-
-        debug_mesh::activate_mesh_coloring_master_override();
 
         const auto resolution = gbufResolution.get();
         ShaderGlobal::set_float4(screenPosToTexcoordVard, 1.f / resolution.x, 1.f / resolution.y, 0, 0);
@@ -194,10 +192,10 @@ eastl::array<dafg::NodeHandle, 2> makeDeferredLightNode(bool reprojectGI)
         shaders::OverrideState state;
         state.set(shaders::OverrideState::Z_BOUNDS_ENABLED);
         eastl::move(stateRequest).enableOverride(state);
-        eastl::move(renderPass).depthRoAndBindToShaderVars(gbufDepthHndl, {"depth_gbuf"});
+        eastl::move(renderPass).depthReadTestAndSample(gbufDepthHndl, {"depth_gbuf"});
       }
       else if (renderer_has_feature(CAMERA_IN_CAMERA))
-        eastl::move(renderPass).depthRoAndBindToShaderVars(gbufDepthHndl, {"depth_gbuf"});
+        eastl::move(renderPass).depthReadTestAndSample(gbufDepthHndl, {"depth_gbuf"});
       else
         eastl::move(gbufDepthHndl).atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
     };
@@ -317,7 +315,7 @@ static dafg::NodeHandle makeFullResolveGbufferNode(const char *resolve_pshader_n
 
     registry.bindBlob<bool>("has_any_dynamic_lights", "has_any_dynamic_lights");
     registry.bindTexPs("dynamic_lighting_texture", "dynamic_lighting_texture");
-    registry.requestRenderPass().color({"opaque_resolved"}).depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+    registry.requestRenderPass().color({"opaque_resolved"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
 
     bindResolvePassResources(registry);
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
@@ -365,7 +363,7 @@ static dafg::NodeHandle makeThinResolveGbufferNodeWithDepthBounds(const char *re
     registry.read("gi_before_frame_lit_token").blob().optional();
     registry.readBlob("conditional_resolve_target_clear_token").optional();
 
-    registry.requestRenderPass().color({"opaque_resolved"}).depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+    registry.requestRenderPass().color({"opaque_resolved"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
 
     bindResolvePassResources(registry);
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
@@ -445,7 +443,7 @@ static dafg::NodeHandle makeThinResolveGbufferNode(const char *resolve_pshader_n
     registry.read("gi_before_frame_lit_token").blob<OrderingToken>().optional();
     registry.readBlob("conditional_resolve_target_clear_token").optional();
 
-    registry.requestRenderPass().color({"opaque_resolved"}).depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+    registry.requestRenderPass().color({"opaque_resolved"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
 
     bindResolvePassResources(registry);
     registry.bindBlob<Point4>("world_view_pos", "world_view_pos");
@@ -463,7 +461,7 @@ static dafg::NodeHandle makeThinResolveGbufferNode(const char *resolve_pshader_n
 static dafg::NodeHandle makeRenderOtherLightsNode()
 {
   return dafg::register_node("render_other_lights", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().color({"opaque_resolved"}).depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"});
+    registry.requestRenderPass().color({"opaque_resolved"}).depthReadTestAndSample("gbuf_depth", {"depth_gbuf"});
     registry.orderMeAfter("resolve_gbuffer_node");
     registry.requestState().setFrameBlock("global_frame");
     bindResolvePassResources(registry);

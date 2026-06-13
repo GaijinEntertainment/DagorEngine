@@ -532,7 +532,7 @@ void sortTextures(const DataBlock &blk, Tab<String> &names, int width, int heigh
 static void printTitle()
 {
   printf("GUI image atlas creator, v2.32\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n\n");
 }
 
 int DagorWinMain(bool debugmode)

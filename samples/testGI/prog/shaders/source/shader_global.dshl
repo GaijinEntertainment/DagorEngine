@@ -41,6 +41,9 @@ float4 lowres_tex_size = (0, 0, 0, 0);
 float4 world_view_pos;
 float global_transp_r;
 
+// used by bvh_process_tree_vertices_inc.dshl (daNetGame tree wind fadeout); default = no fade
+float4 tree_wind_anim_fade_params = (0, 1, 0, 0);
+
 int is_gather4_supported = 0;
 interval is_gather4_supported: unsupported <1, supported;
 

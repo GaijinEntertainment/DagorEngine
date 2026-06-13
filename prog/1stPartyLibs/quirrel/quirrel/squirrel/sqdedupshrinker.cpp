@@ -130,6 +130,7 @@ public:
         if (simpleTypes && array->Size() <= CACHE_ITEMS_LIMIT)
           arrayCache[cacheIndex] = obj;
       }
+      break;
 
       default:
         break;

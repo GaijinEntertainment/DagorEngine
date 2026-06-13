@@ -1,8 +1,10 @@
+from "debug" import format_call_stack_string
+
 const ASSERT_MSG = "provided value should be Monad"
 /*
 
   todo:
-    unify as pssible interfaces for Task and Maybe\Either
+    unify as possible interfaces for Task and Maybe\Either
 */
 
 
@@ -125,7 +127,13 @@ _Maybe = class (Monad) {
     return next
   }
 
-  orElse = @(other) this.isNone() ? (assert (other instanceof Monad || other?.isMonad(), ASSERT_MSG) ?? other) : this
+  function orElse(other) {
+    if (this.isNone()) {
+      assert(other instanceof Monad || other?.isMonad(), ASSERT_MSG)
+      return other
+    }
+    return this
+  }
   orSome = @(other) this.isNone() ? _Maybe.of(other) : this
   getOrElse = @(other) this.isNone()  ? other : this._value
   get =  @() this.isNone() ? null : this._value
@@ -213,11 +221,11 @@ Either = class (Monad) {
       }
     }
     catch(e)
-      return Left(e)
+      return Left(e, format_call_stack_string())
   }
   isLeft = @() false
   isRight = @() false
-  function fromNullable(a){
+  static function fromNullable(a){
     if (a?.isLeft() || a?.isRight())
       return a
     return a?.isNone() || a == null ? Left(a) : Right(a)
@@ -228,7 +236,7 @@ Either = class (Monad) {
     let next = fn(this._value)
     return next instanceof Either  || next?.isMonad() ? next : Either.of(next)
   }
-   // the same as map, but if fn throw returns Left with error
+   // the same as map, but if fn throw returns Left with error and captured callstack
   function tryMap(fn){
    try{
      if (this.isLeft())
@@ -237,17 +245,19 @@ Either = class (Monad) {
      return next instanceof Either  || next?.isMonad() ? next : Either.of(next)
    }
    catch(e)
-     return Left(e)
+     return Left(e, format_call_stack_string())
   }
-  left = @(a) Left(a)
-  right = @(a) Right(a)
-  filter = @(fn) Either.fromNullable(fn(this._value) ? this._value : null)
+  static left = @(a) Left(a)
+  static right = @(a) Right(a)
+  filter = @(fn) this.isLeft() ? this : Either.fromNullable(fn(this._value) ? this._value : null)
   function tryFilter(fn) {
     try{
+      if (this.isLeft())
+        return this
       return Either.fromNullable(fn(this._value) ? this._value : null)
     }
     catch(e)
-      return Left(e)
+      return Left(e, format_call_stack_string())
   }
   get = @() this._value
   getOrElse = @(other) this.isLeft() ? other : this._value
@@ -269,7 +279,7 @@ Either = class (Monad) {
       return this
     }
     catch(e)
-      return Left(e)
+      return Left(e, format_call_stack_string())
   }
   function getOrElseThrow(a) {
     if (this.isLeft())
@@ -280,7 +290,11 @@ Either = class (Monad) {
     if (this.isLeft())
       throw(this._value)
   }
-  _tostring = @() this.isLeft() ? $"[object Either.Left] (value: {this._value})" : $"[object Either.Right] (value: {this._value})"
+  _tostring = @() this.isLeft()
+    ? (this?._callstack != null && this._callstack.len() > 0
+        ? $"[object Either.Left] (value: {this._value})\n{this._callstack}"
+        : $"[object Either.Left] (value: {this._value})")
+    : $"[object Either.Right] (value: {this._value})"
   toObject = @() {value = this._value, isLeft=this.isLeft()}
   function effect(onLeft, onRight){
     if (this.isLeft())
@@ -293,12 +307,12 @@ Either = class (Monad) {
     assert(next instanceof Either || next?.isEither(), ASSERT_MSG)
     return next
   }
-  function ofTry(fn){
+  static function ofTry(fn){
     try{
       return Either.of(fn())
     }
     catch(e)
-      return Left(e)
+      return Left(e, format_call_stack_string())
   }
   function tryCata(onLeft, onRight) {
     try{
@@ -307,18 +321,21 @@ Either = class (Monad) {
       return next
     }
     catch(e){
-      return Left(e)
+      return Left(e, format_call_stack_string())
     }
   }
 }
 
 Left = class (Either) {
   _value = null
+  _callstack = null
   isLeft = @() true
-  constructor(v){
+  constructor(v, callstack = null){
     this._value = v
+    this._callstack = callstack != null ? callstack : format_call_stack_string()
   }
   flatMap = @(_) this
+  getCallstack = @() this._callstack
 }
 
 Right = class (Either) {
@@ -364,9 +381,9 @@ Identity = class (Monad) {
     }
     return next
   }
-  of = @(v) Identity(v)
+  static of = @(v) Identity(v)
   call = @(fn) fn(this._value)
-  ofFn = @(fn) Identity(fn())
+  static ofFn = @(fn) Identity(fn())
   get = @() this._value
 }
 
@@ -391,9 +408,9 @@ Overview
 
 - **Task(fn)**: Creates a new asynchronous computation.
   The function ``fn`` takes two callbacks: ``errFn`` (for errors) and ``okFn`` (for success).
-- **.map(fn)**: Transforms the result of the computation.
-- **.flatMap(fn)**: Chains computations that return Tasks.
-- **.exec(errFn, okFn)**: Runs the Task.
+- **.map(fn)**: Transforms the result of the computation. Throws in `fn` are routed to `errFn`.
+- **.flatMap(fn)**: Chains computations that return Tasks. Throws in `fn` are routed to `errFn`.
+- **.exec(errFn, okFn)**: Runs the Task. Throws from the underlying producer are routed to `errFn`.
 - **of(x)**: Wraps a value in a Task.
 - **.isTask()**: Returns ``true`` (for type checking).
 - **.get()**: Flattens a nested Task.
@@ -456,21 +473,34 @@ local Task
 Task = class (Monad) {
   exec = null
   constructor(fn){
-    this.exec = fn
+    // wrap to route synchronous throws from the producer into errFn
+    this.exec = function(errFn, okFn) {
+      try {
+        fn(errFn, okFn)
+      } catch(e) {
+        errFn(e)
+      }
+    }
   }
   function map(fn) {
     let f = this.exec
-    return Task(@(errFn, okFn)
-      f(errFn, @(x) okFn(fn(x)))
-    )
+    return Task(@(errFn, okFn) f(errFn, function(x) {
+      try { okFn(fn(x)) }
+      catch(e) { errFn(e) }
+    }))
   }
   function flatMap(fn){
     let f = this.exec
-    return Task(@(errFn, okFn) f(errFn, @(x) fn(x).exec(errFn, okFn)))
+    return Task(@(errFn, okFn) f(errFn, function(x) {
+      try { fn(x).exec(errFn, okFn) }
+      catch(e) { errFn(e) }
+    }))
   }
   isTask = @() true
   get = @() this.flatMap(@(x) x)
-  of = @(x) Task(@(_, ok) ok(x))
+  static of = @(x) Task(@(_, ok) ok(x))
+  // reject : a -> Task with immediate error. Useful for short-circuit branches.
+  static reject = @(err) Task(@(errFn, _) errFn(err))
 }
 
 
@@ -482,6 +512,18 @@ if (__name__ == "__main__"){
   if (foo!=-1){
     throw("FAILED Maybe check")
   }
+
+  println("testing Left callstack")
+  let l = Left("oops")
+  if (l.getCallstack() == null || l.getCallstack().len() == 0)
+    throw("FAILED Left callstack capture")
+  println(l)
+
+  println("testing tryMap catches with callstack")
+  let l2 = Right(1).tryMap(function(_) { throw("boom") })
+  if (!l2.isLeft() || l2.getCallstack() == null || l2.getCallstack().len() == 0)
+    throw("FAILED tryMap callstack")
+  println(l2)
 }
 
 

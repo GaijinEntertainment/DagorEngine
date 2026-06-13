@@ -24,14 +24,14 @@ public:
   bool render();
   void setVars();
 
-  SharedTexHolder resCloud1, resCloud2;
+  SharedTexWithShaderVar resCloud1, resCloud2;
 
 private:
   /* Return true if curl was rendered */
   bool renderCurl();
   void generateMips3d(const ManagedTex &tex);
 
-  bool loadVolmap(const char *resname, int resolution, SharedTexHolder &tex);
+  bool loadVolmap(const char *resname, int resolution, SharedTexWithShaderVar &tex);
   static int get_blocked_mips(const ManagedTex &tex);
 
   void closeCompressor();

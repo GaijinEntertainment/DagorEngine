@@ -63,8 +63,8 @@ static bool create_blas_and_meta(ContextId context_id, Context::WaterPatches &wa
 
   G_ASSERT(water_patch.metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID);
   TIME_PROFILE(meta_lock_water);
-  auto lockedMeta = context_id->allocateMeta(1, "fftWater");
-  water_patch.metaAllocId = lockedMeta.allocId;
+  water_patch.metaAllocId = context_id->allocateMetaRegion(1, "fftWater");
+  LockedMetaAccess lockedMeta(*context_id, water_patch.metaAllocId);
   auto &meta = lockedMeta[0];
 
   meta.markInitialized();

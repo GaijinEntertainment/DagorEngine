@@ -5,6 +5,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_ringCPUQueryLock.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
@@ -22,6 +23,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/aimRender.h>
 #include <render/renderEvent.h>
+#include <render/adaptationSettingsEcs.h>
 #include <util/dag_convar.h>
 
 extern ConVarB adaptationIlluminance;
@@ -34,27 +36,8 @@ ECS_BROADCAST_EVENT_TYPE(AdaptationRebuildNodes)
 ECS_REGISTER_EVENT(AdaptationRebuildNodes)
 
 static ShaderVariableInfo g_ExposureVarId("Exposure", true);
-static ShaderVariableInfo ExposureInVarId("ExposureIn");
-static ShaderVariableInfo ExposureOutVarId("ExposureOut");
-static ShaderVariableInfo adaptation_cw_samples_countVarId("adaptation_cw_samples_count", true);
-static ShaderVariableInfo adaptation_use_luminance_trimmingVarId("adaptation_use_luminance_trimming");
-static ShaderVariableInfo adaptation__includesHeroCockpitVarId("adaptation__includesHeroCockpit", true);
-static ShaderVariableInfo adaptation__minSamplesVarId("adaptation__minSamples");
-static ShaderVariableInfo EyeAdaptationParams_0VarId("EyeAdaptationParams_0");
-static ShaderVariableInfo EyeAdaptationParams_1VarId("EyeAdaptationParams_1");
-static ShaderVariableInfo EyeAdaptationParams_2VarId("EyeAdaptationParams_2");
-static ShaderVariableInfo EyeAdaptationParams_3VarId("EyeAdaptationParams_3");
-
-static ShaderVariableInfo adaptation_center_weighted_paramVarId("adaptation_center_weighted_param", true);
-static ShaderVariableInfo adaptation_samples_countVarId("adaptation_samples_count", true);
-static ShaderVariableInfo adaptation_uniform_samples_countVarId("adaptation_uniform_samples_count", true);
-static ShaderVariableInfo adaptation_uniform_func_tanVarId("adaptation_uniform_func_tan", true);
-static ShaderVariableInfo adaptation_nonlinear_func_fmaVarId("adaptation_nonlinear_func_fma", true);
-static ShaderVariableInfo adaptation_nonlinear_func_powVarId("adaptation_nonlinear_func_pow", true);
 static ShaderVariableInfo adaptation_sample_tm_xyVarId("adaptation_sample_tm_xy", true);
 static ShaderVariableInfo adaptation_sample_tm_aVarId("adaptation_sample_tm_a", true);
-
-static ShaderVariableInfo use_albedo_luma_adaptationVarId("use_albedo_luma_adaptation", true);
 static ShaderVariableInfo const_frame_exposureVarId("const_frame_exposure", true);
 
 template <typename Callable>
@@ -69,31 +52,18 @@ static void get_adaptation_manager_ecs_query(ecs::EntityManager &manager, ecs::E
 template <typename Callable>
 static void get_adaptation_center_weight_override_ecs_query(ecs::EntityManager &manager, Callable c);
 
-#define ADAPTATION_LOG_RANGE 15.0
-const float kInitialMinLog = -12.0f;
-const float kInitialMaxLog = kInitialMinLog + ADAPTATION_LOG_RANGE;
-
 AdaptationManager::AdaptationManager()
 {
-  adaptExposureCS.reset(new_compute_shader("AdaptExposureCS"));
-  if (!adaptExposureCS)
+  if (!exposure.isValid())
     return;
 
-  g_Exposure = dag::buffers::create_ua_sr_structured(4, EXPOSURE_BUF_SIZE, "Exposure");
   g_NoExposureBuffer = dag::buffers::create_persistent_sr_structured(4, EXPOSURE_BUF_SIZE, "NoExposureBuffer");
 
-  ShaderGlobal::set_buffer(g_ExposureVarId, g_Exposure);
+  ShaderGlobal::set_buffer(g_ExposureVarId, exposure.getExposureBufferId());
   uploadInitialExposure();
 
-  // generateHistogramCS = new_compute_shader("GenerateHistogramCS");
-  generateHistogramCenterWeightedFromSourceCS.reset(new_compute_shader("GenerateHistogramCenterWeightedFromSourceCS"));
-  accumulate_hist_cs.reset(new_compute_shader("accumulate_hist_cs"));
-
-  static constexpr int exposureNormalizationFlags = TEXCF_RTARGET | TEXCF_UNORDERED | TEXFMT_R32F;
-  exposureNormalizationFactor = dag::create_tex(NULL, 1, 1, exposureNormalizationFlags, 1, "exposure_normalization_factor");
-
   registerExposureNodeHandle = dafg::register_node("register_adaptation_resources", DAFG_PP_NODE_SRC,
-    [normFactorView = ManagedTexView(exposureNormalizationFactor)](dafg::Registry registry) {
+    [normFactorView = exposure.getNormalizationFactor()](dafg::Registry registry) {
       registry.multiplex(dafg::multiplexing::Mode::None);
       registry.registerTexture("exposure_normalization_factor", [normFactorView](auto) -> ManagedTexView { return normFactorView; });
       registry.executionHas(dafg::SideEffects::External);
@@ -102,32 +72,25 @@ AdaptationManager::AdaptationManager()
 
 void AdaptationManager::afterDeviceReset()
 {
-  uploadInitialExposure();
-  if (exposureReadback)
-    exposureReadback->reset();
+  exposureWritten = exposure.afterDeviceReset();
+  if (exposureWritten)
+    get_set_exposure_ecs_query(*g_entity_mgr, [](float &adaptation__exposure) { adaptation__exposure = 1.0f; });
+  fillNoExposureBuffer();
 }
 
 void AdaptationManager::uploadInitialExposure()
 {
   writeExposure(1);
-  // fill no exposure buffer with lock, avoids any sync issues with writeExposure
-  {
-    alignas(16) ExposureBuffer initExposure = {
-      1, 1, 1, 0.0f, kInitialMinLog, kInitialMaxLog, kInitialMaxLog - kInitialMinLog, 1.0f / (kInitialMaxLog - kInitialMinLog)};
-    g_NoExposureBuffer->updateData(0, data_size(initExposure), initExposure.data(), VBLOCK_WRITEONLY);
-  }
+  fillNoExposureBuffer();
 }
 
-void AdaptationManager::clearNormalizationFactor()
+void AdaptationManager::fillNoExposureBuffer()
 {
-  // Run only once after sheduleClear
-  if (!isClearNeeded)
-    return;
-
-  isClearNeeded = false;
-  float ones[4] = {1, 1, 1, 1};
-  d3d::clear_rwtexf(exposureNormalizationFactor.getTex2D(), ones, 0, 0);
+  alignas(16) ExposureBuffer initExposure = ExposureCompute::makeInitialExposure(1, 1, 1, 0, 0, 0);
+  g_NoExposureBuffer->updateData(0, data_size(initExposure), initExposure.data(), VBLOCK_WRITEONLY);
 }
+
+void AdaptationManager::clearNormalizationFactor() { exposure.clearNormalizationFactor(); }
 
 bool AdaptationManager::getExposure(float &exp) const
 {
@@ -140,7 +103,7 @@ bool AdaptationManager::getExposure(float &exp) const
   }
 
   get_set_exposure_ecs_query(*g_entity_mgr, [&exp](float &adaptation__exposure) { exp = adaptation__exposure; });
-  return bool(exposureReadback);
+  return exposure.hasReadback();
 }
 
 static inline eastl::array<Point2, 3> get_adaptation_sample_tm(const AdaptationSettings &settings, const CameraParams &prev_main_view)
@@ -197,50 +160,32 @@ static inline void set_adaptation_sample_tm_vars(const AdaptationSettings &setti
 }
 
 // Generate an HDR histogram
-void AdaptationManager::genHistogramFromSource()
+void AdaptationManager::genHistogramFromSource(bool use_albedo_luma)
 {
-  { // legacy center weighted function params for backward compatibility
-    float centerWeight = settings.centerWeight;
-    // NOTE: If multiple entities have this override component, only a random one will be selected.
-    // if that is going to be a problem, you can add another ecs component with priority.
-    get_adaptation_center_weight_override_ecs_query(*g_entity_mgr,
-      [&centerWeight](float adaptation__centerWeightOverride) { centerWeight = adaptation__centerWeightOverride; });
-    ShaderGlobal::set_float(adaptation_center_weighted_paramVarId, centerWeight);
-    ShaderGlobal::set_float(adaptation_cw_samples_countVarId, DispatchInfo::pixelsCount);
-  }
+  AdaptationSettings overridden = settings;
+  // NOTE: If multiple entities have this override component, only a random one will be selected.
+  // if that is going to be a problem, you can add another ecs component with priority.
+  get_adaptation_center_weight_override_ecs_query(*g_entity_mgr,
+    [&overridden](float adaptation__centerWeightOverride) { overridden.centerWeight = adaptation__centerWeightOverride; });
 
-  const float R = settings.fnNonLinearDistributionRadius;
-  const float r = settings.fnUniformDistributionRadius;
-  const float s = settings.fnUniformSamplesPercentage * 0.01f;
-  const float k = s > 0.0f ? r / sqrt(s) : 0.0f;
-  const float p = settings.fnNonLinearDistributionCurvinesPow;
-  const Point2 fma = s > 0.0f ? Point2{R, -1.0f * (R - k * sqrt(s)) / pow(1.0f - s, p)} : Point2{R, 0.0f};
-
-  ShaderGlobal::set_float(adaptation_samples_countVarId, DispatchInfo::pixelsCount);
-  ShaderGlobal::set_float(adaptation_uniform_samples_countVarId, (float)DispatchInfo::pixelsCount * s);
-  ShaderGlobal::set_float(adaptation_uniform_func_tanVarId, k);
-  ShaderGlobal::set_float4(adaptation_nonlinear_func_fmaVarId, Point4{fma.x, fma.y, 0.0f, 0.0f});
-  ShaderGlobal::set_float(adaptation_nonlinear_func_powVarId, p);
-
-  ShaderGlobal::set_buffer(ExposureInVarId, g_Exposure);
-  generateHistogramCenterWeightedFromSourceCS->dispatch(DispatchInfo::groupsCount, 1, 1);
+  exposure.genHistogram(overridden, use_albedo_luma);
 }
 
-void AdaptationManager::accumulateHistogram() { accumulate_hist_cs->dispatch(1, 1, 1); }
+void AdaptationManager::accumulateHistogram() { exposure.accumulateHistogram(); }
 
 void AdaptationManager::updateExposure()
 {
   if (isFixedExposure())
   {
-    float exposure = settings.fixedExposure;
-    if (exposure < 0)
-      exposure = 1.0f;
+    float exp = settings.fixedExposure;
+    if (exp < 0)
+      exp = 1.0f;
 
-    exposure = exposure * settings.fadeMul;
-    if (lastFixedExposure != exposure)
+    exp = exp * settings.fadeMul;
+    if (lastFixedExposure != exp)
     {
-      if (writeExposure(exposure))
-        lastFixedExposure = exposure;
+      if (writeExposure(exp))
+        lastFixedExposure = exp;
     }
     return;
   }
@@ -261,52 +206,19 @@ void AdaptationManager::setExposure(bool value)
     float exp = 1;
     getExposure(exp);
     ShaderGlobal::set_float(const_frame_exposureVarId, exp);
-    ShaderGlobal::set_buffer(g_ExposureVarId, g_Exposure);
+    ShaderGlobal::set_buffer(g_ExposureVarId, exposure.getExposureBufferId());
   }
 }
 
-bool AdaptationManager::writeExposure(float exposure)
+bool AdaptationManager::writeExposure(float exposureValue)
 {
-  // this is not correct, we can't know for sure that prev frame Exposure was same (i.e. initExposure[3] = 1./exposure is not correct)
-  // todo: correct way is continue call shader (different one, which will write buffer[3] = prevBuffer[1], and write everything else)
-  alignas(16) ExposureBuffer initExposure = {exposure, 1.0f / exposure, 1, 1.0f / exposure, kInitialMinLog, kInitialMaxLog,
-    kInitialMaxLog - kInitialMinLog, 1.0f / (kInitialMaxLog - kInitialMinLog), 1.f, 1.f};
-
-  if (g_Exposure.getBuf()->updateData(0, data_size(initExposure), initExposure.data(), VBLOCK_WRITEONLY))
-  {
-    get_set_exposure_ecs_query(*g_entity_mgr, [&exposure](float &adaptation__exposure) { adaptation__exposure = exposure; });
-    exposureWritten = true;
-  }
-  else
-  {
-    debug("Adaptation: can't lock buffer for exposure");
-    exposureWritten = false;
-  }
+  exposureWritten = exposure.writeExposure(exposureValue);
+  if (exposureWritten)
+    get_set_exposure_ecs_query(*g_entity_mgr, [&exposureValue](float &adaptation__exposure) { adaptation__exposure = exposureValue; });
   return exposureWritten;
 }
 
-void AdaptationManager::adaptExposure()
-{
-  if (settings.useLuminanceTrimming && settings.luminanceLowRange >= settings.luminanceHighRange)
-    LOGERR_ONCE("adaptation: luminanceLowRange=%@ should be lower than luminanceHighRange=%@", settings.luminanceLowRange,
-      settings.luminanceHighRange);
-
-  ShaderGlobal::set_float(adaptation_use_luminance_trimmingVarId, settings.useLuminanceTrimming ? 1.0f : 0.0f);
-  ShaderGlobal::set_float4(EyeAdaptationParams_0VarId, settings.luminanceLowRange, settings.luminanceHighRange, settings.minExposure,
-    settings.maxExposure);
-  ShaderGlobal::set_float4(EyeAdaptationParams_1VarId, settings.autoExposureScale, accumulatedTime, settings.adaptDownSpeed,
-    settings.adaptUpSpeed);
-  ShaderGlobal::set_float4(EyeAdaptationParams_2VarId, 1, 0, float(DispatchInfo::pixelsCount), settings.fadeMul);
-  ShaderGlobal::set_float4(EyeAdaptationParams_3VarId, settings.brightnessPerceptionLinear, settings.brightnessPerceptionPower, 0.,
-    adaptationInstant.get() ? 1.f : 0.f);
-  d3d::set_rwtex(STAGE_CS, 1, exposureNormalizationFactor.getTex2D(), 0, 0);
-  ShaderGlobal::set_buffer(ExposureOutVarId, g_Exposure);
-  adaptExposureCS->dispatch(1, 1, 1);
-  d3d::set_rwtex(STAGE_CS, 1, nullptr, 0, 0);
-  d3d::resource_barrier({exposureNormalizationFactor.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-
-  accumulatedTime = 0;
-}
+void AdaptationManager::adaptExposure() { exposure.adaptExposure(settings, adaptationInstant.get()); }
 
 void AdaptationManager::updateReadbackExposure()
 {
@@ -315,38 +227,9 @@ void AdaptationManager::updateReadbackExposure()
   if (isFixedExposure())
     return;
 
-  if (!exposureReadback)
-  {
-    exposureReadback.reset(new RingCPUBufferLock());
-    exposureReadback->init(4, EXPOSURE_BUF_SIZE, 4, "exposureReadBack", SBCF_UA_STRUCTURED_READBACK, 0, false);
-  }
-  int stride;
-  uint32_t latestReadbackFrameRead;
-  if (float *data = (float *)exposureReadback->lock(stride, latestReadbackFrameRead, true))
-  {
-    // TODO we should set lastValidReadbackFrame as latestReadbackFrameCopied + 1 at writeExposure method to make it codition make
-    // sence.
-    if (lastValidReadbackFrame <= latestReadbackFrameRead)
-      get_set_exposure_ecs_query(*g_entity_mgr,
-        [data](float &adaptation__exposure) { adaptation__exposure = clamp(*(data), 1e-6f, 1e6f); });
-
-    if (DAGOR_UNLIKELY(isDumpExposureBuffer))
-    {
-      for (uint32_t i = 0; i < EXPOSURE_BUF_SIZE; ++i)
-        debug("Exposure[%d]: %f", i, data[i]);
-      isDumpExposureBuffer = false;
-    }
-
-    memcpy(lastExposureBuffer.data(), data, sizeof(lastExposureBuffer));
-
-    exposureReadback->unlock();
-  }
-
-  Sbuffer *newTarget = (Sbuffer *)exposureReadback->getNewTarget(latestReadbackFrameCopied);
-  if (!newTarget)
-    return;
-  g_Exposure->copyTo(newTarget);
-  exposureReadback->startCPUCopy();
+  if (exposure.updateReadback())
+    get_set_exposure_ecs_query(*g_entity_mgr,
+      [this](float &adaptation__exposure) { adaptation__exposure = clamp(getLastExposureBuffer()[0], 1e-6f, 1e6f); });
 }
 
 static dafg::NodeHandle makeUpdateReadbackExposureNode(
@@ -402,12 +285,9 @@ static resource_slot::NodeHandleWithSlotsAccess makeGenHistogramNode(AdaptationM
           return;
 
         const bool useBaseColorAdaptation = !adaptationIlluminance.get() && full_deferred;
-        ShaderGlobal::set_int(use_albedo_luma_adaptationVarId, useBaseColorAdaptation ? 1 : 0);
-        ShaderGlobal::set_int(adaptation__includesHeroCockpitVarId, adaptation__manager.getSettings().includesHeroCockpit);
-        ShaderGlobal::set_float(adaptation__minSamplesVarId, adaptation__manager.getSettings().minSamples);
         set_adaptation_sample_tm_vars(adaptation__manager.getSettings(), prevMainCameraHndl.ref());
 
-        adaptation__manager.genHistogramFromSource();
+        adaptation__manager.genHistogramFromSource(useBaseColorAdaptation);
       };
     });
 }
@@ -511,44 +391,6 @@ static void adaptation_settings_tracking_es(const ecs::Event &,
     });
 };
 
-
-static void overrideAdaptationSetting(AdaptationSettings &settings, const ecs::Object &config)
-{
-#define READ_REAL(group, name) settings.name = config[ECS_HASH(group "__" #name)].getOr<float>(settings.name)
-#define READ_BOOL(group, name) settings.name = config[ECS_HASH(group "__" #name)].getOr<bool>(settings.name)
-
-  if (config.getMemberOr(ECS_HASH("adaptation__on"), settings.fixedExposure < 0))
-  {
-    settings.fixedExposure = -1;
-    READ_BOOL("adaptation", useLuminanceTrimming);
-    READ_BOOL("adaptation", includesHeroCockpit);
-    READ_BOOL("adaptation", focusOnAim);
-    settings.focusAimScale = config[ECS_HASH("adaptation__focusAimScale")].getOr<Point2>(settings.focusAimScale);
-    READ_REAL("adaptation", minSamples);
-    READ_REAL("adaptation", autoExposureScale);
-    READ_REAL("adaptation", luminanceLowRange);
-    READ_REAL("adaptation", luminanceHighRange);
-    READ_REAL("adaptation", minExposure);
-    READ_REAL("adaptation", maxExposure);
-    READ_REAL("adaptation", adaptDownSpeed);
-    READ_REAL("adaptation", adaptUpSpeed);
-    READ_REAL("adaptation", brightnessPerceptionLinear);
-    READ_REAL("adaptation", brightnessPerceptionPower);
-    READ_REAL("adaptation", fadeMul);
-    READ_REAL("adaptation", centerWeight);
-    READ_REAL("adaptation", fnUniformSamplesPercentage);
-    READ_REAL("adaptation", fnUniformDistributionRadius);
-    READ_REAL("adaptation", fnNonLinearDistributionRadius);
-    READ_REAL("adaptation", fnNonLinearDistributionCurvinesPow);
-  }
-  else
-  {
-    READ_REAL("adaptation", fixedExposure);
-    if (settings.fixedExposure < 0)
-      settings.fixedExposure = 1.0;
-  }
-#undef READ_REAL
-}
 
 template <typename Callable>
 static void get_default_settings_ecs_query(ecs::EntityManager &manager, Callable c);

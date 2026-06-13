@@ -39,6 +39,7 @@ class DasLogWriter : public das::TextWriter
 };
 
 class DasLoadAndCompileJob;
+class DasScriptsData;
 
 // Async loading model:
 //   - compile + simulate + [init]/global-init all run together on the cpujobs worker,
@@ -69,6 +70,8 @@ struct DasScript
   // ~DasScript() nulls the job's back-pointer: the job still runs [init],
   // but must not publish into this freed handle.
   DasLoadAndCompileJob *loadingJob = nullptr;
+
+  DasScriptsData *owner = nullptr; // back-ref for liveScripts (un)registration
 
   bool isReady() const { return interlocked_acquire_load(state) == int(READY); }
   bool isLoading() const { return interlocked_acquire_load(state) == int(LOADING); }
@@ -120,6 +123,11 @@ public:
   int asyncJobMgrId = -1;
   volatile int numJobsInFlight = 0;
   bool pendingModuleGroupCleanup = false;
+
+  // shutdownDasEnvironment releases each script's ctx/program before module teardown: the
+  // handles are script-referenced (caches) and outlive env reset, so their dtors must not drop
+  // ctx/program against freed modules. GuiScene API thread only (no lock).
+  eastl::vector<DasScript *> liveScripts;
 
   das::TypeInfo *typeGuiContextRef = nullptr;
   das::TypeInfo *typeConstElemRenderDataRef = nullptr;

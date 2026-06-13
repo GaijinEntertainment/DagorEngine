@@ -194,6 +194,7 @@ void WorldRenderer::drawGIDebug(const Frustum &camera_frustum)
 // static const int DEFERRED_FRAMES_TO_INVALIDATE_GI = 9;
 static const int MAX_GI_FRAMES_TO_INVALIDATE_POS = 32;
 static ShaderVariableInfo use_hw_rt_giVarId("use_hw_rt_gi", true);
+static ShaderVariableInfo dagi_force_opaque_traceVarId("dagi_force_opaque_trace", true);
 
 void WorldRenderer::setGIQualityFromSettings()
 {
@@ -220,7 +221,8 @@ void WorldRenderer::setGIQualityFromSettings()
   if (is_rtgi_enabled())
   {
     gi_quality.set(GI_SCREEN_PROBES);
-    ShaderGlobal::set_int(use_hw_rt_giVarId, 2);
+    int rtgiMode = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("giForceInlineTrace", false) ? 1 : 2;
+    ShaderGlobal::set_int(use_hw_rt_giVarId, rtgiMode);
   }
   else
   {
@@ -229,6 +231,9 @@ void WorldRenderer::setGIQualityFromSettings()
       gi_quality.set(GI_COLORED);
   }
   gi_algorithm_quality.set(quality.algorithmQuality);
+
+  ShaderGlobal::set_int(dagi_force_opaque_traceVarId,
+    dgs_get_settings()->getBlockByNameEx("graphics")->getBool("giForceOpaqueTrace", false) ? 1 : 0);
 
   initGI();
 

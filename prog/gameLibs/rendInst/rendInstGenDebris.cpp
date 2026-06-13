@@ -831,10 +831,10 @@ bool rendinst::delRIGen(const RendInstDesc &desc, bool add_destr_data)
   rendinst::RendInstBufferData buffer;
   if (!riutil::extract_buffer_data(desc, rgl, data, buffer))
     return false;
-  riutil::remove_rendinst(desc, rgl, *cell->rtData, data);
+  riutil::remove_rendinst(desc, rgl, *cell->cellRtData, data);
 
   if (RendInstGenData::renderResRequired)
-    rgl->updateVb(*cell->rtData, desc.cellIdx);
+    rgl->updateVb(*cell->cellRtData, desc.cellIdx);
 
   if (add_destr_data)
   {
@@ -931,7 +931,7 @@ rendinst::riex_handle_t rendinst::restoreRendInst(const RendInstBufferData &buff
     if (!data)
       return RIEX_HANDLE_NULL;
 
-    RendInstGenData::CellRtData &crt = *cell->rtData;
+    RendInstGenData::CellRtData &crt = *cell->cellRtData;
     int maxData =
       RIGEN_STRIDE_B(rgl->rtData->riPosInst[desc.pool], rgl->rtData->riZeroInstSeeds[desc.pool], rgl->perInstDataDwords) / 2;
     for (int i = 0; i < maxData; ++i)

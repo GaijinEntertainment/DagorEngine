@@ -13,6 +13,7 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <math/dag_boundingSphere.h>
 #include <math/dag_mesh.h>
+#include <util/dag_hashedKeyMap.h>
 #include <osApiWrappers/dag_direct.h>
 #include <libTools/dagFileRW/dagFileNode.h>
 #include <gameRes/dag_collisionResource.h>
@@ -352,6 +353,114 @@ static void collision_preprocessing(const DataBlock *nodes, Tab<GeomMeshHelperDa
 static bool preferZstdPacking = false;
 static bool allowOodlePacking = false;
 static bool writePrecookedFmt = false;
+
+// The vert21 grid frame for one node: the runtime BLAS reconstructs every vertex at a 21-bit cell center
+// (node-local -> resource-local via node_tm -> round(f*32) in the 65535/extent frame Grid::buildBLAS uses
+// -> cell center -> node-local via inverse node_tm). Storing exporter verts at those exact centers makes
+// the geometry the exporter sees identical to what the runtime decodes, so the degeneracy the exporter
+// resolves is exactly the degeneracy Jolt sees. det() and inverse(node_tm) -- plus the quantization
+// constants -- depend only on (node_tm, model_box), so they are computed ONCE in the constructor and
+// reused for every vertex; the old per-point helper recomputed all of them on each call (per welded
+// vertex and per degenerate-edge collapse). canSnap is false when the grid cannot map cells back to
+// node-local (empty model_box or a non-invertible node tm); callers then keep the original vertex.
+struct Vert21Grid
+{
+  TMatrix nodeTm;
+  TMatrix invNodeTm = TMatrix::IDENT; // only meaningful when canSnap
+  Point3 boxMin, qScale, qOfs, dec;   // resource-local f -> cell: (f*qScale+qOfs)*32; cell -> ext: cell*dec
+  bool canSnap = false;
+
+  Vert21Grid(const TMatrix &node_tm, const BBox3 &model_box)
+  {
+    const Point3 ext = model_box.width();
+    qScale = Point3(65535.f / max(ext.x, 1e-4f), 65535.f / max(ext.y, 1e-4f), 65535.f / max(ext.z, 1e-4f));
+    qOfs = -mul(model_box[0], qScale);
+    dec = Point3(max(ext.x, 1e-4f) / (65535.f * 32.f), max(ext.y, 1e-4f) / (65535.f * 32.f), max(ext.z, 1e-4f) / (65535.f * 32.f));
+    boxMin = model_box[0];
+    nodeTm = node_tm;
+    const float det = node_tm.det();
+    if (!model_box.isempty() && fabsf(det) > 1e-12f)
+    {
+      invNodeTm = inverse(node_tm, det);
+      canSnap = true;
+    }
+  }
+
+  // node-local point -> clamped 21-bit cell index (the same frame the weld key and Grid::buildBLAS use).
+  void cellOf(const Point3 &local, int &cx, int &cy, int &cz) const
+  {
+    constexpr int maxCell = (1 << 21) - 1;
+    const Point3 rl = nodeTm * local; // resource-local position (the space model_box spans)
+    cx = min(max((int)((rl.x * qScale.x + qOfs.x) * 32.f + 0.5f), 0), maxCell);
+    cy = min(max((int)((rl.y * qScale.y + qOfs.y) * 32.f + 0.5f), 0), maxCell);
+    cz = min(max((int)((rl.z * qScale.z + qOfs.z) * 32.f + 0.5f), 0), maxCell);
+  }
+
+  // 21-bit cell index -> node-local cell center. Requires canSnap (uses the node-tm inverse).
+  Point3 cellCenterToLocal(int cx, int cy, int cz) const
+  {
+    return invNodeTm * Point3(boxMin.x + cx * dec.x, boxMin.y + cy * dec.y, boxMin.z + cz * dec.z);
+  }
+
+  // full node-local -> snapped node-local cell center (returns the point unchanged when !canSnap).
+  Point3 snap(const Point3 &local) const
+  {
+    if (!canSnap)
+      return local;
+    int cx, cy, cz;
+    cellOf(local, cx, cy, cz);
+    return cellCenterToLocal(cx, cy, cz);
+  }
+};
+
+// Weld vertices to the runtime BLAS's 21-bit vert21 grid AND snap every survivor onto its cell center.
+// Every mesh node is quantized into ONE whole-model 21-bit grid (the same frame Grid::buildBLAS uses,
+// derived here from model_box), so verts the BLAS would collapse to a single cell are merged and the
+// survivors are stored at the exact positions the runtime reconstructs (see Vert21Grid::cellCenterToLocal).
+// Coincident-cell merging alone is not enough -- a near-collinear sliver whose three verts land in three
+// distinct cells survives the merge, yet the cell-center snap flattens it to exactly collinear; the
+// caller's degeneracy pass (edge collapse) then resolves it on identical-to-runtime geometry. The cell ->
+// new-vertex-index map is a HashedKeyMap keyed by the packed cell (x[20:0] | y[41:21] | z[62:42]); it is
+// insert-only. Returns true if anything changed (verts merged and/or snapped).
+static bool weld_verts_to_vert21_grid(MeshData &m, const TMatrix &node_tm, const BBox3 &model_box)
+{
+  const uint32_t vcount = m.vert.size();
+  if (vcount == 0)
+    return false;
+  const Vert21Grid grid(node_tm, model_box);
+  // 3 * 21 = 63 bits used, so bit 63 is always clear and ~0ull can never be a real cell -> safe empty key.
+  HashedKeyMap<uint64_t, uint32_t, ~uint64_t(0), oa_hashmap_util::MumStepHash<uint64_t>> cellToVert;
+  cellToVert.reserve(vcount);
+  Tab<int> remap(tmpmem);
+  remap.resize(vcount);
+  Tab<Point3> welded(tmpmem);
+  welded.reserve(vcount);
+  bool snappedMoved = false;
+  for (int i = 0; i < vcount; i++)
+  {
+    int cx, cy, cz;
+    grid.cellOf(m.vert[i], cx, cy, cz);
+    const uint64_t cell = uint64_t(unsigned(cx)) | (uint64_t(unsigned(cy)) << 21) | (uint64_t(unsigned(cz)) << 42);
+    auto added = cellToVert.emplace_if_missing(cell);
+    if (added.second)
+    {
+      // exact runtime cell center, or the original vert when the grid can't map cells back (non-invertible tm)
+      const Point3 rep = grid.canSnap ? grid.cellCenterToLocal(cx, cy, cz) : m.vert[i];
+      snappedMoved |= rep != m.vert[i];
+      *added.first = (uint32_t)welded.size();
+      welded.push_back(rep);
+    }
+    remap[i] = (int)*added.first;
+  }
+  const bool merged = (int)welded.size() != (int)vcount;
+  if (!merged && !snappedMoved)
+    return false; // no coincident verts and every vert already sits on its cell center
+  for (int fi = 0, fe = (int)m.face.size(); fi < fe; fi++)
+    for (int k = 0; k < 3; k++)
+      m.face[fi].v[k] = (uint32_t)remap[m.face[fi].v[k]];
+  m.vert = welded;
+  return true;
+}
 
 class CollisionExporter : public IDagorAssetExporter
 {
@@ -941,6 +1050,13 @@ public:
     CollisionResource coll;
     coll.loadLegacyRawFormat(mcrd, -1, resolve_phmat);
 
+    // Set by remove_degenerate_faces when it rewrites a modelBBox (REPLACE) or erases a node (DROP) -- i.e.
+    // when node sort order / containment can change relative to the last sortNodesList. collapseAndOptimize
+    // ends with its own sortNodesList, so a sort there clears this again. Gates the pre-serialization
+    // containment rebuild below: re-sorting when nothing changed would, since stlsort is not stable, risk
+    // reordering equal-key (same size + name) nodes and emitting a binary diff where there should be none.
+    bool containmentDirty = false;
+
     auto remove_degenerate_faces = [&](const char *label) {
       unsigned degenerate_meshes_cnt = 0;
       unsigned bad_tm_cnt = 0;
@@ -953,11 +1069,129 @@ public:
         DROP
       };
       dag::Vector<NodeAction> actions(coll.allNodesList.size(), NodeAction::KEEP);
-      dag::Vector<MeshData> replacements(coll.allNodesList.size());
+      dag::Vector<MeshData> meshes(coll.allNodesList.size());
+
+      // The per-node degeneracy pipeline: distance-weld, bad/degenerate face removal, KEEP/REPLACE/DROP
+      // decision. Both the initial pass and the post-vert21 re-process below funnel through this single
+      // lambda so the logic lives in one place. The decision is always relative to the ORIGINAL source
+      // slice (coll is not rebuilt until the end), so a node that vert21 later shrinks turns KEEP->REPLACE.
+      // vert21_box != nullptr in the post-weld pass: a degenerate triangle's edge collapse snaps the merged
+      // vertex back onto that vert21 grid so the runtime reconstructs it exactly. nullptr in the pre-weld
+      // pass (no grid yet) -> collapse to the plain midpoint.
+      auto process_mesh_node = [&](const CollisionNode &n, MeshData &m, const BBox3 *vert21_box) -> NodeAction {
+        auto srcVerts = coll.getNodeVertices(n.nodeIndex);
+        auto srcIndices = coll.getNodeIndices(n.nodeIndex);
+        const TMatrix &nTm = coll.getNodeTm(n.nodeIndex);
+        const float maxTmScale = coll.getNodeMaxTmScale(n.nodeIndex);
+        const float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(maxTmScale);
+        unsigned zeroarea_faces_cnt = 0;
+        m.kill_unused_verts(weld_eps * weld_eps);
+        // Strip only TOPOLOGICAL degenerates (duplicate-index faces, e.g. from a coincident-cell weld merge):
+        // those have a zero-length edge the collapse loop cannot repair and must go. Pass threshold 0 so
+        // GEOMETRIC zero-area-but-distinct faces survive to the edge-collapse loop below and get repaired
+        // (merge two verts) instead of deleted outright -- deletion would skip the watertight-preserving path.
+        m.kill_bad_faces(0.f);
+        // Resolve degenerate triangles by EDGE COLLAPSE (merge two verts) rather than face deletion, so a
+        // watertight mesh stays watertight where deleting the triangle would punch a hole. Two criteria:
+        //   1. Jolt-degenerate: (2*area)^2 <= 1e-12 (Jolt Vec3::IsNearZero default). Such a triangle fails
+        //      MeshShape creation and fatals the load, so it is resolved for every node (no maxTmScale gate).
+        //      Judged in resource-local space (node tm applied): a collapseAndOptimize asset bakes the node
+        //      tm to identity, so that is the only space the runtime ever feeds Jolt. A LEGACY (un-collapsed)
+        //      asset is not baked at export and can reach Jolt in EITHER space -- the client bakes the tm at
+        //      load (rendinst optimize_collres_on_load -> resource-local), the dedicated server does not
+        //      (allowOptimizeCollResOnLoad=false -> node-local verts with the tm applied as a separate shape
+        //      transform). So a legacy triangle is ALSO rejected when degenerate in NODE-LOCAL space, matching
+        //      validateVerticesForJolt (node-local) and the unbaked path. The node-local arm is legacy-only:
+        //      on a collapsed asset it would wrongly drop a tiny-but-fine-once-baked triangle in a >1 node.
+        //   2. Sliver cleanup: the configurable, looser degenerativeTriAreaThresholdSq (default 5e-12),
+        //      kept gated to un-scaled nodes -- a quality tunable, not a Jolt requirement.
+        // Each collapse merges the shortest edge's two verts to their midpoint, snapped back onto the vert21
+        // grid (post-weld pass) so the runtime reproduces the result exactly. The collapsed triangle and its
+        // neighbour across that edge gain a duplicate index; kill_bad_faces drops them. Iterate: moving a
+        // vert can flatten another triangle.
+        constexpr float jolt_degenerate_cross_sq = 1e-12f; // matches Jolt/Geometry/IndexedTriangle.h IsDegenerate
+        // Precompute the vert21 grid frame once per node: a collapse below snaps the merged vertex back onto
+        // it, and det()+inverse(node tm) are node-constant, so they must not be recomputed per collapse.
+        const Vert21Grid vert21Grid(nTm, vert21_box ? *vert21_box : BBox3());
+        for (bool more = true; more;)
+        {
+          more = false;
+          for (unsigned i = 0; i < m.face.size(); i++)
+          {
+            const uint32_t ia = m.face[i].v[0], ib = m.face[i].v[1], ic = m.face[i].v[2];
+            if (ia == ib || ib == ic || ia == ic)
+              continue; // duplicate-index face from a prior collapse; kill_bad_faces will drop it
+            const Point3 w0 = nTm * m.vert[ia], w1 = nTm * m.vert[ib], w2 = nTm * m.vert[ic];
+            const float crossSqRl = lengthSq((w1 - w0) % (w2 - w0));
+            const float crossSqLocal = lengthSq((m.vert[ib] - m.vert[ia]) % (m.vert[ic] - m.vert[ia]));
+            // resource-local always; node-local too for a legacy asset (it can ship to Jolt unbaked -- see above)
+            const bool joltDegen =
+              crossSqRl <= jolt_degenerate_cross_sq || (!collapse_and_optimize && crossSqLocal <= jolt_degenerate_cross_sq);
+            const bool sliver = maxTmScale <= 1.0f && crossSqLocal < degenerate_tri_area_threshold_sq;
+            if (!joltDegen && !sliver)
+              continue;
+            const uint32_t ends[3][2] = {{ia, ib}, {ib, ic}, {ic, ia}};
+            const float elen[3] = {
+              lengthSq(m.vert[ia] - m.vert[ib]), lengthSq(m.vert[ib] - m.vert[ic]), lengthSq(m.vert[ic] - m.vert[ia])};
+            const int se = (elen[0] <= elen[1] && elen[0] <= elen[2]) ? 0 : (elen[1] <= elen[2] ? 1 : 2);
+            const uint32_t keep = min(ends[se][0], ends[se][1]), drop = max(ends[se][0], ends[se][1]);
+            Point3 merged = (m.vert[keep] + m.vert[drop]) * 0.5f;
+            if (vert21_box)
+              merged = vert21Grid.snap(merged);
+            m.vert[keep] = merged;
+            for (auto &ff : m.face)
+              for (int k = 0; k < 3; k++)
+                if (ff.v[k] == drop)
+                  ff.v[k] = keep;
+            zeroarea_faces_cnt++;
+            more = true;
+            //  logwarn("%s: %sedge-collapse degenerate tri %u,%u,%u node \"%s\": v%u+v%u -> %@ (crossSq.rl=%g local=%g %s)",
+            //  a.getName(), label, ia, ib, ic, coll.getNodeName(n.nodeIndex), keep, drop, nTm * merged, crossSqRl, crossSqLocal,
+            //  joltDegen ? "JOLT-REJECT" : "sliver");
+          }
+          if (more)
+            m.kill_bad_faces(0.f);
+        }
+        if (m.face.size() * 3 != srcIndices.size())
+          m.kill_unused_verts(-1);
+        if (m.vert.size() == srcVerts.size() && m.face.size() * 3 == srcIndices.size())
+          return NodeAction::KEEP;
+        if (m.vert.size() < 3 || m.face.size() < 1)
+        {
+          degenerate_meshes_cnt++;
+          if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
+            log.addMessage(log.ERROR, "%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@",
+              a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
+              m.face.size(), maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
+          else
+            logwarn("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
+              coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(),
+              maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
+          for (unsigned i = 0; i < srcVerts.size(); i++)
+            debug("  v[%3d]=%+g,%+g,%+g", i, srcVerts[i].x, srcVerts[i].y, srcVerts[i].z);
+          for (unsigned i = 0; i < srcIndices.size(); i += 3)
+            debug("  f[%3d]=%u, %u, %u", i / 3, srcIndices[i + 0], srcIndices[i + 1], srcIndices[i + 2]);
+          for (unsigned i = 0; i < m.vert.size(); i++)
+            debug("  mv[%d]=%+g,%+g,%+g", i, m.vert[i].x, m.vert[i].y, m.vert[i].z);
+          return (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE) ? NodeAction::DROP : NodeAction::KEEP;
+        }
+        if (zeroarea_faces_cnt)
+          logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d degenerate tris edge-collapsed)",
+            a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
+            m.face.size(), weld_eps, zeroarea_faces_cnt);
+        else
+          logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label,
+            coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(), weld_eps);
+        return NodeAction::REPLACE;
+      };
+
+      // Pass 1: process every mesh node WITHOUT the vert21 weld (exactly as the export did before the weld
+      // was added), filling meshes[] and the KEEP/REPLACE/DROP decision. The per-behavior weld boxes are
+      // built from the survivors AFTER this pass (below), so verts removed/collapsed here -- and DROP'd
+      // nodes -- never widen the grid the runtime reconstructs from.
       for (auto &n : coll.allNodesList)
         if (n.type == COLLISION_NODE_TYPE_MESH)
         {
-          MeshData m;
           const TMatrix &nTm = coll.getNodeTm(n.nodeIndex);
           if (!*label && nTm.det() > 0) // require left matrix in initial data
           {
@@ -967,6 +1201,7 @@ public:
               logwarn("%s: bad mesh node \"%s\" tm=%@", a.getName(), coll.getNodeName(n.nodeIndex), nTm);
             bad_tm_cnt++;
           }
+          MeshData &m = meshes[n.nodeIndex];
           auto srcVerts = coll.getNodeVertices(n.nodeIndex);
           auto srcIndices = coll.getNodeIndices(n.nodeIndex);
           m.vert.resize(srcVerts.size());
@@ -976,67 +1211,101 @@ public:
           for (unsigned i = 0; i < m.face.size(); i++)
             for (unsigned fi = 0; fi < 3; fi++)
               m.face[i].v[fi] = srcIndices[i * 3 + fi];
-
-          float maxTmScale = coll.getNodeMaxTmScale(n.nodeIndex);
-          float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(maxTmScale);
-          unsigned zeroarea_faces_cnt = 0;
-          m.kill_unused_verts(weld_eps * weld_eps);
-          m.kill_bad_faces();
-          if (maxTmScale <= 1.0f)
-            for (unsigned i = 0; i < m.face.size(); i++)
-              if (lengthSq((m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[0]]) % (m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]])) <
-                  degenerate_tri_area_threshold_sq)
-              {
-                zeroarea_faces_cnt++;
-                logwarn("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g; area thres. %g) node \"%s\" TV=%@, %@, %@",
-                  a.getName(), label, m.face[i].v[0], m.face[i].v[1], m.face[i].v[2], //
-                  m.vert[m.face[i].v[0]], m.vert[m.face[i].v[1]], m.vert[m.face[i].v[2]],
-                  length(m.vert[m.face[i].v[0]] - m.vert[m.face[i].v[1]]), length(m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[2]]),
-                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]), sqrtf(degenerate_tri_area_threshold_sq),
-                  coll.getNodeName(n.nodeIndex), nTm * m.vert[m.face[i].v[0]], nTm * m.vert[m.face[i].v[1]],
-                  nTm * m.vert[m.face[i].v[2]]);
-                m.removeFacesFast(i, 1);
-                i--;
-              }
-          if (m.face.size() * 3 != srcIndices.size())
-            m.kill_unused_verts(-1);
-          if (m.vert.size() != srcVerts.size() || m.face.size() * 3 != srcIndices.size())
-          {
-            if (m.vert.size() < 3 || m.face.size() < 1)
-            {
-              degenerate_meshes_cnt++;
-              if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
-                log.addMessage(log.ERROR, "%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@",
-                  a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
-                  m.face.size(), maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
-              else
-                logwarn("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
-                  coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(),
-                  maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
-              for (unsigned i = 0; i < srcVerts.size(); i++)
-                debug("  v[%3d]=%+g,%+g,%+g", i, srcVerts[i].x, srcVerts[i].y, srcVerts[i].z);
-              for (unsigned i = 0; i < srcIndices.size(); i += 3)
-                debug("  f[%3d]=%u, %u, %u", i / 3, srcIndices[i + 0], srcIndices[i + 1], srcIndices[i + 2]);
-              for (unsigned i = 0; i < m.vert.size(); i++)
-                debug("  mv[%d]=%+g,%+g,%+g", i, m.vert[i].x, m.vert[i].y, m.vert[i].z);
-              if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
-                actions[n.nodeIndex] = NodeAction::DROP;
-              continue;
-            }
-
-            if (zeroarea_faces_cnt)
-              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d zero-area faces removed)",
-                a.getName(), label, coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3,
-                m.face.size(), weld_eps, zeroarea_faces_cnt);
-            else
-              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label,
-                coll.getNodeName(n.nodeIndex), (int)srcVerts.size(), m.vert.size(), (int)srcIndices.size() / 3, m.face.size(),
-                weld_eps);
-
-            actions[n.nodeIndex] = NodeAction::REPLACE;
-            replacements[n.nodeIndex] = eastl::move(m);
-          }
+          actions[n.nodeIndex] = process_mesh_node(n, m, /*vert21_box*/ nullptr);
         }
+
+      // Snap the verts onto the runtime's vert21 grid PER BEHAVIOR GRID, matching CollisionResource::Grid::
+      // buildBLAS: the runtime builds a separate BLAS for TRACEABLE and (when the node sets differ)
+      // PHYS_COLLIDABLE, each quantizing against the bbox of ITS eligible nodes. A node must weld against the
+      // same box the runtime reconstructs it from, or the snapped verts land off the runtime's cell centers
+      // and the degeneracy the exporter validated is not the degeneracy Jolt sees. The box spans the SURVIVING
+      // (non-DROP) nodes' post-pass-1 verts -- removed/collapsed verts (and DROP'd nodes) are excluded, since
+      // the runtime's box never sees them. PHYS_COLLIDABLE is the grid that feeds Jolt, so it is authoritative
+      // for a node; a trace-only node uses the TRACEABLE box. (Equal sets -> REUSE_TRACE_FRT -> one runtime
+      // grid -> the boxes coincide.) The runtime builds this quantizing BLAS for EITHER asset form: a
+      // collapse_and_optimize asset is baked + BLAS-built here at export; a legacy precooked asset
+      // (writePrecookedFmt, nodes still carry their tm on disk) is baked + BLAS-built at CLIENT load
+      // (rendinst optimize_collres_on_load) against the same per-behavior union box. So both must ship verts
+      // already sitting on that grid -- the snap loop below runs unconditionally in this modern path. Dedicated
+      // keeps the legacy nodes unbaked and feeds Jolt the raw verts, but the sub-mm snap to cell centers is
+      // harmless there and the node-local degeneracy arm above still guards that unbaked path.
+      // A SOLID mesh node makes buildBLAS skip the BLAS for THAT behavior grid only (the behavior filter at
+      // collisionGameResLoad.cpp:1046 runs before the SOLID return at :1048), so the veto is per behavior: a
+      // trace-only SOLID node empties the trace box but must NOT empty the collidable box (Jolt still quantizes it).
+      // Exclude already-DROP'd SOLID nodes: a DROP'd node is erased before serialization, so the runtime never
+      // sees it and DOES build the grid for that behavior -- counting it would wrongly empty the box and make the
+      // survivors skip their snap, shipping the un-snapped slivers this pass exists to remove. A node can DROP in
+      // the post-collapse pass (sliver check, ungated once collapseAndOptimize bakes a >1 node scale to IDENT)
+      // after surviving the pre-collapse pass, so this filter matters on the final, serialized snap.
+      bool anySolidTraceable = false, anySolidCollidable = false;
+      for (const auto &n : coll.allNodesList)
+        if (
+          n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] != NodeAction::DROP && n.checkBehaviorFlags(CollisionNode::SOLID))
+        {
+          anySolidTraceable |= n.checkBehaviorFlags(CollisionNode::TRACEABLE);
+          anySolidCollidable |= n.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE);
+        }
+
+      // The snap itself can still turn a node into DROP (process_mesh_node below, when the vert21 grid flattens
+      // a thin sliver to <3 verts). A DROP'd node is not serialized, so it must not widen the box the survivors
+      // snap to -- yet the box is built from the survivor set, which the snap may shrink. So iterate: build the
+      // boxes from the current survivors, snap, and if any node drops, shrink the box and re-snap. Dropping a
+      // node only shrinks the box, which makes the rest LESS likely to drop, so this converges fast (a single
+      // round whenever the snap drops nothing). The weld mutates in place, so re-snapping restarts each
+      // survivor from its post-pass-1 state (snapPass1).
+      const dag::Vector<MeshData> snapPass1 = meshes;
+      // Always snap in the modern path: the runtime quantizes this geometry into the per-behavior BLAS either
+      // way -- a collapse_and_optimize asset is baked + BLAS-built here at export, a legacy precooked asset at
+      // client load (rendinst optimize_collres_on_load). (The pure-legacy writeLegacyDump path returned at the
+      // top of exportAsset and never reaches here, so reaching this loop already implies the runtime quantizes.)
+      for (bool survivorsStable = false, firstRound = true; !survivorsStable; firstRound = false)
+      {
+        survivorsStable = true;
+        BBox3 boxTraceable, boxCollidable;
+        for (const auto &n : coll.allNodesList)
+          if (n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] != NodeAction::DROP && snapPass1[n.nodeIndex].face.size() > 0)
+          {
+            const TMatrix &nTm = coll.getNodeTm(n.nodeIndex);
+            BBox3 nodeBox;
+            for (const Point3 &v : snapPass1[n.nodeIndex].vert)
+              nodeBox += nTm * v;
+            if (!anySolidTraceable && n.checkBehaviorFlags(CollisionNode::TRACEABLE))
+              boxTraceable += nodeBox;
+            if (!anySolidCollidable && n.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+              boxCollidable += nodeBox;
+          }
+
+        for (auto &n : coll.allNodesList)
+          if (n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] != NodeAction::DROP)
+          {
+            if (!firstRound) // round 1 still holds the post-pass-1 mesh; later rounds restart from it
+              meshes[n.nodeIndex] = snapPass1[n.nodeIndex];
+            MeshData &m = meshes[n.nodeIndex];
+            if (m.vert.size() < 3 || m.face.size() < 1)
+              continue; // degenerate node kept by a non-REMOVE strategy: nothing to weld
+            // PHYS_COLLIDABLE feeds Jolt, so its grid wins; a trace-only node uses the trace grid; a node in
+            // neither (SOLID resource -> empty boxes, or no matching behavior) isn't BLAS-resident -> no snap.
+            const BBox3 *snapBox = n.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE) ? &boxCollidable
+                                   : n.checkBehaviorFlags(CollisionNode::TRACEABLE)     ? &boxTraceable
+                                                                                        : nullptr;
+            if (!snapBox || snapBox->isempty())
+              continue;
+            if (weld_verts_to_vert21_grid(m, coll.getNodeTm(n.nodeIndex), *snapBox))
+            {
+              NodeAction act = process_mesh_node(n, m, /*vert21_box*/ snapBox);
+              // The weld moved verts onto their cell centers (and/or merged some), so the snapped mesh differs
+              // from the source slice even when vert/face counts are unchanged -- and in that case
+              // process_mesh_node returns KEEP, whose rebuild path copies the stale source slice and drops the
+              // snap. Promote a healthy KEEP to REPLACE so the snapped meshes[n] is what gets emitted; leave a
+              // degenerate KEEP (vert<3/face<1, kept by a non-REMOVE strategy) and DROP untouched.
+              if (act == NodeAction::KEEP && m.vert.size() >= 3 && m.face.size() >= 1)
+                act = NodeAction::REPLACE;
+              if (act == NodeAction::DROP && actions[n.nodeIndex] != NodeAction::DROP)
+                survivorsStable = false; // a survivor dropped -> shrink the boxes and re-snap the rest
+              actions[n.nodeIndex] = act;
+            }
+          }
+      }
 
       // Rebuild ownVertices/ownIndices from per-node decisions. Walking allNodesList preserves
       // the existing node order; offsets are stamped fresh.
@@ -1058,12 +1327,22 @@ public:
         }
         if (n.type == COLLISION_NODE_TYPE_MESH && actions[n.nodeIndex] == NodeAction::REPLACE)
         {
-          const MeshData &m = replacements[n.nodeIndex];
+          containmentDirty = true; // modelBBox is rewritten below -> sort order / containment may change
+          const MeshData &m = meshes[n.nodeIndex];
           n.verticesOfs = (uint32_t)newOwnVerts.size();
           n.verticesCount = (uint16_t)(m.vert.size() - 1); // count-minus-one encoding
           n.indicesOfs = (uint32_t)newOwnIdx.size();
           n.indicesCount = (uint32_t)(m.face.size() * 3);
           newOwnVerts.reserve(newOwnVerts.size() + m.vert.size());
+          // Refresh this node's bounds from the rewritten verts: the weld snapped survivors onto vert21 cell
+          // centers (and edge-collapse moved the merged vert), so a vert can land up to ~half a cell outside
+          // the source modelBBox. collapseAndOptimize later refreshes only non-IDENT (baked) and traceable
+          // bucket-target nodes, so an IDENT phys-collidable-only node would otherwise serialize a box that no
+          // longer encloses its mesh. m.vert is in the node's local space -- the same space modelBBox/
+          // boundingSphere use. The resource-level bbox/sphere are refreshed after collapse in
+          // recomputeResourceBounds(): the same half-cell snap nudge can poke a survivor just past the stale
+          // resource sphere, and the trace/inclusion top-level early reject keys off vBoundingSphere.
+          BBox3 nodeBox;
           for (const Point3 &v : m.vert)
           {
             Point3_vec4 vv;
@@ -1072,7 +1351,14 @@ public:
             vv.z = v.z;
             vv.resv = 1.0f;
             newOwnVerts.push_back(vv);
+            nodeBox += v;
           }
+          n.modelBBox = nodeBox;
+          n.boundingSphere.c = nodeBox.center();
+          float r2 = 0.f;
+          for (const Point3 &v : m.vert)
+            r2 = max(r2, lengthSq(v - n.boundingSphere.c));
+          n.boundingSphere.r = sqrtf(r2);
           for (const auto &f : m.face)
             for (int fi = 0; fi < 3; fi++)
               newOwnIdx.push_back((uint16_t)f.v[fi]);
@@ -1102,10 +1388,21 @@ public:
           return false;
         if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_REMOVE)
         {
+          // relGeomNodeTms is parallel to allNodesList (the last sortNodesList in loadLegacyRawFormat /
+          // collapseAndOptimize reordered it to match -- entry i <-> node i), so a node erase must drop its
+          // entry in lockstep. Otherwise the array keeps the old size, both writeCollisionData's size assert
+          // and the sortNodesList() before serialization fail, and the runtime BVH reads the wrong per-node
+          // transform (getRelGeomNodeTms keys off nodeIndex == array position).
+          const bool hasRelGeomNodeTms = (coll.collisionFlags & COLLISION_RES_FLAG_HAS_REL_GEOM_NODE_ID) != 0;
           for (int ni = coll.allNodesList.size() - 1; ni >= 0; ni--)
             if (coll.allNodesList[ni].type == COLLISION_NODE_TYPE_MESH && !coll.allNodesList[ni].indicesCount)
+            {
               erase_items(coll.allNodesList, ni, 1);
+              if (hasRelGeomNodeTms)
+                erase_items(coll.relGeomNodeTms, ni, 1);
+            }
           coll.rebuildNodesLL();
+          containmentDirty = true; // erasing nodes shifts allNodesList positions -> insideOfNode indices stale
           logwarn("%s: %sremoved %d nodes with degenerative meshes, %d nodes remain", //
             a.getName(), label, degenerate_meshes_cnt, coll.allNodesList.size());
         }
@@ -1131,13 +1428,23 @@ public:
     // optimize collision data and build FRT if requested
     if (collapse_and_optimize)
     {
+      // collapseAndOptimize ends with sortNodesList() (rebuilding containment on the post-collapse geometry)
+      // unless it early-returns with no mesh nodes. Capture that BEFORE the call (it merges/drops nodes), so a
+      // sort here clears the dirty flag the pass above set; if it no-ops, the flag stays so the rebuild below
+      // still fixes containment (e.g. all mesh nodes were dropped, shifting the surviving non-mesh nodes).
+      const bool collapseSorted = coll.getMeshNodeCount() > 0;
       coll.collapseAndOptimize(a.getName(), /* build_frt */ false, /* fast= */ false);
+      if (collapseSorted)
+        containmentDirty = false;
       if (!remove_degenerate_faces("[post-collapse-pass] "))
         return false;
       if (bool build_frt = a.props.getBool("buildFRT", true))
       {
         coll.collisionFlags &= ~COLLISION_RES_FLAG_OPTIMIZED;
+        const bool collapseSortedFrt = coll.getMeshNodeCount() > 0;
         coll.collapseAndOptimize(a.getName(), build_frt, /* fast= */ false);
+        if (collapseSortedFrt)
+          containmentDirty = false;
       }
     }
 
@@ -1152,6 +1459,29 @@ public:
         return false;
       }
     }
+
+    // Rebuild node containment (insideOfNode) from the FINAL geometry before serialization -- but ONLY when a
+    // pass above actually changed it (containmentDirty): rewrote a modelBBox (REPLACE) or erased a node (DROP)
+    // since the last sortNodesList. stlsort is not stable, so an unconditional re-sort could reorder equal-key
+    // (same size + name) nodes and emit a binary diff where nothing changed; and in the common buildFRT path
+    // collapseAndOptimize's final sortNodesList already reflects the emitted geometry (so the flag is clean and
+    // we skip). insideOfNode is a positional allNodesList index the precooked runtime load reads straight off
+    // disk (it calls only rebuildNodesLL, never sortNodesList) and then indexes UNCHECKED in testIntersection's
+    // boxOutside[] -- a stale/out-of-range value silently mis-culls or overruns. sortNodesList only SETS
+    // insideOfNode (it never resets), so clear it first -- matching collapseAndOptimize's pre-sort reset
+    // (collisionGameResLoad.cpp). The re-sort also reorders relGeomNodeTms in lockstep.
+    if (containmentDirty)
+    {
+      for (CollisionNode &n : coll.allNodesList)
+        n.insideOfNode = CollisionNode::INVALID_IDX;
+      coll.sortNodesList();
+      coll.rebuildNodesLL();
+    }
+
+    // The vert21 weld/snap, edge-collapse, and DROP changed the geometry, so the resource-level bounds
+    // carried over from the pre-snap legacy load are stale. Refresh before serialization: the precooked
+    // runtime load reads them straight off disk, and the trace/inclusion early reject uses vBoundingSphere.
+    recomputeResourceBounds(coll);
 
     // write back uncompressed data in modern format
     mcwr.reset(128 << 10);
@@ -1192,22 +1522,71 @@ public:
     return true;
   }
 
+  // Recompute the resource-level bounds (vFullBBox / boundingBox / vBoundingSphere / boundingSphereRad)
+  // from the final emitted geometry, right before serialization. The vert21 weld/snap moves survivors onto
+  // cell centers, edge-collapse moves merged verts, and DROP removes whole mesh nodes, so the bounds
+  // loadLegacyRawFormat derived from the pre-snap geometry no longer enclose what we emit. The precooked
+  // runtime load reads these straight off disk (collisionGameResLoad.cpp load() -- no recompute), and the
+  // trace/inclusion top-level early reject keys off vBoundingSphere, so a vert outside a stale sphere would
+  // be culled before per-node tests. Called at the very end (after both degeneracy passes and
+  // collapseAndOptimize), so it captures the final geometry regardless of the collapse / buildFRT flags.
+  // The sphere is the cheap enclosing sphere (bbox center + farthest point) -- the same form the per-node
+  // boundingSphere refresh above uses; ~2% looser than a minimal sphere, immaterial for a coarse early reject.
+  static void recomputeResourceBounds(CollisionResource &c)
+  {
+    // Every emitted resource-local geometry point: mesh/convex verts exactly; capsule/box/sphere via their
+    // modelBBox corners (no vert buffer). Dropped/empty mesh nodes (indicesCount == 0) contribute nothing.
+    auto forEachResourcePoint = [&](auto &&pt) {
+      for (const CollisionNode &n : c.allNodesList)
+      {
+        if (n.type == COLLISION_NODE_TYPE_MESH || n.type == COLLISION_NODE_TYPE_CONVEX)
+        {
+          if (n.indicesCount == 0)
+            continue;
+          const TMatrix &tm = c.getNodeTm(n.nodeIndex);
+          for (const Point3_vec4 &v : c.getNodeVertices(n.nodeIndex))
+            pt(tm * Point3(v.x, v.y, v.z));
+        }
+        else if (!n.modelBBox.isempty())
+        {
+          // box/sphere modelBBox is already resource-local; capsule modelBBox is node-local (transform it).
+          const bool nodeLocal = n.type == COLLISION_NODE_TYPE_CAPSULE;
+          const TMatrix &tm = c.getNodeTm(n.nodeIndex);
+          for (int k = 0; k < 8; k++)
+            pt(nodeLocal ? tm * n.modelBBox.point(k) : n.modelBBox.point(k));
+        }
+      }
+    };
+
+    BBox3 total;
+    forEachResourcePoint([&](const Point3 &p) { total += p; });
+    if (total.isempty())
+      return; // point-only / fully-dropped resource: keep the loaded bounds
+
+    c.boundingBox = total;
+    v_bbox3_init(c.vFullBBox, v_ldu(&total[0].x));
+    v_bbox3_add_pt(c.vFullBBox, v_ldu(&total[1].x));
+
+    const Point3 center = total.center();
+    float r2 = 0.f;
+    forEachResourcePoint([&](const Point3 &p) { r2 = max(r2, lengthSq(p - center)); });
+    c.vBoundingSphere = v_make_vec4f(center.x, center.y, center.z, r2);
+    c.boundingSphereRad = sqrtf(r2);
+  }
+
   static void writeCollisionData(const CollisionResource &c, mkbindump::BinDumpSaveCB &cwr)
   {
     cwr.write32ex(&c.vFullBBox, sizeof(c.vFullBBox));
     cwr.write32ex(&c.vBoundingSphere, sizeof(c.vBoundingSphere));
     cwr.write32ex(&c.boundingBox, sizeof(c.boundingBox));
     cwr.writeFloat32e(c.boundingSphereRad);
-    cwr.writeInt32e(c.collisionFlags);
-
-    auto serTracer = [&](auto &t) {
-      using T = eastl::remove_const_t<typename eastl::remove_cvref_t<decltype(t)>::element_type>;
-      const_cast<T *>(t.get())->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
-    };
-    if (c.collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT)
-      serTracer(c.gridForTraceable.tracer);
-    if ((c.collisionFlags & COLLISION_RES_FLAG_HAS_COLL_FRT) && !(c.collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-      serTracer(c.gridForCollidable.tracer);
+    // Strip legacy FRT-presence bits before writing: the runtime no longer builds or uses FRT, so
+    // new exports carry no FRT blocks. Old assets with these bits set stay readable (the loader skips
+    // the legacy FRT bytes), but we don't re-emit them. COLLISION_RES_FLAG_BLAS_TWO_SIDED is NOT
+    // stripped: it is the only on-disk signal the loader uses to restore the rebuilt BLAS cull mode
+    // (collapseAndOptimize set it from need_frt above), replacing the cleared HAS_*_FRT bits the cull
+    // mode used to be derived from.
+    cwr.writeInt32e(c.collisionFlags & ~(COLLISION_RES_FLAG_HAS_TRACE_FRT | COLLISION_RES_FLAG_HAS_COLL_FRT));
 
     cwr.writeInt32e(c.allNodesList.size());
     for (const auto &n : c.allNodesList)

@@ -38,6 +38,7 @@
 #include <EASTL/type_traits.h>
 #include <landMesh/landClass.h>
 #include <landMesh/riLandClass.h>
+#include "landVtexRendererCommon.h"
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <scene/dag_physMat.h>
 #include <util/fnameMap.h>
@@ -788,7 +789,7 @@ carray<d3d::SamplerHandle, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> Land
 
     TEXTUREID tid = re.mat->get_texture(materialTexRef);
     if (tid != BAD_TEXTUREID)
-      samplers[k] = d3d::request_sampler(LandMeshRenderer::getTextureSamplerInfo(tid));
+      samplers[k] = d3d::request_sampler(landmesh::get_texture_sampler_info(tid));
   }
 
   return samplers;
@@ -1379,14 +1380,6 @@ bool LandMeshManager::rayUnderNormalized(const Point3 &p, const Point3 &normDir,
 }
 
 void LandMeshManager::setGrassMaskBlk(const DataBlock &blk) { grassMaskBlk = blk; }
-
-void LandMeshManager::setHmapLodDistance(int lodD)
-{
-  if (hmapHandler)
-    hmapHandler->setLodDistance(lodD);
-}
-
-int LandMeshManager::getHmapLodDistance() const { return hmapHandler ? hmapHandler->getLodDistance() : 1; }
 
 BBox3 LandMeshManager::getBBoxWithHMapWBBox() const
 {

@@ -10,7 +10,6 @@
 #include <ecs/anim/anim.h>
 #include <animChar/dag_animCharacter2.h>
 #include <ecs/render/updateStageRender.h>
-#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/algorithm.h>
 

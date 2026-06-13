@@ -71,6 +71,8 @@ Sources =
   makeShBinDump.cpp
   transcodeShader.cpp
   namedConst.cpp
+  refinedBlockLayout.cpp
+  refinedBlockRegisterAllocator.cpp
   codeBlocks.cpp
   condParser.cpp
   ver_obj_spirv.cpp

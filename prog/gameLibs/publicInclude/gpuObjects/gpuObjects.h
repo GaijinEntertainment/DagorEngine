@@ -104,7 +104,7 @@ private:
   eastl::string assetName;
   uint32_t riPoolId;
   uint32_t riPoolOffset;
-  SharedTexHolder mapTexId;
+  SharedTexWithShaderVar mapTexId;
   int numLods;
   eastl::array<float, MAX_LODS> distSqLod;
   eastl::array<eastl::vector<uint32_t>, MAX_LODS> cellIndexesByLods;

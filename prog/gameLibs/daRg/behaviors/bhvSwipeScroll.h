@@ -14,6 +14,7 @@ public:
   BhvSwipeScroll();
   virtual void onAttach(Element *) override;
   virtual void onDetach(Element *, DetachMode) override;
+  virtual void onElemSetup(Element *, SetupMode) override;
 
   virtual int onDeactivateInput(Element *elem, InputDevice device, int pointer_id) override;
   virtual int onDeactivateAllInput(Element *elem) override;

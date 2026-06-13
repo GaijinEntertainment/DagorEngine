@@ -37,15 +37,15 @@ class Point4;
 class TMatrix4;
 class TMatrix;
 
-void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const TMatrix4 &prev_proj_tm, const TMatrix4 &prev_glob_tm,
-  const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb,
-  const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb,
-  const DPoint3 &world_pos, const DPoint3 &prev_world_pos);
+void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm_no_ofs, const TMatrix4 &prev_proj_tm,
+  const TMatrix4 &prev_glob_tm, const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb,
+  const Point4 &view_vec_rb, const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb,
+  const Point4 &prev_view_vec_rb, const DPoint3 &world_pos, const DPoint3 &prev_world_pos);
 
-void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const Point2 &prev_zn_zfar, const TMatrix4 &prev_glob_tm,
-  const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb, const Point4 &view_vec_rb,
-  const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb,
-  const DPoint3 &world_pos, const DPoint3 &prev_world_pos);
+void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm_no_ofs, const Point2 &prev_zn_zfar,
+  const TMatrix4 &prev_glob_tm, const Point4 &view_vec_lt, const Point4 &view_vec_rt, const Point4 &view_vec_lb,
+  const Point4 &view_vec_rb, const Point4 &prev_view_vec_lt, const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb,
+  const Point4 &prev_view_vec_rb, const DPoint3 &world_pos, const DPoint3 &prev_world_pos);
 
 void set_reprojection(const TMatrix &view_tm, const TMatrix4 &proj_tm, DPoint3 &prev_world_pos, TMatrix4 &prev_glob_tm,
   Point4 &prev_view_vec_lt, Point4 &prev_view_vec_rt, Point4 &prev_view_vec_lb, Point4 &prev_view_vec_rb, const DPoint3 *world_pos);

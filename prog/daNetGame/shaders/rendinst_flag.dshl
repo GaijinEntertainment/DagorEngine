@@ -170,7 +170,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
     ##if wind_type == fixedWind
       void apply_wind(inout float3 world_pos, float movement_scale, float3 direction, uint hashVal)
       {
-        float randValue = float(hashVal) * 1e-32;
+        float randValue = float(hashVal) * (1.0 / 4294967296.0); // map full uint range to [0, 1)
         float2 instance_amp_freq = randValue * get_frequency_amplitude().wy + get_frequency_amplitude().zx;
         float3 displacement = float3(0,0,0);
         float omega = PI * instance_amp_freq.y;

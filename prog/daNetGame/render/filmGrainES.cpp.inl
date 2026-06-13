@@ -51,9 +51,9 @@ void FilmGrainLutHolder::disable()
   PriorityShadervar::clear((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY);
 }
 
-void FilmGrainLutHolder::reinitFromSettings(int es_wh, int es_d, const Point4 &gen_params)
+void FilmGrainLutHolder::reinitFromSettings(int es_wh, int es_d, const Point4 &gen_params, bool preset_allows)
 {
-  bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false);
+  bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && preset_allows;
   Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
   if (filmGrain)
     setSettings(value, SETTINGS_PRIORITY, es_wh, es_d, gen_params);
@@ -128,13 +128,14 @@ static void film_grain_lut_after_device_reset_es_event_handler(const ecs::Event 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated)
 ECS_TRACK(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params)
-static void film_grain_lut_init_es_event_handler(const ecs::Event &,
+static void film_grain_lut_init_es_event_handler(const ecs::Event &evt,
   FilmGrainLutHolder &film_grain_lut,
   int film_grain_lut__wh = 256,
   int film_grain_lut__d = 64,
   const Point4 &film_grain_lut__gen_params = Point4(0, 0, 0, 0))
 {
-  film_grain_lut.reinitFromSettings(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params);
+  bool bareMinimum = g_entity_mgr->getOr(get_render_settings(evt), ECS_HASH("render_settings__bare_minimum"), false);
+  film_grain_lut.reinitFromSettings(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params, !bareMinimum);
 }
 
 ECS_TAG(render)

@@ -28,6 +28,7 @@
 #include <math/dag_mathUtils.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
+#include <debug/dag_debug3d.h>
 #include <EASTL/array.h>
 #include <3d/dag_render.h>
 #include <3d/dag_lockTexture.h>
@@ -719,6 +720,8 @@ CONSOLE_FLOAT_VAL("water", foam_falloff_speed, 0);
 CONSOLE_FLOAT_VAL("water", foam_generation_threshold, 0);
 CONSOLE_FLOAT_VAL("water", foam_dissipation_speed, 0);
 
+CONSOLE_BOOL_VAL("water", debug_draw_culling_boxes, false);
+
 void WaterNVRender::setAnisotropy(int aniso, float mip_bias)
 {
   aniso = clamp(aniso, 0, 5);
@@ -1256,7 +1259,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   float waterHeight = waterLevel;
   if (waterHeightmap)
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
-  else if (geom_lod_quality == fft_water::GEOM_HIGH)
+  else if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
     waterHeight = maxWaterLevel;
   float originAlt = origin.y - waterHeight;
   const int fftResBits = fft[0].getParams().fft_resolution_bits;
@@ -1309,6 +1312,8 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
     nextLod = min(nextLod, maxLodWithHeightmap);
   if (geom_lod_quality == fft_water::GEOM_INVISIBLE && !renderQuad)
     nextLod = lodCount;
+  else if (geom_lod_quality == fft_water::GEOM_LOW)
+    nextLod += 1;
   else if (geom_lod_quality == fft_water::GEOM_HIGH)
     nextLod = 0;
   int lod = (int)floorf(max(nextLod, 0.f));
@@ -1357,9 +1362,12 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   LodGridCullData defaultCullData(framemem_ptr());
   int hmap_tess_factorVarId = renderer ? renderer->get_hmap_tess_factorVarId() : -1;
   BBox2 lodsRegion;
+  void (*drawCullingBoxCb)(const BBox3 &box) =
+    debug_draw_culling_boxes.get() ? +[](const BBox3 &box) { draw_debug_box_buffered(box, E3DCOLOR_MAKE(32, 255, 32, 255), 1); }
+                                   : nullptr;
   cull_lod_grid(lodGrid, lodGrid.lodsCount, centerOfHmap.x, centerOfHmap.y, scaledCell, scaledCell, alignSize, alignSize, // alignment
     minWaterLevel, maxWaterLevel, &frustum, renderQuad, defaultCullData, occlusion, lod0AreaRadius, hmap_tess_factorVarId, gridDim,
-    false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb);
+    false /*not used*/, heightmapCulling, &lodsRegion, -10000.0F, nullptr, cullCb, drawCullingBoxCb);
   if (!defaultCullData.getCount())
     return;
 
@@ -1379,7 +1387,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   cameraPatchAlign = cameraPatch.size;
 
   BBox2 heightmapRegion;
-  if (geom_lod_quality == fft_water::GEOM_HIGH)
+  if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
   {
     const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;

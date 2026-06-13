@@ -1,5 +1,4 @@
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include "opcodes.h"
 #include "sqstring.h"
 #include "sqfuncproto.h"
@@ -410,5 +409,3 @@ bool CodeGenVisitor::checkInferredType(Node *reportNode, Expr *expr, unsigned de
 
 
 } // namespace SQCompilation
-
-#endif // NO_COMPILER

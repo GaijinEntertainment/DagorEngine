@@ -16,6 +16,10 @@
 
 
 class DataBlock;
+namespace cpujobs
+{
+class IJob;
+}
 
 namespace unitedvdata
 {
@@ -132,7 +136,7 @@ public:
   bool addRes(RES *res) { return addRes(make_span(&res, 1)); }
   bool delRes(RES *res);
 
-  bool reloadRes(RES *res);
+  void reloadRes(RES *res);
   void reloadResList(PtrTab<RES> &&resources);
   void downgradeRes(RES *res, int upper_lod);
   void discardUnusedResToFreeReqMem();
@@ -205,7 +209,7 @@ protected:
   unitedvdata::BufConfig getHints() const;
   void initReloadJobMgrIdNoLock();
 
-  bool reloadResNoLock(RES *res);
+  [[nodiscard]] cpujobs::IJob *reloadResNoLock(RES *res);
 
   void rebuildUnitedVdata(dag::Span<RES *> res, bool in_d3d_reset);
   static void updateVdata(RES *r, unitedvdata::BufPool &buf, Tab<int> &dviOfs_stor, Tab<uint8_t> &buf_stor,

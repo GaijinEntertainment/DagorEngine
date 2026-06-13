@@ -93,6 +93,12 @@ void PropertyControlBase::onWcChange(WindowBase *source)
     mEventHandler->onChange(mId, getRootParent());
 }
 
+void PropertyControlBase::onWcChangeFinished(WindowBase *source)
+{
+  if (mEnabledChanges && mEventHandler)
+    mEventHandler->onChangeFinished(mId, getRootParent());
+}
+
 void PropertyControlBase::onWcClick(WindowBase *source)
 {
   if (mEventHandler)

@@ -179,7 +179,7 @@ static TMatrix get_ri_matrix_from_data(const rendinst::RendInstDesc &desc, const
   if (!rgl)
     return TMatrix::IDENT;
 
-  const RendInstGenData::CellRtData &crt = *cell->rtData;
+  const RendInstGenData::CellRtData &crt = *cell->cellRtData;
 
   float subcellSz = rgl->grid2world * rgl->cellSz;
   vec3f v_cell_add = crt.cellOrigin;
@@ -768,7 +768,7 @@ void rendinst::foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator c
 
     auto &cellRange = layerVisibility.cellsLod[lodIx][iter];
     auto cellIx = cellRange.z * rgl->cellNumW + cellRange.x;
-    auto crt = rgl->cells[cellIx].rtData;
+    auto crt = rgl->cells[cellIx].cellRtData;
     auto ptr = crt->sysMemData.get();
     if (!ptr)
       continue;

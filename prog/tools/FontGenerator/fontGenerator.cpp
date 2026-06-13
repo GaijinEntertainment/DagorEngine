@@ -2342,7 +2342,7 @@ int DagorWinMain(bool debugmode)
 {
   if (!::dgs_execute_quiet)
     printf("Dagor Font Generator v3.17 (based on freetype-%d.%d.%d)\n"
-           "Copyright (c) Gaijin Games KFT, 2025\n"
+           "Copyright (c) Gaijin Games KFT, 2026\n"
            "All rights reserved\n",
       FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
   ::register_tga_tex_load_factory();

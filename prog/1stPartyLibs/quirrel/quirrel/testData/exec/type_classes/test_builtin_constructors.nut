@@ -6,7 +6,7 @@ function format_array(arr) {
 }
 
 function format_table(tbl) {
-  let s = ", ".join(tbl.topairs().map(@(e) $"[{e[0]}]={e[1]}"))
+  let s = ", ".join(tbl.topairs().map(@(e) $"[{e[0]}]={e[1]}").sort())
   return $"\{{s}\}"
 }
 

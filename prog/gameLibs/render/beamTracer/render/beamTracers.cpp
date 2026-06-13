@@ -138,6 +138,7 @@ void BeamTracerManager::initGPU(const DataBlock &settings)
 
   mem_set_0(usedTracers[0]);
   mem_set_0(usedTracers[1]);
+  memset(&pendingUpdateCommands[0], -1, sizeof(pendingUpdateCommands));
 }
 
 void BeamTracerManager::initFillIndirectBuffer()
@@ -194,7 +195,14 @@ int BeamTracerManager::updateTracerPos(unsigned id, const Point3 &pos, const Poi
 #endif
   tracers[id].lastPos = pos;
   // tracersVaporTime[id] = tracers[id].vaporTimeInterval;
-  updateCommands.push_back(BeamTracerUpdateCommand(id, pos, start_pos));
+  int &slot = pendingUpdateCommands[id];
+  if (slot < 0)
+  {
+    updateCommands.push_back(BeamTracerUpdateCommand(id, pos, start_pos));
+    slot = updateCommands.size() - 1;
+  }
+  else
+    updateCommands[slot] = BeamTracerUpdateCommand(id, pos, start_pos);
   return id;
 }
 
@@ -323,6 +331,7 @@ void BeamTracerManager::performGPUCommands()
 
       updateCommands_cs->dispatch((batch_size + TRACER_COMMAND_WARP_SIZE - 1) / TRACER_COMMAND_WARP_SIZE, 1, 1);
     }
+    memset(&pendingUpdateCommands[0], -1, sizeof(pendingUpdateCommands));
     updateCommands.clear();
     d3d::set_buffer(STAGE_CS, 0, 0);
     d3d::resource_barrier({tracerVertsBuffer.get(), RB_RO_SRV | RB_STAGE_VERTEX | RB_STAGE_COMPUTE});

@@ -1,0 +1,23 @@
+script done
+
+AN ERROR HAS OCCURRED [boom]
+
+ERROR TRACE
+    at makeBug (testData/exec/async/locals_capture.nut:25)
+      Foo (captured) = class
+      LONG (captured) = '012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789...'
+      big = '012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789...'
+      obj = instance
+      cfg = table(2 keys)
+      items = array(4)
+      ok = false
+      ratio = 1.5
+      n = 0
+      userId = 'abc123'
+      resp = table(1 keys)
+      this = null
+    at failing (testData/exec/async/locals_capture.nut:29)
+      makeBug (captured) = function makeBug (testData/exec/async/locals_capture.nut:13)
+      this = null
+    task root: failing (testData/exec/async/locals_capture.nut:28)
+    launched at testData/exec/async/locals_capture.nut:33 __main__

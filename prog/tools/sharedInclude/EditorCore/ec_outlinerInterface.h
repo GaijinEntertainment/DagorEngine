@@ -16,7 +16,9 @@ public:
   virtual const char *getTypeName(int type, bool plural = false) = 0;
   virtual bool isTypeVisible(int type) = 0;
   virtual bool isTypeLocked(int type) = 0;
+  virtual bool doesSelectionModeAllowSelectingType(int type) = 0;
   virtual bool canAddNewLayerWithName(int type, const char *name, String &error_message) = 0;
+  virtual const char *getTypeUnselectabilityReason(int type) = 0;
 
   virtual void selectAllTypeObjects(int type, bool select) = 0;
   virtual void toggleTypeVisibility(int type) = 0;
@@ -36,6 +38,7 @@ public:
   virtual bool canChangeLayerLock(int type, int per_type_layer_index) = 0;
   virtual bool isLayerRenameable(int type, int per_type_layer_index) = 0;
   virtual bool canRenameLayerTo(int type, int per_type_layer_index, const char *name, String &error_message) = 0;
+  virtual const char *getLayerUnselectabilityReason(int type, int per_type_layer_index) = 0;
 
   virtual void setLayerActive(int type, int per_type_layer_index) = 0;
   virtual void selectAllLayerObjects(int type, int per_type_layer_index, bool select) = 0;
@@ -56,6 +59,8 @@ public:
 
   // The sample object is the object that is currently being placed.
   virtual bool isSampleObject(RenderableEditableObject &object) = 0;
+
+  virtual const char *getObjectUnselectabilityReason(RenderableEditableObject &object, int type, int per_type_layer_index) = 0;
 
   virtual void startObjectSelection() = 0;
   virtual void setObjectSelected(RenderableEditableObject &object, bool selected) = 0;

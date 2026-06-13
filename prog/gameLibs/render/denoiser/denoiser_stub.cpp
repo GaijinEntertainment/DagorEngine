@@ -33,6 +33,7 @@ void denoise_shadow(const ShadowDenoiser &) {}
 void denoise_ao(const AODenoiser &) {}
 void denoise_gi(const GIDenoiser &) {}
 void denoise_reflection(const ReflectionDenoiser &) {}
+void denoise_reflection_noop(const ReflectionDenoiser &) {}
 
 int get_frame_number() { return 0; }
 

@@ -77,6 +77,22 @@ AddIncludes =
   $(Root)/prog/engine/drv/drv3d_commonCode
 ;
 
+if $(Platform) in windows
+{
+  Sources += gpu_pipeline_serialization.cpp ;
+
+  local AgilitySdkDir = $(_DEVTOOL)/Agility.SDK.$(AgilitySdkVer) ;
+
+  if ! [ GLOB $(AgilitySdkDir) : * ] { exit FATAL\: \"$(AgilitySdkDir)\" not found!  Please, update DEVTOOLS ; }
+
+  pre_opt on $(Sources) = -I$(AgilitySdkDir)/include ;
+
+  AddIncludes += $(AgilitySdkDir)/include/d3dx12 ;
+
+  # do not include stuff that depends on wrl, including wrl is a mess
+  CPPopt += -DD3DX12_NO_STATE_OBJECT_HELPERS ;
+}
+
 if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
 
 UseProgLibs =

@@ -78,9 +78,9 @@ Example of the request message received from the Game Client via WebSocket:
 {
     "jsonrpc": "2.0",                     # required; value must be always "2.0"
     "id"     : 3,                         # optional; may be: int64, string (ASCII, length: [1..70])
-    "method" : "profileSvc.changeProfileName", # length: [1..100]; ASCII
+    "method" : "profileSvc.changeProfileName", # length: [1..100]; ASCII ([a-zA-Z0-9_.]+)
     "params" : {                          # object; required
-        "projectId"       : "Enlisted",   # string; optional; length: [1..100]; ASCII
+        "projectId"       : "enlisted_pc",# string; optional; length: [1..100]; ASCII ([a-z0-9_]+)
         "profileId"       : "2345",       # string; optional; currently non-negative int64; ASCII
         "transactId"      : "6544",       # string; required; currently non-negative int64; ASCII;
                                           # negative values are reserved for special requests; -1 is always invalid
@@ -100,7 +100,11 @@ JSON RPC notification does not include `id` field.
 method: <serviceNameInLowerCamelCase>.<actionName>
 ```
 
-Currently, action name can contain dots, underscores.
+Allowed characters:
+- `serviceNameInLowerCamelCase`: `[a-zA-Z0-9]+`
+- `actionName`: `[a-zA-Z0-9_.]+`
+
+Currently, action name can contain digits, dots, underscores.
 In the future we plan to make action name lowerCamelCase.
 
 Known existing service names:

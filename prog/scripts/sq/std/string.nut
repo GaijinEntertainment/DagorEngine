@@ -105,39 +105,38 @@ else if (regexp != null) {
   intRegExp = regexp(intre)
   possibleNotStrRegExp = regexp(notstringre)
   floatRegExp  = regexp(floatre)
-  trimRegExp = regexp(@"^(\s+)|(\s+)$")
   stripTagsConfig = [
     {
-      re2 = regexp(@"~")
+      from = "~"
       repl = "~~"
     }
     {
-      re2 = regexp("\"")
+      from = "\""
       repl = "~\""
     }
     {
-      re2 = regexp(@"\r")
+      from = "\r"
       repl = "~r"
     }
     {
-      re2 = regexp(@"\n")
+      from = "\n"
       repl = "~n"
     }
     {
-      re2 = regexp(@"\'")
+      from = "\'"
       repl = "~\'"
     }
   ]
   escapeConfig = [
-    { re2 = regexp(@"\\"), repl = @"\\\\" }
-    { re2 = regexp(@""""), repl = @"\\""" }
-    { re2 = regexp(@"\n"), repl = @"\\n"  }
-    { re2 = regexp(@"\r"), repl = @"\\r"  }
+    { from = "\\", repl = "\\\\" }
+    { from = "\"", repl = "\\\"" }
+    { from = "\n", repl = "\\n"  }
+    { from = "\r", repl = "\\r"  }
   ]
   for (local ch = 0; ch < 32; ch++)
     escapeConfig.append({
-      re2 = regexp(format(@"\x%02X", ch))
-      repl = format(@"\\u%04X", ch)
+      from = ch.tochar()
+      repl = format("\\u%04X", ch)
     })
 }
 
@@ -170,7 +169,7 @@ function func2str_compact(func) {
 function func2str(func, p={}) {
   local compact = p?.compact ?? false
   local showsrc = p?.showsrc ?? false
-  local showparams = p?.showparams ?? compact
+  local showparams = p?.showparams ?? !compact
   local showdefparams = p?.showdefparams ?? compact
   local tostr_func = p?.tostr_func ?? @(v) $"{v}"
 
@@ -207,7 +206,7 @@ function func2str(func, p={}) {
     if (showsrc)
       out.append("(func): ", (info?.src ?? ""), " ")
     out.append(fname, "(")
-    if (!showparams)
+    if (showparams)
       out.extend(params_str)
     out.append(")")
   } else if (info.native) {
@@ -492,6 +491,8 @@ function endsWith(str, value) {
 function indexOf(str, value, startIndex = 0) {
   str = str ?? ""
   value = value ?? ""
+  if (value == "")
+    return clamp(startIndex, 0, str.len())
   local idx = str.indexof(value, startIndex)
   return idx ?? INVALID_INDEX
 }
@@ -507,6 +508,8 @@ function indexOf(str, value, startIndex = 0) {
 function lastIndexOf(str, value, startIndex = 0) {
   str = str ?? ""
   value = value ?? ""
+  if (value == "")
+    return str.len()
   local idx = INVALID_INDEX
   local curIdx = startIndex - 1
   local length = str.len()
@@ -529,9 +532,11 @@ function lastIndexOf(str, value, startIndex = 0) {
  */
 function indexOfAny(str, anyOf, startIndex = 0) {
   str = str ?? ""
-  anyOf = anyOf ?? [ "" ]
+  anyOf = anyOf ?? []
   local idx = INVALID_INDEX
   foreach (value in anyOf) {
+    if (value == null || value == "")
+      continue
     local curIdx = indexOf(str, value, startIndex)
     if (curIdx != INVALID_INDEX && (idx == INVALID_INDEX || curIdx < idx))
       idx = curIdx
@@ -549,9 +554,11 @@ function indexOfAny(str, anyOf, startIndex = 0) {
  */
 function lastIndexOfAny(str, anyOf, startIndex = 0) {
   str = str ?? ""
-  anyOf = anyOf ?? [ "" ]
+  anyOf = anyOf ?? []
   local idx = INVALID_INDEX
   foreach (value in anyOf) {
+    if (value == null || value == "")
+      continue
     local curIdx = lastIndexOf(str, value, startIndex)
     if (curIdx != INVALID_INDEX && (idx == INVALID_INDEX || curIdx > idx))
       idx = curIdx
@@ -561,10 +568,11 @@ function lastIndexOfAny(str, anyOf, startIndex = 0) {
 
 //returns the number of entries of @substr in @str.
 function countSubstrings(str, substr) {
-  local res = -1
-  local findex = -1
-  for(res; findex != 0; res++) {
-    findex = str.indexof(substr, ++findex)
+  local res = 0
+  local findex = str.indexof(substr)
+  while (findex != null) {
+    res++
+    findex = str.indexof(substr, findex + 1)
   }
   return res
 }
@@ -585,7 +593,7 @@ function replace(str, from, to) {
  */
 function trim(str) {
   str = str ?? ""
-  return trimRegExp ? trimRegExp.replace("", str) : str // TODO: Compare with str.strip()
+  return trimRegExp ? trimRegExp.replace("", str) : str.strip()
 }
 
 /*
@@ -715,10 +723,11 @@ if (utf8 != null) {
   utf8CapitalizeWords = @[pure] utf8CapitalizeWordsImpl(str) " ".join(str.split(" ").map(utf8Capitalize))
 }
 else {
-  function noUtf8Module(...) { assert("No 'utf8' module") }
+  function noUtf8Module(...) { assert(false, "No 'utf8' module") }
   utf8ToUpper = noUtf8Module
   utf8ToLower = noUtf8Module
   utf8Capitalize = noUtf8Module
+  utf8CapitalizeWords = noUtf8Module
 }
 
 function [pure] intToUtf8Char(c) {
@@ -729,7 +738,7 @@ function [pure] intToUtf8Char(c) {
   if (c <= 0xFFFF)
     return "".concat((0xE0 + (c>>12)).tochar(), (0x80 + ((c>>6) & 0x3F)).tochar(), (0x80 + (c & 0x3F)).tochar())
   if (c <= 0x10FFFF)
-    return "".concat((0xF0 + (c>>12)).tochar(), (0x80 + ((c>>12) & 0x3F)).tochar(), (0x80 + ((c>>6) & 0x3F)).tochar(), (0x80 + (c & 0x3F)).tochar())
+    return "".concat((0xF0 + (c>>18)).tochar(), (0x80 + ((c>>12) & 0x3F)).tochar(), (0x80 + ((c>>6) & 0x3F)).tochar(), (0x80 + (c & 0x3F)).tochar())
   return ""
 }
 
@@ -818,7 +827,7 @@ function [pure] stripTags(str) {
   if (stripTagsConfig == null)
     assert(stripTagsConfig != null, "stripTags is not working without regexp")
   foreach(test in stripTagsConfig)
-    str = test.re2.replace(test.repl, str)
+    str = test?.re2 != null ? test.re2.replace(test.repl, str) : str.replace(test.from, test.repl)
   return str
 }
 
@@ -828,7 +837,7 @@ function [pure] escape(str) {
     return ""
   }
   foreach(test in escapeConfig)
-    str = test.re2.replace(test.repl, str)
+    str = test?.re2 != null ? test.re2.replace(test.repl, str) : str.replace(test.from, test.repl)
   return str
 }
 
@@ -904,7 +913,7 @@ function validateEmail(no_dump_email) {
   if (quotes == null && locpart.contains("@"))
     return false //no @ without quotes
 
-  if (!dompart.contains(".") || dompart.indexof(".") > dompart.len() - 3) // warning disable: -func-can-return-null -potentially-nulled-ops
+  if (!dompart.contains(".") || lastIndexOf(dompart, ".") > dompart.len() - 3)
     return false  //too short first level domain or no periods
 
   return true
@@ -977,7 +986,7 @@ return freeze(string.__merge({
   floatToStringRounded
   isStringInteger
   isStringFloat
-  isStringLatin = @(str) regexp(@"[a-z,A-Z]*").match(str)
+  isStringLatin = @(str) regexp(@"[a-zA-Z]+").match(str)
   intToUtf8Char
   utf8CharToInt
   capitalize

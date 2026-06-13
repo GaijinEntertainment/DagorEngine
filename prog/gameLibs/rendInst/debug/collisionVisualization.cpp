@@ -110,7 +110,7 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
       if (riProp.canopyOpacity > 0.f && rgl->rtData->riPosInst[coll.desc.pool])
       {
         RendInstGenData::Cell &cell = rgl->cells[coll.desc.cellIdx];
-        RendInstGenData::CellRtData &crt = *cell.rtData;
+        RendInstGenData::CellRtData &crt = *cell.cellRtData;
         float cellSz = rgl->grid2world * rgl->cellSz;
         vec3f v_cell_add = crt.cellOrigin;
         vec3f v_cell_mul = v_mul(rendinst::gen::VC_1div32767, v_make_vec4f(cellSz, crt.cellHeight, cellSz, 0));

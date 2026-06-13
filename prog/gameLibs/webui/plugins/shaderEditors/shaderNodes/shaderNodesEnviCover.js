@@ -601,7 +601,29 @@ var GE_nodeDescriptionsAdditional =
     properties:[],
     allowLoop:false,
     width:150
-  }
+  },
+  {
+    name:"is thermal vision",
+    category:"Input",
+    synonyms:"thermal, special, vision",
+    pins:[
+      {name:"thermal vision", caption:"is thermal vision", types:["bool"], singleConnect:true, role:"out", data:{code:"(bool)special_vision"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
+  {
+    name:"is thermal vision control",
+    category:"Control",
+    synonyms:"thermal, special, vision, control",
+    pins:[
+      {name:"thermal vision", caption:"is thermal vision", types:["ctrl_t"], singleConnect:true, role:"out", data:{code:"(bool)special_vision"}},
+    ],
+    properties:[],
+    allowLoop:false,
+    width:200
+  },
 ];
 
 var GE_defaultExternalsAdditional =
@@ -615,6 +637,7 @@ var GE_defaultExternalsAdditional =
   {type:"int", name:"envi_cover_is_temporal_aa"},
   {type:"int", name:"envi_cover_frame_idx"},
   {type:"int", name:"packed_gbuf_normals"},
+  {type:"int", name:"special_vision"},
 
   {type:"float4", name:"camera_in_camera_prev_vp_ellipse_center"},
   {type:"float4", name:"camera_in_camera_prev_vp_ellipse_xy_axes"},

@@ -45,9 +45,9 @@ TCHAR *GetString(int id);
 
 const TCHAR *make_path_rel(const TCHAR *);
 
-void set_dagor_path(const char *p);
+void set_dagor_path(const std::wstring &p);
 
-extern char dagor_path[];
+extern std::wstring dagor_path;
 
 extern HINSTANCE hInstance;
 

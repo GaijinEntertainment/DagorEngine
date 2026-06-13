@@ -385,12 +385,14 @@ void SQVM::Mark(SQCollectable **chain)
 {
     START_MARK()
         SQSharedState::MarkObject(_lasterror,chain);
+        SQSharedState::MarkObject(_pendingValueFaultTrace,chain);
         SQSharedState::MarkObject(_errorhandler,chain);
         SQSharedState::MarkObject(_debughook_closure,chain);
         SQSharedState::MarkObject(_roottable, chain);
         SQSharedState::MarkObject(temp_reg, chain);
         for(SQUnsignedInteger i = 0; i < _stack.size(); i++) SQSharedState::MarkObject(_stack[i], chain);
         for(SQInteger k = 0; k < _callsstacksize; k++) SQSharedState::MarkObject(_callsstack[k]._closure, chain);
+        for(SQUnsignedInteger t = 0; t < _etraps.size(); t++) SQSharedState::MarkObject(_etraps._vals[t]._exclass, chain);
     END_MARK()
 }
 
@@ -438,6 +440,10 @@ void SQInstance::Mark(SQCollectable **chain)
         for(SQUnsignedInteger i =0; i< nvalues; i++) {
             SQSharedState::MarkObject(_values[i], chain);
         }
+        // _userpointer guard: skip an instance that never installed a payload.
+        if(_class->_markhook && _userpointer) {
+            _class->_markhook(_userpointer, chain);
+        }
     END_MARK()
 }
 
@@ -446,6 +452,7 @@ void SQGenerator::Mark(SQCollectable **chain)
     START_MARK()
         for(SQUnsignedInteger i = 0; i < _stack.size(); i++) SQSharedState::MarkObject(_stack[i], chain);
         SQSharedState::MarkObject(_closure, chain);
+        for(SQUnsignedInteger t = 0; t < _etraps.size(); t++) SQSharedState::MarkObject(_etraps._vals[t]._exclass, chain);
     END_MARK()
 }
 

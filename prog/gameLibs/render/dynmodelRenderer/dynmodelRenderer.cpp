@@ -25,6 +25,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_overrideStates.h>
 #include <startup/dag_globalSettings.h>
+#include <util/dag_console.h>
 #include <util/dag_convar.h>
 #include <memory/dag_framemem.h>
 #include <generic/dag_smallTab.h>
@@ -232,6 +233,7 @@ struct ContextGpuData
 {
   TMatrix4 projToWorldTm;
   TMatrix4 projToViewTm;
+  TMatrix4 relativeWorldToProjTm;
 };
 
 PerInstanceRenderData::PerInstanceRenderData(const AddedPerInstanceRenderData &o)
@@ -267,6 +269,7 @@ struct ContextData
   dag::RelocatableFixedVector<Point3, 8, true> customCameraOffsets;
   float minElemRadius = 0.f;
   bool renderSkinned = true;
+  bool instanceDataOnly = false;
   bool ringBufferVarSet = false;
   int statNodes = 0;
   int statBones = 0;
@@ -349,6 +352,7 @@ struct ContextData
     renderSorted = false;
     renderFinalized = false;
     statNodes = statBones = statPreMerged = statPostMerged = 0;
+    instanceDataOnly = false;
     cachedTm.reset();
   }
 
@@ -503,6 +507,12 @@ void set_reduced_render(ContextId context_id, float min_elem_radius, bool render
   ContextData &ctx = contexts[(int)context_id];
   ctx.minElemRadius = min_elem_radius;
   ctx.renderSkinned = render_skinned;
+}
+
+void set_instance_data_only(ContextId context_id, bool enable)
+{
+  ContextData &ctx = contexts[(int)context_id];
+  ctx.instanceDataOnly = enable;
 }
 
 static bool check_shader_names = false;
@@ -875,6 +885,9 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
         nodeTms.initialNodeTm2 = initialNodeTm.col2;
       }
 
+      if (ctx.instanceDataOnly)
+        return;
+
       for (auto &&shaderMeshStages : shaderMeshStagesList)
       {
         dag::Span<ShaderMesh::RElem> elems = mesh->getElems(shaderMeshStages.front(), shaderMeshStages.back());
@@ -967,6 +980,9 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
         bones[boneNo].bonePrevTm2 = transp.col2;
       }
 
+      if (ctx.instanceDataOnly)
+        return;
+
       for (auto &&shaderMeshStages : shaderMeshStagesList)
       {
         dag::Span<ShaderMesh::RElem> elems = mesh->getShaderMesh().getElems(shaderMeshStages.front(), shaderMeshStages.back());
@@ -1048,6 +1064,8 @@ void prepare_render_begin(ContextId context_id, const TMatrix4 &view, const TMat
     relativeViewTm.setrow(3, 0, 0, 0, 1.f);
 
     TMatrix4 worldToProjTm = relativeViewTm * proj;
+    ctx.gpuData.relativeWorldToProjTm = worldToProjTm;
+
     float det;
     inverse44(worldToProjTm, ctx.gpuData.projToWorldTm, det);
     inverse44(proj, ctx.gpuData.projToViewTm, det);
@@ -1932,6 +1950,9 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
           nodeChunk.extraData.flt[1] = 0.f;
         }
 
+        if (ctx.instanceDataOnly)
+          continue;
+
         debug_mesh::set_debug_value(lodNo);
 
         for (uint8_t stage = start_stage; stage <= end_stage; ++stage)
@@ -2048,6 +2069,9 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
 
       if (output_offsets)
         output_offsets->push_back(nodeOffsetRenderData);
+
+      if (ctx.instanceDataOnly)
+        continue;
 
       for (uint8_t stage = start_stage; stage <= end_stage; ++stage)
       {
@@ -2191,6 +2215,8 @@ bool context_has_data(ContextId context_id)
   if ((int)context_id < 0 || (int)context_id >= contexts.size())
     return false;
   const ContextData &ctx = contexts[(int)context_id];
+  if (ctx.instanceDataOnly && ctx.renderDataBuffer.vec_size() > 0)
+    return true;
   for (const auto &stage : ctx.dipChunksByStage)
     if (!stage.empty())
       return true;
@@ -2283,3 +2309,19 @@ void render_all_stages(ContextId context_id)
 
 //============================================================================
 } // namespace dynrend
+
+static bool dynrend_console_handler(const char *argv[], int argc)
+{
+  int found = 0;
+  CONSOLE_CHECK_NAME("render", "check_dynrend_shaders", 1, 2)
+  {
+    static bool check = false;
+    if (argc > 1)
+      check = console::to_bool(argv[1]);
+    else
+      check = !check;
+    dynrend::set_check_shader_names(check);
+  }
+  return found;
+}
+REGISTER_CONSOLE_HANDLER(dynrend_console_handler);

@@ -62,15 +62,20 @@ void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const char
 
 SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
-  G_ASSERT(sq_gettop(v) == 2);
+  // (this, error, trace): the VM hands an async fault's captured trace as a
+  // third argument; for a synchronous fault `trace` is null and the live stack is used.
+  G_ASSERT(sq_gettop(v) == 3);
   SqStackChecker stackCheck(v);
 
   sqstd_aux_error_to_string(v, 2);
   const char *errMsg = "Unknown error";
   sq_getstring(v, -1, &errMsg);
 
+  HSQOBJECT trace;
+  sq_resetobject(&trace);
+  sq_getstackobj(v, 3, &trace);
   const char *callstack = nullptr;
-  if (SQ_SUCCEEDED(sqstd_formatcallstackstring(v)))
+  if (SQ_SUCCEEDED(sqstd_formaterrorcontextstring(v, trace)))
   {
     G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, -1, &callstack)));
     G_ASSERT(callstack);
@@ -281,6 +286,7 @@ bool script_parse_offsets(const Element *elem, const Sqrat::Object &obj, float o
   {
     Sqrat::Array arr(obj);
     SQInteger len = min(4, (int)arr.Length());
+    memset(out_val, 0, sizeof(float) * 4);
 
     for (SQInteger i = 0; i < len; ++i)
       out_val[i] = resolve_offset_val(elem, arr.RawGetSlot(i));

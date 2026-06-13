@@ -1,0 +1,42 @@
+set:      Y
+range:    Y
+range2:   Y
+neg:      Y
+neg.fail: N
+mixed:    Y
+d:  Y
+D:  Y
+w:  Y
+W:  Y
+s:  Y
+S:  Y
+l:  Y
+u:  Y
+x:  Y
+p:  Y
+a:  Y
+A:  Y
+C:  Y
+P:  Y
+X:  Y
+esc-t: Y
+esc-n: Y
+esc-r: Y
+esc-f: Y
+esc-v: Y
+set+class: Y
+anchored:  Y
+quant{n,m}:Y
+alt:       Y
+escdot:    Y
+dot:       Y
+optional:  Y
+search begin/end: 3/6
+search miss: null
+capture groups: 3
+err: unbalanced-bracket
+err: unbalanced-paren
+err: bad-quantifier
+err: class-in-range
+err: dangling-escape
+regexp charclass: OK

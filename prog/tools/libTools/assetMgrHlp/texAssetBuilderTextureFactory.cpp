@@ -5,6 +5,7 @@
 #include <assets/assetMgr.h>
 #include <assets/asset.h>
 #include <libTools/dtx/ddsxPlugin.h>
+#include <libTools/dtx/makeDDS.h>
 #include <image/dag_dds.h>
 #include <3d/dag_buildOnDemandTexFactory.h>
 #include <3d/dag_texMgr.h>
@@ -80,7 +81,7 @@ struct TexConvBuildOnDemandHelper : public ITexBuildOnDemandHelper
           out_hdr.flags |= out_hdr.FLG_VOLTEX;
 
         float gamma = a->getProfileTargetProps(_MAKE4C('PC'), nullptr).getReal("gamma", a->props.getReal("gamma", 2.2));
-        if (fabsf(gamma - 1.0f) < 1e-3f)
+        if (fabsf(gamma - 1.0f) < 1e-3f || !is_srgb_capable_d3d_fmt(dds_info.d3dFormat))
           out_hdr.flags |= out_hdr.FLG_GAMMA_EQ_1;
 
         out_q_lev_desc = get_log2i(max(out_hdr.w, out_hdr.h)) << 4;

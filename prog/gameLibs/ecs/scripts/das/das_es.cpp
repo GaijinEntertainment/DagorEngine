@@ -191,27 +191,24 @@ bool set_enable_das_rtti(bool value)
   return res;
 }
 
-struct RAIIDasEnvBound
+RAIIDasEnvBound::RAIIDasEnvBound()
 {
-  das::daScriptEnvironment *savedBound = nullptr;
-  RAIIDasEnvBound()
+  if (alwaysUseMainThreadEnv)
   {
-    if (alwaysUseMainThreadEnv)
+    G_ASSERT(mainThreadBound);
+    if (!is_main_thread())
     {
-      G_ASSERT(mainThreadBound);
-      if (!is_main_thread())
-      {
-        savedBound = *das::daScriptEnvironment::bound; // Preserve old value for nested ESes
-        *das::daScriptEnvironment::bound = mainThreadBound;
-      }
+      savedBound = *das::daScriptEnvironment::bound; // Preserve old value for nested ESes
+      *das::daScriptEnvironment::bound = mainThreadBound;
     }
-  };
-  ~RAIIDasEnvBound()
-  {
-    if (alwaysUseMainThreadEnv && !is_main_thread())
-      *das::daScriptEnvironment::bound = savedBound;
-  };
-};
+  }
+}
+
+RAIIDasEnvBound::~RAIIDasEnvBound()
+{
+  if (alwaysUseMainThreadEnv && !is_main_thread())
+    *das::daScriptEnvironment::bound = savedBound;
+}
 
 struct RAIIContextMgr
 {
@@ -233,6 +230,7 @@ struct UpdateStageInfoActAnnotation final : das::ManagedStructureAnnotation<ecs:
     cppName = " ::ecs::UpdateStageInfoAct";
     addField<DAS_BIND_MANAGED_FIELD(dt)>("dt");
     addField<DAS_BIND_MANAGED_FIELD(curTime)>("curTime");
+    addField<DAS_BIND_MANAGED_FIELD(curTimeD)>("curTimeD");
   }
 };
 
@@ -1553,6 +1551,7 @@ bool load_das_script_debugger(const char *fname)
   {
     bind_dascript::pull_das();
     require_project_specific_debugger_modules();
+    das::Module::Initialize();
   }
   const bool ok = internal_load_das_script_sync(fname, ResolveECS::YES);
   debuggerEnvironment = *das::daScriptEnvironment::owned;
@@ -3157,10 +3156,14 @@ void ECS::addES(das::ModuleLibrary &lib)
 ReloadResult reload_all_changed()
 {
   if (das_is_in_init_phase)
-    return NO_CHANGES;
-  ScopedMultipleScripts scope;
+    return ReloadResult::NO_CHANGES;
+  bind_dascript::start_multiple_scripts_loading();
   StackFillRAII fillStack(fill_stack_while_compile_das());
-  ReloadResult res = scripts.reloadAllChanged(globally_aot_mode, globally_log_aot_errors);
+  const ReloadResult res = scripts.reloadAllChanged(globally_aot_mode, globally_log_aot_errors);
+  if (res == ReloadResult::NO_CHANGES)
+    bind_dascript::drop_multiple_scripts_loading();
+  else
+    bind_dascript::end_multiple_scripts_loading();
 
   return res;
 }

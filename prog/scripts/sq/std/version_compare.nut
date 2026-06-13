@@ -6,15 +6,15 @@ let maskAny = const { x = true, X = true, ["*"] = true }
 let arrToInt = @(list) list.reduce(@(res, val)
   (res << 16) + toIntegerSafe(val), 0)
 
-let typeMap = {
-  undefined = @(a, b) b == a,
-  [">="]    = @(a, b) b >= a,
-  [">"]     = @(a, b) b > a,
-  ["<="]    = @(a, b) b <= a,
-  ["<"]     = @(a, b) b < a,
-  ["="]     = @(a, b) b == a,
-  ["!"]     = @(a, b) b != a,
-}
+let typeMap = [
+  [">=",      @(a, b) b >= a],
+  [">",       @(a, b) b > a],
+  ["<=",      @(a, b) b <= a],
+  ["<",       @(a, b) b < a],
+  ["=",       @(a, b) b == a],
+  ["!",       @(a, b) b != a],
+  ["",        @(a, b) b == a],
+]
 
 function checkVersion(verWildcard, verCurrent, compFn) {
   if (arrToInt(verCurrent) == 0)
@@ -38,7 +38,7 @@ function checkVersion(verWildcard, verCurrent, compFn) {
 }
 
 function stripVerCondition(str) {
-  const allowed = "0123456789Xx"
+  const allowed = "0123456789Xx*"
   for (local i = 0; i < str.len(); ++i) {
     let char = str.slice(i, i + 1)
     if (allowed.contains(char))
@@ -55,8 +55,15 @@ function check_version_impl(vermask, game_version) {
 
   let maskVer = stripVerCondition(vermask).split(".")
   let checkVer = stripVerCondition(game_version).split(".")
-  let cmpFn = typeMap.reduce(@(res, val, key)
-    startsWith(vermask, key) ? val : res, typeMap.undefined)
+
+  local cmpFn = null
+  foreach ([prefix, fn] in typeMap) {
+    if (startsWith(vermask, prefix)) {
+      cmpFn = fn;
+      break;
+    }
+  }
+
   return checkVersion(maskVer, checkVer, cmpFn)
 }
 
@@ -64,7 +71,8 @@ function check_version(version1, version2) {
   if (version1 != ""
       && ("><=!".contains(version1.slice(0, 1))
         || version1.contains("X")
-        || version1.contains("x")))
+        || version1.contains("x")
+        || version1.contains("*")))
     return check_version_impl(version1, version2)
   return check_version_impl(version2, version1)
 }

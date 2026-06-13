@@ -206,7 +206,9 @@ static SQInteger _g_blob_casti2f(HSQUIRRELVM v)
 {
     SQInteger i;
     sq_getinteger(v,2,&i);
-    sq_pushfloat(v,*((const SQFloat *)&i));
+    SQFloat f = 0;
+    memcpy(&f, &i, sizeof(f));  //-V1086
+    sq_pushfloat(v,f);
     return 1;
 }
 
@@ -215,7 +217,7 @@ static SQInteger _g_blob_castf2i(HSQUIRRELVM v)
     SQFloat f;
     sq_getfloat(v,2,&f);
     SQInteger result = 0;
-    memcpy(&result, &f, sizeof(f));
+    memcpy(&result, &f, sizeof(f));  //-V1086
     sq_pushinteger(v, result);
     return 1;
 }

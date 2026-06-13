@@ -17,6 +17,7 @@
 
 class CascadeShadows;
 class Occlusion;
+class OcclusionMaskApplier;
 class ParallelOcclusionRasterizer;
 class ShadowsManager;
 struct RiGenVisibility;
@@ -128,6 +129,7 @@ struct VisibilityPrepareJob final : public cpujobs::IJob
   PartitionSphere transparentPartitionSphere;
   bool hasGpuDepth = false;
   ShadowVisibilityContext shadowCtx;
+  OcclusionMaskApplier *occlusionMaskApplier = nullptr;
   eastl::optional<IPoint2> target = {};
 
   void start(const VisibilityJobsContext *jobs,
@@ -137,7 +139,8 @@ struct VisibilityPrepareJob final : public cpujobs::IJob
     const CameraParams &cur_frame_camera,
     const PartitionSphere &transparentPartitionSphere_,
     const IPoint2 &rendering_resolution,
-    const ShadowVisibilityContext &shadow_ctx);
+    const ShadowVisibilityContext &shadow_ctx,
+    OcclusionMaskApplier *occlusion_mask_applier);
   const char *getJobName(bool &) const override { return "VisibilityPrepareJob"; }
   void doJob() override;
   void prepareVisibility();
@@ -165,7 +168,6 @@ struct GroundCullingJob final : public cpujobs::IJob
   Frustum frustum;
   TMatrix4 viewProj = TMatrix4::IDENT;
   Point3 viewPos = {0, 0, 0};
-  float hmapCameraHeight = 0.0f;
   float waterLevel = 0.0f;
   int displacementSubDiv = 1;
   float displacementRadius = 90;
@@ -178,7 +180,6 @@ struct GroundCullingJob final : public cpujobs::IJob
     const Frustum &frustum_,
     const Point3 &viewPos_,
     const TMatrix4 &viewProj_,
-    const float hmap_camera_height,
     const float water_level,
     const int displacement_sub_div,
     const float displacement_radius,
@@ -197,7 +198,6 @@ struct GroundReflectionCullingJob final : public cpujobs::IJob
   Frustum frustum;
   TMatrix4 viewProj = TMatrix4::IDENT;
   Point3 viewPos = {0, 0, 0};
-  float hmapCameraHeight = 0.0f;
   float waterLevel = 0.0f;
 
   void start(const VisibilityJobsContext *jobs,
@@ -207,7 +207,6 @@ struct GroundReflectionCullingJob final : public cpujobs::IJob
     const Frustum &frustum_,
     const Point3 &viewPos_,
     const TMatrix4 &viewProj_,
-    const float hmap_camera_height,
     const float water_level,
     threadpool::JobPriority prio);
   const char *getJobName(bool &) const override { return "GroundReflectionCullingJob"; }
@@ -220,6 +219,7 @@ struct LightsCullingJob final : public cpujobs::IJob
   mat44f globtm, view, proj;
   vec4f viewPos;
   float zn = 0.1;
+  float zf = 10000.f;
 
   void start(Occlusion *occlusion, const CameraParams &cur_frame_camera, threadpool::JobPriority prio);
   const char *getJobName(bool &) const override { return "LightsCullingJob"; }

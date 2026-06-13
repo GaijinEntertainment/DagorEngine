@@ -1,9 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bvh/bvh.h>
+#include <vecmath/dag_vecMath.h>
 
 namespace bvh::ri
 {
+vec4f ri_tree_anim_max_distance_sq_v = v_zero();
+
 void init(const AdditionalSettings &) {}
 void teardown(bool) {}
 void init(ContextId) {}

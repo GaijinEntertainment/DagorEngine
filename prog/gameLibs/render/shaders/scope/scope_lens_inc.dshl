@@ -4,8 +4,7 @@ include "night_vision_inc.dshl"
 include "gbuffer_to_temperature.dshl"
 include "glass_icon_render_inc.dshl"
 
-// currenly scope projection works wrong fo some reason in war thunder, so we remove additional calculations for crosshair
-// TO BE REMOVED AFTER PROPER FIX
+// Still needed for some WT only behavior
 int assume_wt_scope_hack = 0;
 interval assume_wt_scope_hack: off < 0, on;
 
@@ -44,6 +43,8 @@ interval use_scope_cylinder_shadow: no<1, yes;
 assume_if_not_assumed use_scope_cylinder_shadow = yes;
 
 float crosshair_scale = 1.0;
+
+float crosshair_parallax_distance = 50.0;
 
 macro SAMPLE_ENVI_PROBE_REFLECTIONS()
   USE_ROUGH_TO_MIP()
@@ -179,7 +180,6 @@ macro SCOPE_LENS_SHADER()
       VSOUT_DRAW_ID
       #endif
     };
-    #define CROSSHAIR_DISTANCE 50.0
   }
 
   NO_SKINNING_VS()
@@ -192,6 +192,7 @@ macro SCOPE_LENS_SHADER()
     scope_lens_local_y@f3 = scope_lens_local_y;
     scope_lens_local_z@f3 = scope_lens_local_z;
     crosshair_scale@f1 = crosshair_scale;
+    crosshair_parallax_distance@f1 = crosshair_parallax_distance;
   }
   if (lens_render_mode == render_depth)
   {
@@ -267,7 +268,7 @@ macro SCOPE_LENS_SHADER()
       SkinningOut lensOut = calcSkinning(modifiedInput, scope_lens_local_x, scope_lens_local_z);
       lensOut.worldNormal = normalize(lensOut.worldNormal);
 
-      float4 lensCenterOnParallaxPlane = mulPointTm(lensOut.eyeToPoint + lensOut.worldNormal * CROSSHAIR_DISTANCE, viewProjTm);
+      float4 lensCenterOnParallaxPlane = mulPointTm(lensOut.eyeToPoint + lensOut.worldNormal * crosshair_parallax_distance, viewProjTm);
 
       ##if shader == scope_lens
         output.eyeToLens = lensOut.eyeToPoint;
@@ -285,9 +286,7 @@ macro SCOPE_LENS_SHADER()
         output.pos.xy /= output.pos.w;
         float2 lensNDC = lensOut.pos.xy / lensOut.pos.w;
         output.pos.xy = lensNDC + (output.pos.xy - lensNDC) * crosshair_scale;
-        ##if assume_wt_scope_hack == off
-          output.pos.xy += lensCenterOnParallaxPlane.xy / lensCenterOnParallaxPlane.w - lensNDC;
-        ##endif
+        output.pos.xy += lensCenterOnParallaxPlane.xy / lensCenterOnParallaxPlane.w - lensNDC;
         output.pos.xy *= output.pos.w;
         output.texcoord = modifiedInput.texcoord;
       ##endif
@@ -469,6 +468,7 @@ macro SCOPE_LENS_SHADER()
         lens_distortion_params@f3 = lens_distortion_params;
         lens_shading_params@f4 = lens_shading_params;
         lens_shading_params2@f3 = lens_shading_params2;
+        crosshair_parallax_distance@f1 = crosshair_parallax_distance;
       }
 
       if (lens_detail_level <= full)
@@ -588,7 +588,7 @@ macro SCOPE_LENS_SHADER()
 
         half3 getRFront(float3 eyeToLens, float3 eyeToPoint, float3 lensNormal)
         {
-          half3 rCollim = eyeToLens - lensNormal * CROSSHAIR_DISTANCE;
+          half3 rCollim = eyeToLens - lensNormal * crosshair_parallax_distance;
           half rcm = dot(eyeToLens, lensNormal) / dot(rCollim, lensNormal);
           return eyeToPoint - rCollim * rcm;
         }

@@ -44,7 +44,6 @@ uint64_t StreamlineAdapter::getMemorySize() const { return {}; }
 
 DLSSFrameGeneration::~DLSSFrameGeneration() {}
 void DLSSFrameGeneration::setEnabled(int) {}
-void DLSSFrameGeneration::setSuppressed(bool) {}
 bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &, void *) { return true; }
 unsigned DLSSFrameGeneration::getActualFramesPresented() const { return 1; }
 int DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames() { return 1; }

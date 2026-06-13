@@ -481,6 +481,25 @@ static bool system_init(const DataBlock &blk, bool null_output)
 }
 
 static bool treat_fmod_errors_as_warnings = false;
+static eastl::vector<eastl::string> fmod_warn_substrings;
+
+static void load_fmod_loglevel_filter(const DataBlock &blk)
+{
+  static const char *const default_warn_substrings[] = {
+    "assertion: 'inchannels <= mMixMatrixCurrent.numin()' failed",
+    "returned 0x88890004",
+  };
+
+  fmod_warn_substrings.clear();
+  for (const char *substr : default_warn_substrings)
+    fmod_warn_substrings.emplace_back(substr);
+
+  const DataBlock *filterBlk = blk.getBlockByNameEx("fmodErrorsAsWarningsFilter");
+  for (uint32_t i = 0, n = filterBlk->paramCount(); i < n; ++i)
+    if (filterBlk->getParamType(i) == DataBlock::TYPE_STRING)
+      fmod_warn_substrings.emplace_back(filterBlk->getStr(i));
+}
+
 static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
 {
   if (flags & FMOD_DEBUG_LEVEL_ERROR)
@@ -488,14 +507,9 @@ static int get_loglevel(FMOD_DEBUG_FLAGS flags, const char *message)
     if (treat_fmod_errors_as_warnings)
       return LOGLEVEL_WARN;
 
-    if (strstr(message, "assertion: 'inchannels <= mMixMatrixCurrent.numin()' failed"))
-      return LOGLEVEL_WARN; // workaround: suppress FMOD assert to disable logerr reporting
-
-    if (strstr(message, "returned 0x88890004")) // suppress FMOD assert (0x88890004 = AUDCLNT_E_DEVICE_INVALIDATED)
-      return LOGLEVEL_WARN; // e.g. "IAudioCaptureClient::GetCurrentPadding returned 0x88890004. Device was unplugged!"
-
-    if (strstr(message, "HTTP Error ")) // suppress FMOD network errors (e.g. "HTTP Error 404 : Not Found.")
-      return LOGLEVEL_WARN;
+    for (const eastl::string &substr : fmod_warn_substrings)
+      if (strstr(message, substr.c_str()))
+        return LOGLEVEL_WARN;
 
     return LOGLEVEL_ERR;
   }
@@ -578,6 +592,7 @@ bool init(const DataBlock &blk)
   if (settings::enable_fmod_debug)
   {
     treat_fmod_errors_as_warnings = blk.getBool("fmodErrorsAsWarnings", false);
+    load_fmod_loglevel_filter(blk);
     const char *fmodLoglevel = blk.getStr("fmodLoglevel", "errors");
     FMOD_DEBUG_FLAGS debugFlags = FMOD_DEBUG_LEVEL_NONE;
     if (strcmp(fmodLoglevel, "errors") == 0)
@@ -655,7 +670,10 @@ void shutdown()
 
   // release system
   if (g_system)
+  {
+    g_system->flushCommands();
     g_system->release();
+  }
   g_system = nullptr;
   g_low_level_system = nullptr;
 

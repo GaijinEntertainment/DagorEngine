@@ -281,7 +281,7 @@ struct Renderer
   TEXTUREID texArrayId;
 
   ArrayTexture *texArray;
-  SharedTexHolder maskTex;
+  SharedTexWithShaderVar maskTex;
 
   shaders::UniqueOverrideStateId blendOpStateId;
 
@@ -332,7 +332,7 @@ struct Renderer
     if (!is_managed_textures_streaming_load_on_demand())
       ddsx::tex_pack2_perform_delayed_data_loading();
 
-    maskTex = SharedTexHolder(eastl::move(maskTexRes), "water_foam_trail_mask");
+    maskTex = SharedTexWithShaderVar(eastl::move(maskTexRes), "water_foam_trail_mask");
 
     shaders::OverrideState blendOpState;
     blendOpState.set(shaders::OverrideState::BLEND_OP | shaders::OverrideState::BLEND_OP_A);

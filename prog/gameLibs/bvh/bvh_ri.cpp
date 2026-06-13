@@ -28,6 +28,8 @@ static float ri_single_lod_filter_max_range = 0;
 
 bool ri_enable_caching = true;
 
+vec4f ri_tree_anim_max_distance_sq_v = v_zero();
+
 struct BrokenAssetDetails
 {
   const RenderableInstanceLodsResource *resource;
@@ -279,8 +281,11 @@ void on_unload_scene(ContextId context_id)
   tidy_up_rigen_trees(context_id);
   tidy_up_riex_trees(context_id);
 
-  for (auto &cnt : context_id->treeAnimIndexCount)
-    cnt = 0;
+  {
+    OSSpinlockScopedLock lock(context_id->treeAnimIndexCountLock);
+    for (auto &cnt : context_id->treeAnimIndexCount)
+      cnt = 0;
+  }
   for (auto &lod : context_id->uniqueTreeBuffers)
     for (auto &trees : lod)
       for (auto &tree : trees.second.elems)

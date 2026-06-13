@@ -41,7 +41,7 @@ dafg::NodeHandle makeGroundNode(bool early, MainNodeRenderPass mode)
 
     registry.requestState().setFrameBlock("global_frame").allowWireframe();
     if (debugTriangle)
-      registry.requestRenderPass().depthRo("gbuf_depth").color({"triangle_size_tex"});
+      registry.requestRenderPass().depthReadTestOnly("gbuf_depth").color({"triangle_size_tex"});
     else
       render_to_gbuffer(registry).vrsRate(VRS_RATE_TEXTURE_NAME);
 

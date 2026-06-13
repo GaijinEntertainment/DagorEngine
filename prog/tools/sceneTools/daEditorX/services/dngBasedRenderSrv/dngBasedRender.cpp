@@ -33,6 +33,7 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_info.h>
 #include <math/dag_viewMatrix.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <gui/dag_imgui.h>
@@ -59,7 +60,7 @@
 #include "render/renderer.h"
 #include "render/renderEvent.h"
 #include "render/skies.h"
-#include "render/world/dynModelRenderer.h"
+#include <render/dynmodelRenderer.h>
 #include "camera/sceneCam.h"
 
 #include <daGame/timers.h>
@@ -77,6 +78,8 @@
 #include <rendInst/riexSync.h>
 #include <rendInst/rendInstGen.h>
 #include <adaptation/render/adaptation_manager.h>
+#include <render/cinematicMode.h>
+#include <render/priorityManagedShadervar.h>
 #include <phys/physUtils.h>
 #include <folders/folders.h>
 #include <dasModules/dasSystem.h>
@@ -112,7 +115,17 @@ extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
 extern ShaderBlockIdHolder globalFrameBlockId;
 extern void init_fx();
 
-static ShaderVariableInfo forceInEditorVarInfo("force_in_editor");
+#define GLOBAL_VARS_LIST           \
+  VAR(force_in_editor)             \
+  VAR(chromatic_aberration_params) \
+  VAR(vignette_strength)           \
+  VAR(flare_halo_space_mul)        \
+  VAR(flare_ghosts_space_mul)      \
+  VAR(enable_post_bloom_effects)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a);
+GLOBAL_VARS_LIST
+#undef VAR
 
 namespace dng_based_render
 {
@@ -121,6 +134,7 @@ extern Tab<IRenderingService *> rendSrv;
 static SimpleString main_vromfs_fpath_str, main_vromfs_mount_dir_str;
 static SimpleString dng_scene_fname, dng_template_fname, dng_game_params_fname;
 static bool dng_init_ui_fonts = true;
+static SimpleString dng_empty_scene_fname;
 static IPoint2 pendingRes = {0, 0};
 static bool empty_world_created = false;
 static int last_dt_realtime_usec = 0;
@@ -133,6 +147,10 @@ static float saved_motion_blur_strength = 0.f;
 static int32_t suppress_motion_blur_count = 0;
 static SimpleString saved_aa_setting;
 
+static int32_t suppress_cinematic_fx_count = 0;
+static int saved_post_bloom_effects = 0;
+static float saved_flare_halo_mul = 0.f, saved_flare_ghosts_mul = 0.f;
+
 static void init_dng_framework();
 static void term_dng_framework();
 
@@ -144,6 +162,7 @@ static const ManagedTex &get_final_target();
 static void draw_scene();
 static void after_draw_scene();
 static void set_motion_blur_enabled(bool enabled);
+static void set_cinematic_mode_enabled(bool suppress);
 }; // namespace dng_based_render
 
 using dng_based_render::rendSrv;
@@ -507,13 +526,13 @@ public:
     ::grs_cur_view.itm = inverse(::grs_cur_view.tm);
     ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
     dng_based_render::before_render(persp, projTm, viewportWidth);
-    forceInEditorVarInfo.set_int(1);
+    force_in_editorVarId.set_int(1);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     IEditorCoreEngine::get()->beforeRenderObjects();
     TIME_D3D_PROFILE_NAME(render_vsm, "before_render");
     for (auto *srv : rendSrv)
       srv->renderGeometry(IRenderingService::STG_BEFORE_RENDER);
-    forceInEditorVarInfo.set_int(0);
+    force_in_editorVarId.set_int(0);
   }
 
   void renderUI(int client_rect_width, int client_rect_height)
@@ -594,6 +613,8 @@ public:
     dd_add_base_path(base_game_dir);
     dng_based_render::main_vromfs_fpath_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs", "");
     dng_based_render::main_vromfs_mount_dir_str = appblk.getBlockByNameEx("game")->getStr("main_vromfs_mnt", "");
+    if (const char *emptyScn = appblk.getBlockByNameEx("game")->getStr("empty_scene", nullptr))
+      dng_based_render::dng_empty_scene_fname = String::mk_str_cat(app_dir, emptyScn);
     if (const char *scn = appblk.getBlockByNameEx("game")->getStr("scene", nullptr))
       dng_based_render::dng_scene_fname = String::mk_str_cat(app_dir, scn);
     if (const char *templ = appblk.getBlockByNameEx("game")->getStr("entities", nullptr))
@@ -782,24 +803,10 @@ public:
   const ManagedTex &getDownsampledFarDepth() override { return nullTex; }
   void toggleVrMode() override {}
 
-  static void render_dynmodel_state(dynmodel_renderer::DynModelRenderingState &state, dynmodel_renderer::BufferType buf_type,
-    const TMatrix &vtm, int block)
-  {
-    state.prepareForRender();
-    const dynmodel_renderer::DynamicBufferHolder *buffer = state.requestBuffer(buf_type);
-    if (!buffer)
-      return;
-
-    d3d::settm(TM_VIEW, vtm);
-    state.setVars(buffer->buffer.getBufId());
-    FRAME_LAYER_GUARD(globalFrameBlockId);
-    SCENE_LAYER_GUARD(block);
-    state.render(buffer->curOffset);
-  }
-
   void renderOneDynModelInstance(DynamicRenderableSceneInstance *sceneInstance, Stage stage, int *optional_inst_seed,
     bool raw_render) override
   {
+    TIME_D3D_PROFILE(renderOneDynModelInstance);
     if (raw_render)
     {
       if (stage == Stage::STG_RENDER_DYNAMIC_OPAQUE || stage == Stage::STG_RENDER_SHADOWS || stage == Stage::STG_RENDER_TO_CLIPMAP)
@@ -816,31 +823,33 @@ public:
     if (optional_inst_seed)
       memcpy(&params[4].x, optional_inst_seed, sizeof(*optional_inst_seed));
 
-    dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-    int sm0 = ShaderMesh::STG_opaque, sm1 = ShaderMesh::STG_imm_decal;
-    dynmodel_renderer::NeedPreviousMatrices needPrevMatrices = dynmodel_renderer::NeedPreviousMatrices::No;
-    uint32_t renderMask = UpdateStageInfoRender::RENDER_MAIN;
-    dynmodel_renderer::BufferType bufType = dynmodel_renderer::BufferType::OTHER;
-    int blockId = dynamicSceneBlockId;
+    TMatrix oldViewTm;
+    d3d::gettm(TM_VIEW, oldViewTm);
+    TMatrix vtm = oldViewTm;
+    vtm.setcol(3, 0, 0, 0);
+    d3d::settm(TM_VIEW, vtm);
+    TMatrix4 projTm4, viewTm4(vtm);
+    d3d::gettm(TM_PROJ, &projTm4);
 
+    dynrend::ContextId ctx = dynrend::get_or_create_context("dynmodel_immediate");
+    dynrend::clear(ctx);
+    dynrend::set_context_view_proj(ctx, viewTm4, projTm4, viewTm4, projTm4);
+
+    int sm0 = ShaderMesh::STG_opaque, sm1 = ShaderMesh::STG_imm_decal;
+    dynrend::NeedPreviousMatrices needPrevMatrices = dynrend::NeedPreviousMatrices::No;
+    uint32_t filterMask = UpdateStageInfoRender::RENDER_MAIN;
+
+    int blockId = dynamicSceneBlockId;
     switch (stage)
     {
-      case Stage::STG_RENDER_DYNAMIC_OPAQUE:
-        needPrevMatrices = dynmodel_renderer::NeedPreviousMatrices::Yes;
-        bufType = dynmodel_renderer::BufferType::MAIN;
-        break;
+      case Stage::STG_RENDER_DYNAMIC_OPAQUE: needPrevMatrices = dynrend::NeedPreviousMatrices::Yes; break;
       case Stage::STG_RENDER_DYNAMIC_TRANS:
         sm0 = sm1 = ShaderMesh::STG_trans;
-        bufType = dynmodel_renderer::BufferType::TRANSPARENT_MAIN;
         blockId = dynamicSceneTransBlockId;
         break;
-      case Stage::STG_RENDER_DYNAMIC_DISTORTION:
-        sm0 = sm1 = ShaderMesh::STG_distortion;
-        bufType = dynmodel_renderer::BufferType::MAIN;
-        break;
+      case Stage::STG_RENDER_DYNAMIC_DISTORTION: sm0 = sm1 = ShaderMesh::STG_distortion; break;
       case Stage::STG_RENDER_SHADOWS:
-        renderMask = UpdateStageInfoRender::RENDER_SHADOW;
-        bufType = dynmodel_renderer::BufferType::DYNAMIC_SHADOW;
+        filterMask = UpdateStageInfoRender::RENDER_SHADOW;
         blockId = dynamicDepthSceneBlockId;
         break;
       case Stage::STG_RENDER_DYNAMIC_DECALS: sm0 = sm1 = ShaderMesh::STG_decal; break;
@@ -865,18 +874,16 @@ public:
     auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_INITIAL_TM__HASHVAL>(
       make_span_const(params.data(), optional_inst_seed ? params.size() : 1));
 
-    state.process_animchar(sm0, sm1, sceneInstance, additionalData, needPrevMatrices, {},
-      dynmodel_renderer::PathFilterView::NULL_FILTER, renderMask, dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
-      dng_based_render::currentTexCtx);
+    dynrend::add_animchar(ctx, sm0, sm1, sceneInstance, additionalData, needPrevMatrices, {}, dynrend::PathFilterView::NULL_FILTER,
+      filterMask, dynrend::RenderPriority::DEFAULT, nullptr, dng_based_render::currentTexCtx);
 
-    if (state.empty())
-      return;
+    if (dynrend::prepare_render_current(ctx))
+    {
+      FRAME_LAYER_GUARD(globalFrameBlockId);
+      SCENE_LAYER_GUARD(blockId);
+      dynrend::render_all_stages(ctx);
+    }
 
-    TMatrix oldViewTm;
-    d3d::gettm(TM_VIEW, oldViewTm);
-    TMatrix vtm = oldViewTm;
-    vtm.setcol(3, 0, 0, 0);
-    render_dynmodel_state(state, bufType, vtm, blockId);
     d3d::settm(TM_VIEW, oldViewTm);
   }
 
@@ -1023,6 +1030,7 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
       console::command(String(0, "render.toggleFeatures adaptation %d", disable_postfx ? 0 : 1));
       console::command("render.on_setting_change video/antialiasing_mode");
       set_motion_blur_enabled(!disable_postfx);
+      set_cinematic_mode_enabled(!disable_postfx);
       if (disable_postfx)
         if (auto *mgr = g_entity_mgr->getNullableRW<AdaptationManager>(
               g_entity_mgr->getSingletonEntity(ECS_HASH("adaptation_manager")), ECS_HASH("adaptation__manager")))
@@ -1133,6 +1141,33 @@ static void dng_based_render::set_motion_blur_enabled(bool enabled)
   }
 }
 
+static void dng_based_render::set_cinematic_mode_enabled(bool enabled)
+{
+  if (!enabled)
+  {
+    if (++suppress_cinematic_fx_count == 1)
+    {
+      saved_post_bloom_effects = enable_post_bloom_effectsVarId.get_int();
+      saved_flare_halo_mul = flare_halo_space_mulVarId.get_float();
+      saved_flare_ghosts_mul = flare_ghosts_space_mulVarId.get_float();
+      PriorityShadervar::set_float4(chromatic_aberration_paramsVarId.get_var_id(), CinematicMode::CHROMATIC_ABERRATION_PRIORITY,
+        Point4(0, 0, 0, 0));
+      PriorityShadervar::set_float(vignette_strengthVarId.get_var_id(), CinematicMode::VIGNETTE_PRIORITY, 0.f);
+      flare_halo_space_mulVarId.set_float(0.f);
+      flare_ghosts_space_mulVarId.set_float(0.f);
+      enable_post_bloom_effectsVarId.set_int(0);
+    }
+  }
+  else if (suppress_cinematic_fx_count > 0 && --suppress_cinematic_fx_count == 0)
+  {
+    PriorityShadervar::clear(chromatic_aberration_paramsVarId.get_var_id(), CinematicMode::CHROMATIC_ABERRATION_PRIORITY);
+    PriorityShadervar::clear(vignette_strengthVarId.get_var_id(), CinematicMode::VIGNETTE_PRIORITY);
+    flare_halo_space_mulVarId.set_float(saved_flare_halo_mul);
+    flare_ghosts_space_mulVarId.set_float(saved_flare_ghosts_mul);
+    enable_post_bloom_effectsVarId.set_int(saved_post_bloom_effects);
+  }
+}
+
 const char *gameproj::main_vromfs_fpath() { return dng_based_render::main_vromfs_fpath_str; }
 const char *gameproj::main_vromfs_mount_dir() { return dng_based_render::main_vromfs_mount_dir_str; }
 
@@ -1164,6 +1199,8 @@ static void dng_based_render::init_dng_framework()
     }
     config->setBool("limitFps", config->getBool("limitFps", true));
     config->setInt("actRate", dagor_get_game_act_rate());
+    if (!dng_empty_scene_fname.empty())
+      config->setStr("empty_scene", dng_empty_scene_fname);
     config->setStr("scene", dng_scene_fname);
     config->setStr("entitiesPath", dng_template_fname);
     if (app_ecs_blk.paramCount() || app_ecs_blk.blockCount())

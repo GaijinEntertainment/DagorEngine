@@ -754,9 +754,18 @@ void ToroidalStaticShadowCascade::render(IStaticShadowsCB &cb)
   }
 }
 
+// Skip tiny objects but with a slightly stricter threshold than depthAOAbove (&& not ||)
+static inline bool box_below_invalidate_threshold(const BBox3 &box, float texel_size)
+{
+  const float sizeThreshold = 2.f * texel_size;
+  return box.width().x <= sizeThreshold && box.width().z <= sizeThreshold;
+}
+
 void ToroidalStaticShadowCascade::invalidateBox(const BBox3 &box)
 {
   TIME_PROFILE_DEV(staticShadowCascade_invalidateBox);
+  if (box_below_invalidate_threshold(box, texelSize))
+    return;
   IBBox2 ibox = getClippedBoxRegion(box);
   if (ibox.isEmpty())
     return;
@@ -778,6 +787,8 @@ void ToroidalStaticShadowCascade::invalidateBoxes(const BBox3 *box, uint32_t cnt
   dag::Vector<IBBox2, framemem_allocator> clippedBoxes;
   for (auto be = box + cnt; box != be; ++box)
   {
+    if (box_below_invalidate_threshold(*box, texelSize))
+      continue;
     IBBox2 ibox = getClippedBoxRegion(*box);
     if (!ibox.isEmpty())
       clippedBoxes.push_back(ibox);

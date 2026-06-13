@@ -30,8 +30,7 @@ static ecs::EntitySystemDesc shadows_settings_tracking_es_es_desc
   make_span(shadows_settings_tracking_es_comps+1, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeatures,
-                       OnRenderSettingsReady,
-                       OnRenderSettingsUpdated>::build(),
+                       OnRenderSettingsReady>::build(),
   0
 ,nullptr,"render_settings__combinedShadows,render_settings__ssssQuality,render_settings__waterQuality",nullptr,"ssss_settings_tracking_es");
 static constexpr ecs::ComponentDesc update_world_bbox_es_comps[] =

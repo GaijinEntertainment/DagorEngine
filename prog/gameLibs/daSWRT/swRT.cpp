@@ -5,11 +5,11 @@
 #include <vecmath/dag_vecMath.h>
 #include <util/dag_stlqsort.h>
 #include <math/dag_TMatrix.h>
-#include <EASTL/unique_ptr.h>
 #include <shaders/dag_shaders.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_tex3d.h>
 #include <3d/dag_resPtr.h>
+#include <drv/3d/dag_info.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
@@ -52,7 +52,6 @@ void RenderSWRT::close()
 {
   if (inited)
     release_blue_noise();
-  mat.reset();
   clearAll();
 
   del_it(checkerboard_shadows_swrt_cs);
@@ -75,7 +74,8 @@ void RenderSWRT::init()
   CS(mask_shadow_swrt_cs);
 #undef CS
 
-  rt.init("draw_collision_swrt");
+  bool optionalDebug = d3d::get_driver_code() == d3d::dx11; // dx11 shader compiler is failing on debug shader: draw_collision_swrt
+  rt.init("draw_collision_swrt", optionalDebug);
 }
 
 void RenderSWRT::drawRT()
@@ -83,17 +83,8 @@ void RenderSWRT::drawRT()
   if (!topBuf)
     return;
 
-  if (!mat)
-    mat.reset(new_shader_material_by_name_optional("draw_collision_swrt"));
-  if (mat)
-  {
-    mat->addRef();
-    elem = mat->make_elem();
-  }
-  else
-    return;
   TIME_D3D_PROFILE(bvh_rt);
-  rt.render();
+  rt.render(); // optional
 }
 
 uint32_t RenderSWRT::getTileBufferSizeDwords(uint32_t w, uint32_t h)

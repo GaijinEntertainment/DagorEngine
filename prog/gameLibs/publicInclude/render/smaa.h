@@ -20,7 +20,7 @@ public:
 private:
   PostFxRenderer edge_detect, blend_weights, apply_smaa;
   TextureIDHolderWithVar edgeDetect, blendWeights;
-  SharedTexHolder areaTex, searchTex;
+  SharedTexWithShaderVar areaTex, searchTex;
   TextureIDHolder depthStencilTex;
   const IPoint2 resolution;
 };

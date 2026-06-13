@@ -30,6 +30,9 @@
 #include <oldEditor/de_interface.h>
 #include <propPanel/constants.h>
 #include <propPanel/control/panelWindow.h>
+#include <propPanel/propPanelService.h>
+#include <propPanel/propPanel.h>
+#include <propPanel/toastManager.h>
 #include <coolConsole/coolConsole.h>
 #include <workCycle/dag_workCycle.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -625,6 +628,16 @@ public:
       DAGORED2->getConsole().hideConsole();
   }
 
+  void showToast(PropPanel::ToastType type, const char *text) override
+  {
+    PropPanel::ToastMessage message;
+    message.type = type;
+    message.text = text;
+    message.setHideOnMouseMove(true);
+    message.setToMousePos(Point2(0.5f, 0.5f));
+    PropPanel::set_toast_message(message);
+  }
+
 #define DSA_OVERLOADS_PARAM_DECL ILogWriter::MessageType type,
 #define DSA_OVERLOADS_PARAM_PASS type,
   DECLARE_DSA_OVERLOADS_FAMILY_LT(inline void conMessage, conMessageV);
@@ -834,7 +847,7 @@ public:
 
   void imguiEnd() override { ImGui::End(); }
 
-  void *getImguiContext() override { return ImGui::GetCurrentContext(); }
+  PropPanel::IPropPanelService *getPropPanelService() override { return &PropPanel::get_service(); }
 
   void resetInterface()
   {

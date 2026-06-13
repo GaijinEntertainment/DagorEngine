@@ -27,8 +27,8 @@ static ecs::EntitySystemDesc screen_frost_renderer_init_es_event_handler_es_desc
 static constexpr ecs::ComponentDesc screen_frost_renderer_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
-  {ECS_HASH("frost_tex"), ecs::ComponentTypeInfo<SharedTexHolder>()},
-  {ECS_HASH("corruption_tex"), ecs::ComponentTypeInfo<SharedTexHolder>()}
+  {ECS_HASH("frost_tex"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()},
+  {ECS_HASH("corruption_tex"), ecs::ComponentTypeInfo<SharedTexWithShaderVar>()}
 };
 static ecs::CompileTimeQueryDesc screen_frost_renderer_ecs_query_desc
 (
@@ -46,8 +46,8 @@ inline void screen_frost_renderer_ecs_query(ecs::EntityManager &manager, ecs::En
         constexpr size_t comp = 0;
         {
           function(
-              ECS_RO_COMP(screen_frost_renderer_ecs_query_comps, "frost_tex", SharedTexHolder)
-            , ECS_RO_COMP(screen_frost_renderer_ecs_query_comps, "corruption_tex", SharedTexHolder)
+              ECS_RO_COMP(screen_frost_renderer_ecs_query_comps, "frost_tex", SharedTexWithShaderVar)
+            , ECS_RO_COMP(screen_frost_renderer_ecs_query_comps, "corruption_tex", SharedTexWithShaderVar)
             );
 
         }

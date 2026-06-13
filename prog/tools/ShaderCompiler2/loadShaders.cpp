@@ -3,6 +3,7 @@
 #include "loadShaders.h"
 #include "shCompiler.h"
 #include "linkShaders.h"
+#include <drv/3d/dag_consts.h>
 #include "shTargetContext.h"
 #include "shCompiler.h"
 #include "shLog.h"
@@ -37,6 +38,114 @@ bool get_file_time64(const char *fn, int64_t &ft)
     return true;
   }
   return false;
+}
+
+static shc::RefinedBlockRegister loadRefinedBlockRegister(shc::CompilationContext &context, const RefinedBlockLayoutBindumpEntry &e)
+{
+  shc::RefinedBlockRegister regInfo;
+  if (e.cbufOffset >= 0 && e.slotCount > 0)
+  {
+    context.rbAllocator().reserveCbufSlot(e.cbufOffset, e.slotCount);
+    regInfo.cbufOffsetAndCount = eastl::make_pair(e.cbufOffset, e.slotCount);
+  }
+  for (int s = 0; s < STAGE_MAX; ++s)
+  {
+    if (e.slot[s] < 0 || e.space < 0)
+      continue;
+
+    context.rbAllocator().reserveSlot(static_cast<ShaderStage>(s), static_cast<HlslRegisterSpace>(e.space), e.slot[s]);
+    regInfo.slot[s] = e.slot[s];
+  }
+  regInfo.space = e.space >= 0 ? static_cast<HlslRegisterSpace>(e.space) : HlslRegisterSpace::HLSL_RSPACE_INVALID;
+  return regInfo;
+}
+
+template <typename SerializedT, typename CallbackT>
+bool read_layout(const char *filename, const int cache_sign, const CallbackT &callback)
+{
+  bindump::FileReader reader(filename);
+  if (!reader)
+    return false;
+
+  SerializedT layout;
+  try
+  {
+    bindump::streamRead(layout, reader);
+    if (layout.cache_sign != cache_sign || layout.cache_version != SHADER_CACHE_VER)
+      return false;
+  }
+  catch (IGenLoad::LoadException &)
+  {
+    bindump::close();
+    return false;
+  }
+
+  callback(layout);
+
+  return true;
+}
+
+bool load_local_rb_layout(const char *filename, shc::CompilationContext &context)
+{
+  const bool result = read_layout<ShadersBindumpHeader>(filename, SHADER_CACHE_SIGN, [&](const auto &header) {
+    for (const auto &e : header.refined_block_layout.vars)
+    {
+      int rbVarId = context.rbVarNameMap().addVarId(e.varName.c_str());
+      context.rbVars()[rbVarId] = loadRefinedBlockRegister(context, e);
+    }
+  });
+
+  if (DAGOR_UNLIKELY(!result))
+    sh_debug(SHLOG_ERROR, "Failed to load local refined block layout from '%s'", filename);
+
+  return result;
+}
+
+bool save_global_rb_layout(const char *filename, const shc::CompilationContext &context)
+{
+  BindumpRefinedBlockLayout layout;
+  layout.cache_sign = GLOBAL_RB_LAYOUT_SIGN;
+  layout.cache_version = SHADER_CACHE_VER;
+
+  for (const auto &kv : context.rbVars())
+  {
+    const int varId = kv.first;
+    const shc::RefinedBlockRegister &regInfo = kv.second;
+
+    RefinedBlockLayoutBindumpEntry entry;
+    entry.varName = bindump::string(context.rbVarNameMap().getName(varId));
+    entry.cbufOffset = regInfo.cbufOffsetAndCount.value_or(eastl::make_pair(-1, -1)).first;
+    entry.slotCount = regInfo.cbufOffsetAndCount.value_or(eastl::make_pair(-1, -1)).second;
+    entry.space = regInfo.space.value_or(-1);
+    for (int stage = 0; stage < STAGE_MAX; ++stage)
+      entry.slot[stage] = regInfo.slot[stage].value_or(-1);
+    layout.vars.push_back(eastl::move(entry));
+  }
+
+  bindump::FileWriter writer(filename);
+  if (!writer)
+  {
+    sh_debug(SHLOG_ERROR, "save_global_rb_layout: cannot open '%s' for writing", filename);
+    return false;
+  }
+  bindump::streamWrite(layout, writer);
+  return true;
+}
+
+bool load_global_rb_layout(const char *filename, shc::CompilationContext &context)
+{
+  const bool result = read_layout<BindumpRefinedBlockLayout>(filename, GLOBAL_RB_LAYOUT_SIGN, [&](const auto &layout) {
+    for (const auto &e : layout.vars)
+    {
+      int rbVarId = context.rbVarNameMap().addVarId(e.varName.c_str());
+      context.rbVars()[rbVarId] = loadRefinedBlockRegister(context, e);
+    }
+  });
+
+  if (DAGOR_UNLIKELY(!result))
+    sh_debug(SHLOG_ERROR, "Failed to load global refined block layout from '%s'", filename);
+
+  return result;
 }
 
 CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const shc::CompilationContext &ctx,
@@ -217,6 +326,15 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
       code->dynVariants.setContextRef(out_ctx);
       code->dynVariants.linkIntervalList();
     }
+  }
+
+  // Restore the refined block layout from the lib's payload (IDs are already global).
+  if (!shaders.refinedBlockVars.empty())
+  {
+    shc::RefinedBlockLayout localLayout = shc::RefinedBlockLayout::deserializeFromBindump(out_ctx.compCtx().rbVarNameMap(),
+      static_cast<const Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
+      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode));
+    out_ctx.refinedBlockLayout().mergeFrom(localLayout);
   }
 
   return true;

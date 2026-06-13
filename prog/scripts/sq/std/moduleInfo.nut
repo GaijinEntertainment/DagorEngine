@@ -69,11 +69,23 @@ function typeBitsToStringFirst(x) {
 
 let def_params_names = ["a", "b", "c", "d", "e"].extend(array(10).map(@(_, i) $"var_{i+5}"))
 
+function defaultValueStr(v){
+  let t = type(v)
+  if (t == "string") {
+    let esc = v.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    return $"\"{esc}\""
+  }
+  if (t == "integer" || t == "float" || t == "bool") return v.tostring()
+  if (t == "array") return "[]"
+  if (t == "table") return "{}"
+  return "null"
+}
+
 const INDENT_SYM = "  "
 
 function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=null){
   let infos = func.getfuncinfos()
-  let {paramscheck, typecheck, varargs, return_type_mask, pure, doc} = infos
+  let {typecheck, varargs, return_type_mask, pure, doc} = infos
 
   let indentStr = "".join(array(indent, INDENT_SYM))
   local retValueStr = manualModInfo?[name].returnStr ?? ""
@@ -85,30 +97,49 @@ function mkFunStubStr(func, name=null, indent = 0, verbose=false, manualModInfo=
     let ret_comment = $" //return_type_mask={return_type_mask}, ret_types={", ".join(all_ret_types.map(@(v) typesByTypechecks?[v] ?? "unknown_return_type"))}"
     retValueStr = "".concat($"\n{indentStr}{INDENT_SYM}return ", return_type_mask==-1 ? "null" : valuesByTypechecks?[first_ret_type_from_mask] ?? "null", ret_comment, $"\n{indentStr}")
   }
-  let argumentsNames = manualModInfo?[name].arguments ?? def_params_names
+  let manualArgs = manualModInfo?[name].arguments
   name = name ?? infos.name
   name = name!=null ? $" {name}" : ""
   name = pure ? "".concat(" [pure]", name) : name
   if ((typecheck?.len() ?? 0) > 0)
     typecheck.remove(0)
-  let actParams = paramscheck == 0
-    ? paramscheck
-    : paramscheck > 0
-      ? paramscheck-1
-      : ((-paramscheck)-1)
-  let varargs_str = !varargs || paramscheck > 0
-    ? ""
-    : paramscheck < -1
-      ? ", ..."
-      : "..."
-  let args = array(math.max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
-  let defined_args = args.map(function(arg, i){
-    let isOptional = paramscheck < 0 && i >= actParams && varargs != ""
-    return isOptional
-      ? $"{arg} = {typeBitsToStringFirst(typecheck[i])}"
-      : arg
-  })
-  let args_string = "{0}{1}".subst(", ".join(defined_args), varargs_str)
+
+  // getfuncinfos exposes paramscheck only for native closures; script closures
+  // (e.g. async Future.all/race) carry real parameter names and default values.
+  local args, args_string
+  if (infos.native) {
+    let paramscheck = infos.paramscheck
+    let argumentsNames = manualArgs ?? def_params_names
+    let actParams = paramscheck == 0
+      ? paramscheck
+      : paramscheck > 0
+        ? paramscheck-1
+        : ((-paramscheck)-1)
+    let varargs_str = !varargs || paramscheck > 0
+      ? ""
+      : paramscheck < -1
+        ? ", ..."
+        : "..."
+    args = array(math.max(actParams, typecheck?.len() ?? 0)).map(@(_, i) argumentsNames[i])
+    let defined_args = args.map(function(arg, i){
+      let isOptional = paramscheck < 0 && i >= actParams && varargs_str != ""
+      return isOptional
+        ? $"{arg} = {typeBitsToStringFirst(typecheck[i])}"
+        : arg
+    })
+    args_string = "{0}{1}".subst(", ".join(defined_args), varargs_str)
+  }
+  else {
+    let argumentsNames = manualArgs ?? infos.parameters.slice(1)
+    let nRequired = math.max(infos.required_params - 1, 0)
+    let varargs_str = !varargs ? "" : argumentsNames.len() > 0 ? ", ..." : "..."
+    let defparams = infos.defparams
+    args = array(argumentsNames.len()).map(@(_, i) argumentsNames[i])
+    let defined_args = args.map(@(arg, i) i < nRequired
+      ? arg
+      : $"{arg} = {defaultValueStr(defparams?[i - nRequired])}")
+    args_string = "{0}{1}".subst(", ".join(defined_args), varargs_str)
+  }
   if (verbose)
     log(name, args, infos)
   let typechecks = typecheck!=null ? typeCheckArrToStringCheck(typecheck, args, indentStr, verbose) : ""

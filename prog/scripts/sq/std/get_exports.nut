@@ -46,9 +46,14 @@ make_module_description = function(module, frozen=null){
       if (isNativeClassOrInstance(v))
         return {"type":tt, frozenable=true, name=getClassOfInstanceName(v)}
       if (tt =="array" || tt=="table"){
-        frozen = frozen || v.is_frozen()
-        return {frozen, "type":tt}.__update( tt =="array" || tt=="table" ? {content = v.$map(@(i) make_module_description(i, frozen))} : {}, tt=="instance" ? {name=getClassOfInstanceName(v)} : {})
+        let fr = frozen || v.is_frozen()
+        return {frozen=fr, "type":tt, content = v.$map(@(i) make_module_description(i, fr))}
       }
+      else if (tt=="instance") {
+        let fr = frozen || v.is_frozen()
+        return {frozen=fr, "type":tt, name=getClassOfInstanceName(v)}
+      }
+
       return {"type":tt}
     })
   }

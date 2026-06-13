@@ -183,7 +183,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Early out if linearZ is beyond denoising range
     float centerViewZ = UnpackViewZ(gIn_ViewZ[pixelPos]);
-    if (centerViewZ > gDenoisingRange)
+    if (!IsInDenoisingRange( centerViewZ ))
         return;
 
     // Running firefly filter

@@ -20,7 +20,7 @@ let image2 = {
   rendObj = ROBJ_IMAGE
   image=pic_custom_size
 }
-let image3 = {}.__update(image2).__update({image=pic_custom_size_k})
+let image3 = image2.__merge({image=pic_custom_size_k})
 
 return {
   rendObj = ROBJ_SOLID
