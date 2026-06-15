@@ -209,9 +209,12 @@ private:
     const BarrierScheduler::EventsCollection &events, const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
     const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &dirty_resources);
 
+  void recalculateUsedRenderPasses(const NodeStateDeltas &result);
+
 private:
   const intermediate::Graph &graph;
   ska::flat_hash_map<RPsDescKey, eastl::unique_ptr<d3d::RenderPass, RpDestroyer>, RPDescHasher> rpCache;
+  ska::flat_hash_set<d3d::RenderPass *> usedRenderPasses;
   // Reverse index: for each auto-res type, the set of rpCache keys whose attachments
   // reference a resource of that type. Populated on cache insertion, consumed by
   // invalidateCachesForAutoResType to do targeted eviction.

@@ -178,7 +178,7 @@ eastl::array<dafg::NodeHandle, 4> makeDownsampleDepthNodes(const DownsampleNodeP
   if (use_explicit_depth_write(hasStencil))
     nodes[1] = dafg::register_node("copy_depth", DAFG_PP_NODE_SRC, [downsampledDepthFmt, hasStencil](dafg::Registry registry) {
       const char *depthName = hasStencil ? "downsampled_depth_no_stencil" : "downsampled_depth";
-      registry.requestRenderPass().depthRw(
+      registry.requestRenderPass().depth(
         registry.create(depthName).texture({downsampledDepthFmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", 0.5f)}));
       auto farDownsampledDepthHndl =
         registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).useAs(dafg::Usage::SHADER_RESOURCE).handle();

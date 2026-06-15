@@ -225,6 +225,7 @@ void clear_all_contexts();
 void after_device_reset();
 
 void set_reduced_render(ContextId context_id, float min_elem_radius, bool render_skinned);
+void set_instance_data_only(ContextId context_id, bool enable);
 void set_prev_view_proj(const TMatrix4_vec4 &prev_view, const TMatrix4_vec4 &prev_proj);
 void get_prev_view_proj(TMatrix4_vec4 &prev_view, TMatrix4_vec4 &prev_proj);
 void set_local_offset_hint(const Point3 &hint);

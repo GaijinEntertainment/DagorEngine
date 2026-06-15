@@ -27,6 +27,7 @@ incDir:t="../../../prog/3rdPartyLibs/nvapi"
     vsm_positive:i=1
     "@override:vsm_shadowmap":i=1
     "@delete:glass_rt_reflection":i=0
+    "@delete:allow_rt_glass_reflection":i=0
     "@delete:bvh_usable":i=0
     rt_debug_rt_shadow:i=0
     denoiser_apply_wetness:i=0

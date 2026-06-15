@@ -9,8 +9,8 @@ let truthy_tests = {
   ["empty array []"]     = [],      // JS: truthy, Quirrel: truthy too
   ["empty table {}"]     = {},      // JS: truthy, Quirrel: truthy too
 }
-foreach (name, val in truthy_tests) {
-  let verdict = val ? "TRUTHY" : "FALSY"
+foreach (name in truthy_tests.keys().sort()) {
+  let verdict = truthy_tests[name] ? "TRUTHY" : "FALSY"
   println($"  {name} is {verdict}")
 }
 

@@ -23,16 +23,22 @@ void ActionsTreeCB::onTvSelectionChange(PropPanel::TreeBaseWindow &tree, PropPan
   mPlugin.getEditor()->selProcess = true;
   mPlugin.getEditor()->unselectAll();
 
-  FpdAction *action = (FpdAction *)tree.getItemData(new_sel);
-  FpdObject *obj = (action) ? action->getObject() : NULL;
+  dag::Vector<PropPanel::TLeafHandle> selectedTreeNodes;
+  tree.getSelectedItems(selectedTreeNodes, true, true);
 
-  if (obj)
+  for (PropPanel::TLeafHandle treeNode : selectedTreeNodes)
   {
-    IFPObject *wobj = mPlugin.getEditor()->getWrapObjectByName(obj->getName());
+    FpdAction *action = (FpdAction *)tree.getItemData(treeNode);
+    FpdObject *obj = action ? action->getObject() : nullptr;
 
-    if (wobj)
+    if (obj)
     {
-      wobj->selectObject();
+      IFPObject *wobj = mPlugin.getEditor()->getWrapObjectByName(obj->getName());
+
+      if (wobj)
+      {
+        wobj->selectObject();
+      }
     }
   }
 

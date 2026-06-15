@@ -184,6 +184,6 @@ private:
   void updateAutoResolutions();
   void scheduleResources(const IrResourcesChanged &lifetimeChangedResources);
   void updateHistory();
-  void updateVisualization();
+  void updateVisualization(const NodesChanged &nodes_changed);
 };
 } // namespace dafg

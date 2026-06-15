@@ -47,7 +47,7 @@
 #include <ecs/anim/animchar_visbits.h>
 #include <render/world/animCharRenderUtil.h>
 #include <shaders/dag_dynSceneRes.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <render/world/dynModelRenderPass.h>
@@ -97,12 +97,17 @@ CONSOLE_BOOL_VAL("raytracing", only_impostors_optimization, true);
 CONSOLE_FLOAT_VAL("raytracing", grass_range, 32);
 CONSOLE_FLOAT_VAL_MINMAX("raytracing", grass_fraction_to_keep, 0.25, 0.01, 1);
 
+CONSOLE_FLOAT_VAL("rt_speed", max_speed_for_tree_meshes, 20);
+CONSOLE_FLOAT_VAL("rt_speed", max_speed_for_medium_budget, 5.5, "Slightly above running and free cam speed");
+CONSOLE_FLOAT_VAL("rt_speed", max_speed_for_grass, 50);
+CONSOLE_FLOAT_VAL("rt_speed", airplane_detection_speed, 20);
+CONSOLE_FLOAT_VAL("rt_speed", airplane_cockpit_radius, 5);
+
 // TODO move these to entity
 static bvh::ContextId bvhRenderingContextId;
 static BVHConnection *fxBvhConnection = nullptr;
 static bool cablesChanged = false;
-static dynmodel_renderer::DynModelRenderingState *bvhDynmodelState = nullptr;
-static const dynmodel_renderer::DynamicBufferHolder *bvhDynmodelInstanceBuffer = nullptr;
+static dynrend::ContextId bvhDynmodelCtx = dynrend::ContextId::INVALID;
 static void bvh_iterate_over_animchars(
   dynrend::BVHIterateOneInstanceCallback iterate_one_instance, const Point3 &view_position, void *user_data);
 static bool rigen_cull_dist_was_increased = false;
@@ -742,8 +747,7 @@ static void bvh_start_before_render_jobs_es(
   }
   else
   {
-    constexpr float MAX_SPEED_FOR_TREE_MESHES = 20;
-    bool onlyImpostors = only_impostors_optimization && bvh__accumulated_speed > MAX_SPEED_FOR_TREE_MESHES;
+    bool onlyImpostors = only_impostors_optimization && bvh__accumulated_speed > max_speed_for_tree_meshes;
     if (onlyImpostors)
     {
       use_bvh_ri_oof_culling_job = true;
@@ -769,14 +773,12 @@ static void bvh_start_before_render_jobs_es(
   threadpool::wake_up_all(); // Wake all added above and occulision/raster jobs
 
   constexpr int INITIAL_FAST_BUILDING_FRAME_COUNT = 500;
-  constexpr float MAX_SPEED_FOR_MEDIUM_BUDGET = 5.5; // Slightly above running and free cam speed
   bvh::BuildBudget budget =
     bvh__frame_counter++ < INITIAL_FAST_BUILDING_FRAME_COUNT
       ? bvh::BuildBudget::High
-      : (bvh__accumulated_speed < MAX_SPEED_FOR_MEDIUM_BUDGET ? bvh::BuildBudget::Medium : bvh::BuildBudget::Low);
+      : (bvh__accumulated_speed < max_speed_for_medium_budget ? bvh::BuildBudget::Medium : bvh::BuildBudget::Low);
 
-  constexpr float MAX_SPEED_FOR_GRASS = 50;
-  bvh::set_grass_range(bvhRenderingContextId, bvh__accumulated_speed < MAX_SPEED_FOR_GRASS ? grass_range : 0);
+  bvh::set_grass_range(bvhRenderingContextId, bvh__accumulated_speed < max_speed_for_grass ? grass_range : 0);
   bvh::set_grass_fraction_to_keep(bvhRenderingContextId, grass_fraction_to_keep);
 
   bvh::process_meshes(bvhRenderingContextId, budget);
@@ -829,19 +831,21 @@ static void update_fx_for_bvh()
 static ShaderVariableInfo bvh_instance_data_buffer_cur_offsetVarId("bvh_instance_data_buffer_cur_offset", true);
 static ShaderVariableInfo bvh_instance_data_bufferVarId("bvh_instance_data_buffer", true);
 
+static bool bvhDynmodelDataReady = false;
+
 static void upload_dynmodel_instance_data()
 {
   TIME_PROFILE(bvh::upload_dynmodel_instance_data)
   bvh::wait_dynamic_instances_jobs();
-  bvhDynmodelInstanceBuffer = bvhDynmodelState->requestBuffer(dynmodel_renderer::BufferType::BVH);
-  if (bvhDynmodelInstanceBuffer)
-  {
-    bvhDynmodelState->setVars(bvhDynmodelInstanceBuffer->buffer.getBufId());
-    ShaderGlobal::set_buffer(bvh_instance_data_bufferVarId, bvhDynmodelInstanceBuffer->buffer.getBufId());
-    ShaderGlobal::set_int(bvh_instance_data_buffer_cur_offsetVarId, bvhDynmodelInstanceBuffer->curOffset);
-    static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
-      .instanceDataBaseOffset = bvhDynmodelInstanceBuffer->curOffset;
-  }
+  bvhDynmodelDataReady = dynrend::prepare_render_current(bvhDynmodelCtx);
+  if (!bvhDynmodelDataReady)
+    return;
+  D3DRESID bufId = dynrend::get_context_buffer_id(bvhDynmodelCtx);
+  int bufPos = dynrend::get_context_buffer_pos(bvhDynmodelCtx);
+  ShaderGlobal::set_buffer(bvh_instance_data_bufferVarId, bufId);
+  ShaderGlobal::set_int(bvh_instance_data_buffer_cur_offsetVarId, bufPos);
+  static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
+    .instanceDataBaseOffset = bufPos;
 }
 
 static void update_splinegen_for_bvh()
@@ -856,13 +860,25 @@ static void set_animate_out_of_frustum_trees_es(const RendinstLodRangeIncreasedE
   rigen_cull_dist_was_increased = evt.get<0>() || evt.get<1>();
 }
 
+template <typename Callable>
+static void copy_animchar_visbits_ecs_query(Callable c);
+
+static void copy_animchar_visbits()
+{
+  copy_animchar_visbits_ecs_query([](const animchar_visbits_t &animchar_visbits, animchar_visbits_t &animchar_visbits_copy_for_bvh) {
+    animchar_visbits_copy_for_bvh = animchar_visbits;
+  });
+}
+
 void bvh_update_instances(
   const Point3 &cameraPos, const Point3 &lightDirection, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &viewFrustum)
 {
   if (!is_bvh_enabled())
     return;
   wait_bvh_worker_threads();
-  bvhDynmodelState = dynmodel_renderer::create_state("bvh");
+  copy_animchar_visbits(); // bvh::update_instances processes animchars in a thread
+  bvhDynmodelCtx = dynrend::get_or_create_context("bvh");
+  dynrend::set_instance_data_only(bvhDynmodelCtx, !draw_debug_dynmodels);
   dag::Vector<RiGenVisibility *> visibilities;
   if (use_bvh_ri_culling_job)
     visibilities.push_back(get_bvh_rigen_visibility());
@@ -1236,6 +1252,20 @@ static dafg::NodeHandle makeBvhRegisterGbufferNode()
   });
 }
 
+template <typename Callable>
+static void get_bvh_accumulated_speed_ecs_query(ecs::EntityManager &manager, Callable c);
+
+static float calculate_denoiser_airplane_radius()
+{
+  if (is_free_camera_enabled())
+    return 0;
+  float speed = 0;
+  get_bvh_accumulated_speed_ecs_query(*g_entity_mgr, [&](float bvh__accumulated_speed) { speed = bvh__accumulated_speed; });
+  if (speed > airplane_detection_speed)
+    return airplane_cockpit_radius;
+  return 0;
+}
+
 static dafg::NodeHandle makeDenoiserPrepareNode(RTPersistentTexturesECS &rt_persistent_textures)
 {
   rt_persistent_textures.clear(RTPersistentTexturesECS::Type::DENOISER);
@@ -1291,6 +1321,7 @@ static dafg::NodeHandle makeDenoiserPrepareNode(RTPersistentTexturesECS &rt_pers
       params.motionMultiplier = Point3::ONE;
       params.textures = textureMaps->resolveToPair();
       params.dynRes = denoiser::DynamicResolutionParams{mainResHndl.ref(), prevMainRes, halfResHndl.ref(), prevHalfRes, false};
+      params.denoiserCameraAttachedRadius = calculate_denoiser_airplane_radius();
       denoiser::prepare(params);
     };
   });
@@ -2113,12 +2144,12 @@ static void bvh_update_animchar_es(const UpdateStageInfoBeforeRender &stg)
   preprocess_visible_animchars_in_frustum(stg, frustum, v_ldu_p3(&stg.camPos.x), VISFLG_BVH);
 }
 
-static void bvh_set_dynmodel_instance_data(int istance_offset)
+static void bvh_set_dynmodel_instance_data(int instance_offset)
 {
-  if (!bvhDynmodelInstanceBuffer)
+  if (!bvhDynmodelDataReady)
     return;
   static_cast<const bvh::SkinnedVertexProcessorBatched &>(bvh::ProcessorInstances::getSkinnedVertexProcessorBatched())
-    .lastInstanceOffset = (uint32_t)istance_offset;
+    .lastInstanceOffset = (uint32_t)(instance_offset);
 }
 
 template <typename Callable>
@@ -2130,8 +2161,6 @@ static ShaderVariableInfo burnt_tank_camoVarId("burnt_tank_camo", true);
 static void bvh_iterate_over_animchars(
   dynrend::BVHIterateOneInstanceCallback iterate_one_instance, const Point3 &view_position, void *user_data)
 {
-  bvhDynmodelState->mode = draw_debug_dynmodels ? dynmodel_renderer::DynModelRenderingState::FOR_RENDERING
-                                                : dynmodel_renderer::DynModelRenderingState::ONLY_PER_INSTANCE_DATA;
   TEXTUREID burnt_tank_camo = burnt_tank_camoVarId.get_texture();
   auto getCamoData = [&](ecs::EntityId eid) {
     dynrend::BVHCamoData bvhCamoData;
@@ -2147,10 +2176,10 @@ static void bvh_iterate_over_animchars(
   vec3f viewPosition = v_ldu(&view_position.x);
   bvh_iterate_over_animchars_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender, ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
-      const animchar_visbits_t &animchar_visbits, const AnimV20::AnimcharRendComponent &animchar_render,
+      const animchar_visbits_t &animchar_visbits_copy_for_bvh, const AnimV20::AnimcharRendComponent &animchar_render,
       const ecs::Point4List *additional_data, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters,
       const vec4f &animchar_bsph) {
-      if (!(animchar_visbits & VISFLG_BVH))
+      if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
         return;
 
       const DynamicRenderableSceneInstance *inst = animchar_render.getSceneInstance();
@@ -2159,7 +2188,7 @@ static void bvh_iterate_over_animchars(
       if (!res)
         return;
 
-      auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+      auto filter = dynrend::PathFilterView(animchar_render__nodeVisibleStgFilters);
       G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == inst->getNodeCount());
 
       animchar_additional_data::AnimcharAdditionalDataView additionalDataView =
@@ -2169,13 +2198,15 @@ static void bvh_iterate_over_animchars(
       constexpr uint8_t filterMask = UpdateStageInfoRender::RENDER_SHADOW;
 
       eastl::vector<int, framemem_allocator> offsets;
-      bvhDynmodelState->process_animchar(ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
-        draw_debug_dynmodels ? dynmodel_renderer::NeedPreviousMatrices::Yes : dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
-        filterMask, dynmodel_renderer::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &offsets);
+      dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
+        draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {}, filter, filterMask,
+        dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &offsets);
 
       dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
-      bool animate = [viewPosition, animchar_visbits, position = animchar_bsph]() {
-        if (static_cast<bool>(animchar_visbits & (VISFLG_MAIN_CAMERA_RENDERED | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE)))
+      bool animate = [viewPosition, animchar_visbits_copy_for_bvh, position = animchar_bsph]() {
+        constexpr animchar_visbits_t FLAGS_TO_TEST =
+          VISFLG_MAIN_VISIBLE | VISFLG_MAIN_AND_SHADOW_VISIBLE | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE;
+        if (static_cast<bool>(animchar_visbits_copy_for_bvh & FLAGS_TO_TEST))
           return true;
         if (v_extract_x(v_length3_sq_x(v_sub(position, viewPosition))) < animate_all_animchars_range * animate_all_animchars_range)
           return true;
@@ -2186,8 +2217,9 @@ static void bvh_iterate_over_animchars(
     });
   BVHAdditionalAnimcharIterateCallback additonalAnimcharCallback =
     [&](ecs::EntityId eid, DynamicRenderableSceneInstance *inst, DynamicRenderableSceneResource *res,
-      animchar_additional_data::AnimcharAdditionalDataView additional_data_view, const animchar_visbits_t &animchar_visbits) {
-      if (!(animchar_visbits & VISFLG_BVH))
+      animchar_additional_data::AnimcharAdditionalDataView additional_data_view,
+      const animchar_visbits_t &animchar_visbits_copy_for_bvh) {
+      if (!(animchar_visbits_copy_for_bvh & VISFLG_BVH))
         return;
       if (!res)
         return;
@@ -2195,14 +2227,13 @@ static void bvh_iterate_over_animchars(
       animchar_additional_data::AnimcharAdditionalDataView additionalDataView = additional_data_view;
 
       eastl::vector<int, framemem_allocator> offsets;
-      bvhDynmodelState->process_animchar(ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
-        draw_debug_dynmodels ? dynmodel_renderer::NeedPreviousMatrices::Yes : dynmodel_renderer::NeedPreviousMatrices::No, {},
-        dynmodel_renderer::PathFilterView::NULL_FILTER, 0, dynmodel_renderer::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0),
-        &offsets);
+      dynrend::add_animchar(bvhDynmodelCtx, ShaderMesh::STG_opaque, ShaderMesh::STG_atest, inst, res, additionalDataView,
+        draw_debug_dynmodels ? dynrend::NeedPreviousMatrices::Yes : dynrend::NeedPreviousMatrices::No, {},
+        dynrend::PathFilterView::NULL_FILTER, 0, dynrend::RenderPriority::DEFAULT, nullptr, TexStreamingContext(0), &offsets);
 
       dynrend::BVHCamoData bvhCamoData = getCamoData(eid);
-      bool animate =
-        static_cast<bool>(animchar_visbits & (VISFLG_MAIN_CAMERA_RENDERED | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE));
+      bool animate = static_cast<bool>(
+        animchar_visbits_copy_for_bvh & (VISFLG_MAIN_CAMERA_RENDERED | VISFLG_CSM_SHADOW_RENDERED | VISFLG_COCKPIT_VISIBLE));
       iterate_one_instance(*inst, *res, nullptr, 0, 0, offsets, bvh_set_dynmodel_instance_data, animate, bvhCamoData, user_data);
     };
   g_entity_mgr->broadcastEventImmediate(BVHAdditionalAnimcharIterate(additonalAnimcharCallback));
@@ -2216,14 +2247,14 @@ static dafg::NodeHandle makeBvhDrawDebugNode()
     auto displayResolution = registry.getResolution<2>("display");
     auto dynmodelDebugDepthRT =
       registry.create("bvh_dynmodel_debug_depth").texture({TEXCF_RTARGET | TEXFMT_DEPTH32, displayResolution});
-    registry.requestRenderPass().color({colorTarget}).depthRw(dynmodelDebugDepthRT);
+    registry.requestRenderPass().color({colorTarget}).depth(dynmodelDebugDepthRT);
     registry.requestState().setFrameBlock("global_frame");
     registry.readBlob<OrderingToken>("bvh_ready_token");
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
 
     return [cameraHndl, dyn_model_render_passVarId = ::get_shader_variable_id("dyn_model_render_pass"),
              dynamicSceneBlockId = ShaderGlobal::getBlockId("dynamic_scene"), displayResolution]() {
-      if (!bvhDynmodelState || !bvhDynmodelInstanceBuffer)
+      if (bvhDynmodelCtx == dynrend::ContextId::INVALID || !bvhDynmodelDataReady)
         return;
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
       SCOPE_VIEW_PROJ_MATRIX;
@@ -2234,10 +2265,8 @@ static dafg::NodeHandle makeBvhDrawDebugNode()
       TMatrix vtm = cameraHndl.ref().viewTm;
       vtm.setcol(3, 0, 0, 0);
       d3d::settm(TM_VIEW, vtm);
-      bvhDynmodelState->prepareForRender();
-      bvhDynmodelState->setVars(bvhDynmodelInstanceBuffer->buffer.getBufId());
       SCENE_LAYER_GUARD(dynamicSceneBlockId);
-      bvhDynmodelState->render(bvhDynmodelInstanceBuffer->curOffset);
+      dynrend::render_all_stages(bvhDynmodelCtx);
     };
   });
 }

@@ -73,6 +73,9 @@ class FFTWater
   int minRenderResBits;
   int enforceRenderCascadeCount;
 
+  float lastMinLevel = 0.f, lastMaxLevel = 0.f;
+  bool hasMinMaxLevel = false;
+
 public:
   void setCurrentTime(double time) { currentPhysTime.store(time, dag::memory_order_release); }
   double getCurrentTime() const { return currentPhysTime.load(dag::memory_order_acquire); }
@@ -90,6 +93,7 @@ public:
       physics->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
 
     renderCommon.setMaxWave(getMaxWaveHeight()); // FFT maxWaveHeight depends on fft_period
+    updateHeightCullingWaveHeight();
   }
   float getPeriod() const { return params.fft_period; }
   FFTWater(int num_render_cascades, int min_render_res_bits) :
@@ -145,6 +149,7 @@ public:
 
     renderCommon.setWind(params.wind_dir_x, params.wind_dir_y, params.wind_speed); // use FFT wind_speed for shader (todo: check)
     renderCommon.setMaxWave(getMaxWaveHeight());
+    updateHeightCullingWaveHeight();
 
     convar::wind_speed_chop = chop_wind_speed;
   }
@@ -175,6 +180,7 @@ public:
       render->setSmallWaveFraction(smallWaveFraction);
       render->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
     }
+    updateHeightCullingWaveHeight();
   }
   fft_water::SimulationParams getSimulationParams() const
   {
@@ -196,6 +202,7 @@ public:
       render->setSimulationParams(simulation);
       render->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
     }
+    updateHeightCullingWaveHeight();
   }
   float getCascadeWindowLength() const
   {
@@ -219,6 +226,7 @@ public:
       render->setCascadeWindowLength(value);
       render->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
     }
+    updateHeightCullingWaveHeight();
   }
   float getCascadeFacetSize() const
   {
@@ -242,6 +250,7 @@ public:
       render->setCascadeFacetSize(value);
       render->reinit(Point2(params.wind_dir_x, params.wind_dir_y), params.wind_speed, params.fft_period);
     }
+    updateHeightCullingWaveHeight();
   }
   void closeRender()
   {
@@ -317,6 +326,7 @@ public:
       if (renderChop)
         renderChop->setLevel(0.0f);
     }
+    updateHeightCullingWaveHeight();
   }
   void initChopWaterGen()
   {
@@ -333,6 +343,9 @@ public:
     renderChop = new ChopWaterRender(*chopWaterGenerator, render->getQuality(), render->getGeomQuality(),
       render->isDepthRendererEnabled(), render->isSSRRendererEnabled(), waterHeightmap.get(), heightmapCulling.get());
     renderChop->setLevel(waterLevel);
+    if (hasMinMaxLevel)
+      renderChop->setMinMaxLevel(lastMinLevel, lastMaxLevel);
+    updateHeightCullingWaveHeight();
   }
   void initPhysicsChop()
   {
@@ -408,8 +421,10 @@ public:
   {
     waterHeightmap = eastl::move(water_heightmap);
     waterHeightmap->heightMax = waterHeightmap->heightOffset + waterHeightmap->heightScale;
+    waterHeightmap->waterLevel = waterLevel;
     heightmapCulling = eastl::make_unique<HeightmapHeightCulling>();
     heightmapCulling->init(waterHeightmap.get());
+    updateHeightCullingWaveHeight();
     if (physics)
     {
       physics->setHeightmap(waterHeightmap.get());
@@ -503,6 +518,23 @@ public:
       physicsChop->setLevel(level);
     if (render || renderChop)
       renderCommon.setWaterLevel(waterLevel);
+    // Flat ocean culling bounds depend on the water level, so rebake the height-culling LUT when the level changes.
+    if (waterHeightmap && heightmapCulling && waterHeightmap->waterLevel != level)
+    {
+      waterHeightmap->waterLevel = level;
+      heightmapCulling->init(waterHeightmap.get());
+    }
+  }
+  void updateHeightCullingWaveHeight()
+  {
+    if (!waterHeightmap || !heightmapCulling)
+      return;
+    // At dead calm wave == 0, so flat ocean keeps a zero-thickness box at the water level. This is correct (no waves to
+    // contain); do not force a minimum here or elevated water bodies lose their tight culling bounds.
+    const float wave = chopEnabled() && renderChop ? renderChop->getMaxWaveHeight() : (render ? render->getMaxWaveHeight() : 0.0f);
+    waterHeightmap->waveCullingMargin = wave;
+    heightmapCulling->setUpDisplacement(wave);
+    heightmapCulling->setDownDisplacement(wave);
   }
   float getMinLevel() const
   {
@@ -520,6 +552,9 @@ public:
   }
   void setMinMaxLevel(float min_level, float max_level)
   {
+    lastMinLevel = min_level;
+    lastMaxLevel = max_level;
+    hasMinMaxLevel = true;
     if (render)
       render->setMinMaxLevel(min_level, max_level);
     if (renderChop)
@@ -980,6 +1015,7 @@ void simulate(FFTWater *handle, double time)
   {
     handle->getRenderCommon().setMaxWave(handle->getMaxWaveHeight());
     handle->getRenderCommon().setChopEnabled(chopEnabled);
+    handle->updateHeightCullingWaveHeight();
   }
   // apply wind_speed_chop changed via convar
   if (chopEnabled && handle->getChopWaterGen() && fabs(handle->getChopWaterGen()->getWindSpeed() - convar::wind_speed_chop) > 0.05f)
@@ -1107,6 +1143,19 @@ void set_shore_wave_threshold(FFTWater *handle, float value)
 {
   if (handle && handle->getRenderCommon().isInited())
     handle->getRenderCommon().setShoreWaveThreshold(value);
+}
+
+float get_shore_damp_min(const FFTWater *handle)
+{
+  if (handle && handle->getRenderCommon().isInited())
+    return handle->getRenderCommon().getShoreDampMin();
+  return 0.f;
+}
+
+void set_shore_damp_min(FFTWater *handle, float value)
+{
+  if (handle && handle->getRenderCommon().isInited())
+    handle->getRenderCommon().setShoreDampMin(value);
 }
 
 int get_fft_resolution(const FFTWater *handle)
@@ -1567,9 +1616,9 @@ bool WaterHeightmap::isFlat(int x, int z) const
   return cellData == 0xFFFF;
 }
 
-float WaterHeightmap::getMaxUpwardDisplacement() const { return 0; }
+float WaterHeightmap::getMaxUpwardDisplacement() const { return waveCullingMargin; }
 
-float WaterHeightmap::getMaxDownwardDisplacement() const { return 0; }
+float WaterHeightmap::getMaxDownwardDisplacement() const { return waveCullingMargin; }
 
 IPoint2 WaterHeightmap::getHeightmapSize() const
 {
@@ -1601,21 +1650,26 @@ bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const re
   if (pageStart.x >= gridSize || pageStart.y >= gridSize || pageEnd.x < 0 || pageEnd.y < 0 || pageEnd.x < pageStart.x ||
       pageEnd.y < pageStart.y)
   {
-    hmin = hmax = heightOffset;
+    hmin = hmax = waterLevel;
     return false;
   }
   pageStart = {max(0, pageStart.x), max(0, pageStart.y)};
   pageEnd = {min(pageEnd.x, gridSize - 1), min(pageEnd.y, gridSize - 1)};
 
-  bool foundData = false;
   hmin = 1000000;
   hmax = -1000000;
   for (int pageY = pageStart.y; pageY <= pageEnd.y; ++pageY)
   {
     for (int pageX = pageStart.x; pageX <= pageEnd.x; ++pageX)
     {
+      // Flat (no-data) pages are rendered at the global water level, not at heightOffset, so treat such a page as a sample at
+      // waterLevel. Otherwise flat ocean gets a culling box offset from where it is actually drawn and pops out of the frustum.
       if (grid[pageY * gridSize + pageX] == 0xFFFF)
+      {
+        hmin = min(hmin, waterLevel);
+        hmax = max(hmax, waterLevel);
         continue;
+      }
 
       const Point2 pageStartPos = origin + mul(pageSize, Point2(pageX, pageY));
       const Point2 pageEndPos = pageStartPos + pageSize;
@@ -1636,15 +1690,15 @@ bool WaterHeightmap::getHeightmapHeightMinMaxInChunk(const Point2 &pos, const re
           {
             hmin = min(hmin, height);
             hmax = max(hmax, height);
-            foundData = true;
           }
         }
       }
     }
   }
 
-  if (!foundData)
-    hmin = hmax = heightOffset;
+  // No page contributed anything (data pages whose bilinear samples were all out of range): fall back to the water level.
+  if (hmin > hmax)
+    hmin = hmax = waterLevel;
   return true;
 }
 

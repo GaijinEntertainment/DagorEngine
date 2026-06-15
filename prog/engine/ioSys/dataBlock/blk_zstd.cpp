@@ -121,20 +121,21 @@ int dblk::discard_unused_shared_name_maps()
   return sharedNameMaps.size();
 }
 
-static void blk_ddict_on_vromfs_unmounted(VirtualRomFsData *fs)
+void dblk::discard_non_intrusive_vromfs_blk_ddict(const VirtualRomFsData *fs)
 {
   WinAutoLock lock(ccGlobGuard);
   for (BlkDDictRec &r : blkDDict)
     if (fs == r.fs)
     {
-      G_ASSERTF(r.rc == 0, "vromfs=%p is unmounted while dict=%p rc=%d > 0", r.fs, r.dict, r.rc);
-      // debug("destroy ddict=%p rc=%d on vromfs=%p removal", r.dict, r.rc, r.fs);
+      G_ASSERTF(r.rc == 0, "vromfs=%p ddict=%p discarded while rc=%d > 0", r.fs, r.dict, r.rc);
       zstd_destroy_ddict(r.dict);
       r.dict = nullptr;
       erase_items(blkDDict, &r - blkDDict.data(), 1);
       return;
     }
 }
+
+static void blk_ddict_on_vromfs_unmounted(VirtualRomFsData *fs) { dblk::discard_non_intrusive_vromfs_blk_ddict(fs); }
 
 dag::ConstSpan<char> dblk::get_vromfs_dict_hash(dag::ConstSpan<char> shared_nm_data)
 {

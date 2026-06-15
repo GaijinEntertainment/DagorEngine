@@ -138,7 +138,8 @@ public:
   void updateDelayedLights();
   float lifeTime() const;
 
-  AcesEffect *startEffect(const Point3 &pos, bool lock, bool is_player, FxErrorType *perr = nullptr, bool with_sound = true);
+  AcesEffect *startEffect(const Point3 &pos, bool lock, bool is_player, FxErrorType *perr = nullptr, bool with_sound = true,
+    bool with_biome_query = false);
   void stopAllEffects();
   void clearAllSoundsExt();
 

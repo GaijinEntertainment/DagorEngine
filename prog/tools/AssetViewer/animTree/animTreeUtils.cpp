@@ -152,6 +152,31 @@ bool add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::
   return false;
 }
 
+bool add_combo_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, const Tab<String> &values, const char *default_value)
+{
+  auto param = find_param_by_name(params, name);
+  if (param == params.end())
+  {
+    int selectedIdx = lup(default_value, values, 0);
+    panel->createCombo(pid, name, values, selectedIdx);
+    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_STRING, String(name)});
+    ++pid;
+    return true;
+  }
+  else
+  {
+    // param exists as editbox (created from blk field) — replace it with combo
+    const SimpleString curValue = panel->getText(param->pid);
+    panel->removeById(param->pid);
+    int selectedIdx = lup(curValue, values, 0);
+    panel->createCombo(param->pid, name, values, selectedIdx);
+    panel->moveById(param->pid);
+  }
+
+  return false;
+}
+
 bool add_edit_matrix_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, const TMatrix &default_value)
 {

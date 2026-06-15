@@ -8,6 +8,7 @@ graphics{
   spotShadowBias:p4 = -0.00006, -0.1, 0.001, 0.005 // z, slope z, shader z, shader slope z
   dafx:t="cpu"
   screenEffect:b=no
+  forceEnableMotionVectors:b=yes
 }
 
 vromList {

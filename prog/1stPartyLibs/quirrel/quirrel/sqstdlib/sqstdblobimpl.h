@@ -43,6 +43,16 @@ struct SQBlob : public SQStream
     }
 
     bool Resize(SQInteger n) {
+        if (!Reserve(n))
+            return false;
+
+        _size = n;
+        if(_ptr > _size)
+            _ptr = _size;
+        return true;
+    }
+
+    bool Reserve(SQInteger n) {
         if (n < 0)
             return false;
 
@@ -56,8 +66,6 @@ struct SQBlob : public SQStream
             sq_free(_alloc_ctx, _buf,_allocated);
             _buf=newbuf;
             _allocated = n;
-            if(_size > _allocated)
-                _size = _allocated;
             if(_ptr > _allocated)
                 _ptr = _allocated;
         }
@@ -66,13 +74,14 @@ struct SQBlob : public SQStream
 
     void GrowBufOf(SQInteger n)
     {
-        if(_size + n > _allocated) {
-            if(_size + n > _size * 2)
-                Resize(_size + n);
+        SQInteger newSize = _size + n;
+        if(newSize > _allocated) {
+            if(newSize > _size * 2)
+                Reserve(newSize);
             else
-                Resize(_size * 2);
+                Reserve(_size * 2);
         }
-        _size = _size + n;
+        _size = newSize;
     }
 
     bool CanAdvance(SQInteger n) {

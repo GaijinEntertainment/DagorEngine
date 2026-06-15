@@ -53,6 +53,8 @@ inline constexpr eastl::array<char, HLSL_RSPACE_COUNT> HLSL_RSPACE_ALL_SYMBOLS =
   'b',
 };
 
+inline constexpr int SLOTS_PER_C_REGISTER = 4; // packoffset(reg.x/y/z/w)
+
 inline void for_each_hlsl_reg_space(auto &&cb)
 {
   for (HlslRegisterSpace space : HLSL_RSPACE_ALL_LIST)
@@ -76,6 +78,7 @@ enum class HlslSlotSemantic : uint8_t
   RESERVED_FOR_PREDEFINES,
   RESERVED_FOR_IMPLICIT_CONST_CBUF,
   RESERVED_FOR_GLOBAL_CONST_CBUF,
+  RESERVED_FOR_REFINED_BLOCK_CBUF,
   RESERVED_FOR_MATERIAL_PARAMS_CBUF,
 };
 
@@ -107,6 +110,7 @@ public:
     "predefined",               // RESERVED_FOR_PREDEFINES
     "implicit const buf",       // RESERVED_FOR_IMPLICIT_CONST_CBUF
     "global const buf",         // RESERVED_FOR_GLOBAL_CONST_CBUF
+    "refined block const buf",  // RESERVED_FOR_REFINED_BLOCK_CBUF
     "material params const buf" // RESERVED_FOR_MATERIAL_PARAMS_CBUF
   };
 
@@ -217,7 +221,6 @@ public:
 
   dag::Expected<void, Tab<ReserveFailure>> reserveAllFrom(const HlslRegAllocator &supp)
   {
-    G_ASSERT(policy.base == supp.policy.base);
     G_ASSERT(policy.cap == supp.policy.cap);
     if (slots.size() < supp.slots.size())
       slots.resize(supp.slots.size());

@@ -10,6 +10,7 @@
 
 #include <EASTL/vector.h>
 #include <debug/dag_log.h>
+#include <generic/dag_expected.h>
 
 
 namespace drv3d_dx12::resource_manager
@@ -119,6 +120,8 @@ protected:
     HeapSuballocatorImpl<ResourceHeapProperties::group_count> impl;
   };
 
+  using BufferHeapAllocationResult = dag::Expected<BufferGlobalId, MemoryAllocationError>;
+
   class BufferHeapState
   {
   public:
@@ -142,11 +145,11 @@ protected:
 
     size_t freeBufferHeap(BufferHeap *manager, uint32_t index, const char *name, bool is_heaps_lock_required);
     size_t freeBufferHeap(BufferHeap *manager, uint32_t index, ValueRange<uint64_t> range, const char *name);
-    eastl::pair<BufferGlobalId, HRESULT> createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device, uint64_t allocation_size,
+    BufferHeapAllocationResult createBufferHeapInMemory(BufferHeap *manager, ID3D12Device *device, uint64_t allocation_size,
       D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state, const D3D12_RESOURCE_DESC &desc,
       const ResourceMemory &allocation, ResourceHeapProperties allocatedProperties, bool can_suballocate);
 
-    eastl::pair<BufferGlobalId, HRESULT> createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device,
+    BufferHeapAllocationResult createBufferHeap(BufferHeap *manager, DXGIAdapter *adapter, ID3D12Device *device,
       uint64_t allocation_size, ResourceHeapProperties properties, D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initial_state,
       const char *name, bool can_suballocate, AllocationFlags allocation_flags = {});
 
@@ -203,12 +206,14 @@ public:
   static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_buffer_desc_allocation_info(ID3D12Device *device,
     uint64_t allocation_size, D3D12_RESOURCE_FLAGS flags);
 
+  using BufferAllocationResult = dag::Expected<BufferState, MemoryAllocationError>;
+
   BufferState allocateBuffer(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size, uint32_t discard_count,
     DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name, bool disable_sub_alloc);
 
-  BufferState allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device, uint64_t size, uint32_t structure_size,
-    uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name,
-    bool disable_sub_alloc, const ResourceHeapProperties &heap_properties, AllocationFlags allocation_flags, HRESULT &error_code);
+  BufferAllocationResult allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device, uint64_t size,
+    uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
+    const char *name, bool disable_sub_alloc, const ResourceHeapProperties &heap_properties, AllocationFlags allocation_flags);
 
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data);
   void freeBufferOnFrameCompletion(BufferState &&buffer, FreeReason free_reason);

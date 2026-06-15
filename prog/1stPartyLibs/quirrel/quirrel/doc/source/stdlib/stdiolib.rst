@@ -191,37 +191,3 @@ File Object
     retrieve the pointer of a stream handle from an arbitrary
     position in the stack.
 
-++++++++++++++++++++++++++++++++
-Script loading and serialization
-++++++++++++++++++++++++++++++++
-
-.. c:function:: SQRESULT sqstd_loadfile(HSQUIRRELVM v, const char* filename, SQBool printerror)
-
-    :param HSQUIRRELVM v: the target VM
-    :param char* filename: path of the script that has to be loaded
-    :param SQBool printerror: if true the compiler error handler will be called if a error occurs
-    :returns: an SQRESULT
-
-    Compiles a squirrel script or loads a precompiled one an pushes it as closure in the stack.
-    When squirrel is compiled in Unicode mode the function can handle different character encodings,
-    UTF8 with and without prefix and UCS-2 prefixed(both big endian an little endian).
-    If the source stream is not prefixed UTF8 encoding is used as default.
-
-.. c:function:: SQRESULT sqstd_dofile(HSQUIRRELVM v, const char* filename, SQBool retval, SQBool printerror)
-
-    :param HSQUIRRELVM v: the target VM
-    :param char* filename: path of the script that has to be loaded
-    :param SQBool retval: if true the function will push the return value of the executed script in the stack.
-    :param SQBool printerror: if true the compiler error handler will be called if a error occurs
-    :returns: an SQRESULT
-    :remarks: the function expects a table on top of the stack that will be used as 'this' for the execution of the script. The 'this' parameter is left untouched in the stack.
-
-    Compiles a squirrel script or loads a precompiled one and executes it.
-    Optionally pushes the return value of the executed script in the stack.
-    When squirrel is compiled in unicode mode the function can handle different character encodings,
-    UTF8 with and without prefix and UCS-2 prefixed(both big endian an little endian).
-    If the source stream is not prefixed, UTF8 encoding is used as default. ::
-
-        sq_pushroottable(v); //push the root table(were the globals of the script will are stored)
-        sqstd_dofile(v, "test.nut", SQFalse, SQTrue);// also prints syntax errors if any
-

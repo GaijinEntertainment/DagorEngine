@@ -1,15 +1,22 @@
 from multiprocessing import Pool, cpu_count
 import os
+import sys
 import signal
 import subprocess
-import datablock as datablock
 import argparse
 import time
+from pathlib import Path
 
 # Generate z levels for tiled map. Files are named as quadkeys.
 # See more: https://learn.microsoft.com/en-us/azure/azure-maps/zoom-levels-and-tile-grid?tabs=csharp#quadkey-indices
 
-DAGOR_DIR = os.environ.get('DAGOR_DIR',r'd:/dagor')
+_SCRIPT_DIR = Path(__file__).resolve().parent  # .../prog/daNetGameLibs/tiled_map
+_REPO_DIR = _SCRIPT_DIR.parents[2]             # .../dagor  (daNetGameLibs -> prog -> dagor)
+sys.path.insert(0, str(_REPO_DIR / '_buildtools' / 'tools'))
+
+import datablock as datablock
+
+DAGOR_DIR = str(_REPO_DIR)
 
 nconvert = os.path.abspath(f"{DAGOR_DIR}/tools/converters/nconvert/nconvert.exe")
 inputPath = ""
@@ -144,7 +151,7 @@ def main():
   global nconvert
 
   if not os.path.exists(DAGOR_DIR):
-    print(f"[ERROR] DAGOR_DIR not found: in following path {DAGOR_DIR}. Consider to set Environment variable DAGOR_DIR to the correct path.")
+    print(f"[ERROR] Repo root not found at: {DAGOR_DIR}. This script must be located at prog/daNetGameLibs/tiled_map/gen_tiled_map.py inside the dagor repo.")
     exit(1)
 
   parser = argparse.ArgumentParser(description='Generate tiled map. The base level tiles are collected in game ' +

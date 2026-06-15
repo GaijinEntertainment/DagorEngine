@@ -29,6 +29,7 @@ int dag_builtin_df_write(const DagFile *fp, const void *buf, int32_t len);
 
 int dag_df_stat(const char *path, DagorStat &buf);
 int dag_df_fstat(const DagFile *fp, DagorStat &buf);
+bool das_dd_file_exists(const char *fname);
 char *dag_df_get_real_name(const char *fname, das::Context *context, das::LineInfoArg *at);
 char *das_dd_get_named_mount_path(const char *mount_name, das::Context *context, das::LineInfoArg *at);
 char *das_dd_resolve_named_mount(char *path, das::Context *context, das::LineInfoArg *at);

@@ -396,7 +396,7 @@ function riGroupRenameOrNewCancel() {
   riEditGroupNameMode.set(0)
 }
 
-let validRIGroupNameRegExp = regexp(@"[a-z,A-Z,0-9,!,@,#,$,%,^,&,(,),_,+,-,:,',., ]*")
+let validRIGroupNameRegExp = regexp(@"[a-z,A-Z,0-9,!,@,#,$,%,^,&,(,),_,+,\-,:,',., ]*")
 function riIsValidGroupName(name) {
   if (name == null)
     return false
@@ -475,6 +475,8 @@ function riGroupRenameFinish() {
 function riGroupNewFinish() {
   riEditGroupNameMode.set(0)
   let newName = riEditGroupName.get()
+  if (newName == "")
+    return
   if (!riIsValidGroupName(newName)) {
     riEditGroupNameMode.set(2)
     showMsgbox({text = $"Cannot create new group with bad name: {newName}"})

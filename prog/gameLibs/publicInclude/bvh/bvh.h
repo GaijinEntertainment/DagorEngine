@@ -636,6 +636,8 @@ void set_ri_dist_mul(float mul);
 
 void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
 
+bool is_global_object_tessellation_enabled();
+
 void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const TMatrix &itm,
   const TMatrix4 &projTm, const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
   dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio);
@@ -665,6 +667,7 @@ enum class BuildBudget
 void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, const Point3 &camera_pos, const Point3 &light_direction);
 
 void set_rigen_cpu_budget(int budget_us);
+void set_tree_anim_max_distance(float distance);
 
 void process_meshes(ContextId context_id, BuildBudget budget = BuildBudget::High);
 

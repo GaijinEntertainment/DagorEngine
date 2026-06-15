@@ -213,7 +213,7 @@ function dialogRoot() {
   scenes.sort(sortScenesByLoadType)
   allModifiableScenes.set(scenes.filter(@(scene) canSceneBeModified(scene)))
   let selectedSceneIndex = selectedScene.get() != noSceneSelected ? allSceneTexts.get().indexof(selectedScene.get()) : null
-  let sceneInfo = selectedSceneIndex != null ? scenes[selectedSceneIndex] : null
+  let sceneInfo = selectedSceneIndex != null ? allModifiableScenes.get()[selectedSceneIndex] : null
   let sceneTitleStyle = { fontSize = hdpx(17), color=Color(150,150,150,120) }
   let sceneInfoStyle = { fontSize = hdpx(17), color=Color(180,180,180,120) }
   let sceneTooltip = @() {
@@ -238,8 +238,7 @@ function dialogRoot() {
     }
 
     let rows = []
-    let idx = 0
-    foreach (tplName in filteredTemplates.get()) {
+    foreach (idx, tplName in filteredTemplates.get()) {
       if (filterText.get().len()==0 || tplName.tolower().contains(filterText.get().tolower())) {
         rows.append(listRow(tplName, idx))
       }

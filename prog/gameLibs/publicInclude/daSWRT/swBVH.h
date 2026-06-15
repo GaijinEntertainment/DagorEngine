@@ -141,8 +141,6 @@ protected:
   dag::Vector<int> tlasLeavesOffsets;
   dag::Vector<mat43f> matrices;
   dag::Vector<int> instances;
-  eastl::unique_ptr<ShaderMaterial> mat;
-  ShaderElement *elem = 0;
   PostFxRenderer rt;
   bool inited = false;
 

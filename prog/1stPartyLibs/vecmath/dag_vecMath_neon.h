@@ -1194,36 +1194,51 @@ VECTORCALL VECMATH_FINLINE vec4f v_fc16_half_to_float_lo(vec4i v)
   return vcvt_f32_f16(vreinterpret_f16_s16(h16));
 }
 
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_pack_half4_lo(float16x4_t h)
+{
+  return vreinterpretq_s32_u16(vcombine_u16(vreinterpret_u16_f16(h), vdup_n_u16(0)));
+}
+
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_pack_u32_half4_lo(vec4i h)
+{
+  uint16x4_t h16 = vmovn_u32(vreinterpretq_u32_s32(h));
+  return vreinterpretq_s32_u16(vcombine_u16(h16, vdup_n_u16(0)));
+}
+
 VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_rtne_lo(vec4f v)
 {
   float16x4_t h = vcvt_f16_f32(v);
-  return vmovl_s16(vreinterpret_s16_f16(h));
+  return v_fc16_pack_half4_lo(h);
 }
 
 VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_down_lo(vec4f v)
 {
-  vec4i c = v_fc16_float_to_half_rtne_lo(v);
-  vec4f f = v_fc16_half_to_float_lo(c);
+  float16x4_t h = vcvt_f16_f32(v);
+  vec4i c = vreinterpretq_s32_u32(vmovl_u16(vreinterpret_u16_f16(h)));
+  vec4f f = vcvt_f32_f16(h);
   vec4f decMask = v_cmp_gt(f, v);
-  return v_seli(c, v_subi(c, v_splatsi(1)), v_cast_vec4i(decMask));
+  vec4i delta = v_ori(v_cast_vec4i(v_cmp_lt(v, v_zero())), v_splatsi(1));
+  return v_fc16_pack_u32_half4_lo(v_seli(c, v_subi(c, delta), v_cast_vec4i(decMask)));
 }
 
 VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_up_lo(vec4f v)
 {
-  vec4i c = v_fc16_float_to_half_rtne_lo(v);
-  vec4f f = v_fc16_half_to_float_lo(c);
+  float16x4_t h = vcvt_f16_f32(v);
+  vec4i c = vreinterpretq_s32_u32(vmovl_u16(vreinterpret_u16_f16(h)));
+  vec4f f = vcvt_f32_f16(h);
   vec4f incMask = v_cmp_lt(f, v);
-  return v_seli(c, v_addi(c, v_splatsi(1)), v_cast_vec4i(incMask));
+  vec4i delta = v_ori(v_cast_vec4i(v_cmp_lt(v, v_zero())), v_splatsi(1));
+  return v_fc16_pack_u32_half4_lo(v_seli(c, v_addi(c, delta), v_cast_vec4i(incMask)));
 }
 
 VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_trunc_lo(vec4f v)
 {
-  vec4i c = v_fc16_float_to_half_rtne_lo(v);
-  vec4f f = v_fc16_half_to_float_lo(c);
+  float16x4_t h = vcvt_f16_f32(v);
+  vec4i c = vreinterpretq_s32_u32(vmovl_u16(vreinterpret_u16_f16(h)));
+  vec4f f = vcvt_f32_f16(h);
   vec4f isPos = v_cmp_gt(v, v_zero());
   vec4f isNeg = v_cmp_lt(v, v_zero());
   vec4f needFix = v_or(v_and(v_cmp_gt(f, v), isPos),
                        v_and(v_cmp_lt(f, v), isNeg));
-  vec4i delta = v_ori(v_cast_vec4i(isNeg), v_splatsi(1));
-  return v_seli(c, v_subi(c, delta), v_cast_vec4i(needFix));
+  return v_fc16_pack_u32_half4_lo(v_seli(c, v_subi(c, v_splatsi(1)), v_cast_vec4i(needFix)));
 }

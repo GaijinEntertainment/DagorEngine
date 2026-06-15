@@ -21,6 +21,7 @@ if $(Platform) = linux {
 
 Sources =
   propPanel.cpp
+  propPanelService.cpp
   c_indirect.cpp
   c_util.cpp
   colorChangeBuffer.cpp

@@ -609,10 +609,11 @@ declare_struct("FxRenderShader", 16,
   { name="modfx_bboard_water_fx", type="FxRenderShaderWater" },
 ]);
 
-declare_struct("FxFadeByDist", 1,
+declare_struct("FxFadeByDist", 2,
 [
   { name="enabled", type="bool", defVal=0 },
   { name="zfar_start_to_clip", type="real", defVal=0 },
+  { name="zfar_finish_to_clip", type="real", defVal=0 },
 ]);
 
 declare_struct("FxDepthMask", 3,

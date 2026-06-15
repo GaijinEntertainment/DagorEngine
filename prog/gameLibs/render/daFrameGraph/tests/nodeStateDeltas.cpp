@@ -369,3 +369,50 @@ TEST_CASE("shrinking the graph does not trip OOB on stale result keys", "[stateD
   REQUIRE(f.result.isMapped(newA));
   REQUIRE(f.result.isMapped(f.dstSentinelIndex()));
 }
+
+TEST_CASE("remove nodes from tail and move dst node", "[stateDeltas][incremental]")
+{
+  DeltaCalculatorFixture f;
+
+  constexpr int FRAME_BLOCK_X = 42;
+  constexpr int FRAME_BLOCK_Y = 99;
+
+  [[maybe_unused]] auto a = f.addNode("a", -1);
+  [[maybe_unused]] auto b = f.addNode("b", FRAME_BLOCK_X);
+  [[maybe_unused]] auto c = f.addNode("c", FRAME_BLOCK_Y);
+  [[maybe_unused]] auto d = f.addNode("d", FRAME_BLOCK_Y);
+  [[maybe_unused]] auto e = f.addNode("e", FRAME_BLOCK_X);
+  f.finalize();
+  [[maybe_unused]] auto dst = f.dstSentinelIndex();
+
+  f.compile();
+
+  REQUIRE(f.result[b].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[b].shaderBlockLayers.frameLayer == FRAME_BLOCK_X);
+  REQUIRE(f.result[c].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[c].shaderBlockLayers.frameLayer == FRAME_BLOCK_Y);
+  REQUIRE(!f.result[d].shaderBlockLayers.frameLayer.has_value());
+  REQUIRE(f.result[e].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[e].shaderBlockLayers.frameLayer == FRAME_BLOCK_X);
+  REQUIRE(f.result[dst].shaderBlockLayers.frameLayer.has_value());
+  REQUIRE(*f.result[dst].shaderBlockLayers.frameLayer == -1);
+
+  auto removedNodes = {d, e, dst};
+  for (auto idx : removedNodes)
+    f.removeNode(idx);
+
+  // shrink the tail
+  f.dstSentinel.reset();
+  f.userNodeCount = 3;
+  f.finalize();
+
+  f.compile(removedNodes);
+  dst = f.dstSentinelIndex();
+
+  REQUIRE(f.result[b].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[b].shaderBlockLayers.frameLayer == FRAME_BLOCK_X);
+  REQUIRE(f.result[c].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[c].shaderBlockLayers.frameLayer == FRAME_BLOCK_Y);
+  REQUIRE(f.result[dst].shaderBlockLayers.frameLayer.has_value());
+  CHECK(*f.result[dst].shaderBlockLayers.frameLayer == -1);
+}

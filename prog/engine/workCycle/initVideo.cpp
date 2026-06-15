@@ -209,6 +209,10 @@ public:
     ResourceChecker::init();
     if (!d3d::init_video(win32_get_instance(), wndProc, wcName, ncmd, hwnd, hicon, title, &cb))
     {
+      // video (3d driver) init failed (any driver) - report to telemetry before the msgbox/quit or fatal below
+      if (dgs_report_video_driver_init_failed)
+        dgs_report_video_driver_init_failed();
+
       // currently unsupported for Metal path
       if (pblk_video->getBool("msgBoxAndQuitOnInitVideoFail", false))
       {

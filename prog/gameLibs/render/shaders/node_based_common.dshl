@@ -139,6 +139,7 @@ float4 rendering_res;
 int envi_cover_is_temporal_aa;
 int envi_cover_frame_idx;
 int packed_gbuf_normals;
+int special_vision;
 
 float volfog_rain_intensity;
 float volfog_snow_intensity;

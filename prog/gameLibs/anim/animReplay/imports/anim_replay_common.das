@@ -8,6 +8,13 @@ def safe_at(t : FloatList const?; idx : int; default_value : float) : float
     return (*t)[idx]
   return default_value
 
+def erase_if(var arr : Array; blk : block<(key : ChildComponent) : bool>)
+  var i = length(arr) - 1
+  while i >= 0
+    if invoke(blk, arr[i])
+      erase(arr, i)
+    i--
+
 def make_tm(quat : float4; pos : float3)
   return float3x4(compose(pos, quat, float3(1)))
 

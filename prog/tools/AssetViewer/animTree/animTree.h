@@ -117,6 +117,8 @@ protected:
   IfMathDropHandler ifMathDropHandler;
 
   eastl::unordered_map<int, eastl::unique_ptr<TreeFilter>> treeFilters;
+  DataBlock ctrlsSettingsPanelState;
+  DataBlock mainPanelState;
 
   void addController(TLeafHandle handle, CtrlType type);
   void addBlendNode(TLeafHandle handle, BlendNodeType type);
@@ -141,6 +143,12 @@ protected:
   void paramSwitchFillBlockSettings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
   void fillParamSwitchEnumGen(PropPanel::ContainerPropertyControl *panel, const DataBlock *nodes);
   void changeParamSwitchType(PropPanel::ContainerPropertyControl *panel);
+  Tab<String> paramSwitchGetNodeNames(const DataBlock &settings);
+  void paramSwitchFillMorphTimes(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings);
+  void paramSwitchSetSelectedMorphTimeSettings(PropPanel::ContainerPropertyControl *panel);
+  void paramSwitchAddMorphTime(PropPanel::ContainerPropertyControl *panel);
+  void paramSwitchRemoveMorphTime(PropPanel::ContainerPropertyControl *panel);
+  void paramSwitchRefreshMorphTimesCombo(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings = nullptr);
   void changeMultiChainFABRIKBlockType(PropPanel::ContainerPropertyControl *panel);
   void changeParamsCtrlBlockType(PropPanel::ContainerPropertyControl *panel);
   void paramsCtrlRemoveIfMath(PropPanel::ContainerPropertyControl *panel);

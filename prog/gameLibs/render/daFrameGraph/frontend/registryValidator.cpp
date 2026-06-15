@@ -567,9 +567,20 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     }
   }
 
+  bool zWriteOverrideValid = true;
+  if (nodeData.renderingRequirements && nodeData.renderingRequirements->implicitZWriteDisable && nodeData.stateRequirements &&
+      nodeData.stateRequirements->pipelineStateOverride &&
+      nodeData.stateRequirements->pipelineStateOverride->isOn(shaders::OverrideState::Z_WRITE_ENABLE))
+  {
+    logerr("daFG: Node '%s' uses an implicit Z_WRITE_DISABLE but also explicitly requests a "
+           "Z_WRITE_ENABLE pipeline override. These are contradictory. Disabling this node!",
+      registry.knownNames.getName(nodeId));
+    zWriteOverrideValid = false;
+  }
+
   return noErronousIntroductions && noErronousConsumptions && !anyUnfilledSlotRequests && !anyBindingTypeMismatches &&
          !anyUsageConflictsAfterNameResolution && !anyFaultyHistoryRequests && !anyFramebufferUsageMismatches &&
-         !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid;
+         !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid && zWriteOverrideValid;
 }
 
 void RegistryValidator::validateRegistry()

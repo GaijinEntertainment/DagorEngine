@@ -241,7 +241,7 @@ macro USE_CLOTH_WIND_POSITION_OFFSET_BASE(code)
   }
 endmacro
 
-macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
+macro USE_CLOTH_WIND_POSITION_OFFSET()
   hlsl(vs)
   {
     void directional_data_skinning(VsInput input, inout float3 directional_data)
@@ -253,22 +253,9 @@ macro USE_CLOTH_WIND_POSITION_OFFSET(simple_skinning)
         bone_t skinnedTm = skinning_matrix(input);
         directional_data = mul_bone3(directional_data, skinnedTm);
       ##else
-        ##if in_editor_assume == yes || simple_skinning
-          SETUP_RENDER_VARS(input.normal.w);
-          float3 world_local_x = globtm_0.xyz;
-          float3 world_local_y = globtm_1.xyz;
-          float3 world_local_z = globtm_2.xyz;
-          float4 projNormal = directional_data.x * globtm_0 + directional_data.y * globtm_1 + directional_data.z * globtm_2;
-          directional_data = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
-        ##else
-          uint offset_id = get_immediate_dword_0();
-          offset_id += uint(input.normal.w*255.001953) * matrices_stride;
-          float4 r1 = bufferAt(instance_data_buffer, offset_id),r2 = bufferAt(instance_data_buffer, offset_id+1),r3 = bufferAt(instance_data_buffer, offset_id+2);
-          float3 world_local_x = r1.xyz;
-          float3 world_local_y = r2.xyz;
-          float3 world_local_z = r3.xyz;
-          directional_data = directional_data.x * world_local_x + directional_data.y * world_local_y + directional_data.z * world_local_z;
-        ##endif
+        SETUP_RENDER_VARS(input.normal.w);
+        float4 projNormal = directional_data.x * globtm_0 + directional_data.y * globtm_1 + directional_data.z * globtm_2;
+        directional_data = projNormal.x * proj_to_world_tm_0.xyz + projNormal.y * proj_to_world_tm_1.xyz + projNormal.z * proj_to_world_tm_2.xyz + projNormal.w * proj_to_world_tm_3.xyz;
       ##endif
     }
   }

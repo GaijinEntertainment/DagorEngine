@@ -477,6 +477,7 @@ static const char *config_options[] = {
 
 struct mg_context {
   volatile int stop_flag;         // Should we stop event loop
+  pthread_mutex_t stop_flag_mutex;
   pthread_cond_t stop_flag_signal;
 
   SSL_CTX *ssl_ctx;               // SSL context
@@ -5391,8 +5392,10 @@ static void *master_thread(void *thread_func_param) {
   // Signal mg_stop() that we're done.
   // WARNING: This must be the very last thing this
   // thread does, as ctx becomes invalid after this line.
+  pthread_mutex_lock(&ctx->stop_flag_mutex);
   interlocked_store(&ctx->stop_flag, 2);
   pthread_cond_signal(&ctx->stop_flag_signal);
+  pthread_mutex_unlock(&ctx->stop_flag_mutex);
   return NULL;
 }
 
@@ -5417,22 +5420,18 @@ static void free_context(struct mg_context *ctx) {
 #endif // !NO_SSL
 
   pthread_cond_destroy(&ctx->stop_flag_signal);
+  pthread_mutex_destroy(&ctx->stop_flag_mutex);
 
   // Deallocate context itself
   free(ctx);
 }
 
 void mg_stop(struct mg_context *ctx) {
+  pthread_mutex_lock(&ctx->stop_flag_mutex);
   interlocked_store(&ctx->stop_flag, 1);
-
-  pthread_mutex_t stop_flag_mutex;
-  pthread_mutex_init(&stop_flag_mutex, NULL);
-  pthread_mutex_lock(&stop_flag_mutex);
-  // Wait until mg_fini() stops
-  pthread_cond_wait(&ctx->stop_flag_signal, &stop_flag_mutex);
-  assert(interlocked_load(&ctx->stop_flag) == 2);
-  pthread_mutex_unlock(&stop_flag_mutex);
-  pthread_mutex_destroy(&stop_flag_mutex);
+  while (interlocked_load(&ctx->stop_flag) != 2)
+    pthread_cond_wait(&ctx->stop_flag_signal, &ctx->stop_flag_mutex);
+  pthread_mutex_unlock(&ctx->stop_flag_mutex);
 
   free_context(ctx);
 
@@ -5522,6 +5521,7 @@ struct mg_context *mg_start(const struct mg_callbacks *callbacks,
   // (void) signal(SIGCHLD, SIG_IGN);
 #endif // !_WIN32
 
+  (void)pthread_mutex_init(&ctx->stop_flag_mutex, NULL);
   (void)pthread_cond_init(&ctx->stop_flag_signal, NULL);
   (void) pthread_mutex_init(&ctx->mutex, NULL);
   (void) pthread_cond_init(&ctx->cond, NULL);

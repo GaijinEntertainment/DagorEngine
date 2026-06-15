@@ -62,6 +62,8 @@ inline const GridHolder *find_grid_holder(const GridHolder *gh) { return gh; };
 inline const GridHolder *find_grid_holder(const GridHolder &gh) { return &gh; };
 void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb);
 
+GridHolder *find_grid_holder_opt(ecs::HashedConstString grid_name_hash);
+
 inline const GridObjComponent *to_comp(const GridObject *obj) { return static_cast<const GridObjComponent *>(obj); }
 
 template <typename F>

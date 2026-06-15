@@ -58,27 +58,16 @@ typedef unsigned int uint;
 extern void convertnew(Interface *ip, bool on_import);
 extern void collapse_materials(Interface *ip);
 
-TCHAR *ReadCharString(int len, FILE *h)
+static bool read_char_string(int len, FILE *h, std::wstring &out)
 {
-  char *s = (char *)malloc(len + 1);
-  assert(s);
-  if (len)
-  {
-    if (fread(s, len, 1, h) != 1)
-    {
-      free(s);
-      return NULL;
-    }
-  }
-  s[len] = 0;
-#ifdef _UNICODE
-  TCHAR *sw = (TCHAR *)malloc(sizeof(TCHAR) * (len + 1));
-  mbstowcs(sw, s, len + 1);
-  free(s);
-  return sw;
-#else
-  return s;
-#endif
+  out.clear();
+  if (len == 0)
+    return true;
+  std::string s(len, 0);
+  if (fread(&s[0], len, 1, h) != 1)
+    return false;
+  out = strToWide(s.data());
+  return true;
 }
 
 
@@ -1292,15 +1281,11 @@ ClassDesc *GetImpUtilCD() { return &utilDesc; }
 struct ImpMat
 {
   DagMater m;
-  TCHAR *name;
-  TCHAR *clsname;
-  TCHAR *script;
+  std::wstring name;
+  std::wstring clsname;
+  std::wstring script;
   Mtl *mtl;
-  ImpMat()
-  {
-    name = clsname = script = NULL;
-    mtl = NULL;
-  }
+  ImpMat() : mtl(nullptr) {}
 };
 
 struct Impnode
@@ -1311,10 +1296,10 @@ struct Impnode
   Mtl *mtl;
 };
 
-static Tab<TCHAR *> tex;
-static Tab<ImpMat> mat;
+static std::vector<std::wstring> tex;
+static std::vector<ImpMat> mat;
 // static Tab<Impnode> node;
-static Tab<TCHAR *> keylabel;
+static std::vector<std::wstring> keylabel;
 static Tab<DefNoteTrack *> ntrack;
 // static Tab<DagNoteKey*> ntrack;
 // static Tab<int> ntrack_knum;
@@ -1323,43 +1308,19 @@ static TSTR scene_name = _T("");
 
 static void cleanup(int err = 0)
 {
-  int i;
-  for (i = 0; i < tex.Count(); ++i)
-    if (tex[i])
-      free(tex[i]);
-  tex.ZeroCount();
-  for (i = 0; i < mat.Count(); ++i)
-  {
-    if (mat[i].name)
-      free(mat[i].name);
-    if (mat[i].clsname)
-      free(mat[i].clsname);
-    if (mat[i].script)
-      free(mat[i].script);
-  }
+  tex.clear();
   if (err)
   {
-    for (i = 0; i < mat.Count(); ++i)
+    for (size_t i = 0; i < mat.size(); ++i)
       if (mat[i].mtl)
         mat[i].mtl->DeleteThis();
-    /*              for(i=0;i<node.Count();++i) if(node[i].mtl) {
-                            for(int j=0;j<mat.Count();++j) if(mat[j].mtl==node[i].mtl) break;
-                            if(j>=mat.Count()) node[i].mtl->DeleteThis();
-                    }
-    */
   }
-  mat.ZeroCount();
-  //      node.ZeroCount();
-  for (i = 0; i < keylabel.Count(); ++i)
-    if (keylabel[i])
-      free(keylabel[i]);
-  keylabel.ZeroCount();
-  // for(i=0;i<ntrack.Count();++i) if(ntrack[i]) free(ntrack[i]);
-  for (i = 0; i < ntrack.Count(); ++i)
+  mat.clear();
+  keylabel.clear();
+  for (int i = 0; i < ntrack.Count(); ++i)
     if (ntrack[i])
       ntrack[i]->DeleteThis();
   ntrack.ZeroCount();
-  // ntrack_knum.ZeroCount();
 }
 
 static void make_mtl(ImpMat &m, int ind, Class_ID cid)
@@ -1373,18 +1334,14 @@ static void make_mtl(ImpMat &m, int ind, Class_ID cid)
   d->set_emis(m.m.emis);
   d->set_spec((m.m.power == 0.0f) ? Color(0, 0, 0) : Color(m.m.spec));
   d->set_power(m.m.power);
-  d->set_classname(m.clsname);
-  d->set_script(m.script);
+  d->set_classname(m.clsname.data());
+  d->set_script(m.script.data());
 
-  char noname = 0;
-  if (!m.name)
-    noname = 1;
-  else if (m.name[0] == 0)
-    noname = 1;
+  bool noname = m.name.empty();
   if (!noname)
-    m.mtl->SetName(m.name);
+    m.mtl->SetName(m.name.data());
 
-  bool real2sided = m.script ? _tcsstr(m.script, _T("real_two_sided=yes")) : false;
+  bool real2sided = m.script.find(_T("real_two_sided=yes")) != std::wstring::npos;
   if (real2sided)
   {
     d->set_2sided(IDagorMat::Sides::RealDoubleSided);
@@ -1402,9 +1359,13 @@ static void make_mtl(ImpMat &m, int ind, Class_ID cid)
 
   for (int i = 0; i < DAGTEXNUM; ++i)
   {
-    TCHAR *s = NULL;
-    if (m.m.texid[i] < tex.Count() && (i < 8 || (m.m.flags & DAG_MF_16TEX)))
-      s = tex[m.m.texid[i]];
+    const TCHAR *s = nullptr;
+    if (m.m.texid[i] < tex.size() && (i < 8 || (m.m.flags & DAG_MF_16TEX)))
+    {
+      const std::wstring &ts = tex[m.m.texid[i]];
+      if (!ts.empty())
+        s = ts.data();
+    }
     d->set_texname(i, s);
     if (i == 0 && noname)
     {
@@ -1524,10 +1485,10 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       if (l > 0 && in)
       {
 
-        TCHAR *nm = ReadCharString(l, h);
-        in->SetName(nm, DagImp::useLegacyImport);
-        DebugPrint(_T("node <%s>\n"), nm);
-        free(nm);
+        std::wstring nm;
+        read_char_string(l, h, nm);
+        in->SetName(nm.data(), DagImp::useLegacyImport);
+        DebugPrint(_T("node <%s>\n"), nm.data());
       }
     }
     else if (blk_type() == DAG_NODE_TM && in)
@@ -1559,22 +1520,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
           n->AddNoteTrack(nnt);
         }
       }
-      /*
-      if(ntrkid<ntrack.Count()) {
-          int knum=ntrack_knum[ntrkid];
-          DagNoteKey *nk=ntrack[ntrkid];
-              DefNoteTrack *nt=(DefNoteTrack*)NewDefaultNoteTrack();
-              if(nt) {
-              for(int i=0;i<knum;++i) {
-                  char *nm="";
-                  if(nk[i].id<keylabel.Count()) nm=keylabel[nk[i].id];
-                  NoteKey *k=new NoteKey(nk[i].t,nm);
-                  nt->keys.Append(1,&k);
-              }
-              n->AddNoteTrack(nt);
-              }
-      }
-      */
       // create PRS controller
       Control *prs = CreatePRSControl();
       assert(prs);
@@ -1724,10 +1669,10 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       int l = blk_rest();
       if (l > 0)
       {
-        TCHAR *s = ReadCharString(l, h);
+        std::wstring s;
+        read_char_string(l, h, s);
         std::wstring trimmed = trim_params(s);
         n->SetUserPropBuffer(trimmed.data());
-        free(s);
       }
       DebugPrint(_T("   node script ok\n"));
     }
@@ -1744,7 +1689,7 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
         {
           ushort id;
           rd(&id, 2);
-          if (id < mat.Count())
+          if (id < mat.size())
           {
             if (!mat[id].mtl)
               make_mtl(mat[id], id, DagorMat_CID);
@@ -1759,7 +1704,7 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       {
         ushort id;
         rd(&id, 2);
-        if (id < mat.Count())
+        if (id < mat.size())
         {
           if (!mat[id].mtl)
             make_mtl(mat[id], id, DagorMat2_CID);
@@ -2946,23 +2891,14 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
     {
       int n = 0;
       rd(&n, 2);
-      tex.SetCount(n);
+      tex.resize(n);
       for (int i = 0; i < n; ++i)
       {
         int l = 0;
         rd(&l, 1);
 
-        tex[i] = ReadCharString(l, h);
-        if (!tex[i])
+        if (!read_char_string(l, h, tex[i]))
           goto read_err;
-
-        /*tex[i] = (TCHAR *) malloc(l + 1);
-        assert(tex[i]);
-        if (l)
-        {
-          rd(tex[i], l);
-        }
-        tex[i][l] = 0;*/
       }
     }
     else if (blk_type() == DAG_MATER)
@@ -2970,65 +2906,28 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
       ImpMat m;
       int l = 0;
       rd(&l, 1);
-      if (l > 0)
-      {
-        /* m.name = (TCHAR *) malloc(l + 1);
-         assert(m.name);
-         rd(m.name, l);
-         m.name[l] = 0;*/
-
-        m.name = ReadCharString(l, h);
-        if (!m.name)
-          goto read_err;
-      }
+      if (!read_char_string(l, h, m.name))
+        goto read_err;
       rd(&m.m, sizeof(m.m));
       l = 0;
       rd(&l, 1);
-      if (l > 0)
-      {
-        /* m.clsname = (TCHAR *) malloc(l + 1);
-         assert(m.clsname);
-         rd(m.clsname, l);
-         m.clsname[l] = 0;*/
-        m.clsname = ReadCharString(l, h);
-        if (!m.clsname)
-          goto read_err;
-      }
+      if (!read_char_string(l, h, m.clsname))
+        goto read_err;
       l = blk_rest();
-      if (l > 0)
-      {
-        /* m.script = (TCHAR *) malloc(l + 1);
-         assert(m.script);
-         rd(m.script, l);
-         m.script[l] = 0;*/
-
-        m.script = ReadCharString(l, h);
-        if (!m.script)
-          goto read_err;
-      }
-      m.mtl = NULL;
-      mat.Append(1, &m);
+      if (!read_char_string(l, h, m.script))
+        goto read_err;
+      mat.push_back(m);
     }
     else if (blk_type() == DAG_KEYLABELS)
     {
       int n = 0;
       rd(&n, 2);
-      keylabel.SetCount(n);
-      int i;
-      for (i = 0; i < n; ++i)
-        keylabel[i] = NULL;
-      for (i = 0; i < n; ++i)
+      keylabel.resize(n);
+      for (int i = 0; i < n; ++i)
       {
         int l = 0;
         rd(&l, 1);
-
-        /*char *s = (char *) malloc(l + 1);
-        assert(s);
-        rd(s, l); s[l] = 0;
-        keylabel[i] = s;*/
-
-        keylabel[i] = ReadCharString(l, h);
-        if (!keylabel[i])
+        if (!read_char_string(l, h, keylabel[i]))
           goto read_err;
       }
     }
@@ -3037,27 +2936,21 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
       int n = blk_rest() / sizeof(DagNoteKey);
       if (n > 0)
       {
-        DagNoteKey *nk = (DagNoteKey *)malloc(n * sizeof(DagNoteKey));
-        assert(nk);
-        rd(nk, n * sizeof(*nk));
-        /*
-        ntrack.Append(1,&nk);
-        ntrack_knum.Append(1,&n);
-        */
+        std::vector<DagNoteKey> nk(n);
+        rd(nk.data(), n * sizeof(*nk.data()));
         DefNoteTrack *nt = (DefNoteTrack *)NewDefaultNoteTrack();
         if (nt)
         {
           for (int i = 0; i < n; ++i)
           {
             const TCHAR *nm = _T("");
-            if (nk[i].id < keylabel.Count())
-              nm = keylabel[nk[i].id];
+            if (nk[i].id < keylabel.size())
+              nm = keylabel[nk[i].id].data();
             NoteKey *k = new NoteKey(nk[i].t, nm);
             nt->keys.Append(1, &k);
           }
         }
         ntrack.Append(1, &nt);
-        free(nk);
       }
       else
       {
@@ -3121,8 +3014,6 @@ int DagImp::doImportOne(const TCHAR *fname, ImpInterface *ii, Interface *ip, BOO
 
   DebugPrint(_T("clean up\n"));
   cleanup();
-  //  collapse_materials(ip);
-  //  DebugPrint(_T("collapsed\n"));
   convertnew(ip, true);
 
   DebugPrint(_T("import ok\n"));

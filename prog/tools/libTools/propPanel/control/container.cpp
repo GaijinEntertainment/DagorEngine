@@ -28,6 +28,7 @@
 #include "point4.h"
 #include "radioButton.h"
 #include "radioGroup.h"
+#include "searchEditBox.h"
 #include "separator.h"
 #include "simpleColor.h"
 #include "spinEditInt.h"
@@ -196,10 +197,11 @@ ContainerPropertyControl *ContainerPropertyControl::createMultiSelectTreeCheckbo
   return newControl;
 }
 
-void ContainerPropertyControl::createStatic(int id, const char caption[], bool new_line, bool use_text_width, bool word_wrap)
+void ContainerPropertyControl::createStatic(int id, const char caption[], bool new_line, bool use_text_width, bool word_wrap,
+  bool monospace)
 {
   StaticPropertyControl *newControl = new StaticPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
-    getNextControlY(new_line), getClientWidth(), caption, hdpi::Px(0), use_text_width, word_wrap);
+    getNextControlY(new_line), getClientWidth(), caption, hdpi::Px(0), use_text_width, word_wrap, monospace);
 
   addControl(newControl, new_line);
 }
@@ -216,6 +218,16 @@ void ContainerPropertyControl::createEditBox(int id, const char caption[], const
   if (multiline && !auto_height)
     newControl->setHeight(multi_line_height);
 
+  addControl(newControl, new_line);
+}
+
+void ContainerPropertyControl::createSearchEditBox(int id, const char caption[], const char text[], bool enabled, bool new_line)
+{
+  SearchEditBoxPropertyControl *newControl =
+    new SearchEditBoxPropertyControl(id, mEventHandler, this, 0, 0, hdpi::Px(0), hdpi::Px(0), caption);
+
+  newControl->setTextValue(text);
+  newControl->setEnabled(enabled);
   addControl(newControl, new_line);
 }
 

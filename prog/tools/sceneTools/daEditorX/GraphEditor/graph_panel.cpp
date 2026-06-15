@@ -3,6 +3,8 @@
 #include "graph_panel.h"
 
 #include "command_definitions.h"
+#include "graph_hotkeys_bar.h"
+#include "graph_status_bar.h"
 #include "graph_validation.h"
 #include "plugin.h"
 #include "pluginService/graph_tex_gen_service.h"
@@ -17,7 +19,9 @@
 
 #include <EASTL/algorithm.h>
 #include <EASTL/fixed_vector.h>
+#include <EASTL/hash_map.h>
 #include <EASTL/hash_set.h>
+#include <EASTL/sort.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -30,6 +34,7 @@ namespace
 constexpr float PIN_SQUARE_SIZE = 9.0f;
 constexpr float PIN_HALO_RADIUS = 12.0f;
 constexpr float COLUMNS_GAP = 24.0f;
+constexpr float PIN_COMMENT_MARGIN = 6.0f; // gap between a pin comment caption and the node edge it sits outside of
 // #8f8 at ~0.7 opacity, mirroring graphEditor.js pinSelectSvg (#pinSelectSvg fill="#8f8" fill-opacity=0.7).
 constexpr ImU32 PIN_HOVER_HALO_COLOR = IM_COL32(0x88, 0xFF, 0x88, 178);
 
@@ -53,6 +58,12 @@ constexpr float MIN_BLOCK_SIZE = 200.0f;
 // m_GroupBounds, the node's own bounds are contained in its own group rect, so the node
 // becomes its own child and GetGroupedNodes recurses until the stack overflows.
 constexpr float BLOCK_CONTAINMENT_GAP = 1.0f;
+
+// Off-screen node culling (GraphPanel::updateImgui): a node whose canvas-space rect is entirely
+// outside the viewport, inflated by this fraction of the viewport size on each side, is not drawn
+// this frame. The margin keeps nodes / links from popping at the edge during a pan and covers link
+// bezier control-point bulge beyond the endpoint node rects.
+constexpr float CULL_VIEWPORT_MARGIN_FRAC = 0.5f;
 
 constexpr float GRAPH_EDITOR_ZOOM_LEVELS[] = {
   0.01f,
@@ -145,6 +156,44 @@ void queue_selected_for_delete()
   }
 }
 
+void select_nodes_with_no_connected_outputs(const GraphData &gd)
+{
+  // Pin slots (node id + pin index) touched by an edge, on either endpoint, keyed by the same
+  // makePinId used for rendering. Both endpoints are inserted so the result is independent of
+  // stored edge orientation (matches the JS reference, which inspects both endpoints' roles).
+  eastl::hash_set<uint64_t> connectedPins;
+  connectedPins.reserve(gd.edges.size() * 2);
+  for (const GraphData::Edge &e : gd.edges)
+  {
+    connectedPins.insert(GraphPanel::makePinId(e.elemA, e.pinA));
+    connectedPins.insert(GraphPanel::makePinId(e.elemB, e.pinB));
+  }
+
+  ne::ClearSelection();
+  for (const GraphData::Node &n : gd.nodes)
+  {
+    bool hasOutputPin = false;
+    bool hasConnectedOutput = false;
+    for (int j = 0; j < static_cast<int>(n.pins.size()); ++j)
+    {
+      if (n.pins[j].role != PinRole::Out)
+      {
+        continue;
+      }
+      hasOutputPin = true;
+      if (connectedPins.find(GraphPanel::makePinId(n.id, j)) != connectedPins.end())
+      {
+        hasConnectedOutput = true;
+        break;
+      }
+    }
+    if (hasOutputPin && !hasConnectedOutput)
+    {
+      ne::SelectNode(ne::NodeId(GraphPanel::makeNodeId(n.id)), /*append=*/true);
+    }
+  }
+}
+
 const eastl::string *find_property_value(const GraphData::Node &n, const char *prop_name)
 {
   for (const auto &pv : n.propertyValues)
@@ -233,7 +282,7 @@ ImU32 pinColorForType(PinType t)
   return IM_COL32(0xFF, 0xFF, 0xFF, 0xFF);
 }
 
-void drawPinSquare(ne::PinId pin_id, ne::PinKind kind, PinType type)
+ImVec2 drawPinSquare(ne::PinId pin_id, ne::PinKind kind, PinType type, bool draw_decoration = true)
 {
   ne::BeginPin(pin_id, kind);
 
@@ -241,22 +290,40 @@ void drawPinSquare(ne::PinId pin_id, ne::PinKind kind, PinType type)
   const float lineH = ImGui::GetTextLineHeight();
   const ImVec2 a(cursor.x, cursor.y + (lineH - PIN_SQUARE_SIZE) * 0.5f);
   const ImVec2 b(a.x + PIN_SQUARE_SIZE, a.y + PIN_SQUARE_SIZE);
+  const ImVec2 center((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
   ImGui::Dummy(ImVec2(PIN_SQUARE_SIZE, lineH));
 
-  ImDrawList *dl = ImGui::GetWindowDrawList();
-
-  if (ne::GetHoveredPin() == pin_id)
+  if (draw_decoration)
   {
-    const ImVec2 c((a.x + b.x) * 0.5f, (a.y + b.y) * 0.5f);
-    dl->AddCircleFilled(c, PIN_HALO_RADIUS, PIN_HOVER_HALO_COLOR);
-  }
+    ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  dl->AddRectFilled(a, b, pinColorForType(type));
-  dl->AddRect(a, b, IM_COL32_BLACK);
+    if (ne::GetHoveredPin() == pin_id)
+    {
+      dl->AddCircleFilled(center, PIN_HALO_RADIUS, PIN_HOVER_HALO_COLOR);
+    }
+
+    dl->AddRectFilled(a, b, pinColorForType(type));
+    dl->AddRect(a, b, IM_COL32_BLACK);
+  }
 
   ne::PinRect(a, b);
 
   ne::EndPin();
+
+  return center;
+}
+
+void draw_pin_comment_outside(int node_id, const ImVec2 &pin_center, bool is_input, eastl::string_view comment)
+{
+  const char *textBegin = comment.data();
+  const char *textEnd = comment.data() + comment.size();
+  const ne::NodeId nid = ne::NodeId(GraphPanel::makeNodeId(node_id));
+  const ImVec2 nodePos = ne::GetNodePosition(nid);
+  const ImVec2 nodeSize = ne::GetNodeSize(nid);
+  const float y = pin_center.y - ImGui::GetTextLineHeight() * 0.5f;
+  const float x = is_input ? (nodePos.x - PIN_COMMENT_MARGIN - ImGui::CalcTextSize(textBegin, textEnd).x)
+                           : (nodePos.x + nodeSize.x + PIN_COMMENT_MARGIN);
+  ImGui::GetWindowDrawList()->AddText(ImVec2(x, y), ImGui::GetColorU32(ImGuiCol_Text), textBegin, textEnd);
 }
 } // namespace
 
@@ -301,6 +368,7 @@ void GraphPanel::onGraphDataChanged()
   // Clear any stale selection -- the previous graph's selected node id is meaningless
   // against the new node set (most often: previous was non-empty, new is empty).
   selectedNodeId = -1;
+  previewNodeId = -1;
 
   // Every loaded node needs its position pushed to ne::SetNodePosition once on first render.
   pendingPositionIds.clear();
@@ -449,6 +517,43 @@ BlockDeleteChoice promptBlockDelete()
 
 void GraphPanel::actObjects([[maybe_unused]] float dt)
 {
+  if (pendingCommentNodeId >= 0)
+  {
+    const int nodeId = pendingCommentNodeId;
+    const int pinIndex = pendingCommentPinIndex;
+    pendingCommentNodeId = -1;
+    pendingCommentPinIndex = -1;
+
+    eastl::string comment;
+    for (const GraphData::Node &n : graphData.nodes)
+    {
+      if (n.id == nodeId && pinIndex >= 0 && pinIndex < static_cast<int>(n.pins.size()))
+      {
+        comment = n.pins[pinIndex].comment;
+        break;
+      }
+    }
+
+    if (plugin.promptPinComment(comment))
+    {
+      bool changed = false;
+      plugin.mutateGraphData([&](GraphData &gd) {
+        for (GraphData::Node &n : gd.nodes)
+        {
+          if (n.id == nodeId && pinIndex >= 0 && pinIndex < static_cast<int>(n.pins.size()))
+          {
+            if (n.pins[pinIndex].comment != comment)
+            {
+              n.pins[pinIndex].comment = comment;
+              changed = true;
+            }
+            break;
+          }
+        }
+      });
+    }
+  }
+
   if (pendingNodeDeletes.empty())
   {
     return;
@@ -674,28 +779,265 @@ void GraphPanel::syncBlockSizes()
   }
 }
 
+void GraphPanel::showNextSelectedNode()
+{
+  eastl::fixed_vector<int, 32, true> selected;
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (ne::IsNodeSelected(ne::NodeId(makeNodeId(n.id))))
+    {
+      selected.push_back(n.id);
+    }
+  }
+  if (selected.empty())
+  {
+    lastShownSelectedNodeId = -1;
+    return;
+  }
+
+  // Advance to the node after the one shown last, wrapping. If the last-shown id is no longer in
+  // the selection (selection changed since), idx stays 0 so we restart from the first selected node.
+  int idx = 0;
+  for (int i = 0; i < static_cast<int>(selected.size()); ++i)
+  {
+    if (selected[i] == lastShownSelectedNodeId)
+    {
+      idx = (i + 1) % static_cast<int>(selected.size());
+      break;
+    }
+  }
+
+  lastShownSelectedNodeId = selected[idx];
+
+  ne::SelectNode(ne::NodeId(makeNodeId(lastShownSelectedNodeId)), /*append=*/false);
+  ne::NavigateToSelection(/*zoomIn=*/true);
+
+  ne::ClearSelection();
+  for (int id : selected)
+  {
+    ne::SelectNode(ne::NodeId(makeNodeId(id)), /*append=*/true);
+  }
+}
+
+void GraphPanel::removeSelectedKeepingConnections()
+{
+  eastl::hash_set<int> selected;
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    if (ne::IsNodeSelected(ne::NodeId(makeNodeId(n.id))))
+    {
+      selected.insert(n.id);
+    }
+  }
+  if (selected.empty())
+  {
+    return;
+  }
+
+  // node id -> node, to resolve an edge endpoint's pin role. Stored edges are not guaranteed to be
+  // oriented out->in (graphs loaded from the JS editor may store either order), so the role is read
+  // from the pin rather than assumed from the A/B endpoint.
+  eastl::hash_map<int, const GraphData::Node *> byId;
+  byId.reserve(graphData.nodes.size());
+  for (const GraphData::Node &n : graphData.nodes)
+  {
+    byId[n.id] = &n;
+  }
+  auto pinRoleOf = [&byId](int node_id, int pin_idx) -> PinRole {
+    const auto it = byId.find(node_id);
+    if (it == byId.end() || pin_idx < 0 || pin_idx >= static_cast<int>(it->second->pins.size()))
+    {
+      return PinRole::Any; // unknown -> neither in nor out, so ignored below
+    }
+    return it->second->pins[pin_idx].role;
+  };
+
+  // Walk edges crossing the selection boundary: the external pin feeding the lowest-indexed
+  // selected input becomes the single upstream source; every external pin a selected output feeds
+  // becomes a downstream consumer to reconnect.
+  int srcNode = -1;
+  int srcPin = -1;
+  int bestInputPin = 0;
+  eastl::vector<eastl::pair<int, int>> consumers; // (node id, input pin index)
+  for (const GraphData::Edge &e : graphData.edges)
+  {
+    const bool aSel = selected.find(e.elemA) != selected.end();
+    const bool bSel = selected.find(e.elemB) != selected.end();
+    if (aSel == bSel)
+    {
+      continue; // both selected (internal edge) or neither (untouched) -- nothing to bridge
+    }
+
+    const int selNode = aSel ? e.elemA : e.elemB;
+    const int selPin = aSel ? e.pinA : e.pinB;
+    const int extNode = aSel ? e.elemB : e.elemA;
+    const int extPin = aSel ? e.pinB : e.pinA;
+
+    const PinRole role = pinRoleOf(selNode, selPin);
+    if (role == PinRole::In)
+    {
+      if (srcNode < 0 || selPin < bestInputPin)
+      {
+        srcNode = extNode;
+        srcPin = extPin;
+        bestInputPin = selPin;
+      }
+    }
+    else if (role == PinRole::Out)
+    {
+      consumers.push_back(eastl::pair<int, int>(extNode, extPin));
+    }
+  }
+
+  // One pass: drop every edge touching the selection, drop the selected nodes, then add the bridge
+  // edges. Validation runs against the spliced graph (matching the JS, which reconnects after the
+  // deletions), so a consumer's input pin reads as free once the removed node's edges are gone.
+  plugin.mutateGraphData([&](GraphData &gd) {
+    gd.edges.erase(eastl::remove_if(gd.edges.begin(), gd.edges.end(),
+                     [&selected](const GraphData::Edge &e) {
+                       return selected.find(e.elemA) != selected.end() || selected.find(e.elemB) != selected.end();
+                     }),
+      gd.edges.end());
+
+    gd.nodes.erase(eastl::remove_if(gd.nodes.begin(), gd.nodes.end(),
+                     [&selected](const GraphData::Node &n) { return selected.find(n.id) != selected.end(); }),
+      gd.nodes.end());
+
+    if (srcNode < 0)
+    {
+      return;
+    }
+    int nextEdgeId = 0;
+    for (const GraphData::Edge &e : gd.edges)
+    {
+      nextEdgeId = eastl::max(nextEdgeId, e.id + 1);
+    }
+    for (const eastl::pair<int, int> &c : consumers)
+    {
+      if (validate_new_edge(gd, srcNode, srcPin, c.first, c.second))
+      {
+        GraphData::Edge edge;
+        edge.id = nextEdgeId++;
+        edge.elemA = srcNode;
+        edge.pinA = srcPin;
+        edge.elemB = c.first;
+        edge.pinB = c.second;
+        gd.edges.push_back(eastl::move(edge));
+      }
+    }
+  });
+  plugin.markGraphDirtyAndRegen();
+
+  ne::ClearSelection();
+}
+
+void GraphPanel::removeEdgesUnderCursor()
+{
+  const ne::PinId hoveredPin = ne::GetHoveredPin();
+  if (!hoveredPin)
+  {
+    return;
+  }
+
+  int nodeId = -1;
+  int pinIndex = -1;
+  extractPinFromId(hoveredPin.Get(), nodeId, pinIndex);
+  if (nodeId < 0 || pinIndex < 0)
+  {
+    return;
+  }
+
+  bool removedAny = false;
+  plugin.mutateGraphData([&](GraphData &gd) {
+    const auto newEnd = eastl::remove_if(gd.edges.begin(), gd.edges.end(), [nodeId, pinIndex](const GraphData::Edge &e) {
+      return (e.elemA == nodeId && e.pinA == pinIndex) || (e.elemB == nodeId && e.pinB == pinIndex);
+    });
+    removedAny = newEnd != gd.edges.end();
+    gd.edges.erase(newEnd, gd.edges.end());
+  });
+  if (removedAny)
+  {
+    plugin.markGraphDirtyAndRegen();
+  }
+}
+
+void GraphPanel::jumpToOppositePin()
+{
+  const ne::PinId hoveredPin = ne::GetHoveredPin();
+  if (!hoveredPin)
+  {
+    return;
+  }
+  int node = -1;
+  int pin = -1;
+  extractPinFromId(hoveredPin.Get(), node, pin);
+  if (node < 0 || pin < 0)
+  {
+    return;
+  }
+
+  int oppNode = -1;
+  int oppPin = -1;
+  for (const GraphData::Edge &e : graphData.edges)
+  {
+    if (e.elemA == node && e.pinA == pin)
+    {
+      oppNode = e.elemB;
+      oppPin = e.pinB;
+      break;
+    }
+    if (e.elemB == node && e.pinB == pin)
+    {
+      oppNode = e.elemA;
+      oppPin = e.pinA;
+      break;
+    }
+  }
+  if (oppNode < 0)
+  {
+    return;
+  }
+
+  const ImVec2 oppPinCanvas = ne::GetPinPosition(ne::PinId(makePinId(oppNode, oppPin)));
+  ne::ScrollCanvasPointToScreen(oppPinCanvas, ImGui::GetMousePos());
+}
+
+int GraphPanel::cullNodeIndex(int node_id) const
+{
+  const auto it = eastl::lower_bound(cullNodeOrder.begin(), cullNodeOrder.end(), node_id,
+    [](const eastl::pair<int, int> &entry, int id) { return entry.first < id; });
+  return (it != cullNodeOrder.end() && it->first == node_id) ? it->second : -1;
+}
+
 void GraphPanel::updateImgui()
 {
   ImGui::TextDisabled("(graph: %s)", graphData.sourcePath.empty() ? "<none>" : graphData.sourcePath.c_str());
 
   // Capture the canvas rect (used as drop target after ne::End). Done before ne::Begin
-  // because the node-editor child window swallows the cursor area.
+  // because the node-editor child window swallows the cursor area. A status-bar strip is
+  // reserved below the canvas; the 4px floor keeps the canvas size positive on a tiny panel
+  // (ImGuiEx::Canvas treats non-positive sizes as "use all available", which would put the
+  // canvas underneath the bar).
   const ImVec2 canvasMin = ImGui::GetCursorScreenPos();
   const ImVec2 canvasAvail = ImGui::GetContentRegionAvail();
-  const ImVec2 canvasMax(canvasMin.x + canvasAvail.x, canvasMin.y + canvasAvail.y);
+  const float statusBarHeight = graph_status_bar_height();
+  const float canvasHeight = eastl::max(4.0f, canvasAvail.y - statusBarHeight);
+  const ImVec2 canvasMax(canvasMin.x + canvasAvail.x, canvasMin.y + canvasHeight);
 
   const int64_t tStart = ref_time_ticks();
 
   ne::SetCurrentEditor(editor);
 
-  if (shortcut_fired(CANVAS_FRAME_SELECTED))
-  {
-    ne::NavigateToSelection(/*zoomIn=*/false);
-  }
-  if (shortcut_fired(CANVAS_FRAME_SELECTED_WITH_MARGIN))
-  {
-    ne::NavigateToSelection(/*zoomIn=*/true);
-  }
+  // Framing requests are captured here but the actual ne::NavigateTo* runs at end-of-frame (after
+  // the node loop). ne's GetContentBounds / GetSelectionBounds only union nodes drawn (live) this
+  // frame (internal.h GetBounds filters by m_IsLive), and off-screen culling skips the rest -- so
+  // framing on load (view not yet on the graph) or framing an off-screen target would measure empty
+  // bounds and no-op. Deferring + forcing a full render this frame (forceAllVisible) fixes that.
+  const bool fitSelectionReq = shortcut_fired(CANVAS_FRAME_SELECTED);
+  const bool fitSelectionMarginReq = shortcut_fired(CANVAS_FRAME_SELECTED_WITH_MARGIN);
+  const bool fitContentReq = shortcut_fired(CANVAS_ZOOM_AND_CENTER);
+  const bool showNextReq = shortcut_fired(CANVAS_SHOW_NEXT_SELECTED);
+
   if (shortcut_fired(CANVAS_COPY))
   {
     canvasClipboard.captureSelection(*this, graphData);
@@ -714,18 +1056,138 @@ void GraphPanel::updateImgui()
   {
     queue_selected_for_delete();
   }
-
-  ne::Begin("perf_graph", ImVec2(0.0f, 0.0f));
-
-  // Position application: ids in pendingPositionIds get their canvas-space coords pushed
-  // to ne once. NavigateToContent (run for navigationFramesLeft frames after a graph load)
-  // handles framing -- no per-frame origin shift, no minX/minY bookkeeping.
-  for (const GraphData::Node &n : graphData.nodes)
+  if (shortcut_fired(CANVAS_SELECT_NODES_NO_OUTPUTS))
   {
-    if (auto pit = pendingPositionIds.find(n.id); pit != pendingPositionIds.end())
+    select_nodes_with_no_connected_outputs(graphData);
+  }
+  if (shortcut_fired(CANVAS_REMOVE_KEEP_CONNECTIONS))
+  {
+    removeSelectedKeepingConnections();
+  }
+  if (shortcut_fired(CANVAS_REMOVE_EDGES_AT_PIN))
+  {
+    removeEdgesUnderCursor();
+  }
+  if (shortcut_fired(CANVAS_MODIFY_EDGE_AT_PIN))
+  {
+    if (const ne::PinId hoveredPin = ne::GetHoveredPin())
     {
-      ne::SetNodePosition(ne::NodeId(makeNodeId(n.id)), ImVec2(n.x, n.y));
-      pendingPositionIds.erase(pit);
+      int node = -1;
+      int pin = -1;
+      extractPinFromId(hoveredPin.Get(), node, pin);
+      const int pickedEdgeId = edgeReconnect.begin(graphData, node, pin);
+      if (pickedEdgeId >= 0)
+      {
+        removeEdgeById(pickedEdgeId);
+      }
+    }
+  }
+  if (shortcut_fired(CANVAS_JUMP_OPPOSITE_PIN))
+  {
+    jumpToOppositePin();
+  }
+  if (shortcut_fired(CANVAS_COMMENT_PIN))
+  {
+    // Record the pin under the cursor; the modal edit dialog runs later, in actObjects.
+    if (const ne::PinId hoveredPin = ne::GetHoveredPin())
+    {
+      int node = -1;
+      int pin = -1;
+      extractPinFromId(hoveredPin.Get(), node, pin);
+      if (node >= 0 && pin >= 0)
+      {
+        pendingCommentNodeId = node;
+        pendingCommentPinIndex = pin;
+      }
+    }
+  }
+
+  ne::Begin("perf_graph", ImVec2(0.0f, canvasHeight));
+
+  // Off-screen node culling. Build per-node visibility against the viewport (in canvas space)
+  // before drawing: a node fully outside it is skipped entirely (no BeginNode -> none of ne's
+  // per-node channel / layout / draw-list work), which is the bulk of the saving on a large graph
+  // panned while zoomed in. A node that is off-screen but holds an endpoint of a link whose span
+  // meets the viewport is drawn "reduced" rather than skipped, so the still-visible link resolves
+  // (a link draws only if BOTH its pins were declared live this frame -- ne's DoLink).
+  //
+  // Position application (ids in pendingPositionIds get their canvas-space coords pushed to ne once;
+  // framing is handled by NavigateToContent over navigationFramesLeft) runs in the pass below for
+  // EVERY node, so a newly-added off-screen node still gets positioned and acquires bounds.
+  const int nodeCount = static_cast<int>(graphData.nodes.size());
+  cullNodes.resize(nodeCount);
+  cullNodeOrder.clear();
+  cullNodeOrder.reserve(nodeCount);
+  {
+    ImRect cullRect(ne::ScreenToCanvas(canvasMin), ne::ScreenToCanvas(canvasMax));
+    {
+      const ImVec2 sz = cullRect.GetSize();
+      cullRect.Expand(ImVec2(sz.x * CULL_VIEWPORT_MARGIN_FRAC, sz.y * CULL_VIEWPORT_MARGIN_FRAC));
+    }
+
+    // Suspend culling while a framing operation is in flight (load fit over navigationFramesLeft, or
+    // a deferred fit / show-next this frame): the fit measures only nodes drawn live this frame, so
+    // every node must render. A few full-render frames during framing is a negligible one-shot cost.
+    const bool forceAllVisible = navigationFramesLeft > 0 || fitContentReq || fitSelectionReq || fitSelectionMarginReq || showNextReq;
+
+    for (int ni = 0; ni < nodeCount; ++ni)
+    {
+      const GraphData::Node &n = graphData.nodes[ni];
+      cullNodeOrder.push_back({n.id, ni});
+
+      if (auto pit = pendingPositionIds.find(n.id); pit != pendingPositionIds.end())
+      {
+        ne::SetNodePosition(ne::NodeId(makeNodeId(n.id)), ImVec2(n.x, n.y));
+        pendingPositionIds.erase(pit);
+      }
+
+      const ne::NodeId nid = ne::NodeId(makeNodeId(n.id));
+      const ImVec2 pos = ne::GetNodePosition(nid);
+      const ImVec2 size = ne::GetNodeSize(nid);
+      NodeCull &cull = cullNodes[ni];
+      cull.rectMin = pos;
+      cull.rectMax = ImVec2(pos.x + size.x, pos.y + size.y);
+      // size (0,0) == never laid out (cold load / just added): treat visible so it lays out now.
+      const bool boundsKnown = (size.x > 0.0f && size.y > 0.0f);
+      cull.visible = forceAllVisible || !boundsKnown || cullRect.Overlaps(ImRect(cull.rectMin, cull.rectMax));
+      cull.needed = cull.visible;
+    }
+
+    eastl::sort(cullNodeOrder.begin(), cullNodeOrder.end());
+
+    // A link can cross the viewport even when neither endpoint node is inside it (two nodes on
+    // opposite off-screen sides). Mark both endpoints needed when the union of their rects -- a
+    // superset of the link's bounding box -- meets the viewport.
+    for (const GraphData::Edge &e : graphData.edges)
+    {
+      const int ia = cullNodeIndex(e.elemA);
+      const int ib = cullNodeIndex(e.elemB);
+      if (ia < 0 || ib < 0)
+      {
+        continue;
+      }
+      if (cullNodes[ia].needed && cullNodes[ib].needed)
+      {
+        continue;
+      }
+      ImRect span(cullNodes[ia].rectMin, cullNodes[ia].rectMax);
+      span.Add(ImRect(cullNodes[ib].rectMin, cullNodes[ib].rectMax));
+      if (cullRect.Overlaps(span))
+      {
+        cullNodes[ia].needed = true;
+        cullNodes[ib].needed = true;
+      }
+    }
+  }
+
+
+  for (int ni = 0; ni < nodeCount; ++ni)
+  {
+    const GraphData::Node &n = graphData.nodes[ni];
+
+    if (!cullNodes[ni].needed)
+    {
+      continue; // off-screen and not attached to any on-screen link -> skip entirely
     }
 
     // Comment / block annotation nodes (descName-driven, matches JS at graphEditor.js:552)
@@ -742,9 +1204,28 @@ void GraphPanel::updateImgui()
       continue;
     }
 
+    const bool reduced = !cullNodes[ni].visible; // off-screen, kept live only so a visible link resolves
+
     ne::BeginNode(ne::NodeId(makeNodeId(n.id)));
 
-    ImGui::TextUnformatted(n.descName.empty() ? "<unnamed>" : n.descName.c_str());
+    // In reduced mode reserve each label's exact footprint with a Dummy instead of emitting
+    // glyphs. Layout (node size, pin column widths, pin centres) stays identical -- CalcTextSize
+    // is what TextUnformatted itself measures, and the pre-measure passes below already call it --
+    // so a link to a reduced node still lands on the right pin. Identical only because
+    // CurrLineTextBaseOffset == 0 at every label site here (title is first-on-line; each pin name
+    // follows a baseline Dummy + SameLine); revisit if a taller item is mixed onto a name row.
+    auto drawLabel = [reduced](const char *text) {
+      if (reduced)
+      {
+        ImGui::Dummy(ImGui::CalcTextSize(text));
+      }
+      else
+      {
+        ImGui::TextUnformatted(text);
+      }
+    };
+
+    drawLabel(n.descName.empty() ? "<unnamed>" : n.descName.c_str());
 
     // Pin shape was resolved against the descriptor at load / drag-drop-insert time
     // (see resolve_node_pins in graph_data.cpp). Renderer just reads the cached fields.
@@ -806,9 +1287,17 @@ void GraphPanel::updateImgui()
       {
         const int i = inputIdx[row];
         const GraphData::Pin &p = n.pins[i];
-        drawPinSquare(ne::PinId(makePinId(n.id, i)), ne::PinKind::Input, p.type);
+        const ImVec2 pinCenter = drawPinSquare(ne::PinId(makePinId(n.id, i)), ne::PinKind::Input, p.type, !reduced);
+        if (edgeReconnect.isActive() && edgeReconnect.anchorNode() == n.id && edgeReconnect.anchorPin() == i)
+        {
+          edgeReconnect.setAnchorScreenPos(pinCenter.x, pinCenter.y);
+        }
         ImGui::SameLine();
-        ImGui::TextUnformatted(p.name.empty() ? "" : p.name.c_str());
+        drawLabel(p.name.empty() ? "" : p.name.c_str());
+        if (!reduced && !p.comment.empty())
+        {
+          draw_pin_comment_outside(n.id, pinCenter, /*is_input=*/true, p.comment);
+        }
       }
       if (hasOut)
       {
@@ -821,17 +1310,35 @@ void GraphPanel::updateImgui()
           ImGui::SameLine(0.0f, 0.0f);
         }
         ImGui::SetCursorPosX(outX);
-        ImGui::TextUnformatted(p.name.empty() ? "" : p.name.c_str());
+        drawLabel(p.name.empty() ? "" : p.name.c_str());
         ImGui::SameLine();
-        drawPinSquare(ne::PinId(makePinId(n.id, i)), ne::PinKind::Output, p.type);
+        const ImVec2 pinCenter = drawPinSquare(ne::PinId(makePinId(n.id, i)), ne::PinKind::Output, p.type, !reduced);
+        if (edgeReconnect.isActive() && edgeReconnect.anchorNode() == n.id && edgeReconnect.anchorPin() == i)
+        {
+          edgeReconnect.setAnchorScreenPos(pinCenter.x, pinCenter.y);
+        }
+        if (!reduced && !p.comment.empty())
+        {
+          draw_pin_comment_outside(n.id, pinCenter, /*is_input=*/false, p.comment);
+        }
       }
     }
 
     ne::EndNode();
   }
 
+
   for (const GraphData::Edge &e : graphData.edges)
   {
+    // Skip a link whose endpoint node was culled this frame: ne::Link would no-op anyway (the pin
+    // isn't live) and this avoids the per-edge FindPin lookups. Endpoints kept "reduced" still
+    // declared their pins, so links reaching into the visible area survive.
+    const int ia = cullNodeIndex(e.elemA);
+    const int ib = cullNodeIndex(e.elemB);
+    if ((ia >= 0 && !cullNodes[ia].needed) || (ib >= 0 && !cullNodes[ib].needed))
+    {
+      continue;
+    }
     ne::Link(ne::LinkId(makeLinkId(e.id)), ne::PinId(makePinId(e.elemA, e.pinA)), ne::PinId(makePinId(e.elemB, e.pinB)));
   }
 
@@ -843,45 +1350,54 @@ void GraphPanel::updateImgui()
     ne::PinId startId, endId;
     if (ne::QueryNewLink(&startId, &endId) && startId && endId)
     {
-      int aNode = -1, aPin = -1, bNode = -1, bPin = -1;
-      extractPinFromId(startId.Get(), aNode, aPin);
-      extractPinFromId(endId.Get(), bNode, bPin);
-
-      // Re-orient so the stored edge always goes (Out -> In). Validator accepts either order
-      // but persisted edges match the convention used elsewhere (load path, JS editor).
-      bool aIsOut = false;
-      if (aNode >= 0 && bNode >= 0)
+      if (edgeReconnect.isActive())
       {
-        for (const GraphData::Node &n : graphData.nodes)
-        {
-          if (n.id == aNode && aPin >= 0 && aPin < (int)n.pins.size())
-          {
-            aIsOut = (n.pins[aPin].role == PinRole::Out);
-            break;
-          }
-        }
-      }
-      const int srcNode = aIsOut ? aNode : bNode;
-      const int srcPin = aIsOut ? aPin : bPin;
-      const int dstNode = aIsOut ? bNode : aNode;
-      const int dstPin = aIsOut ? bPin : aPin;
-
-      if (validate_new_edge(graphData, srcNode, srcPin, dstNode, dstPin))
-      {
-        if (ne::AcceptNewItem())
-        {
-          GraphData::Edge edge;
-          edge.id = allocateEdgeId();
-          edge.elemA = srcNode;
-          edge.pinA = srcPin;
-          edge.elemB = dstNode;
-          edge.pinB = dstPin;
-          addEdge(eastl::move(edge));
-        }
+        // A "modify edge" reconnect (A) owns the pin interaction; swallow ne's own link creation so
+        // the two don't both fire and leave a stray edge to whichever pin ne's drag started from.
+        ne::RejectNewItem();
       }
       else
       {
-        ne::RejectNewItem(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 2.0f);
+        int aNode = -1, aPin = -1, bNode = -1, bPin = -1;
+        extractPinFromId(startId.Get(), aNode, aPin);
+        extractPinFromId(endId.Get(), bNode, bPin);
+
+        // Re-orient so the stored edge always goes (Out -> In). Validator accepts either order
+        // but persisted edges match the convention used elsewhere (load path, JS editor).
+        bool aIsOut = false;
+        if (aNode >= 0 && bNode >= 0)
+        {
+          for (const GraphData::Node &n : graphData.nodes)
+          {
+            if (n.id == aNode && aPin >= 0 && aPin < (int)n.pins.size())
+            {
+              aIsOut = (n.pins[aPin].role == PinRole::Out);
+              break;
+            }
+          }
+        }
+        const int srcNode = aIsOut ? aNode : bNode;
+        const int srcPin = aIsOut ? aPin : bPin;
+        const int dstNode = aIsOut ? bNode : aNode;
+        const int dstPin = aIsOut ? bPin : aPin;
+
+        if (validate_new_edge(graphData, srcNode, srcPin, dstNode, dstPin))
+        {
+          if (ne::AcceptNewItem())
+          {
+            GraphData::Edge edge;
+            edge.id = allocateEdgeId();
+            edge.elemA = srcNode;
+            edge.pinA = srcPin;
+            edge.elemB = dstNode;
+            edge.pinB = dstPin;
+            addEdge(eastl::move(edge));
+          }
+        }
+        else
+        {
+          ne::RejectNewItem(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), 2.0f);
+        }
       }
     }
   }
@@ -932,6 +1448,26 @@ void GraphPanel::updateImgui()
   }
   ne::EndDelete();
 
+  // Deferred framing (requests captured at the top of updateImgui). Runs here, after the node loop,
+  // so the nodes the fit measures were drawn live this frame -- forceAllVisible guaranteed a full
+  // render on any frame one of these is set.
+  if (showNextReq)
+  {
+    showNextSelectedNode();
+  }
+  if (fitSelectionMarginReq)
+  {
+    ne::NavigateToSelection(/*zoomIn=*/true);
+  }
+  else if (fitSelectionReq)
+  {
+    ne::NavigateToSelection(/*zoomIn=*/false);
+  }
+  if (fitContentReq)
+  {
+    ne::NavigateToContent();
+  }
+
   // Re-fit for several frames after load. One-shot doesn't survive: the canvas widget can resize
   // during initial layout, and on resize the editor overwrites our pending nav with the previous
   // view rect (imgui_node_editor.cpp:1212). Retrying a few frames lets the fit settle.
@@ -939,6 +1475,16 @@ void GraphPanel::updateImgui()
   {
     ne::NavigateToContent(0.0f);
     --navigationFramesLeft;
+  }
+
+  // "Modify edge" (A) rubber-band preview. Drawn here, INSIDE ne::Begin/End, so the anchor pin
+  // centre (captured from GetCursorScreenPos during the pin pass) and ImGui::GetMousePos() are both
+  // in the canvas's local space and the canvas transform maps them to the screen together. Drawing
+  // it after ne::End would mix local anchor coords with screen-space mouse coords, sending the
+  // anchor end off-screen under any pan / zoom.
+  if (edgeReconnect.isActive())
+  {
+    edgeReconnect.drawPreview(ImGui::GetWindowDrawList(), ImGui::GetMousePos());
   }
 
   ne::End();
@@ -979,17 +1525,29 @@ void GraphPanel::updateImgui()
   ne::NodeId selectedId;
   const int selCount = ne::GetSelectedNodes(&selectedId, 1);
   selectedNodeId = (selCount == 1) ? (static_cast<int>(selectedId.Get()) - 1) : -1;
+  // Total selection size (nodes + links) for the status bar's "Selected:" counter; must be
+  // read here, while the editor is still current. Handed to draw_graph_status_bar below.
+  const int selectedObjectCount = ne::GetSelectedObjectCount();
+
+  if (const ne::NodeId dblClickedId = ne::GetDoubleClickedNode())
+  {
+    previewNodeId = static_cast<int>(dblClickedId.Get()) - 1;
+  }
+  else if (ne::IsBackgroundDoubleClicked())
+  {
+    previewNodeId = -1;
+  }
 
   if (texGenService)
   {
     // The preview key is the texgen register name written onto the node's first output pin
     // (customTextureName, e.g. "_t_45_0") -- not the desc name, which many nodes share.
     const char *selectedName = nullptr;
-    if (selectedNodeId >= 0)
+    if (previewNodeId >= 0)
     {
       for (const GraphData::Node &n : graphData.nodes)
       {
-        if (n.id != selectedNodeId)
+        if (n.id != previewNodeId)
         {
           continue;
         }
@@ -1015,6 +1573,30 @@ void GraphPanel::updateImgui()
     }
   }
 
+  if (edgeReconnect.isActive())
+  {
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+    {
+      edgeReconnect.cancel();
+    }
+    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+      GraphData::Edge bridged;
+      if (const ne::PinId hoveredPin = ne::GetHoveredPin())
+      {
+        int targetNode = -1;
+        int targetPin = -1;
+        extractPinFromId(hoveredPin.Get(), targetNode, targetPin);
+        if (edgeReconnect.tryComplete(graphData, targetNode, targetPin, bridged))
+        {
+          bridged.id = allocateEdgeId();
+          addEdge(eastl::move(bridged));
+        }
+      }
+      edgeReconnect.cancel();
+    }
+  }
+
   ne::SetCurrentEditor(nullptr);
 
   const float ms = static_cast<float>(ref_time_delta_to_usec(tStart)) / 1000.0f;
@@ -1023,4 +1605,9 @@ void GraphPanel::updateImgui()
 
   ImGui::SetCursorPos(ImVec2(8.0f, 8.0f));
   ImGui::Text("nodes=%d edges=%d  panel ms=%.2f (ema=%.2f)", (int)graphData.nodes.size(), (int)graphData.edges.size(), ms, emaFrameMs);
+
+  draw_graph_hotkeys_bar(canvasMax);
+
+  ImGui::SetCursorScreenPos(ImVec2(canvasMin.x, canvasMin.y + canvasHeight));
+  draw_graph_status_bar(graphData, texGenService, selectedObjectCount, statusBarHeight);
 }

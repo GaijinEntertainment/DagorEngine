@@ -15,13 +15,13 @@
 #include <render/rendererFeatures.h>
 #include <render/world/shadowsManager.h>
 #include "world/dynModelRenderPass.h"
-#include "world/dynModelRenderer.h"
+#include <render/dynmodelRenderer.h>
 #include "world/wrDispatcher.h"
 #include <ecs/render/renderPasses.h>
 #include "EASTL/string.h"
 #include "math/dag_TMatrix.h"
 
-using namespace dynmodel_renderer;
+using namespace dynrend;
 extern ShaderBlockIdHolder dynamicSceneBlockId;
 extern ShaderBlockIdHolder dynamicSceneTransBlockId;
 namespace var
@@ -137,7 +137,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
   for (size_t i = 0; i < ctx.iconAnimchars.size();)
   {
     int nextI = i + 1;
-    DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+    ContextId iconCtx = get_or_create_context("dynmodel_immediate");
 
     target->setRt();
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
@@ -162,28 +162,22 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     {
       SCENE_LAYER_GUARD(dynamicSceneBlockId);
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
+      add_animchar(iconCtx, 0, ShaderMesh::STG_imm_decal, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
       for (; nextI < ctx.iconAnimchars.size(); ++nextI)
       {
         if (ctx.iconAnimchars[nextI].shading == IconAnimchar::SAME)
-          state.process_animchar(0, ShaderMesh::STG_imm_decal, ctx.iconAnimchars[nextI].animchar->getSceneInstance(),
+          add_animchar(iconCtx, 0, ShaderMesh::STG_imm_decal, ctx.iconAnimchars[nextI].animchar->getSceneInstance(),
             animchar_additional_data::get_null_data());
         else
           break;
       }
-      if (!state.empty())
+      if (prepare_render_current(iconCtx))
       {
-        state.prepareForRender();
-        const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::OTHER);
-        if (buffer)
-        {
-          state.setVars(buffer->buffer.getBufId());
-          SCENE_LAYER_GUARD(dynamicSceneBlockId);
-          state.render(buffer->curOffset);
-        }
-        else
-          ret = false;
+        SCENE_LAYER_GUARD(dynamicSceneBlockId);
+        render_all_stages(iconCtx);
       }
+      else if (context_has_data(iconCtx))
+        ret = false;
     }
 
     d3d::set_render_target({}, DepthAccess::RW, {{finalTarget.getTex2D(), 0, 0}});
@@ -218,25 +212,19 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     {
       d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{finalTarget.getTex2D(), 0, 0}});
       d3d::setview(0, 0, icon_ssaa.w, icon_ssaa.h, 0, 1);
-      state.clear();
+      clear(iconCtx);
       SCENE_LAYER_GUARD(dynamicSceneTransBlockId);
       uint32_t stage = ShaderMesh::STG_trans;
-      state.process_animchar(stage, stage, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
+      add_animchar(iconCtx, stage, stage, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
       for (int j = i + 1; j < nextI; j++)
-        state.process_animchar(stage, stage, ctx.iconAnimchars[j].animchar->getSceneInstance(),
+        add_animchar(iconCtx, stage, stage, ctx.iconAnimchars[j].animchar->getSceneInstance(),
           animchar_additional_data::get_null_data());
-      if (!state.empty())
+      if (prepare_render_current(iconCtx))
       {
-        state.prepareForRender();
-        const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::OTHER);
-        if (buffer)
-        {
-          state.setVars(buffer->buffer.getBufId());
-          state.render(buffer->curOffset);
-        }
-        else
-          ret = false;
+        render_all_stages(iconCtx);
       }
+      else if (context_has_data(iconCtx))
+        ret = false;
     }
     ShaderGlobal::set_int(var::render_to_icon, 0);
     i = nextI;

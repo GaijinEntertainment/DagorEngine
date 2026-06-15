@@ -161,6 +161,8 @@ public:
       "bind_dascript::dacoll_validate_trace_cache");
     das::addExtern<DAS_BIND_FUN(dacoll::trace_game_objects)>(*this, lib, "trace_game_objects", das::SideEffects::modifyArgument,
       "dacoll::trace_game_objects");
+    das::addExtern<DAS_BIND_FUN(trace_game_objects_with_grid_filter)>(*this, lib, "trace_game_objects_with_grid_filter",
+      das::SideEffects::modifyArgument, "bind_dascript::trace_game_objects_with_grid_filter");
     das::addExtern<DAS_BIND_FUN(dacoll_rayhit_normalized)>(*this, lib, "rayhit_normalized", das::SideEffects::accessExternal,
       "bind_dascript::dacoll_rayhit_normalized");
     das::addExtern<DAS_BIND_FUN(dacoll_rayhit_normalized_trace_handle)>(*this, lib, "rayhit_normalized",

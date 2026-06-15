@@ -141,7 +141,7 @@ private:
   bool showLayerControls(LayerTreeItem &tree_item, int type, int per_type_layer_index, bool layer_visible, bool layer_locked,
     bool dim_layer_color, const ImVec4 &dimmed_text_color, float action_buttons_total_width, ImGuiMultiSelectIO *multiSelectIo);
   const char *getObjectNoun(int type, int count) const;
-  bool showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child);
+  bool showObjectControls(ObjectTreeItem &tree_item, int type, int per_type_layer_index, bool has_child, bool dim_object_color);
   bool showObjectAssetNameControls(ObjectAssetNameTreeItem &tree_item, RenderableEditableObject &object);
 
   void fillTypeContextMenu(int type);

@@ -45,6 +45,7 @@ struct MetricsErrors
   uint32_t szX = 0, szY = 0;
   float boundsHeightScale = 1, boundsHeightOffset = 0;
   float errorHeightScale = 1;
+  float water_level = -10000.f; // == HeightmapHeightCulling::NO_WATER_ON_LEVEL; the level the metrics were built for
 
   hmap_err_t getErrorUnsafe(uint8_t level, uint32_t x, uint32_t y, hmap_err_t def = 0) const;
   hmap_err_t getErrorSafe(uint8_t level, uint32_t x, uint32_t y, hmap_err_t def = 0) const;

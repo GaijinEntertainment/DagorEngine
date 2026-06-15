@@ -681,6 +681,12 @@ bool do_settings_changes_need_videomode_change(const FastNameMap &changed_fields
   // clang-format on
 }
 
+void set_fps_limit_from_level()
+{
+  int fpsLimit = g_entity_mgr->getOr(get_current_level_eid(), ECS_HASH("level__fpsLimit"), -1);
+  set_corrected_fps_limit(fpsLimit);
+}
+
 void apply_settings_changes(const FastNameMap &changed_fields)
 {
   bool applyAfterResetDevice = false;
@@ -704,10 +710,7 @@ void apply_settings_changes(const FastNameMap &changed_fields)
 #endif
 
   if (changed_fields.getNameId("video/fpsLimit") >= 0)
-  {
-    int fpsLimit = g_entity_mgr->getOr(get_current_level_eid(), ECS_HASH("level__fpsLimit"), -1);
-    set_corrected_fps_limit(fpsLimit);
-  }
+    set_fps_limit_from_level();
 
   if (get_world_renderer())
     get_world_renderer()->onSettingsChanged(changed_fields, applyAfterResetDevice);

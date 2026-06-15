@@ -83,6 +83,7 @@ CONSOLE_INT_VAL("app", sleep_msec_val, 0, 0, 1000);
 CONSOLE_BOOL_VAL("app", screenshot_hide_debug, true);
 CONSOLE_BOOL_VAL("app", hide_gui, false);
 CONSOLE_BOOL_VAL("app", enable_low_resolution_screensots, true);
+CONSOLE_FLOAT_VAL("app", fixed_render_time, -1.f);
 
 CONSOLE_BOOL_VAL("mem", show_memreport, false);
 CONSOLE_FLOAT_VAL("mem", memreport_panel_x, 0.f);
@@ -321,7 +322,8 @@ void before_draw_scene(int realtime_elapsed_usec, float gametime_elapsed_sec, fl
   if (auto wr = get_world_renderer(); wr && is_level_loaded_not_empty())
   {
     TMatrix4D projTm = dmatrix_perspective_reverse(curPersp.wk, curPersp.hk, curPersp.zn, curPersp.zf, curPersp.ox, curPersp.oy);
-    wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, get_sync_time(), camTransform, camPosition, curPersp, projTm);
+    const float gameTimeForRender = fixed_render_time.get() >= 0.f ? fixed_render_time.get() : get_sync_time();
+    wr->beforeRender(scaledDt, rtDt, realtime_elapsed_usec * 1e-6, gameTimeForRender, camTransform, camPosition, curPersp, projTm);
   }
 
   user_ui::before_render();

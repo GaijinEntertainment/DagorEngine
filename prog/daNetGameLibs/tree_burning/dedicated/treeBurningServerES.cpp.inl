@@ -47,8 +47,13 @@ static void tree_burning_replace_tree_on_server_es(
     rendinst::riex_handle_t handle = rendinst::replaceRIGenWithRIExtra(treeDesc);
     if (handle != rendinst::RIEX_HANDLE_NULL)
     {
+      const bool isBush = riex_collision_is_soft(handle);
       g_entity_mgr->sendEvent(eid,
-        EventCreateTreeBurningChain(handle, tm, canopyType, canopyBox.lim[0], canopyBox.lim[1], transform.col[3]));
+        EventCreateTreeBurningChain(handle, tm, canopyType, canopyBox.lim[0], canopyBox.lim[1], transform.col[3], isBush));
+      // A bush keeps its (now burning) model but must stop slowing the soldier down -
+      // drop its soft collision instead of destroying the whole rendinst.
+      if (isBush)
+        rendinst::removeRIGenExtraFromGrid(handle);
       burnt_trees.insert(handle);
       replaced = true;
     }

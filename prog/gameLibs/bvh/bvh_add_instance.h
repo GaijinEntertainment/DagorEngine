@@ -4,6 +4,7 @@
 #include "util/dag_compilerDefs.h"
 #include <bvh/bvh.h>
 #include <math/dag_dxmath.h>
+#include <osApiWrappers/dag_threadSafety.h>
 
 #define BVH_INLINE __forceinline
 
@@ -41,6 +42,7 @@ BVH_INLINE void VECTORCALL add_instance(ContextId context_id, Context::InstanceM
   const PerInstanceData *per_instance_data, bool no_shadow, Context::Instance::AnimationUpdateMode animation_update_mode,
   MeshSkinningInfo *skinning_info, MeshHeliRotorInfo *heli_rotor_info, TreeInfo *tree_info, LeavesInfo *leaves_info,
   FlagInfo *flag_info, DeformedInfo *deformed_info, SplineGenInfo *splinegen_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   auto objectIter = context_id->objects.find(object_id);
 
@@ -148,6 +150,7 @@ BVH_INLINE void VECTORCALL add_instance(Context::InstanceMap &instanceMap, uint6
 }
 
 BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t object_id, mat43f transform, int thread_ix)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riGenInstances[thread_ix], object_id, transform, nullptr, false,
     Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
@@ -155,7 +158,7 @@ BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t obj
 }
 
 BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,
-  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
+  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riGenInstances[thread_ix], object_id, transform, nullptr, false,
     is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
@@ -163,7 +166,7 @@ BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t obj
 }
 
 BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t object_id, mat43f transform, LeavesInfo *leaves_info,
-  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
+  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riGenInstances[thread_ix], object_id, transform, nullptr, false,
     is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
@@ -171,7 +174,7 @@ BVH_INLINE void VECTORCALL add_riGen_instance(ContextId context_id, uint64_t obj
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4f pY, vec4f pZ, ContextId context_id,
-  uint64_t object_id, int thread_ix, uint32_t hashVal, bool backFaceCulling)
+  uint64_t object_id, int thread_ix, uint32_t hashVal, bool backFaceCulling) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   auto objectIter = context_id->objects.find(object_id);
   if (objectIter == context_id->objects.end())
@@ -209,7 +212,7 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(mat43f transform, vec4f pX, vec4
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, TreeInfo *tree_info,
-  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
+  bool is_stationary, MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riExtraTreeInstances[thread_ix], object_id, transform, nullptr, false,
     is_stationary ? Context::Instance::AnimationUpdateMode::FORCE_OFF : Context::Instance::AnimationUpdateMode::FORCE_ON, nullptr,
@@ -217,7 +220,7 @@ BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t o
 }
 
 BVH_INLINE void VECTORCALL add_riExtra_instance(ContextId context_id, uint64_t object_id, mat43f transform, FlagInfo *flag_info,
-  MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix)
+  MeshMetaAllocator::AllocId meta_alloc_id, int thread_ix) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->riExtraFlagInstances[thread_ix], object_id, transform, nullptr, false,
     Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, flag_info, nullptr, nullptr,
@@ -233,7 +236,7 @@ BVH_INLINE void VECTORCALL add_dynrend_instance(Context::InstanceMap &instances,
 BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::InstanceMap &instances, uint64_t object_id,
   mat43f transform, const PerInstanceData *per_instance_data, bool no_shadow,
   Context::Instance::AnimationUpdateMode animation_update_mode, MeshSkinningInfo &skinning_info,
-  MeshMetaAllocator::AllocId meta_alloc_id)
+  MeshMetaAllocator::AllocId meta_alloc_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, instances, object_id, transform, per_instance_data, no_shadow, animation_update_mode, &skinning_info,
     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
@@ -242,7 +245,7 @@ BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::I
 BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::InstanceMap &instances, uint64_t object_id,
   mat43f transform, const PerInstanceData *per_instance_data, bool no_shadow,
   Context::Instance::AnimationUpdateMode animation_update_mode, MeshHeliRotorInfo &heli_rotor_info,
-  MeshMetaAllocator::AllocId meta_alloc_id)
+  MeshMetaAllocator::AllocId meta_alloc_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, instances, object_id, transform, per_instance_data, no_shadow, animation_update_mode, nullptr,
     &heli_rotor_info, nullptr, nullptr, nullptr, nullptr, nullptr, meta_alloc_id);
@@ -251,6 +254,7 @@ BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::I
 BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::InstanceMap &instances, uint64_t object_id,
   mat43f transform, const PerInstanceData *per_instance_data, bool no_shadow,
   Context::Instance::AnimationUpdateMode animation_update_mode, DeformedInfo &deformed_info, MeshMetaAllocator::AllocId meta_alloc_id)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, instances, object_id, transform, per_instance_data, no_shadow, animation_update_mode, nullptr, nullptr,
     nullptr, nullptr, nullptr, &deformed_info, nullptr, meta_alloc_id);
@@ -258,7 +262,7 @@ BVH_INLINE void VECTORCALL add_dynrend_instance(ContextId context_id, Context::I
 
 BVH_INLINE void VECTORCALL add_splinegen_instance(ContextId context_id, Context::InstanceMap &instances, uint64_t object_id,
   mat43f transform, bool no_shadow, Context::Instance::AnimationUpdateMode animation_update_mode, SplineGenInfo &splinegen_info,
-  MeshMetaAllocator::AllocId meta_alloc_id)
+  MeshMetaAllocator::AllocId meta_alloc_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, instances, object_id, transform, nullptr, no_shadow, animation_update_mode, nullptr, nullptr, nullptr,
     nullptr, nullptr, nullptr, &splinegen_info, meta_alloc_id);
@@ -266,6 +270,7 @@ BVH_INLINE void VECTORCALL add_splinegen_instance(ContextId context_id, Context:
 
 BVH_INLINE bool VECTORCALL add_impostor_instance(ContextId context_id, uint64_t object_id, mat43f transform, uint32_t color,
   int thread_ix, int &meta_alloc_id_accel, uint64_t &blas_accel, uint64_t &mesh_id_accel)
+  DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   if (object_id != mesh_id_accel)
   {
@@ -302,13 +307,13 @@ BVH_INLINE bool VECTORCALL add_impostor_instance(ContextId context_id, uint64_t 
   return true;
 }
 
-BVH_INLINE bool is_mesh_added(ContextId context_id, uint64_t object_id)
+BVH_INLINE bool is_mesh_added(ContextId context_id, uint64_t object_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   return context_id->objects.find(object_id) != context_id->objects.end() ||
          context_id->impostors.find(object_id) != context_id->impostors.end();
 }
 
-BVH_INLINE Object *get_object(ContextId context_id, uint64_t object_id)
+BVH_INLINE Object *get_object(ContextId context_id, uint64_t object_id) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   auto iter = context_id->objects.find(object_id);
   return iter == context_id->objects.end() ? nullptr : &iter->second;

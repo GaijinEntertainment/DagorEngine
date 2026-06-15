@@ -274,6 +274,63 @@ Example::
    is closed; refcounting cannot break the cycle, and the
    unhandled-error diagnostic does not surface it.
 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Combinators: ``Future.all`` and ``Future.race``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Two static combinators run several futures concurrently and settle a
+single result. Each takes one array and returns a fresh ``Future``. A
+non-array argument (or none at all) throws synchronously at the call
+site, not asynchronously - the validation runs on the calling frame, so
+a plain ``try/catch`` (without ``await``) catches it. Array elements that
+are not Futures are awaited as-is (an immediate value), exactly like
+``await`` on a scalar.
+
+Both treat a fault as an outcome that decides the result, never one to
+wait out: ``all`` faults on the first faulting input; ``race`` lets a
+fault win exactly like a fulfilment. A propagating fault carries its
+thrown value and trace. There is deliberately no ``Future.any`` -
+"keep waiting past a fault until one fulfils" would suppress a real bug.
+
+.. sq:function:: Future.all(arr)
+
+    Run all inputs concurrently and fulfil with an array of their values,
+    in input order, once every input fulfils. Fail-fast: on the first
+    input to fault, the result faults with that thrown value and later
+    outcomes are ignored. An empty array fulfils immediately with ``[]``.
+
+    ::
+
+        async function f() {
+          let r = await Future.all([loadA(), loadB()])   // both run concurrently
+          use(r[0], r[1])
+        }
+
+    Fail-fast means ``all`` does not wait for the remaining inputs once
+    one faults, and does not aggregate (matching JS ``Promise.all``; it
+    differs from .NET ``Task.WhenAll``, which waits and aggregates). For
+    partial-success - "run N, collect every outcome, success or fault" -
+    wrap each input so it never faults and ``all`` over the wrappers,
+    rather than wrapping the aggregate ``try { all() }``, which a
+    fail-fast ``all`` would leave holding only the first fault.
+
+.. sq:function:: Future.race(arr)
+
+    Settle as the first input to settle, whichever way it settled: the
+    first fulfilment fulfils the result, the first fault faults it.
+    A losing fault is discarded (handled by the combinator - no
+    unhandled-error diagnostic).
+
+    When several inputs are already settled before the race runs, the
+    one earliest in array order wins (matching JS ``Promise.race``
+    reaction order). A non-future element settles immediately, so it
+    beats a still-pending future input.
+
+    Unlike JS ``Promise.race``, an empty array throws synchronously
+    rather than returning a forever-pending future: an empty race can
+    never settle, which is almost always a bug, so it is reported at the
+    call site.
+
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Task-futures vs. manually constructed futures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

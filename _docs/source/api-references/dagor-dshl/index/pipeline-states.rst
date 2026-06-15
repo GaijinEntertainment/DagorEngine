@@ -83,7 +83,8 @@ Example:
     blend_asrc = sa; blend_adst = 1;
 
 .. warning::
-  Blending *operations* (as well as blending constants for ``bf`` and ``ibf`` blending modes) need to be configured in C++ code.
+  Blend *constants* for the ``bf`` and ``ibf`` factors still need to be configured in C++ code.
+  Blend *operations*, however, can be set directly in DSHL -- see **Blend operation** below.
 
 If you don't configure blending factors in the shader, these defaults will be used:
 
@@ -92,17 +93,66 @@ If you don't configure blending factors in the shader, these defaults will be us
     blend_src = 1; blend_dst = 0;
     blend_asrc = 1; blend_adst = 0;
 
+**Blend operation**
+
+The weighted source and destination values are combined with a *blend operation* --
+the ``<colorBlendOp>`` / ``<alphaBlendOp>`` in the pseudocode above. By default this is
+addition; it can be changed with these state variables:
+
+- ``blend_op`` -- RGB blend operation
+- ``blend_aop`` -- alpha blend operation
+
+Each accepts one of the following operations:
+
+- ``add`` -- ``src + dst`` (default)
+- ``min`` -- ``min(src, dst)``
+- ``max`` -- ``max(src, dst)``
+
+Example (max blending):
+
+.. code-block:: c
+
+    blend_src = 1; blend_dst = 1;
+    blend_op  = max;
+
+.. note::
+  Only ``add``, ``min`` and ``max`` are exposed in DSHL.
+  The hardware ``subtract`` / ``revsubtract`` operations are not available here.
+
+If you don't set an operation, it defaults to ``add``.
+
+.. important::
+  ``blend_op`` and ``blend_aop`` only have an effect when blending is enabled for the
+  target, i.e. when its ``blend_src`` and ``blend_dst`` factors are set.
+
+  ``blend_aop`` additionally requires *separate alpha blending*, which is turned on by
+  setting the separate alpha factors ``blend_asrc`` **and** ``blend_adst`` -- **not** by
+  setting ``blend_aop`` itself. If the separate alpha factors are not set, the alpha
+  channel reuses the color operation ``blend_op``, and ``blend_aop`` (including its
+  ``add`` default) is ignored.
+
+  So, with blending enabled, setting only ``blend_op = max`` (no ``blend_aop``, no
+  separate alpha factors) makes **both** color and alpha blend with ``max``. To give
+  alpha a different operation you must also set ``blend_asrc`` / ``blend_adst``.
+
+Like blend factors, ``blend_op`` / ``blend_aop`` can be indexed per render target
+for independent blending (see below).
+
+.. warning::
+  Dual-source blending (the ``sc1`` / ``isc1`` / ``sa1`` / ``isa1`` factors)
+  only supports the ``add`` blend operation.
+
 **Independent blending**
 
 Dagor supports independent blending, i.e. different render targets may have different blending settings.
-This is done by providing an index to ``blend_src, blend_dst, blend_asrc, blend_adst`` variables with ``[]`` operator.
+This is done by providing an index to ``blend_src, blend_dst, blend_asrc, blend_adst, blend_op, blend_aop`` variables with ``[]`` operator.
 
 .. code-block:: c
 
     blend_src[0] = 1; blend_dst[0] = 0;
     blend_src[1] = 0; blend_dst[1] = 1;
 
-Without an index, the desired blend factor affects all render targets.
+Without an index, the value affects all render targets.
 
 -------------
 Depth/Stencil

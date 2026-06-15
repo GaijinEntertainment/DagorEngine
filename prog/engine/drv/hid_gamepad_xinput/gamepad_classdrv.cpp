@@ -6,7 +6,6 @@
 #include <supp/_platform.h>
 #if _TARGET_PC_WIN
 #include <xinput.h>
-#pragma comment(lib, "xinput9_1_0.lib")
 #elif _TARGET_XBOX
 #include "xboxOneGamepad.h"
 #endif
@@ -17,9 +16,30 @@
 #include <startup/dag_inpDevClsDrv.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <EASTL/type_traits.h>
 
 #define MS_IN_SEC       1000
 #define RESCAN_ATTEMPTS 10
+
+#if _TARGET_PC_WIN
+static FARPROC get_xinput_proc(const char *name)
+{
+  static HMODULE mod = LoadLibraryA("xinput9_1_0.dll");
+  return mod ? GetProcAddress(mod, name) : nullptr;
+}
+
+DWORD WINAPI XInputGetState(DWORD user_index, XINPUT_STATE *state)
+{
+  static auto fn = (eastl::add_pointer_t<decltype(::XInputGetState)>)(void *)get_xinput_proc("XInputGetState");
+  return fn ? fn(user_index, state) : ERROR_DEVICE_NOT_CONNECTED;
+}
+
+DWORD WINAPI XInputSetState(DWORD user_index, XINPUT_VIBRATION *vibration)
+{
+  static auto fn = (eastl::add_pointer_t<decltype(::XInputSetState)>)(void *)get_xinput_proc("XInputSetState");
+  return fn ? fn(user_index, vibration) : ERROR_DEVICE_NOT_CONNECTED;
+}
+#endif
 
 
 #if _TARGET_XBOX

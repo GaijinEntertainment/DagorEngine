@@ -37,6 +37,10 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <propPanel/constants.h>
+#include <propPanel/propPanelService.h>
+#include <propPanel/propPanel.h>
+#include <propPanel/toastManager.h>
+#include <gui/dag_imgui.h>
 #include <util/dag_fastIntList.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_logSys.h>
@@ -446,7 +450,7 @@ public:
 
   void imguiEnd() override { ImGui::End(); }
 
-  void *getImguiContext() override { return ImGui::GetCurrentContext(); }
+  PropPanel::IPropPanelService *getPropPanelService() override { return &PropPanel::get_service(); }
 
   AssetTagManager *getVisibleTagManagerWindow() override { return tagManager; }
 
@@ -476,6 +480,16 @@ public:
   }
 
   void revealInExplorer(const char *path) override { dag_reveal_in_explorer(String(path)); }
+
+  void showToast(PropPanel::ToastType type, const char *text) override
+  {
+    PropPanel::ToastMessage message;
+    message.type = type;
+    message.text = text;
+    message.setHideOnMouseMove(true);
+    message.setToMousePos(Point2(0.5f, 0.5f));
+    PropPanel::set_toast_message(message);
+  }
 
   FastNameMap disabledSrvNames;
   AssetTagManager *tagManager;

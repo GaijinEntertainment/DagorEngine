@@ -85,7 +85,7 @@ function comp(...) {
     ret = ret.__update({children})
   }
   if (ret.len()==1 && "children" in ret)
-    ret = type(ret.children) != "array" || ret.children.len()==1 ? ret.children?[0] : ret
+    ret = type(ret.children) != "array" ? ret.children : (ret.children.len()==1 ? ret.children[0] : ret)
   if ("watch" in ret)
     logerr("component with 'watch' field should be set as function")
   return ret
@@ -105,7 +105,7 @@ let BorderColr = @(...) Style({borderColor = Color.acall([null].extend(vargv))})
 let BorderWidth = @(...) Style({borderWidth = vargv})
 let BorderRadius = @(...) Style({borderRadius = vargv})
 let ClipChildren = Style({clipChildren = true})
-let Bhv = @(...) Style({behaviors = flatten(vargv)})
+let Bhv = @(...) Style({behavior = flatten(vargv)})
 //let Watch = @(...) Style({watch = flatten(vargv)})
 let OnClick = @(func) Style({onClick = func})
 let Button = Style({behavior = Behaviors.Button})
@@ -115,6 +115,8 @@ function Size(...) {
   local size = vargv
   if (size.len()==1 && type(size?[0]) != "array")
     size = [size[0], size[0]]
+  else if (size.len()==1)
+    size = size[0]
   else if (size.len()==0)
     size = null
   return Style({size})
@@ -128,12 +130,12 @@ let XOfs = @(x) Style({pos=[x,0]})
 
 function updateWithStyle(obj, style){
   if (type(style) == "table") {
-    foreach (k in style)
+    foreach (k, _ in style)
       assert(k not in obj)
     obj.__update(style)
   }
   else if (style instanceof Style) {
-    foreach (k in style.value)
+    foreach (k, _ in style.value)
       assert(k not in obj)
     obj.__update(style.value)
   }

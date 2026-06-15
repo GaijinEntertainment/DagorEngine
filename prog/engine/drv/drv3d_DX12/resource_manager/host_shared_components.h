@@ -12,7 +12,6 @@
 
 #include <supp/dag_comPtr.h>
 
-
 namespace drv3d_dx12::resource_manager
 {
 class RingMemoryBase : public ESRamPageMappingProvider
@@ -20,6 +19,8 @@ class RingMemoryBase : public ESRamPageMappingProvider
   using BaseType = ESRamPageMappingProvider;
 
 protected:
+  using HostDeviceSharedMemoryRegionAllocationResult = dag::Expected<HostDeviceSharedMemoryRegion, MemoryAllocationError>;
+
   struct CompletedFrameExecutionInfo : BaseType::CompletedFrameExecutionInfo
   {
     uint32_t historyIndex;
@@ -191,7 +192,8 @@ protected:
       return {desc, allocInfo};
     }
 
-    bool addSegment(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size, AllocationFlags allocation_flags)
+    dag::Expected<void, MemoryAllocationError> addSegment(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size,
+      AllocationFlags allocation_flags)
     {
       auto [desc, allocInfo] = get_ring_segment_desc_alloc_info(size);
 
@@ -200,24 +202,30 @@ protected:
 
       auto memoryProperties = heap->getPushHeapProperties();
 
-      auto allocation = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
-      if (!allocation)
+      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
+      if (!allocationResult.has_value())
       {
-        return false;
+        return dag::Unexpected{allocationResult.error()};
       }
+
+      auto &allocation = allocationResult.value();
 
       RingSegment newSegment;
       auto errorCode = newSegment.create(device, desc, allocation, initialState, true);
       if (DX12_CHECK_FAIL(errorCode))
       {
         heap->free(allocation);
-        return false;
+        // TODO: This is not 100% correct, as the allocation for the pool went through but for some
+        // reason the object creation failed, probably should implement something for this properly.
+        // For other objects, like textures we are not reporting any oom error when the object
+        // create did fail.
+        return dag::Unexpected{heap->makeMemoryAllocationError(errorCode, allocInfo.SizeInBytes, memoryProperties)};
       }
       auto &ringSegment = ringSegments.emplace_back(eastl::move(newSegment));
 
       T::onSegmentAdd(heap, ringSegment.getBufferMemory(), ringSegment.getResourcePtr());
 
-      return true;
+      return {};
     }
 
     bool moveSegmentToLocation(HeapType *heap, ID3D12Device *device, uint32_t size, HeapID heap_id, uint32_t free_range_index)
@@ -262,7 +270,7 @@ protected:
       }
     }
 
-    HostDeviceSharedMemoryRegion allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size,
+    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size,
       uint32_t alignment)
     {
       HostDeviceSharedMemoryRegion result;
@@ -276,9 +284,10 @@ protected:
       }
 
       // no segment can supply the memory, need to allocate a new segment
-      if (!addSegment(heap, adapter, device, size, {}))
+      auto segmentAddResult = addSegment(heap, adapter, device, size, {});
+      if (!segmentAddResult)
       {
-        return result;
+        return dag::Unexpected{segmentAddResult.error()};
       }
 
       auto &newSegment = ringSegments.back();
@@ -394,7 +403,12 @@ protected:
     // The very first allocation is the first const ring buffer. This makes handling in case of memory shortage
     // simpler, as the very first segment, which we always *need*, is in the very first heap and so has to never
     // be moved. We only truncate additional ring buffers when possible.
-    pushRing.access()->addSegment(this, info.getAdapter(), info.device, FramePushRingMemoryImplementation::min_ring_size, {});
+    auto result =
+      pushRing.access()->addSegment(this, info.getAdapter(), info.device, FramePushRingMemoryImplementation::min_ring_size, {});
+    if (!result)
+    {
+      DAG_FATAL("DX12: Initial allocation for push ring buffer failed!");
+    }
   }
 
   void preRecovery()
@@ -445,76 +459,9 @@ public:
   }
 };
 
-class UploadRingMemoryProvider : public FramePushRingMemoryProvider
+class TemporaryMemoryBase : public FramePushRingMemoryProvider
 {
   using BaseType = FramePushRingMemoryProvider;
-
-protected:
-  struct UploadRingMemoryImplementation
-  {
-    // using a ring of 16 MiBytes avoids basically any resizes
-    constexpr static uint32_t min_ring_size = 16 * 1024 * 1024;
-    // always keep one segment around
-    constexpr static uint32_t min_active_segments = 0;
-
-    using HeapType = UploadRingMemoryProvider;
-
-    static void onSegmentAdd(HeapType *heap, ResourceMemory memory, ID3D12Resource *buffer)
-    {
-      heap->updateMemoryRangeUse(memory, UploadRingBufferReference{buffer});
-      heap->recordUploadRingAllocated(memory.size());
-    }
-    static void onSegmentAddNoLock(HeapType *heap, ResourceMemory memory, ID3D12Resource *buffer)
-    {
-      heap->updateMemoryRangeUseNoLock(memory, UploadRingBufferReference{buffer});
-      heap->recordUploadRingAllocated(memory.size());
-    }
-    static void onSegmentRemove(HeapType *heap, size_t size) { heap->recordUploadRingFreed(size); }
-    static bool shouldTrim(HeapType *heap) { return heap->shouldTrimUploadRingBuffer(); }
-  };
-  using UploadRingMemoryStateWrapper = ContainerMutexWrapper<RingMemoryState<UploadRingMemoryImplementation>, OSSpinlock>;
-  UploadRingMemoryStateWrapper uploadRing;
-
-  bool onMoveUploadRingBuffer(DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer, AllocationFlags allocation_flags)
-  {
-    return uploadRing.access()->onMoveSegment(this, adapter, device, buffer, allocation_flags);
-  }
-
-  void preRecovery()
-  {
-    uploadRing.access()->shutdown(this);
-
-    BaseType::preRecovery();
-  }
-
-  void shutdown()
-  {
-    uploadRing.access()->shutdown(this);
-
-    BaseType::shutdown();
-  }
-
-public:
-  HostDeviceSharedMemoryRegion allocateUploadRingMemory(DXGIAdapter *adapter, Device &device, uint32_t size, uint32_t alignment);
-
-  void completeFrameRecording(const CompletedFrameRecordingInfo &info)
-  {
-    BaseType::completeFrameRecording(info);
-    uploadRing.access()->finishRecording(info.historyIndex);
-  }
-
-  void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
-  {
-    BaseType::completeFrameExecution(info, data);
-    uploadRing.access()->finishExecution(this, info.historyIndex);
-  }
-
-  size_t getUploadRingMemorySize() { return uploadRing.access()->currentMemorySize(); }
-};
-
-class TemporaryMemoryBase : public UploadRingMemoryProvider
-{
-  using BaseType = UploadRingMemoryProvider;
 
 protected:
   template <typename T>
@@ -538,8 +485,8 @@ protected:
     dag::Vector<Buffer> buffers;
     dag::Vector<Buffer> deletedBuffers;
 
-    eastl::pair<HostDeviceSharedMemoryRegion, HRESULT> allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device,
-      size_t size, size_t alignment)
+    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, size_t size,
+      size_t alignment)
     {
       HostDeviceSharedMemoryRegion result;
       size_t offset = (currentBuffer.fillSize + alignment - 1) & ~(alignment - 1);
@@ -594,19 +541,23 @@ protected:
 
           auto memoryProperties = heap->getProperties(D3D12_RESOURCE_FLAG_NONE, memory_class, allocInfo.Alignment);
 
-          HRESULT errorCode = S_OK;
-          auto allocation = heap->allocate(adapter, device, memoryProperties, allocInfo, {}, &errorCode);
-
-          if (!allocation)
+          auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
+          if (!allocationResult.has_value())
           {
-            return {result, errorCode};
+            return dag::Unexpected{allocationResult.error()};
           }
 
-          errorCode = currentBuffer.create(device, desc, allocation, initialState, true);
+          auto &allocation = allocationResult.value();
+
+          HRESULT errorCode = currentBuffer.create(device, desc, allocation, initialState, true);
           if (DX12_CHECK_FAIL(errorCode))
           {
             heap->free(allocation);
-            return {result, errorCode};
+            // TODO: This is not 100% correct, as the allocation for the pool went through but for some
+            // reason the object creation failed, probably should implement something for this properly.
+            // For other objects, like textures we are not reporting any oom error when the object
+            // create did fail.
+            return dag::Unexpected{heap->makeMemoryAllocationError(errorCode, desc.Width, memoryProperties)};
           }
 
           T::onSegmentAdd(heap, currentBuffer.getResourcePtr(), currentBuffer.getBufferMemory());
@@ -624,7 +575,7 @@ protected:
       G_ASSERT(result.cpuPointer());
       G_ASSERT(result.buffer);
       result.range = make_value_range<uint64_t>(offset, size);
-      return {result, S_OK};
+      return result;
     }
 
     void trim(HeapType *heap)
@@ -820,12 +771,13 @@ protected:
       auto initialState = heap->propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE, memory_class);
 
       auto memoryProperties = heap->getProperties(D3D12_RESOURCE_FLAG_NONE, memory_class, allocInfo.Alignment);
-      auto allocation = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
-
-      if (!allocation)
+      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
+      if (!allocationResult.has_value())
       {
         return false;
       }
+
+      auto &allocation = allocationResult.value();
 
       Buffer newStandbyBuffer;
       const auto errorCode = newStandbyBuffer.create(device, desc, allocation, initialState, true);
@@ -873,12 +825,13 @@ protected:
 
       auto memoryProperties = heap->getProperties(D3D12_RESOURCE_FLAG_NONE, memory_class, allocInfo.Alignment);
 
-      auto allocation = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
-
-      if (!allocation)
+      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
+      if (!allocationResult.has_value())
       {
         return false;
       }
+
+      auto &allocation = allocationResult.value();
 
       Buffer newBuffer;
       const auto errorCode = newBuffer.create(device, desc, allocation, initialState, true);
@@ -1134,33 +1087,33 @@ protected:
   }
 
 public:
-  HostDeviceSharedMemoryRegion tryAllocateTempUpload(DXGIAdapter *adapter, ID3D12Device *device, size_t size, size_t alignment,
-    bool &should_flush, HRESULT errorCode)
+  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUpload(DXGIAdapter *adapter, ID3D12Device *device, size_t size,
+    size_t alignment, bool &should_flush)
   {
-    HostDeviceSharedMemoryRegion result;
     auto tempBufferAccess = tempBuffer.access();
-    eastl::tie(result, errorCode) = tempBufferAccess->allocate(this, adapter, device, size, alignment);
-    if (!result)
-    {
-      ByteUnits reqSize{size};
-      logdbg("TemporaryUploadMemoryProvider::allocateTempUpload: Allocation failed, let's trim "
-             "heaps and try again. Size: %.2f %s, Error code: 0x%08X",
-        reqSize.units(), reqSize.name(), GetLastError());
-      tempBufferAccess->trim(this);
-      eastl::tie(result, errorCode) = tempBufferAccess->allocate(this, adapter, device, size, alignment);
-    }
-    tempBufferAccess->tempUsage += result.range.size();
-    should_flush = tempBufferAccess->tempUsage > tempBufferAccess->tempUsageLimit;
+    return tempBufferAccess->allocate(this, adapter, device, size, alignment)
+      .or_else([&, this](auto) {
+        ByteUnits reqSize{size};
+        logdbg("TemporaryUploadMemoryProvider::allocateTempUpload: Allocation failed, let's trim "
+               "heaps and try again. Size: %.2f %s, Error code: 0x%08X",
+          reqSize.units(), reqSize.name(), GetLastError());
+        tempBufferAccess->trim(this);
+        return tempBufferAccess->allocate(this, adapter, device, size, alignment);
+      })
+      .and_then([&](auto &&value) -> HostDeviceSharedMemoryRegionAllocationResult {
+        tempBufferAccess->tempUsage += value.range.size();
+        should_flush = tempBufferAccess->tempUsage > tempBufferAccess->tempUsageLimit;
 
-    if (should_flush)
-    {
-      ByteUnits currentUsage{tempBufferAccess->tempUsage};
-      ByteUnits usageLimit{tempBufferAccess->tempUsageLimit};
-      ByteUnits reqSize{size};
-      logdbg("DX12: Out of temp upload pool budget, usage %.2f %s of %.2f %s, while allocating %.2f %s, flushing.",
-        currentUsage.units(), currentUsage.name(), usageLimit.units(), usageLimit.name(), reqSize.units(), reqSize.name());
-    }
-    return result;
+        if (should_flush)
+        {
+          ByteUnits currentUsage{tempBufferAccess->tempUsage};
+          ByteUnits usageLimit{tempBufferAccess->tempUsageLimit};
+          ByteUnits reqSize{size};
+          logdbg("DX12: Out of temp upload pool budget, usage %.2f %s of %.2f %s, while allocating %.2f %s, flushing.",
+            currentUsage.units(), currentUsage.name(), usageLimit.units(), usageLimit.name(), reqSize.units(), reqSize.name());
+        }
+        return eastl::move(value);
+      });
   }
 
   HostDeviceSharedMemoryRegion allocateTempUpload(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment,
@@ -1168,8 +1121,8 @@ public:
 
   HostDeviceSharedMemoryRegion allocateTempUploadForUploadBuffer(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment);
 
-  HostDeviceSharedMemoryRegion tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device, size_t size,
-    size_t alignment, HRESULT errorCode);
+  HostDeviceSharedMemoryRegionAllocationResult tryAllocateTempUploadForUploadBuffer(DXGIAdapter *adapter, ID3D12Device *device,
+    size_t size, size_t alignment);
 
   void completeFrameRecording(const CompletedFrameRecordingInfo &info)
   {
@@ -1321,12 +1274,14 @@ protected:
 
       auto memoryProperties = heap->getProperties(D3D12_RESOURCE_FLAG_NONE, memory_class, allocInfo.Alignment);
 
-      auto allocation = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
+      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, {});
 
-      if (!allocation)
+      if (!allocationResult.has_value())
       {
         return result;
       }
+
+      auto &allocation = allocationResult.value();
 
       auto errorCode = newHeap.create(device, desc, allocation, initialState, true);
       if (DX12_CHECK_FAIL(errorCode))

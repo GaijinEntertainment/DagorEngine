@@ -25,7 +25,7 @@
 #include <ecs/anim/animchar_visbits.h>
 #include <ecs/rendInst/riExtra.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/renderEvent.h>
 #include <game/gameEvents.h>
 
@@ -40,7 +40,7 @@
 
 extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
 extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
-using namespace dynmodel_renderer;
+using namespace dynrend;
 
 static void create_outline_rendrerer_locally_es(const BeforeLoadLevel &, ecs::EntityManager &manager)
 {
@@ -105,7 +105,7 @@ static void rendist_rendering(UniqueBuf &rendinstMatrixBuffer, int res_idx, cons
 }
 
 static void render_outline_stencil(
-  const TMatrix &view_tm, dag::Vector<OutlinedDynModel> &dynModelElements, DynModelRenderingState &state, ColorBuffer &colors)
+  const TMatrix &view_tm, dag::Vector<OutlinedDynModel> &dynModelElements, ContextId ctx, ColorBuffer &colors)
 {
   if (dynModelElements.empty())
     return;
@@ -116,20 +116,17 @@ static void render_outline_stencil(
 
   render_outline_elements(
     dynModelElements, colors,
-    [&state](const OutlinedDynModel &e) {
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, e.dynModel,
+    [&ctx](const OutlinedDynModel &e) {
+      add_animchar(ctx, 0, ShaderMesh::STG_imm_decal, e.dynModel,
         animchar_additional_data::get_optional_data(e.animcharAdditionalData));
     },
-    [&state]() {
-      state.prepareForRender();
-      const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::OTHER);
-      if (buffer)
+    [&ctx]() {
+      if (prepare_render_current(ctx))
       {
-        state.setVars(buffer->buffer.getBufId());
         SCENE_LAYER_GUARD(dynamicDepthSceneBlockId);
-        state.render(buffer->curOffset);
+        render_all_stages(ctx);
       }
-      state.clear();
+      clear(ctx);
     });
 }
 
@@ -152,13 +149,14 @@ static void render_outline_stencil(
 void outline_render_elements(
   OutlineRenderer &outline_renderer, OutlineContexts &outline_ctxs, const TMatrix &view_tm, const TMatrix4_vec4 &proj_tm)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+  clear(ctx);
   auto renderOutlineType = [&](int override_type) {
     auto &context = outline_ctxs.context[override_type];
     if (context.empty())
       return;
     shaders::overrides::set(outline_renderer.zTestOverrides[override_type]);
-    render_outline_stencil(view_tm, context.dynModelElements, state, outline_renderer.colors);
+    render_outline_stencil(view_tm, context.dynModelElements, ctx, outline_renderer.colors);
     render_outline_stencil(view_tm, context.riElements, outline_renderer.rendInstTransforms, outline_renderer.colors);
     outline_renderer.renderOutlineBoxes(context.boxElements);
     shaders::overrides::reset();
@@ -211,7 +209,7 @@ static void create_outline_node_es(
                           .texture({TEXFMT_DEPTH24 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
                           .clear(make_clear_value(0.f, 0));
 
-    registry.requestRenderPass().depthRw(outlineDepth);
+    registry.requestRenderPass().depth(outlineDepth);
 
     auto outlineDepthHndl = eastl::move(outlineDepth).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
 

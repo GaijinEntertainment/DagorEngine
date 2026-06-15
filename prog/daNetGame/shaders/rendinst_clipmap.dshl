@@ -25,6 +25,9 @@ endmacro
 
 
 
+int hmap_object_tess_active = 0;
+interval hmap_object_tess_active : off < 1, on;
+
 shader rendinst_clipmap, rendinst_landclass
 {
   static int material_grassify = 0 no_warnings;
@@ -66,7 +69,9 @@ shader rendinst_clipmap, rendinst_landclass
   }
   interval material_pn_triangulation : off < 1, on;
 
-  bool global_tessellation_enabled = (in_editor_assume == yes && object_tess_factor == object_tess_factor_on) || (in_editor_assume != yes && hmap_object_tess_factor == hmap_object_tess_factor_on);
+  bool global_tessellation_enabled =
+      (in_editor_assume == yes && object_tess_factor == object_tess_factor_on) ||
+      (in_editor_assume != yes && hmap_object_tess_factor == hmap_object_tess_factor_on && hmap_object_tess_active == on);
   bool pn_triangulation_enabled =
       (global_tessellation_enabled && material_pn_triangulation != off) &&
       (rendinst_render_pass == rendinst_render_pass_normal ||

@@ -75,6 +75,7 @@ enum FifoMorphType : unsigned char
   MT_QUAD_IN,
   MT_QUAD_OUT,
   MT_QUAD_IN_OUT,
+  MT_COUNT,
 };
 
 // generally internal classes and interface implementations

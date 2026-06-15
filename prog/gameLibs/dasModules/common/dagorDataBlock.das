@@ -124,6 +124,14 @@ def datablock_for_each_param(data_block : DataBlock | #; blk : block<(i : int; t
     let t = data_block |> datablock_getParamType(i)
     invoke(blk, int(i), t)
 
+
+[generic]
+def datablock_for_each_param(data_block : DataBlock | #; blk : block<(i : int; t : int; key : string) : void>)
+  for i in 0u..data_block.paramCount
+    let t = data_block |> datablock_getParamType(i)
+    invoke(blk, int(i), t, data_block |> datablock_getParamName(i))
+
+
 [generic]
 def datablock_for_each_param(data_block : DataBlock | #; name : string; blk : block<(i : int; t : int) : void>)
   let name_id = data_block |> datablock_getNameId(name)

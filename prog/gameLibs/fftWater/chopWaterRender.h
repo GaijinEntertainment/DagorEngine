@@ -40,6 +40,7 @@ public:
   void setLevel(float water_level);
   float getMinLevel() const { return minWaterLevel; }
   float getMaxLevel() const { return maxWaterLevel; }
+  float getMaxWaveHeight() const { return maxWaveHeight; }
   void setMinMaxLevel(float min_water_level, float max_water_level);
   void calcWaveHeight(float &out_max_wave_height, float &out_significant_wave_height);
 

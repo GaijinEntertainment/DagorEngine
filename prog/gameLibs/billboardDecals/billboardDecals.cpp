@@ -46,7 +46,7 @@ BillboardDecals::BillboardDecals() :
   billboard_decals_depth_maskVarId = get_shader_variable_id("billboard_decals_depth_mask");
 }
 
-void BillboardDecals::init_textures(SharedTexHolder &&diffuse, SharedTexHolder &&normal)
+void BillboardDecals::init_textures(SharedTexWithShaderVar &&diffuse, SharedTexWithShaderVar &&normal)
 {
 
   diffuseTex = eastl::move(diffuse);
@@ -77,9 +77,9 @@ bool BillboardDecals::init_textures(dag::ConstSpan<const char *> diffuse, dag::C
 {
   if (!diffuse.size())
     return false;
-  SharedTexHolder diffuseTexArray =
+  SharedTexWithShaderVar diffuseTexArray =
     dag::add_managed_array_texture(String(128, "%s_diff*", texture_name), diffuse, "billboard_decals_diff_tex");
-  SharedTexHolder bumpTexArray;
+  SharedTexWithShaderVar bumpTexArray;
   if (!normal.empty())
   {
     bumpTexArray = dag::add_managed_array_texture(String(128, "%s_normal*", texture_name), normal, "billboard_decals_bump_tex");

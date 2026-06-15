@@ -44,8 +44,8 @@ private:
   eastl::vector<PuddleInfo> puddles;
   UniqueBufWithShaderVar puddlesBuf;
   UniqueBufWithShaderVar perGroupParametersBuf;
-  SharedTexHolder puddleTex;
-  SharedTexHolder flowmapTex;
+  SharedTexWithShaderVar puddleTex;
+  SharedTexWithShaderVar flowmapTex;
   uint32_t maxSplashesPerFrame = 0;
   uint32_t splashesThisFrame = 0;
 

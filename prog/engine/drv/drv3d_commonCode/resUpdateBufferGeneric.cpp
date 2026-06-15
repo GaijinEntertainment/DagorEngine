@@ -14,7 +14,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   dest_base_texture->getinfo(ti, dest_mip);
 
   int cflg = (ti.cflg & (TEXFMT_MASK | TEXCF_SRGBWRITE | TEXCF_SRGBREAD)) | TEXCF_SYSMEM | TEXCF_WRITEONLY;
-#if _TARGET_C2
+#if _TARGET_C1 || _TARGET_C2
 
 #endif
   unsigned texFmt = ti.cflg & TEXFMT_MASK;
@@ -124,7 +124,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
   TextureInfo ti;
   dest_tex->getinfo(ti, dest_mip);
   int cflg = (ti.cflg & (TEXFMT_MASK | TEXCF_SRGBWRITE | TEXCF_SRGBREAD)) | TEXCF_SYSMEM | TEXCF_WRITEONLY;
-#if _TARGET_C2
+#if _TARGET_C1 || _TARGET_C2
 
 #endif
   unsigned tex_fmt = ti.cflg & TEXFMT_MASK;

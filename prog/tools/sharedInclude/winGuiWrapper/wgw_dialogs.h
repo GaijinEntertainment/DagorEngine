@@ -25,6 +25,8 @@ enum
   MBS_EXCL = 0x30,
   MBS_INFO = 0x40,
 
+  MBS_MONOSPACE = 0x80,
+
   MB_ID_OK = 1,
   MB_ID_CANCEL = 2,
   MB_ID_ABORT = 3,

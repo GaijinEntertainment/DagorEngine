@@ -283,7 +283,7 @@ BhvMoveResize::HandlePos BhvMoveResize::findHandle(Element *elem, const Point2 &
 
   if (left && (modes & MR_L))
     return MR_L;
-  if (right && (modes & MR_L))
+  if (right && (modes & MR_R))
     return MR_R;
 
   if (p.x >= lt.x && p.y >= lt.y && p.x <= rb.x && p.y <= rb.y && (modes & MR_AREA))

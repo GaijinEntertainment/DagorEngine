@@ -46,6 +46,10 @@ static SQInteger _stream_readblob(HSQUIRRELVM v)
     if(self->Read(ptr,len) != len) return sq_throwerror(v,"io error"); \
     }
 
+#define SAFE_WRITEN(ptr,len) { \
+    if(self->Write(ptr,len) != len) return sq_throwerror(v,"io error"); \
+    }
+
 static SQInteger _stream_readn(HSQUIRRELVM v)
 {
     SETUP_STREAM(v);
@@ -146,56 +150,56 @@ static SQInteger _stream_writen(HSQUIRRELVM v)
         SQInteger i;
         sq_getinteger(v, 2, &ti);
         i = ti;
-        self->Write(&i, sizeof(SQInteger));
+        SAFE_WRITEN(&i, sizeof(SQInteger));
               }
         break;
     case 'i': {
         SQInt32 i;
         sq_getinteger(v, 2, &ti);
         i = (SQInt32)ti;
-        self->Write(&i, sizeof(SQInt32));
+        SAFE_WRITEN(&i, sizeof(SQInt32));
               }
         break;
     case 's': {
         short s;
         sq_getinteger(v, 2, &ti);
         s = (short)ti;
-        self->Write(&s, sizeof(short));
+        SAFE_WRITEN(&s, sizeof(short));
               }
         break;
     case 'w': {
         unsigned short w;
         sq_getinteger(v, 2, &ti);
         w = (unsigned short)ti;
-        self->Write(&w, sizeof(unsigned short));
+        SAFE_WRITEN(&w, sizeof(unsigned short));
               }
         break;
     case 'c': {
         signed char c;
         sq_getinteger(v, 2, &ti);
         c = (signed char)ti;
-        self->Write(&c, sizeof(signed char));
+        SAFE_WRITEN(&c, sizeof(signed char));
                   }
         break;
     case 'b': {
         unsigned char b;
         sq_getinteger(v, 2, &ti);
         b = (unsigned char)ti;
-        self->Write(&b, sizeof(unsigned char));
+        SAFE_WRITEN(&b, sizeof(unsigned char));
               }
         break;
     case 'f': {
         float f;
         sq_getfloat(v, 2, &tf);
         f = (float)tf;
-        self->Write(&f, sizeof(float));
+        SAFE_WRITEN(&f, sizeof(float));
               }
         break;
     case 'd': {
         double d;
         sq_getfloat(v, 2, &tf);
         d = tf;
-        self->Write(&d, sizeof(double));
+        SAFE_WRITEN(&d, sizeof(double));
               }
         break;
     default:

@@ -6,8 +6,10 @@ include "bvh_usable_inc.dshl"
 int use_hw_rt_gi;
 interval use_hw_rt_gi : off < 1, on < 2, raygen;
 
+int dagi_force_opaque_trace = 0;
+
 macro PROJECT_TRACE(code, supports_raygen)
-  bool dagi_project_use_rt = use_hw_rt_gi != on && use_hw_raytracing && compatibility_mode == compatibility_mode_off && bvh_usable == yes;
+  bool dagi_project_use_rt = use_hw_rt_gi != off && use_hw_raytracing && compatibility_mode == compatibility_mode_off && bvh_usable == yes;
   bool dagi_project_use_raygen = dagi_project_use_rt && use_hw_rt_gi == raygen && supports_raygen && hardware.dx12;
   if (dagi_project_use_rt)
   {
@@ -20,6 +22,10 @@ macro PROJECT_TRACE(code, supports_raygen)
     if (dagi_project_use_raygen)
     {
       USE_GI_PAYLOAD(code)
+    }
+
+    (code) {
+      dagi_force_opaque_trace@i1 = dagi_force_opaque_trace;
     }
 
     hlsl(code) {
@@ -62,7 +68,7 @@ macro PROJECT_TRACE(code, supports_raygen)
           ray.TMin = 0;
           ray.TMax = maxT;
 
-          const uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+          uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | (dagi_force_opaque_trace ? RAY_FLAG_FORCE_OPAQUE : RAY_FLAG_NONE);
 
           TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
 
@@ -75,7 +81,11 @@ macro PROJECT_TRACE(code, supports_raygen)
         ##else
           HitInfo hitInfo;
           float3 bvhFrom = (origin - bvh_origin) + cam_from;
-          if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, 0.5))
+          uint flags = dagi_force_opaque_trace ? RAY_FLAG_FORCE_OPAQUE : RAY_FLAG_NONE;
+          const half3 defaultColor = 1;
+          float3 ray_color;
+          float translucent_t;
+          if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, ray_color, translucent_t, defaultColor, flags))
           {
             SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, -TRACING_LOD);
             hit.hitAt = hitInfo.t;

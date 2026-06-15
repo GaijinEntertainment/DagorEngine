@@ -26,7 +26,7 @@
 #include <render/renderEvent.h>
 #include <render/world/cameraInCamera.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/global_vars.h>
 #include <render/world/postfxRender.h>
 #include <scope/render/events.h>
@@ -65,7 +65,7 @@ CONSOLE_BOOL_VAL("scope_debug", fire_assert, false);
 SCOPE_AIM_RENDER_VARS
 #undef VAR
 
-using namespace dynmodel_renderer;
+using namespace dynrend;
 
 template <typename Callable>
 inline void set_scope_lens_phys_params_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
@@ -258,17 +258,18 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
   int blockId,
   uint8_t visMask,
   bool hide,
-  dynmodel_renderer::NeedPreviousMatrices need_previous_matrices,
+  NeedPreviousMatrices need_previous_matrices,
   const TexStreamingContext &texCtx,
   int nodeId = -1,
   ShaderElement *shader_override = nullptr)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+  clear(ctx);
   for (ecs::EntityId eid : eids)
   {
     if (eid) // Investigate: does this check really needed?
       process_animchar_ecs_query(*g_entity_mgr, eid,
-        [&state, startStage, endStage, nodeId, visMask, hide, need_previous_matrices, texCtx, shader_override](
+        [&ctx, startStage, endStage, nodeId, visMask, hide, need_previous_matrices, texCtx, shader_override](
           AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t &animchar_visbits,
           const ecs::Point4List *additional_data ECS_REQUIRE(eastl::true_type animchar_render__enabled = true)) {
           // VISFLG_COCKPIT_VISIBLE not connected with cockpit render here.
@@ -282,9 +283,8 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
             auto scene = animchar_render.getSceneInstance();
             if (DAGOR_LIKELY(nodeId < 0))
             {
-              state.process_animchar(startStage, endStage, scene, optionalAditionalData, need_previous_matrices,
-                {shader_override, nullptr}, dynmodel_renderer::PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr,
-                texCtx);
+              add_animchar(ctx, startStage, endStage, scene, optionalAditionalData, need_previous_matrices, {shader_override, nullptr},
+                PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, texCtx);
             }
             else
             {
@@ -294,9 +294,8 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
                 nodeVisibility.set(i, !scene->getNodeHidden(i));
                 scene->showNode(i, i == nodeId);
               }
-              state.process_animchar(startStage, endStage, scene, optionalAditionalData, need_previous_matrices,
-                {shader_override, nullptr}, dynmodel_renderer::PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr,
-                texCtx);
+              add_animchar(ctx, startStage, endStage, scene, optionalAditionalData, need_previous_matrices, {shader_override, nullptr},
+                PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, texCtx);
               for (int i = 0, n = scene->getNodeCount(); i < n; i++)
                 scene->showNode(i, nodeVisibility[i]);
             }
@@ -306,14 +305,10 @@ static void process_animchars_and_render(dag::ConstSpan<ecs::EntityId> eids,
         });
   }
 
-  state.prepareForRender();
-  const DynamicBufferHolder *buffer = state.requestBuffer(BufferType::MAIN);
-  if (!buffer)
+  if (!prepare_render_current(ctx))
     return;
-
-  state.setVars(buffer->buffer.getBufId());
   SCENE_LAYER_GUARD(blockId);
-  state.render(buffer->curOffset);
+  render_all_stages(ctx);
 }
 
 static __forceinline void render_scope_trans(ecs::EntityId eid,
@@ -324,7 +319,7 @@ static __forceinline void render_scope_trans(ecs::EntityId eid,
 {
   G_ASSERT(nodeId >= 0);
   process_animchars_and_render(make_span_const(&eid, 1), ShaderMesh::STG_trans, ShaderMesh::STG_trans, block_id, 0, false,
-    dynmodel_renderer::NeedPreviousMatrices::No, texCtx, nodeId, shader_override);
+    NeedPreviousMatrices::No, texCtx, nodeId, shader_override);
 }
 
 static void render_scope_reticle_quad(ecs::EntityId eid, int lens_node_id)
@@ -372,7 +367,7 @@ void render_scope_prepass(const ScopeAimRenderingData &scopeAimData, const TexSt
   STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
   process_animchars_and_render(make_span_const(scopeAimData.scopeLensCockpitEntities), ShaderMesh::STG_opaque, ShaderMesh::STG_atest,
-    dynamicDepthSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, dynmodel_renderer::NeedPreviousMatrices::Yes, texCtx);
+    dynamicDepthSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
 }
 
 void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
@@ -381,7 +376,7 @@ void render_scope(const ScopeAimRenderingData &scopeAimData, const TexStreamingC
   STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
   process_animchars_and_render(make_span_const(scopeAimData.scopeLensCockpitEntities), ShaderMesh::STG_opaque, ShaderMesh::STG_atest,
-    dynamicSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, dynmodel_renderer::NeedPreviousMatrices::Yes, texCtx);
+    dynamicSceneBlockId, VISFLG_MAIN_AND_SHADOW_VISIBLE, true, NeedPreviousMatrices::Yes, texCtx);
 }
 
 void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx)
@@ -403,8 +398,7 @@ void render_scope_trans_except_lens(const ScopeAimRenderingData &scopeAimData, c
         scopeLensInst.showNode(nodeId, false);
       }
       process_animchars_and_render(make_span_const(&scopeAimData.entityWithScopeLensEid, 1), ShaderMesh::STG_trans,
-        ShaderMesh::STG_trans, dynamicSceneTransBlockId, VISFLG_COCKPIT_VISIBLE, false, dynmodel_renderer::NeedPreviousMatrices::No,
-        texCtx, -1);
+        ShaderMesh::STG_trans, dynamicSceneTransBlockId, VISFLG_COCKPIT_VISIBLE, false, NeedPreviousMatrices::No, texCtx, -1);
       if (scopeAimData.lensNodeId >= 0)
         scopeLensInst.showNode(scopeAimData.lensNodeId, lensVisible);
       for (int nodeId : ScopeCrosshairNodeIterator(scopeAimData.crosshairNodeIds))

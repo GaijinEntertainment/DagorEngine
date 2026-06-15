@@ -10,8 +10,6 @@
 #include <3d/gpuLatency.h>
 #include <3d/dag_lowLatency.h>
 
-#include <EASTL/finally.h>
-
 using namespace drv3d_dx12;
 
 #if _TARGET_XBOX
@@ -364,7 +362,7 @@ bool backend::Swapchain::setup(Device &device, frontend::Swapchain &fe, DXGIFact
   swapchainBufferSRVHeap.init(device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
   swapchainBufferRTVHeap.init(device.device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 
-  const bool enableWaitableSwapchain = enable_waitable_swapchain && [] {
+  const bool enableWaitableSwapchain = sci.swapchainKind == SwapchainKind::Default && enable_waitable_swapchain && [] {
     DISPLAY_DEVICE dd;
     dd.cb = sizeof(dd);
     return EnumDisplayDevices(nullptr, 0, &dd, 0) != FALSE;

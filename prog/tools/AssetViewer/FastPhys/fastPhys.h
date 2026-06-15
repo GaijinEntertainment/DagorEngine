@@ -6,6 +6,8 @@
 
 #include "fastPhysEd.h"
 
+#include <EASTL/vector_multimap.h>
+
 
 class FPPanel;
 class ActionsTreeCB;
@@ -74,7 +76,11 @@ public:
   bool onWmDestroyWindow(void *window) override;
 
 protected:
+  using ObjectToTreeNodeMap = eastl::vector_multimap<const FpdObject *, PropPanel::TLeafHandle>;
+
   void addTreeAction(PropPanel::TLeafHandle parent, FpdAction *action);
+
+  void makeObjectToTreeNodeMap(ObjectToTreeNodeMap &map, PropPanel::TLeafHandle parent) const;
 
 private:
   DagorAsset *mAsset;

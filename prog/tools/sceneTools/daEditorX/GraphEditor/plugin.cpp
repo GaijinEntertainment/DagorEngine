@@ -19,6 +19,7 @@
 #include "command_definitions.h"
 #include "graph_compile.h"
 #include "graph_panel.h"
+#include "graph_shortcuts_panel.h"
 #include "histogram_panel.h"
 #include "landscape_preview_panel.h"
 #include "landscape_preview_scene.h"
@@ -39,8 +40,8 @@ enum
   CM_SHOW_LANDSCAPE_PREVIEW,
   CM_SHOW_BASE_NODES,
   CM_SHOW_PROPERTIES,
+  CM_SHOW_SHORTCUTS,
   CM_NEW_GRAPH,
-  CM_LOAD_GRAPH,
   CM_LOAD_GRAPH_BLK,
   CM_SAVE_GRAPH_BLK,
   CM_SAVE_AS_SUBGRAPH_BLK,
@@ -58,11 +59,13 @@ enum
   LANDSCAPE_PREVIEW_PANEL_WTYPE = 163,
   BASE_NODES_PANEL_WTYPE = 164,
   PROPERTIES_PANEL_WTYPE = 165,
+  SHORTCUTS_PANEL_WTYPE = 166,
 };
 
 enum
 {
   PID_SAVE_TEXTURES_SUBSTRING = 11100,
+  PID_PIN_COMMENT,
 };
 
 static String last_save_textures_substring;
@@ -202,11 +205,11 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_LANDSCAPE_PREVIEW, SHOW_LANDSCAPE_PREVIEW, "Show landscape preview");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_BASE_NODES, SHOW_BASE_NODES, "Show base nodes");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_PROPERTIES, SHOW_PROPERTIES, "Show properties");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SHOW_SHORTCUTS, SHOW_SHORTCUTS, "Show shortcuts");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_NEW_GRAPH, NEW_GRAPH, "New graph");
-  commandSystem->addMenuItem(*mainMenu, menu_id, CM_LOAD_GRAPH, LOAD_GRAPH, "Load graph...");
-  commandSystem->addMenuItem(*mainMenu, menu_id, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph (BLK)...");
-  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_GRAPH_BLK, SAVE_GRAPH_BLK, "Save graph (BLK)...");
-  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_AS_SUBGRAPH_BLK, SAVE_AS_SUBGRAPH_BLK, "Save as subgraph (BLK)...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_GRAPH_BLK, SAVE_GRAPH_BLK, "Save graph...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_AS_SUBGRAPH_BLK, SAVE_AS_SUBGRAPH_BLK, "Save as subgraph...");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_TEXTURES, SAVE_TEXTURES, "Save textures");
   commandSystem->addMenuItem(*mainMenu, menu_id, CM_SAVE_TEXTURES_BY_SUBSTRING, SAVE_TEXTURES_BY_SUBSTRING,
     "Save textures by substring");
@@ -244,19 +247,20 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
   tool->setButtonPictures(CM_SHOW_PROPERTIES, "show_panel");
   tool->setBool(CM_SHOW_PROPERTIES, isPropertiesVisible);
 
+  commandSystem->createToolbarToggleButton(*tool, CM_SHOW_SHORTCUTS, SHOW_SHORTCUTS, "Show shortcuts");
+  tool->setButtonPictures(CM_SHOW_SHORTCUTS, "show_panel");
+  tool->setBool(CM_SHOW_SHORTCUTS, isShortcutsVisible);
+
   commandSystem->createToolbarButton(*tool, CM_NEW_GRAPH, NEW_GRAPH, "New graph");
   tool->setButtonPictures(CM_NEW_GRAPH, "clear");
 
-  commandSystem->createToolbarButton(*tool, CM_LOAD_GRAPH, LOAD_GRAPH, "Load graph...");
-  tool->setButtonPictures(CM_LOAD_GRAPH, "obj_lib");
-
-  commandSystem->createToolbarButton(*tool, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph (BLK)...");
+  commandSystem->createToolbarButton(*tool, CM_LOAD_GRAPH_BLK, LOAD_GRAPH_BLK, "Load graph...");
   tool->setButtonPictures(CM_LOAD_GRAPH_BLK, "obj_lib");
 
-  commandSystem->createToolbarButton(*tool, CM_SAVE_GRAPH_BLK, SAVE_GRAPH_BLK, "Save graph (BLK)...");
+  commandSystem->createToolbarButton(*tool, CM_SAVE_GRAPH_BLK, SAVE_GRAPH_BLK, "Save graph...");
   tool->setButtonPictures(CM_SAVE_GRAPH_BLK, "save_mission");
 
-  commandSystem->createToolbarButton(*tool, CM_SAVE_AS_SUBGRAPH_BLK, SAVE_AS_SUBGRAPH_BLK, "Save as subgraph (BLK)...");
+  commandSystem->createToolbarButton(*tool, CM_SAVE_AS_SUBGRAPH_BLK, SAVE_AS_SUBGRAPH_BLK, "Save as subgraph...");
   tool->setButtonPictures(CM_SAVE_AS_SUBGRAPH_BLK, "save_mission");
 
   commandSystem->createToolbarButton(*tool, CM_SAVE_TEXTURES, SAVE_TEXTURES, "Save textures");
@@ -304,8 +308,13 @@ bool GraphEditorPlg::begin(int toolbar_id, unsigned menu_id)
     EDITORCORE->addPropPanel(PROPERTIES_PANEL_WTYPE, hdpi::_pxScaled(320));
   }
 
-  if (
-    isGraphVisible || isTexturePreviewVisible || isHistogramVisible || isLandscapeVisible || isBaseNodesVisible || isPropertiesVisible)
+  if (isShortcutsVisible)
+  {
+    EDITORCORE->addPropPanel(SHORTCUTS_PANEL_WTYPE, hdpi::_pxScaled(420));
+  }
+
+  if (isGraphVisible || isTexturePreviewVisible || isHistogramVisible || isLandscapeVisible || isBaseNodesVisible ||
+      isPropertiesVisible || isShortcutsVisible)
   {
     EDITORCORE->managePropPanels();
   }
@@ -360,35 +369,9 @@ void GraphEditorPlg::newEmptyGraph()
   // graph-level texture knobs, empty sourcePath). The mutate-lock keeps the texgen worker
   // from observing a half-cleared graph mid-clear. notifyGraphSourceChanged pushes the
   // reset through to the service and the canvas; graphPanel->onGraphDataChanged rebuilds
-  // the canvas widget tree. Same shape as the post-load tail in loadGraphFromFile.
+  // the canvas widget tree. Same shape as the post-load tail in promptAndLoadGraphBlk.
   // No dirty-tracking confirmation here -- the user explicitly asked to skip it for now.
   mutateGraphData([](GraphData &gd) { clear_graph_data(gd); });
-  notifyGraphSourceChanged();
-  if (graphPanel)
-  {
-    graphPanel->onGraphDataChanged();
-  }
-}
-
-void GraphEditorPlg::promptAndLoadGraph()
-{
-  String picked = wingw::file_open_dlg(nullptr, "Select graph JSON to load", "Graph JSON (*.json)|*.json|All files (*.*)|*.*", "json",
-    resourcePaths.mainGraphsDir);
-  if (!picked.length())
-  {
-    return;
-  }
-  loadGraphFromFile(picked.str());
-}
-
-void GraphEditorPlg::loadGraphFromFile(const char *path)
-{
-  bool ok = false;
-  mutateGraphData([&](GraphData &gd) { ok = load_graph_data(gd, path, resourcePaths.shaderIncludesDir, &getBaseNodesBlk()); });
-  if (!ok)
-  {
-    return;
-  }
   notifyGraphSourceChanged();
   if (graphPanel)
   {
@@ -670,6 +653,20 @@ void GraphEditorPlg::updateImgui()
       EDITORCORE->managePropPanels();
     }
   }
+
+  if (shortcutsPanel)
+  {
+    bool open = true;
+    DAEDITOR3.imguiBegin(*shortcutsPanel->getPanelWindow(), &open);
+    shortcutsPanel->updateImgui();
+    DAEDITOR3.imguiEnd();
+
+    if (!open)
+    {
+      EDITORCORE->removePropPanel(shortcutsPanel.get());
+      EDITORCORE->managePropPanels();
+    }
+  }
 }
 
 void *GraphEditorPlg::queryInterfacePtr([[maybe_unused]] unsigned huid) { return nullptr; }
@@ -762,14 +759,14 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
       EDITORCORE->managePropPanels();
       return true;
     }
+    case CM_SHOW_SHORTCUTS:
+    {
+      toggleShortcutsPanel();
+      return true;
+    }
     case CM_NEW_GRAPH:
     {
       newEmptyGraph();
-      return true;
-    }
-    case CM_LOAD_GRAPH:
-    {
-      promptAndLoadGraph();
       return true;
     }
     case CM_LOAD_GRAPH_BLK:
@@ -823,6 +820,20 @@ bool GraphEditorPlg::onPluginMenuClick([[maybe_unused]] unsigned id)
 
 void GraphEditorPlg::handleViewportAcceleratorCommand([[maybe_unused]] unsigned id) {}
 
+void GraphEditorPlg::toggleShortcutsPanel()
+{
+  if (!shortcutsPanel)
+  {
+    EDITORCORE->addPropPanel(SHORTCUTS_PANEL_WTYPE, hdpi::_pxScaled(420));
+  }
+  else
+  {
+    EDITORCORE->removePropPanel(shortcutsPanel.get());
+  }
+
+  EDITORCORE->managePropPanels();
+}
+
 void GraphEditorPlg::registerEditorCommands(IEditorCommandSystem &command_system)
 {
   command_system.addCommand(SHOW_GRAPH);
@@ -831,8 +842,8 @@ void GraphEditorPlg::registerEditorCommands(IEditorCommandSystem &command_system
   command_system.addCommand(SHOW_LANDSCAPE_PREVIEW);
   command_system.addCommand(SHOW_BASE_NODES);
   command_system.addCommand(SHOW_PROPERTIES);
+  command_system.addCommand(SHOW_SHORTCUTS, ImGuiKey_F1);
   command_system.addCommand(NEW_GRAPH);
-  command_system.addCommand(LOAD_GRAPH);
   command_system.addCommand(LOAD_GRAPH_BLK);
   command_system.addCommand(SAVE_GRAPH_BLK);
   command_system.addCommand(SAVE_AS_SUBGRAPH_BLK);
@@ -844,13 +855,46 @@ void GraphEditorPlg::registerEditorCommands(IEditorCommandSystem &command_system
   // Canvas-local shortcuts
   command_system.addCommand(CANVAS_DELETE_SELECTED, ImGuiKey_Delete);
   command_system.addCommand(CANVAS_FRAME_SELECTED, ImGuiKey_F);
-  command_system.addCommand(CANVAS_FRAME_SELECTED_WITH_MARGIN, ImGuiMod_Shift | ImGuiKey_F);
+  command_system.addCommand(CANVAS_FRAME_SELECTED_WITH_MARGIN, ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F);
   command_system.addCommand(CANVAS_COPY, ImGuiMod_Ctrl | ImGuiKey_C);
   command_system.addCommand(CANVAS_CUT, ImGuiMod_Ctrl | ImGuiKey_X);
   command_system.addCommand(CANVAS_PASTE, ImGuiMod_Ctrl | ImGuiKey_V);
+  command_system.addCommand(CANVAS_ZOOM_AND_CENTER, ImGuiMod_Ctrl | ImGuiKey_Space);
+  command_system.addCommand(CANVAS_SELECT_NODES_NO_OUTPUTS, ImGuiMod_Ctrl | ImGuiKey_M);
+  command_system.addCommand(CANVAS_SHOW_NEXT_SELECTED, ImGuiMod_Shift | ImGuiKey_F);
+  command_system.addCommand(CANVAS_REMOVE_KEEP_CONNECTIONS, ImGuiKey_Backspace);
+  command_system.addCommand(CANVAS_REMOVE_EDGES_AT_PIN, ImGuiKey_X);
+  command_system.addCommand(CANVAS_MODIFY_EDGE_AT_PIN, ImGuiKey_A);
+  command_system.addCommand(CANVAS_JUMP_OPPOSITE_PIN, ImGuiKey_Tab);
+  command_system.addCommand(CANVAS_COMMENT_PIN, ImGuiKey_C);
 }
 
-void GraphEditorPlg::registerMenuAccelerators() {}
+void GraphEditorPlg::registerMenuAccelerators()
+{
+  IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
+  G_ASSERT(manager);
+  manager->addAccelerator(CM_SHOW_SHORTCUTS, SHOW_SHORTCUTS);
+}
+
+bool GraphEditorPlg::promptPinComment(eastl::string &inout_comment)
+{
+  String text(inout_comment.c_str());
+  PropPanel::DialogWindow *dlg = DAGORED2->createDialog(hdpi::_pxScaled(360), hdpi::_pxScaled(130), "Pin comment");
+
+  PropPanel::ContainerPropertyControl &panel = *dlg->getPanel();
+  panel.createEditBox(PID_PIN_COMMENT, "Comment:", text);
+
+  const int ret = dlg->showDialog();
+  const bool accepted = ret == PropPanel::DIALOG_ID_OK;
+  if (accepted)
+  {
+    text = panel.getText(PID_PIN_COMMENT);
+    inout_comment = text.str();
+  }
+
+  del_it(dlg);
+  return accepted;
+}
 
 bool GraphEditorPlg::handleMouseMove(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) { return false; }
 
@@ -990,6 +1034,23 @@ void *GraphEditorPlg::onWmCreateWindow(int type)
       isPropertiesVisible = true;
       return propertiesPanel.get();
     }
+    case SHORTCUTS_PANEL_WTYPE:
+    {
+      if (shortcutsPanel)
+      {
+        return nullptr;
+      }
+
+      shortcutsPanel = eastl::make_unique<ShortcutsPanel>();
+
+      if (toolBar)
+      {
+        toolBar->setBool(CM_SHOW_SHORTCUTS, true);
+      }
+
+      isShortcutsVisible = true;
+      return shortcutsPanel.get();
+    }
   }
 
   return nullptr;
@@ -1070,6 +1131,18 @@ bool GraphEditorPlg::onWmDestroyWindow(void *window)
     if (toolBar)
     {
       toolBar->setBool(CM_SHOW_PROPERTIES, false);
+    }
+    return true;
+  }
+
+  if (shortcutsPanel && window == shortcutsPanel.get())
+  {
+    shortcutsPanel.reset();
+    isShortcutsVisible = false;
+
+    if (toolBar)
+    {
+      toolBar->setBool(CM_SHOW_SHORTCUTS, false);
     }
     return true;
   }
@@ -1165,14 +1238,14 @@ void GraphEditorPlg::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
       EDITORCORE->managePropPanels();
       break;
     }
+    case CM_SHOW_SHORTCUTS:
+    {
+      toggleShortcutsPanel();
+      break;
+    }
     case CM_NEW_GRAPH:
     {
       newEmptyGraph();
-      break;
-    }
-    case CM_LOAD_GRAPH:
-    {
-      promptAndLoadGraph();
       break;
     }
     case CM_LOAD_GRAPH_BLK:
@@ -1641,7 +1714,7 @@ bool GraphEditorPlg::makeNodeFromBaseBlk(const char *template_uid, float x, floa
   out.plugin = desc->getStr("plugin", "");
 
   // Pin stubs in descriptor order. Edges (which reference pins by index) will line up with
-  // the descriptor naturally for fresh nodes; for loaded nodes the loader preserves JSON
+  // the descriptor naturally for fresh nodes; for loaded nodes the loader preserves the saved
   // pin order instead. customTextureName stays empty here. Resolved-cache fields (type /
   // isInput / hidden) are filled in a separate pass below via resolve_node_pins so the
   // logic stays in one place.
@@ -1711,6 +1784,18 @@ void GraphEditorPlg::markGraphDirtyAndRegen()
   // (drops the preview every slider tick + forces a full pipeline reset every
   // frame).
   texGenService->markGraphDirty();
+}
+
+void GraphEditorPlg::markGraphForceRebuild()
+{
+  if (!texGenService)
+  {
+    return;
+  }
+  // Full pipeline reset + regenerate (texGenReg.close() / regcache::clear()), so registered textures
+  // are dropped and reloaded. markGraphDirtyAndRegen alone reuses textures by their root-independent
+  // reference name, so a changed textureRootDir wouldn't actually reload them against the new root.
+  texGenService->requestForceRebuild();
 }
 
 void GraphEditorPlg::notifyGraphSourceChanged()

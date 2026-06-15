@@ -8,6 +8,7 @@ include "blue_noise.dshl"
 include "bvh_common_includes.dshl"
 include "contact_shadows.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_resolution.dshl"
 
 float4x4 inv_proj_tm;
 
@@ -35,6 +36,8 @@ float4 big_light_color_0;
 float4 big_light_color_1;
 
 int rtsm_has_nuke = 0;
+interval rtsm_has_nuke : no < 1, yes;
+
 float4 nuke_pos_wave;
 
 int rtsm_pipeline_mode = 0;
@@ -77,26 +80,21 @@ macro READ_NEIGHBORS(stage)
       samples = 0;
       missCount = 0;
 
-      [branch]
-      if (dtid.x > 0)
-        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid - uint2(1, 0));
+      neighbourSamples[samples] = texture2DAt(rtsm_value, uint2(max(dtid.x, 1) - 1, dtid.y));
+      samples += dtid.x > 0;
 
-      [branch]
-      if (dtid.x < resolution.x - 1)
-        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid + uint2(1, 0));
+      neighbourSamples[samples] = texture2DAt(rtsm_value, min(uint2(dtid.x + 1, dtid.y), resolution - 1));
+      samples += dtid.x < resolution.x - 1;
 
-      [branch]
-      if (dtid.y > 0)
-        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid - uint2(0, 1));
+      neighbourSamples[samples] = texture2DAt(rtsm_value, uint2(dtid.x, max(dtid.y, 1) - 1));
+      samples += dtid.y > 0;
 
-      [branch]
-      if (dtid.y < resolution.y - 1)
-        neighbourSamples[samples++] = texture2DAt(rtsm_value, dtid + uint2(0, 1));
+      neighbourSamples[samples] = texture2DAt(rtsm_value, min(uint2(dtid.x, dtid.y + 1), resolution - 1));
+      samples += dtid.y < resolution.y - 1;
 
-      [unroll(4)]
-      for (uint i = 0; i < samples; ++i)
-        if (neighbourSamples[i] == NRD_FP16_MAX)
-          ++missCount;
+      UNROLL
+      for (uint i = 0; i < 4; ++i)
+        missCount += (i < samples && neighbourSamples[i] == NRD_FP16_MAX) ? 1 : 0;
     }
   }
 endmacro
@@ -141,10 +139,13 @@ shader rt_shadows, rt_shadows_fill_high
     contact_shadow_len@f1 = contact_shadow_len;
     projectionMatrix@f44 = { projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3 };
     viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+  }
 
-    // Nuke
-    has_nuke@i1 = rtsm_has_nuke;
-    nuke_pos_wave@f4 = nuke_pos_wave;
+  if (rtsm_has_nuke == yes)
+  {
+    (cs) {
+      nuke_pos_wave@f4 = nuke_pos_wave;
+    }
   }
 
   if (rtsm_render_mode == hard)
@@ -359,23 +360,24 @@ shader rt_shadows, rt_shadows_fill_high
       float dist_sq = dot(relPos, relPos);
       relPos += impostor_shadow_offset * gbuffer.impostorMask * sun_dir_for_shadows;
 
-      half nukeFade = 1;
-      if (has_nuke)
-      {
-        float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
-        float nukeDistance = length(nukeBvhPos - relPos);
-        float waveDistance = nukeDistance - nuke_pos_wave.w;
-
-        if (waveDistance < 0)
+      ##if rtsm_has_nuke == yes
+        half nukeFade = 1;
         {
-          write_no_shadow(dtid, viewDepth, solRadialAngle);
-          return;
-        }
+          float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
+          float nukeDistance = length(nukeBvhPos - relPos);
+          float waveDistance = nukeDistance - nuke_pos_wave.w;
 
-        ##if rtsm_render_mode == denoised_translucent
-          nukeFade = half(saturate(waveDistance / 50));
-        ##endif
-      }
+          if (waveDistance < 0)
+          {
+            write_no_shadow(dtid, viewDepth, solRadialAngle);
+            return;
+          }
+
+          ##if rtsm_render_mode == denoised_translucent
+            nukeFade = half(saturate(waveDistance / 50));
+          ##endif
+        }
+      ##endif
 
       ##if rtsm_render_mode == hard
         float3 direction = -sun_dir_for_shadows;
@@ -396,24 +398,21 @@ shader rt_shadows, rt_shadows_fill_high
       relPos = applyAdaptiveRayOffset(relPos, geometryNormal);
 
       BRANCH
-      if (!isGrass && !isImpostor && !isTerrain && !isFoliage)
+      if (!isGrass && !isImpostor && !isTerrain && !isFoliage && dot(gbuffer.normal, direction) <= 0)
       {
-        if (dot(gbuffer.normal, direction) <= 0)
-        {
-          ##if rtsm_render_mode == rr
-            texture2DAt(rtsm_value, dtid) = 0;
-          ##elif rtsm_render_mode == hard
-            texture2DAt(combined_shadows, dtid) = float4(0, 0, 0, 1);
+        ##if rtsm_render_mode == rr
+          texture2DAt(rtsm_value, dtid) = 0;
+        ##elif rtsm_render_mode == hard
+          texture2DAt(combined_shadows, dtid) = float4(0, 0, 0, 1);
+        ##else
+          ##if rtsm_render_mode == denoised
+            texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
           ##else
-            ##if rtsm_render_mode == denoised
-              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
-            ##else
-              texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
-              texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(0, 1);
-            ##endif
+            texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(0, solRadialAngle);
+            texture2DAt(rtsm_translucency, dtid) = SIGMA_FrontEnd_PackTranslucency(0, 1);
           ##endif
-          return;
-        }
+        ##endif
+        return;
       }
 
       HitInfo hitInfo;
@@ -468,16 +467,7 @@ shader rt_shadows, rt_shadows_fill_high
       bool isFarTrees = (any(relPos.xz < tree_area.xy) || any(relPos.xz > tree_area.zw));
 
       ##if rtsm_add_far_screen_space_shadows == yes
-        bool useSSS = !isHit;
-        if (isFarTrees)
-          useSSS &= isFarTrees;
-        else if (ray_reconstruction_active)
-          useSSS = false;
-        else if (isGrass)
-        {
-          useSSS &= isFacingSun;
-          useSSS &= w < grass_range.x;
-        }
+        bool useSSS = !isHit && isFarTrees;
 
         ##if rtsm_pipeline_mode == ser
           NvReorderThread(useSSS ? 1 : 0, 1);
@@ -508,7 +498,7 @@ shader rt_shadows, rt_shadows_fill_high
             float2 hitUV;
             float contactT = contactShadowRayCastWithScaleHitT(depth_gbuf_read,
                                                                depth_gbuf_read_samplerstate,
-                                                               relPos + bvh_origin,
+                                                               relPos,
                                                                direction,
                                                                rayLength,
                                                                shadow_steps,
@@ -527,17 +517,6 @@ shader rt_shadows, rt_shadows_fill_high
                 isHit = true;
                 hitDistance = rayLength * contactT;
               }
-              if (!isFarTrees && occluderGbuffer.isGrass)
-              {
-                const float gmin = 0.7;
-                const float grng = 0.3;
-                float fade = 1 - saturate(w * grass_range.y - gmin) / grng;
-                if (fade >= dither)
-                {
-                  isHit = true;
-                  hitDistance = rayLength * contactT;
-                }
-              }
             }
           }
         }
@@ -553,7 +532,9 @@ shader rt_shadows, rt_shadows_fill_high
         ##if rtsm_render_mode == denoised
           texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(isHit ? hitDistance : NRD_FP16_MAX, solRadialAngle);
         ##else
-          rayColor = lerp(1.h, rayColor, nukeFade);
+          ##if rtsm_has_nuke == yes
+            rayColor = lerp(1.h, rayColor, nukeFade);
+          ##endif
 
           float hitT = isHit ? hitDistance : any(rayColor < 1.h) ? translucentT : NRD_FP16_MAX;
           texture2DAt(rtsm_value, dtid) = SIGMA_FrontEnd_PackPenumbra(hitT, solRadialAngle);
@@ -743,9 +724,15 @@ shader rt_direct_lights
     frame_index@i1 = blue_noise_frame_index;
     minimum_output_value@f1 = rtsm_dynamic_minimum_output_value;
 
-    // Nuke
-    has_nuke@i1 = rtsm_has_nuke;
-    nuke_pos_wave@f4 = nuke_pos_wave;
+    dynamic_resolution@u2 = uint2(current_dynamic_resolution);
+    inv_dynamic_resolution@f2 = 1.0 / current_dynamic_resolution;
+  }
+
+  if (rtsm_has_nuke == yes)
+  {
+    (cs) {
+      nuke_pos_wave@f4 = nuke_pos_wave;
+    }
   }
 
   hlsl(cs) {
@@ -781,17 +768,17 @@ shader rt_direct_lights
 
   hlsl(cs)
   {
-    bool is_in_nuke_range(float3 relPos)
-    {
-      if (!has_nuke)
-        return false;
-
-      float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
-      float nukeDistance = length(nukeBvhPos - relPos);
-      float waveDistance = nukeDistance - nuke_pos_wave.w;
-
-      return waveDistance < 0;
-    }
+    ##if rtsm_has_nuke == yes
+      bool is_in_nuke_range(float3 relPos)
+      {
+        float3 nukeBvhPos = nuke_pos_wave.xyz - bvh_origin;
+        float nukeDistance = length(nukeBvhPos - relPos);
+        float waveDistance = nukeDistance - nuke_pos_wave.w;
+        return waveDistance < 0;
+      }
+    ##else
+      bool is_in_nuke_range(float3) { return false; }
+    ##endif
 
     struct ShadowContext
     {
@@ -866,12 +853,14 @@ shader rt_direct_lights
   USE_SSSS_TRANSMITTANCE_PROFILE(cs)
   INIT_AND_USE_TILED_LIGHTS_WITH_CALLBACK(cs, shadow_callback)
 
+  INIT_DYNAMIC_RESOLUTION(cs)
+
   hlsl(cs)
   {
     RT_GROUP_SIZE
     void rt_direct_lights_cs(uint2 dtid : SV_DispatchThreadID)
     {
-      if (any(dtid >= resolution))
+      if (any(dtid >= dynamic_resolution))
         return;
 
       float2 tc = (float2(dtid) + 0.5) * inv_resolution;
@@ -886,7 +875,7 @@ shader rt_direct_lights
         return;
 
       float w = linearize_z(rawDepth, zn_zfar.zw);
-      float underwaterFade = calc_underwater_fade(w, dtid, inv_resolution, world_view_pos);
+      float underwaterFade = calc_underwater_fade(w, dtid, inv_dynamic_resolution, world_view_pos);
 
       BRANCH
       if (underwaterFade == 0)
@@ -896,7 +885,7 @@ shader rt_direct_lights
 
       ShadowContext context;
 
-      context.relPos = calc_camera_relative_pos(dtid, w, inv_resolution);
+      context.relPos = calc_camera_relative_pos(dtid, w, inv_dynamic_resolution);
       context.minT = 0;
       context.groupMask = bvhGroupHardShadow;
       context.w = w;
@@ -907,14 +896,15 @@ shader rt_direct_lights
       context.screenpos = dtid.xy;
 
       float2 pixelCenter = float2(dtid) + 0.5;
-      float2 uv = pixelCenter * inv_resolution;
-      float3 viewVect = lerp_view_vec(uv);
-      float3 worldPos = calc_world_pos(dtid, w, inv_resolution, world_view_pos);
+      float2 uvFull = pixelCenter * inv_resolution;
+      float2 uvDyn = uvFull * current_inv_dynamic_resolution_scale;
+      float3 viewVect = lerp_view_vec(uvDyn);
+      float3 worldPos = calc_world_pos(dtid, w, inv_dynamic_resolution, world_view_pos);
       float NdotV = dot(processedGbuffer.normal, -normalize(context.relPos));
       float saturated_NdotV = saturate(NdotV);
       float NoV = abs(NdotV) + 1e-5;
 
-      context.relPos = applyAdaptiveRayOffset(context.relPos, calc_geometry_normal(dtid, inv_resolution, resolution));
+      context.relPos = applyAdaptiveRayOffset(context.relPos, calc_geometry_normal(dtid, inv_dynamic_resolution, dynamic_resolution));
 
       half ao = 1;
 
@@ -936,7 +926,7 @@ shader rt_direct_lights
       specularAOcclusion = max(0.5 * enviAO, specularAOcclusion);
       half3 specularColor = processedGbuffer.specularColor * (specularAOcclusion * processedGbuffer.extracted_albedo_ao);
 
-      float3 result = get_dynamic_lighting(processedGbuffer, worldPos, -viewVect, w, pixelCenter, NoV, specularColor, uv, enviAO, context);
+      float3 result = get_dynamic_lighting(processedGbuffer, worldPos, -viewVect, w, pixelCenter * current_inv_dynamic_resolution_scale, NoV, specularColor, uvFull, enviAO, context);
 
       float specStrength = processedGbuffer.extracted_albedo_ao;
 

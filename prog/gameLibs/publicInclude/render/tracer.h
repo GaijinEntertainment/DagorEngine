@@ -244,7 +244,7 @@ protected:
   bool preparing;
   bool tracerLimitExceedMsg;
 
-  SharedTexHolder tailTex;
+  SharedTexWithShaderVar tailTex;
   ShaderMaterial *tailMat;
   dynrender::RElem tailRendElem;
   BufPtr tailVb;

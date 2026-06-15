@@ -376,7 +376,7 @@ rule ProcessTargetVariables
           Sources($(t)) = ;
 
           $(tgt)__TmpDir = [ MakeTmpDirName $(t) ] ;
-          if $(TargetType) = dll { $(tgt)__ImpLibBase = $(t:S=) ; }
+          if $(TargetType) = dll { $(tgt)__ImpLibBase = $(tgt:S=) ; }
           Target += $(tgt) ;
         }
       } else {
@@ -409,7 +409,7 @@ rule ProcessTargetVariables
       Sources = ;
 
       $(Target)__TmpDir = [ MakeTmpDirName $(orig_target) : $(target_code_name) ] ;
-      if $(TargetType) = dll { $(Target)__ImpLibBase = $(orig_target:S=) ; }
+      if $(TargetType) = dll { $(Target)__ImpLibBase = $(Target:S=) ; }
     }
 
     {
@@ -887,11 +887,12 @@ rule StripUnusedPch use_pch : target : opt
 
 rule MakeJson target : src : args
 {
-  local file = $(Root)/$(src) ;
+  local file = [ MakePathAbsolute $(JAM_CWD) : $(Root)/$(src) ] ;
+  local output = [ MakePathAbsolute $(JAM_CWD) : $(target) ] ;
   echo \{ \"directory\" \: \"$(JAM_CWD)\",
     \"arguments\" \: \[ \"$(args)\", \"\" \],
-    \"output\" \: \"$(target)\",
-    \"file\" \: \"$(file)\" \}, ;
+    \"file\" \: \"$(file)\",
+    \"output\" \: \"$(output)\" \}, ;
 }
 
 # rule how to compile C++ target
@@ -2172,10 +2173,10 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
             link_libs += $(l) ;
           } else if $(Platform) in linux {
             local m = [ MATCH lib(.*)-imp\.lib : $(l:D=) ] ;
-            aux_libs += -l$(m[1])-$(Config) ;
+            aux_libs += -l$(m[1]) ;
           } else if $(Platform) in macOS {
             local m = [ MATCH lib(.*)-imp\.lib : $(l:D=) ] ;
-            local dest_lib = lib$(m[1])-$(Config).dylib ;
+            local dest_lib = lib$(m[1]).dylib ;
             local imp_rel = $($(target)__ImportsRelativeDir) ;
             aux_libs += $($(target)__OutDir)/$(imp_rel)/$(dest_lib) ;
             AddPostLinkCmdForImports $(target) : $(dest_lib) : /$(imp_rel)/ ;

@@ -1,0 +1,7 @@
+all(42): Future.all: expected an array
+all(): Future.all: expected an array
+race(42): Future.race: expected an array
+race(): Future.race: expected an array
+race([]): Future.race: empty array
+all([]): no throw
+script done

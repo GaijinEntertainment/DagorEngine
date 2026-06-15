@@ -35,14 +35,3 @@ SQ_ALIGNMENT shall be less than or equal to SQ_MALLOC alignments, and it shall b
         userpointers specified by the user are not affected by alignment rules.
 
 .. _standalone_vm:
-
-------------------------------------
-Stand-alone VM without compiler
-------------------------------------
-
-.. index:: single: Stand-alone VM without compiler
-
-Quirrel's VM can be compiled without its compiler by defining 'NO_COMPILER' in the C++ preprocessor.
-When 'NO_COMPILER' is defined all function related to the compiler (eg. sq_compile) will fail. Other functions
-that conditionally load precompiled bytecode or compile a file (eg. sqstd_dofile) will only work with
-precompiled bytecode.

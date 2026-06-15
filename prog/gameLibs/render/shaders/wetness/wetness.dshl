@@ -65,6 +65,16 @@ USE_WETNESS_BASE()
 USE_DEPTH_ABOVE(ps, blurred_depth_transparent)
 hlsl(ps){
 #include "wetness_functions.hlsl"
+  bool depth_above_filter(half3 world_pos, half3 normal)
+  {
+    float depthVignette = 0;
+    float3 biasedWorldPos = world_pos + normal;
+    float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
+
+    float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
+
+    return depthInfl < 0.0001;
+  }
 
   void apply_wetness_base(float water_border, float wetness, half porosity, half3 world_pos,
     inout half3 diffuse, inout half3 normal, inout half reflectance, inout half smoothness, inout half ao)
@@ -73,19 +83,13 @@ hlsl(ps){
     if (wetness <= 0)
       return;
 
-    float depthVignette = 0;
-    float3 biasedWorldPos = world_pos + normal;
-    float depthAbove = get_depth_above_fast(biasedWorldPos, depthVignette);
-
-    float depthInfl = 1 - saturate(depthAbove - biasedWorldPos.y);
     BRANCH
-    if (depthInfl < 0.0001)
+    if (depth_above_filter(world_pos, normal))
       return;
 
     float wetMaterial = get_wet_material(wetness, water_border);
     wetness_diffuse(wetness, porosity, diffuse);
     wetness_ao(wetness, ao);
-    wetness_normal_ws(wetness, normal);
     wetness_smoothness(wetMaterial, smoothness);
     wetness_reflectance(wetMaterial, reflectance);
   }
@@ -120,6 +124,23 @@ hlsl(ps){
     float porosity2 = get_porosity_by_microdetail(micro_detail_layer2, waterBorder);
     float porosity = lerp(porosity1, porosity2, weight2);
     apply_wetness_base(waterBorder, wetness, porosity, world_pos, diffuse, normal, reflectance, smoothness, ao);
+  }
+
+  void apply_wetness_to_grass(half3 world_pos, half3 normal, half porosity, half max_smoothness, inout half3 diffuse, inout half smoothness)
+  {
+    float _unusedWaterBorder;
+    float wetness = get_base_wetness(world_pos, normal, _unusedWaterBorder);
+
+    BRANCH
+    if (wetness <= 0)
+      return;
+
+    BRANCH
+    if (depth_above_filter(world_pos, normal))
+      return;
+
+    wetness_diffuse(wetness, porosity, diffuse);
+    smoothness = saturate(lerp(smoothness, max_smoothness, wetness));
   }
 }
 endmacro

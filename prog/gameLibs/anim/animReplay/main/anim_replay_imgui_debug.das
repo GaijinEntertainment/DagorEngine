@@ -65,6 +65,56 @@ def draw_timeline_labels(var draw_list : imgui::ImDrawList?;
       let lineSize = j == 5 ? mediumLineSize : smallLineSize
       *draw_list |> AddLine(float2(subLineX, lineY), float2(subLineX, lineY + lineSize), linesColor)
 
+def select_animchar_widget(anim_replay__animchars : Array; var selected_idx : int&)
+  var animcharsList : array<string>
+  var animcharAttachesCount : array<int>
+  var prevParentIdx = -1
+  for animcharChildComp, idx in anim_replay__animchars, count()
+    let animcharData = get_ecs_object(animcharChildComp)
+    let originalTemplate = string(*get_ecs_string(*animcharData, "originalTemplate"))
+    let parentAnimcharIdx = get_int(*animcharData, "parentAnimcharIdx")
+    if parentAnimcharIdx == null
+      let initialPos = (*get_ecs_Point3List(*animcharData, "position"))[0]
+      push(animcharsList, "{idx + 1}. {originalTemplate} at pos ({initialPos})")
+    else
+      let parentIdx = *parentAnimcharIdx
+      if empty(animcharAttachesCount)
+        resize_and_init(animcharAttachesCount, length(animcharsList), 0)
+      if prevParentIdx > parentIdx
+        logerr("Incorrect order of attachments in replay")
+      prevParentIdx = parentIdx
+      animcharAttachesCount[parentIdx]++
+      push(animcharsList, "{parentIdx + 1}.{animcharAttachesCount[parentIdx]}. {originalTemplate}")
+  push(animcharsList, "None")
+  imgui::SetNextItemWidth(imgui::GetContentRegionAvail().x)
+  if !imgui::BeginCombo("##Selected character", animcharsList[selected_idx])
+    return
+  var attachmentsOffset = length(animcharAttachesCount)
+  for attachmentsCount, i in animcharAttachesCount, count()
+    var flags = imgui::ImGuiTreeNodeFlags.OpenOnArrow | imgui::ImGuiTreeNodeFlags.FramePadding
+    if selected_idx == i
+      flags |= imgui::ImGuiTreeNodeFlags.Selected
+    if attachmentsCount > 0
+      let open = imgui::TreeNodeEx(animcharsList[i], flags);
+      if imgui::IsItemClicked() && !imgui::IsItemToggledOpen()
+        selected_idx = i
+        imgui::CloseCurrentPopup();
+      if open
+        for _ in range(attachmentsCount)
+          if (imgui::Selectable(animcharsList[attachmentsOffset], selected_idx == attachmentsOffset))
+            selected_idx = attachmentsOffset
+          attachmentsOffset++
+        imgui::TreePop();
+      else
+        attachmentsOffset += attachmentsCount
+    else
+      if (imgui::Selectable(animcharsList[i], selected_idx == i))
+        selected_idx = i
+  let lastIdx = length(animcharsList) - 1
+  if (imgui::Selectable(animcharsList[lastIdx], selected_idx == lastIdx))
+    selected_idx = lastIdx
+  imgui::EndCombo()
+
 def replay_character_panel(anim_replay__animchars : Array)
   imgui::BeginChild("Replay Character Panel", float2(100f, 0f), ImGuiChildFlags.ResizeX | ImGuiChildFlags.Borders)
 
@@ -78,15 +128,7 @@ def replay_character_panel(anim_replay__animchars : Array)
     entity_object_editor_selectEntity(selectedAnimcharEid, true)
 
   imgui::Text("Selected character")
-  var charactersList : array<string>
-  for animcharChildComp, idx in anim_replay__animchars, count()
-    let animcharData = get_ecs_object(animcharChildComp)
-    let originalTemplate = string(*get_ecs_string(*animcharData, "originalTemplate"))
-    let initialPos = (*get_ecs_Point3List(*animcharData, "position"))[0]
-    push(charactersList, "{idx + 1}. {originalTemplate} at pos ({initialPos})")
-  push(charactersList, "None")
-  imgui::SetNextItemWidth(imgui::GetContentRegionAvail().x)
-  Combo("##Selected character", safe_addr(selectedReplayAnimchar), charactersList)
+  select_animchar_widget(anim_replay__animchars, selectedReplayAnimchar)
   if selectedReplayAnimchar < length(anim_replay__animchars)
     let animcharData = get_ecs_object(anim_replay__animchars[selectedReplayAnimchar])
     let eid = *get_Eid(animcharData, "eid")

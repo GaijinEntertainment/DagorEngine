@@ -186,7 +186,7 @@ protected:
   {
     IconPrepareStatus status = IconPrepareStatus::Failed;
     IconAnimcharWithAttachments iconAnimchars;
-    eastl::optional<SharedTexHolder> previousEnviPanoramaScoped;
+    eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped;
 
     Texture *to = nullptr;
     int x = 0;
@@ -221,7 +221,7 @@ protected:
   virtual void onBeforeRender(const DataBlock &) {};
   virtual void onAfterRender() {};
   virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) = 0;
-  eastl::optional<SharedTexHolder> setEnviParams(const DataBlock &info);
+  eastl::optional<SharedTexWithShaderVar> setEnviParams(const DataBlock &info);
   void setLightParams(const DataBlock &info, bool full_deferred);
   void clear_to(E3DCOLOR col, Texture *to, int x, int y, int dstw, int dsth) const;
   eastl::unique_ptr<DeferredRenderTarget> target;

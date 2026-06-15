@@ -33,24 +33,24 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     #if( NRD_DIFF )
         checkerboardPos.x = pixelPos.x >> ( gDiffCheckerboard != 2 ? 1 : 0 );
 
-        float4 diff = gIn_Diff[ checkerboardPos ];
-        gOut_Diff[ pixelPos ] = diff * float( viewZ < gDenoisingRange );
+        REBLUR_TYPE diff = gIn_Diff[ checkerboardPos ];
+        gOut_Diff[ pixelPos ] = diff * float( IsInDenoisingRange( viewZ ) );
 
         #if( NRD_MODE == SH )
-            float4 diffSh = gIn_DiffSh[ checkerboardPos ];
-            gOut_DiffSh[ pixelPos ] = diffSh * float( viewZ < gDenoisingRange );
+            REBLUR_SH_TYPE diffSh = gIn_DiffSh[ checkerboardPos ];
+            gOut_DiffSh[ pixelPos ] = diffSh * float( IsInDenoisingRange( viewZ ) );
         #endif
     #endif
 
     #if( NRD_SPEC )
         checkerboardPos.x = pixelPos.x >> ( gSpecCheckerboard != 2 ? 1 : 0 );
 
-        float4 spec = gIn_Spec[ checkerboardPos ];
-        gOut_Spec[ pixelPos ] = spec * float( viewZ < gDenoisingRange );
+        REBLUR_TYPE spec = gIn_Spec[ checkerboardPos ];
+        gOut_Spec[ pixelPos ] = spec * float( IsInDenoisingRange( viewZ ) );
 
         #if( NRD_MODE == SH )
-            float4 specSh = gIn_SpecSh[ checkerboardPos ];
-            gOut_SpecSh[ pixelPos ] = specSh * float( viewZ < gDenoisingRange );
+            REBLUR_SH_TYPE specSh = gIn_SpecSh[ checkerboardPos ];
+            gOut_SpecSh[ pixelPos ] = specSh * float( IsInDenoisingRange( viewZ ) );
         #endif
     #endif
 }

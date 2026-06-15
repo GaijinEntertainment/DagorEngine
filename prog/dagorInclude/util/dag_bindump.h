@@ -1205,9 +1205,12 @@ const EnableHash<LayoutClass, MAPPER> *map(const uint8_t *dump, const EnableHash
 {
   auto mapped_data = map_base<EnableHash<LayoutClass, MAPPER>>(dump);
   using HashableType = EnableHash<LayoutClass, HASHER>;
-  if (mapped_data->getLayoutHash() != getHash<HashableType>())
+  auto storedHash = mapped_data->getLayoutHash();
+  auto computedHash = getHash<HashableType>();
+  if (storedHash != computedHash)
   {
-    LOGWARN_CTX("The layout format does not match the dump format");
+    LOGWARN_CTX("The layout format does not match the dump format. Expected layout hash = %llx, got stored = %llx", computedHash,
+      storedHash);
     return nullptr;
   }
   return mapped_data;

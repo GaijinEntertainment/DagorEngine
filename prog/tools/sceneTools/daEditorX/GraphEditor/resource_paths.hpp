@@ -8,7 +8,7 @@ struct ResourcePaths
   String defaultShadersPath;
   String defaultTexgenPath;
   String shaderIncludesDir; // base dir for `include _foo.blk` directives in the shader-list BLK
-  String mainGraphsDir;     // root of user top-level graphs (*.json / *.blk); drives the file open/save dialogs
+  String mainGraphsDir;     // root of user top-level graphs; drives the .blk file open/save dialogs
   String subgraphsDir; // root of *.subgraph.blk reusable subgraph components; scanned by appendSubgraphTemplatesToBaseNodes and the
                        // compile-time expander
 };

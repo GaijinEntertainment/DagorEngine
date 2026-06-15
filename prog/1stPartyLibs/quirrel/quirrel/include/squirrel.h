@@ -65,8 +65,8 @@ namespace SQCompilation
 #include <stdio.h>
 
 #define SQUIRREL_VERSION_NUMBER_MAJOR 4
-#define SQUIRREL_VERSION_NUMBER_MINOR 25
-#define SQUIRREL_VERSION_NUMBER_PATCH 0
+#define SQUIRREL_VERSION_NUMBER_MINOR 30
+#define SQUIRREL_VERSION_NUMBER_PATCH 1
 
 #define SQ_STRINGIFY_HELPER(x) #x
 #define SQ_STRINGIFY(x) SQ_STRINGIFY_HELPER(x)
@@ -323,6 +323,7 @@ SQUIRREL_API void sq_notifyallexceptions(HSQUIRRELVM v, SQBool enable);
 SQUIRREL_API void sq_setcompilererrorhandler(HSQUIRRELVM v,SQCOMPILERERROR f);
 SQUIRREL_API void sq_setcompilerdiaghandler(HSQUIRRELVM v, SQ_COMPILER_DIAG_CB f);
 SQUIRREL_API SQCOMPILERERROR sq_getcompilererrorhandler(HSQUIRRELVM v);
+SQUIRREL_API void sq_set_table_iter_seed(HSQUIRRELVM v, SQUnsignedInteger32 iter_seed);
 
 /*stack operations*/
 SQUIRREL_API void sq_push(HSQUIRRELVM v,SQInteger idx);

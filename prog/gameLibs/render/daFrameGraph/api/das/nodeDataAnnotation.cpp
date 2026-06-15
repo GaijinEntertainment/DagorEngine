@@ -23,6 +23,7 @@ struct VirtualPassRequirementsAnnotation final : das::ManagedStructureAnnotation
     addField<DAS_BIND_MANAGED_FIELD(colorAttachments)>("colorAttachments");
     addField<DAS_BIND_MANAGED_FIELD(depthAttachment)>("depthAttachment");
     addField<DAS_BIND_MANAGED_FIELD(depthReadOnly)>("depthReadOnly");
+    addField<DAS_BIND_MANAGED_FIELD(implicitZWriteDisable)>("implicitZWriteDisable");
     addField<DAS_BIND_MANAGED_FIELD(vrsRateAttachment)>("vrsRateAttachment");
   }
 };

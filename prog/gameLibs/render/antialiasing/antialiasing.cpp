@@ -368,6 +368,9 @@ struct Context
   Point2 velocityScale = Point2::ZERO;
 
   int dlssGCount = 0;
+  // DLSS-G suppression state lives here (caller thread) and is copied into DlssGParams each schedule,
+  // so the feature object is never mutated from another thread.
+  bool dlssgSuppressed = false;
 
   PostFxRenderer uiBlend;
 
@@ -538,8 +541,9 @@ struct Context
 
       bool needRecreate = method != newMethod || quality != newQuality || percentage != newPercentage || dlssGCount != newDlssGCount ||
                           dlssLegacyMode != newDlssLegacyMode || dlssRayReconstruction != newDlssRayReconstruction;
-      auto needReset = needRecreate && (method == AntialiasingMethod::DLSS || method == AntialiasingMethod::XeSS ||
-                                         method == AntialiasingMethod::MSAA || newMethod == AntialiasingMethod::DLSS ||
+      auto needReset = needRecreate && (method == AntialiasingMethod::DLSS || method == AntialiasingMethod::FSR ||
+                                         method == AntialiasingMethod::XeSS || method == AntialiasingMethod::MSAA ||
+                                         newMethod == AntialiasingMethod::DLSS || newMethod == AntialiasingMethod::FSR ||
                                          newMethod == AntialiasingMethod::XeSS || newMethod == AntialiasingMethod::MSAA);
 
       if (save_state)
@@ -1350,6 +1354,7 @@ struct Context
       dlssGParams.camera.aspect = ctx.noJitterPersp.hk / ctx.noJitterPersp.wk;
       dlssGParams.frameId = dagor_get_global_frame_id();
       dlssGParams.inReset = ctx.resetHistory;
+      dlssGParams.suppressed = dlssgSuppressed;
 
       d3d::driver_command(Drv3dCommand::EXECUTE_DLSS_G, &dlssGParams);
     }
@@ -1410,11 +1415,8 @@ struct Context
   {
     if (method == AntialiasingMethod::DLSS)
     {
-      nv::Streamline *streamline = nullptr;
-      d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-      nv::DLSSFrameGeneration *dlssg = streamline ? streamline->getDlssGFeature(0) : nullptr;
-      if (dlssg)
-        dlssg->setSuppressed(suppress);
+      // Stored here and applied via DlssGParams in scheduleGeneratedFrames; do not mutate the feature directly.
+      dlssgSuppressed = suppress;
     }
     else if (method == AntialiasingMethod::FSR)
     {

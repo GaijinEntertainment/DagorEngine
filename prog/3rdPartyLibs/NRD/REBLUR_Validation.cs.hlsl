@@ -73,7 +73,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float3 Xv = Geometry::ReconstructViewPosition( viewportUv, gFrustum, abs( viewZ ), gOrthoMode );
     float3 X = Geometry::RotateVector( gViewToWorld, Xv );
 
-    bool isInf = abs( viewZ ) > gDenoisingRange;
+    bool isInf = !IsInDenoisingRange( abs( viewZ ) );
     bool checkerboard = Sequence::CheckerBoard( pixelPos >> 2, 0 );
 
     uint4 textState = Text::Init( pixelPos, viewportId * gResourceSize * VIEWPORT_SIZE + OFFSET, 1 );
@@ -178,45 +178,35 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         else if( all( remappedUv2 > 0.0 ) )
         {
             // Rotators
-            float scale = 0.5;
-            //scale *= sqrt( 1.0 / ( 1.0 + ( gFrameIndex % 16 ) ) );
-            scale *= float( Math::ReverseBits4( gFrameIndex ) ) / 16.0;
-
-            float4 rotatorPre = gRotatorPre;
-            float4 rotator = gRotator;
-            float4 rotatorPost = gRotatorPost;
-
             int2 b = int2( remappedUv2 * dimInPixels );
+
+            uint frameIndex = ( gFrameIndex >> 2 ) % gMaxAccumulatedFrameNum;
+
+            float scale = 0.5; // [ -0.5; 0.5 ]
+            scale /= max( REBLUR_BLUR_RADIUS_SCALE, REBLUR_POST_BLUR_RADIUS_SCALE ); // normalize
+            scale *= Math::Sqrt01( GetAdvancedNonLinearAccumSpeed( frameIndex ) ); // area factor ( see "REBLUR_Common_SpatialFilter.hlsli" )
 
             [unroll]
             for( uint n = 0; n < 8; n++ )
             {
-                float3 offset = g_Special8[ n ];
-                offset *= scale;
+                float2 offset = g_Special8[ n ].xy * scale;
 
                 {
-                    float2 uv = 0.5 + Geometry::RotateVector( rotatorPre, offset.xy );
+                    float2 uv = 0.5 + Geometry::RotateVector( gRotator, offset * REBLUR_BLUR_RADIUS_SCALE );
                     int2 a = int2( saturate( uv ) * dimInPixels );
 
                     result.x += all( abs( a - b ) <= 1 );
                 }
 
                 {
-                    float2 uv = 0.5 + Geometry::RotateVector( rotator, offset.xy );
+                    float2 uv = 0.5 + Geometry::RotateVector( gRotatorPost, offset * REBLUR_POST_BLUR_RADIUS_SCALE );
                     int2 a = int2( saturate( uv ) * dimInPixels );
 
                     result.y += all( abs( a - b ) <= 1 );
                 }
-
-                {
-                    float2 uv = 0.5 + Geometry::RotateVector( rotatorPost, offset.xy );
-                    int2 a = int2( saturate( uv ) * dimInPixels );
-
-                    result.z += all( abs( a - b ) <= 1 );
-                }
             }
 
-            result = gFrameIndex % 256 == 0 ? 0 : saturate( result );
+            result = frameIndex == 0 ? 0 : saturate( result );
         }
         else
         {

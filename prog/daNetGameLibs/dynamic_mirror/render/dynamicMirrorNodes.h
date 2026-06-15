@@ -68,7 +68,7 @@ inline auto use_mirror_shader_vars(dafg::Registry registry)
 inline auto use_mirror_gbuffer_pass(dafg::Registry registry)
 {
   registry.requestRenderPass()
-    .depthRw("mirror_gbuf_depth")
+    .depth("mirror_gbuf_depth")
     .color({"mirror_gbuf_0", "mirror_gbuf_1", registry.modify("mirror_gbuf_2").texture().optional(),
       registry.modify("mirror_gbuf_3").texture().optional()});
 
@@ -82,7 +82,7 @@ inline auto use_mirror_gbuffer_pass(dafg::Registry registry)
 
 inline auto use_mirror_gbuffer_prepass(dafg::Registry registry)
 {
-  registry.requestRenderPass().depthRw("mirror_prepass_gbuf_depth");
+  registry.requestRenderPass().depth("mirror_prepass_gbuf_depth");
 
   use_mirror_shader_vars(registry);
 

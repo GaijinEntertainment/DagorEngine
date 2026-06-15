@@ -2,10 +2,12 @@
 #pragma once
 
 #include "constants.h"
-#include "device_caps_and_shader_model.h"
 #include "frame_buffer.h"
 #include "render_state.h"
 #include "shader.h"
+
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_shaderModelVersion.h>
 
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
 #include <generic/dag_bitset.h>
@@ -17,6 +19,18 @@ inline const char CACHE_FILE_NAME[] = "cache/dx12.cache";
 
 namespace drv3d_dx12
 {
+inline d3d::shadermodel::Version shader_model_from_dx(D3D_SHADER_MODEL model)
+{
+  unsigned int ma = (model >> 4) & 0xF;
+  unsigned int mi = (model >> 0) & 0xF;
+  return {ma, mi};
+}
+
+inline D3D_SHADER_MODEL shader_model_to_dx(d3d::shadermodel::Version model)
+{
+  return static_cast<D3D_SHADER_MODEL>(model.major << 4 | model.minor);
+}
+
 struct BasePipelineIdentifierHashSet
 {
   char vsHash[1 + 2 * sizeof(dxil::HashValue)]{};
@@ -265,6 +279,7 @@ struct GraphicsPipelineSignature
 #endif
         bool useResourceDescriptorHeapIndexing : 1;
         bool useSamplerDescriptorHeapIndexing : 1;
+        bool isMesh : 1;
       };
     };
   } def;
@@ -571,7 +586,6 @@ public:
 #endif
     bool generateBlks;
     bool alwaysGenerateBlks;
-    DeviceCapsAndShaderModel features;
   };
 
   struct SetupParameters : ShutdownParameters

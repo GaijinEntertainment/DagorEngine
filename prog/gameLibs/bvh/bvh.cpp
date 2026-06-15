@@ -444,6 +444,58 @@ static class PrebuildMetaJob : public cpujobs::IJob
   TMatrix itm;
   TMatrix4 projTm;
 
+  void processInstance(vec4f vLightDir, Context::Instance &instance, const Frustum &frustum, vec4f_const viewPos)
+    DAG_TS_REQUIRES(contextId->meshMetaAllocatorLock) DAG_TS_REQUIRES_SHARED(contextId->objectsLock)
+  {
+    if (contextId->halfBakedObjects.count(instance.objectId))
+      return;
+    auto iter = contextId->objects.find(instance.objectId);
+    if (iter == contextId->objects.end())
+      return;
+    auto &object = iter->second;
+    if (!object.hasVertexProcessor)
+      return;
+
+    const auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
+    const auto baseMetaRegion = contextId->meshMetaAllocator.get(object.metaAllocId);
+    auto metaRegion = contextId->meshMetaAllocator.get(metaAllocId);
+
+    auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
+    const bool needsProcessing = [&]() {
+      for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+      {
+        if (!mesh.vertexProcessor)
+          continue;
+        if (!ProcessorInstances::isVertexProcessorBatched(*mesh.vertexProcessor))
+          return false;
+        G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
+        if (animatedVertices.needAllocation())
+          return false;
+      }
+      return true;
+    }();
+    if (needsProcessing)
+    {
+      const bool stationary = instance.uniqueIsStationary;
+      const bool skipUpdate = instance.animIndex > -1 ? !contextId->riGenUpdateSlots[instance.animIndex] : false;
+      bool needBlasBuild = false;
+      for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+      {
+        if (!mesh.vertexProcessor)
+          continue;
+        process_meta(contextId, meta, mesh, needBlasBuild, instance, frustum, viewPos, vLightDir, animatedVertices, stationary,
+          skipUpdate, baseMeta);
+      }
+      instance.alreadyProcessed = true;
+      instance.needsBlasBuild = needBlasBuild;
+    }
+    else
+    {
+      instance.alreadyProcessed = false;
+      instance.needsBlasBuild = false;
+    }
+  }
+
 public:
   const char *getJobName(bool &) const override { return "PrebuildMetaJob"; }
 
@@ -455,65 +507,15 @@ public:
     auto frustumRelative = Frustum(TMatrix4(orthonormalized_inverse(itmRelative)) * projTm);
     auto frustumAbsolute = Frustum(TMatrix4(orthonormalized_inverse(itm)) * projTm);
 
-    auto processInstance = [&](Context::Instance &instance, const Frustum &frustum, vec4f_const viewPos) {
-      if (contextId->halfBakedObjects.count(instance.objectId))
-        return;
-      auto iter = contextId->objects.find(instance.objectId);
-      if (iter == contextId->objects.end())
-        return;
-      auto &object = iter->second;
-      if (!object.hasVertexProcessor)
-        return;
-
-      const auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
-      const auto baseMetaRegion = contextId->meshMetaAllocator.get(object.metaAllocId);
-      auto metaRegion = contextId->meshMetaAllocator.get(metaAllocId);
-
-      auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
-      const bool needsProcessing = [&]() {
-        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
-        {
-          if (!mesh.vertexProcessor)
-            continue;
-          if (!ProcessorInstances::isVertexProcessorBatched(*mesh.vertexProcessor))
-            return false;
-          G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
-          if (animatedVertices.needAllocation())
-            return false;
-        }
-        return true;
-      }();
-      if (needsProcessing)
-      {
-        const bool stationary = instance.uniqueIsStationary;
-        const bool skipUpdate = instance.animIndex > -1 ? !contextId->riGenUpdateSlots[instance.animIndex] : false;
-        bool needBlasBuild = false;
-        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
-        {
-          if (!mesh.vertexProcessor)
-            continue;
-          process_meta(contextId, meta, mesh, needBlasBuild, instance, frustum, viewPos, vLightDir, animatedVertices, stationary,
-            skipUpdate, baseMeta);
-        }
-        instance.alreadyProcessed = true;
-        instance.needsBlasBuild = needBlasBuild;
-      }
-      else
-      {
-        instance.alreadyProcessed = false;
-        instance.needsBlasBuild = false;
-      }
-    };
-
     auto vCameraPos = v_ldu_p3_safe(&cameraPos.x);
     if (!bvh_disable_rigen_meta_prebuild)
     {
       TIME_PROFILE(rigen_meta_prepare);
-      OSSpinlockScopedLock objectsGuard(contextId->objectsLock);
+      Context::BvhObjectReadLock objectsGuard(contextId->objectsLock);
       OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock);
       for (auto &instances : contextId->riGenInstances)
         for (auto &instance : instances)
-          processInstance(instance, frustumAbsolute, vCameraPos);
+          processInstance(vLightDir, instance, frustumAbsolute, vCameraPos);
     }
 
     if (!bvh_disable_dynrend_meta_prebuild)
@@ -521,11 +523,11 @@ public:
       TIME_PROFILE(dynrend_meta_prepare);
       dyn::wait_dynrend_instances();
       dyn::wait_animchar_instances();
-      OSSpinlockScopedLock objectsGuard(contextId->objectsLock);
+      Context::BvhObjectReadLock objectsGuard(contextId->objectsLock);
       OSSpinlockScopedLock metaGuard(contextId->meshMetaAllocatorLock);
       for (auto &instances : contextId->dynrendInstances)
         for (auto &instance : instances.second)
-          processInstance(instance, frustumRelative, v_zero());
+          processInstance(vLightDir, instance, frustumRelative, v_zero());
     }
   }
 
@@ -989,6 +991,13 @@ inline bool logonce(const char *msg)
   return false;
 }
 
+namespace var
+{
+static ShaderVariableInfo object_tess_factor("object_tess_factor", true);
+}
+
+bool is_global_object_tessellation_enabled() { return var::object_tess_factor.get_float() > 0; }
+
 bool is_available() { return is_available_verbose() == BvhAvailabilityCode::AVAILABLE; }
 
 BvhAvailabilityCode is_available_verbose()
@@ -1147,10 +1156,13 @@ void teardown(ContextId &context_id)
   splinegen::teardown(context_id);
   debug::teardown(context_id);
 
-  for (auto &[object_id, object] : context_id->objects)
-    object.teardown(context_id, object_id);
-  for (auto &[object_id, object] : context_id->impostors)
-    object.teardown(context_id, object_id);
+  {
+    Context::BvhObjectWriteLock objectsGuard(context_id->objectsLock);
+    for (auto &[object_id, object] : context_id->objects)
+      object.teardown(context_id, object_id);
+    for (auto &[object_id, object] : context_id->impostors)
+      object.teardown(context_id, object_id);
+  }
 
   G_ASSERT(context_id->usedTextures.empty());
   G_ASSERT(context_id->usedBuffers.empty());
@@ -1168,7 +1180,7 @@ void start_frame()
   transform_buffer_manager.startNewFrame();
 }
 
-void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transform)
+void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transform) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   add_instance(context_id, context_id->genericInstances, object_id, transform, nullptr, false,
     Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
@@ -1345,6 +1357,7 @@ static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &met
 }
 
 static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &object_info)
+  DAG_TS_REQUIRES(context_id->objectsLock)
 {
   auto &objectMap = (object_info.meshes.size() && object_info.meshes[0].isImpostor) ? context_id->impostors : context_id->objects;
 
@@ -1373,9 +1386,10 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
   object.isAnimated = object_info.isAnimated;
   object.hasVertexProcessor =
     eastl::any_of(object_info.meshes.begin(), object_info.meshes.end(), [](const auto &m) { return m.vertexProcessor; });
-  auto metaRegion = object.createAndGetMeta(context_id, object_info.meshes.size());
   {
-    OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock); // for safety, it should never block
+    object.ensureMetaAllocated(context_id, object_info.meshes.size());
+    LockedMetaAccess lockedMeta(*context_id, object.metaAllocId);
+    auto metaRegion = lockedMeta.span();
     for (auto [info, mesh, meta] : zip(object_info.meshes, object.meshes, metaRegion))
     {
       mesh.albedoTextureId = info.albedoTextureId;
@@ -1693,7 +1707,7 @@ static int calc_mesh_add_budget(ContextId context_id, BuildBudget budget)
   return min(meshBudget, initialMeshBudget);
 }
 
-static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget)
+static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget) DAG_TS_REQUIRES(context_id->objectsLock)
 {
   TIME_PROFILE(handle_pending_mesh_actions);
 
@@ -1794,7 +1808,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
   parallel_instance_processing::prebuild_meta_job.wait();
 
-  OSSpinlockScopedLock objectsGuard(context_id->objectsLock); // for safety, it should never block
+  Context::BvhObjectWriteLock objectsGuard(context_id->objectsLock); // for safety, it should never block
 
   handle_pending_mesh_actions(context_id, budget);
 
@@ -1811,7 +1825,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
   geomDescriptors.resize(MAX_GEOMETRIES_PER_BLAS * blasModelBudget);
   blasBuildInfos.reserve(blasModelBudget);
 
-  auto getBlas = [&](Context::BLASCompaction &c) -> UniqueBLAS * {
+  auto getBlas = [&](Context::BLASCompaction &c) DAG_TS_REQUIRES(context_id->objectsLock) -> UniqueBLAS * {
     auto mesh = context_id->objects.find(c.objectId);
     if (mesh == context_id->objects.end())
     {
@@ -2336,6 +2350,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
   uint32_t group_mask, bool is_camera_relative, const char *name, const Point3 &light_direction, const Point3 &camera_pos,
   eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> &allBlasUpdatesAs,
   const Frustum &frustumAbsolute, const Frustum &frustumRelative, const BufferProcessor *assumed_buffer_processor)
+  DAG_TS_REQUIRES(context_id->meshMetaAllocatorLock) DAG_TS_REQUIRES_SHARED(context_id->objectsLock)
 {
   CHECK_LOST_DEVICE_STATE();
 
@@ -2789,7 +2804,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     TIME_D3D_PROFILE(add_and_animate_instances);
 
     // for safety, they should never block
-    OSSpinlockScopedLock objectsGuard(context_id->objectsLock);
+    Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
     OSSpinlockScopedLock metaGuard(context_id->meshMetaAllocatorLock);
 
     context_id->blasUpdates.clear();
@@ -3137,18 +3152,21 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
     if (context_id->tlasMainValid)
     {
+      DA_PROFILE_TAG(build_tlas, "main: %d instances", cpuInstanceCount);
       fillTlas(context_id->tlasMain, context_id->tlasUploadMain.getBuf(), cpuInstanceCount);
       CHECK_LOST_DEVICE_STATE();
     }
 
     if (context_id->tlasTerrainValid)
     {
+      DA_PROFILE_TAG(build_tlas, "terrain: %d instances", (int)terrainBlases.size());
       fillTlas(context_id->tlasTerrain, context_id->tlasUploadTerrain.getBuf(), terrainBlases.size());
       CHECK_LOST_DEVICE_STATE();
     }
 
     if (context_id->tlasParticlesValid)
     {
+      DA_PROFILE_TAG(build_tlas, "particles: %d instances", fxBufferSize);
       fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles.getBuf(), fxBufferSize);
       CHECK_LOST_DEVICE_STATE();
     }
@@ -3233,6 +3251,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 }
 
 void set_rigen_cpu_budget(int budget_us) { bvh_riGen_budget_us = budget_us; }
+void set_tree_anim_max_distance(float distance) { ri::set_tree_anim_max_distance(distance); }
 
 
 static struct BVHUpdateAtmosphereJob : public cpujobs::IJob
@@ -3595,6 +3614,7 @@ void on_cables_changed(Cables *cables, ContextId context_id) { cables::on_cables
 
 bool is_building(ContextId context_id)
 {
+  Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
   return !context_id->halfBakedObjects.empty() || context_id->hasPendingObjectAddActions.load(dag::memory_order_relaxed);
 }
 

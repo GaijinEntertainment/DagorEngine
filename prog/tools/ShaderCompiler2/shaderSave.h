@@ -16,6 +16,12 @@ struct VarMapAdapter
   static int addName(const char *name);
 };
 
+struct RbVarMapAdapter
+{
+  static const char *getName(int id);
+  static int addName(const char *name);
+};
+
 template <typename Adapter>
 class NameId
 {

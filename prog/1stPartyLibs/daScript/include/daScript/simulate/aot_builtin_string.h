@@ -36,6 +36,7 @@ namespace das {
 
     DAS_API bool builtin_string_endswith ( const char * str, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith ( const char * str, const char * cmp, Context * context );
+    DAS_API bool builtin_string_starts_with ( const string & str, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith2 ( const char * str, const char * cmp, uint32_t cmpLen, Context * context );
     DAS_API bool builtin_string_startswith3 ( const char * str, int32_t offset, const char * cmp, Context * context );
     DAS_API bool builtin_string_startswith4 ( const char * str, int32_t offset, const char * cmp, uint32_t cmpLen, Context * context );

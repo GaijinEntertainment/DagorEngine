@@ -194,6 +194,7 @@ struct D3dInterfaceTable
   bool (*set_render_target_1)(int rt_index, BaseTexture *, uint8_t level);
   bool (*set_render_target_2)(int rt_index, BaseTexture *, int fc, uint8_t level);
   bool (*set_render_target_3)(const Driver3dRenderTarget &rt);
+  void (*set_render_target_4)(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors);
   void (*get_render_target)(Driver3dRenderTarget &out_rt);
   bool (*get_target_size)(int &w, int &h);
   bool (*get_render_target_size)(int &w, int &h, BaseTexture *rt_tex, uint8_t level);

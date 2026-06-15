@@ -627,6 +627,12 @@ VULKAN_END_EXTENSION_FUCTION_PACK(Maintenance7KHR);
 VULKAN_DECLARE_EXTENSION(Maintenance7KHR, KHR_MAINTENANCE_7);
 #endif
 
+#if VK_KHR_shader_subgroup_extended_types
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(ShaderSubgroupExtendedTypesKHR);
+VULKAN_DECLARE_EXTENSION(ShaderSubgroupExtendedTypesKHR, KHR_SHADER_SUBGROUP_EXTENDED_TYPES);
+#endif
+
 template <typename... Extensions>
 class VulkanDeviceCore : public Extensions...
 {
@@ -1049,6 +1055,10 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_KHR_maintenance7
                        ,
                        Maintenance7KHR
+#endif
+#if VK_KHR_shader_subgroup_extended_types
+                       ,
+                       ShaderSubgroupExtendedTypesKHR
 #endif
                        >
 {

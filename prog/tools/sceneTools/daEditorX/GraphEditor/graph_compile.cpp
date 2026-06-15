@@ -20,9 +20,8 @@
 
 // Port of `generateHlslCode` from tools/graphEditor/mainNodes.js (~L2218-L2884).
 // The JS produces a text BLK fragment wrapped in /*MAIN_GRAPH_START*/ markers so it
-// can be embedded in a JSON file. The C++ pipeline never sees the markers (it always
-// re-parsed them out via extract_marker_section); we cut that intermediate
-// representation entirely and emit the DataBlock directly.
+// can be embedded in a JSON file. The C++ pipeline never used that marker form -- it
+// emits the DataBlock directly.
 
 namespace
 {
@@ -262,7 +261,7 @@ struct NodeSidecar
   // This is what the compile actually reads for blk_code / customParam /
   // final / def_val / particleTexture / etc. Required for shader_editor
   // sub-graph nodes whose descriptor isn't in base_nodes.blk -- their data
-  // comes only from per-instance JSON.
+  // comes only from the per-instance saved data.
   eastl::vector<const DataBlock *> pinDataPtrs;
 };
 
@@ -1175,6 +1174,36 @@ eastl::string make_input_name(int elem_idx, int pin_idx, const GraphData &g, con
     {
       return eastl::string("tex:color:") + get_property(n, "color");
     }
+    if (descData->getBool("isRawTextureName", false))
+    {
+      // The combobox "texture width"/"texture height" values carry a leading "= "
+      // expression prefix that JS strips with .slice(2) (mainNodes.js:2515-2516); the
+      // remaining props are used verbatim.
+      eastl::string w = get_property(n, "texture width");
+      eastl::string h = get_property(n, "texture height");
+      if (w.size() >= 2)
+      {
+        w.erase(0, 2);
+      }
+      if (h.size() >= 2)
+      {
+        h.erase(0, 2);
+      }
+      eastl::string res("tex:");
+      res += "w:i=";
+      res += w;
+      res += ";h:i=";
+      res += h;
+      res += ";offset:i=";
+      res += get_property(n, "header (bytes)");
+      res += ";fmt:t=\"";
+      res += get_property(n, "texture type");
+      res += "\";ch_order:t=\"";
+      res += get_property(n, "channels order");
+      res += "\";name:t=";
+      res += get_property(n, "texture name");
+      return res;
+    }
   }
   const PinCompileState *st = get_pin_state(states, elem_idx, pin_idx);
   if (st && !st->customTextureName.empty())
@@ -1938,8 +1967,7 @@ bool compile_graph_to_blks(const GraphData &g, const DataBlock &base_nodes_blk, 
   // param, not an include-directive expansion. Build the text form and parse it
   // via loadText with a synthetic filename rooted at shader_includes_dir so the
   // BLK parser resolves `_<descName>.blk` against that dir and inlines the
-  // referenced shader blocks. Mirrors the JSON loader at graph_data.cpp around
-  // L598-600.
+  // referenced shader blocks.
   {
     eastl::hash_set<eastl::string> listed;
     eastl::string includesText;

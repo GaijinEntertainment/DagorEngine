@@ -1,3 +1,9 @@
 2 1
 asd 123
 789 456
+30 20 10
+throws: index is out of range
+1 2 3
+error thrown: the index doesn't exist
+t2.a = 1, t2.b = 2
+OK: swap threw and table intact

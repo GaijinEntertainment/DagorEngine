@@ -68,7 +68,7 @@ void BaseNodesPanel::onClick(int pcb_id, PropPanel::ContainerPropertyControl * /
   if (pcb_id == PID_BASE_NODES_RELOAD)
   {
     // plugin.reloadBaseNodes drops the cached descriptor state, re-runs the lazy loader
-    // (which re-scans shader templates and mainGraphs/*.{json,blk} for subgraphs), then
+    // (which re-scans shader templates and subgraphsDir/*.subgraph.blk for subgraphs), then
     // calls back into this->refresh() to rebuild the tree against the fresh blk.
     plugin.reloadBaseNodes();
   }

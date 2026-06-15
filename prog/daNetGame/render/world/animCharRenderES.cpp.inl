@@ -28,7 +28,7 @@
 #include <shaders/dag_dynSceneRes.h>
 #include "private_worldRenderer.h"
 #include "global_vars.h"
-#include "dynModelRenderer.h"
+#include <render/dynmodelRenderer.h>
 #include <ecs/anim/animchar_visbits.h>
 #include <daECS/core/utility/ecsRecreate.h>
 #include <render/world/frameGraphHelpers.h>
@@ -75,13 +75,7 @@ bool is_bbox_visible_in_shadows(const AnimCharShadowOcclusionManager *manager, b
 
 extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
 
-using namespace dynmodel_renderer;
-
-VECTORCALL DAGOR_NOINLINE static vec4f add_three(vec4f a, vec4f b, vec4f c)
-{
-  vec4f ab = v_add(a, b);
-  return v_add(ab, c);
-}
+using namespace dynrend;
 
 static void update_geom_tree(AnimV20::AnimcharRendComponent &animchar_render,
   const AnimcharNodesMat44 &animchar_node_wtm,
@@ -91,24 +85,7 @@ static void update_geom_tree(AnimV20::AnimcharRendComponent &animchar_render,
   DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
   dag::ConstSpan<mat44f> nodeWtm = animchar_node_wtm.nwtm;
 
-  // we subtract difference between accurate double camera position and camera position in floats (used in render)
-
-  // vec3f ofs = v_sub(animchar_node_wtm.wofs, rounded_cam_pos);
-  // ofs = v_sub(ofs, remainder_cam_pos);
-  // should be accurate enough.
-  // However, with fast-math enabled, clang replaces two ordered sub_ps with unordered add, basically calculating
-  // (rounded_cam_pos+remainder_cam_pos) first that is not only slower (more instructions), but also leads to inaccurate calculations
-  // unless we switch off fast-math, which isn't easy to do, we should workaround it
-  //-ffast-math (or fp:fast) in clang _driver_ enables following optimization in clang frontend:
-  //   -fassociative-math -freciprocal-math -fno-math-errno -ffinite-math-only -fno-trapping-math -fno-signed-zeros -ffp-contract=fast
-  //   -funsafe-math-optimizations
-  // and, additionally -ffast-math (in clang frontend), which is different optimization!
-  // unfortunately there is no way to switch it off. If we enable all the optimization above, clang driver discover it and
-  // automatically adds -ffast-math the only way (as it seems) is to get clang frontend command line (-### flag) and directly invoke
-  // clang frontend with that command-line - but without "-ffast-math" or, alternatively disable one of the optimizations (i.e.
-  // -fno-signed-zeros) as for now we work-around this using NEGATIVES. clang has no point to 'optimize' anything with that vec3f ofs =
-  // v_add(animchar_node_wtm.wofs, negative_rounded_cam_pos);
-  vec3f ofs = add_three(animchar_node_wtm.wofs, negative_rounded_cam_pos, negative_remainder_cam_pos);
+  vec3f ofs = animchar_reconstruct_offset(animchar_node_wtm.wofs, negative_rounded_cam_pos, negative_remainder_cam_pos);
   for (auto &n : animchar_render.getNodeMap().map())
   {
     mat44f m4 = nodeWtm[n.nodeIdx.index()];
@@ -427,14 +404,13 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg, ecs::EntityManager &manager)
 {
-  DynModelRenderingState &state = stg.state;
+  ContextId ctx = stg.ctx;
 
   const animchar_visbits_t add_vis_bits = stg.add_vis_bits;
   const animchar_visbits_t check_bits = stg.check_bits;
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
-  const auto needPreviousMatrices =
-    stg.needPrevious ? dynmodel_renderer::NeedPreviousMatrices::Yes : dynmodel_renderer::NeedPreviousMatrices::No;
+  const auto needPreviousMatrices = stg.needPrevious ? NeedPreviousMatrices::Yes : NeedPreviousMatrices::No;
 
   //< store visibility result for render trans
   const Occlusion *occlusion = stg.occlusion;
@@ -464,42 +440,33 @@ static void animchar_render_opaque_async_es(const AnimcharRenderAsyncEvent &stg,
       G_ASSERT_RETURN(scene != nullptr, );
 
       // add to render list, and process bones
-      auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+      auto filter = PathFilterView(animchar_render__nodeVisibleStgFilters);
       G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
 
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
-        needPreviousMatrices, {}, filter, stg.filterMask,
-        animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT,
+      add_animchar(ctx, 0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+        needPreviousMatrices, {}, filter, stg.filterMask, animchar__renderPriority ? RenderPriority::HIGH : RenderPriority::DEFAULT,
         stg.globVarsState, stg.texCtx);
     });
 }
 
-template <class ConstState>
-static void render_state(ConstState &state, dynmodel_renderer::BufferType buf_type, const TMatrix &vtm, int block)
+static void render_dynrend_ctx(ContextId ctx, int block)
 {
-  if (!eastl::is_const_v<eastl::remove_reference_t<ConstState>>) // only if not const
-    const_cast<DynModelRenderingState &>(state).prepareForRender();
-
-  const DynamicBufferHolder *buffer = state.requestBuffer(buf_type);
-  if (!buffer)
+  if (!prepare_render_current(ctx))
     return;
-
-  d3d::settm(TM_VIEW, vtm);
-
-  state.setVars(buffer->buffer.getBufId());
   SCENE_LAYER_GUARD(block);
-  state.render(buffer->curOffset);
+  render_all_stages(ctx);
 }
 
 // If eid is valid, it will only render that entity. Otherwise all entities.
 static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRender &stg)
 {
-  if ((stg.hints & stg.RENDER_MAIN) && stg.pState)
+  if ((stg.hints & stg.RENDER_MAIN) && stg.asyncAnimcharCtx != ContextId::INVALID)
   {
     TIME_D3D_PROFILE(animchar_render_sync);
     TMatrix vtm = stg.viewTm;
     vtm.setcol(3, 0, 0, 0);
-    render_state(*stg.pState, dynmodel_renderer::get_buffer_type_from_render_pass(stg.renderPass), vtm,
+    d3d::settm(TM_VIEW, vtm);
+    render_dynrend_ctx(stg.asyncAnimcharCtx,
       (stg.hints & UpdateStageInfoRender::RENDER_COLOR) ? dynamicSceneBlockId : dynamicDepthSceneBlockId);
     d3d::settm(TM_VIEW, stg.viewTm);
     return;
@@ -519,13 +486,27 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
   // for shadows we use imprecise 'just sphere' culling.
   // we can test box, but usually sphere is good enough
 
-  const auto needPreviousMatrices = (stg.hints & UpdateStageInfoRender::RENDER_MOTION_VECS)
-                                      ? dynmodel_renderer::NeedPreviousMatrices::Yes
-                                      : dynmodel_renderer::NeedPreviousMatrices::No;
+  const auto needPreviousMatrices =
+    (stg.hints & UpdateStageInfoRender::RENDER_MOTION_VECS) ? NeedPreviousMatrices::Yes : NeedPreviousMatrices::No;
 
   //< store visibility result for render trans
   const Occlusion *occlusion = (stg.hints & stg.RENDER_SHADOW) ? NULL : stg.occlusion;
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+
+  TMatrix vtm;
+  if (stg.hints & stg.RENDER_MAIN)
+  {
+    vtm = stg.viewTm;
+    vtm.setcol(3, 0, 0, 0);
+  }
+  else
+  {
+    TMatrix itm = stg.viewItm;
+    itm.setcol(3, itm.getcol(3) - stg.mainCamPos);
+    vtm = inverse(itm);
+  }
+
+  d3d::settm(TM_VIEW, vtm);
 
   auto process_one = [&](animchar_visbits_t &animchar_visbits, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
                        const bbox3f *animchar_attaches_bbox, const AnimV20::AnimcharRendComponent &animchar_render,
@@ -545,12 +526,11 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
     G_ASSERT_RETURN(scene != nullptr, );
 
     // Render
-    auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+    auto filter = PathFilterView(animchar_render__nodeVisibleStgFilters);
     G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
-    state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+    add_animchar(ctx, 0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
       needPreviousMatrices, {}, filter, stg.hints & (stg.RENDER_SHADOW | stg.RENDER_MAIN),
-      animchar__renderPriority ? dynmodel_renderer::RenderPriority::HIGH : dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
-      stg.texCtx);
+      animchar__renderPriority ? RenderPriority::HIGH : RenderPriority::DEFAULT, nullptr, stg.texCtx);
   };
 
   if (eid)
@@ -577,22 +557,10 @@ static void animchar_render_opaque(ecs::EntityId eid, const UpdateStageInfoRende
       });
   }
 
-  if (state.empty())
+  if (!context_has_data(ctx))
     return;
-  TMatrix vtm;
-  if (stg.hints & stg.RENDER_MAIN)
-  {
-    vtm = stg.viewTm;
-    vtm.setcol(3, 0, 0, 0);
-  }
-  else
-  {
-    TMatrix itm = stg.viewItm;
-    itm.setcol(3, itm.getcol(3) - stg.mainCamPos);
-    vtm = inverse(itm);
-  }
-  render_state(state, dynmodel_renderer::get_buffer_type_from_render_pass(stg.renderPass), vtm,
-    (stg.hints & UpdateStageInfoRender::RENDER_COLOR) ? dynamicSceneBlockId : dynamicDepthSceneBlockId);
+
+  render_dynrend_ctx(ctx, (stg.hints & UpdateStageInfoRender::RENDER_COLOR) ? dynamicSceneBlockId : dynamicDepthSceneBlockId);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
@@ -613,7 +581,7 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpitPrepass &event, ecs::EntityManager &manager)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
   gather_animchar_vehicle_cockpit_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag cockpitEntity) ECS_REQUIRE(ecs::EntityId cockpit__vehicleEid)
           const AnimV20::AnimcharRendComponent &animchar_render,
@@ -626,17 +594,17 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
       G_ASSERT_RETURN(scene != nullptr, );
 
       // Render
-      state.process_animchar(0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
-        dynmodel_renderer::NeedPreviousMatrices::No, {}, dynmodel_renderer::PathFilterView::NULL_FILTER, 0,
-        dynmodel_renderer::RenderPriority::DEFAULT, nullptr, event.texCtx);
+      add_animchar(ctx, 0, ShaderMesh::STG_imm_decal, scene, animchar_additional_data::get_optional_data(additional_data),
+        NeedPreviousMatrices::No, {}, PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, event.texCtx);
     });
-  if (state.empty())
+  if (!context_has_data(ctx))
     return;
   TMatrix vtm;
   vtm = event.viewTm;
   vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
   STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
-  render_state(state, BufferType::OTHER, vtm, dynamicSceneBlockId);
+  render_dynrend_ctx(ctx, dynamicSceneBlockId);
   d3d::settm(TM_VIEW, event.viewTm);
 }
 
@@ -656,15 +624,20 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event, ecs::E
 {
   TIME_D3D_PROFILE(animchar_render_hmap_deform);
 
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+
+  TMatrix itm = event.viewItm;
+  itm.setcol(3, itm.getcol(3) - event.mainCamPos);
+  d3d::settm(TM_VIEW, inverse(itm));
+
   const ecs::EntityId heroCockpitRenderer = manager.getSingletonEntity(ECS_HASH("hero_cockpit_renderer"));
   const bool isHeroCrawling = manager.getOr<bool>(heroCockpitRenderer, ECS_HASH("is_hero_crawling"), false);
   const ecs::EidList *heroCockpitEntities = manager.getNullable<ecs::EidList>(heroCockpitRenderer, ECS_HASH("hero_cockpit_entities"));
 
   // TODO compare with gather_animchar_ecs_query and separate setting threshold to independent system
   render_animchar_hmap_deform_ecs_query(manager,
-    [&state, isHeroCrawling, heroCockpitEntities](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender)
-                                                    ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
+    [&ctx, isHeroCrawling, heroCockpitEntities](ECS_REQUIRE_NOT(ecs::Tag excludeFromAnimcharRender)
+                                                  ECS_REQUIRE_NOT(ecs::Tag invisibleUpdatableAnimchar) ecs::EntityId eid,
       AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t animchar_visbits, const ecs::Point4List *additional_data,
       const int *forced_lod_for_hmap_deform, const ecs::UInt8List *vehicle_trails__nodesFilter = nullptr,
       bool render_to_hmap_deform_in_crawling_fps_mode = true) {
@@ -686,14 +659,12 @@ static void animchar_render_hmap_deform_es(const RenderHmapDeform &event, ecs::E
 
       // Render
       const DynamicRenderableSceneResource *lodResource = scene->getLodsResource()->lods[deformLod].scene;
-      auto filter = dynmodel_renderer::PathFilterView(vehicle_trails__nodesFilter);
-      state.process_animchar(0, ShaderMesh::STG_opaque, scene, lodResource,
-        animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter, 1);
+      auto filter = PathFilterView(vehicle_trails__nodesFilter);
+      add_animchar(ctx, 0, ShaderMesh::STG_opaque, scene, lodResource, animchar_additional_data::get_optional_data(additional_data),
+        NeedPreviousMatrices::No, {}, filter, 1);
     });
 
-  TMatrix itm = event.viewItm;
-  itm.setcol(3, itm.getcol(3) - event.mainCamPos);
-  render_state(state, BufferType::OTHER, inverse(itm), dynamicDepthSceneBlockId);
+  render_dynrend_ctx(ctx, dynamicDepthSceneBlockId);
   d3d::settm(TM_VIEW, event.viewTm);
 }
 
@@ -766,27 +737,28 @@ static void animchar_render_trans_init_es_event_handler(const ecs::Event &,
 ECS_TAG(render)
 static __forceinline void animchar_render_trans_es(const UpdateStageInfoRenderTrans &stg, ecs::EntityManager &manager)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+  TMatrix vtm = stg.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
 
   animchar_render_trans_first_ecs_query(manager,
-    [&state, &stg](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render)
-                     AnimV20::AnimcharRendComponent &animchar_render,
+    [&ctx, &stg](ECS_REQUIRE(ecs::Tag requires_trans_render) ECS_REQUIRE_NOT(ecs::Tag late_transparent_render)
+                   AnimV20::AnimcharRendComponent &animchar_render,
       const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
       const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        auto filter = PathFilterView(animchar_render__nodeVisibleStgFilters);
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
-          animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+        add_animchar(ctx, ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
+          animchar_additional_data::get_optional_data(additional_data), NeedPreviousMatrices::No, {}, filter,
           UpdateStageInfoRender::RENDER_MAIN, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
-  TMatrix vtm = stg.viewTm;
-  vtm.setcol(3, 0, 0, 0);
-  render_state(state, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+  render_dynrend_ctx(ctx, dynamicSceneTransBlockId);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
@@ -794,25 +766,25 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static __forceinline void animchar_render_distortion_es(const UpdateStageInfoRenderDistortion &stg, ecs::EntityManager &manager)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
+  TMatrix vtm = stg.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
 
   animchar_render_distortion_ecs_query(manager,
-    [&state, &stg](ECS_REQUIRE(ecs::Tag requires_distortion_render) AnimV20::AnimcharRendComponent &animchar_render,
+    [&ctx, &stg](ECS_REQUIRE(ecs::Tag requires_distortion_render) AnimV20::AnimcharRendComponent &animchar_render,
       animchar_visbits_t animchar_visbits, const ecs::UInt8List *animchar_render__nodeVisibleStgFilters) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        auto filter = PathFilterView(animchar_render__nodeVisibleStgFilters);
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
-        state.process_animchar(ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene,
-          animchar_additional_data::get_null_data(), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
-          UpdateStageInfoRender::RENDER_MAIN, RenderPriority::HIGH, nullptr, stg.texCtx);
+        add_animchar(ctx, ShaderMesh::STG_distortion, ShaderMesh::STG_distortion, scene, animchar_additional_data::get_null_data(),
+          NeedPreviousMatrices::No, {}, filter, UpdateStageInfoRender::RENDER_MAIN, RenderPriority::HIGH, nullptr, stg.texCtx);
       }
     });
 
-  TMatrix vtm = stg.viewTm;
-  vtm.setcol(3, 0, 0, 0);
-  render_state(state, BufferType::MAIN, vtm, dynamicSceneBlockId);
+  render_dynrend_ctx(ctx, dynamicSceneBlockId);
   d3d::settm(TM_VIEW, stg.viewTm);
 }
 
@@ -832,26 +804,26 @@ static void animchar_has_any_visible_distortion_es(UpdateStageInfoNeedDistortion
 
 void render_mainhero_trans(const TMatrix &view_tm)
 {
-  DynModelRenderingState &heroState = dynmodel_renderer::get_immediate_state();
-  DynModelRenderingState &heroCockpitState = *dynmodel_renderer::create_state("immediate_hero_trans_cockpit");
+  ContextId heroCtx = get_or_create_context("dynmodel_immediate");
+  ContextId heroCockpitCtx = get_or_create_context("immediate_hero_trans_cockpit");
 
   animchar_render_trans_second_ecs_query(*g_entity_mgr,
-    [&heroState, &heroCockpitState](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
+    [&heroCtx, &heroCockpitCtx](ECS_REQUIRE(ecs::Tag late_transparent_render) AnimV20::AnimcharRendComponent &animchar_render,
       const ecs::Point4List *additional_data, animchar_visbits_t animchar_visbits,
       const ecs::UInt8List *animchar_render__nodeVisibleStgFilters, const ecs::Tag *watchedPlayerItem = nullptr) {
       if (animchar_visbits & VISFLG_MAIN_VISIBLE) //< reuse visibility check from render
       {
         const DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
-        auto filter = dynmodel_renderer::PathFilterView(animchar_render__nodeVisibleStgFilters);
+        auto filter = PathFilterView(animchar_render__nodeVisibleStgFilters);
         G_ASSERT(!animchar_render__nodeVisibleStgFilters || filter.size() == scene->getNodeCount());
 
-        DynModelRenderingState &targetState = watchedPlayerItem ? heroCockpitState : heroState;
+        ContextId targetCtx = watchedPlayerItem ? heroCockpitCtx : heroCtx;
 
         if (watchedPlayerItem)
           ShaderGlobal::set_int(is_hero_cockpitVarId, 1);
 
-        targetState.process_animchar(ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
-          animchar_additional_data::get_optional_data(additional_data), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+        add_animchar(targetCtx, ShaderMesh::STG_trans, ShaderMesh::STG_trans, scene,
+          animchar_additional_data::get_optional_data(additional_data), NeedPreviousMatrices::No, {}, filter,
           UpdateStageInfoRender::RENDER_MAIN, RenderPriority::DEFAULT, nullptr, ((WorldRenderer *)get_world_renderer())->getTexCtx());
 
         ShaderGlobal::set_int(is_hero_cockpitVarId, 0);
@@ -860,15 +832,16 @@ void render_mainhero_trans(const TMatrix &view_tm)
 
   TMatrix vtm = view_tm;
   vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
 
   {
     TIME_D3D_PROFILE(hero_late_transparents)
-    render_state(heroState, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+    render_dynrend_ctx(heroCtx, dynamicSceneTransBlockId);
   }
   {
     TIME_D3D_PROFILE(hero_transparent_cockpit);
     ShaderGlobal::set_int(is_hero_cockpitVarId, 1);
-    render_state(heroCockpitState, BufferType::TRANSPARENT_MAIN, vtm, dynamicSceneTransBlockId);
+    render_dynrend_ctx(heroCockpitCtx, dynamicSceneTransBlockId);
     ShaderGlobal::set_int(is_hero_cockpitVarId, 0);
   }
 

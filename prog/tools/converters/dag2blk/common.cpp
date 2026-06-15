@@ -12,7 +12,7 @@ int DagorWinMain(bool debugmode)
 {
   dd_add_base_path("");
   printf("Dagor DAG -> BLK Converter v1.1 \n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   int argc = __argc;
 

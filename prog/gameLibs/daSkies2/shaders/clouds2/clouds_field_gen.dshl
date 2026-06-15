@@ -163,7 +163,7 @@ shader gen_cloud_layers_non_empty
     float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       uint3 tid = uint3(input.pos2d, floor(input.texcoord.x * dispatch_size.z));
-      return clouds_field_volume[tid].x > 0 ? 1 : 0;
+      return texture3DAt(clouds_field_volume, tid).x > 0 ? 1 : 0;
     }
   }
   compile("target_ps", "ps_main");
@@ -182,7 +182,7 @@ shader gen_cloud_layers_non_empty_cmpr
     float ps_main(VsOutput input HW_USE_SCREEN_POS): SV_Target0
     {
       uint3 tid = uint3(input.pos2d, floor(input.texcoord.x * dispatch_size.z));
-      return (clouds_field_volume_tmp[tid].x & 0xff) > 0 ? 1 : 0; // max_color
+      return (texture3DAt(clouds_field_volume_tmp, tid).x & 0xff) > 0 ? 1 : 0; // max_color
     }
   }
   compile("target_ps", "ps_main");

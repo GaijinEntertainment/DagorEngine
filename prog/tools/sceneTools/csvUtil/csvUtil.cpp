@@ -1353,7 +1353,7 @@ static void gatherKeyPacks(const DataBlock &blk)
 
 static void __cdecl ctrl_break_handler(int) { quit_game(0); }
 
-static void print_title() { printf("CSV utility v2.06\nCopyright (C) Gaijin Games KFT, 2023\n"); }
+static void print_title() { printf("CSV utility v2.06\nCopyright (C) Gaijin Games KFT, 2026\n"); }
 static void print_usage(bool verbose)
 {
   const char *exe_name = dd_get_fname(dgs_argv[0]);

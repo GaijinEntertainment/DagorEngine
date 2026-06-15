@@ -13,7 +13,7 @@ class DataBlock;
 class GraphEditorPlg;
 
 // Context-sensitive property grid. With no node selected it shows graph-level fields
-// (source path, output dirs, heightmap parameters); with one node selected it walks the
+// (output dirs, heightmap parameters); with one node selected it walks the
 // node's descriptor in base_nodes.blk and creates a control per `property {}` block.
 // Edits write back into GraphData and ask IGraphTexGenService to regenerate.
 class PropertiesPanel final : public PropPanel::ControlEventHandler
@@ -30,6 +30,7 @@ public:
   void updateImgui();
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
+  void onChangeFinished(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
 private:
   enum class Mode
@@ -41,6 +42,8 @@ private:
 
   void rebuildForGraph();
   void rebuildForNode(int node_id);
+
+  void commitNodeProperty(int pcb_id, PropPanel::ContainerPropertyControl *panel, bool finished);
 
   const GraphData::Node *findNodeById(int id) const;
   const DataBlock *findPropertyDesc(const DataBlock *node_desc, const char *prop_name) const;

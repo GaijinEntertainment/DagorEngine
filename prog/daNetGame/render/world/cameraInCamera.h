@@ -2,6 +2,7 @@
 #pragma once
 
 #include <math/dag_color.h>
+#include <render/occlusion/occlusionMaskApplier.h>
 
 
 namespace dafg::multiplexing
@@ -17,6 +18,7 @@ bool is_frame_after_deactivation();
 int get_frame_number();
 bool activate_view();
 void update_transforms(const CameraParams &main_view, const CameraParams &prev_main_view, const CameraParams &lens_view);
+OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &main_view);
 bool is_lens_render_active();
 bool is_lens_only_zoom_enabled();
 bool is_main_view(const dafg::multiplexing::Index &);

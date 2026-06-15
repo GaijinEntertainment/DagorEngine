@@ -1,7 +1,14 @@
-macro INIT_VEGETATION_INTERACTIONS()
+macro INIT_VEGETATION_INTERACTIONS(always_pivoted)
   static int interactions = 0;
-  interval interactions: interactionsOff < 1, interactionsTrees < 2, interactionsBushes;
-  if (interactions == interactionsTrees || interactions == interactionsBushes)
+  if (always_pivoted)
+  {
+    interval interactions: interactionsOff < 1, interactionsOn;
+  }
+  else
+  {
+    interval interactions: interactionsOff < 1, interactionsTrees < 2, interactionsBushes;
+  }
+  if (interactions != interactionsOff)
   {
     static float interaction_strength = 1.0 no_warnings;
     static float interaction_force_max = 15.0 no_warnings;
@@ -9,8 +16,8 @@ macro INIT_VEGETATION_INTERACTIONS()
   }
 endmacro
 
-macro USE_VEGETATION_INTERACTIONS()
-  if (interactions == interactionsTrees || interactions == interactionsBushes)
+macro USE_VEGETATION_INTERACTIONS(always_pivoted)
+  if (interactions != interactionsOff)
   {
     (vs) {
       interaction_strength@f1 = (interaction_strength);
@@ -19,7 +26,7 @@ macro USE_VEGETATION_INTERACTIONS()
     }
   }
 
-  if (interactions == interactionsTrees || interactions == interactionsBushes) {
+  if (interactions != interactionsOff) {
     hlsl(vs){
       float sdBox(float3 localPos, float3 boxExt)
       {
@@ -67,7 +74,7 @@ macro USE_VEGETATION_INTERACTIONS()
             // interactions_strength is the maximum magnitude of the force
             // The actual magnitude is calculated as a linear interpolation between 0 and interactions_strength
             // based on the normalized distance (0 - outside, 1 - furthest inside) to the box wall.
-          ##if (is_pivoted == yes)
+          ##if (is_pivoted == yes || always_pivoted)
             float force_magnitude = get_interaction_force_max() * normalized_dist;
           ##else
             float force_magnitude = get_interaction_strength() * normalized_dist;
@@ -81,14 +88,14 @@ macro USE_VEGETATION_INTERACTIONS()
           }
         }
 
-      ##if (is_pivoted == yes)
+      ##if (is_pivoted == yes || always_pivoted)
         affect_force = min(length(affect_direction), get_interaction_force_max());
       ##else
         affect_force = min(length(affect_direction), get_interaction_strength());
       ##endif
       }
 
-    ##if (is_pivoted == yes)
+    ##if (is_pivoted == yes || always_pivoted)
       float3 apply_obstacles_joints(float3 worldPivot, float3 worldPos, float3 localPos, float height, HierarchyData input)
       {
         if (obstacles.indirection_wd == 0 || disable_obstacle_interaction)
@@ -141,6 +148,7 @@ macro USE_VEGETATION_INTERACTIONS()
       }
     ##endif
 
+    ##if (!always_pivoted)
       float3 apply_obstacles(float3 worldPivot, float3 worldPos, float3 localPos, float height)
       {
         if (obstacles.indirection_wd == 0 || disable_obstacle_interaction)
@@ -202,13 +210,14 @@ macro USE_VEGETATION_INTERACTIONS()
           return get_interaction_strength() * result_delta;
         ##endif
       }
+    ##endif
     }
   }
 endmacro
 
-macro APPLY_VEGETATION_INTERACTIONS(conditions)
+macro APPLY_VEGETATION_INTERACTIONS(conditions, always_pivoted)
   if (conditions) {
-    if (is_pivoted == yes)
+    if (is_pivoted == yes || always_pivoted)
     {
       hlsl(vs) {
         #define APPLY_INTERACTIONS\
@@ -229,10 +238,10 @@ macro APPLY_VEGETATION_INTERACTIONS(conditions)
   }
 endmacro
 
-macro USE_AND_APPLY_VEGETATION_INTERACTIONS(conditions)
+macro USE_AND_APPLY_VEGETATION_INTERACTIONS(conditions, always_pivoted)
   if (conditions)
   {
-    USE_VEGETATION_INTERACTIONS()
+    USE_VEGETATION_INTERACTIONS(always_pivoted)
   }
-  APPLY_VEGETATION_INTERACTIONS(conditions)
+  APPLY_VEGETATION_INTERACTIONS(conditions, always_pivoted)
 endmacro

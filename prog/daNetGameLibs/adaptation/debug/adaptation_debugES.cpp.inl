@@ -16,46 +16,32 @@
 #include <gui/dag_imguiUtil.h>
 #include <imgui.h>
 #include "../render/adaptation_manager.h"
+#include <render/adaptationDebug.h>
 #include <implot.h>
 
-static constexpr int HISTOGRAM_BINS = 256;
+template <typename Callable>
+static void get_adaptation_manager_ecs_query(ecs::EntityManager &manager, Callable c);
 
 class AdaptationDebug
 {
   dafg::NodeHandle debugSamplesVisualizeNode;
   bool drawDebugSamplesOverScreen = false;
   dafg::NodeHandle readbackNode;
-  RingCPUBufferLock readbackRing;
-  uint32_t latestReadbackFrameRead = 0;
-  uint32_t latestReadbackFrameCopied = 0;
-  eastl::array<uint32_t, HISTOGRAM_BINS> lastHistogram = {};
 
 public:
   AdaptationDebug()
   {
-    readbackRing.init(sizeof(uint32_t), HISTOGRAM_BINS, 2, "adaptation_debug_readbackRing", SBCF_UA_STRUCTURED_READBACK, 0, false);
-    readbackNode = dafg::register_node("adaptation_debug_readback", DAFG_PP_NODE_SRC, [this](dafg::Registry registry) {
+    readbackNode = dafg::register_node("adaptation_debug_readback", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
       // Note: with multiplexing, we will essentially write to the readback buffer multiple times.
       // This is slightly inaccurate, but probably fine, as on average, histograms will be the same.
       registry.executionHas(dafg::SideEffects::External);
       const auto histogramBufferHandle =
         registry.read("exposure_histogram").buffer().atStage(dafg::Stage::TRANSFER).useAs(dafg::Usage::COPY).handle();
 
-      return [this, histogramBufferHandle]() {
-        const auto &histogramBuffer = histogramBufferHandle.ref();
-        int unusedStride;
-        if (const auto *data = reinterpret_cast<uint32_t *>(readbackRing.lock(unusedStride, latestReadbackFrameCopied, true)))
-        {
-          memcpy(lastHistogram.data(), data, sizeof(lastHistogram));
-          readbackRing.unlock();
-        }
-
-        auto *target = static_cast<Sbuffer *>(readbackRing.getNewTarget(latestReadbackFrameCopied));
-        if (target)
-        {
-          const_cast<Sbuffer &>(histogramBuffer).copyTo(target);
-          readbackRing.startCPUCopy();
-        }
+      return [histogramBufferHandle]() {
+        get_adaptation_manager_ecs_query(*g_entity_mgr, [&](AdaptationManager &adaptation__manager) {
+          adaptation__manager.updateHistogramReadback(&const_cast<Sbuffer &>(histogramBufferHandle.ref()));
+        });
       };
     });
 
@@ -84,122 +70,9 @@ public:
       });
   }
 
-  void imgui(const ExposureBuffer &exposureBuffer, AdaptationSettings &settings)
+  void imgui(const uint32_t *hist256, const ExposureBuffer &exposureBuffer, const AdaptationSettings &settings)
   {
-    if (!settings.isFixedExposure())
-    {
-
-      const auto getH = [](void *data, int idx) { return static_cast<float>(reinterpret_cast<uint32_t *>(data)[idx]); };
-      const auto region = ImGui::GetContentRegionAvail();
-      ImGui::Text("Note: values are at least 1 frame behind the actual image.");
-      ImGui::PlotHistogram("##histogram", getH, lastHistogram.data(), HISTOGRAM_BINS, 0, nullptr, FLT_MAX, FLT_MAX,
-        ImVec2(region.x, 256));
-
-      if (ImGui::Button("Show samples distribution", {600, 100}))
-        drawDebugSamplesOverScreen = !drawDebugSamplesOverScreen;
-    }
-
-    static bool useStops = false;
-    const char *const unitsStr = useStops ? "stops" : "linear";
-    ImGui::Checkbox("Display exposure as stops.", &useStops);
-    ImGui::SameLine();
-    ImGuiDagor::HelpMarker("A 'stop' means double the amount of light.");
-
-    const auto linearToUnits = [&](float value) { return useStops ? log2f(value) : value; };
-    const auto stopsToUnits = [&](float value) { return useStops ? value : exp2(value); };
-
-    if (!settings.isFixedExposure())
-    {
-      ImGui::Text("Current values:");
-      if (ImGui::BeginTable("current_values", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
-      {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Target exposure (%s)", unitsStr);
-        ImGui::SameLine();
-        ImGuiDagor::HelpMarker("Computed from histogram.");
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f", linearToUnits(exposureBuffer[9]));
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Actual exposure (%s)", unitsStr);
-        ImGui::SameLine();
-        ImGuiDagor::HelpMarker("Current value without adjustment.");
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f", linearToUnits(exposureBuffer[8]));
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Final exposure (%s)", unitsStr);
-        ImGui::SameLine();
-        ImGuiDagor::HelpMarker("Current value with adjustment, clamping and fade applied.");
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f", linearToUnits(exposureBuffer[0]));
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Histogram range (%s)", unitsStr);
-        ImGui::TableNextColumn();
-        ImGui::Text(useStops ? "%.2f .. %.2f" : "%f .. %f", stopsToUnits(exposureBuffer[4]), stopsToUnits(exposureBuffer[5]));
-
-        ImGui::EndTable();
-      }
-    }
-
-    ImGui::Text("Settings:");
-    if (ImGui::BeginTable("settings", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
-    {
-      if (settings.isFixedExposure())
-      {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Fixed exposure (%s)", unitsStr);
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f", linearToUnits(settings.fixedExposure));
-      }
-      else
-      {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Fixed exposure");
-        ImGui::TableNextColumn();
-        ImGui::Text("disabled");
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Exposure adjustment (%s)", unitsStr);
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f", linearToUnits(settings.autoExposureScale));
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Min/max exposure (%s)", unitsStr);
-        ImGui::TableNextColumn();
-        ImGui::Text(useStops ? "%.2f .. %.2f" : "%.3f .. %.1f", linearToUnits(settings.minExposure),
-          linearToUnits(settings.maxExposure));
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Adapt up/down speed");
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f/%.2f", settings.adaptUpSpeed, settings.adaptDownSpeed);
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::Text("Brightness perception linear/power");
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f/%.2f", settings.brightnessPerceptionLinear, settings.brightnessPerceptionPower);
-      }
-
-      ImGui::TableNextRow();
-      ImGui::TableNextColumn();
-      ImGui::Text("Fade multiplier");
-      ImGui::TableNextColumn();
-      ImGui::Text("%.2f", settings.fadeMul);
-
-      ImGui::EndTable();
-    }
+    draw_adaptation_imgui(hist256, exposureBuffer, settings, &drawDebugSamplesOverScreen);
   }
 };
 
@@ -288,9 +161,6 @@ template <typename Callable>
 static void get_postfx_levels_debug_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void get_adaptation_manager_ecs_query(ecs::EntityManager &manager, Callable c);
-
-template <typename Callable>
 static void adaptation_override_settings_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
@@ -347,8 +217,8 @@ static void adaptation_dbg_window()
 
   get_adaptation_debug_ecs_query(*g_entity_mgr, [](AdaptationDebug &adaptation__debug) {
     get_adaptation_manager_ecs_query(*g_entity_mgr, [&](AdaptationManager &adaptation__manager) {
-      auto settings = adaptation__manager.getSettings();
-      adaptation__debug.imgui(adaptation__manager.getLastExposureBuffer(), settings);
+      adaptation__debug.imgui(adaptation__manager.getLastHistogram().data(), adaptation__manager.getLastExposureBuffer(),
+        adaptation__manager.getSettings());
     });
   });
 }

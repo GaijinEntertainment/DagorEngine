@@ -20,15 +20,18 @@ static void trace_grid_object_by_capsule_eid_ecs_query(ecs::EntityManager &manag
 template <typename Callable>
 static void intersected_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
-static uint32_t main_grid_types[] = {ECS_HASH("humans").hash, ECS_HASH("vehicles").hash};
-
-
-bool grid_trace_main_entities(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_id, int ray_mat_id)
+bool grid_trace_main_entities(const Point3 &from,
+  const Point3 &dir,
+  float &t,
+  Point3 &out_vel,
+  int ignore_id,
+  int ray_mat_id,
+  const dag::ConstSpan<uint32_t> grid_types)
 {
   out_vel.zero();
   bool res = false;
 
-  for_each_entity_in_grids(main_grid_types, from, dir, t, 0.f /* radius */, GridEntCheck::BOUNDING, [&](ecs::EntityId eid, vec3f) {
+  for_each_entity_in_grids(grid_types, from, dir, t, 0.f /* radius */, GridEntCheck::BOUNDING, [&](ecs::EntityId eid, vec3f) {
     if (eid == ecs::EntityId(ignore_id))
       return;
     collidable_grid_obj_eid_ecs_query(*g_entity_mgr, eid,
@@ -67,7 +70,7 @@ void grid_process_main_entities_collision_objects_on_ray(
   Point3 dir = to - from;
   const float dist = length(dir);
   dir *= safeinv(dist);
-  for_each_entity_in_grids(main_grid_types, from, dir, dist, radius, GridEntCheck::BOUNDING, [&](ecs::EntityId eid, vec3f) {
+  for_each_entity_in_grids(dacoll::main_grid_types, from, dir, dist, radius, GridEntCheck::BOUNDING, [&](ecs::EntityId eid, vec3f) {
     base_phys_grid_obj_eid_ecs_query(*g_entity_mgr, eid,
       [&](const BasePhysActorPtr &base_net_phys_ptr, bool havePairCollision = true, bool collisionGridTraceable = false) {
         if ((havePairCollision || collisionGridTraceable) && base_net_phys_ptr)

@@ -150,11 +150,11 @@ static dafg::NodeHandle makeSsssReflectanceHorizontalNode(bool is_rr_enable)
 
     if (!is_rr_enable)
     {
-      registry.requestRenderPass().color({"ssss_intermediate_target"}).depthRw("ssss_depth_mask");
+      registry.requestRenderPass().color({"ssss_intermediate_target"}).depth("ssss_depth_mask");
     }
     else
     {
-      registry.requestRenderPass().color({"ssss_intermediate_target", "ssss_rr_guide"}).depthRw("ssss_depth_mask");
+      registry.requestRenderPass().color({"ssss_intermediate_target", "ssss_rr_guide"}).depth("ssss_depth_mask");
     }
 
     registry.read("opaque_with_envi").texture().atStage(dafg::Stage::PS).bindToShaderVar("ssss_reflectance_blur_color_source_tex");
@@ -195,11 +195,11 @@ static dafg::NodeHandle makeSsssReflectanceVerticalNode(bool is_rr_enable)
 
     if (!is_rr_enable)
     {
-      registry.requestRenderPass().color({"opaque_processed"}).depthRw("ssss_depth_mask");
+      registry.requestRenderPass().color({"opaque_processed"}).depth("ssss_depth_mask");
     }
     else
     {
-      registry.requestRenderPass().color({"opaque_processed", "ssss_rr_guide"}).depthRw("ssss_depth_mask");
+      registry.requestRenderPass().color({"opaque_processed", "ssss_rr_guide"}).depth("ssss_depth_mask");
     }
     return [shader = PostFxRenderer("ssss_reflectance_blur_ps"), is_rr_enable]() {
       ShaderGlobal::set_int(ssss_reflectance_blur_passVarId, 1);

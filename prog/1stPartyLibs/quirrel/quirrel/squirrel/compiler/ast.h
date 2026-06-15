@@ -1070,22 +1070,31 @@ private:
     SwitchCase _defaultCase;
 };
 
+struct CatchClause {
+    Id *type;          // null => catch-all (matches anything)
+    Id *exception;
+    Statement *body;
+};
+
 class TryStatement : public Statement {
 public:
-    TryStatement(SourceLoc start, Statement *t, Id *exc, Statement *c)
-        : Statement(TO_TRY, {start, c->sourceSpan().end}), _tryStmt(t), _exception(exc), _catchStmt(c) {}
+    // Incremental building - call finalize() after clauses are added
+    TryStatement(SourceLoc start, Arena *arena, Statement *t)
+        : Statement(TO_TRY, {start, SourceLoc::invalid()}), _tryStmt(t), _catches(arena) {}
+
+    void addCatch(Id *type, Id *exc, Statement *body) { _catches.push_back({ type, exc, body }); }
+    void finalize(SourceLoc end) { setSpanEnd(end); }
 
     void visitChildren(Visitor *visitor);
     void transformChildren(Transformer *transformer);
 
     Statement *tryStatement() const { return _tryStmt; }
-    Id *exceptionId() const { return _exception; }
-    Statement *catchStatement() const { return _catchStmt; }
+    ArenaVector<CatchClause> &catches() { return _catches; }
+    const ArenaVector<CatchClause> &catches() const { return _catches; }
 
 private:
     Statement *_tryStmt;
-    Id *_exception;
-    Statement *_catchStmt;
+    ArenaVector<CatchClause> _catches;
 };
 
 class TerminateStatement : public Statement {

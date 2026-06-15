@@ -222,17 +222,20 @@ void ClosureHoistingOpt::insertHoistedDecls(Block *block,
 }
 
 //------------------------------------------------------------------------------
-// Typed Default Parameter Safety Check
+// Default Parameter Safety Check
 //------------------------------------------------------------------------------
 
-// Check if a function has any parameter with both a type annotation and a
-// default value. The type check for such defaults happens at closure creation
-// time and can throw. Hoisting would move that throw to a different scope
-// (e.g. out of a try/catch), changing program behavior.
-static bool hasTypedDefaults(FunctionExpr *f) {
+// A parameter default is evaluated -- and, if typed, type-checked (can throw) -- at
+// closure CREATION time, so hoisting (which changes when/how often a closure is made)
+// is only safe for an untyped literal default. Any other default pins the closure.
+static bool hasHoistUnsafeDefault(FunctionExpr *f) {
   for (auto param : f->parameters()) {
-    if (param->getTypeMask() != ~0u && param->hasDefaultValue())
-      return true;
+    if (!param->hasDefaultValue())
+      continue;
+    bool untyped = param->getTypeMask() == ~0u;
+    if (untyped && param->defaultValue()->op() == TO_LITERAL)
+      continue;
+    return true;
   }
   return false;
 }
@@ -279,6 +282,49 @@ void ClosureHoistingOpt::HoistingVisitor::registerFunctionParams(
   }
 }
 
+void ClosureHoistingOpt::HoistingVisitor::collectDeclNames(
+    Node *n, ArenaVector<const char *> &out) {
+  if (!n) return;
+  switch (n->op()) {
+    case TO_VAR:
+      out.push_back(static_cast<VarDecl *>(n)->name());
+      break;
+    case TO_CONST:
+      out.push_back(static_cast<ConstDecl *>(n)->name());
+      break;
+    case TO_DECL_GROUP:
+    case TO_DESTRUCTURE:
+      for (auto decl : static_cast<DeclGroup *>(n)->declarations())
+        out.push_back(decl->name());
+      break;
+    default:
+      break;
+  }
+}
+
+void ClosureHoistingOpt::HoistingVisitor::enterScopeNames(
+    const ArenaVector<const char *> &names, ArenaVector<const char *> &added,
+    ArenaVector<const char *> &hiddenDirect) {
+  for (auto n : names) {
+    if (currentScope->localNames->find(n) == currentScope->localNames->end()) {
+      currentScope->localNames->insert(n);
+      added.push_back(n);
+    }
+    if (currentScope->directLocalNames->find(n) != currentScope->directLocalNames->end()) {
+      currentScope->directLocalNames->erase(n);
+      hiddenDirect.push_back(n);
+    }
+  }
+}
+
+void ClosureHoistingOpt::HoistingVisitor::leaveScopeNames(
+    const ArenaVector<const char *> &added, const ArenaVector<const char *> &hiddenDirect) {
+  for (auto n : added)
+    currentScope->localNames->erase(n);
+  for (auto n : hiddenDirect)
+    currentScope->directLocalNames->insert(n);
+}
+
 void ClosureHoistingOpt::HoistingVisitor::tryHoistFunction(
     FunctionExpr *f, ScopeContext &funcScope) {
   // Don't hoist top-level functions or class methods
@@ -291,11 +337,7 @@ void ClosureHoistingOpt::HoistingVisitor::tryHoistFunction(
   if (insideConstDecl)
     return;
 
-  // Don't hoist functions with typed default parameters.
-  // The type check for defaults happens at closure creation and can throw.
-  // Hoisting moves the closure creation to a different scope, which can
-  // change error handling behavior (e.g. moving it out of a try/catch).
-  if (hasTypedDefaults(f))
+  if (hasHoistUnsafeDefault(f))
     return;
 
   // Analyze what this closure captures
@@ -340,6 +382,17 @@ void ClosureHoistingOpt::HoistingVisitor::visitBlock(Block *b) {
   bool isOwnBlock = currentScope && currentScope->block == b;
   int savedIndex = currentScope ? currentScope->currentStatementIndex : 0;
 
+  // Only nested blocks get scoped; the function/root body block's locals are
+  // function-level and must survive for the funcLocals snapshot.
+  ArenaVector<const char *> added(&owner->arena);
+  ArenaVector<const char *> hidden(&owner->arena);
+  if (!isOwnBlock) {
+    ArenaVector<const char *> names(&owner->arena);
+    for (auto stmt : b->statements())
+      collectDeclNames(stmt, names);
+    enterScopeNames(names, added, hidden);
+  }
+
   for (int i = 0; i < (int)b->statements().size(); ++i) {
     if (isOwnBlock)
       currentScope->currentStatementIndex = i;
@@ -348,6 +401,8 @@ void ClosureHoistingOpt::HoistingVisitor::visitBlock(Block *b) {
 
   if (isOwnBlock)
     currentScope->currentStatementIndex = savedIndex;
+  else
+    leaveScopeNames(added, hidden);
 }
 
 void ClosureHoistingOpt::HoistingVisitor::visitFunctionExpr(FunctionExpr *f) {
@@ -417,17 +472,65 @@ void ClosureHoistingOpt::HoistingVisitor::visitConstDecl(ConstDecl *c) {
   }
 }
 
+// try/catch bodies are not force-wrapped to a Block, so a bare declaration body needs
+// scoping here; a Block body is scoped by visitBlock.
+void ClosureHoistingOpt::HoistingVisitor::visitScopedBody(Statement *body) {
+  if (!body) return;
+  if (body->op() == TO_BLOCK) {
+    body->visit(this);
+    return;
+  }
+  ArenaVector<const char *> names(&owner->arena);
+  ArenaVector<const char *> added(&owner->arena);
+  ArenaVector<const char *> hidden(&owner->arena);
+  collectDeclNames(body, names);
+  enterScopeNames(names, added, hidden);
+  body->visit(this);
+  leaveScopeNames(added, hidden);
+}
+
 void ClosureHoistingOpt::HoistingVisitor::visitTryStatement(TryStatement *stmt) {
-  stmt->tryStatement()->visit(this);
-  currentScope->localNames->insert(stmt->exceptionId()->name());
-  stmt->catchStatement()->visit(this);
+  visitScopedBody(stmt->tryStatement());
+  for (auto &c : stmt->catches()) {
+    if (c.type)
+      c.type->visit(this);
+
+    // The exception variable is block-scoped to its catch body.
+    ArenaVector<const char *> names(&owner->arena);
+    ArenaVector<const char *> added(&owner->arena);
+    ArenaVector<const char *> hidden(&owner->arena);
+    names.push_back(c.exception->name());
+    enterScopeNames(names, added, hidden);
+    visitScopedBody(c.body);
+    leaveScopeNames(added, hidden);
+  }
+}
+
+void ClosureHoistingOpt::HoistingVisitor::visitForStatement(ForStatement *f) {
+  // for-init lives on the node, not the body block; scope it across the whole loop.
+  ArenaVector<const char *> names(&owner->arena);
+  ArenaVector<const char *> added(&owner->arena);
+  ArenaVector<const char *> hidden(&owner->arena);
+  collectDeclNames(f->initializer(), names);
+  enterScopeNames(names, added, hidden);
+  if (f->initializer()) f->initializer()->visit(this);
+  if (f->condition()) f->condition()->visit(this);
+  if (f->modifier()) f->modifier()->visit(this);
+  f->body()->visit(this);
+  leaveScopeNames(added, hidden);
 }
 
 void ClosureHoistingOpt::HoistingVisitor::visitForeachStatement(ForeachStatement *fe) {
-  if (fe->idx()) currentScope->localNames->insert(fe->idx()->name());
-  if (fe->val()) currentScope->localNames->insert(fe->val()->name());
+  // idx/val live on the node, not the body block.
+  ArenaVector<const char *> names(&owner->arena);
+  ArenaVector<const char *> added(&owner->arena);
+  ArenaVector<const char *> hidden(&owner->arena);
+  if (fe->idx()) names.push_back(fe->idx()->name());
+  if (fe->val()) names.push_back(fe->val()->name());
+  enterScopeNames(names, added, hidden);
   fe->container()->visit(this);
   fe->body()->visit(this);
+  leaveScopeNames(added, hidden);
 }
 
 //------------------------------------------------------------------------------

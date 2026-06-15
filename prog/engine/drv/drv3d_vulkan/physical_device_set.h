@@ -168,6 +168,11 @@ struct PhysicalDeviceSet
     {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_7_FEATURES_KHR, nullptr, false};
 #endif
 
+#if VK_KHR_shader_subgroup_extended_types
+  VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR shaderSubgroupExtendedTypesFeaturesKHR = //
+    {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR, nullptr, false};
+#endif
+
   bool hasDevProps2 = false;
 
   bool hasConditionalRender = false;
@@ -202,6 +207,7 @@ struct PhysicalDeviceSet
   bool hasPrimitiveFragmentShadingRate = false;
   bool hasAttachmentFragmentShadingRate = false;
   bool hasMaintenance7 = false;
+  bool hasShaderSubgroupExtendedTypes = false;
   uint32_t maxBindlessTextures = 0;
   uint32_t maxBindlessSamplers = 0;
   uint32_t maxBindlessBuffers = 0;
@@ -523,6 +529,13 @@ struct PhysicalDeviceSet
     if (hasExtension<Maintenance7KHR>())
     {
       chain_structs(target, maintenance7FeaturesKHR);
+    }
+#endif
+
+#if VK_KHR_shader_subgroup_extended_types
+    if (hasExtension<ShaderSubgroupExtendedTypesKHR>())
+    {
+      chain_structs(target, shaderSubgroupExtendedTypesFeaturesKHR);
     }
 #endif
   }
@@ -899,6 +912,16 @@ struct PhysicalDeviceSet
     }
     else
       hasMaintenance7 = false;
+#endif
+
+#if VK_KHR_shader_subgroup_extended_types
+    if (hasExtension<ShaderSubgroupExtendedTypesKHR>())
+    {
+      hasShaderSubgroupExtendedTypes = shaderSubgroupExtendedTypesFeaturesKHR.shaderSubgroupExtendedTypes;
+      shaderSubgroupExtendedTypesFeaturesKHR.pNext = nullptr;
+    }
+    else
+      hasShaderSubgroupExtendedTypes = false;
 #endif
   }
 

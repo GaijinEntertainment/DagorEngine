@@ -756,7 +756,7 @@ static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const 
     else if (sub_pass == SubPass::NORMAL_PASS_HAZE)
       pass = registry.requestRenderPass().color({"early_haze_offset", "early_haze_color", "early_haze_depth"});
     else if (sub_pass == SubPass::TRIANGLE_SIZE_PASS)
-      pass = registry.requestRenderPass().color({"triangle_size_tex"}).depthRo("gbuf_depth");
+      pass = registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly("gbuf_depth");
     else
       pass = render_to_gbuffer(registry);
 

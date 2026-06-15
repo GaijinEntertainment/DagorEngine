@@ -165,6 +165,26 @@ bool ScriptedShadersBinDumpOwner::loadFromFile(IGenLoad &crd, int size, bool mma
     [&](const uint8_t *data, int size_) { return loadFromData(data, size_, crd.getTargetName()); });
 }
 
+template <template <enum bindump::detail::Target> class L>
+static auto get_layout_hash()
+{
+  return bindump::getHash<bindump::detail::EnableHash<L, bindump::detail::HASHER>>();
+}
+
+template <template <enum bindump::detail::Target> class ExtType>
+static void map_optional_extension(bindump::Mapper<ExtType> *&out_ptr, uint8_t *data, const char *tag)
+{
+  out_ptr = bindump::map<ExtType>(data);
+  if (out_ptr)
+  {
+    debug("[SH] Mapped optional bindump extension structure %s, layout hash is %llx", tag, get_layout_hash<ExtType>());
+  }
+  else
+  {
+    debug("[SH] Failed to map optional bindump extension structure %s, will not be used", tag);
+  }
+}
+
 bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, char const *dump_name)
 {
   clear();
@@ -181,12 +201,16 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
     return false;
   }
 
+  debug("[SH] Mapped compressed bindump structure, layout hash is %llx",
+    get_layout_hash<shader_layout::ScriptedShadersBinDumpCompressed>());
+
   const auto &header = mappedDump->header;
 
   if (header.magicPart1 != _MAKE4C('VSPS') || header.magicPart2 != _MAKE4C('dump') || header.version != SHADER_BINDUMP_VER)
   {
     // @TODO: should this be a fatal too? seems like sign maybe should cause a fatal, but version -- allow to look for other dumps.
-    debug("[SH] Invalid bindump magic=%x|%x version=%d", header.magicPart1, header.magicPart2, header.version);
+    debug("[SH] Invalid bindump magic=%x|%x version=%d (expected magic=%x|%x version=%d)", header.magicPart1, header.magicPart2,
+      header.version, _MAKE4C('VSPS'), _MAKE4C('dump'), SHADER_BINDUMP_VER);
     return false;
   }
 
@@ -225,10 +249,12 @@ bool ScriptedShadersBinDumpOwner::loadFromData(uint8_t const *dump, int size, ch
     return false;
   }
 
-  mShaderDumpV2 = bindump::map<shader_layout::ScriptedShadersBinDumpV2>(mSelfData.data());
-  mShaderDumpV3 = bindump::map<shader_layout::ScriptedShadersBinDumpV3>(mSelfData.data());
-  mShaderDumpV4 = bindump::map<shader_layout::ScriptedShadersBinDumpV4>(mSelfData.data());
-  mShaderDumpV5 = bindump::map<shader_layout::ScriptedShadersBinDumpV5>(mSelfData.data());
+  debug("[SH] Mapped main bindump structure, layout hash is %llx", get_layout_hash<shader_layout::ScriptedShadersBinDump>());
+
+  map_optional_extension(mShaderDumpV2, mSelfData.data(), "V2");
+  map_optional_extension(mShaderDumpV3, mSelfData.data(), "V3");
+  map_optional_extension(mShaderDumpV4, mSelfData.data(), "V4");
+  map_optional_extension(mShaderDumpV5, mSelfData.data(), "V5");
 
   mDictionary = eastl::unique_ptr<ZSTD_DDict_s, ZstdDictionaryDeleter>(
     zstd_create_ddict(dag::ConstSpan<char>(mShaderDump->dictionary.data(), mShaderDump->dictionary.size()), true));

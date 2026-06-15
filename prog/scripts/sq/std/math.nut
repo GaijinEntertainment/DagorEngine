@@ -129,12 +129,17 @@ function getRomanNumeral(num) {
 
 function splitThousands(val, spacer = " ") {
   val = val.tostring()
+  local sign = ""
+  if (val.startswith("-")) {
+    sign = "-"
+    val = val.slice(1)
+  }
   local res = val.slice(-3)
   while (val.len() > 3) {
     val = val.slice(0, -3)
     res = $"{val.slice(-3)}{spacer}{res}"
   }
-  return res
+  return $"{sign}{res}"
 }
 
 /**
@@ -163,7 +168,7 @@ function median(sortedList) {
 function truncateToMultiple(number, multiple) {
   if (multiple == 0)
     return -1
-  return math.floor(number / multiple) * multiple
+  return math.floor(number.tofloat() / multiple) * multiple
 }
 
 //EXPORT content for require
@@ -184,7 +189,7 @@ let export = math.__merge({
   color2uint
   getRomanNumeral
   splitThousands
-  calcPercent = @[pure](value) (100.0 * value + 0.5).tointeger()
+  calcPercent = @[pure](value) (100.0 * value + (value < 0 ? -0.5 : 0.5)).tointeger()
   average
   median
   truncateToMultiple

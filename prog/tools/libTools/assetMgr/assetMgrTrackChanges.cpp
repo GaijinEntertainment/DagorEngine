@@ -35,6 +35,7 @@ struct DagorAssetMgr::ChangesTracker
     HANDLE hFolder = nullptr;
     ThreadSafeMsgIo *io = nullptr;
     SimpleString fname;
+    SimpleString folderPath;
     int rootIdx = -1;
     volatile int terminateReq = 0;
   };
@@ -91,6 +92,7 @@ public:
     d->hFolder = hDir;
     d->io = &io;
     d->fname = String(260, "%s/tmp.$$$", foldername);
+    d->folderPath = foldername;
     d->rootIdx = rootIdx;
 
     uintptr_t handle = _beginthread(monitorThread, 4096, d);
@@ -131,9 +133,32 @@ public:
       addFolderMonitor(roots[i].folder, i);
   }
 
+  static bool is_file_being_written(const char *full_path)
+  {
+    HANDLE h = CreateFileA(full_path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, 0, NULL);
+    if (h != INVALID_HANDLE_VALUE)
+    {
+      CloseHandle(h);
+      return false;
+    }
+    return GetLastError() == ERROR_SHARING_VIOLATION;
+  }
+
   static void __cdecl monitorThread(void *p)
   {
     FolderData &fd = *(FolderData *)p;
+
+    const int PENDING_TIMEOUT_MSEC = 500;
+    const int PENDING_RETRY_SLEEP_MSEC = 100;
+    struct PendingEntry
+    {
+      int action;
+      int count;
+      int waitTimeout;
+      SimpleString fullPath;
+      SimpleString fname;
+    };
+    Tab<PendingEntry> pendingQueue;
 
     while (!interlocked_acquire_load(fd.terminateReq))
     {
@@ -142,9 +167,26 @@ public:
       TCHAR szFile[MAX_PATH];
       DWORD bytesret;
 
-      if (!ReadDirectoryChangesW(fd.hFolder, fd.buf, fd.BUF_SZ, TRUE,
-            FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
-            &bytesret, NULL, NULL))
+      const bool processPendingQueue = pendingQueue.size();
+      if (processPendingQueue)
+      {
+        for (const PendingEntry &entry : pendingQueue)
+        {
+          bool isBeingWritten = is_file_being_written(entry.fullPath);
+          while (isBeingWritten && get_time_msec_qpc() < entry.waitTimeout)
+          {
+            sleep_msec(PENDING_RETRY_SLEEP_MSEC);
+            isBeingWritten = is_file_being_written(entry.fullPath);
+          }
+          if (isBeingWritten)
+            logwarn("tracked file '%s' still locked for writing after %dms, so its content may be incomplete", entry.fullPath.c_str(),
+              PENDING_TIMEOUT_MSEC);
+        }
+      }
+      else if (
+        !ReadDirectoryChangesW(fd.hFolder, fd.buf, fd.BUF_SZ, TRUE,
+          FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_FILE_NAME,
+          &bytesret, NULL, NULL))
         continue;
 
       if (interlocked_acquire_load(fd.terminateReq))
@@ -159,15 +201,43 @@ public:
 
       int avail_sz = fd.io->getWriteAvailableSize();
       IGenSave *cwr = fd.io->startWrite();
+      bool hasNextEntry = false;
       do
       {
-        pNotify = (FILE_NOTIFY_INFORMATION *)(fd.buf + offset);
-        offset += pNotify->NextEntryOffset;
+        int notifyAction = 0;
+        int count = 0;
+        if (processPendingQueue)
+        {
+          const PendingEntry &entry = pendingQueue.back();
+          notifyAction = entry.action;
+          count = entry.count;
+          strcpy(szFile, entry.fname.c_str());
+          pendingQueue.pop_back();
+          hasNextEntry = pendingQueue.size();
+        }
+        else
+        {
+          pNotify = (FILE_NOTIFY_INFORMATION *)(fd.buf + offset);
+          offset += pNotify->NextEntryOffset;
 
-        int count =
-          WideCharToMultiByte(CP_ACP, 0, pNotify->FileName, pNotify->FileNameLength / sizeof(WCHAR), szFile, MAX_PATH - 1, NULL, NULL);
-        szFile[count] = TEXT('\0');
+          count = WideCharToMultiByte(CP_ACP, 0, pNotify->FileName, pNotify->FileNameLength / sizeof(WCHAR), szFile, MAX_PATH - 1,
+            NULL, NULL);
+          szFile[count] = TEXT('\0');
+          notifyAction = pNotify->Action;
+          hasNextEntry = pNotify->NextEntryOffset != 0;
 
+          String fullPath(0, "%s/%s", fd.folderPath, szFile);
+          if (is_file_being_written(fullPath))
+          {
+            PendingEntry &entry = pendingQueue.push_back();
+            entry.action = pNotify->Action;
+            entry.fullPath = fullPath;
+            entry.fname = szFile;
+            entry.count = count;
+            entry.waitTimeout = get_time_msec_qpc() + PENDING_TIMEOUT_MSEC;
+            continue;
+          }
+        }
         if (avail_sz < cwr->tell() + count + 32)
         {
           logerr("insufficient ChangesTracker buffer, avail=%d pos=%d, break...", avail_sz, cwr->tell());
@@ -176,13 +246,13 @@ public:
         cwr->beginBlock();
         cwr->writeInt(get_time_msec_qpc());
         cwr->writeIntP<1>(fd.rootIdx);
-        cwr->writeIntP<1>(pNotify->Action);
+        cwr->writeIntP<1>(notifyAction);
         cwr->writeIntP<2>(count);
         cwr->write(szFile, count);
         cwr->alignOnDword(count + 2);
         cwr->endBlock();
 
-      } while (pNotify->NextEntryOffset != 0);
+      } while (hasNextEntry);
       fd.io->endWrite();
     }
 

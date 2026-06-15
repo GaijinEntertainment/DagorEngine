@@ -30,6 +30,11 @@
 extern ConVarT<bool, false> async_riex_opaque;
 extern ConVarT<bool, false> resolveHZBBeforeDynamic;
 
+namespace var
+{
+static ShaderVariableInfo hmap_object_tess_active("hmap_object_tess_active", true);
+} // namespace var
+
 eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueCloseupsNodes()
 {
   eastl::fixed_vector<dafg::NodeHandle, 3> result;
@@ -40,14 +45,19 @@ eastl::fixed_vector<dafg::NodeHandle, 3> makeControlOpaqueCloseupsNodes()
     start_gbuffer_rendering_region(registry, ns, true);
 
     auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
+    auto prevCameraHndl = registry.readBlobHistory<CameraParams>("current_camera").handle();
 
     // closeups require a viewtm without translation
     auto closeupsViewTm = registry.create("viewtm_no_offset").blob<TMatrix>().handle();
+    auto closeupsPrevViewTm = registry.create("prev_viewtm_no_offset").blob<TMatrix>().handle();
 
-    return [cameraHndl, closeupsViewTm]() {
+    return [cameraHndl, prevCameraHndl, closeupsViewTm, closeupsPrevViewTm]() {
       auto &viewTm = closeupsViewTm.ref();
+      auto &prevViewTm = closeupsPrevViewTm.ref();
       viewTm = cameraHndl.ref().viewTm;
       viewTm.setcol(3, 0, 0, 0);
+      prevViewTm = prevCameraHndl.ref().viewTm;
+      prevViewTm.setcol(3, 0, 0, 0);
     };
   }));
 
@@ -130,7 +140,7 @@ static auto request_opaque_pass(dafg::Registry registry)
 
 static auto request_opaque_triangle_size(dafg::Registry registry)
 {
-  registry.allowAsyncPipelines().requestRenderPass().depthRo("gbuf_depth").color({"triangle_size_tex"});
+  registry.allowAsyncPipelines().requestRenderPass().depthReadTestOnly("gbuf_depth").color({"triangle_size_tex"});
 
   auto [cameraHndl, stateRequest] = request_common_opaque_state(registry);
 
@@ -161,6 +171,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
     }
 
     return [cameraHndl, strmCtxHndl, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
+      debug_mesh::activate_mesh_coloring_master_override();
       CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
       camJobsMgr->waitVisibility(RENDER_MAIN);
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -168,12 +179,14 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
       RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
       auto *riExRenderer = camJobsMgr->waitAsyncRIGenExtraOpaqueRender();
       const rendinst::RenderPass renderPass = debugTriangle ? rendinst::RenderPass::TriangleSizeDebug : rendinst::RenderPass::Normal;
+      STATE_GUARD_0(ShaderGlobal::set_int(var::hmap_object_tess_active, VALUE), 1);
       rendinst::render::renderRIGen(renderPass, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
         rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, /*count_multiply*/ 1, rendinst::AtestStage::All,
         debugTriangle ? nullptr : riExRenderer, strmCtxHndl.ref());
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
       if (!debugTriangle && wr.clipmap)
         wr.clipmap->increaseUAVAtomicPrefix();
+      debug_mesh::deactivate_mesh_coloring_master_override();
     };
   }));
 
@@ -184,6 +197,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
     registry.read("ri_update_token").blob<OrderingToken>();
 
     return [cameraHndl, strmCtxHndl, prepassEnabled, debugTriangle](const dafg::multiplexing::Index &multiplexing_index) {
+      debug_mesh::activate_mesh_coloring_master_override();
       CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
       camJobsMgr->waitVisibility(RENDER_MAIN);
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -193,6 +207,7 @@ eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace ns,
       rendinst::render::renderRIGen(renderPass, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
         rendinst::LayerFlag::NotExtra, prepassEnabled ? rendinst::OptimizeDepthPass::Yes : rendinst::OptimizeDepthPass::No, 1,
         rendinst::AtestStage::NoAtest, nullptr, strmCtxHndl.ref());
+      debug_mesh::deactivate_mesh_coloring_master_override();
     };
   }));
 
@@ -230,6 +245,7 @@ eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool prepassEnabl
         if (async_riex_opaque.get()) // wait until vb is filled by async opaque render (prepass re-uses same buf struct)
           camJobsMgr->waitAsyncRIGenExtraOpaqueRenderVbFill();
 
+        STATE_GUARD_0(ShaderGlobal::set_int(var::hmap_object_tess_active, VALUE), 1);
         rendinst::render::renderRIGenOptimizationDepth(rendinst::RenderPass::Depth, riMainVisibility, cameraHndl.ref().viewItm,
           rendinst::IgnoreOptimizationLimits::No, rendinst::SkipTrees::Yes, rendinst::RenderGpuObjects::Yes, 1U, strmCtxHndl.ref());
       };
@@ -349,6 +365,7 @@ dafg::NodeHandle makeOpaqueDynamicRendinstNode()
     registry.read("ri_update_token").blob<OrderingToken>();
 
     return [cameraHndl, strmCtxHndl](const dafg::multiplexing::Index &multiplexing_index) {
+      debug_mesh::activate_mesh_coloring_master_override();
       CameraViewVisibilityMgr *camJobsMgr = cameraHndl.ref().jobsMgr;
       camJobsMgr->waitVisibility(RENDER_MAIN);
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
@@ -357,6 +374,7 @@ dafg::NodeHandle makeOpaqueDynamicRendinstNode()
       rendinst::render::renderRIGen(rendinst::RenderPass::Normal, camJobsMgr->getRiMainVisibility(), cameraHndl.ref().viewItm,
         rendinst::LayerFlag::Opaque, rendinst::OptimizeDepthPass::No, /*count_multiply*/ 1, rendinst::AtestStage::All, nullptr,
         strmCtxHndl.ref(), rendinst::RiExtraRenderingSubset::OnlyDynamic);
+      debug_mesh::deactivate_mesh_coloring_master_override();
     };
   });
 }

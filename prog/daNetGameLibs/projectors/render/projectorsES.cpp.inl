@@ -242,7 +242,7 @@ void init_manager_es_event_handler(const ecs::Event &,
     });
   auto nodeNs = dafg::root() / "transparent" / "far";
   projectors_node = nodeNs.registerNode("projectors", DAFG_PP_NODE_SRC, [&projectors_manager](dafg::Registry registry) {
-    registry.requestRenderPass().color({"color_target"}).depthRoAndBindToShaderVars("depth", {"depth_gbuf"});
+    registry.requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {"depth_gbuf"});
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_PROJECTORS);
 
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");

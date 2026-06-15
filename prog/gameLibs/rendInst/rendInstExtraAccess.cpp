@@ -316,6 +316,15 @@ int rendinst::getRIGenExtraDestroyedRiIdx(uint32_t pool)
   return -1;
 }
 
+bool rendinst::isRIGenExtraRendinstClipmap(uint32_t pool)
+{
+  if (pool < riExtra.size())
+    return riExtra[pool].isRendinstClipmap;
+
+  logerr("failed to get 'isRendinstClipmap' property of invalid pool '%u'", pool);
+  return false;
+}
+
 vec4f rendinst::getRIGenExtraBSphere(riex_handle_t id)
 {
   uint32_t resIdx = handle_to_ri_type(id);

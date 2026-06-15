@@ -2993,8 +2993,23 @@ static bool wrappedBody(const Statement *stmt) {
     && stmt->columnEnd() == wp->columnEnd();
 }
 
+static bool isGeneratedForeachDestructuring(const Statement *stmt) {
+  if (!stmt || stmt->op() != TO_DESTRUCTURE)
+    return false;
+
+  const Expr *init = stmt->asDestructuringDecl()->initExpression();
+  if (!init || init->op() != TO_ID)
+    return false;
+
+  char prefix = init->asId()->name()[0];
+  return prefix == '@' || prefix == '$';
+}
+
 void CheckerVisitor::checkSuspiciousFormattingOfStetementSequence(const Statement *prev, const Statement *cur)
 {
+  if (isGeneratedForeachDestructuring(prev) || isGeneratedForeachDestructuring(cur))
+    return;
+
   if (prev && cur && prev->lineStart() != cur->lineStart() && prev->columnStart() != cur->columnStart())
     report(cur, DiagnosticsId::DI_INVALID_INDENTATION, std::to_string(prev->lineStart()).c_str(), std::to_string(cur->lineStart()).c_str());
 }
@@ -4378,30 +4393,35 @@ void CheckerVisitor::visitSwitchStatement(SwitchStatement *swtch) {
 void CheckerVisitor::visitTryStatement(TryStatement *tryStmt) {
 
   Statement *t = tryStmt->tryStatement();
-  Id *id = tryStmt->exceptionId();
-  Statement *c = tryStmt->catchStatement();
 
   VarScope *trunkScope = currentScope;
   VarScope *tryScope = trunkScope->copy(arena);
   currentScope = tryScope;
   t->visit(this);
 
-  VarScope *copyScope = trunkScope->copy(arena);
-  VarScope catchScope(copyScope->owner, copyScope);
-  currentScope = &catchScope;
-  SymbolInfo *info = makeSymbolInfo(SK_EXCEPTION);
-  ValueRef *v = makeValueRef(info);
-  v->state = VRS_UNKNOWN;
-  v->expression = nullptr;
-  info->declarator.x = id;
-  info->ownedScope = &catchScope; //-V506
+  for (auto &clause : tryStmt->catches()) {
+    VarScope *copyScope = trunkScope->copy(arena);
+    VarScope catchScope(copyScope->owner, copyScope);
+    currentScope = &catchScope;
 
-  declareSymbol(id->name(), v);
+    if (clause.type)
+      clause.type->visit(this); // catch type is read in the enclosing scope
 
-  id->visit(this);
-  c->visit(this);
+    SymbolInfo *info = makeSymbolInfo(SK_EXCEPTION);
+    ValueRef *v = makeValueRef(info);
+    v->state = VRS_UNKNOWN;
+    v->expression = nullptr;
+    info->declarator.x = clause.exception;
+    info->ownedScope = &catchScope; //-V506
 
-  tryScope->merge(copyScope);
+    declareSymbol(clause.exception->name(), v);
+
+    clause.exception->visit(this);
+    clause.body->visit(this);
+
+    tryScope->merge(copyScope);
+  }
+
   trunkScope->copyFrom(tryScope);
 
   tryScope->~VarScope();
@@ -5532,6 +5552,47 @@ void CheckerVisitor::visitImportStatement(ImportStmt *import) {
                 import->moduleAlias ? import->moduleAlias : import->moduleName);
   }
   else {
+    bool hasWildcard = false;
+    bool hasNamedSlot = false;
+    const SQModuleImportSlot *firstWildcard = nullptr;
+    const SQModuleImportSlot *firstNamedSlot = nullptr;
+
+    for (const SQModuleImportSlot &slot : import->slots) {
+      if (strcmp(slot.name, "*") == 0) {
+        hasWildcard = true;
+        if (!firstWildcard)
+          firstWildcard = &slot;
+        continue;
+      }
+
+      hasNamedSlot = true;
+      if (!firstNamedSlot)
+        firstNamedSlot = &slot;
+
+      if (!importedModuleSlots.insert(std::string(slot.name)).second) {
+        report(slot.line, slot.column, (int)strlen(slot.name),
+          DiagnosticsId::DI_DUPLICATE_IMPORT, slot.name);
+      }
+    }
+
+    std::string moduleName(import->moduleName);
+    bool hadWildcard = wildcardImportedModules.find(moduleName) != wildcardImportedModules.end();
+    bool hadNamedSlot = namedSlotImportedModules.find(moduleName) != namedSlotImportedModules.end();
+
+    if (hasNamedSlot && (hadWildcard || hasWildcard)) {
+      report(firstNamedSlot->line, firstNamedSlot->column, (int)strlen(firstNamedSlot->name),
+        DiagnosticsId::DI_WILDCARD_AND_NAMED_IMPORT, import->moduleName);
+    }
+    else if (hasWildcard && (hadWildcard || hadNamedSlot)) {
+      report(firstWildcard->line, firstWildcard->column, 1,
+        DiagnosticsId::DI_WILDCARD_AND_NAMED_IMPORT, import->moduleName);
+    }
+
+    if (hasWildcard)
+      wildcardImportedModules.insert(moduleName);
+    if (hasNamedSlot)
+      namedSlotImportedModules.insert(moduleName);
+
     for (const SQModuleImportSlot &slot : import->slots) {
       if (strcmp(slot.name, "*") == 0)
         continue;

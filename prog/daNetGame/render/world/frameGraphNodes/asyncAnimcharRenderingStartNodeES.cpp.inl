@@ -30,9 +30,10 @@ dafg::NodeHandle makeAsyncAnimcharRenderingStartNode(bool has_motion_vectors)
     registry.create("async_animchar_rendering_started_token").blob<OrderingToken>();
 
     auto cameraHndl = use_camera_in_camera(registry).handle();
+    auto historyCameraHndl = read_history_camera_in_camera(registry).handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
-    return [cameraHndl, strmCtxHndl, has_motion_vectors] {
+    return [cameraHndl, historyCameraHndl, strmCtxHndl, has_motion_vectors] {
       G_ASSERT(async_animchars_main.get());
 
       uint8_t mainHints =
@@ -40,7 +41,10 @@ dafg::NodeHandle makeAsyncAnimcharRenderingStartNode(bool has_motion_vectors)
       if (has_motion_vectors)
         mainHints |= UpdateStageInfoRender::RENDER_MOTION_VECS;
 
-      cameraHndl.ref().jobsMgr->startAsyncAnimcharMainRender(cameraHndl.ref().noJitterFrustum, mainHints, strmCtxHndl.ref());
+      const auto &camera = cameraHndl.ref();
+      const auto &historyCamera = historyCameraHndl.ref();
+      camera.jobsMgr->startAsyncAnimcharMainRender(camera.noJitterFrustum, mainHints, strmCtxHndl.ref(), TMatrix4(camera.viewTm),
+        camera.jitterProjTm, TMatrix4(historyCamera.viewTm), get_prev_proj_tm_with_cur_jitter(historyCamera, camera));
     };
   });
 }

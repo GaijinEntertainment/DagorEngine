@@ -14,12 +14,12 @@
 #include <propPanel/imguiHelper.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
-eastl::unique_ptr<AssetSearchResultsWindow> asset_search_results_window;
-
 AssetSearchResultsWindow::AssetSearchResultsWindow(const char *caption) : DialogWindow(nullptr, hdpi::Px(200), hdpi::Px(200), caption)
 {
   closeIcon = PropPanel::load_icon("close_editor");
   searchIcon = PropPanel::load_icon("search");
+  pinIcon = PropPanel::load_icon("pin");
+  unpinIcon = PropPanel::load_icon("unpin");
 
   propertiesPanel->createCustomControlHolder(CustomControlHolderId, this);
 
@@ -93,10 +93,8 @@ int AssetSearchResultsWindow::onMenuItemClick(unsigned id)
   return 0;
 }
 
-void AssetSearchResultsWindow::saveResults(const char *path) const
+void AssetSearchResultsWindow::saveResultsToBlk(DataBlock &blk) const
 {
-  DataBlock blk;
-
   dag::ConstSpan<SimpleString> columnTitles = searchResultsList.getColumnTitles();
   DataBlock *headerBlk = blk.addNewBlock("header");
   for (const SimpleString &columnTitle : columnTitles)
@@ -110,6 +108,12 @@ void AssetSearchResultsWindow::saveResults(const char *path) const
     for (int i = 1; i < columnTitles.size(); ++i)
       resultBlk->addStr("column", searchResult.getColumnText(i));
   }
+}
+
+void AssetSearchResultsWindow::saveResultsToFile(const char *path) const
+{
+  DataBlock blk;
+  saveResultsToBlk(blk);
 
   if (!blk.saveToTextFile(path))
     logerr("Saving search results to \"%s\" has failed.", path);
@@ -148,45 +152,44 @@ void AssetSearchResultsWindow::loadResult(const DataBlock &result_blk, int colum
   addResult(eastl::move(searchResult));
 }
 
-void AssetSearchResultsWindow::loadResults(const char *path)
+bool AssetSearchResultsWindow::loadResultsFromBlk(const DataBlock &blk, const char *path)
 {
-  DataBlock blk;
-  if (!blk.load(path))
-  {
-    logerr("Load search results from \"%s\" has failed.", path);
-    return;
-  }
-
   const DataBlock *headerBlk = blk.getBlockByName("header");
   if (!headerBlk)
   {
     logerr("Loading search results from \"%s\" has failed. The header block is missing.", path);
-    return;
+    return false;
   }
 
   const int columnNameId = blk.getNameId("column");
   if (columnNameId == -1)
   {
     logerr("Loading search results from \"%s\" has failed. It does not contain any columns.", path);
-    return;
+    return false;
   }
 
-  dag::Vector<SimpleString> columnTitles;
+  dag::Vector<SimpleString> loadedColumnTitles;
   for (int i = 0; i < headerBlk->paramCount(); ++i)
     if (headerBlk->getParamType(i) == DataBlock::TYPE_STRING && headerBlk->getParamNameId(i) == columnNameId)
-      columnTitles.emplace_back(headerBlk->getStr(i));
+      loadedColumnTitles.emplace_back(headerBlk->getStr(i));
 
-  if (columnTitles.empty())
+  const dag::ConstSpan<SimpleString> listColumnTitles = searchResultsList.getColumnTitles();
+  if (loadedColumnTitles.size() != listColumnTitles.size())
   {
-    logerr("Loading search results from \"%s\" has failed. It does not contain any columns.", path);
-    return;
+    logerr("Loading search results from \"%s\" has failed. The file contains %d columns. Expected %d columns.", path,
+      loadedColumnTitles.size(), listColumnTitles.size());
+    return false;
   }
 
-  clearColumnTitles();
-  clearResults();
+  for (int i = 0; i < loadedColumnTitles.size(); ++i)
+    if (loadedColumnTitles[i] != listColumnTitles[i])
+    {
+      logerr("Loading search results from \"%s\" has failed. Column %d is named \"%s\" in the file. Expected name \"%s\".", path,
+        i + 1, loadedColumnTitles[i], listColumnTitles[i]);
+      return false;
+    }
 
-  for (const SimpleString &columnTitle : columnTitles)
-    addColumnTitle(columnTitle);
+  clearResults();
 
   const int resultNameId = blk.getNameId("result");
   if (resultNameId >= 0)
@@ -202,6 +205,62 @@ void AssetSearchResultsWindow::loadResults(const char *path)
   }
 
   fillResultsList();
+
+  return true;
+}
+
+void AssetSearchResultsWindow::loadResultsFromFile(const char *path)
+{
+  DataBlock blk;
+  if (!blk.load(path))
+  {
+    logerr("Load search results from \"%s\" has failed.", path);
+    return;
+  }
+
+  loadResultsFromBlk(blk, path);
+}
+
+void AssetSearchResultsWindow::updateImguiSubtitle(const ImVec2 &start_pos, float available_width)
+{
+  // horizontal layout: framePadding.x + optional(fontSizedIconSize.x + itemSpacingX) + text width + framePadding.x
+
+  const float itemSpacingX = ImGui::GetStyle().ItemSpacing.x;
+  const ImVec2 framePadding = ImGui::GetStyle().FramePadding;
+  const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+
+  float frameWidthWithoutText = framePadding.x * 2.0f;
+  if (windowSubtitleIcon != PropPanel::IconId::Invalid)
+  {
+    frameWidthWithoutText += fontSizedIconSize.x + itemSpacingX;
+    available_width -= frameWidthWithoutText;
+  }
+
+  const ImVec2 unclipppedTextSize = ImGui::CalcTextSize(windowSubtitle.begin(), windowSubtitle.end());
+  const float clippedTextWidth = clamp(unclipppedTextSize.x, 0.0f, available_width);
+
+  if (pinned)
+  {
+    const ImVec2 frameEndPos(start_pos.x + frameWidthWithoutText + clippedTextWidth,
+      start_pos.y + unclipppedTextSize.y + (framePadding.y * 2.0f));
+    ImGui::RenderFrame(start_pos, frameEndPos, ImGui::GetColorU32(ImGuiCol_ButtonHovered));
+  }
+
+  if (windowSubtitleIcon != PropPanel::IconId::Invalid)
+  {
+    ImGui::SetCursorScreenPos(ImVec2(start_pos.x + framePadding.x, start_pos.y + framePadding.y));
+    ImGui::Image(PropPanel::get_im_texture_id_from_icon_id(windowSubtitleIcon), fontSizedIconSize);
+    ImGui::SameLine();
+    ImGui::SetCursorScreenPos(ImVec2(ImGui::GetCursorScreenPos().x, start_pos.y));
+  }
+
+  if (clippedTextWidth > 0.0f)
+  {
+    ImGui::SetNextItemWidth(clippedTextWidth);
+    PropPanel::ImguiHelper::labelOnly(windowSubtitle.begin(), windowSubtitle.end());
+    PropPanel::set_previous_imgui_control_tooltip(&windowSubtitle, windowSubtitle.begin(), windowSubtitle.end());
+    ImGui::SameLine();
+  }
 }
 
 void AssetSearchResultsWindow::customControlUpdate(int id)
@@ -212,8 +271,23 @@ void AssetSearchResultsWindow::customControlUpdate(int id)
 
   if (!windowSubtitle.empty())
   {
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-    PropPanel::ImguiHelper::labelOnly(windowSubtitle.c_str(), windowSubtitle.c_str() + windowSubtitle.length());
+    const ImVec2 startPos = ImGui::GetCursorScreenPos();
+    const ImVec2 contentRegionAvail = ImGui::GetContentRegionAvail();
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 imageButtonSize = PropPanel::ImguiHelper::getImageButtonSize(fontSizedIconSize);
+    const float availableWidthBeforePinButton = contentRegionAvail.x - imageButtonSize.x - ImGui::GetStyle().ItemSpacing.x;
+
+    if (availableWidthBeforePinButton > 0.0f)
+      updateImguiSubtitle(startPos, availableWidthBeforePinButton);
+
+    ImGui::SetCursorScreenPos(ImVec2(startPos.x + contentRegionAvail.x - imageButtonSize.x, startPos.y));
+    if (ImGui::ImageButton("pin", PropPanel::get_im_texture_id_from_icon_id(pinned ? pinIcon : unpinIcon), fontSizedIconSize))
+      pinned = !pinned;
+
+    PropPanel::set_previous_imgui_control_tooltip(&pinned, "Toggle asset pinning.\n\n"
+                                                           "When the selected asset is pinned then changing the asset in\n"
+                                                           "the Assets Tree will not change the asset in this window.");
+
     ImGui::NewLine();
   }
 
@@ -236,7 +310,7 @@ void AssetSearchResultsWindow::customControlUpdate(int id)
   {
     const String path = wingw::file_save_dlg(nullptr, "Save results...", "BLK (*.blk)|*.blk|All files(*.*)|*.*", "blk");
     if (!path.empty())
-      saveResults(path);
+      saveResultsToFile(path);
   }
 
   ImGui::SameLine();
@@ -245,7 +319,7 @@ void AssetSearchResultsWindow::customControlUpdate(int id)
   {
     const String path = wingw::file_open_dlg(nullptr, "Load results...", "BLK (*.blk)|*.blk|All files(*.*)|*.*", "blk");
     if (!path.empty())
-      loadResults(path);
+      loadResultsFromFile(path);
   }
 
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_F))

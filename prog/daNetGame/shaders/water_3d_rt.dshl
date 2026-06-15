@@ -84,7 +84,7 @@ shader raytraced_water_reflections
   (cs)
   {
     world_view_pos@f3 = world_view_pos;
-    hit_dist_params@f4 = rtr_water_hit_dist_params;
+    hit_dist_params@f3 = rtr_water_hit_dist_params;
     water_normal_dir@tex2d = water_normal_dir;
     water_reflection_tex_uav@uav = water_reflection_tex_uav hlsl{RWTexture2D<float3> water_reflection_tex_uav@uav;};
     water_reflection_strength_tex_uav@uav = water_reflection_strength_tex_uav hlsl{RWTexture2D<float4> water_reflection_strength_tex_uav@uav;};

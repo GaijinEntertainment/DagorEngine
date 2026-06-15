@@ -157,11 +157,8 @@ struct Capsule
     return false;
   }
   bool cliptest(const BBox3 &bbox) const { return cliptest(v_ldu_bbox3(bbox)); }
-  bool cliptest(const BSphere3 &sph) const
-  {
-    vec4f s = v_ldu(&sph.c.x);
-    return distToAxisSq(s) < sqr(v_extract_w(v_add(s, v_ldu(&a.x))));
-  }
+  bool cliptest(const vec4f bsph) const { return distToAxisSq(bsph) < sqr(v_extract_w(v_add(bsph, v_ldu(&a.x)))); }
+  bool cliptest(const BSphere3 &bsph) const { return cliptest(v_ldu_bsphere3(bsph)); }
   bool rayHit(vec3f from, vec3f dir, real len) const { return capsuleHit(from, dir, len, 0.f /*rad*/); }
   bool rayHit(const Point3 &from, const Point3 &dir, float len) const { return rayHit(v_ldu(&from.x), v_ldu(&dir.x), len); }
   /// returned maxt is approximate

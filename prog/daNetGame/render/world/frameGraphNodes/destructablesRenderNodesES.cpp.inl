@@ -8,7 +8,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/defaultVrsSettings.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/cameraViewVisibilityManager.h>
 #include <gamePhys/phys/destructableObject.h>
 #include <scene/dag_occlusion.h>

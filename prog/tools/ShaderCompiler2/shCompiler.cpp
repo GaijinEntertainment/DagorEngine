@@ -29,7 +29,9 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <math/random/dag_random.h>
 #include <util/dag_threadPool.h>
-
+#include "refinedBlockLayout.h"
+#include <dag/dag_vector.h>
+#include <ska_hash_map/flat_hash_map2.hpp>
 #include <atomic>
 #include <EASTL/deque.h>
 
@@ -268,6 +270,19 @@ String get_obj_file_name_from_source(const String &source_file_name, const ShCom
   return objFileName;
 }
 
+String get_global_rb_layout_name(const ShCompilationInfo &comp)
+{
+  char intermediateDir[260];
+  strcpy(intermediateDir, comp.intermDir().c_str());
+  dd_append_slash_c(intermediateDir);
+
+  String objFileName = String(intermediateDir) + dd_get_fname("rblock.layout");
+  comp.hwopts().appendOptsTo(objFileName);
+  objFileName += ".obj";
+
+  return objFileName;
+}
+
 // check shader file cache & return true, if cache needs recompilation
 bool should_recompile_sh(const CompilationContext &ctx, const String &sourceFileName)
 {
@@ -303,8 +318,45 @@ CompilerAction should_recompile(const CompilationContext &ctx)
   return dumpCheckResult;
 }
 
+void runPreshaderParse(const ShCompilationInfo &compInfo, CompilationContext &comp)
+{
+  if (config().dependencyDumpMode)
+    return;
+
+  const bool forceRebuild = config().forceRebuild;
+
+  dag::Vector<String> recompiledSources;
+  for (const String &sourceFileName : compInfo.sources())
+  {
+    if (!forceRebuild && !should_recompile_sh(compInfo, sourceFileName))
+    {
+      if (!load_local_rb_layout(get_obj_file_name_from_source(sourceFileName, compInfo), comp))
+        recompiledSources.push_back(sourceFileName);
+    }
+    else
+      recompiledSources.push_back(sourceFileName);
+  }
+
+  int64_t totalReft = ref_time_ticks();
+  for (const String &sourceFileName : recompiledSources)
+  {
+    TargetContext targetCtx = comp.makeTargetContext(sourceFileName.c_str(), true);
+    reset_source_file();
+    CodeSourceBlocks::incFiles.reset();
+    int64_t reft = ref_time_ticks();
+    parse_shader_script(sourceFileName, nullptr, targetCtx);
+    sh_printf("[INFO] Parsed preshader '%s' in %gms\n", sourceFileName.c_str(), get_time_usec(reft) / 1000.);
+  }
+
+  sh_printf("[INFO] Parsed preshaders in %gms\n", get_time_usec(totalReft) / 1000.);
+
+  String rbLayoutCacheName = get_global_rb_layout_name(comp.compInfo());
+  sh_printf("[INFO] Built '%s'\n", rbLayoutCacheName.c_str());
+  save_global_rb_layout(rbLayoutCacheName, comp);
+}
+
 // compile shader files & generate variants to disk. return false, if error occurs
-void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, const shc::CompilationContext &ctx)
+void compileShader(CompilerAction compiler_action, bool no_save, bool should_rebuild, shc::CompilationContext &comp)
 {
   // Sanity check, args should be validated before calling the function
   G_ASSERT(!should_rebuild || (compiler_action != CompilerAction::NOTHING && compiler_action != CompilerAction::LINK_ONLY));
@@ -312,9 +364,9 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
   if (compiler_action == CompilerAction::NOTHING)
     return;
 
-  sh_debug(SHLOG_INFO, "Compile shaders to '%s'", ctx.compInfo().dest().str());
+  sh_debug(SHLOG_INFO, "Compile shaders to '%s'", comp.compInfo().dest().str());
 
-  const ShCompilationInfo &compInfo = ctx.compInfo();
+  const ShCompilationInfo &compInfo = comp.compInfo();
 
   compInfo.hwopts().dumpInfo();
 
@@ -325,12 +377,27 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
 
   if (compiler_action != CompilerAction::LINK_ONLY)
   {
+    dag::Vector<bool> rbLoadFailed;
+    rbLoadFailed.assign(compInfo.sources().size(), false);
+    if (shc::config().singleCompilationShName)
+      load_global_rb_layout(get_global_rb_layout_name(comp.compInfo()), comp);
+    else
+    {
+      for (size_t i = 0; i < compInfo.sources().size(); ++i)
+      {
+        if (should_rebuild || should_recompile_sh(comp, compInfo.sources()[i]))
+          continue;
+        if (!load_local_rb_layout(get_obj_file_name_from_source(compInfo.sources()[i], compInfo), comp))
+          rbLoadFailed[i] = true;
+      }
+    }
+
     for (unsigned int sourceFileNo = 0; sourceFileNo < compInfo.sources().size(); sourceFileNo++)
     {
       const String &sourceFileName = compInfo.sources()[sourceFileNo];
       String objFileName = get_obj_file_name_from_source(sourceFileName, compInfo);
 
-      bool need_recompile = should_rebuild || should_recompile_sh(ctx, sourceFileName);
+      bool need_recompile = should_rebuild || should_recompile_sh(comp, sourceFileName) || rbLoadFailed[sourceFileNo];
       if (!need_recompile)
       {
         sh_debug(SHLOG_INFO, "No changes in '%s', skipping", sourceFileName.str());
@@ -346,7 +413,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
         fflush(stdout);
         Tab<SimpleString> dependenciesList(tmpmem_ptr());
 
-        TargetContext targetCtx = ctx.makeTargetContext(sourceFileName.c_str());
+        TargetContext targetCtx = comp.makeTargetContext(sourceFileName.c_str());
 
         reset_source_file();
 
@@ -365,7 +432,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
         if (shc::config().dependencyDumpMode)
         {
           for (const auto &dep : dependenciesList)
-            ctx.reportDepFile(dep);
+            comp.reportDepFile(dep);
           continue;
         }
 
@@ -413,11 +480,11 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
     if (shc::config().dependencyDumpMode)
     {
       for (const auto &dep : dependenciesList)
-        ctx.reportDepFile(dep);
+        comp.reportDepFile(dep);
       return;
     }
 
-    TargetContext targetCtx = ctx.makeTargetContext(compInfo.dest().c_str());
+    TargetContext targetCtx = comp.makeTargetContext(compInfo.dest().c_str());
 
     for (unsigned int sourceFileNo = 0; sourceFileNo < compInfo.sources().size(); sourceFileNo++)
     {
@@ -441,6 +508,9 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
 
     ShaderGlobal::validate_linked_gvar_collection(targetCtx);
 
+    if (!targetCtx.refinedBlockLayout().empty())
+      targetCtx.refinedBlockLayout().generateStcode();
+
     sh_debug(SHLOG_NORMAL, "[INFO] linked in %gms", get_time_usec(reft) / 1000.);
 
     reft = ref_time_ticks();
@@ -456,7 +526,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
 }
 
 bool buildShaderBinDump(const char *bindump_fn, const char *sh_fn, bool forceRebuild, bool minidump, BindumpPackingFlags packing_flags,
-  const shc::CompilationContext &comp)
+  shc::CompilationContext &comp)
 {
   if (!forceRebuild)
   {

@@ -29,6 +29,7 @@
 #include "resource.h"
 #include "debug.h"
 #include "rolluppanel.h"
+#include "common.h"
 #include "datablk.h"
 #if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
 #include <INamedSelectionSetManager.h>
@@ -61,8 +62,6 @@
 #include <sstream>
 #include <fstream>
 
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
 bool is_default_layer(const ILayer &layer);
 
 std::wstring fix_empty_param_values(const std::wstring &_script, const std::wstring &classname);
@@ -164,10 +163,9 @@ public:
   int input_exp_camera_fname();
   int input_exp_phys_fname();
   int input_exp_instances_fname();
-  BOOL export_one_dag(const TCHAR *exp_fn, TCHAR **textures = NULL, int max_textures = 0, TCHAR *default_material = NULL);
-  BOOL export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn, TCHAR **textures = NULL, int max_textures = 0,
-    TCHAR *default_material = NULL);
-  BOOL export_dag(TCHAR **textures = NULL, int max_textures = 0, TCHAR *default_material = NULL);
+  BOOL export_one_dag(const TCHAR *exp_fn);
+  BOOL export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn);
+  BOOL export_dag();
   void export_anim_v2();
   void export_camera_v1();
   void exportPhysics();
@@ -240,25 +238,6 @@ public:
 static DagExpCD dagexpcd;
 
 ClassDesc *GetDAGEXPCD() { return &dagexpcd; }
-
-bool force_export_to_dag(const TCHAR *fname, Interface *ip, TCHAR **textures, int max_textures, TCHAR *default_material)
-{
-  util.ip = ip;
-  util.expflg = EXP_MESH | EXP_MAT;
-  util.exp_fname = fname;
-#if MAX_RELEASE >= 3000
-  SetSaveRequiredFlag();
-#else
-  SetSaveRequired();
-#endif
-
-  util.export_dag(textures, max_textures, default_material);
-
-  util.ip = NULL;
-  util.expflg = 0;
-
-  return true;
-}
 
 void explog(const TCHAR *s, ...)
 {
@@ -601,13 +580,13 @@ BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
         {
           static TCHAR dir[MAX_PATH];
 
-          _tcscpy(dir, strToWide(dagor_path).c_str());
+          _tcscpy(dir, dagor_path.data());
 
           ip->ChooseDirectory(hw, GetString(IDS_CHOOSE_DAGOR_PATH), dir);
           if (dir[0])
           {
-            set_dagor_path(wideToStr(dir).data());
-            update_path_edit_control(hw, IDC_DAGORPATH, strToWide(dagor_path).data());
+            set_dagor_path(dir);
+            update_path_edit_control(hw, IDC_DAGORPATH, dagor_path.data());
           }
         }
         break;
@@ -619,7 +598,7 @@ BOOL ExpUtil::export_other_dlg_proc(HWND hw, UINT msg, WPARAM wpar, LPARAM lpar)
             case EN_KILLFOCUS:
               EnableAccelerators();
               GetDlgItemText(hw, IDC_DAGORPATH, path, MAX_PATH);
-              set_dagor_path(wideToStr(path).data());
+              set_dagor_path(path);
               break;
 
             case EN_CHANGE:
@@ -824,7 +803,7 @@ void ExpUtil::update_ui_other(HWND hw)
   CheckDlgButton(hw, IDC_CALC_MOMJ_ON_EXPORT, !(expflg & EXP_DONT_CALC_MOMJ));
   CheckDlgButton(hw, IDC_EXPLTARG, expflg & EXP_LTARG);
   CheckDlgButton(hw, IDC_EXPCTARG, expflg & EXP_CTARG);
-  update_path_edit_control(hw, IDC_DAGORPATH, strToWide(dagor_path).c_str());
+  update_path_edit_control(hw, IDC_DAGORPATH, dagor_path.data());
 }
 
 void ExpUtil::update_ui()
@@ -1210,13 +1189,13 @@ public:
   bool hasNoSmoothing;
   bool hasBigMeshes;
   bool hasNonDagorMaterials;
+  bool hasNonDagorLights;
   bool hasSubSubMaterials;
   bool hasAbsolutePaths;
   bool a2dExported;
-  TCHAR *default_material;
 
-  M_STD_STRING tex_slot[DAGTEXNUM];
-  std::MAP_TYPE<std::wstring, std::vector<M_STD_STRING>> shaderParamsMap;
+  std::wstring tex_slot[DAGTEXNUM];
+  std::MAP_TYPE<std::wstring, std::vector<std::wstring>> shaderParamsMap;
 
   ExportENCB(TimeValue t, bool a2d)
   {
@@ -1229,6 +1208,7 @@ public:
     hasNoSmoothing = false;
     hasBigMeshes = false;
     hasNonDagorMaterials = false;
+    hasNonDagorLights = false;
     hasSubSubMaterials = false;
     hasAbsolutePaths = false;
     nodeOrigin = NULL;
@@ -1238,7 +1218,6 @@ public:
     useIdentityTransformForNode = NULL;
 #endif
     a2dExported = a2d;
-    default_material = NULL;
   }
 
   ~ExportENCB() override
@@ -1364,13 +1343,9 @@ public:
 
   bool doesScriptMatch(const TCHAR *a, const TCHAR *b)
   {
-#if _UNICODE
     std::wstring propsa(a), propsb(b);
     wchar_t prop[512];
-#else
-    std::string propsa(a), propsb(b);
-    char prop[512];
-#endif
+
     if (propsa.length() != propsb.length())
       return false; // No need to check b entries against a
     size_t pos = 0, prevPos = 0;
@@ -1923,7 +1898,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       const ObjectState &os = n->EvalWorldState(time);
       if (os.obj->SuperClassID() == LIGHT_CLASS_ID)
       {
-        GenLight *o = (GenLight *)os.obj;
+        LightObject *o = static_cast<LightObject *>(os.obj);
         if (o->GetShadow())
           d.flg |= DAG_NF_CASTSHADOW;
         else
@@ -1933,9 +1908,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
       const TCHAR *nm = n->GetName();
       if (nm)
       {
-        char *nameCopy = strdup(wideToStr(nm).c_str());
-        wr(nameCopy, strlen(nameCopy));
-        free(nameCopy);
+        std::string nameCopy = wideToStr(nm);
+        wr(nameCopy.data(), nameCopy.size());
       }
       eblk;
     }
@@ -1971,6 +1945,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       {
         for (int i = 0; i < mtls.size(); ++i)
         {
+          std::string mat_i_name = wideToStr(mat[i].name);
           size_t pos = scr.find("apex_interior_material:t=\"");
           if (pos != std::string::npos)
           {
@@ -1978,11 +1953,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
               if (*mtlIt)
               {
                 std::string matName = wideToStr((*mtlIt)->GetName());
-                if (matName == wideToStr(mat[i].name))
+                if (matName == mat_i_name)
                   continue;
                 size_t posVal = scr.find(matName.c_str(), pos, matName.length());
                 if (posVal != std::string::npos)
-                  scr.replace(posVal, matName.length(), wideToStr(mat[i].name));
+                  scr.replace(posVal, matName.length(), mat_i_name);
               }
           }
         }
@@ -2144,33 +2119,42 @@ bool wr_hlp( const void * p, int l, FILE * h )
         ; // no-op
       else if ((util.expflg & EXP_LT) && os.obj->SuperClassID() == LIGHT_CLASS_ID)
       {
-        GenLight *o = (GenLight *)os.obj;
-        DagLight d;
-        DagLight2 d2;
-        Color col = o->GetRGBColor(time) * o->GetIntensity(time);
-        d.r = col.r;
-        d.g = col.g;
-        d.b = col.b;
-        d.drad = o->GetDecayRadius(time);
-        d.range = o->GetAtten(time, ATTEN_END);
-        d.decay = o->GetDecayType();
-        d2.mult = o->GetIntensity(time);
-        d2.falloff = o->GetFallsize(time);
-        d2.hotspot = o->GetHotspot(time);
-        switch (o->Type())
+        GenLight *o = dynamic_cast<GenLight *>(os.obj);
+        if (o)
         {
-          case TSPOT_LIGHT:
-          case FSPOT_LIGHT: d2.type = DAG_LIGHT_SPOT; break;
-          case DIR_LIGHT:
-          case TDIR_LIGHT: d2.type = DAG_LIGHT_DIR; break;
-          default: d2.type = DAG_LIGHT_OMNI; break;
+          DagLight d;
+          DagLight2 d2;
+          Color col = o->GetRGBColor(time) * o->GetIntensity(time);
+          d.r = col.r;
+          d.g = col.g;
+          d.b = col.b;
+          d.drad = o->GetDecayRadius(time);
+          d.range = o->GetAtten(time, ATTEN_END);
+          d.decay = o->GetDecayType();
+          d2.mult = o->GetIntensity(time);
+          d2.falloff = o->GetFallsize(time);
+          d2.hotspot = o->GetHotspot(time);
+          switch (o->Type())
+          {
+            case TSPOT_LIGHT:
+            case FSPOT_LIGHT: d2.type = DAG_LIGHT_SPOT; break;
+            case DIR_LIGHT:
+            case TDIR_LIGHT: d2.type = DAG_LIGHT_DIR; break;
+            default: d2.type = DAG_LIGHT_OMNI; break;
+          }
+          bblk(DAG_NODE_OBJ);
+          bblk(DAG_OBJ_LIGHT);
+          wr(&d, sizeof(d));
+          wr(&d2, sizeof(d2));
+          eblk;
+          eblk;
         }
-        bblk(DAG_NODE_OBJ);
-        bblk(DAG_OBJ_LIGHT);
-        wr(&d, sizeof(d));
-        wr(&d2, sizeof(d2));
-        eblk;
-        eblk;
+        else
+        {
+          hasNonDagorLights = true;
+          DagorLogWindow::show();
+          DagorLogWindow::addToLog(DagorLogWindow::LogLevel::Warning, _T("The light source '%s' is ignored.\r\n"), n->GetName());
+        }
       }
       else if ((util.expflg & EXP_SPLINE) && os.obj->SuperClassID() == SHAPE_CLASS_ID)
       {
@@ -2707,16 +2691,17 @@ bool wr_hlp( const void * p, int l, FILE * h )
                 continue;
 
 #if defined(MAX_RELEASE_R27) && MAX_RELEASE >= MAX_RELEASE_R27
-              TSTR name = mod->SubAnimName(1 + i, false).data();
+              TSTR name_wide = mod->SubAnimName(1 + i, false).data();
 #else
-              TSTR name = mod->SubAnimName(1 + i);
+              TSTR name_wide = mod->SubAnimName(1 + i);
 #endif
+              std::string name = wideToStr(name_wide);
 
               unsigned char len;
-              if (name.Length() >= 255)
+              if (name.size() > 255)
                 len = 255;
               else
-                len = name.Length();
+                len = static_cast<unsigned char>(name.size());
 
               wr(&len, 1);
               wr(name.data(), len);
@@ -3009,7 +2994,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
   //===============================================================================//
 
-  int save(FILE *h, Interface *ip, TCHAR **textures, int max_textures)
+  int save(FILE *h, Interface *ip)
   {
     prepare_expmat();
 
@@ -3172,49 +3157,28 @@ bool wr_hlp( const void * p, int l, FILE * h )
       wr(&num, 2);
       for (int i = 0; i < num; ++i)
       {
-        static char name[256];
-        _snprintf(name, 255, wideToStr(tex[i]).c_str());
-        size_t l = strlen(name);
+        std::string name = wideToStr(tex[i]);
 
-        for (char *s = name; *s; ++s)
-          if (*s == '\\')
-            *s = '/';
+        std::replace(name.begin(), name.end(), '\\', '/');
+        if (name.find('/') == std::string::npos)
+          name = "./" + name;
 
-        if (!strchr(name, '/'))
+        // if the name is too long
+        if (name.size() > 255) // counter must fit in 1 byte
         {
-          _snprintf(name, 255, "./%s", wideToStr(tex[i]).c_str());
-          l = strlen(name);
+          // sacrifice the directory part
+          size_t pos = name.find_last_of('/');
+          if (pos != std::string::npos)
+            name = name.substr(pos + 1);
+
+          // last resort to keep the size within the limits
+          name = name.substr(0, 255);
         }
 
-        if (i < max_textures)
-        {
-          textures[i] = new TCHAR[256];
-          // strcpy(textures[i], name);
-          _tcscpy(textures[i], strToWide(name).c_str());
-
-          sprintf(name, "#%d", i);
-          l = strlen(name);
-        }
-
+        size_t l = name.size();
         wr(&l, 1);
         if (l)
-          wr(name, l);
-
-        //        TSTR s = tex[i];
-        //
-        //        int l = s.length ();
-        //        if ( l > 255 )
-        //          l = 255;
-        //
-        //        for ( int j = 0; j < l; ++j )
-        //        {
-        //          if ( s[j] == '\\' )
-        //            s[j] = '/';
-        //        }
-        //
-        //        wr (&l, 1);
-        //        if ( l )
-        //          wr ( s, l);
+          wr(name.data(), l);
       }
       eblk;
     }
@@ -4185,7 +4149,7 @@ static bool find_co_layers(const TCHAR *fname, Tab<const TCHAR *> &fnames)
 }
 #endif
 
-BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_material)
+BOOL ExpUtil::export_dag()
 {
 #if defined(MAX_RELEASE_R13) && MAX_RELEASE >= MAX_RELEASE_R13
   DagorLogWindowAutoShower logWindowAutoShower(/*clear_log = */ true);
@@ -4194,7 +4158,7 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
   Tab<bool> isHidden;
 
   if (!find_co_layers(exp_fname, fnames))
-    return export_one_dag(exp_fname, textures, max_textures, default_material);
+    return export_one_dag(exp_fname);
 
   static TCHAR buf[8192];
   _stprintf(buf, _T("Export layers to %d separate files?\n"), fnames.Count() / 2);
@@ -4210,7 +4174,7 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
   {
     for (int i = 0; i < fnames.Count(); i++)
       free((void *)fnames[i]);
-    return export_one_dag(exp_fname, textures, max_textures, default_material);
+    return export_one_dag(exp_fname);
   }
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
@@ -4228,7 +4192,7 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
     manager->SetCurrentLayer(lnm);
     l->Hide(false);
 
-    export_one_dag(fnames[i + 1], textures, max_textures, default_material);
+    export_one_dag(fnames[i + 1]);
     l->Hide(true);
   }
   for (int i = 0; i < fnames.Count(); i += 2)
@@ -4246,10 +4210,9 @@ BOOL ExpUtil::export_dag(TCHAR **textures, int max_textures, TCHAR *default_mate
 #endif
 }
 
-BOOL ExpUtil::export_one_dag(const TCHAR *exp_fn, TCHAR **textures, int max_textures, TCHAR *default_material)
+BOOL ExpUtil::export_one_dag(const TCHAR *exp_fn)
 {
   ExportENCB cb(ip->GetTime(), false);
-  cb.default_material = default_material;
   enum_nodes(ip->GetRootNode(), &cb);
 
   if (!cb.node.Count())
@@ -4258,10 +4221,10 @@ BOOL ExpUtil::export_one_dag(const TCHAR *exp_fn, TCHAR **textures, int max_text
     return false;
   }
 
-  return export_one_dag_cb(cb, exp_fn, textures, max_textures, default_material);
+  return export_one_dag_cb(cb, exp_fn);
 }
 
-BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn, TCHAR **textures, int max_textures, TCHAR *default_material)
+BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn)
 {
   INamedSelectionSetManager *IPNSS = INamedSelectionSetManager::GetInstance();
 
@@ -4273,7 +4236,7 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn, TCHAR **tex
     errorMessage(GetString(IDS_FILE_CREATE_ERR));
     return false;
   }
-  if (!cb.save(h, ip, textures, max_textures))
+  if (!cb.save(h, ip))
   {
     errorMessage(GetString(IDS_FILE_WRITE_ERR));
     fclose(h);
@@ -4323,6 +4286,10 @@ BOOL ExpUtil::export_one_dag_cb(ExportENCB &cb, const TCHAR *exp_fn, TCHAR **tex
   if (cb.hasNonDagorMaterials)
   {
     warningMessage(GetString(IDS_NON_DAGOR_MATERIALS));
+  }
+  if (cb.hasNonDagorLights)
+  {
+    warningMessage(GetString(IDS_NON_DAGOR_LIGHTS));
   }
   if (cb.hasSubSubMaterials)
   {
@@ -4829,7 +4796,7 @@ public:
         AdvCameraKey &krec = key[drec.keyIdx];
         getRotPos(cam[i].cameraNode, krec.pos, krec.rot, 0);
         if (cam[i].hero)
-          getPos(cam[i].hero, cam[i].cameraNode->GetParentNode(), krec.pos, 0);
+          getPos(cam[i].hero, cam[i].cameraNode->GetParentNode(), krec.heroPos, 0);
         else
           krec.heroPos = Point3(0, 0, 0);
         krec.w = 1.0;

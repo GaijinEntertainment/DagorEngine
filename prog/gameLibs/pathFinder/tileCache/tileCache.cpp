@@ -69,6 +69,11 @@ bool tilecache_is_working()
 
 bool tilecache_is_blocking(rendinst::riex_handle_t riex_handle) { return tilecache_ri_is_blocking(riex_handle); }
 
+obstacle_handle_t tilecache_get_obstacle_handle(rendinst::riex_handle_t riex_handle)
+{
+  return tilecache_ri_get_obstacle_handle(riex_handle);
+}
+
 bool tilecache_is_loaded() { return tileCache && nextHandle; }
 
 bool tilecache_is_inside(const BBox3 &box)

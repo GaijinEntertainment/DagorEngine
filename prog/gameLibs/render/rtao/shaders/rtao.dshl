@@ -6,13 +6,13 @@ include "blue_noise.dshl"
 include "rtsm_sun_dir.dshl"
 include "bvh_common_includes.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_resolution.dshl"
 
 float4x4 inv_proj_tm;
 
 texture rtao_target;
 
 float4 rtao_hit_dist_params;
-float4 rtao_resolution = (1,1,1,1);
 int4 rtao_resolutionI = (1,1,1,1);
 int rtao_res_mul = 1;
 
@@ -37,8 +37,8 @@ shader rt_ao
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtao_resolutionI.xy;
-    inv_aligned_resolution@f2 = (1.0 / rtao_resolution.xy);
-    hit_dist_params@f4 = rtao_hit_dist_params;
+    inv_aligned_resolution@f2 = (rtao_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
+    hit_dist_params@f3 = rtao_hit_dist_params;
     rtao_checkerboard@i1 = rtao_checkerboard;
     output@uav = rtao_target hlsl { RWTexture2D<float> output@uav; };
     impostor_shadow_offset@f1 = impostor_shadow_offset;
@@ -101,27 +101,28 @@ shader rt_ao
     {
       uint2 rayIndex    = dtid;
       uint2 outputIndex = rayIndex;
-##if rtao_checkerboard == on
-      rayIndex.x *= 2;
+      ##if rtao_checkerboard == on
+        rayIndex.x *= 2;
 
-      bool evenFrame = ( frame_index & 1 ) == 0;
-      bool evenLine  = ( rayIndex.y & 1 ) == 0;
+        bool evenFrame = ( frame_index & 1 ) == 0;
+        bool evenLine  = ( rayIndex.y & 1 ) == 0;
 
-      if ( evenFrame == evenLine )
-        ++rayIndex.x;
-##endif
+        if ( evenFrame == evenLine )
+          ++rayIndex.x;
+      ##endif
+
       if (any(rayIndex >= resolution))
         return;
 
-    float2 tc = float2(rayIndex + 0.5) * inv_aligned_resolution;
-    DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
+      float2 tc = float2(rayIndex + 0.5) * inv_aligned_resolution;
+      DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
 
-    ##if rtao_res_mul == on
-      const float gbufferTcScale = 2.0;
-    ##else
-      const float gbufferTcScale = 1.0;
-    ##endif
-      float2 gbufferTC = tc * gbufferTcScale;
+      ##if rtao_res_mul == on
+        const float gbufferTcScale = 2.0;
+      ##else
+        const float gbufferTcScale = 1.0;
+      ##endif
+        float2 gbufferTC = tc * gbufferTcScale;
 
       ##if rtao_res_mul == on
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * gbufferTcScale));

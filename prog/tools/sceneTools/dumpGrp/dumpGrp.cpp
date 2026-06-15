@@ -864,7 +864,7 @@ static void saveOutBlk(DataBlock &out_blk, const char *v)
 static void print_header()
 {
   printf("Dump GameRes structure v1.5\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 

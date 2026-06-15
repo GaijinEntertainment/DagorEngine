@@ -60,7 +60,7 @@ private:
     {
       validation_remove_resource(res);
 #if DAGOR_DBGLEVEL > 0
-      G_ASSERT(!ShaderGlobal::is_resource_used_as_umnamaged_pointer(res, true));
+      G_ASSERT(!ShaderGlobal::is_resource_used_as_unmanaged_pointer(res, true));
 #endif
       destroy_d3dres(res);
     }

@@ -665,3 +665,5 @@ inline constexpr AccelerationStructurePool InvalidAccelerationStructurePool = nu
 
 /// Has to be a static string, users expect that identical tag string have the same address!
 using ResourceTagType = const char *;
+
+inline constexpr int REFINED_BLOCK_CONST_BUF_REGISTER = 3;

@@ -310,7 +310,7 @@ public:
   void addBufferAccess(LogicAddress laddr, Buffer *buf, BufferArea area);
   void addImageWriteDiscard(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)
   {
-    addImageAccessImpl(laddr, img, layout, area, /* nrp_attachment */ true, /* discard */ true);
+    addImageAccessImpl(laddr, img, layout, area, /* nrp_attachment */ false, /* discard */ true);
   }
 
   void addImageAccess(LogicAddress laddr, Image *img, VkImageLayout layout, ImageArea area)

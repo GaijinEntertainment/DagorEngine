@@ -1,3 +1,5 @@
+ModuleDependsOnVars = PhysName ;
+
 Root    ?= ../../.. ;
 Module = phys_vars ;
 Location = prog/daNetGameLibs/$(Module) ;

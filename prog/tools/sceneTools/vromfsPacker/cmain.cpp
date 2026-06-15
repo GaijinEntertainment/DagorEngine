@@ -42,7 +42,7 @@ int DagorWinMain(bool debugmode)
   debug_enable_timestamps(false);
   if (!dgs_get_argv("dumpver"))
     printf("Virtual ROM file system (vromfs) pack builder v1.96\n%s\n",
-      !::dgs_execute_quiet ? "Copyright (C) Gaijin Games KFT, 2023\n" : "");
+      !::dgs_execute_quiet ? "Copyright (C) Gaijin Games KFT, 2026\n" : "");
 
   signal(SIGINT, ctrl_break_handler);
 

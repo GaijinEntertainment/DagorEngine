@@ -76,6 +76,14 @@ namespace das
         return cmpLen == 0 || ((cmpLen <= strLen) && memcmp(str, cmp, cmpLen) == 0);
     }
 
+    // das_string overload: prefix-test the das_string in place (no allocation),
+    // sibling to builtin_string_ends_with. Lets AST/lint passes that hold names as
+    // das_string do `name |> starts_with("...")` without materializing a string.
+    bool builtin_string_starts_with ( const string & str, const char * cmp, Context * context ) {
+        const uint32_t cmpLen = stringLengthSafe ( *context, cmp );
+        return cmpLen == 0 || ((cmpLen <= str.length()) && memcmp(str.data(), cmp, cmpLen) == 0);
+    }
+
     bool builtin_string_startswith2 ( const char * str, const char * cmp, uint32_t cmpLen, Context * context ) {
         const uint32_t strLen = stringLengthSafe ( *context, str );
         cmpLen = min(cmpLen, stringLengthSafe ( *context, cmp ));
@@ -969,6 +977,8 @@ namespace das
                 SideEffects::none, "builtin_string_startswith3")->args({"str","offset","cmp","context"});
             addExtern<DAS_BIND_FUN(builtin_string_startswith4)>(*this, lib, "starts_with",
                 SideEffects::none, "builtin_string_startswith4")->args({"str","offset","cmp","cmpLen","context"});
+            addExtern<DAS_BIND_FUN(builtin_string_starts_with)>(*this, lib, "starts_with",
+                SideEffects::none, "builtin_string_starts_with")->args({"str","cmp","context"});
             addExtern<DAS_BIND_FUN(builtin_string_strip)>(*this, lib, "strip",
                 SideEffects::none, "builtin_string_strip")->args({"str","context","at"});
             addExtern<DAS_BIND_FUN(builtin_string_strip_right)>(*this, lib, "strip_right",

@@ -78,7 +78,7 @@ public:
   void updateImgui() override;
 
 private:
-  void onImmediateFocusLoss() override { spinEdit.sendWcChangeIfVarChanged(*this); }
+  void onImmediateFocusLoss() override { spinEdit.sendWcChangeAndFinishIfVarChanged(*this); }
 
   String controlCaption;
   bool controlEnabled = true;

@@ -459,6 +459,8 @@ protected:
 
   virtual void fillSelectionMenu(IGenViewportWnd *, PropPanel::IMenu *) {}
 
+  void updateFilterByNameEditBox();
+
   class UndoAddObjects : public UndoRedoObject
   {
   public:

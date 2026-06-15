@@ -18,6 +18,7 @@
 #include <generic/dag_enumBitMask.h>
 #include <phys/dag_physShapeQueryResult.h>
 #include <rendInst/constants.h>
+#include <daECS/core/ecsHash.h>
 
 #include <EASTL/fixed_function.h>
 
@@ -63,6 +64,8 @@ enum class TestPairFlags
   Default = CheckInWorld
 };
 DAGOR_ENABLE_ENUM_BITMASK(TestPairFlags);
+static constexpr uint32_t main_grid_types[] = {ECS_HASH("humans").hash, ECS_HASH("vehicles").hash};
+static constexpr dag::ConstSpan<uint32_t> main_grid_types_span(main_grid_types, sizeof(main_grid_types) / sizeof(main_grid_types[0]));
 
 void init_collision_world(InitFlags flags, float collapse_contact_thr);
 void term_collision_world();
@@ -126,9 +129,11 @@ bool trace_sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, int n
   int cast_mat_id, int ignore_game_obj_id, const TraceMeshFaces *handle, int flags = ETF_DEFAULT);
 
 typedef bool (*trace_game_objects_cb)(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_game_obj_id,
-  int ray_mat_id);
+  int ray_mat_id, const dag::ConstSpan<uint32_t> grid_types);
 trace_game_objects_cb set_trace_game_objects_cb(trace_game_objects_cb cb);
 bool trace_game_objects(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_game_obj_id, int ray_mat_id);
+bool trace_game_objects_with_grid_filter(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_game_obj_id,
+  int ray_mat_id, const dag::ConstSpan<uint32_t> grid_types);
 
 using GameObjectsCollisionsCb = eastl::fixed_function<6 * sizeof(void *), void(CollisionObject obj)>;
 typedef void (*gather_game_objects_collision_on_ray_cb)(const Point3 &from, const Point3 &to, float radius,

@@ -272,49 +272,75 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
     return SQ_OK;
 }
 
+SQRESULT sqstd_formaterrortracestring(HSQUIRRELVM v, HSQOBJECT trace)
+{
+    static const char hdr[] = "\nERROR TRACE\n";
+    sqvector<char> buf(_ss(v)->_alloc_ctx);
+    buf.resize(sizeof(hdr) - 1);
+    memcpy(buf._vals, hdr, sizeof(hdr) - 1);
+    if (!sq_append_error_trace(v, trace, buf))
+        return SQ_ERROR;
+    buf.push_back('\0');
+    sq_pushstring(v, buf._vals, -1);
+    return SQ_OK;
+}
+
+// True only when the callstack dump (collect_stack_string) would print a frame.
+static bool callstack_has_frames(HSQUIRRELVM v)
+{
+    SQStackInfos si;
+    SQInteger level = 0;
+    while (SQ_SUCCEEDED(sq_stackinfos(v, level, &si)))
+    {
+        if (si.line < 0 && level == 0) { // skip top native function
+            ++level;
+            continue;
+        }
+        return true;
+    }
+    return false;
+}
+
+SQRESULT sqstd_formaterrorcontextstring(HSQUIRRELVM v, HSQOBJECT trace)
+{
+    if (callstack_has_frames(v))
+        return sqstd_formatcallstackstring(v);
+    if (sq_isnull(trace))
+        return SQ_ERROR;
+    return sqstd_formaterrortracestring(v, trace);
+}
+
 void sqstd_aux_error_to_string(HSQUIRRELVM v, SQInteger idx)
 {
     SQObjectPtr &o = stack_get(v, idx);
 
     if (sq_type(o) == OT_STRING) {
-        SQObjectPtr copy = o;
-        v->Push(copy);
+        v->Push(o);
         return;
     }
 
-    if (sq_type(o) == OT_INSTANCE) {
-        const SQObjectPtr &errClass = _ss(v)->_error_class;
-        if (sq_type(errClass) == OT_CLASS &&
-            _instance(o)->InstanceOf(_class(errClass)))
-        {
-            SQObjectPtr key(SQString::Create(_ss(v), "message"));
-            SQObjectPtr val;
-            if (_instance(o)->Get(key, val) && sq_type(val) == OT_STRING) {
-                v->Push(val);
-                return;
-            }
-            v->Push(SQObjectPtr(SQString::Create(_ss(v), "Error")));
-            return;
-        }
-    }
-
-    char buf[32];
-    scsprintf(buf, sizeof(buf), "<%s>", GetTypeName(o));
+    char buf[64];
+    sq_describe_fault_value(o, buf, sizeof(buf));
     v->Push(SQObjectPtr(SQString::Create(_ss(v), buf)));
 }
 
 static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
-    if(pf) {
-        if(sq_gettop(v)>=1) {
-            sqstd_aux_error_to_string(v, 2);
-            const char *sErr = "unknown";
-            sq_getstring(v, -1, &sErr);
-            pf(v,"\nAN ERROR HAS OCCURRED [%s]\n",sErr);
+    if (pf && sq_gettop(v) >= 2) {
+        sqstd_aux_error_to_string(v, 2);
+        const char *sErr = "unknown";
+        sq_getstring(v, -1, &sErr);
+        pf(v, "\nAN ERROR HAS OCCURRED [%s]\n", sErr);
+        sq_poptop(v);
+
+        HSQOBJECT trace;
+        sq_getstackobj(v, 3, &trace);
+        if (SQ_SUCCEEDED(sqstd_formaterrorcontextstring(v, trace))) {
+            const char *ctx = "";
+            sq_getstring(v, -1, &ctx);
+            pf(v, "%s", ctx);
             sq_poptop(v);
-            sqstd_printcallstack(v);
-            sq_print_error_trace(v, stack_get(v, 2), pf);
         }
     }
     return 0;
@@ -335,6 +361,7 @@ void sqstd_seterrorhandlers(HSQUIRRELVM v)
 {
     sq_setcompilererrorhandler(v,_sqstd_compiler_message);
     sq_newclosure(v,_sqstd_aux_printerror,0);
+    sq_setparamscheck(v, 3, nullptr);
     sq_seterrorhandler(v);
 }
 

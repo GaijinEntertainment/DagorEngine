@@ -14,6 +14,8 @@
 #include <util/dag_string.h>
 #include <perfMon/dag_statDrv.h>
 #include <image/dag_texPixel.h>
+#include <generic/dag_span.h>
+#include <EASTL/array.h>
 
 #define GLOBAL_VARS_LIST          \
   VAR(screen_pos_to_texcoord)     \
@@ -54,28 +56,36 @@ void DeferredRT::close()
 
 void DeferredRT::setRt()
 {
-  d3d::set_render_target();
   for (int i = 0; i < numRt; ++i)
   {
     if (mrts[i] == nullptr)
     {
       mrts[i] = mrtPools[i]->acquire();
     }
-    d3d::set_render_target(i, mrts[i]->getTex2D(), 0);
   }
-  if (depth.getTex2D())
-    d3d::set_depth(depth.getTex2D(), DepthAccess::RW);
+
+#if DAGOR_DBGLEVEL > 0
+  if (shouldRenderDbgTex && !dbgTex.getTex2D())
+    initDebugTex();
+  const bool renderDbg = shouldRenderDbgTex;
+#else
+  const bool renderDbg = false;
+#endif
+
+  eastl::array<RenderTarget, 6> colorRts = {};
+  int slotsUsed = numRt;
+  for (int i = 0; i < numRt; ++i)
+    colorRts[i] = {mrts[i]->getTex2D(), 0, 0};
+  if (renderDbg)
+  {
+    colorRts[5] = {dbgTex.getTex2D(), 0, 0};
+    slotsUsed = 6;
+  }
+  d3d::set_render_target({depth.getTex2D(), 0, 0}, DepthAccess::RW, make_span_const(colorRts.data(), slotsUsed));
 
 #if DAGOR_DBGLEVEL > 0
   if (shouldRenderDbgTex)
-  {
-    if (!dbgTex.getTex2D())
-    {
-      initDebugTex();
-    }
-    d3d::set_render_target(5, dbgTex.getTex2D(), 0);
     d3d::clear_rt({dbgTex.getTex2D()}, make_clear_value(1.0f, 1.0f, 1.0f, 1.0f));
-  }
 #endif
 }
 

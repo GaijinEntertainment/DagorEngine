@@ -110,4 +110,4 @@ public:
 };
 
 using FGExternalResizableTex = FGExternalResizableRes<ResizableTex>;
-using FGExternalResizableTexHolder = FGExternalResizableRes<ResizableTexHolder>;
+using FGExternalResizableTexWithShaderVar = FGExternalResizableRes<ResizableTexWithShaderVar>;

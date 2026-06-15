@@ -977,8 +977,8 @@ bool prefetch_and_wait_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_lis
   if (timeout_usec == 0)
   {
     timeout_usec = is_main_thread() ? 5'000'000 /*5 sec*/ : 30'000'000 /*30 sec*/;
-#if DAGOR_THREAD_SANITIZER
-    timeout_usec *= 3; // TSAN takes longer
+#if DAGOR_THREAD_SANITIZER || DAGOR_ADDRESS_SANITIZER
+    timeout_usec *= 3; // TSAN and ASAN takes longer
 #endif
   }
   while (!prefetch_and_check_managed_textures_loaded(tex_list, fq_loaded))

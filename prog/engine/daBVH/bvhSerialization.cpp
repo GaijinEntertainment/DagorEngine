@@ -251,13 +251,14 @@ template bool checkIfIsBox<uint32_t>(const uint32_t *, int, const vec4f *, int, 
 void packVert21(uint8_t *dst, vec4f quantized_xyz)
 {
   // Simple 21-bit-per-component: x[20:0] | y[41:21] | z[62:42]
-  // Store round(value * 32), max value = 65535 * 32 = 2097120 < 2^21
-  alignas(16) float f[4];
-  v_st(f, v_mul(quantized_xyz, v_splats(32.f)));
-  uint64_t x = clamp((int)f[0], 0, 0x1FFFFF);
-  uint64_t y = clamp((int)f[1], 0, 0x1FFFFF);
-  uint64_t z = clamp((int)f[2], 0, 0x1FFFFF);
-  uint64_t packed = x | (y << 21) | (z << 42);
+  // Store round(value * 32), max value = 65535 * 32 = 2097120 < 2^21.
+  // v_cvt_vec4i truncates toward zero, so bias by +0.5 (V_C_HALF) first to round-to-nearest,
+  // then clamp to [0, 0x1FFFFF] in SIMD. Only the final scalar bit packing stays scalar.
+  vec4i v = v_cvt_vec4i(v_madd(quantized_xyz, v_splats(32.f), V_C_HALF));
+  v = v_mini(v_maxi(v, v_zeroi()), v_splatsi(0x1FFFFF));
+  alignas(16) int s[4];
+  v_sti(s, v);
+  uint64_t packed = uint64_t(unsigned(s[0])) | (uint64_t(unsigned(s[1])) << 21) | (uint64_t(unsigned(s[2])) << 42);
   memcpy(dst, &packed, 8);
 }
 

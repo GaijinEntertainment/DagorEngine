@@ -411,7 +411,10 @@ LandMeshRenderer::~LandMeshRenderer()
   shadersNames.erase(shadersNames.begin(), shadersNames.end());
 }
 
-shaders::OverrideStateId LandMeshRenderer::setOverride(const shaders::OverrideState &new_state)
+// Shared override-state create/lookup logic. Each caller passes its own cache map, so
+// LandMeshRenderer (geometry) and LandVtexRenderer (splatting) stay independent.
+shaders::OverrideStateId landmesh::set_override(landmesh::OverrideStateCache &overrideStateMap,
+  const shaders::OverrideState &new_state)
 {
   shaders::OverrideState combinedState;
   shaders::OverrideStateId curStateId = shaders::overrides::get_current();
@@ -454,7 +457,7 @@ shaders::OverrideStateId LandMeshRenderer::setOverride(const shaders::OverrideSt
   return curStateId;
 }
 
-void LandMeshRenderer::resetOverride(shaders::OverrideStateId &prev_state)
+void landmesh::reset_override(shaders::OverrideStateId &prev_state)
 {
   if (shaders::overrides::get_current() == prev_state)
   {
@@ -466,6 +469,13 @@ void LandMeshRenderer::resetOverride(shaders::OverrideStateId &prev_state)
     shaders::overrides::set(prev_state);
   prev_state = shaders::OverrideStateId();
 }
+
+shaders::OverrideStateId LandMeshRenderer::setOverride(const shaders::OverrideState &new_state)
+{
+  return landmesh::set_override(overrideStateMap, new_state);
+}
+
+void LandMeshRenderer::resetOverride(shaders::OverrideStateId &prev_state) { landmesh::reset_override(prev_state); }
 
 shaders::OverrideStateId LandMeshRenderer::setStateFlipCull(bool flip_cull)
 {
@@ -525,6 +535,8 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
 
 void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, float hmap_camera_height, float water_level)
 {
+  G_UNUSED(hmap_camera_height); // HeightmapHandler::prepare no longer depends on camera height or water level
+  G_UNUSED(water_level);
   if (provider.isDecodedToWorldPos() && !optScn)
   {
     optScn = new landmesh::OptimizedScene[LandMeshManager::LOD_COUNT];
@@ -539,8 +551,7 @@ void LandMeshRenderer::prepare(LandMeshManager &provider, const Point3 &pos, flo
   }
   else if (provider.getHmapHandler())
   {
-    renderHeightmapType =
-      (provider.mayRenderHmap && provider.getHmapHandler()->prepare(pos, hmap_camera_height, water_level)) ? TESSELATED_HMAP : NO_HMAP;
+    renderHeightmapType = (provider.mayRenderHmap && provider.getHmapHandler()->prepare(pos)) ? TESSELATED_HMAP : NO_HMAP;
     provider.cullingState.useExclBox = renderHeightmapType != NO_HMAP;
   }
 
@@ -920,7 +931,8 @@ void LandMeshRenderer::renderGeomCellsCM(LandMeshManager &provider, dag::ConstSp
   }
 }
 
-uint32_t LandMeshRenderer::lmesh_render_flags = 0xFFFFFFFF;
+uint32_t landmesh::lmesh_render_flags = 0xFFFFFFFF;
+uint32_t &LandMeshRenderer::lmesh_render_flags = landmesh::lmesh_render_flags;
 
 inline bool shouldRenderMeshElem(const LandMeshManager &provider, int cellId, int elemId)
 {
@@ -1780,17 +1792,10 @@ bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype,
     state.cullMode = state.NO_CULLING; // faster culling - no bbox testing
 
   Point3 hmapOriginPos(0.f, 0.f, 0.f);
-  float cameraHeight = 0.f;
-  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   if (provider.getHmapHandler())
-  {
     hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
-    cameraHeight = provider.getHmapHandler()->getPreparedCameraHeight();
-    waterLevel = provider.getHmapHandler()->getPreparedWaterLevel();
-  }
   LandMeshCullingData defaultCullData(framemem_ptr());
-  state.frustumCulling(provider, defaultCullData, NULL, 0,
-    HeightmapFrustumCullingInfo{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, NULL, -1});
+  state.frustumCulling(provider, defaultCullData, NULL, 0, HeightmapFrustumCullingInfo{hmapOriginPos, frustum, NULL, NULL, false});
 
   LandMeshRenderer::MirroredCellState::startRender();
 
@@ -1879,20 +1884,14 @@ void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Fr
     frustum.calcFrustumBBox(frustumWorldBBox);
 
   Point3 hmapOriginPos(0.f, 0.f, 0.f);
-  float cameraHeight = 0.f;
-  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   if (provider.getHmapHandler())
-  {
     hmapOriginPos = provider.getHmapHandler()->getPreparedOriginPos();
-    cameraHeight = provider.getHmapHandler()->getPreparedCameraHeight();
-    waterLevel = provider.getHmapHandler()->getPreparedWaterLevel();
-  }
 
   LandMeshCullingData defaultCullData(framemem_ptr());
   if (rtype == RENDER_DEPTH)
     defaultCullData.heightmapData.useHWTesselation = false;
   defaultCullData.heightmapData.frustum = frustum;
-  HeightmapFrustumCullingInfo fi{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, NULL, -1, 0, 1,
+  HeightmapFrustumCullingInfo fi{hmapOriginPos, frustum, NULL, NULL, false,
     {proj_to_distance_scale(proj), int8_t(lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? -100 : 0),
       lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? HeightmapMetricsQuality::FASTEST
                                                                     : HeightmapMetricsQuality::BEST}};
@@ -1928,8 +1927,7 @@ void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Fr
         provider.cullingState.useExclBox = true;
       }
     }
-    fi.min_tank_lod = renderHeightmapType == TESSELATED_HMAP ? useHmapTankDetail : -1;
-    fi.lod0subdiv = hmapSubDivLod0;
+    fi.useDetailedHmap = renderHeightmapType == TESSELATED_HMAP;
     if (regionCallback)
       state.frustumCulling(provider, defaultCullData, regionCallback->regions(), regionCallback->regionsCount(), fi);
     else

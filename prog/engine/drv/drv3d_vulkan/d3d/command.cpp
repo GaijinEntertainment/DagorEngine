@@ -659,7 +659,8 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     }
     case Drv3dCommand::GET_VSYNC_REFRESH_RATE:
     {
-      return Globals::window.refreshRate;
+      *(double *)par1 = Globals::window.refreshRate;
+      return 1;
     }
     case Drv3dCommand::DELAY_SYNC:
 #if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT

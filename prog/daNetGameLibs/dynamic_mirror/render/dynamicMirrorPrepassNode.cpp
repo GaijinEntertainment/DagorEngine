@@ -42,8 +42,8 @@ dafg::NodeHandle create_dynamic_mirror_prepass_node(DynamicMirrorRenderer &mirro
       ShaderGlobal::set_float4(world_view_posVarId, cameraData->viewPos.x, cameraData->viewPos.y, cameraData->viewPos.z, 1);
       ShaderGlobal::set_float4(zn_zfarVarId, cameraData->prepassPersp.zn, cameraData->prepassPersp.zf, 0, 0);
 
-      render_dynamic_mirrors(cameraHndl.ref().cameraWorldPos, *animcharMirrorData, RENDER_UNKNOWN, true,
-        cameraData->mirrorRenderViewItm, TexStreamingContext(0));
+      render_dynamic_mirrors(cameraHndl.ref().cameraWorldPos, *animcharMirrorData, true, cameraData->mirrorRenderViewItm,
+        TexStreamingContext(0));
 
       ShaderGlobal::set_float4(world_view_posVarId, originalWorldPos);
       ShaderGlobal::set_float4(zn_zfarVarId, originalZnZfar);

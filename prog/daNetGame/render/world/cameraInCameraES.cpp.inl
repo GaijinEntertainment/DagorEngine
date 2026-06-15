@@ -44,6 +44,9 @@ template <typename Callable>
 static inline void check_if_frame_after_deactivation_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
+static inline void get_scope_lens_node_wtm_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
+
+template <typename Callable>
 static inline void get_camcam_frame_number_ecs_query(ecs::EntityManager &manager, Callable);
 
 namespace var
@@ -208,6 +211,7 @@ struct ViewportEllipse
   Point2 xAxis;
   Point2 yAxis;
   Point2 center;
+  Point2 halfExtent;
 };
 
 ViewportEllipse calc_viewport_ellipse(
@@ -247,6 +251,11 @@ ViewportEllipse calc_viewport_ellipse(
   ve.xAxis = calcScaledEllipseAxis(centerVp, rightVp);
   ve.yAxis = calcScaledEllipseAxis(centerVp, upVp);
 
+  const float invDet = safediv(1.0f, fabsf(ve.xAxis.x * ve.yAxis.y - ve.xAxis.y * ve.yAxis.x));
+  const float hExtX = sqrtf(pow(ve.yAxis.y, 2.0f) + pow(ve.xAxis.y, 2.0f));
+  const float hExtY = sqrtf(pow(ve.yAxis.x, 2.0f) + pow(ve.xAxis.x, 2.0f));
+  ve.halfExtent = invDet * Point2(hExtX, hExtY);
+
   return ve;
 }
 } // namespace
@@ -282,6 +291,64 @@ void update_transforms(const CameraParams &main_view, const CameraParams &prev_m
 
   update_camcam_transforms_ecs_query(*g_entity_mgr,
     [&uvRemapping](Point4 &camcam__uv_remapping) { camcam__uv_remapping = uvRemapping; });
+}
+
+static int scene_id_to_geomtree_node_id(const int scene_id, const AnimV20::AnimcharRendComponent &animchar_render)
+{
+  for (auto &n : animchar_render.getNodeMap().map())
+    if ((int)n.id == scene_id)
+      return n.nodeIdx.index();
+
+  return -1;
+}
+
+static bool get_current_frame_lens_wtm(const AimRenderingData &aim_data, const CameraParams &main_view, TMatrix &out_lens_wtm)
+{
+  if (!aim_data.entityWithScopeLensEid)
+    return false;
+
+  bool found = false;
+  get_scope_lens_node_wtm_ecs_query(*g_entity_mgr, aim_data.entityWithScopeLensEid,
+    [&](const AnimV20::AnimcharRendComponent &animchar_render, const AnimcharNodesMat44 &animchar_node_wtm) {
+      const int geomTreeNodeId = scene_id_to_geomtree_node_id(aim_data.lensNodeId, animchar_render);
+      if (geomTreeNodeId < 0)
+        return;
+
+      dag::ConstSpan<mat44f> nodeWtm = animchar_node_wtm.nwtm;
+      const vec3f ofs = animchar_reconstruct_offset(animchar_node_wtm.wofs, main_view.negRoundedCamPos, main_view.negRemainderCamPos);
+      mat44f m4 = nodeWtm[geomTreeNodeId];
+      m4.col3 = v_add(m4.col3, ofs);
+      v_mat_43cu_from_mat44(out_lens_wtm.m[0], m4);
+
+      found = true;
+    });
+  return found;
+}
+
+OcclusionMaskApplier::NearPlaneWithHoleTaskData get_near_plane_masking_task(const CameraParams &main_view)
+{
+  if (!is_lens_render_active())
+    return {};
+
+  const AimRenderingData aimData = get_aim_rendering_data();
+
+  TMatrix lensWtm;
+  if (!get_current_frame_lens_wtm(aimData, main_view, lensWtm))
+    return {};
+
+  const float viewportScale = main_view.noJitterPersp.wk / main_view.noJitterPersp.hk;
+  const ViewportEllipse ve =
+    calc_viewport_ellipse(aimData.lensBoundingSphereRadius, lensWtm, main_view.viewRotJitterProjTm, viewportScale);
+
+  OcclusionEllipse out;
+  out.axes = v_make_vec4f(ve.xAxis.x, ve.xAxis.y, ve.yAxis.x, ve.yAxis.y);
+  out.centerScale = v_make_vec4f(ve.center.x, ve.center.y, viewportScale, 0.f);
+
+  const float invScale = 1.0f / viewportScale;
+  out.cellBox = v_make_vec4f((ve.center.x - ve.halfExtent.x) * OcclusionZBuffer::WIDTH,
+    (ve.center.y - ve.halfExtent.y) * invScale * OcclusionZBuffer::HEIGHT, (ve.center.x + ve.halfExtent.x) * OcclusionZBuffer::WIDTH,
+    (ve.center.y + ve.halfExtent.y) * invScale * OcclusionZBuffer::HEIGHT);
+  return {out, main_view.znear};
 }
 
 static void set_uv_remapping_shvar(const dafg::multiplexing::Index &multiplexing_index)

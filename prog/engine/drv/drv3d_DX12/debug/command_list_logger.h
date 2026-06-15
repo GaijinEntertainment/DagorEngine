@@ -290,7 +290,7 @@ inline uint32_t full_log_item_size(ARGS... args)
 }
 
 using AnyCommandItemType = eastl::variant<eastl::monostate
-#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) , CommandLogItem<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>
+#define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) , CommandLogItem<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, ##__VA_ARGS__>
 #include <command_list_cmd.inc.h>
 #undef DX12_HARDWARE_COMMAND
   >;
@@ -357,18 +357,18 @@ private:
     }
   }
 
+  template <class TupleType, size_t... Is>
+  static void fill_decoded_args(TupleType &decodedArgs, const unsigned char *&args, eastl::index_sequence<Is...>)
+  {
+    // fold with comma operator guarantees left-to-right evaluation (C++17)
+    ((eastl::get<Is>(decodedArgs) = decode_argument<eastl::tuple_element_t<Is, TupleType>>(args)), ...);
+  }
+
   template <DX12_COMMAND_LOG_ITEM_TYPE command_type, class... ARG_TYPE>
   static AnyCommandItemType decode_command(const unsigned char *args)
   {
     eastl::tuple<ARG_TYPE...> decodedArgs;
-    // Use outer lambda to create <0, 1, 2, ... sizeof...(ARG_TYPE) - 1> list L
-    [&]<size_t... Is>(eastl::index_sequence<Is...>) {
-      // Use inner lambda to call decode_argument for each element in L
-      // Use operator , in lambda to ensure that decode_argument is called from left to right.
-      ([&]() { eastl::get<Is>(decodedArgs) = decode_argument<ARG_TYPE>(args); }(), ...);
-    }(eastl::make_index_sequence<sizeof...(ARG_TYPE)>{});
-
-    // unwrap decodedArgs to create CommandLogItem
+    fill_decoded_args(decodedArgs, args, eastl::make_index_sequence<sizeof...(ARG_TYPE)>{});
     return eastl::apply(
       [](ARG_TYPE &&...decoded_args) { return CommandLogItem<command_type, ARG_TYPE...>(eastl::forward<ARG_TYPE>(decoded_args)...); },
       eastl::move(decodedArgs));
@@ -381,7 +381,7 @@ private:
     switch (cmdType)
     {
 #define DX12_HARDWARE_COMMAND(TYPE, COMMAND_NAME, ...) \
-  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE: return decode_command<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, __VA_ARGS__>(args);
+  case DX12_COMMAND_LOG_ITEM_TYPE::TYPE: return decode_command<DX12_COMMAND_LOG_ITEM_TYPE::TYPE, ##__VA_ARGS__>(args);
 #include <command_list_cmd.inc.h>
 #undef DX12_HARDWARE_COMMAND
       default:

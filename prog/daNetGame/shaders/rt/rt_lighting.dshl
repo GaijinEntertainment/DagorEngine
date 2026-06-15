@@ -121,6 +121,7 @@ macro USE_BVH_DECALS(stage)
 
     static int instance_offset_for_decal = 0;
     #define INST_OFFSET_GETTER instance_offset_for_decal
+    #define OFFSET_TO_INSTANCE_DATA (instance_offset_for_decal)
   }
   INIT_PER_INSTANCE_DATA(stage)
   hlsl(stage) {
@@ -245,6 +246,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
   DETAIL_WEIGHTS_BLENDING(stage)
   WETNESS_FOR_SPEC_BRDF(stage)
   USE_LANDSCAPE_TC_TO_WORLD(stage)
+  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(stage)
   hlsl(stage)
   {
     // copy pasted from shader_global, that only had a ps version

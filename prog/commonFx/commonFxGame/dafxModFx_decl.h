@@ -1743,6 +1743,7 @@ class FxFadeByDist
 public:
   bool enabled;
   real zfar_start_to_clip;
+  real zfar_finish_to_clip;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -1750,10 +1751,11 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 1);
+    CHECK_FX_VERSION_OPT(ptr, len, 2);
 
     enabled = readType<int>(ptr, len);
     zfar_start_to_clip = readType<real>(ptr, len);
+    zfar_finish_to_clip = readType<real>(ptr, len);
     return true;
   }
 };

@@ -2,9 +2,8 @@ script done
 
 AN ERROR HAS OCCURRED [boom]
 
-CALLSTACK
-
-LOCALS
-
 ERROR TRACE
     at failing (testData/exec/async/unhandled_error_trace.nut:8)
+      this = null
+    task root: failing (testData/exec/async/unhandled_error_trace.nut:7)
+    launched at testData/exec/async/unhandled_error_trace.nut:13 launcher

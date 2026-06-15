@@ -10,6 +10,7 @@
 
 #include <perfMon/dag_cpuFreq.h>
 
+#include <generic/dag_tabUtils.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 
@@ -18,6 +19,14 @@
 
 namespace PropPanel
 {
+
+// Only used if hideOnMouseMove is set.
+// Mouse movement detection will start after the toast message has been shown for at least this duration.
+static constexpr int MOUSE_MOVE_HIDING_MINIMAL_SHOW_DURATION_MS = 1000;
+
+// Only used if hideOnMouseMove is set.
+// The mouse movement distance that will trigger the hiding of the toast message.
+static constexpr float MOUSE_MOVE_HIDING_DISTANCE = 5.0f;
 
 static const ImGuiWindowFlags DEFAULT_TOAST_FLAGS = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoInputs |
                                                     ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration |
@@ -46,7 +55,7 @@ void ToastMessage::setToCenterPos(const Point2 &pivot)
 
 void ToastMessage::set(uint64_t _id, uint64_t set_time_ms)
 {
-  G_ASSERT(id == -1);
+  G_ASSERT(id == INVALID_ID);
   id = _id;
   setTimeMs = set_time_ms;
 }
@@ -62,18 +71,18 @@ void ToastMessage::setSizeHint(Point2 size_hint) { sizeHint = size_hint; }
 
 bool ToastMessage::beforeToast(uint64_t time_ms, float &alpha)
 {
-  G_ASSERT(id != -1);
+  G_ASSERT(id != INVALID_ID);
 
   // No toast message should be around 10 sec or more. That seems pretty long...
   uint64_t elapsedTimeMs = time_ms - setTimeMs;
-  if (elapsedTimeMs > 10000)
+  if (elapsedTimeMs > 10000 && !isVisibleIndefinitely())
     return false;
 
   if (isFadeoutStarted())
   {
     // Remove the toast if it's invisible by now...
     const float fadingTimeMs = time_ms - fadeoutTimeMs;
-    if (fadingTimeMs >= fadeoutIntervalMs)
+    if (isFadeOutAnimationDisabled() || fadingTimeMs >= fadeoutIntervalMs)
       return false;
 
     float progress = fadingTimeMs / (float)fadeoutIntervalMs;
@@ -117,7 +126,7 @@ bool ToastMessage::beforeToast(uint64_t time_ms, float &alpha)
 
 void ToastMessage::updateToast(uint64_t time_ms)
 {
-  G_ASSERT(id != -1);
+  G_ASSERT(id != INVALID_ID);
 
   if (!isFadeoutStarted())
   {
@@ -133,9 +142,18 @@ void ToastMessage::updateToast(uint64_t time_ms)
     }
     else
     {
-      uint64_t elapsedTimeMs = time_ms - setTimeMs;
-      if (elapsedTimeMs >= opaqueIntervalMs)
+      const uint64_t elapsedTimeMs = time_ms - setTimeMs;
+      if (!isVisibleIndefinitely() && elapsedTimeMs >= opaqueIntervalMs)
         startFadeout(time_ms);
+
+      if (hideOnMouseMove && elapsedTimeMs >= MOUSE_MOVE_HIDING_MINIMAL_SHOW_DURATION_MS && !isFadeoutStarted())
+      {
+        const Point2 mousePos(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+        if (mouseStartPosition.x >= VERY_BIG_NUMBER)
+          mouseStartPosition = mousePos;
+        if ((mouseStartPosition - mousePos).lengthSq() >= (MOUSE_MOVE_HIDING_DISTANCE * MOUSE_MOVE_HIDING_DISTANCE))
+          startFadeout(time_ms);
+      }
     }
   }
 
@@ -215,7 +233,7 @@ void ToastManager::updateImgui()
     PropPanel::IconId icon = icons.getForType(message.type);
     if (icon != PropPanel::IconId::Invalid)
     {
-      const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::ImguiHelper::getFontSizedIconSize();
+      const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
       ImGui::ImageWithBg(PropPanel::get_im_texture_id_from_icon_id(icon), fontSizedIconSize, ImVec2(0, 0), ImVec2(1, 1),
         ImVec4(0, 0, 0, 0), color);
       ImGui::SameLine();
@@ -235,12 +253,25 @@ void ToastManager::updateImgui()
   }
 }
 
-void ToastManager::setToastMessage(ToastMessage message)
+uint64_t ToastManager::setToastMessage(ToastMessage message)
 {
   static uint64_t id = 0;
   message.set(id++, get_time_msec());
   message.setSizeHint(Point2::ZERO);
   messages.push_back(message);
+
+  return message.getId();
+}
+
+const ToastMessage *ToastManager::getToastMessage(uint64_t id) const
+{
+  auto it = eastl::find_if(messages.begin(), messages.end(), [id](const ToastMessage &message) { return message.getId() == id; });
+  return it == messages.end() ? nullptr : it;
+}
+
+void ToastManager::removeToastMessage(uint64_t id)
+{
+  tabutils::erase_if(messages, [id](ToastMessage &message) { return message.getId() == id; });
 }
 
 void ToastManager::updateImguiDebugPanel()
@@ -321,7 +352,11 @@ ToastManager toast_manager;
 
 void load_toast_message_icons() { toast_manager.loadIcons(); }
 
-void set_toast_message(const ToastMessage &message) { toast_manager.setToastMessage(message); }
+uint64_t set_toast_message(const ToastMessage &message) { return toast_manager.setToastMessage(message); }
+
+void remove_toast_message(uint64_t id) { toast_manager.removeToastMessage(id); }
+
+const ToastMessage *get_toast_message(uint64_t id) { return toast_manager.getToastMessage(id); }
 
 void render_toast_messages() { toast_manager.updateImgui(); }
 

@@ -225,6 +225,7 @@ ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_shadow_cull_bbox", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_attaches_bbox", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(bbox3f, "animchar_attaches_bbox_precalculated", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(animchar_visbits_t, "animchar_visbits", nullptr, 0);
+ECS_AUTO_REGISTER_COMPONENT(animchar_visbits_t, "animchar_visbits_copy_for_bvh", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(vec3f, "animchar_render__root_pos", nullptr, 0);
 ECS_AUTO_REGISTER_COMPONENT(float, "animchar_render__dist_sq", nullptr, 0);
 ECS_DEF_PULL_VAR(animchar);

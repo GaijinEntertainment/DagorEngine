@@ -345,7 +345,7 @@ static ecs::EntitySystemDesc dagdp_local_volume_sphere__link_es_es_desc
 ,"render","dagdp__volume_placer_name");
 static constexpr ecs::ComponentDesc on_mesh_placers_ecs_query_comps[] =
 {
-//start of 12 ro components at [0]
+//start of 13 ro components at [0]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("dagdp__density"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("dagdp__volume_min_triangle_area"), ecs::ComponentTypeInfo<float>()},
@@ -358,15 +358,16 @@ static constexpr ecs::ComponentDesc on_mesh_placers_ecs_query_comps[] =
   {ECS_HASH("dagdp__distance_based_center"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("dagdp__target_mesh_lod"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("dagdp__sample_range"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
-//start of 1 rq components at [12]
+  {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [13]
   {ECS_HASH("dagdp_placer_on_meshes"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc on_mesh_placers_ecs_query_desc
 (
   "dagdp::on_mesh_placers_ecs_query",
   empty_span(),
-  make_span(on_mesh_placers_ecs_query_comps+0, 12)/*ro*/,
-  make_span(on_mesh_placers_ecs_query_comps+12, 1)/*rq*/,
+  make_span(on_mesh_placers_ecs_query_comps+0, 13)/*ro*/,
+  make_span(on_mesh_placers_ecs_query_comps+13, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::on_mesh_placers_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -389,6 +390,7 @@ inline void dagdp::on_mesh_placers_ecs_query(ecs::EntityManager &manager, Callab
             , ECS_RO_COMP(on_mesh_placers_ecs_query_comps, "dagdp__distance_based_center", Point3)
             , ECS_RO_COMP(on_mesh_placers_ecs_query_comps, "dagdp__target_mesh_lod", int)
             , ECS_RO_COMP_OR(on_mesh_placers_ecs_query_comps, "dagdp__sample_range", float(-1))
+            , ECS_RO_COMP_OR(on_mesh_placers_ecs_query_comps, "dagdp__csm_cascade_count", int(-1))
             );
 
         }while (++comp != compE);
@@ -563,19 +565,18 @@ inline void dagdp::around_ri_placers_ecs_query(ecs::EntityManager &manager, Call
 }
 static constexpr ecs::ComponentDesc volume_boxes_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 2 ro components at [0]
   {ECS_HASH("dagdp_internal__volume_placer_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>()},
-//start of 1 rq components at [3]
+//start of 1 rq components at [2]
   {ECS_HASH("dagdp_volume_box"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc volume_boxes_ecs_query_desc
 (
   "dagdp::volume_boxes_ecs_query",
   empty_span(),
-  make_span(volume_boxes_ecs_query_comps+0, 3)/*ro*/,
-  make_span(volume_boxes_ecs_query_comps+3, 1)/*rq*/,
+  make_span(volume_boxes_ecs_query_comps+0, 2)/*ro*/,
+  make_span(volume_boxes_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::volume_boxes_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -588,7 +589,6 @@ inline void dagdp::volume_boxes_ecs_query(ecs::EntityManager &manager, Callable 
           function(
               ECS_RO_COMP(volume_boxes_ecs_query_comps, "dagdp_internal__volume_placer_eid", ecs::EntityId)
             , ECS_RO_COMP(volume_boxes_ecs_query_comps, "transform", TMatrix)
-            , ECS_RO_COMP(volume_boxes_ecs_query_comps, "dagdp__csm_cascade_count", int)
             );
 
         }while (++comp != compE);
@@ -597,19 +597,18 @@ inline void dagdp::volume_boxes_ecs_query(ecs::EntityManager &manager, Callable 
 }
 static constexpr ecs::ComponentDesc volume_cylinders_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 2 ro components at [0]
   {ECS_HASH("dagdp_internal__volume_placer_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
-  {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>()},
-//start of 1 rq components at [3]
+//start of 1 rq components at [2]
   {ECS_HASH("dagdp_volume_cylinder"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc volume_cylinders_ecs_query_desc
 (
   "dagdp::volume_cylinders_ecs_query",
   empty_span(),
-  make_span(volume_cylinders_ecs_query_comps+0, 3)/*ro*/,
-  make_span(volume_cylinders_ecs_query_comps+3, 1)/*rq*/,
+  make_span(volume_cylinders_ecs_query_comps+0, 2)/*ro*/,
+  make_span(volume_cylinders_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::volume_cylinders_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -622,7 +621,6 @@ inline void dagdp::volume_cylinders_ecs_query(ecs::EntityManager &manager, Calla
           function(
               ECS_RO_COMP(volume_cylinders_ecs_query_comps, "dagdp_internal__volume_placer_eid", ecs::EntityId)
             , ECS_RO_COMP(volume_cylinders_ecs_query_comps, "transform", TMatrix)
-            , ECS_RO_COMP(volume_cylinders_ecs_query_comps, "dagdp__csm_cascade_count", int)
             );
 
         }while (++comp != compE);
@@ -631,20 +629,19 @@ inline void dagdp::volume_cylinders_ecs_query(ecs::EntityManager &manager, Calla
 }
 static constexpr ecs::ComponentDesc volume_spheres_ecs_query_comps[] =
 {
-//start of 4 ro components at [0]
+//start of 3 ro components at [0]
   {ECS_HASH("dagdp_internal__volume_placer_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("sphere_zone__radius"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("dagdp__csm_cascade_count"), ecs::ComponentTypeInfo<int>()},
-//start of 1 rq components at [4]
+//start of 1 rq components at [3]
   {ECS_HASH("dagdp_volume_sphere"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static ecs::CompileTimeQueryDesc volume_spheres_ecs_query_desc
 (
   "dagdp::volume_spheres_ecs_query",
   empty_span(),
-  make_span(volume_spheres_ecs_query_comps+0, 4)/*ro*/,
-  make_span(volume_spheres_ecs_query_comps+4, 1)/*rq*/,
+  make_span(volume_spheres_ecs_query_comps+0, 3)/*ro*/,
+  make_span(volume_spheres_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
 inline void dagdp::volume_spheres_ecs_query(ecs::EntityManager &manager, Callable function)
@@ -658,7 +655,6 @@ inline void dagdp::volume_spheres_ecs_query(ecs::EntityManager &manager, Callabl
               ECS_RO_COMP(volume_spheres_ecs_query_comps, "dagdp_internal__volume_placer_eid", ecs::EntityId)
             , ECS_RO_COMP(volume_spheres_ecs_query_comps, "transform", TMatrix)
             , ECS_RO_COMP(volume_spheres_ecs_query_comps, "sphere_zone__radius", float)
-            , ECS_RO_COMP(volume_spheres_ecs_query_comps, "dagdp__csm_cascade_count", int)
             );
 
         }while (++comp != compE);

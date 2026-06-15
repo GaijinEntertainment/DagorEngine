@@ -21,8 +21,6 @@ function calculate_allocated_memory(obj) {
     sum += bytes_per_object + bytes_per_allocation * 2 + 32 + max(items, 4) * bytes_per_object * 4
   else if (typeName == "array")
     sum += bytes_per_object + bytes_per_allocation * 2 + (items / 2) * bytes_per_object
-  else if (typeName == "closure")
-    sum += bytes_per_object + 144
   else if (typeName == "string")
     sum += bytes_per_object + 32 + bytes_per_allocation + ((obj.len() | 15) + 1)
   else if (typeName == "userdata")
@@ -31,10 +29,8 @@ function calculate_allocated_memory(obj) {
     sum += bytes_per_object
   else if (typeName == "float")
     sum += bytes_per_object
-  else if (typeName == "userpointer")
-    sum += bytes_per_object + 32 + bytes_per_allocation
   else if (typeName == "function")
-    sum += bytes_per_object + 32
+    sum += bytes_per_object + (obj.getfuncinfos().native ? 32 : 144)
   else if (typeName == "generator")
     sum += bytes_per_object + 64
   else if (typeName == "thread")

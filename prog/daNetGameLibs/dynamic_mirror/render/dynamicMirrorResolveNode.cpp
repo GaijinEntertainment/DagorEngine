@@ -21,7 +21,7 @@ dafg::NodeHandle create_dynamic_mirror_resolve_node(DynamicMirrorRenderer &mirro
     overrideState.zBias = 0.01;
     overrideState.set(shaders::OverrideState::Z_WRITE_DISABLE);
 
-    registry.requestRenderPass().depthRw("gbuf_depth_after_resolve").color({"opaque_resolved"});
+    registry.requestRenderPass().depth("gbuf_depth_after_resolve").color({"opaque_resolved"});
 
     registry.requestState().setFrameBlock("global_frame").enableOverride(overrideState);
 
@@ -35,8 +35,7 @@ dafg::NodeHandle create_dynamic_mirror_resolve_node(DynamicMirrorRenderer &mirro
       ShaderGlobal::set_int(dynamic_texture_hdr_passVarId, 1);
 
       const auto &camera = cameraHndl.ref();
-      render_dynamic_mirrors(cameraHndl.ref().cameraWorldPos, *animcharMirrorData, RENDER_MAIN, false, camera.viewItm,
-        TexStreamingContext(0));
+      render_dynamic_mirrors(cameraHndl.ref().cameraWorldPos, *animcharMirrorData, false, camera.viewItm, TexStreamingContext(0));
       ShaderGlobal::set_int(dynamic_texture_hdr_passVarId, 0);
     };
   });

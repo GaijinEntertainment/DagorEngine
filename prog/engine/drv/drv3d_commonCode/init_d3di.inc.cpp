@@ -155,6 +155,7 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY2(set_render_target_1, set_render_target);
   FILL_ENTRY2(set_render_target_2, set_render_target);
   FILL_ENTRY2(set_render_target_3, set_render_target);
+  FILL_ENTRY2(set_render_target_4, set_render_target);
   FILL_ENTRY(get_render_target);
   FILL_ENTRY(get_target_size);
   FILL_ENTRY(get_render_target_size);

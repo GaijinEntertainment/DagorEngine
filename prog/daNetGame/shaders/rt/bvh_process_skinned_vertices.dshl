@@ -14,11 +14,11 @@ interval bvh_process_skinned_vertices_cloth: no < 1, yes;
 
 define_macro_if_not_defined INIT_PS5_INLINE_RT(stage)
 endmacro
+buffer bvh_instance_data_buffer;
 
 shader bvh_process_skinned_vertices_batched
 {
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
-  (cs) { immediate_dword_count = 2; }
 
   if (hardware.ps5)
   {
@@ -31,6 +31,8 @@ shader bvh_process_skinned_vertices_batched
     #include "bvh_skinned_instance_data_batched.hlsli"
     static BvhSkinnedInstanceData params;
     #define INST_OFFSET_GETTER params.instance_offset
+    #define OFFSET_TO_NODE_DATA(rigid_index) params.instance_offset
+    #define OFFSET_TO_INSTANCE_DATA ((int)(params.instance_offset + loadBuffer(instance_data_buffer, params.instance_offset + 8).y))
   }
   (cs) {
     params_buf@buf = bvh_process_skinned_vertices_params_buf hlsl {
@@ -39,10 +41,23 @@ shader bvh_process_skinned_vertices_batched
     }
 
     output@uav : register(bvh_process_skinned_vertices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
-    matrices_stride@i1 = (matrices_stride);
     bvh_process_skinned_vertices_is_building_prototype@i1 = bvh_process_skinned_vertices_is_building_prototype
+
   }
-  DYNMODEL_SHARED_DECL_BUFFER(cs)
+
+  if (small_sampled_buffers == no)
+  {
+    (cs) {
+      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
+    }
+  } else
+  {
+    (cs) {
+      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
+    }
+  }
+
+  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(cs)
 
   hlsl(cs) {
     ##if !hardware.ps5

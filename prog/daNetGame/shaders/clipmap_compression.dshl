@@ -81,7 +81,6 @@ macro USE_CACHE_GATHER_0(code)
     #define GATHER_BLOCK { \
       GET_TEXELS(rgb, rgb, src_tex) \
       GATHER_W \
-      ADD_BC_LEGACY_ENDPOINTS_BIAS \
     }
   }
 endmacro
@@ -124,7 +123,6 @@ macro USE_CACHE_GATHER_2(code)
         texels[i].x = ao_emission.x; \
         texels[i].w = texels[i].z; \
         texels[i].z = ao_emission.y; \
-        ADD_BC_LEGACY_ENDPOINTS_BIAS_ITERATION \
       } \
     }
   }

@@ -4,7 +4,6 @@
 #include <device.h>
 #include <device_context.h>
 
-
 namespace drv3d_dx12::resource_manager
 {
 
@@ -197,31 +196,35 @@ BufferState BufferHeap::allocateBuffer(DXGIAdapter *adapter, Device &device, uin
   if (flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     allocationFlags.isUav = true;
 
-  HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit(
-    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"allocateBuffer", name, size, allocationFlags.toUlong(), heapProperties.raw});
-
-  auto result = allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
-    name, disable_sub_alloc, heapProperties, allocationFlags, errorCode);
-
-  if (!result)
-  {
-    device.processEmergencyDefragmentation(heapProperties.raw, true, flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false, size,
-      false);
-    errorCode = S_OK;
-    result = allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
-      name, disable_sub_alloc, heapProperties, allocationFlags, errorCode);
-  }
-  if (result && (cflags & SBCF_NO_STATE_TRACKING))
-    result.resourceId.markExcludedFromStateTracking();
-  return result;
+  return allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags, name,
+    disable_sub_alloc, heapProperties, allocationFlags)
+    .or_else([&, this](auto) {
+      // defrag and try again
+      device.processEmergencyDefragmentation(heapProperties.raw, true, flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, false, size,
+        false);
+      return allocateBufferWithoutDefragmentation(adapter, device, size, structure_size, discard_count, memory_class, flags, cflags,
+        name, disable_sub_alloc, heapProperties, allocationFlags);
+    })
+    // have to resort to use or_else instead of transform_error as some VC compiler versions just fail to lookup the constructor from
+    // value
+    .or_else([&, this](auto error) -> BufferAllocationResult {
+      checkForOOM(adapter, error, OomReportData{"allocateBuffer", name, size, allocationFlags.toUlong(), heapProperties.raw});
+      return dag::Unexpected{error};
+    })
+    .transform([cflags](auto result) {
+      if (cflags & SBCF_NO_STATE_TRACKING)
+      {
+        result.resourceId.markExcludedFromStateTracking();
+      }
+      return result;
+    })
+    .value_or({});
 }
 
-BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device, uint64_t size,
-  uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags, uint32_t cflags,
-  const char *name, bool disable_sub_alloc, const ResourceHeapProperties &heap_properties, AllocationFlags allocation_flags,
-  HRESULT &error_code)
+BufferHeap::BufferAllocationResult BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapter, Device &device,
+  uint64_t size, uint32_t structure_size, uint32_t discard_count, DeviceMemoryClass memory_class, D3D12_RESOURCE_FLAGS flags,
+  uint32_t cflags, const char *name, bool disable_sub_alloc, const ResourceHeapProperties &heap_properties,
+  AllocationFlags allocation_flags)
 {
   const bool canUseSubAlloc = !disable_sub_alloc && can_use_sub_alloc(cflags) && flags == D3D12_RESOURCE_FLAG_NONE;
 
@@ -248,15 +251,15 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
     if (!selectedHeap)
     {
       const auto initialState = propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
-      BufferGlobalId resIndex{};
-      eastl::tie(resIndex, error_code) = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
+      auto heapCreateResult = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
         align_value<uint64_t>(payloadSize * discard_count, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT), heap_properties, flags,
         initialState, nullptr, true, allocation_flags);
-      if (!resIndex)
+      if (!heapCreateResult.has_value())
       {
-        return result;
+        return dag::Unexpected{heapCreateResult.error()};
       }
 
+      auto &resIndex = heapCreateResult.value();
       auto heapIndex = resIndex.index();
 
       if (heapIndex < bufferHeapStateAccess->getHeapCount())
@@ -330,15 +333,15 @@ BufferState BufferHeap::allocateBufferWithoutDefragmentation(DXGIAdapter *adapte
       auto bufferHeapStateAccess = bufferHeapState.access();
 
       const auto initialState = propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, flags, memory_class);
-      BufferGlobalId resIndex{};
-      eastl::tie(resIndex, error_code) = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
+      auto heapCreateResult = bufferHeapStateAccess->createBufferHeap(this, adapter, device.getDevice(),
         align_value<uint64_t>(totalSize, device.getBufferSizeAlignment()), heap_properties, flags, initialState, name, false,
         allocation_flags);
-      if (!resIndex)
+      if (!heapCreateResult.has_value())
       {
-        return result;
+        return dag::Unexpected{heapCreateResult.error()};
       }
 
+      auto &resIndex = heapCreateResult.value();
       auto heapIndex = resIndex.index();
 
       if (heapIndex < bufferHeapStateAccess->getHeapCount())
@@ -402,11 +405,11 @@ BufferGlobalId BufferHeap::tryCloneBuffer(DXGIAdapter *adapter, ID3D12Device *de
   auto &memory = heap.getBufferMemory();
   if (heap.getFlags() & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     allocation_flags.isUav = true;
-  const auto [resIndex, errorCode] =
+  auto heapCreateResult =
     bufferHeapStateAccess->createBufferHeap(this, adapter, device, buffer_resource_size, getPropertiesFromMemory(memory),
       heap.getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, nullptr, heap.hasSuballocator(), allocation_flags);
-  G_UNUSED(errorCode);
-  return resIndex;
+
+  return heapCreateResult.value_or({});
 }
 
 // Checks if the buffer is actually needed and if not it will be deleted immediately

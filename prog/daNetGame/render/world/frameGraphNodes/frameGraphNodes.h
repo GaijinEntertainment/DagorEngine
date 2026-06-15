@@ -176,7 +176,7 @@ dafg::NodeHandle makeFrameBeforeDistortionProducerNode();
 
 dafg::NodeHandle makeRenameDepthNode();
 
-eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling);
+eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling, bool is_screenshot);
 
 dafg::NodeHandle makeShaderAssertNode();
 

@@ -26,7 +26,7 @@ struct FilmGrainLutHolder
   void requestRebuild();
   void setSettings(const Point4 &value, int prio, int wh, int d, const Point4 &gen_params);
   void disable();
-  void reinitFromSettings(int overrideWH, int overrideD, const Point4 &gen_params);
+  void reinitFromSettings(int overrideWH, int overrideD, const Point4 &gen_params, bool preset_allows);
   bool generate(); // returns true when generation is complete (or not needed)
   void afterDeviceReset();
 

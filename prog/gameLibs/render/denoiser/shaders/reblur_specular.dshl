@@ -88,6 +88,7 @@ shader nrd_reblur_perf_specular_blur
 shader nrd_reblur_specular_postblur
 {
   hlsl(cs) {
+    #define TEMPORAL_STABILIZATION 1
     #include "REBLUR_PostBlur.cs.hlsl"
   }
 
@@ -97,6 +98,7 @@ shader nrd_reblur_specular_postblur
 shader nrd_reblur_perf_specular_postblur
 {
   hlsl(cs) {
+    #define TEMPORAL_STABILIZATION 1
     #define REBLUR_PERFORMANCE_MODE 1
     #include "REBLUR_PostBlur.cs.hlsl"
   }

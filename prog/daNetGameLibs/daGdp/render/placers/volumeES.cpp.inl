@@ -83,7 +83,7 @@ static inline void volume_view_process_es(
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes) ecs::EntityId eid, float dagdp__density, float dagdp__volume_min_triangle_area,
       const ecs::string &dagdp__name, const Point3 &dagdp__volume_axis, bool dagdp__volume_axis_local, bool dagdp__volume_axis_abs,
       const Point2 &dagdp__distance_based_scale, float dagdp__distance_based_range, const Point3 &dagdp__distance_based_center,
-      int dagdp__target_mesh_lod, float dagdp__sample_range = -1) {
+      int dagdp__target_mesh_lod, float dagdp__sample_range = -1, int dagdp__csm_cascade_count = -1) {
       auto iter = rulesBuilder.placers.find(eid);
       if (iter == rulesBuilder.placers.end())
         return;
@@ -108,6 +108,7 @@ static inline void volume_view_process_es(
       item.targetMeshLod = dagdp__target_mesh_lod;
       item.axis = dagdp__volume_axis;
       item.axisLocal = dagdp__volume_axis_local;
+      item.csmCascadeCount = dagdp__csm_cascade_count;
 
       auto &variant = builder.variants.push_back();
       variant.density = dagdp__density;
@@ -367,6 +368,9 @@ void gather_process(DagdpRiexGatherJob &job,
       return;
     const auto &variant = iter->second;
 
+    if (variant.csmCascadeCount >= 0 && viewport.csmCascade >= variant.csmCascadeCount)
+      return;
+
     // Reference: volumePlacerES.cpp.inl, VolumePlacer::updateVisibility
     mat44f tm44;
     v_mat44_make_from_43cu_unsafe(tm44, transform.array);
@@ -470,29 +474,18 @@ void gather_process(DagdpRiexGatherJob &job,
   };
 
   volume_boxes_ecs_query(*g_entity_mgr,
-    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_box) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
-      int dagdp__csm_cascade_count) {
-      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
-        return;
-
+    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_box) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform) {
       addVolume(dagdp_internal__volume_placer_eid, transform, 0.5f, VOLUME_TYPE_BOX);
     });
 
   volume_cylinders_ecs_query(*g_entity_mgr,
-    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_cylinder) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
-      int dagdp__csm_cascade_count) {
-      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
-        return;
-
+    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_cylinder) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform) {
       addVolume(dagdp_internal__volume_placer_eid, transform, 0.5f, VOLUME_TYPE_CYLINDER);
     });
 
   volume_spheres_ecs_query(*g_entity_mgr,
     [&](ECS_REQUIRE(ecs::Tag dagdp_volume_sphere) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
-      float sphere_zone__radius, int dagdp__csm_cascade_count) {
-      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
-        return;
-
+      float sphere_zone__radius) {
       if (sphere_zone__radius <= FLT_EPSILON)
         return;
 

@@ -74,6 +74,7 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
       case SHCOD_G_TM:
       case SHCOD_FSH_CONST:
       case SHCOD_VPR_CONST:
+      case SHCOD_SET_CONST_PACKED:
       case SHCOD_CS_CONST:
       case SHCOD_GLOB_SAMPLER:
       case SHCOD_SAMPLER:
@@ -107,6 +108,7 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
       case SHCOD_GET_CHANNEL:
       case SHCOD_GET_GINT_TOREAL:
       case SHCOD_GET_GIVEC_TOREAL:
+      case SHCOD_GET_GIVEC:
       case SHCOD_GET_TEX:
       case SHCOD_GET_INT:
       case SHCOD_GET_REAL:

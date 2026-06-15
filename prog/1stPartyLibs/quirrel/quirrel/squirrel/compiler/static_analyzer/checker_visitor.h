@@ -8,6 +8,7 @@
 #include "value_ref.h"
 #include "external_value.h"
 
+#include <string>
 #include <unordered_set>
 
 
@@ -297,6 +298,9 @@ class CheckerVisitor : public Visitor
   std::unordered_set<const char *, StringHasher, StringEqualer> requiredModules;
   std::unordered_set<const char *, StringHasher, StringEqualer> persistedKeys;
   std::unordered_set<const Expr *> reportedSubsumedIfConditions;
+  std::unordered_set<std::string> importedModuleSlots;
+  std::unordered_set<std::string> wildcardImportedModules;
+  std::unordered_set<std::string> namedSlotImportedModules;
 
   std::unordered_map<const Node *, ValueRef *> astValues;
 

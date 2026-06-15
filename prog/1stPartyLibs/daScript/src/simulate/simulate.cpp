@@ -1306,15 +1306,15 @@ namespace das
     }
 
     Context::~Context() {
-        if ( !failed ) {
-            on_debug_agent_mutex([&](){
-                // unregister
-                category.value |= uint32_t(ContextCategory::dead);
-                // register
-                for_each_debug_agent([&](const DebugAgentPtr & pAgent){
-                    pAgent->onDestroyContext(this);
-                });
+        on_debug_agent_mutex([&](){
+            // unregister
+            category.value |= uint32_t(ContextCategory::dead);
+            // register
+            for_each_debug_agent([&](const DebugAgentPtr & pAgent){
+                pAgent->onDestroyContext(this);
             });
+        });
+        if ( !failed ) {
             // shutdown
             runShutdownScript();
         }

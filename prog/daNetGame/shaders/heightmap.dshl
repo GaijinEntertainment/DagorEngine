@@ -686,14 +686,15 @@ shader biome_query_cs
 
     uint numBiomeGroups : register(c15);
     uint resultsOffset : register(c16);
-    groupshared int indexFrequencies[MAX_BIOME_GROUPS*MAX_BIOME_QUERIES_PER_DISPATCH];
+    // groupshared memory is per thread group and each group handles one query,
+    // so one MAX_BIOME_GROUPS-sized histogram is enough (saves 9KB of LDS)
+    groupshared int indexFrequencies[MAX_BIOME_GROUPS];
 
     [numthreads(BIOME_QUERY_WARP_SIZE, BIOME_QUERY_WARP_SIZE, 1)]
     void biome_query_cs(uint flat_idx : SV_GroupIndex, uint query_id : SV_GroupID)
     {
-      uint groupOffset = query_id*MAX_BIOME_QUERIES_PER_DISPATCH;
       if (flat_idx < numBiomeGroups)
-        indexFrequencies[groupOffset+flat_idx] = 0;
+        indexFrequencies[flat_idx] = 0;
 
       uint dataIndex = resultsOffset+query_id;
 
@@ -709,7 +710,7 @@ shader biome_query_cs
       {
         float3 worldPos = float3(input.worldPos.x + worldPosOffset.x, 0, input.worldPos.z + worldPosOffset.y);
         int biomeGroupIndex = getBiomeGroupIndex(worldPos);
-        InterlockedAdd(indexFrequencies[groupOffset+biomeGroupIndex], 1);
+        InterlockedAdd(indexFrequencies[biomeGroupIndex], 1);
       }
 
       GroupMemoryBarrierWithGroupSync();
@@ -725,19 +726,19 @@ shader biome_query_cs
 
       for (uint i = 0; i < numBiomeGroups; i++)
       {
-        if (indexFrequencies[groupOffset+i] > mostFrequentBiomeCount)
+        if (indexFrequencies[i] > mostFrequentBiomeCount)
         {
           secondMostFrequentBiomeCount = mostFrequentBiomeCount;
           secondMostFrequentBiomeGroupIndex = mostFrequentBiomeGroupIndex;
-          mostFrequentBiomeCount = indexFrequencies[groupOffset+i];
+          mostFrequentBiomeCount = indexFrequencies[i];
           mostFrequentBiomeGroupIndex = i;
         }
-        else if (indexFrequencies[groupOffset+i] > secondMostFrequentBiomeCount)
+        else if (indexFrequencies[i] > secondMostFrequentBiomeCount)
         {
-          secondMostFrequentBiomeCount = indexFrequencies[groupOffset+i];
+          secondMostFrequentBiomeCount = indexFrequencies[i];
           secondMostFrequentBiomeGroupIndex = i;
         }
-        sumSamples += indexFrequencies[groupOffset+i];
+        sumSamples += indexFrequencies[i];
       }
 
       if (secondMostFrequentBiomeCount == 0)

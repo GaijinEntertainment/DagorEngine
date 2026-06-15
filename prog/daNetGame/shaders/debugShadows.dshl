@@ -46,7 +46,8 @@ shader debug_shadows
   hlsl(ps) {
     float4 debug_shadows_ps(VsOutput input HW_USE_SCREEN_POS): SV_Target
     {
-      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, isGbufferHeroCockpit(GET_SCREEN_POS(input.pos).xy));
+      // isGbufferHeroCockpit expects a normalized uv, not pixel coords
+      PackedShadows shadows = getShadows(input.texcoord, GET_SCREEN_POS(input.pos), input.viewVec, isGbufferHeroCockpit(input.texcoord));
       ##if show_shadows == static_shadows
         return float4(shadows.staticShadow.xxx, 1.f);
       ##elif show_shadows == csm_shadows

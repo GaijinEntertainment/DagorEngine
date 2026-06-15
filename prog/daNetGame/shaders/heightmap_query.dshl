@@ -65,8 +65,8 @@ shader heightmap_query_cs
       {
         uint riLandclassIndex = (int)indirectionOffset - 1;
         float displacementEffectLandclass = 1;
-        float3 planeNormal = ri_landclass_tm_y_arr_at(riLandclassIndex).xyz;
-        float3 landclassPos = ri_landclass_tm_pos_arr_at(riLandclassIndex).xyz;
+        float3 planeNormal = ri_landclass_tm_y_arr[riLandclassIndex].xyz;
+        float3 landclassPos = ri_landclass_tm_pos_arr[riLandclassIndex].xyz;
         float3 projectedPos = projectPointOntoPlane(planeNormal, landclassPos, worldPos);
 
         float3 diff = projectedPos - worldPos;
@@ -74,13 +74,13 @@ shader heightmap_query_cs
         if (abs(result.hitDistNoOffset) > 1e-6)
           result.normal = diff / result.hitDistNoOffset;
 
-        float4x4 invTm = float4x4(ri_landclass_inv_tm_x_arr_at(riLandclassIndex),
-                                  ri_landclass_inv_tm_y_arr_at(riLandclassIndex),
-                                  ri_landclass_inv_tm_z_arr_at(riLandclassIndex),
-                                  ri_landclass_inv_tm_w_arr_at(riLandclassIndex));
+        float4x4 invTm = float4x4(ri_landclass_inv_tm_x_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_y_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_z_arr[riLandclassIndex],
+                                  ri_landclass_inv_tm_w_arr[riLandclassIndex]);
         float3 localPos = mulPointTm(worldPos, invTm).xyz;
 
-        float2 mappedCenter = ri_landclass_mapping_arr_at(riLandclassIndex).zw * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+        float2 mappedCenter = ri_landclass_mapping_arr[riLandclassIndex].zw * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
         float2 spoofedWorldPosXZ = localPos.xz + mappedCenter;
 
         float heightOffset =  get_hmap_ofs_ri_landclass(riLandclassIndex, spoofedWorldPosXZ, displacementEffectLandclass);

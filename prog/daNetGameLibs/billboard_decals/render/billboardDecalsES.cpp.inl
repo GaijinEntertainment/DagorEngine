@@ -92,9 +92,9 @@ static void bullet_holes_on_level_loaded_es(const ecs::Event &,
   billboard_decals__mgr.reset(
     BillboardDecals::create(billboard_decals__depthHardDist, billboard_decals__depthSoftnessDist, maxRegularBulletHoles));
 
-  SharedTexHolder diffuseTextureArray =
+  SharedTexWithShaderVar diffuseTextureArray =
     dag::get_tex_gameres(billboard_decals__diffuseTextureArray.c_str(), "billboard_decals_diff_tex");
-  SharedTexHolder normalTextureArray =
+  SharedTexWithShaderVar normalTextureArray =
     dag::get_tex_gameres(billboard_decals__normalsTextureArray.c_str(), "billboard_decals_bump_tex");
   billboard_decals__mgr->init_textures(eastl::move(diffuseTextureArray), eastl::move(normalTextureArray));
 }

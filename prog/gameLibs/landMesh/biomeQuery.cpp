@@ -58,6 +58,7 @@ public:
   void afterDeviceReset();
   int query(const Point3 &world_pos, const float radius);
   GpuReadbackResultState getQueryResult(int query_id, BiomeQueryResult &result);
+  void cancelQuery(int query_id);
   int getBiomeGroup(int biome_id);
   int getBiomeGroupId(const char *biome_group_name);
   const char *getBiomeGroupName(int biome_group_id);
@@ -394,6 +395,15 @@ GpuReadbackResultState biome_query::get_query_result(int query_id, BiomeQueryRes
 {
   BIOME_QUERY_BLOCK;
   return biome_query_ctx ? biome_query_ctx->getQueryResult(query_id, result) : GpuReadbackResultState::SYSTEM_NOT_INITIALIZED;
+}
+
+void BiomeQueryCtx::cancelQuery(int query_id) { grqSystem->cancelQuery(query_id); }
+
+void biome_query::cancel_query(int query_id)
+{
+  BIOME_QUERY_BLOCK;
+  if (biome_query_ctx)
+    biome_query_ctx->cancelQuery(query_id);
 }
 
 int BiomeQueryCtx::getBiomeGroup(int biome_id)

@@ -654,6 +654,75 @@ bool YuSession::NvidiaLoginAction::run(const YuString& nvidia_jwt)
 }
 
 
+#if YU2_WINDOWS
+//==================================================================================================
+Yuplay2Status YuSession::NvidiaLoginAction::onErrorStatus(Yuplay2Status status)
+{
+  saveStatusJson(answer.at("status").s(), "", "", answer.at("error").s());
+
+  return CommonLoginAction::onErrorStatus(status);
+}
+
+
+//==================================================================================================
+void YuSession::NvidiaLoginAction::onOkStatus(const YuJson& json)
+{
+  saveStatusJson(answer.at("status").s(), answer.at("user_id").s(), answer.at("nick").s(), "");
+
+  CommonLoginAction::onOkStatus(json);
+}
+
+
+//==================================================================================================
+bool YuSession::NvidiaLoginAction::getStatusJsonPath(YuPath& path) const
+{
+  if (session.getGameId().empty())
+    return false;
+
+  path = YuFs::getSpecialFolder(CSIDL_LOCAL_APPDATA);
+
+  if (path.length())
+  {
+    path.append("Gaijin/GFN");
+
+    if (!YuFs::dirExists(path) && !YuFs::createTree(path))
+      return false;
+
+    path.append(session.getGameId());
+    path.setExt(".json");
+
+    return true;
+  }
+
+  return false;
+}
+
+
+//==================================================================================================
+void YuSession::NvidiaLoginAction::saveStatusJson(const YuString& status, const YuString& user_id,
+                                                  const YuString& nick, const YuString& error) const
+{
+  YuPath path;
+  if (getStatusJsonPath(path))
+  {
+    YuJsoner json;
+
+    json.at("status").setString(status);
+
+    if (status == "OK")
+    {
+      json.at("user_id").setString(user_id);
+      json.at("nick").setString(nick);
+    }
+    else
+      json.at("error").setString(error);
+
+    json.save(path);
+  }
+}
+#endif //YU2_WINDOWS
+
+
 //==================================================================================================
 bool YuSession::WebLoginSessionIdAction::run()
 {

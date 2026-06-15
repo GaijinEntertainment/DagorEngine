@@ -41,7 +41,7 @@ eastl::array<dafg::NodeHandle, 2> makeCausticsNode()
         .bindToShaderVar("depth_for_caustics_samplerstate");
       registry.allowAsyncPipelines()
         .requestRenderPass()
-        .depthRoAndBindToShaderVars("gbuf_depth", {"depth_for_caustics"})
+        .depthReadTestAndSample("gbuf_depth", {"depth_for_caustics"})
         .color({"caustics_tex"});
     }
     else
@@ -50,7 +50,7 @@ eastl::array<dafg::NodeHandle, 2> makeCausticsNode()
       registry.read("close_depth_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("depth_for_caustics_samplerstate");
       registry.readTexture("downsampled_normals").atStage(dafg::Stage::PS).bindToShaderVar("normals_for_caustics");
       registry.read("downsampled_normals_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("normals_for_caustics_samplerstate");
-      registry.allowAsyncPipelines().requestRenderPass().depthRw("downsampled_depth").color({"caustics_tex"});
+      registry.allowAsyncPipelines().requestRenderPass().depth("downsampled_depth").color({"caustics_tex"});
     }
 
     registry.multiplex(dafg::multiplexing::Mode::FullMultiplex);

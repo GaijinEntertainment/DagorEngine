@@ -1,3 +1,0 @@
-script done
-a=faulted b=faulted
-a reason type=string value=Future: chaining cycle detected

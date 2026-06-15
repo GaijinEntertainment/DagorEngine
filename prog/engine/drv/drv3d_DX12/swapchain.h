@@ -24,6 +24,14 @@ class Device;
 class DeviceContext;
 struct SwapchainCreateInfo;
 
+enum class SwapchainKind
+{
+  Default,
+  NvidiaDLSSG,
+  AMDFSRFG,
+  IntelXeSSFG,
+};
+
 struct SwapchainProperties
 {
   Extent2D resolution = {};
@@ -54,6 +62,8 @@ struct SwapchainCreateInfo : SwapchainProperties
   int presentInterval = 0;
   XBOX_MEMBER float frameImmediateThresholdPercent = 100.f;
   XBOX_MEMBER unsigned int freqLevel = 1;
+
+  WIN_MEMBER SwapchainKind swapchainKind = SwapchainKind::Default;
 
 #if _TARGET_PC_WIN
   ComPtr<IDXGIOutput> output;

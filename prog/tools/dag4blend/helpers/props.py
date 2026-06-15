@@ -8,7 +8,7 @@ valid_props_types =['t', 'i', 'b', 'm', 'r', 'p2', 'p3', 'p4', 'ip2', 'ip3']
 def prop_value_to_string(prop_value, prop_type):
     try:
 # bool
-        if prop_type == "bool":
+        if prop_type == "b":
             prop_str = 'yes' if prop_value else 'no'
 # matrix
         elif prop_type == 'm':

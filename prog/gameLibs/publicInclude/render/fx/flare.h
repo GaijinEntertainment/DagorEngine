@@ -22,8 +22,8 @@ struct Flare
   RTargetPool::Ptr flareRTPool;
   RTarget::Ptr flareTex;
   d3d::SamplerHandle flareTexSampler = d3d::INVALID_SAMPLER_HANDLE;
-  SharedTexHolder flareCoveringTex;
-  SharedTexHolder flareColorTex;
+  SharedTexWithShaderVar flareCoveringTex;
+  SharedTexWithShaderVar flareColorTex;
   PostFxRenderer *flareDownsample = nullptr;
   PostFxRenderer *flareFeature = nullptr;
   PostFxRenderer *flareBlur = nullptr;

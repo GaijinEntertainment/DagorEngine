@@ -64,6 +64,7 @@ class Point4;
 class IPoint2;
 class IPoint3;
 class IPoint4;
+class DPoint3;
 class TMatrix;
 class BBox2;
 class BBox3;
@@ -209,6 +210,11 @@ struct DSA
     varValue.p4 = &p;
     varType = TYPE_P4;
   }
+  void set(const DPoint3 &p)
+  {
+    varValue.dp3 = &p;
+    varType = TYPE_DP3;
+  }
   void set(const IPoint2 &p)
   {
     varValue.ip2 = &p;
@@ -303,6 +309,7 @@ public:
     TYPE_P2,
     TYPE_P3,
     TYPE_P4,
+    TYPE_DP3,
     TYPE_IP2,
     TYPE_IP3,
     TYPE_IP4,
@@ -327,6 +334,7 @@ public:
     const Point2 *p2;
     const Point3 *p3;
     const Point4 *p4;
+    const DPoint3 *dp3;
     const IPoint2 *ip2;
     const IPoint3 *ip3;
     const IPoint4 *ip4;

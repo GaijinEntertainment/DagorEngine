@@ -118,7 +118,14 @@ bool FsrWrapper::createFrameGenerationSwapchain(DXGIFactory *factory, ID3D12Comm
   return pImpl->createFrameGenerationSwapchain(factory, queue, create_info, swapchain_desc, fullscreen_desc, swapchain);
 }
 
-void FsrWrapper::releaseFrameGenerationSwapchainContext() { pImpl->releaseFrameGenerationSwapchainContext(); }
+void FsrWrapper::releaseFrameGenerationSwapchainContext()
+{
+  // may be called when shut down already
+  if (pImpl)
+  {
+    pImpl->releaseFrameGenerationSwapchainContext();
+  }
+}
 
 bool create_fsrfg_swapchain(DXGIFactory *factory, ID3D12CommandQueue *queue, const SwapchainCreateInfo &create_info,
   const DXGI_SWAP_CHAIN_DESC1 &swapchain_desc, const DXGI_SWAP_CHAIN_FULLSCREEN_DESC &fullscreen_desc, DXGISwapChain **swapchain)

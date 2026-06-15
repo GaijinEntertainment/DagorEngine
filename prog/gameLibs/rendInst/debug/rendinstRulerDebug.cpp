@@ -72,6 +72,7 @@ void rendinst::draw_rendinst_info(const Point3 &intersection_pos, const TMatrix 
       addLine(" riPoolRef: %i", rxPool.riPoolRef);
       addLine(" posInst: %i; isTree %i; isWalls: %i", rxPool.posInst, rxPool.isTree, rxPool.isWalls);
       addLine(" hp: %.1f/%.1f; immortal: %i", rxPool.getHp(desc.idx), rxPool.initialHP, rxPool.immortal);
+      addLine(" DYNAMIC_SCENE: %i; tsIndex: %i", rxPool.tsIndex == DYNAMIC_SCENE, rxPool.tsIndex);
     }
     addLine("riProperties[%i]", riPoolRef);
     const PhysMat::MaterialData &mat = PhysMat::getMaterial(mat_id);

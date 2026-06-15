@@ -23,7 +23,7 @@ inline void ensure_buf_size_and_update(UniqueBufWithShaderVar &buf, const uint8_
   {
     buf.close();
     buf = dag::create_sbuffer(sizeof(uint32_t), nextSize / sizeof(uint32_t),
-      SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, //|SBCF_BIND_UNORDERED
+      SBCF_BIND_SHADER_RES | SBCF_MISC_ALLOW_RAW, // ByteAddressBuffer requires SBCF_MISC_ALLOW_RAW flag
       0, name);
   }
   if (size)

@@ -548,10 +548,13 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
   eval_shader(*sh, stVarCB, parser);
 
   // parse code blocks
-  if (!semantic::parse_hlsl_source_to_blocks(shContext, stVarCB))
+  if (!ctx.isPreshaderOnly())
   {
-    sh_debug(SHLOG_ERROR, "cannot parse shader code in <%s>", shname->text);
-    return;
+    if (!semantic::parse_hlsl_source_to_blocks(shContext, stVarCB))
+    {
+      sh_debug(SHLOG_ERROR, "cannot parse shader code in <%s>", shname->text);
+      return;
+    }
   }
 
   // All main-line hlsl includes are collected right above, and preshader hlsl includes are collected via GatherVarShaderEvalCB
@@ -705,73 +708,82 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
     };
 
     ShaderVariant::VariantTableSrc dynamicVariants{ctx};
-    dynamicVariants.generateFromTypes(types.allDynamicTypes, intervals, false);
 
-    if (types.allDynamicTypes.getCount())
+    if (ctx.isPreshaderOnly())
     {
-      // dynamic variants present
-
-      int dynamicVariantCount = dynamicVariants.getVarCount();
-      shc::prepareTestVariant(NULL, &dynamicVariants.getTypes());
-      FastIntList invalidVariants;
-
-      // for each dynamic variant:
-      for (int d = 0; d < dynamicVariantCount; d++)
-      {
-        if (!shc::isValidVariant(staticVariant, dynamicVariants.getVariant(d)))
-        {
-          if (!shc::shouldMarkInvalidAsNull())
-            invalidVariants.addInt(d);
-          continue;
-        }
-
-        ShaderVariant::VariantSrc *dynamicVariant = dynamicVariants.getVariant(d);
-        sh_set_current_dyn_variant(dynamicVariant);
-
-        auto evaluatedVariantMaybe =
-          evalShaderVariant(sh, parser, ShaderVariant::VariantInfo(*staticVariant, dynamicVariant), shContext);
-
-        if (evaluatedVariantMaybe)
-        {
-          dynamicVariant->codeId = d;
-          addVariantEvaluationResult(eastl::move(*evaluatedVariantMaybe), d, dynamicVariantCount);
-        }
-
-        sh_set_current_dyn_variant(nullptr);
-      }
-
-      if (invalidVariants.getList().size() == dynamicVariantCount)
-        staticVariant->codeId = shc::shouldMarkInvalidAsNull() ? -1 : -2;
-      else if (invalidVariants.getList().size())
-      {
-        for (int i = 0; i < invalidVariants.getList().size(); i++)
-          dynamicVariants.getVariant(invalidVariants.getList()[i])->codeId = -2; // @TODO: use markInvalidAsNull here too?
-      }
+      evalShaderVariant(sh, parser, ShaderVariant::VariantInfo{*staticVariant, nullptr}, shContext);
     }
     else
     {
-      // no dynamic variants present
-      auto parsedSscMaybe = evalShaderVariant(sh, parser, ShaderVariant::VariantInfo{*staticVariant, nullptr}, shContext);
-      if (parsedSscMaybe)
-        addVariantEvaluationResult(eastl::move(*parsedSscMaybe), 0, 1);
+      dynamicVariants.generateFromTypes(types.allDynamicTypes, intervals, false);
+
+      if (types.allDynamicTypes.getCount())
+      {
+        // dynamic variants present
+
+        int dynamicVariantCount = dynamicVariants.getVarCount();
+        shc::prepareTestVariant(NULL, &dynamicVariants.getTypes());
+        FastIntList invalidVariants;
+
+        // for each dynamic variant:
+        for (int d = 0; d < dynamicVariantCount; d++)
+        {
+          if (!shc::isValidVariant(staticVariant, dynamicVariants.getVariant(d)))
+          {
+            if (!shc::shouldMarkInvalidAsNull())
+              invalidVariants.addInt(d);
+            continue;
+          }
+
+          ShaderVariant::VariantSrc *dynamicVariant = dynamicVariants.getVariant(d);
+          sh_set_current_dyn_variant(dynamicVariant);
+
+          auto evaluatedVariantMaybe =
+            evalShaderVariant(sh, parser, ShaderVariant::VariantInfo(*staticVariant, dynamicVariant), shContext);
+
+          if (evaluatedVariantMaybe)
+          {
+            dynamicVariant->codeId = d;
+            addVariantEvaluationResult(eastl::move(*evaluatedVariantMaybe), d, dynamicVariantCount);
+          }
+
+          sh_set_current_dyn_variant(nullptr);
+        }
+
+        if (invalidVariants.getList().size() == dynamicVariantCount)
+          staticVariant->codeId = shc::shouldMarkInvalidAsNull() ? -1 : -2;
+        else if (invalidVariants.getList().size())
+        {
+          for (int i = 0; i < invalidVariants.getList().size(); i++)
+            dynamicVariants.getVariant(invalidVariants.getList()[i])->codeId = -2; // @TODO: use markInvalidAsNull here too?
+        }
+      }
       else
-        staticVariant->codeId = -1;
+      {
+        // no dynamic variants present
+        auto parsedSscMaybe = evalShaderVariant(sh, parser, ShaderVariant::VariantInfo{*staticVariant, nullptr}, shContext);
+        if (parsedSscMaybe)
+          addVariantEvaluationResult(eastl::move(*parsedSscMaybe), 0, 1);
+        else
+          staticVariant->codeId = -1;
+      }
     }
 
     if (passCount)
     {
       // check for variable usage
-      eastl::for_each(usageInfo.cbegin(), usageInfo.cend(), [&](const auto &pair) {
-        auto [name, var] = pair;
-        if (!var.used && !var.noWarnings)
-        {
-          if (strcmp("instancing_const_begin", name) != 0 && strcmp("instancing_const_end", name) != 0)
+      if (!ctx.isPreshaderOnly())
+        eastl::for_each(usageInfo.cbegin(), usageInfo.cend(), [&](const auto &pair) {
+          auto [name, var] = pair;
+          if (!var.used && !var.noWarnings)
           {
-            report_warning(parser, *var.terminal,
-              "variable '" + String{name} + "' not used in static variant '" + staticVariant->getVarStringInfo() + "'");
+            if (strcmp("instancing_const_begin", name) != 0 && strcmp("instancing_const_end", name) != 0)
+            {
+              report_warning(parser, *var.terminal,
+                "variable '" + String{name} + "' not used in static variant '" + staticVariant->getVarStringInfo() + "'");
+            }
           }
-        }
-      });
+        });
 
       if ((ssc->flags & SC_STAGE_IDX_MASK) != render_stage_idx)
         sh_debug(SHLOG_WARNING, "shader(%s): staticvariant uses renderStageIdx=%d, while dynvariants uses %d", shContext.name(),
@@ -791,7 +803,7 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
         if (semcode[j]->equal(*ssc, true) == NULL)
           break;
 
-      if (j >= semcode.size())
+      if (j >= semcode.size() && !ctx.isPreshaderOnly())
       {
         j = semcode.size();
         ShaderCode *sc = ssc->generateShaderCode(dynamicVariants);
@@ -886,6 +898,15 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
     }
   }
 
+  sh_set_current_variant(NULL);
+  sh_set_current_dyn_variant(NULL);
+
+  if (ctx.isPreshaderOnly())
+  {
+    ErrorCounter::curShader().reset();
+    return;
+  }
+
   if (shContext.isDebugModeEnabled())
     for (int i = 0; i < sclass.uniqueStrings.nameCount(); i++)
       sclass.messages.emplace_back(sclass.uniqueStrings.getName(i));
@@ -899,6 +920,34 @@ static void add_shader(shader_decl *sh, Parser &parser, Terminal *shname, shc::T
   sclass.sortStaticVarsByMode();
 
   staticVariants.fillVariantTable(sclass.staticVariants);
+
+  {
+    auto validateIntervalBacking = [&](const auto &type) {
+      if (!type.interval)
+        return;
+      int intervalNameId = type.interval->getNameId();
+      if (intervalNameId < 0)
+        return;
+      const char *intervalName = ctx.intervalNameMap().getName(intervalNameId);
+      int varNameId = ctx.varNameMap().getVarId(intervalName);
+      if (varNameId < 0 || (ctx.globVars().getVarInternalIndex(varNameId) < 0 && sclass.find_static_var(varNameId) < 0))
+      {
+        sh_debug(SHLOG_ERROR,
+          "Interval '%s' is used in type table but is not backed by a var. This may have been due to excessive 'invalid' "
+          "variants pruning any references to the var. Examine the blk for bugs in invalid variants.\n",
+          intervalName);
+      }
+    };
+    for (int ti = 0; ti < sclass.staticVariants.getTypes().getCount(); ++ti)
+      validateIntervalBacking(sclass.staticVariants.getTypes().getType(ti));
+    for (const ShaderCode *cd : sclass.code)
+    {
+      if (!cd)
+        continue;
+      for (int ti = 0; ti < cd->dynVariants.getTypes().getCount(); ++ti)
+        validateIntervalBacking(cd->dynVariants.getTypes().getType(ti));
+    }
+  }
 
   sh_set_current_variant(NULL);
   sh_set_current_dyn_variant(NULL);
@@ -1040,6 +1089,9 @@ void add_block(block_decl *bl, Parser &parser, shc::TargetContext &ctx)
   parser.get_lexer().end_block();
 
   if (shc::config().dependencyDumpMode)
+    return;
+
+  if (ctx.isPreshaderOnly())
     return;
 
   auto preshaderCompilationOutputMaybe = compile_variant_preshader(cb.preshaderSource, variantCtx);

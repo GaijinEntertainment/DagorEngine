@@ -11,7 +11,7 @@ function testFunction(func, tests=[], shouldPass=true, testname = null) {
         failed = true
     }
     catch(e) {
-      failed = !shouldPass
+      failed = shouldPass
     }
     if (failed)
       print("test for func: {0}  failed. Func argument: {1}\n".subst(funcname , test_))

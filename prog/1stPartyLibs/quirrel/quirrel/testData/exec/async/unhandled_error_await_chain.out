@@ -2,11 +2,14 @@ script done
 
 AN ERROR HAS OCCURRED [boom]
 
-CALLSTACK
-
-LOCALS
-
 ERROR TRACE
     at inner (testData/exec/async/unhandled_error_await_chain.nut:9)
+      this = null
     awaited at mid (testData/exec/async/unhandled_error_await_chain.nut:13)
+      inner (captured) = function inner (testData/exec/async/unhandled_error_await_chain.nut:8)
+      this = null
     awaited at top (testData/exec/async/unhandled_error_await_chain.nut:17)
+      mid (captured) = function mid (testData/exec/async/unhandled_error_await_chain.nut:12)
+      this = null
+    task root: top (testData/exec/async/unhandled_error_await_chain.nut:16)
+    launched at testData/exec/async/unhandled_error_await_chain.nut:22 launcher

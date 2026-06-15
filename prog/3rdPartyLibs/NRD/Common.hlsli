@@ -65,10 +65,6 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     #define NRD_SUPPORTS_DISOCCLUSION_THRESHOLD_MIX             1
 #endif
 
-#ifndef NRD_SUPPORTS_BASECOLOR_METALNESS
-    #define NRD_SUPPORTS_BASECOLOR_METALNESS                    1
-#endif
-
 #ifndef NRD_SUPPORTS_ANTIFIREFLY
     #define NRD_SUPPORTS_ANTIFIREFLY                            1
 #endif
@@ -246,6 +242,7 @@ static const float3 g_Special8[ 8 ] =
 #endif
 
 #define UnpackViewZ( z )                        abs( z * gViewZScale )
+#define IsInDenoisingRange( z )                 ( z < gDenoisingRange ) // "!IsInDenoisingRange( viewZ )" is NAN safe
 
 float PixelRadiusToWorld( float unproject, float orthoMode, float pixelRadius, float viewZ )
 {
@@ -298,7 +295,9 @@ float IsInScreenNearest( float2 uv )
 float2 MirrorUv( float2 uv )
 {
     // https://www.desmos.com/calculator/vreqlhocsm
-    return 1.0 - abs( 1.0 - frac( uv * 0.5 ) * 2.0 );
+    float2 mirrorUv = 1.0 - abs( 1.0 - frac( uv * 0.5 ) * 2.0 );
+
+    return min( mirrorUv, 0.99999 ); // avoid "uv == 1", because "1 * gRectSize" is outside of the render area
 }
 
 // x y
@@ -329,10 +328,7 @@ float2 ApplyCheckerboardShift( float2 pos, uint mode, uint counter, uint frameIn
 // https://www.desmos.com/calculator/xwq1nrawho
 float GetSpecMagicCurve( float roughness, float power = 0.25 )
 {
-    float f = 1.0 - exp2( -200.0 * roughness * roughness );
-    f *= Math::Pow01( roughness, power );
-
-    return f;
+    return _NRD_GetSpecMagicCurve( roughness, power );
 }
 
 float ComputeParallaxInPixels( float3 X, float2 uvForZeroParallax, float4x4 mWorldToClip, float2 rectSize )
@@ -470,7 +466,7 @@ float2 GetKernelSampleCoordinates( float4x4 mToClip, float3 offset, float3 X, fl
 
 float GetNormalWeightParam( float nonLinearAccumSpeed, float lobeAngleFraction, float roughness = 1.0 )
 {
-    float percentOfVolume = NRD_MAX_PERCENT_OF_LOBE_VOLUME * lerp( lobeAngleFraction, 1.0, nonLinearAccumSpeed );
+    float percentOfVolume = NRD_MAX_PERCENT_OF_LOBE_VOLUME * lerp( saturate( lobeAngleFraction ), 1.0, nonLinearAccumSpeed );
     float tanHalfAngle = ImportanceSampling::GetSpecularLobeTanHalfAngle( roughness, percentOfVolume );
 
     // TODO: use gLobeAngleFraction = 0.1 ( non squared! ) and:
@@ -492,14 +488,12 @@ float2 GetGeometryWeightParams( float planeDistSensitivity, float frustumSize, f
     return float2( a, -b );
 }
 
-float2 GetHitDistanceWeightParams( float hitDist, float nonLinearAccumSpeed, float roughness = 1.0 )
+float2 GetHitDistanceWeightParams( float hitDist, float nonLinearAccumSpeed )
 {
-    // TODO: compare "GetHitDistFactor"?
-    // IMPORTANT: since this weight is exponential, 3% can lead to leaks from bright objects in reflections.
-    // Even 1% is not enough in some cases, but using a lower value makes things even more fragile
-    float smc = GetSpecMagicCurve( roughness );
-    float norm = lerp( 0.0005, 1.0, min( nonLinearAccumSpeed, smc ) );
-    float a = 1.0 / norm;
+    // This math is fragile!
+    // - non-denoised ( only accumulated ) hit distances are needed to reduce bias and to avoid "banding" if history is long
+    // - firefly suppressor for hit distances is needed to minimize "sparse bright pixels" on specular lobe boundaries
+    float a = 1.0 / nonLinearAccumSpeed;
     float b = hitDist * a;
 
     return float2( a, -b );
@@ -518,7 +512,7 @@ float2 GetRelaxedRoughnessWeightParams( float m, float fraction = 1.0, float sen
     // "m = roughness * roughness" makes test less sensitive to small deltas
 
     // https://www.desmos.com/calculator/wkvacka5za
-    float a = 1.0 / lerp( sensitivity, 1.0, lerp( m * m, m, fraction ) );
+    float a = 1.0 / lerp( sensitivity, 1.0, lerp( m * m, m, saturate( fraction ) ) );
     float b = m * a;
 
     return float2( a, -b );
@@ -552,6 +546,13 @@ float2 GetRelaxedRoughnessWeightParams( float m, float fraction = 1.0, float sen
 #else
     #define ComputeWeight( x, px, py )     ComputeNonExponentialWeight( x, px, py )
 #endif
+
+float ApplyGeometryWeightLast( float w, float z, float NoX, float2 geometryWeightParams )
+{
+    w *= ComputeWeight( NoX, geometryWeightParams.x, geometryWeightParams.y );
+
+    return !IsInDenoisingRange( z ) ? 0.0 : w; // |NoX| can be ~0 if "zs" is out of range
+}
 
 float GetGaussianWeight( float r )
 {

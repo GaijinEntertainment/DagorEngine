@@ -158,6 +158,8 @@ function _join(basePath, other) {
  *   joinArray(["/"])                > "/"
  */
 function joinArray(pathArray) {
+  if (pathArray.len() > 1 && pathArray[0] == "/")
+    return $"/{"/".join(pathArray.slice(1), true)}"
   return "/".join(pathArray)
 }
 

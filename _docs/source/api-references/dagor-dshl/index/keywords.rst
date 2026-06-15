@@ -219,6 +219,8 @@ Graphics pipeline settings
 - blend_adst
 - blend_src
 - blend_dst
+- blend_op
+- blend_aop
 
 - cull_mode
 - alpha_to_coverage

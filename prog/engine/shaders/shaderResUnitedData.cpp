@@ -1011,9 +1011,19 @@ void ShaderResUnitedVdata<RES>::reloadResList(PtrTab<RES> &&resources)
     const char *getJobName(bool &) const override { return "ReloadVdataListJob"; }
     void doJob() override
     {
-      std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex);
-      for (const Ptr<RES> &res : resources)
-        unitedVdata->reloadResNoLock(res.get());
+      Tab<cpujobs::IJob *> jobs;
+      {
+        std::unique_lock<std::mutex> scopedLock(unitedVdata->appendMutex);
+        jobs.reserve(resources.size());
+        for (const Ptr<RES> &res : resources)
+          if (cpujobs::IJob *j = unitedVdata->reloadResNoLock(res.get()))
+            jobs.push_back(j);
+      }
+      // add_job() outside appendMutex: it takes the global cpujobs lock, and the
+      // quit path holds that lock while taking appendMutex (deadlock otherwise)
+      for (cpujobs::IJob *j : jobs)
+        if (!cpujobs::add_job(unitedVdata->reloadJobMgrId, j))
+          delete j;
     }
     void releaseJob() override { delete this; }
   };
@@ -1024,23 +1034,30 @@ void ShaderResUnitedVdata<RES>::reloadResList(PtrTab<RES> &&resources)
 }
 
 template <class RES>
-bool ShaderResUnitedVdata<RES>::reloadRes(RES *res)
+void ShaderResUnitedVdata<RES>::reloadRes(RES *res)
 {
-  std::unique_lock<std::mutex> scopedLock(appendMutex);
-  if (reloadJobMgrId < 0)
-    initReloadJobMgrIdNoLock();
-  return reloadResNoLock(res);
+  cpujobs::IJob *j = nullptr;
+  {
+    std::unique_lock<std::mutex> scopedLock(appendMutex);
+    if (reloadJobMgrId < 0)
+      initReloadJobMgrIdNoLock();
+    j = reloadResNoLock(res);
+  }
+  if (!j || cpujobs::add_job(reloadJobMgrId, j))
+    return;
+  else
+    delete j;
 }
 
 template <class RES>
-bool ShaderResUnitedVdata<RES>::reloadResNoLock(RES *res)
+cpujobs::IJob *ShaderResUnitedVdata<RES>::reloadResNoLock(RES *res)
 {
-  G_ASSERT_RETURN(reloadJobMgrId >= 0, false);
-  G_ASSERT_RETURN(buf.allowDelRes, false);
+  G_ASSERT_RETURN(reloadJobMgrId >= 0, nullptr);
+  G_ASSERT_RETURN(buf.allowDelRes, nullptr);
   if (res->getResLoadingFlag())
-    return false;
+    return nullptr;
   if ((vbSizeToFree > 0 || ibSizeToFree > 0) && find_value_idx(failedVdataReloadResList, res) >= 0)
-    return false;
+    return nullptr;
 
   struct UpdateModelVdataJob final : public cpujobs::IJob, public UpdateModelCtx
   {
@@ -1068,12 +1085,8 @@ bool ShaderResUnitedVdata<RES>::reloadResNoLock(RES *res)
     }
   };
 
-  UpdateModelVdataJob *j = new UpdateModelVdataJob(this, res);
-  if (j->res)
-    return cpujobs::add_job(reloadJobMgrId, j);
-
-  delete j;
-  return false;
+  auto j = new UpdateModelVdataJob(this, res);
+  return j->res ? j : (delete j, nullptr); //-V680
 }
 
 template <class RES>

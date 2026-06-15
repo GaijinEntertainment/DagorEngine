@@ -1,0 +1,12 @@
+=== arrow ===
+t-pending
+a=direct b=42
+=== function expr ===
+expr got: ok
+=== class method ===
+bumps: a=3 b=7 count=7
+caught: boom
+=== table method ===
+bump1=3
+bump2=7
+script done

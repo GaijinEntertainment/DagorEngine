@@ -60,6 +60,7 @@ void enable_dynamic_planar_decals(bool) {}
 void build(ContextId, const TMatrix &, const TMatrix4 &, const Point3 &, const Point3 &) {}
 
 void set_rigen_cpu_budget(int) {}
+void set_tree_anim_max_distance(float) {}
 
 void process_meshes(ContextId, BuildBudget) {}
 

@@ -271,9 +271,14 @@ SQInteger SQTable::Next(bool getweakrefs,const SQObjectPtr &__restrict refpos, S
 {
     uint32_t idx = (uint32_t)TranslateIndex(refpos);
     while (idx <= _numofnodes_minus_one) {
-        if(!(sq_type(_nodes[idx].key) & OT_FREE_TABLE_SLOT)) {
+#if SQ_RANDOMIZE_FOREACH
+        uint32_t randomizedIdx = (idx ^ _ss(this)->table_iter_seed) & _numofnodes_minus_one;
+#else
+        uint32_t randomizedIdx = idx;
+#endif
+        if(!(sq_type(_nodes[randomizedIdx].key) & OT_FREE_TABLE_SLOT)) {
             //first found
-            _HashNode &n = _nodes[idx];
+            _HashNode &n = _nodes[randomizedIdx];
             outkey = n.key;
             outval = getweakrefs?(SQObject)n.val:_realval(n.val);
             //return idx for the next iteration

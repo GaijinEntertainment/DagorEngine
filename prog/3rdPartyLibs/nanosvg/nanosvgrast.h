@@ -833,8 +833,10 @@ static void nsvg__flattenShapeStroke(NSVGrasterizer* r, NSVGshape* shape, float 
 				}
 			}
 			// Stroke any leftover path
-			if (r->npoints > 1 && dashState)
+			if (r->npoints > 1 && dashState) {
+				nsvg__prepareStroke(r, miterLimit, lineJoin);
 				nsvg__expandStroke(r, r->points, r->npoints, 0, lineJoin, lineCap, lineWidth);
+			}
 		} else {
 			nsvg__prepareStroke(r, miterLimit, lineJoin);
 			nsvg__expandStroke(r, r->points, r->npoints, closed, lineJoin, lineCap, lineWidth);
@@ -958,11 +960,15 @@ static void nsvg__fillActiveEdges(unsigned char* scanline, int len, NSVGactiveEd
 	}
 }
 
-static float nsvg__clampf(float a, float mn, float mx) { return a < mn ? mn : (a > mx ? mx : a); }
+static float nsvg__clampf(float a, float mn, float mx) {
+	if (isnan(a))
+		return mn;
+	return a < mn ? mn : (a > mx ? mx : a);
+}
 
 static unsigned int nsvg__RGBA(unsigned char r, unsigned char g, unsigned char b, unsigned char a)
 {
-	return (r) | (g << 8) | (b << 16) | (a << 24);
+	return ((unsigned int)r) | ((unsigned int)g << 8) | ((unsigned int)b << 16) | ((unsigned int)a << 24);
 }
 
 static unsigned int nsvg__lerpRGBA(unsigned int c0, unsigned int c1, float u)
@@ -1395,6 +1401,8 @@ void nsvgRasterize(NSVGrasterizer* r,
 	NSVGedge *e = NULL;
 	NSVGcachedPaint cache;
 	int i;
+	int j;
+	unsigned char paintOrder;
 
 	r->bitmap = dst;
 	r->width = w;
@@ -1414,57 +1422,61 @@ void nsvgRasterize(NSVGrasterizer* r,
 		if (!(shape->flags & NSVG_FLAGS_VISIBLE))
 			continue;
 
-		if (shape->fill.type != NSVG_PAINT_NONE) {
-			nsvg__resetPool(r);
-			r->freelist = NULL;
-			r->nedges = 0;
+		for (j = 0; j < 3; j++) {
+			paintOrder = (shape->paintOrder >> (2 * j)) & 0x03;
 
-			nsvg__flattenShape(r, shape, x_scale, y_scale);
+			if (paintOrder == NSVG_PAINT_FILL && shape->fill.type != NSVG_PAINT_NONE) {
+				nsvg__resetPool(r);
+				r->freelist = NULL;
+				r->nedges = 0;
 
-			// Scale and translate edges
-			for (i = 0; i < r->nedges; i++) {
-				e = &r->edges[i];
-				e->x0 = tx + e->x0;
-				e->y0 = (ty + e->y0) * NSVG__SUBSAMPLES;
-				e->x1 = tx + e->x1;
-				e->y1 = (ty + e->y1) * NSVG__SUBSAMPLES;
+				nsvg__flattenShape(r, shape, x_scale, y_scale);
+
+				// Scale and translate edges
+				for (i = 0; i < r->nedges; i++) {
+					e = &r->edges[i];
+					e->x0 = tx + e->x0;
+					e->y0 = (ty + e->y0) * NSVG__SUBSAMPLES;
+					e->x1 = tx + e->x1;
+					e->y1 = (ty + e->y1) * NSVG__SUBSAMPLES;
+				}
+
+				// Rasterize edges
+				if (r->nedges != 0)
+					qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+
+				// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
+				nsvg__initPaint(&cache, &shape->fill, shape->opacity);
+
+				nsvg__rasterizeSortedEdges(r, tx,ty,x_scale, y_scale, &cache, shape->fillRule);
 			}
+			if (paintOrder == NSVG_PAINT_STROKE && shape->stroke.type != NSVG_PAINT_NONE && (shape->strokeWidth * x_scale) > 0.01f) {
+				nsvg__resetPool(r);
+				r->freelist = NULL;
+				r->nedges = 0;
 
-			// Rasterize edges
-			if (r->nedges != 0)
-				qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
+				nsvg__flattenShapeStroke(r, shape, x_scale, y_scale);
 
-			// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
-			nsvg__initPaint(&cache, &shape->fill, shape->opacity);
+	//			dumpEdges(r, "edge.svg");
 
-			nsvg__rasterizeSortedEdges(r, tx,ty,x_scale, y_scale, &cache, shape->fillRule);
-		}
-		if (shape->stroke.type != NSVG_PAINT_NONE && (shape->strokeWidth * x_scale) > 0.01f) {
-			nsvg__resetPool(r);
-			r->freelist = NULL;
-			r->nedges = 0;
+				// Scale and translate edges
+				for (i = 0; i < r->nedges; i++) {
+					e = &r->edges[i];
+					e->x0 = tx + e->x0;
+					e->y0 = (ty + e->y0) * NSVG__SUBSAMPLES;
+					e->x1 = tx + e->x1;
+					e->y1 = (ty + e->y1) * NSVG__SUBSAMPLES;
+				}
 
-			nsvg__flattenShapeStroke(r, shape, x_scale, y_scale);
+				// Rasterize edges
+				if (r->nedges != 0)
+					qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
 
-//			dumpEdges(r, "edge.svg");
+				// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
+				nsvg__initPaint(&cache, &shape->stroke, shape->opacity);
 
-			// Scale and translate edges
-			for (i = 0; i < r->nedges; i++) {
-				e = &r->edges[i];
-				e->x0 = tx + e->x0;
-				e->y0 = (ty + e->y0) * NSVG__SUBSAMPLES;
-				e->x1 = tx + e->x1;
-				e->y1 = (ty + e->y1) * NSVG__SUBSAMPLES;
+				nsvg__rasterizeSortedEdges(r, tx,ty, x_scale, y_scale, &cache, NSVG_FILLRULE_NONZERO);
 			}
-
-			// Rasterize edges
-			if (r->nedges != 0)
-				qsort(r->edges, r->nedges, sizeof(NSVGedge), nsvg__cmpEdge);
-
-			// now, traverse the scanlines and find the intersections on each scanline, use non-zero rule
-			nsvg__initPaint(&cache, &shape->stroke, shape->opacity);
-
-			nsvg__rasterizeSortedEdges(r, tx,ty, x_scale, y_scale, &cache, NSVG_FILLRULE_NONZERO);
 		}
 	}
 

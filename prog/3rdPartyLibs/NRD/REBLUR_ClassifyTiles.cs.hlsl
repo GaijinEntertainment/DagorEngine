@@ -38,7 +38,7 @@ NRD_EXPORT void NRD_CS_MAIN( uint2 threadPos : SV_GroupThreadId, uint2 tilePos :
             uint2 pos = pixelPos + uint2( i, j );
             float viewZ = UnpackViewZ( gIn_ViewZ[ WithRectOrigin( pos ) ] );
 
-            sum += viewZ > gDenoisingRange ? 1 : 0;
+            sum += !IsInDenoisingRange( viewZ ) ? 1 : 0;
         }
     }
 

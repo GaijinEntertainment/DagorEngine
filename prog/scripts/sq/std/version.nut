@@ -54,7 +54,7 @@ local class Version {
   }
 
   function tostring(){
-    return ".".join(this.version)
+    return this.version != null ? ".".join(this.version) : ""
   }
 }
 

@@ -248,8 +248,8 @@ void animated_splash_screen_draw()
       float seedParams[4] = {splash_seed, 0.f, 0.f, 0.f};
       d3d::set_ps_const(loading_splash_iSeed_const_no.get_int(), seedParams, 1);
     }
-    const SharedTexHolder &noise64 = init_and_get_l8_64_noise();
-    const SharedTexHolder &noise128 = init_and_get_hash_128_noise();
+    const SharedTexWithShaderVar &noise64 = init_and_get_l8_64_noise();
+    const SharedTexWithShaderVar &noise128 = init_and_get_hash_128_noise();
     d3d::SamplerHandle smp = d3d::request_sampler({});
     d3d::set_tex(STAGE_PS, loading_splash_noise_64_tex_l8_const_no.get_int(), noise64.getTex2D());
     d3d::set_sampler(STAGE_PS, loading_splash_noise_64_tex_l8_const_no.get_int(), smp);

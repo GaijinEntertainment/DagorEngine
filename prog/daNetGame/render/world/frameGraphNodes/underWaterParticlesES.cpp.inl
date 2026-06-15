@@ -22,7 +22,7 @@ dafg::NodeHandle makeUnderWaterParticlesNode()
     auto depthHndl = registry.readTexture(depthTex).atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN).handle();
     registry.requestRenderPass()
       .color({"target_for_transparency", registry.modifyTexture("reactive_mask").optional()})
-      .depthRoAndBindToShaderVars(depthTex, {"effects_depth_tex"});
+      .depthReadTestAndSample(depthTex, {"effects_depth_tex"});
     registry.read("gbuf_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("effects_depth_tex_samplerstate");
 
     registry.readTexture("fom_shadows_sin").atStage(dafg::Stage::PRE_RASTER).bindToShaderVar("fom_shadows_sin").optional();

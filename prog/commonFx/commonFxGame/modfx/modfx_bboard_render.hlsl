@@ -1,6 +1,7 @@
 #ifndef DAFX_MODFX_BBOARD_RENDER_HLSL
 #define DAFX_MODFX_BBOARD_RENDER_HLSL
 
+#include "dafx_quality_flags.hlsli"
 #include "modfx/modfx_curve.hlsli"
 #include "modfx/modfx_misc.hlsli"
 #include "modfx/modfx_part_data.hlsli"
@@ -1150,7 +1151,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
       ModfxDepthMask pp = ModfxDepthMask_load( 0, parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] );
       float4 cloud_tc = viewport_tc;
       cloud_tc.xy = reproject_scattering(distortedToLinearTc(cloud_tc.xy), cloud_tc.z / cloud_tc.w);
-      depth_mask = dafx_get_soft_depth_mask(viewport_tc, cloud_tc, pp.depth_softness_rcp, gdata);
+      depth_mask = dafx_get_soft_depth_mask(viewport_tc * float4(current_dynamic_resolution_scale, 1, 1), cloud_tc, pp.depth_softness_rcp, gdata);
 
   #if !MODFX_SHADER_VOLFOG_INJECTION
       if (depth_mask < 1e-03)
@@ -1187,7 +1188,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     float radius_pow = dafx_get_1f( 0, parent_data.mods_offsets[MODFX_RMOD_VOLSHAPE_PARAMS] + 1u );
 
 #ifdef DAFX_DEPTH_TEX
-    float dst_depth = dafx_get_depth_base(viewport_tc.xy, gdata);
+    float dst_depth = dafx_get_depth_base(viewport_tc.xy * current_dynamic_resolution_scale, gdata);
 #else
     float dst_depth = gdata.zn_zfar.y;
 #endif
@@ -1223,9 +1224,9 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     alpha *= dafx_get_screen_cloud_volume_mask(distortedToLinearTc(viewport_tc.xy), viewport_tc.w);
 #endif
 
-    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy);
+    float4 wboit_accum = tex2D(wboit_color, viewport_tc.xy * current_dynamic_resolution_scale);
     float wboit_r = wboit_accum.w;
-    wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy).r;
+    wboit_accum.w = tex2D(wboit_alpha, viewport_tc.xy * current_dynamic_resolution_scale).r;
 
     float3 col = wboit_accum.xyz / clamp(wboit_accum.w, 0.0000001f, 1000.f);
     float a = 1.f - wboit_r;
@@ -1318,10 +1319,10 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
 
       float3 translucency_lighting = 0;
 
-      BRANCH
-      if (parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY])
-      {
 #if !MODFX_RIBBON_SHAPE
+      BRANCH
+      if (parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY] && (gdata.quality & DAFX_HIGH_FX_QUALITY))
+      {
         ModfxDeclAdvancedTranslucency pp = ModfxDeclAdvancedTranslucency_load(0, parent_data.mods_offsets[MODFX_RMOD_ADVANCED_TRANSLUCENCY]);
         float3 translucency_color_mul = pp.translucency_color_mul;
 
@@ -1351,9 +1352,9 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
 
         // Applying advanced translucency
         translucency_lighting = apply_advanced_translucency_to_lighting(lighting_part, input, gdata, ndl, translucency, translucency_color_mul);
-#endif
       }
       else // default translucency
+#endif
       {
         ndl = lerp( ndl, 1.f, saturate( dot( gdata.from_sun_direction, fwd_dir ) ) * translucency );
       }
@@ -1369,7 +1370,7 @@ float3 apply_advanced_translucency_to_lighting(float3 lighting_part, VsOutput in
     float4 result = float4( emissive_part + lighting_part, alpha );
     float depth = 0;
 #if MODFX_SHADER_DISTORTION
-    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy,0, haze_scene_depth_tex_lod)).x;
+    float depthScene = tex2Dlod(haze_scene_depth_tex, float4(viewport_tc.xy * current_dynamic_resolution_scale, 0, haze_scene_depth_tex_lod)).x;
 #if MODFX_USE_DEPTH_MASK
     if (!(gdata.flags & DAFX_GLOBAL_DATA_FLAG_RENDERING_WATER_REFLECTION) && parent_data.mods_offsets[MODFX_RMOD_DEPTH_MASK] )
     {

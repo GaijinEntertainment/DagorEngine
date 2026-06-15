@@ -245,6 +245,16 @@ public:
     CommonLoginAction(s, id, YUPLAY2_NVIDIA_LOGIN, cb) {}
 
   bool run(const YuString& nvidia_jwt);
+
+private:
+#if YU2_WINDOWS
+  bool getStatusJsonPath(YuPath& path) const;
+  void saveStatusJson(const YuString& status, const YuString& user_id, const YuString& nick,
+                      const YuString& error) const;
+
+  Yuplay2Status onErrorStatus(Yuplay2Status status) override;
+  void onOkStatus(const YuJson& json) override;
+#endif //YU2_WINDOWS
 };
 
 class YuSession::WebLoginSessionIdAction : public YuSession::AsyncHttpAction

@@ -21,14 +21,14 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #if( NRD_DIFF )
     groupshared float4 s_Diff[BUFFER_Y][BUFFER_X];
     #if( NRD_MODE == SH )
-        groupshared float4 s_DiffSH[BUFFER_Y][BUFFER_X];
+        groupshared RELAX_SH_TYPE s_DiffSH[BUFFER_Y][BUFFER_X];
     #endif
 #endif
 
 #if( NRD_SPEC )
     groupshared float4 s_Spec[BUFFER_Y][BUFFER_X];
     #if( NRD_MODE == SH )
-        groupshared float4 s_SpecSH[BUFFER_Y][BUFFER_X];
+        groupshared RELAX_SH_TYPE s_SpecSH[BUFFER_Y][BUFFER_X];
     #endif
 #endif
 
@@ -135,7 +135,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     int2 sharedMemoryIndex = threadPos.xy + int2(NRD_BORDER, NRD_BORDER);
     float4 normalRoughness = s_Normal_Roughness[sharedMemoryIndex.y][sharedMemoryIndex.x];
     float centerViewZ = UnpackViewZ(viewZpacked);
-    if (centerViewZ > gDenoisingRange)
+    if (!IsInDenoisingRange( centerViewZ ))
     {
         // Setting normal and roughness to close to zero for out of range pixels
         normalRoughness = 1.0 / 255.0;
@@ -155,7 +155,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         return;
 
     // Early out if linearZ is beyond denoising range
-    if (centerViewZ > gDenoisingRange)
+    if (!IsInDenoisingRange( centerViewZ ))
         return;
 
     float2 pixelUv = ( pixelPos + 0.5 ) * gRectSizeInv;
@@ -226,8 +226,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float sumWSpecular = 0;
         float4 sumSpecularIlluminationAnd2ndMoment = 0;
         #if( NRD_MODE == SH )
-            float4 sumSpecularSH = 0;
-            float roughnessModified = s_SpecSH[sharedMemoryIndex.y][sharedMemoryIndex.x].w;
+            RELAX_SH_TYPE sumSpecularSH = 0;
         #endif
         float3 centerV = -normalize(centerWorldPos);
 #endif
@@ -255,7 +254,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float sumWDiffuse = 0;
         float4 sumDiffuseIlluminationAnd2ndMoment = 0;
         #if( NRD_MODE == SH )
-            float4 sumDiffuseSH = 0;
+            RELAX_SH_TYPE sumDiffuseSH = 0;
         #endif
 #endif
 
@@ -357,7 +356,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float4 filteredSpecularIlluminationAndVariance = float4(sumSpecularIlluminationAnd2ndMoment.rgb, specularVariance);
         gOut_Spec_Variance[pixelPos] = filteredSpecularIlluminationAndVariance;
         #if( NRD_MODE == SH )
-            gOut_SpecSh[pixelPos] = float4(sumSpecularSH.rgb / sumWSpecular, roughnessModified);
+            gOut_SpecSh[pixelPos] = sumSpecularSH / sumWSpecular;
         #endif
 #endif
 #if( NRD_DIFF )
@@ -382,7 +381,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float sumSpecular1stMoment = 0;
         float sumSpecular2ndMoment = 0;
         #if( NRD_MODE == SH )
-            float4 sumSpecularSH = 0;
+            RELAX_SH_TYPE sumSpecularSH = 0;
         #endif
 #endif
 
@@ -392,7 +391,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         float sumDiffuse1stMoment = 0;
         float sumDiffuse2ndMoment = 0;
         #if( NRD_MODE == SH )
-            float4 sumDiffuseSH = 0;
+            RELAX_SH_TYPE sumDiffuseSH = 0;
         #endif
 #endif
 
@@ -464,8 +463,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         specularVariance *= boost;
         gOut_Spec_Variance[pixelPos] = float4(sumSpecularIllumination, specularVariance);
         #if( NRD_MODE == SH )
-            float roughnessModified = s_SpecSH[sharedMemoryIndex.y][sharedMemoryIndex.x].w;
-            gOut_SpecSh[pixelPos] = float4(sumSpecularSH.rgb / sumWSpecularIllumination, roughnessModified);
+            gOut_SpecSh[pixelPos] = sumSpecularSH / sumWSpecularIllumination;
         #endif
 #endif
 

@@ -1,0 +1,9 @@
+script done
+race winner: winner
+body done
+
+AN ERROR HAS OCCURRED [abandoned-all-fault]
+
+ERROR TRACE
+    at boomInput (testData/exec/async/future_combinator_unhandled.nut:22)
+      this = null

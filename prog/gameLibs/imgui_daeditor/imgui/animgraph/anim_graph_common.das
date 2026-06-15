@@ -15,6 +15,7 @@ require ecs
 
 require imgui/imgui_boost
 require imgui/imgui_node_editor_boost
+require %gameLibs.imgui_daeditor.imgui.imgui_common
 
 require daslib/static_let
 require daslib/defer
@@ -34,12 +35,18 @@ struct AnimGraphViewerSelectAssetResource
 def shutdown()
   DestroyEditor(context)
 
+enum NodeDrawMode
+  FULL
+  MINIFIED
+
 struct AnimgraphContext
+  weights : array<float>
   links : array<tuple<outIdx : int; inIdx : int>>
   animchar : AnimcharBaseComponent?
+  drawMode : NodeDrawMode
 
 typedef
-  BlendNodeRenderer = function<(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float) : void>
+  BlendNodeRenderer = function<(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext) : void>
 
 let
   nodeScale = 10000
@@ -179,6 +186,18 @@ def get_param_value_str(var state : IAnimStateHolder; var graph : AnimationGraph
   return paramValue
 
 
+def get_enum_name_of_parameter_value(var graph : AnimationGraph; var state : IAnimStateHolder; id : int)
+  let paramType = graph |> anim_graph_getParamType(id)
+  if paramType == PT_ScalarParamInt
+    let value = state |> anim_state_holder_getParamInt(id)
+    return animV20_get_enum_name_by_id(value)
+  elif paramType == PT_ScalarParam
+    let value = state |> anim_state_holder_getParam(id)
+    return animV20_get_enum_name_by_id(roundi(value))
+  else
+    return ""
+
+
 def draw_param_hint(var graph : AnimationGraph; var state : IAnimStateHolder; id : int; name : string)
   if IsItemHovered() && id >= 0
     imgui_node_editor::Suspend()
@@ -188,16 +207,9 @@ def draw_param_hint(var graph : AnimationGraph; var state : IAnimStateHolder; id
     let paramType = graph |> anim_graph_getParamType(id)
     imgui::Text("Param type: {paramType}")
     imgui::Text("Value: {get_param_value_str(state, graph, id)}")
-    if paramType == PT_ScalarParamInt
-      let value = state |> anim_state_holder_getParamInt(id)
-      let enumName = animV20_get_enum_name_by_id(value)
-      if enumName != ""
-        imgui::Text("Possible enum: {enumName}")
-    elif paramType == PT_ScalarParam
-      let value = state |> anim_state_holder_getParam(id)
-      let enumName = animV20_get_enum_name_by_id(roundi(value))
-      if enumName != ""
-        imgui::Text("Possible enum: {enumName}")
+    let enumName = get_enum_name_of_parameter_value(graph, state, id)
+    if enumName != ""
+      imgui::Text("Possible enum: {enumName}")
     EndTooltip()
     imgui_node_editor::Resume()
 
@@ -216,15 +228,15 @@ def get_node_name(var graph : AnimationGraph; var nod : IAnimBlendNode?)
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendNodeNull(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendNodeNull(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendNodeNull?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
-    imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
-    imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
+      imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
-    let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
-    draw_param_info(graph, state, timeScaleParam, "Time scale")
+      let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
+      draw_param_info(graph, state, timeScaleParam, "Time scale")
 
 
 def get_leaf_anim_res_ids(var nodePtr : IAnimBlendNode?) : tuple< id : int; sourceId : int>
@@ -246,7 +258,7 @@ def get_leaf_anim_res_ids(var nodePtr : IAnimBlendNode?) : tuple< id : int; sour
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendNodeStillLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendNodeStillLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendNodeStillLeaf?> nod
 
@@ -258,7 +270,6 @@ def render_AnimBlendNodeStillLeaf(var nod : IAnimBlendNode?; var graph : Animati
       imgui::Text("  source a2d: {sourceResName}")
 
     imgui::Text("isAdditive: {node.isAdditive}")
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
@@ -270,7 +281,7 @@ def render_AnimBlendNodeStillLeaf(var nod : IAnimBlendNode?; var graph : Animati
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendNodeContinuousLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendNodeContinuousLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendNodeContinuousLeaf?> nod
 
@@ -282,7 +293,6 @@ def render_AnimBlendNodeContinuousLeaf(var nod : IAnimBlendNode?; var graph : An
       imgui::Text("  source a2d: {sourceResName}")
 
     imgui::Text("isAdditive: {node.isAdditive}")
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("time: {float(node.dt)/TIME_TicksPerSec}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
@@ -294,7 +304,7 @@ def render_AnimBlendNodeContinuousLeaf(var nod : IAnimBlendNode?; var graph : An
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendNodeParametricLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendNodeParametricLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendNodeParametricLeaf?> nod
 
@@ -306,7 +316,6 @@ def render_AnimBlendNodeParametricLeaf(var nod : IAnimBlendNode?; var graph : An
       imgui::Text("  source a2d: {sourceResName}")
 
     imgui::Text("isAdditive: {node.isAdditive}")
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("time: {float(node.dt)/TIME_TicksPerSec}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
@@ -318,7 +327,7 @@ def render_AnimBlendNodeParametricLeaf(var nod : IAnimBlendNode?; var graph : An
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendNodeSingleLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendNodeSingleLeaf(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendNodeSingleLeaf?> nod
 
@@ -331,7 +340,6 @@ def render_AnimBlendNodeSingleLeaf(var nod : IAnimBlendNode?; var graph : Animat
 
     imgui::Text("isAdditive: {node.isAdditive}")
     imgui::Text("isAnimationIgnored: {node.isAnimationIgnored}")
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("time: {float(node.dt)/TIME_TicksPerSec}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
@@ -343,10 +351,9 @@ def render_AnimBlendNodeSingleLeaf(var nod : IAnimBlendNode?; var graph : Animat
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_1axis(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_1axis(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendCtrl_1axis?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
@@ -364,17 +371,18 @@ def render_AnimBlendCtrl_1axis(var nod : IAnimBlendNode?; var graph : AnimationG
           link_child(graph, nod, outId, childNode, context)
 
 
-def render_AnimFifo3QueueParam(paramId : int; var graph : AnimationGraph; var state : IAnimStateHolder; drawNodeCb : block<(var nod : IAnimBlendNode?; index : int; weight : float) : void>)
+def render_AnimFifo3QueueParam(paramId : int; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; drawNodeCb : block<(var nod : IAnimBlendNode?; index : int; weight : float) : void>)
   unsafe
     var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
 
-    let stateText = queue.state == 0 ? "No animation" : queue.state == 1 ? "Stable" : "Blending"
-    imgui::Text("State: {stateText} ({queue.state})")
     let gtime = state.anim_state_holder_getParam(graph.anim_graph_getParamId("::GlobalTime"))
-    imgui::Text("Blend start time: {queue.t0:.2f}")
-    imgui::Text("Current time: {gtime:.2f}")
-    imgui::Text("Morph time 1 to 2: {queue.morphTime[0]}")
-    imgui::Text("Morph time 2 to 3: {queue.morphTime[1]}")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      let stateText = queue.state == 0 ? "No animation" : queue.state == 1 ? "Stable" : "Blending"
+      imgui::Text("State: {stateText} ({queue.state})")
+      imgui::Text("Blend start time: {queue.t0:.2f}")
+      imgui::Text("Current time: {gtime:.2f}")
+      imgui::Text("Morph time 1 to 2: {queue.morphTime[0]}")
+      imgui::Text("Morph time 2 to 3: {queue.morphTime[1]}")
     let fifoBlendWeight = saturate(safediv((gtime - queue.t0), queue.morphTime[0]))
 
     for idx in range(3)
@@ -384,31 +392,31 @@ def render_AnimFifo3QueueParam(paramId : int; var graph : AnimationGraph; var st
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_Fifo3(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_Fifo3(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendCtrl_Fifo3?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
-    imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
-    imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
-
     let nodeId = *nod |> anim_blend_node_getAnimNodeId()
-    let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
-    draw_param_info(graph, state, timeScaleParam, "Time scale")
     let paramId = *node |> anim_blend_node_getParamId()
-    var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
-    draw_param_info(graph, state, paramId, "Param")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
+      imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
-    render_AnimFifo3QueueParam(paramId, graph, state) <| $(childNode, idx, childWeight)
+      let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
+      draw_param_info(graph, state, timeScaleParam, "Time scale")
+      var queue : AnimFifo3Queue? = reinterpret<AnimFifo3Queue?>(state |> anim_state_holder_getInlinePtr(paramId))
+      draw_param_info(graph, state, paramId, "Param")
+
+    render_AnimFifo3QueueParam(paramId, graph, state, context) <| $(childNode, idx, childWeight)
       let outId = get_output_node_idx(nodeId, idx)
-      out_pin(outId, "{idx + 1}) '{get_node_name(graph, childNode)}' (rel weight: {childWeight:.2f})") <|
-        link_child(graph, nod, outId, childNode, context)
+      if context.drawMode != NodeDrawMode.MINIFIED || childWeight > 0.0
+        out_pin(outId, "{idx + 1}) '{get_node_name(graph, childNode)}' (rel weight: {childWeight:.2f})") <|
+          link_child(graph, nod, outId, childNode, context)
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_RandomSwitcher(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_RandomSwitcher(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimBlendCtrl_RandomSwitcher?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
@@ -429,20 +437,20 @@ def render_AnimBlendCtrl_RandomSwitcher(var nod : IAnimBlendNode?; var graph : A
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_Hub(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_Hub(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = *reinterpret<AnimBlendCtrl_Hub?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
-    imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
-    imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
-
     let nodeId = *nod |> anim_blend_node_getAnimNodeId()
-    let timeScaleParam = node |> anim_blend_node_getTimeScaleParamId(state)
-    draw_param_info(graph, state, timeScaleParam, "Time scale")
     let paramId = node |> anim_blend_node_getParamId()
     let constWeights = paramId < 0
-    if !constWeights
-      draw_param_info(graph, state, paramId, "Param")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
+      imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
+
+      let timeScaleParam = node |> anim_blend_node_getTimeScaleParamId(state)
+      draw_param_info(graph, state, timeScaleParam, "Time scale")
+      if !constWeights
+        draw_param_info(graph, state, paramId, "Param")
 
     node |> AnimBlendCtrl_Hub_getDefNodeWt <| $(weights)
       node |> AnimBlendCtrl_Hub_getChildren <| $(children)
@@ -456,11 +464,10 @@ def render_AnimBlendCtrl_Hub(var nod : IAnimBlendNode?; var graph : AnimationGra
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_Blender(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_Blender(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = *reinterpret<AnimBlendCtrl_Blender?> nod
     imgui::Text("blendTime: {node.blendTime}")
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
 
@@ -479,10 +486,9 @@ def render_AnimBlendCtrl_Blender(var nod : IAnimBlendNode?; var graph : Animatio
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_BinaryIndirectSwitch(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_BinaryIndirectSwitch(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = *reinterpret<AnimBlendCtrl_BinaryIndirectSwitch?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
     imgui::Text("time scale param: {node |> anim_blend_node_getTimeScaleParamId(state)}")
     imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
@@ -502,61 +508,63 @@ def render_AnimBlendCtrl_BinaryIndirectSwitch(var nod : IAnimBlendNode?; var gra
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_SetMotionMatchingTag(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_SetMotionMatchingTag(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = *reinterpret<AnimBlendCtrl_SetMotionMatchingTag?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("tag: {node.tagName}")
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_LinearPoly(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_LinearPoly(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = *reinterpret<AnimBlendCtrl_LinearPoly?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
-    imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
-    imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
-
     let nodeId = *nod |> anim_blend_node_getAnimNodeId()
-    let timeScaleParam = node |> anim_blend_node_getTimeScaleParamId(state)
-    draw_param_info(graph, state, timeScaleParam, "Time scale")
-    let paramId = node |> anim_blend_node_getParamId()
-    draw_param_info(graph, state, paramId, "Param")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      imgui::Text("duration: {node |> anim_blend_node_getDuration(state)}")
+      imgui::Text("avg speed: {node |> anim_blend_node_getAvgSpeed(state)}")
+
+      let timeScaleParam = node |> anim_blend_node_getTimeScaleParamId(state)
+      draw_param_info(graph, state, timeScaleParam, "Time scale")
+      let paramId = node |> anim_blend_node_getParamId()
+      draw_param_info(graph, state, paramId, "Param")
 
     node |> AnimBlendCtrl_LinearPoly_getChildren <| $(children)
       for idx, child in iter_range(children), children
         let outId = get_output_node_idx(nodeId, idx)
         var childNode = child.node |> get()
+        if context.drawMode == NodeDrawMode.MINIFIED && nodeId != -1 && context.weights[nodeId] == 0.0
+          continue
         out_pin(outId, "{idx + 1}) p0:{child.p0} wtPid:{child.wtPid}\n'{get_node_name(graph, childNode)}'") <|
           link_child(graph, nod, outId, childNode, context)
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     var node = reinterpret<AnimBlendCtrl_ParametricSwitcher?> nod
-    imgui::Text("weight: {fmt(":.2f", weight)}")
-    imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
-    imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
+      imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
     let nodeId = *nod |> anim_blend_node_getAnimNodeId()
     let timeScaleParam = *node |> anim_blend_node_getTimeScaleParamId(state)
-    draw_param_info(graph, state, timeScaleParam, "Time scale")
     let paramId = *node |> anim_blend_node_getParamId()
-    draw_param_info(graph, state, paramId, "Param")
-    draw_param_info(graph, state, node.residualParamId, "Residual")
-    draw_param_info(graph, state, node.lastAnimParamId, "Last Anim")
-    draw_param_info(graph, state, node.fifoParamId, "Fifo")
-    imgui::Text("Morph time: {node.morphTime}")
-    imgui::Text("Continuous anim mode: {node.continuousAnimMode}")
+    if context.drawMode != NodeDrawMode.MINIFIED
+      draw_param_info(graph, state, timeScaleParam, "Time scale")
+      draw_param_info(graph, state, paramId, "Param")
+      draw_param_info(graph, state, node.residualParamId, "Residual")
+      draw_param_info(graph, state, node.lastAnimParamId, "Last Anim")
+      draw_param_info(graph, state, node.fifoParamId, "Fifo")
+      imgui::Text("Morph time: {node.morphTime}")
+      imgui::Text("Continuous anim mode: {node.continuousAnimMode}")
 
-    imgui::Text("Fifo:")
-    if node.fifoParamId >= 0
-      let indent = 10.0
-      imgui::Indent(indent)
-      render_AnimFifo3QueueParam(node.fifoParamId, graph, state) <| $(childNode, idx, childWeight)
-        imgui::Text("{idx + 1}) '{get_node_name(graph, childNode)}' (rel weight: {childWeight:.2f})")
-      imgui::Unindent(indent)
+      imgui::Text("Fifo:")
+      if node.fifoParamId >= 0
+        let indent = 10.0
+        imgui::Indent(indent)
+        render_AnimFifo3QueueParam(node.fifoParamId, graph, state, context) <| $(childNode, idx, childWeight)
+          imgui::Text("{idx + 1}) '{get_node_name(graph, childNode)}' (rel weight: {childWeight:.2f})")
+        imgui::Unindent(indent)
 
     imgui::Text("Children:")
     imgui::PushStyleVar(ImGuiStyleVar.ItemSpacing, float2(0.0, 10.0))
@@ -581,6 +589,9 @@ def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph
       for i, pairIndicies in range(length(childNodeToPairIndex)), childNodeToPairIndex
         let outId = get_output_node_idx(nodeId, i)
         var childNode = nodeValuePairs[pairIndicies[0]].node.get()
+        // For some reason we have null nodes with abnId = -1 which is veery strange, so check that
+        if context.drawMode == NodeDrawMode.MINIFIED && (childNode == null || *childNode |> anim_blend_node_getAnimNodeId() == -1 || context.weights[*childNode |> anim_blend_node_getAnimNodeId()] == 0.0)
+          continue
         out_pin(outId, "{get_node_name(graph, childNode)}") <|
           link_child(graph, nod, outId, childNode, context)
 
@@ -623,7 +634,7 @@ def render_AnimBlendCtrl_ParametricSwitcher(var nod : IAnimBlendNode?; var graph
 
 
 [unused_argument(context)]
-def render_general_post_blend_controller(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_general_post_blend_controller(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
   unsafe
     assume node = reinterpret<AnimPostBlendCtrl?> nod
     var debugContext = context.animchar.animcharDebugContext
@@ -633,7 +644,6 @@ def render_general_post_blend_controller(var nod : IAnimBlendNode?; var graph : 
         animchar_debug_setPbcOverride(*debugContext, node.pbcId, 0.0)
       else
         animchar_debug_disablePbcOverride(*debugContext, node.pbcId)
-    imgui::Text("weight: {fmt(":.2f", weight)}")
     imgui::Text("duration: {*node |> anim_blend_node_getDuration(state)}")
     imgui::Text("avg speed: {*node |> anim_blend_node_getAvgSpeed(state)}")
 
@@ -642,16 +652,20 @@ def render_general_post_blend_controller(var nod : IAnimBlendNode?; var graph : 
 
 
 [unused_argument(nod, graph, state, context)]
-def render_AnimPostBlendCtrl(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
-  render_general_post_blend_controller(nod, graph, state, context, weight)
+def render_AnimPostBlendCtrl(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
+  if context.drawMode == NodeDrawMode.MINIFIED
+    return
+  render_general_post_blend_controller(nod, graph, state, context)
   imgui::Spacing()
   imgui::Spacing()
   imgui::Text("--- Missing node specific render ---\nThis node has more parameters than displayed")
 
 
-def render_AnimPostBlendSetParam(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimPostBlendSetParam(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
+  if context.drawMode == NodeDrawMode.MINIFIED
+    return
   unsafe
-    render_general_post_blend_controller(nod, graph, state, context, weight)
+    render_general_post_blend_controller(nod, graph, state, context)
     assume node = reinterpret<AnimPostBlendSetParam?> nod
     imgui::Spacing()
     let step = 0.1f
@@ -667,9 +681,11 @@ def render_AnimPostBlendSetParam(var nod : IAnimBlendNode?; var graph : Animatio
     imgui::Text("Is Pull: {node.pullParamValueFromSlot}")
 
 
-def render_AnimPostBlendParamFromNode(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AnimPostBlendParamFromNode(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
+  if context.drawMode == NodeDrawMode.MINIFIED
+    return
   unsafe
-    render_general_post_blend_controller(nod, graph, state, context, weight)
+    render_general_post_blend_controller(nod, graph, state, context)
     assume node = reinterpret<AnimPostBlendParamFromNode?> nod
     imgui::Spacing()
     // draw_param_info(graph, state, node.varId, "varId") // not really useful unless we get underlying inline ptr param
@@ -683,9 +699,11 @@ def render_AnimPostBlendParamFromNode(var nod : IAnimBlendNode?; var graph : Ani
     imgui::Text("invertVal: {node.invertVal}")
 
 
-def render_AttachGeomNodeCtrl(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext; weight : float)
+def render_AttachGeomNodeCtrl(var nod : IAnimBlendNode?; var graph : AnimationGraph; var state : IAnimStateHolder; var context : AnimgraphContext)
+  if context.drawMode == NodeDrawMode.MINIFIED
+    return
   unsafe
-    render_general_post_blend_controller(nod, graph, state, context, weight)
+    render_general_post_blend_controller(nod, graph, state, context)
     assume node = reinterpret<AttachGeomNodeCtrl?> nod
     imgui::Spacing()
     imgui::Text("minNodeScale: {node.minNodeScale}")
@@ -959,7 +977,6 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
   var ctx : AnimgraphContext
   ctx.animchar = unsafe(addr(animchar))
 
-  let paramsWidth = 280f
   imgui::Columns(2, "__params__")
 
   var autoAlign = false
@@ -979,9 +996,12 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
     var bookmarkedStates : array<string>
     var bookmarkedParams : array<string>
     var pbcListShowNodeClass = false
+    var pbcListShowWeight = false
     var pbcListShowActiveOnly = true
     var bnlListShowActiveOnly = true
     var disableAutoAlign = false
+    var paramsWidth = 280f
+    var nodeDrawMode = NodeDrawMode.FULL
 
   static_let_finalize <|
     var skeletonFilter = new ImGuiTextFilter
@@ -1006,10 +1026,15 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
     invoke(load, "animgraph_viewer_bookmarked_states", bookmarkedStates)
     invoke(load, "animgraph_viewer_bookmarked_params", bookmarkedParams)
 
-    // Ideally we could set default width of a column to imgui and it would be saved, but it isn't.
-    // Furthermote column width does not event persist between launches so set this to some sane default (without that it takes up half the window space).
-    // TODO: either make a PR to imgui to allow default column width or possibly save our own value to our config blk after change
+    // ImGui legacy Columns width does not persist between launches, so we store our own value in the imgui config blk.
+    paramsWidth = imgui_get_blk_val("animgraph_viewer", "paramsWidth", paramsWidth)
     imgui::SetColumnWidth(0, paramsWidth)
+
+  let curParamsWidth = imgui::GetColumnWidth(0)
+  if abs(curParamsWidth - paramsWidth) > 0.5
+    paramsWidth = curParamsWidth
+    imgui_set_blk_val("animgraph_viewer", "paramsWidth", paramsWidth)
+    imgui_save_blk()
 
   let graphPtr = intptr(unsafe(addr(graph)))
   if lastGraphPtr != graphPtr
@@ -1047,6 +1072,10 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
   imgui::SameLine()
   focusRoot ||= imgui::Button("Focus root")
   imgui::Checkbox("Disable auto align", safe_addr(disableAutoAlign))
+  var nodeDrawModeIsMinified = nodeDrawMode == NodeDrawMode.MINIFIED
+  autoAlign ||= imgui::Checkbox("Minified node info", safe_addr(nodeDrawModeIsMinified))
+  nodeDrawMode = nodeDrawModeIsMinified ? NodeDrawMode.MINIFIED : NodeDrawMode.FULL
+  ctx.drawMode = nodeDrawMode
 
   var newNodesToCreate : array<tuple<string; int>>
 
@@ -1132,6 +1161,9 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             if isBasicType
               imgui::Text("PF_Paused: {isParamPaused}")
               imgui::Text("PF_Changed: {isParamChanged}")
+            let enumName = get_enum_name_of_parameter_value(graph, state, id)
+            if enumName != ""
+              imgui::Text("Possible Enum: {enumName}")
             imgui::Separator()
             let bookmarkIndex = bookmarkedParams |> find_index(name)
             if bookmarkIndex < 0 && imgui::MenuItem("Bookmark")
@@ -1298,7 +1330,10 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
 
       if imgui::CollapsingHeader("Post Blend Controllers ({length(graph.blender.pbCtrl)})")
         imgui::Checkbox("Show node types##pbc", safe_addr(pbcListShowNodeClass))
+        imgui::Checkbox("Show node weight##pbc", safe_addr(pbcListShowWeight))
         imgui::Checkbox("Show active only##pbc", safe_addr(pbcListShowActiveOnly))
+        let doCopyList = imgui::Button("Copy List To Clipboard")
+        var copyText = ""
         var debugContext = animchar.animcharDebugContext
 
         for i, pbcPtr in range(length(graph.blender.pbCtrl)), graph.blender.pbCtrl
@@ -1308,7 +1343,12 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           let pbc = get(pbcPtr)
           let name = graph |> anim_graph_getBlendNodeName(pbc)
           let className = pbcListShowNodeClass ? " ({*pbc |> anim_blend_node_class_name()})" : ""
-          imgui::Text("{name}{className}{hasWtOverride ? " (weight override)" : ""}")
+          let weightText = pbcListShowWeight ? "(w: {pbc_wt[i]:.2f})" : ""
+          let weightOverrideText = hasWtOverride ? " (weight override)" : ""
+          let text = "{name}{className}{weightOverrideText}{weightText}"
+          imgui::Text(text)
+          if doCopyList
+            copyText += "{text}\n"
           let nodeId = anim_blend_node_getAnimNodeId(*pbc)
           if imgui::BeginPopupContextItem("PostBlendControllersContext##PostBlendControllersContext_{i}")
             if imgui::Selectable("Focus")
@@ -1317,6 +1357,9 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             if imgui::Selectable("Copy name ({name})")
               imgui::SetClipboardText(name)
             imgui::EndPopup()
+
+        if doCopyList
+          imgui::SetClipboardText(copyText)
 
       if imgui::CollapsingHeader("Blend Node Leafs ({length(graph.blender.bnl)})")
         imgui::Checkbox("Show active only##bnl", safe_addr(bnlListShowActiveOnly))
@@ -1358,6 +1401,8 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
         imgui::SameLine()
         if imgui::Button("Clear")
           *animGraphNodesFilter |> Clear()
+          autoAlign = true
+          focusContent = true
 
         var style & = unsafe(imgui_node_editor::GetStyle())
         style.NodeRounding = 0f
@@ -1385,9 +1430,8 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           pbcNodesCount = pbc_wt |> length()
           bnlNodesCount = bnl_wt |> length()
 
-          var weights : array<float>
           var isNodeRendered : array<bool>
-          weights |> reserve(length(nodes))
+          ctx.weights |> reserve(length(nodes))
           isNodeRendered |> reserve(length(nodes))
 
           var newGraphHash = 0
@@ -1400,7 +1444,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
               activeBlendNodesCount += 1
 
             if nodePtr == null
-              weights |> push(weight)
+              ctx.weights |> push(weight)
               continue
 
             if *nodePtr |> anim_blend_node_isSubOf(AnimBlendNodeLeafCID)
@@ -1416,7 +1460,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
                 if weight > 0.0
                   activePbcNodesCount += 1
 
-            weights |> push(weight)
+            ctx.weights |> push(weight)
 
             if weight > 0.0
               newGraphHash ^= node.id * 16777619
@@ -1431,7 +1475,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
             if drawMode != DrawNodesMode.ACTIVE
               var activeNodesCount = 0
               var maxGeneration = 0
-              for idx, w in range(length(weights)), weights
+              for idx, w in range(length(ctx.weights)), ctx.weights
                 var wasActive = false
                 nodesToShow |> get(idx) <| $(var val)
                   wasActive = true
@@ -1451,7 +1495,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
                 var keysToDeleteCount = length(nodesToShow) - activeNodesCount - nodesToShowMaxInactiveCount
                 for genToDelete in range(maxGeneration - 1)
                   for val, key in values(nodesToShow), keys(nodesToShow)
-                    if val.generation <= genToDelete && weights[key] == 0.0
+                    if val.generation <= genToDelete && ctx.weights[key] == 0.0
                       keysToDelete |> push(key)
                       keysToDeleteCount -= 1
 
@@ -1464,7 +1508,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
 
           for idx, node in range(length(nodes)), nodes
             isNodeRendered |> push(false)
-            let weight = weights[idx]
+            let weight = ctx.weights[idx]
             if drawMode == DrawNodesMode.ACTIVE && weight == 0.0
               continue
             if drawMode == DrawNodesMode.ACTIVE_AND_HISTORY && !key_exists(nodesToShow, idx)
@@ -1499,15 +1543,16 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
               imgui::TextUnformatted("(id: {node.id})")
 
               imgui::Spacing()
-
-              imgui::Text(className)
+              if nodeDrawMode == NodeDrawMode.MINIFIED
+                imgui::Text("{className}, Weight: {weight:.2f}")
+              else
+                imgui::Text("{className}, ID: {unsafe(reinterpret<uint64> nodePtr)}")
+                imgui::Text("weight: {weight:.2f}")
 
               var foundRender = false
               for render in renderers
                 if *nodePtr |> anim_blend_node_isSubOf(render._0)
-                  unsafe
-                    imgui::Text("ID: {reinterpret<uint64> nodePtr}")
-                  render._1 |> invoke(nodePtr, graph, state, ctx, weight)
+                  render._1 |> invoke(nodePtr, graph, state, ctx)
                   foundRender = true
                   break
               if !foundRender
@@ -1556,7 +1601,7 @@ def render_anim_graph(var animchar : AnimcharBaseComponent; var reset_state : bo
           for idx, lnk in iter_range(ctx.links), ctx.links
             var color = float4(1, 1, 1, 1)
             if drawMode != DrawNodesMode.ACTIVE
-              let active = weights[get_link_node(lnk.outIdx)] > 0.0 && weights[get_link_node(lnk.inIdx)] > 0.0
+              let active = ctx.weights[get_link_node(lnk.outIdx)] > 0.0 && ctx.weights[get_link_node(lnk.inIdx)] > 0.0
               if active
                 color = float4(0.58, 0.96, 0.23f, 1f)
             imgui_node_editor::Link(idx, lnk.outIdx, lnk.inIdx, color)

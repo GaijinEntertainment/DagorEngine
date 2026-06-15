@@ -57,7 +57,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 32;
+constexpr uint32_t CACHE_FILE_VERSION = 33;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -94,6 +94,7 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 30 - Dual source blending fix
 // 31 - Add useResourceDescriptorHeapIndexing and useSamplerDescriptorHeapIndexing in root signature definitions
 // 32 - Bit packing of root signature definitions
+// 33 - Added isMesh bit to graphics root signature definitions to properly distinguish between regular and mesh root signatures
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)

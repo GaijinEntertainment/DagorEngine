@@ -10,10 +10,13 @@
 namespace bvh::ri
 {
 
+extern vec4f ri_tree_anim_max_distance_sq_v;
 extern bool ri_enable_caching;
 
 using TreeMapper = bvh::ReferencedTransformData &(*)(ContextId context_id, uint64_t object_id, vec4f pos,
   rendinst::riex_handle_t handle, int lod_ix, uint64_t bvh_id, void *user_data, bool &recycled);
+
+inline void set_tree_anim_max_distance(float distance) { ri_tree_anim_max_distance_sq_v = v_splats(distance * distance); }
 
 inline bool is_tree(ContextId context_id, ShaderMesh::RElem &elem)
 {
@@ -43,8 +46,7 @@ struct MapTreePointers
 {
   dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
   dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> newUniqueTreeBuffers;
-  dag::Span<int> treeAnimIndexCount;
-  OSSpinlock *treeAnimIndexCountLock = nullptr;
+  ContextId contextId = nullptr;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
 };
 
@@ -75,14 +77,14 @@ inline ReferencedTransformData *map_tree_base(uint64_t object_id, vec4f pos, ren
     if constexpr (do_animation_index)
     {
       // Assign an anim index, which has the least instances
-      OSSpinlockScopedLock lock(*pointers.treeAnimIndexCountLock);
+      OSSpinlockScopedLock lock(pointers.contextId->treeAnimIndexCountLock);
       int leastIndices = 0;
       for (int i = 1; i < Context::MaxTreeAnimIndices; ++i)
-        if (pointers.treeAnimIndexCount[i] < pointers.treeAnimIndexCount[leastIndices])
+        if (pointers.contextId->treeAnimIndexCount[i] < pointers.contextId->treeAnimIndexCount[leastIndices])
           leastIndices = i;
 
       tree->animIndex = leastIndices;
-      ++pointers.treeAnimIndexCount[leastIndices];
+      ++pointers.contextId->treeAnimIndexCount[leastIndices];
     }
   }
 
@@ -249,7 +251,7 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
 struct TidyUpTreePointers
 {
   dag::Span<eastl::unordered_map<uint64_t, ReferencedTransformDataWithAge>> uniqueTreeBuffers;
-  dag::Span<int> treeAnimIndexCount;
+  ContextId contextId = nullptr;
   eastl::unordered_map<uint64_t, BLASesWithAtomicCursor> *freeUniqueTreeBLASes = nullptr;
 };
 
@@ -282,7 +284,10 @@ inline int tidy_up_trees_base(ContextId context_id, TidyUpTreePointers &pointers
       }
 
       if constexpr (do_animation_index)
-        --pointers.treeAnimIndexCount[iter->second.animIndex];
+      {
+        OSSpinlockScopedLock lock(pointers.contextId->treeAnimIndexCountLock);
+        --pointers.contextId->treeAnimIndexCount[iter->second.animIndex];
+      }
 
       for (auto &elem : iter->second.elems)
       {

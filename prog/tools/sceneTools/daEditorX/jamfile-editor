@@ -199,7 +199,6 @@ UseProgLibs =
   gameLibs/render/wind
   gameLibs/render/nodeBasedShader
   gameLibs/render/fx
-  gameLibs/nodeBasedShaderManager/stub
   engine/daECS/hierarchyTransform
   gameLibs/ecs/rendInst/stub
   engine/daECS/gameResStub

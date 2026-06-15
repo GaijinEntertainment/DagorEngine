@@ -3,6 +3,7 @@
 #include "device.h"
 #include "driver_mutex.h"
 #include "frontend_state.h"
+#include "swapchain.h"
 
 #include <dxgi_utils.h>
 #include <frameStateTM.inc.h>
@@ -51,7 +52,6 @@
 
 #if _TARGET_PC_WIN
 #include <osApiWrappers/dag_progGlobals.h>
-#include <osApiWrappers/dag_winVersionQuery.h>
 #include "debug/global_state.h"
 #include <ska_hash_map/flat_hash_map2.hpp>
 #endif
@@ -62,22 +62,16 @@ GpuLatency *create_gpu_latency_amd(DriverCode driver_code);
 GpuLatency *create_gpu_latency_intel();
 #endif
 
+using namespace drv3d_dx12;
+
 #if _TARGET_PC_WIN
 namespace
 {
 constexpr int min_major_feature_level = 11;
 constexpr int min_minor_feature_level = 0;
 
-enum class SwapchainKind
-{
-  Default,
-  NvidiaDLSSG,
-  AMDFSRFG,
-  IntelXeSSFG,
-};
-
 SwapchainKind determine_swapchain_kind();
-void configure_main_swapchain_factory(SwapchainKind kind, drv3d_dx12::SwapchainCreateInfo &sci);
+void configure_main_swapchain_factory(SwapchainCreateInfo &sci);
 bool rebuild_main_swapchain_for_mode_reset();
 
 D3D_FEATURE_LEVEL make_feature_level(int major, int minor)
@@ -102,7 +96,6 @@ D3D_FEATURE_LEVEL make_feature_level(int major, int minor)
 
 bool check_is_main_thread();
 
-using namespace drv3d_dx12;
 namespace drv3d_dx12
 {
 FrameStateTM g_frameState;
@@ -269,7 +262,6 @@ struct ApiState
 
   dag::Vector<uint8_t> screenCaptureBuffer;
 
-  DriverDesc driverDesc = {};
   char deviceName[eastl::size(DXGI_ADAPTER_DESC1{}.Description)] = {};
   eastl::optional<HDRCapabilities> hdrCaps = {};
   HRESULT lastErrorCode = S_OK;
@@ -285,48 +277,13 @@ struct ApiState
 
   WIN_MEMBER bool windowOcclusionCheckEnabled = false;
 
-  void adjustCaps()
-  {
-    driverDesc.zcmpfunc = 0;
-    driverDesc.acmpfunc = 0;
-    driverDesc.sblend = 0;
-    driverDesc.dblend = 0;
-    driverDesc.mintexw = 1;
-    driverDesc.mintexh = 1;
-    driverDesc.maxtexw = 0x7FFFFFFF;
-    driverDesc.maxtexh = 0x7FFFFFFF;
-    driverDesc.mincubesize = 1;
-    driverDesc.maxcubesize = 0x7FFFFFFF;
-    driverDesc.minvolsize = 1;
-    driverDesc.maxvolsize = 0x7FFFFFFF;
-    driverDesc.maxtexaspect = 0;
-    driverDesc.maxtexcoord = 0x7FFFFFFF;
-    driverDesc.maxsimtex = 0x7FFFFFFF;
-    driverDesc.maxvertexsamplers = 0x7FFFFFFF;
-    driverDesc.maxclipplanes = 0x7FFFFFFF;
-    driverDesc.maxstreams = 0x7FFFFFFF;
-    driverDesc.maxstreamstr = 0x7FFFFFFF;
-    driverDesc.maxvpconsts = 0x7FFFFFFF;
-    driverDesc.maxprims = 0x7FFFFFFF;
-    driverDesc.maxvertind = 0x7FFFFFFF;
-    driverDesc.upixofs = 0.f;
-    driverDesc.vpixofs = 0.f;
-#if _TARGET_PC_WIN
-    driverDesc.shaderModel = 6.6_sm;
-#endif
-    driverDesc.maxSimRT = 0x7FFFFFFF;
-    driverDesc.is20ArbitrarySwizzleAvailable = true;
-
-    device.adjustCaps(driverDesc);
-  }
-
   void releaseAll()
   {
     auto &ctx = device.getContext();
     shaderProgramDatabase.shutdown(ctx);
     ctx.finish();
 
-    device.shutdown(DeviceCapsAndShaderModel::fromDriverDesc(driverDesc));
+    device.shutdown();
 
     deviceName[0] = '\0';
 
@@ -373,6 +330,13 @@ LRESULT CALLBACK drv3d_dx12::WindowState::windowProcProxy(HWND hWnd, UINT messag
     case WM_ACTIVATEAPP:
     {
       toggle_fullscreen(hWnd, message, wParam);
+      break;
+    }
+    case WM_DISPLAYCHANGE:
+    {
+      auto rational = api_state.device.getCurrentDisplayRefreshRate();
+      logdbg("DX12: Display change detected, mode %dx%d, bits per pixel %d, refresh rate %.02f", LOWORD(lParam), HIWORD(lParam),
+        wParam, (float)rational.Numerator / (float)rational.Denominator);
       break;
     }
 #if DX12_REMOVE_DEVICE_HOTKEY
@@ -856,11 +820,12 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   SwapchainCreateInfo sci = {
     .window = reinterpret_cast<HWND>(api_state.windowState.getMainWindow()),
     .presentInterval = get_presentation_interval_from_settings(),
+    .swapchainKind = determine_swapchain_kind(),
   };
   sci.resolution.width = api_state.windowState.settings.resolutionX;
   sci.resolution.height = api_state.windowState.settings.resolutionY;
   set_hdr_config(sci);
-  configure_main_swapchain_factory(determine_swapchain_kind(), sci);
+  configure_main_swapchain_factory(sci);
 
   auto featureLevel = make_feature_level(dxCfg->getInt("FeatureLevelMajor", min_major_feature_level),
     dxCfg->getInt("FeatureLevelMinor", min_minor_feature_level));
@@ -870,7 +835,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     adapter->GetDesc1(&info);
     sci.output = eastl::move(output);
     if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, {eastl::move(adapter), info},
-          featureLevel, eastl::move(sci), deviceCfg, []() { api_state.adjustCaps(); }))
+          featureLevel, eastl::move(sci), deviceCfg))
     {
       size_t converted = 0;
       wcstombs_s(&converted, api_state.deviceName, info.Description, _TRUNCATE);
@@ -954,7 +919,7 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
       wcstombs_s(&converted, strBuffer, adapter.info.Description, _TRUNCATE);
       logdbg("DX12: Trying with device %s", strBuffer);
       if (api_state.device.init(api_state.d3d12Env, api_state.debugState, api_state.dxgiFactory, eastl::move(adapter), featureLevel,
-            eastl::move(sci), deviceCfg, []() { api_state.adjustCaps(); }))
+            eastl::move(sci), deviceCfg))
       {
         memcpy_s(api_state.deviceName, sizeof(api_state.deviceName), strBuffer, converted);
         break;
@@ -982,13 +947,17 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   // update luid to use the same adapter next time
   // const_cast<DataBlock *>(dxCfg)->setInt64("AdpaterLUID", api_state.device.getAdapterLuid());
 
-  api_state.adjustCaps();
-
-  if (api_state.driverDesc.caps.hasBindless)
+  if (api_state.device.getDriverDesc().caps.hasBindless)
     api_state.device.initializeBindlessManager(deviceCfg.features.test(DeviceFeaturesConfig::VALIDATE_BINDLESS_TYPES));
 
   if (api_state.device.isInitialized())
     api_state.shaderProgramDatabase.setup(api_state.device.getContext(), dxCfg->getBool("disablePreCache", false)); //
+
+  if (!videoCfg->getBool("cpuGpuOverlap", true))
+  {
+    logdbg("DX12: CPU-GPU overlap disabled (video/cpuGpuOverlap:b=off), GPU will be synced after every frame");
+    api_state.device.getContext().disableCpuGpuOverlap();
+  }
 
   api_state.isInitialized.video = true;
 
@@ -1050,14 +1019,18 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     return false;
   }
 
-  api_state.adjustCaps();
-
-  if (api_state.driverDesc.caps.hasBindless)
+  if (api_state.device.getDriverDesc().caps.hasBindless)
     api_state.device.initializeBindlessManager(false);
 
   tql::initTexStubs();
 
   api_state.shaderProgramDatabase.setup(api_state.device.getContext(), dxCfg->getBool("disablePreCache", false));
+
+  if (!videoCfg->getBool("cpuGpuOverlap", true))
+  {
+    logdbg("DX12: CPU-GPU overlap disabled (video/cpuGpuOverlap:b=off), GPU will be synced after every frame");
+    api_state.device.getContext().disableCpuGpuOverlap();
+  }
 
   logdbg("DX12: init_video done");
   api_state.isInitialized.video = true;
@@ -1199,7 +1172,7 @@ unsigned d3d::get_dedicated_gpu_memory_system_internal_overhead_kb()
   return actualUsedKb > usedKb ? (actualUsedKb - usedKb) : 0;
 }
 
-const DriverDesc &d3d::get_driver_desc() { return drv3d_dx12::api_state.driverDesc; }
+const DriverDesc &d3d::get_driver_desc() { return drv3d_dx12::api_state.device.getDriverDesc(); }
 
 namespace
 {
@@ -1270,8 +1243,8 @@ int on_driver_command_compile_pipeline_set(void *par1)
   DynamicArray<StaticRenderStateIDWithHash> renderStates;
   if (sets->renderStateSet)
   {
-    renderStates = api_state.device.getRenderStateSystem().loadStaticStatesFromBlk(api_state.device.getContext(), api_state.driverDesc,
-      sets->renderStateSet, defaultFormat);
+    renderStates = api_state.device.getRenderStateSystem().loadStaticStatesFromBlk(api_state.device.getContext(),
+      api_state.device.getDriverDesc(), sets->renderStateSet, defaultFormat);
   }
   if (sets->computeSet || sets->graphicsSet || sets->graphicsNullPixelOverrideSet || sets->graphicsPixelOverrideSet)
   {
@@ -1953,7 +1926,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       {
         ComPtr<IDXGIOutput> activeOutput;
         for (uint32_t outputIndex = 0; SUCCEEDED(adapter->EnumOutputs(outputIndex, &activeOutput)); outputIndex++)
-          monitorList.push_back(get_monitor_name_from_output(activeOutput.Get()));
+          monitorList.push_back(get_name(activeOutput.Get()));
       }
       return 1;
     }
@@ -1983,17 +1956,10 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::GET_VSYNC_REFRESH_RATE:
     {
 #if _TARGET_PC_WIN
-      // for fullscreen with vsync or for windowed mode
-      DXGI_MODE_DESC modeDesc;
-      HRESULT hr = api_state.device.findClosestMatchingMode(&modeDesc);
-      if (SUCCEEDED(hr))
-      {
-        int presentInterval = api_state.device.getContext().getPresentInterval();
-        double vsyncRefreshRate = (double)modeDesc.RefreshRate.Numerator / (double)max(modeDesc.RefreshRate.Denominator, 1u);
-        vsyncRefreshRate /= presentInterval ? presentInterval : 1;
-        *(double *)par1 = *(double *)&vsyncRefreshRate;
-        return 1;
-      }
+      double &outRefreshRate = *reinterpret_cast<double *>(par1);
+      auto rational = api_state.device.getCurrentDisplayRefreshRate();
+      outRefreshRate = (float)rational.Numerator / (float)rational.Denominator;
+      return rational.Numerator ? 1 : 0;
 #elif _TARGET_XBOX
       if (auto freq = api_state.device.getContext().getXboxSwapchainFrequency(); freq > 0)
       {
@@ -2359,10 +2325,11 @@ bool d3d::reset_device()
       sci.resolution.width = api_state.windowState.settings.resolutionX;
       sci.resolution.height = api_state.windowState.settings.resolutionY;
       set_hdr_config(sci);
-      configure_main_swapchain_factory(determine_swapchain_kind(), sci);
+      sci.swapchainKind = determine_swapchain_kind();
+      configure_main_swapchain_factory(sci);
       sci.output = get_output_monitor_by_name_or_default(api_state.dxgiFactory.Get(), displayName);
       api_state.device.recover(api_state.d3d12Env, api_state.dxgiFactory.Get(), eastl::move(adapter), featureLevel, eastl::move(sci),
-        reinterpret_cast<HWND>(api_state.windowState.getMainWindow()), []() { api_state.adjustCaps(); });
+        reinterpret_cast<HWND>(api_state.windowState.getMainWindow()));
     }
     else
     {
@@ -3214,6 +3181,28 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
   api_state.state.setRenderTargets(rt);
   api_state.state.setUpdateViewportFromRenderTarget();
   return true;
+}
+
+// Bulk setter: builds a Driver3dRenderTarget from color span + depth and sets it atomically.
+void d3d::set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  CHECK_MAIN_THREAD();
+  ScopedCommitLock ctxLock{api_state.device.getContext()};
+
+  D3D_CONTRACT_ASSERTF(colors.size() <= Driver3dRenderTarget::MAX_SIMRT, "DX12: too many color render targets: %d, max %d",
+    colors.size(), Driver3dRenderTarget::MAX_SIMRT);
+
+  Driver3dRenderTarget rt;
+  for (int i = 0; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+  {
+    if (colors[i].tex)
+      rt.setColor(i, colors[i].tex, colors[i].mip_level, colors[i].layer);
+  }
+  if (depth.tex)
+    rt.setDepth(depth.tex, depth.layer, depth_access == DepthAccess::SampledRO);
+
+  api_state.state.setRenderTargets(rt);
+  api_state.state.setUpdateViewportFromRenderTarget();
 }
 
 void d3d::get_render_target(Driver3dRenderTarget &out_rt)
@@ -4368,7 +4357,7 @@ APISupport get_dx12_support_status()
   }
   else if (*dllVer < LibraryVersion{10, 0, 18362, 267})
   {
-    logdbg("DX12: Unsupported OS, D3D12.dll's version %u.%u.%u.%u", dllVer->major, dllVer->minor, dllVer->build, dllVer->revision);
+    logdbg("DX12: Unsupported OS, D3D12.dll's version %s", dllVer->toString().c_str());
     return APISupport::OUTDATED_OS;
   }
 
@@ -4395,13 +4384,18 @@ APISupport get_dx12_support_status()
   UINT index = 0;
   ComPtr<DXGIAdapter> adapter;
   APISupport apiSupport = APISupport::NO_DEVICE_FOUND;
-  if (dxgiFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter)) != DXGI_ERROR_NOT_FOUND)
+  if (auto hr = dxgiFactory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, COM_ARGS(&adapter));
+      hr != DXGI_ERROR_NOT_FOUND)
   {
     apiSupport = check_adapter(d3d12Env, featureLevel, gpuCfg, adapter);
     if (apiSupport != APISupport::FULL_SUPPORT)
     {
       logdbg("DX12: No viable device found, DX12 is unavailable!");
     }
+  }
+  else
+  {
+    logdbg("DX12: EnumAdapterByGpuPreference failed, 0x%08X %s", hr, dxgi_error_code_to_string(hr));
   }
 
   return apiSupport;
@@ -5569,10 +5563,10 @@ bool validate_omm_build_info(const ::raytrace::BatchedOpacityMicroMapTriangleArr
   D3D_CONTRACT_ASSERTF(nullptr != info.omm, "DX12: OMM target was nullptr");
   D3D_CONTRACT_ASSERTF(nullptr != info.ommtabi.inputBuffer, "DX12: OMM input buffer can not be nullptr");
   D3D_CONTRACT_ASSERTF(
-    is_aligned_to(info.ommtabi.inputBufferOffset, api_state.driverDesc.raytrace.opacityMicroMapInputBufferAlignment),
+    is_aligned_to(info.ommtabi.inputBufferOffset, api_state.device.getDriverDesc().raytrace.opacityMicroMapInputBufferAlignment),
     "DX12: OMM input buffer offset has to be aligned to the %u byte boundary, exposed by "
     ".raytrace.opacityMicroMapInputBufferAlignment",
-    api_state.driverDesc.raytrace.opacityMicroMapInputBufferAlignment);
+    api_state.device.getDriverDesc().raytrace.opacityMicroMapInputBufferAlignment);
   D3D_CONTRACT_ASSERTF(nullptr != info.ommtabi.inputBuffer, "DX12: OMM description buffer can not be nullptr");
   D3D_CONTRACT_ASSERTF(is_aligned_to(info.ommtabi.perOpacityMicroMapDescriptionsOffset, 4),
     "DX12: OMM description buffer offset has to be aligned to the 4 byte boundary");
@@ -5586,7 +5580,8 @@ bool validate_omm_build_info(const ::raytrace::BatchedOpacityMicroMapTriangleArr
   D3D_CONTRACT_ASSERTF(nullptr != info.ommtabi.scratchSpaceBuffer, "DX12: A scratch buffer has to be provided to the OMM build");
 
   return (nullptr != info.omm) &&
-         is_aligned_to(info.ommtabi.inputBufferOffset, api_state.driverDesc.raytrace.opacityMicroMapInputBufferAlignment) &&
+         is_aligned_to(info.ommtabi.inputBufferOffset,
+           api_state.device.getDriverDesc().raytrace.opacityMicroMapInputBufferAlignment) &&
          (nullptr != info.ommtabi.inputBuffer) && is_aligned_to(info.ommtabi.perOpacityMicroMapDescriptionsOffset, 4) &&
          is_aligned_to(info.ommtabi.perOpacityMicroMapDescriptionsStride, 4) &&
          (!info.ommtabi.compactedSizeOutputBuffer || is_aligned_to(info.ommtabi.compactedSizeOutputBufferOffsetInBytes, 8));
@@ -5660,28 +5655,28 @@ namespace
 
 SwapchainKind determine_swapchain_kind()
 {
-  const DataBlock *video = dgs_get_settings()->getBlockByNameEx("video");
-  if (video->getInt("antialiasing_fgc", 0) >= 1)
+  const DataBlock &video = *dgs_get_settings()->getBlockByNameEx("video");
+  if (video.getInt("antialiasing_fgc", 0) >= 1)
   {
-    if (stricmp(video->getStr("antialiasing_mode", "off"), "dlss") == 0)
+    auto mode = video.getStr("antialiasing_mode", "off");
+    if (stricmp(mode, "dlss") == 0)
       return SwapchainKind::NvidiaDLSSG;
-    else if (stricmp(video->getStr("antialiasing_mode", "off"), "fsr") == 0)
+    else if (stricmp(mode, "fsr") == 0)
       return SwapchainKind::AMDFSRFG;
-    else if (stricmp(video->getStr("antialiasing_mode", "off"), "xess") == 0)
+    else if (stricmp(mode, "xess") == 0)
       return SwapchainKind::IntelXeSSFG;
   }
   return SwapchainKind::Default;
 }
 
-void configure_main_swapchain_factory(SwapchainKind kind, SwapchainCreateInfo &sci)
+void configure_main_swapchain_factory(SwapchainCreateInfo &sci)
 {
-  switch (kind)
+  switch (sci.swapchainKind)
   {
     case SwapchainKind::Default: break;
     case SwapchainKind::NvidiaDLSSG: sci.swapchainFactory = nvidia_dlssg_swapchain_factory; break;
     case SwapchainKind::AMDFSRFG: sci.swapchainFactory = amd_fsrfg_swapchain_factory; break;
     case SwapchainKind::IntelXeSSFG: sci.swapchainFactory = intel_xessfg_swapchain_factory; break;
-    default: D3D_CONTRACT_ASSERTF(false, "Unknown swapchain kind");
   }
 }
 
@@ -5690,12 +5685,13 @@ SwapchainCreateInfo createSci(DXGIFactory *factory)
   SwapchainCreateInfo sci = {
     .window = reinterpret_cast<HWND>(api_state.windowState.getMainWindow()),
     .presentInterval = get_presentation_interval_from_settings(),
+    .swapchainKind = determine_swapchain_kind(),
     .output = get_output_monitor_by_name_or_default(factory, get_monitor_name_from_settings()),
   };
   sci.resolution.width = api_state.windowState.settings.resolutionX;
   sci.resolution.height = api_state.windowState.settings.resolutionY;
   set_hdr_config(sci);
-  configure_main_swapchain_factory(determine_swapchain_kind(), sci);
+  configure_main_swapchain_factory(sci);
   return sci;
 }
 

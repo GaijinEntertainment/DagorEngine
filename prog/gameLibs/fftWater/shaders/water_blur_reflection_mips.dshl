@@ -150,7 +150,7 @@ macro VERTICAL_BLUR_CORE(code)
       float depthAvg = depthAcc / alphaWeight;
       float shadowAvg = shadowAcc / alphaWeight;
 
-      uint depthQOut = (uint)clamp(round(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+      uint depthQOut = (uint)clamp(ceil(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
       uint shadowOut = (uint)clamp(round(shadowAvg), 0.0, (float)REFL_SHADOW_MAX);
 
       result.a = PackReflAlphaFloat(depthQOut, shadowOut);
@@ -198,7 +198,7 @@ shader water_blur_reflection_mips
       {
         result.rgb = lerp(result.rgb, prevTarget.rgb, weight);
         float depth01 = lerp(currAlpha.depth01, prevAlphaDecoded.depth01, weight);
-        uint depthQInterpolated = (uint)clamp(round(depth01 * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+        uint depthQInterpolated = (uint)clamp(ceil(depth01 * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
         result.a = PackReflAlphaFloat(depthQInterpolated, currAlpha.shadow);
       }
 
@@ -261,7 +261,7 @@ macro SIMPLE_GAUSS_CORE(code)
         return result;
       }
 
-      uint depthQOut = (uint)clamp(round(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+      uint depthQOut = (uint)clamp(ceil(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
       uint shadowOut = (uint)clamp(round(shadowAvg), 0.0, (float)REFL_SHADOW_MAX);
       result.a = PackReflAlphaFloat(depthQOut, shadowOut);
       return result;

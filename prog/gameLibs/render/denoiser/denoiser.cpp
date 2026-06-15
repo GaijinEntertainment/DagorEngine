@@ -160,6 +160,7 @@ static int denoiser_half_view_zVarId = -1;
 static int denoiser_half_nrVarId = -1;
 static int denoiser_half_normalsVarId = -1;
 static int denoiser_half_resVarId = -1;
+static int denoiser_camera_attached_radiusVarId = -1;
 
 static int rtao_bindless_slotVarId = -1;
 static int rtsm_bindless_slotVarId = -1;
@@ -315,7 +316,6 @@ struct ReblurSharedConstants
   float2 resolutionScale;
   float2 resolutionScalePrev;
   float2 rectOffset;
-  float2 specProbabilityThresholdsForMvModification;
   float2 jitter;
   uint2 printfAt;
   uint2 rectOrigin;
@@ -686,6 +686,7 @@ void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_rec
   denoiser_half_nrVarId = get_shader_variable_id("denoiser_half_nr");
   denoiser_half_normalsVarId = get_shader_variable_id("denoiser_half_normals");
   denoiser_half_resVarId = get_shader_variable_id("denoiser_half_res");
+  denoiser_camera_attached_radiusVarId = get_shader_variable_id("denoiser_camera_attached_radius");
 
   rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
   rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
@@ -1146,6 +1147,7 @@ void prepare(const FrameParams &params)
   frame_counter++;
 
   ShaderGlobal::set_int(blue_noise_frame_indexVarId, frame_counter);
+  ShaderGlobal::set_float(denoiser_camera_attached_radiusVarId, params.denoiserCameraAttachedRadius);
 
   ShaderGlobal::set_int(ray_reconstruction_activeVarId, resolution_config.useRayReconstruction ? 1 : 0);
 
@@ -1613,7 +1615,6 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.resolutionScale = float2(float(width) / float(res_size.x), float(height) / float(res_size.y));
   reblurSharedConstants.resolutionScalePrev = float2(float(prevWidth) / float(res_size.x), float(prevHeight) / float(res_size.y));
   reblurSharedConstants.rectOffset = float2(0, 0);
-  reblurSharedConstants.specProbabilityThresholdsForMvModification = float2(2.0f, 3.0f);
   reblurSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
 
   // uint2
@@ -2208,10 +2209,9 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_tex(STAGE_CS, 2, reblur_spec_prev_view_z);
     d3d::set_tex(STAGE_CS, 3, rtr_data1);
     d3d::set_tex(STAGE_CS, 4, rtr_data2);
-    d3d::set_tex(STAGE_CS, 5, rtr_data2); // DUMMY
-    d3d::set_tex(STAGE_CS, 6, hitd_pong);
-    d3d::set_tex(STAGE_CS, 7, reblur_spec_history);
-    d3d::set_tex(STAGE_CS, 8, stab_ping);
+    d3d::set_tex(STAGE_CS, 5, hitd_pong);
+    d3d::set_tex(STAGE_CS, 6, reblur_spec_history);
+    d3d::set_tex(STAGE_CS, 7, stab_ping);
     d3d::set_tex(STAGE_CS, 13, motionVectors);
     d3d::set_rwtex(STAGE_CS, 1, reblur_spec_prev_internal_data, 0, 0);
     d3d::set_rwtex(STAGE_CS, 2, rtr_tex, 0, 0);

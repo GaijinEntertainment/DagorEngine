@@ -17,7 +17,8 @@
 #include <render/daFrameGraph/daFG.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
+#include <render/dynmodelRenderer/animCharRenderAdditionalData.h>
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/wrDispatcher.h>
@@ -115,10 +116,10 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
   auto nodeNs = dafg::root() / "transparent" / "far";
 
   return nodeNs.registerNode("dynamic_hair_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().color({"color_target"}).depthRw("depth"); // TODO: ZWrite off, but RW
-                                                                           // allows to avoid depth
-                                                                           // decompression on barrier
-                                                                           // while switch to RO
+    registry.requestRenderPass().color({"color_target"}).depth("depth"); // TODO: ZWrite off, but RW
+                                                                         // allows to avoid depth
+                                                                         // decompression on barrier
+                                                                         // while switch to RO
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_HAIRS);
     registry.allowAsyncPipelines();
 
@@ -144,7 +145,7 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
           ShaderGlobal::set_int(hair_transparent_passVarId, 1);
           ShaderGlobal::set_float(dynamic_hair_atest_valueVarId, hairsAtestValue);
 
-          dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+          dynrend::ContextId ctx = dynrend::get_or_create_context("dynmodel_immediate");
           SmallTab<uint8_t, framemem_allocator> nodeMask;
           nodeMask.resize(dynamic_hair__max_nodes_count);
 
@@ -168,20 +169,17 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
                     nodeMask[nodeId] = (nodeMaskBegin[nodeId] != 0) && !sceneInstance->isNodeHidden(nodeId) ? 0xff : 0;
                 }
 
-                auto filter = dynmodel_renderer::PathFilterView(nodeMask.begin(), nodeCount);
-                state.process_animchar(ShaderMesh::STG_atest, ShaderMesh::STG_atest, sceneInstance, dynRes,
-                  animchar_additional_data::get_null_data(), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
-                  UpdateStageInfoRender::RENDER_MAIN, dynmodel_renderer::RenderPriority::HIGH, nullptr, texCtxHndl.ref());
+                auto filter = dynrend::PathFilterView(nodeMask.begin(), nodeCount);
+                dynrend::add_animchar(ctx, ShaderMesh::STG_atest, ShaderMesh::STG_atest, sceneInstance, dynRes,
+                  animchar_additional_data::get_null_data(), dynrend::NeedPreviousMatrices::No, {}, filter,
+                  UpdateStageInfoRender::RENDER_MAIN, dynrend::RenderPriority::HIGH, nullptr, texCtxHndl.ref());
               });
           }
-          state.prepareForRender();
-          const dynmodel_renderer::DynamicBufferHolder *buffer = state.requestBuffer(dynmodel_renderer::BufferType::OTHER);
-          if (!buffer)
+          if (!dynrend::prepare_render_current(ctx))
             return;
-          state.setVars(buffer->buffer.getBufId());
           SCENE_LAYER_GUARD(dynamicSceneBlockId);
 
-          state.render(buffer->curOffset);
+          dynrend::render_all_stages(ctx);
         });
 
       ShaderGlobal::set_int(hair_transparent_passVarId, 0);

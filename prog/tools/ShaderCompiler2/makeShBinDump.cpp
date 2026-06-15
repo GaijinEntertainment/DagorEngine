@@ -1077,7 +1077,7 @@ static uint32_t compress_data(bindump::VecHolder<uint8_t> &compressed_data, cons
 // shaders binary dump builder
 //
 bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode,
-  BindumpPackingFlags packing_flags, const shc::CompilationContext &ctx)
+  BindumpPackingFlags packing_flags, shc::CompilationContext &ctx)
 {
   int64_t reft;
   String finalReport{};
@@ -1109,6 +1109,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   sh_debug(SHLOG_NORMAL, "[INFO] Loaded linker output in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();
+
+  if (!targetCtx.refinedBlockLayout().empty())
+    targetCtx.refinedBlockLayout().generateStcode();
 
   ShaderTargetStorage &stor = targetCtx.storage();
 
@@ -1206,6 +1209,10 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   bindumphlp::sortShaders(blocks, targetCtx);
 
+  int refined_block_stcode_id = -1;
+  if (!strip_shaders_and_stcode && !targetCtx.refinedBlockLayout().empty())
+    refined_block_stcode_id = add_stcode(targetCtx.refinedBlockLayout().getStcode(), targetCtx);
+
   dag::Vector<int> stcode_type(stor.shadersStcode.size()); // 1 - blk, 2 - shclass blk, 3 -- shclass
   for (int i = 0; i < blocks.size(); i++)
   {
@@ -1245,6 +1252,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
             stcode_type[id] = 3;
         }
   }
+  // Mark refined block stcode as type 1 (block stcode) so it is written to the dump.
+  if (refined_block_stcode_id >= 0)
+    stcode_type[refined_block_stcode_id] = 1;
 
   // prepare new sorted varMap
   for (int i = 0; i < targetCtx.varNameMap().getIdCount(); i++)
@@ -1283,6 +1293,11 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   Tab<int> remapTable(tmpmem);
   bindumphlp::countRefAndRemapGlobalVars(remapTable, stor.shaderClass, varMap, targetCtx);
+
+  if (!targetCtx.refinedBlockLayout().empty())
+  {
+    targetCtx.refinedBlockLayout().link(remapTable);
+  }
 
   bindump::VecHolder<bindump::StrHolder<>> shader_names;
   bindump::VecHolder<bindump::StrHolder<>> blk_names;
@@ -1326,7 +1341,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   int hs_ds_gs_bytes = 0, cs_bytes = 0;
 
   dumpClasses.resize(stor.shaderClass.size());
-  eastl::unordered_map<eastl::string, uint8_t> assumedIntervals;
+  eastl::unordered_map<eastl::string, float> assumedIntervals;
   for (int i = 0; i < stor.shaderClass.size(); i++)
   {
     ::ShaderClass &sc = *stor.shaderClass[i];
@@ -1376,7 +1391,20 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       // Don't have correspond variable for interval
       continue;
     ival.nameId = varMap.xmap[id];
-    ival.maxVal.setCount(value);
+    // We clamp into integers because that is what runtime code expects (we don't store value lists for assumed intervals => we can not
+    // normalize values for them and we must check actual set values, and those may not match even if they are in the same segment of
+    // the range).
+    G_ASSERTF(double(value) >= double(INT_MIN),
+      "ICE: Assumed value %f for interval '%s' is out of quantizable range [%d, %d]. This is almost certainly an implementation error "
+      "in converting the leftmost interval value.",
+      value, name.c_str(), INT_MIN, INT_MAX);
+    G_ASSERTF(double(value) <= double(INT_MAX),
+      "ICE: Assumed value %f for interval '%s' is out of quantizable range [%d, %d]. This is almost certainly an implementation error "
+      "in converting the rightmost interval value.",
+      value, name.c_str(), INT_MIN, INT_MAX);
+    const double truncVal = clamp(double(value), double(INT_MIN), double(INT_MAX));
+    const int quantizedVal = int(round(truncVal));
+    ival.maxVal.setCount(bitwise_cast<uint32_t>(quantizedVal));
     vt.getIntervalId(ival);
   }
 
@@ -1404,6 +1432,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   //
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
   bindump::Master<shader_layout::ScriptedShadersBinDumpV5> shaders_dump;
+  shaders_dump.refinedBlockStcodeId = refined_block_stcode_id;
 
   // write dump header
   shaders_dump_compressed.header.magicPart1 = _MAKE4C('VSPS');
@@ -1859,14 +1888,14 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
     struct CompressionJob : shc::Job
     {
-      bindump::Master<shader_layout::ScriptedShadersBinDumpV4> *outDump;
+      bindump::Master<shader_layout::ScriptedShadersBinDumpV5> *outDump;
       dag::ConstSpan<uint32_t> src;
       ZSTD_CDict_s *dict;
       dag::ConstSpan<ZSTD_CCtx_s *> contexts;
       int compressionLevel;
       int id;
 
-      CompressionJob(bindump::Master<shader_layout::ScriptedShadersBinDumpV4> &out_dump, dag::ConstSpan<uint32_t> src,
+      CompressionJob(bindump::Master<shader_layout::ScriptedShadersBinDumpV5> &out_dump, dag::ConstSpan<uint32_t> src,
         ZSTD_CDict_s &dict, dag::ConstSpan<ZSTD_CCtx_s *> contexts, int compression_level, int i) :
         outDump{&out_dump}, src{src}, dict{&dict}, contexts{contexts}, compressionLevel{compression_level}, id{i}
       {}

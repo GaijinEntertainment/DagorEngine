@@ -44,7 +44,7 @@ static void validate_local_debug_mode_assume(const auto &stat, Parser &parser)
 
 // Record an assumed-interval entry for the per-shader-class table that feeds the bindump.
 // The bindump aggregates these into a single TYPE_ASSUMED_INTERVAL entry per name (last write wins).
-static void record_assumed_interval(shc::ShaderContext &ctx, const char *name, uint8_t value)
+static void record_assumed_interval(shc::ShaderContext &ctx, const char *name, float value)
 {
   auto &dst = ctx.compiledShader().assumedIntervals.emplace_back();
   dst.name = bindump::string{name};
@@ -185,7 +185,14 @@ ShVarBool GatherVarShaderEvalCB::addIntervalRef(const char *intervalName, Termin
       default: G_ASSERT(0);
     }
 
-    record_assumed_interval(ctx, intervalName, uint8_t(*valueMaybe));
+    float valueToRecord = *valueMaybe;
+    const auto bounds = interv->getValueRange(valtype);
+    if (bounds.getMin() <= IntervalValue::VALUE_NEG_INFINITY + FLT_EPSILON)
+      valueToRecord = bounds.getMax() - 1.f;
+    else if (bounds.getMax() >= IntervalValue::VALUE_INFINITY - FLT_EPSILON)
+      valueToRecord = bounds.getMin();
+
+    record_assumed_interval(ctx, intervalName, valueToRecord);
 
     String error_msg;
     bool bool_result = interv->checkExpression(valtype, expr, e->interval_value->text, error_msg, ctx.tgtCtx());
@@ -231,7 +238,7 @@ ShVarBool GatherVarShaderEvalCB::addTextureIntervalRef(const char *textureName, 
     if (auto valueMaybe = ctx.assumes().getAssumedVal(textureNameId, isGlobal))
     {
       float value = *valueMaybe;
-      record_assumed_interval(ctx, textureName, (value < 1.0f) ? 0 : 1);
+      record_assumed_interval(ctx, textureName, (value < 1.0f) ? 0.f : 1.f);
       switch (e.cmpop->op->num)
       {
         case SHADER_TOKENS::SHTOK_eq: return ShVarBool(value < 1, true);
@@ -488,6 +495,8 @@ void GatherVarShaderEvalCB::eval_else(bool_expr &e)
 
 void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
 #if _CROSS_TARGET_DX12
   eastl::string hlsl;
   for (auto name : s.name)
@@ -514,6 +523,9 @@ void GatherVarShaderEvalCB::eval_supports(supports_stat &s)
 
 void GatherVarShaderEvalCB::eval(immediate_const_block &s)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
   int words = semutils::int_number(s.count->text);
   if (words <= 0)
     return;
@@ -586,6 +598,9 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
 
 void GatherVarShaderEvalCB::eval_hlsl_decl(hlsl_local_decl_class &sh)
 {
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
   if (!semantic::validate_hardcoded_regs_in_hlsl_block(sh.text))
     return;
 

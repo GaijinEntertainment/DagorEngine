@@ -12,6 +12,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstAccess.h>
+#include <rendInst/rendInstGen.h>
 #include <EASTL/string.h>
 
 namespace rendinst
@@ -38,6 +39,20 @@ struct obstacle_settings_t
   int logNumAddedObstacles = 0;
 };
 bool load_obstacle_settings(const char *obstacle_settings_path, rendinst::obstacle_settings_t &obstacle_settings);
+
+inline BBox3 get_ri_extra_obstacle_bbox(const rendinst::RendInstDesc &desc)
+{
+  if (desc.isRiExtra())
+  {
+    if (const CollisionResource *collRes = rendinst::getRIGenExtraCollRes(desc.pool))
+    {
+      BBox3 box;
+      v_stu_bbox3(box, collRes->vFullBBox);
+      return box;
+    }
+  }
+  return rendinst::getRIGenBBox(desc);
+}
 
 struct RendinstVertexDataCbBase : public rendinst::RendInstCollisionCB
 {

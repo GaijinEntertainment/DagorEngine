@@ -39,7 +39,7 @@ bool DaStars::setMoonResourceName(const char *res_name)
   if (!moonTex2)
     return false;
   resetMoonResourceName();
-  moonTex = SharedTexHolder(eastl::move(moonTex2), "stars_moon_tex");
+  moonTex = SharedTexWithShaderVar(eastl::move(moonTex2), "stars_moon_tex");
   ShaderGlobal::set_sampler(get_shader_variable_id("stars_moon_tex_samplerstate", true),
     get_texture_separate_sampler(moonTex.getTexId()));
   return true;

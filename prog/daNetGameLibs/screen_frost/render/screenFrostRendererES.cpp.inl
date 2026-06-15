@@ -14,7 +14,7 @@
 template <typename Callable>
 static void screen_frost_renderer_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
-static void set_texture_resolution_var(const SharedTexHolder &texture, const char *texture_resolution_var)
+static void set_texture_resolution_var(const SharedTexWithShaderVar &texture, const char *texture_resolution_var)
 {
   if (texture)
   {
@@ -29,7 +29,7 @@ ECS_TAG(render)
 static void screen_frost_renderer_init_es_event_handler(const BeforeLoadLevel &, ecs::EntityManager &manager)
 {
   screen_frost_renderer_ecs_query(manager, manager.getOrCreateSingletonEntity(ECS_HASH("screen_frost_renderer")),
-    [](const SharedTexHolder &frost_tex, const SharedTexHolder &corruption_tex) {
+    [](const SharedTexWithShaderVar &frost_tex, const SharedTexWithShaderVar &corruption_tex) {
       set_texture_resolution_var(frost_tex, "screen_frost_tile_resolution");
       set_texture_resolution_var(corruption_tex, "screen_corruption_tile_resolution");
     });

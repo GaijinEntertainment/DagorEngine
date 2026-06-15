@@ -182,26 +182,17 @@ void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, c
   Point3_vec4 viewPos;
   v_st(&viewPos.x, vp);
   TIME_D3D_PROFILE(strm_heightmap);
-  float camera_height = 4.0f, hmin = 0, htb = 0;
-  if (heightmap.heightmapHeightCulling)
-  {
-    int lod = floorf(heightmap.heightmapHeightCulling->getLod(128.f));
-    heightmap.heightmapHeightCulling->getMinMaxInterpolated(lod, Point2::xz(viewPos), hmin, htb);
-    camera_height = max(camera_height, viewPos.y - htb);
-  }
-
   DA_PROFILE_GPU;
 
-  camera_height = 0;
   heightmap.makeBookKeeping();
   heightmap.setVars();
-  if (heightmap.prepare(viewPos, camera_height, hmap_water_level))
+  if (heightmap.prepare(viewPos))
   {
     LodGridCullData cullData;
     HeightmapMetricsQuality mq = {proj_to_distance_scale(proj)};
     if (mq.distanceScale == 0)
       mq.maxRelativeTexelTess = -4;
-    HeightmapFrustumCullingInfo fi{viewPos, camera_height, 0, frustum, NULL, NULL, 0, 0, 1, mq};
+    HeightmapFrustumCullingInfo fi{viewPos, frustum, NULL, NULL, true, mq};
     heightmap.frustumCulling(cullData, fi); // Independent from prepare for multithreading.
     heightmap.renderCulled(cullData);
   }

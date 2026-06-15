@@ -31,16 +31,28 @@ bool d3d::update_bindless_resource(D3DResourceType range_type, uint32_t index, D
   return render.updateBindlessResource(range_type, index, res);
 }
 
-// TODO: Fully implemepent in driver bindless resource range support
 void d3d::update_bindless_resource_range(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *>& resources)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(d3d::get_driver_desc().caps.hasBindless, , "Bindless resources are not supported on this hardware");
+
   for (uint32_t i = 0; i < resources.size(); ++i)
   {
     if (resources[i])
-      update_bindless_resource(type, index + i, resources[i]);
-    else
-      update_bindless_resources_to_null(type, index + i, 1);
+    {
+      D3D_CONTRACT_ASSERTF(resources[i]->getType() == type, "Bindless resource '%s' has wrong type for batch update",
+        resources[i]->getName());
+    }
   }
+
+  render.acquireOwnership();
+  for (uint32_t i = 0; i < resources.size(); ++i)
+  {
+    if (resources[i])
+      render.updateBindlessResource(type, index + i, resources[i]);
+    else
+      render.updateBindlessResourcesToNull(type, index + i, 1);
+  }
+  render.releaseOwnership();
 }
 
 void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, dag::StridedConstSpan<D3dResource *> resources,

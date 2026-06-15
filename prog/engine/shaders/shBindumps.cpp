@@ -184,6 +184,7 @@ bool ScriptedShadersBinDumpOwner::linkAgaistGlobalData(ScriptedShadersGlobalData
         case SHCOD_GET_GINT:
         case SHCOD_GET_GINT_TOREAL:
         case SHCOD_GET_GIVEC_TOREAL:
+        case SHCOD_GET_GIVEC:
         {
           uint32_t const ro = shaderopcode::getOp2p1(opc);
           uint32_t const index = shaderopcode::getOp2p2(opc);

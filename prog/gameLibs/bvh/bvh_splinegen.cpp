@@ -55,6 +55,7 @@ static void add_splinegen_instance_to_list(ContextId context_id, uint64_t bvh_ob
 void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
   uint32_t instance_vertex_count, uint32_t &bvh_id)
 {
+  Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
   if (!context_id->has(Features::Splinegen))
     return;
 
@@ -78,6 +79,7 @@ void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<east
 
 void update_instances(ContextId context_id, const Point3 &view_pos)
 {
+  Context::BvhObjectReadLock objectsGuard(context_id->objectsLock);
   if (!context_id->has(Features::Splinegen))
     return;
 

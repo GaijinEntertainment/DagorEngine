@@ -18,12 +18,15 @@ SQClass::SQClass(SQSharedState *ss, SQClass *base) :
     _base = base;
     _typetag = 0;
     _hook = NULL;
+    _markhook = NULL;
     _udsize = 0;
     _constructoridx = -1;
     _lockedTypeId = 0;
     _is_builtin_type = false;
     _builtin_type_id = OT_NULL;
     if(_base) {
+        // inherited (unlike _hook): a subclass instance carries the base's _userpointer payload
+        _markhook = _base->_markhook;
         _constructoridx = _base->_constructoridx;
         _udsize = _base->_udsize;
         _defaultvalues.copy(base->_defaultvalues);

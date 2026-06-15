@@ -54,6 +54,7 @@ rule ProcessCompileTarget
     } else {
       _CONFIG_OPT += -flto=$(UseWholeOpt) ;
     }
+    _CONFIG_OPT += -DDAS_STRICT_ALIASING ;
   }
 
   _CONFIG_OPT += /FS ;         # Force Synchronous PDB Writes.

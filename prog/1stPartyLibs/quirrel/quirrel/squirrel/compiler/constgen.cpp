@@ -1,5 +1,4 @@
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include <stdarg.h>
 #include "opcodes.h"
 #include "sqstring.h"
@@ -435,5 +434,3 @@ void ConstGenVisitor::visitFunctionExpr(FunctionExpr *funcExpr)
 }
 
 }
-
-#endif

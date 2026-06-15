@@ -693,13 +693,19 @@ public:
       if (IRandomSeedHolder *irsh = entity->queryInterface<IRandomSeedHolder>())
         irsh->setPerInstanceSeed(auto_inst_seed0);
 
-      fillPluginPanel();
+      if (getPluginPanel() == nullptr)
+        postFillPropPanel();
+      else
+        fillPluginPanel();
     }
     else if (riex.res)
     {
       if (ILodController *iLodCtrl = riex.vEntity->queryInterface<ILodController>())
         iLodCtrl->setCurLod(-1);
-      fillPluginPanel();
+      if (getPluginPanel() == nullptr)
+        postFillPropPanel();
+      else
+        fillPluginPanel();
     }
 
     if (showImguiAnimTree)

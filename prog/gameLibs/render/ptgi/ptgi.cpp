@@ -45,7 +45,6 @@ static bool decode_tonemap = true;
 
 static int inv_proj_tmVarId = -1;
 static int ptgi_targetVarId = -1;
-static int ptgi_resolutionVarId = -1;
 static int ptgi_resolutionIVarId = -1;
 static int ptgi_uv_maxVarId = -1;
 static int ptgi_uv_scaleVarId = -1;
@@ -107,7 +106,6 @@ void initialize(bool half_res)
 
   inv_proj_tmVarId = get_shader_variable_id("inv_proj_tm");
   ptgi_targetVarId = get_shader_variable_id("ptgi_target");
-  ptgi_resolutionVarId = get_shader_variable_id("ptgi_resolution");
   ptgi_resolutionIVarId = get_shader_variable_id("ptgi_resolutionI");
   ptgi_uv_maxVarId = get_shader_variable_id("ptgi_uv_max");
   ptgi_uv_scaleVarId = get_shader_variable_id("ptgi_uv_scale");
@@ -197,7 +195,6 @@ void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *depth, 
   ShaderGlobal::set_texture(ptgi_targetVarId, gi_value->second);
   ShaderGlobal::set_texture(rt_nrVarId, denoiser::resolution_config.ptgi.isHalfRes ? normal_roughness->second : nullptr);
 
-  ShaderGlobal::set_float4(ptgi_resolutionVarId, resolution.x, resolution.y, 0, 0);
   ShaderGlobal::set_int4(ptgi_resolutionIVarId, resolution.x, resolution.y, 0, 0);
   Point2 uvMax = Point2(1, 1);
   Point2 uvScale = Point2(1, 1);

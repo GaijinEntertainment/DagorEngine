@@ -46,8 +46,6 @@ macro RT_GLASS_APPLY_BASE(stage, transparent_target, transparent_depth)
 
       half3 AdaptiveSampleRTReflection(float2 pos)
       {
-        uint2 dim;
-        rt_glass_gbuffer.GetDimensions(dim.x, dim.y);
         float2 texSize = rt_glass_gbuffer_dim.xy;
         float2 invSize = rt_glass_gbuffer_dim.zw;
         half2 halfInvSize = 0.5 * invSize.xy;
@@ -80,6 +78,15 @@ macro RT_GLASS_APPLY_BASE(stage, transparent_target, transparent_depth)
         float2 maxDXDY = fwidth(pos);
         half weight = saturate(max(maxDXDY.x * texSize.x, maxDXDY.y * texSize.y));
         return lerp(rgbyA, centerTap, weight).rgb;
+      }
+
+      // RT compute writes alpha=1 when a glass normal was present in the transparent gbuffer,
+      // and 0 when the pixel had no normal (depth<=0) or no BVH. Use it as a validity bit so
+      // the apply pass can fall back to raster reflection when RT had no normal to reflect off.
+      half SampleRTReflectionValidity(float2 pos)
+      {
+        int2 texelCoord = int2(pos * rt_glass_gbuffer_dim.xy);
+        return texelFetch(rt_glass_gbuffer, texelCoord, 0).a;
       }
 
       float GetShadowFromRTSM(uint2 tci, float w)

@@ -306,12 +306,12 @@ function mainToolbar() {
           toolbarButton(svg("hide"), @() get_instance()?.hideSelectedTemplate(), "Hide")
           toolbarButton(svg("show"), @() get_instance()?.unhideAll(), "Unhide all")
           separator
-          toolbarButton(svg("gui_toggle"), @() showUIinEditor.set(!showUIinEditor.get()), "Show UI", showUIinEditor.get())
+          toolbarButton(svg("gui_toggle"), @() showUIinEditor.set(!showUIinEditor.get()), "Show UI", showUIinEditor)
           @() {watch = editorTimeStop children = toolbarButton(svg("time_toggle"), toggleTime, "Toggle time (Ctrl+T)", !editorTimeStop.get())}
           separator
           toolbarButton(svg("save"), save, "Save")
           @() { watch = hasNewLogerr children = toolbarButton(svg("logs"), toggleLogsWindows, "Show errors (Ctrl+L)", isVisibleLogsWnd, hasNewLogerr.get() ? { defColor=Color(251,78,58,250) } : {})}
-          toolbarButton(svg("help"), toggleHelp, "Help (F1)", showHelp.get())
+          toolbarButton(svg("help"), toggleHelp, "Help (F1)", showHelp)
 
           de4workModes.get().len() <= 1 ? null : separator
           de4workModes.get().len() <= 1 ? null : {

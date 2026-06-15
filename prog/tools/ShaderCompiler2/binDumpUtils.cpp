@@ -113,6 +113,7 @@ static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx
         case SHCOD_G_TM:
         case SHCOD_FSH_CONST:
         case SHCOD_VPR_CONST:
+        case SHCOD_SET_CONST_PACKED:
         case SHCOD_CS_CONST:
         case SHCOD_TEXTURE:
         case SHCOD_TEXTURE_VS:
@@ -163,6 +164,7 @@ static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx
         case SHCOD_GET_GINT:
         case SHCOD_GET_GINT_TOREAL:
         case SHCOD_GET_GIVEC_TOREAL:
+        case SHCOD_GET_GIVEC:
         case SHCOD_GET_GREAL:
         case SHCOD_GET_GTEX:
         case SHCOD_GET_GBUF:
@@ -210,6 +212,7 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
       case SHCOD_G_TM:
       case SHCOD_FSH_CONST:
       case SHCOD_VPR_CONST:
+      case SHCOD_SET_CONST_PACKED:
       case SHCOD_REG_BINDLESS:
       case SHCOD_CS_CONST:
       case SHCOD_TEXTURE:
@@ -276,6 +279,7 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
       case SHCOD_GET_GINT:
       case SHCOD_GET_GINT_TOREAL:
       case SHCOD_GET_GIVEC_TOREAL:
+      case SHCOD_GET_GIVEC:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GTEX:
       case SHCOD_GET_GBUF:

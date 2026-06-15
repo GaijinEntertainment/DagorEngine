@@ -21,7 +21,7 @@ function nameFilter(watched_text, params) {
       return false
     if (stateFlags.get() & S_KB_FOCUS)
       return true
-    return watched_text.get().len() > 0
+    return (watched_text.get() ?? "").len() > 0
   }
 
   return @() {
@@ -54,7 +54,7 @@ function nameFilter(watched_text, params) {
           onAttach = params?.onAttach
           onElemState = @(sf) stateFlags.set(sf)
 
-          children = watched_text.get().len() ? null : placeholder
+          children = (watched_text.get() ?? "").len() ? null : placeholder
         }
         canClear() ? {
           rendObj = ROBJ_TEXT

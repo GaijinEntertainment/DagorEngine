@@ -489,7 +489,15 @@ bool dacoll::trace_game_objects(const Point3 &from, const Point3 &dir, float &t,
 {
   if (!trace_game_objs_cb)
     return false;
-  return trace_game_objs_cb(from, dir, t, out_vel, ignore_game_obj_id, ray_mat_id);
+  return trace_game_objs_cb(from, dir, t, out_vel, ignore_game_obj_id, ray_mat_id, main_grid_types_span);
+}
+
+bool dacoll::trace_game_objects_with_grid_filter(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel,
+  int ignore_game_obj_id, int ray_mat_id, const dag::ConstSpan<uint32_t> grid_types)
+{
+  if (!trace_game_objs_cb)
+    return false;
+  return trace_game_objs_cb(from, dir, t, out_vel, ignore_game_obj_id, ray_mat_id, grid_types);
 }
 
 bool dacoll::trace_sphere_cast_ex(const Point3 &from, const Point3 &to, float rad, int num_casts, dacoll::ShapeQueryOutput &out,

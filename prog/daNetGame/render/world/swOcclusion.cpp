@@ -7,6 +7,8 @@
 #include <math/integer/dag_IPoint2.h>
 #include <perfMon/dag_statDrv.h>
 #include <render/world/occlusionLandMeshManager.h>
+#include <render/world/cameraInCamera.h>
+#include <render/world/wrDispatcher.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstGen.h>
 #include <scene/dag_occlusion.h>
@@ -37,4 +39,16 @@ void add_sw_rasterization_tasks(rendinst::RIOcclusionData &od,
     v_mat44_mul43(worldviewproj, globtm, ritm);
     CollisionGeometryFeeder::addRasterizationTasks(*collRes, worldviewproj, tasks, partition, /*allow_convex*/ true);
   }
+}
+
+
+void add_occlusion_mask_tasks(OcclusionMaskApplier &occlusionMaskApplier, const bool is_sub_view)
+{
+  if (!is_sub_view)
+    return;
+
+  const CameraParams &world_view = WRDispatcher::getCurrentCameraParams();
+  const auto occlusionMaskinTask = camera_in_camera::get_near_plane_masking_task(world_view);
+  if (occlusionMaskinTask.isValid())
+    occlusionMaskApplier.scheduleTask(occlusionMaskinTask);
 }

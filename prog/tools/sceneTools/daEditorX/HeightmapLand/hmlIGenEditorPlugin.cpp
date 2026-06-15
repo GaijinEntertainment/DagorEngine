@@ -3440,6 +3440,7 @@ void HmapLandPlugin::eraseHeightmap()
   if (wingw::message_box(wingw::MBS_QUEST | wingw::MBS_YESNO, "Confirm erase", "Erase heightmap?") == wingw::MB_ID_YES)
   {
     heightMap.clear();
+    heightMap.closeFile(true);
     landMeshMap.clear(true);
     // lightMapScaled / landClsMap / colorMap / detTex* are RAM-only; wipe
     // their contents so the next generateLandColors / calcFastLandLighting
@@ -3706,11 +3707,13 @@ void HmapLandPlugin::exportLoftMasks(const char *_out_folder, int main_hmap_sz, 
   iterate_names(loft_tags, gather_layer_func);
   dagGeom->deleteGeomObject(all_loft_obj);
   dagGeom->deleteGeomObject(all_prefab_obj);
-  wingw::message_box(layers_exported ? wingw::MBS_INFO : wingw::MBS_EXCL, "Loft masks exported",
-    (lastExpLoftUseRect[0] || lastExpLoftUseRect[1]) && lastExpLoftCreateAreaSubfolders
-      ? String(0, "Exported %d loft masks (stage:i=2) to\n\n%s\n%s", layers_exported, main_hmap_sz > 0 ? out_folder[0].str() : "",
-          det_hmap_sz > 0 ? out_folder[1].str() : "")
-      : String(0, "Exported %d loft masks (stage:i=2) to\n  %s", layers_exported, _out_folder));
+  const char *plural = layers_exported == 1 ? "" : "s";
+  String msg = (lastExpLoftUseRect[0] || lastExpLoftUseRect[1]) && lastExpLoftCreateAreaSubfolders
+                 ? String(0, "%d loft mask%s exported\nPath (main): %s\nPath (det): %s", layers_exported, plural,
+                     main_hmap_sz > 0 ? out_folder[0].str() : "", det_hmap_sz > 0 ? out_folder[1].str() : "")
+                 : String(0, "%d loft mask%s exported\nPath: %s", layers_exported, plural, _out_folder);
+
+  DAEDITOR3.showToast(layers_exported ? PropPanel::ToastType::Success : PropPanel::ToastType::Alert, msg);
 }
 
 void HmapLandPlugin::exportHeightmap(bool export_detailed)
@@ -4858,6 +4861,7 @@ void HmapLandPlugin::loadObjects(const DataBlock &blk, const DataBlock &local_da
   meshCells = blk.getInt("meshCells", meshCells);
   meshErrorThreshold = blk.getReal("meshErrorThreshold", meshErrorThreshold);
   numMeshVertices = blk.getInt("numMeshVertices", numMeshVertices);
+  riMinCellSz = blk.getReal("riMinCellSz", riMinCellSz);
   riMaxCellSz = blk.getReal("riMaxCellSz", riMaxCellSz);
   riMaxGenLayerCellDivisor = blk.getInt("riMaxGenLayerCellDiv", riMaxGenLayerCellDivisor);
 
@@ -6125,6 +6129,8 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
   blk.setInt("lod1TrisDensity", lod1TrisDensity);
   blk.setReal("importanceMaskScale", importanceMaskScale);
   blk.setBool("geomLoftBelowAll", geomLoftBelowAll);
+  if (riMinCellSz > 0)
+    blk.setReal("riMinCellSz", riMinCellSz);
   blk.setReal("riMaxCellSz", riMaxCellSz);
   blk.setInt("riMaxGenLayerCellDiv", riMaxGenLayerCellDivisor);
 
@@ -6457,7 +6463,6 @@ void HmapLandPlugin::saveObjects(DataBlock &blk, DataBlock &local_data, const ch
         levelBlk.removeBlock("grass");
         levelBlk.saveToTextFile(levelBlkFName.c_str());
       }
-      wingw::message_box(wingw::MBS_EXCL, "Warning", "Grass is disabled, properties will not be saved to level blk");
     }
   }
   DataBlock *detail2ColorBlk = blk.addBlock("rendinstDetail2Color");

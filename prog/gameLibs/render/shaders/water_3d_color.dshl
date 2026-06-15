@@ -214,6 +214,7 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       GradientsData surfaceAttributes;
 ##endif
       ShoreData shoreData;
+      float waterHeight;
 
 ##if has_water_flowmap && chop_water_enabled == no
       float3 worldPos_a, worldPos_b;
@@ -384,16 +385,15 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       vd.perlinSpotInfluence = perlinSpotInfluence;
 #endif
       vd.shoreData = shoreData;
+      vd.waterHeight = water_level_max_wave_height.x;
+      get_water_height(vd.worldPos.xz, vd.waterHeight);
 
       ##if water_heightmap_pages != NULL
         BRANCH
-        if (vd.shoreData.landHeight > 0)
+        if (shore_distance_field_tex_exists && vd.shoreData.landHeight > 0)
         {
-          float waterHeight = water_level_max_wave_height.x;
-          get_water_height(vd.worldPos.xz, waterHeight);
-          const float EPS = 0.0001;
           BRANCH
-          if (vd.worldPos.y - EPS > waterHeight + water_level_max_wave_height.y)
+          if (vd.worldPos.y > vd.waterHeight + water_level_max_wave_height.y)
             discard;
         }
       ##endif
@@ -472,10 +472,15 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 
       // Apply rain
       float rainRipplesStrength = getRainRipplesStrength(vd.worldPos);
+      ##if water_heightmap_pages != NULL
+        float3 geometryNormal = normalize(cross(input.bitangent, input.tangent));
+        rainRipplesStrength *= water_rain_ripples_slope_fade(geometryNormal.y);
+      ##endif
+
       apply_rain_ripples_water(vd.worldPos, vd.dist, rainRipplesStrength, vd.worldNormal);
 
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(input.tangent, cross(input.bitangent, input.tangent), input.bitangent);
+        float3x3 tangentSpace = float3x3(input.tangent, geometryNormal, input.bitangent);
         vd.worldNormal = mul(vd.worldNormal, tangentSpace);
       ##endif
 

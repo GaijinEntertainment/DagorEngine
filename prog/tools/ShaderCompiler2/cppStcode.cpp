@@ -651,7 +651,7 @@ static eastl::string get_cwd()
 static auto split_by_lowest_dir(const char *path, size_t path_len)
 {
   const char *p = strchr(path, '/');
-  return p ? eastl::make_pair(eastl::string{path, size_t(p - path + 1)}, eastl::string{p + 1, path_len - (path - p) - 1})
+  return p ? eastl::make_pair(eastl::string{path, size_t(p - path + 1)}, eastl::string{p + 1, path_len - (p - path) - 1})
            : eastl::make_pair(eastl::string{}, eastl::string{path, path_len});
 }
 
@@ -934,6 +934,8 @@ dag::Expected<Tab<proc::ProcessTask>, StcodeMakeTaskError> make_stcode_compilati
 
     // Verify that hashes don't collide w/ an on-disk table
     auto targetHashTablePath = rootRelPath + "/" + baseDir + "stcode_pathes_table.blk";
+    if (!versionsMatch) // The version also encompasses changes in hashing policy, so the table may have become stale
+      dd_erase(targetHashTablePath.c_str());
     DataBlock hashedPathesTable{};
     hashedPathesTable.load(targetHashTablePath.c_str()); // Ok to fail here -- then we just create.
     if (int id = hashedPathesTable.findParam(targetHashedRelPath.c_str()); id != -1)

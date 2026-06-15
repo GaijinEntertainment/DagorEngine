@@ -7,7 +7,11 @@
 #include <cfloat>
 #include <vecmath/dag_vecMath.h>
 
-#define KNOWN_BROKEN() (defined(__GNUC__) && (__GNUC__ == 13 || __GNUC__ == 14))
+#if defined(__GNUC__) && __GNUC__ >= 13 && __GNUC__ <= 15
+#define KNOWN_BROKEN() 1
+#else
+#define KNOWN_BROKEN() 0
+#endif
 
 static bool verify_impl(bool cond, const char *error_text, const char *text_cond)
 {

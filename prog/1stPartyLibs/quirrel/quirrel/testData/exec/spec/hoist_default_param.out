@@ -1,0 +1,4 @@
+loop=3
+dead=0
+alloc=1,2,1
+literal=5,5,5

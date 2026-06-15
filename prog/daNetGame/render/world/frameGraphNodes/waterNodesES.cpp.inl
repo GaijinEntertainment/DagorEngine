@@ -178,8 +178,8 @@ eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode
       const uint32_t modeIdx = eastl::to_underlying(mode);
       const uint32_t depthFormat = get_gbuffer_depth_format(hasStencil);
 
-      registry.requestRenderPass().depthRw(registry.create(WATER_RT_DEPTH_TEX[modeIdx])
-                                             .texture({depthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view", 1.0f)}));
+      registry.requestRenderPass().depth(registry.create(WATER_RT_DEPTH_TEX[modeIdx])
+                                           .texture({depthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view", 1.0f)}));
 
       auto waterModeHndl = registry.readBlob<WaterRenderMode>("water_render_mode").handle();
 

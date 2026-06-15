@@ -120,7 +120,8 @@ if is_rosa_linux:
 elif is_altlinux:
   pkg_install_cmd = 'apt-get install'
   pkg_to_install += ['python3-module-pip', 'clang21.1', 'libclang21', 'libasan-devel-static']
-  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libfltk-devel', 'libxkbfile-devel', 'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel']
+  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libXcursor-devel', 'libfltk-devel', 'libxkbfile-devel', 'libxkbcommon-devel',
+                     'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel']
 elif is_elbrus_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install  = ['python3-pip']

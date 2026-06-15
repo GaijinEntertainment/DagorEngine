@@ -233,6 +233,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   threadpool::JobPriority prio = threadpool::PRIO_DEFAULT;
   dag::AtomicInteger<unsigned> chunkBudgetItems = 0;
   bool hitChunkBudget = false;
+  bool globalObjectTessellationEnabled = false;
 
   int fetchNextGroupIx() { return nextGroupIx->fetch_add(1); }
 
@@ -253,7 +254,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
     pointers.uniqueTreeBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
     pointers.newUniqueTreeBuffers =
       make_span(static_cast<RiExtraBVHJob *>(user_data)->newUniqueRiExtraTreeBuffers, Context::maxUniqueLods);
-    pointers.treeAnimIndexCount = {}; // Unused since do_animation_index is false
+    pointers.contextId = context_id;
     pointers.freeUniqueTreeBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
     return map_tree_base<RiExtraTreeHash, false>(object_id, pos, handle, lod_ix, recycled, anim_index, pointers);
   }
@@ -263,6 +264,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   template <bool useMinLod, bool cullDistIncreased, bool riBaked, bool rangeCheck, bool treeOrFlagsCheck, bool instanceHasNode>
   void doJobHotPath(int riType, IPoint2 interval, float maxLodDistSq, float distSqMul, float distSqMulOOC, float rangeCheckSq,
     vec4f viewPositionVec, vec4f viewPositionX, vec4f viewPositionY, vec4f viewPositionZ)
+    DAG_TS_REQUIRES_SHARED(contextId->objectsLock)
   {
     auto riRes = rendinst::getRIGenExtraRes(riType);
     auto bestLod = riRes->getQlBestLod();
@@ -275,8 +277,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
     bool isTessellated = false;
     if constexpr (treeOrFlagsCheck)
       colors = rendinst::getRIGenExtraColors(riType);
-    else
-      isTessellated = riRes->isTessellated();
+    else if (riRes->isTessellated())
+      isTessellated = rendinst::isRIGenExtraRendinstClipmap(riType) || globalObjectTessellationEnabled;
 
     if constexpr (useMinLod)
       bestLod = max<int>(bestLod, riRes->getBvhMinLod());
@@ -365,7 +367,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
 
       if constexpr (riBaked)
         preferredLodIx = lastLod;
-      auto lodIx = max(preferredLodIx, bestLod);
+      auto lodIx = min<int>(max(preferredLodIx, bestLod), riRes->lods.size() - 1);
 
       ++instanceCount;
 
@@ -407,7 +409,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
 
           auto meshId = make_relem_mesh_id(riRes->getBvhId(), lodIx, elemIx);
 
-          if (DAGOR_UNLIKELY(is_tree(contextId, elem)))
+          if (DAGOR_UNLIKELY(is_tree(contextId, elem))) // TODO: still unlikely??
           {
             mat44f tm44;
             v_mat43_transpose_to_mat44(tm44, transform);
@@ -434,6 +436,10 @@ struct RiExtraBVHJob : public cpujobs::IJob
               TreeInfo treeInfo;
               MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
               bool isStationary = !instance_needs_animation(worldBsphereForAnimation, viewFrustum, viewPositionVec, lightDirection);
+              if (!isStationary && v_test_vec_x_gt_0(ri_tree_anim_max_distance_sq_v))
+                isStationary = // TODO: move all these out of the loop, but check if the batch has trees, also put this under a
+                               // template filter
+                  v_test_vec_x_gt(v_length3_sq_x(v_sub(worldBsphereForAnimation, viewPositionVec)), ri_tree_anim_max_distance_sq_v);
               bool isOk = isStationary ? handle_tree<map_tree_stationary>(contextId, elem, meshId, lodIx, false, tm44, originalPos,
                                            colors, handle, invWorldTm, treeInfo, metaAllocId, this, true, isBurning, hashVal)
                                        : handle_tree<mapTreeRiEx>(contextId, elem, meshId, lodIx, false, tm44, originalPos, colors,
@@ -475,6 +481,7 @@ struct RiExtraBVHJob : public cpujobs::IJob
   template <bool useMinLod, bool cullDistIncreased, bool riBaked, bool rangeCheck>
   void doJobImpl(float distSqMul, float distSqMulOOC)
   {
+    Context::BvhObjectReadLock objectsGuard(contextId->objectsLock);
     vec4f viewPositionVec = v_make_vec4f(viewPosition.x, viewPosition.y, viewPosition.z, 0);
     vec4f viewPositionX = v_make_vec4f(0, 0, 0, viewPosition.x);
     vec4f viewPositionY = v_make_vec4f(0, 0, 0, viewPosition.y);
@@ -497,7 +504,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
         continue;
 
       auto riRes = rendinst::getRIGenExtraRes(group.riType);
-      G_ASSERT_RETURN(riRes, );
+      if (DAGOR_UNLIKELY(!riRes))
+        continue;
 
       G_ASSERT_CONTINUE(group.regionSplitOffset <= group.regionCache.size);
       G_ASSERT_CONTINUE(handleHeap.getHeapSize() >= group.regionCache.offset + group.regionCache.size);
@@ -646,7 +654,7 @@ void prepare_ri_extra_instances()
       int elemCount = 0;
 
       auto riRes = rendinst::getRIGenExtraRes(riType);
-      if (riRes->getBvhId() == 0)
+      if (!riRes || riRes->getBvhId() == 0)
       {
         // Not yet loaded. Put it into the dirt list so it will be checked later.
         newDirtList.insert(riType);
@@ -661,7 +669,7 @@ void prepare_ri_extra_instances()
           elemCount = 1;
         else
         {
-          int bestLod = max<int>(riRes->getQlBestLod(), riRes->getBvhMinLod());
+          int bestLod = min<int>(max<int>(riRes->getQlBestLod(), riRes->getBvhMinLod()), riRes->lods.size() - 1);
           auto &lod = riRes->lods[bestLod];
           auto elems = lod.scene->getMesh()->getMesh()->getMesh()->getElems(ShaderMesh::STG_opaque, ShaderMesh::STG_atest);
 
@@ -810,6 +818,7 @@ void update_ri_extra_instances(ContextId context_id, const Point3 &view_position
 
   const vec4f lightDirection = light_direction_for_animation(light_direction);
   const unsigned chunkBudgetItems = bvh_ri_extra_split_enabled ? (unsigned)bvh_ri_extra_split_chunk_budget.get() : ~0u;
+  const bool globalObjectTessellationEnabled = is_global_object_tessellation_enabled();
 
   // Sets up and extra job for the main thread, just in case these don't finish in time
   for (int threadIx = 0; threadIx < get_ri_extra_worker_count(); ++threadIx)
@@ -827,6 +836,7 @@ void update_ri_extra_instances(ContextId context_id, const Point3 &view_position
       job.prio = prio;
       job.otherFlip = &jobGroup.jobs[threadIx][flip ^ 1];
       job.chunkBudgetItems.store(chunkBudgetItems, dag::memory_order_relaxed);
+      job.globalObjectTessellationEnabled = globalObjectTessellationEnabled;
     }
     parallel_instance_processing::before_job_start(context_id);
     threadpool::add(&jobGroup.jobs[threadIx][0], prio);
@@ -898,7 +908,7 @@ void tidy_up_riex_trees(ContextId context_id)
 
   TidyUpTreePointers pointers;
   pointers.uniqueTreeBuffers = make_span(context_id->uniqueRiExtraTreeBuffers, Context::maxUniqueLods);
-  pointers.treeAnimIndexCount = {}; // unused since do_animation_index is false
+  pointers.contextId = context_id;
   pointers.freeUniqueTreeBLASes = &context_id->freeUniqueRiExtraTreeBLASes;
   tidy_up_trees_base<false>(context_id, pointers);
 }

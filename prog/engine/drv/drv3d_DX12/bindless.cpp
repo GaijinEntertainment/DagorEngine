@@ -553,7 +553,7 @@ void frontend::BindlessManager::updateTextureReferencesNoLock(DeviceContext &ctx
 }
 
 bool frontend::BindlessManager::updateBufferReferencesNoLock(DeviceContext &ctx, D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor,
-  D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor)
+  D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor, bool deferred)
 {
   bool foundAny = false;
   const auto bot = state.resourceSlotInfo.beginOf<BufferSlotUsage>();
@@ -568,7 +568,10 @@ bool frontend::BindlessManager::updateBufferReferencesNoLock(DeviceContext &ctx,
     }
     const auto index = eastl::distance(state.resourceSlotInfo.begin(), at.asUntyped());
 
-    ctx.bindlessSetResourceDescriptorNoLock(index, new_descriptor);
+    if (deferred)
+      ctx.deferredBindlessSetResourceDescriptorNoLock(index, new_descriptor);
+    else
+      ctx.bindlessSetResourceDescriptorNoLock(index, new_descriptor);
 
     at->descriptor = new_descriptor;
     foundAny = true;

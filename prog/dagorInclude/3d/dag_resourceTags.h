@@ -98,3 +98,4 @@
 #define RESTAG_COLLISION            "collision"
 #define RESTAG_INDOOR_PROBES        "indoorProbes"
 #define RESTAG_DYNMODEL             "dynModel"
+#define RESTAG_REFINED_BLOCK        "refinedBlock"

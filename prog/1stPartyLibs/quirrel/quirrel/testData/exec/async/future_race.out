@@ -1,0 +1,5 @@
+race fulfil: winner
+race fault: race-boom
+race tiebreak: A
+race passthrough: 42
+script done

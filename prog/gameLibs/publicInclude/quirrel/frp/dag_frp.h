@@ -352,6 +352,7 @@ private:
   Tab<SubscriberCall> subscriberCallsQueue, curSubscriberCalls;
   NodeId currentlyDispatchingSource;
   uint16_t deferredUpdateGen = 0;
+  bool vmClosing = false; // set by shutdown(true); the VM may already be closed when the dtor runs
   int maxSubscribersQueueLen = 0;
   int curTriggerSubscribersCounter = 0;
   int triggerNestDepth = 0;

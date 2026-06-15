@@ -36,9 +36,9 @@ burnt_ground_renderer {
 
   // Static config
   _group{
-    "burnt_ground_renderer__tex_d:SharedTexHolder"{}
-    "burnt_ground_renderer__tex_n:SharedTexHolder"{}
-    "burnt_ground_renderer__tex_m:SharedTexHolder"{}
+    "burnt_ground_renderer__tex_d:SharedTexWithShaderVar"{}
+    "burnt_ground_renderer__tex_n:SharedTexWithShaderVar"{}
+    "burnt_ground_renderer__tex_m:SharedTexWithShaderVar"{}
     burnt_ground_renderer__tex_d_res:t = ""
     burnt_ground_renderer__tex_n_res:t = ""
     burnt_ground_renderer__tex_m_res:t = ""

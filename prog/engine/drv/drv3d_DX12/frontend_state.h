@@ -1503,31 +1503,34 @@ struct FrontendState
     }
     for (auto [i, stage] : enumerate(stageResources))
     {
-      for (uint32_t j = 0; j < dxil::MAX_B_REGISTERS; ++j)
+      for (uint32_t j = 0; auto resource : stage.bRegisterBuffers)
       {
-        if (stage.bRegisterBuffers[j] == buffer)
+        if (resource == buffer)
         {
-          stage.markDirtyB(j, true);
           stage.bRegisterBuffers[j] = nullptr;
           stage.bRegisterOffsets[j] = 0;
           stage.bRegisterSizes[j] = 0;
+          stage.markDirtyB(j, true);
         }
+        j++;
       }
-      for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
+      for (uint32_t j = 0; auto resource : stage.tRegisterResources)
       {
-        if (stage.tRegisterResources[j] == buffer)
+        if (resource == buffer)
         {
+          resource.emplace<Vacant>();
           stage.markDirtyT(j, true);
-          stage.tRegisterResources.emplace<Vacant>(j);
         }
+        j++;
       }
-      for (uint32_t j = 0; j < dxil::MAX_U_REGISTERS; ++j)
+      for (uint32_t j = 0; auto resource : stage.uRegisterResources)
       {
-        if (stage.uRegisterResources[j] == buffer)
+        if (resource == buffer)
         {
+          resource.emplace<Vacant>();
           stage.markDirtyU(j, true);
-          stage.uRegisterResources.emplace<Vacant>(j);
         }
+        j++;
       }
     }
   }
@@ -1538,14 +1541,15 @@ struct FrontendState
     // for (auto [i, stage] : enumerate(stageResources))
     for (auto &stage : stageResources)
     {
-      for (uint32_t j = 0; j < dxil::MAX_T_REGISTERS; ++j)
+      for (uint32_t j = 0; auto resource : stage.tRegisterResources)
       {
-        if (stage.tRegisterResources[j] == buffer)
+        if (resource == buffer)
         {
           // logdbg("Active texture buffer (stage %u, slot %u) bound as UAV...", i, j);
+          resource.emplace<Vacant>();
           stage.markDirtyT(j, true);
-          stage.tRegisterResources.emplace<Vacant>(j);
         }
+        j++;
       }
     }
   }
@@ -1652,13 +1656,18 @@ struct FrontendState
   void markTextureStagesDirtyNoLock(BaseTex *texture, const eastl::bitset<dxil::MAX_T_REGISTERS> *srvs,
     const eastl::bitset<dxil::MAX_U_REGISTERS> *uavs, eastl::bitset<Driver3dRenderTarget::MAX_SIMRT> rtvs, bool dsv)
   {
-    for (uint32_t s = 0; s < STAGE_MAX_EXT; ++s)
+    for (auto [i, srv] : enumerate(eastl::span{srvs, STAGE_MAX_EXT}))
     {
-      if (srvs[s].any())
-        dirtySRVandSamplerNoLock(texture, s, srvs[s]);
-      if (uavs[s].any())
-        dirtyUAVNoLock(texture, s, uavs[s]);
+      if (srv.any())
+        dirtySRVandSamplerNoLock(texture, i, srv);
     }
+
+    for (auto [i, uav] : enumerate(eastl::span{uavs, STAGE_MAX_EXT}))
+    {
+      if (uav.any())
+        dirtyUAVNoLock(texture, i, uav);
+    }
+
     dirtyRenderTargetNoLock(texture, rtvs, dsv);
   }
 

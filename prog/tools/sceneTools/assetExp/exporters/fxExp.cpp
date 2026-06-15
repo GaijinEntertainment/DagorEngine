@@ -27,7 +27,7 @@ public:
 
   const char *__stdcall getAssetType() const override { return TYPE; }
   unsigned __stdcall getGameResClassId() const override { return EffectGameResClassId; }
-  unsigned __stdcall getGameResVersion() const override { return 166; }
+  unsigned __stdcall getGameResVersion() const override { return 167; }
 
   void __stdcall onRegister() override {}
   void __stdcall onUnregister() override {}

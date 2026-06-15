@@ -249,25 +249,35 @@ Unhandled fault reporting
 
 When a task-future faults and no awaiter is there to receive the thrown
 value, the pump-tick sweep routes the fault to the VM's installed error
-handler (``sq_seterrorhandler``), passing the thrown value. If no handler
-is installed, the runtime emits a one-line console diagnostic instead.
+handler (``sq_seterrorhandler``).
+If no handler is installed, the runtime writes the diagnostic to the VM
+error stream, followed by an ``ERROR TRACE`` block when the fault carries one.
 
 By the time an async fault surfaces, the throwing generator's call stack
 has already unwound, so the handler's live call stack
-(:cpp:func:`sqstd_printcallstack`) is empty. The origin is recovered from
-the thrown value instead: when an :ref:`Error <builtin_error_class>`
-instance is thrown, the runtime captures its throw-site stack into
-``e.trace`` at the throw point, and as the fault propagates the settle-time
-ancestry walk appends one ``awaited at`` frame per uncaught async ancestor
-that was parked awaiting the faulting step, so ``e.trace`` carries the path
-from throw site out through those ``await`` hops.
-An embedder error handler can read ``e.trace`` directly; the standard
-handler installed by ``sqstd_seterrorhandlers`` prints it under an
-``ERROR TRACE`` heading.
+(:cpp:func:`sqstd_printcallstack`) is empty. The origin is recovered from a
+trace the runtime captures separately from the value: at the throw site it
+snapshots the throwing generator's stack (an array of ``{ func, source,
+line }`` frame tables, innermost first), and as the fault propagates the
+settle-time ancestry walk appends one ``awaited at`` frame - tagged
+``awaited = true`` - per uncaught async ancestor that was parked awaiting
+the faulting step. The trace travels on the future alongside the value, so
+it records the path from the throw site out through those ``await`` hops
+without being attached to the thrown value.
 
-Non-``Error`` thrown values (strings, tables) carry no trace - the
-single-channel convention is to throw ``Error`` (or a subclass) across
-async boundaries precisely so the fault carries this context.
+The captured trace is handed to the error handler as a third argument,
+but only to a handler that declares room for it: a script handler written
+``function(err, trace)`` - or a native handler whose parameter check admits
+three arguments - receives the trace array, while a plain ``function(err)``
+keeps working unchanged and never sees it. The standard handler
+installed by ``sqstd_seterrorhandlers`` prints these frames under an
+``ERROR TRACE`` heading; an embedder handler can render them with
+:cpp:func:`sqstd_formaterrorcontextstring`, which yields the live call stack
+for a synchronous fault or the captured trace array for an unwound async one.
+
+A script ``catch`` receives only the bare thrown value. The trace is a
+report-time diagnostic carried on the future, and currently is not passed
+to ``catch`` handlers.
 
 --------
 Shutdown

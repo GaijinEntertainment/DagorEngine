@@ -49,7 +49,7 @@ static void show_header()
 {
   printf("Dagor Node-based Shader Compiler 0.2\n"
          "Target: PC DirectX 11"
-         "\n\nCopyright (C) Gaijin Games KFT, 2023\n");
+         "\n\nCopyright (C) Gaijin Games KFT, 2026\n");
 }
 
 static void showUsage()

@@ -224,8 +224,8 @@ static bool instantiate_patch(ContextId context_id, TerrainPatch &patch, void *s
     G_ASSERT(indices_bindless_slot != -1);
 
     TIME_PROFILE(meta_lock_terrain);
-    auto lockedMeta = context_id->allocateMeta(1, "terrain");
-    patch.metaAllocId = lockedMeta.allocId;
+    patch.metaAllocId = context_id->allocateMetaRegion(1, "terrain");
+    LockedMetaAccess lockedMeta(*context_id, patch.metaAllocId);
     auto &meta = lockedMeta[0];
 
     meta.markInitialized();

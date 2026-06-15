@@ -93,6 +93,7 @@ extern const char *macosx_get_location();
 #include <unistd.h>
 #include <osApiWrappers/dag_files.h>
 #include <android/android_platform.h>
+#include <android/android_network.h>
 #include <android/and_java_helpers.h>
 #endif
 
@@ -290,20 +291,24 @@ String get_model_by_cpu(const char *cpu)
   return returnDefault("Unknown iOS device");
 }
 
+#else
+String get_model_by_cpu(const char *cpu) { return String(cpu); }
+#endif
+
 int get_network_connection_type()
 {
   // -1 -- Unknown
   // 0 -- Not connected
   // 1 -- Cellular
   // 2 -- Wi-Fi
+#if _TARGET_IOS
   return ios_get_network_connection_type();
-}
-
+#elif _TARGET_ANDROID
+  return android::platform::get_connection_type();
 #else
-String get_model_by_cpu(const char *cpu) { return String(cpu); }
-int get_network_connection_type() { return -1; }
-
+  return -1;
 #endif
+}
 
 
 const char *to_string(ThermalStatus status)

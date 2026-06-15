@@ -39,7 +39,8 @@ de4workMode.subscribe(function(v) {
 })
 
 function initWorkModes(modes, defMode=null) {
-  de4workModes.set(modes ?? [""])
+  modes = modes ?? [""]
+  de4workModes.set(modes)
   let good_mode = modes.contains(defMode) ? defMode : modes?[0] ?? ""
   let last_mode = get_setting_by_blk_path?(SETTING_EDITOR_WORKMODE) ?? good_mode
   let mode_to_set = modes.contains(last_mode) ? last_mode : good_mode

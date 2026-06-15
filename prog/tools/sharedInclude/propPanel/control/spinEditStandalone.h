@@ -27,6 +27,17 @@ public:
 
   bool isTextInputFocused() const { return textInputFocused; }
   void sendWcChangeIfVarChanged(WindowControlEventHandler &event_handler);
+  // Fires onWcChangeFinished if a value change has been sent (via onWcChange) since the last finish.
+  // Used to commit once when an interaction ends -- e.g. on spinner release rather than every frame
+  // the spin button is held.
+  void sendWcChangeFinishedIfPending(WindowControlEventHandler &event_handler);
+  // Convenience for onImmediateFocusLoss: send the pending value change (if any) and immediately
+  // finish it, so an immediate focus loss (tree select / panel rebuild) commits like Enter / focus loss.
+  void sendWcChangeAndFinishIfVarChanged(WindowControlEventHandler &event_handler)
+  {
+    sendWcChangeIfVarChanged(event_handler);
+    sendWcChangeFinishedIfPending(event_handler);
+  }
 
   // The size of the two spin buttons not including the space before it.
   static ImVec2 getSpinButtonsSize();
@@ -56,6 +67,10 @@ private:
   int precision;
   bool textInputFocused = false;
   bool textInputActive = false;
+  // True while a spin button is held (click-repeat or drag); used to fire onWcChangeFinished on release.
+  bool spinnerButtonActive = false;
+  // True once onWcChange has been sent and not yet finished; gates sendWcChangeFinishedIfPending.
+  bool changePendingFinish = false;
   SpinnerButtonId draggedSpinnerButton = SpinnerButtonId::Nothing;
 };
 

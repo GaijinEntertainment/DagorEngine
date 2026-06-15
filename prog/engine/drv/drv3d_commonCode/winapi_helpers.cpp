@@ -3,10 +3,10 @@
 #include "winapi_helpers.h"
 
 #include <dag/dag_vector.h>
+#include <debug/dag_log.h>
 #include <util/dag_finally.h>
 
 #include <setupapi.h>
-#include <stdio.h>
 #include <devguid.h>
 #pragma comment(lib, "setupapi.lib")
 
@@ -166,6 +166,8 @@ eastl::fixed_vector<eastl::pair<uint16_t, uint16_t>, 8> getGDIs()
     if (!SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, reinterpret_cast<PBYTE>(hwId.data()), bufSize,
           nullptr))
       continue;
+
+    debug("%ls", hwId.data());
 
     uint16_t vendorId, deviceId;
     if (!parseHardwareId(hwId.data(), vendorId, deviceId))

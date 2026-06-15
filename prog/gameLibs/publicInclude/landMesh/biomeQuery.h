@@ -24,6 +24,7 @@ void update();
 
 int query(const Point3 &world_pos, const float radius);
 GpuReadbackResultState get_query_result(int query_id, BiomeQueryResult &result);
+void cancel_query(int query_id);
 
 int get_biome_group(int biome_id);
 int get_biome_group_id(const char *biome_group_name);

@@ -3,8 +3,10 @@
 
 #include <EASTL/bitset.h>
 #include <EASTL/span.h>
+#include <EASTL/optional.h>
 #include <math/dag_bits.h>
 #include <util/dag_globDef.h>
+#include <generic/dag_expected.h>
 
 
 template <size_t N>
@@ -67,4 +69,24 @@ inline constexpr D3D12_BOX make_full_region_meta_box() { return {}; }
 inline constexpr bool is_full_region_meta_box(const D3D12_BOX &box)
 {
   return 0 == (box.left | box.top | box.front | box.right | box.bottom | box.back);
+}
+
+template <typename T, typename E>
+inline eastl::optional<E> as_optional_error(const dag::Expected<T, E> &e)
+{
+  if (e.has_value())
+  {
+    return {};
+  }
+  return e.error();
+}
+
+template <typename T, typename E>
+inline eastl::optional<E> as_optional_error(dag::Expected<T, E> &e)
+{
+  if (e.has_value())
+  {
+    return {};
+  }
+  return eastl::move(e.error());
 }

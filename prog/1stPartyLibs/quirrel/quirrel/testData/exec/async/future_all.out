@@ -1,0 +1,4 @@
+all order: ABC
+all passthrough: 6
+all empty len: 0
+script done

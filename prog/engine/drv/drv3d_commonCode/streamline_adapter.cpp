@@ -220,16 +220,34 @@ void logMessageCallback(sl::LogType type, const char *msg)
 
 sl::FrameToken &FrameTracker::getFrameToken(uint32_t frame_id)
 {
-  sl::FrameToken *&token = frameTokens[frame_id % MAX_CONCURRENT_FRAMES];
+  // This slot is shared between the main thread (simulation markers, reflex sleep) and the render
+  // worker (present/submit markers, DLSS evaluate), so the lazy-init must be race free. Both
+  // slGetNewFrameToken and the marker calls are thread safe; only the check-and-publish needs a CAS.
+  auto &slot = frameTokens[frame_id % MAX_CONCURRENT_FRAMES];
+  sl::FrameToken *token = slot.load(dag::mo::acquire);
   if (!token)
-    sl_funcs::slGetNewFrameToken(token, &frame_id);
+  {
+    sl::FrameToken *newToken = nullptr;
+    sl_funcs::slGetNewFrameToken(newToken, &frame_id);
+    // Publish only if the slot is still empty. If another thread won the race we keep its token and
+    // drop ours; tokens are owned by Streamline (no free needed), so discarding the loser is fine.
+    if (slot.compare_exchange_strong(token, newToken, dag::mo::acq_rel, dag::mo::acquire))
+      token = newToken;
+  }
   return *token;
 }
 
 void FrameTracker::startFrame(uint32_t frame_id)
 {
-  frameTokens[frame_id % MAX_CONCURRENT_FRAMES] = nullptr;
+  frameTokens[frame_id % MAX_CONCURRENT_FRAMES].store(nullptr, dag::mo::release);
   constantsInitialized[frame_id % MAX_CONCURRENT_FRAMES] = {};
+}
+
+void FrameTracker::reset()
+{
+  for (auto &token : frameTokens)
+    token.store(nullptr, dag::mo::release);
+  constantsInitialized = {};
 }
 
 // COMMON STUFF
@@ -538,7 +556,7 @@ void StreamlineAdapter::recover()
     // slShutdown will set PluginManager::s_status to ePluginsUnloaded to make sure we can try again later
     G_VERIFY(sl_funcs::slShutdown() == sl::Result::eOk);
   }
-  frameTracker = {};
+  frameTracker.reset();
 }
 
 static nv::SupportState toSupportState(sl::Result result)
@@ -646,13 +664,18 @@ static nv::DLSS::Mode parse_mode_from_settings()
 static bool parse_ray_reconstruction_mode_from_settings()
 {
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
-  const DataBlock &blk_graphics = *dgs_get_settings()->getBlockByNameEx("graphics");
-  auto bvhMode = blk_graphics.getStr("bvhMode", "off");
-  if (!strcmp(bvhMode, "off"))
-    return false;
-  if (!strcmp(bvhMode, "custom"))
-    if (!blk_graphics.getBool("enableBVH", false))
+  // TODO We need to make DLSS get parametrized from the outside.
+  // Depending on game specific settings in driver is not good!
+  if (blk_video.getBool("dlss_rr_reads_rt_settings", false))
+  {
+    const DataBlock &blk_graphics = *dgs_get_settings()->getBlockByNameEx("graphics");
+    auto bvhMode = blk_graphics.getStr("bvhMode", "off");
+    if (!strcmp(bvhMode, "off"))
       return false;
+    if (!strcmp(bvhMode, "custom"))
+      if (!blk_graphics.getBool("enableBVH", false))
+        return false;
+  }
   return blk_video.getBool("rayReconstruction", false);
 }
 
@@ -865,14 +888,12 @@ void DLSSFrameGeneration::setEnabled(int frames_to_generate)
     this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate);
 }
 
-void DLSSFrameGeneration::setSuppressed(bool suppressed) { this->suppressed = suppressed; }
-
 bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *command_buffer)
 {
   if (framesToGenerate <= 0)
     return true;
 
-  if (suppressed)
+  if (params.suppressed)
   {
     // this is a workaround to a bug causing DLSS-G to only retain resources when options are passed in each frame
     change_dlssg_mode(viewportId, true, 0);
@@ -939,7 +960,7 @@ unsigned DLSSFrameGeneration::getActualFramesPresented() const
 
   sl::DLSSGState state;
   auto result = sl_funcs::slDLSSGGetState(0, state, nullptr);
-  G_ASSERT_RETURN(result == sl::Result::eOk && state.status == sl::DLSSGStatus::eOk, 1);
+  G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk, 1);
   return state.numFramesActuallyPresented;
 }
 
@@ -947,7 +968,7 @@ int DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames()
 {
   sl::DLSSGState state;
   auto result = sl_funcs::slDLSSGGetState(0, state, nullptr);
-  G_ASSERT_RETURN(result == sl::Result::eOk && state.status == sl::DLSSGStatus::eOk, 0);
+  G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk, 0);
   return state.numFramesToGenerateMax;
 }
 

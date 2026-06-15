@@ -70,7 +70,7 @@ static void create_rain_ripples_node_es(const ecs::Event &evt, dafg::NodeHandle 
   rain_ripples_node = ns.registerNode("rain_ripples_node", DAFG_PP_NODE_SRC, [isNormalsPacked](dafg::Registry registry) {
     registry.allowAsyncPipelines()
       .requestRenderPass()
-      .depthRoAndBindToShaderVars("gbuf_depth", {"depth_gbuf"})
+      .depthReadTestAndSample("gbuf_depth", {"depth_gbuf"})
       .color({isNormalsPacked ? "unpacked_normals" : "gbuf_1"})
       .vrsRate(VRS_RATE_TEXTURE_NAME);
 

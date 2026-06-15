@@ -152,7 +152,7 @@ function mkToolboxPanelContent(tb_shown, tb_state) {
         padding = hdpx(10)
 
         cursor = cursors.normal
-        hotkeys = [["Esc", @() tb_shown(false)]]
+        hotkeys = [["Esc", @() tb_shown.set(false)]]
 
         flow = FLOW_VERTICAL
         children = [

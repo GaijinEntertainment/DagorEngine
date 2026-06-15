@@ -62,6 +62,7 @@ struct EffectManager::PendingData
   TMatrix lightBox = TMatrix::ZERO;
   Point3 fakeBrightnessBackgroundPos = Point3(0, 0, 0);
   TMatrix4 splineGenData = TMatrix4::ZERO;
+  int biomeQueryId = -1;
 
   PendingData() = delete;
   explicit PendingData(AcesEffect::FxId fx_id) : fxId(fx_id) {}

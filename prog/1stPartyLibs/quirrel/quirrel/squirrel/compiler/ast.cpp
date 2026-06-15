@@ -565,14 +565,20 @@ void SwitchStatement::transformChildren(Transformer *transformer) {
 
 void TryStatement::visitChildren(Visitor *visitor) {
     _tryStmt->visit(visitor);
-    visitor->visitId(_exception);
-    _catchStmt->visit(visitor);
+    for (auto &c : _catches) {
+        if (c.type) visitor->visitId(c.type);
+        visitor->visitId(c.exception);
+        c.body->visit(visitor);
+    }
 }
 
 void TryStatement::transformChildren(Transformer *transformer) {
   _tryStmt = _tryStmt->transform(transformer)->asStatement();
-  _exception = _exception->transform(transformer)->asId();
-  _catchStmt = _catchStmt->transform(transformer)->asStatement();
+  for (auto &c : _catches) {
+    if (c.type) c.type = c.type->transform(transformer)->asId();
+    c.exception = c.exception->transform(transformer)->asId();
+    c.body = c.body->transform(transformer)->asStatement();
+  }
 }
 
 void TerminateStatement::visitChildren(Visitor *visitor) {

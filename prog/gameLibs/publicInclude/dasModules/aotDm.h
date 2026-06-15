@@ -28,7 +28,6 @@
 #include <damageModel/damagePartProps.h>
 #include <damageModel/damageToPartEvent.h>
 #include <damageModel/partNameMaps.h>
-#include <damageModelExtras/damagePartProps.h>
 #include <damageModelExtras/damageModelData.h>
 
 typedef dag::Vector<dm::DamagePartProps> DamageModelDataPartProps;
@@ -145,8 +144,7 @@ static inline const dm::effect::ActionCluster *get_damage_effect_action_cluster(
 
 static inline float get_part_hp_prop_value(const dm::DamageModelData &dm_data, const dm::PartId &part_id)
 {
-  const dm::DamagePartProps *props = dm::get_part_props(dm_data.props.parts, part_id);
-  return props ? props->hp : 0.f;
+  return dm::get_part_hp_total(dm_data.props.parts, part_id);
 }
 
 static inline float calc_kinetic_penetration_shift(const InterpolateTabFloat &table, float residual_penetration, float distance,

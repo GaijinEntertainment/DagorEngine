@@ -43,6 +43,7 @@ include $(Root)/prog/daNetGameLibs/blood_puddles/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/dynamic_hair/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/dynamic_screen/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/hero_cockpit_render/_lib.jam ;
+include $(Root)/prog/gameLibs/daeditorPlotDebug/_lib.jam ;
 include $(Root)/prog/gameLibs/imgui_daeditor/_lib.jam ;
 include $(Root)/prog/gameLibs/anim/motionMatching/_lib.jam ;
 include $(Root)/prog/daNetGameLibs/node_collapser/_lib.jam ;

@@ -3,7 +3,9 @@
 #include "amdFsr.h"
 #include <amdFsr3Helpers.h>
 
+#include "device.h"
 #include "driver_win.h"
+#include "pipeline_cache.h"
 #include "swapchain.h"
 
 #include <drv/3d/dag_commands.h>
@@ -12,7 +14,6 @@
 #include <drv/3d/dag_resetDevice.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <osApiWrappers/dag_versionQuery.h>
-#include <memory/dag_framemem.h>
 #include <drv_log_defs.h>
 #include <3d/gpuLatency.h>
 #include <supp/dag_comPtr.h>
@@ -43,7 +44,50 @@ uint32_t convert(DXGI_FORMAT format)
 {
   switch (format)
   {
+    case DXGI_FORMAT_R32G32B32A32_TYPELESS: return FFX_API_SURFACE_FORMAT_R32G32B32A32_TYPELESS;
+    case DXGI_FORMAT_R32G32B32A32_FLOAT: return FFX_API_SURFACE_FORMAT_R32G32B32A32_FLOAT;
+    case DXGI_FORMAT_R32G32B32A32_UINT: return FFX_API_SURFACE_FORMAT_R32G32B32A32_UINT;
+    case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT: return FFX_API_SURFACE_FORMAT_R16G16B16A16_FLOAT;
+    case DXGI_FORMAT_R32G32_TYPELESS:
+    case DXGI_FORMAT_R32G32_FLOAT: return FFX_API_SURFACE_FORMAT_R32G32_FLOAT;
+    case DXGI_FORMAT_R32G8X24_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+    case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+    case DXGI_FORMAT_R32_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT:
+    case DXGI_FORMAT_R32_FLOAT: return FFX_API_SURFACE_FORMAT_R32_FLOAT;
+    case DXGI_FORMAT_R24G8_TYPELESS:
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+    case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+    case DXGI_FORMAT_R32_UINT: return FFX_API_SURFACE_FORMAT_R32_UINT;
+    case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+    case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+    case DXGI_FORMAT_R8_UINT: return FFX_API_SURFACE_FORMAT_R8_UINT;
+    case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+    case DXGI_FORMAT_R10G10B10A2_UNORM: return FFX_API_SURFACE_FORMAT_R10G10B10A2_UNORM;
+    case DXGI_FORMAT_R11G11B10_FLOAT: return FFX_API_SURFACE_FORMAT_R11G11B10_FLOAT;
+    case DXGI_FORMAT_R8G8B8A8_TYPELESS: return FFX_API_SURFACE_FORMAT_R8G8B8A8_TYPELESS;
+    case DXGI_FORMAT_R8G8B8A8_UNORM: return FFX_API_SURFACE_FORMAT_R8G8B8A8_UNORM;
+    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return FFX_API_SURFACE_FORMAT_R8G8B8A8_SRGB;
+    case DXGI_FORMAT_R8G8B8A8_SNORM: return FFX_API_SURFACE_FORMAT_R8G8B8A8_SNORM;
+    case DXGI_FORMAT_B8G8R8A8_TYPELESS: return FFX_API_SURFACE_FORMAT_B8G8R8A8_TYPELESS;
     case DXGI_FORMAT_B8G8R8A8_UNORM: return FFX_API_SURFACE_FORMAT_B8G8R8A8_UNORM;
+    case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return FFX_API_SURFACE_FORMAT_B8G8R8A8_SRGB;
+    case DXGI_FORMAT_R16G16_TYPELESS:
+    case DXGI_FORMAT_R16G16_FLOAT: return FFX_API_SURFACE_FORMAT_R16G16_FLOAT;
+    case DXGI_FORMAT_R16G16_UINT: return FFX_API_SURFACE_FORMAT_R16G16_UINT;
+    case DXGI_FORMAT_R8G8_TYPELESS:
+    case DXGI_FORMAT_R8G8_UINT: return FFX_API_SURFACE_FORMAT_R8G8_UINT;
+    case DXGI_FORMAT_R16_TYPELESS:
+    case DXGI_FORMAT_R16_FLOAT: return FFX_API_SURFACE_FORMAT_R16_FLOAT;
+    case DXGI_FORMAT_R16_UINT: return FFX_API_SURFACE_FORMAT_R16_UINT;
+    case DXGI_FORMAT_D16_UNORM:
+    case DXGI_FORMAT_R16_UNORM: return FFX_API_SURFACE_FORMAT_R16_UNORM;
+    case DXGI_FORMAT_R16_SNORM: return FFX_API_SURFACE_FORMAT_R16_SNORM;
+    case DXGI_FORMAT_R8_TYPELESS:
+    case DXGI_FORMAT_R8_UNORM:
+    case DXGI_FORMAT_A8_UNORM: return FFX_API_SURFACE_FORMAT_R8_UNORM;
     default: G_ASSERT(false); return FFX_API_SURFACE_FORMAT_UNKNOWN;
   }
 }
@@ -171,7 +215,19 @@ public:
 
   bool isUpscalingSupported() const { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
 
-  bool isFrameGenerationSupported() const { return isLoaded() && d3d::get_driver_desc().shaderModel >= 6.2_sm; }
+  bool isFrameGenerationSupported() const
+  {
+    if (!isLoaded())
+      return false;
+
+    if (d3d::get_driver_desc().shaderModel >= 6.2_sm)
+      return true;
+
+    auto *device = static_cast<ID3D12Device *>(d3d::get_device());
+    const auto sm = drv3d_dx12::shader_model_from_dx(drv3d_dx12::get_shader_model(device).HighestShaderModel);
+
+    return sm >= 6.2_sm;
+  }
 
   String getVersionString() const
   {
@@ -194,10 +250,18 @@ public:
     DXGI_SWAP_CHAIN_DESC1 mutableSwapchainDesc = swapchain_desc;
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC mutableFullscreenDesc = fullscreen_desc;
 
+    ffxCreateContextDescFrameGenerationSwapChainVersionDX12 versionDesc{
+      .header{
+        .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_VERSION_DX12,
+      },
+      .version = FFX_FRAMEGENERATION_SWAPCHAIN_DX12_VERSION,
+    };
+
     ComPtr<IDXGISwapChain4> newDxgiSwapchain;
     ffxCreateContextDescFrameGenerationSwapChainForHwndDX12 createSwapChainDesc{
       .header{
         .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_FRAMEGENERATIONSWAPCHAIN_FOR_HWND_DX12,
+        .pNext = &versionDesc.header,
       },
       .swapchain = newDxgiSwapchain.GetAddressOf(),
       .hwnd = create_info.window,

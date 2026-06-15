@@ -193,7 +193,7 @@ int DagorWinMain(bool debugmode)
   start_classic_debug_system("debug", false);
   dd_get_fname(""); //== pull in directoryService.obj
   printf("SDF build generattor\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
   int ctime = time(NULL);
 
   if (dgs_argc < 2)

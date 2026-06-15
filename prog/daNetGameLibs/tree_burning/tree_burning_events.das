@@ -18,6 +18,7 @@ struct EventCreateTreeBurningChain
   canopyBoxMin : float3
   canopyBoxMax : float3
   burningSourceWpos : float3
+  isBush : bool
 
 [cpp_event(unicast)]
 struct EventAddTreeBurningChainSource

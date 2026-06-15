@@ -2,6 +2,8 @@ float4 sky_color = (0.1, 0.1, 0.1, 0);
 float4 from_sun_direction = (0.58, -0.58, 0.58, 0);
 float4 sun_color_0 = (0.8, 0.75, 0.7, 0);
 
+float4 tree_wind_anim_fade_params = (0, 1, 0, 0);
+
 block(global_const) global_const_block
 {
   (vs) {

@@ -82,6 +82,7 @@ public:
   FpdBone *getBoneByName(const char *name);
 
   IFPObject *getSelObject();
+  void getSelectedObjects(dag::Vector<IFPObject *> &objects);
 
   bool showNodeList(Tab<int> &sels);
 

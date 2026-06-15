@@ -1208,6 +1208,15 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   Tab<ShaderVariant::ExtType> interval_link_table(tmpmem);
   ctx.globVars().link(shaders.variable_list, shaders.intervals, global_var_link_table, interval_link_table);
 
+  if (!shaders.refinedBlockVars.empty())
+  {
+    shc::RefinedBlockLayout localLayout = shc::RefinedBlockLayout::deserializeFromBindump(ctx.compCtx().rbVarNameMap(),
+      static_cast<const Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
+      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode));
+    localLayout.link(global_var_link_table);
+    ctx.refinedBlockLayout().mergeFrom(localLayout);
+  }
+
   Tab<int> smp_link_table;
   ctx.samplers().link(shaders.static_samplers, shaders.immutable_samplers, global_var_link_table, smp_link_table);
 
@@ -1416,6 +1425,25 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   // save dependens
   for (int i = 0; i < files.size(); ++i)
     compressed.dependency_files.emplace_back(files[i].c_str());
+
+  if (!ctx.refinedBlockLayout().empty())
+  {
+    ctx.refinedBlockLayout().forEachVar([&](int, const shc::RefinedBlockVar &var) {
+      RefinedBlockLayoutBindumpEntry entry;
+      entry.varName = var.varName;
+      entry.cbufOffset = var.cbufOffset.value_or(-1);
+      entry.slotCount = semantic::vt_is_numeric(var.varType) ? semantic::vt_float_size(var.varType) : 1;
+      entry.space = (var.space != HLSL_RSPACE_INVALID) ? var.space : -1;
+      for (int i = 0; i < STAGE_MAX; i++)
+        entry.slot[i] = var.slot[i].value_or(-1);
+
+      compressed.refined_block_layout.vars.push_back(eastl::move(entry));
+    });
+  }
+
+  if (!ctx.refinedBlockLayout().empty())
+    ctx.refinedBlockLayout().serializeToBindump(static_cast<Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
+      static_cast<Tab<int> &>(shaders.refinedBlockComputedStcode));
 
   shaders.variable_list = eastl::move(ctx.globVars().getMutableVariableList());
   eastl::tie(shaders.static_samplers, shaders.immutable_samplers) = ctx.samplers().releaseSamplers();

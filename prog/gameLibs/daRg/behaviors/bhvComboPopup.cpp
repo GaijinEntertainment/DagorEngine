@@ -51,7 +51,7 @@ int BhvComboPopup::pointingEvent(ElementTree *etree, Element *elem, InputDevice 
     }
   }
 
-  return 0;
+  return result;
 }
 
 

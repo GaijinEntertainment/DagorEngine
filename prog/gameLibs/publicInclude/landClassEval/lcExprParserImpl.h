@@ -578,6 +578,12 @@ struct Parser
   // are the most recently appended IR nodes, so ir->resize(cs[0] + 1) is safe.
   int tryFold(uint64_t tag, uint8_t nc, int c0, int c1 = -1, int c2 = -1)
   {
+    // On the error-unwind path sub-parses return stale {0, FLOAT} dummies, so the
+    // invariant asserted below (children are the most recently appended IR nodes)
+    // no longer holds. Skip folding; the addIR fallback at the call sites is
+    // harmless since parseToIR discards the IR on failure.
+    if (failed)
+      return -1;
     int cs[] = {c0, c1, c2};
     for (int i = 0; i < nc; i++)
       if (!isConst(cs[i]))
@@ -1013,6 +1019,11 @@ struct Parser
           argTypes[i] = arg.type;
         }
         expect(T_RPAREN);
+        // Bail before the arg-type checks / degenerate-ramp check / fold: after an
+        // arg parse error args[] holds stale dummy indices (possibly into an empty
+        // IR, e.g. `ramp(,,)`), and the (*ir)[args[i]] reads below would be OOB.
+        if (failed)
+          return {0, TYPE_FLOAT};
         // select() is polymorphic in its branches: cond is bool, but args 1 and 2
         // are checked against each other instead of the registered FLOAT signature
         // so it stays equivalent to the if-then-else syntax (both share TAG_SELECT).

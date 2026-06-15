@@ -18,6 +18,7 @@ struct BVHInstanceMapper : ::BVHInstanceMapper
   BVHInstanceMapper(ContextId context_id) : contextId(context_id), instanceCounter(nullptr), instances(nullptr) {};
   void mapRendinst(const RenderableInstanceLodsResource *ri, int lod, int elem, IPoint2 &out_blas, uint32_t &out_meta) const override
   {
+    Context::BvhObjectReadLock objectsGuard(contextId->objectsLock);
     auto meshId = make_relem_mesh_id(ri->getBvhId(), lod, elem);
     Object *object = get_object(contextId, meshId);
 

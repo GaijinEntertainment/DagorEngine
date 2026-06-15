@@ -49,7 +49,8 @@ bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &resul
 
     cachedShader.relMetadata.resize(result.metadata.size() + 4);
     memcpy(cachedShader.relMetadata.data(), &HLSL_CACHE_STAMPS[stage], sizeof(HLSL_CACHE_STAMPS[stage]));
-    eastl::copy(result.metadata.begin(), result.metadata.end(), (uint8_t *)&cachedShader.relMetadata[4]);
+    if (!result.metadata.empty())
+      eastl::copy(result.metadata.begin(), result.metadata.end(), (uint8_t *)&cachedShader.relMetadata[4]);
 
     cachedShader.relCode.resize(size_in_unsigned);
     cachedShader.codeType = stage;
@@ -58,7 +59,8 @@ bool ShaderBytecodeCache::post(ShaderCacheLevelIds c, const CompileResult &resul
     ++codeCounts.all[stage];
     if (item_is_in(stage, {HLSL_CS, HLSL_AS, HLSL_MS}))
       cachedShader.computeShaderInfo = result.computeShaderInfo;
-    eastl::copy(result.bytecode.begin(), result.bytecode.end(), (uint8_t *)&cachedShader.relCode[0]);
+    if (!result.bytecode.empty())
+      eastl::copy(result.bytecode.begin(), result.bytecode.end(), (uint8_t *)&cachedShader.relCode[0]);
     for (size_t i = result.bytecode.size(); i < size_in_unsigned * sizeof(unsigned); ++i)
       ((uint8_t *)cachedShader.relCode.data())[i] = 0;
     added_new = true;

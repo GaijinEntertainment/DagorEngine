@@ -16,6 +16,7 @@ class TMatrix;
 class TMatrix4;
 class BaseTexture;
 typedef BaseTexture Texture;
+struct DynRes;
 
 namespace bvh
 {
@@ -72,7 +73,7 @@ void render(bvh::ContextId context_id, const Point3 &view_pos, const Point3 &lig
   d3d::SamplerHandle vsm_sampler = d3d::INVALID_SAMPLER_HANDLE, int quality_mode = 0);
 
 void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_pos, Texture *dynamic_lighting_texture,
-  float light_radius, bool soft_shadow, bool has_nuke = false);
+  float light_radius, bool soft_shadow, bool has_nuke = false, const DynRes *dynamic_resolution = nullptr);
 
 void turn_off();
 

@@ -25,7 +25,7 @@ dafg::NodeHandle create_show_edge_node()
   return ns.registerNode("blood_puddles_debug", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     auto debugNs = registry.root() / "debug";
     auto colorTarget = debugNs.modifyTexture("target_for_debug");
-    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
+    registry.requestRenderPass().depthReadTestAndSample("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
 
     DynamicShaderHelper shHolder;
     shHolder.init("blood_puddles_debug", nullptr, 0, "blood_puddles_debug", false);
@@ -58,7 +58,7 @@ static dafg::NodeHandle create_show_bbox_node()
   return ns.registerNode("blood_puddles_bbox_debug", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     auto debugNs = registry.root() / "debug";
     auto colorTarget = debugNs.modifyTexture("target_for_debug");
-    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
+    registry.requestRenderPass().depthReadTestAndSample("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
 
     DynamicShaderHelper shHolder;
     shHolder.init("blood_puddles_bbox_debug", nullptr, 0, "blood_puddles_bbox_debug", false);

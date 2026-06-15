@@ -37,13 +37,13 @@ void set_up_debug_indoor_probe_boxes_entity(DebugIndoorProbeBoxesMode mode, Debu
     dafg::register_node("debug_indoor_probe_boxes", DAFG_PP_NODE_SRC, [mode, depth](dafg::Registry registry) {
       registry.requestRenderPass()
         .color({"target_for_transparency"})
-        .depthRw(depth == DebugIndoorProbeBoxesDepth::GBUFFER
-                   ? registry.modifyTexture("depth_for_transparency")
-                   : registry
-                       .createTexture2d("debug_indoor_probe_boxes_depth",
-                         {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
-                       .withHistory(dafg::History::No)
-                       .clear(make_clear_value(0.f, 0)));
+        .depth(depth == DebugIndoorProbeBoxesDepth::GBUFFER
+                 ? registry.modifyTexture("depth_for_transparency")
+                 : registry
+                     .createTexture2d("debug_indoor_probe_boxes_depth",
+                       {TEXFMT_DEPTH32 | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+                     .withHistory(dafg::History::No)
+                     .clear(make_clear_value(0.f, 0)));
 
       registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
       return

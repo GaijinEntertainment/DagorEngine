@@ -63,13 +63,10 @@ static void create_transparents_ecs_nodes_es(const OnCameraNodeConstruction &evt
 
       registry.requestRenderPass()
         .color({registry.rename(targetFrom, "color_target").texture()})
-        .depthRo(registry.rename(depthFrom, "depth").texture());
+        .depthReadTestOnly(registry.rename(depthFrom, "depth").texture());
       registry.root().readTexture("csm_texture").optional().atStage(dafg::Stage::POST_RASTER);
 
       return []() {
-        // This is the most convenient place to do this.
-        debug_mesh::deactivate_mesh_coloring_master_override();
-
         // TODO: Maybe we are paranoid about "setCascadesToShader" and we can delete that.
         if (CascadeShadows *csm = WRDispatcher::getShadowsManager().getCascadeShadows())
           csm->setCascadesToShader();

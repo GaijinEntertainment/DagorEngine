@@ -28,7 +28,7 @@ Array(5): [null, null, null, null, null]
 Array(3, "hello"): [hello, hello, hello]
 
 Table(): {}
-After adding keys: {[y]=20, [x]=10}
+After adding keys: {[x]=10, [y]=20}
 
 Null(): null
 

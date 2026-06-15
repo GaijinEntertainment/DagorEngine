@@ -27,7 +27,7 @@ int DagorWinMain(bool debugmode)
   if (argc < 3)
   {
     printf("RI merge utility\n");
-    printf("Copyright (c) Gaijin Games KFT, 2023\n");
+    printf("Copyright (c) Gaijin Games KFT, 2026\n");
     printf("Usage: rimerge <in_rendinst.lod00.dag> <in_collision.dag> [out_rendinst.lod00.dag]\n");
     return -1;
   }

@@ -1,0 +1,8 @@
+WARNING: w333 (wildcard-and-named-import) Module 'math' is imported both with '*' and by explicit names.
+testData/static_analyzer/w333_wildcard_and_named_import.nut:2:19
+
+from "math" import *
+from "math" import cos
+                   ^--
+
+

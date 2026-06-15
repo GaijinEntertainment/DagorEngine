@@ -8,10 +8,6 @@
 #include <string>
 #include "debug.h"
 
-M_STD_STRING strToWide(const char *sz);
-std::string wideToStr(const TCHAR *sw);
-
-
 static FILE *debugfile = NULL;
 static bool debug_not_possible = false;
 

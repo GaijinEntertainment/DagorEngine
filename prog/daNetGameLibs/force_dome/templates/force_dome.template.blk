@@ -4,7 +4,7 @@ force_dome_resources{
   _group{
     _tags:t="render"
     "force_dome_resources:ForceDomeResources"{}
-    "force_dome__texture:SharedTexHolder"{}
+    "force_dome__texture:SharedTexWithShaderVar"{}
     force_dome__texture_res:t="force_field_hexagon_tex_n"
     force_dome__texture_var:t="forcedome_diffuse_texture"
   }

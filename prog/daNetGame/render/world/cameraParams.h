@@ -46,6 +46,15 @@ struct CameraParams
   CameraViewVisibilityMgr *jobsMgr = nullptr;
 };
 
+inline TMatrix4_vec4 get_prev_proj_tm_with_cur_jitter(const CameraParams &prev, const CameraParams &cur)
+{
+  TMatrix4_vec4 prevProjTm = prev.noJitterProjTm;
+  const auto curJitter = cur.jitterProjTm - cur.noJitterProjTm;
+  prevProjTm(2, 0) += curJitter(2, 0);
+  prevProjTm(2, 1) += curJitter(2, 1);
+  return prevProjTm;
+}
+
 // This is supposed to be used for culling, and possibly other usages that
 // work better with a single frustum, even when there are technically many,
 // e.g. in VR or when jittering the camera and rendering stuff multiple times.

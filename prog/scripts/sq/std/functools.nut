@@ -1,4 +1,5 @@
 from "dagor.debug" import logerr
+from "debug" import format_call_stack_string
 
 let abs = @[pure](v) v > 0 ? v.tointeger() : -v.tointeger()
 //let { log } = require("log.nut")()
@@ -104,7 +105,7 @@ function kwpartial(func, partparams, ...){
     posfuncargs[posidx] <- v
   }
   return function(...){
-    let curargs = partvargs.extend(vargv)
+    let curargs = [].extend(partvargs).extend(vargv)
     assert(curargs.len()+posfuncargs.len()>=argsnum, @() $"not enough arguments provided for function '{infos?.name}' to call")
     let finalargs = []
     local provArgIdx = 0
@@ -154,8 +155,11 @@ function tryCatch(tryer, catcher=null){
     try{
       return tryer.pacall([null].extend(vargv))
     }
-    catch(e)
+    catch(e) {
+      println(format_call_stack_string())
+      errorln($"Caught error '{e}'")
       return catcher?(e)
+    }
    }
 }
 
@@ -310,21 +314,21 @@ function memoize(func, hashfunc = null, cacheExternal=null, maxCacheNum=DEF_MAX_
   }
   else if (hashfunc==1) {
     return function memoizedfunc1(...){
+      if (vargv.len()==0) {
+        if (simpleCacheUsed)
+          return simpleCache
+        simpleCache = func.acall([null].extend(vargv))
+        simpleCacheUsed = true
+        return simpleCache
+      }
       let key = vargv[0]
       if (key in cache)
         return cache[key]
-      if (vargv.len()>0) {
-        if (cache.len() > maxCacheNum)
-          cache.clear()
-        let res = func.acall([null].extend(vargv))
-        cache[key] <- res
-        return res
-      }
-      if (simpleCacheUsed)
-        return simpleCache
-      simpleCache = func.acall([null].extend(vargv))
-      simpleCacheUsed = true
-      return simpleCache
+      if (cache.len() > maxCacheNum)
+        cache.clear()
+      let res = func.acall([null].extend(vargv))
+      cache[key] <- res
+      return res
 //      try { return cache[vargv[0]] }
 //      catch(e) {
 //        if (vargv.len()>0)
@@ -442,11 +446,10 @@ function before(count, func){
 //Useful for grouping asynchronous responses, where you want to be sure that all the async calls have finished, before proceeding.
 function after(count, func){
   local called = 0
-  return function beforeTimes(...){
-    if (called < count) {
-      called++
+  return function afterTimes(...){
+    called++
+    if (called < count)
       return
-    }
     return func.acall([null].extend(vargv))
   }
 }

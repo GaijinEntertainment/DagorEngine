@@ -30,10 +30,35 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         gOut_ViewZ[ pixelPos ] = viewZpacked;
     #endif
 
-    // Tile-based early out and viewZ-based early out
+    // Tile-based early out ( quad uniform )
     float isSky = gIn_Tiles[ pixelPos >> 4 ].x;
+    if( isSky != 0.0 )
+        return;
+
+    // Non-linear accum speed
+    REBLUR_DATA1_TYPE data1 = UnpackData1( gIn_Data1[ pixelPos ] );
+
+    REBLUR_DATA1_TYPE nonLinearAccumSpeed;
+    nonLinearAccumSpeed.x = GetAdvancedNonLinearAccumSpeed( data1.x );
+    nonLinearAccumSpeed.y = GetAdvancedNonLinearAccumSpeed( data1.y );
+
     float viewZ = UnpackViewZ( viewZpacked );
-    if( isSky != 0.0 || any( pixelPos > gRectSizeMinusOne ) || viewZ > gDenoisingRange )
+    nonLinearAccumSpeed = !IsInDenoisingRange( viewZ ) ? 0.0 : nonLinearAccumSpeed; // less blur on "SKY" edges
+
+    #ifdef NRD_COMPILER_DXC
+    {
+        // IMPORTANT: the spec says: "these routines assume that flow control execution is uniform at least across the quad"
+        // Adapt to neighbors if they are more stable
+        REBLUR_DATA1_TYPE d10 = QuadReadAcrossX( nonLinearAccumSpeed );
+        REBLUR_DATA1_TYPE d01 = QuadReadAcrossY( nonLinearAccumSpeed );
+
+        REBLUR_DATA1_TYPE avg = ( d10 + d01 + nonLinearAccumSpeed ) / 3.0;
+        nonLinearAccumSpeed = min( nonLinearAccumSpeed, avg );
+    }
+    #endif
+
+    // Early out ( thread )
+    if( !IsInDenoisingRange( viewZ ) || any( pixelPos > gRectSizeMinusOne ) )
         return;
 
     // Center data
@@ -42,8 +67,6 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     float3 N = normalAndRoughness.xyz;
     float3 Nv = Geometry::RotateVectorInverse( gViewToWorld, N );
     float roughness = normalAndRoughness.w;
-
-    REBLUR_DATA1_TYPE data1 = UnpackData1( gIn_Data1[ pixelPos ] );
 
     float2 pixelUv = float2( pixelPos + 0.5 ) * gRectSizeInv;
     float3 Xv = Geometry::ReconstructViewPosition( pixelUv, gFrustum, viewZ, gOrthoMode );
@@ -54,44 +77,16 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     const float frustumSize = GetFrustumSize( gMinRectDimMulUnproject, gOrthoMode, viewZ );
     const float4 rotator = GetBlurKernelRotation( REBLUR_BLUR_ROTATOR_MODE, pixelPos, gRotator, gFrameIndex );
 
-    // Non-linear accum speed
-    float2 nonLinearAccumSpeed;
-    nonLinearAccumSpeed.x = GetAdvancedNonLinearAccumSpeed( data1.x );
-    nonLinearAccumSpeed.y = GetAdvancedNonLinearAccumSpeed( data1.y );
-
-    #ifdef NRD_COMPILER_DXC
-        // Adapt to neighbors if they are more stable
-        REBLUR_DATA1_TYPE d10 = QuadReadAcrossX( nonLinearAccumSpeed );
-        REBLUR_DATA1_TYPE d01 = QuadReadAcrossY( nonLinearAccumSpeed );
-
-        REBLUR_DATA1_TYPE avg = ( d10 + d01 + nonLinearAccumSpeed ) / 3.0;
-        nonLinearAccumSpeed = min( nonLinearAccumSpeed, avg );
-    #endif
-
     // Spatial filtering
-    #define REBLUR_SPATIAL_MODE REBLUR_BLUR
+    #define REBLUR_SPATIAL_PASS REBLUR_BLUR
 
     #if( NRD_DIFF )
-    {
-        float sum = 1.0;
-        REBLUR_TYPE diff = gIn_Diff[ pixelPos ];
-        #if( NRD_MODE == SH )
-            float4 diffSh = gIn_DiffSh[ pixelPos ];
-        #endif
-
-        #include "REBLUR_Common_DiffuseSpatialFilter.hlsli"
-    }
+        #define REBLUR_SPATIAL_LOBE REBLUR_DIFF
+        #include "REBLUR_Common_SpatialFilter.hlsli"
     #endif
 
     #if( NRD_SPEC )
-    {
-        float sum = 1.0;
-        REBLUR_TYPE spec = gIn_Spec[ pixelPos ];
-        #if( NRD_MODE == SH )
-            float4 specSh = gIn_SpecSh[ pixelPos ];
-        #endif
-
-        #include "REBLUR_Common_SpecularSpatialFilter.hlsli"
-    }
+        #define REBLUR_SPATIAL_LOBE REBLUR_SPEC
+        #include "REBLUR_Common_SpatialFilter.hlsli"
     #endif
 }

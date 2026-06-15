@@ -35,7 +35,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
         hitDist.x = ExtractHitDist( gIn_Diff[ globalPos ] );
 
         #if( REBLUR_USE_DECOMPRESSED_HIT_DIST_IN_RECONSTRUCTION == 1 )
-            hitDist.x *= _REBLUR_GetHitDistanceNormalization( viewZ, gHitDistSettings, 1.0 );
+            hitDist.x *= _REBLUR_GetHitDistanceNormalization( viewZ, gHitDistSettings.xyz, 1.0 );
         #endif
     #endif
 
@@ -43,11 +43,11 @@ void Preload( uint2 sharedPos, int2 globalPos )
         hitDist.y = ExtractHitDist( gIn_Spec[ globalPos ] );
 
         #if( REBLUR_USE_DECOMPRESSED_HIT_DIST_IN_RECONSTRUCTION == 1 )
-            hitDist.y *= _REBLUR_GetHitDistanceNormalization( viewZ, gHitDistSettings, normalAndRoughness.w );
+            hitDist.y *= _REBLUR_GetHitDistanceNormalization( viewZ, gHitDistSettings.xyz, normalAndRoughness.w );
         #endif
     #endif
 
-    s_HitDist_ViewZ[ sharedPos.y ][ sharedPos.x ] = float3( hitDist, viewZ );
+    s_HitDist_ViewZ[ sharedPos.y ][ sharedPos.x ] = float3( !IsInDenoisingRange( viewZ ) ? 0.0 : hitDist, viewZ );
 }
 
 [numthreads( GROUP_X, GROUP_Y, 1 )]
@@ -66,7 +66,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
     // Early out
     int2 smemPos = threadPos + NRD_BORDER;
     float3 center = s_HitDist_ViewZ[ smemPos.y ][ smemPos.x ];
-    if( center.z > gDenoisingRange )
+    if( !IsInDenoisingRange( center.z ) )
         return;
 
     // Center data
@@ -113,7 +113,6 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
             float NoX = dot( Nv, Xvs );
 
             w *= ComputeWeight( NoX, geometryWeightParams.x, geometryWeightParams.y );
-            w = data.z < gDenoisingRange ? w : 0.0; // |NoX| can be ~0 if "data.z" is out of range
 
             float2 ww = w;
             #if( REBLUR_PERFORMANCE_MODE == 0 )
@@ -128,9 +127,9 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
                 ww.y *= ComputeExponentialWeight( normalAndRoughness.w * normalAndRoughness.w, relaxedRoughnessWeightParams.x, relaxedRoughnessWeightParams.y );
             #endif
 
-            data.x = Denanify( ww.x, data.x );
-            data.y = Denanify( ww.y, data.y );
-            ww *= float2( data.xy != 0.0 );
+            // Ignore "no data"
+            ww.x = data.x == 0.0 ? 0.0 : ww.x;
+            ww.y = data.y == 0.0 ? 0.0 : ww.y;
 
             // Accumulate
             center.xy += data.xy * ww;
@@ -143,8 +142,8 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     // Return back to normalized hit distances
     #if( REBLUR_USE_DECOMPRESSED_HIT_DIST_IN_RECONSTRUCTION == 1 )
-        center.x /= _REBLUR_GetHitDistanceNormalization( center.z, gHitDistSettings, 1.0 );
-        center.y /= _REBLUR_GetHitDistanceNormalization( center.z, gHitDistSettings, roughness );
+        center.x /= _REBLUR_GetHitDistanceNormalization( center.z, gHitDistSettings.xyz, 1.0 );
+        center.y /= _REBLUR_GetHitDistanceNormalization( center.z, gHitDistSettings.xyz, roughness );
     #endif
 
     // Output

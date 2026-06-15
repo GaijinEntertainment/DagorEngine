@@ -11,6 +11,7 @@ texture denoiser_nr;
 texture denoiser_half_view_z;
 texture denoiser_half_normals;
 texture denoiser_half_nr;
+float denoiser_camera_attached_radius = 0;
 
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
@@ -34,6 +35,7 @@ shader denoiser_prepare
     halfNormalsTexture@tex2d = denoiser_half_normals;
     halfNrTexture@uav = denoiser_half_nr hlsl { RWTexture2D<float4> halfNrTexture@uav; };
     halfZTexture@uav = denoiser_half_view_z hlsl { RWTexture2D<float> halfZTexture@uav; };
+    denoiser_camera_attached_radius@f1 = denoiser_camera_attached_radius;
   }
 
   if (denoiser_apply_wetness == yes)
@@ -108,6 +110,8 @@ shader denoiser_prepare
         ##endif
 
         viewZ = linearize_z(rawDepth, zn_zfar.zw);
+        if (viewZ < denoiser_camera_attached_radius)
+          materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
 
         float roughness = gbuffer.linearRoughness;
         ##if (denoiser_apply_wetness == yes)

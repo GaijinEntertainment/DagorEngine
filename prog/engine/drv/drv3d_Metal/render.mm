@@ -1373,6 +1373,9 @@ namespace drv3d_metal
     validate_framemem_bounds = ::dgs_get_settings()->getBlockByNameEx("metal")->getBool("validate_framem_bounds", false);
     manual_hazard_tracking = ::dgs_get_settings()->getBlockByNameEx("metal")->getBool("enable_manual_hazard_tracking", true);
     use_separate_command_buffer_for_each_encoder = ::dgs_get_settings()->getBlockByNameEx("metal")->getBool("enable_per_encoder_cb", false);
+    disable_cpu_gpu_overlap = !::dgs_get_settings()->getBlockByNameEx("video")->getBool("cpuGpuOverlap", true);
+    if (disable_cpu_gpu_overlap)
+      debug("metal: CPU-GPU overlap disabled (video/cpuGpuOverlap:b=off), GPU will be synced after every frame");
     hadError = false;
 
     debug("[METAL] enable_postmortem : %s", enable_postmortem ? "true" : "false");
@@ -1739,7 +1742,8 @@ namespace drv3d_metal
 
   void Render::endFrame()
   {
-    flush(false, true);
+    // video/cpuGpuOverlap:b=off: wait for the GPU to finish this frame before the CPU starts the next one
+    flush(disable_cpu_gpu_overlap, true);
 
     last_gpu_time = current_gpu_time.load();
     current_gpu_time.store(0);

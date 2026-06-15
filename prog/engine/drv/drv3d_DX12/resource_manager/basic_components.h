@@ -31,6 +31,66 @@
 
 namespace drv3d_dx12::resource_manager
 {
+struct MemoryAllocationError
+{
+  /// Error code reported by the underlying DX12 / Win32 API.
+  HRESULT errorCode = S_OK;
+  /// Memory size that that was requested that caused the error.
+  uint64_t requestSize = 0;
+  /// The total size of the memory pool where the memory was attempted to allocate from.
+  uint64_t poolSize = 0;
+  /// The total memory budget granted by the OS of the memory pool where the memory was attempted to allocate from.
+  uint64_t poolBudget = 0;
+  /// The available memory budget of the memory pool where the memory was attempted to allocated from.
+  /// This is basically poolBudget minus currently allocate memory from the pool.
+  uint64_t poolAvail = 0;
+  /// Free space in the system page file.
+  /// Currently always 0 on GDK.
+  uint64_t pageFileSpace = 0;
+  /// System wide host memory usage load as percentage from 0 - 100.
+  /// On GDK this is GameUsed * 100 / GameLimit.
+  uint32_t systemMemoryLoadPercentage = 0;
+
+  enum class Type
+  {
+    // All errors that where because of something else than OOM
+    NoAllocationAttempt,
+    // Allocation failed most likely because of the memory pool was exhausted and there was no way of providing it with paging
+    PoolExhausted,
+    // It is not PoolExhausted and its most likely that the system is under high memory load with no way of paging to page file
+    SystemLoad,
+    // It is neither PoolExhausted nor SystemLoad, so from what we see it should have allocated memory but still failed anyways
+    Unexpected,
+  };
+
+  /// Multiplier to decide if a memory pool or page size can be considered to be exhausted to fulfill the memory request.
+  /// Currently assumes x 2, so if a pool or page size is less than x 2 of the request, it will be considered exhausted.
+  constexpr static uint64_t requested_memory_size_pool_exhaustion_scale = 2;
+  /// Min percentage value of system host memory load that is considered to be exhausted and possible cause for memory
+  /// allocation failures.
+  constexpr static uint32_t system_memory_min_load_percentage_as_exhaustion = 80;
+
+  Type getType() const
+  {
+    if (E_OUTOFMEMORY != errorCode)
+    {
+      return Type::NoAllocationAttempt;
+    }
+    if (poolAvail < requestSize * requested_memory_size_pool_exhaustion_scale)
+    {
+      return Type::PoolExhausted;
+    }
+    if (systemMemoryLoadPercentage > system_memory_min_load_percentage_as_exhaustion)
+    {
+      if (pageFileSpace < requestSize * requested_memory_size_pool_exhaustion_scale)
+      {
+        return Type::SystemLoad;
+      }
+    }
+    return Type::Unexpected;
+  }
+};
+
 class ConcurrentAccessControler
 {
 protected:
@@ -254,7 +314,7 @@ protected:
 
   void reportOOMInformation(DXGIAdapter *adapter);
 
-  bool checkForOOM(DXGIAdapter *adapter, bool was_okay, const OomReportData &report_data);
+  bool checkForOOM(DXGIAdapter *adapter, const eastl::optional<MemoryAllocationError> &error_info, const OomReportData &report_data);
 
   template <typename C>
   class ScopeExitChecker
@@ -299,7 +359,6 @@ public:
     BUFFERS,
     TEXTURES,
     CONST_RING,
-    TEMP_RING,
     TEMP_MEMORY,
     PERSISTENT_UPLOAD,
     PERSISTENT_READ_BACK,
@@ -339,7 +398,6 @@ public:
         case BUFFERS: return buffers;
         case TEXTURES: return textures;
         case CONST_RING: return constRing;
-        case TEMP_RING: return tempRing;
         case TEMP_MEMORY: return tempMemory;
         case PERSISTENT_UPLOAD: return persistentUpload;
         case PERSISTENT_READ_BACK: return persistentReadBack;
@@ -363,7 +421,6 @@ public:
         case BUFFERS: buffers = value; break;
         case TEXTURES: textures = value; break;
         case CONST_RING: constRing = value; break;
-        case TEMP_RING: tempRing = value; break;
         case TEMP_MEMORY: tempMemory = value; break;
         case PERSISTENT_UPLOAD: persistentUpload = value; break;
         case PERSISTENT_READ_BACK: persistentReadBack = value; break;
@@ -404,7 +461,6 @@ protected:
   {
     SYSTEM,
     CONST_RING,
-    UPLOAD_RING,
     TEMP_MEMORY,
     UPLOAD_MEMORY,
     READ_BACK_MEMORY,
@@ -513,8 +569,6 @@ protected:
   ALLOCATE_ALIAS_COUNTERS(placedGpuBufferHeaps, gpuBufferHeaps)                                                                     \
   ALLOCATE_FREE_COUNTERS(allocatedConstRing, freedConstRing, constRing)                                                             \
   COUNTER(usedConstRing)                                                                                                            \
-  ALLOCATE_FREE_COUNTERS(allocatedUploadRing, freedUploadRing, uploadRing)                                                          \
-  COUNTER(usedUploadRing)                                                                                                           \
   ALLOCATE_FREE_COUNTERS(allocatedTempBuffer, freedTempBuffer, tempBuffer)                                                          \
   COUNTER(usedTempBuffer)                                                                                                           \
   ALLOCATE_FREE_COUNTERS(allocatedPersistentUploadBuffer, freedPersistentUploadBuffer, persistentUploadBuffer)                      \
@@ -683,8 +737,6 @@ protected:
         FREE_TEXTURE,
         ALLOCATE_CONST_RING,
         FREE_CONST_RING,
-        ALLOCATE_TEMP_RING,
-        FREE_TEMP_RING,
         ALLOCATE_TEMP_BUFFER,
         FREE_TEMP_BUFFER,
         USE_TEMP_BUFFER,
@@ -897,10 +949,10 @@ protected:
   bool isAnyCounterCollecting() const
   {
     return isCollectingMetric(Metric::HEAPS) || isCollectingMetric(Metric::MEMORY) || isCollectingMetric(Metric::BUFFERS) ||
-           isCollectingMetric(Metric::TEXTURES) || isCollectingMetric(Metric::CONST_RING) || isCollectingMetric(Metric::TEMP_RING) ||
-           isCollectingMetric(Metric::TEMP_MEMORY) || isCollectingMetric(Metric::PERSISTENT_UPLOAD) ||
-           isCollectingMetric(Metric::PERSISTENT_READ_BACK) || isCollectingMetric(Metric::PERSISTENT_BIDIRECTIONAL) ||
-           isCollectingMetric(Metric::SCRATCH_BUFFER) || isCollectingMetric(Metric::RAYTRACING);
+           isCollectingMetric(Metric::TEXTURES) || isCollectingMetric(Metric::CONST_RING) || isCollectingMetric(Metric::TEMP_MEMORY) ||
+           isCollectingMetric(Metric::PERSISTENT_UPLOAD) || isCollectingMetric(Metric::PERSISTENT_READ_BACK) ||
+           isCollectingMetric(Metric::PERSISTENT_BIDIRECTIONAL) || isCollectingMetric(Metric::SCRATCH_BUFFER) ||
+           isCollectingMetric(Metric::RAYTRACING);
   }
   bool isCollectingAnyMetric() const { return metricsCollectedBits.any(); }
 
@@ -1089,41 +1141,6 @@ protected:
     auto &target = metricsAccess->currentFrame.rawCounters.usedConstRing;
     target.count++;
     target.size += size;
-  }
-
-  void recordUploadRingAllocated(uint32_t size)
-  {
-    if (!isCollectingMetric(Metric::TEMP_RING))
-      return;
-    auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.allocatedUploadRing;
-    target.count++;
-    target.size += size;
-
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::ALLOCATE_TEMP_RING, size);
-  }
-
-  void recordUploadRingFreed(uint32_t size)
-  {
-    if (!isCollectingMetric(Metric::TEMP_RING))
-      return;
-    auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.freedUploadRing;
-    target.count++;
-    target.size += size;
-
-    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::FREE_TEMP_RING, size);
-  }
-
-  void recordUploadRingUsed(uint32_t size)
-  {
-    if (!isCollectingMetric(Metric::TEMP_RING))
-      return;
-    auto metricsAccess = metrics.access();
-    auto &target = metricsAccess->currentFrame.rawCounters.usedUploadRing;
-    target.count++;
-    target.size += size;
-    // does not generate events, there are way too many
   }
 
   void recordTempBufferAllocated(uint32_t size)
@@ -1648,9 +1665,6 @@ protected:
   void recordConstantRingAllocated(uint32_t) {}
   void recordConstantRingFreed(uint32_t) {}
   void recordConstantRingUsed(uint32_t) {}
-  void recordUploadRingAllocated(uint32_t) {}
-  void recordUploadRingFreed(uint32_t) {}
-  void recordUploadRingUsed(uint32_t) {}
   void recordTempBufferAllocated(uint32_t) {}
   void recordTempBufferFreed(uint32_t) {}
   void recordTempBufferUsed(uint32_t) {}

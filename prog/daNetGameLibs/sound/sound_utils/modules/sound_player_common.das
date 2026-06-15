@@ -94,9 +94,9 @@ def get_option_path(path : Object const?; tags : Object; is_watched : bool; var 
   return path != null && get_option_path(*path, tags, is_watched, result)
 
 
-def get_option_object(opts : Object; tags : Object) : Object const?
+def get_option_object(opts : Array; tags : Object) : Object const?
   for it in opts
-    let opt = it.value as Object
+    let opt = it as Object
     if opt != null && test_tags(*opt, tags)
       return opt
   return null

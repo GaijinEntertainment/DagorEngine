@@ -209,12 +209,10 @@ SQInteger DasFunction::script_call(HSQUIRRELVM vm)
              " (eval/compile overlap, see daRg async-load): %s",
         inst->funcName.c_str(), ex);
     ctx->unlock();
-    ctx->restartHeaps();
     return sqstd_throwerrorf(vm, "das exception: %s", ex);
   }
 
   ctx->unlock();
-  ctx->restartHeaps();
 
   das::TypeInfo *retType = info ? info->result : nullptr;
   if (!retType || retType->type == das::Type::tVoid)

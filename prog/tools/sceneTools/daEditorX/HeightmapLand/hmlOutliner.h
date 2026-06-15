@@ -16,7 +16,9 @@ public:
   const char *getTypeName(int type, bool plural = false) override;
   bool isTypeVisible(int type) override;
   bool isTypeLocked(int type) override;
+  bool doesSelectionModeAllowSelectingType(int type) override;
   bool canAddNewLayerWithName(int type, const char *name, String &error_message) override;
+  const char *getTypeUnselectabilityReason(int type) override;
 
   void selectAllTypeObjects(int type, bool select) override;
   void toggleTypeVisibility(int type) override;
@@ -34,6 +36,7 @@ public:
   bool canChangeLayerLock(int type, int per_type_layer_index) override;
   bool isLayerRenameable(int type, int per_type_layer_index) override;
   bool canRenameLayerTo(int type, int per_type_layer_index, const char *name, String &error_message) override;
+  const char *getLayerUnselectabilityReason(int type, int per_type_layer_index) override;
 
   void setLayerActive(int type, int per_type_layer_index) override;
   void selectAllLayerObjects(int type, int per_type_layer_index, bool select) override;
@@ -50,6 +53,7 @@ public:
   const char *getObjectAssetName(RenderableEditableObject &object) override;
   int getObjectAssetType(RenderableEditableObject &object, const char *&asset_type_name) override;
   bool isSampleObject(RenderableEditableObject &object) override;
+  const char *getObjectUnselectabilityReason(RenderableEditableObject &object, int type, int per_type_layer_index) override;
 
   void startObjectSelection() override;
   void setObjectSelected(RenderableEditableObject &object, bool selected) override;

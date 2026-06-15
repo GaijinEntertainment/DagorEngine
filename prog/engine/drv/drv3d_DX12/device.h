@@ -23,6 +23,7 @@
 #include <debug/dag_debug.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_driverNetManager.h>
 #include <drv_log_defs.h>
 
@@ -552,6 +553,7 @@ private:
   frontend::BindlessManager bindlessManager;
   BufferState nullBuffer;
   Sbuffer *dummyUavBuffer = nullptr;
+  DriverDesc driverDesc = {};
 
   D3D12_CPU_DESCRIPTOR_HANDLE getNonRecentImageViews(Image *img, ImageViewState state); // checks oldViews, update LRU entry if found
   // context lock has to be held to ensure data consistency
@@ -621,16 +623,20 @@ public:
   ~Device();
 #if _TARGET_PC_WIN
   bool init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
-    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
-    eastl::fixed_function<8, void()> caps_init);
+    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg);
   uint32_t ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIFactory> &factory);
   void destroySecondarySwapchainForWindow(HWND window);
 #elif _TARGET_XBOX
   bool init(SwapchainCreateInfo swapchain_create_info, const Config &cfg);
 #endif
   bool isInitialized() const;
-  void shutdown(const DeviceCapsAndShaderModel &deatures);
-  void adjustCaps(DriverDesc &);
+  void shutdown();
+  struct DeviceCapsOverrides
+  {
+    bool forceOffRayTracing : 1 = false;
+  };
+  void adjustCaps(const DeviceCapsOverrides &overrides);
+  const DriverDesc &getDriverDesc() const { return driverDesc; }
   void initializeBindlessManager(bool enable_types_validation);
 #if D3D_HAS_RAY_TRACING
   bool hasRaytraceSupport() const { return caps.test(Caps::RAY_TRACING); }
@@ -733,6 +739,7 @@ public:
   void enumerateDisplayModesFromOutput(IDXGIOutput *dxgi_output, Tab<String> &list);
   void enumerateActiveMonitors(Tab<String> &result);
   HRESULT findClosestMatchingMode(DXGI_MODE_DESC *out_desc);
+  DISPLAYCONFIG_RATIONAL getCurrentDisplayRefreshRate();
 #endif
 
   ImageGlobalSubresourceId getSwapchainColorGlobalId(uint32_t swapchain_index) const
@@ -785,8 +792,7 @@ public:
 #if _TARGET_PC_WIN
   LUID preRecovery();
   bool recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
-    D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd,
-    eastl::fixed_function<8, void()> caps_init);
+    D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd);
   bool finalizeRecovery();
 
   using debug::DeviceState::isAnyCapturerLoaded;
@@ -913,7 +919,6 @@ public:
   }
 
   size_t getFramePushRingMemorySize() { return resources.getFramePushRingMemorySize(); }
-  size_t getUploadRingMemorySize() { return resources.getUploadRingMemorySize(); }
   size_t getTemporaryUploadMemorySize() { return resources.getTemporaryUploadMemorySize(); }
   size_t getPersistentUploadMemorySize() { return resources.getPersistentUploadMemorySize(); }
   size_t getPersistentReadBackMemorySize() { return resources.getPersistentReadBackMemorySize(); }

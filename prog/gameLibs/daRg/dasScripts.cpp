@@ -14,6 +14,7 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_threads.h> // WORKER_THREADS_AFFINITY_MASK
+#include <EASTL/algorithm.h>
 
 using namespace das;
 
@@ -58,7 +59,7 @@ public:
 
 struct DargContext final : das::Context
 {
-  DargContext(GuiScene *scene_, uint32_t stackSize) : das::Context(stackSize), scene(scene_) {}
+  DargContext(uint32_t stackSize) : das::Context(stackSize) {}
 
   DargContext(Context &ctx, uint32_t category) = delete;
 
@@ -67,10 +68,7 @@ struct DargContext final : das::Context
     const int logLevel = level >= das::LogLevel::error     ? LOGLEVEL_ERR
                          : level >= das::LogLevel::warning ? LOGLEVEL_WARN
                                                            : LOGLEVEL_DEBUG;
-    if (logLevel == LOGLEVEL_ERR)
-      scene->errorMessageWithCb(message);
-    else
-      ::logmessage(logLevel, "daRg-das: %s", message);
+    ::logmessage(logLevel, "daRg-das: %s", message);
   }
 
   virtual uint32_t unlock() override
@@ -102,7 +100,6 @@ struct DargContext final : das::Context
     return res;
   }
 
-  GuiScene *scene = nullptr;
 #if DAGOR_DBGLEVEL > 0
   uint64_t heapLimit = 512 * 1024;
   uint64_t stringHeapLimit = 512 * 1024;
@@ -378,7 +375,7 @@ public:
       return;
     }
 
-    auto c = make_smart<DargContext>(guiScene, program->getContextStackSize());
+    auto c = make_smart<DargContext>(program->getContextStackSize());
 
     // compile+simulate (incl. [init]/global init) run together per script, the proven
     // ECS sequence. NOT split: Function::index is consumed by this simulate before the
@@ -490,6 +487,8 @@ private:
       for (int i = 0, is = ctx->getTotalFunctions(); i != is; ++i)
         if (SimFunction *fn = ctx->getFunction(i))
         {
+          if (fn->builtin)
+            continue;
           if (fn->aot)
             ++aotFn;
           else
@@ -525,8 +524,17 @@ private:
 
 DasScript::~DasScript()
 {
-  // Orphan handshake is main-thread-only (~DasScript / releaseJob; doJob never touches
-  // these). Nothing in flight -> nothing to orphan; skip the lock (else reload-time GC
+  if (owner)
+  {
+    auto &live = owner->liveScripts;
+    auto it = eastl::find(live.begin(), live.end(), this);
+    if (it != live.end())
+      live.erase_unsorted(it);
+    owner = nullptr;
+  }
+
+  // Orphan handshake runs on the GuiScene API thread (~DasScript / releaseJob; doJob never
+  // touches these). Nothing in flight -> nothing to orphan; skip the lock (else reload-time GC
   // stalls behind an unrelated worker compile).
   if (!loadingJob)
     return;
@@ -612,6 +620,14 @@ void DasScriptsData::shutdownDasEnvironment()
   WinAutoLock lock(das_compile_lock());
   {
     das::daScriptEnvironmentGuard envGuard(dasEnv, dasEnv);
+    // Drop script ctx/program before the modules (see liveScripts decl); jobs already drained.
+    for (DasScript *s : liveScripts)
+    {
+      s->setState(DasScript::FAILED);
+      s->ctx.reset();
+      s->program.reset();
+    }
+
     // module group must be destroyed before dasEnv
     moduleGroup.reset();
   }
@@ -745,6 +761,8 @@ static SQInteger load_das(HSQUIRRELVM vm)
   // lock) - mutating the shared fAccess cache here raced an in-flight worker compile.
 
   DasScript *s = new DasScript();
+  s->owner = dasMgr;
+  dasMgr->liveScripts.push_back(s);
 
   // Push the (still LOADING) handle to Quirrel immediately - this is what makes load_das async.
   sq_pushobject(vm, Sqrat::ClassType<DasScript>::getClassData(vm)->classObj); //-V522

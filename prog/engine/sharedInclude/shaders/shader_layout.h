@@ -89,13 +89,13 @@ BINDUMP_BEGIN_LAYOUT(Interval)
 
   inline unsigned getValCount() const { return maxVal.size() + 1; }
 
-  uint32_t getAssumedVal() const
+  int getAssumedVal() const
   {
     G_ASSERT(type == TYPE_ASSUMED_INTERVAL);
     // The assumed value is stored in the `mCount` field of the `maxVal` member,
     // this is done because the `maxVal` member is not used for the assumed interval,
     // and there are no other fields, and in order not to change the dump format, it is done this way
-    return maxVal.size();
+    return bitwise_cast<int>(maxVal.size());
   }
 
   inline unsigned getNormalizedValue(real v) const
@@ -594,5 +594,6 @@ struct StubTextureKey
 BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV5, ScriptedShadersBinDumpV4)
   BINDUMP_USING_EXTENSION()
   VecHolder<StubTextureKey> usedStubTextureKeys;
+  int32_t refinedBlockStcodeId = -1;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

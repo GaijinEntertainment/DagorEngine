@@ -132,6 +132,7 @@ void tilecache_start(tile_check_cb_t, const char *) {}
 void tilecache_start_add_ri(tile_check_cb_t, rendinst::riex_handle_t) {}
 void tilecache_start_ladders(const scene::TiledScene *) {}
 bool tilecache_is_blocking(rendinst::riex_handle_t) { return {}; }
+obstacle_handle_t tilecache_get_obstacle_handle(rendinst::riex_handle_t) { return {}; }
 bool tilecache_is_working() { return {}; }
 bool tilecache_is_loaded() { return {}; }
 bool tilecache_is_inside(const BBox3 &) { return {}; }

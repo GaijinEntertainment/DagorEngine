@@ -140,10 +140,23 @@ class NodeEqualChecker
     if (!check(l->tryStatement(), r->tryStatement()))
       return false;
 
-    if (!check(l->exceptionId(), r->exceptionId()))
+    const auto &lc = l->catches();
+    const auto &rc = r->catches();
+    if (lc.size() != rc.size())
       return false;
 
-    return check(l->catchStatement(), r->catchStatement());
+    for (uint32_t i = 0; i < lc.size(); ++i) {
+      if ((lc[i].type == nullptr) != (rc[i].type == nullptr))
+        return false;
+      if (lc[i].type && !check(lc[i].type, rc[i].type))
+        return false;
+      if (!check(lc[i].exception, rc[i].exception))
+        return false;
+      if (!check(lc[i].body, rc[i].body))
+        return false;
+    }
+
+    return true;
   }
 
   bool cmpTerminate(const TerminateStatement *l, const TerminateStatement *r) const {

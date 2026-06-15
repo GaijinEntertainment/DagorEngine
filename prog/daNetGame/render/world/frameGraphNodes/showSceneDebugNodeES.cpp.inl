@@ -23,7 +23,7 @@ dafg::NodeHandle makeUpsampleDepthForSceneDebugNode()
     auto downsampledDepthHndl =
       registry.readTexture("depth_for_postfx").atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).handle();
 
-    registry.requestRenderPass().depthRw(registry.createTexture2d("depth_for_scene_debug",
+    registry.requestRenderPass().depth(registry.createTexture2d("depth_for_scene_debug",
       {get_gbuffer_depth_format() | TEXCF_RTARGET, registry.getResolution<2>("display")}));
 
     return [downsampledDepthHndl, renderer = PostFxRenderer("copy_depth")] {

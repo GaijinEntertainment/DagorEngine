@@ -1,0 +1,20 @@
+closure.call 0 args: 0
+closure.call 1 closure arg: 1
+closure.call 2 args closure last: 2
+closure.call 2 closure args: 2
+closure.call 3 args closure last: 3
+closure.call 3 closure args: 3
+class.call 0 args: argc=0 last=none
+class.call 1 closure arg: argc=1 last=function
+class.call 2 args closure last: argc=2 last=function
+class.call 2 closure args: argc=2 last=function
+class.call 2 args int last: argc=2 last=integer
+class.call 3 args closure last: argc=3 last=function
+class.call 3 closure args: argc=3 last=function
+gen.call 0 args: generator
+gen.call 1 closure arg: generator
+gen.call 2 args closure last: generator
+gen.call 2 closure args: generator
+gen.call 3 args closure last: generator
+gen.call 3 closure args: generator
+argument closure side effects: none

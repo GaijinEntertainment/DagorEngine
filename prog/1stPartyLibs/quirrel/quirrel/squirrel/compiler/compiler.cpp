@@ -2,7 +2,6 @@
     see copyright notice in squirrel.h
 */
 #include "sqpcheader.h"
-#ifndef NO_COMPILER
 #include <stdarg.h>
 #include <algorithm>
 #include "opcodes.h"
@@ -159,5 +158,3 @@ void AstFreeImports(HSQUIRRELVM v, SQInteger num, SQModuleImport *imports)
 }
 
 }; // SQCompilation
-
-#endif

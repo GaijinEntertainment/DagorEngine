@@ -55,7 +55,10 @@ constexpr float HISTORY_WAVE_LEN = NODE_MIN_X_SIZE / 3.f;
 constexpr float HISTORY_WAVE_HEIGHT = BASE_DEP_WIDTH * 3.f;
 
 
-constexpr ImU32 NODE_BASE_COLOR = IM_COL32(128, 128, 128, 255); // rgb(128, 128, 128)
+constexpr ImU32 NODE_NAME_COLOR = IM_COL32(128, 128, 128, 255);       // rgb(128, 128, 128)
+constexpr ImU32 NODE_BASE_COLOR = IM_COL32(96, 96, 96, 255);          // rgb(96, 96, 96)
+constexpr ImU32 NODE_CHANGED_COLOR = IM_COL32(255, 64, 255, 255);     // rgb(255, 64, 255)
+constexpr ImU32 NODE_CHANGED_OLD_COLOR = IM_COL32(128, 64, 128, 255); // rgb(128, 64, 128)
 
 constexpr ImU32 DEP_COLOR_PREV = IM_COL32(0, 255, 255, 255);     // rgb(0, 255, 255)
 constexpr ImU32 DEP_COLOR_FOLLOW = IM_COL32(128, 128, 255, 255); // rgb(128, 128, 255)
@@ -142,282 +145,6 @@ static DependencyTypeInfo &dependency_info_by_type(const DependencyType type)
 }
 
 
-static inline const char *side_effect_name_by_type(const SideEffects type)
-{
-  switch (type)
-  {
-    case SideEffects::None: return "None";
-    case SideEffects::Internal: return "Internal";
-    case SideEffects::External: return "External";
-    default: return "";
-  }
-}
-
-static inline const char *bind_type_name_by_type(const BindingType type)
-{
-  switch (type)
-  {
-    case BindingType::ShaderVar: return "SV";
-    case BindingType::ViewMatrix: return "VM";
-    case BindingType::ProjMatrix: return "PM";
-    case BindingType::Invalid: return "IN";
-    default: return "";
-  }
-}
-
-static inline const char *vrs_combiner_name_by_type(const VariableRateShadingCombiner comb)
-{
-  switch (comb)
-  {
-    case VariableRateShadingCombiner::VRS_PASSTHROUGH: return "PASSTHROUGH";
-    case VariableRateShadingCombiner::VRS_OVERRIDE: return "OVERRIDE";
-    case VariableRateShadingCombiner::VRS_MIN: return "MIN";
-    case VariableRateShadingCombiner::VRS_MAX: return "MAX";
-    case VariableRateShadingCombiner::VRS_SUM: return "SUM";
-    default: return "";
-  }
-}
-
-static inline const char *compare_func_name_by_type(const uint8_t func)
-{
-  switch (func)
-  {
-    case CMPF::CMPF_NEVER: return "NEVER";
-    case CMPF::CMPF_LESS: return "<";
-    case CMPF::CMPF_EQUAL: return "=";
-    case CMPF::CMPF_LESSEQUAL: return "<=";
-    case CMPF::CMPF_GREATER: return ">";
-    case CMPF::CMPF_NOTEQUAL: return "!=";
-    case CMPF::CMPF_GREATEREQUAL: return ">=";
-    case CMPF::CMPF_ALWAYS: return "ALWAYS";
-    default: return "";
-  }
-}
-
-static inline const char *stencil_op_name_by_type(const uint8_t op)
-{
-  switch (op)
-  {
-    case STNCLOP_KEEP: return "KEEP";
-    case STNCLOP_ZERO: return "ZERO";
-    case STNCLOP_REPLACE: return "REPLACE";
-    case STNCLOP_INCRSAT: return "INCRSAT";
-    case STNCLOP_DECRSAT: return "DECRSAT";
-    case STNCLOP_INVERT: return "INVERT";
-    case STNCLOP_INCR: return "INCREASE";
-    case STNCLOP_DECR: return "DECREASE";
-    default: return "";
-  }
-}
-
-static inline const char *blend_op_name_by_type(const uint8_t op)
-{
-  switch (op)
-  {
-    case BLENDOP::BLENDOP_ADD: return "ADD";
-    case BLENDOP::BLENDOP_SUBTRACT: return "SUB";
-    case BLENDOP::BLENDOP_REVSUBTRACT: return "REV SUB";
-    case BLENDOP::BLENDOP_MIN: return "MIN";
-    case BLENDOP::BLENDOP_MAX: return "MAX";
-    default: return "";
-  }
-}
-
-static inline const char *blend_factor_name_by_type(const uint8_t factor)
-{
-  switch (factor)
-  {
-    case BLEND_FACTOR::BLEND_ZERO: return "ZERO";
-    case BLEND_FACTOR::BLEND_ONE: return "ONE";
-    case BLEND_FACTOR::BLEND_SRCCOLOR: return "SRC COLOR";
-    case BLEND_FACTOR::BLEND_INVSRCCOLOR: return "INV SRC COLOR";
-    case BLEND_FACTOR::BLEND_SRCALPHA: return "SRC ALPHA";
-    case BLEND_FACTOR::BLEND_INVSRCALPHA: return "INV SRC ALPHA";
-    case BLEND_FACTOR::BLEND_DESTALPHA: return "DST ALPHA";
-    case BLEND_FACTOR::BLEND_INVDESTALPHA: return "INV DST ALPHA";
-    case BLEND_FACTOR::BLEND_DESTCOLOR: return "DST COLOR";
-    case BLEND_FACTOR::BLEND_INVDESTCOLOR: return "INV DST COLOR";
-    case BLEND_FACTOR::BLEND_SRCALPHASAT: return "SRC ALPHA SAT";
-    case BLEND_FACTOR::BLEND_BOTHINVSRCALPHA: return "BOTH INV SRC ALPHA";
-    case BLEND_FACTOR::BLEND_BLENDFACTOR: return "BLEND FACTOR";
-    case BLEND_FACTOR::BLEND_INVBLENDFACTOR: return "INV BLEND FACTOR";
-
-    case EXT_BLEND_FACTOR::EXT_BLEND_SRC1COLOR: return "SRC 1 COLOR";
-    case EXT_BLEND_FACTOR::EXT_BLEND_INVSRC1COLOR: return "INV SRC 1 COLOR";
-    case EXT_BLEND_FACTOR::EXT_BLEND_SRC1ALPHA: return "SRC 1 ALPHA";
-    case EXT_BLEND_FACTOR::EXT_BLEND_INVSRC1ALPHA: return "INV SRC 1 ALPHA";
-
-    default: return "";
-  }
-}
-
-static const char *state_reqs_descr(const NodeStateRequirements &reqs)
-{
-  static String res;
-  res.clear();
-
-  res.aprintf(0, "Support wireframe: %s\n", reqs.supportsWireframe ? "Y" : "N");
-
-  if (!(reqs.vrsState.rateX == 1 && reqs.vrsState.rateY == 1 &&
-        reqs.vrsState.vertexCombiner == VariableRateShadingCombiner::VRS_PASSTHROUGH &&
-        reqs.vrsState.pixelCombiner == VariableRateShadingCombiner::VRS_PASSTHROUGH))
-  {
-    res.append("\n");
-    res.aprintf(0, "Vrs rates X/Y: %d %d\n", reqs.vrsState.rateX, reqs.vrsState.rateY);
-    res.aprintf(0, "Vrs vtx combiner: %s\n", vrs_combiner_name_by_type(reqs.vrsState.vertexCombiner));
-    res.aprintf(0, "Vrs pix combiner: %s\n", vrs_combiner_name_by_type(reqs.vrsState.pixelCombiner));
-  }
-
-  if (reqs.pipelineStateOverride)
-  {
-    res.append("\n");
-
-    const auto &override = *reqs.pipelineStateOverride;
-
-    res.aprintf(0, "Color write mask: 0x%X\n", override.colorWr);
-
-    res.append("Z overrides:\n");
-    if (override.isOn(shaders::OverrideState::Z_TEST_DISABLE))
-      res.append("  test disabled\n");
-    if (override.isOn(shaders::OverrideState::Z_WRITE_DISABLE))
-      res.append("  write disabled\n");
-    if (override.isOn(shaders::OverrideState::Z_WRITE_ENABLE))
-      res.append("  write enabled\n");
-    if (override.isOn(shaders::OverrideState::Z_BOUNDS_ENABLED))
-      res.append("  bounds enabled\n");
-    if (override.isOn(shaders::OverrideState::Z_CLAMP_ENABLED))
-      res.append("  clamp enabled\n");
-    if (override.isOn(shaders::OverrideState::Z_FUNC))
-      res.aprintf(0, "  function: %s\n", compare_func_name_by_type(override.zFunc));
-    if (override.isOn(shaders::OverrideState::Z_BIAS))
-      res.aprintf(0, "  bias: %f\n  slope: %f\n", override.zBias, override.slopeZBias);
-
-    if (override.isOn(shaders::OverrideState::STENCIL))
-      res.aprintf(0,
-        "Stencil satate override:\n"
-        "  func: %s\n"
-        "  fail: 0x%X\n"
-        "  zFail: 0x%X\n"
-        "  pass: 0x%X\n"
-        "  readMask: 0x%X\n"
-        "  writeMask: 0x%X\n",
-        compare_func_name_by_type(override.stencil.func), stencil_op_name_by_type(override.stencil.fail),
-        stencil_op_name_by_type(override.stencil.zFail), stencil_op_name_by_type(override.stencil.pass), override.stencil.readMask,
-        override.stencil.writeMask);
-
-    res.append("Blend overrides:\n");
-    if (override.isOn(shaders::OverrideState::BLEND_OP))
-      res.aprintf(0, "  operation: %s\n", blend_op_name_by_type(override.blendOp));
-    if (override.isOn(shaders::OverrideState::BLEND_OP_A))
-      res.aprintf(0, "  operation A: %s\n", blend_op_name_by_type(override.blendOpA));
-    if (override.isOn(shaders::OverrideState::BLEND_SRC_DEST))
-      res.aprintf(0, "  factors SRC/DST:\n    %d\n    %d\n", blend_factor_name_by_type(override.sblend),
-        blend_factor_name_by_type(override.dblend));
-    if (override.isOn(shaders::OverrideState::BLEND_SRC_DEST_A))
-      res.aprintf(0, "  factors A SRC/DST:\n    %d\n    %d\n", blend_factor_name_by_type(override.sblenda),
-        blend_factor_name_by_type(override.dblenda));
-
-    res.append("Culling overrides:\n");
-    if (override.isOn(shaders::OverrideState::CULL_NONE))
-      res.append("  disabled\n");
-    if (override.isOn(shaders::OverrideState::FLIP_CULL))
-      res.append("  flip cull\n");
-
-    if (override.isOn(shaders::OverrideState::FORCED_SAMPLE_COUNT))
-      res.aprintf(0, "Forced sample count: %d\n", override.forcedSampleCount);
-    if (override.isOn(shaders::OverrideState::CONSERVATIVE))
-      res.append("Conservative rasterization\n");
-    if (override.isOn(shaders::OverrideState::SCISSOR_ENABLED))
-      res.append("Scissor test\n");
-    if (override.isOn(shaders::OverrideState::ALPHA_TO_COVERAGE))
-      res.append("Alpha-to-coverage\n");
-  }
-
-  return res.c_str();
-}
-
-static const char *multiplexing_descr(const multiplexing::Mode mode)
-{
-  static String res;
-  res.clear();
-
-  if (mode == multiplexing::Mode::None)
-  {
-    res.append("Exec once\n");
-  }
-  else
-  {
-    if (eastl::to_underlying(mode & multiplexing::Mode::SuperSampling))
-      res.append("Super Sampling\n");
-    if (eastl::to_underlying(mode & multiplexing::Mode::SubSampling))
-      res.append("Sub Sampling\n");
-    if (eastl::to_underlying(mode & multiplexing::Mode::Viewport))
-      res.append("Viewport\n");
-    if (eastl::to_underlying(mode & multiplexing::Mode::CameraInCamera))
-      res.append("Camera In Camera\n");
-  }
-
-  return res.c_str();
-}
-
-
-static inline const char *res_type_name_by_type(const ResourceType type)
-{
-  switch (type)
-  {
-    case ResourceType::Invalid: return "Invalid";
-    case ResourceType::Texture: return "Tex";
-    case ResourceType::Buffer: return "Buf";
-    case ResourceType::Blob: return "Blob";
-    default: return "";
-  }
-}
-
-static inline const char *res_clear_flag_name_by_type(const ResourceClearFlags type)
-{
-  switch (type)
-  {
-    case ResourceClearFlags::RESOURCE_CLEAR_DEPTH: return "Depth";
-    case ResourceClearFlags::RESOURCE_CLEAR_STENCIL: return "Stencil";
-    case ResourceClearFlags::RESOURCE_CLEAR_ALL_CONTENT: return "All";
-    default: return "";
-  }
-}
-
-
-static ImU32 color_by_hash(size_t hash)
-{
-  constexpr size_t HUE_COUNT = 256;
-
-  // Hash some more to get different colors for close numbers
-  hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
-  hash = ((hash >> 16) ^ hash) * 0x45d9f3b;
-  hash = (hash >> 16) ^ hash;
-  float hue = static_cast<float>((6607 * hash) % HUE_COUNT) / static_cast<float>(HUE_COUNT - 1);
-
-  ImVec4 color(0, 0, 0, 1);
-  ImGui::ColorConvertHSVtoRGB(hue, 1.f, 1.f, color.x, color.y, color.z);
-  return ImGui::ColorConvertFloat4ToU32(color);
-};
-
-static ImU32 apply_alpha_coeff(ImU32 color, float k = 1.f)
-{
-  return ImGui::ColorConvertFloat4ToU32(ImGui::ColorConvertU32ToFloat4(color) * ImVec4{1.f, 1.f, 1.f, k});
-}
-
-
-static inline bool rect_is_visible(const ImRect &rect, const ImRect &view_rect) { return view_rect.Overlaps(rect); }
-
-static inline bool spline_is_visible(const ImCubicBezierPoints &spline, const ImRect &view_rect)
-{
-  return !(
-    spline.P0.x < view_rect.Min.x && spline.P1.x < view_rect.Min.x && spline.P2.x < view_rect.Min.x && spline.P3.x < view_rect.Min.x ||
-    spline.P0.x > view_rect.Max.x && spline.P1.x > view_rect.Max.x && spline.P2.x > view_rect.Max.x && spline.P3.x > view_rect.Max.x ||
-    spline.P0.y < view_rect.Min.y && spline.P1.y < view_rect.Min.y && spline.P2.y < view_rect.Min.y && spline.P3.y < view_rect.Min.y ||
-    spline.P0.y > view_rect.Max.y && spline.P1.y > view_rect.Max.y && spline.P2.y > view_rect.Max.y && spline.P3.y > view_rect.Max.y);
-}
-
-
 Visualizer::Visualizer(InternalRegistry &int_registry, const DependencyData &dep_data, const intermediate::Graph &ir_graph,
   const PassColoring &coloring) :
   registry(int_registry), depData(dep_data), intermediateGraph(ir_graph), intermediatePassColoring(coloring)
@@ -431,7 +158,28 @@ void Visualizer::draw()
     return;
 
   if (updateNeeded)
-    updateVisualization();
+    updateVisualization(lastChangedNodes);
+
+  if (check_user_node_focus_request())
+  {
+    const auto focusNameId = get_user_node_focus_request();
+    if (nodeIsPresented(focusNameId))
+    {
+      setFocusedNode(regNodesRepresent[focusNameId]);
+      centerOnFocusedNode();
+    }
+  }
+
+  if (check_user_resource_focus_request())
+  {
+    const auto focusResId = get_user_resource_focus_request();
+    if (resIsPresented(focusResId))
+    {
+      setFocusedResource(regResRepresent[focusResId]);
+      centerOnFocusedRes();
+    }
+  }
+
 
   hoverState.reset();
   hoverState.window = ImGui::IsWindowHovered();
@@ -537,6 +285,13 @@ void Visualizer::drawUI()
   {
     if (ImGui::Button("Recompile"))
       dafg::recompile_graph.set(true);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Reset changed nodes"))
+    {
+      lastChangedNodes.assign(lastChangedNodes.size(), false);
+      accumChangedNodes.assign(accumChangedNodes.size(), false);
+    }
 
     ImGui::SameLine();
     if (deselect_button("Deselect"))
@@ -697,9 +452,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
         case NodeColorationType::Pass: nodeFillColor = node.passImColor; break;
         default: break;
       }
-      if (nodeData.enabled)
-        nodeFillColor = apply_alpha_coeff(nodeFillColor, 0.9f);
-      else
+      if (!nodeData.enabled)
         nodeFillColor = apply_alpha_coeff(nodeFillColor, 0.5f);
 
       if (nodeId == focusedNode.id)
@@ -711,7 +464,22 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
           rightBottomPos + ImVec2{DISABLED_DEP_WIDTH, DISABLED_DEP_WIDTH}, CYCLED_DEP_COLOR, 4.0f, 0, DISABLED_DEP_WIDTH);
 
       draw_list->AddRectFilled(leftTopPos, rightBottomPos, nodeFillColor, 4.0f);
-      draw_list->AddRectFilled(nameTagLeftTopPos, nameTagRightBottomPos, NODE_BASE_COLOR, 4.0f);
+
+      if (accumChangedNodes[nodeNameId])
+      {
+        const ImVec2 nodeCenter = (leftTopPos + rightBottomPos) / 2.f;
+        const ImVec2 triP0 = ImVec2{nodeCenter.x, leftTopPos.y};
+        const ImVec2 triP1 = ImVec2{rightBottomPos.x, nodeCenter.y};
+        const ImVec2 triP2 = ImVec2{rightBottomPos.x, leftTopPos.y};
+        const ImU32 nodeCnangeColor = lastChangedNodes[nodeNameId] ? NODE_CHANGED_COLOR : NODE_CHANGED_OLD_COLOR;
+
+        add_triangle_filled_multicolor(draw_list, triP0, triP1, triP2, nodeFillColor, nodeFillColor, nodeCnangeColor);
+        if (ImGui::IsMouseHoveringRect(triP0, triP1, true))
+          hoverState.tooltip.printf(0,
+            lastChangedNodes[nodeNameId] ? "Node was changed on last recompilation\n" : "Node was changed since reset\n");
+      }
+
+      draw_list->AddRectFilled(nameTagLeftTopPos, nameTagRightBottomPos, NODE_NAME_COLOR, 4.0f);
     }
 
     // draw texts and buttons
@@ -852,7 +620,7 @@ void Visualizer::drawNodes(ImDrawList *draw_list, const CanvasLayout &layout)
           case SideEffects::Internal: ImGui::PushStyleColor(ImGuiCol_Text, SIDE_EFF_INT_COLOR); break;
           case SideEffects::External: ImGui::PushStyleColor(ImGuiCol_Text, SIDE_EFF_EXT_COLOR); break;
         }
-        ImGui::TextUnformatted(side_effect_name_by_type(nodeData.sideEffect));
+        ImGui::TextUnformatted(side_effect_name(nodeData.sideEffect));
         ImGui::PopStyleColor();
 
         ImGui::TextUnformatted("async pipeline:");
@@ -934,7 +702,7 @@ void Visualizer::drawEdges(ImDrawList *draw_list, const CanvasLayout &layout)
     const auto resData = registry.resources[origResNameId];
 
     hoverState.tooltip.printf(0, "(%s) %s\n",
-      res_type_name_by_type(resData.createdResData ? resData.createdResData->type : ResourceType::Invalid), getName(hoveredResNameId));
+      res_type_name(resData.createdResData ? resData.createdResData->type : ResourceType::Invalid), getName(hoveredResNameId));
   }
 }
 
@@ -1160,8 +928,8 @@ void Visualizer::processPopup()
       const auto resNameId = binding.resource;
       const bool resValid = resNameId != ResNameId::Invalid;
 
-      label.printf(0, "%d: %s %s%s%s %s", index, bind_type_name_by_type(binding.type), binding.history ? "+" : "-",
-        binding.reset ? "+" : "-", binding.optional ? "+" : "-", resValid ? getName(resNameId).data() : "Invalid name id");
+      label.printf(0, "%d: %s %s%s%s %s", index, bind_type_name(binding.type), binding.history ? "+" : "-", binding.reset ? "+" : "-",
+        binding.optional ? "+" : "-", resValid ? getName(resNameId).data() : "Invalid name id");
       if (ImGui::Selectable(label) && resValid)
       {
         resetFocusedNode();
@@ -1233,8 +1001,8 @@ void Visualizer::processPopup()
     if (resData.createdResData)
     {
       const auto &createdData = *resData.createdResData;
-      ImGui::Text("type: %s ; clear flags: %s ; history: %c", res_type_name_by_type(createdData.type),
-        res_clear_flag_name_by_type(createdData.clearFlags), resData.history != History::No ? 'Y' : 'N');
+      ImGui::Text("type: %s ; clear flags: %s ; history: %c", res_type_name(createdData.type),
+        res_clear_flag_name(createdData.clearFlags), resData.history != History::No ? 'Y' : 'N');
     }
     ImGui::Text("%s:", dependency_info_by_type(frontDep.type).name.data());
     for (const auto depId : popupDeps)
@@ -1410,11 +1178,15 @@ void Visualizer::centerOnFocusedRes()
 }
 
 
-void Visualizer::updateVisualization()
+void Visualizer::updateVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed)
 {
   TIME_PROFILE(update_usergraph_visualization);
 
   updateNeeded = true;
+  lastChangedNodes = nodes_changed;
+  accumChangedNodes.resize(lastChangedNodes.size(), true);
+  for (const auto changedId : lastChangedNodes.trueKeys())
+    accumChangedNodes[changedId] = true;
 
   if (!imgui_window_is_visible(nullptr, IMGUI_USG_WIN_NAME) || imgui_window_is_collapsed(nullptr, IMGUI_USG_WIN_NAME))
     return;

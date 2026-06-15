@@ -131,7 +131,7 @@ static void showTitle()
   if (!strftime(start_time_buf, sizeof(start_time_buf), "%Y-%m-%d %H:%M:%S", gmtime(&start_at_time)))
     strcpy(start_time_buf, "???");
   printf("daBuild v1.38\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n[%s]\n(started at %s UTC+0)\n\n",
+         "Copyright (C) Gaijin Games KFT, 2026\n[%s]\n(started at %s UTC+0)\n\n",
     dagor_get_build_stamp_str_ex(stamp_buf, sizeof(stamp_buf), "", "*", "") + 19, start_time_buf);
 }
 static void showUsage()

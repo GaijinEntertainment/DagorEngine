@@ -633,59 +633,73 @@ enum DynColShapeType
 
 static const char *dynCollShapeTypeNames[CST_NUM] = {"box", "mesh", "convex_hull", "sphere"};
 
-static PhysCollision *create_shape_from_collision_node(const CollisionResource *coll_res, const char *shape_type,
-  const CollisionNode *node, float scale, TMatrix &child_tm, Point3 *out_center, SmallTab<Point3_vec4, TmpmemAlloc> &vertices /*stor*/)
+// Materialises one collision node's geometry into the caller-provided per-child buffers: vertices for
+// MESH / CONVEX_HULL nodes (and for any node when out_center is requested, to derive the centroid), plus
+// -- for BLAS-resident MESH nodes, whose ownIndices were dropped at load by compactOwnVertices -- the face
+// list recovered via iterateNodeFaces (getNodeIndices() would be empty and Jolt asserts on a zero-face
+// mesh). When out_center is non-null it receives the node centroid and the verts are recentred about it and
+// scaled. The buffers back the spans handed to create_shape_from_collision_node and must outlive the shape.
+static void append_collision_node_geometry(const CollisionResource *coll_res, const CollisionNode *node, float scale,
+  DynColShapeType node_type, Point3 *out_center, Tab<Point3_vec4> &vertices_stor, Tab<uint16_t> &indices_stor)
 {
-  if (!shape_type)
-    return nullptr;
-
-  DynColShapeType nodeType = DynColShapeType(lup(shape_type, dynCollShapeTypeNames, countof(dynCollShapeTypeNames), CST_MESH));
-
-  if (nodeType == CST_MESH || nodeType == CST_CONVEX_HULL || out_center)
+  if (node_type == CST_MESH || node_type == CST_CONVEX_HULL || out_center)
   {
-    vertices.resize(coll_res->getNodeVertCount(node->nodeIndex));
-    coll_res->iterateNodeVerts(node->nodeIndex, [&](int i, vec4f v) { v_st(&vertices[i].x, v); });
-  }
-  if (out_center)
-  {
-    out_center->zero();
+    const int base = vertices_stor.size();
+    const int count = coll_res->getNodeVertCount(node->nodeIndex);
+    vertices_stor.resize(base + count);
+    coll_res->iterateNodeVerts(node->nodeIndex, [&](int i, vec4f v) { v_st(&vertices_stor[base + i].x, v); });
 
-    for (int i = 0; i < vertices.size(); i++)
-      (*out_center) += vertices[i];
+    if (out_center)
+    {
+      out_center->zero();
+      for (int i = 0; i < count; i++)
+        (*out_center) += vertices_stor[base + i];
+      (*out_center) *= 1.f / (float)count;
 
-    (*out_center) *= 1.f / (float)vertices.size();
+      TMatrix tm = TMatrix::IDENT;
+      tm.setcol(3, -(*out_center));
+      (*out_center) = tm.getcol(3);
 
-    TMatrix tm = TMatrix::IDENT;
-    tm.setcol(3, -(*out_center));
-    (*out_center) = tm.getcol(3);
-
-    for (int i = 0; i < vertices.size(); i++)
-      vertices[i] = scale * tm * vertices[i];
+      for (int i = 0; i < count; i++)
+        vertices_stor[base + i] = scale * tm * vertices_stor[base + i];
+    }
   }
 
-  if (nodeType == CST_BOX)
+  if (node_type == CST_MESH && (node->flags & CollisionNode::BLAS_RESIDENT))
   {
-    BBox3 bbox = coll_res->getNodeBBox(node->nodeIndex);
-    child_tm.setcol(3, child_tm * bbox.center());
-    Point3 width = bbox.width();
-    return new PhysBoxCollision(width.x, width.y, width.z);
+    const int base = indices_stor.size();
+    indices_stor.resize(base + coll_res->getNodeFaceCount(node->nodeIndex) * 3);
+    int writeIdx = base;
+    coll_res->iterateNodeFaces(node->nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+      indices_stor[writeIdx++] = i0;
+      indices_stor[writeIdx++] = i1;
+      indices_stor[writeIdx++] = i2;
+    });
   }
+}
 
-  if (nodeType == CST_MESH)
+// Builds the physics child shape from geometry already materialised by append_collision_node_geometry().
+// vertices / indices are spans into the caller's per-child buffers; PhysTriMeshCollision /
+// PhysConvexHullCollision retain the raw data pointer until PhysBody construction, so those buffers must
+// outlive the compound build. BOX / SPHERE ignore the spans and read their parameters straight from the node.
+static PhysCollision *create_shape_from_collision_node(const CollisionResource *coll_res, const CollisionNode *node,
+  DynColShapeType node_type, float scale, dag::ConstSpan<Point3_vec4> vertices, dag::ConstSpan<uint16_t> indices)
+{
+  switch (node_type)
   {
-    auto nodeIdx = coll_res->getNodeIndices(node->nodeIndex);
-    G_ASSERTF_RETURN(nodeIdx.size() / 3 < 300 * 1024, nullptr,
-      "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", vertices.size(), nodeIdx.size() / 3);
-    return new PhysTriMeshCollision(vertices, nodeIdx, nullptr, false, false /*reverse normals*/);
+    case CST_BOX:
+    {
+      Point3 width = coll_res->getNodeBBox(node->nodeIndex).width();
+      return new PhysBoxCollision(width.x, width.y, width.z);
+    }
+    case CST_MESH:
+      G_ASSERTF_RETURN(indices.size() / 3 < 300 * 1024, nullptr,
+        "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", vertices.size(), indices.size() / 3);
+      return new PhysTriMeshCollision(vertices, indices, nullptr, false, false /*reverse normals*/);
+    case CST_CONVEX_HULL: return new PhysConvexHullCollision(vertices, false);
+    case CST_SPHERE: return new PhysSphereCollision(scale * coll_res->getNodeBSphere(node->nodeIndex).r);
+    default: return nullptr;
   }
-
-  if (nodeType == CST_CONVEX_HULL)
-    return new PhysConvexHullCollision(vertices, false);
-
-  if (nodeType == CST_SPHERE)
-    return new PhysSphereCollision(scale * coll_res->getNodeBSphere(node->nodeIndex).r);
-
-  return nullptr;
 }
 
 CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const DataBlock &props, const CollisionResource *resource,
@@ -695,8 +709,15 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
     return CollisionObject();
 
   PhysCompoundCollision shape;
-  SmallTab<Point3_vec4, TmpmemAlloc> vertices_stor;
   shape.setMargin(margin);
+
+  // PhysTriMeshCollision / PhysConvexHullCollision keep the raw vert/idx pointer they are handed until
+  // create_coll_obj_from_shape() (below) builds the PhysBody, so every child needs a buffer that survives
+  // the whole compound build -- a single reused buffer would leave earlier children pointing at a span the
+  // next child overwrote. Each per-child Tab keeps its own heap storage as the outer Tab grows. Mirrors
+  // add_dynamic_collision_from_coll_resource.
+  Tab<Tab<Point3_vec4>> vertices_stor(framemem_ptr());
+  Tab<Tab<uint16_t>> indices_stor(framemem_ptr());
 
   const CollisionNode *rootNode = nullptr;
   TMatrix rootTm = TMatrix::IDENT;
@@ -723,9 +744,26 @@ CollisionObject dacoll::add_simple_dynamic_collision_from_coll_resource(const Da
       if (!rootNode)
         childTm.setcol(3, ZERO<Point3>());
 
+      const DynColShapeType nodeType =
+        DynColShapeType(lup(shapeType, dynCollShapeTypeNames, countof(dynCollShapeTypeNames), CST_MESH));
+
+      Tab<Point3_vec4> &childVerts = vertices_stor.push_back();
+      dag::set_allocator(childVerts, dag::get_allocator(vertices_stor));
+      Tab<uint16_t> &childIdx = indices_stor.push_back();
+      dag::set_allocator(childIdx, dag::get_allocator(indices_stor));
+
       Point3 outCenter = ZERO<Point3>();
-      PhysCollision *childShape = create_shape_from_collision_node(resource, shapeType, &meshNode, scale, childTm,
-        rootNode ? nullptr : &outCenter, vertices_stor);
+      append_collision_node_geometry(resource, &meshNode, scale, nodeType, rootNode ? nullptr : &outCenter, childVerts, childIdx);
+
+      if (nodeType == CST_BOX)
+        childTm.setcol(3, childTm * resource->getNodeBBox(meshNode.nodeIndex).center());
+
+      // Non-BLAS MESH keeps its indices in the resource; BLAS-resident nodes had them materialised above.
+      dag::ConstSpan<uint16_t> idxSpan = (nodeType == CST_MESH && !(meshNode.flags & CollisionNode::BLAS_RESIDENT))
+                                           ? resource->getNodeIndices(meshNode.nodeIndex)
+                                           : make_span_const(childIdx);
+      PhysCollision *childShape =
+        create_shape_from_collision_node(resource, &meshNode, nodeType, scale, make_span_const(childVerts), idxSpan);
       if (!childShape)
         return false;
 
@@ -809,6 +847,10 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
   Tab<Tab<Point3>> vertices_stor(framemem_ptr());
   vertices_stor.reserve(16);
   Tab<Tab<Point3_vec4>> trimesh_verts_stor(framemem_ptr());
+  // Parallel storage for materialised index buffers when a BLAS-resident MESH node's ownIndices was
+  // dropped at load (compactOwnVertices). PhysTriMeshCollision retains a raw pointer through PhysBody
+  // construction; framemem outlives that.
+  Tab<Tab<uint16_t>> trimesh_idx_stor(framemem_ptr());
   if (collapseConvexes)
   {
     // go through all convexes and collapse them into one
@@ -883,8 +925,41 @@ CollisionObject dacoll::add_dynamic_collision_from_coll_resource(const DataBlock
 
       case CST_MESH:
       {
-        auto meshVerts = coll_resource->getNodeVertices(meshNode.nodeIndex);
-        auto meshIdx = coll_resource->getNodeIndices(meshNode.nodeIndex);
+        // BLAS-resident nodes had their ownVertices dropped at load. The verts live in the active
+        // grid's vert21 array (8 B/vert) and must be decoded back to Point3_vec4 before being handed
+        // to PhysTriMeshCollision (the physics engine reads vdata via a stride). Stash the
+        // materialised buffer in trimesh_verts_stor (framemem, same scope as `shape`) so the pointer
+        // stays valid until PhysBody construction finishes -- the engine copies verts into its own
+        // structures during that, after which trimesh_verts_stor frees on framemem reset.
+        dag::ConstSpan<Point3_vec4> meshVerts;
+        dag::ConstSpan<uint16_t> meshIdx;
+        if (meshNode.flags & CollisionNode::BLAS_RESIDENT)
+        {
+          Tab<Point3_vec4> &matVerts = trimesh_verts_stor.push_back();
+          dag::set_allocator(matVerts, dag::get_allocator(trimesh_verts_stor));
+          matVerts.reserve(coll_resource->getNodeVertCount(meshNode.nodeIndex));
+          coll_resource->iterateNodeVerts(meshNode.nodeIndex, [&](int, vec4f v) {
+            Point3_vec4 &dst = matVerts.push_back();
+            v_st(&dst.x, v);
+          });
+          meshVerts = make_span_const(matVerts);
+          // ownIndices was also dropped; recover face indices via iterateNodeFaces (walks the
+          // per-grid leaf list, decoding node-local indices 0..verticesCount from each leaf).
+          Tab<uint16_t> &matIdx = trimesh_idx_stor.push_back();
+          dag::set_allocator(matIdx, dag::get_allocator(trimesh_idx_stor));
+          matIdx.reserve(coll_resource->getNodeFaceCount(meshNode.nodeIndex) * 3);
+          coll_resource->iterateNodeFaces(meshNode.nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+            matIdx.push_back(i0);
+            matIdx.push_back(i1);
+            matIdx.push_back(i2);
+          });
+          meshIdx = make_span_const(matIdx);
+        }
+        else
+        {
+          meshVerts = coll_resource->getNodeVertices(meshNode.nodeIndex);
+          meshIdx = coll_resource->getNodeIndices(meshNode.nodeIndex);
+        }
         G_ASSERTF_AND_DO(meshIdx.size() / 3 < 300 * 1024, break,
           "Too much triangles in mesh: %d verts and %d faces! 300k is too much already!", meshVerts.size(), meshIdx.size() / 3);
         auto trim = new PhysTriMeshCollision(meshVerts, meshIdx, nullptr, false, false /*reverse normals*/);

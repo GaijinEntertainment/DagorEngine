@@ -408,6 +408,44 @@ namespace das {
         das_invoke<void>::invoke(context,at,block);
     }
 
+    // Build fn->body inside `block` on a fresh scoped gc root; on exit, promote the body's
+    // subtree to the enclosing root and sweep the rest (the lowering intermediates). For
+    // macros that rebuild fn->body wholesale (e.g. [flatten]) and want their transient AST
+    // reclaimed immediately instead of waiting for the end-of-module sweep. We start the walk
+    // at fn->body, not fn: fn already lives on the enclosing root, so fn->gc_collect would hit
+    // the gc_owner==target early-out and collect nothing.
+    void ast_gc_collect_scope ( FunctionPtr fn, const TBlock<void> & block, Context * context, LineInfoArg * at ) {
+        gc_guard scope;
+        das_invoke<void>::invoke(context,at,block);
+        if ( fn && fn->body ) {
+            fn->body->gc_collect(scope.saved_thread_root, &scope.guard_root);
+        }
+    }
+
+    // Free a SINGLE orphaned AST expression node mid-compile, instead of waiting for the
+    // enclosing gc_guard to sweep it. gc nodes live flat on a root list, so this frees
+    // only `expr` itself — its children stay on the root (a caller-side reclaim walker
+    // deletes them one by one). We must NOT use gc_collect here: that traversal follows
+    // shared cross-references (ExprVar->Variable, TypeDecl->Structure/Enumeration) and
+    // would sweep live module entities. gc_unlink first so ~gc_node doesn't re-unlink
+    // (and so DAS_GC_DEBUG's "deleted outside gc_sweep" assert stays quiet).
+    // UNSAFE: the caller must own `expr` exclusively.
+    void delete_expression ( ExpressionPtr expr ) {
+        if ( !expr ) return;
+        expr->gc_unlink();
+        delete expr;
+    }
+
+    // Free a SINGLE orphaned TypeDecl node (sibling of delete_expression). Only the node
+    // itself — sub-types (firstType/argTypes/...) are separate gc_nodes a reclaim walker
+    // deletes individually. Does NOT touch shared structType/enumType (those are pointers
+    // the dtor never follows). UNSAFE: caller must own the node.
+    void delete_type ( TypeDeclPtr typ ) {
+        if ( !typ ) return;
+        typ->gc_unlink();
+        delete typ;
+    }
+
     void for_each_module ( Program * prog, const TBlock<void,Module *> & block, Context * context, LineInfoArg * at ) {
         prog->library.foreach_in_order([&](auto mod){
             das_invoke<void>::invoke<Module *>(context,at,block,mod);
@@ -496,6 +534,40 @@ namespace das {
         for ( auto & td : mod->typeMacros ) {
             das_invoke<void>::invoke<TypeMacroPtr>(context,at,block,td.second.get());
         }
+    }
+
+    void for_each_pass_macro ( Module * mod, const TBlock<void,TTemporary<char *>> & block, Context * context, LineInfoArg * at ) {
+        for ( auto * vec : { &mod->macros, &mod->inferMacros, &mod->optimizationMacros, &mod->lintMacros, &mod->globalLintMacros } ) {
+            for ( auto & td : *vec ) {
+                das_invoke<void>::invoke<const char *>(context,at,block,td->name.c_str());
+            }
+        }
+    }
+
+    void for_each_capture_macro ( Module * mod, const TBlock<void,CaptureMacroPtr> & block, Context * context, LineInfoArg * at ) {
+        for ( auto & td : mod->captureMacros ) {
+            das_invoke<void>::invoke<CaptureMacroPtr>(context,at,block,td.get());
+        }
+    }
+
+    void for_each_simulate_macro ( Module * mod, const TBlock<void,SimulateMacroPtr> & block, Context * context, LineInfoArg * at ) {
+        for ( auto & td : mod->simulateMacros ) {
+            das_invoke<void>::invoke<SimulateMacroPtr>(context,at,block,td.get());
+        }
+    }
+
+    void for_each_function_annotation ( Module * mod, const TBlock<void,TTemporary<char *>> & block, Context * context, LineInfoArg * at ) {
+        for ( auto & it : mod->handleTypes ) {
+            if ( it.second && it.second->rtti_isFunctionAnnotation() ) {
+                das_invoke<void>::invoke<const char *>(context,at,block,it.second->name.c_str());
+            }
+        }
+    }
+
+    bool module_has_comment_reader ( Module * mod ) {
+        // A [comment_reader] (AstCommentReader, e.g. daslib/rst_comment) processes
+        // //! doc-comments at compile time, leaving no symbol reference.
+        return mod != nullptr && mod->commentReader != nullptr;
     }
 
     bool isSameAstType ( TypeDeclPtr THIS,
@@ -620,6 +692,21 @@ namespace das {
         ctx.restart();
         vec4f result = ctx.evalWithCatch(node);
         if ( ctx.getException() ) ok = false;
+        return result;
+    }
+
+    float4 evalSingleExpressionInContext ( ExpressionPtr expr, smart_ptr_raw<Context> useCtxPtr, bool & ok ) {
+        // Refuse to run if the caller's context is already in a panic state -- we'd otherwise
+        // smear our eval over inconsistent state. On success or our-own-panic we leave the
+        // exception fields alone: ok=false plus the context's existing diagnostics is the
+        // honest signal, and there's no fragile save/restore of `exception` (which aliases
+        // into `exceptionMessage` and would dangle on string reassignment).
+        if ( !expr || !useCtxPtr || useCtxPtr->getException() ) { ok = false; return v_zero(); }
+        Context & useCtx = *useCtxPtr;
+        ok = true;
+        SimNode * node = simulateExpression(useCtx, expr);
+        vec4f result = useCtx.evalWithCatch(node);
+        if ( useCtx.getException() ) ok = false;
         return result;
     }
 
@@ -1106,6 +1193,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(ast_gc_guard)>(*this, lib,  "ast_gc_guard",
             SideEffects::modifyExternal, "ast_gc_guard")
                 ->args({"block","context","line"});
+        addExtern<DAS_BIND_FUN(ast_gc_collect_scope)>(*this, lib,  "ast_gc_collect_scope",
+            SideEffects::modifyExternal, "ast_gc_collect_scope")
+                ->args({"function","block","context","line"});
         addExtern<DAS_BIND_FUN(for_each_module)>(*this, lib,  "for_each_module",
             SideEffects::accessExternal, "for_each_module")
                 ->args({"program","block","context","line"});
@@ -1211,6 +1301,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(get_mangled_name_t)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name_t")
                 ->args({"type","context","line"});
+        addExtern<DAS_BIND_FUN(das_get_builtin_function_address)>(*this, lib,  "get_builtin_function_address",
+            SideEffects::none, "das_get_builtin_function_address")
+                ->args({"fn","context","at"});
         addExtern<DAS_BIND_FUN(get_mangled_name_v)>(*this, lib,  "get_mangled_name",
             SideEffects::none, "get_mangled_name_v")
                 ->args({"variable","context","line"});
@@ -1232,6 +1325,12 @@ namespace das {
         addExtern<DAS_BIND_FUN(clone_expression)>(*this, lib,  "clone_expression",
             SideEffects::none, "clone_expression")
                 ->arg("expression");
+        addExtern<DAS_BIND_FUN(delete_expression)>(*this, lib,  "delete_expression",
+            SideEffects::modifyExternal, "delete_expression")
+                ->arg("expression")->unsafeOperation = true;
+        addExtern<DAS_BIND_FUN(delete_type)>(*this, lib,  "delete_type",
+            SideEffects::modifyExternal, "delete_type")
+                ->arg("type")->unsafeOperation = true;
         addExtern<DAS_BIND_FUN(clone_function)>(*this, lib,  "clone_function",
             SideEffects::none, "clone_function")
                 ->arg("function");
@@ -1330,6 +1429,21 @@ namespace das {
         addExtern<DAS_BIND_FUN(for_each_typemacro)>(*this, lib,  "for_each_typemacro",
             SideEffects::modifyExternal, "for_each_typemacro")
                 ->args({"module","block","context","line"});
+        addExtern<DAS_BIND_FUN(for_each_pass_macro)>(*this, lib,  "for_each_pass_macro",
+            SideEffects::modifyExternal, "for_each_pass_macro")
+                ->args({"module","block","context","line"});
+        addExtern<DAS_BIND_FUN(for_each_capture_macro)>(*this, lib,  "for_each_capture_macro",
+            SideEffects::modifyExternal, "for_each_capture_macro")
+                ->args({"module","block","context","line"});
+        addExtern<DAS_BIND_FUN(for_each_simulate_macro)>(*this, lib,  "for_each_simulate_macro",
+            SideEffects::modifyExternal, "for_each_simulate_macro")
+                ->args({"module","block","context","line"});
+        addExtern<DAS_BIND_FUN(for_each_function_annotation)>(*this, lib,  "for_each_function_annotation",
+            SideEffects::modifyExternal, "for_each_function_annotation")
+                ->args({"module","block","context","line"});
+        addExtern<DAS_BIND_FUN(module_has_comment_reader)>(*this, lib,  "module_has_comment_reader",
+            SideEffects::modifyExternal, "module_has_comment_reader")
+                ->arg("module");
         addExtern<DAS_BIND_FUN(builtin_structure_for_each_field)>(*this, lib,  "for_each_field",
             SideEffects::modifyExternal, "builtin_structure_for_each_field")
                 ->args({"annotation","block","context","line"});
@@ -1367,6 +1481,9 @@ namespace das {
         addExtern<DAS_BIND_FUN(evalSingleExpression)>(*this, lib, "eval_single_expression",
             SideEffects::modifyArgument, "evalSingleExpression")
                 ->args({"expr","ok"})->unsafeOperation = true;
+        addExtern<DAS_BIND_FUN(evalSingleExpressionInContext)>(*this, lib, "eval_single_expression",
+            SideEffects::modifyArgumentAndExternal, "evalSingleExpressionInContext")
+                ->args({"expr","ctx","ok"})->unsafeOperation = true;
         // errors
         addExtern<DAS_BIND_FUN(ast_error)>(*this, lib,  "macro_error",
             SideEffects::modifyArgumentAndExternal, "ast_error")

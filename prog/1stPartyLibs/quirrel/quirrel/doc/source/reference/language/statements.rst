@@ -393,12 +393,34 @@ try/catch
 
 ::
 
-    stat:= 'try' stat 'catch' '(' id ')' stat
+    stat:= 'try' stat ('catch' '(' [type] id ')' stat)+
 
 The try statement encloses a block of code in which an exceptional condition can occur,
 such as a runtime error or a throw statement. The catch clause provides the exception-handling
 code. When a catch clause catches an exception, its id is bound to that
 exception.
+
+A catch clause may be typed by naming a class before the bound id, e.g.
+``catch (ApiError e)``. A typed clause runs only if the thrown value is an
+instance of that class (subclasses included), matching the ``instanceof``
+semantics. The class is an ordinary in-scope name (a local, an outer, or a
+const); built-in type classes such as ``String`` or ``Integer`` work too once
+imported from the ``types`` module.
+
+A try may have several catch clauses; they are tested in declaration order and
+the first matching one runs. An untyped clause is a catch-all: it must be the
+last clause and there may be only one. If no clause matches the thrown value, it
+is treated as uncaught and propagates outward (to an enclosing try, then to the
+runtime error handler) with its trace preserved.
+
+::
+
+    try {
+        risky()
+    }
+    catch (ApiError e) { handleApi(e) }
+    catch (NetError e) { handleNet(e) }
+    catch (e) { reportUnknown(e) }
 
 -----------
 throw

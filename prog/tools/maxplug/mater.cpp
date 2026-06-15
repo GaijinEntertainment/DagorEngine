@@ -17,8 +17,6 @@
 #define TX_ALPHABLEND 1
 #define BMIDATA(x)    ((UBYTE *)((BYTE *)(x) + sizeof(BITMAPINFOHEADER)))
 
-std::string wideToStr(const TCHAR *sw);
-M_STD_STRING strToWide(const char *sz);
 
 class MaterDlg : public ParamDlg
 {
@@ -1206,9 +1204,8 @@ void DagorMat::set_texname(int i, const TCHAR *s)
     bm = NewDefaultBitmapTex();
     assert(bm);
 
-    M_STD_STRING path = strToWide(dagor_path);
-    path += M_STD_STRING(s);
-    bm->SetMapName((TCHAR *)path.c_str());
+    std::wstring path = dagor_path + s;
+    bm->SetMapName(path.c_str());
   }
   texmaps->settex(i, bm);
 }

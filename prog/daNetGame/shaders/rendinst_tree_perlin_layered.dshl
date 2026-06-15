@@ -178,7 +178,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
 
   if (is_pivoted == yes)
   {
-    INIT_VEGETATION_INTERACTIONS()
+    INIT_VEGETATION_INTERACTIONS(false)
   }
 
   bool need_tree_burning = instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal;
@@ -460,7 +460,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
     }
 
     USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees)
-                                          && rendinst_render_pass != rendinst_render_pass_impostor_color)
+                                          && rendinst_render_pass != rendinst_render_pass_impostor_color, false)
 
     if (need_tree_burning)
     {
@@ -526,7 +526,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
             LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
             prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
           ##endif
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, prevWorldPos, maxMovement);
+          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, prevWorldPos, maxMovement);
         ##endif
         APPLY_INTERACTIONS
 
@@ -665,7 +666,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
     }
 
     USE_AND_APPLY_VEGETATION_INTERACTIONS(is_pivoted == yes && (interactions == interactionsTrees)
-                                          && rendinst_render_pass != rendinst_render_pass_impostor_color)
+                                          && rendinst_render_pass != rendinst_render_pass_impostor_color, false)
 
     hlsl(vs) {
       struct VsOutput
@@ -703,7 +704,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 unusedPrevPos;
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, unusedPrevPos);
+          float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
         ##endif
         APPLY_INTERACTIONS
 

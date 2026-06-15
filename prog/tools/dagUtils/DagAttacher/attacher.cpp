@@ -24,7 +24,7 @@ int _cdecl main(int argc, char **argv)
 {
   dd_get_fname(""); //== pull in directoryService.obj
   printf("DAG texture rename\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
 
   if (argc < 4)
   {

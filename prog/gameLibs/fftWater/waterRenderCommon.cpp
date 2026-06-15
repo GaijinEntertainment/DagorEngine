@@ -70,7 +70,10 @@ void WaterRenderCommon::setGlobalShaderConsts(bool is_chop_water) const
     effectiveMaxWaveHeight = min(maxWaveHeight, 1.2f);
   }
 
-  ShaderGlobal::set_float4(shoreDampVarId, Color4(0.0f, max(min(6.0f, effectiveMaxWaveHeight * 2.0f), 1e-2f), 0, 0));
+  float shoreDamp = max(min(6.0f, effectiveMaxWaveHeight * 2.0f), shoreDampMin);
+  shoreDamp = max(shoreDamp, 1e-2f);
+
+  ShaderGlobal::set_float4(shoreDampVarId, Color4(0.0f, shoreDamp, 0, 0));
 
   ShaderGlobal::set_float(max_wave_heightVarId, effectiveMaxWaveHeight);
 

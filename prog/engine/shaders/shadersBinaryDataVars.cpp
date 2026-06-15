@@ -261,7 +261,9 @@ static void set_global_interval_value_internal(int index, float v, const Scripte
   if (DAGOR_UNLIKELY(interval.type == shaderbindump::Interval::TYPE_ASSUMED_INTERVAL))
   {
 #if DAGOR_DBGLEVEL > 0
-    if (static_cast<float>(interval.getAssumedVal()) != v)
+    // We range-check first because shadercompiler has done these checks, and values out of range definitely are wrong.
+    // We are comparing coarsely due to the fact that current code relies on it.
+    if (double(v) > double(INT_MAX) || double(v) < double(INT_MIN) || interval.getAssumedVal() != int(roundf(v)))
     {
       logwarn("`Interval Assume` violation for %s. This was assumed to %i, but set to %g", dump.varMap[interval.nameId].c_str(),
         interval.getAssumedVal(), v);
@@ -734,7 +736,7 @@ bool ShaderGlobal::set_int4_array(int var_id, const IPoint4 *data, int count)
 }
 
 #if DAGOR_DBGLEVEL > 0
-bool ShaderGlobal::is_resource_used_as_umnamaged_pointer(D3dResource *resource_ptr, bool log_usage)
+bool ShaderGlobal::is_resource_used_as_unmanaged_pointer(D3dResource *resource_ptr, bool log_usage)
 {
   auto &globalDump = shGlobalData();
   auto &state = globalDump.globVarsState;

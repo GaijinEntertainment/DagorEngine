@@ -241,7 +241,7 @@ function mkNewTabContent(onImportAdd, close) {
                   mkpath(pathWithMp)
                   let data = datablock()
                   data.saveToTextFile(pathWithMp)
-                  onImportAdd(isSandbox ? pathWithMp : path)
+                  onImportAdd(isSandbox() ? pathWithMp : path)
                   close()
                   }, { off = !isSceneValid.get(), disabled = Computed(@() !isSceneValid.get()) })
               }

@@ -1192,12 +1192,13 @@ bool rendinst::prepareRIGenExtraVisibilityBoxInternal(bbox3f_cref box_cull, int 
   visibility.vbExtraGeneration = INVALID_VB_EXTRA_GEN;
 
   const auto &poolInfo = riExTiledScenes.getPools();
+  const int poolCount = poolInfo.size();
 
   for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
   {
-    clear_and_resize(visibility.riexData[lod], poolInfo.size());
-    clear_and_resize(visibility.minSqDistances[lod], poolInfo.size());
-    clear_and_resize(visibility.approxInvDensities[lod], poolInfo.size());
+    clear_and_resize(visibility.riexData[lod], poolCount);
+    clear_and_resize(visibility.minSqDistances[lod], poolCount);
+    clear_and_resize(visibility.approxInvDensities[lod], poolCount);
     visibility.hideMarkedMaterialsForInstances.clear();
     visibility.hideMarkedMaterialsForInstances.reserve(RiGenExtraVisibility::maxHideMarkedMaterialForInstances);
     memset(visibility.minSqDistances[lod].data(), 0x7f, data_size(visibility.minSqDistances[lod]));         // ~FLT_MAX
@@ -1282,13 +1283,13 @@ void rendinst::filterVisibility(RiGenVisibility &from, RiGenVisibility &to, cons
   dstVisibility.vbExtraGeneration = INVALID_VB_EXTRA_GEN;
   rendinst::setRIGenVisibilityMinLod(&to, from.forcedLod, srcVisibility.forcedExtraLod);
 
-  const auto &poolInfo = riExTiledScenes.getPools();
+  const int poolCount = srcVisibility.riexData[0].size();
 
   for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
   {
-    clear_and_resize(dstVisibility.riexData[lod], poolInfo.size());
-    clear_and_resize(dstVisibility.minSqDistances[lod], poolInfo.size());
-    clear_and_resize(dstVisibility.approxInvDensities[lod], poolInfo.size());
+    clear_and_resize(dstVisibility.riexData[lod], poolCount);
+    clear_and_resize(dstVisibility.minSqDistances[lod], poolCount);
+    clear_and_resize(dstVisibility.approxInvDensities[lod], poolCount);
     dstVisibility.hideMarkedMaterialsForInstances.clear();
     dstVisibility.hideMarkedMaterialsForInstances.reserve(RiGenExtraVisibility::maxHideMarkedMaterialForInstances);
     memset(dstVisibility.minSqDistances[lod].data(), 0x7f, data_size(dstVisibility.minSqDistances[lod]));         // ~FLT_MAX
@@ -1301,7 +1302,9 @@ void rendinst::filterVisibility(RiGenVisibility &from, RiGenVisibility &to, cons
 
   int maxLodUsed = 0;
   int newVisCnt = 0;
-  auto storeVisibleRiexData = [&](const vec4f *data, uint32_t poolId, int lod) -> bool {
+
+  // NOTE: read riExtra => requires ccExtra
+  auto storeVisibleRiexData = [&](const vec4f *data, uint32_t poolId, int lod) DAG_TS_REQUIRES_SHARED(ccExtra) -> bool {
     mat44f riTm44f;
     v_mat43_transpose_to_mat44(riTm44f, *(const mat43f *)data);
     // riTm44f.col3[3] = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
@@ -1321,16 +1324,19 @@ void rendinst::filterVisibility(RiGenVisibility &from, RiGenVisibility &to, cons
     return true;
   };
 
-  for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
   {
-    for (auto poolAndCnt : srcVisibility.riexPoolOrder)
+    rendinst::ScopedRIExtraReadLock rd;
+    for (int lod = 0; lod < rendinst::RiExtraPool::MAX_LODS; ++lod)
     {
-      auto poolI = poolAndCnt & render::RI_RES_ORDER_COUNT_MASK;
-      const uint32_t poolCnt = (uint32_t)srcVisibility.riexData[lod][poolI].size() / RIEXTRA_VECS_COUNT;
-      const vec4f *data = srcVisibility.riexData[lod][poolI].data();
+      for (auto poolAndCnt : srcVisibility.riexPoolOrder)
+      {
+        auto poolI = poolAndCnt & render::RI_RES_ORDER_COUNT_MASK;
+        const uint32_t poolCnt = (uint32_t)srcVisibility.riexData[lod][poolI].size() / RIEXTRA_VECS_COUNT;
+        const vec4f *data = srcVisibility.riexData[lod][poolI].data();
 
-      for (uint32_t i = 0, n = poolCnt; i < n; ++i)
-        storeVisibleRiexData(data + i * RIEXTRA_VECS_COUNT, poolI, lod);
+        for (uint32_t i = 0, n = poolCnt; i < n; ++i)
+          storeVisibleRiexData(data + i * RIEXTRA_VECS_COUNT, poolI, lod);
+      }
     }
   }
   dstVisibility.riexInstCount = newVisCnt;

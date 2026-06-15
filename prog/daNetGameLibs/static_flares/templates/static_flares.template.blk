@@ -8,7 +8,7 @@ static_flares_renderer{
   static_flares__visible:b=true
 
 
-  "static_flares__texture:SharedTexHolder"{}
+  "static_flares__texture:SharedTexWithShaderVar"{}
   static_flares__texture_res:t="airfield_flare"
   static_flares__texture_var:t="static_flares_tex"
 

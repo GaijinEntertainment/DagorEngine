@@ -11,7 +11,6 @@ interval src_face : src_single_face < 0, src_cube;
 shader bc1_srgbwrite_compressor, bc1_compressor
 {
   USE_BC1_COMPRESSION(ps)
-  USE_BC_LEGACY_ENDPOINTS_ERROR(ps)
   hlsl(ps) {
     uint4 compress(half4 texels[16], half4 min_color, half4 max_color);
   }
@@ -19,8 +18,6 @@ shader bc1_srgbwrite_compressor, bc1_compressor
   hlsl(ps) {
     uint4 compress(half4 texels[16], half4 min_color, half4 max_color)
     {
-      ADD_BC_LEGACY_ENDPOINTS_BIAS
-
       ##if find_base_colors_with_pca
         find_base_colors_pca_rgb( texels, min_color, max_color );
       ##else

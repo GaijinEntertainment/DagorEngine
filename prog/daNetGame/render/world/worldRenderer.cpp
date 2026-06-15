@@ -89,6 +89,7 @@
 #include <render/downsampleDepth.h>
 #include <render/screenSpaceReflections.h>
 #include <render/rendererFeatures.h>
+#include "render/rendinstTessellation.h"
 #include <nodeBasedShaderManager/nodeBasedShaderManager.h>
 #include <render/volumetricLights/volumetricLights.h>
 #include <render/weather/fluidWind.h>
@@ -136,7 +137,7 @@
 
 #include <gui/dag_visualLog.h>
 #include <render/noiseTex.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/clipmapDecals.h>
 #include <render/grass/grassRender.h>
 #include <render/lightShadowParams.h>
@@ -215,6 +216,7 @@ void update_csm_length(const Frustum &frustum, const Point3 &dir_from_sun, float
 bool can_change_altitude_unexpectedly();
 void get_underground_zones_data(Tab<Point3_vec4> &bboxes);
 float get_default_static_resolution_scale();
+void set_fps_limit_from_level(); // depends on v-sync
 
 #define DEF_RENDER_EVENT      ECS_REGISTER_EVENT
 #define DEF_RENDER_PROF_EVENT ECS_REGISTER_EVENT
@@ -399,6 +401,7 @@ namespace var
 static ShaderVariableInfo layered_material_detail_quality("layered_material_detail_quality", true);
 static ShaderVariableInfo packed_gbuf_normals("packed_gbuf_normals");
 static ShaderVariableInfo packed_gbuf_1_tex("packed_gbuf_1_tex");
+static ShaderVariableInfo hmap_object_tess_factor("hmap_object_tess_factor", true);
 } // namespace var
 
 uint32_t get_water_quality()
@@ -792,13 +795,6 @@ void WorldRenderer::onSceneLoaded(BaseStreamingSceneHolder *scn)
 #endif
 }
 
-void WorldRenderer::updateLevelGraphicsSettings(const DataBlock &level_blk)
-{
-  levelSettings.reset(new DataBlock(*(level_blk.getBlockByNameEx("graphics"))));
-  update_settings_entity(levelSettings.get());
-  initIndoorProbesIfNecessary();
-}
-
 void WorldRenderer::prefetchPartsOfPaintingTexture()
 {
   localPaintTex = SharedTex(localPaintTexId);
@@ -866,7 +862,6 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
 
   createFinalOpaqueControlNodes();
 
-  updateLevelGraphicsSettings(level_blk);
   g_entity_mgr->broadcastEventImmediate(OnLevelLoaded(level_blk));
   defrag_shaders_stateblocks(true);
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
@@ -881,9 +876,7 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
   d3d::driver_command(Drv3dCommand::RELEASE_OWNERSHIP);
   prepareLastClip();
   d3d::driver_command(Drv3dCommand::ACQUIRE_OWNERSHIP);
-  if (lmeshMgr)
-    lmeshMgr->setHmapLodDistance(2);
-  else
+  if (!lmeshMgr)
     loadLandMicroDetails(level_blk.getBlockByName("micro_details"));
 
   if (lmeshMgr)
@@ -1029,6 +1022,8 @@ void WorldRenderer::setDynamicShadowsMaxUpdatePerFrame()
 
 void WorldRenderer::beforeLoadLevel(const DataBlock &level_blk)
 {
+  levelSettings.reset(new DataBlock(*(level_blk.getBlockByNameEx("graphics"))));
+
   // tend to be long action, executed in blocking manner, note it for reports
 #if _TARGET_ANDROID || _TARGET_IOS
   crashlytics::AppState appState("render_beforeLoadLevel");
@@ -1128,13 +1123,8 @@ void WorldRenderer::onLandmeshLoaded(const DataBlock &level_blk, const char *fn,
     if (lightmapTexId == BAD_TEXTUREID)
       logerr("lightmapFileName =<%s> NOT found ", lightmapFileName);
   }
-  constexpr int HMAP_DEFAULT_LOD_COUNT = 5;
-  int hmapLodCnt = level_blk.getInt("hmapLodCount", ::dgs_get_game_params()->getInt("hmapDefaultLodCount", HMAP_DEFAULT_LOD_COUNT));
   LmeshMirroringParams lmeshMirror = load_lmesh_mirroring(level_blk);
-  execute_delayed_action_on_main_thread(make_delayed_action([this, lmeshMirror, lmesh, lmRenderer, hmapLodCnt]() {
-    if (lmesh->getHmapHandler())
-      lmesh->getHmapHandler()->setLodCount(hmapLodCnt);
-
+  execute_delayed_action_on_main_thread(make_delayed_action([this, lmeshMirror, lmesh, lmRenderer]() {
     BBox2 lightmapBbox;
     lightmapBbox.lim[0].x = lmesh->getCellOrigin().x * lmesh->getLandCellSize();
     lightmapBbox.lim[0].y = lmesh->getCellOrigin().y * lmesh->getLandCellSize();
@@ -2204,6 +2194,7 @@ void WorldRenderer::setResolution()
     hdrrender::shutdown();
 
   resetVsyncMode();
+  set_fps_limit_from_level();
 
   requestFgRecreation("setResolution");
 }
@@ -2232,6 +2223,7 @@ void WorldRenderer::changeSingleTexturesResolution(int width, int height)
 void WorldRenderer::initSubDivSettings()
 {
   subdivSettings = dgs_get_settings()->getBlockByNameEx("graphics")->getInt("groundDisplacementQuality", 0);
+  ShaderGlobal::set_float(var::hmap_object_tess_factor, is_rendinst_tessellation_supported() && subdivSettings != 0 ? 1.0f : 0.0f);
 }
 
 void WorldRenderer::initIndoorProbesIfNecessary()
@@ -2754,11 +2746,13 @@ void WorldRenderer::ctorDeferred()
   updateImpostorSettings();
   resetLatencyMode();
   resetVsyncMode();
+  set_fps_limit_from_level();
   resetPerformanceMetrics();
   resetDynamicQuality();
 
   requestFgRecreation("ctorDeferred");
-  dynmodel_renderer::init_dynmodel_rendering(ShadowsManager::CSM_MAX_CASCADES);
+  if (!dynrend::is_initialized())
+    dynrend::init();
 
   setSharpeningFromSettings();
   setChromaticAberrationFromSettings();
@@ -3003,7 +2997,7 @@ void WorldRenderer::close()
   reset_fx_textures_used();
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_GLOBAL_CONST);
-  dynmodel_renderer::close_dynmodel_rendering();
+  dynrend::close();
   giWindows.reset();
   hzbUploadStagingTex.close();
   render::antialiasing::close();
@@ -3159,9 +3153,9 @@ void update_world_renderer(float dt, float rdt, const TMatrix &itm, bool scene_l
 }
 
 void WorldRenderer::cullFrustumLights(
-  Occlusion *occlusion, vec3f viewPos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float zn)
+  Occlusion *occlusion, vec3f viewPos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float zn, float zf)
 {
-  lights.cullFrustumLights(viewPos, globtm, view, proj, zn, occlusion, SpotLightMaskType::SPOT_LIGHT_MASK_NONE,
+  lights.cullFrustumLights(viewPos, globtm, view, proj, zn, zf, occlusion, SpotLightMaskType::SPOT_LIGHT_MASK_NONE,
     OmniLightMaskType::OMNI_LIGHT_MASK_NONE); // least important Job, needed only at resolve pass
 }
 
@@ -3617,8 +3611,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     rendinst::applyTiledScenesUpdateForRIGenExtra(2000, 1000);
   };
   callBeforePUFD(); // Must be called before additional job (aka PUFD) to avoid data races & lock order inversions
-  if (!should_delay_pufd_until_bvh_jobs_done())                      // It'll be started after heavy parallel bvh jobs finished
-    start_async_game_tasks(frame_id, AGT_ADDITIONAL, /*wake*/ true); // Note: long job - start as early as possible
+  start_async_game_tasks(frame_id, AGT_ADDITIONAL, /*wake*/ true); // Note: long job - start as early as possible
 
   const TMatrix &itm = currentFrameCamera.viewItm;
   const Point3_vec4 viewPos = itm.getcol(3);
@@ -3924,17 +3917,23 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
       TIME_PROFILE(animchar_shadows_parallel);
       G_ASSERT(g_entity_mgr->isConstrainedMTMode());
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
-      dynmodel_renderer::DynModelRenderingState *dStates[AnimcharRenderAsyncFilter::ARF_IDX_COUNT][CascadeShadows::MAX_CASCADES];
+      dynrend::ContextId ctxIds[AnimcharRenderAsyncFilter::ARF_IDX_COUNT][CascadeShadows::MAX_CASCADES];
       Frustum frustums[CascadeShadows::MAX_CASCADES];
       // Pad to 2 cache lines to avoid false sharing
       volatile int workLeft[CascadeShadows::MAX_CASCADES][(EA_CACHE_LINE_SIZE * 2) / sizeof(int)];
 #define CSM_CASCADE_JOBS_STARTED(i_) (*(eastl::end(workLeft[i_]) - 1)) // Via macros to avoid blow up sizeof capture context of labmda
       for (int i = 0; i < numCascades; ++i)
       {
+        const TMatrix4 &csmViewTm = csm->getRenderViewMatrix(i);
+        const TMatrix4 &csmProjTm = csm->getRenderProjMatrix(i);
+        TMatrix4 csmViewTmRel = csmViewTm;
+        csmViewTmRel.setrow(3, 0, 0, 0, 1);
         for (int j = 0; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
         {
           char tmps[] = "csm#000";
-          dStates[j][i] = dynmodel_renderer::create_state(fmt_csm_render_pass_name(RENDER_SHADOWS_CSM + i, tmps, j));
+          ctxIds[j][i] = dynrend::get_or_create_context(fmt_csm_render_pass_name(RENDER_SHADOWS_CSM + i, tmps, j));
+          dynrend::clear(ctxIds[j][i]);
+          dynrend::set_context_view_proj(ctxIds[j][i], csmViewTmRel, csmProjTm, csmViewTmRel, csmProjTm);
         }
         frustums[i] = csm->getFrustum(i);
         interlocked_relaxed_store(workLeft[i][0], AnimcharRenderAsyncFilter::ARF_IDX_COUNT);
@@ -3947,22 +3946,20 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
         int cascade = i / AnimcharRenderAsyncFilter::ARF_IDX_COUNT;
         interlocked_decrement(CSM_CASCADE_JOBS_STARTED(cascade));
         auto eidFilter = AnimcharRenderAsyncFilter(i & AnimcharRenderAsyncFilter::ARF_IDX_MASK);
-        dynmodel_renderer::DynModelRenderingState *pState = dStates[eidFilter][cascade];
+        dynrend::ContextId ctx = ctxIds[eidFilter][cascade];
         // todo: interlocked_or uint8_t
         const animchar_visbits_t add_vis_bits = VISFLG_CSM_SHADOW_RENDERED;   //(VISFLG_MAIN_VISIBLE | VISFLG_MAIN_CAMERA_RENDERED)
         const animchar_visbits_t check_bits = VISFLG_MAIN_AND_SHADOW_VISIBLE; //(VISFLG_MAIN_AND_SHADOW_VISIBLE|VISFLG_MAIN_VISIBLE)
         const uint8_t filterMask = UpdateStageInfoRender::RENDER_SHADOW;
-        g_entity_mgr->broadcastEventImmediate(AnimcharRenderAsyncEvent(*pState, &globalVarsState,
+        g_entity_mgr->broadcastEventImmediate(AnimcharRenderAsyncEvent(ctx, &globalVarsState,
           NULL,              //&occlusion
           frustums[cascade], // : Frustum(currentFrameCamera.noJitterGlobtm),
           add_vis_bits, check_bits, filterMask, false /*hasMotionVectors*/, eidFilter));
         if (interlocked_decrement(workLeft[cascade][0]) == 0) // Last one finalizes and prepares for render
         {
           TIME_PROFILE_DEV(finalize_render_csm);
-          dynmodel_renderer::DynModelRenderingState *dstState = dStates[0][cascade];
           for (int j = 1; j < AnimcharRenderAsyncFilter::ARF_IDX_COUNT; j++)
-            dstState->addStateFrom(eastl::move(*dStates[j][cascade]));
-          dstState->prepareForRender();
+            dynrend::merge_context(ctxIds[0][cascade], ctxIds[j][cascade]);
         }
       };
       using JobType = AnimcharRenderShadowsJob<decltype(render_shadow_cb)>;
@@ -4061,13 +4058,6 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     waitMainVisibility();
   }
 
-  if (lmeshMgr)
-  {
-    const bool isUpsampling = antiAliasing && antiAliasing->isUpsampling();
-    const int sub_pixels = (!isUpsampling && VariableMap::isGlobVariablePresent(sub_pixelsVarId)) ? screencap::subsamples() : 1;
-    int lod = clamp((int)floor(currentFrameCamera.noJitterPersp.wk + 0.5f) + sub_pixels - 1, 2, 3);
-    lmeshMgr->setHmapLodDistance(lod);
-  }
   bool hasGpuObjs = rendinst::gpuobjects::has_manager();
   startGroundVisibility();           // we have to call it after all other ground renders are complete
   startGroundReflectionVisibility(); // we have to call it after all other ground renders are complete
@@ -4138,6 +4128,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
 
   const bool requiresSubsamplingThisFrame = (subPixels = getSubPixels()) > 1;
   const bool requiresSuperSamplingThisFrame = (superPixels = getSuperPixels()) > 1;
+  const bool isScreenshotScheduledThisFrame = screencap::is_screenshot_scheduled();
   if (requiresSuperSamplingThisFrame)
   {
     int superW = w * superPixels, superH = h * superPixels;
@@ -4156,27 +4147,32 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     screenshotSuperFrame.close();
 
   const bool subSuperSamplingAvailable = true;
-
-  if (requiresSubsampling != requiresSubsamplingThisFrame || requiresSupersampling != requiresSuperSamplingThisFrame ||
-      (subSuperSamplingNodes.empty() && subSuperSamplingAvailable))
+  const bool subSuperSamplingChanged =
+    requiresSubsampling != requiresSubsamplingThisFrame || requiresSupersampling != requiresSuperSamplingThisFrame;
+  const bool screenshotChanged = isScreenshotScheduled != isScreenshotScheduledThisFrame;
+  if (subSuperSamplingChanged || screenshotChanged || (subSuperSamplingNodes.empty() && subSuperSamplingAvailable))
   {
     requiresSubsampling = requiresSubsamplingThisFrame;
     requiresSupersampling = requiresSuperSamplingThisFrame;
+    isScreenshotScheduled = isScreenshotScheduledThisFrame;
     const bool multisampling = requiresSubsampling || requiresSupersampling;
-    if (multisampling)
+    if (subSuperSamplingChanged || subSuperSamplingNodes.empty())
     {
-      antiAliasing.reset();
-      // Does the coc calculation in the postfx shader
-      ShaderGlobal::set_int(antialiasing_typeVarId, AntiAliasingType::NON_TEMPORAL);
-      prepareForPostfxNoAANode = makePrepareForPostfxNoAANode();
-      fxaaNode = {};
+      if (multisampling)
+      {
+        antiAliasing.reset();
+        // Does the coc calculation in the postfx shader
+        ShaderGlobal::set_int(antialiasing_typeVarId, AntiAliasingType::NON_TEMPORAL);
+        prepareForPostfxNoAANode = makePrepareForPostfxNoAANode();
+        fxaaNode = {};
+      }
+      else
+      {
+        setAntialiasing();
+      }
     }
-    else
-    {
-      setAntialiasing();
-    }
-    subSuperSamplingNodes = makeSubsamplingNodes(requiresSubsampling, requiresSupersampling);
-    if (multisampling)
+    subSuperSamplingNodes = makeSubsamplingNodes(requiresSubsampling, requiresSupersampling, isScreenshotScheduled);
+    if (multisampling || isScreenshotScheduled)
       frameToPresentProducerNode = makeFrameToPresentProducerNode();
     else
       frameToPresentProducerNode = dafg::NodeHandle();
@@ -5159,23 +5155,23 @@ void WorldRenderer::renderDynamicOpaque(
   }
 
   Occlusion *occl = cascade == RENDER_MAIN ? getMainCameraOcclusion() : nullptr;
-  const dynmodel_renderer::DynModelRenderingState *pState = NULL;
+  dynrend::ContextId asyncAnimcharCtx = dynrend::ContextId::INVALID;
   char tmps[] = "csm#000";
   if (async_animchars_shadows.get() && cascade >= RENDER_SHADOWS_CSM && cascade - RENDER_SHADOWS_CSM < csm->getNumCascadesToRender())
   {
-    pState = dynmodel_renderer::get_state(fmt_csm_render_pass_name(cascade, tmps));
+    asyncAnimcharCtx = dynrend::find_context(fmt_csm_render_pass_name(cascade, tmps));
   }
   else if (async_animchars_main.get())
     if (cascade == RENDER_MAIN)
     {
       mainCameraVisibilityMgr.waitAsyncAnimcharMainRender();
-      pState = mainCameraVisibilityMgr.getAsyncAnimcharMainRenderState();
+      asyncAnimcharCtx = mainCameraVisibilityMgr.getAsyncAnimcharMainRenderCtx();
     }
 
   {
     TIME_D3D_PROFILE(ecs_render);
     g_entity_mgr->broadcastEventImmediate(UpdateStageInfoRender(hints, frustum, view_itm, view_tm, proj_tm, cam_pos,
-      currentFrameCamera.negRoundedCamPos, currentFrameCamera.negRemainderCamPos, occl, cascade, pState, texCtx));
+      currentFrameCamera.negRoundedCamPos, currentFrameCamera.negRemainderCamPos, occl, cascade, asyncAnimcharCtx, texCtx));
   }
 
   ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));

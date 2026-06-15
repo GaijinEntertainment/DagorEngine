@@ -24,6 +24,7 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_progGlobals.h>
 #include <osApiWrappers/dag_messageBox.h>
+#include <osApiWrappers/dag_singleProcessChecker.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_sockets.h>
@@ -590,6 +591,8 @@ void set_corrected_fps_limit(int fps_limit)
 {
   const int fpsLimitFromSettings = [] {
     auto videoBlk = ::dgs_get_settings()->getBlockByNameEx("video");
+    if (d3d::get_vsync_enabled())
+      return 0;
     String platformFpsLimitName = String(32, "%sFpsLimit", get_platform_string_id());
     return videoBlk->paramExists(platformFpsLimitName) ? videoBlk->getInt(platformFpsLimitName) : videoBlk->getInt("fpsLimit", 0);
   }();
@@ -893,6 +896,29 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
 #endif
   initial_load_settings();
+
+#if _TARGET_PC_WIN
+  // The dev launcher passes debug/runningMultClients when it intentionally
+  // starts several clients; skip the single-instance check entirely in that
+  // case so the collision modal isn't shown on every launch.
+  if (!dedicated::is_dedicated() && !::dgs_execute_quiet &&
+      !dgs_get_settings()->getBlockByNameEx("debug")->getBool("runningMultClients", false))
+  {
+    char mutex_name[256];
+    SNPRINTF(mutex_name, sizeof(mutex_name), "Global\\DagorGame_%s", gameproj::game_user_dir_name());
+    ScopeSetWatchdogTimeout _wd(WATCHDOG_DISABLE);
+    if (check_or_prompt_existing_instance(mutex_name) == ExistingInstanceAction::ExitProcess)
+    {
+#if DAGOR_DBGLEVEL < 1
+      os_message_box("Another instance of the game is already running.", gameproj::game_window_title(),
+        GUI_MB_OK | GUI_MB_ICON_ERROR | GUI_MB_NATIVE_DLG);
+#endif
+      debug("another instance is running");
+      flush_debug_file();
+      ExitProcess(0);
+    }
+  }
+#endif
 
   // This must be called after settings load
   cpujobs::init(dgs_get_settings()->getBlockByNameEx("debug")->getInt("coreCount", -1), /*reserve_jobmgr_cores*/ false);

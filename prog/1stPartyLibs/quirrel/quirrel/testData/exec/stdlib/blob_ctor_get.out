@@ -1,0 +1,6 @@
+sum: 386
+clone ok: 65 153
+err: negative-size
+err: get-oor
+err: set-oor
+blob ctor/get: OK

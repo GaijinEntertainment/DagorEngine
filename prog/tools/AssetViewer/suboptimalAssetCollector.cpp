@@ -237,6 +237,7 @@ private:
 };
 
 SearchOptions last_used_search_options;
+eastl::unique_ptr<AssetSearchResultsWindow> suboptimal_asset_collector_dialog;
 
 } // namespace
 
@@ -261,10 +262,10 @@ void show_suboptimal_asset_collector_dialog(const DagorAssetFolder &asset_folder
   SuboptimalAssetCollector suboptimalAssetCollector;
   suboptimalAssetCollector.collect(asset_folder, last_used_search_options);
 
-  asset_search_results_window.reset(new AssetSearchResultsWindow("Suboptimal assets"));
-  asset_search_results_window->addColumnTitle("Asset name");
-  asset_search_results_window->addColumnTitle("Faces");
-  asset_search_results_window->addColumnTitle("Range");
+  suboptimal_asset_collector_dialog.reset(new AssetSearchResultsWindow("Suboptimal assets"));
+  suboptimal_asset_collector_dialog->addColumnTitle("Asset name");
+  suboptimal_asset_collector_dialog->addColumnTitle("Faces");
+  suboptimal_asset_collector_dialog->addColumnTitle("Range");
 
   String tempBuffer;
   for (const SuboptimalAssetCollector::SearchResult &searchResult : suboptimalAssetCollector.getSearchResults())
@@ -278,9 +279,11 @@ void show_suboptimal_asset_collector_dialog(const DagorAssetFolder &asset_folder
     tempBuffer.printf(0, "%g", searchResult.range);
     outputSearchResult.additionalColumns.emplace_back(tempBuffer.c_str());
 
-    asset_search_results_window->addResult(eastl::move(outputSearchResult));
+    suboptimal_asset_collector_dialog->addResult(eastl::move(outputSearchResult));
   }
 
-  asset_search_results_window->fillResultsList();
-  asset_search_results_window->show();
+  suboptimal_asset_collector_dialog->fillResultsList();
+  suboptimal_asset_collector_dialog->show();
 }
+
+void release_suboptimal_asset_collector_dialog() { suboptimal_asset_collector_dialog.reset(); }

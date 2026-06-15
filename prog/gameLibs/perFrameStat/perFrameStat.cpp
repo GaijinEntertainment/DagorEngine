@@ -5,6 +5,7 @@
 
 #include <generic/dag_tab.h>
 #include <workCycle/dag_workCyclePerf.h>
+#include <workCycle/dag_workCycle.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_memoryReport.h>
 #include <startup/dag_globalSettings.h>
@@ -66,7 +67,7 @@ struct GPUWatchWrapper
     }
 
     // ignore GPU time for inactive frames to avoid ring buffer polution
-    if (!dgs_app_active)
+    if (!dagor_work_cycle_is_need_to_draw())
     {
       // -1ms in the result
       perframe_stat_buffer[buffer_index].gpuTimeUsec = -1000;
@@ -221,6 +222,15 @@ void dump_to_file(const char *fname)
   }
 
   gpu_time::gpu_watch.flush_finished_frames();
+
+#if _TARGET_C1 | _TARGET_C2
+
+
+
+
+
+
+#endif
 
   dump_to_file_fn(fname);
 }

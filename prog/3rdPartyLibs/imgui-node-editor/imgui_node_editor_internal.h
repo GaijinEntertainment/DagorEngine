@@ -850,6 +850,8 @@ struct NavigateAction final: EditorAction
     void NavigateTo(const ImRect& bounds, ZoomMode zoomMode, float duration = -1.0f, NavigationReason reason = NavigationReason::Unknown);
     void StopNavigation();
     void FinishNavigation();
+    // MODIFICATION BY GAIJIN
+    void ScrollCanvasPointToScreen(const ImVec2& canvasPoint, const ImVec2& screenPoint);
 
     bool MoveOverEdge(const ImVec2& canvasSize);
     void StopMoveOverEdge();
@@ -1438,6 +1440,11 @@ struct EditorContext
     {
         auto zoomMode = zoomIn ? NavigateAction::ZoomMode::WithMargin : NavigateAction::ZoomMode::None;
         m_NavigateAction.NavigateTo(bounds, zoomMode, duration);
+    }
+    // MODIFICATION BY GAIJIN
+    void ScrollCanvasPointToScreen(const ImVec2& canvasPoint, const ImVec2& screenPoint)
+    {
+        m_NavigateAction.ScrollCanvasPointToScreen(canvasPoint, screenPoint);
     }
 
     void RegisterAnimation(Animation* animation);

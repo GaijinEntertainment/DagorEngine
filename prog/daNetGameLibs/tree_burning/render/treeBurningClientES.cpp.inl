@@ -175,8 +175,12 @@ static void tree_burning_add_fire_source_es(
           if (riExHandle == rendinst::RIEX_HANDLE_NULL)
             continue;
 
+          const bool isBush = riex_collision_is_soft(riExHandle);
           g_entity_mgr->sendEvent(eid,
-            EventCreateTreeBurningChain(riExHandle, tm, canopyType, canopyBox.lim[0], canopyBox.lim[1], transform.col[3]));
+            EventCreateTreeBurningChain(riExHandle, tm, canopyType, canopyBox.lim[0], canopyBox.lim[1], transform.col[3], isBush));
+          // Bush keeps the burning model but stops slowing the soldier down - drop its soft collision.
+          if (isBush)
+            rendinst::removeRIGenExtraFromGrid(riExHandle);
           add_first_burning_source(tree_burning_manager, riExHandle, transform.col[3]);
         }
         else // riExtra case
@@ -195,7 +199,12 @@ static void tree_burning_add_fire_source_es(
               tree_burning__additional_source_min_distance);
           }
           else
+          {
+            // First ignition of an already-riExtra rendinst: a bush still has to lose its soft collision.
+            if (riex_collision_is_soft(riExHandle))
+              rendinst::removeRIGenExtraFromGrid(riExHandle);
             add_first_burning_source(tree_burning_manager, riExHandle, transform.col[3]);
+          }
         }
       }
     });

@@ -1,0 +1,10 @@
+hook fired: true
+text: pos/fallback/true
+acc: 272
+caught: 1
+isAnimal: true
+kind: instance
+speak: cat!
+clonedLen: 4
+gsum: 6
+top-gen total: 6

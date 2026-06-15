@@ -45,6 +45,8 @@ public:
   void setResolution(uint32_t rtWidth, uint32_t rtHeight, float lodBias, int water_quality);
   void setFoamFxParams(const FoamFxParams &params);
   void effectsResolutionChanged();
+  // Create or destroy foamFx. water_quality selects the foamFxTexDividers entry when creating. Idempotent.
+  void setFoamFxEnabled(bool enabled, int water_quality);
 
   bool shouldUseWfxTextures() const;
   bool isUsingFoamFx() const;
@@ -55,9 +57,7 @@ public:
     uint32_t rtHeight = 0;
     IPoint2 maxRenderingResolution = {0, 0};
     bool unitWakeOn = true;
-    bool foamFxOn = false;
     bool projectedFxOn = true;
-    int waterQuality = 0;
     float lodBias = 0.f;
   };
 

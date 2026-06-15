@@ -11,6 +11,31 @@
 #include "sqtable.h"
 #include "sqclass.h"
 
+// Depth-0 locals capture caps (rare fault path). Per-frame / per-outer counts are
+// enforced at capture; the string cap is render-only (the immutable ref is held whole).
+static const int       SQ_LOCALS_MAX_PER_FRAME = 16;
+static const int       SQ_LOCALS_MAX_OUTERS    = 8;
+static const SQInteger SQ_LOCALS_MAX_STRING    = 120;
+
+#ifdef SQ_STACK_DUMP_SECRET_PREFIX
+    #define SQ_DBG_STRINGIZE(x) #x
+    #define SQ_DBG_STRING_EXPAND(x) SQ_DBG_STRINGIZE(x)
+    #define SQ_DBG_SECRET_PREFIX SQ_DBG_STRING_EXPAND(SQ_STACK_DUMP_SECRET_PREFIX)
+#endif
+
+// Names with the secret prefix are kept out of captured locals, same contract as the
+// sync LOCALS dump (sqstdaux.cpp). No-op unless the build defines the prefix (rel/irel).
+static bool isSecretLocalName(const SQObjectPtr &name)
+{
+#ifdef SQ_STACK_DUMP_SECRET_PREFIX
+    if (sq_type(name) == OT_STRING)
+        return strncmp(_stringval(name), SQ_DBG_SECRET_PREFIX, sizeof(SQ_DBG_SECRET_PREFIX) - 1) == 0;
+#else
+    (void)name;
+#endif
+    return false;
+}
+
 SQRESULT sq_getfunctioninfo(HSQUIRRELVM v,SQInteger level,SQFunctionInfo *fi)
 {
     SQInteger cssize = v->_callsstacksize;
@@ -72,71 +97,198 @@ static SQObjectPtr frameNameObject(SQVM *v, const SQObject &nameObj, const char 
     return SQObjectPtr(SQString::Create(_ss(v), fallback));
 }
 
-// One { func, source, line } frame; await-hops add an `awaited` slot so the
-// renderer prints "awaited at" rather than "at".
-static SQObjectPtr makeFrameTable(SQVM *v, const SQVM::CallInfo &ci, const SQInstruction *ip, bool awaited)
+// Fill a per-local record with its type tag plus a leaf-only depth-0 summary: scalars
+// by value, strings by (immutable) ref, aggregates as a ref-free summary. Never stores a
+// ref into a live object graph, so the record pins nothing and forms no GC cycle.
+static void summarizeLocal(SQVM *v, SQTable *r, const SQObjectPtr &val,
+    const SQObjectPtr &typeKey, const SQObjectPtr &valueKey, const SQObjectPtr &countKey,
+    const SQObjectPtr &gstateKey, const SQObjectPtr &funcKey, const SQObjectPtr &srcKey,
+    const SQObjectPtr &lineKey)
 {
+    r->NewSlot(typeKey, SQObjectPtr(SQString::Create(_ss(v), IdType2Name(sq_type(val)))));
+    switch (sq_type(val)) {
+    case OT_NULL:
+    case OT_INTEGER:
+    case OT_FLOAT:
+    case OT_BOOL:
+        // by value
+        r->NewSlot(valueKey, val); //-V1037
+        break;
+    case OT_STRING:
+        // immutable leaf: reuse the ref, no copy
+        r->NewSlot(valueKey, val); //-V1037
+        break;
+    case OT_ARRAY:
+        r->NewSlot(countKey, SQObjectPtr((SQInteger)_array(val)->Size()));
+        break;
+    case OT_TABLE:
+        r->NewSlot(countKey, SQObjectPtr((SQInteger)_table(val)->CountUsed()));
+        break;
+    case OT_CLOSURE: {
+        SQFunctionProto *f = _closure(val)->_function;
+        if (sq_type(f->_name) == OT_STRING) r->NewSlot(funcKey, SQObjectPtr(f->_name));
+        if (sq_type(f->_sourcename) == OT_STRING) r->NewSlot(srcKey, SQObjectPtr(f->_sourcename));
+        r->NewSlot(lineKey, SQObjectPtr((SQInteger)f->_lineinfos->_first_line));
+        break;
+    }
+    case OT_NATIVECLOSURE:
+        if (sq_type(_nativeclosure(val)->_name) == OT_STRING)
+            r->NewSlot(funcKey, SQObjectPtr(_nativeclosure(val)->_name));
+        break;
+    case OT_GENERATOR: {
+        const char *gs = "running";
+        switch (_generator(val)->_state) {
+        case SQGenerator::eSuspended: gs = "suspended"; break;
+        case SQGenerator::eDead: gs = "dead"; break;
+        default: break;
+        }
+        r->NewSlot(gstateKey, SQObjectPtr(SQString::Create(_ss(v), gs)));
+        break;
+    }
+    default:
+        break;   // userpointer/instance/class/userdata/thread/weakref/outer: type tag only
+    }
+}
+
+// Capture a frame's in-scope locals (and captured outers) as an array of records, read from
+// `slots` (size `nslots`): the live stack window for an origin frame, or a parked generator's
+// saved _stack. NULL when there is nothing to record. `parked` guards the two parked-frame
+// hazards: an open outer's _valptr targets unrelated live frames (skip it), and saved slot 0
+// holds the weakref-wrapped self (unwrap it). Block-scoped by ip; `*moreOut` = omitted count.
+static SQArray *collectFrameLocals(SQVM *v, const SQVM::CallInfo &ci,
+    const SQObjectPtr *slots, SQUnsignedInteger nslots, const SQInstruction *ip,
+    bool parked, int *moreOut)
+{
+    *moreOut = 0;
+    if (!slots || sq_type(ci._closure) != OT_CLOSURE)
+        return NULL;
+    SQClosure *c = _closure(ci._closure);
+    SQFunctionProto *func = c->_function;
+
+    const SQSharedState::TraceSchema &sch = _ss(v)->_traceSchema;
+
+    SQArray *arr = NULL;
+
+    int nouter = 0;
+    for (SQInteger idx = 0; idx < func->_noutervalues; ++idx) {
+        SQOuter *o = _outer(c->_outervalues[idx]);
+        if (parked && o->_valptr != &o->_value)
+            continue;                              // open outer: unsafe to read on a parked frame
+        const SQObjectPtr &oname = func->_outervalues[idx]._name;
+        if (isSecretLocalName(oname))
+            continue;
+        if (nouter >= SQ_LOCALS_MAX_OUTERS) { ++*moreOut; continue; }
+        if (!arr) arr = SQArray::Create(_ss(v), 0);
+        SQTable *r = SQTable::Create(_ss(v), 4);
+        r->NewSlot(sch.name, oname);
+        r->NewSlot(sch.captured, SQObjectPtr(true));
+        summarizeLocal(v, r, *o->_valptr, sch.type, sch.value, sch.count, sch.gstate, sch.func, sch.source, sch.line);
+        arr->Append(SQObjectPtr(r));
+        ++nouter;
+    }
+
+    SQUnsignedInteger nop = (SQUnsignedInteger)(ip - func->_instructions);
+    int nloc = 0;
+    for (SQInteger i = 0; i < func->_nlocalvarinfos; ++i) {
+        const SQLocalVarInfo &lvi = func->_localvarinfos[i];
+        if (!(lvi._start_op <= nop && lvi._end_op >= nop))
+            continue;                              // not in scope at this ip (block scoping)
+        if ((SQUnsignedInteger)lvi._pos >= nslots)
+            continue;                              // bounds guard against a malformed _pos
+        if (isSecretLocalName(lvi._name))
+            continue;
+        if (nloc >= SQ_LOCALS_MAX_PER_FRAME) { ++*moreOut; continue; }
+        SQObjectPtr val = slots[lvi._pos];
+        if (parked && lvi._pos == 0)
+            val = _realval(val);                   // parked slot-0 self is weakref-wrapped
+        if (!arr) arr = SQArray::Create(_ss(v), 0);
+        SQTable *r = SQTable::Create(_ss(v), 4);
+        r->NewSlot(sch.name, lvi._name);
+        summarizeLocal(v, r, val, sch.type, sch.value, sch.count, sch.gstate, sch.func, sch.source, sch.line);
+        arr->Append(SQObjectPtr(r));
+        ++nloc;
+    }
+    return arr;
+}
+
+// One { func, source, line } frame; await-hops add an `awaited` slot so the
+// renderer prints "awaited at" rather than "at". When a stack window is supplied the frame
+// also carries a `locals` array (and `localsMore` count when capped).
+static SQObjectPtr makeFrameTable(SQVM *v, const SQVM::CallInfo &ci, const SQInstruction *ip,
+    bool awaited, const SQObjectPtr *slots, SQUnsignedInteger nslots, bool parked)
+{
+    const SQSharedState::TraceSchema &sch = _ss(v)->_traceSchema;
     SQFrameInfo fi;
     sq_get_frame_info(ci, ip, fi);
     SQTable *t = SQTable::Create(_ss(v), awaited ? 4 : 3);
-    t->NewSlot(SQObjectPtr(SQString::Create(_ss(v), "func")), frameNameObject(v, fi.funcnameObj, fi.funcname));
-    t->NewSlot(SQObjectPtr(SQString::Create(_ss(v), "source")), frameNameObject(v, fi.sourceObj, fi.source));
-    t->NewSlot(SQObjectPtr(SQString::Create(_ss(v), "line")), SQObjectPtr(fi.line));
+    t->NewSlot(sch.func, frameNameObject(v, fi.funcnameObj, fi.funcname));
+    t->NewSlot(sch.source, frameNameObject(v, fi.sourceObj, fi.source));
+    t->NewSlot(sch.line, SQObjectPtr(fi.line));
     if (awaited)
-        t->NewSlot(SQObjectPtr(SQString::Create(_ss(v), "awaited")), SQObjectPtr(true));
+        t->NewSlot(sch.awaited, SQObjectPtr(true));
+    int more = 0;
+    SQArray *locals = collectFrameLocals(v, ci, slots, nslots, ip, parked, &more);
+    if (locals) {
+        t->NewSlot(sch.locals, SQObjectPtr(locals));
+        if (more > 0)
+            t->NewSlot(sch.localsMore, SQObjectPtr((SQInteger)more));
+    }
+    return SQObjectPtr(t);
+}
+
+SQObjectPtr sq_make_diag_frame(SQVM *v, const SQObjectPtr &source, const SQObjectPtr &func, SQInteger line, const char *kind)
+{
+    const SQSharedState::TraceSchema &sch = _ss(v)->_traceSchema;
+    SQTable *t = SQTable::Create(_ss(v), 4);
+    t->NewSlot(sch.func, func);
+    t->NewSlot(sch.source, source);
+    t->NewSlot(sch.line, SQObjectPtr(line));
+    t->NewSlot(sch.kind, SQObjectPtr(SQString::Create(_ss(v), kind)));
     return SQObjectPtr(t);
 }
 
 SQObjectPtr sq_capture_error_trace(SQVM *v)
 {
     SQArray *arr = SQArray::Create(_ss(v), 0);
+    // Track each frame's stackbase down the live chain (running -= _prevstkbase, mirroring
+    // sq_getlocal) so each origin frame reads its own locals window.
+    SQInteger base = v->_stackbase;
     for (SQVM::CallInfo *p = v->ci; p && p >= v->_callsstack; --p) {
-        arr->Append(makeFrameTable(v, *p, p->_ip - 1, /*awaited*/false));
+        const SQObjectPtr *slots = NULL;
+        SQUnsignedInteger nslots = 0;
+        if (base >= 0 && base < (SQInteger)v->_stack.size()) {
+            slots = &v->_stack._vals[base];
+            nslots = (SQUnsignedInteger)(v->_stack.size() - base);
+        }
+        arr->Append(makeFrameTable(v, *p, p->_ip - 1, /*awaited*/false, slots, nslots, /*parked*/false));
         if (p->_root) break;
+        base -= p->_prevstkbase;
     }
     return SQObjectPtr(arr);
 }
 
-// Error's trace array, created if absent. NULL for non-Error values and for a
-// caller-set non-array trace, which we preserve rather than convert.
-static SQArray *resolveTraceArray(SQVM *v, const SQObjectPtr &errVal)
+void sq_describe_fault_value(const SQObject &value, char *buf, size_t buf_size)
 {
-    if (sq_type(errVal) != OT_INSTANCE)
-        return NULL;
-    const SQObjectPtr &ecls = _ss(v)->_error_class;
-    if (sq_type(ecls) != OT_CLASS || !_instance(errVal)->InstanceOf(_class(ecls)))
-        return NULL;
-    SQObjectPtr traceKey(SQString::Create(_ss(v), "trace")), cur;
-    if (_instance(errVal)->Get(traceKey, cur) && sq_type(cur) != OT_NULL)
-        return sq_type(cur) == OT_ARRAY ? _array(cur) : NULL;
-    SQArray *arr = SQArray::Create(_ss(v), 0);
-    _instance(errVal)->Set(traceKey, SQObjectPtr(arr));
-    return arr;
+    switch (sq_type(value)) {
+        case OT_INTEGER: scsprintf(buf, buf_size, "integer " _PRINT_INT_FMT, _integer(value)); break;
+        case OT_FLOAT:   scsprintf(buf, buf_size, "float %.14g", (double)_float(value)); break;
+        case OT_BOOL:    scsprintf(buf, buf_size, "bool %s", _integer(value) ? "true" : "false"); break;
+        case OT_NULL:    scsprintf(buf, buf_size, "null"); break;
+        default:         scsprintf(buf, buf_size, "<%s>", GetTypeName(value)); break;
+    }
 }
 
-void sq_append_awaited_frame(SQVM *v, const SQObjectPtr &errVal, const SQVM::CallInfo &ci)
+void sq_append_awaited_frame_to(SQVM *v, SQArray *trace, const SQVM::CallInfo &ci, const SQGenerator *gen)
 {
-    SQArray *trace = resolveTraceArray(v, errVal);
-    if (!trace)
-        return;
-    trace->Append(makeFrameTable(v, ci, ci._ip - 1, /*awaited*/true));
-}
-
-SQObjectPtr sq_clone_error_for_branch(SQVM *v, const SQObjectPtr &errVal)
-{
-    if (sq_type(errVal) != OT_INSTANCE)
-        return errVal;
-    const SQObjectPtr &ecls = _ss(v)->_error_class;
-    if (sq_type(ecls) != OT_CLASS || !_instance(errVal)->InstanceOf(_class(ecls)))
-        return errVal;
-    // Clone copies member slots without running _cloned -- allocation-only, safe
-    // mid-cascade. Then re-seat the trace to its own array (frame tables stay
-    // shared, only the container is private).
-    SQObjectPtr clone(_instance(errVal)->Clone(_ss(v)));
-    SQObjectPtr traceKey(SQString::Create(_ss(v), "trace")), cur;
-    if (_instance(clone)->Get(traceKey, cur) && sq_type(cur) == OT_ARRAY)
-        _instance(clone)->Set(traceKey, SQObjectPtr(_array(cur)->Clone()));
-    return clone;
+    // Read the parked generator's saved stack for this hop's locals. Must run while the
+    // generator is still suspended (settleTerminal calls this before gen->Kill()).
+    const SQObjectPtr *slots = NULL;
+    SQUnsignedInteger nslots = 0;
+    if (gen && gen->_state == SQGenerator::eSuspended && gen->_stack.size() > 0) {
+        slots = gen->_stack._vals;
+        nslots = (SQUnsignedInteger)gen->_stack.size();
+    }
+    trace->Append(makeFrameTable(v, ci, ci._ip - 1, /*awaited*/true, slots, nslots, /*parked*/true));
 }
 
 static void appendCStr(sqvector<char> &buf, const char *s)
@@ -145,21 +297,70 @@ static void appendCStr(sqvector<char> &buf, const char *s)
         buf.push_back(*s++);
 }
 
-bool sq_append_error_trace(SQVM *v, const SQObjectPtr &errVal, sqvector<char> &buf)
+// Render one captured-local record as `      name[ (captured)] = <summary>`. Composes the
+// depth-0 text lazily from the stored pieces; the only string truncation lives here.
+static void appendLocalLine(SQVM *v, SQTable *r, sqvector<char> &buf)
 {
-    if (sq_type(errVal) != OT_INSTANCE)
-        return false;
-    const SQObjectPtr &ecls = _ss(v)->_error_class;
-    if (sq_type(ecls) != OT_CLASS || !_instance(errVal)->InstanceOf(_class(ecls)))
-        return false;
-    SQObjectPtr traceKey(SQString::Create(_ss(v), "trace")), trace;
-    if (!_instance(errVal)->Get(traceKey, trace) || sq_type(trace) != OT_ARRAY)
+    const SQSharedState::TraceSchema &sch = _ss(v)->_traceSchema;
+
+    SQObjectPtr nm, ty, cap, value;
+    r->Get(sch.name, nm);
+    r->Get(sch.type, ty);
+    const char *nms = sq_type(nm) == OT_STRING ? _stringval(nm) : "?";
+    const char *tys = sq_type(ty) == OT_STRING ? _stringval(ty) : "?";
+    bool captured = r->Get(sch.captured, cap) && !SQVM::IsFalse(cap);
+
+    char valbuf[160];
+    if (r->Get(sch.value, value)) {
+        switch (sq_type(value)) {
+        case OT_INTEGER: scsprintf(valbuf, sizeof(valbuf), _PRINT_INT_FMT, _integer(value)); break;
+        case OT_FLOAT:   scsprintf(valbuf, sizeof(valbuf), "%.14g", (double)_float(value)); break;
+        case OT_BOOL:    scsprintf(valbuf, sizeof(valbuf), "%s", _integer(value) ? "true" : "false"); break;
+        case OT_NULL:    scsprintf(valbuf, sizeof(valbuf), "null"); break;
+        case OT_STRING: {
+            const char *s = _stringval(value);
+            if (_string(value)->_len > SQ_LOCALS_MAX_STRING)
+                scsprintf(valbuf, sizeof(valbuf), "'%.*s...'", (int)SQ_LOCALS_MAX_STRING, s);
+            else
+                scsprintf(valbuf, sizeof(valbuf), "'%s'", s);
+            break;
+        }
+        default: scsprintf(valbuf, sizeof(valbuf), "%s", GetTypeName(value)); break;
+        }
+    } else if (strcmp(tys, "array") == 0) {
+        SQObjectPtr cnt; r->Get(sch.count, cnt);
+        scsprintf(valbuf, sizeof(valbuf), "array(%d)", sq_type(cnt) == OT_INTEGER ? (int)_integer(cnt) : 0);
+    } else if (strcmp(tys, "table") == 0) {
+        SQObjectPtr cnt; r->Get(sch.count, cnt);
+        scsprintf(valbuf, sizeof(valbuf), "table(%d keys)", sq_type(cnt) == OT_INTEGER ? (int)_integer(cnt) : 0);
+    } else if (strcmp(tys, "function") == 0) {
+        // IdType2Name maps both closure kinds to "function"; script ones add source/line
+        SQObjectPtr fnm, fsrc, fline;
+        r->Get(sch.func, fnm); r->Get(sch.source, fsrc); r->Get(sch.line, fline);
+        const char *fn = sq_type(fnm) == OT_STRING ? _stringval(fnm) : "?";
+        if (sq_type(fsrc) == OT_STRING)
+            scsprintf(valbuf, sizeof(valbuf), "function %s (%s:%d)", fn, _stringval(fsrc),
+                sq_type(fline) == OT_INTEGER ? (int)_integer(fline) : 0);
+        else
+            scsprintf(valbuf, sizeof(valbuf), "function %s", fn);
+    } else if (strcmp(tys, "generator") == 0) {
+        SQObjectPtr gs; r->Get(sch.gstate, gs);
+        scsprintf(valbuf, sizeof(valbuf), "generator(%s)", sq_type(gs) == OT_STRING ? _stringval(gs) : "?");
+    } else {
+        scsprintf(valbuf, sizeof(valbuf), "%s", tys);
+    }
+
+    char lbuf[320];
+    scsprintf(lbuf, sizeof(lbuf), "      %s%s = %s\n", nms, captured ? " (captured)" : "", valbuf);
+    appendCStr(buf, lbuf);
+}
+
+bool sq_append_error_trace(SQVM *v, const SQObject &trace, sqvector<char> &buf)
+{
+    if (sq_type(trace) != OT_ARRAY)
         return false;
 
-    SQObjectPtr funcKey(SQString::Create(_ss(v), "func"));
-    SQObjectPtr srcKey(SQString::Create(_ss(v), "source"));
-    SQObjectPtr lineKey(SQString::Create(_ss(v), "line"));
-    SQObjectPtr awaitedKey(SQString::Create(_ss(v), "awaited"));
+    const SQSharedState::TraceSchema &sch = _ss(v)->_traceSchema;
     SQArray *frames = _array(trace);
     const SQInteger startSize = buf.size();
     buf.reserve(startSize + frames->Size() * 64);
@@ -168,28 +369,52 @@ bool sq_append_error_trace(SQVM *v, const SQObjectPtr &errVal, sqvector<char> &b
         if (!frames->Get(i, frame) || sq_type(frame) != OT_TABLE)
             continue;
         SQTable *t = _table(frame);
-        SQObjectPtr fn, src, line, awaited;
-        t->Get(funcKey, fn);
-        t->Get(srcKey, src);
-        t->Get(lineKey, line);
-        bool isAwaited = t->Get(awaitedKey, awaited) && !SQVM::IsFalse(awaited);
+        SQObjectPtr fn, src, line, awaited, kind;
+        t->Get(sch.func, fn);
+        t->Get(sch.source, src);
+        t->Get(sch.line, line);
+        const char *fns = sq_type(fn) == OT_STRING ? _stringval(fn) : "?";
+        const char *srcs = sq_type(src) == OT_STRING ? _stringval(src) : "?";
+        int ln = sq_type(line) == OT_INTEGER ? (int)_integer(line) : 0;
+        const char *kinds = t->Get(sch.kind, kind) && sq_type(kind) == OT_STRING ? _stringval(kind) : "";
         char lbuf[320];
-        scsprintf(lbuf, sizeof(lbuf), "    %s%s (%s:%d)\n",
-            isAwaited ? "awaited at " : "at ",
-            sq_type(fn) == OT_STRING ? _stringval(fn) : "?",
-            sq_type(src) == OT_STRING ? _stringval(src) : "?",
-            sq_type(line) == OT_INTEGER ? (int)_integer(line) : 0);
+        if (strcmp(kinds, "launched") == 0) {
+            scsprintf(lbuf, sizeof(lbuf), "    launched at %s:%d %s\n",
+                srcs, ln, sq_type(fn) == OT_STRING && _string(fn)->_len > 0 ? fns : "<root>");
+        } else if (strcmp(kinds, "taskroot") == 0) {
+            scsprintf(lbuf, sizeof(lbuf), "    task root: %s (%s:%d)\n", fns, srcs, ln);
+        } else {
+            bool isAwaited = t->Get(sch.awaited, awaited) && !SQVM::IsFalse(awaited);
+            scsprintf(lbuf, sizeof(lbuf), "    %s%s (%s:%d)\n",
+                isAwaited ? "awaited at " : "at ", fns, srcs, ln);
+        }
         appendCStr(buf, lbuf);
+
+        SQObjectPtr localsObj;
+        if (t->Get(sch.locals, localsObj) && sq_type(localsObj) == OT_ARRAY) {
+            SQArray *locals = _array(localsObj);
+            for (SQInteger li = 0; li < locals->Size(); ++li) {
+                SQObjectPtr rec;
+                if (locals->Get(li, rec) && sq_type(rec) == OT_TABLE)
+                    appendLocalLine(v, _table(rec), buf);
+            }
+            SQObjectPtr moreObj;
+            if (t->Get(sch.localsMore, moreObj) && sq_type(moreObj) == OT_INTEGER && _integer(moreObj) > 0) {
+                char mbuf[64];
+                scsprintf(mbuf, sizeof(mbuf), "      ... (%d more)\n", (int)_integer(moreObj));
+                appendCStr(buf, mbuf);
+            }
+        }
     }
     return buf.size() != startSize;
 }
 
-void sq_print_error_trace(SQVM *v, const SQObjectPtr &errVal, SQPRINTFUNCTION errfn)
+void sq_print_error_trace(SQVM *v, const SQObject &trace, SQPRINTFUNCTION errfn)
 {
     if (!errfn)
         return;
     sqvector<char> buf(_ss(v)->_alloc_ctx);
-    if (!sq_append_error_trace(v, errVal, buf))
+    if (!sq_append_error_trace(v, trace, buf))
         return;
     buf.push_back('\0');
     errfn(v, "\nERROR TRACE\n");

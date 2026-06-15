@@ -26,7 +26,6 @@ int rtr_frame_index;
 
 float4 rtr_hit_dist_params;
 
-float4 rtr_resolution = (1,1,1,1);
 int4 rtr_resolutionI = (1,1,1,1);
 
 texture denoiser_view_z;
@@ -73,8 +72,8 @@ shader rt_reflection
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtr_resolutionI;
-    inv_aligned_resolution@f2 = (1 / rtr_resolution.xy);
-    hit_dist_params@f4 = rtr_hit_dist_params;
+    inv_aligned_resolution@f2 = (rtr_res_mul * screen_pos_to_texcoord.xy / (current_dynamic_resolution.xy / current_dynamic_resolution.zw));
+    hit_dist_params@f3 = rtr_hit_dist_params;
     rough_ray_length@f1 = rtr_rough_ray_length;
     frame_index@i1 = rtr_frame_index;
     rtr_res_mul@i1 = rtr_res_mul;
@@ -383,7 +382,7 @@ shader rt_reflection
           {
             float2 pixelCenter = float2(rayIndex * rtr_res_mul) + 0.5;
               BRANCH
-              if (isRTAOEnabled())
+              if (isRTAOEnabled() && !isGrass)
                 ao *= getRTAO(pixelCenter);
               else
                 ao *= getSSAOSimple(w, pixelCenter).x;
@@ -476,7 +475,7 @@ shader rt_glass_reflection
     inv_proj_tm@f44 = inv_proj_tm;
     resolution@u2 = rtr_resolutionI.xy;
     inv_resolution@f2 = (1.0 / get_dimensions(translucent_gbuffer, 0).xy);
-    hit_dist_params@f4 = rtr_hit_dist_params;
+    hit_dist_params@f3 = rtr_hit_dist_params;
     rt_glass_gbuffer@uav = translucent_gbuffer hlsl { RWTexture2D<float4> rt_glass_gbuffer@uav; };
     rt_glass_gbuffer_depth@tex2d = translucent_gbuffer_depth;
     world_view_pos@f3 = world_view_pos;

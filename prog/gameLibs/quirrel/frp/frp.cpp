@@ -9,7 +9,6 @@
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_statDrv.h>
-#include <perfMon/dag_perfTimer.h>
 #include <sqstdaux.h>
 
 #include <EASTL/algorithm.h>
@@ -204,6 +203,16 @@ ObservablesGraph::ObservablesGraph(HSQUIRRELVM v, const char *graph_name) :
 
 ObservablesGraph::~ObservablesGraph()
 {
+  // drop the registry entry so get_from_vm() can't return a dangling pointer
+  if (vm && !vmClosing)
+  {
+    SqStackChecker chk(vm);
+    sq_pushregistrytable(vm);
+    sq_pushuserpointer(vm, (SQUserPointer)observable_graph_key);
+    G_VERIFY(SQ_SUCCEEDED(sq_rawdeleteslot(vm, -2, SQFalse)));
+    sq_pop(vm, 1);
+  }
+
   OSSpinlockScopedLock guard(all_graphs_lock);
   if (auto it = eastl::find(all_graphs.begin(), all_graphs.end(), this); it != all_graphs.end())
     all_graphs.erase_unsorted(it);
@@ -286,6 +295,14 @@ void ObservablesGraph::freeSlot(NodeId id)
   NodeSlot &s = slots[id.index];
   G_ASSERT(s.alive && s.generation == id.generation);
 
+  // Clearing scriptSubscribers below releases closures, which can cascade into
+  // ~WatchedHandle -> reentrant destroyNode: mark the slot dead first so that
+  // resolves to null, and append to freeList last so allocSlot can't reuse the
+  // slot mid-teardown.
+  s.alive = false;
+  ++s.generation;
+  deferredNotifyQueue.erase(id);
+
   // Collect SQ objects for deferred release (sq_release called later by
   // flushPendingRelease). Direct release would risk: (1) during shutdown()
   // iteration, cascading freeSlot on not-yet-visited nodes skips their
@@ -304,11 +321,7 @@ void ObservablesGraph::freeSlot(NodeId id)
 
   releaseMutatorWhiteList(id.index);
 
-  s.alive = false;
-  ++s.generation;
   freeList.push_back(id.index);
-
-  deferredNotifyQueue.erase(id);
 }
 
 void ObservablesGraph::flushPendingRelease()
@@ -404,7 +417,13 @@ Sqrat::Object ObservablesGraph::getValue(NodeId id)
   if (!s)
     return Sqrat::Object();
   if (s->isComputed)
+  {
     ensureUpToDate(id);
+    // Re-resolve after pull (script may have reallocated slots or destroyed this node)
+    s = resolve(id);
+    if (!s)
+      return Sqrat::Object();
+  }
   return Sqrat::Object(s->value, vm);
 }
 
@@ -458,12 +477,18 @@ void ObservablesGraph::destroyNode(NodeId id)
   if (s->isComputed)
   {
     bool wasImmediate = s->needImmediate;
+    bool wasConsumed = s->computedHasActiveConsumers;
     for (auto &src : s->sources)
       removeDependent(src.id, id);
     if (wasImmediate)
     {
       for (auto &src : s->sources)
         updateNeedImmediate(src.id);
+    }
+    if (wasConsumed)
+    {
+      for (auto &src : s->sources)
+        updateComputedConsumed(src.id);
     }
   }
 
@@ -504,6 +529,9 @@ void ObservablesGraph::shutdown(bool is_closing_vm)
 {
   int t0 = get_time_msec();
   DEBUG_CTX("[FRP] '%s' graph shutdown (is_closing_vm = %d): %d nodes total", graphName.c_str(), is_closing_vm, (int)nodeCount());
+
+  if (is_closing_vm)
+    vmClosing = true;
 
   stubObservableClases.clear();
 
@@ -699,8 +727,11 @@ static bool isInChangeCauseCycle(ObservablesGraph *graph, NodeId id)
   if (!s)
     return false;
   NodeId cur = s->lastChangeCause;
-  while (cur.isValid() && cur != id)
+  // depth cap: the cause chain may lead into a cycle that does not contain id
+  for (int depth = 0; cur.isValid() && cur != id; ++depth)
   {
+    if (depth >= 64)
+      return false;
     NodeSlot *cs = graph->resolve(cur);
     if (!cs)
       return false;
@@ -762,7 +793,7 @@ bool ObservablesGraph::triggerRoot(NodeId id)
     logerr("%s triggered during recalc of %s", info.c_str(), rinfo.c_str());
   }
 
-  auto t0 = profile_ref_ticks();
+  auto t0 = ref_time_ticks();
   onEnterTriggerRoot();
 
   bool ok = true;
@@ -836,6 +867,9 @@ bool ObservablesGraph::triggerRoot(NodeId id)
     for (NodeId nid : changedNodes)
       if (!notifyWatchers(nid))
         ok = false;
+
+    // Re-resolve after watcher callbacks
+    s = resolve(id);
   }
 
   // Call subscribers
@@ -848,7 +882,7 @@ bool ObservablesGraph::triggerRoot(NodeId id)
     s->isInTrigger = false;
 
   onExitTriggerRoot();
-  usecTrigger += profile_time_usec(t0);
+  usecTrigger += get_time_usec(t0);
 
   return ok;
 }
@@ -897,7 +931,7 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
   if (isCallingSubscribers) // leave processing to top level call
     return true;
 
-  auto t0 = profile_ref_ticks();
+  auto t0 = ref_time_ticks();
   bool ok = true;
   for (;;)
   {
@@ -926,12 +960,12 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
       currentlyDispatchingSource = sc.source;
       callingSubscriber = sc.check && checkSubscribers;
       curSubscriberThresholdUsec = slowSubscriberThresholdUsec;
-      auto t1 = profile_ref_ticks();
+      auto t1 = ref_time_ticks();
       if (!sc.func.Execute(sc.value))
         ok = false; // VM already logged the script error
       else
       {
-        auto callUsec = profile_time_usec(t1);
+        auto callUsec = get_time_usec(t1);
         bool needToLog = callUsec > curSubscriberThresholdUsec;
 #if DAGOR_DBGLEVEL > 0
         needToLog |= callUsec > slowestSubscribersAllTime.back().timeUsec;
@@ -995,7 +1029,7 @@ bool ObservablesGraph::callScriptSubscribers(NodeId triggered_node, NodeIdVec &n
     curSubscriberThresholdUsec = -1;
     curSubscriberCalls.clear();
   }
-  usecSubscribers += profile_time_usec(t0);
+  usecSubscribers += get_time_usec(t0);
   return ok;
 }
 
@@ -1022,7 +1056,7 @@ bool ObservablesGraph::updateDeferred()
   FRPDBG("[FRP] ObservablesGraph(%p)::updateDeferred()", this);
   G_ASSERT(triggerNestDepth == 0);
 
-  auto t0 = profile_ref_ticks();
+  auto t0 = ref_time_ticks();
   onEnterTriggerRoot();
 
   bool ok = true;
@@ -1061,7 +1095,7 @@ bool ObservablesGraph::updateDeferred()
   deferredNotifyQueue.clear();
 
   // Pull-based evaluation of dirty computed nodes
-  auto startRecalc = profile_ref_ticks();
+  auto startRecalc = ref_time_ticks();
   onEnterRecalc();
 
   NodeIdVec changedNodes;
@@ -1090,7 +1124,7 @@ bool ObservablesGraph::updateDeferred()
   }
 
   onExitRecalc();
-  int timeRecalc = profile_time_usec(startRecalc);
+  int timeRecalc = get_time_usec(startRecalc);
 
   // Mark changed computed nodes to detect overlap with deferredBatch
   for (NodeId nid : changedNodes)
@@ -1118,17 +1152,17 @@ bool ObservablesGraph::updateDeferred()
       ok = false;
   }
 
-  auto t1 = profile_ref_ticks();
+  auto t1 = ref_time_ticks();
   {
     TIME_PROFILE(frp_deferred_notify);
     if (!callScriptSubscribers(NodeId{}, changedNodes))
       ok = false;
   }
-  int timeNotify = profile_time_usec(t1);
+  int timeNotify = get_time_usec(t1);
 
   onExitTriggerRoot();
 
-  int updateTime = profile_time_usec(t0);
+  int updateTime = get_time_usec(t0);
   usecUpdateDeferred += updateTime;
 
   if (updateTime > slowUpdateThresholdUsec && nodeCount() > 0 && is_app_working())
@@ -1198,16 +1232,22 @@ bool ObservablesGraph::pull(NodeId id, NodeIdVec &changed_nodes)
   if (s->nodeState == NodeState::CHECK)
   {
     // Verify if any source actually changed
-    for (auto &src : s->sources)
+    for (uint32_t i = 0, n = s->sources.size(); i < n; ++i)
     {
-      NodeSlot *srcSlot = resolve(src.id);
+      NodeId srcId = s->sources[i].id;
+      NodeSlot *srcSlot = resolve(srcId);
       if (srcSlot && srcSlot->isComputed)
-        pull(src.id, changed_nodes);
-      // Re-resolve after pull (slot vector may have been reallocated)
-      srcSlot = resolve(src.id);
-      if (srcSlot && srcSlot->version != src.lastSeenVersion)
       {
-        s->lastChangeCause = src.id;
+        pull(srcId, changed_nodes);
+        // Re-resolve after pull (script may have reallocated slots or destroyed this node)
+        s = resolve(id);
+        if (!s)
+          return false;
+        srcSlot = resolve(srcId);
+      }
+      if (srcSlot && srcSlot->version != s->sources[i].lastSeenVersion)
+      {
+        s->lastChangeCause = srcId;
         s->nodeState = NodeState::DIRTY;
         break;
       }
@@ -1266,7 +1306,7 @@ bool ObservablesGraph::recalculate(NodeId id, bool &ok)
   auto prevRecalc = inRecalc;
   inRecalc = id;
 
-  auto t0 = profile_ref_ticks();
+  auto t0 = ref_time_ticks();
 
   Sqrat::Function func(vm, Sqrat::Object(vm), s->func);
   Sqrat::optional<Sqrat::Object> optNewVal;
@@ -1294,7 +1334,7 @@ bool ObservablesGraph::recalculate(NodeId id, bool &ok)
       src.lastSeenVersion = srcSlot->version;
   }
 
-  int timeUsec = profile_time_usec(t0);
+  int timeUsec = get_time_usec(t0);
   (s->computedHasActiveConsumers ? usecUsedComputed : usecUnusedComputed) += timeUsec;
   computedRecalcs++;
 

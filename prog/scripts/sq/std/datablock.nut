@@ -145,7 +145,7 @@ function normalizeAndFlattenConvertedBlk(obj){
   else if (t == "table") {
     let r = {}
     foreach(k, v in obj)
-      r[k] <- normalizeConvertedBlk(v)
+      r[k] <- normalizeAndFlattenConvertedBlk(v)
     return r
   }
   else if (t=="array") {

@@ -6,6 +6,7 @@
 #include <supp/dag_cpuControl.h>
 #include <3d/dag_resourceDump.h>
 #include <generic/dag_align.h>
+#include <drv_utils.h>
 
 
 using namespace drv3d_dx12;
@@ -19,8 +20,6 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
   // Consider using CreatePlacedResource2 and set the initial layout for the untracked textures.
   result.state =
     ii.allocateSubresourceIDs ? propertiesToInitialState(desc.Dimension, desc.Flags, ii.memoryClass) : D3D12_RESOURCE_STATE_COMMON;
-
-  HRESULT errorCode = S_OK;
 
   if (ii.memoryClass != DeviceMemoryClass::RESERVED_RESOURCE)
   {
@@ -38,101 +37,109 @@ ImageCreateResult TextureImageFactory::createTexture(DXGIAdapter *adapter, Devic
     if (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
       allocationFlags.isRtv = true;
 
-    auto oomCheckOnExit = checkForOOMOnExit(
-      adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-      OomReportData{"createTexture", name, allocInfo.SizeInBytes, allocationFlags.toUlong(), memoryProperties.raw});
+    result = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags)
+               .or_else([&, this](auto) {
+                 device.processEmergencyDefragmentation(memoryProperties.raw, true, allocationFlags.isUav, allocationFlags.isRtv,
+                   allocInfo.SizeInBytes, allocationFlags.dedicatedHeap);
 
-    auto memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
-
-    if (!memory)
-    {
-      device.processEmergencyDefragmentation(memoryProperties.raw, true, allocationFlags.isUav, allocationFlags.isRtv,
-        allocInfo.SizeInBytes, allocationFlags.dedicatedHeap);
-      errorCode = S_OK;
-      memory = allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags, &errorCode);
-    }
-
-    if (!memory)
-    {
-#if _TARGET_PC_WIN
-      ComPtr<ID3D12Resource> texture;
-
-      D3D12_HEAP_PROPERTIES heapProperties{};
-      heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-      heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProperties.CreationNodeMask = 0;
-      heapProperties.VisibleNodeMask = 0;
-
-      D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
-
-      errorCode = DX12_CHECK_RESULT_NO_OOM_CHECK(
-        device.getDevice()->CreateCommittedResource(&heapProperties, heapFlags, &desc, result.state, nullptr, COM_ARGS(&texture)));
-
-      if (!texture)
-      {
-        logwarn("DX12: Unable to allocate committed resource");
-        return result;
-      }
-
-      const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
-                                                      ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
-                                                      : ImageGlobalSubresourceId::make_invalid();
-
-      result.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips,
-        ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
-
-      recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
-        result.image->getMemory().size(), result.image->getFormat(), name);
-
-      recordCommittedResourceAllocated(allocInfo.SizeInBytes, true);
-#else
-      // alloc failed, allocator will complain about this so no need to repeat it
-      return result;
-#endif
-    }
-    else
-    {
-      ComPtr<ID3D12Resource> texture;
-      errorCode =
+                 return allocate(adapter, device.getDevice(), memoryProperties, allocInfo, allocationFlags);
+               })
+               .and_then([&, this](auto &&memory) -> dag::Expected<ImageCreateResult, MemoryAllocationError> {
+                 ImageCreateResult createResult{};
+                 ComPtr<ID3D12Resource> texture;
 #if _TARGET_XBOX
-        DX12_CHECK_RESULT_NO_OOM_CHECK(
-          xbox_create_placed_resource(device.getDevice(), memory.getAddress(), desc, result.state, nullptr, texture));
+                 DX12_CHECK_RESULT_NO_OOM_CHECK(
+                   xbox_create_placed_resource(device.getDevice(), memory.getAddress(), desc, createResult.state, nullptr, texture));
 #else
-        DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc,
-          result.state, nullptr, COM_ARGS(&texture)));
+                 DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreatePlacedResource(memory.getHeap(), memory.getOffset(), &desc,
+                   createResult.state, nullptr, COM_ARGS(&texture)));
 #endif
 
-      if (!texture)
-      {
-        free(memory);
-        return result;
-      }
+                 if (!texture)
+                 {
+                   free(memory);
+                   return createResult;
+                 }
 
-      const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
-                                                      ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
-                                                      : ImageGlobalSubresourceId::make_invalid();
+                 const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
+                                                                 ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
+                                                                 : ImageGlobalSubresourceId::make_invalid();
 
-      result.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size, ii.mips, ii.arrays,
-        subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
+                 createResult.image = newImageObject(memory, eastl::move(texture), ii.type, ii.memoryLayout, ii.format, ii.size,
+                   ii.mips, ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
 
-      updateMemoryRangeUse(memory, result.image);
-      recordTextureAllocated(result.image->getMipLevelRange(), result.image->getArrayLayers(), result.image->getBaseExtent(),
-        result.image->getMemory().size(), result.image->getFormat(), name);
+                 updateMemoryRangeUse(memory, createResult.image);
+                 recordTextureAllocated(createResult.image->getMipLevelRange(), createResult.image->getArrayLayers(),
+                   createResult.image->getBaseExtent(), createResult.image->getMemory().size(), createResult.image->getFormat(), name);
+                 return createResult;
+               })
+               .or_else([&, this](auto error) -> dag::Expected<ImageCreateResult, MemoryAllocationError> {
+#if _TARGET_PC_WIN
+                 ComPtr<ID3D12Resource> texture;
+
+                 D3D12_HEAP_PROPERTIES heapProperties{};
+                 heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+                 heapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+                 heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+                 heapProperties.CreationNodeMask = 0;
+                 heapProperties.VisibleNodeMask = 0;
+
+                 D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
+
+                 DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreateCommittedResource(&heapProperties, heapFlags, &desc,
+                   result.state, nullptr, COM_ARGS(&texture)));
+
+                 if (!texture)
+                 {
+                   logwarn("DX12: Unable to allocate committed resource");
+                   return dag::Unexpected{error};
+                 }
+
+                 const ImageGlobalSubresourceId subResIdBase = (ii.allocateSubresourceIDs)
+                                                                 ? allocateGlobalResourceIdRange(ii.getSubResourceCount())
+                                                                 : ImageGlobalSubresourceId::make_invalid();
+                 ImageCreateResult createResult{};
+
+                 createResult.image = newImageObject(ResourceMemory{}, eastl::move(texture), ii.type, ii.memoryLayout, ii.format,
+                   ii.size, ii.mips, ii.arrays, subResIdBase, get_log2i_of_pow2(ii.sampleDesc.Count));
+
+                 recordTextureAllocated(createResult.image->getMipLevelRange(), createResult.image->getArrayLayers(),
+                   createResult.image->getBaseExtent(), createResult.image->getMemory().size(), createResult.image->getFormat(), name);
+
+                 recordCommittedResourceAllocated(allocInfo.SizeInBytes, true);
+
+                 return createResult;
+#else
+                 // alloc failed, allocator will complain about this so no need to repeat it
+                 return dag::Unexpected{error};
+#endif
+               })
+               .or_else([&, this](auto &&error) -> dag::Expected<ImageCreateResult, MemoryAllocationError> {
+                 checkForOOM(adapter, error,
+                   OomReportData{"createTexture", name, allocInfo.SizeInBytes, allocationFlags.toUlong(), memoryProperties.raw});
+                 return dag::Unexpected{error};
+               })
+               .value_or({});
+
+    if (!result.image)
+    {
+      return result;
     }
   }
   else
   {
-    auto oomCheckOnExit = checkForOOMOnExit(
-      adapter, [&errorCode]() { return !is_oom_error_code(errorCode); }, OomReportData{"createTexture (reserved)", name, 0});
-
+    eastl::optional<MemoryAllocationError> errorInfo;
+    auto oomCheckOnExit =
+      checkForOOMOnExit(adapter, [&errorInfo]() { return errorInfo; }, OomReportData{"createTexture (reserved)", name, 0});
 
     ComPtr<ID3D12Resource> texture;
-    errorCode =
+    HRESULT errorCode =
       DX12_CHECK_RESULT_NO_OOM_CHECK(device.getDevice()->CreateReservedResource(&desc, result.state, nullptr, COM_ARGS(&texture)));
 
     if (!texture)
     {
+      // PVS does not see that errorInfo is captured by oomCheckOnExit and forwarded on its destructor.
+      errorInfo = MemoryAllocationError{.errorCode = errorCode}; // -V1001
       return result;
     }
 
@@ -191,31 +198,32 @@ Image *TextureImageFactory::cloneRenderTarget(DXGIAdapter *adapter, Device &devi
   else
     properties = getProperties(desc.Flags, DeviceMemoryClass::DEVICE_RESIDENT_IMAGE, allocInfo.Alignment);
 
-  auto memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocationFlags);
   const auto size = allocInfo.SizeInBytes;
-  if (!memory)
-  {
-    device.processEmergencyDefragmentation(properties.raw, true, desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, true, size,
-      false);
-    memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocationFlags);
-  }
-  original->getDebugName([DX12_CAPTURE_DEF_EQ](auto &name) {
-    checkForOOM(adapter, (bool)memory,
-      OomReportData{"cloneRenderTarget", name.c_str(), size, allocationFlags.toUlong(), properties.raw});
-  });
-  if (!memory)
-    return nullptr;
+  return allocate(adapter, device.getDevice(), properties, allocInfo, allocationFlags)
+    .or_else([&, this](auto) {
+      device.processEmergencyDefragmentation(properties.raw, true, desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, true, size,
+        false);
+      return allocate(adapter, device.getDevice(), properties, allocInfo, allocationFlags);
+    })
+    .or_else([&, this](auto error) -> ResourceMemoryAllocationResult {
+      original->getDebugName([&, this](auto &name) {
+        checkForOOM(adapter, error, OomReportData{"cloneRenderTarget", name.c_str(), size, allocationFlags.toUlong(), properties.raw});
+      });
+      return dag::Unexpected{error};
+    })
+    .and_then([&, this](auto &&memory) -> dag::Expected<Image *, MemoryAllocationError> {
+      Image *result = nullptr;
+      {
+        auto imagePoolAccess = imageObjectPool.access();
+        result = tryCloneTextureToMemory(device.getDevice(), original, initial_state, desc, memory, imagePoolAccess);
+      }
+      if (result)
+        updateMemoryRangeUse(memory, result);
+      G_ASSERT(result);
 
-  Image *result = nullptr;
-  {
-    auto imagePoolAccess = imageObjectPool.access();
-    result = tryCloneTextureToMemory(device.getDevice(), original, initial_state, desc, memory, imagePoolAccess);
-  }
-  if (result)
-    updateMemoryRangeUse(memory, result);
-  G_ASSERT(result);
-
-  return result;
+      return result;
+    })
+    .value_or(nullptr);
 }
 #endif
 
@@ -295,13 +303,14 @@ Image *TextureImageFactory::tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *
     return nullptr;
   }
   auto properties = getHeapProperties(original->getMemory().getHeapID());
-  auto memory = allocate(adapter, device, properties, allocInfo, allocation_flags);
+  auto allocationResult = allocate(adapter, device, properties, allocInfo, allocation_flags);
 
-  if (!memory)
+  if (!allocationResult.has_value())
   {
     // alloc failed, allocator will complain about this so no need to repeat it
     return nullptr;
   }
+  auto &memory = allocationResult.value();
   Image *result = nullptr;
   {
     auto imagePoolAccess = imageObjectPool.access();
@@ -539,19 +548,28 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   D3D12_RESOURCE_ALLOCATION_INFO allocInfo{
     getHeapSizeFromAllocationSize(size, getHeapGroupProperties(group), allocFlags), D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT};
 
-  newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
-  if (!newPHeap.memory)
-  {
+  auto allocationResult = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags).or_else([&, this](auto) {
     device.processEmergencyDefragmentation(properties.raw, true, false, false, allocInfo.SizeInBytes, allocFlags.dedicatedHeap);
-    newPHeap.memory = allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
-  }
-  checkForOOM(adapter, static_cast<bool>(newPHeap.memory),
+
+    return allocate(adapter, device.getDevice(), properties, allocInfo, allocFlags);
+  });
+  checkForOOM(adapter, as_optional_error(allocationResult),
     OomReportData{"newUserHeap", nullptr, size, allocFlags.toUlong(), properties.raw});
-  const ResourceHeapProperties allocatedProperties{newPHeap.memory.getHeapID().group};
-  if (!newPHeap.memory && !device.isIll())
+  if (!allocationResult.has_value())
   {
-    return nullptr;
+    if (device.isIll())
+    {
+      return reinterpret_cast<UserResourceHeapType *>(0xFFFFFFFF);
+    }
+    else
+    {
+      return nullptr;
+    }
   }
+
+  newPHeap.memory = eastl::move(allocationResult.value());
+  const ResourceHeapProperties allocatedProperties{newPHeap.memory.getHeapID().group};
+
 #ifdef _TARGET_XBOX
   HRESULT hr = device.getDevice()->RegisterPagePoolX(reinterpret_cast<D3D12_GPU_VIRTUAL_ADDRESS>(newPHeap.memory.asPointer()),
     (newPHeap.memory.size() + TEXTURE_TILE_SIZE - 1) / TEXTURE_TILE_SIZE, &newPHeap.heapRegHandle);
@@ -561,8 +579,6 @@ uint32_t AliasHeapProvider::adoptMemoryAsAliasHeap(ResourceMemory memory)
   TEXQL_ON_PERSISTENT_ALLOC_SZ(newPHeap.memory.size());
   recordNewUserResourceHeap(size, allocatedProperties.isOnDevice(getFeatureSet()));
   uintptr_t index = 0;
-  if (device.isIll())
-    return reinterpret_cast<UserResourceHeapType *>(0xFFFFFFFF);
 
   {
     auto aliasHeapsAccess = aliasHeaps.access();
@@ -686,10 +702,9 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
   // heap ptr / index starts with 1, so adjust to start from 0
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
-  HRESULT errorCode = S_OK;
+  eastl::optional<MemoryAllocationError> errorInfo;
   auto oomCheckOnExit = checkForOOMOnExit(
-    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"placeTextureInHeap", name, alloc_info.sizeInBytes});
+    adapter, [&errorInfo]() { return errorInfo; }, OomReportData{"placeTextureInHeap", name, alloc_info.sizeInBytes});
 
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
@@ -723,7 +738,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
   }
 
   ComPtr<ID3D12Resource> texture;
-  errorCode =
+  HRESULT errorCode =
 #if _TARGET_XBOX
     DX12_CHECK_RESULT_NO_OOM_CHECK(
       xbox_create_placed_resource(device, memory.getAddress(), dxDesc, result.state, clearValuePtr, texture));
@@ -734,6 +749,7 @@ ImageCreateResult AliasHeapProvider::placeTextureInHeap(DXGIAdapter *adapter, ID
 
   if (!texture)
   {
+    errorInfo = MemoryAllocationError{.errorCode = errorCode};
     return result;
   }
 
@@ -914,10 +930,9 @@ BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Dev
   // heap ptr / index starts with 1, so adjust to start from 0
   auto index = reinterpret_cast<uintptr_t>(heap) - 1;
 
-  HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit(
-    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); },
-    OomReportData{"placeBufferInHeap", name, alloc_info.sizeInBytes});
+  eastl::optional<MemoryAllocationError> errorInfo;
+  auto oomCheckOnExit =
+    checkForOOMOnExit(adapter, [&errorInfo]() { return errorInfo; }, OomReportData{"placeBufferInHeap", name, alloc_info.sizeInBytes});
 
   auto aliasHeapsAccess = aliasHeaps.access();
   if (index >= aliasHeapsAccess->size())
@@ -938,10 +953,11 @@ BufferState AliasHeapProvider::placeBufferInHeap(DXGIAdapter *adapter, ID3D12Dev
   auto heapProperties = getHeapGroupProperties(alloc_info.heapGroup);
   auto memory = heapRef.memory.aliasSubRange(index, offset, alloc_info.sizeInBytes);
 
-  errorCode = newHeap.create(device, dxDesc, memory, state, heapProperties.isCPUVisible(getFeatureSet()));
+  HRESULT errorCode = newHeap.create(device, dxDesc, memory, state, heapProperties.isCPUVisible(getFeatureSet()));
 
   if (DX12_CHECK_FAIL(errorCode))
   {
+    errorInfo = MemoryAllocationError{.errorCode = errorCode};
     return result;
   }
 
@@ -1055,9 +1071,9 @@ ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12De
     freshAlias = true;
   }
 
-  HRESULT errorCode = S_OK;
-  auto oomCheckOnExit = checkForOOMOnExit(
-    adapter, [&errorCode]() { return !is_oom_error_code(errorCode); }, OomReportData{"aliasTexture", name, allocInfo.SizeInBytes});
+  eastl::optional<MemoryAllocationError> errorInfo;
+  auto oomCheckOnExit =
+    checkForOOMOnExit(adapter, [&errorInfo]() { return errorInfo; }, OomReportData{"aliasTexture", name, allocInfo.SizeInBytes});
   {
     auto aliasHeapsAccess = aliasHeaps.access();
     auto &heap = (*aliasHeapsAccess)[baseHeapID.index];
@@ -1091,7 +1107,7 @@ ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12De
     result.state = getInitialTextureResourceState(ii.usage);
 
     ComPtr<ID3D12Resource> texture;
-    errorCode =
+    HRESULT errorCode =
 #if _TARGET_XBOX
       DX12_CHECK_RESULT_NO_OOM_CHECK(xbox_create_placed_resource(device, memory.getAddress(), desc, result.state, nullptr, texture));
 #else
@@ -1101,6 +1117,8 @@ ImageCreateResult AliasHeapProvider::aliasTexture(DXGIAdapter *adapter, ID3D12De
 
     if (!texture)
     {
+      // PVS does not see that errorInfo is captured by oomCheckOnExit and forwarded on its destructor.
+      errorInfo = MemoryAllocationError{.errorCode = errorCode}; // -V1001
       return result;
     }
 
@@ -1147,11 +1165,6 @@ uint64_t HeapFragmentationManager::getAlignmentRequirement(PushRingBufferReferen
   return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 }
 
-uint64_t HeapFragmentationManager::getAlignmentRequirement(UploadRingBufferReference, ID3D12Device *, DefragmentationAccessTokens &)
-{
-  return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-}
-
 uint64_t HeapFragmentationManager::getAlignmentRequirement(TempUploadBufferReference, ID3D12Device *, DefragmentationAccessTokens &)
 {
   return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
@@ -1185,7 +1198,6 @@ const MetricsProviderBase::MetricNameTableEntry MetricsProviderBase::metric_name
     {MetricsProviderBase::Metric::BUFFERS, "Buffers"},
     {MetricsProviderBase::Metric::TEXTURES, "Textures"},
     {MetricsProviderBase::Metric::CONST_RING, "Const Ring"},
-    {MetricsProviderBase::Metric::TEMP_RING, "Temp Ring"},
     {MetricsProviderBase::Metric::TEMP_MEMORY, "Temp Memory"},
     {MetricsProviderBase::Metric::PERSISTENT_UPLOAD, "Persistent Upload"},
     {MetricsProviderBase::Metric::PERSISTENT_READ_BACK, "Persistent Read Back"},
@@ -1195,8 +1207,8 @@ const MetricsProviderBase::MetricNameTableEntry MetricsProviderBase::metric_name
 };
 
 const char *MetricsProviderBase::graph_name_table[static_cast<uint32_t>(Graph::COUNT)] = //
-  {"System", "Const Ring", "Upload Ring", "Temp Memory", "Upload Memory", "Read Back Memory", "Bidirectional Memory", "Buffers",
-    "Heaps", "Textures", "User Heaps", "Scratch Buffer"};
+  {"System", "Const Ring", "Temp Memory", "Upload Memory", "Read Back Memory", "Bidirectional Memory", "Buffers", "Heaps", "Textures",
+    "User Heaps", "Scratch Buffer"};
 
 const char *MetricsProviderBase::graph_mode_name_table[4] = //
   {"Block Scrolling", "Contiguous Scrolling", "Full Range", "Disabled"};
@@ -1207,14 +1219,14 @@ const MetricsProviderBase::Metric
     MetricsProviderBase::Metric::MEMORY, MetricsProviderBase::Metric::BUFFERS, MetricsProviderBase::Metric::BUFFERS,
     MetricsProviderBase::Metric::TEXTURES, MetricsProviderBase::Metric::TEXTURES, MetricsProviderBase::Metric::TEXTURES,
     MetricsProviderBase::Metric::TEXTURES, MetricsProviderBase::Metric::TEXTURES, MetricsProviderBase::Metric::CONST_RING,
-    MetricsProviderBase::Metric::CONST_RING, MetricsProviderBase::Metric::TEMP_RING, MetricsProviderBase::Metric::TEMP_RING,
-    MetricsProviderBase::Metric::TEMP_MEMORY, MetricsProviderBase::Metric::TEMP_MEMORY, MetricsProviderBase::Metric::TEMP_MEMORY,
+    MetricsProviderBase::Metric::CONST_RING, MetricsProviderBase::Metric::TEMP_MEMORY, MetricsProviderBase::Metric::TEMP_MEMORY,
+    MetricsProviderBase::Metric::TEMP_MEMORY, MetricsProviderBase::Metric::PERSISTENT_UPLOAD,
     MetricsProviderBase::Metric::PERSISTENT_UPLOAD, MetricsProviderBase::Metric::PERSISTENT_UPLOAD,
-    MetricsProviderBase::Metric::PERSISTENT_UPLOAD, MetricsProviderBase::Metric::PERSISTENT_UPLOAD,
+    MetricsProviderBase::Metric::PERSISTENT_UPLOAD, MetricsProviderBase::Metric::PERSISTENT_READ_BACK,
     MetricsProviderBase::Metric::PERSISTENT_READ_BACK, MetricsProviderBase::Metric::PERSISTENT_READ_BACK,
-    MetricsProviderBase::Metric::PERSISTENT_READ_BACK, MetricsProviderBase::Metric::PERSISTENT_READ_BACK,
+    MetricsProviderBase::Metric::PERSISTENT_READ_BACK, MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL,
     MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL, MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL,
-    MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL, MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL,
+    MetricsProviderBase::Metric::PERSISTENT_BIDIRECTIONAL,
     // may introduce new metric for user heaps?
     MetricsProviderBase::Metric::HEAPS, MetricsProviderBase::Metric::HEAPS, MetricsProviderBase::Metric::BUFFERS,
     MetricsProviderBase::Metric::TEXTURES, MetricsProviderBase::Metric::SCRATCH_BUFFER, MetricsProviderBase::Metric::SCRATCH_BUFFER,
@@ -1933,8 +1945,6 @@ bool MetricsVisualizer::drawEvent(const MetricsState::ActionInfo &event, uint64_
     case MetricsState::ActionInfo::Type::PLACE_TEXTURE_IN_USER_RESOURCE_HEAP: drawTextureEvent(event, index); break;
     case MetricsState::ActionInfo::Type::ALLOCATE_CONST_RING:
     case MetricsState::ActionInfo::Type::FREE_CONST_RING:
-    case MetricsState::ActionInfo::Type::ALLOCATE_TEMP_RING:
-    case MetricsState::ActionInfo::Type::FREE_TEMP_RING:
     case MetricsState::ActionInfo::Type::ALLOCATE_TEMP_BUFFER:
     case MetricsState::ActionInfo::Type::FREE_TEMP_BUFFER:
     case MetricsState::ActionInfo::Type::USE_TEMP_BUFFER:
@@ -2767,7 +2777,6 @@ void MetricsVisualizer::drawHeapsSummaryTable()
 
     auto totalCPUBufferHeapCount = frame.netCounters.cpuBufferHeaps.count;
     totalCPUBufferHeapCount += frame.netCounters.constRing.count;
-    totalCPUBufferHeapCount += frame.netCounters.uploadRing.count;
     totalCPUBufferHeapCount += frame.netCounters.tempBuffer.count;
     totalCPUBufferHeapCount += frame.netCounters.persistentUploadBuffer.count;
     totalCPUBufferHeapCount += frame.netCounters.persistentReadBackBuffer.count;
@@ -2775,7 +2784,6 @@ void MetricsVisualizer::drawHeapsSummaryTable()
 
     auto totalCPUBufferHeapSize = frame.netCounters.cpuBufferHeaps.size;
     totalCPUBufferHeapSize += frame.netCounters.constRing.size;
-    totalCPUBufferHeapSize += frame.netCounters.uploadRing.size;
     totalCPUBufferHeapSize += frame.netCounters.tempBuffer.size;
     totalCPUBufferHeapSize += frame.netCounters.persistentUploadBuffer.size;
     totalCPUBufferHeapSize += frame.netCounters.persistentReadBackBuffer.size;
@@ -3190,57 +3198,6 @@ void MetricsVisualizer::drawConstRingBasicMetricsTable()
   const auto &peakCounter = frame.rawCountersPeak.usedConstRing;
   const auto &peakCounterBuffer = frame.netCountersPeak.constRing;
   drawRingMemoryBasicMetricsTable("DX12-Temp-Const-Ring-Basic-Metrics-Table", currentCounter, summaryCounter, peakCounter,
-    peakCounterBuffer);
-}
-
-void MetricsVisualizer::drawUploadRingMemoryPlot()
-{
-  struct GetPlotData : PlotData
-  {
-    GetPlotData(const PlotData &base) : PlotData{base} {}
-    ImPlotPoint getAllocatedPoint(int idx)
-    {
-      const auto &frame = getFrame(idx);
-      return {double(frame.frameIndex), double(frame.netCounters.uploadRing.size)};
-    }
-
-    ImPlotPoint getUsedPoint(int idx)
-    {
-      const auto &frame = getFrame(idx);
-      return {double(frame.frameIndex), double(frame.rawCounters.usedUploadRing.size)};
-    }
-
-    uint64_t getSelectedAllocate() const { return getSelectedFrame().netCounters.uploadRing.size; }
-
-    uint64_t getSelectedUsed() const { return getSelectedFrame().rawCounters.usedUploadRing.size; }
-  };
-
-  auto metricsAccess = accessMetrics();
-  const uint64_t peakValue = metricsAccess->getLastFrameMetrics().netCountersPeak.uploadRing.size;
-
-  auto createGraphViewControls = [this]() { drawGraphViewControls(Graph::UPLOAD_RING); };
-
-  auto selectPlotData = [this, peakValue, &metricsAccess]() //
-  {
-    PlotDataBase<GetPlotData> result //
-      {setupPlotXRange(metricsAccess, getGraphDisplayInfo(Graph::UPLOAD_RING), peakValue > 0)};
-    setupPlotYMemoryRange(peakValue, result.hasAnyData());
-    return result;
-  };
-
-  draw_ring_buffer_plot("DX12-Upload-Ring-Usage-Plot-Segment", "Usage", "Usage##DX12-Upload-Ring-Usage-Plot", createGraphViewControls,
-    selectPlotData);
-}
-
-void MetricsVisualizer::drawUploadRingBasicMetricsTable()
-{
-  auto metricsAccess = accessMetrics();
-  const auto &frame = metricsAccess->getLastFrameMetrics();
-  const auto &currentCounter = frame.rawCounters.usedUploadRing;
-  const auto &summaryCounter = frame.rawCountersSummary.usedUploadRing;
-  const auto &peakCounter = frame.rawCountersPeak.usedUploadRing;
-  const auto &peakCounterBuffer = frame.netCountersPeak.uploadRing;
-  drawRingMemoryBasicMetricsTable("DX12-Temp-Upload-Ring-Basic-Metrics-Table", currentCounter, summaryCounter, peakCounter,
     peakCounterBuffer);
 }
 
@@ -3851,10 +3808,6 @@ void MetricsVisualizer::drawConstRingMemoryPlot() {}
 
 void MetricsVisualizer::drawConstRingBasicMetricsTable() {}
 
-void MetricsVisualizer::drawUploadRingMemoryPlot() {}
-
-void MetricsVisualizer::drawUploadRingBasicMetricsTable() {}
-
 void MetricsVisualizer::drawTempuraryUploadMemoryPlot() {}
 
 void MetricsVisualizer::drawTemporaryUploadMemoryBasicMetrics() {}
@@ -4304,46 +4257,6 @@ void DebugView::drawTempuraryUploadMemorySegmentsTable()
   }
 }
 
-void DebugView::drawUploadRingSegmentsTable()
-{
-  if (ImGui::BeginTable("DX12-Upload-Ring-Segment-Table", 6,
-        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
-  {
-    make_table_header({"Buffer Object", "CPU Pointer", "GPU Pointer", "Size", "Ring offset", "Allocated"});
-
-    {
-      auto uploadRingAccess = uploadRing.access();
-      for (auto &segment : uploadRingAccess->ringSegments)
-      {
-        auto sizeUnits = size_to_unit_table(segment.getBufferMemorySize());
-        auto allocatedUnits = size_to_unit_table(segment.allocationSize);
-        char bufPtr[32];
-        sprintf_s(bufPtr, "%p", segment.getResourcePtr());
-        begin_selectable_row(bufPtr);
-        if (ImGui::IsItemHovered())
-        {
-          if (segment.timeSinceUnused > 0)
-          {
-            ScopedTooltip tooltip;
-            ImGui::Text("%u frame since last use", segment.timeSinceUnused);
-          }
-        }
-        ImGui::TableNextColumn();
-        ImGui::Text("%p", segment.getCPUPointer());
-        ImGui::TableNextColumn();
-        ImGui::Text("%016I64X", segment.getGPUPointer());
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
-        ImGui::TableNextColumn();
-        ImGui::Text("%08X", segment.allocationOffset);
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.allocationSize, allocatedUnits), get_unit_name(allocatedUnits));
-      }
-    }
-    ImGui::EndTable();
-  }
-}
-
 void DebugView::drawConstRingSegmentsTable()
 {
   if (
@@ -4748,23 +4661,13 @@ void DebugView::drawTemporaryUploadMemoryInfoView()
   drawTempuraryUploadMemorySegmentsTable();
 }
 
-void DebugView::drawUploadRingBufferInfoView()
-{
-  drawUploadRingBasicMetricsTable();
-  drawUploadRingMemoryPlot();
-  drawUploadRingSegmentsTable();
-
-  bool v = shouldTrimFramePushRingBuffer();
-  ImGui::Checkbox("Trimming", &v);
-}
-
 void DebugView::drawConstRingBufferInfoView()
 {
   drawConstRingBasicMetricsTable();
   drawConstRingMemoryPlot();
   drawConstRingSegmentsTable();
 
-  bool v = shouldTrimUploadRingBuffer();
+  bool v = shouldTrimFramePushRingBuffer();
   ImGui::Checkbox("Trimming", &v);
 }
 
@@ -4934,10 +4837,6 @@ void DebugView::drawHeapsTable()
                   else if (eastl::holds_alternative<PushRingBufferReference>(res))
                   {
                     draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Push ring buffer");
-                  }
-                  else if (eastl::holds_alternative<UploadRingBufferReference>(res))
-                  {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Upload ring buffer");
                   }
                   else if (eastl::holds_alternative<TempUploadBufferReference>(res))
                   {
@@ -5318,12 +5217,6 @@ void DebugView::debugOverlay()
     ImGui::TreePop();
   }
 
-  if (ImGui::TreeNodeEx("Upload ring buffer##DX12-upload-ring-buffer", ImGuiTreeNodeFlags_Framed))
-  {
-    drawUploadRingBufferInfoView();
-    ImGui::TreePop();
-  }
-
   if (ImGui::TreeNodeEx("Temporary upload memory##DX12-temporary-upload-memory", ImGuiTreeNodeFlags_Framed))
   {
     drawTemporaryUploadMemoryInfoView();
@@ -5505,12 +5398,6 @@ struct ResourceHeapReportVisitor
   {
     ByteUnits size = range.size();
     target("%016llX with %6.2f %7s Push ring", range.front(), size.units(), size.name());
-  }
-
-  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::UploadRingBufferReference &)
-  {
-    ByteUnits size = range.size();
-    target("%016llX with %6.2f %7s Upload ring", range.front(), size.units(), size.name());
   }
 
   void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::TempUploadBufferReference &)
@@ -6346,7 +6233,6 @@ struct ResourceHeapWalker
     heap.visitAliasingHeaps(AliasingHeapReportVisitor<T>{target});
 
     ByteUnits pushRingSize = heap.getFramePushRingMemorySize();
-    ByteUnits uploadRingSize = heap.getUploadRingMemorySize();
     ByteUnits tempUploadSize = heap.getTemporaryUploadMemorySize();
     ByteUnits persistUploadSize = heap.getPersistentUploadMemorySize();
     ByteUnits persistReadBackSize = heap.getPersistentReadBackMemorySize();
@@ -6354,12 +6240,11 @@ struct ResourceHeapWalker
 
     target("~ Driver internal buffers ~~~~~~~~~~~");
     target("%6.2f %7s push ring buffers", pushRingSize.units(), pushRingSize.name());
-    target("%6.2f %7s upload ring buffers", uploadRingSize.units(), uploadRingSize.name());
     target("%6.2f %7s temporary upload buffers", tempUploadSize.units(), tempUploadSize.name());
     target("%6.2f %7s persistent upload buffers", persistUploadSize.units(), persistUploadSize.name());
     target("%6.2f %7s persistent read back buffers", persistReadBackSize.units(), persistReadBackSize.name());
     target("%6.2f %7s persistent bidirectional buffers", persistBidirSize.units(), persistBidirSize.name());
-    ByteUnits totalInternalSize = pushRingSize.value() + uploadRingSize.value() + tempUploadSize.value() + persistUploadSize.value() +
+    ByteUnits totalInternalSize = pushRingSize.value() + tempUploadSize.value() + persistUploadSize.value() +
                                   persistReadBackSize.value() + persistBidirSize.value();
     target("%6.2f %7s total internal buffer sizes", totalInternalSize.units(), totalInternalSize.name());
 
@@ -6443,30 +6328,74 @@ void OutOfMemoryRepoter::reportOOMInformation(DXGIAdapter *adapter)
   }
 }
 
-bool OutOfMemoryRepoter::checkForOOM(DXGIAdapter *adapter, bool was_okay, const OomReportData &report_data)
+bool OutOfMemoryRepoter::checkForOOM(DXGIAdapter *adapter, const eastl::optional<MemoryAllocationError> &error_info,
+  const OomReportData &report_data)
 {
-  if (!was_okay)
+  if (!error_info)
   {
-    if (!get_device().isHealthyOrRecovering())
-    {
-      logwarn(
-        "DX12: OOM check has failed, but device is not healthy or recovering. Skipping OOM report, we are going to reset device...");
-      return was_okay;
-    }
-#if _TARGET_XBOX
-    if (renderMemoryLimitBytes > 0)
-      logdbg("DX12: Render limit: %llu, allocated by render: %llu", renderMemoryLimitBytes, renderMemoryUsedBytes);
-    const bool isOverBudget =
-      (report_data.getRequestedSize() + renderMemoryUsedBytes > renderMemoryLimitBytes) && (renderMemoryLimitBytes != 0);
-    const char *budgetStatus = isOverBudget ? " (over budget)" : " (within budget - check system memory usage)";
-#else
-    const char *budgetStatus = "";
-#endif
-    D3D_ERROR("DX12: OOM%s report: %s", budgetStatus, report_data.toString());
-    reportOOMInformation(adapter);
-    DAG_FATAL("DX12: OOM%s during %s (check logs to get more info)", budgetStatus, report_data.getMethodName());
+    return true;
   }
-  return was_okay;
+
+  auto errorType = error_info->getType();
+  if (MemoryAllocationError::Type::NoAllocationAttempt == errorType)
+  {
+    return true;
+  }
+
+  if (!get_device().isHealthyOrRecovering())
+  {
+    logwarn(
+      "DX12: OOM check has failed, but device is not healthy or recovering. Skipping OOM report, we are going to reset device...");
+    return false;
+  }
+
+#if _TARGET_XBOX
+  if (renderMemoryLimitBytes > 0)
+    logdbg("DX12: Render limit: %llu, allocated by render: %llu", renderMemoryLimitBytes, renderMemoryUsedBytes);
+  const bool isOverBudget =
+    (report_data.getRequestedSize() + renderMemoryUsedBytes > renderMemoryLimitBytes) && (renderMemoryLimitBytes != 0);
+  const char *budgetStatus = isOverBudget ? " (over budget)" : " (within budget - check system memory usage)";
+#else
+  const char *budgetStatus = "";
+#endif
+  logdbg("DX12: MemoryAllocationError:");
+  logdbg("DX12: .requestSize: %u", error_info->requestSize);
+  logdbg("DX12: .poolSize: %u", error_info->poolSize);
+  logdbg("DX12: .poolBudget: %u", error_info->poolBudget);
+  logdbg("DX12: .poolAvail: %u", error_info->poolAvail);
+  logdbg("DX12: .pageFileSpace: %u", error_info->pageFileSpace);
+  logdbg("DX12: .systemMemoryLoadPercentage: %u", error_info->systemMemoryLoadPercentage);
+  D3D_ERROR("DX12: OOM%s report: %s", budgetStatus, report_data.toString());
+  reportOOMInformation(adapter);
+
+#if _TARGET_PC_WIN
+  const char *message = nullptr;
+  const char *caption = nullptr;
+  int flags = 0;
+  switch (errorType)
+  {
+    case MemoryAllocationError::Type::PoolExhausted:
+      message = "The Application ran out of memory, try lowering settings to reduce memory usage and try again";
+      caption = "Out of memory error";
+      break;
+    case MemoryAllocationError::Type::SystemLoad:
+      message = "The Application ran out of memory unexpectedly, it seems the system has high system memory pressure, try close other "
+                "applications to reduce system memory pressure and try again";
+      caption = "Out of system resources error";
+      break;
+    case MemoryAllocationError::Type::Unexpected:
+      message = "The Application ran out of memory unexpectedly, the system reports that there should be plenty of memory available, "
+                "yet the system did not grant more memory, try updating drivers and / or reboot the system and try again";
+      caption = "Out of memory error";
+      break;
+  }
+  if (caption && message)
+  {
+    drv_message_box(message, caption, flags);
+  }
+#endif
+  DAG_FATAL("DX12: OOM%s during %s (check logs to get more info)", budgetStatus, report_data.getMethodName());
+  return false;
 }
 
 HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
@@ -6660,7 +6589,7 @@ void HeapFragmentationManager::moveBufferDeviceObject(GenericBufferInterface *bu
   if (currentBuffer.resourceId.isUsedInBindlessHeap() && newBuffer.srvs)
   {
     newBuffer.resourceId.updateUsedInBindlessHeap(
-      bindless_manager.updateBufferReferencesNoLock(ctx, currentBuffer.currentSRV(), newBuffer.currentSRV()));
+      bindless_manager.updateBufferReferencesNoLock(ctx, currentBuffer.currentSRV(), newBuffer.currentSRV(), true));
   }
 
   // If we ever use bindless UAV then this has to be enabled.
@@ -6985,25 +6914,6 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
 }
 
 HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
-  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, UploadRingBufferReference ref,
-  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
-{
-  G_UNUSED(ctx);
-  G_UNUSED(bindless_manager);
-  G_UNUSED(heap_id);
-
-  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move upload ring buffer");
-  if (onMoveUploadRingBuffer(adapter, device, ref.buffer, allocation_flags))
-  {
-    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved upload ring buffer");
-    return ResourceMoveResolution::MOVING;
-  }
-  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to upload push ring buffer");
-  // Only way it can fail is if we ran out of memory for a replacement segment
-  return ResourceMoveResolution::NO_SPACE;
-}
-
-HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
   ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref,
   AllocationFlags allocation_flags, bool is_emergency_defragmentation)
 {
@@ -7176,7 +7086,6 @@ HeapFragmentationManager::DefragmentationState HeapFragmentationManager::recompo
     .scratchBuffer = tempScratchBufferState.access(),
     .bufferHeapState = bufferHeapState.access(),
     .pushRingState = pushRing.access(),
-    .uploadRingState = uploadRing.access(),
     .tempBufferState = tempBuffer.access(),
   };
   OSSpinlockScopedLock heapLock{heapGroupMutex};
@@ -7608,7 +7517,12 @@ ScratchBuffer ScratchBufferProvider::getTempScratchBufferSpace(DXGIAdapter *adap
     device.processEmergencyDefragmentation(getScratchBufferHeapProperties().raw, true, false, false, size, false);
     result = tempScratchBufferState.access()->getSpace(adapter, device.getDevice(), size, alignment, this);
   }
-  checkForOOM(adapter, static_cast<bool>(result),
+  eastl::optional<MemoryAllocationError> errorInfo;
+  if (!result)
+  {
+    errorInfo = MemoryAllocationError{.errorCode = E_OUTOFMEMORY};
+  }
+  checkForOOM(adapter, errorInfo,
     OomReportData{"getTempScratchBufferSpace", nullptr, size, AllocationFlags{}.toUlong(), getScratchBufferHeapProperties().raw});
   if (result)
   {
@@ -7626,7 +7540,12 @@ ScratchBuffer ScratchBufferProvider::getPersistentScratchBufferSpace(DXGIAdapter
     device.processEmergencyDefragmentation(getScratchBufferHeapProperties().raw, true, false, false, size, false);
     result = tempScratchBufferState.access()->getPersistentSpace(adapter, device.getDevice(), size, alignment, this);
   }
-  checkForOOM(adapter, static_cast<bool>(result),
+  eastl::optional<MemoryAllocationError> errorInfo;
+  if (!result)
+  {
+    errorInfo = MemoryAllocationError{.errorCode = E_OUTOFMEMORY};
+  }
+  checkForOOM(adapter, errorInfo,
     OomReportData{
       "getPersistentScratchBufferSpace", nullptr, size, AllocationFlags{}.toUlong(), getScratchBufferHeapProperties().raw});
   if (result)
@@ -7915,10 +7834,10 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
     return ResourceLocationUpdateResult::FAILED;
   }
   const ResourceHeapProperties allocatedProperties{.raw = newMemory.getHeapID().group};
-  auto [movedBufferId, errorCode] = access.bufferHeapState->createBufferHeapInMemory(this, system_resources.device,
-    allocInfo.SizeInBytes, bufferHeaps[buffer_id.index()].getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, desc, newMemory,
-    allocatedProperties, bufferHeaps[buffer_id.index()].hasSuballocator());
-  if (!movedBufferId || FAILED(errorCode))
+  auto heapCreateResult = access.bufferHeapState->createBufferHeapInMemory(this, system_resources.device, allocInfo.SizeInBytes,
+    bufferHeaps[buffer_id.index()].getFlags(), D3D12_RESOURCE_STATE_COPY_DEST, desc, newMemory, allocatedProperties,
+    bufferHeaps[buffer_id.index()].hasSuballocator());
+  if (!heapCreateResult.has_value())
   {
     access.bufferHeapState->getHeap(buffer_id.index()).reset(this, false);
     freeNoLock(newMemory, false);
@@ -7926,6 +7845,8 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
     D3D_ERROR("DX12: Defragmentation failed on recreation <%s>, resetting buffer...", name);
     return ResourceLocationUpdateResult::FAILED;
   }
+
+  auto &movedBufferId = heapCreateResult.value();
 
   if (strlen(name) == 0)
     sprintf_s(name, "Buffer#%u", movedBufferId.index());
@@ -8021,23 +7942,6 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
     return ResourceLocationUpdateResult::FAILED;
   }
   DEFRAG_VERBOSE(true, "DX12: Moved push ring buffer");
-  return ResourceLocationUpdateResult::UPDATED;
-}
-
-HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager::updateResourceLocation(
-  SystemResources &system_resources, UploadRingBufferReference ref, const ResourceLocation &new_location,
-  DefragmentationAccessTokens &access)
-{
-  DEFRAG_VERBOSE(true, "DX12: Trying to move upload ring buffer");
-  bool result = access.uploadRingState->onMoveSegmentToLocation(this, system_resources.device, ref.buffer, new_location.heapId,
-    new_location.freeRangeIndex);
-  if (!result)
-  {
-    G_ASSERT_FAIL("DX12: Unable to move upload ring segment, failed to create a new resource in place");
-    D3D_ERROR("DX12: Defragmentation failed on recreation upload segment");
-    return ResourceLocationUpdateResult::FAILED;
-  }
-  DEFRAG_VERBOSE(true, "DX12: Moved upload ring buffer");
   return ResourceLocationUpdateResult::UPDATED;
 }
 

@@ -2364,6 +2364,10 @@ void DeviceContext::finishFrame(uint32_t frame_id, bool present_on_swapchain)
   frontFlush(TidyFrameMode::FrameCompleted);
   front.frameIndex++;
 
+  // video/cpuGpuOverlap:b=off: block until the GPU finished this frame before the CPU starts the next one
+  if (DAGOR_UNLIKELY(front.disableCpuGpuOverlap))
+    waitInternal();
+
 #if _TARGET_PC_WIN
   if (DAGOR_UNLIKELY(isWaitForAsyncPresent) && present_on_swapchain)
   {
@@ -3787,7 +3791,15 @@ void DeviceContext::bindlessSetResourceDescriptorNoLock(uint32_t slot, Image *te
 
 void DeviceContext::deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view)
 {
-  auto cmd = make_command<CmdDeferBindlessSetTextureDescriptor>(slot, device.getImageView(texture, view));
+  auto cmd = make_command<CmdDeferBindlessSetResourceDescriptor>(slot, device.getImageView(texture, view));
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+}
+
+void DeviceContext::deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+{
+  G_ASSERT(descriptor.ptr != 0);
+  auto cmd = make_command<CmdDeferBindlessSetResourceDescriptor>(slot, descriptor);
   commandStream.pushBack(cmd);
   immediateModeExecute();
 }
@@ -3880,7 +3892,7 @@ void DeviceContext::pushBufferUpdateNoLock(BufferResourceReferenceAndOffset buff
     logwarn("DX12: pushBufferUpdateNoLock: buffer.buffer was null, skipping");
     return;
   }
-  auto update = device.resources.allocateUploadRingMemory(device.getDXGIAdapter(), device, data_size, 1);
+  auto update = device.resources.allocatePushMemory(device.getDXGIAdapter(), device, data_size, 1);
   if (!update)
   {
     logwarn("DX12: pushBufferUpdateNoLock: update was null, skipping");
@@ -5113,6 +5125,7 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructure(uint32_t 
     contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, compacted_size);
   }
 
+  contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, scratch_buffer);
   contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, dst->asHeapResource);
 
 #if _TARGET_SCARLETT
@@ -5219,6 +5232,7 @@ void DeviceContext::ExecutionContext::buildBottomAccelerationStructureNvidia(Ray
     contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, compacted_size);
   }
 
+  contextState.resourceStates.useBufferAsUAV(contextState.graphicsCommandListBarrierBatch, STAGE_CS, scratch_buffer);
   contextState.resourceStates.useRTASAsBuildTarget(contextState.graphicsCommandListBarrierBatch, as->asHeapResource);
 
   contextState.resourceStates.flushPendingUAVActions(contextState.graphicsCommandListBarrierBatch, device.currentEventPath().data(),
@@ -6315,7 +6329,8 @@ void DeviceContext::ExecutionContext::setComputePipeline(ProgramID program)
         isReady = loadComputePipeline(newPipeline);
       contextState.cmdBuffer.bindComputePipeline(&newPipeline->getSignature(),
         isReady ? newPipeline->loadAndGetHandle(device, device.pipelineCache, errorRecoveryBehavior, device.pipeMan,
-                    PipelineBuildInitiator::RUNTIME)
+                    PipelineBuildInitiator::RUNTIME,
+                    {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()})
                 : nullptr);
     }
 #if D3D_HAS_RAY_TRACING
@@ -6705,21 +6720,24 @@ bool DeviceContext::ExecutionContext::loadGraphicsPipelineVariant(D3D12_PRIMITIV
     if (device.pipeMan.asyncPipelineCompiler.removeGraphicsPipelineFromQueueOrWait(pipeline))
       return true;
 #endif
-    pipeline->load(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, inputLayout, isWireframe,
-      staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, topType, onError, device.pipeMan,
-      {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME);
+    pipeline->load(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, device.pipeMan,
+      {inputLayout, isWireframe, staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, topType, onError,
+        {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME,
+        {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()}});
     return true;
   }
 
 #if _TARGET_PC_WIN
-  const bool isQueued = device.pipeMan.asyncPipelineCompiler.enqueueGraphicsPipeline(pipeline,
-    *contextState.graphicsState.basePipeline, inputLayout, isWireframe, staticRenderState,
-    contextState.graphicsState.framebufferState.framebufferLayout, topType, PipelineBuildInitiator::RUNTIME);
+  const GraphicsPipelineVariantCreateInfo graphicsInfo{inputLayout, isWireframe, staticRenderState,
+    contextState.graphicsState.framebufferState.framebufferLayout, topType, onError, {}, PipelineBuildInitiator::RUNTIME,
+    {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()}};
+  const bool isQueued =
+    device.pipeMan.asyncPipelineCompiler.enqueueGraphicsPipeline(pipeline, *contextState.graphicsState.basePipeline, graphicsInfo);
   if (!isQueued)
   {
-    pipeline->load(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, inputLayout, isWireframe,
-      staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, topType, onError, device.pipeMan,
-      {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME);
+    auto loadInfo = graphicsInfo;
+    loadInfo.loadBehavior = {.ignoreValidationFails = true};
+    pipeline->load(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, device.pipeMan, loadInfo);
     return true;
   }
 #else
@@ -6743,20 +6761,25 @@ bool DeviceContext::ExecutionContext::loadMeshPipelineVariant(const RenderStateS
     if (device.pipeMan.asyncPipelineCompiler.removeMeshPipelineFromQueueOrWait(pipeline))
       return true;
 #endif
-    pipeline->loadMesh(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, isWireframe,
-      staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, onError, device.pipeMan,
-      {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME);
+    pipeline->loadMesh(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, device.pipeMan,
+      {isWireframe, staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, onError,
+        {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME,
+        {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()}});
     return true;
   }
 
 #if _TARGET_PC_WIN
-  const bool isQueued = device.pipeMan.asyncPipelineCompiler.enqueueMeshPipeline(pipeline, *contextState.graphicsState.basePipeline,
-    isWireframe, staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, PipelineBuildInitiator::RUNTIME);
+  const MeshPipelineVariantCreateInfo meshInfo{isWireframe, staticRenderState,
+    contextState.graphicsState.framebufferState.framebufferLayout, onError, {}, PipelineBuildInitiator::RUNTIME,
+    {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()}};
+  const bool isQueued =
+    device.pipeMan.asyncPipelineCompiler.enqueueMeshPipeline(pipeline, *contextState.graphicsState.basePipeline, meshInfo);
   if (!isQueued)
   {
-    pipeline->loadMesh(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, isWireframe,
-      staticRenderState, contextState.graphicsState.framebufferState.framebufferLayout, onError, device.pipeMan,
-      {.ignoreValidationFails = true}, PipelineBuildInitiator::RUNTIME);
+    auto loadInfo = meshInfo;
+    loadInfo.loadBehavior = {.ignoreValidationFails = true};
+    pipeline->loadMesh(device, device.pipeMan, *contextState.graphicsState.basePipeline, device.pipelineCache, device.pipeMan,
+      loadInfo);
     return true;
   }
 #else
@@ -6778,7 +6801,8 @@ bool DeviceContext::ExecutionContext::loadComputePipeline(ComputePipeline *pipel
     if (device.pipeMan.asyncPipelineCompiler.removeComputePipelineFromQueueOrWait(pipeline))
       return true;
 #endif
-    pipeline->loadAndGetHandle(device, device.pipelineCache, onError, device.pipeMan, PipelineBuildInitiator::RUNTIME);
+    pipeline->loadAndGetHandle(device, device.pipelineCache, onError, device.pipeMan, PipelineBuildInitiator::RUNTIME,
+      {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()});
     return true;
   }
 
@@ -6786,7 +6810,8 @@ bool DeviceContext::ExecutionContext::loadComputePipeline(ComputePipeline *pipel
   const bool isQueued = device.pipeMan.asyncPipelineCompiler.enqueueComputePipeline(pipeline, PipelineBuildInitiator::RUNTIME);
   if (!isQueued)
   {
-    pipeline->loadAndGetHandle(device, device.pipelineCache, onError, device.pipeMan, PipelineBuildInitiator::RUNTIME);
+    pipeline->loadAndGetHandle(device, device.pipelineCache, onError, device.pipeMan, PipelineBuildInitiator::RUNTIME,
+      {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()});
     return true;
   }
 #else
@@ -7230,7 +7255,8 @@ void DeviceContext::ExecutionContext::flushComputeState()
     const auto pipeline = contextState.computeState.pipeline->loadAndGetHandle(device, device.pipelineCache,
       get_recover_behavior_from_cfg(device.config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
         device.config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)),
-      device.pipeMan, PipelineBuildInitiator::RUNTIME);
+      device.pipeMan, PipelineBuildInitiator::RUNTIME,
+      {device.pipeMan.getD3D12SerializeRootSignature(), device.pipeMan.shouldUseRootSignaturesUsesCBVDescriptorRanges()});
     validate_globals_size(pipelineHeader, csStageState, STAGE_CS, pipeline);
   }
 #endif

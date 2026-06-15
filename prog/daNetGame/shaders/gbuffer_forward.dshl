@@ -278,7 +278,7 @@ macro WRITE_GBUFFER_FORWARD()
       #endif
 
       #if FORWARD_USE_TILED_LIGHTS
-        ret.color.rgb += get_dynamic_lighting(gbuffer, worldPos, view, screenPos.w, screenPos.xy, NdotV, gbuffer.diffuseColor.rgb, screenUV, 1);
+        ret.color.rgb += get_dynamic_lighting(gbuffer, worldPos, view, screenPos.w, screenPos.xy, abs(NdotV) + 1e-5, gbuffer.specularColor, screenUV, 1);
       #endif
 
       #if USE_VOLFOG

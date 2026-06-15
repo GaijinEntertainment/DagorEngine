@@ -36,7 +36,7 @@ void mouse_api_ReleaseCapture() { ::ReleaseCapture(); }
 void mouse_api_hide_cursor(bool) {}
 void mouse_api_SetSystemCursorPosChangeAllowed(bool allowed) { system_cursor_pos_change_allowed = allowed; }
 
-void *mouse_api_create_mouse_cursor(int cursorWidth, int cursorHeight, uint32_t *rgba)
+void *mouse_api_create_mouse_cursor(int cursorWidth, int cursorHeight, uint32_t *rgba, IPoint2 hotspot)
 {
   // default cursor size, 32x32 on windows assuming no scaling
   // but we render our cursors ourselves so we use our own resolution
@@ -56,8 +56,8 @@ void *mouse_api_create_mouse_cursor(int cursorWidth, int cursorHeight, uint32_t 
     {
       ICONINFO iconInfo = {
         .fIcon = false,
-        .xHotspot = 0,
-        .yHotspot = 0,
+        .xHotspot = (DWORD)hotspot.x,
+        .yHotspot = (DWORD)hotspot.y,
         .hbmMask = hMask,
         .hbmColor = hBitmap,
       };

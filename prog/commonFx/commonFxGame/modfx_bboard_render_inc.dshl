@@ -481,6 +481,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
   DAFXEX_USE_HDR()
   DAFXEX_USE_FOG()
   USE_FSR(ps)
+  INIT_DYNAMIC_RESOLUTION(ps)
 
   hlsl(vs)
   {

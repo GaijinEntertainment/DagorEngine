@@ -127,6 +127,8 @@ function TaskHttpMultiGet(urls, rejectOne=@(x) x, resolveOne=@(x) x) {
         )
       })
     }
+    if (total == 0)
+      checkStatus()
   })
 }
 

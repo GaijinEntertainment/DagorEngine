@@ -69,7 +69,8 @@ macro WATER_SSR()
 
     #define HIT_INVALID 2
     #define HIT_SKY 3
-    #define IS_HIT_INVALID(result) (all(result.rgb) == 0.0 && result.w >= HIT_INVALID)
+    // all invalid-hit return paths carry zero rgb, w alone identifies them
+    #define IS_HIT_INVALID(result) (result.w >= HIT_INVALID)
 
     float sample_close_depth_tex( float2 tc, int level)
     {
@@ -568,10 +569,16 @@ shader water_ssr_nv2, water_ssr_nv2_heightmap
 
       float4 water_projection_pos = mul(float4(input.worldPosUndisplaced, 1), water_effects_proj_tm);
       float distortion;
-      worldNormal = get_water_normal(shoreData, worldPos, dist, worldNormal, normalize_wfx_tc(water_projection_pos).xy, distortion);
+      ##if water_heightmap_pages != NULL
+        float3 geometryNormal = normalize(cross(input.bitangent, input.tangent));
+        half rainRipplesFade = water_rain_ripples_slope_fade(geometryNormal.y);
+      ##else
+        half rainRipplesFade = 1;
+      ##endif
+      worldNormal = get_water_normal(shoreData, worldPos, dist, worldNormal, normalize_wfx_tc(water_projection_pos).xy, rainRipplesFade, distortion);
 
       ##if water_heightmap_pages != NULL
-        float3x3 tangentSpace = float3x3(input.tangent, cross(input.bitangent, input.tangent), input.bitangent);
+        float3x3 tangentSpace = float3x3(input.tangent, geometryNormal, input.bitangent);
         worldNormal = mul(worldNormal, tangentSpace);
       ##endif
 

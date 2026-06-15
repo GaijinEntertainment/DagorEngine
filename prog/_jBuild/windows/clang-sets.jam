@@ -97,6 +97,10 @@ if $(Sanitize) != disabled {
   if $(PlatformArch) = x86 { _DEF_C_CMDLINE += -mllvm -asan-use-private-alias=1 ; }
 }
 
+if $(ClangCoverage) = yes {
+  _DEF_C_CMDLINE += -fprofile-instr-generate -fcoverage-mapping ;
+}
+
 if $(CLangVer) >= 15 { # Note: lex compare
   _DEF_C_CMDLINE += -Wno-deprecated-builtins ; # __has_trivial_constructor etc in EASTL. See also https://github.com/llvm/llvm-project/commit/0b89d1d59f82cf5b45c250cd5c3351e43ce35ef9
 }

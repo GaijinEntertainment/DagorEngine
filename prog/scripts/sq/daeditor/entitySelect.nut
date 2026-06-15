@@ -63,8 +63,10 @@ let filteredEntites = Computed(function() {
     }
   }
 
-  if (entitySortFuncCache != null)
+  if (entitySortFuncCache != null) {
+    entities = entities.slice(0)
     entities.sort(entitySortFuncCache)
+  }
   return entities
 })
 

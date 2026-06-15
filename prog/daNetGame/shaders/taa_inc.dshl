@@ -3,7 +3,8 @@ macro USE_MOTION_VEC_ENCODE(stage)
     float fix_clip_depth(float depth)
     {
       const float eps = 0.00001f;
-      return abs(depth) < eps ? sign(depth)*eps : depth;
+      // sign(0) == 0, so clamp explicitly to keep the divisor away from zero
+      return abs(depth) < eps ? (depth >= 0 ? eps : -eps) : depth;
     }
 
     float3 encode_motion_vector( float2 clipPos, float linearDepth, float3 out_pos_prev )

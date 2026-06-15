@@ -24,6 +24,8 @@ int BhvJoystickScroll::update(UpdateStage, darg::Element *elem, float dt)
   const GuiScene *scene = elem->etree->guiScene;
 
   const darg::Screen *screen = scene->getFocusedScreen();
+  if (!screen)
+    return 0;
   bool canScroll = scene->getActiveCursor() || (screen->panel && screen->panel->hasActiveCursors());
   if (!canScroll)
     return 0;

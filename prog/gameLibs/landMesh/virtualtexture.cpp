@@ -1,15 +1,19 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <landMesh/clipMap.h>
-#include <landMesh/lmeshRenderer.h>
+#include <landMesh/lmeshRenderFlags.h>
 #include <landMesh/riLandClass.h>
 #include <landMesh/heightmapQuery.h>
 #include <math/dag_Point4.h>
 #include <math/dag_Point2.h>
 #include <math/dag_adjpow2.h>
 #include <math/dag_hlsl_floatx.h>
+#include <math/dag_color.h>
 #include <math/integer/dag_IBBox2.h>
 #include <vecmath/dag_vecMath.h>
+#include <generic/dag_carray.h>
+#include <generic/dag_smallTab.h>
+#include <generic/dag_tab.h>
 #include <util/dag_convar.h>
 #include <util/dag_stlqsort.h>
 #include <util/dag_string.h>
@@ -577,8 +581,7 @@ public:
   void init()
   {
     clear();
-    riLandclassDataBuf = dag::create_sbuffer(sizeof(Point4), RI_LANDCLASS_DATA_BUFFER_SIZE,
-      SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC, 0, "ri_landclass_data_buffer", RESTAG_LAND);
+    riLandclassDataBuf = dag::buffers::create_persistent_cb(RI_LANDCLASS_DATA_BUFFER_SIZE, "ri_landclass_data_buffer", RESTAG_LAND);
   }
 
   RiLandclassDataManager() { init(); }
@@ -2796,9 +2799,9 @@ void ClipmapImpl::changeFallback(ClipmapRenderer &renderer, const Point3 &viewer
     const float fallBackSize = pageMeters * fallbackPages;
     const Point2 alignedOrigin = currentContext->fallback.getOrigin();
     viewerPosition = Point3::xVy(alignedOrigin, 0.f);
-    uint32_t oldFlags = LandMeshRenderer::lmesh_render_flags;
+    uint32_t oldFlags = landmesh::lmesh_render_flags;
     if (turn_off_decals_on_fallback)
-      LandMeshRenderer::lmesh_render_flags &= ~(LandMeshRenderer::RENDER_DECALS | LandMeshRenderer::RENDER_COMBINED);
+      landmesh::lmesh_render_flags &= ~(landmesh::RENDER_DECALS | landmesh::RENDER_COMBINED);
     for (int y = 0; y < fallbackPages; ++y)
       for (int x = 0; x < fallbackPages; ++x)
       {
@@ -2807,7 +2810,7 @@ void ClipmapImpl::changeFallback(ClipmapRenderer &renderer, const Point3 &viewer
       }
     finalizeCompressionQueue();
     endUpdateTiles(renderer);
-    LandMeshRenderer::lmesh_render_flags = oldFlags;
+    landmesh::lmesh_render_flags = oldFlags;
     viewerPosition = saveViewerPos;
   }
 }

@@ -99,7 +99,7 @@ public:
   }
 
   void visitTryStatement(TryStatement *trystmt) {
-    complexity += 3; // try + ex + catch
+    complexity += 1 + 2 * (int)trystmt->catches().size(); // try + (ex + catch) per clause
     Visitor::visitTryStatement(trystmt);
   }
 

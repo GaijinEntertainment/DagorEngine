@@ -29,6 +29,10 @@ bool traceray_normalized_ri(const Point3 &, const Point3 &, real &, int *, Point
 }
 void validate_trace_cache(const bbox3f &, const vec3f &, float, TraceMeshFaces *, float) { G_ASSERT(0); }
 bool trace_game_objects(const Point3 &, const Point3 &, float &, Point3 &, int, int) { G_ASSERT_RETURN(false, false); }
+bool trace_game_objects_with_grid_filter(const Point3 &, const Point3 &, float &, Point3 &, int, int, const dag::ConstSpan<uint32_t>)
+{
+  G_ASSERT_RETURN(false, false);
+}
 bool traceht_water(const Point3 &, float &) { G_ASSERT_RETURN(false, false); }
 float traceht_lmesh(const Point2 &) { G_ASSERT_RETURN(false, 0.f); }
 float traceht_hmap(const Point2 &) { G_ASSERT_RETURN(false, 0.f); }

@@ -38,6 +38,17 @@ public:
   void setToCenterPos(const Point2 &pivot);
   void setSizeHint(Point2 size_hint);
 
+  // The toast message will disappear instantly instead of fading out.
+  void disableFadeOutAnimation() { fadeoutIntervalMs = 0; }
+  bool isFadeOutAnimationDisabled() const { return fadeoutIntervalMs == 0; }
+
+  // The toast message will not disappear after a certain amount of time has passed.
+  void keepVisibleIndefinitely() { opaqueIntervalMs = 0; }
+  bool isVisibleIndefinitely() const { return opaqueIntervalMs == 0; }
+
+  // If enabled then moving the mouse will trigger hiding the toast message.
+  void setHideOnMouseMove(bool hide_on_mouse_move) { hideOnMouseMove = hide_on_mouse_move; }
+
   void startFadeout(uint64_t fadeout_time_ms);
   bool isFadeoutStarted() const { return fadeoutTimeMs > 0; }
 
@@ -48,18 +59,28 @@ public:
   bool beforeToast(uint64_t time_ms, float &alpha);
   void updateToast(uint64_t time_ms);
 
+  static constexpr uint64_t INVALID_ID = -1;
+
 private:
-  uint64_t id = -1;
+  uint64_t id = INVALID_ID;
   uint64_t setTimeMs = 0;
   uint64_t fadeoutTimeMs = 0;
   uint32_t updates = 0;
-  bool moveRequested = false;
   Point2 sizeHint = Point2::ZERO;
+  Point2 mouseStartPosition = Point2(VERY_BIG_NUMBER, VERY_BIG_NUMBER);
+  bool moveRequested = false;
+  bool hideOnMouseMove = false;
 };
 
 void load_toast_message_icons();
 
-void set_toast_message(const ToastMessage &message);
+// Returns with the ID of the toast message.
+uint64_t set_toast_message(const ToastMessage &message);
+
+// Instantly destroy the toast message. The fade out animation will not be played.
+void remove_toast_message(uint64_t id);
+
+const ToastMessage *get_toast_message(uint64_t id);
 
 void render_toast_messages();
 

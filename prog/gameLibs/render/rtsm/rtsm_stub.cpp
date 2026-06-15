@@ -23,7 +23,7 @@ void render(bvh::ContextId, const Point3 &, const Point3 &, const TMatrix4 &, co
   d3d::SamplerHandle, Texture *, d3d::SamplerHandle, int)
 {}
 
-void render_dynamic_light_shadows(bvh::ContextId, const Point3 &, Texture *, float, bool, bool) {}
+void render_dynamic_light_shadows(bvh::ContextId, const Point3 &, Texture *, float, bool, bool, const DynRes *) {}
 
 void turn_off() {}
 

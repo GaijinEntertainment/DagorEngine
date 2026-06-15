@@ -346,6 +346,46 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
   return true;
 }
 
+// Bulk setter: sets all color targets, clears unused slots, and sets depth atomically.
+void d3d::set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  CHECK_MAIN_THREAD();
+  RenderState &rs = g_render_state;
+  resolve_msaa_and_gen_mips(rs.nextRtState);
+
+  int i = 0;
+  for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+  {
+    if (colors[i].tex)
+    {
+      BaseTex *bt = (BaseTex *)colors[i].tex;
+      if (bt->needs_clear)
+        bt->clear();
+      if (bt->maxMipLevel <= colors[i].mip_level && colors[i].mip_level <= bt->minMipLevel)
+        remove_texture_from_samplers(colors[i].tex);
+      rs.nextRtState.setColor(i, colors[i].tex, colors[i].mip_level, colors[i].layer);
+    }
+    else
+      rs.nextRtState.removeColor(i);
+  }
+  for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    rs.nextRtState.removeColor(i);
+
+  if (depth.tex)
+  {
+    if (BaseTex *bt = (BaseTex *)depth.tex; bt->needs_clear)
+      bt->clear();
+    if (depth_access == DepthAccess::RW)
+      remove_texture_from_samplers(depth.tex);
+    rs.nextRtState.setDepth(depth.tex, depth.layer, depth_access == DepthAccess::SampledRO);
+  }
+  else
+    rs.nextRtState.removeDepth();
+
+  rs.modified = rs.rtModified = true;
+  rs.viewModified = VIEWMOD_FULL;
+}
+
 void d3d::get_render_target(Driver3dRenderTarget &out_rt)
 {
   CHECK_MAIN_THREAD();

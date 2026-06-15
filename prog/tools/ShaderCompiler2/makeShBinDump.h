@@ -17,4 +17,4 @@ struct BindumpPackingFlagsBits
 using BindumpPackingFlags = uint32_t;
 
 bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filename, bool strip_shaders_and_stcode,
-  BindumpPackingFlags packing_flags, const shc::CompilationContext &ctx);
+  BindumpPackingFlags packing_flags, shc::CompilationContext &ctx);

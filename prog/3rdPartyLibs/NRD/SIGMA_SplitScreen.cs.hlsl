@@ -41,5 +41,5 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
         s = PackShadow( data.x );
     #endif
 
-    gOut_Shadow_Translucency[ pixelPos ] = s * float( viewZ < gDenoisingRange );
+    gOut_Shadow_Translucency[ pixelPos ] = s * float( IsInDenoisingRange( viewZ ) );
 }

@@ -56,6 +56,30 @@ static const char *curDagFname = NULL;
 
 extern void prepare_billboard_mesh(Mesh &mesh, const TMatrix &wtm, dag::ConstSpan<Point3> org_verts);
 
+static void remove_parameter_from_mat_script(eastl::string &script, const eastl::string &parameter_name)
+{
+  size_t start = script.find(parameter_name);
+  if (start == eastl::string::npos)
+    return;
+
+  size_t end = script.find("\n", start);
+  script.erase(start, end - start);
+}
+
+static bool get_mat_script_bool(const SimpleString &mat_script, const char *name, bool def)
+{
+  CfgReader c;
+  c.getdiv_text(String(128, "[q]\r\n%s\r\n", mat_script.str()), "q");
+  return c.getbool(name, def);
+}
+
+static void remove_mat_script_param(MaterialData &mat, const char *name)
+{
+  eastl::string script = mat.matScript.c_str();
+  remove_parameter_from_mat_script(script, name);
+  mat.matScript = script.c_str();
+}
+
 
 void RenderableInstanceLodsResSrc::splitRealTwoSided(Mesh &m, Bitarray &is_material_real_two_sided_array)
 {
@@ -124,10 +148,8 @@ void RenderableInstanceLodsResSrc::addMeshNode(Lod &lod, Node *n_, Node *key_nod
 
         matSubst.substMatClass(*subMat);
         subMat = processMaterial(subMat, false);
-        CfgReader c;
-        c.getdiv_text(String(128, "[q]\r\n%s\r\n", subMat->matScript.str()), "q");
 
-        if (c.getbool("real_two_sided", false))
+        if (get_mat_script_bool(subMat->matScript, "real_two_sided", false))
           isMaterialRealTwoSidedArray.set(materialNo);
         else
           isMaterialRealTwoSidedArray.reset(materialNo);
@@ -852,16 +874,6 @@ static bool has_ao(Node &n, RenderableInstanceLodsResSrc *ri)
   return false;
 }
 
-static void remove_parameter_from_mat_script(eastl::string &script, const eastl::string &parameter_name)
-{
-  size_t start = script.find(parameter_name);
-  if (start == eastl::string::npos)
-    return;
-
-  size_t end = script.find("\n", start);
-  script.erase(start, end - start);
-}
-
 bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, LodsEqualMaterialGather &mat_gather,
   Tab<AScene *> &scene_list, const DataBlock &material_overrides, const char *add_mat_script)
 {
@@ -1107,11 +1119,7 @@ bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, Lods
   if (!canUseTessellation)
   {
     for (auto &mat : matList)
-    {
-      eastl::string script = mat->matScript.c_str();
-      remove_parameter_from_mat_script(script, "material_pn_triangulation");
-      mat->matScript = script.c_str();
-    }
+      remove_mat_script_param(*mat, "material_pn_triangulation");
   }
 
   BuildableStaticSceneRayTracer *rayTracer = NULL;
@@ -1135,18 +1143,11 @@ bool RenderableInstanceLodsResSrc::addLod(const char *filename, real range, Lods
       if (!delete_parameters_from_lod.shader_name.empty() && delete_parameters_from_lod.shader_name != mat->className.c_str())
         continue;
 
-      eastl::string script = mat->matScript.c_str();
-
-      CfgReader cfg_reader;
-      cfg_reader.getdiv_text(String(128, "[q]\r\n%s\r\n", script.c_str()), "q");
-      if (!cfg_reader.getbool("autoLodOptimization", true))
+      if (!get_mat_script_bool(mat->matScript, "autoLodOptimization", true))
         continue;
 
       for (const auto &param : delete_parameters_from_lod.parameters)
-      {
-        remove_parameter_from_mat_script(script, param);
-      }
-      mat->matScript = script.c_str();
+        remove_mat_script_param(*mat, param.c_str());
     }
   }
 

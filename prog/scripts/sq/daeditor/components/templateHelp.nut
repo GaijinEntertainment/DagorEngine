@@ -202,14 +202,13 @@ function getCategoryTemplates(category) {
   if (categories?[category] != null)
     return categories[category]
 
-  if (categories?[category] == null)
-    categories[category] <- []
-
   let db = ecs.g_entity_mgr.getTemplateDB()
 
   let tpls = entity_editor?.get_instance()?.getEcsTemplates("*")
   if (tpls == null)
     return []
+
+  categories[category] <- []
 
   foreach(tpl_name in tpls) {
     let metaInfo = db.getTemplateMetaInfo(tpl_name)

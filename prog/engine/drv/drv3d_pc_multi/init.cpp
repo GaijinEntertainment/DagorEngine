@@ -142,24 +142,28 @@ static bool test_preferred_driver(const DataBlock *gpu_cfg, auto &gdis)
  */
 static eastl::optional<DriverCode> override_driver_preference([[maybe_unused]] const auto candidate_driver, const auto &gdis)
 {
-  eastl::optional<DriverCode> result;
+  if (gdis.empty())
+    return {};
 
-  for ([[maybe_unused]] auto [vendorId, deviceId] : gdis)
+  [[maybe_unused]] bool anyModernIntel = false;
+  for (auto [vendorId, deviceId] : gdis)
   {
     if (d3d_get_vendor(vendorId) != GpuVendor::INTEL)
       return {};
-
-#if USE_MULTI_D3D_DX12
-    if (candidate_driver.is((release && d3d::dx11) || d3d::undefined) && !gpu::IsPreXe(deviceId))
-      result = DriverCode::make(d3d::dx12);
-#endif
+    anyModernIntel = anyModernIntel || !gpu::IsPreXe(deviceId);
   }
 
-#if USE_MULTI_D3D_DX11
-  if (candidate_driver.is(release && d3d::dx12) && !result)
-    result = DriverCode::make(d3d::dx11);
+#if USE_MULTI_D3D_DX12
+  if (anyModernIntel && candidate_driver.is((release && d3d::dx11) || d3d::undefined))
+    return DriverCode::make(d3d::dx12);
 #endif
-  return result;
+
+#if USE_MULTI_D3D_DX11
+  if (!anyModernIntel && candidate_driver.is(release && d3d::dx12))
+    return DriverCode::make(d3d::dx11);
+#endif
+
+  return {};
 }
 
 static DriverCode detect_driver()
@@ -205,13 +209,13 @@ static DriverCode detect_driver()
     }
   }
 
-  logdbg("Mapping driver:t=%s to DriverCode", driver);
-
   auto it = codes.find(driver);
   auto candidateDriver = it == codes.end() ? DriverCode::make(d3d::undefined) : it->second;
 
   if (auto overrideDriver = override_driver_preference(candidateDriver, gDIs); overrideDriver)
     candidateDriver = *overrideDriver;
+
+  logdbg("Mapping driver:t=%s to DriverCode:0x%04X", driver, candidateDriver.asFourCC());
 
   for (int i = 0; i < 2; i++)
   {
@@ -351,6 +355,8 @@ static DriverCode get_selected_driver()
     if (active_driver == d3d::undefined)
       DAG_FATAL("D3D API not selected, settings.blk: video { driver:t=\"%s\" }",
         ::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", ""));
+    else
+      logdbg("Set active_driver to 0x%04X", active_driver.asFourCC());
   }
 
   return active_driver;

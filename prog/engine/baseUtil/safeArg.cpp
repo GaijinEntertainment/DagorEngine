@@ -289,6 +289,9 @@ int DagorSafeArg::count_len(const char *fmt, const DagorSafeArg *arg, int anum)
         case DagorSafeArg::TYPE_P4:
           len += COUNT_PRNFMT_LEN("(%.3f,%.3f,%.3f,%.3f)", a.varValue.p4->x, a.varValue.p4->y, a.varValue.p4->z, a.varValue.p4->w);
           break;
+        case DagorSafeArg::TYPE_DP3:
+          len += COUNT_PRNFMT_LEN("(%.6f,%.6f,%.6f)", a.varValue.dp3->x, a.varValue.dp3->y, a.varValue.dp3->z);
+          break;
         case DagorSafeArg::TYPE_IP2: len += COUNT_PRNFMT_LEN("(%d,%d)", a.varValue.ip2->x, a.varValue.ip2->y); break;
         case DagorSafeArg::TYPE_IP3:
           len += COUNT_PRNFMT_LEN("(%d,%d,%d)", a.varValue.ip3->x, a.varValue.ip3->y, a.varValue.ip3->z);
@@ -507,6 +510,9 @@ int DagorSafeArg::print_fmt(char *buf, int len, const char *fmt, const DagorSafe
         case DagorSafeArg::TYPE_P3: PRNFMT(bufp, len, "(%.3f,%.3f,%.3f)", a.varValue.p3->x, a.varValue.p3->y, a.varValue.p3->z); break;
         case DagorSafeArg::TYPE_P4:
           PRNFMT(bufp, len, "(%.3f,%.3f,%.3f,%.3f)", a.varValue.p4->x, a.varValue.p4->y, a.varValue.p4->z, a.varValue.p4->w);
+          break;
+        case DagorSafeArg::TYPE_DP3:
+          PRNFMT(bufp, len, "(%.6f,%.6f,%.6f)", a.varValue.dp3->x, a.varValue.dp3->y, a.varValue.dp3->z);
           break;
         case DagorSafeArg::TYPE_IP2: PRNFMT(bufp, len, "(%d,%d)", a.varValue.ip2->x, a.varValue.ip2->y); break;
         case DagorSafeArg::TYPE_IP3: PRNFMT(bufp, len, "(%d,%d,%d)", a.varValue.ip3->x, a.varValue.ip3->y, a.varValue.ip3->z); break;
@@ -737,6 +743,9 @@ int DagorSafeArg::fprint_fmt(void *fp, const char *fmt, const DagorSafeArg *arg,
           break;
         case DagorSafeArg::TYPE_P4:
           len += fprintf((FILE *)fp, "(%.3f,%.3f,%.3f,%.3f)", a.varValue.p4->x, a.varValue.p4->y, a.varValue.p4->z, a.varValue.p4->w);
+          break;
+        case DagorSafeArg::TYPE_DP3:
+          len += fprintf((FILE *)fp, "(%.6f,%.6f,%.6f)", a.varValue.dp3->x, a.varValue.dp3->y, a.varValue.dp3->z);
           break;
         case DagorSafeArg::TYPE_IP2: len += fprintf((FILE *)fp, "(%d,%d)", a.varValue.ip2->x, a.varValue.ip2->y); break;
         case DagorSafeArg::TYPE_IP3:

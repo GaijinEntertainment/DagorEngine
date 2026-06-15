@@ -26,7 +26,7 @@ macro USE_SUN_DISK_SPECULAR()
       // Generalized microfacet specular
       D = BRDF_distribution( ggx_alpha, NoH );
       G = BRDF_geometricVisibility( ggx_alpha, NoV, saturate(dot(normal, L)), VoH );
-      F = BRDF_fresnel( specularColor, VoH ).x;
+      F = BRDF_fresnel( specularColor, VoH );
     }
   }
 endmacro

@@ -193,7 +193,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   float waterHeight = waterLevel;
   if (waterHeightmap)
     waterHeightmap->getHeightmapDataBilinear(origin.x, origin.z, waterHeight);
-  else if (geom_lod_quality == fft_water::GEOM_HIGH)
+  else if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
     waterHeight = maxWaterLevel;
   float originAlt = origin.y - waterHeight;
 
@@ -227,6 +227,8 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
     nextLod = min(nextLod, maxLodWithHeightmap);
   if (geom_lod_quality == fft_water::GEOM_INVISIBLE && !renderQuad)
     nextLod = lodCount;
+  else if (geom_lod_quality == fft_water::GEOM_LOW)
+    nextLod += 1;
   else if (geom_lod_quality == fft_water::GEOM_HIGH)
     nextLod = 0;
   int lod = (int)floorf(max(nextLod, 0.f));
@@ -290,7 +292,7 @@ void ChopWaterRender::render(const Point3 &origin, TEXTUREID distanceTex, int ge
   cameraPatchAlign = cameraPatch.size;
 
   BBox2 heightmapRegion;
-  if (geom_lod_quality == fft_water::GEOM_HIGH)
+  if ((geom_lod_quality == fft_water::GEOM_LOW) || (geom_lod_quality == fft_water::GEOM_HIGH))
   {
     const Point2 &origin = defaultCullData.originPos;
     float lod0CellSize = defaultCullData.scaleX;

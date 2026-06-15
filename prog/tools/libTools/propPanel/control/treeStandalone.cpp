@@ -126,7 +126,7 @@ void TreeControlStandalone::drawNode(TreeNode *node, bool &double_clicked_on_ite
 
     treeRenderEx->treeNodeRender(endData, false);
 
-    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
     const float iconWidthWithSpacing = fontSizedIconSize.x + ImGui::GetStyle().ItemInnerSpacing.x;
     const float iconOrTextStartX = endData.textPos.x;
     ImVec2 iconPos = endData.textPos;

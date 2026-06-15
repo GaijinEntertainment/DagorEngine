@@ -277,7 +277,7 @@ protected:
     EditableE3dcolorHolderEditbox colors[6];
   };
   eastl::vector<GrassTypeDesc> grassDescriptions;
-  SharedTexHolder grassTex, grassNTex, grassAlphaTex;
+  SharedTexWithShaderVar grassTex, grassNTex, grassAlphaTex;
   d3d::SamplerInfo grassColorAlphaTexSampler;
 
   Tab<GrassChannel> grassChannels;

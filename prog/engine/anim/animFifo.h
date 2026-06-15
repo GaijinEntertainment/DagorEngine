@@ -287,5 +287,14 @@ public:
       return a1;
     return 0;
   }
+  IAnimBlendNode *getNextInQueue()
+  {
+    switch (state)
+    {
+      case ST_1: return node[0];
+      case ST_1_2: return node[1];
+      default: return NULL;
+    }
+  }
 };
 } // end of namespace AnimV20

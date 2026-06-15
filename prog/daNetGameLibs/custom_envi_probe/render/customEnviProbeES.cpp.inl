@@ -43,7 +43,7 @@ static void custom_envi_probe_set_shadervars(float x_rotation, float y_rotation,
 
 ECS_TAG(render)
 static void custom_envi_probe_created_es_event_handler(
-  const ecs::EventEntityCreated &, const SharedTexHolder &custom_envi_probe__cubemap, bool &custom_envi_probe__needs_render)
+  const ecs::EventEntityCreated &, const SharedTexWithShaderVar &custom_envi_probe__cubemap, bool &custom_envi_probe__needs_render)
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a);
   CUSTOM_ENVI_PROBE_VARS
@@ -55,7 +55,7 @@ static void custom_envi_probe_created_es_event_handler(
 ECS_TAG(render, dev)
 ECS_TRACK(custom_envi_probe__cubemap_res)
 static void custom_cube_texture_name_changed_es_event_handler(ecs::EventComponentChanged,
-  SharedTexHolder &custom_envi_probe__cubemap,
+  SharedTexWithShaderVar &custom_envi_probe__cubemap,
   const ecs::string &custom_envi_probe__cubemap_res,
   const ecs::string &custom_envi_probe__cubemap_var,
   bool &custom_envi_probe__needs_render,
@@ -93,7 +93,7 @@ ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_rend
 static void custom_cube_texture_before_render_es(const UpdateStageInfoBeforeRender &event,
   bool &custom_envi_probe__needs_render,
   bool &custom_envi_probe__is_inside,
-  const SharedTexHolder &custom_envi_probe__cubemap)
+  const SharedTexWithShaderVar &custom_envi_probe__cubemap)
 {
   TIME_D3D_PROFILE(custom_cube_texture_before_render)
   const auto *indoorProbeMgr = WRDispatcher::getIndoorProbeManager();
@@ -129,7 +129,7 @@ static void custom_envi_probe_render_es_event_handler(const CustomEnviProbeRende
   float custom_envi_probe__y_rotation,
   float custom_envi_probe__outside_mul,
   float custom_envi_probe__inside_mul,
-  const SharedTexHolder &custom_envi_probe__cubemap)
+  const SharedTexWithShaderVar &custom_envi_probe__cubemap)
 {
   const ManagedTex *cubeTarget = evt.get<0>();
   int faceNum = evt.get<1>();

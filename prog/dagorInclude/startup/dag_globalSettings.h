@@ -30,6 +30,12 @@ extern thread_local int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse
 extern KRNLIMP int (*dgs_fill_fatal_context)(char *buff, int sz, bool terse);
 #endif
 extern KRNLIMP void (*dgs_report_fatal_error)(const char *title, const char *msg, const char *call_stack);
+
+//! delegate called when video (3d driver) initialization fails, right before the engine shows the
+//! message box and quits or fatals. Intended for telemetry; set by game code since the engine must
+//! not depend on game-side stats libraries.
+extern KRNLIMP void (*dgs_report_video_driver_init_failed)();
+
 extern KRNLIMP void (*dgs_on_swap_callback)();
 extern KRNLIMP void (*dgs_on_dagor_cycle_start)();
 

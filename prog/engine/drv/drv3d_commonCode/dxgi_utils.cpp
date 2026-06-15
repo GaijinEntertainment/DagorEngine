@@ -25,13 +25,17 @@
 static constexpr size_t outputNameSize = 64;
 static_assert(outputNameSize >= sizeof(DXGI_OUTPUT_DESC::DeviceName), "sizeof outputName is too small!");
 
-// maybe optimize it (not important)
-String get_monitor_name_from_output(IDXGIOutput *pOutput)
+String get_name(IDXGIOutput *pOutput)
 {
   DXGI_OUTPUT_DESC outDesc;
   pOutput->GetDesc(&outDesc);
+  return get_name(outDesc);
+}
+
+String get_name(const DXGI_OUTPUT_DESC &desc)
+{
   char outputName[outputNameSize];
-  wcstombs(outputName, outDesc.DeviceName, outputNameSize);
+  wcstombs(outputName, desc.DeviceName, outputNameSize);
   return String(outputName);
 }
 
@@ -124,6 +128,63 @@ ComPtr<IDXGIOutput> get_output_monitor_by_name_or_default(IDXGIFactory1 *factory
 ComPtr<IDXGIOutput> get_default_monitor(IDXGIFactory1 *factory)
 {
   return get_output_monitor_by_name_or_default_<true>(factory, nullptr);
+}
+
+DISPLAYCONFIG_RATIONAL get_refresh_rate(IDXGIOutput *output)
+{
+  DXGI_OUTPUT_DESC desc;
+  output->GetDesc(&desc);
+  return get_refresh_rate(desc);
+}
+
+DISPLAYCONFIG_RATIONAL get_refresh_rate(const DXGI_OUTPUT_DESC &desc)
+{
+  constexpr UINT32 flags = QDC_ONLY_ACTIVE_PATHS;
+
+  dag::Vector<DISPLAYCONFIG_PATH_INFO> paths;
+
+  for (UINT32 pathCount, modeCount;;)
+  {
+    if (auto result = GetDisplayConfigBufferSizes(flags, &pathCount, &modeCount); result != ERROR_SUCCESS)
+    {
+      return {.Numerator = 0, .Denominator = 1};
+    }
+
+    dag::Vector<DISPLAYCONFIG_MODE_INFO> modes;
+    paths.resize_noinit(pathCount);
+    modes.resize_noinit(modeCount);
+    if (auto result = QueryDisplayConfig(flags, &pathCount, paths.data(), &modeCount, modes.data(), nullptr);
+        result == ERROR_INSUFFICIENT_BUFFER)
+      continue;
+    else if (result != ERROR_SUCCESS)
+      return {.Numerator = 0, .Denominator = 1};
+
+    paths.resize(pathCount);
+    // modes.resize(modeCount); // modes are not used, so no need to resize to the actual count
+    break;
+  }
+
+  for (auto &path : paths)
+  {
+    DISPLAYCONFIG_SOURCE_DEVICE_NAME src{
+      .header{
+        .type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+        .size = sizeof(src),
+        .adapterId = path.sourceInfo.adapterId,
+        .id = path.sourceInfo.id,
+      },
+    };
+
+    if (auto result = DisplayConfigGetDeviceInfo(&src.header); result == ERROR_SUCCESS)
+    {
+      if (wcscmp(src.viewGdiDeviceName, desc.DeviceName) == 0)
+      {
+        return path.targetInfo.refreshRate;
+      }
+    }
+  }
+
+  return {.Numerator = 0, .Denominator = 1};
 }
 
 bool resolutions_have_same_ratio(eastl::pair<uint32_t, uint32_t> l_res, eastl::pair<uint32_t, uint32_t> r_res)

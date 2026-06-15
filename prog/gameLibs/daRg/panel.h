@@ -82,6 +82,7 @@ struct PanelSpatialInfo
   bool renderRedirection = false;
   bool shouldBlockVrHandInteractions = false;
   bool allowDisplayCursorProjection = false;
+  bool renderAfterAA = false;
 
   Point3 position = Point3(0, 0, 0);
   Point3 angles = Point3(0, 0, 0);

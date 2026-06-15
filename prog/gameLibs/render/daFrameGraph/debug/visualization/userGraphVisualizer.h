@@ -29,7 +29,7 @@ public:
     const PassColoring &coloring);
 
   void draw();
-  void updateVisualization();
+  void updateVisualization(const IdIndexedFlags<NodeNameId, framemem_allocator> &nodes_changed);
 
 
   // draw functions
@@ -86,6 +86,9 @@ private:
 
   // gathered data
 private:
+  IdIndexedFlags<NodeNameId> lastChangedNodes;  // We store nodes, changed during last recompilation
+  IdIndexedFlags<NodeNameId> accumChangedNodes; // and accumulate them, if graph was recompiled multiple times
+
   IdIndexedMapping<NodeId, Node> userNodes;               // Nodes and resources,
   IdIndexedMapping<ResourceId, Resource> userResources;   // filtered of debug instances
   IdIndexedMapping<NodeNameId, NodeId> regNodesRepresent; // and mappings registry id -> represantative id
@@ -129,10 +132,7 @@ private:
     COUNT
   };
 
-  CanvasCamera canvasCamera{
-    .initCanvasScaleId = 8,
-    .canvasScales = {0.01f, 0.05f, 0.07f, 0.10f, 0.15f, 0.25f, 0.50f, 0.75f, 1.00f, 1.50f},
-  };
+  CanvasCamera canvasCamera{};
 
   NodeColorationType coloration = NodeColorationType::None;
 

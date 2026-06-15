@@ -230,12 +230,12 @@ public:
   uint32_t dataNeeded = 0;
   bool needLmeshLoadedCall = false;
   bool waterHeightmapLoaded = false;
+  bool riTmInst12x32bit = false;
   eastl::unique_ptr<DataBlock> levelBlk; // Warn: can be accessed only during loading (null after)
   Tab<ObjectsToPlace *> objectsToPlace, efxToPlace;
 
   StrmSceneHolder(const char *blk_path, const WeatherAndDateTime &wdt, ecs::EntityId eid, bool load_render) : eid(eid)
   {
-    rendinst::tmInst12x32bit = false;
     load(blk_path, wdt, load_render);
   }
   ~StrmSceneHolder()
@@ -367,11 +367,12 @@ public:
     }
     if (tag == _MAKE4C('tm24'))
     {
-      rendinst::tmInst12x32bit = true;
+      riTmInst12x32bit = true;
       return true;
     }
     if (tag == _MAKE4C('RIGz'))
     {
+      rendinst::tmInst12x32bit = riTmInst12x32bit;
       rendinst::RIGenLoadingAutoLock riGenLd;
       auto &riGenExtraConfig = *rendinst::getRIGenExtraConfig();
       if (!rendinst::loadRIGen(crd, NULL, false, nullptr, &saved_level_blk))
@@ -984,11 +985,14 @@ struct LocationHolder
     level.reset(new StrmSceneHolder(blkPath, wdt, eid, loadRender));
     if (level_status != LEVEL_EMPTY)
     {
+      d3d::driver_command(Drv3dCommand::PAUSE_PIPELINE_SET_COMPILATION);
       add_load_level_action(level.get(), level->levelBlk->getStr(LEVEL_BIN_NAME, "undefined"));
 
       if (!sceneload::is_load_in_progress())
         stop_animated_splash_screen_in_thread();
     }
+    else
+      d3d::driver_command(Drv3dCommand::PAUSE_PIPELINE_SET_COMPILATION, (void *)1);
   }
 
   ~LocationHolder()

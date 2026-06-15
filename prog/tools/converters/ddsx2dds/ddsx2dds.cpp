@@ -453,7 +453,7 @@ static bool trail_stricmp(const char *str, const char *trail_str)
 static void print_header()
 {
   printf("DDSx -> DDS back converter v1.3 (PC only)\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 }
 
 int DagorWinMain(bool debugmode)

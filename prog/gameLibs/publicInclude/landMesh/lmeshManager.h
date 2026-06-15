@@ -179,8 +179,6 @@ public:
   }
   void afterDeviceReset(LandMeshRenderer *lrend, bool full_reset);
   void updateOverrideSamplers();
-  void setHmapLodDistance(int lodD);
-  int getHmapLodDistance() const;
   bool loadHeightmapDump(IGenLoad &loadCb, bool load_render_data, float water_level = -1000000, float shore_error_meters = 2.0f);
   PhysMap *loadPhysMap(IGenLoad &loadCb, bool lmp2);
   void filterHeighLandmeshDecals(const DataBlock &levelBlk);

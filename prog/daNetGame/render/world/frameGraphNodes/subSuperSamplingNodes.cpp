@@ -20,14 +20,14 @@ static shaders::OverrideStateId gen_add_blend_override()
   return shaders::overrides::create(state);
 }
 
-eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling)
+eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sampling, bool super_sampling, bool is_screenshot)
 {
   const char *inputTextureName = "target_after_debug";
   const char *subsampledTextureName = "subsampled_frame";
   const char *supersampledTextureName = "supersampled_frame";
   const char *finalTextureName = "frame_to_present";
   eastl::fixed_vector<dafg::NodeHandle, 5, false> nodes;
-  if (!sub_sampling && !super_sampling)
+  if (!sub_sampling && !super_sampling && !is_screenshot)
   {
     nodes.emplace_back(
       dafg::register_node("finish_frame_with_debug", DAFG_PP_NODE_SRC, [inputTextureName, finalTextureName](dafg::Registry registry) {
@@ -36,10 +36,10 @@ eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sa
       }));
     return nodes;
   }
-  if (sub_sampling)
+  if (sub_sampling || is_screenshot)
   {
     nodes.emplace_back(
-      dafg::register_node("init_subsampling_frame", DAFG_PP_NODE_SRC, [subsampledTextureName](dafg::Registry registry) {
+      dafg::register_node("init_subsampling_frame", DAFG_PP_NODE_SRC, [subsampledTextureName, sub_sampling](dafg::Registry registry) {
         registry
           .createTexture2d(subsampledTextureName,
             {(uint32_t)(TEXCF_RTARGET | (hdrrender::is_hdr_enabled() ? TEXFMT_A16B16G16R16F : TEXFMT_A16B16G16R16)),
@@ -48,8 +48,8 @@ eastl::fixed_vector<dafg::NodeHandle, 5, false> makeSubsamplingNodes(bool sub_sa
           .useAs(dafg::Usage::COLOR_ATTACHMENT);
         registry.multiplex(dafg::multiplexing::Mode::Viewport | dafg::multiplexing::Mode::SuperSampling);
         registry.orderMeBefore("multisampling_setup_node");
-        return [force_ignore_historyVarId = get_shader_variable_id("force_ignore_history", true)] {
-          ShaderGlobal::set_int(force_ignore_historyVarId, 1);
+        return [force_ignore_historyVarId = get_shader_variable_id("force_ignore_history", true), sub_sampling] {
+          ShaderGlobal::set_int(force_ignore_historyVarId, sub_sampling ? 1 : 0);
         };
       }));
     nodes.emplace_back(dafg::register_node("fill_subsampling_frame", DAFG_PP_NODE_SRC,

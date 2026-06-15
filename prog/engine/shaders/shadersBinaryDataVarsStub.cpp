@@ -66,7 +66,7 @@ ShaderGlobal::Subinterval ShaderGlobal::get_variant(Interval) { return Subinterv
 void ShaderGlobal::set_variant(Interval, Subinterval) {}
 
 #if DAGOR_DBGLEVEL > 0
-bool ShaderGlobal::is_resource_used_as_umnamaged_pointer(D3dResource *, bool) { return false; }
+bool ShaderGlobal::is_resource_used_as_unmanaged_pointer(D3dResource *, bool) { return false; }
 #endif
 
 bool VariableMap::isGlobVariablePresent(int) { return false; }

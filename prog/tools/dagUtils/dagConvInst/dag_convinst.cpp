@@ -33,7 +33,7 @@ bool attach_scene(DagData &data, DagData &data_from);
 int _cdecl main(int argc, char **argv)
 {
   printf("DAG convert to instance format tool\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
 
   if (argc < 3)
   {

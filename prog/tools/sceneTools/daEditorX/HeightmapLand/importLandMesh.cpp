@@ -2389,19 +2389,30 @@ bool HmapLandPlugin::exportLandMesh(mkbindump::BinDumpSaveCB &cb, IWriterToLandm
   int dmw = detTexMap ? detTexMap->getMapSizeX() : landClsMap.getMapSizeX();
   int dmh = detTexMap ? detTexMap->getMapSizeY() : landClsMap.getMapSizeY();
   int dm_tex_elem_size = (landMeshMap.getCellSize() / gridCellSize) * (detTexMap ? 1 : lcmScale);
-  if (dmw / dm_tex_elem_size != landMeshMap.getNumCellsX() || dmh / dm_tex_elem_size != landMeshMap.getNumCellsY())
+  const int dmwPerTexElemSize = dm_tex_elem_size == 0 ? 0 : (dmw / dm_tex_elem_size);
+  const int dmhPerTexElemSize = dm_tex_elem_size == 0 ? 0 : (dmh / dm_tex_elem_size);
+  if (dm_tex_elem_size <= 0 || dmwPerTexElemSize != landMeshMap.getNumCellsX() || dmhPerTexElemSize != landMeshMap.getNumCellsY())
   {
     DAEDITOR3.conError("bad detMapSz=%dx%d and elemSz=%d gives elems=%dx%d while cells are %dx%d\n"
                        "  (detTexMap=%dx%d landClsMap=%dx%d lcmScale=%d)",
-      dmw, dmh, dm_tex_elem_size, dmw / dm_tex_elem_size, dmh / dm_tex_elem_size, landMeshMap.getNumCellsX(),
-      landMeshMap.getNumCellsY(), detTexMap ? detTexMap->getMapSizeX() : 0, detTexMap ? detTexMap->getMapSizeY() : 0,
-      landClsMap.getMapSizeX(), landClsMap.getMapSizeY(), lcmScale);
+      dmw, dmh, dm_tex_elem_size, dmwPerTexElemSize, dmhPerTexElemSize, landMeshMap.getNumCellsX(), landMeshMap.getNumCellsY(),
+      detTexMap ? detTexMap->getMapSizeX() : 0, detTexMap ? detTexMap->getMapSizeY() : 0, landClsMap.getMapSizeX(),
+      landClsMap.getMapSizeY(), lcmScale);
+
+    if (landMeshMap.getNumCellsX() <= 0 || landMeshMap.getNumCellsY() <= 0)
+    {
+      DAEDITOR3.conError("failed to export color/detail maps: cells are %dx%d", landMeshMap.getNumCellsX(),
+        landMeshMap.getNumCellsY());
+      return false;
+    }
 
     dm_tex_elem_size = dmw / landMeshMap.getNumCellsX();
-    if (dm_tex_elem_size != dmh / landMeshMap.getNumCellsY())
+    if (dm_tex_elem_size <= 0 || dm_tex_elem_size != dmh / landMeshMap.getNumCellsY())
     {
-      DAEDITOR3.conError("failed to export color/detail maps: corrected elems=%dx%d wile cells is %dx%d", dmw / dm_tex_elem_size,
-        dmh / dm_tex_elem_size, landMeshMap.getNumCellsX(), landMeshMap.getNumCellsY());
+      const int dmwPerTexElemSize = dm_tex_elem_size == 0 ? 0 : (dmw / dm_tex_elem_size);
+      const int dmhPerTexElemSize = dm_tex_elem_size == 0 ? 0 : (dmh / dm_tex_elem_size);
+      DAEDITOR3.conError("failed to export color/detail maps: corrected elems=%dx%d wile cells is %dx%d", dmwPerTexElemSize,
+        dmhPerTexElemSize, landMeshMap.getNumCellsX(), landMeshMap.getNumCellsY());
       return false;
     }
   }

@@ -15,6 +15,7 @@
 #include <startup/dag_globalSettings.h>
 #include <effectManager/effectManagerDetails.h>
 #include <generic/dag_relocatableFixedVector.h>
+#include <landMesh/biomeQuery.h>
 
 #if DAGOR_DBGLEVEL > 0
 #include <debug/dag_log.h>
@@ -428,6 +429,15 @@ void EffectManager::destroyEffect(AcesEffect::FxId fx_id, BaseEffect &fx)
 #endif
   destroyFxSoundExt(fx.soundId, true, true);
   destroyLight(fx);
+  if (fx.pendingId >= 0)
+  {
+    if (pendingList[fx.pendingId].biomeQueryId != -1)
+      biome_query::cancel_query(pendingList[fx.pendingId].biomeQueryId);
+    BaseEffect *swapFx = remove_and_fix_subfx(fx.pendingId, pendingList, fxList);
+    if (swapFx)
+      swapFx->pendingId = fx.pendingId;
+    fx.pendingId = -1;
+  }
   del_it(fx.obj);
   fxList.destroyReference(fx_id);
 }
@@ -798,7 +808,8 @@ void EffectManager::reset()
   }
 }
 
-AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_player, FxErrorType *perr, bool with_sound)
+AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_player, FxErrorType *perr, bool with_sound,
+  bool with_biome_query)
 {
   int asyncState = interlocked_acquire_load(atomicInitialized);
   if (asyncState == LOAD_FAILED)
@@ -816,14 +827,14 @@ AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_pla
     return nullptr;
   }
 
-  int currentCount = fxList.totalSize() - fxList.freeIndicesSize();
+  int currentCount = fxList.totalSize() - fxList.freeIndicesSize() - pendingList.size();
   if (asyncState == READY && currentCount > params.maxNumInstances)
   {
     // find 1 non-visibile, non-locked fx
     for (int i = 0; i < fxList.totalSize(); ++i)
     {
       BaseEffect *fx = fxList.getByIdx(i);
-      if (!fx || (fx->flags & AcesEffect::IS_LOCKED))
+      if (!fx || !fx->obj || (fx->flags & AcesEffect::IS_LOCKED))
         continue;
 
       bool visible = false;
@@ -864,14 +875,16 @@ AcesEffect *EffectManager::startEffect(const Point3 &pos, bool lock, bool is_pla
 
   startEffectSoundExt(fxId, *fx, with_sound, pos);
 
-  if (asyncState == READY)
+  if (asyncState == READY && !with_biome_query)
   {
     createFxRes(fxId, is_player, pos);
   }
   else
   {
     fx->pendingId = pendingList.size();
-    pendingList.emplace_back(fxId);
+    PendingData &pe = pendingList.emplace_back(fxId);
+    if (with_biome_query)
+      pe.biomeQueryId = biome_query::query(pos, 0.25f);
   }
 
   return extFx;
@@ -915,42 +928,61 @@ void EffectManager::updateLoading()
 
   OSSpinlockScopedLock lock(&mgrSLock);
 
-  int asyncState = interlocked_acquire_load(atomicInitialized);
+  const int asyncState = interlocked_acquire_load(atomicInitialized);
+  const bool isJustLoaded = asyncState == LOADED;
   if (asyncState != LOADED)
-  {
     updateStarted &= (asyncState & READY) ? true : false;
+  if (asyncState < LOADED)
     return;
-  }
 
-  register_base_fx_res(effectBase);
+  if (isJustLoaded)
+    register_base_fx_res(effectBase);
 
-  for (int i = 0; i < fxList.totalSize(); ++i)
+  for (int i = 0; i < pendingList.size(); i++)
   {
-    BaseEffect *fx = fxList.getByIdx(i);
-    if (fx)
+    PendingData &pe = pendingList[i];
+    BaseEffect *fx = fxList.get(pe.fxId);
+    G_ASSERT_CONTINUE(fx)
+    G_ASSERT_CONTINUE(fx->pendingId == i)
+
+    if (fx->flags & AcesEffect::IS_MARK_AS_DELETED)
     {
-      const Point3 &pos = fx->tm.getcol(3);
-      if (fx->flags & AcesEffect::IS_LOCKED || !hasEnoughEffectsAtPoint(fx->flags & AcesEffect::IS_PLAYER, pos))
-      {
-        createFxRes(fxList.getRefByIdx(i), fx->flags & AcesEffect::IS_PLAYER, pos);
-      }
-      else // we only can query hasEnoughEffectsAtPoint after async job is done. so it we overshoot - destroy fx that are over the
-           // limit
-      {
-        G_ASSERT(fx->pendingId >= 0);
-        BaseEffect *swapFx = remove_and_fix_subfx(fx->pendingId, pendingList, fxList);
-        if (swapFx)
-          swapFx->pendingId = fx->pendingId;
-        del_it(fx->extFx);
-      }
+      del_it(fx->extFx);
+      i--;
+      continue;
+    }
+
+    if (pe.biomeQueryId != -1)
+    {
+      BiomeQueryResult result;
+      const auto status = biome_query::get_query_result(pe.biomeQueryId, result);
+      if (status == GpuReadbackResultState::IN_PROGRESS)
+        continue;
+      pe.biomeQueryId = -1;
+      if (status == GpuReadbackResultState::SUCCEEDED)
+        pe.colorMult = Color4::xyzw(result.averageBiomeColor);
+    }
+
+    const Point3 &pos = fx->tm.getcol(3);
+    if (fx->flags & AcesEffect::IS_LOCKED || !hasEnoughEffectsAtPoint(fx->flags & AcesEffect::IS_PLAYER, pos))
+    {
+      createFxRes(pe.fxId, fx->flags & AcesEffect::IS_PLAYER, pos);
+      if (fx->pendingId < 0) // -V547 in case assert return occurred for some reason, it will not be deleted
+        i--;
+    }
+    else // we only can query hasEnoughEffectsAtPoint after async job is done. so it we overshoot - destroy fx that are over the
+         // limit
+    {
+      del_it(fx->extFx); // this will delete effect from pendingList by swapping it with last in list
+      i--;
     }
   }
 
-  G_ASSERT(pendingList.empty());
-  pendingList.shrink_to_fit();
-
-  warmupDt = 0;
-  interlocked_release_store(atomicInitialized, READY);
+  if (isJustLoaded)
+  {
+    warmupDt = 0;
+    interlocked_release_store(atomicInitialized, READY);
+  }
 }
 
 void EffectManager::updateLights(float dt, FxLightParams *out_big_light)
@@ -1001,7 +1033,7 @@ void EffectManager::updateActiveAndFree(int active_query_sparse_step)
   for (int i = 0; i < fxList.totalSize(); ++i)
   {
     BaseEffect *fx = fxList.getByIdx(i);
-    if (!fx)
+    if (!fx || fx->pendingId >= 0) // pending fx has no obj/iid yet — would be reported inactive and killed
       continue;
 
     int flags = fx->flags;

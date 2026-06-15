@@ -1672,7 +1672,7 @@ void RendInstGenData::onDeviceReset()
   dag::ConstSpan<int> ld = rtData->loaded.getList();
   for (auto ldi : ld)
   {
-    RendInstGenData::CellRtData *crt = cells[ldi].rtData;
+    RendInstGenData::CellRtData *crt = cells[ldi].cellRtData;
     if (!crt)
       continue;
     updateVb(*crt, ldi);

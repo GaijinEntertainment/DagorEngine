@@ -474,7 +474,6 @@ void HeightmapRenderer::render(const LodGrid &lodGrid, const LodGridCullData &cu
   ShaderGlobal::set_float4(worldToHmapLod0VarId, cull_data.worldToLod0);
 
   const bool hwTesselationUsage = get_hw_tesselation_usage(hmap_tess_factorVarId, cull_data);
-  ShaderGlobal::set_float(var::hmap_object_tess_factor, hwTesselationUsage ? 1 : 0);
 
   const int maxReqInstances = MAX_HW_INSTANCING;
   const int buffer_size =
@@ -635,7 +634,7 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
   const Occlusion *use_occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId, int dim, bool fight_t_junctions,
   const HeightmapHeightCulling *heightCulling, BBox2 *innerLodsRegion, float waterLevel, const Point3 *viewPos,
-  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb)
+  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb, void (*on_patch_cb)(const BBox3 &box))
 {
   G_UNREFERENCED(fight_t_junctions);
   G_ASSERT(scaleX == scaleY);
@@ -789,6 +788,8 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
               if (cull_node_by_clip(pos, posRB, ctx) && cull_node(pos, posRB, ctx, waterLevel, viewPos) &&
                   (!cullCb || cullCb(pos, posRB)))
               {
+                if (on_patch_cb)
+                  on_patch_cb(BBox3(Point3(pos.x, pos.y, pos.z), Point3(posRB.x, posRB.y, posRB.z)));
                 IPoint2 patchPos = IPoint2(chunkX, chunkY);
                 cull_data.patches.push_back(
                   LodGridPatchParams(gridSize, bit_pack_ipoint2_to_uint(IPoint2(chunkX, chunkY)), origin.x, origin.y));
@@ -854,6 +855,9 @@ void cull_lod_grid(const LodGrid &lodGrid, int maxLod, float originPosX, float o
 
           if (cullCb && !cullCb(pos, posRB))
             continue;
+
+          if (on_patch_cb)
+            on_patch_cb(BBox3(Point3(pos.x, pos.y, pos.z), Point3(posRB.x, posRB.y, posRB.z)));
 
           int patchStep = 1 << (lod + lod0SubDiv);
           IPoint2 patchPos = IPoint2(x, y) << (lod + lod0SubDiv);

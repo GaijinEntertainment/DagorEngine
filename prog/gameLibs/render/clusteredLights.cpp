@@ -126,7 +126,7 @@ void ClusteredLights::initClustered(int initial_light_density)
   }
 }
 
-ClusteredLights::ClusteredLights(const char *name_suffix) : nameSuffix(name_suffix)
+ClusteredLights::ClusteredLights(const char *name_suffix) : nameSuffix(name_suffix), lightsSorter(omniLights, spotLights)
 {
   spotOOFBox[0] = omniOOFBox[0] = Point4(0, 0, 0, 0);
   spotOOFBox[1] = omniOOFBox[1] = Point4(OOF_GRID_W * 2, OOF_GRID_VERT * 2, OOF_GRID_W * 2, 0);
@@ -414,7 +414,7 @@ bool ClusteredLights::cullOutOfFrustumLights(mat44f_cref globtm, SpotLightMaskTy
 }
 
 void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, mat44f_cref view, mat44f_cref proj, float znear,
-  Occlusion *occlusion, SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask,
+  float zfar, Occlusion *occlusion, SpotLightMaskType spot_light_require_any_mask, OmniLightMaskType omni_light_require_any_mask,
   float light_cutoff_dist_sq)
 {
   TIME_PROFILE(cullFrustumLights);
@@ -434,14 +434,16 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
     clusteredLastPlane, dynamicOmniLightsShadows, MARK_SMALL_LIGHT_AS_FAR_LIMIT, cur_view_pos, omni_light_require_any_mask,
     light_cutoff_dist_sq);
 
-  stlsort::sort(visibleOmniLightsId.begin(), visibleOmniLightsId.end(),
-    [this, &cur_view_pos](uint16_t i, uint16_t j) DAG_TS_NO_THREAD_SAFETY_ANALYSIS {
-      const vec3f diffI = v_sub(cur_view_pos, omniLights.getBoundingSphere(i));
-      const vec3f diffJ = v_sub(cur_view_pos, omniLights.getBoundingSphere(j));
-      const vec3f distI = v_dot3_x(diffI, diffI);
-      const vec3f distJ = v_dot3_x(diffJ, diffJ);
-      return v_test_vec_x_lt(distI, distJ);
-    });
+  visibleSpotLightsIdSet.reset();
+  visibleSpotLightsId.clear();
+  Tab<uint16_t> visibleFarSpotLightsId(framemem_ptr());
+  spotLights.prepare(frustum, visibleFarSpotLightsId, visibleSpotLightsId, &visibleSpotLightsIdSet, occlusion, far_box, near_box,
+    clusteredLastPlane, dynamicSpotLightsShadows, MARK_SMALL_LIGHT_AS_FAR_LIMIT, cur_view_pos, spot_light_require_any_mask,
+    light_cutoff_dist_sq);
+
+  lightsSorter.sortOmniLightsCPU(visibleOmniLightsId, cur_view_pos);
+  lightsSorter.sortSpotLightsCPU(visibleSpotLightsId, cur_view_pos);
+
   if (visibleOmniLightsId.size() > MAX_OMNI_LIGHTS)
   {
     auto oldFarSize = visibleFarOmniLightsId.size();
@@ -459,23 +461,6 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
   }
   visibleOmniLightsId.resize(min(int(visibleOmniLightsId.size()), int(MAX_OMNI_LIGHTS)));
 
-  visibleSpotLightsIdSet.reset();
-  visibleSpotLightsId.clear();
-  // spotLights.prepare(frustum, visibleSpotLightsId, occlusion);
-
-  Tab<uint16_t> visibleFarSpotLightsId(framemem_ptr());
-  spotLights.prepare(frustum, visibleFarSpotLightsId, visibleSpotLightsId, &visibleSpotLightsIdSet, occlusion, far_box, near_box,
-    clusteredLastPlane, dynamicSpotLightsShadows, MARK_SMALL_LIGHT_AS_FAR_LIMIT, cur_view_pos, spot_light_require_any_mask,
-    light_cutoff_dist_sq);
-
-  stlsort::sort(visibleSpotLightsId.begin(), visibleSpotLightsId.end(),
-    [this, &cur_view_pos](uint16_t i, uint16_t j) DAG_TS_NO_THREAD_SAFETY_ANALYSIS {
-      const vec3f diffI = v_sub(cur_view_pos, spotLights.getBoundingSphere(i));
-      const vec3f diffJ = v_sub(cur_view_pos, spotLights.getBoundingSphere(j));
-      const vec3f distI = v_dot3_x(diffI, diffI);
-      const vec3f distJ = v_dot3_x(diffJ, diffJ);
-      return v_test_vec_x_lt(distI, distJ);
-    });
   // separate close and far lights cb (so we can render more far lights easier)
   if (visibleSpotLightsId.size() > MAX_SPOT_LIGHTS)
   {
@@ -537,18 +522,24 @@ void ClusteredLights::cullFrustumLights(vec4f cur_view_pos, mat44f_cref globtm, 
   for (int i = 0, e = visibleFarOmniLightsId.size(); i < e; ++i)
     renderFarOmniLights[i] = omniLights.getRenderLight(visibleFarOmniLightsId[i]);
 
-  lightsGrid.cull(view, proj, znear, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds, visibleSpotLights,
-    visibleSpotLightsBounds, occlusion);
-  if (!lightsGrid.hasOmni())
+  if (lightsGrid.isGPU())
+    lightsGrid.prepareGPUCulling(view, proj, znear, zfar, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds.size(),
+      visibleSpotLightsBounds.size());
+  else
   {
-    renderOmniLights.resize(0);
-    visibleOmniLightsBounds.resize(0);
-  }
-  if (!lightsGrid.hasSpot())
-  {
-    renderSpotLights.resize(0);
-    visibleSpotLightsBounds.resize(0);
-    // visibleSpotLightsMasks.resize(0);
+    lightsGrid.cullCPU(view, proj, znear, closeSliceDist, maxClusteredDist, visibleOmniLightsBounds, visibleSpotLights,
+      visibleSpotLightsBounds, occlusion);
+    if (!lightsGrid.hasOmni())
+    {
+      renderOmniLights.resize(0);
+      visibleOmniLightsBounds.resize(0);
+    }
+    if (!lightsGrid.hasSpot())
+    {
+      renderSpotLights.resize(0);
+      visibleSpotLightsBounds.resize(0);
+      // visibleSpotLightsMasks.resize(0);
+    }
   }
 
   if (tiledLights)
@@ -621,6 +612,8 @@ void ClusteredLights::fillAndSetInsideOfFrustumLightsBuffers() DAG_TS_NO_THREAD_
     ShaderGlobal::set_buffer(spot_lights_flagsVarId, visibleSpotLightsMasksSB);
   }
 
+  // GPU path: both omni_lights_cb and spot_lights_cb are now uploaded; dispatch
+  // the compute shader that clears and fills lights_full_grid directly.
   if (hasLights)
     lightsGrid.fill();
 

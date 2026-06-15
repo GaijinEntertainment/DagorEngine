@@ -49,6 +49,32 @@ struct SelectedTextureState
   float maxHistValue = 0.0f;
 };
 
+// One-call snapshot of the live pipeline counters rendered by the GraphPanel status bar.
+// Copied under the service's state lock so the UI thread never reads torn state from the
+// texgen worker.
+struct TexGenPipelineStatus
+{
+  uint64_t memUsedCurrent = 0; // bytes; TextureRegManager's current texture allocation
+  uint64_t memUsedMax = 0;     // bytes; TextureRegManager's high-water mark for this session
+  uint64_t gpuMemTotal = 0;    // bytes; dedicated GPU memory, 0 when the driver can't report it
+  int commandsDone = 0;        // texgen commands attempted so far in the in-flight pass; 0 when idle
+  int commandsTotal = 0;       // command count of the last started pass; 0 before the first pass
+  int outputsCount = 0;        // final outputs tracked by the last started pass (preview-final excluded)
+  bool generating = false;     // true while the worker has pending work (compile / generate / save)
+
+  // Outcome of the last build, for the status bar's single severity-colored message. Two stages:
+  //   graphCompileFailed  -- stage 1 (graph -> BLK compile) returned false (unresolved topo / cycle).
+  //   hasErrors/hasWarnings -- stage 2 (texture generation) errors / warnings, from the texgen logger.
+  //   generationCompleted -- a stage-2 pass reached its success branch.
+  // Panel priority: graphCompileFailed > hasErrors > hasWarnings > (generationCompleted -> info).
+  bool graphCompileFailed = false;
+  bool hasErrors = false;
+  bool hasWarnings = false;
+  bool generationCompleted = false;
+  eastl::string lastError;   // most recent stage-2 error message (empty when none)
+  eastl::string lastWarning; // most recent stage-2 warning message (empty when none)
+};
+
 struct IGraphTexGenService
 {
   static constexpr unsigned HUID = 0x7A3E91D2u; // ITexGenService
@@ -106,10 +132,13 @@ struct IGraphTexGenService
   // automatically when the next pipeline cycle completes -- callers don't need to poll.
   virtual void setPreviewFinal(const char *tex_name) = 0;
 
-  // Compilation feedback
-  virtual bool hasCompilationErrors() const = 0;
-  virtual String getFirstCompilationError() const = 0;
+  // Compilation feedback. Errors / warnings (current state, last messages) are exposed through
+  // getPipelineStatus() below; every error / warning is also echoed to the editor console.
   virtual bool isGenerationPending() const = 0;
+
+  // Status-bar counters (memory usage, generation progress, outputs count), snapshotted
+  // atomically under the service's state lock. Cheap; intended to be polled every UI frame.
+  virtual TexGenPipelineStatus getPipelineStatus() const = 0;
 
   // Save
   virtual void saveTextures(const char *mask = nullptr) = 0;

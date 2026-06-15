@@ -31,5 +31,6 @@ block(scene) nbs_envi_cover_block
     camera_in_camera_vp_uv_remapping@f4 = camera_in_camera_vp_uv_remapping;
     camera_in_camera_postfx_lens_view@f1 = camera_in_camera_postfx_lens_view;
     camera_in_camera_active@f1 = camera_in_camera_active;
+    special_vision@i1 = special_vision;
   }
 }

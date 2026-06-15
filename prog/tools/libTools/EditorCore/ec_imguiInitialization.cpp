@@ -118,8 +118,10 @@ public:
 
     ImguiMessageBoxDialog dlg(caption);
 
+    const bool mono = (flags & wingw::MBS_MONOSPACE) != 0;
+
     PropPanel::ContainerPropertyControl *panel = dlg.getPanel();
-    panel->createStatic(ImguiMessageBoxDialog::PID_MESSAGE, msg.c_str(), false, true, true);
+    panel->createStatic(ImguiMessageBoxDialog::PID_MESSAGE, msg.c_str(), false, true, true, mono);
 
     hdpi::Px widthMin = hdpi::_pxScaled(280);
     hdpi::Px widthMax = hdpi::_pxScaled(480);
@@ -157,7 +159,15 @@ public:
     const float paddingHorizontal = hdpi::_pxS(12) * 2;
     const float wrapMin = _px(widthMin) - paddingHorizontal;
     const float wrapMax = _px(widthMax) - paddingHorizontal;
-    const ImVec2 textSize = ImGui::CalcTextSize(msg.c_str(), nullptr, false, wrapMax);
+    // Measure with the same font the static control will render with. The monospace
+    // glyphs are wider than the proportional ones, so sizing with the default font
+    // would under-size the box and wrap a window line away from its caret. CalcTextSizeA
+    // works without a frame scope (the dialog is shown between frames).
+    ImVec2 textSize;
+    if (mono && imgui_get_mono_font())
+      textSize = imgui_get_mono_font()->CalcTextSizeA(ImGui::GetFontSize(), FLT_MAX, wrapMax, msg.c_str());
+    else
+      textSize = ImGui::CalcTextSize(msg.c_str(), nullptr, false, wrapMax);
     if (textSize.x >= wrapMin)
       widthMin = widthMax;
 
@@ -548,6 +558,7 @@ void editor_core_initialize_imgui()
   overrideBlk.setReal("imgui_scale", scale);
   overrideBlk.setReal("imgui_font_size", defaultFontSize);
   overrideBlk.setReal("imgui_bold_font_size", defaultFontSize);
+  overrideBlk.setReal("imgui_mono_font_size", defaultFontSize);
 
   String fontPath(256, "%s%s", sgg::get_exe_path_full(), "../commonData/fonts/roboto-regular.ttf");
   simplify_fname(fontPath);
@@ -556,6 +567,10 @@ void editor_core_initialize_imgui()
   fontPath.printf(256, "%s%s", sgg::get_exe_path_full(), "../commonData/fonts/roboto-bold.ttf");
   simplify_fname(fontPath);
   overrideBlk.setStr("imgui_bold_font_name", fontPath);
+
+  fontPath.printf(256, "%s%s", sgg::get_exe_path_full(), "../commonData/fonts/jetbrains-mono-nl-regular.ttf");
+  simplify_fname(fontPath);
+  overrideBlk.setStr("imgui_mono_font_name", fontPath);
 
   overrideBlk.setBool("imgui_font_light_hinting", true);
 

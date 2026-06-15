@@ -2760,6 +2760,12 @@ bool d3d::init_video(void *hinst, main_wnd_f *mwf, const char *wcname, int ncmds
   int64_t adapterLuild = cbPreferredLuid ? cbPreferredLuid : blk_dx.getInt64("adapterLuid", 0);
   flush_on_present = blk_dx.getBool("flushOnPresent", false);
   max_pending_frames = blk_dx.getInt("maxPendingFrames", -1);
+  // video/cpuGpuOverlap:b=off forces a full CPU->GPU sync after every present (no frames in flight)
+  if (!blk_video.getBool("cpuGpuOverlap", true))
+  {
+    debug("DX11 drv: CPU-GPU overlap disabled (video/cpuGpuOverlap:b=off), forcing maxPendingFrames=0");
+    max_pending_frames = 0;
+  }
   use_gpu_dt = blk_dx.getBool("useGpuDt", true);
 
   use_dxgi_present_test =

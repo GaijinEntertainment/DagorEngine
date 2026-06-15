@@ -142,6 +142,7 @@ const char *shcod_tokname(int t)
     case SHCOD_RWBUF_CS: return "RWBUF_CS";
     case SHCOD_RWBUF_PS: return "RWBUF_PS";
     case SHCOD_RWBUF_VS: return "RWBUF_VS";
+    case SHCOD_SET_CONST_PACKED: return "SET_CONST_PACKED";
   }
   logerr("unknown <%d>", t);
   return "?";
@@ -247,6 +248,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
       case SHCOD_GET_GINT:
       case SHCOD_GET_GINT_TOREAL:
       case SHCOD_GET_GIVEC_TOREAL:
+      case SHCOD_GET_GIVEC:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
@@ -334,6 +336,14 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         int ind = shaderopcode::getOp2p1(cod[i]);
         int ofs = shaderopcode::getOp2p2(cod[i]);
         str.aprintf(128, "ind=%d ofs=%d", ind, ofs);
+      }
+      break;
+      case SHCOD_SET_CONST_PACKED:
+      {
+        int ind = shaderopcode::getOpStageSlot_Stage(cod[i]);
+        int cnt = shaderopcode::getOpStageSlot_Slot(cod[i]);
+        int ofs = shaderopcode::getOpStageSlot_Reg(cod[i]);
+        str.aprintf(128, "ind=%d cnt=%d ofs=%d", ind, cnt, ofs);
       }
       break;
       case SHCOD_SAMPLER:

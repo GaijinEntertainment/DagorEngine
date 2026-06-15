@@ -603,6 +603,13 @@ public:
   /// Delete dialog
   virtual void deleteDialog(PropPanel::DialogWindow *dlg) = 0;
 
+  /// Notify the currently focused edit control that it is about to lose focus immediately (e.g.
+  /// before a panel rebuild destroys it), so it commits its in-progress value. Wraps
+  /// PropPanel::send_immediate_focus_loss_notification(), which lives in the editor host and is not
+  /// linkable from a plugin -- so plugins reach it through this interface (same reason createDialog
+  /// goes through here). Default no-op for hosts that don't manage prop panels.
+  virtual void sendImmediateFocusLossNotification() {}
+
   // Create a context menu.
   virtual eastl::unique_ptr<PropPanel::IMenu> createContextMenu() = 0;
   // Render the context menu created by createContextMenu. See the comment at PropPanel::render_context_menu() about usage.

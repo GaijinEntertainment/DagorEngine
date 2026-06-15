@@ -21,7 +21,8 @@ struct named_const;
 namespace shc
 {
 class TargetContext;
-}
+class RefinedBlockLayout;
+} // namespace shc
 
 class ShaderStateBlock;
 class StcodeRoutine;
@@ -81,6 +82,7 @@ struct NamedConstBlock
   BINDUMP_BEGIN_NON_SERIALIZABLE();
   RegisterProperties pixelProps, vertexProps;
   ShaderStateBlock *globConstBlk = nullptr;
+  const shc::RefinedBlockLayout *mRefinedBlockLayout = nullptr;
   bool multidrawCbuf = false;
 
   eastl::array<HlslRegAllocator, HLSL_RSPACE_COUNT> vertexRegAllocators =
@@ -126,6 +128,7 @@ struct NamedConstBlock
   void buildDrawcallIdHlslDecl(String &out_text) const;
   void buildStaticConstBufHlslDecl(String &out_text, const CompiledPreshader &preshader) const;
   void buildGlobalConstBufHlslDecl(String &out_text) const;
+  void buildRefinedBlockBufHlslDecl(String &out_text, ShaderStage stage) const;
   void buildHlslDeclText(String &out_text, ShaderStage stage) const;
 
   void buildAllHlsl(String *out_text, const CompiledPreshader &preshader, ShaderStage stage) const
@@ -135,6 +138,7 @@ struct NamedConstBlock
     {
       buildDrawcallIdHlslDecl(cache);
       buildStaticConstBufHlslDecl(cache, preshader);
+      buildRefinedBlockBufHlslDecl(cache, stage);
       buildHlslDeclText(cache, stage);
     }
 

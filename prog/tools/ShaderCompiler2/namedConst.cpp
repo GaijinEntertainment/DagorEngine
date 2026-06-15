@@ -8,6 +8,8 @@
 #include "linkShaders.h"
 #include "cppStcode.h"
 #include "const3d.h"
+#include "variantSemantic.h"
+#include "variantAssembly.h"
 #include "preshaderCompilation.h"
 #include <math/dag_mathBase.h>
 #include <shaders/shOpcodeFormat.h>
@@ -248,6 +250,34 @@ static constexpr eastl::array<int, 13> TYPE_PADDINGS = {
   3, // int
 };
 
+static void emitBindlessArraysHlsl(String &out_text)
+{
+#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+#elif _CROSS_TARGET_SPIRV
+  out_text += "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2D static_textures[];\n"
+              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube[];\n"
+              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2DArray static_textures_array[];\n"
+              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube_array[];\n"
+              "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures3d[];\n"
+              "[[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] SamplerState static_samplers[];\n";
+#elif _CROSS_TARGET_METAL
+  out_text += "[[vk::binding(0, 32)]] Texture2D static_textures[];\n"
+              "[[vk::binding(1, 32)]] TextureCube static_textures_cube[];\n"
+              "[[vk::binding(2, 32)]] Texture2DArray static_textures_array[];\n"
+              "[[vk::binding(3, 32)]] TextureCube static_textures_cube_array[];\n"
+              "[[vk::binding(4, 32)]] TextureCube static_textures3d[];\n"
+              "[[vk::binding(0, 33)]] SamplerState static_samplers[];\n";
+#else
+  out_text += "Texture2D static_textures[] : BINDLESS_REGISTER(t, 1);\n"
+              "SamplerState static_samplers[] : BINDLESS_REGISTER(s, 1);\n"
+              "TextureCube static_textures_cube[] : BINDLESS_REGISTER(t, 2);\n"
+              "Texture2DArray static_textures_array[] : BINDLESS_REGISTER(t, 3);\n"
+              "TextureCube static_textures_cube_array[] : BINDLESS_REGISTER(t, 4);\n"
+              "TextureCube static_textures3d[] : BINDLESS_REGISTER(t, 5);\n";
+#endif
+}
+
 void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const CompiledPreshader &preshader) const
 {
   using MergedVarInfo = ShaderParser::VariablesMerger::MergedVarInfo;
@@ -263,36 +293,10 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const Compil
 
   if (shc::config().enableBindless)
   {
-#if _CROSS_TARGET_C1 || _CROSS_TARGET_C2
-
-#elif _CROSS_TARGET_SPIRV
-    const eastl::string_view bindlessProlog =
-      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2D static_textures[];\n"
-      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube[];\n"
-      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] Texture2DArray static_textures_array[];\n"
-      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures_cube_array[];\n"
-      "[[vk::binding(0, BINDLESS_TEXTURE_SET_META_ID)]] TextureCube static_textures3d[];\n"
-      "[[vk::binding(0, BINDLESS_SAMPLER_SET_META_ID)]] SamplerState static_samplers[];\n";
-#elif _CROSS_TARGET_METAL
-    constexpr eastl::string_view bindlessProlog = "[[vk::binding(0, 32)]] Texture2D static_textures[];\n"
-                                                  "[[vk::binding(1, 32)]] TextureCube static_textures_cube[];\n"
-                                                  "[[vk::binding(2, 32)]] Texture2DArray static_textures_array[];\n"
-                                                  "[[vk::binding(3, 32)]] TextureCube static_textures_cube_array[];\n"
-                                                  "[[vk::binding(4, 32)]] TextureCube static_textures3d[];\n"
-                                                  "[[vk::binding(0, 33)]] SamplerState static_samplers[];\n";
-#else
-    constexpr eastl::string_view bindlessProlog = "Texture2D static_textures[] : BINDLESS_REGISTER(t, 1);\n"
-                                                  "SamplerState static_samplers[] : BINDLESS_REGISTER(s, 1);\n"
-                                                  "TextureCube static_textures_cube[] : BINDLESS_REGISTER(t, 2);\n"
-                                                  "Texture2DArray static_textures_array[] : BINDLESS_REGISTER(t, 3);\n"
-                                                  "TextureCube static_textures_cube_array[] : BINDLESS_REGISTER(t, 4);\n"
-                                                  "TextureCube static_textures3d[] : BINDLESS_REGISTER(t, 5);\n";
-#endif
     const eastl::string_view bindlessType =
       multidrawCbuf ? eastl::string_view{"#define BINDLESS_CBUFFER_ARRAY\n"} : eastl::string_view{"#define BINDLESS_CBUFFER_SINGLE\n"};
-
     out_text.append(bindlessType.data(), bindlessType.length());
-    out_text.append(bindlessProlog.data(), bindlessProlog.length());
+    emitBindlessArraysHlsl(out_text);
   }
 
   out_text.append("struct MaterialProperties\n{\n");
@@ -363,6 +367,106 @@ void NamedConstBlock::buildStaticConstBufHlslDecl(String &out_text, const Compil
 
   out_text.append(postfix.data(), postfix.length());
   out_text.append("\n\n");
+}
+
+void NamedConstBlock::buildRefinedBlockBufHlslDecl(String &out_text, ShaderStage stage) const
+{
+  if (!mRefinedBlockLayout || mRefinedBlockLayout->empty())
+    return;
+
+  eastl::fixed_vector<shc::RefinedBlockVar, 32> vars;
+  mRefinedBlockLayout->forEachVar([&](int, const shc::RefinedBlockVar &v) { vars.push_back(v); });
+
+  eastl::fixed_vector<shc::RefinedBlockVar, 32> cbufVars;
+  eastl::fixed_vector<shc::RefinedBlockVar, 32> resVars;
+
+  const bool bindless = shc::config().enableBindless;
+
+  const auto texBufStaticArrayName = [](semantic::VariableType vt) -> const char * {
+    using semantic::VariableType;
+    switch (vt)
+    {
+      case VariableType::tex2d: return "static_textures";
+      case VariableType::tex3d: return "static_textures3d";
+      case VariableType::texArray: return "static_textures_array";
+      case VariableType::texCube: return "static_textures_cube";
+      case VariableType::texCubeArray: return "static_textures_cube_array";
+      case VariableType::sampler: return "static_samplers";
+      default: return nullptr;
+    }
+  };
+
+  const auto bindlessIdName = [](const eastl::string &name) -> eastl::string { return name + "_bindless_id"; };
+
+  const auto isBindlessVar = [&](const shc::RefinedBlockVar &v) {
+    // Var with custom hlsl declaration cannot go bindless
+    return bindless && v.hlslDecl.empty() && (semantic::vt_is_tex(v.varType) || semantic::vt_is_buf(v.varType));
+  };
+
+  for (const shc::RefinedBlockVar &v : vars)
+  {
+    if (isBindlessVar(v) || semantic::vt_is_numeric(v.varType))
+      cbufVars.push_back(v);
+
+    if (!semantic::vt_is_numeric(v.varType))
+      resVars.push_back(v);
+  }
+  // Some hlsl compilers require sorted cbuffer fields by offset.
+  fast_sort(cbufVars, [](const shc::RefinedBlockVar &a, const shc::RefinedBlockVar &b) {
+    return a.cbufOffset.value_or(-1) < b.cbufOffset.value_or(-1);
+  });
+
+  out_text.aprintf(0, "cbuffer refined_block_buf : register(b%d)\n{\n", REFINED_BLOCK_CONST_BUF_REGISTER);
+
+  static constexpr const char *COMPONENT_SUFFIXES[] = {"x", "y", "z", "w"};
+
+  for (const shc::RefinedBlockVar &v : cbufVars)
+  {
+    auto [varTypeStr, samplerTypeStr] = assembly::build_hlsl_type(v.varType);
+    using semantic::VariableType;
+    const int regIdx = v.cbufOffset.value_or(0) / SLOTS_PER_C_REGISTER;
+    const int compOfs = v.cbufOffset.value_or(0) % SLOTS_PER_C_REGISTER;
+    if (isBindlessVar(v))
+      out_text.aprintf(0, "  uint %s : packoffset(c%d.%s);\n", bindlessIdName(v.varName).c_str(), regIdx, COMPONENT_SUFFIXES[compOfs]);
+    else
+      out_text.aprintf(0, "  %s %s : packoffset(c%d.%s);\n", varTypeStr, v.varName.c_str(), regIdx, COMPONENT_SUFFIXES[compOfs]);
+  }
+  out_text += "};\n\n";
+
+  if (bindless && bufferedConstProps.sc.empty())
+  {
+    emitBindlessArraysHlsl(out_text);
+    out_text += "\n";
+  }
+
+  for (const shc::RefinedBlockVar &v : resVars)
+  {
+    auto [varTypeStr, _] = assembly::build_hlsl_type(v.varType);
+    if (isBindlessVar(v))
+    {
+      const char *arrayName = texBufStaticArrayName(v.varType);
+      out_text.aprintf(0, "%s get_%s() { return %s[%s]; }\n", varTypeStr, v.varName.c_str(), arrayName,
+        bindlessIdName(v.varName).c_str());
+    }
+    else
+    {
+      if (!v.slot[stage].has_value())
+        continue;
+      const eastl::string regSpecification =
+        assembly::build_placement_specifier(v.slot[stage].value(), false, 1, v.space, ShaderBlockLevel::GLOBAL_CONST, false);
+      if (v.hlslDecl.empty())
+      {
+        out_text.aprintf(0, "%s %s %s;\n", varTypeStr, v.varName.c_str(), regSpecification.c_str());
+        out_text.aprintf(0, "%s get_%s() { return %s; }\n", varTypeStr, v.varName.c_str(), v.varName.c_str());
+      }
+      else
+      {
+        String hlslDecl(v.hlslDecl.c_str());
+        hlslDecl.replaceAll(type_to_namespace(v.varType), regSpecification.c_str());
+        out_text.aprintf(0, "%s\n", hlslDecl.c_str());
+      }
+    }
+  }
 }
 
 void NamedConstBlock::buildGlobalConstBufHlslDecl(String &out_text) const

@@ -116,8 +116,8 @@ static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUR
     return iter->second.metaAllocId;
 
   TIME_PROFILE(meta_lock_particle);
-  auto lockedMeta = context_id->allocateMeta(1, "particle");
-  auto metaAllocId = lockedMeta.allocId;
+  auto metaAllocId = context_id->allocateMetaRegion(1, "particle");
+  LockedMetaAccess lockedMeta(*context_id, metaAllocId);
   auto &meta = lockedMeta[0];
 
   meta.markInitialized();

@@ -16,11 +16,11 @@ public:
 
 ECS_REGISTER_MANAGED_TYPE(SharedTex, nullptr, typename ecs::CreatorSelector<SharedTex ECS_COMMA SharedTexConstruct>::type);
 
-struct SharedTexHolderConstruct final : public SharedTexHolder
+struct SharedTexWithShaderVarConstruct final : public SharedTexWithShaderVar
 {
 public:
-  SharedTexHolderConstruct() = default;
-  SharedTexHolderConstruct(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t index)
+  SharedTexWithShaderVarConstruct() = default;
+  SharedTexWithShaderVarConstruct(ecs::EntityManager &mgr, ecs::EntityId eid, ecs::component_index_t index)
   {
     const char *component_name = mgr.getDataComponents().getComponentNameById(index);
     eastl::string tmpName(eastl::string::CtorSprintf(), "%s_res", component_name);
@@ -29,16 +29,16 @@ public:
     const ecs::string *shaderVarName = mgr.getNullable<ecs::string>(eid, ECS_HASH_SLOW(tmpName.c_str()));
     if (gameresName == nullptr || shaderVarName == nullptr)
     {
-      *((SharedTexHolder *)this) = SharedTexHolder();
+      *((SharedTexWithShaderVar *)this) = SharedTexWithShaderVar();
       return;
     }
-    *((SharedTexHolder *)this) = dag::get_tex_gameres(gameresName->c_str(), shaderVarName->c_str());
+    *((SharedTexWithShaderVar *)this) = dag::get_tex_gameres(gameresName->c_str(), shaderVarName->c_str());
     tmpName = eastl::string(eastl::string::CtorSprintf(), "%s_samplerstate", shaderVarName->c_str());
     ShaderGlobal::set_sampler(get_shader_variable_id(tmpName.c_str(), true), d3d::request_sampler({}));
   }
 };
-ECS_REGISTER_MANAGED_TYPE(SharedTexHolder, nullptr,
-  typename ecs::CreatorSelector<SharedTexHolder ECS_COMMA SharedTexHolderConstruct>::type);
+ECS_REGISTER_MANAGED_TYPE(SharedTexWithShaderVar, nullptr,
+  typename ecs::CreatorSelector<SharedTexWithShaderVar ECS_COMMA SharedTexWithShaderVarConstruct>::type);
 
 // UniqueTexWithShaderVar hasn't specific constructor
 ECS_REGISTER_RELOCATABLE_TYPE(UniqueTex, nullptr);

@@ -144,7 +144,7 @@ public:
   struct AssumedIntervalInfo
   {
     bindump::string name;
-    uint8_t value = 0;
+    float value = 0.f;
   };
   bindump::vector<AssumedIntervalInfo> assumedIntervals;
 

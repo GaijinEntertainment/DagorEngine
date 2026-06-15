@@ -9,6 +9,7 @@
 
 #include <de3_interface.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_tex3d.h>
 #include <image/dag_tga.h>
@@ -72,25 +73,41 @@ class GraphLoggerImpl : public TextureGenLogger
 {
 public:
   bool hasErrors = false;
-  String firstError;
+  bool hasWarnings = false;
+  // Last (most recent) error / warning of the pass -- the status bar shows only these. Every
+  // error / warning is echoed to the editor console as it happens (see log()); the full ordered
+  // transcript also accumulates in `lines`.
+  String lastError;
+  String lastWarning;
   String lines;
 
   void clear()
   {
     ::clear_and_shrink(lines);
-    ::clear_and_shrink(firstError);
+    ::clear_and_shrink(lastError);
+    ::clear_and_shrink(lastWarning);
     hasErrors = false;
+    hasWarnings = false;
   }
 
   String getFullLog() const { return lines; }
 
   void log(int level, const String &s) override
   {
-    if (level == LOGLEVEL_ERR && !hasErrors)
+    // Every error / warning is mirrored to the editor console (not just the first), and the
+    // most recent of each is retained for the status-bar message.
+    if (level == LOGLEVEL_ERR)
     {
-      firstError = s;
+      lastError = s;
       hasErrors = true;
       DAEDITOR3.conError("GraphTexGenService: %s", s.str());
+    }
+    // Warnings e.g. a shader that compiled with a recoverable issue (texturePSGenShader.cpp).
+    else if (level == LOGLEVEL_WARN)
+    {
+      lastWarning = s;
+      hasWarnings = true;
+      DAEDITOR3.conWarning("GraphTexGenService: %s", s.str());
     }
 
     if (level <= startLevel)
@@ -378,6 +395,35 @@ public:
     return hasWorkUnlocked();
   }
 
+  TexGenPipelineStatus getPipelineStatus() const override
+  {
+    WinAutoLock guard(stateLock);
+    TexGenPipelineStatus st;
+    st.memUsedCurrent = texGenReg.getCurrentMemSize();
+    st.memUsedMax = texGenReg.getMaxMemSize();
+    st.gpuMemTotal = static_cast<uint64_t>(d3d::get_dedicated_gpu_memory_size_kb()) << 10;
+    // texGenStep counts the commands attempted so far while a pass is stepping; it parks at
+    // 0 (idle / finished) or -1 (failed), which both render as "no pass in flight".
+    st.commandsDone = texGenStep > 0 ? texGenStep : 0;
+    st.commandsTotal = texGenTotalCmds;
+    // Outputs = declared graph finals captured at generation start (declaredOutputsCount), NOT
+    // finalStrings.size(). On a generation failure the pipeline closes texGenReg and then
+    // finalizeTexGen prunes every final whose register no longer exists, emptying finalStrings --
+    // which would otherwise make the Outputs counter read 0 the moment a compile fails.
+    st.outputsCount = declaredOutputsCount;
+    st.generating = hasWorkUnlocked();
+
+    // Build outcome for the status-bar message. graphLogger is written by the worker under
+    // stateLock (same lock held here), so this snapshot is consistent.
+    st.graphCompileFailed = graphCompileFailed;
+    st.hasErrors = graphLogger.hasErrors;
+    st.hasWarnings = graphLogger.hasWarnings;
+    st.generationCompleted = generationCompleted;
+    st.lastError = graphLogger.lastError.c_str();
+    st.lastWarning = graphLogger.lastWarning.c_str();
+    return st;
+  }
+
   SelectedTextureState getSelectedTextureState() const override
   {
     WinAutoLock guard(stateLock);
@@ -431,6 +477,10 @@ public:
       finalizeTexGen();
       closeTexGen();
       texGenStep = -1;
+      texGenTotalCmds = 0;
+      declaredOutputsCount = 0;
+      graphCompileFailed = false;
+      generationCompleted = false;
       previewFinalName.clear();
       previewFinalAddedToBlk = false;
       pendingPreviewReg.clear();
@@ -451,6 +501,11 @@ public:
     previewFinalAddedToBlk = false;
     pendingPreviewReg.clear();
     selectedTexState = SelectedTextureState{};
+    // Old graph's output count / build outcome are meaningless for the new one; recomputed on the
+    // first compile + generation.
+    declaredOutputsCount = 0;
+    graphCompileFailed = false;
+    generationCompleted = false;
     shouldGenerateTex = true;
     if (worker)
     {
@@ -727,18 +782,6 @@ public:
     return true;
   }
 
-  // Compilation feedback
-  bool hasCompilationErrors() const override
-  {
-    WinAutoLock guard(stateLock);
-    return graphLogger.hasErrors;
-  }
-  String getFirstCompilationError() const override
-  {
-    WinAutoLock guard(stateLock);
-    return graphLogger.firstError;
-  }
-
   // Called from finalizeTexGen with pendingPreviewReg. tex_name comes from pendingPreviewReg, so
   // it's never null/empty here.
   void updateSelectedTexture(const char *tex_name)
@@ -946,6 +989,9 @@ private:
         const bool ok = compilerSnap->compile();
         {
           WinAutoLock guard(stateLock);
+          // Stage-1 outcome for the status bar. A failed graph compile produces no generation
+          // pass, so the bar must learn about it here -- it can't infer it from the texgen logger.
+          graphCompileFailed = !ok;
           if (ok && graphData)
           {
             previewFinalAddedToBlk = false;
@@ -1120,6 +1166,16 @@ private:
     }
     removeOldFinalStrings();
     finalStrings = newFinalStrings;
+
+    generationCompleted = false;
+    // Snapshot the declared-output count now, before doGenerateTexStep can fail and prune
+    // finalStrings to empty. Exclude the preview-final (a UI artifact injected into mainGraphBlk
+    // by setPreviewFinal), matching how it is excluded from the texture save path.
+    declaredOutputsCount = static_cast<int>(newFinalStrings.size());
+    if (previewFinalAddedToBlk && newFinalStrings.find(previewFinalName) != newFinalStrings.end())
+    {
+      --declaredOutputsCount;
+    }
     texGenReg.clearStat();
     doGenerateTexStep(texGenStep, 1);
   }
@@ -1134,6 +1190,8 @@ private:
       {
         generated = -1;
       }
+      // Remember the pass size for getPipelineStatus' progress readout (commandsDone/Total).
+      texGenTotalCmds = totalCount > 0 ? totalCount : 0;
     }
 
     if (!generated)
@@ -1155,11 +1213,10 @@ private:
         texGenReg.getRegsAlive(), texGenReg.getMaxMemSize() / float(1 << 20), texGenReg.getCurrentMemSize() / float(1 << 20));
       finalizeTexGen();
       start = 0;
+      generationCompleted = true;
     }
     else
     {
-      DAEDITOR3.conNote("GraphTexGenService: Step %d: %d textures, maxMemUsed = %.1fMB, current = %.1fMB", start,
-        texGenReg.getRegsAlive(), texGenReg.getMaxMemSize() / float(1 << 20), texGenReg.getCurrentMemSize() / float(1 << 20));
       start += count;
     }
 
@@ -2022,6 +2079,18 @@ private:
   eastl::hash_set<eastl::string> skipSavingNames;
   int texGenStep = 0;
   int texGenStepCount = 2;
+  // Command count returned by the most recent texgen_start_process_commands; pairs with
+  // texGenStep to form the status bar's "done/total" progress readout.
+  int texGenTotalCmds = 0;
+  // Declared graph outputs (final:t entries) captured at the start of the most recent generation
+  // pass, minus the preview-final UI artifact. Reported by the status bar's Outputs counter
+  // instead of finalStrings.size(), which a generation failure prunes to 0 (see getPipelineStatus).
+  int declaredOutputsCount = 0;
+  // Build outcome for the status bar (see TexGenPipelineStatus). graphCompileFailed: stage-1 graph
+  // compile returned false. generationCompleted: a stage-2 generation pass reached success. Both
+  // reset on graph swap; generationCompleted also resets at each pass start.
+  bool graphCompileFailed = false;
+  bool generationCompleted = false;
 
   // Flags
   bool shouldGenerateTex = false;
@@ -2082,4 +2151,17 @@ private:
 };
 
 
-void init_texgen_service() { IDaEditor3Engine::get().registerService(new (inimem) GraphTexGenServiceImpl); }
+void init_texgen_service()
+{
+  // daEditorX startup registers the common tool tex factories but not the raw-image or TIFF
+  // ones (see dagorEd.cpp / regCommonToolTex.cpp). `raw texture` graph nodes resolve to a
+  // tex:...;name:t=*.r16/.r32/.raw spec and TIFF texture-name nodes to *.tif; both need their
+  // factory to load, just as the standalone graphEditor tool registers them in
+  // prog/tools/graphEditor/main.cpp.
+  extern void register_raw_tex_create_factory();
+  register_raw_tex_create_factory();
+  extern void register_tiff_tex_create_factory();
+  register_tiff_tex_create_factory();
+
+  IDaEditor3Engine::get().registerService(new (inimem) GraphTexGenServiceImpl);
+}

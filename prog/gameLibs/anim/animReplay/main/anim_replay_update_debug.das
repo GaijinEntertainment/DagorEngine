@@ -4,6 +4,7 @@ require ecs.safe
 require math
 require AnimV20
 require DagorSystem
+require GeomNodeTree
 require daslib/algorithm
 require %gameLibs/anim/animReplay/imports/anim_replay_anim_state_params
 require %gameLibs/anim/animReplay/imports/anim_replay_common
@@ -17,12 +18,31 @@ def anim_replay_update_animchar(evt : UpdateStageInfoAct;
   sample_timestamps(anim_replay__currentTime, anim_replay__timestamps) <| $(prevIdx; nextIdx; interpK)
     iterate_alive_replay_animchars(anim_replay__animchars, anim_replay__currentTime) <| $(animcharData)
       let animcharEid = *get_Eid(animcharData, "eid")
-      assume position = *get_ecs_Point3List(animcharData, "position")
-      assume rotation = *get_ecs_Point4List(animcharData, "rotation")
+      let position & = unsafe(*get_ecs_Point3List(animcharData, "position"))
+      let rotation & = unsafe(*get_ecs_Point4List(animcharData, "rotation"))
       let pos = lerp(position[prevIdx], position[nextIdx], interpK)
       let rot = quat_slerp(interpK, rotation[prevIdx], rotation[nextIdx])
-      query(animcharEid) <| $[es] (var transform : float3x4&)
+      // NOTE: characters and weapons may be displaced for one frame because `animchar_copy_nodes`
+      // (copies nodes that will be used in render) for characters is called during animchar_es in PUFD,
+      // so they will be rendered only in next frame after PUFD. But it is not too easy to fix because:
+      //  1. `animchar_copy_nodes` for animchar itself is useless, we need updated non-weapon attachments
+      //  (clothes, hands, head and etc)
+      //  2. All animations should be updated before this copy too, now most problematic place is
+      //  `anim_replay_update_motion_matching_root` and `mm_calculate_root_offset_es`, they are also executed
+      //  in PUFD, and even more tricky. Character position and rotation are updated immediately because
+      //  replay time is updated in imgui (beforeRender stage), then in PUFD MM overwrite pos/rot with fresh data.
+      //  But in `mm_calculate_root_offset_es` we also use MotionMatchingController::resultAnimation, which is not
+      //  updated yet, so it will be outdated for one frame.
+      query(animcharEid) <| $[es(REQUIRE=anim_replay_character)] (var transform : float3x4&)
         transform = make_tm(rot, pos)
+      // attachments
+      query(animcharEid) <| $[es(REQUIRE_NOT=anim_replay_character)] (var animchar : AnimcharBaseComponent;
+                                                                      var animchar_node_wtm : AnimcharNodesMat44&;
+                                                                      var animchar_render__root_pos : vec4f&)
+        let tm = make_tm(rot, pos)
+        animchar_set_tm(animchar, tm, true)
+        geomtree_calcWtmForBranch(*animchar.nodeTree, 0)
+        animchar_copy_nodes(animchar, animchar_node_wtm, animchar_render__root_pos)
 
 def apply_tracked_anim_state_params(var anim_state : IAnimStateHolder; anim_params : Array; frame_idx : int)
   for animParamChildComp in anim_params
@@ -69,6 +89,28 @@ def apply_precise_anim_state_params(var anim_state : IAnimStateHolder;
       let time & = *get_ecs_FloatList(animParam, "time")
       let paramValue = values[get_current_timestamp_idx(t, time)]
       anim_state_holder_setParam(anim_state, paramId, paramValue)
+
+[es(before=anim_replay_update_anim_state)]
+def anim_replay_update_attachment_slots(evt : UpdateStageInfoAct;
+                                        anim_replay__animchars : Array;
+                                        anim_replay__currentTime : float)
+  iterate_alive_replay_animchars(anim_replay__animchars, anim_replay__currentTime) <| $(animchar_data)
+    let slotTime = get_ecs_FloatList(animchar_data, "slotTime")
+    if slotTime == null
+      return
+    let slotIdx & = unsafe(*get_ecs_IntList(animchar_data, "slotIdx"))
+    let timeIdx = get_current_timestamp_idx(anim_replay__currentTime, slotTime)
+    let currentSlotIdx = slotIdx[timeIdx]
+    let attachmentEid = *get_Eid(animchar_data, "eid")
+    query(attachmentEid) <| $[es] (var animchar aka attached_animchar : AnimcharBaseComponent;
+                                   var animchar_render__enabled : bool&;
+                                   anim_replay__parentEid : EntityId)
+      query(anim_replay__parentEid) <| $[es] (var animchar aka parent_animchar : AnimcharBaseComponent)
+        if currentSlotIdx >= 0
+          animchar_setAttachedChar(parent_animchar, currentSlotIdx, uint(attachmentEid), attached_animchar, false)
+          animchar_render__enabled = true
+        else
+          animchar_render__enabled = false
 
 [es(no_order)]
 def anim_replay_update_anim_state(evt : UpdateStageInfoAct;

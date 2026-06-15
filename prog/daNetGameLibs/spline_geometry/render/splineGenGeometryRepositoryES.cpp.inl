@@ -51,7 +51,7 @@ dafg::NodeHandle createTransparentSplineGenNodeImpl(bool is_triangle_debug)
     if (is_triangle_debug)
     {
       auto ns = registry.root() / "transparent" / "close";
-      registry.requestRenderPass().color({"triangle_size_tex"}).depthRo(ns.readTexture("depth_for_transparency"));
+      registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly(ns.readTexture("depth_for_transparency"));
       registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
       use_camera_in_camera(registry);
     }

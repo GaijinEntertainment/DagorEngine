@@ -33,6 +33,11 @@ CONSOLE_BOOL_VAL("render", sw_hmap_occlusion, true);
 CONSOLE_BOOL_VAL("render", sw_animchars_occlusion, true);
 CONSOLE_BOOL_VAL("render", occlusion_async_readback_gpu, true);
 
+namespace var
+{
+static ShaderVariableInfo hmap_object_tess_active("hmap_object_tess_active", true);
+} // namespace var
+
 extern void wait_static_shadows_cull_jobs();
 
 void WorldRenderer::prepareLightProbeRIVisibilityAsync(const mat44f &globtm, const Point3 &view_pos)
@@ -99,6 +104,7 @@ void WorldRenderer::startVisibility()
   IPoint2 renderingResolution(0, 0);
   getRenderingResolution(renderingResolution.x, renderingResolution.y);
 
+  STATE_GUARD_0(ShaderGlobal::set_int(var::hmap_object_tess_active, VALUE), 1);
   const bool asyncRiJobEnabled = async_riex_opaque.get() && !rendinst::gpuobjects::has_pending();
   mainCameraVisibilityMgr.prepareToStartAsyncRIGenExtraOpaqueRender(globalFrameBlockId, currentTexCtx, asyncRiJobEnabled);
   mainCameraVisibilityMgr.startVisibility(currentFrameCamera, transparentPartitionSphere, renderingResolution, shadowCtx);
@@ -119,7 +125,6 @@ void WorldRenderer::startOcclusionAndSwRaster()
   {
     if (camera_in_camera::get_frame_number() < 1)
       camcamVisibilityMgr.getOcclusion()->reset();
-
     camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr, worldProjTm);
   }
 }
@@ -127,12 +132,10 @@ void WorldRenderer::startOcclusionAndSwRaster()
 void WorldRenderer::startGroundVisibility()
 {
   const float deformR = deformHmap ? 1.414213562373095f * deformHmap->getRadius() : 0;
-  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv, deformR,
-    currentFrameCamera);
+  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, waterLevel, displacementSubDiv, deformR, currentFrameCamera);
 
   if (camera_in_camera::is_lens_render_active())
-    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv, deformR,
-      *camcamParams);
+    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, waterLevel, displacementSubDiv, deformR, *camcamParams);
 }
 
 void WorldRenderer::startGroundReflectionVisibility()
@@ -144,13 +147,13 @@ void WorldRenderer::startGroundReflectionVisibility()
   Frustum frustum(TMatrix4(waterPlanarReflectionViewTm) * currentFrameCamera.noJitterProjTm);
   Point3 viewPos = waterPlanarReflectionViewItm.getcol(3);
   mainCameraVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, lmeshRenderer, frustum, viewPos, currentFrameCamera.noJitterProjTm,
-    cameraHeight, waterLevel);
+    waterLevel);
 
   if (camera_in_camera::is_lens_render_active())
   {
     Frustum frustum(TMatrix4(waterPlanarReflectionViewTm) * camcamParams->noJitterProjTm);
     camcamVisibilityMgr.startGroundReflectionVisibility(lmeshMgr, lmeshRenderer, frustum, viewPos, camcamParams->noJitterProjTm,
-      cameraHeight, waterLevel);
+      waterLevel);
   }
 }
 

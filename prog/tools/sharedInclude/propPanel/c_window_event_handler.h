@@ -26,6 +26,7 @@ public:
   }
 
   virtual void onWcChange(WindowBase *source) { G_UNUSED(source); }
+  virtual void onWcChangeFinished(WindowBase *source) { G_UNUSED(source); }
   virtual void onWcClick(WindowBase *source) { G_UNUSED(source); }
   virtual void onWcRightClick(WindowBase *source) { G_UNUSED(source); }
 

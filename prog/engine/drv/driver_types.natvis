@@ -90,11 +90,126 @@
   </Type>
 
   <Type Name="drv3d_dx12::FormatStore">
-    <DisplayString>{wrapper.value,nvoXb}</DisplayString>
-    <Expand HideRawView="true">
-      <Item Name="value">wrapper.value,nvoX</Item>
-      <Item Name="isSrgb">(bool)((wrapper.value >> BITS) &amp; 1)</Item>
-      <Item Name="linearFormat">(int)((wrapper.value >> 0) &amp; ((1 &lt;&lt; BITS) - 1)) &lt;&lt; CREATE_FLAGS_FORMAT_SHIFT,X</Item>
+    <Expand HideRawView="false">
+      <Item Name="linearFormat">linearFormat,nvoXb</Item>
+      <Item Name="srgbRead">(bool)srgbRead</Item>
+      <Item Name="srgbWrite">(bool)srgbWrite</Item>
+
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x00">"TEXFMT_A8R8G8B8 (0x00000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x01">"TEXFMT_A2R10G10B10 (0x01000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x02">"TEXFMT_A2B10G10R10 (0x02000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x03">"TEXFMT_A16B16G16R16 (0x03000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x04">"TEXFMT_A16B16G16R16F (0x04000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x05">"TEXFMT_A32B32G32R32F (0x05000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x06">"TEXFMT_G16R16 (0x06000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x07">"TEXFMT_G16R16F (0x07000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x08">"TEXFMT_G32R32F (0x08000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x09">"TEXFMT_R16F (0x09000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0A">"TEXFMT_R32F (0x0A000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0B">"TEXFMT_DXT1 (0x0B000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0C">"TEXFMT_DXT3 (0x0C000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0D">"TEXFMT_DXT5 (0x0D000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x0E">"TEXFMT_R32G32UI (0x0E000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x10">"TEXFMT_L16 (0x10000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x11">"TEXFMT_A8 (0x11000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x12">"TEXFMT_R8 (0x12000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x13">"TEXFMT_A1R5G5B5 (0x13000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x14">"TEXFMT_A4R4G4B4 (0x14000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x15">"TEXFMT_R5G6B5 (0x15000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x16">"TEXFMT_A8B8G8R8 (0x16000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x17">"TEXFMT_A16B16G16R16S (0x17000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x18">"TEXFMT_A16B16G16R16UI (0x18000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x19">"TEXFMT_A32B32G32R32UI (0x19000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1A">"TEXFMT_ATI1N (0x1A000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1B">"TEXFMT_ATI2N (0x1B000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1C">"TEXFMT_R8G8B8A8 (0x1C000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1D">"TEXFMT_R32UI (0x1D000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1E">"TEXFMT_R32SI (0x1E000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x1F">"TEXFMT_R11G11B10F (0x1F000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x20">"TEXFMT_R9G9B9E5 (0x20000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x21">"TEXFMT_R8G8 (0x21000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x22">"TEXFMT_R8G8S (0x22000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x23">"TEXFMT_BC6H (0x23000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x24">"TEXFMT_BC7 (0x24000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x25">"TEXFMT_R8UI (0x25000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x26">"TEXFMT_R16UI (0x26000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x27">"TEXFMT_DEPTH24 (0x27000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x28">"TEXFMT_DEPTH16 (0x28000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x29">"TEXFMT_DEPTH32 (0x29000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x2A">"TEXFMT_DEPTH32_S8 (0x2A000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x2E">"TEXFMT_ASTC4 (0x2E000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x2F">"TEXFMT_ASTC8 (0x2F000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x30">"TEXFMT_ASTC12 (0x30000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x31">"TEXFMT_ETC2_RG (0x31000000)",sb</Item>
+      <Item Name="[TEXFMT]" Condition="linearFormat == 0x32">"TEXFMT_ETC2_RGBA (0x32000000)",sb</Item>
+
+      <!-- R32F: always typeless (can be used as float and uint) -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0A">DXGI_FORMAT_R32_TYPELESS</Item>
+
+      <!-- sRGB-capable, non-BC: srgbRead picks typeless (base), else linear -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x00 &amp;&amp;  srgbRead">DXGI_FORMAT_B8G8R8A8_TYPELESS</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x00 &amp;&amp; !srgbRead">DXGI_FORMAT_B8G8R8A8_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1C &amp;&amp;  srgbRead">DXGI_FORMAT_R8G8B8A8_TYPELESS</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1C &amp;&amp; !srgbRead">DXGI_FORMAT_R8G8B8A8_UNORM</Item>
+
+      <!-- Block-compressed: srgbRead picks srgb variant, else linear -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0B &amp;&amp;  srgbRead">DXGI_FORMAT_BC1_UNORM_SRGB</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0B &amp;&amp; !srgbRead">DXGI_FORMAT_BC1_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0C &amp;&amp;  srgbRead">DXGI_FORMAT_BC2_UNORM_SRGB</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0C &amp;&amp; !srgbRead">DXGI_FORMAT_BC2_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0D &amp;&amp;  srgbRead">DXGI_FORMAT_BC3_UNORM_SRGB</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0D &amp;&amp; !srgbRead">DXGI_FORMAT_BC3_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x24 &amp;&amp;  srgbRead">DXGI_FORMAT_BC7_UNORM_SRGB</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x24 &amp;&amp; !srgbRead">DXGI_FORMAT_BC7_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1A">DXGI_FORMAT_BC4_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1B">DXGI_FORMAT_BC5_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x23">DXGI_FORMAT_BC6H_UF16</Item>
+
+      <!-- Depth: always typeless (base) so different views can be made -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x27">DXGI_FORMAT_R24G8_TYPELESS</Item>
+      <!-- DEPTH24 (PC; Xbox/AMD-emul: R32G8X24_TYPELESS) -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x28">DXGI_FORMAT_R16_TYPELESS</Item>
+      <!-- DEPTH16 -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x29">DXGI_FORMAT_R32_TYPELESS</Item>
+      <!-- DEPTH32 -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x2A">DXGI_FORMAT_R32G8X24_TYPELESS</Item>
+      <!-- DEPTH32_S8 -->
+
+      <!-- All other formats: linear -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x01">DXGI_FORMAT_R10G10B10A2_UNORM</Item>
+      <!-- A2R10G10B10 -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x02">DXGI_FORMAT_R10G10B10A2_UNORM</Item>
+      <!-- A2B10G10R10 -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x03">DXGI_FORMAT_R16G16B16A16_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x04">DXGI_FORMAT_R16G16B16A16_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x05">DXGI_FORMAT_R32G32B32A32_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x06">DXGI_FORMAT_R16G16_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x07">DXGI_FORMAT_R16G16_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x08">DXGI_FORMAT_R32G32_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x09">DXGI_FORMAT_R16_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0E">DXGI_FORMAT_R32G32_UINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x10">DXGI_FORMAT_R16_UNORM</Item>
+      <!-- L16 -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x11">DXGI_FORMAT_A8_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x12">DXGI_FORMAT_R8_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x13">DXGI_FORMAT_B5G5R5A1_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x14">DXGI_FORMAT_B8G8R8A8_UNORM</Item>
+      <!-- A4R4G4B4 (no native) -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x15">DXGI_FORMAT_B5G6R5_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x17">DXGI_FORMAT_R16G16B16A16_SNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x18">DXGI_FORMAT_R16G16B16A16_UINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x19">DXGI_FORMAT_R32G32B32A32_UINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1D">DXGI_FORMAT_R32_UINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1E">DXGI_FORMAT_R32_SINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x1F">DXGI_FORMAT_R11G11B10_FLOAT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x20">DXGI_FORMAT_R9G9B9E5_SHAREDEXP</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x21">DXGI_FORMAT_R8G8_UNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x22">DXGI_FORMAT_R8G8_SNORM</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x25">DXGI_FORMAT_R8_UINT</Item>
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x26">DXGI_FORMAT_R16_UINT</Item>
+
+      <!-- 0x0F, 0x16, 0x2B-0x32 are dummy/ASTC/ETC2 slots on PC -->
+      <Item Name="[DXGI_FORMAT]" Condition="linearFormat == 0x0F || linearFormat == 0x16 || (linearFormat &gt;= 0x2B &amp;&amp; linearFormat &lt;= 0x32)">DXGI_FORMAT_UNKNOWN</Item>
     </Expand>
   </Type>
 

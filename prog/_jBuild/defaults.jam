@@ -22,6 +22,7 @@ if ! $(__DEFAULTS_INCLUDED) {
   PlatformSpec_android ?= clang ;
   PlatformSpec_linux ?= gcc ;
   CLangVer ?= 21.1.8 ;
+  MSVCVer ?= 14.51 ;
   DefaultCPPStd = 20 ;
   CPPStd ?= 20 ;
   Sanitize ?= disabled ;
@@ -283,6 +284,10 @@ if ! $(__DEFAULTS_INCLUDED) {
       target = $(target:S=-fuzz$(target:S)) ;
     }
 
+    if $(ClangCoverage) = yes {
+      target = $(target:B)-cov$(target:S) ;
+    }
+
     if $(Platform) = windows && $(UseGDK) = yes {
       target = $(target:S=-gdk$(target:S)) ;
     }
@@ -353,8 +358,10 @@ if ! $(__DEFAULTS_INCLUDED) {
     if $(Platform) in xboxOne scarlett {
       if $(PlatformSpec) = clang { _platform_spec = $(_platform_spec)-$(CLangVer) ; }
       _platform_spec = $(_platform_spec)-$(GdkWinSdk) ;
-    } else if $(PlatformSpec) in vc14 vc14 vc15 vc16 vc17 && $(VCUpdateVer) {
+    } else if $(PlatformSpec) in vc14 vc15 vc16 vc17 && $(VCUpdateVer) {
       _platform_spec = $(_platform_spec)-$(VCUpdateVer) ;
+    } else if $(PlatformSpec) = msvc && $(Platform) in windows {
+      _platform_spec = $(_platform_spec)-v$(MSVCVer) ;
     } else if $(PlatformSpec) = clang && $(Platform) in windows {
       _platform_spec = $(_platform_spec)-$(CLangVer) ;
     }
@@ -492,6 +499,7 @@ if ! $(__DEFAULTS_INCLUDED) {
     }
 
     if $(Analyze) = yes { out = $(out)~a ; }
+    if $(ClangCoverage) = yes { out = $(out)~cov ; }
 
     _Output   = $(_OutputRoot)/$(out) ;
     _PrintedOutput   = [$(out)] ;

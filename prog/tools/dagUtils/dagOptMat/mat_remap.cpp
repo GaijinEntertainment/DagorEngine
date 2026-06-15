@@ -73,7 +73,7 @@ int _cdecl main(int argc, char **argv)
 
   const char *inFile = argv[1];
   printf("DAG material optimizer tool\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n");
   start_classic_debug_system(".debug", false);
 
   if (!inFile || !*inFile)

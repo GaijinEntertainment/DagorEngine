@@ -90,6 +90,7 @@ static INLINE void set_tex_reg(TEXTUREID tex_id, char *rb, int o)
 static INLINE int &int_reg(char *rb, int o) { return make_ref<int>(&rb[o * 4]); }
 static INLINE real &real_reg(char *rb, int o) { return make_ref<real>(&rb[o * 4]); }
 static INLINE Color4 &color4_reg(char *rb, int o) { return make_ref<Color4>(&rb[o * 4]); }
+static INLINE IPoint4 &ipoint4_reg(char *rb, int o) { return make_ref<IPoint4>(&rb[o * 4]); }
 static INLINE TMatrix4 &float4x4_reg(char *rb, int o) { return make_ref<TMatrix4>(&rb[o * 4]); }
 static INLINE vec4f get_vec_reg(char *rb, int o) { return v_ldu((float *)&rb[o * 4]); }
 static INLINE void set_vec_reg(vec4f v, char *rb, int o) { return v_stu(&rb[o * 4], v); }

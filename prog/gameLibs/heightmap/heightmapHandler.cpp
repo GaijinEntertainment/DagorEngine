@@ -25,7 +25,6 @@
 
 // for NV 551 workaround
 CONSOLE_BOOL_VAL("hmap", nvidia_551_workaround, true);
-CONSOLE_BOOL_VAL("hmap", use_metrics, true);
 CONSOLE_INT_VAL("hmap", metrics_maxCalcLevel, 14, 2, 128);
 CONSOLE_INT_VAL("hmap", metrics_minCalcLevel, 2, 0, 8);
 CONSOLE_INT_VAL("hmap", metrics_dim, 3, 3, 5);
@@ -109,24 +108,19 @@ void HeightmapHandler::initRender(bool clamp, float water_level, float shore_err
   del_it(metrics);
   del_it(metricsRenderer);
   shoreErrorMeters = shore_error_meters;
-  if (use_metrics)
-  {
-    metrics = new MetricsErrors();
-    const int dimBits = metrics_dim;
-    metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, water_level, shoreErrorMeters);
+  metrics = new MetricsErrors();
+  const int dimBits = metrics_dim;
+  metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, water_level, shoreErrorMeters);
 
-    metricsRenderer = new SimpleHeightmapRenderer;
-    metricsRenderer->init("heightmap", true, dimBits);
-  }
-  debug("hmap: initialized with %d metrics and %f water level, shore error=%f", use_metrics.get(), preparedWaterLevel,
-    shoreErrorMeters);
+  metricsRenderer = new SimpleHeightmapRenderer;
+  metricsRenderer->init("heightmap", true, dimBits);
+  debug("hmap: initialized with metrics and %f water level, shore error=%f", water_level, shoreErrorMeters);
 }
 
 bool HeightmapHandler::loadDump(IGenLoad &loadCb, bool load_render_data, float water_level, float shore_error_meters)
 {
   const int skip_mips = clamp(::dgs_get_settings()->getBlockByNameEx("debug")->getInt("skip_hmap_levels", 0), 0, 3);
 
-  preparedWaterLevel = water_level;
   if (!HeightmapPhysHandler::loadDump(loadCb, skip_mips))
     return false;
 
@@ -340,15 +334,6 @@ bool HeightmapHandler::init(int dim_bits)
   return true;
 }
 
-int HeightmapHandler::calcLod(int min_lod, const Point3 &origin_pos, float camera_height) const
-{
-  int maxLod = lodCount - 1;
-  int lod = (length(Point2::xz(getClippedOrigin(origin_pos)) - Point2::xz(origin_pos)) / renderer.getDim()) * 0.5f;
-  lod += max(0.f, camera_height) * 0.003f;
-  lod = clamp(lod, min(min_lod, maxLod), maxLod);
-  return lod;
-}
-
 void HeightmapHandler::setMaxUpwardDisplacement(float v)
 {
   G_ASSERT_RETURN(v >= 0.0f, );
@@ -392,32 +377,25 @@ void HeightmapHandler::makeBookKeeping()
     prepareHmapModificaton();
 }
 
-bool HeightmapHandler::prepare(const Point3 &world_pos, float camera_height, float water_level)
+bool HeightmapHandler::prepare(const Point3 &world_pos)
 {
   makeBookKeeping();
-  if (use_metrics)
+#if DAGOR_DBGLEVEL > 0
+  // dev-only: react to runtime changes of the tessellation console vars. metrics/metricsRenderer are
+  // created by initRender before any handler reaches prepare() - assert that invariant rather than
+  // lazily creating them.
+  G_ASSERT_RETURN(metricsRenderer, false);
+  const int dimBits = metrics_dim;
+  if (metricsRenderer->getDimBits() != dimBits)
   {
-    if (!metrics)
-      metrics = new MetricsErrors();
-    const int dimBits = metrics_dim;
-    if (metricsRenderer)
-    {
-      if (metricsRenderer->getDimBits() != dimBits)
-      {
-        del_it(metricsRenderer);
-      }
-    }
-    if (!metricsRenderer)
-    {
-      metricsRenderer = new SimpleHeightmapRenderer();
-      metricsRenderer->init("heightmap", true, dimBits);
-    }
-    metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, water_level, shoreErrorMeters);
+    del_it(metricsRenderer);
+    metricsRenderer = new SimpleHeightmapRenderer();
+    metricsRenderer->init("heightmap", true, dimBits);
   }
+  metrics->calc_lod_errors(*this, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << dimBits, metrics->water_level, shoreErrorMeters);
+#endif
 
   preparedOriginPos = world_pos;
-  preparedCameraHeight = camera_height;
-  preparedWaterLevel = water_level;
   setVars();
   float distanceToSwitch = hmapDistanceMul * max(worldSize.x, worldSize.y);
   if (lengthSq(getClippedOrigin(world_pos) - world_pos) > distanceToSwitch * distanceToSwitch)
@@ -454,31 +432,13 @@ void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, con
     h.getMaxUpwardDisplacement(), h.getMaxDownwardDisplacement(), h.isMirror(), vp, bbox2, q);
 }
 
-void frustumCulling(const MetricsErrors &errors, LodGridCullData &cull_data, const Point3 &world_pos, float water_level,
-  const Frustum &frustum, const Occlusion *occlusion, const HeightmapHandler &handler, const vec4f *bbox2,
-  const HeightmapMetricsQuality &q)
+void frustumCulling(const MetricsErrors &errors, LodGridCullData &cull_data, const Point3 &world_pos, const Frustum &frustum,
+  const Occlusion *occlusion, const HeightmapHandler &handler, const vec4f *bbox2, const HeightmapMetricsQuality &q)
 {
   TIME_PROFILE(htmap_frustum_cull2);
   cull_lod_grid3(errors, cull_data, frustum, occlusion, handler, v_ldu(&world_pos.x), bbox2, q);
 }
 
-
-void HeightmapHandler::render(int min_tank_lod)
-{
-  mat44f globtm;
-  d3d::getglobtm(globtm);
-  FRAMEMEM_REGION;
-  LodGridCullData defaultCullData(framemem_ptr());
-  TMatrix4 proj;
-  d3d::gettm(TM_PROJ, &proj);
-  // fixme: use min_tank_lod of tess factor
-  HeightmapMetricsQuality hq = {proj_to_distance_scale(proj)};
-  if (hq.distanceScale == 0)
-    hq.maxRelativeTexelTess = 0;
-  frustumCulling(defaultCullData, HeightmapFrustumCullingInfo{preparedOriginPos, preparedCameraHeight, preparedWaterLevel,
-                                    Frustum(globtm), nullptr, nullptr, min_tank_lod, 0, 1, hq});
-  renderCulled(defaultCullData);
-}
 
 // float hm_scale = 1.0f;
 
@@ -486,74 +446,22 @@ void HeightmapHandler::frustumCulling(LodGridCullData &cull_data, const Heightma
 {
   // if (fi.proj == TMatrix4::IDENT)
   // debug_dump_stack();
-  if (use_metrics && metrics)
-  {
-    cull_data.eraseAll();
-    ::frustumCulling(*metrics, cull_data, fi.world_pos, fi.water_level, fi.frustum, fi.occlusion, *this, fi.world_bbox_xzs,
-      fi.metrics);
-    return;
-  }
-
-  if (!fi.frustum.testBoxB(vecbox.bmin, vecbox.bmax))
-  {
-    cull_data.eraseAll();
-    return;
-  }
-
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  auto doFrustumCull = [&]() {
-#else
-  TIME_PROFILE(htmap_frustum_cull);
-#endif
-    int lastLodRepeat = max(1,
-      (int)(1 + safediv(max(worldSize.x, worldSize.y), renderer.getDim() * hmapCellSize * fi.lod0scale * (1 << (lodCount - 1)))));
-
-    cull_data.lodGrid.init(lodCount, lodDistance, fi.lod0subdiv, lodDistance * lastLodRepeat); // changing 1,lod0subdiv, 1 to
-                                                                                               // 3,lod0subdiv,3 will get much longer
-                                                                                               // distance of high quality tesselation
-                                                                                               // (helpful  in zoom)
-    int lod = calcLod(fi.min_tank_lod, fi.world_pos, fi.camera_height);
-    if (lod > 0)
-      cull_data.lodGrid.lod0SubDiv = 0;
-
-    // unfortunately, although if we use (1<<(lodGrid.lodsCount-1)) snapping all verices stays, but triangulation pops (because we use
-    // diamond subdivision) can be fix, if we will swap subdivision as well.
-    float scale = hmapCellSize * (1 << lod) * fi.lod0scale;
-    float align = renderer.getDim() * scale;
-
-    // float align = (1<<(lodGrid.lodsCount-1))*hmapCellSize;
-    float lod0AreaSize = 0.f;
-    Point3 clippedOrigin = getClippedOrigin(fi.world_pos);
-    cull_lod_grid(cull_data.lodGrid, cull_data.lodGrid.lodsCount - fi.min_tank_lod, clippedOrigin.x, clippedOrigin.z, scale, scale,
-      align, align, worldBox[0].y, worldBox[1].y, &fi.frustum, &worldBox2, cull_data, fi.occlusion, lod0AreaSize,
-      renderer.get_hmap_tess_factorVarId(), renderer.getDim(), true, heightmapHeightCulling.get(), nullptr, fi.water_level,
-      &fi.world_pos);
-#if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
-  };
-  TIME_PROFILE(htmap_frustum_cull);
-  doFrustumCull();
-#endif
+  // metrics are always built for the rendering heightmap (see initRender / prepare), so the
+  // non-metrics distance-based cull is dead. Assert the invariant; on release degrade to empty cull.
+  cull_data.eraseAll();
+  G_ASSERT_RETURN(metrics, );
+  ::frustumCulling(*metrics, cull_data, fi.world_pos, fi.frustum, fi.occlusion, *this, fi.world_bbox_xzs, fi.metrics);
 }
 
 void HeightmapHandler::renderCulled(const LodGridCullData &cullData)
 {
   if (!cullData.hasPatches())
     return;
-  if (!use_metrics || !metrics || !metricsRenderer)
-    renderer.render(cullData.lodGrid, cullData);
-  else
-  {
-    MetricsErrors &errors = *metrics;
-    G_ASSERT(errors.dim == metricsRenderer->getDim());
-
-    /*TMatrix view;
-    d3d::gettm(TM_VIEW, view);
-    TMatrix viewNoRot = view;
-    viewNoRot.setcol(3, 0,0,0);
-    d3d::settm(TM_VIEW, viewNoRot);*/
-    metricsRenderer->render(cullData, metricsRenderer->getShElem(), metricsRenderer->getDimBits());
-    // d3d::settm(TM_VIEW, view);
-  }
+  // metrics/metricsRenderer are always built for the rendering heightmap (see initRender / prepare);
+  // the plain renderer.render() fallback is dead. Assert the invariant; on release degrade to no-op.
+  G_ASSERT_RETURN(metrics && metricsRenderer, );
+  G_ASSERT(metrics->dim == metricsRenderer->getDim());
+  metricsRenderer->render(cullData, metricsRenderer->getShElem(), metricsRenderer->getDimBits());
 }
 
 void HeightmapHandler::renderOnePatch()

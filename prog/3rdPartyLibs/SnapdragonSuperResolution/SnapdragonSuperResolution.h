@@ -16,6 +16,7 @@
 #include <generic/dag_carray.h>
 #include <shaders/dag_shaders.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_renderTarget.h>
 
 class SnapdragonSuperResolution : public PostFxRenderer
 {
@@ -45,7 +46,7 @@ public:
     {
         Color4 viewportData = Color4(viewport);
 
-        d3d::set_render_target(output, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{output, 0, 0}});
         ShaderGlobal::set_texture(snapdragon_super_resolution_inputVarId, input);
         ShaderGlobal::set_sampler(snapdragon_super_resolution_input_samplerstateVarId, d3d::request_sampler({}));
         ShaderGlobal::set_float4(snapdragon_super_resolution_ViewportInfoVarId, viewportData);

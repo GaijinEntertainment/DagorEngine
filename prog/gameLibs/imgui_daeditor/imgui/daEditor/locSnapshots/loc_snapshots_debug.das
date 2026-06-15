@@ -40,14 +40,14 @@ def draw_LocSnapshotList(eid : array<EntityId> implicit; flags : uint; name : st
       TableHeadersRow()
 
     var prevPos = float3()
-    var prevT = .0
+    var prevT : double = 0.0lf
     for snapshotData in list
       imgui::TableNextRow()
       imgui::TableNextColumn()
       imgui::Text("{snapshotData.atTime:.2f}")
       imgui::TableNextColumn()
-      if prevT != .0
-        imgui::Text("{(snapshotData.atTime - prevT) * 1000.0:.0f}")
+      if prevT != 0.0lf
+        imgui::Text("{(snapshotData.atTime - prevT) * 1000.0lf:.0f}")
       imgui::TableNextColumn()
       imgui::Text(snapshotData.blink ? "+" : "")
       imgui::TableNextColumn()

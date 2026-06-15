@@ -297,6 +297,11 @@ inline void _Swap(SQObject &a,SQObject &b)
     b = t;
 }
 
+struct SQCollectable;
+// Counterpart to SQRELEASEHOOK: lets a native binding trace HSQOBJECTs hidden behind an
+// instance _userpointer by forwarding each to SQSharedState::MarkObject(obj, chain).
+typedef void (*SQMARKHOOK)(SQUserPointer up, SQCollectable **chain);
+
 /////////////////////////////////////////////////////////////////////////////////////
 #ifndef NO_GARBAGE_COLLECTOR
 #define MARK_FLAG 0x80000000

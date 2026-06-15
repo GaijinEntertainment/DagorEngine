@@ -47,8 +47,8 @@ Runtime::Runtime() // -V730
   nodeExec.emplace(*resourceAllocator, intermediateGraph, irMapping, registry, nameResolver, currentlyProvidedResources);
 
 #if DAGOR_DBGLEVEL > 0
-  fgVisManager =
-    visualization::make_real_manager(registry, nameResolver, dependencyDataCalculator.depData, intermediateGraph, passColoring);
+  fgVisManager = visualization::make_real_manager(registry, nameResolver, dependencyDataCalculator.depData, intermediateGraph,
+    passColoring, perNodeStateDeltas);
 #else
   fgVisManager = visualization::make_dummy_manager();
 #endif
@@ -570,13 +570,13 @@ void Runtime::updateHistory()
   currentStage = CompilationStage::REQUIRES_VISUALIZATION_UPDATE;
 }
 
-void Runtime::updateVisualization()
+void Runtime::updateVisualization(const NodesChanged &nodes_changed)
 {
   TIME_PROFILE(updateVisualization);
   if (verbose)
     debug("daFG: Updating visualization...");
 
-  fgVisManager->updateUserGraphVisualization();
+  fgVisManager->updateUserGraphVisualization(nodes_changed);
 
   fgVisManager->updateIRGraphVisualization();
 
@@ -901,7 +901,7 @@ void Runtime::recompile()
 
     case CompilationStage::REQUIRES_HISTORY_UPDATE: updateHistory(); [[fallthrough]];
 
-    case CompilationStage::REQUIRES_VISUALIZATION_UPDATE: updateVisualization(); [[fallthrough]];
+    case CompilationStage::REQUIRES_VISUALIZATION_UPDATE: updateVisualization(nodeChanges); [[fallthrough]];
 
     case CompilationStage::UP_TO_DATE: break;
   }

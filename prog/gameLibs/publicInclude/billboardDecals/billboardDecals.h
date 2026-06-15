@@ -27,7 +27,7 @@ public:
   void close();
   bool init(float hard_distance, float softness_distance, unsigned max_holes, const char *holes_buffer_name,
     const char *generator_shader_name, const char *clear_sphere_shader_name, const char *decal_shader_name);
-  void init_textures(SharedTexHolder &&diffuse, SharedTexHolder &&normal);
+  void init_textures(SharedTexWithShaderVar &&diffuse, SharedTexWithShaderVar &&normal);
   bool init_textures(dag::ConstSpan<const char *> diffuse, dag::ConstSpan<const char *> normal,
     const char *texture_name = "bullet_holes");
   ~BillboardDecals();
@@ -65,8 +65,8 @@ protected:
   StaticTab<BillboardToUpdate, MAX_DECALS_TO_UPDATE> holesToUpdate;
   dag::RelocatableFixedVector<Point4, MAX_SPHERES_TO_CLEAR> spheresToClear; // (pos.xyz, radius)
 
-  SharedTexHolder diffuseTex;
-  SharedTexHolder bumpTex;
+  SharedTexWithShaderVar diffuseTex;
+  SharedTexWithShaderVar bumpTex;
 
   unsigned int numHoles;
   unsigned int nextHoleNo;

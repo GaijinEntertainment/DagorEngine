@@ -1255,7 +1255,12 @@ Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsi
   ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(struct_size * elements == 0);
-  return DummyVBuffer::create(struct_size * elements, 0, flags, stat_name);
+  if (DummyVBuffer *buf = DummyVBuffer::create(struct_size * elements, 0, flags, stat_name))
+  {
+    buf->setElemSz(struct_size);
+    return buf;
+  }
+  return NULL;
 }
 
 bool d3d::draw_indirect(int, Sbuffer *, uint32_t) { return true; }
@@ -1319,6 +1324,26 @@ bool d3d::set_render_target(const Driver3dRenderTarget &rt)
 {
   currentRtState = rt;
   return true;
+}
+
+// Bulk setter: sets all color targets, clears unused slots, and sets depth in one call.
+void d3d::set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  int i = 0;
+  for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+  {
+    if (colors[i].tex)
+      currentRtState.setColor(i, colors[i].tex, colors[i].mip_level, colors[i].layer);
+    else
+      currentRtState.removeColor(i);
+  }
+  for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
+    currentRtState.removeColor(i);
+
+  if (depth.tex)
+    currentRtState.setDepth(depth.tex, depth.layer, depth_access == DepthAccess::SampledRO);
+  else
+    currentRtState.removeDepth();
 }
 
 void d3d::get_render_target(Driver3dRenderTarget &out_rt) { out_rt = currentRtState; }

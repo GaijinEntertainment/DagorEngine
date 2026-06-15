@@ -15,7 +15,7 @@ static void print_title()
 {
   printf("--------------------------------------------\n"
          "Dag to ObjectsGroup converter\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n"
+         "Copyright (C) Gaijin Games KFT, 2026\n"
          "--------------------------------------------\n"
          "compilation time: %s %s\n\n\n",
     __DATE__, __TIME__);

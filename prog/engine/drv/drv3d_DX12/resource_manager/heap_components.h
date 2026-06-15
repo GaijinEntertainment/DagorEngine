@@ -14,6 +14,7 @@
 #include <EASTL/vector.h>
 #include <free_list_utils.h>
 #include <value_range.h>
+#include <generic/dag_expected.h>
 
 
 namespace drv3d_dx12
@@ -103,8 +104,9 @@ protected:
 
   struct SetupInfo : BaseType::SetupInfo
   {
-    DXGIAdapter *adapter;
-    bool reportMemoryInfo;
+    DXGIAdapter *adapter = nullptr;
+    bool reportMemoryInfo = false;
+    bool reportOverBudget = true;
 
     DXGIAdapter *getAdapter() const { return adapter; }
   };
@@ -472,6 +474,7 @@ private:
   MemoryPoolStatus reportedPoolStates[total_memory_pool_count]{};
   uint64_t poolBudgetLevels[total_memory_pool_count][static_cast<uint32_t>(BudgetPressureLevels::LOW)]{};
   BudgetPressureLevels poolBudgetLevelstatus[total_memory_pool_count]{};
+  bool deviceLocalPanicTrimScheduled = false;
   uint64_t processVirtualAddressUse = 0;
   uint64_t processVirtualTotal = 0;
   struct BehaviorStatus
@@ -480,6 +483,7 @@ private:
     bool disableDeviceMemoryStatusQuery : 1 = false;
     bool disableVirtualAddressSpaceStatusQuery : 1 = false;
     bool printMemoryReports : 1 = false;
+    bool reportOverBudget : 1 = false;
   };
   BehaviorStatus behaviorStatus;
   // offsets are used to artificially shrink the available budget value we use for further calculations
@@ -609,12 +613,6 @@ protected:
     return level < BudgetPressureLevels::HIGH;
   }
 
-  bool shouldTrimUploadRingBuffer() const
-  {
-    auto level = getFeatureSet().isUMA ? getDeviceLocalBudgetLevel() : getHostLocalBudgetLevel();
-    return level < BudgetPressureLevels::HIGH;
-  }
-
   // Checks current memory status of the system and updates the behavior of the memory manager depending on
   // the memory usage pressure.
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data);
@@ -637,6 +635,7 @@ protected:
   };
 
   uint64_t getHeapSizeFromAllocationSize(uint64_t size, ResourceHeapProperties properties, AllocationFlags flags);
+  MemoryAllocationError makeMemoryAllocationError(HRESULT error_code, uint64_t size, ResourceHeapProperties properties);
 };
 #else
 #include "resource_manager/heap_components_xbox.inl.h"
@@ -659,10 +658,6 @@ protected:
   {
     ID3D12Resource *buffer;
   };
-  struct UploadRingBufferReference
-  {
-    ID3D12Resource *buffer;
-  };
   struct TempUploadBufferReference
   {
     ID3D12Resource *buffer;
@@ -680,8 +675,8 @@ protected:
     ID3D12Resource *buffer;
   };
   using AnyResourceReference = eastl::variant<eastl::monostate, Image *, BufferGlobalId, AliasHeapReference, ScratchBufferReference,
-    PushRingBufferReference, UploadRingBufferReference, TempUploadBufferReference, PersistentUploadBufferReference,
-    PersistentReadBackBufferReference, PersistentBidirectionalBufferReference>;
+    PushRingBufferReference, TempUploadBufferReference, PersistentUploadBufferReference, PersistentReadBackBufferReference,
+    PersistentBidirectionalBufferReference>;
   struct HeapResourceInfo
   {
     ValueRange<uint64_t> range;
@@ -1163,6 +1158,8 @@ protected:
     props.raw = id.group;
     return props;
   }
+
+  using ResourceMemoryAllocationResult = dag::Expected<ResourceMemory, MemoryAllocationError>;
 };
 
 #if _TARGET_XBOX
@@ -1335,8 +1332,8 @@ public:
 
   bool preAllocateHeap(ResourceHeapProperties properties, size_t heap_size);
 
-  ResourceMemory allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
-    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode = nullptr);
+  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
   ResourceMemory allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index, const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
   void free(ResourceMemory allocation);
   void freeNoLock(ResourceMemory allocation, bool is_heap_deletion_allowed);
@@ -1397,8 +1394,8 @@ public:
   }
 
 private:
-  ResourceMemory tryAllocateFromMemoryWithProperties(ResourceHeapProperties heap_properties,
-    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode);
+  ResourceMemoryAllocationResult tryAllocateFromMemoryWithProperties(ResourceHeapProperties heap_properties,
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
 };
 #else
 class ResourceMemoryHeapProvider : public ResourceMemoryHeapBase
@@ -1571,8 +1568,8 @@ public:
 
   static D3D12_RESOURCE_STATES getInitialTextureResourceState(D3D12_RESOURCE_FLAGS flags);
 
-  ResourceMemory allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
-    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags, HRESULT *pErrorCode = nullptr);
+  ResourceMemoryAllocationResult allocate(DXGIAdapter *adapter, ID3D12Device *device, ResourceHeapProperties props,
+    const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, AllocationFlags flags);
   ResourceMemory allocateMemoryInPlace(HeapID heap_id, uint32_t free_range_index, const D3D12_RESOURCE_ALLOCATION_INFO &allocInfo);
   void free(ResourceMemory allocation);
   void freeNoLock(ResourceMemory allocation, bool is_heap_deletion_allowed);
@@ -1637,8 +1634,8 @@ public:
   }
 
 private:
-  ResourceMemory tryAllocateFromMemoryWithProperties(ID3D12Device *device, ResourceHeapProperties heap_properties,
-    AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info, HRESULT *error_code);
+  ResourceMemoryAllocationResult tryAllocateFromMemoryWithProperties(ID3D12Device *device, ResourceHeapProperties heap_properties,
+    AllocationFlags flags, const D3D12_RESOURCE_ALLOCATION_INFO &alloc_info);
 
 #if DX12_SET_HEAP_RESIDENCY_PRIORITY
   eastl::vector<ID3D12Pageable *> resourcesToSetPriorities;

@@ -8,7 +8,7 @@
 #include <animChar/dag_animCharacter2.h>
 #include <render/world/global_vars.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/cameraParams.h>
 
 dafg::NodeHandle create_dynamic_mirror_render_dynamic_node()
@@ -44,12 +44,12 @@ dafg::NodeHandle create_dynamic_mirror_render_dynamic_node()
       ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
       uint32_t hints = UpdateStageInfoRender::RENDER_COLOR | UpdateStageInfoRender::RENDER_DEPTH;
 
-      auto &state = dynmodel_renderer::get_immediate_state();
+      dynrend::ContextId ctx = dynrend::get_or_create_context("dynmodel_immediate");
       {
         TIME_D3D_PROFILE(ecs_render);
         g_entity_mgr->broadcastEventImmediate(UpdateStageInfoRender(hints, cameraData->frustum, cameraData->viewItm,
           cameraData->viewTm, cameraData->projTm, cameraHndl.ref().cameraWorldPos, cameraHndl.ref().negRoundedCamPos,
-          cameraHndl.ref().negRemainderCamPos, nullptr, RENDER_UNKNOWN, &state, texStreamingCtx));
+          cameraHndl.ref().negRemainderCamPos, nullptr, RENDER_UNKNOWN, ctx, texStreamingCtx));
       }
 
       ShaderGlobal::set_float4(world_view_posVarId, originalWorldPos);

@@ -20,7 +20,7 @@ namespace darg
 BhvProcessPointingInput bhv_process_pointing_input;
 
 
-BhvProcessPointingInput::BhvProcessPointingInput() : Behavior(0, F_HANDLE_KEYBOARD_GLOBAL | F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
+BhvProcessPointingInput::BhvProcessPointingInput() : Behavior(0, F_HANDLE_MOUSE | F_HANDLE_TOUCH) {}
 
 
 int BhvProcessPointingInput::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice device, InputEvent event,

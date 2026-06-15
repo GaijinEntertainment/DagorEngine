@@ -28,11 +28,10 @@ struct BECmdBuffer
   template <typename T>
   bool isNextCommandSame(const T &)
   {
-    const uint8_t *ptr = execPtr;
-    ptr += sizeof(T);
-    if (ptr >= mem.end())
+    // execPtr is already advanced past current command data before execCmd is called
+    if (execPtr >= mem.end())
       return false;
-    CmdID id = *((const CmdID *)ptr);
+    CmdID id = *((const CmdID *)execPtr);
     return id == cmd_get__ID<T>();
   }
 

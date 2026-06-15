@@ -51,6 +51,9 @@ public:
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
     files.clear();
+    if (const char *sk2_nm = a.props.getStr("combineWithSkeleton", nullptr))
+      if (const DagorAsset *sk2_a = a.getMgr().findAsset(sk2_nm, a.getType()))
+        gatherSrcDataFiles(*sk2_a, files);
     files.push_back() = a.getTargetFilePath();
     gatherReferencedAdditionalDags(a.props, a.getFolderPath(), a.props.getNameId("attachSubSkel"), a.props.getNameId("mergeSkel"),
       files);

@@ -18,10 +18,10 @@
 #include <render/world/wrDispatcher.h>
 
 #include "global_vars.h"
-#include "dynModelRenderer.h"
+#include <render/dynmodelRenderer.h>
 
 extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
-using namespace dynmodel_renderer;
+using namespace dynrend;
 
 static bool has_destr_objects_with_disintegration_animation()
 {
@@ -64,7 +64,7 @@ enum class DestructablesRenderStage
   TRANSPARENT
 };
 
-static __forceinline void destructables_render(int render_pass,
+static __forceinline void destructables_render(int /*render_pass*/,
   DestructablesRenderStage render_stage,
   bool to_depth,
   const Point3 &cam_pos,
@@ -72,7 +72,7 @@ static __forceinline void destructables_render(int render_pass,
   const Occlusion *occlusion,
   const TexStreamingContext &texCtx)
 {
-  DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+  ContextId ctx = get_or_create_context("dynmodel_immediate");
   uint32_t startStage = 0, endStage = 0;
   if (render_stage == DestructablesRenderStage::OPAQUE)
   {
@@ -83,9 +83,8 @@ static __forceinline void destructables_render(int render_pass,
     startStage = endStage = ShaderMesh::STG_decal;
   else if (render_stage == DestructablesRenderStage::TRANSPARENT)
     startStage = endStage = ShaderMesh::STG_trans;
-  const auto needPreviousMatrices = ((render_stage == DestructablesRenderStage::OPAQUE) && !to_depth)
-                                      ? dynmodel_renderer::NeedPreviousMatrices::Yes
-                                      : dynmodel_renderer::NeedPreviousMatrices::No;
+  const auto needPreviousMatrices =
+    ((render_stage == DestructablesRenderStage::OPAQUE) && !to_depth) ? NeedPreviousMatrices::Yes : NeedPreviousMatrices::No;
   vec3f vCamPos = v_ldu(&cam_pos.x);
   for (const auto destr : destructables::getDestructableObjects())
   {
@@ -146,23 +145,19 @@ static __forceinline void destructables_render(int render_pass,
         additionalData[initialTmHashvalPos + i] = destr->intialTmAndHash[i];
       int destrParamsPos = animchar_additional_data::request_space<AAD_RAW_DESTR_PARAMS>(additionalData, 1);
       additionalData[destrParamsPos] = destr->getDisintegrationParams();
-      auto additionalDataView = animchar_additional_data::AnimcharAdditionalDataView::get_optional_data(&additionalData);
-      state.process_animchar(startStage, endStage, modelDynScene, additionalDataView, needPreviousMatrices, {},
-        dynmodel_renderer::PathFilterView::NULL_FILTER, 0, RenderPriority::HIGH, nullptr, texCtx);
+      const auto additionalDataView = animchar_additional_data::AnimcharAdditionalDataView::get_optional_data(&additionalData);
+      add_animchar(ctx, startStage, endStage, modelDynScene, additionalDataView, needPreviousMatrices, {}, PathFilterView::NULL_FILTER,
+        0, RenderPriority::HIGH, nullptr, texCtx);
     }
   }
 
-  bool transparent = render_stage == DestructablesRenderStage::TRANSPARENT;
-  state.prepareForRender();
-  const DynamicBufferHolder *buffer = state.requestBuffer(
-    transparent ? dynmodel_renderer::BufferType::TRANSPARENT_MAIN : dynmodel_renderer::get_buffer_type_from_render_pass(render_pass));
-  if (!buffer)
+  if (!prepare_render_current(ctx))
     return;
 
+  bool transparent = render_stage == DestructablesRenderStage::TRANSPARENT;
   const int block = to_depth ? dynamicDepthSceneBlockId : (transparent ? dynamicSceneTransBlockId : dynamicSceneBlockId);
-  state.setVars(buffer->buffer.getBufId());
   SCENE_LAYER_GUARD(block);
-  state.render(buffer->curOffset);
+  render_all_stages(ctx);
 }
 
 ECS_TAG(render)

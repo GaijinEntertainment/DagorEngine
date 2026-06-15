@@ -43,6 +43,7 @@ Sources =
   controllers/alias.cpp
   controllers/aim.cpp
   controllers/legsIK.cpp
+  controllers/twoBonesIK.cpp
   controllers/multiChainFABRIK.cpp
   controllers/animateNode.cpp
   controllers/condHide.cpp

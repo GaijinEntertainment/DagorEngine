@@ -102,7 +102,8 @@ macro USE_GRASS_COMPRESSION(code)
         //to.landNormal.x = uncompress_normal_float(from.land_normal&0xff);
         //to.landNormal.z = uncompress_normal_float((from.land_normal>>8)&0xff);
         to.landNormal.xz = unpackHalf2FromUint(from.land_normal);
-        to.landNormal.y = sqrt(1-to.landNormal.x*to.landNormal.x - to.landNormal.z*to.landNormal.z);
+        // saturate: half rounding can push x^2+z^2 slightly above 1, sqrt of negative is NaN
+        to.landNormal.y = sqrt(saturate(1-to.landNormal.x*to.landNormal.x - to.landNormal.z*to.landNormal.z));
         to.opacity = float(from.opacity_porosity >> 16) * (1.f / 65535.f);
         to.porosity = float(from.opacity_porosity & 0x0000FFFF) * (1.f / 65535.f);
         to.lodNo = from.lodNo >> 2;

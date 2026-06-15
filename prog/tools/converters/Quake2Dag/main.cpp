@@ -31,7 +31,7 @@ int DagorWinMain(bool debugmode)
 {
   dd_add_base_path("");
   printf("Dagor Quake to DAG \n"
-         "Copyright (C) Gaijin Games KFT, 2023\n\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n\n");
 
   // Usage: q3bsp <name>.BSP
   if (__argc < 2)

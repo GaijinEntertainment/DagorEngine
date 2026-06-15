@@ -11,6 +11,8 @@
 #include "sqarray.h"
 #include "squserdata.h"
 #include "sqclass.h"
+#include <chrono>
+
 
 SQSharedState::SQSharedState(SQAllocContext allocctx) :
     _alloc_ctx(allocctx),
@@ -30,6 +32,7 @@ SQSharedState::SQSharedState(SQAllocContext allocctx) :
     compilationOptions = 0;
     doc_object_index = 1;
     rand_seed = 0;
+    table_iter_seed = sq_generate_seed();
     watchdog_last_alive_time_msec = 0;
     watchdog_threshold_msec = 0;
 }
@@ -165,6 +168,15 @@ void SQSharedState::Init()
 #undef MM_IMPL
 
     _constructorstr = SQString::Create(this,"constructor");
+
+    // Intern the async-trace frame-table keys once (member name == key string).
+#define INIT_TKEY(k) _traceSchema.k = SQString::Create(this, #k)
+    INIT_TKEY(func); INIT_TKEY(source); INIT_TKEY(line); INIT_TKEY(awaited);
+    INIT_TKEY(kind); INIT_TKEY(locals); INIT_TKEY(localsMore);
+    INIT_TKEY(name); INIT_TKEY(type); INIT_TKEY(value); INIT_TKEY(count);
+    INIT_TKEY(gstate); INIT_TKEY(captured);
+#undef INIT_TKEY
+
     _registry = SQTable::Create(this,0);
     _consts = SQTable::Create(this,0);
     doc_objects = SQTable::Create(this,0);
@@ -194,6 +206,12 @@ SQSharedState::~SQSharedState()
         sqasync::shutdown(this);
     if(_releasehook) { _releasehook(_thread(_root_vm),_foreignptr,0); _releasehook = NULL; }
     _constructorstr.Null();
+#define NULL_TKEY(k) _traceSchema.k.Null()
+    NULL_TKEY(func); NULL_TKEY(source); NULL_TKEY(line); NULL_TKEY(awaited);
+    NULL_TKEY(kind); NULL_TKEY(locals); NULL_TKEY(localsMore);
+    NULL_TKEY(name); NULL_TKEY(type); NULL_TKEY(value); NULL_TKEY(count);
+    NULL_TKEY(gstate); NULL_TKEY(captured);
+#undef NULL_TKEY
     _table(_registry)->Finalize();
     _table(_consts)->Finalize();
     _table(_metamethodsmap)->Finalize();
@@ -223,7 +241,6 @@ SQSharedState::~SQSharedState()
     _instance_class.Null();
     _weakref_class.Null();
     _userdata_class.Null();
-    _error_class.Null();
 
     _refs_table.Finalize();
 #ifndef NO_GARBAGE_COLLECTOR
@@ -311,7 +328,6 @@ void SQSharedState::RunMark(SQVM* SQ_UNUSED_ARG(vm),SQCollectable **tchain)
     MarkObject(_instance_class,tchain);
     MarkObject(_weakref_class,tchain);
     MarkObject(_userdata_class,tchain);
-    MarkObject(_error_class,tchain);
 
     MarkObject(doc_objects,tchain);
 }
@@ -699,4 +715,13 @@ void SQStringTable::Remove(SQString *bs)
         s = s->_next;
     }
     assert(0);//if this fail something is wrong
+}
+
+SQUnsignedInteger32 sq_generate_seed()
+{
+    static SQUnsignedInteger32 x = 0;
+    SQUnsignedInteger32 s = (x += 12345);
+    s ^= SQUnsignedInteger32(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    s = s ^ (s >> 10);
+    return s ? s : 1;
 }

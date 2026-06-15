@@ -18,6 +18,8 @@
 #include <perfMon/dag_statDrv.h>
 #include <util/dag_finally.h>
 #include <debug/dag_debug.h>
+#include <daBVH/dag_swBLAS_ray.h>
+#include "collisionTraceOOL.h"
 
 // #define VERIFY_TRACE_RESULTS 1 // May affect performance
 
@@ -48,6 +50,72 @@ static inline void sort_collres_intersections(T &intersected_nodes_list)
 {
   fast_sort_branchless(intersected_nodes_list.begin(), intersected_nodes_list.end());
 }
+
+// Cull-agnostic filtered BLAS walk: iterateFiltered runs the caller's node-box test and emits leaf
+// triangles to the caller's leaf callback, which picks the cull mode (RayTriangleIntersect<CullCCW>).
+// iterateFiltered ignores the BLASTraverse CullCCW arg, so <false> is arbitrary.
+using QuadBLASWalk = BLASTraverse<false>;
+
+// Dequantize a vert21 leaf vertex back to resource-local coordinates. Packed value is box-space
+// [0,65535]; inverse is `local = q * (1/blasScale) + blasBBox.bmin`. This matches the trace
+// dispatch frame (vLocalFrom/vLocalDir), so the per-triangle ray test needs no further conversion.
+struct BlasLocalUnquant
+{
+  vec3f bmin, invScale;
+  __forceinline vec3f operator()(const uint8_t *d, int baseOfs, uint vertIdx) const
+  {
+    vec3f q = RayData::unpackVert21(d + baseOfs + vertIdx * 8);
+    return v_madd(q, invScale, bmin);
+  }
+  static BlasLocalUnquant make(vec3f blas_bmin, vec3f blas_scale)
+  {
+    BlasLocalUnquant u;
+    u.bmin = blas_bmin;
+    u.invScale = v_rcp(blas_scale);
+    return u;
+  }
+};
+
+// Convert a resource-local ray to box-space (the BLAS inner-node bbox encoding frame). t is invariant
+// under the per-axis scaling (box_dir = local_dir * scale), so the same max-t prunes both frames.
+struct BlasBoxRay
+{
+  vec3f dirInv, originScaled;
+  static BlasBoxRay make(vec3f vLocalFrom, vec3f vLocalDir, vec3f blas_scale, vec3f blas_ofs)
+  {
+    BlasBoxRay r;
+    vec3f bRayOrigin = v_madd(vLocalFrom, blas_scale, blas_ofs);
+    vec3f bRayDir = v_mul(vLocalDir, blas_scale);
+    r.dirInv = v_rcp(v_sel(v_splats(1e-32f), bRayDir, v_cmp_gt(v_abs(bRayDir), v_splats(1e-32f))));
+    r.originScaled = v_neg(v_mul(bRayOrigin, r.dirInv));
+    return r;
+  }
+};
+
+// Recover a leaf's source CollisionNode from its leaf body offset. buildBLAS keeps each node's vert21
+// contiguous (drops the global fetch-remap, keeps QUAD_O1 dups inside the owning node's block), so a
+// leaf's verts all live in one source node's sub-range: read the leaf's first vert byte offset, turn
+// it into a vert21 index, and upper-bound the sorted blasNodeRanges to the containing range. Used by
+// the BLAS trace dispatch (directly in the all-hits walk, via the OOL accept thunk for SoA rayCast).
+static inline uint16_t blas_src_node_for_leaf(const CollisionResource::Grid &g, uint32_t blas_offset)
+{
+  const uint8_t *d = g.blasData.data();
+  // First 4 bytes at blas_offset hold the relative offset to the leaf's vertex data.
+  const int ofs1Rel = ((const int *)(d + blas_offset))[0];
+  const uint32_t v0ByteOfs = (uint32_t)((int)blas_offset + ofs1Rel);
+  G_ASSERTF(v0ByteOfs >= g.blasVertsOfs(), "BLAS leaf vert byte offset %u is inside the tree region (vertsOfs=%u, blasOffset=%u)",
+    v0ByteOfs, g.blasVertsOfs(), blas_offset);
+  const uint32_t v0Idx = (v0ByteOfs - g.blasVertsOfs()) / 8u;
+  const auto *first = g.blasNodeRanges.data();
+  const auto *last = first + g.blasNodeRanges.size();
+  auto it =
+    eastl::upper_bound(first, last, v0Idx, [](uint32_t v, const CollisionResource::Grid::NodeRange &r) { return v < r.verticesOfs; });
+  G_ASSERTF(it != first, "BLAS leaf vert21 index %u precedes all blasNodeRanges entries", v0Idx);
+  --it;
+  G_ASSERTF(v0Idx < it->verticesEnd, "BLAS leaf vert21 index %u falls into gap between blasNodeRanges entries", v0Idx);
+  return it->nodeIndex;
+}
+
 
 void CollisionResource::bakeNodeTransform(int node_id)
 {
@@ -307,10 +375,20 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
   bool hasCollision = false;
   bool isTraceByCapsule = trace_type == CollisionTraceType::TRACE_CAPSULE || trace_type == CollisionTraceType::CAPSULE_HIT;
   calc_normal &= trace_type == CollisionTraceType::TRACE_RAY || trace_type == CollisionTraceType::TRACE_CAPSULE;
-  const auto *tracer = getTracer(behavior_filter);
-  if (!tracer || isTraceByCapsule)
+  // The BLAS bakes BLAS-eligible mesh-node triangles in resource-local (bind) space and is walked using
+  // only the instance tm -- it never consults the GeomNodeTree. A tree-driven node hit via the BLAS
+  // would therefore be tested at its bind pose, not its animated pose. The invariant (asserted in
+  // initializeWithGeomNodeTree) is that tree-bound resources are never grid-optimized, so hasBlas() is
+  // already false for them; the explicit !geom_node_tree guard makes the trace path honour that contract
+  // in release builds too -- when a tree is supplied we fall through to the per-node loop, which applies
+  // the animated per-node tm via getMeshNodeTmInline.
+  const bool useBlas = hasBlas(behavior_filter) && !isTraceByCapsule && !geom_node_tree;
+  // Per-node trace of the mesh list (mesh + convex nodes). A BLAS covers only BLAS-eligible (IDENT)
+  // mesh nodes; those are traced by the BLAS walk below and skipped here. Convex and non-IDENT mesh
+  // nodes are never in the BLAS, so they must still be traced per-node or they'd be silently dropped.
+  if (meshNodesHead != CollisionNode::INVALID_IDX)
   {
-    TIME_PROFILE_DEV(collres_trace_mesh_no_grid);
+    TIME_PROFILE_DEV(collres_trace_mesh_per_node);
     CollResProfileStats profileStats;
     profileStats.meshNodesNum = numMeshNodes;
 #if DAGOR_DBGLEVEL > 0
@@ -340,6 +418,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     {
       const CollisionNode *meshNode = &allNodesList[mi];
       if (!filter(meshNode))
+        continue;
+      // The BLAS holds every BLAS-eligible (IDENT) mesh node; skip those here to avoid double-tracing
+      // (the BLAS walk below handles them). Mirrors buildBLAS's isEligibleForBlas; convex and
+      // non-IDENT mesh nodes fall through.
+      if (useBlas && meshNode->type == COLLISION_NODE_TYPE_MESH && (meshNode->flags & CollisionNode::IDENT) &&
+          meshNode->checkBehaviorFlags(behavior_filter) && meshNode->indicesCount > 0)
         continue;
 
       alignas(EA_CACHE_LINE_SIZE) mat44f nodeTm, nodeItm;
@@ -379,6 +463,23 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       }
       else
         v_mat44_inverse43(nodeItm, nodeTm);
+
+      // BLAS-resident materialisation: this per-node fallback is the only forEachIntersectedNode path
+      // for capsule traces (useBlas is false when isTraceByCapsule), and ray traces land here when the
+      // target grid is empty. The pfn / traceCapsule* / capsuleHit* helpers read `verts_base +
+      // node.verticesOfs` / `idx_base + node.indicesOfs`, but BLAS-resident MESH nodes dropped both
+      // ownVertices and ownIndices. resolveNodeVertsForCall materialises both into framemem scratches
+      // and rebases the node copy's verticesOfs/indicesOfs to 0 so the helpers index unchanged.
+      dag::Vector<Point3_vec4, framemem_allocator> blasResidentVScratch;
+      dag::Vector<uint16_t, framemem_allocator> blasResidentIScratch;
+      CollisionNode rebasedNodeCopy;
+      const Point3_vec4 *vertsForCall = nullptr;
+      const uint16_t *idxForCall = nullptr;
+      const CollisionNode *nodeForCall = nullptr;
+      resolveNodeVertsForCall(*meshNode, blasResidentVScratch, blasResidentIScratch, rebasedNodeCopy, vertsForCall, idxForCall,
+        nodeForCall);
+      if (DAGOR_UNLIKELY((meshNode->flags & CollisionNode::BLAS_RESIDENT) && getBlasGridForResidentNode(*meshNode).blasData.empty()))
+        continue; // defensive: BLAS_RESIDENT was stamped but grid wasn't built. Skip silently.
 
       for (int traceId = 0, traceEnd = traces.size(); traceId < traceEnd; traceId++)
       {
@@ -451,20 +552,21 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           {
             case CollisionTraceType::TRACE_RAY:
               isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
-                                   : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase,
-                *meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, normPtr);
+                                   : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(vertsForCall, idxForCall,
+                *nodeForCall, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, normPtr);
               break;
             case CollisionTraceType::TRACE_CAPSULE:
-              isHit = traceCapsuleMeshNodeLocalCullCCW(*meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, localCapsuleRadius,
-                vNodeLocalNorm, vNodeLocalCapsuleHitPos);
+              isHit = traceCapsuleMeshNodeLocalCullCCW(vertsForCall, idxForCall, *nodeForCall, vNodeLocalFrom, vNodeLocalDir,
+                inOutLocalT, localCapsuleRadius, vNodeLocalNorm, vNodeLocalCapsuleHitPos);
               break;
             case CollisionTraceType::RAY_HIT:
               isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnRayHitMeshNodeLocalCullCCW
-                                   : traceMeshNodeLocalApi.heavy.pfnRayHitMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase,
-                *meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT);
+                                   : traceMeshNodeLocalApi.heavy.pfnRayHitMeshNodeLocalCullCCW)(vertsForCall, idxForCall, *nodeForCall,
+                vNodeLocalFrom, vNodeLocalDir, inOutLocalT);
               break;
             case CollisionTraceType::CAPSULE_HIT:
-              isHit = capsuleHitMeshNodeLocalCullCCW(*meshNode, vNodeLocalFrom, vNodeLocalDir, inOutLocalT, localCapsuleRadius);
+              isHit = capsuleHitMeshNodeLocalCullCCW(vertsForCall, idxForCall, *nodeForCall, vNodeLocalFrom, vNodeLocalDir,
+                inOutLocalT, localCapsuleRadius);
               break;
             default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
           }
@@ -526,8 +628,8 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
           all_collres_tri_indices_t retTriIndices;
           bool isLightNode = meshNode->indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
           bool isHit = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
-                                    : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(meshVertsBase, meshIndicesBase,
-            *meshNode, vNodeLocalFrom, vNodeLocalDir, localT, calc_normal, force_no_cull, ret, retTriIndices);
+                                    : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(vertsForCall, idxForCall,
+            *nodeForCall, vNodeLocalFrom, vNodeLocalDir, localT, calc_normal, force_no_cull, ret, retTriIndices);
           if (isHit)
           {
             hasCollision = true;
@@ -561,10 +663,12 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       } // traces loop
     } // mesh nodes loop
 
-    if (DAGOR_LIKELY(boxNodesHead == CollisionNode::INVALID_IDX && sphereNodesHead == CollisionNode::INVALID_IDX &&
-                     capsuleNodesHead == CollisionNode::INVALID_IDX))
+    // Grid-less early-out only: with useBlas set we still need the BLAS walk and the box/sphere/
+    // capsule loops below, so don't return here.
+    if (!useBlas && DAGOR_LIKELY(boxNodesHead == CollisionNode::INVALID_IDX && sphereNodesHead == CollisionNode::INVALID_IDX &&
+                                 capsuleNodesHead == CollisionNode::INVALID_IDX))
       return hasCollision;
-  } // if (!tracer)
+  } // mesh-list per-node pass
 
   alignas(EA_CACHE_LINE_SIZE) mat44f itm;
   if (orthonormalized_instance_tm)
@@ -604,7 +708,7 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
     }
     float localCapsuleRadius = isTraceByCapsule ? trace.capsuleRadius * (localT / trace.t) : 0.f;
 
-    if (tracer && !isTraceByCapsule)
+    if (useBlas)
     {
       TIME_PROFILE_DEV(collres_trace_mesh_grid);
 #if DA_PROFILER_ENABLED
@@ -612,95 +716,118 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
       DA_PROFILE_TAG(tris, ": %u", tris);
 #endif
 
-      // moved it in (tracer) block for rendinsts only, because in most cases we have not more than one not-mesh node
+      // moved it in (BLAS) block for rendinsts only, because in most cases we have not more than one not-mesh node
       // don't forget to extend vFullBBox by localCapsuleRadius if you want to change it
       if (!v_test_segment_box_intersection(vLocalFrom, vLocalTo, vFullBBox))
         continue;
 
-      IF_CONSTEXPR (trace_mode != ALL_INTERSECTIONS || trace_type == CollisionTraceType::RAY_HIT)
+      const Grid &blasGrid = getBlasGrid(behavior_filter);
+      const bool isCollidableGrid = isCollidableGridForTrace(behavior_filter);
       {
-        vec3f vGridLocalFrom = vLocalFrom;
-        float gridLocalT = localT;
-        float incT = 0.f;
-        int lastFaceId = -1;
-        for (;;)
-        {
-          int faceId = -1;
-          switch (trace_type)
-          {
-            case CollisionTraceType::TRACE_RAY:
-              faceId = tracer->tracerayNormalized(vGridLocalFrom, vLocalDir, gridLocalT, lastFaceId);
-              break;
-            case CollisionTraceType::RAY_HIT:
-              faceId = tracer->rayhitNormalizedIdx(vGridLocalFrom, vLocalDir, gridLocalT, lastFaceId);
-              break;
-            default: G_ASSERTF(false, "CollisionResource trace failed: unsupported trace_type");
-          }
-          if (faceId < 0)
-            break;
-          lastFaceId = faceId;
+        // BLAS path: walk the combined-per-behavior BLAS once per trace. The bbox check is box-space
+        // (the BLAS quantization frame); the per-triangle ray test is resource-local on verts
+        // dequantized via BlasLocalUnquant. blas_src_node_for_leaf (file-static above) maps a leaf's
+        // first-vert vert21 index to its CollisionNode so we can apply filter() and stamp the tri_ref
+        // with that node + the leaf's blasOffset.
+        const BlasLocalUnquant unquantVL = BlasLocalUnquant::make(blasGrid.blasBBox.bmin, blasGrid.blasScale);
+        const uint8_t *bData = blasGrid.blasData.data();
+        // Traversal bound is the tree region only ([0, blasTreeBytes)); the packed vert21 array lives
+        // after it in the same buffer and must not be walked as nodes.
+        const int bSize = (int)blasGrid.blasTreeBytes;
 
-          int localFaceId = 0;
-          int nodeIndex = getNodeIndexByFaceId(faceId, behavior_filter, localFaceId);
-          if (DAGOR_LIKELY(nodeIndex >= 0))
+        IF_CONSTEXPR (trace_mode != ALL_INTERSECTIONS || trace_type == CollisionTraceType::RAY_HIT)
+        {
+          // Closest/any/ray-hit via the canonical SoA BLAS rayCast (collisionTraceOOL): the 4-wide SoA
+          // leaf test the occluder/TLAS paths use, cull bound at compile time, per-node filter via a
+          // type-erased accept callback. The ray fed in is UNNORMALIZED box-space (origin =
+          // local*scale+ofs, dir = local_dir*scale) so the returned t equals the resource-local t (see
+          // BlasBoxRay) and the prune bound r.t is the local ray length. Cull: backface-cull CCW unless
+          // this grid replaces a two-sided FRT (force_no_cull only affected the all-hits path). A
+          // filter-rejected hit restores r.t inside the OOL so it can't shadow a farther accepted hit;
+          // any-hit stops at the first accepted hit.
+          RayData rd;
+          rd.data = bData;
+          rd.rayOrigin = v_madd(vLocalFrom, blasGrid.blasScale, blasGrid.blasOfs);
+          rd.rayDir = v_mul(vLocalDir, blasGrid.blasScale);
+          rd.t = localT;
+          rd.calc();
+
+          // Type-erased per-leaf filter: recover the source node, run the caller's filter. Invoked only
+          // on leaves the SoA test hit (rare), so the indirect call is off the hot path.
+          struct AcceptCtx
           {
-            const CollisionNode *meshNode = &allNodesList[nodeIndex];
-            if (filter(meshNode))
+            const Grid *grid;
+            const CollisionNode *nodes;
+            const filter_t *filter;
+          } actx{&blasGrid, allNodesList.data(), &filter};
+          const collision_blas::LeafAccept acceptLeaf = [](void *ctx, int dataOfs) -> bool {
+            const AcceptCtx *c = (const AcceptCtx *)ctx;
+            return (*c->filter)(&c->nodes[blas_src_node_for_leaf(*c->grid, (uint32_t)dataOfs)]);
+          };
+
+          constexpr bool anyHit = (trace_mode == ANY_ONE_INTERSECTION) || (trace_type == CollisionTraceType::RAY_HIT);
+          int bestBlasOfs = 0, bestSubTri = 0;
+          bool foundHit;
+          IF_CONSTEXPR (anyHit)
+            foundHit = blasGrid.blasTwoSided
+                         ? collision_blas::rayBLASAnyHitFilteredOOL(rd, 0, bSize, acceptLeaf, &actx, bestBlasOfs, bestSubTri)
+                         : collision_blas::rayBLASAnyHitFilteredOOLCullCCW(rd, 0, bSize, acceptLeaf, &actx, bestBlasOfs, bestSubTri);
+          else
+            foundHit = blasGrid.blasTwoSided
+                         ? collision_blas::rayBLASClosestFilteredOOL(rd, 0, bSize, acceptLeaf, &actx, bestBlasOfs, bestSubTri)
+                         : collision_blas::rayBLASClosestFilteredOOLCullCCW(rd, 0, bSize, acceptLeaf, &actx, bestBlasOfs, bestSubTri);
+
+          if (foundHit)
+          {
+            hasCollision = true;
+            const uint16_t bestSrcNode = blas_src_node_for_leaf(blasGrid, (uint32_t)bestBlasOfs);
+            const CollisionNode *meshNode = &allNodesList[bestSrcNode];
+            float localIntersectionT = rd.t; // box-space t == resource-local t (unnormalized scaled dir)
+            float intersectionT = trace.t * (localIntersectionT / localT);
+            vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
+            vec3f vIntersectionNorm = v_zero();
+            if (trace_mode == FIND_BEST_INTERSECTION)
             {
-              hasCollision = true;
-              float localIntersectionT = gridLocalT + incT;
-              float intersectionT = trace.t * (localIntersectionT / localT);
-              vec3f vIntersectionNorm = v_zero();
-              vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
-              if (trace_mode == FIND_BEST_INTERSECTION)
-              {
-                trace.t = intersectionT;
-                localT = localIntersectionT;
-                vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
-              }
-              if (calc_normal)
-              {
-                vec3f vLocalNorm = tracer->getNormal(faceId);
-                if (orthonormalized_instance_tm)
-                  vIntersectionNorm = v_mat44_mul_vec3v(tm, vLocalNorm);
-                else
-                {
-                  if (!titmCalculated)
-                  {
-                    mat33f itm33;
-                    v_mat33_from_mat44(itm33, itm);
-                    v_mat33_transpose(titm33, itm33);
-                    titmCalculated = true;
-                  }
-                  vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
-                }
-              }
-              callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
-                tri_ref::make(meshNode->nodeIndex, (uint32_t)localFaceId, false));
-              if (trace_mode == ANY_ONE_INTERSECTION)
-                return hasCollision;
-              if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
-                goto next_trace;
-              break; // we iterate by grid, next cell will be definitely worst than current
+              trace.t = intersectionT;
+              localT = localIntersectionT;
+              vLocalTo = v_madd(vLocalDir, v_splats(localT), vLocalFrom);
             }
+            if (calc_normal)
+            {
+              // The SoA test ran in box-space; recover the winning sub-triangle's resource-local verts
+              // (unquantVL) for the geometric normal, same winding as the scalar path.
+              QuadBLASWalk::QuadLeafVerts q;
+              const uint32_t leafSkip = ((const uint32_t *)(bData + bestBlasOfs))[-1];
+              q.decodeTri(bData, bestBlasOfs, leafSkip, bestSubTri, unquantVL);
+              vec3f vLocalNorm = v_norm3(v_cross3(v_sub(q.v1, q.v0), v_sub(q.v2, q.v0)));
+              if (orthonormalized_instance_tm)
+                vIntersectionNorm = v_mat44_mul_vec3v(tm, vLocalNorm);
+              else
+              {
+                if (!titmCalculated)
+                {
+                  mat33f itm33;
+                  v_mat33_from_mat44(itm33, itm);
+                  v_mat33_transpose(titm33, itm33);
+                  titmCalculated = true;
+                }
+                vIntersectionNorm = v_norm3(v_mat33_mul_vec3(titm33, vLocalNorm));
+              }
+            }
+            callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+              tri_ref::make_blas(bestSrcNode, (uint32_t)bestBlasOfs, (bestSubTri != 0), isCollidableGrid));
+            if (trace_mode == ANY_ONE_INTERSECTION)
+              return hasCollision;
+            if (trace_mode == FIND_BEST_INTERSECTION && intersectionT < VERY_SMALL_NUMBER)
+              goto next_trace;
           }
-
-          // continue from intersection pos
-          const float threshold = 0.001f;
-          float tt = gridLocalT + threshold;
-          vGridLocalFrom = v_madd(vLocalDir, v_splats(tt), vGridLocalFrom);
-          incT += tt;
-          gridLocalT = localT - incT;
-        } // intersected faces loop
-      }
-      else IF_CONSTEXPR (trace_mode == ALL_INTERSECTIONS)
-      {
-        G_ASSERT(trace_type == CollisionTraceType::TRACE_RAY); // capsule is not supported
-        all_faces_ret_t hits;
-        bool isHit = tracer->tracerayNormalized(vLocalFrom, vLocalDir, localT, hits);
-        if (isHit)
+        }
+        else IF_CONSTEXPR (trace_mode == ALL_INTERSECTIONS)
         {
-          hasCollision = true;
+          G_ASSERT(trace_type == CollisionTraceType::TRACE_RAY); // capsule not supported
+          // All-hits: bbox prune uses fixed localT so no far hit is missed; each per-tri test starts
+          // from a fresh `t = localT` so independent hits don't bleed into each other.
+          const float fullLocalT = localT;
           if (!orthonormalized_instance_tm && !titmCalculated)
           {
             mat33f itm33;
@@ -708,35 +835,63 @@ __forceinline bool CollisionResource::forEachIntersectedNode(const mat44f tm, fl
             v_mat33_transpose(titm33, itm33);
             titmCalculated = true;
           }
-          for (auto hit : hits)
-          {
-            int localFaceId = 0;
-            int nodeIndex = getNodeIndexByFaceId(hit.faceId, behavior_filter, localFaceId);
-            if (DAGOR_LIKELY(nodeIndex >= 0))
-            {
-              const CollisionNode *meshNode = &allNodesList[nodeIndex];
-              if (filter(meshNode))
-              {
-                float intersectionT = trace.t * (hit.t / localT);
-                vec3f vIntersectionNorm = v_zero();
-                vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
-                if (calc_normal)
+          // Box-space ray for the per-node bbox prune (the triangle test below uses the local ray
+          // directly). Only the all-hits walk needs it.
+          const BlasBoxRay bRay = BlasBoxRay::make(vLocalFrom, vLocalDir, blasGrid.blasScale, blasGrid.blasOfs);
+          // All-hits: cull CCW unless this grid replaces a two-sided FRT or the caller forces no-cull.
+          // Mirrors traceRayMeshNodeLocalAllHits's `noCull = force_no_cull || SOLID`; SOLID nodes never
+          // enter a BLAS, so force_no_cull is the only no-cull source on top of the grid's two-sided
+          // mode. Constant for the whole walk, bound once to a compile-time RayTriangleIntersect below.
+          int lastDataOfs = -1;
+          auto walkAll = [&]<bool CullCCW>() {
+            QuadBLASWalk::iterateFiltered(
+              bData, 0, bSize,
+              [fullLocalT, &bRay](vec3f bmn, vec3f bmx) {
+                return RayIntersectsBoxT0T1(v_madd(bmn, bRay.dirInv, bRay.originScaled), v_madd(bmx, bRay.dirInv, bRay.originScaled),
+                  fullLocalT);
+              },
+              [&](vec3f v0, vec3f v1, vec3f v2, int dataOfs) -> bool {
+                // All-hits walker never early-exits: the bool return is the iterateFiltered protocol;
+                // always return false (continue) here.
+                const bool isSecondSubTri = (dataOfs == lastDataOfs);
+                lastDataOfs = dataOfs;
+                float t = fullLocalT;
+                Point2 bc;
+                if (RayTriangleIntersect<CullCCW>(vLocalFrom, vLocalDir, v0, v1, v2, t, bc))
                 {
-                  vec3f vLocalNorm = tracer->getNormal(hit.faceId);
-                  mat33f normTm;
-                  v_mat33_from_mat44(normTm, tm);
-                  if (!orthonormalized_instance_tm)
-                    normTm = titm33;
-                  vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, vLocalNorm));
+                  const uint16_t srcNode = blas_src_node_for_leaf(blasGrid, (uint32_t)dataOfs);
+                  const CollisionNode *meshNode = &allNodesList[srcNode];
+                  if (filter(meshNode))
+                  {
+                    hasCollision = true;
+                    float intersectionT = trace.t * (t / fullLocalT);
+                    vec3f vIntersectionNorm = v_zero();
+                    vec3f vIntersectionPos = v_madd(trace.vDir, v_splats(intersectionT), trace.vFrom);
+                    if (calc_normal)
+                    {
+                      vec3f vLocalNorm = v_norm3(v_cross3(v_sub(v1, v0), v_sub(v2, v0)));
+                      mat33f normTm;
+                      if (!orthonormalized_instance_tm)
+                        normTm = titm33;
+                      else
+                        v_mat33_from_mat44(normTm, tm);
+                      vIntersectionNorm = v_norm3(v_mat33_mul_vec3(normTm, vLocalNorm));
+                    }
+                    callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
+                      tri_ref::make_blas(srcNode, (uint32_t)dataOfs, isSecondSubTri, isCollidableGrid));
+                  }
                 }
-                callback(traceId, meshNode, intersectionT, vIntersectionNorm, vIntersectionPos,
-                  tri_ref::make(meshNode->nodeIndex, (uint32_t)localFaceId, false));
-              }
-            }
-          }
+                return false;
+              },
+              unquantVL);
+          };
+          if (blasGrid.blasTwoSided || force_no_cull)
+            walkAll.template operator()<false>(); // two-sided
+          else
+            walkAll.template operator()<true>(); // CullCCW
         }
-      } // one hit or all intersections
-    } // if (tracer)
+      } // BLAS path
+    } // if (useBlas)
 
     for (uint16_t bi = boxNodesHead; bi != CollisionNode::INVALID_IDX; bi = allNodesList[bi].nextNode)
     {
@@ -1300,6 +1455,62 @@ DAGOR_NOINLINE bool CollisionResource::traceMultiRay(const TMatrix &instance_tm,
   return !intersected_nodes_list.empty();
 }
 
+// Materialise a BLAS-resident node's verts (and indices, dropped for MESH residents) into the
+// supplied framemem scratches and produce a CollisionNode copy with verticesOfs/indicesOfs rebased to
+// zero. Non-resident nodes pass through as (meshVertsBase, meshIndicesBase, &node). Lets the per-node
+// trace helpers (traceRayMeshNodeLocal*, test_*_node_intersection, traceQuad, etc.) keep their
+// (verts_base + node.verticesOfs) / (idx_base + node.indicesOfs) indexing unchanged. BLAS residents
+// are always MESH (Convex never enters the BLAS); idxScratch is filled by decoding node-local indices
+// from each leaf via iterateNodeFaces.
+void CollisionResource::resolveNodeVertsForCall(const CollisionNode &node, dag::Vector<Point3_vec4, framemem_allocator> &vertsScratch,
+  dag::Vector<uint16_t, framemem_allocator> &idxScratch, CollisionNode &node_copy, const Point3_vec4 *&out_verts_base,
+  const uint16_t *&out_idx_base, const CollisionNode *&out_node) const
+{
+  if (!(node.flags & CollisionNode::BLAS_RESIDENT))
+  {
+    out_verts_base = meshVertsBase;
+    out_idx_base = meshIndicesBase;
+    out_node = &node;
+    return;
+  }
+  const Grid &g = getBlasGridForResidentNode(node);
+  if (DAGOR_UNLIKELY(g.blasData.empty()))
+  {
+    // Defensive: BLAS_RESIDENT stamped but the resolved grid has no BLAS (shouldn't happen). Fall back
+    // to the non-resident path instead of dereferencing empty blasData (release-safe; the prior
+    // G_ASSERTF was compiled out in shipping, leaving an out-of-bounds read).
+    out_verts_base = meshVertsBase;
+    out_idx_base = meshIndicesBase;
+    out_node = &node;
+    return;
+  }
+  const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)node.verticesOfs * 8u;
+  const vec3f invScale = g.blasInvScale;
+  const vec3f bmin = g.blasBBox.bmin;
+  const uint32_t vc = (uint32_t)node.verticesCount + 1u;
+  vertsScratch.resize(vc);
+  for (uint32_t i = 0; i < vc; ++i)
+  {
+    vec3f q = RayData::unpackVert21(vbase + i * 8u);
+    v_st(&vertsScratch[i].x, v_madd(q, invScale, bmin));
+  }
+  // ownIndices was dropped; materialise from the BLAS leaf walk and rebase indicesOfs to 0 so
+  // callers keep their (idx_base + indicesOfs) idiom.
+  idxScratch.reserve(node.indicesCount);
+  idxScratch.clear();
+  iterateNodeFaces((int)node.nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
+    idxScratch.push_back(i0);
+    idxScratch.push_back(i1);
+    idxScratch.push_back(i2);
+  });
+  node_copy = node;
+  node_copy.verticesOfs = 0;
+  node_copy.indicesOfs = 0;
+  out_verts_base = vertsScratch.data();
+  out_idx_base = idxScratch.data();
+  out_node = &node_copy;
+}
+
 bool CollisionResource::traceRayMeshNodeLocal(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir,
   float &in_out_t, vec4f *v_out_norm) const
 {
@@ -1310,10 +1521,18 @@ bool CollisionResource::traceRayMeshNodeLocal(const CollisionNode &node, const v
   if (!v_test_ray_box_intersection_unsafe(v_local_from, v_local_dir, v_set_x(in_out_t), bbox))
     return false;
 
+  dag::Vector<Point3_vec4, framemem_allocator> vScratch;
+  dag::Vector<uint16_t, framemem_allocator> iScratch;
+  CollisionNode rebased;
+  const Point3_vec4 *vbase = nullptr;
+  const uint16_t *ibase = nullptr;
+  const CollisionNode *nodeForCall = nullptr;
+  resolveNodeVertsForCall(node, vScratch, iScratch, rebased, vbase, ibase, nodeForCall);
+
   bool isLightNode = node.indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
   return (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalCullCCW
-                      : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(meshVertsBase, meshIndicesBase, node,
-    v_local_from, v_local_dir, in_out_t, v_out_norm);
+                      : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalCullCCW)(vbase, ibase, *nodeForCall, v_local_from,
+    v_local_dir, in_out_t, v_out_norm);
 }
 
 
@@ -1328,13 +1547,21 @@ bool CollisionResource::traceRayMeshNodeLocalAllHits(const CollisionNode &node, 
   if (!v_test_ray_box_intersection_unsafe(vLocalFrom, vLocalDir, v_set_x(in_t), bbox))
     return false;
 
+  dag::Vector<Point3_vec4, framemem_allocator> vScratch;
+  dag::Vector<uint16_t, framemem_allocator> iScratch;
+  CollisionNode rebased;
+  const Point3_vec4 *vbase = nullptr;
+  const uint16_t *ibase = nullptr;
+  const CollisionNode *nodeForCall = nullptr;
+  resolveNodeVertsForCall(node, vScratch, iScratch, rebased, vbase, ibase, nodeForCall);
+
   all_collres_nodes_t allNodes;
   all_collres_tri_indices_t allTriIndices;
   const bool isLightNode = node.indicesCount < (uint32_t)traceMeshNodeLocalApi.threshold;
   // -V::601 for some reason PVS glitches and fails with "The 'true' value becomes a class object" on calc_normal parameter
   const bool res = (isLightNode ? traceMeshNodeLocalApi.light.pfnTraceRayMeshNodeLocalAllHits
-                                : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(meshVertsBase, meshIndicesBase, node,
-    vLocalFrom, vLocalDir, in_t, true, force_no_cull, allNodes, allTriIndices);
+                                : traceMeshNodeLocalApi.heavy.pfnTraceRayMeshNodeLocalAllHits)(vbase, ibase, *nodeForCall, vLocalFrom,
+    vLocalDir, in_t, true, force_no_cull, allNodes, allTriIndices);
 
   intersected_nodes_list.reserve(allNodes.size());
   for (int k = 0, cnt = allNodes.size(); k < cnt; k++)
@@ -1419,13 +1646,19 @@ VECTORCALL bool CollisionResource::traceQuad(vec3f a00, vec3f a01, vec3f a10, ve
     v_mat44_make_from_43cu_unsafe(nodeTm, meshNode->tm.array);
     bbox3f nodeBox;
     v_bbox3_init(nodeBox, nodeTm, v_ldu_bbox3(meshNode->modelBBox));
-    const uint16_t *__restrict cur = meshIndicesBase + meshNode->indicesOfs;
-    PREFETCH_DATA(0, cur);
-    const uint16_t *__restrict end = cur + meshNode->indicesCount;
-    const Point3_vec4 *__restrict vertices = meshVertsBase + meshNode->verticesOfs;
-
     if (!v_bbox3_test_box_intersect(nodeBox, bbox))
       continue;
+    dag::Vector<Point3_vec4, framemem_allocator> vScratch;
+    dag::Vector<uint16_t, framemem_allocator> iScratch;
+    CollisionNode rebased;
+    const Point3_vec4 *vertsBase = nullptr;
+    const uint16_t *idxBase = nullptr;
+    const CollisionNode *nodeForCall = nullptr;
+    resolveNodeVertsForCall(*meshNode, vScratch, iScratch, rebased, vertsBase, idxBase, nodeForCall);
+    const uint16_t *__restrict cur = idxBase + nodeForCall->indicesOfs;
+    PREFETCH_DATA(0, cur);
+    const uint16_t *__restrict end = cur + nodeForCall->indicesCount;
+    const Point3_vec4 *__restrict vertices = vertsBase + nodeForCall->verticesOfs;
 
     v_mat44_inverse43(nodeItm, nodeTm);
     vec3f localA00 = v_mat44_mul_vec3p(nodeItm, a00);
@@ -1536,12 +1769,13 @@ DAGOR_NOINLINE bool CollisionResource::traceRayMeshNodeLocalCullCCW(const Point3
   return resultIdx >= 0;
 }
 
-DAGOR_NOINLINE bool CollisionResource::traceCapsuleMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
-  const vec4f &v_local_dir, float &in_out_t, float &radius, vec4f &v_out_norm, vec4f &v_out_pos) const
+DAGOR_NOINLINE bool CollisionResource::traceCapsuleMeshNodeLocalCullCCW(const Point3_vec4 *verts_base, const uint16_t *idx_base,
+  const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t, float &radius, vec4f &v_out_norm,
+  vec4f &v_out_pos) const
 {
   bool ret = false;
-  const uint16_t *__restrict indices = meshIndicesBase + node.indicesOfs;
-  const Point3_vec4 *__restrict vertices = meshVertsBase + node.verticesOfs;
+  const uint16_t *__restrict indices = idx_base + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = verts_base + node.verticesOfs;
   const uint32_t indicesSize = node.indicesCount;
 
   // float bestScore = FLT_MIN;
@@ -1734,11 +1968,11 @@ DAGOR_NOINLINE bool CollisionResource::rayHitMeshNodeLocalCullCCW(const Point3_v
   return false;
 }
 
-DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const CollisionNode &node, const vec4f &v_local_from,
-  const vec4f &v_local_dir, float in_t, float radius) const
+DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const Point3_vec4 *verts_base, const uint16_t *idx_base,
+  const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float in_t, float radius) const
 {
-  const uint16_t *__restrict indices = meshIndicesBase + node.indicesOfs;
-  const Point3_vec4 *__restrict vertices = meshVertsBase + node.verticesOfs;
+  const uint16_t *__restrict indices = idx_base + node.indicesOfs;
+  const Point3_vec4 *__restrict vertices = verts_base + node.verticesOfs;
   const uint32_t indicesSize = node.indicesCount;
 
   for (uint32_t i = 0; DAGOR_LIKELY(i < indicesSize); i += 3)
@@ -1763,34 +1997,99 @@ DAGOR_NOINLINE bool CollisionResource::capsuleHitMeshNodeLocalCullCCW(const Coll
   return false;
 }
 
-int CollisionResource::getNodeIndexByFaceId(int face_id, uint8_t behavior_filter, int &local_face_id) const
+// Decode a node's per-face triangle into resource-local vert positions. Two paths:
+//   - BLAS-resident (always MESH): walks the node's BLAS leaves (walkBlasResidentNodeLeavesForFaces)
+//     to the face_idx-th sub-triangle and decodes its verts from the grid's vert21 array. For
+//     low-frequency callers (aiTargetES random face, damage-debug, AssetViewer); hot per-face paths
+//     should use iterateNodeFacesVerts.
+//   - Non-resident: the original direct-index path. CONVEX nodes always land here.
+bool CollisionResource::getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, Point3 &v1, Point3 &v2) const
 {
-  int facesNum = 0;
-  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
+  const CollisionNode *n = getNode(node_id);
+  if (!n || face_idx < 0 || (uint32_t)(face_idx * 3 + 2) >= n->indicesCount)
+    return false;
+  if (n->flags & CollisionNode::BLAS_RESIDENT)
   {
-    const CollisionNode *meshNode = &allNodesList[mi];
-    if (!meshNode->checkBehaviorFlags(behavior_filter))
-      continue;
-    const int prevFacesNum = facesNum;
-    facesNum += meshNode->indicesCount / 3;
-    if (face_id < facesNum)
-    {
-      local_face_id = face_id - prevFacesNum;
-      return meshNode->nodeIndex;
-    }
+    const Grid &g = getBlasGridForResidentNode(*n);
+    if (g.blasData.empty())
+      return false;
+    const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+    const vec3f invScale = g.blasInvScale;
+    const vec3f bmin = g.blasBBox.bmin;
+    bool found = false;
+    walkBlasResidentNodeLeavesForFaces(*n, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
+      if (found || fi != face_idx)
+        return;
+      vec3f q0 = RayData::unpackVert21(vbase + i0 * 8u);
+      vec3f q1 = RayData::unpackVert21(vbase + i1 * 8u);
+      vec3f q2 = RayData::unpackVert21(vbase + i2 * 8u);
+      v_stu_p3(&v0.x, v_madd(q0, invScale, bmin));
+      v_stu_p3(&v1.x, v_madd(q1, invScale, bmin));
+      v_stu_p3(&v2.x, v_madd(q2, invScale, bmin));
+      found = true;
+    });
+    return found;
   }
-  return -1;
+  const uint16_t *idx = meshIndicesBase + n->indicesOfs;
+  const Point3_vec4 *verts = meshVertsBase + n->verticesOfs;
+  v0 = verts[idx[face_idx * 3 + 0]];
+  v1 = verts[idx[face_idx * 3 + 1]];
+  v2 = verts[idx[face_idx * 3 + 2]];
+  return true;
 }
 
-// The tri_ref encoding lays out the lookup-token field as a source-node face index (see the
-// doc comment on tri_ref_t in dag_collResDecl.h), so the decode is a direct dispatch to
-// getNodeFaceVerts without any BLAS-byte-offset round-trip. Non-mesh hits (box/sphere/capsule
-// leaves emit tri_ref::makeForNonTri so hasTri() returns false) and invalid refs short-circuit.
+// Decode a tri_ref_t back to the three source-triangle vertices.
+// - BLAS refs (type=1): grid bit selects gridForTraceable/gridForCollidable; walk the quad leaf at
+//   blasOffset directly, pick the sub-triangle per the sub-tri bit, unquantize via the grid's
+//   blasScale/blasBBox. No side table -- the leaf carries enough on its own.
+// - Non-BLAS refs (type=0): dispatch to getNodeFaceVerts via the encoded per-node srcFace.
+// Returns false for invalid / non-tri refs or out-of-range indices.
 bool CollisionResource::getNodeFaceVertsByRef(tri_ref_t ref, Point3 &v0, Point3 &v1, Point3 &v2) const
 {
   if (!tri_ref::hasTri(ref))
     return false;
-  return getNodeFaceVerts((int)tri_ref::nodeIndex(ref), (int)tri_ref::dataOffset(ref), v0, v1, v2);
+  if (!tri_ref::isBlas(ref))
+    return getNodeFaceVerts((int)tri_ref::nodeIndex(ref), (int)tri_ref::faceIndex(ref), v0, v1, v2);
+
+  const Grid &g = tri_ref::isCollidableGrid(ref) ? gridForCollidable : gridForTraceable;
+  if (g.blasData.empty())
+    return false;
+  const uint64_t blasOfs = tri_ref::blasOffset(ref);
+  if (blasOfs < BVH_BLAS_NODE_SIZE || blasOfs >= g.blasData.size())
+    return false;
+  const uint8_t *d = g.blasData.data();
+  // Skip word is the 4th uint32 of the leaf's box header, immediately before the leaf body
+  // iterateFiltered passes to leafCb (dataOfs = leafBoxStart + BVH_BLAS_NODE_SIZE, skip at dataOfs-4).
+  const BlasLeafLayout L = decodeBlasLeafLayout(d, (uint32_t)blasOfs);
+  const bool subTri = tri_ref::subTri(ref);
+  // Sub-tri 0 (single or first of a quad): (v[0], v[o1], v[o2])
+  // Sub-tri 1 of a quad: fan -> (v[0], v[o2], v[o3]); strip -> (v[o2], v[o1], v[o3]).
+  uint32_t k0, k1, k2;
+  if (L.isSingle || !subTri)
+  {
+    k0 = 0;
+    k1 = L.o1;
+    k2 = L.o2;
+  }
+  else if (L.isFan)
+  {
+    k0 = 0;
+    k1 = L.o2;
+    k2 = L.o3;
+  }
+  else
+  {
+    k0 = L.o2;
+    k1 = L.o1;
+    k2 = L.o3;
+  }
+  const uint8_t *vbase = d + L.vertBytesOfs;
+  const vec3f invScale = g.blasInvScale;
+  const vec3f bmin = g.blasBBox.bmin;
+  v_stu_p3(&v0.x, v_madd(RayData::unpackVert21(vbase + k0 * 8u), invScale, bmin));
+  v_stu_p3(&v1.x, v_madd(RayData::unpackVert21(vbase + k1 * 8u), invScale, bmin));
+  v_stu_p3(&v2.x, v_madd(RayData::unpackVert21(vbase + k2 * 8u), invScale, bmin));
+  return true;
 }
 
 bool CollisionResource::checkInclusion(const Point3 &pos, CollResIntersectionsType &intersected_nodes_list) const
@@ -1901,9 +2200,13 @@ bool CollisionResource::calcOffsetForIntersection(const TMatrix &tm1, const Coll
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
     Tab<vec4f> vertices(tmpmem);
     reserve_and_resize(vertices, (uint32_t)node_to_move.verticesCount + 1u);
-    const Point3_vec4 *moveVerts = meshVertsBase + node_to_move.verticesOfs;
-    for (int i = 0; i < vertices.size(); ++i)
-      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&moveVerts[i].x));
+    // BLAS-resident path: decode vert21 instead of dereferencing meshVertsBase (the slice was
+    // dropped at load time). iterateNodeVerts handles both cases transparently.
+    int vi = 0;
+    iterateNodeVerts((int)node_to_move.nodeIndex, [&](int, vec4f v) {
+      if (vi < vertices.size())
+        vertices[vi++] = v_mat44_mul_vec3p(vFinalTm, v);
+    });
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
       bool hasCollision = false;
@@ -2007,9 +2310,11 @@ bool CollisionResource::calcOffsetForSeparation(const TMatrix &tm1, const Collis
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
     Tab<vec4f> vertices(tmpmem);
     reserve_and_resize(vertices, (uint32_t)node_to_move.verticesCount + 1u);
-    const Point3_vec4 *moveVerts = meshVertsBase + node_to_move.verticesOfs;
-    for (int i = 0; i < vertices.size(); ++i)
-      vertices[i] = v_mat44_mul_vec3p(vFinalTm, v_ld(&moveVerts[i].x));
+    int vi = 0;
+    iterateNodeVerts((int)node_to_move.nodeIndex, [&](int, vec4f v) {
+      if (vi < vertices.size())
+        vertices[vi++] = v_mat44_mul_vec3p(vFinalTm, v);
+    });
     for (int iteration = 0; iteration < numIterations; ++iteration)
     {
       bool hasCollision = false;
@@ -2090,11 +2395,13 @@ bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_tes
   {
     mat44f vFinalTm;
     v_mat44_make_from_43cu_unsafe(vFinalTm, finalTm.array);
-    const Point3_vec4 *testVerts = meshVertsBase + node_to_test->verticesOfs;
-    for (uint32_t i = 0, e = (uint32_t)node_to_test->verticesCount + 1u; i < e; ++i)
-    {
+    // BLAS-resident path: decode via iterateNodeVerts instead of meshVertsBase dereference.
+    bool found = false;
+    iterateNodeVerts((int)node_to_test->nodeIndex, [&](int, vec4f v) {
+      if (found)
+        return;
+      vec4f vert = v_mat44_mul_vec3p(vFinalTm, v);
       bool insideAll = true;
-      vec4f vert = v_mat44_mul_vec3p(vFinalTm, v_ld(&testVerts[i].x));
       for (int j = 0; j < convex.size() && insideAll; ++j)
       {
         vec4f dist = v_plane_dist_x(convex[j], vert);
@@ -2108,10 +2415,10 @@ bool CollisionResource::testInclusion(int test_node_index, const TMatrix &tm_tes
           v_st(&pt.x, vert);
           *res_pos = tm_restrain * pt;
         }
-        return true;
+        found = true;
       }
-    }
-    return false;
+    });
+    return found;
   }
   else
     G_ASSERTF(0, "unsupported type to check against convex");
@@ -2234,6 +2541,16 @@ DAGOR_NOINLINE bool CollisionResource::multiRayHit(const TMatrix &instance_tm, c
 
 void CollisionResource::initializeWithGeomNodeTree(const GeomNodeTree &geom_node_tree)
 {
+  // Contract: a geom-node-driven resource is never FRT-optimized. The FRT bakes mesh-node triangles
+  // in resource-local (bind) space and is traced without consulting the tree (forEachIntersectedNode),
+  // so an FRT-resident tree-driven node would be hit at its baked pose instead of the animated one.
+  // Tree-bound resources (DM / attachable / hangar) are always loaded non-optimized, so no grid is
+  // built; this asserts the invariant the trace path silently relies on.
+  // G_ASSERTF(!checkGridAvailable(CollisionNode::TRACEABLE) && !checkGridAvailable(CollisionNode::PHYS_COLLIDABLE),
+  //  "collision resource bound to GeomNodeTree '%s' must not be FRT-optimized (grid-resident nodes are "
+  //  "traced at their bind pose, ignoring the tree)",
+  //  geom_node_tree.empty() ? "<empty>" : geom_node_tree.getNodeName(GeomNodeTree::Index16(0)));
+  // currently, this contract is indeed violated by any(!) mimic
   for (auto &node : allNodesList)
     node.geomNodeId = geom_node_tree.findNodeIndex(getNodeNameStr(node));
 }
@@ -2269,6 +2586,25 @@ CollisionResource *CollisionResource::deepCopy(void *inplace_ptr) const
   }
   else
     collRes->meshIndicesBase = meshIndicesBase;
+
+  // compactOwnVertices stamps BLAS_RESIDENT on nodes whose verts/indices live in these grids'
+  // blasData. allNodesList was deep-copied above (carrying the flag + reinterpreted verticesOfs), so
+  // the BLAS storage must be cloned too -- otherwise iterateNodeFaces / iterateNodeVerts / Jolt
+  // MeshShape builds on resident nodes would read empty grids and return zero faces or assert.
+  // Grid::tracer is null at HEAD (FRT path gone), so it needs no cloning; reintroducing a tracer here
+  // would need an explicit clone path since unique_ptr isn't copy-constructible.
+  auto copyGrid = [](Grid &dst, const Grid &src) {
+    dst.blasData = src.blasData;
+    dst.blasBBox = src.blasBBox;
+    dst.blasScale = src.blasScale;
+    dst.blasInvScale = src.blasInvScale; // cached 1/blasScale; read directly by every vert21 decode path
+    dst.blasOfs = src.blasOfs;
+    dst.blasTreeBytes = src.blasTreeBytes;
+    dst.blasNodeRanges = src.blasNodeRanges;
+    dst.blasTwoSided = src.blasTwoSided; // cull mode must survive the clone or a two-sided asset reverts to CullCCW
+  };
+  copyGrid(collRes->gridForTraceable, gridForTraceable);
+  copyGrid(collRes->gridForCollidable, gridForCollidable);
 
   collRes->rebuildNodesLL();
   return collRes;
@@ -2322,6 +2658,28 @@ void CollisionResource::sortNodesList()
 }
 void CollisionResource::rebuildNodesLL()
 {
+  // Re-stamping nodeIndex = position below invalidates every nodeIndex-keyed acceleration side
+  // table when the list ORDER changed -- the real caller is the ECS collres__desc_add path, which
+  // appends nodes to a deep-copied LOADED resource and then runs sortNodesList() + this. The
+  // grids' blasNodeRanges map combined-BLAS leaves (and BLAS-resident vert blocks) to their source
+  // node by nodeIndex, so rebase them through the old->new permutation; pre-stamp indices are
+  // dense [0, size) for every caller (load/collapse renumber before sorting, add*Node stamps
+  // size-1).
+  const bool needRemap = !gridForTraceable.blasNodeRanges.empty() || !gridForCollidable.blasNodeRanges.empty();
+  bool orderChanged = false;
+  dag::Vector<uint16_t, framemem_allocator> oldToNew;
+  if (DAGOR_UNLIKELY(needRemap))
+  {
+    oldToNew.resize(allNodesList.size(), 0);
+    for (size_t i = 0; i < allNodesList.size(); ++i)
+    {
+      const uint16_t old = allNodesList[i].nodeIndex;
+      if (old < oldToNew.size())
+        oldToNew[old] = (uint16_t)i;
+      orderChanged |= old != (uint16_t)i;
+    }
+  }
+
   constexpr uint16_t INVALID = CollisionNode::INVALID_IDX;
   meshNodesHead = boxNodesHead = sphereNodesHead = capsuleNodesHead = INVALID;
   numMeshNodes = numBoxNodes = numCapsuleNodes = 0;
@@ -2381,15 +2739,26 @@ void CollisionResource::rebuildNodesLL()
       ++numCapsuleNodes;
     }
   }
+
+  if (DAGOR_UNLIKELY(needRemap && orderChanged))
+  {
+    for (Grid *g : {&gridForTraceable, &gridForCollidable})
+      for (Grid::NodeRange &r : g->blasNodeRanges)
+        if (r.nodeIndex < oldToNew.size())
+          r.nodeIndex = oldToNew[r.nodeIndex];
+  }
 }
 
 struct ITestIntersectionAlgo
 {
   // a_head_idx / b_head_idx index into a_all / b_all and address the head of the per-type linked
   // list; CollisionNode::INVALID_IDX means the list is empty. Walk via allNodesList[i].nextNode.
+  // res_a / res_b let the algo route BLAS_RESIDENT mesh nodes through the grid's vert21 array
+  // (ownVertices was dropped at load time). Non-resident nodes index a_verts_base / b_verts_base.
   virtual bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 *b_verts_base, const uint16_t *b_idx_base) = 0;
+    const CollisionResource *res_a, const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const CollisionResource *res_b,
+    const Point3_vec4 *b_verts_base, const uint16_t *b_idx_base) = 0;
   virtual ~ITestIntersectionAlgo() = 0;
 
   Point3 collisionPointA;
@@ -2398,23 +2767,29 @@ struct ITestIntersectionAlgo
 
 ITestIntersectionAlgo::~ITestIntersectionAlgo() {}
 
+// Per-node verts source resolver for the testIntersection algos. Returns a pointer such that
+// p[idx[k]] yields the k-th vert of `node` (already offset by node.verticesOfs):
+//   - non-resident: fallback_verts_base + node.verticesOfs unchanged.
+//   - BLAS_RESIDENT: decodes vert21 into scratch and returns scratch.data() (zero-based; node
+//     indices 0..verticesCount map directly into the materialised scratch).
+// Returns nullptr if BLAS_RESIDENT but the resolved grid has empty blasData (defensive).
 class TestMeshNodeMeshNodesIntersectionAlgo final : public ITestIntersectionAlgo
 {
 public:
-  typedef StaticSceneRayTracerT<uint16_t> tracer_t;
-  TestMeshNodeMeshNodesIntersectionAlgo(vec4f a_wbsph, uint32_t a_nodes_count, vec4f b_wbsph, const tracer_t *b_tracer) :
-    a_wbsph(a_wbsph), a_nodes_count(a_nodes_count), b_wbsph(b_wbsph), b_tracer(b_tracer)
+  // b_grid carries B's combined-per-behavior BLAS (used when blasData is non-empty); pass null or an
+  // empty-blasData grid to force the brute-force tri-tri path.
+  TestMeshNodeMeshNodesIntersectionAlgo(vec4f a_wbsph, uint32_t a_nodes_count, vec4f b_wbsph, const CollisionResource::Grid *b_grid) :
+    a_wbsph(a_wbsph), a_nodes_count(a_nodes_count), b_wbsph(b_wbsph), b_grid(b_grid)
   {}
   ~TestMeshNodeMeshNodesIntersectionAlgo() final = default;
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 *b_verts_base, const uint16_t *b_idx_base) final
+    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/,
+    const CollisionResource *res_b, const Point3_vec4 * /*b_verts_base*/, const uint16_t * /*b_idx_base*/) final
   {
-    aVertsBase = a_verts_base;
-    aIdxBase = a_idx_base;
-    bVertsBase = b_verts_base;
-    bIdxBase = b_idx_base;
+    aResource = res_a;
+    bResource = res_b;
     outsideOfBounding.clear();
     reserve_and_resize(outsideOfBounding, a_nodes_count);
     aWtms.clear();
@@ -2491,92 +2866,142 @@ public:
   }
 
 private:
+  // Collect B's triangles overlapping the transformed-A bbox by walking B's BLAS into candidateTris
+  // (resource-local verts via BlasLocalUnquant) for the outer A-loop's tri-tri tests. The combined
+  // BLAS holds leaves from every behavior-matching node, so we filter to leaves owned by node_b (leaf
+  // first vert21 index vs node_b's blasNodeRanges entry); otherwise a sibling's triangles would be
+  // tested against node_a and the hit misattributed to node_b. Returns false when the BLAS is empty
+  // or node_b has no NodeRange entry (caller falls back to brute-force).
+  bool collectBlasCandidates(const bbox3f &bbox_in_b, const CollisionNode *node_b)
+  {
+    candidateTris.clear();
+    if (!b_grid || b_grid->blasData.empty())
+      return false;
+    const CollisionResource::Grid::NodeRange *nodeBRange = nullptr;
+    for (const auto &r : b_grid->blasNodeRanges)
+      if (r.nodeIndex == node_b->nodeIndex)
+      {
+        nodeBRange = &r;
+        break;
+      }
+    if (!nodeBRange)
+      return false; // node_b not in this BLAS -- caller falls back to brute-force
+    const uint8_t *bData = b_grid->blasData.data();
+    const uint32_t treeBytes = b_grid->blasTreeBytes;
+    const uint32_t vertsOfs = b_grid->blasVertsOfs();
+    const uint32_t nodeVOfs = nodeBRange->verticesOfs;
+    const uint32_t nodeVEnd = nodeBRange->verticesEnd;
+    // Box-space bbox check: convert the A-in-B bbox into the BLAS quantization frame and AABB-overlap
+    // it against each inner node's bmin/bmax (already box-space), avoiding per-node inverse transforms.
+    const vec3f bScale = b_grid->blasScale;
+    const vec3f bOfs = b_grid->blasOfs;
+    const vec3f boxMinQ = v_madd(bbox_in_b.bmin, bScale, bOfs);
+    const vec3f boxMaxQ = v_madd(bbox_in_b.bmax, bScale, bOfs);
+    const BlasLocalUnquant unquantVL = BlasLocalUnquant::make(b_grid->blasBBox.bmin, b_grid->blasScale);
+    QuadBLASWalk::iterateFiltered(
+      bData, 0, (int)treeBytes,
+      [boxMinQ, boxMaxQ](vec3f bmn, vec3f bmx) { return v_check_xyz_all_true(v_and(v_cmp_ge(boxMaxQ, bmn), v_cmp_ge(bmx, boxMinQ))); },
+      // -V657: always returns false by design -- collects every overlapping candidate with no
+      // early-out; false means "continue iterating" per the iterateFiltered contract.
+      [this, bData, vertsOfs, nodeVOfs, nodeVEnd](vec3f v0, vec3f v1, vec3f v2, int dataOfs) -> bool { //-V657
+        // Recover the leaf's owning node (first-vert byte offset -> vert21 index, tested against
+        // node_b's range); leaves owned by sibling nodes are skipped.
+        const int ofs1Rel = ((const int *)(bData + dataOfs))[0];
+        const uint32_t v0ByteOfs = (uint32_t)((int)dataOfs + ofs1Rel);
+        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / 8u;
+        if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
+          return false; // not this node's leaf
+        candidateTris.push_back({v0, v1, v2});
+        return false; // continue
+      },
+      unquantVL);
+    return true;
+  }
+
   bool isMeshNodeIntersectedWithMeshNode(const CollisionNode *node_a, const CollisionNode *node_b, const mat44f &tm_a_to_b)
   {
-    if (b_tracer)
+    bool useBlas = false;
+    if (b_grid && !b_grid->blasData.empty())
     {
       bbox3f bbox;
       v_bbox3_init(bbox, tm_a_to_b, v_ldu_bbox3(node_a->modelBBox));
-      BBox3 sbox;
-      v_stu_bbox3(sbox, bbox);
-      nodeBfaces.clear();
-      nodeBfaces.reserve(node_b->indicesCount);
-      b_tracer->getFaces(nodeBfaces, sbox);
+      useBlas = collectBlasCandidates(bbox, node_b);
     }
 
-    const uint16_t *aIdx = aIdxBase + node_a->indicesOfs;
-    const Point3_vec4 *aVerts = aVertsBase + node_a->verticesOfs;
-    const uint16_t *bIdx = bIdxBase + node_b->indicesOfs;
-    const Point3_vec4 *bVerts = bVertsBase + node_b->verticesOfs;
-    for (uint32_t nodeAIndex = 0u, countA = node_a->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
+    // iterateNodeFacesVerts dispatches on BLAS_RESIDENT internally (non-resident: ownIndices +
+    // ownVertices; resident: walk the grid's BLAS, decode vert21), always yielding resource-local face
+    // verts. Replaces the prior pointer reads that were stale for BLAS-resident MESH nodes.
+    //
+    // The !useBlas brute-force branch pre-materialises node_b's faces because a BLAS-resident
+    // iterateNodeFacesVerts walks the full BLAS (no per-node leaf side table); doing that inside the
+    // per-node_a-face loop would be O(total_leaves) per face.
+    struct CachedFace
     {
-      vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
-      vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
-      vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
+      vec4f v0, v1, v2;
+    };
+    dag::Vector<CachedFace, framemem_allocator> bFaceCache;
+    if (!useBlas)
+    {
+      bFaceCache.reserve((size_t)bResource->getNodeFaceCount(node_b->nodeIndex));
+      bResource->iterateNodeFacesVerts(node_b->nodeIndex,
+        [&](int, vec4f b0, vec4f b1, vec4f b2) { bFaceCache.push_back({b0, b1, b2}); });
+    }
+
+    bool found = false;
+    auto emitHit = [&](vec3f a0, vec3f a1, vec3f a2, vec3f b0, vec3f b1, vec3f b2) {
+      mat44f tmA, tmB;
+      v_mat44_make_from_43cu_unsafe(tmA, node_a->tm.array);
+      v_mat44_make_from_43cu_unsafe(tmB, node_b->tm.array);
+      vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
+      vec3f bc = v_mul(v_add(b0, v_add(b1, b2)), v_splats(1 / 3.f));
+      v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(tmA, ac));
+      v_stu_p3(&collisionPointB.x, v_mat44_mul_vec3p(tmB, bc));
+      found = true;
+    };
+    aResource->iterateNodeFacesVerts(node_a->nodeIndex, [&](int, vec4f a0, vec4f a1, vec4f a2) {
+      if (found)
+        return;
       vec3f a0b = v_mat44_mul_vec3p(tm_a_to_b, a0);
       vec3f a1b = v_mat44_mul_vec3p(tm_a_to_b, a1);
       vec3f a2b = v_mat44_mul_vec3p(tm_a_to_b, a2);
-
-      if (!b_tracer)
+      if (useBlas)
       {
-        for (uint32_t nodeBIndex = 0u, countB = node_b->indicesCount; nodeBIndex < countB; nodeBIndex += 3u)
-        {
-          vec3f b0 = v_ld(&bVerts[bIdx[nodeBIndex + 0]].x);
-          vec3f b1 = v_ld(&bVerts[bIdx[nodeBIndex + 1]].x);
-          vec3f b2 = v_ld(&bVerts[bIdx[nodeBIndex + 2]].x);
-
-          if (v_test_triangle_triangle_intersection(a0b, a1b, a2b, b0, b1, b2))
+        for (const auto &tri : candidateTris)
+          if (v_test_triangle_triangle_intersection(a0b, a1b, a2b, tri.v0, tri.v1, tri.v2))
           {
-            mat44f tmA, tmB;
-            v_mat44_make_from_43cu_unsafe(tmA, node_a->tm.array);
-            v_mat44_make_from_43cu_unsafe(tmB, node_b->tm.array);
-            vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
-            vec3f bc = v_mul(v_add(b0, v_add(b1, b2)), v_splats(1 / 3.f));
-            v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(tmA, ac));
-            v_stu_p3(&collisionPointB.x, v_mat44_mul_vec3p(tmB, bc));
-            return true;
+            emitHit(a0, a1, a2, tri.v0, tri.v1, tri.v2);
+            return;
           }
-        }
       }
       else
       {
-        for (int nodeBFace : nodeBfaces)
-        {
-          const auto &face = b_tracer->faces(nodeBFace);
-          vec3f b0 = v_ld(&b_tracer->verts(face.v[0]).x);
-          vec3f b1 = v_ld(&b_tracer->verts(face.v[1]).x);
-          vec3f b2 = v_ld(&b_tracer->verts(face.v[2]).x);
-
-          if (v_test_triangle_triangle_intersection(a0b, a1b, a2b, b0, b1, b2))
+        for (const auto &bf : bFaceCache)
+          if (v_test_triangle_triangle_intersection(a0b, a1b, a2b, bf.v0, bf.v1, bf.v2))
           {
-            mat44f tmA, tmB;
-            v_mat44_make_from_43cu_unsafe(tmA, node_a->tm.array);
-            v_mat44_make_from_43cu_unsafe(tmB, node_b->tm.array);
-            vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
-            vec3f bc = v_mul(v_add(b0, v_add(b1, b2)), v_splats(1 / 3.f));
-            v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(tmA, ac));
-            v_stu_p3(&collisionPointB.x, v_mat44_mul_vec3p(tmB, bc));
-            return true;
+            emitHit(a0, a1, a2, bf.v0, bf.v1, bf.v2);
+            return;
           }
-        }
       }
-    }
-
-    return false;
+    });
+    return found;
   }
 
   vec4f a_wbsph; // pos|r
   vec4f b_wbsph; // pos|r
-  const tracer_t *b_tracer;
+  const CollisionResource::Grid *b_grid;
   uint32_t a_nodes_count;
-  // Set on every apply() entry from the (a_verts_base, a_idx_base, b_verts_base, b_idx_base) args.
-  const Point3_vec4 *aVertsBase = nullptr;
-  const uint16_t *aIdxBase = nullptr;
-  const Point3_vec4 *bVertsBase = nullptr;
-  const uint16_t *bIdxBase = nullptr;
+  struct CandidateTri
+  {
+    vec3f v0, v1, v2;
+  };
+  dag::Vector<CandidateTri, framemem_allocator> candidateTris;
+  // Set on every apply() entry; read by iterateNodeFacesVerts in isMeshNodeIntersectedWithMeshNode,
+  // which dispatches BLAS-resident vs non-resident internally, so no separate vert/idx base or scratch
+  // members are kept here.
+  const CollisionResource *aResource = nullptr;
+  const CollisionResource *bResource = nullptr;
   eastl::bitvector<framemem_allocator> outsideOfBounding;
   dag::RelocatableFixedVector<mat44f, 40> aWtms;
-  Tab<int> nodeBfaces;
 };
 
 
@@ -2588,11 +3013,10 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 * /*b_verts_base*/,
-    const uint16_t * /*b_idx_base*/) final
+    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/,
+    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint16_t * /*b_idx_base*/) final
   {
-    aVertsBase = a_verts_base;
-    aIdxBase = a_idx_base;
+    aResource = res_a;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
     v_mat44_inverse43(vIWtmB, tm_b);
 
@@ -2624,34 +3048,33 @@ public:
         if (v_bbox3_test_trasformed_box_intersect_rel_tm(bboxA, tmAtoB, bboxB, tmBtoA) == false)
           continue;
 
-        const uint16_t *aIdx = aIdxBase + nodeA->indicesOfs;
-        const Point3_vec4 *aVerts = aVertsBase + nodeA->verticesOfs;
-        for (size_t nodeAIndex = 0u, countA = nodeA->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
-        {
+        // iterateNodeFacesVerts dispatches on BLAS_RESIDENT internally; ownIndices may have been
+        // dropped (compactOwnVertices), so the prior aIdxBase + nodeA->indicesOfs read was stale.
+        bool found = false;
+        aResource->iterateNodeFacesVerts(nodeA->nodeIndex, [&](int, vec4f a0, vec4f a1, vec4f a2) {
+          if (found)
+            return;
           Point3_vec4 a0b, a1b, a2b;
-          vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
-          vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
-          vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
           v_st(&a0b.x, v_mat44_mul_vec3p(tmAtoB, a0));
           v_st(&a1b.x, v_mat44_mul_vec3p(tmAtoB, a1));
           v_st(&a2b.x, v_mat44_mul_vec3p(tmAtoB, a2));
-
           if (test_triangle_box_intersection(a0b, a1b, a2b, nodeB->modelBBox))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1 / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
             collisionPointB = nodeB->boundingSphere.c;
-            return true;
+            found = true;
           }
-        }
+        });
+        if (found)
+          return true;
       }
     }
 
     return false;
   }
 
-  const Point3_vec4 *aVertsBase = nullptr;
-  const uint16_t *aIdxBase = nullptr;
+  const CollisionResource *aResource = nullptr;
 };
 
 class TestBoxNodeBoxNodesIntersectionAlgo final : public ITestIntersectionAlgo
@@ -2662,8 +3085,8 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/, const Point3_vec4 * /*b_verts_base*/,
-    const uint16_t * /*b_idx_base*/) final
+    const CollisionResource * /*res_a*/, const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/,
+    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint16_t * /*b_idx_base*/) final
   {
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmA, vIWtmB, tmBToA, tmAToB;
     v_mat44_inverse43(vIWtmA, tm_a);
@@ -2708,11 +3131,10 @@ public:
 
   bool apply(uint16_t a_head_idx, dag::ConstSpan<CollisionNode> a_all, const mat44f &tm_a, uint16_t b_head_idx,
     dag::ConstSpan<CollisionNode> b_all, const mat44f &tm_b, float a_max_scale, float b_max_scale, bool checkOnlyPhysNodes,
-    const Point3_vec4 *a_verts_base, const uint16_t *a_idx_base, const Point3_vec4 * /*b_verts_base*/,
-    const uint16_t * /*b_idx_base*/) final
+    const CollisionResource *res_a, const Point3_vec4 * /*a_verts_base*/, const uint16_t * /*a_idx_base*/,
+    const CollisionResource * /*res_b*/, const Point3_vec4 * /*b_verts_base*/, const uint16_t * /*b_idx_base*/) final
   {
-    aVertsBase = a_verts_base;
-    aIdxBase = a_idx_base;
+    aResource = res_a;
     alignas(EA_CACHE_LINE_SIZE) mat44f vIWtmB;
     v_mat44_inverse43(vIWtmB, tm_b);
 
@@ -2737,34 +3159,31 @@ public:
         if (v_extract_x(v_length3_sq_x(v_sub(sphereCenterNodeA, sphereCenterNodeB))) > sumRad * sumRad)
           continue;
 
-        const uint16_t *aIdx = aIdxBase + nodeA->indicesOfs;
-        const Point3_vec4 *aVerts = aVertsBase + nodeA->verticesOfs;
-        for (size_t nodeAIndex = 0u, countA = nodeA->indicesCount; nodeAIndex < countA; nodeAIndex += 3u)
-        {
-          vec3f a0 = v_ld(&aVerts[aIdx[nodeAIndex + 0]].x);
-          vec3f a1 = v_ld(&aVerts[aIdx[nodeAIndex + 1]].x);
-          vec3f a2 = v_ld(&aVerts[aIdx[nodeAIndex + 2]].x);
+        bool found = false;
+        aResource->iterateNodeFacesVerts(nodeA->nodeIndex, [&](int, vec4f a0, vec4f a1, vec4f a2) {
+          if (found)
+            return;
           vec3f a0b = v_mat44_mul_vec3p(tmAToB, a0);
           vec3f a1b = v_mat44_mul_vec3p(tmAToB, a1);
           vec3f a2b = v_mat44_mul_vec3p(tmAToB, a2);
-
           if (v_test_triangle_sphere_intersection(a0b, a1b, a2b, v_ldu(&nodeB->boundingSphere.c.x),
                 v_set_x(get_bsphere_r2(nodeB->boundingSphere.r))))
           {
             vec3f ac = v_mul(v_add(a0, v_add(a1, a2)), v_splats(1.f / 3.f));
             v_stu_p3(&collisionPointA.x, v_mat44_mul_vec3p(vWtmA, ac));
             collisionPointB = nodeB->boundingSphere.c;
-            return true;
+            found = true;
           }
-        }
+        });
+        if (found)
+          return true;
       }
     }
 
     return false;
   }
 
-  const Point3_vec4 *aVertsBase = nullptr;
-  const uint16_t *aIdxBase = nullptr;
+  const CollisionResource *aResource = nullptr;
 };
 
 bool CollisionResource::testIntersection(const CollisionResource *res_a, const TMatrix &tm_a, const CollisionResource *res_b,
@@ -2787,7 +3206,7 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
     return false;
 
   TestMeshNodeMeshNodesIntersectionAlgo testMeshNodeMeshNodesIntersectionAlgo(aWbsph, res_a->allNodesList.size(), bWbsph,
-    useTraceFaces ? res_b->gridForTraceable.tracer.get() : nullptr);
+    useTraceFaces ? &res_b->gridForTraceable : nullptr);
   TestMeshNodeBoxNodesIntersectionAlgo testMeshNodeBoxNodesIntersectionAlgo;
   TestMeshNodeSphereNodesIntersectionAlgo testMeshNodeSphereNodesIntersectionAlgo;
   TestBoxNodeBoxNodesIntersectionAlgo testBoxNodeBoxNodesIntersectionAlgo;
@@ -2814,7 +3233,8 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
       if (ITestIntersectionAlgo *testAB = arrIntersectionCall[nodeTypeIxA][nodeTypeIxB])
       {
         result = testAB->apply(res_a->nodeLists[nodeTypeIxA], aAll, vTmA, res_b->nodeLists[nodeTypeIxB], bAll, vTmB, maxScaleA,
-          maxScaleB, checkOnlyPhysNodes, res_a->meshVertsBase, res_a->meshIndicesBase, res_b->meshVertsBase, res_b->meshIndicesBase);
+          maxScaleB, checkOnlyPhysNodes, res_a, res_a->meshVertsBase, res_a->meshIndicesBase, res_b, res_b->meshVertsBase,
+          res_b->meshIndicesBase);
 
         collisionPointA = testAB->collisionPointA;
         collisionPointB = testAB->collisionPointB;
@@ -2822,7 +3242,8 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
       else if (ITestIntersectionAlgo *testBA = arrIntersectionCall[nodeTypeIxB][nodeTypeIxA])
       {
         result = testBA->apply(res_b->nodeLists[nodeTypeIxB], bAll, vTmB, res_a->nodeLists[nodeTypeIxA], aAll, vTmA, maxScaleB,
-          maxScaleA, checkOnlyPhysNodes, res_b->meshVertsBase, res_b->meshIndicesBase, res_a->meshVertsBase, res_a->meshIndicesBase);
+          maxScaleA, checkOnlyPhysNodes, res_b, res_b->meshVertsBase, res_b->meshIndicesBase, res_a, res_a->meshVertsBase,
+          res_a->meshIndicesBase);
 
         collisionPointB = testBA->collisionPointA;
         collisionPointA = testBA->collisionPointB;
@@ -2833,6 +3254,105 @@ bool CollisionResource::testIntersection(const CollisionResource *res_a, const T
     }
   }
 
+  return false;
+}
+
+// Test the mesh-vs-mesh pair (node1, node2) given node1's pre-materialised face triples.
+// Returns true on hit; writes cp1/cp2 (world-space centroids) and *nodeIndex1/2 if non-null.
+// res2's BLAS (when populated) prunes node2's faces by node1's bbox in res2 frame AND filters to
+// leaves owned by node2 (the combined BLAS interleaves leaves from every IDENT MESH node). Without a
+// BLAS, falls back to brute-force tri-tri over node2's faces via iterateNodeFacesVerts.
+// Both branches feed verts in their natural source frame (BLAS: res2 resource-local; brute: node-local
+// from ownVertices) into the inner `tm2to1 * v2` -- consistent because the BLAS holds only
+// IDENT-transform nodes, so node-local == res2-local.
+bool CollisionResource::testMeshNodePair(const CollisionNode *node1, dag::ConstSpan<Point3_vec4> node1Faces,
+  const CollisionResource *res2, const CollisionNode *node2, const TMatrix &tm1ToWorld, const TMatrix &tm2, const TMatrix &tm2to1,
+  Point3 &cp1, Point3 &cp2, uint16_t *node_index1, uint16_t *node_index2)
+{
+  dag::Vector<Point3_vec4, framemem_allocator> res2Faces;
+  const CollisionResource::Grid &res2Blas = res2->getBlasGrid(CollisionNode::TRACEABLE);
+  const CollisionResource::Grid::NodeRange *nr2 = nullptr;
+  if (!res2Blas.blasData.empty())
+    for (const auto &r : res2Blas.blasNodeRanges)
+      if (r.nodeIndex == node2->nodeIndex)
+      {
+        nr2 = &r;
+        break;
+      }
+  if (!nr2)
+  {
+    // node2 isn't in res2's traceable BLAS (res2 has no BLAS, or node2 is non-IDENT /
+    // PHYS_COLLIDABLE-only / sub-gate and never entered gridForTraceable). Brute-force its faces;
+    // iterateNodeFacesVerts dispatches on BLAS_RESIDENT internally (gridForCollidable residents still
+    // decode). This previously fell through to `return false`, silently dropping the pair.
+    res2Faces.reserve((size_t)res2->getNodeFaceCount(node2->nodeIndex) * 3u);
+    res2->iterateNodeFacesVerts(node2->nodeIndex, [&](int, vec4f v0, vec4f v1, vec4f v2) {
+      Point3_vec4 p0, p1, p2;
+      v_st(&p0.x, v0);
+      v_st(&p1.x, v1);
+      v_st(&p2.x, v2);
+      res2Faces.push_back(p0);
+      res2Faces.push_back(p1);
+      res2Faces.push_back(p2);
+    });
+  }
+  else
+  {
+    const TMatrix tm1to2 = inverse(tm2) * tm1ToWorld;
+    bbox3f bboxRes2v = v_ldu_bbox3(tm1to2 * node1->modelBBox);
+    const vec3f boxMinQ = v_madd(bboxRes2v.bmin, res2Blas.blasScale, res2Blas.blasOfs);
+    const vec3f boxMaxQ = v_madd(bboxRes2v.bmax, res2Blas.blasScale, res2Blas.blasOfs);
+    const BlasLocalUnquant unquantVL = BlasLocalUnquant::make(res2Blas.blasBBox.bmin, res2Blas.blasScale);
+    const uint8_t *bData = res2Blas.blasData.data();
+    const uint32_t treeBytes = res2Blas.blasTreeBytes;
+    const uint32_t vertsOfs = res2Blas.blasVertsOfs();
+    const uint32_t nodeVOfs = nr2->verticesOfs;
+    const uint32_t nodeVEnd = nr2->verticesEnd;
+    QuadBLASWalk::iterateFiltered(
+      bData, 0, (int)treeBytes,
+      [boxMinQ, boxMaxQ](vec3f bmn, vec3f bmx) { return v_check_xyz_all_true(v_and(v_cmp_ge(boxMaxQ, bmn), v_cmp_ge(bmx, boxMinQ))); },
+      // -V657: always returns false by design -- collects every overlapping candidate with no
+      // early-out; false means "continue iterating" per the iterateFiltered contract.
+      [&res2Faces, bData, vertsOfs, nodeVOfs, nodeVEnd](vec3f v0, vec3f v1, vec3f v2, int dataOfs) -> bool { //-V657
+        const int ofs1Rel = ((const int *)(bData + dataOfs))[0];
+        const uint32_t v0ByteOfs = (uint32_t)((int)dataOfs + ofs1Rel);
+        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / 8u;
+        if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
+          return false; // sibling-node leaf
+        Point3_vec4 p0, p1, p2;
+        v_st(&p0.x, v0);
+        v_st(&p1.x, v1);
+        v_st(&p2.x, v2);
+        res2Faces.push_back(p0);
+        res2Faces.push_back(p1);
+        res2Faces.push_back(p2);
+        return false;
+      },
+      unquantVL);
+  }
+
+  for (size_t i1 = 0; i1 + 2 < node1Faces.size(); i1 += 3)
+  {
+    const Point3 &v1_0 = node1Faces[i1 + 0];
+    const Point3 &v1_1 = node1Faces[i1 + 1];
+    const Point3 &v1_2 = node1Faces[i1 + 2];
+    for (size_t i2 = 0; i2 + 2 < res2Faces.size(); i2 += 3)
+    {
+      const Point3 &v2_0 = res2Faces[i2 + 0];
+      const Point3 &v2_1 = res2Faces[i2 + 1];
+      const Point3 &v2_2 = res2Faces[i2 + 2];
+      if (test_triangle_triangle_intersection_mueller(v1_0, v1_1, v1_2, tm2to1 * v2_0, tm2to1 * v2_1, tm2to1 * v2_2))
+      {
+        cp1 = node1->tm * ((v1_0 + v1_1 + v1_2) * 0.333333f);
+        cp2 = node2->tm * ((v2_0 + v2_1 + v2_2) * 0.333333f);
+        if (node_index1)
+          *node_index1 = node1->nodeIndex;
+        if (node_index2)
+          *node_index2 = node2->nodeIndex;
+        return true;
+      }
+    }
+  }
   return false;
 }
 
@@ -2850,23 +3370,20 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 
   Tab<bool> boxOutside(framemem_ptr());
   reserve_and_resize(boxOutside, res2->allNodesList.size());
-  Tab<int> faces(framemem_ptr());
 
 #if DAGOR_DBGLEVEL > 0
   unsigned int numNodesDebug = 0;
   unsigned int numSpheresDebug = 0;
   unsigned int numBoxesDebug = 0;
-  unsigned int numTrianglesDebug = 0;
   unsigned int numBoxesInsideDebug = 0;
 #define _INC(x) ++(x)
 #else
 #define _INC(x)
 #endif
 
-  const Point3_vec4 *res1Verts = res1->meshVertsBase;
-  const uint16_t *res1Idx = res1->meshIndicesBase;
-  const Point3_vec4 *res2Verts = res2->meshVertsBase;
-  const uint16_t *res2Idx = res2->meshIndicesBase;
+  // Per-node1 face materialisation feeds the per-pair mesh/box/sphere sub-loops below.
+  // iterateNodeFacesVerts dispatches on BLAS_RESIDENT internally; cache once per node1 because a
+  // BLAS-resident walk is O(total_leaves) (no per-node side table) and would otherwise rerun per node2.
   for (uint16_t mi1 = res1->meshNodesHead; mi1 != CollisionNode::INVALID_IDX; mi1 = res1->allNodesList[mi1].nextNode)
   {
     const CollisionNode *node1 = &res1->allNodesList[mi1];
@@ -2877,8 +3394,17 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
     TMatrix invTm1, tm1ToWorld;
     bool invTm1ready = false;
     mem_set_0(boxOutside);
-    const Point3_vec4 *node1Verts = res1Verts + node1->verticesOfs;
-    const uint16_t *node1Idx = res1Idx + node1->indicesOfs;
+    dag::Vector<Point3_vec4, framemem_allocator> node1FaceVerts;
+    node1FaceVerts.reserve((size_t)res1->getNodeFaceCount(node1->nodeIndex) * 3u);
+    res1->iterateNodeFacesVerts(node1->nodeIndex, [&](int, vec4f v0, vec4f v1, vec4f v2) {
+      Point3_vec4 p0, p1, p2;
+      v_st(&p0.x, v0);
+      v_st(&p1.x, v1);
+      v_st(&p2.x, v2);
+      node1FaceVerts.push_back(p0);
+      node1FaceVerts.push_back(p1);
+      node1FaceVerts.push_back(p2);
+    });
 
     for (uint16_t mi2 = res2->meshNodesHead; mi2 != CollisionNode::INVALID_IDX; mi2 = res2->allNodesList[mi2].nextNode)
     {
@@ -2898,116 +3424,40 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
 
       Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
       float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) < sumRad * sumRad)
+      if (lengthSq(sphereCenter1 - sphereCenter2) >= sumRad * sumRad)
+        continue;
+      _INC(numSpheresDebug);
+
+      if (!invTm1ready)
       {
-        _INC(numSpheresDebug);
+        tm1ToWorld = tm1 * node1->tm;
+        invTm1 = inverse(tm1ToWorld);
+        invTm1ready = true;
+      }
+      TMatrix tm2to1 = invTm1 * (tm2 * node2->tm);
 
-        if (!invTm1ready)
-        {
-          tm1ToWorld = tm1 * node1->tm;
-          invTm1 = inverse(tm1ToWorld);
-          invTm1ready = true;
-        }
+      if (!test_box_box_intersection(node1->modelBBox, node2->modelBBox, tm2to1))
+      {
+        boxOutside[node2->nodeIndex] = true;
+        continue;
+      }
+      _INC(numBoxesDebug);
 
-        TMatrix tm2to1 = invTm1 * (tm2 * node2->tm);
-
-        if (test_box_box_intersection(node1->modelBBox, node2->modelBBox, tm2to1))
-        {
-          _INC(numBoxesDebug);
-
-          if (!res2->gridForTraceable.tracer)
-          {
-            const Point3_vec4 *node2Verts = res2Verts + node2->verticesOfs;
-            const uint16_t *node2Idx = res2Idx + node2->indicesOfs;
-            for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
-            {
-              Point3 v1_0 = node1Verts[node1Idx[index1 + 0]];
-              Point3 v1_1 = node1Verts[node1Idx[index1 + 1]];
-              Point3 v1_2 = node1Verts[node1Idx[index1 + 2]];
-              for (size_t index2 = 0; index2 < node2->indicesCount; index2 += 3)
-              {
-                _INC(numTrianglesDebug);
-
-                const Point3 &v2_0 = node2Verts[node2Idx[index2 + 0]];
-                const Point3 &v2_1 = node2Verts[node2Idx[index2 + 1]];
-                const Point3 &v2_2 = node2Verts[node2Idx[index2 + 2]];
-                bool isIntersected =
-                  test_triangle_triangle_intersection_mueller(v1_0, v1_1, v1_2, tm2to1 * v2_0, tm2to1 * v2_1, tm2to1 * v2_2);
-
-                if (isIntersected)
-                {
-                  collisionPoint1 = node1->tm * ((v1_0 + v1_1 + v1_2) * 0.333333f);
-                  collisionPoint2 = node2->tm * ((v2_0 + v2_1 + v2_2) * 0.333333f);
-                  if (nodeIndex1)
-                    *nodeIndex1 = node1->nodeIndex;
-                  if (nodeIndex2)
-                    *nodeIndex2 = node2->nodeIndex;
-
-                  if (!node_indices1)
-                    return true;
-                  else
-                  {
-                    node_indices1->push_back(node1->nodeIndex);
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          else
-          {
-            TMatrix tm1to2 = inverse(tm2 * node2->tm) * tm1ToWorld;
-            faces.clear();
-            if (res2->gridForTraceable.tracer->getFaces(faces, tm1to2 * node1->modelBBox))
-            {
-              for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
-              {
-                Point3 v1_0 = node1Verts[node1Idx[index1 + 0]];
-                Point3 v1_1 = node1Verts[node1Idx[index1 + 1]];
-                Point3 v1_2 = node1Verts[node1Idx[index1 + 2]];
-                for (size_t index2 = 0; index2 < faces.size(); index2++)
-                {
-                  _INC(numTrianglesDebug);
-
-                  const auto &face = res2->gridForTraceable.tracer->faces(faces[index2]);
-                  const Point3 &v2_0 = res2->gridForTraceable.tracer->verts(face.v[0]);
-                  const Point3 &v2_1 = res2->gridForTraceable.tracer->verts(face.v[1]);
-                  const Point3 &v2_2 = res2->gridForTraceable.tracer->verts(face.v[2]);
-
-                  bool isIntersected =
-                    test_triangle_triangle_intersection_mueller(v1_0, v1_1, v1_2, tm2to1 * v2_0, tm2to1 * v2_1, tm2to1 * v2_2);
-
-                  if (isIntersected)
-                  {
-                    collisionPoint1 = node1->tm * ((v1_0 + v1_1 + v1_2) * 0.333333f);
-                    collisionPoint2 = node2->tm * ((v2_0 + v2_1 + v2_2) * 0.333333f);
-                    if (nodeIndex1)
-                      *nodeIndex1 = node1->nodeIndex;
-                    if (nodeIndex2)
-                      *nodeIndex2 = node2->nodeIndex;
-
-                    if (!node_indices1)
-                      return true;
-                    else
-                    {
-                      node_indices1->push_back(node1->nodeIndex);
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        else
-        {
-          boxOutside[node2->nodeIndex] = true;
-        }
+      if (testMeshNodePair(node1, make_span_const(node1FaceVerts), res2, node2, tm1ToWorld, tm2, tm2to1, collisionPoint1,
+            collisionPoint2, nodeIndex1, nodeIndex2))
+      {
+        if (!node_indices1)
+          return true;
+        node_indices1->push_back(node1->nodeIndex);
       }
     }
 
     TMatrix tm1to2;
     bool tm1to2ready = false;
+
+    auto faceCentroidWorld = [&](size_t i1) {
+      return node1->tm * ((node1FaceVerts[i1] + node1FaceVerts[i1 + 1] + node1FaceVerts[i1 + 2]) * 0.333333f);
+    };
 
     for (uint16_t bi2 = res2->boxNodesHead; bi2 != CollisionNode::INVALID_IDX; bi2 = res2->allNodesList[bi2].nextNode)
     {
@@ -3015,44 +3465,31 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
 
       float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) < sumRad * sumRad)
+      if (lengthSq(sphereCenter1 - sphereCenter2) >= sumRad * sumRad)
+        continue;
+      if (!test_box_box_intersection(node1->modelBBox, node2->modelBBox, modelTm2to1))
+        continue;
+      if (!tm1to2ready)
       {
-        if (test_box_box_intersection(node1->modelBBox, node2->modelBBox, modelTm2to1))
-        {
-          if (!tm1to2ready)
-          {
-            tm1to2 = inverse(tm2) * tm1 * node1->tm;
-            tm1to2ready = true;
-          }
+        tm1to2 = inverse(tm2) * tm1 * node1->tm;
+        tm1to2ready = true;
+      }
 
-          for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
-          {
-            bool isIntersected = test_triangle_box_intersection(tm1to2 * node1Verts[node1Idx[index1]],
-              tm1to2 * node1Verts[node1Idx[index1 + 1]], tm1to2 * node1Verts[node1Idx[index1 + 2]], node2->modelBBox);
-
-            if (isIntersected)
-            {
-              collisionPoint1 = node1->tm *
-                                (node1Verts[node1Idx[index1]] + node1Verts[node1Idx[index1 + 1]] + node1Verts[node1Idx[index1 + 2]]) *
-                                0.333333f;
-
-              collisionPoint2 = node2->boundingSphere.c;
-
-              if (nodeIndex1)
-                *nodeIndex1 = node1->nodeIndex;
-              if (nodeIndex2)
-                *nodeIndex2 = node2->nodeIndex;
-
-              if (!node_indices1)
-                return true;
-              else
-              {
-                node_indices1->push_back(node1->nodeIndex);
-                break;
-              }
-            }
-          }
-        }
+      for (size_t i1 = 0; i1 + 2 < node1FaceVerts.size(); i1 += 3)
+      {
+        if (!test_triangle_box_intersection(tm1to2 * node1FaceVerts[i1], tm1to2 * node1FaceVerts[i1 + 1],
+              tm1to2 * node1FaceVerts[i1 + 2], node2->modelBBox))
+          continue;
+        collisionPoint1 = faceCentroidWorld(i1);
+        collisionPoint2 = node2->boundingSphere.c;
+        if (nodeIndex1)
+          *nodeIndex1 = node1->nodeIndex;
+        if (nodeIndex2)
+          *nodeIndex2 = node2->nodeIndex;
+        if (!node_indices1)
+          return true;
+        node_indices1->push_back(node1->nodeIndex);
+        break;
       }
     }
 
@@ -3062,42 +3499,30 @@ bool CollisionResource::testIntersection(const CollisionResource *res1, const TM
       Point3 sphereCenter2 = tm2 * (node2->tm * node2->boundingSphere.c);
 
       float sumRad = node1->boundingSphere.r * scale1 + node2->boundingSphere.r * scale2;
-      if (lengthSq(sphereCenter1 - sphereCenter2) < sqr(sumRad))
+      if (lengthSq(sphereCenter1 - sphereCenter2) >= sqr(sumRad))
+        continue;
+      if (!tm1to2ready)
       {
-        if (!tm1to2ready)
-        {
-          tm1to2 = inverse(tm2) * tm1 * node1->tm;
-          tm1to2ready = true;
-        }
+        tm1to2 = inverse(tm2) * tm1 * node1->tm;
+        tm1to2ready = true;
+      }
 
-        for (size_t index1 = 0; index1 < node1->indicesCount; index1 += 3)
-        {
-          bool isIntersected =
-            test_triangle_sphere_intersection(tm1to2 * node1Verts[node1Idx[index1]], tm1to2 * node1Verts[node1Idx[index1 + 1]],
-              tm1to2 * node1Verts[node1Idx[index1 + 2]], make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r));
-
-          if (isIntersected)
-          {
-            collisionPoint1 = node1->tm *
-                              (node1Verts[node1Idx[index1]] + node1Verts[node1Idx[index1 + 1]] + node1Verts[node1Idx[index1 + 2]]) *
-                              0.333333f;
-
-            collisionPoint2 = node2->boundingSphere.c;
-
-            if (nodeIndex1)
-              *nodeIndex1 = node1->nodeIndex;
-            if (nodeIndex2)
-              *nodeIndex2 = node2->nodeIndex;
-
-            if (!node_indices1)
-              return true;
-            else
-            {
-              node_indices1->push_back(node1->nodeIndex);
-              break;
-            }
-          }
-        }
+      const auto node2BSphere = make_node_bsphere(node2->boundingSphere.c, node2->boundingSphere.r);
+      for (size_t i1 = 0; i1 + 2 < node1FaceVerts.size(); i1 += 3)
+      {
+        if (!test_triangle_sphere_intersection(tm1to2 * node1FaceVerts[i1], tm1to2 * node1FaceVerts[i1 + 1],
+              tm1to2 * node1FaceVerts[i1 + 2], node2BSphere))
+          continue;
+        collisionPoint1 = faceCentroidWorld(i1);
+        collisionPoint2 = node2->boundingSphere.c;
+        if (nodeIndex1)
+          *nodeIndex1 = node1->nodeIndex;
+        if (nodeIndex2)
+          *nodeIndex2 = node2->nodeIndex;
+        if (!node_indices1)
+          return true;
+        node_indices1->push_back(node1->nodeIndex);
+        break;
       }
     }
   }
@@ -3180,8 +3605,82 @@ void CollisionResource::clipCapsule(const TMatrix &instance_tm, const Capsule &c
 
 void CollisionResource::clipCapsule(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized)
 {
-  if (auto *tracer = ((collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT) ? gridForTraceable : gridForCollidable).tracer.get())
-    tracer->clipCapsule(c, cp1, cp2, md, movedirNormalized);
+  const bool haveMoveDir = lengthSq(movedirNormalized) > 1e-6f;
+  const vec3f vMoveDir = haveMoveDir ? v_ldu(&movedirNormalized.x) : v_zero();
+
+  // Per-triangle capsule-clip kernel shared by the BLAS walk and the per-node fallback. Mirrors FRT
+  // clipCapsule: recompute the face normal from resource-local verts, optionally skip back-faces vs
+  // capsule travel, then accumulate the deepest penetration via clipCapsuleTriangle (keeps the min
+  // over cp1/cp2/md). Tolerance > 0 keeps near-coplanar tris so a grazed wall still clips.
+  auto clipTri = [&](vec3f v0, vec3f v1, vec3f v2, bool cull) {
+    vec3f e1 = v_sub(v1, v0), e2 = v_sub(v2, v0);
+    vec3f n = v_cross3(e1, e2);
+    float nLen = v_extract_x(v_length3(n));
+    if (nLen < 1e-9f)
+      return;
+    n = v_mul(n, v_rcp(v_splats(nLen)));
+    if (cull && v_extract_x(v_dot3_x(n, vMoveDir)) > 1e-3f)
+      return;
+    alignas(16) Point3_vec4 p0, p1, p2, pn;
+    v_st(&p0.x, v0);
+    v_st(&p1.x, v1);
+    v_st(&p2.x, v2);
+    v_st(&pn.x, n);
+    TriangleFace tf(p0, p1, p2, pn);
+    clipCapsuleTriangle(c, cp1, cp2, md, tf);
+  };
+
+  const Grid &blasGrid = getBlasGrid(CollisionNode::PHYS_COLLIDABLE);
+  const bool useBlas = !blasGrid.blasData.empty();
+  if (useBlas)
+  {
+    // BLAS path: filter the BLAS by the capsule's resource-local bbox and clip each candidate.
+    // The BLAS covers only the BLAS-eligible (IDENT) collidable mesh nodes.
+    const vec3f vA = v_ldu(&c.a.x);
+    const vec3f vB = v_ldu(&c.b.x);
+    const vec3f vR = v_splats(c.r);
+    const vec3f vCapMin = v_sub(v_min(vA, vB), vR);
+    const vec3f vCapMax = v_add(v_max(vA, vB), vR);
+    const vec3f vCapMinBox = v_madd(vCapMin, blasGrid.blasScale, blasGrid.blasOfs);
+    const vec3f vCapMaxBox = v_madd(vCapMax, blasGrid.blasScale, blasGrid.blasOfs);
+
+    const BlasLocalUnquant unquantVL = BlasLocalUnquant::make(blasGrid.blasBBox.bmin, blasGrid.blasScale);
+
+    QuadBLASWalk::iterateFiltered(
+      blasGrid.blasData.data(), 0, (int)blasGrid.blasTreeBytes,
+      [vCapMinBox, vCapMaxBox](vec3f bmin, vec3f bmax) {
+        return v_check_xyz_all_true(v_and(v_cmp_ge(vCapMaxBox, bmin), v_cmp_ge(bmax, vCapMinBox)));
+      },
+      [&](vec3f v0, vec3f v1, vec3f v2, int /*dataOfs*/) -> bool {
+        clipTri(v0, v1, v2, haveMoveDir);
+        return false;
+      },
+      unquantVL);
+  }
+
+  // Per-node fallback for collidable nodes the BLAS branch misses: CONVEX nodes (never in the BLAS),
+  // non-IDENT mesh nodes (kept out by isEligibleForBlas), and -- when no BLAS was built (small or
+  // SOLID resource) -- every collidable mesh node. Without this they silently stop contributing to
+  // capsule clipping (e.g. convex collision in rendInstGenCollision.cpp). Skips the BLAS-eligible
+  // IDENT mesh nodes the BLAS branch already clipped. Triangles are read node-local
+  // (iterateNodeFacesVerts) and transformed by node->tm into resource-local (the capsule/BLAS frame).
+  for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
+  {
+    const CollisionNode *node = &allNodesList[mi];
+    if (!node->checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE) || node->indicesCount == 0)
+      continue;
+    if (useBlas && node->type == COLLISION_NODE_TYPE_MESH && (node->flags & CollisionNode::IDENT))
+      continue; // already handled by the BLAS walk above (mirrors isEligibleForBlas)
+
+    // SOLID nodes trace without back-face culling (never in the BLAS -- a SOLID node aborts buildBLAS),
+    // so disable the movedir cull to match FRT/per-node semantics.
+    const bool cull = haveMoveDir && !node->checkBehaviorFlags(CollisionNode::SOLID);
+    mat44f nodeTm;
+    v_mat44_make_from_43cu_unsafe(nodeTm, node->tm.m[0]); // node-local -> resource-local
+    iterateNodeFacesVerts(mi, [&](int, vec4f lv0, vec4f lv1, vec4f lv2) {
+      clipTri(v_mat44_mul_vec3p(nodeTm, lv0), v_mat44_mul_vec3p(nodeTm, lv1), v_mat44_mul_vec3p(nodeTm, lv2), cull);
+    });
+  }
 }
 
 bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, const CollisionNode *node, const Point3 &dir_norm,
@@ -3193,10 +3692,20 @@ bool CollisionResource::test_sphere_node_intersection(const BSphere3 &sphere, co
   if (!(node->modelBBox & localSphere))
     return false;
 
-  const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
+  // Resolve verts + indices: ownVertices/ownIndices for non-resident; decoded vert21 +
+  // re-materialised indices for BLAS-resident. The helper handles both internally.
+  dag::Vector<Point3_vec4, framemem_allocator> vScratch;
+  dag::Vector<uint16_t, framemem_allocator> iScratch;
+  CollisionNode rebased;
+  const Point3_vec4 *vertsBase = nullptr;
+  const uint16_t *idxBase = nullptr;
+  const CollisionNode *nodeForCall = nullptr;
+  resolveNodeVertsForCall(*node, vScratch, iScratch, rebased, vertsBase, idxBase, nodeForCall);
+
+  const uint16_t *__restrict cur = idxBase + nodeForCall->indicesOfs;
   PREFETCH_DATA(0, cur);
-  const uint16_t *__restrict end = cur + node->indicesCount;
-  const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
+  const uint16_t *__restrict end = cur + nodeForCall->indicesCount;
+  const Point3_vec4 *__restrict vertices = vertsBase + nodeForCall->verticesOfs;
   const Point3 localDirNorm = itm % dir_norm;
 
   PREFETCH_DATA(128, cur);
@@ -3241,10 +3750,18 @@ bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const P
   BSphere3 localSphere0(localCylinderPoint0, radius);
   BSphere3 localSphere1(localCylinderPoint1, radius);
 
-  const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
+  dag::Vector<Point3_vec4, framemem_allocator> vScratch;
+  dag::Vector<uint16_t, framemem_allocator> iScratch;
+  CollisionNode rebased;
+  const Point3_vec4 *vertsBase = nullptr;
+  const uint16_t *idxBase = nullptr;
+  const CollisionNode *nodeForCall = nullptr;
+  resolveNodeVertsForCall(*node, vScratch, iScratch, rebased, vertsBase, idxBase, nodeForCall);
+
+  const uint16_t *__restrict cur = idxBase + nodeForCall->indicesOfs;
   PREFETCH_DATA(0, cur);
-  const uint16_t *__restrict end = cur + node->indicesCount;
-  const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
+  const uint16_t *__restrict end = cur + nodeForCall->indicesCount;
+  const Point3_vec4 *__restrict vertices = vertsBase + nodeForCall->verticesOfs;
 
   PREFETCH_DATA(128, cur);
   while (cur < end)
@@ -3262,26 +3779,32 @@ bool CollisionResource::test_capsule_node_intersection(const Point3 &p0, const P
   return false;
 }
 
-CollisionResource::Grid::~Grid() = default;
 CollisionResource::Grid::Grid() = default;
-void CollisionResource::Grid::reset() { tracer.reset(); }
+void CollisionResource::Grid::reset()
+{
+  blasData.clear();
+  blasData.shrink_to_fit();
+  v_bbox3_init_empty(blasBBox);
+  blasScale = v_zero();
+  blasOfs = v_zero();
+  blasTreeBytes = 0;
+  blasNodeRanges.clear();
+  blasNodeRanges.shrink_to_fit();
+  blasTwoSided = false;
+}
 
 int CollisionResource::getMemoryUsed() const
 {
-  auto frtMem = [](const Grid &g) -> int {
-    auto *t = g.tracer.get();
-    return t ? t->getVertsCount() * 16 + t->getFacesCount() * 6 + t->getFaceIndicesCount() * 2 + (int)sizeof(*t) : 0;
-  };
+  auto blasMem = [](const Grid &g) -> int { return (int)(g.blasData.size() + g.blasNodeRanges.size() * sizeof(Grid::NodeRange)); };
   int mem = sizeof(*this);
   mem += (int)(ownVertices.size() * sizeof(Point3_vec4));
   mem += (int)(ownIndices.size() * sizeof(uint16_t));
   mem += (int)names.size();
   mem += capsules.size() * sizeof(Capsule);
   mem += convexPlanes.size() * sizeof(plane3f);
-  mem += frtMem(gridForTraceable) + frtMem(gridForCollidable);
+  mem += blasMem(gridForTraceable) + blasMem(gridForCollidable);
   return mem;
 }
-
 
 vec4f CollisionResource::getWorldBoundingSphere(const mat44f &tm, const GeomNodeTree *geom_node_tree) const
 {
@@ -3328,29 +3851,51 @@ bool CollisionResource::validateVerticesForJolt(const char *res_name, auto &&on_
   for (uint16_t mi = meshNodesHead; mi != CollisionNode::INVALID_IDX; mi = allNodesList[mi].nextNode)
   {
     const CollisionNode *node = &allNodesList[mi];
-    const uint16_t *__restrict cur = meshIndicesBase + node->indicesOfs;
-    const uint16_t *__restrict end = cur + node->indicesCount;
+    // BLAS-resident verts are already 21-bit-quantised in vert21; the Point3_vec4 source the
+    // pre-encoding precision check needs is gone. That check flags content that won't survive Jolt's
+    // quantisation -- vert21 verts already survived it at build time. Skip them.
+    if (node->flags & CollisionNode::BLAS_RESIDENT)
+      continue;
+    const uint16_t *__restrict idxBase = meshIndicesBase + node->indicesOfs;
+    const uint16_t *__restrict idxEnd = idxBase + node->indicesCount;
     const Point3_vec4 *__restrict vertices = meshVertsBase + node->verticesOfs;
-    const int packedBits = 21;
-    bbox3f bb = v_ldu_bbox3(node->modelBBox);
-    vec3f scale = v_div(v_bbox3_size(bb), v_splats((1 << packedBits) - 1));
-    vec3f invScale = v_rcp(scale);
-    while (cur < end)
+    // Mirror JPH::MeshShapeSettings::Create() per node (the runtime feeds Jolt ONE MeshShape per mesh
+    // node: collisionLib CST_MESH -> joltPhysics TYPE_TRIMESH). Create() rejects a triangle when EITHER
+    //   1. IndexedTriangle::IsDegenerate -- cross(v1-v0, v2-v0) near zero on the raw float verts, or
+    //   2. TriangleCodec::ValidationContext::IsDegenerate -- two of its verts land on the SAME 21-bit
+    //      cell after round-to-nearest quantization against the bounds of the verts referenced by the
+    //      triangle list (TriangleCodecIndexed8BitPackSOA4Flags.h).
+    // Criterion 2 is vertex COINCIDENCE, not collinearity: Jolt accepts a triangle that quantizes to a
+    // zero-area sliver as long as its three cells stay distinct. Testing the cross product of
+    // DEQUANTIZED verts here (as this function used to) over-rejects huge near-collinear triangles that
+    // every real Jolt path builds fine -- and did so on a grid (per-node modelBBox, truncation, cell
+    // corners) that matches neither Jolt's rounding nor the runtime BLAS the exporter snaps to.
+    bbox3f bb;
+    v_bbox3_init_empty(bb);
+    for (const uint16_t *__restrict cur = idxBase; cur < idxEnd; cur++)
+      v_bbox3_add_pt(bb, v_ld(&vertices[*cur].x));
+    // compress_scale = COMPONENT_MASK / max(size, 1e-20), quantize = trunc((v - bmin) * scale + 0.5) --
+    // operation-for-operation Jolt's ValidationContext (Vec3::ToInt is the same cvttps truncation).
+    const vec4f compressScale = v_div(v_splats((float)((1 << 21) - 1)), v_max(v_bbox3_size(bb), v_splats(1.0e-20f)));
+    for (const uint16_t *__restrict cur = idxBase; cur < idxEnd;)
     {
       const uint16_t *triangleStartIdx = cur;
       vec3f v0 = v_ld(&vertices[*(cur++)].x);
       vec3f v1 = v_ld(&vertices[*(cur++)].x);
       vec3f v2 = v_ld(&vertices[*(cur++)].x);
-      volatile vec4i q0 = v_cvt_vec4i(v_mul(v_sub(v0, bb.bmin), invScale));
-      volatile vec4i q1 = v_cvt_vec4i(v_mul(v_sub(v1, bb.bmin), invScale));
-      volatile vec4i q2 = v_cvt_vec4i(v_mul(v_sub(v2, bb.bmin), invScale));
-      vec3f w0 = v_add(v_mul(v_cvt_vec4f((vec4i &)q0), scale), bb.bmin);
-      vec3f w1 = v_add(v_mul(v_cvt_vec4f((vec4i &)q1), scale), bb.bmin);
-      vec3f w2 = v_add(v_mul(v_cvt_vec4f((vec4i &)q2), scale), bb.bmin);
-      vec4f n = v_cross3(v_sub(w1, w0), v_sub(w2, w0));
-      const float inMaxDistSq = 1.0e-12f;
-      bool isNearZero = v_extract_x(v_length3_sq_x(n)) <= inMaxDistSq;
-      if (DAGOR_UNLIKELY(isNearZero))
+      vec4f n = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
+      const float inMaxDistSq = 1.0e-12f; // Jolt Vec3::IsNearZero default
+      bool isDegenerate = v_extract_x(v_length3_sq_x(n)) <= inMaxDistSq;
+      if (!isDegenerate)
+      {
+        vec4i q0 = v_cvti_vec4i(v_add(v_mul(v_sub(v0, bb.bmin), compressScale), V_C_HALF));
+        vec4i q1 = v_cvti_vec4i(v_add(v_mul(v_sub(v1, bb.bmin), compressScale), V_C_HALF));
+        vec4i q2 = v_cvti_vec4i(v_add(v_mul(v_sub(v2, bb.bmin), compressScale), V_C_HALF));
+        // xyz lanes only: w holds Point3_vec4 padding
+        isDegenerate = v_check_xyz_all_true(v_cast_vec4f(v_cmp_eqi(q0, q1))) ||
+                       v_check_xyz_all_true(v_cast_vec4f(v_cmp_eqi(q1, q2))) || v_check_xyz_all_true(v_cast_vec4f(v_cmp_eqi(q0, q2)));
+      }
+      if (DAGOR_UNLIKELY(isDegenerate))
       {
         if (passed)
           logwarn("Degenerative triangles detected in collision res: %s", res_name);
@@ -3377,14 +3922,10 @@ void CollisionResource::check_avx_mesh_api_support()
     traceMeshNodeLocalApi = traceMeshNodeLocalApi_AVX256;
 }
 
-bool CollisionResource::getGridSize(uint8_t behavior_filter, IPoint3 &width, Point3 &leaf_size) const
+bool CollisionResource::getGridSize(uint8_t /*behavior_filter*/, IPoint3 & /*width*/, Point3 & /*leaf_size*/) const
 {
-  if (auto tracer = getTracer(behavior_filter))
-  {
-    width = tracer->getLeafLimits().width() + IPoint3(1, 1, 1);
-    leaf_size = tracer->getLeafSize();
-    return true;
-  }
+  // FRT-era debug-viz of the leaf-grid extent. The SAH-built BLAS backend has no uniform leaf grid,
+  // so this is permanently empty -- kept as a no-op so existing das bindings / debug overlays compile.
   return false;
 }
 

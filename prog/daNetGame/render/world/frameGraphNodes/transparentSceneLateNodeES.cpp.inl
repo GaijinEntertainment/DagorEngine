@@ -26,11 +26,11 @@ dafg::NodeHandle makeTransparentSceneLateNode(MainNodeRenderPass mode)
   auto ns = debugTriangle ? dafg::root() / "tringle_size_debug" / "transparent" : dafg::root();
   return ns.registerNode("transparent_scene_late_node", DAFG_PP_NODE_SRC, [debugTriangle](dafg::Registry registry) {
     if (debugTriangle)
-      registry.requestRenderPass().color({"triangle_size_tex"}).depthRo("depth_for_transparency");
+      registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly("depth_for_transparency");
     else
       registry.requestRenderPass()
         .color({"target_for_transparency"})
-        .depthRoAndBindToShaderVars("depth_for_transparency", {"effects_depth_tex"});
+        .depthReadTestAndSample("depth_for_transparency", {"effects_depth_tex"});
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     use_current_camera(registry);
 
@@ -79,13 +79,13 @@ dafg::NodeHandle makeMainHeroTransNode(MainNodeRenderPass mode)
       .optional();
 
     if (debugTriangle)
-      registry.requestRenderPass().color({"triangle_size_tex"}).depthRo("depth_for_transparency");
+      registry.requestRenderPass().color({"triangle_size_tex"}).depthReadTestOnly("depth_for_transparency");
     else
-      registry.requestRenderPass().color({"target_for_transparency"}).depthRo("depth_for_transparency");
+      registry.requestRenderPass().color({"target_for_transparency"}).depthReadTestOnly("depth_for_transparency");
 
     registry.readBlob<CameraParams>("current_camera").bindAsView<&CameraParams::viewTm>().bindAsProj<&CameraParams::jitterProjTm>();
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
-
+    read_prev_frame_tex(registry);
 
     if (!debugTriangle)
       request_and_bind_scope_lens_reflections(registry);

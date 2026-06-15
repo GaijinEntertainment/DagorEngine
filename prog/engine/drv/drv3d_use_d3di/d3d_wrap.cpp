@@ -5,6 +5,7 @@
 #include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_interface_table.h>
+#include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_query.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 
@@ -206,6 +207,10 @@ bool set_render_target(int rt_index, BaseTexture *t, uint8_t level) { return d3d
 
 void get_render_target(Driver3dRenderTarget &out_rt) { return d3di.get_render_target(out_rt); }
 bool set_render_target(const Driver3dRenderTarget &rt) { return d3di.set_render_target(rt); }
+void set_render_target(RenderTarget depth, DepthAccess depth_access, dag::ConstSpan<RenderTarget> colors)
+{
+  d3di.set_render_target_4(depth, depth_access, colors);
+}
 
 bool get_target_size(int &w, int &h) { return d3di.get_target_size(w, h); }
 bool get_render_target_size(int &w, int &h, BaseTexture *rt_tex, uint8_t level)

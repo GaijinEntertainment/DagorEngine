@@ -184,7 +184,9 @@ static void compile_error_handler(
 
 static SQInteger runtime_error_handler(HSQUIRRELVM v)
 {
-  G_ASSERT(sq_gettop(v) == 2);
+  // (this, error, trace): the VM hands an async fault's captured trace as a
+  // third argument; for a synchronous fault `trace` is null and the live stack is used.
+  G_ASSERT(sq_gettop(v) == 3);
 
   sqstd_aux_error_to_string(v, 2);
   const char *errMsg = "Unknown error";
@@ -194,7 +196,10 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
 
   eastl::string netErrorStr = errMsg;
 
-  if (SQ_SUCCEEDED(sqstd_formatcallstackstring(v)))
+  HSQOBJECT trace;
+  sq_resetobject(&trace);
+  sq_getstackobj(v, 3, &trace);
+  if (SQ_SUCCEEDED(sqstd_formaterrorcontextstring(v, trace)))
   {
     const char *callstack = nullptr;
     G_VERIFY(SQ_SUCCEEDED(sq_getstring(v, -1, &callstack)));
@@ -215,7 +220,7 @@ static SQInteger runtime_error_handler(HSQUIRRELVM v)
   event_log::send_error_log(netErrorStr.c_str(), params);
 #endif
 
-  return sq_suspendvm(v);
+  return 0;
 }
 
 static const char *get_das_path_setting(const char *path)
@@ -342,6 +347,7 @@ HSQUIRRELVM init()
   sq_setcompilererrorhandler(vm, compile_error_handler);
 
   sq_newclosure(vm, runtime_error_handler, 0);
+  sq_setparamscheck(vm, 3, nullptr);
   sq_seterrorhandler(vm);
 
   stackCheck.check();

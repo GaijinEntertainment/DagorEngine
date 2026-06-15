@@ -84,6 +84,9 @@ public:
   // The placeholder text is the text shown when the edit box is empty.
   virtual void setPlaceholderText([[maybe_unused]] const char *text) {}
 
+  // Display an error message toast near the control.
+  virtual void setErrorMessageToast([[maybe_unused]] const char *message) {}
+
   // Gets
   virtual void *getUserDataValue() const;
   virtual int getTextValue(char *buffer, int buflen) const;
@@ -150,6 +153,7 @@ public:
   long onWcKeyDown(WindowBase *source, unsigned v_key) override;
   void onWcResize(WindowBase *source) override;
   void onWcPostEvent(unsigned id) override;
+  void onWcChangeFinished(WindowBase *source) override;
 
   virtual const ContainerPropertyControl *getContainer() const { return nullptr; }
   virtual ContainerPropertyControl *getContainer() { return nullptr; }

@@ -14,9 +14,12 @@ class Register;
 
 class StcodeVMRegisterAllocator
 {
+  static constexpr int MAX_TEMP_REGS = 256; // Limit from encoding -- register number is sometimes 8-bit encoded
+  static constexpr int MAX_CACHED_STVAR_TEMP_REGS = MAX_TEMP_REGS / 2; // Don't allow to take up all temp regs for static vars
+
   // shadervar id, opcode -> register
   eastl::vector_map<eastl::pair<int, int>, Register> stVarToReg{};
-  eastl::array<int16_t, 512> usedRegs{};
+  eastl::array<int16_t, MAX_TEMP_REGS> usedRegs{};
   int maxregsize = 0;
 
   Parser &parser; // for allocation failure reporting
@@ -78,7 +81,10 @@ class Register
         return;
       }
     }
-    report_error(owner.parser, nullptr, "Unable to allocate registers");
+    report_error(owner.parser, nullptr,
+      "Unable to allocate stcode temporary registers. There are at most %d temp registers available due to bytecode encoding format "
+      "limit. Consider reducing complexity of your preshader expressions.",
+      owner.usedRegs.size());
   }
 
   void swap(Register &r)
@@ -164,11 +170,20 @@ inline Register StcodeVMRegisterAllocator::add_reg(int type)
 
 inline eastl::optional<Register> StcodeVMRegisterAllocator::registerStvarGetter(int var_id, int getter_opcode, Register new_reg)
 {
-  auto [it, inserted] = stVarToReg.emplace(eastl::make_pair(var_id, getter_opcode), new_reg);
-  if (!inserted)
-    return it->second;
+  // With low stcode temp-register pressure, pin the queried stvar in the temp register for the lifetime of the routine.
+  // We could do some LRU stuff, but optimizing bytecode is not a priority by now since it's the fallback codepath.
+  if (stVarToReg.size() < MAX_CACHED_STVAR_TEMP_REGS)
+  {
+    if (auto [it, inserted] = stVarToReg.emplace(eastl::make_pair(var_id, getter_opcode), new_reg); !inserted)
+      return it->second;
+  }
+  // Otherwise, if pressure is high, just check if we've already got this var pinned without pinning it otherwise.
   else
-    return eastl::nullopt;
+  {
+    if (auto it = stVarToReg.find(eastl::make_pair(var_id, getter_opcode)))
+      return it->second;
+  }
+  return eastl::nullopt;
 }
 
 inline void StcodeVMRegisterAllocator::manuallyReleaseRegister(int reg) { Register raiiReg{reg, *this}; }

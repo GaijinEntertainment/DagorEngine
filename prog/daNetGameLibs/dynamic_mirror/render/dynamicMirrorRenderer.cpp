@@ -8,7 +8,7 @@
 #include <rendInst/rendInstGenRender.h>
 #include <ecs/render/updateStageRender.h>
 #include <render/world/dynModelRenderPass.h>
-#include <render/world/dynModelRenderer.h>
+#include <render/dynmodelRenderer.h>
 #include <render/world/global_vars.h>
 #include <shaders/dag_shaderBlock.h>
 #include <render/skies.h>
@@ -215,7 +215,6 @@ DynamicMirrorRenderer::CameraData DynamicMirrorRenderer::get_common_camera_data(
 
 void render_dynamic_mirrors(const DPoint3 &main_camera_pos,
   const AnimcharMirrorData &animchar_mirror_data,
-  int render_pass,
   bool render_depth,
   TMatrix view_itm,
   const TexStreamingContext &tex_streaming_ctx)
@@ -229,26 +228,23 @@ void render_dynamic_mirrors(const DPoint3 &main_camera_pos,
     render_depth ? eastl::to_underlying(dynmodel::RenderPass::Depth) : eastl::to_underlying(dynmodel::RenderPass::Color));
 
   uint8_t renderMask = render_depth ? UpdateStageInfoRender::RENDER_DEPTH : UpdateStageInfoRender::RENDER_MAIN;
-  auto &state = dynmodel_renderer::get_immediate_state();
+  dynrend::ContextId ctx = dynrend::get_or_create_context("dynmodel_immediate");
 
   auto additionalData = animchar_mirror_data.getAdditionalData();
-  auto filter = dynmodel_renderer::PathFilterView(animchar_mirror_data.nodeFilter.data(), animchar_mirror_data.nodeFilter.size());
-  state.process_animchar(ShaderMesh::STG_opaque, ShaderMesh::STG_opaque, animchar_mirror_data.sceneInstance,
-    animchar_additional_data::get_optional_data(additionalData), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter, renderMask,
-    animchar_mirror_data.needsHighRenderPriority ? dynmodel_renderer::RenderPriority::HIGH
-                                                 : dynmodel_renderer::RenderPriority::DEFAULT,
-    nullptr, tex_streaming_ctx);
+  auto filter = dynrend::PathFilterView(animchar_mirror_data.nodeFilter.data(), animchar_mirror_data.nodeFilter.size());
+  dynrend::add_animchar(ctx, ShaderMesh::STG_opaque, ShaderMesh::STG_opaque, animchar_mirror_data.sceneInstance,
+    animchar_additional_data::get_optional_data(additionalData), dynrend::NeedPreviousMatrices::No, {}, filter, renderMask,
+    animchar_mirror_data.needsHighRenderPriority ? dynrend::RenderPriority::HIGH : dynrend::RenderPriority::DEFAULT, nullptr,
+    tex_streaming_ctx);
 
-  if (state.multidrawList.empty() && state.list.empty())
+  if (!dynrend::context_has_data(ctx))
     return;
 
-  const auto *buffer = state.requestBuffer(dynmodel_renderer::get_buffer_type_from_render_pass(render_pass));
-  if (buffer != nullptr)
+  if (dynrend::prepare_render_current(ctx))
   {
     SCOPE_VIEW_PROJ_MATRIX;
     d3d::settm(TM_VIEW, viewTm);
-    state.setVars(buffer->buffer.getBufId());
     SCENE_LAYER_GUARD(sceneBlockId);
-    state.render(buffer->curOffset);
+    dynrend::render_all_stages(ctx);
   }
 }

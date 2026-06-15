@@ -12,6 +12,7 @@
   file:t = "copy_depth_region.dshl"
   file:t = "clustered/debug_deferred_lights.dshl"
   file:t = "clustered/cull_out_of_frustum.dshl"
+  file:t = "clustered/lights_grid.dshl"
   file:t = "../deferred_lights.dshl"
   file:t = "ui_blur.dshl"
   file:t = "ui_blend.dshl"

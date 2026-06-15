@@ -233,6 +233,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_G_TM:
       case SHCOD_FSH_CONST:
       case SHCOD_VPR_CONST:
+      case SHCOD_SET_CONST_PACKED:
       case SHCOD_CS_CONST:
       case SHCOD_GLOB_SAMPLER:
       case SHCOD_TEXTURE:
@@ -265,6 +266,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_DIV_VEC:
       case SHCOD_GET_GINT_TOREAL:
       case SHCOD_GET_GIVEC_TOREAL:
+      case SHCOD_GET_GIVEC:
       case SHCOD_IMM_REAL1:
       case SHCOD_IMM_SVEC1:
       case SHCOD_INT_TOREAL:

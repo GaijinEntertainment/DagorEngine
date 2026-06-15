@@ -32,13 +32,14 @@ function slider(orient, var, options={}) {
   let minval = options?.min ?? 0
   let maxval = options?.max ?? 1
   let group = options?.group ?? ElemGroup()
-  let rangeval = maxval-minval
+  let rangeval = maxval!=minval ? (maxval-minval).tofloat() : 1.0
   let scaling = options?.scaling ?? scales.linear
   let step = options?.step
   let unit = options?.unit && options?.scaling!=scales.linear
     ? options?.unit
-    : step ? step/rangeval : 0.01
-  let pageScroll = options?.pageScroll ?? step ?? 0.05
+    : step ? step.tofloat()/rangeval : 0.01
+  let pageScroll = (options?.pageScroll ?? step ?? (0.05 * rangeval)).tofloat()
+  let pageScrollNorm = pageScroll / rangeval
   let ignoreWheel = options?.ignoreWheel ?? true
 
   let knobStateFlags = Watched(0)
@@ -86,7 +87,7 @@ function slider(orient, var, options={}) {
       min = 0
       max = 1
       unit
-      pageScroll
+      pageScroll = pageScrollNorm
       ignoreWheel
 
       fValue = factor

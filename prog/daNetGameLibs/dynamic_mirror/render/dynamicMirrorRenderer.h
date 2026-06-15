@@ -112,7 +112,6 @@ private:
 
 void render_dynamic_mirrors(const DPoint3 &main_camera_pos,
   const AnimcharMirrorData &animchar_mirror_data,
-  int render_pass,
   bool render_depth,
   TMatrix view_itm,
   const TexStreamingContext &tex_streaming_ctx);

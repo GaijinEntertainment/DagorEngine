@@ -21,6 +21,7 @@
 #include "controllers/alias.h"
 #include "controllers/aim.h"
 #include "controllers/legsIK.h"
+#include "controllers/twoBonesIK.h"
 #include "controllers/multiChainFABRIK.h"
 #include "controllers/animateNode.h"
 #include "controllers/condHide.h"
@@ -127,6 +128,8 @@ bool AnimTreePlugin::begin(DagorAsset *asset)
 
 bool AnimTreePlugin::end()
 {
+  if (PropPanel::ContainerPropertyControl *panel = getPluginPanel())
+    panel->saveState(mainPanelState);
   animPlayer.clear();
   curAsset = nullptr;
   blendNodeTreeEventHandler.setAsset(nullptr);
@@ -171,6 +174,7 @@ void AnimTreePlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   panel.createButton(PID_VALIDATE_DEPENDENT_NODES, "Validate dependent nodes");
   clearData();
   fillTreePanels(&panel);
+  panel.loadState(mainPanelState);
 }
 
 bool AnimTreePlugin::isEnumOrEnumItem(TLeafHandle leaf, PropPanel::ContainerPropertyControl *tree)
@@ -513,6 +517,8 @@ void AnimTreePlugin::onClick(int pcb_id, PropPanel::ContainerPropertyControl *pa
     case PID_NODES_RESET_RANDOM_SWITCH_LIST_REMOVE: removeResetRandomSwitchNodeList(panel); break;
     case PID_CTRLS_NODES_LIST_ADD: addNodeCtrlList(panel); break;
     case PID_CTRLS_NODES_LIST_REMOVE: removeNodeCtrlList(panel); break;
+    case PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_ADD: paramSwitchAddMorphTime(panel); break;
+    case PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_REMOVE: paramSwitchRemoveMorphTime(panel); break;
     case PID_CTRLS_SETTINGS_SAVE: saveControllerSettings(panel); break;
     case PID_CTRLS_TARGET_NODE_ADD: add_target_node(ctrlParams, panel); break;
     case PID_CTRLS_TARGET_NODE_REMOVE: remove_target_node(ctrlParams, panel); break;
@@ -649,6 +655,7 @@ void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     case PID_ANIM_BLEND_CTRLS_TREE: fillCtrlsSettings(panel); break;
     case PID_STATES_NODES_LIST: setSelectedStateNodeListSettings(panel); break;
     case PID_CTRLS_NODES_LIST: setSelectedCtrlNodeListSettings(panel); break;
+    case PID_CTRLS_PARAM_SWITCH_MORPH_TIMES_LIST: paramSwitchSetSelectedMorphTimeSettings(panel); break;
     case PID_NODES_RESET_RANDOM_SWITCH_LIST: selectedChangedResetRandomSwitchList(panel); break;
     case PID_CTRLS_PARAM_SWITCH_TYPE_COMBO_SELECT: changeParamSwitchType(panel); break;
     case PID_CTRLS_MULTI_CHAIN_FABRIK_BLOCK_TYPE_COMBO_SELECT: changeMultiChainFABRIKBlockType(panel); break;
@@ -673,7 +680,7 @@ void AnimTreePlugin::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
     updateCtrlDependentStatus(panel, pcb_id);
   else if (pcb_id >= PID_STATES_PARAMS_FIELD && pcb_id <= PID_STATES_PARAMS_FIELD_SIZE)
     updateStateFields(panel, pcb_id);
-  else if (pcb_id >= PID_STATES_STATE_NODE_FORCE_DUR && pcb_id <= PID_STATES_STATE_NODE_MAX_TIME_SCALE)
+  else if (pcb_id >= PID_STATES_STATE_NODE_FORCE_DUR && pcb_id <= PID_STATES_STATE_NODE_MORPH_TYPE)
     updateStateDependentStatus(panel, pcb_id);
 }
 
@@ -1480,6 +1487,7 @@ static void fill_ctrls_params_settings(PropPanel::ContainerPropertyControl *pane
     case ctrl_type_alias: alias_init_panel(params, panel, field_idx); break;
     case ctrl_type_aim: aim_init_panel(params, panel, field_idx); break;
     case ctrl_type_legsIK: legs_ik_init_panel(params, panel, field_idx); break;
+    case ctrl_type_twoBonesIK: two_bones_ik_init_panel(params, panel, field_idx); break;
     case ctrl_type_multiChainFABRIK: multi_chain_fabrik_init_panel(params, panel, field_idx); break;
     case ctrl_type_animateAndProcNode:
     case ctrl_type_animateNode: animate_node_init_panel(params, panel, field_idx); break;
@@ -1612,6 +1620,7 @@ void AnimTreePlugin::fillCtrlsSettings(PropPanel::ContainerPropertyControl *pane
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
   const int lastCtrlsPid = !ctrlParams.empty() ? ctrlParams.back().pid : PID_CTRLS_PARAMS_FIELD;
   G_ASSERTF(lastCtrlsPid < PID_CTRLS_PARAMS_FIELD_SIZE, "Previous controller have more params than reserved");
+  group->saveState(ctrlsSettingsPanelState);
   remove_ctrls_fields(group, lastCtrlsPid);
   ctrlParams.clear();
   ctrlDependentParams.clear();
@@ -1664,6 +1673,7 @@ void AnimTreePlugin::fillCtrlsSettings(PropPanel::ContainerPropertyControl *pane
       set_read_only_changes(group, isEditable);
     }
   }
+  group->loadState(ctrlsSettingsPanelState);
 }
 
 void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl *panel, CtrlType type, const DataBlock *settings)
@@ -1684,6 +1694,7 @@ void AnimTreePlugin::fillCtrlsBlocksSettings(PropPanel::ContainerPropertyControl
     case ctrl_type_animateNode: animate_node_init_block_settings(panel, settings, ctrlDependentParams); break;
     case ctrl_type_aim: aim_init_block_settings(panel, settings); break;
     case ctrl_type_legsIK: legs_ik_init_block_settings(panel, settings); break;
+    case ctrl_type_twoBonesIK: two_bones_ik_init_block_settings(panel, settings); break;
     case ctrl_type_multiChainFABRIK: multi_chain_fabrik_init_block_settings(panel, settings, ctrlDependentParams); break;
     case ctrl_type_condHide: cond_hide_init_block_settings(panel, settings); break;
     case ctrl_type_paramsCtrl: paramsCtrlInitBlockSettings(panel, settings); break;
@@ -1791,6 +1802,7 @@ void AnimTreePlugin::setSelectedCtrlNodeListSettings(PropPanel::ContainerPropert
         break;
       case ctrl_type_aim: aim_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_legsIK: legs_ik_set_selected_node_list_settings(panel, settings); break;
+      case ctrl_type_twoBonesIK: two_bones_ik_set_selected_node_list_settings(panel, settings); break;
       case ctrl_type_multiChainFABRIK:
         multi_chain_fabrik_set_selected_node_list_settings(panel, settings, ctrlDependentParams, ctrlParams);
         break;
@@ -1889,6 +1901,7 @@ void AnimTreePlugin::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
       case ctrl_type_animateNode: animate_node_remove_node_from_list(panel, settings); break;
       case ctrl_type_aim: aim_remove_node_from_list(panel, settings); break;
       case ctrl_type_legsIK: legs_ik_remove_node_from_list(panel, settings); break;
+      case ctrl_type_twoBonesIK: two_bones_ik_remove_node_from_list(panel, settings); break;
       case ctrl_type_multiChainFABRIK: multi_chain_fabrik_remove_node_from_list(panel, settings); break;
       case ctrl_type_condHide: cond_hide_remove_node_from_list(panel, settings); break;
       case ctrl_type_paramsCtrl: params_ctrl_remove_change_param(panel, settings); break;
@@ -1910,6 +1923,8 @@ void AnimTreePlugin::removeNodeCtrlList(PropPanel::ContainerPropertyControl *pan
 
   panel->removeString(PID_CTRLS_NODES_LIST, removeIdx);
   setSelectedCtrlNodeListSettings(panel);
+  if (ctrlData->type == ctrl_type_paramSwitch || ctrlData->type == ctrl_type_paramSwitchS)
+    paramSwitchRefreshMorphTimesCombo(panel);
 }
 
 void AnimTreePlugin::fillStatesChilds(PropPanel::ContainerPropertyControl *panel)
@@ -1932,7 +1947,13 @@ void AnimTreePlugin::fillStatesChilds(PropPanel::ContainerPropertyControl *panel
     const char *nameField = settings->getStr("name", nullptr);
 
     // We should have same hierarchy with leafs and blocks exclude cases above
-    if (tree->getCaption(leaf) != nameField)
+    if (!nameField)
+    {
+      logerr("Expected caption in state tree, but block has no <name> param at path:<%s> \nTree caption:<%s>", fullPath,
+        tree->getCaption(leaf));
+      return;
+    }
+    else if (tree->getCaption(leaf) != nameField)
     {
       logerr("Fields order in states tree doesn't match order in blk with path:<%s> \nGet:<%s>, but expect:<%s>", fullPath,
         tree->getCaption(leaf), nameField);
@@ -2466,6 +2487,7 @@ void AnimTreePlugin::saveControllerBlocksSettings(PropPanel::ContainerPropertyCo
     case ctrl_type_animateNode: animate_node_save_block_settings(panel, settings); break;
     case ctrl_type_aim: aim_save_block_settings(panel, settings); break;
     case ctrl_type_legsIK: legs_ik_save_block_settings(panel, settings); break;
+    case ctrl_type_twoBonesIK: two_bones_ik_save_block_settings(panel, settings); break;
     case ctrl_type_multiChainFABRIK: multi_chain_fabrik_save_block_settings(panel, settings); break;
     case ctrl_type_condHide: cond_hide_save_block_settings(panel, settings); break;
     case ctrl_type_paramsCtrl: params_ctrl_save_block_settings(panel, settings); break;
@@ -2723,6 +2745,10 @@ void AnimTreePlugin::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
 
     statesData.erase(data);
     tree->removeLeaf(leaf);
+    saveProps(props, fullPath);
+    selectedChangedAnimStatesTree(panel);
+    if (panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer()->getSelLeaf())
+      paramSwitchRefreshMorphTimesCombo(panel);
   }
   else if (data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE)
   {
@@ -2732,10 +2758,9 @@ void AnimTreePlugin::removeNodeFromAnimStatesTree(PropPanel::ContainerPropertyCo
       props.removeBlock("stateDesc");
     statesData.erase(data);
     tree->removeLeaf(leaf);
+    saveProps(props, fullPath);
+    selectedChangedAnimStatesTree(panel);
   }
-
-  saveProps(props, fullPath);
-  selectedChangedAnimStatesTree(panel);
 }
 
 #define replaceParam(name, type)                  \
@@ -2896,6 +2921,8 @@ void AnimTreePlugin::saveSettingsAnimStatesTree(PropPanel::ContainerPropertyCont
       data->childs.clear();
       paramSwitchFindChilds(panel, *data, *settings, /*find_enum_gen_parent*/ false);
     }
+    if (ctrlsTree->getSelLeaf())
+      paramSwitchRefreshMorphTimesCombo(panel);
   }
   else if (data->type == AnimStatesType::STATE_DESC)
   {
@@ -3018,6 +3045,7 @@ void AnimTreePlugin::updateStateDependentStatus(PropPanel::ContainerPropertyCont
     case PID_STATES_STATE_NODE_MORPH_TIME: update_dependent_param_state(panel, stateParams, *param, "morphTime"); break;
     case PID_STATES_STATE_NODE_MIN_TIME_SCALE: update_dependent_param_state(panel, stateParams, *param, "minTimeScale"); break;
     case PID_STATES_STATE_NODE_MAX_TIME_SCALE: update_dependent_param_state(panel, stateParams, *param, "maxTimeScale"); break;
+    case PID_STATES_STATE_NODE_MORPH_TYPE: update_dependent_param_state(panel, stateParams, *param, "morphType"); break;
     default: break;
   }
 }
@@ -4890,6 +4918,24 @@ void AnimTreePlugin::validateDependentNodes(PropPanel::ContainerPropertyControl 
   for (const AnimCtrlData &data : controllersData)
     for (int idx : data.childs)
       hasNotFoundNodes |= (idx == AnimCtrlData::NOT_FOUND_CHILD || idx == AnimCtrlData::CHILD_AS_SELF);
+
+  PropPanel::ContainerPropertyControl *ctrlsTree = panel->getById(PID_ANIM_BLEND_CTRLS_TREE)->getContainer();
+  for (const AnimCtrlData &ctrlData : controllersData)
+  {
+    if (ctrlData.type != ctrl_type_paramSwitch && ctrlData.type != ctrl_type_paramSwitchS)
+      continue;
+    bool isProcChild = false;
+    DataBlock props;
+    String fullPath;
+    DataBlock *settings = findCtrlSettings(ctrlsTree, ctrlData.handle, ctrlData.type, props, fullPath, isProcChild);
+    if (!settings)
+      continue;
+    const DataBlock *morphTimes = settings->getBlockByName("morphTimes");
+    if (!morphTimes)
+      continue;
+    Tab<String> nodeNames = paramSwitchGetNodeNames(*settings);
+    validate_param_switch_morph_times_names(nodeNames, *morphTimes, settings->getStr("name", ""));
+  }
 
   if (!hasNotFoundNodes)
     wingw::message_box(wingw::MBS_INFO, "All nodes checked", "All child nodes have correct indices");

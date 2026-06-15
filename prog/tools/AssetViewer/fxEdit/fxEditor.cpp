@@ -56,6 +56,7 @@
 #include "../av_cm.h"
 #include "fxSaveLoad.h"
 #include "../../commonFx/commonFxGame/dafxSystemDesc.h"
+#include "../../commonFx/commonFxGame/dafx_quality_flags.hlsli"
 #include <daFx/dafx_gravity_zone.hlsli>
 namespace dafx_ex
 {
@@ -208,11 +209,11 @@ extern const DataBlock *get_project_settings_blk();
 uint32_t get_gpu_buffer_size_based_on_quality(uint32_t quality_mask)
 {
   constexpr uint32_t DEFAULT_BUFFER_SIZE = 524288;
-  if (quality_mask & (1 << 0)) // low
+  if (quality_mask & DAFX_LOW_FX_QUALITY)
     return get_project_settings_blk()->getBlockByNameEx("graphics")->getInt("fxLowQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
-  else if (quality_mask & (1 << 1)) // medium
+  else if (quality_mask & DAFX_MEDIUM_FX_QUALITY)
     return get_project_settings_blk()->getBlockByNameEx("graphics")->getInt("fxMediumQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
-  else if (quality_mask & (1 << 2)) // high
+  else if (quality_mask & DAFX_HIGH_FX_QUALITY)
     return get_project_settings_blk()->getBlockByNameEx("graphics")->getInt("fxHighQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
 
   return DEFAULT_BUFFER_SIZE;

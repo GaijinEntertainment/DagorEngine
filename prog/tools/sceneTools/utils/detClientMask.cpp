@@ -207,7 +207,7 @@ void showUsage()
 int DagorWinMain(bool debugmode)
 {
   printf("Client lightmap-mask detection tool v1.0\n"
-         "Copyright (C) Gaijin Games KFT, 2023\n");
+         "Copyright (C) Gaijin Games KFT, 2026\n");
 
   // get options
   if (__argc < 5)

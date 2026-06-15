@@ -32,10 +32,7 @@ ElementRef *ElementRef::get_from_stack(HSQUIRRELVM vm, int idx)
 
   ElementRef *instance = nullptr;
   if (SQ_FAILED(sq_getinstanceup(vm, idx, (SQUserPointer *)&instance, TypeTag<ElementRef>::get())))
-  {
-    G_ASSERT(!"Instance of ElementRef required");
     return nullptr;
-  }
 
   G_ASSERT_RETURN(instance, nullptr);
 

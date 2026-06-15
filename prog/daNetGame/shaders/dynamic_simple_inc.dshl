@@ -32,6 +32,9 @@ macro SUPPORT_MULTIDRAW(use_drawid_vs_only)
       #define DYNAMIC_SHADER_MULTIDRAW 1
       #define SET_UP_MULTIDRAW_VS 1
       #define INST_OFFSET_GETTER ((get_draw_id() >> MATERIAL_OFFSET_BITS) + get_immediate_dword_0())
+      #define OFFSET_TO_NODE_DATA(rigid_index) ((get_draw_id() >> MATERIAL_OFFSET_BITS) + get_immediate_dword_0())
+      #define OFFSET_TO_INSTANCE_DATA ((int)(OFFSET_TO_NODE_DATA(0) + loadBuffer(instance_data_buffer, OFFSET_TO_NODE_DATA(0) + 8).y))
+      #define INSTANCE_DATA_BUFFER instance_data_buffer
       #ifndef GET_MATERIAL_OFFSET
         #define GET_MATERIAL_OFFSET(input) (GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK)
       #endif

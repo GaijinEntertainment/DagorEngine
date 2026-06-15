@@ -275,6 +275,9 @@ static SQInteger base_compilestring(HSQUIRRELVM v)
 static SQInteger base_newthread(HSQUIRRELVM v)
 {
     SQObjectPtr &func = stack_get(v,2);
+    if (sq_type(func) != OT_CLOSURE)
+        return sq_throwerror(v, "newthread expects a non-native closure");
+
     SQInteger stksize = (_closure(func)->_function->_stacksize << 1) + 2; // -V629
     HSQUIRRELVM newv = sq_newthread(v, (stksize < MIN_STACK_OVERHEAD + 2)? MIN_STACK_OVERHEAD + 2 : stksize);
     sq_move(newv,v,-2);
@@ -355,93 +358,6 @@ static SQInteger base_classof(HSQUIRRELVM v)
 }
 
 
-static SQInteger error_constructor(HSQUIRRELVM v)
-{
-    SQInteger nargs = sq_gettop(v);
-    if (nargs >= 2) {
-        sq_pushstring(v, "message", -1);
-        sq_push(v, 2);
-        if (SQ_FAILED(sq_set(v, 1)))
-            return SQ_ERROR;
-    }
-    if (nargs >= 3) {
-        sq_pushstring(v, "cause", -1);
-        sq_push(v, 3);
-        if (SQ_FAILED(sq_set(v, 1)))
-            return SQ_ERROR;
-    }
-    return 0;
-}
-
-static SQInteger error_tostring(HSQUIRRELVM v)
-{
-    SQObjectPtr &self = stack_get(v, 1);
-    SQObjectPtr key(SQString::Create(_ss(v), "message"));
-    SQObjectPtr val;
-    if (_instance(self)->Get(key, val) && sq_type(val) == OT_STRING) {
-        v->Push(val);
-        return 1;
-    }
-    v->Push(SQObjectPtr(SQString::Create(_ss(v), "Error")));
-    return 1;
-}
-
-// The message line followed by the captured trace frames (origin "at" frames
-// plus "awaited at" await-hop frames). Opt-in, so the verbose trace never leaks
-// into incidental tostring(e) / "..." + e uses.
-static SQInteger error_formatTrace(HSQUIRRELVM v)
-{
-    SQObjectPtr &self = stack_get(v, 1);
-    SQObjectPtr msgKey(SQString::Create(_ss(v), "message")), msg;
-    const char *msgStr = (_instance(self)->Get(msgKey, msg) && sq_type(msg) == OT_STRING)
-        ? _stringval(msg) : "Error";
-
-    sqvector<char> buf(_ss(v)->_alloc_ctx);
-    for (const char *p = msgStr; *p; ++p)
-        buf.push_back(*p);
-    SQInteger msgEnd = buf.size();
-    buf.push_back('\n');
-    if (!sq_append_error_trace(v, self, buf))
-        buf.resize(msgEnd);
-
-    v->Push(SQObjectPtr(SQString::Create(_ss(v), buf.empty() ? "" : buf._vals, (SQInteger)buf.size())));
-    return 1;
-}
-
-static const SQRegFunctionFromStr error_methods[] = {
-    { error_constructor, "constructor([message: string, cause]): instance",
-                         "Creates an Error with an optional message and an arbitrary cause value." },
-    { error_tostring,    "instance._tostring(): string",
-                         "Formats the error as a string" },
-    { error_formatTrace, "instance.formatTrace(): string",
-                         "Returns the message plus the captured origin and await-chain trace as a formatted string." },
-    { NULL, NULL, NULL }
-};
-
-static void registerErrorClass(HSQUIRRELVM v)
-{
-    sq_pushstring(v, "Error", -1);
-    sq_newclass(v, SQFalse);
-
-    sq_pushstring(v, "message", -1);
-    sq_pushstring(v, "", -1);
-    sq_newslot(v, -3, SQFalse);
-
-    sq_pushstring(v, "trace", -1);
-    sq_pushnull(v);
-    sq_newslot(v, -3, SQFalse);
-
-    sq_pushstring(v, "cause", -1);
-    sq_pushnull(v);
-    sq_newslot(v, -3, SQFalse);
-
-    for (const SQRegFunctionFromStr *m = error_methods; m->f; ++m)
-        sq_new_closure_slot_from_decl_string(v, m->f, 0, m->declstring, m->docstring);
-
-    _ss(v)->_error_class = stack_get(v, -1);
-    sq_newslot(v, -3, SQFalse);
-}
-
 static const SQRegFunctionFromStr base_funcs[] = {
     { base_getroottable, "getroottable(): table" },
     { base_getconsttable, "getconsttable(): table" },
@@ -470,8 +386,6 @@ SQRESULT sq_registerbaselib(HSQUIRRELVM v)
         sq_new_closure_slot_from_decl_string(v, base_funcs[i].f, 0, base_funcs[i].declstring, base_funcs[i].docstring);
         i++;
     }
-
-    registerErrorClass(v);
 
     return SQ_OK;
 }
@@ -938,10 +852,10 @@ static SQInteger swap(HSQUIRRELVM v)
             if (!sq_isnumeric(key1) || !sq_isnumeric(key2))
                 return sq_throwerror(v,"invalid index type for an array");
 
-            const int asize = arr->Size();
-            int k1 = tointeger(key1);
+            const SQInteger asize = arr->Size();
+            SQInteger k1 = tointeger(key1);
             k1 = k1 >= 0 ? k1 : asize + k1;
-            int k2 = tointeger(key2);
+            SQInteger k2 = tointeger(key2);
             k2 = k2 >= 0 ? k2 : asize + k2 ;
             if( k1 >= asize || k2 >= asize || k1 < 0 || k2 < 0)
                 return sq_throwerror(v,"index is out of range");
@@ -952,7 +866,7 @@ static SQInteger swap(HSQUIRRELVM v)
         case OT_TABLE: {
             SQObjectPtr val1, val2;
             if (!_table(o)->Get(key1, val1) || !_table(o)->Get(key2, val2))
-                sq_throwerror(v,"the index doesn't exist");
+                return sq_throwerror(v,"the index doesn't exist");
 
             _table(o)->Set(key1, val2);
             _table(o)->Set(key2, val1);
@@ -2276,7 +2190,7 @@ static SQInteger closure_pcall(HSQUIRRELVM v)
 
 static SQInteger closure_call(HSQUIRRELVM v)
 {
-    SQObjectPtr &c = stack_get(v, -1);
+    SQObjectPtr &c = stack_get(v, 1);
     if (sq_type(c) == OT_CLOSURE && (_closure(c)->_function->_bgenerator == false))
     {
         return sq_tailcall(v, sq_gettop(v) - 1);
@@ -2400,7 +2314,7 @@ static SQInteger closure_getfuncinfos_obj(HSQUIRRELVM v, SQObjectPtr & o) {
                    int defParamsCount = ft.argNames.size() - ft.requiredArgs;
                    defparams = SQObjectPtr(SQArray::Create(_ss(v), defParamsCount));
                    for (SQUnsignedInteger n = 0; n < defParamsCount; n++) {
-                       _array(parameters)->Set((SQInteger)n, SQObjectPtr());
+                       _array(defparams)->Set((SQInteger)n, ft.defaultValues[ft.requiredArgs + n]);
                    }
 
                    varargs = ft.ellipsisArgTypeMask != 0;

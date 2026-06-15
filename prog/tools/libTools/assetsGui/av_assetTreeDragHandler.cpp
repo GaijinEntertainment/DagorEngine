@@ -25,7 +25,7 @@ void AssetTreeDragHandler::onBeginDrag(PropPanel::TLeafHandle leaf)
 
   if (icon != PropPanel::IconId::Invalid)
   {
-    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::ImguiHelper::getFontSizedIconSize();
+    const ImVec2 fontSizedIconSize = PropPanel::ImguiHelper::getFontSizedIconSize();
 
     ImGui::Image(PropPanel::get_im_texture_id_from_icon_id(icon), fontSizedIconSize);
     ImGui::SameLine(0, ImGui::GetStyle().ItemInnerSpacing.x);

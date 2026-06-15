@@ -51,6 +51,8 @@ Sources =
   computeShaders.cpp
   meshShaders.cpp
   sh_vars.cpp
+  refinedBlock.cpp
+  refinedBlockExec.cpp
   shMaterialUtils.cpp
   shStateBlockBindless.cpp
   shStateBlockSlotTextures.cpp

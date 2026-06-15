@@ -68,6 +68,7 @@
 #include <gpuMemoryInspector/gpuMemoryInspector.h>
 
 #include "appProfile.h"
+#include "gameLoad.h"
 #include "camera/sceneCam.h"
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <webui/shaderEditors.h>
@@ -951,6 +952,9 @@ void app_start(bool register_dagor_scene)
 
     g_entity_mgr->broadcastEventImmediate(EventOnGameAppStarted());
   });
+
+  if (auto emptyScene = ::dgs_get_settings()->getStr("empty_scene", nullptr))
+    sceneload::switch_scene(emptyScene, {});
 
   // this DA will be executed after actual scene load
   auto onSceneLoaded = []() {

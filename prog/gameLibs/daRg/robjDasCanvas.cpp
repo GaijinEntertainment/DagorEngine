@@ -216,7 +216,6 @@ void RobjDasCanvas::render(GuiContext &ctx, const Element *elem, const ElemRende
   }
 
   params->dasCtx->unlock();
-  params->dasCtx->restartHeaps();
   ctx.setViewTm(xf.vtm);
   ctx.reset_draw_str_attr();
   ctx.reset_draw_str_texture();

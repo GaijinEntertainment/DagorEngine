@@ -107,6 +107,9 @@ public:
   bool useOwnerTm = false;
   TMatrix ownerTm = TMatrix::IDENT;
 
+  // Gate honored by AnimcharBaseComponent::postRecalcWtm; when false, update() is skipped.
+  bool enabled = true;
+
   int firstIntegratePoint;
 
   FastPhysSystem();

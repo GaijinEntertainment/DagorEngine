@@ -142,6 +142,7 @@ void Panel::updatePanelParamsFromScript(const Sqrat::Table &desc)
   spatialInfo.canBeTouched = desc.RawGetSlotValue("worldCanBeTouched", false);
   spatialInfo.shouldBlockVrHandInteractions = desc.RawGetSlotValue("shouldBlockVrHandInteractions", false);
   spatialInfo.allowDisplayCursorProjection = desc.RawGetSlotValue("allowDisplayCursorProjection", true);
+  spatialInfo.renderAfterAA = desc.RawGetSlotValue("renderAfterAA", false);
 
   spatialInfo.position = desc.RawGetSlotValue("worldOffset", Point3(0, 0, 0));
   spatialInfo.angles = desc.RawGetSlotValue("worldAngles", Point3(0, 0, 0));
@@ -187,6 +188,11 @@ bool Panel::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
 {
   int features = renderInfo.worldRenderFeatures;
 
+  if (spatialInfo.renderAfterAA)
+    return render_pass == darg_panel_renderer::RenderPass::TranslucentAfterAA;
+  else if (render_pass == darg_panel_renderer::RenderPass::TranslucentAfterAA)
+    return false;
+
   switch (render_pass)
   {
     case darg_panel_renderer::RenderPass::Translucent: return (features & darg_panel_renderer::RenderFeatures::Opaque) == 0;
@@ -199,6 +205,8 @@ bool Panel::isInThisPass(darg_panel_renderer::RenderPass render_pass) const
     case darg_panel_renderer::RenderPass::GBuffer: return (features & darg_panel_renderer::RenderFeatures::Opaque) != 0;
 
     case darg_panel_renderer::RenderPass::ReactiveMask: return true;
+
+    case darg_panel_renderer::RenderPass::TranslucentAfterAA: return spatialInfo.renderAfterAA;
 
     default: G_ASSERTF(false, "Implement handling this pass!");
   }

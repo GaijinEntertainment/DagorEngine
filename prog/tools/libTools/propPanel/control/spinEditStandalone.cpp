@@ -100,7 +100,17 @@ void SpinEditControlStandalone::sendWcChangeIfVarChanged(WindowControlEventHandl
     return;
 
   externalValue = getValue();
+  changePendingFinish = true;
   event_handler.onWcChange(nullptr);
+}
+
+void SpinEditControlStandalone::sendWcChangeFinishedIfPending(WindowControlEventHandler &event_handler)
+{
+  if (!changePendingFinish)
+    return;
+
+  changePendingFinish = false;
+  event_handler.onWcChangeFinished(nullptr);
 }
 
 void SpinEditControlStandalone::onTextChanged()
@@ -125,6 +135,8 @@ bool SpinEditControlStandalone::spinButton(SpinnerButtonId button, float &step_m
 
   if (ImGui::IsItemActive())
   {
+    spinnerButtonActive = true;
+
     if (draggedSpinnerButton == button)
     {
       const ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left, 0.0f);
@@ -166,6 +178,8 @@ ImVec2 SpinEditControlStandalone::getSpinButtonsSize()
 
 bool SpinEditControlStandalone::spinButtons(float &step_multiplier, const String *tooltip, const void *tooltip_owner)
 {
+  spinnerButtonActive = false;
+
   ImGui::BeginGroup();
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 0.0f));
   ImGui::PushItemFlag(ImGuiItemFlags_ButtonRepeat, true);
@@ -204,6 +218,7 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
 
   ImGui::SameLine(0.0f, spaceBeforeSpinButtons);
 
+  const bool spinnerWasActive = spinnerButtonActive;
   float stepMultiplier;
   if (spinButtons(stepMultiplier, tooltip, tooltip_owner))
   {
@@ -215,6 +230,7 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
   {
     onTextChanged();
     sendWcChangeIfVarChanged(event_handler);
+    sendWcChangeFinishedIfPending(event_handler);
   }
   else if (textInputFocused && (ImGui::IsKeyPressed(ImGuiKey_UpArrow) || ImGui::IsKeyPressed(ImGuiKey_DownArrow)))
   {
@@ -231,6 +247,7 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
       inputState->ReloadUserBufAndMoveToEnd();
 
     sendWcChangeIfVarChanged(event_handler);
+    sendWcChangeFinishedIfPending(event_handler);
   }
   else
   {
@@ -238,8 +255,15 @@ void SpinEditControlStandalone::updateImgui(WindowControlEventHandler &event_han
       onTextChanged();
 
     if ((textInputWasFocused && !textInputFocused) || (textInputWasActive && !textInputActive))
+    {
       sendWcChangeIfVarChanged(event_handler);
+      sendWcChangeFinishedIfPending(event_handler);
+    }
   }
+
+  // A spin button that was held/dragged and is now released commits the accumulated change once.
+  if (spinnerWasActive && !spinnerButtonActive)
+    sendWcChangeFinishedIfPending(event_handler);
 
   ImGui::PopID();
 }

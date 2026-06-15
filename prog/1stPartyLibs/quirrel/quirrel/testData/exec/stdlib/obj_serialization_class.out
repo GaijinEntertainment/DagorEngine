@@ -1,0 +1,7 @@
+roundtrip: 42 chain 7
+err: no-registry
+err: class-not-found
+err: missing-setstate
+err: invalid-ctor
+scalars: -123 3.5 true str 3 v
+serialization class: OK

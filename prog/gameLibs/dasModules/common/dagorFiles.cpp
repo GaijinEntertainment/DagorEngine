@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_basePath.h>
+#include <osApiWrappers/dag_direct.h>
 #include <dasModules/aotDagorFiles.h>
 
 namespace bind_dascript
@@ -110,6 +111,8 @@ int dag_df_stat(const char *path, DagorStat &buf)
 
 int dag_df_fstat(const DagFile *fp, DagorStat &buf) { return df_fstat((file_ptr_t)fp, &buf); }
 
+bool das_dd_file_exists(const char *fname) { return fname && dd_file_exists(fname); }
+
 char *dag_df_get_real_name(const char *fname, das::Context *context, das::LineInfoArg *at)
 {
   if (!fname)
@@ -187,6 +190,8 @@ public:
       "bind_dascript::dag_df_stat");
     das::addExtern<DAS_BIND_FUN(dag_df_fstat)>(*this, lib, "df_fstat", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::dag_df_fstat");
+    das::addExtern<DAS_BIND_FUN(das_dd_file_exists)>(*this, lib, "dd_file_exists", das::SideEffects::accessExternal,
+      "bind_dascript::das_dd_file_exists");
     das::addExtern<DAS_BIND_FUN(dag_df_get_real_name)>(*this, lib, "df_get_real_name", das::SideEffects::modifyExternal,
       "bind_dascript::dag_df_get_real_name");
     // builtin file functions

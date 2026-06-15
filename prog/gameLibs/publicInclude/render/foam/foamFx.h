@@ -44,8 +44,8 @@ public:
 private:
   int width, height;
 
-  SharedTexHolder foamGeneratorTileTex;
-  SharedTexHolder foamGeneratorGradientTex;
+  SharedTexWithShaderVar foamGeneratorTileTex;
+  SharedTexWithShaderVar foamGeneratorGradientTex;
 
   UniqueTex maskTarget;
   UniqueTex maskDepth;

@@ -95,7 +95,7 @@ bool exportScript(const char *in_dag, const char *in_blk, const char *out_dag)
 static void show_usage()
 {
   printf("DAG scripter tool, v1.01\n");
-  printf("Copyright (c) Gaijin Games KFT, 2023\n\n");
+  printf("Copyright (c) Gaijin Games KFT, 2026\n\n");
   printf("usage #1 (export script): dag_script -e [/tm] <source DAG> <dest BLK>\n");
   printf("usage #2 (import script): dag_script -i <old DAG> <source BLK> [new DAG]\n\n");
 }

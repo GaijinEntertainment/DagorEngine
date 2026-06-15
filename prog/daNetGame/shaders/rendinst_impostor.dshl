@@ -355,7 +355,7 @@ shader rendinst_baked_impostor
     if (abs(modelToEyeNorm.y) < 0.999)
     {
       float len = (1-modelToEyeNorm.y)*(1+modelToEyeNorm.y);
-      float invLen = 1/len;
+      float invLen = rsqrt(len); // len is the squared length of the cross products below
       // Equivalent to: normalize(cross(modelToEyeNorm, float3(0, 1, 0)))
       imp_view_x = invLen*(float3(-modelToEyeNorm.z, 0, modelToEyeNorm.x));
 

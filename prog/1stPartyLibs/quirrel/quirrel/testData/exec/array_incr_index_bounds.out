@@ -1,0 +1,3 @@
+in-range: 11 20 29
+big index rejected: b[0]=10
+negative index rejected: c[0]=10

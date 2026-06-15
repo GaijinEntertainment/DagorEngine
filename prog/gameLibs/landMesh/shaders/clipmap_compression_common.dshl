@@ -49,7 +49,6 @@ macro DIRECT_CACHE_BYPASS_VS()
 endmacro
 
 macro USE_COMMON_GATHER_HELPERS(code)
-  USE_BC_LEGACY_ENDPOINTS_ERROR(code)
 hlsl(code) {
   #include <pixelPacking/ColorSpaceUtility.hlsl>
 

@@ -59,7 +59,7 @@ NRD_EXPORT void NRD_CS_MAIN( NRD_CS_MAIN_ARGS )
 
     float3 X = GetCurrentWorldPosFromClipSpaceXY( viewportUv * 2.0 - 1.0, abs( viewZ ) );
 
-    bool isInf = abs( viewZ ) > gDenoisingRange;
+    bool isInf = !IsInDenoisingRange(abs( viewZ ));
     bool checkerboard = Sequence::CheckerBoard( pixelPos >> 2, 0 );
 
     uint4 textState = Text::Init( pixelPos, viewportId * gResourceSize * VIEWPORT_SIZE + OFFSET, 1 );

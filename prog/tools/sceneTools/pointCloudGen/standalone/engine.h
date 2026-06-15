@@ -134,7 +134,7 @@ public:
   void imguiBegin(const char *name, bool *open, unsigned window_flags) override {}
   void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
   void imguiEnd() override {}
-  void *getImguiContext() override { return nullptr; }
+  PropPanel::IPropPanelService *getPropPanelService() override { return nullptr; }
 
   AssetTagManager *getVisibleTagManagerWindow() override { DUMMY_IMPL_0; };
   void showTagManagerWindow(bool show) override { DUMMY_IMPL; }
@@ -143,6 +143,7 @@ public:
   Outliner::OutlinerWindow *createOutlinerWindow() override { DUMMY_IMPL_0; }
 
   void revealInExplorer(const char *path) override { DUMMY_IMPL; }
+  void showToast(PropPanel::ToastType type, const char *text) override { DUMMY_IMPL; }
 
 private:
   ConsoleLogWriter console;

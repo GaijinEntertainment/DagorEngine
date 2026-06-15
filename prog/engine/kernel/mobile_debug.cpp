@@ -20,6 +20,7 @@ using namespace debug_internal;
 #if _TARGET_ANDROID
 #include <android/log.h>
 #include <android/native_activity.h>
+#include <supp/android/jni_native_reg.h>
 #define console_warning(fmt, ...) __android_log_print(ANDROID_LOG_WARN, "dagor", fmt, __VA_ARGS__)
 #elif _TARGET_IOS
 #import <asl.h>
@@ -176,44 +177,39 @@ const char *debug_internal::get_logging_directory() { return logDirPath; }
 
 #if _TARGET_ANDROID
 
-#ifdef __cplusplus
-extern "C"
+static void nativeDebug(JNIEnv *jni, jclass, jstring msg)
 {
-#endif
-
-  JNIEXPORT void JNICALL Java_com_gaijinent_common_DagorLogger_nativeDebug(JNIEnv *jni, jobject, jstring msg)
+  if (get_debug_console_handle() != invalid_console_handle)
   {
-    if (get_debug_console_handle() != invalid_console_handle)
-    {
-      const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
-      logdbg("Android: %s", msgUtf8);
-      jni->ReleaseStringUTFChars(msg, msgUtf8);
-    }
+    const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
+    logdbg("Android: %s", msgUtf8);
+    jni->ReleaseStringUTFChars(msg, msgUtf8);
   }
-
-  JNIEXPORT void JNICALL Java_com_gaijinent_common_DagorLogger_nativeError(JNIEnv *jni, jobject, jstring msg)
-  {
-    if (get_debug_console_handle() != invalid_console_handle)
-    {
-      const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
-      logerr("Android: %s", msgUtf8);
-      jni->ReleaseStringUTFChars(msg, msgUtf8);
-    }
-  }
-
-  JNIEXPORT void JNICALL Java_com_gaijinent_common_DagorLogger_nativeWarning(JNIEnv *jni, jobject, jstring msg)
-  {
-    if (get_debug_console_handle() != invalid_console_handle)
-    {
-      const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
-      logwarn("Android: %s", msgUtf8);
-      jni->ReleaseStringUTFChars(msg, msgUtf8);
-    }
-  }
-
-
-#ifdef __cplusplus
 }
-#endif
+
+static void nativeWarning(JNIEnv *jni, jclass, jstring msg)
+{
+  if (get_debug_console_handle() != invalid_console_handle)
+  {
+    const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
+    logwarn("Android: %s", msgUtf8);
+    jni->ReleaseStringUTFChars(msg, msgUtf8);
+  }
+}
+
+static void nativeError(JNIEnv *jni, jclass, jstring msg)
+{
+  if (get_debug_console_handle() != invalid_console_handle)
+  {
+    const char *msgUtf8 = jni->GetStringUTFChars(msg, NULL);
+    logerr("Android: %s", msgUtf8);
+    jni->ReleaseStringUTFChars(msg, msgUtf8);
+  }
+}
+
+JNI_REG_NATIVES(DagorLoggerNatives, "com.gaijinent.common.DagorLogger",
+  JNI_NATIVE_METHOD(nativeDebug, JNI_SIGNATURE(JNI_VOID, JNI_STRING)),
+  JNI_NATIVE_METHOD(nativeWarning, JNI_SIGNATURE(JNI_VOID, JNI_STRING)),
+  JNI_NATIVE_METHOD(nativeError, JNI_SIGNATURE(JNI_VOID, JNI_STRING)));
 
 #endif // _TARGET_ANDROID

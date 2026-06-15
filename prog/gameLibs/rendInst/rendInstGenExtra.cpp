@@ -1378,10 +1378,10 @@ void rendinst::riExMostCountCell(int idx, int &out_count, int &out_cellIdx, int 
     if (RendInstGenData *rgl = rendinst::rgLayer[_layer])
       for (int i = 0; i < rgl->cells.size(); i++)
       {
-        if (!rgl->cells[i].rtData)
+        if (!rgl->cells[i].cellRtData)
           continue;
 
-        auto &riexHandles = rgl->cells[i].rtData->riexHandles;
+        auto &riexHandles = rgl->cells[i].cellRtData->riexHandles;
 
         int count = 0;
         for (int j = 0; j < riexHandles.size(); ++j)
@@ -1440,10 +1440,10 @@ bool rendinst::riGenMostCountCell(const char *name, int &out_totalCount, int &ou
 
       for (int i = 0; i < rgl->cells.size(); i++)
       {
-        if (rgl->cells[i].rtData->pools.size() <= idx)
+        if (rgl->cells[i].cellRtData->pools.size() <= idx)
           continue;
 
-        auto &pool = rgl->cells[i].rtData->pools[idx];
+        auto &pool = rgl->cells[i].cellRtData->pools[idx];
 
         if (pool.avail < 0)
           continue;
@@ -1473,10 +1473,10 @@ void rendinst::riGenStat(int &out_count, int &out_memoryUsage)
     if (RendInstGenData *rgl = rendinst::rgLayer[_layer])
       for (int i = 0; i < rgl->cells.size(); i++)
       {
-        if (!rgl->cells[i].rtData)
+        if (!rgl->cells[i].cellRtData)
           continue;
 
-        for (int idx = 0; idx < rgl->cells[i].rtData->pools.size(); idx++)
+        for (int idx = 0; idx < rgl->cells[i].cellRtData->pools.size(); idx++)
         {
           bool isRiExtra = false;
           for (int j = 0; j < rgl->rtData->riExtraIdxPair.size(); j += 2)
@@ -1489,7 +1489,7 @@ void rendinst::riGenStat(int &out_count, int &out_memoryUsage)
           if (isRiExtra)
             continue;
 
-          auto &pool = rgl->cells[i].rtData->pools[idx];
+          auto &pool = rgl->cells[i].cellRtData->pools[idx];
 
           out_count += pool.total;
           int memoryPerRiGen = rgl->rtData->riPosInst[idx] ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12);
@@ -1552,7 +1552,10 @@ riex_handle_t rendinst::addRIGenExtra43(int res_idx, mat43f_cref tm, bool has_co
     v_bbox3_init(wabb, tm44, pool.collBb);
     v_bbox3_add_box(pool.fullWabb, wabb);
 
-    rendinst::gen::SingleEntityPool::verifyInstanceScale(tm44, -res_idx - 1, [](int i) { return riExtraMap.getName(-i - 1); });
+    const float nonCollThreshold = 1e-4f; // 1%
+    const float *pCollThreshold = !(has_collision && pool.collRes) ? &nonCollThreshold : nullptr;
+    auto getPoolName = [](int i) { return riExtraMap.getName(-i - 1); };
+    rendinst::gen::SingleEntityPool::verifyInstanceScale(tm44, -res_idx - 1, getPoolName, pCollThreshold);
 
     pool.riXYZR[idx] = make_pos_and_rad(tm44, pool.bsphXYZR);
     if (has_collision && pool.collRes && v_extract_w(pool.riXYZR[idx]) > VERY_SMALL_NUMBER)

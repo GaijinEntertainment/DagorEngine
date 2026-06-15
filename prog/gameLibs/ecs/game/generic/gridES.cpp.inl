@@ -128,6 +128,8 @@ void for_each_grid_holder(const eastl::function<void(const GridHolder &)> &cb)
   all_grid_holders_ecs_query(*g_entity_mgr, [&](const GridHolder &grid_holder) { cb(grid_holder); });
 }
 
+GridHolder *find_grid_holder_opt(ecs::HashedConstString grid_name_hash) { return find_grid_holder_by_hash_impl(grid_name_hash.hash); }
+
 ECS_ON_EVENT(on_disappear)
 static void grid_holder_destroyed_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, const GridHolder &grid_holder,
   int grid_holder__typeHash)

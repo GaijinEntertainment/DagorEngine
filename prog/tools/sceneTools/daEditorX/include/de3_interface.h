@@ -6,6 +6,7 @@
 
 #include <de3_layerHiddenMask.h>
 #include <generic/dag_span.h>
+#include <propPanel/toastManager.h>
 #include <util/dag_safeArg.h>
 #include <util/dag_stdint.h>
 #include <3d/dag_stereoIndex.h>
@@ -31,7 +32,8 @@ class OutlinerWindow;
 namespace PropPanel
 {
 class PanelWindowPropertyControl;
-}
+class IPropPanelService;
+} // namespace PropPanel
 
 namespace ddsx
 {
@@ -43,7 +45,7 @@ class IDaEditor3Engine
 {
 public:
   static constexpr unsigned HUID = 0x814F7714u; // IDaEditor3Engine
-  static const int DAEDITOR3_VERSION = 0x107;
+  static const int DAEDITOR3_VERSION = 0x108;
 
   // generic version compatibility check
   inline bool checkVersion() const { return (daEditor3InterfaceVer == DAEDITOR3_VERSION); }
@@ -114,7 +116,8 @@ public:
   virtual void imguiBegin(const char *name, bool *open = nullptr, unsigned window_flags = 0) = 0;
   virtual void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open = nullptr, unsigned window_flags = 0) = 0;
   virtual void imguiEnd() = 0;
-  virtual void *getImguiContext() = 0;
+
+  virtual PropPanel::IPropPanelService *getPropPanelService() = 0;
 
   inline const char *selectAssetX(const char *asset, const char *caption, const char *type, const char *filter_str = nullptr,
     bool open_all_grp = false)
@@ -138,6 +141,10 @@ public:
 
   // Show the specified path in an external application. On Windows this application is the File Explorer.
   virtual void revealInExplorer(const char *path) = 0;
+
+  //! Routed via the engine because PropPanel::set_toast_message pulls
+  //! ImGui render symbols linked only into the editor exe.
+  virtual void showToast(PropPanel::ToastType type, const char *text) = 0;
 
 #define DSA_OVERLOADS_PARAM_DECL
 #define DSA_OVERLOADS_PARAM_PASS

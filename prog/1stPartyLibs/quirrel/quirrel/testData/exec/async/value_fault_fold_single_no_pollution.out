@@ -1,0 +1,3 @@
+script done
+report awaited=[consumerA]
+report awaited=[]

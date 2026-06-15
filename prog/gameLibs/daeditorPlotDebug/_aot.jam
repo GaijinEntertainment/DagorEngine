@@ -1,0 +1,5 @@
+local R = prog/gameLibs/daeditorPlotDebug ;
+Sources +=
+  $(R)/daeditor_plot_debug.cpp
+  $(R)/dasModules/daeditorPlotDebug.cpp
+;

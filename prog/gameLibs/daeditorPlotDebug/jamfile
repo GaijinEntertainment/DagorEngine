@@ -1,0 +1,10 @@
+Module = daeditorPlotDebug ;
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/$(Module) ;
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+local AllSrcFolder_CPP = . dasModules ;
+include $(Root)/prog/gameLibs/build_module.jam ;

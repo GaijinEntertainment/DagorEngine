@@ -62,11 +62,13 @@ ColorOverride colors[ColorOverride::COUNT] = {
   ColorOverride("EditBoxWrongValueBackground", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxNonDefaultValueBackground", ImGuiCol_COUNT + 1),
   ColorOverride("EditBoxIndicatorBackground", ImGuiCol_FrameBg),
+  ColorOverride("EditBoxSearchTextSetBackground", ImGuiCol_COUNT + 1),
+  ColorOverride("EditBoxSearchNoMatchBackground", ImGuiCol_COUNT + 1),
   ColorOverride("AssetBrowserItemBackgroundHovered", ImGuiCol_COUNT + 1),
   ColorOverride("AssetBrowserItemBackgroundSelected", ImGuiCol_COUNT + 1),
   ColorOverride("KeyboardShortcutsItemNonDefault", ImGuiCol_COUNT + 1)};
 // clang-format on
-G_STATIC_ASSERT(ColorOverride::COUNT == 57);
+G_STATIC_ASSERT(ColorOverride::COUNT == 59);
 
 void applyClassicOverrides()
 {

@@ -77,6 +77,7 @@ static struct GatherPhysmapPatchUpdatedRegionsJob final : public cpujobs::IJob
   {
     IPoint2 newOriginInPhysmapCoords = ipoint2(floor((camPosXZ - physMap->worldOffset) * physMap->invScale));
 
+    patchNeedsUpdate = false;
     regionsToUpdate.clear();
     ToroidalGatherCallback cb(regionsToUpdate);
     toroidal_update(newOriginInPhysmapCoords, toroidal_helper, 100000, cb);
@@ -89,17 +90,26 @@ static struct GatherPhysmapPatchUpdatedRegionsJob final : public cpujobs::IJob
     regionsTexelData.resize(regionsToUpdate.size());
     for (int regionNo = 0; regionNo < regionsToUpdate.size(); ++regionNo)
     {
-      const IPoint2 &wd = regionsToUpdate[regionNo].wd;
-      const IPoint2 &texelsFrom = regionsToUpdate[regionNo].texelsFrom;
-      if (texelsFrom.x < 0 || texelsFrom.y < 0 || texelsFrom.x + wd.x >= physMap->size || texelsFrom.y + wd.y >= physMap->size)
-        return;
+      IPoint2 &lt = regionsToUpdate[regionNo].lt;
+      IPoint2 &wd = regionsToUpdate[regionNo].wd;
+      IPoint2 &texelsFrom = regionsToUpdate[regionNo].texelsFrom;
+      if (texelsFrom.x < 0 || texelsFrom.y < 0)
+      {
+        IPoint2 ltOffset = max(-texelsFrom, IPoint2(0, 0));
+        lt += ltOffset;
+        texelsFrom += ltOffset;
+        wd -= ltOffset;
+      }
+      wd = min(wd, IPoint2(physMap->size, physMap->size) - texelsFrom);
+      if (wd.x <= 0 || wd.y <= 0)
+        continue;
+      patchNeedsUpdate = true;
       regionsTexelData[regionNo].resize(wd.x * wd.y);
       for (int j = 0; j < wd.y; ++j)
         for (int i = 0; i < wd.x; ++i)
           regionsTexelData[regionNo][j * wd.x + i] =
             physMap->materials[physMap->parent->get(texelsFrom.x + i, texelsFrom.y + j, physMap->size)];
     }
-    patchNeedsUpdate = true;
   };
 } gather_physmap_patch_updated_regions_job;
 
