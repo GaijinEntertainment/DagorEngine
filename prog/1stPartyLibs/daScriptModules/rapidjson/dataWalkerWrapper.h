@@ -287,16 +287,16 @@ namespace das
       }
     }
 
-    void beforeArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) override
+    void beforeArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) override
     {
     }
 
-    void afterArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) override
+    void afterArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) override
     {
     }
 
-    void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) override {}
-    void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) override {}
+    void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) override {}
+    void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) override {}
     void beforeDim ( char * pa, TypeInfo * ti ) override
     {
       push(State::Array);
@@ -346,7 +346,7 @@ namespace das
       }
     }
 
-    void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) override
+    void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) override
     {
       if (allowDirectTableSerialization(ti))
       {
@@ -359,17 +359,17 @@ namespace das
       }
     }
 
-    void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) override
+    void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) override
     {
       if (!allowDirectTableSerialization(ti))
         endField();
     }
-    void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) override
+    void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) override
     {
       if (!allowDirectTableSerialization(ti))
         beginField("v");
     }
-    void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) override
+    void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) override
     {
       endField();
       pop();

@@ -478,6 +478,7 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
 
     if (impostorType & ImpostorBaker::VOXEL)
     {
+      impostorBlk->addBlock("content");
       if (!impostorBaker.exportVoxelCache(asset, options))
       {
         impostorBaker.conerror("Could not process the rendinst: %s", name);
@@ -510,11 +511,22 @@ bool ImpostorGenerator::run(const ImpostorOptions &options)
   impostorBaker.conlog("Total number assets for baking: %d", assets.size());
   count = assets.size();
   if (!options.dryMode)
+  {
+    int numFailed = 0;
     for (int i = 0; i < assets.size(); i++)
-    {
       if (!processAsset(assets[i], assets[i]->getName()))
-        return false;
+      {
+        numFailed++;
+        impostorDataBlk.removeBlock(assets[i]->getName());
+      }
+
+    if (numFailed > 0)
+    {
+      impostorBaker.conerror("Failed to bake %d assets", numFailed);
+      saveImpostorData();
+      return false;
     }
+  }
   else
     impostorBaker.conlog("In dry mode we don't proccess the assets");
 

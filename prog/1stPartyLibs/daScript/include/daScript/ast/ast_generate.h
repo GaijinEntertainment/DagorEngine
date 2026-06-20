@@ -83,6 +83,20 @@ namespace das {
      */
     DAS_API FunctionPtr makeConstructor ( Structure * str, bool isPrivate );
 
+    // Walk `cls`'s inheritance chain starting from cls->parent, return the closest
+    // ancestor with a user-defined ctor (Klass`Klass not generated). Used by the
+    // synth-ctor body emitter (skip past empty intermediates straight to the deepest
+    // user code) and by the lint (super(...) walk-up matches the same target).
+    // Returns nullptr if `cls` isn't a class, has no parent, or no ancestor has a
+    // user ctor.
+    DAS_API Structure * findChainCtorAncestor ( Structure * cls );
+
+    // Finalizer twin of findChainCtorAncestor: closest ancestor with a user-defined
+    // finalizer ("finalize" class method, not generated). Used by the generated
+    // structure finalizer (chain to the parent's finalize) and by the lint
+    // (derived user finalizer must `delete super.self` when this returns non-null).
+    DAS_API Structure * findChainFinalizerAncestor ( Structure * cls );
+
     /*
      def clone(var a:STRUCT_NAME; b:STRUCT_NAME)
         a.f1 := b.f1

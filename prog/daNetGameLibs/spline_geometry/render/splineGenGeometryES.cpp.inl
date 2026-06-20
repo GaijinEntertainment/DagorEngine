@@ -165,7 +165,9 @@ static void spline_gen_geometry_update_instancing_data_es(const UpdateStageInfoB
   const Point4 &spline_gen_geometry__uv_scroll_second_offset_and_scale,
   float spline_gen_geometry__uv_scroll_interpolation_value,
   float spline_gen_geometry__surface_opaqueness,
-  Point2 spline_gen_geometry__additional_thickness_bounds)
+  Point2 spline_gen_geometry__additional_thickness_bounds,
+  Point3 spline_gen_geometry__medium_tint,
+  float spline_gen_geometry__is_shell)
 {
   int stripes = spline_gen_geometry_renderer.getManager().stripes;
   G_ASSERT(abs(spline_gen_geometry__displacement_strength) < 1);
@@ -190,7 +192,8 @@ static void spline_gen_geometry_update_instancing_data_es(const UpdateStageInfoB
     spline_gen_geometry__meter_between_objs, spline_gen_geometry__emissive_color, spline_gen_geometry__cylinder_start_offset,
     spline_gen_geometry__index_of_refraction, spline_gen_geometry__uv_scroll_first_offset_and_scale,
     spline_gen_geometry__uv_scroll_second_offset_and_scale, spline_gen_geometry__uv_scroll_interpolation_value,
-    spline_gen_geometry__surface_opaqueness, spline_gen_geometry__additional_thickness_bounds);
+    spline_gen_geometry__surface_opaqueness, spline_gen_geometry__additional_thickness_bounds, spline_gen_geometry__medium_tint,
+    spline_gen_geometry__is_shell);
 }
 
 ECS_TAG(render)

@@ -130,6 +130,21 @@ struct DX11Query
 
 static TabWithLock<DX11Query> all_queries;
 
+// Do not use it if dx11.4 is not available
+static TabWithLock<uint64_t> fence_based_event_queries;
+
+// Call it under context lock
+static uint64_t update_frame_progress_unsafe()
+{
+  if (!fence_progress)
+    return 0;
+
+  uint64_t progress = global_frame_progress.fetch_add(1, dag::mo::acq_rel);
+  // It will update fence to progress after execution of all commands issued before this point
+  dx_context4->Signal(fence_progress, progress);
+  return progress;
+}
+
 static ID3D11Query *create_raw_query(D3D11_QUERY query_type)
 {
   ID3D11Query *pQuery = NULL;
@@ -793,6 +808,20 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::GPU_BARRIER_WAIT_ALL_COMMANDS: // TODO: Implement GPU_BARRIER_WAIT_ALL_COMMANDS separately
     {
       TIME_D3D_PROFILE(Drv3dCommand::D3D_FLUSH);
+      if (fence_progress)
+      {
+        ContextAutoLock lock;
+
+        auto progress = update_frame_progress_unsafe();
+        dx_context->Flush();
+
+        // Wait until all commands issued up to this point have been executed
+        fence_progress->SetEventOnCompletion(progress, NULL);
+
+        // Sanity check, do not use in rel
+        G_ASSERT(fence_progress->GetCompletedValue() >= progress);
+        return 1;
+      }
       auto query = create_event_query();
       issue_event_query(query);
       {
@@ -971,6 +1000,15 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 1;
     }
 
+    case Drv3dCommand::SET_DLSS_OPTIONS:
+    {
+      const nv::DlssOptions &options = *static_cast<nv::DlssOptions *>(par1);
+      int viewIndex = par2 ? *(int *)par2 : 0;
+      DLSSSuperResolution *dlss = static_cast<DLSSSuperResolution *>(streamlineAdapter->getDlssFeature(viewIndex));
+      dlss->setOptions(options.mode, options.outputResolution, options.useRayReconstruction, options.useLegacyModel);
+      return 1;
+    }
+
     case Drv3dCommand::GET_STREAMLINE:
     {
       auto &sl = *static_cast<nv::Streamline **>(par1);
@@ -1093,12 +1131,6 @@ static bool wait_on_swapchain(HANDLE waitable_object, DWORD timeout /*millisecon
   return DAGOR_LIKELY(result == WAIT_OBJECT_0);
 }
 
-
-VPROG d3d::create_vertex_shader_dagor(const VPRTYPE * /*tokens*/, int /*len*/) { return BAD_VPROG; }
-VPROG d3d::create_vertex_shader_asm(const char * /*asm_text*/) { return BAD_VPROG; }
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE * /*tokens*/, int /*len*/) { return BAD_FSHADER; }
-FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/) { return BAD_FSHADER; }
-
 //---------------------------------------------------------------------------------
 
 bool d3d::setscissor(int x, int y, int w, int h)
@@ -1138,6 +1170,7 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
   if (flush_on_present)
   {
     ContextAutoLock contextLock;
+    update_frame_progress_unsafe();
     dx_context->Flush();
   }
 
@@ -1165,6 +1198,7 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
       RectInt rect = {0, 0, r.w, r.h};
       d3d::stretch_rect(g_driver_state.backBufferColorTex, r.buf, &rect, &rect);
       ContextAutoLock contextLock;
+      update_frame_progress_unsafe();
       presentHr = r.sw->Present(0, 0);
     }
     else
@@ -1176,6 +1210,7 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
         dagor_d3d_force_driver_reset = true;
         return true;
       }
+      update_frame_progress_unsafe();
       presentHr = swap_chain->Present(vsync_interval, !vsync_interval && use_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
 
       if (SUCCEEDED(presentHr) && !app_active && is_swapchain_window_occluded())
@@ -1240,6 +1275,7 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
   {
     {
       ContextAutoLock contextLock;
+      update_frame_progress_unsafe();
       presentHr = secondary_swap_chain->Present(0, 0);
     }
     device_should_reset(presentHr, "secondary_swap_chain->Present");
@@ -1557,17 +1593,62 @@ void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &
   max_vs = max_ps = max_vdecl = max_stblk = 0;
 }
 
-d3d::EventQuery *d3d::create_event_query() { return (d3d::EventQuery *)(intptr_t)create_query(D3D11_QUERY_EVENT); }
+d3d::EventQuery *d3d::create_event_query()
+{
+  if (fence_progress)
+  {
+    fence_based_event_queries.lock();
+    constexpr uint64_t AVAILABLE_QUERY = UINT64_MAX;
+    // first query is placeholder for backward compatibility (index 0 means invalid query)
+    if (fence_based_event_queries.empty())
+      fence_based_event_queries.push_back(0ull);
+    auto it = eastl::find(fence_based_event_queries.begin() + 1, fence_based_event_queries.end(), AVAILABLE_QUERY);
+    if (it == fence_based_event_queries.end())
+    {
+      fence_based_event_queries.push_back(0ull);
+      it = fence_based_event_queries.end() - 1;
+    }
+    auto result = (d3d::EventQuery *)eastl::distance(fence_based_event_queries.begin(), it);
+    fence_based_event_queries.unlock();
+    return result;
+  }
+  return (d3d::EventQuery *)(intptr_t)create_query(D3D11_QUERY_EVENT);
+}
 
 void d3d::release_event_query(EventQuery *q)
 {
   if (!q)
     return;
+  if (fence_progress)
+  {
+    size_t index = (size_t)q;
+    fence_based_event_queries.lock();
+    if (index < fence_based_event_queries.size())
+      fence_based_event_queries[index] = UINT64_MAX;
+    fence_based_event_queries.unlock();
+    return;
+  }
   release_query((int)(intptr_t)q);
 }
 
 bool d3d::issue_event_query(EventQuery *query)
 {
+  if (fence_progress)
+  {
+    if (!query)
+      return false;
+
+    fence_based_event_queries.lock();
+    auto idx = (size_t)query;
+    if (idx >= fence_based_event_queries.size())
+    {
+      fence_based_event_queries.unlock();
+      return false;
+    }
+    fence_based_event_queries[idx] = global_frame_progress.load(dag::mo::acquire);
+    fence_based_event_queries.unlock();
+    return true;
+  }
   int pQuery = (int)(intptr_t)query;
   if (pQuery <= 0 || !all_queries[pQuery].query)
     return false;
@@ -1578,6 +1659,35 @@ bool d3d::issue_event_query(EventQuery *query)
 
 bool d3d::get_event_query_status(d3d::EventQuery *query, bool flush)
 {
+  if (fence_progress)
+  {
+    if (!query)
+      return true;
+
+    fence_based_event_queries.lock();
+    auto idx = (size_t)query;
+    if (idx >= fence_based_event_queries.size())
+    {
+      fence_based_event_queries.unlock();
+      return true;
+    }
+    uint64_t value = fence_based_event_queries[idx];
+    fence_based_event_queries.unlock();
+
+    uint64_t progress = global_frame_progress.load(dag::mo::acquire);
+    if (value > progress)
+      return true; // bad query
+
+    if (flush)
+    {
+      // Flush the command buffer analogous to the behavior of GetData
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
+    }
+
+    ContextAutoLock contextLock; // guard fence_progress
+    uint64_t fenceProgress = fence_progress->GetCompletedValue();
+    return value <= fenceProgress;
+  }
   int pQuery = (int)(intptr_t)query;
   if (pQuery <= 0 || !all_queries[pQuery].query)
     return true;
@@ -1659,7 +1769,10 @@ bool d3d::begin_survey(int id)
   {
     ContextAutoLock contextLock;
     if (flush_before_survey)
+    {
+      update_frame_progress_unsafe();
       dx_context->Flush();
+    }
     dx_context->Begin(p);
   }
   return p != nullptr;
@@ -1780,6 +1893,7 @@ void d3d::pcwin::present_to_window(void *hwnd)
 
   {
     ContextAutoLock contextLock;
+    update_frame_progress_unsafe();
     swap_chain_pairs[id].sw->Present(0, 0);
   }
 }

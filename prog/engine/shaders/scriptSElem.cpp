@@ -971,6 +971,22 @@ bool ScriptedShaderElement::setStates() const
   return true;
 }
 
+bool ScriptedShaderElement::isAnyPassWritesDepth() const
+{
+  auto const &dump = *get_shaders_dump_owner(dumpHandle).getDump();
+  for (int i = 0; i < code.passes.size(); ++i)
+  {
+    const auto &rpass = code.passes[i].rpass;
+    if (!rpass)
+      continue;
+    const uint16_t renderStateNo = rpass->renderStateNo;
+    if (renderStateNo < dump.renderStates.size() && dump.renderStates[renderStateNo].zwrite)
+      return true;
+  }
+
+  return false;
+}
+
 void ScriptedShaderElement::setProgram(uint32_t variant)
 {
   auto const &dumpOwner = get_shaders_dump_owner(dumpHandle);

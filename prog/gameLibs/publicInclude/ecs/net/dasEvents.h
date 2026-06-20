@@ -16,6 +16,11 @@ struct DasEvent;
 }
 class SqModules;
 
+namespace ecs
+{
+class EntityManager;
+}
+
 namespace net
 {
 class IConnection;

@@ -34,13 +34,13 @@ def init() {
     print("PASS: 2 commands registered\n")
 
     // Test dispatch
-    var r1 = live_dispatch_command("\{\"name\": \"spawn\"}")
+    let r1 = live_dispatch_command("\{\"name\": \"spawn\"}")
     print("dispatch spawn: {r1}\n")
-    var r2 = live_dispatch_command("\{\"name\": \"spawn\"}")
+    let r2 = live_dispatch_command("\{\"name\": \"spawn\"}")
     print("dispatch spawn: {r2}\n")
-    var r3 = live_dispatch_command("\{\"name\": \"get_status\"}")
+    let r3 = live_dispatch_command("\{\"name\": \"get_status\"}")
     print("dispatch get_status: {r3}\n")
-    var r4 = live_dispatch_command("\{\"name\": \"unknown\"}")
+    let r4 = live_dispatch_command("\{\"name\": \"unknown\"}")
     print("dispatch unknown: {r4}\n")
 
     if (spawn_count == 2) {

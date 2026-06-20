@@ -1,5 +1,5 @@
 options gen2
-expect 40101
+expect 50500
 
 var {
     g = 5

@@ -533,6 +533,8 @@ VECTORCALL VECMATH_FINLINE vec4i v_permi_zzww(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xxzz(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_yyww(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_wwyy(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxw(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxy(vec4i xyzw);
 
 #define v_perm_xyXY v_perm_xyab
 #define v_perm_zwZW v_perm_zwcd

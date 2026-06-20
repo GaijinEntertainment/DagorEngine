@@ -62,8 +62,18 @@ shader depth_hierarchy
       Texture2D<float> g_depth_buffer@tex;
     }
     g_depth_buffer_size@u2 = depth_buffer_size;
-    g_downsampled_depth_buffer@uav[12] : register(0) hlsl {
-      RWTexture2D<float> g_downsampled_depth_buffer@uav;
+    if (hardware.ps4 || hardware.ps5)
+    {
+      g_downsampled_depth_buffer@uav[12] : register(0) hlsl {
+        RWTexture2D<float> g_downsampled_depth_buffer@uav;
+      }
+    }
+    else
+    {
+      // the last group re-reads mip 5 written by other groups, so the UAV must be GPU-coherent
+      g_downsampled_depth_buffer@uav[12] : register(0) hlsl {
+        globallycoherent RWTexture2D<float> g_downsampled_depth_buffer@uav;
+      }
     }
   }
 
@@ -143,15 +153,19 @@ shader depth_hierarchy
       }
       GroupMemoryBarrierWithGroupSync();
 
+      // ReduceQuad contains a group barrier on the non-wave path, so every thread must call it;
+      // only the leading threads have meaningful inputs and store results.
       BRANCH
       if (mips_and_group_count.x <= base_level + 1)
         return;
       // Init mip level 3 or 9
-      if (GI < 64)
       {
-          float v = ReduceQuad(g_groupshared_depth[x * 2 + y % 2][y * 2], xy);
+          float vIn = 0;
+          if (GI < 64)
+            vIn = g_groupshared_depth[x * 2 + y % 2][y * 2];
+          float v = ReduceQuad(vIn, xy);
           // quad index 0 stores result
-          if ((GI % 4) == 0)
+          if (GI < 64 && (GI % 4) == 0)
           {
             WriteDstDepth(base_level + 1, uint2(work_group_id * 4) + uint2(x / 2, y / 2), v);
             g_groupshared_depth[x * 2 + y / 2][y * 2] = v;
@@ -163,11 +177,13 @@ shader depth_hierarchy
       if (mips_and_group_count.x <= base_level + 2)
         return;
       // Init mip level 4 or 10
-      if (GI < 16)
       {
-          float v = ReduceQuad(g_groupshared_depth[x * 4 + y][y * 4], xy);
+          float vIn = 0;
+          if (GI < 16)
+            vIn = g_groupshared_depth[x * 4 + y][y * 4];
+          float v = ReduceQuad(vIn, xy);
           // quad index 0 stores result
-          if ((GI % 4) == 0)
+          if (GI < 16 && (GI % 4) == 0)
           {
             WriteDstDepth(base_level + 2, uint2(work_group_id * 2) + uint2(x / 2, y / 2), v);
             g_groupshared_depth[x / 2 + y][0] = v;
@@ -179,11 +195,13 @@ shader depth_hierarchy
       if (mips_and_group_count.x <= base_level + 3)
         return;
       // Init mip level 5 or 11
-      if (GI < 4)
       {
-        float v = ReduceQuad(g_groupshared_depth[GI][0], xy);
+        float vIn = 0;
+        if (GI < 4)
+          vIn = g_groupshared_depth[GI][0];
+        float v = ReduceQuad(vIn, xy);
         // quad index 0 stores result
-        if ((GI % 4) == 0)
+        if (GI == 0)
         {
           WriteDstDepth(base_level + 3, uint2(work_group_id), v);
         }

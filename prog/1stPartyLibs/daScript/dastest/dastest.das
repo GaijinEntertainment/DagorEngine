@@ -11,6 +11,7 @@ require daslib/ast_boost
 require daslib/json_boost
 require daslib/jobque_boost
 require daslib/rtti
+require daslib/strings_boost
 
 require fs
 require suite
@@ -19,6 +20,11 @@ require math
 require dastest_clargs
 
 options multiple_contexts
+
+// BBATKIN:
+//  temporary: disables persistent heap, because this crashes /tests/dastest
+//  it needs investigation but disabling for now to unblock other work
+options persistent_heap = false
 
 let private jsonResultPrefix = "##dastest##\n"
 
@@ -87,7 +93,8 @@ def private collect_files_filtered(path, das_test_path : string; var cache : tab
 
 def private collect_files(input_paths : array<string>; var files : array<string>) : bool {
     var inscope cache : table<string; void?>
-    for (path in input_paths) {
+    for (raw in input_paths) {
+        let path = replace(raw, "_dasroot_", get_das_root())
         if (path |> ends_with(".das")) {
             if (!cache |> key_exists(path)) {
                 cache |> insert(path, null)
@@ -97,9 +104,7 @@ def private collect_files(input_paths : array<string>; var files : array<string>
             let das_test_path = path |> fs::join_path(".das_test")
             let das_test_stat = stat(das_test_path)
             if (das_test_stat.is_reg) {
-                if (!collect_files_filtered(path, das_test_path, cache, files)) {
-                    return false
-                }
+                return false if (!collect_files_filtered(path, das_test_path, cache, files))
             } else {
                 if (!fs::scan_dir(path, cache, files, ".das")) {
                     log::error("Unable to scan given path '{path}'")
@@ -122,9 +127,13 @@ def private get_int_arg(args : array<string>; name : string; def_val : int) : in
     return idx >= 0 && idx + 1 < length(args) ? int(args[idx + 1]) : def_val
 }
 
+// One unit of work pulled by a worker thread: a batch of test files run by a
+// single subprocess. uris/singleCmds are parallel arrays (one per file, in run
+// order); batchCmd runs all files at once. The worker appends --worker-index.
 struct IsoInput {
-    uri : string
-    cmd : string
+    uris : array<string>         // display names, one per file, in batch order
+    batchCmd : string            // runs every file in the batch (one subprocess)
+    singleCmds : array<string>   // singleCmds[i] runs only file i (crash re-dispatch)
 }
 
 struct IsolatedResult {
@@ -139,6 +148,211 @@ struct IsolatedResult {
     log : array<string>
 }
 
+// Result of running ONE subprocess (a batch or a single file). The subprocess
+// streams one ##dastest## JSON report per file as it finishes, so results[]
+// holds one IsolatedResult per REPORTED file in run order (a prefix of the
+// batch). If the process dies mid-batch, results is short and pendingLog holds
+// the log of the file that was running when it died.
+struct BatchRun {
+    results : array<IsolatedResult>
+    exitCode : int
+    pendingLog : array<string>
+    err : array<string>
+}
+
+// prefix = "<launch> -jit -- " ; suffix = " --bench --color --headless".
+// Worker-index is appended by the caller, not here.
+def private build_iso_cmd(filesList : array<string>; prefix, suffix : string) : string {
+    return build_string() $(var w) {
+        w |> write(prefix)
+        for (f in filesList) {
+            // Always quote the path: popen runs this through cmd.exe / /bin/sh,
+            // so a test path with a space (or other shell-significant char) would
+            // otherwise split into multiple argv entries. The shell strips the
+            // quotes, so the child sees the clean path. Mirrors the launchPrefix
+            // quoting in the dispatch loop.
+            w |> write(" --run \"{f}\"")
+        }
+        w |> write(suffix)
+    }
+}
+
+// Run one subprocess and parse its streamed per-file JSON reports.
+def private run_iso_subprocess(cmd : string; timeoutSec : float; var br : BatchRun) {
+    var pending : array<string>
+    // popen_timeout's stderr handling is timeout-dependent: with timeout<=0 it
+    // falls back to plain _popen (stdout only — stderr DROPPED), which is the
+    // path isolated mode hits since per-test test_timeout defaults to 0; with
+    // timeout>0 it routes stderr into the captured pipe, interleaved with the
+    // ##dastest## JSON markers. Either way a hard crash (AV / abort / __fastfail)
+    // writes its diagnostic — the crash-handler C++ stack + the daslang call
+    // stack — to stderr. Redirect stderr to a temp file (overrides both paths,
+    // and avoids the timeout>0 interleave) and, on abnormal exit, fold it into
+    // the crashed file's log so the stack is surfaced under the failing test.
+    let tfRes = create_temp_file_result("dastest_stderr_", ".txt")
+    let errPath = (tfRes is value) ? (tfRes as value) : ""
+    if (empty(errPath)) {
+        // The point of this is to NOT silently lose crash diagnostics, so make
+        // the temp-file failure visible rather than quietly dropping stderr.
+        br.err |> push("dastest: could not create a temp file for subprocess stderr capture ({tfRes as error}); stderr (crash stacks, etc.) will not be surfaced")
+    }
+    let runCmd = empty(errPath) ? cmd : "{cmd} 2>\"{errPath}\""
+    unsafe {
+        br.exitCode = popen_timeout(runCmd, timeoutSec) $(f) {
+            if (f == null) {
+                br.err |> push("Internal error: Failed to execute cmd > {cmd}")
+                return
+            }
+            var readJson = false
+            var jsonAccum = ""
+            while (!feof(f)) {
+                let st = fgets(f)
+                if (st == jsonResultPrefix) {
+                    if (readJson) {
+                        // Closing marker: this file completed (the --run handler
+                        // writes its report after running), so emit EXACTLY one
+                        // result whether or not the JSON parses. Dropping it on a
+                        // parse error would shorten the batch prefix and make the
+                        // parent misattribute a later crash and re-dispatch
+                        // already-run files; `pending` is moved out either way.
+                        var jsErr : string
+                        var js = jsonAccum |> read_json(jsErr)
+                        jsonAccum = ""
+                        if (empty(jsErr) && js != null) {
+                            let obj & = unsafe(js as _object)
+                            var r = IsolatedResult(
+                                parsedResult = true,
+                                status = SuiteResult(js),
+                                fileDt = from_JV(obj?["time_usec"] ?? JV(0), type<int>), // nolint:STYLE020 — `?? defV` doesn't typecheck on _object indexing; suite_result.das pattern
+                                log <- pending
+                            )
+                            parse_test_results(js, r.tests)
+                            br.results |> emplace(r)
+                        } else {
+                            var perr : array<string>
+                            perr |> push("Internal error: failed to parse json result {jsErr}")
+                            var r = IsolatedResult(parsedResult = false, log <- pending, err <- perr)
+                            br.results |> emplace(r)
+                        }
+                    }
+                    readJson = !readJson
+                    continue
+                }
+                if (readJson) {
+                    jsonAccum += st
+                } else {
+                    pending |> push(st)
+                }
+            }
+        }
+    }
+    if (!empty(errPath)) {
+        // Folded in on ANY abnormal exit (crash, panic, compile error, timeout),
+        // not just hard crashes — so the header stays neutral and carries the
+        // exit code rather than asserting "crash". A clean run's stderr (e.g.
+        // libhv logs) is noise we don't attribute to the test.
+        if (br.exitCode != 0) {
+            var folded : array<string>
+            fopen(errPath, "rb") $(ef) {
+                if (ef != null) {
+                    while (!feof(ef)) {
+                        let ln = fgets(ef)
+                        continue if (empty(ln))
+                        folded |> push(ln)
+                    }
+                }
+            }
+            if (!empty(folded)) {
+                let header = "----- worker subprocess stderr (abnormal exit {br.exitCode}; batch>1 may include other files in the worker) -----\n"
+                // A caught panic emits a JSON result, so `pending` was already moved into
+                // that result's log above — fold the captured stderr into the last result's
+                // log so the at-throw stack (--stack-on-exception) surfaces under the
+                // failing test. A hard crash emits no result, so fall back to `pending`
+                // (the trailing log attributed to the dead file).
+                if (empty(br.results)) {
+                    pending |> push(header)
+                    pending |> push_from(folded)
+                } else {
+                    let li = length(br.results) - 1
+                    br.results[li].log |> push(header)
+                    br.results[li].log |> push_from(folded)
+                }
+            }
+        }
+        remove_result(errPath)
+    }
+    br.pendingLog <- pending
+}
+
+// Worker entry: run one batch, attribute results, and on a mid-batch crash
+// re-run the remainder one-process-per-file. Pushes exactly one result per
+// file in the batch to outputChannel.
+def private run_iso_batch(input : IsoInput#; t : int; perTestTimeout : float; outputChannel : Channel?) {
+    let nFiles = length(input.uris)
+    // 1-based: clients deriving a port from the worker index (e.g. imgui_playwright
+    // maps worker-index N to live-API port 9090+N) start at 9091, leaving 9090 free
+    // for a dev/attached host.
+    let widx = " --worker-index {t + 1}"
+    // Batch timeout: per-test budget scaled by batch size (<=0 means none).
+    let batchTimeout = perTestTimeout <= 0.0 ? perTestTimeout : perTestTimeout * float(nFiles)
+    var br : BatchRun
+    run_iso_subprocess("{input.batchCmd}{widx}", batchTimeout, br)
+    let k = min(length(br.results), nFiles)
+    // Reported files (a prefix of the batch). The per-file JSON is authoritative,
+    // so exitCode is 0 even if the batch returned non-zero for other failures.
+    for (j in range(k)) {
+        br.results[j].uri = clone_string(input.uris[j])
+        br.results[j].cmd = clone_string("{input.singleCmds[j]}{widx}")
+        br.results[j].exitCode = 0
+        outputChannel |> push_clone(br.results[j])
+        outputChannel |> notify()
+    }
+    if (k < nFiles) {
+        // The process died (crash or timeout) on file k: the batch's trailing
+        // log belongs to it. Mark it failed, then re-run the rest as singles so
+        // a second crash can only sink itself.
+        // The shared accounting loop reports timeouts using the per-test budget;
+        // in a batch the effective deadline is batchTimeout (perTestTimeout x
+        // nFiles), so spell out the real number here to avoid a misleading
+        // "timed out after {perTestTimeout}s".
+        if (br.exitCode == popen_timed_out && nFiles > 1) {
+            br.err |> push("batch of {nFiles} files timed out after {batchTimeout}s (per-test budget {perTestTimeout}s x {nFiles}); re-running the remainder individually")
+        }
+        let cr = IsolatedResult(
+            uri = clone_string(input.uris[k]),
+            cmd = clone_string("{input.singleCmds[k]}{widx}"),
+            exitCode = br.exitCode,
+            parsedResult = false,
+            log <- br.pendingLog,
+            err <- br.err
+        )
+        outputChannel |> push_clone(cr)
+        outputChannel |> notify()
+        for (i in range(k + 1, nFiles)) {
+            var brs : BatchRun
+            run_iso_subprocess("{input.singleCmds[i]}{widx}", perTestTimeout, brs)
+            if (!empty(brs.results)) {
+                brs.results[0].uri = clone_string(input.uris[i])
+                brs.results[0].cmd = clone_string("{input.singleCmds[i]}{widx}")
+                brs.results[0].exitCode = 0
+                outputChannel |> push_clone(brs.results[0])
+                outputChannel |> notify()
+            } else {
+                let r2 = IsolatedResult(
+                    uri = clone_string(input.uris[i]),
+                    cmd = clone_string("{input.singleCmds[i]}{widx}"),
+                    exitCode = brs.exitCode,
+                    parsedResult = false,
+                    log <- brs.pendingLog,
+                    err <- brs.err
+                )
+                outputChannel |> push_clone(r2)
+                outputChannel |> notify()
+            }
+        }
+    }
+}
+
 def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
     var res : SuiteResult
     fopen(out_file, "wb") $(f) {
@@ -151,6 +365,11 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
         var inscope access <- make_file_access(ctx.projectPath)
         access |> add_file_access_root("dastest", ctx.dastestRoot)
         for (file in files) {
+            // Tests whose basename starts with cant_, failed_, or invalid_
+            // are expected-failure compile tests anywhere in the tests tree;
+            // they have nothing to serialize.
+            let base = base_name(file)
+            continue if (base |> starts_with("cant_") || base |> starts_with("failed_") || base |> starts_with("invalid_"))
             using() $(var mg : ModuleGroup) {
                 using() $(var cop : CodeOfPolicies) {
                     cop.aot_module = true
@@ -176,7 +395,7 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
         }
         fwrite(f, res.total)
         ast_serializer_get_data(ser) $(data) {
-            var sz = uint64(length(data))
+            let sz = uint64(length(data))
             fwrite(f, sz)
             fwrite(f, data)
         }
@@ -189,7 +408,7 @@ def serialize_path(ctx : SuiteCtx, files : array<string>, out_file : string) {
     return res
 }
 
-def deserialize_path(var ctx : SuiteCtx, files : array<string>, in_file : string) : SuiteResult {
+def deserialize_path(var ctx : SuiteCtx, _files : array<string>, in_file : string) : SuiteResult {
     var res : SuiteResult
     fopen(in_file, "rb") $(f) {
         if (f == null) {
@@ -211,18 +430,16 @@ def deserialize_path(var ctx : SuiteCtx, files : array<string>, in_file : string
         fread(f, data)
         log::info("Deserializing {count:d} programs from {in_file}")
         var ser = create_ast_deserializer(data)
-        using() $(var mg : ModuleGroup) {
-            for (i in range(int(count))) {
-                deserialize_program(ser) <| $(ok, program, error) {
+        using() $(var _mg : ModuleGroup) {
+            for (i in range(count)) {
+                deserialize_program(ser) $(ok, program, error) {
                     if (!ok) {
                         log::error("Deserialization failed at program {i}: {error}")
                         res.errors++
                         res.total++
                         return
                     }
-                    if (program._options |> find_arg("rtti") ?as tBool ?? false) {
-                        return
-                    }
+                    return if (program._options |> find_arg("rtti") ?as tBool ?? false)
                     simulate(program) $(sok, context, serrors) {
                         if (!sok) {
                             log::error("Failed to simulate program {i}\n{serrors}")
@@ -252,33 +469,42 @@ def main() : int {
     // Captured for isolated-mode subprocess invocation; raw_args[0] is the
     // daslang interpreter path and raw_args[1] is dastest.das.  Everything
     // else for this main() comes from the parsed test_args below.
-    var raw_args <- get_command_line_arguments()
+    let raw_args <- get_command_line_arguments()
 
-    var test_args = DastestArgs()
-    let parse_err = parse_args(test_args)
-    if (parse_err != "") {
-        log::red("command-line args: {parse_err}")
+    var parse_result <- parse_args(type<DastestArgs>)
+    if (parse_result |> is_err) {
+        log::red("command-line args: {parse_result |> unwrap_err}")
         return 1
     }
+    var test_args <- parse_result |> move_unwrap
 
     if (!empty(test_args.run)) {
-        // Isolated-mode single-file: --run=<file> covers both `--run X` and
-        // `--run=X` forms because parse_args has already populated the field.
-        let res = suite::test_file(test_args.run, SuiteCtx(test_args))
-        // Send full report with per-test details for isolated mode JSON collection
-        var report = JsonTestReport(
-            file = test_args.run,
-            total = res.total,
-            passed = res.passed,
-            failed = res.failed,
-            errors = res.errors,
-            skipped = res.skipped,
-            success = res.failed + res.errors == 0,
-            time_usec = 0,
-            tests <- suite::test_results
-        )
-        log::info_raw("\n{jsonResultPrefix}{sprint_json(report, false)}\n{jsonResultPrefix}")
-        return res.failed + res.errors
+        // Isolated/semi-isolated worker subprocess: run each --run file in this
+        // one process, emitting a ##dastest## JSON report PER FILE as it
+        // finishes (streamed) so the parent can attribute results and detect
+        // exactly which file was running if the process dies mid-batch.
+        var rctx <- SuiteCtx(test_args)
+        var rc = 0
+        for (rf in test_args.run) {
+            suite::clear_test_results()
+            let t0 = ref_time_ticks()
+            let res = suite::test_file(rf, rctx)
+            let dt = get_time_usec(t0)
+            let report = JsonTestReport(
+                file = rf,
+                total = res.total,
+                passed = res.passed,
+                failed = res.failed,
+                errors = res.errors,
+                skipped = res.skipped,
+                success = res.failed + res.errors == 0,
+                time_usec = dt,
+                tests <- suite::test_results
+            )
+            log::info_raw("\n{jsonResultPrefix}{sprint_json(report, false)}\n{jsonResultPrefix}")
+            rc += res.failed + res.errors
+        }
+        return rc
     }
 
     log::failuresOnly = test_args.failures_only
@@ -313,8 +539,12 @@ def main() : int {
 
     var inputPaths := test_args.test_files
     var files : array<string>
-    if (!collect_files(inputPaths, files)) {
-        return 1
+    return 1 if (!collect_files(inputPaths, files))
+    if (!empty(test_args.exclude_files)) {
+        files |> erase_if() $(f) {
+            let base = base_name(f)
+            return (find_index_if(test_args.exclude_files) $(pat) => base |> contains(pat)) >= 0
+        }
     }
 
     timingOutliers = test_args.timing_outliers
@@ -359,7 +589,7 @@ def main() : int {
                 }
             } else {
                 log::red("FAIL {uri} {time_dt_hr(fileDt)}")
-                var reason = "{status.failed} failed, {status.errors} errors"
+                let reason = "{status.failed} failed, {status.errors} errors"
                 failedFiles |> push(FailedFile(uri = clone_string(uri), reason = clone_string(reason)))
             }
             if (timingOutliers > 0) {
@@ -374,56 +604,77 @@ def main() : int {
             totalThreads = get_total_hw_threads() * 2
         }
         let testTimeout = test_args.test_timeout
-        log::info("Running {totalFiles} tests in isolated mode with {totalThreads} threads\n")
-        with_channel(totalFiles) $(inputChannel) {
+        // --headless is a pass-through flag (not parsed by DastestArgs); detect once
+        // here so each spawned --run subprocess re-receives it via singleTest cmd.
+        // Without this, the post-`--` slice in the child loses --headless and any
+        // playwright/harness that depends on it reverts to windowed mode.
+        let headlessFlag = find_index(raw_args, "--headless") >= 0 ? " --headless" : ""
+        // Preserve EVERY pre-`--` arg (daslang flags + script path), not just
+        // raw_args[0..1]. With raw_args = [daslang, -load_module, <path>,
+        // dastest.das, --, ...], the old "raw_args[0] raw_args[1]" reconstruction
+        // produced "daslang -load_module" — losing the flag value, breaking
+        // local runs that point dastest at an external module via -load_module.
+        // Find index of `--` ≥ 0 always (dastest was invoked with `--` to receive
+        // its own args); fall back to all raw_args if not, matching the old
+        // 2-arg implicit assumption. Quote any arg containing a space so paths
+        // like `C:/Program Files/...` survive popen's shell-split on the other
+        // side; both cmd.exe and /bin/sh honor double-quote-wrapped args.
+        let dashdash = find_index(raw_args, "--")
+        let launchPrefix = build_string() $(var w) {
+            let n = dashdash > 0 ? dashdash : length(raw_args)
+            for (i in range(n)) {
+                if (i > 0) w |> write(" ")
+                let needs_quote = raw_args[i] |> contains(" ")
+                if (needs_quote) w |> write("\"")
+                w |> write(raw_args[i])
+                if (needs_quote) w |> write("\"")
+            }
+        }
+        let jitstr = jit_enabled() ? "-jit" : ""
+        let aotstr = is_in_aot() ? "-use-aot" : ""
+        let benchstr = ctx.bench_enabled ? "--bench" : ""
+        // Forward --stack-on-exception to each worker: the flag sets the test
+        // context's at-throw stack walk, and the tests run in the worker, not here.
+        let stackExcFlag = test_args.stack_on_exception ? " --stack-on-exception" : ""
+        let cmdPrefix = "{launchPrefix} {jitstr} {aotstr} --"
+        let cmdSuffix = " {benchstr}{log::useTtyColors ? " --color" : ""}{headlessFlag}{stackExcFlag}"
+        let batchSize = max(1, test_args.batch)
+        // Group files into batches of batchSize. Each batch is run by one worker
+        // subprocess (batchCmd); per-file singleCmds are kept so a crash can be
+        // re-dispatched one-process-per-file.
+        var batches : array<IsoInput>
+        var bidx = 0
+        while (bidx < totalFiles) {
+            let hi = min(bidx + batchSize, totalFiles)
+            let bn = hi - bidx
+            var bUris : array<string>
+            var bFiles : array<string>
+            var bSingles : array<string>
+            bUris |> reserve(bn)
+            bFiles |> reserve(bn)
+            bSingles |> reserve(bn)
+            for (j in range(bidx, hi)) {
+                let file = files[j]
+                let uri = ctx.uriPaths ? file_name_to_uri(file) : file
+                bUris |> push(clone_string(uri))
+                bFiles |> push(clone_string(file))
+                bSingles |> push(build_iso_cmd([clone_string(file)], cmdPrefix, cmdSuffix))
+            }
+            let bCmd = build_iso_cmd(bFiles, cmdPrefix, cmdSuffix)
+            unsafe { delete bFiles }
+            batches |> emplace(IsoInput(uris <- bUris, batchCmd = clone_string(bCmd), singleCmds <- bSingles))
+            bidx = hi
+        }
+        let numBatches = length(batches)
+        log::info("Running {totalFiles} tests in isolated mode: {totalThreads} threads, batch {batchSize} ({numBatches} worker subprocess(es))\n")
+        with_channel(numBatches) $(inputChannel) {
             with_channel(totalFiles) $(outputChannel) {
                 with_job_status(totalThreads) $(completion) {
 
                     for (t in range(totalThreads)) {
-                        new_thread <| @ {
+                        new_thread <| @capture(= t) {
                             for_each_clone(inputChannel) $(input : IsoInput#) {
-                                var isoRes : IsolatedResult
-                                isoRes.uri = clone_string(input.uri)
-                                isoRes.cmd = clone_string(input.cmd)
-                                let fileTime = ref_time_ticks()
-                                unsafe {
-                                    isoRes.exitCode = popen_timeout(input.cmd, testTimeout) $(f) {
-                                        if (f == null) {
-                                            // log::error("Internal error: Failed to execute cmd > {input.cmd}")
-                                            isoRes.err |> push("Internal error: Failed to execute cmd > {input.cmd}")
-                                            return
-                                        }
-                                        var readJson = false
-                                        var jsonResult = ""
-                                        while (!feof(f)) {
-                                            let st = fgets(f)
-                                            if (st == jsonResultPrefix) {
-                                                readJson = !readJson
-                                                continue
-                                            }
-                                            if (readJson) {
-                                                jsonResult += st
-                                            } else {
-                                                // log::info_raw(st)
-                                                isoRes.log |> push(st)
-                                            }
-                                        }
-                                        var jsError : string
-                                        var js = jsonResult |> read_json(jsError)
-                                        if (!empty(jsError)) {
-                                            // log::error("Internal error: failed to parse json result {jsError}")
-                                            isoRes.err |> push("Internal error: failed to parse json result {jsError}")
-                                        } elif (js != null) {
-                                            isoRes.parsedResult = true
-                                            isoRes.status = SuiteResult(js)
-                                            parse_test_results(js, isoRes.tests)
-                                        }
-                                    }
-                                }
-                                isoRes.fileDt = get_time_usec(fileTime)
-
-                                outputChannel |> push_clone(isoRes)
-                                outputChannel |> notify()
+                                run_iso_batch(input, t, testTimeout, outputChannel)
                             }
 
                             inputChannel |> release()
@@ -432,23 +683,15 @@ def main() : int {
                         }
                     }
 
-                    for (file in files) {
-                        let uri = ctx.uriPaths ? file_name_to_uri(file) : file
-                        let jitstr = jit_enabled() ? "-jit" : ""
-                        let aotstr = is_in_aot() ? "-use-aot" : ""
-                        let benchstr = ctx.bench_enabled ? "--bench" : ""
-                        let singleTest = "{raw_args[0]} {raw_args[1]} {jitstr} {aotstr} -- --run {file} {benchstr} {log::useTtyColors ? " --color" : ""}"
-                        inputChannel |> push_clone(IsoInput(uri = clone_string(uri), cmd = clone_string(singleTest)))
+                    for (b in batches) {
+                        inputChannel |> push_clone(b)
                         inputChannel |> notify()
                     }
 
                     for (isoRes in each_clone(outputChannel, type<IsolatedResult>)) {
                         res += isoRes.status
                         for (tr in isoRes.tests) {
-                            var msgs : array<string>
-                            for (m in tr.messages) {
-                                msgs |> push(clone_string(m))
-                            }
+                            var msgs <- [for (m in tr.messages); clone_string(m)]
                             suite::test_results |> emplace(SuiteTestResult(
                                 name = clone_string(tr.name),
                                 passed = tr.passed,
@@ -476,8 +719,8 @@ def main() : int {
                             log::red("FAIL {isoRes.uri} {time_dt_hr(isoRes.fileDt)}")
                             var reason = ""
                             if (isoRes.exitCode != 0 || !isoRes.parsedResult) {
-                                res.total += 1
-                                res.errors += 1
+                                res.total++
+                                res.errors++
                             }
                             if (isoRes.exitCode == popen_timed_out) {
                                 reason = "timed out after {testTimeout}s"
@@ -508,8 +751,8 @@ def main() : int {
 
 [export, pinvoke]
 def timeout_tests(var res : SuiteResult; start_time : int64; timeout_sec : float) {
-    res.errors += 1
-    res.total += 1
+    res.errors++
+    res.total++
     log::error("Test timed out after {timeout_sec}s")
     // timeout fires from a worker thread; fio::exit is the cross-thread
     // cancellation mechanism (bypasses shutdown dump — acceptable for this path).
@@ -541,20 +784,16 @@ def private print_timing_outliers() {
     let count = min(timingOutliers, n)
     let threshold = mean + 2.0lf * stddev
     // only print if there are actual outliers (top entry above threshold) or if few files
-    var meanStr = ""
-    meanStr = fmt(":.3f", mean / 1000000.0lf)
-    var stddevStr = ""
-    stddevStr = fmt(":.3f", stddev / 1000000.0lf)
-    var thresholdStr = ""
-    thresholdStr = fmt(":.3f", threshold / 1000000.0lf)
+    let meanStr = fmt(":.3f", mean / 1000000.0lf)
+    let stddevStr = fmt(":.3f", stddev / 1000000.0lf)
+    let thresholdStr = fmt(":.3f", threshold / 1000000.0lf)
     log::info("Timing: mean {meanStr}s, stddev {stddevStr}s, threshold {thresholdStr}s")
     log::info("Top {count} slowest files:")
     for (i in range(count)) {
         let dtSec = double(fileTimings[i].dt) / 1000000.0lf
         let marker = double(fileTimings[i].dt) > threshold ? " [outlier]" : ""
-        var dtStr = ""
-        dtStr = fmt(":.3f", dtSec)
-        var line = "  {dtStr}s  {fileTimings[i].uri}{marker}"
+        let dtStr = fmt(":.3f", dtSec)
+        let line = "  {dtStr}s  {fileTimings[i].uri}{marker}"
         log::info(line)
     }
 }
@@ -570,7 +809,7 @@ def finish_tests(res : SuiteResult; start_time : int64) : int {
     if (resCode == 0) {
         log::green("SUCCESS! {time_dt_hr(totalDt)}")
     } else {
-        if (length(failedFiles) > 0) {
+        if (!empty(failedFiles)) {
             log::red("\nFAILURES:")
             for (ff in failedFiles) {
                 log::red("  {ff.uri} — {ff.reason}")
@@ -580,7 +819,7 @@ def finish_tests(res : SuiteResult; start_time : int64) : int {
         log::red("FAILED! {time_dt_hr(totalDt)}")
     }
     if (!empty(jsonFilePath)) {
-        var report = JsonTestReport(
+        let report = JsonTestReport(
             file = jsonTestFile,
             total = res.total,
             passed = res.passed,

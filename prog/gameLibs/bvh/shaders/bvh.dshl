@@ -334,6 +334,7 @@ macro USE_MAIN_BVH_RECONSTRUCTION(stage, need_textures, need_normal, need_color,
     static const uint bvhMaterialWater      = 5;
     static const uint bvhMaterialLandclass  = 6;
     static const uint bvhMaterialMonochrome = 7;
+    static const uint bvhMaterialSmokeTracer = 8;
 
     static const uint bvhMaterialAnimcharDecals = 1 << 15;
     static const uint bvhMaterialAlphaTest = 1 << 16;
@@ -1351,6 +1352,11 @@ endmacro
 macro USE_PARTICLE_BVH(stage)
   hlsl(stage)
   {
+    ModfxBVHParticleData get_particle_data(uint data_index)
+    {
+      return structuredBufferAt(bvh_particle_data, data_index);
+    }
+
     HitInfo CalcParticleHitInfo( float3 ray_origin, float3 ray_direction, float ray_t, uint triangleIx, uint instanceId, uint geometryIndex, float2 barycentrics2, float3x4 to_world, bool isFrontFace, uint instanceIndex )
     {
       HitInfo hitInfo = (HitInfo)0;
@@ -1366,7 +1372,7 @@ macro USE_PARTICLE_BVH(stage)
 
       // For particles, the instance index is the particle data index
       hitInfo.perInstanceDataIndex = instanceIndex;
-      ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, instanceIndex);
+      ModfxBVHParticleData pd = get_particle_data(instanceIndex);
 
       hitInfo.instanceColor = half3(pd.color.xyz);
       hitInfo.translucency = half(1 - pd.color.w);
@@ -1574,18 +1580,27 @@ macro USE_BVH_FX_RENDER(stage)
 
         HitInfo hitInfo = CalcParticleHitInfo(ForwardAHSParams);
 
-        if (hitInfo.albedoTextureIndex == 0xFFFFU)
+        bool isSmokeTracer = (hitInfo.material == bvhMaterialSmokeTracer);
+        if (hitInfo.albedoTextureIndex == 0xFFFFU && !isSmokeTracer)
           return 0;
 
-        ModfxBVHParticleData pd = structuredBufferAt(bvh_particle_data, hitInfo.perInstanceDataIndex);
+        ModfxBVHParticleData pd = get_particle_data(hitInfo.perInstanceDataIndex);
 
-        float smoothBias = get_cone_angle_from_smoothness(smoothness);
-        float mipLevel = calc_mip_level(primaryT + hitInfo.t, false, false);
-        mipLevel *= smoothBias;
+        half4 texel;
+        if (isSmokeTracer)
+        {
+          texel = half4(1, 1, 1, 1);
+        }
+        else
+        {
+          float smoothBias = get_cone_angle_from_smoothness(smoothness);
+          float mipLevel = calc_mip_level(primaryT + hitInfo.t, false, false);
+          mipLevel *= smoothBias;
 
-        float4 texel1 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.texcoord, mipLevel);
-        float4 texel2 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.materialData1.xy, mipLevel);
-        half4 texel = half4(lerp(texel1, texel2, pd.frameBlend));
+          float4 texel1 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.texcoord, mipLevel);
+          float4 texel2 = nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_clamp_sampler, hitInfo.materialData1.xy, mipLevel);
+          texel = half4(lerp(texel1, texel2, pd.frameBlend));
+        }
         if (pd.flags & BVH_MODFX_RMOD_TEX_COLOR_MATRIX)
         {
           float4 c;
@@ -1600,7 +1615,11 @@ macro USE_BVH_FX_RENDER(stage)
         if (pd.flags & BVH_MODFX_RFLAG_COLOR_USE_ALPHA_THRESHOLD)
           alpha = saturate(texel.a - hitInfo.translucency);
 
-        half volAlpha = half(saturate(hitInfo.t) * saturate(rayMax - hitInfo.t));
+        half volAlpha;
+        if (isSmokeTracer)
+          volAlpha = 1;
+        else
+          volAlpha = half(saturate(hitInfo.t) * saturate(rayMax - hitInfo.t));
 
         alpha *= volAlpha;
 

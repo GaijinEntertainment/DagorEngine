@@ -1,5 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "renderAnimCharIcon.h"
+
+#include <osApiWrappers/dag_ttas_spinlock.h>
 #include <daRg/dag_renderAnimCharIconBase.h>
 #include <animChar/dag_animCharacter2.h>
 #include <drv/3d/dag_viewScissor.h>
@@ -49,11 +52,86 @@ static ShaderVariableInfo background_alpha("background_alpha", true);
 static ShaderVariableInfo animchar_icons_final_samplerstate("animchar_icons_final_samplerstate", true);
 }; // namespace var
 
+static volatile int pic_ctx_queue_lock = 0;
+
 class RenderAnimCharIcon : public RenderAnimCharIconBase
 {
+public:
+  void queueCtx(const PictureManager::PictureRenderContext &ctx)
+  {
+    ttas_spinlock_lock(pic_ctx_queue_lock);
+    queuedCtxs.push_back(ctx);
+    ttas_spinlock_unlock(pic_ctx_queue_lock);
+  }
+
+  eastl::optional<PictureManager::PictureRenderContext> acquireNextPicture()
+  {
+    ttas_spinlock_lock(pic_ctx_queue_lock);
+
+    if (queuedCtxs.empty())
+    {
+      ttas_spinlock_unlock(pic_ctx_queue_lock);
+      return eastl::nullopt;
+    }
+
+    PictureManager::PictureRenderContext picCtx = eastl::move(queuedCtxs.back());
+    queuedCtxs.pop_back();
+    ttas_spinlock_unlock(pic_ctx_queue_lock);
+
+    const PictureManager::AsyncPicState picState = PictureManager::process_pic_before_render(picCtx);
+    if (picState != PictureManager::AsyncPicState::ReadyToRender)
+    {
+      if (picState == PictureManager::AsyncPicState::Discarded)
+        debug("PM: pic=%08X(%s) was discarded, render retry ceased", picCtx.pid, picCtx.extractPicName());
+      else if (picState == PictureManager::AsyncPicState::TooEarlyToRender)
+        retryAgain(picCtx);
+
+      return eastl::nullopt;
+    }
+
+    return picCtx;
+  }
+
+  void finalizePictureRender(PictureManager::PictureRenderContext &pic_ctx, const bool success)
+  {
+    if (success)
+      debug("PM: render succeed at last for pic=%08X(%s) at %d,%d", pic_ctx.pid, pic_ctx.extractPicName(), pic_ctx.x0, pic_ctx.y0);
+    else
+    {
+      if ((++pic_ctx.failedAttempt % 5) == 0)
+        debug("PM: render failed for pic=%08X(%s), will retry later[failed attempt:%d]", pic_ctx.pid, pic_ctx.extractPicName(),
+          pic_ctx.failedAttempt);
+
+      pic_ctx.triedAtFrame = dagor_frame_no();
+      retryAgain(pic_ctx);
+    }
+  }
+
+  void clearPendReq()
+  {
+    RenderAnimCharIconBase::clearPendReq();
+
+    ttas_spinlock_lock(pic_ctx_queue_lock);
+    queuedCtxs.clear();
+    ttas_spinlock_unlock(pic_ctx_queue_lock);
+  }
+
+  void processPendingPic()
+  {
+    eastl::optional<PictureManager::PictureRenderContext> picCtx = acquireNextPicture();
+    if (!picCtx.has_value())
+      return;
+
+    const bool success = render(*picCtx);
+
+    finalizePictureRender(*picCtx, success);
+  }
+
 protected:
-  virtual bool renderIconAnimChars(
-    const IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa, const Driver3dPerspective &persp) override;
+  virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &render_ctx,
+    const PictureManager::PictureRenderContext &pic_ctx,
+    const IconSSAA &icon_ssaa,
+    const Driver3dPerspective &persp) override;
   virtual bool needsResolveRenderTarget() override { return true; }
   virtual void ensureDim(int w, int h) override;
   virtual void onBeforeRender(const DataBlock &info) override;
@@ -61,6 +139,13 @@ protected:
   virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) override;
 
   bool fullDeferred = true;
+  dag::Vector<PictureManager::PictureRenderContext> queuedCtxs;
+  void retryAgain(PictureManager::PictureRenderContext &picCtx)
+  {
+    ttas_spinlock_lock(pic_ctx_queue_lock);
+    queuedCtxs.insert(queuedCtxs.cbegin(), eastl::move(picCtx));
+    ttas_spinlock_unlock(pic_ctx_queue_lock);
+  }
 };
 
 
@@ -129,12 +214,14 @@ static void set_view_proj_shaders(TMatrix4 projTm, TMatrix4 globtm, const Point3
   ShaderGlobal::set_float4(world_view_posVarId, world_view_pos.x, world_view_pos.y, world_view_pos.z, 1);
 }
 
-bool RenderAnimCharIcon::renderIconAnimChars(
-  const IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa, const Driver3dPerspective &persp)
+bool RenderAnimCharIcon::renderIconAnimChars(const IconAnimcharRenderingContext &render_ctx,
+  const PictureManager::PictureRenderContext &pic_ctx,
+  const IconSSAA &icon_ssaa,
+  const Driver3dPerspective &persp)
 {
   bool ret = true;
 
-  for (size_t i = 0; i < ctx.iconAnimchars.size();)
+  for (size_t i = 0; i < render_ctx.iconAnimchars.size();)
   {
     int nextI = i + 1;
     ContextId iconCtx = get_or_create_context("dynmodel_immediate");
@@ -147,7 +234,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     d3d::settm(TM_VIEW, TMatrix::IDENT);
     d3d::setpersp(persp, &projTm);
 
-    const IconAnimchar &ia = ctx.iconAnimchars[i];
+    const IconAnimchar &ia = render_ctx.iconAnimchars[i];
 
     const TMatrix4 &globTm = projTm;
     extern void set_inv_globtm_to_shader(const TMatrix4 &viewTm, const TMatrix4 &projTm, bool optional);
@@ -163,10 +250,10 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     {
       SCENE_LAYER_GUARD(dynamicSceneBlockId);
       add_animchar(iconCtx, 0, ShaderMesh::STG_imm_decal, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
-      for (; nextI < ctx.iconAnimchars.size(); ++nextI)
+      for (; nextI < render_ctx.iconAnimchars.size(); ++nextI)
       {
-        if (ctx.iconAnimchars[nextI].shading == IconAnimchar::SAME)
-          add_animchar(iconCtx, 0, ShaderMesh::STG_imm_decal, ctx.iconAnimchars[nextI].animchar->getSceneInstance(),
+        if (render_ctx.iconAnimchars[nextI].shading == IconAnimchar::SAME)
+          add_animchar(iconCtx, 0, ShaderMesh::STG_imm_decal, render_ctx.iconAnimchars[nextI].animchar->getSceneInstance(),
             animchar_additional_data::get_null_data());
         else
           break;
@@ -184,7 +271,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     d3d::setview(0, 0, icon_ssaa.w, icon_ssaa.h, 0, 1);
 
     if (i == 0)
-      d3d::clearview(CLEAR_TARGET, ctx.info->getE3dcolor("backgroundColor", 0), 0, 0);
+      d3d::clearview(CLEAR_TARGET, pic_ctx.props.getE3dcolor("backgroundColor", 0), 0, 0);
     ShaderGlobal::set_float4(var::view_scale_ofs, icon_ssaa.w / float(target->getWidth()), icon_ssaa.h / float(target->getHeight()), 0,
       0);
 
@@ -208,7 +295,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
     if (target->getResolveShading())
       target->getResolveShading()->render();
 
-    ShaderGlobal::set_float(var::background_alpha, ctx.info->getReal("backgroundAlpha", 0.5f));
+    ShaderGlobal::set_float(var::background_alpha, pic_ctx.props.getReal("backgroundAlpha", 0.5f));
     {
       d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::RW, {{finalTarget.getTex2D(), 0, 0}});
       d3d::setview(0, 0, icon_ssaa.w, icon_ssaa.h, 0, 1);
@@ -217,7 +304,7 @@ bool RenderAnimCharIcon::renderIconAnimChars(
       uint32_t stage = ShaderMesh::STG_trans;
       add_animchar(iconCtx, stage, stage, ia.animchar->getSceneInstance(), animchar_additional_data::get_null_data());
       for (int j = i + 1; j < nextI; j++)
-        add_animchar(iconCtx, stage, stage, ctx.iconAnimchars[j].animchar->getSceneInstance(),
+        add_animchar(iconCtx, stage, stage, render_ctx.iconAnimchars[j].animchar->getSceneInstance(),
           animchar_additional_data::get_null_data());
       if (prepare_render_current(iconCtx))
       {
@@ -277,7 +364,52 @@ void RenderAnimCharIcon::setSunLightParams(const Point4 &lightDir, const Point4 
   ShaderGlobal::set_float4(sun_color_0VarId, lightColor);
 }
 
-static RenderAnimCharIconPF<RenderAnimCharIcon> render_animchar_icon_factory;
+class RenderAnimCharIconPF final : public PictureManager::PictureRenderFactory
+{
+public:
+  InitOnDemand<RenderAnimCharIcon, false> ctx;
+
+  virtual void registered() override { ctx.demandInit(); }
+  virtual void unregistered() override
+  {
+    ctx->clearPendReq();
+    ctx.demandDestroy();
+  }
+  virtual void clearPendReq() override
+  {
+    if (!ctx)
+      return;
+    ctx->clearPendReq();
+  }
+
+  virtual bool match(const DataBlock &pic_props, int &out_w, int &out_h) override
+  {
+    return !ctx || ctx->match(pic_props, out_w, out_h);
+  }
+
+  void queueRender(PictureManager::PictureRenderContext &pic_ctx, WinAutoLock *) final
+  {
+    if (!ctx)
+      return;
+
+    ctx->queueCtx(pic_ctx);
+  }
+
+  void processPendingPic()
+  {
+    G_ASSERT(is_main_thread());
+    if (!ctx)
+      return;
+    ctx->processPendingPic();
+  }
+};
+
+static RenderAnimCharIconPF render_animchar_icon_factory;
+
+namespace animchar_icon
+{
+void process_pending_picture() { render_animchar_icon_factory.processPendingPic(); }
+} // namespace animchar_icon
 
 #include <daECS/core/componentType.h>
 ECS_DEF_PULL_VAR(renderAnimCharIcon);

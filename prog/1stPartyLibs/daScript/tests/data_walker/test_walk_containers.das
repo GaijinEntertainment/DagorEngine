@@ -190,10 +190,10 @@ def test_walk_table(t : T?) {
                 adapter |> walk_data(addr(tab), typeinfo rtti_typeinfo(tab))
             }
         }
-        var key_pos = find(walker.log, "beforeKey")
-        var key_after_pos = find(walker.log, "afterKey")
-        var val_pos = find(walker.log, "beforeVal")
-        var val_after_pos = find(walker.log, "afterVal")
+        let key_pos = find(walker.log, "beforeKey")
+        let key_after_pos = find(walker.log, "afterKey")
+        let val_pos = find(walker.log, "beforeVal")
+        let val_after_pos = find(walker.log, "afterVal")
         // Key should come before value
         t |> equal(key_pos < key_after_pos, true)
         t |> equal(key_after_pos < val_pos, true)

@@ -3,7 +3,6 @@ options rtti
 options no_unused_block_arguments = false
 options no_unused_function_arguments = false
 require dastest/testing_boost public
-require strings
 
 // ============================================================
 //  shared types
@@ -444,7 +443,7 @@ def test_variants(t : T?) {
 [test]
 def test_tables(t : T?) {
     t |> run("string-keyed table round-trip") @(t : T?) {
-        var src <- { "a" => 1, "b" => 2, "c" => 3 }
+        let src <- { "a" => 1, "b" => 2, "c" => 3 }
         let json = sprint_json(src, false)
         var dst : table<string; int>
         let ok = sscan_json(json, dst)
@@ -460,7 +459,7 @@ def test_tables(t : T?) {
         t |> equal(length(dst), 0)
     }
     t |> run("int-keyed table round-trip") @(t : T?) {
-        var src <- { 10 => "ten", 20 => "twenty" }
+        let src <- { 10 => "ten", 20 => "twenty" }
         let json = sprint_json(src, false)
         var dst : table<int; string>
         let ok = sscan_json(json, dst)
@@ -648,17 +647,16 @@ def test_table_key_types(t : T?) {
         t |> equal(dst.data?[true] ?? "", "yes")
         t |> equal(dst.data?[false] ?? "", "no")
     }
-    // disabled: int8(-1) table key fails under JIT on macOS ARM64 — needs investigation on macOS hardware
-    // t |> run("int8-keyed table") @(t : T?) {
-    //     var src : WithInt8Table
-    //     src.data <- { int8(1) => "one", int8(-1) => "neg" }
-    //     let json = sprint_json(src, false)
-    //     var dst : WithInt8Table
-    //     let ok = sscan_json(json, dst)
-    //     t |> success(ok)
-    //     t |> equal(dst.data?[int8(1)] ?? "", "one")
-    //     t |> equal(dst.data?[int8(-1)] ?? "", "neg")
-    // }
+    t |> run("int8-keyed table") @(t : T?) {
+        var src : WithInt8Table
+        src.data <- { int8(1) => "one", int8(-1) => "neg" }
+        let json = sprint_json(src, false)
+        var dst : WithInt8Table
+        let ok = sscan_json(json, dst)
+        t |> success(ok)
+        t |> equal(dst.data?[int8(1)] ?? "", "one")
+        t |> equal(dst.data?[int8(-1)] ?? "", "neg")
+    }
     t |> run("uint8-keyed table") @(t : T?) {
         var src : WithUInt8Table
         src.data <- { uint8(0) => "zero", uint8(255) => "max" }

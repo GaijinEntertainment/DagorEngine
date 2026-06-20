@@ -1,0 +1,3 @@
+# Generated reproducer dumps from a fuzzer run (value-mismatch / compile-fail / fold-residual).
+flatten_fuzz_fail_*.das
+flatten_fuzz_residual_*.das

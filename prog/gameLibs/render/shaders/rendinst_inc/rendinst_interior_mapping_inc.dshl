@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "rendinst_opaque_inc.dshl"
 include "static_shadow.dshl"
 include "rtr_use.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 macro INIT_RENDINST_INTERIOR_MAPPING()
   texture tex = material.texture.diffuse;
@@ -143,6 +144,7 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
   }
 
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   if (rendinst_render_pass != rendinst_render_pass_to_shadow)
   {
     WRITE_GBUFFER()
@@ -175,7 +177,7 @@ macro USE_RENDINST_INTERIOR_MAPPING(offset)
 
       float3 localNormal = float3(0, 1, 0);
 #if RENDINST_FULL_VDECL
-      localNormal = normalize(BGR_SWIZZLE(input.normal.xyz)*2.f-1.f);
+      localNormal = normalize(unpack_unit_vector(input.normal.xyz));
 #endif
       float3 localPos = input.pos;
       VB_PERFORM_INSTANCING

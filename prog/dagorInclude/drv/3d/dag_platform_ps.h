@@ -15,8 +15,6 @@ struct SceHmdReprojectionTrackerState;
 
 namespace d3d
 {
-VDECL get_program_vdecl(PROGRAM);
-
 //! returns current state of VSYNC
 bool get_vsync_enabled();
 //! enables or disables strong VSYNC (flips only on VBLANK); returns true on success

@@ -33,7 +33,7 @@ let Element = class {
 let ScrollHandler = class {
   function scrollToX(_val) {}
   function scrollToY(_val) {}
-  function scrollToChildren(_val) {}
+  function scrollToChildren(_finder, _depth, _x, _y, _align_x=0, _align_y=0) {}
   elem = null
   function subscribe(func){
     assert(type(func)=="function")
@@ -231,6 +231,7 @@ global const ALIGN_CENTER ="ALIGN_CENTER"
 global const ALIGN_RIGHT="ALIGN_RIGHT"
 global const ALIGN_TOP="ALIGN_TOP"
 global const ALIGN_BOTTOM="ALIGN_BOTTOM"
+global const PLACE_DEFAULT = "PLACE_DEFAULT"
 
 global const DIR_UP = "DIR_UP"
 global const DIR_DOWN = "DIR_DOWN"

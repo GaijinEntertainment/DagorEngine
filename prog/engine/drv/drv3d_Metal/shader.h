@@ -89,8 +89,8 @@ public:
   Shader *amplification_shader = nullptr;
 
   // used to build dirty masks
-  int tex_slot_remap[64];
-  int buf_slot_remap[64];
+  int tex_slot_remap[BUFFER_POINT_COUNT];
+  int buf_slot_remap[BUFFER_POINT_COUNT];
 
   Shader();
   bool compileShader(const uint8_t *meta, const char *source, uint64_t hash_override, bool async);

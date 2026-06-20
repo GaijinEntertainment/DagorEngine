@@ -1,4 +1,4 @@
-expect 20000:1
+expect 30151
 
 options gen2
 options persistent_heap = true

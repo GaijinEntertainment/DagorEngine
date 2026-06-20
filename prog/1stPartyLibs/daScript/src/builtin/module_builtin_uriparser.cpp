@@ -112,9 +112,14 @@ char * unix_file_name_to_uri ( char * uristr, Context * context, LineInfoArg * a
 char * windows_file_name_to_uri ( char * uristr, Context * context, LineInfoArg * at ) {
     if ( !uristr ) return nullptr;
     int len = stringLength(*context,uristr);
+    // Normalize '/' -> '\\' so each path segment is percent-escaped; otherwise a
+    // '/'-only path yields an invalid URI (see windowsFileNameSlashesToBackslashes
+    // in uric.h). No allocation when the path has no '/'.
+    string slashStorage;
+    const char * winName = windowsFileNameSlashesToBackslashes(uristr, slashStorage);
     auto buf = new char[8 + 3 * len + 1];
     char * result = nullptr;
-    if ( uriWindowsFilenameToUriStringA(uristr, buf) == URI_SUCCESS ) {
+    if ( uriWindowsFilenameToUriStringA(winName, buf) == URI_SUCCESS ) {
         result = context->allocateString(buf, uint32_t(strlen(buf)), at);
     }
     delete [] buf;

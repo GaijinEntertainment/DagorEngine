@@ -116,7 +116,7 @@ static void set_voxelization_transform(int max_res, IPoint3 res, const BBox3 &bo
 
 void WorldRenderer::processGIInvalidationRequests()
 {
-  if (enviProbeNeedsReload)
+  if (enviProbeState != EnviProbeState::Ready)
     return;
 
   if (pendingFullGiInvalidationRequest.has_value())

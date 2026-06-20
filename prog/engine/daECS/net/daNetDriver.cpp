@@ -169,9 +169,9 @@ INetDriver *create_net_driver_startup()
   return drv->getPeerIface().Startup(/*max_conn*/ 1, DANET_SLEEP_TIME_MS) ? drv.release() : NULL;
 }
 
-Connection *create_net_connection(INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query)
+Connection *create_net_connection(ecs::EntityManager &mgr, INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query)
 {
-  return new DaNetConnection(*g_entity_mgr, drv, id, eastl::move(scope_query));
+  return new DaNetConnection(mgr, drv, id, eastl::move(scope_query));
 }
 
 }; // namespace net

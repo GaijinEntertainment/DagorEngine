@@ -1,8 +1,6 @@
 options gen2
 
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module quote shared private
@@ -25,10 +23,10 @@ def find_unique_function_ptr(mod : Module?; name : string; canfail : bool = fals
 /*
  * We need this wrappers for initialization of Handle types
  */
-struct CaptureEntryInitData {
+struct public CaptureEntryInitData {
     //! Initialization data for a captured variable entry.
-    name : string
-    mode : CaptureMode
+    name : string       //! Variable name being captured.
+    mode : CaptureMode  //! Capture mode (copy, reference, move, or clone).
 }
 
 def public clone(var a : dasvector`CaptureEntry; b : array<CaptureEntryInitData>) {
@@ -79,10 +77,10 @@ def public clone(var args : rtti::AnnotationList; var nargs : array<rtti::Annota
 }
 
 
-struct EnumEntryInitData {
+struct public EnumEntryInitData {
     //! Initialization data for a quoted enum entry.
-    name : string
-    cppName : string
+    name : string     //! Enum entry name.
+    cppName : string  //! C++-side name for the entry (used when generating bindings).
     // at : LineInfo
     // value : ExpressionPtr
 }
@@ -97,14 +95,14 @@ def public clone(var a : dasvector`EnumEntry; var b : array<EnumEntryInitData>) 
     }
 }
 
-struct AnnotationArgumentInitData {
+struct public AnnotationArgumentInitData {
     //! Initialization data for a quoted annotation argument.
-    basicType : Type
-    name : string
-    sValue : string
-    bValue : bool
-    iValue : int
-    fValue : float
+    basicType : Type  //! Argument type tag (string / bool / int / float / etc.).
+    name : string     //! Argument name as written in the annotation.
+    sValue : string   //! String value (used when basicType is tString).
+    bValue : bool     //! Bool value (used when basicType is tBool).
+    iValue : int      //! Int value (used when basicType is tInt).
+    fValue : float    //! Float value (used when basicType is tFloat).
     // @safe_when_uninitialized at: LineInfo // todo: add if needed
 }
 
@@ -208,7 +206,7 @@ def private to_array_move_expr(var mkArr : ExprMakeArray?, at : LineInfo) {
 }
 
 def private to_arr_move_args(var args : array<Expression?>; var dst_tp : TypeDeclPtr; at : LineInfo) {
-    assert(args |> length > 0);
+    assert(!empty(args));
     unsafe {
         return to_array_move_expr(new ExprMakeArray(values := args,
                                                        gen2 = true,
@@ -220,14 +218,12 @@ def private to_arr_move_args(var args : array<Expression?>; var dst_tp : TypeDec
 def private convert_vec_expr(mod : Module?; field_values : uint8 const?; xtype : TypeDeclPtr, at : LineInfo) : Expression? {
     var src_tp = get_handled_type_index_type_declaration(xtype.annotation,
                              default<Expression?>, default<Expression?>);
-    src_tp.flags &= ~TypeDeclFlags.ref; // vec type has ref, we don't need it
+    src_tp.flags.ref = false; // vec type has ref, we don't need it
     var dst_tp = get_dst_type(clone(src_tp));
     var args : array<Expression?>;
 
-    if (get_vector_length(field_values, src_tp) == 0) {
-        return new ExprMakeStruct(at = at, makeType = new TypeDecl(baseType = Type.tArray, firstType = clone_type(dst_tp)),
+    if (get_vector_length(field_values, src_tp) == 0) return new ExprMakeStruct(at = at, makeType = new TypeDecl(baseType = Type.tArray, firstType = clone_type(dst_tp)),
                                      makeStructFlags = ExprMakeStructFlags.canShadowBlock);
-    }
     for (idx in range(get_vector_length(field_values, src_tp))) {
         {
             var arg_expr = convert_quote_expr(mod, unsafe(reinterpret<uint8?>(get_vector_ptr_at_index(field_values, src_tp, idx))), src_tp, at);
@@ -273,9 +269,7 @@ def private is_quote_field_allowed(f_name, class_name, data) {
     for ((cl, fld) in blacklist) {
         if (fld == f_name && (cl == "*" || class_name == cl ||
                              (class_name == "ast_core::Expression" &&
-                              unsafe(reinterpret<Expression>(data)).__rtti == cl))) {
-            return false;
-        }
+                              unsafe(reinterpret<Expression>(data)).__rtti == cl))) return false;
     }
     return true;
 
@@ -288,13 +282,11 @@ def private create_field_expr(name; var res_field; loc; flags) {
 def private convert_quote_struct_field(mod : Module?, data : uint8 const?,
                                        tstr : string, name : string,
                                        offset : uint; xtype : TypeDeclPtr; parent_loc : LineInfo) : MakeFieldDecl? {
-    if (!is_quote_field_allowed(name, tstr, data)) {
-        return null;
-    }
+    if (!is_quote_field_allowed(name, tstr, data)) return null;
 
     var fdata = unsafe(data + int(offset));
     var res_field = convert_quote_expr(mod, fdata, xtype, parent_loc);
-    if (res_field == null) { return null; }
+    if (res_field == null) return null;
 
     var flags : MakeFieldDeclFlags;
     if (!xtype.canCopy) {
@@ -314,7 +306,7 @@ def private convert_quote_structure(mod : Module?; data : uint8 const?;
                                     tstr : string; info : TypeDeclPtr; at : LineInfo) : Expression? {
     assume ann = info.annotation;
     var mkS1 = new MakeStruct(uninitialized);
-    for_each_field(*unsafe(reinterpret<BasicStructureAnnotation?>(ann))) $(name, cppName, xtype, offset) {
+    for_each_field(*unsafe(reinterpret<BasicStructureAnnotation?>(ann))) $(name, _cppName, xtype, offset) {
         var mkFld = convert_quote_struct_field(mod, data, tstr, name, offset, xtype, at);
         if (mkFld != null) {
             emplace(*mkS1, mkFld);
@@ -323,18 +315,14 @@ def private convert_quote_structure(mod : Module?; data : uint8 const?;
     var mkStr = new ExprMakeStruct(makeType = get_dst_type(clone_type(info)), at = at)
     emplace(mkStr.structs, mkS1)
     mkStr.makeStructFlags |= ExprMakeStructFlags.useInitializer | ExprMakeStructFlags.canShadowBlock;
-    if (describe(info) == "rtti_core::FileInfo") {
-        return new ExprCall(at = at, name := "clone_file_info",
+    if (describe(info) == "rtti_core::FileInfo") return new ExprCall(at = at, name := "clone_file_info",
                                arguments := array<Expression?>(mkStr))
-    }
     return mkStr;
 }
 
 def private convert_pointer_expr(mod; data; info; at) : Expression? {
     assume pdata = *unsafe(reinterpret<uint8 const ??> data);
-    if (pdata == null) {
-        return new ExprConstPtr(at = at);
-    }
+    if (pdata == null) return new ExprConstPtr(at = at);
     assume first_tstr = describe(info.firstType);
     var final_type = clone_type(info.firstType);
     if (first_tstr == "ast_core::Expression") {
@@ -346,23 +334,15 @@ def private convert_pointer_expr(mod; data; info; at) : Expression? {
     // This types are created on cpp side by managed functions.
     // We already got pointer, no need to ascend.
     for (t in managed_types) {
-        if (t == first_tstr) {
-            return subexpr
-        }
+        if (t == first_tstr) return subexpr
     }
     return new ExprAscend(subexpr = subexpr, at = subexpr != null ? subexpr.at : at);
 }
 
 def private convert_quote_expr(mod : Module?; var data : uint8 const?; info : TypeDeclPtr; at : LineInfo) : Expression? {
-    if (data == null) {
-        return null;
-    }
-    if (info.baseType != Type.tHandle && info.baseType != Type.tPointer) {
-        return walk_and_convert(data, info, at);
-    }
-    if (isYetAnotherVectorTemplate(info)) {
-        return convert_vec_expr(mod, data, info, at);
-    }
+    if (data == null) return null;
+    if (info.baseType != Type.tHandle && info.baseType != Type.tPointer) return walk_and_convert(data, info, at);
+    if (isYetAnotherVectorTemplate(info)) return convert_vec_expr(mod, data, info, at);
     let tstr = describe(info);
 
     // First check managed types
@@ -378,9 +358,7 @@ def private convert_quote_expr(mod : Module?; var data : uint8 const?; info : Ty
     } elif (tstr == "ast_core::Structure") {
          assume pdata = unsafe(reinterpret<Structure?>(data));
          // disable support for Structure::Module. If we compile without shared_modules it's impossible
-         if (pdata._module.name == "ast_boost") { // How to check COP.shared_modules = false?
-            return null;
-         }
+         if (pdata._module.name == "ast_boost") return null  // disabled when shared_modules=false (no direct check)
          // It's unnecessary, however there is bug in aot with ternary operator
          var tmp = get_find_in_module_expr("module_find_structure", pdata._module.name, pdata.name, at);
          return tmp;
@@ -390,13 +368,9 @@ def private convert_quote_expr(mod : Module?; var data : uint8 const?; info : Ty
     } elif (tstr == "rtti_core::Module") {
          assume cur_mod = unsafe(reinterpret<Module?>(data));
          return find_module_expr(cur_mod.name, at);
-    } elif (tstr == "$::das_string") {
-        return create_string_expr(*unsafe(reinterpret<das_string?>(data)));
-    }
+    } elif (tstr == "$::das_string") return create_string_expr(*unsafe(reinterpret<das_string?>(data)));
     // Convert pointers
-    if (info.baseType == Type.tPointer) {
-        return convert_pointer_expr(mod, data, info, at);
-    }
+    if (info.baseType == Type.tPointer) return convert_pointer_expr(mod, data, info, at);
     // Convert structures
     if (info.annotation != null && info.annotation.isBasicStructureAnnotation) {
         var field_loc = at;
@@ -415,7 +389,7 @@ def convert_quote_to_expression(var arg_expr : Expression?; at : LineInfo) : Exp
     let mod = get_module("ast_core");
     assume annotation = mod |> module_find_type_annotation(arg_expr.__rtti);
     var tp = new TypeDecl(baseType = Type.tHandle, annotation = annotation);
-    tp.flags |= TypeDeclFlags.smartPtr;
+    tp.flags.smartPtr = true;
     return new ExprAscend(subexpr = convert_quote_expr(mod, unsafe(reinterpret<uint8 const?>(arg_expr)), tp, at));
 }
 
@@ -433,9 +407,7 @@ class QuotePass : AstPassMacro {
     //! Pass macro that processes quoted AST expressions.
     def override apply(prog : ProgramPtr; mod : Module?) : bool {
         // Unwrapping ExprQuote is slow and inefficient, do it only if necessary.
-        if (!compiling_program().policies.aot_macros) {
-            return false // nothing to do
-        }
+        if (!compiling_program().policies.aot_macros) return false // nothing to do
         var astVisitor = new QuoteConverter()
         make_visitor(*astVisitor) $(astVisitorAdapter) {
             visit(prog, astVisitorAdapter)

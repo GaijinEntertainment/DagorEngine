@@ -53,7 +53,8 @@ static shc::RefinedBlockRegister loadRefinedBlockRegister(shc::CompilationContex
     if (e.slot[s] < 0 || e.space < 0)
       continue;
 
-    context.rbAllocator().reserveSlot(static_cast<ShaderStage>(s), static_cast<HlslRegisterSpace>(e.space), e.slot[s]);
+    context.rbAllocator().reserveSlot(static_cast<ShaderStage>(s), static_cast<HlslRegisterSpace>(e.space), HlslSlotSemantic::RESERVED,
+      e.slot[s]);
     regInfo.slot[s] = e.slot[s];
   }
   regInfo.space = e.space >= 0 ? static_cast<HlslRegisterSpace>(e.space) : HlslRegisterSpace::HLSL_RSPACE_INVALID;
@@ -80,23 +81,26 @@ bool read_layout(const char *filename, const int cache_sign, const CallbackT &ca
     return false;
   }
 
-  callback(layout);
-
-  return true;
+  return callback(layout);
 }
 
 bool load_local_rb_layout(const char *filename, shc::CompilationContext &context)
 {
   const bool result = read_layout<ShadersBindumpHeader>(filename, SHADER_CACHE_SIGN, [&](const auto &header) {
+    if (
+      header.refined_block_layout.cache_sign != LOCAL_RB_LAYOUT_SIGN || header.refined_block_layout.cache_version != SHADER_CACHE_VER)
+      return false;
+
     for (const auto &e : header.refined_block_layout.vars)
     {
       int rbVarId = context.rbVarNameMap().addVarId(e.varName.c_str());
       context.rbVars()[rbVarId] = loadRefinedBlockRegister(context, e);
     }
+    return true;
   });
 
   if (DAGOR_UNLIKELY(!result))
-    sh_debug(SHLOG_ERROR, "Failed to load local refined block layout from '%s'", filename);
+    sh_debug(SHLOG_INFO, "Failed to load local refined block layout from '%s'", filename);
 
   return result;
 }
@@ -125,7 +129,7 @@ bool save_global_rb_layout(const char *filename, const shc::CompilationContext &
   bindump::FileWriter writer(filename);
   if (!writer)
   {
-    sh_debug(SHLOG_ERROR, "save_global_rb_layout: cannot open '%s' for writing", filename);
+    sh_debug(SHLOG_FATAL, "save_global_rb_layout: cannot open '%s' for writing", filename);
     return false;
   }
   bindump::streamWrite(layout, writer);
@@ -140,10 +144,11 @@ bool load_global_rb_layout(const char *filename, shc::CompilationContext &contex
       int rbVarId = context.rbVarNameMap().addVarId(e.varName.c_str());
       context.rbVars()[rbVarId] = loadRefinedBlockRegister(context, e);
     }
+    return true;
   });
 
   if (DAGOR_UNLIKELY(!result))
-    sh_debug(SHLOG_ERROR, "Failed to load global refined block layout from '%s'", filename);
+    sh_debug(SHLOG_FATAL, "Failed to load global refined block layout from '%s'", filename);
 
   return result;
 }
@@ -333,7 +338,8 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   {
     shc::RefinedBlockLayout localLayout = shc::RefinedBlockLayout::deserializeFromBindump(out_ctx.compCtx().rbVarNameMap(),
       static_cast<const Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
-      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode));
+      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode),
+      static_cast<const Tab<char> &>(shaders.refinedBlockComputedCppExprs));
     out_ctx.refinedBlockLayout().mergeFrom(localLayout);
   }
 

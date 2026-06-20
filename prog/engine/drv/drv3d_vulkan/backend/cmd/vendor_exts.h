@@ -53,6 +53,18 @@ struct CmdExecuteStreamlineDLSSG
   int viewIndex;
 };
 
+struct CmdSetDlssGEnabled
+{
+  int framesToGenerate;
+  int viewIndex;
+};
+
+struct CmdSetDlssOptions
+{
+  nv::DlssOptions options;
+  int viewIndex;
+};
+
 struct CmdExecuteXESS
 {
   Image *inColor;

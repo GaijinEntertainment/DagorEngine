@@ -2,7 +2,7 @@
 // verifies compiler rejects deref on non-pointers, void pointers,
 // and ?? with type mismatches
 options gen2
-expect 30501:5    // cant_dereference
+expect 30215, 30921:4    // cant_dereference
 
 struct Bar {
     c : int

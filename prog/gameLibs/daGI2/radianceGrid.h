@@ -36,6 +36,11 @@ struct RadianceGrid
   bool isDetailedIrradiance() const { return irradianceType == IrradianceType::DETAILED; }
   void updateTemporal();
 
+  // The irradiance spatial filter round-trips a whole clip through a scratch buffer shared
+  // across daGI. Report the size it needs (in dwords) and receive the buffer to use.
+  uint32_t getRequiredSpatialFilterBufferSize() const;
+  void setSpatialFilterScratch(const ManagedBuf &buf);
+
 protected:
   void initClipmap(uint32_t w, uint32_t h, uint32_t clips, uint32_t oct_res, float probeSize0);
   void initClipmapIrradiance(uint32_t w, uint32_t h, uint32_t clips, float probeSize0);
@@ -57,12 +62,15 @@ protected:
 
   UniqueTexWithShaderVar dagi_irradiance_grid_sph0, dagi_irradiance_grid_sph1;
   UniqueTexWithShaderVar dagi_irradiance_grid_probes_age; // only if detailed irradiance
+  // shared daGI scratch for the spatial filter gather/apply, owned by DaGI and handed over
+  // via setSpatialFilterScratch; sized to hold one whole clip so a region filters in one batch
+  Sbuffer *dagi_irrad_grid_spatial_scratch = nullptr;
   eastl::unique_ptr<ComputeShaderElement> dagi_radiance_grid_calc_temporal_irradiance_cs,
     dagi_radiance_grid_toroidal_movement_irradiance_cs, dagi_radiance_grid_invalidate_cs;
 
   eastl::unique_ptr<ComputeShaderElement> dagi_irradiance_grid_toroidal_movement_interpolate_cs,
     dagi_irradiance_grid_toroidal_movement_trace_cs, dagi_irradiance_grid_select_temporal_cs, dagi_irradiance_grid_calc_temporal_cs,
-    dagi_irradiance_grid_spatial_filter_cs, dagi_irradiance_grid_invalidate_cs;
+    dagi_irradiance_grid_spatial_filter_gather_cs, dagi_irradiance_grid_spatial_filter_apply_cs, dagi_irradiance_grid_invalidate_cs;
 
   bool validHistory = false;
   enum class IrradianceType

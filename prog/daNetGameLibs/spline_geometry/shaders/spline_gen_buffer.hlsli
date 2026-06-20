@@ -59,6 +59,9 @@ struct SplineGenInstance
 
   float cylinderStartOffset;
 
+  float3 mediumTint;
+  float isShell;
+
   float2 additionalThicknessBounds;
   float surfaceOpaqueness;
   uint padding0;

@@ -40,7 +40,10 @@ unsigned ToolbarToggleButtonPropertyControl::getWidth() const
   return ImguiHelper::getImageButtonSize(ImVec2(size, size)).x;
 }
 
-void ToolbarToggleButtonPropertyControl::toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags)
+void ToolbarToggleButtonPropertyControl::sendOnClickNotification() { onWcClick(nullptr); }
+
+void ToolbarToggleButtonPropertyControl::toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags, ImGuiID *button_id,
+  bool *button_active, ImRect *button_rect)
 {
   ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
@@ -54,14 +57,20 @@ void ToolbarToggleButtonPropertyControl::toolbarToggleButtonUpdateImgui(ImDrawFl
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
   ImGui::PushStyleColor(ImGuiCol_Border, getOverriddenColor(ColorOverride::TOGGLE_BUTTON_CHECKED_BORDER));
 
-  // "ib" stands for ImageButton. It could be anything.
   const int size = ImGui::GetTextLineHeight();
   const IconId iconId = iconWithNameAndSize.getIconId(size);
   const ImTextureID icon = image_helper.getImTextureIdFromIconId(iconId);
-  const bool clicked = ImguiHelper::imageButtonWithRoundingOptions(ImGui::GetCurrentWindow()->GetID("ib"), icon, ImVec2(size, size),
-    ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1),
-    ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight, frame_draw_flags);
+  const ImGuiID buttonId = ImGui::GetCurrentWindow()->GetID("ib"); // "ib" stands for ImageButton. It could be anything.
+  const bool clicked = ImguiHelper::imageButtonWithRoundingOptions(buttonId, icon, ImVec2(size, size), ImVec2(0, 0), ImVec2(1, 1),
+    ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1), ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight, frame_draw_flags);
   const bool rightClicked = clicked && ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right, ImGui::GetItemID());
+
+  if (button_id)
+    *button_id = buttonId;
+  if (button_active)
+    *button_active = ImGui::IsItemActive();
+  if (button_rect)
+    *button_rect = ImGui::GetCurrentContext()->LastItemData.Rect;
 
   ImGui::PopStyleColor(2);
 
@@ -81,7 +90,7 @@ void ToolbarToggleButtonPropertyControl::toolbarToggleButtonUpdateImgui(ImDrawFl
     else
     {
       controlValue = !controlValue;
-      onWcClick(nullptr);
+      sendOnClickNotification();
     }
   }
 }

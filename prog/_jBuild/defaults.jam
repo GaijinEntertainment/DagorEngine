@@ -465,7 +465,7 @@ if ! $(__DEFAULTS_INCLUDED) {
       out = $(out)~lto ;
     }
     if $(CheckedContainers) = yes {
-      local defines = -D_DEBUG_TAB_ ;
+      local defines = -D_DEBUG_TAB_ -DEASTL_DEBUG -DEASTL_DEBUGPARAMS_LEVEL=0 -DEASTL_NAME_ENABLED=0 ;
       for d in $(defines) { if ! $(d) in $(GlobalCPPopt) { GlobalCPPopt += $(d) ; } }
       out = $(out)~c ;
     }

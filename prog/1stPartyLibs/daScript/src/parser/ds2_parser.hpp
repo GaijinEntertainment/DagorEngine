@@ -248,48 +248,50 @@ extern int das2_yydebug;
     ROTLEQU = 391,                 /* "<<<="  */
     ROTREQU = 392,                 /* ">>>="  */
     MAPTO = 393,                   /* "=>"  */
-    COLCOL = 394,                  /* "::"  */
-    ANDAND = 395,                  /* "&&"  */
-    OROR = 396,                    /* "||"  */
-    XORXOR = 397,                  /* "^^"  */
-    ANDANDEQU = 398,               /* "&&="  */
-    OROREQU = 399,                 /* "||="  */
-    XORXOREQU = 400,               /* "^^="  */
-    DOTDOT = 401,                  /* ".."  */
-    MTAG_E = 402,                  /* "$$"  */
-    MTAG_I = 403,                  /* "$i"  */
-    MTAG_V = 404,                  /* "$v"  */
-    MTAG_B = 405,                  /* "$b"  */
-    MTAG_A = 406,                  /* "$a"  */
-    MTAG_T = 407,                  /* "$t"  */
-    MTAG_C = 408,                  /* "$c"  */
-    MTAG_F = 409,                  /* "$f"  */
-    MTAG_DOTDOTDOT = 410,          /* "..."  */
-    INTEGER = 411,                 /* "integer constant"  */
-    LONG_INTEGER = 412,            /* "long integer constant"  */
-    UNSIGNED_INTEGER = 413,        /* "unsigned integer constant"  */
-    UNSIGNED_LONG_INTEGER = 414,   /* "unsigned long integer constant"  */
-    UNSIGNED_INT8 = 415,           /* "unsigned int8 constant"  */
-    DAS_FLOAT = 416,               /* "floating point constant"  */
-    DOUBLE = 417,                  /* "double constant"  */
-    NAME = 418,                    /* "name"  */
-    DAS_EMIT_COMMA = 419,          /* "new line, comma"  */
-    DAS_EMIT_SEMICOLON = 420,      /* "new line, semicolon"  */
-    BEGIN_STRING = 421,            /* "start of the string"  */
-    STRING_CHARACTER = 422,        /* STRING_CHARACTER  */
-    STRING_CHARACTER_ESC = 423,    /* STRING_CHARACTER_ESC  */
-    END_STRING = 424,              /* "end of the string"  */
-    BEGIN_STRING_EXPR = 425,       /* "{"  */
-    END_STRING_EXPR = 426,         /* "}"  */
-    END_OF_READ = 427,             /* "end of failed eader macro"  */
-    UNARY_MINUS = 428,             /* UNARY_MINUS  */
-    UNARY_PLUS = 429,              /* UNARY_PLUS  */
-    PRE_INC = 430,                 /* PRE_INC  */
-    PRE_DEC = 431,                 /* PRE_DEC  */
-    LLPIPE = 432,                  /* LLPIPE  */
-    POST_INC = 433,                /* POST_INC  */
-    POST_DEC = 434,                /* POST_DEC  */
-    DEREF = 435                    /* DEREF  */
+    DOUBLE_AT = 394,               /* "@@"  */
+    AT_FIELD = 395,                /* "@field"  */
+    COLCOL = 396,                  /* "::"  */
+    ANDAND = 397,                  /* "&&"  */
+    OROR = 398,                    /* "||"  */
+    XORXOR = 399,                  /* "^^"  */
+    ANDANDEQU = 400,               /* "&&="  */
+    OROREQU = 401,                 /* "||="  */
+    XORXOREQU = 402,               /* "^^="  */
+    DOTDOT = 403,                  /* ".."  */
+    MTAG_E = 404,                  /* "$$"  */
+    MTAG_I = 405,                  /* "$i"  */
+    MTAG_V = 406,                  /* "$v"  */
+    MTAG_B = 407,                  /* "$b"  */
+    MTAG_A = 408,                  /* "$a"  */
+    MTAG_T = 409,                  /* "$t"  */
+    MTAG_C = 410,                  /* "$c"  */
+    MTAG_F = 411,                  /* "$f"  */
+    MTAG_DOTDOTDOT = 412,          /* "..."  */
+    INTEGER = 413,                 /* "integer constant"  */
+    LONG_INTEGER = 414,            /* "long integer constant"  */
+    UNSIGNED_INTEGER = 415,        /* "unsigned integer constant"  */
+    UNSIGNED_LONG_INTEGER = 416,   /* "unsigned long integer constant"  */
+    UNSIGNED_INT8 = 417,           /* "unsigned int8 constant"  */
+    DAS_FLOAT = 418,               /* "floating point constant"  */
+    DOUBLE = 419,                  /* "double constant"  */
+    NAME = 420,                    /* "name"  */
+    DAS_EMIT_COMMA = 421,          /* "new line, comma"  */
+    DAS_EMIT_SEMICOLON = 422,      /* "new line, semicolon"  */
+    BEGIN_STRING = 423,            /* "start of the string"  */
+    STRING_CHARACTER = 424,        /* STRING_CHARACTER  */
+    STRING_CHARACTER_ESC = 425,    /* STRING_CHARACTER_ESC  */
+    END_STRING = 426,              /* "end of the string"  */
+    BEGIN_STRING_EXPR = 427,       /* "{"  */
+    END_STRING_EXPR = 428,         /* "}"  */
+    END_OF_READ = 429,             /* "end of failed eader macro"  */
+    UNARY_MINUS = 430,             /* UNARY_MINUS  */
+    UNARY_PLUS = 431,              /* UNARY_PLUS  */
+    PRE_INC = 432,                 /* PRE_INC  */
+    PRE_DEC = 433,                 /* PRE_DEC  */
+    LLPIPE = 434,                  /* LLPIPE  */
+    POST_INC = 435,                /* POST_INC  */
+    POST_DEC = 436,                /* POST_DEC  */
+    DEREF = 437                    /* DEREF  */
   };
   typedef enum das2_yytokentype das2_yytoken_kind_t;
 #endif

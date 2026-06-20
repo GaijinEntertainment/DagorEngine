@@ -142,6 +142,7 @@ const char *shcod_tokname(int t)
     case SHCOD_RWBUF_CS: return "RWBUF_CS";
     case SHCOD_RWBUF_PS: return "RWBUF_PS";
     case SHCOD_RWBUF_VS: return "RWBUF_VS";
+    case SHCOD_REG_BINDLESS_SAMPLER: return "REG_BINDLESS_SAMPLER";
     case SHCOD_SET_CONST_PACKED: return "SET_CONST_PACKED";
   }
   logerr("unknown <%d>", t);
@@ -331,6 +332,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
       case SHCOD_RWTEX_CS:
       case SHCOD_RWTEX_PS:
       case SHCOD_RWTEX_VS:
+      case SHCOD_REG_BINDLESS_SAMPLER:
       case SHCOD_REG_BINDLESS:
       {
         int ind = shaderopcode::getOp2p1(cod[i]);

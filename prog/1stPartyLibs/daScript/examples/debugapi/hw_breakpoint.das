@@ -67,10 +67,7 @@ def demo_watch_int() {
     print("  initial target = {target}\n")
 
     // Set a hardware breakpoint on 4 bytes (sizeof int) at &target
-    var bp = 0
-    unsafe {
-        bp = set_hw_breakpoint(this_context(), addr(target), 4, true)
-    }
+    let bp = unsafe(set_hw_breakpoint(this_context(), unsafe(addr(target)), 4, true))
     print("  breakpoint installed (handle={bp})\n")
 
     // Each write to `target` triggers the breakpoint.
@@ -110,10 +107,7 @@ def demo_watch_struct_field() {
     var pos = Position(x = 0.0, y = 0.0)
 
     // Watch only the `y` field — 4 bytes at offset of `y`
-    var bp = 0
-    unsafe {
-        bp = set_hw_breakpoint(this_context(), addr(pos.y), 4, true)
-    }
+    let bp = unsafe(set_hw_breakpoint(this_context(), unsafe(addr(pos.y)), 4, true))
     print("  watching pos.y\n")
 
     // Writing to pos.x does NOT trigger the breakpoint
@@ -140,10 +134,7 @@ def demo_watch_struct_field() {
 // automatically clears it when the block exits.
 
 def watch_variable(var ctx : Context; data : void?; size : int; blk : block) {
-    var bp = 0
-    unsafe {
-        bp = set_hw_breakpoint(ctx, data, size, true)
-    }
+    let bp = unsafe(set_hw_breakpoint(ctx, data, size, true))
     invoke(blk)
     unsafe {
         clear_hw_breakpoint(bp)

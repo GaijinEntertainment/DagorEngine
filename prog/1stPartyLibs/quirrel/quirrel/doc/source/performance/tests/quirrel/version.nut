@@ -1,0 +1,1 @@
+println(require("debug").getbuildinfo().version)

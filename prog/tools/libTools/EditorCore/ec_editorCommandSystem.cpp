@@ -7,6 +7,7 @@
 #include "ec_mainMenu.h"
 #include "ec_singleHotkeyEditor.h"
 #include "ec_toolbarEditorCommandButton.h"
+#include "ec_toolbarEditorCommandPopupButtonGroup.h"
 #include "ec_toolbarEditorCommandRadioButton.h"
 #include "ec_toolbarEditorCommandToggleButton.h"
 
@@ -16,11 +17,26 @@ bool ec_log_missing_editor_commands = false;
 
 void EditorCommandSystem::addCommand(const char *id) { ec_editor_commands.addCommand(id); }
 
-void EditorCommandSystem::addCommand(const char *id, ImGuiKeyChord key_chord) { ec_editor_commands.addCommand(id, key_chord); }
+void EditorCommandSystem::addCommand(const char *id, ImGuiKeyChord key_chord)
+{
+  ec_editor_commands.addCommand(id, nullptr, key_chord);
+}
 
 void EditorCommandSystem::addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2)
 {
-  ec_editor_commands.addCommand(id, key_chord1, key_chord2);
+  ec_editor_commands.addCommand(id, nullptr, key_chord1, key_chord2);
+}
+
+void EditorCommandSystem::addCommand(const char *id, const char *display_name) { ec_editor_commands.addCommand(id, display_name); }
+
+void EditorCommandSystem::addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord)
+{
+  ec_editor_commands.addCommand(id, display_name, key_chord);
+}
+
+void EditorCommandSystem::addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2)
+{
+  ec_editor_commands.addCommand(id, display_name, key_chord1, key_chord2);
 }
 
 const char *EditorCommandSystem::getCommandKeyChordsAsText(const char *id)
@@ -79,6 +95,14 @@ void EditorCommandSystem::createToolbarToggleButton(PropPanel::ContainerProperty
     new ToolbarEditorCommandToggleButton(id, editor_command_id, parent.getEventHandler(), &parent);
   button->setTooltip(tooltip);
   parent.addControl(button);
+}
+
+PropPanel::ContainerPropertyControl *EditorCommandSystem::createToolbarPopupButtonGroup(PropPanel::ContainerPropertyControl &parent,
+  int id)
+{
+  ToolbarEditorCommandPopupButtonGroup *group = new ToolbarEditorCommandPopupButtonGroup(id, parent.getEventHandler(), &parent);
+  parent.addControl(group);
+  return group;
 }
 
 void EditorCommandSystem::updateToolbarButtons(PropPanel::ContainerPropertyControl &container)

@@ -1212,7 +1212,8 @@ bool link_scripted_shaders(const uint8_t *mapped_data, int data_size, const char
   {
     shc::RefinedBlockLayout localLayout = shc::RefinedBlockLayout::deserializeFromBindump(ctx.compCtx().rbVarNameMap(),
       static_cast<const Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
-      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode));
+      static_cast<const Tab<int> &>(shaders.refinedBlockComputedStcode),
+      static_cast<const Tab<char> &>(shaders.refinedBlockComputedCppExprs));
     localLayout.link(global_var_link_table);
     ctx.refinedBlockLayout().mergeFrom(localLayout);
   }
@@ -1426,6 +1427,11 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
   for (int i = 0; i < files.size(); ++i)
     compressed.dependency_files.emplace_back(files[i].c_str());
 
+  // Single compilation mode may produce incompatible refined block
+  const bool invalidCache = shc::config().singleCompilationShName && !shc::config().workerMode;
+  compressed.refined_block_layout.cache_sign = invalidCache ? -1 : LOCAL_RB_LAYOUT_SIGN;
+  compressed.refined_block_layout.cache_version = invalidCache ? -1 : SHADER_CACHE_VER;
+
   if (!ctx.refinedBlockLayout().empty())
   {
     ctx.refinedBlockLayout().forEachVar([&](int, const shc::RefinedBlockVar &var) {
@@ -1443,7 +1449,7 @@ void save_scripted_shaders(const char *filename, dag::ConstSpan<SimpleString> fi
 
   if (!ctx.refinedBlockLayout().empty())
     ctx.refinedBlockLayout().serializeToBindump(static_cast<Tab<shc::SerializedRefinedBlockVar> &>(shaders.refinedBlockVars),
-      static_cast<Tab<int> &>(shaders.refinedBlockComputedStcode));
+      static_cast<Tab<int> &>(shaders.refinedBlockComputedStcode), static_cast<Tab<char> &>(shaders.refinedBlockComputedCppExprs));
 
   shaders.variable_list = eastl::move(ctx.globVars().getMutableVariableList());
   eastl::tie(shaders.static_samplers, shaders.immutable_samplers) = ctx.samplers().releaseSamplers();

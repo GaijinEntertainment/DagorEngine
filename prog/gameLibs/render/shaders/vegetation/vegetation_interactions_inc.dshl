@@ -216,24 +216,46 @@ macro USE_VEGETATION_INTERACTIONS(always_pivoted)
 endmacro
 
 macro APPLY_VEGETATION_INTERACTIONS(conditions, always_pivoted)
+  hlsl (vs)
+  {
+    struct VegetationInteractionInput
+    {
+      float3 worldPivot;
+      float3 worldPos;
+      float3 localPos;
+      float height;
+    #ifdef HAS_PIVOT_PAINTER
+      HierarchyData hData;
+    #endif
+    };
+  }
   if (conditions) {
     if (is_pivoted == yes || always_pivoted)
     {
-      hlsl(vs) {
-        #define APPLY_INTERACTIONS\
-          worldPos += apply_obstacles_joints(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY), Data);
+      hlsl (vs) {
+        float3 apply_vegetation_interactions(VegetationInteractionInput input)
+        {
+          return apply_obstacles_joints(input.worldPivot, input.worldPos, input.localPos, input.height, input.hData);
+        }
       }
     }
     else
     {
-      hlsl(vs) {
-        #define APPLY_INTERACTIONS\
-          worldPos += apply_obstacles(worldLocalPos, worldPos, localPos, physBbox.y * length(worldLocalY));
+      hlsl (vs) {
+        float3 apply_vegetation_interactions(VegetationInteractionInput input)
+        {
+          return apply_obstacles(input.worldPivot, input.worldPos, input.localPos, input.height);
+        }
       }
     }
-  } else {
-    hlsl(vs) {
-      #define APPLY_INTERACTIONS /*Interactions disabled*/
+  }
+  else
+  {
+    hlsl (vs) {
+      float3 apply_vegetation_interactions(VegetationInteractionInput input)
+      {
+        return float3(0, 0, 0);
+      }
     }
   }
 endmacro

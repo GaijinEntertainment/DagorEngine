@@ -23,7 +23,7 @@ void ec_set_cursor_pos(IPoint2 pos)
   if (!wasHidden)
     ec_show_cursor(false);
 
-  linux_GUI::set_cursor_position(pos.x, pos.y, nullptr);
+  linux_GUI::set_cursor_position(pos.x, pos.y, win32_get_main_wnd());
 
   ec_mouse_cursor_pos = pos;
 

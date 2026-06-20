@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/simulate/runtime_iterator.h"
+
 namespace das {
     DAS_API bool das_is_dll_build();
     DAS_API bool is_in_aot();
@@ -31,6 +33,8 @@ namespace das {
     DAS_API vec4f builtin_json_sscan ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API char * builtin_print_data ( const void * data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
     DAS_API char * builtin_print_data_v ( float4 data, const TypeInfo * typeInfo, Bitfield flags, Context * context, LineInfoArg * at );
+    DAS_API char * builtin_json_sprint_at ( const void * addr, const TypeInfo & typeInfo, bool humanReadable, Context * context, LineInfoArg * at );
+    DAS_API bool builtin_json_sscan_at ( char * json, void * addr, const TypeInfo & typeInfo, Context * context, LineInfoArg * at );
     DAS_API char * builtin_debug_type ( const TypeInfo * typeInfo, Context * context, LineInfoArg * at );
     DAS_API char * builtin_debug_line ( const LineInfo & at, bool fully, Context * context, LineInfoArg * lineInfo );
     DAS_API char * builtin_get_typeinfo_mangled_name ( const TypeInfo * typeInfo, Context * context, LineInfoArg * at );
@@ -40,7 +44,10 @@ namespace das {
     DAS_API void builtin_stackwalk ( bool args, bool vars, Context * context, LineInfoArg * lineInfo );
     DAS_API void builtin_terminate ( Context * context, LineInfoArg * lineInfo );
     DAS_API int builtin_table_size ( const Table & arr );
+    DAS_API bool builtin_table_empty ( const Table & arr );
     DAS_API int builtin_table_capacity ( const Table & arr );
+    DAS_API int64_t builtin_table_long_size ( const Table & arr );
+    DAS_API int64_t builtin_table_long_capacity ( const Table & arr );
     DAS_API void builtin_table_clear ( Table & arr, Context * context, LineInfoArg * at );
     DAS_API vec4f builtin_table_reserve ( Context & context, SimNode_CallBase * call, vec4f * args );
     DAS_API void heap_stats ( Context & context, uint64_t * bytes );
@@ -68,13 +75,21 @@ namespace das {
     DAS_API void builtin_table_unlock ( Table & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_table_clear_lock ( const Table & arr, Context * context );
     DAS_API int builtin_array_size ( const Array & arr );
+    DAS_API bool builtin_array_empty ( const Array & arr );
     DAS_API int builtin_array_capacity ( const Array & arr );
+    DAS_API int64_t builtin_array_long_size ( const Array & arr );
+    DAS_API int64_t builtin_array_long_capacity ( const Array & arr );
     DAS_API int builtin_array_lock_count ( const Array & arr );
     DAS_API void builtin_array_resize ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_resize_no_init ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_reserve ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_erase ( Array & pArray, int index, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_erase_range ( Array & pArray, int index, int count, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_array_resize_i64 ( Array & pArray, int64_t newSize, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_array_resize_no_init_i64 ( Array & pArray, int64_t newSize, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_array_reserve_i64 ( Array & pArray, int64_t newSize, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_array_erase_i64 ( Array & pArray, int64_t index, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_array_erase_range_i64 ( Array & pArray, int64_t index, int64_t count, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_clear ( Array & pArray, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_lock_mutable ( const Array & arr, Context * context, LineInfoArg * at );
     DAS_API void builtin_array_unlock_mutable ( const Array & arr, Context * context, LineInfoArg * at );
@@ -85,9 +100,11 @@ namespace das {
     DAS_API void builtin_table_tag ( Table & tab, const char * name, Context * context );
     DAS_API void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * lineinfo );
     DAS_API void builtin_make_temp_array ( Array & arr, void * data, int size );
+    DAS_API void builtin_make_temp_array_i64 ( Array & arr, void * data, int64_t size );
     DAS_API void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at );
     DAS_API void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__, LineInfoArg * at );
     DAS_API vec4f builtin_collect_local_and_zero ( Context & context, SimNode_CallBase * call, vec4f * args );
+    DAS_API vec4f builtin_scope_free ( Context & context, SimNode_CallBase * call, vec4f * args );
 
     DAS_API void toLog ( int level, const char * text, Context * context, LineInfoArg * at );
     void toCompilerLog ( const char * text, Context * context, LineInfoArg * at );
@@ -100,7 +117,7 @@ namespace das {
     DAS_API __forceinline bool builtin_iterator_empty ( const Sequence & seq ) { return seq.iter==nullptr; }
 
     DAS_API void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context, LineInfoArg * at );
-    DAS_API void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context, LineInfoArg * at );
+    DAS_API void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int64_t size, int stride, Context * context, LineInfoArg * at );
     DAS_API void builtin_make_range_iterator ( Sequence & result, range rng, Context * context, LineInfoArg * at );
     DAS_API void builtin_make_urange_iterator ( Sequence & result, urange rng, Context * context, LineInfoArg * at );
     DAS_API void builtin_make_range64_iterator ( Sequence & result, range64 rng, Context * context, LineInfoArg * at );
@@ -122,6 +139,56 @@ namespace das {
     DAS_API void builtin_sort_string ( void * data, int32_t length );
     DAS_API void builtin_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
     DAS_API void builtin_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_stable_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_stable_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+
+    // Sort-family extensions: partial_sort / nth_element / heap ops.
+    // Mirrors builtin_sort<TT> for the typed default-comparator path; uses
+    // std::less by default (max-heap for the heap ops, ascending for partial_sort).
+
+    template <typename TT>
+    __forceinline void builtin_partial_sort ( TT * data, int32_t length, int32_t n ) {
+        if ( length<=1 || n<=0 ) return;
+        if ( n>length ) n = length;
+        partial_sort ( data, data + n, data + length );
+    }
+
+    template <typename TT>
+    __forceinline void builtin_nth_element ( TT * data, int32_t length, int32_t n ) {
+        if ( length<=1 || n<0 || n>=length ) return;
+        nth_element ( data, data + n, data + length );
+    }
+
+    template <typename TT>
+    __forceinline void builtin_make_heap ( TT * data, int32_t length ) {
+        if ( length>1 ) make_heap ( data, data + length );
+    }
+
+    template <typename TT>
+    __forceinline void builtin_push_heap ( TT * data, int32_t length ) {
+        if ( length>1 ) push_heap ( data, data + length );
+    }
+
+    template <typename TT>
+    __forceinline void builtin_pop_heap ( TT * data, int32_t length ) {
+        if ( length>1 ) pop_heap ( data, data + length );
+    }
+
+    // Any-path runtime wrappers (user-defined types, opaque byte buffer).
+    // All defined in module_builtin_runtime_sort.cpp; thin wrappers around
+    // das_partial_sort_r / das_nth_element_r / das_make_heap_r / das_push_heap_r /
+    // das_pop_heap_r from src/builtin/das_qsort_r.h.
+
+    DAS_API void builtin_partial_sort_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_partial_sort_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_nth_element_any_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_nth_element_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, int32_t n, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_make_heap_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_make_heap_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_push_heap_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_push_heap_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_pop_heap_any_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
+    DAS_API void builtin_pop_heap_any_ref_cblock ( void * anyData, int32_t elementSize, int32_t length, const Block & cmp, Context * context, LineInfoArg * lineinfo );
 
     __forceinline int32_t variant_index(const Variant & v) { return v.index; }
     __forceinline void set_variant_index(Variant & v, int32_t index) { v.index = index; }
@@ -150,43 +217,50 @@ namespace das {
 
     __forceinline void array_grow ( Context & context, Array & arr, uint32_t stride, LineInfo * at ) {
         if ( arr.isLocked() ) context.throw_error_at(at, "can't resize locked array");
-        uint32_t newSize = arr.size + 1;
+        uint64_t newSize = arr.size + 1;
+        // Keep the int64 surface contract (long_length returns int64) — refuse to grow past INT64_MAX.
+        if ( newSize > uint64_t(INT64_MAX) ) {
+            context.throw_error_at(at, "array_grow: newSize exceeds INT64_MAX [newSize=%llu]", (unsigned long long)newSize);
+        }
         if ( newSize > arr.capacity ) {
-            uint32_t newCapacity = 1 << (32 - das_clz (das::max(newSize,2u) - 1));
-            newCapacity = das::max(newCapacity, 16u);
+            uint64_t newCapacity = uint64_t(1) << (64 - das_clz64(das::max(newSize, uint64_t(2)) - 1));
+            newCapacity = das::max(newCapacity, uint64_t(16));
+            // The pow2 round-up overflows past INT64_MAX when newSize > 2^62; clamp so the
+            // resulting capacity stays representable in the int64 long_capacity() surface.
+            if ( newCapacity > uint64_t(INT64_MAX) ) newCapacity = uint64_t(INT64_MAX);
             array_reserve(context, arr, newCapacity, stride, at);
         }
         arr.size = newSize;
     }
 
-    __forceinline int builtin_array_push ( Array & pArray, int index, int stride, Context * context, LineInfoArg * at ) {
-        uint32_t idx = pArray.size;
+    __forceinline int64_t builtin_array_push ( Array & pArray, int64_t index, int stride, Context * context, LineInfoArg * at ) {
+        uint64_t idx = pArray.size;
         array_grow(*context, pArray, stride, at);
-        if ( uint32_t(index) >= pArray.size ) context->throw_error_at(at, "insert index out of range, %u of %u", uint32_t(index), pArray.size);
-        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, size_t(idx-index)*size_t(stride) );
+        if ( uint64_t(index) >= pArray.size ) context->throw_error_at(at, "insert index out of range, %lld of %llu", (long long)index, (unsigned long long)pArray.size);
+        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, size_t(idx-uint64_t(index))*size_t(stride) );
         return index;
     }
 
-    __forceinline int builtin_array_push_zero ( Array & pArray, int index, int stride, Context * context, LineInfoArg * at ) {
-        uint32_t idx = pArray.size;
+    __forceinline int64_t builtin_array_push_zero ( Array & pArray, int64_t index, int stride, Context * context, LineInfoArg * at ) {
+        uint64_t idx = pArray.size;
         array_grow(*context, pArray, stride, at);
-        if ( uint32_t(index) >= pArray.size ) context->throw_error_at(at, "insert index out of range, %u of %u", uint32_t(index), pArray.size);
-        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, size_t(idx-index)*size_t(stride) );
+        if ( uint64_t(index) >= pArray.size ) context->throw_error_at(at, "insert index out of range, %lld of %llu", (long long)index, (unsigned long long)pArray.size);
+        memmove ( pArray.data+(index+1)*stride, pArray.data+index*stride, size_t(idx-uint64_t(index))*size_t(stride) );
         memset ( pArray.data + index*stride, 0, stride );
         return index;
     }
 
-    __forceinline int builtin_array_push_back ( Array & pArray, int stride, Context * context, LineInfoArg * at ) {
-        uint32_t idx = pArray.size;
+    __forceinline int64_t builtin_array_push_back ( Array & pArray, int stride, Context * context, LineInfoArg * at ) {
+        uint64_t idx = pArray.size;
         array_grow(*context, pArray, stride, at);
-        return idx;
+        return int64_t(idx);
     }
 
-    __forceinline int builtin_array_push_back_zero ( Array & pArray, int stride, Context * context, LineInfoArg * at ) {
-        uint32_t idx = pArray.size;
+    __forceinline int64_t builtin_array_push_back_zero ( Array & pArray, int stride, Context * context, LineInfoArg * at ) {
+        uint64_t idx = pArray.size;
         array_grow(*context, pArray, stride, at);
         memset(pArray.data + idx*stride, 0, stride);
-        return idx;
+        return int64_t(idx);
     }
 
     __forceinline void concept_assert ( bool, const char * ) {}

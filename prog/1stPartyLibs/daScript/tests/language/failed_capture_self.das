@@ -1,5 +1,5 @@
 options gen2
-expect 30508, 30124
+expect 30912, 30941
 
 class A {
     private onLog : lambda

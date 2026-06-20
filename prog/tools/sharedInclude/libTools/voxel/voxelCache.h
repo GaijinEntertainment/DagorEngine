@@ -8,6 +8,18 @@
 #include <generic/dag_carray.h>
 #include <generic/dag_patchTab.h>
 
+namespace defaults
+{
+static constexpr float projScale = 1080; // diameter in pixels of a disk of radius R when viewed from distance R
+static constexpr float triangleThreshold = 70;
+static constexpr int minMapSize = 4;
+static constexpr int maxMapSize = 256;
+static constexpr float voxelSize = -1;
+static constexpr float minVoxelSize = 0.001f;
+static constexpr int lodToBake = 0;
+static constexpr bool adjustMeshLodRanges = true;
+} // namespace defaults
+
 namespace voxelcache
 {
 

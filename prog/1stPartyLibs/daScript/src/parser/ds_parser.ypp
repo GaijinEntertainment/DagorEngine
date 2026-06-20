@@ -20,6 +20,7 @@
 
 #if defined(_MSC_VER) && !defined(__clang__)
     #if !defined(_DEBUG)
+        #pragma optimize( "", off )
         #pragma optimize( "s", on )
     #endif
 #endif
@@ -568,7 +569,7 @@ program
     :
     |   program module_declaration {
             if ( yyextra->das_has_type_declarations ) {
-                das_yyerror(scanner,"module name has to be first declaration",tokAt(scanner,@module_declaration), CompilationError::syntax_error);
+                das_yyerror(scanner,"module name has to be first declaration",tokAt(scanner,@module_declaration), CompilationError::invalid_module);
             }
         }
     |   program structure_declaration           { yyextra->das_has_type_declarations = true; }
@@ -618,7 +619,7 @@ module_declaration
             yyextra->g_Program->library.renameModule(yyextra->g_Program->thisModule.get(),*$name);
         } else if ( yyextra->g_Program->thisModule->name != *$name ){
             das_yyerror(scanner,"this module already has a name " + yyextra->g_Program->thisModule->name,tokAt(scanner,@name),
-                CompilationError::module_already_has_a_name);
+                CompilationError::already_declared_module_name);
         }
         if ( !yyextra->g_Program->policies.ignore_shared_modules ) {
             yyextra->g_Program->promoteToBuiltin = $mtype;
@@ -658,7 +659,7 @@ string_builder_body
     |   string_builder_body[sb] character_sequence[sconst] %prec STRING_CHARACTER {
         bool err;
         auto esconst = unescapeString(*$sconst,&err);
-        if ( err ) das_yyerror(scanner,"invalid escape sequence",tokAt(scanner,@sb), CompilationError::invalid_escape_sequence);
+        if ( err ) das_yyerror(scanner,"invalid escape sequence",tokAt(scanner,@sb), CompilationError::invalid_escape);
         auto sc = new ExprConstString(tokAt(scanner,@sconst),esconst);
         delete $sconst;
         static_cast<ExprStringBuilder *>($sb)->elements.push_back(sc);
@@ -712,17 +713,17 @@ expr_reader
         auto macros = yyextra->g_Program->getReaderMacro(*$mark);
         if ( macros.size()==0 ) {
             das_yyerror(scanner,"reader macro " + *$mark + " not found",tokAt(scanner,@mark),
-                CompilationError::unsupported_read_macro);
+                CompilationError::lookup_macro);
         } else if ( macros.size()>1 ) {
             string options;
             for ( auto & x : macros ) {
                 options += "\t" + x->module->name + "::" + x->name + "\n";
             }
             das_yyerror(scanner,"too many options for the reader macro " + *$mark +  "\n" + options, tokAt(scanner,@mark),
-                CompilationError::unsupported_read_macro);
+                CompilationError::ambiguous_macro);
         } else if ( yychar != '~' ) {
             das_yyerror(scanner,"expecting ~ after the reader macro", tokAt(scanner,@mark),
-                CompilationError::syntax_error);
+                CompilationError::invalid_macro);
         } else {
             yyextra->g_ReaderMacro = macros.back();
             yyextra->g_ReaderExpr = new ExprReader(tokAt(scanner,@loc),yyextra->g_ReaderMacro);
@@ -762,10 +763,14 @@ options_declaration
         }
         for ( auto & opt : *$list ) {
             if ( yyextra->g_Access->isOptionAllowed(opt.name, yyextra->g_Program->thisModule->fileName) ) {
-                yyextra->g_Program->options.push_back(opt);
+                if ( yyextra->g_Access->isOptionBlocked(opt.name, yyextra->g_Program->thisModule->fileName) ) {
+                    // blocked: ok to write, silently ignored (not applied)
+                } else {
+                    yyextra->g_Program->options.push_back(opt);
+                }
             } else {
                 das_yyerror(scanner,"option " + opt.name + " is not allowed here",
-                    tokAt(scanner,@list), CompilationError::invalid_option);
+                    tokAt(scanner,@list), CompilationError::invalid_options);
             }
         }
         delete $list;
@@ -1040,7 +1045,7 @@ annotation_declaration_basic
             } else {
                 $$->annotation = new Annotation(*$name);
                 das2_yyerror(scanner,"annotation " + *$name + " is not found",
-                            tokAt(scanner,@name), CompilationError::invalid_annotation);
+                            tokAt(scanner,@name), CompilationError::lookup_annotation);
             }
         } else {
             das_yyerror(scanner,"annotation " + *$name + " is not allowed here",
@@ -1057,7 +1062,7 @@ annotation_declaration_basic
             } else {
                 $$->annotation = new Annotation(*$name);
                 das2_yyerror(scanner,"annotation " + *$name + " is not found",
-                            tokAt(scanner,@name), CompilationError::invalid_annotation);
+                            tokAt(scanner,@name), CompilationError::lookup_annotation);
             }
         } else {
             das_yyerror(scanner,"annotation " + *$name + " is not allowed here",
@@ -1305,7 +1310,7 @@ global_function_declaration
             if ( !yyextra->g_Program->addFunction($func) ) {
                 das_yyerror(scanner,"function is already defined " +
                     $func->getMangledName(),$func->at,
-                        CompilationError::function_already_declared);
+                        CompilationError::already_declared_function);
             }
         }
         $func->delRef();
@@ -1504,7 +1509,7 @@ expr_pipe
             auto pMS = (ExprMakeStruct *) pipeCall;
             if ( pMS->block ) {
                 das_yyerror(scanner,"can't pipe into [[ make structure ]]. it already has where closure",
-                    tokAt(scanner,@loc),CompilationError::cant_pipe);
+                    tokAt(scanner,@loc),CompilationError::cant_expression);
                 delete $arg;
             } else {
                 pMS->block = $arg;
@@ -1512,7 +1517,7 @@ expr_pipe
             $$ = $fncall;
         } else {
             das_yyerror(scanner,"can only pipe into function call or [[ make structure ]]",
-                tokAt(scanner,@loc),CompilationError::cant_pipe);
+                tokAt(scanner,@loc),CompilationError::cant_expression);
             delete $arg;
             $$ = $fncall;
         }
@@ -2217,10 +2222,12 @@ expr
             if ( $subexpr->rtti_isSequence() ) {
                 auto mkt = new ExprMakeTuple(tokAt(scanner,@subexpr));
                 mkt->values = sequenceToList($subexpr);
+                mkt->shorthandRecordNames = ast_tupleCollectShorthandNames(mkt->values);
                 $$ = mkt;
             } else if ( $comma ) {
                 auto mkt = new ExprMakeTuple(tokAt(scanner,@subexpr));
                 mkt->values.push_back($subexpr);
+                mkt->shorthandRecordNames = ast_tupleCollectShorthandNames(mkt->values);
                 $$ = mkt;
             } else {
                 $$ = $subexpr;
@@ -2463,7 +2470,7 @@ struct_variable_declaration_list
             }
     |   struct_variable_declaration_list[list] '[' annotation_list[annL] ']' semicolon {
         das_yyerror(scanner,"structure field or class method annotation expected to remain on the same line with the field or the class",
-            tokAt(scanner,@annL), CompilationError::syntax_error);
+            tokAt(scanner,@annL), CompilationError::invalid_annotation);
         delete $annL;
         $$ = $list;
     }
@@ -2775,7 +2782,7 @@ enum_list
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         if ( !$pE->add(*$name,nullptr,tokAt(scanner,@name)) ) {
             das_yyerror(scanner,"enumeration already declared " + *$name, tokAt(scanner,@name),
-                CompilationError::enumeration_value_already_declared);
+                CompilationError::already_declared_enumerator);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tokName = tokAt(scanner,@name);
@@ -2790,7 +2797,7 @@ enum_list
         das_checkName(scanner,*$name,tokAt(scanner,@name));
         if ( !$pE->add(*$name,$value,tokAt(scanner,@name)) ) {
             das_yyerror(scanner,"enumeration value already declared " + *$name, tokAt(scanner,@name),
-                CompilationError::enumeration_value_already_declared);
+                CompilationError::already_declared_enumerator);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tokName = tokAt(scanner,@name);
@@ -2822,12 +2829,12 @@ single_alias
         $tdecl->isPrivateAlias = !$pubA;
         if ( $tdecl->baseType == Type::alias ) {
             das_yyerror(scanner,"alias cannot be defined in terms of another alias "+*$name,tokAt(scanner,@name),
-                CompilationError::invalid_type);
+                CompilationError::invalid_type_alias);
         }
         $tdecl->alias = *$name;
         if ( !yyextra->g_Program->addAlias($tdecl) ) {
             das_yyerror(scanner,"type alias is already defined "+*$name,tokAt(scanner,@name),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto pubename = tokAt(scanner,@tdecl);
@@ -3072,7 +3079,7 @@ auto_type_declaration
         $$->isTag = true;
         $$->firstType = new TypeDecl(Type::autoinfer);
         $$->firstType->at = tokAt(scanner, @subexpr);
-        $$->firstType->dimExpr.push_back($subexpr);
+        $$->firstType->typeMacroExpr.push_back($subexpr);
     }
     ;
 
@@ -3148,7 +3155,7 @@ bitfield_type_declaration
             auto maxBits = $$->maxBitfieldBits();
             if ( $$->argNames.size()>maxBits ) {
                 das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,@basicType),
-                    CompilationError::invalid_type);
+                    CompilationError::exceeds_bitfield);
             }
             $$->at = tokAt(scanner,@basicType);
             delete $nl;
@@ -3173,12 +3180,10 @@ table_type_pair
 
 dim_list
     :  '[' expr[dimExpr] ']' {
-        $$ = new TypeDecl(Type::autoinfer);
-        appendDimExpr($$, $dimExpr);
+        $$ = appendDimExpr(nullptr, $dimExpr, tokAt(scanner,@dimExpr));
     }
     |  dim_list[list] '[' expr[dimExpr] ']' {
-        $$ = $list;
-        appendDimExpr($$, $dimExpr);
+        $$ = appendDimExpr($list, $dimExpr, tokAt(scanner,@dimExpr));
     }
     ;
 
@@ -3190,22 +3195,15 @@ type_declaration_no_options
     |   type_declaration_no_options[typeDecl] dim_list[dimlist] {
         if ( $typeDecl->baseType==Type::typeDecl ) {
             das_yyerror(scanner,"type declaration can`t be used as array base type",tokAt(scanner,@typeDecl),
-                CompilationError::invalid_type);
+                CompilationError::invalid_array_type);
         } else if ( $typeDecl->baseType==Type::typeMacro ) {
             das_yyerror(scanner,"macro can`t be used as array base type",tokAt(scanner,@typeDecl),
-                CompilationError::invalid_type);
+                CompilationError::invalid_array_type);
         }
-        $typeDecl->dim.insert($typeDecl->dim.begin(), $dimlist->dim.begin(), $dimlist->dim.end());
-        $typeDecl->dimExpr.insert($typeDecl->dimExpr.begin(), $dimlist->dimExpr.begin(), $dimlist->dimExpr.end());
-        $typeDecl->removeDim = false;
-        $$ = $typeDecl;
-        $dimlist->dimExpr.clear();
+        $$ = attachDimChain($dimlist, $typeDecl);
     }
     |   type_declaration_no_options[typeDecl] '[' ']' {
-        $typeDecl->dim.push_back(TypeDecl::dimAuto);
-        $typeDecl->dimExpr.push_back(nullptr);
-        $typeDecl->removeDim = false;
-        $$ = $typeDecl;
+        $$ = appendAutoDim($typeDecl, tokAt(scanner,@2));
     }
     |   DAS_TYPE '<' { yyextra->das_arrow_depth ++; } type_declaration[typeDecl] '>' { yyextra->das_arrow_depth --; } {
         $typeDecl->autoToAlias = true;
@@ -3214,20 +3212,20 @@ type_declaration_no_options
     |   DAS_TYPEDECL[td] '(' expr[subexpr] ')' {
         $$ = new TypeDecl(Type::typeDecl);
         $$->at = tokRangeAt(scanner,@td,@subexpr);
-        $$->dimExpr.push_back($subexpr);
+        $$->typeMacroExpr.push_back($subexpr);
     }
     |   '$' name_in_namespace[name] optional_expr_list_in_braces[arguments] {
         $$ = new TypeDecl(Type::typeMacro);
         $$->at = tokRangeAt(scanner,@name, @arguments);
-        $$->dimExpr = sequenceToList($arguments);
-        $$->dimExpr.insert($$->dimExpr.begin(), new ExprConstString(tokAt(scanner,@name), *$name));
+        $$->typeMacroExpr = sequenceToList($arguments);
+        $$->typeMacroExpr.insert($$->typeMacroExpr.begin(), new ExprConstString(tokAt(scanner,@name), *$name));
         delete $name;
     }
     |   '$' name_in_namespace[name] '<' { yyextra->das_arrow_depth ++; } type_declaration_no_options_list[declL] '>' optional_expr_list_in_braces[arguments] {
         $$ = new TypeDecl(Type::typeMacro);
         $$->at = tokRangeAt(scanner,@name, @arguments);
-        $$->dimExpr = typesAndSequenceToList($declL,$arguments);
-        $$->dimExpr.insert($$->dimExpr.begin(), new ExprConstString(tokAt(scanner,@name), *$name));
+        $$->typeMacroExpr = typesAndSequenceToList($declL,$arguments);
+        $$->typeMacroExpr.insert($$->typeMacroExpr.begin(), new ExprConstString(tokAt(scanner,@name), *$name));
         delete $name;
     }
     |   type_declaration_no_options[typeDecl] '-' '[' ']' {
@@ -3439,7 +3437,7 @@ tuple_alias_declaration
         deleteVariableDeclarationList($list);
         if ( !yyextra->g_Program->addAlias(vtype) ) {
             das_yyerror(scanner,"type alias is already defined "+*$vname,tokAt(scanner,@vname),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
@@ -3475,7 +3473,7 @@ variant_alias_declaration
         deleteVariableDeclarationList($list);
         if ( !yyextra->g_Program->addAlias(vtype) ) {
             das_yyerror(scanner,"type alias is already defined "+*$vname,tokAt(scanner,@vname),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
@@ -3514,7 +3512,7 @@ bitfield_alias_declaration
         auto maxBits = btype->maxBitfieldBits();
         if ( btype->argNames.size()>maxBits ) {
             das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,@vname),
-                CompilationError::invalid_type);
+                CompilationError::exceeds_bitfield);
         }
         for ( auto & p : *$list ) {
             if ( get<1>(p) ) {
@@ -3523,7 +3521,7 @@ bitfield_alias_declaration
         }
         if ( !yyextra->g_Program->addAlias(btype) ) {
             das_yyerror(scanner,"type alias is already defined "+*$vname,tokAt(scanner,@vname),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,@vname);
@@ -3999,8 +3997,11 @@ make_table_decl
         }
     }
     |   CBRCBRB [loc] make_table[mka] optional_trailing_semicolon_cur_cur {
-        auto mkt = new TypeDecl(Type::autoinfer);
-        mkt->dim.push_back(TypeDecl::dimAuto);
+        auto mkt = new TypeDecl(Type::tFixedArray);
+        mkt->fixedDim = TypeDecl::dimAuto;
+        mkt->at = tokAt(scanner,@loc);
+        mkt->firstType = new TypeDecl(Type::autoinfer);
+        mkt->firstType->at = mkt->at;
         ((ExprMakeArray *)$mka)->makeType = mkt;
         $mka->at = tokAt(scanner,@loc);
         auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,@loc),"to_table_move");
@@ -4102,7 +4103,7 @@ void das_yyerror ( DAS_YYLTYPE * lloc, yyscan_t scanner, const string & error ) 
     if ( !yyextra->das_suppress_errors ) {
         yyextra->g_Program->error(error,"","",LineInfo(yyextra->g_FileAccessStack.back(),
             lloc->first_column,lloc->first_line,lloc->last_column,lloc->last_line),
-                CompilationError::syntax_error);
+                CompilationError::invalid_expression);
     }
 }
 

@@ -64,6 +64,8 @@ if $(PlatformSpec) = clang {
   if $(Sanitize) = undefined {
     Copt += -fno-sanitize=undefined ;
   }
+
+  Copt += -Wno-incompatible-pointer-types-discards-qualifiers ;
 }
 
 if $(PlatformSpec) = gcc {

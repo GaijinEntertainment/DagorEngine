@@ -18,7 +18,7 @@ String get_template_text_src_envi_cover(uint32_t variant, NodeBasedShaderQuality
   templateNames.push_back(String("../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"));
   templateNames.push_back(String("../../../publicInclude/render/nbs_spheres.hlsli"));
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
-  templateNames.push_back(String("../../../publicInclude/render/light_consts.hlsli"));
+  templateNames.push_back(String("../../../publicInclude/render/lights/light_consts.hlsli"));
   templateNames.push_back(String("../../../render/shaders/camera_in_camera.hlsl"));
   templateNames.push_back(String("../../../render/shaders/noise/Value3D.hlsl"));
   templateNames.push_back(String("../../../render/shaders/pixelPacking/ColorSpaceUtility.hlsl"));

@@ -456,6 +456,19 @@ void patch_res_pack_paths(const char *prefix_path)
   }
 }
 
+template <typename IsValid, typename Reread>
+static void retry_grp_header_read(const gamerespackbin::GrpHeader &ghdr, const char *fname, const IsValid &valid, const Reread &reread)
+{
+  for (int attempt = 1; attempt <= 3 && !valid(); ++attempt)
+  {
+    logwarn("GRP %s: bad header (0x%x 0x%x 0x%x 0x%x), re-reading (%d/3)...", fname, ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize,
+      ghdr.restFileSize, attempt);
+    sleep_msec(10 * attempt);
+    if (!reread())
+      break;
+  }
+}
+
 void gameresprivate::scanGameResPack(const char *filename)
 {
   using namespace gamerespackbin;
@@ -507,6 +520,19 @@ void gameresprivate::scanGameResPack(const char *filename)
   {
     // check id
     cb.read(&ghdr, sizeof(ghdr));
+    if (!dump_data.data() && !vrom_data.data())
+      retry_grp_header_read(
+        ghdr, filename,
+        [&] {
+          return (ghdr.label == _MAKE4C('GRP2') || ghdr.label == _MAKE4C('GRP3')) &&
+                 ghdr.restFileSize + sizeof(ghdr) == df_length(cb.fileHandle) &&
+                 grp_desc_block_valid(ghdr.fullDataSize, df_length(cb.fileHandle));
+        },
+        [&] {
+          cb.seekto(0);
+          cb.read(&ghdr, sizeof(ghdr));
+          return true;
+        });
     if (ghdr.label != _MAKE4C('GRP2') && ghdr.label != _MAKE4C('GRP3'))
     {
       debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
@@ -522,6 +548,14 @@ void gameresprivate::scanGameResPack(const char *filename)
       DAG_FATAL("Corrupt file %s", filename);
 #endif
       DAGOR_THROW(IGenLoad::LoadException("Corrupt file: restFileSize", cb.tell()));
+    }
+    if (!grp_desc_block_valid(ghdr.fullDataSize, df_length(cb.fileHandle)))
+    {
+      debug("Corrupt file: fullDataSize=%u, filesz=%d", ghdr.fullDataSize, df_length(cb.fileHandle));
+#if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
+      DAG_FATAL("Corrupt file %s", filename);
+#endif
+      DAGOR_THROW(IGenLoad::LoadException("Corrupt file: fullDataSize", cb.tell()));
     }
 
     gdata = (GrpData *)memalloc(ghdr.fullDataSize, tmpmem);
@@ -842,6 +876,20 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
 
       // check id
       cb.read(&ghdr, sizeof(ghdr));
+      if (!vrom_data.data())
+        retry_grp_header_read(
+          ghdr, fileName.str(),
+          [&] {
+            return (ghdr.label == _MAKE4C('GRP2') || ghdr.label == _MAKE4C('GRP3')) && ghdr.restFileSize + sizeof(ghdr) == file_sz &&
+                   grp_desc_block_valid(ghdr.descOnlySize, file_sz);
+          },
+          [&] {
+            seq_cb.close();
+            if (!seq_cb.open(fileName, 32 << 10))
+              return false;
+            cb.read(&ghdr, sizeof(ghdr));
+            return true;
+          });
       if (ghdr.label != _MAKE4C('GRP2') && ghdr.label != _MAKE4C('GRP3'))
       {
         debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
@@ -850,9 +898,10 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
 #endif
         DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
       }
-      if (ghdr.restFileSize + sizeof(ghdr) != file_sz)
+      if (ghdr.restFileSize + sizeof(ghdr) != file_sz || !grp_desc_block_valid(ghdr.descOnlySize, file_sz))
       {
-        debug("Corrupt file: hdr+restFileSize=%u != filesz=%d", unsigned(ghdr.restFileSize + sizeof(ghdr)), file_sz);
+        debug("Corrupt file: hdr+restFileSize=%u != filesz=%d, descOnlySize=%u", unsigned(ghdr.restFileSize + sizeof(ghdr)), file_sz,
+          ghdr.descOnlySize);
 #if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
         DAG_FATAL("Corrupt file %s", fileName.str());
 #endif
@@ -867,6 +916,22 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
     {
       GrpHeader *__restrict ghdr = (GrpHeader *)dump_data.data();
 
+      if (dump_data.size() < sizeof(GrpHeader) || !grp_desc_block_valid(ghdr->descOnlySize, dump_data.size()))
+      {
+        debug("Corrupt cache.bin for %s (size=%u)", fileName.str(), dump_data.size());
+#if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
+        DAG_FATAL("Corrupt file %s", fileName.str());
+#endif
+        DAGOR_THROW(IGenLoad::LoadException("Corrupt cache.bin", cb.tell()));
+      }
+      if (ghdr->label != _MAKE4C('GRP2') && ghdr->label != _MAKE4C('GRP3'))
+      {
+        debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr->label, ghdr->descOnlySize, ghdr->fullDataSize, ghdr->restFileSize);
+#if (DAGOR_DBGLEVEL < 1) && DAGOR_FORCE_LOGS
+        DAG_FATAL("no GRP2 label in %s", fileName.str());
+#endif
+        DAGOR_THROW(IGenLoad::LoadException("no GRP2 label", cb.tell()));
+      }
       grData = (GrpData *)memalloc(ghdr->descOnlySize, inimem);
       memcpy(grData, dump_data.data() + sizeof(GrpHeader), ghdr->descOnlySize);
       grData->patchDescOnly(ghdr->label);
@@ -961,7 +1026,16 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
     // DEBUG_CTX("loaded real-res from GRP %s", (char*)fileName);
   end_load:;
   }
-  DAGOR_CATCH(const IGenLoad::LoadException &) { debug("Error reading GameResPack file %s", fileName.str()); }
+  DAGOR_CATCH(const IGenLoad::LoadException &)
+  {
+    debug("Error reading GameResPack file %s", fileName.str());
+    if (grData)
+    {
+      memfree(grData, inimem);
+      grData = NULL;
+    }
+    return;
+  }
   if (!vrom_data.data())
     seq_cb.close();
 
@@ -974,6 +1048,9 @@ void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
 #else
   if (vrom_data.data())
     debug("loaded GRP %s (from VROMFS), %d usec (%dK in %d res), %6.2f Mb/s", fileName.str(), t0, data_size >> 10, res_cnt,
+      double(data_size) / (t0 ? t0 : 1));
+  else if (rb == rangesBuf)
+    debug("loaded GRP %s, %d usec (%dK, no ranges, %d res), %6.2f Mb/s", fileName.str(), t0, data_size >> 10, res_cnt,
       double(data_size) / (t0 ? t0 : 1));
   else
     debug("loaded GRP %s, %d usec (%dK of %dK range in %d areas, %d res, %dK waste load, %dK waste due to ranges), %6.2f Mb/s",

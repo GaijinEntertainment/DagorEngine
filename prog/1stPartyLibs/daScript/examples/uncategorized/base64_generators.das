@@ -26,7 +26,7 @@ require strings
 // Iterate characters of a string as ints.
 // Uses a generator to keep the string alive across yields.
 def from_sv(inp : string) {
-    return <- generator<int>() <| $() {
+    return <- generator<int> {
         for (x in inp) {
             yield x
         }
@@ -37,7 +37,7 @@ def from_sv(inp : string) {
 // Group 8-bit input bytes into 6-bit output values.
 // Every 3 input bytes produce 4 output values (with padding handled later).
 def chunk6(var inp : iterator<int>) {
-    return <- generator<int> capture(<- inp) () <| $() {
+    return <- generator<int> capture(<- inp) {
         var b0 = 0
         while (next(inp, b0)) {
             var b1, b2 = 0
@@ -63,7 +63,7 @@ let {
 
 // Map each 6-bit index to the corresponding Base64 character.
 def xlat(var inp : iterator<int>) {
-    return <- generator<int> capture(<- inp) () <| $() {
+    return <- generator<int> capture(<- inp) {
         for (i in inp) {
             yield xlattable64[i]
         }
@@ -73,7 +73,7 @@ def xlat(var inp : iterator<int>) {
 
 // Pad output with '=' to make the total length a multiple of 4.
 def pad4(var inp : iterator<int>) {
-    return <- generator<int> capture(<- inp) () <| $() {
+    return <- generator<int> capture(<- inp) {
         var len = 0
         for (c in inp) {
             yield c
@@ -88,7 +88,7 @@ def pad4(var inp : iterator<int>) {
 
 // Insert a newline every `linewidth` characters.
 def linebreak(var inp : iterator<int>; linewidth = 76) {
-    return <- generator<int> capture(<- inp) () <| $() {
+    return <- generator<int> capture(<- inp) {
         for (c, len in inp, range(1, INT_MAX)) {
             yield c
             if ((len % linewidth) == 0) {
@@ -101,7 +101,7 @@ def linebreak(var inp : iterator<int>; linewidth = 76) {
 
 // Full Base64 pipeline: compose all generator stages.
 def base64(inp : string; linewidth = 76) {
-    return <- generator<int>() <| $() {
+    return <- generator<int> {
         var lb <- inp |> from_sv() |> chunk6() |> xlat() |> pad4() |> linebreak(linewidth)
         for (c in lb) {
             yield c

@@ -1252,11 +1252,6 @@ int on_driver_command_compile_pipeline_set(void *par1)
     api_state.device.getContext().compilePipelineSet2(eastl::move(inputLayouts), eastl::move(renderStates), sets->outputFormatSet,
       sets->computeSet, sets->graphicsSet, sets->graphicsNullPixelOverrideSet, sets->signature, defaultFormat, nullPixelShader);
   }
-  else
-  {
-    api_state.device.getContext().compilePipelineSet(eastl::move(inputLayouts), eastl::move(renderStates), sets->outputFormatSet,
-      sets->graphicsPipelineSet, sets->meshPipelineSet, sets->computePipelineSet, defaultFormat);
-  }
   return 1;
 }
 
@@ -1824,6 +1819,16 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::EXECUTE_DLSS_G:
     {
       api_state.device.getContext().executeDlssG(*(nv::DlssGParams<> *)par1, par2 ? *(int *)par2 : 0);
+      return 1;
+    }
+    case Drv3dCommand::SET_DLSS_G_ENABLED:
+    {
+      api_state.device.getContext().setDlssGEnabled(par1 ? *(int *)par1 : 0, par2 ? *(int *)par2 : 0);
+      return 1;
+    }
+    case Drv3dCommand::SET_DLSS_OPTIONS:
+    {
+      api_state.device.getContext().setDlssOptions(*(nv::DlssOptions *)par1, par2 ? *(int *)par2 : 0);
       return 1;
     }
     case Drv3dCommand::EXECUTE_XESS:
@@ -2737,18 +2742,6 @@ void d3d::delete_program(PROGRAM prog)
 }
 
 #if _TARGET_PC
-VPROG d3d::create_vertex_shader_dagor(const VPRTYPE * /*tokens*/, int /*len*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
-VPROG d3d::create_vertex_shader_asm(const char * /*asm_text*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
 #if _TARGET_PC_WIN
 // Thin exports for hlsl_dx.cpp (mirrors drv3d_dx11::create_vertex_shader_unpacked pattern)
 namespace drv3d_dx12
@@ -2780,18 +2773,6 @@ FSHADER d3d::create_pixel_shader_hlsl(const char *, unsigned, const char *, cons
 }
 #endif
 
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE * /*tokens*/, int /*len*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
-FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
 // NOTE: entry point should be removed from the interface
 bool d3d::set_pixel_shader(FSHADER /*shader*/)
 {
@@ -2804,11 +2785,6 @@ bool d3d::set_vertex_shader(VPROG /*shader*/)
 {
   G_ASSERT(false);
   return true;
-}
-
-VDECL d3d::get_program_vdecl(PROGRAM prog)
-{
-  return api_state.shaderProgramDatabase.getInputLayoutForGraphicsProgram(ProgramID::importValue(prog)).get();
 }
 #endif
 
@@ -4129,13 +4105,6 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
   {
     return;
   }
-  BufferResourceReferenceAndAddress compactedSizeOutputBufferAddress;
-  if (RaytraceBuildFlags::ALLOW_COMPACTION == (basbi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
-  {
-    auto compactedSizeOutputBuffer = (GenericBufferInterface *)basbi.compactedSizeOutputBuffer;
-    compactedSizeOutputBufferAddress =
-      BufferResourceReferenceAndAddress{get_any_buffer_ref(compactedSizeOutputBuffer), basbi.compactedSizeOutputBufferOffsetInBytes};
-  }
 
   D3D_CONTRACT_ASSERTF_RETURN(basbi.scratchSpaceBuffer, , "DX12: We now always require a user-provided scratch buffer for AS builds!");
 
@@ -4149,12 +4118,10 @@ void d3d::build_bottom_acceleration_structure(RaytraceBottomAccelerationStructur
 
   // more validation needed
 
-  const BufferResourceReferenceAndAddress scratchSpaceBufferAddress{
-    get_any_buffer_ref(scratchSpaceBuffer), basbi.scratchSpaceBufferOffsetInBytes};
-
   STORE_RETURN_ADDRESS();
   api_state.device.getContext().raytraceBuildBottomAccelerationStructure(1, 0, as, basbi.geometryDesc, basbi.geometryDescCount,
-    basbi.flags, basbi.doUpdate, scratchSpaceBufferAddress, compactedSizeOutputBufferAddress);
+    basbi.flags, basbi.doUpdate, basbi.scratchSpaceBuffer, basbi.scratchSpaceBufferOffsetInBytes, basbi.compactedSizeOutputBuffer,
+    basbi.compactedSizeOutputBufferOffsetInBytes);
 }
 
 void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelerationStructureBuildInfo *as_array, uint32_t as_count)
@@ -4208,22 +4175,9 @@ void d3d::build_bottom_acceleration_structures(::raytrace::BatchedBottomAccelera
   {
     const ::raytrace::BottomAccelerationStructureBuildInfo &basbi = as_array[ix].basbi;
 
-    BufferResourceReferenceAndAddress scratchSpaceBufferAddress;
-    BufferResourceReferenceAndAddress compactedSizeOutputBufferAddress;
-
-    if (RaytraceBuildFlags::ALLOW_COMPACTION == (basbi.flags & RaytraceBuildFlags::ALLOW_COMPACTION))
-    {
-      auto compactedSizeOutputBuffer = (GenericBufferInterface *)basbi.compactedSizeOutputBuffer;
-      compactedSizeOutputBufferAddress =
-        BufferResourceReferenceAndAddress{get_any_buffer_ref(compactedSizeOutputBuffer), basbi.compactedSizeOutputBufferOffsetInBytes};
-    }
-
-    auto scratchSpaceBuffer = (GenericBufferInterface *)basbi.scratchSpaceBuffer;
-    scratchSpaceBufferAddress =
-      BufferResourceReferenceAndAddress{get_any_buffer_ref(scratchSpaceBuffer), basbi.scratchSpaceBufferOffsetInBytes};
-
     api_state.device.getContext().raytraceBuildBottomAccelerationStructure(as_count, ix, as_array[ix].as, basbi.geometryDesc,
-      basbi.geometryDescCount, basbi.flags, basbi.doUpdate, scratchSpaceBufferAddress, compactedSizeOutputBufferAddress);
+      basbi.geometryDescCount, basbi.flags, basbi.doUpdate, basbi.scratchSpaceBuffer, basbi.scratchSpaceBufferOffsetInBytes,
+      basbi.compactedSizeOutputBuffer, basbi.compactedSizeOutputBufferOffsetInBytes);
   }
 }
 
@@ -4236,10 +4190,8 @@ void d3d::build_top_acceleration_structure(RaytraceTopAccelerationStructure *as,
     D3D_CONTRACT_ASSERTF_RETURN(tasbi.scratchSpaceBuffer, ,
       "DX12: We now always require a user-provided scratch buffer for AS builds!");
 
-    auto buf = (GenericBufferInterface *)tasbi.instanceBuffer;
-    auto sbuf = (GenericBufferInterface *)tasbi.scratchSpaceBuffer;
-    api_state.device.getContext().raytraceBuildTopAccelerationStructure(1, 0, as, get_any_buffer_ref(buf), tasbi.instanceCount,
-      tasbi.flags, tasbi.doUpdate, BufferResourceReferenceAndAddress{get_any_buffer_ref(sbuf), tasbi.scratchSpaceBufferOffsetInBytes});
+    api_state.device.getContext().raytraceBuildTopAccelerationStructure(1, 0, as, tasbi.instanceBuffer, tasbi.instanceCount,
+      tasbi.flags, tasbi.doUpdate, tasbi.scratchSpaceBuffer, tasbi.scratchSpaceBufferOffsetInBytes);
   }
 }
 
@@ -4264,11 +4216,9 @@ void d3d::build_top_acceleration_structures(::raytrace::BatchedTopAccelerationSt
 
     D3D_CONTRACT_ASSERT_RETURN(elem.as, );
 
-    auto buf = (GenericBufferInterface *)elem.tasbi.instanceBuffer;
-    auto sbuf = (GenericBufferInterface *)elem.tasbi.scratchSpaceBuffer;
-    api_state.device.getContext().raytraceBuildTopAccelerationStructure(as_count, ix, elem.as, get_any_buffer_ref(buf),
-      elem.tasbi.instanceCount, elem.tasbi.flags, elem.tasbi.doUpdate,
-      BufferResourceReferenceAndAddress{get_any_buffer_ref(sbuf), elem.tasbi.scratchSpaceBufferOffsetInBytes});
+    api_state.device.getContext().raytraceBuildTopAccelerationStructure(as_count, ix, elem.as, elem.tasbi.instanceBuffer,
+      elem.tasbi.instanceCount, elem.tasbi.flags, elem.tasbi.doUpdate, elem.tasbi.scratchSpaceBuffer,
+      elem.tasbi.scratchSpaceBufferOffsetInBytes);
   }
 }
 

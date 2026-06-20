@@ -113,7 +113,7 @@ struct PodPool
 
     G_FAST_ASSERT(freeList >= 0);
     if (freeList >= totalElements || freeList < 0)
-      D3D_ERROR("freeList %d is out of range - the pool has %d elements", freeList, totalElements);
+      D3D_ERROR("freeList %d is out of range - the pool has %d of %d elements", freeList, usedElements, totalElements);
 
     int index = freeList;
     freeList = entries[index].link >> 1; // unlink from free list
@@ -223,6 +223,8 @@ public:
     G_FAST_ASSERT(isIndexValid(index));
     if (!(freeList == BAD_HANDLE || isIndexValid(freeList)))
       D3D_ERROR("freeList %d must be either BAD_HANDLE or valid index, pool has %d elements", freeList, totalElements);
+    if (!isIndexValid(index))
+      D3D_ERROR("releaseEntryUnsafe tries to free incorrect entry %d, pool has %d elements", index, totalElements);
     entries[index].link = (freeList << 1) | 1;
     freeList = index;
     G_VERIFY(--usedElements >= 0);

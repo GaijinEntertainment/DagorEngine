@@ -52,11 +52,20 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
       #define handle_if_two_sided(gbuffer)
     #endif
 
+#if RENDINST_IMPOSTOR_VOXEL
+    void simple_painted_ps(VsOutput input,
+      out float4 out_0 : SV_Target0,
+      out float4 out_1 : SV_Target1,
+      out float4 out_2 : SV_Target2,
+      out float  out_3 : SV_Target3
+      INPUT_VFACE HW_USE_SCREEN_POS)
+#else
     #if VOXELIZE_ALBEDO_PASS
       void simple_painted_ps(VsOutput input)
     #else
       GBUFFER_OUTPUT simple_painted_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #endif
+#endif
     {
       #if SET_UP_MULTIDRAW
         INIT_MULTIDRAW(input);
@@ -85,7 +94,12 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
       }
 
       half details = get_paint_scale_bias_mult_details().w * saturate(mask * get_paint_scale_bias_mult_details().x + get_paint_scale_bias_mult_details().y);
-      diffuseColor.rgb  = lerp(diffuseColor.rgb, diffuseColor.rgb * colorMul * get_paint_scale_bias_mult_details().z, details);
+      #if RENDINST_IMPOSTOR_VOXEL
+        half3 coloringMul = diffuseColor.rgb * get_paint_scale_bias_mult_details().z * details / COLOR_CORRECTION_MULTIPLIER;
+        diffuseColor.rgb = lerp(diffuseColor.rgb, 0, details);
+      #else
+        diffuseColor.rgb = lerp(diffuseColor.rgb, diffuseColor.rgb * colorMul * get_paint_scale_bias_mult_details().z, details);
+      #endif
 
       float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
 
@@ -172,7 +186,30 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, use_sheen, ha
         #ifdef PLOD_PS_GEN
           PLOD_PS_GEN(input, pack_gbuffer(gbuffer), normalMap)
         #endif
+#if RENDINST_IMPOSTOR_VOXEL
+        half alpha = 1;
+        ##if atest == atestOn
+          alpha = diffuseColor.a;
+        ##endif
+
+        half coloring = luminance(coloringMul);
+
+        float depth = dot(impostor_depth_proj, float4(worldPos, 1));
+        float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
+        if (depth < sliceDepth + 1) discard;
+
+        out_0.a = alpha;
+        out_0.rgb = gbuffer.albedo.rgb;
+        out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
+        out_1.a = coloring;
+        out_2.r = gbuffer.smoothness;
+        out_2.g = gbuffer.reflectance;
+        out_2.b = gbuffer.metalness;
+        out_2.a = gbuffer.translucency;
+        out_3 = depth;
+#else
         return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+#endif
       #endif
     }
   }

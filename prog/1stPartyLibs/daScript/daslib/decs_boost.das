@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_aot
 options multiple_contexts
 options strict_smart_pointers = true
@@ -57,7 +55,7 @@ class DecsTemplate : AstStructureAnnotation {
     //!   * ``apply_decs_template_arch(arch, eidx, eid, src)`` — writes directly into archetype storage
     //!   * ``create_entities`T(count, blk)`` — bulk creation with direct archetype writes
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
-        if (length(st.fields) == 0) {
+        if (empty(st.fields)) {
             errors := "expecting at least one field in the desc_template {st.name}"
             return false
         }
@@ -152,9 +150,7 @@ def private decs_prefix(arg : AnnotationArgumentList) {
 
 [macro_function]
 def private is_decs_template(v : VariablePtr) {
-    if (v._type.baseType != Type.tStructure) {
-        return ItCheck(no = true)
-    }
+    if (v._type.baseType != Type.tStructure) return ItCheck(no = true)
     var p = v.annotation |> decs_prefix
     if (p is no) {
         for (ann in v._type.structType.annotations) {
@@ -243,7 +239,7 @@ def private append_iterator(arch_name : string; var qloop : ExprFor?; a; prefix,
     qloop.iterators |> resize(qli + 1)
     qloop.iterators[qli] := "{prefix}{a.name}{suffix}"
     qloop.iteratorsAka |> resize(qli + 1)
-    if (typeinfo has_field<_aka>(a)) {
+    static_if (typeinfo has_field<_aka>(a)) {
         qloop.iteratorsAka[qli] := a._aka
     } else {
         qloop.iteratorsAka[qli] := ""
@@ -251,15 +247,13 @@ def private append_iterator(arch_name : string; var qloop : ExprFor?; a; prefix,
     qloop.iteratorsAt |> push(a.at)
     qloop.iteratorsTags |> resize(qli + 1)
     let getter = getter_name(a, const_parent, can_be_optional)
-    if (empty(getter)) {
-        return false
-    }
+    if (empty(getter)) return false
     if (getter == "get_default_ro") {
         qloop.sources |> emplace_new <| qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), $e(a.init)))
     } else {
         var ftype = clone_type(a._type)
-        ftype.flags &= ~TypeDeclFlags.constant
-        ftype.flags &= ~TypeDeclFlags.ref
+        ftype.flags.constant = false
+        ftype.flags.ref = false
         var it = qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>)))
         force_generated(it, true)
         qloop.sources |> emplace <| it
@@ -270,33 +264,31 @@ def private append_iterator(arch_name : string; var qloop : ExprFor?; a; prefix,
 [macro_function]
 def private append_index_lookup(arch_name : string; var qblock : ExprBlock?; a; prefix, suffix : string; const_parent : bool = false; can_be_optional : bool = true) {
     let getter = getter_name(a, const_parent, can_be_optional)
-    if (empty(getter)) {
-        return false
-    }
+    if (empty(getter)) return false
     var iget : ExpressionPtr
     if (getter == "get_default_ro") {
         iget = clone_expression(a.init)
     } else {
         var ftype = clone_type(a._type)
-        ftype.flags &= ~TypeDeclFlags.constant
-        ftype.flags &= ~TypeDeclFlags.ref
+        ftype.flags.constant = false
+        ftype.flags.ref = false
         var getFn = qmacro($c(getter)($i(arch_name), $v("{prefix}{a.name}"), unsafe(type<$t(ftype)>)))
-        getFn.genFlags |= ExprGenFlags.alwaysSafe
+        getFn.genFlags.alwaysSafe = true
         iget = qmacro($e(getFn)[entity_index])
         force_generated(iget, true)
     }
     var vlet = new ExprLet(at = a.at, atInit = a.at)
-    vlet.genFlags |= ExprGenFlags.alwaysSafe
+    vlet.genFlags.alwaysSafe = true
     var vtype = clone_type(a._type)
     if (getter == "get_default_ro") {
-        vtype.flags |= TypeDeclFlags.constant
+        vtype.flags.constant = true
     } elif (getter == "get_ro") {
-        vtype.flags |= TypeDeclFlags.constant
-        // if length(a._type.dim)==0
-        vtype.flags |= TypeDeclFlags.ref
+        vtype.flags.constant = true
+        // if a._type.baseType != Type.tFixedArray
+        vtype.flags.ref = true
     } else {
-        // if length(a._type.dim)==0
-        vtype.flags |= TypeDeclFlags.ref
+        // if a._type.baseType != Type.tFixedArray
+        vtype.flags.ref = true
     }
         // else
         //    macro_error(compiling_program(),a.at,"[] arguments are not supported in eid queries yet")
@@ -372,19 +364,15 @@ class DecsQueryMacro : AstCallMacro {
     //!             apply_decs_template(cmp, [[Particle pos=float3(i), vel=float3(i+1)]])
     def override preVisit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : void {
         let totalArgs = length(expr.arguments)
-        if (totalArgs != 1 && totalArgs != 2) {
-            return
-        }
+        if (totalArgs != 1 && totalArgs != 2) return
         let block_arg_index = totalArgs - 1
-        if (!(expr.arguments[block_arg_index] is ExprMakeBlock)) {
-            return
-        }
+        if (!(expr.arguments[block_arg_index] is ExprMakeBlock)) return
         var mblk = expr.arguments[block_arg_index] as ExprMakeBlock
         var qblk = mblk._block as ExprBlock
         for (arg in qblk.arguments) {
             if (arg._type != null) {
                 if (!arg._type.flags.constant) {
-                    arg._type.flags |= TypeDeclFlags.ref
+                    arg._type.flags.ref = true
                 }
             }
         }
@@ -394,7 +382,7 @@ class DecsQueryMacro : AstCallMacro {
         macro_verify(totalArgs == 1 || totalArgs == 2, prog, expr.at, "expecting query($(block_with_arguments)) or query(eid,$(block_with_arguments))")
         let qt = totalArgs == 2 ? DecsQueryType.eid_query : DecsQueryType.query
         let block_arg_index = totalArgs - 1
-        return <- self->implement(expr, block_arg_index, qt)
+        return <- implement(expr, block_arg_index, qt)
     }
     def implement(var expr : ExprCallMacro?; block_arg_index : int; qt : DecsQueryType) : ExpressionPtr {
         for (arg in expr.arguments) {
@@ -403,7 +391,7 @@ class DecsQueryMacro : AstCallMacro {
         macro_verify(expr.arguments[block_arg_index] is ExprMakeBlock, compiling_program(), expr.at, "expecting $(block_with_arguments)")
         let mblk = expr.arguments[block_arg_index] as ExprMakeBlock
         let qblk = mblk._block as ExprBlock
-        macro_verify(length(qblk.arguments) != 0, compiling_program(), expr.at, "expecting query($(block_with_arguments)), arguments are missing")
+        macro_verify(!empty(qblk.arguments), compiling_program(), expr.at, "expecting query($(block_with_arguments)), arguments are missing")
         let prefix = "__{expr.at.line}_desc"
         let arch_name = "{prefix}_arch"
         var req <- build_req_from_args(qblk)
@@ -423,14 +411,10 @@ class DecsQueryMacro : AstCallMacro {
                 if (detp is yes) {
                     kaboom |> push <| (string(a.name), detp as yes, "_{a.name}")
                     for (f in a._type.structType.fields) {
-                        if (!append_index_lookup(arch_name, qlbody, f, detp as yes, "_{a.name}", a._type.flags.constant, false)) {
-                            return null
-                        }
+                        if (!append_index_lookup(arch_name, qlbody, f, detp as yes, "_{a.name}", a._type.flags.constant, false)) return null
                     }
                 } else {
-                    if (!append_index_lookup(arch_name, qlbody, a, "", "")) {
-                        return null
-                    }
+                    if (!append_index_lookup(arch_name, qlbody, a, "", "")) return null
                 }
             }
             for (l in qblk.list) {
@@ -451,14 +435,10 @@ class DecsQueryMacro : AstCallMacro {
                 if (detp is yes) {
                     kaboom |> push <| (string(a.name), detp as yes, "_{a.name}")
                     for (f in a._type.structType.fields) {
-                        if (!append_iterator(arch_name, qloop, f, detp as yes, "_{a.name}", a._type.flags.constant, false)) {
-                            return null
-                        }
+                        if (!append_iterator(arch_name, qloop, f, detp as yes, "_{a.name}", a._type.flags.constant, false)) return null
                     }
                 } else {
-                    if (!append_iterator(arch_name, qloop, a, "", "")) {
-                        return null
-                    }
+                    if (!append_iterator(arch_name, qloop, a, "", "")) return null
                 }
             }
             var qlbody = new ExprBlock(at = qblk.at)
@@ -481,7 +461,7 @@ class DecsQueryMacro : AstCallMacro {
                 rules |> kaboomVarField(kb._0, kb._1, kb._2)
             }
         }
-        if (length(kaboom) > 0) {
+        if (!empty(kaboom)) {
             apply_template(qtop) $(rules) {
                 for (kb in kaboom) {
                     rules |> replaceVariable(kb._0) <| make_static_assert_false("decs_template variables can only be accessed by fields", expr.at)
@@ -525,9 +505,8 @@ class DecsQueryMacro : AstCallMacro {
             rules |> replaceVariable("tag_loop") <| add_ptr_ref(qtop)
         }
         var qres = move_unquote_block(qblock)
-        assert(length(qres.list) == 1 && length(qres.finalList) == 0)
+        assert(length(qres.list) == 1 && empty(qres.finalList))
         var rqres = qres.list[0]
-        qres := null
         rqres.genFlags.alwaysSafe = true
         return rqres
     }
@@ -558,7 +537,7 @@ class DecsFindQueryMacro : DecsQueryMacro {
     //! Note: if return is missing, or end of find_query block is reached - its assumed that find_query did not find anything, and will return false.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting find_query($(block_with_arguments))")
-        return <- self->implement(expr, 0, DecsQueryType.find_query)
+        return <- implement(expr, 0, DecsQueryType.find_query)
     }
 }
 
@@ -581,17 +560,17 @@ class DecsEcsMacro : AstFunctionAnnotation {
         let passName = argPass as tString
         let passFuncName = "decs`pass`{passName}"
         var blk <- setup_call_list(passFuncName, func.at, false, true)
-        if (length(blk.list) == 0) {
+        if (empty(blk.list)) {
             var reg <- setup_call_list("register`decs`passes", func.at, true, true)
             reg.list |> push(qmacro(decs::register_decs_stage_call($v(passName), @@$c(passFuncName))))
         }
-        func.flags |= FunctionFlags.privateFunction
+        func.flags.privateFunction = true
         blk.list |> push(qmacro($c("_::{func.name}")()))
         var fblk = new ExprBlock(at = func.body.at)                // new function block
         var cqq = make_call(func.at, "query")
         var cquery = cqq as ExprCallMacro
         var qblk = new ExprBlock(at = func.body.at)                // inside the query block
-        qblk.blockFlags |= ExprBlockFlags.isClosure
+        qblk.blockFlags.isClosure = true
         qblk.returnType = new TypeDecl(baseType = Type.tVoid, at = func.at)
         var req, nreq : array<string>
         for (arg in args) {
@@ -666,12 +645,21 @@ class FromDecsMacro : AstCallMacro {
     //!             res |> push((index, text))
     //!         })
     //!         return res.to_sequence()
+    //!
+    //! When this iterator is consumed by a daslib/linq_fold chain (`_fold(from_decs(...).where_(...).count())`,
+    //! etc.) the chain splice in plan_decs_unroll recognizes the expanded shape via extract_decs_bridge
+    //! and fuses where/select/take/distinct/group_by/order_by/reverse + the final terminator into a
+    //! single for_each_archetype loop with inline accumulator — no array<tuple> materialization. The
+    //! splice is shape-based: the same recognizer matches both this macro and from_decs_template
+    //! (which differs only in deriving the field list from a [decs_template] struct). Wave 4 component
+    //! pruning also fires: if the chain only references a subset of the lambda's declared args, the
+    //! emitted for-loop drops the unused get_ro slots.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
         macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting from_decs($(block_with_arguments))")
         macro_verify(expr.arguments[0] is ExprMakeBlock, prog, expr.at, "expecting from_decs($(block_with_arguments))")
         let mblk = expr.arguments[0] as ExprMakeBlock
         let qblk = mblk._block as ExprBlock
-        macro_verify(length(qblk.arguments) != 0, prog, expr.at, "expecting from_decs($(block_with_arguments)), arguments are missing")
+        macro_verify(!empty(qblk.arguments), prog, expr.at, "expecting from_decs($(block_with_arguments)), arguments are missing")
         for (arg in qblk.arguments) {
             macro_verify(!arg._type.isAutoOrAlias, prog, expr.at, "argument types are not fully inferred")
         }
@@ -680,8 +668,8 @@ class FromDecsMacro : AstCallMacro {
         tupleType.argNames.resize(qblk.arguments.length())
         for (arg, idx in qblk.arguments, count()) {
             tupleType.argTypes |> emplace_new(clone_type(arg._type))
-            tupleType.argTypes[idx].flags &= ~TypeDeclFlags.ref
-            tupleType.argTypes[idx].flags &= ~TypeDeclFlags.constant
+            tupleType.argTypes[idx].flags.ref = false
+            tupleType.argTypes[idx].flags.constant = false
             tupleType.argNames[idx] := arg.name
 
         }
@@ -698,20 +686,106 @@ class FromDecsMacro : AstCallMacro {
         })
         var qba = qblock as ExprMakeBlock
         var qbb = qba._block as ExprBlock
-        qbb.blockFlags |= ExprBlockFlags.isClosure
+        qbb.blockFlags.isClosure = true
         for (arg, idx in qblk.arguments, count()) {
             qbb.arguments |> emplace_new <| new Variable(at = arg.at,
                 name := arg.name,
                 _type = clone_type(arg._type),
                 init = clone_expression(arg.init)
             )
-            qbb.arguments[idx]._type.flags &= ~TypeDeclFlags.ref
-            qbb.arguments[idx]._type.flags |= TypeDeclFlags.constant
+            qbb.arguments[idx]._type.flags.ref = false
+            qbb.arguments[idx]._type.flags.constant = true
         }
         // call macro query
         var callquery = make_call(expr.at, "query")
         (callquery as ExprCallMacro).arguments |> push(clone_expression(qblock))
         // final output
+        return qmacro(
+            invoke(${
+                var res : array<$t(tupleType)>
+                $e(callquery)
+                return res.to_sequence()
+            })
+        )
+    }
+}
+
+[call_macro(name="from_decs_template")]
+class FromDecsTemplateMacro : AstCallMacro {
+    //! This macro converts a DECS query over a ``[decs_template]`` struct into an ``iterator<tuple<...>>``.
+    //! The field list (names and types) is derived from the struct definition; component names are
+    //! the struct's prefix (per ``[decs_template(prefix=...)]``) joined with each field name. For example::
+    //!
+    //!     [decs_template(prefix="particle_")]
+    //!     struct Particle { pos, vel : float3 }
+    //!     let it = from_decs_template(type<Particle>)
+    //!     for (item in it) {
+    //!         print("pos {item.pos}, vel {item.vel}\n")
+    //!     }
+    //!
+    //! This is the eager bridge form — equivalent to writing
+    //! ``from_decs($(particle_pos : float3; particle_vel : float3){})`` by hand and projecting back into
+    //! field names. Tuple element types are by-value (the query's archetype refs do not outlive the
+    //! invoke block).
+    def override visit(prog : ProgramPtr; mod : Module?; var expr : ExprCallMacro?) : ExpressionPtr {
+        macro_verify(length(expr.arguments) == 1, prog, expr.at, "expecting from_decs_template(type<Foo>)")
+        macro_verify(expr.arguments[0] is ExprTypeDecl, prog, expr.at, "expecting from_decs_template(type<Foo>), got {expr.arguments[0].__rtti}")
+        let typeExpr = expr.arguments[0] as ExprTypeDecl
+        let td = typeExpr.typeexpr
+        macro_verify(td != null && td.baseType == Type.tStructure, prog, expr.at, "from_decs_template expects type<Struct>, got non-struct type")
+        let st = td.structType
+        macro_verify(st != null, prog, expr.at, "from_decs_template: struct type is not resolved")
+        // Resolve [decs_template] annotation + prefix
+        var prefix = ""
+        var hasTemplate = false
+        for (ann in st.annotations) {
+            if (ann.annotation.name == "decs_template") {
+                hasTemplate = true
+                let ppref = ann.arguments |> decs_prefix
+                prefix = (ppref is yes) ? (ppref as yes) : "{st.name}_"
+                break
+            }
+        }
+        macro_verify(hasTemplate, prog, expr.at, "from_decs_template: struct {st.name} is not annotated with [decs_template]")
+        macro_verify(!empty(st.fields), prog, expr.at, "from_decs_template: struct {st.name} has no fields")
+        // Tuple type (field names as record names, by-value types stripped of ref/const)
+        var tupleType = new TypeDecl(baseType = Type.tTuple, at = expr.at)
+        tupleType.argNames.resize(length(st.fields))
+        for (fld, idx in st.fields, count()) {
+            var ft = clone_type(fld._type)
+            ft.flags.ref = false
+            ft.flags.constant = false
+            tupleType.argTypes |> emplace_new(ft)
+            tupleType.argNames[idx] := fld.name
+        }
+        // Tuple constructor: pull each prefixed component into a record-named field
+        var mkTuple = new ExprMakeTuple(at = expr.at)
+        mkTuple.recordNames.resize(length(st.fields))
+        for (fld, idx in st.fields, count()) {
+            mkTuple.values |> push(new ExprVar(at = fld.at, name := "{prefix}{fld.name}"))
+            mkTuple.recordNames[idx] := fld.name
+        }
+        // Query block: one arg per field, name = prefixed component, type = const non-ref
+        // fld.init (if set) clones in so the query macro picks get_default_ro
+        var qblock = qmacro(${
+            res |> push($e(mkTuple))
+        })
+        var qba = qblock as ExprMakeBlock
+        var qbb = qba._block as ExprBlock
+        qbb.blockFlags.isClosure = true
+        for (fld in st.fields) {
+            var argType = clone_type(fld._type)
+            argType.flags.ref = false
+            argType.flags.constant = true
+            qbb.arguments |> emplace_new <| new Variable(at = fld.at,
+                name := "{prefix}{fld.name}",
+                _type = argType,
+                init = clone_expression(fld.init)
+            )
+        }
+        // Call query macro and wrap in invoke
+        var callquery = make_call(expr.at, "query")
+        (callquery as ExprCallMacro).arguments |> push(clone_expression(qblock))
         return qmacro(
             invoke(${
                 var res : array<$t(tupleType)>

@@ -44,7 +44,7 @@ def anim_replay_update_animchar(evt : UpdateStageInfoAct;
         geomtree_calcWtmForBranch(*animchar.nodeTree, 0)
         animchar_copy_nodes(animchar, animchar_node_wtm, animchar_render__root_pos)
 
-def apply_tracked_anim_state_params(var anim_state : IAnimStateHolder; anim_params : Array; frame_idx : int)
+def apply_tracked_anim_state_params(var anim_state : AnimGraphStateHolder; anim_params : Array; frame_idx : int)
   for animParamChildComp in anim_params
     assume animParam = *get_ecs_object(animParamChildComp)
     let paramId = *get_int(animParam, "id")
@@ -52,7 +52,7 @@ def apply_tracked_anim_state_params(var anim_state : IAnimStateHolder; anim_para
     let paramValue = paramValues[frame_idx]
     anim_state_holder_setParam(anim_state, paramId, paramValue)
 
-def apply_interpolated_anim_state_params(var anim_state : IAnimStateHolder;
+def apply_interpolated_anim_state_params(var anim_state : AnimGraphStateHolder;
                                          anim_params : Array;
                                          prev_frame_idx : int;
                                          next_frame_idx : int;
@@ -78,7 +78,7 @@ def apply_interpolated_anim_state_params(var anim_state : IAnimStateHolder;
       paramValue = lerp(paramValues[prev_frame_idx], paramValues[next_frame_idx], interpK)
     anim_state_holder_setParam(anim_state, paramId, paramValue)
 
-def apply_precise_anim_state_params(var anim_state : IAnimStateHolder;
+def apply_precise_anim_state_params(var anim_state : AnimGraphStateHolder;
                                     precise_anim_params : Array;
                                     t : float)
   unsafe
@@ -212,7 +212,7 @@ def anim_replay_update_anim_state(evt : UpdateStageInfoAct;
       if anim_replay__prevTime > anim_replay__currentTime
         animchar_act(animchar, 0f, true)
 
-def update_anim_state_cache(anim_graph : AnimationGraph; anim_state : IAnimStateHolder; current_time : float; var animchar_data : Object)
+def update_anim_state_cache(anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; current_time : float; var animchar_data : Object)
   let CACHE_TIME = fixed_array(1f, 5f, 30f)
   if get_ecs_array(animchar_data, "cachedAnimStateParams") == null
     using() <| $(var cache : Array)

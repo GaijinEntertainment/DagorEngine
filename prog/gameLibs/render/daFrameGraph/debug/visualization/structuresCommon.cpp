@@ -399,7 +399,7 @@ const char *texture_flags_descr(const int flags)
   static String res;
   res.clear();
 
-  const int createFlags = flags & ~TEXFMT_MASK & ~TEXCF_TYPEMASK;
+  const int createFlags = flags & ~TEXFMT_MASK;
   if (createFlags == TEXCF_READONLY)
   {
     res.append("READONLY\n");
@@ -410,6 +410,7 @@ const char *texture_flags_descr(const int flags)
   if (createFlags & TEXCF_##x) \
     res.append(#x "\n");
 
+    VAR(RTARGET)
     VAR(UNORDERED)
     VAR(VARIABLE_RATE)
     VAR(UPDATE_DESTINATION)
@@ -502,6 +503,23 @@ const char *buffer_flags_descr(const int flags)
 #undef VAR
 
   return res.c_str();
+}
+
+const char *buffer_bind_name(const int flags)
+{
+#define VAR(x)               \
+  if (flags & SBCF_BIND_##x) \
+    return #x;
+
+  VAR(VERTEX)
+  VAR(INDEX)
+  VAR(CONSTANT)
+  VAR(SHADER_RES)
+  VAR(UNORDERED)
+
+#undef VAR
+
+  return "none";
 }
 
 

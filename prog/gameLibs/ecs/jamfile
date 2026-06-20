@@ -15,6 +15,7 @@ Dependencies =
   $(Root)/$(Location)/scripts/sq/jamfile
   $(Root)/$(Location)/game/weapons/jamfile
   $(Root)/$(Location)/gamePhys/jamfile
+  $(Root)/$(Location)/net/jamfile
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

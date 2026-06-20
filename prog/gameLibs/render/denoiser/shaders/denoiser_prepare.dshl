@@ -129,11 +129,33 @@ shader denoiser_prepare
       texture2DAt(viewZTexture, dtid.xy) = viewZ;
       texture2DAt(nrTexture, dtid.xy) = normalRoughness;
       ##if denoiser_half_res == yes
-        if (all(dtid.xy & 1) == 0 && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
+        if (all((dtid.xy & 1) == 0) && all(dtid.xy / 2 < resolution / 2)) // TODO: Remove second check when we ceil resolution scaling.
         {
           float rawHalfDepth = texture2DAt(halfResDepthTex, dtid.xy / 2).r;
           float halfViewZ = rawHalfDepth > 0 ? linearize_z(rawHalfDepth, zn_zfar.zw) : INF;
           texture2DAt(halfZTexture, dtid.xy / 2) = halfViewZ;
+
+          float4 depths;
+          depths.x = loadGbufferDepth(dtid + uint2(0, 0));
+          depths.y = loadGbufferDepth(dtid + uint2(1, 0));
+          depths.z = loadGbufferDepth(dtid + uint2(0, 1));
+          depths.w = loadGbufferDepth(dtid + uint2(1, 1));
+          bool4 depthMask = depths == rawHalfDepth;
+          uint2 halfResOffset = depthMask.x ? uint2(0, 0) : (depthMask.y ? uint2(1, 0) : (depthMask.z ? uint2(0, 1) : uint2(1, 1)));
+
+          unpacked_gbuffer = unpackGbuffer(loadPackedGbuffer(dtid + halfResOffset));
+          ProcessedGbuffer gbuffer = processGbuffer(unpacked_gbuffer);
+
+          materialID = 0;
+          if (gbuffer.isGrass || gbuffer.isFoliage)
+            materialID = STRAND_MATERIAL_ID;
+          ##if gbuffer_has_hero_cockpit
+          if (gbuffer.isHeroCockpit)
+            materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
+          ##endif
+          if (halfViewZ < denoiser_camera_attached_radius)
+            materialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
+
           float4 halfNormal = texture2DAt(halfNormalsTexture, dtid.xy / 2);
           halfNormal.xyz = normalize(halfNormal.xyz * 2 - 1);
           float roughness = 1-halfNormal.w;

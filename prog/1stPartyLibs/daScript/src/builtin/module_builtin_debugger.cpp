@@ -318,29 +318,29 @@ namespace debugger {
                 return true;
             }
         }
-        virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t count ) override {
+        virtual bool canVisitArrayData ( TypeInfo * ti, uint64_t count ) override {
             if ( auto fn_canVisitArrayData = get_canVisitArrayData(classPtr) ) {
                 return invoke_canVisitArrayData(context,fn_canVisitArrayData,classPtr,*ti,count);
             } else {
                 return true;
             }
         }
-        virtual void beforeArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) override {
+        virtual void beforeArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) override {
             if ( auto fn_beforeArrayData = get_beforeArrayData(classPtr) ) {
                 invoke_beforeArrayData(context,fn_beforeArrayData,classPtr,pa,stride,count,*ti);
             }
         }
-        virtual void afterArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) override {
+        virtual void afterArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) override {
             if ( auto fn_afterArrayData = get_afterArrayData(classPtr) ) {
                 invoke_afterArrayData(context,fn_afterArrayData,classPtr,pa,stride,count,*ti);
             }
         }
-        virtual void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) override {
+        virtual void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) override {
             if ( auto fn_beforeArrayElement = get_beforeArrayElement(classPtr) ) {
                 invoke_beforeArrayElement(context,fn_beforeArrayElement,classPtr,pa,*ti,pe,index,last);
             }
         }
-        virtual void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) override {
+        virtual void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) override {
             if ( auto fn_afterArrayElement = get_afterArrayElement(classPtr) ) {
                 invoke_afterArrayElement(context,fn_afterArrayElement,classPtr,pa,*ti,pe,index,last);
             }
@@ -384,22 +384,22 @@ namespace debugger {
                 invoke_beforeTable(context,fn_beforeTable,classPtr,*pa,*ti);
             }
         }
-        virtual void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) override {
+        virtual void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) override {
            if ( auto fn_beforeTableKey = get_beforeTableKey(classPtr) ) {
                 invoke_beforeTableKey(context,fn_beforeTableKey,classPtr,*pa,*ti,pk,*ki,index,last);
             }
         }
-        virtual void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) override {
+        virtual void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) override {
            if ( auto fn_afterTableKey = get_afterTableKey(classPtr) ) {
                 invoke_afterTableKey(context,fn_afterTableKey,classPtr,*pa,*ti,pk,*ki,index,last);
             }
         }
-        virtual void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) override {
+        virtual void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) override {
            if ( auto fn_beforeTableValue = get_beforeTableValue(classPtr) ) {
                 invoke_beforeTableValue(context,fn_beforeTableValue,classPtr,*pa,*ti,pv,*kv,index,last);
             }
         }
-        virtual void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) override {
+        virtual void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) override {
            if ( auto fn_afterTableValue = get_afterTableValue(classPtr) ) {
                 invoke_afterTableValue(context,fn_afterTableValue,classPtr,*pa,*ti,pv,*kv,index,last);
             }

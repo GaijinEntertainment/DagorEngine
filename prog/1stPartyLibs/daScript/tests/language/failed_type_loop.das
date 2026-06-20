@@ -4,7 +4,7 @@
 options gen2
 options max_infer_passes = 5
 
-expect 41000
+expect 30507
 
 def infinite(a : auto(ptrt)?) {
     let t : ptrt ??

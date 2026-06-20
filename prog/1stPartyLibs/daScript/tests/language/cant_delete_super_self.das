@@ -1,6 +1,6 @@
 // delete super.self error cases — covers every validation branch.
 options gen2
-expect 31002:6, 30305:6, 30503:6
+expect 30144:2, 30808:6, 30827, 30838:6, 30920:3
 
 class Base {
 }

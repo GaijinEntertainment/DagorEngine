@@ -23,18 +23,14 @@ def updateCOP(var cop : CodeOfPolicies; gen2 : bool; gen2_make : bool; aot_lib :
 
 def find_argument_or(args : array<string>; key : string, def_val : string) {
     for (i in range(length(args) - 1)) {
-        if (args[i] == key) {
-            return args[i + 1]
-        }
+        if (args[i] == key) return args[i + 1]
     }
     return def_val
 }
 
 def find_argument(args : array<string>; key : string) {
     for (i in range(length(args) - 1)) {
-        if (args[i] == key) {
-            return args[i + 1]
-        }
+        if (args[i] == key) return args[i + 1]
     }
     panic("expected {key} argument!")
     return ""
@@ -88,9 +84,7 @@ def parse_input_file(filename : string) {
         }
         fread(fr) $(data) {
             for (line in normalize_line_endings(string(data)) |> split("\n")) {
-                if (line.empty()) {
-                    continue
-                }
+                if (line.empty()) continue
                 // aot/ctx in.das out.cpp
                 let parts = line |> split(" ")
                 let mode = parts[0]
@@ -117,7 +111,7 @@ def find_bool(args : array<string>; key : string) {
 def write_result(content : string; output_filename : string;
                  mode : string; force_overwrite : bool) {
     var result : bool = true
-    if (content |> length() > 0 && (force_overwrite || !is_content_same(content, output_filename))) {
+    if (content |> !empty(content) && (force_overwrite || !is_content_same(content, output_filename))) {
         fopen(output_filename, "wb") $(fw) {
             if (fw != null) {
                 to_log(LOG_INFO, "{mode} to {output_filename}\n")

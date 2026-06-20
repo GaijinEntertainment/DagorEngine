@@ -430,7 +430,7 @@ class DAGOR_OP_CmpImport(Operator):
             try:
                 assets = read_cache()
             except:
-                asset = build_cache()
+                assets = build_cache()
                 log('Can not read the cached paths, updating...\n', type = 'WARNING')
         dags_to_import.clear()
         cmp_to_import.clear()

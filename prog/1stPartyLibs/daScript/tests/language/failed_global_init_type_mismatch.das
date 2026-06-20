@@ -4,7 +4,7 @@
 options gen2
 // options log=true, log_infer_passes=false, optimize=true
 
-expect 30113
+expect 30344
 
 struct Foo {
     i : int = 5

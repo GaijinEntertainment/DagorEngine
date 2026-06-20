@@ -35,8 +35,9 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(secondType)>("secondType");
             addField<DAS_BIND_MANAGED_FIELD(argTypes)>("argTypes");
             addField<DAS_BIND_MANAGED_FIELD(argNames)>("argNames");
-            addField<DAS_BIND_MANAGED_FIELD(dim)>("dim");
-            addField<DAS_BIND_MANAGED_FIELD(dimExpr)>("dimExpr");
+            addField<DAS_BIND_MANAGED_FIELD(fixedDim)>("fixedDim");
+            addField<DAS_BIND_MANAGED_FIELD(fixedDimExpr)>("fixedDimExpr");
+            addField<DAS_BIND_MANAGED_FIELD(typeMacroExpr)>("typeMacroExpr");
             addFieldEx ( "flags", "flags", offsetof(TypeDecl, flags), makeTypeDeclFlags() );
             addField<DAS_BIND_MANAGED_FIELD(alias)>("alias");
             addField<DAS_BIND_MANAGED_FIELD(at)>("at");

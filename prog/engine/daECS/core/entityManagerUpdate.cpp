@@ -35,7 +35,6 @@ void init_profiler_tokens()
 
 void EntityManager::update(const ecs::UpdateStageInfo &info)
 {
-  G_ASSERTF(lastEsGen == EntitySystemDesc::generation, "setEsOrder was not called");
   if (info.stage >= esUpdates.size()) // unlikely to happen, just sanity change
     return;
     // reference implementation

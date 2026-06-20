@@ -21,6 +21,7 @@ source
   file:t = "../rendinst_clipmap.dshl"
   file:t = "../heightmap_patches.dshl"
   file:t = "spline_solid.dshl"
+  file:t = "rendinst_voxel.dshl"
 
   include rendinstImpostorbakeableShadersList.blk
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daScript/ast/ast_typefactory.h"
+#include "daScript/simulate/runtime_iterator.h"
 #include "daScript/simulate/jit_abi.h"
 #include "daScript/misc/free_list.h"
 #include "daScript/misc/gc_node.h"
@@ -28,6 +29,7 @@ namespace das {
 
     typedef das_map<string,TypeDeclPtr> AliasMap;
     typedef das_map<TypeDecl *,int> OptionsMap;
+    typedef vector<pair<string,string>> AliasDefs;
 
     class Visitor;
 
@@ -73,6 +75,7 @@ namespace das {
         __forceinline bool isSimpleType () const;
         __forceinline bool isSimpleType ( Type typ ) const;
         __forceinline bool isArray() const;
+        __forceinline bool isFixedArray() const;
         __forceinline bool isGoodIteratorType() const;
         __forceinline bool isGoodArrayType() const;
         __forceinline bool isGoodTableType() const;
@@ -150,7 +153,7 @@ namespace das {
         int getVariantFieldOffset ( int index ) const;
         int getVariantUniqueFieldIndex ( const TypeDeclPtr & uniqueType ) const;
         int getVectorFieldOffset ( int index ) const;
-        string describe ( DescribeExtra extra = DescribeExtra::yes, DescribeContracts contracts = DescribeContracts::yes, DescribeModule module = DescribeModule::yes) const;
+        string describe ( DescribeExtra extra = DescribeExtra::yes, DescribeContracts contracts = DescribeContracts::yes, DescribeModule module = DescribeModule::yes, AliasDefs * aliasDefs = nullptr, bool topAlias = true ) const;
         bool canCloneFromConst() const;
         __forceinline bool canCopy() const { return canCopy(false); }
         bool canCopy(bool tempMatters) const;
@@ -222,7 +225,8 @@ namespace das {
         static void applyRefToRef ( const TypeDeclPtr & TT, bool topLevel = false );
         static void updateAliasMap ( const TypeDeclPtr & decl, const TypeDeclPtr & pass, AliasMap & aliases, OptionsMap & options );
         Type getRangeBaseType() const;
-        TypeDecl * findAlias ( const string & name, bool allowAuto = false );
+        TypeDecl * findAlias ( const string & name, bool allowAuto = false, bool * constUnderDim = nullptr );
+        bool computeAliasCache();     // eager full walk, populates aliasCacheValid/aliasCacheHasAlias on every visited node; returns true if subtree contains any alias
         int findArgumentIndex(const string & name) const;
         int tupleFieldIndex( const string & name ) const;
         int variantFieldIndex( const string & name ) const;
@@ -253,8 +257,13 @@ namespace das {
         TypeDeclPtr             secondType = nullptr;     // map.second
         vector<TypeDeclPtr>     argTypes;       // block arguments
         vector<string>          argNames;
-        vector<int32_t>         dim;
-        vector<ExpressionPtr>   dimExpr;
+        // tFixedArray rework (FIXED_ARRAY_REWORK.md): fixedDim/fixedDimExpr are meaningful
+        // only on baseType==tFixedArray nodes (one size per node, element in firstType,
+        // dimAuto/dimConst sentinels apply). typeMacroExpr carries the typeMacro/typeDecl/tag
+        // payload (dimExpr's old duty).
+        int32_t                 fixedDim = 0;
+        ExpressionPtr           fixedDimExpr = nullptr;
+        vector<ExpressionPtr>   typeMacroExpr;
         union {
             struct {
                 bool    ref : 1 ;
@@ -275,6 +284,16 @@ namespace das {
                 bool    explicitRef : 1;
                 bool    isPrivateAlias : 1;    // this is a private alias. only matters in the context of module aliasTypes (for now)
                 bool    autoToAlias : 1;       // this allows conversion of auto to alias
+                bool    safeWhenUninitialized : 1; // exempt this type from "Uninitialized variable/field is unsafe" — analog of struct-level safe_when_uninitialized for tuples / variants / aliases
+                bool    enumStubBinding : 1;    // marks a parameter TypeDecl produced from a C++ EnumStub*/EnumStub*u
+                                                //  binding (set by typeFactory<EnumStub*[u]>). Used together with
+                                                //  enumStubIsUnsigned to dispatch enum→int casts by underlying signedness.
+                bool    enumStubIsUnsigned : 1; // when enumStubBinding is set: true if the binding expects an
+                                                //  unsigned-underlying enum (uint8/uint16/uint64). Lets `int(uint8Enum)`
+                                                //  resolve to enum8u_to_int instead of enum8_to_int so the byte
+                                                //  zero-extends instead of sign-extending.
+                bool    aliasCacheValid : 1;    // findAlias subtree cache validity flag
+                bool    aliasCacheHasAlias : 1; // findAlias subtree cache result (only meaningful when aliasCacheValid)
             };
             uint32_t flags = 0;
         };
@@ -305,6 +324,9 @@ namespace das {
     template<> struct ToBasicType<EnumStub8>    { enum { type = Type::tEnumeration8 }; };
     template<> struct ToBasicType<EnumStub16>   { enum { type = Type::tEnumeration16 }; };
     template<> struct ToBasicType<EnumStub64>   { enum { type = Type::tEnumeration64 }; };
+    template<> struct ToBasicType<EnumStub8u>   { enum { type = Type::tEnumeration8 }; };
+    template<> struct ToBasicType<EnumStub16u>  { enum { type = Type::tEnumeration16 }; };
+    template<> struct ToBasicType<EnumStub64u>  { enum { type = Type::tEnumeration64 }; };
     template<> struct ToBasicType<Sequence>     { enum { type = Type::tIterator }; };
     template<> struct ToBasicType<Sequence *>   { enum { type = Type::tIterator }; };
     template<> struct ToBasicType<void *>       { enum { type = Type::tPointer }; };
@@ -321,7 +343,12 @@ namespace das {
     template<> struct ToBasicType<float>        { enum { type = Type::tFloat }; };
     template<> struct ToBasicType<void>         { enum { type = Type::tVoid }; };
     template<> struct ToBasicType<char>         { enum { type = Type::tInt8 }; };
-#if defined(_MSC_VER)
+#if defined(_WIN32)
+    // Broadened from _MSC_VER to cover mingw (clang-mingw64 + gcc-mingw) too —
+    // Windows LLP64 makes `long`/`unsigned long` 32-bit regardless of compiler.
+    // Without this, dasClangBind fails to build on mingw because libclang's
+    // CXUnsavedFile::Length (unsigned long) hits the primary template's
+    // static_assert.
     template<> struct ToBasicType<long>             { enum { type = Type::tInt }; };
     template<> struct ToBasicType<unsigned long>    { enum { type = Type::tUInt }; };
     template<> struct ToBasicType<long double>      { enum { type = Type::tDouble }; };
@@ -374,6 +401,66 @@ namespace das {
             auto t = new TypeDecl();
             t->baseType = Type( ToBasicType<TT>::type );
             t->constant = is_const<TT>::value;
+            return t;
+        }
+    };
+
+    // EnumStub*/EnumStub*u — bindings carry the enumStubBinding marker so overload
+    // resolution can dispatch enum→int casts by underlying signedness. The 32-bit
+    // tEnumeration variant is unaffected by sign-extension and stays generic.
+    template <>
+    struct typeFactory<EnumStub8> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration8);
+            t->enumStubBinding = true;
+            return t;
+        }
+    };
+
+    template <>
+    struct typeFactory<EnumStub16> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration16);
+            t->enumStubBinding = true;
+            return t;
+        }
+    };
+
+    template <>
+    struct typeFactory<EnumStub64> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration64);
+            t->enumStubBinding = true;
+            return t;
+        }
+    };
+
+    template <>
+    struct typeFactory<EnumStub8u> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration8);
+            t->enumStubBinding = true;
+            t->enumStubIsUnsigned = true;
+            return t;
+        }
+    };
+
+    template <>
+    struct typeFactory<EnumStub16u> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration16);
+            t->enumStubBinding = true;
+            t->enumStubIsUnsigned = true;
+            return t;
+        }
+    };
+
+    template <>
+    struct typeFactory<EnumStub64u> {
+        static ___noinline TypeDeclPtr make(const ModuleLibrary &) {
+            auto t = new TypeDecl(Type::tEnumeration64);
+            t->enumStubBinding = true;
+            t->enumStubIsUnsigned = true;
             return t;
         }
     };
@@ -537,12 +624,22 @@ namespace das {
     template <typename TT, int size>
     struct TDim;
 
+    // FIXED_ARRAY_REWORK.md, 1c: wrap an element type in a tFixedArray node, hoisting the
+    // canonical qualifiers — ref/const/temporary live on the outermost FA node only
+    inline TypeDeclPtr makeFixedArrayTypeDecl ( int32_t size, TypeDeclPtr element ) {
+        auto fa = new TypeDecl(Type::tFixedArray);
+        fa->fixedDim = size;
+        fa->firstType = element;
+        fa->ref = element->ref;             element->ref = false;
+        fa->constant = element->constant;   element->constant = false;
+        fa->temporary = element->temporary; element->temporary = false;
+        return fa;
+    }
+
     template <typename TT, int size>
     struct typeFactory<TDim<TT,size>> {
         static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
-            auto t = typeFactory<TT>::make(lib);
-            t->dim.push_back(size);
-            return t;
+            return makeFixedArrayTypeDecl(size, typeFactory<TT>::make(lib));
         }
     };
 
@@ -575,8 +672,9 @@ namespace das {
     template <typename TT, int dim>
     struct typeFactory<TT[dim]> {
         static ___noinline TypeDeclPtr make(const ModuleLibrary & lib) {
-            auto t = typeFactory<TT>::make(lib);
-            t->dim.push_back(dim);
+            // natural recursion maps C int[3][4] to FA(3, FA(4, int)) — outermost first
+            // (the old dim-vector push produced the inner-first order, a latent bug)
+            auto t = makeFixedArrayTypeDecl(dim, typeFactory<TT>::make(lib));
             t->ref = false;
             t->isNativeDim = true;
             return t;
@@ -702,12 +800,12 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isRange() const {
-        return (baseType==Type::tRange || baseType==Type::tURange ||
-            baseType==Type::tRange64 || baseType==Type::tURange64) && dim.size()==0;
+        return baseType==Type::tRange || baseType==Type::tURange ||
+            baseType==Type::tRange64 || baseType==Type::tURange64;
     }
 
     __forceinline bool TypeDecl::isString() const {
-        return (baseType==Type::tString) && dim.size()==0;
+        return baseType==Type::tString;
     }
 
     __forceinline bool TypeDecl::isSimpleType(Type typ) const {
@@ -715,7 +813,11 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isArray() const {
-        return (bool) dim.size();
+        return baseType==Type::tFixedArray;
+    }
+
+    __forceinline bool TypeDecl::isFixedArray() const {
+        return baseType==Type::tFixedArray;
     }
 
     __forceinline bool TypeDecl::isRef() const {
@@ -727,23 +829,23 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isHandle() const {
-        return (baseType==Type::tHandle) && (dim.size()==0);
+        return baseType==Type::tHandle;
     }
 
     __forceinline bool TypeDecl::isStructure() const {
-        return (baseType==Type::tStructure) && (dim.size()==0);
+        return baseType==Type::tStructure;
     }
 
     __forceinline bool TypeDecl::isTuple() const {
-        return (baseType==Type::tTuple) && (dim.size()==0);
+        return baseType==Type::tTuple;
     }
 
     __forceinline bool TypeDecl::isFunction() const {
-        return (baseType==Type::tFunction) && (dim.size()==0);
+        return baseType==Type::tFunction;
     }
 
     __forceinline bool TypeDecl::isVariant() const {
-        return (baseType==Type::tVariant) && (dim.size()==0);
+        return baseType==Type::tVariant;
     }
 
     __forceinline bool TypeDecl::isMoveableValue() const {
@@ -758,47 +860,47 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isGoodIteratorType() const {
-        return baseType==Type::tIterator && dim.size()==0 && firstType;
+        return baseType==Type::tIterator && firstType;
     }
 
     __forceinline bool TypeDecl::isGoodBlockType() const {
-        return baseType==Type::tBlock && dim.size()==0;
+        return baseType==Type::tBlock;
     }
 
     __forceinline bool TypeDecl::isGoodFunctionType() const {
-        return baseType==Type::tFunction && dim.size()==0;
+        return baseType==Type::tFunction;
     }
 
     __forceinline bool TypeDecl::isGoodLambdaType() const {
-        return baseType==Type::tLambda && dim.size()==0;
+        return baseType==Type::tLambda;
     }
 
     __forceinline bool TypeDecl::isGoodArrayType() const {
-        return baseType==Type::tArray && dim.size()==0 && firstType;
+        return baseType==Type::tArray && firstType;
     }
 
     __forceinline bool TypeDecl::isGoodTupleType() const {
-        return baseType==Type::tTuple && dim.size()==0;
+        return baseType==Type::tTuple;
     }
 
     __forceinline bool TypeDecl::isGoodVariantType() const {
-        return baseType==Type::tVariant && dim.size()==0;
+        return baseType==Type::tVariant;
     }
 
     __forceinline bool TypeDecl::isGoodTableType() const {
-        return baseType==Type::tTable && dim.size()==0 && firstType && secondType;
+        return baseType==Type::tTable && firstType && secondType;
     }
 
     __forceinline bool TypeDecl::isVoid() const {
-        return (baseType==Type::tVoid) && (dim.size()==0);
+        return baseType==Type::tVoid;
     }
 
     __forceinline bool TypeDecl::isPointer() const {
-        return (baseType==Type::tPointer) && (dim.size()==0);
+        return baseType==Type::tPointer;
     }
 
     __forceinline bool TypeDecl::isSmartPointer() const {
-        return (baseType==Type::tPointer) && (smartPtr) && (dim.size()==0);
+        return (baseType==Type::tPointer) && smartPtr;
     }
 
     __forceinline bool TypeDecl::isVoidPointer() const {
@@ -806,17 +908,16 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isBitfield() const {
-        return ((baseType==Type::tBitfield) || (baseType==Type::tBitfield8) ||
-                (baseType==Type::tBitfield16) || (baseType==Type::tBitfield64))
-            && (dim.size()==0);
+        return (baseType==Type::tBitfield) || (baseType==Type::tBitfield8) ||
+                (baseType==Type::tBitfield16) || (baseType==Type::tBitfield64);
     }
 
     __forceinline bool TypeDecl::isIterator() const {
-        return (baseType==Type::tIterator) && (dim.size()==0);
+        return baseType==Type::tIterator;
     }
 
     __forceinline bool TypeDecl::isLambda() const {
-        return (baseType==Type::tLambda) && (dim.size()==0);
+        return baseType==Type::tLambda;
     }
 
     __forceinline bool TypeDecl::isEnumT() const {
@@ -825,11 +926,10 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isEnum() const {
-        return isEnumT() && (dim.size()==0);
+        return isEnumT();
     }
 
     __forceinline bool TypeDecl::isVectorType() const {
-        if ( dim.size() ) return false;
         return isBaseVectorType();
     }
 

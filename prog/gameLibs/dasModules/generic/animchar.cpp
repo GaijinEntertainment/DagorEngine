@@ -16,6 +16,7 @@ DAS_BASE_BIND_ENUM_98(AnimcharVisbits, AnimcharVisbits, VISFLG_WITHIN_RANGE, VIS
 
 DAS_BASE_BIND_ENUM_98(::AnimV20::FifoMorphType, FifoMorphType, MT_LINEAR, MT_QUAD_IN, MT_QUAD_OUT, MT_QUAD_IN_OUT);
 
+DAS_ANNOTATE_VECTOR(IAnimBlendNodePtrTab, IAnimBlendNodePtrTab)
 DAS_ANNOTATE_VECTOR(BnlPtrTab, BnlPtrTab)
 DAS_ANNOTATE_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab)
 
@@ -45,8 +46,8 @@ struct AnimcharBaseComponentAnnotation : das::ManagedStructureAnnotation<AnimV20
     addPropertyExtConst<AnimV20::AnimationGraph *(AnimV20::AnimcharBaseComponent::*)(), &AnimV20::AnimcharBaseComponent::getAnimGraph,
       const AnimV20::AnimationGraph *(AnimV20::AnimcharBaseComponent::*)() const, &AnimV20::AnimcharBaseComponent::getAnimGraph>(
       "animGraph", "getAnimGraph");
-    addPropertyExtConst<AnimV20::IAnimStateHolder *(AnimV20::AnimcharBaseComponent::*)(),
-      &AnimV20::AnimcharBaseComponent::getAnimState, const AnimV20::IAnimStateHolder *(AnimV20::AnimcharBaseComponent::*)() const,
+    addPropertyExtConst<AnimV20::AnimGraphStateHolder *(AnimV20::AnimcharBaseComponent::*)(),
+      &AnimV20::AnimcharBaseComponent::getAnimState, const AnimV20::AnimGraphStateHolder *(AnimV20::AnimcharBaseComponent::*)() const,
       &AnimV20::AnimcharBaseComponent::getAnimState>("animState", "getAnimState");
     addProperty<DAS_BIND_MANAGED_PROP(getOriginalNodeTree)>("originalNodeTree", "getOriginalNodeTree");
     addPropertyExtConst<GeomNodeTree *(AnimV20::AnimcharBaseComponent::*)(), &AnimV20::AnimcharBaseComponent::getNodeTreePtr,
@@ -146,13 +147,6 @@ struct AnimationGraphAnnotation : das::ManagedStructureAnnotation<AnimV20::Anima
   }
 };
 
-struct IPureAnimStateHolderAnnotation : das::ManagedStructureAnnotation<AnimV20::IPureAnimStateHolder, false>
-{
-  IPureAnimStateHolderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("IPureAnimStateHolder", ml)
-  {
-    cppName = " ::AnimV20::IPureAnimStateHolder";
-  }
-};
 
 struct IAnimBlendNodeAnnotation : das::ManagedStructureAnnotation<AnimV20::IAnimBlendNode, false>
 {
@@ -277,6 +271,10 @@ struct AnimBlendCtrl_HubAnnotation : das::ManagedStructureAnnotation<AnimV20::An
   AnimBlendCtrl_HubAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimBlendCtrl_Hub", ml)
   {
     cppName = " ::AnimV20::AnimBlendCtrl_Hub";
+
+    addField<DAS_BIND_MANAGED_FIELD(nodes)>("nodes");
+    addField<DAS_BIND_MANAGED_FIELD(paramId)>("paramId");
+    addField<DAS_BIND_MANAGED_FIELD(defNodeWt)>("defNodeWt");
   }
 };
 
@@ -379,11 +377,11 @@ struct AnimBlendCtrl_1axisAnimSliceAnnotation : das::ManagedStructureAnnotation<
   bool canBePlacedInContainer() const override { return true; } // To pass array of AnimSlices
 };
 
-struct IAnimStateHolderAnnotation : das::ManagedStructureAnnotation<AnimV20::IAnimStateHolder, false>
+struct AnimGraphStateHolderAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimGraphStateHolder, false>
 {
-  IAnimStateHolderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("IAnimStateHolder", ml)
+  AnimGraphStateHolderAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimGraphStateHolder", ml)
   {
-    cppName = " ::AnimV20::IAnimStateHolder";
+    cppName = " ::AnimV20::AnimGraphStateHolder";
 
     addProperty<DAS_BIND_MANAGED_PROP(getSize)>("size", "getSize");
   }
@@ -829,6 +827,14 @@ struct AnimPostBlendSetParamAnnotation : das::ManagedStructureAnnotation<AnimV20
   }
 };
 
+struct DasAnimPostBlendCtrlAnnotation : das::ManagedStructureAnnotation<DasAnimPostBlendCtrl, false>
+{
+  DasAnimPostBlendCtrlAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("DasAnimPostBlendCtrl", ml)
+  {
+    cppName = " ::DasAnimPostBlendCtrl";
+  }
+};
+
 struct AnimPostBlendTwistCtrlAnnotation : das::ManagedStructureAnnotation<AnimV20::AnimPostBlendTwistCtrl, false>
 {
   AnimPostBlendTwistCtrlAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AnimPostBlendTwistCtrl", ml)
@@ -1045,12 +1051,11 @@ public:
     addEnumeration(new EnumerationFifoMorphType());
     addAnnotation(new NameIdPairAnnotation(lib));
     addAnnotation(new AnimDataAnnotation(lib));
-
-    addAnnotation(new IPureAnimStateHolderAnnotation(lib));
     addAnnotation(new IAnimBlendNodePtrAnnotation(lib));
     addAnnotation(new AnimBlendNodeLeafPtrAnnotation(lib));
     addAnnotation(new AnimPostBlendCtrlPtrAnnotation(lib));
 
+    das::typeFactory<IAnimBlendNodePtrTab>::make(lib);
     das::typeFactory<BnlPtrTab>::make(lib);
     das::typeFactory<PbCtrlPtrTab>::make(lib);
 
@@ -1111,6 +1116,7 @@ public:
     addAnnotation(new AnimPostBlendNodesFromAttachementAnnotation(lib));
     addAnnotation(new AnimPostBlendCompoundRotateShiftAnnotation(lib));
     addAnnotation(new AnimPostBlendSetParamAnnotation(lib));
+    addAnnotation(new DasAnimPostBlendCtrlAnnotation(lib));
     addAnnotation(new AnimPostBlendTwistCtrlAnnotation(lib));
     addAnnotation(new AnimPostBlendEyeCtrlAnnotation(lib));
     addAnnotation(new DeltaRotateShiftCtrlAnnotation(lib));
@@ -1122,7 +1128,7 @@ public:
 
     addAnnotation(new AnimBlenderAnnotation(lib));
     addAnnotation(new AnimationGraphAnnotation(lib));
-    addAnnotation(new IAnimStateHolderAnnotation(lib));
+    addAnnotation(new AnimGraphStateHolderAnnotation(lib));
     addAnnotation(new AnimcharDebugContextAnnotation(lib));
     addAnnotation(new AnimcharBaseComponentAnnotation(lib));
     addAnnotation(new RoNameMapExIdPatchableTabAnnotation(lib));
@@ -1473,33 +1479,38 @@ public:
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getStateNameByStateIdx, das::SideEffects::none, "anim_graph_getStateNameByStateIdx")
     DAS_BIND_MEMBER(::AnimV20::AnimationGraph::getBlendNodeName, das::SideEffects::none, "anim_graph_getBlendNodeName")
 
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamIdValid, das::SideEffects::none, "anim_state_holder_getParamIdValid")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParam, das::SideEffects::none, "anim_state_holder_getParam")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamInt, das::SideEffects::none, "anim_state_holder_getParamInt")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParamIdValid, das::SideEffects::none, "anim_state_holder_getParamIdValid")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParam, das::SideEffects::none, "anim_state_holder_getParam")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParamInt, das::SideEffects::none, "anim_state_holder_getParamInt")
     {
-      using method = das::das_call_member<void *(::AnimV20::IAnimStateHolder::*)(int), &::AnimV20::IAnimStateHolder::getInlinePtr>;
+      using method =
+        das::das_call_member<void *(::AnimV20::AnimGraphStateHolder::*)(int), &::AnimV20::AnimGraphStateHolder::getInlinePtr>;
       das::addExtern<DAS_CALL_METHOD(method)>(*this, lib, "anim_state_holder_getInlinePtr", das::SideEffects::modifyArgument,
-        "das::das_call_member< void *(::AnimV20::IAnimStateHolder::*)(int), &::AnimV20::IAnimStateHolder::getInlinePtr >::invoke");
-      using const_method =
-        das::das_call_member<const void *(::AnimV20::IAnimStateHolder::*)(int) const, &::AnimV20::IAnimStateHolder::getInlinePtr>;
+        "das::das_call_member< void *(::AnimV20::AnimGraphStateHolder::*)(int), &::AnimV20::AnimGraphStateHolder::getInlinePtr "
+        ">::invoke");
+      using const_method = das::das_call_member<const void *(::AnimV20::AnimGraphStateHolder::*)(int) const,
+        &::AnimV20::AnimGraphStateHolder::getInlinePtr>;
       das::addExtern<DAS_CALL_METHOD(const_method)>(*this, lib, "anim_state_holder_getInlinePtrConst", das::SideEffects::none,
-        "das::das_call_member< const void *(::AnimV20::IAnimStateHolder::*)(int) const, "
-        "&::AnimV20::IAnimStateHolder::getInlinePtr >::invoke");
+        "das::das_call_member< const void *(::AnimV20::AnimGraphStateHolder::*)(int) const, "
+        "&::AnimV20::AnimGraphStateHolder::getInlinePtr >::invoke");
     }
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getInlinePtrMaxSz, das::SideEffects::none, "anim_state_holder_getInlinePtrMaxSz")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getTimeScaleParamId, das::SideEffects::none, "anim_state_holder_getTimeScaleParamId")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamEffTimeScale, das::SideEffects::none,
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getInlinePtrMaxSz, das::SideEffects::none, "anim_state_holder_getInlinePtrMaxSz")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getTimeScaleParamId, das::SideEffects::none,
+      "anim_state_holder_getTimeScaleParamId")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParamEffTimeScale, das::SideEffects::none,
       "anim_state_holder_getParamEffTimeScale")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamFlags, das::SideEffects::none, "anim_state_holder_getParamFlags")
-    // DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::getParamScalarPtr, das::SideEffects::none, "anim_state_holder_getParamScalarPtr")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setParam, das::SideEffects::modifyArgument, "anim_state_holder_setParam")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setParamInt, das::SideEffects::modifyArgument, "anim_state_holder_setParamInt")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setTimeScaleParamId, das::SideEffects::modifyArgument,
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParamFlags, das::SideEffects::none, "anim_state_holder_getParamFlags")
+    // DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::getParamScalarPtr, das::SideEffects::none,
+    // "anim_state_holder_getParamScalarPtr")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::setParam, das::SideEffects::modifyArgument, "anim_state_holder_setParam")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::setParamInt, das::SideEffects::modifyArgument, "anim_state_holder_setParamInt")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::setTimeScaleParamId, das::SideEffects::modifyArgument,
       "anim_state_holder_setTimeScaleParamId")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::setParamFlags, das::SideEffects::modifyArgument, "anim_state_holder_setParamFlags")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::advance, das::SideEffects::modifyArgument, "anim_state_holder_advance")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::term, das::SideEffects::worstDefault, "anim_state_holder_term")
-    DAS_BIND_MEMBER(::AnimV20::IAnimStateHolder::init, das::SideEffects::worstDefault, "anim_state_holder_init")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::setParamFlags, das::SideEffects::modifyArgument,
+      "anim_state_holder_setParamFlags")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::advance, das::SideEffects::modifyArgument, "anim_state_holder_advance")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::term, das::SideEffects::worstDefault, "anim_state_holder_term")
+    DAS_BIND_MEMBER(::AnimV20::AnimGraphStateHolder::init, das::SideEffects::worstDefault, "anim_state_holder_init")
     das::addExtern<DAS_BIND_FUN(anim_state_holder_dumpStateText)>(*this, lib, "anim_state_holder_dumpStateText",
       das::SideEffects::none, "bind_dascript::anim_state_holder_dumpStateText");
 
@@ -1519,6 +1530,8 @@ public:
     DAS_BIND_MEMBER(::AnimV20::AnimBlendNodeParametricLeaf::getParamId, das::SideEffects::none, "anim_blend_node_getParamId")
     DAS_BIND_MEMBER(::AnimV20::AnimBlendNodeContinuousLeaf::getParamId, das::SideEffects::none, "anim_blend_node_getParamId")
     DAS_BIND_MEMBER(::AnimV20::AnimBlendNodeStillLeaf::getPos, das::SideEffects::none, "anim_blend_node_getPos")
+
+    DAS_BIND_MEMBER(::AnimV20::AnimBlendCtrl_Hub::addBlendNode, das::SideEffects::modifyArgument, "anim_blend_node_addBlendNode")
 
 
 #define ALL_ANIM_CTRLS                            \
@@ -1568,7 +1581,8 @@ public:
   ANIM_CTRL(AnimPostBlendHasAttachment)           \
   ANIM_CTRL(AnimPostBlendHumanAimCtrl)            \
   ANIM_CTRL(AnimPostBlendTwoBonesIK)              \
-  ANIM_CTRL(AttachGeomNodeCtrl)
+  ANIM_CTRL(AttachGeomNodeCtrl)                   \
+  ANIM_CTRL(DasAnimPostBlendCtrl)
 #define ANIM_CTRL(type) das::addConstant(*this, #type "CID", ::AnimV20::type##CID.id);
     ALL_ANIM_CTRLS
 #undef ANIM_CTRL
@@ -1593,16 +1607,20 @@ public:
     das::addExtern<DAS_CALL_METHOD(Animate2ndPassCtx_release)>(*this, lib, "animate_2nd_pass_ctx_release",
       das::SideEffects::modifyArgument, DAS_CALL_MEMBER_CPP(::Animate2ndPassCtx::release));
 
-    das::addConstant(*this, "PT_Reserved", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_Reserved);
-    das::addConstant(*this, "PT_ScalarParam", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_ScalarParam);
-    das::addConstant(*this, "PT_ScalarParamInt", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_ScalarParamInt);
-    das::addConstant(*this, "PT_TimeParam", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_TimeParam);
-    das::addConstant(*this, "PT_InlinePtr", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_InlinePtr);
-    das::addConstant(*this, "PT_InlinePtrCTZ", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_InlinePtrCTZ);
-    das::addConstant(*this, "PT_Fifo3", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_Fifo3);
-    das::addConstant(*this, "PT_Effector", (uint32_t)::AnimV20::AnimCommonStateHolder::PT_Effector);
-    das::addConstant(*this, "PF_Paused", (uint32_t)::AnimV20::AnimCommonStateHolder::PF_Paused);
-    das::addConstant(*this, "PF_Changed", (uint32_t)::AnimV20::AnimCommonStateHolder::PF_Changed);
+    using method_renderDebug = DAS_CALL_MEMBER(::DasAnimPostBlendCtrl::renderDebug);
+    das::addExtern<DAS_CALL_METHOD(method_renderDebug)>(*this, lib, "das_pbc_renderDebug", das::SideEffects::accessExternal,
+      DAS_CALL_MEMBER_CPP(::DasAnimPostBlendCtrl::renderDebug));
+
+    das::addConstant(*this, "PT_Reserved", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_Reserved);
+    das::addConstant(*this, "PT_ScalarParam", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_ScalarParam);
+    das::addConstant(*this, "PT_ScalarParamInt", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_ScalarParamInt);
+    das::addConstant(*this, "PT_TimeParam", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_TimeParam);
+    das::addConstant(*this, "PT_InlinePtr", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_InlinePtr);
+    das::addConstant(*this, "PT_InlinePtrCTZ", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_InlinePtrCTZ);
+    das::addConstant(*this, "PT_Fifo3", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_Fifo3);
+    das::addConstant(*this, "PT_Effector", (uint32_t)::AnimV20::AnimGraphStateHolder::PT_Effector);
+    das::addConstant(*this, "PF_Paused", (uint32_t)::AnimV20::AnimGraphStateHolder::PF_Paused);
+    das::addConstant(*this, "PF_Changed", (uint32_t)::AnimV20::AnimGraphStateHolder::PF_Changed);
 
 #undef DAS_BIND_MEMBER
 #undef ALL_ANIM_CTRLS

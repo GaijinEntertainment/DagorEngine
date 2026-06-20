@@ -26,8 +26,6 @@
 unsigned char unix_hid_key_to_scancode[256] = {0};
 unsigned char unix_hid_scancode_to_key[256] = {0};
 
-#elif _TARGET_XBOX
-#include "kbd_xboxone_names.h"
 #endif
 
 using namespace HumanInput;
@@ -168,7 +166,7 @@ bool WinKeyboardClassDriver::init()
 #if _TARGET_PC_MACOSX | _TARGET_PC_LINUX
     _snprintf(kname_ut8, 64, "K%03d", unix_hid_scancode_to_key[i]);
 #endif
-#if _TARGET_PC_MACOSX | _TARGET_PC_LINUX | _TARGET_XBOX
+#if _TARGET_PC_MACOSX | _TARGET_PC_LINUX
     for (int j = 0; j < sizeof(kbdMappedNames) / sizeof(kbdMappedNames[0]); j++)
       if (kbdMappedNames[j].hid_id == i)
       {

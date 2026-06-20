@@ -1580,24 +1580,8 @@ intermediate::RequiredNodeState IrGraphBuilder::calcNodeState(NodeNameId node_id
 
     SET(wire, supportsWireframe);
     SET(vrs, vrsState);
+    SET(shaderOverrides, pipelineStateOverride);
 #undef SET
-  }
-
-  // Compute effective shader override: user's pipelineStateOverride from
-  // stateRequirements (if any) merged with FG-injected implicit bits.
-  {
-    eastl::optional<shaders::OverrideState> effective;
-    if (nodeData.stateRequirements && nodeData.stateRequirements->pipelineStateOverride)
-      effective = *nodeData.stateRequirements->pipelineStateOverride;
-
-    if (nodeData.renderingRequirements && nodeData.renderingRequirements->implicitZWriteDisable)
-    {
-      if (!effective)
-        effective.emplace();
-      effective->set(shaders::OverrideState::Z_WRITE_DISABLE);
-    }
-
-    setter.set(result.shaderOverrides, effective);
   }
   setter.set(result.asyncPipelines, nodeData.allowAsyncPipelines);
   setter.set(result.pass, nodeData.renderingRequirements);

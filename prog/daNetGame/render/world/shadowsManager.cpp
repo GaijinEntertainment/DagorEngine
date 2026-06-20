@@ -37,7 +37,7 @@
 #include <render/toroidalStaticShadows.h>
 #include <ecs/render/renderPasses.h>
 #include <render/skies.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <render/viewTransformData.h>
 #include <render/debugMesh.h>
 

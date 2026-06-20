@@ -80,7 +80,7 @@ def shutdown() {
 def main() {
     print("main: running in simple mode (no reload)\n")
     init()
-    for (i in range(20)) {
+    for (_i in range(20)) {
         update()
     }
     shutdown()

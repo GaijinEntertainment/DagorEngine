@@ -172,7 +172,7 @@ FFX_RaymarchResult FFX_SSSR_HierarchicalRaymarch(FfxFloat32x3 origin, FfxFloat32
         {
             current_mip += skipped_tile ? 1 : -1;
             current_mip_resolution *= skipped_tile ? 0.5 : 2;
-            current_mip_resolution_inv *= skipped_tile ? 2 : 0.5;;
+            current_mip_resolution_inv *= skipped_tile ? 2 : 0.5;
         }
 
         ++i;

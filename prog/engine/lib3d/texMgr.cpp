@@ -641,8 +641,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
   const TEXTUREID base_tid = pairedBaseTexId[idx];
   TexLoadRes ret = TexLoadRes::ERR;
 
-  if (incRefCount(idx) == 1)
-    RMGR.decReadyForDiscardTex(idx);
+  RMGR.incRefCountAndDecReadyForDiscardTex(idx);
   const unsigned cur_sz = tql::sizeInKb(calcTexMemSize(idx, target_lev, hdr));
   const unsigned full_sz = tql::sizeInKb(calcTexMemSize(idx, resQS[idx].getQLev(), hdr));
   if (t)
@@ -714,8 +713,7 @@ TexLoadRes texmgr_internal::D3dResMgrDataFinal::readDdsxTex(TEXTUREID tid, const
     if (resSzKb > cur_sz)
       RMGR.changeTexUsedMem(idx, resSzKb, max(resSzKb, full_sz));
   }
-  if (decRefCount(idx) == 0)
-    RMGR.incReadyForDiscardTex(idx);
+  RMGR.decRefCountAndIncReadyForDiscardTex(idx);
 
   // RMGR.dumpMemStats();
   return ret;

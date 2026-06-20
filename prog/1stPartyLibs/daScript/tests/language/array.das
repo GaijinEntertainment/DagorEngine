@@ -95,7 +95,7 @@ def testIntArray(t : T?) {
 }
 
 def testInterop(t : T?) {
-    let res = temp_array_example([ "one" ]) <| $(arr) {
+    let res = temp_array_example([ "one" ]) $(arr) {
         t |> equal(length(arr), 1)
         t |> equal(arr[0], "one")
     }
@@ -161,6 +161,7 @@ def test_array(t : T?) {
     testConstInArray()
     testInterop(t)
     testMultiPush(t)
+    testMultiPushFrom(t)
 }
 
 // this test bellow is only here to make sure AOT compiles and runs for array<blah const>
@@ -172,14 +173,10 @@ struct Foo {
 [sideeffects]
 def testAccept(t : array<Foo const>; e : Foo const[10]) {
     for (i in t) {
-        if (i.bar == 13) {
-            return true
-        }
+        return true if (i.bar == 13)
     }
     for (j in e) {
-        if (j.bar == 13) {
-            return false
-        }
+        return false if (j.bar == 13)
     }
     return false
 }
@@ -218,4 +215,49 @@ def testMultiPush(t : T?) {
     push_clone(b, c)
     t |> equal(length(b), 4)
     t |> equal(b[3].bar, 3)
+}
+
+[sideeffects]
+def testMultiPushFrom(t : T?) {
+    // 1. push_from(arr, array<T> source)
+    var a <- [Foo(bar=10), Foo(bar=20)]
+    var b : array<Foo>
+    push_from(b, a)
+    t |> equal(length(a), 2)
+    t |> equal(length(b), 2)
+    t |> equal(b[0].bar, 10)
+    t |> equal(b[1].bar, 20)
+
+    // 2. push_from(arr, C-array source) — also exercises Arr-already-has-elements reserve
+    var c = fixed_array(Foo(bar = 30), Foo(bar = 40))
+    push_from(b, c)
+    t |> equal(length(b), 4)
+    t |> equal(b[2].bar, 30)
+    t |> equal(b[3].bar, 40)
+
+    // 3. push_clone_from(arr, array<T> source) — the array<numT> gap-fill
+    var d : array<Foo>
+    push_clone_from(d, a)
+    t |> equal(length(d), 2)
+    t |> equal(d[0].bar, 10)
+    t |> equal(d[1].bar, 20)
+
+    // 4. push_clone_from(arr, C-array source)
+    push_clone_from(d, c)
+    t |> equal(length(d), 4)
+    t |> equal(d[2].bar, 30)
+    t |> equal(d[3].bar, 40)
+
+    // 5. emplace_from(arr, array<T> source) — the array<numT> gap-fill
+    var e : array<Foo>
+    emplace_from(e, a)
+    t |> equal(length(e), 2)
+    t |> equal(e[0].bar, 10)
+    t |> equal(e[1].bar, 20)
+
+    // 6. emplace_from(arr, C-array source)
+    emplace_from(e, c)
+    t |> equal(length(e), 4)
+    t |> equal(e[2].bar, 30)
+    t |> equal(e[3].bar, 40)
 }

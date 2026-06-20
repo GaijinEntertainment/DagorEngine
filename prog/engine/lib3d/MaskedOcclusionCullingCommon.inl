@@ -1882,8 +1882,9 @@ public:
     (void)swz;
   }
 
-  // Render a flat vert21-indexed trilist through the SIMD pipeline.
-  int RenderVert21TriList(const unsigned char *blasData, const uint32_t *indices, uint32_t triCount, const float *rawToClipMatrix,
+  // Render a flat vert21-indexed trilist through the SIMD pipeline. indices are relative to
+  // verticesData (the vert21 stream base).
+  int RenderVert21TriList(const unsigned char *verticesData, const uint32_t *indices, uint32_t triCount, const float *rawToClipMatrix,
     BackfaceWinding bfWinding, ClipPlanes clipMask)
   {
     int clipHead = 0, clipTail = 0;
@@ -1906,7 +1907,7 @@ public:
 #endif
         if (numNewTris > 0)
         {
-          GatherVerticesVert21Z(vtxX, vtxY, vtxW, blasData, idxPtr, numNewTris);
+          GatherVerticesVert21Z(vtxX, vtxY, vtxW, verticesData, idxPtr, numNewTris);
           TransformVerts(vtxX, vtxY, vtxW, rawToClipMatrix);
         }
         for (int ct = numNewTris; ct < numNewTris + clippedTris; ct++)
@@ -1930,7 +1931,7 @@ public:
         uint32_t numTris = min<uint32_t>(SIMD_LANES, triCount - triIndex);
         triMask = (1U << numTris) - 1;
         triClipMask = triMask;
-        GatherVerticesVert21Z(vtxX, vtxY, vtxW, blasData, idxPtr, numTris);
+        GatherVerticesVert21Z(vtxX, vtxY, vtxW, verticesData, idxPtr, numTris);
         TransformVerts(vtxX, vtxY, vtxW, rawToClipMatrix);
         triIndex += numTris;
         idxPtr += numTris * 3;
@@ -1975,9 +1976,13 @@ public:
   // passes frustum culling (culled leaves contribute 0). This lets callers partition a BLAS
   // into bounded sub-jobs without resizing the scratch cache.
   template <bool checkFrustum>
-  uint32_t EmitBLASTriangles(const unsigned char *blasData, int treeStart, int treeEnd, unsigned int *outIndices,
+  uint32_t EmitBLASTriangles(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd, unsigned int *outIndices,
     uint32_t outIndicesCapacity, const BoxFrustumPlanes5 *boxPlanes, uint32_t triSkip = 0, uint32_t triLimit = 1u << 31)
   {
+    // Emitted indices are relative to vertOffset (the vert21 stream base), not the blasData base. The
+    // leaf byte offset minus vertOffset is always a multiple of VERT21_STRIDE (both lie in the
+    // 8-byte-pitch stream), so the divide stays exact whatever the tree size -- the gap before the
+    // stream is not required to be VERT21_STRIDE-aligned for correctness.
     uint32_t triCount = 0;
     uint32_t logicalIdx = 0;
     int offset = treeStart;
@@ -2019,13 +2024,13 @@ public:
         }
       }
 
-      // Decode leaf -> emit triangle indices. v0 is the per-BLAS vert index (byte offset /
-      // VERT21_STRIDE); BLAS vert counts are not capped at 65535, so the index is kept as 32 bits
-      // here and in the cache. The per-quad offsets (o1/o2/o3) are 10-bit, so v1..v3 stay safely
-      // within uint32 range.
+      // Decode leaf -> emit triangle indices. v0 is the vert index within the vert21 stream
+      // ((leaf byte offset - stream base) / VERT21_STRIDE); BLAS vert counts are not capped at 65535,
+      // so the index is kept as 32 bits here and in the cache. The per-quad offsets (o1/o2/o3) are
+      // 10-bit, so v1..v3 stay safely within uint32 range.
       int relOfs = *(const int *)(blasData + offset);
       int vtxByteOfs = offset + relOfs;
-      unsigned int v0 = (unsigned int)(vtxByteOfs / VERT21_STRIDE);
+      unsigned int v0 = (unsigned int)((vtxByteOfs - vertOffset) / VERT21_STRIDE);
       unsigned int o1 = (skipWord & QUAD_O1_MASK) + 1;
       unsigned int o2 = ((skipWord >> QUAD_O2_SHIFT) & QUAD_O2_MASK) + 1;
       unsigned int o3 = ((skipWord >> QUAD_O3_SHIFT) & QUAD_O3_MASK) + 1;
@@ -2093,11 +2098,13 @@ public:
   }
 
   FORCE_INLINE
-  CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
+  CullingResult RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd, const float *rawToClipMatrix,
     uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding,
     ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit) MOC_OVERRIDE
   {
     assert(mMaskedHiZBuffer != nullptr);
+    // Gather base for the indexed vert21 fetch; EmitBLASTriangles emits indices relative to it.
+    const unsigned char *verticesData = blasData + vertOffset;
 
 #if PRECISE_COVERAGE != 0
     int originalRoundingMode = _MM_GET_ROUNDING_MODE();
@@ -2117,8 +2124,8 @@ public:
     if (cacheMode == CACHE_INSUFFICIENT)
     {
       BoxFrustumPlanes5 boxPlanes = BuildBoxFrustumPlanes5(mCSFrustumPlanes, rawToClipMatrix);
-      triCount =
-        EmitBLASTriangles<true>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes, triSkip, triLimit);
+      triCount = EmitBLASTriangles<true>(blasData, vertOffset, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, &boxPlanes,
+        triSkip, triLimit);
       // Writeback the triangle count so callers using cacheTriCount as an out-parameter (e.g.
       // ParallelOcclusionRasterizer, which feeds rasterJobs[i].trianglesCount into the merge
       // filter) see the actually-emitted count, not the zero they pre-initialized. Missing this
@@ -2129,12 +2136,12 @@ public:
     else
     {
       if (cacheMode == CACHE_FILL)
-        cacheTriCount =
-          EmitBLASTriangles<false>(blasData, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr, triSkip, triLimit);
+        cacheTriCount = EmitBLASTriangles<false>(blasData, vertOffset, treeStart, treeEnd, cacheIndices, cacheIndicesCapacity, nullptr,
+          triSkip, triLimit);
       triCount = cacheTriCount;
     }
 
-    cullResult = RenderVert21TriList(blasData, cacheIndices, (int)triCount, rawToClipMatrix, bfWinding, clipPlaneMask);
+    cullResult = RenderVert21TriList(verticesData, cacheIndices, (int)triCount, rawToClipMatrix, bfWinding, clipPlaneMask);
 
 #if PRECISE_COVERAGE != 0
     _MM_SET_ROUNDING_MODE(originalRoundingMode);

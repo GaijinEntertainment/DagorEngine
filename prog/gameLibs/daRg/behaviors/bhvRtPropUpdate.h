@@ -18,7 +18,7 @@ private:
   virtual void onAttach(Element *) override;
   virtual void onDetach(Element *, DetachMode) override;
 
-  void runForElem(Element *elem);
+  int runForElem(Element *elem);
 };
 
 

@@ -33,11 +33,6 @@ if $(Platform) in windows xboxOne scarlett {
   ;
 }
 if $(Platform) in windows { Sources += windows/threadedWindow.cpp ; }
-if $(Platform) in xboxOne scarlett {
-  Sources +=
-    xbox/keyboard.cpp
-  ;
-}
 
 if $(Platform) in ps4 ps5 {
   Sources +=

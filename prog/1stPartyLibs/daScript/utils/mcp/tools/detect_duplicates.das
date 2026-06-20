@@ -1,7 +1,5 @@
 options gen2
 options rtti
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require common public
 require daslib/fio
@@ -28,30 +26,18 @@ def public do_detect_duplicates(paths : string; corpus : string;
                                 top_str : string;
                                 keep_str : string) : string {
     let exe = get_daslang_exe()
-    if (empty(exe)) {
-        return make_tool_result("Cannot determine daslang executable path", true)
-    }
-    if (empty(corpus)) {
-        return make_tool_result("detect_duplicates: missing required 'corpus' parameter (path to a corpus.json produced by the `export_corpus` MCP tool or `detect-dupe --export-functions`)", true)
-    }
-    if (empty(paths)) {
-        return make_tool_result("detect_duplicates: missing required 'paths' parameter (one or more .das files; comma- or newline-delimited, or a glob)", true)
-    }
+    if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
+    if (empty(corpus)) return make_tool_result("detect_duplicates: missing required 'corpus' parameter (path to a corpus.json produced by the `export_corpus` MCP tool or `detect-dupe --export-functions`)", true)
+    if (empty(paths)) return make_tool_result("detect_duplicates: missing required 'paths' parameter (one or more .das files; comma- or newline-delimited, or a glob)", true)
     let detect_dupe_main = "{get_das_root()}/utils/detect-dupe/main.das"
     let detect_dupe_st = stat(detect_dupe_main)
-    if (!detect_dupe_st.is_valid || !detect_dupe_st.is_reg) {
-        return make_tool_result("detect_duplicates: utils/detect-dupe/main.das not found at {detect_dupe_main}", true)
-    }
+    if (!detect_dupe_st.is_valid || !detect_dupe_st.is_reg) return make_tool_result("detect_duplicates: utils/detect-dupe/main.das not found at {detect_dupe_main}", true)
     var files : array<string>
     parse_file_list(paths, files)
-    if (empty(files)) {
-        return make_tool_result("detect_duplicates: no files matched: {paths}", true)
-    }
+    if (empty(files)) return make_tool_result("detect_duplicates: no files matched: {paths}", true)
     let resolved_corpus = resolve_path(corpus)
     let corpus_st = stat(resolved_corpus)
-    if (!corpus_st.is_valid || !corpus_st.is_reg) {
-        return make_tool_result("detect_duplicates: corpus file not found: {resolved_corpus}", true)
-    }
+    if (!corpus_st.is_valid || !corpus_st.is_reg) return make_tool_result("detect_duplicates: corpus file not found: {resolved_corpus}", true)
     let json_out = "{get_das_root()}/_mcp_detect_duplicates_{ref_time_ticks()}.json"
     var argv <- [exe, detect_dupe_main, "--",
                  "--import-functions", resolved_corpus,
@@ -63,48 +49,32 @@ def public do_detect_duplicates(paths : string; corpus : string;
     }
     if (!empty(threshold_str)) {
         let parsed = try_to_float(threshold_str)
-        if (is_err(parsed)) {
-            return make_tool_result("detect_duplicates: 'threshold' must be a number in [0, 1] (got '{threshold_str}')", true)
-        }
+        if (is_err(parsed)) return make_tool_result("detect_duplicates: 'threshold' must be a number in [0, 1] (got '{threshold_str}')", true)
         let t = unwrap(parsed)
-        if (t < 0.0 || t > 1.0) {
-            return make_tool_result("detect_duplicates: 'threshold' must be in [0, 1] (got {t})", true)
-        }
+        if (t < 0.0 || t > 1.0) return make_tool_result("detect_duplicates: 'threshold' must be in [0, 1] (got {t})", true)
         argv |> push("-t")
         argv |> push("{t}")
     }
     if (!empty(min_tokens_str)) {
         let parsed = try_to_int(min_tokens_str)
-        if (is_err(parsed)) {
-            return make_tool_result("detect_duplicates: 'min_tokens' must be a non-negative integer (got '{min_tokens_str}')", true)
-        }
+        if (is_err(parsed)) return make_tool_result("detect_duplicates: 'min_tokens' must be a non-negative integer (got '{min_tokens_str}')", true)
         let n = unwrap(parsed)
-        if (n < 0) {
-            return make_tool_result("detect_duplicates: 'min_tokens' must be >= 0 (got {n})", true)
-        }
+        if (n < 0) return make_tool_result("detect_duplicates: 'min_tokens' must be >= 0 (got {n})", true)
         argv |> push("--min-tokens")
         argv |> push("{n}")
     }
     if (!empty(top_str)) {
         let parsed = try_to_int(top_str)
-        if (is_err(parsed)) {
-            return make_tool_result("detect_duplicates: 'top' must be a positive integer (got '{top_str}')", true)
-        }
+        if (is_err(parsed)) return make_tool_result("detect_duplicates: 'top' must be a positive integer (got '{top_str}')", true)
         let n = unwrap(parsed)
-        if (n < 1) {
-            return make_tool_result("detect_duplicates: 'top' must be >= 1 (got {n})", true)
-        }
+        if (n < 1) return make_tool_result("detect_duplicates: 'top' must be >= 1 (got {n})", true)
         argv |> push("-n")
         argv |> push("{n}")
     }
     if (!empty(keep_str)) {
         for (k in split_by_chars(keep_str, ", \t\n")) {
-            if (empty(k)) {
-                continue
-            }
-            if (!(k == "all" || k == "visitor" || k == "dispatch" || k == "emit")) {
-                return make_tool_result("detect_duplicates: 'keep' token must be one of all/visitor/dispatch/emit (got '{k}')", true)
-            }
+            if (empty(k)) continue
+            if (!(k == "all" || k == "visitor" || k == "dispatch" || k == "emit")) return make_tool_result("detect_duplicates: 'keep' token must be one of all/visitor/dispatch/emit (got '{k}')", true)
             argv |> push("-k")
             argv |> push(k)
         }
@@ -116,13 +86,11 @@ def public do_detect_duplicates(paths : string; corpus : string;
         return make_tool_result("detect-dupe failed (exit code {exit_code}):\n{output}", true)
     }
     let json_st = stat(json_out)
-    if (!json_st.is_valid || !json_st.is_reg) {
-        return make_tool_result("detect-dupe completed but JSON report missing: {json_out}\nSubprocess output:\n{output}", true)
-    }
-    var envelope : DetectDuplicatesEnvelope
-    envelope.exit_code = exit_code
-    envelope.report := fread(json_out)
-    envelope.stdout := output
+    if (!json_st.is_valid || !json_st.is_reg) return make_tool_result("detect-dupe completed but JSON report missing: {json_out}\nSubprocess output:\n{output}", true)
+    let envelope = DetectDuplicatesEnvelope(
+        exit_code = exit_code,
+        report = fread(json_out),
+        stdout = output)
     remove(json_out)
     return make_tool_result(sprint_json(envelope, false), false)
 }

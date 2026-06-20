@@ -14,22 +14,14 @@
 
 void NodeBasedShader::dispatch(int xdim, int ydim, int zdim) const
 {
-  if (DAGOR_UNLIKELY(!computeShader || shaderBlockId < 0))
+  if (DAGOR_UNLIKELY(!computeShader))
   {
     logerr("NodeBasedShader::dispatch failed : shader was not loaded");
     return;
   }
 
   shaderManager->setShadervars(variantId);
-
-  {
-    SCOPE_RESET_SHADER_BLOCKS;
-    ShaderGlobal::setBlock(shaderBlockId, ShaderGlobal::LAYER_SCENE);
-    computeShader->dispatch(xdim, ydim, zdim);
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE);
-  }
-
-  return;
+  computeShader->dispatch(xdim, ydim, zdim);
 }
 
 bool NodeBasedShader::update(const String &shader_name, const DataBlock &shader_blk, String &out_errors)
@@ -52,11 +44,7 @@ NodeBasedShader::NodeBasedShader(NodeBasedShaderType shader, const String &shade
 }
 NodeBasedShader::~NodeBasedShader() { shutdown(); }
 
-void NodeBasedShader::closeShader()
-{
-  delete eastl::exchange(computeShader, nullptr);
-  shaderBlockId = -1;
-}
+void NodeBasedShader::closeShader() { delete eastl::exchange(computeShader, nullptr); }
 
 // this should be called afterReset and not sure if its needed at all if we don't destroy engine shaders
 void NodeBasedShader::reset()
@@ -68,7 +56,6 @@ void NodeBasedShader::reset()
 void NodeBasedShader::shutdown()
 {
   delete eastl::exchange(computeShader, nullptr);
-  shaderBlockId = -1;
 
   shaderManager->shutdown();
 }
@@ -81,11 +68,6 @@ void NodeBasedShader::createShaders()
   {
     computeShader = new_compute_shader(dumpHnd, shaderName);
     G_ASSERTF(computeShader, "Can't create compute shader");
-  }
-  if (shaderBlockId == -1)
-  {
-    shaderBlockId = ShaderGlobal::getBlockId(shaderManager->getShaderBlockName(), ShaderGlobal::LAYER_SCENE);
-    G_ASSERTF(shaderBlockId >= 0, "Can't fetch nbs block");
   }
   return;
 }

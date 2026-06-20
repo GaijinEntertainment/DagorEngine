@@ -35,7 +35,7 @@ class StubTimeManager final : public ITimeManager
   int getType4CC() const override { return 0; }
 };
 
-void auth_get_country_code(eastl::string &) { G_ASSERT(0); }
+void auth_get_country_code(ecs::EntityManager &, eastl::string &) { G_ASSERT(0); }
 
 ITimeManager &get_time_mgr()
 {
@@ -121,7 +121,8 @@ void send_dasevent(ecs::EntityManager *,
   G_ASSERT(0);
 }
 } // namespace net
-net::CNetwork *get_net_internal() { G_ASSERT_RETURN(false, nullptr); }
+bool send_msg_to_client(net::IMessage &&, int) { G_ASSERT_RETURN(false, false); }
+void debug_verify_net_connection_ptr(net::IConnection *) { G_ASSERT(false); }
 
 #include <game/player.h>
 namespace game
@@ -503,7 +504,7 @@ int register_net_props(const char *blk_name, const char *class_name) { G_ASSERT_
 #include "net/netStat.h"
 namespace netstat
 {
-dag::ConstSpan<Sample> get_aggregations() { G_ASSERT_RETURN(false, {}); }
+StaticTab<Sample, NUM_AG_TYPES> get_aggregations() { G_ASSERT_RETURN(false, {}); }
 } // namespace netstat
 
 Tab<TMatrix> get_points_on_road_route(

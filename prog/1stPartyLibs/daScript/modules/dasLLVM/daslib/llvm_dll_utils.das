@@ -235,9 +235,7 @@ class public DLLHandle {
         assert(handle != null, "dynamic_lib_handle is null")
         var fn_addr = unsafe(reinterpret<void ??>(handle |> get_function_address(fn.glob())))
         // assert(fn_addr != null)
-        if (fn_addr == null) {
-            return false
-        }
+        if (fn_addr == null) return false
         *fn_addr = ptr;
         return true
     }

@@ -243,7 +243,8 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
               texture2DAt(normal_gbuf_to_merge, scr + nOffset) = float4(encodedNormal, texture2DAt(normal_gbuf_to_merge, scr + nOffset).zw);
             }
           }
-          int correctIdx = nrmTcOfst.x + nrmTcOfst.y * 2;
+          // Gather components map to quad texels as x=(0,1), y=(1,1), z=(1,0), w=(0,0)
+          int correctIdx = nrmTcOfst.y ? nrmTcOfst.x : 3 - nrmTcOfst.x;
           readNormal = float3(normalXs[correctIdx], normalYs[correctIdx], normalZs[correctIdx]);
       #endif
 

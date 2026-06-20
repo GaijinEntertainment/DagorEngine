@@ -2,7 +2,7 @@
 // verifies compiler rejects returning a block from a function
 // (blocks are not valid return types)
 options gen2
-expect 30102, 30102
+expect 30167, 30221
 
 struct Foo {
     a : int

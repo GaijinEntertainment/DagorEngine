@@ -181,8 +181,12 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
       auto desc = info.state.asSRVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
       for (auto &buffer : colorTargets)
       {
-        auto descriptor = swapchainBufferSRVHeap.allocate(device);
-        device->CreateShaderResourceView(buffer.buffer.Get(), &desc, descriptor);
+        auto descriptor = swapchainBufferSRVHeap.allocate(device)
+                            .transform([&](auto handle) {
+                              device->CreateShaderResourceView(buffer.buffer.Get(), &desc, handle);
+                              return handle;
+                            })
+                            .value_or({});
         buffer.viewTable.push_back(descriptor);
         G_ASSERT(buffer.viewTable.size() == swapchainViewSet.size());
       }
@@ -193,8 +197,12 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
       auto desc = info.state.asUAVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D);
       for (auto &buffer : colorTargets)
       {
-        auto descriptor = swapchainBufferSRVHeap.allocate(device);
-        device->CreateUnorderedAccessView(buffer.buffer.Get(), nullptr, &desc, descriptor);
+        auto descriptor = swapchainBufferSRVHeap.allocate(device)
+                            .transform([&](auto handle) {
+                              device->CreateUnorderedAccessView(buffer.buffer.Get(), nullptr, &desc, handle);
+                              return handle;
+                            })
+                            .value_or({});
         buffer.viewTable.push_back(descriptor);
         G_ASSERT(buffer.viewTable.size() == swapchainViewSet.size());
       }
@@ -205,8 +213,12 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
       auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
       for (auto &buffer : colorTargets)
       {
-        auto descriptor = swapchainBufferRTVHeap.allocate(device);
-        device->CreateRenderTargetView(buffer.buffer.Get(), &desc, descriptor);
+        auto descriptor = swapchainBufferRTVHeap.allocate(device)
+                            .transform([&](auto handle) {
+                              device->CreateRenderTargetView(buffer.buffer.Get(), &desc, handle);
+                              return handle;
+                            })
+                            .value_or({});
         buffer.viewTable.push_back(descriptor);
         G_ASSERT(buffer.viewTable.size() == swapchainViewSet.size());
       }
@@ -237,8 +249,12 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
         auto desc = info.state.asSRVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
         for (auto &buffer : secondaryColorTargets)
         {
-          auto descriptor = swapchainBufferSRVHeap.allocate(device);
-          device->CreateShaderResourceView(buffer.buffer.Get(), &desc, descriptor);
+          auto descriptor = swapchainBufferSRVHeap.allocate(device)
+                              .transform([&](auto handle) {
+                                device->CreateShaderResourceView(buffer.buffer.Get(), &desc, handle);
+                                return handle;
+                              })
+                              .value_or({});
           buffer.viewTable.push_back(descriptor);
           G_ASSERT(buffer.viewTable.size() == secondarySwapchainViewSet.size());
         }
@@ -249,8 +265,12 @@ void backend::Swapchain::registerSwapchainView(D3DDevice *device, Image *image, 
         auto desc = info.state.asRTVDesc(D3D12_RESOURCE_DIMENSION_TEXTURE2D, image->isMultisampled());
         for (auto &buffer : secondaryColorTargets)
         {
-          auto descriptor = swapchainBufferRTVHeap.allocate(device);
-          device->CreateRenderTargetView(buffer.buffer.Get(), &desc, descriptor);
+          auto descriptor = swapchainBufferRTVHeap.allocate(device)
+                              .transform([&](auto handle) {
+                                device->CreateRenderTargetView(buffer.buffer.Get(), &desc, handle);
+                                return handle;
+                              })
+                              .value_or({});
           buffer.viewTable.push_back(descriptor);
           G_ASSERT(buffer.viewTable.size() == secondarySwapchainViewSet.size());
         }

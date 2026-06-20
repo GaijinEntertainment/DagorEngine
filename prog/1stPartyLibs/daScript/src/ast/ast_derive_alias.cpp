@@ -354,7 +354,7 @@ namespace das {
                     if ( checkAliasing ) {
                         program->error("[[" + string(expr->__rtti) + " ]] always aliases",
                             "some form of ... *ptr ... = [[" + string(expr->__rtti) + " ...]] where we don't know where pointer came from", "",
-                                expr->at, CompilationError::make_local_aliasing);
+                                expr->at, CompilationError::invalid_expression);
                     } else {
                         expr->alwaysAlias = true;
                     }
@@ -374,7 +374,7 @@ namespace das {
                     if ( checkAliasing ) {
                         program->error("[[" + string(expr->__rtti) + " ]] always aliases",
                             "some form of ... = [[" + string(expr->__rtti) + " ... *ptr ... ]] where we don't know where pointer came from", "",
-                                expr->at, CompilationError::make_local_aliasing);
+                                expr->at, CompilationError::invalid_expression);
                     } else {
                         expr->alwaysAlias = true;
                     }
@@ -382,7 +382,7 @@ namespace das {
                     if ( checkAliasing ) {
                         program->error("[[" + string(expr->__rtti) + " ]] aliases",
                             "some form of ... " + aliasVar->name + " ... = [[" + string(expr->__rtti) + " ... " + aliasVar->name + " ... ]]", "",
-                                expr->at, CompilationError::make_local_aliasing);
+                                expr->at, CompilationError::invalid_expression);
                     } else {
                         expr->alwaysAlias = true;
                     }
@@ -446,7 +446,7 @@ namespace das {
                     if ( checkAliasing ) {
                         program->error("invoke result always aliases",
                             "some form of ... *ptr ... = invoke( ... ) where we don't know where pointer came from", "",
-                                expr->at, CompilationError::argument_aliasing);
+                                expr->at, CompilationError::invalid_argument);
                     } else {
                         expr->cmresAlias = true;
                         return;
@@ -470,7 +470,7 @@ namespace das {
                         if ( checkAliasing ) {
                             program->error("invoke result aliases argument " + to_string(ai),
                                 "some form of ... = invoke( ... *ptr ... ) where we don't know where pointer came from", "",
-                                    expr->at, CompilationError::argument_aliasing);
+                                    expr->at, CompilationError::invalid_argument);
                         } else {
                             expr->cmresAlias = true;
                             return;
@@ -479,7 +479,7 @@ namespace das {
                         if ( checkAliasing ) {
                             program->error("invoke result aliases argument " + to_string(ai),
                                 "some form of ... " + aliasVar->name + " ... = invoke( ... " + aliasVar->name + " ... )", "",
-                                    expr->at, CompilationError::argument_aliasing);
+                                    expr->at, CompilationError::invalid_argument);
                         } else {
                             expr->cmresAlias = true;
                             return;
@@ -501,11 +501,11 @@ namespace das {
                                 if ( argT->isGoodFunctionType() ) {
                                     program->error("invoke result potentially aliases global " + gIt.first->name + " through function " + gIt.second->getMangledName(),
                                         "some form of ... " + gIt.first->name + " ... = invoke( ... " + gIt.first->name + " ... )", "",
-                                            expr->at, CompilationError::argument_aliasing);
+                                            expr->at, CompilationError::invalid_argument_global);
                                 } else {
                                     program->error("invoke result potentially aliases global " + gIt.first->name + " through lambda at " + gIt.second->at.describe(),
                                         "some form of ... " + gIt.first->name + " ... = invoke( ... " + gIt.first->name + " ... )", "",
-                                            expr->at, CompilationError::argument_aliasing);
+                                            expr->at, CompilationError::invalid_argument_global);
                                 }
                             } else {
                                 expr->cmresAlias = true;
@@ -533,7 +533,7 @@ namespace das {
                         if ( checkAliasing ) {
                             program->error("function " + expr->func->describeName() + " result always aliases",
                                 "some form of ... *ptr ... = " + expr->func->name + "( ... ) where we don't know where pointer came from", "",
-                                    expr->at, CompilationError::argument_aliasing);
+                                    expr->at, CompilationError::invalid_argument);
                         } else {
                             expr->cmresAlias = true;
                             goto bailout;
@@ -554,7 +554,7 @@ namespace das {
                             if ( checkAliasing ) {
                                 program->error("function " + expr->func->describeName() + " result aliases argument " + expr->func->arguments[ai]->name,
                                     "some form of ... = " + expr->func->name + "( ... *ptr ... ) where we don't know where pointer came from", "",
-                                        expr->at, CompilationError::argument_aliasing);
+                                        expr->at, CompilationError::invalid_argument);
                             } else {
                                 expr->cmresAlias = true;
                                 goto bailout;
@@ -563,7 +563,7 @@ namespace das {
                             if ( checkAliasing ) {
                                 program->error("function " + expr->func->describeName() + " result aliases argument " + expr->func->arguments[ai]->name,
                                     "some form of ... " + aliasVar->name + " ... = " + expr->func->name + "( ... " + aliasVar->name + " ... )", "",
-                                        expr->at, CompilationError::argument_aliasing);
+                                        expr->at, CompilationError::invalid_argument);
                             } else {
                                 expr->cmresAlias = true;
                                 goto bailout;
@@ -577,7 +577,7 @@ namespace das {
                             if ( checkAliasing ) {
                                 program->error("function " + expr->func->describeName() + " result aliases global variable " + vit.var->getMangledName() + " through function " + vit.func->getMangledName(),
                                     "some form of ... = " + expr->func->name + "(...) where we don't know where the pointer in " + vit.var->name + " came from", "",
-                                        expr->at, CompilationError::argument_aliasing);
+                                        expr->at, CompilationError::invalid_argument_global);
                             } else {
                                 expr->cmresAlias = true;
                                 goto bailout;
@@ -592,7 +592,7 @@ namespace das {
                                 }
                                 program->error("function " + expr->func->describeName() + " result aliases global variable " + vit.var->getMangledName() + " through function " + vit.func->getMangledName(),
                                     "some form of ... " + aliasVar->name + " ... = " + expr->func->name + "(...) where " + whereMessage, "",
-                                        expr->at, CompilationError::argument_aliasing);
+                                        expr->at, CompilationError::invalid_argument_global);
                             } else {
                                 expr->cmresAlias = true;
                                 goto bailout;

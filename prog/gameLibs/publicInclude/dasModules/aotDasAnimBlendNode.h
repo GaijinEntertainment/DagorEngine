@@ -30,6 +30,7 @@ struct AnimPostBlendControllerDasContext
   uint32_t processOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   uint32_t advanceOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   uint32_t setDefaultStateOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
+  uint32_t renderDebugOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   uint32_t thisCtrlOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET; // hidden AnimPostBlendCtrl? back-pointer field
   uint32_t srcBlkOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;   // hidden DataBlock? pointing at the kept ctrl blk
 
@@ -39,6 +40,42 @@ struct AnimPostBlendControllerDasContext
   void reload(uint64_t mangled_name_hash);
   void updateContext(das::Context *ctx, const das::StructurePtr &st);
 };
+
+class DasAnimPostBlendCtrl final : public AnimV20::AnimPostBlendCtrl
+{
+public:
+  AnimPostBlendControllerDasContext *ctx;
+  char *classPtr = nullptr;
+  uint32_t gen = 0;
+  const DataBlock *data = nullptr;
+
+  void printUnhandledException(das::Context *c, const char *func_name) const;
+  void resetLinks();
+  das::Func *getFuncPtr(uint32_t offset) const;
+  void setHiddenLinks();
+
+  // Evaluates `fn(context)` on the current thread's worker context (lockless, parallel), with the
+  // nested-query + exception-recovery guard. `fn` must invoke the das method on the passed context.
+  template <typename Fn>
+  void invokeGuarded(const char *func_name, Fn &&fn);
+
+  DasAnimPostBlendCtrl(AnimV20::AnimationGraph &g, AnimPostBlendControllerDasContext *c) : AnimV20::AnimPostBlendCtrl(g), ctx(c) {}
+  ~DasAnimPostBlendCtrl() { das_aligned_free16(classPtr); }
+
+  // (Re)builds the das class instance when the owning context generation changes (hot-reload).
+  bool validateClassPtr();
+  void createNode();
+  void renderDebug(AnimV20::AnimGraphStateHolder &);
+  void init(AnimV20::AnimGraphStateHolder &st, const GeomNodeTree &tree) override;
+  void process(AnimV20::AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, Context &pbc_ctx) override;
+  void advance(AnimV20::AnimGraphStateHolder &st, real dt) override;
+  void setDefaultState(AnimV20::AnimGraphStateHolder &st) override;
+  void destroy() override {} // owned & deleted by AnimationGraph, like the built-in controllers
+  virtual bool isSubOf(DClassID id) { return id == AnimV20::DasAnimPostBlendCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
+  const char *class_name() const override;
+};
+
+MAKE_TYPE_FACTORY(DasAnimPostBlendCtrl, DasAnimPostBlendCtrl);
 
 using DasPostBlendControllerContexts = ska::flat_hash_map<eastl::string, eastl::unique_ptr<AnimPostBlendControllerDasContext>>;
 

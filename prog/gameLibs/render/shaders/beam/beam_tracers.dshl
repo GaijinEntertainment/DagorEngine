@@ -366,7 +366,7 @@ shader beam_tracers_head
       float4 dir_scrollSpeed:TEXCOORD2;
       float4 cylRadius_length_fadeTime:TEXCOORD3;
       float4 pointToEye:TEXCOORD4;
-      bool isHeroLaser:TEXCOORD5;
+      nointerpolation uint isHeroLaser:TEXCOORD5;
 //      float3 fogMul:TEXCOORD6;
 //      float3 fogAdd:TEXCOORD7;
     };

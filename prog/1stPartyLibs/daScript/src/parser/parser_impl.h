@@ -62,6 +62,7 @@ namespace das {
         bool                    isStatic = false;
         bool                    isTupleExpansion = false;
         bool                    isClassMethod = false;
+        bool                    isAbstract = false;
         AnnotationArgumentList  *annotation = nullptr;
     };
 
@@ -79,7 +80,9 @@ namespace das {
     void varDeclToTypeDecl ( yyscan_t scanner, TypeDecl * pType, vector<VariableDeclaration*> * list, bool needNames = true );
     Annotation * findAnnotation ( yyscan_t scanner, const string & name, const LineInfo & at );
     void runFunctionAnnotations ( yyscan_t scanner, DasParserState * extra, Function * func, AnnotationList * annL, const LineInfo & at, bool genericMode = false );
-    void appendDimExpr ( TypeDecl * typeDecl, Expression * dimExpr );
+    TypeDecl * appendDimExpr ( TypeDecl * chain, Expression * dimExpr, const LineInfo & at );
+    TypeDecl * attachDimChain ( TypeDecl * chain, TypeDecl * element );
+    TypeDecl * appendAutoDim ( TypeDecl * typeDecl, const LineInfo & at );
     void implAddGenericFunction ( yyscan_t scanner, Function * func );
     Expression * ast_arrayComprehension (yyscan_t scanner, const LineInfo & loc, vector<VariableNameAndPosition> * iters,
         Expression * srcs, Expression * subexpr, Expression * where, const LineInfo & forend, bool genSyntax, bool tableSyntax );
@@ -105,12 +108,13 @@ namespace das {
     Expression * ast_LetList ( yyscan_t scanner, bool kwd_let, bool inScope, vector<VariableDeclaration *> & decl, const LineInfo & kwd_letAt, const LineInfo & declAt );
     Function * ast_functionDeclarationHeader ( yyscan_t scanner, string * name, vector<VariableDeclaration*> * list,
         TypeDecl * result, const LineInfo & nameAt );
-    void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName );
+    void ast_requireModule ( yyscan_t scanner, string * name, string * modalias, bool pub, const LineInfo & atName, string * guard = nullptr );
     Expression * ast_forLoop ( yyscan_t scanner,  vector<VariableNameAndPosition> * iters, Expression * srcs,
-        Expression * block, const LineInfo & locAt, const LineInfo & blockAt );
+        Expression * block, const LineInfo & locAt, const LineInfo & blockAt,
+        AnnotationArgumentList * annL = nullptr );
     AnnotationArgumentList * ast_annotationArgumentListEntry ( yyscan_t scanner, AnnotationArgumentList * argL, AnnotationArgument * arg );
     AnnotationArgumentList * ast_annotationArgumentListEntry ( yyscan_t, AnnotationArgumentList * argL, AnnotationArgument * arg );
-    Expression * ast_lpipe ( yyscan_t scanner, Expression * fncall, Expression * arg, const LineInfo & locAt );
+    Expression * ast_lpipe ( yyscan_t scanner, Expression * fncall, Expression * arg, const LineInfo & locAt, bool markPiped = false );
     Expression * ast_rpipe ( yyscan_t scanner, Expression * arg, Expression * fncall, const LineInfo & locAt );
     Expression * ast_makeGenerator ( yyscan_t scanner, TypeDecl * typeDecl, vector<CaptureEntry> * clist, Expression * subexpr, const LineInfo & locAt, const LineInfo & clistAt );
     ExprBlock * ast_wrapInBlock ( Expression * expr );
@@ -118,4 +122,5 @@ namespace das {
     Expression * ast_makeStructToMakeVariant ( MakeStruct * decl, const LineInfo & locAt );
     CaptureEntry * ast_makeCaptureEntry ( yyscan_t scanner, const LineInfo & at, const string & op, const string & name );
     Expression * ast_makeMoveArgument ( yyscan_t scanner, Expression * expr, const LineInfo & at );
+    vector<string> ast_tupleCollectShorthandNames ( const vector<ExpressionPtr> & values );
 }

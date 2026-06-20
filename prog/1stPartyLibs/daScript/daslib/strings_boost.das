@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module strings_boost shared public
@@ -205,11 +203,38 @@ def levenshtein_distance_fast(s, t : string implicit) : int {
     return v0[tLen]
 }
 
+def public jaccard(a : table<string>; b : table<string>) : float {
+    //! Jaccard similarity over two string-sets: ``|intersection| / |union|`` in 0..1.
+    //! Empty either side returns 0.0. Use ``table<string>`` (the set form) so
+    //! the intersect lookup is O(1).
+    if (empty(a) || empty(b)) return 0.0f
+    var intersect = 0_l
+    for (k in keys(a)) {
+        if (key_exists(b, k)) {
+            intersect ++
+        }
+    }
+    let unionSize = long_length(a) + long_length(b) - intersect
+    return float(intersect) / float(unionSize)
+}
+
+def public jaccard(a, b : array<string>) : float {
+    //! Jaccard similarity over two string arrays. Builds two ``table<string>``
+    //! sets and delegates — convenient when callers don't already have sets.
+    var sa : table<string>
+    for (x in a) {
+        sa |> insert(x)
+    }
+    var sb : table<string>
+    for (x in b) {
+        sb |> insert(x)
+    }
+    return jaccard(sa, sb)
+}
+
 def replace_multiple(source : string; replaces : array<tuple<text : string; replacement : string>>) {
     //! replaces occurances of multiple strings in a string. does not support overlap
-    if (empty(source) || empty(replaces)) {
-        return source
-    }
+    if (empty(source) || empty(replaces)) return source
     //! replaces occurances of multiple strings in a string. does not support overlap
     return build_string() $(writer) {
         var index = 0
@@ -232,7 +257,7 @@ def replace_multiple(source : string; replaces : array<tuple<text : string; repl
     }
 }
 
-def public contains(str, sub : string) : bool {
+def public contains(str, sub : string | string#) : bool {
     //! Returns true if ``sub`` is found anywhere within ``str``.
     return find(str, sub) >= 0
 }
@@ -240,9 +265,7 @@ def public contains(str, sub : string) : bool {
 def public count(str, sub : string) : int {
     //! Counts non-overlapping occurrences of ``sub`` in ``str``.
     //! Returns 0 if ``sub`` is empty or not found.
-    if (sub |> empty()) {
-        return 0
-    }
+    if (sub |> empty()) return 0
     var n = 0
     var pos = find(str, sub)
     let subLen = sub |> length()
@@ -255,9 +278,7 @@ def public count(str, sub : string) : int {
 
 def public last_index_of(str, sub : string) : int {
     //! Returns the index of the last occurrence of ``sub`` in ``str``, or -1 if not found.
-    if (sub |> empty() || str |> empty()) {
-        return -1
-    }
+    if (sub |> empty() || str |> empty()) return -1
     var lastPos = -1
     var pos = find(str, sub)
     while (pos >= 0) {
@@ -269,9 +290,7 @@ def public last_index_of(str, sub : string) : int {
 
 def public last_index_of(str, sub : string; start : int) : int {
     //! Returns the index of the last occurrence of ``sub`` in ``str`` searching only up to position ``start`` (exclusive), or -1 if not found.
-    if (sub |> empty() || str |> empty()) {
-        return -1
-    }
+    if (sub |> empty() || str |> empty()) return -1
     var lastPos = -1
     var pos = find(str, sub)
     while (pos >= 0 && pos < start) {
@@ -285,9 +304,7 @@ def public pad_right(str : string; width : int; ch : int = ' ') : string {
     //! Pads the string with the character ``ch`` on the right to reach the specified minimum ``width``.
     //! If the string is already at least ``width`` characters, it is returned unchanged.
     let l = str |> length()
-    if (l >= width) {
-        return str
-    }
+    if (l >= width) return str
     return build_string() $(writer) {
         writer |> write(str)
         writer |> write_chars(ch, width - l)
@@ -298,9 +315,7 @@ def public pad_left(str : string; width : int; ch : int = ' ') : string {
     //! Pads the string with the character ``ch`` on the left to reach the specified minimum ``width``.
     //! If the string is already at least ``width`` characters, it is returned unchanged.
     let l = str |> length()
-    if (l >= width) {
-        return str
-    }
+    if (l >= width) return str
     return build_string() $(writer) {
         writer |> write_chars(ch, width - l)
         writer |> write(str)
@@ -310,44 +325,34 @@ def public pad_left(str : string; width : int; ch : int = ' ') : string {
 def public trim_prefix(str, prefix : string) : string {
     //! Removes ``prefix`` from the beginning of ``str`` if present.
     //! Returns the string unchanged if it does not start with ``prefix``.
-    if (str |> starts_with(prefix)) {
-        return str |> slice(prefix |> length())
-    }
+    if (str |> starts_with(prefix)) return str |> slice(prefix |> length())
     return str
 }
 
 def public trim_suffix(str, suffix : string) : string {
     //! Removes ``suffix`` from the end of ``str`` if present.
     //! Returns the string unchanged if it does not end with ``suffix``.
-    if (str |> ends_with(suffix)) {
-        return str |> slice(0, (str |> length()) - (suffix |> length()))
-    }
+    if (str |> ends_with(suffix)) return str |> slice(0, (str |> length()) - (suffix |> length()))
     return str
 }
 
 def public capitalize(str : string) : string {
     //! Returns a copy of ``str`` with the first character converted to uppercase.
     //! The rest of the string is unchanged.
-    if (str |> empty()) {
-        return str
-    }
+    if (str |> empty()) return str
     let first = first_character(str)
-    if (first >= 'a' && first <= 'z') {
-        return build_string() $(writer) {
+    if (first >= 'a' && first <= 'z') return build_string() $(writer) {  // nolint:PERF014 (ASCII case-shift)
             writer |> write_char(first - 'a' + 'A')
             if (str |> length() > 1) {
                 writer |> write(str |> slice(1))
             }
         }
-    }
     return str
 }
 
 def public is_null_or_whitespace(str : string) : bool {
     //! Returns true if the string is null, empty, or contains only whitespace characters (space, tab, CR, LF).
-    if (str |> empty()) {
-        return true
-    }
+    if (str |> empty()) return true
     var result = true
     peek_data(str) $(data) {
         for (i in range(length(data))) {
@@ -365,9 +370,7 @@ def public glob_match(pattern, text : string) : bool {
     //! Supports ``*`` (matches any sequence of characters, including empty)
     //! and ``?`` (matches exactly one character). All other characters are
     //! compared literally.  Returns true if the entire ``text`` matches.
-    if (empty(pattern)) {
-        return empty(text)
-    }
+    if (empty(pattern)) return empty(text)
     if (empty(text)) {
         // text is empty — only matches if pattern is all *'s
         unsafe {

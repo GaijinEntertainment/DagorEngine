@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module bool_array shared public
@@ -124,7 +122,7 @@ struct BoolArray {
             } else {
                 bits[offs] &= ~mask
             }
-            real_size += 1u
+            real_size++
         }
     }
     [hint(unsafe_range_check, noalias=self)]

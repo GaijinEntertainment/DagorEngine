@@ -51,6 +51,7 @@
   file:t = "../static_upsample.dshl"
   file:t = "../screenshot_composer.dshl"
   file:t = "rendinst_impostor_shadow_atlas.dshl"
+  file:t = "rendinst_voxel.dshl"
   file:t = "downsampleDepth.dshl"
   file:t = "../ssao.dshl"
   file:t = "../heightmap.dshl"

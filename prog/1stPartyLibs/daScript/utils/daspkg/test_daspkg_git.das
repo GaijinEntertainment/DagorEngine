@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 options persistent_heap
 
@@ -194,7 +192,7 @@ def test_cmd_update_nonexistent(t : T?) {
     t |> run("error on nonexistent package") @(t : T?) {
         let tmp_root = "{get_das_root()}/_daspkg_test_upd_noex"
         mkdir(tmp_root)
-        var lf = LockFile()
+        let lf = LockFile()
         write_lock_file(tmp_root, lf)
         // should print error, not crash
         cmd_update(tmp_root, "nonexistent")

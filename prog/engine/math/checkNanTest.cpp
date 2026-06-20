@@ -7,7 +7,7 @@
 #include <cfloat>
 #include <vecmath/dag_vecMath.h>
 
-#if defined(__GNUC__) && __GNUC__ >= 13 && __GNUC__ <= 15
+#if defined(__GNUC__) && __GNUC__ >= 13
 #define KNOWN_BROKEN() 1
 #else
 #define KNOWN_BROKEN() 0

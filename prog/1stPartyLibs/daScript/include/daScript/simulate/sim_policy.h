@@ -455,9 +455,15 @@ namespace  das {
         static __forceinline vec4f Sub ( vec4f a, vec4f b, Context &, LineInfo * ) {
             return v_cast_vec4f(v_subi(v_cast_vec4i(a),v_cast_vec4i(b)));
         }
+        static __forceinline void checkDivOverflow ( vec4i a, vec4i b, Context & context, LineInfo * at ) {
+            // INT_MIN / -1 overflows signed division (idiv #DE); mirror scalar SimPolicy_IntBin::Div
+            if ( v_signmask(v_cast_vec4f(v_andi(v_cmp_eqi(a,v_splatsi(INT32_MIN)),v_cmp_eqi(b,v_splatsi(-1))))) & mask )
+                context.throw_error_at(at,"division overflow");
+        }
         static __forceinline vec4f Div ( vec4f a, vec4f b, Context & context, LineInfo * at ) {
             if ( v_signmask(v_cast_vec4f(v_cmp_eqi(v_cast_vec4i(v_zero()),v_cast_vec4i(b)))) & mask )
                 context.throw_error_at(at,"division by zero");
+            checkDivOverflow(v_cast_vec4i(a),v_cast_vec4i(b),context,at);
                     if ( mask==7 )  return v_cast_vec4f(v_divi3(v_cast_vec4i(a),v_cast_vec4i(b)));
             else    if ( mask==3 )  return v_cast_vec4f(v_divi2(v_cast_vec4i(a),v_cast_vec4i(b)));
             else                    return v_cast_vec4f(v_divi4(v_cast_vec4i(a),v_cast_vec4i(b)));
@@ -513,6 +519,7 @@ namespace  das {
             if ( v_signmask(v_cast_vec4f(v_cmp_eqi(v_cast_vec4i(v_zero()),v_cast_vec4i(b)))) & mask )
                 context.throw_error_at(at,"division by zero");
             TT * pa = (TT *)a;
+            checkDivOverflow(v_cast_vec4i(cast<TT>::from(*pa)),v_cast_vec4i(b),context,at);
                     if ( mask==7 )  *pa = cast<TT>::to (v_cast_vec4f(v_divi3(v_cast_vec4i(cast<TT>::from(*pa)), v_cast_vec4i(b))));
             else    if ( mask==3 )  *pa = cast<TT>::to (v_cast_vec4f(v_divi2(v_cast_vec4i(cast<TT>::from(*pa)), v_cast_vec4i(b))));
             else                    *pa = cast<TT>::to (v_cast_vec4f(v_divi4(v_cast_vec4i(cast<TT>::from(*pa)), v_cast_vec4i(b))));
@@ -564,6 +571,7 @@ namespace  das {
         static __forceinline vec4f DivVecScal ( vec4f a, vec4f b, Context & context, LineInfo * at ) {
             if ( v_extract_xi(v_cast_vec4i(b))==0 )
                 context.throw_error_at(at,"division by zero");
+            checkDivOverflow(v_cast_vec4i(a),v_splat_xi(v_cast_vec4i(b)),context,at);
                     if ( mask==7 )  return v_cast_vec4f(v_divi3(v_cast_vec4i(a),v_splat_xi(v_cast_vec4i(b))));
             else    if ( mask==3 )  return v_cast_vec4f(v_divi2(v_cast_vec4i(a),v_splat_xi(v_cast_vec4i(b))));
             else                    return v_cast_vec4f(v_divi4(v_cast_vec4i(a),v_splat_xi(v_cast_vec4i(b))));
@@ -571,6 +579,7 @@ namespace  das {
         static __forceinline vec4f DivScalVec ( vec4f a, vec4f b, Context & context, LineInfo * at ) {
             if ( v_signmask(v_cast_vec4f(v_cmp_eqi(v_cast_vec4i(v_zero()),v_cast_vec4i(b)))) & mask )
                 context.throw_error_at(at,"division by zero");
+            checkDivOverflow(v_splat_xi(v_cast_vec4i(a)),v_cast_vec4i(b),context,at);
                     if ( mask==7 )  return v_cast_vec4f(v_divi3(v_splat_xi(v_cast_vec4i(a)),v_cast_vec4i(b)));
             else    if ( mask==3 )  return v_cast_vec4f(v_divi2(v_splat_xi(v_cast_vec4i(a)),v_cast_vec4i(b)));
             else                    return v_cast_vec4f(v_divi4(v_splat_xi(v_cast_vec4i(a)),v_cast_vec4i(b)));
@@ -579,6 +588,7 @@ namespace  das {
             if ( v_extract_xi(v_cast_vec4i(b))==0 )
                 context.throw_error_at(at,"division by zero");
             TT * pa = (TT *)a;
+            checkDivOverflow(v_cast_vec4i(cast<TT>::from(*pa)),v_splat_xi(v_cast_vec4i(b)),context,at);
                     if ( mask==7 )  *pa = cast<TT>::to (v_cast_vec4f(v_divi3(v_cast_vec4i(cast<TT>::from(*pa)),v_splat_xi(v_cast_vec4i(b)))));
             else    if ( mask==3 )  *pa = cast<TT>::to (v_cast_vec4f(v_divi2(v_cast_vec4i(cast<TT>::from(*pa)),v_splat_xi(v_cast_vec4i(b)))));
             else                    *pa = cast<TT>::to (v_cast_vec4f(v_divi4(v_cast_vec4i(cast<TT>::from(*pa)),v_splat_xi(v_cast_vec4i(b)))));

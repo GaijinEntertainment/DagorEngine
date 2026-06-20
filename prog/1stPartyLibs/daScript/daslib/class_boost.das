@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module class_boost shared private
@@ -33,10 +31,10 @@ class ClassMethodMacro : AstFunctionAnnotation {
         }
         var tt = new TypeDecl(baseType = Type.tStructure, structType = func.classParent)
         if (explicitConstClassMethod) {
-            tt.flags |= TypeDeclFlags.explicitConst
+            tt.flags.explicitConst = true
         }
         if (func.moreFlags.isConstClassMethod) {
-            tt.flags |= TypeDeclFlags.constant
+            tt.flags.constant = true
         }
         var vv <- qmacro_variable("self", type<$t(tt)>)
         emplace(func.arguments, vv, 0)

@@ -220,9 +220,9 @@ public:
   __forceinline Func get_canVisitArrayData ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitArrayData]);
   }
-  __forceinline bool invoke_canVisitArrayData ( Context * __context__, Func __funcCall__, void * self, TypeInfo const  & ti, uint32_t count ) const {
+  __forceinline bool invoke_canVisitArrayData ( Context * __context__, Func __funcCall__, void * self, TypeInfo const  & ti, uint64_t count ) const {
     return das_invoke_function<bool>::invoke
-      <void *,TypeInfo const  &,uint32_t>
+      <void *,TypeInfo const  &,uint64_t>
         (__context__,nullptr,__funcCall__,
           self,ti,count);
   }
@@ -391,36 +391,36 @@ public:
   __forceinline Func get_beforeArrayData ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_beforeArrayData]);
   }
-  __forceinline void invoke_beforeArrayData ( Context * __context__, Func __funcCall__, void * self, void * const  ps, uint32_t stride, uint32_t count, TypeInfo const  & ti ) const {
+  __forceinline void invoke_beforeArrayData ( Context * __context__, Func __funcCall__, void * self, void * const  ps, uint32_t stride, uint64_t count, TypeInfo const  & ti ) const {
     das_invoke_function<void>::invoke
-      <void *,void * const ,uint32_t,uint32_t,TypeInfo const  &>
+      <void *,void * const ,uint32_t,uint64_t,TypeInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,ps,stride,count,ti);
   }
   __forceinline Func get_afterArrayData ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterArrayData]);
   }
-  __forceinline void invoke_afterArrayData ( Context * __context__, Func __funcCall__, void * self, void * const  ps, uint32_t stride, uint32_t count, TypeInfo const  & ti ) const {
+  __forceinline void invoke_afterArrayData ( Context * __context__, Func __funcCall__, void * self, void * const  ps, uint32_t stride, uint64_t count, TypeInfo const  & ti ) const {
     das_invoke_function<void>::invoke
-      <void *,void * const ,uint32_t,uint32_t,TypeInfo const  &>
+      <void *,void * const ,uint32_t,uint64_t,TypeInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,ps,stride,count,ti);
   }
   __forceinline Func get_beforeArrayElement ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_beforeArrayElement]);
   }
-  __forceinline void invoke_beforeArrayElement ( Context * __context__, Func __funcCall__, void * self, void * const  ps, TypeInfo const  & ti, void * const  pe, uint32_t index, bool last ) const {
+  __forceinline void invoke_beforeArrayElement ( Context * __context__, Func __funcCall__, void * self, void * const  ps, TypeInfo const  & ti, void * const  pe, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,void * const ,TypeInfo const  &,void * const ,uint32_t,bool>
+      <void *,void * const ,TypeInfo const  &,void * const ,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,ps,ti,pe,index,last);
   }
   __forceinline Func get_afterArrayElement ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterArrayElement]);
   }
-  __forceinline void invoke_afterArrayElement ( Context * __context__, Func __funcCall__, void * self, void * const  ps, TypeInfo const  & ti, void * const  pe, uint32_t index, bool last ) const {
+  __forceinline void invoke_afterArrayElement ( Context * __context__, Func __funcCall__, void * self, void * const  ps, TypeInfo const  & ti, void * const  pe, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,void * const ,TypeInfo const  &,void * const ,uint32_t,bool>
+      <void *,void * const ,TypeInfo const  &,void * const ,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,ps,ti,pe,index,last);
   }
@@ -472,36 +472,36 @@ public:
   __forceinline Func get_beforeTableKey ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_beforeTableKey]);
   }
-  __forceinline void invoke_beforeTableKey ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pk, TypeInfo const  & ki, uint32_t index, bool last ) const {
+  __forceinline void invoke_beforeTableKey ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pk, TypeInfo const  & ki, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint32_t,bool>
+      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,pa,ti,pk,ki,index,last);
   }
   __forceinline Func get_afterTableKey ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterTableKey]);
   }
-  __forceinline void invoke_afterTableKey ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pk, TypeInfo const  & ki, uint32_t index, bool last ) const {
+  __forceinline void invoke_afterTableKey ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pk, TypeInfo const  & ki, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint32_t,bool>
+      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,pa,ti,pk,ki,index,last);
   }
   __forceinline Func get_beforeTableValue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_beforeTableValue]);
   }
-  __forceinline void invoke_beforeTableValue ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pv, TypeInfo const  & kv, uint32_t index, bool last ) const {
+  __forceinline void invoke_beforeTableValue ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pv, TypeInfo const  & kv, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint32_t,bool>
+      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,pa,ti,pv,kv,index,last);
   }
   __forceinline Func get_afterTableValue ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_afterTableValue]);
   }
-  __forceinline void invoke_afterTableValue ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pv, TypeInfo const  & kv, uint32_t index, bool last ) const {
+  __forceinline void invoke_afterTableValue ( Context * __context__, Func __funcCall__, void * self, debugger::DapiTable const  & pa, TypeInfo const  & ti, void * const  pv, TypeInfo const  & kv, uint64_t index, bool last ) const {
     das_invoke_function<void>::invoke
-      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint32_t,bool>
+      <void *,debugger::DapiTable const  &,TypeInfo const  &,void * const ,TypeInfo const  &,uint64_t,bool>
         (__context__,nullptr,__funcCall__,
           self,pa,ti,pv,kv,index,last);
   }

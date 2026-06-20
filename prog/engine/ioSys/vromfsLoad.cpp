@@ -4,6 +4,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_localConv.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <zlib.h>
 #include <ioSys/dag_zstdIo.h>
 #include <../ioSys/dataBlock/blk_shared.h>
@@ -852,6 +853,23 @@ VirtualRomFsData *load_vromfs_dump(const char *fname, IMemAlloc *mem, signature_
   unsigned buf_sizes[] = {sizeof(hdr), 0, 0, sizeof(embedded_md5), to_verify ? (unsigned)to_verify->size() : 0, 0};
   void *buf = NULL;
   file_ptr_t fp = open_vrom_fp(fname, file_flags, st);
+#if _TARGET_ANDROID
+  if (!fp)
+  {
+    char errs[256];
+    int errn = df_get_last_error(errs, sizeof(errs));
+    // Retry on transient errors (e.g. EACCES/ENOENT from FUSE on Android, EMFILE spikes)
+    for (int attempt = 1; attempt <= 3 && errn != 0; ++attempt)
+    {
+      logwarn("Can't open vromfs dump '%s', error %d(%s), retrying (%d/3)...", fname, errn, errs, attempt);
+      sleep_msec(10 * attempt);
+      fp = open_vrom_fp(fname, file_flags, st);
+      if (fp)
+        break;
+      errn = df_get_last_error(errs, sizeof(errs));
+    }
+  }
+#endif
   if (!fp || df_read(fp, &hdr, sizeof(hdr)) != sizeof(hdr))
     goto load_fail;
   if (hdr.label != _MAKE4C('VRFs') && hdr.label != _MAKE4C('VRFx'))

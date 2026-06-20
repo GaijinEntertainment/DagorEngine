@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options indenting = 4
 options strict_smart_pointers = true
 
@@ -93,9 +91,7 @@ def random_in_unit_sphere(var seed : int4&) {
     while (true) {
         let r = random_float4(seed).xyz
         let p = float3(2.) * r - float3(1.)
-        if (length_sq(p) <= 1.0) {
-            return p
-        }
+        if (length_sq(p) <= 1.0) return p
     }
     return float3(0.)
 }
@@ -107,9 +103,7 @@ def random_in_unit_disk(var seed : int4&) {
         let R = random_float4(seed).xy
         let r = float3(R.x, R.y, 0.)
         let p = float3(2.) * r - float3(1., 1., 0.)
-        if (length_sq(p) <= 1.0) {
-            return p
-        }
+        if (length_sq(p) <= 1.0) return p
     }
     return float3(0.)
 }

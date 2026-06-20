@@ -12,7 +12,7 @@ ChildComponent ChildComponent::null_attr; // ro!
 void ChildComponent::initTypeIndex(component_type_t component_type)
 {
   componentType = component_type;
-  componentTypeIndex = g_entity_mgr->componentTypes.findType(componentType);
+  componentTypeIndex = EntityManager::shared_component_types().findType(componentType);
 }
 
 
@@ -25,7 +25,7 @@ ChildComponent::ChildComponent(size_t size, type_index_t ti, component_type_t t,
   memcpy(&value, raw_data, sizeof(Value));
 }
 
-void ChildComponent::setRaw(ecs::EntityManager &mgr, component_type_t component_type, const void *raw_data, CopyType copy_type)
+void ChildComponent::setRaw(component_type_t component_type, const void *raw_data, CopyType copy_type)
 {
   if (DAGOR_UNLIKELY(component_type == 0))
   {
@@ -33,7 +33,8 @@ void ChildComponent::setRaw(ecs::EntityManager &mgr, component_type_t component_
     return;
   }
   initTypeIndex(component_type);
-  const ComponentType typeInfo = mgr.componentTypes.getTypeInfo(componentTypeIndex);
+  ComponentTypes &types = EntityManager::shared_component_types();
+  const ComponentType typeInfo = types.getTypeInfo(componentTypeIndex);
   componentTypeSize = typeInfo.size;
   if (!isAttrBoxedBySize())
   {
@@ -49,7 +50,7 @@ void ChildComponent::setRaw(ecs::EntityManager &mgr, component_type_t component_
     return;
   if (need_constructor(typeInfo.flags)) // we will need copy constructor
   {
-    if (ComponentTypeManager *tm = mgr.componentTypes.createTypeManager(componentTypeIndex))
+    if (ComponentTypeManager *tm = types.createTypeManager(componentTypeIndex))
       tm->copy(getRawData(), raw_data, componentTypeIndex);
   }
 }
@@ -59,7 +60,7 @@ ChildComponent &ChildComponent::operator=(const ChildComponent &a)
   if (DAGOR_UNLIKELY(this == &a))
     return *this;
   free();
-  setRaw(*g_entity_mgr, a.getUserType(), a.getRawData());
+  setRaw(a.getUserType(), a.getRawData());
   return *this;
 }
 
@@ -67,11 +68,12 @@ void ChildComponent::free()
 {
   if (DAGOR_LIKELY(componentType != 0))
   {
-    const ComponentType typeInfo = g_entity_mgr->componentTypes.getTypeInfo(componentTypeIndex);
+    ComponentTypes &types = EntityManager::shared_component_types();
+    const ComponentType typeInfo = types.getTypeInfo(componentTypeIndex);
     if (need_constructor(typeInfo.flags))
     {
-      ComponentTypeManager *tm = g_entity_mgr->componentTypes.createTypeManager(componentTypeIndex);
-      tm->destroy(getRawData());
+      if (ComponentTypeManager *tm = types.createTypeManager(componentTypeIndex))
+        tm->destroy(getRawData());
     }
     resetBoxedMem();
   }
@@ -79,7 +81,7 @@ void ChildComponent::free()
     reset();
 }
 
-ChildComponent::ChildComponent(ecs::EntityManager &mgr, const EntityComponentRef &a) { setRaw(mgr, a.getUserType(), a.getRawData()); }
+ChildComponent::ChildComponent(const EntityComponentRef &a) { setRaw(a.getUserType(), a.getRawData()); }
 
 const EntityComponentRef ChildComponent::getEntityComponentRef() const
 {

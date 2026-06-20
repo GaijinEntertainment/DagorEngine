@@ -20,12 +20,7 @@ BhvRtPropUpdate bhv_rt_prop_update;
 BhvRtPropUpdate::BhvRtPropUpdate() : Behavior(STAGE_BEFORE_RENDER, 0) {}
 
 
-int BhvRtPropUpdate::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
-{
-  runForElem(elem);
-
-  return 0;
-}
+int BhvRtPropUpdate::update(UpdateStage /*stage*/, Element *elem, float /*dt*/) { return runForElem(elem); }
 
 
 void BhvRtPropUpdate::onAttach(Element *elem) { runForElem(elem); }
@@ -34,24 +29,24 @@ void BhvRtPropUpdate::onAttach(Element *elem) { runForElem(elem); }
 void BhvRtPropUpdate::onDetach(Element * /*elem*/, DetachMode) {}
 
 
-void BhvRtPropUpdate::runForElem(Element *elem)
+int BhvRtPropUpdate::runForElem(Element *elem)
 {
   Sqrat::Table src = elem->props.scriptDesc;
   Sqrat::Function updFunc = src.RawGetFunction(elem->csk->update);
   if (updFunc.IsNull())
-    return;
+    return 0;
 
   bool onlyWhenParentInScreen = src.RawGetSlotValue<bool>(elem->csk->onlyWhenParentInScreen, false);
   if (onlyWhenParentInScreen)
   {
     Element *parent = elem->getParent();
     if (!parent || parent->clippedScreenRect.isempty())
-      return;
+      return 0;
   }
 
   auto tblNew = updFunc.Eval<Sqrat::Table>();
   if (!tblNew)
-    return;
+    return 0;
 
   HSQUIRRELVM vm = src.GetVM();
   Sqrat::Object::iterator it;
@@ -72,21 +67,24 @@ void BhvRtPropUpdate::runForElem(Element *elem)
     }
   }
 
-  if (haveChanges)
-  {
-    GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
+  if (!haveChanges)
+    return 0;
 
-    Component tmpComp;
-    tmpComp.rendObjType = elem->rendObjType;
-    tmpComp.scriptDesc = src;
-    tmpComp.scriptBuilder = elem->props.scriptBuilder;
-    tmpComp.behaviors = elem->behaviors;
+  GuiScene *guiScene = GuiScene::get_from_sqvm(vm);
 
-    elem->setup(tmpComp, guiScene, SM_REALTIME_UPDATE);
+  Component tmpComp;
+  tmpComp.rendObjType = elem->rendObjType;
+  tmpComp.scriptDesc = src;
+  tmpComp.scriptBuilder = elem->props.scriptBuilder;
+  tmpComp.behaviors = elem->behaviors;
 
-    if (src.RawGetSlotValue<bool>(elem->csk->rtRecalcLayout, false))
-      elem->recalcLayout();
-  }
+  const bool wasHidden = elem->isHidden();
+  elem->setup(tmpComp, guiScene, SM_REALTIME_UPDATE);
+
+  if (src.RawGetSlotValue<bool>(elem->csk->rtRecalcLayout, false))
+    elem->recalcLayout();
+
+  return elem->isHidden() != wasHidden ? R_REBUILD_RENDER_AND_INPUT_LISTS : 0;
 }
 
 

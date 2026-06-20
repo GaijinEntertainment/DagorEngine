@@ -109,6 +109,8 @@ std::vector<TSTR> glob(const TSTR &dir, bool recursive)
 std::wstring strToWide(const char *sz)
 {
   int len = MultiByteToWideChar(CP_UTF8, 0, sz, -1, NULL, 0);
+  if (len <= 0)
+    return std::wstring();
   std::wstring res(len - 1, 0);
   MultiByteToWideChar(CP_UTF8, 0, sz, -1, &res[0], len);
   return res;

@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 options unsafe_table_lookup = false
 
@@ -207,10 +205,7 @@ def with_array(var jso; field; blk : block<(var val : array<JsonValue?>) : void>
 
 def is_valid_loc(var loc) {
     //! Checks if a source location is valid (non-empty).
-    if (loc |> length == 0) {
-        return false
-    }
-    return true
+    return !empty(loc)
 }
 
 def onInner(var root) {
@@ -225,10 +220,8 @@ def onInner(var root) {
                     skip = !loc |> is_valid_loc
                 }
             }
-            if (skip) {
-                if (verbose) {
-                    print("// skipping {decl["name"] as _string}\n")
-                }
+            if (skip) {  // nolint:STYLE005 (const-folded verbose-print leaves single continue)
+                print("// skipping {decl["name"] as _string}\n") if (verbose)
                 continue
             }
             let kind = decl["kind"] as _string
@@ -263,12 +256,7 @@ def onInner(var root) {
 [sideeffects] // TODO: fixme. find why we need to specify [sideeffects] here
 def onLinkageSpec(var root) {
     //! Processes an extern linkage specification node.
-    if (!allow_extern_c) {
-        return
-    }
-    if (!root |> key_exists("inner")) {
-        return
-    }
+    if (!allow_extern_c || !root |> key_exists("inner")) return
     if (verbose) {
         if (root |> key_exists("language")) {
             print("extern \"{root["language"] as _string}\"\n")
@@ -279,9 +267,7 @@ def onLinkageSpec(var root) {
 
 def onNamespace(var root) {
     //! Processes a C++ namespace declaration and its inner declarations.
-    if (!root |> key_exists("inner")) {
-        return
-    }
+    if (!root |> key_exists("inner")) return
     let name = root["name"] as _string
     let fullName = join([iterator for(n in name_stack); n.name], "::") + "::" + name
     if (verbose) {
@@ -301,10 +287,10 @@ def onEnum(var root) {
     let name = root["name"] as _string
     let fullName = getCppName(name)
     if (root |> key_exists("scopedEnumTag")) {
-        let _tag = root["scopedEnumTag"] as _string
+        let tag = root["scopedEnumTag"] as _string
         let qtype = getQualType(root, "fixedUnderlyingType")
         if (verbose) {
-            print("enum {_tag} {name} : {qtype} // {fullName}\n")
+            print("enum {tag} {name} : {qtype} // {fullName}\n")
         }
         ast.enums[fullName] <- ClangEnum(
             name = name,
@@ -483,7 +469,7 @@ def onFunctionBody(var root; isMethod : bool; ofClass : string = "") : ClangFunc
 
 def onMethod(var root) {
     //! Processes a C++ method declaration within a struct or class.
-    if (length(struct_stack) > 0) {
+    if (!empty(struct_stack)) {
         let in_class = struct_stack[length(struct_stack) - 1]
         ast.structs[in_class].methods |> emplace <| onFunctionBody(root, true, join(struct_stack, "::"))
     } else {
@@ -505,9 +491,7 @@ def onStruct(var root) {
     if (verbose) {
         print("{tagUsed} {name} // {fullName}\n")
     }
-    if (!root |> key_exists("inner")) {
-        return
-    }
+    if (!root |> key_exists("inner")) return
     if (tagUsed == "struct") {
         let pub = AccessKind.Public
         access_stack |> push(pub)
@@ -546,9 +530,7 @@ def onAccess(var root) {
 def isBitfield(var root) {
     //! Checks if a field declaration is a bitfield.
     if (root |> key_exists("isBitfield")) {
-        if (root["isBitfield"] as _bool) {
-            return true
-        }
+        if (root["isBitfield"] as _bool) return true
     }
     return false
 }
@@ -574,7 +556,7 @@ def onField(var root) {
 def getCppName(baseName) {
     //! Builds a fully qualified C++ name using the current namespace stack.
     var name = join([iterator for(n in name_stack); n.name], "::")
-    if (length(name) != 0) {
+    if (!empty(name)) {
         name = "{name}::{baseName}"
     } else {
         name = baseName
@@ -600,9 +582,7 @@ def onTypeDecl(var root) {
 def isBlockedType(qtype : string) {
     //! Checks if a type name matches any blocked type pattern.
     for (btn in blocked_type_names) {
-        if (qtype |> find(btn) != -1) {
-            return true
-        }
+        if (qtype |> find(btn) != -1) return true
     }
     return false
 }
@@ -610,9 +590,7 @@ def isBlockedType(qtype : string) {
 def isLocalType(qtype : string) {
     //! Checks if a type name matches any local type pattern.
     for (btn in local_type_names) {
-        if (qtype |> find(btn) != -1) {
-            return true
-        }
+        if (qtype |> find(btn) != -1) return true
     }
     return false
 }
@@ -632,9 +610,7 @@ def genEnums(hf, mf, df : FILE const?) {
             removePrefix = val.removePrefix
             isFlags = val.isFlags
         }
-        if (blocked_enumerations_table |> key_exists(en.cppName)) {
-            continue
-        }
+        if (blocked_enumerations_table |> key_exists(en.cppName)) continue
         fprint(df, "#ifdef {getDefinePrefix(en.cppName)}\n")
         fprint(df, "addEnumeration(new Enumeration{enName}());\n")
         if (isFlags) {
@@ -688,36 +664,22 @@ public:
 
 def needToGenStruct(st) {
     //! Determines if a struct should be included in binding generation.
-    if (empty(st.name)) {
-        return false
-    }
+    if (empty(st.name)) return false
     if (is_struct_blocked != null) {
-        if (invoke(is_struct_blocked, st.name)) {
-            return false
-        }
+        if (invoke(is_struct_blocked, st.name)) return false
     }
     return true
 }
 
 def needToGenField(fld) {
     //! Determines if a struct field should be included in binding generation.
-    if (empty(fld.name)) {
-        return false
-    }
-    if (fld.access != AccessKind.Public) {
-        return false
-    }
-    if (fld.qtype |> isBlockedType) {
-        return false
-    }
-    return true
+    if (empty(fld.name) || fld.access != AccessKind.Public) return false
+    return !fld.qtype |> isBlockedType
 }
 
 def getBindFldName(name : string) {
     //! Returns a safe binding field name, prefixing reserved words with underscore.
-    if (name == "type") {
-        return "_{name}"
-    }
+    if (name == "type") return "_{name}"
     return name
 }
 
@@ -727,9 +689,7 @@ def genStructs(hf, mf, df : FILE const?) {
     fprint(mf, "// ------------\n// structures\n// ------------\n\n")
     fprint(df, "// ------------\n// structures\n// ------------\n\n")
     for (st in values(ast.structs)) {
-        if (!needToGenStruct(st)) {
-            continue
-        }
+        if (!needToGenStruct(st)) continue
         if (!(alias_types |> key_exists(st.cppName))) {
             fprint(mf, "#ifdef {getDefinePrefix(st.cppName)}\n")
             fprint(mf, "\tIMPLEMENT_EXTERNAL_TYPE_FACTORY({st.name},{st.cppName})\n")
@@ -738,11 +698,10 @@ def genStructs(hf, mf, df : FILE const?) {
     }
     fprint(mf, "\n")
     for (st in values(ast.structs)) {
-        if (!needToGenStruct(st)) {
-            continue
-        }
-        if (alias_types |> key_exists(st.cppName)) {
-            /*
+        // alias_types branch is documented-but-unused; the legacy alias-factory
+        // emission lives in the dead-code block below for future reference.
+        if (!needToGenStruct(st) || alias_types |> key_exists(st.cppName)) continue
+        /*  legacy alias-factory emission — left as a recipe; revisit if alias annotations ever come back
             let alias_value = alias_types[st.cppName]
             fprint(mf,"template <> struct typeFactory<{st.cppName}> \{\n")
             fprint(mf,"\tstatic TypeDeclPtr make(const ModuleLibrary &) \{\n")
@@ -754,9 +713,7 @@ def genStructs(hf, mf, df : FILE const?) {
             fprint(mf,"\};\n")
             fprint(mf,"template <> struct typeName<{st.cppName}> \{ constexpr static const char * name() \{ return \"{st.name}\"; \} \};\n")
             fprint(df,"addAlias(typeFactory<{st.cppName}>::make(lib));\n")
-            */
-            continue
-        }
+         */
         fprint(df, "#ifdef {getDefinePrefix(st.cppName)}\n")
         fprint(df, "auto ann_{st.name} = make_smart<{st.name}_GeneratedAnnotation>(lib);\n")
         fprint(df, "addAnnotation(ann_{st.name});\n")
@@ -772,12 +729,7 @@ def genStructs(hf, mf, df : FILE const?) {
         fprint(mf, "\t\}\n")
         fprint(mf, "\tvoid init () \{\n")
         for (fld in st.fields) {
-            if (!needToGenField(fld)) {
-                continue
-            }
-            if (fld.isBitfield) {// TODO: support bitfields
-                continue
-            }
+            if (!needToGenField(fld) || fld.isBitfield) continue  // TODO: support bitfields
             var substType = ""
             substitute_field_types |> get("{st.cppName}::{fld.cppName}") $(val) {
                 substType = val
@@ -793,12 +745,7 @@ def genStructs(hf, mf, df : FILE const?) {
         fprint(mf, "#endif\n")
     }
     for (st in values(ast.structs)) {
-        if (!needToGenStruct(st)) {
-            continue
-        }
-        if (alias_types |> key_exists(st.cppName)) {
-            continue
-        }
+        if (!needToGenStruct(st) || alias_types |> key_exists(st.cppName)) continue
         fprint(df, "#ifdef {getDefinePrefix(st.cppName)}\n")
         fprint(df, "initRecAnnotation(ann_{st.name},lib);\n")
         fprint(df, "#endif\n")
@@ -824,17 +771,11 @@ def isBlockedFun(fn) {
         return true
     }
     for (fa in fn.args) {
-        if (fa.atype |> isBlockedType) {
-            return true
-        }
+        if (fa.atype |> isBlockedType) return true
     }
-    if (blocked_functions_table |> key_exists(fn.cppName)) {
-        return true
-    }
+    if (blocked_functions_table |> key_exists(fn.cppName)) return true
     if (is_function_blocked != null) {
-        if (invoke(is_function_blocked, fn.cppName)) {
-            return true
-        }
+        if (invoke(is_function_blocked, fn.cppName)) return true
     }
     return false
 }
@@ -875,10 +816,7 @@ def isRefFun(fn) {
     if (cppResType |> ends_with(" ")) {
         cppResType = slice(cppResType, 0, -1)
     }
-    if (cppResType |> ends_with("&")) {
-        return true
-    }
-    return false
+    return cppResType |> ends_with("&")
 }
 
 def isCmresFun(fn) {
@@ -894,25 +832,17 @@ def isCmresFun(fn) {
         cppResType = slice(cppResType, 0, -1)
     }
     for (atype in keys(alias_types)) {
-        if (cppResType == atype) {
-            return false
-        }
+        if (cppResType == atype) return false
     }
-    if (ast.structs |> key_exists(cppResType)) {
-        return true
-    }
+    if (ast.structs |> key_exists(cppResType)) return true
     if (alt_struct_name != null) {
         let aname = invoke(alt_struct_name, cppResType)
         if (aname != "") {
-            if (ast.structs |> key_exists(aname)) {
-                return true
-            }
+            if (ast.structs |> key_exists(aname)) return true
         }
     }
     for (bf in cmres_functions) {
-        if (bf == fn.cppName) {
-            return true
-        }
+        if (bf == fn.cppName) return true
     }
     return false
 }
@@ -960,9 +890,7 @@ def getFunctions(df, df_method : FILE const?) {
         all_fn[fn.cppName] ++
     }
     for (fn in values(ast.funcs)) {
-        if (fn |> isBlockedFun) {
-            continue
-        }
+        if (fn |> isBlockedFun) continue
         let castbind = all_fn[fn.cppName] > 1
         genFunction(fn, castbind, df)
         if (generate_split_functions) {
@@ -978,9 +906,7 @@ def getFunctions(df, df_method : FILE const?) {
             all_met[fn.name] ++
         }
         for (fn in st.methods) {
-            if (fn |> isBlockedFun) {
-                continue
-            }
+            if (fn |> isBlockedFun) continue
             let castbind = all_met[fn.name] > 1
             genFunction(fn, castbind, df_method)
             if (generate_split_functions) {
@@ -1008,9 +934,7 @@ def parseQualArgs(qname : string; var rtype : string&) {
 def getDefinePrefix(xname : string) {
     //! Returns the preprocessor define prefix for a given C++ qualified name.
     for (nn, pn in keys(namespace_to_prefix), values(namespace_to_prefix)) {
-        if (xname |> starts_with(nn)) {
-            return pn
-        }
+        if (xname |> starts_with(nn)) return pn
     }
     return "GLOBAL_NAMESPACE"
 }
@@ -1080,7 +1004,7 @@ def genFunction(fn : ClangFunc; castbind : bool; df : FILE const?) {
         }
     }
     if (!extra_args |> empty) {
-        if (length(fn.args) > 0) {
+        if (!empty(fn.args)) {
             fprint(df, ",")
         }
         fprint(df, extra_args)

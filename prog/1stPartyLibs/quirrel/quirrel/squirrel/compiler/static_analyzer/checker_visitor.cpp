@@ -2006,6 +2006,71 @@ void CheckerVisitor::checkFormatArguments(const CallExpr *call) {
   }
 }
 
+void CheckerVisitor::checkSubstArguments(const CallExpr *call) {
+  if (isEffectsGatheringPass)
+    return;
+
+  const Expr *callee = deparenStatic(call->callee());
+  if (callee->op() != TO_GETFIELD) // -V522
+    return;
+
+  const GetFieldExpr *f = callee->asGetField();
+  if (strcmp(f->fieldName(), "subst") != 0)
+    return;
+
+  const Expr *recv = deparenStatic(f->receiver());
+  if (recv->op() != TO_LITERAL) // -V522
+    return;
+
+  const LiteralExpr *lit = recv->asLiteral();
+  if (lit->kind() != LK_STRING)
+    return;
+
+  const int32_t argCount = (int32_t)call->arguments().size();
+  const char *s = lit->s();
+  const int len = (int)strlen(s);
+
+  const int MAX_TRACKED = 30; // keeps the (1u << (maxIndex+1)) mask in range; real templates never reach this
+  uint32_t seenMask = 0;
+  int maxIndex = -1;
+  for (int i = 0; i < len - 2; i++) {
+    if (s[i] != '{')
+      continue;
+    int depth = 0;
+    for (int j = i + 1; j < len; j++) {
+      if (s[j] == '{') {
+        depth++;
+      }
+      else if (s[j] == '}') {
+        if (--depth < 0) {
+          if (i + 1 != j) { // skip empty {}
+            int index = 0;
+            bool numeric = true;
+            for (int k = i + 1; k < j; k++) {
+              if (s[k] < '0' || s[k] > '9') { numeric = false; break; }
+              index = index * 10 + (s[k] - '0');
+              if (index >= MAX_TRACKED) { numeric = false; break; }
+            }
+            if (numeric) {
+              seenMask |= (1u << index);
+              if (index > maxIndex)
+                maxIndex = index;
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  if (maxIndex < 0)
+    return;
+
+  const uint32_t fullMask = (1u << (maxIndex + 1)) - 1;
+  if (seenMask == fullMask && maxIndex >= argCount)
+    report(recv, DiagnosticsId::DI_SUBST_ARGUMENT_INDEX, maxIndex, argCount);
+}
+
 int32_t CheckerVisitor::normalizeParamNameLength(const char *name) {
   int32_t r = 0;
 
@@ -2569,6 +2634,7 @@ void CheckerVisitor::visitCallExpr(CallExpr *expr) {
   checkCallFromRoot(expr);
   checkForbiddenParentDir(expr);
   checkFormatArguments(expr);
+  checkSubstArguments(expr);
   checkContainerModification(expr);
   checkUnwantedModification(expr);
   checkCannotBeNull(expr);

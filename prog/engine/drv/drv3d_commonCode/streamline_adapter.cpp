@@ -220,34 +220,30 @@ void logMessageCallback(sl::LogType type, const char *msg)
 
 sl::FrameToken &FrameTracker::getFrameToken(uint32_t frame_id)
 {
-  // This slot is shared between the main thread (simulation markers, reflex sleep) and the render
-  // worker (present/submit markers, DLSS evaluate), so the lazy-init must be race free. Both
-  // slGetNewFrameToken and the marker calls are thread safe; only the check-and-publish needs a CAS.
   auto &slot = frameTokens[frame_id % MAX_CONCURRENT_FRAMES];
   sl::FrameToken *token = slot.load(dag::mo::acquire);
-  if (!token)
+  // if we already have a token with this frame's id, then let's use that
+
+  for (;;)
   {
+    if (token && uint32_t(*token) == frame_id)
+      return *token;
+
     sl::FrameToken *newToken = nullptr;
     sl_funcs::slGetNewFrameToken(newToken, &frame_id);
-    // Publish only if the slot is still empty. If another thread won the race we keep its token and
-    // drop ours; tokens are owned by Streamline (no free needed), so discarding the loser is fine.
-    if (slot.compare_exchange_strong(token, newToken, dag::mo::acq_rel, dag::mo::acquire))
-      token = newToken;
+
+    if (slot.compare_exchange_weak(token, newToken, dag::mo::acq_rel, dag::mo::acquire))
+      return *newToken;
   }
-  return *token;
 }
 
-void FrameTracker::startFrame(uint32_t frame_id)
-{
-  frameTokens[frame_id % MAX_CONCURRENT_FRAMES].store(nullptr, dag::mo::release);
-  constantsInitialized[frame_id % MAX_CONCURRENT_FRAMES] = {};
-}
+void FrameTracker::startFrame(uint32_t frame_id) { frameTokens[frame_id % MAX_CONCURRENT_FRAMES].store(nullptr, dag::mo::release); }
 
 void FrameTracker::reset()
 {
   for (auto &token : frameTokens)
     token.store(nullptr, dag::mo::release);
-  constantsInitialized = {};
+  constantsFrameId = {};
 }
 
 // COMMON STUFF
@@ -314,10 +310,11 @@ static void process_vk_image(sl::Resource &res, bool out = false)
 }
 
 template <typename Params>
-void FrameTracker::initConstants(const Params &params, int viewport_id)
+void FrameTracker::initConstants(const Params &params, sl::FrameToken &token, int viewport_id)
 {
   const uint32_t frameId = params.frameId;
-  if (constantsInitialized[frameId % MAX_CONCURRENT_FRAMES][viewport_id])
+  // constants for this frame might already be initialized
+  if (constantsFrameId[viewport_id] == frameId)
     return;
 
   sl::Constants constants{};
@@ -325,7 +322,7 @@ void FrameTracker::initConstants(const Params &params, int viewport_id)
   set_common_constants(constants, params.inReset);
   set_camera_constants(constants, params.camera);
 
-  sl::Result result = sl_funcs::slSetConstants(constants, getFrameToken(frameId), viewport_id);
+  sl::Result result = sl_funcs::slSetConstants(constants, token, viewport_id);
   switch (result)
   {
     case sl::Result::eOk: break;
@@ -333,7 +330,7 @@ void FrameTracker::initConstants(const Params &params, int viewport_id)
     default: D3D_ERROR("DLSS(-RR/-G): Failed to set constants. Result: %s", sl::getResultAsStr(result));
   }
 
-  constantsInitialized[frameId % MAX_CONCURRENT_FRAMES][viewport_id] = true;
+  constantsFrameId[viewport_id] = frameId;
 }
 
 StreamlineAdapter::InterposerHandleType StreamlineAdapter::loadInterposer()
@@ -736,7 +733,8 @@ bool DLSSSuperResolution::isModeAvailableAtResolution(nv::DLSS::Mode mode, const
 
 bool DLSSSuperResolution::evaluate(const nv::DlssParams<void> &params, void *command_buffer)
 {
-  frameTracker.initConstants(params, viewportId);
+  auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
+  frameTracker.initConstants(params, currentFrameToken, viewportId);
 
   sl::Resource inColor{sl::ResourceType::eTex2d, params.inColor, params.inColorState};
   sl::Resource inDepth{sl::ResourceType::eTex2d, params.inDepth, params.inDepthState};
@@ -762,8 +760,6 @@ bool DLSSSuperResolution::evaluate(const nv::DlssParams<void> &params, void *com
     {&inMotionVectors, sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilEvaluate, &commonExtent},
     {&inExposure, sl::kBufferTypeExposure, sl::ResourceLifecycle::eValidUntilEvaluate, &commonExtent},
     {&outColor, sl::kBufferTypeScalingOutputColor, sl::ResourceLifecycle::eValidUntilEvaluate}};
-
-  auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
 
   sl::Result result = sl_funcs::slSetTagForFrame(currentFrameToken, viewportId, tags.data(), tags.size(), command_buffer);
   G_ASSERT(result == sl::Result::eOk);
@@ -855,7 +851,9 @@ static sl::DLSSGOptions make_dlssg_options(bool retain_resources, int frames_to_
   return options;
 }
 
-static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames_to_generate)
+// Runs on the render backend thread. Optionally returns the queried state so the caller can cache the
+// parts the main thread needs (slDLSSGGetState is not thread safe, so the main thread must not call it).
+static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames_to_generate, sl::DLSSGState *out_state = nullptr)
 {
   auto options = make_dlssg_options(retain_resources, frames_to_generate);
   if (SL_FAILED(result, sl_funcs::slDLSSGSetOptions(viewport_id, options)))
@@ -872,10 +870,26 @@ static bool change_dlssg_mode(int viewport_id, bool retain_resources, int frames
   }
 
   sl::DLSSGState state;
-  G_VERIFY(sl_funcs::slDLSSGGetState(viewport_id, state, &options) == sl::Result::eOk);
+  // Request the VRAM estimate on the state query only (not on slDLSSGSetOptions) so getMemorySize can be
+  // served from the cached state instead of an extra main-thread query.
+  auto stateOptions = options;
+  stateOptions.flags |= sl::DLSSGFlags::eRequestVRAMEstimate;
+  G_VERIFY(sl_funcs::slDLSSGGetState(viewport_id, state, &stateOptions) == sl::Result::eOk);
+  if (out_state)
+    *out_state = state;
   if (state.status != sl::DLSSGStatus::eOk)
     D3D_ERROR("DLSSG: failed to set to %s state", frames_to_generate > 0 ? "enabled" : "disabled");
   return state.status == sl::DLSSGStatus::eOk ? frames_to_generate : 0;
+}
+
+dag::AtomicInteger<int> DLSSFrameGeneration::cachedMaxFramesToGenerate{-1};
+
+void DLSSFrameGeneration::updateCachedState(const sl::DLSSGState &state)
+{
+  // numFramesActuallyPresented is a delta since the last slDLSSGGetState call, so accumulate it.
+  presentedFramesAccum.fetch_add(state.numFramesActuallyPresented, dag::mo::relaxed);
+  cachedMemorySize.store(state.estimatedVRAMUsageInBytes, dag::mo::relaxed);
+  cachedMaxFramesToGenerate.store(int(state.numFramesToGenerateMax), dag::mo::relaxed);
 }
 
 void DLSSFrameGeneration::setEnabled(int frames_to_generate)
@@ -885,7 +899,11 @@ void DLSSFrameGeneration::setEnabled(int frames_to_generate)
     this->framesToGenerate = frames_to_generate;
   }
   else
-    this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate);
+  {
+    sl::DLSSGState state;
+    this->framesToGenerate = change_dlssg_mode(viewportId, false, frames_to_generate, &state);
+    updateCachedState(state);
+  }
 }
 
 bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *command_buffer)
@@ -893,18 +911,22 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
   if (framesToGenerate <= 0)
     return true;
 
+  sl::DLSSGState state;
   if (params.suppressed)
   {
     // this is a workaround to a bug causing DLSS-G to only retain resources when options are passed in each frame
-    change_dlssg_mode(viewportId, true, 0);
+    change_dlssg_mode(viewportId, true, 0, &state);
+    updateCachedState(state);
     return true;
   }
   else
   {
-    change_dlssg_mode(viewportId, true, framesToGenerate);
+    change_dlssg_mode(viewportId, true, framesToGenerate, &state);
+    updateCachedState(state);
   }
 
-  frameTracker.initConstants(params, viewportId);
+  auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
+  frameTracker.initConstants(params, currentFrameToken, viewportId);
 
   sl::Resource inHUDless{sl::ResourceType::eTex2d, params.inHUDless, params.inHUDlessState};
   sl::Resource inUI{sl::ResourceType::eTex2d, params.inUI, params.inUIState};
@@ -946,8 +968,7 @@ bool DLSSFrameGeneration::evaluate(const nv::DlssGParams<void> &params, void *co
     {&inMotionVectors, sl::kBufferTypeMotionVectors, sl::ResourceLifecycle::eValidUntilPresent},
   };
 
-  bool success = sl_funcs::slSetTagForFrame(frameTracker.getFrameToken(params.frameId), viewportId, tags, eastl::size(tags),
-                   command_buffer) == sl::Result::eOk;
+  bool success = sl_funcs::slSetTagForFrame(currentFrameToken, viewportId, tags, eastl::size(tags), command_buffer) == sl::Result::eOk;
   G_ASSERT(success);
 
   return success;
@@ -958,17 +979,23 @@ unsigned DLSSFrameGeneration::getActualFramesPresented() const
   if (framesToGenerate <= 0)
     return 1;
 
-  sl::DLSSGState state;
-  auto result = sl_funcs::slDLSSGGetState(0, state, nullptr);
-  G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk, 1);
-  return state.numFramesActuallyPresented;
+  // Reads the count accumulated by the backend thread (slDLSSGGetState is not thread safe). Consumes it
+  // so each query returns the frames presented since the previous one, matching the old delta semantics.
+  return presentedFramesAccum.exchange(0, dag::mo::relaxed);
 }
 
 int DLSSFrameGeneration::getMaximumNumberOfGeneratedFrames()
 {
+  // numFramesToGenerateMax is a fixed GPU capability. While FG is active the backend keeps this cached, so
+  // the main thread never calls the (non-thread-safe) slDLSSGGetState concurrently. The cold query below
+  // only runs when nothing has been cached yet, which implies FG is not running, hence no concurrent call.
+  if (int cached = cachedMaxFramesToGenerate.load(dag::mo::relaxed); cached >= 0)
+    return cached;
+
   sl::DLSSGState state;
   auto result = sl_funcs::slDLSSGGetState(0, state, nullptr);
   G_ASSERT_RETURN((result == sl::Result::eOk || result == sl::Result::eWarnOutOfVRAM) && state.status == sl::DLSSGStatus::eOk, 0);
+  cachedMaxFramesToGenerate.store(int(state.numFramesToGenerateMax), dag::mo::relaxed);
   return state.numFramesToGenerateMax;
 }
 
@@ -978,11 +1005,8 @@ uint64_t DLSSFrameGeneration::getMemorySize() const
   {
     return 0;
   }
-  auto options = make_dlssg_options(true, framesToGenerate);
-  options.flags |= sl::DLSSGFlags::eRequestVRAMEstimate;
-  sl::DLSSGState state{};
-  sl_funcs::slDLSSGGetState(viewportId, state, &options);
-  return state.estimatedVRAMUsageInBytes;
+  // Served from the estimate the backend cached during evaluate (see change_dlssg_mode).
+  return cachedMemorySize.load(dag::mo::relaxed);
 }
 
 static bool is_frame_generation_enabled_in_settings()
@@ -1148,7 +1172,8 @@ bool DLSSRayReconstruction::setOptions(nv::DLSS::Mode mode, IPoint2 output_resol
 
 bool DLSSRayReconstruction::evaluate(const nv::DlssParams<void> &params, void *command_buffer)
 {
-  frameTracker.initConstants(params, viewportId);
+  auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
+  frameTracker.initConstants(params, currentFrameToken, viewportId);
 
   dlssd_set_options(viewportId, currentMode, currentOutputResolution, params.camera.worldToView, params.camera.viewToWorld);
 
@@ -1203,8 +1228,6 @@ bool DLSSRayReconstruction::evaluate(const nv::DlssParams<void> &params, void *c
     sl::ResourceLifecycle::eValidUntilEvaluate);
   addIfNotNull(params.inColorBeforeTransparency, inColorBeforeTransparency, sl::kBufferTypeColorBeforeTransparency,
     sl::ResourceLifecycle::eValidUntilEvaluate);
-
-  auto &currentFrameToken = frameTracker.getFrameToken(params.frameId);
 
   sl::Result result = sl_funcs::slSetTagForFrame(currentFrameToken, viewportId, tags.data(), tags.size(), command_buffer);
   G_ASSERT(result == sl::Result::eOk);

@@ -338,12 +338,8 @@ void end_conditional_render(int id) { return d3di.end_conditional_render(id); }
 
 bool set_depth_bounds(float zmin, float zmax) { return d3di.set_depth_bounds(zmin, zmax); }
 
-VDECL get_program_vdecl(PROGRAM p) { return d3di.get_program_vdecl(p); }
 bool set_vertex_shader(VPROG ps) { return d3di.set_vertex_shader(ps); }
 bool set_pixel_shader(FSHADER ps) { return d3di.set_pixel_shader(ps); }
-
-VPROG create_vertex_shader_dagor(const VPRTYPE *p, int n) { return d3di.create_vertex_shader_dagor(p, n); }
-FSHADER create_pixel_shader_dagor(const FSHTYPE *p, int n) { return d3di.create_pixel_shader_dagor(p, n); }
 
 bool get_vrr_supported() { return d3di.get_vrr_supported(); }
 bool get_vsync_enabled() { return d3di.get_vsync_enabled(); }

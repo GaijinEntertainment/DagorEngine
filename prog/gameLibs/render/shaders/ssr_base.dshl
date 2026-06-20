@@ -293,7 +293,7 @@ macro SSR_DISOCCLUSION(code)
     half historyNormalWeight(half4 sample_normal_roughness, half3 normal, half roughness)
     {
       //we can use higher smoothness history in lower smoothness (to a certain degree), but not visa verse
-      return sample_normal_roughness.w < half(CALC_SSR_ROUGHNESS_THRESHOLD) ? pow2(dot(normal, sample_normal_roughness.xyz)*saturate(1.0 - abs(roughness - sample_normal_roughness.w))) : 0;
+      return sample_normal_roughness.w < half(CALC_SSR_ROUGHNESS_THRESHOLD) ? pow2(saturate(dot(normal, sample_normal_roughness.xyz))*saturate(1.0 - abs(roughness - sample_normal_roughness.w))) : 0;
     }
     half4 historyNormalWeights(half4 normalW, half roughness)
     {

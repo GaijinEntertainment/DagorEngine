@@ -806,10 +806,11 @@ macro RAYCAST_CLOUDS(code)
           float2 texSizeF;
           clouds_depth_gbuf.GetDimensions(texSizeF.x, texSizeF.y); // somehow dshl get_dimensions fails here
           int2 lowResCoordsOriginI = int2(texcoord * texSizeF.xy + 0.5f) - int2(1,1);
+          int2 maxLowResCoord = int2(texSizeF.xy) - int2(1, 1);
           float rawDepth = 1;
           UNROLL
           for(int i = 0; i < 9; i++)
-            rawDepth = min(rawDepth, texelFetch(clouds_depth_gbuf, lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1), 0).x);
+            rawDepth = min(rawDepth, texelFetch(clouds_depth_gbuf, clamp(lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1), int2(0, 0), maxLowResCoord), 0).x);
         #else
           float rawDepth = tex2Dlod(clouds_depth_gbuf, float4(texcoord,0,0)).x;
         #endif

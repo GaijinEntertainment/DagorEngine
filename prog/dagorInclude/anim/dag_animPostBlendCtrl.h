@@ -51,6 +51,7 @@ decl_dclassid(0x2000031B, FootLockerIKCtrl);
 decl_dclassid(0x2000031C, AnimPostBlendHasAttachment);
 decl_dclassid(0x2000031D, AnimPostBlendHumanAimCtrl);
 decl_dclassid(0x2000031E, AnimPostBlendTwoBonesIK);
+decl_dclassid(0x2000031F, DasAnimPostBlendCtrl);
 
 //
 // Controller to compute node's rotation and shift
@@ -75,10 +76,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "DeltaRotateShiftCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == DeltaRotateShiftCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -115,10 +116,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/);
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/);
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "DeltaAnglesCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == DeltaAnglesCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -153,10 +154,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendAlignCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendAlignCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -199,10 +200,10 @@ public:
 
   virtual void destroy() { targetNode.clear(); }
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendAlignExCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendAlignExCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -244,10 +245,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendRotateCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendRotateCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -283,10 +284,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendRotateAroundCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendRotateAroundCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -321,10 +322,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendScaleCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendScaleCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -368,10 +369,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendMoveCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendMoveCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -414,17 +415,17 @@ public:
 
   static bool loadCondition(const DataBlock &blk, AnimationGraph &graph, const char *name, int index, Condition &out_condition);
   static void deleteCondition(Condition &condition);
-  static bool checkCondMet(const IPureAnimStateHolder &st, const Condition &condition);
+  static bool checkCondMet(const AnimGraphStateHolder &st, const Condition &condition);
 
   AnimPostBlendCondHideCtrl(AnimationGraph &g);
   ~AnimPostBlendCondHideCtrl();
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendCondHideCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendCondHideCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -545,11 +546,11 @@ public:
 
   virtual void destroy() { clear_and_shrink(aimDesc.limitsTable); }
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder &st, real dt);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder &st, real dt);
 
   const char *class_name() const override { return "AnimPostBlendAimCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendAimCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -596,11 +597,11 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &st);
-  virtual void advance(IPureAnimStateHolder &st, real dt);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
+  virtual void advance(AnimGraphStateHolder &st, real dt);
 
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &) {}
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "ApbParamCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == ApbParamCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -625,10 +626,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &);
-  virtual void process(IPureAnimStateHolder &st, real, GeomNodeTree &, AnimPostBlendCtrl::Context &);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &);
+  virtual void process(AnimGraphStateHolder &st, real, GeomNodeTree &, AnimPostBlendCtrl::Context &);
 
   const char *class_name() const override { return "DefClampParamCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == DefClampParamCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -666,10 +667,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   virtual bool isEmpty() const { return rec.empty(); }
 
@@ -718,11 +719,11 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder &st, real dt);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder &st, real dt);
 
   const char *class_name() const override { return "LegsIKCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == LegsIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -789,12 +790,12 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &st);
-  virtual void clearAllocatedMemory(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
+  virtual void clearAllocatedMemory(AnimGraphStateHolder &st);
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder &st, real dt);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder &st, real dt);
 
   const char *class_name() const override { return "MultiChainFABRIKCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == MultiChainFABRIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -833,18 +834,18 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder &st, real dt);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder &st, real dt);
 
   const char *class_name() const override { return "AttachGeomNodeCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AttachGeomNodeCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 
-  static AttachDesc &getAttachDesc(IPureAnimStateHolder &st, int var_id) { return *(AttachDesc *)st.getInlinePtr(var_id); }
+  static AttachDesc &getAttachDesc(AnimGraphStateHolder &st, int var_id) { return *(AttachDesc *)st.getInlinePtr(var_id); }
 };
 
 
@@ -875,10 +876,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendNodeLookatCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendNodeLookatCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -913,10 +914,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendNodeLookatNodeCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendNodeLookatNodeCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -960,10 +961,10 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendEffFromAttachement"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendEffFromAttachementCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -995,10 +996,10 @@ public:
   AnimPostBlendNodeEffectorFromChildIK(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendNodeEffectorFromChildIK"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendNodeEffectorFromChildIKCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1028,10 +1029,10 @@ public:
   AnimPostBlendMatVarFromNode(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendMatVarFromNode"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendMatVarFromNodeCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1068,11 +1069,11 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &);
-  virtual void clearAllocatedMemory(IPureAnimStateHolder &);
+  virtual void setDefaultState(AnimGraphStateHolder &);
+  virtual void clearAllocatedMemory(AnimGraphStateHolder &);
 
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &) {}
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendNodesFromAttachement"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendNodesFromAttachementCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1103,13 +1104,13 @@ public:
   AnimPostBlendParamFromNode(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &) {}
 
   const char *class_name() const override { return "AnimPostBlendParamFromNode"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendParamFromNodeCID || AnimPostBlendCtrl::isSubOf(id); }
 
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1140,13 +1141,13 @@ public:
   AnimPostBlendCompoundRotateShift(AnimationGraph &g);
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendCompoundRotateShift"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendCompoundRotateShiftCID || AnimPostBlendCtrl::isSubOf(id); }
 
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1165,13 +1166,13 @@ public:
   AnimPostBlendSetParam(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &) {}
 
   const char *class_name() const override { return "AnimPostBlendSetParam"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendSetParamCID || AnimPostBlendCtrl::isSubOf(id); }
 
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1191,13 +1192,13 @@ public:
   AnimPostBlendTwistCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendTwistCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwistCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1240,13 +1241,13 @@ public:
   AnimPostBlendEyeCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &);
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &);
 
   const char *class_name() const override { return "AnimPostBlendEyeCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwistCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
 
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   static void createNode(AnimationGraph &graph, const DataBlock &blk);
 };
@@ -1309,11 +1310,11 @@ public:
   FootLockerIKCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 
   const char *class_name() const override { return "FootLockerIKCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == FootLockerIKCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1334,11 +1335,11 @@ public:
   AnimPostBlendHasAttachment(AnimationGraph &g) : AnimPostBlendCtrl(g) {}
 
   virtual void destroy() {}
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &, const GeomNodeTree &) {}
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+  virtual void init(AnimGraphStateHolder &, const GeomNodeTree &) {}
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 
   const char *class_name() const override { return "AnimPostBlendHasAttachment"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendHasAttachmentCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1375,11 +1376,11 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder &) {}
+  virtual void setDefaultState(AnimGraphStateHolder &) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void advance(IPureAnimStateHolder &, real) {}
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void advance(AnimGraphStateHolder &, real) {}
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   const char *class_name() const override { return "AnimPostBlendHumanAimCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendHumanAimCtrlCID || AnimPostBlendCtrl::isSubOf(id); }
@@ -1416,11 +1417,11 @@ public:
 
   virtual void destroy() {}
 
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree);
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
-  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree);
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  virtual void advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 
   const char *class_name() const override { return "AnimPostBlendTwoBonesIK"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendTwoBonesIKCID || AnimPostBlendCtrl::isSubOf(id); }

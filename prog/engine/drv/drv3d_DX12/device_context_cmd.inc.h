@@ -1158,6 +1158,26 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteDlssG)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, SetDlssGEnabled)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(int, frames_to_generate)
+  DX12_CONTEXT_COMMAND_PARAM(int, view_index)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setDlssGEnabled(frames_to_generate, view_index);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, SetDlssOptions)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(nv::DlssOptions, options)
+  DX12_CONTEXT_COMMAND_PARAM(int, view_index)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setDlssOptions(options, view_index);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXess)
   DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(XessParamsDx12, params)
@@ -1651,25 +1671,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, LoadComputeShaderFromDump)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.loadComputeShaderFromDump(program);
-#endif
-DX12_END_CONTEXT_COMMAND
-
-DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet)
-  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<InputLayoutIDWithHash>, inputLayouts)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<StaticRenderStateIDWithHash>, staticRenderStates)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<FramebufferLayoutWithHash>, framebufferLayouts)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<GraphicsPipelinePreloadInfo>, graphicsPipelines)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<MeshPipelinePreloadInfo>, meshPipelines)
-  DX12_CONTEXT_COMMAND_PARAM(eastl::span<ComputePipelinePreloadInfo>, computePipelines)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.compilePipelineSet(DynamicArray<InputLayoutIDWithHash>::fromSpan(inputLayouts),
-    DynamicArray<StaticRenderStateIDWithHash>::fromSpan(staticRenderStates),
-    DynamicArray<FramebufferLayoutWithHash>::fromSpan(framebufferLayouts),
-    DynamicArray<GraphicsPipelinePreloadInfo>::fromSpan(graphicsPipelines),
-    DynamicArray<MeshPipelinePreloadInfo>::fromSpan(meshPipelines),
-    DynamicArray<ComputePipelinePreloadInfo>::fromSpan(computePipelines));
 #endif
 DX12_END_CONTEXT_COMMAND
 

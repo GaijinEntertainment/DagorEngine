@@ -108,13 +108,20 @@ void HmapLandObjectEditor::registerEditorCommands(IEditorCommandSystem &command_
   command_system.addCommand(EditorCommandIds::SPLINE_REGEN, ImGuiKey_F1);
   command_system.addCommand(EditorCommandIds::SPLINE_REGEN_CTRL, ImGuiMod_Ctrl | ImGuiKey_F1);
   command_system.addCommand(EditorCommandIds::REBUILD_SPLINES_BITMASK, ImGuiKey_F2);
-  command_system.addCommand(EditorCommandIds::SELECT_PT, ImGuiMod_Ctrl | ImGuiKey_1);
-  command_system.addCommand(EditorCommandIds::SELECT_SPLINES, ImGuiMod_Ctrl | ImGuiKey_2);
+  command_system.addCommand(EditorCommandIds::SELECT_POINTS_ALL, "Select only spline and polygon points", ImGuiMod_Ctrl | ImGuiKey_1);
+  command_system.addCommand(EditorCommandIds::SELECT_POINTS_SPLINE, "Select only spline points");
+  command_system.addCommand(EditorCommandIds::SELECT_POINTS_POLYGON, "Select only polygon points");
+  command_system.addCommand(EditorCommandIds::SELECT_SPLINES_AND_POLYGONS, "Select only splines and polygons",
+    ImGuiMod_Ctrl | ImGuiKey_2);
+  command_system.addCommand(EditorCommandIds::SELECT_SPLINES, "Select only splines");
+  command_system.addCommand(EditorCommandIds::SELECT_POLYGONS, "Select only polygons");
   command_system.addCommand(EditorCommandIds::SELECT_ENT, ImGuiMod_Ctrl | ImGuiKey_3);
   command_system.addCommand(EditorCommandIds::SELECT_NONE, ImGuiMod_Ctrl | ImGuiKey_6);
   command_system.addCommand(EditorCommandIds::SELECT_SPL_ENT, ImGuiMod_Ctrl | ImGuiKey_7);
-  command_system.addCommand(EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, ImGuiMod_Ctrl | ImGuiKey_0);
-  command_system.addCommand(EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS);
+  command_system.addCommand(EditorCommandIds::TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS, "Hide spline and polygon controls",
+    ImGuiMod_Ctrl | ImGuiKey_0);
+  command_system.addCommand(EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, "Hide only spline controls");
+  command_system.addCommand(EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS, "Hide only polygon controls");
   command_system.addCommand(EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS);
   command_system.addCommand(EditorCommandIds::SHOW_PHYSMAT);
   command_system.addCommand(EditorCommandIds::SHOW_PHYSMAT_COLORS);
@@ -144,11 +151,17 @@ void HmapLandObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
   wndManager.addViewportAccelerator(CM_SPLINE_REGEN, EditorCommandIds::SPLINE_REGEN);
   wndManager.addViewportAccelerator(CM_SPLINE_REGEN_CTRL, EditorCommandIds::SPLINE_REGEN_CTRL);
   wndManager.addViewportAccelerator(CM_REBUILD_SPLINES_BITMASK, EditorCommandIds::REBUILD_SPLINES_BITMASK);
-  wndManager.addViewportAccelerator(CM_SELECT_PT, EditorCommandIds::SELECT_PT);
+  wndManager.addViewportAccelerator(CM_SELECT_POINTS_ALL, EditorCommandIds::SELECT_POINTS_ALL);
+  wndManager.addViewportAccelerator(CM_SELECT_POINTS_SPLINE, EditorCommandIds::SELECT_POINTS_SPLINE);
+  wndManager.addViewportAccelerator(CM_SELECT_POINTS_POLYGON, EditorCommandIds::SELECT_POINTS_POLYGON);
+  wndManager.addViewportAccelerator(CM_SELECT_SPLINES_AND_POLYGONS, EditorCommandIds::SELECT_SPLINES_AND_POLYGONS);
   wndManager.addViewportAccelerator(CM_SELECT_SPLINES, EditorCommandIds::SELECT_SPLINES);
+  wndManager.addViewportAccelerator(CM_SELECT_POLYGONS, EditorCommandIds::SELECT_POLYGONS);
   wndManager.addViewportAccelerator(CM_SELECT_ENT, EditorCommandIds::SELECT_ENT);
   wndManager.addViewportAccelerator(CM_SELECT_NONE, EditorCommandIds::SELECT_NONE);
   wndManager.addViewportAccelerator(CM_SELECT_SPL_ENT, EditorCommandIds::SELECT_SPL_ENT);
+  wndManager.addViewportAccelerator(CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS);
   wndManager.addViewportAccelerator(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS);
   wndManager.addViewportAccelerator(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS);
   wndManager.addViewportAccelerator(CM_TOGGLE_NOTE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS);
@@ -998,14 +1011,12 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       updateToolbarButtons();
       DAGORED2->repaint();
       break;
+    case CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS:
     case CM_TOGGLE_SPLINE_DEBUG_CONTROLS:
-      hideSplines = !hideSplines;
+    case CM_TOGGLE_POLYGON_DEBUG_CONTROLS:
+      hideSplinesAndPolygonsMode = hideSplinesAndPolygonsMode == pcb_id ? -1 : pcb_id;
       updateToolbarButtons();
       DAGORED2->repaint();
-      break;
-    case CM_TOGGLE_POLYGON_DEBUG_CONTROLS:
-      hidePolygons = !hidePolygons;
-      updateToolbarButtons();
       break;
     case CM_TOGGLE_NOTE_DEBUG_CONTROLS:
       hideNotes = !hideNotes;
@@ -1236,8 +1247,12 @@ void HmapLandObjectEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
 
     case CM_SELECT_NONE: setSelectMode(-1); return;
 
-    case CM_SELECT_PT:
+    case CM_SELECT_POINTS_ALL:
+    case CM_SELECT_POINTS_SPLINE:
+    case CM_SELECT_POINTS_POLYGON:
+    case CM_SELECT_SPLINES_AND_POLYGONS:
     case CM_SELECT_SPLINES:
+    case CM_SELECT_POLYGONS:
     case CM_SELECT_ENT:
     case CM_SELECT_SPL_ENT:
       setEditMode(CM_OBJED_MODE_SELECT);

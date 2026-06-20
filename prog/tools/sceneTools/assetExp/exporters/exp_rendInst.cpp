@@ -6,7 +6,11 @@
 #include <libTools/util/makeBindump.h>
 #include <libTools/shaderResBuilder/rendInstResSrc.h>
 #include <libTools/util/prepareBillboardMesh.h>
+#include <libTools/voxel/voxelCache.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <osApiWrappers/dag_files.h>
+#include <ioSys/dag_zstdIo.h>
+#include <ioSys/dag_memIo.h>
 #include "fatalHandler.h"
 #include "modelExp.h"
 #include <stdlib.h>
@@ -17,6 +21,22 @@ static DataBlock *buildResultsBlk = NULL;
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(rendInst)
 
+static bool validate_voxel_cache(const voxelcache::CacheDump *cache, ILogWriter &log)
+{
+  for (uint32_t i = 0; i < 6; i++)
+  {
+    auto f = cache->surface[i].get();
+    auto nx = cache->mapSize[cache->FACE_X[i]];
+    auto ny = cache->mapSize[cache->FACE_Y[i]];
+    if (f->nx != nx or f->ny != ny)
+    {
+      log.addMessage(log.ERROR, "voxel cache face #%d size mismatch (%d %d) != (%d %d)", i, f->nx, f->ny, nx, ny);
+      return false;
+    }
+  }
+  return true;
+}
+
 class RendInstExporter : public IDagorAssetExporter
 {
 public:
@@ -26,7 +46,7 @@ public:
   unsigned __stdcall getGameResClassId() const override { return RendInstGameResClassId; }
   unsigned __stdcall getGameResVersion() const override
   {
-    const int ord_ver = 10;
+    const int ord_ver = 11;
     const int base_ver = 26 + ord_ver * 6 + (splitMatToDescBin && !shadermeshbuilder_strip_d3dres ? 3 : 0);
     return base_ver + (ShaderMeshData::preferZstdPacking ? (ShaderMeshData::allowOodlePacking ? 2 : 1) : 0);
   }
@@ -36,6 +56,18 @@ public:
 
   void __stdcall setBuildResultsBlk(DataBlock *b) override { buildResultsBlk = b; }
 
+  bool hasVoxelImpostor(const DagorAsset &a, String &voxel_cache_filename) const
+  {
+    auto vblk = a.props.getBlockByName("voxel_impostor");
+    if (vblk ? vblk->getBool("enabled", true) : defaultVoxelParams.getBool("enabled", false))
+    {
+      const char *basePath = a.getFolderPath();
+      voxel_cache_filename.printf(260, "%s/impostors/%s_%s", basePath, a.getName(), voxelcache::VOXEL_CACHE_NAME);
+      return true;
+    }
+    return false;
+  }
+
   void __stdcall gatherSrcDataFiles(const DagorAsset &a, Tab<SimpleString> &files) override
   {
     int nid = a.props.getNameId("lod"), id = 0;
@@ -44,6 +76,9 @@ public:
     bool allow_proxymat = a.props.getBool("allowProxyMat", false);
 
     files.clear();
+
+    if (hasVoxelImpostor(a, s))
+      files.push_back() = s;
 
     for (int i = 0; const DataBlock *blk = a.props.getBlock(i); i++)
       if (blk->getBlockNameId() == nid)
@@ -142,6 +177,7 @@ public:
       a.props.getBool("allowProxyMat", false) ? &a.getMgr() : nullptr, &log);
     RenderableInstanceLodsResSrc *resSrc = new RenderableInstanceLodsResSrc(&pm);
     resSrc->log = &log;
+    resSrc->assetName = a.getName();
 
     const DataBlock *ri_blk = appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst");
 
@@ -207,11 +243,43 @@ public:
                                                    ->getBlockByNameEx("rendInst")
                                                    ->getBlockByNameEx("warnTwoSided", nullptr);
 
+    eastl::unique_ptr<voxelcache::CacheDump, tmpmemDeleter> voxCache;
+    {
+      String fn;
+      if (hasVoxelImpostor(a, fn))
+      {
+        DAGOR_TRY
+        {
+          FullFileLoadCB crd(fn, DF_READ);
+          uint32_t version = crd.readIntP<4>();
+          if (version != voxelcache::VERSION)
+          {
+            log.addMessage(ILogWriter::ERROR, "invalid voxel cache version 0x%x, expected 0x%x", version, voxelcache::VERSION);
+            DAGOR_THROW(IGenLoad::LoadException("invalid voxel cache version"));
+          }
+          uint32_t size = crd.readIntP<4>();
+          voxCache.reset((voxelcache::CacheDump *)tmpmem->alloc(size));
+          ConstrainedMemSaveCB memCb(voxCache.get(), size);
+          zstd_stream_decompress_data(memCb, crd);
+          voxCache->patch();
+        }
+        DAGOR_CATCH(...)
+        {
+          log.addMessage(ILogWriter::ERROR, "failed to load voxel cache from '%s'", fn.c_str());
+          voxCache.reset();
+        }
+        if (voxCache and !validate_voxel_cache(voxCache.get(), log))
+          voxCache.reset();
+        if (voxCache)
+          debug("loaded voxel cache %dx%dx%d voxel size %g from %s", P3D(voxCache->mapSize), voxCache->voxelSize, fn.c_str());
+      }
+    }
+
     install_fatal_handler();
     ShaderMeshData::buildForTargetCode = cwr.getTarget();
     DAGOR_TRY
     {
-      if (!resSrc->build(lodsBlk))
+      if (!resSrc->build(lodsBlk, voxCache.get(), &defaultVoxelParams))
         mark_there_were_fatals();
       if (!were_there_fatals())
         if (!resSrc->save(cwr, &lvs, log))
@@ -252,6 +320,7 @@ public:
 
 
   LodValidationSettings lvs;
+  DataBlock defaultVoxelParams;
   bool splitMatToDescBin = false;
   bool skipMostDetailedLOD = false;
   RendInstExporter()
@@ -274,6 +343,8 @@ public:
                             ->getBlockByNameEx("build")
                             ->getBlockByNameEx("rendInst")
                             ->getBool("skipMostDetailedLOD", false);
+
+    defaultVoxelParams = *appBlkCopy.getBlockByNameEx("assets")->getBlockByNameEx("voxel_impostor");
   }
 };
 

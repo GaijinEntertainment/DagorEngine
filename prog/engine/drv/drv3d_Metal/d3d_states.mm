@@ -550,11 +550,9 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, void *par3
     {
       if (par1)
         *(const void**)par1 = render.device_name;
-      render.getSupportedMTLVersion(par2);
       return GpuVendor::APPLE;
     }
 #endif
-      //return drv3d_vulkan::api_state.device.getDeviceVendor();
       break;
     case Drv3dCommand::START_CAPTURE_FRAME:
     {

@@ -13,7 +13,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that e
 | `list_types` | Compile a `.das` file and list all structs, classes (with fields), enums (with values), and type aliases |
 | `run_test` | Run dastest on a `.das` test file and return pass/fail results. Optional `json` for structured output |
 | `format_file` | Format a `.das` file using `daslib/das_source_formatter` |
-| `run_script` | Run a `.das` file or inline code snippet and return stdout/stderr |
+| `run_script` | Run a `.das` file or inline code snippet and return stdout/stderr. Optional `project` for `.das_project`-bound module resolution. |
 | `ast_dump` | Dump AST of an expression or compiled function. `mode=ast` returns S-expression (node types/fields), `mode=source` returns post-macro daslang code. Optional `lineinfo` to include file and line:col spans on each node |
 | `program_log` | Produce full post-compilation program text (like `options log`). Shows all types, globals, and functions after macro expansion, template instantiation, and inference. Optional `function` filter |
 | `list_modules` | List all available daslang modules (builtin C++ modules and daslib). Optional `json` for structured output |
@@ -24,7 +24,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that e
 | `goto_definition` | Given a cursor position (file, line, column), resolve the definition of the symbol under the cursor. Returns location, kind (variable/function/field/builtin/struct/enum/typedef), and source snippet. Optional `no_opt` to preserve pre-optimization AST |
 | `type_of` | Given a cursor position (file, line, column), return the resolved type of the expression under the cursor. Shows all expressions at position from innermost to outermost. Optional `no_opt` |
 | `find_references` | Find all references to the symbol under the cursor (function calls, variable uses, field accesses, type refs, enum/bitfield values, aliases). Works from both usage and declaration sites. Scope: `file` (default) or `all` (all loaded modules). Optional `no_opt` |
-| `eval_expression` | Evaluate a daslang expression and return its printed result. Supports comma-separated module imports via `require` parameter |
+| `eval_expression` | Evaluate a daslang expression and return its printed result. Supports comma-separated module imports via `require` parameter. Optional `project` for `.das_project`-bound module resolution. |
 | `describe_type` | Describe a type's fields, methods, values, and base type. Supports structs, classes, handled types, enums, bitfields, variants, tuples, typedefs |
 | `grep_usage` | Parse-aware symbol search across `.das` files using ast-grep + tree-sitter. Finds identifier occurrences excluding comments and strings. Conditional on `sg` CLI |
 | `outline` | List all declarations (functions, structs, classes, enums, bitfields, variants, globals, typedefs) in a file or set of files using tree-sitter. Works on broken/incomplete code — no compilation needed. Conditional on `sg` CLI |
@@ -45,12 +45,13 @@ These tools interact with a running `daslang-live.exe` instance via its REST API
 
 | Tool | Description |
 |---|---|
-| `live_launch` | Start a `daslang-live` instance with a script file. Sets working directory to the script's folder. Detects if already running. Polls up to 10 seconds to confirm startup |
+| `live_launch` | Start a `daslang-live` instance with a script file. Sets working directory to the script's folder. Detects if already running. Polls up to 10 seconds to confirm startup. Optional `project` is forwarded as `-project <file>` for `.das_project`-bound module resolution |
 | `live_status` | Get status (fps, uptime, paused, dt, has_error) |
 | `live_error` | Get last compilation error (null if none) |
 | `live_reload` | Trigger reload. Optional `full` param for full recompile. Works even during compilation errors |
 | `live_pause` | Pause or unpause (`paused` = "true"/"false"). Returns 503 on compilation error |
 | `live_command` | Dispatch a `[live_command]` (`name` required, optional `args` JSON string). Returns 503 on compilation error. Use `name="help"` to list all commands |
+| `live_commands` | Dispatch a batch of `[live_command]`s in one round-trip; continue-on-error semantics, response is a JSON array preserving input order |
 | `live_shutdown` | Graceful shutdown of the live instance |
 
 ### Server Management
@@ -113,7 +114,7 @@ Claude Code starts and stops the server automatically with each session.
 - **Exception:** `live_*` tools run on the main thread (they use `system()` and `sleep()` which don't work well from `new_thread`)
 - Protocol logic lives in `protocol.das`, the entry point is `main.das`
 - Heap is collected after each request when over threshold (1 MB)
-- Tool handlers are modular: each tool lives in `tools/*.das`, shared utilities in `tools/common.das`
+- Tool handlers are modular: each tool lives in `tools/*.das`, MCP-specific shared utilities in `tools/common.das`. The general "comma/newline list of files / globs → file array" expander (`expand_glob`, `parse_file_list`) lives in `daslib/fio`
 
 ## Configuring Claude Code
 

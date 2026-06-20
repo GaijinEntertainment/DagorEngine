@@ -280,14 +280,14 @@ hlsl(ps)
     ##endif
 
     #if !isRefractionGlass
-      float glassIoR = 1. / 1.5;
+      float airToGlassIoR = 1. / 1.5;
       float glassSpecular = 0.04;//pow2((glassIoR-1)/(glassIoR+1));//0.04
     #else
       #if OVERWRITE_GLASS_PROPERTIES_WITH_FUNCTION_ARGS
-        float glassIoR = glassIoR_specular.x;
+        float airToGlassIoR = 1. / glassIoR_specular.x;
         float glassSpecular = glassIoR_specular.y;
       #else
-        float glassIoR = get_mediumThickness().z;
+        float airToGlassIoR = get_mediumThickness().z;
         float glassSpecular = get_mediumThickness().w;
       #endif
     #endif
@@ -328,7 +328,7 @@ hlsl(ps)
         half3 mediumColor = diffuseColor.rgb*get_mediumTintColor().rgb;//doesn't have to be same as diffuseColor!
         half isShell = get_mediumTintColor().a;
       #endif
-      float3 refractWorldDir = refract(-view, worldNormal, glassIoR);
+      float3 refractWorldDir = refract(-view, worldNormal, airToGlassIoR);
       float rayLengthSolid = thickness * (0.5 + 0.5*NoV);
       float rayLengthShell = thickness / max(NoV, 0.25);
       float rayLength = lerp(rayLengthSolid, rayLengthShell, isShell);

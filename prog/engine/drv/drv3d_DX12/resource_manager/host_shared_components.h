@@ -14,7 +14,7 @@
 
 namespace drv3d_dx12::resource_manager
 {
-class RingMemoryBase : public ESRamPageMappingProvider
+class FramePushRingMemoryProvider : public ESRamPageMappingProvider
 {
   using BaseType = ESRamPageMappingProvider;
 
@@ -26,15 +26,21 @@ protected:
     uint32_t historyIndex;
   };
 
-  template <typename T>
-  struct RingMemoryState : T
+  struct PushRingMemoryState
   {
-    using HeapType = typename T::HeapType;
-    struct RingSegment : BasicBuffer
+    using HeapType = FramePushRingMemoryProvider;
+
+    // using a ring of 16 MiBytes avoids basically any resizes
+    constexpr static uint32_t min_ring_size = 16 * 1024 * 1024;
+
+    struct RingSegment
     {
+      ComPtr<ID3D12Resource> buffer;
+      ResourceMemoryLocationWithGPUAndCPUAddress baseLocation;
+      uint64_t bufferSize = 0;
       // Offset where we allocate next chunk from
       uint32_t allocationOffset = 0;
-      // Total allocated, bufferMemory.size - allocationSize yields free memory
+      // Total allocated, bufferSize - allocationSize yields free memory
       uint32_t allocationSize = 0;
       // Allocation size since last snapshot
       uint32_t currentAllocation = 0;
@@ -45,6 +51,13 @@ protected:
       // coincides with latched frame index
       uint32_t allocationHistory[FRAME_FRAME_BACKLOG_LENGTH] = {};
 
+      ID3D12Resource *getResourcePtr() const { return buffer.Get(); }
+      D3D12_GPU_VIRTUAL_ADDRESS getGPUPointer() const { return baseLocation.gpuAddress; }
+      uint8_t *getCPUPointer() const { return baseLocation.cpuAddress; }
+      uint64_t getBufferMemorySize() const { return bufferSize; }
+
+      explicit operator bool() const { return static_cast<bool>(buffer); }
+
       HostDeviceSharedMemoryRegion allocate(uint32_t size, uint32_t alignment)
       {
         HostDeviceSharedMemoryRegion result;
@@ -52,7 +65,7 @@ protected:
         auto allocationBegin = align_value(allocationOffset, alignment);
         auto allocationEnd = allocationBegin + size;
 
-        auto freeMemory = bufferMemory.size - allocationSize;
+        auto freeMemory = bufferSize - allocationSize;
         auto freeBegin = allocationOffset;
         auto freeEnd = freeBegin + freeMemory;
 
@@ -62,14 +75,14 @@ protected:
           return result;
         }
 
-        uint32_t newAllocationSize = allocationEnd - allocationOffset;
-        if (allocationEnd > bufferMemory.size)
+        uint32_t newAllocationSize;
+        if (allocationEnd > bufferSize)
         {
-          const uint32_t extra = bufferMemory.size - freeBegin;
+          const uint32_t extra = bufferSize - freeBegin;
           // we have to wrap
           allocationBegin = 0;
           allocationEnd = size;
-          freeEnd -= bufferMemory.size;
+          freeEnd -= bufferSize;
 
           // check free space again after wrap
           if (allocationEnd > freeEnd)
@@ -79,9 +92,13 @@ protected:
 
           newAllocationSize = extra + size;
         }
+        else
+        {
+          newAllocationSize = allocationEnd - allocationOffset;
+        }
 
         result.buffer = buffer.Get();
-        result.memoryLocation = static_cast<ResourceMemoryLocationWithGPUAndCPUAddress>(bufferMemory) + allocationBegin;
+        result.memoryLocation = baseLocation + allocationBegin;
         result.range = ValueRange<uint64_t>{allocationBegin, allocationEnd};
 
         allocationOffset = allocationEnd;
@@ -107,304 +124,109 @@ protected:
       }
 
       bool canBeRemoved() const { return 0 == allocationSize; }
+
+      void reset()
+      {
+        buffer.Reset();
+        baseLocation = {};
+        bufferSize = 0;
+      }
     };
 
-    // we always have at least one segment with min_ring_size
-    // should we ever run out of segment space we allocate a
-    // new segment. As soon as we no longer need it, we drop
-    // the segment.
-    dag::Vector<RingSegment> ringSegments;
-    dag::Vector<RingSegment> deletedRingSegments;
+    // Single ring buffer, allocated during setup.
+    // When the ring can not provide memory, the caller falls back to temporary upload memory.
+    RingSegment segment;
 
     void finishRecording(uint32_t history_index)
     {
       G_ASSERT(history_index < FRAME_FRAME_BACKLOG_LENGTH);
-      for (auto &segment : ringSegments)
-      {
-        segment.finishRecording(history_index);
-      }
+      segment.finishRecording(history_index);
     }
 
-    void finishExecution(HeapType *heap, uint32_t history_index)
+    void finishExecution(uint32_t history_index)
     {
       G_ASSERT(history_index < FRAME_FRAME_BACKLOG_LENGTH);
-
-      for (auto &segment : ringSegments)
-      {
-        segment.finishExecution(history_index);
-      }
-
-      for (auto &segment : deletedRingSegments)
-      {
-        segment.finishExecution(history_index);
-      }
-
-      {
-        // Split into two ranges, first are segments that are still needed and the second range are
-        // ranges that can be dropped.
-        auto pivot = eastl::partition(begin(deletedRingSegments), end(deletedRingSegments),
-          [](auto &segment) { return !segment.canBeRemoved(); });
-        for (auto at = pivot, ed = end(deletedRingSegments); at != ed; ++at)
-        {
-          T::onSegmentRemove(heap, at->getBufferMemorySize());
-          at->reset(heap, true);
-        }
-        deletedRingSegments.erase(pivot, end(deletedRingSegments));
-      }
-
-      while ((ringSegments.size() >= T::min_active_segments) && T::shouldTrim(heap))
-      {
-        // remove no longer needed segments one by one
-        auto toBeRemoved = eastl::find_if(begin(ringSegments) + T::min_active_segments, end(ringSegments),
-          [=](auto &segment) { return segment.canBeRemoved(); });
-        if (end(ringSegments) != toBeRemoved)
-        {
-          T::onSegmentRemove(heap, toBeRemoved->getBufferMemorySize());
-          toBeRemoved->reset(heap, true);
-          ringSegments.erase(toBeRemoved);
-        }
-        else
-        {
-          break;
-        }
-      }
+      segment.finishExecution(history_index);
     }
 
-    static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> get_ring_segment_desc_alloc_info(uint32_t size)
+    bool create(HeapType *heap, ID3D12Device *device, uint32_t size)
     {
-      D3D12_RESOURCE_DESC desc;
-      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-      desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-      desc.Width = align_value(size, T::min_ring_size);
-      desc.Height = 1;
-      desc.DepthOrArraySize = 1;
-      desc.MipLevels = 1;
-      desc.Format = DXGI_FORMAT_UNKNOWN;
-      desc.SampleDesc.Count = 1;
-      desc.SampleDesc.Quality = 0;
-      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-
-      D3D12_RESOURCE_ALLOCATION_INFO allocInfo;
-      allocInfo.SizeInBytes = desc.Width;
-      allocInfo.Alignment = desc.Alignment;
-
-      return {desc, allocInfo};
-    }
-
-    dag::Expected<void, MemoryAllocationError> addSegment(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size,
-      AllocationFlags allocation_flags)
-    {
-      auto [desc, allocInfo] = get_ring_segment_desc_alloc_info(size);
-
-      auto initialState = HeapType::propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE,
-        DeviceMemoryClass::PUSH_RING_BUFFER);
-
+      segment = {};
+#if _TARGET_PC_WIN
       auto memoryProperties = heap->getPushHeapProperties();
+      const auto &fs = heap->getFeatureSet();
 
-      auto allocationResult = heap->allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
-      if (!allocationResult.has_value())
-      {
-        return dag::Unexpected{allocationResult.error()};
-      }
+      const D3D12_HEAP_PROPERTIES heapProperties = {
+        .Type = memoryProperties.getHeapType(),
+        .CPUPageProperty = memoryProperties.getCpuPageProperty(fs),
+        .MemoryPoolPreference = memoryProperties.getMemoryPool(fs),
+        .CreationNodeMask = 0,
+        .VisibleNodeMask = 0,
+      };
+#else
+      const D3D12_HEAP_PROPERTIES heapProperties = {
+        .Type = D3D12_HEAP_TYPE_UPLOAD,
+        .CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+        .MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN,
+        .CreationNodeMask = 0,
+        .VisibleNodeMask = 0,
+      };
+#endif
 
-      auto &allocation = allocationResult.value();
-
-      RingSegment newSegment;
-      auto errorCode = newSegment.create(device, desc, allocation, initialState, true);
-      if (DX12_CHECK_FAIL(errorCode))
-      {
-        heap->free(allocation);
-        // TODO: This is not 100% correct, as the allocation for the pool went through but for some
-        // reason the object creation failed, probably should implement something for this properly.
-        // For other objects, like textures we are not reporting any oom error when the object
-        // create did fail.
-        return dag::Unexpected{heap->makeMemoryAllocationError(errorCode, allocInfo.SizeInBytes, memoryProperties)};
-      }
-      auto &ringSegment = ringSegments.emplace_back(eastl::move(newSegment));
-
-      T::onSegmentAdd(heap, ringSegment.getBufferMemory(), ringSegment.getResourcePtr());
-
-      return {};
-    }
-
-    bool moveSegmentToLocation(HeapType *heap, ID3D12Device *device, uint32_t size, HeapID heap_id, uint32_t free_range_index)
-    {
-      auto [desc, allocInfo] = get_ring_segment_desc_alloc_info(size);
-      auto allocation = heap->allocateMemoryInPlace(heap_id, free_range_index, allocInfo);
-      if (!allocation)
-      {
-        return false;
-      }
-
-      auto initialState = HeapType::propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE,
+      const auto initialState = HeapType::propertiesToInitialState(D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_RESOURCE_FLAG_NONE,
         DeviceMemoryClass::PUSH_RING_BUFFER);
-      RingSegment newSegment;
-      auto errorCode = newSegment.create(device, desc, allocation, initialState, true);
-      if (DX12_CHECK_FAIL(errorCode))
+
+      const D3D12_RESOURCE_DESC desc = {
+        .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+        .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+        .Width = align_value(size, min_ring_size),
+        .Height = 1,
+        .DepthOrArraySize = 1,
+        .MipLevels = 1,
+        .Format = DXGI_FORMAT_UNKNOWN,
+        .SampleDesc = {.Count = 1, .Quality = 0},
+        .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+        .Flags = D3D12_RESOURCE_FLAG_NONE,
+      };
+
+      if (!DX12_CHECK_OK(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &desc, initialState, nullptr,
+            COM_ARGS(&segment.buffer))))
       {
-        heap->freeNoLock(allocation, true);
         return false;
       }
 
-      auto &ringSegment = ringSegments.emplace_back(eastl::move(newSegment));
-      T::onSegmentAddNoLock(heap, ringSegment.getBufferMemory(), ringSegment.getResourcePtr());
+      segment.bufferSize = desc.Width;
+      segment.baseLocation.gpuAddress = segment.buffer->GetGPUVirtualAddress();
+
+      D3D12_RANGE emptyRange{};
+      uint8_t *mappedPtr = nullptr;
+      segment.buffer->Map(0, &emptyRange, reinterpret_cast<void **>(&mappedPtr));
+      segment.baseLocation.cpuAddress = mappedPtr;
+
+      heap->recordConstantRingAllocated(desc.Width);
 
       return true;
     }
 
-    // rotates segments by one to the left, eg new back becomes previous front
-    void rotateSegments()
-    {
-      if (2 > ringSegments.size())
-      {
-        return;
-      }
-      if (2 == ringSegments.size())
-      {
-        eastl::swap(ringSegments.front(), ringSegments.back());
-      }
-      else
-      {
-        eastl::rotate(begin(ringSegments), begin(ringSegments) + 1, end(ringSegments));
-      }
-    }
+    HostDeviceSharedMemoryRegion allocate(uint32_t size, uint32_t alignment) { return segment.allocate(size, alignment); }
 
-    HostDeviceSharedMemoryRegionAllocationResult allocate(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, uint32_t size,
-      uint32_t alignment)
-    {
-      HostDeviceSharedMemoryRegion result;
-      for (auto &segment : ringSegments)
-      {
-        result = segment.allocate(size, alignment);
-        if (result)
-        {
-          return result;
-        }
-      }
-
-      // no segment can supply the memory, need to allocate a new segment
-      auto segmentAddResult = addSegment(heap, adapter, device, size, {});
-      if (!segmentAddResult)
-      {
-        return dag::Unexpected{segmentAddResult.error()};
-      }
-
-      auto &newSegment = ringSegments.back();
-      result = newSegment.allocate(size, alignment);
-      G_ASSERT(static_cast<bool>(result));
-      return result;
-    }
-
-    size_t currentMemorySize() const
-    {
-      return eastl::accumulate(begin(ringSegments), end(ringSegments), 0,
-        [](size_t value, auto &segment) //
-        { return value + segment.getBufferMemorySize(); });
-    }
-
-    bool onMoveSegment(HeapType *heap, DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer,
-      AllocationFlags allocation_flags)
-    {
-      auto ref =
-        eastl::find_if(begin(ringSegments), end(ringSegments), [buffer](auto &segment) { return buffer == segment.getResourcePtr(); });
-      // Only realistic chance is that the segment is already on deletion list
-      if (ref == end(ringSegments))
-        return true;
-      auto temp = eastl::move(*ref);
-      ringSegments.erase(ref);
-      // If it fails there is no space for a new segment in any heap we can use
-      if (!addSegment(heap, adapter, device, temp.getBufferMemorySize(), allocation_flags))
-      {
-        // add the segment we want to remove back to the pool of available segments
-        ringSegments.push_back(eastl::move(temp));
-        return false;
-      }
-      deletedRingSegments.push_back(eastl::move(temp));
-      return true;
-    }
-
-    bool onMoveSegmentToLocation(HeapType *heap, ID3D12Device *device, ID3D12Resource *buffer, HeapID heap_id,
-      uint32_t free_range_index)
-    {
-      auto ref =
-        eastl::find_if(begin(ringSegments), end(ringSegments), [buffer](auto &segment) { return buffer == segment.getResourcePtr(); });
-      // Only realistic chance is that the segment is already on deletion list
-      if (ref == end(ringSegments))
-      {
-        G_ASSERT_FAIL("DX12: Defragmentation couldn't find the ring segment to move");
-        return true;
-      }
-      auto temp = eastl::move(*ref);
-      ringSegments.erase(ref);
-
-      auto memory = temp.getBufferMemory();
-      heap->freeNoLock(memory, false);
-      memory.heap = {}; // reset heap ptr to avoid double free
-      temp.setBufferMemory(memory);
-      temp.allocationSize = 0;
-
-      deletedRingSegments.push_back(eastl::move(temp));
-
-      return moveSegmentToLocation(heap, device, temp.getBufferMemorySize(), heap_id, free_range_index);
-    }
+    size_t currentMemorySize() const { return segment.getBufferMemorySize(); }
 
     void shutdown(HeapType *heap)
     {
-      for (auto &segment : ringSegments)
-      {
-        segment.reset(heap, true);
-      }
-      ringSegments.clear();
+      heap->recordConstantRingFreed(segment.getBufferMemorySize());
+      segment.reset();
     }
   };
-};
 
-class FramePushRingMemoryProvider : public RingMemoryBase
-{
-  using BaseType = RingMemoryBase;
-
-protected:
-  struct FramePushRingMemoryImplementation
-  {
-    // using a ring of 16 MiBytes avoids basically any resizes
-    constexpr static uint32_t min_ring_size = 16 * 1024 * 1024;
-    // always keep one segment around
-    constexpr static uint32_t min_active_segments = 1;
-
-    using HeapType = FramePushRingMemoryProvider;
-
-    static void onSegmentAdd(HeapType *heap, ResourceMemory memory, ID3D12Resource *buffer)
-    {
-      heap->updateMemoryRangeUse(memory, PushRingBufferReference{buffer});
-      heap->recordConstantRingAllocated(memory.size());
-    }
-    static void onSegmentAddNoLock(HeapType *heap, ResourceMemory memory, ID3D12Resource *buffer)
-    {
-      heap->updateMemoryRangeUseNoLock(memory, PushRingBufferReference{buffer});
-      heap->recordConstantRingAllocated(memory.size());
-    }
-    static void onSegmentRemove(HeapType *heap, size_t size) { heap->recordConstantRingFreed(size); }
-    static bool shouldTrim(HeapType *heap) { return heap->shouldTrimFramePushRingBuffer(); }
-  };
-
-  using PushRingMemoryStateWrapper = ContainerMutexWrapper<RingMemoryState<FramePushRingMemoryImplementation>, OSSpinlock>;
+  using PushRingMemoryStateWrapper = ContainerMutexWrapper<PushRingMemoryState, OSSpinlock>;
   PushRingMemoryStateWrapper pushRing;
-
-  bool onMovePushRingBuffer(DXGIAdapter *adapter, ID3D12Device *device, ID3D12Resource *buffer, AllocationFlags allocation_flags)
-  {
-    return pushRing.access()->onMoveSegment(this, adapter, device, buffer, allocation_flags);
-  }
 
 
   void setup(const SetupInfo &info)
   {
     BaseType::setup(info);
-    // The very first allocation is the first const ring buffer. This makes handling in case of memory shortage
-    // simpler, as the very first segment, which we always *need*, is in the very first heap and so has to never
-    // be moved. We only truncate additional ring buffers when possible.
-    auto result =
-      pushRing.access()->addSegment(this, info.getAdapter(), info.device, FramePushRingMemoryImplementation::min_ring_size, {});
+    auto result = pushRing.access()->create(this, info.device, PushRingMemoryState::min_ring_size);
     if (!result)
     {
       DAG_FATAL("DX12: Initial allocation for push ring buffer failed!");
@@ -414,14 +236,12 @@ protected:
   void preRecovery()
   {
     pushRing.access()->shutdown(this);
-
     BaseType::preRecovery();
   }
 
   void shutdown()
   {
     pushRing.access()->shutdown(this);
-
     BaseType::shutdown();
   }
 
@@ -447,7 +267,7 @@ public:
   void completeFrameExecution(const CompletedFrameExecutionInfo &info, PendingForCompletedFrameData &data)
   {
     BaseType::completeFrameExecution(info, data);
-    pushRing.access()->finishExecution(this, info.historyIndex);
+    pushRing.access()->finishExecution(info.historyIndex);
   }
 
   size_t getFramePushRingMemorySize() { return pushRing.access()->currentMemorySize(); }
@@ -1115,6 +935,10 @@ public:
         return eastl::move(value);
       });
   }
+
+  // Large push allocations (> 2 MiB) are redirected to temporary upload memory to avoid bloating the push ring.
+  // The temporary memory is automatically recorded for frame-completion cleanup.
+  HostDeviceSharedMemoryRegion allocatePushMemory(DXGIAdapter *adapter, Device &device, uint32_t size, uint32_t alignment);
 
   HostDeviceSharedMemoryRegion allocateTempUpload(DXGIAdapter *adapter, Device &device, size_t size, size_t alignment,
     bool &should_flush);

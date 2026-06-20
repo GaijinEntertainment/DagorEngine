@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 
 module linq_boost shared public
 
@@ -13,6 +11,7 @@ module linq_boost shared public
 //! Requires the ``linq`` module.
 
 require daslib/linq public
+require daslib/linq_fold public
 
 require daslib/ast_boost
 require daslib/templates_boost
@@ -20,8 +19,8 @@ require daslib/macro_boost
 
 def private clone_iterator_type(it : TypeDeclPtr) : TypeDeclPtr {
     var res = clone_type(it.firstType)
-    res.flags &= ~TypeDeclFlags.ref
-    res.flags |= TypeDeclFlags.constant
+    res.flags.ref = false
+    res.flags.constant = true
     return <- res
 }
 
@@ -42,10 +41,24 @@ class private AstCallMacro_LinqPred2 : AstCallMacro {
         macro_verify(!arg0type.firstType.isAutoOrAlias, prog, call.at, "iterable type cannot be auto or alias")
         // replacing function
         var iterType = clone_iterator_type(arg0type)
-        var res = qmacro($c(predName)($e(arg0), $(_ : $t(iterType)) => $e(call.arguments[1])))
+        var res : ExpressionPtr
+        if (call.arguments[1] is ExprMakeBlock) {
+            // named-variable form: the argument is already a `$(x) => …` block (e.g. emitted by linq_das).
+            // Inject the element type onto the user's parameter and pass the block through, instead of
+            // wrapping a bare expression in `$(_ : iterType) => …`. The query's range variable thus survives verbatim.
+            var blk = call.arguments[1] as ExprMakeBlock
+            var inner = blk._block as ExprBlock
+            macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: block argument must take exactly one parameter")
+            if (inner.arguments[0]._type == null || inner.arguments[0]._type.isAutoOrAlias) {
+                inner.arguments[0]._type = clone_type(iterType)
+            }
+            res = qmacro($c(predName)($e(arg0), $e(call.arguments[1])))
+        } else {
+            res = qmacro($c(predName)($e(arg0), $(_ : $t(iterType)) => $e(call.arguments[1])))
+        }
         // allow inner `_` to shadow an outer `_` when chains nest
         // (e.g. `_where(_.x._in(arr |> _select(_.y)))`)
-        (((res as ExprCall).arguments[1] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags |= VariableFlags.can_shadow
+        (((res as ExprCall).arguments[1] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
         res.force_at(call.at)
         return res
     }
@@ -196,6 +209,16 @@ class private LinqCount : AstCallMacro_LinqPred2 {
     override predName = "count"
 }
 
+[call_macro(name="_long_count")]
+class private LinqLongCount : AstCallMacro_LinqPred2 {
+    //! implements _long_count(iterator, expression) shorthand notation
+    //! that expands into long_count(iterator, $(_) => expression)
+    //! for example::
+    //!
+    //!   each(foo)._long_count(_ > 3)
+    override predName = "long_count"
+}
+
 [call_macro(name="_unique_by")]
 class private LinqUnique : AstCallMacro_LinqPred2 {
     //! implements _unique_by(iterator, expression) shorthand notation
@@ -276,6 +299,56 @@ class private LinqOrderByDescendingToArray : AstCallMacro_LinqPred2 {
     override predName = "order_by_descending_to_array"
 }
 
+class private AstCallMacro_LinqOrderByKeys : AstCallMacro {
+    //! Base call macro for the multi-key order operator. The key argument is already a
+    //! `$(x) => (k1, k2, …)` block (tuple of keys); the third argument is a compile-time `uint`
+    //! descMask (bit i → key i descending). Injects the element type onto the key block parameter,
+    //! then passes all three through to `order_by_keys` / `order_by_keys_to_array`.
+    predName = "order_by_keys"
+
+    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
+        macro_verify(call.arguments |> length == 3, prog, call.at, "expecting {predName}(iterator, key-lambda, descMask)")
+        assume arg0 = call.arguments[0]
+        assume arg0type = call.arguments[0]._type
+        macro_verify(arg0type != null, prog, call.at, "input argument is not inferred yet")
+        macro_verify(arg0type.isIterator || arg0type.isGoodArrayType, prog, call.at, "expecting iterator or array")
+        macro_verify(!arg0type.firstType.isAutoOrAlias, prog, call.at, "iterable type cannot be auto or alias")
+        var iterType = clone_iterator_type(arg0type)
+        var res : ExpressionPtr
+        if (call.arguments[1] is ExprMakeBlock) {
+            // named-variable form (e.g. emitted by linq_das): inject the element type onto the user's
+            // parameter and pass the `$(x) => (k1, k2, …)` block through verbatim.
+            var blk = call.arguments[1] as ExprMakeBlock
+            var inner = blk._block as ExprBlock
+            macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: key block must take exactly one parameter")
+            if (inner.arguments[0]._type == null || inner.arguments[0]._type.isAutoOrAlias) {
+                inner.arguments[0]._type = clone_type(iterType)
+            }
+            res = qmacro($c(predName)($e(arg0), $e(call.arguments[1]), $e(call.arguments[2])))
+        } else {
+            // bare-expression form: wrap `(_.a, _.b)` into `$(_ : iterType) => (_.a, _.b)`.
+            res = qmacro($c(predName)($e(arg0), $(_ : $t(iterType)) => $e(call.arguments[1]), $e(call.arguments[2])))
+        }
+        (((res as ExprCall).arguments[1] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
+        res.force_at(call.at)
+        return res
+    }
+}
+
+[call_macro(name="_order_by_keys")]
+class private LinqOrderByKeys : AstCallMacro_LinqOrderByKeys {
+    //! implements _order_by_keys(iterator, $(x) => (k1, k2, …), descMask) — multi-key order with
+    //! per-key direction. Expands into order_by_keys(iterator, key-lambda, descMask).
+    override predName = "order_by_keys"
+}
+
+[call_macro(name="_order_by_keys_to_array")]
+class private LinqOrderByKeysToArray : AstCallMacro_LinqOrderByKeys {
+    //! implements _order_by_keys_to_array(iterator, $(x) => (k1, k2, …), descMask) shorthand notation
+    //! that expands into order_by_keys_to_array(iterator, key-lambda, descMask).
+    override predName = "order_by_keys_to_array"
+}
+
 class private AstCallMacro_LinqPredII2 : AstCallMacro {
     //! Base call macro for LINQ-style two-iterator two-argument predicate operators.
     predName = "sequence_equal_by"
@@ -295,9 +368,22 @@ class private AstCallMacro_LinqPredII2 : AstCallMacro {
         macro_verify(!call.arguments[0]._type.firstType.isAutoOrAlias, prog, call.at, "iterator or array type cannot be auto or alias")
         // replacing function
         var iterType = clone_iterator_type(call.arguments[0]._type)
-        var res = qmacro($c(predName)($e(call.arguments[0]), $e(call.arguments[1]), $(_ : $t(iterType)) => $e(call.arguments[2])))
+        var res : ExpressionPtr
+        if (call.arguments[2] is ExprMakeBlock) {
+            // named-variable form: the argument is already a `$(x) => …` block — inject the element type
+            // onto the user's parameter and pass it through (see AstCallMacro_LinqPred2 for rationale).
+            var blk = call.arguments[2] as ExprMakeBlock
+            var inner = blk._block as ExprBlock
+            macro_verify(length(inner.arguments) == 1, prog, call.at, "{predName}: block argument must take exactly one parameter")
+            if (inner.arguments[0]._type == null || inner.arguments[0]._type.isAutoOrAlias) {
+                inner.arguments[0]._type = clone_type(iterType)
+            }
+            res = qmacro($c(predName)($e(call.arguments[0]), $e(call.arguments[1]), $e(call.arguments[2])))
+        } else {
+            res = qmacro($c(predName)($e(call.arguments[0]), $e(call.arguments[1]), $(_ : $t(iterType)) => $e(call.arguments[2])))
+        }
         // allow inner `_` to shadow an outer `_` when chains nest
-        (((res as ExprCall).arguments[2] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags |= VariableFlags.can_shadow
+        (((res as ExprCall).arguments[2] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags.can_shadow = true
         res.force_at(call.at)
         return res
     }
@@ -475,13 +561,8 @@ def private parse_equi_join_on(var on_pred : Expression?; prog : ProgramPtr; at 
 }
 
 def private rename_var_in_expr(var src : Expression?; from_name, to_name : string) : Expression? {
-    //! Clone ``src`` and rename every ``ExprVar`` named ``from_name``
-    //! to ``to_name``. Same approach as fold_linq_cond.
-    var res = clone_expression(src)
-    var rules : Template
-    rules |> renameVariable(from_name, to_name)
-    apply_template(rules, res.at, res)
-    return res
+    // Clone ``src`` and rename every ``ExprVar`` named ``from_name`` to ``to_name``.
+    return clone_and_rename_var(src, from_name, to_name)
 }
 
 class private AstCallMacro_LinqJoinBase : AstCallMacro {
@@ -517,15 +598,35 @@ class private AstCallMacro_LinqJoinBase : AstCallMacro {
         macro_verify(!srcaType.firstType.isAutoOrAlias, prog, call.at, "first argument element type cannot be auto or alias")
         macro_verify(!srcbType.firstType.isAutoOrAlias, prog, call.at, "second argument element type cannot be auto or alias")
         var parts = parse_equi_join_on(call.arguments[2], prog, call.at)
-        if (!parts.ok) {
-            return null
-        }
+        if (!parts.ok) return null
         var iterTypeA = clone_iterator_type(srcaType)
         var iterTypeB = clone_iterator_type(srcbType)
         let la_fresh = "__la__"
         let lb_fresh = "__lb__"
         var keya_body = rename_var_in_expr(parts.keya_body, parts.larg_name, la_fresh)
         var keyb_body = rename_var_in_expr(parts.keyb_body, parts.rarg_name, lb_fresh)
+        // Auto-type the result lambda's args when untyped — symmetric with `on`, which accepts `(l,r)=>...`
+        // without types. Lets users write `_join(..., $(l,r)=>l.id==r.id, $(l,r)=>(l.x,r.y))` against any source
+        // — including from_decs_template(type<T>) where the iterator element is a tuple<...> painful to spell by
+        // hand. param0 is always TA; param1 comes from `result_param1_type`: plain `_join` → TB; `_group_join` →
+        // array<TB>. `_left_join` / `_right_join` / `_full_outer_join` need Option<T> on one or both sides, so they
+        // return null and their untyped result lambdas stay user-spelled.
+        var p1type = self.result_param1_type(iterTypeB, call.at)
+        if (p1type != null) {
+            var resultArg = call.arguments[3]
+            if (resultArg != null && resultArg is ExprMakeBlock) {
+                var rblk = (resultArg as ExprMakeBlock)._block
+                if (rblk != null && rblk is ExprBlock) {
+                    var rb = rblk as ExprBlock
+                    if (rb.arguments |> length == 2
+                            && (rb.arguments[0]._type == null || rb.arguments[0]._type.isAutoOrAlias)
+                            && (rb.arguments[1]._type == null || rb.arguments[1]._type.isAutoOrAlias)) {
+                        rb.arguments[0]._type = clone_type(iterTypeA)
+                        rb.arguments[1]._type = p1type
+                    }
+                }
+            }
+        }
         var res = qmacro($c(fnName)(
             $e(call.arguments[0]),
             $e(call.arguments[1]),
@@ -535,6 +636,11 @@ class private AstCallMacro_LinqJoinBase : AstCallMacro {
         ))
         res.force_at(call.at)
         return res
+    }
+    // param1 element type for an untyped 2-arg result lambda, or null to leave it user-spelled (the Option-side
+    // outer joins). param0 is always TA. Plain join → TB; group join → array<TB>.
+    def result_param1_type(iterTypeB : TypeDeclPtr; at : LineInfo) : TypeDeclPtr {
+        return null
     }
 }
 
@@ -549,6 +655,30 @@ class private LinqJoin : AstCallMacro_LinqJoinBase {
     //!       $(p : Person, pet : Pet) => p.name == pet.owner.name,
     //!       $(p : Person, pet : Pet) => (p.name, pet.name))
     override fnName = "join"
+    def override result_param1_type(iterTypeB : TypeDeclPtr; at : LineInfo) : TypeDeclPtr {
+        return clone_type(iterTypeB)
+    }
+}
+
+[call_macro(name="_group_join")]
+class private LinqGroupJoin : AstCallMacro_LinqJoinBase {
+    //! implements _group_join(srca, srcb, on, result) shorthand — C# GroupJoin (outer).
+    //! Same `on` equi-key shape as _join, but `result`'s right-side parameter is
+    //! `array<TB>`: every TA surfaces, paired with the array of matching TB
+    //! (empty when none match).
+    //! for example::
+    //!
+    //!   each(persons)._group_join(each(pets),
+    //!       $(p : Person, pet : Pet) => p.name == pet.owner.name,
+    //!       $(p : Person, pets : array<Pet>) => (p.name, pets |> length))
+    override fnName = "group_join"
+    def override result_param1_type(iterTypeB : TypeDeclPtr; at : LineInfo) : TypeDeclPtr {
+        // array<TB> — the match collection. Clear const/ref so it's a bare element array, matching the bucket type.
+        var elemB = clone_type(iterTypeB)
+        elemB.flags.constant = false
+        elemB.flags.ref = false
+        return new TypeDecl(baseType = Type.tArray, at = at, firstType = elemB)
+    }
 }
 
 [call_macro(name="_left_join")]
@@ -564,6 +694,147 @@ class private LinqLeftJoin : AstCallMacro_LinqJoinBase {
     //!       $(p : Person, pet : Pet) => p.name == pet.owner.name,
     //!       $(p : Person, pet : Option<Pet>) => (p.name, pet |> is_some))
     override fnName = "left_join"
+}
+
+[call_macro(name="_right_join")]
+class private LinqRightJoin : AstCallMacro_LinqJoinBase {
+    //! implements _right_join(srca, srcb, on, result) shorthand notation
+    //! that expands into right_join(srca, srcb, keya, keyb, result).
+    //! Mirror of `_left_join` with the Option on the LEFT side — every
+    //! TB row surfaces; TA is `Option<TA>`, `none` when no left match.
+    //! for example::
+    //!
+    //!   each(persons)._right_join(each(pets),
+    //!       $(p : Person, pet : Pet) => p.name == pet.owner.name,
+    //!       $(p : Option<Person>, pet : Pet) => (pet.name, p |> is_some))
+    override fnName = "right_join"
+}
+
+[call_macro(name="_full_outer_join")]
+class private LinqFullOuterJoin : AstCallMacro_LinqJoinBase {
+    //! implements _full_outer_join(srca, srcb, on, result) shorthand notation
+    //! that expands into full_outer_join(srca, srcb, keya, keyb, result).
+    //! Both sides are `Option<T>` — every left row and every right row
+    //! surfaces, paired with `none` on the other side when unmatched.
+    //! for example::
+    //!
+    //!   each(persons)._full_outer_join(each(pets),
+    //!       $(p : Person, pet : Pet) => p.name == pet.owner.name,
+    //!       $(p : Option<Person>, pet : Option<Pet>) => (p |> is_some, pet |> is_some))
+    override fnName = "full_outer_join"
+}
+
+[call_macro(name="_cross_join")]
+class private LinqCrossJoin : AstCallMacro {
+    //! implements _cross_join(srca, srcb, result) shorthand notation
+    //! that expands into cross_join(srca, srcb, result). 3-arg form
+    //! with no `on` lambda — every (TA, TB) pair surfaces. Use `_where`
+    //! after the cross to filter; that's the explicit-shape inner join.
+    //! for example::
+    //!
+    //!   each(persons)._cross_join(each(pets),
+    //!       $(p : Person, pet : Pet) => (p.name, pet.name))
+    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
+        macro_verify(call.arguments |> length == 3, prog, call.at, "expecting _cross_join(srca, srcb, into) — 3 arguments")
+        assume srcaType = call.arguments[0]._type
+        assume srcbType = call.arguments[1]._type
+        macro_verify(srcaType != null, prog, call.at, "first argument is not inferred yet")
+        macro_verify(srcbType != null, prog, call.at, "second argument is not inferred yet")
+        macro_verify(srcaType.isIterator || srcaType.isGoodArrayType, prog, call.at, "first argument must be an iterator or array")
+        macro_verify(srcbType.isIterator || srcbType.isGoodArrayType, prog, call.at, "second argument must be an iterator or array")
+        macro_verify(!srcaType.firstType.isAutoOrAlias, prog, call.at, "first argument element type cannot be auto or alias")
+        macro_verify(!srcbType.firstType.isAutoOrAlias, prog, call.at, "second argument element type cannot be auto or alias")
+        // Auto-type the result lambda's args when untyped — symmetric with _join's result lambda. Lets the
+        // linq_das reader (and users) write `_cross_join(a, b, $(x, y) => ...)` without spelling element types.
+        var iterTypeA = clone_iterator_type(srcaType)
+        var iterTypeB = clone_iterator_type(srcbType)
+        var resultArg = call.arguments[2]
+        if (resultArg != null && resultArg is ExprMakeBlock) {
+            var rblk = (resultArg as ExprMakeBlock)._block
+            if (rblk != null && rblk is ExprBlock) {
+                var rb = rblk as ExprBlock
+                if (rb.arguments |> length == 2
+                        && (rb.arguments[0]._type == null || rb.arguments[0]._type.isAutoOrAlias)
+                        && (rb.arguments[1]._type == null || rb.arguments[1]._type.isAutoOrAlias)) {
+                    rb.arguments[0]._type = clone_type(iterTypeA)
+                    rb.arguments[1]._type = clone_type(iterTypeB)
+                }
+            }
+        }
+        var res = qmacro(cross_join(
+            $e(call.arguments[0]),
+            $e(call.arguments[1]),
+            $e(call.arguments[2])
+        ))
+        res.force_at(call.at)
+        return res
+    }
+}
+
+def private inject_block_param_type(var arg : ExpressionPtr; idx : int; ty : TypeDeclPtr) {
+    //! Set the `idx`-th parameter type of a `$(…) => …` block argument to `ty`, when that parameter is
+    //! still untyped (null / auto). Shared by the `_select_many` two-stage expansion (see below).
+    if (arg == null || !(arg is ExprMakeBlock)) return
+    var blk = (arg as ExprMakeBlock)._block
+    if (blk == null || !(blk is ExprBlock)) return
+    var b = blk as ExprBlock
+    if (idx < (b.arguments |> length) && (b.arguments[idx]._type == null || b.arguments[idx]._type.isAutoOrAlias)) {
+        b.arguments[idx]._type = clone_type(ty)
+    }
+}
+
+[call_macro(name="_select_many")]
+class private LinqSelectMany : AstCallMacro {
+    //! Stage 1 of the correlated SelectMany sugar — `_select_many(src, $(o) => coll, $(o, x) => result)`.
+    //! Injects the outer element type onto the collection selector's parameter and the result selector's
+    //! FIRST parameter, then defers to `_select_many_2`. Two stages are required because the inner element
+    //! type is only knowable after the collection selector's body is inferred — which cannot happen within
+    //! a single macro pass (injecting a parameter type does not re-run inference on the block body).
+    //! for example::
+    //!
+    //!   each(orders)._select_many($(o) => o.lines |> to_sequence(), $(o, x) => (id = o.id, sku = x.sku))
+    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
+        macro_verify(call.arguments |> length == 3, prog, call.at, "expecting _select_many(src, collection_selector, result_selector) — 3 arguments")
+        assume srcaType = call.arguments[0]._type
+        macro_verify(srcaType != null, prog, call.at, "first argument is not inferred yet")
+        macro_verify(srcaType.isIterator || srcaType.isGoodArrayType, prog, call.at, "first argument must be an iterator or array")
+        macro_verify(!srcaType.firstType.isAutoOrAlias, prog, call.at, "first argument element type cannot be auto or alias")
+        var iterTypeA = clone_iterator_type(srcaType)
+        inject_block_param_type(call.arguments[1], 0, iterTypeA)
+        inject_block_param_type(call.arguments[2], 0, iterTypeA)
+        // make_call (not qmacro) so the deferred stage dispatches as a call-macro, not a plain function.
+        var res = make_call(call.at, "_select_many_2")
+        var rc = res as ExprCallMacro
+        rc.arguments |> emplace <| call.arguments[0]
+        rc.arguments |> emplace <| call.arguments[1]
+        rc.arguments |> emplace <| call.arguments[2]
+        res.force_at(call.at)
+        return res
+    }
+}
+
+[call_macro(name="_select_many_2")]
+class private LinqSelectMany2 : AstCallMacro {
+    //! Stage 2 of `_select_many` (see above). The collection selector's parameter is now typed, so its
+    //! body — and hence its element type — is inferred. Read that element type, inject it onto the result
+    //! selector's SECOND parameter, and expand into `select_many_pair`.
+    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
+        macro_verify(call.arguments |> length == 3, prog, call.at, "expecting _select_many_2(src, collection_selector, result_selector) — 3 arguments")
+        assume collType = call.arguments[1]._type
+        macro_verify(collType != null && collType.firstType != null, prog, call.at, "collection selector is not inferred yet")
+        var collReturn = collType.firstType
+        macro_verify(collReturn.isIterator || collReturn.isGoodArrayType, prog, call.at, "collection selector must return an iterator or array")
+        macro_verify(!collReturn.firstType.isAutoOrAlias, prog, call.at, "collection element type cannot be auto or alias")
+        var iterTypeB = clone_iterator_type(collReturn)
+        inject_block_param_type(call.arguments[2], 1, iterTypeB)
+        var res = qmacro(select_many_pair(
+            $e(call.arguments[0]),
+            $e(call.arguments[1]),
+            $e(call.arguments[2])
+        ))
+        res.force_at(call.at)
+        return res
+    }
 }
 
 [call_macro(name="_group_by_lazy")]
@@ -665,485 +936,3 @@ class private LinqUnionByToArray : AstCallMacro_LinqPredII2 {
     //!   each(foo1)._union_by_to_array(each(foo2), _.id)
     override predName = "union_by_to_array"
 }
-
-def private is_call_or_generic(var expr : Expression?, name, moduleName : string) : ExprCall? {
-    if (expr is ExprCall) {
-        var call = expr as ExprCall
-        if (call.func.name == name && call.func._module.name == moduleName) {
-            return call
-        } elif (call.func.fromGeneric != null && call.func.fromGeneric.name == name && call.func.fromGeneric._module.name == moduleName) {
-            return call
-        }
-    }
-    return null
-}
-
-def private is_call_or_generic_arg0(var expr : Expression?, name, moduleName : string) : Expression? {
-    //! returns null if not to_array, otherwise returns the argument of to_array
-    var call = expr.is_call_or_generic(name, moduleName)
-    return call.arguments[0] if (call != null)
-    return null
-}
-
-def private fold_linq_cond(var expr : Expression?; argName : string) : Expression? {
-    // if its a block with a single argument and a single return
-    // we rename argument to specified value, and give back the return value
-    // otherwise its an invoke
-    if (expr is ExprMakeBlock) {
-        var mblk = expr as ExprMakeBlock
-        var blk = mblk._block as ExprBlock
-        if (blk.arguments |> length == 1 && blk.list |> length == 1 && blk.list[0] is ExprReturn) {
-            var ret = blk.list[0] as ExprReturn
-            if (ret.subexpr != null) {
-                var res = clone_expression(ret.subexpr)
-                var rules : Template
-                rules |> renameVariable(string(blk.arguments[0].name), argName)
-                apply_template(rules, res.at, res)
-                return res
-            }
-        }
-    }
-    return qmacro(invoke($e(expr), $i(argName)))
-}
-
-struct private LinqCall {
-    //! Internal struct representing a chained LINQ method call.
-    name : string
-    moduleName : string = "linq"
-    skip : bool = false             // if specified, expression is skipped in folding
-    inplace : bool = false          // if specified, expression is inplace and does not create new variable
-    recursive : array<int>          // indices of arguments to apply fold_linq_default on
-}
-
-var private linqCalls = {
-// filtering data
-    "where_" => LinqCall(name = "where_"),
-    "where_to_array" => LinqCall(name = "where_"),
-// transform operations
-    "select" => LinqCall(name = "select"),
-    "select_to_array" => LinqCall(name = "select"),
-    "select_many" => LinqCall(name = "select_many"),
-    "select_many_to_array" => LinqCall(name = "select_many"),
-    "zip" => LinqCall(name = "zip", recursive = [1, 2]),
-    "zip_to_array" => LinqCall(name = "zip", recursive = [1, 2]),
-// sorting data
-    "reverse" => LinqCall(name = "reverse", inplace = true),
-    "reverse_to_array" => LinqCall(name = "reverse", inplace = true),
-    "order" => LinqCall(name = "order", inplace = true),
-    "order_to_array" => LinqCall(name = "order", inplace = true),
-    "order_descending" => LinqCall(name = "order_descending", inplace = true),
-    "order_descending_to_array" => LinqCall(name = "order_descending", inplace = true),
-    "order_by" => LinqCall(name = "order_by", inplace = true),
-    "order_by_to_array" => LinqCall(name = "order_by", inplace = true),
-    "order_by_descending" => LinqCall(name = "order_by_descending", inplace = true),
-    "order_by_descending_to_array" => LinqCall(name = "order_by_descending", inplace = true),
-// aggregate
-    "count" => LinqCall(name = "count"),
-    "long_count" => LinqCall(name = "long_count"),
-    "average" => LinqCall(name = "average"),
-    "min" => LinqCall(name = "min"),
-    "min_by" => LinqCall(name = "min_by"),
-    "max" => LinqCall(name = "max"),
-    "max_by" => LinqCall(name = "max_by"),
-    "min_max" => LinqCall(name = "min_max"),
-    "min_max_by" => LinqCall(name = "min_max_by"),
-    "min_max_average" => LinqCall(name = "min_max_average"),
-    "min_max_average_by" => LinqCall(name = "min_max_average_by"),
-    "aggregate" => LinqCall(name = "aggregate"),
-    "sum" => LinqCall(name = "sum"),
-// ranges
-    "skip" => LinqCall(name = "skip", inplace = true),
-    "skip_to_array" => LinqCall(name = "skip", inplace = true),
-    "skip_while" => LinqCall(name = "skip_while"),
-    "skip_while_to_array" => LinqCall(name = "skip_while"),
-    "take" => LinqCall(name = "take", inplace = true),
-    "take_to_array" => LinqCall(name = "take", inplace = true),
-    "take_while" => LinqCall(name = "take_while"),
-    "take_while_to_array" => LinqCall(name = "take_while"),
-    "skip_last" => LinqCall(name = "skip_last", inplace = true),
-    "skip_last_to_array" => LinqCall(name = "skip_last", inplace = true),
-    "take_last" => LinqCall(name = "take_last", inplace = true),
-    "take_last_to_array" => LinqCall(name = "take_last", inplace = true),
-    "chunk" => LinqCall(name = "chunk"),
-    "chunk_to_array" => LinqCall(name = "chunk"),
-// concatenation operations
-    "concat" => LinqCall(name = "concat", recursive = [1], inplace = true),
-    "concat_to_array" => LinqCall(name = "concat", recursive = [1], inplace = true),
-    "prepend" => LinqCall(name = "prepend", inplace = true),
-    "prepend_to_array" => LinqCall(name = "prepend", inplace = true),
-    "append" => LinqCall(name = "append", inplace = true),
-    "append_to_array" => LinqCall(name = "append", inplace = true),
-// set operations
-    "distinct" => LinqCall(name = "distinct", inplace = true),
-    "distinct_to_array" => LinqCall(name = "distinct", inplace = true),
-    "distinct_by" => LinqCall(name = "distinct_by", inplace = true),
-    "distinct_by_to_array" => LinqCall(name = "distinct_by", inplace = true),
-    "union" => LinqCall(name = "union", recursive = [1]),
-    "union_to_array" => LinqCall(name = "union", recursive = [1]),
-    "union_by" => LinqCall(name = "union_by", recursive = [1]),
-    "union_by_to_array" => LinqCall(name = "union_by", recursive = [1]),
-    "except" => LinqCall(name = "except", recursive = [1]),
-    "except_to_array" => LinqCall(name = "except", recursive = [1]),
-    "except_by" => LinqCall(name = "except_by", recursive = [1]),
-    "except_by_to_array" => LinqCall(name = "except_by", recursive = [1]),
-    "intersect" => LinqCall(name = "intersect", recursive = [1]),
-    "intersect_to_array" => LinqCall(name = "intersect", recursive = [1]),
-    "intersect_by" => LinqCall(name = "intersect_by", recursive = [1]),
-    "intersect_by_to_array" => LinqCall(name = "intersect_by", recursive = [1]),
-    "unique" => LinqCall(name = "unique", inplace = true),
-    "unique_to_array" => LinqCall(name = "unique", inplace = true),
-    "unique_by" => LinqCall(name = "unique_by", inplace = true),
-    "unique_by_to_array" => LinqCall(name = "unique_by", inplace = true),
-// element operations
-    "element_at" => LinqCall(name = "element_at"),
-    "element_at_or_default" => LinqCall(name = "element_at_or_default"),
-    "first" => LinqCall(name = "first"),
-    "first_or_default" => LinqCall(name = "first_or_default"),
-    "last" => LinqCall(name = "last"),
-    "last_or_default" => LinqCall(name = "last_or_default"),
-    "single" => LinqCall(name = "single"),
-    "single_or_default" => LinqCall(name = "single_or_default"),
-// join operations
-    "join" => LinqCall(name = "join", recursive = [1]),
-    "join_to_array" => LinqCall(name = "join", recursive = [1]),
-    "left_join" => LinqCall(name = "left_join", recursive = [1]),
-    "left_join_to_array" => LinqCall(name = "left_join", recursive = [1]),
-    "group_join" => LinqCall(name = "group_join", recursive = [1]),
-    "group_join_to_array" => LinqCall(name = "group_join", recursive = [1]),
-    "group_by" => LinqCall(name = "group_by"),
-    "group_by_to_array" => LinqCall(name = "group_by"),
-    "group_by_lazy" => LinqCall(name = "group_by_lazy"),
-    "group_by_lazy_to_array" => LinqCall(name = "group_by_lazy"),
-    "having_" => LinqCall(name = "having_"),
-    "having_to_array" => LinqCall(name = "having_"),
-// querying data
-    "any" => LinqCall(name = "any"),
-    "all" => LinqCall(name = "all"),
-    "contains" => LinqCall(name = "contains"),
-// skippable
-    "to_table" => LinqCall(name = "to_table"),
-    "to_array" => LinqCall(name = "to_array", moduleName = "builtin", skip = true),
-    "to_sequence" => LinqCall(name = "to_sequence", skip = true),
-}
-
-[macro_function]
-def private is_linq_call(var expr : Expression?) : bool {
-    if (expr is ExprCall) {
-        var call = expr as ExprCall
-        var funcName = string(call.func.name)
-        while (call.func.fromGeneric != null) {
-            call.func = call.func.fromGeneric
-            funcName = string(call.func.name)
-        }
-        if (linqCalls.key_exists(funcName)) {
-            let linqCall & = unsafe(linqCalls?[funcName] ?? default<LinqCall>)
-            if (linqCall.moduleName == call.func._module.name) {
-                return true
-            }
-        }
-    }
-    return false
-}
-
-[macro_function]
-def private flatten_linq(var expr : Expression?)  {
-    var top = expr
-    var calls : array<tuple<ExprCall?; LinqCall?>>
-    while (top != null) {
-        if (top is ExprCall) {
-            var topCall = top as ExprCall
-            var topFunc = topCall.func
-            while (topFunc.fromGeneric != null) {
-                topFunc = topFunc.fromGeneric
-            }
-            let funcName = string(topFunc.name)
-            if (!linqCalls.key_exists(funcName)) {
-                break
-            }
-            var linqCall & = unsafe(linqCalls?[funcName] ?? default<LinqCall>)
-            if (linqCall.moduleName != topFunc._module.name) {
-                break
-            }
-            if (!linqCall.skip) {
-                calls.push((topCall, unsafe(addr(linqCall))))
-            }
-            top = topCall.arguments[0]
-        } else {
-            break
-        }
-    }
-    calls.reverse_inplace()
-    // ok, at this point top is source
-    return <- (top, calls)
-}
-
-struct private FoldSequence {
-    //! Internal struct representing a fold operation sequence.
-    calls : array<string>
-    folder : function<(
-        argIndex : int;
-        var topValue : Expression?;
-        var blk : ExprBlock?;
-        var calls : array<tuple<ExprCall?; LinqCall?>>
-    ) : Expression?>
-}
-
-var private g_foldSeq = [               // those are applied in order
-// order and distinct (for both orders)
-    FoldSequence(
-        calls = ["order", "distinct" ],
-        folder = @@fold_order_distinct
-    ),
-    FoldSequence(
-        calls = ["distinct", "order" ],
-        folder = @@fold_order_distinct
-    ),
-// select and where
-    FoldSequence(
-        calls = ["where_", "select" ],
-        folder = @@fold_where_select
-    ),
-    FoldSequence(
-        calls = ["select", "where_"],
-        folder = @@fold_select_where
-    ),
-    FoldSequence(
-        calls = ["where_"],
-        folder = @@fold_where
-    ),
-    FoldSequence(
-        calls = ["select"],
-        folder = @@fold_select
-    ),
-]
-
-[macro_function]
-def private append_comprehension(argIndex : int; var topValue : Expression?; var comprehension : Expression?; var blk : ExprBlock?; at : LineInfo) : Expression? {
-    comprehension.force_at(at)
-    comprehension.force_generated(true)
-    let newArgName = "pass_{argIndex}"
-    blk.list |> emplace_new <| qmacro_expr() {
-        var $i(newArgName) <- $e(comprehension)
-    }
-    (blk.list.back() as ExprLet).variables[0].flags |= VariableFlags.can_shadow
-    if (argIndex != 0) {
-        blk.list |> emplace_new <| qmacro_expr() {
-            delete $e(topValue)
-        }
-    }
-    return qmacro($i(newArgName))
-}
-
-[macro_function]
-def private fold_order_distinct(argIndex : int; var topValue : Expression?; var blk : ExprBlock?; var calls : array<tuple<ExprCall?; LinqCall?>>) : Expression? {
-    //! replaces order + distinct into a single order + unique
-    if (argIndex == 0) {
-        var comprehension = qmacro(order_unique_folded($e(topValue)))
-        return append_comprehension(argIndex, topValue, comprehension, blk, calls[0]._0.at)
-    } else {
-        blk.list |> emplace_new <| qmacro(order_unique_folded_inplace($e(topValue)))
-        return clone_expression(topValue)
-    }
-}
-
-[macro_function]
-def private fold_where_select(argIndex : int; var topValue : Expression?; var blk : ExprBlock?; var calls : array<tuple<ExprCall?; LinqCall?>>) : Expression? {
-    //! folds where + select into a single comprehension
-    var eWhere = calls[0]._0
-    var eSelect = calls[1]._0
-    var iterType = clone_type(eWhere.arguments[0]._type.firstType)
-    var whereCond = fold_linq_cond(eWhere.arguments[1], "it")
-    var selectExpr : Expression?
-    if (eSelect != null) {
-        selectExpr = fold_linq_cond(eSelect.arguments[1], "it")
-    } else {
-        selectExpr = new ExprVar(name := "it", at = topValue.at, _type := iterType)
-    }
-    var comprehension = qmacro([for (it in $e(topValue)); $e(selectExpr); where $e(whereCond)])
-    return append_comprehension(argIndex, topValue, comprehension, blk, calls[0]._0.at)
-}
-
-[macro_function]
-def private fold_where(argIndex : int; var topValue : Expression?; var blk : ExprBlock?; var calls : array<tuple<ExprCall?; LinqCall?>>) : Expression? {
-    //! folds where + select into a single comprehension
-    var eWhere = calls[0]._0
-    var whereCond = fold_linq_cond(eWhere.arguments[1], "it")
-    var comprehension = qmacro([for (it in $e(topValue)); it; where $e(whereCond)])
-    return append_comprehension(argIndex, topValue, comprehension, blk, calls[0]._0.at)
-}
-
-[macro_function]
-def private fold_select(argIndex : int; var topValue : Expression?; var blk : ExprBlock?; var calls : array<tuple<ExprCall?; LinqCall?>>) : Expression? {
-    //! folds select into a single comprehension
-    var eSelect = calls[0]._0
-    var selectExpr = fold_linq_cond(eSelect.arguments[1], "it")
-    var comprehension = qmacro([for (it in $e(topValue)); $e(selectExpr)])
-    return append_comprehension(argIndex, topValue, comprehension, blk, calls[0]._0.at)
-}
-
-[macro_function]
-def private fold_select_where(argIndex : int; var topValue : Expression?; var blk : ExprBlock?; var calls : array<tuple<ExprCall?; LinqCall?>>) : Expression? {
-    //! folds where + select into a single comprehension-like expression
-    //! note, order of select and where is reversed
-    var eWhere = calls[1]._0
-    var eSelect = calls[0]._0
-    var iterType = clone_type(eWhere.arguments[0]._type.firstType)
-    var whereCond : Expression?
-    let srcName = "`source`{argIndex}`{eSelect.at.line}`{eSelect.at.column}"
-    let valName = "`value`{argIndex}`{eSelect.at.line}`{eSelect.at.column}"
-    let itName = "`it`{argIndex}`{eSelect.at.line}`{eSelect.at.column}"
-    let arrName = "`arr`{argIndex}`{eSelect.at.line}`{eSelect.at.column}"
-    whereCond = fold_linq_cond(eWhere.arguments[1], valName)
-    var selectExpr : Expression?
-    if (eSelect != null) {
-        selectExpr = fold_linq_cond(eSelect.arguments[1], itName)
-    } else {
-        selectExpr = new ExprVar(name := itName, at = topValue.at, _type := iterType)
-    }
-    var comprehension = qmacro(invoke($($i(srcName) : typedecl($e(topValue)) - const) {
-            var $i(arrName) : array<$t(iterType)>
-            for ($i(itName) in $i(srcName)) {
-                static_if (typeinfo is_workhorse($e(selectExpr))) {
-                    var $i(valName) = $e(selectExpr)
-                    if ($e(whereCond)) {
-                        $i(arrName).emplace($i(valName))
-                    }
-                } else {
-                    var $i(valName) <- $e(selectExpr)
-                    if ($e(whereCond)) {
-                        $i(arrName).emplace($i(valName))
-                    }
-                }
-            }
-            return <- $i(arrName)
-        }, $e(topValue)))
-    return append_comprehension(argIndex, topValue, comprehension, blk, calls[0]._0.at)
-}
-
-[macro_function]
-def private fold_linq_default(var expr : Expression?) : Expression? {
-    //! fold sequence into
-    //!   invoke ( top, $ ( it ) : auto {
-    //!      var pass_0 = call0(it,...) // or call0_to_array(it,...)
-    //!      var pass_1 = call1(pass_0,...)
-    //!      ...
-    //!      return <- pass_N // or pass_N.to_sequence() if expr is iterator
-    //!   } )
-    //!   skip var if call is inplace
-    //!   skip delete if call is not first
-    //!   if call is first and source is iterator, then call is call_to_array
-    //!   if call is last and expr is iterator, then return is pass_N.to_sequence()
-    //!   if expr is not linq call, return null
-    var blk = new ExprBlock(at = expr.at)
-    var (top, calls) = flatten_linq(expr)
-    if (calls |> length == 0) {
-        return null
-    }
-    var topExpr = clone_expression(top)
-    var topExprType = clone_type(top._type)
-    var topValue = qmacro(source)
-    var argIndex = 0
-    let argMax = length(calls)
-    while (argIndex < argMax) {
-        {
-            var cll & = unsafe(calls[argIndex])
-            let newArgName = "pass_{argIndex}"
-            var callName = cll._1.name
-            var inplace = false
-            // lets find folding sequences
-            var found : FoldSequence?
-            for (fs in g_foldSeq) {
-                if (fs.calls |> length + argIndex - 1 < argMax) {
-                    var match = true
-                    for (i in 0 .. fs.calls |> length) {
-                        if (fs.calls[i] != unsafe(calls[argIndex + i]._1.name)) {
-                            match = false
-                            break
-                        }
-                    }
-                    if (match) {
-                        found = unsafe(addr(fs))
-                        break
-                    }
-                }
-            }
-            if (found != null) {
-                var sub = subarray(calls, argIndex .. argIndex + found.calls |> length)
-                topValue = found.folder(argIndex, topValue, blk, sub)
-                argIndex += found.calls |> length
-            } else {
-                if (cll._0._type.isIterator || cll._0._type.isGoodArrayType) {
-                    if (argIndex == 0 && top._type.isIterator) {
-                        callName = "{callName}_to_array"
-                    } elif (argIndex != 0 && cll._1.inplace) {
-                        callName = "{callName}_inplace"
-                        inplace = true
-                    }
-                }
-                for (i in cll._1.recursive) {   // this is where we make recursion
-                    if (i >= 1 && i < cll._0.arguments |> length && is_linq_call(cll._0.arguments[i])) {
-                        var argExpr = make_call(cll._0.at, "_fold")
-                        (argExpr as ExprCallMacro).arguments |> emplace <| cll._0.arguments[i]
-                        cll._0.arguments[i] = argExpr
-                    }
-                }
-                var newCall = qmacro($c(callName)($e(topValue)))
-                let numArgs = cll._0.arguments |> length
-                for (i in 1..numArgs) {
-                    (newCall as ExprCall).arguments |> emplace_new <| clone_expression(cll._0.arguments[i])
-                }
-                if (inplace) {
-                    blk.list |> emplace(newCall)
-                } else {
-                    blk.list |> emplace_new <| qmacro_expr() {
-                        var $i(newArgName) = $e(newCall)
-                    }
-                    (blk.list.back() as ExprLet).variables[0].flags |= VariableFlags.can_shadow
-                    if (argIndex != 0) {
-                        blk.list |> emplace_new <| qmacro_expr() {
-                            delete $e(topValue)
-                        }
-                    }
-                    topValue = qmacro($i(newArgName))
-                }
-                argIndex ++
-            }
-        }
-    }
-    if (expr._type.isIterator) {
-        blk.list |> emplace_new <| qmacro_expr() {
-            return <- $e(topValue).to_sequence_move()
-        }
-    } else {
-        blk.list |> emplace_new <| qmacro_expr() {
-            return <- $e(topValue)
-        }
-    }
-    topExpr.genFlags |= ExprGenFlags.alwaysSafe
-    var res = qmacro(invoke($(source : $t(topExprType)) { $e(blk); }, $e(topExpr)))
-    (((res as ExprInvoke).arguments[0] as ExprMakeBlock)._block as ExprBlock).arguments[0].flags |= VariableFlags.can_shadow
-    res.force_generated(true)
-    return res
-}
-
-[call_macro(name="_fold")]
-class private LinqFold : AstCallMacro {
-    //! implements _fold(expression) that folds LINQ expressions into optimized sequnences
-    //! for example::
-    //!
-    //!     _fold(each(foo)._where(_ > 5)._select(_ * 2))
-    //!
-    //! expands into a single comprehension that does all operations in one pass
-    def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
-        //! Visits the _fold macro call and folds LINQ expressions into optimized sequences.
-        macro_verify(call.arguments |> length == 1, prog, call.at, "expecting _fold(expression)")
-        macro_verify(call.arguments[0]._type != null, prog, call.at, "expecting linq expression")
-        var res : Expression? = fold_linq_default(call.arguments[0])
-        if (res == null) {
-            prog |> macro_error(call.at, "cannot fold LINQ expression\n{describe(call.arguments[0])}")
-            return res
-        }
-        return res
-    }
-}
-

@@ -238,7 +238,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
     texcoord_scale_offset@f4 = texcoord_scale_offset;
   }
   USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(stage)
-  USE_CLIPMAP_NORMAL_BASE(stage, true)
+  USE_CLIPMAP_NORMAL_BASE(stage, true, false)
   INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, true)
   USE_HEIGHTMAP_COMMON_BASE(stage)
   USE_ROUGH_TO_MIP()
@@ -397,7 +397,46 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       return saturate(resultColor.rgb);
     }
 
+    void calculate_detail_mask_texcoords(LayerData layer_data, float2 rndUV, float4 uv12, inout float2 mask_tc, inout float4 uv_detail, inout float mask_gamma)
+    {
+      mask_tc = uv12.xy * layer_data.maskTile.xy;
+      uv_detail = uv12.zwzw * layer_data.detailTile * layer_data.objectScale;
+
+      mask_tc += layer_data.maskTile.z > 0 ? rndUV : 0;
+      uv_detail.zw += rndUV.xy;
+
+      mask_gamma = frac(rndUV.x * 11.1 + rndUV.y * 13.39) * layer_data.maskGamma.x + layer_data.maskGamma.y;
+    }
+
     half3 calc_layers(HitInfo hitInfo, float mip_level)
+    {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU || hitInfo.normalTextureIndex == 0xFFFFU)
+        return 0;
+
+      float4 uvDetail;
+      float2 maskTc;
+      float maskgamma;
+
+      float2 randomUVOffset = get_random_uv_offset(hitInfo.centerWorldPos);
+
+      calculate_detail_mask_texcoords(hitInfo.layerData, randomUVOffset, float4(hitInfo.texcoord, hitInfo.secTexcoord), maskTc, uvDetail, maskgamma);
+
+      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mip_level);
+      half4 mask = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_wrap_sampler, maskTc, mip_level);
+      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.xy, mip_level);
+      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, uvDetail.zw, mip_level);
+
+      half weight = pow(mask.g, maskgamma) * baseColor.a;
+      half weight2 = get_mix_weight(detailColor1.a, detailColor2.a, weight);
+
+      half4 detailColor = lerp(detailColor1, detailColor2, weight2);
+      half4 result = baseColor * detailColor;
+      result.rgb *= half(COLOR_CORRECTION_MULTIPLIER);
+      apply_painting(hitInfo, result.a, result.rgb);
+      return result.rgb;
+    }
+
+    half3 calc_mask_layers(HitInfo hitInfo, float mip_level)
     {
       if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU)
         return 0;
@@ -539,13 +578,17 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       else if (get_material_type(hitInfo.material) == bvhMaterialRendinst)
       {
         float texelAlpha = 1;
-        if (hitInfo.isPerlinLayered)
+        if (hitInfo.isPerlinLayered) // rendinst_perlin_layered, rendinst_tree_perlin_layered
         {
           sp.albedo = calc_perling_layers(hitInfo, mipLevel);
         }
-        else if (hitInfo.isLayered)
+        else if (hitInfo.isLayered && is_atlas(hitInfo.material)) //rendinst_layered, dynamic_layered
         {
           sp.albedo = calc_layers(hitInfo, mipLevel);
+        }
+        else if (hitInfo.isLayered) //rendinst_mask_layered
+        {
+          sp.albedo = calc_mask_layers(hitInfo, mipLevel);
         }
         else if (hitInfo.albedoTextureIndex != 0xFFFFU)
         {
@@ -579,7 +622,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
           }
         }
 
-        if (hitInfo.normalTextureIndex != 0xFFFFU && !hitInfo.isLayered)
+        if (hitInfo.normalTextureIndex != 0xFFFFU && !(hitInfo.isLayered && is_atlas(hitInfo.material)))
         {
           half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_wrap_sampler, hitInfo.texcoord, mipLevel);
           sp.smoothness = texel.r;
@@ -881,7 +924,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
     }
 
     #if rtr_use_probes
-      static const int borderCount = 2;
+      static const int borderCount = 1;
       float calc_probe_weight(float distance, float w)
       {
         const float minW = 2; // To accept probes near camera
@@ -912,18 +955,34 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
           {
             for (int x = max(probeIndex.x - borderCount, 0); x < min(probeIndex.x + borderCount + 1, probeCountI.x); ++x)
             {
-              uint localProbeIndex = x + y * probe_count.x;
-              float4 probeData = asfloat(loadBuffer4(probe_locations, localProbeIndex*16));
+              uint cellIndex = x + y * probe_count.x;
+              float4 frontProbeData = asfloat(loadBuffer4(probe_locations, cellIndex * PROBE_SLOT_STRIDE));
+              float4 backProbeData = asfloat(loadBuffer4(probe_locations, cellIndex * PROBE_SLOT_STRIDE + PROBE_SIZE));
 
               BRANCH
-              if (probeData.w != 0)
+              if (frontProbeData.w != 0)
               {
-                float probeDistance = distance(worldPos, probeData.xyz);
-                float probeWeight = calc_probe_weight(probeDistance, w);
-                float4 probeSample = sample_probe(uint2(x, y), sampleDir);
+                float4 frontSample = sample_probe(uint2(x, y), 0, sampleDir);
+                float4 backSample;
+                if (backProbeData.w != 0)
+                  backSample = sample_probe(uint2(x, y), 1, sampleDir);
+                else
+                {
+                  backSample = frontSample;
+                  backProbeData = frontProbeData;
+                }
+
+                float frontDistance = distance(worldPos, frontProbeData.xyz);
+                float backDistance = distance(worldPos, backProbeData.xyz);
+
+                float t = frontDistance / (frontDistance + backDistance + 1e-5);
+                float4 lerpedSample = lerp(frontSample, backSample, t);
+                float3 lerpedPos = lerp(frontProbeData.xyz, backProbeData.xyz, t);
+
+                float probeWeight = calc_probe_weight(distance(lerpedPos, worldPos), w);
                 weightSum += probeWeight;
-                colorAccum += probeSample.rgb * probeWeight;
-                depthAccum += probeSample.a * probeWeight;
+                colorAccum += lerpedSample.rgb * probeWeight;
+                depthAccum += lerpedSample.a * probeWeight;
               }
             }
           }

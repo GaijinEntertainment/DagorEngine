@@ -1078,98 +1078,98 @@ static const yytype_int16 yyrline[] =
      581,   582,   583,   584,   585,   586,   587,   591,   597,   598,
      599,   603,   604,   608,   609,   613,   632,   633,   634,   635,
      639,   640,   644,   645,   649,   650,   650,   654,   659,   668,
-     683,   699,   704,   712,   712,   751,   777,   781,   782,   783,
-     787,   790,   794,   798,   802,   806,   812,   821,   824,   830,
-     831,   835,   839,   840,   844,   847,   853,   859,   862,   868,
-     869,   873,   874,   875,   884,   885,   889,   890,   894,   895,
-     895,   901,   902,   903,   904,   905,   909,   915,   915,   921,
-     921,   927,   935,   945,   954,   954,   958,   958,   964,   965,
-     966,   967,   968,   969,   970,   974,   979,   987,   988,   989,
-     993,   994,   995,   996,   997,   998,   999,  1000,  1001,  1007,
-    1010,  1016,  1019,  1022,  1028,  1029,  1030,  1031,  1035,  1052,
-    1074,  1077,  1087,  1102,  1117,  1132,  1135,  1142,  1146,  1153,
-    1154,  1158,  1159,  1160,  1164,  1167,  1171,  1178,  1182,  1183,
-    1184,  1185,  1186,  1187,  1188,  1189,  1190,  1191,  1192,  1193,
-    1194,  1195,  1196,  1197,  1198,  1199,  1200,  1201,  1202,  1203,
-    1204,  1205,  1206,  1207,  1208,  1209,  1210,  1211,  1212,  1213,
-    1214,  1215,  1216,  1217,  1218,  1219,  1220,  1221,  1222,  1223,
-    1224,  1225,  1226,  1227,  1228,  1229,  1230,  1231,  1232,  1233,
-    1234,  1235,  1236,  1237,  1238,  1239,  1240,  1241,  1242,  1243,
-    1244,  1245,  1246,  1247,  1248,  1249,  1250,  1251,  1252,  1253,
-    1254,  1255,  1256,  1257,  1258,  1259,  1260,  1261,  1262,  1263,
-    1264,  1265,  1266,  1267,  1268,  1269,  1270,  1271,  1272,  1273,
-    1274,  1275,  1276,  1277,  1278,  1279,  1280,  1281,  1282,  1283,
-    1284,  1285,  1286,  1287,  1288,  1289,  1293,  1294,  1298,  1317,
-    1318,  1319,  1323,  1329,  1329,  1347,  1348,  1351,  1352,  1355,
-    1359,  1370,  1379,  1388,  1394,  1395,  1396,  1397,  1398,  1399,
-    1400,  1401,  1402,  1403,  1404,  1405,  1406,  1407,  1408,  1409,
-    1410,  1411,  1412,  1413,  1414,  1418,  1423,  1429,  1435,  1446,
-    1447,  1451,  1452,  1456,  1457,  1461,  1465,  1472,  1472,  1472,
-    1478,  1478,  1478,  1487,  1521,  1524,  1527,  1530,  1536,  1537,
-    1548,  1552,  1555,  1563,  1563,  1563,  1566,  1572,  1575,  1579,
-    1583,  1590,  1597,  1603,  1607,  1611,  1614,  1617,  1625,  1628,
-    1631,  1639,  1642,  1650,  1653,  1656,  1664,  1670,  1671,  1672,
-    1676,  1677,  1681,  1682,  1686,  1691,  1699,  1705,  1711,  1717,
-    1723,  1732,  1741,  1750,  1762,  1765,  1771,  1771,  1771,  1774,
-    1774,  1774,  1779,  1779,  1779,  1787,  1787,  1787,  1793,  1803,
-    1814,  1827,  1837,  1848,  1863,  1866,  1872,  1873,  1880,  1891,
-    1892,  1893,  1897,  1898,  1899,  1900,  1901,  1905,  1910,  1918,
-    1919,  1920,  1924,  1929,  1936,  1943,  1943,  1952,  1953,  1954,
-    1955,  1956,  1957,  1958,  1962,  1963,  1964,  1965,  1966,  1967,
-    1968,  1969,  1970,  1971,  1972,  1973,  1974,  1975,  1976,  1977,
-    1978,  1979,  1980,  1984,  1985,  1986,  1987,  1992,  1993,  1994,
-    1995,  1996,  1997,  1998,  1999,  2000,  2001,  2002,  2003,  2004,
-    2005,  2006,  2007,  2008,  2013,  2019,  2030,  2036,  2047,  2051,
-    2058,  2061,  2061,  2061,  2066,  2066,  2066,  2079,  2083,  2087,
-    2093,  2101,  2109,  2115,  2123,  2123,  2123,  2130,  2134,  2143,
-    2151,  2159,  2163,  2166,  2172,  2173,  2174,  2175,  2176,  2177,
-    2178,  2179,  2180,  2181,  2182,  2183,  2184,  2185,  2186,  2187,
-    2188,  2189,  2190,  2191,  2192,  2193,  2194,  2195,  2196,  2197,
-    2198,  2199,  2200,  2201,  2202,  2203,  2204,  2205,  2206,  2207,
-    2213,  2214,  2215,  2216,  2217,  2230,  2239,  2240,  2241,  2242,
-    2243,  2244,  2245,  2246,  2247,  2248,  2249,  2250,  2253,  2256,
-    2257,  2260,  2260,  2260,  2263,  2268,  2272,  2276,  2276,  2276,
-    2281,  2284,  2288,  2288,  2288,  2293,  2296,  2297,  2298,  2299,
-    2300,  2301,  2302,  2303,  2304,  2306,  2310,  2311,  2316,  2320,
-    2321,  2322,  2323,  2324,  2325,  2326,  2330,  2334,  2338,  2342,
-    2346,  2350,  2354,  2358,  2362,  2369,  2370,  2371,  2375,  2376,
-    2377,  2381,  2382,  2386,  2387,  2388,  2392,  2393,  2397,  2408,
-    2411,  2414,  2414,  2418,  2418,  2437,  2436,  2452,  2451,  2465,
-    2474,  2486,  2495,  2505,  2506,  2507,  2508,  2509,  2513,  2516,
-    2525,  2526,  2530,  2533,  2536,  2551,  2560,  2561,  2565,  2568,
-    2571,  2584,  2585,  2589,  2595,  2601,  2610,  2613,  2620,  2623,
-    2629,  2630,  2631,  2635,  2636,  2640,  2647,  2652,  2661,  2667,
-    2678,  2681,  2686,  2691,  2699,  2710,  2713,  2716,  2716,  2736,
-    2737,  2741,  2742,  2743,  2747,  2750,  2750,  2769,  2772,  2775,
-    2790,  2809,  2810,  2811,  2816,  2816,  2842,  2843,  2847,  2848,
-    2848,  2852,  2853,  2854,  2858,  2868,  2873,  2868,  2885,  2890,
-    2885,  2905,  2906,  2910,  2911,  2915,  2921,  2922,  2923,  2924,
-    2928,  2929,  2930,  2934,  2937,  2943,  2948,  2943,  2968,  2975,
-    2980,  2989,  2995,  3006,  3007,  3008,  3009,  3010,  3011,  3012,
-    3013,  3014,  3015,  3016,  3017,  3018,  3019,  3020,  3021,  3022,
-    3023,  3024,  3025,  3026,  3027,  3028,  3029,  3030,  3031,  3032,
-    3036,  3037,  3038,  3039,  3040,  3041,  3042,  3043,  3047,  3058,
-    3062,  3069,  3081,  3088,  3094,  3103,  3108,  3111,  3121,  3134,
-    3135,  3136,  3137,  3138,  3142,  3146,  3146,  3146,  3160,  3161,
-    3165,  3169,  3176,  3180,  3187,  3188,  3189,  3190,  3191,  3205,
-    3211,  3211,  3211,  3215,  3220,  3227,  3227,  3234,  3238,  3242,
-    3247,  3252,  3257,  3262,  3266,  3270,  3275,  3279,  3283,  3288,
-    3288,  3288,  3294,  3301,  3301,  3301,  3306,  3306,  3306,  3312,
-    3312,  3312,  3317,  3322,  3322,  3322,  3327,  3327,  3327,  3336,
-    3341,  3341,  3341,  3346,  3346,  3346,  3355,  3360,  3360,  3360,
-    3365,  3365,  3365,  3374,  3374,  3374,  3380,  3380,  3380,  3389,
-    3392,  3403,  3419,  3419,  3424,  3429,  3419,  3454,  3454,  3459,
-    3465,  3454,  3490,  3490,  3495,  3500,  3490,  3540,  3541,  3542,
-    3543,  3544,  3548,  3555,  3562,  3568,  3574,  3581,  3588,  3594,
-    3603,  3606,  3612,  3620,  3625,  3632,  3637,  3644,  3649,  3655,
-    3656,  3660,  3661,  3666,  3667,  3671,  3672,  3676,  3677,  3681,
-    3682,  3683,  3687,  3688,  3689,  3693,  3694,  3698,  3704,  3711,
-    3719,  3726,  3734,  3743,  3743,  3743,  3751,  3751,  3751,  3758,
-    3758,  3758,  3769,  3769,  3769,  3780,  3783,  3789,  3803,  3809,
-    3815,  3821,  3821,  3821,  3835,  3840,  3847,  3866,  3871,  3878,
-    3878,  3878,  3888,  3888,  3888,  3902,  3902,  3902,  3916,  3925,
-    3925,  3925,  3945,  3952,  3952,  3952,  3962,  3967,  3974,  3977,
-    3983,  4002,  4011,  4019,  4039,  4064,  4065,  4069,  4070,  4075,
+     683,   699,   704,   712,   712,   751,   781,   785,   786,   787,
+     791,   794,   798,   802,   806,   810,   816,   825,   828,   834,
+     835,   839,   843,   844,   848,   851,   857,   863,   866,   872,
+     873,   877,   878,   879,   888,   889,   893,   894,   898,   899,
+     899,   905,   906,   907,   908,   909,   913,   919,   919,   925,
+     925,   931,   939,   949,   958,   958,   962,   962,   968,   969,
+     970,   971,   972,   973,   974,   978,   983,   991,   992,   993,
+     997,   998,   999,  1000,  1001,  1002,  1003,  1004,  1005,  1011,
+    1014,  1020,  1023,  1026,  1032,  1033,  1034,  1035,  1039,  1056,
+    1078,  1081,  1091,  1106,  1121,  1136,  1139,  1146,  1150,  1157,
+    1158,  1162,  1163,  1164,  1168,  1171,  1175,  1182,  1186,  1187,
+    1188,  1189,  1190,  1191,  1192,  1193,  1194,  1195,  1196,  1197,
+    1198,  1199,  1200,  1201,  1202,  1203,  1204,  1205,  1206,  1207,
+    1208,  1209,  1210,  1211,  1212,  1213,  1214,  1215,  1216,  1217,
+    1218,  1219,  1220,  1221,  1222,  1223,  1224,  1225,  1226,  1227,
+    1228,  1229,  1230,  1231,  1232,  1233,  1234,  1235,  1236,  1237,
+    1238,  1239,  1240,  1241,  1242,  1243,  1244,  1245,  1246,  1247,
+    1248,  1249,  1250,  1251,  1252,  1253,  1254,  1255,  1256,  1257,
+    1258,  1259,  1260,  1261,  1262,  1263,  1264,  1265,  1266,  1267,
+    1268,  1269,  1270,  1271,  1272,  1273,  1274,  1275,  1276,  1277,
+    1278,  1279,  1280,  1281,  1282,  1283,  1284,  1285,  1286,  1287,
+    1288,  1289,  1290,  1291,  1292,  1293,  1297,  1298,  1302,  1321,
+    1322,  1323,  1327,  1333,  1333,  1351,  1352,  1355,  1356,  1359,
+    1363,  1374,  1383,  1392,  1398,  1399,  1400,  1401,  1402,  1403,
+    1404,  1405,  1406,  1407,  1408,  1409,  1410,  1411,  1412,  1413,
+    1414,  1415,  1416,  1417,  1418,  1422,  1427,  1433,  1439,  1450,
+    1451,  1455,  1456,  1460,  1461,  1465,  1469,  1476,  1476,  1476,
+    1482,  1482,  1482,  1491,  1525,  1528,  1531,  1534,  1540,  1541,
+    1552,  1556,  1559,  1567,  1567,  1567,  1570,  1576,  1579,  1583,
+    1587,  1594,  1601,  1607,  1611,  1615,  1618,  1621,  1629,  1632,
+    1635,  1643,  1646,  1654,  1657,  1660,  1668,  1674,  1675,  1676,
+    1680,  1681,  1685,  1686,  1690,  1695,  1703,  1709,  1715,  1721,
+    1727,  1736,  1745,  1754,  1766,  1769,  1775,  1775,  1775,  1778,
+    1778,  1778,  1783,  1783,  1783,  1791,  1791,  1791,  1797,  1807,
+    1818,  1831,  1841,  1852,  1867,  1870,  1876,  1877,  1884,  1895,
+    1896,  1897,  1901,  1902,  1903,  1904,  1905,  1909,  1914,  1922,
+    1923,  1924,  1928,  1933,  1940,  1947,  1947,  1956,  1957,  1958,
+    1959,  1960,  1961,  1962,  1966,  1967,  1968,  1969,  1970,  1971,
+    1972,  1973,  1974,  1975,  1976,  1977,  1978,  1979,  1980,  1981,
+    1982,  1983,  1984,  1988,  1989,  1990,  1991,  1996,  1997,  1998,
+    1999,  2000,  2001,  2002,  2003,  2004,  2005,  2006,  2007,  2008,
+    2009,  2010,  2011,  2012,  2017,  2023,  2034,  2040,  2051,  2055,
+    2062,  2065,  2065,  2065,  2070,  2070,  2070,  2083,  2087,  2091,
+    2097,  2105,  2113,  2119,  2127,  2127,  2127,  2134,  2138,  2147,
+    2155,  2163,  2167,  2170,  2176,  2177,  2178,  2179,  2180,  2181,
+    2182,  2183,  2184,  2185,  2186,  2187,  2188,  2189,  2190,  2191,
+    2192,  2193,  2194,  2195,  2196,  2197,  2198,  2199,  2200,  2201,
+    2202,  2203,  2204,  2205,  2206,  2207,  2208,  2209,  2210,  2211,
+    2217,  2218,  2219,  2220,  2221,  2236,  2245,  2246,  2247,  2248,
+    2249,  2250,  2251,  2252,  2253,  2254,  2255,  2256,  2259,  2262,
+    2263,  2266,  2266,  2266,  2269,  2274,  2278,  2282,  2282,  2282,
+    2287,  2290,  2294,  2294,  2294,  2299,  2302,  2303,  2304,  2305,
+    2306,  2307,  2308,  2309,  2310,  2312,  2316,  2317,  2322,  2326,
+    2327,  2328,  2329,  2330,  2331,  2332,  2336,  2340,  2344,  2348,
+    2352,  2356,  2360,  2364,  2368,  2375,  2376,  2377,  2381,  2382,
+    2383,  2387,  2388,  2392,  2393,  2394,  2398,  2399,  2403,  2414,
+    2417,  2420,  2420,  2424,  2424,  2443,  2442,  2458,  2457,  2471,
+    2480,  2492,  2501,  2511,  2512,  2513,  2514,  2515,  2519,  2522,
+    2531,  2532,  2536,  2539,  2542,  2557,  2566,  2567,  2571,  2574,
+    2577,  2590,  2591,  2595,  2601,  2607,  2616,  2619,  2626,  2629,
+    2635,  2636,  2637,  2641,  2642,  2646,  2653,  2658,  2667,  2673,
+    2684,  2687,  2692,  2697,  2705,  2716,  2719,  2722,  2722,  2742,
+    2743,  2747,  2748,  2749,  2753,  2756,  2756,  2775,  2778,  2781,
+    2796,  2815,  2816,  2817,  2822,  2822,  2848,  2849,  2853,  2854,
+    2854,  2858,  2859,  2860,  2864,  2874,  2879,  2874,  2891,  2896,
+    2891,  2911,  2912,  2916,  2917,  2921,  2927,  2928,  2929,  2930,
+    2934,  2935,  2936,  2940,  2943,  2949,  2954,  2949,  2974,  2981,
+    2986,  2995,  3001,  3012,  3013,  3014,  3015,  3016,  3017,  3018,
+    3019,  3020,  3021,  3022,  3023,  3024,  3025,  3026,  3027,  3028,
+    3029,  3030,  3031,  3032,  3033,  3034,  3035,  3036,  3037,  3038,
+    3042,  3043,  3044,  3045,  3046,  3047,  3048,  3049,  3053,  3064,
+    3068,  3075,  3087,  3094,  3100,  3109,  3114,  3117,  3127,  3140,
+    3141,  3142,  3143,  3144,  3148,  3152,  3152,  3152,  3166,  3167,
+    3171,  3175,  3182,  3185,  3191,  3192,  3193,  3194,  3195,  3205,
+    3208,  3208,  3208,  3212,  3217,  3224,  3224,  3231,  3235,  3239,
+    3244,  3249,  3254,  3259,  3263,  3267,  3272,  3276,  3280,  3285,
+    3285,  3285,  3291,  3298,  3298,  3298,  3303,  3303,  3303,  3309,
+    3309,  3309,  3314,  3319,  3319,  3319,  3324,  3324,  3324,  3333,
+    3338,  3338,  3338,  3343,  3343,  3343,  3352,  3357,  3357,  3357,
+    3362,  3362,  3362,  3371,  3371,  3371,  3377,  3377,  3377,  3386,
+    3389,  3400,  3416,  3416,  3421,  3426,  3416,  3451,  3451,  3456,
+    3462,  3451,  3487,  3487,  3492,  3497,  3487,  3537,  3538,  3539,
+    3540,  3541,  3545,  3552,  3559,  3565,  3571,  3578,  3585,  3591,
+    3600,  3603,  3609,  3617,  3622,  3629,  3634,  3641,  3646,  3652,
+    3653,  3657,  3658,  3663,  3664,  3668,  3669,  3673,  3674,  3678,
+    3679,  3680,  3684,  3685,  3686,  3690,  3691,  3695,  3701,  3708,
+    3716,  3723,  3731,  3740,  3740,  3740,  3748,  3748,  3748,  3755,
+    3755,  3755,  3766,  3766,  3766,  3777,  3780,  3786,  3800,  3806,
+    3812,  3818,  3818,  3818,  3832,  3837,  3844,  3863,  3868,  3875,
+    3875,  3875,  3885,  3885,  3885,  3899,  3899,  3899,  3913,  3922,
+    3922,  3922,  3942,  3949,  3949,  3949,  3959,  3964,  3971,  3974,
+    3980,  3999,  4011,  4019,  4039,  4064,  4065,  4069,  4070,  4075,
     4078,  4081,  4084,  4087,  4090
 };
 #endif
@@ -6608,7 +6608,7 @@ yyreduce:
   case 3: /* program: program module_declaration  */
                                    {
             if ( yyextra->das_has_type_declarations ) {
-                das_yyerror(scanner,"module name has to be first declaration",tokAt(scanner,(yylsp[0])), CompilationError::syntax_error);
+                das_yyerror(scanner,"module name has to be first declaration",tokAt(scanner,(yylsp[0])), CompilationError::invalid_module);
             }
         }
     break;
@@ -6689,7 +6689,7 @@ yyreduce:
             yyextra->g_Program->library.renameModule(yyextra->g_Program->thisModule.get(),*(yyvsp[-3].s));
         } else if ( yyextra->g_Program->thisModule->name != *(yyvsp[-3].s) ){
             das_yyerror(scanner,"this module already has a name " + yyextra->g_Program->thisModule->name,tokAt(scanner,(yylsp[-3])),
-                CompilationError::module_already_has_a_name);
+                CompilationError::already_declared_module_name);
         }
         if ( !yyextra->g_Program->policies.ignore_shared_modules ) {
             yyextra->g_Program->promoteToBuiltin = (yyvsp[-2].b);
@@ -6754,7 +6754,7 @@ yyreduce:
                                                                                   {
         bool err;
         auto esconst = unescapeString(*(yyvsp[0].s),&err);
-        if ( err ) das_yyerror(scanner,"invalid escape sequence",tokAt(scanner,(yylsp[-1])), CompilationError::invalid_escape_sequence);
+        if ( err ) das_yyerror(scanner,"invalid escape sequence",tokAt(scanner,(yylsp[-1])), CompilationError::invalid_escape);
         auto sc = new ExprConstString(tokAt(scanner,(yylsp[0])),esconst);
         delete (yyvsp[0].s);
         static_cast<ExprStringBuilder *>((yyvsp[-1].pExpression))->elements.push_back(sc);
@@ -6814,17 +6814,17 @@ yyreduce:
         auto macros = yyextra->g_Program->getReaderMacro(*(yyvsp[0].s));
         if ( macros.size()==0 ) {
             das_yyerror(scanner,"reader macro " + *(yyvsp[0].s) + " not found",tokAt(scanner,(yylsp[0])),
-                CompilationError::unsupported_read_macro);
+                CompilationError::lookup_macro);
         } else if ( macros.size()>1 ) {
             string options;
             for ( auto & x : macros ) {
                 options += "\t" + x->module->name + "::" + x->name + "\n";
             }
             das_yyerror(scanner,"too many options for the reader macro " + *(yyvsp[0].s) +  "\n" + options, tokAt(scanner,(yylsp[0])),
-                CompilationError::unsupported_read_macro);
+                CompilationError::ambiguous_macro);
         } else if ( yychar != '~' ) {
             das_yyerror(scanner,"expecting ~ after the reader macro", tokAt(scanner,(yylsp[0])),
-                CompilationError::syntax_error);
+                CompilationError::invalid_macro);
         } else {
             yyextra->g_ReaderMacro = macros.back();
             yyextra->g_ReaderExpr = new ExprReader(tokAt(scanner,(yylsp[-1])),yyextra->g_ReaderMacro);
@@ -6869,10 +6869,14 @@ yyreduce:
         }
         for ( auto & opt : *(yyvsp[0].aaList) ) {
             if ( yyextra->g_Access->isOptionAllowed(opt.name, yyextra->g_Program->thisModule->fileName) ) {
-                yyextra->g_Program->options.push_back(opt);
+                if ( yyextra->g_Access->isOptionBlocked(opt.name, yyextra->g_Program->thisModule->fileName) ) {
+                    // blocked: ok to write, silently ignored (not applied)
+                } else {
+                    yyextra->g_Program->options.push_back(opt);
+                }
             } else {
                 das_yyerror(scanner,"option " + opt.name + " is not allowed here",
-                    tokAt(scanner,(yylsp[0])), CompilationError::invalid_option);
+                    tokAt(scanner,(yylsp[0])), CompilationError::invalid_options);
             }
         }
         delete (yyvsp[0].aaList);
@@ -7295,7 +7299,7 @@ yyreduce:
             } else {
                 (yyval.fa)->annotation = new Annotation(*(yyvsp[0].s));
                 das2_yyerror(scanner,"annotation " + *(yyvsp[0].s) + " is not found",
-                            tokAt(scanner,(yylsp[0])), CompilationError::invalid_annotation);
+                            tokAt(scanner,(yylsp[0])), CompilationError::lookup_annotation);
             }
         } else {
             das_yyerror(scanner,"annotation " + *(yyvsp[0].s) + " is not allowed here",
@@ -7315,7 +7319,7 @@ yyreduce:
             } else {
                 (yyval.fa)->annotation = new Annotation(*(yyvsp[-3].s));
                 das2_yyerror(scanner,"annotation " + *(yyvsp[-3].s) + " is not found",
-                            tokAt(scanner,(yylsp[-3])), CompilationError::invalid_annotation);
+                            tokAt(scanner,(yylsp[-3])), CompilationError::lookup_annotation);
             }
         } else {
             das_yyerror(scanner,"annotation " + *(yyvsp[-3].s) + " is not allowed here",
@@ -7926,7 +7930,7 @@ yyreduce:
             if ( !yyextra->g_Program->addFunction((yyvsp[0].pFuncDecl)) ) {
                 das_yyerror(scanner,"function is already defined " +
                     (yyvsp[0].pFuncDecl)->getMangledName(),(yyvsp[0].pFuncDecl)->at,
-                        CompilationError::function_already_declared);
+                        CompilationError::already_declared_function);
             }
         }
         (yyvsp[0].pFuncDecl)->delRef();
@@ -8233,7 +8237,7 @@ yyreduce:
             auto pMS = (ExprMakeStruct *) pipeCall;
             if ( pMS->block ) {
                 das_yyerror(scanner,"can't pipe into [[ make structure ]]. it already has where closure",
-                    tokAt(scanner,(yylsp[-1])),CompilationError::cant_pipe);
+                    tokAt(scanner,(yylsp[-1])),CompilationError::cant_expression);
                 delete (yyvsp[0].pExpression);
             } else {
                 pMS->block = (yyvsp[0].pExpression);
@@ -8241,7 +8245,7 @@ yyreduce:
             (yyval.pExpression) = (yyvsp[-2].pExpression);
         } else {
             das_yyerror(scanner,"can only pipe into function call or [[ make structure ]]",
-                tokAt(scanner,(yylsp[-1])),CompilationError::cant_pipe);
+                tokAt(scanner,(yylsp[-1])),CompilationError::cant_expression);
             delete (yyvsp[0].pExpression);
             (yyval.pExpression) = (yyvsp[-2].pExpression);
         }
@@ -9467,10 +9471,12 @@ yyreduce:
             if ( (yyvsp[-2].pExpression)->rtti_isSequence() ) {
                 auto mkt = new ExprMakeTuple(tokAt(scanner,(yylsp[-2])));
                 mkt->values = sequenceToList((yyvsp[-2].pExpression));
+                mkt->shorthandRecordNames = ast_tupleCollectShorthandNames(mkt->values);
                 (yyval.pExpression) = mkt;
             } else if ( (yyvsp[-1].b) ) {
                 auto mkt = new ExprMakeTuple(tokAt(scanner,(yylsp[-2])));
                 mkt->values.push_back((yyvsp[-2].pExpression));
+                mkt->shorthandRecordNames = ast_tupleCollectShorthandNames(mkt->values);
                 (yyval.pExpression) = mkt;
             } else {
                 (yyval.pExpression) = (yyvsp[-2].pExpression);
@@ -9951,7 +9957,7 @@ yyreduce:
   case 609: /* struct_variable_declaration_list: struct_variable_declaration_list '[' annotation_list ']' semicolon  */
                                                                                        {
         das_yyerror(scanner,"structure field or class method annotation expected to remain on the same line with the field or the class",
-            tokAt(scanner,(yylsp[-2])), CompilationError::syntax_error);
+            tokAt(scanner,(yylsp[-2])), CompilationError::invalid_annotation);
         delete (yyvsp[-2].faList);
         (yyval.pVarDeclList) = (yyvsp[-4].pVarDeclList);
     }
@@ -10379,7 +10385,7 @@ yyreduce:
         das_checkName(scanner,*(yyvsp[-1].s),tokAt(scanner,(yylsp[-1])));
         if ( !(yyvsp[-2].pEnumList)->add(*(yyvsp[-1].s),nullptr,tokAt(scanner,(yylsp[-1]))) ) {
             das_yyerror(scanner,"enumeration already declared " + *(yyvsp[-1].s), tokAt(scanner,(yylsp[-1])),
-                CompilationError::enumeration_value_already_declared);
+                CompilationError::already_declared_enumerator);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tokName = tokAt(scanner,(yylsp[-1]));
@@ -10397,7 +10403,7 @@ yyreduce:
         das_checkName(scanner,*(yyvsp[-3].s),tokAt(scanner,(yylsp[-3])));
         if ( !(yyvsp[-4].pEnumList)->add(*(yyvsp[-3].s),(yyvsp[-1].pExpression),tokAt(scanner,(yylsp[-3]))) ) {
             das_yyerror(scanner,"enumeration value already declared " + *(yyvsp[-3].s), tokAt(scanner,(yylsp[-3])),
-                CompilationError::enumeration_value_already_declared);
+                CompilationError::already_declared_enumerator);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto tokName = tokAt(scanner,(yylsp[-3]));
@@ -10437,12 +10443,12 @@ yyreduce:
         (yyvsp[0].pTypeDecl)->isPrivateAlias = !(yyvsp[-4].b);
         if ( (yyvsp[0].pTypeDecl)->baseType == Type::alias ) {
             das_yyerror(scanner,"alias cannot be defined in terms of another alias "+*(yyvsp[-3].s),tokAt(scanner,(yylsp[-3])),
-                CompilationError::invalid_type);
+                CompilationError::invalid_type_alias);
         }
         (yyvsp[0].pTypeDecl)->alias = *(yyvsp[-3].s);
         if ( !yyextra->g_Program->addAlias((yyvsp[0].pTypeDecl)) ) {
             das_yyerror(scanner,"type alias is already defined "+*(yyvsp[-3].s),tokAt(scanner,(yylsp[-3])),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto pubename = tokAt(scanner,(yylsp[0]));
@@ -10855,7 +10861,7 @@ yyreduce:
         (yyval.pTypeDecl)->isTag = true;
         (yyval.pTypeDecl)->firstType = new TypeDecl(Type::autoinfer);
         (yyval.pTypeDecl)->firstType->at = tokAt(scanner, (yylsp[-1]));
-        (yyval.pTypeDecl)->firstType->dimExpr.push_back((yyvsp[-1].pExpression));
+        (yyval.pTypeDecl)->firstType->typeMacroExpr.push_back((yyvsp[-1].pExpression));
     }
     break;
 
@@ -10969,7 +10975,7 @@ yyreduce:
             auto maxBits = (yyval.pTypeDecl)->maxBitfieldBits();
             if ( (yyval.pTypeDecl)->argNames.size()>maxBits ) {
                 das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,(yylsp[-5])),
-                    CompilationError::invalid_type);
+                    CompilationError::exceeds_bitfield);
             }
             (yyval.pTypeDecl)->at = tokAt(scanner,(yylsp[-5]));
             delete (yyvsp[-2].pNameList);
@@ -10992,15 +10998,13 @@ yyreduce:
 
   case 772: /* dim_list: '[' expr ']'  */
                              {
-        (yyval.pTypeDecl) = new TypeDecl(Type::autoinfer);
-        appendDimExpr((yyval.pTypeDecl), (yyvsp[-1].pExpression));
+        (yyval.pTypeDecl) = appendDimExpr(nullptr, (yyvsp[-1].pExpression), tokAt(scanner,(yylsp[-1])));
     }
     break;
 
   case 773: /* dim_list: dim_list '[' expr ']'  */
                                             {
-        (yyval.pTypeDecl) = (yyvsp[-3].pTypeDecl);
-        appendDimExpr((yyval.pTypeDecl), (yyvsp[-1].pExpression));
+        (yyval.pTypeDecl) = appendDimExpr((yyvsp[-3].pTypeDecl), (yyvsp[-1].pExpression), tokAt(scanner,(yylsp[-1])));
     }
     break;
 
@@ -11024,25 +11028,18 @@ yyreduce:
                                                                 {
         if ( (yyvsp[-1].pTypeDecl)->baseType==Type::typeDecl ) {
             das_yyerror(scanner,"type declaration can`t be used as array base type",tokAt(scanner,(yylsp[-1])),
-                CompilationError::invalid_type);
+                CompilationError::invalid_array_type);
         } else if ( (yyvsp[-1].pTypeDecl)->baseType==Type::typeMacro ) {
             das_yyerror(scanner,"macro can`t be used as array base type",tokAt(scanner,(yylsp[-1])),
-                CompilationError::invalid_type);
+                CompilationError::invalid_array_type);
         }
-        (yyvsp[-1].pTypeDecl)->dim.insert((yyvsp[-1].pTypeDecl)->dim.begin(), (yyvsp[0].pTypeDecl)->dim.begin(), (yyvsp[0].pTypeDecl)->dim.end());
-        (yyvsp[-1].pTypeDecl)->dimExpr.insert((yyvsp[-1].pTypeDecl)->dimExpr.begin(), (yyvsp[0].pTypeDecl)->dimExpr.begin(), (yyvsp[0].pTypeDecl)->dimExpr.end());
-        (yyvsp[-1].pTypeDecl)->removeDim = false;
-        (yyval.pTypeDecl) = (yyvsp[-1].pTypeDecl);
-        (yyvsp[0].pTypeDecl)->dimExpr.clear();
+        (yyval.pTypeDecl) = attachDimChain((yyvsp[0].pTypeDecl), (yyvsp[-1].pTypeDecl));
     }
     break;
 
   case 779: /* type_declaration_no_options: type_declaration_no_options '[' ']'  */
                                                       {
-        (yyvsp[-2].pTypeDecl)->dim.push_back(TypeDecl::dimAuto);
-        (yyvsp[-2].pTypeDecl)->dimExpr.push_back(nullptr);
-        (yyvsp[-2].pTypeDecl)->removeDim = false;
-        (yyval.pTypeDecl) = (yyvsp[-2].pTypeDecl);
+        (yyval.pTypeDecl) = appendAutoDim((yyvsp[-2].pTypeDecl), tokAt(scanner,(yylsp[-1])));
     }
     break;
 
@@ -11065,7 +11062,7 @@ yyreduce:
                                                {
         (yyval.pTypeDecl) = new TypeDecl(Type::typeDecl);
         (yyval.pTypeDecl)->at = tokRangeAt(scanner,(yylsp[-3]),(yylsp[-1]));
-        (yyval.pTypeDecl)->dimExpr.push_back((yyvsp[-1].pExpression));
+        (yyval.pTypeDecl)->typeMacroExpr.push_back((yyvsp[-1].pExpression));
     }
     break;
 
@@ -11073,8 +11070,8 @@ yyreduce:
                                                                             {
         (yyval.pTypeDecl) = new TypeDecl(Type::typeMacro);
         (yyval.pTypeDecl)->at = tokRangeAt(scanner,(yylsp[-1]), (yylsp[0]));
-        (yyval.pTypeDecl)->dimExpr = sequenceToList((yyvsp[0].pExpression));
-        (yyval.pTypeDecl)->dimExpr.insert((yyval.pTypeDecl)->dimExpr.begin(), new ExprConstString(tokAt(scanner,(yylsp[-1])), *(yyvsp[-1].s)));
+        (yyval.pTypeDecl)->typeMacroExpr = sequenceToList((yyvsp[0].pExpression));
+        (yyval.pTypeDecl)->typeMacroExpr.insert((yyval.pTypeDecl)->typeMacroExpr.begin(), new ExprConstString(tokAt(scanner,(yylsp[-1])), *(yyvsp[-1].s)));
         delete (yyvsp[-1].s);
     }
     break;
@@ -11087,8 +11084,8 @@ yyreduce:
                                                                                                                                                              {
         (yyval.pTypeDecl) = new TypeDecl(Type::typeMacro);
         (yyval.pTypeDecl)->at = tokRangeAt(scanner,(yylsp[-5]), (yylsp[0]));
-        (yyval.pTypeDecl)->dimExpr = typesAndSequenceToList((yyvsp[-2].pTypeDeclList),(yyvsp[0].pExpression));
-        (yyval.pTypeDecl)->dimExpr.insert((yyval.pTypeDecl)->dimExpr.begin(), new ExprConstString(tokAt(scanner,(yylsp[-5])), *(yyvsp[-5].s)));
+        (yyval.pTypeDecl)->typeMacroExpr = typesAndSequenceToList((yyvsp[-2].pTypeDeclList),(yyvsp[0].pExpression));
+        (yyval.pTypeDecl)->typeMacroExpr.insert((yyval.pTypeDecl)->typeMacroExpr.begin(), new ExprConstString(tokAt(scanner,(yylsp[-5])), *(yyvsp[-5].s)));
         delete (yyvsp[-5].s);
     }
     break;
@@ -11502,7 +11499,7 @@ yyreduce:
         deleteVariableDeclarationList((yyvsp[-2].pVarDeclList));
         if ( !yyextra->g_Program->addAlias(vtype) ) {
             das_yyerror(scanner,"type alias is already defined "+*(yyvsp[-6].s),tokAt(scanner,(yylsp[-6])),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,(yylsp[-6]));
@@ -11554,7 +11551,7 @@ yyreduce:
         deleteVariableDeclarationList((yyvsp[-2].pVarDeclList));
         if ( !yyextra->g_Program->addAlias(vtype) ) {
             das_yyerror(scanner,"type alias is already defined "+*(yyvsp[-6].s),tokAt(scanner,(yylsp[-6])),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,(yylsp[-6]));
@@ -11609,7 +11606,7 @@ yyreduce:
         auto maxBits = btype->maxBitfieldBits();
         if ( btype->argNames.size()>maxBits ) {
             das_yyerror(scanner,"only " + to_string(maxBits) + " different bits are allowed in a bitfield",tokAt(scanner,(yylsp[-7])),
-                CompilationError::invalid_type);
+                CompilationError::exceeds_bitfield);
         }
         for ( auto & p : *(yyvsp[-2].pNameExprList) ) {
             if ( get<1>(p) ) {
@@ -11618,7 +11615,7 @@ yyreduce:
         }
         if ( !yyextra->g_Program->addAlias(btype) ) {
             das_yyerror(scanner,"type alias is already defined "+*(yyvsp[-7].s),tokAt(scanner,(yylsp[-7])),
-                CompilationError::type_alias_already_declared);
+                CompilationError::already_declared_type_alias);
         }
         if ( !yyextra->g_CommentReaders.empty() ) {
             auto atvname = tokAt(scanner,(yylsp[-7]));
@@ -12277,8 +12274,11 @@ yyreduce:
 
   case 951: /* make_table_decl: "{{" make_table optional_trailing_semicolon_cur_cur  */
                                                                           {
-        auto mkt = new TypeDecl(Type::autoinfer);
-        mkt->dim.push_back(TypeDecl::dimAuto);
+        auto mkt = new TypeDecl(Type::tFixedArray);
+        mkt->fixedDim = TypeDecl::dimAuto;
+        mkt->at = tokAt(scanner,(yylsp[-2]));
+        mkt->firstType = new TypeDecl(Type::autoinfer);
+        mkt->firstType->at = mkt->at;
         ((ExprMakeArray *)(yyvsp[-1].pExpression))->makeType = mkt;
         (yyvsp[-1].pExpression)->at = tokAt(scanner,(yylsp[-2]));
         auto ttm = yyextra->g_Program->makeCall(tokAt(scanner,(yylsp[-2])),"to_table_move");
@@ -12638,7 +12638,7 @@ void das_yyerror ( DAS_YYLTYPE * lloc, yyscan_t scanner, const string & error ) 
     if ( !yyextra->das_suppress_errors ) {
         yyextra->g_Program->error(error,"","",LineInfo(yyextra->g_FileAccessStack.back(),
             lloc->first_column,lloc->first_line,lloc->last_column,lloc->last_line),
-                CompilationError::syntax_error);
+                CompilationError::invalid_expression);
     }
 }
 

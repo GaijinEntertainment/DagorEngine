@@ -1,5 +1,5 @@
 options gen2
-expect 40104:4, 30103:2
+expect 30123:2, 50503:4
 
 options persistent_heap = true
 options gc

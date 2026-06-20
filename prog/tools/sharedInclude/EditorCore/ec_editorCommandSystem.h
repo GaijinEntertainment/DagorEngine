@@ -26,6 +26,11 @@ public:
   virtual void addCommand(const char *id, ImGuiKeyChord key_chord) = 0;
   virtual void addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2) = 0;
 
+  /// The display_name is optional. If not set then the command ID will be shown to the user.
+  virtual void addCommand(const char *id, const char *display_name) = 0;
+  virtual void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord) = 0;
+  virtual void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2) = 0;
+
   // Returns null if the command cannot be found.
   // The returned text is temporary. Do not store it.
   virtual const char *getCommandKeyChordsAsText(const char *id) = 0;
@@ -46,6 +51,8 @@ public:
     const char *tooltip) = 0;
   virtual void createToolbarToggleButton(PropPanel::ContainerPropertyControl &parent, int id, const char *editor_command_id,
     const char *tooltip) = 0;
+  virtual PropPanel::ContainerPropertyControl *createToolbarPopupButtonGroup(PropPanel::ContainerPropertyControl &parent,
+    int id = 0) = 0;
   virtual void updateToolbarButtons(PropPanel::ContainerPropertyControl &container) = 0;
 
   virtual void addMenuItem(PropPanel::IMenu &menu, unsigned menu_id, unsigned item_id, const char *editor_command_id,
@@ -66,6 +73,9 @@ public:
   void addCommand(const char *id) override;
   void addCommand(const char *id, ImGuiKeyChord key_chord) override;
   void addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2) override;
+  void addCommand(const char *id, const char *display_name) override;
+  void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord) override;
+  void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2) override;
   const char *getCommandKeyChordsAsText(const char *id) override;
   int getCommandHotkeyCount(const char *id) const override;
   ImGuiKeyChord getCommandKeyChord(const char *id, int index) const override;
@@ -80,6 +90,7 @@ public:
     const char *tooltip) override;
   void createToolbarToggleButton(PropPanel::ContainerPropertyControl &parent, int id, const char *editor_command_id,
     const char *tooltip) override;
+  PropPanel::ContainerPropertyControl *createToolbarPopupButtonGroup(PropPanel::ContainerPropertyControl &parent, int id) override;
   void updateToolbarButtons(PropPanel::ContainerPropertyControl &container) override;
   void addMenuItem(PropPanel::IMenu &menu, unsigned menu_id, unsigned item_id, const char *editor_command_id,
     const char *title) override;

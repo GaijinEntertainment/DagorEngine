@@ -345,7 +345,7 @@ macro COLLIMATOR_MOA_LENS()
       if (use_noise)
         color = calc_noisy_color(shape_color, MOA, alpha);
       else
-        color = shape_color;
+        color = shape_color * alpha; // keep the SDF edge falloff, same as the noise path
 
       return float4(color.rgb, color.a);
     }

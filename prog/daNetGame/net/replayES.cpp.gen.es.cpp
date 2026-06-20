@@ -23,3 +23,23 @@ static ecs::EntitySystemDesc replay_save_key_frame_es_es_desc
   ecs::EventSetBuilder<RequestSaveKeyFrame>::build(),
   0
 );
+//static constexpr ecs::ComponentDesc replay_query_playback_es_comps[] ={};
+static void replay_query_playback_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  G_FAST_ASSERT(evt.is<EventQueryReplayPlayback>());
+  replay_query_playback_es(static_cast<const EventQueryReplayPlayback&>(evt)
+        );
+}
+static ecs::EntitySystemDesc replay_query_playback_es_es_desc
+(
+  "replay_query_playback_es",
+  "prog/daNetGame/net/replayES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, replay_query_playback_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<EventQueryReplayPlayback>::build(),
+  0
+);

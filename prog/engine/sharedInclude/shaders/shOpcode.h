@@ -61,10 +61,10 @@ enum
   SHCOD_RWBUF_VS,  // 2p     | set r/w buffer (UAV) to vs           | p1=ind p2=reg#
   SHCOD_RWTEX_VS,  // 2p     | set r/w texture (UAV) to vs          | p1=ind p2=reg#
 
-  SHCOD_TEXTURE_STUBCOL, // 2p      | set texture stub color fallback     | p1=ind p2=reg#
-  SHCOD_GET_GIVEC,       // 2p     | load global int4 var to int4 reg     | p1=reg#  p2=varId
-  SHCOD_NOP,
-  SHCOD_SET_CONST_PACKED, // 3p | set const[offset] | stage=reg, slot=count, reg=offset
+  SHCOD_TEXTURE_STUBCOL,      // 2p      | set texture stub color fallback     | p1=ind p2=reg#
+  SHCOD_GET_GIVEC,            // 2p     | load global int4 var to int4 reg     | p1=reg#  p2=varId
+  SHCOD_REG_BINDLESS_SAMPLER, // 2p     | register bindless sampler, store idx to cbuf | p1=cbufOffset p2=varId
+  SHCOD_SET_CONST_PACKED,     // 3p | set const[offset] | stage=reg, slot=count, reg=offset
   SHCOD_NOP,
   SHCOD_NOP,
   SHCOD_NOP,

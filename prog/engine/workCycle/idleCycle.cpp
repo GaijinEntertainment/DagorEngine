@@ -22,12 +22,6 @@
 #include <workCycle/threadedWindow.h>
 #endif
 
-#if _TARGET_XBOX
-extern void update_xbox_keyboard();
-#elif _TARGET_PC_WIN
-static void update_xbox_keyboard() {}
-#endif
-
 #if _TARGET_PC_WIN
 static bool pump_messages(bool input_only)
 {
@@ -70,8 +64,6 @@ void dagor_process_sys_messages(bool input_only)
 {
 #if _TARGET_PC_WIN | _TARGET_XBOX
   bool were_events = pump_messages(input_only);
-
-  update_xbox_keyboard();
 
   if (were_events)
   {

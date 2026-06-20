@@ -401,23 +401,6 @@ protected:
 volatile int AsyncPicLoadJob::numJobsInFlight = 0;
 volatile bool AsyncPicLoadJob::loadAllowed = false;
 
-struct PictureRenderContext
-{
-  PictureRenderContext(PictureRenderFactory *_prf, Texture *_rt, int _x0, int _y0, int _w, int _h, const DataBlock &p,
-    PICTUREID pic_id, uint8_t gen_) :
-    prf(_prf), rt(_rt), x0(_x0), y0(_y0), w(_w), h(_h), props(p), pid(pic_id), gen(gen_)
-  {}
-
-  unsigned triedAtFrame = 0;
-  unsigned failedAttempt = 0;
-  PICTUREID pid;
-  PictureRenderFactory *prf;
-  Texture *rt;
-  int x0, y0, w, h;
-  DataBlock props;
-  uint8_t gen;
-};
-
 static bool inited = false;
 static int debugAsyncSleepMs = -1;
 static int asyncLoadJobMgr = -1;
@@ -945,6 +928,8 @@ static const char *extract_pic_name(PICTUREID pid, uint8_t gen)
 static const char *extract_pic_name(PICTUREID, uint8_t) { return nullptr; }
 #endif
 
+const char *PictureRenderContext::extractPicName() const { return extract_pic_name(pid, gen); }
+
 static void discard_canceled_atlas_picture(PictureRenderContext &ctx)
 {
   if (!check_pic_still_valid(ctx))
@@ -957,24 +942,42 @@ static void discard_canceled_atlas_picture(PictureRenderContext &ctx)
     extract_pic_name(ctx.pid, ctx.gen), ctx.x0, ctx.y0);
 }
 
-static void retry_render_pic_with_factory_imm(void *arg)
+AsyncPicState process_pic_before_render(PictureRenderContext &ctx)
 {
-  PictureRenderContext &ctx = *(PictureRenderContext *)arg;
   if (!AsyncPicLoadJob::loadAllowed)
   {
     discard_canceled_atlas_picture(ctx);
+    return AsyncPicState::DisallowedToRender;
+  }
+
+  if (!check_pic_still_valid(ctx))
+    return AsyncPicState::Discarded;
+
+  if (ctx.triedAtFrame + 10 > dagor_frame_no())
+    return AsyncPicState::TooEarlyToRender;
+
+  return AsyncPicState::ReadyToRender;
+}
+
+static void retry_render_pic_with_factory_imm(void *arg)
+{
+  PictureRenderContext &ctx = *(PictureRenderContext *)arg;
+
+  const AsyncPicState picState = process_pic_before_render(ctx);
+  if (picState == AsyncPicState::DisallowedToRender)
+  {
     delete &ctx;
     return;
   }
-  if (ctx.triedAtFrame + 10 > dagor_frame_no())
+  if (picState == AsyncPicState::TooEarlyToRender)
     return add_delayed_callback_buffered(retry_render_pic_with_factory_imm, arg);
 
-  if (check_pic_still_valid(ctx))
+  if (picState == AsyncPicState::ReadyToRender)
   {
     d3d::GpuAutoLock gpu_lock;
     SCOPE_RENDER_TARGET;
     auto *prf = static_cast<PictureDelayedRenderFactory *>(ctx.prf);
-    if (!prf->doRender(ctx.rt, ctx.x0, ctx.y0, ctx.w, ctx.h, ctx.props, ctx.pid))
+    if (!prf->doRender(ctx))
     {
       ctx.triedAtFrame = dagor_frame_no();
       add_delayed_callback_buffered(retry_render_pic_with_factory_imm, arg);
@@ -988,21 +991,18 @@ static void retry_render_pic_with_factory_imm(void *arg)
 }
 static void render_pic_with_factory_imm(PictureRenderContext &ctx)
 {
-  if (!check_pic_still_valid(ctx))
+  const AsyncPicState picState = process_pic_before_render(ctx);
+  if (picState != AsyncPicState::ReadyToRender)
   {
-    logwarn("PM: pic=%08X(%s) was discarded, render retry ceased", ctx.pid, extract_pic_name(ctx.pid, ctx.gen));
-    return; // try no more
-  }
-  if (!AsyncPicLoadJob::loadAllowed)
-  {
-    discard_canceled_atlas_picture(ctx);
+    if (picState == AsyncPicState::Discarded)
+      logwarn("PM: pic=%08X(%s) was discarded, render retry ceased", ctx.pid, extract_pic_name(ctx.pid, ctx.gen));
     return;
   }
 
   d3d::GpuAutoLock gpu_lock;
   SCOPE_RENDER_TARGET;
   auto *prf = static_cast<PictureDelayedRenderFactory *>(ctx.prf);
-  if (!prf->doRender(ctx.rt, ctx.x0, ctx.y0, ctx.w, ctx.h, ctx.props, ctx.pid))
+  if (!prf->doRender(ctx))
   {
     if ((++ctx.failedAttempt % 5) == 0)
       debug("PM: render failed for pic=%08X(%s), will retry later[failed attempt:%d]", ctx.pid, extract_pic_name(ctx.pid, ctx.gen),

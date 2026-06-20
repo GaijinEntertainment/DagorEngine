@@ -607,5 +607,22 @@ namespace das {
             : das_iterator<const vector<AnnotationArgument>>(r) {
         }
     };
+
+    // MakeStruct subclasses vector<MakeFieldDeclPtr> (it is not a typedef), so the
+    // generic das_iterator<vector<TT>> does not match it by name. Delegate to the
+    // base-vector iterator, mirroring AnnotationArgumentList above.
+    template <>
+    struct das_iterator <MakeStruct> : das_iterator<vector<MakeFieldDeclPtr>> {
+        __forceinline das_iterator(MakeStruct & r)
+            : das_iterator<vector<MakeFieldDeclPtr>>(r) {
+        }
+    };
+
+    template <>
+    struct das_iterator <const MakeStruct> : das_iterator<const vector<MakeFieldDeclPtr>> {
+        __forceinline das_iterator(const MakeStruct & r)
+            : das_iterator<const vector<MakeFieldDeclPtr>>(r) {
+        }
+    };
 }
 

@@ -1,7 +1,7 @@
 // typeinfo on auto types
 // verifies compiler rejects typeinfo sizeof and typename on unresolved auto types
 options gen2
-expect 39902:2
+expect 30265:2
 
 def test {
     let t = 1

@@ -44,7 +44,7 @@ public:
   virtual void destroy() {}
 
   virtual void buildBlendingList(BlendCtx & /*bctx*/, real /*w*/) {}
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
 
   const char *class_name() const override { return "AnimBlendNodeNull"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendNodeNullCID || IAnimBlendNode::isSubOf(id); }
@@ -74,11 +74,11 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual real getAvgSpeed(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getAvgSpeed(st) : 0; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getTimeScaleParamId(st) : -1; }
+  virtual real getAvgSpeed(AnimGraphStateHolder &st) { return slice.size() ? slice[0].node->getAvgSpeed(st) : 0; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder &st) { return slice.size() ? slice[0].node->getTimeScaleParamId(st) : -1; }
 
   // creation-time routines
   void addBlendNode(IAnimBlendNode *n, real start, real end);
@@ -110,15 +110,15 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
 
   // run-time routines
-  void enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time,
+  void enqueueState(AnimGraphStateHolder &st, IAnimBlendNode *n, real overlap_time,
     FifoMorphType morph_type = FifoMorphType::MT_LINEAR);
-  void resetQueue(IPureAnimStateHolder &st, bool leave_cur_state);
-  bool isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n);
+  void resetQueue(AnimGraphStateHolder &st, bool leave_cur_state);
+  bool isEnqueued(AnimGraphStateHolder &st, IAnimBlendNode *n);
   // Returns blend node which will be in front of a newly added node. NULL if queue is empty.
-  IAnimBlendNode *getNextInQueue(IPureAnimStateHolder &st);
+  IAnimBlendNode *getNextInQueue(AnimGraphStateHolder &st);
 
   const char *class_name() const override { return "AnimBlendCtrl_Fifo3"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_Fifo3CID || IAnimBlendNode::isSubOf(id); }
@@ -151,31 +151,31 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
-  virtual real getDuration(IPureAnimStateHolder &st);
+  virtual bool isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n);
+  virtual real getDuration(AnimGraphStateHolder &st);
 
-  virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
-  virtual void pause(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
-  virtual real getAvgSpeed(IPureAnimStateHolder &st) { return list.size() ? list[0].node->getAvgSpeed(st) : 0; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return list.size() ? list[0].node->getTimeScaleParamId(st) : -1; }
+  virtual void seekToSyncTime(AnimGraphStateHolder &st, real offset);
+  virtual void pause(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
+  virtual bool isInRange(AnimGraphStateHolder &st, int rangeId);
+  virtual real getAvgSpeed(AnimGraphStateHolder &st) { return list.size() ? list[0].node->getAvgSpeed(st) : 0; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder &st) { return list.size() ? list[0].node->getTimeScaleParamId(st) : -1; }
 
   // creation-time routines
   void addBlendNode(IAnimBlendNode *n, real rnd_w, int max_rep);
   void recalcWeights(bool reverse = false);
 
   // run-time routines
-  void setRandomAnim(IPureAnimStateHolder &st);
-  bool setAnim(IPureAnimStateHolder &st, IAnimBlendNode *n);
+  void setRandomAnim(AnimGraphStateHolder &st);
+  bool setAnim(AnimGraphStateHolder &st, IAnimBlendNode *n);
 
   const char *class_name() const override { return "AnimBlendCtrl_RandomSwitcher"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_RandomSwitcherCID || IAnimBlendNode::isSubOf(id); }
 
-  inline IAnimBlendNode *getCurAnim(IPureAnimStateHolder &st);
+  inline IAnimBlendNode *getCurAnim(AnimGraphStateHolder &st);
   dag::ConstSpan<RandomAnim> getChildren() const { return list; }
   int getParamId() const { return paramId; }
   int getRepParamId() const { return repParamId; }
@@ -223,17 +223,17 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
-  virtual real getAvgSpeed(IPureAnimStateHolder &st)
+  virtual bool isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n);
+  virtual real getAvgSpeed(AnimGraphStateHolder &st)
   {
     int currAnim = getAnimForRange(st.getParam(paramId));
     return currAnim >= 0 && currAnim < list.size() ? list[currAnim].node->getAvgSpeed(st) : 0;
   }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder &st)
+  virtual int getTimeScaleParamId(AnimGraphStateHolder &st)
   {
     int currAnim = getAnimForRange(st.getParam(paramId));
     return currAnim >= 0 && currAnim < list.size() ? list[currAnim].node->getTimeScaleParamId(st) : 0;
@@ -261,37 +261,36 @@ public:
 //
 class AnimBlendCtrl_Hub : public IAnimBlendNode
 {
-protected:
+public:
   PtrTab<IAnimBlendNode> nodes;
   int paramId = -1;
   Tab<float> defNodeWt; // default properties; applied on setDefaultState
 
-public:
   void finalizeInit(AnimationGraph &graph, const char *param_name);
 
   void destroy() override {}
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
-  virtual real getDuration(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getDuration(st) : 0; }
-  virtual real getAvgSpeed(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getAvgSpeed(st) : 0; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return nodes.size() ? nodes[0]->getTimeScaleParamId(st) : -1; }
+  virtual bool isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n);
+  virtual real getDuration(AnimGraphStateHolder &st) { return nodes.size() ? nodes[0]->getDuration(st) : 0; }
+  virtual real getAvgSpeed(AnimGraphStateHolder &st) { return nodes.size() ? nodes[0]->getAvgSpeed(st) : 0; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder &st) { return nodes.size() ? nodes[0]->getTimeScaleParamId(st) : -1; }
 
-  virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
-  virtual void pause(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
+  virtual void seekToSyncTime(AnimGraphStateHolder &st, real offset);
+  virtual void pause(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
+  virtual bool isInRange(AnimGraphStateHolder &st, int rangeId);
 
   // creation-time routines
   void addBlendNode(IAnimBlendNode *n, bool active, real wt);
 
   // run-time routines
-  void setBlendNodeWt(IPureAnimStateHolder &st, IAnimBlendNode *n, real wt);
-  void setBlendNodesWt(IPureAnimStateHolder &st, dag::ConstSpan<int> node_indexes, real wt)
+  void setBlendNodeWt(AnimGraphStateHolder &st, IAnimBlendNode *n, real wt);
+  void setBlendNodesWt(AnimGraphStateHolder &st, dag::ConstSpan<int> node_indexes, real wt)
   {
     if (paramId == -1)
       return;
@@ -315,7 +314,7 @@ public:
     eastl::bitvector<eastl::allocator, uint32_t, eastl::vector<uint32_t, eastl::allocator>> &visited_nodes) override;
 
 protected:
-  inline const float *getProps(IPureAnimStateHolder &st);
+  inline const float *getProps(AnimGraphStateHolder &st);
 };
 
 //
@@ -336,17 +335,17 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
-  virtual real getDuration(IPureAnimStateHolder &st);
-  virtual real tell(IPureAnimStateHolder &st);
+  virtual bool isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n);
+  virtual real getDuration(AnimGraphStateHolder &st);
+  virtual real tell(AnimGraphStateHolder &st);
 
-  virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
-  virtual void pause(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
+  virtual void seekToSyncTime(AnimGraphStateHolder &st, real offset);
+  virtual void pause(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
+  virtual bool isInRange(AnimGraphStateHolder &st, int rangeId);
 
   // creation-time routines
   void setBlendNode(int n, IAnimBlendNode *node);
@@ -388,7 +387,7 @@ public:
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
 
@@ -440,15 +439,15 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
-  virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
-  virtual void pause(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual real getDuration(IPureAnimStateHolder &st);
-  virtual real getAvgSpeed(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getAvgSpeed(st) : 0; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getTimeScaleParamId(st) : -1; }
+  virtual bool isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n);
+  virtual void pause(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
+  virtual real getDuration(AnimGraphStateHolder &st);
+  virtual real getAvgSpeed(AnimGraphStateHolder &st) { return poly.size() ? poly[0].node->getAvgSpeed(st) : 0; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder &st) { return poly.size() ? poly[0].node->getTimeScaleParamId(st) : -1; }
 
   // creation-time routines
   void addBlendNode(IAnimBlendNode *n, real p0, AnimationGraph &graph, const char *ctrl_name);
@@ -481,7 +480,7 @@ public:
   static constexpr int MAX_TAGS_COUNT = 64;
   virtual void destroy() {}
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
   const char *class_name() const override { return "AnimBlendCtrl_SetMotionMatchingTag"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_SetMotionMatchingTagCID || IAnimBlendNode::isSubOf(id); }
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
@@ -529,16 +528,16 @@ public:
   AnimBlendNodeContinuousLeaf(AnimationGraph &graph, AnimData *a, const char *time_param_name);
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
-  virtual void pause(IPureAnimStateHolder &st);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
-  virtual void seek(IPureAnimStateHolder &st, real rel_pos);
-  virtual real tell(IPureAnimStateHolder &st);
+  virtual void seekToSyncTime(AnimGraphStateHolder &st, real offset);
+  virtual void pause(AnimGraphStateHolder &st);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
+  virtual void seek(AnimGraphStateHolder &st, real rel_pos);
+  virtual real tell(AnimGraphStateHolder &st);
 
-  virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
-  virtual real getDuration(IPureAnimStateHolder & /*st*/) { return duration; }
-  virtual real getAvgSpeed(IPureAnimStateHolder & /*st*/) { return avgSpeed; }
+  virtual bool isInRange(AnimGraphStateHolder &st, int rangeId);
+  virtual real getDuration(AnimGraphStateHolder & /*st*/) { return duration; }
+  virtual real getAvgSpeed(AnimGraphStateHolder & /*st*/) { return avgSpeed; }
 
   inline int calcAnimTimePos(float time_pos) { return t0 + int(time_pos * rate) % dt; }
 
@@ -567,8 +566,8 @@ class AnimBlendNodeSingleLeaf : public AnimBlendNodeContinuousLeaf
 public:
   AnimBlendNodeSingleLeaf(AnimationGraph &graph, AnimData *a, const char *time_param_name);
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
-  virtual void resume(IPureAnimStateHolder &st, bool rewind);
+  virtual void seekToSyncTime(AnimGraphStateHolder &st, real offset);
+  virtual void resume(AnimGraphStateHolder &st, bool rewind);
   const char *class_name() const override { return "AnimBlendNodeSingleLeaf"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendNodeSingleLeafCID || AnimBlendNodeLeaf::isSubOf(id); }
 
@@ -584,8 +583,8 @@ public:
   AnimBlendNodeStillLeaf(AnimationGraph &graph, AnimData *a, int ct) : AnimBlendNodeLeaf(graph, a) { ctPos = ct; }
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
-  virtual real getAvgSpeed(IPureAnimStateHolder & /*st*/) { return 0; }
+  virtual void setDefaultState(AnimGraphStateHolder & /*st*/) {}
+  virtual real getAvgSpeed(AnimGraphStateHolder & /*st*/) { return 0; }
 
   // creation-time routines
   void setAnim(AnimData *a);
@@ -617,11 +616,11 @@ public:
   AnimBlendNodeParametricLeaf(AnimationGraph &graph, AnimData *a, const char *param_name, bool upd_pc);
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void setDefaultState(IPureAnimStateHolder &st);
+  virtual void setDefaultState(AnimGraphStateHolder &st);
 
-  virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
-  virtual real getDuration(IPureAnimStateHolder & /*st*/) { return 0.0; }
-  virtual real tell(IPureAnimStateHolder &st);
+  virtual bool isInRange(AnimGraphStateHolder &st, int rangeId);
+  virtual real getDuration(AnimGraphStateHolder & /*st*/) { return 0.0; }
+  virtual real tell(AnimGraphStateHolder &st);
 
   // creation-time routines
   void setAnim(AnimData *a);

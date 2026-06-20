@@ -44,6 +44,10 @@ namespace bvh::gpugrass
 {
 void get_memory_statistics(ContextId context_id, int &gpuGrassCount, int64_t &gpuGrassMemory, int64_t &gpuGrassTexturesMemory);
 } // namespace bvh::gpugrass
+namespace bvh::smoke_tracers
+{
+void get_memory_statistics(int &count, int64_t &vb, int64_t &blas);
+} // namespace bvh::smoke_tracers
 
 namespace bvh
 {
@@ -218,6 +222,7 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
     stats.grassQuerySize);
   bvh::gobj::get_memory_statistics(stats.gobjMetaSize, stats.gobjQuerySize);
   bvh::gpugrass::get_memory_statistics(context_id, stats.gpuGrassCount, stats.gpuGrassMemory, stats.gpuGrassTexturesMemory);
+  bvh::smoke_tracers::get_memory_statistics(stats.smokeTracerCount, stats.smokeTracerVBSize, stats.smokeTracerBLASSize);
 
   stats.atmosphereTextureSize = context_id->atmosphereTexture ? context_id->atmosphereTexture->getSize() : 0;
   stats.scratchBuffersSize = bvh::get_scratch_buffers_memory_statistics();
@@ -238,14 +243,15 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
   for (auto &[_, bucket] : stats.meshStats)
     meshMemSize += bucket.meshBlasSize + bucket.meshVBSize;
 
-  stats.totalMemory =
-    stats.tlasSize + stats.tlasUploadSize + stats.scratchBuffersSize + stats.transformBuffersSize + stats.meshMetaSize + meshMemSize +
-    stats.skinBLASSize + stats.treeBLASSize + stats.treeCacheBLASSize + stats.terrainBlasSize + stats.terrainVBSize +
-    stats.grassBlasSize + stats.grassVBSize + stats.grassIBSize + stats.grassMetaSize + stats.grassQuerySize + stats.cableBLASSize +
-    stats.cableVBSize + stats.cableIBSize + stats.waterBLASSize + stats.waterVBSize + stats.waterIBSize + stats.splineGenBLASSize +
-    stats.splineGenVBSize + stats.gpuGrassMemory + stats.gpuGrassTexturesMemory + stats.gobjMetaSize + stats.gobjQuerySize +
-    stats.perInstanceDataSize + stats.compactionSize + stats.atmosphereTextureSize + stats.dynamicVBAllocatorSize +
-    stats.deathRowBufferSize + stats.indexProcessorBufferSize + stats.stationaryTreeBLASSize + stats.stationaryTreeVBSize;
+  stats.totalMemory = stats.tlasSize + stats.tlasUploadSize + stats.scratchBuffersSize + stats.transformBuffersSize +
+                      stats.meshMetaSize + meshMemSize + stats.skinBLASSize + stats.treeBLASSize + stats.treeCacheBLASSize +
+                      stats.terrainBlasSize + stats.terrainVBSize + stats.grassBlasSize + stats.grassVBSize + stats.grassIBSize +
+                      stats.grassMetaSize + stats.grassQuerySize + stats.cableBLASSize + stats.cableVBSize + stats.cableIBSize +
+                      stats.waterBLASSize + stats.waterVBSize + stats.waterIBSize + stats.splineGenBLASSize + stats.splineGenVBSize +
+                      stats.smokeTracerBLASSize + stats.smokeTracerVBSize + stats.gpuGrassMemory + stats.gpuGrassTexturesMemory +
+                      stats.gobjMetaSize + stats.gobjQuerySize + stats.perInstanceDataSize + stats.compactionSize +
+                      stats.atmosphereTextureSize + stats.dynamicVBAllocatorSize + stats.deathRowBufferSize +
+                      stats.indexProcessorBufferSize + stats.stationaryTreeBLASSize + stats.stationaryTreeVBSize;
 
   return stats;
 }
@@ -288,6 +294,8 @@ bool bvh_cables_enable = true;
 
 
 bool bvh_splinegen_enable = true;
+
+bool bvh_tracers_enable = true;
 
 float intersection_count_threshold = 16.f;
 
@@ -404,6 +412,8 @@ static void imguiWindow()
         addElem("Water IB", stats.waterIBSize);
         addElem("SplineGen BLAS", stats.splineGenBLASSize);
         addElem("SplineGen VB", stats.splineGenVBSize);
+        addElem("SmokeTracer BLAS", stats.smokeTracerBLASSize);
+        addElem("SmokeTracer VB", stats.smokeTracerVBSize);
         addElem("GPUGrass Memory", stats.gpuGrassMemory);
         addElem("GPUGrass Textures Memory", stats.gpuGrassTexturesMemory);
         addElem("GPU Obj Meta", stats.gobjMetaSize);
@@ -516,6 +526,11 @@ static void imguiWindow()
     ImGui::Text("SplineGen VB: %d MB", mb(stats.splineGenVBSize));
     ImGui::SameLine();
     ImGui::Text("SplineGen BLAS: %d MB", mb(stats.splineGenBLASSize));
+    ImGui::Text("SmokeTracer count: %d", stats.smokeTracerCount);
+    ImGui::SameLine();
+    ImGui::Text("SmokeTracer VB: %d MB", mb(stats.smokeTracerVBSize));
+    ImGui::SameLine();
+    ImGui::Text("SmokeTracer BLAS: %d MB", mb(stats.smokeTracerBLASSize));
     ImGui::Text("GPUGrass instances: %d", stats.gpuGrassCount);
     ImGui::SameLine();
     ImGui::Text("GPUGrass memory: %d MB", mb(stats.gpuGrassMemory));
@@ -564,6 +579,8 @@ static void imguiWindow()
   ImGui::Checkbox("Enable particles", &bvh_particles_enable);
   ImGui::Checkbox("Enable cables", &bvh_cables_enable);
   ImGui::Checkbox("Enable splinegen", &bvh_splinegen_enable);
+  ImGui::Checkbox("Enable tracers", &bvh_tracers_enable);
+
 
   ImGui::Separator();
 

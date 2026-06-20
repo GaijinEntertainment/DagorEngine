@@ -14,7 +14,14 @@ public:
   virtual const char *procname() { return "keyboard@WindMsg"; }
   KeybRestartProcWnd() : SRestartProc(RESTART_INPUT | RESTART_VIDEO) {}
 
-  void startup() { global_cls_drv_kbd = HumanInput::createWinKeyboardClassDriver(); }
+  void startup()
+  {
+#if _TARGET_XBOX
+    global_cls_drv_kbd = HumanInput::createGameInputKeyboardClassDriver();
+#else
+    global_cls_drv_kbd = HumanInput::createWinKeyboardClassDriver();
+#endif
+  }
 
   void shutdown()
   {

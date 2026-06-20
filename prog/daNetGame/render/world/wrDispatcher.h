@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "render/light_mask_inc.hlsli"
+#include "render/lights/light_mask_inc.hlsli"
 #include <render/world/waterRenderMode.h>
 #include <render/heroData.h>
 #include <3d/dag_resPtr.h>
@@ -46,6 +46,7 @@ struct WRDispatcher
   };
 
   static bool needSeparatedUI();
+  static bool needMotionVectors();
 
   static bool isUpsampling();
 
@@ -69,7 +70,6 @@ struct WRDispatcher
 #endif
 
   static const ManagedTex &getFinalTargetFrame();
-  static int getGbufferTargetGlobalFlags();
 
   static bool isReadyToUse();
   static bool hasHighResFx();

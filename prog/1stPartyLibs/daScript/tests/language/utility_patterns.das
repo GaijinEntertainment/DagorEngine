@@ -49,13 +49,11 @@ def test_defer_basic(t : T?) {
 // ============================================================
 
 def call_counter() : int {
-    var count = 0
     static_let() {
         var counter = 0
     }
     counter ++
-    count = counter
-    return count
+    return counter
 }
 
 [test]

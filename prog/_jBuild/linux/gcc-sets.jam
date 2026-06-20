@@ -32,6 +32,9 @@ _LINK_DLL     = g++ -pipe -m$(MAbi) -isysroot /usr/include -shared ;
 if $(UseMOLDLink) = yes {
   _LINK += -B/usr/libexec/mold ;
   _LINK_DLL += -B/usr/libexec/mold ;
+} else if $(UseMOLDLink) = fuse {
+  _LINK += -fuse-ld=mold ;
+  _LINK_DLL += -fuse-ld=mold ;
 }
 
 _LIB          = ar ranlib ;

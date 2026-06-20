@@ -1,0 +1,106 @@
+// Shared smoke-tracer head-capsule helpers used by both the raster head pass
+// (cull_tracers_cs in smoke_tracers_gen.dshl) and the BVH instance generator
+// (bvh_smoke_tracers_cs in bvh_smoke_tracers.dshl).
+//
+// SMOKE_TRACER_HEAD_FUNC(stage) emits the helper struct and functions into the
+// requested shader stage. Callers must bind world_view_pos, local_view_z,
+// tracer_head_radius_coeff, exposure_time, pixel_scale and current_time
+// themselves; the helpers take them as function arguments so the two pipelines
+// can keep their existing constant-plumbing layouts (raster packs everything
+// into smoke_trace_current_time.xzw, BVH uses separate scalars).
+
+float tracer_head_radius_coeff = 0.0125;
+
+macro SMOKE_TRACER_HEAD_FUNC(stage)
+  hlsl(stage) {
+    #include <render/smokeTracers.hlsli>
+
+    // Last two ring-buffer vertex ids for a tracer (head + the one before it).
+    void smoke_tracer_head_vert_ids(uint tracerIdx, uint totalVerts, out uint headId, out uint prevHeadId)
+    {
+      uint base  = tracerIdx * TRACER_SEGMENTS_COUNT;
+      headId     = base + (totalVerts - 1u) % TRACER_SEGMENTS_COUNT;
+      prevHeadId = base + (totalVerts - 2u) % TRACER_SEGMENTS_COUNT;
+    }
+
+    // Shared output of smoke_tracer_compute_head_capsule, consumed by both
+    // cull_tracers_cs (raster) and bvh_smoke_tracers_cs (BVH). Names mirror
+    // GPUSmokeTracerHeadRender's geometry fields so raster can pack them
+    // straight into its culled-heads buffer.
+    struct SmokeTracerHeadCapsule
+    {
+      float3 p0;        // back-extrapolated start of the motion-blurred capsule
+      float3 p1;        // head tip (= head_vert.pos_dist.xyz)
+      float radius0;    // pixel-radius-floored radius at p0
+      float radius1;    // pixel-radius-floored radius at p1
+      float3 headFwd;   // unit forward direction along the last segment
+      float renderLen;  // length(p1 - p0); needed by BVH OBB axis
+      float burnEffect; // [0..1] burn fade
+      bool visible;     // false if past the exposure window or burnEffect <= 0
+    };
+
+    // Shared head-capsule math: p0 is back-extrapolated along the last
+    // segment by the exposure window, clamped so it never crosses the tracer
+    // emission point. radius0/radius1 are lower-bounded by a screen-space
+    // pixel radius so the head stays visible at distance.
+    SmokeTracerHeadCapsule smoke_tracer_compute_head_capsule(
+      GPUSmokeTracer tr,
+      GPUSmokeTracerVertices head_vert,
+      GPUSmokeTracerVertices prev_head_vert,
+      float tracer_time,
+      float exposure_time,
+      float3 world_view_pos,
+      float3 local_view_z,
+      float pixel_scale,
+      float tracer_head_radius_coeff)
+    {
+      SmokeTracerHeadCapsule c;
+      c.p0 = float3(0, 0, 0);
+      c.p1 = head_vert.pos_dist.xyz;
+      c.radius0 = 0;
+      c.radius1 = 0;
+      c.headFwd = tr.dir;
+      c.renderLen = 0;
+      c.burnEffect = smoothstep(0.0, 0.5, tr.burnTime - tracer_time);
+      c.visible = false;
+
+      float decayTime = tracer_time - head_vert.time;
+      if (decayTime >= exposure_time || c.burnEffect <= 0)
+        return c;
+
+      float3 prevPos = prev_head_vert.pos_dist.xyz;
+      float3 headVec = c.p1 - prevPos;
+      float headSegLen = length(headVec);
+      c.headFwd = headSegLen > 0.001 ? headVec / max(headSegLen, 1e-6) : tr.dir;
+
+      float time_to_exposure = exposure_time - decayTime;
+      float start_p1_length = length(c.p1 - tr.p0);
+      float maxExtensionMul = start_p1_length / max(headSegLen, 1e-6);
+      float extensionMul = time_to_exposure / max(head_vert.time - prev_head_vert.time, 1e-6);
+      c.p0 = c.p1 - min(maxExtensionMul, extensionMul) * headVec;
+      c.renderLen = length(c.p1 - c.p0);
+
+      float3 eyeToP0 = c.p0 - world_view_pos;
+      float3 eyeToP1 = c.p1 - world_view_pos;
+      float2 depths = float2(dot(eyeToP0, local_view_z), dot(eyeToP1, local_view_z));
+      float tracerRadius = tr.radiusStart * tracer_head_radius_coeff;
+      float2 pixelRadiuses = abs(depths) * pixel_scale * 1.5;
+      float2 cRadiuses = max(tracerRadius.xx, pixelRadiuses);
+      c.radius0 = cRadiuses.x;
+      c.radius1 = cRadiuses.y;
+
+      c.visible = true;
+      return c;
+    }
+
+    // Per-frame head color: lerp startHeadColor -> headColor over startMult,
+    // then apply the shared HEAD_COLOR_MULT_BY = 8 boost.
+    float3 smoke_tracer_head_color(GPUSmokeTracer tr, float tracer_time)
+    {
+      float startFade = saturate(tracer_time * tr.startMult);
+      float3 headColor = lerp(tr.startHeadColor, tr.headColor, startFade);
+      const float HEAD_COLOR_MULT_BY = 8.0;
+      return headColor * HEAD_COLOR_MULT_BY;
+    }
+  }
+endmacro

@@ -226,7 +226,7 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
     treeInfo.data.groundBendNormalOffset = 0.075;
   if (!elem.mat->getRealVariable(ground_bend_tangent_offsetVarId, treeInfo.data.groundBendTangentOffset))
     treeInfo.data.groundBendTangentOffset = 4;
-  treeInfo.data.apply_tree_wind = !isTrunk;
+  treeInfo.data.isTrunk = isTrunk;
 
   // It will be filled later from mesh!
   treeInfo.data.ppPositionBindless = 0xFFFFFFFFU;

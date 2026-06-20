@@ -57,26 +57,21 @@ shader bc6h_high_quality_cs
       encodedVariants[variantId] = block;
       variantsMSLE[variantId] = blockMSLE;
       GroupMemoryBarrierWithGroupSync();
-      if (variantId < 32)
-      {
       // Workaround for compiler crash.
       // Version of dxcompiler_x.dll, newbe.dll, scdxil.dll: 2019.10901.12000.10000
       #ifndef SHADER_COMPILER_DXC
         UNROLL
       #endif
-        for (uint i = 16; i > 0; i >>= 1)
+      for (uint i = 16; i > 0; i >>= 1)
+      {
+        if (variantId < i && variantsMSLE[variantId].x > variantsMSLE[variantId + i].x)
         {
-          if (variantId < i)
-          {
-            float4 localMSLE = variantsMSLE[variantId];
-            float4 anotherMSLE = variantsMSLE[variantId + i];
-            if (localMSLE.x > anotherMSLE.x)
-            {
-              variantsMSLE[variantId] = anotherMSLE;
-              encodedVariants[variantId] = encodedVariants[variantId + i];
-            }
-          }
+          variantsMSLE[variantId] = variantsMSLE[variantId + i];
+          encodedVariants[variantId] = encodedVariants[variantId + i];
         }
+        // a step narrower than a wave stays in lockstep; only sync wider steps
+        if (i >= MIN_POSSIBLE_WARP_SIZE)
+          GroupMemoryBarrierWithGroupSync();
       }
       if (variantId == 0)
         CompressedTexture[groupCoords.xyz] = encodedVariants[0];

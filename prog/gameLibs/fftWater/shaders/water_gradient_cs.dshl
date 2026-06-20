@@ -41,10 +41,10 @@ shader water_gradient_cs
 
       #define GET_GRADIENT(no, gradient, J)\
       {\
-        float3 displace_left = tex3Dlod(water_displacement_texture0, float4((id + int2(-1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-        float3 displace_right = tex3Dlod(water_displacement_texture0, float4((id + int2(1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-        float3 displace_back = tex3Dlod(water_displacement_texture0, float4((id + int2(0, -1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-        float3 displace_front = tex3Dlod(water_displacement_texture0, float4((id + int2(0, 1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+        float3 displace_left = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(-1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+        float3 displace_right = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+        float3 displace_back = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(0, -1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+        float3 displace_front = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(0, 1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
         gradient = float2(-(displace_right.z - displace_left.z) / max(0.01, 1.0 + water_gradient_scales##no.y * (displace_right.x - displace_left.x)), -(displace_front.z - displace_back.z) / max(0.01, 1.0 + water_gradient_scales##no.y * (displace_front.y - displace_back.y)));\
         float2 Dx = (displace_right.xy - displace_left.xy) * water_gradient_scales##no.x;\
         float2 Dy = (displace_front.xy - displace_back.xy) * water_gradient_scales##no.x;\
@@ -229,10 +229,10 @@ shader water_gradient_foam_combine_cs
         // Sample neighbour texels
         #define GET_GRADIENT(no, gradient, J)\
         {\
-          float3 displace_left = tex3Dlod(water_displacement_texture0, float4((id + int2(-1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-          float3 displace_right = tex3Dlod(water_displacement_texture0, float4((id + int2(1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-          float3 displace_back = tex3Dlod(water_displacement_texture0, float4((id + int2(0, -1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
-          float3 displace_front = tex3Dlod(water_displacement_texture0, float4((id + int2(0, 1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+          float3 displace_left = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(-1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+          float3 displace_right = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(1, 0)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+          float3 displace_back = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(0, -1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
+          float3 displace_front = tex3Dlod(water_displacement_texture0, float4((id + 0.5 + float2(0, 1)) * texsz_consts.zw, no, 0.0).yxzw).rgb;\
           gradient = float2(-(displace_right.z - displace_left.z) / max(0.01, 1.0 + water_gradient_scales##no.y * (displace_right.x - displace_left.x)), -(displace_front.z - displace_back.z) / max(0.01, 1.0 + water_gradient_scales##no.y * (displace_front.y - displace_back.y)));\
           float2 Dx = (displace_right.xy - displace_left.xy) * water_gradient_scales##no.x;\
           float2 Dy = (displace_front.xy - displace_back.xy) * water_gradient_scales##no.x;\

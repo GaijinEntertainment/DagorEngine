@@ -72,9 +72,6 @@ public:
   int dynamic_size = 0;
   uint64_t dynamic_frame = 0;
 
-  // slot mask where buffer is bound
-  uint64_t bound_slots = 0;
-
   int locked_offset;
   int locked_size;
   uint64_t last_locked_submit = ~0ull;

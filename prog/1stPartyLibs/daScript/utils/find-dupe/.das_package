@@ -1,0 +1,19 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("find-dupe")
+    package_description("AI judge for detect-dupe clusters — partitions duplicate suspects into real / partial / false-positive via the Claude Messages API")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("das-claude")
+}
+
+[export]
+def release() {
+    release_main("main.das")
+}

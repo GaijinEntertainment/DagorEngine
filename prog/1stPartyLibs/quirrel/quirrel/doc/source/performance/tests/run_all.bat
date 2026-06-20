@@ -1,26 +1,18 @@
 echo off
 pushd quirrel
+echo "Quirrel latest"
+csq.exe --version
+csq.exe version.nut
 echo "----"
-echo "Quirrel latest (7.4.1)"
-sq-64.exe fib_recursive.nut
-sq-64.exe fib_loop.nut
-sq-64.exe primes.nut
-sq-64.exe particles.nut
-sq-64.exe dict.nut
-sq-64.exe exp.nut
-sq-64.exe nbodies.nut
-rem sq3-latest-64.exe native.nut
-rem sq3-latest-64.exe profile_try_catch.nut 
-
-echo "----"
-echo "Squirrel3 original (3.1)"
-sq3-64.exe fib_recursive.nut
-sq3-64.exe fib_loop.nut
-sq3-64.exe primes.nut
-sq3-64.exe particles.nut
-sq3-64.exe dict.nut
-sq3-64.exe exp.nut
-sq3-64.exe nbodies.nut
+csq.exe fib_loop.nut
+csq.exe fib_recursive.nut
+csq.exe primes.nut
+csq.exe particles.nut
+csq.exe dict.nut
+csq.exe exp.nut
+csq.exe nbodies.nut
+rem csq.exe native.nut
+rem csq.exe profile_try_catch.nut 
 popd
 
 pushd lua

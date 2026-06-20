@@ -99,8 +99,8 @@ shader deferred_shading
   USE_ROUGH_TO_MIP()
   INIT_SKY()
   USE_SKY()
-  INIT_CSM_SHADOW(ps)
-  USE_CSM_SHADOW_DEF_NUM()
+  INIT_CSM_SHADOW_STCODE(ps)
+  USE_CSM_SHADOW_DEF_NUM_DEFAULT()
 
   INIT_SUN_LIGHT()
   ONE_POINT_LIGHT()
@@ -189,7 +189,7 @@ shader deferred_shading
       BRANCH
       if (NoL>0)
       {
-        half shadow = get_csm_shadow(pointToEye)*clouds_shadow(worldPos.xyz);
+        half shadow = get_csm_shadow(pointToEye).x*clouds_shadow(worldPos.xyz);
         half shadowTerm = shadow;
 
         BRANCH

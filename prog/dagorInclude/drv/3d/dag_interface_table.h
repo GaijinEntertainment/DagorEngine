@@ -140,8 +140,6 @@ struct D3dInterfaceTable
   void (*delete_program)(PROGRAM);
 
   VPROG (*create_vertex_shader)(const ShaderSource &native_code);
-  VPROG (*create_vertex_shader_dagor)(const VPRTYPE *tokens, int len);
-  VPROG (*create_vertex_shader_asm)(const char *asm_text);
   VPROG (*create_vertex_shader_hlsl)(const char *hlsl_text);
   void (*delete_vertex_shader)(VPROG vs);
 
@@ -150,8 +148,6 @@ struct D3dInterfaceTable
   bool (*set_immediate_const)(unsigned stage, const uint32_t *data, unsigned num_words);
 
   FSHADER (*create_pixel_shader)(const ShaderSource &native_code);
-  FSHADER (*create_pixel_shader_dagor)(const FSHTYPE *tokens, int len);
-  FSHADER (*create_pixel_shader_asm)(const char *asm_text);
   FSHADER (*create_pixel_shader_hlsl)(const char *hlsl_text);
   void (*delete_pixel_shader)(FSHADER ps);
 
@@ -299,8 +295,6 @@ struct D3dInterfaceTable
 
   void (*begin_conditional_render)(int index);
   void (*end_conditional_render)(int id);
-
-  VDECL (*get_program_vdecl)(PROGRAM p);
 
   bool (*get_vrr_supported)();
   bool (*get_vsync_enabled)();

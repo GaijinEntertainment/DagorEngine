@@ -667,13 +667,14 @@ static void append_collision_node_geometry(const CollisionResource *coll_res, co
 
   if (node_type == CST_MESH && (node->flags & CollisionNode::BLAS_RESIDENT))
   {
-    const int base = indices_stor.size();
-    indices_stor.resize(base + coll_res->getNodeFaceCount(node->nodeIndex) * 3);
-    int writeIdx = base;
+    // iterateNodeFaces walks the BLAS leaves; its sub-triangle count matches getNodeFaceCount() only
+    // by a build-time invariant, not at this call site. reserve + push_back so a miscount grows the
+    // buffer instead of overrunning it with indexed writes.
+    indices_stor.reserve(indices_stor.size() + coll_res->getNodeFaceCount(node->nodeIndex) * 3);
     coll_res->iterateNodeFaces(node->nodeIndex, [&](int, uint16_t i0, uint16_t i1, uint16_t i2) {
-      indices_stor[writeIdx++] = i0;
-      indices_stor[writeIdx++] = i1;
-      indices_stor[writeIdx++] = i2;
+      indices_stor.push_back(i0);
+      indices_stor.push_back(i1);
+      indices_stor.push_back(i2);
     });
   }
 }

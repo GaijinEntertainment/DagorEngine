@@ -8,8 +8,18 @@
 #include <daECS/scene/scene.h>
 #include <supp/dag_dllexport.h>
 #include <debug/dag_debug.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
+#include <atomic>
 
-static void (*on_server_loaded_callback)() = NULL;
+static std::atomic<void (*)()> on_server_loaded_callback{nullptr};
+static std::atomic<bool> auto_fire_server_ready{true};
+
+static void fire_server_loaded_once()
+{
+  if (void (*cb)() = on_server_loaded_callback.exchange(nullptr, std::memory_order_acq_rel))
+    cb();
+}
 
 DAG_DLL_EXPORT
 const char *local_server_connection_url(eastl::string &str)
@@ -19,7 +29,11 @@ const char *local_server_connection_url(eastl::string &str)
 }
 
 DAG_DLL_EXPORT
-void hosted_server_on_loaded(void *callback) { on_server_loaded_callback = (void (*)())callback; }
+void hosted_server_on_loaded(void *callback) { on_server_loaded_callback.store((void (*)())callback, std::memory_order_release); }
+
+extern "C" void hosted_server_signal_ready() { fire_server_loaded_once(); }
+
+extern "C" void hosted_server_disable_auto_ready() { auto_fire_server_ready.store(false, std::memory_order_release); }
 
 DAG_DLL_EXPORT
 void try_start_relay_and_subscribe(void(__cdecl *relay_status_subscribe)(bool enabled))
@@ -35,14 +49,13 @@ void try_start_relay_and_subscribe(void(__cdecl *relay_status_subscribe)(bool en
 
 static void hosted_server_tracking_loaded_local_scene_entities_es(const ecs::Event &__restrict, const ecs::QueryView &__restrict)
 {
-  debug("hosted_server_tracking_loaded_local_scene_entities: on_server_loaded_callback=%p", (void *)on_server_loaded_callback);
-  if (on_server_loaded_callback)
-  {
-    on_server_loaded_callback();
-    // invoked once and then only if provided again (in practice probably never until dll is reloaded)
-    on_server_loaded_callback = NULL;
-  }
-  // I track this on server and if I'm hosted -> I need to invoke provided callback
+  debug("hosted_server_tracking_loaded_local_scene_entities: on_server_loaded_callback=%p, auto_fire=%d",
+    (void *)on_server_loaded_callback.load(std::memory_order_acquire), (int)auto_fire_server_ready.load(std::memory_order_acquire));
+  if (!auto_fire_server_ready.load(std::memory_order_acquire))
+    return;
+  if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("hostedServerManualReady", false))
+    return;
+  fire_server_loaded_once();
 }
 static ecs::EntitySystemDesc hosted_server_tracking_loaded_local_scene_entities_es_es_desc(
   "hosted_server_tracking_loaded_local_scene_entities_es",

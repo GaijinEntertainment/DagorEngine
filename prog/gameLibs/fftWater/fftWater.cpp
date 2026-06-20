@@ -125,12 +125,12 @@ public:
   }
   void setWind(float speed, float chop_wind_speed, const Point2 &wind_dir)
   {
+    Point2 windDirNorm = normalize(wind_dir);
     const bool chopWindSpeedChanged = chopWaterGenerator && fabs(chop_wind_speed - chopWaterGenerator->getWindSpeed()) > 0.05f;
     if (!chopWindSpeedChanged && fabsf(params.wind_speed - speed) < 0.05f &&
-        wind_dir * Point2(params.wind_dir_x, params.wind_dir_y) > 0.999f)
+        windDirNorm * Point2(params.wind_dir_x, params.wind_dir_y) > 0.999f)
       return;
 
-    Point2 windDirNorm = normalize(wind_dir);
     params.wind_dir_x = windDirNorm.x;
     params.wind_dir_y = windDirNorm.y;
     params.wind_speed = speed;
@@ -969,14 +969,14 @@ bool one_to_four_render_enabled(const FFTWater *handle)
 }
 void set_grid_lod0_additional_tesselation(FFTWater *a, float amount)
 {
-  if (a)
+  if (a && a->getRender())
     a->getRender()->setGridLod0AdditionalTesselation(amount);
   if (a && a->getRenderChop())
     a->getRenderChop()->setGridLod0AdditionalTesselation(amount);
 }
 void set_grid_lod0_area_radius(FFTWater *a, float radius)
 {
-  if (a)
+  if (a && a->getRender())
     a->getRender()->setLod0AreaSize(radius);
   if (a && a->getRenderChop())
     a->getRenderChop()->setLod0AreaSize(radius);
@@ -1096,7 +1096,7 @@ void render(const FFTWater *handle, const Point3 &pos, TEXTUREID distance_tex_id
   {
     if (!handle->getRender())
       return;
-    // render() call runs begin_survey, becouse we have a fence inside function, fence cannot be between
+    // render() call runs begin_survey, because we have a fence inside function, fence cannot be between
     // start survey and end survey. So here we should just call end_survey.
     handle->getRender()->render(pos, distance_tex_id, geom_lod_quality, survey_id, frustum, occlusion, persp,
       handle->getRenderCommon(), decals_renderer, render_mode, cullCb);
@@ -1418,7 +1418,7 @@ void set_water_dim(FFTWater *handle, int dim_bits)
 
 float get_render_significant_wave_height(FFTWater *handle)
 {
-  if (handle)
+  if (handle && handle->getRender())
     return handle->getRender()->getSignificantWaveHeight();
   return 0;
 }

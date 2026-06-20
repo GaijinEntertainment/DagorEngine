@@ -2,8 +2,7 @@
 // verifies compiler rejects field access on arrays, non-struct types,
 // safe-navigation on non-pointers, and writes through const safe navigation
 options gen2
-expect 30503:4    // cant_get_field
-expect 30504      // cant_write_to_const
+expect 30224:2, 30928:2, 30952    // cant_get_field
 
 struct L3 {
     a : int

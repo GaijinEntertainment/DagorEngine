@@ -15,6 +15,7 @@ void bvh_update_instances(
   const Point3 &cameraPos, const Point3 &lightDirection, const TMatrix &itm, const TMatrix4 &projTm, const Frustum &viewFrustum);
 void prepareFXForBVH(const Point3 &cameraPos);
 bool is_bvh_enabled();
+bool is_bvh_usable();
 bool is_rtsm_enabled();
 bool is_rtsm_dynamic_enabled();
 bool is_rtr_enabled();

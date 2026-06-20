@@ -23,6 +23,7 @@
 #include <sqmodules/sqmodules.h>
 #include <debug/dag_debug.h>
 #include <mutex>
+#include <perfMon/dag_cpuFreq.h>
 #if _TARGET_C2
 
 #else
@@ -52,6 +53,13 @@ static const char *(__cdecl *get_local_server_connection_url)(eastl::string &) =
 
 
 static bool internal_server_did_start = false;
+
+static constexpr int MANUAL_READY_TIMEOUT_DEFAULT_MS = 2 * 60 * 1000;
+static int get_manual_ready_timeout_ms()
+{
+  int t = dgs_get_settings()->getBlockByNameEx("debug")->getInt("internalServerLaunchTimeout", MANUAL_READY_TIMEOUT_DEFAULT_MS);
+  return t > 0 ? t : MANUAL_READY_TIMEOUT_DEFAULT_MS;
+}
 
 std::recursive_mutex server_state_lock;
 
@@ -109,18 +117,15 @@ bool is_hosting_api_available() { return current_state() > CREATED && current_st
 bool is_ingame_api_available() { return current_state() == RUNNING; }
 
 
-static void hosted_server_did_start()
-{
-  debug("hosted_server_did_start");
-  internal_server_did_start = true;
-  run_action_on_main_thread([&] { g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStart()); });
-}
+static void hosted_server_did_start();
 static void __cdecl on_internal_server_detected_memory_leak(const char *msg) { debug("%s: %s", __FUNCTION__, msg); }
 
 
 static DataBlock new_server_start_params;
 static bool is_new_server_scheduled() { return new_server_start_params.paramCount() > 0; }
 static void remove_current_new_server_request() { new_server_start_params.reset(); }
+
+static bool hosted_server_start_pending = false;
 
 static String get_valid_dll_fn()
 {
@@ -179,6 +184,7 @@ private:
   void(__cdecl *exit_internal_server)(const char *exit_reason) = nullptr;
   bool(__cdecl *is_internal_server_terminating)() = nullptr;
   InternalServerState state = CREATED;
+  int manualReadyDeadlineMs = 0;
 
   void send_exit_signal_to_server()
   {
@@ -193,9 +199,25 @@ private:
     }
     state = TERMINATING;
     shutdownRequested = true;
+    manualReadyDeadlineMs = 0;
   }
 
 public:
+  void disarm_manual_ready_watchdog()
+  {
+    SCOPED_STATE_LOCK();
+    manualReadyDeadlineMs = 0;
+  }
+
+  bool consume_manual_ready_watchdog_expiry(int now_ms)
+  {
+    SCOPED_STATE_LOCK();
+    if (manualReadyDeadlineMs == 0 || now_ms < manualReadyDeadlineMs)
+      return false;
+    manualReadyDeadlineMs = 0;
+    return true;
+  }
+
   InternalDedicatedServerMainThread(DataBlock &args) : DaThread("InternalDedicatedServerMain", 4 << 20)
   {
     state = ACTIVATING;
@@ -236,7 +258,7 @@ public:
   void execute() override
   {
     static const char *func_label = "InternalDedicatedServerMainThread::execute";
-    debug("%s: enter", func_label);
+    debug("[LIFECYCLE] %s: enter (launcher thread)", func_label);
     String dllPath = get_valid_dll_fn();
     if (dllPath.empty())
     {
@@ -277,11 +299,23 @@ public:
       dedicated_server_dll_pdb_loaded = true;
       if (hosted_server_on_loaded)
         hosted_server_on_loaded((void *)(&hosted_server_did_start));
+      {
+        SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
+        if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("hostedServerManualReady", false))
+        {
+          const int timeoutMs = get_manual_ready_timeout_ms();
+          manualReadyDeadlineMs = get_time_msec() + timeoutMs;
+          debug("%s: manual-ready watchdog armed, deadline in %d ms", func_label, timeoutMs);
+        }
+        else
+          manualReadyDeadlineMs = 0;
+      }
       state = RUNNING;
       if (shutdownRequested)
         send_exit_signal_to_server();
+      debug("[LIFECYCLE] %s: calling start_internal_server (blocks until server shuts down)", func_label);
       start_internal_server(startParams, on_internal_server_detected_memory_leak);
-      debug("%s: internal server main finished", func_label);
+      debug("[LIFECYCLE] %s: internal server main finished, returned from DLL entry", func_label);
     }
     else
       logerr("%s: missing exports: %s=%p %s=%p %s=%p %s=%p %s=%p", func_label,         //
@@ -295,6 +329,7 @@ public:
       SCOPED_STATE_LOCK_IF_NOT(isWaitingShutdown);
       state = TERMINATED;
       internal_server_did_start = false;
+      manualReadyDeadlineMs = 0;
       exit_internal_server = nullptr;
       invoke_try_start_relay_and_subscribe = nullptr;
       is_internal_server_terminating = nullptr;
@@ -322,6 +357,37 @@ public:
   }
 };
 
+static void hosted_server_did_start()
+{
+  debug("[LIFECYCLE] hosted_server_did_start: invoked by dedic DLL (manual signal or auto-fire ES)");
+  bool publishDidStart = false;
+  {
+    SCOPED_STATE_LOCK();
+    if (!current_running_internal_server)
+    {
+      debug("[LIFECYCLE] hosted_server_did_start: no active server instance, discarding late manual-ready signal");
+      return;
+    }
+    const InternalServerState st = current_running_internal_server->get_state();
+    if (st >= TERMINATING)
+    {
+      debug("[LIFECYCLE] hosted_server_did_start: server already in state=%d (terminating/terminated), discarding late "
+            "manual-ready signal",
+        (int)st);
+      return;
+    }
+    internal_server_did_start = true;
+    current_running_internal_server->disarm_manual_ready_watchdog();
+    debug("[LIFECYCLE] hosted_server_did_start: manual-ready watchdog disarmed");
+    publishDidStart = true;
+  }
+  if (publishDidStart)
+    run_action_on_main_thread([&] {
+      debug("[LIFECYCLE] hosted_server_did_start: broadcasting EventHostedInternalServerDidStart on main thread");
+      g_entity_mgr->broadcastEvent(EventHostedInternalServerDidStart());
+    });
+}
+
 InternalServerState current_state()
 {
   SCOPED_STATE_LOCK();
@@ -335,6 +401,33 @@ void kill_internal_server(bool wait)
   SCOPED_STATE_LOCK();
   if (current_running_internal_server)
     current_running_internal_server->kill_server(wait);
+}
+
+bool is_hosted_internal_server_active()
+{
+  SCOPED_STATE_LOCK();
+  return (current_state() > NONE && current_state() < TERMINATED) || is_new_server_scheduled() || hosted_server_start_pending;
+}
+
+bool try_begin_hosted_server_start()
+{
+  SCOPED_STATE_LOCK();
+  if (is_hosted_internal_server_active())
+    return false;
+  hosted_server_start_pending = true;
+  return true;
+}
+
+void clear_hosted_server_start_pending()
+{
+  SCOPED_STATE_LOCK();
+  hosted_server_start_pending = false;
+}
+
+bool is_hosted_server_start_pending()
+{
+  SCOPED_STATE_LOCK();
+  return hosted_server_start_pending;
 }
 
 static void make_sure_no_current_server_running()
@@ -365,17 +458,19 @@ static void kill_current_internal_server_and_relaunch_after(DataBlock &args)
   SCOPED_STATE_LOCK();
   debug("%s", __FUNCTION__);
 
+  DataBlock argsCopy(args);
+
   // first of all we clear out existing schedule if it exists
   remove_current_new_server_request();
 
   if (current_running_internal_server) // if there's current server schedule a new server to run after
   {
-    set_server_request(args);
+    set_server_request(argsCopy);
     kill_internal_server(false);
   }
   else
   {
-    launch_internal_server_with_args_block(args);
+    launch_internal_server_with_args_block(argsCopy);
   }
 }
 
@@ -410,7 +505,10 @@ static const char *get_internal_server_url()
   SCOPED_STATE_LOCK();
   if (!current_running_internal_server)
     return NULL;
-  if (current_state() < RUNNING || is_new_server_scheduled())
+  // In manual-ready mode the DLL doesn't fire hosted_server_did_start() until an explicit signal,
+  // so state==RUNNING can be reached before the server is actually serving. Gate on the did_start
+  // flag as well so clients don't get the URL and try to connect against a not-yet-ready server.
+  if (current_state() < RUNNING || is_new_server_scheduled() || !internal_server_did_start)
   {
     return "-NOT-READY-";
   }
@@ -514,4 +612,23 @@ void prelaunch_internal_server_if_needed()
   int argc = cmdsCopy.size();
   debug("%s: starting with %d args", __FUNCTION__, argc);
   schedule_new_internal_server_with_args(argc, argv);
+}
+
+
+bool poll_manual_ready_watchdog()
+{
+  SCOPED_STATE_LOCK();
+  if (!current_running_internal_server)
+    return false;
+  return current_running_internal_server->consume_manual_ready_watchdog_expiry(get_time_msec());
+}
+
+
+void hosted_internal_server_management_update()
+{
+  if (poll_manual_ready_watchdog())
+  {
+    logwarn("hosted_server_manual_ready_watchdog: server did not report ready in time -- killing internal server");
+    kill_internal_server(/*wait*/ false);
+  }
 }

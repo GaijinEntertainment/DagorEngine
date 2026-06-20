@@ -9,7 +9,7 @@ unsigned char HumanInput::key_to_shift_bit[256];
 void HumanInput::init_key_to_shift_bit()
 {
   memset(key_to_shift_bit, 0x1F, sizeof(key_to_shift_bit));
-#if _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_XBOX
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX
   key_to_shift_bit[DKEY_LSHIFT] = 0;
   key_to_shift_bit[DKEY_RSHIFT] = 1;
   key_to_shift_bit[DKEY_LCONTROL] = 2;

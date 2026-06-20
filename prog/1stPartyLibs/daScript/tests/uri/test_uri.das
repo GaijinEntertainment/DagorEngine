@@ -1,6 +1,7 @@
 options gen2
 require dastest/testing_boost public
 
+require uriparser
 require daslib/uriparser_boost
 require daslib/strings_boost
 require daslib/defer
@@ -17,7 +18,7 @@ def test_uri(t : T?) {
         t |> equal(uri |> query, "quone=one&qtow=2")
         t |> equal(uri |> fragment, "someframgnet")
         t |> equal(uri |> path, "one/two/three")
-        var spath <- uri_split_full_path(uri)
+        let spath <- uri_split_full_path(uri)
         t |> equal(spath[0], "one")
         t |> equal(spath[1], "two")
         t |> equal(spath[2], "three")
@@ -93,6 +94,38 @@ def test_uri_file_name(t : T?) {
             defer_delete(uri)
             t |> equal(string(uri), "file:///somedir/somefile.txt")
         }
+    }
+}
+
+[test]
+def test_file_name_to_uri_escapes_reserved(t : T?) {
+    // windows_file_name_to_uri only segments/escapes on '\'. daslang normalizes
+    // paths to '/', so a '/'-only Windows path used to be copied verbatim
+    // (unescaped) -> an invalid URI (with a literal space) that normalize_uri
+    // rejects (returns ""), silently dropping the path. Regression test.
+    t |> run("windows '/' path with space is escaped and round-trips") @@(t : T?) {
+        let p = "E:/some dir/with space.das"
+        let uri = windows_file_name_to_uri(p)
+        t |> success(!empty(uri), "windows_file_name_to_uri returned empty for {p}")
+        t |> success(uri |> contains("%20"), "space not percent-encoded: {uri}")
+        t |> success(!(uri |> contains(" ")), "literal space left in uri: {uri}")
+        let norm = uri |> normalize_uri()
+        t |> success(!empty(norm), "normalize_uri rejected {uri}")
+        let back = norm |> uri_to_file_name()
+        t |> success(back |> contains("some dir") && back |> contains("with space.das"),
+            "round-trip lost the path: {back}")
+    }
+    t |> run("unix path with space is escaped and round-trips") @@(t : T?) {
+        let p = "/some dir/with space.das"
+        let uri = unix_file_name_to_uri(p)
+        t |> success(!empty(uri), "unix_file_name_to_uri returned empty for {p}")
+        t |> success(uri |> contains("%20"), "space not percent-encoded: {uri}")
+        t |> success(!(uri |> contains(" ")), "literal space left in uri: {uri}")
+        let norm = uri |> normalize_uri()
+        t |> success(!empty(norm), "normalize_uri rejected {uri}")
+        let back = norm |> uri_to_file_name()
+        t |> success(back |> contains("some dir") && back |> contains("with space.das"),
+            "round-trip lost the path: {back}")
     }
 }
 

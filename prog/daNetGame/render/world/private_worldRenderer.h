@@ -20,7 +20,7 @@
 #include <resourcePool/resourcePool.h>
 #include <3d/dag_textureIDHolder.h>
 #include <render/toroidalHelper.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <rendInst/rendInstExtra.h>
 #include <landMesh/lmeshCulling.h>
 #include <render/gpuDeformObjects.h>
@@ -146,8 +146,7 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend eastl::fixed_vector<dafg::NodeHandle, 2> makeOpaqueMainNodes(dafg::NameSpace, bool, MainNodeRenderPass);
   friend eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool);
 
-  friend dafg::NodeHandle makePrepareGbufferNode(
-    uint32_t global_flags, uint32_t gbuf_cnt, eastl::span<uint32_t> main_gbuf_fmts, bool has_motion_vectors, bool is_rr_enabled);
+  friend dafg::NodeHandle makePrepareGbufferNode();
   friend dafg::NodeHandle makePrepareLightsNode();
   friend dafg::NodeHandle makeDepthWithTransparencyNode();
   friend dafg::NodeHandle makeDownsampleDepthWithTransparencyNode();
@@ -361,8 +360,6 @@ public:
   void prepareLightProbeRIVisibility(const mat44f &globtm, const Point3 &view_pos);
   void prepareLightProbeRIVisibilityAsync(const mat44f &globtm, const Point3 &view_pos);
   void endRenderLightProbe();
-
-  inline void invalidateCubeReloadOnly() { enviProbeNeedsReload = true; }
 
   // just other public
   void init();
@@ -668,28 +665,29 @@ protected:
   };
   uint32_t getEnviProbeRenderFlags() const;
 
-  bool enviProbeInvalid = false;
-  bool specularCubesContainerNeedsReinit = false;
-  inline void setSpecularCubesContainerForReinit() { specularCubesContainerNeedsReinit = true; }
-  inline void invalidateCube()
+  enum class EnviProbeState
   {
-    enviProbeInvalid = true;
-    setSpecularCubesContainerForReinit();
-  }
-  void reinitCubeIfInvalid();
-  void reinitSpecularCubesContainerIfNeeded(int cube_size = -1);
+    Ready,
+    NeedsReRender,
+    NeedsFullReload
+  };
+  EnviProbeState enviProbeState = EnviProbeState::NeedsFullReload;
 
+public:
+  void scheduleEnviProbeReRender() override { enviProbeState = max(enviProbeState, EnviProbeState::NeedsReRender); }
+  inline void scheduleEnviProbeFullReload() { enviProbeState = EnviProbeState::NeedsFullReload; }
+
+protected:
   uint32_t cubeResolution = 128;
-  void reinitCube(int ew, const Point3 &at);
-  void reinitCube(const Point3 &at);
-  inline void reinitCube() { reinitCube(enviProbePos); }
-
-  bool enviProbeNeedsReload = false;
-  void reloadCube(bool first);
+  void recreateEnviProbe();
+  void clearEnviProbe();
+  void renderEnviProbe();
+  void updateEnviProbe();
 
   void updateSkyProbeDiffuse();
   uint32_t attemptsToUpdateSkySph = 0;
   void setEnviProbePos(const Point3 &at) { enviProbePos = at; }
+  void setCubeResolution(uint32_t res) { cubeResolution = res; }
 
   String showTexCommand(const char *argv[], int argc);
   String showTonemapCommand(const char *argv[], int argc);
@@ -902,7 +900,6 @@ protected:
   void loadAntiAliasingSettings();
   void applyFXAASettings();
   bool hasMotionVectors = false;
-  constexpr static int GBUF_TARGET_GLOBAL_FLAGS = TEXCF_ESRAM_ONLY;
   void initTarget();
   bool isEnviCoverCompatible = false;
   void updateEnviCoverCompatibility();

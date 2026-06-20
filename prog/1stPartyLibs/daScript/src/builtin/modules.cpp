@@ -1,5 +1,6 @@
 #include "daScript/ast/ast.h"
 #include "daScript/daScriptModule.h"
+#include "daScript/misc/platform.h"   // DAS_CC_API
 
 static void register_builtin_modules_impl() {
     using das::Module;
@@ -39,6 +40,13 @@ static void register_builtin_modules_impl() {
     }
     if (!Module::require("dasbind")) {
         NEED_MODULE(Module_DASBIND);
+    }
+}
+
+extern "C" {
+    // Move to JIT compiler module, once it's here.
+    DAS_CC_API void jit_register_all_builtin_modules() {
+        register_builtin_modules_impl();
     }
 }
 

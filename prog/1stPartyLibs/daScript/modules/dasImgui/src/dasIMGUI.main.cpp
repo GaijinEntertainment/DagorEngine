@@ -408,7 +408,7 @@ namespace das {
         for ( auto & pfn : this->functions.each() ) {
             bool anyString = false;
             for ( auto & arg : pfn->arguments ) {
-                if ( arg->type->constant && arg->type->ref && arg->type->dim.size()==0 ) {
+                if ( arg->type->constant && arg->type->ref && !arg->type->isFixedArray() ) {
                     if ( arg->type->baseType==Type::tFloat2 || arg->type->baseType==Type::tFloat4 ) {
                         arg->type->ref = false;
                     }

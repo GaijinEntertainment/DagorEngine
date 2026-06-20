@@ -24,7 +24,6 @@
   half dirSeMinusNw = lumaSe - lumaNw;
 
   float2 dir;
-  float2 halfInvSize = invSize;
   dir.x = dirSwMinusNe + dirSeMinusNw;
   dir.y = dirSwMinusNe - dirSeMinusNw;
   dir *= invSize;

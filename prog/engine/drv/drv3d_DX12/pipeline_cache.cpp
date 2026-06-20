@@ -177,49 +177,6 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
       }
     }
 
-    if (auto graphicsPipelinesOutBlock = cacheOutBlock.addNewBlock("graphics_pipelines"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::GraphicsPipelineEncoder> visitor{*graphicsPipelinesOutBlock};
-      for (auto &pipeline : graphicsCache)
-      {
-        if (pipeline.variantCache.empty())
-        {
-          continue;
-        }
-        if (D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED == pipeline.variantCache.front().topology)
-        {
-          continue;
-        }
-        visitor.encode(pipeline.ident, pipeline.variantCache);
-      }
-    }
-
-    if (auto meshPipelinesOutBlock = cacheOutBlock.addNewBlock("mesh_pipelines"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::MeshPipelineEncoder> visitor{*meshPipelinesOutBlock};
-      for (auto &pipeline : graphicsCache)
-      {
-        if (pipeline.variantCache.empty())
-        {
-          continue;
-        }
-        if (D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED != pipeline.variantCache.front().topology)
-        {
-          continue;
-        }
-        visitor.encode(pipeline.ident, pipeline.variantCache);
-      }
-    }
-
-    if (auto computePipelinesOutBlock = cacheOutBlock.addNewBlock("compute_pipelines"))
-    {
-      pipeline::DataBlockEncodeVisitor<pipeline::ComputePipelineEncoder> visitor{*computePipelinesOutBlock};
-      for (auto &pipeline : computeBlobs)
-      {
-        visitor.encode(pipeline);
-      }
-    }
-
     cacheOutBlock.saveToTextFile("cache/dx12_cache.blk");
   }
 
@@ -339,7 +296,9 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
   dag::Vector<uint8_t> compressedMemory;
 #if DX12_ENABLE_CACHE_COMPRESSION
   compressedMemory.resize(mem.buf.size() * 2);
-  auto compSize = zstd_compress(compressedMemory.data(), compressedMemory.size(), mem.buf.data(), mem.buf.size(), 20);
+  // level 5 is the time/size sweet spot for this payload: near-best
+  // ratio at a fraction of the compression time.
+  auto compSize = zstd_compress(compressedMemory.data(), compressedMemory.size(), mem.buf.data(), mem.buf.size(), 5);
   // if we encountered an error or for some reason the data is not smaller,
   // use uncompressed instead
   if (compSize >= mem.buf.size())

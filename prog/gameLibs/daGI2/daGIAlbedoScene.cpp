@@ -198,8 +198,9 @@ bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t cl
   const IPoint3 allSz = allBox.width();
   ShaderGlobal::set_int4(dagi_albedo_clipmap_update_box_ltVarId, allBox[0].x, allBox[0].y, allBox[0].z, clip_no);
   ShaderGlobal::set_int4(dagi_albedo_clipmap_update_box_szVarId, allSz.x, allSz.y, allSz.z, bitwise_cast<uint32_t>(blockSize));
-  // d3d::resource_barrier(
-  //   {dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+  // previous-frame allocations (gbuf feedback, fixBlocks) must land before we read the free list counter
+  d3d::resource_barrier(
+    {dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
 
   // if there were insufficient blocks allocated, fix counter before freeing anything
   dagi_albedo_fix_insufficient_cs->dispatch(1, 1, 1);
@@ -214,6 +215,10 @@ bool DaGIAlbedoScene::updateClip(const dagi_albedo_rasterize_cb &cb, uint32_t cl
     if (ui < changedCnt - 1)
       d3d::resource_barrier({dagi_albedo_indirection__free_indices_list.getBuf(), RB_NONE});
   }
+  // create_indirect exchanges the update list counter, so all toroidal appends must land first
+  // (globallycoherent gives cache coherency only, not inter-dispatch ordering)
+  d3d::resource_barrier(
+    {dagi_albedo_indirection__free_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
   {
     TIME_D3D_PROFILE(albedo_create_indirect)
     d3d::set_rwbuffer(STAGE_CS, 0, dagi_albedo_indirect_args.getBuf());

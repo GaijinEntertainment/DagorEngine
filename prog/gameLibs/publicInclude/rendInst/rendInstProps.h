@@ -9,6 +9,7 @@
 #include <util/dag_simpleString.h>
 #include <vecmath/dag_vecMathDecl.h>
 #include <generic/dag_staticTab.h>
+#include <util/dag_multicastEvent.h>
 
 #include <rendInst/riexHandle.h>
 #include <rendInst/rendInstDesc.h>
@@ -17,6 +18,16 @@
 
 namespace rendinst::props
 {
+
+using custom_props_load_cb_t = void(int props_id, const char *ri_name, const DataBlock *ri_blk, const DataBlock *ri_cfg_blk);
+extern MulticastEvent<custom_props_load_cb_t> custom_props_load_cb;
+using custom_props_clear_all_cb_t = void(bool is_reload);
+extern MulticastEvent<custom_props_clear_all_cb_t> custom_props_clear_all_cb;
+
+int get_custom_props_id(int pool, int layer, bool is_extra);
+inline int get_custom_props_id(const RendInstDesc &desc) { return get_custom_props_id(desc.pool, desc.layer, desc.cellIdx < 0); }
+inline int get_custom_props_id(const riex_handle_t handle) { return get_custom_props_id(handle_to_ri_type(handle), 0, true); }
+
 
 struct DebrisProps
 {

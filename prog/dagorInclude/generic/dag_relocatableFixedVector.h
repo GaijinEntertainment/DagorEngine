@@ -258,7 +258,7 @@ public:
   RelocatableFixedVector(RelocatableFixedVector &&a)
   {
     CHECK_RELOCATABLE();
-    memcpy(this, &a, a.calcUsedSize());
+    memcpy(this, &a, a.calcUsedSize()); // -V::780
     a.used() = 0;
   }
   template <typename V, typename VT = typename V::value_type, typename U = T,

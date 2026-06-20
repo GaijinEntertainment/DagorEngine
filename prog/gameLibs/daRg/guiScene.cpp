@@ -137,6 +137,24 @@ static const int rebuild_stacks_flags =
 
 static const Point2 out_of_screen_pos(-99, -99); // to be removed or reworked
 
+
+struct ScreensPanelsIterationGuard
+{
+  int &depth;
+  explicit ScreensPanelsIterationGuard(int &d) : depth(d)
+  {
+    G_ASSERT(d >= 0);
+    ++depth;
+  }
+  ~ScreensPanelsIterationGuard()
+  {
+    --depth;
+    G_ASSERT(depth >= 0);
+  }
+  ScreensPanelsIterationGuard(const ScreensPanelsIterationGuard &) = delete;
+  ScreensPanelsIterationGuard &operator=(const ScreensPanelsIterationGuard &) = delete;
+};
+
 #if DAGOR_DBGLEVEL > 0
 
 #define THREAD_CHECK_COLLECT_CALL_STACK 0
@@ -567,12 +585,15 @@ void GuiScene::updateGamepadCursor(float dt, bool &hover_dirty)
         hover_dirty = true;
 
         // Dispatch POINTER_MOVE directly with DEVID_JOYSTICK
-        for (auto &[id, screen] : screens)
         {
-          Point2 local;
-          if (!screen->displayToLocal(gamepadCursor.pos, lastCameraTransform, lastCameraFrustum, local))
-            local = out_of_screen_pos;
-          onMouseEventInternal(screen.get(), INP_EV_POINTER_MOVE, DEVID_JOYSTICK, 0, local, 0, 0);
+          ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+          for (auto &[id, screen] : screens)
+          {
+            Point2 local;
+            if (!screen->displayToLocal(gamepadCursor.pos, lastCameraTransform, lastCameraFrustum, local))
+              local = out_of_screen_pos;
+            onMouseEventInternal(screen.get(), INP_EV_POINTER_MOVE, DEVID_JOYSTICK, 0, local, 0, 0);
+          }
         }
       }
     }
@@ -672,18 +693,21 @@ void GuiScene::update(float dt)
   int prevInteractiveFlags = calcInteractiveFlags();
   bool stacksRebuilt = false, hotkeysModified = false;
 
-  for (auto &[id, screen] : screens)
   {
-    int updRes = screen->etree.update(dt);
-    if (updRes & rebuild_stacks_flags)
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+    for (auto &[id, screen] : screens)
     {
-      screen->rebuildStacks();
-      stacksRebuilt = true;
+      int updRes = screen->etree.update(dt);
+      if (updRes & rebuild_stacks_flags)
+      {
+        screen->rebuildStacks();
+        stacksRebuilt = true;
+      }
+      if (updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED)
+        hotkeysModified = true;
+      if (updRes & ElementTree::RESULT_NEED_XMB_REBUILD)
+        screen->rebuildXmb();
     }
-    if (updRes & ElementTree::RESULT_HOTKEYS_STACK_MODIFIED)
-      hotkeysModified = true;
-    if (updRes & ElementTree::RESULT_NEED_XMB_REBUILD)
-      screen->rebuildXmb();
   }
 
   if (stacksRebuilt || hotkeysModified)
@@ -692,8 +716,11 @@ void GuiScene::update(float dt)
   if (activeCursor)
     activeCursor->update(dt);
 
-  for (auto &itPanel : panels)
-    itPanel.second->update(dt);
+  {
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+    for (auto &itPanel : panels)
+      itPanel.second->update(dt);
+  }
 
   if (profiler.get())
     profiler->afterUpdate();
@@ -810,6 +837,7 @@ void GuiScene::renderThreadBeforeRender()
   bool stacksRebuilt = false;
 
   {
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
     for (auto &[id, screen] : screens)
     {
       int brRes = 0;
@@ -841,6 +869,7 @@ void GuiScene::renderThreadBeforeRender()
 
   if (!panels.empty())
   {
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
     for (auto &itPanel : panels)
     {
       Panel *panel = itPanel.second.get();
@@ -1550,15 +1579,18 @@ int GuiScene::onMouseEvent(InputEvent event, int data, short mx, short my, int b
   }
 
   int accumRes = prev_result;
-  for (auto &[id, screen] : screens)
   {
-    if (!doesScreenAcceptInput(screen.get()) && event != INP_EV_POINTER_MOVE)
-      continue;
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+    for (auto &[id, screen] : screens)
+    {
+      if (!doesScreenAcceptInput(screen.get()) && event != INP_EV_POINTER_MOVE)
+        continue;
 
-    Point2 local;
-    if (!screen->displayToLocal(Point2(mx, my), lastCameraTransform, lastCameraFrustum, local))
-      local = out_of_screen_pos;
-    accumRes |= onMouseEventInternal(screen.get(), event, DEVID_MOUSE, data, local, buttons, accumRes);
+      Point2 local;
+      if (!screen->displayToLocal(Point2(mx, my), lastCameraTransform, lastCameraFrustum, local))
+        local = out_of_screen_pos;
+      accumRes |= onMouseEventInternal(screen.get(), event, DEVID_MOUSE, data, local, buttons, accumRes);
+    }
   }
 
   callScriptHandlers(); // call handlers early for faster response
@@ -1865,15 +1897,18 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
   if (config.kbCursorControl && event == INP_EV_RELEASE &&
       (itClickBtn = pressedClickButtons.find(HotkeyButton(DEVID_KEYBOARD, key_idx))) != pressedClickButtons.end())
   {
-    for (auto &[id, screen] : screens)
     {
-      if (!doesScreenAcceptInput(screen.get()))
-        continue;
+      ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+      for (auto &[id, screen] : screens)
+      {
+        if (!doesScreenAcceptInput(screen.get()))
+          continue;
 
-      Point2 localPos;
-      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
-        localPos = out_of_screen_pos;
-      resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_KEYBOARD, 0, localPos, resFlags);
+        Point2 localPos;
+        if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+          localPos = out_of_screen_pos;
+        resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_KEYBOARD, 0, localPos, resFlags);
+      }
     }
 
     pressedClickButtons.erase(itClickBtn);
@@ -1886,20 +1921,23 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
         resFlags |= bhv->kbdEvent(kbFocus.focus->etree, kbFocus.focus, event, key_idx, repeat, wc, resFlags);
   }
 
-  for (auto &[id, screen] : screens)
   {
-    if (!doesScreenAcceptInput(screen.get()))
-      continue;
-
-    if ((screen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+    for (auto &[id, screen] : screens)
     {
-      for (const InputEntry &ie : screen->inputStack.stack)
+      if (!doesScreenAcceptInput(screen.get()))
+        continue;
+
+      if ((screen->inputStack.summaryBhvFlags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
       {
-        if (ie.elem != kbFocus.focus && ie.elem->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
+        for (const InputEntry &ie : screen->inputStack.stack)
         {
-          for (Behavior *bhv : ie.elem->behaviors)
-            if ((bhv->flags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
-              resFlags |= bhv->kbdEvent(&screen->etree, ie.elem, event, key_idx, repeat, wc, resFlags);
+          if (ie.elem != kbFocus.focus && ie.elem->hasBehaviors(Behavior::F_HANDLE_KEYBOARD))
+          {
+            for (Behavior *bhv : ie.elem->behaviors)
+              if ((bhv->flags & Behavior::F_HANDLE_KEYBOARD_GLOBAL) == Behavior::F_HANDLE_KEYBOARD_GLOBAL)
+                resFlags |= bhv->kbdEvent(&screen->etree, ie.elem, event, key_idx, repeat, wc, resFlags);
+          }
         }
       }
     }
@@ -1911,15 +1949,18 @@ int GuiScene::onKbdEvent(InputEvent event, int key_idx, int shifts, bool repeat,
 
   if (config.kbCursorControl && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_KEYBOARD, key_idx))
   {
-    for (auto &[id, screen] : screens)
     {
-      if (!doesScreenAcceptInput(screen.get()))
-        continue;
+      ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+      for (auto &[id, screen] : screens)
+      {
+        if (!doesScreenAcceptInput(screen.get()))
+          continue;
 
-      Point2 localPos;
-      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
-        localPos = out_of_screen_pos;
-      resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_KEYBOARD, 0, localPos, resFlags);
+        Point2 localPos;
+        if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+          localPos = out_of_screen_pos;
+        resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_KEYBOARD, 0, localPos, resFlags);
+      }
     }
 
     pressedClickButtons.insert(HotkeyButton(DEVID_KEYBOARD, key_idx));
@@ -1979,15 +2020,18 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
   if (event == INP_EV_RELEASE &&
       (itClickBtn = pressedClickButtons.find(HotkeyButton(DEVID_JOYSTICK, btn_idx))) != pressedClickButtons.end())
   {
-    for (auto &[id, screen] : screens)
     {
-      if (!doesScreenAcceptInput(screen.get()))
-        continue;
+      ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+      for (auto &[id, screen] : screens)
+      {
+        if (!doesScreenAcceptInput(screen.get()))
+          continue;
 
-      Point2 localPos;
-      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
-        localPos = out_of_screen_pos;
-      resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_JOYSTICK, 0, localPos, resFlags);
+        Point2 localPos;
+        if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+          localPos = out_of_screen_pos;
+        resFlags |= handleMouseClick(screen.get(), INP_EV_RELEASE, DEVID_JOYSTICK, 0, localPos, resFlags);
+      }
     }
     pressedClickButtons.erase(itClickBtn);
   }
@@ -2011,15 +2055,18 @@ int GuiScene::onJoystickBtnEvent(HumanInput::IGenJoystick *joy, InputEvent event
 
   if (::dgs_app_active && event == INP_EV_PRESS && !(resFlags & R_PROCESSED) && config.isClickButton(DEVID_JOYSTICK, btn_idx))
   {
-    for (auto &[id, screen] : screens)
     {
-      if (!doesScreenAcceptInput(screen.get()))
-        continue;
+      ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+      for (auto &[id, screen] : screens)
+      {
+        if (!doesScreenAcceptInput(screen.get()))
+          continue;
 
-      Point2 localPos;
-      if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
-        localPos = out_of_screen_pos;
-      resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_JOYSTICK, 0, localPos, resFlags);
+        Point2 localPos;
+        if (!screen->displayToLocal(activePointerPos(), lastCameraTransform, lastCameraFrustum, localPos))
+          localPos = out_of_screen_pos;
+        resFlags |= handleMouseClick(screen.get(), INP_EV_PRESS, DEVID_JOYSTICK, 0, localPos, resFlags);
+      }
     }
     pressedClickButtons.insert(HotkeyButton(DEVID_JOYSTICK, btn_idx));
   }
@@ -2656,50 +2703,67 @@ bool GuiScene::sendEvent(const char *id, const Sqrat::Object &data)
   bool processed = false;
 
   // Let's see if any panels we own accept the hotkey
-  for (auto &[_, sc] : screens)
   {
-    if (!doesScreenAcceptInput(sc.get()))
-      continue;
-
-    if (handleInputEvent(sc->inputStack))
+    ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+    for (auto &[_, sc] : screens)
     {
-      processed = true;
-      break;
+      if (!doesScreenAcceptInput(sc.get()))
+        continue;
+
+      if (handleInputEvent(sc->inputStack))
+      {
+        processed = true;
+        break;
+      }
     }
   }
 
   // then check eventHandlers
   if (!processed)
   {
-    sq_pushstring(sqvm, id, fullLen);
-    HSQOBJECT hKey;
-    sq_getstackobj(sqvm, -1, &hKey);
-    Sqrat::Object key(hKey, sqvm);
-    sq_pop(sqvm, 1);
+    Sqrat::Object key(id, sqvm, fullLen);
 
-    for (auto &[_, sc] : screens)
+    // Snapshot to handle input stack invalidation
+    struct EventHandlerCall
     {
-      if (!doesScreenAcceptInput(sc.get()))
-        continue;
+      Element *elem;
+      Sqrat::Function handler;
+    };
 
-      for (const InputEntry &ie : sc->eventHandlersStack.stack)
+    {
+      ScreensPanelsIterationGuard iterGuard(screensPanelsIterDepth);
+      for (auto &[_, sc] : screens)
       {
-        if (ie.elem->isDetached())
+        if (!doesScreenAcceptInput(sc.get()))
+          continue;
+
+        Tab<EventHandlerCall> handlers(framemem_ptr());
+        for (const InputEntry &ie : sc->eventHandlersStack.stack)
         {
-          LOGWARN_CTX("Detached element found in event handler stack");
-          continue;
+          if (ie.elem->isDetached())
+          {
+            LOGWARN_CTX("Detached element found in event handler stack");
+            continue;
+          }
+          Sqrat::Table &desc = ie.elem->props.scriptDesc;
+          Sqrat::Object funcObj = desc.RawGetSlot(stringKeys->eventHandlers).RawGetSlot(key);
+          if (funcObj.IsNull())
+            continue;
+
+          handlers.push_back(EventHandlerCall{ie.elem, Sqrat::Function(sqvm, desc, funcObj)});
         }
-        Sqrat::Table &desc = ie.elem->props.scriptDesc;
-        Sqrat::Object funcObj = desc.RawGetSlot(stringKeys->eventHandlers).RawGetSlot(key);
-        if (funcObj.IsNull())
-          continue;
 
-        processed = true;
+        for (const EventHandlerCall &h : handlers)
+        {
+          if (h.elem->isDetached())
+            continue;
 
-        Sqrat::Function handler(sqvm, desc, funcObj);
-        auto result = handler.Eval<Sqrat::Object>(data);
-        if (result && (result.value().Cast<int>() != EVENT_CONTINUE))
-          break;
+          processed = true;
+
+          auto result = h.handler.Eval<Sqrat::Object>(data);
+          if (result && (result.value().Cast<int>() != EVENT_CONTINUE))
+            break;
+        }
       }
     }
   }
@@ -3107,8 +3171,8 @@ void GuiScene::reloadScript(const char *fn)
     DEBUG_CTX("[daRg][FRP] after %s reload and rebuild: "
               "Watched: %d (%d unused, %d not subscribed), Computed: %d (%d unused, %d not subscribed), "
               "%d subscribers, %d watchers",
-      fn, s.watchedTotal, s.watchedUnused, s.watchedUnsubscribed, s.computedTotal, s.computedUnused, s.computedUnsubscribed,
-      s.totalSubscribers, s.totalWatchers);
+      fnCopy.c_str(), s.watchedTotal, s.watchedUnused, s.watchedUnsubscribed, s.computedTotal, s.computedUnused,
+      s.computedUnsubscribed, s.totalSubscribers, s.totalWatchers);
   }
 #endif
 
@@ -3616,6 +3680,7 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
     G_ASSERT(!f.IsNull());
 
     self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    ScreensPanelsIterationGuard iterGuard(self->screensPanelsIterDepth);
     for (auto &[id, screen] : self->screens)
     {
       if (!self->doesScreenAcceptInput(screen.get()))
@@ -3631,6 +3696,7 @@ SQInteger GuiScene::set_kb_focus_impl(HSQUIRRELVM vm, bool capture)
   else
   {
     self->rebuildAllScreensStacksAndNotify(false, /*update_global_hover*/ false);
+    ScreensPanelsIterationGuard iterGuard(self->screensPanelsIterDepth);
     for (auto &[id, screen] : self->screens)
     {
       if (!self->doesScreenAcceptInput(screen.get()))
@@ -3764,6 +3830,9 @@ SQInteger GuiScene::add_panel(HSQUIRRELVM vm)
   if (scene->isRebuildingInvalidatedParts)
     return sq_throwerror(vm, "Can't add panels during scene rebuild (probably incorrect side-effect in component builder?)");
 
+  if (scene->screensPanelsIterDepth)
+    return sq_throwerror(vm, "Can't add panels from an event/update handler (would invalidate live screens/panels iteration)");
+
 
   SQInteger idx = -1;
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
@@ -3791,6 +3860,9 @@ SQInteger GuiScene::remove_panel(HSQUIRRELVM vm)
 
   if (scene->isRebuildingInvalidatedParts)
     return sq_throwerror(vm, "Can't remove panels during scene rebuild (probably incorrect side-effect in component builder?)");
+
+  if (scene->screensPanelsIterDepth)
+    return sq_throwerror(vm, "Can't remove panels from an event/update handler (would invalidate live screens/panels iteration)");
 
   SQInteger idx = -1;
   G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 2, &idx)));
@@ -4523,10 +4595,17 @@ int GuiScene::onVrInputEvent(InputEvent event, int hand, int button_id, int prev
     {
       if (const auto touch = vrPtr.activePanel->touchPointers.get(hand))
         onPanelTouchEvent(vrPtr.activePanel, hand, INP_EV_RELEASE, touch->pos.x, touch->pos.y);
-      vrPtr.activePanel->setCursorState(hand, false);
-      int resFlags = vrPtr.activePanel->screen->etree.deactivateInput(DEVID_VR, hand);
-      if (resFlags & R_REBUILD_RENDER_AND_INPUT_LISTS)
-        vrPtr.activePanel->rebuildStacks();
+      // The RELEASE handler may have removed panels: remove_panel nulls activePanel, and a
+      // removed closestPanel would dangle. Re-validate both before reuse.
+      if (vrPtr.activePanel) //-V547
+      {
+        vrPtr.activePanel->setCursorState(hand, false);
+        int resFlags = vrPtr.activePanel->screen->etree.deactivateInput(DEVID_VR, hand);
+        if (resFlags & R_REBUILD_RENDER_AND_INPUT_LISTS)
+          vrPtr.activePanel->rebuildStacks();
+      }
+      closestPanelIt = panels.find(closestPanelIdx);
+      closestPanel = closestPanelIt != panels.end() ? closestPanelIt->second.get() : nullptr;
     }
     vrPtr.activePanel = closestPanel;
     if (vrPtr.activePanel)
@@ -4691,9 +4770,28 @@ bool GuiScene::setFocusedScreen(Screen *screen)
   // also see applyInputActivityChange()
   if (focusedScreen == screen)
     return false;
+
   if (focusedScreen)
+  {
+    if (Panel *panel = focusedScreen->panel)
+    {
+      constexpr int internalId = SpatialSceneData::AimOrigin::Internal;
+      panel->setCursorState(internalId, false);
+      if (vrPointers[internalId].activePanel == panel)
+        vrPointers[internalId].activePanel = nullptr;
+    }
+    else
+    {
+      SQInteger stickScrollFlags = 0;
+      focusedScreen->etree.updateHover(focusedScreen->inputStack, 1, &out_of_screen_pos, &stickScrollFlags);
+    }
+
     focusedScreen->etree.deactivateAllInput();
+  }
+
   focusedScreen = screen;
+
+  requestHoverUpdate();
 
   pressedClickButtons.clear();
   kbFocus.setFocus(nullptr);

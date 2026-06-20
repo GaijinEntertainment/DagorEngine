@@ -6,15 +6,20 @@
 
 #include <sys/stat.h>
 
-#if defined(_MSC_VER)
-
+// Three header buckets:
+//   _WIN32       — io.h / direct.h        (every Windows toolchain via MS CRT)
+//   !_MSC_VER    — dirent.h / unistd.h    (POSIX shims; mingw-w64 ships them)
+//   !_WIN32      — libgen.h / sys/mman.h  (pure POSIX, absent on Windows)
+#if defined(_WIN32)
 #include <io.h>
 #include <direct.h>
-
-#else
-#include <libgen.h>
+#endif
+#if !defined(_MSC_VER)
 #include <dirent.h>
 #include <unistd.h>
+#endif
+#if !defined(_WIN32)
+#include <libgen.h>
 #include <sys/mman.h>
 #endif
 #endif
@@ -35,7 +40,7 @@ namespace das {
         Time     atime() const  { return { stats.st_atime }; }
         Time     ctime() const  { return { stats.st_ctime }; }
         Time     mtime() const  { return { stats.st_mtime }; }
-#if defined(_MSC_VER)
+#if defined(_WIN32)
         bool     is_reg() const { return stats.st_mode & _S_IFREG; }
         bool     is_dir() const { return stats.st_mode & _S_IFDIR; }
 #else
@@ -75,7 +80,9 @@ namespace das {
     DAS_API int builtin_popen_binary ( const char * cmd, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_timeout ( const char * cmd, float timeout_sec, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API int builtin_popen_argv ( const Array & args_arr, float timeout_sec, const TBlock<void,const FILE *> & blk, Context * context, LineInfoArg * at );
+    DAS_API int builtin_popen_argv_pipe ( const Array & args_arr, const TBlock<void,const FILE *,const FILE *> & blk, Context * context, LineInfoArg * at );
     DAS_API char * get_full_file_name ( const char * path, Context * context, LineInfoArg * );
+    DAS_API char * builtin_resolve_this_module_dir ( const char * baked_path, Context * context );
     DAS_API bool builtin_remove_file ( const char * path );
     DAS_API bool builtin_rename_file ( const char * old_path, const char * new_path );
     DAS_API bool builtin_rmdir ( const char * path );

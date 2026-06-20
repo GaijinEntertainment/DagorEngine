@@ -6,6 +6,7 @@
 
 #include <drv/3d/dag_tex3d.h>
 #include <math/dag_TMatrix4.h>
+#include <math/integer/dag_IPoint2.h>
 #include <generic/dag_expected.h>
 
 #include <EASTL/optional.h>
@@ -179,7 +180,8 @@ struct DLSS
 
   virtual bool evaluate(const nv::DlssParams<void> &params, void *command_buffer) = 0;
   virtual eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const = 0;
-  virtual bool setOptions(Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model) = 0;
+  // NOTE: options are applied on the render backend thread via the SET_DLSS_OPTIONS driver command, not
+  // through this interface, so slDLSS(D)SetOptions / NGX feature creation never runs on the caller thread.
 
   // Only to be used with direct DLSS integration
   virtual State getState() { return State::NOT_IMPLEMENTED; }
@@ -188,6 +190,16 @@ struct DLSS
   virtual void DeleteFeature() {}
 
   virtual bool supportRayReconstruction() = 0;
+};
+
+// Arguments for DLSS::setOptions, passed by value through a driver command so slDLSS(D)SetOptions is
+// called on the render backend thread instead of the caller's thread.
+struct DlssOptions
+{
+  DLSS::Mode mode = DLSS::Mode::Off;
+  IPoint2 outputResolution = {0, 0};
+  bool useRayReconstruction = false;
+  bool useLegacyModel = false;
 };
 
 struct DLSSFrameGeneration

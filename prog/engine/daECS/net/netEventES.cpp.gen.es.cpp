@@ -13,7 +13,8 @@ static void net_unicast_events_es_event_handler_all_events(const ecs::Event &__r
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     net_unicast_events_es_event_handler(evt
-        , ECS_RO_COMP(net_unicast_events_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(net_unicast_events_es_event_handler_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -32,9 +33,9 @@ static ecs::EntitySystemDesc net_unicast_events_es_event_handler_es_desc
 //static constexpr ecs::ComponentDesc net_broadcast_events_es_event_handler_comps[] ={};
 static void net_broadcast_events_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   net_broadcast_events_es_event_handler(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc net_broadcast_events_es_event_handler_es_desc
 (

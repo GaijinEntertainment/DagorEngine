@@ -104,9 +104,9 @@ public:
   void term()
   {
     TiledScene::term();
-    distance.clear();
-    nodeUserData.clear();
-    perInstanceRenderAdditionalData.clear();
+    clear_and_shrink(distance);
+    clear_and_shrink(nodeUserData);
+    clear_and_shrink(perInstanceRenderAdditionalData);
     userDataWordCount = 0;
     dirFromSunOnPrevDistInvalidation = {0, 0, 0};
   }

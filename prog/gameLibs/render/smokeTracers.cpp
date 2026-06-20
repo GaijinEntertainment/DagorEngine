@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <EASTL/fixed_vector.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
@@ -15,9 +16,12 @@
 #include <workCycle/dag_workCycle.h>
 #include <frustumCulling/frustumPlanes.h>
 
-#define GLOBAL_VARS_LIST VAR(smoke_trace_current_time)
+#define GLOBAL_VARS_LIST         \
+  VAR(smoke_trace_current_time)  \
+  VAR(smoke_trace_exposure_time) \
+  VAR(smoke_trace_pixel_scale)
 
-#define VAR(a) static int a##VarId = -1;
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
 #undef VAR
 
@@ -77,10 +81,6 @@ void SmokeTracerManager::initGPU(const DataBlock &settings)
 {
   closeGPU();
 
-#define VAR(a) a##VarId = get_shader_variable_id(#a);
-  GLOBAL_VARS_LIST
-#undef VAR
-
   const char *texName = settings.getStr("tail_texture", "tracer_tail_density");
   const float tracer_head_radius_coeff = settings.getReal("tracer_head_radius_coeff", 1.0);
   const float smoke_tracers_head_color_boost = settings.getReal("smoke_tracers_head_color_boost", 0.0);
@@ -107,6 +107,12 @@ void SmokeTracerManager::initGPU(const DataBlock &settings)
     "smokeTracerVerts", d3d::buffers::Init::No, RESTAG_TRACER);
   tracerBufferDynamic = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracerDynamic), MAX_TRACERS, "smokeTracersDynamic",
     d3d::buffers::Init::No, RESTAG_TRACER);
+
+  // Published for bvh_smoke_tracers_cs (raster path binds these directly).
+  ShaderGlobal::set_buffer(get_shader_variable_id("smoke_tracer_tracer_buf", true), tracerBuffer.get());
+  ShaderGlobal::set_buffer(get_shader_variable_id("smoke_tracer_dynamic_buf", true), tracerBufferDynamic.get());
+  ShaderGlobal::set_buffer(get_shader_variable_id("smoke_tracer_verts_buf", true), tracerVertsBuffer.get());
+
   culledTracerTails = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracerTailRender), MAX_TRACERS, //*2
     "culledTracerTails", d3d::buffers::Init::No, RESTAG_TRACER);
   culledTracerHeads = dag::buffers::create_ua_sr_structured(sizeof(GPUSmokeTracerHeadRender), MAX_TRACERS, "culledTracerHeads",
@@ -280,11 +286,30 @@ void SmokeTracerManager::performGPUCommands()
 
 void SmokeTracerManager::beforeRender(const Frustum &frustum, float exposure_time, float pixel_scale)
 {
+  // cullTracers_cs and the three tracer buffers are created together in initGPU, so this guard covers them too.
   if (!cullTracers_cs)
     return;
+  const ResourceBarrier toSrvState[3] = {RB_RO_SRV | RB_STAGE_COMPUTE, RB_RO_SRV | RB_STAGE_COMPUTE, RB_RO_SRV | RB_STAGE_COMPUTE};
+  // Creation can fail on lost device or OOM.
+  const auto gatherNotNullBufs = [this] {
+    eastl::fixed_vector<Sbuffer *, 3, false> bufs;
+    for (Sbuffer *buf : {tracerBufferDynamic.get(), tracerBuffer.get(), tracerVertsBuffer.get()})
+      if (buf)
+        bufs.push_back(buf);
+    return bufs;
+  };
   performGPUCommands();
+  // For bvh_smoke_tracers_cs; raster cull_tracers_cs gets them via set_cs_const below.
+  ShaderGlobal::set_float(smoke_trace_current_timeVarId, cTime);
+  ShaderGlobal::set_float(smoke_trace_exposure_timeVarId, exposure_time);
+  ShaderGlobal::set_float(smoke_trace_pixel_scaleVarId, pixel_scale);
   if (!usedTracers[currentUsed].size())
+  {
+    const auto bufs = gatherNotNullBufs();
+    if (!bufs.empty())
+      d3d::resource_barrier({bufs.data(), toSrvState, (unsigned)bufs.size()});
     return;
+  }
   TIME_D3D_PROFILE(cull_tracers);
   // gpu culling
   d3d::resource_barrier({tracerBufferDynamic.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
@@ -324,6 +349,10 @@ void SmokeTracerManager::beforeRender(const Frustum &frustum, float exposure_tim
   d3d::set_buffer(STAGE_CS, 8, 0);
   d3d::set_buffer(STAGE_CS, 9, 0);
   d3d::set_buffer(STAGE_CS, 10, 0);
+  // For bvh_smoke_tracers_cs on quiet frames where performGPUCommands skipped its RO_SRV transitions.
+  const auto bufs = gatherNotNullBufs();
+  if (!bufs.empty())
+    d3d::resource_barrier({bufs.data(), toSrvState, (unsigned)bufs.size()});
 }
 
 void SmokeTracerManager::renderTrans()

@@ -7,6 +7,7 @@
 #include <util/dag_hashedKeyMap.h>
 #include <util/dag_stlqsort.h>
 #include <memory/dag_framemem.h>
+#include <debug/dag_log.h>
 
 namespace build_bvh
 {
@@ -246,6 +247,17 @@ void writeQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const QuadPrim *prims
     }
     *(int *)(blasData + leafOfs) = int(minIdx * vertStride + vertDataOfs) - leafOfs;
     int o1 = a - minIdx - 1, o2 = b - minIdx - 1;
+    // Singles are a fallback (cannot be rejected like quad candidates), so an index spread beyond
+    // the 10-bit offset range would silently wrap and read the wrong vertices. Clamp + logerr keeps
+    // the geometry bounded and the failure visible in release (dev too) instead of corrupting the
+    // GPU buffer; the proper fix is a vertex-duplication pass before build (meshopt-optimized
+    // indices, see dag_quadBLASBuilder.h).
+    if ((unsigned)o1 > QUAD_O1_MAX || (unsigned)o2 > QUAD_O2_MAX)
+    {
+      logerr("daBVH: quad single offset overflow o1=%d o2=%d (max %d); mesh not meshopt-optimized?", o1, o2, QUAD_O1_MAX);
+      o1 = o1 < 0 ? 0 : (o1 > (int)QUAD_O1_MASK ? (int)QUAD_O1_MASK : o1);
+      o2 = o2 < 0 ? 0 : (o2 > (int)QUAD_O2_MASK ? (int)QUAD_O2_MASK : o2);
+    }
     uint32_t skip =
       (o1 & QUAD_O1_MASK) | (((unsigned)o2 & QUAD_O2_MASK) << QUAD_O2_SHIFT) | (((unsigned)o2 & QUAD_O3_MASK) << QUAD_O3_SHIFT);
     skip |= QUAD_LEAF_FLAG;
@@ -295,7 +307,7 @@ void writeQuadLeaf(uint8_t *blasData, const bbox3f *nodes, const QuadPrim *prims
 static int writeQuadBVH2Impl(uint8_t *blasData, const bbox3f *nodes, const QuadPrim *prims, vec4f scale, vec4f ofs, int vertDataOfs,
   int node, int root, int &dataOffset, int vertStride, int depth, bool useHalves)
 {
-  G_ASSERTF(depth <= 64, "writeQuadBVH2: depth %d exceeds limit", depth);
+  G_ASSERTF(depth <= BVH_MAX_BLAS_DEPTH, "writeQuadBVH2: depth %d exceeds limit %d", depth, BVH_MAX_BLAS_DEPTH);
   int faceIndex = v_extract_wi(v_cast_vec4i(nodes[node].bmin));
   int childrenCount = v_extract_wi(v_cast_vec4i(nodes[node].bmax));
 

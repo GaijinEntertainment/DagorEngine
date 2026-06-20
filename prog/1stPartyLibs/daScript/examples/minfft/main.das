@@ -4,7 +4,7 @@ require math
 
 [export]
 def main {
-    var signal <- [for (i in range(64)); sin(float(i) * 0.2)]
+    let signal <- [for (i in range(64)); sin(float(i) * 0.2)]
     var complex_frequencies : array<float2>
     fft_real_forward(signal, complex_frequencies)
     var magnitudes : array<float>

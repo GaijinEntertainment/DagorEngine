@@ -149,7 +149,7 @@ public:
   }
   virtual das::ModuleAotType aotRequire(das::TextWriter &tw) const override
   {
-    tw << "#include \"net/reCreateEntity.h\"\n";
+    tw << "#include <ecs/net/reCreateEntity.h>\n";
     tw << "#include \"dasModules/net.h\"\n";
     tw << "#include <dasModules/aotEcsEvents.h>\n";
     tw << "#include <daECS/net/component_replication_filter.h>\n";

@@ -958,16 +958,6 @@ void PipelineManager::init(const SetupParameters &params)
 void PipelineManager::setCompilePipelineSetQueueLength()
 {
   uint32_t queueLength = 0;
-  if (pipelineSetCompilation)
-  {
-    const auto graphicsQueue =
-      pipelineSetCompilation->graphicsPipelines.size() - pipelineSetCompilation->graphicsPipelineSetCompilationIdx;
-    const auto meshQueue = pipelineSetCompilation->meshPipelines.size() - pipelineSetCompilation->meshPipelineSetCompilationIdx;
-    const auto computeQueue =
-      pipelineSetCompilation->computePipelines.size() - pipelineSetCompilation->computePipelineSetCompilationIdx;
-    const auto setQueue = graphicsQueue + meshQueue + computeQueue;
-    queueLength += setQueue;
-  }
   if (pipelineSetCompilation2)
   {
     const auto groupDone = pipelineSetCompilation2->graphicsPipelineSetCompilationIdx +
@@ -3044,7 +3034,10 @@ void PipelineManager::addShaderGroup(Device &device, PipelineCache *pipelineCach
   ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader, eastl::string_view name)
 {
   auto v2 = dump->getDumpV2();
-  bool cacheIsOk = pipelineCache->onBindumpLoad(device.getDevice(), {v2->shaderHashes.begin(), v2->shaderHashes.end()});
+  bool cacheIsOk = false;
+  if (v2)
+    cacheIsOk = pipelineCache->onBindumpLoad(device.getDevice(), {v2->shaderHashes.begin(), v2->shaderHashes.end()});
+
   if (!cacheIsOk)
   {
     onCacheInvalidated(*pipelineCache, *this, *this, *fbs);

@@ -115,6 +115,21 @@ hlsl {
 ##if (hardware.fsh_5_0 || hardware.ps4 || hardware.ps5)
   #define HAS_REVERSEBITS 1
 ##endif
+
+// Smallest wave width the target hardware can use. A groupshared reduction step that
+// stays within a single wave is lockstep and needs no group barrier, so reductions can
+// skip the sync below this width. Resolved from the hardware flags here; PC is the worst
+// case observed (Intel = 8). The #ifndef lets a per-target predefine override it.
+#ifndef MIN_POSSIBLE_WARP_SIZE
+  ##if hardware.ps4 || (hardware.xbox && !hardware.scarlett)
+    #define MIN_POSSIBLE_WARP_SIZE 64
+  ##elif hardware.ps5 || hardware.scarlett || hardware.metal
+    #define MIN_POSSIBLE_WARP_SIZE 32
+  ##else
+    #define MIN_POSSIBLE_WARP_SIZE 8
+  ##endif
+#endif
+
 #define SEPARATE_SAMPLER_OBJECT 1
 #define double doubles_are_not_supported_by_some_gpus
 #define double2 doubles_are_not_supported_by_some_gpus

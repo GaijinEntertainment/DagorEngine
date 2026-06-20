@@ -815,7 +815,9 @@ bool remove_texture_from_states(BaseTexture *tex, bool recreate = false)
     if (rs.nextRtState.isColorUsed(i) && rs.nextRtState.color[i].tex == tex)
     {
       found = true;
-      d3d::set_render_target(i, NULL, 0);
+      rs.nextRtState.removeColor(i);
+      rs.modified = rs.rtModified = true;
+      rs.viewModified = VIEWMOD_FULL;
       reset_depth();
       G_ASSERT(!recreate);
     }

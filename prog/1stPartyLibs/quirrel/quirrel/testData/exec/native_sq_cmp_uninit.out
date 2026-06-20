@@ -1,0 +1,3 @@
+cmp ordered: 1 -1 0
+cmp incomparable: 0
+PASSED

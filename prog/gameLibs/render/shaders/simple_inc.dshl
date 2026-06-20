@@ -164,7 +164,7 @@ hlsl(ps)
     out_2.r = gbuffer.smoothness;
     out_2.g = gbuffer.reflectance;
     out_2.b = gbuffer.metalness;
-    out_2.a = 0;
+    out_2.a = gbuffer.translucency;
     out_3 = depth;
 #else
     return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));

@@ -29,10 +29,32 @@ NOTE: enable only when 1. render hero & hero is ship 2.when we make resolve defe
 #include <drv/3d/dag_buffers.h>
 #include <startup/dag_globalSettings.h>
 #include <shaders/dag_shaderBlock.h>
+#include <shaders/dag_shaderVariableInfo.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <EASTL/vector.h>
 
+#define GLOBAL_VARS_LIST                    \
+  VAR(hero_wetness_volume_num_layers, true) \
+  VAR(hero_wetness_darkening, true)         \
+  VAR(hero_wet_above, true)                 \
+  VAR(hero_wetness_tex, true)               \
+  VAR(hero_wetness_tex_samplerstate, true)  \
+  VAR(to_hero_volume_tm_x, true)            \
+  VAR(to_hero_volume_tm_y, true)            \
+  VAR(to_hero_volume_tm_z, true)            \
+  VAR(to_unit_box_tm_x, true)               \
+  VAR(to_unit_box_tm_y, true)               \
+  VAR(to_unit_box_tm_z, true)               \
+  VAR(hero_dry_speed, true)                 \
+  VAR(hero_wetness_max_depth, true)         \
+  VAR(hero_wetness_depth_bias, true)        \
+  VAR(hero_foam_texture_transform, true)    \
+  VAR(hero_foam_scroll_fade, true)
+
+#define VAR(a, opt) static ShaderVariableInfo a##VarId(#a, opt);
+GLOBAL_VARS_LIST
+#undef VAR
 
 HeroWetness::HeroWetness() :
   heroWetnessVolumeSlices(32),
@@ -45,7 +67,6 @@ HeroWetness::HeroWetness() :
   waterHeightRendererShElem(NULL),
   waterHeightRendererVDecl(0),
   globalFrameBlockId(-1),
-  heroWetnessTexVarId(-1),
   heroFoamScroll(Point2(0.f, 0.f)),
   heroFoamScrollSpeed(0.5f),
   heroFoamFadeUnderWater(Point2(2.f, 2.f)),
@@ -77,18 +98,11 @@ void HeroWetness::init()
   heroWetnessDarkening = heroWetnessBlk->getReal("diffuseDarkening", 0.6f);
   heroWetnessAboveDist = heroWetnessBlk->getReal("aboveWaterDist", 0.5f);
 
-  static int heroWetnessVolumeNumLayersVarId = get_shader_variable_id("hero_wetness_volume_num_layers", true);
-  ShaderGlobal::set_float(heroWetnessVolumeNumLayersVarId, heroWetnessVolumeSlices);
+  ShaderGlobal::set_float(hero_wetness_volume_num_layersVarId, heroWetnessVolumeSlices);
+  ShaderGlobal::set_float(hero_wetness_darkeningVarId, heroWetnessDarkening);
+  ShaderGlobal::set_float(hero_wet_aboveVarId, heroWetnessAboveDist);
 
-  static int heroWetnessDarkeningVarId = get_shader_variable_id("hero_wetness_darkening", true);
-  ShaderGlobal::set_float(heroWetnessDarkeningVarId, heroWetnessDarkening);
-
-  static int heroWetnessAboveVarId = get_shader_variable_id("hero_wet_above", true);
-  ShaderGlobal::set_float(heroWetnessAboveVarId, heroWetnessAboveDist);
-
-  heroWetnessTexVarId = get_shader_variable_id("hero_wetness_tex", true);
-  heroWetnessTex_samplerstateVarId = get_shader_variable_id("hero_wetness_tex_samplerstate", true);
-  ShaderGlobal::set_texture(heroWetnessTexVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(hero_wetness_texVarId, BAD_TEXTUREID);
 
   globalFrameBlockId = ShaderGlobal::getBlockId("global_frame");
 
@@ -255,30 +269,18 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
 
 
   // shader vars
-  static int toHeroVolumeTmXVarId = get_shader_variable_id("to_hero_volume_tm_x", true);
-  static int toHeroVolumeTmYVarId = get_shader_variable_id("to_hero_volume_tm_y", true);
-  static int toHeroVolumeTmZVarId = get_shader_variable_id("to_hero_volume_tm_z", true);
+  ShaderGlobal::set_float4(to_hero_volume_tm_xVarId, toWorldPosTmX.x, toWorldPosTmY.x, toWorldPosTmZ.x, toWorldPosTmW.x);
+  ShaderGlobal::set_float4(to_hero_volume_tm_yVarId, toWorldPosTmX.y, toWorldPosTmY.y, toWorldPosTmZ.y, toWorldPosTmW.y);
+  ShaderGlobal::set_float4(to_hero_volume_tm_zVarId, toWorldPosTmX.z, toWorldPosTmY.z, toWorldPosTmZ.z, toWorldPosTmW.z);
 
-  ShaderGlobal::set_float4(toHeroVolumeTmXVarId, toWorldPosTmX.x, toWorldPosTmY.x, toWorldPosTmZ.x, toWorldPosTmW.x);
-  ShaderGlobal::set_float4(toHeroVolumeTmYVarId, toWorldPosTmX.y, toWorldPosTmY.y, toWorldPosTmZ.y, toWorldPosTmW.y);
-  ShaderGlobal::set_float4(toHeroVolumeTmZVarId, toWorldPosTmX.z, toWorldPosTmY.z, toWorldPosTmZ.z, toWorldPosTmW.z);
+  ShaderGlobal::set_float4(to_unit_box_tm_xVarId, toUnitBoxTmX.x, toUnitBoxTmY.x, toUnitBoxTmZ.x, toUnitBoxTmW.x);
+  ShaderGlobal::set_float4(to_unit_box_tm_yVarId, toUnitBoxTmX.y, toUnitBoxTmY.y, toUnitBoxTmZ.y, toUnitBoxTmW.y);
+  ShaderGlobal::set_float4(to_unit_box_tm_zVarId, toUnitBoxTmX.z, toUnitBoxTmY.z, toUnitBoxTmZ.z, toUnitBoxTmW.z);
 
-  static int toUnitBoxTmXVarId = get_shader_variable_id("to_unit_box_tm_x", true);
-  static int toUnitBoxTmYVarId = get_shader_variable_id("to_unit_box_tm_y", true);
-  static int toUnitBoxTmZVarId = get_shader_variable_id("to_unit_box_tm_z", true);
-
-  ShaderGlobal::set_float4(toUnitBoxTmXVarId, toUnitBoxTmX.x, toUnitBoxTmY.x, toUnitBoxTmZ.x, toUnitBoxTmW.x);
-  ShaderGlobal::set_float4(toUnitBoxTmYVarId, toUnitBoxTmX.y, toUnitBoxTmY.y, toUnitBoxTmZ.y, toUnitBoxTmW.y);
-  ShaderGlobal::set_float4(toUnitBoxTmZVarId, toUnitBoxTmX.z, toUnitBoxTmY.z, toUnitBoxTmZ.z, toUnitBoxTmW.z);
-
-  static const int heroDrySpeedVarId = get_shader_variable_id("hero_dry_speed", true);
-  static const int heroWetnessMaxDepthVarId = get_shader_variable_id("hero_wetness_max_depth", true);
-  static const int heroWetnessDepthBiasVarId = get_shader_variable_id("hero_wetness_depth_bias", true);
-
-  ShaderGlobal::set_float4(heroDrySpeedVarId, wetPar.drySpeed.x * dt, wetPar.drySpeed.y * dt, clearInShader,
+  ShaderGlobal::set_float4(hero_dry_speedVarId, wetPar.drySpeed.x * dt, wetPar.drySpeed.y * dt, clearInShader,
     has_water_3d ? 1.0f : 0.0f);
-  ShaderGlobal::set_float(heroWetnessMaxDepthVarId, wetPar.maxDepth);
-  ShaderGlobal::set_float(heroWetnessDepthBiasVarId, wetPar.depthBias);
+  ShaderGlobal::set_float(hero_wetness_max_depthVarId, wetPar.maxDepth);
+  ShaderGlobal::set_float(hero_wetness_depth_biasVarId, wetPar.depthBias);
 
   // fill wetness volume (write water height at point)
   // save states
@@ -292,8 +294,8 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
     heroWetnessTex = heroWetnessRTPool->acquire();
   }
 
-  ShaderGlobal::set_texture(heroWetnessTexVarId, heroWetnessTex->getTexId());
-  ShaderGlobal::set_sampler(heroWetnessTex_samplerstateVarId, heroPointSampler);
+  ShaderGlobal::set_texture(hero_wetness_texVarId, heroWetnessTex->getTexId());
+  ShaderGlobal::set_sampler(hero_wetness_tex_samplerstateVarId, heroPointSampler);
 
   RTarget::Ptr newTarget = heroWetnessRTPool->acquire();
   d3d::set_render_target({}, DepthAccess::RW, {{newTarget->getTex2D(), 0, 0}});
@@ -311,8 +313,8 @@ void HeroWetness::calcHeroWetnessVolume(float dt, const TMatrix &hero_tm, const 
   d3d::resource_barrier({newTarget->getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   // restore states
   d3d::set_render_target(prevRt);
-  ShaderGlobal::set_texture(heroWetnessTexVarId, newTarget->getTexId());
-  ShaderGlobal::set_sampler(heroWetnessTex_samplerstateVarId, heroLinearSampler);
+  ShaderGlobal::set_texture(hero_wetness_texVarId, newTarget->getTexId());
+  ShaderGlobal::set_sampler(hero_wetness_tex_samplerstateVarId, heroLinearSampler);
   heroWetnessTex = newTarget;
 }
 
@@ -330,8 +332,7 @@ void HeroWetness::initHeroWaterFoam(const DataBlock *options_blk)
   if (!fEnabled)
     foamTextureAlphaScaleOffset = Point2(0.f, 0.f); // if disabled - just fade texture
 
-  static int heroFoamTextureTransformVarId = get_shader_variable_id("hero_foam_texture_transform", true);
-  ShaderGlobal::set_float4(heroFoamTextureTransformVarId, foamTexScale.x, foamTexScale.y, foamTextureAlphaScaleOffset.x,
+  ShaderGlobal::set_float4(hero_foam_texture_transformVarId, foamTexScale.x, foamTexScale.y, foamTextureAlphaScaleOffset.x,
     foamTextureAlphaScaleOffset.y);
 }
 
@@ -342,12 +343,11 @@ void HeroWetness::updateHeroWaterFoam(float dt, const TMatrix &hero_tm, bool is_
   heroFoamScroll.x += forwardVector.y * heroFoamScrollSpeed * dt;
   heroFoamScroll.y += sideVector.y * heroFoamScrollSpeed * dt;
 
-  static int shipFoamScrollFadeVarId = get_shader_variable_id("hero_foam_scroll_fade", true);
   if (is_ship)
-    ShaderGlobal::set_float4(shipFoamScrollFadeVarId, heroFoamScroll.x, heroFoamScroll.y, heroFoamFadeUnderWater.y,
+    ShaderGlobal::set_float4(hero_foam_scroll_fadeVarId, heroFoamScroll.x, heroFoamScroll.y, heroFoamFadeUnderWater.y,
       heroFoamFadeUnderWater.x);
   else
-    ShaderGlobal::set_float4(shipFoamScrollFadeVarId, 0, 0, 0, 0);
+    ShaderGlobal::set_float4(hero_foam_scroll_fadeVarId, 0, 0, 0, 0);
 }
 
 bool HeroWetness::isInSleep() const { return wetTime == -1.0f; }

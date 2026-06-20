@@ -9,14 +9,14 @@ namespace das
         arr.size = 0;
     }
 
-    void array_mark_locked ( Array & arr, void * data, uint32_t capacity ) {
+    void array_mark_locked ( Array & arr, void * data, uint64_t capacity ) {
         arr.data = (char *)data;
         arr.size = arr.capacity = capacity;
         arr.lock = 1;
         arr.magic = DAS_ARRAY_MAGIC;
     }
 
-    void array_mark_locked ( Array & arr, void * data, uint32_t size, uint32_t capacity ) {
+    void array_mark_locked ( Array & arr, void * data, uint64_t size, uint64_t capacity ) {
         arr.data = (char *)data;
         arr.size = size;
         arr.capacity = capacity;
@@ -57,22 +57,27 @@ namespace das
         }
     }
 
-    void array_reserve(Context & context, Array & arr, uint32_t newCapacity, uint32_t stride, LineInfo * at) {
+    void array_reserve(Context & context, Array & arr, uint64_t newCapacity, uint32_t stride, LineInfo * at) {
         if ( arr.isLocked() ) context.throw_error_at(at, "can't change capacity of a locked array");
         if ( arr.capacity >= newCapacity ) return;
-        uint64_t memSize64 = uint64_t(newCapacity) * uint64_t(stride);
-        if ( memSize64>=0xffffffff ) {
-            context.throw_error_at(at, "can't grow array, out of index space [capacity=%i] [stride=%i]", newCapacity, stride);
+        // Explicit mul_overflow guard: stride is uint32, newCapacity is uint64.
+        // The product can overflow uint64 when newCapacity > UINT64_MAX / stride
+        // (with stride > 0). Panic before passing a wrap-around byte count to
+        // the heap allocator (where it would silently allocate a small block
+        // and the next memcpy would overrun random memory).
+        if ( stride && newCapacity > UINT64_MAX / uint64_t(stride) ) {
+            context.throw_error_at(at, "array_reserve: capacity*stride overflows uint64 [capacity=%llu] [stride=%u]", (unsigned long long)newCapacity, stride);
         }
+        uint64_t memSize64 = newCapacity * uint64_t(stride);
         const char * prev_comment = arr.data ? context.heap->get_comment(arr.data) : nullptr;
         char * newData = nullptr;
         if ( context.verySafeContext ) {
-            newData = (char *)context.allocate(newCapacity*stride, at);
+            newData = (char *)context.allocate(memSize64, at);
             if ( newData && arr.data ) {
                 memcpy(newData, arr.data, arr.size*stride);
             }
         } else {
-            newData = (char *)context.reallocate(arr.data, arr.capacity*stride, newCapacity*stride, at);
+            newData = (char *)context.reallocate(arr.data, arr.capacity*stride, memSize64, at);
         }
         context.heap->mark_comment(newData, prev_comment ? prev_comment : "array");
         if ( newData != arr.data ) {
@@ -82,11 +87,20 @@ namespace das
         arr.capacity = newCapacity;
     }
 
-    void array_resize ( Context & context, Array & arr, uint32_t newSize, uint32_t stride, bool zero, LineInfo * at ) {
+    void array_resize ( Context & context, Array & arr, uint64_t newSize, uint32_t stride, bool zero, LineInfo * at ) {
         if ( arr.isLocked() ) context.throw_error_at(at, "can't resize locked array");
+        // The daslang surface contract is `long_length(arr) : int64`, so a size that doesn't
+        // fit in int64_t would wrap negative on the way out. Enforce the cap up front so the
+        // int64 API stays well-defined.
+        if ( newSize > uint64_t(INT64_MAX) ) {
+            context.throw_error_at(at, "array_resize: newSize exceeds INT64_MAX [newSize=%llu]", (unsigned long long)newSize);
+        }
         if ( newSize > arr.capacity ) {
-            uint32_t newCapacity = 1 << (32 - das_clz (das::max(newSize,2u) - 1));
-            newCapacity = das::max(newCapacity, 16u);
+            uint64_t newCapacity = uint64_t(1) << (64 - das_clz64(das::max(newSize, uint64_t(2)) - 1));
+            newCapacity = das::max(newCapacity, uint64_t(16));
+            // The pow2 round-up overflows past INT64_MAX when newSize > 2^62; clamp so the
+            // resulting capacity stays representable in the int64 long_capacity() surface.
+            if ( newCapacity > uint64_t(INT64_MAX) ) newCapacity = uint64_t(INT64_MAX);
             array_reserve(context, arr, newCapacity, stride, at);
         }
         if ( zero && newSize>arr.size ) {
@@ -173,7 +187,7 @@ namespace das
         for ( uint32_t i=0, is=total; i!=is; ++i, pArray-- ) {
             if ( pArray->data ) {
                 if ( !pArray->isLocked() ) {
-                    uint32_t oldSize = pArray->capacity*stride;
+                    uint64_t oldSize = pArray->capacity * uint64_t(stride);
                     context.free(pArray->data, oldSize, &debugInfo);
                 } else {
                     context.throw_error_at(debugInfo, "deleting locked array%s", errorMessage);

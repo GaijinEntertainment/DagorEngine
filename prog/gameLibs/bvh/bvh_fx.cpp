@@ -15,8 +15,7 @@
 #include "bvh_context.h"
 #include "bvh_tools.h"
 #include "bvh_generic_connection.h"
-
-#include "../commonFx/commonFxGame/modfx/modfx_bvh.hlsli"
+#include "bvh_particles.h"
 
 namespace bvh
 {
@@ -142,9 +141,7 @@ static MeshMetaAllocator::AllocId get_particle_meta(ContextId context_id, TEXTUR
 
 struct BVHConnection : public bvh::BVHConnection
 {
-  BVHConnection(const char *name) : bvh::BVHConnection(name) {}
-
-  UniqueBuf particleData;
+  BVHConnection(const char *name) : bvh::BVHConnection(name) { instanceBufferAlign = particles::FX_CAPACITY_ALIGN; }
 
   void textureUsed(TEXTUREID texture_id) override
   {
@@ -159,10 +156,11 @@ struct BVHConnection : public bvh::BVHConnection
   {
     if (!bvh::BVHConnection::prepare())
       return false;
+    if (!particles::is_ready())
+      return false;
 
     static int dafx_modfx_bvh_max_countVarId = get_shader_variable_id("dafx_modfx_bvh_max_count");
     static int dafx_modfx_bvh_blas_addressVarId = get_shader_variable_id("dafx_modfx_bvh_blas_address");
-    static int bvh_particle_dataVarId = get_shader_variable_id("bvh_particle_data");
 
     static int dafx_modfx_bvh_instance_buffer_regno =
       ShaderGlobal::get_int(get_shader_variable_id("dafx_modfx_bvh_instance_buffer_regno"));
@@ -171,36 +169,30 @@ struct BVHConnection : public bvh::BVHConnection
     static int dafx_modfx_bvh_instance_data_regno =
       ShaderGlobal::get_int(get_shader_variable_id("dafx_modfx_bvh_instance_data_regno"));
 
-    if (particleData && particleData->getNumElements() < maxCount)
-      particleData.close();
-
-    if (!particleData && maxCount)
-    {
-      particleData = dag::buffers::create_ua_sr_structured(sizeof(ModfxBVHParticleData), maxCount, "bvh_fx_particle_data",
-        d3d::buffers::Init::No, RESTAG_BVH);
-      HANDLE_LOST_DEVICE_STATE(particleData, false);
-      ShaderGlobal::set_buffer(bvh_particle_dataVarId, particleData);
-    }
-
     d3d::set_rwbuffer(STAGE_VS, dafx_modfx_bvh_instance_buffer_regno, getInstancesBuffer().getBuf());
     d3d::set_rwbuffer(STAGE_VS, dafx_modfx_bvh_instance_count_regno, getInstanceCounter().getBuf());
-    d3d::set_rwbuffer(STAGE_VS, dafx_modfx_bvh_instance_data_regno, particleData.getBuf());
+    d3d::set_rwbuffer(STAGE_VS, dafx_modfx_bvh_instance_data_regno, particles::get_data_buf());
 
     auto blasAddress = billboard_blas.getGPUAddress();
     auto shadowBlasAddress = billboard_shadow_blas.getGPUAddress();
 
-    ShaderGlobal::set_int(dafx_modfx_bvh_max_countVarId, getInstancesBuffer() ? getInstancesBuffer()->getNumElements() : 0);
+    const int fxInstancesCap = getInstancesBuffer() ? (int)getInstancesBuffer()->getNumElements() : 0;
+    ShaderGlobal::set_int(dafx_modfx_bvh_max_countVarId, min(fxInstancesCap, particles::get_fx_capacity()));
     ShaderGlobal::set_int4(dafx_modfx_bvh_blas_addressVarId, blasAddress & GPU_ADDRESS_LOW_MASK, blasAddress >> GPU_ADDRESS_HIGH_SHIFT,
       shadowBlasAddress & GPU_ADDRESS_LOW_MASK, shadowBlasAddress >> GPU_ADDRESS_HIGH_SHIFT);
 
     return true;
   }
 
-  void teardown() override
+  void done() override
   {
-    bvh::BVHConnection::teardown();
-    particleData.close();
+    bvh::BVHConnection::done();
+
+    if (Sbuffer *particleData = particles::get_data_buf())
+      d3d::resource_barrier({particleData, RB_STAGE_COMPUTE | RB_SOURCE_STAGE_VERTEX});
   }
+
+  void teardown() override { bvh::BVHConnection::teardown(); }
 
 } bvhConnection("fx");
 

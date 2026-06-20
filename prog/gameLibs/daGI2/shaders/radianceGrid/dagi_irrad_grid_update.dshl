@@ -110,7 +110,7 @@ macro IRRADIANCE_GRID_TRACE_PROBE(code)
         }
       #endif
       uint sdfStartClip = startSDF, sdfClip;
-      //sdfStartClip = world_sdf_find_clip(worldPos);//to reduce divirgence between threads
+      //sdfStartClip = world_sdf_find_clip(worldPos);//to reduce divergence between threads
       float t = 0;
       float distAtRayStart;
       if (!world_sdf_trace_start(sdfStartClip, worldPos, rayDir, maxT, t, distAtRayStart, sdfClip, biasK))
@@ -305,7 +305,7 @@ shader dagi_irradiance_grid_toroidal_movement_trace_cs
       bool shouldTrace = revAge >= (INTERPOLATED_RADIANCE_REV_AGE + 0.5) / 255.;
 
       float biasK = 0;//0 means faster, but more light leaking. Keep it faster on toroidal movement
-      //we just sample radidiance grid for non proximal probes!
+      //we just sample radiance grid for non proximal probes!
       float featureSize = 2.f;// lower - faster (more light leaking). Keep it faster on toroidal movement. todo: pass total update size here, so we can adjust!
       float maxT = 32.f;// lower faster, but less correct when outside radiancegrid
       uint startSDF = 0; // todo: depending on proximity can be +1 to sdf
@@ -332,7 +332,12 @@ shader dagi_irradiance_grid_toroidal_movement_trace_cs
   compile("target_cs", "dagi_irradiance_grid_toroidal_movement_trace_cs");
 }
 
-shader dagi_irradiance_grid_spatial_filter_cs
+int dagi_irrad_grid_spatial_update_from;
+buffer dagi_irrad_grid_spatial_scratch;
+
+// The filter is split in gather and apply passes through a dedicated scratch buffer:
+// in-place neighborhood filtering races between thread groups.
+shader dagi_irradiance_grid_spatial_filter_gather_cs
 {
   if (hardware.dx11 || hardware.dx12)
   {
@@ -340,26 +345,23 @@ shader dagi_irradiance_grid_spatial_filter_cs
   }
   DAGI_IRRADIANCE_GRID_UAV(cs)
   DAGI_IRRAD_GRID_CLIPMAP_MATH(cs)
-  DAGI_IRRAD_GRID_WRITE(cs)
   (cs) {
     dagi_irrad_grid_update_lt_coord@i4 = dagi_irrad_grid_update_lt_coord;
     dagi_irrad_grid_update_sz_coord@i4 = dagi_irrad_grid_update_sz_coord;
+    dagi_irrad_grid_spatial_update_from@i1 = dagi_irrad_grid_spatial_update_from;
+    dagi_irrad_grid_spatial_scratch@uav : register(0) hlsl {
+      RWByteAddressBuffer dagi_irrad_grid_spatial_scratch@uav;
+    };
   }
   hlsl(cs) {
     #include <dagi_irradiance_encode.hlsl>
-
-    SH1 get_irradiance_sh1_at(uint3 atlasCoord)
-    {
-      SH1Encoded sh1e;
-      sh1e.s0 = texture3DAt(dagi_irradiance_grid_sph0, atlasCoord);
-      sh1e.s1 = texture3DAt(dagi_irradiance_grid_sph1, atlasCoord);
-      return dagi_irrad_decode_sh1(sh1e);
-    }
+    #include <dagi_rad_grid_temporal.hlsl>
 
     [numthreads(64, 1, 1)]
-    void dagi_irradiance_grid_spatial_filter_cs(uint dtid : SV_DispatchThreadID)
+    void dagi_irradiance_grid_spatial_filter_gather_cs(uint dtid : SV_DispatchThreadID)
     {
-      uint3 relProbeId = uint3(dtid%uint(dagi_irrad_grid_update_sz_coord.x), (dtid/uint(dagi_irrad_grid_update_sz_coord.x))%uint(dagi_irrad_grid_update_sz_coord.y), dtid/uint(dagi_irrad_grid_update_sz_coord.x*dagi_irrad_grid_update_sz_coord.y));
+      uint id = dtid + uint(dagi_irrad_grid_spatial_update_from);
+      uint3 relProbeId = uint3(id%uint(dagi_irrad_grid_update_sz_coord.x), (id/uint(dagi_irrad_grid_update_sz_coord.x))%uint(dagi_irrad_grid_update_sz_coord.y), id/uint(dagi_irrad_grid_update_sz_coord.x*dagi_irrad_grid_update_sz_coord.y));
       if (relProbeId.z >= uint(dagi_irrad_grid_update_sz_coord.z))
         return;
       int3 absCoord = int3(relProbeId) + dagi_irrad_grid_update_lt_coord.xyz;
@@ -389,18 +391,46 @@ shader dagi_irradiance_grid_spatial_filter_cs
         }
       }
 
-      GroupMemoryBarrierWithGroupSync();//to decrease hazard a bit
+      sh1e.s0 *= (1./totalW);
+      sh1e.s1 *= (1./totalW);
+      storeBuffer3(dagi_irrad_grid_spatial_scratch, dtid*16, dagi_irrad_pack_encoded_sh1(sh1e));
+    }
+  }
+  compile("target_cs", "dagi_irradiance_grid_spatial_filter_gather_cs");
+}
 
-      FLATTEN
-      if (totalW > 0)
-      {
-        sh1e.s0 *= (1./totalW);
-        sh1e.s1 *= (1./totalW);
-      }
+shader dagi_irradiance_grid_spatial_filter_apply_cs
+{
+  DAGI_IRRADIANCE_GRID_UAV(cs)
+  DAGI_IRRAD_GRID_CLIPMAP_MATH(cs)
+  DAGI_IRRAD_GRID_WRITE(cs)
+  (cs) {
+    dagi_irrad_grid_update_lt_coord@i4 = dagi_irrad_grid_update_lt_coord;
+    dagi_irrad_grid_update_sz_coord@i4 = dagi_irrad_grid_update_sz_coord;
+    dagi_irrad_grid_spatial_update_from@i1 = dagi_irrad_grid_spatial_update_from;
+    dagi_irrad_grid_spatial_scratch@buf = dagi_irrad_grid_spatial_scratch hlsl {
+      ByteAddressBuffer dagi_irrad_grid_spatial_scratch@buf;
+    }
+  }
+  hlsl(cs) {
+    #include <dagi_rad_grid_temporal.hlsl>
+
+    [numthreads(64, 1, 1)]
+    void dagi_irradiance_grid_spatial_filter_apply_cs(uint dtid : SV_DispatchThreadID)
+    {
+      uint id = dtid + uint(dagi_irrad_grid_spatial_update_from);
+      uint3 relProbeId = uint3(id%uint(dagi_irrad_grid_update_sz_coord.x), (id/uint(dagi_irrad_grid_update_sz_coord.x))%uint(dagi_irrad_grid_update_sz_coord.y), id/uint(dagi_irrad_grid_update_sz_coord.x*dagi_irrad_grid_update_sz_coord.y));
+      if (relProbeId.z >= uint(dagi_irrad_grid_update_sz_coord.z))
+        return;
+      int3 absCoord = int3(relProbeId) + dagi_irrad_grid_update_lt_coord.xyz;
+
+      uint clip = dagi_irrad_grid_update_lt_coord.w;
+      uint3 targetCoord = dagi_irrad_grid_wrapped_coord_from_abs_coord(absCoord);
+      SH1Encoded sh1e = dagi_irrad_unpack_encoded_sh1(loadBuffer3(dagi_irrad_grid_spatial_scratch, dtid*16));
       dagi_irrad_grid_write_sh1_encoded(targetCoord, clip, sh1e);
     }
   }
-  compile("target_cs", "dagi_irradiance_grid_spatial_filter_cs");
+  compile("target_cs", "dagi_irradiance_grid_spatial_filter_apply_cs");
 }
 
 float dagi_irradiance_spatial_size = 0.1;

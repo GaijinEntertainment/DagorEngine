@@ -18,7 +18,7 @@ String get_template_text_src_fog(uint32_t variant_id, NodeBasedShaderQuality nbs
   templateNames.push_back(String("../../../publicInclude/render/nbs_spheres.hlsli"));
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
   templateNames.push_back(String("../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"));
-  templateNames.push_back(String("../../../publicInclude/render/light_consts.hlsli"));
+  templateNames.push_back(String("../../../publicInclude/render/lights/light_consts.hlsli"));
   templateNames.push_back(String("../../../render/shaders/camera_in_camera.hlsl"));
   templateNames.push_back(String("../../../render/shaders/pcg_hash.hlsl"));
   templateNames.push_back(String("../../../publicInclude/render/volumetricLights/heightFogNode.hlsli"));

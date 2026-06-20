@@ -25,7 +25,7 @@ let PORT = 9090
 // ── Chat server ──────────────────────────────────────────────────────────
 
 class ChatServer : HvWebServer {
-    clients : table<WebSocketChannel?; string>
+    clients : table<WebSocketChannel; string>
     next_id : int = 0
 
     def override onInit {
@@ -43,7 +43,7 @@ class ChatServer : HvWebServer {
         }
     }
 
-    def override onWsOpen(channel : WebSocketChannel?; url : string#) {
+    def override onWsOpen(channel : WebSocketChannel; url : string#) {
         next_id++
         let nickname = "guest_{next_id}"
         clients |> insert_clone(channel, nickname)
@@ -52,14 +52,14 @@ class ChatServer : HvWebServer {
         print("[+] {nickname} connected ({length(clients)} total)\n")
     }
 
-    def override onWsClose(channel : WebSocketChannel?) {
+    def override onWsClose(channel : WebSocketChannel) {
         let nickname = clients?[channel] ?? "unknown"
         clients |> erase(channel)
-        broadcast("[server] {nickname} left the chat ({length(clients)} online)", null)
+        broadcast("[server] {nickname} left the chat ({length(clients)} online)", default<WebSocketChannel>)
         print("[-] {nickname} disconnected ({length(clients)} total)\n")
     }
 
-    def override onWsMessage(channel : WebSocketChannel?; msg : string#) {
+    def override onWsMessage(channel : WebSocketChannel; msg : string#) {
         let nickname = clients?[channel] ?? "unknown"
         let text = string(msg)
         // Handle /nick command
@@ -83,7 +83,7 @@ class ChatServer : HvWebServer {
         print("[{nickname}] {text}\n")
     }
 
-    def broadcast(msg : string; exclude : WebSocketChannel?) {
+    def broadcast(msg : string; exclude : WebSocketChannel) {
         for (ch in keys(clients)) {
             if (ch != exclude) {
                 send(ch, msg, ws_opcode.WS_OPCODE_TEXT, true)
@@ -108,6 +108,7 @@ def main() {
         sleep(10u)
     }
     server->stop()
+    server->cleanup()
     unsafe {
         delete server
     }

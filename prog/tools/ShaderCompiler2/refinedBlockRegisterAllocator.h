@@ -30,7 +30,7 @@ public:
   // Allocate a slot in register space
   // VS and PS/CS have independent register spaces.
   int allocSlot(ShaderStage stage, HlslRegisterSpace space);
-  void reserveSlot(ShaderStage stage, HlslRegisterSpace space, uint32_t slot);
+  void reserveSlot(ShaderStage stage, HlslRegisterSpace space, HlslSlotSemantic semantic, uint32_t slot, uint32_t count = 1);
 
   // Expose T-slot allocators so preshader can call reserveAllFrom().
   const HlslRegAllocator &vsAllocator(HlslRegisterSpace space) const { return vsSlotAllocator[space]; }
@@ -38,8 +38,8 @@ public:
 
 private:
   HlslRegAllocator cRegAllocator;
-  HlslRegAllocator vsSlotAllocator[HlslRegisterSpace::HLSL_RSPACE_COUNT];
-  HlslRegAllocator psOrCsSlotAllocator[HlslRegisterSpace::HLSL_RSPACE_COUNT];
+  eastl::array<HlslRegAllocator, HlslRegisterSpace::HLSL_RSPACE_COUNT> vsSlotAllocator;
+  eastl::array<HlslRegAllocator, HlslRegisterSpace::HLSL_RSPACE_COUNT> psOrCsSlotAllocator;
 
   struct Allocation
   {

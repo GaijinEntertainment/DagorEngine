@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <util/dag_globDef.h> // G_UNUSED / G_UNUSED_VOLATILE used by internal/entityManagerProtected.h
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <osApiWrappers/dag_critSec.h>
@@ -128,7 +129,6 @@ public:
   void broadcastEvent(Event &&evt);
   void broadcastEvent(SchemelessEvent &&evt);
 
-  //
   template <class EventType>
   void dispatchEvent(EntityId eid, EventType &&evt); // if eid == INVALID_ENTITY_ID it is broadcast, otherwise it is unicast
   void dispatchEvent(EntityId eid, Event &evt);      // if eid == INVALID_ENTITY_ID it is broadcast, otherwise it is unicast.
@@ -335,6 +335,7 @@ public:
 
   // this function to be explicitly called only when new systems or tags appeared/disappeared
   void resetEsOrder();
+  bool resetEsOrderLocked();
 
   EntityManager();
   EntityManager(const EntityManager &from);
@@ -375,6 +376,8 @@ public:
   bool dumpArchetype(uint32_t arch);
   size_t dumpMemoryUsage();                             // dumps to debug
   void setEsTags(dag::ConstSpan<const char *> es_tags); // sets acceptable tags. If not set, _all_ are acceptable
+  void addEsTag(const char *es_tag);
+  void removeEsTag(const char *es_tag);
 
   // Get Template's name for given entity (or nullptr if entity not exist/just allocated)
   ecs::template_t getEntityTemplateId(ecs::EntityId) const;
@@ -411,8 +414,18 @@ public:
   void setUserData(void *user_data) { userData = user_data; }
   void *getUserData() const { return userData; }
 
-  int64_t getOwnerThreadId() const { return ownerThreadId; }
-  void setOwnerThreadId(int64_t value) { ownerThreadId = value; }
+  // ownerThreadId is volatile int64: written by the owner thread (typically via
+  // setOwnerThreadId at save/restore boundaries -- e.g. AdditionalGameJob), read cross-thread
+  // by the net topology lock's owner-skip check in TopologyLock::ReadScope. Aligned int64
+  // reads/writes are atomic on supported platforms; interlocked_* makes the ordering explicit.
+  int64_t getOwnerThreadId() const { return interlocked_relaxed_load(ownerThreadId); }
+  void setOwnerThreadId(int64_t value) { interlocked_release_store(ownerThreadId, value); }
+
+  static ComponentTypes component_types;
+  static bool component_types_initialized;
+  static ComponentTypes &shared_component_types() { return component_types; }
+  static void ensure_shared_component_types_initialized();
+  static void destroy_shared_component_types();
 
 protected:
 #include "internal/entityManagerProtected.h"
@@ -431,11 +444,17 @@ public:
 #if DAECS_EXTENSIVE_CHECKS
   int64_t threadId = 0;
   bool acquiredThread = false;
+#endif
+
   void validateThread() const
   {
+#if DAECS_EXTENSIVE_CHECKS
     DAECS_EXT_ASSERTF(!acquiredThread || threadId == get_current_thread_id(), "acquired thread %d != current %d", threadId,
       get_current_thread_id());
+#endif
   }
+
+#if DAECS_EXTENSIVE_CHECKS
   void freeThread() { acquiredThread = false; }
   void acquireThread()
   {
@@ -443,7 +462,6 @@ public:
     acquiredThread = true;
   }
 #else
-  void validateThread() const {}
   void freeThread() {}
   void acquireThread() {}
 #endif
@@ -472,6 +490,8 @@ public:
     validateThread();
     return base_class::operator bool();
   }
+
+  T *getRaw() const { return base_class::get(); }
 };
 
 extern InitOnDemandValidateThread<ecs::EntityManager, false> g_entity_mgr;

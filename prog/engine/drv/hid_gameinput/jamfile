@@ -1,0 +1,21 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/drv/hid_gameinput ;
+
+TargetType  = lib ;
+Target      = engine/drv/hid_gameinput.lib ;
+
+Sources =
+  gamepad_classdrv.cpp
+  gamepad_device.cpp
+  gamepad_composite.cpp
+  keyboard_classdrv.cpp
+  keyboard_device.cpp
+  mouse_emu.cpp
+  create.cpp
+;
+
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
+
+AddIncludes = $(Root)/prog/engine/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

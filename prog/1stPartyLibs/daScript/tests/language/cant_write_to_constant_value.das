@@ -2,7 +2,7 @@
 // verifies compiler rejects writes through const pointers,
 // including direct field writes and safe-navigation writes
 options gen2
-expect 30504:3
+expect 30952:3
 
 struct Foo {
     i : int

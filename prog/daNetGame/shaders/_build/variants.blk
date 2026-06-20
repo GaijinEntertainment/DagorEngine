@@ -15,4 +15,6 @@ invalid {lmesh_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}
 invalid {rendinst_transparent_triangle_size_debug:i=1;allow_triangle_size_debug:i=0}
 
 // Exclude impostor-baker only passes -- rendinst_render_pass_impostor_voxel
-invalid {rendinst_render_pass:i=7}
+// Disabled for now to allow Asset Viewer bake voxels with game shaders.
+// In-memory difference for AM DX11 game shaders is about 113K with ~21M dump.
+// invalid {rendinst_render_pass:i=7}

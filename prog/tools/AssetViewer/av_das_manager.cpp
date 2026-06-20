@@ -38,8 +38,7 @@ static void global_init_das()
 
 static void pull_das()
 {
-#if DAGOR_DBGLEVEL > 0 && _TARGET_PC
-  NEED_MODULE(Module_FIO)
+#if DAGOR_DBGLEVEL > 0
   NEED_MODULE(Module_Network)
   NEED_MODULE(Module_JobQue)
   NEED_MODULE(Module_UriParser)
@@ -47,6 +46,7 @@ static void pull_das()
   if (!dng_das_inited)
   {
 #if DAGOR_DBGLEVEL > 0
+    NEED_MODULE(Module_FIO)
     NEED_MODULE(Module_Debugger)
 #endif
     NEED_MODULE(DagorTime)

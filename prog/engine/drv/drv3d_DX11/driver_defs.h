@@ -14,8 +14,10 @@
 #define ID3D11_DEV                 ID3D11Device
 #define ID3D11_DEV1                ID3D11Device1
 #define ID3D11_DEV3                ID3D11Device3
+#define ID3D11_DEV5                ID3D11Device5
 #define ID3D11_DEVCTX              ID3D11DeviceContext
 #define ID3D11_DEVCTX1             ID3D11DeviceContext1
+#define ID3D11_DEVCTX4             ID3D11DeviceContext4
 #define D3D11_RASTERIZER_DESC_NEXT D3D11_RASTERIZER_DESC2
 struct RENDERDOC_API_1_5_0;
 
@@ -37,7 +39,7 @@ struct RENDERDOC_API_1_5_0;
 // D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT
 
 #define MAX_UAV           8
-#define MAX_CONST_BUFFERS 9
+#define MAX_CONST_BUFFERS 12
 
 #define MAX_VERTEX_STREAMS 4
 #define PRIM_UNDEF         0

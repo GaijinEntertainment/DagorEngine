@@ -48,3 +48,6 @@ void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_bl
 
 // clear saved config params based on __allowedSavedConfig
 void dgs_filter_saved_config(DataBlock &config_blk);
+
+// fully replaces settings blk with baseline (complete restore, no filtering)
+void dgs_restore_settings_blk(const DataBlock &baseline);

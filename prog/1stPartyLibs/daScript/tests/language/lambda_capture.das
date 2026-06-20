@@ -16,7 +16,7 @@ def test_lambda_capture_const(var t : T?) {
         t |> equal(lenF, 0)
     }
     invoke(l)
-    delete l
+    unsafe { delete l; }
 }
 
 

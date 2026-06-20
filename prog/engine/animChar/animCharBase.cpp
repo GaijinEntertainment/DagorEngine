@@ -531,7 +531,7 @@ void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *as, bool reset_anim) 
   {
     as->animMap = animMap;
     as->animMapPRS = animMapPRS;
-    as->animState.reset(new AnimCommonStateHolder(*animState));
+    as->animState.reset(new AnimGraphStateHolder(*animState));
   }
   as->creationInfo = creationInfo;
   as->centerNodeBsphRad = centerNodeBsphRad;
@@ -664,7 +664,7 @@ void AnimcharBaseComponent::setupAnim()
   animMap.shrink_to_fit();
   animMapPRS.shrink_to_fit();
 
-  animState.reset(new AnimCommonStateHolder(*animGraph));
+  animState.reset(new AnimGraphStateHolder(*animGraph));
   // DEBUG_CTX("setup animGraph: %d/%d nodes", animMap.size(), nmb.totalNodes);
 }
 

@@ -48,9 +48,7 @@ def error(msg : string | #) {
 
 
 def green(msg : string | #) {
-    if (failuresOnly) {
-        return
-    }
+    if (failuresOnly) return
     if (!verbose) {
         print(green_str("{msg}\n"))
     } else {
@@ -69,9 +67,7 @@ def red(msg : string | #) {
 
 
 def blue(msg : string | #) {
-    if (failuresOnly) {
-        return
-    }
+    if (failuresOnly) return
     if (!verbose) {
         print(blue_str("{msg}\n"))
     } else {

@@ -19,8 +19,6 @@ eastl::optional<nv::DLSS::OptimalSettings> DLSSSuperResolutionDirect::getOptimal
   return eastl::nullopt;
 }
 
-bool DLSSSuperResolutionDirect::setOptions(Mode, IPoint2, bool, bool) { return false; }
-
 void DLSSSuperResolutionDirect::DeleteFeature() {}
 
 nv::DLSS::State DLSSSuperResolutionDirect::getState() { return nv::DLSS::State::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE; }

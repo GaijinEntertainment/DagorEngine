@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options indenting = 4
 options strict_smart_pointers = true
 
@@ -19,6 +17,7 @@ module regex_boost shared private
 
 require daslib/ast
 require strings
+require math
 require daslib/ast_boost
 require daslib/regex public
 
@@ -46,7 +45,7 @@ class RegexReader : AstReaderMacro {
         var pattern = "{expr.sequence}"
         var ci = false
         var da = false
-        let tilde_pos = find(pattern, "~", length(pattern) - 4 > 0 ? length(pattern) - 4 : 0)
+        let tilde_pos = find(pattern, "~", max(0, length(pattern) - 4))
         if (tilde_pos != -1) {
             let flags_str = slice(pattern, tilde_pos + 1)
             var valid_flags = true
@@ -60,7 +59,7 @@ class RegexReader : AstReaderMacro {
                     break
                 }
             }
-            if (valid_flags && length(flags_str) > 0) {
+            if (valid_flags && !empty(flags_str)) {
                 pattern = slice(pattern, 0, tilde_pos)
             }
         }

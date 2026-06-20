@@ -27,10 +27,8 @@ class AnimData;
 
 // general anim interfaces
 class IGenericIrq;
-class AnimCommonStateHolder;
+class AnimGraphStateHolder;
 class IAnimBlendNode;
-typedef AnimCommonStateHolder IPureAnimStateHolder;
-typedef AnimCommonStateHolder IAnimStateHolder;
 
 // shareable animation graph
 class AnimationGraph;

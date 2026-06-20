@@ -3,6 +3,7 @@ include "gbuffer.dshl"
 include "rendinst_simple_inc.dshl"
 include "perlin_layered_inc.dshl"
 include "rendinst_plod_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_plod_perlin
 {
@@ -39,6 +40,7 @@ shader rendinst_plod_perlin
   INIT_PERLIN_LAYERED_VAR()
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   USE_PERLIN_LAYERED(ps)
   WRITE_GBUFFER()
   USE_NORMAL_DETAIL()
@@ -105,8 +107,8 @@ shader rendinst_plod_perlin
       input.tangent = fetchVertexColor8Attribute(vertexByteOffset + vertexStride - 4).xyz;
       output.vertexByteOffset = vertexByteOffset;
 
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal) * 2 - 1);
-      float3 localTangent = normalize(BGR_SWIZZLE(input.tangent) * 2 - 1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
+      float3 localTangent = normalize(unpack_unit_vector(input.tangent.xyz));
       float3 localPos = input.pos;
       float opacity = 1;
 

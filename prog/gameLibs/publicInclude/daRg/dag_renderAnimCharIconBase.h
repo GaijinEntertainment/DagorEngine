@@ -10,7 +10,6 @@
 #include <EASTL/vector.h>
 #include <EASTL/vector_map.h>
 
-#include <generic/dag_initOnDemand.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
@@ -21,29 +20,6 @@
 #include <math/dag_math3d.h>
 
 class DataBlock;
-
-template <typename TAnimCharIcon>
-class RenderAnimCharIconPF final : public PictureManager::PictureDelayedRenderFactory
-{
-public:
-  InitOnDemand<TAnimCharIcon, false> ctx;
-
-  virtual void registered() override { ctx.demandInit(); }
-  virtual void unregistered() override
-  {
-    ctx->clearPendReq();
-    ctx.demandDestroy();
-  }
-  virtual void clearPendReq() override { ctx ? ctx->clearPendReq() : (void)0; }
-  virtual bool match(const DataBlock &pic_props, int &out_w, int &out_h) override
-  {
-    return !ctx || ctx->match(pic_props, out_w, out_h);
-  }
-  virtual bool doRender(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid) override
-  {
-    return !ctx || ctx->render(to, x, y, w, h, info, pid);
-  }
-};
 
 namespace AnimV20
 {
@@ -166,10 +142,12 @@ class RenderAnimCharIconBase
 public:
   RenderAnimCharIconBase() = default;
   bool match(const DataBlock &pic_props, int &out_w, int &out_h);
-  bool render(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid);
+  bool render(const PictureManager::PictureRenderContext &pic_ctx);
   void clearPendReq();
 
 protected:
+  DataBlock applyDebugInfo(const DataBlock &info) const;
+
   enum class IconPrepareStatus : uint8_t
   {
     Failed,
@@ -187,14 +165,6 @@ protected:
     IconPrepareStatus status = IconPrepareStatus::Failed;
     IconAnimcharWithAttachments iconAnimchars;
     eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped;
-
-    Texture *to = nullptr;
-    int x = 0;
-    int y = 0;
-    int dstw = 0;
-    int dsth = 0;
-    const DataBlock *info = nullptr;
-    PICTUREID pid = BAD_PICTUREID;
   };
 
   IconSSAA applySSAA(const int dstw, const int dsth, const DataBlock &info) const;
@@ -204,18 +174,19 @@ protected:
     IconAnimcharWithAttachments ia;
   };
 
-  AnimcharPrefetch prepareAnimchar(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid);
-  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa);
+  AnimcharPrefetch prepareAnimchar(const PictureManager::PictureRenderContext &pic_ctx);
+  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &render_ctx,
+    const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA &icon_ssaa);
 
-  IconAnimcharRenderingContext beforeRender(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid);
+  IconAnimcharRenderingContext beforeRender(const PictureManager::PictureRenderContext &pic_ctx);
 
-  void resolveFinalTarget(const IconAnimcharRenderingContext &ctx, const IconSSAA icon_ssaa);
+  void resolveFinalTarget(const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA icon_ssaa, const bool use_icon_tonemap);
 
-  IconPrepareStatus renderInternal(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid);
+  IconPrepareStatus renderInternal(const PictureManager::PictureRenderContext &pic_ctx);
   void afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid);
 
-  virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa,
-    const Driver3dPerspective &persp) = 0;
+  virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &render_ctx, const PictureManager::PictureRenderContext &pic_ctx,
+    const IconSSAA &icon_ssaa, const Driver3dPerspective &persp) = 0;
   virtual bool needsResolveRenderTarget() = 0;
   virtual void ensureDim(int w, int h) = 0;
   virtual void onBeforeRender(const DataBlock &) {};
@@ -223,7 +194,7 @@ protected:
   virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) = 0;
   eastl::optional<SharedTexWithShaderVar> setEnviParams(const DataBlock &info);
   void setLightParams(const DataBlock &info, bool full_deferred);
-  void clear_to(E3DCOLOR col, Texture *to, int x, int y, int dstw, int dsth) const;
+  void clear_to(E3DCOLOR col, const PictureManager::PictureRenderContext &pic_ctx) const;
   eastl::unique_ptr<DeferredRenderTarget> target;
   UniqueTexWithShaderVar finalTarget;
   UniqueTexWithShaderVar finalTargetAA;

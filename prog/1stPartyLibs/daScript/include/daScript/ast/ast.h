@@ -25,6 +25,7 @@
 namespace das
 {
     struct AstSerializer;
+    class Visitor;
 
     class Function;
     typedef Function * FunctionPtr;
@@ -220,6 +221,8 @@ namespace das
                     bool            sealed : 1;
                     bool            implemented : 1;
                     bool            classMethod : 1;
+                    bool            _abstract : 1;
+                    bool            inherited : 1;
                 };
                 uint32_t            flags = 0;
             };
@@ -285,6 +288,9 @@ namespace das
         string describe() const { return name; }
         string getMangledName() const;
         bool hasAnyInitializers() const;
+        bool hasUserConstructor() const;
+        bool hasUserDefaultConstructor() const;
+        bool hasUserFinalizer() const;
         void serialize( AstSerializer & ser );
         void gc_collect ( gc_root * target, gc_root * from );
         uint64_t getOwnSemanticHash(HashBuilder & hb,das_set<Structure *> & dep, das_set<Annotation *> & adep) const;
@@ -378,6 +384,11 @@ namespace das
                 bool    pod_delete_gen : 1;         // pod delete has been generated
                 bool    single_return_via_move : 1; // this variable is returned via move, where function has only 1 return path (only set if force_pod_inscope is set)
                 bool    consumed : 1;               // this variable has been passed via consume (only set if force_pod_inscope is set)
+                // escape-analysis RESULT (exactly one of the four is set once a local is analyzed):
+                bool    does_not_escape : 1;        // provably does not escape its scope (freeable at scope exit)
+                bool    escapes_return : 1;         // escapes via a return
+                bool    escapes_argument : 1;       // escapes by being passed as a call/operator argument
+                bool    escapes_global : 1;         // escapes by being stored (assignment, into a global/outer location)
             };
             uint32_t flags = 0;
         };
@@ -684,6 +695,7 @@ namespace das
         virtual bool rtti_isFakeContext() const { return false; }
         virtual bool rtti_isFakeLineInfo() const { return false; }
         virtual bool rtti_isAscend() const { return false; }
+        virtual bool rtti_isNewExpr() const { return false; }
         virtual bool rtti_isTypeDecl() const { return false; }
         virtual bool rtti_isNullPtr() const { return false; }
         virtual bool rtti_isCopy() const { return false; }
@@ -691,7 +703,7 @@ namespace das
         virtual Expression * tail() { return this; }
         virtual bool swap_tail ( Expression *, Expression * ) { return false; }
         virtual uint32_t getEvalFlags() const { return 0; }
-        virtual void serialize ( AstSerializer & ser );
+        virtual void dispatch ( Visitor & vis );
         virtual void gc_collect ( gc_root * target, gc_root * from );
         LineInfo    at;
         TypeDeclPtr type = nullptr;
@@ -745,10 +757,16 @@ namespace das
         virtual bool rtti_isConstant() const override { return true; }
         template <typename QQ> QQ & cvalue() { return *((QQ *)&value); }
         template <typename QQ> const QQ & cvalue() const { return *((const QQ *)&value); }
-        virtual void serialize ( AstSerializer & ser ) override;
+        virtual void dispatch ( Visitor & vis ) override;
+        // Copies ExprConst's own fields (value + per-constant flags) on top of Expression::clone.
+        // Concrete ExprConst subclasses must route through here, not Expression::clone directly,
+        // or per-constant metadata (foldedNonConst, promotedFromInt, inexactFloatPromotion) is lost.
+        ExpressionPtr clone ( ExpressionPtr expr ) const override;
         Type    baseType = Type::none;
         vec4f   value = v_zero();
         bool    foldedNonConst = false;
+        bool    promotedFromInt = false;
+        bool    inexactFloatPromotion = false;
       };
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -767,8 +785,7 @@ namespace das
         }
         virtual ExpressionPtr clone( ExpressionPtr expr ) const override {
             auto cexpr = clonePtr<ExprConstExt>(expr);
-            Expression::clone(cexpr);
-            cexpr->value = value;
+            ExprConst::clone(cexpr);
             return cexpr;
         }
         virtual ExpressionPtr visit(Visitor & vis) override;
@@ -1154,10 +1171,13 @@ namespace das
         }
         bool compileBuiltinModule ( const string & name, const unsigned char * const str, unsigned int str_len );//will replace last symbol to 0
         static Module * require ( const string & name );
-        static Module * requireEx ( const string & name, bool allowPromoted );
+        static Module * requireEx ( const string & name, bool allowPromoted, const string & expectedFileName = string() );
         static void Initialize();
         static void CollectFileInfo(das::vector<FileInfoPtr> &accesses);
         static void Shutdown( bool dumpHandleLeaks = true );
+        // Runtime-only shutdown — for standalone exes built with `daslang -exe`,
+        // which link libDaScript*_runtime without the fusion engine. See issue #2583.
+        static void ShutdownStandalone( bool dumpHandleLeaks = false );
         static uint64_t CountHandleLeaks();
         static void Reset(bool debAg);
         static void ClearSharedModules();
@@ -1173,7 +1193,7 @@ namespace das
         void serialize( AstSerializer & ser, bool already_exists );
         void setModuleName ( const string & n );
         FileInfo * getFileInfo() const;
-        void gc_collect ( gc_root * from = nullptr );  // move reachable TypeDecl from 'from' root to module_gc_root
+        void gc_collect ( gc_root * from = nullptr, gc_root * target = nullptr );  // move reachable nodes from 'from' to 'target' (default module_gc_root)
     public:
         template <typename RecAnn>
         void initRecAnnotation ( RecAnn * rec, ModuleLibrary & lib ) {
@@ -1201,7 +1221,7 @@ namespace das
     public:
         smart_ptr<Context>                          macroContext;
         safebox<TypeDecl, TypeDeclPtr>                           aliasTypes;
-        das_hash_map<uint64_t, Annotation *>            handleTypes;
+        das_insert_only_hash_map<uint64_t, Annotation *>    handleTypes;
         safebox<Structure, StructurePtr>             structures;
         safebox<Enumeration, EnumerationPtr>        enumerations;
         safebox<Variable, VariablePtr>              globals;
@@ -1209,10 +1229,10 @@ namespace das
         fragile_hash<vector<Function*>>             functionsByName;    // all functions of the same name
         safebox<Function, FunctionPtr>              generics;           // mangled name 2 generic name
         fragile_hash<vector<Function*>>             genericsByName;     // all generics of the same name
-        mutable das_map<string, ExprCallFactory>    callThis;
-        das_map<string, unique_ptr<TypeInfoMacro>>   typeInfoMacros;
-        das_map<uint64_t, uint64_t>                 annotationData;
-        das_hash_map<Module *,bool>                 requireModule;      // visibility modules
+        mutable das_insert_only_map<string, ExprCallFactory>    callThis;
+        das_insert_only_map<string, unique_ptr<TypeInfoMacro>>  typeInfoMacros;
+        das_insert_only_map<uint64_t, uint64_t>             annotationData;
+        das_insert_only_hash_map<Module *,bool>             requireModule;  // visibility modules
         vector<unique_ptr<PassMacro>>               macros;             // infer macros (clean infer, assume no errors)
         vector<unique_ptr<PassMacro>>               inferMacros;        // infer macros (dirty infer, assume half-way-there tree)
         vector<unique_ptr<PassMacro>>               optimizationMacros; // optimization macros
@@ -1222,14 +1242,14 @@ namespace das
         vector<unique_ptr<ForLoopMacro>>            forLoopMacros;      // for loop macros (for every for loop)
         vector<unique_ptr<CaptureMacro>>            captureMacros;      // lambda capture macros
         vector<unique_ptr<SimulateMacro>>           simulateMacros;     // simulate macros (every time we simulate context)
-        das_map<string,unique_ptr<TypeMacro>>       typeMacros;         // type macros (every time we infer type)
-        das_map<string,unique_ptr<ReaderMacro>>     readMacros;         // %foo "blah"
+        das_insert_only_map<string,unique_ptr<TypeMacro>>   typeMacros; // type macros (every time we infer type)
+        das_insert_only_map<string,unique_ptr<ReaderMacro>> readMacros; // %foo "blah"
         unique_ptr<CommentReader>                   commentReader;      // /* blah */ or // blah
         vector<unique_ptr<CallMacro>>               ownedCallMacros;    // call macros (owned here, referenced from callThis lambdas)
         vector<pair<string,bool>>                   keywords;           // keywords (and if they need oxford comma)
         vector<string>                              typeFunctions;      // type functions
-        das_hash_map<string,Type>                   options;            // options
-        gc_root                                     module_gc_root;     // gc_node root for this module's gc-managed AST nodes
+        das_insert_only_hash_map<string,Type>       options;            // options
+        unique_ptr<gc_root>                         module_gc_root = make_unique<gc_root>();  // this module's gc-managed AST nodes; a pointer so it can be swapped O(1) during compile (collect live into a fresh root, swap, drop the old)
         uint64_t                                    cumulativeHash = 0; // hash of all mangled names in this module (for builtin modules)
         string                                      name;
         string                                      cppClassName;       // C++ class name (e.g. "Module_Math"), set by REGISTER_MODULE
@@ -1254,6 +1274,7 @@ namespace das
         Module * next = nullptr;
         unique_ptr<FileInfo>    ownFileInfo;
         FileAccessPtr           promotedAccess;
+        static void shutdownInternal ( bool dumpHandleLeaks, bool resetFusion );
     };
 
     #define REGISTER_MODULE(ClassName) \
@@ -1496,6 +1517,7 @@ namespace das
         bool        completion = false;                 // this code is being compiled for 'completion' mode
         bool        lint_check = false;                 // this code is being compiled for lint/style checking
         bool        no_lint = false;                    // skip Program::lint() entirely
+        bool        no_init_check = false;              // skip the Module::Initialize() assert, most of the time should be false (except maybe dynamic-module discovery)
         bool        export_all = false;                 // when user compiles, export all (public?) functions
         bool        serialize_main_module = true;       // if false, then we recompile main module each time
         bool        keep_alive = false;                 // produce keep-alive noodes
@@ -1517,6 +1539,12 @@ namespace das
                                                         // this is slightly faster, but prohibits AOT or patches
         bool        macro_context_persistent_heap = true;   // if true, then persistent heap is used for macro context
         bool        macro_context_collect = false;          // GC collect macro context after major passes
+    // per-pass AST gc during infer: collect the working root's live tree into a fresh root and
+    // swap it in (O(1)), letting the old root's dtor sweep that pass's garbage. Caps the compile
+    // memory peak (infer churns many throwaway TypeDecls/Expressions) at ~no time cost.
+        /*option*/ bool        gc_infer_collect = true;            // enable per-pass collect+swap during inference
+        /*option*/ int32_t     gc_infer_collect_nodes = 25000;     // fire when the root grew by this many nodes since the last collect (~2 MB)
+        /*option*/ int32_t     gc_infer_collect_pct = 50;          // ...or by this percent of the live set, whichever comes first
         uint64_t    max_static_variables_size = 0x100000000;   // 4GB
         /*option*/ uint64_t    max_heap_allocated = 0;
         /*option*/ uint64_t    max_string_heap_allocated = 0;
@@ -1555,7 +1583,6 @@ namespace das
         /*option*/ bool no_unsafe_uninitialized_structures = true; // if true, then unsafe uninitialized structures are not allowed
         /*option*/ bool strict_properties = false;                 // if true, then properties are strict, i.e. a.prop = b does not get promoted to a.prop := b
         /*option*/ bool no_writing_to_nameless = true;             // if true, then writing to nameless variables (intermediate on the stack) is not allowed
-        /*option*/ bool always_call_super = false;                  // if true, then super() needs to be called from every class constructor
     // environment
         /*option*/ bool no_optimizations = false;                  // disable optimizations, regardless of settings
         /*option*/ bool no_infer_time_folding = false;             // disable infer-time constant folding
@@ -1563,10 +1590,15 @@ namespace das
         bool fail_on_lack_of_aot_export = false;        // remove_unused_symbols = false is missing in the module, which is passed to AOT
         /*option*/ bool log_compile_time = false;                  // if true, then compile time will be printed at the end of the compilation
         /*option*/ bool log_total_compile_time = false;            // if true, then detailed compile time will be printed at the end of the compilation
+        /*option*/ bool log_module_compile_time = false;           // if true, every required module logs its own parse / infer (with pass count) / optimize / macro (in infer) / macro mods breakdown + function count; also enables per-context simulate timing and the top-level aggregate summary (CLI: -log-compile-time)
         /*option*/ bool no_fast_call = false;                      // disable fastcall
         /*option*/ bool scoped_stack_allocator = true;             // reuse stack memory after variables out of scope
         /*option*/ bool force_inscope_pod = false;                 // force in-scope for POD-like types
         /*option*/ bool log_inscope_pod = false;                   // log in-scope for POD-like types
+        /*option*/ bool force_escape_free = false;                 // escape analysis: statically free non-escaping new-pointer locals at scope exit
+        /*option*/ bool force_allocate_on_stack = true;            // escape analysis: stack-allocate non-escaping new-pointer locals (no heap)
+        /*option*/ bool log_escape_analysis = false;               // log escape-analysis static frees
+        /*option*/ bool log_gc_time = false;                       // log gc time
     // debugger
         //  when enabled
         //      1. disables [fastcall]
@@ -1591,7 +1623,7 @@ namespace das
         bool jit_emit_prologue = false;          // Emit prologue for all functions and blocks
         string jit_output_path;                  // Folder to store compiled dll's. By default it'll be _das_root_/.jitted_scripts
         int32_t jit_opt_level = 3u;              // Opt level for LLVM to codegen and IR optimizations
-        int32_t jit_size_level = 3u;             // Opt level for LLVM for binary size
+        int32_t jit_size_level = 0u;             // Opt level for LLVM for binary size
         string jit_path_to_shared_lib;           // Path to libDaScript. Optional, we'll try to find it in _das_root_/lib/ if not provided.
         string jit_path_to_linker;               // Path to linker. Optional, we'll use clang-cl from LLVM on Windows and cc otherwise.
     // dll loading
@@ -1681,6 +1713,8 @@ namespace das
         void validateAst();
         void optimize(TextWriter & logs, ModuleGroup & libGroup);
         bool inScopePodAnalysis(TextWriter & logs);
+        bool escapeAnalysis(TextWriter & logs);             // pure analysis: sets Variable::does_not_escape
+        bool scopeFreeOptimization(TextWriter & logs);      // consumes the analysis result: emits scope-exit frees
         void markSymbolUse(bool builtInSym, bool forceAll, bool initThis, Module * macroModule, TextWriter * logs = nullptr);
         void markModuleSymbolUse(TextWriter * logs = nullptr);
         void markMacroSymbolUse(TextWriter * logs = nullptr);
@@ -1696,6 +1730,7 @@ namespace das
         bool simulate ( Context & context, TextWriter & logs, StackAllocator * sharedStack = nullptr );
         uint64_t getInitSemanticHashWithDep( uint64_t initHash );
         void error ( const string & str, const string & extra, const string & fixme, const LineInfo & at, CompilationError cerr = CompilationError::unspecified );
+        void deduplicateErrors ();
         bool failed() const { return failToCompile || macroException; }
         static ExpressionPtr makeConst ( const LineInfo & at, const TypeDeclPtr & type, vec4f value );
         ExprLooksLikeCall * makeCall ( const LineInfo & at, const string & name );
@@ -1751,6 +1786,7 @@ namespace das
         int                         totalFunctions = 0;
         int                         totalVariables = 0;
         int                         newLambdaIndex = 1;
+        int                         inferPassesUsed = 0;   // sum of inferTypesDirty inner-loop pass counts across all inferTypes calls (incl. restartInfer legs) for this module; reset by parseDaScript once per module-compile; used by per-module compile-time log
         vector<Error>               errors;
         vector<Error>               aotErrors;
         uint32_t                    globalInitStackSize = 0;
@@ -1779,13 +1815,6 @@ namespace das
         vector<tuple<Module *,string,string,bool,LineInfo>> allRequireDecl;
         das_hash_map<uint64_t,TypeDecl *> astTypeInfo;
     };
-
-    // module parsing routines
-    string getModuleName ( const string & nameWithDots );
-    string getModuleFileName ( const string & nameWithDots );
-
-    // template name parsing routines
-    bool starts_with ( const string & name, const char * template_name );
 
     // access function from class adapter
     DAS_API int adapt_field_offset ( const char * fName, const StructInfo * info );
@@ -1877,6 +1906,7 @@ namespace das
         vector<DynamicModuleInfo> *g_dyn_modules_resolve = nullptr;
         inline static DAS_THREAD_LOCAL(DebugAgentInstance *) g_threadLocalDebugAgent;
         uint64_t        dataWalkerStringLimit = 0;
+        bool            g_modulesInitialized = false;
 
 
         static daScriptEnvironment *getBound();

@@ -435,7 +435,8 @@ struct RiExtraBVHJob : public cpujobs::IJob
               //  debug("riExtra tree: %s", name.data());
               TreeInfo treeInfo;
               MeshMetaAllocator::AllocId metaAllocId = MeshMetaAllocator::INVALID_ALLOC_ID;
-              bool isStationary = !instance_needs_animation(worldBsphereForAnimation, viewFrustum, viewPositionVec, lightDirection);
+              bool isStationary = !instance_needs_animation_broad_phase_with_distance_rate(worldBsphereForAnimation, viewFrustum,
+                viewPositionVec, lightDirection);
               if (!isStationary && v_test_vec_x_gt_0(ri_tree_anim_max_distance_sq_v))
                 isStationary = // TODO: move all these out of the loop, but check if the batch has trees, also put this under a
                                // template filter
@@ -816,7 +817,7 @@ void update_ri_extra_instances(ContextId context_id, const Point3 &view_position
 
   jobGroup.nextGroupIx.store(0);
 
-  const vec4f lightDirection = light_direction_for_animation(light_direction);
+  const vec4f lightDirection = v_ldu_p3_safe(&light_direction.x);
   const unsigned chunkBudgetItems = bvh_ri_extra_split_enabled ? (unsigned)bvh_ri_extra_split_chunk_budget.get() : ~0u;
   const bool globalObjectTessellationEnabled = is_global_object_tessellation_enabled();
 

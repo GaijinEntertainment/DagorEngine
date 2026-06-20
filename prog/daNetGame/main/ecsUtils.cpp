@@ -210,6 +210,7 @@ ecs::EntityId create_simple_entity(ecs::EntityManager &mgr, const char *templ_na
 Tab<const char *> ecs_get_global_tags_context()
 {
   Tab<const char *> globalTags(framemem_ptr());
+  globalTags.push_back("gEntityMgr");
   if (has_network())
     globalTags.push_back("net");
   globalTags.push_back(is_server() ? "server" : "netClient"); // Note: currently is_server() might return false only within network

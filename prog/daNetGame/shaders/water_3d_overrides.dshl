@@ -27,6 +27,7 @@ float foam_tiling = 0.4113;
 
 float water_reflection_hdr_multiplier = 1;
 float object_reflection_distortion = 0.05;
+float foam_shadow_brightness_artistic = 0.02;
 
 int water_rt_enabled = 0;
 interval water_rt_enabled: no<1, yes;

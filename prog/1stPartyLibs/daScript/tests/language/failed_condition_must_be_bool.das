@@ -2,9 +2,7 @@
 // verifies compiler rejects non-bool conditions in if/ternary,
 // type mismatches in ternary branches, and writes to non-references
 options gen2
-expect 30601:2  // condition_must_be_boolean
-expect 30303    // operator_not_found
-expect 30506    // cant_write_to_non_reference
+expect 30183, 30411, 30915, 31401  // condition_must_be_boolean
 
 def test {
     var a : int

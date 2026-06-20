@@ -5,6 +5,7 @@
 #include <debug/dag_log.h>
 #include <gameRes/dag_collisionResource.h>
 #include <vecmath/dag_vecMath.h>
+#include <EASTL/fixed_vector.h>
 
 // Legacy (SW masked-occlusion-culling) occluder feeder. BLAS-resident nodes drop their
 // ownVertices/ownIndices; verts live in the grid's vert21 array (8 B/vert). Handled by consumer
@@ -111,6 +112,7 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
         task.bmin = v_zero();
         task.bmax = v_splats(2097120.f);
         task.blasData = occlGrid.blasData.data();
+        task.vertOffset = occlGrid.blasVertsOfs();
         task.treeStart = 0; //-V1048 intentional: whole-tree range [treeStart, treeEnd), paired with treeEnd below
         task.treeEnd = occlGrid.blasTreeBytes;
         task.triSkip = triStart;
@@ -119,6 +121,21 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
         out_tasks.emplace_back(task);
       }
     }
+  }
+
+  // Precompute BLAS-task membership as one bit per node (keyed by nodeIndex) so the per-node loop
+  // tests O(1). blasNodeRanges is sorted by verticesOfs (not nodeIndex), so a per-node linear scan
+  // would be O(nodes * ranges) every frame. Bit-packed in inline fixed_vector storage: a resource
+  // with up to 256 nodes (almost all -- most have under 32) needs no allocation; framemem overflow
+  // covers the rare larger one.
+  eastl::fixed_vector<uint32_t, 8, true, framemem_allocator> coveredByBlasTask;
+  const uint32_t nodeCount = (uint32_t)allNodes.size();
+  if (blasTaskSubmitted)
+  {
+    coveredByBlasTask.resize((nodeCount + 31u) / 32u, 0);
+    for (const auto &nr : occlGrid.blasNodeRanges)
+      if (nr.nodeIndex < nodeCount)
+        coveredByBlasTask[nr.nodeIndex >> 5] |= 1u << (nr.nodeIndex & 31u);
   }
 
   for (int ni = 0, ne = (int)allNodes.size(); ni < ne; ++ni)
@@ -134,18 +151,9 @@ void CollisionGeometryFeeder::addRasterizationTasks(const CollisionResource &col
     // double-rasterize). Membership in blasNodeRanges -- not BLAS_RESIDENT -- is the right key: a
     // node with post-dup vert span > 65536 keeps its NodeRange but stays non-resident (retains
     // ownVertices), yet its triangles are in the submitted task all the same.
-    if (blasTaskSubmitted)
-    {
-      bool inBlas = false;
-      for (const auto &nr : occlGrid.blasNodeRanges)
-        if (nr.nodeIndex == node->nodeIndex)
-        {
-          inBlas = true;
-          break;
-        }
-      if (inBlas)
-        continue;
-    }
+    if (
+      blasTaskSubmitted && node->nodeIndex < nodeCount && ((coveredByBlasTask[node->nodeIndex >> 5] >> (node->nodeIndex & 31u)) & 1u))
+      continue;
     if (node->flags & CollisionNode::BLAS_RESIDENT)
     {
       // Resident node with NO covering RenderBLAS task: its raw verts were dropped at load and the

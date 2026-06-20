@@ -88,8 +88,9 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
           ##endif
         ##endif
 
-        float4 nukeWave = loadBuffer(nuke_atmospheric_effects, i * 2 + 0).xyzw;
-        float4 nukePosExtFade  = loadBuffer(nuke_atmospheric_effects, i * 2 + 1).xyzw;
+        float4 nukeWave = loadBuffer(nuke_atmospheric_effects, i * 3 + 0).xyzw;
+        float4 nukePosExtFade = loadBuffer(nuke_atmospheric_effects, i * 3 + 1).xyzw;
+        float4 nukeCondThicknessRandomOfs = loadBuffer(nuke_atmospheric_effects, i * 3 + 2).xyzw;
         nukePosExtFade.xyz += float3(clouds_origin_offset.x, 0, clouds_origin_offset.y);
 
         float waveDistance = nukeWave.x;
@@ -110,11 +111,11 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
         // simulate shift of atmospheric layers by heat flow
         float heightShifted =  p.y + 500*pow2(0.3 * nukeDistanceExt/extinctionDistance);
 
-        float sin51 = sin(heightShifted * 0.0051);
-        float sin36 = sin(heightShifted * 0.0036);
+        float sin51 = sin(heightShifted * 0.0051 + nukeCondThicknessRandomOfs.y);
+        float sin36 = sin(heightShifted * 0.0036 + nukeCondThicknessRandomOfs.z);
 
-        float extinction = saturate(3*((nukeDistanceExt/extinctionDistance) - 1 + 0.25 * sin51));
-        float condensationDistance = saturate(3*(1.5 + 0.2*sin51 + 0.2*sin36 - (0.6*nukeDistance + 0.4*nukeDistanceExt)/extinctionDistance));
+        float extinction = saturate(3*((nukeDistanceExt/extinctionDistance) - 1*saturate(3*nukePosExtFade.w) + 0.25 * sin51));
+        float condensationDistance = saturate(3*(1.5f + 0.2*sin51 + 0.2*sin36 - (0.6*nukeDistance + 0.4*nukeDistanceExt)/extinctionDistance));
 
         BRANCH
         if (inversion>0)
@@ -135,9 +136,9 @@ macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
           BRANCH
           if (extinction * condensationDistance > 0)
           {
-            float sin72 = sin(heightShifted * 0.014283);
-            float newDensity = 0.5*saturate(extinction * condensationDistance + 0.65 * noise.x - 0.4) * saturate(0.25 + 0.33*sin72 + 0.43*sin51) * newDensityMul;
-            cloudDensity3 = newDensity * nukePosExtFade.w;
+            float sin72 = sin(heightShifted * 0.014283 + nukeCondThicknessRandomOfs.w);
+            float newDensity = 0.5*saturate(extinction * condensationDistance + 0.65 * noise.x - 0.4) * saturate(nukeCondThicknessRandomOfs.x + 0.33*sin72 + 0.43*sin51) * newDensityMul;
+            cloudDensity3 = newDensity * pow2(nukePosExtFade.w);
             ##if !for_render
               if (cloudDensity3 > 0)
                 return true;

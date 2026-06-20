@@ -367,9 +367,10 @@ shader fast_grass_precomp
     uint sampleGrassChannel(Texture2D tex, float2 grass_mask_tc, float2 dim)
     {
       float2 bilW = frac(grass_mask_tc * dim - 0.5f);
+      // Gather quad: x=(0,1), y=(1,1), z=(1,0), w=(0,0); pick the texel nearest to the sample point
       float4 red = tex.GatherRed(grass_mask_tex_samplerstate, grass_mask_tc);
       float2 redX = bilW.y>0.5 ? red.xy : red.wz;
-      float redChannel = bilW.x>0.5 ? redX.x : redX.y;
+      float redChannel = bilW.x>0.5 ? redX.y : redX.x;
       return uint(redChannel*255);
     }
 

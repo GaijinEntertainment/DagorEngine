@@ -34,6 +34,9 @@ Running only **some** selected benchmarks (uses `vector_alloc` as a filtering pr
 - `--verbose`: Print verbose output
 - `--timeout <seconds>`: If tests run longer than duration d, panic. If d is 0, the timeout is disabled. The default is 10 minutes
 - `--isolated-mode`: Run tests in isolated processes, useful to catch crashes
+- `--isolated-mode-threads <n>`: Number of worker threads in isolated mode (defaults to 2x hardware threads when 0)
+- `--batch <n>`: Files per worker subprocess in isolated mode (semi-isolated sharding). `1` (default) is one process per test (full isolation). `>1` amortizes process/compile cold-start across a batch — much faster, especially on Windows. A crash in a batch is auto-recovered: the file that died is reported as crashed and the rest of the batch is re-run one-process-per-file, so isolation is preserved exactly where it is needed.
+- `--stack-on-exception`: On a test panic, walk the call stack *at throw time* (frames intact) and print a real `CALL STACK` trace, instead of the default that reports only the panic message and location. Off by default (a test that swallows a panic via `try`/`recover` would also emit a walk); enable for one-iteration debugging of a failing/crashing test. Works in isolated mode too — the trace is folded under the failing test's log.
 - `--bench`: Enable benchmark execution (all of them)
 - `--bench-names <namePrefix>`: Run top-level benchmark matching "namePrefix"
 - `--bench-format <format>`: Specifies the benchmark output format ("native", "go" or "json")
@@ -43,7 +46,7 @@ Note that benchmarks will be executed only if all module tests have already pass
 
 #### Internal arguments
 
-- `--run`: Path to the single script file to run tests in isolated mode
+- `--run`: Script file(s) to run in a single subprocess (repeatable). Used by isolated/semi-isolated mode to dispatch a batch to one worker; each file streams its own JSON report so the parent can attribute results and recover from a mid-batch crash
 
 ## Examples
 

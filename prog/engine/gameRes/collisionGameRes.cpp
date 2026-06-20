@@ -64,7 +64,7 @@ struct BlasLocalUnquant
   vec3f bmin, invScale;
   __forceinline vec3f operator()(const uint8_t *d, int baseOfs, uint vertIdx) const
   {
-    vec3f q = RayData::unpackVert21(d + baseOfs + vertIdx * 8);
+    vec3f q = RayData::unpackVert21(d + baseOfs + vertIdx * BVH_BLAS_VERT21_STRIDE);
     return v_madd(q, invScale, bmin);
   }
   static BlasLocalUnquant make(vec3f blas_bmin, vec3f blas_scale)
@@ -105,7 +105,7 @@ static inline uint16_t blas_src_node_for_leaf(const CollisionResource::Grid &g, 
   const uint32_t v0ByteOfs = (uint32_t)((int)blas_offset + ofs1Rel);
   G_ASSERTF(v0ByteOfs >= g.blasVertsOfs(), "BLAS leaf vert byte offset %u is inside the tree region (vertsOfs=%u, blasOffset=%u)",
     v0ByteOfs, g.blasVertsOfs(), blas_offset);
-  const uint32_t v0Idx = (v0ByteOfs - g.blasVertsOfs()) / 8u;
+  const uint32_t v0Idx = (v0ByteOfs - g.blasVertsOfs()) / BVH_BLAS_VERT21_STRIDE;
   const auto *first = g.blasNodeRanges.data();
   const auto *last = first + g.blasNodeRanges.size();
   auto it =
@@ -1484,14 +1484,14 @@ void CollisionResource::resolveNodeVertsForCall(const CollisionNode &node, dag::
     out_node = &node;
     return;
   }
-  const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)node.verticesOfs * 8u;
+  const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)node.verticesOfs * BVH_BLAS_VERT21_STRIDE;
   const vec3f invScale = g.blasInvScale;
   const vec3f bmin = g.blasBBox.bmin;
   const uint32_t vc = (uint32_t)node.verticesCount + 1u;
   vertsScratch.resize(vc);
   for (uint32_t i = 0; i < vc; ++i)
   {
-    vec3f q = RayData::unpackVert21(vbase + i * 8u);
+    vec3f q = RayData::unpackVert21(vbase + i * BVH_BLAS_VERT21_STRIDE);
     v_st(&vertsScratch[i].x, v_madd(q, invScale, bmin));
   }
   // ownIndices was dropped; materialise from the BLAS leaf walk and rebase indicesOfs to 0 so
@@ -2013,16 +2013,16 @@ bool CollisionResource::getNodeFaceVerts(int node_id, int face_idx, Point3 &v0, 
     const Grid &g = getBlasGridForResidentNode(*n);
     if (g.blasData.empty())
       return false;
-    const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+    const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * BVH_BLAS_VERT21_STRIDE;
     const vec3f invScale = g.blasInvScale;
     const vec3f bmin = g.blasBBox.bmin;
     bool found = false;
     walkBlasResidentNodeLeavesForFaces(*n, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
       if (found || fi != face_idx)
         return;
-      vec3f q0 = RayData::unpackVert21(vbase + i0 * 8u);
-      vec3f q1 = RayData::unpackVert21(vbase + i1 * 8u);
-      vec3f q2 = RayData::unpackVert21(vbase + i2 * 8u);
+      vec3f q0 = RayData::unpackVert21(vbase + i0 * BVH_BLAS_VERT21_STRIDE);
+      vec3f q1 = RayData::unpackVert21(vbase + i1 * BVH_BLAS_VERT21_STRIDE);
+      vec3f q2 = RayData::unpackVert21(vbase + i2 * BVH_BLAS_VERT21_STRIDE);
       v_stu_p3(&v0.x, v_madd(q0, invScale, bmin));
       v_stu_p3(&v1.x, v_madd(q1, invScale, bmin));
       v_stu_p3(&v2.x, v_madd(q2, invScale, bmin));
@@ -2086,9 +2086,9 @@ bool CollisionResource::getNodeFaceVertsByRef(tri_ref_t ref, Point3 &v0, Point3 
   const uint8_t *vbase = d + L.vertBytesOfs;
   const vec3f invScale = g.blasInvScale;
   const vec3f bmin = g.blasBBox.bmin;
-  v_stu_p3(&v0.x, v_madd(RayData::unpackVert21(vbase + k0 * 8u), invScale, bmin));
-  v_stu_p3(&v1.x, v_madd(RayData::unpackVert21(vbase + k1 * 8u), invScale, bmin));
-  v_stu_p3(&v2.x, v_madd(RayData::unpackVert21(vbase + k2 * 8u), invScale, bmin));
+  v_stu_p3(&v0.x, v_madd(RayData::unpackVert21(vbase + k0 * BVH_BLAS_VERT21_STRIDE), invScale, bmin));
+  v_stu_p3(&v1.x, v_madd(RayData::unpackVert21(vbase + k1 * BVH_BLAS_VERT21_STRIDE), invScale, bmin));
+  v_stu_p3(&v2.x, v_madd(RayData::unpackVert21(vbase + k2 * BVH_BLAS_VERT21_STRIDE), invScale, bmin));
   return true;
 }
 
@@ -2908,7 +2908,7 @@ private:
         // node_b's range); leaves owned by sibling nodes are skipped.
         const int ofs1Rel = ((const int *)(bData + dataOfs))[0];
         const uint32_t v0ByteOfs = (uint32_t)((int)dataOfs + ofs1Rel);
-        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / 8u;
+        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / BVH_BLAS_VERT21_STRIDE;
         if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
           return false; // not this node's leaf
         candidateTris.push_back({v0, v1, v2});
@@ -3316,7 +3316,7 @@ bool CollisionResource::testMeshNodePair(const CollisionNode *node1, dag::ConstS
       [&res2Faces, bData, vertsOfs, nodeVOfs, nodeVEnd](vec3f v0, vec3f v1, vec3f v2, int dataOfs) -> bool { //-V657
         const int ofs1Rel = ((const int *)(bData + dataOfs))[0];
         const uint32_t v0ByteOfs = (uint32_t)((int)dataOfs + ofs1Rel);
-        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / 8u;
+        const uint32_t v0Idx = (v0ByteOfs - vertsOfs) / BVH_BLAS_VERT21_STRIDE;
         if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
           return false; // sibling-node leaf
         Point3_vec4 p0, p1, p2;
@@ -3786,6 +3786,7 @@ void CollisionResource::Grid::reset()
   blasData.shrink_to_fit();
   v_bbox3_init_empty(blasBBox);
   blasScale = v_zero();
+  blasInvScale = v_zero(); // paired cache (1/blasScale): reset together or vert21 decode reads a stale inverse
   blasOfs = v_zero();
   blasTreeBytes = 0;
   blasNodeRanges.clear();

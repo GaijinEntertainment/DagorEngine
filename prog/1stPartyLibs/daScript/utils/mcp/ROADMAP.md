@@ -31,7 +31,7 @@ Future tools for the daslang MCP server, organized by priority and difficulty.
 
 - **`.das_project` support** — all file-based tools accept an optional `project` parameter pointing to a `.das_project` file for custom module resolution and sandboxing
 - **Request logging** — file-based logging with timestamps for debugging
-- **Unified file utilities** — shared `resolve_path()`, `make_relative_path()`, `expand_glob()`, `parse_file_list()` in `tools/common.das` used by `compile_check` and `grep_usage`. Glob patterns support `!pattern` exclusion (gitignore-style)
+- **Unified file utilities** — `resolve_path()` and `make_relative_path()` live in `tools/common.das`; `expand_glob()` and `parse_file_list()` were promoted to `daslib/fio` so any CLI tool can use them, not just MCP. Glob patterns: `*` / `?` / `**` / `[abc]` / `[!abc]`. (`!pattern` gitignore-style exclusion is not implemented; use `glob_filtered` with explicit excludes)
 
 ### Cursor-based tools implementation notes
 

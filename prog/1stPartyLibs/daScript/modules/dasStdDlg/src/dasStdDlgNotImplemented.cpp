@@ -22,8 +22,4 @@ namespace das {
 	string GetOpenFileFromUser ( const char *, const char * ) {
         return "";
 	}
-
-	string GetOpenFolderFromUser ( const char * ) {
-        return "";
-	}
 }

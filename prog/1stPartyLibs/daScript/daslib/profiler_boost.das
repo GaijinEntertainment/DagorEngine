@@ -1,8 +1,6 @@
 options gen2
 options indenting = 4
 options unsafe_table_lookup = false
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module profiler_boost shared private

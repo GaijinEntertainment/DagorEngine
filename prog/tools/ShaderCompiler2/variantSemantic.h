@@ -177,6 +177,12 @@ inline constexpr bool vt_is_tex(VariableType vt)
 
 inline constexpr bool vt_is_buf(VariableType vt) { return vt == VariableType::buf; }
 
+inline constexpr bool vt_is_cbuf(VariableType vt) { return vt == VariableType::cbuf; }
+inline constexpr bool vt_is_tlas(VariableType vt) { return vt == VariableType::tlas; }
+inline constexpr bool vt_is_uav(VariableType vt) { return vt == VariableType::uav; }
+inline constexpr bool vt_is_sampler(VariableType vt) { return vt == VariableType::sampler || vt == VariableType::cmpSampler; }
+
+
 inline constexpr int vt_float_size(VariableType vt)
 {
   switch (vt)

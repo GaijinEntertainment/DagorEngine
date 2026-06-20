@@ -7,6 +7,10 @@
 #include "daScript/ast/ast_serializer.h"
 #include "daScript/misc/free_list.h"
 #include "daScript/misc/gc_node.h"
+#include "daScript/simulate/runtime_array.h"
+#include "daScript/simulate/runtime_table.h"
+#include "daScript/simulate/hash.h"
+#include <cstddef>
 
 using namespace das;
 
@@ -148,11 +152,22 @@ void das_modulegroup_release ( das_module_group * group ) {
 
 int das_register_dynamic_modules ( das_file_access *file_access,
                                     const char *project_root,
+                                    const char * const * load_module_paths,
+                                    uint32_t num_load_module_paths,
                                     das_text_writer *tout ) {
     TextPrinter printer;
     TextWriter *writer = tout != nullptr ? (TextWriter *)tout : &printer;
+    vector<string> load_modules;
+    if (load_module_paths) {
+        load_modules.reserve(num_load_module_paths);
+        for (uint32_t i = 0; i < num_load_module_paths; ++i) {
+            if (load_module_paths[i]) {
+                load_modules.emplace_back(load_module_paths[i]);
+            }
+        }
+    }
     bool res = require_dynamic_modules((FileAccess *)file_access, project_root,
-                    project_root, *writer);
+                    project_root, load_modules, *writer);
     return !res;
 }
 
@@ -997,5 +1012,343 @@ uint32_t das_func_info_get_flags ( das_func_info * info ) {
 int das_func_info_get_stack_size ( das_func_info * info ) {
     return (int) ((FuncInfo *)info)->stackSize;
 }
+
+// --- Layout sync: das_array / das_table mirror Array / Table exactly ---
+// These asserts catch silent ABI drift between the C header and the C++ runtime.
+// If the C++ side adds/removes/reorders fields in Array or Table, update das_array
+// / das_table in daScriptC.h to match and add the new offset assert here.
+//
+// Note: Array's `magic` and `lock` fields are protected in C++, so we can't
+// take their offsets directly. We rely on `flags` (the only public field after
+// magic/lock) being at the expected offset, plus the total size match — which
+// together pin every byte between `capacity` and `flags`.
+
+static_assert(sizeof(das_array) == sizeof(Array),
+    "das_array size must match das::Array — update daScriptC.h to mirror arraytype.h");
+static_assert(offsetof(das_array, data)     == offsetof(Array, data),     "das_array.data offset drift");
+static_assert(offsetof(das_array, size)     == offsetof(Array, size),     "das_array.size offset drift");
+static_assert(offsetof(das_array, capacity) == offsetof(Array, capacity), "das_array.capacity offset drift");
+static_assert(offsetof(das_array, flags)    == offsetof(Array, flags),    "das_array.flags offset drift");
+
+static_assert(sizeof(das_table) == sizeof(Table),
+    "das_table size must match das::Table — update daScriptC.h to mirror arraytype.h");
+static_assert(offsetof(das_table, data)       == offsetof(Table, data),       "das_table.data offset drift");
+static_assert(offsetof(das_table, size)       == offsetof(Table, size),       "das_table.size offset drift");
+static_assert(offsetof(das_table, capacity)   == offsetof(Table, capacity),   "das_table.capacity offset drift");
+static_assert(offsetof(das_table, flags)      == offsetof(Table, flags),      "das_table.flags offset drift");
+static_assert(offsetof(das_table, keys)       == offsetof(Table, keys),       "das_table.keys offset drift");
+static_assert(offsetof(das_table, hashes)     == offsetof(Table, hashes),     "das_table.hashes offset drift");
+static_assert(offsetof(das_table, tombstones) == offsetof(Table, tombstones), "das_table.tombstones offset drift");
+
+// --- Context heap ---
+
+void * das_context_allocate ( das_context * context, uint32_t size ) {
+    if ( !size ) return nullptr;
+    return ((Context *)context)->allocate(size, nullptr);
+}
+
+void * das_context_reallocate ( das_context * context, void * ptr, uint32_t old_size, uint32_t new_size ) {
+    // The runtime allocator's reallocate path doesn't handle new_size==0 — it
+    // routes through allocate(0) which returns null, then DAS_VERIFY fires.
+    // Implement realloc-to-zero here as free + return NULL so the C-side
+    // contract (free the block and return NULL) holds independent of which
+    // heap impl the context is using.
+    if ( !new_size ) {
+        if ( ptr ) {
+            // Mirror the das_context_free guard — old_size must match the
+            // allocation, and 0 with non-null is a caller bug that some heap
+            // impls assert on.
+            if ( !old_size ) {
+                ((Context *)context)->throw_error("das_context_reallocate: old_size must be non-zero when ptr is non-null");
+                return nullptr;
+            }
+            ((Context *)context)->free((char *)ptr, old_size, nullptr);
+        }
+        return nullptr;
+    }
+    return ((Context *)context)->reallocate((char *)ptr, old_size, new_size, nullptr);
+}
+
+void das_context_free ( das_context * context, void * ptr, uint32_t size ) {
+    if ( !ptr ) return;
+    if ( !size ) {
+        // Some heap impls handle free(ptr, 0) cleanly, others assert. The C
+        // contract requires `size` to match the allocation — fail loud rather
+        // than silently corrupt the heap accounting.
+        ((Context *)context)->throw_error("das_context_free: size must be non-zero when ptr is non-null");
+        return;
+    }
+    ((Context *)context)->free((char *)ptr, size, nullptr);
+}
+
+// --- Context heap (64-bit size) ---
+
+void * das_context_allocate_i64 ( das_context * context, uint64_t size ) {
+    if ( !size ) return nullptr;
+    return ((Context *)context)->allocate(size, nullptr);
+}
+
+void * das_context_reallocate_i64 ( das_context * context, void * ptr, uint64_t old_size, uint64_t new_size ) {
+    if ( !new_size ) {
+        if ( ptr ) {
+            if ( !old_size ) {
+                ((Context *)context)->throw_error("das_context_reallocate_i64: old_size must be non-zero when ptr is non-null");
+                return nullptr;
+            }
+            ((Context *)context)->free((char *)ptr, old_size, nullptr);
+        }
+        return nullptr;
+    }
+    return ((Context *)context)->reallocate((char *)ptr, old_size, new_size, nullptr);
+}
+
+void das_context_free_i64 ( das_context * context, void * ptr, uint64_t size ) {
+    if ( !ptr ) return;
+    if ( !size ) {
+        ((Context *)context)->throw_error("das_context_free_i64: size must be non-zero when ptr is non-null");
+        return;
+    }
+    ((Context *)context)->free((char *)ptr, size, nullptr);
+}
+
+// --- Arrays ---
+
+void das_array_init ( das_array * arr ) {
+    memset(arr, 0, sizeof(das_array));
+}
+
+void das_array_init_borrowed ( das_array * arr, void * data, uint32_t count, uint32_t capacity ) {
+    memset(arr, 0, sizeof(das_array));
+    array_mark_locked(*(Array *)arr, data, count, capacity);
+    // Set `flags.shared=true` so das_array_lock / das_array_unlock become
+    // runtime no-ops on this array — short-circuited by the matching guards
+    // in array_lock/array_unlock. Prevents a misuse-by-unlock from dropping
+    // the lock to 0 and letting a subsequent resize/delete corrupt the
+    // C-owned buffer. Resize/delete still check isLocked() (which stays
+    // true), so the borrowed contract is preserved.
+    ((Array *)arr)->flags |= 1u; // bit 0 == shared
+}
+
+void das_array_init_borrowed_i64 ( das_array * arr, void * data, uint64_t count, uint64_t capacity ) {
+    memset(arr, 0, sizeof(das_array));
+    array_mark_locked(*(Array *)arr, data, count, capacity);
+    ((Array *)arr)->flags |= 1u; // bit 0 == shared (see das_array_init_borrowed)
+}
+
+void das_array_reserve ( das_context * context, das_array * arr, uint32_t capacity, uint32_t stride ) {
+    // Same guard as das_array_clear: stride==0 with non-zero capacity reaches
+    // Context::reallocate(_, _, 0) which fires DAS_VERIFYF in MemoryModel.
+    if ( capacity && !stride ) {
+        ((Context *)context)->throw_error("das_array_reserve: stride must be non-zero when capacity > 0");
+        return;
+    }
+    array_reserve(*(Context *)context, *(Array *)arr, capacity, stride, nullptr);
+}
+
+void das_array_reserve_i64 ( das_context * context, das_array * arr, uint64_t capacity, uint32_t stride ) {
+    if ( capacity && !stride ) {
+        ((Context *)context)->throw_error("das_array_reserve_i64: stride must be non-zero when capacity > 0");
+        return;
+    }
+    array_reserve(*(Context *)context, *(Array *)arr, capacity, stride, nullptr);
+}
+
+void das_array_resize ( das_context * context, das_array * arr, uint32_t size, uint32_t stride, int zero ) {
+    if ( size && !stride ) {
+        ((Context *)context)->throw_error("das_array_resize: stride must be non-zero when size > 0");
+        return;
+    }
+    array_resize(*(Context *)context, *(Array *)arr, size, stride, zero != 0, nullptr);
+}
+
+void das_array_resize_i64 ( das_context * context, das_array * arr, uint64_t size, uint32_t stride, int zero ) {
+    if ( size && !stride ) {
+        ((Context *)context)->throw_error("das_array_resize_i64: stride must be non-zero when size > 0");
+        return;
+    }
+    array_resize(*(Context *)context, *(Array *)arr, size, stride, zero != 0, nullptr);
+}
+
+void das_array_clear ( das_context * context, das_array * arr, uint32_t stride ) {
+    auto * a = (Array *)arr;
+    if ( a->isLocked() ) {
+        ((Context *)context)->throw_error("can't clear locked array");
+        return;
+    }
+    if ( a->data ) {
+        // capacity*stride is the byte size to free. capacity>0 is a runtime
+        // invariant when data!=null, so the only way to reach a zero free size
+        // is stride==0 — a caller bug. Throw before passing 0 to the heap.
+        if ( !stride ) {
+            ((Context *)context)->throw_error("das_array_clear: stride must be non-zero for non-empty array");
+            return;
+        }
+        ((Context *)context)->free(a->data, a->capacity * stride, nullptr);
+    }
+    memset(a, 0, sizeof(Array));
+}
+
+void * das_array_at ( das_array * arr, uint32_t index, uint32_t stride ) {
+    return ((Array *)arr)->data + size_t(index) * size_t(stride);
+}
+
+void * das_array_at_i64 ( das_array * arr, uint64_t index, uint32_t stride ) {
+    // size_t matches das_array_at's pattern: 64-bit on 64-bit platforms (where
+    // arr.size > UINT32_MAX is reachable), 32-bit on 32-bit platforms (where
+    // a huge index can't be addressed anyway -- same graceful degradation as
+    // the legacy entry).
+    return ((Array *)arr)->data + size_t(index) * size_t(stride);
+}
+
+void das_array_lock ( das_context * context, das_array * arr ) {
+    array_lock(*(Context *)context, *(Array *)arr, nullptr);
+}
+
+void das_array_unlock ( das_context * context, das_array * arr ) {
+    array_unlock(*(Context *)context, *(Array *)arr, nullptr);
+}
+
+// --- Tables ---
+// Dispatch on key type. Mirrors table_reserve_impl in
+// src/simulate/runtime_table.cpp exactly so the C-side reserve / clear /
+// find / insert / erase all accept the same key set — no surprise where
+// reserve succeeds but a follow-up op throws "unsupported table key type".
+
+#define DAS_TABLE_DISPATCH(KEY_BASE_TYPE_VAR, BODY) \
+    switch ( Type(KEY_BASE_TYPE_VAR) ) { \
+        case Type::tBool:           { typedef bool      KEY_TYPE; BODY; break; } \
+        case Type::tInt8:           { typedef int8_t    KEY_TYPE; BODY; break; } \
+        case Type::tUInt8:          { typedef uint8_t   KEY_TYPE; BODY; break; } \
+        case Type::tInt16:          { typedef int16_t   KEY_TYPE; BODY; break; } \
+        case Type::tUInt16:         { typedef uint16_t  KEY_TYPE; BODY; break; } \
+        case Type::tInt:            { typedef int32_t   KEY_TYPE; BODY; break; } \
+        case Type::tUInt:           { typedef uint32_t  KEY_TYPE; BODY; break; } \
+        case Type::tInt64:          { typedef int64_t   KEY_TYPE; BODY; break; } \
+        case Type::tUInt64:         { typedef uint64_t  KEY_TYPE; BODY; break; } \
+        case Type::tEnumeration:    { typedef int32_t   KEY_TYPE; BODY; break; } \
+        case Type::tEnumeration8:   { typedef int8_t    KEY_TYPE; BODY; break; } \
+        case Type::tEnumeration16:  { typedef int16_t   KEY_TYPE; BODY; break; } \
+        case Type::tEnumeration64:  { typedef int64_t   KEY_TYPE; BODY; break; } \
+        case Type::tBitfield:       { typedef uint32_t  KEY_TYPE; BODY; break; } \
+        case Type::tBitfield8:      { typedef uint8_t   KEY_TYPE; BODY; break; } \
+        case Type::tBitfield16:     { typedef uint16_t  KEY_TYPE; BODY; break; } \
+        case Type::tBitfield64:     { typedef uint64_t  KEY_TYPE; BODY; break; } \
+        case Type::tInt2:           { typedef int2      KEY_TYPE; BODY; break; } \
+        case Type::tInt3:           { typedef int3      KEY_TYPE; BODY; break; } \
+        case Type::tInt4:           { typedef int4      KEY_TYPE; BODY; break; } \
+        case Type::tUInt2:          { typedef uint2     KEY_TYPE; BODY; break; } \
+        case Type::tUInt3:          { typedef uint3     KEY_TYPE; BODY; break; } \
+        case Type::tUInt4:          { typedef uint4     KEY_TYPE; BODY; break; } \
+        case Type::tFloat:          { typedef float     KEY_TYPE; BODY; break; } \
+        case Type::tFloat2:         { typedef float2    KEY_TYPE; BODY; break; } \
+        case Type::tFloat3:         { typedef float3    KEY_TYPE; BODY; break; } \
+        case Type::tFloat4:         { typedef float4    KEY_TYPE; BODY; break; } \
+        case Type::tDouble:         { typedef double    KEY_TYPE; BODY; break; } \
+        case Type::tRange:          { typedef range     KEY_TYPE; BODY; break; } \
+        case Type::tURange:         { typedef urange    KEY_TYPE; BODY; break; } \
+        case Type::tRange64:        { typedef range64   KEY_TYPE; BODY; break; } \
+        case Type::tURange64:       { typedef urange64  KEY_TYPE; BODY; break; } \
+        case Type::tString:         { typedef char *    KEY_TYPE; BODY; break; } \
+        case Type::tPointer:        { typedef void *    KEY_TYPE; BODY; break; } \
+        default: ((Context *)context)->throw_error("unsupported table key type"); break; \
+    }
+
+void das_table_init ( das_table * tab ) {
+    memset(tab, 0, sizeof(das_table));
+}
+
+void das_table_reserve ( das_context * context, das_table * tab, int key_base_type, uint32_t capacity, uint32_t value_size ) {
+    table_reserve_impl(*(Context *)context, *(Table *)tab, int32_t(key_base_type), capacity, value_size, nullptr);
+}
+
+void das_table_reserve_i64 ( das_context * context, das_table * tab, int key_base_type, uint64_t capacity, uint32_t value_size ) {
+    table_reserve_impl(*(Context *)context, *(Table *)tab, int32_t(key_base_type), capacity, value_size, nullptr);
+}
+
+void das_table_clear ( das_context * context, das_table * tab, int key_base_type, uint32_t value_size ) {
+    auto * t = (Table *)tab;
+    if ( t->isLocked() ) {
+        ((Context *)context)->throw_error("can't clear locked table");
+        return;
+    }
+    if ( t->data ) {
+        uint32_t key_size = 0;
+        DAS_TABLE_DISPATCH(key_base_type, { key_size = sizeof(KEY_TYPE); })
+        if ( !key_size ) return; // throw_error already raised
+        uint64_t total = t->capacity * (uint64_t(value_size) + uint64_t(key_size)) + t->capacity*das::tableHashSlotBytes(*t);
+        ((Context *)context)->free(t->data, total, nullptr);
+    }
+    memset(t, 0, sizeof(Table));
+}
+
+// `key` may point at unaligned bytes (a key inside a packed buffer, an
+// offset inside a serialization stream, …) — copy into an aligned local
+// before dereferencing. Strict-alignment targets fault on misaligned loads.
+
+void * das_table_find ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size ) {
+    void * result = nullptr;
+    auto * t = (Table *)tab;
+    DAS_TABLE_DISPATCH(key_base_type, {
+        KEY_TYPE k;
+        memcpy(&k, key, sizeof(KEY_TYPE));
+        uint64_t h = hash_function(*(Context *)context, k);
+        TableHash<KEY_TYPE> hh((Context *)context, value_size);
+        int64_t idx = hh.find(*t, k, h);
+        if ( idx >= 0 ) result = t->data + uint64_t(idx) * uint64_t(value_size);
+    })
+    return result;
+}
+
+void * das_table_insert ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size ) {
+    void * result = nullptr;
+    auto * t = (Table *)tab;
+    DAS_TABLE_DISPATCH(key_base_type, {
+        KEY_TYPE k;
+        memcpy(&k, key, sizeof(KEY_TYPE));
+        uint64_t h = hash_function(*(Context *)context, k);
+        TableHash<KEY_TYPE> hh((Context *)context, value_size);
+        int64_t idx = hh.reserve(*t, k, h, nullptr);
+        if ( idx >= 0 ) result = t->data + uint64_t(idx) * uint64_t(value_size);
+    })
+    return result;
+}
+
+int das_table_erase ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size ) {
+    int erased = 0;
+    auto * t = (Table *)tab;
+    DAS_TABLE_DISPATCH(key_base_type, {
+        KEY_TYPE k;
+        memcpy(&k, key, sizeof(KEY_TYPE));
+        uint64_t h = hash_function(*(Context *)context, k);
+        TableHash<KEY_TYPE> hh((Context *)context, value_size);
+        int64_t idx = hh.erase(*t, k, h);
+        if ( idx >= 0 ) erased = 1;
+    })
+    return erased;
+}
+
+void das_table_lock ( das_context * context, das_table * tab ) {
+    table_lock(*(Context *)context, *(Table *)tab, nullptr);
+}
+
+void das_table_unlock ( das_context * context, das_table * tab ) {
+    table_unlock(*(Context *)context, *(Table *)tab, nullptr);
+}
+
+#undef DAS_TABLE_DISPATCH
+
+// --- Array/table arg/result piping ---
+
+das_array * das_argument_array ( vec4f arg ) { return (das_array *) cast<void *>::to(arg); }
+das_table * das_argument_table ( vec4f arg ) { return (das_table *) cast<void *>::to(arg); }
+
+vec4f das_result_array ( das_array * r ) { return cast<void *>::from(r); }
+vec4f das_result_table ( das_table * r ) { return cast<void *>::from(r); }
+
+das_array * das_argument_array_unaligned ( vec4f_unaligned * arg ) { return (das_array *) cast<void *>::to(v_ldu((const float *)arg)); }
+das_table * das_argument_table_unaligned ( vec4f_unaligned * arg ) { return (das_table *) cast<void *>::to(v_ldu((const float *)arg)); }
+
+void das_result_array_unaligned ( vec4f_unaligned * result, das_array * r ) { v_stu((float *)result, cast<void *>::from(r)); }
+void das_result_table_unaligned ( vec4f_unaligned * result, das_table * r ) { v_stu((float *)result, cast<void *>::from(r)); }
 
 }

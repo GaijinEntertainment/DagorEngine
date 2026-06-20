@@ -2,6 +2,7 @@
 
 #include "simulate.h"
 
+#include "daScript/simulate/runtime_iterator.h"
 #include "daScript/simulate/simulate_visit_op.h"
 
 namespace das {
@@ -839,9 +840,9 @@ namespace das {
         __forceinline char * compute (Context & context) {
             DAS_PROFILE_NODE
             auto pValue = value->evalPtr(context);
-            uint32_t idx = uint32_t(index->evalInt(context));
-            if (idx >= range) context.throw_error_at(debugInfo,"index out of range, %u of %u%s", idx, range, errorMessage);
-            return pValue + idx*stride + offset;
+            int32_t idx = index->evalInt(context);
+            if (idx<0 || uint32_t(idx) >= range) context.throw_error_at(debugInfo,"index out of range, %d of %u%s", idx, range, errorMessage);
+            return pValue + uint32_t(idx)*stride + offset;
         }
         SimNode * value, * index;
         uint32_t  stride, offset, range;
@@ -857,9 +858,9 @@ namespace das {
             DAS_PROFILE_NODE
             auto pValue = value->evalPtr(context);
             if (!pValue) return nullptr;
-            uint32_t idx = uint32_t(index->evalInt(context));
-            if (idx >= range) return nullptr;
-            return pValue + idx*stride + offset;
+            int32_t idx = index->evalInt(context);
+            if (idx<0 || uint32_t(idx) >= range) return nullptr;
+            return pValue + uint32_t(idx)*stride + offset;
         }
     };
 
@@ -957,9 +958,9 @@ namespace das {
         __forceinline CTYPE compute ( Context & context ) {                                     \
             DAS_PROFILE_NODE \
             auto vec = value->eval(context);                                                    \
-            uint32_t idx = uint32_t(index->evalInt(context));                                   \
-            if (idx >= range) {                                                                 \
-                context.throw_error_at(debugInfo,"vector index out of range, %u of %u%s", idx, range, errorMessage); \
+            int32_t idx = index->evalInt(context);                                              \
+            if (idx<0 || uint32_t(idx) >= range) {                                              \
+                context.throw_error_at(debugInfo,"vector index out of range, %d of %u%s", idx, range, errorMessage); \
                 return (CTYPE) 0;                                                               \
             } else {                                                                            \
                 CTYPE * pv = (CTYPE *) &vec;                                                    \
@@ -2551,7 +2552,7 @@ SIM_NODE_AT_VECTOR(Float, float)
             } else {
                 res = (char *) ptr->iter;
                 if ( !res ) {
-                    context.throw_error_at(debugInfo,"iterator is empty or already consumed%s", errorMessage);
+                    context.throw_error_at(debugInfo,"iterator is empty or already consumed by a prior for-in (use `next(it, value)` + `empty(it)` for step-by-step advance)%s", errorMessage);
                 } else {
                     ptr->iter = nullptr;
                 }
@@ -2619,6 +2620,23 @@ SIM_NODE_AT_VECTOR(Float, float)
         }
         int32_t     bytes;
         bool        persistent;
+    };
+
+    // escape analysis: the pointee lives in the stack frame (allocate_on_stack), so `new` is just
+    // a zero-init of the reserved slot and a pointer into it - no heap touch
+    struct SimNode_NewStack : SimNode {
+        DAS_PTR_NODE;
+        SimNode_NewStack ( const LineInfo & at, uint32_t sp, uint32_t b )
+            : SimNode(at), stackTop(sp), bytes(b) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override;
+        __forceinline char * compute ( Context & context ) {
+            DAS_PROFILE_NODE
+            char * ptr = context.stack.sp() + stackTop;
+            memset ( ptr, 0, bytes );
+            return ptr;
+        }
+        uint32_t    stackTop;
+        uint32_t    bytes;
     };
 
     template <bool move>

@@ -1620,7 +1620,12 @@ void ed::EditorContext::End()
     if (HasSelectionChanged())
         MakeDirty(SaveReasonFlags::Selection);
 
-    if (m_Settings.m_IsDirty && !m_CurrentAction)
+    // MODIFICATION BY GAIJIN: skip the full settings serialization when nothing can consume it. With
+    // no SettingsFile and no save callback, Config::Save() discards the data and returns false, so
+    // m_IsDirty never clears and SaveSettings() re-serializes the whole graph (O(N) build + O(N^2)
+    // FindNode loop) every frame for nothing. Only run it when a save target exists.
+    if (m_Settings.m_IsDirty && !m_CurrentAction &&
+        (m_Config.SettingsFile || m_Config.SaveSettings || m_Config.SaveNodeSettings))
         SaveSettings();
 
     m_DrawList = nullptr;

@@ -1,7 +1,7 @@
 // unterminated comment at end of file
 // the nested comment construct /*//*/ triggers error 10007
 options gen2
-expect 10007
+expect 10301
 
 /*//*/
 [export]

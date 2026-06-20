@@ -18,7 +18,7 @@ ECS_REGISTER_EVENT(CmdApplyAnimcharEffectorsImmediate);
 static void reset_ik_effector(AnimV20::AnimcharBaseComponent &animchar, int eff_id)
 {
   if (eff_id >= 0)
-    animchar.getAnimState()->paramEffector(eff_id).type = AnimV20::AnimCommonStateHolder::EffectorVar::T_useGeomNode;
+    animchar.getAnimState()->paramEffector(eff_id).type = AnimV20::AnimGraphStateHolder::EffectorVar::T_useGeomNode;
 }
 
 static void reset_ik_attnode(AnimV20::AnimcharBaseComponent &animchar, int wtm_id)
@@ -41,7 +41,7 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
     const ecs::Object &obj = it.get<ecs::Object>();
 
     const ecs::string &effName = obj[ECS_HASH("effectorName")].get<ecs::string>();
-    int effId = animGraph->getParamId(effName.c_str(), AnimV20::IAnimStateHolder::PT_Effector);
+    int effId = animGraph->getParamId(effName.c_str(), AnimV20::AnimGraphStateHolder::PT_Effector);
     if (DAGOR_UNLIKELY(effId < 0))
     {
       logerr("Effector name '%s' not found in animgraph of animchar '%s' entity '%s'", effName.c_str(),
@@ -50,7 +50,7 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
     }
 
     const ecs::string &effWtmName = obj[ECS_HASH("effectorWtmName")].get<ecs::string>();
-    int effWtmId = animGraph->getParamId(effWtmName.c_str(), AnimV20::IAnimStateHolder::PT_InlinePtr);
+    int effWtmId = animGraph->getParamId(effWtmName.c_str(), AnimV20::AnimGraphStateHolder::PT_InlinePtr);
 
     animchar_effectors__effectorsState.addMember(ECS_HASH_SLOW(effName.c_str()), EffectorData(effId, effWtmId));
   }
@@ -59,7 +59,7 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
 static void apply_animchar_effectors_state(AnimV20::AnimcharBaseComponent &animchar, const TMatrix &transform,
   const ecs::Object &animchar_effectors__effectorsState)
 {
-  AnimV20::IAnimStateHolder *animState = animchar.getAnimState();
+  AnimV20::AnimGraphStateHolder *animState = animchar.getAnimState();
   for (auto &it : animchar_effectors__effectorsState)
   {
     const EffectorData &eff = it.second.get<EffectorData>();

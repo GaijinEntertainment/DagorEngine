@@ -331,7 +331,7 @@ static void send_internal(const char *metric, dag::ConstSpan<MetricTag> tags, Me
     bytesAdded = _snprintf(pos, bytes_left, ",%s=%s", tag.key, tag.value);
     if ((size_t)bytesAdded >= bytes_left)
     {
-      logerr("%s: Metric too long for batch, skipping: %s", buf);
+      logerr("%s: Metric too long for batch, skipping: %s", __FUNCTION__, metric);
       return;
     }
 
@@ -344,7 +344,7 @@ static void send_internal(const char *metric, dag::ConstSpan<MetricTag> tags, Me
     bytesAdded = _snprintf(pos, bytes_left, value_spec_string_new<ValueType>, val_prefix, value, type);
     if ((size_t)bytesAdded >= bytes_left)
     {
-      logerr("%s: Metric too long for batch, skipping: %s", buf);
+      logerr("%s: Metric too long for batch, skipping: %s", __FUNCTION__, metric);
       return;
     }
 

@@ -16,20 +16,10 @@ def report_to_debugger(var ctx : Context; category, name : string; value : auto(
 }
 
 def isLLVMOpaquePtr(_vinfo; what : string) {
-    if (_vinfo.basicType != Type.tPointer || _vinfo.firstType == null) {
-        return false
-    }
+    if (_vinfo.basicType != Type.tPointer || _vinfo.firstType == null) return false
     let vinfo = _vinfo.firstType
-    if (vinfo.basicType != Type.tHandle) {
-        return false
-    }
-    if (vinfo.annotation._module.name != "llvm") {
-        return false
-    }
-    if (vinfo.annotation.name != what) {
-        return false
-    }
-    return true
+    if (vinfo.basicType != Type.tHandle || vinfo.annotation._module.name != "llvm") return false
+    return vinfo.annotation.name == what
 }
 
 def isLLVMOpaqueValuePtr(vinfo) {
@@ -73,9 +63,7 @@ class SampleStackWalker : DapiStackWalker {
         }
     }
     def override onVariable(inf : FuncInfo; vinfo : LocalVariableInfo; arg : void?; inScope : bool) : void {
-        if (!inScope) {
-            return
-        }
+        if (!inScope) return
         if (vinfo.flags.ref || vinfo.flags.refType) {
             describe_arg(*ctxid, vinfo, *unsafe(reinterpret<void ??>(arg)))
         } else {

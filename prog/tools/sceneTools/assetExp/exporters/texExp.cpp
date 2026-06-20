@@ -53,7 +53,7 @@ static unsigned astcenc_jobs_limit = 0;
 
 #include <math/dag_imageFunctions.h>
 
-#include <render/renderLightsConsts.hlsli>
+#include <render/lights/renderLightsConsts.hlsli>
 
 BEGIN_DABUILD_PLUGIN_NAMESPACE(tex)
 

@@ -9,7 +9,7 @@ def test_basic_lambda(t : T?) {
         }
         t |> equal(invoke(lam, 5), 10)
         t |> equal(invoke(lam, -3), -6)
-        delete lam
+        unsafe { delete lam; }
     }
 }
 
@@ -21,12 +21,13 @@ def test_lambda_capture(t : T?) {
             return x * factor
         }
         t |> equal(invoke(lam, 5), 15)
-        delete lam
+        unsafe { delete lam; }
     }
 }
 
 def apply_transform(values : array<int>; transform : function<(x : int) : int>) : array<int> {
     var result : array<int>
+    result |> reserve(length(values))
     for (v in values) {
         result |> push(invoke(transform, v))
     }
@@ -40,8 +41,8 @@ def fn_double(x : int) : int {
 [test]
 def test_higher_order(t : T?) {
     t |> run("apply function pointer to array") @(t : T?) {
-        var arr <- [1, 2, 3, 4, 5]
-        var result <- apply_transform(arr, @@fn_double)
+        let arr <- [1, 2, 3, 4, 5]
+        let result <- apply_transform(arr, @@fn_double)
         t |> equal(length(result), 5)
         t |> equal(result[0], 2)
         t |> equal(result[1], 4)

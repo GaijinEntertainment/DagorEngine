@@ -36,9 +36,7 @@ struct public CommandInfo {
 def public get_cli_arguments(all_args : array<string>) : array<string> {
     var arg_index = find_index(all_args, "--")
     var result : array<string>
-    if (arg_index == -1) {
-        return <- result
-    }
+    if (arg_index == -1) return <- result
     arg_index++ // Skip the "--" itself
     while (arg_index < length(all_args)) {
         result |> push(all_args[arg_index])
@@ -94,11 +92,11 @@ def clargs_flag_name(field_name : string) : string {
 def public find_bool_flag_raw_value(args : array<string>; flag_name : string) : Option<string> {
     let prefix = "{flag_name}="
     var result = none(type<string>)
-    for (i in range(length(args))) {
-        if (args[i] == flag_name) {
+    for (a in args) {
+        if (a == flag_name) {
             result = some("true")
-        } elif (starts_with(args[i], prefix)) {
-            result = some(slice(args[i], length(prefix)))
+        } elif (starts_with(a, prefix)) {
+            result = some(slice(a, length(prefix)))
         }
     }
     return result
@@ -124,12 +122,7 @@ def public find_flag_raw_value(args : array<string>; flag_name : string) : Optio
 def public flag_present(args : array<string>; flag_name : string) : bool {
     let prefix = "{flag_name}="
     for (a in args) {
-        if (a == flag_name) {
-            return true
-        }
-        if (starts_with(a, prefix)) {
-            return true
-        }
+        if (a == flag_name || starts_with(a, prefix)) return true
     }
     return false
 }
@@ -160,9 +153,7 @@ def public find_array_flag_raw_values(args : array<string>; flag_name : string) 
 // above), so e.g. `-n Alice --name Bob` resolves to "Bob".
 
 def public find_flag_raw_value(args : array<string>; arg_info : CommandArgumentInfo) : Option<string> {
-    if (arg_info.is_positional) {
-        return none(type<string>)
-    }
+    if (arg_info.is_positional) return none(type<string>)
     let has_short = !empty(arg_info.short_flag_name)
     let long_prefix = "{arg_info.flag_name}="
     let short_prefix = has_short ? "{arg_info.short_flag_name}=" : ""
@@ -183,9 +174,7 @@ def public find_flag_raw_value(args : array<string>; arg_info : CommandArgumentI
 }
 
 def public find_bool_flag_raw_value(args : array<string>; arg_info : CommandArgumentInfo) : Option<string> {
-    if (arg_info.is_positional) {
-        return none(type<string>)
-    }
+    if (arg_info.is_positional) return none(type<string>)
     let has_short = !empty(arg_info.short_flag_name)
     let long_prefix = "{arg_info.flag_name}="
     let short_prefix = has_short ? "{arg_info.short_flag_name}=" : ""
@@ -207,9 +196,7 @@ def public find_bool_flag_raw_value(args : array<string>; arg_info : CommandArgu
 // (e.g. --tags=a -t b --tags=c -> ["a", "b", "c"]).
 def public find_array_flag_raw_values(args : array<string>; arg_info : CommandArgumentInfo) : array<string> {
     var result : array<string>
-    if (arg_info.is_positional) {
-        return <- result
-    }
+    if (arg_info.is_positional) return <- result
     let long_prefix = "{arg_info.flag_name}="
     let has_short = !empty(arg_info.short_flag_name)
     let short_prefix = has_short ? "{arg_info.short_flag_name}=" : ""
@@ -236,13 +223,8 @@ def public find_array_flag_raw_values(args : array<string>; arg_info : CommandAr
 }
 
 def public flag_present(args : array<string>; arg_info : CommandArgumentInfo) : bool {
-    if (flag_present(args, arg_info.flag_name)) {
-        return true
-    }
-    if (!empty(arg_info.short_flag_name) && flag_present(args, arg_info.short_flag_name)) {
-        return true
-    }
-    return false
+    if (flag_present(args, arg_info.flag_name)) return true
+    return !empty(arg_info.short_flag_name) && flag_present(args, arg_info.short_flag_name)
 }
 
 // For value-bearing flags (everything except bool), a bare "--flag" with no
@@ -256,9 +238,7 @@ def public flag_present(args : array<string>; arg_info : CommandArgumentInfo) : 
 [unused_argument(t)]
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<string>) : Result<Option<string>; string> {
     let opt = find_flag_raw_value(args, arg_info)
-    if (is_none(opt) && flag_present(args, arg_info)) {
-        return err("missing value", type<Option<string>>)
-    }
+    if (is_none(opt) && flag_present(args, arg_info)) return err("missing value", type<Option<string>>)
     return ok(opt, type<string>)
 }
 
@@ -266,9 +246,7 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<int>) : Result<Option<int>; string> {
     let opt = find_flag_raw_value(args, arg_info)
     if (is_none(opt)) {
-        if (flag_present(args, arg_info)) {
-            return err("missing value", type<Option<int>>)
-        }
+        if (flag_present(args, arg_info)) return err("missing value", type<Option<int>>)
         return ok(none(type<int>), type<string>)
     }
     let raw_value = unwrap(opt)
@@ -276,9 +254,7 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
     var offset = 0
     let parsed = int(raw_value, result, offset)
     // Reject both outright parse failures and trailing garbage ("42abc").
-    if (result != ConversionResult.ok || offset != length(raw_value)) {
-        return err("invalid int value '{raw_value}'", type<Option<int>>)
-    }
+    if (result != ConversionResult.ok || offset != length(raw_value)) return err("invalid int value '{raw_value}'", type<Option<int>>)
     return ok(some(parsed), type<string>)
 }
 
@@ -287,18 +263,14 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<float>) : Result<Option<float>; string> {
     let opt = find_flag_raw_value(args, arg_info)
     if (is_none(opt)) {
-        if (flag_present(args, arg_info)) {
-            return err("missing value", type<Option<float>>)
-        }
+        if (flag_present(args, arg_info)) return err("missing value", type<Option<float>>)
         return ok(none(type<float>), type<string>)
     }
     let raw_value = unwrap(opt)
     var result : ConversionResult
     var offset = 0
     let parsed = float(raw_value, result, offset)
-    if (result != ConversionResult.ok || offset != length(raw_value)) {
-        return err("invalid float value '{raw_value}'", type<Option<float>>)
-    }
+    if (result != ConversionResult.ok || offset != length(raw_value)) return err("invalid float value '{raw_value}'", type<Option<float>>)
     return ok(some(parsed), type<string>)
 }
 
@@ -309,18 +281,14 @@ def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; 
         var sm <- move_some(raw_values)
         return move_ok(sm, type<string>)
     }
-    if (flag_present(args, arg_info)) {
-        return err("missing value", type<Option<array<string>>>)
-    }
+    if (flag_present(args, arg_info)) return err("missing value", type<Option<array<string>>>)
     return ok(none(type<array<string>>), type<string>)
 }
 
 [unused_argument(t)]
 def public parse_argument(args : array<string>; arg_info : CommandArgumentInfo; t : type<bool>) : Result<Option<bool>; string> {
     let opt = find_bool_flag_raw_value(args, arg_info)
-    if (is_none(opt)) {
-        return ok(none(type<bool>), type<string>)
-    }
+    if (is_none(opt)) return ok(none(type<bool>), type<string>)
     let raw_value = unwrap(opt)
     if (raw_value == "true") {
         return ok(some(true), type<string>)
@@ -349,9 +317,7 @@ def public collect_positional_args(args : array<string>; info : CommandInfo) : a
         var matched_flag = false
         var consumes_value = false
         for (a in info.args) {
-            if (a.is_positional) {
-                continue
-            }
+            if (a.is_positional) continue
             let has_short = !empty(a.short_flag_name)
             let exact_long = (arg == a.flag_name)
             let exact_short = has_short && (arg == a.short_flag_name)
@@ -391,9 +357,7 @@ def public collect_positional_args(args : array<string>; info : CommandInfo) : a
 // in `args`.  Backs `@clarg_count` fields.  v1 does not implement short-flag
 // clustering ("-vvv"); only `-v -v -v` and `--verbose --verbose` style sums.
 def public count_flag(args : array<string>; arg_info : CommandArgumentInfo) : int {
-    if (arg_info.is_positional) {
-        return 0
-    }
+    if (arg_info.is_positional) return 0
     let has_short = !empty(arg_info.short_flag_name)
     var n = 0
     for (a in args) {
@@ -409,19 +373,13 @@ def public count_flag(args : array<string>; arg_info : CommandArgumentInfo) : in
 // Walks `args` to detect `--flag=value` against a count flag, which is
 // rejected (count flags don't accept values).  Returns "" if clean.
 def public count_flag_value_violation(args : array<string>; arg_info : CommandArgumentInfo) : string {
-    if (arg_info.is_positional || !arg_info.is_count) {
-        return ""
-    }
+    if (arg_info.is_positional || !arg_info.is_count) return ""
     let has_short = !empty(arg_info.short_flag_name)
     let long_prefix = "{arg_info.flag_name}="
     let short_prefix = has_short ? "{arg_info.short_flag_name}=" : ""
     for (a in args) {
-        if (starts_with(a, long_prefix)) {
-            return "{arg_info.flag_name}: count flag does not accept a value"
-        }
-        if (has_short && starts_with(a, short_prefix)) {
-            return "{arg_info.flag_name}: count flag does not accept a value"
-        }
+        if (starts_with(a, long_prefix)
+                || (has_short && starts_with(a, short_prefix))) return "{arg_info.flag_name}: count flag does not accept a value"
     }
     return ""
 }
@@ -431,12 +389,7 @@ def public count_flag_value_violation(args : array<string>; arg_info : CommandAr
 def public find_mutex_violation(args : array<string>; info : CommandInfo) : string {
     var groups : table<string; array<string>>
     for (a in info.args) {
-        if (empty(a.mutex_group)) {
-            continue
-        }
-        if (!flag_present(args, a)) {
-            continue
-        }
+        if (empty(a.mutex_group) || !flag_present(args, a)) continue
         if (!key_exists(groups, a.mutex_group)) {
             groups[a.mutex_group] <- [a.flag_name]
         } else {
@@ -444,8 +397,7 @@ def public find_mutex_violation(args : array<string>; info : CommandInfo) : stri
         }
     }
     for (gname, members in keys(groups), values(groups)) {
-        if (length(members) > 1) {
-            return build_string() $(var w) {
+        if (length(members) > 1) return build_string() $(var w) {
                 for (i, m in range(length(members)), members) {
                     if (i > 0) {
                         write(w, ", ")
@@ -456,7 +408,6 @@ def public find_mutex_violation(args : array<string>; info : CommandInfo) : stri
                 write(w, gname)
                 write(w, "')")
             }
-        }
     }
     return ""
 }
@@ -476,9 +427,7 @@ def public make_auto_help_arg() : CommandArgumentInfo {
 // Convenience: render help with the auto-injected --help row appended unless
 // the user already declared their own.  Used by `parse_args_with_help`.
 def public format_help_with_auto_help(info : CommandInfo; prog_name : string) : string {
-    if (info.has_user_help) {
-        return format_help(info, prog_name)
-    }
+    if (info.has_user_help) return format_help(info, prog_name)
     var augmented : CommandInfo
     augmented.has_user_help = info.has_user_help
     augmented.args := info.args
@@ -504,29 +453,17 @@ def public format_help_with_auto_help(info : CommandInfo; prog_name : string) : 
 // Bool flags omit the =PLACEHOLDER. Enum flag docs include `(V1|V2|...)`.
 
 def value_placeholder(arg : CommandArgumentInfo) : string {
-    if (arg.is_positional || arg.is_count) {
-        return ""
-    }
-    if (arg.value_type == Type.tBool && !arg.is_array) {
-        return ""
-    }
-    if (arg.value_type == Type.tInt) {
-        return "=INT"
-    }
-    if (arg.value_type == Type.tFloat) {
-        return "=FLOAT"
-    }
-    if (arg.value_type == Type.tEnumeration) {
-        return "=ENUM"
-    }
+    if (arg.is_positional || arg.is_count
+            || (arg.value_type == Type.tBool && !arg.is_array)) return ""
+    if (arg.value_type == Type.tInt) return "=INT"
+    if (arg.value_type == Type.tFloat) return "=FLOAT"
+    if (arg.value_type == Type.tEnumeration) return "=ENUM"
     return "=STRING"
 }
 
 def render_flag_spec(arg : CommandArgumentInfo) : string {
-    if (arg.is_positional) {
-        // arg.flag_name is already wrapped as "<name>" by collect_command_info.
-        return arg.flag_name
-    }
+    // For positionals, flag_name is already wrapped as "<name>" by collect_command_info.
+    if (arg.is_positional) return arg.flag_name
     var spec = ""
     if (!empty(arg.short_flag_name)) {
         spec = "{arg.short_flag_name}, "
@@ -592,12 +529,8 @@ def render_doc_column(arg : CommandArgumentInfo) : string {
 // Renders a positional arg's slot in the usage line: `<name>` for required,
 // `[<name>]` for optional, `[<name>...]` for the array tail.
 def render_positional_usage_token(arg : CommandArgumentInfo) : string {
-    if (arg.is_array) {
-        return "[{arg.flag_name}...]"
-    }
-    if (arg.is_required) {
-        return "{arg.flag_name}"
-    }
+    if (arg.is_array) return "[{arg.flag_name}...]"
+    if (arg.is_required) return "{arg.flag_name}"
     return "[{arg.flag_name}]"
 }
 
@@ -678,20 +611,12 @@ def public print_help(info : CommandInfo; prog_name : string) : void {
 
 def option_inner_type(t : TypeDeclPtr) : TypeDeclPtr {
     if (t.baseType == Type.typeMacro) {
-        if (length(t.dimExpr) < 2 || t.dimExpr[0] == null || !(t.dimExpr[0] is ExprConstString)) {
-            return null
-        }
-        if ((t.dimExpr[0] as ExprConstString).value != "Option") {
-            return null
-        }
-        if (t.dimExpr[1] == null || !(t.dimExpr[1] is ExprTypeDecl)) {
-            return null
-        }
-        return clone_type((t.dimExpr[1] as ExprTypeDecl).typeexpr)
+        if (length(t.typeMacroExpr) < 2 || t.typeMacroExpr[0] == null || !(t.typeMacroExpr[0] is ExprConstString)
+                || (t.typeMacroExpr[0] as ExprConstString).value != "Option"
+                || t.typeMacroExpr[1] == null || !(t.typeMacroExpr[1] is ExprTypeDecl)) return null
+        return clone_type((t.typeMacroExpr[1] as ExprTypeDecl).typeexpr)
     }
-    if (t.baseType != Type.tStructure || t.structType == null) {
-        return null
-    }
+    if (t.baseType != Type.tStructure || t.structType == null) return null
     var has_flag = false
     var value_t : TypeDeclPtr = null
     for (f in t.structType.fields) {
@@ -701,9 +626,7 @@ def option_inner_type(t : TypeDeclPtr) : TypeDeclPtr {
             value_t = clone_type(f._type)
         }
     }
-    if (!has_flag || value_t == null) {
-        return null
-    }
+    if (!has_flag || value_t == null) return null
     return value_t
 }
 
@@ -712,9 +635,7 @@ def option_inner_type(t : TypeDeclPtr) : TypeDeclPtr {
 class ArgsMacro : AstStructureAnnotation {
     def override apply(var st : StructurePtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         let command_info = collect_command_info(st, errors)
-        if (!empty(errors)) {
-            return false
-        }
+        if (!empty(errors)) return false
 
         var command_info_fn = make_command_info_fn(st, command_info)
         compiling_module() |> add_function(command_info_fn)
@@ -737,17 +658,13 @@ class ArgsMacro : AstStructureAnnotation {
 
     def find_bool_annotation(args : AnnotationArgumentList; argn : string, default_value : bool) : bool {
         let v = find_arg(args, argn)
-        if (v is tBool) {
-            return v as tBool
-        }
+        if (v is tBool) return v as tBool
         return default_value
     }
 
     def find_string_annotation(args : AnnotationArgumentList; argn : string, default_value : string) : string {
         let v = find_arg(args, argn)
-        if (v is tString) {
-            return v as tString
-        }
+        if (v is tString) return v as tString
         return default_value
     }
 
@@ -767,9 +684,7 @@ class ArgsMacro : AstStructureAnnotation {
         var has_array_tail = false       // an array<string> positional terminates the positional list
         var saw_optional_positional = false
         for (field in st.fields) {
-            if (find_bool_annotation(field.annotation, "clarg_skip", false)) {
-                continue
-            }
+            if (find_bool_annotation(field.annotation, "clarg_skip", false)) continue
             let is_positional = find_bool_annotation(field.annotation, "clarg_positional", false)
             let is_count = find_bool_annotation(field.annotation, "clarg_count", false)
             let raw_name = find_string_annotation(field.annotation, "clarg_name", "{field.name}")
@@ -887,16 +802,16 @@ class ArgsMacro : AstStructureAnnotation {
             var x := $v(info)
             return <- x
         }
-        fn.flags |= FunctionFlags.generated
+        fn.flags.generated = true
         fn.body |> force_at(st.at)
         return <- fn
     }
 
     def make_parse_default_fn(var st : StructurePtr) : FunctionPtr {
-        var fn = qmacro_function("parse_args") $(var dst : $t(st)) : string {
-            return parse_args(dst, get_user_args())
+        var fn = qmacro_function("parse_args") $(typ : $t(st)) : Result<$t(st), string> {
+            return parse_args(default<$t(st)>, get_user_args())
         }
-        fn.flags |= FunctionFlags.generated
+        fn.flags.generated = true
         fn.body |> force_at(st.at)
         return <- fn
     }
@@ -911,14 +826,15 @@ class ArgsMacro : AstStructureAnnotation {
                 print(format_help_with_auto_help(auto_info, prog_name))
                 return 0
             }
-            let auto_err = parse_args(dst, auto_args)
-            if (!empty(auto_err)) {
-                print("error: {auto_err}\n")
+            var auto_r <- parse_args(type<$t(st)>, auto_args)
+            if (auto_r |> is_err) {
+                to_log(LOG_ERROR, "clargs: {auto_r |> unwrap_err}\n")
                 return 1
             }
+            dst <- auto_r |> move_unwrap
             return -1
         }
-        fn.flags |= FunctionFlags.generated
+        fn.flags.generated = true
         fn.body |> force_at(st.at)
         return <- fn
     }
@@ -928,7 +844,7 @@ class ArgsMacro : AstStructureAnnotation {
             {
                 var r <- parse_argument(args, command_info.args[$v(i)], type<$t(st.fields[field_index]._type)>)
                 if (r |> is_err) {
-                    return "{$v(arg.flag_name)}: {r |> unwrap_err}"
+                    return err("{$v(arg.flag_name)}: {r |> unwrap_err}", type<$t(st)>)
                 }
                 var opt <- r |> move_unwrap   // nolint:LINT003 — non-copyable static_if branch below consumes `opt` via `move_unwrap`, so it must stay `var`
                 if (opt |> is_some) {
@@ -947,7 +863,7 @@ class ArgsMacro : AstStructureAnnotation {
             {
                 var r <- parse_argument(args, command_info.args[$v(i)], type<$t(inner_t)>)
                 if (r |> is_err) {
-                    return "{$v(arg.flag_name)}: {r |> unwrap_err}"
+                    return err("{$v(arg.flag_name)}: {r |> unwrap_err}", type<$t(st)>)
                 }
                 dst.$f(arg.field_name) <- r |> move_unwrap
             }
@@ -961,23 +877,23 @@ class ArgsMacro : AstStructureAnnotation {
                 if (is_some(opt)) {
                     let raw_value = unwrap(opt)
                     if (find_index(command_info.args[$v(i)].enum_values, raw_value) == -1) {
-                        return "{$v(arg.flag_name)}: invalid enum value '{raw_value}'"
+                        return err("{$v(arg.flag_name)}: invalid enum value '{raw_value}'", type<$t(st)>)
                     }
                     dst.$f(arg.field_name) = to_enum(type<$t(st.fields[field_index]._type)>, raw_value)
                 } elif (flag_present(args, command_info.args[$v(i)])) {
-                    return "{$v(arg.flag_name)}: missing value"
+                    return err("{$v(arg.flag_name)}: missing value", type<$t(st)>)
                 }
             }
         }
     }
 
-    def make_required_positional_init_expr(arg : CommandArgumentInfo; positional_index : int) : ExpressionPtr {
+    def make_required_positional_init_expr(var st : StructurePtr; arg : CommandArgumentInfo; positional_index : int) : ExpressionPtr {
         return qmacro_block() {
             {
                 if ($v(positional_index) < length(positionals)) {
                     dst.$f(arg.field_name) = positionals[$v(positional_index)]
                 } else {
-                    return "{$v(arg.flag_name)}: missing required positional argument"
+                    return err("{$v(arg.flag_name)}: missing required positional argument", type<$t(st)>)
                 }
             }
         }
@@ -1009,12 +925,12 @@ class ArgsMacro : AstStructureAnnotation {
         }
     }
 
-    def make_count_init_expr(arg : CommandArgumentInfo; i : int) : ExpressionPtr {
+    def make_count_init_expr(var st : StructurePtr; arg : CommandArgumentInfo; i : int) : ExpressionPtr {
         return qmacro_block() {
             {
                 let count_viol = count_flag_value_violation(args, command_info.args[$v(i)])
                 if (!empty(count_viol)) {
-                    return count_viol
+                    return err(count_viol, type<$t(st)>)
                 }
                 dst.$f(arg.field_name) = count_flag(args, command_info.args[$v(i)])
             }
@@ -1048,12 +964,12 @@ class ArgsMacro : AstStructureAnnotation {
                 } elif (arg.is_optional_wrap) {
                     init_exprs |> push(make_optional_positional_init_expr(arg, pi))
                 } else {
-                    init_exprs |> push(make_required_positional_init_expr(arg, pi))
+                    init_exprs |> push(make_required_positional_init_expr(st, arg, pi))
                 }
                 continue
             }
             if (arg.is_count) {
-                init_exprs |> push(make_count_init_expr(arg, i))
+                init_exprs |> push(make_count_init_expr(st, arg, i))
                 continue
             }
             let inner_t = option_inner_type(st.fields[field_index]._type)
@@ -1069,71 +985,75 @@ class ArgsMacro : AstStructureAnnotation {
         }
 
         if (has_positional && has_mutex) {
-            var fn = qmacro_function("parse_args") $(var dst : $t(st); args : array<string>) : string {
+            var fn = qmacro_function("parse_args") $(typ : $t(st); args : array<string>) : Result<$t(st), string> {
+                var dst = default<$t(st)>
                 let command_info <- get_command_info(type<$t(st)>)
                 let positionals <- collect_positional_args(args, command_info)
                 $b(init_exprs)
                 let mutex_err = find_mutex_violation(args, command_info)
                 if (!empty(mutex_err)) {
-                    return mutex_err
+                    return err(mutex_err, type<$t(st)>)
                 }
                 for (arg in command_info.args) {
                     if (arg.is_required && !arg.is_positional && !arg.is_count && !flag_present(args, arg)) {
-                        return "{arg.flag_name}: missing required flag"
+                        return err("{arg.flag_name}: missing required flag", type<$t(st)>)
                     }
                 }
-                return ""
+                return move_ok(dst, type<string>)
             }
-            fn.flags |= FunctionFlags.generated
+            fn.flags.generated = true
             fn.body |> force_at(st.at)
             return <- fn
         }
         if (has_positional) {
-            var fn = qmacro_function("parse_args") $(var dst : $t(st); args : array<string>) : string {
+            var fn = qmacro_function("parse_args") $(typ : $t(st); args : array<string>) : Result<$t(st), string> {
+                var dst = default<$t(st)>
                 let command_info <- get_command_info(type<$t(st)>)
                 let positionals <- collect_positional_args(args, command_info)
                 $b(init_exprs)
                 for (arg in command_info.args) {
                     if (arg.is_required && !arg.is_positional && !arg.is_count && !flag_present(args, arg)) {
-                        return "{arg.flag_name}: missing required flag"
+                        return err("{arg.flag_name}: missing required flag", type<$t(st)>)
                     }
                 }
-                return ""
+                return move_ok(dst, type<string>)
             }
-            fn.flags |= FunctionFlags.generated
+            fn.flags.generated = true
             fn.body |> force_at(st.at)
             return <- fn
         }
         if (has_mutex) {
-            var fn = qmacro_function("parse_args") $(var dst : $t(st); args : array<string>) : string {
+            var fn = qmacro_function("parse_args") $(typ : $t(st); args : array<string>) : Result<$t(st), string> {
+                var dst = default<$t(st)>
                 let command_info <- get_command_info(type<$t(st)>)
                 $b(init_exprs)
                 let mutex_err = find_mutex_violation(args, command_info)
                 if (!empty(mutex_err)) {
-                    return mutex_err
+                    return err(mutex_err, type<$t(st)>)
                 }
                 for (arg in command_info.args) {
                     if (arg.is_required && !arg.is_count && !flag_present(args, arg)) {
-                        return "{arg.flag_name}: missing required flag"
+                        return err("{arg.flag_name}: missing required flag", type<$t(st)>)
                     }
                 }
-                return ""
+                return move_ok(dst, type<string>)
             }
-            fn.flags |= FunctionFlags.generated
+            fn.flags.generated = true
             fn.body |> force_at(st.at)
             return <- fn
         }
-        var fn = qmacro_function("parse_args") $(var dst : $t(st); args : array<string>) : string {
+        var fn = qmacro_function("parse_args") $(typ : $t(st); args : array<string>) : Result<$t(st), string> {
+            var dst = default<$t(st)>
             let command_info <- get_command_info(type<$t(st)>)
             $b(init_exprs)
             for (arg in command_info.args) {
                 if (arg.is_required && !arg.is_count && !flag_present(args, arg)) {
-                    return "{arg.flag_name}: missing required flag"
+                    return err("{arg.flag_name}: missing required flag", type<$t(st)>)
                 }
             }
-            return ""
+            return move_ok(dst, type<string>)
         }
-        fn.flags |= FunctionFlags.generated
+        fn.flags.generated = true
         fn.body |> force_at(st.at)
         return <- fn
     }

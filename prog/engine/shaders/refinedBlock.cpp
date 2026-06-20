@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <shaders/dag_refinedBlock.h>
+#include <shaders/dag_bindumpReloadListener.h>
 #include <shaders/dag_stcode.h>
 #include <util/dag_oaHashNameMap.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_bindless.h>
+#include <drv/3d/dag_rwResource.h>
 #include <3d/dag_resMgr.h>
 #include <3d/dag_lockSbuffer.h>
 #include <EASTL/fixed_vector.h>
@@ -59,6 +61,7 @@ struct BaseBlock
 {
   eastl::string name;
   ska::flat_hash_map<int, VarValue> vars;
+  ska::flat_hash_map<int, VarValue> gidVars;
   BaseBlock(const char *name) : name(name) {}
 };
 
@@ -136,7 +139,12 @@ void BaseBlockHandle<BlockHandle>::set(int var_id, const T &val)
   G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), );
   const int gid = get_internal_id(var_id);
   if (DAGOR_LIKELY(gid >= 0))
-    get_blocks<BlockType>()[getId()].vars[gid] = Aliased<T>().castTo(val);
+  {
+    const auto v = Aliased<T>().castTo(val);
+    auto &b = get_blocks<BlockType>()[getId()];
+    b.vars[var_id] = v;
+    b.gidVars[gid] = v;
+  }
 }
 
 template <typename BlockHandle>
@@ -149,25 +157,38 @@ dag::Expected<T, GetError> BaseBlockHandle<BlockHandle>::get(int var_id) const
   const int gid = get_internal_id(var_id);
   if (gid < 0)
     return dag::Unexpected(GetError::VarNotFound);
-  return getByGid<AliasedT>(gid).transform([](AliasedT v) { return Aliased<T>().castFrom(v); });
+  return getById<AliasedT>(var_id).transform([](AliasedT v) { return Aliased<T>().castFrom(v); });
 }
 
-template <typename BlockHandle>
-template <typename T>
-dag::Expected<T, GetError> BaseBlockHandle<BlockHandle>::getByGid(int gid) const
+template <typename T, auto MapMember, typename BlockHandle>
+static dag::Expected<T, GetError> get_by_key(const BaseBlockHandle<BlockHandle> &handle, int key)
 {
   using BlockType = typename BlockHandle::BlockType;
-  G_ASSERT_RETURN(is_valid_id<BlockType>(getId()), dag::Unexpected(GetError::VarNotFound));
-  auto &b = get_blocks<BlockType>()[getId()];
-  if (const auto it = b.vars.find(gid); it != b.vars.end())
+  G_ASSERT_RETURN(is_valid_id<BlockType>(handle.getId()), dag::Unexpected(GetError::VarNotFound));
+  auto &b = get_blocks<BlockType>()[handle.getId()];
+  if (const auto it = (b.*MapMember).find(key); it != (b.*MapMember).end())
   {
     if (auto *v = eastl::get_if<T>(&it->second))
       return *v;
     return dag::Unexpected(GetError::WrongVarType);
   }
   if constexpr (requires { typename BlockHandle::ParentHandle; })
-    return b.parentId.template getByGid<T>(gid);
+    return get_by_key<T, MapMember>(b.parentId, key);
   return dag::Unexpected(GetError::VarNotFound);
+}
+
+template <typename BlockHandle>
+template <typename T>
+dag::Expected<T, GetError> BaseBlockHandle<BlockHandle>::getById(int var_id) const
+{
+  return get_by_key<T, &BaseBlock::vars>(*this, var_id);
+}
+
+template <typename BlockHandle>
+template <typename T>
+dag::Expected<T, GetError> BaseBlockHandle<BlockHandle>::getByGid(int gid) const
+{
+  return get_by_key<T, &BaseBlock::gidVars>(*this, gid);
 }
 
 template <typename ParentHandle>
@@ -186,7 +207,7 @@ typename ParentHandle::ChildHandle refine_block(const char *name, ParentHandle p
   auto &children = get_blocks<typename ChildHandle::BlockType>();
   ChildHandle handle((uint32_t)children.size());
   children.emplace_back(name, parent);
-  b.childNameToChildIdMap.emplace(b.childNameMap.addString(name), handle);
+  b.childNameToChildIdMap.emplace(b.childNameMap.addNameId(name), handle);
   return handle;
 }
 
@@ -201,30 +222,36 @@ GlobalBlockHandle get_global()
   return GlobalBlockHandle(0);
 }
 
-#define INSTANTIATE_HANDLE_ACCESSORS(HandleType)                                                    \
-  template void BaseBlockHandle<HandleType>::set(int, const int &);                                 \
-  template void BaseBlockHandle<HandleType>::set(int, const float &);                               \
-  template void BaseBlockHandle<HandleType>::set(int, const Color4 &);                              \
-  template void BaseBlockHandle<HandleType>::set(int, const Point4 &);                              \
-  template void BaseBlockHandle<HandleType>::set(int, const IPoint4 &);                             \
-  template void BaseBlockHandle<HandleType>::set(int, const TMatrix4 &);                            \
-  template void BaseBlockHandle<HandleType>::set(int, BaseTexture *const &);                        \
-  template void BaseBlockHandle<HandleType>::set(int, Sbuffer *const &);                            \
-  template dag::Expected<int, GetError> BaseBlockHandle<HandleType>::get(int) const;                \
-  template dag::Expected<float, GetError> BaseBlockHandle<HandleType>::get(int) const;              \
-  template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::get(int) const;             \
-  template dag::Expected<Point4, GetError> BaseBlockHandle<HandleType>::get(int) const;             \
-  template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::get(int) const;            \
-  template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::get(int) const;           \
-  template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::get(int) const;      \
-  template dag::Expected<Sbuffer *, GetError> BaseBlockHandle<HandleType>::get(int) const;          \
-  template dag::Expected<int, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;           \
-  template dag::Expected<float, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;         \
-  template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;        \
-  template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;       \
-  template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;      \
-  template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const; \
-  template dag::Expected<Sbuffer *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;
+#define INSTANTIATE_HANDLE_ACCESSORS(HandleType)                                                                    \
+  template void BaseBlockHandle<HandleType>::set(int, const int &);                                                 \
+  template void BaseBlockHandle<HandleType>::set(int, const float &);                                               \
+  template void BaseBlockHandle<HandleType>::set(int, const Color4 &);                                              \
+  template void BaseBlockHandle<HandleType>::set(int, const Point4 &);                                              \
+  template void BaseBlockHandle<HandleType>::set(int, const IPoint4 &);                                             \
+  template void BaseBlockHandle<HandleType>::set(int, const TMatrix4 &);                                            \
+  template void BaseBlockHandle<HandleType>::set(int, BaseTexture *const &);                                        \
+  template void BaseBlockHandle<HandleType>::set(int, Sbuffer *const &);                                            \
+  template void BaseBlockHandle<HandleType>::set(int, const d3d::SamplerHandle &);                                  \
+  template void BaseBlockHandle<HandleType>::set(int, RaytraceTopAccelerationStructure *const &);                   \
+  template dag::Expected<int, GetError> BaseBlockHandle<HandleType>::get(int) const;                                \
+  template dag::Expected<float, GetError> BaseBlockHandle<HandleType>::get(int) const;                              \
+  template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::get(int) const;                             \
+  template dag::Expected<Point4, GetError> BaseBlockHandle<HandleType>::get(int) const;                             \
+  template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::get(int) const;                            \
+  template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::get(int) const;                           \
+  template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::get(int) const;                      \
+  template dag::Expected<d3d::SamplerHandle, GetError> BaseBlockHandle<HandleType>::get(int) const;                 \
+  template dag::Expected<RaytraceTopAccelerationStructure *, GetError> BaseBlockHandle<HandleType>::get(int) const; \
+  template dag::Expected<Sbuffer *, GetError> BaseBlockHandle<HandleType>::get(int) const;                          \
+  template dag::Expected<int, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                           \
+  template dag::Expected<float, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                         \
+  template dag::Expected<Color4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                        \
+  template dag::Expected<IPoint4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                       \
+  template dag::Expected<TMatrix4, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                      \
+  template dag::Expected<BaseTexture *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                 \
+  template dag::Expected<Sbuffer *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;                     \
+  template dag::Expected<d3d::SamplerHandle, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;            \
+  template dag::Expected<RaytraceTopAccelerationStructure *, GetError> BaseBlockHandle<HandleType>::getByGid(int) const;
 
 INSTANTIATE_HANDLE_ACCESSORS(GlobalBlockHandle)
 INSTANTIATE_HANDLE_ACCESSORS(ViewBlockHandle)
@@ -294,7 +321,29 @@ static dag::Expected<Sbuffer *, FlushError> flush(PassBlockHandle block_handle, 
 
   dag::Span<float> bufData(locked.get(), block.CBUF_REGS * 4);
 
-  exec_refined_block_stcode(stcode, block_handle, bufData, block.flushedVars);
+#if CPP_STCODE
+  const auto &stcodeCtx = shBinDumpOwner().stcodeCtx;
+  if (stcodeCtx.dynstcodeExMode == stcode::ExecutionMode::CPP)
+  {
+    const ScriptedShadersBinDumpV5 *dumpV5 = shBinDumpOwner().getDumpV5();
+    if (!dumpV5)
+      return dag::Unexpected(FlushError::NoDump);
+
+    const int32_t cppId = dumpV5->cppRefinedBlockStcodeId;
+    if (cppId < 0)
+      return dag::Unexpected(FlushError::InvalidStcodeId);
+
+    RawBufferConstSetter rawBufSetter(bufData);
+    ScopedRefinedBlock blockScope(block_handle);
+    ScopedFlushedVarsCollector varsScope(block.flushedVars);
+    stcode::ScopedCustomConstSetter csetOverride(&rawBufSetter);
+    stcode::run_dyn_routine(stcodeCtx, cppId, nullptr);
+  }
+  else
+#endif
+  {
+    exec_refined_block_stcode(stcode, block_handle, bufData, block.flushedVars);
+  }
 
   block.flushedCbufIdx = block.currentCbufIdx;
   block.currentCbufIdx = (block.currentCbufIdx + 1) % block.CBUF_RING_SIZE;
@@ -330,6 +379,20 @@ void PassBlockHandle::setState() const
           else
             d3d::update_bindless_resources_to_null(resType, v.slotOrBindlessId, 1);
         }
+        else if constexpr (eastl::is_same_v<T, CbufVar>)
+          d3d::set_const_buffer(v.stage, v.slotOrBindlessId, arg.buf);
+        else if constexpr (eastl::is_same_v<T, d3d::SamplerHandle>)
+          d3d::set_sampler(v.stage, v.slotOrBindlessId, arg);
+        else if constexpr (eastl::is_same_v<T, RaytraceTopAccelerationStructure *>)
+        {
+#if D3D_HAS_RAY_TRACING
+          d3d::set_top_acceleration_structure(ShaderStage(v.stage), v.slotOrBindlessId, arg);
+#endif
+        }
+        else if constexpr (eastl::is_same_v<T, RWTexVar>)
+          d3d::set_rwtex(v.stage, v.slotOrBindlessId, arg.tex, 0, 0);
+        else if constexpr (eastl::is_same_v<T, RWBufVar>)
+          d3d::set_rwbuffer(v.stage, v.slotOrBindlessId, arg.buf);
       },
       v.var);
   }
@@ -355,6 +418,21 @@ void flush()
   }
 }
 
+template <typename BlockType>
+static void rebuild_gid_map_for_blocks()
+{
+  for (auto &block : get_blocks<BlockType>())
+  {
+    block.gidVars.clear();
+    for (const auto &[id, var] : block.vars)
+    {
+      const int gid = get_internal_id(id);
+      if (DAGOR_LIKELY(gid >= 0))
+        block.gidVars[gid] = var;
+    }
+  }
+}
+
 void clear()
 {
   auto &bindless = get_bindless_records();
@@ -366,5 +444,18 @@ void clear()
   get_blocks<ViewBlock>().clear();
   get_blocks<PassBlock>().clear();
 }
+
+struct RefinedBlockReloadListener final : public IShaderBindumpReloadListener
+{
+  void resolve() override
+  {
+    if (!IShaderBindumpReloadListener::staticInitDone)
+      return;
+    rebuild_gid_map_for_blocks<GlobalBlock>();
+    rebuild_gid_map_for_blocks<ViewBlock>();
+    rebuild_gid_map_for_blocks<PassBlock>();
+  }
+};
+static RefinedBlockReloadListener refined_block_reload_listener;
 
 } // namespace refined_block

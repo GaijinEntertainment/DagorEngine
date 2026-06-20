@@ -4,11 +4,7 @@
 #include "gamepad_device.h"
 #include <drv/hid/dag_hiGlobals.h>
 #include <supp/_platform.h>
-#if _TARGET_PC_WIN
 #include <xinput.h>
-#elif _TARGET_XBOX
-#include "xboxOneGamepad.h"
-#endif
 #include <debug/dag_debug.h>
 #include <string.h>
 #include <osApiWrappers/dag_threads.h>
@@ -22,28 +18,27 @@
 #define RESCAN_ATTEMPTS 10
 
 #if _TARGET_PC_WIN
+#ifndef WIN_NOEXCEPT
+#define WIN_NOEXCEPT
+#endif
+
 static FARPROC get_xinput_proc(const char *name)
 {
   static HMODULE mod = LoadLibraryA("xinput9_1_0.dll");
   return mod ? GetProcAddress(mod, name) : nullptr;
 }
 
-DWORD WINAPI XInputGetState(DWORD user_index, XINPUT_STATE *state)
+DWORD WINAPI XInputGetState(DWORD user_index, XINPUT_STATE *state) WIN_NOEXCEPT
 {
   static auto fn = (eastl::add_pointer_t<decltype(::XInputGetState)>)(void *)get_xinput_proc("XInputGetState");
   return fn ? fn(user_index, state) : ERROR_DEVICE_NOT_CONNECTED;
 }
 
-DWORD WINAPI XInputSetState(DWORD user_index, XINPUT_VIBRATION *vibration)
+DWORD WINAPI XInputSetState(DWORD user_index, XINPUT_VIBRATION *vibration) WIN_NOEXCEPT
 {
   static auto fn = (eastl::add_pointer_t<decltype(::XInputSetState)>)(void *)get_xinput_proc("XInputSetState");
   return fn ? fn(user_index, vibration) : ERROR_DEVICE_NOT_CONNECTED;
 }
-#endif
-
-
-#if _TARGET_XBOX
-void refresh_xbox_gamepads_list();
 #endif
 
 
@@ -87,10 +82,6 @@ bool HumanInput::Xbox360GamepadClassDriver::init()
   if (getDeviceCount() > 0)
     enable(true);
 
-#if _TARGET_XBOX
-  initXbox();
-#endif
-
   return true;
 }
 
@@ -123,11 +114,6 @@ void HumanInput::Xbox360GamepadClassDriver::refreshDeviceList()
     enable(false);
 
     DEBUG_CTX("Xbox360GamepadClassDriver::refreshDeviceList");
-
-#if _TARGET_XBOX
-    refresh_xbox_gamepads_list();
-    updateXboxGamepads(); // Update XInputGetState shadow states.
-#endif
 
     XINPUT_STATE st;
     deviceStateMask = 0;
@@ -332,21 +318,12 @@ void HumanInput::Xbox360GamepadClassDriver::updateDevices()
     for (int i = 0; i < deviceNum; i++)
       device[i]->copyStickDeadZoneScales(*virtualDevice);
 
-#if _TARGET_XBOX
-  updateXboxGamepads();
-  rescanCount = 1; // Always rescan on xbox instead of relying on WM_DEVICECHANGE.
-#endif
-
   if (prevUpdateRefTime >= nextUpdatePresenseTime && rescanCount > 0 && (!inputUpdater || !inputUpdater->isThreadRunnning()))
   {
     nextUpdatePresenseTime = prevUpdateRefTime + MS_IN_SEC;
 
-#if _TARGET_XBOX
-    setDeviceMask(get_device_state_mask());
-#else
     inputUpdater.reset(new XInputUpdater(*this));
     inputUpdater->start();
-#endif //_TARGET_XBOX
   }
 
   if (defJoy || !enableAutoDef)
@@ -459,98 +436,3 @@ float HumanInput::Xbox360GamepadClassDriver::getStickDeadZoneAbs(int stick_idx, 
   }
   return stickDeadZoneScale[stick_idx] * axis_dead_thres[0][stick_idx] / JOY_XINPUT_MAX_AXIS_VAL;
 }
-
-
-#if _TARGET_XBOX
-
-#include <osApiWrappers/gdk/gameinput.h>
-
-static constexpr size_t GAMEPADS_MAX = gdk::gameinput::MAX_DEVICES_PER_TYPE;
-static DagorXboxOneGamepadState g_st[GAMEPADS_MAX] = {0};
-static gdk::gameinput::DevicesList devices;
-
-void refresh_xbox_gamepads_list() {}
-
-void HumanInput::Xbox360GamepadClassDriver::initXbox() {}
-
-
-int XInputGetState(int idx, DagorXboxOneGamepadState *st)
-{
-  if (idx < 0 || idx >= GAMEPADS_MAX || !devices[idx])
-    return ERROR_DEVICE_NOT_CONNECTED;
-  if (st)
-    *st = g_st[idx];
-  return 0;
-}
-
-
-int XInputSetState(int idx, DagorXboxOneGamepadVibro *xiv)
-{
-  if (idx < 0 || idx >= GAMEPADS_MAX || !devices[idx])
-    return ERROR_DEVICE_NOT_CONNECTED;
-  const GameInputRumbleParams params = {xiv->wLeftMotorSpeed / 65535.0f, xiv->wRightMotorSpeed / 65535.0f, 0, 0};
-  if (devices[idx])
-    devices[idx]->SetRumbleState(&params);
-  return 0;
-}
-
-
-void HumanInput::Xbox360GamepadClassDriver::updateXboxGamepads()
-{
-  TIME_PROFILE(HID_GDK_updateXboxGamepads);
-  gdk::gameinput::get_devices(GameInputKindGamepad, devices);
-
-#define REMAP_BTN(X, B)                    \
-  if (state.buttons & GameInputGamepad##X) \
-  st.wButtons |= HumanInput::JOY_XINPUT_REAL_MASK_##B
-#define REMAP_AXIS(X, A, S) st.A = (int)floorf(state.X * (S))
-
-  for (size_t i = 0; i < GAMEPADS_MAX; ++i)
-  {
-    if (devices[i])
-    {
-      gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindGamepad, devices[i]);
-      if (reading)
-      {
-        GameInputGamepadState state;
-        if (SUCCEEDED(reading->GetGamepadState(&state)))
-        {
-          DagorXboxOneGamepadState::Data st = {0};
-
-          REMAP_BTN(A, A);
-          REMAP_BTN(B, B);
-          REMAP_BTN(X, X);
-          REMAP_BTN(Y, Y);
-          REMAP_BTN(DPadDown, D_DOWN);
-          REMAP_BTN(DPadLeft, D_LEFT);
-          REMAP_BTN(DPadRight, D_RIGHT);
-          REMAP_BTN(DPadUp, D_UP);
-          REMAP_BTN(LeftShoulder, L_SHOULDER);
-          REMAP_BTN(LeftThumbstick, L_THUMB);
-          REMAP_BTN(Menu, START);
-          REMAP_BTN(RightShoulder, R_SHOULDER);
-          REMAP_BTN(RightThumbstick, R_THUMB);
-          REMAP_BTN(View, BACK);
-
-          REMAP_AXIS(leftTrigger, bLeftTrigger, 255);
-          REMAP_AXIS(rightTrigger, bRightTrigger, 255);
-          REMAP_AXIS(leftThumbstickX, sThumbLX, JOY_XINPUT_MAX_AXIS_VAL);
-          REMAP_AXIS(leftThumbstickY, sThumbLY, JOY_XINPUT_MAX_AXIS_VAL);
-          REMAP_AXIS(rightThumbstickX, sThumbRX, JOY_XINPUT_MAX_AXIS_VAL);
-          REMAP_AXIS(rightThumbstickY, sThumbRY, JOY_XINPUT_MAX_AXIS_VAL);
-
-          if (memcmp(&st, &g_st[i].Gamepad, sizeof(st)) == 0)
-            continue;
-
-          g_st[i].Gamepad = st;
-          g_st[i].dwPacketNumber++;
-        }
-      }
-    }
-  }
-
-#undef REMAP_AXIS
-#undef REMAP_BTN
-}
-
-#endif

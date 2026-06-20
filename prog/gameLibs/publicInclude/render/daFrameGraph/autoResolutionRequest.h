@@ -14,8 +14,15 @@ namespace dafg
 {
 
 struct ResourceProvider;
+
+namespace visualization::usergraph
+{
+class Visualizer;
+} // namespace visualization::usergraph
+
 namespace detail
 {
+
 struct VirtualResourceRequestBase;
 struct DispatchRequestBase;
 
@@ -56,6 +63,7 @@ class AutoResolutionRequest
   friend class NameSpaceRequest;
   friend struct detail::VirtualResourceRequestBase;
   friend struct detail::DispatchRequestBase;
+  friend class visualization::usergraph::Visualizer;
 
   AutoResolutionRequest(AutoResTypeNameId id, float mult, const ResourceProvider *p) : autoResTypeId{id}, multiplier{mult}, provider{p}
   {}

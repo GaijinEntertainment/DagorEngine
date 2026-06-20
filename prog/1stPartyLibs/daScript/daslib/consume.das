@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module consume shared private
@@ -21,9 +19,7 @@ def private isConsumeArgument(expr : Expression?) : bool {
         if (func.fromGeneric != null) {
             func = func.fromGeneric
         }
-        if (func.name == "consume_argument" && func._module.name == "builtin") {
-            return true
-        }
+        if (func.name == "consume_argument" && func._module.name == "builtin") return true
     }
     return false
 }

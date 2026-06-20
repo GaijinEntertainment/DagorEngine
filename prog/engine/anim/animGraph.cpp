@@ -120,7 +120,7 @@ static void finish_blending_dump()
   clear_and_shrink(blending_graphs);
 }
 
-static void write_blending(IPureAnimStateHolder &st)
+static void write_blending(AnimGraphStateHolder &st)
 {
   OSSpinlockScopedLock guard(blending_lock);
 
@@ -478,7 +478,7 @@ void AnimationGraph::initStates(const DataBlock &stDescBlk)
   if (err_cnt)
     ANIM_ERR("error count: %d, see logerr for details", err_cnt);
 }
-void AnimationGraph::enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<StateRec> state, float force_dur, float force_speed)
+void AnimationGraph::enqueueState(AnimGraphStateHolder &st, dag::ConstSpan<StateRec> state, float force_dur, float force_speed)
 {
   TIME_PROFILE(AnimationGraph__enqueueState);
   if (state.size() != stDest.size())
@@ -532,7 +532,7 @@ void AnimationGraph::enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<State
     }
 }
 
-void AnimationGraph::setStateSpeed(IPureAnimStateHolder &st, dag::ConstSpan<StateRec> state, float force_speed)
+void AnimationGraph::setStateSpeed(AnimGraphStateHolder &st, dag::ConstSpan<StateRec> state, float force_speed)
 {
   TIME_PROFILE(AnimationGraph__setStateSpeed);
   if (state.size() != stDest.size())
@@ -557,7 +557,7 @@ void AnimationGraph::setStateSpeed(IPureAnimStateHolder &st, dag::ConstSpan<Stat
     }
 }
 
-void AnimationGraph::onSingleAnimFinished(IPureAnimStateHolder &st, IAnimBlendNode *n)
+void AnimationGraph::onSingleAnimFinished(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   if (!stDest.size())
     return;
@@ -586,7 +586,7 @@ int AnimationGraph::addParamId(const char *name, int type)
   if (id == paramTypes.size())
   {
     paramTypes.push_back(type);
-    if (type == AnimCommonStateHolder::PT_TimeParam)
+    if (type == AnimGraphStateHolder::PT_TimeParam)
       paramTimeInd.push_back(id);
     return id;
   }
@@ -600,18 +600,18 @@ int AnimationGraph::addInlinePtrParamId(const char *name, size_t size_bytes, int
   int id = paramNames.addNameId(name);
   if (id < 0)
     return -1;
-  size_t word_sz = sizeof(AnimCommonStateHolder::ParamState);
+  size_t word_sz = sizeof(AnimGraphStateHolder::ParamState);
   size_t num_words = size_bytes ? (size_bytes + word_sz - 1) / word_sz : 1;
 
   if (id == paramTypes.size())
   {
     int pt_base = append_items(paramTypes, num_words);
     paramTypes[pt_base] = type;
-    if (type == AnimCommonStateHolder::PT_Fifo3)
+    if (type == AnimGraphStateHolder::PT_Fifo3)
       paramFifo3Ind.push_back(id);
     for (int i = 1; i < num_words; i++)
     {
-      paramTypes[pt_base + i] = IPureAnimStateHolder::PT_Reserved;
+      paramTypes[pt_base + i] = AnimGraphStateHolder::PT_Reserved;
       G_VERIFYF(paramNames.addNameId(String(0, "?%d", pt_base + i)) == pt_base + i,
         "failed to create unique nameId: resv[%d] for param <%s> size_bytes=%d", i, name, size_bytes);
     }
@@ -619,16 +619,16 @@ int AnimationGraph::addInlinePtrParamId(const char *name, size_t size_bytes, int
     return id;
   }
 
-  G_ASSERTF_RETURN(AnimCommonStateHolder::getInlinePtrWords(paramTypes, id) * word_sz >= size_bytes, -1,
+  G_ASSERTF_RETURN(AnimGraphStateHolder::getInlinePtrWords(paramTypes, id) * word_sz >= size_bytes, -1,
     "adding param <%s> type=%d while such param with type %d already exists (max_size=%d need_size=%d)!", name, type, paramTypes[id],
-    AnimCommonStateHolder::getInlinePtrWords(paramTypes, id), size_bytes);
+    AnimGraphStateHolder::getInlinePtrWords(paramTypes, id), size_bytes);
   return id;
 }
 
 int AnimationGraph::getInlinePtrParamMaxSize(int param_id)
 {
-  size_t word_sz = sizeof(AnimCommonStateHolder::ParamState);
-  return AnimCommonStateHolder::getInlinePtrWords(paramTypes, param_id) * word_sz;
+  size_t word_sz = sizeof(AnimGraphStateHolder::ParamState);
+  return AnimGraphStateHolder::getInlinePtrWords(paramTypes, param_id) * word_sz;
 }
 
 int AnimationGraph::getParamId(const char *name, int type) const
@@ -670,7 +670,7 @@ void AnimationGraph::replaceRoot(IAnimBlendNode *new_root)
   //==
   root = new_root;
 }
-void AnimationGraph::resetBlendNodesState(IPureAnimStateHolder &st)
+void AnimationGraph::resetBlendNodesState(AnimGraphStateHolder &st)
 {
   const DataBlock *fifo3Init = initState ? initState->getBlockByName("fifo3") : NULL;
   if (fifo3Init && fifo3Init->isEmpty())
@@ -687,7 +687,7 @@ void AnimationGraph::resetBlendNodesState(IPureAnimStateHolder &st)
   }
 }
 
-void AnimationGraph::clearBlendNodeAllocatedMemoryFromState(IPureAnimStateHolder &st)
+void AnimationGraph::clearBlendNodeAllocatedMemoryFromState(AnimGraphStateHolder &st)
 {
   for (int i = 0; i < nodePtr.size(); i++)
   {
@@ -776,7 +776,7 @@ void AnimationGraph::getUsedBlendNodes(IAnimBlendNode::used_blend_nodes_t &usedN
     }
 }
 
-void AnimationGraph::atIrq(int irq_type, IAnimBlendNode *src, IPureAnimStateHolder &st)
+void AnimationGraph::atIrq(int irq_type, IAnimBlendNode *src, AnimGraphStateHolder &st)
 {
   if (irq_type == GIRQT_EndOfSingleAnim || irq_type == GIRQT_EndOfContinuousAnim || irq_type == GIRQT_EndOfParametricAnim)
   {
@@ -1048,7 +1048,7 @@ static PerformanceTimer2 __pm_prepare(false);
 static PerformanceTimer2 __pm_outer(false);
 static int __pm_anim_cnt = 0;
 
-bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm,
+bool AnimBlender::blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm,
   const AnimationGraph &graph)
 {
   G_UNUSED(graph);
@@ -1548,7 +1548,7 @@ bool AnimBlender::blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNod
 #endif
   return true;
 }
-void AnimBlender::blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, bool rebuild_list)
+void AnimBlender::blendOriginVel(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNode *root, bool rebuild_list)
 {
 #if MEASURE_PERF
   perf_tm.go();
@@ -1707,13 +1707,13 @@ bool AnimBlender::getBlendedNodeTm(TlsContext &tls, int id, mat44f &tm, const ve
   return true;
 }
 
-void AnimBlender::postBlendInit(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimBlender::postBlendInit(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   for (int i = 0, e = pbCtrl.size(); i < e; i++)
     if (pbCtrl[i])
       pbCtrl[i]->init(st, tree);
 }
-void AnimBlender::postBlendProcess(TlsContext &tls, IPureAnimStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimBlender::postBlendProcess(TlsContext &tls, AnimGraphStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   TIME_PROFILE_DEV(postBlendProcess);
   dag::Span<real> pbcWt = tls.pbcWt;
@@ -3445,7 +3445,7 @@ void AnimBlendCtrl_SetMotionMatchingTag::createNode(AnimationGraph &graph, const
 
   AnimBlendCtrl_SetMotionMatchingTag *node = new AnimBlendCtrl_SetMotionMatchingTag;
   int tagsMaskSize = (MAX_TAGS_COUNT + 7) / 8; // one bit for each tag
-  node->tagsMaskParamId = graph.addInlinePtrParamId("motion_matching_tags", tagsMaskSize, IPureAnimStateHolder::PT_InlinePtr);
+  node->tagsMaskParamId = graph.addInlinePtrParamId("motion_matching_tags", tagsMaskSize, AnimGraphStateHolder::PT_InlinePtr);
   node->tagName = tag;
   graph.registerBlendNode(node, name, nm_suffix);
 }

@@ -330,7 +330,7 @@ uint32_t nextResevedEidIndex = 0;
 float lastTrackedCount = 0;
 eastl::deque<ecs::entity_id_t> freeIndices, freeIndicesReserved;
 Archetypes archetypes;
-ComponentTypes componentTypes;
+ComponentTypes & componentTypes;
 DataComponents dataComponents;
 Templates templates;
 eastl::unique_ptr<uint8_t[]> zeroMem; // size of biggest type registered, so we can always return something in case of getNullableRW
@@ -782,9 +782,9 @@ struct ScopedMTMutexT
   // NOTE: owner_thread MUST be passed by reference to avoid a data race
   // on ownerThreadId in MT mode, in which case it would be loaded with a race
   // but then not used because of mutex being present.
-  ScopedMTMutexT(bool is_mt, const int64_t &owner_thread, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
+  ScopedMTMutexT(bool is_mt, const volatile int64_t &owner_thread, T &mutex_) : mutex(is_mt ? &mutex_ : nullptr)
   {
-    G_UNUSED(owner_thread);
+    G_UNUSED_VOLATILE(owner_thread);
     if (mutex)
       mutex->lock();
     else
@@ -1050,6 +1050,6 @@ void schedule_tracked_changes(const ScheduledArchetypeComponentTrack *__restrict
   uint32_t archetype);
 
 void *userData = nullptr;
-int64_t ownerThreadId = 0;
+volatile int64_t ownerThreadId = 0;
 
 MTLinkedList<QueryStackData> queryStack;

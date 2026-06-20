@@ -662,83 +662,6 @@ void DeviceContext::loadComputeShaderFromDump(ProgramID program)
   immediateModeExecute();
 }
 
-void DeviceContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
-  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
-  const DataBlock *graphics_pipeline_set, const DataBlock *mesh_pipeline_set, const DataBlock *compute_pipeline_set,
-  const char *default_format)
-{
-  DynamicArray<FramebufferLayoutWithHash> framebufferLayouts;
-  if (output_formats_set && output_formats_set->blockCount() > 0)
-  {
-    auto blockCount = output_formats_set->blockCount();
-    framebufferLayouts.resize(blockCount);
-    pipeline::DataBlockDecodeEnumarator<pipeline::FramebufferLayoutDecoder> decoder{*output_formats_set, 0, default_format};
-    for (; !decoder.completed(); decoder.next())
-    {
-      auto &target = framebufferLayouts[decoder.index()];
-      target = {};
-      decoder.decode(target.layout, target.hash);
-    }
-  }
-
-  DynamicArray<GraphicsPipelinePreloadInfo> graphicsPiplines;
-  if (graphics_pipeline_set && graphics_pipeline_set->blockCount() > 0)
-  {
-    auto blockCount = graphics_pipeline_set->blockCount();
-    graphicsPiplines.resize(blockCount);
-    uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::GraphicsPipelineDecoder> decoder{*graphics_pipeline_set, 0};
-    for (; !decoder.completed(); decoder.next())
-    {
-      if (decoder.decode(graphicsPiplines[decodedCount].base, graphicsPiplines[decodedCount].variants))
-      {
-        ++decodedCount;
-      }
-    }
-    graphicsPiplines.resize(decodedCount);
-  }
-
-  DynamicArray<MeshPipelinePreloadInfo> meshPipelines;
-  if (mesh_pipeline_set && mesh_pipeline_set->blockCount() > 0)
-  {
-    auto blockCount = mesh_pipeline_set->blockCount();
-    meshPipelines.resize(blockCount);
-    uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::MeshPipelineDecoder> decoder{*mesh_pipeline_set, 0};
-    for (; !decoder.completed(); decoder.next())
-    {
-      if (decoder.decode(meshPipelines[decodedCount].base, meshPipelines[decodedCount].variants))
-      {
-        ++decodedCount;
-      }
-    }
-    meshPipelines.resize(decodedCount);
-  }
-
-  DynamicArray<ComputePipelinePreloadInfo> computePipelines;
-  if (compute_pipeline_set && compute_pipeline_set->blockCount() > 0)
-  {
-    auto blockCount = compute_pipeline_set->blockCount();
-    computePipelines.resize(blockCount);
-    uint32_t decodedCount = 0;
-    pipeline::DataBlockDecodeEnumarator<pipeline::ComputePipelineDecoder> decoder{*compute_pipeline_set, 0};
-    for (; !decoder.completed(); decoder.next())
-    {
-      if (decoder.decode(computePipelines[decodedCount].base))
-      {
-        ++decodedCount;
-      }
-    }
-    computePipelines.resize(decodedCount);
-  }
-
-  DX12_LOCK_FRONT();
-  commandStream.pushBack(make_command<CmdCompilePipelineSet>(input_layouts.releaseAsSpan(), static_render_states.releaseAsSpan(),
-    framebufferLayouts.releaseAsSpan(), graphicsPiplines.releaseAsSpan(), meshPipelines.releaseAsSpan(),
-    computePipelines.releaseAsSpan()));
-  immediateModeExecute();
-}
-
 namespace
 {
 struct GraphicsVariantDecoderContext
@@ -1025,6 +948,8 @@ void DeviceContext::dispatchRays(const ::raytrace::ResourceBindingTable &rbt, co
   basicParams.rootSignature = &pipe->getSignature();
   basicParams.pipeline = pipe->get();
 
+  DX12_LOCK_FRONT();
+
   drv3d_dx12::RayDispatchParameters dispatchParams;
 
   auto rayGenBuffer = (GenericBufferInterface *)rdv.shaderBindingTableSet.rayGenGroup.bindingTableBuffer;
@@ -1053,7 +978,6 @@ void DeviceContext::dispatchRays(const ::raytrace::ResourceBindingTable &rbt, co
   dispatchParams.height = rdv.height;
   dispatchParams.depth = rdv.depth;
 
-  DX12_LOCK_FRONT();
   // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
   commandStream.pushBack(make_command<CmdDispatchRays>(basicParams, dispatchParams, resolveResourceBindingTable(rbt, pipe)),
     rbt.immediateConstants.data(), rbt.immediateConstants.size());
@@ -1069,6 +993,8 @@ void DeviceContext::dispatchRaysIndirect(const ::raytrace::ResourceBindingTable 
   basicParams.rootSignature = &pipe->getSignature();
   basicParams.pipeline = pipe->get();
 
+  DX12_LOCK_FRONT();
+
   GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdip.indirectBuffer;
   argsBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
 
@@ -1077,7 +1003,6 @@ void DeviceContext::dispatchRaysIndirect(const ::raytrace::ResourceBindingTable 
   indirectParams.argumentStrideInBytes = rdip.indirectByteStride;
   indirectParams.maxCount = rdip.count;
 
-  DX12_LOCK_FRONT();
   // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
   commandStream.pushBack(make_command<CmdDispatchRaysIndirect>(basicParams, indirectParams, resolveResourceBindingTable(rbt, pipe)),
     rbt.immediateConstants.data(), rbt.immediateConstants.size());
@@ -1096,6 +1021,8 @@ void DeviceContext::dispatchRaysIndirectCount(const ::raytrace::ResourceBindingT
   GenericBufferInterface *argsBuffer = (GenericBufferInterface *)rdicp.indirectBuffer;
   GenericBufferInterface *countBuffer = (GenericBufferInterface *)rdicp.countBuffer;
 
+  DX12_LOCK_FRONT();
+
   argsBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
   countBuffer->updateDeviceBuffer([](auto &buf) { buf.resourceId.markUsedAsIndirectBuffer(); });
 
@@ -1105,7 +1032,6 @@ void DeviceContext::dispatchRaysIndirectCount(const ::raytrace::ResourceBindingT
   indirectParams.argumentStrideInBytes = rdicp.indirectByteStride;
   indirectParams.maxCount = rdicp.maxCount;
 
-  DX12_LOCK_FRONT();
   // resolve_resource_binding_table has to be locked by DX12_LOCK_FRONT
   commandStream.pushBack(make_command<CmdDispatchRaysIndirect>(basicParams, indirectParams, resolveResourceBindingTable(rbt, pipe)),
     rbt.immediateConstants.data(), rbt.immediateConstants.size());
@@ -2570,7 +2496,7 @@ void DeviceContext::setFramebuffer(Image **image_list, ImageViewState *view_list
 #if D3D_HAS_RAY_TRACING
 void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
   RaytraceBottomAccelerationStructure *as, const RaytraceGeometryDescription *descs, uint32_t count, RaytraceBuildFlags flags,
-  bool update, BufferResourceReferenceAndAddress scratch_buf, BufferResourceReferenceAndAddress compacted_size)
+  bool update, Sbuffer *scratch_buffer, uint32_t scratch_buffer_offset, Sbuffer *compacted_size_buffer, uint32_t compacted_size_offset)
 {
   if (isImmediateMode())
   {
@@ -2581,6 +2507,13 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size
   DX12_LOCK_FRONT();
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
     "DX12: CmdRaytraceBuildBottomAccelerationStructure used during a generic render pass");
+
+  const BufferResourceReferenceAndAddress scratchBufferAddress{get_any_buffer_ref(scratch_buffer), scratch_buffer_offset};
+  BufferResourceReferenceAndAddress compactedSizeAddress;
+  if (RaytraceBuildFlags::ALLOW_COMPACTION == (flags & RaytraceBuildFlags::ALLOW_COMPACTION))
+  {
+    compactedSizeAddress = BufferResourceReferenceAndAddress{get_any_buffer_ref(compacted_size_buffer), compacted_size_offset};
+  }
 
 #if HAS_NVAPI
   auto buildApiToUse = device.getOpacityMicroMapAvailability();
@@ -2601,7 +2534,7 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size
     commandStream.pushBack<NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX, RaytraceGeometryDescriptionBufferResourceReferenceSet,
       NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT>(
       make_command<CmdRaytraceBuildBottomAccelerationStructureNvidia>(reinterpret_cast<RaytraceAccelerationStructure *>(as),
-        scratch_buf, compacted_size, flags, update),
+        scratchBufferAddress, compactedSizeAddress, flags, update),
       count, count, totalOmmDescs, [descs, count](auto push_0, auto push_1, auto push_2) {
         for (auto &desc : make_span(descs, count))
         {
@@ -2626,7 +2559,7 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size
 #endif
   {
     commandStream.pushBack<D3D12_RAYTRACING_GEOMETRY_DESC, RaytraceGeometryDescriptionBufferResourceReferenceSet>(
-      make_command<CmdRaytraceBuildBottomAccelerationStructure>(scratch_buf, compacted_size,
+      make_command<CmdRaytraceBuildBottomAccelerationStructure>(scratchBufferAddress, compactedSizeAddress,
         reinterpret_cast<RaytraceAccelerationStructure *>(as), flags, update, batch_size, batch_index),
       count, count, [descs, count](auto push_0, auto push_1) {
         for (auto &desc : make_span(descs, count))
@@ -2651,8 +2584,8 @@ void DeviceContext::raytraceBuildBottomAccelerationStructure(uint32_t batch_size
 }
 
 void DeviceContext::raytraceBuildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index,
-  RaytraceTopAccelerationStructure *as, BufferReference instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags,
-  bool update, BufferResourceReferenceAndAddress scratch_buf)
+  RaytraceTopAccelerationStructure *as, Sbuffer *instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags, bool update,
+  Sbuffer *scratch_buffer, uint32_t scratch_buffer_offset)
 {
   if (isImmediateMode())
   {
@@ -2660,17 +2593,18 @@ void DeviceContext::raytraceBuildTopAccelerationStructure(uint32_t batch_size, u
     batch_index = 0;
   }
 
+  DX12_LOCK_FRONT();
+
   auto cmd = make_command<CmdRaytraceBuildTopAccelerationStructure>();
-  cmd.scratchBuffer = scratch_buf;
+  cmd.scratchBuffer = BufferResourceReferenceAndAddress{get_any_buffer_ref(scratch_buffer), scratch_buffer_offset};
   cmd.as = reinterpret_cast<RaytraceAccelerationStructure *>(as);
-  cmd.instanceBuffer = instance_buffer;
+  cmd.instanceBuffer = get_any_buffer_ref(instance_buffer);
   cmd.instanceCount = instance_count;
   cmd.flags = flags;
   cmd.update = update;
   cmd.batchSize = batch_size;
   cmd.batchIndex = batch_index;
 
-  DX12_LOCK_FRONT();
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea,
     "DX12: CmdRaytraceBuildTopAccelerationStructure used during a generic render pass");
   commandStream.pushBack(cmd);
@@ -3482,6 +3416,32 @@ void DeviceContext::executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_para
 
   DX12_LOCK_FRONT();
   VALIDATE_GENERIC_RENDER_PASS_CONDITION(!activeRenderPassArea, "DX12: CmdExecuteDlssG used during a generic render pass");
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+#endif
+}
+
+void DeviceContext::setDlssGEnabled(int frames_to_generate, int view_index)
+{
+  G_UNUSED(frames_to_generate);
+  G_UNUSED(view_index);
+#if !_TARGET_XBOX
+  auto cmd = make_command<CmdSetDlssGEnabled>(frames_to_generate, view_index);
+
+  DX12_LOCK_FRONT();
+  commandStream.pushBack(cmd);
+  immediateModeExecute();
+#endif
+}
+
+void DeviceContext::setDlssOptions(const nv::DlssOptions &options, int view_index)
+{
+  G_UNUSED(options);
+  G_UNUSED(view_index);
+#if !_TARGET_XBOX
+  auto cmd = make_command<CmdSetDlssOptions>(options, view_index);
+
+  DX12_LOCK_FRONT();
   commandStream.pushBack(cmd);
   immediateModeExecute();
 #endif
@@ -6060,7 +6020,7 @@ void DeviceContext::ExecutionContext::blitImage(Image *src, Image *dst, ImageVie
   auto srcViewGpuHandle = frame.resourceViewHeaps.getGpuAddress(srcViewGpuIndex);
 
   contextState.cmdBuffer.setResourceHeap(frame.resourceViewHeaps.getActiveHandle(), frame.resourceViewHeaps.getBindlessGpuAddress());
-  auto blitPipeline = device.pipeMan.getBlitPipeline(device, dst->getFormat().asDxGiFormat<false>());
+  auto blitPipeline = device.pipeMan.getBlitPipeline(device, dst_view.getFormat().asDxGiFormat<false>());
   if (!blitPipeline)
   {
     return;
@@ -7511,6 +7471,30 @@ void DeviceContext::ExecutionContext::executeDlssG(const nv::DlssGParams<Image> 
 #endif
 }
 
+void DeviceContext::ExecutionContext::setDlssGEnabled(int frames_to_generate, int view_index)
+{
+  G_UNUSED(frames_to_generate);
+  G_UNUSED(view_index);
+#if !_TARGET_XBOX
+  if (auto *dlss = static_cast<DLSSFrameGeneration *>(self.streamlineAdapter->getDlssGFeature(view_index)))
+    dlss->setEnabled(frames_to_generate);
+#endif
+}
+
+void DeviceContext::ExecutionContext::setDlssOptions(const nv::DlssOptions &options, int view_index)
+{
+  G_UNUSED(options);
+  G_UNUSED(view_index);
+#if USE_DLSS_WITHOUT_STREAMLINE
+  // Native NGX: (re)create the feature on the backend, which is where slDLSS-equivalent NGX work runs.
+  createDlssFeature(int(options.mode), options.outputResolution.x, options.outputResolution.y, options.useRayReconstruction,
+    options.useLegacyModel);
+#elif !_TARGET_XBOX
+  if (auto *dlss = static_cast<DLSSWithSizeQuery *>(self.streamlineAdapter->getDlssFeature(view_index)))
+    dlss->setOptions(options.mode, options.outputResolution, options.useRayReconstruction, options.useLegacyModel);
+#endif
+}
+
 void DeviceContext::ExecutionContext::executeXess(const XessParamsDx12 &params)
 {
   if (!readyCommandList())
@@ -8890,25 +8874,6 @@ void DeviceContext::ExecutionContext::loadComputeShaderFromDump(ProgramID progra
 bool DeviceContext::ExecutionContext::should_pipeline_set_compilation_spread_over_frames()
 {
   return dgs_get_settings()->getBlockByNameEx("dx12")->getBool("spreadCompilationOverFrames", true);
-}
-
-void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
-  DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
-  DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines, DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines,
-  DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines)
-{
-  logdbg("DX12: compilePipelineSet started");
-  device.pipeMan.storePipelineSetForCompilation(eastl::forward<DynamicArray<InputLayoutIDWithHash>>(input_layouts),
-    eastl::forward<DynamicArray<StaticRenderStateIDWithHash>>(static_render_states),
-    eastl::forward<DynamicArray<FramebufferLayoutWithHash>>(framebuffer_layouts),
-    eastl::forward<DynamicArray<GraphicsPipelinePreloadInfo>>(graphics_pipelines),
-    eastl::forward<DynamicArray<MeshPipelinePreloadInfo>>(mesh_pipelines),
-    eastl::forward<DynamicArray<ComputePipelinePreloadInfo>>(compute_pipelines));
-  if (!should_pipeline_set_compilation_spread_over_frames())
-  {
-    device.pipeMan.continuePipelineSetCompilation(device, device.pipelineCache, contextState.framebufferLayouts,
-      []() { return false; });
-  }
 }
 
 void DeviceContext::ExecutionContext::compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,

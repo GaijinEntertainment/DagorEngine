@@ -4,6 +4,8 @@
 
 Every `.das` file in this directory tree is listed below, grouped by subdirectory. Files marked **expect** use `expect` directives and are expected to produce specific compile errors. Helper/module files that are not standalone tests are marked *(helper)*.
 
+**Naming convention for expected-failure tests:** Files that are expected to *fail compilation* use one of three filename prefixes: `failed_`, `cant_`, or `invalid_`. Tools that need to skip files with no compilable AST (e.g. `--ser` serialization passes) should filter on these three prefixes.
+
 ## live_host/
 
 > **Note:** These tests require the dasLiveHost module. Skipped automatically via `.das_test` when the module is not available. Run separately: `dastest -- --test tests/live_host/`
@@ -95,6 +97,13 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | File | Description | Expects errors |
 |---|---|---|
 | test_assumed_pipe.das | Assumed pipe — block invocation via `<\|` with `assume` aliases | |
+| test_piped_default_padding.das | Piped-call default padding — defaults filled in front of a trailing-piped block, overload ranking, class methods, C++ externs with fakeContext/fakeLineInfo | |
+| failed_piped_no_default.das | Piped block can't shift across a parameter without a default | **expect** `30341` |
+| failed_piped_block_mismatch.das | Piped block signature mismatch after padding | **expect** `30341` |
+| failed_piped_no_block_param.das | No block-like parameter for the piped block to land on | **expect** `30341` |
+| failed_piped_ambiguous.das | Two overloads with equal padding — ambiguous piped call | **expect** `30341` |
+| failed_piped_named_call.das | Named-argument call + piped block is a parse error | **expect** `30347` |
+| failed_piped_field.das | Field access + piped block is a parse error | **expect** `30347` |
 | test_bare_block.das | Bare lexical blocks — scoping, nesting, finally, control flow, name reuse | |
 | test_nested_data.das | Table `{}` literals as sub-data — structs, arrays, functions, tuples, variants, comprehensions, move semantics | |
 | _test_table_compat.das | Basic table literal compatibility tests | |
@@ -361,7 +370,31 @@ Every `.das` file in this directory tree is listed below, grouped by subdirector
 | fio_errors.das | Path manipulation and error handling — extension, dir_name, base_name, normalize, mkdir/rmdir edge cases | |
 | fio_file.das | File I/O — fopen, fread, fwrite with fuzzing | |
 | fio_utils.das | File utilities — fexist, rmdir, rmdir_rec, fread/fwrite by path, get_das_version | |
+| glob_test.das | Pathname glob — `match_glob` (literal, `*`, `**`, `?`, `[a-z]`, `[!abc]`, edge cases), `glob`, `glob_filtered` walk, `is_glob_pattern` | |
 | popen_argv.das | `popen_argv` — basic invocation, non-zero exit on unknown flag, exit code capture | |
+
+## fixed_array/
+
+> Stage 0 characterization suite for the tFixedArray rework (`FIXED_ARRAY_REWORK.md`). Pins current fixed-array behavior that must survive the representation flip; `_target_*.das` files are the (skipped) acceptance spec for the new inference semantics, enabled at Stage 1.
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_layout.das | Memory layout — sizeof/alignof, element stride via addresses, 2D contiguity, FA field offsets in structs/tuples/variants, packed float3 stride | |
+| test_semantics.das | Value semantics — whole-array assign/init-copy/`:=`/`clone()`, 2D assign, zero-init, `fixed_array()` literal types, FA returns, struct-field deep copy, non-copyable elements + `finalize_dim` | |
+| test_indexing.das | Indexing — read/write at every depth, index expressions, partial 2D index yields row copy, const globals, struct fields, `subarray` + range-index sugar | |
+| test_iteration.das | Iteration — for-loops 1D/2D, mutation through loop ref, FA of structs, `each()`, parallel iteration with range/array | |
+| test_containers.das | `array<int[4]>` push/push_clone/emplace, `table<K;int[4]>` insert/get/get_value/values/insert_clone (get_key excluded — broken on master, see target spec) | |
+| test_generics_current.das | Must-survive inference — 1D FA prefers `auto[]` overload, dynamic containers bind whole to `auto(TT)`, unsized `int[]` params, `==const` | |
+| test_typeinfo.das | typeinfo surface — `dim`, non-alias typename strings, can_copy/is_pod, sizeof≡dim×elem | |
+| test_interop.das | C++ native-dim field (TestObjectFoo.fooArray) — read/write, typename, iteration, unsized param, copy-out. AOT-excluded: emitter bug #3077 | |
+| failed_zero_dim.das | dimension 0 rejected | **expect** 30109 |
+| failed_nonconst_dim.das | runtime dim value rejected | **expect** 30109, 30838 |
+| failed_void_array.das | array of void rejected | **expect** 30108 |
+| failed_typedecl_dim.das | `typedecl(...)[N]` rejected as array base | **expect** 30112 |
+| failed_new_fixed_array.das | `new` of FA type rejected | **expect** 30214 |
+| failed_copy_noncopyable.das | `=` on FA of array<int> rejected | **expect** 30950 |
+| _target_inference.das | *(skipped)* Stage 1 acceptance spec — `auto(TT)` binds whole FA, `auto(TT)[]` peels one level, get_key fix | |
+| _target_alias.das | *(skipped)* Stage 1 acceptance spec — typedef name survives declaration/indexing/generic binding | |
 
 ## functional/
 
@@ -907,6 +940,15 @@ Coverage of per-iteration `finally` semantics across every loop form. Each cell 
 |---|---|---|
 | test_bitfields.das | bitfield_trait — each_bit_name iteration | |
 | test_traits.das | type_traits — fields_count for struct/derived struct | |
+
+## typemacro/
+
+> Direct coverage of the raw `AstTypeMacro` payload surface (Stage 0 of `FIXED_ARRAY_REWORK.md` — the dimExpr payload migrates to a dedicated field at Stage 1b). Deep indirect coverage lives in option/hash_map/delegate suites via typemacro_boost.
+
+| File | Description | Expects errors |
+|---|---|---|
+| test_basic.das | All four grammar forms (`name(args)`, `$name(args)`, `name<types>(args)`, `$name<types>(args)`), const int/bool/string argument extraction, `typedecl(expr)` | |
+| _typemacro_mod.das | *(helper)* `tm_make` raw AstTypeMacro — resolves `tm_make(type<T>, N, wrap, tag)` to `T[N]` or `T` | |
 
 ## unsafe/
 

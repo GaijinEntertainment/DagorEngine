@@ -198,9 +198,9 @@ void AsgVarsList::implement_ParamIdInit(FILE *fp, const char *translator) const
     {
       case AsgConditionStringParser::Var::TYPE_Bit:
       case AsgConditionStringParser::Var::TYPE_BitOld:
-      case AsgConditionStringParser::Var::TYPE_Int: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_ScalarParamInt"); break;
-      case AsgConditionStringParser::Var::TYPE_Scalar: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_ScalarParam"); break;
-      case AsgConditionStringParser::Var::TYPE_Timer: fprintf(fp, "AnimV20::IPureAnimStateHolder::PT_TimeParam"); break;
+      case AsgConditionStringParser::Var::TYPE_Int: fprintf(fp, "AnimV20::AnimGraphStateHolder::PT_ScalarParamInt"); break;
+      case AsgConditionStringParser::Var::TYPE_Scalar: fprintf(fp, "AnimV20::AnimGraphStateHolder::PT_ScalarParam"); break;
+      case AsgConditionStringParser::Var::TYPE_Timer: fprintf(fp, "AnimV20::AnimGraphStateHolder::PT_TimeParam"); break;
       default: DEBUG_CTX("unknown var type \'%c\'", varType[i]); return;
     }
     fprintf(fp, ");\n");

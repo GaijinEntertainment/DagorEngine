@@ -1,5 +1,5 @@
 options gen2
-expect 30304:12,  30101:1, 30507:1
+expect 30161, 30341:12, 30915
 
 require dastest/testing_boost public
 require daslib/contracts

@@ -183,6 +183,7 @@ void SkyVisibility::updateTemporal(bool update_clipmap)
     {
       TIME_D3D_PROFILE(sky_vis_create_indirect);
       dagi_sky_visibility_create_indirect_cs->dispatch(1, 1, 1);
+      d3d::resource_barrier({dagi_sky_vis_indirect_buffer.getBuf(), RB_RO_INDIRECT_BUFFER});
     }
 #if DAGOR_DBGLEVEL > 0
     if (dagi_sky_visibility_probabilities->getFlags() & SBCF_USAGE_READ_BACK)

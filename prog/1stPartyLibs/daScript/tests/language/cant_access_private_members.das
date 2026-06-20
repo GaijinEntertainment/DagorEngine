@@ -2,7 +2,7 @@
 // verifies the compiler rejects direct access to private fields and methods
 // from outside the class
 options gen2
-expect 30503:3, 30301:1
+expect 30805, 30900:3
 
 class A {
     private name : string

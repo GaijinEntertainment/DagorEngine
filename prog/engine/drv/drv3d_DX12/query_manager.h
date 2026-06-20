@@ -10,6 +10,7 @@
 #include <generic/dag_reverseView.h>
 #include <generic/dag_span.h>
 
+
 namespace drv3d_dx12
 {
 constexpr uint32_t read_back_buffer_size = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
@@ -82,7 +83,15 @@ public:
   uint64_t getRaw() const { return packed; }
   uint64_t getIndex() const { return packed >> 2; }
   Qtype getType() const { return static_cast<Qtype>(packed & 3); } // last 2 bits
-  bool hasReadBack() const { return (packed % 2 == 1); }
+  bool hasReadBack() const
+  {
+    // The encoding relies on the low bit of Qtype: TIMESTAMP and VISIBILITY are read back, UNDEFINED and SURVEY are not.
+    static_assert((static_cast<uint64_t>(Qtype::TIMESTAMP) & 1) == 1);
+    static_assert((static_cast<uint64_t>(Qtype::VISIBILITY) & 1) == 1);
+    static_assert((static_cast<uint64_t>(Qtype::UNDEFINED) & 1) == 0);
+    static_assert((static_cast<uint64_t>(Qtype::SURVEY) & 1) == 0);
+    return (packed & 1) == 1;
+  }
   void setQueryIndexAndType(uint64_t query_index, Qtype type) { packed = (query_index << 2) | static_cast<uint64_t>(type); }
 };
 
@@ -92,7 +101,8 @@ public:
   void setIssued()
   {
     resetValue();
-    G_ASSERT(state.exchange(State::ISSUED, std::memory_order_acq_rel) == State::FINALIZED);
+    [[maybe_unused]] State prevState = state.exchange(State::ISSUED, std::memory_order_acq_rel);
+    G_ASSERT(prevState == State::FINALIZED);
   }
   void setFinalized() { state.store(State::FINALIZED, std::memory_order_release); }
 
@@ -123,15 +133,11 @@ class FrontendQueryManager
     BufferState buffer;
     Query *querySlots[heap_size]{};
 
-    bool hasAnyFree() const
+    uint32_t findFreeSlot() const
     {
-      return eastl::end(querySlots) !=
-             eastl::find_if(eastl::begin(querySlots), eastl::end(querySlots), [](const auto p) { return nullptr == p; });
+      auto ref = eastl::find(eastl::begin(querySlots), eastl::end(querySlots), nullptr);
+      return ref != eastl::end(querySlots) ? static_cast<uint32_t>(eastl::distance(eastl::begin(querySlots), ref)) : ~uint32_t(0);
     }
-
-    bool posFree(uint32_t pos) const { return pos < heap_size ? (querySlots[pos] == nullptr) : false; }
-
-    uint32_t addQuery(Query *query);
   };
 
   dag::Vector<HeapPredicate> predicateHeaps;
@@ -184,7 +190,6 @@ private:
   {
     Query *target = nullptr;
     uint64_t *result = nullptr;
-    ID3D12QueryHeap *heap = nullptr;
   };
 
   struct PipelineStatsFlushMapping
@@ -222,6 +227,8 @@ private:
 
   dag::Vector<LazyPipelineStatsQueryBackendState> lazyPipelineStatsQueries;
   dag::Vector<PipelineStatsQuery *> pendingDeactivationLazyPipelineStatsQueries;
+
+  void addInactiveLazyShares(PipelineStatsQuery *query, D3D12_QUERY_DATA_PIPELINE_STATISTICS *result, ID3D12QueryHeap *heap);
 
   template <D3D12_QUERY_HEAP_TYPE type>
   auto getQuerySlot(ID3D12Device *device)
@@ -277,7 +284,7 @@ private:
         return {};
       }
 
-      return {heap, readBackBuffer, reinterpret_cast<T *>(mappedMemory)};
+      return {eastl::move(heap), eastl::move(readBackBuffer), reinterpret_cast<T *>(mappedMemory)};
     };
 
     auto findOrAllocateSlot =
@@ -363,23 +370,15 @@ public:
   void shutdown();
 };
 
-inline uint32_t FrontendQueryManager::HeapPredicate::addQuery(Query *query)
-{
-  auto ref = eastl::find_if(eastl::begin(querySlots), eastl::end(querySlots), [](const auto p) { return nullptr == p; });
-  G_ASSERT(ref != eastl::end(querySlots));
-  if (ref != eastl::end(querySlots))
-  {
-    *ref = query;
-    return eastl::distance(eastl::begin(querySlots), ref);
-  }
-  return ~uint32_t(0);
-}
-
 inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Device *dx_device)
 {
   WinAutoLock lock(predicateGuard);
-  auto heap = eastl::find_if(begin(predicateHeaps), end(predicateHeaps),
-    [](const FrontendQueryManager::HeapPredicate &predicateHeap) { return predicateHeap.hasAnyFree(); });
+  uint32_t slotIndex = ~uint32_t(0);
+  auto heap =
+    eastl::find_if(begin(predicateHeaps), end(predicateHeaps), [&slotIndex](const FrontendQueryManager::HeapPredicate &predicateHeap) {
+      slotIndex = predicateHeap.findFreeSlot();
+      return slotIndex != ~uint32_t(0);
+    });
   if (heap == end(predicateHeaps))
   {
     heap = newPredicateHeap(device, dx_device);
@@ -387,9 +386,10 @@ inline uint64_t FrontendQueryManager::createPredicate(Device &device, ID3D12Devi
     {
       return ~uint64_t(0);
     }
+    slotIndex = 0;
   }
   Query *query = newQuery();
-  uint32_t slotIndex = heap->addQuery(query);
+  heap->querySlots[slotIndex] = query;
   uint32_t heapIndex = eastl::distance(eastl::begin(predicateHeaps), heap);
   uint64_t queryIndex = heap_size * heapIndex + slotIndex;
   query->setQueryIndexAndType(queryIndex, Query::Qtype::SURVEY);
@@ -521,7 +521,6 @@ inline void BackendQueryManager::makeVisibilityQuery(Query *query, ID3D12Device 
   visibilityFlushes.push_back({
     .target = query,
     .result = heap->mappedMemory + slotIndex,
-    .heap = heap->heap.Get(),
   });
 }
 
@@ -599,23 +598,34 @@ inline void BackendQueryManager::activateTopLazyPipelineStatsQuery(ID3D12Device 
   makePipelineStatsQuery(lazyPipelineStatsQueries.back().frontend, device, cmd);
   G_ASSERT_RETURN(flushesPrev < pipelineStatsFlushes.size(), ); // sanity check
 
-  const auto [_, topResult, topHeap] = pipelineStatsFlushes.back();
+  // Copy, addInactiveLazyShares may reallocate pipelineStatsFlushes
+  const auto topFlush = pipelineStatsFlushes.back();
 
-  // Accumulate values for all queries lower in the stack until the first active one
-  const auto stackSizeWithoutTop = lazyPipelineStatsQueries.size() - 1;
-  for (auto [frontend, activated] : dag::ReverseView(make_span_const(lazyPipelineStatsQueries.data(), stackSizeWithoutTop)))
+  lazyPipelineStatsQueries.back().activated = true;
+  addInactiveLazyShares(topFlush.target, topFlush.result, topFlush.heap);
+}
+
+// Registers result sharing for all queries below `query` in the lazy stack until the first activated one,
+// so they accumulate the values of `query` for the current command list segment.
+inline void BackendQueryManager::addInactiveLazyShares(PipelineStatsQuery *query, D3D12_QUERY_DATA_PIPELINE_STATISTICS *result,
+  ID3D12QueryHeap *heap)
+{
+  auto it = eastl::find_if(lazyPipelineStatsQueries.begin(), lazyPipelineStatsQueries.end(),
+    [query](const auto &lazy) { return lazy.frontend == query; });
+  G_ASSERT_RETURN(it != lazyPipelineStatsQueries.end() && it->activated, );
+
+  const auto stackSizeBelow = eastl::distance(lazyPipelineStatsQueries.begin(), it);
+  for (auto [frontend, activated] : dag::ReverseView(make_span_const(lazyPipelineStatsQueries.data(), stackSizeBelow)))
   {
     if (activated)
       break;
 
     pipelineStatsFlushes.push_back({
       .target = frontend,
-      .result = topResult,
-      .heap = topHeap,
+      .result = result,
+      .heap = heap,
     });
   }
-
-  lazyPipelineStatsQueries.back().activated = true;
 }
 
 inline void BackendQueryManager::popLazyPipelineStatsQuery(PipelineStatsQuery *query)
@@ -697,6 +707,9 @@ inline void BackendQueryManager::resumePipelineStatsQueries(ID3D12GraphicsComman
       .result = heap->mappedMemory + slotIndex,
       .heap = heap->heap.Get(),
     });
+    // Inactive lazy queries shared the result of this query in the previous segment; that flush entry
+    // does not cover the new segment, so the sharing has to be re-registered for the new slot.
+    addInactiveLazyShares(frontend, heap->mappedMemory + slotIndex, heap->heap.Get());
 
     suspended = false;
     ++it;
@@ -718,6 +731,9 @@ inline void BackendQueryManager::finishActivePipelineStatsQueries()
     if (!activated)
       finishedPipelineStatsQueries.push_back(frontend);
   }
+  // suspendActiveQueries must have deactivated all pending lazy queries before the frame ends;
+  // entries here would mean endPipelineStatsQuery was never recorded for them.
+  G_ASSERT(pendingDeactivationLazyPipelineStatsQueries.empty());
   lazyPipelineStatsQueries.clear();
   currentPipelineStatsQueries.clear();
   pendingDeactivationLazyPipelineStatsQueries.clear();
@@ -761,6 +777,13 @@ inline void BackendQueryManager::cancelPipelineStatsQuery(PipelineStatsQuery *qu
       itLazy != lazyPipelineStatsQueries.end())
   {
     lazyPipelineStatsQueries.erase(itLazy);
+  }
+
+  if (auto itPending =
+        eastl::find(pendingDeactivationLazyPipelineStatsQueries.begin(), pendingDeactivationLazyPipelineStatsQueries.end(), query);
+      itPending != pendingDeactivationLazyPipelineStatsQueries.end())
+  {
+    pendingDeactivationLazyPipelineStatsQueries.erase_unsorted(itPending);
   }
 }
 

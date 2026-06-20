@@ -18,7 +18,7 @@
 #include <math/dag_TMatrix4D.h>
 #include <sstream>
 
-#include <render/renderLightsConsts.hlsli>
+#include <render/lights/renderLightsConsts.hlsli>
 
 #define INSIDE_RENDERER 1
 #include "world/private_worldRenderer.h"

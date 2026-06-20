@@ -3,6 +3,7 @@
 #include <bsdiff/bsdiff.h>
 #include "bsdiffwrap.h"
 #include "compression.h"
+#include "vromfsCleanup.h"
 #include <stdlib.h>
 #include <ioSys/dag_chainedMemIo.h>
 #include <ioSys/dag_memIo.h>
@@ -224,7 +225,7 @@ BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<
   unsigned hdr_sz_old = 0, hdr_sz_new = 0;
   int md5_hash_ofs_new = -1;
   int signature_ofs_new = -1;
-  eastl::unique_ptr<VirtualRomFsData, tmpmemDeleter> fs_old, fs_new;
+  eastl::unique_ptr<VirtualRomFsData, TmpmemNonIntrusiveVromfsDeleter> fs_old, fs_new;
   fs_old.reset(make_non_intrusive_vromfs(old_dump, tmpmem, &hdr_sz_old));
   fs_new.reset(make_non_intrusive_vromfs(new_dump, tmpmem, &hdr_sz_new, &md5_hash_ofs_new, &signature_ofs_new));
 
@@ -250,8 +251,9 @@ BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<
     BS_DIFF(old_dump.data(), hdr_sz_old, new_dump.data(), hdr_sz_new, &stream, return BSDIFF_INTERNAL_ERROR);
 
     DynamicMemGeneralSaveCB cwr_old(tmpmem), cwr_new(tmpmem);
-    ZSTD_DDict_s *ddict_old = dblk::get_vromfs_blk_ddict(fs_old.get());
-    ZSTD_DDict_s *ddict_new = dblk::get_vromfs_blk_ddict(fs_new.get());
+
+    eastl::unique_ptr<ZSTD_DDict_s, ZstdDblkDDictDeleter> ddict_old(dblk::get_vromfs_blk_ddict(fs_old.get()));
+    eastl::unique_ptr<ZSTD_DDict_s, ZstdDblkDDictDeleter> ddict_new(dblk::get_vromfs_blk_ddict(fs_new.get()));
     // do 2 passes - first diff for namemap and ddict, next diff the rest of files
     for (unsigned pass = 0; pass < 2; pass++)
       for (unsigned i = 0; i < fs_new->files.map.size(); i++)
@@ -264,20 +266,12 @@ BsdiffStatus create_vromfs_bsdiff(dag::ConstSpan<char> old_dump, dag::ConstSpan<
         int old_i = fs_old->files.getNameId(nm);
         if (write_one_file_diff(stream,
               make_span<const char>(old_i < 0 ? nullptr : fs_old->data[old_i].data(), old_i < 0 ? 0 : fs_old->data[old_i].size()),
-              make_span<const char>(fs_new->data[i].data(), fs_new->data[i].size()), ddict_old, ddict_new, cwr_old, cwr_new, nm,
-              i + 1 == fs_new->files.map.size()))
+              make_span<const char>(fs_new->data[i].data(), fs_new->data[i].size()), ddict_old.get(), ddict_new.get(), cwr_old,
+              cwr_new, nm, i + 1 == fs_new->files.map.size()))
         {
-          dblk::release_vromfs_blk_ddict(ddict_old);
-          dblk::release_vromfs_blk_ddict(ddict_new);
-          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
-          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_new.get());
           return BSDIFF_INTERNAL_ERROR;
         }
       }
-    dblk::release_vromfs_blk_ddict(ddict_old);
-    dblk::release_vromfs_blk_ddict(ddict_new);
-    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
-    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_new.get());
 #if defined(MIMIC_WRONG_SIGNATURE_OFFSET_DIFF_CREATION)
     // it's known to be off by the size of headers but we need that for compatibility with old clients
     md5_hash_ofs_new = get_vromfs_dump_full_body_size(new_dump);
@@ -555,8 +549,8 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
   {
     unsigned hdr_sz_new = zcrd.readInt();
     unsigned hdr_sz_old = 0;
-    eastl::unique_ptr<VirtualRomFsData, tmpmemDeleter> fs_old;
-    eastl::unique_ptr<VirtualRomFsData, tmpmemDeleter> fs_new;
+    eastl::unique_ptr<VirtualRomFsData, TmpmemNonIntrusiveVromfsDeleter> fs_old;
+    eastl::unique_ptr<VirtualRomFsData, TmpmemNonIntrusiveVromfsDeleter> fs_new;
     DynamicMemGeneralSaveCB cwr_old(tmpmem), cwr_new(tmpmem);
     ;
     Tab<char> stor_new;
@@ -573,8 +567,9 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
     if (!fs_new)
       return BSDIFF_CORRUPT_PATCH;
 
-    ZSTD_DDict_s *ddict_old = dblk::get_vromfs_blk_ddict(fs_old.get());
-    ZSTD_CDict_s *cdict_new = nullptr;
+    eastl::unique_ptr<ZSTD_DDict_s, ZstdDblkDDictDeleter> ddict_old(dblk::get_vromfs_blk_ddict(fs_old.get()));
+    eastl::unique_ptr<ZSTD_CDict_s, ZstdCDictDeleter> cdict_new = nullptr;
+
     // do 2 passes - first patch for namemap and ddict, next patch the rest of files using ddict and cdict
     for (unsigned pass = 0; pass < 2; pass++)
     {
@@ -591,21 +586,15 @@ BsdiffStatus apply_vromfs_bsdiff(Tab<char> &out_new_dump, dag::ConstSpan<char> o
 
         if (apply_one_file_diff(stream, diff_code,
               make_span<const char>(old_i < 0 ? nullptr : fs_old->data[old_i].data(), old_i < 0 ? 0 : fs_old->data[old_i].size()),
-              make_span((char *)fs_new->data[i].data(), fs_new->data[i].size()), ddict_old, cdict_new, cwr_old, cwr_new, stor_new,
-              nm) != BSDIFF_OK)
+              make_span((char *)fs_new->data[i].data(), fs_new->data[i].size()), ddict_old.get(), cdict_new.get(), cwr_old, cwr_new,
+              stor_new, nm) != BSDIFF_OK)
         {
-          zstd_destroy_cdict(cdict_new);
-          dblk::release_vromfs_blk_ddict(ddict_old);
-          dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
           return cleanup(BSDIFF_CORRUPT_PATCH);
         }
       }
       if (pass == 0)
-        cdict_new = dblk::create_vromfs_blk_cdict(fs_new.get(), ZSTD_BLK_CLEVEL);
+        cdict_new.reset(dblk::create_vromfs_blk_cdict(fs_new.get(), ZSTD_BLK_CLEVEL));
     }
-    zstd_destroy_cdict(cdict_new);
-    dblk::release_vromfs_blk_ddict(ddict_old);
-    dblk::discard_non_intrusive_vromfs_blk_ddict(fs_old.get());
 
     cwr_new.setsize(0);
     char buf[512];

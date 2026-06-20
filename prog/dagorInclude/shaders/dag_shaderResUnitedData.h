@@ -185,6 +185,9 @@ public:
   inline int getRequestLodsByDistanceFrames() const { return requestLodsByDistanceFrames; }
 
   void setAllocationLimits(int ibKb, int vbKb);
+  static bool isStreamingEnabled() { return ResType::on_higher_lod_required != nullptr; }
+
+  bool canUseVbAsSr() const;
 
 protected:
   unitedvdata::BufPool buf;
@@ -195,7 +198,7 @@ protected:
   Tab<SmallTab<unitedvdata::BufChunk, MidmemAlloc>> resUsedChunks;
   int64_t maxIbTotalUsed = 0, maxVbTotalUsed = 0;
   int reloadJobMgrId = -1;
-  volatile int vbSizeToFree = 0, ibSizeToFree = 0;
+  volatile int vbSizeToFree = 0, ibSizeToFree = 0, rgbaAtlasToFree = 0, normAtlasToFree = 0;
   int uselessDiscardAttempts = 0;
   volatile int discardJobIsPending = 0;
   Tab<RES *> failedVdataReloadResList;

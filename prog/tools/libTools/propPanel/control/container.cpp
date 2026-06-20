@@ -54,7 +54,11 @@ ContainerPropertyControl::ContainerPropertyControl(int id, ControlEventHandler *
   setVerticalSpaceBetweenControls(hdpi::_pxScaled(Constants::DEFAULT_CONTROLS_INTERVAL));
 }
 
-ContainerPropertyControl::~ContainerPropertyControl() { message_queue.onContainerDelete(*this); }
+ContainerPropertyControl::~ContainerPropertyControl()
+{
+  clear_all_ptr_items_and_shrink(mControlArray);
+  message_queue.onContainerDelete(*this);
+}
 
 ContainerPropertyControl *ContainerPropertyControl::createContainer(int id, bool new_line, hdpi::Px interval)
 {
@@ -1084,15 +1088,7 @@ SimpleString ContainerPropertyControl::getCaption() const
 
 void ContainerPropertyControl::clear()
 {
-  for (int i = 0; i < mControlArray.size(); ++i)
-  {
-    if (mControlArray[i])
-    {
-      delete (mControlArray[i]); // destructor for container calls clear()
-    }
-  }
-
-  clear_and_shrink(mControlArray);
+  clear_all_ptr_items_and_shrink(mControlArray);
   clear_and_shrink(mControlsNewLine);
   clear_and_shrink(mControlsLastRectSize);
 }

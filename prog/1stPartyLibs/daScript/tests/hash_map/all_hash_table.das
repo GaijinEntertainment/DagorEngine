@@ -11,12 +11,12 @@ struct Foo {
 }
 
 [sideeffects]
-def take_any_hash_table(a : $TFlatHashTable < auto(TT); auto(QQ) >) {
+def take_any_hash_table(a : $TFlatHashTable<auto(TT); auto(QQ)>) {
     return "any_flat"
 }
 
 [sideeffects]
-def take_any_hash_map(a : $TFlatHashTable < string; auto(QQ) >) {
+def take_any_hash_map(a : $TFlatHashTable<string; auto(QQ)>) {
     return "string;any"
 }
 
@@ -25,20 +25,20 @@ def take_any_hash_map(a) {
     return "nothing"
 }
 [sideeffects]
-def take_dict_map(a : $TFlatHashTable < auto(TT); auto(TT) > (@@hash_string)) {
+def take_dict_map(a : $TFlatHashTable<auto(TT); auto(TT)>(@@hash_string)) {
     return "dict_map"
 }
 
 [sideeffects]
-def take_any_hash_table(a : $TCuckooHashTable < auto(TT); auto(QQ) >) {
+def take_any_hash_table(a : $TCuckooHashTable<auto(TT); auto(QQ)>) {
     return "any_cuckoo"
 }
 
-typedef FlatHashMap_int_Foo = $TFlatHashTable < int; Foo >
-typedef FlatHashMap_string_int = $TFlatHashTable < string; int >
-typedef DictMap = $TFlatHashTable < string; int > (@@hash_string)   // vs @@hash
+typedef FlatHashMap_int_Foo = $TFlatHashTable<int; Foo>
+typedef FlatHashMap_string_int = $TFlatHashTable<string; int>
+typedef DictMap = $TFlatHashTable<string; int>(@@hash_string)    // vs @@hash
 
-typedef CuckooHashMap_int_Foo = $TCuckooHashTable < int; Foo >
+typedef CuckooHashMap_int_Foo = $TCuckooHashTable<int; Foo>
 
 def hash_string(s : string) : uint64 {
     var h : uint64 = 14695981039346656037ul
@@ -51,11 +51,11 @@ def hash_string(s : string) : uint64 {
 
 [test]
 def specialization(t : T?) {
-    var map1 <- FlatHashMap_int_Foo()
-    var map2 <- FlatHashMap_string_int()
-    var map3 : table<string; int>
-    var map4 <- DictMap()
-    var map5 <- CuckooHashMap_int_Foo()
+    let map1 <- FlatHashMap_int_Foo()
+    let map2 <- FlatHashMap_string_int()
+    let map3 : table<string; int>
+    let map4 <- DictMap()
+    let map5 <- CuckooHashMap_int_Foo()
     t |> equal("any_flat", take_any_hash_table(map1))
     t |> equal("string;any", take_any_hash_map(map2))
     t |> equal("nothing", take_any_hash_map(map3))
@@ -100,15 +100,15 @@ def table_ops(t : T?; var a : auto(AnyTable_int_to_Foo); var e : Foo; var et : F
     for (v in a.values()) {
         t |> equal(1, v.a)
     }
-    var found = a.get(0) <| $(v) {
+    var found = a.get(0) $(v) {
         t |> equal(1, v.a)
     }
     t |> success(found)
-    found = a.get(1) <| $(v) {
+    found = a.get(1) $(v) {
         t |> equal(1, v.a)
     }
     t |> success(found)
-    found = a.get(2) <| $(v) {
+    found = a.get(2) $(v) {
         t |> failure("we should not be here\n")
     }
     t |> success(!found)

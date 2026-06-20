@@ -155,6 +155,8 @@ public:
   virtual bool setStates() const = 0;
   inline bool setStates(int, bool) const { return setStates(); }
   virtual bool setStatesDispatch() const = 0;
+
+  virtual bool isAnyPassWritesDepth() const { return false; }
   virtual void render(int minvert, int numvert, int sind, int numf, int base_vertex = 0, int prim = PRIM_TRILIST) const = 0;
 
   virtual int getTextureCount() const = 0;

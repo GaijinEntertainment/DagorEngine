@@ -467,12 +467,6 @@ static void adaptation_update_time_es(const UpdateStageInfoBeforeRender &evt,
 }
 
 ECS_TAG(render)
-static void on_reset_exposure_evt_es(const RenderReinitCube &, AdaptationManager &adaptation__manager)
-{
-  adaptation__manager.writeExposure(1.0);
-}
-
-ECS_TAG(render)
 static void on_set_no_exposure_evt_es(const RenderSetExposure &evnt, AdaptationManager &adaptation__manager)
 {
   adaptation__manager.setExposure(evnt.value);

@@ -17,11 +17,11 @@
 // Both mechanisms require a debug agent to receive callbacks.
 //
 // Key API:
-//   instrument_node(ctx, enable) <| $(at) { return should_instrument }
+//   instrument_node(ctx, enable) $(at) { return should_instrument }
 //     — filter which lines to instrument; return true to mark a line
 //   set_single_step(ctx, enable)
 //     — enable/disable single-stepping after a breakpoint/instrument hit
-//   instrument_all_functions(ctx) <| $(fn, sfn) { return userData }
+//   instrument_all_functions(ctx) $(fn, sfn) { return userData }
 //     — instrument all functions; return per-function userData
 //   onInstrument(ctx, at)
 //     — called when execution reaches an instrumented line
@@ -59,7 +59,7 @@ class LineInstrumentAgent : DapiDebugAgent {
         // Instrument lines within the next 5 lines of the same file
         let target_start = at.line + 2u
         let target_end = at.line + 5u
-        instrument_node(ctx, true) <| $(line_at) {
+        instrument_node(ctx, true) $(line_at) {
             if (line_at.fileInfo == at.fileInfo) {
                 if (line_at.line >= target_start && line_at.line <= target_end) {
                     return true
@@ -191,7 +191,7 @@ def demo_function_instrumentation() {
     // Instrument all functions BEFORE forking the agent, so
     // the agent receives onInstrumentFunction callbacks.
     var func_index = 0
-    instrument_all_functions(this_context()) <| $(fn, sfn) {
+    instrument_all_functions(this_context()) $(fn, sfn) {
         let idx = func_index
         func_index++
         return uint64(idx)

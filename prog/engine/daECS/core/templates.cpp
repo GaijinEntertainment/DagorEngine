@@ -114,6 +114,7 @@ InstantiatedTemplate::InstantiatedTemplate(ecs::EntityManager &mgr, const Archet
   const ChildComponent *const *initializers, const DataComponents &dataComponents, ComponentTypes &componentTypes) :
   archetype(archetype_)
 {
+  G_UNUSED(mgr);
   const Archetype &cArchetype = archetypes.getArchetype(archetype);
   componentsCount = cArchetype.getComponentsCount();
   hasData.reset(new size_t[hasDataElems()]);
@@ -144,7 +145,7 @@ InstantiatedTemplate::InstantiatedTemplate(ecs::EntityManager &mgr, const Archet
       typeManager->create(tmpData, *(EntityManager *)(uintptr_t)1, INVALID_ENTITY_ID, ComponentsMap(), componentIndex);
       // ugly const_cast..
       *(ChildComponent *)initializer =
-        ChildComponent(mgr, componentTypes.getTypeById(componentTypeIndex), tmpData, ChildComponent::CopyType::Shallow);
+        ChildComponent(componentTypes.getTypeById(componentTypeIndex), tmpData, ChildComponent::CopyType::Shallow);
       if (!(typeFlags & COMPONENT_TYPE_BOXED))
         typeManager->destroy(tmpData);
       if (tmpData != tmpBuf)

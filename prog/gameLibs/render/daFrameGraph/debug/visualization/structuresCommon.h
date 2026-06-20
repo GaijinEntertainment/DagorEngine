@@ -50,6 +50,7 @@ const char *auto_res_data_descr(const AutoResTypeData &auto_res, const float mul
 
 const char *texture_flags_descr(const int flags);
 const char *buffer_flags_descr(const int flags);
+const char *buffer_bind_name(const int flags);
 
 void format_pretty(ImDrawList *draw_list, const int format);
 

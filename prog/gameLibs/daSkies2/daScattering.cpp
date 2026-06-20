@@ -34,6 +34,7 @@
   VAR(skies_mie_extrapolating_coef, true)                \
   VAR(skies_planet_radius, false)                        \
   VAR(skies_atmosphere_radius, false)                    \
+  VAR(min_ground_offset, true)                           \
   VAR(prepare_origin, false)                             \
   VAR(prepare_resolution, false)                         \
   VAR(preparedScatteringDistToTc, false)                 \
@@ -626,6 +627,7 @@ void DaScattering::setParamsToShader()
   ShaderGlobal::set_float4(skies_mie_phase_constsVarId, P4D(atmosphere.mie_phase_consts));
   ShaderGlobal::set_float(skies_planet_radiusVarId, atmosphere.bottom_radius);
   ShaderGlobal::set_float(skies_atmosphere_radiusVarId, atmosphere.top_radius);
+  ShaderGlobal::set_float(min_ground_offsetVarId, current.min_ground_offset);
 
   // Recreating buffer to avoid an error message related to incorret usage of the persistent buffer.
   // This is ok because, we recreate it only several times during initialization

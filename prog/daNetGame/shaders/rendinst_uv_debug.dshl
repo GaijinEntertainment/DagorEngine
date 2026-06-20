@@ -1,5 +1,6 @@
 include "rendinst_opaque_inc.dshl"
 include "rendinst_voxelize_albedo_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 
 shader rendinst_uv_debug
@@ -25,6 +26,7 @@ shader rendinst_uv_debug
   RENDINST_BLOCK()
   RI_NO_VOXELIZE()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   NO_DYNSTCODE()
 
   if (use_randomized_tc == yes)
@@ -97,7 +99,7 @@ shader rendinst_uv_debug
 
         float3 localNormal = 1;
         ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
-          localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+          localNormal = normalize(unpack_unit_vector(input.normal.xyz));
         ##endif
         float3 localPos = input.pos;
         float opacity = 1;

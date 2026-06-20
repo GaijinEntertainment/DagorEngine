@@ -111,7 +111,7 @@ VECTORCALL VECMATH_FINLINE vec4f v_make_vec3f(float x, float y, float z)
 
 VECTORCALL VECMATH_FINLINE vec4i v_make_vec3i(int x, int y, int z)
 {
-  int64_t xy = int64_t(x) | (int64_t(y) << 32);
+  int64_t xy = int64_t(uint32_t(x)) | (int64_t(y) << 32);
   return _mm_insert_epi32(_mm_set_epi64x(0, xy), z, 2);
 }
 

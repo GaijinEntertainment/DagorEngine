@@ -5,6 +5,7 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_renderTarget.h>
 
 #include "swapchain.h"
 #include "vulkan_allocation_callbacks.h"
@@ -997,7 +998,7 @@ void Swapchain::rotateFromOffscreen()
   // expect that state here is not needed to be restored
   SwapchainImage &acquiredImage = images[acquiredImageIdx];
   wrappedRotatedTex->image = acquiredImage.img;
-  d3d::set_render_target(0, wrappedRotatedTex, 0, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{wrappedRotatedTex, 0, 0}});
   d3d::set_tex(STAGE_PS, 0, wrappedTex);
   d3d::set_sampler(STAGE_PS, 0, d3d::request_sampler({}));
   d3d::set_program(Globals::shaderProgramDatabase.getRotateProgram(query.caps.currentTransform).get());

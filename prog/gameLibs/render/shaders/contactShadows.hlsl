@@ -198,7 +198,7 @@ float contactShadowFilteredRayCastWithScaleHitT(
     {
       float linear_raw_depth = depth_gbuf.SampleLevel(depth_gbuf_linear_samplerstate, uv * dynamic_resolution_scale, 0).x;
       minDepth = min(minDepth, linear_raw_depth);
-      maxDepth = min(maxDepth, linear_raw_depth);
+      maxDepth = max(maxDepth, linear_raw_depth);
     }
     float hitMinDepth = sampleUVz.z + selfOcclusionBias;
     bool hasHit = minDepth > hitMinDepth && maxDepth < hitMinDepth + compareTolerance;

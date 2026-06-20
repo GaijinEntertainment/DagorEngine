@@ -246,6 +246,10 @@ static void do_stop_bkg_tex_loading(int sleep_quant)
 {
   if (reload_jobmgr_id >= 0 && cpujobs::is_inited())
   {
+    // stop on_frame_finished() (called below) from re-queueing jobs, else the drain never ends
+    const bool wasDisabled = interlocked_acquire_load(texmgr_internal::texq_load_disabled);
+    interlocked_release_store(texmgr_internal::texq_load_disabled, 1);
+
     cpujobs::reset_job_queue(reload_jobmgr_id, true);
     while (cpujobs::is_job_manager_busy(reload_jobmgr_id))
     {
@@ -257,6 +261,9 @@ static void do_stop_bkg_tex_loading(int sleep_quant)
       if (is_main_thread())
         texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread();
     }
+
+    if (!wasDisabled)
+      interlocked_release_store(texmgr_internal::texq_load_disabled, 0);
   }
 }
 
@@ -868,23 +875,20 @@ bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTextu
 
   if (texDesc[idx].dim.stubIdx >= 0 && req_lev == 1 && getTexMemSize4K(idx) > 1 && RMGR.startReading(idx, 1))
   {
-    if (incRefCount(idx) == 1)
-      RMGR.decReadyForDiscardTex(idx);
+    RMGR.incRefCountAndDecReadyForDiscardTex(idx);
     this_tex.discardTex();
     RMGR.changeTexUsedMem(idx, tql::sizeInKb(this_tex.getSize()), (getTexMemSize4K(idx) + getTexAddMemSizeNeeded4K(idx)) * 4);
     resQS[idx].setCurQL(TQL_stub);
     resQS[idx].setLdLev(1);
     resQS[idx].setMaxReqLev(1);
-    if (decRefCount(idx) == 0)
-      RMGR.incReadyForDiscardTex(idx);
+    RMGR.decRefCountAndIncReadyForDiscardTex(idx);
     RMGR.incTexStreamingGeneration(idx);
     return true;
   }
 
   if (req_lev > 1 && RMGR.startReading(idx, req_lev))
   {
-    if (incRefCount(idx) == 1)
-      RMGR.decReadyForDiscardTex(idx);
+    RMGR.incRefCountAndDecReadyForDiscardTex(idx);
     unsigned skip = (texDesc[idx].dim.maxLev - req_lev);
     unsigned w = max(texDesc[idx].dim.w >> skip, 1), h = max(texDesc[idx].dim.h >> skip, 1);
     unsigned d = max(this_tex.getType() == D3DResourceType::VOLTEX ? texDesc[idx].dim.d >> skip : texDesc[idx].dim.d, 1);
@@ -900,8 +904,7 @@ bool texmgr_internal::D3dResMgrDataFinal::downgradeTexQuality(int idx, BaseTextu
       });
     }
 
-    if (decRefCount(idx) == 0)
-      RMGR.incReadyForDiscardTex(idx);
+    RMGR.decRefCountAndIncReadyForDiscardTex(idx);
 
     RMGR_DUMP_TEX_STATE(idx);
     return true;

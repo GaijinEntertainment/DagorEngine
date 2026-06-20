@@ -25,7 +25,7 @@ let
 
 
 [export]
-def module_get(req, from : string) : tuple<string; string; string> const
+def module_get(req, _from : string) : tuple<string; string; string> const
   reqCount += 1
   if reqCount > 1000
     unsafe
@@ -68,5 +68,5 @@ def module_get(req, from : string) : tuple<string; string; string> const
 
 
 [export]
-def include_get(inc, from : string) : string
+def include_get(inc, _from : string) : string
   return starts_with(inc, "%") ? inc : "{DAS_PAK_ROOT}{inc}"

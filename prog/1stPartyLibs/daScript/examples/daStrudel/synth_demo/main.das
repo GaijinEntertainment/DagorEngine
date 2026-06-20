@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 // 100% synthesized — no sample files needed.
 // Drums (bd/sd/hh/cp) + bass (sine) + lead (sawtooth)
@@ -13,8 +14,8 @@ def strudel_main() {
     strudel_set_bpm(120.0lf)
     strudel_add_track(stack([
         s("bd sd [hh hh] cp"),
-        note_pattern("c2 c2 f2 g2", "sine") |> set_gain(0.4),
-        note_pattern("<e4 d4> <c4 d4> <e4 f4> <g4 e4>", "sawtooth") |> set_gain(0.3)
+        note("c2 c2 f2 g2", "sine") |> gain(0.4),
+        note("<e4 d4> <c4 d4> <e4 f4> <g4 e4>", "sawtooth") |> gain(0.3)
     ]))
     strudel_play()
 }

@@ -10,6 +10,18 @@
 
 namespace das {
 
+    // print flags are sticky node bits; without a wipe the output of a subtree print depends on
+    // what larger trees the node was printed inside before (describe() must be pure — CSE keys on it).
+    // opts into quote AND assume interiors — everything the Printer below descends into.
+    class ClearPrinterFlags : public Visitor {
+        virtual bool canVisitQuoteSubexpression ( ExprQuote * ) override { return true; }
+        virtual bool canVisitWithAliasSubexpression ( ExprAssume * ) override { return true; }
+        virtual void preVisitExpression ( Expression * expr ) override {
+            Visitor::preVisitExpression(expr);
+            expr->printFlags = 0;
+        }
+    };
+
     class SetPrinterFlags : public Visitor {
     // ExprBlock
         virtual void preVisitBlockExpression ( ExprBlock * block, Expression * expr ) override {
@@ -1451,6 +1463,8 @@ namespace das {
         ast_print::Standalone ctx;
         ctx.setFlags(this);
 #else
+        ClearPrinterFlags cflags;
+        visit(cflags);
         SetPrinterFlags pflags;
         visit(pflags);
 #endif
@@ -1458,6 +1472,8 @@ namespace das {
 
     template <typename TT>
     __forceinline StringWriter&  print ( StringWriter& stream, const TT & value ) {
+        ClearPrinterFlags cflags;
+        const_cast<TT&>(value).visit(cflags);
         SetPrinterFlags flags;
         const_cast<TT&>(value).visit(flags);
         Printer log(nullptr);
@@ -1477,6 +1493,8 @@ namespace das {
         }, "*");
         if (any) stream << "\n";
         bool logGenerics = program.options.getBoolOption("log_generics");
+        ClearPrinterFlags cflags;
+        const_cast<Program&>(program).visit(cflags, logGenerics);
         SetPrinterFlags flags;
         const_cast<Program&>(program).visit(flags, logGenerics);
         Printer log(&program);

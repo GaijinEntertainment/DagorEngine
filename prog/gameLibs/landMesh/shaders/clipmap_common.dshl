@@ -217,7 +217,7 @@ endmacro
 
 macro INIT_CLIPMAP_NORMAL_BASE(code, textures_as_bindless)
   INIT_CLIPMAP_NONORMAL_BASE(code, textures_as_bindless)
-  local float4 cache_tex2_size = get_dimensions(cache_tex2, 0);
+  local float4 cache_tex_size = get_dimensions(cache_tex0, 0);
   (code) {
     if (textures_as_bindless)
     {
@@ -229,7 +229,7 @@ macro INIT_CLIPMAP_NORMAL_BASE(code, textures_as_bindless)
       cache_tex1@tex2d = cache_tex1;
       cache_tex2@tex2d = cache_tex2;
     }
-    cache_tex2_size@f4 = (cache_tex2_size.xy, 1.0/max(1,cache_tex2_size.xy));
+    cache_tex_size@f4 = (cache_tex_size.xy, 1.0/max(1,cache_tex_size.xy));
     clipmap_tex_mips@f1 = clipmap_tex_mips;
   }
 endmacro

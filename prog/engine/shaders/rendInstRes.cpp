@@ -28,6 +28,7 @@ void (*RenderableInstanceLodsResource::on_higher_lod_required)(RenderableInstanc
   unsigned cur_lod) = nullptr;
 
 bool RenderableInstanceLodsResource::always_load_last_tree_geom_lod = false;
+bool RenderableInstanceLodsResource::disable_voxel_lods = false;
 
 RenderableInstanceLodsResource::ImpostorParams RenderableInstanceLodsResource::ImpostorRtData::null_params;
 RenderableInstanceLodsResource::ImpostorTextures RenderableInstanceLodsResource::ImpostorRtData::null_tex;
@@ -92,15 +93,40 @@ static void patchAnisotropy(const TextureIdSet &matTexList)
 RenderableInstanceResource *RenderableInstanceResource::loadResourceInternal(IGenLoad &crd, int srl_flags, ShaderMatVdata &smvd)
 {
   RenderableInstanceResource *res = new RenderableInstanceResource;
-  crd.read(res->dumpStartPtr(), sizeof(RenderableInstanceResource) - dumpStartOfs());
+  carray<int32_t, 2> dump;
+  crd.read(dump.data(), data_size(dump));
 
-  int m_sz = (int)(intptr_t)res->rigid.mesh.get();
-  res->rigid.mesh.init(InstShaderMeshResource::loadResource(crd, smvd, m_sz));
+  const int meshSize = dump[0];
+  res->voxelDataOffset = dump[1];
+  res->rigid.mesh.init(InstShaderMeshResource::loadResource(crd, smvd, meshSize));
   if (!(srl_flags & SRLOAD_NO_TEX_REF))
     res->rigid.mesh->getMesh()->getMesh()->acquireTexRefs();
 
+  int voxSize = 0;
+  if (res->voxelDataOffset != 0)
+  {
+    crd.readInt(voxSize);
+    if (res->rigid.mesh)
+    {
+      auto elems = res->rigid.mesh->getMesh()->getMesh()->getAllElems();
+      G_ASSERT(!elems.empty());
+      G_ASSERT(elems[0].vertexData);
+      G_ASSERT(elems[0].numv > res->voxelDataOffset);
+      const_cast<ShaderMesh::RElem &>(elems[0]).numv = res->voxelDataOffset;
+      res->voxelDataOffset *= elems[0].vertexData->getStride();
+    }
+  }
+
+  if (RenderableInstanceLodsResource::disable_voxel_lods)
+  {
+    crd.seekrel(voxSize);
+    res->voxelSurface.init(nullptr);
+  }
+  else
+    res->voxelSurface.init(VoxelSurfaceData::load(crd, voxSize));
+
   return res;
-}
+} // -V::773 we're returning the pointer ffs
 
 RenderableInstanceResource *RenderableInstanceResource::clone() const
 {
@@ -357,7 +383,7 @@ void RenderableInstanceLodsResource::loadImpostorData(const char *name)
   DataBlock *impostorData = reinterpret_cast<DataBlock *>(get_one_game_resource_ex("impostor_data", ImpostorDataGameResClassId));
   if (!impostorData)
   {
-    params.horizontalSamples = params.verticalSamples = 0;
+    params.horizontalSamples = params.verticalSamples = 0; // -V::1048 yes, assigned the same value
     return;
   }
   DataBlock *impostorBlk = impostorData->getBlockByName(name);
@@ -478,6 +504,27 @@ void RenderableInstanceLodsResource::patchAndLoadData(int res_sz, IGenLoad &crd,
     lods[i].scene = RenderableInstanceResource::loadResourceInternal(crd, flags, *smvd);
     lods[i].scene->addRef();
   }
+
+  if (disable_voxel_lods)
+  {
+    for (int i = lods.size() - 1; i >= 0; i--)
+    {
+      if (lods[i].scene->getVoxelDataOffset() == 0)
+        continue;
+      debug("!!! removing voxel lod %d/%d", i, lods.size());
+      G_ASSERT(i > 0);
+      lods[i - 1].range = lods[i].range;
+      lods[i].scene->delRef();
+      lods[i].scene = nullptr;
+      if (i + 1 < lods.size())
+      {
+        G_ASSERT(i + 1 == lods.size() - 1); // only expecting one billboard impostor lod at most
+        lods[i] = eastl::move(lods[i + 1]);
+      }
+      lods.init(lods.data(), lods.size() - 1);
+    }
+  }
+
   for (int i = lods.size() - 1; i >= 0; i--)
     if (lods[i].scene->getMesh() && lods[i].scene->getMesh()->getMesh()->getMesh()->getAllElems().size())
       break;

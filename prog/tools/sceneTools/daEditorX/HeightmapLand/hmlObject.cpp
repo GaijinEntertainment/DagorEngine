@@ -28,6 +28,7 @@
 
 #include <libTools/dagFileRW/splineShape.h>
 #include <libTools/dagFileRW/dagFileShapeObj.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <EditorCore/ec_outliner.h>
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -152,8 +153,6 @@ HmapLandObjectEditor::HmapLandObjectEditor() :
   waterGeom = NULL;
   objCreator = NULL;
   areLandHoleBoxesVisible = true;
-  hideSplines = false;
-  hidePolygons = false;
   hideNotes = false;
   showPhysMat = showPhysMatColors = false;
   autoUpdateSpline = true;
@@ -286,8 +285,16 @@ void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *tool
   PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel();
 
   tb2->createSeparator();
-  addEditorCommandButton(tb2, CM_TOGGLE_SPLINE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, "", "", true);
-  addEditorCommandButton(tb2, CM_TOGGLE_POLYGON_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS, "", "", true);
+
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  PropPanel::ContainerPropertyControl *splineAndPolygonDebugControlsContainer = commandSystem->createToolbarPopupButtonGroup(*tb2);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS, "hide_splines_polygons", "Hide spline and polygon controls", true);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_SPLINE_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_SPLINE_DEBUG_CONTROLS, "hide_splines", "Hide only spline controls", true);
+  addEditorCommandButton(splineAndPolygonDebugControlsContainer, CM_TOGGLE_POLYGON_DEBUG_CONTROLS,
+    EditorCommandIds::TOGGLE_POLYGON_DEBUG_CONTROLS, "hide_polygons", "Hide only polygon controls", true);
+
   addEditorCommandButton(tb2, CM_TOGGLE_NOTE_DEBUG_CONTROLS, EditorCommandIds::TOGGLE_NOTE_DEBUG_CONTROLS, "", "", true);
   addEditorCommandButton(tb2, CM_SHOW_PHYSMAT, EditorCommandIds::SHOW_PHYSMAT, "show_physmat", "Show physmat", true);
   addEditorCommandButton(tb2, CM_SHOW_PHYSMAT_COLORS, EditorCommandIds::SHOW_PHYSMAT_COLORS, "show_physmat_colors",
@@ -295,13 +302,24 @@ void HmapLandObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *tool
   tb2->createSeparator();
 
   {
-    PropPanel::ContainerPropertyControl *selectContainer = tb2->createToolbarPanel(0, true);
-    addEditorCommandButton(selectContainer, CM_SELECT_PT, EditorCommandIds::SELECT_PT, "select_vertex", "Select only points", true);
-    addEditorCommandButton(selectContainer, CM_SELECT_SPLINES, EditorCommandIds::SELECT_SPLINES, "select_spline",
+    PropPanel::ContainerPropertyControl *selectPointsContainer = commandSystem->createToolbarPopupButtonGroup(*tb2);
+    addEditorCommandButton(selectPointsContainer, CM_SELECT_POINTS_ALL, EditorCommandIds::SELECT_POINTS_ALL, "select_vertex",
+      "Select only spline and polygon points", true);
+    addEditorCommandButton(selectPointsContainer, CM_SELECT_POINTS_SPLINE, EditorCommandIds::SELECT_POINTS_SPLINE,
+      "select_vertices_spline", "Select only spline points", true);
+    addEditorCommandButton(selectPointsContainer, CM_SELECT_POINTS_POLYGON, EditorCommandIds::SELECT_POINTS_POLYGON,
+      "select_vertices_polygon", "Select only polygon points", true);
+
+    PropPanel::ContainerPropertyControl *selectSplinesContainer = commandSystem->createToolbarPopupButtonGroup(*tb2);
+    addEditorCommandButton(selectSplinesContainer, CM_SELECT_SPLINES_AND_POLYGONS, EditorCommandIds::SELECT_SPLINES_AND_POLYGONS,
+      "select_spline_polygon", "Select only splines and polygons", true);
+    addEditorCommandButton(selectSplinesContainer, CM_SELECT_SPLINES, EditorCommandIds::SELECT_SPLINES, "select_spline",
       "Select only splines", true);
-    addEditorCommandButton(selectContainer, CM_SELECT_ENT, EditorCommandIds::SELECT_ENT, "select_entity", "Select only entities",
-      true);
-    addEditorCommandButton(selectContainer, CM_SELECT_SPL_ENT, EditorCommandIds::SELECT_SPL_ENT, "select_spl_ent",
+    addEditorCommandButton(selectSplinesContainer, CM_SELECT_POLYGONS, EditorCommandIds::SELECT_POLYGONS, "select_polygon",
+      "Select only polygons", true);
+
+    addEditorCommandButton(tb2, CM_SELECT_ENT, EditorCommandIds::SELECT_ENT, "select_entity", "Select only entities", true);
+    addEditorCommandButton(tb2, CM_SELECT_SPL_ENT, EditorCommandIds::SELECT_SPL_ENT, "select_spl_ent",
       "Select only splines and entities", true);
   }
 
@@ -370,8 +388,9 @@ void HmapLandObjectEditor::updateToolbarButtons()
   setButton(CM_ROTATION_Z, buttonIdToPlacementRotation(CM_ROTATION_Z) == selectedPlacementRotation);
   setRadioButton(CM_CREATE_HOLEBOX_MODE, getEditMode());
   setButton(CM_SHOW_LAND_OBJECTS, areLandHoleBoxesVisible);
-  setButton(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, !hideSplines);
-  setButton(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, !hidePolygons);
+  setRadioButton(CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS, hideSplinesAndPolygonsMode);
+  setRadioButton(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, hideSplinesAndPolygonsMode);
+  setRadioButton(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, hideSplinesAndPolygonsMode);
   setButton(CM_TOGGLE_NOTE_DEBUG_CONTROLS, !hideNotes);
   setButton(CM_SHOW_PHYSMAT, showPhysMat);
   setButton(CM_SHOW_PHYSMAT_COLORS, showPhysMatColors);
@@ -401,28 +420,6 @@ void HmapLandObjectEditor::updateToolbarButtons()
 
     if (PropPanel::ContainerPropertyControl *toolbar = HmapLandPlugin::self->getToolbar())
     {
-      if (hideSplines)
-      {
-        toolbar->setButtonPictures(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, "show_splines");
-        toolbar->setTooltipId(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, "Show spline controls");
-      }
-      else
-      {
-        toolbar->setButtonPictures(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, "hide_splines");
-        toolbar->setTooltipId(CM_TOGGLE_SPLINE_DEBUG_CONTROLS, "Hide spline controls");
-      }
-
-      if (hidePolygons)
-      {
-        toolbar->setButtonPictures(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, "show_polygons");
-        toolbar->setTooltipId(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, "Show polygon controls");
-      }
-      else
-      {
-        toolbar->setButtonPictures(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, "hide_polygons");
-        toolbar->setTooltipId(CM_TOGGLE_POLYGON_DEBUG_CONTROLS, "Hide polygon controls");
-      }
-
       if (hideNotes)
       {
         toolbar->setButtonPictures(CM_TOGGLE_NOTE_DEBUG_CONTROLS, "show_note_spheres_controls");
@@ -573,8 +570,12 @@ bool HmapLandObjectEditor::supportsRealtimeUpdate() const
 
 void HmapLandObjectEditor::render()
 {
-  bool curPlugin = DAGORED2->curPlugin() == HmapLandPlugin::self;
-  int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+  const bool curPlugin = DAGORED2->curPlugin() == HmapLandPlugin::self;
+  const int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+  const bool hideSplines = hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS ||
+                           hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_DEBUG_CONTROLS;
+  const bool hidePolygons = hideSplinesAndPolygonsMode == CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS ||
+                            hideSplinesAndPolygonsMode == CM_TOGGLE_POLYGON_DEBUG_CONTROLS;
 
   TMatrix4 gtm;
   d3d::getglobtm(gtm);
@@ -1143,8 +1144,34 @@ bool HmapLandObjectEditor::canSelectObj(RenderableEditableObject *o)
 
   switch (selectMode)
   {
-    case CM_SELECT_PT: return RTTI_cast<SplinePointObject>(o) != NULL;
-    case CM_SELECT_SPLINES: return RTTI_cast<SplineObject>(o) != NULL;
+    case CM_SELECT_POINTS_ALL: return RTTI_cast<SplinePointObject>(o) != NULL;
+
+    case CM_SELECT_POINTS_SPLINE:
+    {
+      SplinePointObject *spo = RTTI_cast<SplinePointObject>(o);
+      return spo && spo->spline && !spo->spline->isPoly();
+    }
+
+    case CM_SELECT_POINTS_POLYGON:
+    {
+      SplinePointObject *spo = RTTI_cast<SplinePointObject>(o);
+      return spo && spo->spline && spo->spline->isPoly();
+    }
+
+    case CM_SELECT_SPLINES_AND_POLYGONS: return RTTI_cast<SplineObject>(o) != NULL;
+
+    case CM_SELECT_SPLINES:
+    {
+      SplineObject *s = RTTI_cast<SplineObject>(o);
+      return s && !s->isPoly();
+    }
+
+    case CM_SELECT_POLYGONS:
+    {
+      SplineObject *s = RTTI_cast<SplineObject>(o);
+      return s && s->isPoly();
+    }
+
     case CM_SELECT_ENT: return RTTI_cast<LandscapeEntityObject>(o) != NULL;
     case CM_SELECT_SPL_ENT: return RTTI_cast<LandscapeEntityObject>(o) || RTTI_cast<SplineObject>(o);
 
@@ -1705,8 +1732,12 @@ void HmapLandObjectEditor::setSelectMode(int cm)
     return;
   int old_mode = selectMode;
   selectMode = cm;
-  setRadioButton(CM_SELECT_PT, selectMode);
+  setRadioButton(CM_SELECT_POINTS_ALL, selectMode);
+  setRadioButton(CM_SELECT_POINTS_SPLINE, selectMode);
+  setRadioButton(CM_SELECT_POINTS_POLYGON, selectMode);
+  setRadioButton(CM_SELECT_SPLINES_AND_POLYGONS, selectMode);
   setRadioButton(CM_SELECT_SPLINES, selectMode);
+  setRadioButton(CM_SELECT_POLYGONS, selectMode);
   setRadioButton(CM_SELECT_ENT, selectMode);
   setRadioButton(CM_SELECT_SPL_ENT, selectMode);
 

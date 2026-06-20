@@ -87,6 +87,7 @@
 #include "main/console.h"
 #include "main/ecsUtils.h"
 #include "main/gameLoad.h"
+#include "main/hostedServerLauncher.h"
 #include "main/level.h"
 #include "main/settings.h"
 #include "main/vromfs.h"
@@ -253,7 +254,8 @@ static void update(float dt, float real_dt, double cur_time)
     {
       if (dedicated::is_dedicated())
         updateInput(real_dt, dt, cur_time); // we must update input on dedicated for bots and other input logic!
-      net_update();
+      net_update(*g_entity_mgr);
+      hosted_internal_server_management_update();
     }
     if (is_level_loaded())
     {
@@ -362,7 +364,8 @@ static
       game::g_timers_mgr->act(dt);
     }
 
-    net_update();
+    net_update(*g_entity_mgr);
+    hosted_internal_server_management_update();
     update(dt, rtDt, curTime);
   }
 
@@ -697,6 +700,7 @@ void app_close()
   httprequests::shutdown_async();
   syncvroms::shutdown();
   g_entity_mgr.demandDestroy();
+  ecs::EntityManager::destroy_shared_component_types();
   ecs::clear_component_manager_registry();
 }
 

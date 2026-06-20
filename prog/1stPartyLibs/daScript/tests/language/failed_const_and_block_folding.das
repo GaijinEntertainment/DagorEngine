@@ -2,7 +2,7 @@
 // verifies dead code elimination, constant folding, and detection
 // of top-level expressions with no side effects
 options gen2
-expect 40209:2
+expect 30151:2
 
 options no_coverage
 

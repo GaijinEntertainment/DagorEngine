@@ -17,9 +17,7 @@ class DataBlock;
 
 class NodeBasedShader
 {
-  // Dshl backend data
   ComputeShaderElement *computeShader = nullptr;
-  int shaderBlockId = -1;
 
   eastl::unique_ptr<NodeBasedShaderManager> shaderManager;
   String loadedShaderName;

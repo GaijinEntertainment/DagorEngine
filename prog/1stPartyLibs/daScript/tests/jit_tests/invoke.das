@@ -35,7 +35,7 @@ def test_invoke_lambda(lmb : lambda<(a : int; b : float) : int>) {
 
 def test_invoke_and_delete_lambda(var lmb : lambda<(a : int; b : float) : int>) {
     let res = invoke(lmb, 1, 2.0)
-    delete lmb
+    unsafe { delete lmb; }
     return res
 }
 

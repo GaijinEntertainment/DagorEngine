@@ -1,8 +1,6 @@
 options gen2
 options indenting = 4
 options persistent_heap
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 
 require daslib/fio
@@ -35,7 +33,8 @@ def print_usage() {
     print("  build                              Build C/C++ packages\n")
     print("  check                              Verify installed packages\n")
     print("  cleanup                            Remove modules/ and daspkg.lock for a fresh install\n")
-    print("  doctor                             Check environment (git, cmake, gh)\n\n")
+    print("  doctor                             Check environment (git, cmake, gh)\n")
+    print("  release [--out <dir>]              Bundle project as a redistributable standalone\n\n")
     print(format_help_with_auto_help(get_command_info(type<DaspkgArgs>), "daspkg"))
 }
 
@@ -51,13 +50,13 @@ def main() {
         return 0
     }
 
-    var parsed = DaspkgArgs()
-    let parse_err = parse_args(parsed, argv)
-    if (!empty(parse_err)) {
-        to_log(LOG_ERROR, "daspkg: {parse_err}\n\n")
+    var parse_r <- parse_args(type<DaspkgArgs>, argv)
+    if (parse_r |> is_err) {
+        to_log(LOG_ERROR, "daspkg: {parse_r |> unwrap_err}\n\n")
         print_usage()
         return 1
     }
+    let parsed <- parse_r |> move_unwrap
     apply_global_flags(parsed)
 
     let command = parsed.command ?? ""
@@ -106,6 +105,8 @@ def main() {
         rc = cmd_check(root, parsed.json, is_global)
     } elif (command == "cleanup") {
         rc = cmd_cleanup(root, parsed.force, is_global)
+    } elif (command == "release") {
+        rc = cmd_release(root, parsed.out)
     } elif (command == "doctor") {
         rc = cmd_doctor()
     } elif (command == "search") {

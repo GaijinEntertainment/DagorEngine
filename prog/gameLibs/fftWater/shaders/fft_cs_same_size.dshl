@@ -1,5 +1,5 @@
 //this is optimized for same size (in one dispatch)
-// techically it still workds with different sizes dispatches, but will be sub-optimal
+// technically it still works with different sizes dispatches, but will be sub-optimal
 
 include "../../render/shaders/hardware_defines.dshl"
 include "fft_cs_defaults.dshl"

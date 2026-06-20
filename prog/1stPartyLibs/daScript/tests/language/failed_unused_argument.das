@@ -4,7 +4,7 @@
 options gen2
 options no_unused_function_arguments = true
 
-expect 40206:2
+expect 30159
 
 [sideeffects]
 def haha(a, b, c) {// 40206: unused function argument b

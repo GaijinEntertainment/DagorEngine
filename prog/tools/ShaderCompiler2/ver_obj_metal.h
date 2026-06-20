@@ -2,4 +2,4 @@
 #pragma once
 
 // Increase this number if changes in the compiler invalidate .obj for metal
-_MAKE4C('13.6')
+_MAKE4C('13.7')

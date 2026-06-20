@@ -74,7 +74,7 @@ static void ui_perf_stats_es(const RenderEventUI & /*evt*/,
 {
   using namespace netstat;
 
-  dag::ConstSpan<netstat::Sample> ns = netstat::get_aggregations();
+  auto ns = netstat::get_aggregations();
   if (ns.empty())
   {
     ui_perf_stats__server_tick_warn = 0;

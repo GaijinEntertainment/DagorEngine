@@ -73,8 +73,11 @@ char (&_countof__helper_(T (&array)[N]))[N];
 #undef min
 #undef max
 
-#define G_UNUSED(x)    ((void)(x))
-#define G_UNREFERENCED G_UNUSED
+#define G_UNUSED(x)          ((void)(x))
+#define G_UNREFERENCED       G_UNUSED
+// Volatile-safe variant: (void)x on a volatile-qualified type is a "discarded volatile access"
+// (-Werror under gcc). Take the address instead -- no access, valid suppression.
+#define G_UNUSED_VOLATILE(x) ((void)&(x))
 
 template <typename T>
 inline constexpr T min(const T val1, const T val2)

@@ -75,7 +75,7 @@ def next_ident(var it : iterator<int>; var Ch : int&; var ident : string&) : boo
             break
         }
     }
-    return false if (id |> length == 0)
+    return false if (empty(id))
     ident = string(id)
     return true
 }
@@ -85,15 +85,13 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
     var args : array<tuple<argName : string; init : string>>
     var error = "no arguments found"
     spoof_args(temp) $(res, errors) {
-        if (errors |> length > 0) {
+        if (!empty(errors)) {
             error = errors |> join("\n")
         } else {
             args <- res
         }
     }
-    if (args |> length == 0) {
-        return (result = error, ok = false)
-    }
+    if (empty(args)) return (result = error, ok = false)
     // compare argument counts
     var instance_arguments : array<string>
     for (a, ai in args, count()) {
@@ -116,9 +114,7 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
         }
         Ch = -1
     }
-    if (Ch == -1) {
-        return (result = "unexpected end of file", ok = false)
-    }
+    if (Ch == -1) return (result = "unexpected end of file", ok = false)
     // now, lets apply the arguments
     var result : array<uint8>
     var pendingCh : int
@@ -258,7 +254,7 @@ class SpoofInstanceReader : AstReaderMacro {
         var iargs : SpoofInvocation
         var failed = false
         instance_args(string(expr.sequence)) $(res, errors) {
-            if (errors |> length > 0) {
+            if (!empty(errors)) {
                 let all_errors = errors |> join("\n")
                 prog |> macro_error(info, all_errors)
                 failed = true
@@ -270,7 +266,7 @@ class SpoofInstanceReader : AstReaderMacro {
         // lets find the variable for the template
         var vptr : VariablePtr
         find_matching_variable(get_ptr(prog), null, iargs.varName, false) $(vars) {
-            if (vars |> length == 0) {
+            if (empty(vars)) {
                 prog |> macro_error(info, "no matching variable found for {iargs.varName}")
                 return
             } elif (vars |> length > 1) {
@@ -280,9 +276,7 @@ class SpoofInstanceReader : AstReaderMacro {
                 vptr := vars[0]
             }
         }
-        if (vptr == null) {
-            return ""
-        }
+        if (vptr == null) return ""
         if (vptr.init == null) {
             prog |> macro_error(info, "variable {iargs.varName} has no initializer")
             return ""

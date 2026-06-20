@@ -8,7 +8,6 @@
 #include <generic/dag_smallTab.h>
 #include <scene/dag_visTree.h>
 
-/// building
 struct HierVisBuildNode
 {
   uint32_t flags;
@@ -21,15 +20,12 @@ struct HierVisBuildNode
 class BuildVisTree
 {
 public:
-  BuildVisTree() : leavesCount(0) {}
-  SmallTab<HierVisNode, MidmemAlloc> nodes;
-  int leavesCount; // number of leaves - first N of nodes are leaves
+  SmallTab<HierVisNode> nodes;
+  int leavesCount = 0; // number of leaves - first N of nodes are leaves
 
-  void build(HierVisBuildNode *leaves, int leaves_count, bool clr_lp = true);
-  void clearLastPlaneWord();
+  void build(dag::Span<HierVisBuildNode> leaves);
 
 protected:
-  static Tab<HierVisNode> buildList;
-  static void buildHierVisData(HierVisBuildNode *leaves, int leaves_count);
-  static void recursiveBuild(int node_id);
+  static void buildHierVisData(SmallTab<HierVisNode> &buildList, dag::Span<HierVisBuildNode> leaves);
+  static void recursiveBuild(SmallTab<HierVisNode> &buildList, int node_id);
 };

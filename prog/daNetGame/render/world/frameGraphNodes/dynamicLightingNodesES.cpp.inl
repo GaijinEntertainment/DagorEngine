@@ -5,7 +5,7 @@
 #include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <drv/3d/dag_rwResource.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/renderEvent.h>
 #include <render/renderSettings.h>
@@ -182,7 +182,7 @@ static void dynamic_lighting_on_appear_es(const ecs::Event &,
   dafg::NodeHandle &dynamic_lighting_generate_tiles_node,
   dafg::NodeHandle &dynamic_lighting_node)
 {
-  dynamic_lighting_is_rtsm = is_rtsm_dynamic_enabled();
+  dynamic_lighting_is_rtsm = is_rtsm_dynamic_enabled() && is_bvh_usable();
   recreate_dynamic_lighting_nodes(dynamic_lighting_is_rtsm, prepare_dynamic_lighting_texture_per_camera,
     prepare_dynamic_lighting_args_per_camera_view, dynamic_lighting_generate_tiles_node, dynamic_lighting_node);
 }

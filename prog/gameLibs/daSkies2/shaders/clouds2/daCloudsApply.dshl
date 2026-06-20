@@ -122,6 +122,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     clouds_color_close@smp2d = clouds_color_close;
     clouds2_far_res@f4 = (clouds2_resolution.xy, 1/clouds2_resolution.xy);
     clouds2_far_resI@u2 = (clouds2_resolution.xy);
+    clouds2_far_res_last_texel_index@i2 = int2(clouds2_resolution.xy - 1);
     clouds2_close_res@f2 = (clouds2_resolution.zw,0,0);
     clouds_has_close_sequence@f1 = clouds_has_close_sequence;
 
@@ -278,7 +279,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     // Sample the 3x3 lowres depth around the texcoord, bilaterally filter them
     // Store values for the 9 pixels in 3 float4s (w comp is not used)
     float2 lowResCoordsOrigin = depth_texcoord * clouds2_far_res.xy;
-    float2 lowResCoordsOriginI = (int2)lowResCoordsOrigin;
+    int2 lowResCoordsOriginI = (int2)lowResCoordsOrigin;
 
     int i;
     float4 packedSamples[3];
@@ -307,7 +308,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     ##else
       UNROLL
       for(i = 0; i < 9; i++)
-        packedSamples[i / 3][i % 3] = clouds_depth_gbuf[lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1)].r;
+        packedSamples[i / 3][i % 3] = clouds_depth_gbuf[clamp(lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1), int2(0, 0), clouds2_far_res_last_texel_index)].r;
     ##endif
 
     // calculate depth diff between lowres samples and shaded pixel's depth, store it in packedSamples
@@ -362,7 +363,7 @@ shader clouds2_apply, clouds2_apply_has_empty, clouds2_apply_no_empty
     UNROLL
     for(i = 0; i < 9; i++)
     {
-      int2 lowResCoordsInt = lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1);
+      int2 lowResCoordsInt = clamp(lowResCoordsOriginI + int2(i % 3 - 1, i / 3 - 1), int2(0, 0), clouds2_far_res_last_texel_index);
       float colorWeight = bilateralWeights[i / 3][i % 3];
       float4 cloudColorSample = clouds_color[lowResCoordsInt];
       result += cloudColorSample * colorWeight;

@@ -1,12 +1,11 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 
 require dastest/testing_boost public
 
 require daslib/fio
 require strings
+require daslib/strings_boost
 
 require daslib/json
 require daslib/json_boost
@@ -17,7 +16,44 @@ require lockfile
 require utils
 require index
 require commands
+require daslib/result
 require package_runner public
+
+// On Darwin daspkg release emits a clickable `.app`; everything else is the
+// flat `<out_dir>/<name>/...` layout. These helpers let release tests assert
+// against the right paths without per-platform branches at every check site.
+
+def bundle_root_dir(out_dir, name : string) : string {
+    if (get_platform_name() == "darwin") {
+        return path_join(out_dir, "{name}.app")
+    }
+    return path_join(out_dir, name)
+}
+
+def bundle_artifacts_dir(out_dir, name : string) : string {
+    if (get_platform_name() == "darwin") {
+        return path_join(path_join(out_dir, "{name}.app"), "Contents/MacOS")
+    }
+    return path_join(out_dir, name)
+}
+
+def bundle_exe_path(out_dir, name : string) : string {
+    let dir = bundle_artifacts_dir(out_dir, name)
+    if (get_platform_name() == "darwin") {
+        return path_join(dir, name)
+    }
+    return path_join(dir, "{name}.exe")
+}
+
+// Path of the exe AFTER the bundle root has been moved/renamed to `moved_root`.
+// On Darwin the moved directory IS the .app — the exe still lives at
+// Contents/MacOS/<name>. On Linux/Windows it's just <moved_root>/<name>.exe.
+def moved_bundle_exe_path(moved_root, name : string) : string {
+    if (get_platform_name() == "darwin") {
+        return path_join(moved_root, "Contents/MacOS/{name}")
+    }
+    return path_join(moved_root, "{name}.exe")
+}
 
 [test]
 def test_package_name_from_source(t : T?) {
@@ -91,60 +127,69 @@ def test_is_index_name(t : T?) {
 [test]
 def test_parse_args(t : T?) {
     t |> run("install command") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["install", "dasImgui"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["install", "dasImgui"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "install")
         t |> equal(parsed.command_arg ?? "", "dasImgui")
         t |> success(!parsed.force)
     }
     t |> run("install with force") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["install", "dasImgui", "--force"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["install", "dasImgui", "--force"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "install")
         t |> equal(parsed.command_arg ?? "", "dasImgui")
         t |> success(parsed.force)
     }
     t |> run("install with root") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["--root", "/tmp/proj", "install", "foo"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["--root", "/tmp/proj", "install", "foo"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "install")
         t |> equal(parsed.command_arg ?? "", "foo")
         t |> equal(parsed.root, "/tmp/proj")
     }
     t |> run("list command no arg") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["list"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["list"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "list")
         t |> success(parsed.command_arg |> is_none)
     }
     t |> run("no command") @(t : T?) {
-        var parsed = DaspkgArgs()
         let empty_args : array<string>
-        t |> equal(parse_args(parsed, empty_args), "")
+        var r <- parse_args(type<DaspkgArgs>, empty_args)
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> success(parsed.command |> is_none)
     }
     t |> run("cleanup command") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["cleanup"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["cleanup"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "cleanup")
         t |> success(!parsed.force)
     }
     t |> run("cleanup with force") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["cleanup", "--force"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["cleanup", "--force"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "cleanup")
         t |> success(parsed.force)
     }
     t |> run("cleanup with global and force") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["cleanup", "--global", "--force"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["cleanup", "--global", "--force"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "cleanup")
         t |> success(parsed.force)
         t |> success(parsed.global_flag)
     }
     t |> run("default root is dot") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["list"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["list"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.root, ".")
     }
 }
@@ -230,7 +275,7 @@ def private write_passing_pkg(src_dir, pkg_name : string; deps : array<string>) 
         w |> write("options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"")
         w |> write(pkg_name)
         w |> write("\")\n\}\n")
-        if (length(deps) > 0) {
+        if (!empty(deps)) {
             w |> write("[export]\ndef dependencies(version : string) \{\n")
             for (d in deps) {
                 w |> write("    require_package(\"")
@@ -762,6 +807,7 @@ let PKG_BRANCH_FIXTURE = "utils/daspkg/fixtures/test_branch.das_package"
 let PKG_REDIRECT_FIXTURE = "utils/daspkg/fixtures/test_redirect.das_package"
 let PKG_SDK_AWARE_FIXTURE = "utils/daspkg/fixtures/test_sdk_aware.das_package"
 let PKG_RICH_FIXTURE = "utils/daspkg/fixtures/test_rich.das_package"
+let PKG_RELEASE_FIXTURE = "utils/daspkg/fixtures/test_release.das_package"
 
 [test]
 def test_run_das_package_meta(t : T?) {
@@ -1305,8 +1351,9 @@ def test_ansi_colors(t : T?) {
 def test_parse_args_color_flags(t : T?) {
     t |> run("--color sets use_tty_colors") @(t : T?) {
         use_tty_colors = false
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["list", "--color"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["list", "--color"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> success(parsed.color, "color flag parsed")
         apply_global_flags(parsed)
         t |> success(use_tty_colors)
@@ -1314,16 +1361,15 @@ def test_parse_args_color_flags(t : T?) {
     }
     t |> run("--no-color clears use_tty_colors") @(t : T?) {
         use_tty_colors = true
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["list", "--no-color"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["list", "--no-color"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> success(parsed.no_color, "no_color flag parsed")
         apply_global_flags(parsed)
         t |> success(!use_tty_colors)
     }
     t |> run("--color and --no-color together is mutex error") @(t : T?) {
-        var parsed = DaspkgArgs()
-        let err = parse_args(parsed, ["list", "--color", "--no-color"])
-        t |> success(!empty(err), "mutex group rejects both")
+        t |> success(parse_args(type<DaspkgArgs>, ["list", "--color", "--no-color"]) |> is_err, "mutex group rejects both")
     }
 }
 
@@ -1351,21 +1397,24 @@ def test_read_manifest_rich(t : T?) {
 [test]
 def test_parse_args_global_flag(t : T?) {
     t |> run("--global flag parsed") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["install", "foo", "--global"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["install", "foo", "--global"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "install")
         t |> equal(parsed.command_arg ?? "", "foo")
         t |> success(parsed.global_flag)
     }
     t |> run("-g shorthand") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["-g", "list"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["-g", "list"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> equal(parsed.command ?? "", "list")
         t |> success(parsed.global_flag)
     }
     t |> run("default global is false") @(t : T?) {
-        var parsed = DaspkgArgs()
-        t |> equal(parse_args(parsed, ["install", "foo"]), "")
+        var r <- parse_args(type<DaspkgArgs>, ["install", "foo"])
+        t |> success(r |> is_ok, "parse succeeds")
+        let parsed <- r |> move_unwrap
         t |> success(!parsed.global_flag)
     }
 }
@@ -1593,5 +1642,444 @@ def test_gitignore_remove(t : T?) {
     remove(gitignore)
     force_rmdir("{tmp_root}/.git")
     rmdir(tmp_root)
+}
+
+// --- release tests ---
+
+[test]
+def test_run_das_package_release(t : T?) {
+    t |> run("reads release info from .das_package") @(tt : T?) {
+        var info : PackageReleaseInfo
+        let ok = run_das_package_release(PKG_RELEASE_FIXTURE, info)
+        tt |> success(ok)
+        tt |> equal("custom-bundle-name", info.name)
+        tt |> equal("main.das", info.main_script)
+        tt |> equal(2, length(info.include_globs))
+        tt |> equal("*.png", info.include_globs[0])
+        tt |> equal("data/**/*.json", info.include_globs[1])
+        tt |> equal(1, length(info.exclude_globs))
+        tt |> equal("data/internal/**", info.exclude_globs[0])
+        tt |> equal(2, length(info.forced_modules))
+        tt |> equal("dasSQLITE", info.forced_modules[0])
+        tt |> equal("dasGlfw", info.forced_modules[1])
+    }
+    t |> run("returns true with empty spec when release() is missing") @(tt : T?) {
+        var info : PackageReleaseInfo
+        let ok = run_das_package_release(PKG_FIXTURE, info)
+        tt |> success(ok)
+        tt |> equal("", info.main_script)
+        tt |> equal(0, length(info.include_globs))
+    }
+}
+
+[test]
+def test_cmd_release_pure_daslang(t : T?) {
+    t |> run("bundles a pure-daslang project end-to-end") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_pure"
+        let out_dir = "{get_das_root()}/_test_release_pure_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n    print(\"hello\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"smoke\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_include(\"*.txt\")\n\}\n")
+        }
+        fopen("{tmp_root}/data.txt", "wb") $(f) {
+            fwrite(f, "asset")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let exe_path = bundle_exe_path(out_dir, "smoke")
+        let artifacts = bundle_artifacts_dir(out_dir, "smoke")
+        tt |> success(fexist(exe_path), "exe shipped at {exe_path}")
+        tt |> success(fexist(path_join(artifacts, "data.txt")), "asset shipped")
+        tt |> success(!fexist(path_join(artifacts, "smoke.o")), ".o build artifact dropped")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+[test]
+def test_cmd_release_native_dep(t : T?) {
+    var dasSQLITE_present = false
+    for_each_registered_dynamic_module() $(_path, _mod_name, das_name) {
+        if (das_name == "sqlite") {
+            dasSQLITE_present = true
+        }
+    }
+    if (!dasSQLITE_present) {
+        t |> run("skipped — dasSQLITE not available") @(tt : T?) {
+            to_log(LOG_INFO, "test_cmd_release_native_dep: dasSQLITE not loaded; skipping native-dep test\n")
+            tt |> success(true)
+        }
+        return
+    }
+    t |> run("bundles a native-dep project, runnable from a moved location") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_native"
+        let out_dir = "{get_das_root()}/_test_release_native_out"
+        let moved_dir = "{get_das_root()}/_test_release_native_moved"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        force_rmdir(moved_dir)
+        mkdir(tmp_root)
+
+        // Tiny project: open in-memory sqlite, run a query, print row count.
+        // Using stderr-free output so we can match it exactly against the run.
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire sqlite/sqlite_boost\n[export]\ndef main() \{\n    let db = open_sqlite(\":memory:\")\n    db |> exec(\"CREATE TABLE t(x INT)\")\n    db |> exec(\"INSERT INTO t VALUES(42)\")\n    print(\"rows: \{db |> changes()\}\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"sqs\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let exe_path = bundle_exe_path(out_dir, "sqs")
+        let artifacts = bundle_artifacts_dir(out_dir, "sqs")
+        let bundle_root = bundle_root_dir(out_dir, "sqs")
+        tt |> success(fexist(exe_path), "exe shipped at {exe_path}")
+        tt |> success(fexist(path_join(artifacts, "modules/dasSQLITE/dasModuleSQLITE.shared_module")),
+            "dylib shipped at expected relative path")
+
+        // Move the whole bundle to a new location and run it. PR #2579's
+        // exe-relative resolution is what makes this work — the dylib needs
+        // to be found via <exe_dir>/modules/dasSQLITE/... at the new path.
+        // Use `rename` (cross-platform via libc rename(2)/Win CRT) rather
+        // than shell `cp -r` so the test runs on Windows CI; rename also
+        // preserves the exe permission bit by definition.
+        let moved = rename(bundle_root, moved_dir)
+        tt |> success(moved, "bundle moved to new location")
+        let moved_exe = moved_bundle_exe_path(moved_dir, "sqs")
+        var output : string
+        let run_rc = run_cmd("\"{moved_exe}\"", output)
+        tt |> equal(0, run_rc, "moved bundle runs cleanly")
+        tt |> success(find(output, "rows: 1") >= 0, "moved bundle prints expected sqlite output (got: {output})")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        force_rmdir(moved_dir)
+    }
+}
+
+// release_include_dll() declares a native shared library to ship next to the
+// owning .shared_module. Verify the negative path: a project that declares a
+// nonexistent DLL must fail loudly, not silently produce an incomplete bundle.
+[test]
+def test_cmd_release_include_dll_missing_fails(t : T?) {
+    t |> run("cmd_release returns non-zero when release_include_dll names a missing file") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_include_dll_missing"
+        let out_dir = "{get_das_root()}/_test_release_include_dll_missing_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+
+        // Empty main, but the project declares a native dep that can't be
+        // resolved under <das_root>/{bin,lib}/. ship_native_dlls runs after
+        // the deps copy and must abort the release.
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\n[export]\ndef main() \{\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"missdll\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n    release_include_dll(\"this_file_does_not_exist_anywhere_4f8c.dll\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> success(rc != 0, "cmd_release rejects nonexistent native dep (got rc={rc})")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+// False-positive test: every registered dynamic module that the program does NOT
+// require must NOT show up in the bundle. Skips when the registry has only
+// dasSQLITE (no other module to verify isn't shipped).
+[test]
+def test_cmd_release_no_false_positive_shared(t : T?) {
+    var dasSQLITE_present = false
+    var other_pkg_dir = ""
+    for_each_registered_dynamic_module() $(path, _mod_name, das_name) {
+        if (das_name == "sqlite") {
+            dasSQLITE_present = true
+        } elif (empty(other_pkg_dir)) {
+            // First non-sqlite registered module: extract package dir name.
+            let g = to_generic_path(path)
+            let idx = rfind(g, "/modules/")
+            if (idx >= 0) {
+                let after = slice(g, idx + length("/modules/"))
+                let next_slash = find(after, "/")
+                other_pkg_dir = next_slash > 0 ? slice(after, 0, next_slash) : after
+            }
+        }
+    }
+    if (!dasSQLITE_present || empty(other_pkg_dir)) {
+        t |> run("skipped — needs dasSQLITE plus at least one other registered module") @(tt : T?) {
+            to_log(LOG_INFO, "test_cmd_release_no_false_positive_shared: insufficient registered modules; skipping\n")
+            tt |> success(true)
+        }
+        return
+    }
+    let other_for_capture = other_pkg_dir
+    t |> run("ships only modules the program requires; not registered-but-unused dylibs") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_fp_shared"
+        let out_dir = "{get_das_root()}/_test_release_fp_shared_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+
+        // Project requires only sqlite — no other registered modules.
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire sqlite/sqlite_boost\n[export]\ndef main() \{\n    let db = open_sqlite(\":memory:\")\n    print(\"db opened\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"fpshared\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let artifacts = bundle_artifacts_dir(out_dir, "fpshared")
+        tt |> success(fexist(path_join(artifacts, "modules/dasSQLITE/dasModuleSQLITE.shared_module")),
+            "dasSQLITE dylib shipped (program required it)")
+        // Pick one registered-but-unused package and confirm it's NOT shipped.
+        let other_dir = path_join(artifacts, "modules/{other_for_capture}")
+        tt |> equal(false, fexist(other_dir),
+            "registered-but-unused package must NOT be shipped (false positive)")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+// False-positive test: a project with no daspkg deps must NOT pull anything from
+// daslib stdlib (`require strings`, `require fio`) or from the project's own
+// non-main .das files into the bundle's modules/ tree. Only the exe + the
+// project's own assets (release_include) should be shipped.
+[test]
+def test_cmd_release_no_false_positive_das(t : T?) {
+    t |> run("daslib stdlib + project-local .das do NOT create modules/ entries") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_fp_das"
+        let out_dir = "{get_das_root()}/_test_release_fp_das_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+
+        // Project: main.das requires fio (stdlib) + a project-local module.
+        fopen("{tmp_root}/helper.das", "wb") $(f) {
+            fwrite(f, "options gen2\nmodule helper shared public\n\ndef public greet(name : string) : string \{\n    return \"hello, \{name\}\"\n\}\n")
+        }
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/fio\nrequire helper\n\n[export]\ndef main() \{\n    print(\"\{greet(\"world\")\}\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"fpdas\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let exe_path = bundle_exe_path(out_dir, "fpdas")
+        let artifacts = bundle_artifacts_dir(out_dir, "fpdas")
+        tt |> success(fexist(exe_path), "exe shipped at {exe_path}")
+        // No modules/ tree at all — project has no shared modules and no daspkg deps.
+        tt |> equal(false, fexist(path_join(artifacts, "modules")),
+            "no modules/ tree (no shared deps, no daspkg deps; daslib stdlib + project-local .das must NOT show up)")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+// Transitive release: project requires a synthetic dep at <root>/modules/<DepName>/
+// whose own .das_package has release_include for asset files. Bundle must place
+// dep assets under <bundle>/modules/<DepName>/<rel>.
+[test]
+def test_cmd_release_transitive_dep(t : T?) {
+    t |> run("dep release_include files are shipped under modules/<DepName>/") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_transitive"
+        let out_dir = "{get_das_root()}/_test_release_transitive_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+        mkdir("{tmp_root}/modules")
+        mkdir("{tmp_root}/modules/fakedep")
+        mkdir("{tmp_root}/modules/fakedep/daslib")
+        mkdir("{tmp_root}/modules/fakedep/data")
+
+        // Synthetic dep: package + module + asset.
+        fopen("{tmp_root}/modules/fakedep/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"fakedep\")\n\}\n[export]\ndef release() \{\n    release_include(\"data/**\")\n\}\n")
+        }
+        fopen("{tmp_root}/modules/fakedep/.das_module", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/fio\n[export]\ndef initialize(project_path : string) \{\n    register_native_path(\"fakedep\", \"fakedep_lib\", \"\{project_path\}/daslib/fakedep_lib.das\")\n\}\n")
+        }
+        fopen("{tmp_root}/modules/fakedep/daslib/fakedep_lib.das", "wb") $(f) {
+            fwrite(f, "options gen2\nmodule fakedep_lib shared public\n\ndef public hello() : string \{\n    return \"hello from fakedep\"\n\}\n")
+        }
+        fopen("{tmp_root}/modules/fakedep/data/asset.bin", "wb") $(f) {
+            fwrite(f, "asset-content")
+        }
+        // Excluded file — must NOT ship.
+        fopen("{tmp_root}/modules/fakedep/data/internal.bin", "wb") $(f) {
+            fwrite(f, "secret")
+        }
+
+        // Parent project pulls fakedep in.
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire fakedep/fakedep_lib\n\n[export]\ndef main() \{\n    print(\"\{hello()\}\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"transit\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let exe_path = bundle_exe_path(out_dir, "transit")
+        let artifacts = bundle_artifacts_dir(out_dir, "transit")
+        tt |> success(fexist(exe_path), "parent exe shipped at {exe_path}")
+        tt |> success(fexist(path_join(artifacts, "modules/fakedep/data/asset.bin")),
+            "dep asset shipped via transitive release()")
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
+}
+
+// Walk `path` via `commands::list_lc_rpaths` + `commands::is_external_rpath`
+// (the same parser the production scrubber uses) and append every external
+// LC_RPATH entry to `leaks`. Thin wrapper so the test exercises the shared
+// helpers instead of paraphrasing the parser locally.
+def private add_external_lc_rpaths(path : string; var leaks : array<string>) {
+    for (rp in list_lc_rpaths(path)) {
+        if (is_external_rpath(rp)) {
+            leaks |> push_clone("{path}: {rp}")
+        }
+    }
+}
+
+// macOS: a bundle copy is portable only if (1) every dylib's install_name alias
+// resolves to an actual file in the bundle, and (2) no shipped binary carries
+// an absolute LC_RPATH pointing back into the build tree. Without (1) dyld
+// silently falls back through the build-tree LC_RPATH; without (2) the bundle
+// "works" on the build machine and breaks on a clean recipient. Both are the
+// hard-to-diagnose ship blocker — exercise them explicitly.
+//
+// Requires dasGlfw because its dylib's install_name (e.g. `@rpath/libglfw.3.dylib`)
+// differs from the shipped filename (e.g. `libglfw.3.4.dylib`) — that mismatch
+// is what makes the symlink alias load-bearing. The test discovers both names
+// at runtime rather than hardcoding versions, so it survives GLFW bumps.
+[test]
+def test_cmd_release_portable_on_macos(t : T?) {
+    if (get_platform_name() != "darwin") {
+        t |> run("skipped — macOS-only audit (otool/install_name_tool)") @(tt : T?) {
+            tt |> success(true)
+        }
+        return
+    }
+    var dasGlfw_present = false
+    for_each_registered_dynamic_module() $(_path, _mod_name, das_name) {
+        if (das_name == "glfw") {
+            dasGlfw_present = true
+        }
+    }
+    if (!dasGlfw_present) {
+        t |> run("skipped — dasGlfw not registered; can't exercise install_name-alias path") @(tt : T?) {
+            to_log(LOG_INFO, "test_cmd_release_portable_on_macos: dasGlfw not loaded; skipping\n")
+            tt |> success(true)
+        }
+        return
+    }
+    t |> run("install_name alias is created and no LC_RPATH points outside the bundle") @(tt : T?) {
+        let tmp_root = "{get_das_root()}/_test_release_portable_macos"
+        let out_dir = "{get_das_root()}/_test_release_portable_macos_out"
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+        mkdir(tmp_root)
+
+        // Smallest valid project that pulls dasGlfw into the bundle. The exe
+        // doesn't run — we only need it on disk to inspect.
+        fopen("{tmp_root}/main.das", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire glfw/glfw_boost\n[export]\ndef main() \{\n    print(\"glfw\\n\")\n\}\n")
+        }
+        fopen("{tmp_root}/.das_package", "wb") $(f) {
+            fwrite(f, "options gen2\nrequire daslib/daspkg\n[export]\ndef package() \{\n    package_name(\"glfwbn\")\n\}\n[export]\ndef release() \{\n    release_main(\"main.das\")\n\}\n")
+        }
+
+        let rc = cmd_release(tmp_root, out_dir)
+        tt |> equal(0, rc, "cmd_release returns 0")
+        let artifacts = bundle_artifacts_dir(out_dir, "glfwbn")
+
+        // Discover the real dylib (a regular file under modules/dasGlfw/)
+        // rather than hardcoding `libglfw.3.4.dylib` — that filename moves
+        // every time GLFW bumps and would break the test silently.
+        //
+        // Asserts exactly one regular `.dylib` entry: if a future dep ever
+        // lands a second dylib under `modules/dasGlfw/`, the test should
+        // fail loudly so we revisit the discovery logic rather than picking
+        // whichever entry the filesystem yields last.
+        let glfw_dir = path_join(artifacts, "modules/dasGlfw")
+        var real_dylib = ""
+        var dylib_count = 0
+        dir(glfw_dir) $(filename) {
+            if (filename == "." || filename == "..") return
+            if (!ends_with(filename, ".dylib")) return
+            let p = path_join(glfw_dir, filename)
+            var sym_err : string
+            if (is_symlink(p, sym_err)) return
+            real_dylib = p
+            dylib_count++
+        }
+        tt |> equal(1, dylib_count, "exactly one real GLFW dylib in {glfw_dir} (got {dylib_count})")
+        var id_out : string
+        let id_rc = run_cmd("otool -D \"{real_dylib}\"", id_out)
+        tt |> equal(0, id_rc, "otool -D runs")
+        var install_name = ""
+        for (line in split(id_out, "\n")) {
+            let s = strip(line)
+            if (empty(s)) continue
+            if (ends_with(s, ":")) continue
+            install_name = s
+        }
+        tt |> success(starts_with(install_name, "@rpath/"),
+            "install_name is @rpath-relative (got: {install_name})")
+        let alias_name = base_name(install_name)
+        let alias_path = path_join(glfw_dir, alias_name)
+        if (alias_name != base_name(real_dylib)) {
+            tt |> success(fexist(alias_path),
+                "install_name alias `{alias_name}` materialized at {alias_path}")
+            var eq_err : string
+            tt |> success(equivalent(alias_path, real_dylib, eq_err),
+                "alias resolves to the real dylib (equivalent => true; err=`{eq_err}`)")
+        }
+
+        // No shipped binary may keep an absolute LC_RPATH — that's the leak
+        // that hides the install_name-alias bug on the build machine. Skip
+        // symlinks during the glob walk so the install_name alias doesn't
+        // get scanned a second time alongside its real-file target (which
+        // would double-report any future leak in the same inode).
+        var leaks : array<string>
+        add_external_lc_rpaths(bundle_exe_path(out_dir, "glfwbn"), leaks)
+        glob(artifacts, "**/*.dylib") $(rel, is_dir) {
+            if (is_dir) return
+            let p = path_join(artifacts, rel)
+            var sym_err : string
+            if (is_symlink(p, sym_err)) return
+            add_external_lc_rpaths(p, leaks)
+        }
+        glob(artifacts, "**/*.shared_module") $(rel, is_dir) {
+            if (is_dir) return
+            let p = path_join(artifacts, rel)
+            var sym_err : string
+            if (is_symlink(p, sym_err)) return
+            add_external_lc_rpaths(p, leaks)
+        }
+        let leaks_msg = join(leaks, "; ")
+        tt |> equal(0, length(leaks),
+            "no absolute LC_RPATH in shipped binaries (leaks: {leaks_msg})")
+
+        force_rmdir(tmp_root)
+        force_rmdir(out_dir)
+    }
 }
 

@@ -10,10 +10,7 @@ Sources =
   gamepad_create.cpp
 
   mouse_emu.cpp
-  keyboard_emu.cpp
 ;
-
-if $(Platform) in xboxOne scarlett { Sources += gamepad_composite.cpp ; }
 
 if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; } # for watchdog
 

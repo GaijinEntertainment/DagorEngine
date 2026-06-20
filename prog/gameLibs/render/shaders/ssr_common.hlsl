@@ -60,7 +60,6 @@ float4 hierarchRayMarch(float2 rayStart_uv, float3 R, float linear_roughness, fl
   // calculate border of screen
   float2 screenBorder = (rayStepScreen.xy >= 0) ? float2(1,1) : -float2(1,1);
   float2 bScale = (abs(rayStepScreen.xy) < 1e-5) ? 1 : (screenBorder - rayStartScreen.xy) / rayStepScreen.xy;
-  bScale = (screenBorder - rayStartScreen.xy) / rayStepScreen.xy;
   float bScaleW = max(bScale.x, bScale.y);
   float borderScale = bScaleW > 0 ? min(bScale.x, bScale.y) : 1;
   FLATTEN

@@ -7,6 +7,7 @@ include "emissive.dshl"
 include "glass.dshl"
 include "indoor_light_probes.dshl"
 include "rendinst_voxelize_albedo_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 float liana_growth_time = 20;
 
 shader rendinst_liana
@@ -55,6 +56,7 @@ shader rendinst_liana
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   if (rendinst_render_pass == rendinst_render_pass_normal)
   {
     USE_MICRODETAIL_BASED_WETNESS()
@@ -117,7 +119,7 @@ shader rendinst_liana
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
       #endif
 
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
 
       float normalized_time = 1;// = big_phase < 0.5 ? saturate(big_phase*8-phaseOfGrowthSource) : 0;
 

@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <generic/dag_span.h>
+#include <generic/dag_staticTab.h>
 
 #include "netStatCounters.inl"
+
+class DaNetPeerInterface;
 
 namespace netstat
 {
@@ -45,12 +47,13 @@ union Sample
 };
 
 void init();
-void term();
-void update(uint32_t ct_ms);
+void shutdown();
+
+void update(uint32_t ct_ms, DaNetPeerInterface *peer);
 void inc(CounterType type, cnt_t val = 1);
 void set(CounterType type, cnt_t val);
 void max(CounterType type, cnt_t val);
-dag::ConstSpan<Sample> get_aggregations();
+StaticTab<Sample, NUM_AG_TYPES> get_aggregations();
 
 void toggle_render();
 void render();

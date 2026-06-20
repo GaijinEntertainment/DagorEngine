@@ -229,15 +229,6 @@ DestroyedHeapSet NativeResourceAllocator::allocateHeaps(const HeapRequests &heap
         allocatedHeaps[i].size >> 10, req.size >> 10);
       discardedHeaps.erase(match);
     }
-    else
-    {
-      heaps[i] = d3d::create_resource_heap(req.group, req.size, RHCF_REQUIRES_DEDICATED_HEAP, RESTAG_FRAMEGRAPH);
-      if (DAGOR_UNLIKELY(!heaps[i]))
-        DAG_FATAL("daFG: Failed to allocate resource heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
-      else
-        debug("daFG: Successfully allocated a new heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
-      allocatedHeaps[i].size = req.size;
-    }
   }
 
   // destroy discarded heaps that were not reassigned
@@ -245,6 +236,20 @@ DestroyedHeapSet NativeResourceAllocator::allocateHeaps(const HeapRequests &heap
   {
     d3d::destroy_resource_heap(discarded.heap);
     debug("daFG: Destroyed discarded heap of size %dKB", discarded.size >> 10);
+  }
+
+  // allocate new heaps only when discarded heaps are freed and driver can reuse memory
+  for (auto [i, req] : heap_requests.enumerate())
+  {
+    if (req.group == CPU_HEAP_GROUP || heaps[i] != nullptr || req.size == 0)
+      continue;
+
+    heaps[i] = d3d::create_resource_heap(req.group, req.size, RHCF_REQUIRES_DEDICATED_HEAP, RESTAG_FRAMEGRAPH);
+    if (DAGOR_UNLIKELY(!heaps[i]))
+      DAG_FATAL("daFG: Failed to allocate resource heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
+    else
+      debug("daFG: Successfully allocated a new heap %d of size %dKB", eastl::to_underlying(i), req.size >> 10);
+    allocatedHeaps[i].size = req.size;
   }
 
   return result;

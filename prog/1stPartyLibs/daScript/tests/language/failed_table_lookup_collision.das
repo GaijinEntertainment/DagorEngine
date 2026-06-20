@@ -1,5 +1,5 @@
 options gen2
-expect 40216:7
+expect 30250:7
 
 def take_two_ret(var a : int&; var b : int&) : int {
     return a + b

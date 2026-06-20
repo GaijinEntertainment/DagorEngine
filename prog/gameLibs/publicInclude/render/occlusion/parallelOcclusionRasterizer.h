@@ -48,6 +48,7 @@ public:
     const uint16_t *faces = nullptr;
     uint32_t tri_count = 0;
     const uint8_t *blasData = nullptr;
+    uint32_t vertOffset = 0; // mode 2: byte offset of the vert21 stream within blasData (gather base = blasData + vertOffset)
     uint32_t treeStart = 0;
     uint32_t treeEnd = 0;
     uint32_t triSkip = 0;
@@ -127,9 +128,9 @@ private:
               indexCache = spillCache.data();
               indexCacheCap = task.tri_count;
             }
-            occlusion->RenderBLAS(task.blasData, (int)task.treeStart, (int)task.treeEnd, (float *)&task.viewproj, indexCache,
-              indexCacheCap, triCount, MaskedOcclusionCulling::CACHE_INSUFFICIENT, context->backfaceWinding, clipPlanes, task.triSkip,
-              task.tri_count);
+            occlusion->RenderBLAS(task.blasData, (int)task.vertOffset, (int)task.treeStart, (int)task.treeEnd, (float *)&task.viewproj,
+              indexCache, indexCacheCap, triCount, MaskedOcclusionCulling::CACHE_INSUFFICIENT, context->backfaceWinding, clipPlanes,
+              task.triSkip, task.tri_count);
             trianglesCount += triCount;
           }
         }

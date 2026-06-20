@@ -211,17 +211,17 @@ shader fluid_wind_jaccobi3d
 
       uint3 j;
 
-      j = uint3(max(i.x - 1, 0), i.y, i.z);
+      j = uint3(max(int(i.x) - 1, 0), i.y, i.z);
       float4 pxm = float4(pressure[j].w, pressure[i].xyz);
       j = uint3(min(i.x + 1, dim.x - 1), i.y, i.z);
       float4 pxp = float4(pressure[i].yzw, pressure[j].x);
 
-      j = uint3(i.x, max(i.y - 1, 0), i.z);
+      j = uint3(i.x, max(int(i.y) - 1, 0), i.z);
       float4 pym = pressure[j];
       j = uint3(i.x, min(i.y + 1, dim.y - 1), i.z);
       float4 pyp = pressure[j];
 
-      j = uint3(i.x, i.y, max(i.z - 1, 0));
+      j = uint3(i.x, i.y, max(int(i.z) - 1, 0));
       float4 pzm = pressure[j];
       j = uint3(i.x, i.y, min(i.z + 1, dim.z - 1));
       float4 pzp = pressure[j];
@@ -252,17 +252,17 @@ shader fluid_wind_project3d
 
       uint3 j;
 
-      j = uint3(max(i.x - 1, 0), i.y, i.z);
+      j = uint3(max(int(i.x) - 1, 0), i.y, i.z);
       float4 pxm = float4(pressure[j].w, pressure[i].xyz);
       j = uint3(min(i.x + 1, dim.x - 1), i.y, i.z);
       float4 pxp = float4(pressure[i].yzw, pressure[j].x);
 
-      j = uint3(i.x, max(i.y - 1,0), i.z);
+      j = uint3(i.x, max(int(i.y) - 1, 0), i.z);
       float4 pym = pressure[j];
       j = uint3(i.x, min(i.y + 1, dim.y - 1), i.z);
       float4 pyp = pressure[j];
 
-      j = uint3(i.x, i.y, max(i.z - 1, 0));
+      j = uint3(i.x, i.y, max(int(i.z) - 1, 0));
       float4 pzm = pressure[j];
       j = uint3(i.x, i.y, min(i.z + 1, dim.z - 1));
       float4 pzp = pressure[j];

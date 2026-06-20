@@ -31,15 +31,15 @@ D3dResource *acquire_managed_res(D3DRESID rid)
       return NULL;
     }
 
+    TEX_REC_LOCK();
     rc = RMGR.incRefCount(idx);
     auto d3dRes = RMGR.getD3dRes(idx);
     auto f = RMGR.getFactory(idx);
+    if (rc == 1 && d3dRes && f)
+      RMGR.decReadyForDiscardTex(idx);
+    TEX_REC_UNLOCK();
     if (d3dRes || (!f && rc > 1))
-    {
-      if (rc == 1 && f)
-        RMGR.decReadyForDiscardTex(idx);
       return d3dRes;
-    }
 
     if (!f)
     {
@@ -123,7 +123,8 @@ void release_managed_res_impl(D3DRESID rid, D3dResource *cmp)
   if (idx < 0)
     return;
 
-  int new_rc = RMGR.decRefCount(idx) & ~RMGR.RCBIT_FOR_REMOVE;
+  int new_rc = RMGR.getFactory(idx) ? RMGR.decRefCountAndIncReadyForDiscardTex(idx) : (RMGR.decRefCount(idx) & ~RMGR.RCBIT_FOR_REMOVE);
+
   if (new_rc > 0)
     return;
 
@@ -150,7 +151,6 @@ void release_managed_res_impl(D3DRESID rid, D3dResource *cmp)
   {
     // release original texture if needed
     TEX_REC_LOCK();
-    RMGR.incReadyForDiscardTex(idx);
     if (should_release_tex(RMGR.baseTexture(idx)) || RMGR.isScheduledForRemoval(idx))
     {
       TEX_REC_UNLOCK();
@@ -341,16 +341,14 @@ static void texmgr_before_device_reset(bool full_reset)
           if (t->getTID() == BAD_TEXTUREID) // skip non-texPackMgr2 textures
             continue;
         // debug("%s: ldLev=%d -> 1", RMGR.getName(idx), RMGR.resQS[idx].getLdLev());
-        if (RMGR.incRefCount(idx) == 1)
-          RMGR.decReadyForDiscardTex(idx);
+        RMGR.incRefCountAndDecReadyForDiscardTex(idx);
         RMGR.resQS[idx].setMaxReqLev(
           (RMGR.getRefCount(idx) > 1) ? min(RMGR.resQS[idx].getLdLev(), RMGR.getLevDesc(idx, TQL_base)) : 1);
         RMGR.resQS[idx].setLdLev(1);
         RMGR.resQS[idx].setCurQL(TQL_stub);
         RMGR.changeTexUsedMem(idx, 0, 0);
         cnt++;
-        if (RMGR.decRefCount(idx) == 0)
-          RMGR.incReadyForDiscardTex(idx);
+        RMGR.decRefCountAndIncReadyForDiscardTex(idx);
       }
     }
   debug("texmgr: reset ldState for %d managed textures", cnt);

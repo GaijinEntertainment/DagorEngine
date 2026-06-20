@@ -510,6 +510,7 @@ public:
     }
 
     updateSearchMatch(tree_interface, *objectTreeItem);
+    markLinearizedTreeItemsDirty(); // Changing name can change the order in the tree.
   }
 
   void onObjectSelectionChanged(IOutliner &tree_interface, RenderableEditableObject &object)

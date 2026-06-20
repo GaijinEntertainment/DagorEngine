@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/net/network.h>
+#include <daECS/net/topologyLock.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/template.h>
 #include <daECS/net/connection.h>
@@ -14,6 +15,7 @@
 #include <daNet/messageIdentifiers.h>
 #include <debug/dag_assert.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <osApiWrappers/dag_miscApi.h>
 #include <daNet/daNetPeerInterface.h>
 #include <memory/dag_framemem.h>
 #include <daECS/net/urlUtils.h>
@@ -201,6 +203,7 @@ void CNetwork::ObjMsg::apply(const net::Object &robj, net::Connection &from, CNe
     {
       ++totalLogCount;
       msg->unpack(data, from);
+      msg->connection = &from;
       const eastl::string msgStr = msgCls->formatMsgStr(msg.get());
       logwarn("network message %s to %d<%s> from conn #%d is dropped due to failed routing (%d)", msgStr.c_str(),
         (ecs::entity_id_t)toEid, manager.getEntityTemplateName(toEid), (int)from.getId(), msgCls->routing);
@@ -241,11 +244,14 @@ CNetwork::CNetwork(ecs::EntityManager &mgr_, INetDriver *drv_, INetworkObserver 
   scope_query_cb_t &&scope_query_) :
   mgr(mgr_), drv(drv_), observer(obsrv), scope_query(eastl::move(scope_query_)), protocolVersion(protov)
 {
+  const int64_t dbgTid = get_current_thread_id();
+  debug("[CNetwork::CNetwork] tid=%lld this=%p mgr=%p drv=%p protov=%u session_rand=%llu", dbgTid, this, &mgr_, drv_, protov,
+    (unsigned long long)session_rand);
   G_ASSERT(observer);
   G_ASSERT(drv_);
   bServer = drv->isServer();
-  // this will also call net::events::init_client/_server
-  uint32_t numMessageClasses = MessageClass::init(bServer);
+  debug("[CNetwork::CNetwork] tid=%lld this=%p bServer=%d -> calling MessageClass::init", dbgTid, this, bServer ? 1 : 0);
+  uint32_t numMessageClasses = MessageClass::init(bServer, &mgr);
 
   if (protocolVersion != PROTO_VERSION_UNKNOWN)
     protocolVersion |= numMessageClasses << 16;
@@ -257,6 +263,7 @@ CNetwork::CNetwork(ecs::EntityManager &mgr_, INetDriver *drv_, INetworkObserver 
 #ifdef NET_STAT_ENABLED
   performNetStat = dgs_get_settings()->getBlockByNameEx("net")->getInt("netstat", 20);
 #endif
+  debug("[CNetwork::CNetwork] tid=%lld this=%p DONE numMessageClasses=%u", dbgTid, this, numMessageClasses);
 }
 
 extern void dump_initial_construction_stats(ecs::EntityManager &mgr);
@@ -273,10 +280,13 @@ void CNetwork::dumpStats()
 
 CNetwork::~CNetwork()
 {
+  const int64_t dbgTid = get_current_thread_id();
+  debug("[CNetwork::~CNetwork] tid=%lld this=%p mgr=%p ENTER", dbgTid, this, &mgr);
   dumpStats();
   drv->shutdown(DISCONNECT_WAIT_TIME_MS);
   clear_cached_replicated_components();
   reset_replicate_component_filters();
+  debug("[CNetwork::~CNetwork] tid=%lld this=%p DONE", dbgTid, this);
 }
 
 void CNetwork::stopAll(DisconnectionCause cause) { drv->stopAll(cause); }
@@ -539,7 +549,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
       // if incoming connection comes from relay peer we do not create normal connection, since its for players/server
       if (ctrlIface->IsRelayConnection(pkt->systemIndex))
         break;
-      addConnection(create_net_connection(drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
+      addConnection(create_net_connection(mgr, drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
     }
     break;
     case ID_CONNECTION_REQUEST_ACCEPTED: // client
@@ -551,7 +561,7 @@ void CNetwork::onPacket(const Packet *pkt, int cur_time_ms, uint8_t replication_
         // if incoming connection comes from relay peer we do not create normal connection, since its for players/server
         if (ctrlIface->IsRelayConnection(pkt->systemIndex))
           break;
-        addConnection(create_net_connection(drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
+        addConnection(create_net_connection(mgr, drv.get(), pkt->systemIndex, scope_query_cb_t(scope_query)), pkt->systemIndex);
       }
     }
     break;
@@ -760,6 +770,7 @@ bool CNetwork::debugVerifyNetConnectionPtr(void *conn) const
 void CNetwork::addConnection(Connection *conn, unsigned idx)
 {
   G_ASSERT(conn);
+  net::TopologyLock::WriteScope topoWrite(mgr);
   auto ctrlIface = static_cast<DaNetPeerInterface *>(drv->getControlIface());
   if (auto ectx = encryptionCtx.get())
   {
@@ -802,6 +813,7 @@ void CNetwork::addConnection(Connection *conn, unsigned idx)
 
 void CNetwork::destroyConnection(unsigned idx, DisconnectionCause cause)
 {
+  net::TopologyLock::WriteScope topoWrite(mgr);
   Connection *conn = getConnection(idx);
   if (isServer())
   {

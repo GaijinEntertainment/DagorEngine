@@ -11,6 +11,7 @@
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_fatalHandler.inc.cpp>
 #include <osApiWrappers/dag_cpuJobs.h>
+#include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_direct.h>
 #include <debug/dag_debug.h>
 #include <coolConsole/conBatch.h>
@@ -74,6 +75,10 @@ IEditorCoreEngine *IEditorCoreEngine::__global_instance = NULL;
 
 int DagorWinMain(int /*nCmdShow*/, bool /*debugmode*/)
 {
+#if _TARGET_PC_LINUX
+  set_debug_console_handle((intptr_t)stdout);
+#endif
+
   ec_log_startup_info();
 
   AppManager appManager;

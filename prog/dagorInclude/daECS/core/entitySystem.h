@@ -10,9 +10,43 @@
 #include "updateStage.h"
 #include "ecsHash.h"
 #include <osApiWrappers/dag_atomic.h> //for relaxed load in atomic
+#include <osApiWrappers/dag_rwLock.h>
 
 namespace ecs
 {
+
+class EsListLock
+{
+  inline static OSReentrantReadWriteLock lock;
+  inline static bool entered = false;
+
+public:
+  struct ScopedLock
+  {
+    ScopedLock()
+    {
+      lock.lockWrite();
+      G_ASSERTF(!entered, "EsListLock entered recursively");
+      entered = true;
+    }
+    ~ScopedLock()
+    {
+      entered = false;
+      lock.unlockWrite();
+    }
+    ScopedLock(const ScopedLock &) = delete;
+    ScopedLock &operator=(const ScopedLock &) = delete;
+  };
+
+  static void assertHeld()
+  {
+#if DAGOR_DBGLEVEL > 0
+    lock.lockRead();
+    G_ASSERTF(entered, "ES-list mutator called without holding EsListLock");
+    lock.unlockRead();
+#endif
+  }
+};
 
 typedef void (*UpdateFuncType)(const UpdateStageInfo &info, const QueryView &components);
 typedef void (*EventFuncType)(const Event &evt, const QueryView &components);
@@ -36,6 +70,8 @@ struct EntitySystemOps
 struct EntitySystemDesc;
 
 extern void remove_system_from_list(EntitySystemDesc *desc);
+
+class EntityManager;
 
 struct EntitySystemDesc : public NamedQueryDesc
 {
@@ -96,6 +132,9 @@ struct EntitySystemDesc : public NamedQueryDesc
   void setEvSet(EventSet &&evs);
   const EventSet &getEvSet() const { return evSet; }
 
+  void setOwner(EntityManager *mgr);
+  EntityManager *getOwner() const { return ownerEm; }
+
 protected:
   friend class EntityManager;
   template <class T>
@@ -124,6 +163,7 @@ protected:
   EntitySystemDesc *next = NULL; // slist
   static EntitySystemDesc *tail;
   static uint32_t generation;
+  EntityManager *ownerEm = nullptr;
 
   DeleteHandler onDelete = nullptr;
   const char *beforeSet = nullptr;     // CSV entity systems names
@@ -141,9 +181,22 @@ protected:
   friend void clear_component_manager_registry();
 };
 
+
 inline void EntitySystemDesc::setEvSet(EventSet &&evs)
 {
+  EsListLock::assertHeld();
+  if (evSet == evs)
+    return;
   evSet = eastl::move(evs);
+  ++generation;
+}
+
+inline void EntitySystemDesc::setOwner(EntityManager *mgr)
+{
+  EsListLock::assertHeld();
+  if (ownerEm == mgr)
+    return;
+  ownerEm = mgr;
   ++generation;
 }
 

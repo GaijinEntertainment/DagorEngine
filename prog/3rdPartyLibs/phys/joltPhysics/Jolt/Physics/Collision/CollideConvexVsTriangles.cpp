@@ -48,11 +48,6 @@ void CollideConvexVsTriangles::Collide(Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2,
 	// Calculate triangle normal
 	Vec3 triangle_normal = mScaleSign2 * (v1 - v0).Cross(v2 - v0);
 
-	// Skip degenerate triangles (slivers, or ones that collapse after a small instance
-	// scale): their near-zero normal would trip the GJK assert (!ioV.IsNearZero()).
-	if (triangle_normal.IsNearZero())
-		return;
-
 	// Backface check
 	bool back_facing = triangle_normal.Dot(v0) > 0.0f;
 	if (mCollideShapeSettings.mBackFaceMode == EBackFaceMode::IgnoreBackFaces && back_facing)

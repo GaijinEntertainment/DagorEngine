@@ -469,7 +469,8 @@ static bool load_packs(const char *pack_list_blk_fname, const char *res_base_dir
 
       if (pbar && pbar->ignoreResFile(tempBuf))
       {
-        debug("skipped %s", tempBuf);
+        if (patch_update_game_resources_verbose)
+          debug("skipped %s", tempBuf);
         skipped_dxp++;
         continue;
       }
@@ -509,7 +510,8 @@ static bool load_packs(const char *pack_list_blk_fname, const char *res_base_dir
 
       if (pbar && pbar->ignoreResFile(tempBuf))
       {
-        debug("skipped %s", tempBuf);
+        if (patch_update_game_resources_verbose)
+          debug("skipped %s", tempBuf);
         skipped_grp++;
         continue;
       }
@@ -746,7 +748,8 @@ int patch_update_game_resources_mem(const char *game_dir, const char *cache_dir,
       }
       else if (mem_eq(buf, new_grp[i].hdrData.data()))
       {
-        debug("skipping identical %s", crd.getTargetName());
+        if (patch_update_game_resources_verbose)
+          debug("skipping identical %s", crd.getTargetName());
         dd_erase(tmp_fn);
         new_grp_reused_ident += new_grp[i].fullSz;
         done_sz += new_grp[i].fullSz;
@@ -878,7 +881,8 @@ int patch_update_game_resources_mem(const char *game_dir, const char *cache_dir,
       }
       else if (mem_eq(buf, new_dxp[i].hdrData.data()))
       {
-        debug("skipping identical %s", crd.getTargetName());
+        if (patch_update_game_resources_verbose)
+          debug("skipping identical %s", crd.getTargetName());
         dd_erase(tmp_fn);
         new_dxp_reused_ident += new_dxp[i].fullSz;
         done_sz += new_dxp[i].fullSz;

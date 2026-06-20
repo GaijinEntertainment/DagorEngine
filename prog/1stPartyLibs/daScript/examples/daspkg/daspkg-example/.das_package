@@ -13,3 +13,8 @@ def dependencies(version : string) {
     require_package("daspkg-test-pure")
     require_package("daspkg-test-deps")
 }
+
+[export]
+def release() {
+    release_main("main.das")
+}

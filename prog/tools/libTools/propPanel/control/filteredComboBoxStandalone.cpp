@@ -23,6 +23,8 @@ bool FilteredComboBoxStandalone::beginCombo(const char *label, const char *previ
     ImGui::OpenPopupEx(dropdownOpenState->getPopupId());
   }
 
+  hovered = ImGui::IsItemHovered();
+
   if (!dropdownOpenState)
     return false;
 

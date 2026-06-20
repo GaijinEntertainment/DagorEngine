@@ -144,9 +144,7 @@ struct BenchmarkRunStats {
 }
 
 def equal(tb : Asserter?; a; b; msg = "") : bool {
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->errorAt("\tgot: {b}", get_line_info(1))
@@ -177,9 +175,7 @@ def accept(tb : Asserter?; value) {
 }
 
 def strictEqual(tb : Asserter?; a; b; msg = "") : bool {
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -187,9 +183,7 @@ def strictEqual(tb : Asserter?; a; b; msg = "") : bool {
 }
 
 def strictEqual(tb : Asserter?; a, b : float; msg = "") : bool {
-    if (float_bits_to_int(a) == float_bits_to_int(b)) {
-        return true
-    }
+    if (float_bits_to_int(a) == float_bits_to_int(b)) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -197,9 +191,7 @@ def strictEqual(tb : Asserter?; a, b : float; msg = "") : bool {
 }
 
 def strictEqual(tb : Asserter?; a, b : float2; msg = "") : bool {
-    if (float_bits_to_int(a) == float_bits_to_int(b)) {
-        return true
-    }
+    if (float_bits_to_int(a) == float_bits_to_int(b)) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -207,9 +199,7 @@ def strictEqual(tb : Asserter?; a, b : float2; msg = "") : bool {
 }
 
 def strictEqual(tb : Asserter?; a, b : float3; msg = "") : bool {
-    if (float_bits_to_int(a) == float_bits_to_int(b)) {
-        return true
-    }
+    if (float_bits_to_int(a) == float_bits_to_int(b)) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -217,9 +207,7 @@ def strictEqual(tb : Asserter?; a, b : float3; msg = "") : bool {
 }
 
 def strictEqual(tb : Asserter?; a, b : float4; msg = "") : bool {
-    if (float_bits_to_int(a) == float_bits_to_int(b)) {
-        return true
-    }
+    if (float_bits_to_int(a) == float_bits_to_int(b)) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -228,9 +216,7 @@ def strictEqual(tb : Asserter?; a, b : float4; msg = "") : bool {
 
 
 def strictEqual(tb : Asserter?; a, b : double; msg = "") : bool {
-    if (double_bits_to_int64(a) == double_bits_to_int64(b)) {
-        return true
-    }
+    if (double_bits_to_int64(a) == double_bits_to_int64(b)) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -238,9 +224,7 @@ def strictEqual(tb : Asserter?; a, b : double; msg = "") : bool {
 }
 
 def numericEqual(tb : Asserter?; a; b; msg = "") : bool {
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "numeric values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -248,12 +232,7 @@ def numericEqual(tb : Asserter?; a; b; msg = "") : bool {
 }
 
 def numericEqual(tb : Asserter?; a, b : float; msg = "") : bool {
-    if (is_nan(a) && is_nan(b)) {
-        return true
-    }
-    if (a == b) {
-        return true
-    }
+    if ((is_nan(a) && is_nan(b)) || a == b) return true
     tb->errorAt(!empty(msg) ? msg : "numeric values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -271,9 +250,7 @@ def numericEqual(tb : Asserter?; _a, _b : float2; msg = "") : bool {
         a.y = 0.
         b.y = 0.
     }
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "numeric values differ", get_line_info(1))
     tb->errorAt("\texpected: {_a}", get_line_info(1))
     tb->fatalAt("\tgot: {_b}", get_line_info(1))
@@ -295,9 +272,7 @@ def numericEqual(tb : Asserter?; _a, _b : float3; msg = "") : bool {
         a.z = 0.
         b.z = 0.
     }
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "numeric values differ", get_line_info(1))
     tb->errorAt("\texpected: {_a}", get_line_info(1))
     tb->fatalAt("\tgot: {_b}", get_line_info(1))
@@ -323,9 +298,7 @@ def numericEqual(tb : Asserter?; _a, _b : float4; msg = "") : bool {
         a.w = 0.
         b.w = 0.
     }
-    if (a == b) {
-        return true
-    }
+    if (a == b) return true
     tb->errorAt(!empty(msg) ? msg : "numeric values differ", get_line_info(1))
     tb->errorAt("\texpected: {_a}", get_line_info(1))
     tb->fatalAt("\tgot: {_b}", get_line_info(1))
@@ -333,12 +306,7 @@ def numericEqual(tb : Asserter?; _a, _b : float4; msg = "") : bool {
 }
 
 def numericEqual(tb : Asserter?; a, b : double; msg = "") : bool {
-    if (is_nan(a) && is_nan(b)) {
-        return true
-    }
-    if (a == b) {
-        return true
-    }
+    if ((is_nan(a) && is_nan(b)) || a == b) return true
     tb->errorAt(!empty(msg) ? msg : "values differ", get_line_info(1))
     tb->errorAt("\texpected: {a}", get_line_info(1))
     tb->fatalAt("\tgot: {b}", get_line_info(1))
@@ -346,9 +314,7 @@ def numericEqual(tb : Asserter?; a, b : double; msg = "") : bool {
 }
 
 def success(tb : Asserter?; a; msg = "") : bool {
-    if (a) {
-        return true
-    }
+    if (a) return true
     tb->errorAt(!empty(msg) ? msg : "expected success, got failure", get_line_info(1))
     return false
 }
@@ -441,7 +407,7 @@ def private run_impl(b : B?, name : string; chunk_size : int64; op : block) {
         // A fast/small benchmarking func - run the timers
         // once, unroll the body to minimize the noise.
         let start = ref_time_ticks()
-        for (i in range(loop_runs)) {
+        for (_i in range(loop_runs)) {
             unroll() $ {
                 for (_ in range(unroll_count)) {
                     op()
@@ -452,7 +418,7 @@ def private run_impl(b : B?, name : string; chunk_size : int64; op : block) {
     } else {
         // A long-running benchmark that should not be unrolled.
         // Its run time will not be dominated by the loop anyway.
-        for (i in range(loop_runs)) {
+        for (_i in range(loop_runs)) {
             let start = ref_time_ticks()
             op()
             time_total += get_time_nsec(start)

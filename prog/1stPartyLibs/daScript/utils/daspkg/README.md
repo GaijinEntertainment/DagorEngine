@@ -38,6 +38,7 @@ daslang utils/daspkg/main.das -- install --global dasImgui
 | `build` | Build all C/C++ packages (cmake) |
 | `check` | Verify installed packages are present |
 | `doctor` | Check environment (git, cmake, gh) |
+| `release [--out <dir>]` | Bundle project as a redistributable standalone |
 | `introduce [url]` | Submit a package to the index via PR |
 | `withdraw <name>` | Remove a package from the index via PR |
 
@@ -54,6 +55,7 @@ All package commands accept `--global` / `-g` to operate on global modules.
 | `--verbose`, `-v` | Print debug details (git commands, resolve steps) |
 | `--json` | Machine-readable JSON output (`search`, `list`, `check`) |
 | `--branch <name>`, `-b <name>` | Install from a git branch (e.g. `master`) instead of a tag |
+| `--out <path>` | Output directory for `release` (default: current directory) |
 
 ## Global modules
 

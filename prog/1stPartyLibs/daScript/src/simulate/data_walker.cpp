@@ -100,13 +100,13 @@ namespace das {
         }
     }
 
-    void DataWalker::walk_array ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) {
+    void DataWalker::walk_array ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) {
         if ( !canVisitArrayData(ti,count) ) return;
         char * pe = pa;
         beforeArrayData(pa, stride, count, ti);
         if ( cancel() ) return;
-        for ( uint32_t i=0; i!=count; ++i ) {
-            bool last = i==count-1;
+        for ( uint64_t i=0, ic=count; i!=ic; ++i ) {
+            bool last = i==ic-1;
             beforeArrayElement(pa, ti, pe, i, last);
             if ( cancel() ) return;
             walk(pe, ti);
@@ -141,9 +141,9 @@ namespace das {
         if ( !canVisitTableData(info) ) return;
         int keySize = info->firstType->size;
         int valueSize = info->secondType->size;
-        uint32_t count = 0;
-        for ( uint32_t i=0, is=tab->capacity; i!=is; ++i ) {
-            if ( tab->hashes[i] > HASH_KILLED64 ) {
+        uint64_t count = 0;
+        for ( uint64_t i=0, is=tab->capacity; i!=is; ++i ) {
+            if ( tableLiveSlot(*tab, i) ) {
                 bool last = (count == (tab->size-1));
                 // key
                 char * key = tab->keys + i*keySize;

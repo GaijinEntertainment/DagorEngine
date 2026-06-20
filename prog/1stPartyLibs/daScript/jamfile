@@ -20,6 +20,7 @@ TargetType  = lib ;
 Target      = 1stPartyLibs/daScript.lib ;
 AddIncludes =
   $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/1stPartyLibs/daScript/include/das_hash_map
   $(Root)/prog/1stPartyLibs/daScript/include/modules/uriparser
   $(Root)/prog/3rdPartyLibs/uriparser/include
   $(Root)/prog/3rdPartyLibs/fmt/include
@@ -76,6 +77,7 @@ if $(daScript_ConsoleExe) = yes {
 local AllSrcFolder_CPP =
   src/ast
   src/builtin
+  src/runtime
   src/simulate
   src/misc
   src/parser
@@ -83,7 +85,17 @@ local AllSrcFolder_CPP =
   src/hal
 ;
 
-AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources ;
+# project_specific_file_info.cpp provides default get_file_access / get_context /
+# get_clone_context as link-time-resolved fallbacks. In dagor every executable
+# supplies its own (games via das_es.cpp + defaultFileAccess.cpp, tools via
+# dagorAdapter/da.cpp), so compiling this file into the lib produces duplicate
+# strong symbols (multiple definition of get_context/get_clone_context) at game
+# link time. Exclude it from the lib build.
+# src/hal/performance_time.cpp defines ref_time_ticks / get_time_usec / get_time_nsec /
+# ref_time_delta_to_usec, which dagor's engine kernel already provides (e.g.
+# engine/kernel/linux/linuxCpuFreq.cpp). Compiling it into the lib produces duplicate
+# strong symbols at link time, so exclude it too - dagor's kernel supplies these on every platform.
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources : (project_specific_file_info\\.cpp|performance_time\\.cpp|\\.cpp\\.gen\\.es\\.cpp)$ ;
 
 local ExcOpt ;
 if $(Platform) in windows xboxOne scarlett {

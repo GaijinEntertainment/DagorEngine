@@ -1,6 +1,4 @@
 options gen2
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require common public
 require daslib/das_source_formatter
@@ -18,9 +16,7 @@ def private format_file_single(file : string) : FormatResult {
     var formatted = ""
     var read_ok = false
     fopen(file, "rb") $(fr) {
-        if (fr == null) {
-            return
-        }
+        if (fr == null) return
         read_ok = true
         fmap(fr) $(data) {
             unformatted = string(data)
@@ -44,9 +40,7 @@ def private format_file_single(file : string) : FormatResult {
     }
     var write_ok = false
     fopen(file, "wb") $(fw) {
-        if (fw == null) {
-            return
-        }
+        if (fw == null) return
         write_ok = true
         fw |> fprint(formatted)
     }

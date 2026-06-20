@@ -6,6 +6,7 @@ include "static_shadow.dshl"
 include "giHelpers/voxelize_gs.dshl"
 
 include "world_sdf_rasterize_sdf_common.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 macro SET_WORLD_VIEW_POS()
   (ps) { world_view_pos@f3 = world_view_pos; }
@@ -281,6 +282,7 @@ shader sponza, simple_aces
   }
 
 
+  USE_UNPACK_UNIT_VECTOR_VS()
   hlsl(vs) {
     struct VsInput
     {
@@ -303,7 +305,7 @@ shader sponza, simple_aces
       float3 normal = input.packedNormal * 2. - 1.;
       float3 worldNormal = normalize(normal.x * world_local_x + normal.y * world_local_y + normal.z * world_local_z);
 ##else
-      float3 worldNormal = BGR_SWIZZLE(input.packedNormal) * 2. - 1.;
+      float3 worldNormal = unpack_unit_vector(input.packedNormal.xyz);
 ##endif
       ##if scene_mode == normal
       output.pos = mul(float4(input.pos,1), globtm);

@@ -8,7 +8,7 @@
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/wrDispatcher.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <frustumCulling/frustumPlanes.h>
 
 dafg::NodeHandle makeWaterEffectsPrepareNode()

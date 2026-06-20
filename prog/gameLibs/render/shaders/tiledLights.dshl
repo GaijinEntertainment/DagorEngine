@@ -110,7 +110,7 @@ shader spot_lights_tiles, omni_lights_tiles
         {
           lerpParam = float(sliceNo - 1) / float(spot_cones_vertex_slices - 2);
 
-          float localHalfCos = lerp(halfCos, 1, lerpParam);
+          float localHalfCos = saturate(lerp(halfCos, 1, lerpParam));
 
           halfTan = sqrt(1 / pow2(localHalfCos) - 1);
           float halfWidth = halfTan;

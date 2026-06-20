@@ -91,23 +91,46 @@ typedef struct {
     float x, y, z, w;
 } vec4f_unaligned;
 
-typedef struct {
-    char *      data;
-    uint32_t    size;
-    uint32_t    capacity;
-    uint32_t    lock;
-    uint32_t    flags;
-} das_array;
+// Layout MUST mirror das::Array exactly. `magic` is set by the runtime to
+// DAS_ARRAY_MAGIC on first lock and used to detect moved-or-overwritten
+// arrays. Static asserts in daScriptC.cpp guard the layout.
+//
+// Guarded with #ifndef so this C-side definition is compatible with the
+// C++ runtime's <daScript/misc/arraytype.h>, which defines the same
+// macro for use inside the runtime.
+#ifndef DAS_ARRAY_MAGIC
+#define DAS_ARRAY_MAGIC 0xA11B3DA7
+#endif
 
 typedef struct {
     char *      data;
-    uint32_t    size;
-    uint32_t    capacity;
+    uint64_t    size;
+    uint64_t    capacity;
+    uint32_t    magic;
     uint32_t    lock;
     uint32_t    flags;
+    // 4 bytes of trailing pad. The C++ Array struct has uint64_t members so its alignment is 8,
+    // and on every supported ABI sizeof(Array) is rounded to 40. Without an explicit pad here,
+    // 32-bit C compilers might tail-pack a following member into this slot and produce a
+    // different sizeof from the C++ side — see the static_asserts in src/misc/daScriptC.cpp.
+    uint32_t    _pad_after_flags;
+} das_array;
+
+// Layout MUST mirror das::Table exactly (Table : Array, then keys/hashes/tombstones).
+// In C++, Table : Array places `keys` at sizeof(Array)==40 because the derived class cannot
+// reuse the base's trailing padding (MSVC convention, and standard layout for non-POD bases).
+// The flat C mirror needs the same _pad_after_flags so `keys` lands at offset 40 on 32-bit too.
+typedef struct {
+    char *      data;
+    uint64_t    size;
+    uint64_t    capacity;
+    uint32_t    magic;
+    uint32_t    lock;
+    uint32_t    flags;
+    uint32_t    _pad_after_flags;
     char *      keys;
     uint32_t *  hashes;
-    uint32_t    tombstones;
+    uint64_t    tombstones;
 } das_table;
 
 typedef vec4f (das_interop_function) ( das_context * ctx, das_node * node, vec4f * arguments );
@@ -149,13 +172,20 @@ DAS_CC_API void das_modulegroup_release ( das_module_group * group );
 // --- Dynamic modules ---
 
 // Scan <project_root>/modules/ for .das_module descriptor files and
-// call `initialize` on each one.
+// call `initialize` on each one. Plus, for each path in load_module_paths,
+// initialize that exact folder directly (it must contain `.das_module`),
+// shadowing same-basename entries from <project_root>/modules/.
+//
+// load_module_paths may be NULL (treated as 0 entries). Each entry is a
+// path to the module folder itself, not its parent.
 //
 // If tout is NULL, diagnostic output goes to stdout.
 //
 // Returns 0 on success.
 DAS_CC_API int das_register_dynamic_modules(das_file_access *file_access,
                                          const char *project_root,
+                                         const char * const * load_module_paths,
+                                         uint32_t num_load_module_paths,
                                          das_text_writer *tout);
 
 // --- File access ---
@@ -388,6 +418,182 @@ DAS_CC_API void das_module_bind_enumeration ( das_module * mod, das_enumeration 
 // is managed by the context and must not be freed by the caller.
 DAS_CC_API char * das_allocate_string ( das_context * context, char * str );
 
+// --- Context heap ---
+// Raw allocation on the context's main heap. Used by the array/table helpers
+// below; expose them so C callers can pre-allocate buffers that daslang code
+// may later resize using the same heap.
+
+// Allocate 'size' bytes on the context heap. Returns NULL when size==0;
+// otherwise returns a non-null pointer. On out-of-memory the runtime raises
+// a context exception (does NOT return NULL) — check via
+// das_context_get_exception() before using the result if you can't otherwise
+// rule out OOM. The returned pointer is owned by the context heap and must
+// be released with das_context_free or absorbed into a daslang-managed
+// container (an array/table whose `data` field is set to it).
+DAS_CC_API void * das_context_allocate ( das_context * context, uint32_t size );
+// Reallocate a previously allocated block. 'old_size' must match the size
+// used at allocation. When new_size==0 the wrapper frees 'ptr' (with
+// 'old_size') and returns NULL — the runtime allocator does not natively
+// support realloc-to-zero. Otherwise returns a non-null pointer; on
+// out-of-memory raises a context exception (does NOT return NULL).
+DAS_CC_API void * das_context_reallocate ( das_context * context, void * ptr, uint32_t old_size, uint32_t new_size );
+// Free a previously allocated block. 'size' must match the size used at
+// allocation and must be non-zero when 'ptr' is non-null (passing 0 with
+// a non-null pointer raises a context exception — the contract is that
+// 'size' must match the allocation, not that the heap will silently
+// accept it). Passing ptr==NULL is a no-op.
+DAS_CC_API void   das_context_free ( das_context * context, void * ptr, uint32_t size );
+
+// 64-bit-size variants of the context allocators. Behavior identical to the
+// uint32_t entries above, but the byte-count argument is uint64_t so callers
+// can request > 4GB allocations on platforms with a wide enough address space.
+// The uint32_t entries above remain ABI-stable and forward to the same
+// internal allocator after a zero-extending upcast.
+DAS_CC_API void * das_context_allocate_i64 ( das_context * context, uint64_t size );
+DAS_CC_API void * das_context_reallocate_i64 ( das_context * context, void * ptr, uint64_t old_size, uint64_t new_size );
+DAS_CC_API void   das_context_free_i64 ( das_context * context, void * ptr, uint64_t size );
+
+// --- Arrays ---
+// Helpers to construct, populate and pass `array<T>` values from C code.
+// All sizes/strides are in bytes for raw element access; element count is the
+// `size` field on das_array.
+
+// Initialize 'arr' as an empty owned array (zero size / zero capacity / no data).
+// This is the entry point for "context-owned" arrays — daslang functions may grow
+// them via the runtime, and you reclaim memory with das_array_clear.
+DAS_CC_API void   das_array_init ( das_array * arr );
+
+// Initialize 'arr' as a non-owned view over caller-provided contiguous data.
+// Sets the array up as if it were locked AND marks `flags.shared=true`, so
+// the daslang runtime will refuse to resize, grow, or delete it, and so
+// das_array_lock / das_array_unlock become no-ops on this array (the
+// runtime short-circuits both on the shared flag — no way to accidentally
+// drop the lock to 0 and turn the borrow into an owned-data path). The
+// caller MUST keep 'data' alive for as long as daslang holds a reference
+// to the array, and MUST NOT call das_array_clear on a borrowed view.
+//
+// das_array_lock / das_array_unlock are intended for temporarily pinning
+// **context-owned** arrays during iteration, not for borrowed views.
+//
+// Preconditions:
+//   data!=NULL when count>0   (NULL+nonzero leaves a half-built view)
+//   count <= capacity         (size > capacity is a runtime invariant violation)
+//
+//   data      : pointer to 'capacity' contiguous elements (caller-owned)
+//   count     : initial size in elements
+//   capacity  : capacity in elements (>= count); commonly equal to count
+DAS_CC_API void   das_array_init_borrowed ( das_array * arr, void * data, uint32_t count, uint32_t capacity );
+
+// 64-bit-count variant for borrowed views > UINT32_MAX elements. The legacy
+// uint32_t entry remains for callers that don't need wide counts.
+DAS_CC_API void   das_array_init_borrowed_i64 ( das_array * arr, void * data, uint64_t count, uint64_t capacity );
+
+// Reserve space for at least 'capacity' elements of size 'stride' bytes.
+// Allocates on the context heap. No-op if current capacity is sufficient.
+// 'stride' must be non-zero when 'capacity' > 0 (passing 0 raises a context
+// exception — the runtime allocator can't reach allocate(0) cleanly).
+DAS_CC_API void   das_array_reserve ( das_context * context, das_array * arr, uint32_t capacity, uint32_t stride );
+
+// 64-bit-capacity variant. The runtime helper (array_reserve) takes uint64_t;
+// this entry threads it through without the legacy uint32 narrowing.
+DAS_CC_API void   das_array_reserve_i64 ( das_context * context, das_array * arr, uint64_t capacity, uint32_t stride );
+
+// Resize the array to 'size' elements of size 'stride' bytes. Growth allocates
+// on the context heap; new elements are zeroed when zero != 0.
+// 'stride' must be non-zero when 'size' > 0 (same rationale as _reserve).
+DAS_CC_API void   das_array_resize ( das_context * context, das_array * arr, uint32_t size, uint32_t stride, int zero );
+
+// 64-bit-size variant for arrays past UINT32_MAX elements.
+DAS_CC_API void   das_array_resize_i64 ( das_context * context, das_array * arr, uint64_t size, uint32_t stride, int zero );
+
+// Free the array's backing storage and zero the structure. Errors if the
+// array is locked (matches `delete` semantics in daslang). 'stride' is the
+// element size in bytes — it must be non-zero when the array has data, since
+// the heap free size is computed as capacity*stride; passing 0 raises a
+// context exception.
+DAS_CC_API void   das_array_clear ( das_context * context, das_array * arr, uint32_t stride );
+
+// Return a pointer to element 'index' in an array with element size 'stride'.
+// Bounds are NOT checked; pass a valid (index < arr->size) value. Implicit
+// preconditions: arr->data != NULL and arr->size > 0 (a non-empty array
+// always has non-null data — otherwise the returned pointer is invalid).
+DAS_CC_API void * das_array_at ( das_array * arr, uint32_t index, uint32_t stride );
+
+// 64-bit-index variant. Use when index may exceed UINT32_MAX.
+DAS_CC_API void * das_array_at_i64 ( das_array * arr, uint64_t index, uint32_t stride );
+
+// Increment the array lock counter. While locked, mutation operations panic
+// in the daslang runtime. Use to pin an array's storage while iterating.
+DAS_CC_API void   das_array_lock ( das_context * context, das_array * arr );
+// Decrement the array lock counter.
+DAS_CC_API void   das_array_unlock ( das_context * context, das_array * arr );
+
+// --- Tables ---
+// Helpers to construct, populate and pass `table<K;V>` values from C code.
+// 'key_base_type' is one of the DAS_TYPE_* values matching the daslang key type
+// (e.g. DAS_TYPE_INT, DAS_TYPE_STRING). 'value_size' is sizeof(V) in bytes.
+// All operations (reserve / clear / find / insert / erase) accept the same
+// key-type set, mirroring the runtime's table_reserve_impl dispatch:
+//   scalars:      BOOL, INT8/UINT8, INT16/UINT16, INT/UINT, INT64/UINT64,
+//                 FLOAT, DOUBLE
+//   enumerations: ENUMERATION, ENUMERATION8, ENUMERATION16, ENUMERATION64
+//                 (pass a pointer to the underlying int{8,16,32,64} value)
+//   bitfields:    BITFIELD, BITFIELD8, BITFIELD16, BITFIELD64
+//                 (pass a pointer to the underlying uint{8,16,32,64} value)
+//   vectors:      INT2/INT3/INT4, UINT2/UINT3/UINT4, FLOAT2/FLOAT3/FLOAT4
+//   ranges:       RANGE, URANGE, RANGE64, URANGE64
+//   pointers:     STRING (char*), POINTER (void*)
+// Other DAS_TYPE_* values raise an "unsupported table key type" exception.
+//
+// Lifetime note for DAS_TYPE_STRING / DAS_TYPE_POINTER keys: the table stores
+// the pointer value as-is (no copy). Caller must keep the pointed-at storage
+// alive for the table's lifetime. To copy a string into the context heap so
+// it survives stack/temp scope, use das_allocate_string and store the
+// returned pointer as the key.
+
+// Initialize 'tab' as an empty table (no allocation).
+DAS_CC_API void   das_table_init ( das_table * tab );
+
+// Reserve at least 'capacity' slots. Allocates on the context heap.
+DAS_CC_API void   das_table_reserve ( das_context * context, das_table * tab, int key_base_type, uint32_t capacity, uint32_t value_size );
+
+// 64-bit-capacity variant for tables past UINT32_MAX slots.
+DAS_CC_API void   das_table_reserve_i64 ( das_context * context, das_table * tab, int key_base_type, uint64_t capacity, uint32_t value_size );
+
+// Free backing storage and zero the structure. 'key_base_type' and 'value_size'
+// must match the values used at insertion time (needed to compute the freed
+// block size — daslang allocates keys, values and hashes contiguously).
+DAS_CC_API void   das_table_clear ( das_context * context, das_table * tab, int key_base_type, uint32_t value_size );
+
+// Lookup 'key' in the table.
+//
+// 'key' is the address of a variable holding the key value — NOT the
+// pointed-to bytes for pointer-shaped key types. Examples by 'key_base_type':
+//   DAS_TYPE_INT       -> int*       (address of an `int`)
+//   DAS_TYPE_INT64     -> int64_t*   (address of an `int64_t`)
+//   DAS_TYPE_FLOAT     -> float*     (address of a `float`)
+//   DAS_TYPE_STRING    -> char**     (address of a `char*` variable)
+//   DAS_TYPE_POINTER   -> void**     (address of a `void*` variable)
+// The pointed-at bytes need not be aligned for the key type — the helper
+// copies them into an aligned local before use.
+//
+// Returns a pointer into the value slot, or NULL on miss.
+DAS_CC_API void * das_table_find ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size );
+
+// Insert 'key' (or look it up if present) and return a pointer to its value
+// slot. Caller writes the new value through the returned pointer.
+// 'key' has the same address-of-variable convention as das_table_find.
+DAS_CC_API void * das_table_insert ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size );
+
+// Remove 'key' from the table. Returns 1 if the key existed, 0 otherwise.
+// 'key' has the same address-of-variable convention as das_table_find.
+DAS_CC_API int    das_table_erase ( das_context * context, das_table * tab, int key_base_type, const void * key, uint32_t value_size );
+
+// Increment the table lock counter (mirrors das_array_lock for tables).
+DAS_CC_API void   das_table_lock ( das_context * context, das_table * tab );
+// Decrement the table lock counter.
+DAS_CC_API void   das_table_unlock ( das_context * context, das_table * tab );
+
 // --- Argument getters (aligned) ---
 // Extract a C value from a vec4f argument inside an interop function.
 
@@ -403,6 +609,8 @@ DAS_CC_API void * das_argument_ptr ( vec4f arg );
 DAS_CC_API das_function * das_argument_function ( vec4f arg );
 DAS_CC_API das_lambda * das_argument_lambda ( vec4f arg );
 DAS_CC_API das_block * das_argument_block ( vec4f arg );
+DAS_CC_API das_array * das_argument_array ( vec4f arg );
+DAS_CC_API das_table * das_argument_table ( vec4f arg );
 
 // --- Argument getters (unaligned) ---
 // Extract a C value from a vec4f_unaligned argument pointer.
@@ -420,6 +628,8 @@ DAS_CC_API void * das_argument_ptr_unaligned ( vec4f_unaligned * arg );
 DAS_CC_API das_function * das_argument_function_unaligned ( vec4f_unaligned * arg );
 DAS_CC_API das_lambda * das_argument_lambda_unaligned ( vec4f_unaligned * arg );
 DAS_CC_API das_block * das_argument_block_unaligned ( vec4f_unaligned * arg );
+DAS_CC_API das_array * das_argument_array_unaligned ( vec4f_unaligned * arg );
+DAS_CC_API das_table * das_argument_table_unaligned ( vec4f_unaligned * arg );
 
 // --- Result setters (aligned) ---
 // Pack a C value into vec4f for returning from an aligned interop function.
@@ -437,6 +647,8 @@ DAS_CC_API vec4f das_result_ptr ( void * r );
 DAS_CC_API vec4f das_result_function ( das_function * r );
 DAS_CC_API vec4f das_result_lambda ( das_lambda * r );
 DAS_CC_API vec4f das_result_block ( das_block * r );
+DAS_CC_API vec4f das_result_array ( das_array * r );
+DAS_CC_API vec4f das_result_table ( das_table * r );
 
 // --- Result setters (unaligned) ---
 // Write a C value into a vec4f_unaligned result pointer.
@@ -455,6 +667,8 @@ DAS_CC_API void das_result_ptr_unaligned ( vec4f_unaligned * result, void * r );
 DAS_CC_API void das_result_function_unaligned ( vec4f_unaligned * result, das_function * r );
 DAS_CC_API void das_result_lambda_unaligned ( vec4f_unaligned * result, das_lambda * r );
 DAS_CC_API void das_result_block_unaligned ( vec4f_unaligned * result, das_block * r );
+DAS_CC_API void das_result_array_unaligned ( vec4f_unaligned * result, das_array * r );
+DAS_CC_API void das_result_table_unaligned ( vec4f_unaligned * result, das_table * r );
 
 // --- Compilation policies ---
 // CodeOfPolicies controls compiler and runtime behavior: AOT, safety,

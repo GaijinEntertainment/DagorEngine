@@ -1,15 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "netStat.h"
-#include <generic/dag_staticTab.h>
-#include <daECS/net/network.h>
-#include <daNet/daNetStatistics.h>
 #include <daNet/daNetPeerInterface.h>
+#include <daNet/daNetStatistics.h>
+#include <generic/dag_staticTab.h>
 #include <generic/dag_carray.h>
 #include <math/dag_mathUtils.h>
+#include <osApiWrappers/dag_spinlock.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/numeric_limits.h>
-#include "netPrivate.h"
 
 #define BUCKET_TIME_MS 1000
 #define HISTORY_COUNT  10u
@@ -19,13 +18,35 @@ void timesync_push_rtt(uint32_t rtt) { netstat::set(netstat::CT_RTT, rtt); } // 
 namespace netstat
 {
 
-static const DaNetStatistics *get_danet_stat(DaNetPeerInterface **pdaif = nullptr)
+struct NetIOStats
 {
-  net::CNetwork *net = get_net_internal();
-  auto daif = static_cast<DaNetPeerInterface *>(net ? net->getDriver()->getControlIface() : NULL);
-  if (pdaif)
-    *pdaif = daif;
-  return daif ? daif->GetStatistics(UNASSIGNED_SYSTEM_INDEX) : NULL;
+  uint64_t rxBytes = 0;
+  uint64_t txBytes = 0;
+  uint64_t rxPackets = 0;
+  uint64_t txPackets = 0;
+  uint32_t rttMs = 0;
+  uint32_t plossPermille = 0;
+};
+
+static NetIOStats pull_io_stats(DaNetPeerInterface *peer)
+{
+  NetIOStats io;
+  if (!peer)
+    return io;
+  if (const DaNetStatistics *s = peer->GetStatistics(UNASSIGNED_SYSTEM_INDEX))
+  {
+    io.rxBytes = s->bytesReceived;
+    io.txBytes = s->bytesSent;
+    io.rxPackets = s->packetsReceived;
+    io.txPackets = s->packetsSent;
+  }
+  danet::PeerQoSStat q = peer->GetPeerQoSStat(0);
+  if (q.lowestPing)
+  {
+    io.rttMs = (uint32_t)q.lowestPing;
+    io.plossPermille = (uint32_t)(q.packetLoss * 1000.f);
+  }
+  return io;
 }
 
 static constexpr cnt_t INVALID_GAUGE_VALUE = eastl::numeric_limits<cnt_t>::max();
@@ -36,13 +57,15 @@ static constexpr bool gauge_mask[NUM_COUNTER_TYPES] = {
 };
 static Sample counters;
 
+static OSSpinlock aggregated_lock;
+
 struct Ctx
 {
   uint32_t nextUpdateTime = 0;
   uint32_t numRecords = 0;
   carray<Sample, HISTORY_COUNT> buckets;
   carray<Sample, NUM_AG_TYPES> aggregated;
-  DaNetStatistics daSample;
+  NetIOStats prevBucketIO;
 
   Ctx()
   {
@@ -52,15 +75,16 @@ struct Ctx
 
   void aggregate()
   {
+    carray<Sample, NUM_AG_TYPES> result;
     for (int i = 0; i < NUM_COUNTER_TYPES; ++i)
     {
-      aggregated[AG_CNT].counters[i] = 0;
-      aggregated[AG_SUM].counters[i] = 0;
-      aggregated[AG_AVG].counters[i] = 0;
-      aggregated[AG_VAR].counters[i] = 0;
-      aggregated[AG_MIN].counters[i] = eastl::numeric_limits<cnt_t>::max();
-      aggregated[AG_MAX].counters[i] = eastl::numeric_limits<cnt_t>::min();
-      aggregated[AG_LAST].counters[i] = 0;
+      result[AG_CNT].counters[i] = 0;
+      result[AG_SUM].counters[i] = 0;
+      result[AG_AVG].counters[i] = 0;
+      result[AG_VAR].counters[i] = 0;
+      result[AG_MIN].counters[i] = eastl::numeric_limits<cnt_t>::max();
+      result[AG_MAX].counters[i] = eastl::numeric_limits<cnt_t>::min();
+      result[AG_LAST].counters[i] = 0;
     }
     uint32_t cnt = eastl::max(eastl::min(numRecords, HISTORY_COUNT), 1u);
     uint32_t leastRecent = ((numRecords < HISTORY_COUNT) ? 0u : numRecords);
@@ -72,19 +96,19 @@ struct Ctx
         cnt_t val = buckets[record].counters[counter];
         if (gauge_mask[counter] && val == INVALID_GAUGE_VALUE)
           continue;
-        aggregated[AG_CNT].counters[counter]++;
-        aggregated[AG_SUM].counters[counter] += val;
-        aggregated[AG_MIN].counters[counter] = eastl::min(aggregated[AG_MIN].counters[counter], val);
-        aggregated[AG_MAX].counters[counter] = eastl::max(aggregated[AG_MAX].counters[counter], val);
-        aggregated[AG_LAST].counters[counter] = val;
+        result[AG_CNT].counters[counter]++;
+        result[AG_SUM].counters[counter] += val;
+        result[AG_MIN].counters[counter] = eastl::min(result[AG_MIN].counters[counter], val);
+        result[AG_MAX].counters[counter] = eastl::max(result[AG_MAX].counters[counter], val);
+        result[AG_LAST].counters[counter] = val;
       }
     }
     for (int counter = 0; counter < NUM_COUNTER_TYPES; ++counter)
     {
-      if (aggregated[AG_CNT].counters[counter] > 0)
-        aggregated[AG_AVG].counters[counter] = aggregated[AG_SUM].counters[counter] / aggregated[AG_CNT].counters[counter];
+      if (result[AG_CNT].counters[counter] > 0)
+        result[AG_AVG].counters[counter] = result[AG_SUM].counters[counter] / result[AG_CNT].counters[counter];
       else
-        aggregated[AG_MIN].counters[counter] = 0;
+        result[AG_MIN].counters[counter] = 0;
     }
     for (int record = 0; record < cnt; ++record)
       for (int counter = 0; counter < NUM_COUNTER_TYPES; ++counter)
@@ -93,71 +117,83 @@ struct Ctx
         if (gauge_mask[counter] && val == INVALID_GAUGE_VALUE)
           continue;
         // Variance metric is Mean Absolute Deviation
-        cnt_t avg = aggregated[AG_AVG].counters[counter];
+        cnt_t avg = result[AG_AVG].counters[counter];
         auto diff = eastl::max(avg, val) - eastl::min(avg, val);
-        aggregated[AG_VAR].counters[counter] += diff;
+        result[AG_VAR].counters[counter] += diff;
       }
     for (int counter = 0; counter < NUM_COUNTER_TYPES; ++counter)
-      aggregated[AG_VAR].counters[counter] /= eastl::max(aggregated[AG_CNT].counters[counter], 1u);
+      result[AG_VAR].counters[counter] /= eastl::max(result[AG_CNT].counters[counter], 1u);
+
+    OSSpinlockScopedLock lock(aggregated_lock);
+    aggregated = result;
   }
 
-  void updateDaNetCounters(float time_err_k)
+  void applyIOStats(float time_err_k, const NetIOStats &io)
   {
-    DaNetPeerInterface *daif;
-    const DaNetStatistics *daStat = get_danet_stat(&daif);
-    if (!daStat)
-      return;
-    inc(CT_RX_BYTES, (daStat->bytesReceived - daSample.bytesReceived) / time_err_k);
-    inc(CT_TX_BYTES, (daStat->bytesSent - daSample.bytesSent) / time_err_k);
-    inc(CT_RX_PACKETS, (daStat->packetsReceived - daSample.packetsReceived) / time_err_k);
-    inc(CT_TX_PACKETS, (daStat->packetsSent - daSample.packetsSent) / time_err_k);
-    daSample = *daStat;
-
-    danet::PeerQoSStat qstat = daif->GetPeerQoSStat(0);
-    if (qstat.lowestPing)
+    inc(CT_RX_BYTES, (cnt_t)((io.rxBytes - prevBucketIO.rxBytes) / time_err_k));
+    inc(CT_TX_BYTES, (cnt_t)((io.txBytes - prevBucketIO.txBytes) / time_err_k));
+    inc(CT_RX_PACKETS, (cnt_t)((io.rxPackets - prevBucketIO.rxPackets) / time_err_k));
+    inc(CT_TX_PACKETS, (cnt_t)((io.txPackets - prevBucketIO.txPackets) / time_err_k));
+    prevBucketIO = io;
+    if (io.rttMs)
     {
-      set(CT_ENET_PLOSS, (uint32_t)(qstat.packetLoss * 1000.f));
-      set(CT_ENET_RTT, (uint32_t)(qstat.lowestPing));
+      set(CT_ENET_RTT, io.rttMs);
+      set(CT_ENET_PLOSS, io.plossPermille);
     }
   }
 
-  void update(uint32_t ct_ms)
+  void update(uint32_t ct_ms, const NetIOStats &io)
   {
     if (ct_ms < nextUpdateTime)
       return;
     if (nextUpdateTime)
     {
       float timeErrK = (ct_ms - nextUpdateTime + BUCKET_TIME_MS) / float(BUCKET_TIME_MS);
-      updateDaNetCounters(timeErrK);
+      applyIOStats(timeErrK, io);
       buckets[numRecords++ % HISTORY_COUNT] = counters;
       aggregate();
       for (int i = 0; i < NUM_COUNTER_TYPES; ++i)
         counters.counters[i] = gauge_mask[i] ? INVALID_GAUGE_VALUE : 0;
     }
-    else if (const DaNetStatistics *daStat = get_danet_stat())
-      daSample = *daStat;
     else
-      memset(&daSample, 0, sizeof(daSample));
+      prevBucketIO = io;
     nextUpdateTime = ct_ms + BUCKET_TIME_MS;
   }
 };
 static eastl::unique_ptr<Ctx> ctx;
 
-void init() { ctx.reset(new Ctx); }
-void term() { ctx.reset(); }
+void init()
+{
+  OSSpinlockScopedLock lock(aggregated_lock);
+  ctx.reset(new Ctx);
+}
 
-void update(uint32_t ct_ms)
+void shutdown()
+{
+  OSSpinlockScopedLock lock(aggregated_lock);
+  ctx.reset();
+}
+
+void update(uint32_t ct_ms, DaNetPeerInterface *peer)
 {
   if (ctx)
-    ctx->update(ct_ms);
+    ctx->update(ct_ms, pull_io_stats(peer));
 }
 
 void inc(CounterType type, cnt_t val) { counters.counters[type] += val; }
-
 void set(CounterType type, cnt_t val) { counters.counters[type] = val; }
-
 void max(CounterType type, cnt_t val) { counters.counters[type] = eastl::max(counters.counters[type], val); }
 
-dag::ConstSpan<Sample> get_aggregations() { return ctx ? ctx->aggregated : dag::ConstSpan<Sample>(); }
+StaticTab<Sample, NUM_AG_TYPES> get_aggregations()
+{
+  StaticTab<Sample, NUM_AG_TYPES> out;
+  OSSpinlockScopedLock lock(aggregated_lock);
+  if (ctx)
+  {
+    out.resize(NUM_AG_TYPES);
+    eastl::copy(ctx->aggregated.begin(), ctx->aggregated.end(), out.begin());
+  }
+  return out;
+}
 
 } // namespace netstat

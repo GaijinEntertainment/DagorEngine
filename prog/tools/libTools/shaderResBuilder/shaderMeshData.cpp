@@ -63,6 +63,9 @@ bool can_combine_elems(const ShaderMeshData::RElem &left, const ShaderMeshData::
   if (left.flags != right.flags)
     return false;
 
+  if (!left.vertexData->allowVertexMerge || !right.vertexData->allowVertexMerge)
+    return false;
+
   if (!left.vertexData->checkChannels(right.vertexData->vDesc.data(), right.vertexData->vDesc.size()))
     return false;
 
@@ -202,6 +205,19 @@ void GlobalVertexDataSrc::attachData(const GlobalVertexDataSrc &other_data)
   partCount += other_data.partCount;
 }
 
+dag::Span<uint8_t> GlobalVertexDataSrc::attachRawData(int size_bytes)
+{
+  int start = numv * stride;
+  G_ASSERT(data_size(vData) == start);
+  int num = (size_bytes + stride - 1) / stride;
+  vData.resize(vData.size() + num * stride);
+  numv += num;
+  if (numv > MAX_VERTEX_16)
+    convertToIData32();
+  allowVertexMerge = false;
+  return make_span(&vData[start], num * stride);
+}
+
 void GlobalVertexDataSrc::attachDataPart(const GlobalVertexDataSrc &other_data, int _sv, int _numv, int _si, int _numf, int num_parts)
 {
   // add vertices
@@ -258,6 +274,32 @@ void GlobalVertexDataSrc::attachDataPart(const GlobalVertexDataSrc &other_data, 
 
 // class GlobalVertexDataSrc
 //
+
+
+int VoxelSurfaceSrc::zstdCompressionLevel = 18;
+
+VoxelSurfaceSrc::VoxelSurfaceSrc() : rgbaBlocks(tmpmem), normBlocks(tmpmem) {}
+VoxelSurfaceSrc::~VoxelSurfaceSrc() {}
+
+int VoxelSurfaceSrc::save(mkbindump::BinDumpSaveCB &cwr)
+{
+  int start = cwr.tell();
+  cwr.writeInt32e(rgbaBlocks.size());
+  cwr.writeInt32e(normBlocks.size());
+
+  Tab<uint8_t> buffer(tmpmem);
+
+  buffer.resize(zstd_compress_bound(data_size(rgbaBlocks)));
+  int size = zstd_compress(buffer.data(), buffer.size(), rgbaBlocks.data(), data_size(rgbaBlocks), zstdCompressionLevel);
+  cwr.writeInt32e(size);
+  cwr.writeRaw(buffer.data(), size);
+
+  buffer.resize(zstd_compress_bound(data_size(normBlocks)));
+  size = zstd_compress(buffer.data(), buffer.size(), normBlocks.data(), data_size(normBlocks), zstdCompressionLevel);
+  cwr.writeRaw(buffer.data(), size);
+
+  return cwr.tell() - start;
+}
 
 
 /*********************************

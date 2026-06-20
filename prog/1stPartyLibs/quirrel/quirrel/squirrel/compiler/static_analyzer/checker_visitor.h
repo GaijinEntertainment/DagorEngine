@@ -165,6 +165,7 @@ class CheckerVisitor : public Visitor
   void checkCallFromRoot(const CallExpr *callExpr);
   void checkForbiddenParentDir(const CallExpr *callExpr);
   void checkFormatArguments(const CallExpr *callExpr);
+  void checkSubstArguments(const CallExpr *callExpr);
   void checkArguments(const CallExpr *callExpr);
   void checkContainerModification(const CallExpr *expr);
   void checkUnwantedModification(const CallExpr *expr);

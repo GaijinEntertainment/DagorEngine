@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_aot = true
 options strict_smart_pointers = true
 
@@ -16,6 +14,7 @@ module jobque_boost shared public
 //! Extends the built-in ``jobque`` module.
 
 require jobque public
+require math
 
 require daslib/rtti
 require daslib/ast
@@ -62,8 +61,8 @@ class private NewJobMacro : AstFunctionAnnotation {
         var stype_ptr = stype
         var sttype = new TypeDecl(at = call.at, baseType = Type.tStructure, structType = stype_ptr)
         for (fld in stype.fields) {// TODO: verify field type here
-            fld._type.flags &= ~(TypeDeclFlags.constant)
-            fld.flags &= ~(FieldDeclarationFlags.capturedConstant)
+            fld._type.flags.constant = false
+            fld.flags.capturedConstant = false
         }
         var pclone = make_clone_structure(stype_ptr)
         let const_clone = pclone.arguments[1]._type.flags.constant
@@ -75,13 +74,13 @@ class private NewJobMacro : AstFunctionAnnotation {
         ftype.argTypes |> emplace_new <| clone_type(sttype)
         ftype.argTypes |> emplace <| sttype
         if (const_clone) {
-            ftype.argTypes[1].flags |= TypeDeclFlags.constant
+            ftype.argTypes[1].flags.constant = true
         }
         // make a new_job_invoke call
         var ncall = new ExprCall(at = call.at, name := "{call.name}_invoke")
         ncall.arguments |> emplace_new <| clone_expression(call.arguments[0])
         ncall.arguments |> emplace_new <| new ExprAddr(at = call.at, target := "clone", funcType <- ftype)
-        ncall.arguments |> emplace_new <| new ExprConstInt(at = call.at, value = int(mks._type.sizeOf))
+        ncall.arguments |> emplace_new <| new ExprConstInt(at = call.at, value = mks._type.sizeOf)
         return <- ncall
     }
 }
@@ -129,13 +128,9 @@ def for_each(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
         _builtin_channel_pop(channel) $(vd) {
             void_data = vd
         }
-        if (void_data == null) {
-            break
-        }
-        unsafe {
-            let typed_data = reinterpret<TT?#> void_data
-            invoke(blk, *typed_data)
-        }
+        if (void_data == null) break
+        let typed_data = unsafe(reinterpret<TT?#> void_data)
+        invoke(blk, *typed_data)
     }
 }
 
@@ -152,9 +147,7 @@ def for_each_clone(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
                 temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
             }
         }
-        if (!any) {
-            break
-        }
+        if (!any) break
         invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
         delete temp
     }
@@ -167,14 +160,10 @@ def pop_one(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
     _builtin_channel_pop(channel) $(vd) {
         void_data = vd
     }
-    if (void_data == null) {
-        return false
-    }
-    unsafe {
-        let typed_data = reinterpret<TT?#> void_data
-        invoke(blk, *typed_data)
-        return true
-    }
+    if (void_data == null) return false
+    let typed_data = unsafe(reinterpret<TT?#> void_data)
+    invoke(blk, *typed_data)
+    return true
 }
 
 def pop_and_clone_one(channel : Channel?; blk : block<(res : auto(TT)#) : void>) {
@@ -187,9 +176,7 @@ def pop_and_clone_one(channel : Channel?; blk : block<(res : auto(TT)#) : void>)
             temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
         }
     }
-    if (!any) {
-        return false
-    }
+    if (!any) return false
     invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
     delete temp
     return true
@@ -213,9 +200,7 @@ def try_pop_clone(channel : Channel?; blk : block<(res : auto(TT)#) : void>) : b
     any = _builtin_channel_try_pop(channel) $(data) {
         temp := *(unsafe(reinterpret<TT -# -& -const?#> data))
     }
-    if (!any) {
-        return false
-    }
+    if (!any) return false
     invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
     delete temp
     return true
@@ -239,9 +224,7 @@ def pop_with_timeout_clone(channel : Channel?; timeout_ms : int; blk : block<(re
     any = _builtin_channel_pop_with_timeout(channel, timeout_ms) $(data) {
         temp := *(unsafe(reinterpret<TT -# -& -const?#> data))
     }
-    if (!any) {
-        return false
-    }
+    if (!any) return false
     invoke(blk, unsafe(reinterpret<TT -& -const#> temp))
     delete temp
     return true
@@ -365,9 +348,7 @@ def each(var channel : Channel?; tinfo : auto(TT)) {
                 _builtin_channel_pop(channel) $(vd) {
                     void_data = vd
                 }
-                if (void_data == null) {
-                    break
-                }
+                if (void_data == null) break
                 unsafe {
                     yield *reinterpret<TT?#> void_data
                 }
@@ -395,9 +376,7 @@ def each_clone(var channel : Channel?; tinfo : auto(TT)) {
                         temp := *(unsafe(reinterpret<TT -# -& -const?#> vd))
                     }
                 }
-                if (!any) {
-                    break
-                }
+                if (!any) break
                 yield unsafe(reinterpret<TT -& -const#> temp)
                 delete temp
             }
@@ -549,10 +528,8 @@ def _parallel_for(range_begin, range_end : int; num_jobs : int; blk : block<(job
     //! ``parallel_for`` blocks until all notifications are received (via internal ``with_wait_group``).
     //! Requires ``with_job_que`` context.
     let total = range_end - range_begin
-    if (total <= 0 || num_jobs <= 0) {
-        return
-    }
-    let actual_jobs = num_jobs < total ? num_jobs : total
+    if (total <= 0 || num_jobs <= 0) return
+    let actual_jobs = min(num_jobs, total)
     let chunk = total / actual_jobs
     let remainder = total % actual_jobs
     with_wait_group(actual_jobs) $(wg) {
@@ -567,7 +544,7 @@ def _parallel_for(range_begin, range_end : int; num_jobs : int; blk : block<(job
     }
 }
 
-[tag_function(tag_parallel_for)]
+[tag_function(tag_parallel_for), unused_argument(range_begin, range_end, num_jobs, blk)]
 def parallel_for(range_begin, range_end : int; num_jobs : int; blk : block<(job_begin : int; job_end : int; var wg : JobStatus?) : void>) {
     //! this one is stub for _parallel_for
 }
@@ -699,22 +676,11 @@ def public release_capture_jobque_stream(s : Stream?) {
 
 [macro_function]
 def private isPtrToJQ(typ : TypeDeclPtr; jqt : string) : bool {
-    if (!typ.isPointer) {
-        return false
-    }
-    if (typ.firstType == null) {
-        return false
-    }
-    if (!typ.firstType.isHandle) {
-        return false
-    }
-    if (typ.firstType.annotation._module.name != "jobque") {
-        return false
-    }
-    if (typ.firstType.annotation.name != jqt) {
-        return false
-    }
-    return true
+    if (!typ.isPointer
+            || typ.firstType == null
+            || !typ.firstType.isHandle
+            || typ.firstType.annotation._module.name != "jobque") return false
+    return typ.firstType.annotation.name == jqt
 }
 
 [capture_macro(name=channel_and_status_capture_macro)]
@@ -746,9 +712,7 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_job_status")
         } elif (typ |> isPtrToJQ("LockBox")) {
             return <- make_capture_call(expr, "jobque_boost::capture_jobque_lock_box")
-        } elif (typ |> isPtrToJQ("Stream")) {
-            return <- make_capture_call(expr, "jobque_boost::capture_jobque_stream")
-        }
+        } elif (typ |> isPtrToJQ("Stream")) return <- make_capture_call(expr, "jobque_boost::capture_jobque_stream")
         return null
     }
     def override captureFunction(prog : Program?; mod : Module?; var lcs : Structure?; var fun : FunctionPtr) : void {
@@ -757,9 +721,8 @@ class private ChannelAndStatusCapture : AstCaptureMacro {
         //! iteration, not just once at destruction. This means ``Channel``, ``JobStatus``,
         //! ``LockBox``, and ``Stream`` captures inside generators do NOT get automatic release checks.
         //! Users must manually call ``release`` on captured jobque objects inside generators.
-        if (fun.flags._generator) {// generator gets finally section called every single time. nothing we can do
-            return
-        }
+        // generator gets finally section called every single time. nothing we can do
+        if (fun.flags._generator) return
         for (fld in lcs.fields) {
             if (fld._type |> isPtrToJQ("Channel")) {
                 var pCall = make_release_call(fld, "jobque_boost::release_capture_jobque_channel")

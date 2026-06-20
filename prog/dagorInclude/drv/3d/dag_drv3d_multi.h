@@ -72,12 +72,8 @@ static inline void end_survey(int index) { return d3di.end_survey(index); }
 static inline void begin_conditional_render(int index) { return d3di.begin_conditional_render(index); }
 static inline void end_conditional_render(int id) { return d3di.end_conditional_render(id); }
 
-static inline VDECL get_program_vdecl(PROGRAM p) { return d3di.get_program_vdecl(p); }
 static inline bool set_vertex_shader(VPROG ps) { return d3di.set_vertex_shader(ps); }
 static inline bool set_pixel_shader(FSHADER ps) { return d3di.set_pixel_shader(ps); }
-
-static inline VPROG create_vertex_shader_dagor(const VPRTYPE *p, int n) { return d3di.create_vertex_shader_dagor(p, n); }
-static inline FSHADER create_pixel_shader_dagor(const FSHTYPE *p, int n) { return d3di.create_pixel_shader_dagor(p, n); }
 
 static inline bool get_vrr_supported() { return d3di.get_vrr_supported(); }
 static inline bool get_vsync_enabled() { return d3di.get_vsync_enabled(); }

@@ -387,7 +387,7 @@ void ImpostorTextureManager::render_slice_voxels(const TMatrix &view_to_world, f
 
   rendinst::render::renderRIGenExtraFromBuffer(rendinstMatrixBuf.getBuf(), dag::ConstSpan<IPoint2>(&offsAndCnt, 1),
     dag::ConstSpan<uint16_t>(&riIdx, 1), dag::ConstSpan<uint32_t>(zeroLodOffsets, zeroLodCount), render_pass,
-    rendinst::OptimizeDepthPass::Yes, rendinst::OptimizeDepthPrepass::Yes, rendinst::IgnoreOptimizationLimits::Yes,
+    rendinst::OptimizeDepthPass::No, rendinst::OptimizeDepthPrepass::No, rendinst::IgnoreOptimizationLimits::Yes,
     rendinst::LayerFlag::Stages, nullptr, 1u, false, nullptr, nullptr, true);
 
   if (treeCrownBufSlot >= 0)

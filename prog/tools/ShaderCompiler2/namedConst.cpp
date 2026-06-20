@@ -400,7 +400,8 @@ void NamedConstBlock::buildRefinedBlockBufHlslDecl(String &out_text, ShaderStage
 
   const auto isBindlessVar = [&](const shc::RefinedBlockVar &v) {
     // Var with custom hlsl declaration cannot go bindless
-    return bindless && v.hlslDecl.empty() && (semantic::vt_is_tex(v.varType) || semantic::vt_is_buf(v.varType));
+    return bindless && v.hlslDecl.empty() &&
+           (semantic::vt_is_tex(v.varType) || semantic::vt_is_buf(v.varType) || v.varType == semantic::VariableType::sampler);
   };
 
   for (const shc::RefinedBlockVar &v : vars)
@@ -633,6 +634,13 @@ void NamedConstBlock::patchHlsl(String &src, ShaderStage stage, const CompiledPr
   process_hardcoded_register_declarations(src, [&, this](HlslRegisterSpace rspace, int regt_id, eastl::string_view fragment) {
     if (auto res = regAllocators[rspace].reserve(HlslSlotSemantic::HARDCODED, regt_id); !res)
     {
+      // @HACK: avoid false conflict on immediate cbuf
+      if (IMMEDIATE_CB_REGISTER >= 0 && rspace == HLSL_RSPACE_B && regt_id == IMMEDIATE_CB_REGISTER &&
+          fragment.find("immediate_const_buffer:register(b") != eastl::string::npos)
+      {
+        return;
+      }
+
       // @TODO: implement arrays checking
       report_reg_reserve_failed(eastl::string{fragment}.c_str(), regt_id, 1, rspace, HlslSlotSemantic::HARDCODED, res.error(),
         regAllocators[rspace], makeInfoProvider(propsField, rspace, lexer));

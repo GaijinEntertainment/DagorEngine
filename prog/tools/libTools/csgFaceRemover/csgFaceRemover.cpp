@@ -247,12 +247,11 @@ public:
       csg.sliceAndClassify(closed, open, open_sliced, NULL);
       for (std::list<std::pair<carve::csg::FaceClass, carve_poly_t *>>::iterator i = open_sliced.begin(); i != open_sliced.end(); ++i)
       {
-        switch ((*i).first)
+        if ((*i).first == carve::csg::FACE_IN) // remove only out
         {
-          case carve::csg::FACE_IN: has_cutted = true; break; // remove only out
-        }
-        if (has_cutted)
+          has_cutted = true;
           break;
+        }
       }
       if (!has_cutted)
       {
@@ -280,6 +279,9 @@ public:
               result_open = result2;
             }
             break;
+
+          case carve::csg::FACE_UNCLASSIFIED:
+          case carve::csg::FACE_ON: break;
         }
       }
       return result_open;

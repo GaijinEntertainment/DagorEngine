@@ -168,32 +168,6 @@ static ecs::EntitySystemDesc adaptation_update_time_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,nullptr,"animchar_before_render_es");
-static constexpr ecs::ComponentDesc on_reset_exposure_evt_es_comps[] =
-{
-//start of 1 rw components at [0]
-  {ECS_HASH("adaptation__manager"), ecs::ComponentTypeInfo<AdaptationManager>()}
-};
-static void on_reset_exposure_evt_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
-{
-  G_FAST_ASSERT(evt.is<RenderReinitCube>());
-  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
-    on_reset_exposure_evt_es(static_cast<const RenderReinitCube&>(evt)
-        , ECS_RW_COMP(on_reset_exposure_evt_es_comps, "adaptation__manager", AdaptationManager)
-    );
-  while (++comp != compE);
-}
-static ecs::EntitySystemDesc on_reset_exposure_evt_es_es_desc
-(
-  "on_reset_exposure_evt_es",
-  "prog/daNetGameLibs/adaptation/render/adaptation_managerES.cpp.inl",
-  ecs::EntitySystemOps(nullptr, on_reset_exposure_evt_es_all_events),
-  make_span(on_reset_exposure_evt_es_comps+0, 1)/*rw*/,
-  empty_span(),
-  empty_span(),
-  empty_span(),
-  ecs::EventSetBuilder<RenderReinitCube>::build(),
-  0
-,"render");
 static constexpr ecs::ComponentDesc on_set_no_exposure_evt_es_comps[] =
 {
 //start of 1 rw components at [0]

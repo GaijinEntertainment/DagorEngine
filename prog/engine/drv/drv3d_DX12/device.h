@@ -1122,7 +1122,10 @@ public:
 
   ::raytrace::AccelerationStructurePool createAccelerationStructurePool(const ::raytrace::AccelerationStructurePoolCreateInfo &info);
 #endif
-  D3D12_CPU_DESCRIPTOR_HANDLE allocateResourceDescriptor() { return resources.allocateTextureSRVDescriptor(device.get()); }
+  D3D12_CPU_DESCRIPTOR_HANDLE allocateResourceDescriptor()
+  {
+    return resources.allocateTextureSRVDescriptor(device.get()).value_or({});
+  }
 
 #if _TARGET_PC_WIN
   FeatureImplementation getOpacityMicroMapAvailability() const

@@ -4,8 +4,8 @@
 //
 #pragma once
 
-#include <render/shadowSystem.h>
-#include <render/spotLightsManager.h>
+#include <render/lights/shadowSystem.h>
+#include <render/lights/spotLightsManager.h>
 #include <EASTL/fixed_function.h>
 #include <EASTL/unique_ptr.h>
 

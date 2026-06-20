@@ -38,6 +38,7 @@ enum
   CM_INCREASE_BRUSH_SIZE,
 
   CM_SHOW_LAND_OBJECTS,
+  CM_TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS,
   CM_TOGGLE_SPLINE_DEBUG_CONTROLS,
   CM_TOGGLE_POLYGON_DEBUG_CONTROLS,
   CM_TOGGLE_NOTE_DEBUG_CONTROLS,
@@ -54,8 +55,12 @@ enum
   CM_CREATE_POLYGON,
 
   CM_SELECT_NONE,
+  CM_SELECT_SPLINES_AND_POLYGONS,
   CM_SELECT_SPLINES,
-  CM_SELECT_PT,
+  CM_SELECT_POLYGONS,
+  CM_SELECT_POINTS_ALL,
+  CM_SELECT_POINTS_SPLINE,
+  CM_SELECT_POINTS_POLYGON,
   CM_SELECT_ENT,
   CM_SELECT_SPL_ENT,
   CM_USE_PIXEL_PERFECT_SELECTION,
@@ -110,14 +115,19 @@ namespace EditorCommandIds
 static constexpr const char *SPLINE_REGEN = "Plugin.Landscape.SplineRegen";
 static constexpr const char *SPLINE_REGEN_CTRL = "Plugin.Landscape.SplineRegenCtrl";
 static constexpr const char *REBUILD_SPLINES_BITMASK = "Plugin.Landscape.RebuildSplinesBitmask";
-static constexpr const char *SELECT_PT = "Plugin.Landscape.Select.Points";
+static constexpr const char *SELECT_POINTS_ALL = "Plugin.Landscape.Select.Points.All";
+static constexpr const char *SELECT_POINTS_SPLINE = "Plugin.Landscape.Select.Points.Spline";
+static constexpr const char *SELECT_POINTS_POLYGON = "Plugin.Landscape.Select.Points.Polygon";
+static constexpr const char *SELECT_SPLINES_AND_POLYGONS = "Plugin.Landscape.Select.SplinesAndPolygons";
 static constexpr const char *SELECT_SPLINES = "Plugin.Landscape.Select.Splines";
+static constexpr const char *SELECT_POLYGONS = "Plugin.Landscape.Select.Polygons";
 static constexpr const char *SELECT_ENT = "Plugin.Landscape.Select.Entities";
 static constexpr const char *SELECT_NONE = "Plugin.Landscape.Select.None";
 static constexpr const char *SELECT_SPL_ENT = "Plugin.Landscape.Select.SplinesAndEntities";
-static constexpr const char *TOGGLE_SPLINE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleSplineDebugControls";
-static constexpr const char *TOGGLE_POLYGON_DEBUG_CONTROLS = "Plugin.Landscape.TogglePolygonDebugControls";
-static constexpr const char *TOGGLE_NOTE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleNoteDebugControls";
+static constexpr const char *TOGGLE_SPLINE_AND_POLYGON_DEBUG_CONTROLS = "Plugin.Landscape.ToggleDebugControls.SplineAndPolygon";
+static constexpr const char *TOGGLE_SPLINE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleDebugControls.Spline";
+static constexpr const char *TOGGLE_POLYGON_DEBUG_CONTROLS = "Plugin.Landscape.ToggleDebugControls.Polygon";
+static constexpr const char *TOGGLE_NOTE_DEBUG_CONTROLS = "Plugin.Landscape.ToggleDebugControls.Note";
 static constexpr const char *SHOW_PHYSMAT = "Plugin.Landscape.ShowPhysmat";
 static constexpr const char *SHOW_PHYSMAT_COLORS = "Plugin.Landscape.ShowPhysmatColor";
 static constexpr const char *USE_PIXEL_PERFECT_SELECTION = "Plugin.Landscape.UsePixelPerfectSelection";

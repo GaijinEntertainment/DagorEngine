@@ -39,14 +39,6 @@ class Sbuffer;
 class DagorAsset;
 class ILogWriter;
 
-namespace defaults
-{
-static constexpr float projScale = 1080; // diameter in pixels of a disk of radius R when viewed from distance R
-static constexpr float triangleThreshold = 70;
-static constexpr int maxMapSize = 256;
-static constexpr float voxelSize = -1;
-} // namespace defaults
-
 struct AOData
 {
   Color4 ao1PosScale = Color4(0, 0, 0, 0);
@@ -265,6 +257,7 @@ private:
   IPoint3 bakeMapSize;
   Point3 bakeBoxMin;
   float bakeVoxelSize;
+  int bakeLod;
 
   int voxelBakeWidth() const { return max(bakeMapSize.x, bakeMapSize.z); }
   int voxelBakeHeight() const { return max(bakeMapSize.y, bakeMapSize.x); }
@@ -289,9 +282,11 @@ private:
     VoxelReadBackTextures readback;
   };
 
-  bool beginVoxelBaking(RenderableInstanceLodsResource *res, const IPoint3 &map_size, const Point3 &box_min, float voxel_size);
+  bool beginVoxelBaking(RenderableInstanceLodsResource *res, int lod, const IPoint3 &map_size, const Point3 &box_min,
+    float voxel_size);
   bool bakeVoxels(dag::Span<VoxelBakeRequest> requests);
   void endVoxelBaking();
 
-  float computeVoxelSize(RenderableInstanceLodsResource *res, const char *name, float proj_scale, float triangle_threshold);
+  float computeVoxelSize(RenderableInstanceLodsResource *res, const char *name, float proj_scale, float triangle_threshold,
+    bool warn_bad_range);
 };

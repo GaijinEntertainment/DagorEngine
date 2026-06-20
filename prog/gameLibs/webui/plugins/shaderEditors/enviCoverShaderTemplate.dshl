@@ -6,7 +6,7 @@ include "common.dshl"
 shader
 // [[shader_name]]
 {
-  supports nbs_envi_cover_block;
+  NBS_ENVI_COVER_BLOCK();
 
   (cs) {
     // [[dshl_preshader]]
@@ -22,7 +22,7 @@ shader
     #include "../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"
     #include "../../../publicInclude/render/nbs_spheres.hlsli"
     #include "globalHlslFunctions.hlsl"
-    #include "../../../publicInclude/render/light_consts.hlsli"
+    #include "../../../publicInclude/render/lights/light_consts.hlsli"
     #include "../../../render/shaders/camera_in_camera.hlsl"
     #include "../../../render/shaders/noise/Value3D.hlsl"
     #include "../../../render/shaders/pixelPacking/ColorSpaceUtility.hlsl"

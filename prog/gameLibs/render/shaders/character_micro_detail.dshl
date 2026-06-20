@@ -155,7 +155,8 @@ macro USE_CHARACTER_MICRODETAIL_IMPL(has_sampler, extended_params)
 
     half4 get_character_micro_detail(float2 uv, half microDetailLayer)
     {
-      microDetailLayer = floor(microDetailLayer*255+0.5)/36;
+      half encodedLayer = floor(microDetailLayer*255+0.5);
+      microDetailLayer = encodedLayer/36;
       half power = frac(microDetailLayer);
       half arrayNo = floor(microDetailLayer+0.5);
       if (power>0)
@@ -163,7 +164,7 @@ macro USE_CHARACTER_MICRODETAIL_IMPL(has_sampler, extended_params)
       //float len = max(ddx(arrayNo), ddy(arrayNo));
       half4 microDetailN = sample_character_micro_detail(uv, arrayNo);
       FLATTEN
-      if (microDetailLayer == 255)//special case no microdetail
+      if (encodedLayer == 255)//special case no microdetail
         microDetailN = 0.5;
       return microDetailN;
     }

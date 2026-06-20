@@ -181,6 +181,10 @@ static void log_default_value_difference(const char *shader_name, const ShaderVa
             var.name, shader_name, var.value.c[0], var.value.c[1], var.value.c[2], var.value.c[3], limits.defaultValue.c[0],
             limits.defaultValue.c[1], limits.defaultValue.c[2], limits.defaultValue.c[3]);
           break;
+
+        case MAT_VAR_TYPE_NONE:
+        case MAT_VAR_TYPE_ENUM_LIGHTING:
+        case MAT_VAR_TYPE_COUNT: break;
       }
     }
   }
@@ -216,6 +220,9 @@ void set_defaults_from_shader_bin_dump(const char *shader_name, ShaderDescriptor
         limits->defaultValue = ShaderMatData::VarValue();
         limits->defaultValue = varDefault.value;
         break;
+
+      case MAT_VAR_TYPE_NONE:
+      case MAT_VAR_TYPE_COUNT: break;
     }
   }
 }

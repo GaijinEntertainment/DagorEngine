@@ -131,8 +131,11 @@ public:
   {
     if (!face)
     {
+      if (curHt < -1) // openTTF marks a permanent load failure as curHt=-2; don't retry I/O on every layout
+        return false;
       G_ASSERTF(f && ttf_nid >= 0, "f=%p ttf_nid=%d", f, ttf_nid);
-      openTTF(String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttf_nid)), true, isTtfOptional(ttf_nid));
+      if (!openTTF(String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttf_nid)), true, isTtfOptional(ttf_nid)))
+        return false;
       f->appendFontHt(ht, this, /*read_locked*/ true);
     }
 
@@ -160,8 +163,23 @@ public:
     return true;
   }
 
+  // harfbuzz shaping needs an hb_font; openTTF only creates one with init_harfbuz, so a ttf first
+  // opened by a non-harfbuzz path (legacy dynGrp glyph rendering) has face but no font. Returns null
+  // only when the ttf itself failed to load.
+  hb_font_t *ensureHbFont()
+  {
+    if (!font && face)
+    {
+      font = hb_ft_font_create_referenced(face);
+      hb_ft_font_set_load_flags(font, ftFlags);
+    }
+    return font;
+  }
+
   void fillFontMetrics(DagorFontBinDump::FontData::FontMetrics &mx)
   {
+    if (!face)
+      return;
     const FT_Size_Metrics &metrics = face->size->metrics;
     mx.ascent = metrics.ascender / 64;
     mx.descent = -metrics.descender / 64;
@@ -869,6 +887,13 @@ void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int
 {
   DagorFreeTypeFontRec &ttf = ttfRec[dfont.ttfNid];
   ttf.resizeFont(font_ht, dfont.forceAutoHint, this, dfont.ttfNid); // this can load font if it was not loaded on init (lazy-load)
+  if (!ttf.ensureHbFont()) // ttf failed to load: empty buffer + fgidx -1 tells callers to skip this segment
+  {
+    hb_buffer_set_length(buf, 0);
+    if (out_fgidx)
+      *out_fgidx = -1;
+    return;
+  }
 
   hb_buffer_set_length(buf, 0);
 #if (WCHAR_MAX + 0) == 0xffff || (WCHAR_MAX + 0) == 0x7fff // sizeof(wchar_t) == 2

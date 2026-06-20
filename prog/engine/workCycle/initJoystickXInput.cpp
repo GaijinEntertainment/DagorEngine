@@ -13,7 +13,14 @@ public:
   virtual const char *procname() { return "joystick@xinput"; }
   JoystickRestartProcXInput() : SRestartProc(RESTART_INPUT | RESTART_VIDEO) {}
 
-  void startup() { global_cls_drv_joy = HumanInput::createXinputJoystickClassDriver(); }
+  void startup()
+  {
+#if _TARGET_XBOX
+    global_cls_drv_joy = HumanInput::createGameInputJoystickClassDriver();
+#else
+    global_cls_drv_joy = HumanInput::createXinputJoystickClassDriver();
+#endif
+  }
 
   void shutdown()
   {

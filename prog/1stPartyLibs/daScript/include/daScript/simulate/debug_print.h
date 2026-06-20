@@ -132,22 +132,22 @@ namespace das {
             if ( !ti->isVariantOfSimpleTypes() ) br();
         }
 
-        virtual void beforeArrayElement ( char *, TypeInfo *, char *, uint32_t, bool ) override {
+        virtual void beforeArrayElement ( char *, TypeInfo *, char *, uint64_t, bool ) override {
             ss << " ";
         }
-        virtual void afterArrayElement ( char *, TypeInfo * ti, char *, uint32_t, bool last ) override {
+        virtual void afterArrayElement ( char *, TypeInfo * ti, char *, uint64_t, bool last ) override {
             if ( !last ) {
                 ss << ",";
             }
             if ( !ti->isSimpleType() ) br();
         }
-        virtual void beforeTableKey ( Table *, TypeInfo *, char *, TypeInfo *, uint32_t, bool ) override {
+        virtual void beforeTableKey ( Table *, TypeInfo *, char *, TypeInfo *, uint64_t, bool ) override {
             ss << " ";
         }
-        virtual void beforeTableValue ( Table *, TypeInfo *, char *, TypeInfo *, uint32_t, bool ) override {
+        virtual void beforeTableValue ( Table *, TypeInfo *, char *, TypeInfo *, uint64_t, bool ) override {
             ss << " => ";
         }
-        virtual void afterTableValue ( Table *, TypeInfo * ti, char *, TypeInfo *, uint32_t, bool last ) override {
+        virtual void afterTableValue ( Table *, TypeInfo * ti, char *, TypeInfo *, uint64_t, bool last ) override {
             if ( !last ) {
                 ss << ",";
             }
@@ -459,7 +459,10 @@ namespace das {
             }
         }
         virtual void WalkEnumeration ( int32_t & value, EnumInfo * info ) override {
-            int64_t uvalue = uint64_t(value);
+            // uint32_t(value) first, then promote — uint64_t(int32_t) sign-extends via int rules,
+            // which would leave 0x80000000 looking like 0xFFFFFFFF80000000 and miss the uint-backed
+            // enum's stored int64_t value (2147483648).
+            int64_t uvalue = uint64_t(uint32_t(value));
             for ( uint32_t t=0, ts=info->count; t!=ts; ++t ) {
                 if ( value == info->fields[t]->value || uvalue == info->fields[t]->value ) {
                     emitEnumName(info);

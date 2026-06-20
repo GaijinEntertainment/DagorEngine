@@ -521,10 +521,10 @@ DAGOR_NOINLINE static bool leaf_verify(const LinearGrid<ObjectType> *__restrict 
     LG_VERIFY(!leaf.objects.empty());
     for (ObjectType object : leaf.objects)
     {
-      if (eastl::find(visited_objects.begin(), visited_objects.end(), object))
+      if (eastl::find(visited_objects.begin(), visited_objects.end(), object) != visited_objects.end())
         return false;
       else
-        visited_objects.push_back();
+        visited_objects.push_back(object);
     }
   }
   return true;
@@ -1411,7 +1411,7 @@ public:
     if (update_left)
       leaf.left = branch_idx;
     else
-      leaf.right = branch_idx
+      leaf.right = branch_idx;
 #else
     (&leaf)[update_left ? 0 : 1].idx = branch_idx;
 #endif
@@ -2238,7 +2238,7 @@ private:
       vec4f belowOverflow = v_sub(bbox.bmax, center);
       vec4f aboveOverflow = v_sub(center, bbox.bmin);
       vec4f belowIsLess = v_cmp_lt(belowOverflow, aboveOverflow);
-      maxOverflow = v_max(belowOverflow, aboveOverflow);
+      maxOverflow = v_max(maxOverflow, v_max(belowOverflow, aboveOverflow));
       belowCounters = v_subi(belowCounters, v_cast_vec4i(belowIsLess));
       belowMasks.data()[i] = v_signmask(belowIsLess);
     }
@@ -2335,8 +2335,8 @@ private:
         v_bbox3_add_box(aboveBox, bbox);
       }
     }
-    LG_VERIFY(writeBelowPos = belowObjects.data() + belowCount);
-    LG_VERIFY(writeAbovePos = aboveObjects.data() + aboveCount);
+    LG_VERIFY(writeBelowPos == belowObjects.data() + belowCount);
+    LG_VERIFY(writeAbovePos == aboveObjects.data() + aboveCount);
     belowObjects.resize(belowCount); // set real size, shrink will be later
 
     // Create childs

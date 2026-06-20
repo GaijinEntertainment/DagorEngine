@@ -1,19 +1,19 @@
 options gen2
 options rtti
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 
 module commands shared public
 
 require daslib/fio
 require strings
+require daslib/strings_boost
 require daslib/json
 require daslib/json_boost
 
 require daslib/ansi_colors
 require daslib/clargs public
+require pugixml/PUGIXML_boost
 
 require lockfile
 require utils
@@ -61,6 +61,9 @@ struct DaspkgArgs {
     @clarg_mutex_group = "color"
     @clarg_doc = "Disable colored output"
     no_color : bool
+
+    @clarg_doc = "Output directory for `release` (default: current directory)"
+    out : string = "."
 }
 
 // Apply parsed flags that flip module-level globals.  Called by main after
@@ -87,7 +90,7 @@ def cmd_list(root : string; json : bool = false; is_global : bool = false) {
         }
         return 0
     }
-    if (length(lf.packages) == 0) {
+    if (empty(lf.packages)) {
         if (json) {
             print("[]\n")
         } else {
@@ -204,9 +207,7 @@ def install_local(root, pkg_name, source : string; var lf : LockFile; var visiti
 // Local paths and git URLs are returned as-is.
 // Returns empty string on index-lookup failure.
 def resolve_dep_source(root, source : string) : string {
-    if (is_local_path(source)) {
-        return source
-    }
+    if (is_local_path(source)) return source
     if (is_index_name(source)) {
         let url = resolve_from_index(root, source)
         if (empty(url)) {
@@ -349,9 +350,7 @@ def install_git(root, pkg_name, source, version : string; var lf : LockFile; var
     // step 1: shallow clone default branch
     let git_url = "https://{source}.git"
     log("Cloning {git_url}...\n")
-    if (!git_clone(git_url, tmp_dir)) {
-        return 1
-    }
+    if (!git_clone(git_url, tmp_dir)) return 1
 
     // step 2: resolve version via .das_package (if present)
     log_debug("resolving version for '{pkg_name}' (requested: '{version}' branch: '{branch}')")
@@ -379,9 +378,7 @@ def install_git(root, pkg_name, source, version : string; var lf : LockFile; var
                 force_rmdir(tmp_dir)
                 actual_source = res.source
                 let redirect_url = "https://{res.source}.git"
-                if (!git_clone(redirect_url, tmp_dir)) {
-                    return 1
-                }
+                if (!git_clone(redirect_url, tmp_dir)) return 1
                 // checkout the ref from the redirect
                 if (!empty(res.tag)) {
                     log("Fetching tag {res.tag}...\n")
@@ -603,9 +600,7 @@ def cmd_install(root, spec : string; force : bool; is_global : bool = false; ver
             // version mismatch
             to_log(LOG_ERROR, "Error: global '{pkg_name}' is {ge.tag}, but project requires {constraint}\n")
             log("  Use --force to install locally, or: daspkg install --global {source}@{constraint}\n")
-            if (!force) {
-                return 1
-            }
+            if (!force) return 1
             // --force: fall through to local install
         }
     }
@@ -636,7 +631,7 @@ def cmd_install_all(root : string; force : bool; is_global : bool = false) {
         return 1
     }
     var pkg_deps : array<PackageDependency>
-    if (!run_das_package_deps(das_package, "", pkg_deps) || length(pkg_deps) == 0) {
+    if (!run_das_package_deps(das_package, "", pkg_deps) || empty(pkg_deps)) {
         to_log(LOG_ERROR, "No dependencies listed in .das_package\n")
         return 1
     }
@@ -809,9 +804,7 @@ def private resolve_latest(source : string; var res : ResolveResult) : bool {
         force_rmdir(tmp_dir)
     }
     let git_url = "https://{source}.git"
-    if (!git_clone(git_url, tmp_dir)) {
-        return false
-    }
+    if (!git_clone(git_url, tmp_dir)) return false
     let das_package = "{tmp_dir}/.das_package"
     var ok = false
     if (fexist(das_package)) {
@@ -886,22 +879,16 @@ def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global :
     let modules_dir = is_global ? "{get_das_root()}/modules" : "{root}/modules"
     let pkg_dir = "{modules_dir}/{pkg_name}"
     let das_package = "{pkg_dir}/.das_package"
-    if (!fexist(das_package)) {
-        return
-    }
+    if (!fexist(das_package)) return
     var pkg_deps : array<PackageDependency>
-    if (!run_das_package_deps(das_package, "", pkg_deps)) {
-        return
-    }
+    if (!run_das_package_deps(das_package, "", pkg_deps)) return
     for (d in pkg_deps) {
         let dep_name = package_name_from_source(d.source)
         if (!has_package(lf, dep_name)) {
             // new dependency — install it
             log("  Installing new dependency: {dep_name}...\n")
             let dep_source = resolve_dep_source(root, d.source)
-            if (empty(dep_source)) {
-                continue
-            }
+            if (empty(dep_source)) continue
             var visiting : table<string; bool>
             let drc = install_git(root, dep_name, dep_source, "", lf, visiting, [is_root = false, is_global = is_global])
             if (drc != 0) {
@@ -910,9 +897,7 @@ def upgrade_dependencies(root, pkg_name : string; var lf : LockFile; is_global :
             continue
         }
         // check if installed version satisfies constraint
-        if (empty(d.version_constraint)) {
-            continue
-        }
+        if (empty(d.version_constraint)) continue
         let dep_entry = get_package(lf, dep_name)
         let dep_version = dep_entry.tag
         if (!satisfies_constraint(dep_version, d.version_constraint)) {
@@ -936,13 +921,8 @@ def cmd_upgrade_all(root : string; is_global : bool = false) {
         }
     }
     // upgrade root packages only — deps get pulled along
-    var names : array<string>
-    for (entry in lf.packages) {
-        if (entry.root && !entry.local) {
-            names |> push_clone(entry.name)
-        }
-    }
-    if (length(names) == 0) {
+    let names <- [for (entry in lf.packages); entry.name; where entry.root && !entry.local]
+    if (empty(names)) {
         print("No upgradeable packages\n")
         return 0
     }
@@ -998,7 +978,7 @@ def build_package(pkg_dir : string) : bool {
     }
 
     // Build
-    exit_code = run_cmd("cmake --build \"{build_dir}\" --config Release", output)
+    exit_code = run_cmd("cmake --build \"{build_dir}\" --config Release --parallel", output)
     if (exit_code != 0) {
         log("  CMake build FAILED:\n{output}\n")
         return false
@@ -1015,9 +995,7 @@ def cmd_build(root : string; is_global : bool = false) {
     var built = 0
     var failed = 0
     dir(modules_dir) $(name) {
-        if (name == "." || name == ".." || starts_with(name, ".")) {
-            return
-        }
+        if (name == "." || name == ".." || starts_with(name, ".")) return
         let pkg_dir = "{modules_dir}/{name}"
         if (fexist("{pkg_dir}/CMakeLists.txt")) {
             log("Building '{name}'...\n")
@@ -1033,9 +1011,7 @@ def cmd_build(root : string; is_global : bool = false) {
     } else {
         print("Build complete: {built} succeeded, {failed} failed\n")
     }
-    if (failed > 0) {
-        return 1
-    }
+    if (failed > 0) return 1
     return 0
 }
 
@@ -1204,16 +1180,8 @@ def cmd_check(root : string; json : bool = false; is_global : bool = false) {
 }
 
 def private is_safe_pkg_name(name : string) : bool {
-    if (empty(name)) {
-        return false
-    }
-    if (name == "." || name == "..") {
-        return false
-    }
-    if (find(name, "/") >= 0 || find(name, "\\") >= 0) {
-        return false
-    }
-    return true
+    if (empty(name) || name == "." || name == "..") return false
+    return !(find(name, "/") >= 0 || find(name, "\\") >= 0)
 }
 
 def cmd_cleanup(root : string; force : bool; is_global : bool = false) : int {
@@ -1297,5 +1265,755 @@ def cmd_cleanup(root : string; force : bool; is_global : bool = false) : int {
         }
     }
     log("Cleaned: {removed_dirs} directories, {removed_files} files\n")
+    return 0
+}
+
+// ── release ────────────────────────────────────────────────────────────
+
+// JSON shape produced by `daslang -exe --list-shared-modules <path>` — see
+// `modules/dasLLVM/daslib/llvm_exe.das write_release_deps()`. Field names +
+// types must stay in sync with the writer's structs.
+
+struct private SharedModuleEntry {
+    rel : string                    //!< relative bundle path (modules/<X>/<X>.shared_module); "" if path lacks /modules/
+    abs : string                    //!< absolute path on the build machine
+    das_name : string               //!< daslang-side module name
+}
+
+struct private DasModuleEntry {
+    name : string                   //!< daslang module name
+    file : string                   //!< absolute path to the .das source file
+    package_dir : string            //!< absolute path to the enclosing daspkg package
+}
+
+struct private ReleaseDeps {
+    shared_modules : array<SharedModuleEntry>
+    das_modules : array<DasModuleEntry>
+}
+
+def private read_release_deps(path : string; var deps : ReleaseDeps) : bool {
+    if (!fexist(path)) return false
+    var content : string
+    fopen(path, "rb") $(f) {
+        if (f != null) {
+            content = fread(f)
+        }
+    }
+    var error : string
+    var parsed = read_json(content, error)
+    if (parsed == null) {
+        to_log(LOG_ERROR, "release: cannot parse deps JSON: {error}\n")
+        return false
+    }
+    deps = from_JV(parsed, type<ReleaseDeps>)
+    return true
+}
+
+// Bundle path for the standalone exe (daslang -exe appends `.exe` itself).
+def private bundle_exe_path(bundle_dir, bundle_name : string) : string {
+    return path_join(bundle_dir, bundle_name)
+}
+
+// Sanitize one component of a derived CFBundleIdentifier so it satisfies
+// Apple's [A-Za-z0-9.-] rule. Lowercases, replaces every other byte with
+// `-`, collapses runs of `-`, strips leading/trailing `-`. Returns "x"
+// for inputs that yield nothing salvageable so the final id stays valid.
+// Only used for the derived `com.<author>.<name>` default — user-supplied
+// `release_bundle_id()` passes through untouched.
+def private sanitize_bundle_id_part(s : string) : string {
+    let lower = to_lower(s)
+    let raw = build_string() $(var writer) {
+        var prev_dash = false
+        peek_data(lower) $(arr) {
+            for (i in range(length(arr))) {
+                let b = int(arr[i])
+                // `lower` was lowercased earlier — is_alpha matches both cases,
+                // but no uppercase can reach this branch, so it's equivalent.
+                let is_alnum = is_number(b) || is_alpha(b)
+                if (is_alnum) {
+                    write_char(writer, b)
+                    prev_dash = false
+                } elif (!prev_dash) {
+                    write_char(writer, '-')
+                    prev_dash = true
+                }
+            }
+        }
+    }
+    var result = raw
+    if (!empty(result) && result |> ends_with("-")) {
+        result = slice(result, 0, length(result) - 1)
+    }
+    if (!empty(result) && result |> starts_with("-")) {
+        result = slice(result, 1)
+    }
+    return empty(result) ? "x" : result
+}
+
+// Minimal macOS .app Info.plist. Built with dasPUGIXML so values are
+// XML-escaped automatically — inputs (bundle_name, exe, bundle_id) are
+// otherwise unrestricted on the XML side. CFPropertyList accepts plist
+// without a DOCTYPE, so we omit it.
+def private build_info_plist(name, exe, bundle_id : string) : string {
+    var out = ""
+    with_doc() $(doc) {
+        doc |> tag("plist") $(var pl) {
+            pl |> attr("version", "1.0")
+            pl |> tag("dict") $(var d) {
+                d |> tag("key", "CFBundleName")
+                d |> tag("string", name)
+                d |> tag("key", "CFBundleExecutable")
+                d |> tag("string", exe)
+                d |> tag("key", "CFBundleIdentifier")
+                d |> tag("string", bundle_id)
+                d |> tag("key", "CFBundlePackageType")
+                d |> tag("string", "APPL")
+                d |> tag("key", "CFBundleVersion")
+                d |> tag("string", "1.0")
+                d |> tag("key", "CFBundleShortVersionString")
+                d |> tag("string", "1.0")
+                d |> tag("key", "NSPrincipalClass")
+                d |> tag("string", "NSApplication")
+                d |> tag("key", "NSHighResolutionCapable")
+                d |> tag("true")
+                d |> tag("key", "NSSupportsAutomaticGraphicsSwitching")
+                d |> tag("true")
+            }
+        }
+        out = to_string(doc)
+    }
+    return out
+}
+
+// Run release() on a dep package and copy its release_include files into the
+// bundle at `<bundle>/modules/<DepName>/<rel>`. Returns 0 on success, non-zero
+// on copy failure (missing release() is NOT an error — dep just contributes nothing).
+def private ship_dep_assets(pkg_dir, bundle_modules_dir : string) : int {
+    let dep_pkg_file = "{pkg_dir}/.das_package"
+    if (!fexist(dep_pkg_file)) return 0
+    var dep_spec : PackageReleaseInfo
+    if (!run_das_package_release(dep_pkg_file, dep_spec) ||
+        (empty(dep_spec.include_globs) && empty(dep_spec.native_dlls))) return 0
+    let dep_name = base_name(pkg_dir)
+    let dep_dst_dir = "{bundle_modules_dir}/{dep_name}"
+    var dep_files : array<string>
+    glob_filtered(pkg_dir, dep_spec.include_globs, dep_spec.exclude_globs) $(rel_path, is_dir) {
+        if (!is_dir) {
+            dep_files |> push_clone(rel_path)
+        }
+    }
+    for (rel in dep_files) {
+        let src = path_join(pkg_dir, rel)
+        let dst = path_join(dep_dst_dir, rel)
+        mkdir_rec(dir_name(dst))
+        var err : string
+        if (!copy_file(src, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({src} -> {dst}) failed: {err}\n")
+            return 1
+        }
+    }
+    if (!empty(dep_files)) {
+        log("  ship dep `{dep_name}`: {length(dep_files)} file(s)\n")
+    }
+    if (!empty(dep_spec.native_dlls)) {
+        let rc = ship_native_dlls(dep_name, dep_dst_dir, dep_spec.native_dlls)
+        if (rc != 0) return rc
+    }
+    return 0
+}
+
+// Cached `patchelf --version` result. -1 = unknown, 0 = missing (warned), 1 = present.
+// Module-global mutable state: reset at the top of cmd_release (the sole
+// entry point that wants a fresh probe per release) so a long-running daspkg
+// process picks up a patchelf install between releases. Adding another caller
+// for `have_patchelf` outside cmd_release? Either reset there too, or fold
+// the reset into `have_patchelf` itself behind a one-shot flag — otherwise
+// the new call site will see whatever value the last cmd_release left.
+// Linux-only; macOS uses install_name_tool (ships with the OS) so no
+// equivalent gate is needed.
+var private patchelf_state : int = -1
+
+def private have_patchelf() : bool {
+    if (patchelf_state >= 0) return patchelf_state == 1
+    // Probe by invoking the binary itself (`--version`) rather than the
+    // `command -v` shell builtin — survives any future `run_cmd` refactor
+    // that bypasses /bin/sh, and tests the same PATH resolution every
+    // subsequent `patchelf` call will use.
+    var out : string
+    if (run_cmd("patchelf --version", out) == 0) {
+        patchelf_state = 1
+        return true
+    }
+    patchelf_state = 0
+    to_log(LOG_WARNING, "release: patchelf not found on PATH; absolute RPATH/RUNPATH entries will be left in shipped binaries (bundle still works if dyld/ld.so resolves dylibs via @loader_path/$ORIGIN, but the build-machine paths are visible in `readelf -d`)\n")
+    return false
+}
+
+// Recreate sibling symlinks at the destination so versioned dylib chains
+// (`libglfw.dylib -> libglfw.3.dylib -> libglfw.3.4.dylib`) survive the bundle
+// copy. dyld/ld.so look up the install_name verbatim, so if the loader asks
+// for `@rpath/libglfw.3.dylib` but the bundle only contains the file named
+// `libglfw.3.4.dylib`, lookup fails. The build dir already has the right
+// symlink chain — daspkg just isn't preserving it.
+//
+// POSIX-only. Windows DLLs don't use this naming scheme.
+//
+// `equivalent()` follows symlinks transitively, so a sibling that links to
+// the leaf file through any number of hops will compare equal to it.
+def private preserve_dylib_symlinks(src_dir, dst_dir, src_name : string) {
+    if (get_platform_name() == "windows") return
+    let src_abs = path_join(src_dir, src_name)
+    dir(src_dir) $(filename) {
+        if (filename == src_name || filename == "." || filename == "..") return
+        let cand = path_join(src_dir, filename)
+        var err : string
+        if (!is_symlink(cand, err)) return
+        var eq_err : string
+        if (!equivalent(cand, src_abs, eq_err)) return
+        let link_path = path_join(dst_dir, filename)
+        // Already shipped (e.g. dual call sites for the same dep) — leave alone.
+        if (fexist(link_path)) return
+        var ln_out : string
+        let ln_rc = run_cmd("ln -s \"{src_name}\" \"{link_path}\"", ln_out)
+        if (ln_rc == 0) {
+            log("  ship symlink: {filename} -> {src_name}\n")
+        } else {
+            to_log(LOG_WARNING, "release: ln -s {src_name} -> {link_path} failed (rc={ln_rc}): {ln_out}\n")
+        }
+    }
+}
+
+//! Parse `otool -l <path>` and return every LC_RPATH entry, in order.
+//! macOS-only. Returns an empty array if otool fails or the binary has no
+//! LC_RPATH blocks. Exported so the audit test in test_daspkg.das can reuse
+//! the same parser the production scrubber uses.
+def list_lc_rpaths(path : string) : array<string> {
+    var rpaths : array<string>
+    if (get_platform_name() != "darwin") return <- rpaths
+    var lst_out : string
+    if (run_cmd("otool -l \"{path}\"", lst_out) != 0) return <- rpaths
+    var in_rpath = false
+    for (line in split(lst_out, "\n")) {
+        let s = strip(line)
+        if (s == "cmd LC_RPATH") {
+            in_rpath = true
+        } elif (in_rpath && starts_with(s, "path ")) {
+            let after = slice(s, 5)
+            let off = find(after, " (offset")
+            let p = (off >= 0 ? slice(after, 0, off) : after)
+            rpaths |> push_clone(p)
+            in_rpath = false
+        } elif (starts_with(s, "Load command ")) {
+            in_rpath = false
+        }
+    }
+    return <- rpaths
+}
+
+//! True when `rp` is NOT a loader-relative path (`@executable_path`,
+//! `@loader_path`, or `@rpath`). Loader-relative entries are bundle-portable;
+//! everything else is a build-tree leak and must be scrubbed before ship.
+def is_external_rpath(rp : string) : bool {
+    return !(starts_with(rp, "@executable_path") ||
+             starts_with(rp, "@loader_path") ||
+             starts_with(rp, "@rpath"))
+}
+
+struct private LinuxRpathTags {
+    has_rpath : bool
+    has_runpath : bool
+    value : string
+}
+
+// Read RPATH / RUNPATH from `readelf -d <path>`. Lines look like:
+//   0x000000000000001d (RUNPATH)            Library runpath: [$ORIGIN/lib:/abs]
+//   0x000000000000000f (RPATH)              Library rpath: [/abs/path]
+// In practice only one of the two appears, and modern toolchains prefer
+// RUNPATH. When both are present (rare; older toolchains), `value`
+// concatenates their bracketed contents with `:` so the downstream
+// filter sees every entry from both tags. When neither is present, all
+// fields are zero/empty.
+def private read_linux_rpath_tags(path : string) : LinuxRpathTags {
+    var tags : LinuxRpathTags
+    var re_out : string
+    if (run_cmd("readelf -d \"{path}\"", re_out) != 0) return tags
+    for (line in split(re_out, "\n")) {
+        let saw_rpath = find(line, "(RPATH)") >= 0
+        let saw_runpath = find(line, "(RUNPATH)") >= 0
+        if (!saw_rpath && !saw_runpath) continue
+        let lb = find(line, "[")
+        let rb = find(line, "]")
+        if (lb < 0 || rb <= lb) continue
+        if (saw_rpath) {
+            tags.has_rpath = true
+        }
+        if (saw_runpath) {
+            tags.has_runpath = true
+        }
+        let val = slice(line, lb + 1, rb)
+        if (empty(tags.value)) {
+            tags.value = val
+        } else {
+            tags.value = "{tags.value}:{val}"
+        }
+    }
+    return tags
+}
+
+// Strip absolute RPATH/LC_RPATH entries from a shipped binary so the bundle
+// can't dyld-fallback through build-machine paths on the recipient.
+//
+//   macOS: list LC_RPATH via `list_lc_rpaths`, drop every entry where
+//          `is_external_rpath` is true via `install_name_tool -delete_rpath`.
+//   Linux: read RPATH AND RUNPATH separately via `readelf -d`, keep only
+//          `$ORIGIN`-relative entries, write back preserving the original
+//          tag (DT_RPATH vs DT_RUNPATH have different lookup semantics —
+//          RPATH is checked before LD_LIBRARY_PATH, RUNPATH after). Skipped
+//          when patchelf isn't on PATH (warned once via `have_patchelf`).
+//   Windows: no-op (PE has no rpath equivalent).
+def private scrub_external_rpaths(path : string) {
+    let platform = get_platform_name()
+    if (platform == "windows") return
+    if (platform == "darwin") {
+        for (rp in list_lc_rpaths(path)) {
+            if (!is_external_rpath(rp)) continue
+            var del_out : string
+            let drc = run_cmd("install_name_tool -delete_rpath \"{rp}\" \"{path}\"", del_out)
+            if (drc != 0) {
+                to_log(LOG_WARNING, "release: install_name_tool -delete_rpath \"{rp}\" \"{path}\" failed (rc={drc}): {del_out}\n")
+            }
+        }
+        return
+    }
+    // Linux
+    if (!have_patchelf()) return
+    let tags = read_linux_rpath_tags(path)
+    if (!tags.has_rpath && !tags.has_runpath) return
+    var kept : array<string>
+    for (entry in split(tags.value, ":")) {
+        let e = strip(entry)
+        if (empty(e)) continue
+        if (starts_with(e, "$ORIGIN")) {
+            kept |> push_clone(e)
+        }
+    }
+    var op_out : string
+    if (empty(kept)) {
+        if (run_cmd("patchelf --remove-rpath \"{path}\"", op_out) != 0) {
+            to_log(LOG_WARNING, "release: patchelf --remove-rpath {path} failed: {op_out}\n")
+        }
+        return
+    }
+    let joined = join(kept, ":")
+    // Escape `$` to `\$` so bash inside the double-quoted `--set-rpath "..."`
+    // arg treats $ORIGIN / $LIB / $PLATFORM as literal dollar-prefixed tokens
+    // instead of shell variable references (which would expand to empty —
+    // wiping the rpath, exactly what made the Linux smoke fail on CI before
+    // this fix).
+    let joined_shell = replace(joined, "$", "\\$")
+    // Preserve which tag was originally set. If the binary had DT_RPATH but
+    // no DT_RUNPATH, patchelf would otherwise write DT_RUNPATH and change
+    // loader semantics (RUNPATH defers to LD_LIBRARY_PATH first). When both
+    // tags are present (rare; modern binutils rejects this since 2.36), or
+    // only RUNPATH, the default `--set-rpath` writes DT_RUNPATH which
+    // matches the original.
+    let force_flag = (tags.has_rpath && !tags.has_runpath) ? "--force-rpath " : ""
+    if (run_cmd("patchelf {force_flag}--set-rpath \"{joined_shell}\" \"{path}\"", op_out) != 0) {
+        to_log(LOG_WARNING, "release: patchelf {force_flag}--set-rpath \"{joined}\" {path} failed: {op_out}\n")
+    }
+}
+
+// Read the dylib's "self-reference name" — install_name on macOS (LC_ID_DYLIB
+// via `otool -D`), SONAME on Linux (DT_SONAME via `patchelf --print-soname`
+// with `readelf -d` as the more-universal fallback). Empty string means
+// unreadable or none present.
+def private read_dylib_self_name(dst : string) : string {
+    let platform = get_platform_name()
+    if (platform == "darwin") {
+        var id_out : string
+        if (run_cmd("otool -D \"{dst}\"", id_out) != 0) return ""
+        // `otool -D` prints:  <filename>:\n<install_name>\n   (two lines)
+        var name = ""
+        for (line in split(id_out, "\n")) {
+            let s = strip(line)
+            if (empty(s) || ends_with(s, ":")) continue
+            name = s
+        }
+        return name
+    }
+    if (platform != "linux") return ""
+    // Try patchelf first (already required for the Linux scrub path).
+    var pe_out : string
+    if (run_cmd("patchelf --print-soname \"{dst}\"", pe_out) == 0) {
+        let soname = strip(pe_out)
+        if (!empty(soname)) return soname
+    }
+    // readelf fallback — universally available via binutils.
+    //   0x000000000000000e (SONAME)             Library soname: [libglfw.so.3]
+    var re_out : string
+    if (run_cmd("readelf -d \"{dst}\"", re_out) != 0) return ""
+    for (line in split(re_out, "\n")) {
+        if (find(line, "SONAME") < 0) continue
+        let lb = find(line, "[")
+        let rb = find(line, "]")
+        if (lb >= 0 && rb > lb) return slice(line, lb + 1, rb)
+    }
+    return ""
+}
+
+// dyld/ld.so looks up dylibs by the self-reference name baked into the
+// loading binary, not by filename — so if libglfw.3.4.dylib's install_name
+// is `@rpath/libglfw.3.dylib`, the bundle must contain a file (or symlink)
+// literally named `libglfw.3.dylib`, no matter what the source file was
+// named. CMake's install step into `<das_root>/lib` doesn't preserve the
+// build dir's versioned-alias chain — so `preserve_dylib_symlinks` finds
+// nothing to copy, and we have to reconstruct the alias from the dylib's
+// own metadata.
+//
+// No-op when basename(self-name) == basename(dst), the alias already exists,
+// or (macOS) the install_name isn't @-relative.
+def private ensure_dylib_alias(dst : string) {
+    let platform = get_platform_name()
+    if (platform != "darwin" && platform != "linux") return
+    let self_name = read_dylib_self_name(dst)
+    // macOS install_names must be @-relative to be portable; absolute paths
+    // shouldn't appear in shipped dylibs and we shouldn't create an alias
+    // for them. Linux SONAMEs are bare basenames — no prefix gate needed.
+    if (empty(self_name) ||
+        (platform == "darwin" &&
+         !(starts_with(self_name, "@rpath/") ||
+           starts_with(self_name, "@executable_path/") ||
+           starts_with(self_name, "@loader_path/")))) return
+    let alias = base_name(self_name)
+    if (alias == base_name(dst)) return
+    let link_path = path_join(dir_name(dst), alias)
+    if (fexist(link_path)) return
+    var ln_out : string
+    let ln_rc = run_cmd("ln -s \"{base_name(dst)}\" \"{link_path}\"", ln_out)
+    if (ln_rc == 0) {
+        log("  ship alias: {alias} -> {base_name(dst)}\n")
+    } else {
+        to_log(LOG_WARNING, "release: ln -s {base_name(dst)} -> {link_path} failed (rc={ln_rc}): {ln_out}\n")
+    }
+}
+
+// One-liner used at every ship site: preserve any sibling symlink chain from
+// the source, materialize the install_name alias if it's still missing
+// (macOS), then strip absolute rpath entries from the copy.
+def private finalize_shipped_binary(src, dst : string) {
+    preserve_dylib_symlinks(dir_name(src), dir_name(dst), base_name(src))
+    ensure_dylib_alias(dst)
+    scrub_external_rpaths(dst)
+}
+
+// Copy each declared native shared library from the daslang install tree
+// (`<das_root>/bin/` on Windows, `<das_root>/lib/` on POSIX) into `dst_dir`.
+// Authors declared these via `release_include_dll(...)`; missing files are an
+// error — usually a typo or an out-of-sync install.
+//
+// Resolution order (deterministic so multi-config build trees can't ship the
+// wrong binary nondeterministically):
+//   1. Exact match at `<search_root>/<name>` (an installed layout has this).
+//   2. Build-tree config dirs in fixed preference: Release > RelWithDebInfo >
+//      MinSizeRel > Debug, e.g. `<search_root>/Release/<name>`.
+//   3. Fall through to `**/<name>` and pick the first match.
+def private ship_native_dlls(dep_name, dst_dir : string; native_dlls : array<string>) : int {
+    let platform = get_platform_name()
+    let search_root = (platform == "windows"
+        ? "{get_das_root()}/bin"
+        : "{get_das_root()}/lib")
+    mkdir_rec(dst_dir)
+    for (name in native_dlls) {
+        var found_src = ""
+        // 1. exact path under search_root
+        let exact = path_join(search_root, name)
+        if (fexist(exact)) {
+            found_src = exact
+        }
+        // 2. preferred config dirs
+        if (empty(found_src)) {
+            for (cfg in ["Release", "RelWithDebInfo", "MinSizeRel", "Debug"]) {
+                let candidate = "{search_root}/{cfg}/{name}"
+                if (fexist(candidate)) {
+                    found_src = candidate
+                    break
+                }
+            }
+        }
+        // 3. fall through to a recursive glob (handles nested layouts)
+        if (empty(found_src)) {
+            glob(search_root, "**/{name}") $(rel_path, is_dir) {
+                if (!is_dir && empty(found_src)) {
+                    found_src = path_join(search_root, rel_path)
+                }
+            }
+        }
+        if (empty(found_src)) {
+            to_log(LOG_ERROR, "release: dep `{dep_name}` declared release_include_dll(\"{name}\") but no match under `{search_root}` (tried {search_root}/{name}, {search_root}/<config>/{name}, and **/{name})\n")
+            return 1
+        }
+        // dir_name(dst) so a `name` like `subdir/lib.so` still works -- defensive,
+        // not endorsed by the API docs which imply a leaf filename.
+        let dst = path_join(dst_dir, name)
+        mkdir_rec(dir_name(dst))
+        var err : string
+        if (!copy_file(found_src, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({found_src} -> {dst}) failed: {err}\n")
+            return 1
+        }
+        log("  ship dep `{dep_name}` native: {name}\n")
+        finalize_shipped_binary(found_src, dst)
+    }
+    return 0
+}
+
+// Copy of `daslib/command_line.get_das_exe()`. We can't require command_line
+// here because `commands` is a shared module and command_line is not.
+// Returns the absolute path to the daslang interpreter, derived from argv[0]
+// (works whether daspkg runs interpreted or as a future standalone exe).
+def private get_daslang_path() : string {
+    let args <- get_command_line_arguments()
+    if (empty(args)) return ""
+    var exe = replace(args[0], "\\", "/")
+    if (find(exe, ":") < 0 && first_character(exe) != '/') {
+        exe = "{get_das_root()}/{exe}"
+    }
+    let last_slash = rfind(exe, "/")
+    let dir = last_slash >= 0 ? slice(exe, 0, last_slash + 1) : ""
+    let interpreter = get_platform_name() == "windows" ? "daslang.exe" : "daslang"
+    let joined = "{dir}{interpreter}"
+    return get_platform_name() == "windows" ? replace(joined, "/", "\\") : joined
+}
+
+def cmd_release(root : string; out_dir : string) : int {
+    // Reset the patchelf availability cache so a daspkg process that releases
+    // multiple bundles can pick up a patchelf install between calls.
+    patchelf_state = -1
+    let das_package = "{root}/.das_package"
+    if (!fexist(das_package)) {
+        to_log(LOG_ERROR, "release: no .das_package in {root}\n")
+        return 1
+    }
+    var spec : PackageReleaseInfo
+    if (!run_das_package_release(das_package, spec)) {
+        to_log(LOG_ERROR, "release: cannot run release() in {das_package}\n")
+        return 1
+    }
+    if (empty(spec.main_script)) {
+        // run_das_package_release returns true with an empty spec both when
+        // release() is missing entirely and when it's present but never calls
+        // release_main(). Phrase the error to cover both.
+        to_log(LOG_ERROR, "release: {das_package} has no release() hook, or release() didn't call release_main(<script.das>)\n")
+        return 1
+    }
+
+    // Pick bundle name: explicit release_name() > package_name() > root dir name.
+    var pkg : PackageMeta
+    let have_pkg = run_das_package_meta(das_package, pkg)
+    var bundle_name = spec.name
+    if (empty(bundle_name)) {
+        if (have_pkg && !empty(pkg.pkg_name)) {
+            bundle_name = pkg.pkg_name
+        } else {
+            bundle_name = base_name(get_full_file_name(root))
+        }
+    }
+    // bundle_name flows from .das_package metadata (release_name() /
+    // package_name()) — possibly authored by a downloaded dep. Reject path
+    // separators / `..` so a hostile or typo'd name can't escape out_dir
+    // when path_join + force_rmdir run below.
+    if (!is_safe_pkg_name(bundle_name)) {
+        to_log(LOG_ERROR, "Error: unsafe bundle name `{bundle_name}` (must not contain path separators or be `.` / `..`)\n")
+        return 1
+    }
+    // macOS: emit a clickable .app bundle. The exe + dylibs + modules go into
+    // Contents/MacOS/, so all subsequent ship logic uses bundle_dir unchanged
+    // and the rpath / module resolver still see the same <exe_dir> layout.
+    let is_mac_app = get_platform_name() == "darwin"
+    let app_root = is_mac_app ? path_join(out_dir, "{bundle_name}.app") : ""
+    let bundle_dir = is_mac_app ? path_join(app_root, "Contents/MacOS") : path_join(out_dir, bundle_name)
+    let cleanup_target = is_mac_app ? app_root : bundle_dir
+    if (fexist(cleanup_target)) {
+        force_rmdir(cleanup_target)
+    }
+    mkdir_rec(bundle_dir)
+
+    // 1. Build the standalone exe; `--list-shared-modules` writes the deps JSON
+    //    (auto-detected dylibs + transitive .das_package list) as a side effect.
+    //    `--force-shared-module <name>` passes each release_shared_module(name)
+    //    to daslang; lookup happens there so the full registry is available
+    //    (when daspkg itself is compiled standalone, its registry would only
+    //    contain dylibs daspkg's own code references — too narrow).
+    let exe_path = bundle_exe_path(bundle_dir, bundle_name)
+    run_cmd_counter ++
+    let deps_file = "{get_das_root()}/_daspkg_release_deps_{run_cmd_counter}.json"
+    let main_path = path_join(root, spec.main_script)
+    var output : string
+    let daslang = get_daslang_path()
+    let force_args = build_string() $(var writer) {
+        for (name in spec.forced_modules) {
+            writer |> write(" --force-shared-module \"")
+            writer |> write(name)
+            writer |> write("\"")
+        }
+    }
+    let cmd = "\"{daslang}\" -exe -output \"{exe_path}\" --list-shared-modules \"{deps_file}\"{force_args} \"{main_path}\""
+    let rc = run_cmd(cmd, output)
+    if (rc != 0) {
+        to_log(LOG_ERROR, "release: daslang -exe failed (rc={rc}):\n{output}\n")
+        if (fexist(deps_file)) {
+            remove(deps_file)
+        }
+        return 1
+    }
+    // daslang -exe writes <exe_path>.exe (the runnable binary) and <exe_path>.o
+    // (a build-time object file). Drop the .o — it's not needed at runtime.
+    let obj_path = "{exe_path}.o"
+    if (fexist(obj_path)) {
+        remove(obj_path)
+    }
+    // macOS .app: drop the .exe extension (Mac convention). Info.plist's
+    // CFBundleExecutable matches the renamed binary.
+    if (is_mac_app) {
+        let actual_exe = "{exe_path}.exe"
+        var rerr : string
+        if (!rename(actual_exe, exe_path, rerr)) {
+            to_log(LOG_ERROR, "release: cannot rename {actual_exe} -> {exe_path}: {rerr}\n")
+            return 1
+        }
+    }
+    // Scrub absolute LC_RPATH / RUNPATH entries the daslang build leaks into
+    // the exe (build-tree `<das_root>/lib` etc.). The `@executable_path`/`$ORIGIN`
+    // entries that PR #2588 added are kept — those are what makes the bundle
+    // portable in the first place.
+    scrub_external_rpaths(exe_path)
+
+    // 2. Parse deps JSON, ship dylibs at the relative path the exe expects.
+    //    The writer has already merged force-included modules into shared_modules,
+    //    so we just iterate.
+    var deps : ReleaseDeps
+    if (!read_release_deps(deps_file, deps)) {
+        to_log(LOG_ERROR, "release: cannot read deps file at {deps_file}\n")
+        remove(deps_file)
+        return 1
+    }
+    remove(deps_file)
+    for (e in deps.shared_modules) {
+        if (empty(e.rel)) {
+            to_log(LOG_WARNING, "release: skipping module `{e.das_name}` (no /modules/ in `{e.abs}`)\n")
+            continue
+        }
+        let dst = path_join(bundle_dir, e.rel)
+        mkdir_rec(dir_name(dst))
+        var err : string
+        if (!copy_file(e.abs, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({e.abs} -> {dst}) failed: {err}\n")
+            return 1
+        }
+        log("  ship: {e.rel}\n")
+        finalize_shipped_binary(e.abs, dst)
+    }
+
+    // 2.5 Ship daslang runtime dylibs next to the exe. Without these the bundle
+    //     dyld-loads via the build-machine fallback rpath and crashes on relocation.
+    //     The exe's primary rpath is @executable_path / $ORIGIN, so any .{dylib,so,dll}
+    //     named libDaScriptDyn* (or its libliblib... cmake variant) shipped here
+    //     resolves at runtime. CMake puts the RUNTIME artifact (Windows .dll) in
+    //     `<das_root>/bin`, while LIBRARY artifacts (.dylib / .so) go in
+    //     `<das_root>/lib` — search the correct dir per platform.
+    let platform = get_platform_name()
+    let runtime_lib_dir = (platform == "windows"
+        ? "{get_das_root()}/bin"
+        : "{get_das_root()}/lib")
+    // Patterns are `**/...` so the recursive walk crosses config subdirs
+    // (Visual Studio / Xcode put the artifact in `bin/Release/`, not `bin/`).
+    let runtime_glob = (platform == "windows" ? "**/libDaScriptDyn*.dll"
+        : platform == "darwin" ? "**/*libDaScriptDyn*.dylib"
+        : "**/*libDaScriptDyn*.so")
+    var runtime_copy_failed = false
+    var runtime_copies = 0
+    glob(runtime_lib_dir, runtime_glob) $(rel_path, is_dir) {
+        if (is_dir) return
+        let src = path_join(runtime_lib_dir, rel_path)
+        let dst = path_join(bundle_dir, base_name(rel_path))
+        var err : string
+        if (!copy_file(src, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({src} -> {dst}) failed: {err}\n")
+            runtime_copy_failed = true
+            return
+        }
+        runtime_copies++
+        log("  ship runtime: {base_name(rel_path)}\n")
+        finalize_shipped_binary(src, dst)
+    }
+    if (runtime_copy_failed) return 1
+    if (runtime_copies == 0) {
+        to_log(LOG_ERROR, "release: no daslang runtime libs matched `{runtime_glob}` under `{runtime_lib_dir}`; bundle would not load on a relocated machine\n")
+        return 1
+    }
+
+    // 3. Transitive dep traversal — for each unique dep .das_package (excluding
+    //    the project's own root), run release() and copy its release_include
+    //    files to <bundle>/modules/<DepName>/<rel>.
+    let project_root_abs = get_full_file_name(root)
+    var seen_pkg_dirs : table<string; bool>
+    seen_pkg_dirs[project_root_abs] = true
+    let bundle_modules_dir = path_join(bundle_dir, "modules")
+    for (dm in deps.das_modules) {
+        let pkg_abs = get_full_file_name(dm.package_dir)
+        if (key_exists(seen_pkg_dirs, pkg_abs)) continue
+        seen_pkg_dirs[pkg_abs] = true
+        let rc2 = ship_dep_assets(pkg_abs, bundle_modules_dir)
+        if (rc2 != 0) return rc2
+    }
+
+    // 4. Glob the project's own assets per spec, copy preserving relative paths.
+    var asset_files : array<string>
+    glob_filtered(root, spec.include_globs, spec.exclude_globs) $(rel_path, is_dir) {
+        if (!is_dir) {
+            asset_files |> push_clone(rel_path)
+        }
+    }
+    for (rel_path in asset_files) {
+        let src = path_join(root, rel_path)
+        let dst = path_join(bundle_dir, rel_path)
+        mkdir_rec(dir_name(dst))
+        var err : string
+        if (!copy_file(src, dst, true, err)) {
+            to_log(LOG_ERROR, "release: copy_file({src} -> {dst}) failed: {err}\n")
+            return 1
+        }
+    }
+    if (!empty(asset_files)) {
+        log("  shipped {length(asset_files)} project asset file(s)\n")
+    }
+    // Project-declared native deps land next to the exe (the project has no
+    // .shared_module to colocate with — its deps are loaded directly by the exe).
+    if (!empty(spec.native_dlls)) {
+        let rc3 = ship_native_dlls(bundle_name, bundle_dir, spec.native_dlls)
+        if (rc3 != 0) return rc3
+    }
+
+    // 5. macOS .app: write Contents/Info.plist. Bundle ID source priority:
+    //    explicit release_bundle_id() > derived com.<sanitized-author>.<sanitized-name>
+    //    > com.daspkg.<sanitized-name>. Apple requires CFBundleIdentifier to use
+    //    only [A-Za-z0-9.-], so the derived default sanitizes both pieces;
+    //    user-supplied release_bundle_id() passes through untouched.
+    if (is_mac_app) {
+        var bundle_id = spec.bundle_id
+        if (empty(bundle_id)) {
+            let author_raw = (have_pkg && !empty(pkg.author)) ? pkg.author : "daspkg"
+            bundle_id = "com.{sanitize_bundle_id_part(author_raw)}.{sanitize_bundle_id_part(bundle_name)}"
+        }
+        let plist_path = path_join(app_root, "Contents/Info.plist")
+        if (!fwrite(plist_path, build_info_plist(bundle_name, bundle_name, bundle_id))) {
+            to_log(LOG_ERROR, "release: cannot write {plist_path}\n")
+            return 1
+        }
+        log("  wrote: Contents/Info.plist (CFBundleIdentifier={bundle_id})\n")
+        log("Released to: {app_root}\n")
+    } else {
+        log("Released to: {bundle_dir}\n")
+    }
     return 0
 }

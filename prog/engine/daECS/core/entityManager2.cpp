@@ -8,6 +8,7 @@
 #include <util/dag_fixedBitArray.h>
 #include <util/dag_stlqsort.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <daECS/core/entitySystem.h>
 #include "ecsQueryInternal.h"
 #include "ecsQueryManager.h"
 #include "entityManagerEvent.h"
@@ -51,10 +52,11 @@ bool EntityComponentRef::operator==(const EntityComponentRef &a) const
   const component_index_t typeId = getTypeId();
   if (typeId != a.getTypeId())
     return false;
-  ComponentType typeInfo = g_entity_mgr->getComponentTypes().getTypeInfo(typeId);
+  ComponentTypes &types = EntityManager::shared_component_types();
+  ComponentType typeInfo = types.getTypeInfo(typeId);
   if (is_pod(typeInfo.flags))
     return memcmp(getRawData(), a.getRawData(), typeInfo.size) == 0;
-  ComponentTypeManager *ctm = g_entity_mgr->getComponentTypes().getTypeManager(typeId);
+  ComponentTypeManager *ctm = types.getTypeManager(typeId);
   return ctm ? ctm->is_equal(getRawData(), a.getRawData()) : true;
 }
 
@@ -1111,7 +1113,29 @@ void EntityManager::initCompileTimeQueries()
 
 void init_profiler_tokens();
 
-EntityManager::EntityManager() : templateDB(*this)
+ComponentTypes EntityManager::component_types;
+bool EntityManager::component_types_initialized = false;
+
+void EntityManager::ensure_shared_component_types_initialized()
+{
+  EsListLock::ScopedLock lock;
+  if (!component_types_initialized)
+  {
+    component_types.initialize();
+    component_types_initialized = true;
+  }
+}
+
+void EntityManager::destroy_shared_component_types()
+{
+  EsListLock::ScopedLock lock;
+  if (!component_types_initialized)
+    return;
+  component_types.clear();
+  component_types_initialized = false;
+}
+
+EntityManager::EntityManager() : componentTypes(component_types), templateDB(*this)
 {
   ownerThreadId = get_main_thread_id(); // use main thread as default to keep same logic
   init_profiler_tokens();
@@ -1125,7 +1149,7 @@ EntityManager::EntityManager() : templateDB(*this)
   entDescs.reserve(MAX_RESERVED_EID_IDX_CONST + 4096); // this allows up to 4096 entites beyond reserved
   entDescs.resize(MAX_RESERVED_EID_IDX_CONST + 1);
   allocateInvalid();
-  componentTypes.initialize();
+  ensure_shared_component_types_initialized();
   dataComponents.initialize(componentTypes);
   uint32_t biggestType = 0;
   for (int i = 0; i < componentTypes.getTypeCount(); ++i)
@@ -1136,7 +1160,8 @@ EntityManager::EntityManager() : templateDB(*this)
   resetEsOrder();
 }
 
-EntityManager::EntityManager(const EntityManager &from) : ownerThreadId(from.ownerThreadId), templateDB(*this)
+EntityManager::EntityManager(const EntityManager &from) :
+  ownerThreadId(from.ownerThreadId), componentTypes(component_types), templateDB(*this)
 {
   init_profiler_tokens();
   delayedCreationQueue.reserve(16); // avoid memory reallocation. 16 is enough for 2mln of entities.
@@ -1149,7 +1174,7 @@ EntityManager::EntityManager(const EntityManager &from) : ownerThreadId(from.own
   entDescs.reserve(MAX_RESERVED_EID_IDX_CONST + 4096); // this allows up to 4096 entites beyond reserved
   entDescs.resize(MAX_RESERVED_EID_IDX_CONST + 1);
   allocateInvalid();
-  componentTypes.initialize();
+  ensure_shared_component_types_initialized();
   dataComponents.initialize(componentTypes);
   uint32_t biggestType = 0;
   for (int i = 0; i < componentTypes.getTypeCount(); ++i)
@@ -1283,6 +1308,7 @@ void EntityManager::copyFrom(const EntityManager &from)
   queriesGenerations.clear();
   queryRequiredBitmasks.clear();
   firstMissingComponent.clear();
+  freeQueriesCount = 0;
   for (uint32_t qi = 0u; qi < from.getQueriesCount(); qi++)
   {
     auto qid = from.getQuery(qi);
@@ -1745,6 +1771,9 @@ void EntityManager::tick(bool flush_all)
     logerr("tick within query/es isn't allowed, or nestedQuery=%d leaked", nestedQuery);
     nestedQuery = 0;
   }
+
+  if (lastEsGen != EntitySystemDesc::generation)
+    resetEsOrder();
 
   updateCurrentUpdateMaxJobs();
   performTrackChanges(flush_all);

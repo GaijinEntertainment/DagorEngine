@@ -646,7 +646,14 @@ void draw_scene(uint32_t frame_id)
   start_async_game_tasks(frame_id); // Start the rest of tasks in case it wasnt started before
 
   // On Xbox this sets the SDR render target for GUI render
-  d3d::set_render_target(1, d3d::get_secondary_backbuffer_tex(), 0);
+  Texture *guiPrimaryRt;
+  if (auto wr = get_world_renderer())
+    guiPrimaryRt = wr->getFinalTargetTex().getTex2D();
+  else if (hdrrender::is_hdr_enabled())
+    guiPrimaryRt = hdrrender::get_render_target().getTex2D();
+  else
+    guiPrimaryRt = d3d::get_backbuffer_tex();
+  d3d::set_render_target({}, DepthAccess::RW, {{guiPrimaryRt, 0, 0}, {d3d::get_secondary_backbuffer_tex(), 0, 0}});
 
   if (::grs_draw_wire)
     d3d::setwire(0);

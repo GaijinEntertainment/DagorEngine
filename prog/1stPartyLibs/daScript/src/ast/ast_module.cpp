@@ -2,7 +2,7 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
-#include "daScript/das_common.h"
+#include "daScript/misc/das_common.h"
 #include "daScript/daScriptModule.h"
 #include "daScript/misc/handle_registry.h"
 #include "daScript/simulate/simulate_fusion.h"
@@ -151,8 +151,18 @@ namespace das {
 
     atomic<int> g_envTotal(0);
 
+    static void daslang_atexit_audit() {
+        int n = g_envTotal.load();
+        if ( n != 0 ) {
+            fprintf(stderr, "[daslang atexit] FATAL: g_envTotal=%d at exit (Initialize/Shutdown not balanced)\n", n);
+            _Exit(1);
+        }
+    }
+
     void Module::Initialize() {
         daScriptEnvironment::ensure();
+        static bool atexit_registered = (atexit(daslang_atexit_audit), true);
+        (void)atexit_registered;
         g_envTotal ++;
 
         if (daScriptEnvironment::getBound()->modules == nullptr) {
@@ -199,6 +209,7 @@ namespace das {
             m->gc_collect(&threadRoot);
         }
         threadRoot.gc_sweep();
+        daScriptEnvironment::getBound()->g_modulesInitialized = true;
     }
 
     void Module::CollectFileInfo(das::vector<FileInfoPtr> &finfos) {
@@ -215,7 +226,7 @@ namespace das {
         return handleRegistry_countAll();
     }
 
-    void Module::Shutdown( bool dumpHandleLeaks ) {
+    void Module::shutdownInternal ( bool dumpHandleLeaks, bool resetFusion ) {
         DAS_ASSERT(daScriptEnvironment::getOwned()!=nullptr);
         DAS_ASSERT(daScriptEnvironment::getBound()!=nullptr);
         g_envTotal --;
@@ -237,13 +248,28 @@ namespace das {
         delete daScriptEnvironment::getBound()->g_dyn_modules_resolve;
 
         clearGlobalAotLibrary();
-        DAS_ASSERTF(g_resetFusionEngineFn, "fusion library not loaded");
-        g_resetFusionEngineFn();
+        if ( resetFusion ) {
+            DAS_ASSERTF(g_resetFusionEngineFn, "fusion library not loaded");
+            g_resetFusionEngineFn();
+        }
         daScriptEnvironment::setBound(nullptr);
         if ( daScriptEnvironment::getOwned() ) {
             delete daScriptEnvironment::getOwned();
             daScriptEnvironment::setOwned(nullptr);
         }
+    }
+
+    void Module::Shutdown( bool dumpHandleLeaks ) {
+        shutdownInternal(dumpHandleLeaks, /*resetFusion=*/true);
+    }
+
+    // Standalone exes built with `daslang -exe` link only libDaScript*_runtime
+    // (no fusion). They call this from the LLVM-generated main right before
+    // returning, so the static g_DebugAgents map and module list drain while
+    // the runtime is still alive — avoids the __cxa_finalize_ranges race on
+    // ref_count_mutex documented in issue #2583.
+    void Module::ShutdownStandalone( bool dumpHandleLeaks ) {
+        shutdownInternal(dumpHandleLeaks, /*resetFusion=*/false);
     }
 
     void Module::Reset(bool debAg) {
@@ -272,11 +298,18 @@ namespace das {
         return nullptr;
     }
 
-    Module * Module::requireEx ( const string & name, bool allowPromoted ) {
+    Module * Module::requireEx ( const string & name, bool allowPromoted, const string & expectedFileName ) {
         if ( !daScriptEnvironment::getBound() ) return nullptr;
         for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next ) {
             if ( allowPromoted || !m->promoted ) {
                 if ( m->name == name ) {
+                    // We key by module name only.
+                    // If someone required daslib/fio earlier (fio is shared),
+                    // and now we write require fio it will be found, although
+                    // it's an error.
+                    if ( m->promoted && !expectedFileName.empty() && m->fileName != expectedFileName ) {
+                        continue;
+                    }
                     return m;
                 }
             }
@@ -351,8 +384,8 @@ namespace das {
         }
     }
 
-    void Module::gc_collect ( gc_root * from ) {
-        auto target = &module_gc_root;
+    void Module::gc_collect ( gc_root * from, gc_root * targetArg ) {
+        auto target = targetArg ? targetArg : module_gc_root.get();
         // collect alias types
         aliasTypes.foreach([&](auto td) {
             if ( td ) td->gc_collect(target, from);
@@ -788,7 +821,7 @@ namespace das {
         ownFileInfo = access->letGoOfFileInfo(modName);
         DAS_ASSERTF(ownFileInfo,"something went wrong and FileInfo for builtin module can not be obtained");
         auto result = appendBuiltinModuleContent(this, program, modName);
-        program->thisModule->module_gc_root.gc_dump_to_thread_root();
+        program->thisModule->module_gc_root->gc_dump_to_thread_root();
         return result;
     }
 

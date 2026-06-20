@@ -29,13 +29,21 @@ public:
   void reset() override;
 
   void setEnabled(bool enabled) override { controlEnabled = enabled; }
+  bool isEnabled() const { return controlEnabled; }
 
   void setButtonPictureValues(const char *fname) override;
+  IconWithNameAndSize &getIcon() { return iconWithNameAndSize; }
+
+  void sendOnClickNotification();
 
   void updateImgui() override { toolbarToggleButtonUpdateImgui(ImDrawFlags_RoundCornersAll); }
 
   // frame_draw_flags: allows specifying which side of the button should be rounded
-  void toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags);
+  // button_id: optional output parameter, contains the ID of the button (what ImGui::GetItemID() would return)
+  // button_active: optional output parameter, contains whether the button is active or not (ImGui::IsItemActive())
+  // button_rect: optional output parameter, contains the button's rectangle (ImGui::GetCurrentContext()->LastItemData.Rect)
+  void toolbarToggleButtonUpdateImgui(ImDrawFlags frame_draw_flags, ImGuiID *button_id = nullptr, bool *button_active = nullptr,
+    ImRect *button_rect = nullptr);
 
 private:
   bool controlValue = false;

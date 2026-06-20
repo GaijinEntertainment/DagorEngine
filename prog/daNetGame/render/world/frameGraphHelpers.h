@@ -6,9 +6,11 @@
 #include <render/debugMesh.h>
 #include <render/debugGbuffer.h>
 #include <render/rendererFeatures.h>
+#include <render/world/bvh.h>
 #include <render/world/cameraParams.h>
 #include <render/world/cameraInCamera.h>
 #include <render/world/gbufferConsts.h>
+#include <render/world/wrDispatcher.h>
 #include <util/dag_convar.h>
 #include <drv/3d/dag_texture.h>
 
@@ -117,16 +119,14 @@ inline auto request_common_transparent_state(dafg::Registry &registry, const cha
         .color({"color_target", reactiveMask})
         .depthReadTestAndSample("depth", {depth_bind});
     else
-      // TODO: replace depthReadTestAndSample with depthReadTestOnly when we fix it
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target", reactiveMask}).depthReadTestAndSample("depth", {});
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target", reactiveMask}).depthReadTestOnly("depth");
   }
   else
   {
     if (depth_bind)
       registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {depth_bind});
     else
-      // TODO: replace depthReadTestAndSample with depthReadTestOnly when we fix it
-      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestAndSample("depth", {});
+      registry.allowAsyncPipelines().requestRenderPass().color({"color_target"}).depthReadTestOnly("depth");
   }
 
   registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
@@ -184,6 +184,43 @@ inline uint32_t get_frame_render_target_format()
   if (!(d3d::get_texformat_usage(rtFmt) & d3d::USAGE_RTARGET))
     rtFmt = TEXFMT_A16B16G16R16F;
   return rtFmt;
+}
+
+inline void create_gbuffer_targets(dafg::Registry registry, const char *name_fmt, const bool need_motion_vectors)
+{
+  const auto gbufResolution = registry.getResolution<2>("main_view");
+
+  const bool isThinG = !renderer_has_feature(FULL_DEFERRED);
+  G_ASSERTF(!(isThinG && need_motion_vectors), "Motion vectors are not supported with thin gbuffer!");
+
+  dag::Span<const unsigned> gbufFmts = isThinG ? dag::Span<const unsigned>(THIN_GBUFFER_RT_FORMATS)
+                                       : need_motion_vectors
+                                         ? dag::Span<const unsigned>(FULL_GBUFFER_FORMATS)
+                                         : dag::Span<const unsigned>(FULL_GBUFFER_FORMATS.data(), NO_MOTION_GBUFFER_RT_COUNT);
+
+  const uint32_t globalFlags = WRDispatcher::isEnviCover() && WRDispatcher::isEnviCoverCompatible()
+                                 ? TEXCF_UNORDERED | GBUF_TARGET_GLOBAL_FLAGS
+                                 : GBUF_TARGET_GLOBAL_FLAGS;
+
+  const bool isRREnabled = is_rr_enabled();
+
+  static const Point3 MOTION_MASK{65504, 65504, 0};
+  for (uint32_t i = 0; i < gbufFmts.size(); ++i)
+  {
+    eastl::fixed_string<char, 16> name(eastl::fixed_string<char, 16>::CtorSprintf{}, name_fmt, i);
+    auto gbufRtHndl = registry.create(name.c_str())
+                        .texture({gbufFmts[i] | globalFlags | TEXCF_RTARGET, gbufResolution})
+                        .useAs(dafg::Usage::COLOR_ATTACHMENT)
+                        .atStage(dafg::Stage::PS);
+    if (i == 0 && isRREnabled)
+      eastl::move(gbufRtHndl).clear(make_clear_value(0.0f, 0.0f, 0.0f, 0.0f));
+    if (i == 1 && (!renderer_has_feature(FeatureRenderFlags::PREV_OPAQUE_TEX) || isRREnabled))
+      eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));
+    if (i == 2 && (need_motion_vectors))
+      eastl::move(gbufRtHndl).clear(make_clear_value(0, 0, 0, 0));
+    if (i == 3)
+      eastl::move(gbufRtHndl).clear(make_clear_value(MOTION_MASK.x, MOTION_MASK.y, MOTION_MASK.z, 0.0f));
+  }
 }
 
 inline uint32_t get_gbuffer_depth_format(const bool need_stencil = false)

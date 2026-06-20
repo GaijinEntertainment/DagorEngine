@@ -130,18 +130,29 @@ struct ScriptedShadersBinDumpOwner
 
   ScriptedShadersBinDump *operator->() { return mShaderDump; }
   ScriptedShadersBinDump *getDump() { return mShaderDump; }
-  ScriptedShadersBinDumpV2 *getDumpV2() { return mShaderDumpV2; }
-  ScriptedShadersBinDumpV3 *getDumpV3() { return mShaderDumpV3; }
+  ScriptedShadersBinDumpV2 *getDumpV2() { return getDumpChecked(mShaderDumpV2, "V2"); }
+  ScriptedShadersBinDumpV3 *getDumpV3() { return getDumpChecked(mShaderDumpV3, "V3"); }
 
   const ScriptedShadersBinDump *getDump() const { return mShaderDump; }
-  const ScriptedShadersBinDumpV2 *getDumpV2() const { return mShaderDumpV2; }
-  const ScriptedShadersBinDumpV3 *getDumpV3() const { return mShaderDumpV3; }
-  const ScriptedShadersBinDumpV4 *getDumpV4() const { return mShaderDumpV4; }
-  const ScriptedShadersBinDumpV5 *getDumpV5() const { return mShaderDumpV5; }
+  const ScriptedShadersBinDumpV2 *getDumpV2() const { return getDumpChecked(mShaderDumpV2, "V2"); }
+  const ScriptedShadersBinDumpV3 *getDumpV3() const { return getDumpChecked(mShaderDumpV3, "V3"); }
+  const ScriptedShadersBinDumpV4 *getDumpV4() const { return getDumpChecked(mShaderDumpV4, "V4"); }
+  const ScriptedShadersBinDumpV5 *getDumpV5() const { return getDumpChecked(mShaderDumpV5, "V5"); }
 
   auto getDecompressionDict() { return mDictionary.get(); }
 
   bool linkAgaistGlobalData(ScriptedShadersGlobalData const &global_link_data, bool dump_changed);
+
+private:
+  template <typename T>
+  static inline T getDumpChecked(T dumpPtr, [[maybe_unused]] const char *name)
+  {
+#if DAGOR_DBGLEVEL > 0
+    if (!dumpPtr)
+      LOGERR_CTX("Bindump %s is not present! Update to the latest shaders AND executable", name);
+#endif
+    return dumpPtr;
+  }
 };
 
 struct ScriptedShadersGlobalData
@@ -230,7 +241,7 @@ public:
   ~ShaderStubTexturesRepository() { shutdown(); }
 
   const UniqueTex &query(uint32_t col, ShaderVarTextureType shvtt) const;
-  bool filled() const { return !stubTexturesMap.empty(); }
+  bool initialized() const { return !stubTexturesMap.empty(); }
   void afterResetDevice();
 
 private:

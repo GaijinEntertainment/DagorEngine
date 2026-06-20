@@ -19,6 +19,9 @@ DAFX_INLINE
 void modfx_frame_init( ModfxParentSimData_cref parent_sdata, BufferData_cref buf, rnd_seed_ref rnd_seed, float_ref o_frame, uint_ref o_flags, bool_ref o_disable_loop )
 {
   uint ofs = parent_sdata.mods_offsets[MODFX_SMOD_FRAME_INIT];
+  if ( !ofs )
+    return;
+
   ModfxDeclFrameInit finit = ModfxDeclFrameInit_load( buf, ofs );
 
   o_frame = lerp( (float)finit.start_frame_min, (float)finit.start_frame_max, dafx_frnd( rnd_seed ) );
@@ -53,17 +56,17 @@ void modfx_frame_sim(
   rnd_seed_ref rnd_seed, float life_k,
   uint_ref o_frame_idx, uint_ref o_frame_flags, float_ref o_frame_blend )
 {
-  if ( !parent_sdata.mods_offsets[MODFX_SMOD_FRAME_INIT] )
+  uint ofs = parent_rdata.mods_offsets[MODFX_RMOD_FRAME_INFO];
+  if ( !ofs )
     return;
 
-  float frame;
-  uint flags;
-  bool disable_loop;
+  ModfxDeclFrameInfo finfo = ModfxDeclFrameInfo_load( buf, ofs );
+
+  float frame = 0.0f;
+  uint flags = 0;
+  bool disable_loop = false;
 
   modfx_frame_init( parent_sdata, buf, rnd_seed, frame, flags, disable_loop );
-
-  uint ofs = parent_rdata.mods_offsets[MODFX_RMOD_FRAME_INFO];
-  ModfxDeclFrameInfo finfo = ModfxDeclFrameInfo_load( buf, ofs );
 
   uint total_frames = finfo.frames_x * finfo.frames_y;
 

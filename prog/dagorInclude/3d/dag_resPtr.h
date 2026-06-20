@@ -27,22 +27,22 @@
 
 /* This header contains several useful RAII classes for working with resources
 
-   -------------------       --------------------       -------------------
-   |    UniqueRes    |------>|    ManagedRes    |<------|    SharedRes    |
-   -------------------       --------------------       -------------------
-                                      ^
-                                      |
-   -------------------       --------------------       -------------------
-   | UniqueResHolder |------>| ManagedResHolder |<------| SharedResHolder |
-   -------------------       --------------------       -------------------
+        -------------------           --------------------           -------------------
+        |    UniqueRes    |---------->|    ManagedRes    |<----------|    SharedRes    |
+        -------------------           --------------------           -------------------
+                                                ^
+                                                |
+   --------------------------       ---------------------------       --------------------------
+   | UniqueResWithShaderVar |------>| ManagedResWithShaderVar |<------| SharedResWithShaderVar |
+   --------------------------       ---------------------------       --------------------------
 
   The `ManagedRes` owns a pointer to the resource and a registered resource id.
-  And the `ManagedResHolder` also contains the shader variable id. You cannot
-  create an instance for `ManagedRes` and `ManagedResHolder`. They don't know
+  And the `ManagedResWithShaderVar` also contains the shader variable id. You cannot
+  create an instance for `ManagedRes` and `ManagedResWithShaderVar`. They don't know
   anything about how exactly ownership of the resource was obtained and cannot
   release it. These classes can be used to pass to functions by const reference
 
-  The `UniqueRes` and `UniqueResHolder` classes are needed for the unique
+  The `UniqueRes` and `UniqueResWithShaderVar` classes are needed for the unique
   ownership of the resource and can be created using the family of functions
   `dag::create_tex()`, For example:
 
@@ -54,20 +54,20 @@
 
   UniqueTex tex = UniqueTex(dag::create_tex(..., "tex_name"), "mgr_name");
 
-  The `UniqueResHolder` is created in the same way as the `UniqueRes`:
+  The `UniqueResWithShaderVar` is created in the same way as the `UniqueRes`:
 
-  UniqueResHolder tex = dag::create_tex(..., "tex_name");
+  UniqueResWithShaderVar tex = dag::create_tex(..., "tex_name");
 
   In this case, the "tex_name" will also be used as a shader variable name, but
   if you need a shader variable name other than the texture name, then use this:
 
-  UniqueResHolder tex = UniqueResHolder(dag::create_tex(..., "tex_name"), "var_name");
+  UniqueResWithShaderVar tex = UniqueResWithShaderVar(dag::create_tex(..., "tex_name"), "var_name");
 
   If you need to bind a resource to another shader variable, then use this:
 
   tex.setVar("another_var_name");
 
-  The `SharedRes` and `SharedResHolder` are needed for shared ownership of the
+  The `SharedRes` and `SharedResWithShaderVar` are needed for shared ownership of the
   resource. For example, they can be used to own game resources:
 
   SharedTex res = dag::get_tex_gameres("res_name");
@@ -492,20 +492,20 @@ inline void releaseShaderVarId(int) {}
 #endif
 
 template <typename ManagedResType>
-class ManagedResHolder : public ManagedResType
+class ManagedResWithShaderVar : public ManagedResType
 {
   using ResType = typename ManagedResType::resource_t;
 
 protected:
   int mShaderVarId = -1;
 
-  void swap(ManagedResHolder &other)
+  void swap(ManagedResWithShaderVar &other)
   {
     ManagedResType::swap(other);
     eastl::swap(mShaderVarId, other.mShaderVarId);
   }
 
-  ManagedResHolder() = default;
+  ManagedResWithShaderVar() = default;
 
 public:
   int getVarId() const { return mShaderVarId; }
@@ -525,16 +525,17 @@ public:
 };
 
 template <typename ManagedResType>
-class ConcreteResHolder : public ManagedResHolder<typename ManagedResType::BaseType>, public ManagedResType::move_assignable_t
+class ConcreteResWithShaderVar : public ManagedResWithShaderVar<typename ManagedResType::BaseType>,
+                                 public ManagedResType::move_assignable_t
 {
   using ResType = typename ManagedResType::resource_t;
 
 public:
-  ENABLE_MOVING_BEHAVIOR(ConcreteResHolder);
-  ASSIGNMENT_FROM_RESPTR(ConcreteResHolder);
-  ASSIGNMENT_FROM_RESFACTORY(ConcreteResHolder);
+  ENABLE_MOVING_BEHAVIOR(ConcreteResWithShaderVar);
+  ASSIGNMENT_FROM_RESPTR(ConcreteResWithShaderVar);
+  ASSIGNMENT_FROM_RESFACTORY(ConcreteResWithShaderVar);
 
-  ConcreteResHolder(ManagedResType &&resource, const char *shader_var_name = nullptr)
+  ConcreteResWithShaderVar(ManagedResType &&resource, const char *shader_var_name = nullptr)
   {
     ManagedResType::BaseType::swap(resource);
 
@@ -546,7 +547,7 @@ public:
       this->setVar();
   }
 
-  ConcreteResHolder(ManagedResType &&resource, int var_id)
+  ConcreteResWithShaderVar(ManagedResType &&resource, int var_id)
   {
     ManagedResType::BaseType::swap(resource);
 
@@ -555,15 +556,15 @@ public:
       this->setVar();
   }
 
-  ConcreteResHolder(ResPtr<ResType> &&res, const char *shader_var_name = nullptr) :
-    ConcreteResHolder(ManagedResType(eastl::move(res)), shader_var_name)
+  ConcreteResWithShaderVar(ResPtr<ResType> &&res, const char *shader_var_name = nullptr) :
+    ConcreteResWithShaderVar(ManagedResType(eastl::move(res)), shader_var_name)
   {}
 
-  ConcreteResHolder(ResFactory<ResType> &&res, const char *shader_var_name = nullptr) :
-    ConcreteResHolder(ManagedResType(eastl::move(res)), shader_var_name)
+  ConcreteResWithShaderVar(ResFactory<ResType> &&res, const char *shader_var_name = nullptr) :
+    ConcreteResWithShaderVar(ManagedResType(eastl::move(res)), shader_var_name)
   {}
 
-  ~ConcreteResHolder()
+  ~ConcreteResWithShaderVar()
   {
     releaseShaderVarId(this->mShaderVarId);
     ManagedResType::release(this->mResId, this->mResource);
@@ -601,12 +602,12 @@ using SharedRes = resptr_detail::SharedRes<ManagedResType>;
 using SharedTex = SharedRes<ManagedTex>;
 using SharedBuf = SharedRes<ManagedBuf>;
 
-using ManagedTexWithShaderVar = resptr_detail::ManagedResHolder<ManagedTex>;
-using ManagedBufWithShaderVar = resptr_detail::ManagedResHolder<ManagedBuf>;
-using UniqueTexWithShaderVar = resptr_detail::ConcreteResHolder<UniqueTex>;
-using UniqueBufWithShaderVar = resptr_detail::ConcreteResHolder<UniqueBuf>;
-using SharedTexWithShaderVar = resptr_detail::ConcreteResHolder<SharedTex>;
-using SharedBufWithShaderVar = resptr_detail::ConcreteResHolder<SharedBuf>;
+using ManagedTexWithShaderVar = resptr_detail::ManagedResWithShaderVar<ManagedTex>;
+using ManagedBufWithShaderVar = resptr_detail::ManagedResWithShaderVar<ManagedBuf>;
+using UniqueTexWithShaderVar = resptr_detail::ConcreteResWithShaderVar<UniqueTex>;
+using UniqueBufWithShaderVar = resptr_detail::ConcreteResWithShaderVar<UniqueBuf>;
+using SharedTexWithShaderVar = resptr_detail::ConcreteResWithShaderVar<SharedTex>;
+using SharedBufWithShaderVar = resptr_detail::ConcreteResWithShaderVar<SharedBuf>;
 
 template <typename ResType>
 using ResPtr = resptr_detail::ResPtr<ResType>;

@@ -487,7 +487,7 @@ void WinKeyboardDevice::updateLayout(bool notify_when_not_changed) {}
 void WinKeyboardDevice::updateLocks(bool notify_when_not_changed) {}
 #endif
 
-#if _TARGET_PC_WIN | _TARGET_XBOX
+#if _TARGET_PC_WIN
 void WinKeyboardDevice::OnChar(uintptr_t wParam)
 {
   DEBUG_TRACE_INPDEV("WM:char: %X %X", pendingKeyDownCode, wParam);
@@ -506,7 +506,6 @@ void WinKeyboardDevice::OnKeyUpKeyDown(unsigned msg, uintptr_t wParam, intptr_t 
   if (((lParam >> 16) & 0xFF) == 0x45)
     makecode ^= 0x80;
 
-#if !_TARGET_XBOX
   if (pendingKeyDownCode)
   {
     if (!state.isKeyDown(pendingKeyDownCode))
@@ -516,11 +515,9 @@ void WinKeyboardDevice::OnKeyUpKeyDown(unsigned msg, uintptr_t wParam, intptr_t 
     }
     pendingKeyDownCode = 0;
   }
-#endif
 
   if (up)
   {
-#if !_TARGET_XBOX
     // Handle printscreen specially (since WM_KEYDOWN for it is absent)
     if (makecode == 0xB7 && !state.isKeyDown(makecode))
     {
@@ -532,19 +529,13 @@ void WinKeyboardDevice::OnKeyUpKeyDown(unsigned msg, uintptr_t wParam, intptr_t 
       onKeyUp(0x36);
     if (makecode == 0x36 && state.isKeyDown(0x2A))
       onKeyUp(0x2A);
-#endif
 
     DEBUG_TRACE_INPDEV("onKeyUp: %X", makecode);
     onKeyUp(makecode);
   }
   else
   {
-#if _TARGET_XBOX
-    DEBUG_TRACE_INPDEV("onKeyDown: %X", makecode);
-    onKeyDown(makecode, 0);
-#else
     pendingKeyDownCode = makecode;
-#endif
   }
 }
 #endif
@@ -719,26 +710,6 @@ IWndProcComponent::RetCode WinKeyboardDevice::process(void *hwnd, unsigned msg, 
       onKeyUp(DKEY_RALT);
   }
 #endif
-#elif _TARGET_XBOX
-  if (msg == GPCM_KeyPress)
-  {
-    onKeyDown(wParam, 0);
-    return PROCEED_DEF_WND_PROC;
-  }
-  else if (msg == GPCM_KeyRelease)
-  {
-    onKeyUp(wParam);
-    return PROCEED_DEF_WND_PROC;
-  }
-  else if (msg == GPCM_Char)
-  {
-    if (client && wParam >= 0x20)
-      client->gkcButtonDown(this, 0, false, wParam);
-  }
-#endif
-#if _TARGET_XBOX
-  if (msg == WM_CHAR)
-    OnChar(wParam);
 #endif
   return PROCEED_OTHER_COMPONENTS;
 }

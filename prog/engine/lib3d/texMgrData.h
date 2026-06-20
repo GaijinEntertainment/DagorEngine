@@ -57,6 +57,16 @@ extern int mt_enabled;
 extern CritSecStorage crit_sec;
 extern WinCritSec rec_lock; // Intentionally not spinlock, since waiting times might be quite long (>1ms) e.g. within
                             // unload_tex_to_reserve
+struct TRAL
+{
+  TRAL() { rec_lock.lock("texMgrRex"); }
+  ~TRAL() { rec_lock.unlock(); }
+};
+
+#define TEX_REC_LOCK()      texmgr_internal::rec_lock.lock("texMgrRex")
+#define TEX_REC_UNLOCK()    texmgr_internal::rec_lock.unlock()
+#define TEX_REC_AUTO_LOCK() texmgr_internal::TRAL trAL
+
 extern int (*drv3d_cmd)(Drv3dCommand command, void *par1, void *par2, void *par3);
 extern bool auto_add_tex_on_get_id;
 extern bool disable_add_warning;
@@ -499,8 +509,7 @@ public:
     // replaceTexResObject & texmiplevel cannot safely be done concurrently with main thread
     // reading texture contents while rendering, so deferring to main thread is required.
     // Also forcibly keep texture alive while it is referenced by the callback, just in case.
-    if (incRefCount(target_idx) == 1)
-      decReadyForDiscardTex(target_idx);
+    incRefCountAndDecReadyForDiscardTex(target_idx);
 
     OSSpinlockScopedLock lock{textureReplacementOpsLock};
     textureReplacementOps.push_back(
@@ -521,8 +530,7 @@ public:
     {
       completeTextureUpdate(target, replacement, minlevel, maxlevel);
       cb(targetIdx);
-      if (decRefCount(targetIdx) == 0)
-        incReadyForDiscardTex(targetIdx);
+      decRefCountAndIncReadyForDiscardTex(targetIdx);
       incTexStreamingGeneration(targetIdx);
     }
   }
@@ -569,6 +577,24 @@ public:
       "readyForDiscardTexSzKB=%d readyForDiscardTexCount=%d totalAddMemNeededSzKB=%d tex_sz_kb=%d add_sz_kb=%d %s",
       fetchedReadyForDiscardTexSzKB, fetchedReadyForDiscardTexCount, fetchedTotalAddMemNeededSzKB, texSzKb,
       fetchedTexAddMemSizeNeededKB, getName(idx));
+  }
+
+  int incRefCountAndDecReadyForDiscardTex(int idx)
+  {
+    TEX_REC_AUTO_LOCK();
+    const int rc = incRefCount(idx);
+    if (rc == 1)
+      decReadyForDiscardTex(idx);
+    return rc;
+  }
+
+  int decRefCountAndIncReadyForDiscardTex(int idx)
+  {
+    TEX_REC_AUTO_LOCK();
+    const int rc = decRefCount(idx) & ~RCBIT_FOR_REMOVE;
+    if (rc == 0)
+      incReadyForDiscardTex(idx);
+    return rc;
   }
 
   int getTotalUsedTexCount() const { return interlocked_acquire_load(totalUsedTexCount); }
@@ -792,12 +818,6 @@ bool is_sys_mem_enough_to_load_basedata();
 
 void do_per_frame_updates_while_waiting_on_main_thread();
 
-struct TRAL
-{
-  TRAL() { rec_lock.lock("texMgrRex"); }
-  ~TRAL() { rec_lock.unlock(); }
-};
-
 bool evict_managed_tex_and_id(TEXTUREID id);
 void register_ddsx_load_implementation();
 } // namespace texmgr_internal
@@ -807,7 +827,3 @@ void register_ddsx_load_implementation();
 #else
 #define DEV_FATAL LOGERR_CTX
 #endif
-
-#define TEX_REC_LOCK()      texmgr_internal::rec_lock.lock("texMgrRex")
-#define TEX_REC_UNLOCK()    texmgr_internal::rec_lock.unlock()
-#define TEX_REC_AUTO_LOCK() TRAL trAL

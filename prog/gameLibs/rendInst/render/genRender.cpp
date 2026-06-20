@@ -181,6 +181,8 @@ int disable_rendinst_alpha_for_normal_pass_with_zprepassVarId = -1;
 
 int dynamic_impostor_texture_const_no = -1;
 int ri_vertex_data_no = -1;
+int ri_voxel_data_offset_varid = -1;
+int ri_voxel_depth_projection_varid = -1;
 float rendinst_ao_mul = 2.0f;
 // mip map build
 
@@ -562,6 +564,8 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
   rendinst::render::rendinst_ao_mul = ShaderGlobal::get_float(::get_shader_glob_var_id("rendinst_ao_mul", true));
 
   invLod0RangeVarId = ::get_shader_glob_var_id("rendinst_inv_lod0_range", true);
+  rendinst::render::ri_voxel_data_offset_varid = ::get_shader_glob_var_id("voxel_data_offset", true);
+  rendinst::render::ri_voxel_depth_projection_varid = ::get_shader_glob_var_id("voxel_depth_projection", true);
 
   ShaderGlobal::get_int_by_name("ri_vertex_data_no", rendinst::render::ri_vertex_data_no);
 

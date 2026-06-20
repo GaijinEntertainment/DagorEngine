@@ -15,6 +15,7 @@ BVHRandomGrass ?= yes ;
 BVHGpuObjects ?= yes ;
 BVHDynRend ?= yes ;
 BVHFx ?= yes ;
+BVHSmokeTracers ?= yes ;
 BVHCables ?= yes ;
 BVHBinScene ?= yes ;
 BVHFFTWater ?= yes ;
@@ -38,7 +39,7 @@ if $(BVHSupport) = yes {
     Target = $(Target:S=~p.lib) ;
   }
 
-  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp ;
+  Sources = bvh.cpp bvh_context.cpp bvh_debug.cpp bvh_processors.cpp bvh_particles.cpp ;
 
   if $(BVHTerrain) = yes {
     Sources += bvh_terrain.cpp ;
@@ -122,6 +123,12 @@ if $(BVHSupport) = yes {
   } else {
     Sources += stub/bvh_stub_fx.cpp ;
     Target = $(Target:S=~nfx.lib) ;
+  }
+
+  if $(BVHSmokeTracers) = yes {
+    Sources += bvh_smoke_tracers.cpp ;
+  } else {
+    Sources += stub/bvh_stub_smoke_tracers.cpp ;
   }
 } else {
   Sources =

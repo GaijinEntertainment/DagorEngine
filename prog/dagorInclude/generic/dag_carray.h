@@ -84,5 +84,21 @@ public:
 #undef CARRAY_VALIDATE_IDX
 #endif
 
+// STL-style == / !=
+template <typename T, unsigned N>
+inline constexpr bool operator==(const carray<T, N> &a, const carray<T, N> &b)
+{
+  for (unsigned i = 0; i < N; ++i)
+    if (!(a[i] == b[i]))
+      return false;
+  return true;
+}
+
+template <typename T, unsigned N>
+inline constexpr bool operator!=(const carray<T, N> &a, const carray<T, N> &b)
+{
+  return !(a == b);
+}
+
 template <class T, class... U>
 carray(T, U...) -> carray<T, 1 + sizeof...(U)>;

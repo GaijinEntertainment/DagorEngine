@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module ast_used shared private
@@ -28,9 +26,7 @@ class TypeVisitor : AstVisitor {
     }
     def collect(typ : TypeDeclPtr) {
         if (typ.baseType == Type.tStructure) {
-            if (usedTypes.st |> key_exists(typ.structType)) {
-                return
-            }
+            if (usedTypes.st |> key_exists(typ.structType)) return
         }
         if (typ.structType != null) {
             insert(usedTypes.st, typ.structType)

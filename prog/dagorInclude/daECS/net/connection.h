@@ -127,8 +127,7 @@ public:
 
   void setEncryptionKey(dag::ConstSpan<uint8_t> ekey, EncryptionKeyBits ebits) override;
 
-  ecs::EntityManager &getEntityManager() { return mgr; }
-  const ecs::EntityManager &getEntityManager() const { return mgr; }
+  ecs::EntityManager &getEntityManager() override { return mgr; }
 
 private:
   void killObjectReplica(ObjectReplica *repl, net::Object *obj);

@@ -89,6 +89,7 @@
 #include <render/hdrRender.h>
 #include "net/dedicated.h"
 #include "net/net.h"
+#include "net/mainThreadNetInits.h"
 #include "net/telemetry.h"
 #include "render/renderer.h" // init_tex_streaming
 #include "ui/userUi.h"
@@ -954,7 +955,8 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 #if _TARGET_PC_WIN && (DAGOR_DBGLEVEL == 0)
   if (!dedicated::is_dedicated() && !::dgs_execute_quiet)
   {
-    if (::dgs_get_argv("forcestart") == NULL)
+    if (::dgs_get_argv("forcestart") == NULL &&
+        !dgs_get_settings()->getBlockByNameEx("debug")->getBool("allowRunWithoutLauncher", false))
     {
       debug("start without launcher is forbidden");
       if (no_watchdog_message_box(get_localized_text("launcher/update"), get_localized_text("launcher/update_header"),

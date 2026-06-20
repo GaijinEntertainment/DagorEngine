@@ -473,6 +473,25 @@ void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars, const ShCompilatio
   write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
 }
 
+void save_stcode_refined_block(StcodeShader &cpp_stcode, const ShCompilationInfo &comp)
+{
+  RET_IF_SHOULD_NOT_COMPILE();
+
+  constexpr char cppTemplate[] =
+#include "_stcodeTemplates/refinedBlock.cpp.fmt"
+    ;
+
+  StcodeStrings codeStrings = cpp_stcode.code.release();
+
+  const char *stcodeDir = comp.stcodeDirs().stcodeDir.c_str();
+  const eastl::string cppFileName(eastl::string::CtorSprintf{}, "%s/glob_refined_block.stcode.gen.cpp", stcodeDir);
+  const eastl::string blkHashHeader = make_header_from_blk_hash<CPPFILE_HEADER_LEN, CPPFILE_HEADER_FMT>(comp.targetBlkHash());
+
+  const eastl::string cppSource(eastl::string::CtorSprintf{}, cppTemplate, blkHashHeader.c_str(), codeStrings.cppCode.c_str());
+
+  write_file(cppFileName.c_str(), cppSource.c_str(), cppSource.length());
+}
+
 static auto make_hash_byte_array_initializer(const CryptoHash &hash)
 {
   auto res = string_f("0x%02x", hash.data[0]);
@@ -840,6 +859,7 @@ dag::Expected<Tab<proc::ProcessTask>, StcodeMakeTaskError> make_stcode_compilati
 
     requiredSources.insert(stcodeDir + "/stcode_main.stcode.gen.cpp");
     requiredSources.insert(stcodeDir + "/glob_shadervars.stcode.gen.cpp");
+    requiredSources.insert(stcodeDir + "/glob_refined_block.stcode.gen.cpp");
 
     // Cleanup stale files
     for (const alefind_t &ff : dd_find_iterator((stcodeDir + "/*.stcode.gen.cpp").c_str(), DA_FILE))

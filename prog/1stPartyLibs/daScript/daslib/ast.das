@@ -974,7 +974,7 @@ def add_new_optimization_macro(name : string; var someClassPtr) {
 def find_module(prog : smart_ptr<Program>; name : string) : Module? {
     var rm : Module?
     program_for_each_module(prog) $(mod) {
-        if (string(mod.name) == name) {
+        if (mod.name == name) {
             rm = mod
         }
     }

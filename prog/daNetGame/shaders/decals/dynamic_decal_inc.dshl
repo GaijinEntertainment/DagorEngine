@@ -37,7 +37,6 @@ macro DYNAMIC_DECAL_VS(deferred)
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
-  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl(vs) {
     VsOutput dynamic_decal_vs(VsInput input HW_USE_INSTANCE_ID)

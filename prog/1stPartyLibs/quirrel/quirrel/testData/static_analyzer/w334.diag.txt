@@ -1,0 +1,18 @@
+WARNING: w334 (subst-argument-index) Substitution references positional placeholder '{2}' but only 2 argument(s) passed; it will be left as literal text.
+testData/static_analyzer/w334.nut:2:8
+
+// positional {N} index out of range -> left as literal text
+let a = "{0}:{1}:{2}".subst(10, 20)
+        ^------------
+let b = "{0} {1}".subst("only")
+
+
+WARNING: w334 (subst-argument-index) Substitution references positional placeholder '{1}' but only 1 argument(s) passed; it will be left as literal text.
+testData/static_analyzer/w334.nut:3:8
+
+let a = "{0}:{1}:{2}".subst(10, 20)
+let b = "{0} {1}".subst("only")
+        ^--------
+// these must NOT warn:
+
+

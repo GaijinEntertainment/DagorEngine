@@ -1,6 +1,6 @@
 options gen2
 
-require fio
+require daslib/fio
 
 [export]
 def initialize(project_path : string) {

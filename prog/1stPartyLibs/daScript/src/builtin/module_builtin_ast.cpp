@@ -7,7 +7,7 @@
 #include "daScript/ast/ast_expressions.h"
 #include "daScript/ast/ast_generate.h"
 #include "daScript/ast/ast_simulate.h"
-#include "daScript/das_common.h"
+#include "daScript/misc/das_common.h"
 #include "daScript/simulate/aot_builtin_ast.h"
 #include "daScript/simulate/aot_builtin_string.h"
 #include "daScript/misc/performance_time.h"
@@ -349,17 +349,17 @@ namespace das {
 
     void ast_error ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo ) {
         if ( !prog ) context->throw_error_at(lineInfo,"program can't be null (expecting compiling_program())");
-        prog->error(message ? message : "macro error","","",at,CompilationError::macro_failed);
+        prog->error(message ? message : "macro error","","",at,CompilationError::runtime_macro);
     }
 
     void ast_performance_warning ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo ) {
         if ( !prog ) context->throw_error_at(lineInfo,"program can't be null (expecting compiling_program())");
-        prog->error(message ? message : "performance warning","","",at,CompilationError::performance_lint);
+        prog->error(message ? message : "performance warning","","",at,CompilationError::runtime_macro_performance);
     }
 
     void ast_style_warning ( ProgramPtr prog, const LineInfo & at, const char * message, Context * context, LineInfoArg * lineInfo ) {
         if ( !prog ) context->throw_error_at(lineInfo,"program can't be null (expecting compiling_program())");
-        prog->error(message ? message : "style warning","","",at,CompilationError::style_lint);
+        prog->error(message ? message : "style warning","","",at,CompilationError::runtime_macro_style);
     }
 
     int32_t get_variant_field_offset ( TypeDecl * td, int32_t index, Context * context, LineInfoArg * at ) {
@@ -380,7 +380,7 @@ namespace das {
         char * values = tab->data;
         char * keys = tab->keys;
         for ( uint32_t index=0, indexs=tab->capacity; index!=indexs; index++, keys+=keyStride, values+=valueStride ) {
-            if ( tab->hashes[index] > HASH_KILLED64 ) {
+            if ( tableLiveSlot(*tab, index) ) {
                 das_invoke<void>::invoke<void *,void *>(context,at,blk,(void*)keys,(void*)values);
             }
         }
@@ -1068,26 +1068,13 @@ namespace das {
     }
 
     void get_file_source_line(FileInfo * info, uint32_t line, const TBlock<void,TTemporary<const char *>> & blk, Context * context, LineInfoArg * at) {
-        if ( !info || line == 0 ) return;
-        const char * src = nullptr;
+        if ( !info ) return;
+        const char * begin = nullptr;
         uint32_t len = 0;
-        info->getSourceAndLength(src, len);
-        if ( !src || len == 0 ) return;
-        uint32_t curLine = 1;
-        const char * lineStart = src;
-        const char * srcEnd = src + len;
-        while ( lineStart < srcEnd && curLine < line ) {
-            if ( *lineStart == '\n' ) curLine++;
-            lineStart++;
-        }
-        if ( curLine != line ) return;
-        const char * lineEnd = lineStart;
-        while ( lineEnd < srcEnd && *lineEnd != '\n' && *lineEnd != '\r' ) lineEnd++;
-        // make a temporary null-terminated copy on the stack
-        uint32_t lineLen = uint32_t(lineEnd - lineStart);
-        char * tmp = (char *)alloca(lineLen + 1);
-        memcpy(tmp, lineStart, lineLen);
-        tmp[lineLen] = 0;
+        if ( !info->getLine(line, begin, len) ) return;
+        char * tmp = (char *)alloca(len + 1);
+        memcpy(tmp, begin, len);
+        tmp[len] = 0;
         vec4f args[1];
         args[0] = cast<const char *>::from(tmp);
         context->invoke(blk, args, nullptr, at);

@@ -43,30 +43,65 @@ def resize(var Arr : array<auto(numT)>; newSize : int) {
     __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
 }
 
-def resize_and_init(var Arr : array<auto(numT)>; newSize : int) {
-    let oldSize = length(Arr)
-    __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
-    for (i in range(oldSize, newSize)) {
-        static_if (typeinfo is_workhorse(type<numT>)) {
-            Arr[i] = numT()
-        } static_elif (typeinfo can_move(type<numT>)) {
-            Arr[i] <- default<numT>
-        } static_elif (typeinfo can_copy(type<numT>)) {
-            Arr[i] = default<numT>
-        } else {
-            Arr[i] := default<numT>
+def resize(var Arr : array<auto(numT)>; newSize : int64) {
+    static_if (typeinfo is_unsafe_when_uninitialized(type<numT>)) {
+        make_function_unsafe()
+    }
+    __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+}
+
+def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64) {
+    static_if (typeinfo is_int(newSize)) {
+        let oldSize = length(Arr)
+        __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
+        for (i in range(oldSize, newSize)) {
+            static_if (typeinfo is_workhorse(type<numT>)) {
+                Arr[i] = numT()
+            } static_elif (typeinfo can_move(type<numT>)) {
+                Arr[i] <- default<numT>
+            } static_elif (typeinfo can_copy(type<numT>)) {
+                Arr[i] = default<numT>
+            } else {
+                Arr[i] := default<numT>
+            }
+        }
+    } else {
+        let oldSize = long_length(Arr)
+        __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+        for (i in range64(oldSize, newSize)) {
+            static_if (typeinfo is_workhorse(type<numT>)) {
+                Arr[i] = numT()
+            } static_elif (typeinfo can_move(type<numT>)) {
+                Arr[i] <- default<numT>
+            } static_elif (typeinfo can_copy(type<numT>)) {
+                Arr[i] = default<numT>
+            } else {
+                Arr[i] := default<numT>
+            }
         }
     }
 }
 
-def resize_and_init(var Arr : array<auto(numT)>; newSize : int; initValue : numT) {
-    let oldSize = length(Arr)
-    __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
-    for (i in range(oldSize, newSize)) {
-        static_if (typeinfo can_copy(initValue)) {
-            Arr[i] = initValue
-        } else {
-            Arr[i] := initValue
+def resize_and_init(var Arr : array<auto(numT)>; newSize : int | int64; initValue : numT) {
+    static_if (typeinfo is_int(newSize)) {
+        let oldSize = length(Arr)
+        __builtin_array_resize(Arr, newSize, typeinfo sizeof(Arr[0]))
+        for (i in range(oldSize, newSize)) {
+            static_if (typeinfo can_copy(initValue)) {
+                Arr[i] = initValue
+            } else {
+                Arr[i] := initValue
+            }
+        }
+    } else {
+        let oldSize = long_length(Arr)
+        __builtin_array_resize_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+        for (i in range64(oldSize, newSize)) {
+            static_if (typeinfo can_copy(initValue)) {
+                Arr[i] = initValue
+            } else {
+                Arr[i] := initValue
+            }
         }
     }
 }
@@ -81,8 +116,21 @@ def resize_no_init(var Arr : array<auto(numT)>; newSize : int) {
     }
 }
 
+[unused_argument(Arr, newSize)]
+def resize_no_init(var Arr : array<auto(numT)>; newSize : int64) {
+    static_if (typeinfo is_raw(type<numT>)) {
+        __builtin_array_resize_no_init_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
+    } else {
+        concept_assert(false, "can't resize_no_init non-raw array")
+    }
+}
+
 def reserve(var Arr : array<auto(numT)>; newSize : int) {
     __builtin_array_reserve(Arr, newSize, typeinfo sizeof(Arr[0]))
+}
+
+def reserve(var Arr : array<auto(numT)>; newSize : int64) {
+    __builtin_array_reserve_i64(Arr, newSize, typeinfo sizeof(Arr[0]))
 }
 
 def pop(var Arr : array<auto(numT)>) {
@@ -90,10 +138,14 @@ def pop(var Arr : array<auto(numT)>) {
 }
 
 [unused_argument(Arr, value)]
-def push(var Arr : array<auto(numT)>; value : numT -# const ==const; at : int) {
+def push(var Arr : array<auto(numT)>; value : numT -# const ==const; at : int | int64) {
     static_if (typeinfo can_copy(value)) {
         static_if (typeinfo can_clone_from_const(value)) {
-            Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] = value
+            static_if (typeinfo is_int(at)) {
+                Arr[__builtin_array_push(Arr, int64(at), typeinfo sizeof(Arr[0]))] = value
+            } else {
+                Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] = value
+            }
         } else {
             concept_assert(false, "can't push value, which can't be cloned from const")
         }
@@ -103,9 +155,13 @@ def push(var Arr : array<auto(numT)>; value : numT -# const ==const; at : int) {
 }
 
 [unused_argument(Arr, value)]
-def push(var Arr : array<auto(numT)>; var value : numT -# ==const; at : int) {
+def push(var Arr : array<auto(numT)>; var value : numT -# ==const; at : int | int64) {
     static_if (typeinfo can_copy(value)) {
-        Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] = value
+        static_if (typeinfo is_int(at)) {
+            Arr[__builtin_array_push(Arr, int64(at), typeinfo sizeof(Arr[0]))] = value
+        } else {
+            Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] = value
+        }
     } else {
         concept_assert(false, "can't push value, which can't be copied")
     }
@@ -137,6 +193,7 @@ def push(var Arr : array<auto(numT)>; var value : numT -# ==const) {
 def push(var Arr : array<auto(numT)>; varr : array<numT -#> ==const) {
     static_if (typeinfo can_copy(type<numT>)) {
         static_if (typeinfo can_clone_from_const(varr[0])) {
+            Arr |> reserve(long_length(Arr) + long_length(varr))
             for (t in varr) {
                 Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
             }
@@ -151,6 +208,7 @@ def push(var Arr : array<auto(numT)>; varr : array<numT -#> ==const) {
 [unused_argument(Arr, value)]
 def push(var Arr : array<auto(numT)>; var varr : array<numT -#> ==const) {
     static_if (typeinfo can_copy(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + long_length(varr))
         for (t in varr) {
             Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
         }
@@ -162,6 +220,7 @@ def push(var Arr : array<auto(numT)>; var varr : array<numT -#> ==const) {
 [unused_argument(Arr, value)]
 def push(var Arr : array<auto(numT)>; varr : numT[] -#) {
     static_if (typeinfo can_copy(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + int64(length(varr)))
         for (t in varr) {
             Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
         }
@@ -171,40 +230,16 @@ def push(var Arr : array<auto(numT)>; varr : numT[] -#) {
 }
 
 [unused_argument(Arr, value)]
-def push(var Arr : array<auto(numT)[]>; varr : numT[] -# ==const) {
-    static_if (typeinfo can_copy(type<numT>)) {
-        static_if (typeinfo sizeof(Arr[0]) == typeinfo sizeof(varr)) {
-            static_if (typeinfo can_clone_from_const(varr)) {
-                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = varr
-            } else {
-                concept_assert(false, "can't push array of different size")
+def emplace(var Arr : array<auto(numT)>; var value : numT -#&; at : int | int64) {
+    static_if (typeinfo can_move(value)) {
+        static_if (typeinfo is_int(at)) {
+            unsafe {
+                Arr[__builtin_array_push(Arr, int64(at), typeinfo sizeof(Arr[0]))] <- value
             }
         } else {
-            concept_assert(false, "can't push array of different size")
-        }
-    } else {
-        concept_assert(false, "can't push value, which can't be copied")
-    }
-}
-
-[unused_argument(Arr, value)]
-def push(var Arr : array<auto(numT)[]>; var varr : numT[] -# ==const) {
-    static_if (typeinfo can_copy(type<numT>)) {
-        static_if (typeinfo sizeof(Arr[0]) == typeinfo sizeof(varr)) {
-            Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = varr
-        } else {
-            concept_assert(false, "can't push array of different size")
-        }
-    } else {
-        concept_assert(false, "can't push value, which can't be copied")
-    }
-}
-
-[unused_argument(Arr, value)]
-def emplace(var Arr : array<auto(numT)>; var value : numT -#&; at : int) {
-    static_if (typeinfo can_move(value)) {
-        unsafe {
-            Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] <- value
+            unsafe {
+                Arr[__builtin_array_push(Arr, at, typeinfo sizeof(Arr[0]))] <- value
+            }
         }
     } else {
         concept_assert(false, "can't emplace value, which can't be moved")
@@ -225,6 +260,7 @@ def emplace(var Arr : array<auto(numT)>; var value : numT -#&) {
 [unused_argument(Arr, value)]
 def emplace(var Arr : array<auto(numT)>; var value : numT[] -#) {
     static_if (typeinfo can_move(value)) {
+        Arr |> reserve(long_length(Arr) + int64(length(value)))
         for (t in value) {
             unsafe {
                 Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] <- t
@@ -235,26 +271,15 @@ def emplace(var Arr : array<auto(numT)>; var value : numT[] -#) {
     }
 }
 
-[unused_argument(Arr, value)]
-def emplace(var Arr : array<auto(numT)[]>; var value : numT[] -#) {
-    static_if (typeinfo can_move(value)) {
-        static_if (typeinfo sizeof(Arr[0]) == typeinfo sizeof(value)) {
-            unsafe {
-                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] <- value
-            }
-        } else {
-            concept_assert(false, "can't emplace array of different size")
-        }
-    } else {
-        concept_assert(false, "can't emplace value, which can't be moved")
-    }
-}
-
 [unused_argument(Arr, value, at)]
-def push_clone(var Arr : array<auto(numT)>; value : numT ==const | #; at : int) {
+def push_clone(var Arr : array<auto(numT)>; value : numT ==const | #; at : int | int64) {
     static_if (typeinfo can_clone(value)) {
         static_if (typeinfo can_clone_from_const(value)) {
-            Arr[__builtin_array_push_zero(Arr, at, typeinfo sizeof(Arr[0]))] := value
+            static_if (typeinfo is_int(at)) {
+                Arr[__builtin_array_push_zero(Arr, int64(at), typeinfo sizeof(Arr[0]))] := value
+            } else {
+                Arr[__builtin_array_push_zero(Arr, at, typeinfo sizeof(Arr[0]))] := value
+            }
         } else {
             concept_assert(false, "can't push-clone value, which can't be cloned from const")
         }
@@ -264,9 +289,13 @@ def push_clone(var Arr : array<auto(numT)>; value : numT ==const | #; at : int) 
 }
 
 [unused_argument(Arr, value, at)]
-def push_clone(var Arr : array<auto(numT)>; var value : numT ==const | #; at : int) {
+def push_clone(var Arr : array<auto(numT)>; var value : numT ==const | #; at : int | int64) {
     static_if (typeinfo can_clone(value)) {
-        Arr[__builtin_array_push_zero(Arr, at, typeinfo sizeof(Arr[0]))] := value
+        static_if (typeinfo is_int(at)) {
+            Arr[__builtin_array_push_zero(Arr, int64(at), typeinfo sizeof(Arr[0]))] := value
+        } else {
+            Arr[__builtin_array_push_zero(Arr, at, typeinfo sizeof(Arr[0]))] := value
+        }
     } else {
         concept_assert(false, "can't push-clone value, which can't be cloned")
     }
@@ -298,8 +327,9 @@ def push_clone(var Arr : array<auto(numT)>; var value : numT ==const | #) {
 def push_clone(var Arr : array<auto(numT)>; varr : numT[] ==const) {
     static_if (typeinfo can_clone(type<numT>)) {
         static_if (typeinfo can_clone_from_const(varr[0])) {
+            Arr |> reserve(long_length(Arr) + int64(length(varr)))
             for (t in varr) {
-                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] := t
+                Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
             }
         } else {
             concept_assert(false, "can't push-clone value, which can't be cloned from const")
@@ -312,43 +342,12 @@ def push_clone(var Arr : array<auto(numT)>; varr : numT[] ==const) {
 [unused_argument(Arr, value)]
 def push_clone(var Arr : array<auto(numT)>; var varr : numT[] ==const) {
     static_if (typeinfo can_clone(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + int64(length(varr)))
         for (t in varr) {
-            Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] := t
+            Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
         }
     } else {
         concept_assert(false, "can't push_clone value, which can't be cloned")
-    }
-}
-
-[unused_argument(Arr, value)]
-def push_clone(var Arr : array<auto(numT)[]>; varr : numT[] ==const) {
-    static_if (typeinfo can_copy(type<numT>)) {
-        static_if (typeinfo sizeof(Arr[0]) == typeinfo sizeof(varr)) {
-            if (typeinfo can_clone_from_const(varr)) {
-                for (t in varr) {
-                    Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] := t
-                }
-            } else {
-                concept_assert(false, "can't push-clone value, which can't be cloned from const")
-            }
-        } else {
-            concept_assert(false, "can't push_clone array of different size")
-        }
-    } else {
-        concept_assert(false, "can't push value, which can't be cloned")
-    }
-}
-
-[unused_argument(Arr, value)]
-def push_clone(var Arr : array<auto(numT)[]>; var varr : numT[]) {
-    static_if (typeinfo can_copy(type<numT>)) {
-        static_if (typeinfo sizeof(Arr[0]) == typeinfo sizeof(varr)) {
-            Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] := varr
-        } else {
-            concept_assert(false, "can't push_clone array of different size")
-        }
-    } else {
-        concept_assert(false, "can't push value, which can't be cloned")
     }
 }
 
@@ -361,10 +360,150 @@ def push_clone(var A : auto(CT) -# -const; b : auto(TT) | #) {
     } static_elif (!typeinfo builtin_function_exists(@@ < (var a : CT -# -const; var b : TT -# -const) : void > _::emplace)) {
         concept_assert(false, "can't push_clone, missing emplace({typeinfo typename(type<CT -# -const>)},{typeinfo typename(type<TT -# -const>)})")
     } else {
-        unsafe {
-            var cb : TT -# -const := b
-            _::emplace(A, cb)
+        var cb : TT -# -const := b
+        _::emplace(A, cb)
+    }
+}
+
+//! Append every element of source array `varr` to `Arr` via copy.
+//! Reserves `length(Arr) + length(varr)` capacity up front, so a bulk
+//! append touches the allocator once instead of N times.
+[unused_argument(Arr, varr)]
+def push_from(var Arr : array<auto(numT)>; varr : array<numT -#> ==const) {
+    static_if (typeinfo can_copy(type<numT>)) {
+        static_if (typeinfo can_clone_from_const(varr[0])) {
+            Arr |> reserve(long_length(Arr) + long_length(varr))
+            for (t in varr) {
+                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
+            }
+        } else {
+            concept_assert(false, "can't push value, which can't be cloned from const")
         }
+    } else {
+        concept_assert(false, "can't push value, which can't be copied")
+    }
+}
+
+//! Append every element of source array `varr` to `Arr` via copy
+//! (mutable source overload — still copies, does not consume).
+[unused_argument(Arr, varr)]
+def push_from(var Arr : array<auto(numT)>; var varr : array<numT -#> ==const) {
+    static_if (typeinfo can_copy(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + long_length(varr))
+        for (t in varr) {
+            Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
+        }
+    } else {
+        concept_assert(false, "can't push value, which can't be copied")
+    }
+}
+
+//! Append every element of fixed-size C-array `varr` to `Arr` via copy.
+//! Reserves the combined length up front.
+[unused_argument(Arr, varr)]
+def push_from(var Arr : array<auto(numT)>; varr : numT[] -#) {
+    static_if (typeinfo can_copy(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + int64(length(varr)))
+        for (t in varr) {
+            Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] = t
+        }
+    } else {
+        concept_assert(false, "can't push value, which can't be copied")
+    }
+}
+
+//! Append every element of source array `varr` to `Arr` via clone (`:=`).
+//! Reserves the combined length up front. Each slot is zero-initialized
+//! before clone (matches single-element ``push_clone`` semantics).
+[unused_argument(Arr, varr)]
+def push_clone_from(var Arr : array<auto(numT)>; varr : array<numT -#> ==const) {
+    static_if (typeinfo can_clone(type<numT>)) {
+        static_if (typeinfo can_clone_from_const(varr[0])) {
+            Arr |> reserve(long_length(Arr) + long_length(varr))
+            for (t in varr) {
+                Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
+            }
+        } else {
+            concept_assert(false, "can't push-clone value, which can't be cloned from const")
+        }
+    } else {
+        concept_assert(false, "can't push_clone value, which can't be cloned")
+    }
+}
+
+//! Append every element of source array `varr` to `Arr` via clone (`:=`),
+//! mutable source overload.
+[unused_argument(Arr, varr)]
+def push_clone_from(var Arr : array<auto(numT)>; var varr : array<numT -#> ==const) {
+    static_if (typeinfo can_clone(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + long_length(varr))
+        for (t in varr) {
+            Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
+        }
+    } else {
+        concept_assert(false, "can't push_clone value, which can't be cloned")
+    }
+}
+
+//! Append every element of fixed-size C-array `varr` to `Arr` via clone.
+[unused_argument(Arr, varr)]
+def push_clone_from(var Arr : array<auto(numT)>; varr : numT[] ==const) {
+    static_if (typeinfo can_clone(type<numT>)) {
+        static_if (typeinfo can_clone_from_const(varr[0])) {
+            Arr |> reserve(long_length(Arr) + int64(length(varr)))
+            for (t in varr) {
+                Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
+            }
+        } else {
+            concept_assert(false, "can't push-clone value, which can't be cloned from const")
+        }
+    } else {
+        concept_assert(false, "can't push_clone value, which can't be cloned")
+    }
+}
+
+//! Append every element of fixed-size C-array `varr` to `Arr` via clone,
+//! mutable source overload.
+[unused_argument(Arr, varr)]
+def push_clone_from(var Arr : array<auto(numT)>; var varr : numT[] ==const) {
+    static_if (typeinfo can_clone(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + int64(length(varr)))
+        for (t in varr) {
+            Arr[__builtin_array_push_back_zero(Arr, typeinfo sizeof(Arr[0]))] := t
+        }
+    } else {
+        concept_assert(false, "can't push_clone value, which can't be cloned")
+    }
+}
+
+//! Move every element of source array `varr` into `Arr` (`<-`).
+//! Source is consumed.
+[unused_argument(Arr, varr)]
+def emplace_from(var Arr : array<auto(numT)>; var varr : array<numT -#> ==const) {
+    static_if (typeinfo can_move(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + long_length(varr))
+        for (t in varr) {
+            unsafe {
+                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] <- t
+            }
+        }
+    } else {
+        concept_assert(false, "can't emplace value, which can't be moved")
+    }
+}
+
+//! Move every element of fixed-size C-array `varr` into `Arr`.
+[unused_argument(Arr, varr)]
+def emplace_from(var Arr : array<auto(numT)>; var varr : numT[] -#) {
+    static_if (typeinfo can_move(type<numT>)) {
+        Arr |> reserve(long_length(Arr) + int64(length(varr)))
+        for (t in varr) {
+            unsafe {
+                Arr[__builtin_array_push_back(Arr, typeinfo sizeof(Arr[0]))] <- t
+            }
+        }
+    } else {
+        concept_assert(false, "can't emplace value, which can't be moved")
     }
 }
 
@@ -434,8 +573,16 @@ def erase(var Arr : array<auto(numT)>; at : int) {
     __builtin_array_erase(Arr, at, typeinfo sizeof(Arr[0]))
 }
 
+def erase(var Arr : array<auto(numT)>; at : int64) {
+    __builtin_array_erase_i64(Arr, at, typeinfo sizeof(Arr[0]))
+}
+
 def erase(var Arr : array<auto(numT)>; at : int; count : int) {
     __builtin_array_erase_range(Arr, at, count, typeinfo sizeof(Arr[0]))
+}
+
+def erase(var Arr : array<auto(numT)>; at : int64; count : int64) {
+    __builtin_array_erase_range_i64(Arr, at, count, typeinfo sizeof(Arr[0]))
 }
 
 
@@ -445,9 +592,7 @@ def erase_if(var arr : array<auto(TT)>; blk : block<(key : TT) : bool> | block<(
         if (invoke(blk, arr[i])) {
             let endIndex = i
             while (--i >= 0) {
-                if (!invoke(blk, arr[i])) {
-                    break
-                }
+                break if (!invoke(blk, arr[i]))
             }
             __builtin_array_erase_range(arr, i + 1, endIndex - i, typeinfo sizeof(arr[0]))
         }
@@ -470,18 +615,16 @@ def length(a : auto | #) : int {
     return typeinfo dim(a)
 }
 
-def empty(a : array<auto> | #) : bool {
-    return length(a) == 0
-}
-
 // table
 
-def empty(a : table<auto; auto> | #) : bool {
-    return length(a) == 0
+def reserve(var Tab : table<auto(keyT); auto>; newSize : int) {
+    return if (newSize < 0)
+    __builtin_table_reserve(Tab, uint64(newSize))
 }
 
-def reserve(var Tab : table<auto(keyT); auto>; newSize : int) {
-    __builtin_table_reserve(Tab, uint(newSize))
+def reserve(var Tab : table<auto(keyT); auto>; newSize : int64) {
+    return if (newSize < 0_l)
+    __builtin_table_reserve(Tab, uint64(newSize))
 }
 
 
@@ -491,9 +634,7 @@ def get(Tab : table<auto(keyT); auto(valT)> ==const#; at : keyT | #; blk : block
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock_mutable(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT?#> val))
-        }
+        invoke(blk, *(unsafe(reinterpret<valT?#> val)))
         __builtin_table_unlock_mutable(Tab)
         return true
     } else {
@@ -505,9 +646,7 @@ def get(Tab : table<auto(keyT); auto(valT)> ==const; at : keyT | #; blk : block<
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock_mutable(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT?> val))
-        }
+        invoke(blk, *(unsafe(reinterpret<valT?> val)))
         __builtin_table_unlock_mutable(Tab)
         return true
     } else {
@@ -519,9 +658,7 @@ def get(var Tab : table<auto(keyT); auto(valT)> ==const#; at : keyT | #; blk : b
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT?#> val))
-        }
+        invoke(blk, *(unsafe(reinterpret<valT?#> val)))
         __builtin_table_unlock(Tab)
         return true
     } else {
@@ -533,67 +670,7 @@ def get(var Tab : table<auto(keyT); auto(valT)> ==const; at : keyT | #; blk : bl
     var val = __builtin_table_find(Tab, at)
     if (val != null) {
         __builtin_table_lock(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT?> val))
-        }
-        __builtin_table_unlock(Tab)
-        return true
-    } else {
-        return false
-    }
-}
-
-// same get with []
-
-def get(Tab : table<auto(keyT); auto(valT)[]> ==const#; at : keyT | #; blk : block<(p : valT[typeinfo dim_table_value(Tab)]#&) : void>) {
-    var val = __builtin_table_find(Tab, at)
-    if (val != null) {
-        __builtin_table_lock_mutable(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT[typeinfo dim_table_value(Tab)]?#> val))
-        }
-        __builtin_table_unlock_mutable(Tab)
-        return true
-    } else {
-        return false
-    }
-}
-
-def get(Tab : table<auto(keyT); auto(valT)[]> ==const; at : keyT | #; blk : block<(p : valT[typeinfo dim_table_value(Tab)]&) : void>) {
-    var val = __builtin_table_find(Tab, at)
-    if (val != null) {
-        __builtin_table_lock_mutable(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT[typeinfo dim_table_value(Tab)]?> val))
-        }
-        __builtin_table_unlock_mutable(Tab)
-        return true
-    } else {
-        return false
-    }
-}
-
-def get(var Tab : table<auto(keyT); auto(valT)[]> ==const#; at : keyT | #; blk : block<(var p : valT[typeinfo dim_table_value(Tab)]#&) : void>) {
-    var val = __builtin_table_find(Tab, at)
-    if (val != null) {
-        __builtin_table_lock(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT[typeinfo dim_table_value(Tab)]?#> val))
-        }
-        __builtin_table_unlock(Tab)
-        return true
-    } else {
-        return false
-    }
-}
-
-def get(var Tab : table<auto(keyT); auto(valT)[]> ==const; at : keyT | #; blk : block<(var p : valT[typeinfo dim_table_value(Tab)]&) : void>) {
-    var val = __builtin_table_find(Tab, at)
-    if (val != null) {
-        __builtin_table_lock(Tab)
-        unsafe {
-            invoke(blk, *(reinterpret<valT[typeinfo dim_table_value(Tab)]?> val))
-        }
+        invoke(blk, *(unsafe(reinterpret<valT?> val)))
         __builtin_table_unlock(Tab)
         return true
     } else {
@@ -621,19 +698,6 @@ def get_value(var Tab : table<auto(keyT); smart_ptr<auto(valT)>>; at : keyT | #)
 
 [unused_argument(Tab, at)]
 def get_value(var Tab : table<auto(keyT); auto(valT)> ==const; at : keyT | #) : valT {
-    static_if (typeinfo is_void(type<valT>)) {
-        concept_assert(false, "can't get value, which is void")
-        return type<valT>
-    } static_elif (typeinfo can_copy(type<valT>)) {
-        return unsafe(Tab[at])
-    } else {
-        concept_assert(false, "can't get value, which can't be copied")
-        return type<valT>
-    }
-}
-
-[unused_argument(Tab, at)]
-def get_value(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #) : valT[typeinfo dim_table_value(Tab)] {
     static_if (typeinfo is_void(type<valT>)) {
         concept_assert(false, "can't get value, which is void")
         return type<valT>
@@ -677,29 +741,7 @@ def insert_clone(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #; var val
 [unused_argument(Tab, at, val)]
 def insert_clone(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #; val : valT ==const | #) {
     static_if (typeinfo can_clone(val)) {
-        if (typeinfo can_clone_from_const(val)) {
-            unsafe(Tab[at]) := val
-        } else {
-            concept_assert(false, "can't insert value, which can't be cloned from const")
-        }
-    } else {
-        concept_assert(false, "can't insert value, which can't be cloned")
-    }
-}
-
-[unused_argument(Tab, at, val)]
-def insert_clone(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #; var val : valT[] ==const | #) {
-    static_if (typeinfo can_clone(val)) {
-        unsafe(Tab[at]) := val
-    } else {
-        concept_assert(false, "can't insert value, which can't be cloned")
-    }
-}
-
-[unused_argument(Tab, at, val)]
-def insert_clone(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #; val : valT[] ==const | #) {
-    static_if (typeinfo can_clone(val)) {
-        if (typeinfo can_clone_from_const(val)) {
+        static_if (typeinfo can_clone_from_const(val)) {
             unsafe(Tab[at]) := val
         } else {
             concept_assert(false, "can't insert value, which can't be cloned from const")
@@ -732,28 +774,6 @@ def insert(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #; val : valT ==
 }
 
 [unused_argument(Tab, at, val)]
-def insert(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #; var val : valT[] ==const | #) {
-    static_if (typeinfo can_copy(type<valT>)) {
-        unsafe(Tab[at]) = val
-    } else {
-        concept_assert(false, "can't insert value, which can't be copied")
-    }
-}
-
-[unused_argument(Tab, at, val)]
-def insert(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #; val : valT[] ==const | #) {
-    static_if (typeinfo can_copy(type<valT>)) {
-        static_if (typeinfo can_clone_from_const(val)) {
-            unsafe(Tab[at]) = val
-        } else {
-            concept_assert(false, "can't insert value, which can't be cloned from const")
-        }
-    } else {
-        concept_assert(false, "can't insert value, which can't be copied")
-    }
-}
-
-[unused_argument(Tab, at, val)]
 def emplace(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #; var val : valT -#&) {
     static_if (typeinfo can_move(val)) {
         unsafe(Tab[at]) <- val
@@ -765,18 +785,7 @@ def emplace(var Tab : table<auto(keyT); auto(valT)>; at : keyT | #; var val : va
 [unused_argument(Tab, at, val)]
 def emplace(var Tab : table<auto(keyT); smart_ptr<auto(valT)>>; at : keyT | #; var val : smart_ptr<valT>&) {
     static_if (typeinfo can_move(val)) {
-        unsafe {
-            Tab[at] <- val
-        }
-    } else {
-        concept_assert(false, "can't emplace value, which can't be moved")
-    }
-}
-
-[unused_argument(Tab, at, val)]
-def emplace(var Tab : table<auto(keyT); auto(valT)[]>; at : keyT | #; var val : valT[] -#&) {
-    static_if (typeinfo can_move(val)) {
-        unsafe(Tab[at]) <- val
+        Tab[at] <- val
     } else {
         concept_assert(false, "can't emplace value, which can't be moved")
     }
@@ -921,7 +930,7 @@ def move_to_local(var a : auto(TT)&) : TT -const -& {
 }
 
 def clone(clone_src : auto(TT) ==const | #) : TT -const -# {
-    unsafe {
+    unsafe {   // nolint:STYLE025 var-decl of TT -# is sometimes unsafe (is_unsafe_when_uninitialized types)
         var clone_dest : TT -#
         clone_dest := clone_src
         return <- clone_dest
@@ -929,31 +938,15 @@ def clone(clone_src : auto(TT) ==const | #) : TT -const -# {
 }
 
 def clone(var clone_src : auto(TT) ==const | #) : TT -const -# {
-    unsafe {
+    unsafe {   // nolint:STYLE025 var-decl of TT -# is sometimes unsafe (is_unsafe_when_uninitialized types)
         var clone_dest : TT -#
         clone_dest := clone_src
         return <- clone_dest
     }
 }
 
-def clone(clone_src : auto(TT)[] ==const | #) : TT[typeinfo dim(clone_src)] -const -# {
-    unsafe {
-        var clone_dest : TT[typeinfo dim(clone_src)] -#
-        clone_dest := clone_src
-        return <- clone_dest
-    }
-}
-
-def clone(var clone_src : auto(TT)[] ==const | #) : TT[typeinfo dim(clone_src)] -const -# {
-    unsafe {
-        var clone_dest : TT[typeinfo dim(clone_src)] -#
-        clone_dest := clone_src
-        return <- clone_dest
-    }
-}
-
 def clone_to_move(clone_src : auto(TT) ==const | #) : TT -const -# {
-    unsafe {
+    unsafe {   // nolint:STYLE025 var-decl of TT -# is sometimes unsafe (is_unsafe_when_uninitialized types)
         var clone_dest : TT -#
         clone_dest := clone_src
         return <- clone_dest
@@ -961,7 +954,7 @@ def clone_to_move(clone_src : auto(TT) ==const | #) : TT -const -# {
 }
 
 def clone_to_move(var clone_src : auto(TT) ==const | #) : TT -const -# {
-    unsafe {
+    unsafe {   // nolint:STYLE025 var-decl of TT -# is sometimes unsafe (is_unsafe_when_uninitialized types)
         var clone_dest : TT -#
         clone_dest := clone_src
         return <- clone_dest
@@ -970,7 +963,7 @@ def clone_to_move(var clone_src : auto(TT) ==const | #) : TT -const -# {
 
 def clone_dim(var a; b : auto | #) {
     static_if (typeinfo is_dim(a) && typeinfo is_dim(b) && typeinfo dim(a) == typeinfo dim(b)) {
-        if (typeinfo is_pod(a)) {
+        static_if (typeinfo is_pod(a)) {
             unsafe {
                 memcpy(addr(a[0]), addr(b[0]), typeinfo sizeof(a[0]) * length(a))
             }
@@ -987,9 +980,7 @@ def clone_dim(var a; b : auto | #) {
 def clone(var a : array<auto(TT)>; b : array<TT> ==const | #) {
     let ln = length(b)
     unsafe(resize(a, ln))// note: is this safe? do we actaully need to init first???
-    if (ln == 0) {
-        return
-    }
+    return if (ln == 0)
     static_if (typeinfo is_pod(type<TT>)) {
         unsafe {
             memcpy(addr(a[0]), addr(b[0]), typeinfo sizeof(a[0]) * ln)
@@ -1004,9 +995,7 @@ def clone(var a : array<auto(TT)>; b : array<TT> ==const | #) {
 def clone(var a : array<auto(TT)>; var b : array<TT> ==const | #) {
     let ln = length(b)
     unsafe(resize(a, ln))// note: is this safe? do we actaully need to init first???
-    if (ln == 0) {
-        return
-    }
+    return if (ln == 0)
     static_if (typeinfo is_pod(type<TT>)) {
         unsafe {
             memcpy(addr(a[0]), addr(b[0]), typeinfo sizeof(a[0]) * ln)
@@ -1060,30 +1049,6 @@ def clone(var a : table<string; auto(VT)>; var b : table<string; VT> ==const | #
     for (k, v in keys(b), values(b)) {
         let kk := k
         unsafe(a[kk]) := v
-    }
-}
-
-
-def clone(var a : table<auto(KT); auto(VT)[]>; b : table<KT; VT[]> | #) {
-    static_if (typeinfo dim_table_value(a) != typeinfo dim_table_value(b)) {
-        concept_assert(false, "table clone: source and destination tables must have the same value type")
-    } else {
-        clear(a)
-        for (k, v in keys(b), values(b)) {
-            unsafe(a[k]) := v
-        }
-    }
-}
-
-def clone(var a : table<string; auto(VT)[]>; b : table<string; VT[]> | #) {
-    static_if (typeinfo dim_table_value(a) != typeinfo dim_table_value(b)) {
-        concept_assert(false, "table clone: source and destination tables must have the same value type")
-    } else {
-        clear(a)
-        for (k, v in keys(b), values(b)) {
-            let kk := k
-            unsafe(a[kk]) := v
-        }
     }
 }
 
@@ -1180,20 +1145,6 @@ def values(var a : table<auto(keyT); auto(valT)> ==const | #) : iterator<valT&> 
     return <- it
 }
 
-[unsafe_outside_of_for, nodiscard]
-def values(a : table<auto(keyT); auto(valT)[]> ==const | #) : iterator<valT[typeinfo dim_table_value(a)]& const> {
-    var it : iterator<valT[typeinfo dim_table_value(a)]& const>
-    __builtin_table_values(it, a, typeinfo sizeof(type<valT[typeinfo dim_table_value(a)]>))
-    return <- it
-}
-
-[unsafe_outside_of_for, nodiscard]
-def values(var a : table<auto(keyT); auto(valT)[]> ==const | #) : iterator<valT[typeinfo dim_table_value(a)]&> {
-    var it : iterator<valT[typeinfo dim_table_value(a)]&>
-    __builtin_table_values(it, a, typeinfo sizeof(type<valT[typeinfo dim_table_value(a)]>))
-    return <- it
-}
-
 def get_key(a : table<auto(keyT)> ==const; value) {
     concept_assert(false, "can't get_key of a table<...; void>")
 }
@@ -1202,13 +1153,6 @@ def get_key(a : table<auto(keyT)> ==const; value) {
 def get_key(a : table<auto(keyT); auto(valT)>; value : valT&) : keyT -const {
     var result : keyT -const
     __builtin_table_get_key(unsafe(addr(result)), a, unsafe(addr(value)), typeinfo sizeof(type<valT>), typeinfo sizeof(type<keyT>))
-    return result
-}
-
-[nodiscard]
-def get_key(a : table<auto(keyT); auto(valT)[]>; value : valT[typeinfo dim_table_value(a)]) : keyT -const {
-    var result : keyT -const
-    __builtin_table_get_key(unsafe(addr(result)), a, unsafe(addr(value)), typeinfo sizeof(type<valT[typeinfo dim_table_value(a)]>), typeinfo sizeof(type<keyT>))
     return result
 }
 
@@ -1250,9 +1194,7 @@ def finalize(var a : table<auto(TK); auto(TV)>) {
 
 def lock(Tab : table<auto(keyT); auto(valT)> | #; blk : block<(t : table<keyT; valT>#) : void >) {
     __builtin_table_lock_mutable(Tab)
-    unsafe {
-        invoke(blk, reinterpret<table<auto(keyT); auto(valT)> const>(Tab))
-    }
+    invoke(blk, unsafe(reinterpret<table<auto(keyT); auto(valT)> const>(Tab)))
     __builtin_table_unlock_mutable(Tab)
 }
 
@@ -1318,6 +1260,11 @@ def iter_range(foo) {
     return range(_::length(foo)) // assuming length(foo) exists
 }
 
+def long_iter_range(foo) {
+    concept_assert(typeinfo is_iterable(foo), "requires iterable")
+    return range64(_::long_length(foo))
+}
+
 [generic, unsafe_outside_of_for, nodiscard]
 def each(str : string) : iterator<int> {
     var it : iterator<int>
@@ -1330,7 +1277,7 @@ def each(a : auto(TT)[]) : iterator<TT&> {
     unsafe {
         var parr : void? = reinterpret<void?>(addr(a[0]))
         var it : iterator<TT&>
-        _builtin_make_fixed_array_iterator(it, parr, typeinfo dim(a), typeinfo sizeof(a[0]))
+        _builtin_make_fixed_array_iterator(it, parr, int64(typeinfo dim(a)), typeinfo sizeof(a[0]))
         return <- it
     }
 }
@@ -1388,7 +1335,7 @@ def nothing(var it : iterator<auto(TT)>) : iterator<TT> {
 def to_array(var it : iterator<auto(TT)>) : array<TT -const -&> {
     var arr : array<TT -const -&>
     for (x in it) {
-        push_clone(arr, x)
+        push_clone(arr, x) // nolint:PERF006 iterator length is unknown ahead of time — cannot reserve
     }
     return <- arr
 }
@@ -1402,19 +1349,23 @@ def to_array(a : auto(TT)[]) : array<TT -const> {
     return <- arr
 }
 
+[unused_argument(arr)]
+def to_array(var arr : array<auto(TT)>) : array<TT -const -#> {
+    //! No-op identity over an `array` — moves it through unchanged. Lets source-agnostic linq
+    //! emitters (e.g. linq_das) always append `|> to_array()` regardless of whether the chain is
+    //! already array-typed. `_sql(...)` intercepts this call as a no-op terminal (see analyze_chain).
+    return <- arr
+}
+
 def to_array_move(var a : auto(TT)[]) : array<TT -const> {
     unsafe {
         var arr : array<TT -const>
         static_if (typeinfo can_copy(a)) {
-            unsafe(resize(arr, length(a)))// TODO: is this safe? do we actually need to init first???
-            unsafe {
-                reinterpret<TT -const[typeinfo dim(a)]>(addr(arr[0])) = a
-            }
+            resize(arr, length(a))// TODO: is this safe? do we actually need to init first???
+            reinterpret<TT -const[typeinfo dim(a)]>(addr(arr[0])) = a
         } static_elif (typeinfo can_move(a)) {
-            unsafe(resize(arr, length(a)))// TODO: is this safe? do we actually need to init first???
-            unsafe {
-                reinterpret<TT -const[typeinfo dim(a)]>(addr(arr[0])) <- a
-            }
+            resize(arr, length(a))// TODO: is this safe? do we actually need to init first???
+            reinterpret<TT -const[typeinfo dim(a)]>(addr(arr[0])) <- a
         } else {
             concept_assert(false, "this array can't be copied or moved")
         }
@@ -1480,11 +1431,22 @@ def to_table_move(a : auto(keyT)[]) : table<keyT -const> {
     return <- tab
 }
 
-def to_table_move(a : array<auto(keyT)>) : table<keyT -const> {
+def to_table_move(var a : array<auto(keyT)>) : table<keyT -const> {
     var tab : table<keyT -const>
     for (at in a) {
         __builtin_table_set_insert(tab, at)
     }
+    // Reclaim the (comprehension-owned) temp array; honors the "move" name and
+    // frees what the table comprehension would otherwise orphan. tab clones
+    // owned-heap keys (string/array/...) so delete must finalize those, but it
+    // only aliases raw-pointer keys — null those first, or delete would free the
+    // caller-owned pointee tab still references and dangle tab's keys.
+    static_if (typeinfo is_pointer(type<keyT>)) {
+        for (k in a) {
+            k = null
+        }
+    }
+    unsafe { delete a; }
     return <- tab
 }
 
@@ -1524,24 +1486,37 @@ def to_table_move(var a : tuple<auto(keyT); auto(valT)>[]) : table<keyT -const; 
 
 def to_table_move(var a : array<tuple<auto(keyT); auto(valT)>>) : table<keyT -const; valT> {
     var tab : table<keyT -const; valT>
-    static_if (typeinfo can_copy(type<valT>)) {
-        for (x in a) {
-            unsafe(tab[x._0]) = x._1
-        }
-    } static_elif (typeinfo can_move(type<valT>)) {
+    static_if (typeinfo can_move(type<valT>)) {
+        // Always MOVE the value out (we own `a` and free it below). Moving —
+        // not copying — is what makes the source-free safe: a copy of a pointer
+        // value would alias the same node, and `delete a` would then free the
+        // node the table holds (use-after-free). After the move the element is
+        // empty, so delete only reclaims husks + the temp buffer.
         for (x in a) {
             unsafe(tab[x._0]) <- x._1
+        }
+    } static_elif (typeinfo can_copy(type<valT>)) {
+        for (x in a) {
+            unsafe(tab[x._0]) = x._1
         }
     } else {
         concept_assert(false, "this array can't be copied or moved")
     }
+    // Moved-out values are already empty. Keys are copied into tab: owned-heap
+    // keys are cloned (delete must finalize the source copy) but raw-pointer keys
+    // are only aliased — null those before delete so it frees just the temp
+    // buffer, not the caller-owned pointee tab now references.
+    static_if (typeinfo is_pointer(type<keyT>)) {
+        for (x in a) {
+            x._0 = null
+        }
+    }
+    unsafe { delete a; }
     return <- tab
 }
 
 def sort(var a : auto(TT)[] | #) {
-    if (length(a) <= 1) {
-        return
-    }
+    return if (length(a) <= 1)
     static_if (typeinfo is_numeric_comparable(type<TT>)) {
         unsafe {
             __builtin_sort(addr(a[0]), length(a))       // there is numeric specialization
@@ -1568,9 +1543,7 @@ def sort(var a : auto(TT)[] | #) {
 }
 
 def sort(var a : array<auto(TT)> | #) {
-    if (length(a) <= 1) {
-        return
-    }
+    if (length(a) <= 1) return
     static_if (typeinfo is_numeric_comparable(type<TT>)) {
         __builtin_array_lock(a)
         unsafe {
@@ -1650,19 +1623,48 @@ def sort(var a : array<auto(TT)> | #; cmp : block<(x, y : TT) : bool>) {
     }
 }
 
+def stable_sort(var a : array<auto(TT)> | #; cmp : block<(x, y : TT) : bool>) {
+    //! Sorts an array in place using `cmp`, preserving the input order of elements that compare equal (stable).
+    if (length(a) <= 1) return
+    unsafe {
+        static_if (typeinfo is_ref_type(type<TT>)) {
+            __builtin_stable_sort_array_any_cblock(a, typeinfo sizeof(a[0]), length(a), cmp)
+        } else {
+            __builtin_stable_sort_array_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a), cmp)
+        }
+    }
+}
+
+def stable_sort(var a : auto(TT)[] | #; cmp : block<(x, y : TT) : bool>) {
+    //! Sorts a fixed array in place using `cmp`, preserving the input order of elements that compare equal (stable).
+    unsafe {
+        static_if (typeinfo is_ref_type(type<TT>)) {
+            __builtin_stable_sort_dim_any_cblock(a, typeinfo sizeof(a[0]), length(a), cmp)
+        } else {
+            __builtin_stable_sort_dim_any_ref_cblock(a, typeinfo sizeof(a[0]), length(a), cmp)
+        }
+    }
+}
+
+def stable_sort(var a : array<auto(TT)> | #) {
+    //! Sorts an array in place ascending, preserving the input order of equal elements (stable).
+    stable_sort(a) $(x, y : TT) : bool { return x < y; }
+}
+
+def stable_sort(var a : auto(TT)[] | #) {
+    //! Sorts a fixed array in place ascending, preserving the input order of equal elements (stable).
+    stable_sort(a) $(x, y : TT) : bool { return x < y; }
+}
+
 def lock(var a : array<auto(TT)> ==const | #; blk : block<(var x : array<TT>#)>) {
     __builtin_array_lock(a)
-    unsafe {
-        invoke(blk, reinterpret<array<auto(TT)> -const#> a)
-    }
+    invoke(blk, unsafe(reinterpret<array<auto(TT)> -const#> a))
     __builtin_array_unlock(a)
 }
 
 def lock(a : array<auto(TT)> ==const | #; blk : block<(x : array<TT>#)>) {
     __builtin_array_lock_mutable(a)
-    unsafe {
-        invoke(blk, reinterpret<array<auto(TT)> const#> a)
-    }
+    invoke(blk, unsafe(reinterpret<array<auto(TT)> const#> a))
     __builtin_array_unlock_mutable(a)
 }
 
@@ -1670,15 +1672,13 @@ def lock_data(var a : array<auto(TT)> ==const | #; blk : block<(var p : TT?#; s 
     let len = length(a)
     if (len != 0) {
         __builtin_array_lock(a)
-        unsafe {
+        unsafe {   // nolint:STYLE025 addr() needs unsafe too -- not detected as an unsafe leaf by the lint
             invoke(blk, reinterpret<TT?#> addr(a[0]), len)
         }
         __builtin_array_unlock(a)
     } else {
         var nullT : TT?
-        unsafe {
-            invoke(blk, reinterpret<TT?#> nullT, 0)
-        }
+        invoke(blk, unsafe(reinterpret<TT?#> nullT), 0)
     }
 }
 
@@ -1686,14 +1686,12 @@ def lock_data(a : array<auto(TT)> ==const | #; blk : block<(p : TT const?#; s : 
     let len = length(a)
     if (len != 0) {
         __builtin_array_lock_mutable(a)
-        unsafe {
+        unsafe {   // nolint:STYLE025 addr() needs unsafe too -- not detected as an unsafe leaf by the lint
             invoke(blk, reinterpret<TT const?#> addr(a[0]), len)
         }
         __builtin_array_unlock_mutable(a)
     } else {
-        unsafe {
-            invoke(blk, reinterpret<TT const?#> null, 0)
-        }
+        invoke(blk, unsafe(reinterpret<TT const?#> null), 0)
     }
 }
 
@@ -1701,54 +1699,49 @@ def lock_data(a : array<auto(TT)> ==const | #; blk : block<(p : TT const?#; s : 
 
 def find_index(arr : array<auto(TT)> | #; key : TT) {
     for (o, i in arr, range(length(arr))) {
-        if (o == key) {
-            return i
-        }
+        if (o == key) return i
     }
     return -1
 }
 
+def long_find_index(arr : array<auto(TT)> | #; key : TT) : int64 {
+    for (o, i in arr, range64(long_length(arr))) {
+        if (o == key) return i
+    }
+    return -1_l
+}
+
 def find_index(arr : auto(TT)[] | #; key : TT) {
     for (o, i in arr, range(length(arr))) {
-        if (o == key) {
-            return i
-        }
+        if (o == key) return i
     }
     return -1
 }
 
 def find_index(var arr : iterator<auto(TT)>; key : TT -&) {
     for (o, i in arr, count()) {
-        if (o == key) {
-            return i
-        }
+        return i if (o == key)
     }
     return -1
 }
 
 def find_index_if(arr : array<auto(TT)> | #; blk : block<(key : TT) : bool>) {
     for (o, i in arr, range(length(arr))) {
-        if (invoke(blk, o)) {
-            return i
-        }
+        if (invoke(blk, o)) return i
     }
     return -1
 }
 
 def find_index_if(arr : auto(TT)[] | #; blk : block<(key : TT) : bool>) {
     for (o, i in arr, range(length(arr))) {
-        if (invoke(blk, o)) {
-            return i
-        }
+        return i if (invoke(blk, o))
     }
     return -1
 }
 
 def find_index_if(var arr : iterator<auto(TT)>; blk : block<(key : TT -&) : bool>) {
     for (o, i in arr, count()) {
-        if (invoke(blk, o)) {
-            return i
-        }
+        if (invoke(blk, o)) return i
     }
     return -1
 }
@@ -1756,9 +1749,7 @@ def find_index_if(var arr : iterator<auto(TT)>; blk : block<(key : TT -&) : bool
 def has_value(a; key) {
     static_if (typeinfo is_iterable(a)) {
         for (t in a) {
-            if (t == key) {
-                return true
-            }
+            if (t == key) return true
         }
         return false
     } else {
@@ -1769,9 +1760,7 @@ def has_value(a; key) {
 
 def has_value(var a : iterator<auto>; key) {
     for (t in a) {
-        if (t == key) {
-            return true
-        }
+        return true if (t == key)
     }
     return false
 }
@@ -1821,9 +1810,7 @@ def map_to_array(data : void?; len : int; blk : block<(var arg : array<auto(TT)>
     assert(len > 0, "at least 1 element")
     let elem_size = typeinfo sizeof(type<TT>)
     let num_elem = len / elem_size
-    unsafe {
-        _builtin_temp_array(data, num_elem, blk)
-    }
+    unsafe(_builtin_temp_array(data, num_elem, blk))
 }
 
 [unsafe_operation]
@@ -1832,17 +1819,13 @@ def map_to_ro_array(data : void?; len : int; blk : block<(arg : array<auto(TT)>#
     assert(len > 0, "at least 1 element")
     let elem_size = typeinfo sizeof(type<TT>)
     let num_elem = len / elem_size
-    unsafe {
-        _builtin_temp_array(data, num_elem, blk)
-    }
+    unsafe(_builtin_temp_array(data, num_elem, blk))
 }
 
 def swap(var a, b : auto(TT)&) {
-    unsafe {
-        var t : TT -& <- a
-        a <- b
-        b <- t
-    }
+    var t : TT -& <- a
+    a <- b
+    b <- t
 }
 
 def subarray(a : auto(TT)[]; r : range) {

@@ -259,7 +259,9 @@ type_str_remap = {
     }
 
 def get_property_type(prop_owner, prop_name):
-    prop = prop_owner[prop_name]
+    prop = prop_owner.get(prop_name)
+    if prop is None:
+        return None
     type = prop.__class__.__name__
     if type == 'IDPropertyArray':
         length = prop.__len__()

@@ -355,7 +355,7 @@ These are converted into textures using one of two mapping methods:
 
 To enable spherical mapping:
 
-1. In `<engine_root>/prog/gameLibs/publicInclude/render/renderLights.hlsl`,
+1. In `<engine_root>/prog/gameLibs/publicInclude/render/lights/renderLights.hlsl`,
    comment or uncomment the line:
 
    ```text

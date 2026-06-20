@@ -5,6 +5,10 @@ float4 ocean1 = (0.57,0.91,0.84,0);
 
 float4 river0 = (0.30,0.25,0.02,0);
 float4 river1 = (0.56,0.54,0.28,0);
+
+float underwater_fog_base_diffuse = 0.6;
+float underwater_fog_normal_diffuse = 0.4;
+
 macro INIT_UNDERWATER_FOG(stage)
   local float4 ocean0_srgb = (sRGBRead(ocean0));
   local float4 ocean1_srgb = (sRGBRead(ocean1));

@@ -1,0 +1,16 @@
+R"(%s
+/* refined block cpp stcode routine */
+#include <shaders/stcode/callbacks.stcode.h>
+
+// Reg granularity in refined block is float, not float4.
+#define LOCSTAT(_name) (static_cast<size_t>(Location:: _name) / 4)
+#define VAR(name, type) name
+
+namespace stcode::cpp::_refined_block
+{
+
+%s
+
+} // namespace stcode::cpp::_refined_block
+
+)"

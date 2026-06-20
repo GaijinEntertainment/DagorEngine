@@ -37,6 +37,8 @@ struct FSR
     bool enableHdr = false;
     bool enableFrameGeneration = false;
 
+    uint32_t maxRenderWidth = 0;
+    uint32_t maxRenderHeight = 0;
     uint32_t outputWidth = 1;
     uint32_t outputHeight = 1;
 

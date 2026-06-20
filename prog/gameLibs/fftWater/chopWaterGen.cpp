@@ -547,24 +547,6 @@ void ChopWaterGenerator::GenerateWaves(const fft_water::ChopWaterProps &water_pr
   }
 
   // ========================================
-  // energy normalization
-  // ========================================
-
-  // estimate expected significant wave height(Hs) from wind speed
-  float significant_wave_height = 0.21f * ((wind_speed * wind_speed) / WATER_G); // pierson–moskowitz
-  // convert significant wave height(Hs) to target RMS amplitude
-  // RMS = (Hs / 2) * 0.707 = half height × RMS factor
-  float target_rms_amp = (significant_wave_height * 0.5f) * 0.707f;
-  // calculate target total energy
-  float target_total_energy = target_rms_amp * target_rms_amp;
-  // compute total current energy
-  float current_total_energy = 0.0f;
-  for (auto &wave : all_waves)
-  {
-    current_total_energy += wave.amplitude * wave.amplitude;
-  }
-
-  // ========================================
   // sort waves by spectrum domains
   // ========================================
   for (auto &wave : all_waves)
@@ -918,9 +900,6 @@ int ChopWaterGenerator::update_cpu_snapshot_rows(int rows_to_process)
     float *out = m_pending_snapshot->domain_heightmap[d].get();
 
     const uint32_t wavesCount = (uint32_t)m_cpu_wave_precomp[d].size();
-    // ensure precomp array is sized for this domain
-    if ((int)m_cpu_wave_precomp[d].size() != (int)wavesCount)
-      m_cpu_wave_precomp[d].resize(wavesCount);
 
     int yStart = m_pending_snapshot->nextRow;
     int rowsBudget = min(rows_to_process - processed, WATER_CPU_HEIGHTMAP_RES - yStart);

@@ -31,11 +31,16 @@ public:
   bool isUsingDefaultHotkeys() const;
   unsigned int getCmdId() const { return cmdId; }
 
+  /// Returns the display name or an empty string if none was set.
+  /// The display name is a more friendly text to show to the users than the command identifier.
+  const char *getDisplayName() const { return displayName; }
+
 private:
   friend class EditorCommands;
 
   dag::Vector<EditorCommandHotkey> defaultHotkeys;
   dag::Vector<EditorCommandHotkey> hotkeys;
+  SimpleString displayName;
 
   unsigned int cmdId = 0;
 };
@@ -43,9 +48,11 @@ private:
 class EditorCommands
 {
 public:
-  void addCommand(const char *id);
-  void addCommand(const char *id, ImGuiKeyChord key_chord);
-  void addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2);
+  /// The display_name parameter is optional. If not set then the command ID will be shown to the user.
+  /// The display name is a more friendly text to show to the users than the command identifier.
+  void addCommand(const char *id, const char *display_name = nullptr);
+  void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord);
+  void addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2);
 
   const uint32_t getCommandCount() const { return commands.size(); }
   const EditorCommand *getCommand(const char *id) const;

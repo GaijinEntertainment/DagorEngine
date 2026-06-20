@@ -44,10 +44,20 @@ void gameresprivate::registerOptionalGameResPack(const char *filename)
 
   using namespace gamerespackbin;
   GrpHeader ghdr;
+  if (dump_data.size() < sizeof(GrpHeader))
+  {
+    debug("Corrupt optional cache.bin %s (size=%u)", filename, dump_data.size());
+    return;
+  }
   crd.read(&ghdr, sizeof(ghdr));
   if (ghdr.label != _MAKE4C('GRP2') && ghdr.label != _MAKE4C('GRP3'))
   {
     debug("no GRP2 label (hdr: 0x%x 0x%x 0x%x 0x%x)", ghdr.label, ghdr.descOnlySize, ghdr.fullDataSize, ghdr.restFileSize);
+    return;
+  }
+  if (!grp_desc_block_valid(ghdr.descOnlySize, dump_data.size()))
+  {
+    debug("Corrupt optional cache.bin %s: descOnlySize=%u, size=%u", filename, ghdr.descOnlySize, dump_data.size());
     return;
   }
 

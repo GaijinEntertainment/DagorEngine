@@ -266,6 +266,18 @@ enum class Drv3dCommand
   // par2: int *view_index
   EXECUTE_DLSS_G,
 
+  // Sets DLSS-G enabled state. Routed through the render backend thread so slDLSSGSetOptions is not
+  // called from the calling (e.g. main) thread.
+  // par1: int *frames_to_generate
+  // par2: int *view_index
+  SET_DLSS_G_ENABLED,
+
+  // Sets DLSS (super resolution / ray reconstruction) options. Routed through the render backend thread
+  // so slDLSS(D)SetOptions is not called from the calling (e.g. main) thread.
+  // par1: nv::DlssOptions *
+  // par2: int *view_index
+  SET_DLSS_OPTIONS,
+
   // Executes DLSS
   // par1: XessParams *
   EXECUTE_XESS,
@@ -723,36 +735,28 @@ struct Drv3dTimings
 /// All values are optional, but graphics and mesh pipelines can not be created without output and render state sets.
 struct CompilePipelineSet
 {
-  /// V1 and V2 value. When not specified, the driver assumes its driver specific format (if supported) and otherwise engine.
+  /// When not specified, the driver assumes its driver specific format (if supported) and otherwise engine.
   const char *defaultFormat;
-  /// V1 and V2 block. A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features.
+  /// A block with a set of feature sets referenced by pipelines in the pipeline sets to indicate required features.
   const DataBlock *featureSet;
-  /// V1 and V2 block. A block with a set of blocks describing input layouts.
+  /// A block with a set of blocks describing input layouts.
   const DataBlock *inputLayoutSet;
-  /// V1 and V2 block. A block with a set of blocks describing render states. The driver will ignore render states that are
+  /// A block with a set of blocks describing render states. The driver will ignore render states that are
   /// incompatible with the system.
   const DataBlock *renderStateSet;
-  /// V1 and V2 block. A block with a set of blocks describing output format states. The driver will ignore output format states that
+  /// A block with a set of blocks describing output format states. The driver will ignore output format states that
   /// are incompatible wit the system.
   const DataBlock *outputFormatSet;
-  /// V1 block. A block with a set of blocks describing graphics pipelines. The driver will ignore pipelines using unsupported input
-  /// layouts, render states or output formats.
-  const DataBlock *graphicsPipelineSet;
-  /// V1 block. A block with a set of blocks describing mesh pipelines. The driver will ignore pipelines using unsupported render
-  /// states or output formats.
-  const DataBlock *meshPipelineSet;
-  /// V1 block. A block with a set of blocks describing compute pipelines.
-  const DataBlock *computePipelineSet;
-  /// V2 block, this block stores shader class signatures, this ensures we try not to load incompatible shader class uses.
+  /// This block stores shader class signatures, this ensures we try not to load incompatible shader class uses.
   const DataBlock *signature;
-  /// V2 block, new compute use set, uses shader class names and codes.
+  /// Compute use set, uses shader class names and codes.
   const DataBlock *computeSet;
-  /// V2 block, new graphics use set, uses shader class names and codes.
+  /// Graphics use set, uses shader class names and codes.
   const DataBlock *graphicsSet;
-  /// V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader is
+  /// Graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader is
   /// replaced by the null pixel shader.
   const DataBlock *graphicsNullPixelOverrideSet;
-  /// V2 block, new graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader uses a
+  /// Graphics use set, uses shader class names and codes. This set has pipelines where the paired pixel shader uses a
   /// differen shader class name and codes than the vertex shader.
   const DataBlock *graphicsPixelOverrideSet;
 };

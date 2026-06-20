@@ -34,7 +34,7 @@ def get_coverage_report(input_file : string) : string {
             var inscope access <- make_file_access("")
             cop.threadlock_context = true
             access |> add_extra_module("coverage", "{get_das_root()}/daslib/coverage.das")
-            compile_and_simulate(input_file, access, unsafe(addr(mg)), cop) $(program : ProgramPtr; var pctx : smart_ptr<Context>) {
+            compile_and_simulate(input_file, access, unsafe(addr(mg)), cop) $(_program : ProgramPtr; var pctx : smart_ptr<Context>) {
                 with_argv(array<string>()) {
                     unsafe(invoke_in_context(pctx, "main"))
                 }

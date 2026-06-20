@@ -307,7 +307,7 @@ shader temporal_big_light_shadows
         float4 linearHistoryDepth4W = linearize_z4(rawHistoryDepth4, zn_zfar.zw);
         float3 prevViewVect = getPrevViewVecOptimized(historyUV);
 
-        prevCameraPos = dot(linearHistoryDepth4W, 0.5)*prevViewVect + prev_move_world_view_pos;
+        prevCameraPos = dot(linearHistoryDepth4W, 0.25)*prevViewVect + prev_move_world_view_pos;
         float prevViewVectLenSq = dot(prevViewVect, prevViewVect);
         float prevWorldViewPosLenSq = dot(prev_move_world_view_pos, prev_move_world_view_pos);
         float prevView_worldPos_dot = dot(prevViewVect, prev_move_world_view_pos) * 2;

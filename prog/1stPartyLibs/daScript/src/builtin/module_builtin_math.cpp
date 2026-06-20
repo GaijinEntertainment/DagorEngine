@@ -255,7 +255,7 @@ namespace das {
                 uint32_t idxC = cast<uint32_t>::to(idxCE->value);
                 if ( idxC >= RowC ) {
                     context.thisProgram->error("matrix index out of range", "", "",
-                        subexpr->at, CompilationError::index_out_of_range);
+                        subexpr->at, CompilationError::exceeds_array_index);
                     return nullptr;
                 }
                 uint32_t stride = sizeof(float)*ColC;

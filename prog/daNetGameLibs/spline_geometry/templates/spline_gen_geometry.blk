@@ -59,6 +59,14 @@ spline_gen_geometry{
     _info { desc:t="For refractive splineGen. Surface opaqueness value between 0 and 1. 0 means fully transparent, 1 means fully opaque." }
     value:r=0.0
   }
+  "spline_gen_geometry__medium_tint:p3"{
+    _info { desc:t="For refractive splineGen. RGB tint (transmission spectrum) of the refraction medium. Determines how much of the colored light passes through. Default (1, 1, 1) means all colors pass through (no tint), e.g. clear water." }
+    value:p3=1, 1, 1
+  }
+  "spline_gen_geometry__is_shell:r"{
+    _info { desc:t="For refractive splineGen. 0 is a solid medium, 1 is a thin hollow shell. Blends the refraction ray length between the two." }
+    value:r=0.0
+  }
   "spline_gen_geometry__additional_thickness_bounds:p2"{
     _info { desc:t="For refractive splineGen. First value is min added thickness, second is max added thickness. Overall thickness is then calculated as `radius + lerp(min thickness, max thickness, normalmap's b channel's value)`." }
     value:p2=0, 0

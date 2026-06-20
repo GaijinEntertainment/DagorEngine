@@ -81,8 +81,6 @@ String NodeBasedShaderManager::buildScriptedShaderName(char const *asset)
   return shader;
 }
 
-char const *NodeBasedShaderManager::getShaderBlockName() const { return get_shader_type_block_name(shader); }
-
 void NodeBasedShaderManager::setShadervars(int variant_id)
 {
   ShaderGlobal::set_float(global_time_phaseVarId, get_shader_global_time_phase(0, 0));

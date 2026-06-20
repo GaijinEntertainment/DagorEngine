@@ -18,7 +18,7 @@ class AstAot : AstSimulateMacro {
         //! Runs AOT compilation of the program and writes the result to the output file specified in policies.
         return true if (is_in_completion() || is_compiling_macros() || is_folding())
         let res = run_aot(prog, ctx, prog.policies)
-        var is_ok = res |> length() > 0
+        var is_ok = res |> !empty(res)
         if (is_ok) {
             let fileName = "{prog.policies.aot_result}"
             print("Aot to {fileName}\n")

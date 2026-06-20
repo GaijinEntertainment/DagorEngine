@@ -1,3 +1,4 @@
+#define MIN_POSSIBLE_WARP_SIZE 8 // PC worst case (Intel)
 
 #define NOP
 #define _HARDWARE_JUST_DX11 1

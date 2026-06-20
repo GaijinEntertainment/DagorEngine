@@ -649,7 +649,7 @@ public:
         }
         int param_cnt = 0;
         iterate_names(ag->getParamNames(), [&](int id, const char *) {
-          if (ag->getParamType(id) != AnimV20::IPureAnimStateHolder::PT_Reserved)
+          if (ag->getParamType(id) != AnimV20::AnimGraphStateHolder::PT_Reserved)
             param_cnt++;
         });
         DAEDITOR3.conNote("animchar %s: %d animNodes (%d with NULLs),  %d BNLs,  %d PBCs\n"
@@ -881,14 +881,14 @@ public:
     IAnimCharController *animCtrl = entity->queryInterface<IAnimCharController>();
     if (!animCtrl || !animCtrl->getAnimGraph())
       return;
-    AnimV20::IAnimStateHolder &st = *animCtrl->getAnimState();
+    AnimV20::AnimGraphStateHolder &st = *animCtrl->getAnimState();
 
     iterate_names(animCtrl->getAnimGraph()->getParamNames(), [&](int i, const char *nm) {
       switch (animCtrl->getAnimGraph()->getParamType(i))
       {
-        case AnimV20::IPureAnimStateHolder::PT_ScalarParam:
-        case AnimV20::IPureAnimStateHolder::PT_TimeParam: state.setReal(nm, st.getParam(i)); break;
-        case AnimV20::IPureAnimStateHolder::PT_ScalarParamInt: state.setInt(nm, st.getParamInt(i)); break;
+        case AnimV20::AnimGraphStateHolder::PT_ScalarParam:
+        case AnimV20::AnimGraphStateHolder::PT_TimeParam: state.setReal(nm, st.getParam(i)); break;
+        case AnimV20::AnimGraphStateHolder::PT_ScalarParamInt: state.setInt(nm, st.getParamInt(i)); break;
       }
     });
 
@@ -912,14 +912,14 @@ public:
     IAnimCharController *animCtrl = entity->queryInterface<IAnimCharController>();
     if (!animCtrl || !animCtrl->getAnimGraph())
       return;
-    AnimV20::IAnimStateHolder &st = *animCtrl->getAnimState();
+    AnimV20::AnimGraphStateHolder &st = *animCtrl->getAnimState();
 
     iterate_names(animCtrl->getAnimGraph()->getParamNames(), [&](int i, const char *nm) {
       switch (animCtrl->getAnimGraph()->getParamType(i))
       {
-        case AnimV20::IPureAnimStateHolder::PT_ScalarParam:
-        case AnimV20::IPureAnimStateHolder::PT_TimeParam: st.setParam(i, state.getReal(nm, st.getParam(i))); break;
-        case AnimV20::IPureAnimStateHolder::PT_ScalarParamInt: st.setParamInt(i, state.getInt(nm, st.getParamInt(i))); break;
+        case AnimV20::AnimGraphStateHolder::PT_ScalarParam:
+        case AnimV20::AnimGraphStateHolder::PT_TimeParam: st.setParam(i, state.getReal(nm, st.getParam(i))); break;
+        case AnimV20::AnimGraphStateHolder::PT_ScalarParamInt: st.setParamInt(i, state.getInt(nm, st.getParamInt(i))); break;
       }
     });
 
@@ -991,7 +991,7 @@ public:
             physsimulator::simulate(animCtrl->getTimeScale() * dt);
 
         AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
-        AnimV20::IAnimStateHolder *st = animCtrl->getAnimState();
+        AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
         if (anim && st)
         {
           iterate_names(anim->getParamNames(), [&](int i, const char *paramName) {
@@ -999,9 +999,9 @@ public:
             {
               PropPanel::PropertyControlBase *c = getPluginPanel()->getById(PID_ANIM_PARAM0 + i);
               int v = 0;
-              if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+              if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
                 v = (int)st->getParam(i);
-              else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+              else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
                 v = st->getParamInt(i);
               else
                 DAEDITOR3.conError("param[%d] <%s> type=%d unexpected", i, paramName, anim->getParamType(i));
@@ -1018,23 +1018,23 @@ public:
             {
               PropPanel::PropertyControlBase *c = getPluginPanel()->getById(PID_ANIM_PARAM0 + i);
               bool v = false;
-              if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+              if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
                 v = st->getParam(i) > 0.5f;
-              else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+              else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
                 v = st->getParamInt(i) >= 1;
               else
                 DAEDITOR3.conError("param[%d] <%s> type=%d unexpected", i, paramName, anim->getParamType(i));
               if (c && c->getBoolValue() != v)
                 c->setBoolValue(v);
             }
-            else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+            else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
             {
               PropPanel::PropertyControlBase *c = getPluginPanel()->getById(PID_ANIM_PARAM0 + i);
               float v = st->getParam(i);
               if (c && c->getFloatValue() != v)
                 c->setFloatValue(v);
             }
-            else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+            else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
             {
               PropPanel::PropertyControlBase *c = getPluginPanel()->getById(PID_ANIM_PARAM0 + i);
               int v = st->getParamInt(i);
@@ -1077,7 +1077,7 @@ public:
             else if (!fvc.pitchParam.empty() || !fvc.yawParam.empty())
             {
               AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
-              AnimV20::IAnimStateHolder *st = animCtrl->getAnimState();
+              AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
               if (anim && st)
               {
                 float yaw = 0, pitch = 0;
@@ -1173,7 +1173,7 @@ public:
     if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
     {
       AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
-      AnimV20::IAnimStateHolder *st = animCtrl->getAnimState();
+      AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
       if (auto *ac = animCtrl->getAnimCharBase(); ac && showSkeleton)
       {
         ac->getNodeTree().partialCalcWtm(dag::Index16(ac->getNodeTree().nodeCount()));
@@ -1191,11 +1191,11 @@ public:
         begin_draw_cached_debug_lines(false, false);
         set_cached_debug_lines_wtm(TMatrix::IDENT);
         iterate_names(anim->getParamNames(), [&](int id, const char *nm) {
-          if (anim->getParamType(id) == AnimV20::IPureAnimStateHolder::PT_Effector)
+          if (anim->getParamType(id) == AnimV20::AnimGraphStateHolder::PT_Effector)
           {
-            int id = anim->getParamId(nm, AnimV20::IAnimStateHolder::PT_Effector);
-            int id2 = anim->getParamId(String(0, "%s.m", nm), AnimV20::IAnimStateHolder::PT_InlinePtr);
-            AnimV20::IAnimStateHolder::EffectorVar eff = st->getParamEffector(id);
+            int id = anim->getParamId(nm, AnimV20::AnimGraphStateHolder::PT_Effector);
+            int id2 = anim->getParamId(String(0, "%s.m", nm), AnimV20::AnimGraphStateHolder::PT_InlinePtr);
+            AnimV20::AnimGraphStateHolder::EffectorVar eff = st->getParamEffector(id);
             if (eff.type == eff.T_useEffector)
               draw_cached_debug_sphere(Point3(eff.x, eff.y, eff.z), 0.005, E3DCOLOR(255, 0, 0, 255));
             else if (eff.nodeId)
@@ -1232,12 +1232,12 @@ public:
       if (showIKSolution && anim)
       {
         iterate_names(anim->getParamNames(), [&](int id, const char *nm) {
-          if (anim->getParamType(id) == AnimV20::IPureAnimStateHolder::PT_InlinePtrCTZ)
+          if (anim->getParamType(id) == AnimV20::AnimGraphStateHolder::PT_InlinePtrCTZ)
           {
             if (!trail_strcmp(nm, "$dbg0"))
               return;
-            int id0 = anim->getParamId(nm, AnimV20::IAnimStateHolder::PT_InlinePtrCTZ);
-            int id1 = anim->getParamId(String(0, "%.*s1", strlen(nm) - 1, nm), AnimV20::IAnimStateHolder::PT_InlinePtrCTZ);
+            int id0 = anim->getParamId(nm, AnimV20::AnimGraphStateHolder::PT_InlinePtrCTZ);
+            int id1 = anim->getParamId(String(0, "%.*s1", strlen(nm) - 1, nm), AnimV20::AnimGraphStateHolder::PT_InlinePtrCTZ);
             auto *c0 = id0 >= 0 ? (AnimV20::MultiChainFABRIKCtrl::debug_state_t *)st->getInlinePtr(id0) : nullptr;
             auto *c1 = id1 >= 0 ? (AnimV20::MultiChainFABRIKCtrl::debug_state_t *)st->getInlinePtr(id1) : nullptr;
 
@@ -1533,7 +1533,7 @@ public:
       animPanel->createSortedCombo(PID_ANIM_SET_NODE, "Force anim node", anims, lastForceAnimSet);
 
       AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
-      AnimV20::IAnimStateHolder *st = animCtrl->getAnimState();
+      AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
       if (anim && anim->getStateCount())
       {
         PropPanel::ContainerPropertyControl &animGrp = *animPanel->createGroup(PID_ANIM_STATES_GROUP, "Anim states");
@@ -1571,12 +1571,12 @@ public:
 
       if (anim && st)
       {
-        animPersCoursePid = anim->getParamId("pers_course", AnimV20::IAnimStateHolder::PT_ScalarParam);
-        animPersCourseDeltaPid = anim->getParamId("pers_course:delta", AnimV20::IAnimStateHolder::PT_ScalarParam);
+        animPersCoursePid = anim->getParamId("pers_course", AnimV20::AnimGraphStateHolder::PT_ScalarParam);
+        animPersCourseDeltaPid = anim->getParamId("pers_course:delta", AnimV20::AnimGraphStateHolder::PT_ScalarParam);
         bool has_params = false;
         for (int i = 0; i < anim->getParamCount(); i++)
-          if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam ||
-              anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+          if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam ||
+              anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
           {
             has_params = true;
             break;
@@ -1604,9 +1604,9 @@ public:
               enumParamBlk.addNewBlock(&bEnum, nm);
               Tab<String> enumNm(tmpmem);
               int value = 0;
-              if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+              if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
                 value = (int)st->getParam(i);
-              else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+              else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
                 value = st->getParamInt(i);
 
               int sel_idx = -1;
@@ -1624,16 +1624,16 @@ public:
             if (param_b && param_b->getBool("bool", false))
             {
               bool v = false;
-              if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+              if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
                 v = st->getParam(i) > 0.5f;
-              else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+              else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
                 v = st->getParamInt(i) >= 1;
 
               astGrp.createCheckBox(PID_ANIM_PARAM0 + i, nm, v);
               boolParamMask.set(i);
               return;
             }
-            if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+            if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
             {
               if (param_b && param_b->getBool("trackbar", false))
                 astGrp.createTrackFloat(PID_ANIM_PARAM0 + i, nm, st->getParam(i), param_b->getReal("min", 0),
@@ -1641,7 +1641,7 @@ public:
               else
                 astGrp.createEditFloat(PID_ANIM_PARAM0 + i, nm, st->getParam(i));
             }
-            else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+            else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
               astGrp.createEditInt(PID_ANIM_PARAM0 + i, nm, st->getParamInt(i));
             if (param_b)
               astGrp.setMinMaxStep(PID_ANIM_PARAM0 + i, param_b->getReal("min"), param_b->getReal("max"), param_b->getReal("step"));
@@ -1846,7 +1846,7 @@ public:
       if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
       {
         AnimV20::AnimationGraph *anim = animCtrl->getAnimGraph();
-        AnimV20::IAnimStateHolder *st = animCtrl->getAnimState();
+        AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState();
         if (anim && st)
         {
           int i = pcb_id - PID_ANIM_PARAM0;
@@ -1857,25 +1857,25 @@ public:
             if (const DataBlock *b = enumParamBlk.getBlockByName(anim->getParamName(i)))
               if (v >= 0 && v < b->blockCount())
               {
-                if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+                if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
                   st->setParam(i, b->getBlock(v)->getInt("_enumValue"));
-                else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+                else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
                   st->setParamInt(i, b->getBlock(v)->getInt("_enumValue"));
               }
           }
           else if (boolParamMask.get(i))
           {
-            if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+            if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
               st->setParam(i, panel->getBool(pcb_id) ? 1.0f : 0.0f);
-            else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+            else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
               st->setParamInt(i, panel->getBool(pcb_id) ? 1 : 0);
           }
-          else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParam)
+          else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParam)
           {
             float v = panel->getFloat(pcb_id);
             st->setParam(i, v);
           }
-          else if (anim->getParamType(i) == AnimV20::IPureAnimStateHolder::PT_ScalarParamInt)
+          else if (anim->getParamType(i) == AnimV20::AnimGraphStateHolder::PT_ScalarParamInt)
             st->setParamInt(i, panel->getInt(pcb_id));
 
           if (i == animPersCoursePid)
@@ -2326,13 +2326,13 @@ public:
     if (IAnimCharController *animCtrl = entity ? entity->queryInterface<IAnimCharController>() : NULL)
     {
       AnimationGraph *anim = animCtrl->getAnimGraph();
-      IAnimStateHolder *st = animCtrl->getAnimState();
+      AnimGraphStateHolder *st = animCtrl->getAnimState();
       if (anim && st)
       {
         int total_cnt = 0, listed_cnt = 0;
         DAEDITOR3.conNote("animState=%p  %d words, sz=%d", st, anim->getParamNames().nameCount(), st->getSize());
         iterate_names(anim->getParamNames(), [&](int id, const char *name) {
-          if (anim->getParamType(id) == AnimCommonStateHolder::PT_Reserved)
+          if (anim->getParamType(id) == AnimGraphStateHolder::PT_Reserved)
             return;
           total_cnt++;
           if (params.size() && !strstr(name, params[0]))
@@ -2340,16 +2340,16 @@ public:
           listed_cnt++;
           switch (anim->getParamType(id))
           {
-            case AnimCommonStateHolder::PT_ScalarParam: DAEDITOR3.conNote("[%d] %40s float=%g", id, name, st->getParam(id)); break;
-            case AnimCommonStateHolder::PT_ScalarParamInt:
+            case AnimGraphStateHolder::PT_ScalarParam: DAEDITOR3.conNote("[%d] %40s float=%g", id, name, st->getParam(id)); break;
+            case AnimGraphStateHolder::PT_ScalarParamInt:
               DAEDITOR3.conNote("[%d] %40s int  =%d", id, name, st->getParamInt(id));
               break;
-            case AnimCommonStateHolder::PT_TimeParam: DAEDITOR3.conNote("[%d] %40s timer=%g", id, name, st->getParam(id)); break;
+            case AnimGraphStateHolder::PT_TimeParam: DAEDITOR3.conNote("[%d] %40s timer=%g", id, name, st->getParam(id)); break;
 
-            case AnimCommonStateHolder::PT_InlinePtr:
-            case AnimCommonStateHolder::PT_InlinePtrCTZ:
-            case AnimCommonStateHolder::PT_Fifo3:
-            case AnimCommonStateHolder::PT_Effector:
+            case AnimGraphStateHolder::PT_InlinePtr:
+            case AnimGraphStateHolder::PT_InlinePtrCTZ:
+            case AnimGraphStateHolder::PT_Fifo3:
+            case AnimGraphStateHolder::PT_Effector:
               DAEDITOR3.conNote("[%d] %40s inline(T:%d)=%p, %d", id, name, anim->getParamType(id), st->getInlinePtr(id),
                 st->getInlinePtrMaxSz(id));
               break;
@@ -2393,7 +2393,7 @@ public:
       entity->setTm(rotyTM(fullRotY * DEG_TO_RAD) * rotxTM(rotX * DEG_TO_RAD));
       if (IAnimCharController *animCtrl = entity->queryInterface<IAnimCharController>())
       {
-        if (AnimV20::IAnimStateHolder *st = animCtrl->getAnimState())
+        if (AnimV20::AnimGraphStateHolder *st = animCtrl->getAnimState())
           st->advance(0);
         if (auto *ac = animCtrl->getAnimCharBase())
           ac->doRecalcAnimAndWtm();

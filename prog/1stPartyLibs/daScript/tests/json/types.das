@@ -5,7 +5,8 @@ require daslib/json_boost
 def test_equ(t : T?; x : auto(TT)) {
     var jv = JV(x)
     // to_log(LOG_INFO, "{x}:{typeinfo(typename x)} serialized as {write_json(jv)}\n")
-    t |> equal(x, from_JV(jv, decltype_noref(x)))
+    // Generic driver: TT can be scalar or struct/table — keep from_JV uniform.
+    t |> equal(x, from_JV(jv, decltype_noref(x)))  // nolint:STYLE020
     unsafe {
         delete jv
     }
@@ -37,6 +38,44 @@ def vector_types(t : T?) {
     test_equ(t, uint2(1, 2))
     test_equ(t, uint3(1, 2, 3))
     test_equ(t, uint4(1, 2, 3, 4))
+}
+
+def test_array_form(t : T?; jsonText : string; want : auto(VecT)) {
+    var err : string
+    var v = read_json(jsonText, err)
+    t |> equal(empty(err), true, "read_json '{jsonText}' parses: {err}")
+    t |> equal(from_JV(v, type<VecT>, default<VecT>), want, "from_JV<vec> '{jsonText}'")
+    unsafe {
+        delete v
+    }
+}
+
+[test]
+def vector_array_form(t : T?) {
+    //! from_JV<vecN> accepts the JSON array form '[x,y,z,w]' (what sprint_json /
+    //! debug_json_value emit) in addition to the object form '{x,y,z,w}' (what
+    //! JV(vec) emits). Both shapes round-trip to the same vector value.
+    test_array_form(t, "[1, 2]", float2(1, 2))
+    test_array_form(t, "[1, 2, 3]", float3(1, 2, 3))
+    test_array_form(t, "[1, 2, 3, 4]", float4(1, 2, 3, 4))
+    test_array_form(t, "[1, 2]", int2(1, 2))
+    test_array_form(t, "[1, 2, 3]", int3(1, 2, 3))
+    test_array_form(t, "[1, 2, 3, 4]", int4(1, 2, 3, 4))
+    test_array_form(t, "[1, 2]", uint2(1, 2))
+    test_array_form(t, "[1, 2, 3]", uint3(1, 2, 3))
+    test_array_form(t, "[1, 2, 3, 4]", uint4(1, 2, 3, 4))
+    // Short / empty arrays fall back to default field-by-field.
+    test_array_form(t, "[]", float3(0, 0, 0))
+    test_array_form(t, "[7]", float3(7, 0, 0))
+    test_array_form(t, "[7, 8]", float3(7, 8, 0))
+    // Object form still works after the array-form branch.
+    var err : string
+    var obj = read_json("\{\"x\":1, \"y\":2, \"z\":3\}", err)
+    t |> equal(from_JV(obj, type<float3>, default<float3>), float3(1, 2, 3),
+               "object form still accepted")
+    unsafe {
+        delete obj
+    }
 }
 
 enum FooBar {
@@ -76,18 +115,14 @@ def struct_types(t : T?) {
 
 def operator ==(a, b : int[4]) {
     for (A, B in a, b) {
-        if (A != B) {
-            return false
-        }
+        return false if (A != B)
     }
     return true
 }
 
 def operator ==(a, b : SFoo[2] | #) {
     for (A, B in a, b) {
-        if (!(A == B)) {
-            return false
-        }
+        return false if (!(A == B))
     }
     return true
 }
@@ -100,18 +135,14 @@ def dim_types(t : T?) {
 
 def operator ==(a, b : array<int>) {
     for (A, B in a, b) {
-        if (A != B) {
-            return false
-        }
+        return false if (A != B)
     }
     return true
 }
 
 def operator ==(a, b : array<SFoo>) {
     for (A, B in a, b) {
-        if (!(A == B)) {
-            return false
-        }
+        return false if (!(A == B))
     }
     return true
 }
@@ -134,13 +165,9 @@ def tuple_types(t : T?) {
 }
 
 def op_equ_tab(a, b : table<string; auto(TT)>) {
-    if (a |> length != b |> length) {
-        return false
-    }
+    return false if (a |> length != b |> length)
     for (k, v in keys(a), values(a)) {
-        if (!(b |> key_exists(k))) {
-            return false
-        }
+        return false if (!(b |> key_exists(k)))
         var same = false
         b |> get(k) $(pv) {
             same = pv == v
@@ -191,13 +218,9 @@ struct MFoo {
 }
 
 def operator ==(a, b : MFoo) {
-    if (a.c |> length != b.c |> length) {
-        return false
-    }
+    return false if (a.c |> length != b.c |> length)
     for (ac, bc in a.c, b.c) {
-        if (ac != bc) {
-            return false
-        }
+        return false if (ac != bc)
     }
     return a.a == b.a && a.b == b.b
 }

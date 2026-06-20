@@ -262,23 +262,17 @@ let _UTF32_NON_WORD_RANGES <- fixed_array(
 def public utf32_is_word_char(cp : uint) : bool {
     //! ASCII `[A-Za-z0-9_]` fast path; otherwise consults a non-word range table.
     //! Pragmatic BMP subset — full UCD categorization is out of scope.
-    if (cp < 0x80u) {
-        return ((cp >= 0x30u && cp <= 0x39u) ||
+    if (cp < 0x80u) return ((cp >= 0x30u && cp <= 0x39u) ||
                 (cp >= 0x41u && cp <= 0x5Au) ||
                 (cp >= 0x61u && cp <= 0x7Au) ||
                 cp == 0x5Fu)
-    }
     let n = length(_UTF32_NON_WORD_RANGES)
     var i = 0
     while (i < n) {
         let lo = _UTF32_NON_WORD_RANGES[i]
         let hi = _UTF32_NON_WORD_RANGES[i + 1]
-        if (cp < lo) {
-            return true
-        }
-        if (cp <= hi) {
-            return false
-        }
+        if (cp < lo) return true
+        if (cp <= hi) return false
         i += 2
     }
     return true
@@ -299,47 +293,23 @@ let _UTF32_LATIN1_LOWER <- fixed_array(
 def public utf32_to_lower(cp : uint) : uint {
     //! Lowercases a codepoint. Covers ASCII, Latin-1 supplement, Latin Extended-A,
     //! Greek capitals, Cyrillic capitals; other codepoints pass through unchanged.
-    if (cp >= 0x41u && cp <= 0x5Au) {
-        return cp + 0x20u
-    }
-    if (cp < 0xC0u) {
-        return cp
-    }
-    if (cp <= 0xFFu) {
-        return _UTF32_LATIN1_LOWER[cp - 0xC0u]
-    }
+    if (cp >= 0x41u && cp <= 0x5Au) return cp + 0x20u
+    if (cp < 0xC0u) return cp
+    if (cp <= 0xFFu) return _UTF32_LATIN1_LOWER[cp - 0xC0u]
     // Latin Extended-A: 0x100..0x17F. Mostly upper/lower paired at
     // even/odd codepoints. Exceptions handled inline.
-    if (cp >= 0x100u && cp <= 0x137u) {
-        return ((cp & 1u) == 0u) ? cp + 1u : cp
-    }
-    if (cp >= 0x139u && cp <= 0x148u) {
-        return ((cp & 1u) == 1u) ? cp + 1u : cp
-    }
-    if (cp >= 0x14Au && cp <= 0x177u) {
-        return ((cp & 1u) == 0u) ? cp + 1u : cp
-    }
-    if (cp == 0x178u) {
-        return 0xFFu  // Ÿ → ÿ
-    }
-    if (cp >= 0x179u && cp <= 0x17Eu) {
-        return ((cp & 1u) == 1u) ? cp + 1u : cp
-    }
-    // Greek: Α-Ω (0x391..0x3A9) → α-ω (0x3B1..0x3C9), excluding 0x3A2 (reserved).
-    if (cp >= 0x391u && cp <= 0x3A1u) {
-        return cp + 0x20u
-    }
-    if (cp >= 0x3A3u && cp <= 0x3ABu) {
-        return cp + 0x20u
-    }
-    // Cyrillic: А-Я (0x410..0x42F) → а-я (0x430..0x44F).
-    if (cp >= 0x410u && cp <= 0x42Fu) {
-        return cp + 0x20u
-    }
+    if (cp >= 0x100u && cp <= 0x137u) return ((cp & 1u) == 0u) ? cp + 1u : cp
+    if (cp >= 0x139u && cp <= 0x148u) return ((cp & 1u) == 1u) ? cp + 1u : cp
+    if (cp >= 0x14Au && cp <= 0x177u) return ((cp & 1u) == 0u) ? cp + 1u : cp
+    if (cp == 0x178u) return 0xFFu  // Ÿ → ÿ
+    if (cp >= 0x179u && cp <= 0x17Eu) return ((cp & 1u) == 1u) ? cp + 1u : cp
+    // Greek Α-Ω (0x391..0x3A9, excl. 0x3A2 reserved) → α-ω;
+    // Cyrillic А-Я (0x410..0x42F) → а-я; all shift by 0x20.
+    if ((cp >= 0x391u && cp <= 0x3A1u)
+            || (cp >= 0x3A3u && cp <= 0x3ABu)
+            || (cp >= 0x410u && cp <= 0x42Fu)) return cp + 0x20u
     // Cyrillic: Ё (0x401) → ё (0x451), plus Ѐ-Џ (0x400..0x40F) → ѐ-џ (0x450..0x45F).
-    if (cp >= 0x400u && cp <= 0x40Fu) {
-        return cp + 0x50u
-    }
+    if (cp >= 0x400u && cp <= 0x40Fu) return cp + 0x50u
     return cp
 }
 
@@ -355,9 +325,7 @@ def public each_word(text : string; var out : array<string>) {
         while (i < n && !utf32_is_word_char(codepoints[i])) {
             i++
         }
-        if (i >= n) {
-            break
-        }
+        if (i >= n) break
         token_buf |> resize(0)
         while (i < n && utf32_is_word_char(codepoints[i])) {
             token_buf |> utf8_encode(utf32_to_lower(codepoints[i]))
@@ -404,7 +372,7 @@ def decode_unicode_escape(str : string) {
                     }
                 }
                 writer |> write_char(int(p[i]))
-                i += 1
+                i++
             }
         }
     }

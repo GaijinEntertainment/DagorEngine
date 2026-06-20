@@ -110,6 +110,8 @@ CMD(CmdReleaseDLSS, measured, DUMP_DEFAULT);
 CMD(CmdReleaseStreamlineDLSS, measured, DUMP_DEFAULT);
 CMD(CmdExecuteStreamlineDLSS, measured, DUMP_DEFAULT);
 CMD(CmdExecuteStreamlineDLSSG, measured, DUMP_DEFAULT);
+CMD(CmdSetDlssGEnabled, measured, DUMP_DEFAULT);
+CMD(CmdSetDlssOptions, measured, DUMP_DEFAULT);
 CMD(CmdCopyBufferToImageOrdered, measured, DUMP_DEFAULT);
 CMD(CmdCopyBuffer, measured, DUMP_DEFAULT);
 CMD(CmdFillBuffer, measured, DUMP_DEFAULT);

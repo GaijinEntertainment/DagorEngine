@@ -85,6 +85,9 @@ struct MemoryStatistics
   int splineGenCount;
   int64_t splineGenBLASSize;
   int64_t splineGenVBSize;
+  int smokeTracerCount;
+  int64_t smokeTracerBLASSize;
+  int64_t smokeTracerVBSize;
   int blasCount;
   int64_t perInstanceDataSize;
   int64_t compactionSize;

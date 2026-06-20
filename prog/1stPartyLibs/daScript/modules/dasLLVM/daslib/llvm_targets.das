@@ -5,84 +5,39 @@ require llvm/bindings/llvm_func
 // All target related functions use #define-s in LLVM-C.
 // There's no way to extract them to here. All we can do
 // is manually call requested functions.
+//
+// The set below mirrors the universal_targets list in bind_llvm.das (X86,
+// AArch64) — the only targets whose per-target Initialize<X>* symbols
+// are guaranteed to be exported by every prebuilt LLVM.dll we ship across
+// linux x86_64 / linux arm64 / mac arm64 / windows x86_64. Adding more
+// targets here will break loading the bindings on platforms whose curated
+// LLVM build omits them; if cross-target codegen is ever needed, add the
+// missing target to universal_targets AND ensure every prebuilt exports it.
 
 def LLVMInitializeAllTargetInfos() {
     LLVMInitializeAArch64TargetInfo()
-    LLVMInitializeAMDGPUTargetInfo()
-    LLVMInitializeARMTargetInfo()
-    LLVMInitializeAVRTargetInfo()
-    LLVMInitializeBPFTargetInfo()
-    LLVMInitializeHexagonTargetInfo()
-    LLVMInitializeLanaiTargetInfo()
-    LLVMInitializeLoongArchTargetInfo()
-    LLVMInitializeMipsTargetInfo()
-    LLVMInitializeMSP430TargetInfo()
-    LLVMInitializePowerPCTargetInfo()
-    LLVMInitializeRISCVTargetInfo()
-    LLVMInitializeSparcTargetInfo()
-    LLVMInitializeSystemZTargetInfo()
-    LLVMInitializeVETargetInfo()
-    LLVMInitializeWebAssemblyTargetInfo()
     LLVMInitializeX86TargetInfo()
-    LLVMInitializeXCoreTargetInfo()
 }
 def LLVMInitializeAllTargets() {
     LLVMInitializeAArch64Target()
-    LLVMInitializeAMDGPUTarget()
-    LLVMInitializeARMTarget()
-    LLVMInitializeAVRTarget()
-    LLVMInitializeBPFTarget()
-    LLVMInitializeHexagonTarget()
-    LLVMInitializeLanaiTarget()
-    LLVMInitializeLoongArchTarget()
-    LLVMInitializeMipsTarget()
-    LLVMInitializeMSP430Target()
-    LLVMInitializePowerPCTarget()
-    LLVMInitializeRISCVTarget()
-    LLVMInitializeSparcTarget()
-    LLVMInitializeSystemZTarget()
-    LLVMInitializeVETarget()
-    LLVMInitializeWebAssemblyTarget()
     LLVMInitializeX86Target()
-    LLVMInitializeXCoreTarget()
 }
 def LLVMInitializeAllTargetMCs() {
     LLVMInitializeAArch64TargetMC()
-    LLVMInitializeAMDGPUTargetMC()
-    LLVMInitializeARMTargetMC()
-    LLVMInitializeAVRTargetMC()
-    LLVMInitializeBPFTargetMC()
-    LLVMInitializeHexagonTargetMC()
-    LLVMInitializeLanaiTargetMC()
-    LLVMInitializeLoongArchTargetMC()
-    LLVMInitializeMipsTargetMC()
-    LLVMInitializeMSP430TargetMC()
-    LLVMInitializePowerPCTargetMC()
-    LLVMInitializeRISCVTargetMC()
-    LLVMInitializeSparcTargetMC()
-    LLVMInitializeSystemZTargetMC()
-    LLVMInitializeVETargetMC()
-    LLVMInitializeWebAssemblyTargetMC()
     LLVMInitializeX86TargetMC()
-    LLVMInitializeXCoreTargetMC()
 }
 def LLVMInitializeAllAsmPrinters() {
     LLVMInitializeAArch64AsmPrinter()
-    LLVMInitializeAMDGPUAsmPrinter()
-    LLVMInitializeARMAsmPrinter()
-    LLVMInitializeAVRAsmPrinter()
-    LLVMInitializeBPFAsmPrinter()
-    LLVMInitializeHexagonAsmPrinter()
-    LLVMInitializeLanaiAsmPrinter()
-    LLVMInitializeLoongArchAsmPrinter()
-    LLVMInitializeMipsAsmPrinter()
-    LLVMInitializeMSP430AsmPrinter()
-    LLVMInitializePowerPCAsmPrinter()
-    LLVMInitializeRISCVAsmPrinter()
-    LLVMInitializeSparcAsmPrinter()
-    LLVMInitializeSystemZAsmPrinter()
-    LLVMInitializeVEAsmPrinter()
-    LLVMInitializeWebAssemblyAsmPrinter()
     LLVMInitializeX86AsmPrinter()
-    LLVMInitializeXCoreAsmPrinter()
+}
+
+// WebAssembly target — kept separate from LLVMInitializeAll* so the JIT path
+// doesn't pay its static-init cost on every startup. Called lazily by the
+// wasm32 cross-compile entry point.
+def LLVMInitializeWasmTarget() {
+    LLVMInitializeWebAssemblyTargetInfo()
+    LLVMInitializeWebAssemblyTarget()
+    LLVMInitializeWebAssemblyTargetMC()
+    LLVMInitializeWebAssemblyAsmPrinter()
+    LLVMInitializeWebAssemblyAsmParser()
 }

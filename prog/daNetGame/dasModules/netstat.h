@@ -13,7 +13,7 @@ namespace bind_dascript
 inline void netstat_get_aggregations(
   const das::TBlock<void, const das::TTemporary<das::TArray<netstat::Sample>>> &block, das::Context *context, das::LineInfoArg *at)
 {
-  dag::ConstSpan<netstat::Sample> aggregated_samples = netstat::get_aggregations();
+  auto aggregated_samples = netstat::get_aggregations();
 
   das::Array arr;
   das::array_mark_locked(arr, (char *)aggregated_samples.data(), aggregated_samples.size());

@@ -503,19 +503,14 @@ shader gpu_object_rendist_face_areas_cs
 
       GroupMemoryBarrierWithGroupSync();
 
-      const int WARP_SIZE = 32;
-
       UNROLL
       for (uint i = DISPATCH_WARP_SIZE / 2; i > 0; i >>= 1)
       {
-        if (thread_id > i)
-          break;
+        if (thread_id.x < i)
+          sum_in_group[thread_id.x] = sum_in_group[thread_id.x] + sum_in_group[thread_id.x + i];
 
-        sum_in_group[thread_id.x] = sum_in_group[thread_id.x] + sum_in_group[thread_id.x + i];
-
-        if (i <= WARP_SIZE)
-          GroupMemoryBarrier();
-        else
+        // a step narrower than a wave stays in lockstep; only sync wider steps
+        if (i >= MIN_POSSIBLE_WARP_SIZE)
           GroupMemoryBarrierWithGroupSync();
       }
 
@@ -869,7 +864,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
             bvhInstance.transform0 = float4(right * scale, pos.x);
             bvhInstance.transform1 = float4(direction * scale, pos.y);
             bvhInstance.transform2 = float4(front * scale, pos.z);
-            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
+            bvhInstance.instanceId_mask = pack_rt_instance_id_mask(bvhMapping.metaIndex, bvhGroupRi);
             bvhInstance.instanceOffset_flags = 0;
             bvhInstance.blas = bvhMapping.blas;
             structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
@@ -1305,7 +1300,7 @@ shader gpu_objects_gather_matrices_cs
             bvhInstance.transform0 = matrices[matrixOffset + 0];
             bvhInstance.transform1 = matrices[matrixOffset + 1];
             bvhInstance.transform2 = matrices[matrixOffset + 2];
-            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
+            bvhInstance.instanceId_mask = pack_rt_instance_id_mask(bvhMapping.metaIndex, bvhGroupRi);
             bvhInstance.instanceOffset_flags = 0;
             bvhInstance.blas = bvhMapping.blas;
             structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;

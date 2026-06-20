@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module refactor shared private
@@ -21,7 +19,7 @@ require strings
 
 let LOG_REFACTOR = 100500
 
-[tag_function(extract_method_tag), sideeffects]
+[tag_function(extract_method_tag), sideeffects, unused_argument(method_name)]
 def public extract_method(method_name : string; blk : block) {
     //! Marks a block of code for method extraction refactoring.
     invoke(blk)
@@ -68,7 +66,7 @@ class ExtractMethodMacro : AstFunctionAnnotation {
         let function_declaration = build_string() $(writer) {
             writer |> write("def ")
             writer |> write(call_name)
-            if (length(captured) != 0) {
+            if (!empty(captured)) {
                 writer |> write(" ( ")
                 var first = true
                 for (v in captured) {
@@ -94,7 +92,7 @@ class ExtractMethodMacro : AstFunctionAnnotation {
         let call_expression = build_string() $(writer) {
             writer |> write(call_name)
             writer |> write("(")
-            if (length(captured) != 0) {
+            if (!empty(captured)) {
                 var first = true
                 for (v in captured) {
                     if (first) {

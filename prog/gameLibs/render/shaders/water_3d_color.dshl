@@ -20,7 +20,6 @@ float underwater_refraction_scale = 0.1;
 
 float sun_roughness_for_water_to_cube = 0;
 float clouds_shadow_water_influence = 0.75;
-float foam_shadow_brightness_artistic = 0.4;
 
 // x - sun_spec_intensity, .y - sun_spec_tightness
 float4 sun_spec_params = (1, 0, 0, 0);
@@ -89,6 +88,13 @@ macro INIT_WATER_3D_DEFERRED_COLOR()
     projection_effects_fade@f2 = (-1.0 / max(projection_effects_fade_end - projection_effects_fade_start, 0.01),
                                   (water_level + projection_effects_fade_end) / max(projection_effects_fade_end - projection_effects_fade_start, 0.01));
   }
+  if (water_refraction_tex != NULL && (shaderlod == high || underwater_render != no))
+  {
+    local float4 water_refraction_tex_dim = get_dimensions(water_refraction_tex, 0);
+    (ps) {
+      water_refraction_tex_half_texel@f2 = (0.5 / water_refraction_tex_dim.x, 0.5 / water_refraction_tex_dim.y);
+    }
+  }
 endmacro
 
 macro USE_WATER_3D_DEFERRED_COLOR()
@@ -116,6 +122,8 @@ macro USE_WATER_3D_DEFERRED_COLOR()
     water_grid@f1 = (1 / (tacview_gridXZ + 0.00000001), 0, 0, 0);
     gridXZ_color@f4 = tacview_gridXZ_color;
     tacView_watercolor@f4 = tacView_watercolor;
+    underwater_fog_base_diffuse@f1 = underwater_fog_base_diffuse;
+    underwater_fog_normal_diffuse@f1 = underwater_fog_normal_diffuse;
   }
 
   if (compatibility_mode == compatibility_mode_on)
@@ -154,8 +162,8 @@ macro USE_WATER_3D_DEFERRED_COLOR()
 ##endif
 
     #define SCATTERING_EFFECTS_POWER 0.05h
-    #define UNDERWATER_FOG_BASE_DIFFUSE 0.6h
-    #define UNDERWATER_FOG_NORMAL_DIFFUSE 0.4h
+    #define UNDERWATER_FOG_BASE_DIFFUSE half(underwater_fog_base_diffuse)
+    #define UNDERWATER_FOG_NORMAL_DIFFUSE half(underwater_fog_normal_diffuse)
 
     struct ViewData
     {
@@ -385,8 +393,13 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       vd.perlinSpotInfluence = perlinSpotInfluence;
 #endif
       vd.shoreData = shoreData;
-      vd.waterHeight = water_level_max_wave_height.x;
-      get_water_height(vd.worldPos.xz, vd.waterHeight);
+
+      ##if shader == water_aces
+        vd.waterHeight = vd.worldPos.y;
+      ##else
+        vd.waterHeight = water_level_max_wave_height.x;
+        get_water_height(vd.worldPos.xz, vd.waterHeight);
+      ##endif
 
       ##if water_heightmap_pages != NULL
         BRANCH
@@ -622,7 +635,9 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       SeabedRefraction seabedRefraction;
       // Getting seabed color (refracted terrain & objects)
 #if has_seabed_refraction
-      seabedRefraction.seabedColor.rgb = (half3)tex2Dlod(water_refraction_tex, float4(deepnessData.refractionTexcoord * current_dynamic_resolution_scale, 0, 0)).rgb;
+      float2 refractionTc = deepnessData.refractionTexcoord * current_dynamic_resolution_scale;
+      refractionTc = clamp(refractionTc, 0.0, current_dynamic_resolution_scale - water_refraction_tex_half_texel.xy);
+      seabedRefraction.seabedColor.rgb = (half3)tex2Dlod(water_refraction_tex, float4(refractionTc, 0, 0)).rgb;
       seabedRefraction.seabedColor.rgb = (half3)max(float3(0.0,0.0,0.0), unpack_hdr(seabedRefraction.seabedColor.rgb)); // currently works not precise
 
       // tricky one: on seabed refraction we already have applied fog (in deferred_resolve)
@@ -749,7 +764,8 @@ macro USE_WATER_3D_DEFERRED_COLOR()
       half4 result = half4(0, 0, 0, 1);
 
       // Applying surface foam and effects
-      float3 foamLighting = max(vd.NoL, 0.0h) * min(1.0h, shadowsData.sunReflectionShadow + half(foam_shadow_brightness_artistic)) * half3(sun_color_0) + vd.ambientLight; // sun_color_0 is divided by Pi
+      half foamSunShadow = shadowsData.vsmShadow * shadowsData.cloudShadow;
+      float3 foamLighting = max(vd.NoL, 0.0h) * min(1.0h, foamSunShadow + half(foam_shadow_brightness_artistic)) * half3(sun_color_0) + vd.ambientLight; // sun_color_0 is divided by Pi
       float3 foamColor = foamData.diffuseColor.rgb * foamLighting;
 
       result.rgb = reflection;

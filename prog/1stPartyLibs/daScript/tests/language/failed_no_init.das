@@ -1,5 +1,5 @@
 options gen2
-expect 40214:3
+expect 30164:2, 30174
 
 options no_init
 

@@ -36,7 +36,7 @@ static bool validate_node_not_used(AnimationGraph &g, IAnimBlendNode *main, IAni
 }
 
 template <typename NodeList, typename Callable>
-static void process_nodes_with_bitmap(NodeList &list, IPureAnimStateHolder &st, dag::ConstSpan<int> rewind_bitmap_params_ids,
+static void process_nodes_with_bitmap(NodeList &list, AnimGraphStateHolder &st, dag::ConstSpan<int> rewind_bitmap_params_ids,
   Callable c)
 {
   uint32_t bitmap = 0;
@@ -57,7 +57,7 @@ static void process_nodes_with_bitmap(NodeList &list, IPureAnimStateHolder &st, 
     st.setParamInt(paramIdToClear, 0);
 }
 
-static void set_rewind_bit(uint32_t bit_idx, IPureAnimStateHolder &st, dag::ConstSpan<int> rewind_bitmap_params_ids)
+static void set_rewind_bit(uint32_t bit_idx, AnimGraphStateHolder &st, dag::ConstSpan<int> rewind_bitmap_params_ids)
 {
   int bitmapId = rewind_bitmap_params_ids[bit_idx >> 5]; // >> 5 == / 32
   uint32_t bitmap = st.getParamInt(bitmapId);
@@ -68,7 +68,7 @@ static void add_rewind_bitmap(Tab<int> &rewind_bitmap, AnimationGraph &graph, co
 {
   const size_t bitmapNum = rewind_bitmap.size();
   const int bitmapParamId =
-    graph.addParamId(String(128, ":%s_rewlist_bitmap_%d", param_name, bitmapNum), IPureAnimStateHolder::PT_ScalarParamInt);
+    graph.addParamId(String(128, ":%s_rewlist_bitmap_%d", param_name, bitmapNum), AnimGraphStateHolder::PT_ScalarParamInt);
   rewind_bitmap.push_back(bitmapParamId);
 }
 
@@ -186,7 +186,7 @@ void AnimBlendNodeLeaf::setTimeScaleParam(const char *name)
     return;
   }
 
-  timeScaleParamId = graph.addParamId(name, IPureAnimStateHolder::PT_ScalarParam);
+  timeScaleParamId = graph.addParamId(name, AnimGraphStateHolder::PT_ScalarParam);
 }
 
 
@@ -305,7 +305,7 @@ void AnimBlendNodeLeaf::initChilds(AnimationGraph &, const DataBlock &blk, const
 AnimBlendNodeContinuousLeaf::AnimBlendNodeContinuousLeaf(AnimationGraph &graph, AnimData *a, const char *time_param_name) :
   AnimBlendNodeLeaf(graph, a)
 {
-  paramId = graph.addParamId(time_param_name, IPureAnimStateHolder::PT_TimeParam);
+  paramId = graph.addParamId(time_param_name, AnimGraphStateHolder::PT_TimeParam);
   t0 = 0;
   dt = 1;
   rate = 0;
@@ -324,7 +324,7 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
 
   real p = st.getParam(paramId);
   int curTime = calcAnimTimePos(p);
-  if (eoaIrq && bctx.lastDt && !st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused))
+  if (eoaIrq && bctx.lastDt && !st.getParamFlags(paramId, AnimGraphStateHolder::PF_Paused))
   {
     real prevP = p - bctx.lastDt * st.getParamEffTimeScale(paramId);
     int prevTime = calcAnimTimePos(prevP);
@@ -360,21 +360,21 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
 
   // DEBUG_CTX("%p.[%d]=%.5f   p*rate=%.0f  curTime=%7d", this, paramId, st.getParam(paramId), p*rate, curTime);
 }
-void AnimBlendNodeContinuousLeaf::seek(IPureAnimStateHolder &st, real rel_pos)
+void AnimBlendNodeContinuousLeaf::seek(AnimGraphStateHolder &st, real rel_pos)
 {
   if (paramId == -1 || bnlId == -1)
     return;
   real pos = rel_pos * dt;
   st.setParam(paramId, pos / rate);
 }
-real AnimBlendNodeContinuousLeaf::tell(IPureAnimStateHolder &st)
+real AnimBlendNodeContinuousLeaf::tell(AnimGraphStateHolder &st)
 {
   if (paramId == -1 || bnlId == -1)
     return 0;
   int t = int(st.getParam(paramId) * rate) % dt;
   return real(t) / real(dt);
 }
-void AnimBlendNodeContinuousLeaf::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendNodeContinuousLeaf::setDefaultState(AnimGraphStateHolder &st)
 {
   if (timeScaleParamId > 0)
   {
@@ -385,7 +385,7 @@ void AnimBlendNodeContinuousLeaf::setDefaultState(IPureAnimStateHolder &st)
     st.setTimeScaleParamId(paramId, 0);
 }
 
-bool AnimBlendNodeContinuousLeaf::isInRange(IPureAnimStateHolder &st, int rangeId)
+bool AnimBlendNodeContinuousLeaf::isInRange(AnimGraphStateHolder &st, int rangeId)
 {
   int i, ct;
   if (paramId == -1 || bnlId == -1 || rangeId < 0)
@@ -450,19 +450,19 @@ void AnimBlendNodeContinuousLeaf::setEndOfAnimIrq(bool on) { eoaIrq = on; }
 void AnimBlendNodeContinuousLeaf::enableRewind(bool en) { canRewind = en; }
 void AnimBlendNodeContinuousLeaf::enableStartOffset(bool en) { startOffsetEnabled = en; }
 bool AnimBlendNodeContinuousLeaf::isStartOffsetEnabled() { return startOffsetEnabled; }
-void AnimBlendNodeContinuousLeaf::pause(IPureAnimStateHolder &st)
+void AnimBlendNodeContinuousLeaf::pause(AnimGraphStateHolder &st)
 {
   if (paramId != AnimationGraph::PID_GLOBAL_TIME)
-    st.setParamFlags(paramId, IPureAnimStateHolder::PF_Paused, IPureAnimStateHolder::PF_Paused);
+    st.setParamFlags(paramId, AnimGraphStateHolder::PF_Paused, AnimGraphStateHolder::PF_Paused);
 }
-void AnimBlendNodeContinuousLeaf::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendNodeContinuousLeaf::resume(AnimGraphStateHolder &st, bool rewind)
 {
   if (paramId != AnimationGraph::PID_GLOBAL_TIME)
-    st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
+    st.setParamFlags(paramId, 0, AnimGraphStateHolder::PF_Paused);
   if (rewind && canRewind)
     AnimBlendNodeContinuousLeaf::seekToSyncTime(st, 0.f);
 }
-void AnimBlendNodeContinuousLeaf::seekToSyncTime(IPureAnimStateHolder &st, real offset)
+void AnimBlendNodeContinuousLeaf::seekToSyncTime(AnimGraphStateHolder &st, real offset)
 {
   if (paramId != AnimationGraph::PID_GLOBAL_TIME)
     st.setParam(paramId, syncTime + offset);
@@ -478,16 +478,16 @@ AnimBlendNodeSingleLeaf::AnimBlendNodeSingleLeaf(AnimationGraph &graph, AnimData
 }
 void AnimBlendNodeSingleLeaf::buildBlendingList(BlendCtx &bctx, real w)
 {
-  IPureAnimStateHolder &st = *bctx.st;
+  AnimGraphStateHolder &st = *bctx.st;
   // DEBUG_CTX("%p.time=%.3f duration=%.3f", this, st.getParam(paramId), duration);
   real p = st.getParam(paramId);
 
   if (bctx.lastDt && p > duration - 1.5f / fabs(rate))
   {
     int resp = GIRQR_NoResponse;
-    if (!st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused))
+    if (!st.getParamFlags(paramId, AnimGraphStateHolder::PF_Paused))
     {
-      st.setParamFlags(paramId, IPureAnimStateHolder::PF_Paused, IPureAnimStateHolder::PF_Paused);
+      st.setParamFlags(paramId, AnimGraphStateHolder::PF_Paused, AnimGraphStateHolder::PF_Paused);
       st.setParam(paramId, duration - 1.5f / fabs(rate));
       bctx.st->getGraph().onSingleAnimFinished(*bctx.st, this);
       resp = bctx.irq(GIRQT_EndOfSingleAnim, (intptr_t)this, 0, 0);
@@ -507,29 +507,29 @@ void AnimBlendNodeSingleLeaf::buildBlendingList(BlendCtx &bctx, real w)
         // If two such animations are played at the same time when one is ended the parameter will reset meaning the second animation
         // will not play till the end and will never throw a eoa irq.
         st.setParam(paramId, p - duration);
-        st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
+        st.setParamFlags(paramId, 0, AnimGraphStateHolder::PF_Paused);
       }
       else if (resp == GIRQR_StopSingleAnim)
       {
         st.setParam(paramId, duration - 1.5f / fabs(rate));
-        st.setParamFlags(paramId, IPureAnimStateHolder::PF_Paused, IPureAnimStateHolder::PF_Paused);
+        st.setParamFlags(paramId, AnimGraphStateHolder::PF_Paused, AnimGraphStateHolder::PF_Paused);
       }
       else if (resp == GIRQR_ResumeSingleAnim)
       {
-        st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
+        st.setParamFlags(paramId, 0, AnimGraphStateHolder::PF_Paused);
       }
     }
   }
   AnimBlendNodeContinuousLeaf::buildBlendingList(bctx, w);
 }
-void AnimBlendNodeSingleLeaf::seekToSyncTime(IPureAnimStateHolder &st, real offset)
+void AnimBlendNodeSingleLeaf::seekToSyncTime(AnimGraphStateHolder &st, real offset)
 {
   AnimBlendNodeContinuousLeaf::seekToSyncTime(st, offset);
-  st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
+  st.setParamFlags(paramId, 0, AnimGraphStateHolder::PF_Paused);
 }
-void AnimBlendNodeSingleLeaf::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendNodeSingleLeaf::resume(AnimGraphStateHolder &st, bool rewind)
 {
-  st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
+  st.setParamFlags(paramId, 0, AnimGraphStateHolder::PF_Paused);
   if (rewind)
     AnimBlendNodeContinuousLeaf::seekToSyncTime(st, 0);
 }
@@ -541,7 +541,7 @@ void AnimBlendNodeSingleLeaf::resume(IPureAnimStateHolder &st, bool rewind)
 AnimBlendNodeParametricLeaf::AnimBlendNodeParametricLeaf(AnimationGraph &graph, AnimData *a, const char *param_name, bool upd_pc) :
   AnimBlendNodeLeaf(graph, a), looping(false)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
   paramLastId = -1;
   paramMulK = 1.0f;
   paramAddK = 0.0f;
@@ -553,7 +553,7 @@ AnimBlendNodeParametricLeaf::AnimBlendNodeParametricLeaf(AnimationGraph &graph, 
   eoaIrq = false;
 }
 
-real AnimBlendNodeParametricLeaf::tell(IPureAnimStateHolder &st)
+real AnimBlendNodeParametricLeaf::tell(AnimGraphStateHolder &st)
 {
   if (paramId == -1 || bnlId == -1)
     return 0;
@@ -566,7 +566,7 @@ real AnimBlendNodeParametricLeaf::tell(IPureAnimStateHolder &st)
   int curTime = int(t0 + (param)*dt);
   return real(curTime) / real(dt);
 }
-void AnimBlendNodeParametricLeaf::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendNodeParametricLeaf::setDefaultState(AnimGraphStateHolder &st)
 {
   if (paramLastId < 0)
     return;
@@ -639,7 +639,7 @@ void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
 }
 
 
-bool AnimBlendNodeParametricLeaf::isInRange(IPureAnimStateHolder &st, int rangeId)
+bool AnimBlendNodeParametricLeaf::isInRange(AnimGraphStateHolder &st, int rangeId)
 {
   int i, ct;
   if (paramId == -1 || bnlId == -1 || rangeId < 0)
@@ -714,7 +714,7 @@ void AnimBlendNodeParametricLeaf::setupIrq(const DataBlock &blk, const char *ani
 {
   IrqPos::setupIrqs(irqs, anim, t0, dt, blk, anim_suffix);
   if ((irqs.size() || eoaIrq) && paramLastId < 0)
-    paramLastId = graph.addParamId(String(0, ":%s:p", blk.getStr("name", NULL)), IPureAnimStateHolder::PT_ScalarParamInt);
+    paramLastId = graph.addParamId(String(0, ":%s:p", blk.getStr("name", NULL)), AnimGraphStateHolder::PT_ScalarParamInt);
 }
 
 //
@@ -739,10 +739,10 @@ void AnimBlendNodeStillLeaf::setAnim(AnimData *a)
 //
 AnimBlendCtrl_1axis::AnimBlendCtrl_1axis(AnimationGraph &graph, const char *param_name) : slice(midmem)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
 }
 void AnimBlendCtrl_1axis::destroy() {}
-void AnimBlendCtrl_1axis::setDefaultState(IPureAnimStateHolder & /*st*/) {}
+void AnimBlendCtrl_1axis::setDefaultState(AnimGraphStateHolder & /*st*/) {}
 bool AnimBlendCtrl_1axis::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -843,9 +843,9 @@ void AnimBlendCtrl_1axis::addBlendNode(IAnimBlendNode *n, real start, real end)
 AnimBlendCtrl_LinearPoly::AnimBlendCtrl_LinearPoly(AnimationGraph &graph, const char *param_name, const char *ctrl_name) :
   poly(midmem), morphTime(0), enclosed(false), paramTau(0.0f), paramSpeed(0.0f)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
-  t0Pid = graph.addParamId(String(128, ":lp_t0_%s", ctrl_name), IPureAnimStateHolder::PT_ScalarParam);
-  curPosPid = graph.addParamId(String(128, ":lp_pos_%s", ctrl_name), IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
+  t0Pid = graph.addParamId(String(128, ":lp_t0_%s", ctrl_name), AnimGraphStateHolder::PT_ScalarParam);
+  curPosPid = graph.addParamId(String(128, ":lp_pos_%s", ctrl_name), AnimGraphStateHolder::PT_ScalarParam);
 }
 void AnimBlendCtrl_LinearPoly::destroy() {}
 int AnimBlendCtrl_LinearPoly::anim_point_p0_cmp(const AnimBlendCtrl_LinearPoly::AnimPoint *p1,
@@ -857,7 +857,7 @@ int AnimBlendCtrl_LinearPoly::anim_point_p0_cmp(const AnimBlendCtrl_LinearPoly::
     return -1;
   return 0;
 }
-void AnimBlendCtrl_LinearPoly::setDefaultState(IPureAnimStateHolder & /*st*/) {}
+void AnimBlendCtrl_LinearPoly::setDefaultState(AnimGraphStateHolder & /*st*/) {}
 bool AnimBlendCtrl_LinearPoly::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -875,7 +875,7 @@ void AnimBlendCtrl_LinearPoly::collectUsedBlendNodes(AnimationGraph &g, used_ble
       n->collectUsedBlendNodes(g, nodes_set);
   }
 }
-bool AnimBlendCtrl_LinearPoly::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
+bool AnimBlendCtrl_LinearPoly::isAliasOf(AnimGraphStateHolder & /*st*/, IAnimBlendNode *n)
 {
   if (n == this)
     return true;
@@ -884,17 +884,17 @@ bool AnimBlendCtrl_LinearPoly::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBle
       return true;
   return false;
 }
-void AnimBlendCtrl_LinearPoly::pause(IPureAnimStateHolder &st)
+void AnimBlendCtrl_LinearPoly::pause(AnimGraphStateHolder &st)
 {
   for (int i = 0; i < poly.size(); i++)
     poly[i].node->pause(st);
 }
-void AnimBlendCtrl_LinearPoly::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendCtrl_LinearPoly::resume(AnimGraphStateHolder &st, bool rewind)
 {
   process_nodes_with_bitmap(poly, st, rewindBitmapParamsIds,
     [&st, rewind](IAnimBlendNode *node, bool should_rewind) { node->resume(st, should_rewind && rewind); });
 }
-real AnimBlendCtrl_LinearPoly::getDuration(IPureAnimStateHolder &st) { return poly.size() ? poly[0].node->getDuration(st) : 1.0f; }
+real AnimBlendCtrl_LinearPoly::getDuration(AnimGraphStateHolder &st) { return poly.size() ? poly[0].node->getDuration(st) : 1.0f; }
 void AnimBlendCtrl_LinearPoly::AnimPoint::applyWt(BlendCtx &bctx, real wt, real node_w)
 {
   node->buildBlendingList(bctx, wt * node_w);
@@ -1054,7 +1054,7 @@ void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, Animatio
 
   poly[l].node = n;
   poly[l].p0 = p0;
-  poly[l].wtPid = graph.addParamId(String(128, ":lp_wt_%s%d", ctrl_name, l), IPureAnimStateHolder::PT_ScalarParam);
+  poly[l].wtPid = graph.addParamId(String(128, ":lp_wt_%s%d", ctrl_name, l), AnimGraphStateHolder::PT_ScalarParam);
 
   if (l % 32 == 0) // We just exceeded our 32 bit limit in the last bitmap
     add_rewind_bitmap(rewindBitmapParamsIds, graph, ctrl_name);
@@ -1066,7 +1066,7 @@ void AnimBlendCtrl_LinearPoly::addBlendNode(IAnimBlendNode *n, real p0, Animatio
 //
 AnimBlendCtrl_Fifo3::AnimBlendCtrl_Fifo3(AnimationGraph &graph, const char *fifo_param_name)
 {
-  fifoParamId = graph.addInlinePtrParamId(fifo_param_name, sizeof(AnimFifo3Queue), IPureAnimStateHolder::PT_Fifo3);
+  fifoParamId = graph.addInlinePtrParamId(fifo_param_name, sizeof(AnimFifo3Queue), AnimGraphStateHolder::PT_Fifo3);
 }
 void AnimBlendCtrl_Fifo3::destroy() {}
 
@@ -1076,7 +1076,7 @@ void AnimBlendCtrl_Fifo3::buildBlendingList(BlendCtx &bctx, real w)
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->buildBlendingList(bctx, st.getParam(AnimationGraph::PID_GLOBAL_TIME), w);
 }
-void AnimBlendCtrl_Fifo3::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Fifo3::setDefaultState(AnimGraphStateHolder &st)
 {
   if (!st.getParamIdValid(fifoParamId))
     return;
@@ -1084,23 +1084,23 @@ void AnimBlendCtrl_Fifo3::setDefaultState(IPureAnimStateHolder &st)
   fifo->reset(false);
 }
 
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType morph_type)
+void AnimBlendCtrl_Fifo3::enqueueState(AnimGraphStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType morph_type)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, n, overlap_time, morph_type);
 }
-void AnimBlendCtrl_Fifo3::resetQueue(IPureAnimStateHolder &st, bool leave_cur_state)
+void AnimBlendCtrl_Fifo3::resetQueue(AnimGraphStateHolder &st, bool leave_cur_state)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->reset(leave_cur_state);
 }
-bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n)
+bool AnimBlendCtrl_Fifo3::isEnqueued(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   return fifo->isEnqueued(n);
 }
 
-IAnimBlendNode *AnimBlendCtrl_Fifo3::getNextInQueue(IPureAnimStateHolder &st)
+IAnimBlendNode *AnimBlendCtrl_Fifo3::getNextInQueue(AnimGraphStateHolder &st)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   return fifo->getNextInQueue();
@@ -1112,14 +1112,14 @@ IAnimBlendNode *AnimBlendCtrl_Fifo3::getNextInQueue(IPureAnimStateHolder &st)
 //
 AnimBlendCtrl_RandomSwitcher::AnimBlendCtrl_RandomSwitcher(AnimationGraph &graph, const char *param_name)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParamInt);
-  repParamId = graph.addParamId(String(128, ":repcnt_%s", param_name), IPureAnimStateHolder::PT_ScalarParamInt);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParamInt);
+  repParamId = graph.addParamId(String(128, ":repcnt_%s", param_name), AnimGraphStateHolder::PT_ScalarParamInt);
   rndSeed = hash_int(uintptr_t(this) >> 4); // rely on ASLR for entropy
 }
 
 void AnimBlendCtrl_RandomSwitcher::destroy() {}
 
-void AnimBlendCtrl_RandomSwitcher::setDefaultState(IPureAnimStateHolder &st) { setRandomAnim(st); }
+void AnimBlendCtrl_RandomSwitcher::setDefaultState(AnimGraphStateHolder &st) { setRandomAnim(st); }
 bool AnimBlendCtrl_RandomSwitcher::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -1139,7 +1139,7 @@ void AnimBlendCtrl_RandomSwitcher::collectUsedBlendNodes(AnimationGraph &g, used
   }
 }
 
-IAnimBlendNode *AnimBlendCtrl_RandomSwitcher::getCurAnim(IPureAnimStateHolder &st)
+IAnimBlendNode *AnimBlendCtrl_RandomSwitcher::getCurAnim(AnimGraphStateHolder &st)
 {
   int id = st.getParamInt(paramId);
   if (id < 0 || id >= list.size())
@@ -1159,7 +1159,7 @@ void AnimBlendCtrl_RandomSwitcher::buildBlendingList(BlendCtx &bctx, real w)
   if (node)
     node->buildBlendingList(bctx, w);
 }
-bool AnimBlendCtrl_RandomSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
+bool AnimBlendCtrl_RandomSwitcher::isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   if (this == n)
     return true;
@@ -1167,26 +1167,26 @@ bool AnimBlendCtrl_RandomSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnimBlen
   IAnimBlendNode *node = getCurAnim(st);
   return node && node == n;
 }
-real AnimBlendCtrl_RandomSwitcher::getDuration(IPureAnimStateHolder &st)
+real AnimBlendCtrl_RandomSwitcher::getDuration(AnimGraphStateHolder &st)
 {
   IAnimBlendNode *node = getCurAnim(st);
   if (node)
     return node->getDuration(st);
   return 1.0f;
 }
-void AnimBlendCtrl_RandomSwitcher::seekToSyncTime(IPureAnimStateHolder &st, real offset)
+void AnimBlendCtrl_RandomSwitcher::seekToSyncTime(AnimGraphStateHolder &st, real offset)
 {
   IAnimBlendNode *node = getCurAnim(st);
   if (node)
     node->seekToSyncTime(st, offset);
 }
-void AnimBlendCtrl_RandomSwitcher::pause(IPureAnimStateHolder &st)
+void AnimBlendCtrl_RandomSwitcher::pause(AnimGraphStateHolder &st)
 {
   IAnimBlendNode *node = getCurAnim(st);
   if (node)
     node->pause(st);
 }
-void AnimBlendCtrl_RandomSwitcher::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendCtrl_RandomSwitcher::resume(AnimGraphStateHolder &st, bool rewind)
 {
   if (rewind)
     setRandomAnim(st);
@@ -1195,7 +1195,7 @@ void AnimBlendCtrl_RandomSwitcher::resume(IPureAnimStateHolder &st, bool rewind)
   if (node)
     node->resume(st, rewind);
 }
-bool AnimBlendCtrl_RandomSwitcher::isInRange(IPureAnimStateHolder &st, int rangeId)
+bool AnimBlendCtrl_RandomSwitcher::isInRange(AnimGraphStateHolder &st, int rangeId)
 {
   IAnimBlendNode *node = getCurAnim(st);
   if (node)
@@ -1248,7 +1248,7 @@ void AnimBlendCtrl_RandomSwitcher::recalcWeights(bool reverse)
   }
 }
 
-void AnimBlendCtrl_RandomSwitcher::setRandomAnim(IPureAnimStateHolder &st)
+void AnimBlendCtrl_RandomSwitcher::setRandomAnim(AnimGraphStateHolder &st)
 {
   if (list.size() < 1)
   {
@@ -1298,7 +1298,7 @@ void AnimBlendCtrl_RandomSwitcher::setRandomAnim(IPureAnimStateHolder &st)
   st.setParamInt(paramId, lastId);
   st.setParamInt(repParamId, lastIdRepeat);
 }
-bool AnimBlendCtrl_RandomSwitcher::setAnim(IPureAnimStateHolder &st, IAnimBlendNode *n)
+bool AnimBlendCtrl_RandomSwitcher::setAnim(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   if (list.size() < 1)
   {
@@ -1330,7 +1330,7 @@ void AnimBlendCtrl_Hub::finalizeInit(AnimationGraph &graph, const char *param_na
     paramId = graph.addInlinePtrParamId(param_name, sizeof(float) * defNodeWt.size());
 }
 
-inline const float *AnimBlendCtrl_Hub::getProps(IPureAnimStateHolder &st)
+inline const float *AnimBlendCtrl_Hub::getProps(AnimGraphStateHolder &st)
 {
   return paramId < 0 ? defNodeWt.data() : (float *)st.getInlinePtr(paramId);
 }
@@ -1346,7 +1346,7 @@ void AnimBlendCtrl_Hub::buildBlendingList(BlendCtx &bctx, real w)
     if (reinterpret_cast<const int *>(np)[i] != 0)
       nodes[i]->buildBlendingList(bctx, w * np[i]);
 }
-void AnimBlendCtrl_Hub::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Hub::setDefaultState(AnimGraphStateHolder &st)
 {
   if (paramId == -1 || !st.getParamIdValid(paramId))
     return;
@@ -1370,7 +1370,7 @@ void AnimBlendCtrl_Hub::collectUsedBlendNodes(AnimationGraph &g, used_blend_node
       n->collectUsedBlendNodes(g, nodes_set);
   }
 }
-bool AnimBlendCtrl_Hub::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
+bool AnimBlendCtrl_Hub::isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   if (n == this)
     return true;
@@ -1379,7 +1379,7 @@ bool AnimBlendCtrl_Hub::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
       return true;
   return false;
 }
-void AnimBlendCtrl_Hub::seekToSyncTime(IPureAnimStateHolder &st, real offset)
+void AnimBlendCtrl_Hub::seekToSyncTime(AnimGraphStateHolder &st, real offset)
 {
   const float *np = getProps(st);
 
@@ -1387,7 +1387,7 @@ void AnimBlendCtrl_Hub::seekToSyncTime(IPureAnimStateHolder &st, real offset)
     if (reinterpret_cast<const int *>(np)[i] != 0)
       nodes[i]->seekToSyncTime(st, offset);
 }
-void AnimBlendCtrl_Hub::pause(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Hub::pause(AnimGraphStateHolder &st)
 {
   const float *np = getProps(st);
 
@@ -1395,7 +1395,7 @@ void AnimBlendCtrl_Hub::pause(IPureAnimStateHolder &st)
     if (reinterpret_cast<const int *>(np)[i] != 0)
       nodes[i]->pause(st);
 }
-void AnimBlendCtrl_Hub::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendCtrl_Hub::resume(AnimGraphStateHolder &st, bool rewind)
 {
   const float *np = getProps(st);
 
@@ -1403,7 +1403,7 @@ void AnimBlendCtrl_Hub::resume(IPureAnimStateHolder &st, bool rewind)
     if (reinterpret_cast<const int *>(np)[i] != 0)
       nodes[i]->resume(st, rewind);
 }
-bool AnimBlendCtrl_Hub::isInRange(IPureAnimStateHolder &st, int rangeId)
+bool AnimBlendCtrl_Hub::isInRange(AnimGraphStateHolder &st, int rangeId)
 {
   const float *np = getProps(st);
 
@@ -1424,7 +1424,7 @@ void AnimBlendCtrl_Hub::addBlendNode(IAnimBlendNode *n, bool active, real wt)
   nodes.push_back(n);
   defNodeWt.push_back(active ? wt : 0);
 }
-void AnimBlendCtrl_Hub::setBlendNodeWt(IPureAnimStateHolder &st, IAnimBlendNode *n, real wt)
+void AnimBlendCtrl_Hub::setBlendNodeWt(AnimGraphStateHolder &st, IAnimBlendNode *n, real wt)
 {
   if (paramId == -1)
     return;
@@ -1450,7 +1450,7 @@ int AnimBlendCtrl_Hub::getNodeIndex(IAnimBlendNode *n)
 //
 AnimBlendCtrl_Blender::AnimBlendCtrl_Blender(AnimationGraph &graph, const char *param_name)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_TimeParam);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_TimeParam);
   duration = 1.0f;
   blendTime = 1.0f;
 }
@@ -1486,7 +1486,7 @@ void AnimBlendCtrl_Blender::buildBlendingList(BlendCtx &bctx, real w)
   if (node[1])
     node[1]->buildBlendingList(bctx, w);
 }
-void AnimBlendCtrl_Blender::setDefaultState(IPureAnimStateHolder & /*st*/) {}
+void AnimBlendCtrl_Blender::setDefaultState(AnimGraphStateHolder & /*st*/) {}
 bool AnimBlendCtrl_Blender::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -1504,14 +1504,14 @@ void AnimBlendCtrl_Blender::collectUsedBlendNodes(AnimationGraph &g, used_blend_
       n->collectUsedBlendNodes(g, nodes_set);
   }
 }
-bool AnimBlendCtrl_Blender::isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n)
+bool AnimBlendCtrl_Blender::isAliasOf(AnimGraphStateHolder & /*st*/, IAnimBlendNode *n)
 {
   if (n && (n == this || n == node[0] || n == node[1]))
     return true;
   return false;
 }
-real AnimBlendCtrl_Blender::getDuration(IPureAnimStateHolder & /*st*/) { return duration; }
-real AnimBlendCtrl_Blender::tell(IPureAnimStateHolder &st)
+real AnimBlendCtrl_Blender::getDuration(AnimGraphStateHolder & /*st*/) { return duration; }
+real AnimBlendCtrl_Blender::tell(AnimGraphStateHolder &st)
 {
   real t = st.getParam(paramId);
   if (t > duration)
@@ -1521,15 +1521,15 @@ real AnimBlendCtrl_Blender::tell(IPureAnimStateHolder &st)
   return t / duration;
 }
 
-void AnimBlendCtrl_Blender::seekToSyncTime(IPureAnimStateHolder &st, real /*offset*/) { st.setParam(paramId, 0); }
-void AnimBlendCtrl_Blender::pause(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Blender::seekToSyncTime(AnimGraphStateHolder &st, real /*offset*/) { st.setParam(paramId, 0); }
+void AnimBlendCtrl_Blender::pause(AnimGraphStateHolder &st)
 {
   if (node[0])
     node[0]->pause(st);
   if (node[1])
     node[1]->pause(st);
 }
-void AnimBlendCtrl_Blender::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendCtrl_Blender::resume(AnimGraphStateHolder &st, bool rewind)
 {
   if (rewind)
     seekToSyncTime(st, 0);
@@ -1539,7 +1539,7 @@ void AnimBlendCtrl_Blender::resume(IPureAnimStateHolder &st, bool rewind)
   if (node[1])
     node[1]->resume(st, rewind);
 }
-bool AnimBlendCtrl_Blender::isInRange(IPureAnimStateHolder &st, int rangeId)
+bool AnimBlendCtrl_Blender::isInRange(AnimGraphStateHolder &st, int rangeId)
 {
   if (node[0] && node[0]->isInRange(st, rangeId))
     return true;
@@ -1564,7 +1564,7 @@ AnimBlendCtrl_BinaryIndirectSwitch::AnimBlendCtrl_BinaryIndirectSwitch(Animation
   int mask_eq) :
   maskAnd(mask_and), maskEq(mask_eq), morphTime{0.f, 0.f}
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParamInt);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParamInt);
 }
 void AnimBlendCtrl_BinaryIndirectSwitch::destroy() {}
 void AnimBlendCtrl_BinaryIndirectSwitch::buildBlendingList(BlendCtx &bctx, real w)
@@ -1579,7 +1579,7 @@ void AnimBlendCtrl_BinaryIndirectSwitch::buildBlendingList(BlendCtx &bctx, real 
   else
     fifo->enqueueState(st, node[1], morphTime[1]);
 }
-void AnimBlendCtrl_BinaryIndirectSwitch::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendCtrl_BinaryIndirectSwitch::setDefaultState(AnimGraphStateHolder &st)
 {
   BlendCtx bctx(st);
   AnimBlendCtrl_BinaryIndirectSwitch::buildBlendingList(bctx, 0);
@@ -1619,10 +1619,10 @@ void AnimBlendCtrl_BinaryIndirectSwitch::setFifoCtrl(AnimBlendCtrl_Fifo3 *n) { f
 AnimBlendCtrl_ParametricSwitcher::AnimBlendCtrl_ParametricSwitcher(AnimationGraph &graph, const char *param_name, const char *res_pn) :
   list(midmem), rewindBitmapParamsIds(midmem)
 {
-  paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
-  residualParamId = (res_pn && *res_pn) ? graph.addParamId(res_pn, IPureAnimStateHolder::PT_ScalarParam) : -1;
-  fifoParamId = graph.addInlinePtrParamId(String(128, "fifo_%p", this), sizeof(AnimFifo3Queue), IPureAnimStateHolder::PT_Fifo3);
-  lastAnimParamId = graph.addParamId(String(128, ":lastAnim_%p", this), IPureAnimStateHolder::PT_ScalarParamInt);
+  paramId = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
+  residualParamId = (res_pn && *res_pn) ? graph.addParamId(res_pn, AnimGraphStateHolder::PT_ScalarParam) : -1;
+  fifoParamId = graph.addInlinePtrParamId(String(128, "fifo_%p", this), sizeof(AnimFifo3Queue), AnimGraphStateHolder::PT_Fifo3);
+  lastAnimParamId = graph.addParamId(String(128, ":lastAnim_%p", this), AnimGraphStateHolder::PT_ScalarParamInt);
   continuousAnimMode = true;
 }
 
@@ -1673,14 +1673,14 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
   fifo->buildBlendingList(bctx, st.getParam(AnimationGraph::PID_GLOBAL_TIME), w);
 }
 
-void AnimBlendCtrl_ParametricSwitcher::setDefaultState(IPureAnimStateHolder &st)
+void AnimBlendCtrl_ParametricSwitcher::setDefaultState(AnimGraphStateHolder &st)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->reset(false);
   st.setParamInt(lastAnimParamId, 0);
 }
 
-void AnimBlendCtrl_ParametricSwitcher::resume(IPureAnimStateHolder &st, bool rewind)
+void AnimBlendCtrl_ParametricSwitcher::resume(AnimGraphStateHolder &st, bool rewind)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   if (rewind)
@@ -1710,7 +1710,7 @@ void AnimBlendCtrl_ParametricSwitcher::collectUsedBlendNodes(AnimationGraph &g, 
       n->collectUsedBlendNodes(g, nodes_set);
   }
 }
-bool AnimBlendCtrl_ParametricSwitcher::isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n)
+bool AnimBlendCtrl_ParametricSwitcher::isAliasOf(AnimGraphStateHolder &st, IAnimBlendNode *n)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   switch (fifo->state)

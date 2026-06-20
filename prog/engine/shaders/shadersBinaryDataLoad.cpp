@@ -295,10 +295,20 @@ void ScriptedShadersBinDumpOwner::initAfterLoad(bool is_main)
   clear_and_resize(cshId, mShaderDump->fshCount);
   eastl::fill(cshId.begin(), cshId.end(), BAD_PROGRAM);
 
-  if (mShaderDumpV5 && d3d::is_inited())
+  if (d3d::is_inited()) // This is valid for exp shaders dumps and whatnot -- we can't and don't need to create stub textures.
   {
-    for (auto key : mShaderDumpV5->usedStubTextureKeys)
-      shaderbindump::g_stub_texture_repo.add(key);
+    // Even if we don't have a used tex keys list from V5, pre-create defaults to use just in case
+    for (
+      ShaderVarTextureType svtt : {SHVT_TEX_UNKNOWN, SHVT_TEX_2D, SHVT_TEX_3D, SHVT_TEX_CUBE, SHVT_TEX_2D_ARRAY, SHVT_TEX_CUBE_ARRAY})
+    {
+      shaderbindump::g_stub_texture_repo.add({0xFFFFFFFF, svtt});
+    }
+    if (mShaderDumpV5)
+    {
+      for (auto key : mShaderDumpV5->usedStubTextureKeys)
+        shaderbindump::g_stub_texture_repo.add(key);
+    }
+    // If shader-dump V5 is not mapped, don't logerr here. We might never ask for any stub textures and then it won't matter
   }
 
   ++generation;
@@ -381,33 +391,53 @@ void ScriptedShadersGlobalData::clear() { globVarsState.clear(); }
 
 const UniqueTex &ShaderStubTexturesRepository::query(uint32_t col, ShaderVarTextureType shvtt) const
 {
+  G_ASSERTF_RETURN(initialized(), stubTextureStore[0],
+    "ShaderStubTexturesRepository::query called on a non-inited repo"); // callee-checked
   shvtt = shvtt == SHVT_TEX_UNKNOWN ? SHVT_TEX_2D : shvtt;
   auto it = stubTexturesMap.find(shader_layout::StubTextureKey{col, shvtt});
   if (DAGOR_UNLIKELY(it == stubTexturesMap.end()))
   {
-    logwarn("Stub texture for col=%x type=%d was not found, probably due to export shaders being used before d3d init.", col,
-      int(shvtt));
-    return stubTextureStore[0];
+    logerr("[SH] Stub texture for col=%x type=%d was not found, using white stub. This is probably due to V5 bindump header format "
+           "change. Use up-to-date/build game and shaders! If that does not work (stub textures are probably required by NBS), also "
+           "try updating resources/running dabuild.",
+      col, int(shvtt));
+    it = stubTexturesMap.find(shader_layout::StubTextureKey{0xFFFFFFFF, shvtt});
+    G_ASSERT_RETURN(it != stubTexturesMap.end(), stubTextureStore[0]);
   }
   return stubTextureStore[it->second];
 }
 
 static bool write_color_to_stub_texture(UniqueTex &tex, shader_layout::StubTextureKey key)
 {
-  const bool isCube = (key.textype == SHVT_TEX_CUBE || key.textype == SHVT_TEX_CUBE_ARRAY);
-
-  for (int layer = 0, lc = isCube ? 6 : 1; layer < lc; ++layer)
+  if (key.textype == SHVT_TEX_3D) // volumetric textures are not supported by the lock_texture API.
   {
-    eastl::optional<int> ll{};
-    if (isCube)
-      ll.emplace(layer);
-    if (auto lock = lock_texture<uint32_t>(tex.getBaseTex(), 0, TEXLOCK_WRITE, ll))
-    {
-      lock.at(0, 0) = key.col;
-    }
-    else
+    uint32_t *data;
+    int rowPitch, slicePitch;
+    if (!tex.getBaseTex()->lockbox((void **)&data, rowPitch, slicePitch, 0, TEXLOCK_WRITE))
     {
       return false;
+    }
+    *data = key.col;
+    tex.getBaseTex()->unlockbox();
+  }
+  else
+  {
+    const bool isCube = (key.textype == SHVT_TEX_CUBE || key.textype == SHVT_TEX_CUBE_ARRAY);
+    const bool isLayered = isCube || key.textype == SHVT_TEX_2D_ARRAY;
+
+    for (int layer = 0, lc = isCube ? 6 : 1; layer < lc; ++layer)
+    {
+      eastl::optional<int> ll{};
+      if (isLayered)
+        ll.emplace(layer);
+      if (auto lock = lock_texture<uint32_t>(tex.getBaseTex(), 0, TEXLOCK_WRITE, ll))
+      {
+        lock.at(0, 0) = key.col;
+      }
+      else
+      {
+        return false;
+      }
     }
   }
   return true;
@@ -438,7 +468,7 @@ void ShaderStubTexturesRepository::add(shader_layout::StubTextureKey key)
 
   if (!write_color_to_stub_texture(tex, key))
   {
-    logerr("Failed to create stubtex for col=%x type=%d", key.col, key.textype);
+    logerr("[SH] Failed to create stubtex for col=%x type=%d", key.col, key.textype);
     stubTexturesMap.erase(it);
     stubTextureStore.pop_back();
   }
@@ -450,7 +480,7 @@ void ShaderStubTexturesRepository::afterResetDevice()
   {
     UniqueTex &tex = stubTextureStore[texIdx];
     if (!write_color_to_stub_texture(tex, key))
-      logerr("Failed to restore stubtex for col=%x type=%d", key.col, key.textype);
+      logerr("[SH] Failed to restore stubtex for col=%x type=%d", key.col, key.textype);
   }
 }
 

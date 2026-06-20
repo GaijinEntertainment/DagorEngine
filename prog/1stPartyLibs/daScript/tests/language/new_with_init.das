@@ -9,7 +9,11 @@ struct NwiBall {
 }
 
 def NwiBall(center : float3; radius : float) : NwiBall {
-    var b : NwiBall
+    // This helper IS the user-defined `def TypeName(args)` constructor that the
+    // test below exercises via `new NwiBall(float3(1,2,3), 4.0f)`. Rewriting to
+    // `NwiBall(center=center, radius=radius)` would recurse — named-arg lookup
+    // resolves to this same function, not to the makestruct.
+    var b : NwiBall  // nolint:STYLE013
     b.center = center
     b.radius = radius
     return b

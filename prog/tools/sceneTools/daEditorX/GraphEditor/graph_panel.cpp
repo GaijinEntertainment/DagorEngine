@@ -15,7 +15,6 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <ioSys/dag_dataBlock.h>
-#include <perfMon/dag_cpuFreq.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/fixed_vector.h>
@@ -64,6 +63,11 @@ constexpr float BLOCK_CONTAINMENT_GAP = 1.0f;
 // this frame. The margin keeps nodes / links from popping at the edge during a pan and covers link
 // bezier control-point bulge beyond the endpoint node rects.
 constexpr float CULL_VIEWPORT_MARGIN_FRAC = 0.5f;
+
+// Node level-of-detail (GraphPanel::updateImgui): at or below this canvas zoom the on-screen nodes are
+// too small to read, so they render "reduced" (text and pin-square decoration dropped; boxes + links
+// kept -- pins stay bound so links still land)
+constexpr float LOD_SCALE = 0.1f;
 
 constexpr float GRAPH_EDITOR_ZOOM_LEVELS[] = {
   0.01f,
@@ -362,8 +366,6 @@ void GraphPanel::onGraphDataChanged()
   disable_node_editor_shortcuts(editor);
 
   navigationFramesLeft = 5;
-  lastFrameMs = 0.0f;
-  emaFrameMs = 0.0f;
 
   // Clear any stale selection -- the previous graph's selected node id is meaningless
   // against the new node set (most often: previous was non-empty, new is empty).
@@ -1024,8 +1026,6 @@ void GraphPanel::updateImgui()
   const float canvasHeight = eastl::max(4.0f, canvasAvail.y - statusBarHeight);
   const ImVec2 canvasMax(canvasMin.x + canvasAvail.x, canvasMin.y + canvasHeight);
 
-  const int64_t tStart = ref_time_ticks();
-
   ne::SetCurrentEditor(editor);
 
   // Framing requests are captured here but the actual ne::NavigateTo* runs at end-of-frame (after
@@ -1180,6 +1180,8 @@ void GraphPanel::updateImgui()
     }
   }
 
+  const float invZoom = ne::GetCurrentZoom();
+  const bool zoomLod = invZoom > 0.0f && (1.0f / invZoom) <= LOD_SCALE;
 
   for (int ni = 0; ni < nodeCount; ++ni)
   {
@@ -1204,7 +1206,11 @@ void GraphPanel::updateImgui()
       continue;
     }
 
-    const bool reduced = !cullNodes[ni].visible; // off-screen, kept live only so a visible link resolves
+    // Drop the (illegible) text when the node is off-screen but kept live for a link, or when zoomed
+    // too far out to read it; the pin-square decoration is dropped in the same two cases. BeginPin /
+    // EndPin and PinRect still run for every pin (inside drawPinSquare), so links stay bound and land
+    // on the right pin -- only the square's AddRectFilled / AddRect draw is skipped.
+    const bool reduced = !cullNodes[ni].visible || zoomLod;
 
     ne::BeginNode(ne::NodeId(makeNodeId(n.id)));
 
@@ -1598,13 +1604,6 @@ void GraphPanel::updateImgui()
   }
 
   ne::SetCurrentEditor(nullptr);
-
-  const float ms = static_cast<float>(ref_time_delta_to_usec(tStart)) / 1000.0f;
-  emaFrameMs = (lastFrameMs == 0.0f) ? ms : (emaFrameMs * 0.95f + ms * 0.05f);
-  lastFrameMs = ms;
-
-  ImGui::SetCursorPos(ImVec2(8.0f, 8.0f));
-  ImGui::Text("nodes=%d edges=%d  panel ms=%.2f (ema=%.2f)", (int)graphData.nodes.size(), (int)graphData.edges.size(), ms, emaFrameMs);
 
   draw_graph_hotkeys_bar(canvasMax);
 

@@ -139,7 +139,7 @@ struct BitStreamWalker : das::DataWalker
   {
     if constexpr (mode == BitStreamWalkerMode::Write)
     {
-      stream->Write(pa->size);
+      stream->Write((uint32_t)pa->size);
     }
     else
     {
@@ -152,7 +152,7 @@ struct BitStreamWalker : das::DataWalker
         return;
       }
       builtin_array_clear(*pa, context, nullptr);
-      builtin_array_resize(*pa, size, ti->firstType->size, context, nullptr);
+      builtin_array_resize(*pa, (int)size, ti->firstType->size, context, nullptr);
     }
   }
 

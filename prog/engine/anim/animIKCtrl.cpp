@@ -23,7 +23,7 @@ static vec3f transform_vec_upto_root(const GeomNodeTree &tree, dag::Index16 n, v
   return v;
 }
 
-void AnimV20::LegsIKCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimV20::LegsIKCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   if (!rec.size())
     return;
@@ -42,13 +42,13 @@ void AnimV20::LegsIKCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tre
     nodes[i].dy = nodes[i].da = nodes[i].dt = 0;
   }
 }
-void AnimV20::LegsIKCtrl::advance(IPureAnimStateHolder &st, real dt)
+void AnimV20::LegsIKCtrl::advance(AnimGraphStateHolder &st, real dt)
 {
   NodeId *nodes = (NodeId *)st.getInlinePtr(varId);
   for (int i = 0; i < rec.size(); i++)
     nodes[i].dt = dt;
 }
-void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimV20::LegsIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt < 1e-3f || tree.empty() || rec.size() == 0)
     return;
@@ -312,6 +312,6 @@ void AnimV20::LegsIKCtrl::createNode(AnimationGraph &graph, const DataBlock &blk
   node->crawlFootAngle = blk.getReal("crawlFootAngle", 130.f);
   node->crawlMaxRay = blk.getReal("crawlMaxRay", 0.5f);
   node->varId =
-    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(NodeId) * node->rec.size(), IPureAnimStateHolder::PT_InlinePtr);
+    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(NodeId) * node->rec.size(), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }

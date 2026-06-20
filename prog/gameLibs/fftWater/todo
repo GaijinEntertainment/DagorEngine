@@ -69,7 +69,7 @@ Physics:
 + CPU, 2 cascades (128, 64), lerp
    + based on time get
    + speed up displacement using sse
-   + replace halves with fixed point? (speed up and precisement)
+   + replace halves with fixed point? (speed up and precision)
 + relax new frame generation with time (we only need 3-4 frames per second!)
 * simplified shoreline/distancefield on CPU
 * (optimization) ignore cascades which are not providing enough result

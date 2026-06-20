@@ -122,10 +122,6 @@ private:
 
   eastl::vector<PendingNodeDelete> pendingNodeDeletes;
 
-  // Perf overlay.
-  float lastFrameMs = 0.0f;
-  float emaFrameMs = 0.0f;
-
   struct NodeCull
   {
     ImVec2 rectMin;       // node rect in canvas space (ne::GetNodePosition)

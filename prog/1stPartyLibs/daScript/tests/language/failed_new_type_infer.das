@@ -4,7 +4,7 @@
 options gen2
 // options log_infer_passes=true
 
-expect 30109, 30301, 30101
+expect 30165, 30214, 30823
 
 struct FooBar {
     a, b : int

@@ -4,6 +4,7 @@ require dastest/testing_boost public
 require math
 
 require daslib/linq_boost
+require daslib/sort_boost
 
 require _common
 
@@ -37,7 +38,7 @@ def test_orderby(t : T?) {
             numbers.to_sequence(),
             _
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in query_n, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -88,7 +89,7 @@ def test_orderby(t : T?) {
             numbers.to_sequence(),
             _
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in query_n, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -101,7 +102,7 @@ def test_orderby(t : T?) {
             numbers,
             $(_ : int) => _
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in numbers, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -118,7 +119,7 @@ def test_order(t : T?) {
             numbers.to_sequence(),
             $(a, b) => a < b
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in query_n, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -169,7 +170,7 @@ def test_order(t : T?) {
             numbers.to_sequence(),
             $(a, b) => a < b
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in query_n, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -182,7 +183,7 @@ def test_order(t : T?) {
             numbers,
             $(a, b) => a < b
         )
-        var sorted_n = [1, 3, 4, 5, 8]
+        let sorted_n = [1, 3, 4, 5, 8]
         for (n, i in numbers, 0..4) {
             t |> equal(n, sorted_n[i])
         }
@@ -192,7 +193,7 @@ def test_order(t : T?) {
 [test]
 def test_order_descending_default(t : T?) {
     t |> run("order descending default key") @(t : T?) {
-        var numbers = [5, 3, 8, 1, 4]
+        let numbers = [5, 3, 8, 1, 4]
         var query = order_descending(numbers)
         var expected = [8, 5, 4, 3, 1]
         for (n, e in query, expected) {
@@ -234,7 +235,7 @@ def test_order_descending_default(t : T?) {
 [test]
 def test_unique(t : T?) {
     t |> run("basic unique") @(t : T?) {
-        var numbers = [
+        let numbers = [
             1, 1, 1, 2, 2, 3, 4, 5, 1, 4
         ]
         var query_n = unique(numbers)
@@ -245,7 +246,7 @@ def test_unique(t : T?) {
         }
     }
     t |> run("complex unique") @(t : T?) {
-        var complex_numbers = [
+        let complex_numbers = [
             ComplexType(a = [1, 10]),
             ComplexType(a = [1, 10]),
             ComplexType(a = [2, 20]),
@@ -270,7 +271,7 @@ def test_unique(t : T?) {
 [test]
 def test_unique_by(t : T?) {
     t |> run("basic unique by") @(t : T?) {
-        var numbers = [
+        let numbers = [
             1, 1, 1, 2, 2, 3, 4, 5, 1, 4
         ]
         var query_n = _unique_by(
@@ -284,7 +285,7 @@ def test_unique_by(t : T?) {
         }
     }
     t |> run("complex unique by") @(t : T?) {
-        var complex_numbers = [
+        let complex_numbers = [
             ComplexType(a = [1, 10]),
             ComplexType(a = [1, 10]),
             ComplexType(a = [2, 20]),
@@ -306,5 +307,373 @@ def test_unique_by(t : T?) {
         for (q, e in query_c, expected_c) {
             t |> success(q == e)
         }
+    }
+}
+
+[test]
+def test_partial_sort(t : T?) {
+    t |> run("basic partial_sort first N ascending") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7, 4, 6, 0]
+        sort_boost::partial_sort(a, 4)
+        let expected = [0, 1, 2, 3]
+        for (v, e in a, expected) {
+            t |> equal(v, e)
+        }
+        for (i in range(4, length(a))) {
+            t |> success(a[i] >= 3)
+        }
+    }
+    t |> run("partial_sort with custom comparator (descending)") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9]
+        sort_boost::partial_sort(a, 3) $(x, y : int) : bool {
+            return x > y
+        }
+        t |> equal(a[0], 9)
+        t |> equal(a[1], 8)
+        t |> equal(a[2], 5)
+    }
+    t |> run("partial_sort N=0 is no-op") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9]
+        var orig <- [5, 2, 8, 1, 9]
+        sort_boost::partial_sort(a, 0)
+        for (v, e in a, orig) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("partial_sort N>length clamps to full sort") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9]
+        sort_boost::partial_sort(a, 100)
+        let expected = [1, 2, 5, 8, 9]
+        for (v, e in a, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("partial_sort on user struct via key comparator") @(t : T?) {
+        var a <- [
+            ComplexType(a = [5, 100]),
+            ComplexType(a = [2, 101]),
+            ComplexType(a = [8, 102]),
+            ComplexType(a = [1, 103])
+        ]
+        sort_boost::partial_sort(a, 2) $(x, y : ComplexType) : bool {
+            return x.a[0] < y.a[0]
+        }
+        t |> equal(a[0].a[0], 1)
+        t |> equal(a[0].a[1], 103)
+        t |> equal(a[1].a[0], 2)
+        t |> equal(a[1].a[1], 101)
+    }
+}
+
+[test]
+def test_nth_element(t : T?) {
+    t |> run("kth-smallest at position k") @(t : T?) {
+        var a <- [7, 3, 1, 9, 5, 8, 0, 4, 2]
+        sort_boost::nth_element(a, 4)
+        t |> equal(a[4], 4)
+        for (i in range(4)) {
+            t |> success(a[i] <= 4)
+        }
+        for (i in range(5, length(a))) {
+            t |> success(a[i] >= 4)
+        }
+    }
+    t |> run("nth_element k=0 puts min at front") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3]
+        sort_boost::nth_element(a, 0)
+        t |> equal(a[0], 1)
+    }
+    t |> run("nth_element k out of range is no-op") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9]
+        var orig <- [5, 2, 8, 1, 9]
+        sort_boost::nth_element(a, 100)
+        for (v, e in a, orig) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("nth_element with key comparator on user struct") @(t : T?) {
+        var a <- [
+            ComplexType(a = [5, 100]),
+            ComplexType(a = [2, 101]),
+            ComplexType(a = [8, 102]),
+            ComplexType(a = [1, 103]),
+            ComplexType(a = [9, 104])
+        ]
+        sort_boost::nth_element(a, 2) $(x, y : ComplexType) : bool {
+            return x.a[0] < y.a[0]
+        }
+        t |> equal(a[2].a[0], 5)
+        t |> equal(a[2].a[1], 100)
+    }
+}
+
+[test]
+def test_top_n_by(t : T?) {
+    t |> run("top_n_by on array source — N smallest ascending") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_by(src, 3, @@(v : int -&) => v)
+        let expected = [2, 5, 8]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by on iterator source — heap-during-scan") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_by(src.to_sequence(), 3, @@(v : int -&) => v)
+        let expected = [2, 5, 8]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by N=0 yields empty") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_by(src, 0, @@(v : int -&) => v)
+        t |> equal(length(got), 0)
+    }
+    t |> run("top_n_by N > length yields all elements sorted") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_by(src, 100, @@(v : int -&) => v)
+        let expected = [5, 10, 20]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by N=1 picks single minimum") @(t : T?) {
+        let src <- [7, 3, 1, 9, 5]
+        let got <- top_n_by(src, 1, @@(v : int -&) => v)
+        t |> equal(length(got), 1)
+        t |> equal(got[0], 1)
+    }
+    t |> run("top_n_by on user struct by field key") @(t : T?) {
+        let src <- [
+            ComplexType(a = [10, 0]),
+            ComplexType(a = [5, 0]),
+            ComplexType(a = [25, 0]),
+            ComplexType(a = [2, 0]),
+            ComplexType(a = [15, 0])
+        ]
+        let got <- top_n_by(src, 3, @@(c : ComplexType) => c.a[0])
+        t |> equal(length(got), 3)
+        t |> equal(got[0].a[0], 2)
+        t |> equal(got[1].a[0], 5)
+        t |> equal(got[2].a[0], 10)
+    }
+}
+
+[test]
+def test_top_n_by_descending(t : T?) {
+    t |> run("top_n_by_descending on array source — N largest descending") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_by_descending(src, 3, @@(v : int -&) => v)
+        let expected = [30, 25, 20]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by_descending on iterator source — bounded min-heap") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_by_descending(src.to_sequence(), 3, @@(v : int -&) => v)
+        let expected = [30, 25, 20]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by_descending N=0 yields empty") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_by_descending(src, 0, @@(v : int -&) => v)
+        t |> equal(length(got), 0)
+    }
+    t |> run("top_n_by_descending N<0 yields empty") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_by_descending(src, -1, @@(v : int -&) => v)
+        t |> equal(length(got), 0)
+    }
+    t |> run("top_n_by_descending N > length yields all elements sorted descending") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_by_descending(src, 100, @@(v : int -&) => v)
+        let expected = [20, 10, 5]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_by_descending N=1 picks single maximum") @(t : T?) {
+        let src <- [7, 3, 1, 9, 5]
+        let got <- top_n_by_descending(src, 1, @@(v : int -&) => v)
+        t |> equal(length(got), 1)
+        t |> equal(got[0], 9)
+    }
+    t |> run("top_n_by_descending on iterator source — empty") @(t : T?) {
+        let src : array<int>
+        let got <- top_n_by_descending(src.to_sequence(), 3, @@(v : int -&) => v)
+        t |> equal(length(got), 0)
+    }
+    t |> run("top_n_by_descending on user struct by field key") @(t : T?) {
+        let src <- [
+            ComplexType(a = [10, 0]),
+            ComplexType(a = [5, 0]),
+            ComplexType(a = [25, 0]),
+            ComplexType(a = [2, 0]),
+            ComplexType(a = [15, 0])
+        ]
+        let got <- top_n_by_descending(src, 3, @@(c : ComplexType) => c.a[0])
+        t |> equal(length(got), 3)
+        t |> equal(got[0].a[0], 25)
+        t |> equal(got[1].a[0], 15)
+        t |> equal(got[2].a[0], 10)
+    }
+    t |> run("top_n_by_descending parity vs sort+take direct reference") @(t : T?) {
+        let src <- [42, 7, 13, 88, 21, 4, 99, 56, 33, 71]
+        let got <- top_n_by_descending(src, 4, @@(v : int -&) => v)
+        // hand-rolled reference: clone, sort descending, take first 4
+        var refSorted : array<int>
+        refSorted := src
+        sort(refSorted, $(a, b) => a > b)
+        t |> equal(length(got), 4)
+        for (i in 0..4) {
+            t |> equal(got[i], refSorted[i])
+        }
+    }
+}
+
+[test]
+def test_top_n_descending(t : T?) {
+    t |> run("top_n_descending on array source — N largest descending") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_descending(src, 3)
+        let expected = [30, 25, 20]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_descending on iterator source") @(t : T?) {
+        let src <- [10, 20, 5, 8, 30, 15, 2, 25]
+        let got <- top_n_descending(src.to_sequence(), 3)
+        let expected = [30, 25, 20]
+        t |> equal(length(got), length(expected))
+        for (v, e in got, expected) {
+            t |> equal(v, e)
+        }
+    }
+    t |> run("top_n_descending N=0 yields empty") @(t : T?) {
+        let src <- [10, 20, 5]
+        let got <- top_n_descending(src, 0)
+        t |> equal(length(got), 0)
+    }
+    t |> run("top_n_descending on floats") @(t : T?) {
+        let src <- [3.14, 1.41, 2.71, 0.57, 1.61]
+        let got <- top_n_descending(src, 2)
+        t |> equal(length(got), 2)
+        t |> equal(got[0], 3.14)
+        t |> equal(got[1], 2.71)
+    }
+}
+
+[test]
+def test_heap_ops(t : T?) {
+    t |> run("make_heap → max at root") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7]
+        sort_boost::make_heap(a)
+        t |> equal(a[0], 9)
+    }
+    t |> run("make_heap → repeated pop yields descending sequence") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7, 4, 6, 0]
+        sort_boost::make_heap(a)
+        var popped : array<int>
+        while (length(a) > 0) {
+            sort_boost::pop_heap(a)
+            popped |> push(a[length(a) - 1])
+            a |> resize(length(a) - 1)
+        }
+        t |> equal(length(popped), 10)
+        for (i in range(1, length(popped))) {
+            t |> success(popped[i] <= popped[i - 1])
+        }
+    }
+    t |> run("push_heap append-then-sift") @(t : T?) {
+        var a <- [9, 5, 7, 1, 3, 6]
+        sort_boost::make_heap(a)
+        t |> equal(a[0], 9)
+        a |> push(12)
+        sort_boost::push_heap(a)
+        t |> equal(a[0], 12)
+    }
+    t |> run("bounded-N streaming heap (top_n_by usage pattern)") @(t : T?) {
+        let N = 3
+        let src <- [7, 3, 5, 1, 9, 2, 8, 4, 6, 0]
+        var buf : array<int>
+        buf |> reserve(N)
+        for (x in src) {
+            if (length(buf) < N) {
+                buf |> push(x)
+                sort_boost::push_heap(buf)
+            } elif (x < buf[0]) {
+                sort_boost::pop_heap(buf)
+                buf[length(buf) - 1] = x
+                sort_boost::push_heap(buf)
+            }
+        }
+        sort(buf)
+        let expected = [0, 1, 2]
+        for (v, e in buf, expected) {
+            t |> equal(v, e)
+        }
+    }
+}
+
+[test]
+def test_q_macros(t : T?) {
+    //! Smoke tests for the qpartial_sort / qnth_element / qmake_heap /
+    //! qpush_heap / qpop_heap dispatcher macros. Verifies the macro expansion
+    //! routes to the right wrapper for ``array<T>`` sources.
+    t |> run("qpartial_sort on array") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7, 4, 6, 0]
+        sort_boost::qpartial_sort(a, 3) <| $(x, y : int) : bool {
+            return x < y
+        }
+        t |> equal(a[0], 0)
+        t |> equal(a[1], 1)
+        t |> equal(a[2], 2)
+    }
+    t |> run("qnth_element on array") @(t : T?) {
+        var a <- [7, 3, 1, 9, 5, 8, 0, 4, 2]
+        sort_boost::qnth_element(a, 4) <| $(x, y : int) : bool {
+            return x < y
+        }
+        t |> equal(a[4], 4)
+    }
+    t |> run("qmake_heap on array") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7]
+        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+            return x < y
+        }
+        t |> equal(a[0], 9)
+    }
+    t |> run("qpush_heap append-then-sift") @(t : T?) {
+        var a <- [9, 5, 7, 1, 3, 6]
+        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+            return x < y
+        }
+        a |> push(12)
+        sort_boost::qpush_heap(a) <| $(x, y : int) : bool {
+            return x < y
+        }
+        t |> equal(a[0], 12)
+    }
+    t |> run("qpop_heap moves max to end") @(t : T?) {
+        var a <- [5, 2, 8, 1, 9, 3, 7]
+        sort_boost::qmake_heap(a) <| $(x, y : int) : bool {
+            return x < y
+        }
+        sort_boost::qpop_heap(a) <| $(x, y : int) : bool {
+            return x < y
+        }
+        t |> equal(a[length(a) - 1], 9)
     }
 }

@@ -1311,8 +1311,9 @@ void sq_remove(HSQUIRRELVM v, SQInteger idx)
 
 SQInteger sq_cmp(HSQUIRRELVM v)
 {
-    SQInteger res;
-    v->ObjCmp(stack_get(v, -1), stack_get(v, -2),res);
+    SQInteger res = 0;
+    if (!v->ObjCmp(stack_get(v, -1), stack_get(v, -2), res))
+        return 0;
     return res;
 }
 
@@ -1425,7 +1426,7 @@ SQRESULT sq_setdelegate(HSQUIRRELVM v,SQInteger idx)
     case OT_TABLE:
         if(sq_type(mt) == OT_TABLE) {
             if(!_table(self)->SetDelegate(_table(mt))) {
-                return sq_throwerror(v, "delagate cycle");
+                return sq_throwerror(v, "delegate cycle");
             }
             v->Pop();
         }
@@ -1592,6 +1593,7 @@ SQRESULT sq_reservestack(HSQUIRRELVM v,SQInteger nsize)
             return sq_throwerror(v,"cannot resize stack while in a metamethod");
         }
         v->_stack.resize(v->_stack.size() + ((v->_top + nsize) - v->_stack.size()));
+        v->RelocateOuters();
     }
     return SQ_OK;
 }

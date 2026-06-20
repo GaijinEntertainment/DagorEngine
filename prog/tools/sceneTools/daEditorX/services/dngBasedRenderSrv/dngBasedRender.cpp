@@ -853,6 +853,8 @@ public:
         blockId = dynamicDepthSceneBlockId;
         break;
       case Stage::STG_RENDER_DYNAMIC_DECALS: sm0 = sm1 = ShaderMesh::STG_decal; break;
+
+      default: break;
     }
 
     for (uint32_t i = 0; i < sceneInstance->getNodeCount(); ++i)

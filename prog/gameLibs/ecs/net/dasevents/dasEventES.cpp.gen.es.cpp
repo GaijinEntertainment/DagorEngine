@@ -31,7 +31,7 @@ static ecs::EntitySystemDesc global_unicast_dasevent_client_es_event_handler_es_
   make_span(global_unicast_dasevent_client_es_event_handler_comps+1, 1)/*no*/,
   ecs::EventSetBuilder<ecs::EventNetMessage>::build(),
   0
-,"netClient");
+,"gEntityMgr,netClient");
 static constexpr ecs::ComponentDesc global_unicast_dasevent_es_event_handler_comps[] =
 {
 //start of 1 ro components at [0]
@@ -59,7 +59,7 @@ static ecs::EntitySystemDesc global_unicast_dasevent_es_event_handler_es_desc
   make_span(global_unicast_dasevent_es_event_handler_comps+1, 1)/*no*/,
   ecs::EventSetBuilder<ecs::EventNetMessage>::build(),
   0
-,"net,server");
+,"gEntityMgr,net,server");
 //static constexpr ecs::ComponentDesc invalidate_dasevents_cache_on_connect_to_server_es_event_handler_comps[] ={};
 static void invalidate_dasevents_cache_on_connect_to_server_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -79,7 +79,7 @@ static ecs::EntitySystemDesc invalidate_dasevents_cache_on_connect_to_server_es_
   empty_span(),
   ecs::EventSetBuilder<EventOnConnectedToServer>::build(),
   0
-,"netClient");
+,"gEntityMgr,netClient");
 //static constexpr ecs::ComponentDesc invalidate_dasevents_on_network_destroyed_es_event_handler_comps[] ={};
 static void invalidate_dasevents_on_network_destroyed_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -99,7 +99,7 @@ static ecs::EntitySystemDesc invalidate_dasevents_on_network_destroyed_es_event_
   empty_span(),
   ecs::EventSetBuilder<EventOnNetworkDestroyed>::build(),
   0
-);
+,"gEntityMgr");
 //static constexpr ecs::ComponentDesc invalidate_dasevents_cache_on_client_change_es_event_handler_comps[] ={};
 static void invalidate_dasevents_cache_on_client_change_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -119,4 +119,4 @@ static ecs::EntitySystemDesc invalidate_dasevents_cache_on_client_change_es_even
   empty_span(),
   ecs::EventSetBuilder<EventOnClientConnected>::build(),
   0
-,"server");
+,"gEntityMgr,server");

@@ -91,7 +91,7 @@ let isFakeSceneHidden = Computed(function() {
   return true
 })
 
-let isFakeSceneLocked = Computed(function() {
+let isFakeSceneLocked = Computed(function() { // warning disable: -similar-assigned-expr
   UNUSED(edObjectFlagsUpdateTrigger)
 
   let entities = allEntities?.get()[ecs.INVALID_SCENE_ID] ?? []

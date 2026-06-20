@@ -18,7 +18,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_direct.h>
 #include <math/random/dag_random.h>
-#include <render/omniLight.h>
+#include <render/lights/omniLight.h>
 #include <daFx/dafx.h>
 #include "private_worldRenderer.h"
 #include <landMesh/clipMap.h>
@@ -95,12 +95,14 @@ bool RendererConsole::processCommand(const char *argv[], int argc)
   {
     console::command("render.reload_shaders");
     ((WorldRenderer *)get_world_renderer())->setEnviProbePos(itm.getcol(3));
-    ((WorldRenderer *)get_world_renderer())->reloadCube(false);
+    ((WorldRenderer *)get_world_renderer())->scheduleEnviProbeReRender();
   }
   CONSOLE_CHECK_NAME("render", "reinit_cube", 2, 2)
   {
     console::command("render.reload_shaders");
-    ((WorldRenderer *)get_world_renderer())->reinitCube(atoi(argv[1]), itm.getcol(3));
+    ((WorldRenderer *)get_world_renderer())->setEnviProbePos(itm.getcol(3));
+    ((WorldRenderer *)get_world_renderer())->setCubeResolution(atoi(argv[1]));
+    ((WorldRenderer *)get_world_renderer())->scheduleEnviProbeFullReload();
   }
   CONSOLE_CHECK_NAME("render", "showFrameTimings", 1, 1)
   {

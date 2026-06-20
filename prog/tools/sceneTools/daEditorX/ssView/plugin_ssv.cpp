@@ -165,6 +165,8 @@ void ssviewplugin::Plugin::renderGeometry(Stage stage)
       streamingScene->render(EDITORCORE->queryEditorInterface<IVisibilityFinderProvider>()->getVisibilityFinder(), 1,
         RenderScene::RenderObject::ROF_CastShadows);
       break;
+
+    default: break;
   }
 }
 

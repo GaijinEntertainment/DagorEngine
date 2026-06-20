@@ -322,9 +322,10 @@ struct ManagedTabAnnotation : TypeAnnotation
   {
     if (!ati)
     {
-      auto dimType = new TypeDecl(*vecType);
-      dimType->ref = 0;
-      dimType->dim.push_back(1);
+      auto elemType = new TypeDecl(*vecType);
+      gc_local<TypeDecl> elemGuard(elemType);
+      elemType->ref = 0;
+      gc_local<TypeDecl> dimType(makeFixedArrayTypeDecl(1, elemType));
       ati = helpA.makeTypeInfo(nullptr, dimType);
       ati->flags |= TypeInfo::flag_isHandled;
     }

@@ -502,9 +502,14 @@ namespace das
             {
                 lock_guard<recursive_mutex> guard(walkMutex);
                 if ( !ati ) {
-                    auto dimType = new TypeDecl(*vecType);
-                    dimType->ref = 0;
-                    dimType->dim.push_back(1);
+                    // gc_local: scratch TypeDecls just to drive makeTypeInfo —
+                    // read once, never stored on the result. RAII unlinks from
+                    // the thread gc_root immediately and deletes at scope exit.
+                    // BOTH nodes need a guard - the fixed-array head does not own its element.
+                    auto elemType = new TypeDecl(*vecType);
+                    gc_local<TypeDecl> elemGuard(elemType);
+                    elemType->ref = 0;
+                    gc_local<TypeDecl> dimType(makeFixedArrayTypeDecl(1, elemType));
                     ati = helpA.makeTypeInfo(nullptr, dimType);
                     ati->flags |= TypeInfo::flag_isHandled;
                 }
@@ -581,6 +586,22 @@ namespace das
             auto atcun = "das_atcu<"+TTN+","+OTN+">";
             addExtern<DAS_BIND_FUN((das_atcu<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
                 SideEffects::none, atcun.c_str())
+                    ->args({"vec","index","context","at"});
+            auto atin64 = "das_ati_i64<"+TTN+","+OTN+">";
+            addExtern<DAS_BIND_FUN((das_ati_i64<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
+                SideEffects::modifyArgument, atin64.c_str())
+                    ->args({"vec","index","context","at"});
+            auto atun64 = "das_atu_u64<"+TTN+","+OTN+">";
+            addExtern<DAS_BIND_FUN((das_atu_u64<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
+                SideEffects::modifyArgument, atun64.c_str())
+                    ->args({"vec","index","context","at"});
+            auto atcin64 = "das_atci_i64<"+TTN+","+OTN+">";
+            addExtern<DAS_BIND_FUN((das_atci_i64<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
+                SideEffects::none, atcin64.c_str())
+                    ->args({"vec","index","context","at"});
+            auto atcun64 = "das_atcu_u64<"+TTN+","+OTN+">";
+            addExtern<DAS_BIND_FUN((das_atcu_u64<TT,OT>)),SimNode_ExtFuncCallRef,vectorIndexArgFn>(*mod, lib, ".[]",
+                SideEffects::none, atcun64.c_str())
                     ->args({"vec","index","context","at"});
         }
     };

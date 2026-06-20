@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "rendinst_simple_inc.dshl"
 include "rendinst_plod_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_plod_simple
 {
@@ -22,6 +23,7 @@ shader rendinst_plod_simple
 
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   WRITE_GBUFFER()
 
@@ -81,7 +83,7 @@ shader rendinst_plod_simple
       input.normal = fetchVertexColor8Attribute(vertexByteOffset + 12).xyz;
       output.vertexByteOffset = vertexByteOffset;
 
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       float3 localPos = input.pos;
       float opacity = 1;
       VB_PERFORM_INSTANCING

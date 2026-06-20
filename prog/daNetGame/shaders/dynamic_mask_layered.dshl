@@ -93,6 +93,7 @@ shader dynamic_mask_layered
 
   DECL_POSTFX_TC_VS_RT()
   USE_FLOAT_POS_PACKING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   INIT_OPTIONAL_SKINNING()
   hlsl(vs) {

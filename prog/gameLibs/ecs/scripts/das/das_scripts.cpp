@@ -782,9 +782,6 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   processModuleGroupUserData(fname, *dummyLibGroup);
   das::CodeOfPolicies policies;
   policies.aot = ldr_ctx.aotMode == AotMode::AOT;
-  const bool noLinter = (bool)::dgs_get_argv("das-no-linter");
-  policies.no_unused_function_arguments = !noLinter;
-  policies.no_unused_block_arguments = !noLinter;
   policies.fail_on_lack_of_aot_export = true;
   policies.no_global_variables = true;
   policies.fail_on_no_aot = false;

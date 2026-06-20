@@ -146,7 +146,6 @@ shader update_beam_tracer_commands_cs
       const float movingDistanceThreshold = 64;
 
       float newTravelDist = travelDist;
-      bool oldVertIsDead = firstVert + 2 < vertCnt && structuredBufferAt(tracerVerts, startVertId + ((firstVert+1)%TRACER_SEGMENTS_COUNT)).time < tracerTime-structuredBufferAt(tracers, cmd.id).ttl;
 
       BRANCH
       if (((vertCnt-firstVert) < TRACER_SEGMENTS_COUNT || structuredBufferAt(tracerVerts, startVertId + cpoint).time < tracerTime-structuredBufferAt(tracers, cmd.id).ttl) &&

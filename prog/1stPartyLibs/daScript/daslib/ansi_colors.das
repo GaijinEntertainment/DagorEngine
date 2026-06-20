@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module ansi_colors shared public
@@ -94,9 +92,7 @@ def reset_str() : string {
 
 def private has_value(args : array<string>; val : string) : bool {
     for (a in args) {
-        if (a == val) {
-            return true
-        }
+        if (a == val) return true
     }
     return false
 }

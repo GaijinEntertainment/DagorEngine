@@ -19,7 +19,7 @@ if $(CheckOnly) = yes { DisableUsingPCH = yes ; }
 Exceptions = yes ;
 CheckedContainers = no ;
 UseMemoryDebugLevel = def ;
-UseLLDLink = no ;
+UseLLDLink ?= no ;
 HaveOverlayUI = no ;
 HaveDngInput = no ;
 HaveEditor = no ;

@@ -515,6 +515,7 @@ void RiExtraAdditionalDataManager::uploadBuffer()
           uint32_t riEntryId = entry_begin + i;
           const auto copyData = [&, slot_end](const auto &data_map, rendinst::RiExtraPerInstanceDataType type,
                                   uint32_t data_entry_offset) {
+            G_UNUSED(slot_end);
             if (sortedRiInfos[riEntryId].usedDataTypes & static_cast<uint32_t>(type))
             {
               auto dataItr = data_map.find(sortedRiInfos[riEntryId].id);

@@ -7,6 +7,7 @@
 #include <drv/3d/dag_resId.h> // TEXTUREID
 #include <drv/3d/dag_samplerHandle.h>
 #include <math/dag_Point2.h>
+#include <ioSys/dag_dataBlock.h>
 
 class DataBlock;
 class String;
@@ -106,11 +107,41 @@ struct PictureRenderFactory
 struct PictureDelayedRenderFactory : public PictureRenderFactory
 {
   void queueRender(PictureRenderContext &ctx, WinAutoLock *lock) final;
-  virtual bool doRender(Texture *to, int x, int y, int w, int h, const DataBlock &pic_props, PICTUREID pid) = 0;
+  virtual bool doRender(const PictureManager::PictureRenderContext &pic_ctx) = 0;
 };
 
 void register_pic_render_factory(PictureRenderFactory *f);
 void unregister_pic_render_factory(PictureRenderFactory *f);
+
+struct PictureRenderContext
+{
+  PictureRenderContext(PictureRenderFactory *_prf, Texture *_rt, int _x0, int _y0, int _w, int _h, const DataBlock &p,
+    PICTUREID pic_id, uint8_t gen_) :
+    prf(_prf), rt(_rt), x0(_x0), y0(_y0), w(_w), h(_h), props(p), pid(pic_id), gen(gen_)
+  {}
+
+  unsigned triedAtFrame = 0;
+  unsigned failedAttempt = 0;
+  PICTUREID pid;
+  PictureRenderFactory *prf;
+  Texture *rt;
+  int x0, y0, w, h;
+  DataBlock props;
+  uint8_t gen;
+
+  const char *extractPicName() const;
+};
+
+enum class AsyncPicState
+{
+  DisallowedToRender,
+  Discarded,
+  TooEarlyToRender,
+  ReadyToRender
+};
+
+AsyncPicState process_pic_before_render(PictureRenderContext &);
+
 } // namespace PictureManager
 
 struct PictureManager::PicDesc

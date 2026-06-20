@@ -481,7 +481,8 @@ public:
       Shader,
       Program,
       NativeResource,
-      Heap
+      Heap,
+      RemoveFromResidency
     };
     Type type = Type::None;
     uint64_t submit = 0;
@@ -508,6 +509,7 @@ public:
   Tab<RingBufferItem> dynamic_buffers_free;
   RingBufferItem dynamic_buffer;
 
+  Tab<RaytraceAccelerationStructure *> blases2create;
   Tab<UploadTex> textures2upload;
   Tab<CopyBuf> buffers2copy;
   Tab<TexCopyRegion> regions2copy;
@@ -863,7 +865,7 @@ public:
     id<MTLBuffer> buffers[BUFFER_POINT_COUNT] = {};
     int buffers_offset[BUFFER_POINT_COUNT] = {};
 
-    static_assert(drv3d_metal::BUFFER_POINT_COUNT <= 64, "not enough bits for buffers");
+    // remapped slots dirty buffer mask
     uint64_t buffer_dirty_mask = 0;
 
     id<MTLAccelerationStructure> acceleration_structures[MAX_SHADER_ACCELERATION_STRUCTURES];
@@ -1010,8 +1012,6 @@ public:
     __forceinline void setBuf(StageStorage &storage, Shader *shader, int slot, Buffer *buf, int offset = 0)
     {
       G_ASSERT(slot < BUFFER_POINT_COUNT);
-      if (buffers[slot])
-        buffers[slot]->bound_slots &= ~(1ull << slot);
 
       int check_offset = buf ? buf->getDynamicOffset() + offset : offset;
       if ((buffers[slot] != buf || buffers_offset[slot] != check_offset) && shader)
@@ -1030,9 +1030,6 @@ public:
 
       buffers[slot] = buf;
       buffers_offset[slot] = offset;
-
-      if (buffers[slot])
-        buffers[slot]->bound_slots |= 1ull << slot;
     }
 
     __forceinline void setAccStruct(int slot, RaytraceTopAccelerationStructure *tlas)
@@ -1096,9 +1093,9 @@ public:
   __forceinline void markDirty(StageStorage &storage, Shader *shader, Buffer *buf)
   {
     G_ASSERT(buf);
-    for (uint32_t i = 0; i < 64; ++i)
+    for (int i = 0; i < BUFFER_POINT_COUNT; i++)
     {
-      if (!(buf->bound_slots & (1ull << i)))
+      if (stages[storage.stage].buffers[i] != buf)
         continue;
       if (buf && buf->getTexture())
       {
@@ -1286,10 +1283,12 @@ public:
   API_AVAILABLE(ios(18.0), macos(15.0)) id<MTLResidencySet> residencySet = nil;
   eastl::unordered_map<id<MTLResource>, uint32_t> resource_residency;
   uint32_t bindless_resources_bound = 0;
-  bool bindless_set_dirty = true;
+  bool residency_set_dirty = true;
 
   void removeResource(id<MTLResource> res);
   void addResource(id<MTLResource> res);
+
+  void commitResidencySet();
 
   Render();
 
@@ -1419,15 +1418,6 @@ public:
       dirty_state |= DirtyFlags::Fill;
     cur_fill = fill;
   }
-
-  /*
-   * Return better metal feature set for initialized device
-   * look details at developer.apple.com/documentation/metal/mtlfeatureset
-   * mtl_version will be an int[4] variable,
-   * mtl_version[1-2] for device id,
-   * mtl_version[3-4] for metal version
-   */
-  int getSupportedMTLVersion(void *mtl_version);
 
   void setRT(int index, const RenderAttachment &attach);
   void setDepth(const RenderAttachment &depth, const RenderAttachment &stencil);

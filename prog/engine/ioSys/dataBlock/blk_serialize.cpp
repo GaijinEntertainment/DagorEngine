@@ -21,7 +21,59 @@
 
 #define BLK_MAX_MEMORY_FOR_NAMES (256 << 20) // 256 MB
 
-static void writeIndent(IGenSave &cb, int n)
+// buffered writer mainly speeds up df_write / fwrite (upto 3 times for large BLK)
+struct BufferedWriter
+{
+  BufferedWriter(IGenSave &save_cb, size_t buf_size) : baseCwr(save_cb) { buffer.resize(buf_size ? buf_size : 1024); }
+
+  void write(const void *ptr, int size)
+  {
+    const char *data = (const char *)ptr;
+    size_t rest = buffer.size() - bufPos;
+
+    if (rest > size)
+    {
+      memcpy(buffer.data() + bufPos, data, size);
+      bufPos += size;
+      return;
+    }
+
+    if (bufPos)
+    {
+      // Fill last bytes of buffer and push fully filled buffer
+      memcpy(buffer.data() + bufPos, data, rest);
+      bufPos += rest;
+      push();
+
+      data += rest;
+      size -= rest;
+    }
+
+    if (size >= buffer.size()) // Don't buffer large data, write them right now
+      baseCwr.write(data, size);
+    else
+    {
+      memcpy(buffer.data() + bufPos, data, size);
+      bufPos += size;
+    }
+  }
+  void flush() { push(); }
+  const char *getTargetName() { return baseCwr.getTargetName(); }
+
+private:
+  SmallTab<char, framemem_allocator> buffer;
+  size_t bufPos = 0;
+  IGenSave &baseCwr;
+
+  void push()
+  {
+    if (bufPos)
+      baseCwr.write(buffer.data(), bufPos);
+    bufPos = 0;
+  }
+};
+
+static void writeIndent(BufferedWriter &cb, int n)
 {
   static const char *space8 = "        ";
   for (; n >= 8; n -= 8)
@@ -30,37 +82,54 @@ static void writeIndent(IGenSave &cb, int n)
     cb.write(space8, n);
 }
 
-static void writeString(IGenSave &cb, const char *s)
+static void writeString(BufferedWriter &cb, const char *s)
 {
-  if (!s || !*s)
-    return;
-  int l = (int)strlen(s);
-  cb.write(s, l);
+  if (s && *s)
+    cb.write(s, (int)strlen(s));
 }
 
-static void writeStringValue(IGenSave &cb, const char *s)
+static void writeStringValue(BufferedWriter &cb, const char *s)
 {
   if (!s)
     s = "";
 
   const char *quot = "\"";
   int quot_len = 1;
+  int str_len = 0; // -1 means string must be escaped (and pushed to stream char by char)
+
   {
     // choose quotation type to minimize escaping
     bool has_ln = false, has_quot = false, has_tick = false;
     for (const char *p = s; *p; ++p)
     {
-      if (*p == '\n' || *p == '\r')
-        has_ln = true;
-      else if (*p == '\"')
-        has_quot = true;
-      else if (*p == '\'')
-        has_tick = true;
-      else
-        continue;
-      if (has_ln && has_quot && has_tick)
-        break;
+      if (*p <= '\'' || *p >= '~')
+      {
+        if (*p == '\n' || *p == '\r')
+        {
+          has_ln = true;
+          str_len = -1;
+        }
+        else if (*p == '\"')
+        {
+          has_quot = true;
+          str_len = -1;
+        }
+        else if (*p == '\'')
+        {
+          has_tick = true;
+          str_len = -1;
+        }
+        else if (*p == '~' || *p == '\t')
+          str_len = -1;
+
+        if (has_ln && has_quot && has_tick)
+          break;
+      }
+
+      if (str_len >= 0)
+        ++str_len;
     }
+
     if (has_ln && !has_quot)
       quot_len = 4, quot = "\"\"\"\n\"\"\"";
     else if (has_ln && !has_tick)
@@ -73,28 +142,82 @@ static void writeStringValue(IGenSave &cb, const char *s)
 
   cb.write(quot, quot_len);
 
-  for (; *s; ++s)
+  if (str_len > 0)
+    cb.write(s, str_len);
+  else
   {
-    char c = *s;
-    if (c == '~')
-      cb.write("~~", 2);
-    else if (c == quot[0] && (quot_len == 1 || s[1] == c))
-      cb.write(c == '\"' ? "~\"" : "~\'", 2);
-    else if (c == '\r' && quot_len == 1)
-      cb.write("~r", 2);
-    else if (c == '\n' && quot_len == 1)
-      cb.write("~n", 2);
-    else if (c == '\t')
-      cb.write("~t", 2);
-    else
-      cb.write(&c, 1);
+    for (; *s; ++s)
+    {
+      char c = *s;
+      if (c == '~')
+        cb.write("~~", 2);
+      else if (c == quot[0] && (quot_len == 1 || s[1] == c))
+        cb.write(c == '\"' ? "~\"" : "~\'", 2);
+      else if (c == '\r' && quot_len == 1)
+        cb.write("~r", 2);
+      else if (c == '\n' && quot_len == 1)
+        cb.write("~n", 2);
+      else if (c == '\t')
+        cb.write("~t", 2);
+      else
+        cb.write(&c, 1);
+    }
   }
 
   cb.write(quot + quot_len - 1, quot_len);
 }
 
+template <typename T>
+static void writeInt(BufferedWriter &cb, T val)
+{
+  if (val < 0)
+    cb.write("-", 1);
+
+  T mul = val > 0 ? 1 : -1;
+  for (T i = val / 10; i; i /= 10)
+    mul *= 10;
+
+  char c;
+
+  do
+  {
+    c = '0' + (val / mul);
+    val %= mul;
+    mul /= 10;
+
+    cb.write(&c, 1);
+  } while (mul);
+}
+
+static void writeIPoint2(BufferedWriter &cb, int p1, int p2)
+{
+  writeInt<int>(cb, p1);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p2);
+}
+
+static void writeIPoint3(BufferedWriter &cb, int p1, int p2, int p3)
+{
+  writeInt<int>(cb, p1);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p2);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p3);
+}
+
+static void writeIPoint4(BufferedWriter &cb, int p1, int p2, int p3, int p4)
+{
+  writeInt<int>(cb, p1);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p2);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p3);
+  cb.write(", ", 2);
+  writeInt<int>(cb, p4);
+}
+
 template <bool print_with_limits>
-bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_levels) const
+bool DataBlock::writeText(BufferedWriter &cb, int level, int *max_lines, int max_levels) const
 {
   const char *eol = (level >= 0 && !print_with_limits) ? "\r\n" : "\n";
   const char *compactEol = "\n";
@@ -165,10 +288,14 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
         continue;
       }
     }
+
+    int strLen = 0;
+    const char *typeStr = dblk::resolve_short_type_len(p.type, strLen);
+
     (isCIdent ? writeString : writeStringValue)(cb, keyName);
-    writeString(cb, ":");
-    writeString(cb, dblk::resolve_short_type(p.type));
-    writeString(cb, "=");
+    cb.write(":", 1);
+    cb.write(typeStr, strLen);
+    cb.write("=", 1);
     if (p.type == TYPE_STRING)
     {
       writeStringValue(cb, getStr(i)); // getParamString<string_t>(p.v)
@@ -180,34 +307,38 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
       const int64_t *cdi64 = (const int64_t *)paramData;
       const float *cd = (const float *)paramData;
       char buf[256];
+      strLen = 0;
+
       switch (p.type)
       {
-        case TYPE_BOOL: snprintf(buf, sizeof(buf), *paramData ? "yes" : "no"); break;
-        case TYPE_INT: snprintf(buf, sizeof(buf), "%d", cdi[0]); break;
-        case TYPE_REAL: snprintf(buf, sizeof(buf), "%g", cd[0]); break;
-        case TYPE_POINT2: snprintf(buf, sizeof(buf), "%g, %g", cd[0], cd[1]); break;
-        case TYPE_POINT3: snprintf(buf, sizeof(buf), "%g, %g, %g", cd[0], cd[1], cd[2]); break;
-        case TYPE_POINT4: snprintf(buf, sizeof(buf), "%g, %g, %g, %g", cd[0], cd[1], cd[2], cd[3]); break;
-        case TYPE_IPOINT2: snprintf(buf, sizeof(buf), "%d, %d", cdi[0], cdi[1]); break;
-        case TYPE_IPOINT3: snprintf(buf, sizeof(buf), "%d, %d, %d", cdi[0], cdi[1], cdi[2]); break;
-        case TYPE_IPOINT4: snprintf(buf, sizeof(buf), "%d, %d, %d, %d", cdi[0], cdi[1], cdi[2], cdi[3]); break;
+        case TYPE_BOOL: strLen = snprintf(buf, sizeof(buf), *paramData ? "yes" : "no"); break;
+        case TYPE_INT: writeInt<int>(cb, cdi[0]); break;
+        case TYPE_REAL: strLen = snprintf(buf, sizeof(buf), "%g", cd[0]); break;
+        case TYPE_POINT2: strLen = snprintf(buf, sizeof(buf), "%g, %g", cd[0], cd[1]); break;
+        case TYPE_POINT3: strLen = snprintf(buf, sizeof(buf), "%g, %g, %g", cd[0], cd[1], cd[2]); break;
+        case TYPE_POINT4: strLen = snprintf(buf, sizeof(buf), "%g, %g, %g, %g", cd[0], cd[1], cd[2], cd[3]); break;
+        case TYPE_IPOINT2: writeIPoint2(cb, cdi[0], cdi[1]); break;
+        case TYPE_IPOINT3: writeIPoint3(cb, cdi[0], cdi[1], cdi[2]); break;
+        case TYPE_IPOINT4: writeIPoint4(cb, cdi[0], cdi[1], cdi[2], cdi[3]); break;
         case TYPE_E3DCOLOR:
         {
           E3DCOLOR c = getE3dcolor(i);
-          snprintf(buf, sizeof(buf), "%d, %d, %d, %d", c.r, c.g, c.b, c.a);
+          writeIPoint4(cb, c.r, c.g, c.b, c.a);
           break;
         }
         case TYPE_MATRIX:
-          snprintf(buf, sizeof(buf), "[[%g, %g, %g] [%g, %g, %g] [%g, %g, %g] [%g, %g, %g]]", cd[0 * 3 + 0], cd[0 * 3 + 1],
+          strLen = snprintf(buf, sizeof(buf), "[[%g, %g, %g] [%g, %g, %g] [%g, %g, %g] [%g, %g, %g]]", cd[0 * 3 + 0], cd[0 * 3 + 1],
             cd[0 * 3 + 2], cd[1 * 3 + 0], cd[1 * 3 + 1], cd[1 * 3 + 2], cd[2 * 3 + 0], cd[2 * 3 + 1], cd[2 * 3 + 2], cd[3 * 3 + 0],
             cd[3 * 3 + 1], cd[3 * 3 + 2]);
           break;
-        case TYPE_INT64: snprintf(buf, sizeof(buf), "%lld", (long long int)*cdi64); break;
+        case TYPE_INT64: writeInt<long long int>(cb, (long long int)*cdi64); break;
         default:
           G_ASSERTF(0, "%u[%s]:%u=%u (%s)", p.nameId, keyName, p.type, p.v,
             cb.getTargetName() != nullptr ? cb.getTargetName() : "<null>");
       }
-      writeString(cb, buf);
+
+      if (strLen)
+        cb.write(buf, strLen);
     }
     if ((level < 0 || DataBlock::writeOneParamBlockCompact) && paramCount() == 1 && blockCount() == 0)
       cb.write(";", 1);
@@ -327,16 +458,26 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
   return true;
 }
 
-bool DataBlock::saveToTextStreamCompact(IGenSave &cwr) const
+bool DataBlock::saveToTextStreamCompact(IGenSave &cwr, int write_buf_sz) const
 {
-  DAGOR_TRY { writeText<false>(cwr, -1, nullptr, 0); }
+  BufferedWriter buf_wr(cwr, write_buf_sz);
+  DAGOR_TRY
+  {
+    writeText<false>(buf_wr, -1, nullptr, 0);
+    buf_wr.flush();
+  }
   DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
 
-bool DataBlock::saveToTextStream(IGenSave &cwr) const
+bool DataBlock::saveToTextStream(IGenSave &cwr, int write_buf_sz) const
 {
-  DAGOR_TRY { writeText<false>(cwr, 0, nullptr, 0); }
+  BufferedWriter buf_wr(cwr, write_buf_sz);
+  DAGOR_TRY
+  {
+    writeText<false>(buf_wr, 0, nullptr, 0);
+    buf_wr.flush();
+  }
   DAGOR_CATCH(const IGenSave::SaveException &) { return false; }
   return true;
 }
@@ -829,7 +970,7 @@ void DataBlock::setParamsFrom(const RoDataBlock &blk)
 #include <ioSys/dag_fileIo.h>
 namespace dblk
 {
-static bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact);
+static bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact, int write_buf_sz);
 struct OpenDataBlock : public DataBlock
 {
   friend ReadFlags get_flags(const DataBlock &blk);
@@ -840,12 +981,13 @@ struct OpenDataBlock : public DataBlock
     DataBlock::IFileNotify *fnotify);
   friend bool load_from_stream(DataBlock &blk, IGenLoad &crd, dblk::ReadFlags flg, const char *fname, DataBlock::IFileNotify *fnotify,
     unsigned hint_size);
-  friend bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact);
-  friend bool print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev);
+  friend bool save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact, int write_buf_sz);
+  friend bool print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev,
+    int write_buf_sz);
 };
 } // namespace dblk
 
-static bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact)
+static bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filename, bool compact, int write_buf_sz)
 {
   file_ptr_t h = ::df_open(filename, DF_WRITE | DF_CREATE);
   if (!h)
@@ -859,10 +1001,12 @@ static bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filenam
 #else
   LFileGeneralSaveCB cb(h);
 #endif
+  BufferedWriter buf_wr(cb, write_buf_sz);
 
   DAGOR_TRY
   {
-    static_cast<const dblk::OpenDataBlock &>(blk).writeText<false>(cb, compact ? -1 : 0, nullptr, 0);
+    static_cast<const dblk::OpenDataBlock &>(blk).writeText<false>(buf_wr, compact ? -1 : 0, nullptr, 0);
+    buf_wr.flush();
 #if _TARGET_C3
 
 #endif
@@ -877,22 +1021,27 @@ static bool dblk::save_to_text_file_ex(const DataBlock &blk, const char *filenam
   return true;
 }
 
-bool dblk::save_to_text_file(const DataBlock &blk, const char *filename) { return dblk::save_to_text_file_ex(blk, filename, false); }
-
-bool dblk::save_to_text_file_compact(const DataBlock &blk, const char *filename)
+bool dblk::save_to_text_file(const DataBlock &blk, const char *filename, int write_buf_sz)
 {
-  return dblk::save_to_text_file_ex(blk, filename, true);
+  return dblk::save_to_text_file_ex(blk, filename, false, write_buf_sz);
 }
 
-bool dblk::print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev)
+bool dblk::save_to_text_file_compact(const DataBlock &blk, const char *filename, int write_buf_sz)
 {
+  return dblk::save_to_text_file_ex(blk, filename, true, write_buf_sz);
+}
+
+bool dblk::print_to_text_stream_limited(const DataBlock &blk, IGenSave &cwr, int max_ln, int max_lev, int init_lev, int write_buf_sz)
+{
+  BufferedWriter buf_wr(cwr, write_buf_sz);
   DAGOR_TRY
   {
     if (max_ln < 0)
       max_ln = 0x7FFFFFFF;
-    if (!static_cast<const dblk::OpenDataBlock &>(blk).writeText<true>(cwr, init_lev, &max_ln, max_lev))
+    if (!static_cast<const dblk::OpenDataBlock &>(blk).writeText<true>(buf_wr, init_lev, &max_ln, max_lev))
     {
-      cwr.write("...\n", 4);
+      buf_wr.write("...\n", 4);
+      buf_wr.flush();
       return false;
     }
   }

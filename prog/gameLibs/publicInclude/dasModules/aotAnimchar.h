@@ -50,7 +50,7 @@ MAKE_TYPE_FACTORY(AnimcharBaseComponent, AnimV20::AnimcharBaseComponent);
 MAKE_TYPE_FACTORY(AnimcharRendComponent, AnimV20::AnimcharRendComponent);
 MAKE_TYPE_FACTORY(IAnimCharacter2, AnimV20::IAnimCharacter2);
 MAKE_TYPE_FACTORY(AnimationGraph, AnimV20::AnimationGraph);
-MAKE_TYPE_FACTORY(IAnimStateHolder, AnimV20::IAnimStateHolder);
+MAKE_TYPE_FACTORY(AnimGraphStateHolder, AnimV20::AnimGraphStateHolder);
 MAKE_TYPE_FACTORY(IAnimBlendNode, AnimV20::IAnimBlendNode);
 MAKE_TYPE_FACTORY(AnimBlendNodeNull, AnimV20::AnimBlendNodeNull);
 MAKE_TYPE_FACTORY(AnimBlendNodeContinuousLeaf, AnimV20::AnimBlendNodeContinuousLeaf);
@@ -100,9 +100,13 @@ MAKE_TYPE_FACTORY(DynamicRenderableSceneInstance, DynamicRenderableSceneInstance
 
 MAKE_TYPE_FACTORY(Animate2ndPassCtx, Animate2ndPassCtx);
 
+using IAnimBlendNodePtrTab = PtrTab<AnimV20::IAnimBlendNode>;
 using BnlPtrTab = PtrTab<AnimV20::AnimBlendNodeLeaf>;
 using PbCtrlPtrTab = PtrTab<AnimV20::AnimPostBlendCtrl>;
+using floatTab = Tab<float>;
 
+DAS_BIND_VECTOR(floatTab, floatTab, float, " ::Tab<float>");
+DAS_BIND_VECTOR(IAnimBlendNodePtrTab, IAnimBlendNodePtrTab, IAnimBlendNodePtr, " ::PtrTab<::AnimV20::IAnimBlendNode>");
 DAS_BIND_VECTOR(BnlPtrTab, BnlPtrTab, AnimBlendNodeLeafPtr, " ::PtrTab<::AnimV20::AnimBlendNodeLeaf>");
 DAS_BIND_VECTOR(PbCtrlPtrTab, PbCtrlPtrTab, AnimPostBlendCtrlPtr, " ::PtrTab<::AnimV20::AnimPostBlendCtrl>");
 
@@ -394,19 +398,19 @@ inline void send_change_anim_state_event(ecs::EntityId eid, const char *name, ec
   g_entity_mgr->sendEventImmediate(eid, EventChangeAnimState(ecs::HashedConstString{name, name_hash}, state_id));
 }
 
-inline void anim_graph_enqueueState(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimCommonStateHolder &state, int state_idx,
+inline void anim_graph_enqueueState(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimGraphStateHolder &state, int state_idx,
   float force_dur, float force_speed)
 {
   anim_graph.enqueueState(state, anim_graph.getState(state_idx), force_dur, force_speed);
 }
 
-inline void anim_graph_setStateSpeed(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimCommonStateHolder &state, int state_idx,
+inline void anim_graph_setStateSpeed(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimGraphStateHolder &state, int state_idx,
   float force_speed)
 {
   anim_graph.setStateSpeed(state, anim_graph.getState(state_idx), force_speed);
 }
 
-inline bool anim_graph_enqueueNode(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimCommonStateHolder &state, const char *anim)
+inline bool anim_graph_enqueueNode(::AnimV20::AnimationGraph &anim_graph, ::AnimV20::AnimGraphStateHolder &state, const char *anim)
 {
   if (anim_graph.getRoot() && anim_graph.getRoot()->isSubOf(::AnimV20::AnimBlendCtrl_Fifo3CID))
   {
@@ -474,7 +478,7 @@ inline void animchar_getDebugBlenderState(::AnimV20::AnimcharBaseComponent &anim
   }
 }
 
-inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, ::AnimV20::IPureAnimStateHolder &st,
+inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, ::AnimV20::AnimGraphStateHolder &st,
   const das::TBlock<void, das::TTemporary<das::TArray<float>>, das::TTemporary<das::TArray<float>>,
     das::TTemporary<das::TArray<float>>> &block,
   das::Context *context, das::LineInfoArg *at)
@@ -484,7 +488,7 @@ inline void animchar_getAnimBlendNodeWeights(::AnimV20::AnimationGraph &graph, :
   // buildBlendingList might change animchars state. We don't want the char to change how it behaves
   // because we opened a debug window. So copy the chars state and use that for calculating the blend
   // list and displaying that.
-  ::AnimV20::IPureAnimStateHolder stateCopy = ::AnimV20::IPureAnimStateHolder(st);
+  ::AnimV20::AnimGraphStateHolder stateCopy = ::AnimV20::AnimGraphStateHolder(st);
 
   Tab<float> abnWt(framemem_ptr());
   mem_set_0(tlsCtx.bnlWt);
@@ -535,7 +539,7 @@ inline void AnimcharNodesMat44_getWtms(AnimcharNodesMat44 &nodes, const das::TBl
   context->invoke(block, &arg, nullptr, at);
 }
 
-inline char *anim_state_holder_dumpStateText(const ::AnimV20::IAnimStateHolder &st, das::Context *context, das::LineInfoArg *at)
+inline char *anim_state_holder_dumpStateText(const ::AnimV20::AnimGraphStateHolder &st, das::Context *context, das::LineInfoArg *at)
 {
   String out;
   st.dumpStateText(out);

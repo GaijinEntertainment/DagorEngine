@@ -95,15 +95,6 @@ static int water_gradient_mip_cs_color_uav_slot = -1;
 
 static GPUFENCEHANDLE async_compute_gradients_fence = BAD_GPUFENCEHANDLE;
 
-struct Ht0Vertex
-{
-  Point2 pos;
-  Point2 tc;
-  Point4 fft_tc;
-  Point4 gaussTc__norm;
-  Point4 windows;
-};
-
 void WaterNVRender::reset()
 {
   del_it(renderQuad);
@@ -772,6 +763,7 @@ void WaterNVRender::getCascadePeriod(int cascade_no, float &out_period, float &o
 {
   out_period = 0.0f;
   out_window_in = 0.0f;
+  out_window_out = 0.0f;
 
   if (cascade_no >= 0 && cascade_no < MAX_NUM_CASCADES)
   {
@@ -1242,7 +1234,7 @@ void WaterNVRender::render(const Point3 &origin, TEXTUREID distanceTex, int geom
   d3d::insert_wait_on_fence(async_compute_gradients_fence, GpuPipeline::GRAPHICS);
   // We cannot have fence between begin_survey and end_survey.
   // Fence splits command list into two command lists, but survey should be in whole command list.
-  // So we have to begin survey after wait on fence. End of survey is outside this function, becouse it have
+  // So we have to begin survey after wait on fence. End of survey is outside this function, because it have
   // several returns.
   d3d::begin_survey(survey_id);
 

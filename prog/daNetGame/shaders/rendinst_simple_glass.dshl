@@ -10,6 +10,7 @@ include "csm.dshl"
 include "camera_in_camera.dshl"
 include "ssao_use.dshl"
 include "resolve_thin_g_buffer_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_simple_glass
 {
@@ -50,6 +51,7 @@ shader rendinst_simple_glass
 
   RENDINST_TRANS_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   USE_THERMAL_SIGNATURE()
   hlsl(vs) {
 
@@ -71,7 +73,7 @@ shader rendinst_simple_glass
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
       #endif
 
-      input.normal = normalize(input.normal * 2 - 1);
+      input.normal = normalize(unpack_unit_vector(input.normal.xyz)); // color8 channel needs the swizzle on metal
       float3 localNormal = input.normal.xyz;
       float3 localPos = input.pos;
       float opacity = 1;

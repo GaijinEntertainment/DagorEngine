@@ -1,7 +1,5 @@
 options gen2
 options rtti
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require common public
 require daslib/fio
@@ -32,9 +30,7 @@ struct JudgeDuplicatesEnvelope {
 // "module not found: anthropic/anthropic" — match a generous prefix so a
 // future wording change still trips this branch.
 def private looks_like_anthropic_missing(output : string) : bool {
-    if (find(output, "anthropic/anthropic") >= 0 && find(output, "not found") >= 0) {
-        return true
-    }
+    if (find(output, "anthropic/anthropic") >= 0 && find(output, "not found") >= 0) return true
     return find(output, "module not found: anthropic") >= 0
 }
 
@@ -58,9 +54,7 @@ def private api_key_hint() : string {
 // the structured error; this is just a last-N-chars tail for context.
 def private tail_chars(s : string; n : int) : string {
     let len = length(s)
-    if (len <= n) {
-        return s
-    }
+    if (len <= n) return s
     return slice(s, len - n)
 }
 
@@ -75,32 +69,22 @@ def public run_find_dupe_judge(input_path : string;
                                dry_run : bool;
                                verbose : bool) : string {
     let exe = get_daslang_exe()
-    if (empty(exe)) {
-        return make_tool_result("Cannot determine daslang executable path", true)
-    }
-    if (!(empty(model) || model == "haiku" || model == "sonnet")) {
-        return make_tool_result("judge_duplicates: 'model' must be 'haiku' or 'sonnet' (got '{model}')", true)
-    }
-    if (empty(input_path)) {
-        return make_tool_result("judge_duplicates: missing required 'input' parameter (path to detect-dupe JSON report)", true)
-    }
+    if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
+    if (!(empty(model) || model == "haiku" || model == "sonnet")) return make_tool_result("judge_duplicates: 'model' must be 'haiku' or 'sonnet' (got '{model}')", true)
+    if (empty(input_path)) return make_tool_result("judge_duplicates: missing required 'input' parameter (path to detect-dupe JSON report)", true)
     let resolved_input = resolve_path(input_path)
     let input_st = stat(resolved_input)
-    if (!input_st.is_valid || !input_st.is_reg) {
-        return make_tool_result("judge_duplicates: input file not found: {resolved_input}", true)
-    }
+    if (!input_st.is_valid || !input_st.is_reg) return make_tool_result("judge_duplicates: input file not found: {resolved_input}", true)
     let resolved_out = resolve_path(empty(out_dir) ? "{get_das_root()}/_mcp_find_dupe_{ref_time_ticks()}" : out_dir)
     let main_das = "{get_das_root()}/utils/find-dupe/main.das"
     let main_st = stat(main_das)
-    if (!main_st.is_valid || !main_st.is_reg) {
-        return make_tool_result("judge_duplicates: utils/find-dupe/main.das not found at {main_das}", true)
-    }
+    if (!main_st.is_valid || !main_st.is_reg) return make_tool_result("judge_duplicates: utils/find-dupe/main.das not found at {main_das}", true)
     var argv <- [exe, main_das, "--",
                  "--input", resolved_input,
                  "--out", resolved_out]
     if (!empty(model)) {
         argv |> push("--model")
-        argv |> push(string(model))
+        argv |> push(model)
     }
     if (parallel > 0) {
         argv |> push("--parallel")
@@ -126,30 +110,22 @@ def public run_find_dupe_judge(input_path : string;
     var output : string
     let exit_code = run_and_capture(argv, output, 0.0)
     if (exit_code != 0) {
-        if (looks_like_anthropic_missing(output)) {
-            return make_tool_result("{daspkg_install_hint()}\n\n--- subprocess output ---\n{output}", true)
-        }
-        if (looks_like_api_key_missing(output)) {
-            return make_tool_result("{api_key_hint()}\n\n--- subprocess output ---\n{output}", true)
-        }
+        if (looks_like_anthropic_missing(output)) return make_tool_result("{daspkg_install_hint()}\n\n--- subprocess output ---\n{output}", true)
+        if (looks_like_api_key_missing(output)) return make_tool_result("{api_key_hint()}\n\n--- subprocess output ---\n{output}", true)
         return make_tool_result("find-dupe failed (exit code {exit_code}):\n{output}", true)
     }
-    var envelope : JudgeDuplicatesEnvelope
-    envelope.exit_code = exit_code
-    envelope.out_dir := resolved_out
-    envelope.dry_run = dry_run
-    envelope.stdout_tail := tail_chars(output, 4096)
-    if (dry_run) {
-        return make_tool_result(sprint_json(envelope, false))
-    }
+    var envelope = JudgeDuplicatesEnvelope(
+        exit_code = exit_code,
+        out_dir = resolved_out,
+        dry_run = dry_run,
+        stdout_tail = tail_chars(output, 4096))
+    if (dry_run) return make_tool_result(sprint_json(envelope, false))
     let json_path = path_join(resolved_out, "find_dupe_verdicts.json")
     let md_path = path_join(resolved_out, "find_dupe_verdicts.md")
     envelope.json_path := json_path
     envelope.md_path := md_path
     let verdict_text = fread(json_path)
-    if (empty(verdict_text)) {
-        return make_tool_result("find-dupe completed but verdict JSON missing or empty: {json_path}\nSubprocess output:\n{output}", true)
-    }
+    if (empty(verdict_text)) return make_tool_result("find-dupe completed but verdict JSON missing or empty: {json_path}\nSubprocess output:\n{output}", true)
     envelope.verdicts := verdict_text
     return make_tool_result(sprint_json(envelope, false))
 }
@@ -164,13 +140,9 @@ def public do_judge_duplicates(input_path : string;
     var max_clusters = 0
     if (!empty(max_clusters_str)) {
         let parsed = try_to_int(max_clusters_str)
-        if (is_err(parsed)) {
-            return make_tool_result("judge_duplicates: 'max_clusters' must be a non-negative integer (got '{max_clusters_str}')", true)
-        }
+        if (is_err(parsed)) return make_tool_result("judge_duplicates: 'max_clusters' must be a non-negative integer (got '{max_clusters_str}')", true)
         max_clusters = unwrap(parsed)
-        if (max_clusters < 0) {
-            return make_tool_result("judge_duplicates: 'max_clusters' must be >= 0 (got {max_clusters})", true)
-        }
+        if (max_clusters < 0) return make_tool_result("judge_duplicates: 'max_clusters' must be >= 0 (got {max_clusters})", true)
     }
     let positives_only = positives_only_str == "true" || positives_only_str == "1"
     let dry_run = dry_run_str == "true" || dry_run_str == "1"

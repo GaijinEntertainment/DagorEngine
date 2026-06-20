@@ -18,6 +18,7 @@ void register_adjust_module(SqModules *module_mgr)
     .Func("logAdjustAdRevenue", adjust::logAdRevenue)
     .Func("setEnableAdjust", adjust::setEnable)
     .Func("setOnlineAdjust", adjust::setOnline)
+    .Func("getAdjustAdId", adjust::getAdjustAdId)
     /**/;
   module_mgr->addNativeModule("adjust", adjust);
   ///@resetscope

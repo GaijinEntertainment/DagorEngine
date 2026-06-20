@@ -211,7 +211,7 @@ static float process_math_op(int op, float v, float p0, float p1, float dt, vola
   return v;
 }
 
-static float get_var_or_val(IPureAnimStateHolder &st, int var_pid, float val)
+static float get_var_or_val(AnimGraphStateHolder &st, int var_pid, float val)
 {
   if (var_pid >= 0)
     return st.getParam(var_pid);
@@ -258,7 +258,7 @@ static void blend_mat44f(mat44f &new_m4, const mat44f &old_m4, float w)
   new_m4.col3 = v_lerp_vec4f(v_splats(w), old_m4.col3, new_m4.col3);
 }
 
-static float getWeightMul(AnimV20::IPureAnimStateHolder &st, int wscale_pid, bool inv)
+static float getWeightMul(AnimV20::AnimGraphStateHolder &st, int wscale_pid, bool inv)
 {
   if (wscale_pid < 0)
     return 1.0f;
@@ -278,13 +278,13 @@ AnimPostBlendCtrl::~AnimPostBlendCtrl()
 }
 
 // Controller to compute node's rotation and shift implementation
-void DeltaRotateShiftCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void DeltaRotateShiftCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localVarId);
   ldata.targetNode = resolve_node_by_name(tree, targetNode);
 }
 
-void DeltaRotateShiftCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void DeltaRotateShiftCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0)
   {
@@ -347,7 +347,7 @@ void DeltaRotateShiftCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
   node->targetNode = blk.getStr("targetNode", NULL);
 #define SETUP_PARAM(NM)                          \
   if (const char *pname = blk.getStr(#NM, NULL)) \
-  node->varId.NM = graph.addParamId(pname, IPureAnimStateHolder::PT_ScalarParam)
+  node->varId.NM = graph.addParamId(pname, AnimGraphStateHolder::PT_ScalarParam)
   SETUP_PARAM(yaw);
   SETUP_PARAM(pitch);
   SETUP_PARAM(lean);
@@ -358,14 +358,14 @@ void DeltaRotateShiftCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
 
   node->relativeToOrig = blk.getBool("relativeToOrig", false);
 
-  node->localVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->localVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
 //
 // Controller to compute delta angles
 //
-void DeltaAnglesCtrl::setDefaultState(IPureAnimStateHolder &st)
+void DeltaAnglesCtrl::setDefaultState(AnimGraphStateHolder &st)
 {
   if (destRotateVarId >= 0)
     st.setParam(destRotateVarId, 0);
@@ -374,13 +374,13 @@ void DeltaAnglesCtrl::setDefaultState(IPureAnimStateHolder &st)
   if (destLeanVarId >= 0)
     st.setParam(destLeanVarId, 0);
 }
-void DeltaAnglesCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void DeltaAnglesCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   const int nodeId = (int)resolve_node_by_name(tree, nodeName);
   st.setParamInt(varId, nodeId);
   G_ASSERTF(nodeName.empty() || nodeId >= 0, "missing nodeName=%s", nodeName);
 }
-void DeltaAnglesCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void DeltaAnglesCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0)
   {
@@ -434,11 +434,11 @@ void DeltaAnglesCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
   node->invSide = blk.getBool("sideAxisInverse", false);
 
   if (const char *pn = blk.getStr("destRotateVar", NULL))
-    node->destRotateVarId = graph.addParamId(pn, IPureAnimStateHolder::PT_ScalarParam);
+    node->destRotateVarId = graph.addParamId(pn, AnimGraphStateHolder::PT_ScalarParam);
   if (const char *pn = blk.getStr("destPitchVar", NULL))
-    node->destPitchVarId = graph.addParamId(pn, IPureAnimStateHolder::PT_ScalarParam);
+    node->destPitchVarId = graph.addParamId(pn, AnimGraphStateHolder::PT_ScalarParam);
   if (const char *pn = blk.getStr("destLeanVar", NULL))
-    node->destLeanVarId = graph.addParamId(pn, IPureAnimStateHolder::PT_ScalarParam);
+    node->destLeanVarId = graph.addParamId(pn, AnimGraphStateHolder::PT_ScalarParam);
 
   node->scaleR = blk.getReal("scaleRotate", 1.0f);
   node->scaleP = blk.getReal("scalePitch", 1.0f);
@@ -450,7 +450,7 @@ void DeltaAnglesCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
     node->scaleL *= RAD_TO_DEG;
   }
 
-  node->varId = graph.addParamId(String(0, ":%s", name), IPureAnimStateHolder::PT_ScalarParamInt);
+  node->varId = graph.addParamId(String(0, ":%s", name), AnimGraphStateHolder::PT_ScalarParamInt);
   graph.registerBlendNode(node, name);
 }
 
@@ -459,12 +459,12 @@ void DeltaAnglesCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 //
 AnimPostBlendAlignCtrl::AnimPostBlendAlignCtrl(AnimationGraph &g, const char *var_name) : AnimPostBlendCtrl(g)
 {
-  paramId = graph.addInlinePtrParamId(var_name, sizeof(NodeId), IPureAnimStateHolder::PT_InlinePtr);
+  paramId = graph.addInlinePtrParamId(var_name, sizeof(NodeId), AnimGraphStateHolder::PT_InlinePtr);
   v_mat33_ident(tmRot);
   v_mat33_ident_swapxz(lr);
 }
 
-void AnimPostBlendAlignCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendAlignCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(paramId);
   nodeId->target = resolve_node_by_name(tree, targetNodeName);
@@ -474,7 +474,7 @@ void AnimPostBlendAlignCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &
   if (nodeId->target.index() >= tree.nodeCount())
     nodeId->target = dag::Index16();
 }
-void AnimPostBlendAlignCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendAlignCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   wt *= getWeightMul(st, wScaleVarId, wScaleInverted);
   if (wt <= 1e-4f)
@@ -581,7 +581,7 @@ void AnimPostBlendAlignCtrl::createNode(AnimationGraph &graph, const DataBlock &
   node->copyPos = blk.getBool("copyPos", false);
   if (const char *slot = blk.getStr("srcSlot", NULL))
     node->srcSlotId = AnimCharV20::addSlotId(slot);
-  node->wScaleVarId = graph.addParamIdEx(blk.getStr("wtModulate", NULL), IPureAnimStateHolder::PT_ScalarParam);
+  node->wScaleVarId = graph.addParamIdEx(blk.getStr("wtModulate", NULL), AnimGraphStateHolder::PT_ScalarParam);
   node->wScaleInverted = blk.getBool("wtModulateInverse", false);
 
   graph.registerBlendNode(node, name);
@@ -590,7 +590,7 @@ void AnimPostBlendAlignCtrl::createNode(AnimationGraph &graph, const DataBlock &
 //
 // Advanced align controller: aligns helper node to root and distributes rotation among target nodes
 //
-void AnimPostBlendAlignExCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendAlignExCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
 
@@ -598,7 +598,7 @@ void AnimPostBlendAlignExCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree
   init_target_nodes(tree, targetNode, nodeId->id);
 }
 
-void AnimPostBlendAlignExCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendAlignExCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   NodeId &nodeId = *(NodeId *)st.getInlinePtr(varId);
   if (tree.empty() || !nodeId.hlp)
@@ -689,7 +689,7 @@ void AnimPostBlendAlignExCtrl::createNode(AnimationGraph &graph, const DataBlock
     blk.getStr("hlpZ", "z"));
 
   node->varId = graph.addInlinePtrParamId(String(0, ":%s", name), sizeof(int) + node->targetNode.size() * sizeof(NodeId::id),
-    IPureAnimStateHolder::PT_InlinePtr);
+    AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -706,10 +706,10 @@ AnimPostBlendRotateCtrl::AnimPostBlendRotateCtrl(AnimationGraph &g, const char *
   swapYZ = false;
   relRot = false;
   saveScale = false;
-  paramId = graph.addParamIdEx(param_name, IPureAnimStateHolder::PT_ScalarParam);
-  addParam2Id = graph.addParamIdEx(add_pname, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamIdEx(param_name, AnimGraphStateHolder::PT_ScalarParam);
+  addParam2Id = graph.addParamIdEx(add_pname, AnimGraphStateHolder::PT_ScalarParam);
   addParam3Id = -1;
-  axisCourseParamId = graph.addParamIdEx(ac_pname, IPureAnimStateHolder::PT_ScalarParam);
+  axisCourseParamId = graph.addParamIdEx(ac_pname, AnimGraphStateHolder::PT_ScalarParam);
   kAdd = 0;
   kAdd2 = 0;
   kCourseAdd = 0;
@@ -720,13 +720,13 @@ AnimPostBlendRotateCtrl::AnimPostBlendRotateCtrl(AnimationGraph &g, const char *
   axisFromCharIndex = -1;
 }
 
-void AnimPostBlendRotateCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendRotateCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
 
   init_target_nodes(tree, targetNode, nodeId);
 }
-void AnimPostBlendRotateCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendRotateCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.001f || targetNode.size() < 1 || paramId == -1)
     return;
@@ -885,7 +885,7 @@ void AnimPostBlendRotateCtrl::createNode(AnimationGraph &graph, const DataBlock 
     node->kAdd *= PI / 180;
   }
   if (const char *pn = blk.getStr("paramAdd2", NULL))
-    node->addParam3Id = *pn ? graph.addParamId(pn, IPureAnimStateHolder::PT_ScalarParam) : -1;
+    node->addParam3Id = *pn ? graph.addParamId(pn, AnimGraphStateHolder::PT_ScalarParam) : -1;
   node->kCourseAdd = blk.getReal("kCourseAdd", 0.0f);
   Point4 ra, da;
   ra.set_xyz0(blk.getPoint3("rotAxis", Point3(0, 1, 0)));
@@ -909,7 +909,7 @@ void AnimPostBlendRotateCtrl::createNode(AnimationGraph &graph, const DataBlock 
     }
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -921,18 +921,18 @@ void AnimPostBlendRotateCtrl::createNode(AnimationGraph &graph, const DataBlock 
 AnimPostBlendRotateAroundCtrl::AnimPostBlendRotateAroundCtrl(AnimationGraph &g, const char *param_name) :
   AnimPostBlendCtrl(g), targetNode(midmem)
 {
-  paramId = graph.addParamIdEx(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamIdEx(param_name, AnimGraphStateHolder::PT_ScalarParam);
   rotAxis = V_C_UNIT_0100;
 }
 
-void AnimPostBlendRotateAroundCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendRotateAroundCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
 
   init_target_nodes(tree, targetNode, nodeId);
 }
 
-void AnimPostBlendRotateAroundCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendRotateAroundCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f || targetNode.size() < 1 || paramId == -1)
     return;
@@ -1004,7 +1004,7 @@ void AnimPostBlendRotateAroundCtrl::createNode(AnimationGraph &graph, const Data
     }
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -1017,19 +1017,19 @@ AnimPostBlendScaleCtrl::AnimPostBlendScaleCtrl(AnimationGraph &g, const char *pa
   AnimPostBlendCtrl(g), targetNode(midmem)
 {
   varId = -1;
-  paramId = graph.addParamIdEx(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamIdEx(param_name, AnimGraphStateHolder::PT_ScalarParam);
   scaleAxis = V_CI_0;
   defaultValue = 1.f;
 }
 
-void AnimPostBlendScaleCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendScaleCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
   init_target_nodes(tree, targetNode, nodeId);
   if (paramId != -1)
     st.setParam(paramId, defaultValue);
 }
-void AnimPostBlendScaleCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendScaleCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.001f || targetNode.size() < 1 || paramId == -1)
     return;
@@ -1092,7 +1092,7 @@ void AnimPostBlendScaleCtrl::createNode(AnimationGraph &graph, const DataBlock &
       nd.name = blk.getStr(j);
       nd.wt = blk.getReal(String(0, "targetNodeWt%d", node->targetNode.size()), 1.0f);
     }
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
@@ -1104,8 +1104,8 @@ AnimPostBlendMoveCtrl::AnimPostBlendMoveCtrl(AnimationGraph &g, const char *para
   AnimPostBlendCtrl(g), targetNode(midmem)
 {
   varId = -1;
-  paramId = graph.addParamIdEx(param_name, IPureAnimStateHolder::PT_ScalarParam);
-  axisCourseParamId = graph.addParamIdEx(ac_pname, IPureAnimStateHolder::PT_ScalarParam);
+  paramId = graph.addParamIdEx(param_name, AnimGraphStateHolder::PT_ScalarParam);
+  axisCourseParamId = graph.addParamIdEx(ac_pname, AnimGraphStateHolder::PT_ScalarParam);
   kCourseAdd = 0;
   kAdd = 0;
   kMul = 1.0f;
@@ -1116,12 +1116,12 @@ AnimPostBlendMoveCtrl::AnimPostBlendMoveCtrl(AnimationGraph &g, const char *para
   saveOtherAxisMove = false;
 }
 
-void AnimPostBlendMoveCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendMoveCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
   init_target_nodes(tree, targetNode, nodeId);
 }
-void AnimPostBlendMoveCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendMoveCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.001f || targetNode.size() < 1 || paramId == -1)
     return;
@@ -1239,7 +1239,7 @@ void AnimPostBlendMoveCtrl::createNode(AnimationGraph &graph, const DataBlock &b
     }
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -1248,13 +1248,13 @@ void AnimPostBlendMoveCtrl::createNode(AnimationGraph &graph, const DataBlock &b
 //
 // Controller to sample animations directly to nodes
 //
-void ApbAnimateCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void ApbAnimateCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
   for (int i = 0; i < anim.size(); i++)
     nodeId[i] = tree.findINodeIndex(anim[i].name);
 }
-void ApbAnimateCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void ApbAnimateCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f)
     return;
@@ -1420,7 +1420,7 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
         node->rec.pop_back();
         continue;
       }
-      r.pid = graph.addParamId(nm, IPureAnimStateHolder::PT_ScalarParam);
+      r.pid = graph.addParamId(nm, AnimGraphStateHolder::PT_ScalarParam);
       if (find_value_idx(node->usedAnim, ad) < 0)
         node->usedAnim.push_back(ad);
     }
@@ -1428,7 +1428,7 @@ void ApbAnimateCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
   node->rec.shrink_to_fit();
 
   node->varId =
-    graph.addInlinePtrParamId(String(0, "var%s", name), sizeof(NodeId) * node->anim.size(), IPureAnimStateHolder::PT_InlinePtr);
+    graph.addInlinePtrParamId(String(0, "var%s", name), sizeof(NodeId) * node->anim.size(), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
@@ -1505,7 +1505,7 @@ bool AnimPostBlendCondHideCtrl::loadCondition(const DataBlock &blk, AnimationGra
       out_condition.leaf.pid = -1;
     }
     else
-      out_condition.leaf.pid = graph.addParamId(pnm, IPureAnimStateHolder::PT_ScalarParam);
+      out_condition.leaf.pid = graph.addParamId(pnm, AnimGraphStateHolder::PT_ScalarParam);
     return out_condition.leaf.pid >= 0;
   }
   else if (load_bool_operation(blk, out_condition.op))
@@ -1554,7 +1554,7 @@ void AnimPostBlendCondHideCtrl::deleteCondition(Condition &condition)
   clear_and_shrink(condition.branches);
 }
 
-bool AnimPostBlendCondHideCtrl::checkCondMet(const IPureAnimStateHolder &st, const Condition &condition)
+bool AnimPostBlendCondHideCtrl::checkCondMet(const AnimGraphStateHolder &st, const Condition &condition)
 {
   switch (condition.op)
   {
@@ -1606,13 +1606,13 @@ AnimPostBlendCondHideCtrl::~AnimPostBlendCondHideCtrl()
   clear_and_shrink(targetNode);
 }
 
-void AnimPostBlendCondHideCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendCondHideCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
   init_target_nodes(tree, targetNode, nodeId);
 }
 
-void AnimPostBlendCondHideCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendCondHideCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.999f || targetNode.size() < 1)
     return;
@@ -1690,7 +1690,7 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
     }
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNode.size(), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -1701,11 +1701,11 @@ void AnimPostBlendCondHideCtrl::createNode(AnimationGraph &graph, const DataBloc
 //
 ApbParamCtrl::ApbParamCtrl(AnimationGraph &g, const char *param_name) : AnimPostBlendCtrl(g)
 {
-  wtPid = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  wtPid = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
   rndSeed = str_hash_fnv1a(param_name);
 }
 
-void ApbParamCtrl::setDefaultState(IPureAnimStateHolder &st)
+void ApbParamCtrl::setDefaultState(AnimGraphStateHolder &st)
 {
   st.setParam(wtPid, 0);
   for (int i = 0; i < rec.size(); i++)
@@ -1721,7 +1721,7 @@ enum
   OPTYPE_IF,
   OPTYPE_MATH
 };
-void ApbParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, AnimPostBlendCtrl::Context &)
+void ApbParamCtrl::process(AnimGraphStateHolder &st, real w, GeomNodeTree &, AnimPostBlendCtrl::Context &)
 {
   st.setParam(wtPid, w);
   float lastDt = st.getParam(AnimationGraph::PID_GLOBAL_LAST_DT);
@@ -1750,7 +1750,7 @@ void ApbParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, Ani
     }
   }
 }
-void ApbParamCtrl::advance(IPureAnimStateHolder &st, real dt)
+void ApbParamCtrl::advance(AnimGraphStateHolder &st, real dt)
 {
   float w = st.getParam(wtPid);
   if (w > 0)
@@ -1791,14 +1791,14 @@ static void load_ops(const DataBlock &blk, AnimationGraph &graph, dag::Vector<Ap
         continue;
       }
       ApbParamCtrl::ParamOp &r = ops.push_back();
-      r.destPid = graph.addParamId(nm, IPureAnimStateHolder::PT_ScalarParam);
+      r.destPid = graph.addParamId(nm, AnimGraphStateHolder::PT_ScalarParam);
       const char *v0Name = b.getStr("v0", NULL);
       r.v0Pid = r.v1Pid = -1;
       if (v0Name)
-        r.v0Pid = graph.addParamId(v0Name, IPureAnimStateHolder::PT_ScalarParam);
+        r.v0Pid = graph.addParamId(v0Name, AnimGraphStateHolder::PT_ScalarParam);
       const char *v1Name = b.getStr("v1", NULL);
       if (v1Name)
-        r.v1Pid = graph.addParamId(v1Name, IPureAnimStateHolder::PT_ScalarParam);
+        r.v1Pid = graph.addParamId(v1Name, AnimGraphStateHolder::PT_ScalarParam);
       bool loaded = false;
       if (b.getBlockNameId() == ifNid)
       {
@@ -1847,20 +1847,20 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
       }
 
       ChangeRec &r = node->rec.push_back();
-      r.destPid = graph.addParamId(nm, IPureAnimStateHolder::PT_ScalarParam);
+      r.destPid = graph.addParamId(nm, AnimGraphStateHolder::PT_ScalarParam);
       r.chRatePid = r.scalePid = -1;
       r.chRate = b.getReal("changeRate", 0);
       r.modVal = b.getReal("mod", 0);
       const char *rateParamName = b.getStr("rateParam", nullptr);
       if (rateParamName != nullptr)
-        r.chRatePid = graph.addParamId(rateParamName, IPureAnimStateHolder::PT_ScalarParam);
+        r.chRatePid = graph.addParamId(rateParamName, AnimGraphStateHolder::PT_ScalarParam);
       else if (b.getBool("variableChangeRate", false))
-        r.chRatePid = graph.addParamId(String(0, "%s:CR", nm), IPureAnimStateHolder::PT_ScalarParam);
+        r.chRatePid = graph.addParamId(String(0, "%s:CR", nm), AnimGraphStateHolder::PT_ScalarParam);
       const char *scaleParamName = b.getStr("scaleParam", nullptr);
       if (scaleParamName != nullptr)
-        r.scalePid = graph.addParamId(scaleParamName, IPureAnimStateHolder::PT_ScalarParam);
+        r.scalePid = graph.addParamId(scaleParamName, AnimGraphStateHolder::PT_ScalarParam);
       else if (b.getBool("variableScale", false))
-        r.scalePid = graph.addParamId(String(0, "%s:CRS", nm), IPureAnimStateHolder::PT_ScalarParam);
+        r.scalePid = graph.addParamId(String(0, "%s:CRS", nm), AnimGraphStateHolder::PT_ScalarParam);
     }
     else if (b.getBlockNameId() == remapId)
     {
@@ -1895,8 +1895,8 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
           r.remapVal.add(val.x, val.y);
         }
       }
-      r.recPid = graph.addParamId(nm, IPureAnimStateHolder::PT_ScalarParam);      // recipient variable
-      r.destPid = graph.addParamId(destNm, IPureAnimStateHolder::PT_ScalarParam); // dest variable
+      r.recPid = graph.addParamId(nm, AnimGraphStateHolder::PT_ScalarParam);      // recipient variable
+      r.destPid = graph.addParamId(destNm, AnimGraphStateHolder::PT_ScalarParam); // dest variable
     }
   }
   load_ops(blk, graph, node->ops, name);
@@ -1907,19 +1907,19 @@ void ApbParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 
 DefClampParamCtrl::DefClampParamCtrl(AnimationGraph &g, const char *param_name) : AnimPostBlendCtrl(g)
 {
-  wtPid = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
+  wtPid = graph.addParamId(param_name, AnimGraphStateHolder::PT_ScalarParam);
 }
 
-void DefClampParamCtrl::setDefaultState(IPureAnimStateHolder &st) { st.setParam(wtPid, 0); }
+void DefClampParamCtrl::setDefaultState(AnimGraphStateHolder &st) { st.setParam(wtPid, 0); }
 
-void DefClampParamCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &)
+void DefClampParamCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &)
 {
   for (int i = 0; i < ps.size(); ++i)
     st.setParam(ps[i].destPid, ps[i].defaultValue);
 }
 
 
-void DefClampParamCtrl::process(IPureAnimStateHolder &st, real w, GeomNodeTree &, AnimPostBlendCtrl::Context &)
+void DefClampParamCtrl::process(AnimGraphStateHolder &st, real w, GeomNodeTree &, AnimPostBlendCtrl::Context &)
 {
   st.setParam(wtPid, w);
   if (w > 0)
@@ -1954,7 +1954,7 @@ void DefClampParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
         continue;
       }
       DefClampParamCtrl::Params &r = node->ps.push_back();
-      r.destPid = graph.addParamId(nm, IPureAnimStateHolder::PT_ScalarParam);
+      r.destPid = graph.addParamId(nm, AnimGraphStateHolder::PT_ScalarParam);
       r.defaultValue = b.getReal("default", 0.f);
       r.clampValue = b.getPoint2("clamp", Point2(0, 0));
     }
@@ -1967,7 +1967,7 @@ void DefClampParamCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 //
 AnimPostBlendAimCtrl::AnimPostBlendAimCtrl(AnimationGraph &g) : AnimPostBlendCtrl(g) { varId = -1; }
 
-void AnimPostBlendAimCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendAimCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   AimState &aim = *(AimState *)st.getInlinePtr(varId);
   aim.init();
@@ -2073,13 +2073,13 @@ void AnimPostBlendAimCtrl::AimState::updateRotation(const AimDesc &desc, float s
     prev_pitch = pitch;
 }
 
-void AnimPostBlendAimCtrl::advance(IPureAnimStateHolder &st, real dt)
+void AnimPostBlendAimCtrl::advance(AnimGraphStateHolder &st, real dt)
 {
   AimState &aim = *(AimState *)st.getInlinePtr(varId);
   aim.dt = dt;
 }
 
-void AnimPostBlendAimCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendAimCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.999f)
     return;
@@ -2203,69 +2203,69 @@ void AnimPostBlendAimCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
   SimpleString paramName(blk.getStr("param", name));
 
   if (blk.paramExists("paramYawSpeedMul"))
-    node->yawSpeedMulId = graph.addParamId(blk.getStr("paramYawSpeedMul"), IPureAnimStateHolder::PT_ScalarParam);
+    node->yawSpeedMulId = graph.addParamId(blk.getStr("paramYawSpeedMul"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramPitchSpeedMul"))
-    node->pitchSpeedMulId = graph.addParamId(blk.getStr("paramPitchSpeedMul"), IPureAnimStateHolder::PT_ScalarParam);
+    node->pitchSpeedMulId = graph.addParamId(blk.getStr("paramPitchSpeedMul"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramYawSpeed"))
-    node->yawSpeedId = graph.addParamId(blk.getStr("paramYawSpeed"), IPureAnimStateHolder::PT_ScalarParam);
+    node->yawSpeedId = graph.addParamId(blk.getStr("paramYawSpeed"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramPitchSpeed"))
-    node->pitchSpeedId = graph.addParamId(blk.getStr("paramPitchSpeed"), IPureAnimStateHolder::PT_ScalarParam);
+    node->pitchSpeedId = graph.addParamId(blk.getStr("paramPitchSpeed"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramYawAccel"))
-    node->yawAccelId = graph.addParamId(blk.getStr("paramYawAccel"), IPureAnimStateHolder::PT_ScalarParam);
+    node->yawAccelId = graph.addParamId(blk.getStr("paramYawAccel"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramPitchAccel"))
-    node->pitchAccelId = graph.addParamId(blk.getStr("paramPitchAccel"), IPureAnimStateHolder::PT_ScalarParam);
+    node->pitchAccelId = graph.addParamId(blk.getStr("paramPitchAccel"), AnimGraphStateHolder::PT_ScalarParam);
 
   if (blk.paramExists("paramMinYawAngle"))
-    node->aimDesc.minYawAngleId = graph.addParamId(blk.getStr("paramMinYawAngle"), IPureAnimStateHolder::PT_ScalarParam);
+    node->aimDesc.minYawAngleId = graph.addParamId(blk.getStr("paramMinYawAngle"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramMaxYawAngle"))
-    node->aimDesc.maxYawAngleId = graph.addParamId(blk.getStr("paramMaxYawAngle"), IPureAnimStateHolder::PT_ScalarParam);
+    node->aimDesc.maxYawAngleId = graph.addParamId(blk.getStr("paramMaxYawAngle"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramMinPitchAngle"))
-    node->aimDesc.minPitchAngleId = graph.addParamId(blk.getStr("paramMinPitchAngle"), IPureAnimStateHolder::PT_ScalarParam);
+    node->aimDesc.minPitchAngleId = graph.addParamId(blk.getStr("paramMinPitchAngle"), AnimGraphStateHolder::PT_ScalarParam);
   if (blk.paramExists("paramMaxPitchAngle"))
-    node->aimDesc.maxPitchAngleId = graph.addParamId(blk.getStr("paramMaxPitchAngle"), IPureAnimStateHolder::PT_ScalarParam);
+    node->aimDesc.maxPitchAngleId = graph.addParamId(blk.getStr("paramMaxPitchAngle"), AnimGraphStateHolder::PT_ScalarParam);
 
 
   {
     node->targetYawId =
-      graph.addParamId(blk.getStr("paramTargetYaw", String(0, "%s:targetYaw", paramName)), IPureAnimStateHolder::PT_ScalarParam);
-    node->curYawId = graph.addParamId(blk.getStr("paramYaw", String(0, "%s:yaw", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramTargetYaw", String(0, "%s:targetYaw", paramName)), AnimGraphStateHolder::PT_ScalarParam);
+    node->curYawId = graph.addParamId(blk.getStr("paramYaw", String(0, "%s:yaw", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     if (blk.paramExists("paramWorldYaw"))
-      node->curWorldYawId = graph.addParamId(blk.getStr("paramWorldYaw"), IPureAnimStateHolder::PT_ScalarParam);
+      node->curWorldYawId = graph.addParamId(blk.getStr("paramWorldYaw"), AnimGraphStateHolder::PT_ScalarParam);
     node->prevYawId =
-      graph.addParamId(blk.getStr("paramPrevYaw", String(0, "%s:prevYaw", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramPrevYaw", String(0, "%s:prevYaw", paramName)), AnimGraphStateHolder::PT_ScalarParam);
   }
 
   {
     node->targetPitchId =
-      graph.addParamId(blk.getStr("paramTargetPitch", String(0, "%s:targetPitch", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramTargetPitch", String(0, "%s:targetPitch", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     node->curPitchId =
-      graph.addParamId(blk.getStr("paramPitch", String(0, "%s:pitch", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramPitch", String(0, "%s:pitch", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     if (blk.paramExists("paramWorldPitch"))
-      node->curWorldPitchId = graph.addParamId(blk.getStr("paramWorldPitch"), IPureAnimStateHolder::PT_ScalarParam);
+      node->curWorldPitchId = graph.addParamId(blk.getStr("paramWorldPitch"), AnimGraphStateHolder::PT_ScalarParam);
     node->prevPitchId =
-      graph.addParamId(blk.getStr("paramPrevPitch", String(0, "%s:prevPitch", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramPrevPitch", String(0, "%s:prevPitch", paramName)), AnimGraphStateHolder::PT_ScalarParam);
   }
 
   {
     node->hasStabId =
-      graph.addParamId(blk.getStr("paramHasStab", String(0, "%s:hasStab", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramHasStab", String(0, "%s:hasStab", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     node->stabYawId =
-      graph.addParamId(blk.getStr("paramStabYaw", String(0, "%s:stabYaw", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramStabYaw", String(0, "%s:stabYaw", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     node->stabYawMultId =
-      graph.addParamId(blk.getStr("paramStabYawMult", String(0, "%s:stabYawMult", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramStabYawMult", String(0, "%s:stabYawMult", paramName)), AnimGraphStateHolder::PT_ScalarParam);
 
     node->stabPitchId =
-      graph.addParamId(blk.getStr("paramStabPitch", String(0, "%s:stabPitch", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramStabPitch", String(0, "%s:stabPitch", paramName)), AnimGraphStateHolder::PT_ScalarParam);
     node->stabPitchMultId = graph.addParamId(blk.getStr("paramStabPitchMult", String(0, "%s:stabPitchMult", paramName)),
-      IPureAnimStateHolder::PT_ScalarParam);
+      AnimGraphStateHolder::PT_ScalarParam);
 
     node->stabErrorId =
-      graph.addParamId(blk.getStr("paramStabError", String(0, "%s:stabError", paramName)), IPureAnimStateHolder::PT_ScalarParam);
+      graph.addParamId(blk.getStr("paramStabError", String(0, "%s:stabError", paramName)), AnimGraphStateHolder::PT_ScalarParam);
   }
 
   // allocate state variable
   node->varId = graph.addInlinePtrParamId(String(0, "var%s", blk.getStr("param", paramName)), sizeof(AimState),
-    IPureAnimStateHolder::PT_InlinePtr);
+    AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -2273,12 +2273,12 @@ void AnimPostBlendAimCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
 //
 // GeomNode attach Controller
 //
-void AttachGeomNodeCtrl::setDefaultState(IPureAnimStateHolder &st)
+void AttachGeomNodeCtrl::setDefaultState(AnimGraphStateHolder &st)
 {
   if (perAnimStateDataVarId >= 0)
     memset(st.getInlinePtr(perAnimStateDataVarId), 0xFF, sizeof(int16_t) * nodeNames.size());
 }
-void AttachGeomNodeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AttachGeomNodeCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   G_ASSERT(perAnimStateDataVarId >= 0);
   dag::Span<dag::Index16> nodeIds((dag::Index16 *)st.getInlinePtr(perAnimStateDataVarId), nodeNames.size());
@@ -2292,7 +2292,7 @@ void AttachGeomNodeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree
     att.w = 0;
   }
 }
-void AttachGeomNodeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AttachGeomNodeCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt < 1e-4f || tree.empty())
     return;
@@ -2337,7 +2337,7 @@ void AttachGeomNodeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree
     tree.invalidateWtm(nodeIds[i]);
   }
 }
-void AttachGeomNodeCtrl::advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+void AttachGeomNodeCtrl::advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 void AttachGeomNodeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 {
   const char *name = blk.getStr("name", NULL);
@@ -2359,7 +2359,7 @@ void AttachGeomNodeCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
     }
     node->nodeNames.push_back() = node_nm;
     VarId &dv = node->destVarId.push_back();
-    dv.wScale = graph.addParamIdEx(b.getStr("wtModulate", blk.getStr("wtModulate", NULL)), IPureAnimStateHolder::PT_ScalarParam);
+    dv.wScale = graph.addParamIdEx(b.getStr("wtModulate", blk.getStr("wtModulate", NULL)), AnimGraphStateHolder::PT_ScalarParam);
     dv.wScaleInverted = b.getBool("wtModulateInverse", blk.getBool("wtModulateInverse", false));
     dv.nodeWtm = graph.addInlinePtrParamId(var_nm, sizeof(AttachDesc));
   }
@@ -2382,20 +2382,20 @@ AnimPostBlendNodeLookatCtrl::AnimPostBlendNodeLookatCtrl(AnimationGraph &g, cons
   v_mat33_ident(itmRot);
   String pname;
   pname.printf(0, "%s.x", param_name);
-  paramXId = graph.addParamId(pname.str(), IPureAnimStateHolder::PT_ScalarParam);
+  paramXId = graph.addParamId(pname.str(), AnimGraphStateHolder::PT_ScalarParam);
   pname.printf(0, "%s.y", param_name);
-  paramYId = graph.addParamId(pname.str(), IPureAnimStateHolder::PT_ScalarParam);
+  paramYId = graph.addParamId(pname.str(), AnimGraphStateHolder::PT_ScalarParam);
   pname.printf(0, "%s.z", param_name);
-  paramZId = graph.addParamId(pname.str(), IPureAnimStateHolder::PT_ScalarParam);
+  paramZId = graph.addParamId(pname.str(), AnimGraphStateHolder::PT_ScalarParam);
 }
 
-void AnimPostBlendNodeLookatCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendNodeLookatCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   NodeId *nodeId = (NodeId *)st.getInlinePtr(varId);
 
   init_target_nodes(tree, targetNodes, nodeId);
 }
-void AnimPostBlendNodeLookatCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendNodeLookatCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f || targetNodes.size() < 1)
     return;
@@ -2470,7 +2470,7 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
       node->targetNodes.push_back().name = blk.getStr(j);
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNodes.size(), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(var_name, sizeof(NodeId) * node->targetNodes.size(), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -2478,7 +2478,7 @@ void AnimPostBlendNodeLookatCtrl::createNode(AnimationGraph &graph, const DataBl
 //
 // Node dir controller with lookat and up nodes
 //
-void AnimPostBlendNodeLookatNodeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendNodeLookatNodeCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   ldata.targetNodeId = resolve_node_by_name(tree, targetNode);
@@ -2501,7 +2501,7 @@ void AnimPostBlendNodeLookatNodeCtrl::init(IPureAnimStateHolder &st, const GeomN
   }
 }
 
-void AnimPostBlendNodeLookatNodeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendNodeLookatNodeCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f || !valid)
     return;
@@ -2586,7 +2586,7 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
   node->negAxes[2] = blk.getBool("negZ", false);
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
@@ -2594,7 +2594,7 @@ void AnimPostBlendNodeLookatNodeCtrl::createNode(AnimationGraph &graph, const Da
 AnimPostBlendEffFromAttachement::AnimPostBlendEffFromAttachement(AnimationGraph &g) :
   AnimPostBlendCtrl(g), nodes(midmem), destVarId(midmem), namedSlotId(-1), varSlotId(-1), varId(-1)
 {}
-void AnimPostBlendEffFromAttachement::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendEffFromAttachement::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   ldata.lastRefUid = INVALID_ATTACHMENT_UID;
@@ -2604,7 +2604,7 @@ void AnimPostBlendEffFromAttachement::init(IPureAnimStateHolder &st, const GeomN
     ldata.node[i].dest = nodes[i].dest.empty() ? dag::Index16() : tree.findINodeIndex(nodes[i].dest);
   }
 }
-void AnimPostBlendEffFromAttachement::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendEffFromAttachement::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.001f || !nodes.size())
     return;
@@ -2725,7 +2725,7 @@ void AnimPostBlendEffFromAttachement::createNode(AnimationGraph &graph, const Da
     if (const char *val = blk.getStr("slot", NULL))
       node->namedSlotId = AnimCharV20::addSlotId(val);
     else if (const char *val = blk.getStr("varSlot", NULL))
-      node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
+      node->varSlotId = graph.addParamId(val, AnimGraphStateHolder::PT_ScalarParam);
   }
   node->ignoreZeroWt = blk.getBool("ignoreZeroWt", false);
   for (int j = 0, nid = blk.getNameId("node"); j < blk.blockCount(); j++)
@@ -2741,18 +2741,18 @@ void AnimPostBlendEffFromAttachement::createNode(AnimationGraph &graph, const Da
       dv.effWt = graph.addPbcWtParamId(b2.getStr("effector"));
       if (b2.getBool("writeMatrix", true))
       {
-        dv.wtm = graph.getParamId(String(0, "%s.m", b2.getStr("effector")), AnimV20::IAnimStateHolder::PT_InlinePtr);
+        dv.wtm = graph.getParamId(String(0, "%s.m", b2.getStr("effector")), AnimV20::AnimGraphStateHolder::PT_InlinePtr);
         dv.wtmWt = graph.addPbcWtParamId(String(0, "%s.m", b2.getStr("effector")));
       }
       else
         dv.wtm = dv.wtmWt = -1;
-      dv.wScale = graph.addParamIdEx(b2.getStr("wtModulate", blk.getStr("wtModulate", NULL)), IPureAnimStateHolder::PT_ScalarParam);
+      dv.wScale = graph.addParamIdEx(b2.getStr("wtModulate", blk.getStr("wtModulate", NULL)), AnimGraphStateHolder::PT_ScalarParam);
       dv.wScaleInverted = b2.getBool("wtModulateInverse", blk.getBool("wtModulateInverse", false));
     }
 
   // allocate state variable
   node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData) + sizeof(int) * ((int)node->nodes.size() - 2),
-    IPureAnimStateHolder::PT_InlinePtr);
+    AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
@@ -2760,12 +2760,12 @@ void AnimPostBlendEffFromAttachement::createNode(AnimationGraph &graph, const Da
 AnimPostBlendNodesFromAttachement::AnimPostBlendNodesFromAttachement(AnimationGraph &g) :
   AnimPostBlendCtrl(g), nodes(midmem), varId(-1), namedSlotId(-1), varSlotId(-1), copyWtm(false)
 {}
-void AnimPostBlendNodesFromAttachement::clearAllocatedMemory(IPureAnimStateHolder &st)
+void AnimPostBlendNodesFromAttachement::clearAllocatedMemory(AnimGraphStateHolder &st)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   clear_and_shrink(ldata.nodePairs);
 }
-void AnimPostBlendNodesFromAttachement::setDefaultState(IPureAnimStateHolder &st)
+void AnimPostBlendNodesFromAttachement::setDefaultState(AnimGraphStateHolder &st)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   clear_and_shrink(ldata.nodePairs);
@@ -2785,7 +2785,7 @@ static void add_subnodes_recursively(StaticTab<dag::Index16, 64> &pairs, GeomNod
     }
   }
 }
-void AnimPostBlendNodesFromAttachement::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendNodesFromAttachement::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt <= 0.001f || !nodes.size())
     return;
@@ -2850,7 +2850,7 @@ void AnimPostBlendNodesFromAttachement::createNode(AnimationGraph &graph, const 
   if (const char *val = blk.getStr("slot", NULL))
     node->namedSlotId = AnimCharV20::addSlotId(val);
   else if (const char *val = blk.getStr("varSlot", NULL))
-    node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
+    node->varSlotId = graph.addParamId(val, AnimGraphStateHolder::PT_ScalarParam);
   node->copyWtm = blk.getBool("copyWtm", false);
   G_ASSERTF(!node->copyWtm, "copyWtm:b=yes not implemented, PBC %s", name);
   for (int j = 0, nid = blk.getNameId("node"); j < blk.blockCount(); j++)
@@ -2863,16 +2863,16 @@ void AnimPostBlendNodesFromAttachement::createNode(AnimationGraph &graph, const 
       nd.recursive = b2.getBool("recursive", false);
       nd.includingRoot = b2.getBool("includingRoot", true);
     }
-  node->wScaleVarId = graph.addParamIdEx(blk.getStr("wtModulate", NULL), IPureAnimStateHolder::PT_ScalarParam);
+  node->wScaleVarId = graph.addParamIdEx(blk.getStr("wtModulate", NULL), AnimGraphStateHolder::PT_ScalarParam);
   node->wScaleInverted = blk.getBool("wtModulateInverse", false);
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtrCTZ);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtrCTZ);
   graph.registerBlendNode(node, name);
 }
 
 
-void AnimPostBlendParamFromNode::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendParamFromNode::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (destVarId == -1 || destVarWtId == -1 || wt < 0.0001f)
     return;
@@ -2912,11 +2912,11 @@ void AnimPostBlendParamFromNode::createNode(AnimationGraph &graph, const DataBlo
     node->slotId = AnimCharV20::addSlotId(slot);
   node->nodeName = blk.getStr("node", "");
   const char *destVarName = blk.getStr("destVar", NULL);
-  node->destVarId = graph.addParamIdEx(destVarName, IPureAnimStateHolder::PT_ScalarParam);
+  node->destVarId = graph.addParamIdEx(destVarName, AnimGraphStateHolder::PT_ScalarParam);
   node->destVarWtId = destVarName && *destVarName ? graph.addPbcWtParamId(destVarName) : -1;
   node->defVal = blk.getReal("defVal", 0);
   node->invertVal = blk.getBool("invertVal", false);
-  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
@@ -2932,24 +2932,24 @@ void AnimPostBlendNodeEffectorFromChildIK::createNode(AnimationGraph &graph, con
   node->childNodeName = blk.getStr("childNode", nullptr);
   node->srcVarName = blk.getStr("srcVar", nullptr);
   node->destVarName = blk.getStr("destVar", nullptr);
-  node->localDataVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
-  node->resetEffByValId = graph.addParamIdEx(blk.getStr("resetEffByVal", nullptr), IPureAnimStateHolder::PT_ScalarParam);
+  node->localDataVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
+  node->resetEffByValId = graph.addParamIdEx(blk.getStr("resetEffByVal", nullptr), AnimGraphStateHolder::PT_ScalarParam);
   node->resetEffInvVal = blk.getBool("resetEffInvVal", false);
 
   if (const char *val = blk.getStr("varSlot", nullptr))
-    node->varSlotId = graph.addParamId(val, IPureAnimStateHolder::PT_ScalarParam);
+    node->varSlotId = graph.addParamId(val, AnimGraphStateHolder::PT_ScalarParam);
 
   graph.registerBlendNode(node, name);
 }
 
-void AnimPostBlendNodeEffectorFromChildIK::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendNodeEffectorFromChildIK::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localDataVarId);
   ldata.parentNodeId = tree.findINodeIndex(parentNodeName);
   ldata.childNodeId = tree.findINodeIndex(childNodeName);
-  ldata.srcVarId = graph.getParamId(String(0, "%s.m", srcVarName), AnimV20::IAnimStateHolder::PT_InlinePtr);
-  ldata.destEffId = graph.getParamId(destVarName, IPureAnimStateHolder::PT_Effector);
-  ldata.destVarId = graph.getParamId(String(0, "%s.m", destVarName), IPureAnimStateHolder::PT_InlinePtr);
+  ldata.srcVarId = graph.getParamId(String(0, "%s.m", srcVarName), AnimV20::AnimGraphStateHolder::PT_InlinePtr);
+  ldata.destEffId = graph.getParamId(destVarName, AnimGraphStateHolder::PT_Effector);
+  ldata.destVarId = graph.getParamId(String(0, "%s.m", destVarName), AnimGraphStateHolder::PT_InlinePtr);
 
   G_ASSERTF(parentNodeName.empty() || ldata.parentNodeId, "parentNode %s not found", parentNodeName);
   G_ASSERTF(childNodeName.empty() || ldata.childNodeId || varSlotId >= 0, "childNode %s not found", childNodeName);
@@ -2958,7 +2958,7 @@ void AnimPostBlendNodeEffectorFromChildIK::init(IPureAnimStateHolder &st, const 
   G_ASSERTF(destVarName.empty() || ldata.destVarId >= 0, "destVar %s.m not found", destVarName);
 }
 
-void AnimPostBlendNodeEffectorFromChildIK::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree,
+void AnimPostBlendNodeEffectorFromChildIK::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree,
   AnimPostBlendCtrl::Context &ctx)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localDataVarId);
@@ -3011,19 +3011,19 @@ void AnimPostBlendNodeEffectorFromChildIK::process(IPureAnimStateHolder &st, rea
   st.paramEffector(ldata.destEffId).set(v_extract_x(newWtm.col3), v_extract_y(newWtm.col3), v_extract_z(newWtm.col3), false);
 }
 
-void AnimPostBlendMatVarFromNode::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendMatVarFromNode::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   ldata.lastDestGraph = nullptr;
   ldata.lastSourceNodeTree = nullptr;
-  ldata.destVarId = destSlotId < 0 ? graph.getParamId(destVarName, IPureAnimStateHolder::PT_InlinePtr) : -1;
+  ldata.destVarId = destSlotId < 0 ? graph.getParamId(destVarName, AnimGraphStateHolder::PT_InlinePtr) : -1;
   ldata.srcNodeId = srcSlotId < 0 ? tree.findINodeIndex(srcNodeName) : dag::Index16();
   if (destSlotId < 0 && ldata.destVarId < 0 && !destVarName.empty())
     logerr("anim.matFromNode: var \"%s\" not resolved, slot %d", destVarName, destSlotId);
   if (srcSlotId < 0 && !ldata.srcNodeId && !srcNodeName.empty())
     logerr("anim.matFromNode: node \"%s\" not resolved, slot %d", srcNodeName, srcSlotId);
 }
-void AnimPostBlendMatVarFromNode::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendMatVarFromNode::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
   auto d_ac = destSlotId < 0 ? ctx.ac : ctx.ac->getAttachedChar(destSlotId);
@@ -3040,7 +3040,7 @@ void AnimPostBlendMatVarFromNode::process(IPureAnimStateHolder &st, real wt, Geo
     {
       AnimationGraph *slot_grph = d_ac->getAnimGraph();
       ldata.lastDestGraph = slot_grph;
-      ldata.destVarId = slot_grph->getParamId(destVarName, IPureAnimStateHolder::PT_InlinePtr);
+      ldata.destVarId = slot_grph->getParamId(destVarName, AnimGraphStateHolder::PT_InlinePtr);
       if (ldata.destVarId < 0)
         logerr("%s: anim.matFromNode: var \"%s\" not resolved, slot %d (in %s)", ctx.ac->getCreateInfo()->resName, destVarName,
           destSlotId, d_ac->getCreateInfo()->resName);
@@ -3121,11 +3121,11 @@ void AnimPostBlendMatVarFromNode::createNode(AnimationGraph &graph, const DataBl
 
   if (node->destSlotId < 0)
   {
-    graph.addInlinePtrParamId(node->destVarName, sizeof(AttachGeomNodeCtrl::AttachDesc), IPureAnimStateHolder::PT_InlinePtr);
+    graph.addInlinePtrParamId(node->destVarName, sizeof(AttachGeomNodeCtrl::AttachDesc), AnimGraphStateHolder::PT_InlinePtr);
     node->destVarWtId = graph.addPbcWtParamId(node->destVarName);
   }
 
-  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
@@ -3134,14 +3134,14 @@ AnimPostBlendCompoundRotateShift::AnimPostBlendCompoundRotateShift(AnimationGrap
   v_mat33_ident(tmRot[0]);
   v_mat33_ident(tmRot[1]);
 }
-void AnimPostBlendCompoundRotateShift::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendCompoundRotateShift::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(localVarId);
   ldata.targetNode = resolve_node_by_name(tree, targetNode);
   ldata.alignAsNode = resolve_node_by_name(tree, alignAsNode);
   ldata.moveAlongNode = resolve_node_by_name(tree, moveAlongNode);
 }
-void AnimPostBlendCompoundRotateShift::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendCompoundRotateShift::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt < 1e-4)
     return;
@@ -3248,7 +3248,7 @@ void AnimPostBlendCompoundRotateShift::createNode(AnimationGraph &graph, const D
   node->moveAlongNode = blk.getStr("moveAlongNode", NULL);
 #define SETUP_PARAM(NM)                          \
   if (const char *pname = blk.getStr(#NM, NULL)) \
-  node->varId.NM = graph.addParamId(pname, IPureAnimStateHolder::PT_ScalarParam), node->scale.NM = blk.getReal(#NM "_mul", 1.0f)
+  node->varId.NM = graph.addParamId(pname, AnimGraphStateHolder::PT_ScalarParam), node->scale.NM = blk.getReal(#NM "_mul", 1.0f)
   SETUP_PARAM(yaw);
   SETUP_PARAM(pitch);
   SETUP_PARAM(lean);
@@ -3271,21 +3271,21 @@ void AnimPostBlendCompoundRotateShift::createNode(AnimationGraph &graph, const D
   node->tmRot[1].col1 = v_mul(node->tmRot[1].col1, v_splats(scale.y));
   node->tmRot[1].col2 = v_mul(node->tmRot[1].col2, v_splats(scale.z));
 
-  node->localVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->localVarId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
-void set_param_of_any_type_from_state_to_state(IPureAnimStateHolder &src, IPureAnimStateHolder &dest, int srcVarId, int destVarId,
+void set_param_of_any_type_from_state_to_state(AnimGraphStateHolder &src, AnimGraphStateHolder &dest, int srcVarId, int destVarId,
   float val)
 {
-  const bool isDestParamInt = dest.getParamType(destVarId) == AnimCommonStateHolder::PT_ScalarParamInt;
+  const bool isDestParamInt = dest.getParamType(destVarId) == AnimGraphStateHolder::PT_ScalarParamInt;
   if (isDestParamInt)
   {
     if (srcVarId < 0)
       dest.setParamInt(destVarId, val);
     else
       dest.setParamInt(destVarId,
-        src.getParamType(srcVarId) == AnimCommonStateHolder::PT_ScalarParamInt ? src.getParamInt(srcVarId) : src.getParam(srcVarId));
+        src.getParamType(srcVarId) == AnimGraphStateHolder::PT_ScalarParamInt ? src.getParamInt(srcVarId) : src.getParam(srcVarId));
   }
   else
   {
@@ -3293,11 +3293,11 @@ void set_param_of_any_type_from_state_to_state(IPureAnimStateHolder &src, IPureA
       dest.setParam(destVarId, val);
     else
       dest.setParam(destVarId,
-        src.getParamType(srcVarId) == AnimCommonStateHolder::PT_ScalarParamInt ? src.getParamInt(srcVarId) : src.getParam(srcVarId));
+        src.getParamType(srcVarId) == AnimGraphStateHolder::PT_ScalarParamInt ? src.getParamInt(srcVarId) : src.getParam(srcVarId));
   }
 }
 
-void AnimPostBlendSetParam::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendSetParam::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt < minWeight)
     return;
@@ -3343,8 +3343,8 @@ void AnimPostBlendSetParam::createNode(AnimationGraph &graph, const DataBlock &b
     node->srcVarId = graph.getParamId(var);
     if (node->srcVarId < 0)
       node->srcVarId =
-        graph.addParamId(var, addNewParamsTypeInt ? IPureAnimStateHolder::PT_ScalarParamInt : IPureAnimStateHolder::PT_ScalarParam);
-    else if (!IAnimStateHolder::isBasicType(graph.getParamType(node->srcVarId)))
+        graph.addParamId(var, addNewParamsTypeInt ? AnimGraphStateHolder::PT_ScalarParamInt : AnimGraphStateHolder::PT_ScalarParam);
+    else if (!AnimGraphStateHolder::isBasicType(graph.getParamType(node->srcVarId)))
     {
       node->srcVarId = -1;
       ANIM_ERR("Existing param <%s> must be of scalar, int, or time type. But type is: '%d'", var, graph.getParamType(node->srcVarId));
@@ -3359,13 +3359,13 @@ void AnimPostBlendSetParam::createNode(AnimationGraph &graph, const DataBlock &b
 
   if (node->destSlotId < 0)
     node->destVarId = graph.addParamId(node->destVarName,
-      addNewParamsTypeInt ? IPureAnimStateHolder::PT_ScalarParamInt : IPureAnimStateHolder::PT_ScalarParam);
+      addNewParamsTypeInt ? AnimGraphStateHolder::PT_ScalarParamInt : AnimGraphStateHolder::PT_ScalarParam);
 
   graph.registerBlendNode(node, name);
 }
 
 
-void AnimPostBlendTwistCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendTwistCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   auto *nodeIds = (dag::Index16 *)st.getInlinePtr(varId);
   if (!twistNodes.size())
@@ -3392,7 +3392,7 @@ void AnimPostBlendTwistCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &
     }
   }
 }
-void AnimPostBlendTwistCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendTwistCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0)
     return;
@@ -3417,11 +3417,11 @@ void AnimPostBlendTwistCtrl::createNode(AnimationGraph &graph, const DataBlock &
       node->twistNodes.push_back() = blk.getStr(i);
 
   node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(int16_t) * (2 + node->twistNodes.size()),
-    IPureAnimStateHolder::PT_InlinePtr);
+    AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }
 
-void AnimPostBlendEyeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendEyeCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData &ldata = *(LocalData *)st.getInlinePtr(varId);
 
@@ -3449,7 +3449,7 @@ void AnimPostBlendEyeCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tr
   G_ASSERTF(eyelidBlinkBottomNodeName.empty() || ldata.eyelidBlinkBottomNodeId, "Node %s not found", eyelidBlinkBottomNodeName);
 }
 
-void AnimPostBlendEyeCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendEyeCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   if (wt <= 0.001f)
     return;
@@ -3552,12 +3552,12 @@ void AnimPostBlendEyeCtrl::createNode(AnimationGraph &graph, const DataBlock &bl
   node->eyelidBlinkBottomNodeName = blk.getStr("eyelid_blink_bottom", "");
 
   // allocate state variable
-  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->varId = graph.addInlinePtrParamId(String("var") + name, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
 
-void AnimPostBlendHasAttachment::process(IPureAnimStateHolder &st, real, GeomNodeTree &, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendHasAttachment::process(AnimGraphStateHolder &st, real, GeomNodeTree &, AnimPostBlendCtrl::Context &ctx)
 {
   if (destVarId < 0)
     return;
@@ -3580,7 +3580,7 @@ void AnimPostBlendHasAttachment::createNode(AnimationGraph &graph, const DataBlo
   const char *slot = blk.getStr("slot", NULL);
   node->slotId = AnimCharV20::addSlotId(slot);
   const char *destVar = blk.getStr("destVar", NULL);
-  node->destVarId = graph.addParamIdEx(destVar, IPureAnimStateHolder::PT_ScalarParam);
+  node->destVarId = graph.addParamIdEx(destVar, AnimGraphStateHolder::PT_ScalarParam);
   node->invertVal = blk.getBool("invertVal", false);
 
   graph.registerBlendNode(node, name);
@@ -3590,7 +3590,7 @@ void AnimPostBlendHasAttachment::createNode(AnimationGraph &graph, const DataBlo
 // Human weapon aim controller
 //
 
-void AnimPostBlendHumanAimCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendHumanAimCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   LocalData *ldata = (LocalData *)st.getInlinePtr(stateVarId);
 
@@ -3607,7 +3607,7 @@ void AnimPostBlendHumanAimCtrl::init(IPureAnimStateHolder &st, const GeomNodeTre
     logerr("AnimPostBlendHumanAimCtrl: alignNode '%s' not found", alignNodeName);
 }
 
-void AnimPostBlendHumanAimCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
+void AnimPostBlendHumanAimCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &)
 {
   LocalData *ldata = (LocalData *)st.getInlinePtr(stateVarId);
   if (wt <= 0.001f || !ldata->rotateAroundNode || !ldata->targetNode || !ldata->alignNode)
@@ -3693,13 +3693,13 @@ void AnimPostBlendHumanAimCtrl::createNode(AnimationGraph &graph, const DataBloc
   p = blk.getPoint3("rotateAroundNodeOffset", Point3(0.0f, 0.0f, 0.0f));
   node->rotateAroundNodeOffset = v_ldu(&p.x);
 
-  node->pitchVarId = graph.addParamIdEx(blk.getStr("pitchVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
-  node->yawVarId = graph.addParamIdEx(blk.getStr("yawVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
-  node->rollVarId = graph.addParamIdEx(blk.getStr("rollVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
+  node->pitchVarId = graph.addParamIdEx(blk.getStr("pitchVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
+  node->yawVarId = graph.addParamIdEx(blk.getStr("yawVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
+  node->rollVarId = graph.addParamIdEx(blk.getStr("rollVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
 
-  node->offsetXVar = graph.addParamIdEx(blk.getStr("offsetXVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
-  node->offsetYVar = graph.addParamIdEx(blk.getStr("offsetYVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
-  node->offsetZVar = graph.addParamIdEx(blk.getStr("offsetZVar", nullptr), IPureAnimStateHolder::PT_ScalarParam);
+  node->offsetXVar = graph.addParamIdEx(blk.getStr("offsetXVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
+  node->offsetYVar = graph.addParamIdEx(blk.getStr("offsetYVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
+  node->offsetZVar = graph.addParamIdEx(blk.getStr("offsetZVar", nullptr), AnimGraphStateHolder::PT_ScalarParam);
   p = blk.getPoint3("offsetMul", Point3(1.0f, 1.0f, 1.0f));
   node->offsetMul = v_ldu(&p.x);
   p = blk.getPoint3("offsetAdd", Point3(0.0f, 0.0f, 0.0f));
@@ -3707,12 +3707,12 @@ void AnimPostBlendHumanAimCtrl::createNode(AnimationGraph &graph, const DataBloc
 
   // allocate state variable
   String varName = String("var") + name;
-  node->stateVarId = graph.addInlinePtrParamId(varName, sizeof(LocalData), IPureAnimStateHolder::PT_InlinePtr);
+  node->stateVarId = graph.addInlinePtrParamId(varName, sizeof(LocalData), AnimGraphStateHolder::PT_InlinePtr);
 
   graph.registerBlendNode(node, name);
 }
 
-void AnimPostBlendTwoBonesIK::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimPostBlendTwoBonesIK::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   if (rec.size() == 0)
     return;
@@ -3747,7 +3747,7 @@ void AnimPostBlendTwoBonesIK::init(IPureAnimStateHolder &st, const GeomNodeTree 
   }
 }
 
-void AnimPostBlendTwoBonesIK::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimPostBlendTwoBonesIK::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt < 1e-3f || tree.empty() || rec.size() == 0)
     return;
@@ -3849,6 +3849,6 @@ void AnimPostBlendTwoBonesIK::createNode(AnimationGraph &graph, const DataBlock 
   }
 
   node->varId =
-    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(NodeId) * node->rec.size(), IPureAnimStateHolder::PT_InlinePtr);
+    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(NodeId) * node->rec.size(), AnimGraphStateHolder::PT_InlinePtr);
   graph.registerBlendNode(node, name);
 }

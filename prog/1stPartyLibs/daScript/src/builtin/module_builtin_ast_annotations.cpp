@@ -42,7 +42,6 @@ IMPLEMENT_EXTERNAL_TYPE_FACTORY(TypeMacro,TypeMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ReaderMacro,ReaderMacro)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CommentReader,CommentReader)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(CallMacro,CallMacro)
-IMPLEMENT_EXTERNAL_TYPE_FACTORY(ModuleGroup,ModuleGroup)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(ModuleLibrary,ModuleLibrary)
 IMPLEMENT_EXTERNAL_TYPE_FACTORY(AstContext,AstContext)
 
@@ -173,6 +172,7 @@ namespace das {
         ann.addFieldEx("name", "name", offsetof(ExprLooksLikeCall, name), makeType<string>(*ann.mlib));
         ann.addFieldEx("arguments", "arguments", offsetof(ExprLooksLikeCall, arguments), makeType<vector<ExpressionPtr>>(*ann.mlib));
         ann.addFieldEx("argumentsFailedToInfer", "argumentsFailedToInfer", offsetof(ExprLooksLikeCall, argumentsFailedToInfer), makeType<bool>(*ann.mlib));
+        ann.addFieldEx("pipedCallArgument", "pipedCallArgument", offsetof(ExprLooksLikeCall, pipedCallArgument), makeType<bool>(*ann.mlib));
         ann.addFieldEx("atEnclosure", "atEnclosure", offsetof(ExprLooksLikeCall, atEnclosure), makeType<LineInfo>(*ann.mlib));
     }
 

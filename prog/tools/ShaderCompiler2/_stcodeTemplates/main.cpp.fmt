@@ -3,6 +3,7 @@ R"(%s
 #include <shaders/stcode/defines.stcode.h>
 
 #include "glob_shadervars.stcode.gen.cpp"
+#include "glob_refined_block.stcode.gen.cpp"
 
 // #include-s for all .stcode.gen.cpp files, containing local routines for unity build, or .stcode.gen.h for incremental build
 %s

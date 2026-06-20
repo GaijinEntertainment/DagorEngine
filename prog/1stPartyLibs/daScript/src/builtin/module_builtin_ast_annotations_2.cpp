@@ -73,6 +73,7 @@ namespace das {
             :  AstExprCallFuncAnnotation<ExprNew> ("ExprNew", ml) {
             addField<DAS_BIND_MANAGED_FIELD(typeexpr)>("typeexpr");
             addField<DAS_BIND_MANAGED_FIELD(initializer)>("initializer");
+            addField<DAS_BIND_MANAGED_FIELD(allocate_on_stack)>("allocate_on_stack");
         }
     };
 
@@ -145,6 +146,7 @@ namespace das {
             :  AstExpressionAnnotation<ExprWhile> ("ExprWhile", ml) {
             addField<DAS_BIND_MANAGED_FIELD(cond)>("cond");
             addField<DAS_BIND_MANAGED_FIELD(body)>("body");
+            addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
         }
     };
 
@@ -180,6 +182,7 @@ namespace das {
             addField<DAS_BIND_MANAGED_FIELD(visibility)>("visibility");
             addField<DAS_BIND_MANAGED_FIELD(allowIteratorOptimization)>("allowIteratorOptimization");
             addField<DAS_BIND_MANAGED_FIELD(canShadow)>("canShadow");
+            addField<DAS_BIND_MANAGED_FIELD(annotations)>("annotations");
         }
     };
 

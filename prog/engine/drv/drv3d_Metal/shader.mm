@@ -211,6 +211,7 @@ namespace drv3d_metal
         buffers[num_buffers].remapped_slot = i;
         buffer_mask |= 1ull << bufRemap[i].slot;
         buf_slot_remap[i] = bufRemap[i].slot;
+        G_ASSERTF(buf_slot_remap[i] < 64, "We only support up to 64 remapped buffers, trying to add slot %d", buf_slot_remap[i]);
         num_buffers++;
       }
     }
@@ -228,6 +229,7 @@ namespace drv3d_metal
         remap = bufRemap[i];
         bindless_mask |= 1ull << remap.slot;
         buf_slot_remap[i] = bufRemap[i].slot;
+        G_ASSERTF(buf_slot_remap[i] < 64, "We only support up to 64 remapped buffers, trying to add slot %d", buf_slot_remap[i]);
 
         if (remap.remap_type == EncodedBufferRemap::RemapType::Sampler)
           bindless_type_mask |= BindlessTypeSampler;

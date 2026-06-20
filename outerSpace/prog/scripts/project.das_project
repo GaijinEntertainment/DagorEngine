@@ -24,7 +24,7 @@ let
   }}
 
 [export]
-def module_get(req, from:string) : tuple<string;string;string> const
+def module_get(req, _from:string) : tuple<string;string;string> const
   var rs <- split_by_chars(req,"./")
 
   let mod_name = rs[length(rs)-1]
@@ -49,5 +49,5 @@ def module_get(req, from:string) : tuple<string;string;string> const
   return [[auto mod_name, "{DAS_PAK_ROOT}/{join(rs,"/")}.das", alias_name]]
 
 [export]
-def include_get(inc,from:string) : string
+def include_get(inc,_from:string) : string
   return starts_with(inc, "%") ? inc : "{DAS_PAK_ROOT}/{inc}"

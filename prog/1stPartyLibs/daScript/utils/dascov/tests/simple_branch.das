@@ -8,7 +8,7 @@ def foo() {
 
 [export]
 def main() {
-    x += 1
+    x++
     if (x > 1) {
         print("This")
     } else {

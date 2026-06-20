@@ -98,7 +98,7 @@ public:
     }
   }
 
-  void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType type)
+  void enqueueItem(real ctime, AnimGraphStateHolder &st, IAnimBlendNode *n, real overlap_time, FifoMorphType type)
   {
     if (overlap_time < 0.0f)
       overlap_time = 0.0f;
@@ -191,7 +191,7 @@ public:
     return false;
   }
 
-  void update(IPureAnimStateHolder &st, real ctime, real /*dt*/)
+  void update(AnimGraphStateHolder &st, real ctime, real /*dt*/)
   {
     if (USE_DEBUG)
       DEBUG_CTX("%p.update: state=%d, ctime=%.3f t0=%.3f", this, state, ctime, t0);

@@ -117,7 +117,7 @@ static void update_tag_changes_es(const ParallelUpdateFrameDelayed &, MotionMatc
   AnimationFilterTags &currentTags = motion_matching__controller.currentTags;
   if (motion_matching__controller.useTagsFromAnimGraph)
   {
-    AnimV20::IAnimStateHolder &animState = *animchar.getAnimState();
+    AnimV20::AnimGraphStateHolder &animState = *animchar.getAnimState();
     currentTags = get_mm_tags_from_animgraph(dataBase, animState);
     reset_animgraph_tags(dataBase, animState);
   }

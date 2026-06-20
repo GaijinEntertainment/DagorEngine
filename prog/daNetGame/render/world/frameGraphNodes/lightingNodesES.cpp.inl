@@ -25,7 +25,7 @@
 #include <render/world/wrDispatcher.h>
 #include "../dynamicShadowRenderExtender.h"
 #include "frameGraphNodes.h"
-#include <render/tiled_light_consts.hlsli>
+#include <render/lights/tiled_light_consts.hlsli>
 
 
 extern ConVarT<bool, false> dynamic_lights;

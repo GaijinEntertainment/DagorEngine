@@ -55,7 +55,7 @@ public:
   }
 
   void visitCallExpr(CallExpr *call) {
-    complexity += (call->arguments().size() - 1);
+    complexity += call->arguments().size() ? (call->arguments().size() - 1) : 0;
     Visitor::visitCallExpr(call);
   }
 

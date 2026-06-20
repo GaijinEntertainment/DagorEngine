@@ -3,6 +3,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <scene/dag_scene.h>
 #include <startup/dag_globalSettings.h>
+#include <generic/dag_span.h>
 
 static __forceinline vec4f v_get_max_scale_sq(vec4f col0, vec4f col1, vec4f col2)
 {
@@ -17,10 +18,10 @@ void scene::SimpleScene::term()
 {
   clearNodes();
 
-  nodes.clear();
-  poolBox.clear();
-  poolSphereVerticalCenter.clear();
-  freeIndices.clear();
+  clear_and_shrink(nodes);
+  clear_and_shrink(poolBox);
+  clear_and_shrink(poolSphereVerticalCenter);
+  clear_and_shrink(freeIndices);
   writingThread = -1;
 }
 

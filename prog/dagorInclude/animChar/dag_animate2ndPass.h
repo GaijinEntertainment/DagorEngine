@@ -56,7 +56,7 @@ struct Animate2ndPassCtx
     };
     int anim2ndPassOffs;
     float curT = 0;
-    eastl::unique_ptr<AnimV20::AnimCommonStateHolder> state;
+    eastl::unique_ptr<AnimV20::AnimGraphStateHolder> state;
     Tab<AnimMap> animMap;
 
     Ctrl(int aoffs) : anim2ndPassOffs(aoffs) {}

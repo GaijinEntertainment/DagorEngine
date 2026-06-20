@@ -885,7 +885,7 @@ int ShaderMaterialProperties::execInitCode()
         break;
       case SHCOD_TEXTURE_STUBCOL:
       {
-        if (DAGOR_UNLIKELY(!shaderbindump::g_stub_texture_repo.filled()))
+        if (DAGOR_UNLIKELY(!shaderbindump::g_stub_texture_repo.initialized()))
           break;
         uint32_t col = stVarId /*sclass->initCode[i] */;
         auto texType = ShaderVarTextureType(shaderopcode::getOp2p1(sclass->initCode[i + 1]));

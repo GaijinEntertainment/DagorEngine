@@ -555,10 +555,23 @@ void ImGuiEx::Canvas::LeaveLocalSpace()
     // Remove sentinel draw command if present
     if (m_DrawListCommadBufferSize > 0)
     {
-        if (m_DrawList->CmdBuffer.size() > m_DrawListCommadBufferSize && m_DrawList->CmdBuffer[m_DrawListCommadBufferSize].UserCallback == ImDrawCallback_ImCanvas)
-            m_DrawList->CmdBuffer.erase(m_DrawList->CmdBuffer.Data + m_DrawListCommadBufferSize);
-        else if (m_DrawList->CmdBuffer.size() >= m_DrawListCommadBufferSize && m_DrawList->CmdBuffer[m_DrawListCommadBufferSize - 1].UserCallback == ImDrawCallback_ImCanvas)
-            m_DrawList->CmdBuffer.erase(m_DrawList->CmdBuffer.Data + m_DrawListCommadBufferSize - 1);
+        // MODIFICATION BY GAIJIN
+        // Reasons at imgui-node-editor/issues/282
+        // Proposed solution: test all commands from index >= m_DrawListCommadBufferSize
+        // and remove the one with UserCallback == ImDrawCallback_ImCanvas
+        // (based on the original code, it seems there can be only one)
+        int idxCommand_ImDrawCallback_ImCanvas = -1;
+        for (int i = 0; i < m_DrawList->CmdBuffer.size(); ++i)
+        {
+            auto & command = m_DrawList->CmdBuffer[i];
+            if (command.UserCallback == ImDrawCallback_ImCanvas)
+            {
+                idxCommand_ImDrawCallback_ImCanvas = i;
+                break;
+            }
+        }
+        if (idxCommand_ImDrawCallback_ImCanvas >= 0)
+            m_DrawList->CmdBuffer.erase(m_DrawList->CmdBuffer.Data + idxCommand_ImDrawCallback_ImCanvas);
     }
 
     auto& fringeScale = ImFringeScaleRef(m_DrawList);

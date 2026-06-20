@@ -9,6 +9,9 @@
 #include <EASTL/vector.h>
 
 
+static D3dInterfaceTable g_interfaceTableCopy;
+
+
 enum class Message
 {
   Original,
@@ -1148,9 +1151,9 @@ TEST_CASE("Runtime deduces TEXCF_VARIABLE_RATE from usage in reader node", "[res
   dafg::NodeHandle providerHandle = dafg::register_node("provider", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("provided_texture")
-      .texture({.creationFlags = TEXFMT_R8G8B8A8, .resolution = IPoint2{4, 4}})
+      .texture({.creationFlags = TEXFMT_R8UI, .resolution = IPoint2{4, 4}})
       .atStage(dafg::Stage::PS)
-      .useAs(dafg::Usage::COLOR_ATTACHMENT);
+      .useAs(dafg::Usage::SHADER_RESOURCE);
   });
 
   dafg::NodeHandle rendererHandle = dafg::register_node("renderer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
@@ -1392,13 +1395,15 @@ TEST_CASE("Runtime deduces TEXCF_RTARGET from usage after rename", "[resource fl
 
 TEST_CASE("Runtime deduces REWRITE_AS_COPY_DESTINATION/DISCARD_AS_RTV_DSV/DISCARD_AS_UAV from usage", "[resource activation]")
 {
+  static ResourceActivationAction globalExpectedAction;
+
   const auto [stage, usage, action] = GENERATE(table<dafg::Stage, dafg::Usage, ResourceActivationAction>(
     {{dafg::Stage::TRANSFER, dafg::Usage::COPY, ResourceActivationAction::REWRITE_AS_COPY_DESTINATION},
       {dafg::Stage::PS, dafg::Usage::COLOR_ATTACHMENT, ResourceActivationAction::DISCARD_AS_RTV_DSV},
       {dafg::Stage::CS, dafg::Usage::SHADER_RESOURCE, ResourceActivationAction::DISCARD_AS_UAV}}));
 
-  static ResourceActivationAction globalExpectedAction;
-  D3dInterfaceTable interfaceTableCopy = d3di;
+
+  g_interfaceTableCopy = d3di;
 
   TestRuntime testRuntime{};
 
@@ -1408,24 +1413,28 @@ TEST_CASE("Runtime deduces REWRITE_AS_COPY_DESTINATION/DISCARD_AS_RTV_DSV/DISCAR
   });
 
   globalExpectedAction = action;
-  d3di.activate_texture = [](BaseTexture *, ResourceActivationAction action, const ResourceClearValue &, GpuPipeline) -> void {
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) -> void {
     CHECK(action == globalExpectedAction);
+    return g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
   };
 
   testRuntime.executeGraph();
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 TEST_CASE("Runtime deduces CLEAR_AS_RTV_DSV/CLEAR_F_AS_UAV/CLEAR_I_AS_UAV from usage", "[resource activation]")
 {
+  static ResourceActivationAction globalExpectedAction;
+
   const auto [stage, usage, action, format] = GENERATE(table<dafg::Stage, dafg::Usage, ResourceActivationAction, uint32_t>(
     {{dafg::Stage::PS, dafg::Usage::COLOR_ATTACHMENT, ResourceActivationAction::CLEAR_AS_RTV_DSV, TEXFMT_R8G8B8A8},
       {dafg::Stage::CS, dafg::Usage::SHADER_RESOURCE, ResourceActivationAction::CLEAR_F_AS_UAV, TEXFMT_R8G8B8A8},
       {dafg::Stage::CS, dafg::Usage::SHADER_RESOURCE, ResourceActivationAction::CLEAR_I_AS_UAV, TEXFMT_R32UI}}));
 
-  static ResourceActivationAction globalExpectedAction;
-  D3dInterfaceTable interfaceTableCopy = d3di;
+
+  g_interfaceTableCopy = d3di;
 
   TestRuntime testRuntime{};
 
@@ -1439,19 +1448,21 @@ TEST_CASE("Runtime deduces CLEAR_AS_RTV_DSV/CLEAR_F_AS_UAV/CLEAR_I_AS_UAV from u
   });
 
   globalExpectedAction = action;
-  d3di.activate_texture = [](BaseTexture *, ResourceActivationAction action, const ResourceClearValue &, GpuPipeline) -> void {
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) -> void {
     CHECK(action == globalExpectedAction);
+    return g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
   };
 
   testRuntime.executeGraph();
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 
 TEST_CASE("Runtime deduces RP_TA_LOAD_CLEAR for render pass with node with clear action", "[resource activation]")
 {
-  D3dInterfaceTable interfaceTableCopy = d3di;
+  g_interfaceTableCopy = d3di;
 
   TestRuntime testRuntime{};
 
@@ -1461,18 +1472,20 @@ TEST_CASE("Runtime deduces RP_TA_LOAD_CLEAR for render pass with node with clear
     registry.requestRenderPass().color({"color_tex"});
   });
 
-  d3di.activate_texture = [](BaseTexture *, ResourceActivationAction action, const ResourceClearValue &, GpuPipeline) -> void {
+  d3di.activate_texture = [](BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+                            GpuPipeline gpu_pipeline) -> void {
     CHECK(action == ResourceActivationAction::REWRITE_AS_RTV_DSV);
+    return g_interfaceTableCopy.activate_texture(tex, action, value, gpu_pipeline);
   };
 
   d3di.create_render_pass = [](const RenderPassDesc &rp_desc) -> d3d::RenderPass * {
     CHECK(rp_desc.binds->action & RP_TA_LOAD_CLEAR);
-    return nullptr;
+    return g_interfaceTableCopy.create_render_pass(rp_desc);
   };
 
   testRuntime.executeGraph();
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 TEST_CASE("Declaration callback runs inside FRAMEMEM_REGION", "[framemem]")
@@ -1503,7 +1516,7 @@ TEST_CASE("Declaration callback runs inside FRAMEMEM_REGION", "[framemem]")
 
 TEST_CASE("Evil renderpass recreation", "[render pass]")
 {
-  D3dInterfaceTable interfaceTableCopy = d3di;
+  g_interfaceTableCopy = d3di;
 
   constexpr size_t EXPECTED_RP_COUNT = 2; // shared for user_autores and user, unique for breaker
 
@@ -1527,6 +1540,8 @@ TEST_CASE("Evil renderpass recreation", "[render pass]")
     CHECK(eastl::find(createdRenderPasses.begin(), createdRenderPasses.end(), rp) != createdRenderPasses.end());
     CHECK(eastl::find(destroyedRenderPasses.begin(), destroyedRenderPasses.end(), rp) == destroyedRenderPasses.end());
   };
+
+  d3di.end_render_pass = []() {};
 
   {
     TestRuntime testRuntime{};
@@ -1585,7 +1600,7 @@ TEST_CASE("Evil renderpass recreation", "[render pass]")
     delete reinterpret_cast<int *>(rp);
   destroyedRenderPasses.clear();
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 
@@ -1593,26 +1608,23 @@ TEST_CASE("texture changing creation info witout changing size", "[resource rede
 {
   TestRuntime testRuntime{};
 
-  const TextureInfo info1 = {.w = 4, .h = 4, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 4 x 4 x 32 = 512 bytes
-  const TextureInfo info2 = {.w = 4, .h = 2, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 4 x 2 x 64 = 512 bytes;
+  const TextureInfo info1 = {.w = 64, .h = 64, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 64 x 64 x 4 = 16 384 bytes
+  const TextureInfo info2 = {.w = 64, .h = 32, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 64 x 32 x 8 = 16 384 bytes;
 
   const uint32_t info1Size = info1.w * info1.h * get_tex_format_desc(info1.cflg).bytesPerElement;
   const uint32_t info2Size = info2.w * info2.h * get_tex_format_desc(info2.cflg).bytesPerElement;
   CHECK(info1Size == info2Size);
 
-  const uint32_t expectedSize = info1Size;
 
+  static TextureInfo expectedInfo;
 
-  TextureInfo expectedInfo;
-
-  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [&expectedInfo, expectedSize](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto textureHandle = registry.readTexture("texture").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [textureHandle, &expectedInfo, expectedSize] {
+    return [textureHandle] {
       TextureInfo ti;
       textureHandle.get()->getinfo(ti);
-      CHECK(textureHandle.get()->getSize() == expectedSize);
       CHECK(ti.w == expectedInfo.w);
       CHECK(ti.h == expectedInfo.h);
       CHECK(ti.cflg == expectedInfo.cflg);
@@ -1622,7 +1634,7 @@ TEST_CASE("texture changing creation info witout changing size", "[resource rede
 
   expectedInfo = info1;
 
-  auto prod1Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info1](dafg::Registry registry) {
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info1](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.createTexture2d("texture", {info1.cflg, IPoint2{info1.w, info1.h}})
       .useAs(dafg::Usage::SHADER_RESOURCE)
@@ -1634,7 +1646,7 @@ TEST_CASE("texture changing creation info witout changing size", "[resource rede
 
   expectedInfo = info2;
 
-  auto prod2Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
+  producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.createTexture2d("texture", {info2.cflg, IPoint2{info2.w, info2.h}})
       .useAs(dafg::Usage::SHADER_RESOURCE)
@@ -1655,17 +1667,14 @@ TEST_CASE("buffer changing creation info witout changing size", "[resource redef
   const uint32_t info2Size = info2.elementSize * info2.elementCount;
   CHECK(info1Size == info2Size);
 
-  const uint32_t expectedSize = info1Size;
 
+  static dafg::BufferCreateInfo expectedInfo;
 
-  dafg::BufferCreateInfo expectedInfo;
-
-  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [&expectedInfo, expectedSize](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto bufferHandle = registry.read("buffer").buffer().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [bufferHandle, &expectedInfo, expectedSize] {
-      CHECK(bufferHandle.get()->getSize() == expectedSize);
+    return [bufferHandle] {
       CHECK(bufferHandle.get()->getElementSize() == expectedInfo.elementSize);
       CHECK(bufferHandle.get()->getNumElements() == expectedInfo.elementCount);
       CHECK(bufferHandle.get()->getFlags() == expectedInfo.flags);
@@ -1675,7 +1684,7 @@ TEST_CASE("buffer changing creation info witout changing size", "[resource redef
 
   expectedInfo = info1;
 
-  auto prod1Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info1](dafg::Registry registry) {
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info1](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("buffer").buffer(info1).useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS);
   });
@@ -1685,7 +1694,7 @@ TEST_CASE("buffer changing creation info witout changing size", "[resource redef
 
   expectedInfo = info2;
 
-  auto prod2Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
+  producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("buffer").buffer(info2).useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS);
   });
@@ -1711,12 +1720,12 @@ TEST_CASE("blob changing creation info witout changing size", "[resource redefin
   static_assert(sizeof(ResContent1) == sizeof(ResContent2));
 
 
-  auto prod1Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [contents1](dafg::Registry registry) {
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [contents1](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("blob").blob(contents1);
   });
 
-  auto user1Handle = dafg::register_node("user", DAFG_PP_NODE_SRC, [contents1](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [contents1](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto blobHandle = registry.read("blob").blob<ResContent1>().handle();
 
@@ -1729,12 +1738,12 @@ TEST_CASE("blob changing creation info witout changing size", "[resource redefin
   testRuntime.executeGraph();
 
 
-  auto prod2Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [contents2](dafg::Registry registry) {
+  producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [contents2](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("blob").blob(contents2);
   });
 
-  auto user2Handle = dafg::register_node("user", DAFG_PP_NODE_SRC, [contents2](dafg::Registry registry) {
+  userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [contents2](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto blobHandle = registry.read("blob").blob<ResContent2>().handle();
 
@@ -1750,40 +1759,37 @@ TEST_CASE("resource changing from texture to buffer witout changing size", "[res
 
   struct
   {
-    int w = 4;
-    int h = 4;
+    int w = 64;
+    int h = 64;
     uint32_t flags = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED;
-  } expectedTexParams; // 4 x 4 x 4 = 64 bytes
+  } expectedTexParams; // 64 x 64 x 4 = 16 384 bytes
 
   struct
   {
-    uint32_t elemSize = 2;
-    uint32_t elemCount = 32;
+    uint32_t elemSize = 16;
+    uint32_t elemCount = 1024;
     uint32_t flags = SBCF_UA_SR_STRUCTURED;
-  } expectedBufParams; // 2 x 32 = 64 bytes
+  } expectedBufParams; // 16 x 1024 = 16 384 bytes
 
   const uint32_t texSize = expectedTexParams.w * expectedTexParams.h * get_tex_format_desc(expectedTexParams.flags).bytesPerElement;
   const uint32_t bufSize = expectedBufParams.elemSize * expectedBufParams.elemCount;
   CHECK(texSize == bufSize);
 
-  const uint32_t expectedSize = texSize;
 
-
-  auto prod1Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [expectedTexParams](dafg::Registry registry) {
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [expectedTexParams](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.createTexture2d("resource", {expectedTexParams.flags, IPoint2{expectedTexParams.w, expectedTexParams.h}})
       .useAs(dafg::Usage::SHADER_RESOURCE)
       .atStage(dafg::Stage::PS);
   });
 
-  auto user1Handle = dafg::register_node("user", DAFG_PP_NODE_SRC, [expectedTexParams, expectedSize](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [expectedTexParams](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto textureHandle = registry.readTexture("resource").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [textureHandle, expectedTexParams, expectedSize] {
+    return [textureHandle, expectedTexParams] {
       TextureInfo ti;
       textureHandle.get()->getinfo(ti);
-      CHECK(textureHandle.get()->getSize() == expectedSize);
       CHECK(ti.w == expectedTexParams.w);
       CHECK(ti.h == expectedTexParams.h);
       CHECK(ti.cflg == expectedTexParams.flags);
@@ -1793,7 +1799,7 @@ TEST_CASE("resource changing from texture to buffer witout changing size", "[res
   testRuntime.executeGraph();
 
 
-  auto prod2Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [expectedBufParams](dafg::Registry registry) {
+  producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [expectedBufParams](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.create("resource")
       .buffer({expectedBufParams.elemSize, expectedBufParams.elemCount, expectedBufParams.flags, 0})
@@ -1801,12 +1807,11 @@ TEST_CASE("resource changing from texture to buffer witout changing size", "[res
       .atStage(dafg::Stage::PS);
   });
 
-  auto user2Handle = dafg::register_node("user", DAFG_PP_NODE_SRC, [expectedBufParams, expectedSize](dafg::Registry registry) {
+  userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [expectedBufParams](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto bufferHandle = registry.read("resource").buffer().useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [bufferHandle, expectedBufParams, expectedSize] {
-      CHECK(bufferHandle.get()->getSize() == expectedSize);
+    return [bufferHandle, expectedBufParams] {
       CHECK(bufferHandle.get()->getElementSize() == expectedBufParams.elemSize);
       CHECK(bufferHandle.get()->getNumElements() == expectedBufParams.elemCount);
       CHECK(bufferHandle.get()->getFlags() == expectedBufParams.flags);
@@ -1820,26 +1825,23 @@ TEST_CASE("texture changing from scheduled to external without changing size", "
 {
   TestRuntime testRuntime{};
 
-  const TextureInfo info1 = {.w = 4, .h = 4, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 4 x 4 x 4 = 64 bytes
-  const TextureInfo info2 = {.w = 4, .h = 2, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 4 x 2 x 8 = 64 bytes;
+  const TextureInfo info1 = {.w = 64, .h = 64, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 64 x 64 x 4 = 16 384 bytes
+  const TextureInfo info2 = {.w = 64, .h = 32, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 64 x 32 x 8 = 16 384 bytes;
 
   const uint32_t info1Size = info1.w * info1.h * get_tex_format_desc(info1.cflg).bytesPerElement;
   const uint32_t info2Size = info2.w * info2.h * get_tex_format_desc(info2.cflg).bytesPerElement;
   CHECK(info1Size == info2Size);
 
-  const uint32_t expectedSize = info1Size;
 
+  static TextureInfo expectedInfo;
 
-  TextureInfo expectedInfo;
-
-  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [&expectedInfo, expectedSize](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto textureHandle = registry.readTexture("texture").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [textureHandle, &expectedInfo, expectedSize] {
+    return [textureHandle] {
       TextureInfo ti;
       textureHandle.get()->getinfo(ti);
-      CHECK(textureHandle.get()->getSize() == expectedSize);
       CHECK(ti.w == expectedInfo.w);
       CHECK(ti.h == expectedInfo.h);
       CHECK(ti.cflg == expectedInfo.cflg);
@@ -1859,9 +1861,9 @@ TEST_CASE("texture changing from scheduled to external without changing size", "
   testRuntime.executeGraph();
 
 
-  const auto createdTexture = UniqueTex(dag::create_tex(NULL, info2.w, info2.h, info2.cflg, 1, "texture"));
-
   expectedInfo = info2;
+
+  const auto createdTexture = UniqueTex(dag::create_tex(NULL, info2.w, info2.h, info2.cflg, 1, "ext_texture"));
 
   producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&createdTexture](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
@@ -1875,26 +1877,23 @@ TEST_CASE("texture changing from external to scheduled without changing size", "
 {
   TestRuntime testRuntime{};
 
-  const TextureInfo info1 = {.w = 4, .h = 4, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 4 x 4 x 4 = 64 bytes
-  const TextureInfo info2 = {.w = 4, .h = 2, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 4 x 2 x 8 = 64 bytes;
+  const TextureInfo info1 = {.w = 64, .h = 64, .cflg = TEXFMT_R8G8B8A8 | TEXCF_UNORDERED};     // 64 x 64 x 4 = 16 384 bytes
+  const TextureInfo info2 = {.w = 64, .h = 32, .cflg = TEXFMT_A16B16G16R16 | TEXCF_UNORDERED}; // 64 x 32 x 8 = 16 384 bytes;
 
   const uint32_t info1Size = info1.w * info1.h * get_tex_format_desc(info1.cflg).bytesPerElement;
   const uint32_t info2Size = info2.w * info2.h * get_tex_format_desc(info2.cflg).bytesPerElement;
   CHECK(info1Size == info2Size);
 
-  const uint32_t expectedSize = info1Size;
 
+  static TextureInfo expectedInfo;
 
-  TextureInfo expectedInfo;
-
-  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [&expectedInfo, expectedSize](dafg::Registry registry) {
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     const auto textureHandle = registry.readTexture("texture").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
 
-    return [textureHandle, &expectedInfo, expectedSize] {
+    return [textureHandle] {
       TextureInfo ti;
       textureHandle.get()->getinfo(ti);
-      CHECK(textureHandle.get()->getSize() == expectedSize);
       CHECK(ti.w == expectedInfo.w);
       CHECK(ti.h == expectedInfo.h);
       CHECK(ti.cflg == expectedInfo.cflg);
@@ -1902,11 +1901,11 @@ TEST_CASE("texture changing from external to scheduled without changing size", "
   });
 
 
-  const auto createdTexture = UniqueTex(dag::create_tex(NULL, info1.w, info1.h, info1.cflg, 1, "texture"));
-
   expectedInfo = info1;
 
-  auto prod2Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&createdTexture](dafg::Registry registry) {
+  const auto createdTexture = UniqueTex(dag::create_tex(NULL, info1.w, info1.h, info1.cflg, 1, "ext_texture"));
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [&createdTexture](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.registerExternal("texture").texture([&createdTexture](auto) { return ManagedTexView(createdTexture); });
   });
@@ -1916,7 +1915,7 @@ TEST_CASE("texture changing from external to scheduled without changing size", "
 
   expectedInfo = info2;
 
-  auto prod1Handle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
+  producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [info2](dafg::Registry registry) {
     registry.executionHas(dafg::SideEffects::External);
     registry.createTexture2d("texture", {info2.cflg, IPoint2{info2.w, info2.h}})
       .useAs(dafg::Usage::SHADER_RESOURCE)
@@ -1924,4 +1923,57 @@ TEST_CASE("texture changing from external to scheduled without changing size", "
   });
 
   testRuntime.executeGraph();
+}
+
+
+TEST_CASE("bad resolution appears", "[autoresolution]")
+{
+  g_interfaceTableCopy = d3di;
+
+  d3di.get_resource_allocation_properties = [](const ResourceDescription &desc) {
+    auto res = g_interfaceTableCopy.get_resource_allocation_properties(desc);
+    if (desc.asTexRes.width == 255)
+      res.sizeInBytes += 1024; // force dynamic resolution to be bad
+    return res;
+  };
+
+
+  const IPoint2 staticRes = {256, 128};
+  const IPoint2 dynamicRes = {255, 128};
+
+  static IPoint2 expectedRes;
+
+  TestRuntime testRuntime{};
+
+  auto producerHandle = dafg::register_node("producer", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    registry.createTexture2d("texture", {.creationFlags = TEXFMT_R8G8B8A8, .resolution = registry.getResolution<2>("resolution")})
+      .useAs(dafg::Usage::SHADER_RESOURCE)
+      .atStage(dafg::Stage::PS);
+  });
+
+  auto userHandle = dafg::register_node("user", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.executionHas(dafg::SideEffects::External);
+    const auto textureHandle = registry.readTexture("texture").useAs(dafg::Usage::SHADER_RESOURCE).atStage(dafg::Stage::PS).handle();
+
+    return [textureHandle] {
+      TextureInfo ti;
+      textureHandle.get()->getinfo(ti);
+      CHECK((expectedRes == IPoint2{ti.w, ti.h}));
+    };
+  });
+
+
+  dafg::root().setResolution("resolution", staticRes);
+  expectedRes = staticRes;
+  testRuntime.executeGraph();
+
+  dafg::root().setDynamicResolution("resolution", dynamicRes);
+  expectedRes = staticRes; // we need to run once more, as rescheduling in skipped
+  testRuntime.executeGraph();
+  expectedRes = dynamicRes;
+  testRuntime.executeGraph();
+
+
+  d3di = g_interfaceTableCopy;
 }

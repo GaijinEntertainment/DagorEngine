@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 require audio/audio_boost
 require audio/audio_wav

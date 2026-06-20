@@ -1,7 +1,7 @@
 // sealed class derivation
 // verifies compiler rejects inheriting from a class marked 'sealed'
 options gen2
-expect 30115
+expect 20701
 
 class sealed A {
     name : string = "foobar"

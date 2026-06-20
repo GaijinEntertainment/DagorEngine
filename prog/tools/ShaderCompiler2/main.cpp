@@ -295,6 +295,8 @@ static bool doCompileModulesAsync(const shc::CompilationContext &ctx)
   if (comp.sources().size() < 2)
     return false;
 
+  commonArgv.emplace_back("-_workerMode");
+
   int timeMsec = get_time_msec();
   int modules_cnt = 0;
   for (int i = 0; i < comp.sources().size(); i++)
@@ -1440,6 +1442,8 @@ int DagorWinMain(bool debugmode)
 #endif
     else if (dd_stricmp(s, "-noHlslHardcodedRegs") == 0)
       globalConfigRW.disallowHlslHardcodedRegs = true;
+    else if (dd_stricmp(s, "-_workerMode") == 0) // mangled for internal use only
+      globalConfigRW.workerMode = true;
     else
     {
     usage_err:

@@ -425,7 +425,7 @@ macro USE_WATER_3D_DEFERRED_COLOR_DNG()
       const SubSurfScattering subSurfScattering = getSubSurfScattering(viewData);
 
       // Adding foam on intersection between water and terrain
-      half shadow = min(shadowsData.vsmShadow, shadowsData.cloudShadow);
+      half shadow = shadowsData.vsmShadow * shadowsData.cloudShadow;
       half scatterFactor = subSurfScattering.directScatterFactor * shadowsData.cloudShadow*0.75 + 0.25;
       half3 lighting = (sun_color_0*(scatterFactor + saturate(0.6 + 0.4*viewData.NoL))*shadow + viewData.ambientLight);
       half3 underwater_inscatter = underWaterScattering.inscatter * lighting;

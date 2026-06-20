@@ -6,7 +6,7 @@ options gen2
 
 require _helper_foo
 
-expect 30302    // too_many_options
+expect 30609    // too_many_options
 
 struct TestObjectFoo {
     a : int

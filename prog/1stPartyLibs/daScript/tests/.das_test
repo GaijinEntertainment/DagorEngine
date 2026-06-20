@@ -14,6 +14,10 @@ def can_visit_folder(folder_name : string; var result : bool?) {
         *result = has_module("pugixml")
         return
     }
+    if (folder_name == "dasSQLITE") {
+        *result = has_module("sqlite")
+        return
+    }
     if (folder_name == "stbimage") {
         *result = has_module("stbimage")
         return
@@ -35,7 +39,10 @@ def can_visit_folder(folder_name : string; var result : bool?) {
             }
         }
     }
-    if (folder_name == "ast_match") {
+    // A meta-test that requires the compiler frontend at runtime (e.g. daslib/flatten ->
+    // macro_boost) can't AOT-link in the full-tree batch, and one that runs qmacro at runtime
+    // (flatten_optimize re-entry) carries quote nodes LLVM JIT can't codegen — interp only.
+    if (folder_name == "no_aot") {
         let args <- get_command_line_arguments()
         for (arg in args) {
             if (arg == "--use-aot" || arg == "-jit") {
@@ -44,4 +51,23 @@ def can_visit_folder(folder_name : string; var result : bool?) {
             }
         }
     }
+    if (folder_name == "ast_match" || folder_name == "ast") {
+        let args <- get_command_line_arguments()
+        for (arg in args) {
+            if (arg == "--use-aot" || arg == "-jit") {
+                *result = false
+                return
+            }
+        }
+    }
+    if (folder_name == "gc") {
+        let args <- get_command_line_arguments()
+        for (arg in args) {
+            if (arg == "-jit") {
+                *result = false
+                return
+            }
+        }
+    }
+
 }

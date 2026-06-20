@@ -581,6 +581,10 @@ ECS_TAG(render)
 ECS_NO_ORDER
 static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpitPrepass &event, ecs::EntityManager &manager)
 {
+  TMatrix vtm;
+  vtm = event.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
   ContextId ctx = get_or_create_context("dynmodel_immediate");
   gather_animchar_vehicle_cockpit_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag cockpitEntity) ECS_REQUIRE(ecs::EntityId cockpit__vehicleEid)
@@ -598,11 +602,10 @@ static void animchar_vehicle_cockpit_render_depth_prepass_es(const VehicleCockpi
         NeedPreviousMatrices::No, {}, PathFilterView::NULL_FILTER, 0, RenderPriority::DEFAULT, nullptr, event.texCtx);
     });
   if (!context_has_data(ctx))
+  {
+    d3d::settm(TM_VIEW, event.viewTm);
     return;
-  TMatrix vtm;
-  vtm = event.viewTm;
-  vtm.setcol(3, 0, 0, 0);
-  d3d::settm(TM_VIEW, vtm);
+  }
   STATE_GUARD_0(ShaderGlobal::set_int(is_hero_cockpitVarId, VALUE), 1);
   render_dynrend_ctx(ctx, dynamicSceneBlockId);
   d3d::settm(TM_VIEW, event.viewTm);

@@ -35,6 +35,7 @@
 #include <assets/assetPlugin.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 
+#define __DEBUG_FILEPATH nullptr
 #include <startup/dag_winMain.inc.cpp>
 
 #include <generic/dag_initOnDemand.h>

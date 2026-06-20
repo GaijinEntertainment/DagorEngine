@@ -134,7 +134,7 @@ def do_allocations() {
     delete arr
 
     // String interpolation allocates on the string heap
-    var greeting = "hello world #{42}"
+    let greeting = "hello world #{42}"
     print("  computed: {greeting}\n")
 
     // `new` allocates a struct on the heap

@@ -159,8 +159,8 @@ shader gpu_grass_bvh_instantiate
       bvhInstance.transform0 = float4(float3(rightVec.x, upVec.x, zVec.x), position.x);
       bvhInstance.transform1 = float4(float3(rightVec.y, upVec.y, zVec.y), position.y);
       bvhInstance.transform2 = float4(float3(rightVec.z, upVec.z, zVec.z), position.z);
-      bvhInstance.instanceId_mask = metaIndex | (bvhGroupGrass << 24);
-      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24;
+      bvhInstance.instanceId_mask = pack_rt_instance_id_mask(metaIndex, bvhGroupGrass);
+      bvhInstance.instanceOffset_flags = pack_rt_instance_flags(RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE);
       bvhInstance.blas = is_horizontal ? gpu_grass_bvh_blas_horizontal : gpu_grass_bvh_blas;
 
       structuredBufferAt(gpu_grass_bvh_instances, outputLocation) = bvhInstance;

@@ -52,8 +52,8 @@ class SkipArrayWalker : DapiDataWalker {
 // A walker that skips array data but still gets before/afterArray
 class SkipArrayDataWalker : DapiDataWalker {
     log : string
-    def override canVisitArrayData(ti : TypeInfo; count : uint) : bool {
-        log += "canVisitArrayData:{int(count)}\n"
+    def override canVisitArrayData(ti : TypeInfo; count : uint64) : bool {
+        log += "canVisitArrayData:{int64(count)}\n"
         return false
     }
     def override beforeArray(pa : DapiArray; ti : TypeInfo) : void {
@@ -109,10 +109,7 @@ class SelectiveStructWalker : DapiDataWalker {
     log : string
     skip_name : string
     def override canVisitStructure(ps : void?; si : StructInfo) : bool {
-        if (si.name == skip_name) {
-            return false
-        }
-        return true
+        return si.name != skip_name
     }
     def override beforeStructure(ps : void?; si : StructInfo) : void {
         log += "visit:{si.name}\n"

@@ -349,7 +349,7 @@ def isDasNative(var t : TypeDeclPtr) : bool
   if t.isHandle
     return false
 
-  if length(t.dim) > 0
+  if t.baseType == Type.tFixedArray
     return true
 
   // These are interop types by default, see blobBindings.cpp

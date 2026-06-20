@@ -81,22 +81,20 @@ hlsl(code) {
     return anyHit;
   }
 
-  int rayBLASOrdered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
-               int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
   int rayBLASUnordered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
                int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex);
 
   bool rayBLAS(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
                int startOffset, int blasSize, inout float t, inout float3 localTriNorm, inout float2 bCoord, inout int complex)
   {
-    #if BVH_ORDERED_BLAS
-      int bestTriOffset = rayBLASOrdered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
-    #else
-      int bestTriOffset = rayBLASUnordered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
-    #endif
+    int bestTriOffset = rayBLASUnordered(blas_data, rayOrigin, rayDir, rayDirInv, startOffset, blasSize, t, bCoord, complex);
 
     if (bestTriOffset > 0)
     {
+      // Refetch the winning leaf to recover normal and bary. The RayTriangleIntersect calls below
+      // are run only for their bCoord side effect (the returned t in `ct` is discarded): bc is
+      // written before the accept/reject test, so it is valid even though `ct == t` makes the test
+      // reject. Do NOT add an early-out before the bc write to RayTriangleIntersect, or this breaks.
       int subTri = bestTriOffset & 1;
       bestTriOffset &= ~1;
       uint qskip = loadBuffer(blas_data, bestTriOffset - 4); // skip field is at node+12 = leaf-4
@@ -226,59 +224,6 @@ hlsl(code) {
     }
     return bestTriOffset;
   }
-  #if BVH_ORDERED_BLAS
-  int rayBLASOrdered(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir, float3 rayDirInv,
-               int startOffset, int blasSize, inout float t, inout float2 bCoord, inout int complex)
-  {
-    int dataOffset = startOffset;
-
-    int bestTriOffset = 0;
-    //not working
-    uint stack[BVH_MAX_BLAS_DEPTH + 1];
-    int stackSize = 1;
-    int offset = startOffset - 2;
-    do {
-      uint leftOffset = offset + 2, rightOffset;
-      float leftT = BLAS_RT_INFINITY;
-      {
-        float3 bmin, bmax;
-        uint leftTreeSize;
-        decode_blas_elem_raw (blas_data,  leftOffset, bmin, bmax, leftTreeSize ) ;
-        if (leftTreeSize>>31)
-        {
-          uint ofs = leftOffset ;
-          rayBLASLeaf(blas_data, rayOrigin, rayDir, ofs, leftTreeSize, bmin, bmax, t, bCoord, bestTriOffset ) ;
-        } else if (!RayIntersectsBoxT(rayOrigin, rayDirInv, bmin.xyz, bmax.xyz, t, leftT))
-          leftT = BLAS_RT_INFINITY;
-
-        rightOffset = (leftTreeSize>>31) ? leftOffset + BVH_BLAS_LEAF_SIZE : leftOffset + BVH_BLAS_NODE_SIZE + leftTreeSize;
-      }
-      float rightT = BLAS_RT_INFINITY;
-      {
-        float3 bmin, bmax;
-        uint rightTreeSize;
-        decode_blas_elem_raw(blas_data,  rightOffset, bmin, bmax, rightTreeSize );
-        if (rightTreeSize>>31)
-        {
-          uint ofs = rightOffset;
-          rayBLASLeaf(blas_data, rayOrigin, rayDir, ofs, rightTreeSize, bmin, bmax, t, bCoord, bestTriOffset );
-        } else if (!RayIntersectsBoxT(rayOrigin, rayDirInv, bmin.xyz, bmax.xyz, t, rightT))
-          rightT = BLAS_RT_INFINITY;
-      }
-      bool leftCloser = leftT < rightT ;
-      float nearT = leftCloser ? leftT : rightT;
-      float farT = leftCloser ? rightT : leftT;
-      uint nearOffset = leftCloser ? leftOffset : rightOffset;
-      uint farOffset = leftCloser ? rightOffset : leftOffset;
-      if (farT < t)
-        stack[stackSize++] = farOffset;
-      if (nearT < t)
-        stack[stackSize++] = nearOffset;
-      offset = stack[--stackSize];
-    } while (stackSize > 0);
-    return bestTriOffset;
-  }
-  #endif
 
   bool rayShadowBLASLeaf(ByteAddressBuffer blas_data, float3 rayOrigin, float3 rayDir,
                   uint dataOffset,

@@ -57,6 +57,8 @@ static bool dlss_without_streamline()
 
 CONSOLE_BOOL_VAL("render", amdfsr_debug_view, false);
 
+CONSOLE_INT_VAL("render", arm_asr_shader_quality_override, -1, -1, int(amd::FSR::UpscalingMode::UltraPerformance));
+
 CONSOLE_BOOL_VAL("render", flagMetalfxUpscale, true);
 
 extern bool grs_draw_wire;
@@ -102,6 +104,7 @@ static const char *convert(AntialiasingMethod method)
     case AntialiasingMethod::METALFX: return "metalfx";
     case AntialiasingMethod::MOBILE_MSAA: return "mobile_msaa";
     case AntialiasingMethod::SGSR2: return "sgsr2";
+    case AntialiasingMethod::ARM_ASR: return "arm_asr";
     case AntialiasingMethod::SMAA: return "smaa";
     case AntialiasingMethod::SSAA: return "ssaa";
 #if _TARGET_C2
@@ -245,6 +248,8 @@ static AntialiasingMethod convert_method(const char *name, bool &is_valid)
     return AntialiasingMethod::MOBILE_MSAA;
   if (stricmp(name, "sgsr2") == 0)
     return AntialiasingMethod::SGSR2;
+  if (stricmp(name, "arm_asr") == 0)
+    return AntialiasingMethod::ARM_ASR;
   if (stricmp(name, "smaa") == 0)
     return AntialiasingMethod::SMAA;
   if (stricmp(name, "ssaa") == 0)
@@ -630,8 +635,14 @@ struct Context
       if (!optimalSettings.has_value())
         return false;
 
-      if (!dlss->setOptions(dlssQuality, outputResolution, getRRConfig(), dlssLegacyMode))
-        return false;
+      // Routed through the backend thread so the NGX feature (re)creation is not done on the calling thread.
+      nv::DlssOptions options;
+      options.mode = dlssQuality;
+      options.outputResolution = outputResolution;
+      options.useRayReconstruction = getRRConfig();
+      options.useLegacyModel = dlssLegacyMode;
+      int viewIndex = 0;
+      d3d::driver_command(Drv3dCommand::SET_DLSS_OPTIONS, &options, &viewIndex);
 
       if (dynamicResolutionEnabled)
       {
@@ -684,7 +695,14 @@ struct Context
       if (optimalSettings->rayReconstruction)
         prepareDlssRayReconstruction = eastl::make_unique<ComputeShader>("prepare_ray_reconstruction");
 
-      streamline->getDlssFeature(0)->setOptions(dlssQuality, outputResolution, false, dlssLegacyMode);
+      // Routed through the backend thread so slDLSS(D)SetOptions is not called from the calling thread.
+      nv::DlssOptions options;
+      options.mode = dlssQuality;
+      options.outputResolution = outputResolution;
+      options.useRayReconstruction = false; // -V1048
+      options.useLegacyModel = dlssLegacyMode;
+      int viewIndex = 0;
+      d3d::driver_command(Drv3dCommand::SET_DLSS_OPTIONS, &options, &viewIndex);
     }
 
     dlssGCount = getCfgFrameGenCount();
@@ -1205,6 +1223,62 @@ struct Context
 
     sgsr2->apply(source_tex, dest_tex, reset);
   }
+
+  bool tryInitArmAsr(const IPoint2 &outputResolution, IPoint2 &inputResolution)
+  {
+    if (method != AntialiasingMethod::ARM_ASR || !isFsrLoaded() || !isFsrUpscalingSupported())
+      return false;
+
+    amd::FSR::ContextArgs args;
+    args.enableHdr = hdrrender::is_hdr_enabled();
+    args.maxRenderWidth = inputResolution.x;
+    args.maxRenderHeight = inputResolution.y;
+    args.outputWidth = outputResolution.x;
+    args.outputHeight = outputResolution.y;
+    const int qualityOverride = arm_asr_shader_quality_override.get();
+    const int shaderQuality =
+      qualityOverride >= 0
+        ? qualityOverride
+        : dgs_get_settings()->getBlockByNameEx("graphics")->getInt("armAsrShaderQuality", int(amd::FSR::UpscalingMode::Balanced));
+    args.mode = amd::FSR::UpscalingMode(shaderQuality);
+    if (!initFsrUpscaling(args))
+      return false;
+
+    initCommonUpscaling("ARM ASR", int(args.mode), inputResolution, outputResolution);
+    return true;
+  }
+
+  void applyArmAsr(Texture *source_tex, Texture *dest_tex, const ApplyContext &ctx)
+  {
+    TIME_D3D_PROFILE(applyArmAsr);
+
+    G_ASSERT(source_tex);
+    G_ASSERT_RETURN(dest_tex, );
+
+    amd::FSR::UpscalingArgs args;
+    args.colorTexture = source_tex;
+    args.depthTexture = ctx.depthTexture;
+    args.motionVectors = ctx.motionTexture;
+    args.exposureTexture = nullptr;
+    args.outputTexture = dest_tex;
+    args.reactiveTexture = nullptr;
+    args.transparencyAndCompositionTexture = nullptr;
+    args.jitter = ctx.jitterPixelOffset;
+    args.motionVectorScale.x = app_glue()->getInputResolution().x;
+    args.motionVectorScale.y = app_glue()->getInputResolution().y;
+    args.reset = ctx.resetHistory;
+    args.debugView = amdfsr_debug_view;
+    args.sharpness = 0;
+    args.timeElapsed = ctx.timeElapsed;
+    args.preExposure = 1;
+    args.inputResolution = app_glue()->getInputResolution();
+    args.outputResolution = app_glue()->getDisplayResolution();
+    args.fovY = ctx.persp.hk;
+    args.nearPlane = ctx.persp.zf; // near and far are swapped as for inverted depth,
+    args.farPlane = ctx.persp.zn;  // FSR require far to be closer than near
+    args.frameIndex = dagor_get_global_frame_id();
+    d3d::driver_command(Drv3dCommand::EXECUTE_FSR, (void *)&args);
+  }
 #endif
 
   bool tryInitSmaa(const IPoint2 &resolution)
@@ -1436,7 +1510,12 @@ struct Context
       d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
       nv::DLSSFrameGeneration *dlssg = streamline ? streamline->getDlssGFeature(0) : nullptr;
       if (dlssg)
-        dlssg->setEnabled(enable ? getCfgFrameGenCount() : 0);
+      {
+        // Routed through the backend thread so slDLSSGSetOptions is not called from the calling thread.
+        int framesToGenerate = enable ? getCfgFrameGenCount() : 0;
+        int viewIndex = 0;
+        d3d::driver_command(Drv3dCommand::SET_DLSS_G_ENABLED, &framesToGenerate, &viewIndex);
+      }
     }
     else if (method == AntialiasingMethod::FSR)
     {
@@ -1886,6 +1965,11 @@ void recreate(const IPoint2 &display_resolution, const IPoint2 &postfx_resolutio
       if (!g_ctx->tryInitSgsr2(display_resolution, rendering_resolution))
         fallbackToNone();
       break;
+    case AntialiasingMethod::ARM_ASR:
+      rendering_resolution = postfx_resolution;
+      if (!g_ctx->tryInitArmAsr(display_resolution, rendering_resolution))
+        fallbackToNone();
+      break;
 #endif
     case AntialiasingMethod::SMAA:
       rendering_resolution = postfx_resolution;
@@ -1960,7 +2044,8 @@ bool is_temporal()
   return g_ctx->method == AntialiasingMethod::TAA || g_ctx->method == AntialiasingMethod::TSR ||
          g_ctx->method == AntialiasingMethod::DLSS || g_ctx->method == AntialiasingMethod::XeSS ||
          g_ctx->method == AntialiasingMethod::FSR || g_ctx->method == AntialiasingMethod::MobileTAA ||
-         g_ctx->method == AntialiasingMethod::SGSR2 || g_ctx->method == AntialiasingMethod::MobileTAALow
+         g_ctx->method == AntialiasingMethod::SGSR2 || g_ctx->method == AntialiasingMethod::ARM_ASR ||
+         g_ctx->method == AntialiasingMethod::MobileTAALow
 #if _TARGET_C2
 
 #endif
@@ -2044,6 +2129,12 @@ bool is_metalfx_upscale_supported()
   return flagMetalfxUpscale.get() && metalfxSupported;
 }
 
+bool is_arm_asr_supported()
+{
+  static bool armAsrSupported = d3d::driver_command(Drv3dCommand::GET_FSR_UPSCALING_SUPPORTED) != 0;
+  return armAsrSupported;
+}
+
 void before_render_frame()
 {
   if (!g_ctx || g_ctx->method != AntialiasingMethod::TAA)
@@ -2110,6 +2201,11 @@ Point2 get_jitter_offset(const RenderView &view, bool vr_mode)
       return g_ctx->sgsr2->getJitterOffset();
       break;
     }
+    case AntialiasingMethod::ARM_ASR:
+    {
+      int phase = dagor_get_global_frame_id() % uint32_t(g_ctx->subsamples) + 1;
+      return Point2(halton_sequence(phase, 2) - 0.5f, halton_sequence(phase, 3) - 0.5f);
+    }
 #endif
     default: break;
   }
@@ -2127,7 +2223,7 @@ void apply_fxaa(AntialiasingMethod method, Texture *src_color, Texture *src_dept
   g_ctx->antialiasing->apply(src_color, src_depth, tc_scale_offset);
 }
 
-void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, bool temporal_reset)
+void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, const ApplyContext &ctx)
 {
   switch (g_ctx->method)
   {
@@ -2136,7 +2232,8 @@ void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, bool temporal_reset
     case AntialiasingMethod::MobileTAALow: g_ctx->applyMobileTaa(source_tex, dest_tex); break;
 #if HAS_SGSR
     case AntialiasingMethod::SGSR: g_ctx->applySgsr(source_tex, dest_tex); break;
-    case AntialiasingMethod::SGSR2: g_ctx->applySgsr2(source_tex, dest_tex, temporal_reset); break;
+    case AntialiasingMethod::SGSR2: g_ctx->applySgsr2(source_tex, dest_tex, ctx.resetHistory); break;
+    case AntialiasingMethod::ARM_ASR: g_ctx->applyArmAsr(source_tex, dest_tex, ctx); break;
 #endif
     case AntialiasingMethod::SMAA: g_ctx->applySmaa(source_tex, dest_tex); break;
     default: break;

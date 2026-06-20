@@ -9,7 +9,7 @@ namespace AnimV20
 int addEnumValue(const char *) { G_ASSERT_RETURN(false, 0); }
 int getEnumValueByName(const char *) { G_ASSERT_RETURN(false, 0); }
 const char *getEnumName(int) { G_ASSERT_RETURN(false, ""); }
-AnimV20::AnimCommonStateHolder::AnimCommonStateHolder(const AnimCommonStateHolder &st) :
+AnimV20::AnimGraphStateHolder::AnimGraphStateHolder(const AnimGraphStateHolder &st) :
   graph(st.graph),
   paramNames(st.paramNames),
   paramTypes(st.paramTypes),
@@ -64,33 +64,35 @@ AnimV20::AnimBlender::TlsContext &AnimV20::AnimBlender::selectCtx(intptr_t (*)(i
 void AnimcharBaseComponent::forcePostRecalcWtm(real) { G_ASSERT(0); }
 void AnimcharBaseComponent::cloneTo(AnimcharBaseComponent *, bool) const { G_ASSERT(0); }
 
-void AnimationGraph::enqueueState(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float, float) { G_ASSERT(0); }
+void AnimationGraph::enqueueState(AnimGraphStateHolder &, dag::ConstSpan<StateRec>, float, float) { G_ASSERT(0); }
 int AnimationGraph::addParamId(const char *, int) { G_ASSERT_RETURN(0, 0); }
 int AnimationGraph::addInlinePtrParamId(const char *, size_t, int) { G_ASSERT_RETURN(0, 0); }
-void AnimationGraph::setStateSpeed(IPureAnimStateHolder &, dag::ConstSpan<StateRec>, float) { G_ASSERT(0); }
+void AnimationGraph::setStateSpeed(AnimGraphStateHolder &, dag::ConstSpan<StateRec>, float) { G_ASSERT(0); }
 int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
 int AnimationGraph::registerBlendNode(AnimV20::IAnimBlendNode *, char const *, char const *) { G_ASSERT_RETURN(0, 0); }
+
+void AnimBlendCtrl_Hub::addBlendNode(IAnimBlendNode *, bool, real) { G_ASSERT(0); }
 
 void register_blend_node_creator(blend_node_creator_t) {}
 bool create_blend_node_from_creators(AnimationGraph &, const DataBlock &) { G_ASSERT_RETURN(0, false); }
 
-bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real, FifoMorphType) { G_ASSERT(0); }
+bool AnimBlendCtrl_Fifo3::isEnqueued(AnimGraphStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
+void AnimBlendCtrl_Fifo3::enqueueState(AnimGraphStateHolder &, IAnimBlendNode *, real, FifoMorphType) { G_ASSERT(0); }
 int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real) { G_ASSERT_RETURN(false, 0); }
 
-int AnimCommonStateHolder::getParamInt(int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setParamInt(int, int) { G_ASSERT(0); }
-int AnimCommonStateHolder::getParamFlags(int, int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setParamFlags(int, int, int) { G_ASSERT(0); }
-float AnimCommonStateHolder::getParamEffTimeScale(int) const { G_ASSERT_RETURN(false, 0.f); }
-int AnimCommonStateHolder::getTimeScaleParamId(int) const { G_ASSERT_RETURN(false, 0); }
-void AnimCommonStateHolder::setTimeScaleParamId(int, int) { G_ASSERT(0); }
-void AnimCommonStateHolder::advance(float) { G_ASSERT(0); }
-void AnimCommonStateHolder::term() { G_ASSERT(0); }
-void AnimCommonStateHolder::init() { G_ASSERT(0); }
+int AnimGraphStateHolder::getParamInt(int) const { G_ASSERT_RETURN(false, 0); }
+void AnimGraphStateHolder::setParamInt(int, int) { G_ASSERT(0); }
+int AnimGraphStateHolder::getParamFlags(int, int) const { G_ASSERT_RETURN(false, 0); }
+void AnimGraphStateHolder::setParamFlags(int, int, int) { G_ASSERT(0); }
+float AnimGraphStateHolder::getParamEffTimeScale(int) const { G_ASSERT_RETURN(false, 0.f); }
+int AnimGraphStateHolder::getTimeScaleParamId(int) const { G_ASSERT_RETURN(false, 0); }
+void AnimGraphStateHolder::setTimeScaleParamId(int, int) { G_ASSERT(0); }
+void AnimGraphStateHolder::advance(float) { G_ASSERT(0); }
+void AnimGraphStateHolder::term() { G_ASSERT(0); }
+void AnimGraphStateHolder::init() { G_ASSERT(0); }
 
 void AnimBlender::buildNodeList() { G_ASSERT(0); }
-void AnimCommonStateHolder::dumpStateText(String &) const { G_ASSERT(0); }
+void AnimGraphStateHolder::dumpStateText(String &) const { G_ASSERT(0); }
 
 bool IAnimBlendNode::isAnimNodeNameValid(const char *) { G_ASSERT_RETURN(0, false); }
 AnimPostBlendCtrl::AnimPostBlendCtrl(AnimV20::AnimationGraph &g) : graph(g), pbcId(-1) { G_ASSERT(0); }

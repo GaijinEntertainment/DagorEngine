@@ -47,7 +47,7 @@ public:
 #endif
 
 private:
-#if _TARGET_PC_WIN | _TARGET_XBOX
+#if _TARGET_PC_WIN
   void OnChar(uintptr_t wParam);
   void OnKeyUpKeyDown(unsigned msg, uintptr_t wParam, intptr_t lParam);
 #endif

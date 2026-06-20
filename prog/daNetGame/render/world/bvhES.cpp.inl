@@ -35,7 +35,7 @@
 #include <render/renderEvent.h>
 #include <util/dag_convar.h>
 #include <drv/3d/dag_rwResource.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <render/renderEvent.h>
 #include <render/resolution.h>
 #include <render/renderer.h>
@@ -106,6 +106,7 @@ CONSOLE_FLOAT_VAL("rt_speed", airplane_cockpit_radius, 5);
 // TODO move these to entity
 static bvh::ContextId bvhRenderingContextId;
 static BVHConnection *fxBvhConnection = nullptr;
+static BVHConnection *smokeTracersBvhConnection = nullptr;
 static bool cablesChanged = false;
 static dynrend::ContextId bvhDynmodelCtx = dynrend::ContextId::INVALID;
 static void bvh_iterate_over_animchars(
@@ -375,9 +376,9 @@ static void initBVH()
 
 
 #endif
-    auto features = bvh::Features::Terrain | bvh::Features::RIFull | bvh::Features::Fx | bvh::Features::Cable |
-                    bvh::Features::BinScene | bvh::Features::FftWater | bvh::Features::Dagdp | bvh::Features::GPUGrass |
-                    bvh::Features::Splinegen | bvh::Features::GpuObjects;
+    auto features = bvh::Features::Terrain | bvh::Features::RIFull | bvh::Features::Fx | bvh::Features::SmokeTracers |
+                    bvh::Features::Cable | bvh::Features::BinScene | bvh::Features::FftWater | bvh::Features::Dagdp |
+                    bvh::Features::GPUGrass | bvh::Features::Splinegen | bvh::Features::GpuObjects;
 
     const ResolvedRTSettings &rtSettings = get_resolved_rt_settings();
     if (rtSettings.isBvhDynModelsEnabled)
@@ -408,6 +409,7 @@ static void initBVH()
     bvh::init(bvh::process_elem, nullptr, additionalSettings);
     bvhRenderingContextId = bvh::create_context("Rendering", static_cast<bvh::Features>(features));
     bvh::connect_fx(bvhRenderingContextId, [](BVHConnection *connection) { fxBvhConnection = connection; });
+    bvh::connect_smoke_tracers(bvhRenderingContextId, [](BVHConnection *connection) { smokeTracersBvhConnection = connection; });
     bvh::connect_dagdp(bvhRenderingContextId, [](BVHInstanceMapper *mapper) { dagdpInstanceMapper = mapper; });
     bvhBuildingCountdown = MAX_BVH_BUILDING_COUNTDOWN;
     debug("initBVH: bvhBuildingCountdown reset to %d frames", bvhBuildingCountdown);
@@ -466,8 +468,10 @@ static void closeBVH(bool device_reset = false)
     g_entity_mgr->broadcastEventImmediate(RemoveSplinegenBVHEvent());
     bvhRenderingContextId = {};
     fxBvhConnection = nullptr;
+    smokeTracersBvhConnection = nullptr;
     dagdpInstanceMapper = nullptr;
     ShaderGlobal::set_int(bvh_usableVarId, 0);
+    toggle_rtsm_dynamic(false);
   }
 }
 
@@ -618,7 +622,7 @@ BVHInstanceMapper *get_bvh_dagdp_instance_mapper() { return dagdpInstanceMapper;
 void prepareFXForBVH(const Point3 &cameraPos) { acesfx::prepare_bvh_culling(get_bvh_culling_matrix(cameraPos)); }
 
 bool is_bvh_enabled() { return get_resolved_rt_settings().isBVHEnabled; }
-static bool is_bvh_usable() { return bool(bvhRenderingContextId) && bvhBuildingCountdown < 0; }
+bool is_bvh_usable() { return bool(bvhRenderingContextId) && bvhBuildingCountdown < 0; }
 
 bool is_rtsm_enabled() { return get_resolved_rt_settings().isRTSMEnabled; }
 bool is_rtsm_dynamic_enabled() { return get_resolved_rt_settings().isRTSMDynamicEnabled; }
@@ -854,6 +858,13 @@ static void update_splinegen_for_bvh()
     g_entity_mgr->broadcastEventImmediate(GatherSplinegenBVHDataEvent(bvhRenderingContextId));
 }
 
+static void update_smoke_tracers_for_bvh()
+{
+  if (!smokeTracersBvhConnection)
+    return;
+  g_entity_mgr->broadcastEventImmediate(GatherSmokeTracersBVHDataEvent(smokeTracersBvhConnection));
+}
+
 ECS_TAG(render)
 static void set_animate_out_of_frustum_trees_es(const RendinstLodRangeIncreasedEvent &evt)
 {
@@ -945,6 +956,8 @@ static dafg::NodeHandle makeBVHUpdateNode()
       bvh::start_frame();
       bvh::update_terrain(bvhRenderingContextId, Point2::xz(cameraPos));
       upload_dynmodel_instance_data();
+      bvh::ensure_particle_buffer_capacity(fxBvhConnection ? fxBvhConnection->getMaxCount() : 0,
+        smokeTracersBvhConnection ? smokeTracersBvhConnection->getMaxCount() : 0);
       update_fx_for_bvh();
       update_splinegen_for_bvh();
       if (auto cables = get_cables_mgr())
@@ -961,6 +974,7 @@ static dafg::NodeHandle makeBVHUpdateNode()
         dagdpInstanceMapper->submitBuffers(dagdpCounterHndl.get(), dagdpIntsancesHndl.get());
       bool hasGrass = is_bvh_dagdp_enabled() && get_grass_renderer();
       bvh::generate_gpu_grass_instances(bvhRenderingContextId, hasGrass);
+      update_smoke_tracers_for_bvh();
       bvh::build(bvhRenderingContextId, cameraHndl.ref().viewItm, cameraHndl.ref().jitterProjTm, cameraPos, Point3::ZERO);
       auto callback = [](const Point3 &view_pos, const Point3 &view_dir, float d, Color3 &insc, Color3 &loss) {
         get_daskies()->getCpuFogSingle(view_pos, view_dir, d, insc, loss);
@@ -2327,6 +2341,14 @@ static void process_elem(const ShaderMesh::RElem &elem,
   static int smoothnessVarId = get_shader_variable_id("smoothness", true);
   static int reflectanceVarId = get_shader_variable_id("reflectance", true);
   static int tank_decals_smoothnessVarId = get_shader_variable_id("tank_decals_smoothness", true);
+  static int mask_gamma_startVarId = get_shader_variable_id("mask_gamma_start");
+  static int mask_gamma_endVarId = get_shader_variable_id("mask_gamma_end");
+  static int mask_tile_uVarId = get_shader_variable_id("mask_tile_u");
+  static int mask_tile_vVarId = get_shader_variable_id("mask_tile_v");
+  static int detail1_tile_uVarId = get_shader_variable_id("detail1_tile_u");
+  static int detail1_tile_vVarId = get_shader_variable_id("detail1_tile_v");
+  static int detail2_tile_uVarId = get_shader_variable_id("detail2_tile_u");
+  static int detail2_tile_vVarId = get_shader_variable_id("detail2_tile_v");
 
   int isClipmap = 0;
   elem.mat->getIntVariable(is_rendinst_clipmapVarId, isClipmap);
@@ -2439,6 +2461,14 @@ static void process_elem(const ShaderMesh::RElem &elem,
   elem.mat->getColor4Variable(paint_const_colorVarId, colorOverride);
   elem.mat->getColor4Variable(colorVarId, colorOverride);
 
+  float mask_gamma_startValue = 0.5;
+  float mask_gamma_endValue = 2;
+  float mask_tile_uValue = 1;
+  float mask_tile_vValue = 1;
+  float detail1_tile_uValue = 1;
+  float detail1_tile_vValue = 1;
+  float detail2_tile_uValue = 1;
+  float detail2_tile_vValue = 1;
   float atlas_tile_uValue = 1;
   float atlas_tile_vValue = 1;
   int atlas_first_tileValue = 0;
@@ -2453,6 +2483,15 @@ static void process_elem(const ShaderMesh::RElem &elem,
 
     G_ASSERT(atlas_first_tileValue >= 0);
     G_ASSERT(atlas_last_tileValue >= atlas_first_tileValue);
+
+    elem.mat->getRealVariable(mask_gamma_startVarId, mask_gamma_startValue);
+    elem.mat->getRealVariable(mask_gamma_endVarId, mask_gamma_endValue);
+    elem.mat->getRealVariable(mask_tile_uVarId, mask_tile_uValue);
+    elem.mat->getRealVariable(mask_tile_vVarId, mask_tile_vValue);
+    elem.mat->getRealVariable(detail1_tile_uVarId, detail1_tile_uValue);
+    elem.mat->getRealVariable(detail1_tile_vVarId, detail1_tile_vValue);
+    elem.mat->getRealVariable(detail2_tile_uVarId, detail2_tile_uValue);
+    elem.mat->getRealVariable(detail2_tile_vVarId, detail2_tile_vValue);
   }
 
   float invert_height1Value = 0;
@@ -2498,16 +2537,31 @@ static void process_elem(const ShaderMesh::RElem &elem,
     mesh_info.atlasTileV = atlas_tile_vValue;
     mesh_info.atlasFirstTile = atlas_first_tileValue;
     mesh_info.atlasLastTile = atlas_last_tileValue;
+
+    mesh_info.maskGammaStart = mask_gamma_startValue;
+    mesh_info.maskGammaEnd = mask_gamma_endValue;
+    mesh_info.maskTileU = mask_tile_uValue;
+    mesh_info.maskTileV = mask_tile_vValue;
+    mesh_info.detail1TileU = detail1_tile_uValue;
+    mesh_info.detail1TileV = detail1_tile_vValue;
+    mesh_info.detail2TileU = detail2_tile_uValue;
+    mesh_info.detail2TileV = detail2_tile_vValue;
+
+    mesh_info.extraTextureId = elem.mat->get_texture(1);
+    mesh_info.alphaTextureId = elem.mat->get_texture(3);
+    mesh_info.normalTextureId = elem.mat->get_texture(5);
+
+    mesh_info.texcoordOffset = parser.secTexcoordFormat != -1 ? parser.secTexcoordOffset : MeshInfo::invalidOffset;
+    mesh_info.texcoordFormat = parser.secTexcoordFormat;
+    mesh_info.secTexcoordOffset = parser.thirdTexcoordFormat != -1 ? parser.thirdTexcoordOffset : MeshInfo::invalidOffset;
+    // Since we only have 1 texcoord format field in the meta
+    G_ASSERT(parser.secTexcoordFormat == parser.thirdTexcoordFormat);
   }
 
   if (isMaskLayered)
   {
     mesh_info.isLayered = true;
     mesh_info.useAtlas = false;
-  }
-
-  if (isMaskLayered || isLayered)
-  {
     mesh_info.painted = true; // need to pass colorOverride into materialdata2
 
     mesh_info.alphaTextureId = elem.mat->get_texture(3);
@@ -2625,7 +2679,8 @@ static void process_elem(const ShaderMesh::RElem &elem,
   }
 
   mesh_info.albedoTextureId = impostor_textures ? impostor_textures->albedo_alpha : elem.mat->get_texture(0);
-  mesh_info.normalTextureId = elem.mat->get_texture(2);
+  if (!isLayered)
+    mesh_info.normalTextureId = elem.mat->get_texture(2);
   mesh_info.alphaTest = hasAlphaTest;
   mesh_info.isCamo = isCamo;
   mesh_info.forceNonMetal = isSkin || isTree;

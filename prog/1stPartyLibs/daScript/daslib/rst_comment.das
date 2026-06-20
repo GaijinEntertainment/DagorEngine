@@ -2,8 +2,6 @@ options gen2
 //fmt:ignore-file
 options gen2 = false
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_aot = true
 options strict_smart_pointers = true
 
@@ -69,9 +67,7 @@ def private get_macro_name ( st:StructurePtr; mtype:string ) : string {
     for (ann in st.annotations) {
         if (ann.annotation.name==mtype) {
             for (arg in ann.arguments) {
-                if (arg.name=="name") {
-                    return string(arg.sValue)
-                }
+                if (arg.name=="name") return string(arg.sValue)
             }
         }
     }
@@ -84,9 +80,7 @@ var private modName : function<(): string>
 [macro_function]
 def get_module_name(prog, mod) {
     let res = string(prog.thisModuleName)
-    if (res != "") {
-        return res
-    }
+    if (res != "") return res
 
     return base_name(compiling_file_name()).split(".")[0]
 }
@@ -113,17 +107,17 @@ class RstComment : AstCommentReader {
     pending_line : int = 0
     field_comments : array<tuple<kind:string;name:string;comment:string>>
     def override open ( prog:ProgramPtr; mod:Module?; cpp:bool; info:LineInfo ) : void {
-        if (length(chars) > 0) {
+        if (!empty(chars)) {
             print("already open in {get_module_name(prog, mod)}")
             print(string(chars))
         }
-        assert(length(chars)==0,"already open")
+        assert(empty(chars),"already open")
     }
     def override accept ( prog:ProgramPtr; mod:Module?; ch:int; info:LineInfo ) : void {
         chars |> push(uint8(ch))
     }
     def override close ( prog:ProgramPtr; mod:Module?; info:LineInfo ) : void {
-        if (!DEBUG_COMMENT_READER && (length(chars)<1 || int(chars[0])!='!')) {
+        if (!DEBUG_COMMENT_READER && (empty(chars) || int(chars[0])!='!')) {
             delete chars
             return
         }
@@ -470,13 +464,17 @@ class RstComment : AstCommentReader {
         field_comment = ""
     }
     def write_to_detail ( name, text : string ) : void {
-        if (is_in_completion()) {
-            return
-        }
+        if (is_in_completion()) return
         var output : string
         let args = get_command_line_arguments()
+        let detailIds = args |> find_index("--detail_output")
         let outputIds = args |> find_index("--docs_output")
-        if (outputIds >= 0) {
+        if (detailIds >= 0) {
+            // `--detail_output Y` → write to `Y/detail/`. Matches the natural
+            // read path `{topic_root}/detail/...` so the consumer can set
+            // `topic_root = Y` without the `/index/` segment.
+            output = args[detailIds+1] + "/detail/"
+        } elif (outputIds >= 0) {
             output = args[outputIds+1] + "/index/detail/"
         } else {
             output = get_das_root() + "/doc/source/stdlib/generated/detail/"

@@ -21,6 +21,7 @@ struct BVHConnection
   }
   virtual void textureUsed(TEXTUREID texture_id) { G_UNUSED(texture_id); }
   virtual float getMaxRange() const { return 1000000; }
+  virtual int getMaxCount() const { return 0; }
   virtual const UniqueBuf &getInstanceCounter() = 0;
   virtual const UniqueBuf &getInstancesBuffer() = 0;
   virtual const UniqueBuf &getMappingsBuffer() = 0;

@@ -291,7 +291,7 @@ int BhvTextAreaEdit::find_block_left(textlayout::FormattedText *fmt_text, int cu
 // before the next format() so the merged block gets reshaped.
 static void merge_text_blocks(textlayout::FormattedText *fmtText)
 {
-  for (int i = int(fmtText->blocks.size()) - 1; i > 1; --i)
+  for (int i = int(fmtText->blocks.size()) - 1; i >= 1; --i)
   {
     TextBlock *curBlock = fmtText->blocks[i];
     TextBlock *prevBlock = fmtText->blocks[i - 1];

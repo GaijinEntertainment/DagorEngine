@@ -123,14 +123,14 @@ namespace das {
             for ( auto & fn : functions.each() ) {
                 if ( fn->used ) {
                     if ( !mod.addFunction(fn, true) ) {
-                        program->error("internal error, failed to add function " + fn->name,"","", fn->at );
+                        program->error("internal error, failed to add function " + fn->name,"","", fn->at, CompilationError::internal_function );
                     }
                 }
             }
             for ( auto & var : globals.each() ) {
                 if ( var->used ) {
                     if ( !mod.addVariable(var, true) ) {
-                        program->error("internal error, failed to add variable " + var->name,"","", var->at );
+                        program->error("internal error, failed to add variable " + var->name,"","", var->at, CompilationError::internal_variable );
                     }
                 }
             }
@@ -146,6 +146,9 @@ namespace das {
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
             return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
+        }
+        virtual bool canVisitStructure ( Structure * st ) override {
+            return !st->isTemplate;    // we don't do a thing with templates
         }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }

@@ -61,7 +61,7 @@ struct getAsInt
           case OT_FLOAT: {
               SQFloat sqValuef = 0;
               SQRESULT res = sq_getfloat(vm, idx, &sqValuef);
-              value = static_cast<T>(static_cast<int>(sqValuef));
+              value = static_cast<T>(sqValuef);
               return SQ_SUCCEEDED(res);
           }
           default:

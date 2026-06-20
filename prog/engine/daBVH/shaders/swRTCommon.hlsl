@@ -245,6 +245,15 @@ bool RayTriangleIntersectInf(
   return true;
 }
 
+// Watertightness contract for this file's ray-triangle tests:
+//   * Closest-hit (RayTriangleIntersect) and any-hit/shadow (RayTriangle2_SoA_AnyHit,
+//     RayTriangleIntersectShadow) use non-watertight Moller-Trumbore with epsilon edge bands.
+//     Shared edges/vertices can crack or double-hit by a pixel; acceptable for SWRT shadows
+//     because soft-sun-disk sampling and blue-noise dither mask it.
+//   * The XZ heightmap path (RayTriangleIntersectInfXZ, and RayTriangleIntersectInf under
+//     USE_WATERTIGHT_TRACE) uses an edge-function test that admits exactly-zero edges, so it is
+//     crack-free along shared edges -- required for terrain height queries.
+
 //Adapted from https://github.com/kayru/RayTracedShadows/blob/master/Source/Shaders/RayTracedShadows.comp
 bool RayTriangleIntersect(
     float3 orig,
@@ -269,14 +278,19 @@ bool RayTriangleIntersect(
   float3 e0 = v1-v0, e1 = v2-v0;
   float3 s1 = cross(dir.xyz, e1);
   float det  = dot(s1, e0);
-  float invd = rcp(det);
+  // Reject zero/denormal det branchlessly: a true rcp(0)=inf makes bc.x = 0*inf = NaN, and every
+  // NaN compare in the rejection chain is false, so we would return a hit with t = NaN and poison
+  // closest-hit state. detSafe keeps the divide finite; the `degenerate` term then rejects the tri.
+  // Mirrors the SoA RayTriangle2_SoA path and the CPU v_rcp_safe(det).
+  bool degenerate = abs(det) < 1e-37f;
+  float invd = rcp(degenerate ? 1.0f : det);
   float3 d = orig.xyz - v0;
   bc.x = dot(d, s1) * invd;
   const float3 s2 = cross(d, e0);
   bc.y = dot(dir.xyz, s2) * invd;
   float ct = dot(e1, s2) * invd;
   FLATTEN
-  if (
+  if (degenerate ||
 #if BACKFACE_CULLING
     det < -kEpsilon ||
 #endif
@@ -429,14 +443,17 @@ bool RayTriangleIntersectShadow(
 {
   float3 e0 = v1-v0, e1 = v2-v0;
   float3 s1 = cross(dir.xyz, e1);
-  float  invd = rcp(dot(s1, e0));
+  float det = dot(s1, e0);
+  bool degenerate = abs(det) < 1e-37f; // detSafe divide, same as RayTriangleIntersect
+  float  invd = rcp(degenerate ? 1.0f : det);
   float3 d = orig.xyz - v0;
   float2 bc;
   bc.x = dot(d, s1) * invd;
   const float3 s2 = cross(d, e0);
   bc.y = dot(dir.xyz, s2) * invd;
   float ct = dot(e1, s2) * invd;
-  return bc.x >= -TRACE_EPSILON & bc.y >= -TRACE_EPSILON & (bc.x + bc.y) <= TRACE_ONE_PLUS_EPSILON2 & ct >= 0.0;
+  bool hit = bc.x >= -TRACE_EPSILON & bc.y >= -TRACE_EPSILON & (bc.x + bc.y) <= TRACE_ONE_PLUS_EPSILON2 & ct >= 0.0;
+  return hit & !degenerate;
 }
 
 #endif

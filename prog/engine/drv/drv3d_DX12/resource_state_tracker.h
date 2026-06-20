@@ -1110,6 +1110,32 @@ class BarrierBatcher
   dag::Vector<D3D12_BUFFER_BARRIER> enhancedBufferBarriers;
 #endif
 
+  D3D12_RESOURCE_STATES fromStateMask = D3D12_RESOURCE_STATE_COMMON;
+  D3D12_RESOURCE_STATES toStateMask = D3D12_RESOURCE_STATE_COMMON;
+
+  void suspendCounters([[maybe_unused]] auto &cmd)
+  {
+#if _TARGET_XBOXONE
+    if (D3D12_RESOURCE_STATE_RENDER_TARGET & fromStateMask)
+    {
+      const D3D12XBOX_OCCLUSION_QUERY_CONTROL ctl{};
+      // On XB1 fast clear eliminate, triggered by RTV -> SRV transitions, count as rendered fragments. This breaks optimizations that
+      // depend on accurate fragment counting, resulting in performance drops as up to 8% in some cases.
+      // This tries disable all counting for the duration of transition barriers.
+      xbox_set_occlusion_query_control(cmd, &ctl);
+    }
+#endif
+  }
+  void resumeCounters([[maybe_unused]] auto &cmd)
+  {
+#if _TARGET_XBOXONE
+    if (D3D12_RESOURCE_STATE_RENDER_TARGET & fromStateMask)
+    {
+      xbox_set_occlusion_query_control(cmd, nullptr);
+    }
+#endif
+  }
+
 public:
   void purgeAll()
   {
@@ -1134,6 +1160,9 @@ public:
     newBarrier.Transition.StateAfter = to;
     VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
+
+    fromStateMask |= from;
+    toStateMask |= to;
   }
 
   void endTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
@@ -1148,6 +1177,9 @@ public:
     newBarrier.Transition.StateAfter = to;
     VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
+
+    fromStateMask |= from;
+    toStateMask |= to;
   }
 
   void transition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
@@ -1166,6 +1198,9 @@ public:
     newBarrier.Transition.StateAfter = to;
     VALIDATE(validate_transition_barrier(newBarrier.Transition), "%d is failed!", __FUNCTION__);
     dataSet.push_back(newBarrier);
+
+    fromStateMask |= from;
+    toStateMask |= to;
   }
 
   bool tryEraseTransition(ID3D12Resource *res, SubresourceIndex sub_res, D3D12_RESOURCE_STATES from, D3D12_RESOURCE_STATES to)
@@ -1256,6 +1291,8 @@ public:
       return true;
     }
 
+    toStateMask |= to;
+
     ref->Transition.StateAfter = to;
     VALIDATE(validate_transition_barrier(ref->Transition), "%d is failed!", __FUNCTION__);
     return true;
@@ -1281,6 +1318,8 @@ public:
     {
       return false;
     }
+
+    toStateMask |= to;
 
     ref->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     ref->Transition.StateAfter = to;
@@ -1376,8 +1415,15 @@ public:
   {
     if (!dataSet.empty())
     {
+      suspendCounters(cmd);
+
       cmd.resourceBarrier(static_cast<UINT>(dataSet.size()), dataSet.data());
       dataSet.clear();
+
+      resumeCounters(cmd);
+
+      fromStateMask = D3D12_RESOURCE_STATE_COMMON;
+      toStateMask = D3D12_RESOURCE_STATE_COMMON;
     }
 #if !_TARGET_XBOXONE
     if (!enhancedTextureBarriers.empty() || !enhancedBufferBarriers.empty())

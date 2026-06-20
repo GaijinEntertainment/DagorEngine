@@ -1024,6 +1024,51 @@ bool ImguiHelper::imageButtonWithRoundingOptions(ImGuiID id, ImTextureRef tex_re
   return pressed;
 }
 
+// Based on ImGui::Button().
+bool ImguiHelper::imageButtonWithText(const char *label, ImTextureID texture_id, const ImVec2 &image_size, const ImVec2 &size_arg,
+  ImGuiButtonFlags flags)
+{
+  ImGuiWindow *window = GetCurrentWindow();
+  if (window->SkipItems)
+    return false;
+
+  ImGuiContext &g = *GImGui;
+  const ImGuiStyle &style = g.Style;
+  const ImGuiID id = window->GetID(label);
+  const ImVec2 labelSize = CalcTextSize(label, nullptr, true);
+
+  const ImVec2 pos = window->DC.CursorPos;
+  const ImVec2 size = CalcItemSize(size_arg, image_size.x + style.ItemInnerSpacing.x + labelSize.x + style.FramePadding.x * 2.0f,
+    max(image_size.y, labelSize.y) + style.FramePadding.y * 2.0f);
+
+  const ImRect bb(pos, pos + size);
+  ItemSize(size, style.FramePadding.y);
+  if (!ItemAdd(bb, id))
+    return false;
+
+  bool hovered, held;
+  const bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
+
+  RenderNavCursor(bb, id);
+
+  const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : (hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button));
+  RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+  window->DrawList->AddImage(texture_id, bb.Min + style.FramePadding, bb.Min + style.FramePadding + image_size);
+
+  const ImVec2 textPosMin(bb.Min.x + style.FramePadding.x + image_size.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y);
+  RenderTextClipped(textPosMin, bb.Max - style.FramePadding, label, nullptr, &labelSize, ImVec2(0.0f, 0.0f), &bb);
+
+  return pressed;
+}
+
+bool ImguiHelper::imageButtonWithText(const char *label, IconId icon_id, const ImVec2 &image_size, const ImVec2 &size_arg,
+  ImGuiButtonFlags flags)
+{
+  const ImTextureID textureId = image_helper.getImTextureIdFromIconId(icon_id);
+  return imageButtonWithText(label, textureId, image_size, size_arg, flags);
+}
+
 ImVec2 ImguiHelper::getButtonSize(const char *label, bool hide_text_after_double_hash, const ImVec2 &size_arg)
 {
   const ImVec2 labelSize = ImGui::CalcTextSize(label, nullptr, hide_text_after_double_hash);

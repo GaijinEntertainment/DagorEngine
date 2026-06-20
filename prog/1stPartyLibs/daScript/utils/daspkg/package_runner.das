@@ -1,8 +1,6 @@
 options gen2
 options rtti
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 options strict_smart_pointers = true
 
@@ -31,11 +29,21 @@ struct PackageBuildInfo {
     is_custom : bool
 }
 
+struct PackageReleaseInfo {
+    name : string
+    main_script : string
+    include_globs : array<string>
+    exclude_globs : array<string>
+    forced_modules : array<string>
+    native_dlls : array<string>
+    bundle_id : string
+}
+
 
 // Run the `package()` function of a .das_package and extract metadata
 def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bool {
-    var args : array<string>
-    var ok = run_das_package(das_package_path, "package", args) $(ctx) {
+    let args : array<string>
+    let ok = run_das_package(das_package_path, "package", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_pkg_meta"))
         if (p != null) {
             let src = unsafe(reinterpret<PackageMeta?>(p))
@@ -55,8 +63,8 @@ def run_das_package_meta(das_package_path : string; var meta : PackageMeta) : bo
 
 // Run the `resolve()` function of a .das_package and extract download info
 def run_das_package_resolve(das_package_path : string; sdk_version, version : string; var result : ResolveResult) : bool {
-    var args <- [sdk_version, version]
-    var ok = run_das_package(das_package_path, "resolve", args) $(ctx) {
+    let args <- [sdk_version, version]
+    let ok = run_das_package(das_package_path, "resolve", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_download_ref"))
         if (p != null) {
             let ref = unsafe(reinterpret<string?>(p))
@@ -81,8 +89,8 @@ def run_das_package_resolve(das_package_path : string; sdk_version, version : st
 
 // Run the `dependencies()` function of a .das_package and extract deps
 def run_das_package_deps(das_package_path : string; version : string; var deps : array<PackageDependency>) : bool {
-    var args <- [version]
-    var ok = run_das_package(das_package_path, "dependencies", args) $(ctx) {
+    let args <- [version]
+    let ok = run_das_package(das_package_path, "dependencies", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_dependencies"))
         if (p != null) {
             let arr = unsafe(reinterpret<array<Dependency>?>(p))
@@ -94,10 +102,37 @@ def run_das_package_deps(das_package_path : string; version : string; var deps :
     return ok
 }
 
+// Run the `release()` function of a .das_package and extract release info
+def run_das_package_release(das_package_path : string; var info : PackageReleaseInfo) : bool {
+    let args : array<string>
+    let ok = run_das_package(das_package_path, "release", args) $(ctx) {
+        var p = unsafe(get_context_global_variable(ctx, "_release_spec"))
+        if (p != null) {
+            let src = unsafe(reinterpret<ReleaseSpec?>(p))
+            info.name = clone_string(src.name)
+            info.main_script = clone_string(src.main_script)
+            for (g in src.include_globs) {
+                info.include_globs |> push_clone(clone_string(g))
+            }
+            for (g in src.exclude_globs) {
+                info.exclude_globs |> push_clone(clone_string(g))
+            }
+            for (m in src.forced_modules) {
+                info.forced_modules |> push_clone(clone_string(m))
+            }
+            for (d in src.native_dlls) {
+                info.native_dlls |> push_clone(clone_string(d))
+            }
+            info.bundle_id = clone_string(src.bundle_id)
+        }
+    }
+    return ok
+}
+
 // Run the `build()` function of a .das_package and extract build info
 def run_das_package_build(das_package_path : string; var info : PackageBuildInfo) : bool {
-    var args : array<string>
-    var ok = run_das_package(das_package_path, "build", args) $(ctx) {
+    let args : array<string>
+    let ok = run_das_package(das_package_path, "build", args) $(ctx) {
         var p = unsafe(get_context_global_variable(ctx, "_build_kind"))
         if (p != null) {
             let kind = *unsafe(reinterpret<BuildKind?>(p))

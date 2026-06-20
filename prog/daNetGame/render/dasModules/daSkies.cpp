@@ -2,7 +2,7 @@
 
 #include "render/dasModules/daSkies.h"
 #include <main/weatherPreset.h>
-#include <render/light_consts.hlsli>
+#include <render/lights/light_consts.hlsli>
 
 struct DngSkiesAnnotation : das::ManagedStructureAnnotation<DngSkies, false>
 {

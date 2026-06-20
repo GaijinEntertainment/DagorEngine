@@ -22,43 +22,90 @@ static ShaderVariableInfo film_grain_lut_paramsVarId("film_grain_lut_params", tr
 static ShaderVariableInfo film_grain_gen_paramsVarId("film_grain_gen_params", true);
 static ShaderVariableInfo film_grain_gen_sizeVarId("film_grain_gen_size", true);
 
+FilmGrainLutHolder::FilmGrainLutHolder() { setFilmGrainReady(false); }
+
+FilmGrainLutHolder::~FilmGrainLutHolder() { setFilmGrainReady(false); }
+
+void FilmGrainLutHolder::setFilmGrainReady(bool is_ready)
+{
+  if (is_ready)
+    PriorityShadervar::clear((int)film_grain_lut_paramsVarId, GEN_PRIORITY);
+  else
+    PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, GEN_PRIORITY, Point4(0, 0, 0, 0));
+}
+
 void FilmGrainLutHolder::requestRebuild()
 {
+  setFilmGrainReady(false);
   rebuildRequested = true;
   // restart generation from scratch if already in progress
   if (genSlice >= 0)
     genSlice = -1;
 }
 
-void FilmGrainLutHolder::setSettings(const Point4 &value, int prio, int wh, int d, const Point4 &gen_params)
+void FilmGrainLutHolder::setParamsFromSettings(const Point4 &value)
 {
-  PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, prio, value);
-  ShaderGlobal::set_float4(film_grain_gen_paramsVarId, gen_params);
-  if (wh == lutWH && d == lutD && gen_params == genParams && lut.getBaseTex())
+  PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY, value);
+  enabledFromSettings = true;
+  if (lut.getBaseTex() == nullptr)
+    requestRebuild();
+}
+
+void FilmGrainLutHolder::resetParamsFromSettings()
+{
+  PriorityShadervar::clear((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY);
+  enabledFromSettings = false;
+  if (!isLutNeeded())
+    resetLut();
+}
+
+void FilmGrainLutHolder::setExternalParams(const Point4 &value)
+{
+  PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, EXTERNAL_PRIORITY, value);
+  enabledFromExternalModifier = true;
+  if (lut.getBaseTex() == nullptr)
+    requestRebuild();
+}
+
+void FilmGrainLutHolder::resetExternalParams()
+{
+  PriorityShadervar::clear((int)film_grain_lut_paramsVarId, EXTERNAL_PRIORITY);
+  enabledFromExternalModifier = false;
+  if (!isLutNeeded())
+    resetLut();
+}
+
+void FilmGrainLutHolder::setLutSettings(int wh, int d, const Point4 &gen_params)
+{
+  const bool hasLut = lut.getBaseTex() != nullptr;
+  if (wh == lutWH && d == lutD && gen_params == genParams && hasLut == isLutNeeded())
     return;
+  ShaderGlobal::set_float4(film_grain_gen_paramsVarId, gen_params);
   genParams = gen_params;
   lutWH = wh;
   lutD = d;
-  requestRebuild();
+  if (isLutNeeded())
+    requestRebuild();
 }
 
-void FilmGrainLutHolder::disable()
+void FilmGrainLutHolder::resetLut()
 {
   lut.close();
   genCs.reset();
   genSlice = -1;
   rebuildRequested = false;
-  PriorityShadervar::clear((int)film_grain_lut_paramsVarId, SETTINGS_PRIORITY);
 }
 
-void FilmGrainLutHolder::reinitFromSettings(int es_wh, int es_d, const Point4 &gen_params, bool preset_allows)
+void FilmGrainLutHolder::reinitFromSettings(bool preset_allows)
 {
   bool filmGrain = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("filmGrain", false) && preset_allows;
-  Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
   if (filmGrain)
-    setSettings(value, SETTINGS_PRIORITY, es_wh, es_d, gen_params);
+  {
+    Point4 value = dgs_get_settings()->getBlockByNameEx("cinematicEffects")->getPoint4("filmGrain", Point4(0.2, 0.1, 1, 0));
+    setParamsFromSettings(value);
+  }
   else
-    disable();
+    resetParamsFromSettings();
 }
 
 bool FilmGrainLutHolder::generate()
@@ -71,8 +118,6 @@ bool FilmGrainLutHolder::generate()
   // First call (or restart after requestRebuild during generation)
   if (genSlice < 0)
   {
-    PriorityShadervar::set_float4((int)film_grain_lut_paramsVarId, GEN_PRIORITY, Point4(0, 0, 0, 0));
-
     lut.close();
     uint32_t fmt = TEXFMT_R11G11B10F;
     if (!(d3d::get_texformat_usage(fmt) & d3d::USAGE_UNORDERED))
@@ -100,8 +145,8 @@ bool FilmGrainLutHolder::generate()
   {
     genCs.reset();
     genSlice = -1;
-    PriorityShadervar::clear((int)film_grain_lut_paramsVarId, GEN_PRIORITY);
     rebuildRequested = false;
+    setFilmGrainReady(true);
     return true;
   }
   return false;
@@ -126,16 +171,23 @@ static void film_grain_lut_after_device_reset_es_event_handler(const ecs::Event 
 
 
 ECS_TAG(render)
-ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated)
+ECS_ON_EVENT(on_appear)
 ECS_TRACK(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params)
-static void film_grain_lut_init_es_event_handler(const ecs::Event &evt,
+static void film_grain_lut_params_change_es_event_handler(const ecs::Event &,
   FilmGrainLutHolder &film_grain_lut,
   int film_grain_lut__wh = 256,
   int film_grain_lut__d = 64,
   const Point4 &film_grain_lut__gen_params = Point4(0, 0, 0, 0))
 {
+  film_grain_lut.setLutSettings(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(on_appear, OnRenderSettingsUpdated)
+static void film_grain_lut_settings_change_es_event_handler(const ecs::Event &evt, FilmGrainLutHolder &film_grain_lut)
+{
   bool bareMinimum = g_entity_mgr->getOr(get_render_settings(evt), ECS_HASH("render_settings__bare_minimum"), false);
-  film_grain_lut.reinitFromSettings(film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params, !bareMinimum);
+  film_grain_lut.reinitFromSettings(!bareMinimum);
 }
 
 ECS_TAG(render)
@@ -147,12 +199,12 @@ static void film_grain_lut_generate_es(const UpdateStageInfoBeforeRender &, Film
 template <typename Callable>
 static void film_grain_lut_ecs_query(ecs::EntityManager &manager, Callable c);
 
-void FilmGrainLutHolder::enableExternalModifier(const Point4 &value)
+void FilmGrainLutHolder::enable_external_modifier(const Point4 &value)
 {
-  film_grain_lut_ecs_query(*g_entity_mgr, [value](FilmGrainLutHolder &film_grain_lut, int film_grain_lut__wh, int film_grain_lut__d,
-                                            const Point4 &film_grain_lut__gen_params) {
-    film_grain_lut.setSettings(value, EXTERNAL_PRIORITY, film_grain_lut__wh, film_grain_lut__d, film_grain_lut__gen_params);
-  });
+  film_grain_lut_ecs_query(*g_entity_mgr, [value](FilmGrainLutHolder &film_grain_lut) { film_grain_lut.setExternalParams(value); });
 }
 
-void FilmGrainLutHolder::disableExternalModifier() { PriorityShadervar::clear((int)film_grain_lut_paramsVarId, EXTERNAL_PRIORITY); }
+void FilmGrainLutHolder::disable_external_modifier()
+{
+  film_grain_lut_ecs_query(*g_entity_mgr, [](FilmGrainLutHolder &film_grain_lut) { film_grain_lut.resetExternalParams(); });
+}

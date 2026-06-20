@@ -76,7 +76,7 @@ RaytraceAccelerationStructure *drv3d_dx12::resource_manager::RaytraceAcceleratio
         .Location = newAs->gpuAddress,
       },
   };
-  newAs->descriptor = allocateBufferSRVDescriptor(device.getDevice());
+  newAs->descriptor = allocateBufferSRVDescriptor(device.getDevice()).value_or({});
   device.getDevice()->CreateShaderResourceView(nullptr /*must be null*/, &desc, newAs->descriptor);
 
   recordRaytraceTopStructureAllocated(info.sizeInBytes);
@@ -271,7 +271,7 @@ drv3d_dx12::RaytraceAccelerationStructure *drv3d_dx12::resource_manager::Raytrac
     desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
     desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     desc.RaytracingAccelerationStructure.Location = result->gpuAddress;
-    result->descriptor = allocateBufferSRVDescriptor(device.getDevice());
+    result->descriptor = allocateBufferSRVDescriptor(device.getDevice()).value_or({});
     device.getDevice()->CreateShaderResourceView(nullptr /*must be null*/, &desc, result->descriptor);
 
     recordRaytraceTopStructureAllocated(size);

@@ -3288,6 +3288,8 @@ VECTORCALL VECMATH_FINLINE vec4i v_permi_zzww(vec4i xyzw) { return v_cast_vec4i(
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xxzz(vec4i xyzw) { return v_cast_vec4i(v_perm_xxzz(v_cast_vec4f(xyzw))); }
 VECTORCALL VECMATH_FINLINE vec4i v_permi_yyww(vec4i xyzw) { return v_cast_vec4i(v_perm_yyww(v_cast_vec4f(xyzw))); }
 VECTORCALL VECMATH_FINLINE vec4i v_permi_wwyy(vec4i xyzw) { return v_cast_vec4i(v_perm_wwyy(v_cast_vec4f(xyzw))); }
+VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxw(vec4i xyzw) { return v_cast_vec4i(v_perm_yzxw(v_cast_vec4f(xyzw))); }
+VECTORCALL VECMATH_FINLINE vec4i v_permi_yzxy(vec4i xyzw) { return v_cast_vec4i(v_perm_yzxy(v_cast_vec4f(xyzw))); }
 
 VECTORCALL VECMATH_INLINE void v_get_bilinear_wrap_addr_pow2(vec4i &uv_idx, vec4f &uv_frac, vec4f uv_wrap, int size_bits, vec4f center_ofs)
 {

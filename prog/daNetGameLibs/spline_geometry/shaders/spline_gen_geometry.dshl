@@ -352,6 +352,7 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
       output.thicknessBounds = float2(baseThickness + instanceData.additionalThicknessBounds.x, baseThickness + instanceData.additionalThicknessBounds.y);
       output.glassParams = instanceData.glassParams;
       output.surfaceOpaqueness = instanceData.surfaceOpaqueness;
+      output.mediumTintAndShellPacked = float4(instanceData.mediumTint, instanceData.isShell);
     ##endif
 
     ##if (shader == dynamic_emissive_spline_gen)
@@ -420,7 +421,7 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen,
           half4 diffuseColor = half4(packedDiffuse.rgb, input.surfaceOpaqueness);
           float thickness = lerp(input.thicknessBounds.x, input.thicknessBounds.y, packedNormalMap.b);
           GlassOutput glass = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness,
-            false, diffuseColor, input.glassParams);
+            false, input.mediumTintAndShellPacked, input.glassParams);
 
           PsOutput result;
           result.color = glass.color;

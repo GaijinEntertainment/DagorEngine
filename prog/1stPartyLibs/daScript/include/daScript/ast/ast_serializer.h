@@ -64,6 +64,30 @@ namespace das {
         }
     };
 
+    // Composite key for serializer maps. Pairs a raw pointer with a per-
+    // AstSerializer epoch so reused addresses don't collide with prior entries.
+    // Hoisted to namespace das so daslang_hash can be specialized before the
+    // map instantiations inside AstSerializer.
+    struct SerializeNodeId {
+        void *  ptr = nullptr;
+        size_t  epoch = 0;
+        bool operator == ( const SerializeNodeId & o ) const noexcept {
+            return ptr == o.ptr && epoch == o.epoch;
+        }
+        bool operator != ( const SerializeNodeId & o ) const noexcept {
+            return !(*this == o);
+        }
+    };
+
+    template <>
+    struct daslang_hash<SerializeNodeId, void> {
+        size_t operator () ( const SerializeNodeId & s ) const noexcept {
+            const uint64_t pmix = (uint64_t(reinterpret_cast<uintptr_t>(s.ptr)) >> 4)
+                                * uint64_t(0x9E3779B97F4A7C15ull);
+            return size_t(pmix ^ (uint64_t(s.epoch) * uint64_t(0xBF58476D1CE4E5B9ull)));
+        }
+    };
+
     struct DAS_API AstSerializer {
         ~AstSerializer ();
         AstSerializer ( SerializationStorage * storage, bool isWriting );
@@ -90,26 +114,32 @@ namespace das {
         das_hash_set<FileInfo*>   doNotDelete;
     // profile data
         uint64_t totMacroTime = 0;
+    // Per-program epoch for SerializeNodeId. Bumped at the start of each
+    // serialize/deserialize call so reused pointer addresses across program
+    // boundaries don't collide with prior map entries on this persistent
+    // serializer. Must be initialized — uninitialized epoch produces garbage
+    // keys and silent map collisions.
+        size_t                                      epoch = 0;
     // pointers
-        das_hash_map<uint64_t, ExprBlock*>          exprBlockMap;
+        das_hash_map<SerializeNodeId, ExprBlock*>          exprBlockMap;
         using DataOffset = uint64_t;
-        das_hash_map<FileInfo*, DataOffset>         writingFileInfoMap;
-        das_hash_map<DataOffset, FileInfo*>         readingFileInfoMap;
-        das_hash_map<uint64_t, FileAccess*>         fileAccessMap;
+        das_hash_map<FileInfo*, DataOffset>                writingFileInfoMap;
+        das_hash_map<DataOffset, FileInfo*>                readingFileInfoMap;
+        das_hash_map<SerializeNodeId, FileAccess*>         fileAccessMap;
     // smart pointers
-        das_hash_map<uint64_t, MakeFieldDeclPtr>    smartMakeFieldDeclMap;
-        das_hash_map<uint64_t, EnumerationPtr>      smartEnumerationMap;
-        das_hash_map<uint64_t, StructurePtr>        smartStructureMap;
-        das_hash_map<uint64_t, VariablePtr>         smartVariableMap;
-        das_hash_map<uint64_t, FunctionPtr>         smartFunctionMap;
-        das_hash_map<uint64_t, MakeStructPtr>       smartMakeStructMap;
-        das_hash_map<uint64_t, TypeDeclPtr>         smartTypeDeclMap;
+        das_hash_map<SerializeNodeId, MakeFieldDeclPtr>    smartMakeFieldDeclMap;
+        das_hash_map<SerializeNodeId, EnumerationPtr>      smartEnumerationMap;
+        das_hash_map<SerializeNodeId, StructurePtr>        smartStructureMap;
+        das_hash_map<SerializeNodeId, VariablePtr>         smartVariableMap;
+        das_hash_map<SerializeNodeId, FunctionPtr>         smartFunctionMap;
+        das_hash_map<SerializeNodeId, MakeStructPtr>       smartMakeStructMap;
+        das_hash_map<SerializeNodeId, TypeDeclPtr>         smartTypeDeclMap;
     // refs
-        vector<pair<ExprBlock**,uint64_t>>          blockRefs;
-        vector<pair<Function **,uint64_t>>          functionRefs;
-        vector<pair<Variable **,uint64_t>>          variableRefs;
-        vector<pair<Structure **,uint64_t>>         structureRefs;
-        vector<pair<Enumeration **,uint64_t>>       enumerationRefs;
+        vector<pair<ExprBlock**,SerializeNodeId>>          blockRefs;
+        vector<pair<Function **,SerializeNodeId>>          functionRefs;
+        vector<pair<Variable **,SerializeNodeId>>          variableRefs;
+        vector<pair<Structure **,SerializeNodeId>>         structureRefs;
+        vector<pair<Enumeration **,SerializeNodeId>>       enumerationRefs;
         // fieldRefs tuple contains: fieldptr, module, structname, fieldname
         vector<tuple<Structure::FieldDeclarationRef*, Module *, string, string>>       fieldRefs;
         // parseModule tuple contains: moduleName, mtime, thisModule, thisModule
@@ -185,6 +215,7 @@ namespace das {
         AstSerializer & operator << ( CaptureEntry & entry );
         AstSerializer & operator << ( MakeFieldDeclPtr & ptr );
         AstSerializer & operator << ( MakeStructPtr & ptr );
+        AstSerializer & operator << ( SerializeNodeId & value );
    // Top-level
         AstSerializer & operator << ( Module & module );
         AstSerializer & serializeModule ( Module & module, bool already_exists );
@@ -193,9 +224,6 @@ namespace das {
 
         void serializeProgram ( ProgramPtr program, ModuleGroup & libGroup ) noexcept;
         bool serializeScript ( ProgramPtr program ) noexcept;
-
-        template<typename T>
-        void serializeSmartPtr( smart_ptr<T> & obj, das_hash_map<uint64_t, smart_ptr<T>> & objMap );
 
         template <uint64_t n>
         AstSerializer& operator << ( int (&value)[n] ) {
@@ -227,6 +255,17 @@ namespace das {
         template <typename K, typename V, typename H, typename E>
         AstSerializer & operator << ( das_hash_map<K, V, H, E> & value );
 
+        // Guarded: under DAS_CUSTOM_HASH=0 das_insert_only_hash_map aliases to
+        // std::unordered_map (same as das_hash_map), so the regular overloads
+        // above already match insert-only args.
+#if DAS_CUSTOM_HASH
+        template <typename K, typename V, typename H, typename E>
+        void serialize_hash_map ( das_insert_only_hash_map<K, V, H, E> & value );
+
+        template <typename K, typename V, typename H, typename E>
+        AstSerializer & operator << ( das_insert_only_hash_map<K, V, H, E> & value );
+#endif
+
         template <typename V>
         AstSerializer & operator << ( safebox_map<V> & box );
 
@@ -248,10 +287,10 @@ namespace das {
         void writeIdentifications ( Variable * & ptr );
         void writeIdentifications ( TypeInfoMacro * & ptr );
 
-        void fillOrPatchLater ( Function * & func, uint64_t id );
-        void fillOrPatchLater ( Enumeration * & ptr, uint64_t id );
-        void fillOrPatchLater ( Structure * & ptr, uint64_t id );
-        void fillOrPatchLater ( Variable * & ptr, uint64_t id );
+        void fillOrPatchLater ( Function * & func, SerializeNodeId id );
+        void fillOrPatchLater ( Enumeration * & ptr, SerializeNodeId id );
+        void fillOrPatchLater ( Structure * & ptr, SerializeNodeId id );
+        void fillOrPatchLater ( Variable * & ptr, SerializeNodeId id );
 
         auto readModuleAndName () -> pair<Module *, string>;
         auto readModuleAndNameHash () -> pair<Module *, uint64_t>;
@@ -261,6 +300,8 @@ namespace das {
         void findExternal ( Structure * & ptr );
         void findExternal ( Variable * & ptr );
         void findExternal ( TypeInfoMacro * & ptr );
+
+        SerializeNodeId getSerializeId(void *ptr) { return {ptr, epoch}; }
 
         template <typename EnumType>
         void serialize_small_enum ( EnumType & baseType ) {
@@ -290,6 +331,7 @@ namespace das {
     // Opaque handle to expose serializer to daslang.
     struct AstSerializerState {
         unique_ptr<SerializationStorageVector> storage;
+        unique_ptr<AstSerializer> serializer;
     };
 
     // Create a writing serializer.

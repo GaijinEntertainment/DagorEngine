@@ -37,7 +37,7 @@ def test_sort_dupes(t : T?; var arr : auto(TT); expected_sum : auto(SS)) {
 
 def test_sort_comp(t : T?; var arr : auto(TT)) {
     let len = length(arr)
-    sort(arr) <| $(a, b) {
+    sort(arr) $(a, b) {
         return a.x < b.x
     }
     for (i in range(1, len)) {
@@ -54,10 +54,7 @@ def operator <(a, b : Foo) {
 }
 
 def test_vector_sort(t : T?) {
-    var arr : array<float2>
-    push(arr, float2(4, 0))
-    push(arr, float2(3, 1))
-    push(arr, float2(5, 2))
+    var arr <- [float2(4, 0), float2(3, 1), float2(5, 2)]
     test_sort_comp(t, arr)
 }
 
@@ -88,4 +85,51 @@ def test_sort_all(t : T?) {
     test_sort_dupes(t, array<int>(5, 2, 5, 3, 2, 1, 4, 2, 5), 29l)
     test_sort_dupes(t, fixed_array<int>(5, 2, 5, 3, 2, 1, 4, 2, 5), 29l)
     test_sort_dupes(t, array<float>(1.5, 2.5, 1.5, 2.5, 3.5), 11.5lf)
+}
+
+struct Kv {
+    key : int
+    seq : int   // original position — observes stability
+}
+
+// stable_sort by key: equal keys must keep their input order (ascending seq).
+def test_stable(t : T?; var arr : array<Kv>) {
+    let len = length(arr)
+    for (i in range(len)) {
+        arr[i].seq = i
+    }
+    stable_sort(arr) $(a, b : Kv) : bool { return a.key < b.key; }
+    for (i in range(1, len)) {
+        t |> success(!(arr[i].key < arr[i - 1].key))                                  // sorted
+        if (arr[i - 1].key == arr[i].key) {
+            t |> success(arr[i - 1].seq < arr[i].seq)                                  // stable
+        }
+    }
+}
+
+[test]
+def test_stable_sort_all(t : T?) {
+    // stability: many duplicate keys (a reverse-leaning permutation to exercise run reversal)
+    test_stable(t, [Kv(key = 3), Kv(key = 1), Kv(key = 3), Kv(key = 2),
+                    Kv(key = 1), Kv(key = 3), Kv(key = 2), Kv(key = 1),
+                    Kv(key = 2), Kv(key = 3), Kv(key = 1), Kv(key = 2)])
+    // larger run to cross the MINRUN/galloping boundary, still stable
+    var big <- [for (i in range(200)); Kv(key = (i * 7) % 5)]
+    test_stable(t, big)
+    // bare form correctness — array + dim + string
+    var ints = array<int>(5, 2, 5, 3, 2, 1, 4, 2, 5)
+    stable_sort(ints)
+    for (i in range(1, length(ints))) {
+        t |> success(!(ints[i] < ints[i - 1]))
+    }
+    var dim = fixed_array<int>(4, 1, 4, 2, 1, 3)
+    stable_sort(dim) $(a, b : int) : bool { return a < b; }
+    for (i in range(1, length(dim))) {
+        t |> success(!(dim[i] < dim[i - 1]))
+    }
+    var strs = array<string>("b", "a", "b", "c", "a")
+    stable_sort(strs)
+    for (i in range(1, length(strs))) {
+        t |> success(!(strs[i] < strs[i - 1]))
+    }
 }

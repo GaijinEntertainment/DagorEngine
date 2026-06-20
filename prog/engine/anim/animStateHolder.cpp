@@ -19,13 +19,13 @@ using namespace AnimV20;
 //
 // Common animation state holder implementation
 //
-AnimV20::AnimCommonStateHolder::AnimCommonStateHolder(AnimV20::AnimationGraph &g) :
+AnimV20::AnimGraphStateHolder::AnimGraphStateHolder(AnimV20::AnimationGraph &g) :
   graph(g), paramNames(g.paramNames), paramTypes(g.paramTypes), valTimeInd(g.paramTimeInd), valFifo3Ind(g.paramFifo3Ind)
 {
   init();
 }
 
-AnimV20::AnimCommonStateHolder::AnimCommonStateHolder(const AnimCommonStateHolder &st) :
+AnimV20::AnimGraphStateHolder::AnimGraphStateHolder(const AnimGraphStateHolder &st) :
   graph(st.graph),
   paramNames(st.paramNames),
   paramTypes(st.paramTypes),
@@ -66,7 +66,7 @@ static float getFloatParam(const DataBlock &b, const char *nm, float def)
   return def;
 }
 
-void AnimCommonStateHolder::init()
+void AnimGraphStateHolder::init()
 {
   clear_and_resize(val, paramNames.nameCount());
   mem_set_0(val);
@@ -81,19 +81,19 @@ void AnimCommonStateHolder::init()
       }
     });
 }
-void AnimCommonStateHolder::term()
+void AnimGraphStateHolder::term()
 {
   graph.clearBlendNodeAllocatedMemoryFromState(*this);
   clear_and_shrink(val);
 }
 
-void AnimCommonStateHolder::reset()
+void AnimGraphStateHolder::reset()
 {
   term();
   init();
 }
 
-void AnimCommonStateHolder::setParamFlags(int id, int flags, int mask)
+void AnimGraphStateHolder::setParamFlags(int id, int flags, int mask)
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set parameter flags id=%d but id is out of range 0..%d", id, val.size());
   G_ASSERTF(isBasicType(paramTypes[id]), "Unexpected (%d) non basic type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
@@ -101,7 +101,7 @@ void AnimCommonStateHolder::setParamFlags(int id, int flags, int mask)
   val[id].flags &= ~mask;
   val[id].flags |= flags & mask;
 }
-int AnimCommonStateHolder::getParamFlags(int id, int mask) const
+int AnimGraphStateHolder::getParamFlags(int id, int mask) const
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "Trying to get parameter flags id=%d but id is out of range 0..%d", id, val.size());
   G_ASSERTF(isBasicType(paramTypes[id]), "Unexpected (%d) non basic type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
@@ -110,7 +110,7 @@ int AnimCommonStateHolder::getParamFlags(int id, int mask) const
 }
 
 
-real *AnimCommonStateHolder::getParamScalarPtr(int id)
+real *AnimGraphStateHolder::getParamScalarPtr(int id)
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), nullptr, "Trying to get scalar pointer parameter id=%d but id is out of range 0..%d",
     id, val.size());
@@ -120,7 +120,7 @@ real *AnimCommonStateHolder::getParamScalarPtr(int id)
 }
 
 
-int AnimCommonStateHolder::getTimeScaleParamId(int id) const
+int AnimGraphStateHolder::getTimeScaleParamId(int id) const
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), -1, "Trying to get scale parameter id=%d but id is out of range 0..%d", id, val.size());
   G_ASSERTF(paramTypes[id] == PT_TimeParam, "Unexpected (%d) non time type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
@@ -129,7 +129,7 @@ int AnimCommonStateHolder::getTimeScaleParamId(int id) const
 }
 
 
-void AnimCommonStateHolder::setTimeScaleParamId(int id, int tspid)
+void AnimGraphStateHolder::setTimeScaleParamId(int id, int tspid)
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set time scale parameter id=%d but id is out of range 0..%d", id,
     val.size());
@@ -139,14 +139,14 @@ void AnimCommonStateHolder::setTimeScaleParamId(int id, int tspid)
 }
 
 
-int AnimCommonStateHolder::getParamInt(int id) const
+int AnimGraphStateHolder::getParamInt(int id) const
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "Trying to get int parameter id=%d but id is out of range 0..%d", id, val.size());
   G_ASSERTF(paramTypes[id] == PT_ScalarParamInt, "Unexpected (%d) non int type on param <%s>(%d)", paramTypes[id],
     paramNames.getName(id), id);
   return val[id].scalarInt;
 }
-void AnimCommonStateHolder::setParamInt(int id, int value)
+void AnimGraphStateHolder::setParamInt(int id, int value)
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set int parameter id=%d but id is out of range 0..%d", id, val.size());
   G_ASSERTF(paramTypes[id] == PT_ScalarParamInt, "Unexpected (%d) non int type on param <%s>(%d)", paramTypes[id],
@@ -156,7 +156,7 @@ void AnimCommonStateHolder::setParamInt(int id, int value)
   val[id].scalarInt = value;
 }
 
-float AnimCommonStateHolder::getParamEffTimeScale(int id) const
+float AnimGraphStateHolder::getParamEffTimeScale(int id) const
 {
   G_ASSERTF_RETURN(id >= 0 && id < val.size(), 1.0f, "Trying to get time scale parameter id=%d but id is out of range 0..%d", id,
     val.size());
@@ -172,7 +172,7 @@ float AnimCommonStateHolder::getParamEffTimeScale(int id) const
   }
   return 1.0f;
 }
-void AnimCommonStateHolder::advance(real dt)
+void AnimGraphStateHolder::advance(real dt)
 {
   graph.postBlendCtrlAdvance(*this, dt);
   ParamState *__restrict val_ptr = val.data();
@@ -208,7 +208,7 @@ void AnimCommonStateHolder::advance(real dt)
 //
 // Store/restore state of anim state holder via snapshot
 //
-void AnimCommonStateHolder::saveState(IGenSave &cb) const
+void AnimGraphStateHolder::saveState(IGenSave &cb) const
 {
   for (int i = 0; i < val.size(); ++i)
   {
@@ -232,7 +232,7 @@ void AnimCommonStateHolder::saveState(IGenSave &cb) const
 }
 
 
-void AnimCommonStateHolder::loadState(IGenLoad &cb)
+void AnimGraphStateHolder::loadState(IGenLoad &cb)
 {
   for (int i = 0; i < val.size(); ++i)
   {
@@ -255,7 +255,7 @@ void AnimCommonStateHolder::loadState(IGenLoad &cb)
   }
 }
 
-void AnimCommonStateHolder::dumpStateText(String &out) const
+void AnimGraphStateHolder::dumpStateText(String &out) const
 {
   static const char *typeNames[] = {"reserved", "float", "int", "time", "inlinePtr", "inlinePtrCTZ", "fifo3", "effector"};
   for (int i = 0; i < val.size(); ++i)

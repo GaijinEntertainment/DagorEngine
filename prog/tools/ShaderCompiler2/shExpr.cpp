@@ -1355,7 +1355,7 @@ void StVarValueExpression::assembleCpp(StcodeExpression &cpp_expr, bool is_integ
   const char *initialTypeName = stcode::value_type_to_stcode_type(getValueType(), isInteger);
   const char *castToTypeName = convertIntToFloat ? stcode::value_type_to_stcode_type(getValueType(), false) : nullptr;
   const bool isResource = valueType == shexpr::VT_TEXTURE || valueType == shexpr::VT_BUFFER;
-  if (isGlobalFlag)
+  if (isGlobalFlag && !cpp_expr.noGlobal)
   {
     cpp_expr.specifyNextExprElement(StcodeExpression::ElementType::GLOBVAR, getTerminal()->text, castToTypeName,
       (void *)(!isResource));

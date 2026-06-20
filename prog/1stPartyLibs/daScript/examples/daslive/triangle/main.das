@@ -50,7 +50,7 @@ def create_gl_objects() {
     glGenBuffers(1, safe_addr(vbo))
     glBindBuffer(GL_ARRAY_BUFFER, vbo)
     // Allocate buffer (will be updated each frame)
-    var dummy : Vertex[3]
+    let dummy : Vertex[3]
     glBufferData(GL_ARRAY_BUFFER, dummy, GL_DYNAMIC_DRAW)
     bind_vertex_buffer(null, type<Vertex>)
 }
@@ -82,13 +82,13 @@ def make_triangle() {
 // --- Update ---
 
 def update_triangle(dt : float) {
-    query() <| $(var angle : float&; speed : float) {
+    query() $(var angle : float&; speed : float) {
         angle += speed * dt
     }
 }
 
 def get_triangle_vertices(var vertices : Vertex[3]&) {
-    query() <| $(angle : float; radius : float) {
+    query() $(angle : float; radius : float) {
         // Aspect ratio correction
         var w, h : int
         live_get_framebuffer_size(w, h)
@@ -116,7 +116,7 @@ def set_rotation(input : JsonValue?) : JsonValue? {
             enabled = ev.value as _bool
         }
     }
-    query() <| $(var speed : float&) {
+    query() $(var speed : float&) {
         speed = enabled ? 1.5f : 0.0f
     }
     return JV("\{\"rotation\": {enabled}}")
@@ -136,7 +136,7 @@ def set_angle(input : JsonValue?) : JsonValue? {
             }
         }
     }
-    query() <| $(var angle : float&) {
+    query() $(var angle : float&) {
         angle = angle_val
     }
     return JV("\{\"angle\": {angle_val}}")

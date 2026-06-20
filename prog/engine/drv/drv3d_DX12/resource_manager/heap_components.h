@@ -654,10 +654,6 @@ protected:
   {
     ID3D12Resource *buffer;
   };
-  struct PushRingBufferReference
-  {
-    ID3D12Resource *buffer;
-  };
   struct TempUploadBufferReference
   {
     ID3D12Resource *buffer;
@@ -674,9 +670,9 @@ protected:
   {
     ID3D12Resource *buffer;
   };
-  using AnyResourceReference = eastl::variant<eastl::monostate, Image *, BufferGlobalId, AliasHeapReference, ScratchBufferReference,
-    PushRingBufferReference, TempUploadBufferReference, PersistentUploadBufferReference, PersistentReadBackBufferReference,
-    PersistentBidirectionalBufferReference>;
+  using AnyResourceReference =
+    eastl::variant<eastl::monostate, Image *, BufferGlobalId, AliasHeapReference, ScratchBufferReference, TempUploadBufferReference,
+      PersistentUploadBufferReference, PersistentReadBackBufferReference, PersistentBidirectionalBufferReference>;
   struct HeapResourceInfo
   {
     ValueRange<uint64_t> range;

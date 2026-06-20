@@ -58,8 +58,8 @@ inline ffxCreateContextDescUpscale convert(const FSR::ContextArgs &args, ffxApiH
     },
     .flags = FFX_UPSCALE_ENABLE_AUTO_EXPOSURE,
     .maxRenderSize{
-      .width = args.outputWidth,
-      .height = args.outputHeight,
+      .width = args.maxRenderWidth ? args.maxRenderWidth : args.outputWidth,
+      .height = args.maxRenderHeight ? args.maxRenderHeight : args.outputHeight,
     },
     .maxUpscaleSize{
       .width = args.outputWidth,

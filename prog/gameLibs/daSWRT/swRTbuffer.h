@@ -19,7 +19,9 @@ inline void ensure_buf_size_and_update(UniqueBufWithShaderVar &buf, const uint8_
 {
   const uint32_t cSize = buf ? buf.getBuf()->getSize() : 0;
   const uint32_t nextSize = ((size + SWRT_BUF_PAGE_MASK) & ~SWRT_BUF_PAGE_MASK);
-  if (cSize < size || cSize * 2 > nextSize)
+  // Grow when too small; recreate to shrink only when more than 2x oversized. (cSize * 2 > nextSize
+  // was inverted: true in the steady state cSize == nextSize, so the buffer was rebuilt every call.)
+  if (cSize < size || cSize > nextSize * 2)
   {
     buf.close();
     buf = dag::create_sbuffer(sizeof(uint32_t), nextSize / sizeof(uint32_t),

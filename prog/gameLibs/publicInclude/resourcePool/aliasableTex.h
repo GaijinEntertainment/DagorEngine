@@ -64,7 +64,7 @@ public:
   void resetDefaultSize();
 };
 
-class AliasableManagedTex2DHolder : public ManagedResHolder<AliasableManagedTex2D>
+class AliasableManagedTex2DHolder : public ManagedResWithShaderVar<AliasableManagedTex2D>
 {
 protected:
   AliasableManagedTex2DHolder() = default;
@@ -78,7 +78,7 @@ public:
 };
 
 using AliasableTex2D = UniqueRes<AliasableManagedTex2D>;
-using AliasableTex2DHolder = ConcreteResHolder<UniqueRes<AliasableManagedTex2DHolder>>;
+using AliasableTex2DHolder = ConcreteResWithShaderVar<UniqueRes<AliasableManagedTex2DHolder>>;
 
 } // namespace resptr_detail
 

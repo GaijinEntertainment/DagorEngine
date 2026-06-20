@@ -143,6 +143,7 @@ struct CompilerConfig
   bool disallowHlslHardcodedRegs : 1 = false;
   bool shaderRequiredByDefault : 1 = false;
   bool dependencyDumpMode : 1 = false;
+  bool workerMode : 1 = false;
 
 #if _CROSS_TARGET_DX12
   dx12::dxil::Platform targetPlatform = dx12::dxil::Platform::PC;

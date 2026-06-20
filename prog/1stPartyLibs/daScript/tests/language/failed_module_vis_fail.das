@@ -2,7 +2,7 @@
 // verifies that symbols from indirectly required modules are not visible,
 // and that module-qualified access respects visibility rules
 options gen2
-expect 30304:4, 30305:2, 30301:2 // , 30308
+expect 30341:4, 30837:2, 30838:2 // , 30308
 
 require _module_b
 

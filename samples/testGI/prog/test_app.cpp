@@ -5,7 +5,7 @@
 #include <scene/dag_occlusionMap.h>
 #include <3d/dag_quadIndexBuffer.h>
 #include <render/temporalAA.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <math/dag_TMatrix4D.h>
 #include <astronomy/astronomy.h>
 #include <dag_noise/dag_uint_noise.h>
@@ -63,7 +63,7 @@
 #include <render/cascadeShadows.h>
 #include <render/ssao.h>
 #include <render/gtao.h>
-#include <render/omniLightsManager.h>
+#include <render/lights/omniLightsManager.h>
 #include <math/dag_TMatrix4.h>
 #include <math/dag_TMatrix4more.h>
 #include <math/dag_cube_matrix.h>
@@ -93,7 +93,7 @@
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>
 #include <render/screenSpaceReflections.h>
-#include <render/tileDeferredLighting.h>
+#include <render/lights/tileDeferredLighting.h>
 #include <render/preIntegratedGF.h>
 #include <render/viewVecs.h>
 #include <render/voxelization_target.h>
@@ -602,7 +602,10 @@ public:
     if (swrt_shadow_target)
       swrt_shadow_target.getTex2D()->getinfo(ti, 0);
 
-    const int halfW = target->getWidth() >> (swrt_shadow_use_checkerboard ? 2 : 1), halfH = target->getHeight() >> 1;
+    // src is the half-res depth width; the checkerboard target is ceil(src/2) so its last column
+    // still maps to the last source column (shader maps dtId.x -> 2*dtId.x + parity).
+    const int srcW = target->getWidth() >> 1;
+    const int halfW = swrt_shadow_use_checkerboard ? (srcW + 1) / 2 : srcW, halfH = target->getHeight() >> 1;
     if (halfW != ti.w || halfH != ti.h)
     {
       swrt_shadow_target.close();
@@ -610,8 +613,8 @@ public:
     }
     if (isRtEnabled())
       bvh::bind_resources(bvhCtx, target->getWidth());
-    swrt.renderShadows(dir_to_sun, sun_size, swrt_shadow_use_checkerboard ? shadow_frame : 0, swrt_shadow_mask.getBuf(),
-      swrt_shadow_target.getTex2D(), true);
+    swrt.renderShadows(dir_to_sun, sun_size, shadow_frame, swrt_shadow_use_checkerboard ? shadow_frame : 0, srcW,
+      swrt_shadow_mask.getBuf(), swrt_shadow_target.getTex2D(), true);
   }
   void combineShadows()
   {
@@ -1517,7 +1520,9 @@ public:
                                                   : DynLightsOptimizationMode::NO_LIGHTS;
 
       ShaderGlobal::set_int(dynamic_lights_countVarId, eastl::to_underlying(dynLightsMode));
-      clusteredLights->fillAndSetInsideOfFrustumLightsBuffers();
+      // Grid fill is deferred to render(), after the depth downsample: the clustered
+      // occlusion z-slice cull reads downsampled_far_depth_tex and must see this
+      // frame's depth, otherwise lights are mis-culled while the camera moves.
 
       dynamic_shadow_render::VolumesVector volumesToRender;
       clusteredLights->framePrepareShadows(volumesToRender, itm.getcol(3), globtm, p.hk, make_span_const(&dynBox, 1), nullptr);
@@ -2599,6 +2604,10 @@ public:
     csm->setCascadesToShader();
     combineShadows();
     downsampleDepth(true);
+
+    // Fill the clustered light grid now that this frame's far depth exists, so its
+    // occlusion z-slice cull uses current-frame depth (see drawScene cull site).
+    clusteredLights->fillAndSetInsideOfFrustumLightsBuffers();
 
     {
       static int shadow_frame;

@@ -16,8 +16,8 @@ def get_context() : GameState? {
 [export]
 def test_simple_table {
     var tab : table<int; int>
-    var key = 1
-    var val = 10
+    let key = 1
+    let val = 10
 
     // += pattern
     tab[key] += val
@@ -32,10 +32,10 @@ def test_simple_table {
     tab[key] /= val
 
     // ++ pattern (add 1)
-    tab[key] += 1
+    tab[key]++
 
     // -- pattern (sub 1)
-    tab[key] -= 1
+    tab[key]--
 
     // reversed operand order: expr OP get_value
     tab[key] += val
@@ -47,9 +47,9 @@ def test_simple_table {
 [export]
 def test_indexed_table {
     var tabtab : table<int; table<int; int>>
-    var idx = 1
-    var scoreSrc = 0
-    var score = 5
+    let idx = 1
+    let scoreSrc = 0
+    let score = 5
 
     // the original pattern from the question
     tabtab[1][scoreSrc] += score
@@ -64,7 +64,7 @@ def test_indexed_table {
     tabtab[idx][scoreSrc] *= score
 
     // increment
-    tabtab[idx][scoreSrc] += 1
+    tabtab[idx][scoreSrc]++
 }
 
 // --- double-indexed: tab[i][j].insert(key, tab[i][j].get_value(key) OP expr) ---
@@ -72,13 +72,13 @@ def test_indexed_table {
 [export]
 def test_double_indexed {
     var deep : table<int; table<int; table<string; int>>>
-    var i = 0
-    var j = 1
-    var key = "hits"
-    var delta = 3
+    let i = 0
+    let j = 1
+    let key = "hits"
+    let delta = 3
 
     deep[i][j][key] += delta
-    deep[i][j][key] -= 1
+    deep[i][j][key]--
 }
 
 // --- complex expression as table source ---
@@ -88,8 +88,8 @@ def test_complex_expr {
     var ctx = get_context()
 
     // method-like access: ctx.field.insert(...)
-    ctx.counters["logins"] += 1
-    ctx.counters["errors"] -= 1
+    ctx.counters["logins"]++
+    ctx.counters["errors"]--
 
     // chained field + index
     ctx.scores["team_a"][42] += 100
@@ -104,8 +104,8 @@ def test_complex_expr {
 [export]
 def test_pipe_syntax {
     var tab : table<int; int>
-    var key = 1
-    var val = 10
+    let key = 1
+    let val = 10
 
     tab[key] += val
     tab[key] -= val
@@ -116,8 +116,8 @@ def test_pipe_syntax {
 [export]
 def test_free_function {
     var tab : table<int; int>
-    var key = 1
-    var val = 10
+    let key = 1
+    let val = 10
 
     tab[key] += val
     tab[key] -= val
@@ -133,8 +133,8 @@ def foo() : int {
 [export]
 def test_compound_expr {
     var tab : table<int; int>
-    var key = 1
-    var val = 10
+    let key = 1
+    let val = 10
 
     // get_value + literal + call
     tab[key] += 1 + foo()
@@ -149,7 +149,7 @@ def test_compound_expr {
     tab[key] -= val * 2
 
     // get_value with ternary-like: conditional add
-    tab[key] += (val > 5 ? 1 : 0)
+    tab[key] += (val > 5 ? 1 : 0)  // nolint:PERF013 — fixture: tests migration of += with conditional rhs
 
     // deeply nested: tab[i].insert with compound expr
     var tabtab : table<int; table<int; int>>
@@ -174,8 +174,8 @@ def test_compound_expr {
 def test_negative {
     var tab : table<int; int>
     var other : table<int; int>
-    var key = 1
-    var val = 10
+    let key = 1
+    let val = 10
 
     // different tables — NOT foldable
     tab.insert(key, other.get_value(key) + val)

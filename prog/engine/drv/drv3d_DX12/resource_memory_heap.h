@@ -501,10 +501,14 @@ class SamplerDescriptorProvider : public ScratchBufferProvider
       auto ref = eastl::find_if(begin(samplers), end(samplers), [state](auto &info) { return state == info.state; });
       if (ref == end(samplers))
       {
-        SamplerInfo sampler{descriptors.allocate(device), state};
-
         D3D12_SAMPLER_DESC desc = state.asDesc();
-        device->CreateSampler(&desc, sampler.sampler);
+        SamplerInfo sampler{descriptors.allocate(device)
+                              .transform([&](auto handle) {
+                                device->CreateSampler(&desc, handle);
+                                return handle;
+                              })
+                              .value_or({}),
+          state};
 
         ref = samplers.insert(ref, sampler);
       }
@@ -542,8 +546,12 @@ protected:
     for (auto &info : access->samplers)
     {
       D3D12_SAMPLER_DESC desc = info.state.asDesc();
-      info.sampler = access->descriptors.allocate(setup.device);
-      setup.device->CreateSampler(&desc, info.sampler);
+      info.sampler = access->descriptors.allocate(setup.device)
+                       .transform([&](auto handle) {
+                         setup.device->CreateSampler(&desc, handle);
+                         return handle;
+                       })
+                       .value_or({});
     }
   }
 
@@ -696,9 +704,6 @@ private:
     frontend::BindlessManager &bindless_manager, HeapID heap_id, ScratchBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
   ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
-    frontend::BindlessManager &bindless_manager, HeapID heap_id, PushRingBufferReference ref, AllocationFlags allocation_flags,
-    bool is_emergency_defragmentation);
-  ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
     frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref, AllocationFlags allocation_flags,
     bool is_emergency_defragmentation);
   ResourceMoveResolution moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
@@ -725,7 +730,6 @@ private:
     ImagePoolState::AccessToken imagePool;
     ScratchBufferWrapper::AccessToken scratchBuffer;
     BufferHeapStateWrapper::AccessToken bufferHeapState;
-    PushRingMemoryStateWrapper::AccessToken pushRingState;
     TempMemoryStateWrapper::AccessToken tempBufferState;
   };
 
@@ -754,8 +758,6 @@ private:
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, ScratchBufferReference ref,
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
-  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PushRingBufferReference ref,
-    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, TempUploadBufferReference ref,
     const ResourceLocation &new_location, DefragmentationAccessTokens &access);
   ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentUploadBufferReference ref,
@@ -770,7 +772,6 @@ private:
   uint64_t getAlignmentRequirement(BufferGlobalId buffer_id, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(AliasHeapReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(ScratchBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
-  uint64_t getAlignmentRequirement(PushRingBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(TempUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(PersistentUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
   uint64_t getAlignmentRequirement(PersistentReadBackBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
@@ -1453,7 +1454,6 @@ public:
   using BaseType::PersistentBidirectionalBufferReference;
   using BaseType::PersistentReadBackBufferReference;
   using BaseType::PersistentUploadBufferReference;
-  using BaseType::PushRingBufferReference;
   using BaseType::reportOOMInformation;
   using BaseType::ScratchBufferReference;
   using BaseType::TempUploadBufferReference;

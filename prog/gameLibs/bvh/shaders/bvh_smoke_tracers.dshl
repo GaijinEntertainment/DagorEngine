@@ -1,0 +1,174 @@
+include "shader_global.dshl"
+include "bvh_common_includes.dshl"
+include "smoke_tracers_inc.dshl"
+
+// ShaderGlobals set by bvh_smoke_tracers.cpp each frame
+buffer smoke_tracer_bvh_counter;
+buffer smoke_tracer_bvh_instances;
+buffer smoke_tracer_tracer_buf;
+buffer smoke_tracer_dynamic_buf;
+buffer smoke_tracer_verts_buf;
+
+buffer bvh_particle_data;
+
+// Smoke-tracer slot base inside bvh_particle_data (see bvh_particles.h).
+int smoke_tracer_instance_offset = 0;
+
+int smoke_tracer_bvh_meta_id = 0;
+int4 smoke_tracer_bvh_blas_address = 0;
+int smoke_tracer_bvh_max_count = 0;
+float smoke_trace_current_time = 0;
+// Driven by SmokeTracerManager::beforeRender so the BVH head matches the
+// raster head (see cull_tracers_cs in smoke_tracers_gen.dshl).
+float smoke_trace_exposure_time = 0;
+float smoke_trace_pixel_scale = 0;
+
+shader bvh_smoke_tracers_cs
+{
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
+  {
+    dont_render;
+  }
+
+  INIT_BVH_ATMOSPHERE(cs)
+  INIT_SKY_POLARIZATION_FILTER_TERM(cs)
+  USE_BVH_ATMOPHERE(cs)
+  SMOKE_TRACER_HEAD_FUNC(cs)
+
+  (cs)
+  {
+    meta_id@i1 = smoke_tracer_bvh_meta_id;
+    blas_address@i4 = smoke_tracer_bvh_blas_address;
+    max_count@i1 = smoke_tracer_bvh_max_count;
+    data_offset@i1 = smoke_tracer_instance_offset;
+    current_time@f1 = smoke_trace_current_time;
+    exposure_time@f1 = smoke_trace_exposure_time;
+    pixel_scale@f1 = smoke_trace_pixel_scale;
+    world_view_pos@f3 = world_view_pos;
+    local_view_z@f3 = local_view_z;
+    tracer_head_radius_coeff@f1 = tracer_head_radius_coeff;
+
+    bvh_st_counter@uav = smoke_tracer_bvh_counter hlsl
+    {
+      RWByteAddressBuffer bvh_st_counter@uav;
+    };
+    bvh_st_instances@uav = smoke_tracer_bvh_instances hlsl
+    {
+      #include <RTHWInstance.hlsli>
+      RWStructuredBuffer<RTHWInstance> bvh_st_instances@uav;
+    };
+    bvh_st_data@uav = bvh_particle_data hlsl
+    {
+      #include "modfx/modfx_bvh.hlsli"
+      RWStructuredBuffer<ModfxBVHParticleData> bvh_st_data@uav;
+    };
+
+    tracer_buf@buf = smoke_tracer_tracer_buf hlsl
+    {
+      #include <render/smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracer> tracer_buf@buf;
+    };
+    dynamic_buf@buf = smoke_tracer_dynamic_buf hlsl
+    {
+      #include <render/smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracerDynamic> dynamic_buf@buf;
+    };
+    tracer_verts_buf@buf = smoke_tracer_verts_buf hlsl
+    {
+      #include <render/smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracerVertices> tracer_verts_buf@buf;
+    };
+  }
+
+  hlsl(cs)
+  {
+    [numthreads(64, 1, 1)]
+    void bvh_smoke_tracers_cs_main(uint3 dtid : SV_DispatchThreadID)
+    {
+      uint tracerIdx = dtid.x;
+      if (tracerIdx >= MAX_TRACERS)
+        return;
+
+      uint firstVert, totalVerts;
+      smoke_tracer_unpack_verts(structuredBufferAt(dynamic_buf, tracerIdx).firstVert_totalVerts, firstVert, totalVerts);
+      if (totalVerts < 2u)
+        return;
+
+      GPUSmokeTracer tr = structuredBufferAt(tracer_buf, tracerIdx);
+
+      if (current_time < tr.startTime)
+        return;
+
+      float tracerTime = current_time - tr.startTime;
+
+      uint headId, prevHeadId;
+      smoke_tracer_head_vert_ids(tracerIdx, totalVerts, headId, prevHeadId);
+      GPUSmokeTracerVertices headVert = structuredBufferAt(tracer_verts_buf, headId);
+
+      // Head-age cutoff: skip the prev-vert fetch and the rest of the head math
+      // once the head vertex itself is older than burnTime.
+      if (headVert.time + tr.burnTime < tracerTime)
+        return;
+
+      GPUSmokeTracerVertices prevHeadVert = structuredBufferAt(tracer_verts_buf, prevHeadId);
+
+      SmokeTracerHeadCapsule cap = smoke_tracer_compute_head_capsule(
+        tr, headVert, prevHeadVert, tracerTime, exposure_time,
+        world_view_pos, local_view_z, pixel_scale, tracer_head_radius_coeff);
+      if (!cap.visible)
+        return;
+
+      // BVH instance is a symmetric box, so use the larger of the two endpoint
+      // radii; the per-hit alpha falloff in the AHS keeps the apparent width
+      // close to this value, matching the raster cylinder's max radius.
+      float headRadius = max(cap.radius0, cap.radius1);
+
+      float3 headCenter = (cap.p0 + cap.p1) * 0.5;
+      float3 hWorldUp   = abs(cap.headFwd.y) < 0.9 ? float3(0, 1, 0) : float3(1, 0, 0);
+      float3 hRight     = normalize(cross(hWorldUp, cap.headFwd));
+      float3 hUp        = cross(cap.headFwd, hRight);
+
+      float3 hAxisX = hRight    * headRadius;
+      float3 hAxisY = hUp       * headRadius;
+      float3 hAxisZ = cap.headFwd * (cap.renderLen * 0.5 + headRadius);
+
+      uint headSlot;
+      bvh_st_counter.InterlockedAdd(0, 1, headSlot);
+      if (headSlot < (uint)max_count)
+      {
+        RTHWInstance headInst;
+        headInst.transform0 = float4(hAxisX.x, hAxisY.x, hAxisZ.x, headCenter.x);
+        headInst.transform1 = float4(hAxisX.y, hAxisY.y, hAxisZ.y, headCenter.y);
+        headInst.transform2 = float4(hAxisX.z, hAxisY.z, hAxisZ.z, headCenter.z);
+        headInst.instanceId_mask = pack_rt_instance_id_mask((uint)meta_id, 1u);
+        headInst.instanceOffset_flags = pack_rt_instance_flags(RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE);
+        headInst.blas = uint2(blas_address.x, blas_address.y);
+        bvh_st_instances[headSlot] = headInst;
+
+        float3 hViewVec  = headCenter - world_view_pos;
+        float  hViewDist = length(hViewVec);
+        half3 hAtmoLoss, hAtmoInsc;
+        calc_atmosphere_loss_inscatter(hViewVec, hViewDist, hAtmoLoss, hAtmoInsc);
+
+        float3 headColor = smoke_tracer_head_color(tr, tracerTime);
+
+        ModfxBVHParticleData hpd = (ModfxBVHParticleData)0;
+        hpd.color               = float4(headColor * cap.burnEffect, cap.burnEffect);
+        hpd.atmosphereLoss      = hAtmoLoss;
+        hpd.atmosphereInscatter = hAtmoInsc;
+        hpd.upDir               = hUp;
+        hpd.rightDir            = hRight;
+        hpd.radius              = headRadius;
+        hpd.texcoord0           = float4(0, 0, 0, 0);
+        hpd.texcoord1           = float4(1, 0, 1, 0);
+        hpd.texcoord2           = float4(1, 1, 1, 1);
+        hpd.texcoord3           = float4(0, 1, 0, 1);
+        hpd.flags               = BVH_MODFX_RFLAG_BLEND_ABLEND;
+        hpd.shadow              = 1.0;
+        structuredBufferAt(bvh_st_data, data_offset + headSlot) = hpd;
+      }
+    }
+  }
+
+  compile("cs_5_0", "bvh_smoke_tracers_cs_main");
+}
