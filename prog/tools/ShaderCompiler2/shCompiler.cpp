@@ -379,7 +379,7 @@ void compileShader(CompilerAction compiler_action, bool no_save, bool should_reb
   {
     dag::Vector<bool> rbLoadFailed;
     rbLoadFailed.assign(compInfo.sources().size(), false);
-    if (shc::config().singleCompilationShName)
+    if (shc::config().singleCompilationShName && shc::config().workerMode)
       load_global_rb_layout(get_global_rb_layout_name(comp.compInfo()), comp);
     else
     {

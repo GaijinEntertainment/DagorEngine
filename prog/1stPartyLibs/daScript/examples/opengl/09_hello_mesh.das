@@ -48,7 +48,7 @@ def main {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer <| $() {
+    defer() {
         glfwTerminate()
     }
     glfwInitOpenGL(3, 3)
@@ -56,13 +56,13 @@ def main {
     if (window == null) {
         panic("can't create window")
     }
-    defer <| $() {
+    defer() {
         glfwDestroyWindow(window)
     }
     glfwMakeContextCurrent(window)
-    var program = create_shader_program(@@vs_preview, @@fs_preview)
+    let program = create_shader_program(@@vs_preview, @@fs_preview)
     // var mesh <- gen_sphere(32,16,false) |> create_geometry_fragment
-    var mesh <- load_obj_mesh("orb.obj",
+    let mesh <- load_obj_mesh("orb.obj",
             "{get_das_root()}/examples/opengl",
             "{get_das_root()}/examples/opengl/media"
         ) |> create_geometry_fragment
@@ -77,14 +77,14 @@ def main {
     var cursor_position_xy = glfwGetCursorPos(window)
     var cursor_enabled = false
     unsafe {
-        glfwSetScrollCallback(window) <| @ capture(& camera_distance) (w, x, y) {
+        glfwSetScrollCallback(window) @ capture(& camera_distance) (w, x, y) {
             if (y > 0.0lf) {
                 camera_distance *= 1.1
             } else {
                 camera_distance /= 1.1
             }
         }
-        glfwSetCursorPosCallback(window) <| @ capture(& cursor_position_xy, & cursor_enabled, & camera_position_y, & camera_rotation, & camera_distance) (w, x, y) {
+        glfwSetCursorPosCallback(window) @ capture(& cursor_position_xy, & cursor_enabled, & camera_position_y, & camera_rotation, & camera_distance) (w, x, y) {
             if (cursor_enabled) {
                 let cxy = glfwGetCursorPos(window)
                 let dxy = cxy - cursor_position_xy
@@ -96,7 +96,7 @@ def main {
                 glfwSetCursorPos(window, double(cursor_position_xy.x), double(cursor_position_xy.y))
             }
         }
-        glfwSetMouseButtonCallback(window) <| @ capture(& cursor_enabled, & cursor_position_xy) (w, b, a, m) {
+        glfwSetMouseButtonCallback(window) @ capture(& cursor_enabled, & cursor_position_xy) (w, b, a, m) {
             if (b == int(GLFW_MOUSE_BUTTON_1)) {
                 cursor_enabled = a == int(GLFW_PRESS)
                 if (cursor_enabled) {
@@ -113,7 +113,7 @@ def main {
             }
         }
     }
-    eval_main_loop <| $() {
+    eval_main_loop() {
         if (glfwWindowShouldClose(window) != 0) {
             return false
         }

@@ -25,7 +25,7 @@
 
 #include "net/netConsts.h"
 #include "net/recipientFilters.h"
-#include "net/reCreateEntity.h"
+#include <ecs/net/reCreateEntity.h>
 #include "phys/quantization.h"
 #include "net/net.h"
 #include "net/dedicated.h"

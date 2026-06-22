@@ -186,6 +186,10 @@ void test_das_string(const Block & block, Context * context, LineInfoArg * at) {
     if (str2 != "test_das_string") context->throw_error_at(at, "test string clone mismatch");
 }
 
+void testPipedDefaults(int32_t a, float b, const TBlock<void, int32_t, float> & blk, Context * context, LineInfoArg * at) {
+    das_invoke<void>::invoke(context, at, blk, a, b);
+}
+
 vec4f new_and_init ( Context & context, SimNode_CallBase * call, vec4f * ) {
     TypeInfo * typeInfo = call->types[0];
     if ( typeInfo->dim || typeInfo->type!=Type::tStructure ) {
@@ -504,6 +508,23 @@ struct ByteCodeAnnotation : ManagedStructureAnnotation <ByteCode> {
     }
 };
 
+// Escape-analysis test sinks. Bound like `hash` (interop over vec4f) so any typed pointer flows in
+// with no cast. test_escape_pure is declared pure (the analysis may free the argument);
+// test_escape_keep retains the pointer in a global and is declared modifyExternal (must NOT free).
+static void * g_escape_test_retained = nullptr;
+vec4f test_escape_pure ( Context &, SimNode_CallBase *, vec4f * ) {
+    return cast<int32_t>::from(0);
+}
+vec4f test_escape_keep ( Context &, SimNode_CallBase *, vec4f * args ) {
+    g_escape_test_retained = cast<void *>::to(args[0]);
+    return v_zero();
+}
+// reads the first int field of the last pointer handed to test_escape_keep; lets a .das soundness
+// test confirm a retained (escaping) pointer was not wrongly freed and reused.
+int32_t test_escape_retained_first_int () {
+    return g_escape_test_retained ? *(int32_t *)g_escape_test_retained : -1;
+}
+
 Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
     ModuleLibrary lib(this);
     lib.addBuiltInModule();
@@ -564,10 +585,20 @@ Module_UnitTest::Module_UnitTest() : Module("UnitTest") {
         SideEffects::modifyExternal, "complex_bind");
     addInterop<new_and_init,void *,vec4f>(*this, lib, "new_and_init",
         SideEffects::none, "new_and_init");
+    addInterop<test_escape_pure,int32_t,vec4f>(*this, lib, "test_escape_pure",
+        SideEffects::none, "test_escape_pure")->arg("ptr");
+    addInterop<test_escape_keep,void,vec4f>(*this, lib, "test_escape_keep",
+        SideEffects::modifyExternal, "test_escape_keep")->arg("ptr");
+    addExtern<DAS_BIND_FUN(test_escape_retained_first_int)>(*this, lib, "test_escape_retained_first_int",
+        SideEffects::modifyExternal, "test_escape_retained_first_int");
     addExtern<DAS_BIND_FUN(get_screen_dimensions)>(*this, lib, "get_screen_dimensions",
         SideEffects::none, "get_screen_dimensions");
     addExtern<DAS_BIND_FUN(test_das_string)>(*this, lib, "test_das_string",
         SideEffects::modifyExternal, "test_das_string");
+    addExtern<DAS_BIND_FUN(testPipedDefaults)>(*this, lib, "testPipedDefaults",
+        SideEffects::invoke, "testPipedDefaults")
+            ->args({"a","b","blk","context","at"})
+            ->arg_init(1, new ExprConstFloat(3.125f));
     addExtern<DAS_BIND_FUN(testFoo)>(*this, lib, "testFoo",
         SideEffects::modifyArgument, "testFoo");
     addExtern<DAS_BIND_FUN(testAdd)>(*this, lib, "testAdd",

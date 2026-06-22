@@ -68,7 +68,7 @@ namespace das {
             if ( it != seen.end() && it->second.at.fileInfo ) {
                 extra += " at " + it->second.at.fileInfo->name + ":" + to_string(it->second.at.line);
             }
-            program->error(err, extra, "", td->at, CompilationError::unspecified);
+            program->error(err, extra, "", td->at, CompilationError::internal_type);
         }
         void reportDuplicateExpression ( Expression * expr ) {
             auto it = seen.find(expr);
@@ -79,7 +79,7 @@ namespace das {
             if ( it != seen.end() && it->second.at.fileInfo ) {
                 extra += " at " + it->second.at.fileInfo->name + ":" + to_string(it->second.at.line);
             }
-            program->error(err, extra, "", expr->at, CompilationError::unspecified);
+            program->error(err, extra, "", expr->at, CompilationError::internal_expression);
         }
         void trackTypeDeclTree ( TypeDecl * td, const char * field ) {
             if ( !td ) return;
@@ -95,9 +95,10 @@ namespace das {
             for ( auto & argType : td->argTypes ) {
                 trackTypeDeclTree(argType, "argTypes[]");
             }
-            for ( auto de : td->dimExpr ) {
+            for ( auto de : td->typeMacroExpr ) {
                 trackExpression(de);
             }
+            trackExpression(td->fixedDimExpr);
             currentField = savedField;
         }
         void trackExpression ( Expression * expr ) {
@@ -153,14 +154,16 @@ namespace das {
             if ( !trackNode(td, td->at) ) {
                 reportDuplicateTypeDecl(td);
             }
-            // dimExpr: standard visitor only visits dimExpr when dim==dimConst or baseType is typeDecl/typeMacro.
-            // After inference resolves dimensions, resolved dimExpr stays on gc_root but is skipped.
             if ( td->baseType != Type::typeDecl && td->baseType != Type::typeMacro ) {
-                for ( size_t i=0, is=td->dimExpr.size(); i!=is; ++i ) {
-                    if ( td->dimExpr[i] && (i >= td->dim.size() || td->dim[i] != TypeDecl::dimConst) ) {
-                        trackExpression(td->dimExpr[i]);
-                    }
+                // tag payload sits in typeMacroExpr of an autoinfer node — never visited by
+                // the standard visitor (it only walks typeMacroExpr on typeDecl/typeMacro)
+                for ( auto de : td->typeMacroExpr ) {
+                    trackExpression(de);
                 }
+            }
+            // resolved tFixedArray keeps fixedDimExpr on gc_root but the visitor skips it
+            if ( td->baseType == Type::tFixedArray && td->fixedDim != TypeDecl::dimConst ) {
+                trackExpression(td->fixedDimExpr);
             }
         }
     // Expression — standard visitor path
@@ -284,14 +287,14 @@ namespace das {
         }
         // Phase 3: gc_root cross-check
         for ( auto mod : modules ) {
-            for ( auto node = mod->module_gc_root.gc_first; node; node = node->gc_next ) {
+            for ( auto node = mod->module_gc_root->gc_first; node; node = node->gc_next ) {
                 auto tag = node->gc_type_tag();
                 if ( tag == GC_TAG_TYPEDECL ) {
                     if ( vis.getSeen().find((void *)node) == vis.getSeen().end() ) {
                         auto td = static_cast<TypeDecl *>(node);
                         string err = "validate_ast: TypeDecl (gc_id=" + to_string(td->gc_id) + ") not reached by visitor: " + td->describe();
                         string extra = "module '" + mod->name + "'";
-                        error(err, extra, "", td->at, CompilationError::unspecified);
+                        error(err, extra, "", td->at, CompilationError::internal_type);
                     }
                 } else if ( tag == GC_TAG_EXPRESSION ) {
                     if ( vis.getSeen().find((void *)node) == vis.getSeen().end() ) {
@@ -299,7 +302,7 @@ namespace das {
                         string err = "validate_ast: Expression (gc_id=" + to_string(expr->gc_id) + ") not reached by visitor: ";
                         if ( expr->__rtti ) err += expr->__rtti;
                         string extra = "module '" + mod->name + "'";
-                        error(err, extra, "", expr->at, CompilationError::unspecified);
+                        error(err, extra, "", expr->at, CompilationError::internal_expression);
                     }
                 }
             }

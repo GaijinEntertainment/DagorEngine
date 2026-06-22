@@ -7,12 +7,16 @@ float4 water_heightmap_page_count__det_scale;
 texture water_heightmap_tex;
 float4 water_heightmap_tex_region;
 float4 water_heightmap_min_max;
+float4 world_to_water_heightmap_tex;
 
 int water_heightmap_tex_enabled = 0;
 interval water_heightmap_tex_enabled : no < 1, yes;
 
 macro INIT_WORLD_TO_WATER_HEIGHTMAP(stage)
-  (stage) { world_to_water_heightmap@f4 = (world_to_water_heightmap); }
+  (stage) {
+    world_to_water_heightmap@f4 = world_to_water_heightmap;
+    world_to_water_heightmap_tex@f4 = world_to_water_heightmap_tex;
+  }
 endmacro
 
 macro INIT_WATER_HEIGHTMAP_BASE(stage, tex_or_sampler)
@@ -57,7 +61,7 @@ macro USE_WATER_HEIGHTMAP(stage)
       ##if water_heightmap_tex_enabled == yes
         if (water_heightmap_tex_exists)
         {
-          float2 tc = worldPosXZ * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
+          float2 tc = worldPosXZ * world_to_water_heightmap_tex.zw + world_to_water_heightmap_tex.xy;
           BRANCH
           if (all(tc >= 0 && tc <= 1))
           {

@@ -29,7 +29,7 @@ namespace das {
     IMPLEMENT_OP2_NUMERIC_VEC(DivVecScal);
 
 #undef FUSION_OP_PTR_VALUE_RIGHT
-#define FUSION_OP_PTR_VALUE_RIGHT(CTYPE,expr)   (v_ldu((const float *)(expr)))
+#define FUSION_OP_PTR_VALUE_RIGHT(CTYPE,expr)   ([&]() -> vec4f { vec4f __v; DAS_LDU_WORKHORSE(__v, (expr), CTYPE); return __v; }())
 
 #undef FUSION_OP_PTR_VALUE_LEFT
 #define FUSION_OP_PTR_VALUE_LEFT(CTYPE,expr)    (v_ldu_x((const float *)(expr)))

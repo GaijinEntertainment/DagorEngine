@@ -2,6 +2,8 @@ Root    ?= ../../.. ;
 Location = prog/engine/ioSys ;
 StrictCompile = yes ;
 
+ZstdDdictUseOwnedBytes ?= no ;
+
 TargetType  = lib ;
 Target      = engine/ioSys.lib ;
 
@@ -103,6 +105,12 @@ CPPopt = -D__B_KERNEL_LIB ;
 switch $(UseZlibVer)
 {
   case ng :    CPPopt += -DUSE_ZLIB_VER=0xFF0000 ;
+}
+
+# force ZSTD DDict to copy dictionary bytes instead of by-reference
+if $(ZstdDdictUseOwnedBytes) = yes {
+  Target = $(Target:S=~ownddict.lib) ;
+  CPPopt += -DDAGOR_ZSTD_DDICT_FORCE_OWNED_BYTES=1 ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

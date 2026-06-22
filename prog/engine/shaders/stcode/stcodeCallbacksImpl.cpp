@@ -9,6 +9,7 @@
 #include "compareStcode.h"
 #include "../shadersBinaryData.h"
 #include "../shStateBlock.h"
+#include "../refinedBlockExec.h"
 
 #include <3d/dag_render.h>
 #include <drv/3d/dag_shaderConstants.h>
@@ -61,6 +62,27 @@ CB_VISIBILITY void create_state(const uint *vs_tex, uint32_t vs_tex_range_packed
 CB_VISIBILITY uint acquire_tex(void *texptr);
 CB_VISIBILITY void fatal(const char *fmt, va_list args);
 
+CB_VISIBILITY float4 rb_get_f4_cb(int32_t gid);
+CB_VISIBILITY float rb_get_real_cb(int32_t gid);
+CB_VISIBILITY int32_t rb_get_int_cb(int32_t gid);
+CB_VISIBILITY void rb_get_mat44_cb(int32_t gid, float4x4 *out);
+CB_VISIBILITY void *rb_get_tex_cb(int32_t gid);
+CB_VISIBILITY void *rb_get_buf_cb(int32_t gid);
+CB_VISIBILITY void rb_flush_tex_cb(int32_t stage, int32_t slot, void *tex);
+CB_VISIBILITY void rb_flush_buf_cb(int32_t stage, int32_t slot, void *buf);
+CB_VISIBILITY uint32_t rb_alloc_bindless_cb(void *tex);
+CB_VISIBILITY void rb_flush_bindless_tex_cb(uint32_t bi, void *tex);
+CB_VISIBILITY int4 rb_get_ivec_cb(int32_t gid);
+CB_VISIBILITY uint64_t rb_get_sampler_cb(int32_t gid);
+CB_VISIBILITY void *rb_get_tlas_cb(int32_t gid);
+CB_VISIBILITY void rb_flush_cbuf_cb(int32_t stage, int32_t slot, void *buf);
+CB_VISIBILITY void rb_flush_sampler_cb(int32_t stage, int32_t slot, uint64_t handle);
+CB_VISIBILITY uint32_t rb_alloc_bindless_sampler_cb(uint64_t handle);
+CB_VISIBILITY void rb_flush_bindless_sampler_cb(uint32_t bi, uint64_t handle);
+CB_VISIBILITY void rb_flush_tlas_cb(int32_t stage, int32_t slot, void *tlas);
+CB_VISIBILITY void rb_flush_rwtex_cb(int32_t stage, int32_t slot, void *tex);
+CB_VISIBILITY void rb_flush_rwbuf_cb(int32_t stage, int32_t slot, void *buf);
+
 // @TODO: remake buffer callbacks to take Sbuffer * directly
 
 G_STATIC_ASSERT((eastl::is_same_v<decltype(request_sampler(0, {}, 0, 0)), eastl::underlying_type_t<d3d::SamplerHandle>>));
@@ -92,7 +114,27 @@ const CallbackTable cb_table_impl =
   &reg_bindless,
   &create_state,
   &acquire_tex,
-  &fatal
+  &fatal,
+  &rb_get_f4_cb,
+  &rb_get_real_cb,
+  &rb_get_int_cb,
+  &rb_get_mat44_cb,
+  &rb_get_tex_cb,
+  &rb_get_buf_cb,
+  &rb_get_ivec_cb,
+  &rb_flush_tex_cb,
+  &rb_flush_buf_cb,
+  &rb_alloc_bindless_cb,
+  &rb_flush_bindless_tex_cb,
+  &rb_get_sampler_cb,
+  &rb_get_tlas_cb,
+  &rb_flush_cbuf_cb,
+  &rb_flush_sampler_cb,
+  &rb_alloc_bindless_sampler_cb,
+  &rb_flush_bindless_sampler_cb,
+  &rb_flush_tlas_cb,
+  &rb_flush_rwtex_cb,
+  &rb_flush_rwbuf_cb,
 };
 // clang-format on
 
@@ -418,6 +460,30 @@ CB_VISIBILITY void fatal(const char *fmt, va_list args)
   msg.sprintf_va_list(fmt, args);
   DAG_FATAL("%s", msg.c_str());
 }
+
+CB_VISIBILITY float4 rb_get_f4_cb(int32_t gid) { return refined_block::rb_get_f4(gid); }
+CB_VISIBILITY float rb_get_real_cb(int32_t gid) { return refined_block::rb_get_real(gid); }
+CB_VISIBILITY int32_t rb_get_int_cb(int32_t gid) { return refined_block::rb_get_int(gid); }
+CB_VISIBILITY void rb_get_mat44_cb(int32_t gid, float4x4 *out) { refined_block::rb_get_mat44(gid, out); }
+CB_VISIBILITY void *rb_get_tex_cb(int32_t gid) { return refined_block::rb_get_tex(gid); }
+CB_VISIBILITY void *rb_get_buf_cb(int32_t gid) { return refined_block::rb_get_buf(gid); }
+CB_VISIBILITY int4 rb_get_ivec_cb(int32_t gid) { return refined_block::rb_get_ivec(gid); }
+CB_VISIBILITY void rb_flush_tex_cb(int32_t stage, int32_t slot, void *tex) { refined_block::rb_flush_tex(stage, slot, tex); }
+CB_VISIBILITY void rb_flush_buf_cb(int32_t stage, int32_t slot, void *buf) { refined_block::rb_flush_buf(stage, slot, buf); }
+CB_VISIBILITY uint32_t rb_alloc_bindless_cb(void *tex) { return refined_block::rb_alloc_bindless(tex); }
+CB_VISIBILITY void rb_flush_bindless_tex_cb(uint32_t bi, void *tex) { refined_block::rb_flush_bindless_tex(bi, tex); }
+CB_VISIBILITY uint64_t rb_get_sampler_cb(int32_t gid) { return refined_block::rb_get_sampler(gid); }
+CB_VISIBILITY void *rb_get_tlas_cb(int32_t gid) { return refined_block::rb_get_tlas(gid); }
+CB_VISIBILITY void rb_flush_cbuf_cb(int32_t stage, int32_t slot, void *buf) { refined_block::rb_flush_cbuf(stage, slot, buf); }
+CB_VISIBILITY void rb_flush_sampler_cb(int32_t stage, int32_t slot, uint64_t handle)
+{
+  refined_block::rb_flush_sampler(stage, slot, handle);
+}
+CB_VISIBILITY uint32_t rb_alloc_bindless_sampler_cb(uint64_t handle) { return refined_block::rb_alloc_bindless_sampler(handle); }
+CB_VISIBILITY void rb_flush_bindless_sampler_cb(uint32_t bi, uint64_t handle) { refined_block::rb_flush_bindless_sampler(bi, handle); }
+CB_VISIBILITY void rb_flush_tlas_cb(int32_t stage, int32_t slot, void *tlas) { refined_block::rb_flush_tlas(stage, slot, tlas); }
+CB_VISIBILITY void rb_flush_rwtex_cb(int32_t stage, int32_t slot, void *tex) { refined_block::rb_flush_rwtex(stage, slot, tex); }
+CB_VISIBILITY void rb_flush_rwbuf_cb(int32_t stage, int32_t slot, void *buf) { refined_block::rb_flush_rwbuf(stage, slot, buf); }
 
 #undef CB_VISIBILITY
 

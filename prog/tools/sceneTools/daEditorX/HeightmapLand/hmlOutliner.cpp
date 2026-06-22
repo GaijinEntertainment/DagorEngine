@@ -45,8 +45,12 @@ bool HeightmapLandOutlinerInterface::doesSelectionModeAllowSelectingType(int typ
 
   switch (objectEditor.getSelectMode())
   {
-    case CM_SELECT_PT:
-    case CM_SELECT_SPLINES: return type == EditLayerProps::SPL || type == EditLayerProps::PLG;
+    case CM_SELECT_POINTS_ALL: return type == EditLayerProps::SPL || type == EditLayerProps::PLG; //-V1037
+    case CM_SELECT_POINTS_SPLINE: return type == EditLayerProps::SPL;  //-V1037 Two or more case-branches perform the same actions.
+    case CM_SELECT_POINTS_POLYGON: return type == EditLayerProps::PLG; //-V1037
+    case CM_SELECT_SPLINES_AND_POLYGONS: return type == EditLayerProps::SPL || type == EditLayerProps::PLG;
+    case CM_SELECT_SPLINES: return type == EditLayerProps::SPL;
+    case CM_SELECT_POLYGONS: return type == EditLayerProps::PLG;
     case CM_SELECT_ENT: return type == EditLayerProps::ENT;
     case CM_SELECT_SPL_ENT: return type == EditLayerProps::ENT || type == EditLayerProps::SPL || type == EditLayerProps::PLG;
 

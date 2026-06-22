@@ -22,7 +22,7 @@ def _get_prop_value_corrected(prop_name, prop_owner, known_prop_parameters):
             'type': get_property_type(prop_owner, prop_name)
             }
     if raw_value is None:
-        raw_walue = known_prop_parameters.get('default')
+        raw_value = known_prop_parameters.get('default')
     prop_type = known_prop_parameters.get('type')
     str_value = prop_value_to_string(raw_value, prop_type)
     corrected_value = fix_type(str_value, prop_type)

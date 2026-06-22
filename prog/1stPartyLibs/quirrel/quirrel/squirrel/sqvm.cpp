@@ -72,7 +72,7 @@ bool SQVM::BW_OP(SQUnsignedInteger op,SQObjectPtr &trg,const SQObjectPtr &o1,con
     SQInteger tmask = sq_type(o1)|sq_type(o2); \
     switch(tmask) { \
         case OT_INTEGER: { SQInteger i2 = _integer(o2); \
-            if (i2 == 0) { Raise_Error("division by zero"); SQ_THROW(); } \
+            if (i2 == 0) { Raise_Error("integer division by zero"); SQ_THROW(); } \
             else if (i2 == -1 && _integer(o1) == MIN_SQ_INTEGER) { Raise_Error("integer overflow"); SQ_THROW(); } \
             trg = _integer(o1) op i2; } break; \
         case (OT_FLOAT|OT_INTEGER): \
@@ -211,7 +211,7 @@ bool SQVM::ArithMetaMethod(SQInteger op,const SQObjectPtr &o1,const SQObjectPtr 
             return CallMetaMethod(closure,mm,2,dest);
         }
     }
-    Raise_Error("arith op %c on between '%s' and '%s'",(char)op,GetTypeName(o1),GetTypeName(o2));
+    Raise_Error("arith op %c between '%s' and '%s'",(char)op,GetTypeName(o1),GetTypeName(o2));
     return false;
 }
 
@@ -783,7 +783,9 @@ bool SQVM::FOREACH_OP(SQObjectPtr &o1,SQObjectPtr &o2,SQObjectPtr
             if ((nrefidx = (_delegable(o1)->_delegate)->Next(false, o4, o2, o3)) == -1)
               _FINISH(exitpos);
 
-            _instance(o1)->Get(o2, o3);
+            if (sq_type(o1) == OT_INSTANCE)
+              _instance(o1)->Get(o2, o3);
+
             _CHECK_FREEZE();
             o4 = (SQInteger)nrefidx;
             _FINISH(1);
@@ -1678,7 +1680,7 @@ exception_restore:
                 }
                 continue;
             case _OP_RESUME:
-                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error("trying to resume a '%s',only genenerator can be resumed", GetTypeName(STK(arg1))); SQ_THROW();}
+                if(sq_type(STK(arg1)) != OT_GENERATOR){ Raise_Error("trying to resume a '%s', only genenerator can be resumed", GetTypeName(STK(arg1))); SQ_THROW();}
                 SYNC_IP();
                 _GUARD(_generator(STK(arg1))->Resume(this, TARGET));
                 traps += ci->_etraps;

@@ -13,6 +13,7 @@ source
   file:t = "rendinst_impostor_shadow_atlas.dshl"
   file:t = "generate_imp_mipmaps.dshl"
   file:t = "bc4_compression.dshl"
+  file:t = "rendinst_voxel.dshl"
 
   include rendinstImpostorbakeableShadersList.blk
 

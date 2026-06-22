@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module stub shared private
@@ -17,16 +15,14 @@ class TemplateMacro : AstFunctionAnnotation {
             errors := "stub function must have a result type"
             return false
         }
-        func.sideEffectFlags |= FunctionSideEffectFlags.userScenario
+        func.sideEffectFlags.userScenario = true
         for (arg in func.arguments) {
-            arg.flags |= VariableFlags.marked_used
+            arg.flags.marked_used = true
         }
-        if (func.result.baseType == Type.tVoid) {
-            return true
-        }
+        if (func.result.baseType == Type.tVoid) return true
         var resType = clone_type(func.result)
         if (!resType.flags.ref) {
-            resType.flags &= ~TypeDeclFlags.constant
+            resType.flags.constant = false
         }
         var qblk = qmacro_block() {
             panic("stub function called")
@@ -36,6 +32,9 @@ class TemplateMacro : AstFunctionAnnotation {
             }
         }
         qblk |> force_at(func.body.at)
+        // The body is macro-generated, not user-written — mark it so lint passes
+        // (e.g. STYLE025 on the generated `unsafe { var dummy ... }`) skip it.
+        qblk |> force_generated(true)
         func.body = qblk
         return true
     }

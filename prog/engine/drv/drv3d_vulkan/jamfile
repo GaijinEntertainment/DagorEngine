@@ -245,11 +245,19 @@ if $(Platform) in windows {
   ;
 }
 
-if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 {
+UseArmAsr ?= no ;
+
+if $(UseArmAsr) = yes {
+  Sources += armAsrFsrVulkan.cpp ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/arm_asr/include ;
+  UseProgLibs += 3rdPartyLibs/arm_asr ;
+  CPPopt += -DUSE_ARM_ASR ;
+  Target = $(Target:S=~armasr.lib) ;
+} else if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 {
   Sources += amdFsrVulkan.cpp ;
   AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1/include ;
 } else {
-  Sources += amdFsrVulkan_stub.cpp ;
+  Sources += amdFsrArmAsrVulkan_stub.cpp ;
 }
 
 if $(Config) != rel {

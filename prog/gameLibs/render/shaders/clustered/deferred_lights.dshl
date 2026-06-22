@@ -60,7 +60,7 @@ macro DEFERRED_OMNI_LIGHTS_VS_SHADER()
       output.color_and_attenuation = color_and_attenuation;
       output.pos_and_radius = pos_and_radius;
       #if OMNI_SHADOWS
-        output.shadow_tc_to_atlas = getOmniLightShadowData(index);
+        output.shadow_tc_to_atlas = getOmniLightShadowData(omni_light_index);
       #endif
       #if LIGHT_LIMIT_SIZE
         output.pos_and_radius.w = min(output.pos_and_radius.w, LIGHT_LIMIT_SIZE);

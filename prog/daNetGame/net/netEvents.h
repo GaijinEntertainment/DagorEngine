@@ -14,6 +14,10 @@ ECS_BROADCAST_EVENT_TYPE(OnNetControlClientDisconnect)
 ECS_BROADCAST_EVENT_TYPE(OnMsgSinkCreatedClient, uint16_t * /*inout clientFlags*/)
 ECS_BROADCAST_EVENT_TYPE(OnNetUpdate)
 ECS_BROADCAST_EVENT_TYPE(OnNetDestroy, bool /*final*/)
+ECS_BROADCAST_EVENT_TYPE(EventNetTornDown)
+
+ECS_BROADCAST_EVENT_TYPE(OnNetInitClient)
+ECS_BROADCAST_EVENT_TYPE(OnNetInitServer)
 
 ECS_BROADCAST_EVENT_TYPE(OnNetDedicatedCreated, net::ServerFlags * /*inout serverFlags*/)
 ECS_BROADCAST_EVENT_TYPE(OnNetDedicatedDestroyed, net::ServerFlags * /*inout serverFlags*/)

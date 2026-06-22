@@ -1,6 +1,4 @@
 options gen2
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require common public
 require grep_usage public
@@ -17,33 +15,21 @@ struct OutlineEntry {
 }
 
 def get_json_string(v : JsonValue?; field : string) : string {
-    if (v == null || !(v.value is _object)) {
-        return ""
-    }
+    if (v == null || !(v.value is _object)) return ""
     unsafe {
         let fld = (v.value as _object)?[field] ?? null
-        if (fld != null && (fld.value is _string)) {
-            return fld.value as _string
-        }
+        if (fld != null && (fld.value is _string)) return fld.value as _string
     }
     return ""
 }
 
 def get_json_int(v : JsonValue?; field : string) : int {
-    if (v == null || !(v.value is _object)) {
-        return 0
-    }
+    if (v == null || !(v.value is _object)) return 0
     unsafe {
         let fld = (v.value as _object)?[field] ?? null
-        if (fld == null) {
-            return 0
-        }
-        if (fld.value is _number) {
-            return int(fld.value as _number)
-        }
-        if (fld.value is _longint) {
-            return int(fld.value as _longint)
-        }
+        if (fld == null) return 0
+        if (fld.value is _number) return int(fld.value as _number)
+        if (fld.value is _longint) return int(fld.value as _longint)
     }
     return 0
 }
@@ -61,9 +47,7 @@ def rule_id_to_kind(rule_id : string) : string {
         return "typedef"
     } elif (find(rule_id, "bitfields") >= 0) {
         return "bitfield"
-    } elif (find(rule_id, "variants") >= 0) {
-        return "variant"
-    }
+    } elif (find(rule_id, "variants") >= 0) return "variant"
     return "unknown"
 }
 
@@ -83,7 +67,7 @@ def extract_name_from_text(text, kind : string) : string {
     // e.g. "def foo(x : int) : string {" -> "foo"
     //      "struct Point {" -> "Point"
     //      "[export]\ndef main() {" -> "main" (annotated)
-    var line = strip(skip_annotations(text))
+    let line = strip(skip_annotations(text))
     if (kind == "function") {
         // "def name(" or "def name {" or "def name<"
         let def_pos = find(line, "def ")
@@ -148,9 +132,7 @@ def extract_name_from_text(text, kind : string) : string {
                 }
             }
             // Handle block form: "let private {" -> skip
-            if (first_character(rest) == '{') {
-                return ""
-            }
+            if (first_character(rest) == '{') return ""
             // Handle annotations before name
             if (first_character(rest) == '[') {
                 let close = find(rest, "]")
@@ -163,7 +145,7 @@ def extract_name_from_text(text, kind : string) : string {
     } elif (kind == "typedef") {
         let kw_pos = find(line, "typedef ")
         if (kw_pos >= 0) {
-            var rest = strip(slice(line, kw_pos + 8))
+            let rest = strip(slice(line, kw_pos + 8))
             return slice(rest, 0, find_earliest(rest, [' ', '=']))
         }
     } elif (kind == "bitfield") {
@@ -211,16 +193,12 @@ def skip_annotations(text : string) : string {
 def get_first_line(text : string) : string {
     let clean = skip_annotations(text)
     let nl = find(clean, "\n")
-    if (nl >= 0) {
-        return strip(slice(clean, 0, nl))
-    }
+    if (nl >= 0) return strip(slice(clean, 0, nl))
     return strip(clean)
 }
 
 def do_outline(file, glob_filter : string) : string {
-    if (empty(file) && empty(glob_filter)) {
-        return make_tool_result("'file' or 'glob' argument is required", true)
-    }
+    if (empty(file) && empty(glob_filter)) return make_tool_result("'file' or 'glob' argument is required", true)
     let das_root = get_das_root()
     let rules_path = "{das_root}/tree-sitter-daslang/outline_rules.yml"
     // build target path(s)
@@ -243,9 +221,7 @@ def do_outline(file, glob_filter : string) : string {
     var raw_json : string
     unsafe {
         popen(cmd) $(f) {
-            if (f == null) {
-                return
-            }
+            if (f == null) return
             raw_json = build_string() $(var w) {
                 while (!feof(f)) {
                     write(w, fgets(f))
@@ -253,9 +229,7 @@ def do_outline(file, glob_filter : string) : string {
             }
         }
     }
-    if (empty(raw_json) || raw_json == "[]") {
-        return make_tool_result("No declarations found")
-    }
+    if (empty(raw_json) || raw_json == "[]") return make_tool_result("No declarations found")
     var err : string
     var parsed = read_json(raw_json, err)
     if (parsed == null) {
@@ -281,9 +255,7 @@ def do_outline(file, glob_filter : string) : string {
             let start = rng != null ? ((rng.value as _object)?["start"] ?? null) : null
             let line_num = start != null ? get_json_int(start, "line") + 1 : 0
             let name = extract_name_from_text(text, kind)
-            if (empty(name)) {
-                continue  // skip block-form globals like "let private {"
-            }
+            if (empty(name)) continue  // skip block-form globals like "let private {"
             let display_path = make_relative_path(file_path, das_root)
             let idx = length(entries)
             entries |> emplace(OutlineEntry(kind = kind, name = name, line = line_num, text = get_first_line(text)))
@@ -304,7 +276,7 @@ def do_outline(file, glob_filter : string) : string {
     }
     // format output
     let multi_file = length(file_order) > 1
-    var output = build_string() $(var w) {
+    let output = build_string() $(var w) {
         for (fp_idx in range(length(file_order))) {
             let fp = file_order[fp_idx]
             if (multi_file) {

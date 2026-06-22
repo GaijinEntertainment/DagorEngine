@@ -32,18 +32,18 @@ def main {
     print("\ntracing...\n")
     var i = 0
     if (USE_MODE == Mode.JobQue) {
-        with_job_que <| $() {
-            var t0 = ref_time_ticks()
+        with_job_que() {
+            let t0 = ref_time_ticks()
             var totalRays = 0
             let nJobs = get_total_hw_jobs()
-            profile(kFrameCount, "ray-trace frame (with {nJobs} JOB-QUE)") <| $() {
+            profile(kFrameCount, "ray-trace frame (with {nJobs} JOB-QUE)") {
                 var pbb : array<float3>?
                 var ptr : int?
                 unsafe {
                     pbb = addr(backbuffer)                  // NOTE: we actually share data here
                     ptr = addr(totalRays)
                 }
-                with_job_status(height) <| $(status) {
+                with_job_status(height) $(status) {
                     for (y in range(height)) {
                         new_job <| @ {
                             init_path_tracer()
@@ -57,23 +57,23 @@ def main {
                     i ++
                 }
             }
-            var dt = get_time_usec(t0)
-            var sec = double(dt) / 1000000.0lf
+            let dt = get_time_usec(t0)
+            let sec = double(dt) / 1000000.0lf
             print("{totalRays} in {sec} sec, {fmt(":.3f",double(totalRays)/double(dt))} mrays/sec\n")
             print("{totalRays/nJobs} {fmt(":.3f",double(totalRays/nJobs)/double(dt))} mrays/sec per job\n")
         }
     } elif (USE_MODE == Mode.Threads) {
-        var t0 = ref_time_ticks()
+        let t0 = ref_time_ticks()
         var totalRays = 0
         let hwThreads = get_total_hw_threads()
-        profile(kFrameCount, "ray-trace frame (with {hwThreads} THREADS)") <| $() {
+        profile(kFrameCount, "ray-trace frame (with {hwThreads} THREADS)") {
             var pbb : array<float3>?
             var ptr : int?
             unsafe {
                 pbb = addr(backbuffer)                  // NOTE: we actually share data here
                 ptr = addr(totalRays)
             }
-            with_job_status(hwThreads) <| $(status) {
+            with_job_status(hwThreads) $(status) {
                 let chunk = (height + hwThreads - 1) / hwThreads
                 for (c in range(hwThreads)) {
                     let yMin = c * chunk
@@ -90,12 +90,12 @@ def main {
                 i ++
             }
         }
-        var dt = get_time_usec(t0)
-        var sec = double(dt) / 1000000.0lf
+        let dt = get_time_usec(t0)
+        let sec = double(dt) / 1000000.0lf
         print("{totalRays} in {sec} sec, {fmt(":.3f",double(totalRays)/double(dt))} mrays/sec\n")
         print("{totalRays/hwThreads} {fmt(":.3f",double(totalRays/hwThreads)/double(dt))} mrays/sec per thread\n")
     } elif (USE_MODE == Mode.SimulateGpu) {
-        profile(kFrameCount, "ray-trace frame via per ray prep") <| $() {
+        profile(kFrameCount, "ray-trace frame via per ray prep") {
             init_path_tracer()
             for (y in range(height)) {
                 for (x in range(width)) {
@@ -105,7 +105,7 @@ def main {
             }
         }
     } else {
-        profile(kFrameCount, "ray-trace frame") <| $() {
+        profile(kFrameCount, "ray-trace frame") {
             init_path_tracer()
             var rayCount = 0
             draw(i, width, height, 0, height, backbuffer, rayCount)

@@ -1,0 +1,19 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("test-release")
+}
+
+[export]
+def release() {
+    release_name("custom-bundle-name")
+    release_main("main.das")
+    release_include("*.png")
+    release_include("data/**/*.json")
+    release_exclude("data/internal/**")
+    release_shared_module("dasSQLITE")
+    release_shared_module("dasGlfw")
+}

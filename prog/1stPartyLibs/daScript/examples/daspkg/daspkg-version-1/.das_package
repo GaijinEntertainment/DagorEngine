@@ -12,3 +12,8 @@ def package() {
 def dependencies(version : string) {
     require_package("github.com/borisbat/daspkg-test-versions@1.0")
 }
+
+[export]
+def release() {
+    release_main("main.das")
+}

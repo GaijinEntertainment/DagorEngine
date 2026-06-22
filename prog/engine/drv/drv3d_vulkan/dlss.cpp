@@ -328,15 +328,6 @@ eastl::optional<nv::DLSS::OptimalSettings> DLSSSuperResolutionDirect::getOptimal
   };
 }
 
-bool DLSSSuperResolutionDirect::setOptions(Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model)
-{
-  if (!isSupported)
-    return false;
-
-  Globals::ctx.dispatchCmd<CmdInitializeDLSS>({int(mode), output_resolution.x, output_resolution.y, use_rr, use_legacy_model});
-  return true;
-}
-
 void DLSSSuperResolutionDirect::DeleteFeature()
 {
   if (dlssFeature)

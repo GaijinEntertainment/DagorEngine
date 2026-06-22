@@ -28,7 +28,7 @@ def replace_pointer_in_name(name : string; anim_graph : AnimationGraph)
     return "{slice(name, 0, -hexCharactersNum)}{animNodeName}"
   return name
 
-def save_anim_state_parameters(anim_graph : AnimationGraph; anim_state : IAnimStateHolder; var dest_obj : Object)
+def save_anim_state_parameters(anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; var dest_obj : Object)
   clear(dest_obj)
   using() <| $(var rawData : IntList)
     set(dest_obj, "rawData", rawData)
@@ -102,7 +102,7 @@ def copy_anim_state_parameters_to_blk(anim_graph : AnimationGraph; params_obj : 
           for j in range(dataSize)
             add(raw, "v", rawData[pOffset + j])
 
-def push_zero_param(var raw_data : IntList; param_type : uint; anim_state : IAnimStateHolder; param_id : int)
+def push_zero_param(var raw_data : IntList; param_type : uint; anim_state : AnimGraphStateHolder; param_id : int)
   if param_type == PT_ScalarParam || param_type == PT_ScalarParamInt || param_type == PT_TimeParam
     push(raw_data, 0)
   elif param_type == PT_InlinePtr || param_type == PT_Fifo3 || param_type == PT_Effector
@@ -110,7 +110,7 @@ def push_zero_param(var raw_data : IntList; param_type : uint; anim_state : IAni
     for _ in range(paramSize)
       push(raw_data, 0)
 
-def load_anim_state_parameters(anim_graph : AnimationGraph; anim_state : IAnimStateHolder; var dest_obj : Object; blk : DataBlock)
+def load_anim_state_parameters(anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; var dest_obj : Object; blk : DataBlock)
   clear(dest_obj)
   using() <| $(var rawData : IntList)
     set(dest_obj, "rawData", rawData)
@@ -163,7 +163,7 @@ def load_anim_state_parameters(anim_graph : AnimationGraph; anim_state : IAnimSt
           for i in range(expectedSize)
             push(rawData, validSize ? datablock_getInt(raw, i) : 0)
 
-def apply_anim_state_parameters(var anim_state : IAnimStateHolder; src_obj : Object)
+def apply_anim_state_parameters(var anim_state : AnimGraphStateHolder; src_obj : Object)
   assume rawData = *get_ecs_IntList(src_obj, "rawData")
   assume paramTypes = *get_ecs_UInt8List(src_obj, "paramTypes")
   assume paramOffsets = *get_ecs_IntList(src_obj, "paramOffsets")
@@ -183,7 +183,7 @@ def apply_anim_state_parameters(var anim_state : IAnimStateHolder; src_obj : Obj
       unsafe
         memcpy(ptr, addr(rawData[paramOffset]), copySizeInBytes)
 
-def patch_anim_graph_data(var animchar_data : Object; anim_graph : AnimationGraph; anim_state : IAnimStateHolder; anim_state_params : DataBlock)
+def patch_anim_graph_data(var animchar_data : Object; anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; anim_state_params : DataBlock)
   for animParamsCompName in ["animParams", "preciseAnimParams"]
     var animParams = getRW_ecs_array(animchar_data, animParamsCompName)
     if animParams == null

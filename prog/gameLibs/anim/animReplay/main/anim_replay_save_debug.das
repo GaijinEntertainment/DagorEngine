@@ -40,7 +40,7 @@ def fill_sampled_anim_params(var anim_params : Array; anim_graph : AnimationGrap
         set(animParam, "id", param.id)
         set(animParam, "name", string(param.name))
 
-def fill_precise_anim_params(var anim_params : Array; anim_graph : AnimationGraph; anim_state : IAnimStateHolder; precise_anim_params : StringList)
+def fill_precise_anim_params(var anim_params : Array; anim_graph : AnimationGraph; anim_state : AnimGraphStateHolder; precise_anim_params : StringList)
   clear(anim_params)
   for paramName in precise_anim_params
     let paramId = anim_graph_getParamId(anim_graph, string(paramName), int(PT_ScalarParam))

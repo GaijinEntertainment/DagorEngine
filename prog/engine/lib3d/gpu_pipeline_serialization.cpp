@@ -484,33 +484,33 @@ public:
     serializeData(desc.Flags);
   }
 
-  template <typename T, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type, typename InnerType>
-  void serializeData(CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<T, Type, InnerType> &desc)
+  template <typename U, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Type, typename InnerType>
+  void serializeData(CD3DX12_PIPELINE_STATE_STREAM_SUBOBJECT<U, Type, InnerType> &desc)
   {
     D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type = Type;
     serializeData(type);
     G_ASSERT(type == Type);
-    if constexpr (eastl::is_same<T, D3D12_SHADER_BYTECODE>::value)
+    if constexpr (eastl::is_same<U, D3D12_SHADER_BYTECODE>::value)
     {
       serializeData(static_cast<D3D12_SHADER_BYTECODE &>(desc), ObjectTypeToShaderType<Type>::shader_type);
     }
     else
     {
-      serializeData(static_cast<T &>(desc));
+      serializeData(static_cast<U &>(desc));
     }
   }
 
-  template <typename T>
+  template <typename U>
   void skipData(SubObjectSerializationContext &ctx)
   {
-    ctx.template advanceBy<T>();
+    ctx.template advanceBy<U>();
   }
 
-  template <typename T>
+  template <typename U>
   void serializeData(SubObjectSerializationContext &ctx)
   {
-    serializeData(ctx.template type<T>());
-    ctx.template advanceBy<T>();
+    serializeData(ctx.template type<U>());
+    ctx.template advanceBy<U>();
   }
 
   void serializeData(SubObjectSerializationContext &ctx)

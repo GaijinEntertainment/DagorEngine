@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module uriparser_boost shared public
@@ -48,10 +46,7 @@ def uri_compose_query(query : table<string; string>) {
 
 def uri_compose_query_in_order(query : table<string; string>) {
     //! Compose a query string from a table of key-value pairs, in the sorted order.
-    var vq : array<tuple<key : string; value : string>>
-    for (key, value in keys(query), values(query)) {
-        vq |> push((key = key, value = value))
-    }
+    var vq <- [for (key, value in keys(query), values(query)); (key = key, value = value)]
     sort(vq) $(a, b) {
         if (a.key == b.key) {
             return a.value < b.value

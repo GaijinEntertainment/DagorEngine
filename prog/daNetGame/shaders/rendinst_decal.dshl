@@ -9,6 +9,7 @@ include "decals/deferred_decal_inc.dshl"
 include "gbuffer.dshl"
 include "gbuffer_with_mixing.dshl"
 include "emissive.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 texture names_tex;
 
@@ -63,6 +64,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
 
   ENABLE_MULTI_DRAW(false)
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   SETUP_CHARACTER_MICRODETAIL()
   hlsl {
     struct VsOutput
@@ -106,7 +108,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
       #endif
 
       #if HAS_NORMAL
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       #else
       float3 localNormal = 1;
       #endif
@@ -290,6 +292,7 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
 
   ENABLE_MULTI_DRAW(false)
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   SETUP_CHARACTER_MICRODETAIL()
 
   if (shader == rendinst_deferred_emissive_decal)
@@ -422,7 +425,7 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
       #endif
 
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       float3 localPos = input.pos;
       float opacity = 1;
       VB_PERFORM_INSTANCING

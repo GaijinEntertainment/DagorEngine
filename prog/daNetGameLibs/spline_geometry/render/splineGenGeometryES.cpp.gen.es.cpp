@@ -144,7 +144,7 @@ static constexpr ecs::ComponentDesc spline_gen_geometry_update_instancing_data_e
 {
 //start of 1 rw components at [0]
   {ECS_HASH("spline_gen_geometry_renderer"), ecs::ComponentTypeInfo<SplineGenGeometry>()},
-//start of 23 ro components at [1]
+//start of 25 ro components at [1]
   {ECS_HASH("spline_gen_geometry__radii"), ecs::ComponentTypeInfo<ecs::List<Point2>>()},
   {ECS_HASH("spline_gen_geometry__emissive_points"), ecs::ComponentTypeInfo<ecs::List<Point3>>()},
   {ECS_HASH("spline_gen_geometry__emissive_color"), ecs::ComponentTypeInfo<Point4>()},
@@ -166,6 +166,8 @@ static constexpr ecs::ComponentDesc spline_gen_geometry_update_instancing_data_e
   {ECS_HASH("spline_gen_geometry__uv_scroll_interpolation_value"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("spline_gen_geometry__surface_opaqueness"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("spline_gen_geometry__additional_thickness_bounds"), ecs::ComponentTypeInfo<Point2>()},
+  {ECS_HASH("spline_gen_geometry__medium_tint"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("spline_gen_geometry__is_shell"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("spline_gen_geometry__is_rendered"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("spline_gen_geometry__renderer_active"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -199,6 +201,8 @@ static void spline_gen_geometry_update_instancing_data_es_all_events(const ecs::
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__uv_scroll_interpolation_value", float)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__surface_opaqueness", float)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__additional_thickness_bounds", Point2)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__medium_tint", Point3)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__is_shell", float)
       );
   } while (++comp != compE);
 }
@@ -208,7 +212,7 @@ static ecs::EntitySystemDesc spline_gen_geometry_update_instancing_data_es_es_de
   "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
   ecs::EntitySystemOps(nullptr, spline_gen_geometry_update_instancing_data_es_all_events),
   make_span(spline_gen_geometry_update_instancing_data_es_comps+0, 1)/*rw*/,
-  make_span(spline_gen_geometry_update_instancing_data_es_comps+1, 23)/*ro*/,
+  make_span(spline_gen_geometry_update_instancing_data_es_comps+1, 25)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),

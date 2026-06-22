@@ -196,6 +196,7 @@ int myMain(int startArgC)
     DAGOR_DBGLEVEL > 0 ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO, bind_dascript::DasSyntax::V1_5);
   NEED_MODULE(DagorFiles)
   NEED_MODULE(DasEcsUnitTest)
+  das::Module::Initialize();
 
   int ret = myMain2(startArgC);
 

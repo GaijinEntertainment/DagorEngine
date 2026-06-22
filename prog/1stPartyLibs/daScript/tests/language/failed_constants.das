@@ -1,5 +1,5 @@
 options gen2
-expect 10006:12, 10010:4
+expect 10300:16
 
 [export]
 def main {

@@ -89,7 +89,7 @@ namespace das {
     TypeDeclPtr makeExprAscendFlags() {
         auto ft = new TypeDecl(Type::tBitfield);
         ft->alias = "ExprAscendFlags";
-        ft->argNames = { "useStackRef", "needTypeInfo", "isMakeLambda" };
+        ft->argNames = { "useStackRef", "needTypeInfo", "allocate_on_stack" };
         return ft;
     }
 
@@ -157,7 +157,8 @@ namespace das {
             "removeRef", "removeConstant", "removeDim",
             "removeTemporary", "explicitConst", "aotAlias", "smartPtr",
             "smartPtrNative", "isExplicit", "isNativeDim", "isTag", "explicitRef",
-            "isPrivateAlias", "autoToAlias" };
+            "isPrivateAlias", "autoToAlias", "safeWhenUninitialized",
+            "enumStubBinding", "enumStubIsUnsigned" };
         return ft;
     }
 
@@ -166,7 +167,7 @@ namespace das {
         ft->alias = "FieldDeclarationFlags";
         ft->argNames = { "moveSemantics", "parentType", "capturedConstant",
             "generated", "capturedRef", "doNotDelete", "privateField", "_sealed",
-            "implemented", "classMethod" };
+            "implemented", "classMethod", "_abstract", "inherited" };
         return ft;
     }
 

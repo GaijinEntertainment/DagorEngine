@@ -108,7 +108,7 @@ void Animate2ndPass::endAnim(AnimV20::AnimcharBaseComponent *animchar)
 void Animate2ndPassCtx::Ctrl::initAnimState(const GeomNodeTree &tree)
 {
   Animate2ndPass &anim = getAnim2ndPass();
-  state.reset(new AnimV20::AnimCommonStateHolder(anim.getGraph()));
+  state.reset(new AnimV20::AnimGraphStateHolder(anim.getGraph()));
   animMap.clear();
   animMap.reserve(tree.nodeCount());
   for (dag::Index16 i(0), ie(tree.nodeCount()); i != ie; ++i)

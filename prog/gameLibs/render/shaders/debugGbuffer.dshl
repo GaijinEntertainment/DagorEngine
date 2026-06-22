@@ -323,7 +323,7 @@ shader debug_final_gbuffer
           half3(0.3, 0.3, 0.3),
         };
 
-        return half4(CASCADE_COLORS[min(cascadeId, 3u)] * NoV, 1);
+        return half4(CASCADE_COLORS[min(cascadeId, 2u)] * NoV, 1);
       ##endif
       return 0;
     }

@@ -80,6 +80,17 @@ namespace das
         };
     };
 
+    // [clone(paramName1, paramName2, ...)] — marker for daslang-side PERF024 lint.
+    // Declares that the callee unconditionally clones the named parameters internally,
+    // so callers passing clone_expression(X) at those positions are redundantly cloning.
+    // Pure metadata; args stored in func->annotations for lint consumption.
+    struct CloneFunctionAnnotation : MarkFunctionAnnotation {
+        CloneFunctionAnnotation() : MarkFunctionAnnotation("clone") { }
+        virtual bool apply(const FunctionPtr &, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+            return true;
+        };
+    };
+
     struct RequestJitFunctionAnnotation : MarkFunctionAnnotation {
         RequestJitFunctionAnnotation() : MarkFunctionAnnotation("jit") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
@@ -184,7 +195,7 @@ namespace das
         MakeFunctionUnsafeCallMacro() : CallMacro("make_function_unsafe") { }
         virtual ExpressionPtr visit (  Program * prog, Module *, ExprCallMacro * call ) override {
             if ( !call->inFunction ) {
-                prog->error("make_function_unsafe can only be used inside a function", "", "", call->at);
+                prog->error("make_function_unsafe can only be used inside a function", "", "", call->at, CompilationError::invalid_macro_context);
                 return nullptr;
             }
             call->inFunction->unsafeOperation = true;
@@ -396,8 +407,8 @@ namespace das
             for ( size_t ai=0; ai!=maxIndex; ++ ai) {
                 if ( decl.arguments.find(fn->arguments[ai]->name, Type::tBool) ) {
                     const auto & argT = types[ai];
-                    if ( argT->dim.size() == 0 ) {
-                        err = "argument " + fn->arguments[ai]->name + " is expected to be a dim []";
+                    if ( argT->baseType != Type::tFixedArray ) {
+                        err = "argument " + fn->arguments[ai]->name + " is expected to be a fixed size array";
                         return false;
                     }
                 }
@@ -799,11 +810,27 @@ namespace das
     }
 
     int builtin_table_size ( const Table & arr ) {
-        return arr.size;
+        DAS_VERIFYF(arr.size <= uint64_t(INT32_MAX), "table size %llu exceeds INT_MAX; use long_length() instead", (unsigned long long)arr.size);
+        return int(arr.size);
+    }
+
+    bool builtin_table_empty ( const Table & arr ) {
+        return arr.size == 0;
     }
 
     int builtin_table_capacity ( const Table & arr ) {
-        return arr.capacity;
+        DAS_VERIFYF(arr.capacity <= uint64_t(INT32_MAX), "table capacity %llu exceeds INT_MAX; use long_capacity() instead", (unsigned long long)arr.capacity);
+        return int(arr.capacity);
+    }
+
+    int64_t builtin_table_long_size ( const Table & arr ) {
+        DAS_VERIFYF(arr.size <= uint64_t(INT64_MAX), "table size %llu exceeds INT64_MAX", (unsigned long long)arr.size);
+        return int64_t(arr.size);
+    }
+
+    int64_t builtin_table_long_capacity ( const Table & arr ) {
+        DAS_VERIFYF(arr.capacity <= uint64_t(INT64_MAX), "table capacity %llu exceeds INT64_MAX", (unsigned long long)arr.capacity);
+        return int64_t(arr.capacity);
     }
 
     void builtin_table_clear ( Table & arr, Context * context, LineInfoArg * at ) {
@@ -822,7 +849,7 @@ namespace das
         Type baseType = call->types[0]->firstType->type;
         uint32_t valueTypeSize = call->types[0]->secondType->size;
         Table & tab = cast<Table&>::to(args[0]);
-        uint32_t newCapacity = cast<uint32_t>::to(args[1]);
+        uint64_t newCapacity = cast<uint64_t>::to(args[1]);
         table_reserve_impl(context, tab, baseType, newCapacity, valueTypeSize, &call->debugInfo);
         return v_zero();
     }
@@ -1047,9 +1074,11 @@ namespace das
         result = { (Iterator *) iter };
     }
 
-    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context, LineInfoArg * at ) {
+    void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int64_t size, int stride, Context * context, LineInfoArg * at ) {
+        // Negative size would underflow into a huge uint64 and the iterator would run past
+        // the array bounds — clamp to empty instead. Same pattern as builtin_make_temp_array_i64.
         char * iter = context->allocateIterator(sizeof(FixedArrayIterator), "fixed array iterator", at);
-        new (iter) FixedArrayIterator((char *)data, size, stride, at);
+        new (iter) FixedArrayIterator((char *)data, size < 0 ? uint64_t(0) : uint64_t(size), uint32_t(stride), at);
         result = { (Iterator *) iter };
     }
 
@@ -1213,7 +1242,7 @@ namespace das
     void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at ) {
         if ( dim.data ) {
             if ( !dim.isLocked() || dim.hopeless ) {
-                uint32_t oldSize = dim.capacity*szt;
+                uint64_t oldSize = dim.capacity*uint64_t(szt);
                 __context__->free(dim.data, oldSize, at);
             } else {
                 __context__->throw_error_at(at, "can't delete locked array");
@@ -1230,7 +1259,7 @@ namespace das
     void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__, LineInfoArg * at ) {
         if ( tab.data ) {
             if ( !tab.isLocked() || tab.hopeless ) {
-                uint32_t oldSize = tab.capacity*(szk+szv+sizeof(TableHashKey));
+                uint64_t oldSize = tab.capacity*(uint64_t(szk)+uint64_t(szv)) + tab.capacity*tableHashSlotBytes(tab);
                 __context__->free(tab.data, oldSize, at);
             } else {
                 __context__->throw_error_at(at, "can't delete locked table");
@@ -1337,6 +1366,14 @@ namespace das
 
     bool is_standalone_exe ( ) {
         return false;
+    }
+
+    // DAS_SAFE_HASH of the host binary (anyhash.h). When 0, string hashing uses the
+    // fast 16-bit-over-read load; the JIT can then inline a matching hash. When 1
+    // (e.g. ASAN), the runtime reads byte-by-byte and the JIT must not over-read, so
+    // it falls back to the runtime call instead of emitting the fast intrinsic.
+    bool is_safe_hash ( ) {
+        return DAS_SAFE_HASH != 0;
     }
 
     DAS_API uint64_t get_context_share_counter ( Context * context ) {
@@ -1532,7 +1569,7 @@ namespace das
     }
 
     char * builtin_shared_module_extension ( Context * context, LineInfoArg * at ) {
-#ifdef DAS_NO_ASSERTIONS
+#ifdef NDEBUG
         return context->allocateString(".shared_module", at);
 #else
         return context->allocateString("_debug.shared_module", at);
@@ -1581,14 +1618,21 @@ namespace das
 
     void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * at ) {
         Array arr;
-        array_mark_locked(arr, (char *)data, uint32_t(size));
+        // Negative size would wrap into a huge uint capacity; clamp to empty array instead.
+        array_mark_locked(arr, (char *)data, size < 0 ? uint64_t(0) : uint64_t(size));
         vec4f args[1];
         args[0] = cast<Array &>::from(arr);
         context->invoke(block, args, nullptr, at);
     }
 
     void builtin_make_temp_array ( Array & arr, void * data, int size ) {
-        array_mark_locked(arr, (char *)data, uint32_t(size));
+        // Negative size would underflow to huge uint64 — clamp to empty array instead.
+        array_mark_locked(arr, (char *)data, size < 0 ? uint64_t(0) : uint64_t(size));
+    }
+
+    void builtin_make_temp_array_i64 ( Array & arr, void * data, int64_t size ) {
+        // Negative size would underflow to huge uint64 — clamp to empty array instead.
+        array_mark_locked(arr, (char *)data, size < 0 ? uint64_t(0) : uint64_t(size));
     }
 
     void toLog ( int level, const char * text, Context * context, LineInfoArg * at ) {
@@ -1656,31 +1700,31 @@ namespace das
     }
 
     const char * get_module_file_name ( const char * name, Context * context ) {
+        // Copy into context string heap so daslang owns the returned pointer.
+        auto allocFromMod = [&](Module * mod) -> const char * {
+            if ( !mod || mod->fileName.empty() ) return nullptr;
+            return context ? context->allocateString(mod->fileName.data(), uint32_t(mod->fileName.size()), nullptr) : nullptr;
+        };
         if ( context && context->thisProgram ) {
             string modName = name ? name : "";
             if ( modName.empty() ) {
                 // return the main module's file name
-                auto mod = context->thisProgram->thisModule.get();
-                if ( mod && !mod->fileName.empty() ) return mod->fileName.c_str();
+                if ( const char * res = allocFromMod(context->thisProgram->thisModule.get()) ) return res;
             } else {
                 // search program's library for named module
-                const char * result = nullptr;
+                Module * found = nullptr;
                 context->thisProgram->library.foreach([&](Module * mod) {
                     if ( mod->name == modName && !mod->fileName.empty() ) {
-                        result = mod->fileName.c_str();
+                        found = mod;
                         return false;
                     }
                     return true;
                 }, modName);
-                if ( result ) return result;
+                if ( const char * res = allocFromMod(found) ) return res;
             }
         }
         // fallback to global module list
-        auto mod = Module::require(name ? name : "");
-        if ( mod && !mod->fileName.empty() ) {
-            return mod->fileName.c_str();
-        }
-        return nullptr;
+        return allocFromMod(Module::require(name ? name : ""));
     }
 
 // remove define to enable emscripten version
@@ -1797,6 +1841,7 @@ namespace das
         addAnnotation(new GenericFunctionAnnotation());
         addAnnotation(new MacroFunctionAnnotation());
         addAnnotation(new MacroFnFunctionAnnotation());
+        addAnnotation(new CloneFunctionAnnotation());
         addAnnotation(new HintFunctionAnnotation());
         addAnnotation(new RequestJitFunctionAnnotation());
         addAnnotation(new RequestNoJitFunctionAnnotation());
@@ -1855,6 +1900,8 @@ namespace das
                 ->arg("arguments");
         addExtern<DAS_BIND_FUN(is_standalone_exe)>(*this, lib, "is_standalone_exe",
             SideEffects::accessExternal, "is_standalone_exe");
+        addExtern<DAS_BIND_FUN(is_safe_hash)>(*this, lib, "is_safe_hash",
+            SideEffects::none, "is_safe_hash");
         addExtern<DAS_BIND_FUN(withCommandLineArguments)>(*this, lib,  "with_argv",
             SideEffects::invoke, "withArgv")
                 ->args({"new_arguments", "block","context","line"});
@@ -2071,8 +2118,17 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_size)>(*this, lib, "length",
             SideEffects::none, "builtin_table_size")
                 ->arg("table");
+        addExtern<DAS_BIND_FUN(builtin_table_empty)>(*this, lib, "empty",
+            SideEffects::none, "builtin_table_empty")
+                ->arg("table");
         addExtern<DAS_BIND_FUN(builtin_table_capacity)>(*this, lib, "capacity",
             SideEffects::none, "builtin_table_capacity")
+                ->arg("table");
+        addExtern<DAS_BIND_FUN(builtin_table_long_size)>(*this, lib, "long_length",
+            SideEffects::none, "builtin_table_long_size")
+                ->arg("table");
+        addExtern<DAS_BIND_FUN(builtin_table_long_capacity)>(*this, lib, "long_capacity",
+            SideEffects::none, "builtin_table_long_capacity")
                 ->arg("table");
         addExtern<DAS_BIND_FUN(builtin_table_lock)>(*this, lib, "__builtin_table_lock",
             SideEffects::modifyArgumentAndExternal, "builtin_table_lock")
@@ -2101,7 +2157,7 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_get_key)>(*this, lib, "__builtin_table_get_key",
             SideEffects::modifyExternal, "builtin_table_get_key")
                 ->args({"result","table","value_ptr","value_stride","key_stride","context","at"});
-        addInterop<builtin_table_reserve,void,vec4f,uint32_t>(*this, lib, "__builtin_table_reserve",
+        addInterop<builtin_table_reserve,void,vec4f,uint64_t>(*this, lib, "__builtin_table_reserve",
             SideEffects::modifyArgumentAndExternal, "builtin_table_reserve")
                 ->args({"table","size"});
         // array and table free
@@ -2115,6 +2171,9 @@ namespace das
         addInterop<builtin_collect_local_and_zero,void,vec4f,uint32_t>(*this, lib, "builtin_collect_local_and_zero",
             SideEffects::modifyArgumentAndExternal, "builtin_collect_local_and_zero")
                 ->args({"anything","sizeOfAnything"})->unsafeOperation = true;
+        addInterop<builtin_scope_free,void,vec4f,uint32_t>(*this, lib, "builtin_scope_free",
+            SideEffects::modifyArgumentAndExternal, "builtin_scope_free")
+                ->args({"pointer","sizeOfPointee"})->unsafeOperation = true;
         // table expressions
         addCall<ExprErase>("__builtin_table_erase");
         addCall<ExprSetInsert>("__builtin_table_set_insert");
@@ -2276,6 +2335,10 @@ namespace das
             SideEffects::modifyArgument, "builtin_make_temp_array")
                 ->args({"array","data","size"});
         bmta->unsafeOperation = true;
+        auto bmta64 = addExtern<DAS_BIND_FUN(builtin_make_temp_array_i64)>(*this, lib, "_builtin_make_temp_array_i64",
+            SideEffects::modifyArgument, "builtin_make_temp_array_i64")
+                ->args({"array","data","size"});
+        bmta64->unsafeOperation = true;
         // migrate data
         addExtern<DAS_BIND_FUN(das_is_dll_build)>(*this, lib, "das_is_dll_build",
             SideEffects::worstDefault, "das_is_dll_build");
@@ -2345,16 +2408,23 @@ namespace das
             SideEffects::none, "das_aot_enabled")
                 ->args({"context","at"});
         // bitfield
-        addExtern<DAS_BIND_FUN(__bit_set)>(*this, lib, "__bit_set",
+        // `__bit_set` has additional raw-integer overloads in aot.h (for handle-bound
+        // bitfield fields like Function::flags, which is uint32_t on the C++ side) —
+        // disambiguate the runtime binding to the Bitfield& variant explicitly.
+        using BitSetFn   = void(*)(Bitfield&,   Bitfield,   bool);
+        using BitSet8Fn  = void(*)(Bitfield8&,  Bitfield8,  bool);
+        using BitSet16Fn = void(*)(Bitfield16&, Bitfield16, bool);
+        using BitSet64Fn = void(*)(Bitfield64&, Bitfield64, bool);
+        addExtern<BitSetFn, static_cast<BitSetFn>(__bit_set)>(*this, lib, "__bit_set",
             SideEffects::modifyArgument, "__bit_set")
                 ->args({"value","mask","on"});
-        addExtern<DAS_BIND_FUN(__bit_set8)>(*this, lib, "__bit_set",
+        addExtern<BitSet8Fn, static_cast<BitSet8Fn>(__bit_set8)>(*this, lib, "__bit_set",
             SideEffects::modifyArgument, "__bit_set8")
                 ->args({"value","mask","on"});
-        addExtern<DAS_BIND_FUN(__bit_set16)>(*this, lib, "__bit_set",
+        addExtern<BitSet16Fn, static_cast<BitSet16Fn>(__bit_set16)>(*this, lib, "__bit_set",
             SideEffects::modifyArgument, "__bit_set16")
                 ->args({"value","mask","on"});
-        addExtern<DAS_BIND_FUN(__bit_set64)>(*this, lib, "__bit_set",
+        addExtern<BitSet64Fn, static_cast<BitSet64Fn>(__bit_set64)>(*this, lib, "__bit_set",
             SideEffects::modifyArgument, "__bit_set64")
                 ->args({"value","mask","on"});
         // platform and architecture

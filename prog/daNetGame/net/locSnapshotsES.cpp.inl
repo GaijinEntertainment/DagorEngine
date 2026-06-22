@@ -47,7 +47,6 @@ ECS_UNICAST_EVENT_TYPE(EventSnapshotBlink, TMatrix /*from*/, TMatrix /*to*/, flo
 ECS_REGISTER_EVENT(EventSnapshotBlink);
 
 // TODO: move net:: to gameLibs, otherwise this code is doomed to be DNG specific
-extern net::CNetwork *get_net_internal();
 
 struct SnapshotEntityData
 {

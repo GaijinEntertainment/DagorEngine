@@ -6,6 +6,7 @@
 
 #include <shaders/dag_shadersRes.h>
 #include <shaders/dag_instShaderMeshRes.h>
+#include <shaders/dag_voxelSurfaceData.h>
 #include <math/dag_bounds3.h>
 #include <3d/dag_textureIDHolder.h>
 #include <math/dag_Point4.h>
@@ -55,6 +56,9 @@ public:
   InstShaderMeshResource *getMesh() { return rigid.mesh; }
   const InstShaderMeshResource *getMesh() const { return rigid.mesh; }
 
+  VoxelSurfaceData *getVoxelSurface() const { return voxelSurface.get(); }
+  int getVoxelDataOffset() const { return voxelDataOffset; }
+
   RenderableInstanceResource *clone() const;
   void updateShaderElems()
   {
@@ -72,6 +76,8 @@ protected:
   };
 
   RigidObject rigid;
+  Ptr<VoxelSurfaceData> voxelSurface;
+  int voxelDataOffset = 0; // from starting vertex of element 0
 
   RenderableInstanceResource() {}
 end_dclass_decl();
@@ -88,6 +94,7 @@ public:
     real range;
     float texScale;
     int getAllElems(Tab<dag::ConstSpan<ShaderMesh::RElem>> &out_elems) const;
+    VoxelSurfaceData *getVoxelSurface() const { return scene ? scene->getVoxelSurface() : nullptr; }
   };
   struct ImpostorData
   {
@@ -243,6 +250,7 @@ public:
   static void (*on_higher_lod_required)(RenderableInstanceLodsResource *res, unsigned req_lod, unsigned cur_lod);
 
   static bool always_load_last_tree_geom_lod;
+  static bool disable_voxel_lods;
 
   static constexpr short int qlReqLodInitialValue = 16;
   unsigned getQlReqLod() const { return interlocked_relaxed_load(qlReqLod); }

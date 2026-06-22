@@ -23,6 +23,8 @@ inline constexpr int MAX_B_REGISTERS = dxil::MAX_B_REGISTERS;
 
 static constexpr bool UAVS_CONTEND_WITH_RTVS = false;
 
+inline constexpr int IMMEDIATE_CB_REGISTER = dxil::ROOT_CONSTANT_BUFFER_REGISTER_INDEX;
+
 #elif _CROSS_TARGET_SPIRV
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 
@@ -33,12 +35,20 @@ inline constexpr int MAX_B_REGISTERS = spirv::B_REGISTER_INDEX_MAX;
 
 static constexpr bool UAVS_CONTEND_WITH_RTVS = false;
 
+inline constexpr int IMMEDIATE_CB_REGISTER = -1; // Uses real push constants
+
 #else
+
+#if _CROSS_TARGET_METAL
+#include "buffBindPoints.h"
+#endif
 
 // @TODO: make per-platform limits for all platforms & drivers
 
 inline constexpr int MAX_T_REGISTERS = 32;
-inline constexpr int MAX_B_REGISTERS = 14;
+
+// Physical limits are 14 for dx11, 20 for PS4, 32 for PS5 (or even 256), putting at 12 to start unification
+inline constexpr int MAX_B_REGISTERS = 12;
 
 #if _CROSS_TARGET_DX11
 inline constexpr int MAX_U_REGISTERS = 8;
@@ -58,6 +68,14 @@ inline constexpr bool UAVS_CONTEND_WITH_RTVS = false;
 
 #else
 inline constexpr int MAX_S_REGISTERS = 16;
+#endif
+
+#if _CROSS_TARGET_METAL
+inline constexpr int IMMEDIATE_CB_REGISTER = drv3d_metal::IMMEDIATE_BIND_POINT;
+#elif _CROSS_TARGET_C1 || _CROSS_TARGET_C2
+
+#else
+inline constexpr int IMMEDIATE_CB_REGISTER = 8;
 #endif
 
 #endif

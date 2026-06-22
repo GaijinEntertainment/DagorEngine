@@ -2,7 +2,7 @@
 // verifies compiler rejects ref keys, non-hashable keys (array),
 // and void local variables
 options gen2
-expect 30106:2, 30108    // invalid_table_type
+expect 30202, 30248, 30254    // invalid_table_type
 
 def test {
     let a : table<int&; string>        // can't have table key ref

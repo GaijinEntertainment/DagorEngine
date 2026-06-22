@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 // MIDI player with SF2 SoundFont — plays a .mid file using a GM SoundFont.
 // Place a GM SoundFont next to this file (see README.md for download links).

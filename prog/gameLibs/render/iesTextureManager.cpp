@@ -16,7 +16,7 @@
 #include <EASTL/algorithm.h>
 #include <EASTL/string_view.h>
 
-#include <render/renderLightsConsts.hlsli>
+#include <render/lights/renderLightsConsts.hlsli>
 
 static constexpr eastl::string_view IES_PREFIX = "ies_";
 static const char *const PHOTOMETRY_TEX_NAME = "photometry_textures";

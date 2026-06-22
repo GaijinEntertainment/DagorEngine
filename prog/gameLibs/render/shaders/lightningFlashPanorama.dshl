@@ -19,6 +19,7 @@ macro INIT_PANORAMA_LIGHTNING_FLASH()
       lightning_color@f3 = lightning_point_light_color;
       clouds_depth_panorama_tex@smp2d = clouds_depth_downsampled_panorama_tex;
       clouds_depth_panorama_patch_tex@smp2d = clouds_depth_downsampled_panorama_patch_tex;
+      clouds_alpha_panorama_tex@smp2d = clouds_alpha_panorama_tex;
     }
   }
 endmacro
@@ -62,7 +63,8 @@ macro USE_PANORAMA_LIGHTNING_FLASH()
         float flashDist = length(fragPos - flashPos);
         float x = flashDist / lightning_flash_params.y;
         float distanceFade = lightning_flash_params.x * exp(-x * x );
-        color.rgb += lightning_color * saturate(distanceFade);
+        float cloudCoverage = 1.0 - tex2Dlod(clouds_alpha_panorama_tex, float4(fragPanoramaUV, 0, 0)).x;
+        color.rgb += lightning_color * saturate(distanceFade) * cloudCoverage;
       ##endif
     }
   }

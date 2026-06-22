@@ -60,6 +60,7 @@ namespace das
         {   Type::tLambda,      "lambda"},
         {   Type::tTuple,       "tuple"},
         {   Type::tVariant,     "variant"},
+        {   Type::tFixedArray,  "fixed array"},
         {   Type::fakeContext,  "__context"},
         {   Type::fakeLineInfo,  "__lineInfo"},
     };
@@ -770,11 +771,48 @@ namespace das
     }
 
     void TextFileInfo::freeSourceData() {
+        FileInfo::freeSourceData();
         if ( source ) {
             das_aligned_free16((void*)source);
             source = nullptr;
             sourceLength = 0;
         }
+    }
+
+    void FileInfo::buildLineIndex() {
+        if ( lineIndexBuilt ) return;
+        lineIndexBuilt = true;
+        const char * src = nullptr;
+        uint32_t len = 0;
+        getSourceAndLength(src, len);
+        if ( !src || len == 0 ) return;
+        lineOffsets.reserve(len / 40 + 8);
+        lineOffsets.push_back(0);
+        for ( uint32_t i = 0; i < len; ++i ) {
+            if ( src[i] == '\n' ) {
+                lineOffsets.push_back(i + 1);
+            }
+        }
+    }
+
+    bool FileInfo::getLine ( uint32_t line, const char * & begin, uint32_t & len ) {
+        begin = nullptr;
+        len = 0;
+        if ( line == 0 ) return false;
+        if ( !lineIndexBuilt ) buildLineIndex();
+        if ( line > lineOffsets.size() ) return false;
+        const char * src = nullptr;
+        uint32_t srcLen = 0;
+        getSourceAndLength(src, srcLen);
+        if ( !src || srcLen == 0 ) return false;
+        uint32_t lineStart = lineOffsets[line - 1];
+        uint32_t lineEnd = ( line < lineOffsets.size() ) ? ( lineOffsets[line] - 1 ) : srcLen;
+        if ( lineEnd > lineStart && src[lineEnd - 1] == '\r' ) {
+            lineEnd--;
+        }
+        begin = src + lineStart;
+        len = lineEnd - lineStart;
+        return true;
     }
 
     bool FileAccess::isSameFileName ( const string & a, const string & b ) const {
@@ -839,6 +877,20 @@ namespace das
         } else {
             return incFileName;
         }
+    }
+
+
+    static string getModuleName ( const string & nameWithDots ) {
+        auto idx = nameWithDots.find_last_of("./");
+        if ( idx==string::npos ) return nameWithDots;
+        return nameWithDots.substr(idx+1);
+    }
+
+    static string getModuleFileName ( const string & nameWithDots ) {
+        auto fname = nameWithDots;
+        // TODO: should we?
+        replace ( fname.begin(), fname.end(), '.', '/' );
+        return fname;
     }
 
     ModuleInfo FileAccess::getModuleInfo ( const string & req, const string & from ) const {

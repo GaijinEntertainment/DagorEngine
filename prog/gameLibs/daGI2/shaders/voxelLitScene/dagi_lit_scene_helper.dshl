@@ -32,7 +32,8 @@ define_macro_if_not_defined PROJECT_GET_WORLD_VOXELS_LIT_SCENE_AT(code)
       for (;;)
       {
         uint sdfCascade = cascade + dagi_lit_scene_voxels_first_sdf_clip();
-        float3 borderVoxelSize = world_sdf_voxel_size(sdfCascade)*(log2(rcp(dagi_lit_voxel_scene_to_sdf.xyx)));//fixme: log2(rcp(const))
+        //0.5*rcp matches the old log2(rcp()) guard at res scale 0.5/0.25, but stays positive at scale 1
+        float3 borderVoxelSize = world_sdf_voxel_size(sdfCascade)*(0.5*rcp(dagi_lit_voxel_scene_to_sdf.xyx));
         if (all(and(worldPos > world_sdf_get_lt(sdfCascade)+borderVoxelSize, worldPos < world_sdf_get_rb(sdfCascade)-borderVoxelSize)))
         {
           uint axis = 0;

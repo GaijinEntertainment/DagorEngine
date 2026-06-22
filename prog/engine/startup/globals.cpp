@@ -109,7 +109,7 @@ void dgs_init_argv(int argc, char **argv)
   char *eob = NULL;
   for (int i = 0; i < argc; ++i)
   {
-    argv_storage[i] = argv[i];
+    argv_storage[i].setStrRaw(str_dup(argv[i], strmem)); // prevents "" getting optimized to nullptr
 
     if (i == 0 || eob + 1 == argv[i])
       eob = argv[i] + strlen(argv[i]);

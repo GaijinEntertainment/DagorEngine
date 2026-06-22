@@ -741,8 +741,6 @@ static SQInteger load_das(HSQUIRRELVM vm)
   policies.aot = dasMgr->aotMode == AotMode::AOT;
   policies.fail_on_no_aot = false;
   policies.fail_on_lack_of_aot_export = true;
-  policies.no_unused_function_arguments = true;
-  policies.no_unused_block_arguments = true;
   policies.no_aliasing = true;
   policies.strict_unsafe_delete = true; //-V1048
   //  policies.ignore_shared_modules = hard_reload;

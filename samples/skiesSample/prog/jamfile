@@ -126,7 +126,7 @@ if $(Platform) in windows {
 
 } else if $(Platform) in xboxOne scarlett {
   UseProgLibs += engine/drv/drv3d_DX12 ;
-  UseProgLibs += engine/drv/hid_gamepad_xinput engine/drv/hid_keyboard engine/drv/hid_nulldrv ;
+  UseProgLibs += engine/drv/hid_gameinput engine/drv/hid_nulldrv ;
 } else if $(Platform) in iOS tvOS {
   Sources += ios_main.mm ;
   UseProgLibs +=

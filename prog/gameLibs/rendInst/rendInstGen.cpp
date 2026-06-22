@@ -637,10 +637,11 @@ void RendInstGenData::prepareRtData(int layer_idx)
             if (strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_plod"))
               plodMask |= 1 << elemNo;
 
-            if (rtData->riRes[i]->hasImpostor() &&
-                (/*impostor lod*/ l == rtData->riRes[i]->lods.size() - 1 ||
-                  /*transition lod*/
-                  (elems[elemNo].mat->getIntVariable(use_cross_dissolve_variable_id, crossDissolve) && crossDissolve > 0)))
+            if ((rtData->riRes[i]->hasImpostor() &&
+                  (/*impostor lod*/ l == rtData->riRes[i]->lods.size() - 1 ||
+                    /*transition lod*/ (
+                      elems[elemNo].mat->getIntVariable(use_cross_dissolve_variable_id, crossDissolve) && crossDissolve > 0))) ||
+                strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_voxel"))
             {
               mask |= 1 << elemNo;
               cmask |= 1 << elemNo;
@@ -2937,6 +2938,8 @@ void rendinst::clearRIGen()
   clear_and_shrink(full_sweep_wbox_list);
   rendinst::termRIGenExtra();
   riExtraSubstNames.reset(false);
+
+  rendinst::props::custom_props_clear_all_cb.fire(false);
 }
 
 void rendinst::clearRIGenDestrData()

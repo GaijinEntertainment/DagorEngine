@@ -71,7 +71,7 @@
 #include <render/deferredRenderer.h>
 #include <render/downsampleDepth.h>
 #include <render/screenSpaceReflections.h>
-#include <render/tileDeferredLighting.h>
+#include <render/lights/tileDeferredLighting.h>
 #include <daSkies2/daSkies.h>
 #include <daSkies2/daSkiesToBlk.h>
 #include "de3_gui_dialogs.h"

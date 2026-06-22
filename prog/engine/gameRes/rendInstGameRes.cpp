@@ -2,6 +2,7 @@
 
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shaderResUnitedData.h>
+#include <shaders/dag_atlasBlockManager.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <shaders/dag_shaderMeshTexLoadCtrl.h>
@@ -148,7 +149,11 @@ public:
     }
 
     if (ri_factory && riUnitedVdata.getResCount() == 0)
+    {
       riUnitedVdata.clear();
+      voxeldata::rgbaAtlasManager.clear();
+      voxeldata::normAtlasManager.clear();
+    }
     return result;
   }
 
@@ -190,6 +195,8 @@ public:
     if (getResClassId() == RendInstGameResClassId)
     {
       riUnitedVdata.clear();
+      voxeldata::rgbaAtlasManager.clear();
+      voxeldata::normAtlasManager.clear();
       freeUnusedResources(nullptr, false, false);
     }
 
@@ -329,6 +336,10 @@ void register_rendinst_gameres_factory(bool use_united_vdata_streaming)
   RenderableInstanceLodsResource::on_higher_lod_required = !use_united_vdata_streaming ? nullptr : &on_higher_lod_required;
   RenderableInstanceLodsResource::always_load_last_tree_geom_lod =
     ::dgs_get_game_params()->getBool("rendinstAlwaysLoadLastTreeGeomLod", false);
+  RenderableInstanceLodsResource::disable_voxel_lods =
+    ::dgs_get_settings()->getBlockByNameEx("debug")->getBool("disableVoxelLods", !riUnitedVdata.canUseVbAsSr());
+  if (RenderableInstanceLodsResource::disable_voxel_lods)
+    debug("voxel LODs are disabled");
 
   rendinst_factory.demandInit();
   ::add_factory(rendinst_factory);
@@ -346,7 +357,10 @@ REGISTER_D3D_BEFORE_RESET_FUNC(before_reset_rendinst_buffers);
 static void reset_rendinst_buffers(bool full_reset)
 {
   if (full_reset)
+  {
     riUnitedVdata.onAfterD3dReset();
+    VoxelSurfaceData::onAfterD3dReset();
+  }
 }
 REGISTER_D3D_AFTER_RESET_FUNC(reset_rendinst_buffers);
 

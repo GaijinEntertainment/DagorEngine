@@ -7,7 +7,7 @@ include "land_block_inc.dshl"
 macro USE_HMAP_BLEND(pass_to_frame) //use after RENDINST_BLOCK()
   if (has_hmap_blend)
   {
-    USE_CLIPMAP_NORMAL()
+    USE_CLIPMAP_NORMAL(shaderlod == low)
     USE_LAND_SHORE()
     USE_HEIGHTMAP_COMMON_PS()
     USE_LAND_MICRODETAILS_PS()

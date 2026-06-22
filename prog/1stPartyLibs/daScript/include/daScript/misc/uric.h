@@ -4,8 +4,25 @@
 #define URI_STATIC_BUILD
 #endif
 #include "uriparser/Uri.h"
+#include <cstring>
 
 namespace das {
+
+    // uriWindowsFilenameToUriString only treats '\\' as a path separator and
+    // only percent-escapes per segment. daslang normalizes paths to '/', so a
+    // '/'-only path would collapse into one "first segment" and be copied
+    // verbatim (unescaped) -> an invalid URI. Normalize '/' -> '\\' first.
+    // Returns the original pointer (no allocation) when there is no '/'.
+    inline const char * windowsFileNameSlashesToBackslashes ( const char * fileName, string & storage ) {
+        if ( fileName == nullptr || strchr(fileName, '/') == nullptr ) {
+            return fileName;
+        }
+        storage = fileName;
+        for ( auto & c : storage ) {
+            if ( c == '/' ) c = '\\';
+        }
+        return storage.c_str();
+    }
 
     class Uri {
     public:

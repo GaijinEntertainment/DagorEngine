@@ -69,12 +69,13 @@ macro USE_RTR_PROBES(stage)
       return uv * scaleUV + borderUV;
     }
 
-    float4 sample_probe(uint2 probeIndex, float3 dir)
+    float4 sample_probe(uint2 probeIndex, uint layer, float3 dir)
     {
       float2 uv = octEncode(dir) * 0.5 + 0.5;
       uv = remap_texcoord(uv);
-      uv *= inv_probe_count;
-      uv += probeIndex * inv_probe_count;
+      float2 invCell = float2(inv_probe_count.x * 0.5, inv_probe_count.y);
+      uint2 cell = uint2(probeIndex.x * 2 + layer, probeIndex.y);
+      uv = (uv + cell) * invCell;
       return probes.SampleLevel(probes_samplerstate, uv, 0);
     }
   }

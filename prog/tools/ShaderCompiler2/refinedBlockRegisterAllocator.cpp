@@ -5,19 +5,20 @@
 
 #include "refinedBlockRegisterAllocator.h"
 #include "const3d.h"
+#include "globalConfig.h"
 
 namespace shc
 {
 
 RefinedBlockRegisterAllocator::RefinedBlockRegisterAllocator()
 {
-
-  // TODO: Figure out how in preshader parse pass reserve hardcoded slots.
-
-  vsSlotAllocator[HLSL_RSPACE_T] = HlslRegAllocator(HlslRegAllocator::Policy{0, MAX_T_REGISTERS});
-  psOrCsSlotAllocator[HLSL_RSPACE_T] = HlslRegAllocator(HlslRegAllocator::Policy{0, MAX_T_REGISTERS});
-
+  vsSlotAllocator = make_default_hlsl_reg_allocators(shc::config().hlslMaximumVsfAllowed);
+  psOrCsSlotAllocator = make_default_hlsl_reg_allocators(shc::config().hlslMaximumPsfAllowed);
   cRegAllocator = make_default_cbuf_reg_allocator();
+
+  vsSlotAllocator[HLSL_RSPACE_B] = HlslRegAllocator(HlslRegAllocator::Policy{REFINED_BLOCK_CONST_BUF_REGISTER + 1, MAX_B_REGISTERS});
+  psOrCsSlotAllocator[HLSL_RSPACE_B] =
+    HlslRegAllocator(HlslRegAllocator::Policy{REFINED_BLOCK_CONST_BUF_REGISTER + 1, MAX_B_REGISTERS});
 }
 
 int RefinedBlockRegisterAllocator::allocCbufSlot(uint32_t slotCount)
@@ -69,12 +70,13 @@ int RefinedBlockRegisterAllocator::allocSlot(ShaderStage stage, HlslRegisterSpac
   return allocator.allocate();
 }
 
-void RefinedBlockRegisterAllocator::reserveSlot(ShaderStage stage, HlslRegisterSpace space, uint32_t slot)
+void RefinedBlockRegisterAllocator::reserveSlot(ShaderStage stage, HlslRegisterSpace space, HlslSlotSemantic semantic, uint32_t slot,
+  uint32_t count)
 {
   auto &allocator = (stage == STAGE_VS) ? vsSlotAllocator[space] : psOrCsSlotAllocator[space];
-  allocator.reserve(HlslSlotSemantic::RESERVED, slot)
-    .or_else([slot](auto err) -> dag::Expected<void, decltype(err)> {
-      sh_debug(SHLOG_FATAL, "refined block register allocator: failed to reserve t-slot t%d", slot);
+  allocator.reserve(semantic, slot, count)
+    .or_else([slot, count](auto err) -> dag::Expected<void, decltype(err)> {
+      sh_debug(SHLOG_FATAL, "refined block register allocator: failed to reserve slots [%d, %d)", slot, slot + count);
       return dag::Unexpected(err);
     })
     .error();

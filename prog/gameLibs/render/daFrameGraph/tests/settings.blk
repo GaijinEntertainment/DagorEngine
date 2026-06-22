@@ -1,4 +1,5 @@
 video {
+  driver:t="dx12"
   resolution:t="640x480"
   mode:t="windowed"
 }

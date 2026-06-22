@@ -14,10 +14,6 @@
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 
-#if _TARGET_XBOX
-#include <osApiWrappers/gdk/gameinput.h>
-#endif
-
 
 #define LOW_THRES   2000
 #define MOUSE_SPEED 0.01
@@ -72,16 +68,9 @@ public:
     {
       uint64_t bw0 = raw_state_joy.buttons.getDWord0();
 
-#if _TARGET_XBOX
-      // Use second joystick from composite joystick as xinput-compatible device.
-      const uint64_t lbMask = JOY_XINPUT_REAL_MASK_R_TRIGGER | (uint64_t)JOY_XINPUT_REAL_MASK_R_TRIGGER << JOY_XINPUT_REAL_BTN_COUNT;
-      const int dx = raw_state_joy.x;
-      const int dy = raw_state_joy.y;
-#else
       const uint64_t lbMask = JOY_XINPUT_REAL_MASK_R_THUMB;
       const int dx = raw_state_joy.rx;
       const int dy = raw_state_joy.ry;
-#endif
 
       if (emuButtonsEnabled)
       {
@@ -272,82 +261,7 @@ protected:
     return clipped;
   }
 
-#if _TARGET_XBOX
-
-  struct MouseState
-  {
-    IPoint2 currentHwPos = {0, 0};
-    uint64_t lastHwButtons = 0;
-    int currentHwWheel = 0;
-  };
-
-  MouseState mouse_states[gdk::gameinput::MAX_DEVICES_PER_TYPE] = {};
-
-  void updateMouseState(MouseState &state, IGameInputDevice *device)
-  {
-    if (!device)
-      return;
-
-    gdk::gameinput::Reading reading = gdk::gameinput::get_current_reading(GameInputKindMouse, device);
-    if (reading)
-    {
-      GameInputMouseState mouseState;
-      if (reading->GetMouseState(&mouseState))
-      {
-        static uint32_t mouseButtons[] = {
-          GameInputMouseButtons::GameInputMouseLeftButton,
-          GameInputMouseButtons::GameInputMouseRightButton,
-          GameInputMouseButtons::GameInputMouseMiddleButton,
-          GameInputMouseButtons::GameInputMouseButton4,
-          GameInputMouseButtons::GameInputMouseButton5,
-        };
-
-        for (int buttonNo = 0; buttonNo < countof(mouseButtons); buttonNo++)
-        {
-          uint64_t buttonBit = 1ull << buttonNo;
-          if (mouseState.buttons & mouseButtons[buttonNo])
-          {
-            if (!(state.lastHwButtons & buttonBit))
-              onButtonDown(buttonNo);
-            state.lastHwButtons |= buttonBit;
-          }
-          else
-          {
-            if (state.lastHwButtons & buttonBit)
-              onButtonUp(buttonNo);
-            state.lastHwButtons &= ~buttonBit;
-          }
-        }
-
-        IPoint2 newHwPos(mouseState.positionX, mouseState.positionY);
-        IPoint2 delta = newHwPos - state.currentHwPos;
-        delta *= max(1, clip.b / 1080);
-        state.currentHwPos = newHwPos;
-        if (delta.x != 0 || delta.y != 0)
-          onMouseMove(delta.x, delta.y);
-
-        int wheelInput = mouseState.wheelY;
-        int wheelDelta = wheelInput - state.currentHwWheel;
-        state.currentHwWheel = wheelInput;
-        if (wheelDelta != 0)
-          onMouseWheel(wheelDelta);
-      }
-    }
-  }
-
-  void updateHWMouse()
-  {
-    gdk::gameinput::DevicesList mouses;
-    gdk::gameinput::get_devices(GameInputKindMouse, mouses);
-
-    G_ASSERT(mouses.size() <= gdk::gameinput::MAX_DEVICES_PER_TYPE);
-
-    for (size_t mouseNo = 0; mouseNo < mouses.size(); ++mouseNo)
-      updateMouseState(mouse_states[mouseNo], mouses[mouseNo]);
-  }
-#else
   void updateHWMouse() {}
-#endif
 };
 
 

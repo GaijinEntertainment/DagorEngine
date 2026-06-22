@@ -33,6 +33,8 @@
   VAR(dagi_irrad_grid_debug_type)                      \
   VAR(dagi_irrad_grid_update_lt_coord)                 \
   VAR(dagi_irrad_grid_update_sz_coord)                 \
+  VAR(dagi_irrad_grid_spatial_update_from)             \
+  VAR(dagi_irrad_grid_spatial_scratch)                 \
   VAR(dagi_irradiance_grid_sph0)                       \
   VAR(dagi_irradiance_grid_sph1)                       \
   VAR(dagi_irrad_grid_clipmap_sizei)                   \
@@ -48,7 +50,7 @@ CONSOLE_INT_VAL("gi", gi_radiance_grid_reset, 0, 0, 2, "0 - off, 1 - before pos 
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_all, false);
 CONSOLE_BOOL_VAL("gi", gi_irradiance_grid_invalidate, false);
 CONSOLE_BOOL_VAL("gi", gi_radiance_grid_update_temporal, true);
-CONSOLE_INT_VAL("gi", gi_irradiance_spatial_passes, 2, 0, 4);
+CONSOLE_INT_VAL("gi", gi_irradiance_spatial_passes, 1, 0, 4);
 
 static ShaderVariableInfo dagi_rad_grid_clipmap_lt_coordVarId[DAGI_MAX_RAD_GRID_CLIPS],
   dagi_irrad_grid_clipmap_lt_coordVarId[DAGI_MAX_IRRAD_GRID_CLIPS];
@@ -118,7 +120,8 @@ void RadianceGrid::initVars()
   CS(dagi_irradiance_grid_toroidal_movement_trace_cs);
   CS(dagi_irradiance_grid_select_temporal_cs);
   CS(dagi_irradiance_grid_calc_temporal_cs);
-  CS(dagi_irradiance_grid_spatial_filter_cs);
+  CS(dagi_irradiance_grid_spatial_filter_gather_cs);
+  CS(dagi_irradiance_grid_spatial_filter_apply_cs);
   CS(dagi_irradiance_grid_invalidate_cs);
 #undef CS
 }
@@ -405,7 +408,15 @@ bool RadianceGrid::updateClipIrradiance(uint32_t clip_no, const Point3 &world_po
   }
 #endif
 
-  uint32_t numFilterPasses = dagi_irradiance_grid_spatial_filter_cs ? gi_irradiance_spatial_passes.get() : 0;
+  uint32_t numFilterPasses = 0, filterBatchProbes = 0;
+  if (dagi_irradiance_grid_spatial_filter_gather_cs && dagi_irradiance_grid_spatial_filter_apply_cs && dagi_irrad_grid_spatial_scratch)
+  {
+    // scratch holds a whole clip, so any changed region filters in a single batch
+    const uint32_t threads = dagi_irradiance_grid_spatial_filter_gather_cs->getThreadGroupSizes()[0];
+    filterBatchProbes = (grid.clipW * grid.clipW * grid.clipD + threads - 1) / threads * threads;
+    if (filterBatchProbes)
+      numFilterPasses = gi_irradiance_spatial_passes.get();
+  }
   ShaderGlobal::set_int4(dagi_irrad_grid_clipmap_lt_coordVarId[clip_no], calc_clip_var(clip.lt, probeSize));
   {
     TIME_D3D_PROFILE(rd_irradiance_interpolate);
@@ -455,16 +466,51 @@ bool RadianceGrid::updateClipIrradiance(uint32_t clip_no, const Point3 &world_po
         const IPoint3 updateSize = changed[ui].width();
         ShaderGlobal::set_int4(dagi_irrad_grid_update_sz_coordVarId, updateSize.x, updateSize.y, updateSize.z,
           bitwise_cast<uint32_t>(probeSize));
-        dagi_irradiance_grid_spatial_filter_cs->dispatchThreads(updateSize.x * updateSize.y * updateSize.z, 1, 1);
-        d3d::resource_barrier({dagi_irradiance_grid_sph0.getVolTex(),
-          ui < changedCnt - 1 || si < numFilterPasses - 1 ? RB_NONE : RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, 0,
-          0});
-        d3d::resource_barrier({dagi_irradiance_grid_sph1.getVolTex(),
-          ui < changedCnt - 1 || si < numFilterPasses - 1 ? RB_NONE : RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, 0,
-          0});
+        const uint32_t totalSize = updateSize.x * updateSize.y * updateSize.z;
+        for (uint32_t updated = 0; updated < totalSize; updated += filterBatchProbes)
+        {
+          const uint32_t batchSize = min<uint32_t>(totalSize - updated, filterBatchProbes);
+          ShaderGlobal::set_int(dagi_irrad_grid_spatial_update_fromVarId, updated);
+          d3d::set_rwbuffer(STAGE_CS, 0, dagi_irrad_grid_spatial_scratch);
+          dagi_irradiance_grid_spatial_filter_gather_cs->dispatchThreads(batchSize, 1, 1);
+          d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
+          d3d::resource_barrier({dagi_irrad_grid_spatial_scratch, RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
+          dagi_irradiance_grid_spatial_filter_apply_cs->dispatchThreads(batchSize, 1, 1);
+          // The scratch holds a whole clip, so a region is one batch and reads only pre-pass
+          // values (deterministic). Flush so the next region or pass sees this apply; the
+          // final write is transitioned by the caller. The RB_NONE path is a fallback for a
+          // region larger than the scratch (it would race at the batch boundary, harmless).
+          if (updated + batchSize < totalSize)
+          {
+            d3d::resource_barrier({dagi_irradiance_grid_sph0.getVolTex(), RB_NONE, 0, 0});
+            d3d::resource_barrier({dagi_irradiance_grid_sph1.getVolTex(), RB_NONE, 0, 0});
+          }
+          else if (!(last && ui == changedCnt - 1 && si == numFilterPasses - 1))
+          {
+            d3d::resource_barrier(
+              {dagi_irradiance_grid_sph0.getVolTex(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, 0, 0});
+            d3d::resource_barrier(
+              {dagi_irradiance_grid_sph1.getVolTex(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, 0, 0});
+          }
+        }
       }
   }
   return true;
+}
+
+uint32_t RadianceGrid::getRequiredSpatialFilterBufferSize() const
+{
+  if (irradianceType != IrradianceType::DETAILED || !dagi_irradiance_grid_spatial_filter_gather_cs)
+    return 0;
+  // a whole clip gathered at once, 16 bytes (4 dwords) per probe
+  const uint32_t threads = dagi_irradiance_grid_spatial_filter_gather_cs->getThreadGroupSizes()[0];
+  return (irradiance.clipW * irradiance.clipW * irradiance.clipD + threads - 1) / threads * threads * 4;
+}
+
+void RadianceGrid::setSpatialFilterScratch(const ManagedBuf &buf)
+{
+  ShaderGlobal::set_buffer(dagi_irrad_grid_spatial_scratchVarId, buf);
+  dagi_irrad_grid_spatial_scratch = buf.getBuf();
 }
 
 constexpr int max_pos = (1 << 30) - 1;
@@ -535,7 +581,6 @@ void RadianceGrid::initClipmap(uint32_t clipW, uint32_t clipD, uint32_t clips_, 
   clipD = clamp<uint16_t>(clipD, 8, DAGI_MAX_RAD_GRID_RES);
   clips_ = clamp<uint16_t>(clips_, 1, DAGI_MAX_RAD_GRID_CLIPS);
   clearRadiancePosition();
-  radiance.resetHistory(clips_);
   radiance.probeSize0 = probe0;
   radiance.clipW = clipW;
   radiance.clipD = clipD;
@@ -631,8 +676,8 @@ void RadianceGrid::initTemporal(uint32_t batch_count, float temporal_speed)
   constexpr int irradToRadSelectedProbeSizeRatio = 4;
   // Same buffer is used, so less probes to select available.
   irradiance.temporalProbesBufferSize = radiance.temporalProbesBufferSize / irradToRadSelectedProbeSizeRatio;
-  // We should probably introduce a separate temporal speed for irradiance, because it's compeletely
-  // unobvious that detail level = N would decrease updation speed N^3 times (on top of already 4 times slower update).
+  // We should probably introduce a separate temporal speed for irradiance, because it's completely
+  // unobvious that detail level = N would decrease update speed N^3 times (on top of already 4 times slower update).
   irradiance.temporalSpeed = temporal_speed / (max(irradProbeCountMul, 1.0f) * irradToRadSelectedProbeSizeRatio);
 }
 

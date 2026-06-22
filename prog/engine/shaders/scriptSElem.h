@@ -117,6 +117,7 @@ public:
   SNC_LIKELY_TARGET void render(int minv, int numv, int sind, int numf, int base_vertex, int prim = PRIM_TRILIST) const override;
 
   bool setStatesDispatch() const override;
+  bool isAnyPassWritesDepth() const override;
   bool dispatchCompute(int tgx, int tgy, int tgz, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
   eastl::array<uint16_t, 3> getThreadGroupSizes() const;
   uint32_t getWaveSize() const;

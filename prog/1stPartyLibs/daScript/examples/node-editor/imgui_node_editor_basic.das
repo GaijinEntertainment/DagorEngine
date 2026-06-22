@@ -66,13 +66,13 @@ def EditorDemo() {
     let flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBringToFrontOnFocus
     PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f)
     PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f)
-    Begin("Content", null, flags) <| $() {
+    Begin("Content", null, flags) {
         imgui::PopStyleVar(2)
 
         SetCurrentEditor(g_Context)
         imgui_node_editor::Begin("My Editor", float2(0.0, 0.0f))
 
-        static_let <| $() {
+        static_let() {
             var firstTime = true
         }
 
@@ -82,13 +82,13 @@ def EditorDemo() {
         if (firstTime) {
             SetNodePosition(nodeA, float2(10, 10))
         }
-        BeginNode(nodeA) <| $() {
+        BeginNode(nodeA) {
             Text("Node A")
-            BeginPin(pinAI, PinKind.Input) <| $() {
+            BeginPin(pinAI, PinKind.Input) {
                 Text("-> In")
             }
             SameLine()
-            BeginPin(pinAO, PinKind.Output) <| $() {
+            BeginPin(pinAO, PinKind.Output) {
                 Text("Out ->")
             }
         }
@@ -99,13 +99,13 @@ def EditorDemo() {
         if (firstTime) {
             SetNodePosition(nodeB, float2(300, 50))
         }
-        BeginNode(nodeB) <| $() {
+        BeginNode(nodeB) {
             Text("Node B")
-            BeginPin(pinBI, PinKind.Input) <| $() {
+            BeginPin(pinBI, PinKind.Input) {
                 Text("-> In")
             }
             SameLine()
-            BeginPin(pinBO, PinKind.Output) <| $() {
+            BeginPin(pinBO, PinKind.Output) {
                 Text("Out ->")
             }
         }
@@ -125,7 +125,7 @@ def EditorDemo() {
 
 [export]
 def main() {
-    imgui_app("Testing IMGUI node editor") <| $() {
+    imgui_app("Testing IMGUI node editor") {
         NewFrame()
         EditorDemo()
         Render()

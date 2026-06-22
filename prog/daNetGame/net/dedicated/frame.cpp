@@ -195,7 +195,7 @@ void idle_loop()
     if (!frameHist.full())
       return;
 
-    net::CNetwork *net = get_net_internal();
+    net::CNetwork *net = GET_NET();
     const eastl::vector<eastl::unique_ptr<net::Connection>> *conns = net ? &net->getClientConnections() : nullptr;
     if (conns && !conns->empty()) // this checks shall not be needed but be paranoid
     {

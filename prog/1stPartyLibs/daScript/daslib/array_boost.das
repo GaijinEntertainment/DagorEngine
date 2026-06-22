@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 
 options strict_smart_pointers
 
@@ -20,10 +18,19 @@ require daslib/contracts
 def private array_helper(var arr : auto implicit ==const; a : auto(TT)) : array<TT -const -#> {
     //! helper for temp_array with var argument
     var res : array<TT -const -#>
-    let lenA = _::length(arr)
-    if (lenA >= 1) {
-        unsafe {
-            _builtin_make_temp_array(res, addr(arr[0]), lenA)
+    static_if (typeinfo is_array(arr)) {
+        let lenA = _::long_length(arr)
+        if (lenA >= 1_l) {
+            unsafe {
+                _builtin_make_temp_array_i64(res, addr(arr[0]), lenA)
+            }
+        }
+    } else {
+        let lenA = _::length(arr)
+        if (lenA >= 1) {
+            unsafe {
+                _builtin_make_temp_array(res, addr(arr[0]), lenA)
+            }
         }
     }
     return <- res
@@ -33,10 +40,19 @@ def private array_helper(var arr : auto implicit ==const; a : auto(TT)) : array<
 def private array_helper(arr : auto implicit ==const; a : auto(TT)) : array<TT -const -#> {
     //! helper for temp_array with const argument
     var res : array<TT -const -#>
-    let lenA = _::length(arr)
-    if (lenA >= 1) {
-        unsafe {
-            _builtin_make_temp_array(res, addr(arr[0]), lenA)
+    static_if (typeinfo is_array(arr)) {
+        let lenA = _::long_length(arr)
+        if (lenA >= 1_l) {
+            unsafe {
+                _builtin_make_temp_array_i64(res, addr(arr[0]), lenA)
+            }
+        }
+    } else {
+        let lenA = _::length(arr)
+        if (lenA >= 1) {
+            unsafe {
+                _builtin_make_temp_array(res, addr(arr[0]), lenA)
+            }
         }
     }
     return <- res
@@ -75,7 +91,7 @@ def empty(v : auto(VecT)) {
 }
 
 [unsafe_operation, template(a), unused_argument(a)]
-def public temp_array(var data : auto? ==const; lenA : int; a : auto(TT)) : array<TT -const -#> {
+def public temp_array(var data : auto? ==const; lenA : int | int64; a : auto(TT)) : array<TT -const -#> {
     //! creates a temporary array from the given data pointer and length
     //! Important requirements are:
     //!
@@ -83,16 +99,20 @@ def public temp_array(var data : auto? ==const; lenA : int; a : auto(TT)) : arra
     //!     * each element follows the next one directly, with the stride equal to size of the element
     //!     * data memory does not change within the lifetime of the returned array
     var res : array<TT -const -#>
-    if (lenA >= 1) {
-        unsafe {
-            _builtin_make_temp_array(res, data, lenA)
+    static_if (typeinfo is_int(lenA)) {
+        if (lenA >= 1) {
+            unsafe(_builtin_make_temp_array(res, data, lenA))
+        }
+    } else {
+        if (lenA >= 1_l) {
+            unsafe(_builtin_make_temp_array_i64(res, data, lenA))
         }
     }
     return <- res
 }
 
 [unsafe_operation, template(a), unused_argument(a)]
-def public temp_array(data : auto? ==const; lenA : int; a : auto(TT)) : array<TT -const -#> const {
+def public temp_array(data : auto? ==const; lenA : int | int64; a : auto(TT)) : array<TT -const -#> const {
     //! creates a temporary array from the given data pointer and length
     //! Important requirements are:
     //!
@@ -100,38 +120,65 @@ def public temp_array(data : auto? ==const; lenA : int; a : auto(TT)) : array<TT
     //!     * each element follows the next one directly, with the stride equal to size of the element
     //!     * data memory does not change within the lifetime of the returned array
     var res : array<TT -const -#>
-    if (lenA >= 1) {
-        unsafe {
-            _builtin_make_temp_array(res, data, lenA)
+    static_if (typeinfo is_int(lenA)) {
+        if (lenA >= 1) {
+            unsafe(_builtin_make_temp_array(res, data, lenA))
+        }
+    } else {
+        if (lenA >= 1_l) {
+            unsafe(_builtin_make_temp_array_i64(res, data, lenA))
         }
     }
     return <- res
 }
 
-def array_view(bytes : array<auto(TT)> ==const; offset, length : int; blk : block<(view : array<TT>#) : void>) {
+def array_view(bytes : array<auto(TT)> ==const; offset, length : int | int64; blk : block<(view : array<TT>#) : void>) {
     //! creates a view of the array, which is a temporary array that is valid only within the block
     unsafe {
-        if (offset < 0 || (offset + length) > length(bytes)) {
-            panic("array_view: out of range")
+        static_if (typeinfo is_int(offset)) {
+            // Validate non-negativity before the sum to avoid signed overflow UB.
+            if (offset < 0 || length < 0 || uint(offset) + uint(length) > uint(_::length(bytes))) {
+                panic("array_view: out of range")
+            }
+            __builtin_array_lock_mutable(bytes)
+            var res : array<TT>#
+            _builtin_make_temp_array(res, addr(bytes[offset]), length)
+            invoke(blk, res)
+            __builtin_array_unlock_mutable(bytes)
+        } else {
+            if (offset < 0_l || length < 0_l || uint64(offset) + uint64(length) > uint64(_::long_length(bytes))) {
+                panic("array_view: out of range")
+            }
+            __builtin_array_lock_mutable(bytes)
+            var res : array<TT>#
+            _builtin_make_temp_array_i64(res, addr(bytes[offset]), length)
+            invoke(blk, res)
+            __builtin_array_unlock_mutable(bytes)
         }
-        __builtin_array_lock_mutable(bytes)
-        var res : array<TT>#
-        _builtin_make_temp_array(res, addr(bytes[offset]), length)
-        invoke(blk, res)
-        __builtin_array_unlock_mutable(bytes)
     }
 }
 
-def array_view(var bytes : array<auto(TT)> ==const; offset, length : int; blk : block<(var view : array<TT>#) : void>) {
-    //! creates a view of the array, which is a temporary array that is valid only within the block
+def array_view(var bytes : array<auto(TT)> ==const; offset, length : int | int64; blk : block<(var view : array<TT>#) : void>) {
+    //! creates a mutable view of the array, which is a temporary array that is valid only within the block
     unsafe {
-        if (offset < 0 || (offset + length) > length(bytes)) {
-            panic("array_view: out of range")
+        static_if (typeinfo is_int(offset)) {
+            if (offset < 0 || length < 0 || uint(offset) + uint(length) > uint(_::length(bytes))) {
+                panic("array_view: out of range")
+            }
+            __builtin_array_lock(bytes)
+            var res : array<TT>#
+            _builtin_make_temp_array(res, addr(bytes[offset]), length)
+            invoke(blk, res)
+            __builtin_array_unlock(bytes)
+        } else {
+            if (offset < 0_l || length < 0_l || uint64(offset) + uint64(length) > uint64(_::long_length(bytes))) {
+                panic("array_view: out of range")
+            }
+            __builtin_array_lock(bytes)
+            var res : array<TT>#
+            _builtin_make_temp_array_i64(res, addr(bytes[offset]), length)
+            invoke(blk, res)
+            __builtin_array_unlock(bytes)
         }
-        __builtin_array_lock(bytes)
-        var res : array<TT>#
-        _builtin_make_temp_array(res, addr(bytes[offset]), length)
-        invoke(blk, res)
-        __builtin_array_unlock(bytes)
     }
 }

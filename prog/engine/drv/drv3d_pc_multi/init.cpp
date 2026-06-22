@@ -212,8 +212,11 @@ static DriverCode detect_driver()
   auto it = codes.find(driver);
   auto candidateDriver = it == codes.end() ? DriverCode::make(d3d::undefined) : it->second;
 
-  if (auto overrideDriver = override_driver_preference(candidateDriver, gDIs); overrideDriver)
-    candidateDriver = *overrideDriver;
+  if (video.getBool("overrideDriver", false))
+  {
+    if (auto overrideDriver = override_driver_preference(candidateDriver, gDIs); overrideDriver)
+      candidateDriver = *overrideDriver;
+  }
 
   logdbg("Mapping driver:t=%s to DriverCode:0x%04X", driver, candidateDriver.asFourCC());
 

@@ -27,7 +27,7 @@ let {
 var RAND_SEED : int4
 
 def schlick(cosine, ri : float) {
-    var r0 = (1. - ri) / (1. + ri)
+    let r0 = (1. - ri) / (1. + ri)
     return lerp(r0 * r0, 1., pow(1. - cosine, 5.))
 }
 
@@ -240,7 +240,7 @@ def trace(r : Ray; var inoutRayCount : int&) {
     var col = float3(0.)
     var curAtten = float3(1.)
     var doMaterialE = true
-    for (depth in range(kMaxDepth)) {
+    for (_depth in range(kMaxDepth)) {
         var rec : Hit
         var id = 0
         ++inoutRayCount
@@ -281,7 +281,7 @@ def trace(screenWidth, screenHeight, frameCount, ymin, ymax : int; var backbuffe
         RAND_SEED = random_seed(y * 117 + frameCount * 13)
         for (x in range(screenWidth)) {
             var col = float3(0)
-            for (s in range(DO_SAMPLES_PER_PIXEL)) {
+            for (_s in range(DO_SAMPLES_PER_PIXEL)) {
                 let uv = (float2(x, y) + random_float4(RAND_SEED).xy) * invWH
                 col += cam |> getRay(uv.x, uv.y) |> trace(rayCount)
             }
@@ -302,7 +302,7 @@ def draw_ray(x, y, screenWidth, screenHeight : int) {
     let cam = Camera(lookfrom, lookat, float3(0, 1, 0), 60., float(screenWidth) / float(screenHeight), aperture, distToFocus)
     let invWH = float(1) / float2(screenWidth, screenHeight)
     var col = float3(0)
-    for (s in range(DO_SAMPLES_PER_PIXEL)) {
+    for (_s in range(DO_SAMPLES_PER_PIXEL)) {
         let uv = (float2(x, y) + random_float4(RAND_SEED).xy) * invWH
         col += cam |> getRay(uv.x, uv.y) |> trace(rayCount)
     }

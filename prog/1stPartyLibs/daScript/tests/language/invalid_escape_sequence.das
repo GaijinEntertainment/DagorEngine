@@ -1,7 +1,7 @@
 // invalid string escape sequence
 // verifies compiler rejects unknown escape sequences like \x
 options gen2
-expect 10008
+expect 20105
 
 [export]
 def test() {

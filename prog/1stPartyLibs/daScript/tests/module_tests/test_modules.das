@@ -47,11 +47,11 @@ def run_module_test(base_path, main_file : string; use_project : bool) : bool {
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
-            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, issues) {
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, _issues) {
                 if (!ok) {
                     return
                 }
-                simulate(program) $(sok; context; serrors) {
+                simulate(program) $(sok; context; _serrors) {
                     if (!sok) {
                         return
                     }
@@ -78,9 +78,56 @@ def run_module_test_expect_failure(base_path, main_file : string) : bool {
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
-            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, issues) {
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, _program, _issues) {
                 if (!ok) {
                     // Compilation failed as expected
+                    result = true
+                }
+            }
+        }
+    }
+    return result
+}
+
+
+// Helper: compile a scenario that declares a blocked option and an allowed
+// control option, then verify the blocked option was IGNORED — present in
+// source but absent from program._options — while the control option WAS
+// applied (so the absence check has teeth). Compiles, simulates, and invokes
+// "test"; returns true only if every check passes.
+def run_module_test_option_ignored(base_path, main_file, ignored_opt, applied_opt : string) : bool {
+    var result = false
+    let project_path = "{base_path}/project.das_project"
+    let file_path = "{base_path}/{main_file}"
+    var inscope access <- make_file_access(project_path)
+    using() $(var mg : ModuleGroup) {
+        using() $(var cop : CodeOfPolicies) {
+            cop.threadlock_context = true
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, _issues) {
+                if (!ok) {
+                    return
+                }
+                var ignored_applied = false
+                var control_applied = false
+                for (a in program._options) {
+                    if (a.name == ignored_opt) {
+                        ignored_applied = true
+                    }
+                    if (a.name == applied_opt) {
+                        control_applied = true
+                    }
+                }
+                // blocked option must NOT have been applied; control option must have been
+                if (ignored_applied || !control_applied) {
+                    return
+                }
+                simulate(program) $(sok; context; _serrors) {
+                    if (!sok) {
+                        return
+                    }
+                    unsafe {
+                        invoke_in_context(context, "test")
+                    }
                     result = true
                 }
             }
@@ -154,6 +201,36 @@ def test_module_conflict(t : T?) {
     }
 }
 
+[test]
+def test_module_option_allowed(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/options"
+    t |> run("option_allowed blocks `rtti` — compilation must fail") @(t : T?) {
+        t |> success(run_module_test_expect_failure(base, "main.das"))
+    }
+}
+
+[test]
+def test_module_option_blocked(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/options"
+    t |> run("option_blocked tolerates `persistent_heap` — compiles, option ignored") @(t : T?) {
+        // persistent_heap is blocked (must be absent from program._options);
+        // indenting is allowed and not blocked (must be present — control).
+        t |> success(run_module_test_option_ignored(base, "main_blocked.das", "persistent_heap", "indenting"))
+    }
+}
+
+// Dual of test_module_promoted_path_match — same on-disk shared module
+// required via different path expressions (`./foo.das` vs `../foo.das`) from
+// different files must DEDUP to the same Module after resolver normalization,
+// not over-reject and fail with "already created".
+[test]
+def test_module_promoted_path_dedup(t : T?) {
+    let base = "{get_das_root()}/tests/module_tests/_modules/promoted_path_dedup"
+    t |> run("different path expressions for the same shared module must dedup") @(t : T?) {
+        t |> success(run_module_test(base, "main.das", false))
+    }
+}
+
 // File-path require tests — exercises ./, ../, %/ resolution in default
 // (no-project) mode. main.das requires the same helpers.das module via four
 // different paths and must dedup them; main_missing.das has a require to a
@@ -175,7 +252,7 @@ def expect_compile_failure_default(base, main_file : string) : bool {
     using() $(var mg : ModuleGroup) {
         using() $(var cop : CodeOfPolicies) {
             cop.threadlock_context = true
-            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, program, issues) {
+            compile_file(file_path, access, unsafe(addr(mg)), cop) $(ok, _program, _issues) {
                 if (!ok) {
                     result = true
                 }

@@ -196,20 +196,20 @@ public:
 
   SplineObject *clone();
 
-  inline bool isClosed() { return points.size() > 2 && points[0].get() == points.back().get(); }
-  inline bool isPoly() { return poly; }
-  inline bool isCreated() { return created; }
-  inline bool isPolyHmapAlign() { return props.poly.hmapAlign; }
-  inline int getModifType() { return props.modifType; }
-  inline int getEffModifType() { return poly ? (props.poly.hmapAlign ? MODIF_HMAP : MODIF_NONE) : props.modifType; }
+  inline bool isClosed() const { return points.size() > 2 && points[0].get() == points.back().get(); }
+  inline bool isPoly() const { return poly; }
+  inline bool isCreated() const { return created; }
+  inline bool isPolyHmapAlign() const { return props.poly.hmapAlign; }
+  inline int getModifType() const { return props.modifType; }
+  inline int getEffModifType() const { return poly ? (props.poly.hmapAlign ? MODIF_HMAP : MODIF_NONE) : props.modifType; }
   inline BezierSpline3d &getBezierSpline() { return bezierSpline; }
   inline const BezierSpline3d &getBezierSpline() const { return bezierSpline; }
-  inline const char *getBlkGenName() { return props.blkGenName; }
-  inline real getPolyObjRot() { return props.poly.objRot; }
-  inline Point2 getPolyObjOffs() { return props.poly.objOffs; }
-  inline bool isExportable() { return props.exportable; }
-  inline bool isAffectingHmap() { return isPoly() ? isPolyHmapAlign() : getModifType() == MODIF_HMAP; }
-  inline bool isHeightBake() { return !isPoly() && getModifType() == MODIF_HEIGHTBAKE; }
+  inline const char *getBlkGenName() const { return props.blkGenName; }
+  inline real getPolyObjRot() const { return props.poly.objRot; }
+  inline Point2 getPolyObjOffs() const { return props.poly.objOffs; }
+  inline bool isExportable() const { return props.exportable; }
+  inline bool isAffectingHmap() const { return isPoly() ? isPolyHmapAlign() : getModifType() == MODIF_HMAP; }
+  inline bool isHeightBake() const { return !isPoly() && getModifType() == MODIF_HEIGHTBAKE; }
 
   inline void setPolyHmapAlign(bool a) { props.poly.hmapAlign = a; }
   inline void setModifType(int t) { props.modifType = t; }

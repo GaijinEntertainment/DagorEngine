@@ -1,11 +1,10 @@
 include "shader_global.dshl"
 include "frustum.dshl"
 include "globtm.dshl"
+include "smoke_tracers_inc.dshl"
 hlsl {
   #include <smokeTracers.hlsli>
 }
-
-float tracer_head_radius_coeff = 0.0125;
 
 shader create_tracer_commands_cs
 {
@@ -89,9 +88,8 @@ shader update_tracer_commands_cs
       if (commandId>=commandsCount)
         return;
       TracerUpdateCommand cmd = commands[commandId];
-      uint vertCnt = structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts;
-      uint firstVert = vertCnt>>16;
-      vertCnt &= 0xFFFF;
+      uint firstVert, vertCnt;
+      smoke_tracer_unpack_verts(structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts, firstVert, vertCnt);
 
       uint cpoint = vertCnt%TRACER_SEGMENTS_COUNT;
       uint startVertId = cmd.id*TRACER_SEGMENTS_COUNT;
@@ -120,7 +118,7 @@ shader update_tracer_commands_cs
         FLATTEN
         if (cpoint == (firstVert%TRACER_SEGMENTS_COUNT))
           firstVert = firstVert+1;
-        structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts = (vertCnt+1) | ((firstVert)<<16);
+        structuredBufferAt(tracersDynamic, cmd.id).firstVert_totalVerts = smoke_tracer_pack_verts(firstVert, vertCnt+1);
         float4 prev_pos_dist = structuredBufferAt(tracerVerts, startVertId + (cpoint+(TRACER_SEGMENTS_COUNT-1))%TRACER_SEGMENTS_COUNT).pos_dist;
         newTravelDist = prev_pos_dist.w + length(cmd.pos - prev_pos_dist.xyz);
       } else
@@ -175,6 +173,8 @@ shader cull_tracers_cs
   }
 
   INIT_AND_USE_FRUSTUM_CHECK_CS()
+  SMOKE_TRACER_HEAD_FUNC(cs)
+
   hlsl(cs) {
     float4 smoke_trace_current_time: register(c12);
     uint commandsCount: register(c13);
@@ -199,9 +199,8 @@ shader cull_tracers_cs
       id = (commandId%2) ? (id>>16) : (id&0xFFFF);
 
       uint firstVert_totalVerts = tracersDynamic[id].firstVert_totalVerts;
-      uint vertCnt = firstVert_totalVerts;
-      uint firstVert = vertCnt>>16;
-      vertCnt &= 0xFFFF;
+      uint firstVert, vertCnt;
+      smoke_tracer_unpack_verts(firstVert_totalVerts, firstVert, vertCnt);
 
       if (vertCnt<1)//fixme: should never happen, if add check on cpu side
         return;
@@ -214,11 +213,12 @@ shader cull_tracers_cs
       if (oldVertIsDead)
       {
         firstVert = firstVert+1;
-        firstVert_totalVerts = vertCnt | ((firstVert)<<16);
+        firstVert_totalVerts = smoke_tracer_pack_verts(firstVert, vertCnt);
         tracersDynamic[id].firstVert_totalVerts = firstVert_totalVerts;
       }
 
-      uint vertId2 = (vertCnt-1)%TRACER_SEGMENTS_COUNT + startVertId;
+      uint vertId2, vertId1;
+      smoke_tracer_head_vert_ids(id, vertCnt, vertId2, vertId1);
       uint firstVertId = firstVert%TRACER_SEGMENTS_COUNT + startVertId;
 
       float3 p0 = tracerVerts[firstVertId].pos_dist.xyz + get_tracers_wind(tracerVerts[firstVertId].time);
@@ -269,55 +269,39 @@ shader cull_tracers_cs
       //=====
 
       //head
-      uint vertId1 = (vertCnt-2)%TRACER_SEGMENTS_COUNT + startVertId;
-      float head_time = (tracerVerts[vertId2].time+tracers[id].startTime);
-      float decayTime = smoke_trace_current_time.x-head_time;
-
-      float exposure_time = smoke_trace_current_time.z;//+1./120;
-      float burnEffect = smoothstep(0.0, 0.5, (tracers[id].burnTime - tracerTime));
-      if (decayTime<exposure_time && burnEffect>0)
+      if (vertCnt >= 2u)
       {
-        GPUSmokeTracerHeadRender renderBox=(GPUSmokeTracerHeadRender)0;
-        float3 p0 = tracerVerts[vertId1].pos_dist.xyz;
-        float3 p1 = tracerVerts[vertId2].pos_dist.xyz;
-        float3 dir = (p1-p0);
-        float time_to_exposure = exposure_time-decayTime;//+1./120.; //(120hz)
-        float prev_head_time = (tracerVerts[vertId1].time+tracers[id].startTime);
-        float start_p1_length = length(p1 - tracers[id].p0);
-        float dirLen = length(dir);
-        float maxExtensionMul = start_p1_length / dirLen;
-        float extensionMul = time_to_exposure / max(head_time - prev_head_time, 1e-6);
-        float3 renderP0 = p1 - min(maxExtensionMul, extensionMul) * dir;
-        renderBox.p0.xyz = renderP0;
-        renderBox.p1 = p1;
-        float3 eyeToP0 = renderP0 - world_view_pos;
-        float3 eyeToP1 = p1 - world_view_pos;
-        float2 depths = float2(dot(eyeToP0, local_view_z), dot(eyeToP1, local_view_z));
+        SmokeTracerHeadCapsule cap = smoke_tracer_compute_head_capsule(
+          tracers[id], tracerVerts[vertId2], tracerVerts[vertId1],
+          tracerTime, smoke_trace_current_time.z,
+          world_view_pos, local_view_z,
+          smoke_trace_current_time.w, tracer_head_radius_coeff);
 
-        float tracerRadius = radiusStart * tracer_head_radius_coeff;
-        float2 pixelRadiuses = abs(depths) * smoke_trace_current_time.w * 1.5;
-        float2 cRadiuses = max(tracerRadius.xx, pixelRadiuses);
-        float fadeAtP1 = tracerRadius.x / cRadiuses.y;
-        float maxBoxRadius = max(cRadiuses.x, cRadiuses.y);
-        renderBox.radius0 = cRadiuses.x;
-        renderBox.radius1 = cRadiuses.y;
-        float time_opacity = 1;
-        time_opacity *= burnEffect;
-        float densityAtP1 = time_opacity*fadeAtP1;
-        float3 tracer_color = tracers[id].headColor;
-        float startFade = saturate(tracerTime * tracers[id].startMult);
-        tracer_color = lerp(tracers[id].startHeadColor, tracer_color, startFade);
-        const float HEAD_COLOR_MULT_BY = 8.0;
-        tracer_color *= HEAD_COLOR_MULT_BY;
-        renderBox.color = float4(tracer_color*burnEffect, densityAtP1);
-        float3 boxMin = min(renderBox.p0.xyz, renderBox.p1.xyz), boxMax = max(renderBox.p0.xyz, renderBox.p1.xyz);
-        boxMin -= maxBoxRadius; boxMax += maxBoxRadius;
-
-        if (testBoxB(boxMin, boxMax))
+        if (cap.visible)
         {
-          uint headIdx;
-          tracer_indirection_buffer.InterlockedAdd(1 * 4, 1u, headIdx);
-          culled_tracer_heads[headIdx] = renderBox;
+          float tracerRadius = radiusStart * tracer_head_radius_coeff;
+          float fadeAtP1 = tracerRadius / cap.radius1;
+          float densityAtP1 = cap.burnEffect * fadeAtP1;
+          float3 tracer_color = smoke_tracer_head_color(tracers[id], tracerTime);
+
+          GPUSmokeTracerHeadRender renderBox = (GPUSmokeTracerHeadRender)0;
+          renderBox.p0 = cap.p0;
+          renderBox.p1 = cap.p1;
+          renderBox.radius0 = cap.radius0;
+          renderBox.radius1 = cap.radius1;
+          renderBox.color = float4(tracer_color * cap.burnEffect, densityAtP1);
+
+          float maxBoxRadius = max(cap.radius0, cap.radius1);
+          float3 boxMin = min(cap.p0, cap.p1);
+          float3 boxMax = max(cap.p0, cap.p1);
+          boxMin -= maxBoxRadius; boxMax += maxBoxRadius;
+
+          if (testBoxB(boxMin, boxMax))
+          {
+            uint headIdx;
+            tracer_indirection_buffer.InterlockedAdd(1 * 4, 1u, headIdx);
+            culled_tracer_heads[headIdx] = renderBox;
+          }
         }
       }
     }

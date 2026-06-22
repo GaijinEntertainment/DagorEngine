@@ -35,7 +35,7 @@ namespace das {
     // data structures
         virtual bool canVisitDim ( char * ps, TypeInfo * ti ) { return true; }
         virtual bool canVisitArray ( Array * ar, TypeInfo * ti ) { return true; }
-        virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t count ) { return true; }
+        virtual bool canVisitArrayData ( TypeInfo * ti, uint64_t count ) { return true; }
         virtual bool canVisitHandle ( char * ps, TypeInfo * ti ) { return true; }
         virtual bool canVisitStructure ( char * ps, StructInfo * si ) { return true; }
         virtual bool canVisitTuple ( char * ps, TypeInfo * ti ) { return true; }
@@ -56,19 +56,19 @@ namespace das {
         virtual void afterTupleEntry ( char * ps, TypeInfo * ti, char * pv, int idx, bool last ) {}
         virtual void beforeVariant ( char * ps, TypeInfo * ti ) {}
         virtual void afterVariant ( char * ps, TypeInfo * ti ) {}
-        virtual void beforeArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) {}
-        virtual void afterArrayData ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti ) {}
-        virtual void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) {}
-        virtual void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint32_t index, bool last ) {}
+        virtual void beforeArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) {}
+        virtual void afterArrayData ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti ) {}
+        virtual void beforeArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) {}
+        virtual void afterArrayElement ( char * pa, TypeInfo * ti, char * pe, uint64_t index, bool last ) {}
         virtual void beforeDim ( char * pa, TypeInfo * ti ) {}
         virtual void afterDim ( char * pa, TypeInfo * ti ) {}
         virtual void beforeArray ( Array * pa, TypeInfo * ti ) {}
         virtual void afterArray ( Array * pa, TypeInfo * ti ) {}
         virtual void beforeTable ( Table * pa, TypeInfo * ti ) {}
-        virtual void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) {}
-        virtual void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint32_t index, bool last ) {}
-        virtual void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) {}
-        virtual void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint32_t index, bool last ) {}
+        virtual void beforeTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) {}
+        virtual void afterTableKey ( Table * pa, TypeInfo * ti, char * pk, TypeInfo * ki, uint64_t index, bool last ) {}
+        virtual void beforeTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) {}
+        virtual void afterTableValue ( Table * pa, TypeInfo * ti, char * pv, TypeInfo * kv, uint64_t index, bool last ) {}
         virtual void afterTable ( Table * pa, TypeInfo * ti ) {}
         virtual void beforeRef ( char * pa, TypeInfo * ti ) {}
         virtual void afterRef ( char * pa, TypeInfo * ti ) {}
@@ -127,7 +127,7 @@ namespace das {
         virtual void walk_struct ( char * ps, StructInfo * si );
         virtual void walk_tuple ( char * ps, TypeInfo * info );
         virtual void walk_variant ( char * ps, TypeInfo * info );
-        virtual void walk_array ( char * pa, uint32_t stride, uint32_t count, TypeInfo * ti );
+        virtual void walk_array ( char * pa, uint32_t stride, uint64_t count, TypeInfo * ti );
         virtual void walk_dim ( char * pa, TypeInfo * ti );
         virtual void walk_table ( Table * tab, TypeInfo * info );
     // invalid data

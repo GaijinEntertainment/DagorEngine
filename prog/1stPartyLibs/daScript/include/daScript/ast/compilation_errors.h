@@ -4,178 +4,695 @@ namespace das
 {
     enum class CompilationError : int
     {
-        unspecified
+        unspecified                              =       0
 
-// lexer errors
 
-    ,   mismatching_parentheses                 =   10001
-    ,   mismatching_curly_bracers               =   10002
-    ,   string_constant_exceeds_file            =   10003
-    ,   string_constant_exceeds_line            =   10004
-    ,   unexpected_close_comment                =   10005       //  */ out of the bule
-    ,   integer_constant_out_of_range           =   10006
-    ,   comment_contains_eof                    =   10007
-    ,   invalid_escape_sequence                 =   10008       //  blah/yblah
-    ,   invalid_line_directive                  =   10009       // #row,col,"filename" is bad somehow
-    ,   floating_point_constant_out_of_range    =   10010
-    ,   nested_string_constant                  =   10011       // nested string constants are not allowed
+// ===== stage 1xxxx (lex) =====
 
-// parser errors
 
-    ,   syntax_error                            =   20000
-    ,   malformed_ast                           =   20001       // macro generated something, which is not a valid ast
+// invalid_*
 
-// semantic erros
+    ,   invalid_line                                                =   10100    // 7 site(s)
+    ,   invalid_string                                              =   10101    // 2 site(s)
 
-    ,   invalid_type                            =   30101       //  int & a[], int&&, int&*
-    ,   invalid_return_type                     =   30102       //  func():blah&
-    ,   invalid_argument_type                   =   30103       //  func(a:boxed&)
-    ,   invalid_structure_field_type            =   30104       //  struct a:void
-    ,   invalid_array_type                      =   30105       //  array<int&>
-    ,   invalid_table_type                      =   30106       //  table<wtf,int> table<string&,int> table<int,string&>
-    ,   invalid_argument_count                  =   30107       //  assert(), assert(blah,....)
-    ,   invalid_variable_type                   =   30108       //  a:void
-    ,   invalid_new_type                        =   30109       //  new int&, new int
-    ,   invalid_index_type                      =   30110       //  a[wtf]
-    ,   invalid_annotation                      =   30111       //  [wtf] a
-    ,   invalid_swizzle_mask                    =   30112       //  vec.xxxxx or vec.xAz or vec.wtf
-    ,   invalid_initialization_type             =   30113       //  int a = "b"
-    ,   invalid_with_type                       =   30114       //  with int
-    ,   invalid_override                        =   30115       //  override new_field:blah, or old_field:blah without override
-    ,   invalid_name                            =   30116       //  __anything
-    ,   invalid_array_dimension                 =   30117       //  int blah[non-const]
-    ,   invalid_iteration_source                =   30118       //  for x in 10
-    ,   invalid_loop                            =   30119       //  for x, y in a etc
-    ,   invalid_label                           =   30120       //  label not found etc
-    ,   invalid_enumeration                     =   30121       //  enum foo = "blah" etc
-    ,   invalid_option                          =   30122       //  option wtf = wth
-    ,   invalid_member_function                 =   30123       //  member function in struct
-    ,   invalid_capture                         =   30124       //  capture section in non-lambda, capture on non-variable, unused catpure, etc
-    ,   invalid_private                         =   30125       //  struct member private, etc
-    ,   invalid_aka                             =   30126       //  aka with global let, typedecl, etc
-    ,   invalid_assume                          =   30127       //  assume with name collision
-    ,   invalid_static                          =   30128       //  struct member static, override static, sealed static, things like that
+// mismatching_*
 
-    ,   function_already_declared               =   30201       //  func x .... func x
-    ,   argument_already_declared               =   30202       //  func(...,a,...,a,....)
-    ,   local_variable_already_declared         =   30203       //  let(...,x,...,x,...)
-    ,   global_variable_already_declared        =   30204       //  let(...,x,...,x,...)
-    ,   structure_field_already_declared        =   30205       //  struct ... x ... x
-    ,   structure_already_declared              =   30206       //  ... struct x ... struct x ...
-    ,   structure_already_has_initializer       =   30207       //  struct Foo x = 5; def Foo() ...
-    ,   enumeration_already_declared            =   30208       //  enum A; enumA
-    ,   enumeration_value_already_declared      =   30209       //  enum A { x; x }
-    ,   type_alias_already_declared             =   30210       //  typdef A = b; typedef A = ...;
-    ,   field_already_initialized               =   30211       //  typdef A = b; typedef A = ...;
-    ,   too_many_arguments                      =   30212       //  func(x,y,z,....) with more than DAS_MAX_FUNCTION_ARGUMENTS arguments
-    ,   result_discarded                        =   30213       //  func() returns something, but result is not used. function is marked as [nodiscard]
+    ,   mismatching_curly_bracers                                   =   10200    // 5 site(s)
+    ,   mismatching_module_name                                     =   10201    // 4 site(s)
+    ,   mismatching_parens                                          =   10202    // 8 site(s)
 
-    ,   type_not_found                          =   30301       //  a:wtf
-    ,   structure_not_found                     =   30302       //  new wtf
-    ,   operator_not_found                      =   30303       //  1 + 1.0
-    ,   function_not_found                      =   30304       //  wtf(x)
-    ,   variable_not_found                      =   30305       //  wtf
-    ,   handle_not_found                        =   30306       //  external type has colliding name
-    ,   annotation_not_found                    =   30307       //  [wtf] struct or [wtf] function
-    ,   enumeration_not_found                   =   30308       //  WTF WTF enum
-    ,   enumeration_value_not_found             =   30309       //  enumt WTF
-    ,   type_alias_not_found                    =   30310       //  typedef A =; typedef A =; ...
-    ,   bitfield_not_found                      =   30311       //  bitfield<one;two> a; a.three
+// exceeds_*
 
-    ,   cant_initialize                         =   30401       //  block type declaration, default values
-    ,   cant_be_null                            =   30402       //  expression can't be null
-    ,   exception_during_macro                  =   30403       //  exception during macro
+    ,   exceeds_constant                                            =   10300    // 38 site(s)
+    ,   exceeds_file                                                =   10301    // 8 site(s)
 
-    ,   cant_dereference                        =   30501
-    ,   cant_index                              =   30502       //  wtf[a]
-    ,   cant_get_field                          =   30503       //  wtf.field
-    ,   cant_write_to_const                     =   30504       //  const int & a = 5
-    ,   cant_move_to_const                      =   30505       //  const array<int> & a <- b
-    ,   cant_write_to_non_reference             =   30506       //  1 = blah
-    ,   cant_copy                               =   30507       //  a = array<int>(x), expecting <-
-    ,   cant_move                               =   30508       //  int a; a <- 1
-    ,   cant_pass_temporary                     =   30509       //  let t : int? = q // where q is int?#
+// ===== stage 2xxxx (parse) =====
 
-    ,   condition_must_be_bool                  =   30601       //  if ( 10 ) ...
-    ,   condition_must_be_static                =   30602       //  if ( constexpr ) only
 
-    ,   cant_pipe                               =   30701       //  wtf <| arg
+// invalid_*
 
-    ,   invalid_block                           =   30801       //  fn({ return; }), fn ({ break; })
-    ,   return_or_break_in_finally              =   30802       //  if a {} finally { return blah; }
+    ,   invalid_aka                                                 =   20100    // 1 site(s)
+    ,   invalid_capture                                             =   20103    // 2 site(s)
+    ,   invalid_escape                                              =   20105    // 2 site(s)
+    ,   invalid_field                                               =   20107    // 2 site(s)
+    ,   invalid_field_static                                        =   20108    // 2 site(s)
+    ,   invalid_function                                            =   20109    // 9 site(s)
+    ,   invalid_function_annotation                                 =   20110    // 1 site(s)
+    ,   invalid_function_static                                     =   20111    // 1 site(s)
+    ,   invalid_global_aka                                          =   20112    // 2 site(s)
+    ,   invalid_macro                                               =   20113    // 2 site(s)
+    ,   invalid_module                                              =   20114    // 2 site(s)
+    ,   invalid_module_require                                      =   20115    // 1 site(s)
+    ,   invalid_name                                                =   20116    // 1 site(s)
+    ,   invalid_type_aka                                            =   20120    // 1 site(s)
+    ,   invalid_type_alias                                          =   20121    // 3 site(s)
 
-    ,   module_not_found                        =   30901       //  require wtf
-    ,   module_already_has_a_name               =   30902       //  module a; module aa
-    ,   module_does_not_export_unused_symbols   =   30903       //  options remove_unused_symbols = false is missing from the module
-    ,   module_does_not_have_a_name             =   30904       //  missing module name for AOT module
-    ,   module_required_from_shared             =   30905       //  require non shared foo from shared bar
+// missing_*
 
-    ,   cant_new_handle                         =   31001       //  new Handle
-    ,   bad_delete                              =   31002       //  delete ;
+    ,   missing_module_name                                         =   20201    // 2 site(s)
 
-    ,   cant_infer_generic                      =   31100       // TEMPORARY, REMOVE ONCE GENERICS ARE SUPPORTED
-    ,   cant_infer_missing_initializer          =   31101       //  let x = 5
-    ,   cant_infer_mismatching_restrictions     =   31102       //  let x : auto [5] = int[4][3]
+// exceeds_*
 
-    ,   invalid_cast                            =   31200       //  cast<Goo> ...
-    ,   incompatible_cast                       =   31201       //  cast<NotBarParent> bar
+    ,   exceeds_bitfield                                            =   20300    // 4 site(s)
 
-    ,   unsafe                                  =   31300       // unsafe operation in safe function
+// ambiguous_*
 
-    ,   index_out_of_range                      =   31400       // a:int[3] a[4]
+    ,   ambiguous_function_argument_type                            =   20402    // 1 site(s)
 
-    ,   expecting_return_value                  =   32101       // def blah:int without return
-    ,   not_expecting_return_value              =   32102       // def blah:void ... return 12
-    ,   invalid_return_semantics                =   32103       // return <- required
-    ,   invalid_yield                           =   32104       // yield in block, yield in non generator, etc
-    ,   invalid_generator_finalizer             =   32105       // generator with unspecified finalizer
+// already_declared_*
 
-    ,   unsupported_read_macro                  =   33100       // #what ""
-    ,   unsupported_call_macro                  =   33101       // apply failed etc
-    ,   unbound_macro_tag                       =   33102       // macro tag in the regular code
+    ,   already_declared_enumeration                                =   20501    // 1 site(s)
+    ,   already_declared_enumerator                                 =   20502    // 4 site(s)
+    ,   already_declared_field                                      =   20503    // 1 site(s)
+    ,   already_declared_field_static                               =   20504    // 1 site(s)
+    ,   already_declared_function_argument                          =   20506    // 1 site(s)
+    ,   already_declared_global                                     =   20507    // 3 site(s)
+    ,   already_declared_global_bitfield                            =   20508    // 1 site(s)
+    ,   already_declared_local                                      =   20509    // 2 site(s)
+    ,   already_declared_module                                     =   20510    // 3 site(s)
+    ,   already_declared_module_name                                =   20511    // 2 site(s)
+    ,   already_declared_structure                                  =   20512    // 2 site(s)
+    ,   already_declared_type_alias                                 =   20513    // 10 site(s)
 
-    ,   typeinfo_reference                      =   39901       //  typeinfo(sizeof type int&)
-    ,   typeinfo_auto                           =   39902       //  typeinfo(typename type auto)
-    ,   typeinfo_undefined                      =   39903       //  typeinfo(??? ...)
-    ,   typeinfo_dim                            =   39904       //  typeinfo(dim non_array)
-    ,   typeinfo_macro_error                    =   39905       //  typeinfo(custom ...) returns errors
+// lookup_*
 
-// logic errors
+    ,   lookup_annotation                                           =   20600    // 5 site(s)
+    ,   lookup_enumeration                                          =   20602    // 1 site(s)
+    ,   lookup_file                                                 =   20603    // 5 site(s)
+    ,   lookup_module                                               =   20605    // 2 site(s)
+    ,   lookup_structure                                            =   20606    // 1 site(s)
 
-    ,   static_assert_failed                    =   40100       // static_assert(false)
-    ,   run_failed                              =   40101       //  [run]def fn; ..... fn(nonconst)
-    ,   annotation_failed                       =   40102       // annotation->verifyCall failed
-    ,   concept_failed                          =   40103       // similar to static_assert(false), but error reported 1up on stack
-    ,   macro_failed                            =   40104       // user did something in the macro, it went kaboom
+// cant_*
 
-    ,   not_all_paths_return_value              =   40200       // def a() { if true return 1; }
-    ,   assert_with_side_effects                =   40201       // assert(i++)
-    ,   only_fast_aot_no_cpp_name               =   40202       // blah() of the function without cppName
-    ,   aot_side_effects                        =   40203       // eval(a++,b++,a+b)
-    ,   no_global_heap                          =   40204       // let a = {{ }}
-    ,   no_global_variables                     =   40205       // var a = ...
-    ,   unused_function_argument                =   40206       // def foo ( a ) ..... /* no a here */
-    ,   unsafe_function                         =   40207       // [unsafe] when code of policies prohibits
-    ,   unused_block_argument                   =   40208       // foo() <| $ ( a ) ..... /* no a here */
-    ,   top_level_no_sideeffect_operation       =   40209       // a == b
-    ,   deprecated_function                     =   40210       // [deprecated] function
-    ,   argument_aliasing                       =   40211       // a = fun(a) with some form of potential cmres
-    ,   make_local_aliasing                     =   40212       // a = [[... a.x ...]] with some form of potential cmres
-    ,   in_scope_in_the_loop                    =   40213       // for ( a in b ) { let in scope ... ; }
-    ,   no_init                                 =   40214       // [init] disabled via options or CodeOfPolicies
-    ,   no_writing_to_nameless                  =   40215       // writing to nameless variable, like in a().b = 5
-    ,   table_lookup_collision                  =   40216       // multiple lookups of the same table in the same expression, i.e. tab[1] = tab[2]
-    ,   performance_lint                        =   40217       // performance lint warning from perf_lint module
-    ,   style_lint                             =   40218       // style lint warning from style_lint module
+    ,   cant_structure                                              =   20701    // 1 site(s)
 
-    ,   duplicate_key                           =   40300       // { 1:1, ..., 1:* }
+// runtime_*
 
-    ,   too_many_infer_passes                   =   41000
+    ,   runtime_annotation                                          =   20800    // 4 site(s)
 
-// integration errors
+// internal_*
 
-    ,   missing_node                            =   50100       // handled type requires simulateGetXXX
-    ,   missing_aot                             =   50101       // AOT hash function missing
-    ,   internal_error                          =   59999       // internal error
+    ,   internal_module                                             =   20901    // 2 site(s)
+
+// ===== stage 3xxxx (semantic) =====
+
+
+// invalid_*
+
+    ,   invalid_annotation                                          =   30100    // 23 site(s)
+    ,   invalid_annotation_field                                    =   30101    // 1 site(s)
+    ,   invalid_annotation_macro                                    =   30102    // 1 site(s)
+    ,   invalid_annotation_type                                     =   30103    // 1 site(s)
+    ,   invalid_argument                                            =   30104    // 6 site(s)
+    ,   invalid_argument_global                                     =   30105    // 4 site(s)
+    ,   invalid_argument_name                                       =   30106    // 3 site(s)
+    ,   invalid_argument_type                                       =   30107    // 3 site(s)
+    ,   invalid_array                                               =   30108    // 6 site(s)
+    ,   invalid_array_dimension                                     =   30109    // 5 site(s)
+    ,   invalid_array_dimension_type                                =   30110    // 1 site(s)
+    ,   invalid_array_element_type                                  =   30111    // 1 site(s)
+    ,   invalid_array_type                                          =   30112    // 5 site(s)
+    ,   invalid_as                                                  =   30113    // 1 site(s)
+    ,   invalid_ascend_array_handle_type                            =   30114    // 1 site(s)
+    ,   invalid_ascend_handle_type                                  =   30115    // 1 site(s)
+    ,   invalid_assert_argument_count                               =   30116    // 1 site(s)
+    ,   invalid_assert_comment_type                                 =   30117    // 1 site(s)
+    ,   invalid_assert_condition_type                               =   30118    // 1 site(s)
+    ,   invalid_bitfield                                            =   30119    // 1 site(s)
+    ,   invalid_bitfield_cast_argument_count                        =   30120    // 1 site(s)
+    ,   invalid_block_argument                                      =   30121    // 2 site(s)
+    ,   invalid_block_argument_count                                =   30122    // 1 site(s)
+    ,   invalid_block_argument_init_type                            =   30123    // 3 site(s)
+    ,   invalid_block_argument_type                                 =   30124    // 1 site(s)
+    ,   invalid_block_break                                         =   30125    // 1 site(s)
+    ,   invalid_block_continue                                      =   30126    // 1 site(s)
+    ,   invalid_block_finally                                       =   30127    // 1 site(s)
+    ,   invalid_break                                               =   30128    // 1 site(s)
+    ,   invalid_capture_variable                                    =   30129    // 1 site(s)
+    ,   invalid_cast_function                                       =   30130    // 1 site(s)
+    ,   invalid_cast_structure                                      =   30131    // 2 site(s)
+    ,   invalid_cast_structure_pointer                              =   30132    // 2 site(s)
+    ,   invalid_cast_type                                           =   30133    // 1 site(s)
+    ,   invalid_class                                               =   30134    // 2 site(s)
+    ,   invalid_class_local                                         =   30135    // 1 site(s)
+    ,   invalid_class_tuple                                         =   30136    // 1 site(s)
+    ,   invalid_class_variant                                       =   30137    // 1 site(s)
+    ,   invalid_clone_smart_pointer_type                            =   30138    // 1 site(s)
+    ,   invalid_comprehension_element_type                          =   30139    // 1 site(s)
+    ,   invalid_continue                                            =   30140    // 1 site(s)
+    ,   invalid_debug_argument_count                                =   30141    // 1 site(s)
+    ,   invalid_debug_comment_type                                  =   30142    // 1 site(s)
+    ,   invalid_delete_size_type                                    =   30143    // 1 site(s)
+    ,   invalid_delete_super_self_type                              =   30144    // 1 site(s)
+    ,   invalid_enumeration                                         =   30145    // 1 site(s)
+    ,   invalid_enumeration_name                                    =   30146    // 1 site(s)
+    ,   invalid_enumerator                                          =   30147    // 1 site(s)
+    ,   invalid_enumerator_name                                     =   30148    // 1 site(s)
+    ,   invalid_enumerator_type                                     =   30149    // 1 site(s)
+    ,   invalid_erase_argument_count                                =   30150    // 1 site(s)
+    ,   invalid_expression                                          =   30151    // 17 site(s)
+    ,   invalid_field_name                                          =   30152    // 1 site(s)
+    ,   invalid_field_syntax                                        =   30153    // 1 site(s)
+    ,   invalid_field_type                                          =   30154    // 1 site(s)
+    ,   invalid_finally_in_generator_if                             =   30155    // 2 site(s)
+    ,   invalid_find_argument_count                                 =   30156    // 1 site(s)
+    ,   invalid_for_iterator_count                                  =   30157    // 1 site(s)
+    ,   invalid_for_iterator_tuple                                  =   30158    // 1 site(s)
+    ,   invalid_function_argument                                   =   30159    // 3 site(s)
+    ,   invalid_function_argument_count                             =   30160    // 1 site(s)
+    ,   invalid_function_argument_type                              =   30161    // 4 site(s)
+    ,   invalid_function_argument_type_block                        =   30162    // 1 site(s)
+    ,   invalid_function_name                                       =   30163    // 1 site(s)
+    ,   invalid_function_options                                    =   30164    // 1 site(s)
+    ,   invalid_function_result                                     =   30165    // 1 site(s)
+    ,   invalid_function_result_discarded                           =   30166    // 1 site(s)
+    ,   invalid_function_result_type                                =   30167    // 2 site(s)
+    ,   invalid_function_type                                       =   30168    // 1 site(s)
+    ,   invalid_generator                                           =   30169    // 1 site(s)
+    ,   invalid_generator_argument_count                            =   30170    // 2 site(s)
+    ,   invalid_generator_argument_type                             =   30171    // 1 site(s)
+    ,   invalid_generator_result_type                               =   30172    // 1 site(s)
+    ,   invalid_global                                              =   30173    // 1 site(s)
+    ,   invalid_global_init_options                                 =   30174    // 1 site(s)
+    ,   invalid_global_init_type                                    =   30175    // 3 site(s)
+    ,   invalid_global_options                                      =   30176    // 1 site(s)
+    ,   invalid_global_self_init                                    =   30177    // 1 site(s)
+    ,   invalid_global_shared                                       =   30178    // 1 site(s)
+    ,   invalid_global_type                                         =   30179    // 3 site(s)
+    ,   invalid_global_type_shared                                  =   30180    // 1 site(s)
+    ,   invalid_handle_index_type                                   =   30181    // 1 site(s)
+    ,   invalid_handle_safe_index_type                              =   30182    // 1 site(s)
+    ,   invalid_if_condition_type                                   =   30183    // 1 site(s)
+    ,   invalid_index_type                                          =   30184    // 7 site(s)
+    ,   invalid_insert_argument_count                               =   30185    // 1 site(s)
+    ,   invalid_invoke_argument_count                               =   30186    // 3 site(s)
+    ,   invalid_invoke_argument_type                                =   30187    // 2 site(s)
+    ,   invalid_invoke_method_syntax                                =   30188    // 2 site(s)
+    ,   invalid_invoke_target_type                                  =   30189    // 3 site(s)
+    ,   invalid_is                                                  =   30190    // 1 site(s)
+    ,   invalid_is_expression                                       =   30191    // 1 site(s)
+    ,   invalid_iteration_source_type                               =   30192    // 1 site(s)
+    ,   invalid_key_exists_argument_count                           =   30193    // 1 site(s)
+    ,   invalid_label_type                                          =   30194    // 1 site(s)
+    ,   invalid_local_in_scope                                      =   30195    // 1 site(s)
+    ,   invalid_local_in_scope_finally                              =   30196    // 1 site(s)
+    ,   invalid_local_init                                          =   30197    // 3 site(s)
+    ,   invalid_local_init_block                                    =   30198    // 1 site(s)
+    ,   invalid_local_init_constructor                              =   30199    // 1 site(s)
+    ,   invalid_local_init_type                                     =   30200    // 4 site(s)
+    ,   invalid_local_tuple_expansion                               =   30201    // 1 site(s)
+    ,   invalid_local_type                                          =   30202    // 1 site(s)
+    ,   invalid_macro_context                                       =   30203    // 1 site(s)
+    ,   invalid_macro_read                                          =   30204    // 1 site(s)
+    ,   invalid_macro_tag                                           =   30205    // 1 site(s)
+    ,   invalid_macro_type                                          =   30206    // 1 site(s)
+    ,   invalid_memzero_argument                                    =   30207    // 1 site(s)
+    ,   invalid_memzero_argument_count                              =   30208    // 1 site(s)
+    ,   invalid_memzero_argument_type                               =   30209    // 1 site(s)
+    ,   invalid_module_name                                         =   30210    // 1 site(s)
+    ,   invalid_new_class_syntax                                    =   30211    // 1 site(s)
+    ,   invalid_new_initializer_result_type                         =   30212    // 1 site(s)
+    ,   invalid_new_initializer_type                                =   30213    // 1 site(s)
+    ,   invalid_new_type                                            =   30214    // 5 site(s)
+    ,   invalid_null_coalescing_type                                =   30215    // 2 site(s)
+    ,   invalid_op3_expression                                      =   30216    // 1 site(s)
+    ,   invalid_pointer_arithmetic                                  =   30218    // 2 site(s)
+    ,   invalid_quote_argument_count                                =   30219    // 1 site(s)
+    ,   invalid_result                                              =   30220    // 1 site(s)
+    ,   invalid_result_type                                         =   30221    // 5 site(s)
+    ,   invalid_return_semantics                                    =   30222    // 2 site(s)
+    ,   invalid_safe_as                                             =   30223    // 1 site(s)
+    ,   invalid_safe_dereference_type                               =   30224    // 3 site(s)
+    ,   invalid_safe_field_type                                     =   30225    // 1 site(s)
+    ,   invalid_static_assert_argument_count                        =   30226    // 1 site(s)
+    ,   invalid_static_assert_comment_type                          =   30227    // 1 site(s)
+    ,   invalid_static_assert_condition_type                        =   30228    // 1 site(s)
+    ,   invalid_static_if_condition                                 =   30229    // 1 site(s)
+    ,   invalid_storage_type_op                                     =   30230    // 1 site(s)
+    ,   invalid_string_builder_argument                             =   30231    // 2 site(s)
+    ,   invalid_structure                                           =   30232    // 3 site(s)
+    ,   invalid_structure_annotation                                =   30233    // 1 site(s)
+    ,   invalid_structure_array                                     =   30234    // 1 site(s)
+    ,   invalid_structure_block_pipe                                =   30235    // 1 site(s)
+    ,   invalid_structure_field_init                                =   30236    // 1 site(s)
+    ,   invalid_structure_field_type                                =   30237    // 3 site(s)
+    ,   invalid_structure_initializer_required                      =   30238    // 1 site(s)
+    ,   invalid_structure_local                                     =   30239    // 1 site(s)
+    ,   invalid_structure_name                                      =   30240    // 1 site(s)
+    ,   invalid_structure_template                                  =   30241    // 1 site(s)
+    ,   invalid_structure_tuple                                     =   30242    // 1 site(s)
+    ,   invalid_structure_type                                      =   30243    // 1 site(s)
+    ,   invalid_structure_variant                                   =   30244    // 1 site(s)
+    ,   invalid_super_call                                          =   30245    // 2 site(s)
+    ,   invalid_swizzle_mask                                        =   30246    // 1 site(s)
+    ,   invalid_swizzle_type                                        =   30247    // 1 site(s)
+    ,   invalid_table                                               =   30248    // 2 site(s)
+    ,   invalid_table_argument_type                                 =   30249    // 4 site(s)
+    ,   invalid_table_expression                                    =   30250    // 1 site(s)
+    ,   invalid_table_index_type                                    =   30251    // 1 site(s)
+    ,   invalid_table_key_type                                      =   30252    // 4 site(s)
+    ,   invalid_table_safe_index_type                               =   30253    // 2 site(s)
+    ,   invalid_table_type                                          =   30254    // 2 site(s)
+    ,   invalid_tuple                                               =   30255    // 4 site(s)
+    ,   invalid_tuple_argument_type                                 =   30256    // 1 site(s)
+    ,   invalid_tuple_block                                         =   30257    // 1 site(s)
+    ,   invalid_tuple_key                                           =   30258    // 1 site(s)
+    ,   invalid_tuple_key_type                                      =   30259    // 1 site(s)
+    ,   invalid_tuple_type                                          =   30260    // 2 site(s)
+    ,   invalid_tuple_variant                                       =   30261    // 1 site(s)
+    ,   invalid_type                                                =   30262    // 10 site(s)
+    ,   invalid_type_dimension                                      =   30263    // 1 site(s)
+    ,   invalid_type_expression                                     =   30264    // 1 site(s)
+    ,   invalid_typeinfo                                            =   30265    // 1 site(s)
+    ,   invalid_typeinfo_annotation                                 =   30266    // 1 site(s)
+    ,   invalid_typeinfo_annotation_argument_type                   =   30267    // 1 site(s)
+    ,   invalid_typeinfo_dim                                        =   30268    // 1 site(s)
+    ,   invalid_typeinfo_dim_table                                  =   30269    // 1 site(s)
+    ,   invalid_typeinfo_dim_table_type                             =   30270    // 2 site(s)
+    ,   invalid_typeinfo_function                                   =   30271    // 1 site(s)
+    ,   invalid_typeinfo_has_field_type                             =   30272    // 1 site(s)
+    ,   invalid_typeinfo_mangled_subexpression                      =   30273    // 2 site(s)
+    ,   invalid_typeinfo_module_subexpression                       =   30274    // 1 site(s)
+    ,   invalid_typeinfo_offsetof_type                              =   30275    // 1 site(s)
+    ,   invalid_typeinfo_struct_get_annotation_argument_type        =   30276    // 1 site(s)
+    ,   invalid_typeinfo_struct_has_annotation_argument_type        =   30277    // 1 site(s)
+    ,   invalid_typeinfo_struct_has_annotation_type                 =   30278    // 1 site(s)
+    ,   invalid_typeinfo_struct_modulename                          =   30279    // 1 site(s)
+    ,   invalid_typeinfo_struct_name                                =   30280    // 1 site(s)
+    ,   invalid_typeinfo_variant_index_type                         =   30281    // 1 site(s)
+    ,   invalid_variable_name                                       =   30282    // 3 site(s)
+    ,   invalid_variable_private                                    =   30283    // 1 site(s)
+    ,   invalid_variant                                             =   30284    // 5 site(s)
+    ,   invalid_variant_array                                       =   30285    // 1 site(s)
+    ,   invalid_variant_block                                       =   30286    // 1 site(s)
+    ,   invalid_variant_initializer_count                           =   30287    // 1 site(s)
+    ,   invalid_variant_tuple                                       =   30288    // 1 site(s)
+    ,   invalid_variant_type                                        =   30289    // 2 site(s)
+    ,   invalid_variant_unique                                      =   30290    // 3 site(s)
+    ,   invalid_while_condition_type                                =   30291    // 1 site(s)
+    ,   invalid_with_array_type                                     =   30292    // 1 site(s)
+    ,   invalid_with_type                                           =   30293    // 1 site(s)
+    ,   invalid_yield                                               =   30294    // 1 site(s)
+    ,   invalid_yield_in_block                                      =   30295    // 1 site(s)
+    ,   invalid_empty_name                                          =   30296    // AST node with empty name; usually a macro emission bug
+
+// missing_*
+
+    ,   missing_annotation                                          =   30300    // 2 site(s)
+    ,   missing_assume_type                                         =   30301    // 1 site(s)
+    ,   missing_bitfield_init                                       =   30302    // 1 site(s)
+    ,   missing_block_argument_init                                 =   30303    // 1 site(s)
+    ,   missing_block_result                                        =   30304    // 1 site(s)
+    ,   missing_enumeration_zero                                    =   30305    // 1 site(s)
+    ,   missing_finalizer                                           =   30306    // 1 site(s)
+    ,   missing_for_iterator                                        =   30307    // 1 site(s)
+    ,   missing_function_body                                       =   30308    // 1 site(s)
+    ,   missing_function_name                                       =   30309    // 1 site(s)
+    ,   missing_function_result                                     =   30310    // 3 site(s)
+    ,   missing_global                                              =   30311    // 1 site(s)
+    ,   missing_global_init                                         =   30312    // 2 site(s)
+    ,   missing_global_shared_init                                  =   30313    // 1 site(s)
+    ,   missing_local                                               =   30314    // 1 site(s)
+    ,   missing_local_block_init                                    =   30315    // 1 site(s)
+    ,   missing_local_init                                          =   30316    // 2 site(s)
+    ,   missing_local_reference_init                                =   30317    // 1 site(s)
+    ,   missing_new_default_initializer                             =   30318    // 1 site(s)
+    ,   missing_result                                              =   30319    // 1 site(s)
+    ,   missing_structure_field                                     =   30320    // 1 site(s)
+    ,   missing_typeinfo_subexpression                              =   30321    // 4 site(s)
+    ,   missing_super_call                                          =   30322    // class ctor must call super(); or parent ctor missing default
+
+// mismatching_*
+
+    ,   mismatching_array_dimension                                 =   30400    // 1 site(s)
+    ,   mismatching_array_element_type                              =   30401    // 1 site(s)
+    ,   mismatching_block_argument_type                             =   30402    // 1 site(s)
+    ,   mismatching_clone_type                                      =   30403    // 1 site(s)
+    ,   mismatching_function_argument                               =   30404    // 1 site(s)
+    ,   mismatching_function_argument_count                         =   30405    // 1 site(s)
+    ,   mismatching_numeric_type                                    =   30406    // 5 site(s)
+    ,   mismatching_result_type                                     =   30407    // 1 site(s)
+    ,   mismatching_structure_dimension                             =   30408    // 1 site(s)
+    ,   mismatching_tuple_argument_count                            =   30409    // 1 site(s)
+    ,   mismatching_tuple_field_names                               =   30410    // 1 site(s)
+    ,   mismatching_type                                            =   30411    // 3 site(s)
+    ,   mismatching_variant_dimension                               =   30412    // 1 site(s)
+
+// exceeds_*
+
+    ,   exceeds_argument                                            =   30500    // 2 site(s)
+    ,   exceeds_array_index                                         =   30502    // 1 site(s)
+    ,   exceeds_call_depth                                          =   30503    // 3 site(s)
+    ,   exceeds_expression_recursion                                =   30504    // 2 site(s)
+    ,   exceeds_function_argument                                   =   30505    // 4 site(s)
+    ,   exceeds_infer_passes                                        =   30507    // 2 site(s)
+    ,   exceeds_local                                               =   30508    // 1 site(s)
+    ,   exceeds_new_argument                                        =   30509    // 1 site(s)
+    ,   exceeds_structure                                           =   30510    // 1 site(s)
+    ,   exceeds_tuple_index                                         =   30511    // 1 site(s)
+    ,   exceeds_type                                                =   30512    // 2 site(s)
+    ,   exceeds_type_alias                                          =   30513    // 1 site(s)
+    ,   exceeds_typeinfo_sizeof                                     =   30514    // 1 site(s)
+    ,   exceeds_constant_range                                      =   30515    // 1 site(s)
+
+// ambiguous_*
+
+    ,   ambiguous_annotation                                        =   30600    // 2 site(s)
+    ,   ambiguous_bitfield                                          =   30601    // 1 site(s)
+    ,   ambiguous_call_macro                                        =   30602    // 1 site(s)
+    ,   ambiguous_enumeration                                       =   30603    // 2 site(s)
+    ,   ambiguous_field                                             =   30604    // 1 site(s)
+    ,   ambiguous_field_lookup                                      =   30605    // 1 site(s)
+    ,   ambiguous_finalizer                                         =   30606    // 1 site(s)
+    ,   ambiguous_function                                          =   30607    // 7 site(s)
+    ,   ambiguous_macro                                             =   30608    // 3 site(s)
+    ,   ambiguous_structure                                         =   30609    // 2 site(s)
+    ,   ambiguous_super_call                                        =   30610    // 1 site(s)
+    ,   ambiguous_super_constructor                                 =   30611    // 1 site(s)
+    ,   ambiguous_type                                              =   30612    // 1 site(s)
+    ,   ambiguous_type_alias                                        =   30613    // 1 site(s)
+    ,   ambiguous_typeinfo_macro                                    =   30614    // 1 site(s)
+    ,   ambiguous_variable                                          =   30615    // 2 site(s)
+
+// already_declared_*
+
+    ,   already_declared_assume_alias                               =   30700    // 8 site(s)
+    ,   already_declared_block_argument                             =   30701    // 5 site(s)
+    ,   already_declared_function                                   =   30702    // 8 site(s)
+    ,   already_declared_label                                      =   30703    // 1 site(s)
+    ,   already_declared_local_variable                             =   30704    // 5 site(s)
+    ,   already_declared_structure_field_init                       =   30705    // 1 site(s)
+    ,   already_declared_table                                      =   30706    // 4 site(s)
+    ,   already_declared_tuple_field                                =   30707    // 1 site(s)
+    ,   already_declared_variable                                   =   30708    // 5 site(s)
+    ,   already_declared_with_shadow                                =   30709    // 1 site(s)
+
+// lookup_*
+
+    ,   lookup_annotation_field                                     =   30800    // 1 site(s)
+    ,   lookup_argument_type                                        =   30801    // 1 site(s)
+    ,   lookup_bitfield                                             =   30802    // 3 site(s)
+    ,   lookup_block_argument_type                                  =   30803    // 1 site(s)
+    ,   lookup_block_result_type                                    =   30804    // 1 site(s)
+    ,   lookup_cast_type                                            =   30805    // 2 site(s)
+    ,   lookup_constructor                                          =   30806    // 1 site(s)
+    ,   lookup_expression_type                                      =   30807    // 1 site(s)
+    ,   lookup_field                                                =   30808    // 3 site(s)
+    ,   lookup_field_type                                           =   30809    // 1 site(s)
+    ,   lookup_function                                             =   30810    // 13 site(s)
+    ,   lookup_function_address_type                                =   30811    // 1 site(s)
+    ,   lookup_function_argument_type                               =   30812    // 1 site(s)
+    ,   lookup_function_mangled_name                                =   30813    // 1 site(s)
+    ,   lookup_function_result_type                                 =   30814    // 1 site(s)
+    ,   lookup_function_type                                        =   30815    // 1 site(s)
+    ,   lookup_generator_type                                       =   30816    // 2 site(s)
+    ,   lookup_global_type                                          =   30817    // 1 site(s)
+    ,   lookup_is_expression_type                                   =   30818    // 1 site(s)
+    ,   lookup_label                                                =   30819    // 1 site(s)
+    ,   lookup_local_type                                           =   30820    // 1 site(s)
+    ,   lookup_macro                                                =   30821    // 3 site(s)
+    ,   lookup_method                                               =   30822    // 1 site(s)
+    ,   lookup_new_type                                             =   30823    // 1 site(s)
+    ,   lookup_safe_field_type                                      =   30824    // 1 site(s)
+    ,   lookup_structure_field                                      =   30825    // 1 site(s)
+    ,   lookup_structure_field_type                                 =   30826    // 1 site(s)
+    ,   lookup_super_class                                          =   30827    // 1 site(s)
+    ,   lookup_super_constructor                                    =   30828    // 1 site(s)
+    ,   lookup_super_finalizer                                      =   30829    // 1 site(s)
+    ,   lookup_super_method                                         =   30830    // 1 site(s)
+    ,   lookup_tuple_field                                          =   30831    // 4 site(s)
+    ,   lookup_type                                                 =   30832    // 1 site(s)
+    ,   lookup_typeinfo_annotation                                  =   30833    // 2 site(s)
+    ,   lookup_typeinfo_annotation_argument                         =   30834    // 1 site(s)
+    ,   lookup_typeinfo_macro                                       =   30835    // 1 site(s)
+    ,   lookup_typeinfo_offsetof_type                               =   30836    // 1 site(s)
+    ,   lookup_typeinfo_type                                        =   30837    // 1 site(s)
+    ,   lookup_variable                                             =   30838    // 2 site(s)
+    ,   lookup_variant_field                                        =   30839    // 8 site(s)
+    ,   lookup_variant_type                                         =   30840    // 2 site(s)
+
+// cant_*
+
+    ,   cant_access_private_field                                   =   30900    // 1 site(s)
+    ,   cant_access_private_structure                               =   30901    // 1 site(s)
+    ,   cant_address_function                                       =   30902    // 1 site(s)
+    ,   cant_address_template_function                              =   30903    // 1 site(s)
+    ,   cant_annotation_field                                       =   30904    // 2 site(s)
+    ,   cant_apply_op                                               =   30905    // 2 site(s)
+    ,   cant_argument                                               =   30906    // 1 site(s)
+    ,   cant_argument_structure                                     =   30907    // 1 site(s)
+    ,   cant_array_element                                          =   30908    // 1 site(s)
+    ,   cant_ascend                                                 =   30909    // 1 site(s)
+    ,   cant_assign_op                                              =   30910    // 2 site(s)
+    ,   cant_block                                                  =   30911    // 1 site(s)
+    ,   cant_capture_variable                                       =   30912    // 6 site(s)
+    ,   cant_clone                                                  =   30913    // 4 site(s)
+    ,   cant_clone_type                                             =   30914    // 2 site(s)
+    ,   cant_copy                                                   =   30915    // 3 site(s)
+    ,   cant_create_structure_annotation                            =   30916    // 1 site(s)
+    ,   cant_delete                                                 =   30917    // 3 site(s)
+    ,   cant_delete_local                                           =   30918    // 1 site(s)
+    ,   cant_delete_smart_pointer                                   =   30919    // 1 site(s)
+    ,   cant_delete_super                                           =   30920    // 1 site(s)
+    ,   cant_dereference                                            =   30921    // 6 site(s)
+    ,   cant_expression                                             =   30922    // 14 site(s)
+    ,   cant_field_class                                            =   30923    // 1 site(s)
+    ,   cant_finalize_block_annotation                              =   30924    // 1 site(s)
+    ,   cant_finalize_function_annotation                           =   30925    // 1 site(s)
+    ,   cant_finalize_structure_annotation                          =   30926    // 1 site(s)
+    ,   cant_function                                               =   30927    // 2 site(s)
+    ,   cant_get_field                                              =   30928    // 1 site(s)
+    ,   cant_get_field_pointer                                      =   30929    // 1 site(s)
+    ,   cant_global                                                 =   30930    // 8 site(s)
+    ,   cant_index                                                  =   30931    // 1 site(s)
+    ,   cant_index_key                                              =   30932    // 1 site(s)
+    ,   cant_index_pointer                                          =   30933    // 2 site(s)
+    ,   cant_index_table                                            =   30934    // 2 site(s)
+    ,   cant_initialize_array_element                               =   30935    // 1 site(s)
+    ,   cant_initialize_private_field                               =   30936    // 1 site(s)
+    ,   cant_initialize_structure_field                             =   30937    // 1 site(s)
+    ,   cant_initialize_variant_field                               =   30938    // 1 site(s)
+    ,   cant_iterate_iterator                                       =   30939    // 1 site(s)
+    ,   cant_local                                                  =   30940    // 2 site(s)
+    ,   cant_move                                                   =   30941    // 5 site(s)
+    ,   cant_pointer                                                =   30942    // 1 site(s)
+    ,   cant_result                                                 =   30943    // 3 site(s)
+    ,   cant_safe_get_field                                         =   30944    // 2 site(s)
+    ,   cant_safe_index                                             =   30945    // 1 site(s)
+    ,   cant_safe_index_table                                       =   30946    // 1 site(s)
+    ,   cant_structure_field                                        =   30947    // 4 site(s)
+    ,   cant_take_pointer                                           =   30948    // 1 site(s)
+    ,   cant_tuple                                                  =   30949    // 1 site(s)
+    ,   cant_type                                                   =   30950    // 6 site(s)
+    ,   cant_variant_field                                          =   30951    // 2 site(s)
+    ,   cant_write                                                  =   30952    // 1 site(s)
+
+// unsafe_*
+
+    ,   unsafe_address                                              =   31000    // 1 site(s)
+    ,   unsafe_argument                                             =   31001    // 1 site(s)
+    ,   unsafe_array_safe_index                                     =   31002    // 2 site(s)
+    ,   unsafe_capture_variable                                     =   31003    // 2 site(s)
+    ,   unsafe_cast                                                 =   31004    // 1 site(s)
+    ,   unsafe_class                                                =   31005    // 2 site(s)
+    ,   unsafe_class_initializer                                    =   31006    // 1 site(s)
+    ,   unsafe_class_local                                          =   31007    // 1 site(s)
+    ,   unsafe_class_stack_construction                             =   31008    // 1 site(s)
+    ,   unsafe_delete                                               =   31009    // 1 site(s)
+    ,   unsafe_delete_pointer                                       =   31010    // 1 site(s)
+    ,   unsafe_fixed_array_safe_index                               =   31011    // 1 site(s)
+    ,   unsafe_function                                             =   31012    // 2 site(s)
+    ,   unsafe_function_call                                        =   31013    // 3 site(s)
+    ,   unsafe_global                                               =   31014    // 2 site(s)
+    ,   unsafe_global_pointer                                       =   31015    // 1 site(s)
+    ,   unsafe_local                                                =   31016    // 1 site(s)
+    ,   unsafe_local_class                                          =   31017    // 1 site(s)
+    ,   unsafe_local_in_scope_required                              =   31018    // 1 site(s)
+    ,   unsafe_local_reference                                      =   31019    // 1 site(s)
+    ,   unsafe_local_type                                           =   31020    // 1 site(s)
+    ,   unsafe_move                                                 =   31021    // 1 site(s)
+    ,   unsafe_operator                                             =   31022    // 2 site(s)
+    ,   unsafe_pointer_index                                        =   31023    // 1 site(s)
+    ,   unsafe_pointer_safe_index                                   =   31024    // 1 site(s)
+    ,   unsafe_return_block                                         =   31025    // 1 site(s)
+    ,   unsafe_return_function                                      =   31026    // 1 site(s)
+    ,   unsafe_return_reference                                     =   31027    // 2 site(s)
+    ,   unsafe_return_smart_pointer                                 =   31028    // 2 site(s)
+    ,   unsafe_smart_pointer                                        =   31029    // 1 site(s)
+    ,   unsafe_structure_field                                      =   31030    // 1 site(s)
+    ,   unsafe_structure_uninitialized                              =   31031    // 1 site(s)
+    ,   unsafe_structure_visibility                                 =   31032    // 1 site(s)
+    ,   unsafe_table_index                                          =   31033    // 1 site(s)
+    ,   unsafe_table_safe_index                                     =   31034    // 2 site(s)
+    ,   unsafe_variant_field                                        =   31035    // 2 site(s)
+    ,   unsafe_variant_safe_as                                      =   31036    // 1 site(s)
+
+// recursion_*
+
+    ,   recursion_argument                                          =   31100    // 1 site(s)
+    ,   recursion_assume_alias                                      =   31101    // 1 site(s)
+    ,   recursion_function                                          =   31102    // 1 site(s)
+    ,   recursion_function_argument                                 =   31103    // 2 site(s)
+    ,   recursion_global                                            =   31104    // 1 site(s)
+    ,   recursion_structure                                         =   31105    // 1 site(s)
+    ,   recursion_type_alias                                        =   31106    // 1 site(s)
+
+// runtime_*
+
+    ,   runtime_annotation_transform                                =   31200    // 1 site(s)
+    ,   runtime_call_macro                                          =   31201    // 1 site(s)
+    ,   runtime_expression                                          =   31202    // 2 site(s)
+    ,   runtime_macro_exception                                     =   31206    // 1 site(s)
+    ,   runtime_macro_infer                                         =   31207    // 1 site(s)
+    ,   runtime_macro_performance                                   =   31208    // 1 site(s)
+    ,   runtime_macro_style                                         =   31209    // 1 site(s)
+    ,   runtime_structure_annotation                                =   31210    // 1 site(s)
+    ,   runtime_typeinfo_macro                                      =   31211    // 2 site(s)
+
+// not_resolved_yet_*
+
+    ,   not_resolved_yet_argument_type                              =   31300    // 7 site(s)
+    ,   not_resolved_yet_array_dimension                            =   31301    // 3 site(s)
+    ,   not_resolved_yet_array_type                                 =   31302    // 5 site(s)
+    ,   not_resolved_yet_bitfield_type                              =   31303    // 1 site(s)
+    ,   not_resolved_yet_block                                      =   31304    // 2 site(s)
+    ,   not_resolved_yet_block_argument                             =   31305    // 1 site(s)
+    ,   not_resolved_yet_block_argument_init                        =   31306    // 1 site(s)
+    ,   not_resolved_yet_class_type                                 =   31307    // 1 site(s)
+    ,   not_resolved_yet_comprehension_type                         =   31308    // 1 site(s)
+    ,   not_resolved_yet_delete_size_type                           =   31309    // 1 site(s)
+    ,   not_resolved_yet_dereference_type                           =   31310    // 1 site(s)
+    ,   not_resolved_yet_enumerator                                 =   31311    // 3 site(s)
+    ,   not_resolved_yet_expression_type                            =   31312    // 2 site(s)
+    ,   not_resolved_yet_function                                   =   31313    // 2 site(s)
+    ,   not_resolved_yet_function_block                             =   31314    // 1 site(s)
+    ,   not_resolved_yet_generator_block                            =   31315    // 1 site(s)
+    ,   not_resolved_yet_index_type                                 =   31316    // 2 site(s)
+    ,   not_resolved_yet_invoke_argument_type                       =   31317    // 3 site(s)
+    ,   not_resolved_yet_is_expression_type                         =   31318    // 3 site(s)
+    ,   not_resolved_yet_label_type                                 =   31319    // 1 site(s)
+    ,   not_resolved_yet_lambda_block                               =   31320    // 1 site(s)
+    ,   not_resolved_yet_local_type                                 =   31321    // 1 site(s)
+    ,   not_resolved_yet_method_call                                =   31322    // 1 site(s)
+    ,   not_resolved_yet_new_type                                   =   31323    // 1 site(s)
+    ,   not_resolved_yet_null_coalescing_type                       =   31324    // 1 site(s)
+    ,   not_resolved_yet_structure                                  =   31325    // 1 site(s)
+    ,   not_resolved_yet_structure_field                            =   31326    // 1 site(s)
+    ,   not_resolved_yet_structure_type                             =   31327    // 1 site(s)
+    ,   not_resolved_yet_table_type                                 =   31328    // 2 site(s)
+    ,   not_resolved_yet_tuple_type                                 =   31329    // 2 site(s)
+    ,   not_resolved_yet_type                                       =   31330    // 4 site(s)
+    ,   not_resolved_yet_type_alias                                 =   31331    // 1 site(s)
+    ,   not_resolved_yet_typeinfo                                   =   31332    // 2 site(s)
+    ,   not_resolved_yet_typeinfo_alignof                           =   31333    // 1 site(s)
+    ,   not_resolved_yet_typeinfo_dim                               =   31334    // 1 site(s)
+    ,   not_resolved_yet_typeinfo_dim_table                         =   31335    // 1 site(s)
+    ,   not_resolved_yet_typeinfo_sizeof                            =   31336    // 1 site(s)
+
+// unspecified_*
+
+    ,   concept_failed                                              =   31400    // 1 site(s)
+    ,   condition_must_be_bool                                      =   31401    // 1 site(s)
+    ,   not_expecting_result                                        =   31402    // 1 site(s)
+    ,   static_assert_failed                                        =   31403    // 1 site(s)
+
+// ===== stage 5xxxx (integration) =====
+
+
+// invalid_*
+
+    ,   invalid_options                                             =   50100    // 5 site(s)
+
+// mismatching_*
+
+    ,   mismatching_runtime_type                                    =   50200    // 1 site(s)
+    ,   mismatching_runtime_type_hash                               =   50201    // 1 site(s)
+
+// exceeds_*
+
+    ,   exceeds_array                                               =   50300    // 2 site(s)
+    ,   exceeds_global                                              =   50301    // 3 site(s)
+    ,   exceeds_runtime_buffer                                      =   50302    // 1 site(s)
+
+// cant_*
+
+    ,   cant_hash_block                                             =   50400    // 1 site(s)
+    ,   cant_hash_context                                           =   50401    // 1 site(s)
+    ,   cant_hash_iterator                                          =   50402    // 1 site(s)
+    ,   cant_serialize_block                                        =   50403    // 1 site(s)
+    ,   cant_serialize_iterator                                     =   50404    // 1 site(s)
+    ,   cant_serialize_null_pointer                                 =   50405    // 1 site(s)
+    ,   cant_serialize_pointer                                      =   50406    // 2 site(s)
+    ,   cant_serialize_table                                        =   50407    // 1 site(s)
+
+// runtime_*
+
+    ,   runtime_function                                            =   50500    // 3 site(s)
+    ,   runtime_function_annotation                                 =   50501    // 5 site(s)
+    ,   runtime_global                                              =   50502    // 2 site(s)
+    ,   runtime_macro                                               =   50503    // 6 site(s)
+
+// internal_*
+
+    ,   internal_annotation                                         =   50600    // 4 site(s)
+    ,   internal_array                                              =   50601    // 2 site(s)
+    ,   internal_array_type                                         =   50602    // 2 site(s)
+    ,   internal_block                                              =   50603    // 2 site(s)
+    ,   internal_block_missing_return_type                          =   50604    // 1 site(s)
+    ,   internal_class                                              =   50605    // 1 site(s)
+    ,   internal_enumeration                                        =   50606    // 1 site(s)
+    ,   internal_expression                                         =   50607    // 26 site(s)
+    ,   internal_field                                              =   50608    // 1 site(s)
+    ,   internal_function                                           =   50609    // 9 site(s)
+    ,   internal_function_annotation                                =   50610    // 1 site(s)
+    ,   internal_function_changed                                   =   50611    // 1 site(s)
+    ,   internal_function_name                                      =   50612    // 1 site(s)
+    ,   internal_function_not_resolved_yet                          =   50613    // 2 site(s)
+    ,   internal_function_refresh                                   =   50614    // 1 site(s)
+    ,   internal_generator                                          =   50615    // 2 site(s)
+    ,   internal_generator_finalizer                                =   50616    // 1 site(s)
+    ,   internal_generator_finalizer_multiple                       =   50617    // 1 site(s)
+    ,   internal_generator_finalizer_name                           =   50618    // 1 site(s)
+    ,   internal_generator_function_name                            =   50619    // 1 site(s)
+    ,   internal_generator_structure_name                           =   50620    // 1 site(s)
+    ,   internal_global                                             =   50621    // 2 site(s)
+    ,   internal_label                                              =   50622    // 1 site(s)
+    ,   internal_lambda_finalizer_name                              =   50623    // 1 site(s)
+    ,   internal_lambda_function_name                               =   50624    // 1 site(s)
+    ,   internal_lambda_in_scope_conversion                         =   50625    // 1 site(s)
+    ,   internal_lambda_structure_name                              =   50626    // 1 site(s)
+    ,   internal_macro                                              =   50627    // 3 site(s)
+    ,   internal_name                                               =   50628    // 2 site(s)
+    ,   internal_options                                            =   50629    // 2 site(s)
+    ,   internal_pod_analysis_infer                                 =   50630    // 1 site(s)
+    ,   internal_relocate_infer                                     =   50631    // 1 site(s)
+    ,   internal_structure                                          =   50632    // 2 site(s)
+    ,   internal_structure_block                                    =   50633    // 1 site(s)
+    ,   internal_table                                              =   50634    // 4 site(s)
+    ,   internal_tuple                                              =   50635    // 1 site(s)
+    ,   internal_tuple_type                                         =   50636    // 1 site(s)
+    ,   internal_type                                               =   50637    // 15 site(s)
+    ,   internal_type_alias                                         =   50638    // 1 site(s)
+    ,   internal_typeinfo_macro                                     =   50639    // 1 site(s)
+    ,   internal_variable                                           =   50640    // 3 site(s)
+
+    // ===== preserved for direct (non-error()) callers =====
+    ,   missing_aot                                                 =   50101    // Program::linkError direct
+    ,   syntax_error                                                =   20001    // ds_*lexer.lpp default-arg for yyfatalerror
+    ,   function_not_found                                          =   30341    // reportMissing(...) calls
+    ,   function_already_declared                                   =   30342    // reportMissing(...) calls
+    ,   invalid_return_type                                         =   30343    // verifyReturnType helper
+    ,   invalid_initialization_type                                 =   30344    // verifyInitTypeMatch helper
+    ,   invalid_private                                             =   30345    // parser_impl.cpp private-modifier
+    ,   invalid_static                                              =   30346    // parser_impl.cpp static-modifier
+    ,   aot_side_effects                                            =   40500    // ast_lint AOT side-effects warning
+    // dasFormatter (utils/dasFormatter/ds_parser.ypp) — older parser, not audited
+    ,   cant_pipe                                                   =   30347    // dasFormatter parser
+    ,   enumeration_value_already_declared                          =   30348    // dasFormatter parser
+    ,   invalid_escape_sequence                                     =   10005    // dasFormatter parser
+    ,   invalid_option                                              =   30349    // dasFormatter parser
+    ,   module_already_has_a_name                                   =   30350    // dasFormatter parser
+    ,   type_alias_already_declared                                 =   30351    // dasFormatter parser
+    ,   unsupported_read_macro                                      =   30352    // dasFormatter parser
     };
 }

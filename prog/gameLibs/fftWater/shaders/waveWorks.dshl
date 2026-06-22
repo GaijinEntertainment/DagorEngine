@@ -117,7 +117,7 @@ macro GET_WATER_WORLD_POS()
       #endif
 
       #if WATER_GEOMORPHING == FULL_GEOMORPH_LODS
-        float2 distToOriginXZ = abs(worldPos - water_origin_xz); // Dist to camera acutally if the origin isn't customized.
+        float2 distToOriginXZ = abs(worldPos - water_origin_xz); // Dist to camera actually if the origin isn't customized.
         float distToOrigin = max(distToOriginXZ.x, distToOriginXZ.y);
 
         float lod0PatchSize = patchDim * lod0CellSize;
@@ -130,9 +130,9 @@ macro GET_WATER_WORLD_POS()
         float lodsBlendStartDist = patchSize + (lodNo > 0 ? stepSizeInner * 0.5 : 0.0);
         float lodsBlendEndDist = patchSize * 2.0 - stepSizeOuter * 0.5 - (lodNo == lastLodNo ? LAST_LOD_BORDER * cellSize : 0.0);
 
-        float horizonralBlendFactor = saturate((distToOrigin - lodsBlendStartDist) / (lodsBlendEndDist - lodsBlendStartDist));
+        float horizontalBlendFactor = saturate((distToOrigin - lodsBlendStartDist) / (lodsBlendEndDist - lodsBlendStartDist));
 
-        worldPos += getWorldPosBlendOffset(cellSize, inPosAligned, max(verticalBlendFactor, horizonralBlendFactor), isBorder);
+        worldPos += getWorldPosBlendOffset(cellSize, inPosAligned, max(verticalBlendFactor, horizontalBlendFactor), isBorder);
       #elif WATER_GEOMORPHING == VERTICAL_GEOMORPHLODS
         worldPos += getWorldPosBlendOffset(cellSize, inPosAligned, verticalBlendFactor, isBorder);
       #endif

@@ -165,15 +165,62 @@ void RefinedBlockLayout::generateStcode()
 
       stcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_SET_CONST_PACKED, 0, vt_float_size(vt), e->cbufOffset.value()));
     }
+    else if (vt_is_cbuf(vt))
+    {
+      stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GBUF, 0, varId));
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          stcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_CONST_BUFFER, stage, e->slot[stage].value(), 0));
+    }
+    else if (vt_is_sampler(vt))
+    {
+      if (bindless && e->cbufOffset.has_value())
+      {
+        stcode.push_back(shaderopcode::makeOp2(SHCOD_REG_BINDLESS_SAMPLER, e->cbufOffset.value(), varId));
+      }
+      else
+      {
+        for (int stage = 0; stage < STAGE_MAX; ++stage)
+          if (e->slot[stage].has_value())
+            stcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_GLOB_SAMPLER, stage, e->slot[stage].value(), varId));
+      }
+    }
+    else if (vt_is_tlas(vt))
+    {
+      stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GTLAS, 0, varId));
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          stcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_TLAS, stage, e->slot[stage].value(), 0));
+    }
+    else if (vt_is_uav(vt) && e->svType == SHVT_TEXTURE)
+    {
+      stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GTEX, 0, varId));
+      G_STATIC_ASSERT(STAGE_CS == 0 && STAGE_PS == 1 && STAGE_VS == 2);
+      const int cods[3] = {SHCOD_RWTEX_CS, SHCOD_RWTEX_PS, SHCOD_RWTEX_VS};
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          stcode.push_back(shaderopcode::makeOp2(cods[stage], e->slot[stage].value(), 0));
+    }
+    else if (vt_is_uav(vt) && e->svType == SHVT_BUFFER)
+    {
+      stcode.push_back(shaderopcode::makeOp2(SHCOD_GET_GBUF, 0, varId));
+      G_STATIC_ASSERT(STAGE_CS == 0 && STAGE_PS == 1 && STAGE_VS == 2);
+      const int cods[3] = {SHCOD_RWBUF_CS, SHCOD_RWBUF_PS, SHCOD_RWBUF_VS};
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          stcode.push_back(shaderopcode::makeOp2(cods[stage], e->slot[stage].value(), 0));
+    }
   }
 }
 
 dag::ConstSpan<int> RefinedBlockLayout::getStcode() const { return dag::ConstSpan<int>(stcode.data(), stcode.size()); }
 
-void RefinedBlockLayout::serializeToBindump(Tab<SerializedRefinedBlockVar> &out, Tab<int> &out_computed_stcode) const
+void RefinedBlockLayout::serializeToBindump(Tab<SerializedRefinedBlockVar> &out, Tab<int> &out_computed_stcode,
+  Tab<char> &out_computed_cpp_exprs) const
 {
   out.clear();
   out_computed_stcode.clear();
+  out_computed_cpp_exprs.clear();
   out.reserve(vars.size());
   for (const auto &[id, e] : vars)
   {
@@ -195,12 +242,18 @@ void RefinedBlockLayout::serializeToBindump(Tab<SerializedRefinedBlockVar> &out,
       for (int word : e.computedStcode)
         out_computed_stcode.push_back(word);
     }
+    if (!e.computedCppExpr.empty())
+    {
+      var.computedCppExprOffset = out_computed_cpp_exprs.size();
+      var.computedCppExprLen = e.computedCppExpr.size();
+      out_computed_cpp_exprs.insert(out_computed_cpp_exprs.end(), e.computedCppExpr.begin(), e.computedCppExpr.end());
+    }
     out.push_back(var);
   }
 }
 
 RefinedBlockLayout RefinedBlockLayout::deserializeFromBindump(const VarNameMap &rbVarNameMap,
-  const Tab<SerializedRefinedBlockVar> &entries, const Tab<int> &computed_stcode)
+  const Tab<SerializedRefinedBlockVar> &entries, const Tab<int> &computed_stcode, const Tab<char> &computed_cpp_exprs)
 {
   RefinedBlockLayout layout;
   for (const SerializedRefinedBlockVar &e : entries)
@@ -227,9 +280,189 @@ RefinedBlockLayout RefinedBlockLayout::deserializeFromBindump(const VarNameMap &
       var.computedStcode.insert(var.computedStcode.end(), computed_stcode.data() + e.computedStcodeOffset,
         computed_stcode.data() + e.computedStcodeOffset + e.computedStcodeLen);
     }
+    if (e.computedCppExprOffset >= 0 && e.computedCppExprLen > 0)
+    {
+      G_ASSERTF(e.computedCppExprOffset + e.computedCppExprLen <= computed_cpp_exprs.size(),
+        "refined_block: computedCppExpr slice [%d, %d) out of range (array size %d)", e.computedCppExprOffset,
+        e.computedCppExprOffset + e.computedCppExprLen, computed_cpp_exprs.size());
+      var.computedCppExpr.assign(computed_cpp_exprs.data() + e.computedCppExprOffset, e.computedCppExprLen);
+    }
     layout.vars.emplace(varId, eastl::move(var));
   }
   return layout;
+}
+
+void RefinedBlockLayout::generateCppStcode(TargetContext &ctx)
+{
+  if (!shc::config().compileCppStcode() || vars.empty())
+    return;
+
+  eastl::vector<const RefinedBlockVar *> sorted;
+  sorted.reserve(vars.size());
+  for (const auto &[_, decl] : vars)
+    sorted.push_back(&decl);
+
+  // First goes vars with no computed expression to declare var with id, which will
+  // be referenced by other computed expressions.
+  eastl::sort(sorted.begin(), sorted.end(),
+    [](const RefinedBlockVar *a, const RefinedBlockVar *b) { return a->computedCppExpr.empty() > b->computedCppExpr.empty(); });
+
+  DynamicStcodeRoutine routine;
+
+  for (const RefinedBlockVar *e : sorted)
+  {
+    const int varId = e->globVarId;
+    const VariableType vt = e->varType;
+
+    eastl::string typeStr;
+    switch (vt)
+    {
+      case VariableType::f3: typeStr = "float3"; break;
+      case VariableType::f2: typeStr = "float2"; break;
+      case VariableType::f1: typeStr = "float"; break;
+      case VariableType::i4:
+      case VariableType::u4: typeStr = "int4"; break;
+      case VariableType::i3:
+      case VariableType::u3: typeStr = "int3"; break;
+      case VariableType::i2:
+      case VariableType::u2: typeStr = "int2"; break;
+      case VariableType::i1:
+      case VariableType::u1: typeStr = "int"; break;
+      case VariableType::f4:
+      default: typeStr = "float4"; break;
+    };
+
+    if (!e->computedCppExpr.empty())
+    {
+      const eastl::string locName = string_f("%s_vs", e->varName.c_str());
+      routine.addSetConstStmt(typeStr.c_str(), 1, locName.c_str(), e->computedCppExpr.c_str(), "vsconst__", 0);
+      routine.regsForStage(STAGE_VS).add(e->varName.c_str(), e->cbufOffset.value(), true, 1);
+      continue;
+    }
+
+    if (vt_is_tex(vt))
+    {
+      if (shc::config().enableBindless && e->cbufOffset.has_value())
+      {
+        const eastl::string biVar = string_f("rb_bi_%s", e->varName.c_str());
+        routine.addFormattedStatement("uint32_t %s = rb_alloc_bindless(rb_get_tex(%d));\n", biVar.c_str(), varId);
+        routine.addFormattedStatement("rb_flush_bindless_tex(%s, rb_get_tex(%d));\n", biVar.c_str(), varId);
+        const eastl::string locName = string_f("%s_vs", e->varName.c_str());
+        routine.addSetConstStmt("uint", 1, locName.c_str(), biVar.c_str(), "vsconst__", 0);
+        routine.regsForStage(STAGE_VS).add(e->varName.c_str(), e->cbufOffset.value(), true, 1);
+      }
+      else
+      {
+        G_STATIC_ASSERT(STAGE_CS == 0 && STAGE_PS == 1 && STAGE_VS == 2);
+        for (int stage = 0; stage < STAGE_MAX; ++stage)
+          if (e->slot[stage].has_value())
+            routine.addFormattedStatement("rb_flush_tex(%d, %d, rb_get_tex(%d));\n", stage, e->slot[stage].value(), varId);
+      }
+    }
+    else if (vt_is_buf(vt))
+    {
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          routine.addFormattedStatement("rb_flush_buf(%d, %d, rb_get_buf(%d));\n", stage, e->slot[stage].value(), varId);
+    }
+    else if (vt_is_cbuf(vt))
+    {
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          routine.addFormattedStatement("rb_flush_cbuf(%d, %d, rb_get_buf(%d));\n", stage, e->slot[stage].value(), varId);
+    }
+    else if (vt_is_sampled_texture(vt))
+    {
+      if (shc::config().enableBindless && e->cbufOffset.has_value())
+      {
+        const eastl::string smpVar = string_f("rb_smp_%s", e->varName.c_str());
+        const eastl::string biVar = string_f("rb_bi_%s", e->varName.c_str());
+        routine.addFormattedStatement("uint64_t %s = rb_get_sampler(%d);\n", smpVar.c_str(), varId);
+        routine.addFormattedStatement("uint32_t %s = rb_alloc_bindless_sampler(%s);\n", biVar.c_str(), smpVar.c_str());
+        routine.addFormattedStatement("rb_flush_bindless_sampler(%s, %s);\n", biVar.c_str(), smpVar.c_str());
+        const eastl::string locName = string_f("%s_vs", e->varName.c_str());
+        routine.addSetConstStmt("uint", 1, locName.c_str(), biVar.c_str(), "vsconst__", 0);
+        routine.regsForStage(STAGE_VS).add(e->varName.c_str(), e->cbufOffset.value(), true, 1);
+      }
+      else
+      {
+        for (int stage = 0; stage < STAGE_MAX; ++stage)
+          if (e->slot[stage].has_value())
+            routine.addFormattedStatement("rb_flush_sampler(%d, %d, rb_get_sampler(%d));\n", stage, e->slot[stage].value(), varId);
+      }
+    }
+    else if (vt_is_tlas(vt))
+    {
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+        if (e->slot[stage].has_value())
+          routine.addFormattedStatement("rb_flush_tlas(%d, %d, rb_get_tlas(%d));\n", stage, e->slot[stage].value(), varId);
+    }
+    else if (vt_is_uav(vt))
+    {
+      for (int stage = 0; stage < STAGE_MAX; ++stage)
+      {
+        if (e->slot[stage].has_value())
+        {
+          if (e->svType == SHVT_TEXTURE)
+            routine.addFormattedStatement("rb_flush_rwtex(%d, %d, rb_get_tex(%d));\n", stage, e->slot[stage].value(), varId);
+          else
+            routine.addFormattedStatement("rb_flush_rwbuf(%d, %d, rb_get_buf(%d));\n", stage, e->slot[stage].value(), varId);
+        }
+      }
+    }
+    else if (vt == VariableType::f44 && e->cbufOffset.has_value())
+    {
+      routine.addFormattedStatement("float4x4 %s;\n", e->varName.c_str());
+      routine.addFormattedStatement("rb_get_mat44(%d, &%s);\n", varId, e->varName.c_str());
+      routine.addShaderConst(STAGE_VS, SHVT_FLOAT4X4, vt, e->varName.c_str(), e->cbufOffset.value(), e->varName.c_str(), 0);
+    }
+    else if (e->cbufOffset.has_value())
+    {
+      eastl::string getter;
+      switch (vt)
+      {
+        case VariableType::f1: getter = string_f("rb_get_real(%d)", varId); break;
+        case VariableType::i1:
+        case VariableType::u1: getter = string_f("rb_get_int(%d)", varId); break;
+        case VariableType::f2:
+        case VariableType::f3:
+        case VariableType::f4: getter = string_f("rb_get_f4(%d)", varId); break;
+        case VariableType::i2:
+        case VariableType::i3:
+        case VariableType::i4:
+        case VariableType::u2:
+        case VariableType::u3:
+        case VariableType::u4: getter = string_f("rb_get_ivec(%d)", varId); break;
+        default:
+          G_ASSERTF(false, "unsupported variable type %d for variable '%s'", eastl::to_underlying(vt), e->varName.c_str());
+          break;
+      }
+
+      routine.addFormattedStatement("%s %s;\n", typeStr.c_str(), e->varName.c_str());
+      routine.addFormattedStatement("%s = %s;\n", e->varName.c_str(), getter.c_str());
+
+      const eastl::string locName = string_f("%s_vs", e->varName.c_str());
+      routine.addSetConstStmt(typeStr.c_str(), 1, locName.c_str(), e->varName.c_str(), "vsconst__", 0);
+      routine.regsForStage(STAGE_VS).add(e->varName.c_str(), e->cbufOffset.value(), true, 1);
+    }
+  }
+
+  if (!routine.hasCode())
+    return;
+
+  HlslRegRange vsRange = routine.collectSetRegistersRange(STAGE_VS);
+  vsRange.min = 0; // Must be always 0 since regs may be preallocated from previous compilations
+  for (const RefinedBlockVar *e : sorted)
+    if (e->varType == VariableType::f44 && e->cbufOffset.has_value())
+      vsRange.cap = eastl::max(vsRange.cap, e->cbufOffset.value() + 16);
+
+  const int id = ctx.cppStcode().addCode(eastl::move(routine), {}, vsRange);
+  if (id < 0)
+    return;
+
+  cppStcodeId = id;
+  if (id == (int)ctx.cppStcode().dynamicRoutineNames.size())
+    ctx.cppStcode().dynamicRoutineNames.emplace_back(string_f("stcode::cpp::_refined_block::dynroutine%d", id).c_str());
 }
 
 } // namespace shc

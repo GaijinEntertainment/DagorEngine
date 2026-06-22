@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 
 module cuckoo_hash_table shared private
 
@@ -22,7 +20,7 @@ require strings public
 
 def public hash0(data) {
     //! this hash function converts and workhorse key to a 64 bit hash
-    let k64 = uint64(data)
+    let k64 = uint64(data)  // nolint:PERF020 — generic over key types; cast is identity only for uint64 keys
     return k64 <= 2ul ? 0x9e3779b97f4a7c15ul : k64
 }
 
@@ -132,14 +130,10 @@ struct template TCuckooHashTable {
     def static const key_index(key : KeyType) {
         let firstHash = $c(hashFunction0Name)(key)
         var index = int(firstHash) & mask
-        if (khv[index].hash == firstHash && khv[index].key == key) {
-            return index
-        }
-        var secondHash = $c(hashFunction1Name)(key)
+        if (khv[index].hash == firstHash && khv[index].key == key) return index
+        let secondHash = $c(hashFunction1Name)(key)
         index = int(secondHash) & mask
-        if (khv[index].hash == secondHash && khv[index].key == key) {
-            return index
-        }
+        if (khv[index].hash == secondHash && khv[index].key == key) return index
         return -1
     }
 
@@ -252,9 +246,9 @@ struct template TCuckooHashTable {
         var key := _key
         var value := _value
         while (true) {
-            for (i in range(length(khv) / 2)) {
-                var firstHash = $c(hashFunction0Name)(key)
-                var firstIndex = int(firstHash) & mask
+            for (_i in range(length(khv) / 2)) {
+                let firstHash = $c(hashFunction0Name)(key)
+                let firstIndex = int(firstHash) & mask
                 if (khv[firstIndex].hash == 0ul) {
                     khv[firstIndex].hash = firstHash
                     khv[firstIndex].key <- key
@@ -262,8 +256,8 @@ struct template TCuckooHashTable {
                     data_length ++
                     return
                 }
-                var secondHash = $c(hashFunction1Name)(key)
-                var secondIndex = int(secondHash) & mask
+                let secondHash = $c(hashFunction1Name)(key)
+                let secondIndex = int(secondHash) & mask
                 if (khv[secondIndex].hash == 0ul) {
                     khv[secondIndex].hash = secondHash
                     khv[secondIndex].key <- key
@@ -308,15 +302,15 @@ struct template TCuckooHashTable {
             self |> grow()
         }
         // if its already there
-        var firstHash = $c(hashFunction0Name)(key)
-        var firstIndex = int(firstHash) & mask
+        let firstHash = $c(hashFunction0Name)(key)
+        let firstIndex = int(firstHash) & mask
         if (khv[firstIndex].hash == firstHash && khv[firstIndex].key == key) {
             unsafe {
                 return khv[firstIndex].value
             }
         }
-        var secondHash = $c(hashFunction1Name)(key)
-        var secondIndex = int(secondHash) & mask
+        let secondHash = $c(hashFunction1Name)(key)
+        let secondIndex = int(secondHash) & mask
         if (khv[secondIndex].hash == secondHash && khv[secondIndex].key == key) {
             unsafe {
                 return khv[secondIndex].value

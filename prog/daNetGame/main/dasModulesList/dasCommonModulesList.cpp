@@ -23,6 +23,11 @@ void pull_das()
 #endif
 #if DAGOR_DBGLEVEL > 0
   NEED_MODULE(Module_Debugger)
+  // The in-game lint pass (danetlibs/dascript_base/linter.das) needs the native
+  // fio_core module to read the repo .lint_config. The linter only runs in dev
+  // mode (see gameScripts.cpp thread init script comment), so fio stays out of
+  // release and the file I/O sandbox is preserved.
+  NEED_MODULE(Module_FIO)
 #endif
   NEED_MODULE(DagorTime)
   NEED_MODULE(DagorBase64)

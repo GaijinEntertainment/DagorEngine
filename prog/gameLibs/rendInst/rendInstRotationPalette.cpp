@@ -99,7 +99,8 @@ void rendinst::gen::RotationPaletteManager::createPalette(const RendintsInfo &ri
     G_ASSERTF(strcmp(ri_info.rtData->riResName[entityId], ri_info.pregenEnt[i].riName.get()) == 0,
       "Pregen ent identified incorrectly: #%d <%s> != <%s>", i, ri_info.rtData->riResName[entityId],
       ri_info.pregenEnt[i].riName.get());
-    if (count != ri_info.pregenEnt[i].riRes->getRotationPaletteSize() && RendInstGenData::renderResRequired)
+    if (RendInstGenData::renderResRequired && ri_info.pregenEnt[i].riRes &&
+        count != ri_info.pregenEnt[i].riRes->getRotationPaletteSize())
       logwarn("[RI] The level binary was exported with a different palette size than currently "
               "specified for an RI: <%s> (level binary: %d != asset: %d)",
         ri_info.rtData->riResName[entityId], count, ri_info.pregenEnt[i].riRes->getRotationPaletteSize());
@@ -109,7 +110,8 @@ void rendinst::gen::RotationPaletteManager::createPalette(const RendintsInfo &ri
       continue;
     count = clamp(count, 1u, uint32_t(PALETTE_ID_MULTIPLIER));
     // This entity is not registered in the currently used landclass, but it's placed down manually. Default rotation limits are used
-    addPalette(ri_info.pregenEnt[i].riName.get(), ri_info.rtData->riRes[entityId]->getImpostorParams(), id, count);
+    if (ri_info.rtData->riRes[entityId])
+      addPalette(ri_info.pregenEnt[i].riName.get(), ri_info.rtData->riRes[entityId]->getImpostorParams(), id, count);
   }
 
   // Add all landclass assets without rotation palette

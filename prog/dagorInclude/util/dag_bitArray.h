@@ -375,6 +375,17 @@ public:
       reset(i);
   }
 
+  /** sets i-th bit with 1 if v is not zero, and 0 otherwise. Returns previous value of that bit.
+   * @param i bit to set with v.
+   * @param v value to set in i-th bit.
+   */
+  int exchange(int i, unsigned v)
+  {
+    int old = get(i);
+    set(i, v);
+    return old;
+  }
+
   /** fills n bits from at with v.
    * same as Bitarray::fill(at,at+n-1,v)
    */

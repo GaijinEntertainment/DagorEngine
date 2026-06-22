@@ -206,8 +206,8 @@ shader dafx_modfx_bvh
       bvhInstance.transform0 = float4(rotated_right_vec.x, rotated_up_vec.x, rotated_forward_vec.x, wpos.x);
       bvhInstance.transform1 = float4(rotated_right_vec.y, rotated_up_vec.y, rotated_forward_vec.y, wpos.y);
       bvhInstance.transform2 = float4(rotated_right_vec.z, rotated_up_vec.z, rotated_forward_vec.z, wpos.z);
-      bvhInstance.instanceId_mask = bvh_meta_id | (1 << 24);
-      bvhInstance.instanceOffset_flags = RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE << 24;
+      bvhInstance.instanceId_mask = pack_rt_instance_id_mask(bvh_meta_id, 1u);
+      bvhInstance.instanceOffset_flags = pack_rt_instance_flags(RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE);
       bvhInstance.blas = is_dead ? int2(0, 0) : bvh_blas_address.xy;
       structuredBufferAt(bvh_instance_buffer, bvhIndex) = bvhInstance;
 

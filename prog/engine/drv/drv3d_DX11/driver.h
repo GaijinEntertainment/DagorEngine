@@ -2,6 +2,7 @@
 #pragma once
 
 #include "driver_defs.h"
+#include <d3d11_4.h>
 #include <drv/3d/dag_tex3d.h>
 #include <drv/3d/dag_driverDesc.h>
 #include <generic/dag_tab.h>
@@ -61,8 +62,13 @@ extern IDXGI_FACTORY *dx11_DXGIFactory;
 extern ID3D11_DEV *dx_device;
 extern ID3D11_DEV1 *dx_device1;
 extern ID3D11_DEV3 *dx_device3;
+extern ID3D11_DEV5 *dx_device5;
 extern ID3D11_DEVCTX *dx_context;
 extern ID3D11_DEVCTX1 *dx_context1;
+extern ID3D11_DEVCTX4 *dx_context4;
+extern ID3D11Fence *fence_progress;
+extern dag::AtomicInteger<uint64_t> global_frame_progress;
+
 extern os_spinlock_t dx_context_cs;
 extern WinCritSec dx_res_cs;
 extern SmartReadWriteFifoLock reset_rw_lock; // Read-lock for loading resources, write-lock for reset.

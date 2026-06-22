@@ -53,8 +53,7 @@ def writeStandaloneContextMethods(var prog : ProgramPtr; var logs : StringBuilde
     var coll = new BlockVariableCollector();
 
     for (fn in fnn) {
-        if (!fn.flags.exports) continue;
-        if (fn._module != prog.getThisModule) continue;
+        if (!fn.flags.exports || fn._module != prog.getThisModule) continue;
         if (declare_only) {
             write(logs, "    ");
         }
@@ -89,7 +88,7 @@ def writeStandaloneContextMethods(var prog : ProgramPtr; var logs : StringBuilde
             let args_str = (fn.arguments |> each()
                                         |> map(@(v : VariablePtr) { return coll.getVarName(v); })
                                         |> join(", "))
-            let maybe_comma = args_str |> length() > 0 ? ", " : "";
+            let maybe_comma = args_str |> !empty(args_str) ? ", " : "";
             write(logs, " \{\n    return {aotFuncName(fn)}(this{maybe_comma}{args_str});\n\}\n\n");
         }
     }
@@ -144,7 +143,7 @@ def writeStandaloneCtor(cfg : StandaloneContextCfg; initFunctions : string; var 
     write(tw, "    context.tabMnLookup->clear();\n");
 
     // MSVC forbide arrays of size 0
-    if (initFunctions |> length() != 0) {
+    if (initFunctions |> !empty(initFunctions)) {
         write(tw, "     // start totalFunctions\n");
         write(tw, "    struct FunctionStorage \{ int idx; FunctionInfo funcInfo; FuncInfo* debugInfo; \};\n");
         write(tw, "    FunctionStorage usedFunctions[] = \{\n");
@@ -184,7 +183,7 @@ def writeStandaloneCtor(cfg : StandaloneContextCfg; initFunctions : string; var 
         write(tw, "    \}\n");
     }
 
-    if (initFunctions |> length() != 0) {
+    if (initFunctions |> !empty(initFunctions)) {
         write(tw, " FillFunction(context, getGlobalAotLibrary(), id_to_funcs);\n");
         write(tw, "    context.runInitScript();\n");
         write(tw, "\}\n");
@@ -232,8 +231,8 @@ class StandaloneContextGen : CppAot {
         var globals : array<Variable?>;
         prog.get_ptr() |> for_each_module_no_order($(pm) {
             pm |> for_each_global($(pvar) {
-                if (pvar.index < 0 || !pvar.flags.used) return ;
-                if (pvar._module == prog.getThisModule) return ;
+                if (pvar.index < 0 || !pvar.flags.used
+                        || pvar._module == prog.getThisModule) return ;
                 globals.push(pvar);
             });
         });
@@ -397,12 +396,12 @@ def public runStandaloneVisitor(var program : ProgramPtr, modules : array<string
     var source_content = ""
     let header_content = build_string() $(header) {
     source_content = build_string() $(source) {
-        if (mod_name |> length() != 0) {
+        if (mod_name |> !empty(mod_name)) {
             write(header, "// Module {mod_name}\n");
         }
         write(header, "{AOT_INCLUDES}");
 
-        if (mod_name |> length() != 0) {
+        if (mod_name |> !empty(mod_name)) {
             write(source, "// Module {mod_name}\n");
         }
 

@@ -28,8 +28,11 @@ macro SUN_LIGHT_POINT_TRACE_HIT(code)//at trace hit when calculating probes
       #ifdef NUM_CASCADES
         //using CSM is only 5% slower than just use static cascade, but obviously more accurate
         //todo: disable on prev-gen / bare minimum
-        float3 csmShadow = get_csm_shadow( csm_world_view_pos.xyz - offsetedWorldPos, 0 );
-        float shadow = csmShadow.z ? getStaticShadow(offsetedWorldPos) : csmShadow.x;
+        float3 csmShadow = get_csm_shadow( csm_world_view_pos.xyz - offsetedWorldPos, 0, -1 );
+        // CSM fades out toward the last cascade edge (and is 1 beyond it), so static
+        // shadow always carries the far range. Matches WT combined_shadows.
+        float csmFade = 1.0 - csmShadow.z;
+        float shadow = lerp(1.0, csmShadow.x, csmFade) * getStaticShadow(offsetedWorldPos);
       #else
         float shadow = getStaticShadow(offsetedWorldPos);
       #endif
@@ -170,7 +173,7 @@ endmacro
 
 macro PROJECT_LIGHT_POINT_VOXELIZE(code) // when voxelizing radiance of radiance voxel scene
   INIT_CSM_SHADOW(code)
-  BASE_USE_CSM_SHADOW_DEF_NUM(code)
+  BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(code)
   SUN_SKY_LIGHT_POINT_TRACE_HIT(code)
   hlsl(code) {
     float3 project_get_lit_color_at_voxelize(float3 worldPos, float3 worldNormal, float3 albedo, float ambient_loss = 0.5, float3 def_ambient = 0)

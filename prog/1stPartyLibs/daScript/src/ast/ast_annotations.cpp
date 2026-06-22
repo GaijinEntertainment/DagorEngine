@@ -31,7 +31,7 @@ namespace das
                     string err = "";
                     if (!sa->look(var, *program->thisModuleGroup, pA->arguments, err)) {
                         program->error("can't finalize structure annotation [" + sa->name + "]",err,"",
-                            var->at, CompilationError::invalid_annotation);
+                            var->at, CompilationError::cant_finalize_structure_annotation);
                     }
                 }
             }
@@ -43,7 +43,7 @@ namespace das
                 string err = "";
                 if ( !fna->finalize(fn, *program->thisModuleGroup, an->arguments, program->options, err) ) {
                     program->error("can't finalize annotation [" + fna->name + "]",err,"",
-                        fn->at, CompilationError::invalid_annotation);
+                        fn->at, CompilationError::cant_finalize_function_annotation);
                 }
             }
         }
@@ -55,7 +55,7 @@ namespace das
                     string err = "";
                     if ( !fna->finalize(block, *program->thisModuleGroup, an->arguments, program->options, err) ) {
                         program->error("can't finalize annotation [" + fna->name + "]",err,"",
-                            block->at, CompilationError::invalid_annotation);
+                            block->at, CompilationError::cant_finalize_block_annotation);
                     }
                 }
                 if ( block->annotationDataSid || block->annotationData ) {
@@ -63,7 +63,7 @@ namespace das
                         program->thisModule->annotationData[block->annotationDataSid] = block->annotationData;
                     } else {
                         program->error("internal error. both annotationData and Sid must be provided","","",
-                                       block->at, CompilationError::invalid_annotation);
+                                       block->at, CompilationError::internal_annotation);
                     }
                 }
             }
@@ -114,7 +114,7 @@ namespace das
                     auto fann = static_cast<FunctionAnnotation*>(ann->annotation);
                     string err;
                     if ( !fann->patch(fn, *thisModuleGroup, ann->arguments, options, err, astChanged) ) {
-                        error("function annotation patch failed\n", err, "", fn->at, CompilationError::annotation_failed );
+                        error("function annotation patch failed\n", err, "", fn->at, CompilationError::runtime_function_annotation );
                     }
                     if ( astChanged ) return true;
                 }
@@ -128,7 +128,7 @@ namespace das
                     auto sann = static_cast<StructureAnnotation*>(ann->annotation);
                     string err;
                     if ( !sann->patch(st, *thisModuleGroup, ann->arguments, err, astChanged) ) {
-                        error("structure annotation patch failed\n", err, "", st->at, CompilationError::annotation_failed );
+                        error("structure annotation patch failed\n", err, "", st->at, CompilationError::runtime_structure_annotation );
                     }
                     if ( astChanged ) return true;
                 }
@@ -176,7 +176,7 @@ namespace das
                     auto fann = static_cast<FunctionAnnotation*>(ann->annotation);
                     string err;
                     if ( !fann->fixup(fn, *thisModuleGroup, ann->arguments, options, err) ) {
-                        error("function annotation patch failed\n", err, "", fn->at, CompilationError::annotation_failed );
+                        error("function annotation patch failed\n", err, "", fn->at, CompilationError::runtime_function_annotation );
                     }
                 }
             }

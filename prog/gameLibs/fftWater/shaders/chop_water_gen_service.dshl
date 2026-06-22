@@ -129,7 +129,7 @@ shader chop_detail_waves_gen
     {
       PsOutput ret;
 
-      float gestner = 0;
+      float gerstner = 0;
       for(uint i = 0; i < min(MAX_WAVES_PER_DOMAIN, uint(num_waves)); ++i)
       {
         float2 wave_dir = wave_params_0[i].xy;
@@ -145,7 +145,7 @@ shader chop_detail_waves_gen
         uv.y += (global_time_seconds * wave_speed + wave_phase * size_in_meters) * inv_size_in_meters;
         uv *= size_in_meters_over_4 / wave_length;
 
-        gestner += tex2Dlod(wavelet_texture, float4(uv.x, uv.y * 4.0, 0, 0)).r * wave_amp;
+        gerstner += tex2Dlod(wavelet_texture, float4(uv.x, uv.y * 4.0, 0, 0)).r * wave_amp;
       }
 
       // detail
@@ -171,7 +171,7 @@ shader chop_detail_waves_gen
       detail /= weight;
       detail *= detail_waves_amp;
 
-      ret.maskTex = gestner + detail;
+      ret.maskTex = gerstner + detail;
       return ret;
     }
   }

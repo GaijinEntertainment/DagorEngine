@@ -14,7 +14,7 @@
 ECS_ON_EVENT(EventHostedInternalServerToStart)
 static void event_start_internal_server_es(const EventHostedInternalServerToStart &e)
 {
-  debug("event_start_internal_server_es");
+  debug("[LIFECYCLE] EventHostedInternalServerToStart ES -> schedule_new_internal_server_with_args");
   G_STATIC_ASSERT(sizeof(SimpleString) == sizeof(const char *));
 
   const ecs::List<ecs::string> &cmds = e.get<0>();
@@ -25,7 +25,13 @@ static void event_start_internal_server_es(const EventHostedInternalServerToStar
   int argc = cmdsCopy.size();
   char **argv = (char **)cmdsCopy.data();
   schedule_new_internal_server_with_args(argc, argv);
+  clear_hosted_server_start_pending();
 }
 
 ECS_ON_EVENT(EventHostedInternalServerToStop)
-static void event_stop_internal_server_es(const ecs::Event &) { kill_internal_server(false); }
+static void event_stop_internal_server_es(const ecs::Event &)
+{
+  debug("[LIFECYCLE] EventHostedInternalServerToStop ES -> kill_internal_server(wait=false)");
+  clear_hosted_server_start_pending();
+  kill_internal_server(false);
+}

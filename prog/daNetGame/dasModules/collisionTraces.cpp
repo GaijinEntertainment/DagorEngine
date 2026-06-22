@@ -29,6 +29,9 @@ struct IntersectedEntityAnnotation : das::ManagedStructureAnnotation<Intersected
   }
   bool hasNonTrivialCopy() const override { return false; } // for emplace(push_clone) to the containers in das
   bool canBePlacedInContainer() const override { return true; }
+  bool isLocal() const override { return true; }
+  bool hasNonTrivialCtor() const override { return false; }
+  bool hasNonTrivialDtor() const override { return false; }
 };
 
 namespace bind_dascript

@@ -74,7 +74,6 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
       float4 pos = GET_SCREEN_POS(IN.pos);
       MRT_OUTPUT ret;
       //#define THRESHOLD_TONEMAP(a) {float lum = GetLuminance(a); a = max(0, a-0.8); float w=1/(1+lum); a*=w; weight += w;}
-      half3 tex2;
 
       ##if shader == frame_bloom_downsample
         const bool bKillFireflies = true;
@@ -82,7 +81,7 @@ shader frame_bloom_downsample, bloom_downsample_hq, bloom_downsample_lq
       ##elif shader == bloom_downsample_hq
         const bool bKillFireflies = true;
         float ScaledThreshold = bloom_threshold * getInvExposureScale();   // BloomThreshold / Exposure
-        #define THRESHOLD(a) {tex2 = tex; tex = max(0, tex - ScaledThreshold);}
+        #define THRESHOLD(a) {tex = max(0, tex - ScaledThreshold);}
       ##else
         const bool bKillFireflies = false;
         #define THRESHOLD(a)

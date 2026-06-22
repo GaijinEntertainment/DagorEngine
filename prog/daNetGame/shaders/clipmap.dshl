@@ -41,7 +41,7 @@ macro USE_VTEX_MIP(code, use_landclass_params)
   USE_VTEX_MIP_BASE(code, true, use_landclass_params  )
 endmacro
 
-macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params)
+macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params, _force_no_normal)
   hlsl(code){
     #if NO_GRADIENTS_IN_SHADER
     #define h3tex2D(tex, tc) tex2Dlod(tex, float4(tc, 0, 0))
@@ -52,7 +52,7 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params)
   USE_CLIPMAP_OPT_DEBUG(code)
   //USE_PIXEL_TANGENT_SPACE()
   USE_MICRODETAIL_DESC_BASE(code)
-  USE_GATHER_MICRODETAIL_ID(code, cache_tex2, cache_tex0_samplerstate, GatherAlpha, cache_tex2_size)
+  USE_GATHER_MICRODETAIL_ID(code, cache_tex2, cache_tex0_samplerstate, GatherAlpha, cache_tex_size)
   USE_CLIPMAP_INDIRECTION_SAMPLING(code)
   hlsl(code) {
     #define cache_tex1_samplerstate cache_tex0_samplerstate
@@ -190,8 +190,8 @@ macro USE_CLIPMAP_NORMAL_BASE(code, use_landclass_params)
   }
 endmacro
 
-macro USE_CLIPMAP_NORMAL()
-  USE_CLIPMAP_NORMAL_BASE(ps, shader == rendinst_landclass)
+macro USE_CLIPMAP_NORMAL(_force_no_normal)
+  USE_CLIPMAP_NORMAL_BASE(ps, shader == rendinst_landclass, _force_no_normal)
 endmacro
 
 

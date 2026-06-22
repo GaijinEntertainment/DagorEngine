@@ -196,8 +196,7 @@ static bool texmgr_dbgcontrol_console_handler(const char *argv[], int argc)
     TEXTUREID tid = resolve_tid(argv[1]);
     if (tid != BAD_TEXTUREID)
     {
-      if (RMGR.decRefCount(tid.index()) == 0)
-        RMGR.incReadyForDiscardTex(tid.index());
+      RMGR.decRefCountAndIncReadyForDiscardTex(tid.index());
       console::print_d("del ref for (%s)=0x%x -> rc=%d", RMGR.getName(tid.index()), tid, RMGR.getRefCount(tid));
       verbose_tex_info(tid.index());
     }

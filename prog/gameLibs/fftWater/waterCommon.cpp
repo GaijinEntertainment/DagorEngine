@@ -24,7 +24,7 @@ NVWaveWorks_FFT_CPU_Simulation::Params simulation_cascade_params(const NVWaveWor
 
   const bool is_least_detailed_cascade_level = cascade_no == 0;
   const bool is_most_detailed_cascade_level = cascade_no >= NUM_PHYS_CASCADES && cascade_no == (cascade_num - 1);
-  // Compuate a divisor for the cascade period to keep a constant amount of details
+  // Compute a divisor for the cascade period to keep a constant amount of details
   const float periodStart1 = p.fft_period;
   const float periodEnd1 = cascade_facet_size * fftResTarget;
   const float periodK1 = max(powf(safediv(periodStart1, periodEnd1), safediv(1.0f, targetNumCascades - 1)), 0.001f);

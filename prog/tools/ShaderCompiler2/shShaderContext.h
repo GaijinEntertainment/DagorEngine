@@ -45,6 +45,7 @@ class ShaderContext
   ShaderAssumesTable mLocalAssumes;
   ShaderMessages mMessages{};
   bool mDebugModeEnabled = false;
+  bool mImmediateCbSlotRequired = false;
 
   TargetContext &mParent;
   CompilationContext &mCompParent;
@@ -116,6 +117,9 @@ public:
     // compile(STAGE_VS + 1, "ms");
     // compile(STAGE_VS + 2, "as");
   }
+
+  bool immediateCbSlotRequired() const { return IMMEDIATE_CB_REGISTER >= 0 && mImmediateCbSlotRequired; }
+  void reportImmediateCbSlotRequired() { mImmediateCbSlotRequired = true; }
 
   VariantContext makeVariantContext(ShaderVariant::VariantInfo variant, ShaderSemCode &target_code,
     ShaderSemCode::PassTab *target_pass = nullptr, bool use_branches_for_cppstcode = false);

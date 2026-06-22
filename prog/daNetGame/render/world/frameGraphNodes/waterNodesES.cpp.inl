@@ -19,6 +19,8 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <render/renderEvent.h>
 #include <render/world/bvh.h>
+#include <ecs/render/renderEvent.h>
+#include <image/dag_texPixel.h>
 
 CONSOLE_BOOL_VAL("water", distantWater, true);
 
@@ -327,6 +329,19 @@ eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode
   return nodes;
 }
 
+static UniqueTexWithShaderVar water_refraction_stub;
+
+static void create_water_refraction_stub()
+{
+  static constexpr uint32_t WATER_REFRACTION_STUB_COLOR = 0xFF182618;
+  TexImage32 image[2];
+  image[0].w = image[0].h = 1;
+  *reinterpret_cast<E3DCOLOR *>(image + 1) = WATER_REFRACTION_STUB_COLOR;
+  water_refraction_stub.close();
+  water_refraction_stub = UniqueTexWithShaderVar(
+    dag::create_tex(image, 1, 1, TEXFMT_A8R8G8B8 | TEXCF_LOADONCE, 1, "water_refraction_stub"), "water_refraction_tex");
+}
+
 dafg::NodeHandle makeWaterNode(WaterRenderMode mode)
 {
   return dafg::register_node(WATER_NODE_NAMES[eastl::to_underlying(mode)], DAFG_PP_NODE_SRC, [mode](dafg::Registry registry) {
@@ -402,6 +417,16 @@ dafg::NodeHandle makeWaterNode(WaterRenderMode mode)
   });
 }
 
+void bind_water_refraction_stub_if_unset()
+{
+  static int water_refraction_texVarId = get_shader_variable_id("water_refraction_tex", true);
+  // check if it's already set by the caller: get_tex_ptr works for FG managed textures too
+  if (ShaderGlobal::get_tex_ptr(water_refraction_texVarId) != nullptr)
+    return;
+  if (!water_refraction_stub)
+    create_water_refraction_stub();
+  water_refraction_stub.setVar();
+}
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnCameraNodeConstruction)
@@ -415,3 +440,15 @@ static void create_water_nodes_es(const OnCameraNodeConstruction &evt)
       evt.nodes->push_back(eastl::move(n));
   }
 }
+
+ECS_TAG(render)
+ECS_ON_EVENT(AfterDeviceReset)
+static void recreate_water_refraction_stub_es(const ecs::Event &)
+{
+  if (water_refraction_stub)
+    create_water_refraction_stub();
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(UnloadLevel)
+static void close_water_refraction_stub_es(const ecs::Event &) { water_refraction_stub.close(); }

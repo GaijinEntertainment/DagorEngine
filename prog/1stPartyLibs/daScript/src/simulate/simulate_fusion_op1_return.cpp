@@ -24,7 +24,7 @@ namespace das {
             DAS_PROFILE_NODE \
             auto lv =  subexpr.compute##COMPUTE(context); \
             context.stopFlags |= EvalFlags::stopForReturn; \
-            context.abiResult() = v_ldu((const float *) lv); \
+            DAS_LDU_WORKHORSE(context.abiResult(), lv, CTYPE); \
             return v_zero(); \
         } \
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \
@@ -72,7 +72,7 @@ IMPLEMENT_ANY_OP1_FUSION_POINT(__forceinline,Return,,vec4f,vec4f)
             DAS_PROFILE_NODE \
             auto lv =  subexpr.compute##COMPUTE(context); \
             context.stopFlags |= EvalFlags::stopForReturn; \
-            context.abiResult() = v_ldu((const float *) lv); \
+            DAS_LDU_WORKHORSE(context.abiResult(), lv, CTYPE); \
             return v_zero(); \
         } \
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \

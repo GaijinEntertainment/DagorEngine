@@ -1,4 +1,6 @@
 
+#define MIN_POSSIBLE_WARP_SIZE 8 // PC worst case (Intel)
+
 struct TextureSampler
 {
   Texture2D tex;

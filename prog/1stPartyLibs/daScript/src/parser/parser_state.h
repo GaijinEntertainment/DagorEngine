@@ -34,9 +34,11 @@ namespace das {
         bool das_has_type_declarations = false;
         bool das_gen2_make_syntax = false;
         bool das_keyword = false;
+        bool das_emit_semi_before_curly = false; // one-shot: we just auto-inserted a ';' before '}', skip on the re-lex
         int  das_indent_char = ';';
         LineInfo last_token_end; // Sometimes we need to know previous matched token end location
         vector<int> das_line_no;
+        vector<int> das_column_no; // saved/restored alongside das_line_no across pushed lexer buffers (include / reader-macro rewrite)
         vector<Nesteds> das_nesteds;
         das_hash_set<string> das_already_include;
         das_hash_map<string,string>   das_module_alias;

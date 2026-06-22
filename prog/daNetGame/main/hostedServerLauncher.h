@@ -19,3 +19,15 @@ void shutdown_internal_server_on_host_exit();
 void schedule_new_internal_server_with_args(int external_argc, char **external_argv);
 void kill_internal_server(bool wait);
 void prelaunch_internal_server_if_needed();
+
+bool is_hosted_internal_server_active();
+
+bool try_begin_hosted_server_start();
+void clear_hosted_server_start_pending();
+bool is_hosted_server_start_pending();
+
+bool poll_manual_ready_watchdog();
+
+// Per-frame main-thread tick for hosted-internal-server bookkeeping. Wraps the manual-ready
+// watchdog (and any future server-management polls). Call near net_update().
+void hosted_internal_server_management_update();

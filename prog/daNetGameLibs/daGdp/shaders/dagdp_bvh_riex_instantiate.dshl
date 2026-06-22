@@ -184,7 +184,7 @@ shader dagdp_bvh_riex_instantiate
       bvhInstance.transform0 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 0);
       bvhInstance.transform1 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 1);
       bvhInstance.transform2 = bufferAt(dagdp_bvh_instance_data, instanceIndex * 4 + 2);
-      bvhInstance.instanceId_mask = bvhMapping.metaIndex | (groupMask << 24);
+      bvhInstance.instanceId_mask = pack_rt_instance_id_mask(bvhMapping.metaIndex, groupMask);
       bvhInstance.instanceOffset_flags = 0;
       bvhInstance.blas = bvhMapping.blas;
 

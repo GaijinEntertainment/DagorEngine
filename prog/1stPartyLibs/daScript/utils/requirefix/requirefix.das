@@ -108,11 +108,11 @@ struct RequirefixContext {
 
 def public analyze_module_usages(var config : RequirefixConfig) : ModuleAnalysisResult {
     var result : ModuleAnalysisResult
-    var ctx = new RequirefixContext()
-    ctx.project_file = config.project_file
-    ctx.read_file_fn <- config.read_file_fn
-    ctx.abs_filename_fn <- config.abs_filename_fn
-    ctx.filename = config.target
+    var ctx = new RequirefixContext(
+        project_file = config.project_file,
+        read_file_fn <- config.read_file_fn,
+        abs_filename_fn <- config.abs_filename_fn,
+        filename = config.target)
     for (filename, replacement in keys(config.require_roots), values(config.require_roots)) {
         ctx.require_roots |> insert(ctx.abs_filename_fn(filename), replacement)
     }
@@ -143,12 +143,7 @@ def is_builtin_like(name : das_string) : bool {
 
 def collect_public_deps(mod : Module?; root_mod : string; var exported : table<string>) {
     module_for_each_dependency(mod) $(dep, is_pub) {
-        if (!is_pub) {
-            return
-        }
-        if (is_builtin_like(dep.name) || dep.name == "") {
-            return
-        }
+        if (!is_pub || is_builtin_like(dep.name) || dep.name == "") return
         let dep_name = "{dep.name}"
         if (!key_exists(exported, dep_name)) {
             exported |> insert(dep_name)
@@ -160,13 +155,13 @@ def collect_public_deps(mod : Module?; root_mod : string; var exported : table<s
 def collect_required_modules(prog : smart_ptr<Program>) : array<RequiredModule> {
     var result : array<RequiredModule>
     prog |> for_each_require_declaration() $ [unused_argument(file)] (mod, req_name, file, pub, at) {
-        var rd : RequiredModule
-        rd.mod = mod
-        rd.mod_name = "{mod.name}"
-        rd.req_name = "{req_name}"
-        rd.is_public = pub
-        rd.line = int(at.line)
-        result |> push(rd)
+        var rd = RequiredModule(
+            mod = mod,
+            mod_name = "{mod.name}",
+            req_name = "{req_name}",
+            is_public = pub,
+            line = int(at.line))
+        result |> emplace(rd)
     }
     return <- result
 }
@@ -175,9 +170,7 @@ def infer_require_path(ctx : RequirefixContext?; m : Module const?) : string {
     // TODO: maybe we can use getPrerequisits to avoid this kludge impl?
     let filename = ctx.abs_filename_fn("{m.fileName}")
     for (prefix, replacement in keys(ctx.require_roots), values(ctx.require_roots)) {
-        if (prefix == "") {
-            continue
-        }
+        if (prefix == "") continue
         if (filename |> starts_with(prefix)) {
             var pkg = trim_prefix(filename, prefix)
             pkg = trim_suffix(pkg, ".das")
@@ -197,11 +190,9 @@ def dedup_providers(ctx : RequirefixContext?; var usage_tab : table<string, Modu
     var candidates : array<string>
     var extra_usages : table<string, array<string>>
     for (mod_name, mod_usage in keys(usage_tab), values(usage_tab)) {
-        if (length(mod_usage.refs) > 0) {
+        if (!empty(mod_usage.refs)) {
             for (dep in keys(mod_usage.provides)) {
-                if (!key_exists(needed, dep)) {
-                    continue
-                }
+                if (!key_exists(needed, dep)) continue
                 extra_usages[mod_name] |> push(infer_require_path(ctx, mod_usage.mod))
                 needed |> erase(dep)
             }
@@ -213,14 +204,12 @@ def dedup_providers(ctx : RequirefixContext?; var usage_tab : table<string, Modu
     // Pick the candidate that covers the most
     // needed deps. Break ties by fewest total provides (less redundant imports).
     var kept : table<string>
-    while (length(needed) > 0) {
+    while (!empty(needed)) {
         var best_name = ""
         var best_covered = 0
         var best_depcount = 0
         for (c in candidates) {
-            if (key_exists(kept, c)) {
-                continue
-            }
+            if (key_exists(kept, c)) continue
             // A candidate score is higher if it covers more deps
             // we need, but is lower if it has more dependencies of its own.
             var covered = 0
@@ -236,14 +225,10 @@ def dedup_providers(ctx : RequirefixContext?; var usage_tab : table<string, Modu
                 best_name = c
             }
         }
-        if (best_covered == 0) {
-            break
-        }
+        if (best_covered == 0) break
         kept |> insert(best_name)
         for (dep in keys(usage_tab[best_name].provides)) {
-            if (!key_exists(needed, dep)) {
-                continue
-            }
+            if (!key_exists(needed, dep)) continue
             let mod = needed[dep]
             extra_usages[best_name] |> push(infer_require_path(ctx, mod))
             needed |> erase(dep)
@@ -253,7 +238,7 @@ def dedup_providers(ctx : RequirefixContext?; var usage_tab : table<string, Modu
     for (mod_name, list in keys(extra_usages), values(extra_usages)) {
         for (dep_name in list) {
             let ref = ref_pub_require(dep_name, uint(usage_tab[mod_name].required_at))
-            usage_tab[mod_name].refs |> push(ref)
+            usage_tab[mod_name].refs |> push(ref)  // nolint:PERF006 — keyed table-lookup target; reserve() needs same row
         }
     }
 }
@@ -263,9 +248,7 @@ def func_is_provided_by(mod : Module?; name : string) : bool {
     for_each_function(mod, name) $ [unused_argument(fun)] (fun) {
         found = true
     }
-    if (found) {
-        return true
-    }
+    if (found) return true
     for_each_generic(mod, name) $ [unused_argument(fun)] (fun) {
         found = true
     }
@@ -331,14 +314,10 @@ def analyze_file(var ctx : RequirefixContext?; var mg : ModuleGroup; var cop : C
         // These modules may have no visible references in the current file, but
         // their [init] functions run when the module is loaded.
         for (req in required) {
-            if (req.mod == null) {
-                continue
-            }
+            if (req.mod == null) continue
             var init_func = ""
             for_each_function(req.mod, "") $(fun) {
-                if (init_func != "") {
-                    return
-                }
+                if (init_func != "") return
                 for (a in fun.annotations) {
                     if (a.annotation != null && a.annotation.name == "init") {
                         init_func = "{fun.name}"
@@ -358,12 +337,7 @@ def analyze_file(var ctx : RequirefixContext?; var mg : ModuleGroup; var cop : C
         // that happens to export "foo" as used (all of them!)
         for (func_name, call_lines in keys(visitor.unresolved_call_names), values(visitor.unresolved_call_names)) {
             for (req in required) {
-                if (req.mod == null) {
-                    continue
-                }
-                if (!func_is_provided_by(req.mod, func_name)) {
-                    continue
-                }
+                if (req.mod == null || !func_is_provided_by(req.mod, func_name)) continue
                 for (call_line in call_lines) {
                     let ref = ref_function_call(func_name, call_line)
                     visitor.mod_usages[req.mod_name] |> push(ref)
@@ -384,9 +358,7 @@ def analyze_file(var ctx : RequirefixContext?; var mg : ModuleGroup; var cop : C
 
         dedup_providers(ctx, usage_tab, needed_transitive)
     }
-    if (ctx.last_error != "") {
-        return <- result
-    }
+    if (ctx.last_error != "") return <- result
 
     verify_unused_by_recompilation(ctx, usage_tab, cop)
 
@@ -418,13 +390,13 @@ def analyze_file(var ctx : RequirefixContext?; var mg : ModuleGroup; var cop : C
 
 // Build source text from lines, commenting out the specified line (lines are 1-based).
 def comment_out_src_line(source : string; skip_line : int) : string {
-    return build_string() <| $(str) {
+    return build_string() $(str) {
         var line_num = 1
         var i = 0
         let src_len = length(source)
         while (i < src_len) {
             var eol = i
-            while (eol < src_len && character_at(source, eol) != '\n') {
+            while (eol < src_len && character_at(source, eol) != '\n') {  // nolint:PERF003 — cold path: source-insertion runs once per fix
                 eol++
             }
             if (eol < src_len) {
@@ -445,28 +417,19 @@ def comment_out_src_line(source : string; skip_line : int) : string {
 // actually needed.
 def verify_unused_by_recompilation(var ctx : RequirefixContext?; var usage_tab : table<string, ModuleUsageResult>; var cop : CodeOfPolicies) {
     let source = ctx.read_file_fn(ctx.filename)
-    if (length(source) == 0) {
+    if (empty(source)) {
         ctx.last_error = "read_file_fn: can't read {ctx.filename}"
         return
     }
 
-    var candidates : array<string>
-    for (mod_name, mod_usage in keys(usage_tab), values(usage_tab)) {
-        if (length(mod_usage.refs) == 0) {
-            candidates |> push(mod_name)
-        }
-    }
+    let candidates <- [for (mod_name, mod_usage in keys(usage_tab), values(usage_tab)); mod_name; where empty(mod_usage.refs)]
     for (mod_name in candidates) {
         let skip_line = usage_tab[mod_name].required_at
-        if (skip_line <= 0) {
-            continue
-        }
+        if (skip_line <= 0) continue
         let modified_source = comment_out_src_line(source, skip_line)
         {
             var inscope access <- make_file_access(ctx.project_file)
-            if (access == null) {
-                continue
-            }
+            if (access == null) continue
             set_file_source(access, ctx.filename, modified_source)
             var compiles_ok = true
             using() $(var mg : ModuleGroup) {
@@ -497,15 +460,10 @@ class ModuleRefsVisitor : AstVisitor {
     unresolved_call_names : table<string, array<uint>>
 
     def add_module_ref(mod : Module const?; ref : ModuleRef) {
-        if (mod == null) {
-            return
-        }
-        if (is_builtin_like(mod.name)) {
-            return
-        }
-        if (mod.name == ctx.mod_name || mod.name == "") {
-            return
-        }
+        if (mod == null
+            || is_builtin_like(mod.name)
+            || mod.name == ctx.mod_name
+            || mod.name == "") return
         let mod_name = "{mod.name}"
         mod_mapping |> insert(mod_name, mod)
         mod_usages[mod_name] |> push(ref)
@@ -515,12 +473,8 @@ class ModuleRefsVisitor : AstVisitor {
     // instantiating module, not the defining one. Follow fromGeneric
     // to find the original module.
     def func_module(fun : Function?) : Module const? {
-        if (fun == null) {
-            return null
-        }
-        if (fun.fromGeneric != null) {
-            return fun.fromGeneric._module
-        }
+        if (fun == null) return null
+        if (fun.fromGeneric != null) return fun.fromGeneric._module
         return fun._module
     }
 
@@ -532,9 +486,7 @@ class ModuleRefsVisitor : AstVisitor {
     }
 
     def visit_operator(fun : Function?; line : uint; name : string = "") {
-        if (fun == null) {
-            return
-        }
+        if (fun == null) return
         var operator_name = name
         if (name == "") {
             operator_name = "{fun.name}"
@@ -544,9 +496,7 @@ class ModuleRefsVisitor : AstVisitor {
     }
 
     def visit_annotation(a : AnnotationDeclaration?) {
-        if (a.annotation == null) {
-            return
-        }
+        if (a.annotation == null) return
         let ref = ref_annotation("{a.annotation.name}", a.at.line)
         add_module_ref(a.annotation._module, ref)
     }
@@ -564,17 +514,13 @@ class ModuleRefsVisitor : AstVisitor {
     }
 
     def override preVisitExprAddr(expr : ExprAddr?) {
-        if (expr.func == null) {
-            return
-        }
+        if (expr.func == null) return
         let ref = ref_function_call("{expr.func.name}", expr.at.line)
         add_func_ref(expr.func, ref)
     }
 
     def override preVisitExprVar(expr : ExprVar?) {
-        if (expr.variable == null) {
-            return
-        }
+        if (expr.variable == null) return
         let ref = ref_variable("{expr.variable.name}", expr.at.line)
         add_module_ref(expr.variable._module, ref)
     }
@@ -604,33 +550,25 @@ class ModuleRefsVisitor : AstVisitor {
     }
 
     def override preVisitExprNew(expr : ExprNew?) {
-        if (expr.func == null) {
-            return
-        }
+        if (expr.func == null) return
         let ref = ref_function_call("new {expr.func.name}", expr.at.line)
         add_func_ref(expr.func, ref)
     }
 
     def override preVisitExprMakeStruct(expr : ExprMakeStruct?) {
-        if (expr.constructor == null) {
-            return
-        }
+        if (expr.constructor == null) return
         let ref = ref_function_call("make {expr.constructor.name}", expr.at.line)
         add_func_ref(expr.constructor, ref)
     }
 
     def override preVisitExprConstEnumeration(expr : ExprConstEnumeration?) {
-        if (expr.enumType == null) {
-            return
-        }
+        if (expr.enumType == null) return
         let ref = ModuleRef(kind = ModuleRefKind.type_enum, key = "{expr.enumType.name}", line = int(expr.at.line))
         add_module_ref(expr.enumType._module, ref)
     }
 
     def override preVisitExprConstBitfield(expr : ExprConstBitfield?) {
-        if (expr.bitfieldType == null || expr.bitfieldType.annotation == null) {
-            return
-        }
+        if (expr.bitfieldType == null || expr.bitfieldType.annotation == null) return
         let ref = ModuleRef(kind = ModuleRefKind.type_handle, key = "{expr.bitfieldType.annotation.name}", line = int(expr.at.line))
         add_module_ref(expr.bitfieldType.annotation._module, ref)
     }

@@ -2,7 +2,7 @@
 // verifies compiler rejects mismatched return types in branches,
 // missing return values, and unexpected return values
 options gen2
-expect 30102, 32101, 32102
+expect 30319, 30343, 31402
 
 def test_mix(arg : bool) {
     if (arg) {

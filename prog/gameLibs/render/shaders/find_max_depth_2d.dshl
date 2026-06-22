@@ -35,17 +35,20 @@ shader find_max_depth_2d
       GroupMemoryBarrierWithGroupSync();
 
       #define REDUCTION(n) max_in_group[flatIdx] = max(max_in_group[flatIdx], max_in_group[flatIdx+n]);
-      if (flatIdx < 128) { REDUCTION(128) } GroupMemoryBarrierWithGroupSync();
-      if (flatIdx < 64) { REDUCTION(64) } GroupMemoryBarrierWithGroupSync();
-      if (flatIdx < 32) {
-        REDUCTION(32);
-        REDUCTION(16);
-        REDUCTION(8);
-        REDUCTION(4);
-        REDUCTION(2);
-        REDUCTION(1);
+      // a step narrower than a wave stays in lockstep; only sync wider steps
+      #define REDUCTION_SYNC(n) if (n >= MIN_POSSIBLE_WARP_SIZE) GroupMemoryBarrierWithGroupSync();
+      if (flatIdx < 128) { REDUCTION(128) } REDUCTION_SYNC(128)
+      if (flatIdx < 64) { REDUCTION(64) } REDUCTION_SYNC(64)
+      if (flatIdx < 32) { REDUCTION(32) } REDUCTION_SYNC(32)
+      if (flatIdx < 16) { REDUCTION(16) } REDUCTION_SYNC(16)
+      if (flatIdx < 8) { REDUCTION(8) } REDUCTION_SYNC(8)
+      if (flatIdx < 4) { REDUCTION(4) } REDUCTION_SYNC(4)
+      if (flatIdx < 2) { REDUCTION(2) } REDUCTION_SYNC(2)
+      if (flatIdx == 0)
+      {
+        REDUCTION(1)
+        InterlockedMax(structuredBufferAt(maximum, 0), asuint(max_in_group[0]));
       }
-      if (flatIdx == 0) InterlockedMax(structuredBufferAt(maximum, 0), asuint(max_in_group[0]));
     }
   }
 

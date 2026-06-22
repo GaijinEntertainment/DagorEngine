@@ -34,11 +34,11 @@
 namespace das {using namespace std;}
 
 
-#if (!defined(DAS_ENABLE_EXCEPTIONS)) || (!DAS_ENABLE_EXCEPTIONS)
-#define FMT_THROW(x)    das::das_throw(((x).what()))
 namespace das {
   void das_throw(const char * msg);
 }
+#if (!defined(DAS_ENABLE_EXCEPTIONS)) || (!DAS_ENABLE_EXCEPTIONS)
+#define FMT_THROW(x)    das::das_throw(((x).what()))
 #endif
 
 #if DAS_CUSTOM_HASH
@@ -52,6 +52,17 @@ template <typename K, typename V, typename H = das::daslang_hash<K>, typename E 
 using das_hash_map = das::daslang_hash_map<K,V,H,E>;
 template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
 using das_hash_set = das::daslang_hash_set<K,H,E>;
+// Insert-only / grow-only flavors — same API minus erase(). Saves one branch
+// per probe step in insert and one in iterator skip; signals to readers that
+// the table is grow-only by design.
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_map = das::daslang_insert_only_hash_map<K,V,H,E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_set = das::daslang_insert_only_hash_set<K,H,E>;
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_map = das::daslang_insert_only_hash_map<K,V,H,E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_set = das::daslang_insert_only_hash_set<K,H,E>;
 template <typename K, typename V>
 using das_safe_map = std::map<K,V>;
 template <typename K, typename C=das::less<K>>
@@ -67,6 +78,17 @@ template <typename K, typename V, typename H = das::hash<K>, typename E = das::e
 using das_hash_map = std::unordered_map<K,V,H,E>;
 template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
 using das_hash_set = std::unordered_set<K,H,E>;
+// Insert-only variants degrade gracefully to std::unordered_* when DAS_CUSTOM_HASH=0
+// (no insert-only stdlib equivalent — caller-visible API is a superset, so callers
+// that don't use erase will compile both ways).
+template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_map = std::unordered_map<K,V,H,E>;
+template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_set = std::unordered_set<K,H,E>;
+template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_map = std::unordered_map<K,V,H,E>;
+template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_set = std::unordered_set<K,H,E>;
 template <typename K, typename V>
 using das_safe_map = std::map<K,V>;
 template <typename K, typename C=das::less<K>>

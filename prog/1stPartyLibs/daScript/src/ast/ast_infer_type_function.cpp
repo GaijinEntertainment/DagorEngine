@@ -77,10 +77,14 @@ namespace das {
         program->library.foreach ([&](Module *mod) -> bool {
                 auto itFnList = mod->functionsByName.find(hFuncName);
                 if ( itFnList ) {
+                    // Hoist module-level visibility — pFn->module == mod for non-generic fns (set in addFunction).
+                    const bool modVis = isVisibleFunc(inWhichModule, mod);
                     auto & goodFunctions = itFnList->second;
                     for ( auto & pFn : goodFunctions ) {
                         // if ( pFn->isTemplate ) continue;
-                        if ( isVisibleFunc(inWhichModule,getFunctionVisModule(pFn)) ) {
+                        const bool funcVis = !pFn->fromGeneric ? modVis
+                                          : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                        if ( funcVis ) {
                             if ( canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                 result.push_back(pFn);
                             }
@@ -344,6 +348,243 @@ namespace das {
         }
         return true;
     }
+    bool InferTypes::isFunctionCompatiblePipedAt(Function *pFn, const vector<TypeDeclPtr> &types, int blockParam, bool inferAuto) const {
+        int p = int(types.size()) - 1;
+        DAS_ASSERT(p >= 0 && blockParam > p && blockParam < int(pFn->arguments.size()));
+        // specialized annotations gate matching on positionally-aligned types - bail conservatively
+        for (const auto &ann : pFn->annotations) {
+            auto fnAnn = static_cast<FunctionAnnotation*>(ann->annotation);
+            if (fnAnn->isSpecialized()) {
+                return false;
+            }
+        }
+        // every parameter we shift across, and every parameter past the landing slot, must have a default
+        for (int ai = p; ai != blockParam; ++ai) {
+            if (!pFn->arguments[ai]->init) {
+                return false;
+            }
+        }
+        for (int ai = blockParam + 1, ais = int(pFn->arguments.size()); ai != ais; ++ai) {
+            if (!pFn->arguments[ai]->init) {
+                return false;
+            }
+        }
+        // types[0..p-1] match positionally, types[p] (the piped argument) matches params[blockParam]
+        auto paramAt = [&](int ti) -> int { return ti < p ? ti : blockParam; };
+        if (inferAuto) {
+            AliasMap aliases;
+            program->updateAliasMapCallback = [&](const TypeDeclPtr &argType, const TypeDeclPtr &passType) {
+                OptionsMap options;
+                TypeDecl::updateAliasMap(argType, passType, aliases, options);
+            };
+            for (;;) {
+                bool anyFailed = false;
+                auto totalAliases = aliases.size();
+                for (int ai = 0, ais = int(types.size()); ai != ais; ++ai) {
+                    auto argType = pFn->arguments[paramAt(ai)]->type;
+                    auto passType = types[ai];
+                    if (argType->isAlias()) {
+                        argType = inferPartialAliases(argType, passType, pFn, &aliases);
+                    }
+                    OptionsMap options;
+                    if (!isMatchingArgument(pFn, argType, passType, inferAuto, true, &aliases, &options)) {
+                        anyFailed = true;
+                        continue;
+                    }
+                    TypeDecl::updateAliasMap(argType, passType, aliases, options);
+                }
+                if (!anyFailed) {
+                    break;
+                }
+                if (totalAliases == aliases.size()) {
+                    program->updateAliasMapCallback = nullptr;
+                    return false;
+                }
+            }
+            program->updateAliasMapCallback = nullptr;
+        } else {
+            for (int ai = 0, ais = int(types.size()); ai != ais; ++ai) {
+                if (!isMatchingArgument(pFn, pFn->arguments[paramAt(ai)]->type, types[ai], inferAuto, true)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    bool InferTypes::findPipedLanding(Function *pFn, const vector<TypeDeclPtr> &types, bool inferAuto, int &blockParam, int &padCount) const {
+        int p = int(types.size()) - 1;
+        if (p < 0 || int(pFn->arguments.size()) <= p + 1) {
+            return false; // need at least one parameter past the piped position
+        }
+        // smallest landing slot wins; blockParam==p is the positional shape which already failed normal matching
+        for (int k = p + 1, ks = int(pFn->arguments.size()); k != ks; ++k) {
+            if (!pFn->arguments[k - 1]->init) {
+                return false; // can't shift across a parameter without a default
+            }
+            if (isFunctionCompatiblePipedAt(pFn, types, k, inferAuto)) {
+                int pads = 0;
+                for (int ai = p; ai != k; ++ai) {
+                    auto bt = pFn->arguments[ai]->type->baseType;
+                    if (bt != Type::fakeContext && bt != Type::fakeLineInfo) {
+                        ++pads; // fake args are invisible at the call site - they don't count as padding
+                    }
+                }
+                blockParam = k;
+                padCount = pads;
+                return true;
+            }
+        }
+        return false;
+    }
+    void InferTypes::findMatchingPipedFunctionsAndGenerics(MatchingFunctions &resultFunctions, MatchingFunctions &resultGenerics, const string &name, const vector<TypeDeclPtr> &types, bool visCheck, das_hash_map<Function *, pair<int, int>> &landing) const {
+        string moduleName, funcName;
+        splitTypeName(name, moduleName, funcName);
+        auto inWhichModule = getSearchModule(moduleName);
+        auto hFuncName = hash64z(funcName.c_str());
+        // note: pFn->lookup cache is keyed by positional compatibility - piped matching bypasses it
+        program->library.foreach ([&](Module *mod) -> bool {
+                { // functions
+                    auto itFnList = mod->functionsByName.find(hFuncName);
+                    if ( itFnList ) {
+                        const bool modVis = visCheck ? isVisibleFunc(inWhichModule, mod) : true;
+                        const bool modVisFromThis = thisModule->isVisibleDirectly(mod);
+                        auto & goodFunctions = itFnList->second;
+                        for ( auto & pFn : goodFunctions ) {
+                            if ( pFn->jitOnly && !jitEnabled() ) continue;
+                            if ( pFn->isTemplate ) continue;
+                            const bool funcVis = !visCheck ? true
+                                              : !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
+                                if ( !pFn->fromGeneric || modVisFromThis ) {
+                                    if ( !visCheck || canCallPrivate(pFn,inWhichModule,thisModule) ) {
+                                        int blockParam = -1, padCount = 0;
+                                        if ( findPipedLanding(pFn, types, false, blockParam, padCount) ) {
+                                            resultFunctions.push_back(pFn);
+                                            landing[pFn] = make_pair(blockParam, padCount);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                { // generics
+                    auto itFnList = mod->genericsByName.find(hFuncName);
+                    if ( itFnList ) {
+                        const bool modVis = visCheck ? isVisibleFunc(inWhichModule, mod) : true;
+                        auto & goodFunctions = itFnList->second;
+                        for ( auto & pFn : goodFunctions ) {
+                            if ( pFn->isTemplate ) continue;
+                            const bool funcVis = !visCheck ? true
+                                              : !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
+                                if ( !visCheck || canCallPrivate(pFn,inWhichModule,thisModule) ) {
+                                    int blockParam = -1, padCount = 0;
+                                    if ( findPipedLanding(pFn, types, true, blockParam, padCount) ) {
+                                        resultGenerics.push_back(pFn);
+                                        landing[pFn] = make_pair(blockParam, padCount);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return true; }, moduleName);
+    }
+    bool InferTypes::tryPipedCallPadding(ExprLooksLikeCall *expr, vector<TypeDeclPtr> &types, MatchingFunctions &functions, MatchingFunctions &generics, bool visCheck) {
+        das_hash_map<Function *, pair<int, int>> landing;
+        MatchingFunctions pipedFns, pipedGens;
+        findMatchingPipedFunctionsAndGenerics(pipedFns, pipedGens, expr->name, types, visCheck, landing);
+        if (pipedFns.empty() && pipedGens.empty()) {
+            return false;
+        }
+        // least padding wins; functions win over generics at equal padding
+        auto minPad = [&](const MatchingFunctions &fns) -> int {
+            int best = -1;
+            for (auto fn : fns) {
+                auto pad = landing[fn].second;
+                if (best < 0 || pad < best) best = pad;
+            }
+            return best;
+        };
+        int bestFn = minPad(pipedFns);
+        int bestGen = minPad(pipedGens);
+        bool useGenerics = bestFn < 0 || (bestGen >= 0 && bestGen < bestFn);
+        auto & pool = useGenerics ? pipedGens : pipedFns;
+        int best = useGenerics ? bestGen : bestFn;
+        MatchingFunctions winners;
+        for (auto fn : pool) {
+            if (landing[fn].second == best) {
+                winners.push_back(fn);
+            }
+        }
+        if (winners.size() > 1) {
+            // aligned substitute distance over the slots the user actually filled (cf. computeSubstituteDistance)
+            int p = int(types.size()) - 1;
+            vector<pair<int, Function *>> fnm;
+            for (auto fn : winners) {
+                int dist = 0;
+                for (int ai = 0, ais = int(types.size()); ai != ais; ++ai) {
+                    const auto &funType = fn->arguments[ai < p ? ai : landing[fn].first]->type;
+                    if (!types[ai]->isSameType(*funType, RefMatters::no, ConstMatters::no,
+                                               TemporaryMatters::no, AllowSubstitute::no)) {
+                        dist += 100;
+                    }
+                    if (funType->constant != types[ai]->constant) {
+                        dist += 1;
+                    }
+                }
+                fnm.push_back(make_pair(dist, fn));
+            }
+            stable_sort(fnm.begin(), fnm.end(), [](const pair<int, Function *> &a, const pair<int, Function *> &b) { return a.first < b.first; });
+            if (fnm[0].first != fnm[1].first) {
+                winners.resize(1);
+                winners[0] = fnm[0].second;
+            }
+        }
+        if (winners.size() != 1) {
+            // ambiguous; expose non-generic candidates so the regular excess report lists them.
+            // ambiguous generics stay hidden - the generic machinery downstream assumes positional alignment
+            if (!useGenerics) {
+                functions = winners;
+            }
+            return false;
+        }
+        auto winner = winners.front();
+        int p = int(types.size()) - 1;
+        int k = landing[winner].first;
+        // resolve all padded defaults first - bail without mutating the call if one is not ready yet
+        vector<ExpressionPtr> padded;
+        for (int ai = p; ai != k; ++ai) {
+            auto newArg = winner->arguments[ai]->init->clone();
+            if (!newArg->type) {
+                // recursive resolve - same as the append-default path below
+                inInfer.push_back(winner);
+                newArg = newArg->visit(*this);
+                inInfer.pop_back();
+            }
+            if (!newArg->type) {
+                if (func) func->notInferred();
+                return false;
+            }
+            if (newArg->type->baseType == Type::fakeLineInfo) {
+                newArg->at = expr->at;
+            }
+            padded.push_back(newArg);
+        }
+        for (int ai = k - 1; ai >= p; --ai) {
+            expr->arguments.insert(expr->arguments.begin() + p, padded[ai - p]);
+            types.insert(types.begin() + p, padded[ai - p]->type);
+        }
+        if (useGenerics) {
+            generics.push_back(winner);
+        } else {
+            functions.push_back(winner);
+        }
+        return true;
+    }
     Function *InferTypes::findMethodFunction(Structure *st, const string &name) const {
         if (name.find("::") != string::npos) {
             return nullptr;
@@ -391,11 +632,16 @@ namespace das {
         program->library.foreach ([&](Module *mod) -> bool {
                 auto itFnList = mod->functionsByName.find(hFuncName);
                 if ( itFnList ) {
+                    // Hoist module-level visibility — pFn->module == mod for non-generic fns.
+                    const bool modVis = isVisibleFunc(inWhichModule, mod);
+                    const bool modVisFromThis = thisModule->isVisibleDirectly(mod);
                     auto & goodFunctions = itFnList->second;
                     for ( auto & pFn : goodFunctions ) {
                         if ( pFn->isTemplate ) continue;
-                        if ( isVisibleFunc(inWhichModule,getFunctionVisModule(pFn)) ) {
-                            if ( !pFn->fromGeneric || thisModule->isVisibleDirectly(mod) ) {
+                        const bool funcVis = !pFn->fromGeneric ? modVis
+                                          : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                        if ( funcVis ) {
+                            if ( !pFn->fromGeneric || modVisFromThis ) {
                                 if ( canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                     if ( isFunctionCompatible(pFn, types, arguments, false, inferBlock) ) {
                                         result.push_back(pFn);
@@ -428,12 +674,18 @@ namespace das {
         program->library.foreach ([&](Module *mod) -> bool {
                 auto itFnList = mod->functionsByName.find(hFuncName);
                 if ( itFnList ) {
+                    // Hoist module-level visibility — pFn->module == mod for non-generic fns.
+                    const bool modVis = visCheck ? isVisibleFunc(inWhichModule, mod) : true;
+                    const bool modVisFromThis = thisModule->isVisibleDirectly(mod);
                     auto & goodFunctions = itFnList->second;
                     for ( auto & pFn : goodFunctions ) {
                         if ( pFn->jitOnly && !jitEnabled() ) continue;
                         if ( pFn->isTemplate ) continue;
-                        if ( !visCheck || isVisibleFunc(inWhichModule,getFunctionVisModule(pFn) ) ) {
-                            if ( !pFn->fromGeneric || thisModule->isVisibleDirectly(mod) ) {
+                        const bool funcVis = !visCheck ? true
+                                          : !pFn->fromGeneric ? modVis
+                                          : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                        if ( funcVis ) {
+                            if ( !pFn->fromGeneric || modVisFromThis ) {
                                 if ( canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                     if ( !argHash ) {
                                         argHash = fragile_bit_set::key(getLookupHash(types));
@@ -468,11 +720,16 @@ namespace das {
                 {   // functions
                     auto itFnList = mod->functionsByName.find(hFuncName);
                     if ( itFnList ) {
+                        // Hoist module-level visibility — pFn->module == mod by construction.
+                        const bool modVis = isVisibleFunc(inWhichModule, mod);
+                        const bool modVisFromThis = thisModule->isVisibleDirectly(mod);
                         auto & goodFunctions = itFnList->second;
                         for ( auto & pFn : goodFunctions ) {
                             if ( pFn->isTemplate ) continue;
-                            if ( isVisibleFunc(inWhichModule,getFunctionVisModule(pFn)) ) {
-                                if ( !pFn->fromGeneric || thisModule->isVisibleDirectly(mod) ) {
+                            const bool funcVis = !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
+                                if ( !pFn->fromGeneric || modVisFromThis ) {
                                     if ( canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                         if ( isFunctionCompatible(pFn, types, arguments, false, inferBlock) ) {
                                             resultFunctions.push_back(pFn);
@@ -486,11 +743,14 @@ namespace das {
                 {   // generics
                     auto itFnList = mod->genericsByName.find(hFuncName);
                     if ( itFnList ) {
+                        const bool modVis = isVisibleFunc(inWhichModule, mod);
                         auto & goodFunctions = itFnList->second;
                         for ( auto & pFn : goodFunctions ) {
                             if ( pFn->jitOnly && !jitEnabled() ) continue;
                             if ( pFn->isTemplate ) continue;
-                            if ( isVisibleFunc(inWhichModule,getFunctionVisModule(pFn)) ) {
+                            const bool funcVis = !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
                                 if ( canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                     if ( isFunctionCompatible(pFn, types, arguments, true, true) ) {   // infer block here?
                                         resultGenerics.push_back(pFn);
@@ -512,12 +772,18 @@ namespace das {
                 { // functions
                     auto itFnList = mod->functionsByName.find(hFuncName);
                     if ( itFnList ) {
+                        // Hoist module-level visibility — pFn->module == mod by construction.
+                        const bool modVis = visCheck ? isVisibleFunc(inWhichModule, mod) : true;
+                        const bool modVisFromThis = thisModule->isVisibleDirectly(mod);
                         auto & goodFunctions = itFnList->second;
                         for ( auto & pFn : goodFunctions ) {
                             if ( pFn->jitOnly && !jitEnabled() ) continue;
                             if ( pFn->isTemplate ) continue;
-                            if ( !visCheck || isVisibleFunc(inWhichModule,getFunctionVisModule(pFn) ) ) {
-                                if ( !pFn->fromGeneric || thisModule->isVisibleDirectly(mod) ) {
+                            const bool funcVis = !visCheck ? true
+                                              : !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
+                                if ( !pFn->fromGeneric || modVisFromThis ) {
                                     if ( !visCheck || canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                         auto itLook = pFn->lookup.find_and_reserve(argHash);    // if found in lookup
                                         if ( *itLook ) {
@@ -541,10 +807,14 @@ namespace das {
                 { // generics
                     auto itFnList = mod->genericsByName.find(hFuncName);
                     if ( itFnList ) {
+                        const bool modVis = visCheck ? isVisibleFunc(inWhichModule, mod) : true;
                         auto & goodFunctions = itFnList->second;
                         for ( auto & pFn : goodFunctions ) {
                             if ( pFn->isTemplate ) continue;
-                            if ( !visCheck || isVisibleFunc(inWhichModule,getFunctionVisModule(pFn)) ) {
+                            const bool funcVis = !visCheck ? true
+                                              : !pFn->fromGeneric ? modVis
+                                              : isVisibleFunc(inWhichModule, pFn->getOrigin()->module);
+                            if ( funcVis ) {
                                 if ( !visCheck || canCallPrivate(pFn,inWhichModule,thisModule) ) {
                                     auto itLook = pFn->lookup.find_and_reserve(argHash);    // if found in lookup
                                     if ( *itLook ) {
@@ -605,20 +875,20 @@ namespace das {
             if (verbose) {
                 string candidates = program->describeCandidates(fnList);
                 error("both generated and custom '" + fnList.front()->name + "' functions exist for " + describeFunction(fnList.front()), candidates, "",
-                      at, CompilationError::function_not_found);
+                      at, CompilationError::ambiguous_function);
             } else {
                 error("both generated and custom '" + fnList.front()->name + "' functions exist", "", "",
-                      at, CompilationError::function_not_found);
+                      at, CompilationError::ambiguous_function);
             }
             return false;
         } else if (customCount > 1) {
             if (verbose) {
                 string candidates = program->describeCandidates(fnList);
                 error("too many custom '" + fnList.front()->name + "' functions exist for " + describeFunction(fnList.front()), candidates, "",
-                      at, CompilationError::function_not_found);
+                      at, CompilationError::ambiguous_function);
             } else {
                 error("too many custom '" + fnList.front()->name + "' functions exist", "", "",
-                      at, CompilationError::function_not_found);
+                      at, CompilationError::ambiguous_function);
             }
             return false;
         } else {
@@ -860,11 +1130,11 @@ namespace das {
         // 3. one with dim is more specialized, than one without
         //      if both have dim, one with actual value is more specialized, than the other one
         {
-            int d1 = t1->dim.size() ? t1->dim[0] : 0;
-            int d2 = t2->dim.size() ? t2->dim[0] : 0;
+            int d1 = t1->baseType==Type::tFixedArray ? t1->fixedDim : 0;
+            int d2 = t2->baseType==Type::tFixedArray ? t2->fixedDim : 0;
             if (d1 != d2) {
                 if (d1 && d2) {
-                    return d1 == -1 ? -1 : 1;
+                    return d1 == TypeDecl::dimAuto ? -1 : 1;
                 } else {
                     return d1 ? 1 : -1;
                 }
@@ -882,8 +1152,8 @@ namespace das {
         // 5. if both are typemacros, we need to pick the more specialized one
         if (t1->baseType == Type::typeMacro && t2->baseType == Type::typeMacro) {
             // the one with more arguments wins
-            size_t d1 = t1->dimExpr.size();
-            size_t d2 = t2->dimExpr.size();
+            size_t d1 = t1->typeMacroExpr.size();
+            size_t d2 = t2->typeMacroExpr.size();
             if (d1 != d2) {
                 return d1 < d2 ? -1 : 1;
             }
@@ -892,11 +1162,11 @@ namespace das {
             bool more = false;
             for (size_t d = 0; d != d1; ++d) {
                 TypeDeclPtr t1Arg = nullptr, t2Arg = nullptr;
-                if (t1->dimExpr[d]->rtti_isTypeDecl()) {
-                    t1Arg = static_cast<ExprTypeDecl*>(t1->dimExpr[d])->typeexpr;
+                if (t1->typeMacroExpr[d]->rtti_isTypeDecl()) {
+                    t1Arg = static_cast<ExprTypeDecl*>(t1->typeMacroExpr[d])->typeexpr;
                 }
-                if (t2->dimExpr[d]->rtti_isTypeDecl()) {
-                    t2Arg = static_cast<ExprTypeDecl*>(t2->dimExpr[d])->typeexpr;
+                if (t2->typeMacroExpr[d]->rtti_isTypeDecl()) {
+                    t2Arg = static_cast<ExprTypeDecl*>(t2->typeMacroExpr[d])->typeexpr;
                 }
                 if (t1Arg && t2Arg) {
                     // only if both are types, we can compare
@@ -925,7 +1195,7 @@ namespace das {
         //    DAS_ASSERT(t2->baseType==passType->baseType && "how did it match otherwise?");
 
         // if its an array or a pointer, we compare specialization of subtype
-        if (t1->baseType == Type::tPointer || t1->baseType == Type::tArray || t1->baseType == Type::tIterator) {
+        if (t1->baseType == Type::tPointer || t1->baseType == Type::tArray || t1->baseType == Type::tIterator || t1->baseType == Type::tFixedArray) {
             return moreSpecialized(t1->firstType, t2->firstType, passType->firstType);
             // if its a table, we compare both subtypes
         } else if (t1->baseType == Type::tTable) {
@@ -1061,7 +1331,7 @@ namespace das {
                 return false;
             }
             if(ar->type->baseType==Type::tVoid) {
-                error("void type is not allowed as argument", "", "", ar->at);
+                error("void type is not allowed as argument", "", "", ar->at, CompilationError::invalid_argument_type);
                 return false;
             }
             DAS_ASSERT(!ar->type->isExprType() && "if this happens, we are calling infer function call without checking for '[expr]'. do that from where we call up the stack.");
@@ -1083,10 +1353,46 @@ namespace das {
         int32_t *depth;
     };
 
+    bool InferTypes::trySeedTupleShorthand(ExprLooksLikeCall *expr, bool visCheck) {
+        vector<size_t> shorthandIndices;
+        for (size_t ai = 0, ais = expr->arguments.size(); ai != ais; ++ai) {
+            auto arg = expr->arguments[ai];
+            if (!arg || !arg->rtti_isMakeTuple() || !arg->type) continue;
+            auto mkt = static_cast<ExprMakeTuple*>(arg);
+            if (mkt->shorthandRecordNames.empty() || mkt->recordType) continue;
+            if (mkt->type->baseType != Type::tTuple) continue;
+            if (mkt->type->argTypes.size() != mkt->shorthandRecordNames.size()) continue;
+            if (!mkt->type->argNames.empty()) continue;
+            shorthandIndices.push_back(ai);
+        }
+        if (shorthandIndices.empty()) return false;
+        vector<TypeDeclPtr> hypTypes;
+        hypTypes.reserve(expr->arguments.size());
+        for (auto arg : expr->arguments) hypTypes.push_back(arg ? arg->type : nullptr);
+        for (size_t idx : shorthandIndices) {
+            auto mkt = static_cast<ExprMakeTuple*>(expr->arguments[idx]);
+            auto hyp = new TypeDecl(*mkt->type);
+            hyp->argNames = mkt->shorthandRecordNames;
+            hypTypes[idx] = hyp;
+        }
+        MatchingFunctions hypFns, hypGens;
+        findMatchingFunctionsAndGenerics(hypFns, hypGens, expr->name, hypTypes, true, visCheck);
+        applyLSP(hypTypes, hypFns);
+        if (hypFns.size() + hypGens.size() != 1) return false;
+        for (size_t idx : shorthandIndices) {
+            auto mkt = static_cast<ExprMakeTuple*>(expr->arguments[idx]);
+            mkt->recordType = new TypeDecl(*mkt->type);
+            mkt->recordType->argNames = mkt->shorthandRecordNames;
+            mkt->recordType->ref = false;
+            mkt->recordType->constant = false;
+        }
+        return true;
+    }
+
     FunctionPtr InferTypes::inferFunctionCall(ExprLooksLikeCall *expr, InferCallError cerr, Function *lookupFunction, bool failOnMissingCtor, bool visCheck) {
         if ( inferDepth > 1 ) {
             error("infer expression depth exceeded maximum allowed", "", "",
-                expr->at, CompilationError::too_many_infer_passes);
+                expr->at, CompilationError::exceeds_expression_recursion);
             return nullptr;
         }
         InferDepthGuard guard(&inferDepth);
@@ -1100,23 +1406,33 @@ namespace das {
         if (!lookupFunction) {
             findMatchingFunctionsAndGenerics(functions, generics, expr->name, types, true, visCheck);
             applyLSP(types, functions);
+            if (functions.empty() && generics.empty() && trySeedTupleShorthand(expr, visCheck)) {
+                reportAstChanged();
+                if (func) func->notInferred();
+                return nullptr;
+            }
+            // note: no isMakeBlock recheck here - the parser sets the flag for any piped $ / @ / @@ literal,
+            // and @ / @@ are already lowered past ExprMakeBlock by the time the call infers
+            if (functions.empty() && generics.empty() && expr->pipedCallArgument && !expr->arguments.empty()) {
+                tryPipedCallPadding(expr, types, functions, generics, visCheck);
+            }
         } else {
             functions.push_back(lookupFunction);
         }
         if (functions.size() == 1) {
             auto funcC = functions.back();
             if ( inArgumentInit && funcC==func ) {
-                error("recursive call in argument initializer is not allowed", "", "", expr->at);
+                error("recursive call in argument initializer is not allowed", "", "", expr->at, CompilationError::recursion_argument);
                 return nullptr;
             }
             if (funcC->result->baseType == Type::autoinfer) {
                 if ( cerr != InferCallError::tryOperator ) {
-                    error("cannot infer type for function call '" + expr->name + "' with 'auto' return type", "", "", expr->at, CompilationError::invalid_type);
+                    error("cannot infer type for function call '" + expr->name + "' with 'auto' return type", "", "", expr->at, CompilationError::invalid_function_result);
                     return nullptr;
                 }
             }
             if ( find(inInfer.begin(), inInfer.end(), funcC) != inInfer.end() ) {
-                error("recursive call in function is not allowed", "", "", expr->at);
+                error("recursive call in function is not allowed", "", "", expr->at, CompilationError::recursion_function);
                 return nullptr;
             }
             if (funcC->firstArgReturnType) {
@@ -1135,7 +1451,7 @@ namespace das {
                             auto block = static_cast<ExprBlock*>(mkBlock->block);
                             auto retT = TypeDecl::inferGenericType(mkBlock->type, funcC->arguments[iF]->type, true, true, nullptr);
                             if ( !retT ) {
-                                error("default arguments don't match the function signature of '" + funcC->name + "'", "", "", expr->at, CompilationError::invalid_type);
+                                error("default arguments don't match the function signature of '" + funcC->name + "'", "", "", expr->at, CompilationError::mismatching_function_argument);
                                 return nullptr;
                             }
                             TypeDecl::applyAutoContracts(mkBlock->type, funcC->arguments[iF]->type);
@@ -1150,7 +1466,7 @@ namespace das {
                         if (arg->rtti_isMakeStruct()) { // its always MakeStruct
                             auto mkStruct = static_cast<ExprMakeStruct*>(arg);
                             if (mkStruct->structs.size()) {
-                                error("internal compiler error: array<auto> type not under default<array<auto>> or default<table<auto;auto>>", "", "", expr->at);
+                                error("internal compiler error: array<auto> type not under default<array<auto>> or default<table<auto;auto>>", "", "", expr->at, CompilationError::internal_array_type);
                                 return nullptr;
                             }
                             auto retT = TypeDecl::inferGenericType(mkStruct->type, funcC->arguments[iF]->type, true, true, nullptr);
@@ -1159,7 +1475,7 @@ namespace das {
                             mkStruct->makeType = retT;
                             reportAstChanged();
                         } else {
-                            error("internal compiler error: unknown array<auto> type not under make strcut", "", "", expr->at);
+                            error("internal compiler error: unknown array<auto> type not under make struct", "", "", expr->at, CompilationError::internal_array_type);
                             return nullptr;
                         }
                     }
@@ -1209,7 +1525,7 @@ namespace das {
                            << (instFn->module->name.empty() ? "this module" : ("'" + instFn->module->name + "'"))
                            << "\n";
                     }
-                    error("internal compiler error: multiple instances of '" + genName + "'", ss.str(), "", expr->at);
+                    error("internal compiler error: multiple instances of '" + genName + "'", ss.str(), "", expr->at, CompilationError::internal_function);
                 } else if (instancedFunctions.size() == 1) {
                     expr->name = callCloneName(genName);
                     reportAstChanged();
@@ -1302,7 +1618,7 @@ namespace das {
                             }
                             error("unknown type of argument " + clone->arguments[ai]->name + "; can't instance " + describeFunction(oneGeneric), "",
                                   "provide argument type explicitly",
-                                  expr->at, CompilationError::invalid_type);
+                                  expr->at, CompilationError::lookup_argument_type);
                             return nullptr;
                         }
                     }
@@ -1349,7 +1665,7 @@ namespace das {
                         if (exf->fromGeneric != clone->fromGeneric) { // TODO: getOrigin??
                             error("can't instance generic " + describeFunction(clone),
                                   +"\ttrying to instance from module " + clone->fromGeneric->module->name + "\n" + "\texisting instance from module " + exf->fromGeneric->module->name, "",
-                                  expr->at, CompilationError::function_already_declared);
+                                  expr->at, CompilationError::already_declared_function);
                             return nullptr;
                         }
                     } else {
@@ -1360,7 +1676,7 @@ namespace das {
                                 string err;
                                 if (!ann->generic_apply(clone, *(program->thisModuleGroup), pA->arguments, err)) {
                                     error("Macro [" + pA->annotation->name + "] failed to generic_apply to a function " + clone->name + "\n",
-                                          err, "", clone->at, CompilationError::invalid_annotation);
+                                          err, "", clone->at, CompilationError::invalid_annotation_macro);
                                     return nullptr;
                                 }
                             }
@@ -1389,33 +1705,39 @@ namespace das {
                             bool isPrivate = aliasT->structType->privateStructure;
                             if (isPrivate && aliasT->structType->module != thisModule) {
                                 error("can't access private structure " + aliasT->structType->name, "", "",
-                                      expr->at, CompilationError::function_not_found);
+                                      expr->at, CompilationError::cant_access_private_structure);
                             } else { // if ( !tryMakeStructureCtor (aliasT->structType, true, true) ) {
                                 if (failOnMissingCtor) {
                                     error("default constructor " + aliasT->structType->name + " is not visible directly",
-                                          "try default<" + expr->name + "> instead", "", expr->at, CompilationError::function_not_found);
+                                          "try default<" + expr->name + "> instead", "", expr->at, CompilationError::lookup_function);
                                 }
                             }
                         } else {
                             error("can only generate default structure constructor without arguments",
-                                  "", "", expr->at, CompilationError::invalid_argument_count);
+                                  "", "", expr->at, CompilationError::invalid_function_argument_count);
                         }
                     } else {
+                        const char * missingMsg = expr->pipedCallArgument
+                            ? "no matching functions or generics (the last argument is a piped block; no overload accepts it even after padding defaults): "
+                            : "no matching functions or generics: ";
                         if (cerr == InferCallError::operatorOp2) {
                             if (!reportOp2Errors(expr)) {
-                                reportMissing(expr, types, "no matching functions or generics: ", true);
+                                reportMissing(expr, types, missingMsg, true);
                             }
                         } else if (cerr != InferCallError::tryOperator) {
-                            reportMissing(expr, types, "no matching functions or generics: ", true);
+                            reportMissing(expr, types, missingMsg, true);
                         }
                     }
                 } else {
+                    const char * missingMsg = expr->pipedCallArgument
+                        ? "no matching functions or generics (the last argument is a piped block; no overload accepts it even after padding defaults): "
+                        : "no matching functions or generics: ";
                     if (cerr == InferCallError::operatorOp2) {
                         if (!reportOp2Errors(expr)) {
-                            reportMissing(expr, types, "no matching functions or generics: ", true);
+                            reportMissing(expr, types, missingMsg, true);
                         }
                     } else if (cerr != InferCallError::tryOperator) {
-                        reportMissing(expr, types, "no matching functions or generics: ", true);
+                        reportMissing(expr, types, missingMsg, true);
                     }
                 }
             }

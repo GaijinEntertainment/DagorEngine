@@ -16,6 +16,7 @@ namespace das {
         bool unescape = false;
         bool embed = false;
         bool optional = false; // if true, we do not write zero values, only non-zero ones
+        bool inTableKey = false; // vec/range emit as array form here to fit inside the outer "..." quote
         vector<bool> ignoreNextFields;
         vector<bool> anyStructFields;
     // data structures
@@ -138,25 +139,33 @@ namespace das {
         virtual void afterVariant ( char *, TypeInfo * ) override {
             ss << "}";
         }
-        virtual void beforeArrayData ( char *, uint32_t, uint32_t, TypeInfo * ) override {
+        virtual void beforeArrayData ( char *, uint32_t, uint64_t, TypeInfo * ) override {
             ss << "[";
         }
-        virtual void afterArrayData ( char *, uint32_t, uint32_t, TypeInfo * ) override {
+        virtual void afterArrayData ( char *, uint32_t, uint64_t, TypeInfo * ) override {
             ss << "]";
         }
-        virtual void afterArrayElement ( char *, TypeInfo *, char *, uint32_t, bool last ) override {
+        virtual void afterArrayElement ( char *, TypeInfo *, char *, uint64_t, bool last ) override {
             if ( !last ) ss << ",";
         }
         virtual void beforeTable ( Table *, TypeInfo * ) override {
             ss << "{";
         }
-        virtual void beforeTableKey ( Table *, TypeInfo *, char *, TypeInfo * ki, uint32_t, bool ) override {
-            if ( ki->type!=Type::tString ) ss << "\"";
+        virtual void beforeTableKey ( Table *, TypeInfo *, char *, TypeInfo * ki, uint64_t, bool ) override {
+            if ( ki->type!=Type::tString ) {
+                ss << "\"";
+                inTableKey = true;
+            }
         }
-        virtual void afterTableKey ( Table *, TypeInfo *, char *, TypeInfo * ki, uint32_t, bool ) override {
-            if ( ki->type!=Type::tString ) ss << "\":"; else ss << ":";
+        virtual void afterTableKey ( Table *, TypeInfo *, char *, TypeInfo * ki, uint64_t, bool ) override {
+            if ( ki->type!=Type::tString ) {
+                ss << "\":";
+                inTableKey = false;
+            } else {
+                ss << ":";
+            }
         }
-        virtual void afterTableValue ( Table *, TypeInfo *, char *, TypeInfo *, uint32_t, bool last ) override {
+        virtual void afterTableValue ( Table *, TypeInfo *, char *, TypeInfo *, uint64_t, bool last ) override {
             if ( !last ) ss << ",";
         }
         virtual void afterTable ( Table *, TypeInfo * ) override {
@@ -234,31 +243,40 @@ namespace das {
             ss << int64_t(value);
         }
         virtual void Int2 ( int2 & value ) override {
-            ss << "[" << value.x << "," << value.y << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << "}";
         }
         virtual void Int3 ( int3 & value ) override {
-            ss << "[" << value.x << "," << value.y << "," << value.z << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "," << value.z << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << ",\"z\":" << value.z << "}";
         }
         virtual void Int4 ( int4 & value ) override {
-            ss << "[" << value.x << "," << value.y << "," << value.z << "," << value.w << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "," << value.z << "," << value.w << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << ",\"z\":" << value.z << ",\"w\":" << value.w << "}";
         }
         virtual void UInt2 ( uint2 & value ) override {
-            ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "]";
+            if ( inTableKey ) ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "]";
+            else ss << "{\"x\":" << int64_t(value.x) << ",\"y\":" << int64_t(value.y) << "}";
         }
         virtual void UInt3 ( uint3 & value ) override {
-            ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "," << int64_t(value.z) << "]";
+            if ( inTableKey ) ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "," << int64_t(value.z) << "]";
+            else ss << "{\"x\":" << int64_t(value.x) << ",\"y\":" << int64_t(value.y) << ",\"z\":" << int64_t(value.z) << "}";
         }
         virtual void UInt4 ( uint4 & value ) override {
-            ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "," << int64_t(value.z) << "," << int64_t(value.w) << "]";
+            if ( inTableKey ) ss << "[" << int64_t(value.x) << "," << int64_t(value.y) << "," << int64_t(value.z) << "," << int64_t(value.w) << "]";
+            else ss << "{\"x\":" << int64_t(value.x) << ",\"y\":" << int64_t(value.y) << ",\"z\":" << int64_t(value.z) << ",\"w\":" << int64_t(value.w) << "}";
         }
         virtual void Float2 ( float2 & value ) override {
-            ss << "[" << value.x << "," << value.y << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << "}";
         }
         virtual void Float3 ( float3 & value ) override {
-            ss << "[" << value.x << "," << value.y << "," << value.z << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "," << value.z << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << ",\"z\":" << value.z << "}";
         }
         virtual void Float4 ( float4 & value ) override {
-            ss << "[" << value.x << "," << value.y << "," << value.z << "," << value.w << "]";
+            if ( inTableKey ) ss << "[" << value.x << "," << value.y << "," << value.z << "," << value.w << "]";
+            else ss << "{\"x\":" << value.x << ",\"y\":" << value.y << ",\"z\":" << value.z << ",\"w\":" << value.w << "}";
         }
         virtual void Range ( range & value ) override {
             ss << "[" << value.x << "," << value.y << "]";
@@ -290,18 +308,38 @@ namespace das {
                         return;
                     }
                 }
+                // No enumerator matches this value (e.g. an OR-combined flag enum like
+                // `OpenOnArrow | DefaultOpen`). Emit the number rather than nothing — emitting
+                // nothing produced invalid JSON ({"flags": ,...}) and dropped the whole object.
+                // The numeric form round-trips: scanEnum already accepts a bare integer.
+                ss << value;
             }
         }
         virtual void WalkEnumeration ( int32_t & value, EnumInfo * info ) override {
-            Enum(value,info);
+            // Same sign-extension trap as the 8/16-bit walkers: uint32-backed values > INT32_MAX
+            // come in as negative int32_t, promote to negative int64_t, and miss the lookup against
+            // the positive int64_t-stored field value.
+            int64_t v = (info && (info->flags & EnumInfo::flag_unsigned))
+                ? int64_t(uint32_t(value)) : int64_t(value);
+            Enum(v,info);
         }
         virtual void WalkEnumeration8  ( int8_t & value, EnumInfo * info ) override {
-            Enum(value,info);
+            // For uint8-backed enums the byte represents an unsigned value; promoting via int8_t
+            // sign-extends so the lookup against the int64_t-stored field value would miss.
+            int64_t v = (info && (info->flags & EnumInfo::flag_unsigned))
+                ? int64_t(uint8_t(value)) : int64_t(value);
+            Enum(v,info);
         }
         virtual void WalkEnumeration16 ( int16_t & value, EnumInfo * info ) override {
-            Enum(value,info);
+            int64_t v = (info && (info->flags & EnumInfo::flag_unsigned))
+                ? int64_t(uint16_t(value)) : int64_t(value);
+            Enum(v,info);
         }
         virtual void WalkEnumeration64 ( int64_t & value, EnumInfo * info ) override {
+            // No promotion happens here — int64_t reads at its native width, so signedness can't
+            // wrap during the implicit conversion to Enum()'s int64_t parameter. The lookup against
+            // uint64_t-backed values with the top bit set will compare bit-for-bit equal because the
+            // stored value already round-tripped through int64_t at EnumValueInfo build time.
             Enum(value,info);
         }
 

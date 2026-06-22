@@ -236,6 +236,7 @@ void ShaderProgramDatabase::deleteShader(DeviceContext &ctx, ShaderID shader)
 void ShaderProgramDatabase::init(bool has_bindless, DeviceContext &ctx)
 {
   initShaders(ctx);
+  initStubComputeProg(ctx);
   initDebugProg(has_bindless, ctx);
   initRotateProg(has_bindless, ctx);
   afterDeviceReset();

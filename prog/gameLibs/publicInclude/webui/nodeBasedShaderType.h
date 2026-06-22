@@ -65,13 +65,3 @@ inline uint32_t get_shader_variant_count(NodeBasedShaderType shaderType)
     default: G_ASSERTF(false, "Wrong shader type!"); return 1;
   }
 }
-
-inline char const *get_shader_type_block_name(NodeBasedShaderType shaderType)
-{
-  switch (shaderType)
-  {
-    case NodeBasedShaderType::Fog: return "nbs_fog_block";
-    case NodeBasedShaderType::EnviCover: return "nbs_envi_cover_block";
-    default: G_ASSERTF(false, "Wrong shader type!"); return nullptr;
-  }
-}

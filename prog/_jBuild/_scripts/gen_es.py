@@ -144,6 +144,8 @@ if len(sys.argv) > 4 and (sys.argv[4] == 'CHECK'):
 
 if is_file_changed:
   # Use windows line ending if WSL linux detected
-  nl = '\r\n' if ('linux' in sys.platform and 'Microsoft' in open('/proc/sys/kernel/osrelease').read()) else None
+  nl = {'LF': '\n', 'CRLF': '\r\n', 'CR': '\r'}.get(
+    os.environ.get('ECS_CODEGEN_LINE_ENDING'),
+    '\r\n' if ('linux' in sys.platform and 'Microsoft' in open('/proc/sys/kernel/osrelease').read()) else None)
   with io.open(output_file_name, 'wt', encoding='utf-8', newline=nl) as f:
     f.write(unicode(resultCode, 'utf-8') if sys.version_info[0] == 2 else resultCode)

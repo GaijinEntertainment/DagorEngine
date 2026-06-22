@@ -111,6 +111,8 @@ public:
       case STG_RENDER_STATIC_TRANS: renderSceneTrans(); break;
 
       case STG_RENDER_SHADOWS: renderScene(1, RenderScene::RenderObject::ROF_CastShadows); break;
+
+      default: break;
     }
 
     if (inEditorGvId >= 0)

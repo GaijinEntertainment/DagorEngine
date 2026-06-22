@@ -39,6 +39,34 @@ static int (*debris_get_fx_type_by_name)(const char *name);
 static void play_riextra_destroy_effect(rendinst::riex_handle_t id, mat44f_cref tm, rendinst::ri_damage_effect_cb fxCB, bool bbScale,
   bool restorable = false, const Point3 *coll_point = nullptr);
 
+namespace rendinst::props
+{
+MulticastEvent<custom_props_load_cb_t> custom_props_load_cb;
+MulticastEvent<custom_props_clear_all_cb_t> custom_props_clear_all_cb;
+
+static volatile int next_custom_props_id = 0;
+static int get_next_custom_props_id() { return interlocked_increment(next_custom_props_id) - 1; }
+static CallbackToken reset_custom_props_id_on_clear_cb = custom_props_clear_all_cb.subscribe(+[](bool is_reload) {
+  if (!is_reload)
+    next_custom_props_id = 0;
+});
+
+int get_custom_props_id(int pool, int layer, bool is_extra)
+{
+  if (is_extra)
+  {
+    if (uint32_t(pool) >= uint32_t(rendinst::riExtra.size()))
+      return -1;
+    if (rendinst::riExtra[pool].customPropsId >= 0)
+      return rendinst::riExtra[pool].customPropsId;
+    layer = rendinst::riExtra[pool].riPoolRefLayer;
+    pool = rendinst::riExtra[pool].riPoolRef;
+  }
+  const RendInstGenData *rgl = rendinst::getRgLayer(layer);
+  return rgl && uint32_t(pool) < rgl->rtData->riCustomPropsId.size() ? rgl->rtData->riCustomPropsId[pool] : -1;
+}
+} // namespace rendinst::props
+
 static inline void prepareDestrExcl(RendInstGenData *rgl)
 {
   if (rendinst::gen::destrExcl.bm.getW() == 0)
@@ -1045,6 +1073,7 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
   riDestr.reserve(riResResv);
   riDestr.resize(riResCnt);
   riDebrisMap.resize(riResCnt);
+  riCustomPropsId.resize(riResCnt, -1);
   riDebris.reserve(32);
   destrNames.resize(riResCnt);
 
@@ -1237,6 +1266,9 @@ void RendInstGenData::RtData::initDebris(const DataBlock &ri_blk, int (*get_fx_t
           riDebris.push_back().props = &riDebrisMap[i];
         riDebrisMap[i].delayedPoolIdx = idx;
       }
+
+      riCustomPropsId[i] = rendinst::props::get_next_custom_props_id();
+      rendinst::props::custom_props_load_cb.fire(riCustomPropsId[i], riResName[i], objectDmgBlk, &ri_blk);
     }
   }
 
@@ -1463,16 +1495,40 @@ void RendInstGenData::RtData::addDebrisForRiExtraRange(const DataBlock &ri_blk, 
     riProperties.resize(riProperties.size() + add_ref);
     memset(riProperties.data() + (riProperties.size() - add_ref), 0, sizeof(rendinst::props::RendinstProperties) * add_ref);
     append_items(riDestr, add_ref);
+    riCustomPropsId.resize(riCustomPropsId.size() + add_ref, -1);
   }
 
   // mark riExtra with damageable model as destructible
   const DataBlock &riExBlkb = *ri_blk.getBlockByNameEx("riExtra");
   for (int i = res_idx; i < res_idx + count; i++)
   {
-    if (rendinst::riExtra[i].riPoolRef >= 0 && rendinst::riExtra[i].initialHP > 0)
-    {
-      int ref = rendinst::riExtra[i].riPoolRef;
+    const int ref = rendinst::riExtra[i].riPoolRef;
+    const bool isDestructible = ref >= 0 && rendinst::riExtra[i].initialHP > 0;
 
+    int &customPropsId =
+      ref >= 0 && uint32_t(ref) < riCustomPropsId.size() ? riCustomPropsId[ref] : rendinst::riExtra[i].customPropsId;
+    if (!isDestructible && customPropsId >= 0)
+    {
+      rendinst::riExtra[i].customPropsId = customPropsId;
+      continue;
+    }
+
+    const char *ri_res_name = rendinst::riExtraMap.getName(i);
+    const DataBlock *b = riExBlkb.getBlockByName(ri_res_name);
+    if (!b)
+    {
+      int nid = ri_blk.getNameId("dmg");
+      for (int j = 0; j < ri_blk.blockCount(); j++)
+        if (ri_blk.getBlock(j)->getBlockNameId() == nid)
+          if (strcmp(ri_res_name, ri_blk.getBlock(j)->getStr("name", "")) == 0)
+          {
+            b = ri_blk.getBlock(j);
+            break;
+          }
+    }
+
+    if (isDestructible)
+    {
       if (riDestr[ref].apexDestructible)
       {
         // NOTE: apex destructible buildings might be immortal if 1.apex disabled & 2.they don't have physObj
@@ -1487,19 +1543,6 @@ void RendInstGenData::RtData::addDebrisForRiExtraRange(const DataBlock &ri_blk, 
       }
 
       const DataBlock *defaultDmgBlk = ri_blk.getBlockByNameEx("default_building");
-      const char *ri_res_name = rendinst::riExtraMap.getName(i);
-      const DataBlock *b = riExBlkb.getBlockByName(ri_res_name);
-      if (!b)
-      {
-        int nid = ri_blk.getNameId("dmg");
-        for (int j = 0; j < ri_blk.blockCount(); j++)
-          if (ri_blk.getBlock(j)->getBlockNameId() == nid)
-            if (strcmp(ri_res_name, ri_blk.getBlock(j)->getStr("name", "")) == 0)
-            {
-              b = ri_blk.getBlock(j);
-              break;
-            }
-      }
       G_ASSERT(b);
       if (!b)
         continue;
@@ -1547,6 +1590,13 @@ void RendInstGenData::RtData::addDebrisForRiExtraRange(const DataBlock &ri_blk, 
         riDestr[ref].destructionImpulse);
 #endif
     }
+
+    if (customPropsId < 0)
+    {
+      customPropsId = rendinst::props::get_next_custom_props_id();
+      rendinst::props::custom_props_load_cb.fire(customPropsId, ri_res_name, b, &ri_blk);
+    }
+    rendinst::riExtra[i].customPropsId = customPropsId;
   }
 }
 

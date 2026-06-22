@@ -1,5 +1,5 @@
 options gen2
-expect 30101:2, 30108:4, 30109:2
+expect 30500:3, 30508, 30510, 30512:2, 30513
 
 require dastest/testing_boost public
 require daslib/lpipe

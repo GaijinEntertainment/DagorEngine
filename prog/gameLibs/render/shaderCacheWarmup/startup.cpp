@@ -30,8 +30,9 @@ static Tab<const char *> get_shaders_to_warmup(const char *pipeline_type, const 
     for (size_t i = 0; i < shaders->paramCount(); ++i)
     {
       const char *name = shaders->getParamName(i);
-      const bool skip = eastl::find_if(shaders_to_skip.begin(), shaders_to_skip.end(),
-                          [name](const char *s) { return strcmp(s, name) == 0; }) != shaders_to_skip.end();
+      const bool value = shaders->getBool(i);
+      const bool skip = !value || eastl::find_if(shaders_to_skip.begin(), shaders_to_skip.end(),
+                                    [name](const char *s) { return strcmp(s, name) == 0; }) != shaders_to_skip.end();
       if (skip)
       {
         debug("shader warmup: skipping %s (%s) due to unsupported HW feature", name, pipeline_type);

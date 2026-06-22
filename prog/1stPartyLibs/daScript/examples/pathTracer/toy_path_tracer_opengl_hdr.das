@@ -92,9 +92,9 @@ def bloom_effect_copy {
     // copy
     let XY = xy * int2(BLOOM_SCALE)
     var orgb : float4
-    unroll <| $() {
+    unroll() $ {
         for (by in range(BLOOM_SCALE)) {
-            unroll <| $() {
+            unroll() $ {
                 for (bx in range(BLOOM_SCALE)) {
                     orgb = max(orgb, imageLoad(c_bloom_source, XY + int2(bx, by)))
                 }
@@ -111,7 +111,7 @@ def bloom_effect_v {
     let xy = int2(gl_GlobalInvocationID.xy)
     // blur v
     var n : float4[9]
-    unroll <| $() {
+    unroll() $ {
         for (i in range(9)) {
             n[i] = imageLoad(c_bloom_vtex, xy + int2(i - 4, 0))
         }
@@ -129,7 +129,7 @@ def bloom_effect_h {
     let xy = int2(gl_GlobalInvocationID.xy)
     // blur h
     var n : float4[9]
-    unroll <| $() {
+    unroll() $ {
         for (i in range(9)) {
             n[i] = imageLoad(c_bloom_htex, xy + int2(0, i - 4))
         }
@@ -196,7 +196,7 @@ def main {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer <| $() {
+    defer() {
         glfwTerminate()
     }
     glfwInitOpenGL(4, 3)
@@ -204,7 +204,7 @@ def main {
     if (window == null) {
         panic("can't create window")
     }
-    defer <| $() {
+    defer() {
         glfwDestroyWindow(window)
     }
     glfwSetWindowSize(window, TRACE_WIDTH, TRACE_HEIGHT)

@@ -1,4 +1,5 @@
 options gen2
+options persistent_heap
 options indenting = 4
 
 // Quick verification: stereo-linked samples + chorus
@@ -86,7 +87,9 @@ def main() {
                         }
                     }
                     var cv : ma_sf2_voice
-                    if (sf2_create_c_voice(*sf2, z.x, z.y, pzone, preset.global_zone, 60, 100, 0, cv)) {
+                    var atten_state = SF2VoiceAttenState()
+                    var cc_values : int[128]
+                    if (sf2_create_c_voice(*sf2, z.x, z.y, pzone, preset.global_zone, 60, 100, 0, cc_values, cv, atten_state)) {
                         print("  Voice stereo flag: {cv.stereo}\n")
                         print("  L sample range: {cv.sample_start}..{cv.sample_end}\n")
                         print("  R sample range: {cv.sample_start_r}..{cv.sample_end_r}\n")

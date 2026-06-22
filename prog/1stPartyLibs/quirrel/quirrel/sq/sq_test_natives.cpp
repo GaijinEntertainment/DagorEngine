@@ -29,6 +29,44 @@ static SQInteger nativevec_ctor(HSQUIRRELVM vm)
   return 0;
 }
 
+static SQInteger test_raw_cmp(HSQUIRRELVM vm)
+{
+  sq_push(vm, 2);
+  sq_push(vm, 3);
+  SQInteger r = sq_cmp(vm);
+  sq_pop(vm, 2);
+  sq_reseterror(vm); // ObjCmp raises a compare error we intentionally ignore here
+  sq_pushinteger(vm, r);
+  return 1;
+}
+
+static SQInteger test_reserve_stack(HSQUIRRELVM vm)
+{
+  SQInteger n = 4096;
+  if (sq_gettop(vm) >= 2)
+    sq_getinteger(vm, 2, &n);
+  SQRESULT r = sq_reservestack(vm, n);
+  if (SQ_FAILED(r))
+    return r;
+  return 0;
+}
+
+static SQInteger test_ud_with_delegate(HSQUIRRELVM vm)
+{
+  sq_newuserdata(vm, 4);
+  sq_newtable(vm);
+  sq_pushstring(vm, "a", -1); sq_pushinteger(vm, 10); sq_newslot(vm, -3, SQFalse);
+  sq_pushstring(vm, "b", -1); sq_pushinteger(vm, 20); sq_newslot(vm, -3, SQFalse);
+  if (SQ_FAILED(sq_setdelegate(vm, -2))) // sets the table (top) as delegate of the userdata
+    return SQ_ERROR;
+  return 1; // userdata now on top
+}
+
+static SQInteger test_identity_i64(SQInteger x)
+{
+  return x;
+}
+
 } // namespace
 
 
@@ -63,5 +101,9 @@ void register_test_natives(SqModules *module_mgr)
 
   Sqrat::Table exports(vm);
   exports.Bind("NativeVec", cls);
+  exports.SquirrelFunc("raw_cmp", test_raw_cmp, 3, "...");
+  exports.SquirrelFunc("reserve_stack", test_reserve_stack, -1, ".n");
+  exports.SquirrelFunc("ud_with_delegate", test_ud_with_delegate, 1, ".");
+  exports.Func("identity_i64", test_identity_i64);
   module_mgr->addNativeModule("test.native", exports);
 }

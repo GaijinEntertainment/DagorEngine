@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module validate_code shared private
@@ -19,9 +17,7 @@ require daslib/contracts
 
 [macro_function]
 def check_recursive(at : LineInfo; var fun : Function?; var call_graph : array<Function?>; var visited : table<Function?>) {
-    if (fun.flags.builtIn) {
-        return
-    }
+    if (fun.flags.builtIn) return
     if (call_graph |> find_index(fun) >= 0) {
         let sb = build_string() $(writer) {
             writer |> write("recursive calls are not allowed")
@@ -52,12 +48,7 @@ def check_recursive(at : LineInfo; var fun : Function?) {
 
 [macro_function]
 def collect_call_tree(fun : Function?; var visited : table<Function?>) {
-    if (fun.flags.builtIn) {
-        return
-    }
-    if (visited |> key_exists(fun)) {
-        return
-    }
+    if (fun.flags.builtIn || visited |> key_exists(fun)) return
     visited |> insert(fun)
     unsafe(reinterpret<FunctionPtr> fun) |> get_use_functions() $(f) {
         collect_call_tree(f, visited)
@@ -98,9 +89,7 @@ class ValidateCompletionVisitor : AstVisitor {
         macro_error(compiling_program(), expr.at, "we can't tell if this `while` loop ever finishes")
     }
     def override preVisitExprCall(var expr : ExprCall?) : void {
-        if (expr.func.flags.builtIn) {
-            return
-        }
+        if (expr.func.flags.builtIn) return
         if (expr.func == thisFunc) {
             macro_error(compiling_program(), expr.at, "recursive calls are not allowed")
         } else {
@@ -175,8 +164,10 @@ class JIT_LLVM : AstSimulateMacro {
         }
     }
     def override simulate(prog : Program?; var ctx : Context?) : bool {
-        return true if (is_in_completion() || is_compiling_macros())
-        return true if (ctx.category.debug_context || ctx.category.macro_context || ctx.category.folding_context || ctx.category.debugger_tick || ctx.category.debugger_attached)
+        return true if (is_in_completion() || is_compiling_macros()
+                || ctx.category.debug_context || ctx.category.macro_context
+                || ctx.category.folding_context || ctx.category.debugger_tick
+                || ctx.category.debugger_attached)
         if (prog._options |> find_arg("shader_like") ?as tBool ?? false) {
             lint_module(prog, ctx)
             return true

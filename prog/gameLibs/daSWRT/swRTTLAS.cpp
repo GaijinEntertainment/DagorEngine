@@ -85,6 +85,10 @@ void RenderSWRT::build_tlas(Tab<bbox3f> &tlas_boxes, const dag::Vector<bbox3f> &
   if (do_debug)
     debug("built BVH TLAS tree depth %d in %dus, %d instances, %d nodes", maxDepth, profile_time_usec(reft), matrices.size(),
       tlas_boxes.size());
+  // BVH_MAX_TLAS_DEPTH (32) bounds the stackless GPU traversal, not findLastLeafInFrustum's 16-deep
+  // stack. A deeper-than-16 TLAS still renders correctly: that function just returns ~0u (drops the
+  // per-tile end limit -- a perf hit, not corruption; see daBVH review C5). So this is a tree-balance
+  // warning, not a hard stack-bound guarantee.
   G_ASSERTF(maxDepth <= BVH_MAX_TLAS_DEPTH, "%d tlas depth too big, we should rebuild tree with better balancing", maxDepth);
   G_VERIFY(root == 0);
 }

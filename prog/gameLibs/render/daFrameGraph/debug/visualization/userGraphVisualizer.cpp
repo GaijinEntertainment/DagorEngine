@@ -37,6 +37,8 @@ constexpr float NODE_ANCHORS_MARGIN = 5.f;
 constexpr float NODE_FOCUS_BORDER_WIDTH = 5.f;
 constexpr ImVec2 NODE_BORDER_PADDING = ImVec2{10.f, 15.f};
 
+constexpr ImVec2 RES_BLOCK_BORDER_PADDING = ImVec2{10.f, 10.f};
+
 constexpr float OBJ_X_BASE_MARGIN = 3.0f * NODE_MIN_X_SIZE;
 constexpr float OBJ_Y_BASE_MARGIN = 1.0f * NODE_MIN_Y_SIZE;
 
@@ -993,32 +995,193 @@ void Visualizer::processPopup()
   {
     static String label;
 
+    struct SubBlockHandler
+    {
+      ImVec2 &startPos;
+
+      SubBlockHandler(ImVec2 &start) : startPos(start)
+      {
+        ImGui::SetCursorScreenPos(startPos);
+        ImGui::BeginGroup();
+      }
+
+      ~SubBlockHandler()
+      {
+        ImGui::EndGroup();
+        startPos += ImVec2{ImGui::GetItemRectSize().x + RES_BLOCK_BORDER_PADDING.x, 0.f};
+      }
+    };
+
+#define SUBBLOCK_SCOPED auto sbh = SubBlockHandler(subBlockStart);
+
+
     const auto &frontDep = registryDependencies[popupDeps.front()];
+
     const auto resNameId = nameIdByResId(frontDep.resource);
+    const auto resName = getName(resNameId).data();
     const auto &resData = registry.resources[depData.renamingRepresentatives[resNameId]];
 
-    ImGui::TextUnformatted(getName(resNameId).data());
+    ImGui::BeginGroup();
     if (resData.createdResData)
     {
       const auto &createdData = *resData.createdResData;
-      ImGui::Text("type: %s ; clear flags: %s ; history: %c", res_type_name(createdData.type),
-        res_clear_flag_name(createdData.clearFlags), resData.history != History::No ? 'Y' : 'N');
+
+      ImGui::Text("%s %s", res_type_name(createdData.type), resName);
+
+      ImVec2 subBlockStart = ImGui::GetCursorScreenPos();
+
+      {
+        SUBBLOCK_SCOPED
+
+        if (auto tex2dDescr = eastl::get_if<Texture2dCreateInfo>(&createdData.creationInfo))
+        {
+          format_pretty(ImGui::GetWindowDrawList(), tex2dDescr->creationFlags & TEXFMT_MASK);
+          ImGui::Text("2D%s%s%s", tex2dDescr->creationFlags & TEXCF_RTARGET ? " - RT" : "",
+            tex2dDescr->creationFlags & TEXCF_UNORDERED ? " - UAV" : "",
+            tex2dDescr->creationFlags & TEXCF_VARIABLE_RATE ? " - VRS" : "");
+          {
+            IPoint2 res{-1, -1};
+            if (auto point2 = eastl::get_if<IPoint2>(&tex2dDescr->resolution))
+              res = *point2;
+            else if (auto autoRes2 = eastl::get_if<AutoResolutionRequest<2>>(&tex2dDescr->resolution))
+              res = autoRes2->get();
+            ImGui::Text("%dx%d", res.x, res.y);
+          }
+          {
+            ImGui::Text("mips: %d%s, flags:", tex2dDescr->mipLevels, tex2dDescr->mipLevels == 0 ? "(auto)" : "");
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, OPT_POPUP_POS_COLOR);
+            ImGui::TextUnformatted("[...]");
+            if (ImGui::IsItemHovered())
+              hoverState.tooltip.printf(0, texture_flags_descr(tex2dDescr->creationFlags));
+            ImGui::PopStyleColor();
+          }
+        }
+        else if (auto tex3dDescr = eastl::get_if<Texture3dCreateInfo>(&createdData.creationInfo))
+        {
+          format_pretty(ImGui::GetWindowDrawList(), tex3dDescr->creationFlags & TEXFMT_MASK);
+          ImGui::Text("3D%s%s%s", tex3dDescr->creationFlags & TEXCF_RTARGET ? " - RT" : "",
+            tex3dDescr->creationFlags & TEXCF_UNORDERED ? " - UAV" : "",
+            tex3dDescr->creationFlags & TEXCF_VARIABLE_RATE ? " - VRS" : "");
+          {
+            IPoint3 res{-1, -1, -1};
+            if (auto point3 = eastl::get_if<IPoint3>(&tex3dDescr->resolution))
+              res = *point3;
+            else if (auto autoRes3 = eastl::get_if<AutoResolutionRequest<3>>(&tex3dDescr->resolution))
+              res = autoRes3->get();
+            ImGui::Text("%dx%dx%d", res.x, res.y, res.z);
+          }
+          {
+            ImGui::Text("mips: %d%s, flags:", tex3dDescr->mipLevels, tex3dDescr->mipLevels == 0 ? "(auto)" : "");
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, OPT_POPUP_POS_COLOR);
+            ImGui::TextUnformatted("[...]");
+            if (ImGui::IsItemHovered())
+              hoverState.tooltip.printf(0, texture_flags_descr(tex3dDescr->creationFlags));
+            ImGui::PopStyleColor();
+          }
+        }
+        else if (auto bufferDescr = eastl::get_if<BufferCreateInfo>(&createdData.creationInfo))
+        {
+          ImGui::Text("Bind type: %s", buffer_bind_name(bufferDescr->flags));
+          ImGui::Text("%d byte x %d", bufferDescr->elementSize, bufferDescr->elementCount);
+          ImGui::Text("size: %d byte", bufferDescr->elementSize * bufferDescr->elementCount);
+          ImGui::Text("view: %u", bufferDescr->format);
+          ImGui::TextUnformatted("flags:");
+          ImGui::SameLine();
+          {
+            ImGui::PushStyleColor(ImGuiCol_Text, OPT_POPUP_POS_COLOR);
+            ImGui::TextUnformatted("[...]");
+            if (ImGui::IsItemHovered())
+              hoverState.tooltip.printf(0, buffer_flags_descr(bufferDescr->flags));
+            ImGui::PopStyleColor();
+          }
+        }
+        else if (auto blobDescr = eastl::get_if<BlobDescription>(&createdData.creationInfo))
+        {
+          ImGui::TextUnformatted("Not implemented yet");
+        }
+        else if (auto extResDescr = eastl::get_if<ExternalResourceProvider>(&createdData.creationInfo))
+        {
+          ImGui::TextUnformatted("External resource");
+        }
+        else if (auto drvDefDescr = eastl::get_if<DriverDeferredTexture>(&createdData.creationInfo))
+        {
+          ImGui::TextUnformatted("Backbuffer texture");
+        }
+        else
+        {
+          ImGui::TextUnformatted("No creation info");
+        }
+      }
+
+      if (createdData.resolution)
+      {
+        SUBBLOCK_SCOPED
+
+        auto autoResName = registry.knownNames.getName(createdData.resolution->id);
+        const auto &autoResData = registry.autoResTypes[createdData.resolution->id];
+
+        ImGui::Text("AutoRes: %s", autoResName);
+        if (auto vals = eastl::get_if<ResolutionValues<IPoint2>>(&autoResData.values))
+          ImGui::Text("static: %dx%d\n", vals->staticResolution.x, vals->staticResolution.y);
+        else if (auto vals = eastl::get_if<ResolutionValues<IPoint3>>(&autoResData.values))
+          ImGui::Text("static: %dx%dx%d\n", vals->staticResolution.x, vals->staticResolution.y, vals->staticResolution.z);
+        ImGui::Text("x%3f, cd:%3d\n", createdData.resolution->multiplier, autoResData.dynamicResolutionCountdown);
+      }
+
+      if (!eastl::holds_alternative<eastl::monostate>(createdData.clearValue))
+      {
+        SUBBLOCK_SCOPED
+        ImGui::Text("clear flags: %s", res_clear_flag_name(createdData.clearFlags));
+        ImGui::TextUnformatted("clear value:");
+        ImVec2 selectSize = ImGui::GetItemRectSize();
+        ImGui::SameLine();
+        if (eastl::holds_alternative<ResourceClearValue>(createdData.clearValue))
+        {
+          const auto &clearVal = eastl::get<ResourceClearValue>(createdData.clearValue);
+          ImGui::PushStyleColor(ImGuiCol_Text, OPT_POPUP_POS_COLOR);
+          ImGui::TextUnformatted("[...]");
+          if (ImGui::IsItemHovered())
+            hoverState.tooltip.printf(0, clear_value_descr(clearVal));
+          ImGui::PopStyleColor();
+        }
+        else
+        {
+          const auto clearResId = eastl::get<DynamicParameter>(createdData.clearValue).resource;
+          label.printf(0, "%s##%zu", getName(clearResId).data(), static_cast<uint32_t>(resNameId));
+          if (ImGui::Selectable(label, focusedResource.id == regResRepresent[clearResId], 0, selectSize))
+          {
+            resetFocusedNode();
+            setFocusedResource(regResRepresent[clearResId]);
+          }
+        }
+      }
     }
-    ImGui::Text("%s:", dependency_info_by_type(frontDep.type).name.data());
+    else
+    {
+      ImGui::TextUnformatted(resName);
+      ImGui::TextUnformatted("No created data");
+    }
+    ImGui::EndGroup();
+
+
+    const auto fromNodeId = frontDep.from;
+    const auto fromNodeName = getName(nameIdByNodeId(fromNodeId)).data();
+    if (ImGui::Button(fromNodeName))
+    {
+      resetFocusedResource();
+      setFocusedNode(fromNodeId);
+    }
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
     for (const auto depId : popupDeps)
     {
       const auto &dep = registryDependencies[depId];
       const bool inspectingThisDep = inspectedDependency.id == depId;
-      const auto fromNodeName = getName(nameIdByNodeId(dep.from)).data();
       const auto toNodeName = getName(nameIdByNodeId(dep.to)).data();
 
-      label.printf(0, "%s##%u", fromNodeName, static_cast<uint32_t>(depId));
-      if (ImGui::Button(label))
-      {
-        resetFocusedResource();
-        setFocusedNode(dep.from);
-      }
-      ImGui::SameLine();
       ImGui::TextUnformatted(" -> ");
       ImGui::SameLine();
       label.printf(0, "%s##%u", toNodeName, static_cast<uint32_t>(depId));
@@ -1043,6 +1206,7 @@ void Visualizer::processPopup()
         }
       }
     }
+    ImGui::EndGroup();
 
     ImGui::EndPopup();
   }

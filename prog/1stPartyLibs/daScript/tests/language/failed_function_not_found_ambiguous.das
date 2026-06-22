@@ -3,7 +3,7 @@
 // define functions with the same name and signature;
 // qualified calls (::testFoo, _helper_foo::testFoo) must work
 options gen2
-expect 30304    // function_not_found
+expect 30341    // function_not_found
 
 require _helper_foo
 

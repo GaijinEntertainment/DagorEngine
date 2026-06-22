@@ -7354,7 +7354,7 @@ void HmapLandPlugin::onAfterExport(unsigned target_code)
 
 void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
 {
-  const bool pointSelectMode = objEd.getSelectMode() == CM_SELECT_PT;
+  const int selectMode = objEd.getSelectMode();
 
   objEd.getUndoSystem()->begin();
   if (EditLayerProps::layerProps[lidx].type == EditLayerProps::ENT)
@@ -7370,11 +7370,18 @@ void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
       if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
         if (!o->isPoly() && o->getEditLayerIdx() == lidx)
         {
-          if (pointSelectMode)
+          if (selectMode == CM_SELECT_POINTS_ALL || selectMode == CM_SELECT_POINTS_SPLINE)
           {
             o->selectObject(false);
             for (int j = 0; j < o->points.size(); j++)
               o->points[j]->selectObject(sel);
+          }
+          else if (selectMode == CM_SELECT_POINTS_POLYGON)
+          {
+            o->selectObject(false);
+            if (!sel)
+              for (int j = 0; j < o->points.size(); j++)
+                o->points[j]->selectObject(false);
           }
           else
           {
@@ -7391,11 +7398,18 @@ void HmapLandPlugin::selectLayerObjects(int lidx, bool sel)
       if (SplineObject *o = RTTI_cast<SplineObject>(objEd.getObject(i)))
         if (o->isPoly() && o->getEditLayerIdx() == lidx)
         {
-          if (pointSelectMode)
+          if (selectMode == CM_SELECT_POINTS_ALL || selectMode == CM_SELECT_POINTS_POLYGON)
           {
             o->selectObject(false);
             for (int j = 0; j < o->points.size(); j++)
               o->points[j]->selectObject(sel);
+          }
+          else if (selectMode == CM_SELECT_POINTS_SPLINE)
+          {
+            o->selectObject(false);
+            if (!sel)
+              for (int j = 0; j < o->points.size(); j++)
+                o->points[j]->selectObject(false);
           }
           else
           {

@@ -239,6 +239,14 @@ public:
   static bool imageButtonWithRoundingOptions(ImGuiID id, ImTextureRef tex_ref, const ImVec2 &image_size, const ImVec2 &uv0,
     const ImVec2 &uv1, const ImVec4 &bg_col, const ImVec4 &tint_col, ImGuiButtonFlags flags, ImDrawFlags frame_draw_flags);
 
+  // This is ImGui::Button() with an image before the text. Both the image and the text are aligned to the left.
+  // (The same can almost be achieved by using ImGui::Image() with ImGui::Selectable(..., ImGuiSelectableFlags_SpanAllColumns) but
+  // unfortunately the highlight on that lacks padding.)
+  static bool imageButtonWithText(const char *label, ImTextureID texture_id, const ImVec2 &image_size,
+    const ImVec2 &size = ImVec2(0, 0), ImGuiButtonFlags flags = ImGuiButtonFlags_None);
+  static bool imageButtonWithText(const char *label, IconId icon_id, const ImVec2 &image_size, const ImVec2 &size = ImVec2(0, 0),
+    ImGuiButtonFlags flags = ImGuiButtonFlags_None);
+
   // Get the size of ImGui::Button.
   static ImVec2 getButtonSize(const char *label, bool hide_text_after_double_hash = false, const ImVec2 &size_arg = ImVec2(0, 0));
 

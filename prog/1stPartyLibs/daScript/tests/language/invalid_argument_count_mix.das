@@ -2,7 +2,7 @@
 // verifies compiler rejects calling assert and debug with
 // too few or too many arguments
 options gen2
-expect 30107:4    // invalid_argument_count
+expect 30116:2, 30141:2    // invalid_argument_count
 
 def test {
     // assert 1 or 2 arguments

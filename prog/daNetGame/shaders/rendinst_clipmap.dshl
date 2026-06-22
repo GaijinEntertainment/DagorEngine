@@ -16,6 +16,7 @@ include "heightmap_tessellation_inc.dshl"
 include "tessellation_intervals_inc.dshl"
 include "clipmap_common_inc.dshl"
 include "invalidate_hmap_displacement_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 include_optional "burnt_ground/shaders/burnt_ground_landmesh_inc.dshl"
 
 define_macro_if_not_defined INIT_BURNT_GROUND(need_perlin_noise)
@@ -258,6 +259,7 @@ shader rendinst_clipmap, rendinst_landclass
     INIT_BURNT_GROUND(false)
   }
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl {
     ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_grassify || is_triangle_size_debug)
@@ -390,7 +392,7 @@ shader rendinst_clipmap, rendinst_landclass
       #endif
 
       #if NEED_NORMAL
-        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       #else
         float3 localNormal = 1;
       #endif
@@ -456,7 +458,7 @@ shader rendinst_clipmap, rendinst_landclass
       //heightmap functions use UnpackedGbuffer as their interface, so the struct is needed, even if we don't write gbuffer
       PACK_UNPACK_GBUFFER()
     }
-    USE_CLIPMAP_NORMAL()
+    USE_CLIPMAP_NORMAL(false)
     USE_HEIGHTMAP_COMMON_BASE(ps)
     INIT_HEIGHTMAP_GATHERED_SAMPLING(ps)
     USE_HEIGHTMAP_GATHERED_SAMPLING(ps)

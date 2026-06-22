@@ -1,10 +1,71 @@
 include "node_based_common.dshl"
 
+texture volfog_occlusion always_referenced;
+texture volfog_mask_tex always_referenced;
+float4 world_to_volfog_mask always_referenced;
+float4 froxel_fog_fading_params always_referenced;
+float daskies_time always_referenced;
+float4 volfog_shadow_res always_referenced;
+float volfog_shadow_accumulation_factor always_referenced;
+float volfog_prev_range_ratio always_referenced;
+texture prev_volfog_shadow always_referenced;
+texture volfog_shadow_occlusion always_referenced;
+float4 volfog_froxel_volume_res always_referenced;
+float4 inv_volfog_froxel_volume_res always_referenced;
+float4 volfog_froxel_range_params always_referenced;
+texture volfog_poisson_samples always_referenced;
+float4 jitter_ray_offset always_referenced;
+float4 vf_wind_dir always_referenced;
+texture downsampled_far_depth_tex always_referenced;
+sampler downsampled_far_depth_tex_samplerstate always_referenced;
+texture downsampled_checkerboard_depth_tex always_referenced;
+texture prev_downsampled_far_depth_tex always_referenced;
+texture downsampled_close_depth_tex always_referenced;
+texture prev_distant_fog_raymarch_start_weights always_referenced;
+sampler prev_distant_fog_raymarch_start_weights_samplerstate always_referenced;
+float4 distant_fog_raymarch_resolution always_referenced;
+float4 distant_fog_raymarch_dyn_scales always_referenced;
+float4 distant_fog_reconstruction_resolution always_referenced;
+float4 distant_fog_reconstruction_dyn_scales always_referenced;
+float4 distant_fog_raymarch_params_0 always_referenced;
+float4 distant_fog_raymarch_params_1 always_referenced;
+float4 distant_fog_raymarch_params_2 always_referenced;
+float volfog_media_fog_input_mul always_referenced;
+int fog_raymarch_frame_id always_referenced;
+float volfog_blended_slice_start_depth always_referenced;
+float4 prev_globtm_psf_0 always_referenced;
+float4 prev_globtm_psf_1 always_referenced;
+float4 prev_globtm_psf_2 always_referenced;
+float4 prev_globtm_psf_3 always_referenced;
+float4 sun_color_0 always_referenced;
+float4 enviSPH0 always_referenced;
+float4 enviSPH1 always_referenced;
+float4 enviSPH2 always_referenced;
+float4 nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m always_referenced;
+float4 skies_primary_sun_light_dir always_referenced;
+float4 clouds_origin_offset always_referenced;
+texture clouds_shadows_2d always_referenced;
+sampler clouds_shadows_2d_samplerstate always_referenced;
+float4 clouds_hole_pos always_referenced;
+float4 distant_fog_local_view_z always_referenced;
+float4 static_shadow_matrix_0_0 always_referenced;
+float4 static_shadow_matrix_1_0 always_referenced;
+float4 static_shadow_matrix_2_0 always_referenced;
+float4 static_shadow_matrix_3_0 always_referenced;
+float4 static_shadow_matrix_0_1 always_referenced;
+float4 static_shadow_matrix_1_1 always_referenced;
+float4 static_shadow_matrix_2_1 always_referenced;
+float4 static_shadow_matrix_3_1 always_referenced;
+float4 static_shadow_cascade_0_scale_ofs_z_tor always_referenced;
+float4 static_shadow_cascade_1_scale_ofs_z_tor always_referenced;
+float static_shadow_scrolled_depth_min_0 always_referenced;
+float static_shadow_scrolled_depth_max_0 always_referenced;
+int distant_fog_use_static_shadows always_referenced;
+
 int fog_shader_type always_referenced;
 interval fog_shader_type: froxel < 1, raymarch < 2, shadow always_referenced;
 
-block(scene) nbs_fog_block
-{
+macro NBS_FOG_BLOCK()
   NBS_COMMON_BLOCK()
 
   (cs) {
@@ -84,4 +145,4 @@ block(scene) nbs_fog_block
     camera_in_camera_postfx_lens_view@f1 = camera_in_camera_postfx_lens_view;
     camera_in_camera_active@f1 = camera_in_camera_active;
   }
-}
+endmacro

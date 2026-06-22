@@ -112,6 +112,7 @@ public:
   {
     bool active = false;
     Point2 delta = Point2(0, 0);
+    Point2 vel = Point2(0, 0); // spring velocity for release bounce-back
   };
   typedef ska::flat_hash_map<const Element *, OverscrollState> OverscrollMap;
   OverscrollMap overscroll;

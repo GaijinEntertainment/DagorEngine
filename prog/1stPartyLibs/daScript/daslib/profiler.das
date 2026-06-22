@@ -1,8 +1,6 @@
 options gen2
 options indenting = 4
 options unsafe_table_lookup = false
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 options threadlock_context
 
@@ -120,18 +118,14 @@ def parse_profiler_args() : ProfilerConfig {
 }
 
 def profiler_category(cfg : ProfilerConfig) : string {
-    if (cfg.track_leaks) {
-        return "memleaks"
-    }
+    if (cfg.track_leaks) return "memleaks"
     return cfg.use_thread_local ? "" : "profiler"
 }
 
 def public set_enable_profiler(ctxId : uint64, enabled : bool) {
     //! Enables or disables the profiler for the given context ID. No-op in leak mode.
     let cfg <- parse_profiler_args()
-    if (cfg.track_leaks) {
-        return
-    }
+    if (cfg.track_leaks) return
     unsafe {
         invoke_debug_agent_method(profiler_category(cfg), "enable_profiler", ctxId, enabled)
     }
@@ -140,9 +134,7 @@ def public set_enable_profiler(ctxId : uint64, enabled : bool) {
 def public set_enable_profiler_log(ctxId : uint64, enabled : bool) {
     //! Enables or disables the profiler log for the given context ID. No-op in leak mode.
     let cfg <- parse_profiler_args()
-    if (cfg.track_leaks) {
-        return
-    }
+    if (cfg.track_leaks) return
     unsafe {
         invoke_debug_agent_method(profiler_category(cfg), "enable_profiler_log", ctxId, enabled)
     }
@@ -213,9 +205,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         }
     }
     def override onCreateContext(var ctx : Context) : void {
-        if (!isProfileable(ctx)) {
-            return
-        }
+        if (!isProfileable(ctx)) return
         let tid = intptr(unsafe(addr(ctx)))
         events[tid].enabled = !manual
         // note: silent defaults to false. In manual mode the user flips
@@ -230,9 +220,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         events[ctxId].silent = !enabled
     }
     def override onDestroyContext(var ctx : Context) : void {
-        if (!isProfileable(ctx)) {
-            return
-        }
+        if (!isProfileable(ctx)) return
         let tid = intptr(unsafe(addr(ctx)))
         if (events |> key_exists(tid)) {
             if (!events[tid].silent) {
@@ -289,12 +277,8 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         dump("\{\"name\":\"{fnName}\",\"cat\": \"PERF\",\"ph\":\"{phase}\",\"pid\": 0,\"tid\":{int64(tid)},\"ts\":{ev.ts/1000l}\}")
     }
     def dump_node(node : PerfNode?; tab : int = -1) {
-        if (node == null) {
-            return
-        }
-        if (report_memory && node.fun != null && node.total_heap_bytes == 0ul && node.total_string_heap_bytes == 0ul) {
-            return
-        }
+        if (node == null
+                || (report_memory && node.fun != null && node.total_heap_bytes == 0ul && node.total_string_heap_bytes == 0ul)) return
         if (node.fun != null) {
             let tabs = repeat("  ", tab)
             if (report_memory) {
@@ -315,9 +299,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         }
     }
     def collect_flat(var node : PerfNode?; var flat : table<SimFunction?; FlatEntry>) {
-        if (node == null) {
-            return
-        }
+        if (node == null) return
         if (node.fun != null) {
             var own_hb = int64(node.total_heap_bytes)
             var own_shb = int64(node.total_string_heap_bytes)
@@ -338,45 +320,27 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         }
     }
     def dump_top_heap_offenders(var flat : table<SimFunction?; FlatEntry>) {
-        var entries : array<FlatEntry>
-        for (e in values(flat)) {
-            if (e.own_heap > 0l) {
-                entries |> push(e)
-            }
-        }
-        if (empty(entries)) {
-            return
-        }
+        var entries <- [for (e in values(flat)); e; where e.own_heap > 0l]
+        if (empty(entries)) return
         entries |> sort() <| $(a, b) => a.own_heap > b.own_heap
         to_log(LOG_INFO, "\nTop heap offenders (own allocations):\n")
         var shown = 0
         for (e in entries) {
-            if (shown >= 10) {
-                break
-            }
+            if (shown >= 10) break
             shown ++
-            to_log(LOG_INFO, "  {e.fun.mangledName} heap={int64(e.own_heap)} count={int64(e.count)}\n")
+            to_log(LOG_INFO, "  {e.fun.mangledName} heap={e.own_heap} count={e.count}\n")
         }
     }
     def dump_top_string_heap_offenders(var flat : table<SimFunction?; FlatEntry>) {
-        var entries : array<FlatEntry>
-        for (e in values(flat)) {
-            if (e.own_string_heap > 0l) {
-                entries |> push(e)
-            }
-        }
-        if (empty(entries)) {
-            return
-        }
+        var entries <- [for (e in values(flat)); e; where e.own_string_heap > 0l]
+        if (empty(entries)) return
         entries |> sort() <| $(a, b) => a.own_string_heap > b.own_string_heap
         to_log(LOG_INFO, "\nTop string-heap offenders (own allocations):\n")
         var shown = 0
         for (e in entries) {
-            if (shown >= 10) {
-                break
-            }
+            if (shown >= 10) break
             shown ++
-            to_log(LOG_INFO, "  {e.fun.mangledName} string_heap={int64(e.own_string_heap)} count={int64(e.count)}\n")
+            to_log(LOG_INFO, "  {e.fun.mangledName} string_heap={e.own_string_heap} count={e.count}\n")
         }
     }
     def dump_context_stack(tid : uint64) {
@@ -385,9 +349,7 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
         var stack : array<PerfNode?>
         var sp = root
         for (ev in events[tid].events) {
-            if (manual && ev.fun.mangledName |> starts_with("@profiler_boost::")) {
-                continue
-            }
+            if (manual && ev.fun.mangledName |> starts_with("@profiler_boost::")) continue
             if (ev.entering) {
                 stack |> push(sp)
                 if (!sp.children |> key_exists(ev.fun)) {
@@ -402,8 +364,8 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
                 sp.total_time += ev.ts - sp.enter_time
                 sp.total_heap_bytes += ev.heapBytes - sp.enter_heap_bytes
                 sp.total_string_heap_bytes += ev.stringHeapBytes - sp.enter_string_heap_bytes
-                sp = length(stack) != 0 ? stack |> back() : root
-                if (length(stack) > 0) {// protection for mismatching enable\disable
+                sp = !empty(stack) ? stack |> back() : root
+                if (!empty(stack)) {// protection for mismatching enable\disable
                     stack |> pop()
                 }
             }
@@ -422,10 +384,10 @@ class PerformanceProfilerAgent : ProfilerBaseAgent {
     def dump_meta(var ctx : Context; tid : uint64) {
         let ctxName = empty(ctx.name) ? "" : " '{ctx.name}'"
         let wasDead = (ctx.category & context_category_flags.dead) == context_category_flags.dead
-        ctx.category &= ~context_category_flags.dead
+        ctx.category.dead = false
         let ctxDesc = "{tid}{ctxName} cat:{ctx.category}" |> escape()
         dump("\{\"args\": \{ \"name\": \"{ctxDesc}\" \}, \"name\": \"thread_name\", \"cat\": \"__metadata\", \"ph\": \"M\", \"pid\": 0, \"tid\": {int64(tid)}, \"ts\": 0 \}")
-        if (wasDead) { ctx.category |= context_category_flags.dead; }
+        if (wasDead) { ctx.category.dead = true; }
     }
         // dump("\{\"args\": \{ \"value\" : \"ns\" \}, \"name\": \"displayTimeUnit\", \"cat\": \"__metadata\", \"ph\": \"M\", \"pid\": 0, \"tid\": {int64(tid)}, \"ts\": 0 \}")
     def dump_events(tid : uint64) {
@@ -481,9 +443,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
         }
     }
     def override onCreateContext(var ctx : Context) : void {
-        if (!isProfileable(ctx)) {
-            return
-        }
+        if (!isProfileable(ctx)) return
         let tid = intptr(unsafe(addr(ctx)))
         unsafe {
             var lc & = ctxs[tid]
@@ -493,9 +453,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
         instrument_context_allocations(ctx, true)
     }
     def override onDestroyContext(var ctx : Context) : void {
-        if (!isProfileable(ctx)) {
-            return
-        }
+        if (!isProfileable(ctx)) return
         let tid = intptr(unsafe(addr(ctx)))
         instrument_context_allocations(ctx, false)
         if (ctxs |> key_exists(tid)) {
@@ -507,13 +465,11 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
     def override onInstrumentFunction(var ctx : Context; var fun : SimFunction?; entering : bool; userData : uint64) : void {
         unsafe {
             let tid = intptr(addr(ctx))
-            if (!(ctxs |> key_exists(tid))) {
-                return
-            }
+            if (!(ctxs |> key_exists(tid))) return
             var lc & = ctxs[tid]
             if (entering) {
                 lc.shadow_stack |> push(fun)
-            } elif (length(lc.shadow_stack) > 0) {
+            } elif (!empty(lc.shadow_stack)) {
                 lc.shadow_stack |> pop()
             }
         }
@@ -521,9 +477,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
     def override onAllocate(var ctx : Context; data : void?; size : uint64; at : LineInfo) : void {
         unsafe {
             let tid = intptr(addr(ctx))
-            if (!(ctxs |> key_exists(tid))) {
-                return
-            }
+            if (!(ctxs |> key_exists(tid))) return
             var lc & = ctxs[tid]
             var rec & = lc.allocations[intptr(data)]
             rec.size = size
@@ -533,9 +487,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
     def override onFree(var ctx : Context; data : void?; at : LineInfo) : void {
         unsafe {
             let tid = intptr(addr(ctx))
-            if (!(ctxs |> key_exists(tid))) {
-                return
-            }
+            if (!(ctxs |> key_exists(tid))) return
             var lc & = ctxs[tid]
             lc.allocations |> erase(intptr(data))
         }
@@ -543,9 +495,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
     def override onReallocate(var ctx : Context; data : void?; size : uint64; newData : void?; newSize : uint64; at : LineInfo) : void {
         unsafe {
             let tid = intptr(addr(ctx))
-            if (!(ctxs |> key_exists(tid))) {
-                return
-            }
+            if (!(ctxs |> key_exists(tid))) return
             var lc & = ctxs[tid]
             lc.allocations |> erase(intptr(data))
             var rec & = lc.allocations[intptr(newData)]
@@ -561,22 +511,16 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
         }
     }
     def format_frame(fn : SimFunction?) : string {
-        if (fn == null) {
-            return "  at ?"
-        }
+        if (fn == null) return "  at ?"
         let fname = fn.name
         let li = fn.lineInfo
-        if (li != null && li.fileInfo != null && !empty(li.fileInfo.name)) {
-            return "  at {fname} {li.fileInfo.name}:{int(li.line)}"
-        }
+        if (li != null && li.fileInfo != null && !empty(li.fileInfo.name)) return "  at {fname} {li.fileInfo.name}:{int(li.line)}"
         return "  at {fname}"
     }
     def dump_leaks(var ctx : Context; tid : uint64) {
         unsafe {
             var lc & = ctxs[tid]
-            if (empty(lc.allocations)) {
-                return
-            }
+            if (empty(lc.allocations)) return
             var sorted : array<tuple<uint64; uint64>>   // (size, addr-key)
             var totalBytes = 0ul
             for (k, v in keys(lc.allocations), values(lc.allocations)) {
@@ -588,7 +532,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
             if (!empty(ctx.name)) {
                 ctxName = "{ctx.name}"
             }
-            emit_line("=== Memory leaks in context '{ctxName}' ({int(length(sorted))} allocations, {totalBytes} bytes) ===")
+            emit_line("=== Memory leaks in context '{ctxName}' ({length(sorted)} allocations, {totalBytes} bytes) ===")
             for (e in sorted) {
                 var rec & = lc.allocations[e._1]
                 emit_line("[leak] size={rec.size} bytes")
@@ -603,6 +547,7 @@ class MemoryLeakProfilerAgent : ProfilerBaseAgent {
     }
 }
 
+[unused_argument(ctx)]
 def debug_agent(ctx : Context) {
     assert(this_context().category.debug_context)
     let cfg <- parse_profiler_args()

@@ -7,6 +7,7 @@
 #include <math/dag_Point4.h>
 #include <math/dag_TMatrix4.h>
 #include "dafxSystemDesc.h"
+#include "dafxModFx.h"
 #include <debug/dag_debug3d.h>
 #include <dafxEmitterDebug.h>
 #include <math/dag_hlsl_floatx.h>
@@ -23,9 +24,6 @@ enum
 };
 
 static dafx::ContextId g_dafx_ctx;
-
-extern bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx,
-  dafx::SystemDesc &sdesc, dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug);
 
 void dafx_report_broken_res(int game_res_id, const char *fx_type)
 {
@@ -89,21 +87,35 @@ struct DafxModFx : BaseParticleEffect
       return false;
     }
 
+    ModFxSystemDesc modfxSystemDesc;
+    modfxSystemDesc.parTex.tex_0 = nullptr;
+    modfxSystemDesc.parTex.tex_1 = nullptr;
+
+    bool descLoadedSuccessfully = dafx_modfx_system_desc_load(ptr, len, load_cb, modfxSystemDesc);
+
+    // Add acquired textures to ensure their release in the destructor.
+    for (void *texIdRaw : {modfxSystemDesc.parTex.tex_0, modfxSystemDesc.parTex.tex_1})
+    {
+      TEXTUREID texId(static_cast<unsigned>(reinterpret_cast<uintptr_t>(texIdRaw)));
+      if (texId != BAD_TEXTUREID)
+        textures.push_back(texId);
+    }
+
+    if (!descLoadedSuccessfully)
+      return false;
+
     auto builtDesc = eastl::make_shared<dafx::SystemDesc>();
 
     sinfo = dafx_ex::SystemInfo();
     builtDesc->gameResId = gameResId;
     emitterDebug = eastl::make_unique<dafx_ex::EmitterDebug>(dafx_ex::EmitterDebug());
     dafx_ex::EmitterDebug *emitterDebugObject = emitterDebug.get();
-    if (!dafx_modfx_system_load(ptr, len, load_cb, g_dafx_ctx, *builtDesc, sinfo, emitterDebugObject))
+    if (!dafx_modfx_system_load(modfxSystemDesc, g_dafx_ctx, *builtDesc, sinfo, emitterDebugObject))
       return false;
 
     if (builtDesc && !builtDesc->subsystems.empty())
     {
       builtDesc->subsystems[0].gameResId = gameResId;
-      for (auto [tid, a] : builtDesc->subsystems[0].texturesPs)
-        if (tid != BAD_TEXTUREID)
-          textures.push_back(tid);
     }
 
     pdesc = eastl::move(builtDesc);
@@ -602,3 +614,4 @@ static DafxModfxFactory g_dafx_modfx_factory;
 void register_dafx_modfx_factory() { register_effect_factory(&g_dafx_modfx_factory); }
 
 void dafx_modfx_set_context(dafx::ContextId ctx) { g_dafx_ctx = ctx; }
+dafx::ContextId dafx_modfx_get_context() { return g_dafx_ctx; }

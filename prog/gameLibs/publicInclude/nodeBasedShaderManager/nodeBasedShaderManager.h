@@ -104,7 +104,6 @@ public:
   static String buildScriptedShaderName(char const *asset);
 
   ShaderBindumpHandle bindumpHandle() const { return scriptedShadersDumpHandle; }
-  char const *getShaderBlockName() const;
   void setShadervars(int variant_id);
 };
 

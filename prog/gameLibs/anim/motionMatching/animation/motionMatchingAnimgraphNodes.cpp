@@ -46,7 +46,7 @@ void load_motion_matching_animgraph_nodes(AnimationDataBase &data_base, AnimV20:
   data_base.animGraphTagsParamId = anim_graph->getParamId("motion_matching_tags");
 }
 
-AnimationFilterTags get_mm_tags_from_animgraph(const AnimationDataBase &data_base, const AnimV20::IAnimStateHolder &st)
+AnimationFilterTags get_mm_tags_from_animgraph(const AnimationDataBase &data_base, const AnimV20::AnimGraphStateHolder &st)
 {
   AnimationFilterTags combinedTags;
   const uint32_t *activeAnimGraphTags = static_cast<const uint32_t *>(st.getInlinePtr(data_base.animGraphTagsParamId));
@@ -67,7 +67,7 @@ AnimationFilterTags get_mm_tags_from_animgraph(const AnimationDataBase &data_bas
   return combinedTags;
 }
 
-void reset_animgraph_tags(const AnimationDataBase &data_base, AnimV20::IAnimStateHolder &st)
+void reset_animgraph_tags(const AnimationDataBase &data_base, AnimV20::AnimGraphStateHolder &st)
 {
   if (data_base.animGraphNodeTagsRemap.empty())
     return;

@@ -41,6 +41,7 @@ struct RiExtraPool
     unsigned distSqLOD_i[MAX_LODS];
   };
   int riPoolRef = -1;
+  int customPropsId = -1;
   LayerFlags layers = {};
   unsigned riPoolRefLayer : 4;
   unsigned useShadow : 1, posInst : 1, destroyedColl : 1, immortal : 1, hasColoredShaders : 1, isTree : 1;

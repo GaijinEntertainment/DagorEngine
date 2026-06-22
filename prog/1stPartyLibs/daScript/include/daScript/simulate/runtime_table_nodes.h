@@ -1,6 +1,7 @@
 #pragma once
 
 #include "daScript/simulate/simulate.h"
+#include "daScript/simulate/runtime_iterator.h"
 #include "daScript/simulate/runtime_table.h"
 #include "daScript/misc/arraytype.h"
 #include "daScript/simulate/hash.h"
@@ -67,7 +68,7 @@ namespace das
             auto key = EvalTT<KeyType>::eval(context,keyExpr);
             TableHash<KeyType> thh(&context,valueTypeSize);
             auto hfn = hash_function(context, key);
-            int index = thh.reserve(*tab, key, hfn, &debugInfo);    // if index==-1, it was a through, so safe to do
+            int64_t index = thh.reserve(*tab, key, hfn, &debugInfo);    // reserve always returns a valid slot or throws
             return tab->data + index * valueTypeSize + offset;
         }
         uint32_t offset;
@@ -96,7 +97,7 @@ namespace das
             auto key = EvalTT<KeyType>::eval(context,PT::keyExpr);
             TableHash<KeyType> thh(&context,PT::valueTypeSize);
             auto hfn = hash_function(context, key);
-            int index = thh.find(*tab, key, hfn);
+            int64_t index = thh.find(*tab, key, hfn);
             return index!=-1 ? tab->data + index * PT::valueTypeSize : nullptr;
         }
     };
@@ -153,7 +154,7 @@ namespace das
             auto key = EvalTT<KeyType>::eval(context,keyExpr);
             auto hfn = hash_function(context, key);
             TableHash<KeyType> thh(&context,valueTypeSize);
-            int index = thh.find(*tab, key, hfn);
+            int64_t index = thh.find(*tab, key, hfn);
             return index!=-1 ? tab->data + index * valueTypeSize : nullptr;
         }
     };
@@ -173,6 +174,101 @@ namespace das
             auto hfn = hash_function(context, key);
             TableHash<KeyType> thh(&context,valueTypeSize);
             return thh.find(*tab, key, hfn) != -1;
+        }
+    };
+
+    // String-key table access with a precomputed hash. Emitted only when the key is an
+    // ExprConstString: the key bytes and their hash are baked at simulate time, so the
+    // runtime skips the per-lookup hash_blockz64 byte walk. The key string is carried
+    // only for the large-table KeyCompare confirm; the packed path compares hashOf alone.
+    struct SimNode_TableWithHash : SimNode {
+        SimNode_TableWithHash(const LineInfo & at, SimNode * t, char * k, uint64_t h, uint32_t vts)
+            : SimNode(at), tabExpr(t), key(k), hashOf(h), valueTypeSize(vts) {}
+        SimNode * visitWithHash ( SimVisitor & vis, const char * op ) {
+            V_BEGIN();
+            vis.op(op);
+            V_SUB(tabExpr);
+            V_ARG(key);
+            V_ARG(hashOf);
+            V_ARG(valueTypeSize);
+            V_END();
+        }
+        SimNode * tabExpr;
+        char *    key;
+        uint64_t  hashOf;
+        uint32_t  valueTypeSize;
+    };
+
+    struct SimNode_TableIndex_WithHash : SimNode_TableWithHash {
+        DAS_PTR_NODE;
+        SimNode_TableIndex_WithHash(const LineInfo & at, SimNode * t, char * k, uint64_t h, uint32_t vts, uint32_t o)
+            : SimNode_TableWithHash(at,t,k,h,vts), offset(o) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            V_BEGIN();
+            V_OP(TableIndexWithHash);
+            V_SUB(tabExpr);
+            V_ARG(key);
+            V_ARG(hashOf);
+            V_ARG(valueTypeSize);
+            V_ARG(offset);
+            V_END();
+        }
+        __forceinline char * compute ( Context & context ) {
+            DAS_PROFILE_NODE
+            Table * tab = (Table *) tabExpr->evalPtr(context);
+            if ( tab->isLocked() ) context.throw_error_at(debugInfo, "can't insert to a locked table");
+            TableHash<char*> thh(&context,valueTypeSize);
+            int64_t index = thh.reserve(*tab, key, hashOf, &debugInfo);
+            return tab->data + index * valueTypeSize + offset;
+        }
+        uint32_t offset;
+    };
+
+    struct SimNode_SafeTableIndex_WithHash : SimNode_TableWithHash {
+        DAS_PTR_NODE;
+        SimNode_SafeTableIndex_WithHash(const LineInfo & at, SimNode * t, char * k, uint64_t h, uint32_t vts)
+            : SimNode_TableWithHash(at,t,k,h,vts) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            return visitWithHash(vis,"SafeTableIndexWithHash");
+        }
+        __forceinline char * compute ( Context & context ) {
+            DAS_PROFILE_NODE
+            Table * tab = (Table *) tabExpr->evalPtr(context);
+            if (!tab) return nullptr;
+            TableHash<char*> thh(&context,valueTypeSize);
+            int64_t index = thh.find(*tab, key, hashOf);
+            return index!=-1 ? tab->data + index * valueTypeSize : nullptr;
+        }
+    };
+
+    struct SimNode_TableFind_WithHash : SimNode_TableWithHash {
+        DAS_PTR_NODE;
+        SimNode_TableFind_WithHash(const LineInfo & at, SimNode * t, char * k, uint64_t h, uint32_t vts)
+            : SimNode_TableWithHash(at,t,k,h,vts) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            return visitWithHash(vis,"TableFindWithHash");
+        }
+        __forceinline char * compute ( Context & context ) {
+            DAS_PROFILE_NODE
+            Table * tab = (Table *) tabExpr->evalPtr(context);
+            TableHash<char*> thh(&context,valueTypeSize);
+            int64_t index = thh.find(*tab, key, hashOf);
+            return index!=-1 ? tab->data + index * valueTypeSize : nullptr;
+        }
+    };
+
+    struct SimNode_KeyExists_WithHash : SimNode_TableWithHash {
+        DAS_BOOL_NODE;
+        SimNode_KeyExists_WithHash(const LineInfo & at, SimNode * t, char * k, uint64_t h, uint32_t vts)
+            : SimNode_TableWithHash(at,t,k,h,vts) {}
+        virtual SimNode * visit ( SimVisitor & vis ) override {
+            return visitWithHash(vis,"KeyExistsWithHash");
+        }
+        __forceinline bool compute ( Context & context ) {
+            DAS_PROFILE_NODE
+            Table * tab = (Table *) tabExpr->evalPtr(context);
+            TableHash<char*> thh(&context,valueTypeSize);
+            return thh.find(*tab, key, hashOf) != -1;
         }
     };
 

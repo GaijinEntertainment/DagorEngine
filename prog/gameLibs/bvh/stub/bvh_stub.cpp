@@ -115,6 +115,12 @@ void generate_gpu_grass_instances(ContextId, bool) {}
 void gather_splinegen_instances(ContextId, Sbuffer *, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &, uint32_t, uint32_t &) {}
 void remove_spline_gen_instances(ContextId) {}
 
+void connect_smoke_tracers(ContextId, smoke_tracers_connect_callback) {}
+
+void update_smoke_tracer_instances(SmokeTracerManager *) {}
+
+void ensure_particle_buffer_capacity(int, int) {}
+
 } // namespace bvh
 
 size_t BVHInstanceMapper::getHWInstanceSize() { return 0; }

@@ -299,7 +299,8 @@ ecs::Object::const_iterator ecs::Object::findAsWithCollision(hash_container_t::c
   return end();
 }
 
-ecs::type_index_t ecs::find_component_type_index(ecs::component_type_t component_type, ecs::EntityManager *emgr)
+ecs::type_index_t ecs::find_component_type_index(ecs::component_type_t component_type, ecs::EntityManager *mgr)
 {
-  return (emgr ? emgr : g_entity_mgr.get())->getComponentTypes().findType(component_type);
+  G_UNUSED(mgr);
+  return ecs::EntityManager::shared_component_types().findType(component_type);
 }

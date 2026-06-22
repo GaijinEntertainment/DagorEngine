@@ -114,6 +114,17 @@ float3 get_tracers_wind(float time)
   return -time*TRACERS_WIND_RADIUS_STR*float3(1,0,1);//todo: unified wind solution (particles, volumetrics, tracers)
 }
 
+void smoke_tracer_unpack_verts(uint packedData, out uint firstVert, out uint totalVerts)
+{
+  totalVerts = packedData & 0xFFFFu;
+  firstVert  = packedData >> 16;
+}
+
+uint smoke_tracer_pack_verts(uint firstVert, uint totalVerts)
+{
+  return totalVerts | (firstVert << 16);
+}
+
 #endif
 
 #ifdef __cplusplus

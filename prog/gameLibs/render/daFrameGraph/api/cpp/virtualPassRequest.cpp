@@ -71,6 +71,7 @@ VirtualPassRequest VirtualPassRequest::depth(RwVirtualAttachmentRequest attachme
   nodeData.resourceRequests[resId].usage = ResourceUsage{Usage::DEPTH_ATTACHMENT, Access::READ_WRITE, Stage::POST_RASTER};
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
   nodeData.renderingRequirements->depthReadOnly = false;
+  nodeData.renderingRequirements->depthReadTestOnly = false;
   return *this;
 }
 
@@ -91,16 +92,15 @@ VirtualPassRequest VirtualPassRequest::depthReadTestOnly(DepthReadTestOnlyVirtua
   // chain has already updated the right (read or modified) set.
   if (eastl::holds_alternative<const char *>(attachment.image))
     nodeData.readResources.insert(resId);
-  // Bind depth as RW (no driver-side decompression), regardless of how the caller
-  // declared the request: Z-write is suppressed by the implicit override below.
+  // Bind depth as RW (no driver-side decompression). The caller is responsible
+  // for ensuring shaders rendered in this node do not write Z - the API contract
+  // is that this node only tests against depth. Violating the contract causes
+  // races with other depth readers since this node is ordered in the graph as a
+  // reader, not a writer.
   nodeData.resourceRequests[resId].usage = ResourceUsage{Usage::DEPTH_ATTACHMENT, Access::READ_WRITE, Stage::POST_RASTER};
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
   nodeData.renderingRequirements->depthReadOnly = false;
-
-  // Implicit per-node Z_WRITE_DISABLE override. Actual merging with any
-  // user-supplied pipelineStateOverride happens at IR build time
-  // (see IrGraphBuilder::calcNodeState).
-  nodeData.renderingRequirements->implicitZWriteDisable = true;
+  nodeData.renderingRequirements->depthReadTestOnly = true;
   return *this;
 }
 
@@ -127,6 +127,7 @@ VirtualPassRequest VirtualPassRequest::depthReadTestAndSample(DepthReadTestAndSa
 
   depth = VirtualSubresourceRef{resId, attachment.mipLevel, attachment.layer};
   nodeData.renderingRequirements->depthReadOnly = true;
+  nodeData.renderingRequirements->depthReadTestOnly = false;
 
   detail::VirtualResourceRequestBase fakeReq{{resId, hist}, nodeId, registry};
   for (auto name : shader_var_names)

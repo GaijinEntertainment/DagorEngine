@@ -408,7 +408,7 @@ def update_pickup_items(var p : PickUpItem) {
         max = float2(p.pos.x + 0.25, p.pos.z + 0.25)
     )
     var any = false
-    query <| $(pos : float3; var Turret_health : int&) {
+    query() $(pos : float3; var Turret_health : int&) {
         let wrect = AABR(
             min = float2(pos.x - 0.5, pos.z - 0.5),
             max = float2(pos.x + 0.5, pos.z + 0.5)
@@ -474,7 +474,7 @@ def update_turret_cannon(pos : float3; var turret : Turret; var ctrl : MouseCont
 def can_see(src_pos, tgt_pos : float3) {
     let dist = distance(tgt_pos, src_pos)
     let ray = Ray(origin = src_pos, dir = normalize(tgt_pos - src_pos))
-    let found = find_query <| $(pos, dim : float3; obstacle : Obstacle) {
+    let found = find_query() $(pos, dim : float3; obstacle : Obstacle) {
         if (!obstacle.wall) {
             return false
         }
@@ -506,7 +506,7 @@ def update_ai(eid : EntityId; var turret : Turret; pos : float3) {
         return
     }
     var target : float3
-    let found = find_query <| $ [REQUIRE(tank)] (pos : float3) {
+    let found = find_query() $ [REQUIRE(tank)] (pos : float3) {
         target = pos
         return true
     }
@@ -639,7 +639,7 @@ def update_tank(eid : EntityId; var pos, dim, vel : float3&) {
         min = new_pos.xz - dim.xz * 0.45,
         max = new_pos.xz + dim.xz * 0.45
     )
-    let collide = find_query <| $(pos, dim : float3; obstacle : Obstacle) {
+    let collide = find_query() $(pos, dim : float3; obstacle : Obstacle) {
         if (obstacle.tank) {
             return false
         }
@@ -677,7 +677,7 @@ def update_projectile(eid : EntityId; var proj : Projectile) {
         min = float2(proj.pos.x - proj.size, proj.pos.z - proj.size),
         max = float2(proj.pos.x + proj.size, proj.pos.z + proj.size)
     )
-    let collide = find_query <| $(pos : float3; obstacle : Obstacle) {
+    let collide = find_query() $(pos : float3; obstacle : Obstacle) {
         if ((proj.targets & obstacle) == bitfield(0)) {
             return false
         }
@@ -723,7 +723,7 @@ def update_kaboom(eid : EntityId; var kaboom : Kaboom) {
                 min = float2(kaboom.pos.x - kaboom.radius, kaboom.pos.z - kaboom.radius),
                 max = float2(kaboom.pos.x + kaboom.radius, kaboom.pos.z + kaboom.radius)
             )
-            query <| $(pos : float3; var Turret_health : int&; Turret_base : EntityId) {
+            query() $(pos : float3; var Turret_health : int&; Turret_base : EntityId) {
                 let wrect = AABR(
                     min = float2(pos.x - 0.5, pos.z - 0.5),
                     max = float2(pos.x + 0.5, pos.z + 0.5)
@@ -732,7 +732,7 @@ def update_kaboom(eid : EntityId; var kaboom : Kaboom) {
                     Turret_health = max(Turret_health - 1, 0)
                     if (Turret_health == 0) {
                         Turret_base |> set_pulse(false)
-                        query(Turret_base) <| $(var alive : bool&) {
+                        query(Turret_base) $(var alive : bool&) {
                             alive = false
                         }
                     }
@@ -746,7 +746,7 @@ def update_kaboom(eid : EntityId; var kaboom : Kaboom) {
 [decs(stage=update_attachments)]
 def update_turrets(eid : EntityId; var pos : float3&; turret : Turret) {
     var turret_pos & = pos
-    let upd = query(turret.base) <| $(pos, dim : float3) {
+    let upd = query(turret.base) $(pos, dim : float3) {
         turret_pos = pos + float3(0.0, dim.y * 0.5, 0.0)
     }
     if (!upd) {
@@ -853,7 +853,7 @@ def update_mouse_controls(var ctr : MouseControls) {
 def game_status(input : JsonValue?) : JsonValue? {
     var result = "\{"
     var first = true
-    query() <| $(name : string; Turret_health : int) {
+    query() $(name : string; Turret_health : int) {
         if (!first) {
             result += ", "
         }

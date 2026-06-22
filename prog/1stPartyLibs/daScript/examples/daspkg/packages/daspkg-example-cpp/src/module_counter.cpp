@@ -46,7 +46,7 @@ public:
     Module_Counter() : Module("counter") {
         ModuleLibrary lib(this);
         lib.addBuiltInModule();
-        addAnnotation(make_smart<das::CounterAnnotation>(lib));
+        addAnnotation(new das::CounterAnnotation(lib));
         addExtern<DAS_BIND_FUN(make_counter), SimNode_ExtFuncCallAndCopyOrMove>(
             *this, lib, "make_counter",
             SideEffects::none, "make_counter")->args({"step"});

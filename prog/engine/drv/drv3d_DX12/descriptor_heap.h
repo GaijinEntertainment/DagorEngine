@@ -8,6 +8,7 @@
 #include <dag/dag_vector.h>
 #include <EASTL/unique_ptr.h>
 #include <generic/dag_bitset.h>
+#include <generic/dag_expected.h>
 #include <supp/dag_comPtr.h>
 #include <value_range.h>
 #include <drv/3d/dag_bindless.h>
@@ -42,6 +43,8 @@ class DescriptorHeap
 public:
   typedef Policy ThisPolicy;
 
+  using AllocationResult = dag::Expected<D3D12_CPU_DESCRIPTOR_HANDLE, HRESULT>;
+
   DescriptorHeap() = default;
   ~DescriptorHeap() = default;
 
@@ -59,7 +62,7 @@ public:
     data.reset();
   }
 
-  D3D12_CPU_DESCRIPTOR_HANDLE allocate(ID3D12Device *device)
+  AllocationResult allocate(ID3D12Device *device)
   {
     D3D12_CPU_DESCRIPTOR_HANDLE result = {};
     for (auto &&heap : heaps)
@@ -77,7 +80,8 @@ public:
     target.heap = ThisPolicy::allocateHeap(device, data, target);
     if (!target.heap)
     {
-      if (device->GetDeviceRemovedReason() == S_OK)
+      const HRESULT removedReason = device->GetDeviceRemovedReason();
+      if (removedReason == S_OK)
       {
         logdbg("DX12: heap count was %u", heaps.size());
         DAG_FATAL("DX12: DescriptorHeap::allocate: failed to allocate descriptor");
@@ -88,7 +92,7 @@ public:
       }
 
       heaps.pop_back();
-      return result;
+      return dag::Unexpected{removedReason == S_OK ? E_OUTOFMEMORY : removedReason};
     }
     target.cpuBegin = target.heap->GetCPUDescriptorHandleForHeapStart();
     target.cpuEnd = target.cpuBegin;

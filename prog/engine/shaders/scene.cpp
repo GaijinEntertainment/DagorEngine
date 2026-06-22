@@ -276,11 +276,10 @@ void RenderScene::buildOptSceneData()
   }
   G_ASSERT(elemnum == optScn.elemIdxStor.size());
 
-  optScn.buildVisTree.build(objs.data(), objs.size(), false);
+  optScn.buildVisTree.build(make_span(objs));
 
   optScn.visTree.nodes = make_span(optScn.buildVisTree.nodes);
   optScn.visTree.leavesCount = optScn.buildVisTree.leavesCount;
-  optScn.buildVisTree.clearLastPlaneWord();
 
   optScn.prepareDone = false;
   optScn.inited = true;

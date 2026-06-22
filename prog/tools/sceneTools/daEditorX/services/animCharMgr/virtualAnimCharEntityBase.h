@@ -97,14 +97,14 @@ public:
     AnimV20::AnimationGraph *ag = baseComp->getAnimGraph();
     if (!ag)
       return;
-    AnimV20::IAnimStateHolder &st = *baseComp->getAnimState();
+    AnimV20::AnimGraphStateHolder &st = *baseComp->getAnimState();
     if (const DataBlock *b = props.getBlockByName("ref_animvars"))
       iterate_names(ag->getParamNames(), [&](int id, const char *name) {
         switch (ag->getParamType(id))
         {
-          case AnimV20::IPureAnimStateHolder::PT_ScalarParam:
-          case AnimV20::IPureAnimStateHolder::PT_TimeParam: st.setParam(id, getFloatParam(*b, name, st.getParam(id))); break;
-          case AnimV20::IPureAnimStateHolder::PT_ScalarParamInt: st.setParamInt(id, getIntParam(*b, name, st.getParamInt(id))); break;
+          case AnimV20::AnimGraphStateHolder::PT_ScalarParam:
+          case AnimV20::AnimGraphStateHolder::PT_TimeParam: st.setParam(id, getFloatParam(*b, name, st.getParam(id))); break;
+          case AnimV20::AnimGraphStateHolder::PT_ScalarParamInt: st.setParamInt(id, getIntParam(*b, name, st.getParamInt(id))); break;
         }
       });
     if (const DataBlock *b = props.getBlockByName("ref_states"))
@@ -117,7 +117,7 @@ public:
   bool enqueueAnim(const char *anim)
   {
     AnimV20::AnimationGraph *ag = getAnimGraph();
-    AnimV20::IAnimStateHolder *as = getAnimState();
+    AnimV20::AnimGraphStateHolder *as = getAnimState();
 
     if (!ag || !as)
       return false;
@@ -173,7 +173,7 @@ protected:
   virtual void updateBounds() = 0;
 
   virtual AnimV20::AnimationGraph *getAnimGraph() const = 0;
-  virtual AnimV20::IAnimStateHolder *getAnimState() const = 0;
+  virtual AnimV20::AnimGraphStateHolder *getAnimState() const = 0;
   virtual AnimV20::AnimcharBaseComponent *getAnimCharBase() const = 0;
   virtual AnimV20::AnimcharRendComponent *getAnimCharRend() const = 0;
 

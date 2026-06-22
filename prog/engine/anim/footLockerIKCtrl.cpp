@@ -8,7 +8,7 @@
 #include <math/dag_mathUtils.h>
 #include <memory/dag_framemem.h>
 
-void AnimV20::FootLockerIKCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimV20::FootLockerIKCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   if (legsNodeNames.empty())
     return;
@@ -97,7 +97,7 @@ VECTORCALL static inline void v_mat_rotate_with_quat(mat44f &m, quat4f q)
   m.set33(rotTm);
 }
 
-void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimV20::FootLockerIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   TIME_PROFILE_DEV(FootLockerIKCtrl);
 
@@ -389,7 +389,7 @@ void AnimV20::FootLockerIKCtrl::createNode(AnimationGraph &graph, const DataBloc
       legNodes.toe = legBlk.getStr("toe", nullptr);
       legNodes.needLockParamThreshold = legBlk.getReal("needLockParamThreshold", legNodes.needLockParamThreshold);
       const char *needLockParamName = legBlk.getStr("needLockParamName", nullptr);
-      legNodes.needLockParamId = graph.addParamIdEx(needLockParamName, IPureAnimStateHolder::PT_ScalarParam);
+      legNodes.needLockParamId = graph.addParamIdEx(needLockParamName, AnimGraphStateHolder::PT_ScalarParam);
 
       G_ASSERTF_AND_DO(!legNodes.hip.empty() && !legNodes.knee.empty() && !legNodes.ankle.empty() && !legNodes.toe.empty(),
         node->legsNodeNames.pop_back(), "hip=<%s> knee=<%s> ankle=<%s> toe=<%s>", legNodes.hip, legNodes.knee, legNodes.ankle,
@@ -418,13 +418,13 @@ void AnimV20::FootLockerIKCtrl::createNode(AnimationGraph &graph, const DataBloc
   node->proceduralStepSpeed = blk.getReal("proceduralStepSpeed", 0.5f);
   node->proceduralStepCooldown = blk.getReal("proceduralStepCooldown", 0.3f);
   node->legsDataVarId =
-    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(LegData) * numLegs, IPureAnimStateHolder::PT_InlinePtr);
+    graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(LegData) * numLegs, AnimGraphStateHolder::PT_InlinePtr);
   if (const char *paramName = blk.getStr("hipMoveParamName", nullptr))
-    node->hipMoveDownVarId = graph.addParamId(paramName, IPureAnimStateHolder::PT_ScalarParam);
+    node->hipMoveDownVarId = graph.addParamId(paramName, AnimGraphStateHolder::PT_ScalarParam);
   if (const char *paramName = blk.getStr("allowProceduralStepParamName", nullptr))
   {
-    node->allowProceduralStepVarId = graph.addParamId(paramName, IPureAnimStateHolder::PT_ScalarParamInt);
-    node->proceduralStepTimerVarId = graph.addParamId(String(0, "$%s_step_timer", name), IPureAnimStateHolder::PT_TimeParam);
+    node->allowProceduralStepVarId = graph.addParamId(paramName, AnimGraphStateHolder::PT_ScalarParamInt);
+    node->proceduralStepTimerVarId = graph.addParamId(String(0, "$%s_step_timer", name), AnimGraphStateHolder::PT_TimeParam);
   }
   graph.registerBlendNode(node, name);
 }

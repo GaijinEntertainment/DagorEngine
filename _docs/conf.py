@@ -25,6 +25,7 @@ extensions = [
   'quirrel_pygment_lexer',
   'sphinx-design',
   'breathe',
+  'daslang',
   'sphinx.ext.duration',
   'sphinx.ext.autodoc',
   'sphinx.ext.autosummary',

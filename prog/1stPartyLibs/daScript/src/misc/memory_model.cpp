@@ -80,7 +80,7 @@ namespace das {
 #endif
     }
 
-    void MemoryModel::setInitialSize ( uint32_t size ) {
+    void MemoryModel::setInitialSize ( uint64_t size ) {
         initialSize = size;
     }
 
@@ -96,9 +96,9 @@ namespace das {
 #endif
     }
 
-    uint32_t MemoryModel::grow ( uint32_t si ) {
+    uint64_t MemoryModel::grow ( uint32_t si ) {
         if ( shoe.chunks[si] ) {
-            uint32_t size = shoe.chunks[si]->total;
+            uint64_t size = shoe.chunks[si]->total;
             if ( customGrow ) {
                 size = customGrow(size);
             } else {
@@ -109,11 +109,13 @@ namespace das {
             if ( !initialSize ) {
                 initialSize = default_initial_size;
             }
-            return initialSize / ((si+1)<<4); // fit in initial size
+            // Entry count for the first chunk of this size-class. 64-bit throughout
+            // (Deck::total and totalBytes are 64-bit), so no UINT32 clamp is needed.
+            return initialSize / ((uint64_t(si)+1)<<4);
         }
     }
 
-    char * MemoryModel::allocate ( uint32_t size ) {
+    char * MemoryModel::allocate ( uint64_t size ) {
         if ( !size ) return nullptr;
         size = (size + alignMask) & ~alignMask;
         totalAllocated += size;
@@ -130,19 +132,19 @@ namespace das {
 #endif
             return ptr;
         } else {
-            if ( char * res = shoe.allocate(size) ) {
+            if ( char * res = shoe.allocate(uint32_t(size)) ) {
                 return res;
             }
             size = (size + 15) & ~15;
             DAS_ASSERT(size && size<=DAS_MAX_SHOE_ALLOCATION);
-            uint32_t si = (size >> 4) - 1;
-            uint32_t total = grow(si);
-            shoe.chunks[si] = new Deck(total, size, shoe.chunks[si]);
+            uint32_t si = uint32_t((size >> 4) - 1);
+            uint64_t total = grow(si);
+            shoe.chunks[si] = new Deck(total, uint32_t(size), shoe.chunks[si]);
             return shoe.chunks[si]->allocate();
         }
     }
 
-    bool MemoryModel::free ( char * ptr, uint32_t size ) {
+    bool MemoryModel::free ( char * ptr, uint64_t size ) {
         if ( !size ) return true;
         size = (size + alignMask) & ~alignMask;
 
@@ -150,7 +152,7 @@ namespace das {
         memset(ptr, 0xcd, size);
 #endif
         if ( size <= maxShoeAllocation ) {
-            shoe.free(ptr, size);
+            shoe.free(ptr, uint32_t(size));
             totalAllocated -= size;
             return true;
         }
@@ -162,7 +164,7 @@ namespace das {
 #endif
         auto itb = bigStuff.find(ptr);
         if ( itb!=bigStuff.end() ) {
-            DAS_ASSERTF(itb->second==size, "free size mismatch, %u allocated vs %u freed", itb->second, size );
+            DAS_ASSERTF(itb->second==size, "free size mismatch, %llu allocated vs %llu freed", (unsigned long long)itb->second, (unsigned long long)size );
 #if DAS_SANITIZER
             memset(ptr, 0xcd, size);
             deletedBigStuff[itb->first] = itb->second;
@@ -185,7 +187,7 @@ namespace das {
         return false;
     }
 
-    char * MemoryModel::reallocate ( char * ptr, uint32_t size, uint32_t nsize ) {
+    char * MemoryModel::reallocate ( char * ptr, uint64_t size, uint64_t nsize ) {
         if ( !ptr ) return allocate(nsize);
         size = (size + alignMask) & ~alignMask;
         nsize = (nsize + alignMask) & ~alignMask;
@@ -263,19 +265,25 @@ namespace das {
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {   // we re-track all small allocations
             for ( auto ch=shoe.chunks[si]; ch; ch=ch->next ) {
                 ch->afterGC();
-                uint32_t utotal = ch->total / 32;
-                for ( uint32_t i=0; i!=utotal; ++i ) {
+                uint64_t utotal = ch->total / 32;
+#if DAS_SANITIZER
+                for ( uint64_t i=0; i!=utotal; ++i ) {
                     uint32_t b = ch->bits[i];
-                    for ( uint32_t j=0; j!=32; ++j ) {          // TODO: this is COUNTBITS * size
+                    for ( uint32_t j=0; j!=32; ++j ) {
                         if ( b & (1<<j) ) {
                             totalAllocated += ch->size;
                         } else {
-#if DAS_SANITIZER
                             memset ( ch->data + (i*32+j)*ch->size, 0xcd, ch->size );
-#endif
                         }
                     }
                 }
+#else
+                uint64_t live = 0;                              // popcount instead of per-bit scan
+                for ( uint64_t i=0; i!=utotal; ++i ) {
+                    live += das_popcount(ch->bits[i]);
+                }
+                totalAllocated += live * ch->size;
+#endif
             }
         }
         for ( auto it = bigStuff.begin(); it!=bigStuff.end() ; ) {
@@ -296,7 +304,7 @@ namespace das {
         }
     }
 
-    char * LinearChunkAllocator::reallocate ( char * ptr, uint32_t size, uint32_t nsize ) {
+    char * LinearChunkAllocator::reallocate ( char * ptr, uint64_t size, uint64_t nsize ) {
         if ( !ptr ) return allocate(nsize);
         size = (size + alignMask) & ~alignMask;
         nsize = (nsize + alignMask) & ~alignMask;
@@ -307,44 +315,51 @@ namespace das {
         return nptr;
     }
 
-    void LinearChunkAllocator::free ( char * ptr, uint32_t s ) {
+    void LinearChunkAllocator::free ( char * ptr, uint64_t s ) {
         s = (s + alignMask) & ~alignMask;
+        DAS_ASSERTF(s <= UINT32_MAX, "LinearChunkAllocator chunks are uint32-bounded; free of >4GB block makes no sense");
         for ( auto ch=chunk; ch; ch=ch->next ) {
             if ( ch->isOwnPtr(ptr) ) {
-                ch->free(ptr,s);
+                ch->free(ptr,uint32_t(s));
                 break;
             }
         }
     }
 
     uint32_t LinearChunkAllocator::grow ( uint32_t size ) {
-        return customGrow ? customGrow(size) : size * 2;
+        // HeapChunk is uint32-bounded by design (see allocate's DAS_VERIFYF); the
+        // grow hook is 64-bit, so clamp its result back into the per-chunk cap.
+        uint64_t ng = customGrow ? customGrow(size) : uint64_t(size) * 2;
+        return uint32_t(das::min(ng, uint64_t(UINT32_MAX)));
     }
 
-    char * LinearChunkAllocator::allocate ( uint32_t s ) {
+    char * LinearChunkAllocator::allocate ( uint64_t s ) {
         if ( !s ) return nullptr;
         s = (s + alignMask) & ~alignMask;
+        DAS_VERIFYF(s <= UINT32_MAX, "LinearChunkAllocator: single allocation of %llu bytes exceeds the per-chunk uint32 cap; >4GB allocations must go through PersistentHeapAllocator", (unsigned long long)s);
         if ( !chunk ) {
             if ( !initialSize ) {
                 initialSize = default_initial_size;
             }
-            chunk = new HeapChunk ( das::max(initialSize, s), nullptr );
+            chunk = new HeapChunk ( uint32_t(das::max(initialSize, s)), nullptr );
             // printf("[HC] %i\n", chunk->size);
         }
         for ( ;; ) {
-            if ( char * res = chunk->allocate(s) ) {
+            if ( char * res = chunk->allocate(uint32_t(s)) ) {
                 // printf("[A] %i bytes, offs=%i\n", int(s), int(res-chunk->data));
                 return res;
             }
-            chunk = new HeapChunk ( das::max(grow(chunk->size), s), chunk);
+            chunk = new HeapChunk ( uint32_t(das::max(uint64_t(grow(chunk->size)), s)), chunk);
             // printf("[HC] %i bytes\n", chunk->size);
         }
     }
 
     void LinearChunkAllocator::reset() {
         if ( chunk && chunk->next ) {
-            auto maxAllocated = (uint32_t(bytesAllocated())+1023) & ~1023;
-            initialSize = das::max(initialSize, maxAllocated);
+            auto maxAllocated = (bytesAllocated()+1023) & ~uint64_t(1023);
+            // Clamp at UINT32_MAX so the next allocate() cast to uint32_t doesn't
+            // silently truncate a large cumulative footprint to a tiny initial chunk.
+            initialSize = das::min<uint64_t>(UINT32_MAX, das::max(initialSize, maxAllocated));
             delete chunk;
             chunk = nullptr;
         } else if ( chunk ) {

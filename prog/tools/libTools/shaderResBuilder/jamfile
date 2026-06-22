@@ -15,11 +15,12 @@ Sources =
 
   dynSceneResSrc.cpp
   rendInstResSrc.cpp
+  rendInstVoxel.cpp
 
   tristrip/stripobj.cpp
   tristrip/tristrip.cpp
 
-  forsythTriangleReorderopt.cpp 
+  forsythTriangleReorderopt.cpp
 ;
 
 AddIncludes =
@@ -33,6 +34,13 @@ UseProgLibs =
   3rdPartyLibs/meshoptimizer
   3rdPartyLibs/eastl
 ;
+
+if $(PlatformArch) = e2k {
+  CPPopt += -DTEX_CANNOT_USE_ISPC ;
+} else {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/convert/ispc_texcomp ;
+  UseProgLibs += 3rdPartyLibs/convert/ispc_texcomp ;
+}
 
 CPPopt = -D_DEBUG_TAB_ ;
 

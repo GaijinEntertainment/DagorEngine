@@ -40,6 +40,27 @@ typedef uint (*AcquireTexCallback)(void *); // tex_ptr, returns tid
 
 typedef void (*FatalErrorCallback)(const char *, va_list); // fmt, args
 
+typedef float4 (*RbGetF4Callback)(int32_t);
+typedef float (*RbGetRealCallback)(int32_t);
+typedef int32_t (*RbGetIntCallback)(int32_t);
+typedef void (*RbGetMat44Callback)(int32_t, float4x4 *);
+typedef void *(*RbGetTexCallback)(int32_t);
+typedef void *(*RbGetBufCallback)(int32_t);
+typedef int4 (*RbGetIvecCallback)(int32_t);
+typedef void (*RbFlushTexCallback)(int32_t, int32_t, void *);
+typedef void (*RbFlushBufCallback)(int32_t, int32_t, void *);
+typedef uint32_t (*RbAllocBindlessCallback)(void *);
+typedef void (*RbFlushBindlessTexCallback)(uint32_t, void *);
+typedef uint64_t (*RbGetSamplerCallback)(int32_t);
+typedef void *(*RbGetTlasCallback)(int32_t);
+typedef void (*RbFlushCbCallback)(int32_t, int32_t, void *);
+typedef void (*RbFlushSamplerCallback)(int32_t, int32_t, uint64_t);
+typedef uint32_t (*RbAllocBindlessSamplerCallback)(uint64_t);
+typedef void (*RbFlushBindlessSamplerCallback)(uint32_t, uint64_t);
+typedef void (*RbFlushTlasCallback)(int32_t, int32_t, void *);
+typedef void (*RbFlushRwtexCallback)(int32_t, int32_t, void *);
+typedef void (*RbFlushRwbufCallback)(int32_t, int32_t, void *);
+
 struct CallbackTable
 {
   SetResourceCallback setTex;
@@ -74,6 +95,28 @@ struct CallbackTable
   AcquireTexCallback acquireTex;
 
   FatalErrorCallback fatal;
+
+  RbGetF4Callback rbGetF4;
+  RbGetRealCallback rbGetReal;
+  RbGetIntCallback rbGetInt;
+  RbGetMat44Callback rbGetMat44;
+  RbGetTexCallback rbGetTex;
+  RbGetBufCallback rbGetBuf;
+  RbGetIvecCallback rbGetIvec;
+
+  RbFlushTexCallback rbFlushTex;
+  RbFlushBufCallback rbFlushBuf;
+  RbAllocBindlessCallback rbAllocBindless;
+  RbFlushBindlessTexCallback rbFlushBindlessTex;
+  RbGetSamplerCallback rbGetSampler;
+  RbGetTlasCallback rbGetTlas;
+  RbFlushCbCallback rbFlushCb;
+  RbFlushSamplerCallback rbFlushSampler;
+  RbAllocBindlessSamplerCallback rbAllocBindlessSampler;
+  RbFlushBindlessSamplerCallback rbFlushBindlessSampler;
+  RbFlushTlasCallback rbFlushTlas;
+  RbFlushRwtexCallback rbFlushRwtex;
+  RbFlushRwbufCallback rbFlushRwbuf;
 };
 
 } // namespace stcode::cpp

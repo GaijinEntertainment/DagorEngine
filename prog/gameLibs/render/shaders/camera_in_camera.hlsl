@@ -119,7 +119,7 @@ CameraView get_prev_frame_camera_view(float2 uv)
 //use it with stencil test enabled only
 CameraView get_camera_view_postfx()
 {
-  CameraView view;
+  CameraView view = camera_in_camera_main_view(); // inits isEdge when edge bias is compiled in
   view.isMain = camera_in_camera_active == 0.0 || camera_in_camera_postfx_lens_view == 0.0;
   return view;
 }

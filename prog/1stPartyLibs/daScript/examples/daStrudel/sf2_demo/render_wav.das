@@ -47,17 +47,17 @@ def main() {
     // build the pattern
     let pat <- stack([
         // drums — SF2 GM percussion (bank 128)
-        note_pattern("c2 ~ [~ c2] ~, ~ eb2 ~ eb2, [~ fs2] [~ fs2] [~ fs2] [~ fs2]")
-            |> set_sf2(0) |> set_sf2_bank(128) |> set_gain(0.7),
+        note("c2 ~ [~ c2] ~, ~ eb2 ~ eb2, [~ fs2] [~ fs2] [~ fs2] [~ fs2]")
+            |> sf2(0) |> sf2_bank(128) |> gain(0.7),
         // piano arpeggios
-        note_pattern("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>")
-            |> set_sf2("piano") |> set_gain(0.45),
+        note("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>")
+            |> sf2("piano") |> gain(0.45),
         // bass
-        note_pattern("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>")
-            |> set_sf2("acoustic_bass") |> set_gain(0.6),
+        note("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>")
+            |> sf2("acoustic_bass") |> gain(0.6),
         // string pad
-        note_pattern("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>")
-            |> set_sf2("string_ensemble") |> set_gain(0.2)
+        note("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>")
+            |> sf2("string_ensemble") |> gain(0.2)
     ])
 
     // set up scheduler
@@ -77,11 +77,10 @@ def main() {
 
     print("Rendering {duration} seconds...\n")
     while (wall_time < duration) {
-        var chunk <- tick(sched, pat, bank, wall_time, chunk_sec)
-        for (s in chunk) {
+        tick(sched, pat, bank, wall_time, chunk_sec)
+        for (s in g_master_pcm) {
             output |> push(s)
         }
-        delete chunk
         wall_time += double(chunk_sec)
     }
 

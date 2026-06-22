@@ -84,7 +84,7 @@ extern void motion_matching_update_anim_tree_foot_locker(AnimV20::AnimcharBaseCo
 
 namespace bind_dascript
 {
-inline void anim_state_holder_get_foot_locker_legs(AnimV20::IAnimStateHolder *anim_state, const AnimationDataBase &data_base,
+inline void anim_state_holder_get_foot_locker_legs(AnimV20::AnimGraphStateHolder *anim_state, const AnimationDataBase &data_base,
   const das::TBlock<void, das::TArray<AnimV20::FootLockerIKCtrl::LegData>> &block, das::Context *context, das::LineInfoArg *at)
 {
   if (data_base.footLockerParamId < 0)
@@ -98,7 +98,7 @@ inline void anim_state_holder_get_foot_locker_legs(AnimV20::IAnimStateHolder *an
   context->invoke(block, &arg, nullptr, at);
 }
 
-inline void anim_state_holder_iterate_foot_locker_legs_const(const AnimV20::IAnimStateHolder *anim_state,
+inline void anim_state_holder_iterate_foot_locker_legs_const(const AnimV20::AnimGraphStateHolder *anim_state,
   const AnimationDataBase &data_base, const das::TBlock<void, const AnimV20::FootLockerIKCtrl::LegData &> &block,
   das::Context *context, das::LineInfoArg *at)
 {

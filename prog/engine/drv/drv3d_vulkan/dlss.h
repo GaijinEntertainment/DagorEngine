@@ -24,7 +24,6 @@ public:
 
   bool evaluate(const nv::DlssParams<void> &params, void *command_buffer) override;
   eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const override;
-  bool setOptions(Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model) override;
 
   void DeleteFeature() override;
 

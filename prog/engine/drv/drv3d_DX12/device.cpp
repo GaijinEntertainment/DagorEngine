@@ -856,68 +856,90 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
 
   using enum ImageViewState::Type;
 
-  if (isInErrorState()) [[unlikely]]
-  {
-    switch (state.getType())
+  using DescriptorAllocationResult = resource_manager::TextureDescriptorProvider::DescriptorAllocationResult;
+  return [&]() -> DescriptorAllocationResult {
+    if (isInErrorState()) [[unlikely]]
     {
-      case SRV: return nullResourceTable.get(D3D_SIT_TEXTURE, img->getSRVDimension());
-      case UAV: return nullResourceTable.get(D3D_SIT_UAV_RWTYPED, img->getSRVDimension());
-      case RTV: return nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW];
-      case DSV_RW:
-      case DSV_CONST: return {};
+      return dag::Unexpected<resource_manager::MemoryAllocationError>{{.errorCode = DXGI_ERROR_DEVICE_REMOVED}};
     }
-  }
-
-  D3D12_CPU_DESCRIPTOR_HANDLE handle{};
-
-  switch (state.getType())
-  {
-    case SRV:
-    case UAV: handle = resources.allocateTextureSRVDescriptor(device.get()); break;
-    case RTV: handle = resources.allocateTextureRTVDescriptor(device.get()); break;
-    case DSV_RW:
-    case DSV_CONST: handle = resources.allocateTextureDSVDescriptor(device.get()); break;
-  }
-
-  if (is_swapchain_color_image(img))
-  {
-    // for swapchain the backend will create the views and update the descriptor
-    context.addSwapchainView(img, {.handle = handle, .state = state});
-  }
-  else
-  {
     switch (state.getType())
     {
       case SRV:
-      {
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType(), img->isMultisampled());
-        device->CreateShaderResourceView(img->getHandle(), &desc, handle);
-        break;
-      }
-      case UAV:
-      {
-        D3D12_UNORDERED_ACCESS_VIEW_DESC desc = state.asUAVDesc(img->getType());
-        device->CreateUnorderedAccessView(img->getHandle(), nullptr, &desc, handle);
-        break;
-      }
-      case RTV:
-      {
-        D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType(), img->isMultisampled());
-        device->CreateRenderTargetView(img->getHandle(), &desc, handle);
-        break;
-      }
+      case UAV: return resources.allocateTextureSRVDescriptor(device.get());
+      case RTV: return resources.allocateTextureRTVDescriptor(device.get());
       case DSV_RW:
-      case DSV_CONST:
-      {
-        D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType(), img->isMultisampled());
-        device->CreateDepthStencilView(img->getHandle(), &desc, handle);
-        break;
-      }
+      case DSV_CONST: return resources.allocateTextureDSVDescriptor(device.get());
     }
-  }
+    return dag::Unexpected<resource_manager::MemoryAllocationError>{{.errorCode = E_INVALIDARG}};
+  }()
+                    .and_then([&](auto handle) -> DescriptorAllocationResult {
+                      using enum ImageViewState::Type;
+                      if (is_swapchain_color_image(img))
+                      {
+                        // for swapchain the backend will create the views and update the descriptor
+                        context.addSwapchainView(img, {.handle = handle, .state = state});
+                      }
+                      else
+                      {
+                        switch (state.getType())
+                        {
+                          case SRV:
+                          {
+                            D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType(), img->isMultisampled());
+                            device->CreateShaderResourceView(img->getHandle(), &desc, handle);
+                            break;
+                          }
+                          case UAV:
+                          {
+                            D3D12_UNORDERED_ACCESS_VIEW_DESC desc = state.asUAVDesc(img->getType());
+                            device->CreateUnorderedAccessView(img->getHandle(), nullptr, &desc, handle);
+                            break;
+                          }
+                          case RTV:
+                          {
+                            D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType(), img->isMultisampled());
+                            device->CreateRenderTargetView(img->getHandle(), &desc, handle);
+                            break;
+                          }
+                          case DSV_RW:
+                          case DSV_CONST:
+                          {
+                            D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType(), img->isMultisampled());
+                            device->CreateDepthStencilView(img->getHandle(), &desc, handle);
+                            break;
+                          }
+                        }
+                      }
 
-  img->addView({.handle = handle, .state = state});
-  return handle;
+                      img->addView({.handle = handle, .state = state});
+                      return handle;
+                    })
+                    .or_else([&](auto error) -> DescriptorAllocationResult {
+                      using enum ImageViewState::Type;
+                      const char *viewType = [&] {
+                        switch (state.getType())
+                        {
+                          case SRV: return "SRV";
+                          case UAV: return "UAV";
+                          case RTV: return "RTV";
+                          case DSV_RW: return "DSV_RW";
+                          case DSV_CONST: return "DSV_CONST";
+                        }
+                        return "unknown";
+                      }();
+                      logdbg("DX12: failed to allocate %s descriptor: %s", viewType, dxgi_error_code_to_string(error.errorCode));
+                      switch (state.getType())
+                      {
+                        case SRV: return nullResourceTable.get(D3D_SIT_TEXTURE, img->getSRVDimension());
+                        case UAV: return nullResourceTable.get(D3D_SIT_UAV_RWTYPED, img->getSRVDimension());
+                        case RTV: return nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW];
+                        case DSV_RW:
+                        case DSV_CONST: break;
+                      }
+                      // For DSV the fallback is a default descriptor, so keep the error and let value_or yield it.
+                      return dag::Unexpected{error};
+                    })
+                    .value_or({});
 }
 
 Device::~Device() { shutdown(); }
@@ -926,6 +948,8 @@ void Device::setupNullViews()
 {
   if (isIll())
     return;
+
+  using DescriptorAllocationResult = resource_manager::TextureDescriptorProvider::DescriptorAllocationResult;
   {
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_UNKNOWN;
@@ -935,8 +959,12 @@ void Device::setupNullViews()
     desc.Buffer.NumElements = 1;
     desc.Buffer.StructureByteStride = 4;
     desc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-    nullResourceTable.table[NullResourceTable::SRV_BUFFER] = resources.allocateBufferSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_BUFFER]);
+    nullResourceTable.table[NullResourceTable::SRV_BUFFER] = resources.allocateBufferSRVDescriptor(device.get())
+                                                               .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                 device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                 return descriptor;
+                                                               })
+                                                               .value_or({});
 
     desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -944,8 +972,12 @@ void Device::setupNullViews()
     desc.Texture2D.MipLevels = 1;
     desc.Texture2D.PlaneSlice = 0;
     desc.Texture2D.ResourceMinLODClamp = 0.f;
-    nullResourceTable.table[NullResourceTable::SRV_TEX2D] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX2D]);
+    nullResourceTable.table[NullResourceTable::SRV_TEX2D] = resources.allocateTextureSRVDescriptor(device.get())
+                                                              .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                return descriptor;
+                                                              })
+                                                              .value_or({});
 
     desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
     desc.Texture2DArray.MostDetailedMip = 0;
@@ -954,22 +986,34 @@ void Device::setupNullViews()
     desc.Texture2DArray.ArraySize = 1;
     desc.Texture2DArray.PlaneSlice = 0;
     desc.Texture2DArray.ResourceMinLODClamp = 0.f;
-    nullResourceTable.table[NullResourceTable::SRV_TEX2D_ARRAY] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX2D_ARRAY]);
+    nullResourceTable.table[NullResourceTable::SRV_TEX2D_ARRAY] = resources.allocateTextureSRVDescriptor(device.get())
+                                                                    .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                      device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                      return descriptor;
+                                                                    })
+                                                                    .value_or({});
 
     desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
     desc.Texture3D.MostDetailedMip = 0;
     desc.Texture3D.MipLevels = 1;
     desc.Texture3D.ResourceMinLODClamp = 0.f;
-    nullResourceTable.table[NullResourceTable::SRV_TEX3D] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX3D]);
+    nullResourceTable.table[NullResourceTable::SRV_TEX3D] = resources.allocateTextureSRVDescriptor(device.get())
+                                                              .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                return descriptor;
+                                                              })
+                                                              .value_or({});
 
     desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
     desc.TextureCube.MostDetailedMip = 0;
     desc.TextureCube.MipLevels = 1;
     desc.TextureCube.ResourceMinLODClamp = 0.f;
-    nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE]);
+    nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE] = resources.allocateTextureSRVDescriptor(device.get())
+                                                                 .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                   device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                   return descriptor;
+                                                                 })
+                                                                 .value_or({});
 
     desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
     desc.TextureCubeArray.MostDetailedMip = 0;
@@ -977,8 +1021,12 @@ void Device::setupNullViews()
     desc.TextureCubeArray.First2DArrayFace = 0;
     desc.TextureCubeArray.NumCubes = 1;
     desc.TextureCubeArray.ResourceMinLODClamp = 0.f;
-    nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE_ARRAY] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE_ARRAY]);
+    nullResourceTable.table[NullResourceTable::SRV_TEX_CUBE_ARRAY] = resources.allocateTextureSRVDescriptor(device.get())
+                                                                       .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                         device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                         return descriptor;
+                                                                       })
+                                                                       .value_or({});
 
 #ifdef D3D_HAS_RAY_TRACING
     if (checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS5>().RaytracingTier >= D3D12_RAYTRACING_TIER_1_0)
@@ -986,8 +1034,12 @@ void Device::setupNullViews()
       desc.Format = DXGI_FORMAT_UNKNOWN;
       desc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
       desc.RaytracingAccelerationStructure.Location = 0;
-      nullResourceTable.table[NullResourceTable::SRV_TLAS] = resources.allocateBufferSRVDescriptor(device.get());
-      device->CreateShaderResourceView(nullptr, &desc, nullResourceTable.table[NullResourceTable::SRV_TLAS]);
+      nullResourceTable.table[NullResourceTable::SRV_TLAS] = resources.allocateBufferSRVDescriptor(device.get())
+                                                               .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                 device->CreateShaderResourceView(nullptr, &desc, descriptor);
+                                                                 return descriptor;
+                                                               })
+                                                               .value_or({});
     }
 #endif
   }
@@ -1001,35 +1053,58 @@ void Device::setupNullViews()
     desc.Buffer.StructureByteStride = 4;
     desc.Buffer.CounterOffsetInBytes = 0;
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-    nullResourceTable.table[NullResourceTable::UAV_BUFFER] = resources.allocateBufferSRVDescriptor(device.get());
-    device->CreateUnorderedAccessView(nullptr, nullptr, &desc, nullResourceTable.table[NullResourceTable::UAV_BUFFER]);
+    nullResourceTable.table[NullResourceTable::UAV_BUFFER] =
+      resources.allocateBufferSRVDescriptor(device.get())
+        .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+          device->CreateUnorderedAccessView(nullptr, nullptr, &desc, descriptor);
+          return descriptor;
+        })
+        .value_or({});
 
     desc.Format = DXGI_FORMAT_R32_TYPELESS;
     desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
     desc.Buffer.StructureByteStride = 0;
-    nullResourceTable.table[NullResourceTable::UAV_BUFFER_RAW] = resources.allocateBufferSRVDescriptor(device.get());
-    device->CreateUnorderedAccessView(nullptr, nullptr, &desc, nullResourceTable.table[NullResourceTable::UAV_BUFFER_RAW]);
+    nullResourceTable.table[NullResourceTable::UAV_BUFFER_RAW] =
+      resources.allocateBufferSRVDescriptor(device.get())
+        .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+          device->CreateUnorderedAccessView(nullptr, nullptr, &desc, descriptor);
+          return descriptor;
+        })
+        .value_or({});
 
     desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     desc.Texture2D.MipSlice = 0;
     desc.Texture2D.PlaneSlice = 0;
-    nullResourceTable.table[NullResourceTable::UAV_TEX2D] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateUnorderedAccessView(nullptr, nullptr, &desc, nullResourceTable.table[NullResourceTable::UAV_TEX2D]);
+    nullResourceTable.table[NullResourceTable::UAV_TEX2D] = resources.allocateTextureSRVDescriptor(device.get())
+                                                              .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                device->CreateUnorderedAccessView(nullptr, nullptr, &desc, descriptor);
+                                                                return descriptor;
+                                                              })
+                                                              .value_or({});
 
     desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
     desc.Texture2DArray.MipSlice = 0;
     desc.Texture2DArray.FirstArraySlice = 0;
     desc.Texture2DArray.ArraySize = 1;
-    nullResourceTable.table[NullResourceTable::UAV_TEX2D_ARRAY] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateUnorderedAccessView(nullptr, nullptr, &desc, nullResourceTable.table[NullResourceTable::UAV_TEX2D_ARRAY]);
+    nullResourceTable.table[NullResourceTable::UAV_TEX2D_ARRAY] =
+      resources.allocateTextureSRVDescriptor(device.get())
+        .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+          device->CreateUnorderedAccessView(nullptr, nullptr, &desc, descriptor);
+          return descriptor;
+        })
+        .value_or({});
 
     desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
     desc.Texture3D.MipSlice = 0;
     desc.Texture3D.FirstWSlice = 0;
     desc.Texture3D.WSize = 1;
-    nullResourceTable.table[NullResourceTable::UAV_TEX3D] = resources.allocateTextureSRVDescriptor(device.get());
-    device->CreateUnorderedAccessView(nullptr, nullptr, &desc, nullResourceTable.table[NullResourceTable::UAV_TEX3D]);
+    nullResourceTable.table[NullResourceTable::UAV_TEX3D] = resources.allocateTextureSRVDescriptor(device.get())
+                                                              .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                device->CreateUnorderedAccessView(nullptr, nullptr, &desc, descriptor);
+                                                                return descriptor;
+                                                              })
+                                                              .value_or({});
   }
 
   {
@@ -1038,8 +1113,12 @@ void Device::setupNullViews()
     desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
     desc.Texture2D.MipSlice = 0;
     desc.Texture2D.PlaneSlice = 0;
-    nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW] = resources.allocateTextureRTVDescriptor(device.get());
-    device->CreateRenderTargetView(nullptr, &desc, nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW]);
+    nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW] = resources.allocateTextureRTVDescriptor(device.get())
+                                                                       .and_then([&](auto descriptor) -> DescriptorAllocationResult {
+                                                                         device->CreateRenderTargetView(nullptr, &desc, descriptor);
+                                                                         return descriptor;
+                                                                       })
+                                                                       .value_or({});
   }
 
   {

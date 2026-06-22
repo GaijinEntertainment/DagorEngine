@@ -147,6 +147,7 @@ ImpostorOptions parse_impostor_options()
       else
       {
         DEBUG_CTX("Unhandled option: %s", key.c_str());
+        ret.valid = false;
       }
     }
     else if (std::regex_match(str, m, flagReg))
@@ -178,6 +179,7 @@ ImpostorOptions parse_impostor_options()
       else
       {
         DEBUG_CTX("Unknown flag: -%s", flag.c_str());
+        ret.valid = false;
       }
     }
     else

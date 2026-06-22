@@ -1,0 +1,27 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/perfMon/stub ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/perfMon/stub.lib ;
+
+AddIncludes =
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/perfMon
+;
+
+Sources =
+  misc.cpp
+  pix.cpp
+  cachesim.cpp
+;
+
+UseProgLibs =
+  engine/perfMon/daProfilerStub
+  engine/perfMon/gpuProfilerStub
+  engine/perfMon/perfTimerStub
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

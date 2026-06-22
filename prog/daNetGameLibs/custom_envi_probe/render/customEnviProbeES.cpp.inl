@@ -108,11 +108,8 @@ static void custom_cube_texture_before_render_es(const UpdateStageInfoBeforeRend
     return;
   if (prefetch_and_check_managed_texture_loaded(custom_envi_probe__cubemap.getTexId(), true))
   {
-    int frameBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
-    ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
-    get_world_renderer()->reloadCube(false);
+    get_world_renderer()->scheduleEnviProbeReRender();
     custom_envi_probe__needs_render = false;
-    ShaderGlobal::setBlock(frameBlock, ShaderGlobal::LAYER_FRAME);
   }
 }
 

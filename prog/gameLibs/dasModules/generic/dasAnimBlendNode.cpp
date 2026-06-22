@@ -28,7 +28,7 @@ static das::mutex das_pbc_reload_mutex;
 // original's read-only code & globals via makeWorkerFor() - the same trick parallel ECS systems use.
 // The original `source` context is never evaluated on directly; it only serves as the makeWorkerFor
 // source. So eval is fully parallel with no lock and no insideContext/heap races. Per-instance mutable
-// runtime state must live in the IPureAnimStateHolder (inline ptr), not in the shared das instance.
+// runtime state must live in the AnimGraphStateHolder (inline ptr), not in the shared das instance.
 //
 // Only the rare hot-reload rebuild of the shared das instance (validateClassPtr) is serialized, via
 // das_pbc_reload_mutex.
@@ -54,208 +54,208 @@ static bind_dascript::EsContext *get_blend_node_eval_context(bind_dascript::EsCo
   return t_das_blend_node_ctx;
 }
 
-class DasAnimPostBlendCtrl final : public AnimV20::AnimPostBlendCtrl
+void DasAnimPostBlendCtrl::printUnhandledException(das::Context *c, const char *func_name) const
 {
-public:
-  AnimPostBlendControllerDasContext *ctx;
-  char *classPtr = nullptr;
-  uint32_t gen = 0;
-  const DataBlock *data = nullptr;
+  logerr("%s: unhandled exception in anim pbc: %s::%s: %s", c->exceptionAt.describe().c_str(), class_name(), func_name,
+    c->getException());
+}
 
-  void printUnhandledException(das::Context *c, const char *func_name) const
+void DasAnimPostBlendCtrl::resetLinks()
+{
+  das_aligned_free16(classPtr);
+  classPtr = nullptr;
+}
+
+das::Func *DasAnimPostBlendCtrl::getFuncPtr(uint32_t offset) const
+{
+  if (!classPtr || offset == BLEND_NODE_CONTEXT_INVALID_OFFSET)
+    return nullptr;
+  auto func = (das::Func *)(classPtr + offset);
+  return func->PTR == nullptr ? nullptr : func;
+}
+
+void DasAnimPostBlendCtrl::setHiddenLinks()
+{
+  if (ctx->thisCtrlOffset != BLEND_NODE_CONTEXT_INVALID_OFFSET)
+    *(AnimV20::AnimPostBlendCtrl **)(classPtr + ctx->thisCtrlOffset) = this;
+  if (ctx->srcBlkOffset != BLEND_NODE_CONTEXT_INVALID_OFFSET)
+    *(const DataBlock **)(classPtr + ctx->srcBlkOffset) = data;
+}
+
+// Evaluates `fn(context)` on the current thread's worker context (lockless, parallel), with the
+// nested-query + exception-recovery guard. `fn` must invoke the das method on the passed context.
+template <typename Fn>
+void DasAnimPostBlendCtrl::invokeGuarded(const char *func_name, Fn &&fn)
+{
+  // Bind the main-thread das environment on worker threads, else env-dependent builtins used by the
+  // controller (ecs query, profiler, rtti) dereference an unbound thread-local environment and crash.
+  bind_dascript::RAIIDasEnvBound dasEnv;
+  bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
+  context->tryRestartAndLock();
+  ecs::NestedQueryRestorer restorer(context->mgr);
+  if (!context->ownStack)
   {
-    logerr("%s: unhandled exception in anim pbc: %s::%s: %s", c->exceptionAt.describe().c_str(), class_name(), func_name,
-      c->getException());
+    das::SharedFramememStackGuard guard(*context);
+    das::das_try_recover(
+      context, [&]() { fn(context); },
+      [&]() {
+        printUnhandledException(context, func_name);
+        restorer.restore(context->mgr);
+      });
   }
+  else
+    das::das_try_recover(
+      context, [&]() { fn(context); },
+      [&]() {
+        printUnhandledException(context, func_name);
+        restorer.restore(context->mgr);
+      });
+  context->unlock();
+}
 
-  void resetLinks()
+// (Re)builds the das class instance when the owning context generation changes (hot-reload).
+bool DasAnimPostBlendCtrl::validateClassPtr()
+{
+  if (!ctx->context || !ctx->ctor)
   {
-    das_aligned_free16(classPtr);
-    classPtr = nullptr;
+    resetLinks();
+    logerr("daScript: anim psot blend controller <%s> validation error: %s %s", ctx->name.c_str(),
+      !ctx->context ? "context is null." : "",
+      !ctx->ctor ? "ctor is null. Add option always_export_initializer=true to export default c-tor." : "");
+    return false;
   }
-
-  das::Func *getFuncPtr(uint32_t offset) const
+  if (ctx->gen == gen)
+    return true;
+  // Rebuilding the shared das instance is rare (load time / hot-reload). Serialize it so concurrent
+  // lifecycle calls don't race on classPtr; they re-check the generation and skip once it's built.
+  das::lock_guard<das::mutex> reloadLock(das_pbc_reload_mutex);
+  if (ctx->gen == gen) // re-check after acquiring the lock: another thread may have rebuilt it
+    return true;
+#if ANIM_PBC_HOT_RELOAD_ENABLED
+  const bool reload = gen > 0;
+#endif
+  resetLinks();
+  bind_dascript::RAIIDasEnvBound dasEnv;
+  bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
+  context->tryRestartAndLock();
+  ecs::NestedQueryRestorer restorer(context->mgr);
+  classPtr = (char *)das_aligned_alloc16(ctx->structInfo->size);
+  if (classPtr)
   {
-    if (!classPtr || offset == BLEND_NODE_CONTEXT_INVALID_OFFSET)
-      return nullptr;
-    auto func = (das::Func *)(classPtr + offset);
-    return func->PTR == nullptr ? nullptr : func;
-  }
-
-  void setHiddenLinks()
-  {
-    if (ctx->thisCtrlOffset != BLEND_NODE_CONTEXT_INVALID_OFFSET)
-      *(AnimV20::AnimPostBlendCtrl **)(classPtr + ctx->thisCtrlOffset) = this;
-    if (ctx->srcBlkOffset != BLEND_NODE_CONTEXT_INVALID_OFFSET)
-      *(const DataBlock **)(classPtr + ctx->srcBlkOffset) = data;
-  }
-
-  // Evaluates `fn(context)` on the current thread's worker context (lockless, parallel), with the
-  // nested-query + exception-recovery guard. `fn` must invoke the das method on the passed context.
-  template <typename Fn>
-  void invokeGuarded(const char *func_name, Fn &&fn)
-  {
-    // Bind the main-thread das environment on worker threads, else env-dependent builtins used by the
-    // controller (ecs query, profiler, rtti) dereference an unbound thread-local environment and crash.
-    bind_dascript::RAIIDasEnvBound dasEnv;
-    bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
-    context->tryRestartAndLock();
-    ecs::NestedQueryRestorer restorer(context->mgr);
+    vec4f args[1];
+    auto callCtor = [&]() { context->callWithCopyOnReturn(ctx->ctor, args, classPtr, nullptr); };
+    auto onErr = [&]() {
+      printUnhandledException(context, "ctor");
+      restorer.restore(context->mgr);
+    };
     if (!context->ownStack)
     {
       das::SharedFramememStackGuard guard(*context);
-      das::das_try_recover(
-        context, [&]() { fn(context); },
-        [&]() {
-          printUnhandledException(context, func_name);
-          restorer.restore(context->mgr);
-        });
+      das::das_try_recover(context, callCtor, onErr);
     }
     else
-      das::das_try_recover(
-        context, [&]() { fn(context); },
-        [&]() {
-          printUnhandledException(context, func_name);
-          restorer.restore(context->mgr);
-        });
-    context->unlock();
+      das::das_try_recover(context, callCtor, onErr);
   }
-
-  DasAnimPostBlendCtrl(AnimV20::AnimationGraph &g, AnimPostBlendControllerDasContext *c) : AnimV20::AnimPostBlendCtrl(g), ctx(c) {}
-  ~DasAnimPostBlendCtrl() { das_aligned_free16(classPtr); }
-
-  // (Re)builds the das class instance when the owning context generation changes (hot-reload).
-  bool validateClassPtr()
-  {
-    if (!ctx->context || !ctx->ctor)
-    {
-      resetLinks();
-      logerr("daScript: anim psot blend controller <%s> validation error: %s %s", ctx->name.c_str(),
-        !ctx->context ? "context is null." : "",
-        !ctx->ctor ? "ctor is null. Add option always_export_initializer=true to export default c-tor." : "");
-      return false;
-    }
-    if (ctx->gen == gen)
-      return true;
-    // Rebuilding the shared das instance is rare (load time / hot-reload). Serialize it so concurrent
-    // lifecycle calls don't race on classPtr; they re-check the generation and skip once it's built.
-    das::lock_guard<das::mutex> reloadLock(das_pbc_reload_mutex);
-    if (ctx->gen == gen) // re-check after acquiring the lock: another thread may have rebuilt it
-      return true;
+  else
+    logerr("daScript: can't allocate memory for anim ctrl <%s>", ctx->name.c_str());
+  context->unlock();
+  if (!classPtr)
+    return false;
+  setHiddenLinks();
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    const bool reload = gen > 0;
+  if (reload)
+    createNode(); // re-apply config on the freshly built instance
 #endif
-    resetLinks();
-    bind_dascript::RAIIDasEnvBound dasEnv;
-    bind_dascript::EsContext *context = get_blend_node_eval_context(bind_dascript::cast_es_context(ctx->context));
-    context->tryRestartAndLock();
-    ecs::NestedQueryRestorer restorer(context->mgr);
-    classPtr = (char *)das_aligned_alloc16(ctx->structInfo->size);
-    if (classPtr)
-    {
-      vec4f args[1];
-      auto callCtor = [&]() { context->callWithCopyOnReturn(ctx->ctor, args, classPtr, nullptr); };
-      auto onErr = [&]() {
-        printUnhandledException(context, "ctor");
-        restorer.restore(context->mgr);
-      };
-      if (!context->ownStack)
-      {
-        das::SharedFramememStackGuard guard(*context);
-        das::das_try_recover(context, callCtor, onErr);
-      }
-      else
-        das::das_try_recover(context, callCtor, onErr);
-    }
-    else
-      logerr("daScript: can't allocate memory for anim ctrl <%s>", ctx->name.c_str());
-    context->unlock();
-    if (!classPtr)
-      return false;
-    setHiddenLinks();
+  gen = ctx->gen;
+  return true;
+}
+
+void DasAnimPostBlendCtrl::createNode()
+{
+  // validateClassPtr is purposely missing to avoid deadlocks when called from validateClassPtr itself
+  auto func = getFuncPtr(ctx->createNodeOffset);
+  if (!func)
+    return;
+  invokeGuarded("createNode", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimationGraph &, const DataBlock &>(c, nullptr, *func, classPtr, graph,
+      *data);
+  });
+}
+
+void DasAnimPostBlendCtrl::init(AnimV20::AnimGraphStateHolder &st, const GeomNodeTree &tree)
+{
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    if (reload)
-      createNode(); // re-apply config on the freshly built instance
+  if (!validateClassPtr())
+    return;
 #endif
-    gen = ctx->gen;
-    return true;
-  }
+  auto func = getFuncPtr(ctx->initOffset);
+  if (!func)
+    return;
+  invokeGuarded("init", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimGraphStateHolder &, const GeomNodeTree &>(c, nullptr, *func, classPtr,
+      st, tree);
+  });
+}
 
-  void createNode()
-  {
-    // validateClassPtr is purposely missing to avoid deadlocks when called from validateClassPtr itself
-    auto func = getFuncPtr(ctx->createNodeOffset);
-    if (!func)
-      return;
-    invokeGuarded("createNode", [&](das::Context *c) {
-      das::das_invoke_function<void>::invoke<void *, AnimV20::AnimationGraph &, const DataBlock &>(c, nullptr, *func, classPtr, graph,
-        *data);
-    });
-  }
-
-  void init(AnimV20::IPureAnimStateHolder &st, const GeomNodeTree &tree) override
-  {
+void DasAnimPostBlendCtrl::process(AnimV20::AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, Context &pbc_ctx)
+{
+  TIME_PROFILE(process_outer)
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    if (!validateClassPtr())
-      return;
+  if (!validateClassPtr())
+    return;
 #endif
-    auto func = getFuncPtr(ctx->initOffset);
-    if (!func)
-      return;
-    invokeGuarded("init", [&](das::Context *c) {
-      das::das_invoke_function<void>::invoke<void *, AnimV20::IPureAnimStateHolder &, const GeomNodeTree &>(c, nullptr, *func,
-        classPtr, st, tree);
-    });
-  }
+  auto func = getFuncPtr(ctx->processOffset);
+  if (!func)
+    return;
+  invokeGuarded("process", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimGraphStateHolder &, float, GeomNodeTree &,
+      AnimV20::AnimPostBlendCtrl::Context &>(c, nullptr, *func, classPtr, st, wt, tree, pbc_ctx);
+  });
+}
 
-  void process(AnimV20::IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, Context &pbc_ctx) override
-  {
-    TIME_PROFILE(process_outer)
+void DasAnimPostBlendCtrl::advance(AnimV20::AnimGraphStateHolder &st, real dt)
+{
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    if (!validateClassPtr())
-      return;
+  if (!validateClassPtr())
+    return;
 #endif
-    auto func = getFuncPtr(ctx->processOffset);
-    if (!func)
-      return;
-    invokeGuarded("process", [&](das::Context *c) {
-      das::das_invoke_function<void>::invoke<void *, AnimV20::IPureAnimStateHolder &, float, GeomNodeTree &,
-        AnimV20::AnimPostBlendCtrl::Context &>(c, nullptr, *func, classPtr, st, wt, tree, pbc_ctx);
-    });
-  }
+  auto func = getFuncPtr(ctx->advanceOffset);
+  if (!func)
+    return;
+  invokeGuarded("advance", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimGraphStateHolder &, float>(c, nullptr, *func, classPtr, st, dt);
+  });
+}
 
-  void advance(AnimV20::IPureAnimStateHolder &st, real dt) override
-  {
+void DasAnimPostBlendCtrl::setDefaultState(AnimV20::AnimGraphStateHolder &st)
+{
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    if (!validateClassPtr())
-      return;
+  if (!validateClassPtr())
+    return;
 #endif
-    auto func = getFuncPtr(ctx->advanceOffset);
-    if (!func)
-      return;
-    invokeGuarded("advance", [&](das::Context *c) {
-      das::das_invoke_function<void>::invoke<void *, AnimV20::IPureAnimStateHolder &, float>(c, nullptr, *func, classPtr, st, dt);
-    });
-  }
+  auto func = getFuncPtr(ctx->setDefaultStateOffset);
+  if (!func)
+    return;
+  invokeGuarded("setDefaultState", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimGraphStateHolder &>(c, nullptr, *func, classPtr, st);
+  });
+}
 
-  void setDefaultState(AnimV20::IPureAnimStateHolder &st) override
-  {
+void DasAnimPostBlendCtrl::renderDebug(AnimV20::AnimGraphStateHolder &state)
+{
 #if ANIM_PBC_HOT_RELOAD_ENABLED
-    if (!validateClassPtr())
-      return;
+  if (!validateClassPtr())
+    return;
 #endif
-    auto func = getFuncPtr(ctx->setDefaultStateOffset);
-    if (!func)
-      return;
-    invokeGuarded("setDefaultState", [&](das::Context *c) {
-      das::das_invoke_function<void>::invoke<void *, AnimV20::IPureAnimStateHolder &>(c, nullptr, *func, classPtr, st);
-    });
-  }
+  auto func = getFuncPtr(ctx->renderDebugOffset);
+  if (!func)
+    return;
+  invokeGuarded("renderDebug", [&](das::Context *c) {
+    das::das_invoke_function<void>::invoke<void *, AnimV20::AnimGraphStateHolder &>(c, nullptr, *func, classPtr, state);
+  });
+}
 
-  void destroy() override {} // owned & deleted by AnimationGraph, like the built-in controllers
-
-  const char *class_name() const override { return ctx->name.c_str(); }
-};
+const char *DasAnimPostBlendCtrl::class_name() const { return ctx->name.c_str(); }
 
 static uint32_t get_offset(const das::StructurePtr &info, const char *funcName)
 {
@@ -274,6 +274,7 @@ void AnimPostBlendControllerDasContext::reset()
   processOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   advanceOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   setDefaultStateOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
+  renderDebugOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   thisCtrlOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   srcBlkOffset = BLEND_NODE_CONTEXT_INVALID_OFFSET;
   ++gen;
@@ -313,6 +314,7 @@ void AnimPostBlendControllerDasContext::updateContext(das::Context *ctx, const d
   processOffset = get_offset(astStruct, "process");
   advanceOffset = get_offset(astStruct, "advance");
   setDefaultStateOffset = get_offset(astStruct, "setDefaultState");
+  renderDebugOffset = get_offset(astStruct, "renderDebug");
   thisCtrlOffset = get_offset(astStruct, "thisCtrl");
   srcBlkOffset = get_offset(astStruct, "srcBlk");
 
@@ -327,7 +329,8 @@ bool AnimDasPostBlendControlerAnnotation::internalField(const eastl::string &fie
 
 static bool func_with_unused_args(const eastl::string &name)
 {
-  return name == "createNode" || name == "init" || name == "process" || name == "advance" || name == "setDefaultState";
+  return name == "createNode" || name == "init" || name == "process" || name == "advance" || name == "setDefaultState" ||
+         name == "renderDebug";
 }
 
 bool AnimDasPostBlendControlerAnnotation::touch(const das::StructurePtr &st, das::ModuleGroup &,

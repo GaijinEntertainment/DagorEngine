@@ -5,7 +5,7 @@
 #pragma once
 
 #include <ADT/uniqueResHandle.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 
 struct LightHandleDeleter
 {

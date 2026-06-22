@@ -5,6 +5,7 @@
 #include <3d/dag_texMgr.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_DObject.h>
+#include <generic/dag_carray.h>
 #include <memory/dag_mem.h>
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
@@ -35,6 +36,21 @@ public:
   Color4 convert(Color4 from) override { return from; }
 
   static IdentColorConvert object;
+};
+
+class VoxelSurfaceSrc : public DObject
+{
+public:
+  Tab<carray<uint8_t, 4 * 4 * 2>> rgbaBlocks;
+  Tab<carray<uint8_t, 4 * 4>> normBlocks;
+
+  VoxelSurfaceSrc();
+  ~VoxelSurfaceSrc() override;
+  decl_class_name(VoxelSurfaceSrc);
+
+  int save(mkbindump::BinDumpSaveCB &cwr);
+
+  static int zstdCompressionLevel;
 };
 
 /*********************************
@@ -85,6 +101,8 @@ public:
 
   // attach one part
   void attachDataPart(const GlobalVertexDataSrc &other_data, int _sv, int _numv, int _si, int _numf, int num_parts);
+
+  dag::Span<uint8_t> attachRawData(int size_bytes);
 
   void convertToIData32();
 

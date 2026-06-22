@@ -81,7 +81,6 @@ Sources +=
   prog/daNetGame/dasModules/dacoll.cpp
   prog/daNetGame/dasModules/matchingTypes.cpp
   prog/daNetGame/input/dasModules/touchInput.cpp
-  prog/daNetGame/net/reCreateEntityES.cpp.gen.es.cpp
   prog/daNetGame/render/dasModules/clipmapDecals.cpp
   prog/daNetGame/render/dasModules/daSkies.cpp
   prog/daNetGame/render/dasModules/fx.cpp
@@ -154,6 +153,7 @@ UseProgLibs +=
   1stPartyLibs/daScript/modules/dasQuirrel
   gameLibs/ecs/game/generic
   gameLibs/ecs/game/zones
+  gameLibs/ecs/net
   engine/daECS/core
   engine/daECS/gameResStub
   engine/daECS/io/datablock

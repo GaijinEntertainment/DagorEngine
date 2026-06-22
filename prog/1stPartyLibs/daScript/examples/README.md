@@ -43,8 +43,6 @@ daslang-live.exe examples/daslive/hello/main.das
 | `hello/` | Basic live-reload hello-world with OpenGL background color |
 | `triangle/` | Live-reloading triangle rendering |
 | `tank_game/` | Tank game example |
-| `arcanoid/` | Arcanoid game |
-| `sequence/` | Card game with AI bots, ELO rating, and evolution (requires `daspkg install`) |
 | `reload_test/` | Live-reload mechanism test |
 | `live_vars_demo/` | Variable viewer demo |
 | `test_api/` | REST API test |
@@ -52,6 +50,20 @@ daslang-live.exe examples/daslive/hello/main.das
 | `test_commands/` | Live commands test |
 | `test_decs_reload/` | DECS (ECS) reload test |
 | `test_watch/` | Watch mechanism test |
+
+## games/ — Game Examples
+
+Full games built on top of daslang-live. Can also run standalone under `daslang.exe`
+(same script, both hosts drive the same `init`/`update`/`shutdown` lifecycle).
+
+```
+daslang-live.exe examples/games/arcanoid/main.das
+```
+
+| Directory | Description |
+|-----------|-------------|
+| `arcanoid/` | Breakout game: DECS, OpenGL, procedural audio, strudel music, 30+ live commands |
+| `sequence/` | Sequence card board game: multi-module, bot AI, ELO tournament runner (requires `daspkg install`) |
 
 ## debugapi/ — Debug Agent Examples
 
@@ -112,6 +124,7 @@ Standalone examples that don't fit neatly into other categories.
 |------|-------------|
 | `base64_generators.das` | Base64 encoder built as a chain of composable generators (deliberately slow — demonstrates generator composition, not production encoding) |
 | `shader_like_validation.das` | Shader-like mode demo — shows how `options shader_like` rejects heap-allocating constructs (arrays, lambdas, `new`) at simulation time |
+| `describe_function.das` | AST introspection — compiles a program at runtime and pretty-prints each function back to gen2 source via `describe_function` (daslib/ast) |
 
 ## hv/ — WebSocket Chat Example
 

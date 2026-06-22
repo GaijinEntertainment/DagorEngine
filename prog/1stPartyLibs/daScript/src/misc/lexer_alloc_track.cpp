@@ -40,6 +40,14 @@ namespace das {
     void lexer_track_alloc(std::string *p, const char *tokenText) noexcept {
         if (!p || tl_inside) return;
         ReentryGuard g;
+        // Internal: suppress LeakMap tracking for our map's own node allocations.
+        // Otherwise the node alloc gets recorded in LeakMap; later, the matching
+        // operator delete during m.erase runs while alloc_tracker's tl_inside is
+        // already true (lexer_track_free is invoked from track_free_hook's
+        // ReentryGuard scope), so the nested track_free_hook bails before
+        // removing the entry, leaving a phantom leak attributed back to this
+        // very alloc site.
+        AllocTrackerInternalGuard atg;
         std::lock_guard<std::mutex> lk(lexer_track_mu());
         lexer_track_map()[p] = tokenText ? tokenText : "";
     }
@@ -47,6 +55,9 @@ namespace das {
     void lexer_track_free(std::string *p) noexcept {
         if (!p || tl_inside) return;
         ReentryGuard g;
+        // Match the alloc side so the matching internal frees during erase do
+        // not flag as orphan-frees (alloc was untracked, free must be too).
+        AllocTrackerInternalGuard atg;
         std::lock_guard<std::mutex> lk(lexer_track_mu());
         auto & m = lexer_track_map();
         auto it = m.find(p);
@@ -55,6 +66,7 @@ namespace das {
 
     int dump_lexer_string_leaks(FILE *out) noexcept {
         ReentryGuard g;
+        AllocTrackerInternalGuard atg;
         std::lock_guard<std::mutex> lk(lexer_track_mu());
         auto & m = lexer_track_map();
         if (m.empty()) return 0;

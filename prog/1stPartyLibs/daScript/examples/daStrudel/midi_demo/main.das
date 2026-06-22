@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 // MIDI file player demo — plays a .mid file with real piano + drum samples.
 // Usage: daslang.exe midi_demo.das -- path_to.mid

@@ -38,6 +38,7 @@ Sources =
   ec_singleHotkeyEditor.cpp
   ec_screenshot.cpp
   ec_screenshotSettingsDialog.cpp
+  ec_toolbarEditorCommandPopupButtonGroup.cpp
   ec_workspace.cpp
   ec_startDlg.cpp
   ec_gridobject.cpp

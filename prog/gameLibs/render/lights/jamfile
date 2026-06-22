@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/lights ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/lights.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/binPack2D/include
+;
+
+Sources =
+  clusteredLights.cpp
+  clusteredLightsGrid.cpp
+  clusteredLightsSorter.cpp
+  omniLightsManager.cpp
+  spotLightsManager.cpp
+  tileDeferredLighting.cpp
+  tiledLights.cpp
+  frustumClusters.cpp
+  shadowSystem.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

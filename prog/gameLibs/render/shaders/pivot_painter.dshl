@@ -40,6 +40,8 @@ endmacro
 
 macro USE_PIVOT_PAINTER_BASE(stage)
   hlsl(stage) {
+    #define HAS_PIVOT_PAINTER 1
+
     // This should be parameter and be EQUAL to houdini's i@gen max value
     static const int MAX_ALLOWED_HIERARCHY = 4;
 

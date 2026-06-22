@@ -6,6 +6,11 @@ Target          = 3rdPartyLibs/ozz.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
+# the issue is resolved in upstream, so remove this after updating!
+if $(Platform) in linux macosx {
+  CPPopt += -Wno-error=uninitialized ;
+}
+
 AddIncludes =
   $(Root)/$(Location)/include
   $(Root)/$(Location)/src

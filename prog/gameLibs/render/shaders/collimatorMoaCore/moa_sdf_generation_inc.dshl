@@ -103,7 +103,7 @@ macro USE_MOA_SDF_GENERATION(code)
       int offset = 0;
       for (int i = 0; i < shapes_count; ++i)
       {
-        float tag = read_shape_reg(offset).x;
+        int tag = int(read_shape_reg(offset).x);
         switch (tag)
         {
           case SDF_SHAPE_CIRCLE:
@@ -141,6 +141,8 @@ macro USE_MOA_SDF_GENERATION(code)
             sdf = min(sdf, dist_arc(xy, arc));
             break;
           }
+          default: // malformed data: offset would not advance, stop instead of re-reading the same register
+            return sdf;
         }
       }
 

@@ -11,7 +11,11 @@ namespace das
     // Note: this is similar to NEED_ALL_DEFAULT_MODULES
     // but more safe, since it allows such modules to be
     // already registered.
-    DAS_API void register_builtin_modules();
+    // Lives in libDaScript / libDaScriptDyn (compiler lib, DAS_CC_EXPORTS),
+    // NOT the runtime lib — so the export tag must be DAS_CC_API, not DAS_API.
+    // MSVC happens to link this even with the wrong tag; clang-mingw is strict
+    // and reports an undefined symbol at exe link time.
+    DAS_CC_API void register_builtin_modules();
 
 };
 

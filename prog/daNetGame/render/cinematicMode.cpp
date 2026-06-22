@@ -40,7 +40,7 @@ CinematicMode::~CinematicMode()
   ShaderGlobal::set_int(cinematic_mode_onVarId, 0);
   PriorityShadervar::clear(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY);
   PriorityShadervar::clear(vignette_strengthVarId, VIGNETTE_PRIORITY);
-  FilmGrainLutHolder::disableExternalModifier();
+  FilmGrainLutHolder::disable_external_modifier();
   reset_default_color_grading();
   videoEncoder.stop();
   videoEncoder.shutdown();
@@ -59,7 +59,7 @@ void CinematicMode::setChromaticAberration(Point3 chromatic_aberration)
   PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
 }
 
-void CinematicMode::setFilmGrain(Point4 film_grain) { FilmGrainLutHolder::enableExternalModifier(film_grain); }
+void CinematicMode::setFilmGrain(Point4 film_grain) { FilmGrainLutHolder::enable_external_modifier(film_grain); }
 
 void CinematicMode::setFps(int fps) { settings.videoSettings.fps = fps; }
 

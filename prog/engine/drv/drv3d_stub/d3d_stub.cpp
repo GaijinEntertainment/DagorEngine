@@ -545,7 +545,22 @@ public:
   }
 
   virtual int lockimg(void **, int &, int = 0, unsigned = TEXLOCK_DEFAULT) { return 0; };
-  virtual int lockimg(void **, int &, int, int = 0, unsigned = TEXLOCK_DEFAULT) { return 0; };
+  virtual int lockimg(void **p, int &stride_bytes, int /*layer*/, int /*level*/, unsigned flags)
+  {
+    stride_bytes = ti.w * get_bytes_per_pixel(ti.cflg);
+    if (!p) // delayed lock
+      return 1;
+    *p = drvBuffer.getBuffer(ti.w * ti.h * get_bytes_per_pixel(ti.cflg), !(flags & TEXLOCK_READ), drvBufId);
+    return 1;
+  }
+  virtual int unlockimg()
+  {
+    if (drvBufId < 0)
+      return 1;
+    int result = drvBuffer.releaseBuffer(drvBufId);
+    drvBufId = -1;
+    return result;
+  }
 
   //// BaseTexture ////
   virtual int generateMips() { return 1; }
@@ -586,6 +601,8 @@ public:
   TextureInfo ti;
   unsigned memSz = 0;
   DECLARE_TQL_AND_MAKETMPRES(DummyArrTexture)
+private:
+  int drvBufId = -1;
 };
 
 class DummyCubeTexture final : public D3dResourceNameImpl<CubeTexture>
@@ -1209,12 +1226,6 @@ bool d3d::compile_compute_shader_hlsl(const char *, unsigned, const char *, cons
 }
 #endif
 PROGRAM d3d::get_debug_program() { return 1; }
-#if (_TARGET_PC | _TARGET_XBOX)
-VPROG d3d::create_vertex_shader_dagor(const VPRTYPE * /*tokens*/, int /*len*/) { return 1; }
-VPROG d3d::create_vertex_shader_asm(const char * /*asm_text*/) { return 1; }
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE * /*tokens*/, int /*len*/) { return 1; }
-FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/) { return 1; }
-#endif
 PROGRAM d3d::create_program(VPROG, FSHADER, VDECL, unsigned *, unsigned) { return 1; }
 // if strides & streams are unset, will get them from VDECL
 //  should be deleted externally
@@ -1226,7 +1237,6 @@ void d3d::delete_program(PROGRAM) {}
 #if (_TARGET_PC | _TARGET_XBOX)
 bool d3d::set_pixel_shader(FSHADER) { return true; }
 bool d3d::set_vertex_shader(VPROG) { return true; }
-VDECL d3d::get_program_vdecl(PROGRAM) { return 1; }
 #endif
 
 Vbuffer *d3d::create_vb(int b_size, int flags, const char *stat_name, ResourceTagType)

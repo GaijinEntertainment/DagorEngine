@@ -1,7 +1,7 @@
 // sealed field and method override
 // verifies compiler rejects overriding fields and methods marked 'sealed'
 options gen2
-expect 30115:2
+expect 20107:2
 
 class A {
     sealed name : string = "foobar"

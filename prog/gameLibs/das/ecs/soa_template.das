@@ -419,7 +419,7 @@ class SoaTemplateStructMacro : AstStructureAnnotation
     return true
 
   def make_field_type(fld : FieldDeclaration; var errors : das_string) : TypeDeclPtr
-    if length(fld._type.dim) > 0
+    if fld._type.baseType == Type.tFixedArray
       errors := "{errors}\nunsupported type {describe(fld._type)}"
       return default<TypeDeclPtr>
 

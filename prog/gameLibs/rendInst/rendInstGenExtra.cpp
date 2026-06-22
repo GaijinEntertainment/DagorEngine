@@ -1175,6 +1175,7 @@ int rendinst::cloneRIGenExtraResIdx(const char *source_res_name, const char *dst
     riExtra[newId].riPoolRef = rgl->rtData->riProperties.size();
     rgl->rtData->riProperties.push_back(rendinst::props::RendinstProperties(riProp));
     rgl->rtData->riDestr.push_back(rendinst::props::DestrProps(rgl->rtData->riDestr[sourcePoolRef]));
+    rgl->rtData->riCustomPropsId.push_back(rgl->rtData->riCustomPropsId[sourcePoolRef]);
   }
   rendinst::addRiGenExtraDebris(newId, 0);
   return newId;

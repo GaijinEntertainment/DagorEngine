@@ -2,7 +2,7 @@
 // verifies compiler detects duplicate keys in table literals:
 // int=>string tables, string=>string tables, int sets, and string sets
 options gen2
-expect 40300:4  // 40300: duplicate key
+expect 30706:4  // 40300: duplicate key
 
 [export]
 def test {

@@ -1017,6 +1017,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void releaseDlssFeature(bool stereo_render);
     void executeDlss(const nv::DlssParams<Image> &dlss_params, int view_index);
     void executeDlssG(const nv::DlssGParams<Image> &dlss_g_params, int view_index);
+    void setDlssGEnabled(int frames_to_generate, int view_index);
+    void setDlssOptions(const nv::DlssOptions &options, int view_index);
     void prepareExecuteAA(std::initializer_list<Image *> inputs, std::initializer_list<Image *> outputs);
     void executeXess(const XessParamsDx12 &params);
     void executeXeFg(const XessFgParamsDx12 &params);
@@ -1120,10 +1122,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void loadComputeShaderFromDump(ProgramID program);
 
     static bool should_pipeline_set_compilation_spread_over_frames();
-    void compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
-      DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
-      DynamicArray<GraphicsPipelinePreloadInfo> &&graphics_pipelines, DynamicArray<MeshPipelinePreloadInfo> &&mesh_pipelines,
-      DynamicArray<ComputePipelinePreloadInfo> &&compute_pipelines);
     void compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
       DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, DynamicArray<FramebufferLayoutWithHash> &&framebuffer_layouts,
       DynamicArray<cacheBlk::SignatureEntry> &&scripted_shader_dump_signature,
@@ -1460,11 +1458,11 @@ public:
   void setFramebuffer(Image **image_list, ImageViewState *view_list, bool read_only_depth);
 #if D3D_HAS_RAY_TRACING
   void raytraceBuildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceBottomAccelerationStructure *as,
-    const RaytraceGeometryDescription *descs, uint32_t count, RaytraceBuildFlags flags, bool update,
-    BufferResourceReferenceAndAddress scratch_buf, BufferResourceReferenceAndAddress compacted_size);
+    const RaytraceGeometryDescription *descs, uint32_t count, RaytraceBuildFlags flags, bool update, Sbuffer *scratch_buffer,
+    uint32_t scratch_buffer_offset, Sbuffer *compacted_size_buffer, uint32_t compacted_size_offset);
   void raytraceBuildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceTopAccelerationStructure *as,
-    BufferReference instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags, bool update,
-    BufferResourceReferenceAndAddress scratch_buf);
+    Sbuffer *instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags, bool update, Sbuffer *scratch_buffer,
+    uint32_t scratch_buffer_offset);
   void buildOpacityMicroMapTriangleArray(eastl::span<const ::raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo> builds,
     bool auto_flush, ::raytrace::AccelerationStructureBuildMode mode);
   void raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact,
@@ -1615,6 +1613,8 @@ public:
   void releaseDlssFeature(bool stereo_render);
   void executeDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index);
   void executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_params, int view_index);
+  void setDlssGEnabled(int frames_to_generate, int view_index);
+  void setDlssOptions(const nv::DlssOptions &options, int view_index);
   void executeXess(const XessParams &params);
   void executeFSR(const amd::FSR::UpscalingArgs &params);
   void executeFSR2(const Fsr2Params &params);
@@ -1731,10 +1731,6 @@ public:
   void addShaderGroup(uint32_t group, ScriptedShadersBinDumpOwner *dump, ShaderID null_pixel_shader, eastl::string_view name);
   void removeShaderGroup(uint32_t group);
   void loadComputeShaderFromDump(ProgramID program);
-  void compilePipelineSet(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
-    DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
-    const DataBlock *graphics_pipeline_set, const DataBlock *mesh_pipeline_set, const DataBlock *compute_pipeline_set,
-    const char *default_format);
   void compilePipelineSet2(DynamicArray<InputLayoutIDWithHash> &&input_layouts,
     DynamicArray<StaticRenderStateIDWithHash> &&static_render_states, const DataBlock *output_formats_set,
     const DataBlock *compute_pipeline_set, const DataBlock *full_graphics_set, const DataBlock *null_override_graphics_set,

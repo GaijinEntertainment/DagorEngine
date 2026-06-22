@@ -6,5 +6,4 @@
 namespace humaninputxbox360
 {
 extern HumanInput::IGenHidClassDrv *mouse_emu;
-extern HumanInput::IGenHidClassDrv *kbd_emu;
 } // namespace humaninputxbox360

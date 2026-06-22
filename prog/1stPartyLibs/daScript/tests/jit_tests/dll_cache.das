@@ -13,7 +13,10 @@ require dastest/testing_boost
 let OUTPUT_DIR = "{get_das_root()}/build/tests"
 let PROBE_PATH = "{OUTPUT_DIR}/dll_cache_probe.das"
 
-def write_probe(body_expr : string) : bool {
+def write_probe(table_value : int) : bool {
+    // Probe uses table[k] so jit_table_at_tString lands in the emitted globals,
+    // exercising the codegen path that #2802 fixed (DLLExport linkage on the
+    // table accessor slots so ResolveExternVisitor can fix them up on reload).
     mkdir_rec(OUTPUT_DIR)
     var ok = false
     fopen(PROBE_PATH, "w") $(f) {
@@ -22,7 +25,9 @@ def write_probe(body_expr : string) : bool {
             fprint(f, "require daslib/just_in_time\n\n")
             fprint(f, "[jit, sideeffects, export]\n")
             fprint(f, "def probe(x : int) : int \{\n")
-            fprint(f, "    return {body_expr}\n")
+            fprint(f, "    var tab : table<string; int>\n")
+            fprint(f, "    tab[\"a\"] = {table_value}\n")
+            fprint(f, "    return x + tab[\"a\"]\n")
             fprint(f, "\}\n")
             fprint(f, "\n[export]\ndef main() \{\n    let _ = probe(0)\n\}\n")
             ok = true
@@ -62,20 +67,15 @@ def list_dlls(subdir : string) : array<string> {
 
 def clear_subdir(subdir : string) {
     dir(subdir) $(fname) {
-        if (fname == "." || fname == "..") {
-            return
-        }
+        return if (fname == "." || fname == "..")
         var err : string
         remove("{subdir}/{fname}", err)
     }
 }
 
 def test_dll_cache(t : T?) {
-    if (!jit_enabled() || !das_is_dll_build()) {
-        return
-    }
-    // first compile seeds the namespace so we can locate the per-script subdir
-    t |> equal(write_probe("x + 1"), true)
+    return if (!jit_enabled() || !das_is_dll_build())
+    t |> equal(write_probe(1), true)
     let ns = compile_probe()
     t |> equal(empty(ns), false)
     let subdir = ".jitted_scripts/{ns}"
@@ -94,7 +94,7 @@ def test_dll_cache(t : T?) {
     t |> strictEqual(dlls2[0], first_dll, "cache hit keeps same DLL filename")
 
     // compile 3 with different body: miss, new DLL, old artifacts GC'd
-    t |> equal(write_probe("x + 2"), true)
+    t |> equal(write_probe(2), true)
     compile_probe()
     let dlls3 <- list_dlls(subdir)
     t |> equal(length(dlls3), 1)

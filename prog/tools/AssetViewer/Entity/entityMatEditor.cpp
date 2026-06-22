@@ -259,6 +259,9 @@ static void set_up_shader_var_property(PropPanel::ContainerPropertyControl &pane
         defaultText.printf(0, "%g, %g, %g, %g", def.c[0], def.c[1], def.c[2], def.c[3]);
         valueIsDefault = var.value.c4() == def.c4();
         break;
+
+      case MAT_VAR_TYPE_NONE:
+      case MAT_VAR_TYPE_COUNT: break; // to prevent the unhandled switch case error
     }
   }
 
@@ -405,14 +408,13 @@ static String get_asset_dag_file_path(const DagorAsset &asset, int lod)
       const char *dagName = blk->getStr(paramIndex);
       if (dagName && *dagName)
         return String(0, "%s/%s", asset.getFolderPath(), dagName);
-
-      break;
+      return String(0, "%s/%s.lod%02d.dag", asset.getFolderPath(), asset.getName(), lod);
     }
 
     ++lodBlockIndex;
   }
 
-  return String(0, "%s/%s.lod%02d.dag", asset.getFolderPath(), asset.getName(), lod);
+  return {};
 }
 
 namespace
@@ -804,6 +806,8 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
   for (int lod = 0; lod < lodCount; ++lod)
   {
     const String dagFileName = get_asset_dag_file_path(*asset, lod);
+    if (dagFileName.empty())
+      break;
     if (!dd_file_exists(dagFileName.c_str()))
     {
       logwarn("Expected %d LODs but '%s' cannot be found.", lodCount, dagFileName.c_str());
@@ -1772,7 +1776,8 @@ void EntityMaterialEditor::onChange(int pcb_id, PropPanel::ContainerPropertyCont
         break;
       }
 
-      case MAT_VAR_TYPE_NONE: break; // to prevent the unhandled switch case error
+      case MAT_VAR_TYPE_NONE:
+      case MAT_VAR_TYPE_COUNT: break; // to prevent the unhandled switch case error
     }
     set_up_shader_var_property(*panel, pcb_id, var, limits);
     update_shader_parameter_group_property(*panel, pcb_id, shaderPropSeparators, matProps, varId);

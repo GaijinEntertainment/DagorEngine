@@ -447,12 +447,12 @@ MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(co
   return MOC_STATIC_UPCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
 }
 
-MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd,
-  const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount, CacheMode cacheMode,
-  BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit)
+MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart,
+  int treeEnd, const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacity, uint32_t &cacheTriCount,
+  CacheMode cacheMode, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask, uint32_t triSkip, uint32_t triLimit)
 {
-  return MOC_STATIC_UPCAST(this)->RenderBLAS(blasData, treeStart, treeEnd, rawToClipMatrix, cacheIndices, cacheIndicesCapacity,
-    cacheTriCount, cacheMode, bfWinding, clipPlaneMask, triSkip, triLimit);
+  return MOC_STATIC_UPCAST(this)->RenderBLAS(blasData, vertOffset, treeStart, treeEnd, rawToClipMatrix, cacheIndices,
+    cacheIndicesCapacity, cacheTriCount, cacheMode, bfWinding, clipPlaneMask, triSkip, triLimit);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,

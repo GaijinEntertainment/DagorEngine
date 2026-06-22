@@ -300,17 +300,31 @@ void ObjectManager::addBombHole(const Point3 &point, const float radius)
 void ObjectManager::setBombHoleShaderGlobals(const CellToUpdateData cellData)
 {
   Point2 cellCenter{cellData.x + cellSize / 2, cellData.z + cellSize / 2};
-  eastl::sort(bomb_holes.begin(), bomb_holes.end(), [&cellCenter](Point4 p1, Point4 p2) {
-    return (Point2(p1.x, p1.z) - cellCenter).lengthSq() < (Point2(p2.x, p2.z) - cellCenter).lengthSq();
-  });
-  Point4 bomb_hole_point_radius_0 = bomb_holes.size() < 1 ? Point4::ZERO : bomb_holes[0];
-  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_0VarId, bomb_hole_point_radius_0);
-  Point4 bomb_hole_point_radius_1 = bomb_holes.size() < 2 ? Point4::ZERO : bomb_holes[1];
-  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_1VarId, bomb_hole_point_radius_1);
-  Point4 bomb_hole_point_radius_2 = bomb_holes.size() < 3 ? Point4::ZERO : bomb_holes[2];
-  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_2VarId, bomb_hole_point_radius_2);
-  Point4 bomb_hole_point_radius_3 = bomb_holes.size() < 4 ? Point4::ZERO : bomb_holes[3];
-  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_3VarId, bomb_hole_point_radius_3);
+
+  constexpr int NEAREST_HOLES_COUNT = 4;
+  eastl::fixed_vector<Point4, NEAREST_HOLES_COUNT> nearestPos(NEAREST_HOLES_COUNT, Point4::ZERO);
+  eastl::fixed_vector<float, NEAREST_HOLES_COUNT> nearestDistSq(NEAREST_HOLES_COUNT, FLT_MAX);
+  for (const Point4 &hole : bomb_holes)
+  {
+    float distSq = (Point2(hole.x, hole.z) - cellCenter).lengthSq();
+    int i = nearestDistSq.size();
+    while (i > 0 && distSq < nearestDistSq[i - 1])
+    {
+      --i;
+    }
+    if (i < nearestDistSq.size())
+    {
+      nearestDistSq.pop_back();
+      nearestDistSq.insert(nearestDistSq.begin() + i, distSq);
+      nearestPos.pop_back();
+      nearestPos.insert(nearestPos.begin() + i, hole);
+    }
+  }
+
+  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_0VarId, nearestPos[0]);
+  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_1VarId, nearestPos[1]);
+  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_2VarId, nearestPos[2]);
+  ShaderGlobal::set_float4(gpu_objects_bomb_hole_point_radius_3VarId, nearestPos[3]);
 }
 
 void ObjectManager::onLandPlacing()

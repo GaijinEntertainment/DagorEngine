@@ -13,8 +13,8 @@
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiJoystick.h>
 #include <drv/hid/dag_hiPointing.h>
-#if _TARGET_C1 | _TARGET_C2
-
+#if _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
+#include <drv/hid/dag_hiKeyboard.h>
 #endif
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
@@ -369,9 +369,9 @@ static void act()
     WinAutoLock lock(global_cls_drv_update_cs);
     if (::global_cls_drv_joy)
       ::global_cls_drv_joy->updateDevices();
-#if _TARGET_C1 | _TARGET_C2
-
-
+#if _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
+    if (::global_cls_drv_kbd)
+      ::global_cls_drv_kbd->updateDevices();
 #endif
     if (::global_cls_drv_pnt)
       ::global_cls_drv_pnt->updateDevices();

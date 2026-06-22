@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
 #include "daScript/misc/gc_node.h"
+#include "daScript/misc/platform.h"
 
 namespace das
 {
@@ -67,7 +70,10 @@ namespace das
         tTable,
         tBlock,
         tTuple,
-        tVariant
+        tVariant,
+        tFixedArray     // AST-only (FIXED_ARRAY_REWORK.md): structural fixed-array TypeDecl node.
+                        //  Runtime TypeInfo never carries it — fixed arrays stay flattened to dim[]
+                        //  at the single AST->TypeInfo conversion point (ast_debug_info_helper.cpp).
     };
 
     enum class RefMatters {
@@ -113,17 +119,24 @@ namespace das
 
     struct DAS_API FileInfo {
     public:
-        virtual void freeSourceData() { }
+        virtual void freeSourceData() { lineOffsets.clear(); lineIndexBuilt = false; }
         virtual ~FileInfo() { freeSourceData(); }
         void reserveProfileData();
         virtual void getSourceAndLength ( const char * & src, uint32_t & len ) { src=nullptr; len=0; }
         virtual void serialize ( AstSerializer & ser );
+        // Lazy byte-offset index of line starts. lineOffsets[i] = start of line i+1.
+        // Built on first getLine call via getSourceAndLength. O(N) one-time, O(1) per query.
+        void buildLineIndex();
+        bool getLine ( uint32_t line, const char * & begin, uint32_t & len );
         string                name;
         int32_t               tabSize = 4;
 #if DAS_ENABLE_PROFILER
     public:
         vector<uint64_t>      profileData;
 #endif
+    protected:
+        vector<uint32_t>      lineOffsets;
+        bool                  lineIndexBuilt = false;
     };
     typedef unique_ptr<FileInfo> FileInfoPtr;
 
@@ -217,6 +230,7 @@ namespace das
         virtual void serialize ( AstSerializer & ser );
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const;
         virtual bool isOptionAllowed ( const string & /*opt*/, const string & /*from*/ ) const { return true; }
+        virtual bool isOptionBlocked ( const string & /*opt*/, const string & /*from*/ ) const { return false; }
         virtual bool isAnnotationAllowed ( const string & /*ann*/, const string & /*from*/ ) const { return true; }
         // must stop at word boundary
         virtual bool parseCustomRequire(const char *& /*src*/, const char * /*srcEnd*/,
@@ -260,6 +274,7 @@ namespace das
         virtual void serialize ( AstSerializer & ser ) override;
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const override;
         virtual bool isOptionAllowed ( const string & opt, const string & from ) const override;
+        virtual bool isOptionBlocked ( const string & opt, const string & from ) const override;
         virtual bool isAnnotationAllowed ( const string & /*ann*/, const string & /*from*/ ) const override;
         virtual bool isPodInScopeAllowed ( const string & /*moduleName*/, const string & /*fileName*/ ) const override;
     protected:
@@ -271,6 +286,7 @@ namespace das
         SimFunction *       canModuleBeRequired = nullptr;
         SimFunction *       sameFileName = nullptr;
         SimFunction *       optionAllowed = nullptr;
+        SimFunction *       optionBlocked = nullptr;
         SimFunction *       annotationAllowed = nullptr;
         SimFunction *       podInScopeAllowed = nullptr;
         SimFunction *       dynModulesFolderGet = nullptr;
@@ -475,11 +491,15 @@ namespace das
     };
 
     struct EnumInfo {
+        enum {
+            flag_unsigned = (1<<0)    // underlying type is uint8/uint16/uint32/uint64 (not int*)
+        };
         const char *        name;
         const char *        module_name;
         EnumValueInfo **    fields;
         uint32_t            count;
         uint64_t            hash;
+        uint32_t            flags;
     };
 
     struct LocalVariableInfo : TypeInfo {

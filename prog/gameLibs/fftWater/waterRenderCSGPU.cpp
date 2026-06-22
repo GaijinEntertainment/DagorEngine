@@ -67,6 +67,13 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
   if (auto &driverDesc = d3d::get_driver_desc(); driverDesc.shaderModel < 5.0_sm)
     return false;
 
+  // gpuConstBuffer below and cb_array in fft_cs_same_size.dshl hold at most 4 cascade structs
+  if (numCascades > 4)
+  {
+    G_ASSERTF(0, "fftwater: CS FFT path supports at most 4 cascades, got %d", numCascades);
+    return false;
+  }
+
   h0UpdateRequired = true;
 
   static int csFFTResolutionVarId = ::get_shader_glob_var_id("cs_fft_resolution", true);
@@ -283,8 +290,8 @@ bool CSGPUData::driverReset(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCa
   }
   else
   {
-    G_ASSERTF(0, "gauss buffer %d not locked");
-    logerr("gauss buffer %d not locked");
+    G_ASSERTF(0, "gauss buffer not locked");
+    logerr("gauss buffer not locked");
     ret = false;
   }
 

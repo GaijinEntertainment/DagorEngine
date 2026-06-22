@@ -272,6 +272,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_INT_TOREAL:
       case SHCOD_IVEC_TOREAL:
       case SHCOD_COPY_REAL:
+      case SHCOD_REG_BINDLESS_SAMPLER:
       case SHCOD_COPY_VEC: break;
 
       case SHCOD_STATIC_BLOCK:

@@ -25,6 +25,7 @@ texture combined_shadows;
 buffer swrt_shadow_mask;
 texture swrt_shadow_target;
 int swrt_checkerboard_frame;
+int swrt_frame_no; // real frame counter for the soft-sun jitter; distinct from checkerboard parity
 int4 swrt_shadow_target_size;
 buffer swrt_shadow_checkerboard;
 float4 swrt_dir_to_sun_and_angle = (0.7071067811865476, 0.7071067811865476, 0, 0.0093 / 4);
@@ -377,6 +378,7 @@ macro COMMON_SWRT_SHADOW(code)
     swrt_shadow_mask@buf = swrt_shadow_mask hlsl { ByteAddressBuffer swrt_shadow_mask@buf;}
     blue_noise_tex@tex2d = blue_noise_tex;
     swrt_checkerboard_frame@i1 = swrt_checkerboard_frame;
+    swrt_frame_no@i1 = swrt_frame_no;
   }
   hlsl(code) {
     float2 sampleRandomVector2D(uint2 pixel, uint frame_index)
@@ -390,7 +392,9 @@ macro COMMON_SWRT_SHADOW(code)
 
     float3 get_sun_direction(uint2 pixel_pos)
     {
-      float2 disk = swrt_dir_to_sun_basis[0].w*uniform_sample_disk(sampleRandomVector2D(pixel_pos, swrt_checkerboard_frame));
+      // Jitter from the real frame counter, not swrt_checkerboard_frame (which is 0 in
+      // non-checkerboard mode), so the soft sun disk integrates over time in both modes.
+      float2 disk = swrt_dir_to_sun_basis[0].w*uniform_sample_disk(sampleRandomVector2D(pixel_pos, swrt_frame_no));
       return normalize(swrt_dir_to_sun_basis[0].xyz*disk.x + swrt_dir_to_sun_basis[1].xyz*disk.y + swrt_dir_to_sun_basis[2].xyz);
     }
   }
@@ -465,6 +469,9 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         startOfs = loadBuffer(swrt_shadow_mask, address*4);
         #endif
         BRANCH
+        // startOfs == 0 means "nothing in this tile's frustum" (mask pass stored 0). Safe as a
+        // sentinel only because the TLAS root node at offset 0 is never itself a leaf -- guaranteed
+        // by createBVHNodeSAH (a single-instance TLAS still gets an internal root).
         if (!startOfs)
         {
           WRITE_MASK(1);
@@ -472,14 +479,19 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         }
       #endif
       float rawDepth = texelFetch(half_res_close_depth, pixelCoord, 0).x;
-      if (rawDepth == 0)
+      if (rawDepth == 0) // sky: write lit (1) like every other early-out, so reconstruction never reads stale
+      {
+        WRITE_MASK(1);
         return;
+      }
 
       //todo: combine both shadow_strength & combined shadows in one bitmask
       // it is more accurate, as it takes full res normal into account, not half res
       // probably not very expensive also
       {
         half3 wsNormal = normalize(half3(texelFetch(half_res_close_depth_normals, pixelCoord, 0).xyz) * 2.h - 1.h);
+        // Backlit cull with slack: strength>0 iff dot(N,sun) > -sqrt(0.5)/2 ~= -0.35, i.e. surfaces
+        // up to ~110deg from the sun still trace (slack for normal-map divergence).
         half shadow_strength = saturate(dot(wsNormal, half3(swrt_dir_to_sun_basis[2].xyz))*2.h + sqrt(0.5h));
         if (shadow_strength <= 0)
         {
@@ -524,6 +536,8 @@ shader shadows_swrt_cs, checkerboard_shadows_swrt_cs
         return;
       }
       #endif
+      // Constant + distance-scaled bias only; no slope (normal) term, so grazing-angle acne relies
+      // on the backlit cull and soft-sun dither. If acne shows up, scale by (1 + k*(1 - dot(N,L))).
       float stepOfs = get_project_defined_swrt_shadow_offset_point(cameraPos, worldPos.xyz);
       float step_to_sun = stepOfs + (0.001+0.00001*length(cameraPos));
 

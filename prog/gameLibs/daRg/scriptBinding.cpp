@@ -133,6 +133,7 @@ static void register_constants(HSQUIRRELVM vm)
     .Const("ALIGN_RIGHT", ALIGN_RIGHT)
     .Const("ALIGN_BOTTOM", ALIGN_BOTTOM)
     .Const("ALIGN_CENTER", ALIGN_CENTER)
+    .Const("PLACE_DEFAULT", PLACE_DEFAULT)
 
     .CONST(VECTOR_WIDTH)
     .CONST(VECTOR_COLOR)
@@ -883,6 +884,34 @@ static SQInteger scrollhandler_ctor(HSQUIRRELVM vm)
 }
 
 
+static SQInteger scrollhandler_scroll_to_children(HSQUIRRELVM vm)
+{
+  ScrollHandler *handler = Sqrat::Var<ScrollHandler *>(vm, 1).value;
+  if (!handler)
+    return sq_throwerror(vm, "scrollToChildren: bad 'this'");
+
+  Sqrat::Object finder = Sqrat::Var<Sqrat::Object>(vm, 2).value;
+
+  SQInteger depth = 0;
+  sq_getinteger(vm, 3, &depth);
+
+  SQBool xb = SQFalse, yb = SQFalse;
+  sq_getbool(vm, 4, &xb);
+  sq_getbool(vm, 5, &yb);
+
+  SQInteger alignX = PLACE_DEFAULT;
+  SQInteger alignY = PLACE_DEFAULT;
+  const SQInteger nargs = sq_gettop(vm);
+  if (nargs >= 6)
+    sq_getinteger(vm, 6, &alignX);
+  if (nargs >= 7)
+    sq_getinteger(vm, 7, &alignY);
+
+  handler->scrollToChildren(finder, (int)depth, xb != SQFalse, yb != SQFalse, (int)alignX, (int)alignY);
+  return 0;
+}
+
+
 ///@module daRg
 void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
 {
@@ -896,7 +925,8 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .SquirrelCtor(scrollhandler_ctor, 1, "x")
     .Func("scrollToX", &ScrollHandler::scrollToX)
     .Func("scrollToY", &ScrollHandler::scrollToY)
-    .Func("scrollToChildren", &ScrollHandler::scrollToChildren)
+    .SquirrelFuncDeclString(scrollhandler_scroll_to_children,
+      "instance.scrollToChildren(finder: function, depth: int, x: bool, y: bool, [align_x: int, align_y: int]): null")
     .Prop("elem", &ScrollHandler::getElem)
     /**/;
 

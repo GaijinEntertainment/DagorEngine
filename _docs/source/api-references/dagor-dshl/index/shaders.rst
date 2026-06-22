@@ -538,3 +538,195 @@ Syntax for using such blocks in shaders is as follows:
     }
 
 With the support of multiple blocks you can use only variables from intersection of these blocks.
+
+.. _refined-blocks:
+
+==============
+Refined Blocks
+==============
+
+Refined blocks are an evolution of shader blocks that guarantee **identical cbuffer layout**
+across all shaders declaring the same block. This makes it safe to pre-fill a single cbuffer
+once and bind it to multiple shaders without per-shader patching.
+
+With traditional shader blocks, the compiler may assign different cbuffer offsets for the same
+variable in different shaders (due to varying sets of variables used per shader). Refined blocks
+solve this by merging all partial layouts at link time into a single canonical layout shared by
+every shader that participates in the block.
+
+----------
+Motivation
+----------
+
+In a typical rendering frame, many shaders share common parameters (view matrices, lighting data,
+etc.). With regular blocks, even though the *values* are the same, the *cbuffer layout* can differ
+per shader, requiring a flush-and-refill on each shader switch. Refined blocks eliminate this
+overhead: you fill the cbuffer once for all shaders that declare the same refined block.
+
+------
+Syntax
+------
+
+To include a preshader variable in a refined block, append the ``#rb`` tag to its type suffix:
+
+.. code-block:: text
+
+    shader my_shader
+    {
+      (cs)
+      {
+        my_float@f1#rb = some_global_float;
+        my_vector@f4#rb = some_global_float4;
+        my_int@i1#rb = some_global_int;
+        my_matrix@f44#rb = some_global_matrix;
+        my_tex@tex2d#rb = some_texture;
+        my_sampler@sampler#rb = some_sampler;
+        my_buf@buf#rb = some_buffer hlsl { StructuredBuffer<float> my_buf@buf; };
+        my_uav@uav#rb = some_uav hlsl { RWStructuredBuffer<float> my_uav@uav; };
+        my_cbuf@cbuf#rb = some_cbuf hlsl {
+          cbuffer my_cbuf@cbuf { float4 cbuf_data; };
+        };
+      }
+    }
+
+Variables **without** ``#rb`` in the same preshader block are treated normally and are not part of the refined block.
+
+-------------------
+Supported var types
+-------------------
+
+The following type suffixes are supported with ``#rb``:
+
+- Numeric: ``@f1``, ``@f2``, ``@f3``, ``@f4``, ``@f44``, ``@i1``, ``@i2``, ``@i3``, ``@i4``, ``@u1``, ``@u2``, ``@u3``, ``@u4``
+- Textures: ``@tex2d``, ``@tex3d``, ``@texArray``, ``@texCube``, ``@texCubeArray``
+- Samplers: ``@sampler``
+- Buffers: ``@buf``, ``@uav``, ``@cbuf``
+
+----------------------
+Computed expressions
+----------------------
+
+Numeric refined block vars can use arbitrary arithmetic expressions on the right-hand side,
+not just simple variable references:
+
+.. code-block:: text
+
+    (cs)
+    {
+      computed_val@f1#rb = (some_float4.w * another_float4.z + yet_another.y - single_float);
+      computed_vec@f2#rb = (vec_a.x, vec_b.y);
+      computed_scaled@f4#rb = (some_float4 * 2);
+    }
+
+The compiler generates stcode for these expressions that is executed at flush time.
+
+--------------------------
+How refined blocks work
+--------------------------
+
+1. **Compile time**: The shader compiler collects all ``#rb``-tagged variables across all shaders.
+   For each unique variable name, an offset in the shared cbuffer is assigned. The merged layout is
+   stored in the shader dump.
+
+2. **Incremental builds**: Each ``.obj`` caches its partial refined block layout. Unchanged files
+   skip recomputation. In multiproc mode, the preshader pass merges all partial layouts into a
+   single ``rblock.layout.obj``; worker processes load this merged layout.
+
+3. **Runtime flush**: The application creates a block hierarchy, sets variable values, and calls
+   ``flush()``. This executes the compiled stcode to pack all variable values into the cbuffer at
+   their offsets. The resulting cbuffer can then be bound to any shader that uses refined block.
+
+4. **Register allocation**: Textures and buffers with explicit HLSL declarations (``@buf``, ``@uav``,
+   ``@cbuf``) get per-shader register allocations that are reserved so they don't collide with other
+   bindings. Textures without explicit HLSL type (``@tex2d``, etc.) use bindless resource IDs stored
+   in the cbuffer when bindless is enabled.
+
+-------------------
+Runtime C++ API
+-------------------
+
+The runtime API is declared in ``<shaders/dag_refinedBlock.h>``.
+
+**Block hierarchy**
+
+Refined blocks follow a three-layer hierarchy: ``GLOBAL`` → ``VIEW`` → ``PASS``.
+Child blocks inherit parent variable values and can shadow them locally.
+
+.. code-block:: cpp
+
+    #include <shaders/dag_refinedBlock.h>
+
+    auto globalBlock = refined_block::get_global();
+    auto viewBlock = globalBlock.refineBlock("my_view");
+    auto passBlock = viewBlock.refineBlock("my_pass");
+
+**Setting variables**
+
+Use ``VariableMap::getVariableId()`` to get variable IDs, then call ``set()`` on any layer:
+
+.. code-block:: cpp
+
+    int varF4 = VariableMap::getVariableId("my_float4_var");
+    globalBlock.set(varF4, Color4(1, 2, 3, 4));
+
+    int varTex = VariableMap::getVariableId("my_texture");
+    passBlock.set(varTex, myTexture.getBaseTex());
+
+    int varSampler = VariableMap::getVariableId("my_sampler");
+    passBlock.set(varSampler, samplerHandle);
+
+    int varBuf = VariableMap::getVariableId("my_buffer");
+    passBlock.set(varBuf, myBuffer.getBuf());
+
+    int varUav = VariableMap::getVariableId("my_uav");
+    passBlock.set(varUav, myUavBuffer.getBuf());
+
+    int varCbuf = VariableMap::getVariableId("my_cbuf");
+    passBlock.set(varCbuf, myCbufBuffer.getBuf());
+
+**Flushing and binding**
+
+Call ``refined_block::flush()`` to pack all blocks into their cbuffers, then ``setState()``
+on the pass block to bind resources before dispatch/draw:
+
+.. code-block:: cpp
+
+    refined_block::flush();
+    passBlock.setState();
+
+    myShader.dispatch(1, 1, 1);
+
+Call ``refined_block::clear()`` to release all block data (e.g. on shutdown or full reset):
+
+.. code-block:: cpp
+
+    refined_block::clear();
+
+------------------------------------
+Sharing blocks across shaders
+------------------------------------
+
+The key benefit of refined blocks is that multiple shaders declaring the same ``#rb`` variables
+share the same cbuffer layout. For example, if ``shader_a`` and ``shader_b`` both declare
+``my_vec@f4#rb = some_var;``, the variable will be at the same cbuffer offset in both shaders.
+After a single ``flush()``, the same cbuffer can drive both shaders without rebinding.
+
+Variables unique to a single shader (e.g., ``shader1_only@f1#rb``) are still part of the
+merged layout but simply unused by shaders that don't declare them.
+
+----------------------------
+Mixing refined and regular vars
+----------------------------
+
+You can freely mix ``#rb``-tagged and regular preshader vars in the same block:
+
+.. code-block:: text
+
+    (cs)
+    {
+      shared_data@f4#rb = common_float4;       // refined block var
+      local_data@f4 = shader_specific_float4;  // regular per-shader var
+    }
+
+Regular vars behave as before (per-shader cbuffer layout). Refined block vars share
+the layout across all participating shaders.

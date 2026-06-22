@@ -612,7 +612,7 @@ shader combine_shadows
   USE_STATIC_SHADOW()
 
   INIT_CSM_SHADOW(ps)
-  USE_CSM_SHADOW_DEF_NUM()
+  USE_CSM_SHADOW_DEF_NUM_DEFAULT()
   //CONTACT_SHADOWS_NEW(ps)
   CONTACT_SHADOWS_BASE(ps)
 
@@ -662,13 +662,20 @@ shader combine_shadows
       //return getStaticShadow(worldPos.xyz);
       //return getHmapShadow(worldPos.xyz);
 
+      half hmapShadow = getHmapShadowDithered(worldPos.xyz, dither);
+      half csmFade = 0;
       half3 csmShadow = half3( 1, 9, 1 );
-      csmShadow.x = getHmapShadowDithered(worldPos.xyz, dither);
       BRANCH
-      if ( csmShadow.x > 0 && w < csm_distance.x && w > zn_zfar.x )
-        csmShadow *= get_csm_shadow( pointToEye, w );
+      if ( hmapShadow > 0 && w < csm_distance.x && w > zn_zfar.x )
+      {
+        csmShadow = get_csm_shadow( pointToEye, dither, -1 );
+        csmFade = 1.f - csmShadow.z;
+      }
 
-      csmShadow.x = csmShadow.x * lerp(1, getStaticShadow(worldPos.xyz), 1-pow4(1-csmShadow.z));
+      // Fade CSM out toward the last cascade edge (csmShadow.z), then let static
+      // and heightmap shadows carry the far range. Matches WT combined_shadows.
+      csmShadow.x = (half) lerp(half(1.0), csmShadow.x, csmFade);
+      csmShadow.x *= getStaticShadow(worldPos.xyz) * hmapShadow;
 
       float shlen = max(w * contact_shadow_len*0.5, min(0.1, w));
       int steps = 10;

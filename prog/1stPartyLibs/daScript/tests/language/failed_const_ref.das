@@ -5,14 +5,7 @@
 options gen2
 require _helper_foo
 
-expect 30102     // passThrough
-expect 30106
-expect 30303:1    // operator_not_found
-expect 30304:2    // function_not_found
-expect 30504:5    // cant_write_to_const
-expect 30505:2    // cant_move_to_const
-expect 30507:3    // cant_copy
-expect 30508:1    // cant_move
+expect 30341:2, 30343, 30910, 30915:2, 30934, 30941:3, 30950, 30952:5     // passThrough
 
 def const_iter(var a : table<string; int>) {
     for (k, v in keys(a), values(a)) {

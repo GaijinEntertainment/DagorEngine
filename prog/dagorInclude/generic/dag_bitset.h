@@ -6,6 +6,7 @@
 
 #include <EASTL/iterator.h>
 #include <EASTL/bitset.h>
+#include <debug/dag_assert.h>
 #include <math/dag_intrin.h>
 #include "dag_reverseView.h"
 
@@ -15,7 +16,6 @@ class Bitset : public eastl::bitset<N, WordType>
 {
 public:
   using base_type = eastl::bitset<N, WordType>;
-  using this_type = Bitset<N, WordType>;
   using word_type = WordType;
   using size_type = typename base_type::size_type;
 
@@ -25,11 +25,13 @@ public:
   using base_type::kSize;
   using base_type::mWord;
 
+  static_assert(N > 0, "Bitset<0> is not supported");
+
   static constexpr size_t NUM_WORDS = BITSET_WORD_COUNT(N, WordType);
   static constexpr bool SINGLE_WORD = (NUM_WORDS == 1);
   static constexpr WordType LAST_WORD_MASK = [] {
-    constexpr size_t VALID_BITS = (N == 0) ? 0 : ((N - 1) % kBitsPerWord) + 1;
-    if constexpr (VALID_BITS == 0 || VALID_BITS == kBitsPerWord)
+    constexpr size_t VALID_BITS = ((N - 1) % kBitsPerWord) + 1;
+    if constexpr (VALID_BITS == kBitsPerWord)
       return ~WordType(0);
     else
       return (WordType(1) << VALID_BITS) - WordType(1);
@@ -82,6 +84,9 @@ public:
   }
 
 private:
+  // NOTE: all iterators below are single-pass input iterators intended for `it != end()` loops.
+  // Equality only distinguishes an exhausted iterator from a live one; comparing two non-end
+  // iterators is not meaningful, so algorithms relying on that (e.g. eastl::distance) must not be used.
   struct SmallIterator
   {
     using this_type = SmallIterator;
@@ -118,7 +123,7 @@ private:
     constexpr bool operator==(const this_type &other) const { return value == other.value; }
     constexpr bool operator!=(const this_type &other) const { return value != other.value; }
 
-    value_type value;
+    WordType value;
   };
 
   template <auto fetchWord>
@@ -165,8 +170,9 @@ private:
 
       const WordType *const wLast = wordPtr - baseValue / kBitsPerWord + (NUM_WORDS - 1);
 
-      for (baseValue += kBitsPerWord; baseValue < kBitsPerWord * NUM_WORDS; baseValue += kBitsPerWord)
+      while (wordPtr != wLast)
       {
+        baseValue += kBitsPerWord;
         ++wordPtr;
         if (const auto w = fetchWord(wordPtr, wLast))
         {
@@ -178,7 +184,7 @@ private:
       return *this;
     }
 
-    value_type value;
+    WordType value;
     size_type baseValue;
     const WordType *wordPtr;
   };
@@ -207,7 +213,7 @@ private:
     {
       const auto maskedValue = value & (value + 1);
       const auto nextRangeStart = __ctz(maskedValue);
-      // When maskedValue == 0, __ctz returns 64; masking the shift amount
+      // When maskedValue == 0, __ctz returns kBitsPerWord; masking the shift amount
       // maps that to >> 0, so 0 >> 0 == 0, which is the end sentinel -- no branch needed.
       value = maskedValue >> (nextRangeStart & (kBitsPerWord - 1));
       currentStart += nextRangeStart;
@@ -267,7 +273,10 @@ private:
       const WordType *wp = pWord + search_from / kBitsPerWord;
       const size_t bi = search_from % kBitsPerWord;
 
-      WordType word = (wp < wEnd) ? (fetchWord(wp, wLast) & (~WordType(0) << bi)) : WordType(0);
+      // NOTE: when search_from == N == NUM_WORDS * kBitsPerWord, ++wp below forms wEnd + 1, which is
+      // technically UB (pointer arithmetic past one-past-the-end), but harmless on all supported compilers,
+      // and this way the common path is one branch shorter
+      WordType word = wp < wEnd ? fetchWord(wp, wLast) & (~WordType(0) << bi) : WordType(0);
       while (!word)
       {
         if (++wp >= wEnd)
@@ -332,6 +341,22 @@ private:
     const decltype(base_type::mWord) &mWord;
   };
 
+  template <typename Iter, auto firstWord>
+  struct ViewImpl
+  {
+    constexpr Iter begin() const
+    {
+      if constexpr (SINGLE_WORD)
+        return {firstWord(mWord)};
+      else
+        return Iter{firstWord(mWord), 0, mWord}.advance();
+    }
+
+    constexpr Iter end() const { return {0}; }
+
+    const decltype(base_type::mWord) &mWord;
+  };
+
   using LargeIterator = LargeIteratorImpl<[](const WordType *p, const WordType *) -> WordType { return *p; }>;
 
   using Iterator = eastl::conditional_t<SINGLE_WORD, SmallIterator, LargeIterator>;
@@ -352,20 +377,14 @@ private:
 
   using InvertedRangeIterator = eastl::conditional_t<SINGLE_WORD, SmallRangeIterator, InvertedLargeRangeIterator>;
 
-  struct InvertedView
-  {
-    constexpr InvertedIterator begin() const
-    {
-      if constexpr (SINGLE_WORD)
-        return {~mWord[0] & LAST_WORD_MASK};
-      else
-        return InvertedLargeIterator{~mWord[0], 0, mWord}.advance();
-    }
+  using View = ViewImpl<Iterator, [](const auto &mWord) -> WordType { return mWord[0]; }>;
 
-    constexpr InvertedIterator end() const { return {0}; }
-
-    const decltype(base_type::mWord) &mWord;
-  };
+  using InvertedView = ViewImpl<InvertedIterator, [](const auto &mWord) -> WordType {
+    if constexpr (SINGLE_WORD)
+      return ~mWord[0] & LAST_WORD_MASK;
+    else
+      return ~mWord[0];
+  }>;
 
   using RangeView = RangeViewImpl<RangeIterator, [](const auto &mWord) -> WordType { return mWord[0]; }>;
 
@@ -373,13 +392,9 @@ private:
     RangeViewImpl<InvertedRangeIterator, [](const auto &mWord) -> WordType { return ~mWord[0] & LAST_WORD_MASK; }>;
 
 public:
-  constexpr Iterator begin() const
-  {
-    if constexpr (SINGLE_WORD)
-      return {mWord[0]};
-    else
-      return Iterator{mWord[0], 0, mWord}.advance();
-  }
+  // NOTE: the views returned by inverted()/ranges()/invertedRanges() (and the iterators
+  // returned by begin()/end()) reference the bitset's storage, do not call these on temporaries
+  constexpr Iterator begin() const { return View{mWord}.begin(); }
 
   constexpr Iterator end() const { return {0}; }
 

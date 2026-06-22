@@ -10,5 +10,4 @@ bool NodeBasedShaderManager::update(const String &, const DataBlock &, String &)
 void NodeBasedShaderManager::getShadersBinariesFileNames(const String &, Tab<String> &, PLATFORM) const {}
 void NodeBasedShaderManager::enableOptionalGraph(const String &, bool) {}
 String NodeBasedShaderManager::buildScriptedShaderName(char const *) { return {}; };
-char const *NodeBasedShaderManager::getShaderBlockName() const { return nullptr; }
 void NodeBasedShaderManager::setShadervars(int) {}

@@ -2,12 +2,22 @@ include "node_based_common.dshl"
 
 int envi_cover_shader_type always_referenced;
 interval envi_cover_shader_type: envi_cover < 1, envi_cover_combined < 2, envi_cover_norms_packed < 3, envi_cover_combined_norms_packed always_referenced;
+float4x4 jitteredCamPosToUnjitteredHistoryClip always_referenced;
+float4 prev_zn_zfar always_referenced;
+buffer emission_decode_color_map always_referenced;
+texture depth_gbuf always_referenced;
+texture envi_cover_intensity_map always_referenced;
+sampler envi_cover_intensity_map_samplerstate always_referenced;
+float4 rendering_res always_referenced;
+int envi_cover_is_temporal_aa always_referenced;
+int envi_cover_frame_idx always_referenced;
+int packed_gbuf_normals always_referenced;
+int special_vision always_referenced;
 
 bool envi_cover_shader_is_combined = (envi_cover_shader_type == envi_cover_combined) || (envi_cover_shader_type == envi_cover_combined_norms_packed);
 bool envi_cover_shader_pack_norms = (envi_cover_shader_type == envi_cover_norms_packed) || (envi_cover_shader_type == envi_cover_combined_norms_packed);
 
-block(scene) nbs_envi_cover_block
-{
+macro NBS_ENVI_COVER_BLOCK()
   NBS_COMMON_BLOCK()
 
   (cs) {
@@ -33,4 +43,4 @@ block(scene) nbs_envi_cover_block
     camera_in_camera_active@f1 = camera_in_camera_active;
     special_vision@i1 = special_vision;
   }
-}
+endmacro

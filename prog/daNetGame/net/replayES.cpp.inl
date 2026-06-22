@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "replay.h"
+#include "replaySession.h"
 #include "net.h"
 #include <daECS/core/entitySystem.h>
 #include <daECS/net/replayEvents.h>
@@ -34,9 +35,12 @@
 #define REPLAY_CONN_ID         NET_MAX_PLAYERS
 
 extern net::CNetwork &net_ctx_init_client(ecs::EntityManager &mgr, net::INetDriver *drv);
-extern void net_ctx_set_recording_replay_filename(const char *path);
 extern void set_time_internal(ITimeManager *tmgr);
-extern net::CNetwork *get_net_internal();
+
+// Server-only -- set only by server_create_replay_record (client recordings leave it empty).
+static SimpleString g_replay_record_filename;
+
+bool is_replay_recording() { return !g_replay_record_filename.empty(); }
 
 namespace net
 {
@@ -62,10 +66,16 @@ static inline void trim_filename(S &path)
   path.clear(); // no slash found -> clear
 }
 
-void finalize_replay_record(const char *rpath)
+void finalize_replay_record()
 {
-  if (!strstr(rpath, REPLAY_TMP_PREFIX))
+  if (g_replay_record_filename.empty())
     return;
+  const char *rpath = g_replay_record_filename.c_str();
+  if (!strstr(rpath, REPLAY_TMP_PREFIX))
+  {
+    g_replay_record_filename.clear();
+    return;
+  }
   if (dd_rename(rpath, app_profile::get().replay.record->c_str()))
   {
     if (!replay_meta_info.IsNull())
@@ -104,10 +114,13 @@ void finalize_replay_record(const char *rpath)
   }
   else
     logerr("Failed to rename tmp replay file '%s' -> '%s'", rpath, app_profile::get().replay.record->c_str());
+  g_replay_record_filename.clear();
 }
 
 void gather_replay_meta_info()
 {
+  if (g_replay_record_filename.empty())
+    return;
   EventOnWriteReplayMetaInfo evt(rapidjson::Document{});
   g_entity_mgr->broadcastEventImmediate(evt);
   replay_meta_info = eastl::move(evt.get<0>());
@@ -152,13 +165,13 @@ static void save_replay_key_frame(danet::BitStream &bs, int cur_time)
 static void replay_restore_key_frame(const danet::BitStream &bs)
 {
   TIME_PROFILE(restore_key_frame);
-  if (!get_net_internal())
+  if (!GET_NET())
   {
     DAG_FATAL("Can't restore replay key frame without replay network");
     return;
   }
 
-  if (!get_net_internal()->readReplayKeyFrame(bs))
+  if (!GET_NET()->readReplayKeyFrame(bs))
     DAG_FATAL("Failed to restore replay key frame!");
 
   propsreg::deserialize_net_registry(bs);
@@ -168,6 +181,8 @@ static void replay_restore_key_frame(const danet::BitStream &bs)
 
 void server_create_replay_record()
 {
+  if (!GET_NET())
+    return;
   eastl::optional<eastl::string> &recordOpt = app_profile::getRW().replay.record;
   const char *record = recordOpt ? recordOpt->c_str() : nullptr;
   if (!record)
@@ -191,11 +206,11 @@ void server_create_replay_record()
     net::scope_query_cb_t(), &save_replay_key_frame);
   if (conn)
   {
-    auto netw = get_net_internal();
+    auto netw = GET_NET();
     G_ASSERT(netw && netw->isServer());
     netw->addConnection(conn, REPLAY_CONN_ID);
     BasePhysActor::resizeSyncStates(REPLAY_CONN_ID);
-    net_ctx_set_recording_replay_filename(path.c_str());
+    g_replay_record_filename = path.c_str();
     debug("Started replay record to '%s' ('%s')", path.c_str(), record);
   }
   else
@@ -250,8 +265,8 @@ bool load_replay_meta_info(const char *path, const eastl::function<void(const ra
 void net_replay_rewind()
 {
   const auto &replay = app_profile::get().replay;
-  if (replay.startTime > 0 && get_net_internal() && !replay.playFile.empty())
-    net::replay_rewind(get_net_internal()->getDriver(), replay.startTime * 1000);
+  if (replay.startTime > 0 && GET_NET() && !replay.playFile.empty())
+    net::replay_rewind(GET_NET()->getDriver(), replay.startTime * 1000);
 }
 
 bool try_create_replay_playback(ecs::EntityManager &mgr)
@@ -280,7 +295,6 @@ bool try_create_replay_playback(ecs::EntityManager &mgr)
     set_timespeed(0);
   set_time_internal(create_replay_time(profile.replay.startTime));
 
-  net::event::init_client(&mgr);
   netstat::init();
 
   return true;
@@ -325,4 +339,12 @@ static void replay_save_key_frame_es(const ecs::Event &)
     net::replay_save_keyframe(conn, get_time_mgr().getAsyncMillis());
   else
     logerr("Tried to save a replay key frame but replay connection was null");
+}
+
+ECS_REGISTER_EVENT(EventQueryReplayPlayback)
+ECS_ON_EVENT(EventQueryReplayPlayback)
+static void replay_query_playback_es(const EventQueryReplayPlayback &evt)
+{
+  if (auto *out = evt.get<0>())
+    *out = !app_profile::get().replay.playFile.empty();
 }

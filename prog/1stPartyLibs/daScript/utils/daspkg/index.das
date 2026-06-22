@@ -1,8 +1,6 @@
 options gen2
 options rtti
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 
 module index shared public
@@ -142,9 +140,7 @@ def resolve_from_index(root, name : string) : string {
         }
         g_cached_index_root := root
     }
-    if (!(g_cached_index |> key_exists(name))) {
-        return ""
-    }
+    if (!(g_cached_index |> key_exists(name))) return ""
     unsafe {
         return g_cached_index[name].url
     }
@@ -192,13 +188,9 @@ def private make_package_info(name : string; entry : IndexEntry) : PackageInfo {
 }
 
 def private fuzzy_match(haystack, needle : string; max_distance : int = 2) : bool {
-    if (find(to_lower(haystack), needle) >= 0) {
-        return true
-    }
+    if (find(to_lower(haystack), needle) >= 0) return true
     // try levenshtein on short strings (word-level)
-    if (length(haystack) < 30 && length(needle) < 15) {
-        return levenshtein_distance_fast(to_lower(haystack), needle) <= max_distance
-    }
+    if (length(haystack) < 30 && length(needle) < 15) return levenshtein_distance_fast(to_lower(haystack), needle) <= max_distance
     return false
 }
 
@@ -206,19 +198,13 @@ def private match_score(name, query : string) : int {
     // exact prefix match = best
     let ln = to_lower(name)
     let q = query
-    if (starts_with(ln, q)) {
-        return 0
-    }
+    if (starts_with(ln, q)) return 0
     // substring match
-    if (find(ln, q) >= 0) {
-        return 1
-    }
+    if (find(ln, q) >= 0) return 1
     // fuzzy
     if (length(name) < 30 && length(query) < 15) {
         let dist = levenshtein_distance_fast(ln, q)
-        if (dist <= 2) {
-            return 2 + dist
-        }
+        if (dist <= 2) return 2 + dist
     }
     return 100  // no match
 }
@@ -228,17 +214,13 @@ def matches_entry(name : string; entry : IndexEntry; query : string) : int {
     if (starts_with(query, "tag:")) {
         let tag_q = to_lower(slice(query, 4))
         for (t in entry.tags) {
-            if (fuzzy_match(t, tag_q)) {
-                return 0
-            }
+            if (fuzzy_match(t, tag_q)) return 0
         }
         return 100
     }
     // general search across all fields
     var best = match_score(name, query)
-    if (best == 0) {
-        return 0
-    }
+    if (best == 0) return 0
     let desc_score = match_score(entry.description, query)
     if (desc_score < best) {
         best = desc_score
@@ -276,21 +258,21 @@ def private format_entry(name : string; entry : IndexEntry) {
     if (entry.has_native) {
         meta_parts |> push_clone(yellow_str("native"))
     }
-    if (length(meta_parts) > 0) {
+    if (!empty(meta_parts)) {
         print("    {join(meta_parts, " | ")}\n")
     }
     // line 3: tags | min-sdk
     var cat_parts : array<string>
-    if (length(entry.tags) > 0) {
+    if (!empty(entry.tags)) {
         cat_parts |> push_clone("tags: {green_str(join(entry.tags, ", "))}")
     }
     if (!empty(entry.min_sdk)) {
         cat_parts |> push_clone("min-sdk: {entry.min_sdk}")
     }
-    if (length(entry.dependencies) > 0) {
+    if (!empty(entry.dependencies)) {
         cat_parts |> push_clone("deps: {join(entry.dependencies, ", ")}")
     }
-    if (length(cat_parts) > 0) {
+    if (!empty(cat_parts)) {
         print("    {join(cat_parts, " | ")}\n")
     }
     // line 4: install command
@@ -316,9 +298,7 @@ def cmd_search(root, query : string; json : bool = false) : int {
     }
     // sort by score (lower = better)
     sort(results) $(a, b : SearchResult) : bool {
-        if (a.score != b.score) {
-            return a.score < b.score
-        }
+        if (a.score != b.score) return a.score < b.score
         return a.name < b.name
     }
     if (json) {
@@ -355,10 +335,7 @@ def cmd_search_all(root : string; json : bool = false) : int {
         return 0
     }
     // collect and sort by name
-    var names : array<string>
-    for (name in keys(index)) {
-        names |> push_clone(name)
-    }
+    var names <- [for (name in keys(index)); name]
     sort(names) $(a, b : string) : bool {
         return a < b
     }
@@ -416,10 +393,7 @@ def read_manifest(pkg_dir : string; var manifest : PackageManifest) : bool {
     manifest.author = meta.author
     manifest.license = meta.license
     manifest.min_sdk = meta.min_sdk
-    manifest.tags |> reserve(length(meta.tags))
-    for (tag in meta.tags) {
-        manifest.tags |> push_clone(tag)
-    }
+    manifest.tags |> push_clone_from(meta.tags)
     if (empty(manifest.name)) {
         to_log(LOG_ERROR, "Error: .das_package missing package_name()\n")
         return false
@@ -447,9 +421,7 @@ def read_manifest(pkg_dir : string; var manifest : PackageManifest) : bool {
 def get_git_remote_url(pkg_dir : string) : string {
     var output : string
     let exit_code = run_cmd("git -C \"{pkg_dir}\" remote get-url origin", output)
-    if (exit_code != 0) {
-        return ""
-    }
+    if (exit_code != 0) return ""
     var url = strip(output)
     if (starts_with(url, "git@")) {
         url = replace(url, "git@", "")
@@ -481,7 +453,7 @@ def private entry_to_jv(name : string; entry : IndexEntry) : JsonValue? {
             (obj.value as _object)["license"] = JV(entry.license)
         }
     }
-    if (length(entry.tags) > 0) {
+    if (!empty(entry.tags)) {
         var arr : array<JsonValue?>
         arr |> reserve(length(entry.tags))
         for (t in entry.tags) {
@@ -511,7 +483,7 @@ def private entry_to_jv(name : string; entry : IndexEntry) : JsonValue? {
             (obj.value as _object)["has_native"] = JV(true)
         }
     }
-    if (length(entry.dependencies) > 0) {
+    if (!empty(entry.dependencies)) {
         var arr : array<JsonValue?>
         arr |> reserve(length(entry.dependencies))
         for (d in entry.dependencies) {
@@ -525,21 +497,15 @@ def private entry_to_jv(name : string; entry : IndexEntry) : JsonValue? {
 }
 
 def private manifest_to_entry(manifest : PackageManifest; url : string) : IndexEntry {
-    var entry : IndexEntry
-    entry.url = url
-    entry.description = manifest.description
-    entry.author = manifest.author
-    entry.license = manifest.license
-    entry.min_sdk = manifest.min_sdk
-    entry.has_native = manifest.has_native
-    entry.tags |> reserve(length(manifest.tags))
-    for (t in manifest.tags) {
-        entry.tags |> push_clone(t)
-    }
-    entry.dependencies |> reserve(length(manifest.dependencies))
-    for (d in manifest.dependencies) {
-        entry.dependencies |> push_clone(d)
-    }
+    var entry = IndexEntry(
+        url = url,
+        description = manifest.description,
+        author = manifest.author,
+        license = manifest.license,
+        min_sdk = manifest.min_sdk,
+        has_native = manifest.has_native)
+    entry.tags |> push_clone_from(manifest.tags)
+    entry.dependencies |> push_clone_from(manifest.dependencies)
     return <- entry
 }
 
@@ -565,9 +531,7 @@ def serialize_index(index : table<string; IndexEntry>) : string {
 
 def generate_index_readme(packages_json : string) : string {
     var index : table<string; IndexEntry>
-    if (!parse_index_json(packages_json, index)) {
-        return ""
-    }
+    if (!parse_index_json(packages_json, index)) return ""
     return generate_index_readme_from_index(index)
 }
 
@@ -617,10 +581,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
                 }
             }
         }
-        var tag_names : array<string>
-        for (t in keys(all_tags)) {
-            tag_names |> push_clone(t)
-        }
+        var tag_names <- [for (t in keys(all_tags)); t]
         sort(tag_names) $(a, b : string) : bool {
             return a < b
         }
@@ -651,7 +612,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
         writer |> write("\n")
 
         // packages by tag
-        if (length(tag_to_pkgs) > 0) {
+        if (!empty(tag_to_pkgs)) {
             writer |> write("## Packages by Tag\n\n")
             for (tp in tag_to_pkgs) {
                 let tab_pos = find(tp, "\t")
@@ -675,7 +636,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
             if (!empty(entry.license)) {
                 details |> push_clone("**License:** {entry.license}")
             }
-            if (length(entry.tags) > 0) {
+            if (!empty(entry.tags)) {
                 details |> push_clone("**Tags:** {join(entry.tags, ", ")}")
             }
             if (!empty(entry.min_sdk)) {
@@ -690,7 +651,7 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
             if (entry.has_native) {
                 details |> push_clone("**Native:** yes (requires C/C++ toolchain)")
             }
-            if (length(entry.dependencies) > 0) {
+            if (!empty(entry.dependencies)) {
                 details |> push_clone("**Dependencies:** {join(entry.dependencies, ", ")}")
             }
             for (d in details) {
@@ -712,12 +673,8 @@ def generate_index_readme_from_index(index : table<string; IndexEntry>) : string
 
 def add_to_index_json(index_text, name, url, description : string) : string {
     var index : table<string; IndexEntry>
-    if (!parse_index_json(index_text, index)) {
-        return ""
-    }
-    var entry : IndexEntry
-    entry.url = url
-    entry.description = description
+    if (!parse_index_json(index_text, index)) return ""
+    let entry = IndexEntry(url = url, description = description)
     unsafe {
         index[name] := entry
     }
@@ -726,9 +683,7 @@ def add_to_index_json(index_text, name, url, description : string) : string {
 
 def add_to_index_json_rich(index_text : string; name : string; manifest : PackageManifest; url : string) : string {
     var index : table<string; IndexEntry>
-    if (!parse_index_json(index_text, index)) {
-        return ""
-    }
+    if (!parse_index_json(index_text, index)) return ""
     unsafe {
         index[name] := manifest_to_entry(manifest, url)
     }
@@ -737,9 +692,7 @@ def add_to_index_json_rich(index_text : string; name : string; manifest : Packag
 
 def remove_from_index_json(index_text, name : string) : string {
     var index : table<string; IndexEntry>
-    if (!parse_index_json(index_text, index)) {
-        return ""
-    }
+    if (!parse_index_json(index_text, index)) return ""
     if (index |> key_exists(name)) {
         index |> erase(name)
     }
@@ -961,20 +914,14 @@ def cmd_update_index(root : string) : int {
                 if (!empty(manifest.min_sdk)) {
                     index[name].min_sdk = manifest.min_sdk
                 }
-                if (length(manifest.tags) > 0) {
+                if (!empty(manifest.tags)) {
                     delete index[name].tags
-                    index[name].tags |> reserve(length(manifest.tags))
-                    for (t in manifest.tags) {
-                        index[name].tags |> push_clone(t)
-                    }
+                    index[name].tags |> push_clone_from(manifest.tags)
                 }
                 index[name].has_native = manifest.has_native
-                if (length(manifest.dependencies) > 0) {
+                if (!empty(manifest.dependencies)) {
                     delete index[name].dependencies
-                    index[name].dependencies |> reserve(length(manifest.dependencies))
-                    for (d in manifest.dependencies) {
-                        index[name].dependencies |> push_clone(d)
-                    }
+                    index[name].dependencies |> push_clone_from(manifest.dependencies)
                 }
             }
 
@@ -1066,9 +1013,7 @@ def private github_get_license(url : string) : string {
     let exit_code = run_cmd("gh api repos/{slice(url, length("github.com/"))} --jq .license.spdx_id", output)
     if (exit_code == 0) {
         let result = strip(output)
-        if (result != "null" && result != "NOASSERTION" && !empty(result)) {
-            return result
-        }
+        if (result != "null" && result != "NOASSERTION" && !empty(result)) return result
     }
     return ""
 }
@@ -1077,8 +1022,6 @@ def private github_get_owner(url : string) : string {
     // extract owner from "github.com/user/repo"
     let path = slice(url, length("github.com/"))
     let slash = find(path, "/")
-    if (slash > 0) {
-        return slice(path, 0, slash)
-    }
+    if (slash > 0) return slice(path, 0, slash)
     return ""
 }

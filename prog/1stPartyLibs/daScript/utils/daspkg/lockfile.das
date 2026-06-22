@@ -1,8 +1,6 @@
 options gen2
 options rtti
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 options persistent_heap
 
@@ -43,9 +41,7 @@ def global_lock_file_path() : string {
 // find index of package by name, -1 if not found
 def find_package(lf : LockFile; name : string) : int {
     for (i in range(length(lf.packages))) {
-        if (lf.packages[i].name == name) {
-            return i
-        }
+        if (lf.packages[i].name == name) return i
     }
     return -1
 }
@@ -56,9 +52,7 @@ def has_package(lf : LockFile; name : string) : bool {
 
 def get_package(lf : LockFile; name : string) : PackageEntry {
     let idx = find_package(lf, name)
-    if (idx >= 0) {
-        return lf.packages[idx]
-    }
+    if (idx >= 0) return lf.packages[idx]
     return PackageEntry()
 }
 
@@ -82,9 +76,7 @@ def remove_package(var lf : LockFile; name : string) {
 def read_lock_file_at(path : string; var lf : LockFile) : bool {
     var ok = false
     fopen(path, "rb") $(f) {
-        if (f == null) {
-            return
-        }
+        if (f == null) return
         let text = fread(f)
         var error : string
         var parsed = read_json(text, error)

@@ -18,7 +18,7 @@ namespace drv3d_metal
 {
   extern DriverDesc g_device_desc;
 
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.15');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.16');
 
   std::thread g_saver;
   std::thread g_compiler;

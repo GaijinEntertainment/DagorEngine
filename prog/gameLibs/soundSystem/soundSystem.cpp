@@ -28,6 +28,7 @@
 #include "internal/occlusion_internal.h"
 #include "internal/occlusionGPU_internal.h"
 #include "internal/debug_internal.h"
+#include "internal/steamAudio.h"
 
 #include <math/random/dag_random.h>
 #include <osApiWrappers/dag_atomic_types.h>
@@ -128,6 +129,7 @@ static bool init_live_update = false;
 static int maxVorbisCodecs = 0;
 static int maxFADPCMCodecs = 0;
 static bool fmod_synchronous_mode = false;
+static bool fmod_allow_missing_plugins = false;
 static bool enable_spatial_sound = false;
 static int samplerate = 48000;
 static bool enable_fmod_debug = true;
@@ -146,6 +148,7 @@ static void settings_init(const DataBlock &blk)
   settings::maxVorbisCodecs = blk.getInt("maxVorbisCodecs", 0);
   settings::maxFADPCMCodecs = blk.getInt("maxFADPCMCodecs", 0);
   settings::fmod_synchronous_mode = blk.getBool("fmodSynchronousMode", false);
+  settings::fmod_allow_missing_plugins = blk.getBool("fmodAllowMissingPlugins", false);
   settings::samplerate = blk.getInt("sampleRate", 48000);
   settings::enable_spatial_sound = blk.getBool("fmodEnableSpatialSound", false);
   settings::enable_fmod_debug = blk.getBool("enableFmodDebug", true);
@@ -163,6 +166,7 @@ static void settings_init(const DataBlock &blk)
   LOG_VALUE(maxVorbisCodecs, "%u");
   LOG_VALUE(maxFADPCMCodecs, "%u");
   LOG_VALUE(fmod_synchronous_mode, "%d");
+  LOG_VALUE(fmod_allow_missing_plugins, "%d");
   LOG_VALUE(samplerate, "%u");
   LOG_VALUE(enable_spatial_sound, "%d");
   LOG_VALUE(enable_fmod_debug, "%d");
@@ -363,6 +367,9 @@ static bool system_init(const DataBlock &blk, bool null_output)
   }
   if (settings::fmod_synchronous_mode)
     fmodStudioInitFlags |= FMOD_STUDIO_INIT_SYNCHRONOUS_UPDATE;
+
+  if (settings::fmod_allow_missing_plugins)
+    fmodStudioInitFlags |= FMOD_STUDIO_INIT_ALLOW_MISSING_PLUGINS;
 
 #if DAGOR_DBGLEVEL > 0
   if (settings::memory_tracking_mode)
@@ -627,6 +634,8 @@ bool init(const DataBlock &blk)
   else if (blk.getBool("occlusionGPUInit", false))
     occlusion_gpu::init(blk);
 
+  steam_audio::init(blk);
+
   eastl::basic_string<char, framemem_allocator> memoryInfo;
   if (g_fixed_mem_pool)
     memoryInfo.sprintf("memory pool at 0x%p, size", g_memory_block);
@@ -658,6 +667,8 @@ void shutdown()
   releasing::close();
 
   events_close();
+
+  steam_audio::shutdown();
 
   occlusion::close();
 

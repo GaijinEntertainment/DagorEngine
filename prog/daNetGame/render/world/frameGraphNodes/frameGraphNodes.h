@@ -31,9 +31,8 @@ enum class MainNodeRenderPass
 
 // pImpl-like construction
 
-dafg::NodeHandle makePrepareGbufferDepthNode(uint32_t global_flags, int depth_format);
-dafg::NodeHandle makePrepareGbufferNode(
-  uint32_t global_flags, uint32_t gbuf_cnt, eastl::span<uint32_t> main_gbuf_fmts, bool has_motion_vectors, bool is_rr_enabled);
+dafg::NodeHandle makePrepareGbufferDepthNode(int depth_format);
+dafg::NodeHandle makePrepareGbufferNode();
 
 dafg::NodeHandle makeHideAnimcharNodesEcsNode();
 
@@ -131,6 +130,7 @@ extern const eastl::array<char const *, eastl::to_underlying(WaterRenderMode::CO
 
 dafg::NodeHandle makeWaterNode(WaterRenderMode mode);
 eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode mode);
+void bind_water_refraction_stub_if_unset();
 
 dafg::NodeHandle makeDownsampleDepthWithWaterNode();
 

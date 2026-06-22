@@ -273,8 +273,32 @@ static bool is_valid_argument(const T &arg)
   return !eastl::holds_alternative<eastl::monostate>(arg);
 }
 
+static void validate_depth_read_test_only(const ShaderElement &elem, dafg::InternalRegistry &registry, NodeNameId node_id)
+{
+  const auto &nodeData = registry.nodes[node_id];
+  const auto &reqs = nodeData.renderingRequirements;
+  if (!reqs || !reqs->depthReadTestOnly)
+    return;
+
+  bool writesDepth = elem.isAnyPassWritesDepth();
+  if (nodeData.stateRequirements && nodeData.stateRequirements->pipelineStateOverride)
+  {
+    const auto &ovr = *nodeData.stateRequirements->pipelineStateOverride;
+    if (ovr.isOn(shaders::OverrideState::Z_WRITE_DISABLE))
+      writesDepth = false;
+    else if (ovr.isOn(shaders::OverrideState::Z_WRITE_ENABLE))
+      writesDepth = true;
+  }
+
+  if (writesDepth)
+    logerr("daFG: Node '%s' was declared with depthReadTestOnly() but writes Z. "
+           "Disable zwrite (in the shader or via an override) or use depth() instead.",
+      registry.knownNames.getName(node_id));
+}
+
 template <typename T>
-static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry, const T &args)
+static detail::ExecutionCallback get_builtin_execute(const char *shader_name, NodeNameId, dafg::InternalRegistry &registry,
+  const T &args)
   requires(eastl::is_base_of_v<DispatchRequirements::DirectArgs, T>)
 {
   static constexpr bool isComputeDispatch =
@@ -300,7 +324,8 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
 }
 
 template <typename T>
-static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry, const T &args)
+static detail::ExecutionCallback get_builtin_execute(const char *shader_name, NodeNameId, dafg::InternalRegistry &registry,
+  const T &args)
   requires(eastl::is_base_of_v<DispatchRequirements::IndirectArgs, T>)
 {
   static constexpr bool isComputeDispatch = eastl::is_same_v<DispatchRequirements::IndirectArgs, T>;
@@ -369,7 +394,7 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
   };
 }
 
-static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry,
+static detail::ExecutionCallback get_builtin_execute(const char *shader_name, NodeNameId node_id, dafg::InternalRegistry &registry,
   const DrawRequirements::DirectNonIndexedArgs &args)
 {
   Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
@@ -379,6 +404,7 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
     return {};
   }
   Ptr<ShaderElement> elem(mat->make_elem());
+  validate_depth_read_test_only(*elem, registry, node_id);
 
   if (DAGOR_UNLIKELY(!is_valid_argument(args.primitiveCount)))
     logerr("daFG: Primitive count is not set for %s!", shader_name);
@@ -404,7 +430,7 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
   };
 }
 
-static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry,
+static detail::ExecutionCallback get_builtin_execute(const char *shader_name, NodeNameId node_id, dafg::InternalRegistry &registry,
   const DrawRequirements::DirectIndexedArgs &args)
 {
   Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
@@ -414,6 +440,7 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
     return {};
   }
   Ptr<ShaderElement> elem(mat->make_elem());
+  validate_depth_read_test_only(*elem, registry, node_id);
 
   if (DAGOR_UNLIKELY(!is_valid_argument(args.primitiveCount)))
     logerr("daFG: Primitive count is not set for %s!", shader_name);
@@ -444,7 +471,8 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
 
 template <typename T>
   requires(eastl::is_base_of_v<DrawRequirements::IndirectArgs, T>)
-static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry, const T &args)
+static detail::ExecutionCallback get_builtin_execute(const char *shader_name, NodeNameId node_id, dafg::InternalRegistry &registry,
+  const T &args)
 {
   Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
   if (DAGOR_UNLIKELY(!mat))
@@ -453,6 +481,7 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
     return {};
   }
   Ptr<ShaderElement> elem(mat->make_elem());
+  validate_depth_read_test_only(*elem, registry, node_id);
 
   if constexpr (eastl::is_base_of_v<DrawRequirements::MultiIndirectArgs, T>)
   {
@@ -537,7 +566,7 @@ void NodeTracker::updateNodeDeclaration(NodeNameId node_id)
           return;
         }
 
-        eastl::visit([&](const auto &args) { node.execute = get_builtin_execute(shaderName.cbegin(), registry, args); },
+        eastl::visit([&](const auto &args) { node.execute = get_builtin_execute(shaderName.cbegin(), node_id, registry, args); },
           requirements.arguments);
       }
     },

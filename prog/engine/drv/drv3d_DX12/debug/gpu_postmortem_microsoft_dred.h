@@ -86,7 +86,7 @@ public:
       return false;
     }
     target.template emplace<DeviceRemovedExtendedData>();
-    return false;
+    return true;
   }
 
   template <typename T, typename K>

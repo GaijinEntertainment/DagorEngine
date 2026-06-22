@@ -278,7 +278,7 @@ shader gpu_objects_copy_matrices_cs
             bvhInstance.transform0 = gpuObjectsMatrices[matrixOffset + 0];
             bvhInstance.transform1 = gpuObjectsMatrices[matrixOffset + 1];
             bvhInstance.transform2 = gpuObjectsMatrices[matrixOffset + 2];
-            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
+            bvhInstance.instanceId_mask = pack_rt_instance_id_mask(bvhMapping.metaIndex, bvhGroupRi);
             bvhInstance.instanceOffset_flags = 0;
             bvhInstance.blas = bvhMapping.blas;
             structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;

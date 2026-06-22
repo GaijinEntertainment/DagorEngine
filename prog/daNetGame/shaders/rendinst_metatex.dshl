@@ -5,6 +5,7 @@ include "rendinst_voxelize_albedo_inc.dshl"
 include "metatex_inc.dshl"
 include "normaldetail.dshl"
 include "camera_in_camera.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 include "indoor_light_probes.dshl"
 include "glass.dshl"
@@ -29,6 +30,7 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   texture tex = material.texture.diffuse;
 
@@ -92,7 +94,7 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
       ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
       float3 localNormal = 1; //warning fix, need not 0 value because of normalize(localNormal) in VB_PERFORM_INSTANCING
       ##else
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       ##endif
       float3 localPos = input.pos;
       float opacity = 1;
@@ -148,6 +150,7 @@ shader rendinst_refraction_metatex
   }
   RENDINST_TRANS_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   ENABLE_MULTI_DRAW(false)
   hlsl(vs) {
 
@@ -169,7 +172,7 @@ shader rendinst_refraction_metatex
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
       #endif
 
-      input.normal = normalize(input.normal * 2 - 1);
+      input.normal = normalize(unpack_unit_vector(input.normal.xyz)); // color8 channel needs the swizzle on metal
       float3 localNormal = input.normal.xyz;
       float3 localPos = input.pos;
       float opacity = 1;

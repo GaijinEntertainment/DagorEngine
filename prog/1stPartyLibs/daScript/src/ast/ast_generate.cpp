@@ -292,7 +292,24 @@ namespace das {
         return del;
     }
 
-    // return [[t()]]
+    Structure * findChainCtorAncestor ( Structure * cls ) {
+        if ( !cls || !cls->isClass || !cls->parent ) return nullptr;
+        for ( auto * anc = cls->parent; anc; anc = anc->parent ) {
+            if ( anc->hasUserConstructor() ) return anc;
+        }
+        return nullptr;
+    }
+
+    Structure * findChainFinalizerAncestor ( Structure * cls ) {
+        if ( !cls || !cls->isClass || !cls->parent ) return nullptr;
+        for ( auto * anc = cls->parent; anc; anc = anc->parent ) {
+            if ( anc->hasUserFinalizer() ) return anc;
+        }
+        return nullptr;
+    }
+
+    // return [[t()]] -- or, for a class derived from a parent with a user ctor,
+    // emit the let-self / call Parent`Parent(self) / return self chain body.
     FunctionPtr makeConstructor ( Structure * str, bool isPrivate ) {
         auto fn = new Function();
         fn->generated = true;
@@ -308,21 +325,71 @@ namespace das {
         if ( str->macroInterface ) fn->macroFunction = true;
         auto block = new ExprBlock();
         block->at = str->at;
-        auto makeT = new ExprMakeStruct(str->at);
-        if ( str->isClass ) makeT->alwaysSafe = true;
-        makeT->useInitializer = false;
-        makeT->nativeClassInitializer = true;
-        for ( auto & f : str->fields ) {
-            if ( f.init ) {
-                makeT->useInitializer = true;
-                break;
+        // For a synth ctor of a class whose ancestor chain has a user ctor, emit a
+        // chain body that calls the deepest USER ctor directly -- but only when
+        // (a) the class itself has no user ctor (true implicit-default case)
+        // AND (b) the chain target has a 0-arg-callable user ctor we can reach.
+        // Otherwise fall through to the plain field-init body. The latter preserves
+        // the long-standing `new Class(field=val)` named-init idiom for classes
+        // with user ctors. The lint catches missing super in the user's own ctor,
+        // which is the only path that actually runs invariants.
+        Structure * chainTarget = nullptr;
+        if ( !str->hasUserConstructor() ) {
+            auto * cand = findChainCtorAncestor(str);
+            if ( cand && cand->hasUserDefaultConstructor() ) {
+                chainTarget = cand;
             }
         }
-        makeT->makeType = new TypeDecl(str);
-        makeT->structs.push_back(new MakeStruct());
-        auto returnDecl = new ExprReturn(str->at,makeT);
-        returnDecl->moveSemantics = true;
-        block->list.push_back(returnDecl);
+        if ( chainTarget ) {
+            // let self = [[Derived()]]
+            auto makeT = new ExprMakeStruct(str->at);
+            makeT->alwaysSafe = true;
+            makeT->useInitializer = true;
+            makeT->nativeClassInitializer = true;
+            makeT->makeType = new TypeDecl(str);
+            makeT->structs.push_back(new MakeStruct());
+            auto letS = new ExprLet();
+            letS->at = str->at;
+            letS->atInit = str->at;
+            letS->visibility = str->at;
+            letS->alwaysSafe = true;    // local class variable
+            auto argT = new TypeDecl(str);
+            argT->constant = false;
+            auto argV = new Variable();
+            argV->name = "self";
+            argV->type = argT;
+            argV->at = str->at;
+            argV->generated = true;
+            argV->capture_as_ref = true;
+            argV->init = makeT;
+            argV->init_via_move = true;
+            letS->variables.push_back(argV);
+            block->list.push_back(letS);
+            // call ChainTarget`ChainTarget(self) -- closest ancestor with user ctor
+            auto cll = new ExprCall(str->at, chainTarget->name + "`" + chainTarget->name);
+            cll->arguments.push_back(new ExprVar(str->at, "self"));
+            block->list.push_back(cll);
+            // return self
+            auto returnDecl = new ExprReturn(str->at, new ExprVar(str->at, "self"));
+            returnDecl->moveSemantics = true;
+            block->list.push_back(returnDecl);
+        } else {
+            auto makeT = new ExprMakeStruct(str->at);
+            if ( str->isClass ) makeT->alwaysSafe = true;
+            makeT->useInitializer = false;
+            makeT->nativeClassInitializer = true;
+            for ( auto & f : str->fields ) {
+                if ( f.init ) {
+                    makeT->useInitializer = true;
+                    break;
+                }
+            }
+            makeT->makeType = new TypeDecl(str);
+            makeT->structs.push_back(new MakeStruct());
+            auto returnDecl = new ExprReturn(str->at,makeT);
+            returnDecl->moveSemantics = true;
+            block->list.push_back(returnDecl);
+        }
         fn->body = block;
         verifyGenerated(fn->body);
         return fn;
@@ -470,11 +537,19 @@ namespace das {
         if ( ls->macroInterface ) pFunc->macroFunction = true;
         auto fb = new ExprBlock();
         fb->at = ls->at;
+        // For a class whose ancestry has a user finalizer, chain to the immediate
+        // parent: this finalizer owns only its own slice of the fields (everything
+        // past the parent prefix), then `delete cast<Parent>(__this)` runs the
+        // parent's finalize — the user one, or a generated chain finalizer that
+        // recurses the same way. Derived slice first, parent second (dtor order).
+        Structure * chainParent = ( ls->isClass && findChainFinalizerAncestor(ls) ) ? ls->parent : nullptr;
+        size_t firstOwnField = chainParent ? chainParent->fields.size() : 0;
         // now finalize
         bool needUnsafe = false;
         for ( int stage=0; stage!=2; ++stage ) {
             // stage 0 is iterators, stage 1 is everything else
-            for ( const auto & fl : ls->fields ) {
+            for ( size_t fi=firstOwnField, fis=ls->fields.size(); fi!=fis; ++fi ) {
+                const auto & fl = ls->fields[fi];
                 if ( !fl.type->constant && !fl.capturedConstant && fl.type->needDelete() ) {
                     if ( !fl.doNotDelete && !fl.capturedRef ) {
                         if ( stage==0 && !fl.type->isIterator() ) continue;
@@ -493,6 +568,13 @@ namespace das {
                     }
                 }
             }
+        }
+        if ( chainParent ) {
+            auto chthis = new ExprVar(ls->at, "__this");
+            auto chcast = new ExprCast(ls->at, chthis, new TypeDecl(chainParent));
+            auto chdel = new ExprDelete(ls->at, chcast);
+            chdel->alwaysSafe = true;
+            fb->list.push_back(chdel);
         }
         auto mz = new ExprMemZero(ls->at, "memzero");
         auto lvar = new ExprVar(ls->at, "__this");
@@ -2155,6 +2237,7 @@ namespace das {
         func->result = new TypeDecl(Type::tVoid);
         func->isClassMethod = true;
         func->classParent = baseClass;
+        func->isTemplate = baseClass->isTemplate;
         DAS_ASSERT(func->classParent);
         if ( baseClass->macroInterface ) func->macroFunction = true;
         auto block = new ExprBlock();
@@ -2211,10 +2294,12 @@ namespace das {
         block->isClosure = true;
         block->returnType = new TypeDecl(Type::tVoid);
         // only one argument, and its 'self'
-        auto argT = new TypeDecl(*(mks->makeType));
+        auto mkBaseT = mks->makeType;
+        while ( mkBaseT->baseType==Type::tFixedArray && mkBaseT->firstType ) mkBaseT = mkBaseT->firstType;
+        TypeDeclPtr argT = new TypeDecl(*mkBaseT);
         argT->constant = false;
         if ( mks->structs.size() > 1 ) {
-            argT->dim.push_back(int32_t(mks->structs.size()));
+            argT = makeFixedArrayTypeDecl(int32_t(mks->structs.size()), argT);
         }
         auto argV = new Variable();
         argV->name = "__self__" + to_string(mks->at.line) + "_" + to_string(mks->at.column);

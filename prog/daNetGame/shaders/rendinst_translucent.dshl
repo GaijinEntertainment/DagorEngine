@@ -6,6 +6,7 @@ include "rendinst_voxelize_albedo_inc.dshl"
 include "vertex_density_overlay_inc.dshl"
 include "normaldetail.dshl"
 include "character_micro_detail.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_translucent
 {
@@ -53,6 +54,7 @@ shader rendinst_translucent
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   NO_DYNSTCODE()
 
@@ -139,7 +141,7 @@ shader rendinst_translucent
 
         float3 localNormal = 1;
       ##if (rendinst_render_pass != rendinst_render_pass_depth)
-        localNormal = normalize(BGR_SWIZZLE(input.normal_ao.xyz)*2-1);
+        localNormal = normalize(unpack_unit_vector(input.normal_ao.xyz));
       ##endif
 
         float3 localPos = input.pos;

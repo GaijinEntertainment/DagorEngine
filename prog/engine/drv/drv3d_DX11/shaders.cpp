@@ -1423,18 +1423,6 @@ void reset_state_for_ps(FSHADER fsh)
     d3d::set_pixel_shader(BAD_FSHADER);
 }
 
-void delete_programs_for_vd(VDECL vd)
-{
-  ITERATE_OVER_OBJECT_POOL(g_programs, i)
-    if (g_programs[i].vdecl == vd && g_programs[i].refCntX2 >= 2)
-    {
-      g_programs[i].refCntX2 = 0;
-      g_programs[i].destroyObject();
-      g_programs.releaseEntryUnsafe(i); // Note: replace to fillEntryAsInvalid(i) if don't want to re-use this index/slot anymore
-    }
-  ITERATE_OVER_OBJECT_POOL_RESTORE(g_programs);
-}
-
 bool set_compute_shader(SHADER_ID handle)
 {
   if ((handle != BAD_SHADER_ID) && !g_compute_shaders.isIndexValid(handle))
@@ -1470,36 +1458,6 @@ void Program::destroyObject()
   vdecl = BAD_VDECL;
 }
 }; // namespace drv3d_dx11
-
-/*
-
-void reserve_fsh(int max_ps)
-{
-  if (max_ps > g_pixel_shader_list.size())
-    g_pixel_shader_list.reserve(max_ps - g_pixel_shader_list.size());
-}
-void get_stat_fsh(bool total, int &max_ps)
-{
-  max_ps = total ? g_pixel_shader_list.capacity() : g_pixel_shader_list.size();
-}*/
-
-
-/*
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE *p,int n)
-{
-  int sz;
-  uint32_t *ps = (uint32_t*)parse_fsh_shader(p,n,sz);
-
-  if ( !ps )
-  {
-    error("create_pixel_shader_dagor error");
-    print_fsh_shader(p,n);
-    return BAD_FSHADER;
-  }
-
-  return d3d::create_pixel_shader ( ps );
-}
-*/
 
 FSHADER d3d::create_pixel_shader_hlsl(const char * /*hlsl_text*/, unsigned /*len*/, const char * /*entry*/, const char * /*profile*/,
   String * /*out_err*/)
@@ -1678,8 +1636,6 @@ void d3d::delete_vdecl(VDECL vdecl)
     rs.nextVdecl = BAD_VDECL;
 
   g_input_layouts.release(vdecl);
-  // iterate over shaders, kill caches
-  // delete_programs_for_vd(vd);
 }
 
 bool d3d::setvdecl(VDECL vdecl)
@@ -1751,13 +1707,6 @@ PROGRAM d3d::create_program_cs(const ShaderSource &data, CSPreloaded)
   prg.refCntX2 = 2;
   g_programs.unlock();
   return i;
-}
-
-VDECL d3d::get_program_vdecl(PROGRAM sh)
-{
-  if (!g_programs.isIndexValid(sh))
-    return BAD_VDECL;
-  return g_programs[sh].vdecl;
 }
 
 bool d3d::set_program(PROGRAM sh)

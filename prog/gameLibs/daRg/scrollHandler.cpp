@@ -112,7 +112,7 @@ static BBox2 calc_children_bbox(const Element *elem, Sqrat::Function &finder, in
 }
 
 
-void ScrollHandler::scrollToChildren(Sqrat::Object finder, int depth, bool x, bool y)
+void ScrollHandler::scrollToChildren(Sqrat::Object finder, int depth, bool x, bool y, int align_x, int align_y)
 {
   if (!elem)
     return;
@@ -126,17 +126,35 @@ void ScrollHandler::scrollToChildren(Sqrat::Object finder, int depth, bool x, bo
     ScreenCoord &elSc = elem->screenCoord;
     if (x)
     {
-      if (bbox.right() > elSc.scrollOffs.x + elSc.size.x)
-        elem->scrollTo(Point2(bbox.right() - elSc.size.x, elSc.scrollOffs.y));
-      else if (bbox.left() < elSc.scrollOffs.x)
-        elem->scrollTo(Point2(bbox.left(), elSc.scrollOffs.y));
+      switch (align_x)
+      {
+        case ALIGN_LEFT_OR_TOP: elem->scrollTo(Point2(bbox.left(), elSc.scrollOffs.y)); break;
+        case ALIGN_CENTER: elem->scrollTo(Point2(0.5f * (bbox.left() + bbox.right() - elSc.size.x), elSc.scrollOffs.y)); break;
+        case ALIGN_RIGHT_OR_BOTTOM: elem->scrollTo(Point2(bbox.right() - elSc.size.x, elSc.scrollOffs.y)); break;
+        case PLACE_DEFAULT:
+        default:
+          if (bbox.right() > elSc.scrollOffs.x + elSc.size.x)
+            elem->scrollTo(Point2(bbox.right() - elSc.size.x, elSc.scrollOffs.y));
+          else if (bbox.left() < elSc.scrollOffs.x)
+            elem->scrollTo(Point2(bbox.left(), elSc.scrollOffs.y));
+          break;
+      }
     }
     if (y)
     {
-      if (bbox.bottom() > elSc.scrollOffs.y + elSc.size.y)
-        elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.bottom() - elSc.size.y));
-      else if (bbox.top() < elSc.scrollOffs.y)
-        elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.top()));
+      switch (align_y)
+      {
+        case ALIGN_LEFT_OR_TOP: elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.top())); break;
+        case ALIGN_CENTER: elem->scrollTo(Point2(elSc.scrollOffs.x, 0.5f * (bbox.top() + bbox.bottom() - elSc.size.y))); break;
+        case ALIGN_RIGHT_OR_BOTTOM: elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.bottom() - elSc.size.y)); break;
+        case PLACE_DEFAULT:
+        default:
+          if (bbox.bottom() > elSc.scrollOffs.y + elSc.size.y)
+            elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.bottom() - elSc.size.y));
+          else if (bbox.top() < elSc.scrollOffs.y)
+            elem->scrollTo(Point2(elSc.scrollOffs.x, bbox.top()));
+          break;
+      }
     }
   }
 }

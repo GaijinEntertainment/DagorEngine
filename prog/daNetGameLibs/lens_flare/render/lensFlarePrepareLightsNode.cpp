@@ -11,7 +11,7 @@
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/wrDispatcher.h>
 #include <render/world/shadowsManager.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <render/skies.h>
 
 dafg::NodeHandle create_lens_flare_prepare_lights_node(LensFlareRenderer *renderer, const int view_id)

@@ -10,11 +10,6 @@ include "water_heightmap.dshl"
 int shadow_frame;
 texture water_heightmap_lowres;
 
-// This parameters should me matched with (UNDERWATER_FOG_BASE_DIFFUSE, UNDERWATER_FOG_NORMAL_DIFFUSE) in water shader
-// TODO refactor this to reuse water shader parameters with water after 128 PS registers limit is lifted
-float underwater_fog_base_diffuse = 0.6;
-float underwater_fog_normal_diffuse = 0.4;
-
 float underwater_fog_base_spec = 0.3;
 float underwater_fog_strong_spec = 0.2;
 float underwater_fog_caustic = 0.5;

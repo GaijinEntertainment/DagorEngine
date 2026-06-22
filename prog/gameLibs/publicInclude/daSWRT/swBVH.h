@@ -110,8 +110,10 @@ struct RenderSWRT
   {
     NO_CHECKER_BOARD = 0
   };
-  void renderShadows(const Point3 &dir_to_sun, float sun_size, uint32_t checkerboad_frame, Sbuffer *shadow_mask_buf,
-    BaseTexture *shadow_target, bool set_target_var);
+  // frame_no: real frame counter for the soft-sun jitter (separate from checkerboad_frame, which is
+  // NO_CHECKER_BOARD in non-checkerboard mode). src_w: real source (half-res depth) width.
+  void renderShadows(const Point3 &dir_to_sun, float sun_size, uint32_t frame_no, uint32_t checkerboad_frame, int src_w,
+    Sbuffer *shadow_mask_buf, BaseTexture *shadow_target, bool set_target_var);
   bool hasData() const { return bool(topBuf); }
 
 protected:

@@ -230,7 +230,7 @@ def update_prop_name(self, context):
         return
     if self.prop_name_enum == self.prop_name:
         return
-    self.prop_name_enum = elf.prop_name
+    self.prop_name_enum = self.prop_name
     update_prop_value(self, context)
     return
 

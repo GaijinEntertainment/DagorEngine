@@ -85,7 +85,8 @@ macro WOUNDS_AND_BURNING_USE(samplerName)
     {
       #if NEED_FRAG_POS_NORM
         output.fragPos = input.pos;
-        output.fragNormal = (BGR_SWIZZLE(input.normal.bgr) * 2 - 1);
+        // same decode as unpack_unit_vector: the extra .bgr swapped x/z of the triplanar weights
+        output.fragNormal = unpack_unit_vector(input.normal.xyz);
       #endif
       #if HAS_BURNING
         output.burnedEffect = getBurnedEffect();
@@ -110,9 +111,9 @@ hlsl(ps)
 
     n /= n.x + n.y + n.z;
     frag_pos = frag_pos * scale + 0.5;
-    return  tex2D(tex, frag_pos.xy) * n.x +
+    return  tex2D(tex, frag_pos.xy) * n.z +
             tex2D(tex, frag_pos.xz) * n.y +
-            tex2D(tex, frag_pos.zy) * n.z;
+            tex2D(tex, frag_pos.zy) * n.x;
   }
   float4 sample_texture_from_pos(Texture2DArray tex, SamplerState tex_samplerstate, int slice, float3 frag_pos, float3 frag_norm, float scale)
   {
@@ -120,9 +121,9 @@ hlsl(ps)
 
     n /= n.x + n.y + n.z;
     frag_pos = frag_pos * scale + 0.5;
-    return  tex3D(tex, float3(frag_pos.xy, slice)) * n.x +
+    return  tex3D(tex, float3(frag_pos.xy, slice)) * n.z +
             tex3D(tex, float3(frag_pos.xz, slice)) * n.y +
-            tex3D(tex, float3(frag_pos.zy, slice)) * n.z;
+            tex3D(tex, float3(frag_pos.zy, slice)) * n.x;
   }
 
   float4 sample_texture_from_pos_regular(Texture2DArray tex, SamplerState tex_samplerstate, int slice, float2 frag_pos)

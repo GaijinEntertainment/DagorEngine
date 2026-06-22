@@ -29,12 +29,12 @@ struct Foo {
 
 [export]
 def main() {
-    var i = add(1, 2)
+    let i = add(1, 2)
     print("i = {i}\n")
     print("arr = {arr}\n")
 
     // lambda requires heap → 2x error 40104
-    var lmb <- @ {
+    let lmb <- @ {
         print("hello\n")
     }
     invoke(lmb)

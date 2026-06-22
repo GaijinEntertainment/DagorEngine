@@ -512,7 +512,7 @@ static void load_anim_tree_timer(const AnimationDataBase &dataBase, AnimationCli
     G_ASSERT_RETURN(clip.looped, );
     const char *timerName = timer->getStr("timer_name", nullptr);
     if (timerName)
-      clip.animTreeTimer = dataBase.referenceAnimGraph->getParamId(timerName, AnimV20::AnimCommonStateHolder::PT_TimeParam);
+      clip.animTreeTimer = dataBase.referenceAnimGraph->getParamId(timerName, AnimV20::AnimGraphStateHolder::PT_TimeParam);
     clip.immediateAnimTreeTimerSync = timer->getBool("immediate_sync", false);
     clip.animTreeTimerCycle = timer->getReal("timer_cycle", 1.0f);
   }
@@ -763,4 +763,5 @@ void load_animations(AnimationDataBase &dataBase, const AnimationRootMotionConfi
   calculate_acceleration_struct(dataBase.clips, dataBase.featuresSize);
 
   debug("[MM] loading motion matching data base in %d ms", get_time_usec(refTime) / 1000);
+  G_UNUSED(&transform_pose_to_root_motion_space);
 }

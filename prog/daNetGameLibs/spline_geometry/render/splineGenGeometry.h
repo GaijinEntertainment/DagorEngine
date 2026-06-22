@@ -43,7 +43,9 @@ public:
     const Point4 &uv_scroll_second_offset_and_scale,
     float uv_scroll_interpolation_value,
     float surface_opaqueness,
-    const Point2 &additional_thickness_bounds);
+    const Point2 &additional_thickness_bounds,
+    const Point3 &medium_tint,
+    float is_shell);
   void updateAttachmentBatchIds();
 
 private:

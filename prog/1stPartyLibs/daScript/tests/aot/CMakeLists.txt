@@ -28,11 +28,17 @@ FILE(GLOB AOT_DASLIB_MODULE_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPEN
 #                                 annotation_arguments, ExprBlock) lacking AOT header decls
 #   network                    — daslang class `Server` shadows C++ `das::Server`,
 #                                codegen resolves NetworkServer? to the daslang class
-#   style_lint                 — [lint_macro] consumed only at compile time;
-#                                iterates `*ExprMakeStruct.structs[i]` (a `MakeStruct`
-#                                that subclasses `vector<MakeFieldDeclPtr>` in C++) which
-#                                has no `das_iterator<MakeStruct>` AOT specialization
+#   style_lint                 — [lint_macro] consumed only at compile time; calls
+#                                AST/module-introspection builtins (for_each_pass_macro,
+#                                for_each_capture_macro, for_each_simulate_macro,
+#                                for_each_function_annotation, module_has_comment_reader)
+#                                that lack AOT header declarations
 list(FILTER AOT_DASLIB_MODULE_FILES EXCLUDE REGEX "daslib/(aot_macro|debugger|profiler|profiler_boost|ast_debug|decs_state|aot_cpp|aot_standalone|network|style_lint)\\.das$")
+# just_in_time bootstraps the LLVM-backed JIT module via [extern](library=LLVM.dll).
+# Without DAS_LLVM_DISABLED=OFF, the [extern] macro fails at compile time.
+IF(DAS_LLVM_DISABLED)
+    list(FILTER AOT_DASLIB_MODULE_FILES EXCLUDE REGEX "daslib/just_in_time\\.das$")
+ENDIF()
 
 add_custom_target(test_aot_daslib_modules)
 SET(DASLIB_MODULES_AOT_GENERATED_SRC)
@@ -61,6 +67,7 @@ FILE(GLOB AOT_ASYNC_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "test
 
 # AOT for bare_block test files
 FILE(GLOB AOT_BARE_BLOCK_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/bare_block/*.das")
+list(FILTER AOT_BARE_BLOCK_FILES EXCLUDE REGEX "failed_|cant_|invalid_")
 
 # AOT for base64 test files
 FILE(GLOB AOT_BASE64_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/base64/*.das")
@@ -99,14 +106,25 @@ SET(AOT_DECS_MODULE_FILES
     tests/decs/test_stages_extra.das
 )
 
-# AOT for live_host test files
-FILE(GLOB AOT_LIVE_HOST_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/live_host/*.das")
+# AOT for long_array_table test files (Phase 2+3+4 — 64-bit arrays/tables)
+FILE(GLOB AOT_LONG_ARRAY_TABLE_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/long_array_table/*.das")
 
-# Live host module files (libraries required by live_host tests)
-SET(AOT_LIVE_HOST_MODULE_FILES
-    modules/dasLiveHost/live/live_commands.das
-    modules/dasLiveHost/live/live_vars.das
-)
+# AOT for live_host test files — dasLiveHost transitively requires dashv,
+# so AOT them only when HV is enabled.
+SET(AOT_LIVE_HOST_FILES)
+SET(AOT_LIVE_HOST_MODULE_FILES)
+IF(NOT DAS_HV_DISABLED)
+    FILE(GLOB AOT_LIVE_HOST_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/live_host/*.das")
+
+    # Live host module files (libraries required by live_host tests)
+    SET(AOT_LIVE_HOST_MODULE_FILES
+        modules/dasLiveHost/live/live_commands.das
+        modules/dasLiveHost/live/live_vars.das
+        modules/dasLiveHost/live/live_api.das
+        modules/dasLiveHost/live/live_api_builtins.das
+        modules/dasLiveHost/live/live_api_stdio.das
+    )
+ENDIF()
 
 # AOT for dasSQLITE module library files (required by dasSQLITE tests)
 SET(AOT_DASSQLITE_MODULE_FILES)
@@ -114,6 +132,7 @@ IF(NOT DAS_SQLITE_DISABLED)
     SET(AOT_DASSQLITE_MODULE_FILES
         modules/dasSQLITE/daslib/sqlite_boost.das
         modules/dasSQLITE/daslib/sqlite_linq.das
+        modules/dasSQLITE/daslib/sqlite_migrate.das
     )
 ENDIF()
 
@@ -169,6 +188,9 @@ IF(NOT DAS_AUDIO_DISABLED)
         tests/strudel/test_combinators.das
         tests/strudel/test_delay.das
         tests/strudel/test_effects.das
+        tests/strudel/test_fx_routing.das
+        tests/strudel/test_new_features.das
+        tests/strudel/test_numeric_widening.das
         tests/strudel/test_hrtf_pos.das
         tests/strudel/test_new_combinators.das
         tests/strudel/test_integration.das
@@ -180,6 +202,7 @@ IF(NOT DAS_AUDIO_DISABLED)
         tests/strudel/test_signals.das
         tests/strudel/test_synthesis.das
         tests/strudel/test_vowel.das
+        tests/audio/test_hrtf_budget.das
     )
 ENDIF()
 
@@ -220,6 +243,12 @@ FILE(GLOB AOT_DYNAMIC_CAST_RTTI_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_D
 # AOT for fio test files
 FILE(GLOB AOT_FIO_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/fio/*.das")
 
+# AOT for flatten test files
+FILE(GLOB AOT_FLATTEN_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/flatten/*.das")
+# Exclude the _err_ boundary fixtures (they intentionally fail to compile) and the
+# flat_api_macro helper module (a compile-time-only macro, not a test entry point)
+list(FILTER AOT_FLATTEN_FILES EXCLUDE REGEX "_err_|flat_api_macro")
+
 # AOT for fs test files
 FILE(GLOB AOT_FS_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/fs/*.das")
 
@@ -246,16 +275,47 @@ FILE(GLOB AOT_JOBQUE_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tes
 # AOT for json test files
 FILE(GLOB AOT_JSON_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/json/*.das")
 
+# AOT for jsonrpc test files
+FILE(GLOB AOT_JSONRPC_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/jsonrpc/*.das")
+
 # AOT for linq test files
 FILE(GLOB AOT_LINQ_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/linq/*.das")
 # Exclude module files (they are compiled via DAS_AOT_LIB below) and
 # expect-error tests (use `expect` to assert intentional macro_failed
 # diagnostics; AOT cannot compile them)
-list(FILTER AOT_LINQ_FILES EXCLUDE REGEX "/_|_errors\\.das$")
+list(FILTER AOT_LINQ_FILES EXCLUDE REGEX "/_|failed_")
 
 # Linq test module files (libraries required by linq tests)
 SET(AOT_LINQ_MODULE_FILES
     tests/linq/_common.das
+)
+
+# AOT for reader_macro test files
+FILE(GLOB AOT_READER_MACRO_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/reader_macro/*.das")
+# Exclude the inline reader-macro module (no_aot, compile-time only; required transitively by the test).
+# Anchor on '/' so this does not also drop test_inline_reader.das (which ends in inline_reader.das).
+list(FILTER AOT_READER_MACRO_FILES EXCLUDE REGEX "/inline_reader\\.das$")
+
+# AOT for macro_call test files
+FILE(GLOB AOT_MACRO_CALL_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/macro_call/*.das")
+# Exclude helpers (files prefixed with `_`); they are required transitively
+# by the actual test files and don't need standalone AOT entries.
+list(FILTER AOT_MACRO_CALL_FILES EXCLUDE REGEX "/_")
+
+# AOT for macro_boost test files
+FILE(GLOB AOT_MACRO_BOOST_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/macro_boost/*.das")
+# Exclude the call_macro probe helper (prefixed with `_`); it's required transitively
+# by the actual test file.
+list(FILTER AOT_MACRO_BOOST_FILES EXCLUDE REGEX "/_")
+
+# AOT for with_boost test files
+FILE(GLOB AOT_WITH_BOOST_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/with_boost/*.das")
+# Exclude failed_* expected-failure compile tests — they're not AOT-able.
+list(FILTER AOT_WITH_BOOST_FILES EXCLUDE REGEX "/failed_")
+
+# Macro_boost test module files (probe call_macro required transitively by tests)
+SET(AOT_MACRO_BOOST_MODULE_FILES
+    tests/macro_boost/_has_sideeffects_probe.das
 )
 
 # AOT for match test files
@@ -295,7 +355,7 @@ FILE(GLOB AOT_SPOOF_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "test
 # AOT for strings test files
 FILE(GLOB AOT_STRINGS_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/strings/*.das")
 # Exclude expect-error tests
-list(FILTER AOT_STRINGS_FILES EXCLUDE REGEX "_failed")
+list(FILTER AOT_STRINGS_FILES EXCLUDE REGEX "failed_")
 
 # AOT for template test files
 FILE(GLOB AOT_TEMPLATE_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/template/*.das")
@@ -329,7 +389,45 @@ FILE(GLOB AOT_LOOPS_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "test
 # AOT for daslib test files
 SET(AOT_DASLIB_TEST_FILES
     tests/daslib/clargs_test.das
+    tests/daslib/test_toml.das
+    tests/daslib/test_logger.das
 )
+
+# AOT for MCP server tests (subprocess JSON-RPC smoke tests)
+FILE(GLOB AOT_MCP_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/mcp/*.das")
+# Skip _fixture_*.das — those are subprocess targets spawned BY the tests,
+# not test entry points; AOT'ing them would pull in get_command_line_arguments
+# at a fixture that doesn't need it and bloats the build for no coverage.
+list(FILTER AOT_MCP_FILES EXCLUDE REGEX "/_")
+
+# AOT for lint test files
+FILE(GLOB AOT_LINT_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/lint/*.das")
+# Exclude _*.das fixture files (consumed at runtime via compile_file, not invoked by dastest)
+list(FILTER AOT_LINT_FILES EXCLUDE REGEX "/_")
+# Exclude failed_*.das fixtures (expect compile errors that AOT codegen can't process)
+list(FILTER AOT_LINT_FILES EXCLUDE REGEX "/failed_")
+
+# AOT for promote test files
+FILE(GLOB AOT_PROMOTE_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/promote/*.das")
+# Exclude expect-error tests (range overflow doesn't AOT)
+list(FILTER AOT_PROMOTE_FILES EXCLUDE REGEX "failed_")
+
+# AOT for rtti test files
+FILE(GLOB AOT_RTTI_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/rtti/*.das")
+list(FILTER AOT_RTTI_FILES EXCLUDE REGEX "/_")
+
+# AOT for packed small-table test files
+FILE(GLOB AOT_TABLE_PACKED_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/table_packed/*.das")
+
+# AOT for fixed_array test files (tFixedArray rework characterization, FIXED_ARRAY_REWORK.md)
+FILE(GLOB AOT_FIXED_ARRAY_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/fixed_array/*.das")
+# Exclude failed_* expect-fixtures and _-prefixed target-spec files (enabled at Stage 1)
+list(FILTER AOT_FIXED_ARRAY_FILES EXCLUDE REGEX "failed_|/_")
+
+# AOT for typemacro test files
+FILE(GLOB AOT_TYPEMACRO_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/typemacro/*.das")
+# Exclude the _-prefixed macro module (compile-time only, options no_aot)
+list(FILTER AOT_TYPEMACRO_FILES EXCLUDE REGEX "/_")
 
 # AOT for language test files
 FILE(GLOB AOT_LANGUAGE_TEST_FILES RELATIVE ${PROJECT_SOURCE_DIR} CONFIGURE_DEPENDS "tests/language/*.das")
@@ -357,6 +455,10 @@ DAS_AOT("${AOT_APPLY_FILES}" APPLY_AOT_GENERATED_SRC test_aot_apply daslang)
 add_custom_target(test_aot_archive)
 SET(ARCHIVE_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_ARCHIVE_FILES}" ARCHIVE_AOT_GENERATED_SRC test_aot_archive daslang)
+
+add_custom_target(test_aot_long_array_table)
+SET(LONG_ARRAY_TABLE_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_LONG_ARRAY_TABLE_FILES}" LONG_ARRAY_TABLE_AOT_GENERATED_SRC test_aot_long_array_table daslang)
 
 add_custom_target(test_aot_ast_match)
 SET(AST_MATCH_AOT_GENERATED_SRC)
@@ -416,11 +518,15 @@ DAS_AOT_LIB("${AOT_DECS_MODULE_FILES}" DECS_MODULES_AOT_GENERATED_SRC test_aot_d
 
 add_custom_target(test_aot_live_host)
 SET(LIVE_HOST_AOT_GENERATED_SRC)
-DAS_AOT("${AOT_LIVE_HOST_FILES}" LIVE_HOST_AOT_GENERATED_SRC test_aot_live_host daslang)
+IF(NOT DAS_HV_DISABLED)
+    DAS_AOT("${AOT_LIVE_HOST_FILES}" LIVE_HOST_AOT_GENERATED_SRC test_aot_live_host daslang)
+ENDIF()
 
 add_custom_target(test_aot_live_host_modules)
 SET(LIVE_HOST_MODULES_AOT_GENERATED_SRC)
-DAS_AOT_LIB("${AOT_LIVE_HOST_MODULE_FILES}" LIVE_HOST_MODULES_AOT_GENERATED_SRC test_aot_live_host_modules daslang)
+IF(NOT DAS_HV_DISABLED)
+    DAS_AOT_LIB("${AOT_LIVE_HOST_MODULE_FILES}" LIVE_HOST_MODULES_AOT_GENERATED_SRC test_aot_live_host_modules daslang)
+ENDIF()
 
 add_custom_target(test_aot_strudel_modules)
 SET(STRUDEL_MODULES_AOT_GENERATED_SRC)
@@ -478,6 +584,10 @@ add_custom_target(test_aot_fio)
 SET(FIO_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_FIO_FILES}" FIO_AOT_GENERATED_SRC test_aot_fio daslang)
 
+add_custom_target(test_aot_flatten)
+SET(FLATTEN_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_FLATTEN_FILES}" FLATTEN_AOT_GENERATED_SRC test_aot_flatten daslang)
+
 add_custom_target(test_aot_fs)
 SET(FS_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_FS_FILES}" FS_AOT_GENERATED_SRC test_aot_fs daslang)
@@ -510,6 +620,10 @@ add_custom_target(test_aot_json)
 SET(JSON_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_JSON_FILES}" JSON_AOT_GENERATED_SRC test_aot_json daslang)
 
+add_custom_target(test_aot_jsonrpc)
+SET(JSONRPC_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_JSONRPC_FILES}" JSONRPC_AOT_GENERATED_SRC test_aot_jsonrpc daslang)
+
 add_custom_target(test_aot_linq)
 SET(LINQ_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_LINQ_FILES}" LINQ_AOT_GENERATED_SRC test_aot_linq daslang)
@@ -517,6 +631,22 @@ DAS_AOT("${AOT_LINQ_FILES}" LINQ_AOT_GENERATED_SRC test_aot_linq daslang)
 add_custom_target(test_aot_linq_modules)
 SET(LINQ_MODULES_AOT_GENERATED_SRC)
 DAS_AOT_LIB("${AOT_LINQ_MODULE_FILES}" LINQ_MODULES_AOT_GENERATED_SRC test_aot_linq_modules daslang)
+
+add_custom_target(test_aot_macro_call)
+SET(MACRO_CALL_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_MACRO_CALL_FILES}" MACRO_CALL_AOT_GENERATED_SRC test_aot_macro_call daslang)
+
+add_custom_target(test_aot_macro_boost)
+SET(MACRO_BOOST_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_MACRO_BOOST_FILES}" MACRO_BOOST_AOT_GENERATED_SRC test_aot_macro_boost daslang)
+
+add_custom_target(test_aot_with_boost)
+SET(WITH_BOOST_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_WITH_BOOST_FILES}" WITH_BOOST_AOT_GENERATED_SRC test_aot_with_boost daslang)
+
+add_custom_target(test_aot_macro_boost_modules)
+SET(MACRO_BOOST_MODULES_AOT_GENERATED_SRC)
+DAS_AOT_LIB("${AOT_MACRO_BOOST_MODULE_FILES}" MACRO_BOOST_MODULES_AOT_GENERATED_SRC test_aot_macro_boost_modules daslang)
 
 add_custom_target(test_aot_match)
 SET(MATCH_AOT_GENERATED_SRC)
@@ -542,6 +672,10 @@ add_custom_target(test_aot_regex)
 SET(REGEX_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_REGEX_FILES}" REGEX_AOT_GENERATED_SRC test_aot_regex daslang)
 
+add_custom_target(test_aot_reader_macro)
+SET(READER_MACRO_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_READER_MACRO_FILES}" READER_MACRO_AOT_GENERATED_SRC test_aot_reader_macro daslang)
+
 add_custom_target(test_aot_safe_addr)
 SET(SAFE_ADDR_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_SAFE_ADDR_FILES}" SAFE_ADDR_AOT_GENERATED_SRC test_aot_safe_addr daslang)
@@ -561,6 +695,22 @@ DAS_AOT("${AOT_SPOOF_FILES}" SPOOF_AOT_GENERATED_SRC test_aot_spoof daslang)
 add_custom_target(test_aot_strings)
 SET(STRINGS_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_STRINGS_FILES}" STRINGS_AOT_GENERATED_SRC test_aot_strings daslang)
+
+add_custom_target(test_aot_lint)
+SET(LINT_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_LINT_FILES}" LINT_AOT_GENERATED_SRC test_aot_lint daslang)
+
+add_custom_target(test_aot_promote)
+SET(PROMOTE_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_PROMOTE_FILES}" PROMOTE_AOT_GENERATED_SRC test_aot_promote daslang)
+
+add_custom_target(test_aot_table_packed)
+SET(TABLE_PACKED_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_TABLE_PACKED_FILES}" TABLE_PACKED_AOT_GENERATED_SRC test_aot_table_packed daslang)
+
+add_custom_target(test_aot_rtti)
+SET(RTTI_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_RTTI_FILES}" RTTI_AOT_GENERATED_SRC test_aot_rtti daslang)
 
 add_custom_target(test_aot_template)
 SET(TEMPLATE_AOT_GENERATED_SRC)
@@ -586,6 +736,14 @@ add_custom_target(test_aot_loops)
 SET(LOOPS_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_LOOPS_FILES}" LOOPS_AOT_GENERATED_SRC test_aot_loops daslang)
 
+add_custom_target(test_aot_fixed_array)
+SET(FIXED_ARRAY_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_FIXED_ARRAY_FILES}" FIXED_ARRAY_AOT_GENERATED_SRC test_aot_fixed_array daslang)
+
+add_custom_target(test_aot_typemacro)
+SET(TYPEMACRO_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_TYPEMACRO_FILES}" TYPEMACRO_AOT_GENERATED_SRC test_aot_typemacro daslang)
+
 add_custom_target(test_aot_language)
 SET(LANGUAGE_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_LANGUAGE_TEST_FILES}" LANGUAGE_AOT_GENERATED_SRC test_aot_language daslang)
@@ -597,6 +755,10 @@ DAS_AOT_LIB("${AOT_LANGUAGE_MODULE_FILES}" LANGUAGE_MODULES_AOT_GENERATED_SRC te
 add_custom_target(test_aot_daslib)
 SET(DASLIB_AOT_GENERATED_SRC)
 DAS_AOT("${AOT_DASLIB_TEST_FILES}" DASLIB_AOT_GENERATED_SRC test_aot_daslib daslang)
+
+add_custom_target(test_aot_mcp)
+SET(MCP_AOT_GENERATED_SRC)
+DAS_AOT("${AOT_MCP_FILES}" MCP_AOT_GENERATED_SRC test_aot_mcp daslang)
 
 add_custom_target(test_aot_stbimage)
 SET(STBIMAGE_AOT_GENERATED_SRC)
@@ -615,6 +777,7 @@ SOURCE_GROUP_FILES("aot generated" TESTING_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" ALGORITHM_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" APPLY_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" ARCHIVE_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" LONG_ARRAY_TABLE_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" AST_MATCH_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" ASSERT_ONCE_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" ASYNC_AOT_GENERATED_SRC)
@@ -624,6 +787,8 @@ SOURCE_GROUP_FILES("aot generated" BITFIELDS_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" BOOL_ARRAY_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" CLASS_BOOST_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DATA_WALKER_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" FIXED_ARRAY_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" TYPEMACRO_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DEBUG_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DEBUG_AGENT_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DASPEG_AOT_GENERATED_SRC)
@@ -632,6 +797,7 @@ SOURCE_GROUP_FILES("aot generated" LIVE_HOST_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" LIVE_HOST_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DYNAMIC_CAST_RTTI_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" FIO_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" FLATTEN_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" FS_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" FUNCTIONAL_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" GC_AOT_GENERATED_SRC)
@@ -642,12 +808,17 @@ SOURCE_GROUP_FILES("aot generated" JOBQUE_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" JSON_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" LINQ_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" LINQ_MODULES_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" MACRO_CALL_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" MACRO_BOOST_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" MACRO_BOOST_MODULES_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" WITH_BOOST_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" MATCH_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" MATH_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" MATH_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" MODULE_TESTS_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" OPTION_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" REGEX_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" READER_MACRO_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" SAFE_ADDR_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DELEGATE_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" SOA_AOT_GENERATED_SRC)
@@ -664,6 +835,7 @@ SOURCE_GROUP_FILES("aot generated" LANGUAGE_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DASLIB_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DECS_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" DASLIB_AOT_GENERATED_SRC)
+SOURCE_GROUP_FILES("aot generated" MCP_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" STBIMAGE_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" STBIMAGE_MODULES_AOT_GENERATED_SRC)
 SOURCE_GROUP_FILES("aot generated" STRUDEL_MODULES_AOT_GENERATED_SRC)
@@ -681,6 +853,7 @@ add_executable(test_aot ${DAS_DASCRIPT_MAIN_SRC}
     ${ALGORITHM_AOT_GENERATED_SRC}
     ${APPLY_AOT_GENERATED_SRC}
     ${ARCHIVE_AOT_GENERATED_SRC}
+    ${LONG_ARRAY_TABLE_AOT_GENERATED_SRC}
     ${AST_MATCH_AOT_GENERATED_SRC}
     ${ASSERT_ONCE_AOT_GENERATED_SRC}
     ${ASYNC_AOT_GENERATED_SRC}
@@ -698,6 +871,7 @@ add_executable(test_aot ${DAS_DASCRIPT_MAIN_SRC}
     ${LIVE_HOST_MODULES_AOT_GENERATED_SRC}
     ${DYNAMIC_CAST_RTTI_AOT_GENERATED_SRC}
     ${FIO_AOT_GENERATED_SRC}
+    ${FLATTEN_AOT_GENERATED_SRC}
     ${FS_AOT_GENERATED_SRC}
     ${FUNCTIONAL_AOT_GENERATED_SRC}
     ${GC_AOT_GENERATED_SRC}
@@ -706,25 +880,37 @@ add_executable(test_aot ${DAS_DASCRIPT_MAIN_SRC}
     ${INTERFACES_AOT_GENERATED_SRC}
     ${JOBQUE_AOT_GENERATED_SRC}
     ${JSON_AOT_GENERATED_SRC}
+    ${JSONRPC_AOT_GENERATED_SRC}
     ${LINQ_AOT_GENERATED_SRC}
     ${LINQ_MODULES_AOT_GENERATED_SRC}
+    ${MACRO_CALL_AOT_GENERATED_SRC}
+    ${MACRO_BOOST_AOT_GENERATED_SRC}
+    ${MACRO_BOOST_MODULES_AOT_GENERATED_SRC}
+    ${WITH_BOOST_AOT_GENERATED_SRC}
     ${MATCH_AOT_GENERATED_SRC}
     ${MATH_AOT_GENERATED_SRC}
     ${MATH_MODULES_AOT_GENERATED_SRC}
     ${MODULE_TESTS_AOT_GENERATED_SRC}
     ${OPTION_AOT_GENERATED_SRC}
     ${REGEX_AOT_GENERATED_SRC}
+    ${READER_MACRO_AOT_GENERATED_SRC}
     ${SAFE_ADDR_AOT_GENERATED_SRC}
     ${DELEGATE_AOT_GENERATED_SRC}
     ${SOA_AOT_GENERATED_SRC}
     ${SPOOF_AOT_GENERATED_SRC}
     ${STRINGS_AOT_GENERATED_SRC}
+    ${LINT_AOT_GENERATED_SRC}
+    ${PROMOTE_AOT_GENERATED_SRC}
+    ${TABLE_PACKED_AOT_GENERATED_SRC}
+    ${RTTI_AOT_GENERATED_SRC}
     ${TEMPLATE_AOT_GENERATED_SRC}
     ${TYPE_TRAITS_AOT_GENERATED_SRC}
     ${URI_AOT_GENERATED_SRC}
     ${LPIPE_AOT_GENERATED_SRC}
     ${JIT_AOT_GENERATED_SRC}
     ${LOOPS_AOT_GENERATED_SRC}
+    ${FIXED_ARRAY_AOT_GENERATED_SRC}
+    ${TYPEMACRO_AOT_GENERATED_SRC}
     ${LANGUAGE_AOT_GENERATED_SRC}
     ${LANGUAGE_MODULES_AOT_GENERATED_SRC}
     ${DASLIB_MODULES_AOT_GENERATED_SRC}
@@ -740,11 +926,12 @@ add_executable(test_aot ${DAS_DASCRIPT_MAIN_SRC}
     ${PUGIXML_AOT_GENERATED_SRC}
     ${DASHV_MODULES_AOT_GENERATED_SRC}
     ${DASHV_AOT_GENERATED_SRC}
+    ${MCP_AOT_GENERATED_SRC}
 )
 TARGET_LINK_LIBRARIES(test_aot libDaScriptAot ${SRC_LIBRARIES} ${DAS_MODULES_LIBS})
 ADD_DEPENDENCIES(test_aot libDaScriptAot
     test_aot_tests test_aot_testing
-    test_aot_algorithm test_aot_apply test_aot_archive test_aot_ast_match
+    test_aot_algorithm test_aot_apply test_aot_archive test_aot_long_array_table test_aot_ast_match
     test_aot_assert_once test_aot_async test_aot_bare_block test_aot_base64
     test_aot_bitfields test_aot_bool_array
     test_aot_class_boost
@@ -754,17 +941,22 @@ ADD_DEPENDENCIES(test_aot libDaScriptAot
     test_aot_gc
     test_aot_handle_types test_aot_hash_map
     test_aot_interfaces
-    test_aot_jobque test_aot_json
+    test_aot_jobque test_aot_json test_aot_jsonrpc
     test_aot_linq test_aot_linq_modules
+    test_aot_macro_call
+    test_aot_macro_boost test_aot_macro_boost_modules
+    test_aot_with_boost
     test_aot_match
     test_aot_math test_aot_math_modules test_aot_module_tests
     test_aot_option
-    test_aot_regex
+    test_aot_regex test_aot_reader_macro
     test_aot_delegate test_aot_safe_addr test_aot_soa test_aot_spoof test_aot_strings
+    test_aot_lint test_aot_promote test_aot_table_packed test_aot_rtti
     test_aot_template test_aot_type_traits test_aot_uri
     test_aot_lpipe
     test_aot_jit
     test_aot_loops
+    test_aot_fixed_array test_aot_typemacro
     test_aot_language test_aot_language_modules
     test_aot_daslib_modules test_aot_decs_modules
     test_aot_daslib
@@ -773,6 +965,7 @@ ADD_DEPENDENCIES(test_aot libDaScriptAot
     test_aot_dassqlite test_aot_dassqlite_modules
     test_aot_pugixml test_aot_pugixml_modules
     test_aot_dashv test_aot_dashv_modules
+    test_aot_mcp
 )
 target_include_directories(test_aot PRIVATE ${NEED_MODULES_PATH} ${PROJECT_SOURCE_DIR}/modules/dasUnitTest ${PROJECT_SOURCE_DIR}/modules/dasLiveHost/src ${AUDIO_INCLUDE_DIR} ${CIPIC_HRTF_INCLUDE_DIR} ${PROJECT_SOURCE_DIR}/modules/dasMinfft/minfft ${PROJECT_SOURCE_DIR}/modules/dasPUGIXML/pugixml ${PROJECT_SOURCE_DIR}/modules/dasHV/hv/$<CONFIG>/include ${SQLITE_INCLUDE_DIR})
 target_compile_definitions(test_aot PRIVATE DAS_TEST_AOT MINFFT_SINGLE HRTF_SAMPLE_RATE=${DAS_AUDIO_SAMPLE_RATE})

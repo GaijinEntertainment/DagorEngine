@@ -81,7 +81,7 @@ ChopWaterPhysics::ChopWaterPhysics(ChopWaterGenerator &chop_gen, int num_cascade
 {
   currentJobIndex = -1;
   currentJobSize = 0;
-  numCascades = min(num_cascades, (int)fft_water::MAX_NUM_CASCADES);
+  numCascades = min(num_cascades, (int)MAX_CASCADES);
   seaLevel = maxSeaLevel = 0.f;
   // tickRate = 1/3.0;//three times a second is more than enough
   tickRate = 0.375; // three times a second is more than enough, use 0.375
@@ -598,7 +598,7 @@ int ChopWaterPhysics::intersectRayWithOcean(double time, Point3 &result, float &
   return 0;
 }
 
-// Public function available for exteral code
+// Public function available for external code
 int ChopWaterPhysics::intersectSegment(double time, const Point3 &vStart, const Point3 &vEnd, float &fResult)
 {
   // G_ASSERT(!check_nan(vStart));
@@ -655,8 +655,10 @@ vec4f ChopWaterPhysics::getRenderedHeight(float x, float z)
     return v_ldu(result);
   int triangleX = floorf((x - renderGridOffset.x) / renderGridAlign);
   int triangleZ = floorf((z - renderGridOffset.y) / renderGridAlign);
-  float px = floorf(x / renderGridAlign) * renderGridAlign;
-  float pz = floorf(z / renderGridAlign) * renderGridAlign;
+  // quad corners must lie on the same offset grid as the triangle parity above,
+  // otherwise the chosen diagonal does not match the render mesh triangulation
+  float px = renderGridOffset.x + triangleX * renderGridAlign;
+  float pz = renderGridOffset.y + triangleZ * renderGridAlign;
   float d = renderGridAlign;
   Point2 p(x, z);
   Point2 points[4] = {Point2(px, pz), Point2(px + d, pz), Point2(px, pz + d), Point2(px + d, pz + d)};

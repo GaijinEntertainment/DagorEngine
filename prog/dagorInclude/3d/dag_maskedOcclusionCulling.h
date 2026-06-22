@@ -355,7 +355,12 @@ public:
    *        bytes (UINT16 boxes + skip word), leaves are 20 bytes (node + 4-byte
    *        self-relative vertex offset).  See daBVH/dag_swBLAS_ray.h for the format.
    *
-   * \param blasData      Pointer to the BLAS buffer (vert21 data + BVH tree).
+   * \param blasData      Pointer to the BLAS buffer (BVH tree + vert21 data). Tree-walk and gather base.
+   * \param vertOffset    Byte offset of the vert21 stream within blasData (gather base = blasData +
+   *                      vertOffset). Emitted vertex indices are relative to it, so the BVH tree size
+   *                      need not be a multiple of VERT21_STRIDE for the index recovery to stay exact.
+   *                      An int offset, not a second pointer: the stream lives inside blasData by
+   *                      construction, matching the treeStart/treeEnd byte-offset convention.
    * \param treeStart     Byte offset of the first BVH node in blasData.
    * \param treeEnd       Byte offset past the last BVH node.
    * \param rawToClipMatrix 4x4 matrix transforming UnpackVert21Raw output to clip space.
@@ -378,9 +383,9 @@ public:
    *                     frustum walk is skipped and this falls back to the CACHE_FILL path.
    *
    * \param cacheIndices  Caller-owned uint32 buffer, size >= cacheIndicesCapacity*3. uint32 is
-   *                      required because BLAS vert indices are derived from a per-BLAS byte
-   *                      offset (vtxByteOfs / VERT21_STRIDE) and BLAS sizes are not capped at
-   *                      65535 verts -- truncating to uint16 would wrap silently.
+   *                      required because BLAS vert indices are a vert21-stream byte offset /
+   *                      VERT21_STRIDE and BLAS sizes are not capped at 65535 verts -- truncating
+   *                      to uint16 would wrap silently.
    * \param cacheIndicesCapacityTriangles Max triangle count cacheIndices can hold. CACHE_FILL /
    *                      CACHE_INSUFFICIENT walks stop early (and logerr_once) if a BLAS leaf
    *                      range would overflow this capacity, dropping the remaining triangles
@@ -396,9 +401,9 @@ public:
    * \param triLimit      Max triangles to emit before the walk stops. The default (1u<<31) is
    *                      effectively unbounded; only cacheIndicesCapacity caps the output.
    */
-  MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
-    uint32_t *cacheIndices, uint32_t cacheIndicesCapacityTriangles, uint32_t &cacheTriCount, CacheMode cacheMode,
-    BackfaceWinding bfWinding = BACKFACE_CW, ClipPlanes clipPlaneMask = CLIP_PLANE_ALL, uint32_t triSkip = 0,
+  MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int vertOffset, int treeStart, int treeEnd,
+    const float *rawToClipMatrix, uint32_t *cacheIndices, uint32_t cacheIndicesCapacityTriangles, uint32_t &cacheTriCount,
+    CacheMode cacheMode, BackfaceWinding bfWinding = BACKFACE_CW, ClipPlanes clipPlaneMask = CLIP_PLANE_ALL, uint32_t triSkip = 0,
     uint32_t triLimit = 1u << 31) MOC_PURE;
 
   /*!

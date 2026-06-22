@@ -595,5 +595,6 @@ BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV5, ScriptedShadersBinDumpV4)
   BINDUMP_USING_EXTENSION()
   VecHolder<StubTextureKey> usedStubTextureKeys;
   int32_t refinedBlockStcodeId = -1;
+  int32_t cppRefinedBlockStcodeId = -1;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

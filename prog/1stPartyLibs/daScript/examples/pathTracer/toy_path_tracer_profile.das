@@ -17,20 +17,19 @@ require daslib/math_boost
 def main {
     let width = 256
     let height = 256
-    let kFrameCount = 1
     var backbuffer : array<float3>
     resize(backbuffer, width * height)
     print("\ntracing...\n")
-    var i = 0
+    let i = 0
 
     init_path_tracer()
     // trace_ray(width, height, 132, 0)
 
-    var t0 = ref_time_ticks()
+    let t0 = ref_time_ticks()
     var totalRays = 0
     draw(i, width, height, 0, height, backbuffer, totalRays)
-    var dt = get_time_usec(t0)
-    var sec = double(dt) / 1000000.0lf
+    let dt = get_time_usec(t0)
+    let sec = double(dt) / 1000000.0lf
     print("AOT: {totalRays} in {sec} sec, {fmt(":.3f",double(totalRays)/double(dt))} mrays/sec\n")
 
     var pixels : array<uint>

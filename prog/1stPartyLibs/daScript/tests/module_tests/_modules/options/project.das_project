@@ -1,0 +1,38 @@
+// options/project.das_project — Module resolver with an option policy
+//
+// Exercises the option gate in the parser's options_declaration rule:
+//   * option_allowed() == false                       -> hard compile error
+//   * option_allowed() == true  && option_blocked()   -> silently ignored
+//   * option_allowed() == true  && !option_blocked()  -> applied
+//
+// An option must be allowed to appear at all; blocking is a sub-decision that
+// only applies to allowed options.
+//
+// main.das declares `options rtti` (not allowed) and must FAIL.
+// main_blocked.das declares `options persistent_heap` (allowed but blocked) and
+// must compile and run cleanly, with the option ignored.
+
+options gen2
+require strings
+require daslib/strings_boost
+
+include common.das_project
+
+[export]
+def option_allowed(opt, from : string) : bool {
+    // the options the test scripts legitimately need, plus persistent_heap
+    // (allowed so it may appear in source, but blocked below so it is ignored)
+    if (opt == "gen2" || opt == "indenting") {
+        return true
+    }
+    if (opt == "no_unused_function_arguments" || opt == "no_unused_block_arguments") {
+        return true
+    }
+    return opt == "persistent_heap"
+}
+
+[export]
+def option_blocked(opt, from : string) : bool {
+    // persistent_heap is allowed in source, but ignored (not applied)
+    return opt == "persistent_heap"
+}

@@ -4,20 +4,18 @@
 #include <generic/dag_sort.h>
 #include <daECS/net/message.h>
 #include <daECS/net/netEvent.h>
+#include <daECS/core/entityManager.h>
 #include <daNet/bitStream.h>
 #include <EASTL/functional.h>
 #include <EASTL/vector_map.h>
 #include <math/dag_adjpow2.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
-#include <daECS/net/msgSink.h>
+#include <daECS/net/msgDispatch.h>
 #include <util/dag_globDef.h>
 
 namespace net
 {
-
-extern void clear_net_msg_handlers();
-extern void register_net_msg_handler(const net::MessageClass &klass, net::msg_handler_t handler);
 
 MessageClass *MessageClass::classLinkList = NULL;
 int MessageClass::numClassIdBits = -1;
@@ -63,9 +61,9 @@ eastl::string MessageClass::defaultFormatMsgStr(const IMessage *msg)
 }
 
 MessageClass::MessageClass(const char *class_name, uint32_t class_hash, uint32_t class_sz, MessageRouting rout, bool timed,
-  recipient_filter_t rcptf, PacketReliability rlb, uint8_t chn, uint32_t flags_, int dup_delay_ms,
-  void (*msg_sink_handler)(const IMessage *), eastl::string (*format_msg_str)(const IMessage *)) :
-  msgSinkHandler(msg_sink_handler), formatMsgStr(format_msg_str), debugClassName(class_name), classHash(class_hash), memSize(class_sz)
+  recipient_filter_t rcptf, PacketReliability rlb, uint8_t chn, uint32_t flags_, int dup_delay_ms, msg_handler_t msg_handler,
+  eastl::string (*format_msg_str)(const IMessage *)) :
+  handler(msg_handler), formatMsgStr(format_msg_str), debugClassName(class_name), classHash(class_hash), memSize(class_sz)
 {
   routing = rout, reliability = rlb;
   channel = chn;
@@ -136,8 +134,8 @@ uint32_t MessageClass::initImpl(bool server, bool dbg_output_table)
       cls->debugClassName);
     msgClsSlot = cls;
     ++netMessagesCount;
-    if (cls->msgSinkHandler && !outgoing)
-      register_net_msg_handler(*cls, cls->msgSinkHandler);
+    if (!outgoing && cls->handler)
+      register_net_msg_handler(*cls, cls->handler);
     if (cls->debugClassName)
       maxMessageClassLen = eastl::max(maxMessageClassLen, uint32_t(strlen(cls->debugClassName)));
   }
@@ -201,12 +199,6 @@ uint32_t MessageClass::initImpl(bool server, bool dbg_output_table)
   // To consider: use different  number bits for incoming outgoing messages
   numClassIdBits = int((numMessageClasses == 1) ? 1 : (get_log2i(numMessageClasses) + 1));
 
-  // when message ids change, we always want to re-init net events too, as they are
-  // directly linked to message ids, and may crash, if they are not re-inited
-  if (server)
-    net::event::init_server(g_entity_mgr.get());
-  else
-    net::event::init_client(g_entity_mgr.get());
 
   return netMessagesCount;
 }
@@ -217,8 +209,9 @@ static void reset_message_ids_sync_impl()
   syncedClientToServerMsgCount = 0u;
 }
 
-uint32_t MessageClass::init(bool server)
+uint32_t MessageClass::init(bool server, ecs::EntityManager *mgr)
 {
+  debug("[MessageClass::init] server=%d mgr=%p numClassIdBits=%d", server ? 1 : 0, mgr, numClassIdBits);
   if (server)
   {
     msgSysSyncState = MessageSysSyncState::SERVER;
@@ -231,7 +224,15 @@ uint32_t MessageClass::init(bool server)
     reset_message_ids_sync_impl();
     msgSysSyncState = MessageSysSyncState::NOT_SYNCED;
   }
-  return initImpl(server, /* debug output */ numClassIdBits < 0);
+  const uint32_t numClasses = initImpl(server, /* debug output */ numClassIdBits < 0);
+
+  if (server)
+    net::event::init_server(mgr);
+  else
+    net::event::init_client(mgr);
+
+  debug("[MessageClass::init] DONE server=%d mgr=%p numClasses=%u numClassIdBits=%d", server ? 1 : 0, mgr, numClasses, numClassIdBits);
+  return numClasses;
 }
 
 void MessageClass::startWaitingForMessageIdsSync()
@@ -339,7 +340,9 @@ bool MessageClass::applyMessageIdsSync(const danet::BitStream &bs)
     else
       debug("server and client messages successfully synced");
   }
-  initImpl(/* server */ false, /* debug output */ !isMatched);
+  // Full client init: rebuilds the message-class table (classId renumber on the synced hashes)
+  // AND the net-event rx_msg_bitmap/rx_msg_index that depends on those classIds.
+  init(/* server */ false, g_entity_mgr.get());
   return ok;
 }
 

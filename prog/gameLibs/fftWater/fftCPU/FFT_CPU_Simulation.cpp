@@ -310,58 +310,36 @@ void FFTc(unsigned int nn, unsigned int m, float *x)
   }
 }
 
-//   Perform a 2D FFT inplace given a complex 2D array
-//   The size of the array (nx,nx)
-//   FFT2D (non-SSE code) is left here in case we need compatibility with non-SSE CPUs
-void FFT2D(complex *c, int nx)
+static void fft1_and_transpose_2d(complex *c, int nx)
 {
-  int i, j;
-  float tre, tim;
-
   int m = get_log2w(nx);
-  int nn = nx;
 
-  for (j = 0; j < nx; j++)
-  {
-    FFTc(nn, m, (float *)&c[j << m]);
-  }
+  for (int j = 0; j < nx; j++)
+    FFTc(nx, m, (float *)&c[j << m]);
 
-  // 2D matrix transpose
-  for (i = 0; i < nx - 1; i++)
+  for (int i = 0; i < nx - 1; i++)
   {
-    for (j = i + 1; j < nx; j++)
+    for (int j = i + 1; j < nx; j++)
     {
       int ji = ((j << m) + i);
       int ij = ((i << m) + j);
-      tre = c[ji][0];
-      tim = c[ji][1];
+      float tre = c[ji][0];
+      float tim = c[ji][1];
       c[ji][0] = c[ij][0];
       c[ji][1] = c[ij][1];
       c[ij][0] = tre;
       c[ij][1] = tim;
     }
   }
-  // doing 1D FFT for rows
-  for (j = 0; j < nx; j++)
-  {
-    FFTc(nn, m, (float *)&c[j << m]);
-  }
+}
 
-  // 2D matrix transpose
-  for (i = 0; i < nx - 1; i++)
-  {
-    for (j = i + 1; j < nx; j++)
-    {
-      int ji = ((j << m) + i);
-      int ij = ((i << m) + j);
-      tre = c[ji][0];
-      tim = c[ji][1];
-      c[ji][0] = c[ij][0];
-      c[ji][1] = c[ij][1];
-      c[ji][0] = tre;
-      c[ji][1] = tim;
-    }
-  }
+//   Perform a 2D FFT inplace given a complex 2D array
+//   The size of the array (nx,nx)
+//   FFT2D (non-SSE code) is left here in case we need compatibility with non-SSE CPUs
+void FFT2D(complex *c, int nx)
+{
+  fft1_and_transpose_2d(c, nx);
+  fft1_and_transpose_2d(c, nx);
 }
 
 //   Performs a 1D FFT inplace given x- interleaved real/imaginary array of data,
@@ -440,6 +418,8 @@ void FFTcSSE(unsigned int nn, unsigned int m, vec4f *x)
 //   The size of the array (nx,nx)
 void FFT2DSSE(complex *c, int nx)
 {
+  // iv_data is sized for the max FFT resolution; a resolution bump must grow it too
+  G_STATIC_ASSERT((1 << MAX_FFT_RESOLUTION_GAUSS) <= 512);
   vec4f iv_data[512 * 2];
   vec4f shuffledata0;
   vec4f shuffledata1;

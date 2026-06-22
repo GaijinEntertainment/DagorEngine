@@ -34,7 +34,7 @@
 #include "net/time.h"
 #include "net/dedicated.h" // get_server_tick_time_us
 #include "net/plosscalc.h"
-#include "net/authEvents.h"
+#include "net/authCountryCode.h"
 #include <daECS/net/recipientFilters.h>
 
 #ifdef _MSC_VER
@@ -378,11 +378,10 @@ static void send_phys_snapshots(double curTime,
     send_phys_snapshots_impl(*cptr, tmpBs, unreliableSender, curTime, msg_sink_eid, sr_type_ranges, send_records);
 }
 
-extern net::CNetwork *get_net_internal();
 
 void net_send_phys_snapshots(double curTime, float /*dt*/)
 {
-  net::CNetwork *netw = is_server() ? get_net_internal() : nullptr;
+  net::CNetwork *netw = is_server() ? GET_NET() : nullptr;
   if (!netw)
     return;
 
@@ -412,7 +411,7 @@ static void report_snapshots_ploss(net::sequence_t snap_seq)
     if (const char *addr = get_server_route_host(get_current_server_route_id()))
     {
       eastl::string country_code;
-      g_entity_mgr->broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country_code});
+      auth_get_country_code(*g_entity_mgr, country_code);
       statsd::profile("snapshots_rx_packet_loss_percent", plossCalc.calcPacketLoss() * 100.f, // 1 lost packet from 9*30 is 0.37%
         {{"addr", addr}, {"country", country_code.c_str()}});
     }

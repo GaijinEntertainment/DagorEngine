@@ -395,6 +395,13 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
         get_volfog_with_scattering_impl(false, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
       }
 
+      void get_volfog_with_precalculated_scattering_opt(float2 tc, float2 jittered_tc, float3 view, float dist, float w, inout half3 fog_mul, inout half3 fog_add)
+      {
+        BRANCH
+        if (volume_fog_use_params.x > 0)
+          get_volfog_with_scattering_impl(false, tc, jittered_tc, view, dist, w, fog_mul, fog_add);
+      }
+
       // inside volfog frustum, it also contains scattering loss (since scattering is integrated into volfog), but it is not significant near the camera
       half3 get_volfog_with_scattering_loss(float2 tc, float2 jittered_tc, float3 view, float dist, float w)
       {
@@ -439,6 +446,10 @@ macro USE_VOLUMETRIC_LIGHT_WITH_SCATTERING(code)
         get_scattering_tc_fog(tc, pointToEye, fog_mul, fog_add);
       }
       void get_volfog_with_precalculated_scattering(float2 tc, float2 jittered_tc, float3 view, float dist, float w, inout half3 fog_mul, inout half3 fog_add)
+      {
+        // no volfog
+      }
+      void get_volfog_with_precalculated_scattering_opt(float2 tc, float2 jittered_tc, float3 view, float dist, float w, inout half3 fog_mul, inout half3 fog_add)
       {
         // no volfog
       }

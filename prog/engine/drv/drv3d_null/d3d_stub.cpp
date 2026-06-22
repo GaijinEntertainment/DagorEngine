@@ -38,7 +38,6 @@
 #include <drv/3d/dag_platform_pc.h>
 bool d3d::set_pixel_shader(FSHADER) { return true; }
 bool d3d::set_vertex_shader(VPROG) { return true; }
-VDECL d3d::get_program_vdecl(PROGRAM) { return 1; }
 #endif
 PROGRAM d3d::get_debug_program() { return 1; }
 
@@ -136,15 +135,12 @@ int d3d::set_vs_constbuffer_register_count(int /*required_size*/) { return 256; 
 FSHADER d3d::create_pixel_shader(const ShaderSource &data) { return BAD_FSHADER; }
 void d3d::delete_pixel_shader(FSHADER ps) {}
 
-/*VPROG d3d::create_vertex_shader_dagor(const VPRTYPE *tokens, int len) { return BAD_VPROG; }
-VPROG d3d::create_vertex_shader_asm(const char *asm_text) { return BAD_VPROG; }
+/*
 VPROG d3d::create_vertex_shader_hlsl(const char *hlsl_text, unsigned len,
   const char *entry, const char *profile)
 {
   return BAD_VPROG;
 }
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE *tokens, int len) { return BAD_FSHADER; }
-FSHADER d3d::create_pixel_shader_asm(const char *asm_text) { return BAD_FSHADER; }
 FSHADER d3d::create_pixel_shader_hlsl(const char *hlsl_text, unsigned len,
   const char *entry, const char *profile)
 {

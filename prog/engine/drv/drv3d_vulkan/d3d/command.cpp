@@ -409,6 +409,22 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       return 1;
     }
     break;
+    case Drv3dCommand::SET_DLSS_G_ENABLED:
+    {
+      int framesToGenerate = par1 ? *(int *)par1 : 0;
+      int viewIndex = par2 ? *(int *)par2 : 0;
+      Globals::ctx.dispatchCmd<CmdSetDlssGEnabled>({framesToGenerate, viewIndex});
+      return 1;
+    }
+    break;
+    case Drv3dCommand::SET_DLSS_OPTIONS:
+    {
+      nv::DlssOptions &options = *(nv::DlssOptions *)par1;
+      int viewIndex = par2 ? *(int *)par2 : 0;
+      Globals::ctx.dispatchCmd<CmdSetDlssOptions>({options, viewIndex});
+      return 1;
+    }
+    break;
 #else
     case Drv3dCommand::GET_DLSS:
     {
@@ -428,6 +444,15 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       };
 
       Globals::ctx.dispatchCmd<CmdExecuteDLSS>({convertDlssParams(params, cast_to_image)});
+      return 1;
+    }
+    break;
+    case Drv3dCommand::SET_DLSS_OPTIONS:
+    {
+      const nv::DlssOptions &options = *(nv::DlssOptions *)par1;
+      // Native NGX: (re)create the feature on the backend, where the NGX work runs.
+      Globals::ctx.dispatchCmd<CmdInitializeDLSS>({int(options.mode), options.outputResolution.x, options.outputResolution.y,
+        options.useRayReconstruction, options.useLegacyModel});
       return 1;
     }
     break;

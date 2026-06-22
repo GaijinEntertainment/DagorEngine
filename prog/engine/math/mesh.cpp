@@ -1083,6 +1083,11 @@ static void remove_faces(MeshData &m, const CanRemove &c)
   for (int cc = 0; cc < m.extra.size(); ++cc)
     ERASE(m.extra[cc].fc)
 #undef ERASE
+  if (m.ntab.size())
+  {
+    m.ntab.clear();
+    m.ngr.clear();
+  }
 }
 
 void MeshData::kill_bad_faces(float fa_thres) { remove_faces(*this, RemoveDegenerate(fa_thres)); }
@@ -1169,6 +1174,16 @@ int MeshData::check_mesh()
         debug("cface %d has invalid vertex %u", i, cface[i].t[j]);
         return 0;
       }
+  if (facengr.size() && facengr.size() != face.size())
+  {
+    debug("facengr.size=%d != face.size=%d", (int)facengr.size(), (int)face.size());
+    return 0;
+  }
+  if (ngr.size() && vertnorm.size() && ngr.size() != vertnorm.size())
+  {
+    debug("ngr.size=%d != vertnorm.size=%d", (int)ngr.size(), (int)vertnorm.size());
+    return 0;
+  }
   for (i = 0; i < facengr.size(); ++i)
     for (j = 0; j < 3; ++j)
       if (facengr[i][j] >= vertnorm.size())
@@ -1176,6 +1191,26 @@ int MeshData::check_mesh()
         debug("facengr %d has invalid ngr %u", i, facengr[i][j]);
         return 0;
       }
+  for (i = 0; i < ngr.size(); ++i)
+  {
+    if ((unsigned)ngr[i] >= (unsigned)ntab.size())
+    {
+      debug("ngr[%d]=%d out of ntab range [0,%d)", i, ngr[i], (int)ntab.size());
+      return 0;
+    }
+    int cc = ntab[ngr[i]];
+    if (cc < 1 || ngr[i] + cc >= (int)ntab.size())
+    {
+      debug("ngr[%d] bad count %d (ntab.size=%d)", i, cc, (int)ntab.size());
+      return 0;
+    }
+    for (j = 1; j <= cc; ++j)
+      if ((unsigned)ntab[ngr[i] + j] >= (unsigned)face.size())
+      {
+        debug("ngr[%d] face[%d]=%d out of range [0,%d)", i, j - 1, ntab[ngr[i] + j], (int)face.size());
+        return 0;
+      }
+  }
   return 1;
 }
 

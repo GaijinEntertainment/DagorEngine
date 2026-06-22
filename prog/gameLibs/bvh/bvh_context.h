@@ -415,6 +415,7 @@ struct MeshMeta : public BVHMeta
   static constexpr uint32_t bvhMaterialWater = 5;
   static constexpr uint32_t bvhMaterialLandclass = 6;
   static constexpr uint32_t bvhMaterialMonochrome = 7;
+  static constexpr uint32_t bvhMaterialSmokeTracer = 8;
 
   static constexpr uint32_t bvhMaterialAnimcharDecals = 1 << 15;
   static constexpr uint32_t bvhMaterialAlphaTest = 1 << 16;

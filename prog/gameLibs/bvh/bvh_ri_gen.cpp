@@ -286,9 +286,21 @@ static struct RiGenBVHJob : public cpujobs::IJob
       if constexpr (!filter_out_view_frustum)
         if (stationary_rt_trees)
         {
+          // Within the double of the shadow check range, use testSweptSphere to avoid testing against
+          // largely expanded AABBs up close. testSweptSphere is more expensive, but we need the precision,
+          // and also smaller bounds to check results in fewer trees animated.
+          static constexpr float preciseCheckingTreshold = sqr(max_light_dist_for_bvh_shadow * 2);
+
+          float distSq = v_extract_x(v_length3_sq(v_sub(tm.col3, thiz->viewPosition)));
           vec4f localBounds = v_make_vec4f(riRes->bsphCenter.x, riRes->bsphCenter.y, riRes->bsphCenter.z, riRes->bsphRad);
           vec4f worldBounds = v_mat44_mul_bsph(tm, localBounds);
-          isStationary = !instance_needs_animation(worldBounds, thiz->viewFrustum, thiz->lightDirection);
+          if (distSq < preciseCheckingTreshold)
+          {
+            isStationary = !instance_needs_animation_broad_phase(worldBounds, thiz->viewFrustum, thiz->lightDirection) ||
+                           !instance_needs_animation_narrow_phase(worldBounds, thiz->viewFrustum, thiz->lightDirection);
+          }
+          else
+            isStationary = !instance_needs_animation_broad_phase(worldBounds, thiz->viewFrustum, thiz->lightDirection);
         }
       if constexpr (use_tree_anim_max_distance)
         if (!isStationary)
@@ -472,7 +484,7 @@ void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibi
         job.viewPositionX = v_make_vec4f(0, 0, 0, view_position.x);
         job.viewPositionY = v_make_vec4f(0, 0, 0, view_position.y);
         job.viewPositionZ = v_make_vec4f(0, 0, 0, view_position.z);
-        job.lightDirection = light_direction_for_animation(light_direction);
+        job.lightDirection = v_ldu_p3_safe(&light_direction.x);
         job.prio = prio;
         job.otherFlip = &ri_gen_bvh_job[threadIx][flip ^ 1];
         job.chunkBudgetItems.store(chunkBudgetItems, dag::memory_order_relaxed);

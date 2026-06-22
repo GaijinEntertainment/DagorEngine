@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options indenting = 4
 options strict_smart_pointers = true
 
@@ -159,9 +157,7 @@ def any(it) {
         return false
     } else {
         for (x in it) {
-            if (x) {
-                return true
-            }
+            if (x) return true
         }
         return false
     }
@@ -170,9 +166,7 @@ def any(it) {
 def any(var it : iterator<auto(TT)>) {
     //! iterates over `it` and yields true if any element is true
     for (x in it) {
-        if (x) {
-            return true
-        }
+        if (x) return true
     }
     return false
 }
@@ -185,9 +179,7 @@ def all(it) {
         return false
     } else {
         for (x in it) {
-            if (!x) {
-                return false
-            }
+            if (!x) return false
         }
         return true
     }
@@ -196,9 +188,7 @@ def all(it) {
 def all(var it : iterator<auto(TT)>) {
     //! iterates over `it` and yields true if all elements are true
     for (x in it) {
-        if (!x) {
-            return false
-        }
+        if (!x) return false
     }
     return true
 }
@@ -479,6 +469,18 @@ def enumerate(var src : iterator<auto(TT)>) {
     }
 }
 
+def long_enumerate(var src : iterator<auto(TT)>) {
+    //! yields tuples of `(int64 index, element)` for each element in `src`
+    return <- generator<tuple<int64, TT -&>> capture(<- src) {
+        var idx = 0_l
+        for (x in src) {
+            yield (idx, x)
+            idx ++
+        }
+        return false
+    }
+}
+
 // ===========================
 //  for_each — apply side-effect to every element
 // ===========================
@@ -512,9 +514,7 @@ def for_each(var src : iterator<auto(TT)>; blk : block<(what : TT -&) : void>) {
 def private find_any(var src : iterator<auto(TT)>; predicate; default_value : TT -&) {
     //! returns the first element for which `predicate` returns true, or `default_value`
     for (x in src) {
-        if (invoke(predicate, x)) {
-            return x
-        }
+        if (invoke(predicate, x)) return x
     }
     return default_value
 }
@@ -542,9 +542,7 @@ def private find_index_any(var src : iterator<auto(TT)>; predicate) : int {
     //! returns the index of the first element for which `predicate` returns true, or -1
     var idx = 0
     for (x in src) {
-        if (invoke(predicate, x)) {
-            return idx
-        }
+        if (invoke(predicate, x)) return idx
         idx ++
     }
     return -1

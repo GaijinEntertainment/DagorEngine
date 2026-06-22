@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options indenting = 4
 
 module base64 shared private
@@ -90,16 +88,10 @@ def base64_decode(inp : array<uint8> | #; var out : array<uint8>) : int {
         var c = 0
         let s = i % 4
         let ii = int(inp[i])
-        if (ii == BASE64_PAD) {
-            break
-        }
-        if (ii < BASE64DE_FIRST || ii > BASE64DE_LAST) {
-            return -1
-        }
+        if (ii == BASE64_PAD) break
+        if (ii < BASE64DE_FIRST || ii > BASE64DE_LAST) return -1
         c = base64de[ii - BASE64DE_FIRST]
-        if (c == -1) {
-            return -1
-        }
+        if (c == -1) return -1
         if (s == 0) {
             out[j] = uint8((uint(c) << 2u) & 0xFF)
             continue

@@ -47,6 +47,7 @@ StcodeCompilationDirs init_stcode_compilation(const char *dest_dir, const char *
 
 void save_compiled_cpp_stcode(StcodeShader &&cpp_shader, const ShCompilationInfo &comp);
 void save_stcode_global_vars(StcodeGlobalVars &&cpp_globvars, const ShCompilationInfo &comp, const shc::TargetContext &ctx);
+void save_stcode_refined_block(StcodeShader &cpp_stcode, const ShCompilationInfo &comp);
 void save_stcode_dll_main(StcodeShader &&combined_cppstcode, const CryptoHash &stcode_hash, const ShCompilationInfo &comp);
 
 struct StcodeSourceFileStat

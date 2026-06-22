@@ -1,0 +1,6 @@
+// gameLibs csm.dshl includes "csm_inc.dshl" so a project can restrict which CSM
+// cascade-count variants get compiled. Samples compile all variants, so this is
+// the plain passthrough to USE_CSM_SHADOW_INTERNAL.
+macro USE_CSM_SHADOW(code, num_cascades, get_csm_shadow_func)
+  USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
+endmacro

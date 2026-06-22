@@ -153,8 +153,8 @@ namespace das {
 
     struct Array {
         char *data;
-        uint32_t size;
-        uint32_t capacity;
+        uint64_t size;
+        uint64_t capacity;
     // TArray, Table can set manually during copying.
     protected:
         // use friend helpers to lock-unlock.
@@ -166,14 +166,22 @@ namespace das {
                 bool shared : 1;
                 bool hopeless : 1;          // needs to be deleted without fuss (exceptions)
                 bool forego_lock_check : 1; // don't need to check if elements are locked
+                bool tableNoHash : 1;       // Table only: key type stores no per-slot hash (non-string) - see tableHashSlotBytes
             };
             uint32_t flags;
         };
+        // On 32-bit ABIs Array has uint64_t members forcing 8-byte alignment, so
+        // sizeof(Array) is 40 with 4 trailing pad bytes. Itanium ABI (clang on
+        // wasm/linux/darwin 32-bit) lets the derived `Table` reuse that trailing
+        // padding, placing Table::keys at offset 36; MSVC 32-bit doesn't, placing
+        // it at offset 40. Make the padding explicit so the dsize matches sizeof
+        // on every ABI and Table::keys lives at a single, predictable offset.
+        uint32_t _pad_after_flags = 0u;
         __forceinline bool isLocked() const { return lock; }
 
         friend DAS_API int builtin_array_lock_count ( const Array & arr );
-        friend DAS_API void array_mark_locked(Array &arr, void *data, uint32_t capacity);
-        friend DAS_API void array_mark_locked(Array &arr, void *data, uint32_t size, uint32_t capacity);
+        friend DAS_API void array_mark_locked(Array &arr, void *data, uint64_t capacity);
+        friend DAS_API void array_mark_locked(Array &arr, void *data, uint64_t size, uint64_t capacity);
         friend DAS_API void array_lock(Context &context, Array &arr, LineInfo *at);
         friend DAS_API void array_unlock(Context &context, Array &arr, LineInfo *at);
         friend DAS_API void table_lock(Context &context, Table &arr, LineInfo *at);
@@ -183,13 +191,13 @@ namespace das {
 
     class Context;
 
-    DAS_API void array_mark_locked(Array &arr, void *data, uint32_t capacity);
-    DAS_API void array_mark_locked(Array &arr, void *data, uint32_t size, uint32_t capacity);
+    DAS_API void array_mark_locked(Array &arr, void *data, uint64_t capacity);
+    DAS_API void array_mark_locked(Array &arr, void *data, uint64_t size, uint64_t capacity);
     DAS_API void array_lock(Context &context, Array &arr, LineInfo *at);
     DAS_API void array_unlock(Context &context, Array &arr, LineInfo *at);
-    DAS_API void array_reserve(Context &context, Array &arr, uint32_t newCapacity, uint32_t stride, LineInfo *at);
-    DAS_API void array_resize(Context &context, Array &arr, uint32_t newSize, uint32_t stride, bool zero, LineInfo *at);
-    DAS_API void array_grow(Context &context, Array &arr, uint32_t newSize, uint32_t stride); // always grows
+    DAS_API void array_reserve(Context &context, Array &arr, uint64_t newCapacity, uint32_t stride, LineInfo *at);
+    DAS_API void array_resize(Context &context, Array &arr, uint64_t newSize, uint32_t stride, bool zero, LineInfo *at);
+    DAS_API void array_grow(Context &context, Array &arr, uint64_t newSize, uint32_t stride); // always grows
     DAS_API void array_clear(Context &context, Array &arr, LineInfo *at);
 
     typedef uint32_t TableHashKey;
@@ -199,13 +207,13 @@ namespace das {
     struct Table : Array {
         char *keys;
         TableHashKey *hashes;
-        uint32_t tombstones;
+        uint64_t tombstones;
     };
 
     DAS_API void table_clear(Context &context, Table &arr, LineInfo *at);
     DAS_API void table_lock(Context &context, Table &arr, LineInfo *at);
     DAS_API void table_unlock(Context &context, Table &arr, LineInfo *at);
-    DAS_API void table_reserve_impl(Context &context, Table &arr, int32_t baseType, uint32_t newCapacity, uint32_t valueTypeSize, LineInfo *at);
+    DAS_API void table_reserve_impl(Context &context, Table &arr, int32_t baseType, uint64_t newCapacity, uint32_t valueTypeSize, LineInfo *at);
 
     struct Sequence;
     DAS_API void builtin_table_keys(Sequence &result, const Table &tab, int32_t stride, Context *__context__, LineInfoArg *at);
@@ -219,9 +227,14 @@ namespace das {
     };
 
     typedef EnumStubAny<int32_t> EnumStub;
-    typedef EnumStubAny<int8_t> EnumStub8;
-    typedef EnumStubAny<int16_t> EnumStub16;
-    typedef EnumStubAny<int64_t> EnumStub64;
+    typedef EnumStubAny<int8_t>   EnumStub8;
+    typedef EnumStubAny<int16_t>  EnumStub16;
+    typedef EnumStubAny<int64_t>  EnumStub64;
+    // unsigned-underlying variants — used by the typer to dispatch `int(uint8Enum)` / `uint(uint8Enum)`
+    // (and 16/64-bit) so the byte zero-extends instead of sign-extending via int8_t/int16_t/int64_t.
+    typedef EnumStubAny<uint8_t>  EnumStub8u;
+    typedef EnumStubAny<uint16_t> EnumStub16u;
+    typedef EnumStubAny<uint64_t> EnumStub64u;
 
     template <typename ST>
     struct BitfieldAny {

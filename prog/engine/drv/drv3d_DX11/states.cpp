@@ -1390,7 +1390,7 @@ bool d3d::clear_rt(const RenderTarget &rt, const ResourceClearValue &clear_val)
       MiniRenderStateUnsafe savedRs;
       savedRs.store();
 
-      d3d::set_render_target(base, rt.mip_level);
+      d3d::set_render_target({}, DepthAccess::RW, {{base, rt.mip_level, 0}});
       d3d::setview(0, 0, base->width, base->height, 0, 1);
       clear_slow(CLEAR_TARGET, clear_val.asFloat, 0.0f, 0u);
 

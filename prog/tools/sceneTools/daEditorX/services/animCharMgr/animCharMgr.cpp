@@ -160,10 +160,10 @@ public:
 
             DynamicAttachement &att = dynAtt.push_back();
             att.slotId = AnimCharV20::getSlotId(slot_name);
-            att.animVarId = anim->getParamId(var_name, AnimV20::IAnimStateHolder::PT_ScalarParam);
+            att.animVarId = anim->getParamId(var_name, AnimV20::AnimGraphStateHolder::PT_ScalarParam);
             if (att.animVarId < 0)
             {
-              att.animVarId = anim->getParamId(var_name, AnimV20::IAnimStateHolder::PT_ScalarParamInt);
+              att.animVarId = anim->getParamId(var_name, AnimV20::AnimGraphStateHolder::PT_ScalarParamInt);
               att.varTypeInt = true;
             }
             att.bEnum = &anim->getEnumList(enum_cls);
@@ -198,12 +198,12 @@ public:
             for (int j = 0; j < b.paramCount(); j++)
               if (b.getParamNameId(j) == nid && b.getParamType(j) == b.TYPE_STRING)
               {
-                int varId = anim->getParamId(b.getStr(j), AnimV20::IAnimStateHolder::PT_ScalarParam);
+                int varId = anim->getParamId(b.getStr(j), AnimV20::AnimGraphStateHolder::PT_ScalarParam);
                 if (varId >= 0)
                   att.syncVarsF.push_back(varId);
                 else
                 {
-                  varId = anim->getParamId(b.getStr(j), AnimV20::IAnimStateHolder::PT_ScalarParamInt);
+                  varId = anim->getParamId(b.getStr(j), AnimV20::AnimGraphStateHolder::PT_ScalarParamInt);
                   if (varId >= 0)
                     att.syncVarsI.push_back(varId);
                   else
@@ -315,20 +315,20 @@ public:
         if (dd_file_exists(cfg_fn))
         {
           AnimV20::AnimationGraph *ag = ac->getAnimGraph();
-          AnimV20::IAnimStateHolder *as = ac->getAnimState();
+          AnimV20::AnimGraphStateHolder *as = ac->getAnimState();
 
           DataBlock blk(cfg_fn);
           const DataBlock &b = *blk.getBlockByNameEx(att.varBlockNm);
           for (int pi = 0; pi < b.paramCount(); pi++)
             if (b.getParamType(pi) == b.TYPE_REAL)
             {
-              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParam);
+              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::AnimGraphStateHolder::PT_ScalarParam);
               if (param_id >= 0)
                 as->setParam(param_id, b.getReal(pi));
             }
             else if (b.getParamType(pi) == b.TYPE_INT)
             {
-              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::IAnimStateHolder::PT_ScalarParamInt);
+              int param_id = ag->getParamId(b.getParamName(pi), AnimV20::AnimGraphStateHolder::PT_ScalarParamInt);
               if (param_id >= 0)
                 as->setParamInt(param_id, b.getInt(pi));
             }
@@ -416,7 +416,7 @@ protected:
   }
 
   AnimV20::AnimationGraph *getAnimGraph() const override { return ac ? ac->getAnimGraph() : NULL; }
-  AnimV20::IAnimStateHolder *getAnimState() const override { return ac ? ac->getAnimState() : NULL; }
+  AnimV20::AnimGraphStateHolder *getAnimState() const override { return ac ? ac->getAnimState() : NULL; }
   AnimV20::AnimcharBaseComponent *getAnimCharBase() const override { return ac ? &ac->baseComp() : nullptr; }
   AnimV20::AnimcharRendComponent *getAnimCharRend() const override { return ac ? &ac->rendComp() : nullptr; }
 
@@ -510,7 +510,7 @@ public:
   }
 
   AnimV20::AnimationGraph *getAnimGraph() const override { return VirtualAnimCharEntity::getAnimGraph(); }
-  AnimV20::IAnimStateHolder *getAnimState() const override { return VirtualAnimCharEntity::getAnimState(); }
+  AnimV20::AnimGraphStateHolder *getAnimState() const override { return VirtualAnimCharEntity::getAnimState(); }
   AnimV20::AnimcharBaseComponent *getAnimCharBase() const override { return VirtualAnimCharEntity::getAnimCharBase(); }
   AnimV20::AnimcharRendComponent *getAnimCharRend() const override { return VirtualAnimCharEntity::getAnimCharRend(); }
   const AnimV20::AnimcharFinalMat44 *getAnimCharFinalWTM() const override { return ac ? &ac->getFinalWtm() : nullptr; }

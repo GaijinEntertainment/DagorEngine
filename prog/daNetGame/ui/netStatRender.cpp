@@ -20,7 +20,7 @@ void toggle_render() { render_enabled = !render_enabled; }
 //
 void render()
 {
-  dag::ConstSpan<Sample> ns = get_aggregations();
+  auto ns = get_aggregations();
   if (ns.empty() || !render_enabled)
     return;
 

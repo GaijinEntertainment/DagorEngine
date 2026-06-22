@@ -460,6 +460,10 @@ hlsl(stage)
     BRANCH
     if (len < SMALL_VALUE)
     {
+      // degenerate block (ep0 == ep1): any weight decodes to the same color, but the out array must be written
+      UNROLL
+      for (i = 0; i < BLOCK_SIZE; ++i)
+        weights[i] = 0;
       return;
     }
     else

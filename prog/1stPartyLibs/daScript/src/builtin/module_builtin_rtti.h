@@ -14,7 +14,8 @@ DAS_BASE_BIND_ENUM(das::Type, Type,
     tDouble,    tRange,    tURange,    tRange64,    tURange64,    tString,    tStructure,
     tHandle,    tEnumeration,    tEnumeration8,    tEnumeration16,    tEnumeration64,
     tBitfield,  tBitfield8, tBitfield16, tBitfield64,   tPointer,    tFunction,
-    tLambda,    tIterator,    tArray,    tTable,    tBlock,    tTuple,    tVariant
+    tLambda,    tIterator,    tArray,    tTable,    tBlock,    tTuple,    tVariant,
+    tFixedArray
 )
 
 DAS_BASE_BIND_ENUM(das::RefMatters,   RefMatters,   no, yes)

@@ -538,6 +538,7 @@ shader froxels_gi_draw_debug
 
   (ps) {
     gi_current_froxels_radiance@smp3d = gi_current_froxels_radiance;
+    gi_froxels_atlas_sizei@i4 = gi_froxels_atlas_sizei;
     gi_froxels_debug_type@i1 = gi_froxels_debug_type;
   }
   GI_VOLUMETRIC_IRRADIANCE_INIT(ps)
@@ -594,7 +595,8 @@ shader froxels_gi_draw_debug
         float2 octOffset = dagi_volumetric_dir_encode(normalize(input.norm));
         octOffset = octOffset*0.5 + 0.5;
         octOffset = clamp(octOffset, 0.5/gi_froxels_sizei.w, 1-0.5/gi_froxels_sizei.w);//fixme: constant
-        float3 sampleTC= (input.volumeProbeCoordinates + float3(octOffset, 0.5))/gi_froxels_sizei.xyz;
+        //radiance texture has only traced slices (atlas_sizei.z), not the full froxel depth
+        float3 sampleTC= (input.volumeProbeCoordinates + float3(octOffset, 0.5))/float3(gi_froxels_sizei.xy, gi_froxels_atlas_sizei.z);
         return tex3Dlod(gi_current_froxels_radiance, float4(sampleTC, 0)).xyz;
       } else
       {

@@ -1,4 +1,6 @@
 
+#define MIN_POSSIBLE_WARP_SIZE 64 // Xbox One (GCN, wave64)
+
 #define WAVE_INTRINSICS 1
 #define WaveReadLaneAt __XB_ReadLane
 #define WaveReadFirstLane(a) __XB_MakeUniform((a))

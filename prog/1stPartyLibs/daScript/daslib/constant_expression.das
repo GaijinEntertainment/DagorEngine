@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module constant_expression shared private
@@ -96,9 +94,7 @@ class ConstantExpressionMacro : AstFunctionAnnotation {
         }
         argi |> sort_unique
         argi |> reverse
-        if (empty(argi)) {
-            return null
-        }
+        if (empty(argi)) return null
         var func_copy = clone_function(expr.func)
         let func_name = build_string() $(var w) {
             w |> write("{func_copy.name}`constant_expression")
@@ -126,12 +122,16 @@ class ConstantExpressionMacro : AstFunctionAnnotation {
             func_copy.arguments |> erase(i)
         }
         // func_copy.flags |= FunctionFlags exports
-        func_copy.flags |= FunctionFlags.generated
+        func_copy.flags.generated = true
         func_copy.annotations |> erase(anni)
         compiling_module() |> add_function(func_copy)
         var new_call = clone_expression(expr)
         var ncall = new_call as ExprCall
-        ncall.name := func_name
+        // Resolve the generated specialization in thisModule (where add_function placed it below), not the
+        // call site's defining module. Matters when the annotated function is called from library-internal
+        // generic code (e.g. json_boost`from_json_row`'s apply_imm): such a call site lives in the generic's
+        // ORIGIN module, so a plain name would search there and miss the specialization in the program root.
+        ncall.name := "__::{func_name}"
         for (i in argi) {
             ncall.arguments |> erase(i)
         }

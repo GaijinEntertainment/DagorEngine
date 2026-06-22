@@ -1,0 +1,141 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+// Bitonic sort for omni/spot light buffers by squared distance to the view position.
+// Mirrors the sort_lights_by_distance algorithm in clusteredLightsSorter.cpp.
+//
+// All log2(256)*(log2(256)+1)/2 = 36 sort passes run inside a single threadgroup
+// using groupshared (LDS) memory, eliminating inter-dispatch UAV barriers.
+// 128 threads cover 256 slots: each thread handles one comparison pair per pass.
+//
+// LDS holds only indices (uint, 1 KB) and cached squared distances (float, 1 KB).
+// Full light structs are read from the UAV only twice per dispatch: once to seed
+// gs_distSq, and once in the final in-place reorder.
+// The reorder is a two-phase gather->scatter: all threads read their target struct
+// into registers, then AllMemoryBarrierWithGroupSync ensures those reads complete
+// before any thread writes back, preventing read-after-write corruption.
+//
+// Virtual padding slots (indices >= lightCount) are not read from the buffer; they
+// get gs_distSq = FLT_MAX and are never written back.  Since rightIdx = leftIdx +
+// stride > leftIdx, a virtual leftIdx implies a virtual rightIdx, so the swap guard
+// (rightIdx < lightCount) is sufficient.
+
+include "shader_global.dshl"
+include "lights_cb.dshl"
+
+float4 lights_sort_view_pos;
+
+buffer omni_lights_structured_buf;
+buffer spot_lights_structured_buf;
+
+shader sort_omni_lights_cs, sort_spot_lights_cs
+{
+  (cs) {
+    lights_sort_view_pos@f3 = lights_sort_view_pos;
+  }
+
+  if (shader == sort_omni_lights_cs)
+  {
+    USE_OMNI_LIGHTS_BOUNDS(cs)
+
+    (cs) {
+      lights_count@i1 = omniLightsCount;
+      lights_buf@uav = omni_lights_structured_buf hlsl {
+        #include <renderLights.hlsli>
+        RWStructuredBuffer<RenderOmniLight> lights_buf@uav;
+      };
+    }
+
+  }
+
+  if (shader == sort_spot_lights_cs)
+  {
+    USE_SPOT_LIGHTS_BOUNDS(cs)
+
+    (cs) {
+      lights_count@i1 = spotLightsCount;
+      lights_buf@uav = spot_lights_structured_buf hlsl {
+        #include <renderLights.hlsli>
+        RWStructuredBuffer<RenderSpotLight> lights_buf@uav;
+      };
+    }
+
+  }
+
+  hlsl(cs) {
+    ##if shader == sort_omni_lights_cs
+      static const uint kMaxLightsCount = MAX_OMNI_LIGHTS;
+    ##endif
+    ##if shader == sort_spot_lights_cs
+      static const uint kMaxLightsCount = MAX_SPOT_LIGHTS;
+    ##endif
+
+    groupshared uint  gs_indices[kMaxLightsCount]; // 1 KB
+    groupshared float gs_distSq[kMaxLightsCount];  // 1 KB -- total 2 KB, safe on all hardware
+
+    [numthreads(kMaxLightsCount / 2u, 1, 1)]
+    void main(uint3 gtId : SV_GroupThreadID)
+    {
+      uint tid = gtId.x;
+      uint tid2 = tid + kMaxLightsCount / 2u;
+      uint lightCount = (uint)lights_count;
+      float3 viewPos = lights_sort_view_pos;
+
+      gs_indices[tid]  = tid;
+      gs_indices[tid2] = tid2;
+
+      ##if shader == sort_omni_lights_cs
+        float3 p0 = tid  < lightCount ? getOmniLightBoundingSphere(structuredBufferAt(lights_buf, tid)).xyz  : (float3)0;
+        float3 p1 = tid2 < lightCount ? getOmniLightBoundingSphere(structuredBufferAt(lights_buf, tid2)).xyz : (float3)0;
+      ##endif
+      ##if shader == sort_spot_lights_cs
+        float3 p0 = tid  < lightCount ? getSpotLightBoundingSphere(structuredBufferAt(lights_buf, tid)).xyz  : (float3)0;
+        float3 p1 = tid2 < lightCount ? getSpotLightBoundingSphere(structuredBufferAt(lights_buf, tid2)).xyz : (float3)0;
+      ##endif
+      float3 d0 = viewPos - p0, d1 = viewPos - p1;
+      gs_distSq[tid]  = (tid  < lightCount) ? dot(d0, d0) : asfloat(0x7F7FFFFF);
+      gs_distSq[tid2] = (tid2 < lightCount) ? dot(d1, d1) : asfloat(0x7F7FFFFF);
+
+      GroupMemoryBarrierWithGroupSync();
+
+      for (uint block = 2u; block <= kMaxLightsCount; block <<= 1)
+      {
+        for (uint stride = block >> 1; stride >= 1u; stride >>= 1)
+        {
+          uint leftIdx  = ((tid / stride) * 2u * stride) + (tid % stride);
+          uint rightIdx = leftIdx + stride;
+
+          float2 dists = float2(gs_distSq[leftIdx], gs_distSq[rightIdx]);
+          bool ascending = (leftIdx & block) == 0u;
+          if ((ascending ? (dists.x > dists.y) : (dists.x < dists.y)) && rightIdx < lightCount)
+          {
+            gs_distSq[leftIdx]  = dists.y;
+            gs_distSq[rightIdx] = dists.x;
+            uint tmpIdx = gs_indices[leftIdx];
+            gs_indices[leftIdx]  = gs_indices[rightIdx];
+            gs_indices[rightIdx] = tmpIdx;
+          }
+
+          GroupMemoryBarrierWithGroupSync();
+        }
+      }
+
+      ##if shader == sort_omni_lights_cs
+        RenderOmniLight tmp0, tmp1;
+        if (tid  < lightCount) tmp0 = structuredBufferAt(lights_buf, gs_indices[tid]);
+        if (tid2 < lightCount) tmp1 = structuredBufferAt(lights_buf, gs_indices[tid2]);
+      ##endif
+      ##if shader == sort_spot_lights_cs
+        RenderSpotLight tmp0, tmp1;
+        if (tid  < lightCount) tmp0 = structuredBufferAt(lights_buf, gs_indices[tid]);
+        if (tid2 < lightCount) tmp1 = structuredBufferAt(lights_buf, gs_indices[tid2]);
+      ##endif
+
+      AllMemoryBarrierWithGroupSync();
+
+      if (tid  < lightCount) structuredBufferAt(lights_buf, tid)  = tmp0;
+      if (tid2 < lightCount) structuredBufferAt(lights_buf, tid2) = tmp1;
+    }
+  }
+
+  compile("target_cs", "main");
+}

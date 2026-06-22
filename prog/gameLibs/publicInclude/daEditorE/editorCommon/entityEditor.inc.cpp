@@ -3098,9 +3098,9 @@ void EntityObjEditor::saveComponent(ecs::EntityId eid, const char *comp_name)
   auto it = eastl::find_if(erec->clist.begin(), erec->clist.end(),
     [comp_name](const ecs::ComponentsList::value_type &kv) { return kv.first == comp_name; });
   if (it != erec->clist.end())
-    it->second = eastl::move(ecs::ChildComponent(*g_entity_mgr, comp));
+    it->second = eastl::move(ecs::ChildComponent(comp));
   else
-    erec->clist.emplace_back(comp_name, ecs::ChildComponent(*g_entity_mgr, comp));
+    erec->clist.emplace_back(comp_name, ecs::ChildComponent(comp));
   if (strcmp(comp_name, "transform") == 0)
   {
     scene.notifyEntityTransformWasChanged(eid);

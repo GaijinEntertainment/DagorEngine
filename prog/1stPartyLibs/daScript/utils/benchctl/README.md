@@ -13,7 +13,7 @@ benchctl stores benchmark output in a local SQLite database and provides statist
 Key capabilities:
 
 - Insert benchmark JSON output files into a persistent database, tagged by commit hash (and optionally custom tags)
-- Query the database with raw SQL conditions (e.g. selecting by name or tags)
+- Query the database with structured filter flags (`--commit`, `--tag`)
 - Compare two sets of results
 - Compute geometric mean deltas across all benchmarks in a comparison
 
@@ -31,7 +31,7 @@ Key capabilities:
 daslang utils/benchctl/main.das -- <command> [options...]
 ```
 
-All commands accept `--db <path>` to specify the database file (default: `benchdata.db`) and `--colors false` to disable ANSI color output.
+All commands accept `--db <path>` to specify the database file (default: `benchdata.db`) and `--no-color` to disable ANSI color output.
 
 Consider using an explicit name for a long-term database while using the default `benchdata.db` as a scratch db you can reset between the experiments.
 
@@ -44,8 +44,6 @@ Initializes (or reinitializes) the benchmark database.
 > **Warning:** drops all existing data.
 
 ```
-# The name is benchdata.db by default, so this explicit parameter
-# is only used for demonstrative purposes
 daslang utils/benchctl/main.das -- reset --db benchdata.db
 ```
 
@@ -69,12 +67,12 @@ Options:
 |------|-------------|
 | `--db <path>` | Database file path (default: `benchdata.db`) |
 | `--commit <hash>` | Git commit hash to tag results with (default: `git rev-parse HEAD`) |
-| `--tag <name>` | Tag label to attach to results - can be repeated |
+| `--tag <name>` | Tag label to attach to results - can be repeated (must not contain `[` or `]`) |
 
 Input files must contain newline-delimited JSON records as produced by the dastest benchmark runner. Non-JSON lines are silently skipped.
 
 ```
-# Adds all samples from result1.txt and result2.txt tagging them with 2 prodived tags,
+# Adds all samples from result1.txt and result2.txt tagging them with 2 provided tags,
 # the commit hash will be "git rev-parse HEAD" (use --commit to override that)
 daslang utils/benchctl/main.das -- insert --tag example1 --tag foo result1.txt result2.txt
 ```
@@ -99,10 +97,10 @@ daslang utils/benchctl/main.das -- insert results.txt
 
 ### `query`
 
-Displays benchmark records from the database.
+Displays benchmark records from the database. Filters compose with AND.
 
 ```
-daslang utils/benchctl/main.das -- query [--db benchdata.db] [--select <condition>]
+daslang utils/benchctl/main.das -- query [--db benchdata.db] [--commit <hash>] [--tag <name>]
 ```
 
 Options:
@@ -110,9 +108,10 @@ Options:
 | Flag | Description |
 |------|-------------|
 | `--db <path>` | Database file path |
-| `--select <cond>` | SQL `WHERE` clause to filter records |
+| `--commit <hash>` | Filter to records with this exact commit hash |
+| `--tag <name>` | Filter to records carrying this tag (single-value; uses LIKE under the hood — empty `--tag` means no filter) |
 
-This is mostly needed to debug the selection queries before using a more useful `compare` command.
+This is mostly needed to debug the selection filters before using a more useful `compare` command.
 
 **Examples:**
 
@@ -121,45 +120,18 @@ This is mostly needed to debug the selection queries before using a more useful 
 daslang utils/benchctl/main.das -- query
 
 # Show records for a specific commit
-daslang utils/benchctl/main.das -- query --select "commit_hash='abc12345'"
+daslang utils/benchctl/main.das -- query --commit abc12345
 
-# Show only string-allocation-heavy benchmarks
-daslang utils/benchctl/main.das -- query --select "string_allocs > 0"
+# Show records with a tag
+daslang utils/benchctl/main.das -- query --tag before
+
+# Combine filters (AND)
+daslang utils/benchctl/main.das -- query --commit abc12345 --tag before
 ```
 
-You can use any columns from the `benchmarks` table to do the filtering.
+If you need a one-off filter that the structured flags don't cover (e.g. `WHERE string_allocs > 0`), open the DB directly with the `sqlite3` shell — `benchctl` no longer accepts arbitrary SQL via the CLI.
 
-> Keep in mind: the table contains the samples, they are joined and analyzed together during the processing.
-
-```
-id INTEGER            -- an autoincrement ID of the sample
-
-commit_hash TEXT      -- a git commit hash
-tags TEXT             -- a list of tags bundled inside a string (see below)
-insert_date INTEGER   -- the date of the "insert" command being executed for this sample
-
-full_name TEXT        -- a full sample's benchmark identifier, "{name}/{sub_name}"
-name TEXT             -- a benchmark's function name
-sub_name TEXT         -- a benchmark's "run" argument which specifies the subtest
-
-mode TEXT             -- the execution mode ("JIT", "INTERP", or "AOT")
-
-n INTEGER             -- how many times the benchmarking function was executed
-
-time_ns INTEGER           -- nanosecs per every operation run (time)
-allocs INTEGER            -- a number of non-string heap allocs
-heap_bytes INTEGER        -- a number of heap bytes allocated (excluding the string bytes)
-string_allocs INTEGER     -- like allocs, but only for heap strings
-string_heap_bytes INTEGER -- like heap_bytes, but only for heap strings
-```
-
-Tags are stored as `[tag1][tag2]` strings, so you can filter by tag with `LIKE`:
-
-```sh
-daslang utils/benchctl/main.das -- query --select "tags LIKE '%[before]%'"
-```
-
-> "Has no tag" condition can be implemented using the `NOT LIKE` operation.
+> Stored columns: `id`, `commit_hash`, `tags`, `insert_date`, `full_name`, `name`, `sub_name`, `mode`, `n`, `time_ns`, `allocs`, `heap_bytes`, `string_allocs`, `string_heap_bytes`. Tags are stored as `[tag1][tag2]` strings.
 
 ---
 
@@ -176,27 +148,29 @@ Options:
 | Flag | Description |
 |------|-------------|
 | `--db <path>` | Database file path |
-| `--select_old <cond>` | SQL `WHERE` clause for the baseline (old) results |
-| `--select_new <cond>` | SQL `WHERE` clause for the new results |
+| `--old-commit <hash>` | Baseline commit filter |
+| `--old-tag <name>` | Baseline tag filter |
+| `--new-commit <hash>` | New commit filter |
+| `--new-tag <name>` | New tag filter |
 | `--s <from=>to>` | Regex rename: rewrite old benchmark names to match new names |
-| `--colors false` | Disable colored output |
+| `--no-color` | Disable colored output |
 
-> Both "select" arguments are abbreviated for convenience to `--old` and `--new`, but you're still encouraged to create an alias/shortcut for the most common use cases you might have.
+Each side's filters compose with AND. Empty side filters mean "all rows for that side" — usually you want at least one filter per side.
 
 **Example - compare two commits:**
 
 ```sh
 daslang utils/benchctl/main.das -- compare \
-    --select_old "commit_hash='abc12345'" \
-    --select_new "commit_hash='def67890'"
+    --old-commit abc12345 \
+    --new-commit def67890
 ```
 
 **Example - compare using tags:**
 
 ```sh
 daslang utils/benchctl/main.das -- compare \
-    --select_old "tags LIKE '%[before]%'" \
-    --select_new "tags LIKE '%[after]%'"
+    --old-tag before \
+    --new-tag after
 ```
 
 Both sample sets (old and new) will be compared over the matching `full_name`. This means only the same benchmark results (but across different revisions) can be compared. Unless you use a renaming rule.
@@ -207,8 +181,8 @@ If benchmarks have different names, but logically can be compared to one another
 
 ```sh
 daslang utils/benchctl/main.das -- compare \
-    --select_old "..." \
-    --select_new "..." \
+    --old-tag before \
+    --new-tag after \
     --s "BenchmarkBad=>BenchmarkGood"
 ```
 
@@ -273,8 +247,5 @@ daslang dastest/dastest.das -- --test mybench.das --bench --bench-format json | 
 daslang utils/benchctl/main.das -- insert --tag after new.json
 
 # 4. Compare the two runs
-# (note: using the aliased select_old and select_new)
-daslang utils/benchctl/main.das -- compare \
-    --old "tags LIKE '%[before]%'" \
-    --new "tags LIKE '%[after]%'"
+daslang utils/benchctl/main.das -- compare --old-tag before --new-tag after
 ```

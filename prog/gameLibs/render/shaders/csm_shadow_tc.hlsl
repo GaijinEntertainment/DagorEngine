@@ -430,7 +430,8 @@ float3 get_csm_shadow_tc_scaled(float3 pointToEye, out uint cascade_id, out floa
     float far = shadow_cascade_relative_offset_and_far[cascade_id].w;
 
     float transition = saturate((viewDepth - near) / (far - near));
-    cascade_id = cascade_id + round(transition + randomTransitionOffset);
+    // round(transition + offset) is -1 or 2 at exact half values, which would wrap cascade_id
+    cascade_id = cascade_id + uint(saturate(round(transition + randomTransitionOffset)));
   }
 
 #if !HAS_MANUAL_CASCADES

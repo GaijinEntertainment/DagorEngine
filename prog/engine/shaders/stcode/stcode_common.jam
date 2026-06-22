@@ -27,7 +27,7 @@ if $(Platform) = iOS {
     BundlePlist =
       @$(Root)/prog/_jBuild/iOS/generic.framework.plist Frameworks/$(BuildAsFramework)/Info.plist
     ;
-    BundleName = $(Target:B) ;
+    BundleName = $(frameworkName) ;
     BundleTitle = $(BundleName) ;
     BundleID = $(BundleName) ;
     BundleExe = $(BundleName).dylib ;

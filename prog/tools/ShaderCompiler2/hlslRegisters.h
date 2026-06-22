@@ -80,6 +80,7 @@ enum class HlslSlotSemantic : uint8_t
   RESERVED_FOR_GLOBAL_CONST_CBUF,
   RESERVED_FOR_REFINED_BLOCK_CBUF,
   RESERVED_FOR_MATERIAL_PARAMS_CBUF,
+  RESERVED_FOR_IMMEDIATE_CBUF,
 };
 
 struct HlslRegRange
@@ -104,14 +105,15 @@ class HlslRegAllocator
 
 public:
   static constexpr const char *SLOT_SEMANTIC_DESCS[]{
-    "allocated",                // ALLOCATED
-    "hardcoded",                // HARDCODED
-    "supp blk",                 // RESERVED
-    "predefined",               // RESERVED_FOR_PREDEFINES
-    "implicit const buf",       // RESERVED_FOR_IMPLICIT_CONST_CBUF
-    "global const buf",         // RESERVED_FOR_GLOBAL_CONST_CBUF
-    "refined block const buf",  // RESERVED_FOR_REFINED_BLOCK_CBUF
-    "material params const buf" // RESERVED_FOR_MATERIAL_PARAMS_CBUF
+    "allocated",                 // ALLOCATED
+    "hardcoded",                 // HARDCODED
+    "supp blk",                  // RESERVED
+    "predefined",                // RESERVED_FOR_PREDEFINES
+    "implicit const buf",        // RESERVED_FOR_IMPLICIT_CONST_CBUF
+    "global const buf",          // RESERVED_FOR_GLOBAL_CONST_CBUF
+    "refined block const buf",   // RESERVED_FOR_REFINED_BLOCK_CBUF
+    "material params const buf", // RESERVED_FOR_MATERIAL_PARAMS_CBUF
+    "immediate const buf"        // RESERVED_FOR_IMMEDIATE_CBUF
   };
 
   static const allocator_scan_routine_t DEFAULT_SCAN, BACKWARDS_SCAN;
@@ -219,6 +221,7 @@ public:
     return {};
   }
 
+  template <bool skip_hardcoded = false>
   dag::Expected<void, Tab<ReserveFailure>> reserveAllFrom(const HlslRegAllocator &supp)
   {
     G_ASSERT(policy.cap == supp.policy.cap);
@@ -229,6 +232,10 @@ public:
     {
       if (slot.used)
       {
+        if constexpr (skip_hardcoded)
+          if (slot.semantic == HlslSlotSemantic::HARDCODED)
+            continue;
+
         if (auto result = reserve(max(HlslSlotSemantic::RESERVED, slot.semantic), id); !result)
           failedReserves.push_back(result.error());
       }

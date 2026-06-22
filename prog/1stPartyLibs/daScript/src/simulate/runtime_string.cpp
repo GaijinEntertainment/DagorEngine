@@ -28,16 +28,27 @@ namespace das
     }
 
     void das_trycatch(callable<void()> tryBody, callable<void(const char * msg)> catchBody) {
-        DAS_ASSERTF(*g_throwBuf==nullptr, "das_trycatch without g_throwBuf");
+        // re-entrant: save/restore the outer frame so das_trycatch can nest (e.g. a fmt
+        // error raised while already formatting another value) — #2570. prevBuf is set
+        // before setjmp and never touched after, so it survives the longjmp.
+        jmp_buf * prevBuf = *g_throwBuf;
         jmp_buf ev;
         *g_throwBuf = &ev;
         if ( !setjmp(ev) ) {
             tryBody();
+            *g_throwBuf = prevBuf;
         } else {
-            *g_throwBuf = nullptr;
+            *g_throwBuf = prevBuf;
             catchBody(g_throwMsg->c_str());
         }
-        *g_throwBuf = nullptr;
+    }
+    #else
+
+    // DAS_ENABLE_EXCEPTIONS=1: route das_throw through the project's exception class
+    // so catch (dasException&) handlers picked up by simulate_exceptions.cpp catch
+    // C++-side throws from low-level headers (daslang_hash_map::at, etc.) too.
+    void das_throw(const char * msg) {
+        throw dasException(msg ? msg : "", LineInfo());
     }
     #endif
 
@@ -558,7 +569,18 @@ namespace das
         else if ( isnan(val) ) return "NAN";
         else {
             char buf[256];
-            auto result = fmt::format_to(buf, FMT_STRING("{:e}f"), val);
+            // {:e} defaults to %e semantics (6 digits after decimal = 7 sig figs
+            // total), which is below FLT_DECIMAL_DIG=9 — the minimum precision
+            // C++ guarantees for an exact float→text→float roundtrip. Without
+            // 9 sig figs the AOT-emitted literal can parse back to a float that
+            // differs from the value the interpreter/JIT computes at runtime,
+            // shifting boundary cases by 1 ULP. Surfaced as a tests/language/
+            // random_numbers.das failure on the mingw AOT worker: emitting
+            // 1.0f/32767.0f as "3.051851e-05f" reparses slightly high, so
+            // 32767.0f * F rounds to exactly 1.0f and the test's f < 1.0
+            // assertion flips. {:.8e} gives 9 sig figs, matching to_cpp_double's
+            // {:.17e} (= DBL_DECIMAL_DIG=17).
+            auto result = fmt::format_to(buf, FMT_STRING("{:.8e}f"), val);
             *result = 0;
             return buf;
         }

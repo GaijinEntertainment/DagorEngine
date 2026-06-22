@@ -1864,7 +1864,12 @@ bool SplineObject::isSelectedByPointClick(IGenViewportWnd *vp, int x, int y) con
     return false;
   for (int i = 0; i < points.size(); i++)
     if (points[i]->isSelectedByPointClick(vp, x, y))
-      return ((HmapLandObjectEditor *)objEditor)->getSelectMode() == CM_SELECT_SPLINES;
+    {
+      const int selectMode = ((HmapLandObjectEditor *)objEditor)->getSelectMode();
+      return selectMode == CM_SELECT_SPLINES_AND_POLYGONS || (selectMode == CM_SELECT_SPLINES && !isPoly()) ||
+             (selectMode == CM_SELECT_POLYGONS && isPoly());
+    }
+
   return getPosOnSpline(vp, x, y, 4);
 }
 

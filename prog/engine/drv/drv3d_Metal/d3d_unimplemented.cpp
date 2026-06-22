@@ -44,15 +44,9 @@ GPUFENCEHANDLE d3d::insert_fence(GpuPipeline /*gpu_pipeline*/) { return BAD_GPUF
 void d3d::insert_wait_on_fence(GPUFENCEHANDLE & /*fence*/, GpuPipeline /*gpu_pipeline*/) {}
 
 #if _TARGET_PC_MACOSX
-VPROG d3d::create_vertex_shader_dagor(const VPRTYPE *p, int n) { return -1; }
-
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE *p, int n) { return -1; }
-
 bool d3d::set_vertex_shader(VPROG vs) { return false; }
 
 bool d3d::set_pixel_shader(FSHADER ps) { return false; }
-
-VDECL d3d::get_program_vdecl(PROGRAM p) { return -1; }
 #endif
 
 // Device management

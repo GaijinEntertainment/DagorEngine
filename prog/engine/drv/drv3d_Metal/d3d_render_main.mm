@@ -234,9 +234,6 @@ bool d3d::init_video(void* hinst,
 
   render.init();
 
-  int *mtl;
-  render.getSupportedMTLVersion(&mtl);
-  debug("[METAL_INIT] supported metal version %c %c %c %c", mtl[0], mtl[1], mtl[2], mtl[3]);
   debug("[METAL_INIT] readWriteTextureTier1 %d", render.caps.readWriteTextureTier1);
   debug("[METAL_INIT] readWriteTextureTier2 %d", render.caps.readWriteTextureTier2);
   debug("[METAL_INIT] recommended working set %dkb", int(render.device.recommendedMaxWorkingSetSize>>10));

@@ -56,8 +56,8 @@ def skeleton_hide_node_attach_init_es(evt : Event;
                     let scale = (*hideNodeData).scale ?as float3
                     if scale != null
                       animchar__scaledWtmScales[idx].x = min(animchar__scaledWtmScales[idx].x, (*scale).x)
-                      animchar__scaledWtmScales[idx].y = min(animchar__scaledWtmScales[idx].x, (*scale).y)
-                      animchar__scaledWtmScales[idx].z = min(animchar__scaledWtmScales[idx].x, (*scale).z)
+                      animchar__scaledWtmScales[idx].y = min(animchar__scaledWtmScales[idx].y, (*scale).y)
+                      animchar__scaledWtmScales[idx].z = min(animchar__scaledWtmScales[idx].z, (*scale).z)
                     animchar__scaledWtmRecalc[idx] = (*hideNodeData)["recalc"] ?? false
                   else
                     animchar__scaledWtmNodeIds |> push(intNodeNo)

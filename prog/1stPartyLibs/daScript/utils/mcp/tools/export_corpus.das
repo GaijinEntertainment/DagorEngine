@@ -1,7 +1,5 @@
 options gen2
 options rtti
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require common public
 require daslib/fio
@@ -25,20 +23,12 @@ struct ExportCorpusEnvelope {
 def public do_export_corpus(paths : string; paths_file : string; out : string;
                             min_tokens_str : string; workers_str : string) : string {
     let exe = get_daslang_exe()
-    if (empty(exe)) {
-        return make_tool_result("Cannot determine daslang executable path", true)
-    }
-    if (empty(out)) {
-        return make_tool_result("export_corpus: missing required 'out' parameter (output corpus.json path)", true)
-    }
-    if (empty(paths) && empty(paths_file)) {
-        return make_tool_result("export_corpus: missing input — provide 'paths' (comma/newline list, dirs, globs) and/or 'paths_file' (path to a newline-delimited file)", true)
-    }
+    if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
+    if (empty(out)) return make_tool_result("export_corpus: missing required 'out' parameter (output corpus.json path)", true)
+    if (empty(paths) && empty(paths_file)) return make_tool_result("export_corpus: missing input — provide 'paths' (comma/newline list, dirs, globs) and/or 'paths_file' (path to a newline-delimited file)", true)
     let detect_dupe_main = "{get_das_root()}/utils/detect-dupe/main.das"
     let detect_dupe_st = stat(detect_dupe_main)
-    if (!detect_dupe_st.is_valid || !detect_dupe_st.is_reg) {
-        return make_tool_result("export_corpus: utils/detect-dupe/main.das not found at {detect_dupe_main}", true)
-    }
+    if (!detect_dupe_st.is_valid || !detect_dupe_st.is_reg) return make_tool_result("export_corpus: utils/detect-dupe/main.das not found at {detect_dupe_main}", true)
     // Union the two path sources into one seed list. parse_file_list
     // handles comma/newline splitting + glob expansion; paths_file
     // contributes raw newline-delimited entries.
@@ -49,24 +39,15 @@ def public do_export_corpus(paths : string; paths_file : string; out : string;
     if (!empty(paths_file)) {
         let resolved_pf = resolve_path(paths_file)
         let pf_st = stat(resolved_pf)
-        if (!pf_st.is_valid || !pf_st.is_reg) {
-            return make_tool_result("export_corpus: paths_file not found: {resolved_pf}", true)
-        }
+        if (!pf_st.is_valid || !pf_st.is_reg) return make_tool_result("export_corpus: paths_file not found: {resolved_pf}", true)
         let body = fread(resolved_pf)
         for (raw in split_by_chars(body, "\n")) {
             let line = strip(raw)
-            if (empty(line)) {
-                continue
-            }
-            if (line |> starts_with("#")) {
-                continue
-            }
+            if (empty(line) || line |> starts_with("#")) continue
             seeds |> push(line)
         }
     }
-    if (empty(seeds)) {
-        return make_tool_result("export_corpus: no paths matched (paths=\"{paths}\", paths_file=\"{paths_file}\")", true)
-    }
+    if (empty(seeds)) return make_tool_result("export_corpus: no paths matched (paths=\"{paths}\", paths_file=\"{paths_file}\")", true)
     let resolved_out = resolve_path(out)
     // Always pass the seed list via a temp --paths-from file. Avoids
     // ARG_MAX blow-ups on PR-sized lists, and keeps the argv path the
@@ -74,17 +55,13 @@ def public do_export_corpus(paths : string; paths_file : string; out : string;
     let temp_paths_file = "{resolved_out}.mcp.paths.{ref_time_ticks()}.txt"
     var write_ok = false
     fopen(temp_paths_file, "wb") $(fw) {
-        if (fw == null) {
-            return
-        }
+        if (fw == null) return
         write_ok = true
         for (s in seeds) {
             fw |> fprint("{resolve_path(s)}\n")
         }
     }
-    if (!write_ok) {
-        return make_tool_result("export_corpus: could not write temp paths file: {temp_paths_file}", true)
-    }
+    if (!write_ok) return make_tool_result("export_corpus: could not write temp paths file: {temp_paths_file}", true)
     var argv <- [
         exe, detect_dupe_main, "--",
         "--paths-from", temp_paths_file,
@@ -121,13 +98,9 @@ def public do_export_corpus(paths : string; paths_file : string; out : string;
     var output : string
     let exit_code = run_and_capture(argv, output, 0.0)
     remove(temp_paths_file)
-    if (exit_code != 0) {
-        return make_tool_result("export_corpus: detect-dupe failed (exit code {exit_code}):\n{output}", true)
-    }
+    if (exit_code != 0) return make_tool_result("export_corpus: detect-dupe failed (exit code {exit_code}):\n{output}", true)
     let out_st = stat(resolved_out)
-    if (!out_st.is_valid || !out_st.is_reg) {
-        return make_tool_result("export_corpus: detect-dupe completed but corpus missing: {resolved_out}\nSubprocess output:\n{output}", true)
-    }
+    if (!out_st.is_valid || !out_st.is_reg) return make_tool_result("export_corpus: detect-dupe completed but corpus missing: {resolved_out}\nSubprocess output:\n{output}", true)
     let envelope = ExportCorpusEnvelope(
         exit_code = exit_code,
         out = resolved_out,

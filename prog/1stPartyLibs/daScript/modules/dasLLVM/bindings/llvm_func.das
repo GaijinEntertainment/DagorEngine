@@ -67,8 +67,6 @@ def LLVMContextGetDiagnosticContext(C : LLVMOpaqueContext? implicit) : void? {}
 def LLVMContextShouldDiscardValueNames(C : LLVMOpaqueContext? implicit) : int {}
 [extern(cdecl, name="LLVMContextSetDiscardValueNames", library="LLVM.dll")]
 def LLVMContextSetDiscardValueNames(C : LLVMOpaqueContext? implicit; Discard : int) : void {}
-[extern(cdecl, name="LLVMContextSetOpaquePointers", library="LLVM.dll")]
-def LLVMContextSetOpaquePointers(C : LLVMOpaqueContext? implicit; OpaquePointers : int) : void {}
 [extern(cdecl, name="LLVMContextDispose", library="LLVM.dll")]
 def LLVMContextDispose(C : LLVMOpaqueContext? implicit) : void {}
 [extern(cdecl, name="LLVMGetDiagInfoDescription", library="LLVM.dll")]
@@ -79,6 +77,8 @@ def LLVMGetDiagInfoSeverity(DI : LLVMOpaqueDiagnosticInfo? implicit) : LLVMDiagn
 def LLVMGetMDKindIDInContext(C : LLVMOpaqueContext? implicit; Name : string implicit; SLen : uint) : uint {}
 [extern(cdecl, name="LLVMGetMDKindID", library="LLVM.dll")]
 def LLVMGetMDKindID(Name : string implicit; SLen : uint) : uint {}
+[extern(cdecl, name="LLVMGetSyncScopeID", library="LLVM.dll")]
+def LLVMGetSyncScopeID(C : LLVMOpaqueContext? implicit; Name : string implicit; SLen : uint64) : uint {}
 [extern(cdecl, name="LLVMGetEnumAttributeKindForName", library="LLVM.dll")]
 def LLVMGetEnumAttributeKindForName(Name : string implicit; SLen : uint64) : uint {}
 [extern(cdecl, name="LLVMGetLastEnumAttributeKind", library="LLVM.dll")]
@@ -93,6 +93,8 @@ def LLVMGetEnumAttributeValue(A : LLVMOpaqueAttributeRef? implicit) : uint64 {}
 def LLVMCreateTypeAttribute(C : LLVMOpaqueContext? implicit; KindID : uint; type_ref : LLVMOpaqueType? implicit) : LLVMOpaqueAttributeRef? {}
 [extern(cdecl, name="LLVMGetTypeAttributeValue", library="LLVM.dll")]
 def LLVMGetTypeAttributeValue(A : LLVMOpaqueAttributeRef? implicit) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMCreateConstantRangeAttribute", library="LLVM.dll")]
+def LLVMCreateConstantRangeAttribute(C : LLVMOpaqueContext? implicit; KindID : uint; NumBits : uint; LowerWords : void? const; UpperWords : void? const) : LLVMOpaqueAttributeRef? {}
 [extern(cdecl, name="LLVMCreateStringAttribute", library="LLVM.dll")]
 def LLVMCreateStringAttribute(C : LLVMOpaqueContext? implicit; K : string implicit; KLength : uint; V : string implicit; VLength : uint) : LLVMOpaqueAttributeRef? {}
 [extern(cdecl, name="LLVMGetStringAttributeKind", library="LLVM.dll")]
@@ -115,6 +117,10 @@ def LLVMModuleCreateWithNameInContext(ModuleID : string implicit; C : LLVMOpaque
 def LLVMCloneModule(M : LLVMOpaqueModule? implicit) : LLVMOpaqueModule? {}
 [extern(cdecl, name="LLVMDisposeModule", library="LLVM.dll")]
 def LLVMDisposeModule(M : LLVMOpaqueModule? implicit) : void {}
+[extern(cdecl, name="LLVMIsNewDbgInfoFormat", library="LLVM.dll")]
+def LLVMIsNewDbgInfoFormat(M : LLVMOpaqueModule? implicit) : int {}
+[extern(cdecl, name="LLVMSetIsNewDbgInfoFormat", library="LLVM.dll")]
+def LLVMSetIsNewDbgInfoFormat(M : LLVMOpaqueModule? implicit; UseNewFormat : int) : void {}
 [extern(cdecl, name="LLVMGetModuleIdentifier", library="LLVM.dll")]
 def LLVMGetModuleIdentifier(M : LLVMOpaqueModule? implicit; Len : uint64? implicit) : string {}
 [extern(cdecl, name="LLVMSetModuleIdentifier", library="LLVM.dll")]
@@ -161,6 +167,20 @@ def LLVMSetModuleInlineAsm2(M : LLVMOpaqueModule? implicit; Asm : string implici
 def LLVMAppendModuleInlineAsm(M : LLVMOpaqueModule? implicit; Asm : string implicit; Len : uint64) : void {}
 [extern(cdecl, name="LLVMGetInlineAsm", library="LLVM.dll")]
 def LLVMGetInlineAsm(Ty : LLVMOpaqueType? implicit; AsmString : string implicit; AsmStringSize : uint64; Constraints : string implicit; ConstraintsSize : uint64; HasSideEffects : int; IsAlignStack : int; Dialect : LLVMInlineAsmDialect; CanThrow : int) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetInlineAsmAsmString", library="LLVM.dll")]
+def LLVMGetInlineAsmAsmString(InlineAsmVal : LLVMOpaqueValue? implicit; Len : uint64? implicit) : string {}
+[extern(cdecl, name="LLVMGetInlineAsmConstraintString", library="LLVM.dll")]
+def LLVMGetInlineAsmConstraintString(InlineAsmVal : LLVMOpaqueValue? implicit; Len : uint64? implicit) : string {}
+[extern(cdecl, name="LLVMGetInlineAsmDialect", library="LLVM.dll")]
+def LLVMGetInlineAsmDialect(InlineAsmVal : LLVMOpaqueValue? implicit) : LLVMInlineAsmDialect {}
+[extern(cdecl, name="LLVMGetInlineAsmFunctionType", library="LLVM.dll")]
+def LLVMGetInlineAsmFunctionType(InlineAsmVal : LLVMOpaqueValue? implicit) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMGetInlineAsmHasSideEffects", library="LLVM.dll")]
+def LLVMGetInlineAsmHasSideEffects(InlineAsmVal : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMGetInlineAsmNeedsAlignedStack", library="LLVM.dll")]
+def LLVMGetInlineAsmNeedsAlignedStack(InlineAsmVal : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMGetInlineAsmCanUnwind", library="LLVM.dll")]
+def LLVMGetInlineAsmCanUnwind(InlineAsmVal : LLVMOpaqueValue? implicit) : int {}
 [extern(cdecl, name="LLVMGetModuleContext", library="LLVM.dll")]
 def LLVMGetModuleContext(M : LLVMOpaqueModule? implicit) : LLVMOpaqueContext? {}
 [extern(cdecl, name="LLVMGetTypeByName", library="LLVM.dll")]
@@ -195,8 +215,12 @@ def LLVMGetDebugLocLine(Val : LLVMOpaqueValue? implicit) : uint {}
 def LLVMGetDebugLocColumn(Val : LLVMOpaqueValue? implicit) : uint {}
 [extern(cdecl, name="LLVMAddFunction", library="LLVM.dll")]
 def LLVMAddFunction(M : LLVMOpaqueModule? implicit; Name : string implicit; FunctionTy : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetOrInsertFunction", library="LLVM.dll")]
+def LLVMGetOrInsertFunction(M : LLVMOpaqueModule? implicit; Name : string implicit; NameLen : uint64; FunctionTy : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetNamedFunction", library="LLVM.dll")]
 def LLVMGetNamedFunction(M : LLVMOpaqueModule? implicit; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetNamedFunctionWithLength", library="LLVM.dll")]
+def LLVMGetNamedFunctionWithLength(M : LLVMOpaqueModule? implicit; Name : string implicit; Length : uint64) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetFirstFunction", library="LLVM.dll")]
 def LLVMGetFirstFunction(M : LLVMOpaqueModule? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetLastFunction", library="LLVM.dll")]
@@ -315,8 +339,12 @@ def LLVMGetSubtypes(Tp : LLVMOpaqueType? implicit; Arr : LLVMOpaqueType ?? impli
 def LLVMGetNumContainedTypes(Tp : LLVMOpaqueType? implicit) : uint {}
 [extern(cdecl, name="LLVMArrayType", library="LLVM.dll")]
 def LLVMArrayType(ElementType : LLVMOpaqueType? implicit; ElementCount : uint) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMArrayType2", library="LLVM.dll")]
+def LLVMArrayType2(ElementType : LLVMOpaqueType? implicit; ElementCount : uint64) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMGetArrayLength", library="LLVM.dll")]
 def LLVMGetArrayLength(ArrayTy : LLVMOpaqueType? implicit) : uint {}
+[extern(cdecl, name="LLVMGetArrayLength2", library="LLVM.dll")]
+def LLVMGetArrayLength2(ArrayTy : LLVMOpaqueType? implicit) : uint64 {}
 [extern(cdecl, name="LLVMPointerType", library="LLVM.dll")]
 def LLVMPointerType(ElementType : LLVMOpaqueType? implicit; AddressSpace : uint) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMPointerTypeIsOpaque", library="LLVM.dll")]
@@ -331,12 +359,18 @@ def LLVMVectorType(ElementType : LLVMOpaqueType? implicit; ElementCount : uint) 
 def LLVMScalableVectorType(ElementType : LLVMOpaqueType? implicit; ElementCount : uint) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMGetVectorSize", library="LLVM.dll")]
 def LLVMGetVectorSize(VectorTy : LLVMOpaqueType? implicit) : uint {}
+[extern(cdecl, name="LLVMGetConstantPtrAuthPointer", library="LLVM.dll")]
+def LLVMGetConstantPtrAuthPointer(PtrAuth : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetConstantPtrAuthKey", library="LLVM.dll")]
+def LLVMGetConstantPtrAuthKey(PtrAuth : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetConstantPtrAuthDiscriminator", library="LLVM.dll")]
+def LLVMGetConstantPtrAuthDiscriminator(PtrAuth : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetConstantPtrAuthAddrDiscriminator", library="LLVM.dll")]
+def LLVMGetConstantPtrAuthAddrDiscriminator(PtrAuth : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMVoidTypeInContext", library="LLVM.dll")]
 def LLVMVoidTypeInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMLabelTypeInContext", library="LLVM.dll")]
 def LLVMLabelTypeInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueType? {}
-[extern(cdecl, name="LLVMX86MMXTypeInContext", library="LLVM.dll")]
-def LLVMX86MMXTypeInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMX86AMXTypeInContext", library="LLVM.dll")]
 def LLVMX86AMXTypeInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMTokenTypeInContext", library="LLVM.dll")]
@@ -347,12 +381,20 @@ def LLVMMetadataTypeInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueType?
 def LLVMVoidType() : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMLabelType", library="LLVM.dll")]
 def LLVMLabelType() : LLVMOpaqueType? {}
-[extern(cdecl, name="LLVMX86MMXType", library="LLVM.dll")]
-def LLVMX86MMXType() : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMX86AMXType", library="LLVM.dll")]
 def LLVMX86AMXType() : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMTargetExtTypeInContext", library="LLVM.dll")]
 def LLVMTargetExtTypeInContext(C : LLVMOpaqueContext? implicit; Name : string implicit; TypeParams : LLVMOpaqueType ?? implicit; TypeParamCount : uint; IntParams : uint? implicit; IntParamCount : uint) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMGetTargetExtTypeName", library="LLVM.dll")]
+def LLVMGetTargetExtTypeName(TargetExtTy : LLVMOpaqueType? implicit) : string {}
+[extern(cdecl, name="LLVMGetTargetExtTypeNumTypeParams", library="LLVM.dll")]
+def LLVMGetTargetExtTypeNumTypeParams(TargetExtTy : LLVMOpaqueType? implicit) : uint {}
+[extern(cdecl, name="LLVMGetTargetExtTypeTypeParam", library="LLVM.dll")]
+def LLVMGetTargetExtTypeTypeParam(TargetExtTy : LLVMOpaqueType? implicit; Idx : uint) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMGetTargetExtTypeNumIntParams", library="LLVM.dll")]
+def LLVMGetTargetExtTypeNumIntParams(TargetExtTy : LLVMOpaqueType? implicit) : uint {}
+[extern(cdecl, name="LLVMGetTargetExtTypeIntParam", library="LLVM.dll")]
+def LLVMGetTargetExtTypeIntParam(TargetExtTy : LLVMOpaqueType? implicit; Idx : uint) : uint {}
 [extern(cdecl, name="LLVMTypeOf", library="LLVM.dll")]
 def LLVMTypeOf(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMGetValueKind", library="LLVM.dll")]
@@ -365,6 +407,10 @@ def LLVMSetValueName2(Val : LLVMOpaqueValue? implicit; Name : string implicit; N
 def LLVMDumpValue(Val : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMPrintValueToString", library="LLVM.dll")]
 def LLVMPrintValueToString(Val : LLVMOpaqueValue? implicit) : string {}
+[extern(cdecl, name="LLVMGetValueContext", library="LLVM.dll")]
+def LLVMGetValueContext(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueContext? {}
+[extern(cdecl, name="LLVMPrintDbgRecordToString", library="LLVM.dll")]
+def LLVMPrintDbgRecordToString(Record : LLVMOpaqueDbgRecord? implicit) : string {}
 [extern(cdecl, name="LLVMReplaceAllUsesWith", library="LLVM.dll")]
 def LLVMReplaceAllUsesWith(OldVal : LLVMOpaqueValue? implicit; NewVal : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMIsConstant", library="LLVM.dll")]
@@ -409,6 +455,8 @@ def LLVMIsAConstantStruct(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 def LLVMIsAConstantTokenNone(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsAConstantVector", library="LLVM.dll")]
 def LLVMIsAConstantVector(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMIsAConstantPtrAuth", library="LLVM.dll")]
+def LLVMIsAConstantPtrAuth(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsAGlobalValue", library="LLVM.dll")]
 def LLVMIsAGlobalValue(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsAGlobalAlias", library="LLVM.dll")]
@@ -551,6 +599,8 @@ def LLVMIsAAtomicRMWInst(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 def LLVMIsAFenceInst(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsAMDNode", library="LLVM.dll")]
 def LLVMIsAMDNode(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMIsAValueAsMetadata", library="LLVM.dll")]
+def LLVMIsAValueAsMetadata(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsAMDString", library="LLVM.dll")]
 def LLVMIsAMDString(Val : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetValueName", library="LLVM.dll")]
@@ -599,6 +649,8 @@ def LLVMConstReal(RealTy : LLVMOpaqueType? implicit; N : double) : LLVMOpaqueVal
 def LLVMConstRealOfString(RealTy : LLVMOpaqueType? implicit; Text : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstRealOfStringAndSize", library="LLVM.dll")]
 def LLVMConstRealOfStringAndSize(RealTy : LLVMOpaqueType? implicit; Text : string implicit; SLen : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstFPFromBits", library="LLVM.dll")]
+def LLVMConstFPFromBits(Ty : LLVMOpaqueType? implicit; N : void? const) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstIntGetZExtValue", library="LLVM.dll")]
 def LLVMConstIntGetZExtValue(ConstantVal : LLVMOpaqueValue? implicit) : uint64 {}
 [extern(cdecl, name="LLVMConstIntGetSExtValue", library="LLVM.dll")]
@@ -607,18 +659,26 @@ def LLVMConstIntGetSExtValue(ConstantVal : LLVMOpaqueValue? implicit) : int64 {}
 def LLVMConstRealGetDouble(ConstantVal : LLVMOpaqueValue? implicit; losesInfo : int? implicit) : double {}
 [extern(cdecl, name="LLVMConstStringInContext", library="LLVM.dll")]
 def LLVMConstStringInContext(C : LLVMOpaqueContext? implicit; Str : string implicit; Length : uint; DontNullTerminate : int) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstStringInContext2", library="LLVM.dll")]
+def LLVMConstStringInContext2(C : LLVMOpaqueContext? implicit; Str : string implicit; Length : uint64; DontNullTerminate : int) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstString", library="LLVM.dll")]
 def LLVMConstString(Str : string implicit; Length : uint; DontNullTerminate : int) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsConstantString", library="LLVM.dll")]
 def LLVMIsConstantString(c : LLVMOpaqueValue? implicit) : int {}
 [extern(cdecl, name="LLVMGetAsString", library="LLVM.dll")]
 def LLVMGetAsString(c : LLVMOpaqueValue? implicit; Length : uint64? implicit) : string {}
+[extern(cdecl, name="LLVMGetRawDataValues", library="LLVM.dll")]
+def LLVMGetRawDataValues(c : LLVMOpaqueValue? implicit; SizeInBytes : uint64? implicit) : string {}
 [extern(cdecl, name="LLVMConstStructInContext", library="LLVM.dll")]
 def LLVMConstStructInContext(C : LLVMOpaqueContext? implicit; ConstantVals : LLVMOpaqueValue ?? implicit; Count : uint; Packed : int) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstStruct", library="LLVM.dll")]
 def LLVMConstStruct(ConstantVals : LLVMOpaqueValue ?? implicit; Count : uint; Packed : int) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstArray", library="LLVM.dll")]
 def LLVMConstArray(ElementTy : LLVMOpaqueType? implicit; ConstantVals : LLVMOpaqueValue ?? implicit; Length : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstArray2", library="LLVM.dll")]
+def LLVMConstArray2(ElementTy : LLVMOpaqueType? implicit; ConstantVals : LLVMOpaqueValue ?? implicit; Length : uint64) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstDataArray", library="LLVM.dll")]
+def LLVMConstDataArray(ElementTy : LLVMOpaqueType? implicit; Data : string implicit; SizeInBytes : uint64) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstNamedStruct", library="LLVM.dll")]
 def LLVMConstNamedStruct(StructTy : LLVMOpaqueType? implicit; ConstantVals : LLVMOpaqueValue ?? implicit; Count : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetAggregateElement", library="LLVM.dll")]
@@ -627,6 +687,8 @@ def LLVMGetAggregateElement(C : LLVMOpaqueValue? implicit; Idx : uint) : LLVMOpa
 def LLVMGetElementAsConstant(C : LLVMOpaqueValue? implicit; idx : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstVector", library="LLVM.dll")]
 def LLVMConstVector(ScalarConstantVals : LLVMOpaqueValue ?? implicit; Size : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstantPtrAuth", library="LLVM.dll")]
+def LLVMConstantPtrAuth(Ptr : LLVMOpaqueValue? implicit; Key : LLVMOpaqueValue? implicit; Disc : LLVMOpaqueValue? implicit; AddrDisc : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetConstOpcode", library="LLVM.dll")]
 def LLVMGetConstOpcode(ConstantVal : LLVMOpaqueValue? implicit) : LLVMOpcode {}
 [extern(cdecl, name="LLVMAlignOf", library="LLVM.dll")]
@@ -653,50 +715,16 @@ def LLVMConstSub(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaq
 def LLVMConstNSWSub(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstNUWSub", library="LLVM.dll")]
 def LLVMConstNUWSub(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstMul", library="LLVM.dll")]
-def LLVMConstMul(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstNSWMul", library="LLVM.dll")]
-def LLVMConstNSWMul(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstNUWMul", library="LLVM.dll")]
-def LLVMConstNUWMul(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstAnd", library="LLVM.dll")]
-def LLVMConstAnd(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstOr", library="LLVM.dll")]
-def LLVMConstOr(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstXor", library="LLVM.dll")]
 def LLVMConstXor(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstICmp", library="LLVM.dll")]
-def LLVMConstICmp(Predicate : LLVMIntPredicate; LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFCmp", library="LLVM.dll")]
-def LLVMConstFCmp(Predicate : LLVMRealPredicate; LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstShl", library="LLVM.dll")]
-def LLVMConstShl(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstLShr", library="LLVM.dll")]
-def LLVMConstLShr(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstAShr", library="LLVM.dll")]
-def LLVMConstAShr(LHSConstant : LLVMOpaqueValue? implicit; RHSConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstGEP2", library="LLVM.dll")]
 def LLVMConstGEP2(Ty : LLVMOpaqueType? implicit; ConstantVal : LLVMOpaqueValue? implicit; ConstantIndices : LLVMOpaqueValue ?? implicit; NumIndices : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstInBoundsGEP2", library="LLVM.dll")]
 def LLVMConstInBoundsGEP2(Ty : LLVMOpaqueType? implicit; ConstantVal : LLVMOpaqueValue? implicit; ConstantIndices : LLVMOpaqueValue ?? implicit; NumIndices : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMConstGEPWithNoWrapFlags", library="LLVM.dll")]
+def LLVMConstGEPWithNoWrapFlags(Ty : LLVMOpaqueType? implicit; ConstantVal : LLVMOpaqueValue? implicit; ConstantIndices : LLVMOpaqueValue ?? implicit; NumIndices : uint; NoWrapFlags : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstTrunc", library="LLVM.dll")]
 def LLVMConstTrunc(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstSExt", library="LLVM.dll")]
-def LLVMConstSExt(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstZExt", library="LLVM.dll")]
-def LLVMConstZExt(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFPTrunc", library="LLVM.dll")]
-def LLVMConstFPTrunc(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFPExt", library="LLVM.dll")]
-def LLVMConstFPExt(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstUIToFP", library="LLVM.dll")]
-def LLVMConstUIToFP(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstSIToFP", library="LLVM.dll")]
-def LLVMConstSIToFP(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFPToUI", library="LLVM.dll")]
-def LLVMConstFPToUI(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFPToSI", library="LLVM.dll")]
-def LLVMConstFPToSI(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstPtrToInt", library="LLVM.dll")]
 def LLVMConstPtrToInt(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstIntToPtr", library="LLVM.dll")]
@@ -705,20 +733,10 @@ def LLVMConstIntToPtr(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaq
 def LLVMConstBitCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstAddrSpaceCast", library="LLVM.dll")]
 def LLVMConstAddrSpaceCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstZExtOrBitCast", library="LLVM.dll")]
-def LLVMConstZExtOrBitCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstSExtOrBitCast", library="LLVM.dll")]
-def LLVMConstSExtOrBitCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstTruncOrBitCast", library="LLVM.dll")]
 def LLVMConstTruncOrBitCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstPointerCast", library="LLVM.dll")]
 def LLVMConstPointerCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstIntCast", library="LLVM.dll")]
-def LLVMConstIntCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit; isSigned : int) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstFPCast", library="LLVM.dll")]
-def LLVMConstFPCast(ConstantVal : LLVMOpaqueValue? implicit; ToType : LLVMOpaqueType? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMConstSelect", library="LLVM.dll")]
-def LLVMConstSelect(ConstantCondition : LLVMOpaqueValue? implicit; ConstantIfTrue : LLVMOpaqueValue? implicit; ConstantIfFalse : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstExtractElement", library="LLVM.dll")]
 def LLVMConstExtractElement(VectorConstant : LLVMOpaqueValue? implicit; IndexConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMConstInsertElement", library="LLVM.dll")]
@@ -727,6 +745,10 @@ def LLVMConstInsertElement(VectorConstant : LLVMOpaqueValue? implicit; ElementVa
 def LLVMConstShuffleVector(VectorAConstant : LLVMOpaqueValue? implicit; VectorBConstant : LLVMOpaqueValue? implicit; MaskConstant : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBlockAddress", library="LLVM.dll")]
 def LLVMBlockAddress(F : LLVMOpaqueValue? implicit; BB : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetBlockAddressFunction", library="LLVM.dll")]
+def LLVMGetBlockAddressFunction(BlockAddr : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetBlockAddressBasicBlock", library="LLVM.dll")]
+def LLVMGetBlockAddressBasicBlock(BlockAddr : LLVMOpaqueValue? implicit) : LLVMOpaqueBasicBlock? {}
 [extern(cdecl, name="LLVMConstInlineAsm", library="LLVM.dll")]
 def LLVMConstInlineAsm(Ty : LLVMOpaqueType? implicit; AsmString : string implicit; Constraints : string implicit; HasSideEffects : int; IsAlignStack : int) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetGlobalParent", library="LLVM.dll")]
@@ -765,10 +787,14 @@ def LLVMGetAlignment(V : LLVMOpaqueValue? implicit) : uint {}
 def LLVMSetAlignment(V : LLVMOpaqueValue? implicit; Bytes : uint) : void {}
 [extern(cdecl, name="LLVMGlobalSetMetadata", library="LLVM.dll")]
 def LLVMGlobalSetMetadata(Global : LLVMOpaqueValue? implicit; Kind : uint; MD : LLVMOpaqueMetadata? implicit) : void {}
+[extern(cdecl, name="LLVMGlobalAddMetadata", library="LLVM.dll")]
+def LLVMGlobalAddMetadata(Global : LLVMOpaqueValue? implicit; Kind : uint; MD : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMGlobalEraseMetadata", library="LLVM.dll")]
 def LLVMGlobalEraseMetadata(Global : LLVMOpaqueValue? implicit; Kind : uint) : void {}
 [extern(cdecl, name="LLVMGlobalClearMetadata", library="LLVM.dll")]
 def LLVMGlobalClearMetadata(Global : LLVMOpaqueValue? implicit) : void {}
+[extern(cdecl, name="LLVMGlobalAddDebugInfo", library="LLVM.dll")]
+def LLVMGlobalAddDebugInfo(Global : LLVMOpaqueValue? implicit; GVE : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMGlobalCopyAllMetadata", library="LLVM.dll")]
 def LLVMGlobalCopyAllMetadata(Value : LLVMOpaqueValue? implicit; NumEntries : uint64? implicit) : LLVMOpaqueValueMetadataEntry? {}
 [extern(cdecl, name="LLVMDisposeValueMetadataEntries", library="LLVM.dll")]
@@ -783,6 +809,8 @@ def LLVMAddGlobal(M : LLVMOpaqueModule? implicit; Ty : LLVMOpaqueType? implicit;
 def LLVMAddGlobalInAddressSpace(M : LLVMOpaqueModule? implicit; Ty : LLVMOpaqueType? implicit; Name : string implicit; AddressSpace : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetNamedGlobal", library="LLVM.dll")]
 def LLVMGetNamedGlobal(M : LLVMOpaqueModule? implicit; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetNamedGlobalWithLength", library="LLVM.dll")]
+def LLVMGetNamedGlobalWithLength(M : LLVMOpaqueModule? implicit; Name : string implicit; Length : uint64) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetFirstGlobal", library="LLVM.dll")]
 def LLVMGetFirstGlobal(M : LLVMOpaqueModule? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetLastGlobal", library="LLVM.dll")]
@@ -861,6 +889,18 @@ def LLVMSetFunctionCallConv(Fn : LLVMOpaqueValue? implicit; CC : uint) : void {}
 def LLVMGetGC(Fn : LLVMOpaqueValue? implicit) : string {}
 [extern(cdecl, name="LLVMSetGC", library="LLVM.dll")]
 def LLVMSetGC(Fn : LLVMOpaqueValue? implicit; Name : string implicit) : void {}
+[extern(cdecl, name="LLVMGetPrefixData", library="LLVM.dll")]
+def LLVMGetPrefixData(Fn : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMHasPrefixData", library="LLVM.dll")]
+def LLVMHasPrefixData(Fn : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetPrefixData", library="LLVM.dll")]
+def LLVMSetPrefixData(Fn : LLVMOpaqueValue? implicit; prefixData : LLVMOpaqueValue? implicit) : void {}
+[extern(cdecl, name="LLVMGetPrologueData", library="LLVM.dll")]
+def LLVMGetPrologueData(Fn : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMHasPrologueData", library="LLVM.dll")]
+def LLVMHasPrologueData(Fn : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetPrologueData", library="LLVM.dll")]
+def LLVMSetPrologueData(Fn : LLVMOpaqueValue? implicit; prologueData : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMAddAttributeAtIndex", library="LLVM.dll")]
 def LLVMAddAttributeAtIndex(F : LLVMOpaqueValue? implicit; Idx : uint; A : LLVMOpaqueAttributeRef? implicit) : void {}
 [extern(cdecl, name="LLVMGetAttributeCountAtIndex", library="LLVM.dll")]
@@ -929,6 +969,8 @@ def LLVMGetMDString(V : LLVMOpaqueValue? implicit; Length : uint? implicit) : st
 def LLVMGetMDNodeNumOperands(V : LLVMOpaqueValue? implicit) : uint {}
 [extern(cdecl, name="LLVMGetMDNodeOperands", library="LLVM.dll")]
 def LLVMGetMDNodeOperands(V : LLVMOpaqueValue? implicit; Dest : LLVMOpaqueValue ?? implicit) : void {}
+[extern(cdecl, name="LLVMReplaceMDNodeOperandWith", library="LLVM.dll")]
+def LLVMReplaceMDNodeOperandWith(V : LLVMOpaqueValue? implicit; Index : uint; Replacement : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMMDStringInContext", library="LLVM.dll")]
 def LLVMMDStringInContext(C : LLVMOpaqueContext? implicit; Str : string implicit; SLen : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMMDString", library="LLVM.dll")]
@@ -937,6 +979,16 @@ def LLVMMDString(Str : string implicit; SLen : uint) : LLVMOpaqueValue? {}
 def LLVMMDNodeInContext(C : LLVMOpaqueContext? implicit; Vals : LLVMOpaqueValue ?? implicit; Count : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMMDNode", library="LLVM.dll")]
 def LLVMMDNode(Vals : LLVMOpaqueValue ?? implicit; Count : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMCreateOperandBundle", library="LLVM.dll")]
+def LLVMCreateOperandBundle(Tag : string implicit; TagLen : uint64; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint) : LLVMOpaqueOperandBundle? {}
+[extern(cdecl, name="LLVMDisposeOperandBundle", library="LLVM.dll")]
+def LLVMDisposeOperandBundle(Bundle : LLVMOpaqueOperandBundle? implicit) : void {}
+[extern(cdecl, name="LLVMGetOperandBundleTag", library="LLVM.dll")]
+def LLVMGetOperandBundleTag(Bundle : LLVMOpaqueOperandBundle? implicit; Len : uint64? implicit) : string {}
+[extern(cdecl, name="LLVMGetNumOperandBundleArgs", library="LLVM.dll")]
+def LLVMGetNumOperandBundleArgs(Bundle : LLVMOpaqueOperandBundle? implicit) : uint {}
+[extern(cdecl, name="LLVMGetOperandBundleArgAtIndex", library="LLVM.dll")]
+def LLVMGetOperandBundleArgAtIndex(Bundle : LLVMOpaqueOperandBundle? implicit; Index : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBasicBlockAsValue", library="LLVM.dll")]
 def LLVMBasicBlockAsValue(BB : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMValueIsBasicBlock", library="LLVM.dll")]
@@ -1013,12 +1065,34 @@ def LLVMDeleteInstruction(Inst : LLVMOpaqueValue? implicit) : void {}
 def LLVMGetInstructionOpcode(Inst : LLVMOpaqueValue? implicit) : LLVMOpcode {}
 [extern(cdecl, name="LLVMGetICmpPredicate", library="LLVM.dll")]
 def LLVMGetICmpPredicate(Inst : LLVMOpaqueValue? implicit) : LLVMIntPredicate {}
+[extern(cdecl, name="LLVMGetICmpSameSign", library="LLVM.dll")]
+def LLVMGetICmpSameSign(Inst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetICmpSameSign", library="LLVM.dll")]
+def LLVMSetICmpSameSign(Inst : LLVMOpaqueValue? implicit; SameSign : int) : void {}
 [extern(cdecl, name="LLVMGetFCmpPredicate", library="LLVM.dll")]
 def LLVMGetFCmpPredicate(Inst : LLVMOpaqueValue? implicit) : LLVMRealPredicate {}
 [extern(cdecl, name="LLVMInstructionClone", library="LLVM.dll")]
 def LLVMInstructionClone(Inst : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMIsATerminatorInst", library="LLVM.dll")]
 def LLVMIsATerminatorInst(Inst : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetFirstDbgRecord", library="LLVM.dll")]
+def LLVMGetFirstDbgRecord(Inst : LLVMOpaqueValue? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMGetLastDbgRecord", library="LLVM.dll")]
+def LLVMGetLastDbgRecord(Inst : LLVMOpaqueValue? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMGetNextDbgRecord", library="LLVM.dll")]
+def LLVMGetNextDbgRecord(DbgRecord : LLVMOpaqueDbgRecord? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMGetPreviousDbgRecord", library="LLVM.dll")]
+def LLVMGetPreviousDbgRecord(DbgRecord : LLVMOpaqueDbgRecord? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMDbgRecordGetDebugLoc", library="LLVM.dll")]
+def LLVMDbgRecordGetDebugLoc(Rec : LLVMOpaqueDbgRecord? implicit) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDbgRecordGetKind", library="LLVM.dll")]
+def LLVMDbgRecordGetKind(Rec : LLVMOpaqueDbgRecord? implicit) : LLVMDbgRecordKind {}
+[extern(cdecl, name="LLVMDbgVariableRecordGetValue", library="LLVM.dll")]
+def LLVMDbgVariableRecordGetValue(Rec : LLVMOpaqueDbgRecord? implicit; OpIdx : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMDbgVariableRecordGetVariable", library="LLVM.dll")]
+def LLVMDbgVariableRecordGetVariable(Rec : LLVMOpaqueDbgRecord? implicit) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDbgVariableRecordGetExpression", library="LLVM.dll")]
+def LLVMDbgVariableRecordGetExpression(Rec : LLVMOpaqueDbgRecord? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMGetNumArgOperands", library="LLVM.dll")]
 def LLVMGetNumArgOperands(Instr : LLVMOpaqueValue? implicit) : uint {}
 [extern(cdecl, name="LLVMSetInstructionCallConv", library="LLVM.dll")]
@@ -1045,10 +1119,18 @@ def LLVMRemoveCallSiteStringAttribute(C : LLVMOpaqueValue? implicit; Idx : uint;
 def LLVMGetCalledFunctionType(C : LLVMOpaqueValue? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMGetCalledValue", library="LLVM.dll")]
 def LLVMGetCalledValue(Instr : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetNumOperandBundles", library="LLVM.dll")]
+def LLVMGetNumOperandBundles(C : LLVMOpaqueValue? implicit) : uint {}
+[extern(cdecl, name="LLVMGetOperandBundleAtIndex", library="LLVM.dll")]
+def LLVMGetOperandBundleAtIndex(C : LLVMOpaqueValue? implicit; Index : uint) : LLVMOpaqueOperandBundle? {}
 [extern(cdecl, name="LLVMIsTailCall", library="LLVM.dll")]
 def LLVMIsTailCall(CallInst : LLVMOpaqueValue? implicit) : int {}
 [extern(cdecl, name="LLVMSetTailCall", library="LLVM.dll")]
 def LLVMSetTailCall(CallInst : LLVMOpaqueValue? implicit; IsTailCall : int) : void {}
+[extern(cdecl, name="LLVMGetTailCallKind", library="LLVM.dll")]
+def LLVMGetTailCallKind(CallInst : LLVMOpaqueValue? implicit) : LLVMTailCallKind {}
+[extern(cdecl, name="LLVMSetTailCallKind", library="LLVM.dll")]
+def LLVMSetTailCallKind(CallInst : LLVMOpaqueValue? implicit; kind : LLVMTailCallKind) : void {}
 [extern(cdecl, name="LLVMGetNormalDest", library="LLVM.dll")]
 def LLVMGetNormalDest(InvokeInst : LLVMOpaqueValue? implicit) : LLVMOpaqueBasicBlock? {}
 [extern(cdecl, name="LLVMGetUnwindDest", library="LLVM.dll")]
@@ -1057,6 +1139,12 @@ def LLVMGetUnwindDest(InvokeInst : LLVMOpaqueValue? implicit) : LLVMOpaqueBasicB
 def LLVMSetNormalDest(InvokeInst : LLVMOpaqueValue? implicit; B : LLVMOpaqueBasicBlock? implicit) : void {}
 [extern(cdecl, name="LLVMSetUnwindDest", library="LLVM.dll")]
 def LLVMSetUnwindDest(InvokeInst : LLVMOpaqueValue? implicit; B : LLVMOpaqueBasicBlock? implicit) : void {}
+[extern(cdecl, name="LLVMGetCallBrDefaultDest", library="LLVM.dll")]
+def LLVMGetCallBrDefaultDest(CallBr : LLVMOpaqueValue? implicit) : LLVMOpaqueBasicBlock? {}
+[extern(cdecl, name="LLVMGetCallBrNumIndirectDests", library="LLVM.dll")]
+def LLVMGetCallBrNumIndirectDests(CallBr : LLVMOpaqueValue? implicit) : uint {}
+[extern(cdecl, name="LLVMGetCallBrIndirectDest", library="LLVM.dll")]
+def LLVMGetCallBrIndirectDest(CallBr : LLVMOpaqueValue? implicit; Idx : uint) : LLVMOpaqueBasicBlock? {}
 [extern(cdecl, name="LLVMGetNumSuccessors", library="LLVM.dll")]
 def LLVMGetNumSuccessors(Term : LLVMOpaqueValue? implicit) : uint {}
 [extern(cdecl, name="LLVMGetSuccessor", library="LLVM.dll")]
@@ -1071,6 +1159,10 @@ def LLVMGetCondition(Branch : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
 def LLVMSetCondition(Branch : LLVMOpaqueValue? implicit; Cond : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMGetSwitchDefaultDest", library="LLVM.dll")]
 def LLVMGetSwitchDefaultDest(SwitchInstr : LLVMOpaqueValue? implicit) : LLVMOpaqueBasicBlock? {}
+[extern(cdecl, name="LLVMGetSwitchCaseValue", library="LLVM.dll")]
+def LLVMGetSwitchCaseValue(SwitchInstr : LLVMOpaqueValue? implicit; i : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMSetSwitchCaseValue", library="LLVM.dll")]
+def LLVMSetSwitchCaseValue(SwitchInstr : LLVMOpaqueValue? implicit; i : uint; CaseValue : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMGetAllocatedType", library="LLVM.dll")]
 def LLVMGetAllocatedType(Alloca : LLVMOpaqueValue? implicit) : LLVMOpaqueType? {}
 [extern(cdecl, name="LLVMIsInBounds", library="LLVM.dll")]
@@ -1079,6 +1171,10 @@ def LLVMIsInBounds(GEP : LLVMOpaqueValue? implicit) : int {}
 def LLVMSetIsInBounds(GEP : LLVMOpaqueValue? implicit; InBounds : int) : void {}
 [extern(cdecl, name="LLVMGetGEPSourceElementType", library="LLVM.dll")]
 def LLVMGetGEPSourceElementType(GEP : LLVMOpaqueValue? implicit) : LLVMOpaqueType? {}
+[extern(cdecl, name="LLVMGEPGetNoWrapFlags", library="LLVM.dll")]
+def LLVMGEPGetNoWrapFlags(GEP : LLVMOpaqueValue? implicit) : uint {}
+[extern(cdecl, name="LLVMGEPSetNoWrapFlags", library="LLVM.dll")]
+def LLVMGEPSetNoWrapFlags(GEP : LLVMOpaqueValue? implicit; NoWrapFlags : uint) : void {}
 [extern(cdecl, name="LLVMAddIncoming", library="LLVM.dll")]
 def LLVMAddIncoming(PhiNode : LLVMOpaqueValue? implicit; IncomingValues : LLVMOpaqueValue ?? implicit; IncomingBlocks : LLVMOpaqueBasicBlock ?? implicit; Count : uint) : void {}
 [extern(cdecl, name="LLVMCountIncoming", library="LLVM.dll")]
@@ -1097,8 +1193,12 @@ def LLVMCreateBuilderInContext(C : LLVMOpaqueContext? implicit) : LLVMOpaqueBuil
 def LLVMCreateBuilder() : LLVMOpaqueBuilder? {}
 [extern(cdecl, name="LLVMPositionBuilder", library="LLVM.dll")]
 def LLVMPositionBuilder(Builder : LLVMOpaqueBuilder? implicit; Block : LLVMOpaqueBasicBlock? implicit; Instr : LLVMOpaqueValue? implicit) : void {}
+[extern(cdecl, name="LLVMPositionBuilderBeforeDbgRecords", library="LLVM.dll")]
+def LLVMPositionBuilderBeforeDbgRecords(Builder : LLVMOpaqueBuilder? implicit; Block : LLVMOpaqueBasicBlock? implicit; Inst : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMPositionBuilderBefore", library="LLVM.dll")]
 def LLVMPositionBuilderBefore(Builder : LLVMOpaqueBuilder? implicit; Instr : LLVMOpaqueValue? implicit) : void {}
+[extern(cdecl, name="LLVMPositionBuilderBeforeInstrAndDbgRecords", library="LLVM.dll")]
+def LLVMPositionBuilderBeforeInstrAndDbgRecords(Builder : LLVMOpaqueBuilder? implicit; Instr : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMPositionBuilderAtEnd", library="LLVM.dll")]
 def LLVMPositionBuilderAtEnd(Builder : LLVMOpaqueBuilder? implicit; Block : LLVMOpaqueBasicBlock? implicit) : void {}
 [extern(cdecl, name="LLVMGetInsertBlock", library="LLVM.dll")]
@@ -1123,6 +1223,8 @@ def LLVMAddMetadataToInst(Builder : LLVMOpaqueBuilder? implicit; Inst : LLVMOpaq
 def LLVMBuilderGetDefaultFPMathTag(Builder : LLVMOpaqueBuilder? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMBuilderSetDefaultFPMathTag", library="LLVM.dll")]
 def LLVMBuilderSetDefaultFPMathTag(Builder : LLVMOpaqueBuilder? implicit; FPMathTag : LLVMOpaqueMetadata? implicit) : void {}
+[extern(cdecl, name="LLVMGetBuilderContext", library="LLVM.dll")]
+def LLVMGetBuilderContext(Builder : LLVMOpaqueBuilder? implicit) : LLVMOpaqueContext? {}
 [extern(cdecl, name="LLVMSetCurrentDebugLocation", library="LLVM.dll")]
 def LLVMSetCurrentDebugLocation(Builder : LLVMOpaqueBuilder? implicit; L : LLVMOpaqueValue? implicit) : void {}
 [extern(cdecl, name="LLVMGetCurrentDebugLocation", library="LLVM.dll")]
@@ -1141,8 +1243,12 @@ def LLVMBuildCondBr(_argument_0x0 : LLVMOpaqueBuilder? implicit; If : LLVMOpaque
 def LLVMBuildSwitch(_argument_0x0 : LLVMOpaqueBuilder? implicit; V : LLVMOpaqueValue? implicit; Else : LLVMOpaqueBasicBlock? implicit; NumCases : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildIndirectBr", library="LLVM.dll")]
 def LLVMBuildIndirectBr(B : LLVMOpaqueBuilder? implicit; Addr : LLVMOpaqueValue? implicit; NumDests : uint) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildCallBr", library="LLVM.dll")]
+def LLVMBuildCallBr(B : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Fn : LLVMOpaqueValue? implicit; DefaultDest : LLVMOpaqueBasicBlock? implicit; IndirectDests : LLVMOpaqueBasicBlock ?? implicit; NumIndirectDests : uint; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint; Bundles : LLVMOpaqueOperandBundle ?? implicit; NumBundles : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildInvoke2", library="LLVM.dll")]
 def LLVMBuildInvoke2(_argument_0x0 : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Fn : LLVMOpaqueValue? implicit; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint; Then : LLVMOpaqueBasicBlock? implicit; Catch : LLVMOpaqueBasicBlock? implicit; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildInvokeWithOperandBundles", library="LLVM.dll")]
+def LLVMBuildInvokeWithOperandBundles(_argument_0x0 : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Fn : LLVMOpaqueValue? implicit; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint; Then : LLVMOpaqueBasicBlock? implicit; Catch : LLVMOpaqueBasicBlock? implicit; Bundles : LLVMOpaqueOperandBundle ?? implicit; NumBundles : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildUnreachable", library="LLVM.dll")]
 def LLVMBuildUnreachable(_argument_0x0 : LLVMOpaqueBuilder? implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildResume", library="LLVM.dll")]
@@ -1251,6 +1357,32 @@ def LLVMBuildNUWNeg(B : LLVMOpaqueBuilder? implicit; V : LLVMOpaqueValue? implic
 def LLVMBuildFNeg(_argument_0x0 : LLVMOpaqueBuilder? implicit; V : LLVMOpaqueValue? implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildNot", library="LLVM.dll")]
 def LLVMBuildNot(_argument_0x0 : LLVMOpaqueBuilder? implicit; V : LLVMOpaqueValue? implicit; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMGetNUW", library="LLVM.dll")]
+def LLVMGetNUW(ArithInst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetNUW", library="LLVM.dll")]
+def LLVMSetNUW(ArithInst : LLVMOpaqueValue? implicit; HasNUW : int) : void {}
+[extern(cdecl, name="LLVMGetNSW", library="LLVM.dll")]
+def LLVMGetNSW(ArithInst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetNSW", library="LLVM.dll")]
+def LLVMSetNSW(ArithInst : LLVMOpaqueValue? implicit; HasNSW : int) : void {}
+[extern(cdecl, name="LLVMGetExact", library="LLVM.dll")]
+def LLVMGetExact(DivOrShrInst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetExact", library="LLVM.dll")]
+def LLVMSetExact(DivOrShrInst : LLVMOpaqueValue? implicit; IsExact : int) : void {}
+[extern(cdecl, name="LLVMGetNNeg", library="LLVM.dll")]
+def LLVMGetNNeg(NonNegInst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetNNeg", library="LLVM.dll")]
+def LLVMSetNNeg(NonNegInst : LLVMOpaqueValue? implicit; IsNonNeg : int) : void {}
+[extern(cdecl, name="LLVMGetFastMathFlags", library="LLVM.dll")]
+def LLVMGetFastMathFlags(FPMathInst : LLVMOpaqueValue? implicit) : uint {}
+[extern(cdecl, name="LLVMSetFastMathFlags", library="LLVM.dll")]
+def LLVMSetFastMathFlags(FPMathInst : LLVMOpaqueValue? implicit; FMF : uint) : void {}
+[extern(cdecl, name="LLVMCanValueUseFastMathFlags", library="LLVM.dll")]
+def LLVMCanValueUseFastMathFlags(Inst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMGetIsDisjoint", library="LLVM.dll")]
+def LLVMGetIsDisjoint(Inst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMSetIsDisjoint", library="LLVM.dll")]
+def LLVMSetIsDisjoint(Inst : LLVMOpaqueValue? implicit; IsDisjoint : int) : void {}
 [extern(cdecl, name="LLVMBuildMalloc", library="LLVM.dll")]
 def LLVMBuildMalloc(_argument_0x0 : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildArrayMalloc", library="LLVM.dll")]
@@ -1275,6 +1407,8 @@ def LLVMBuildStore(_argument_0x0 : LLVMOpaqueBuilder? implicit; Val : LLVMOpaque
 def LLVMBuildGEP2(B : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Pointer : LLVMOpaqueValue? implicit; Indices : LLVMOpaqueValue ?? implicit; NumIndices : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildInBoundsGEP2", library="LLVM.dll")]
 def LLVMBuildInBoundsGEP2(B : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Pointer : LLVMOpaqueValue? implicit; Indices : LLVMOpaqueValue ?? implicit; NumIndices : uint; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildGEPWithNoWrapFlags", library="LLVM.dll")]
+def LLVMBuildGEPWithNoWrapFlags(B : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Pointer : LLVMOpaqueValue? implicit; Indices : LLVMOpaqueValue ?? implicit; NumIndices : uint; Name : string implicit; NoWrapFlags : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildStructGEP2", library="LLVM.dll")]
 def LLVMBuildStructGEP2(B : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Pointer : LLVMOpaqueValue? implicit; Idx : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildGlobalString", library="LLVM.dll")]
@@ -1282,7 +1416,7 @@ def LLVMBuildGlobalString(B : LLVMOpaqueBuilder? implicit; Str : string implicit
 [extern(cdecl, name="LLVMBuildGlobalStringPtr", library="LLVM.dll")]
 def LLVMBuildGlobalStringPtr(B : LLVMOpaqueBuilder? implicit; Str : string implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetVolatile", library="LLVM.dll")]
-def LLVMGetVolatile(MemoryAccessInst : LLVMOpaqueValue? implicit) : int {}
+def LLVMGetVolatile(Inst : LLVMOpaqueValue? implicit) : int {}
 [extern(cdecl, name="LLVMSetVolatile", library="LLVM.dll")]
 def LLVMSetVolatile(MemoryAccessInst : LLVMOpaqueValue? implicit; IsVolatile : int) : void {}
 [extern(cdecl, name="LLVMGetWeak", library="LLVM.dll")]
@@ -1349,6 +1483,8 @@ def LLVMBuildFCmp(_argument_0x0 : LLVMOpaqueBuilder? implicit; Op : LLVMRealPred
 def LLVMBuildPhi(_argument_0x0 : LLVMOpaqueBuilder? implicit; Ty : LLVMOpaqueType? implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildCall2", library="LLVM.dll")]
 def LLVMBuildCall2(_argument_0x0 : LLVMOpaqueBuilder? implicit; _argument_0x1 : LLVMOpaqueType? implicit; Fn : LLVMOpaqueValue? implicit; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildCallWithOperandBundles", library="LLVM.dll")]
+def LLVMBuildCallWithOperandBundles(_argument_0x0 : LLVMOpaqueBuilder? implicit; _argument_0x1 : LLVMOpaqueType? implicit; Fn : LLVMOpaqueValue? implicit; Args : LLVMOpaqueValue ?? implicit; NumArgs : uint; Bundles : LLVMOpaqueOperandBundle ?? implicit; NumBundles : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildSelect", library="LLVM.dll")]
 def LLVMBuildSelect(_argument_0x0 : LLVMOpaqueBuilder? implicit; If : LLVMOpaqueValue? implicit; Then : LLVMOpaqueValue? implicit; Else : LLVMOpaqueValue? implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildVAArg", library="LLVM.dll")]
@@ -1373,10 +1509,16 @@ def LLVMBuildIsNotNull(_argument_0x0 : LLVMOpaqueBuilder? implicit; Val : LLVMOp
 def LLVMBuildPtrDiff2(_argument_0x0 : LLVMOpaqueBuilder? implicit; ElemTy : LLVMOpaqueType? implicit; LHS : LLVMOpaqueValue? implicit; RHS : LLVMOpaqueValue? implicit; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildFence", library="LLVM.dll")]
 def LLVMBuildFence(B : LLVMOpaqueBuilder? implicit; ordering : LLVMAtomicOrdering; singleThread : int; Name : string implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildFenceSyncScope", library="LLVM.dll")]
+def LLVMBuildFenceSyncScope(B : LLVMOpaqueBuilder? implicit; ordering : LLVMAtomicOrdering; SSID : uint; Name : string implicit) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildAtomicRMW", library="LLVM.dll")]
 def LLVMBuildAtomicRMW(B : LLVMOpaqueBuilder? implicit; op : LLVMAtomicRMWBinOp; PTR : LLVMOpaqueValue? implicit; Val : LLVMOpaqueValue? implicit; ordering : LLVMAtomicOrdering; singleThread : int) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildAtomicRMWSyncScope", library="LLVM.dll")]
+def LLVMBuildAtomicRMWSyncScope(B : LLVMOpaqueBuilder? implicit; op : LLVMAtomicRMWBinOp; PTR : LLVMOpaqueValue? implicit; Val : LLVMOpaqueValue? implicit; ordering : LLVMAtomicOrdering; SSID : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMBuildAtomicCmpXchg", library="LLVM.dll")]
 def LLVMBuildAtomicCmpXchg(B : LLVMOpaqueBuilder? implicit; Ptr : LLVMOpaqueValue? implicit; Cmp : LLVMOpaqueValue? implicit; New : LLVMOpaqueValue? implicit; SuccessOrdering : LLVMAtomicOrdering; FailureOrdering : LLVMAtomicOrdering; SingleThread : int) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMBuildAtomicCmpXchgSyncScope", library="LLVM.dll")]
+def LLVMBuildAtomicCmpXchgSyncScope(B : LLVMOpaqueBuilder? implicit; Ptr : LLVMOpaqueValue? implicit; Cmp : LLVMOpaqueValue? implicit; New : LLVMOpaqueValue? implicit; SuccessOrdering : LLVMAtomicOrdering; FailureOrdering : LLVMAtomicOrdering; SSID : uint) : LLVMOpaqueValue? {}
 [extern(cdecl, name="LLVMGetNumMaskElements", library="LLVM.dll")]
 def LLVMGetNumMaskElements(ShuffleVectorInst : LLVMOpaqueValue? implicit) : uint {}
 [extern(cdecl, name="LLVMGetUndefMaskElem", library="LLVM.dll")]
@@ -1387,6 +1529,12 @@ def LLVMGetMaskValue(ShuffleVectorInst : LLVMOpaqueValue? implicit; Elt : uint) 
 def LLVMIsAtomicSingleThread(AtomicInst : LLVMOpaqueValue? implicit) : int {}
 [extern(cdecl, name="LLVMSetAtomicSingleThread", library="LLVM.dll")]
 def LLVMSetAtomicSingleThread(AtomicInst : LLVMOpaqueValue? implicit; SingleThread : int) : void {}
+[extern(cdecl, name="LLVMIsAtomic", library="LLVM.dll")]
+def LLVMIsAtomic(Inst : LLVMOpaqueValue? implicit) : int {}
+[extern(cdecl, name="LLVMGetAtomicSyncScopeID", library="LLVM.dll")]
+def LLVMGetAtomicSyncScopeID(AtomicInst : LLVMOpaqueValue? implicit) : uint {}
+[extern(cdecl, name="LLVMSetAtomicSyncScopeID", library="LLVM.dll")]
+def LLVMSetAtomicSyncScopeID(AtomicInst : LLVMOpaqueValue? implicit; SSID : uint) : void {}
 [extern(cdecl, name="LLVMGetCmpXchgSuccessOrdering", library="LLVM.dll")]
 def LLVMGetCmpXchgSuccessOrdering(CmpXchgInst : LLVMOpaqueValue? implicit) : LLVMAtomicOrdering {}
 [extern(cdecl, name="LLVMSetCmpXchgSuccessOrdering", library="LLVM.dll")]
@@ -1413,8 +1561,6 @@ def LLVMGetBufferStart(MemBuf : LLVMOpaqueMemoryBuffer? implicit) : string {}
 def LLVMGetBufferSize(MemBuf : LLVMOpaqueMemoryBuffer? implicit) : uint64 {}
 [extern(cdecl, name="LLVMDisposeMemoryBuffer", library="LLVM.dll")]
 def LLVMDisposeMemoryBuffer(MemBuf : LLVMOpaqueMemoryBuffer? implicit) : void {}
-[extern(cdecl, name="LLVMGetGlobalPassRegistry", library="LLVM.dll")]
-def LLVMGetGlobalPassRegistry() : LLVMOpaquePassRegistry? {}
 [extern(cdecl, name="LLVMCreatePassManager", library="LLVM.dll")]
 def LLVMCreatePassManager() : LLVMOpaquePassManager? {}
 [extern(cdecl, name="LLVMCreateFunctionPassManagerForModule", library="LLVM.dll")]
@@ -1457,6 +1603,8 @@ def LLVMDIBuilderFinalizeSubprogram(Builder : LLVMOpaqueDIBuilder? implicit; Sub
 
 [extern(cdecl, name="LLVMDIBuilderCreateFile", library="LLVM.dll")]
 def LLVMDIBuilderCreateFile(Builder : LLVMOpaqueDIBuilder? implicit; Filename : string implicit; FilenameLen : uint64; Directory : string implicit; DirectoryLen : uint64) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDIBuilderCreateFileWithChecksum", library="LLVM.dll")]
+def LLVMDIBuilderCreateFileWithChecksum(Builder : LLVMOpaqueDIBuilder? implicit; Filename : string implicit; FilenameLen : uint64; Directory : string implicit; DirectoryLen : uint64; ChecksumKind : LLVMChecksumKind; Checksum : string implicit; ChecksumLen : uint64; Source : string implicit; SourceLen : uint64) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateModule", library="LLVM.dll")]
 def LLVMDIBuilderCreateModule(Builder : LLVMOpaqueDIBuilder? implicit; ParentScope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; ConfigMacros : string implicit; ConfigMacrosLen : uint64; IncludePath : string implicit; IncludePathLen : uint64; APINotesFile : string implicit; APINotesFileLen : uint64) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateNameSpace", library="LLVM.dll")]
@@ -1503,12 +1651,22 @@ def LLVMDIBuilderCreateMacro(Builder : LLVMOpaqueDIBuilder? implicit; ParentMacr
 def LLVMDIBuilderCreateTempMacroFile(Builder : LLVMOpaqueDIBuilder? implicit; ParentMacroFile : LLVMOpaqueMetadata? implicit; Line : uint; File : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateEnumerator", library="LLVM.dll")]
 def LLVMDIBuilderCreateEnumerator(Builder : LLVMOpaqueDIBuilder? implicit; Name : string implicit; NameLen : uint64; Value : int64; IsUnsigned : int) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDIBuilderCreateEnumeratorOfArbitraryPrecision", library="LLVM.dll")]
+def LLVMDIBuilderCreateEnumeratorOfArbitraryPrecision(Builder : LLVMOpaqueDIBuilder? implicit; Name : string implicit; NameLen : uint64; SizeInBits : uint64; Words : void? const; IsUnsigned : int) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateEnumerationType", library="LLVM.dll")]
 def LLVMDIBuilderCreateEnumerationType(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNumber : uint; SizeInBits : uint64; AlignInBits : uint; Elements : LLVMOpaqueMetadata ?? implicit; NumElements : uint; ClassTy : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateUnionType", library="LLVM.dll")]
 def LLVMDIBuilderCreateUnionType(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNumber : uint; SizeInBits : uint64; AlignInBits : uint; Flags : LLVMDIFlags; Elements : LLVMOpaqueMetadata ?? implicit; NumElements : uint; RunTimeLang : uint; UniqueId : string implicit; UniqueIdLen : uint64) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateArrayType", library="LLVM.dll")]
 def LLVMDIBuilderCreateArrayType(Builder : LLVMOpaqueDIBuilder? implicit; Size : uint64; AlignInBits : uint; Ty : LLVMOpaqueMetadata? implicit; Subscripts : LLVMOpaqueMetadata ?? implicit; NumSubscripts : uint) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDIBuilderCreateSetType", library="LLVM.dll")]
+def LLVMDIBuilderCreateSetType(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNumber : uint; SizeInBits : uint64; AlignInBits : uint; BaseTy : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDIBuilderCreateSubrangeType", library="LLVM.dll")]
+def LLVMDIBuilderCreateSubrangeType(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; LineNo : uint; File : LLVMOpaqueMetadata? implicit; SizeInBits : uint64; AlignInBits : uint; Flags : LLVMDIFlags; BaseTy : LLVMOpaqueMetadata? implicit; LowerBound : LLVMOpaqueMetadata? implicit; UpperBound : LLVMOpaqueMetadata? implicit; Stride : LLVMOpaqueMetadata? implicit; Bias : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
+// Function `LLVMDIBuilderCreateDynamicArrayType` has too many arguments. Ignore.
+
+[extern(cdecl, name="LLVMReplaceArrays", library="LLVM.dll")]
+def LLVMReplaceArrays(Builder : LLVMOpaqueDIBuilder? implicit; T : LLVMOpaqueMetadata ?? implicit; Elements : LLVMOpaqueMetadata ?? implicit; NumElements : uint) : void {}
 [extern(cdecl, name="LLVMDIBuilderCreateVectorType", library="LLVM.dll")]
 def LLVMDIBuilderCreateVectorType(Builder : LLVMOpaqueDIBuilder? implicit; Size : uint64; AlignInBits : uint; Ty : LLVMOpaqueMetadata? implicit; Subscripts : LLVMOpaqueMetadata ?? implicit; NumSubscripts : uint) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateUnspecifiedType", library="LLVM.dll")]
@@ -1530,7 +1688,7 @@ def LLVMDIBuilderCreateObjCIVar(Builder : LLVMOpaqueDIBuilder? implicit; Name : 
 [extern(cdecl, name="LLVMDIBuilderCreateObjCProperty", library="LLVM.dll")]
 def LLVMDIBuilderCreateObjCProperty(Builder : LLVMOpaqueDIBuilder? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNo : uint; GetterName : string implicit; GetterNameLen : uint64; SetterName : string implicit; SetterNameLen : uint64; PropertyAttributes : uint; Ty : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateObjectPointerType", library="LLVM.dll")]
-def LLVMDIBuilderCreateObjectPointerType(Builder : LLVMOpaqueDIBuilder? implicit; Type : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
+def LLVMDIBuilderCreateObjectPointerType(Builder : LLVMOpaqueDIBuilder? implicit; Type : LLVMOpaqueMetadata? implicit; Implicit : int) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateQualifiedType", library="LLVM.dll")]
 def LLVMDIBuilderCreateQualifiedType(Builder : LLVMOpaqueDIBuilder? implicit; Tag : uint; Type : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateReferenceType", library="LLVM.dll")]
@@ -1573,6 +1731,8 @@ def LLVMDIBuilderCreateExpression(Builder : LLVMOpaqueDIBuilder? implicit; Addr 
 def LLVMDIBuilderCreateConstantValueExpression(Builder : LLVMOpaqueDIBuilder? implicit; Value : uint64) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateGlobalVariableExpression", library="LLVM.dll")]
 def LLVMDIBuilderCreateGlobalVariableExpression(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; Linkage : string implicit; LinkLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNo : uint; Ty : LLVMOpaqueMetadata? implicit; LocalToUnit : int; Expr : LLVMOpaqueMetadata? implicit; Decl : LLVMOpaqueMetadata? implicit; AlignInBits : uint) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMGetDINodeTag", library="LLVM.dll")]
+def LLVMGetDINodeTag(MD : LLVMOpaqueMetadata? implicit) : uint16 {}
 [extern(cdecl, name="LLVMDIGlobalVariableExpressionGetVariable", library="LLVM.dll")]
 def LLVMDIGlobalVariableExpressionGetVariable(GVE : LLVMOpaqueMetadata? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIGlobalVariableExpressionGetExpression", library="LLVM.dll")]
@@ -1591,14 +1751,14 @@ def LLVMDisposeTemporaryMDNode(TempNode : LLVMOpaqueMetadata? implicit) : void {
 def LLVMMetadataReplaceAllUsesWith(TempTargetMetadata : LLVMOpaqueMetadata? implicit; Replacement : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMDIBuilderCreateTempGlobalVariableFwdDecl", library="LLVM.dll")]
 def LLVMDIBuilderCreateTempGlobalVariableFwdDecl(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; Linkage : string implicit; LnkLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNo : uint; Ty : LLVMOpaqueMetadata? implicit; LocalToUnit : int; Decl : LLVMOpaqueMetadata? implicit; AlignInBits : uint) : LLVMOpaqueMetadata? {}
-[extern(cdecl, name="LLVMDIBuilderInsertDeclareBefore", library="LLVM.dll")]
-def LLVMDIBuilderInsertDeclareBefore(Builder : LLVMOpaqueDIBuilder? implicit; Storage : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Instr : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMDIBuilderInsertDeclareAtEnd", library="LLVM.dll")]
-def LLVMDIBuilderInsertDeclareAtEnd(Builder : LLVMOpaqueDIBuilder? implicit; Storage : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Block : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMDIBuilderInsertDbgValueBefore", library="LLVM.dll")]
-def LLVMDIBuilderInsertDbgValueBefore(Builder : LLVMOpaqueDIBuilder? implicit; Val : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Instr : LLVMOpaqueValue? implicit) : LLVMOpaqueValue? {}
-[extern(cdecl, name="LLVMDIBuilderInsertDbgValueAtEnd", library="LLVM.dll")]
-def LLVMDIBuilderInsertDbgValueAtEnd(Builder : LLVMOpaqueDIBuilder? implicit; Val : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Block : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueValue? {}
+[extern(cdecl, name="LLVMDIBuilderInsertDeclareRecordBefore", library="LLVM.dll")]
+def LLVMDIBuilderInsertDeclareRecordBefore(Builder : LLVMOpaqueDIBuilder? implicit; Storage : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Instr : LLVMOpaqueValue? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMDIBuilderInsertDeclareRecordAtEnd", library="LLVM.dll")]
+def LLVMDIBuilderInsertDeclareRecordAtEnd(Builder : LLVMOpaqueDIBuilder? implicit; Storage : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Block : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMDIBuilderInsertDbgValueRecordBefore", library="LLVM.dll")]
+def LLVMDIBuilderInsertDbgValueRecordBefore(Builder : LLVMOpaqueDIBuilder? implicit; Val : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Instr : LLVMOpaqueValue? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMDIBuilderInsertDbgValueRecordAtEnd", library="LLVM.dll")]
+def LLVMDIBuilderInsertDbgValueRecordAtEnd(Builder : LLVMOpaqueDIBuilder? implicit; Val : LLVMOpaqueValue? implicit; VarInfo : LLVMOpaqueMetadata? implicit; Expr : LLVMOpaqueMetadata? implicit; DebugLoc : LLVMOpaqueMetadata? implicit; Block : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueDbgRecord? {}
 [extern(cdecl, name="LLVMDIBuilderCreateAutoVariable", library="LLVM.dll")]
 def LLVMDIBuilderCreateAutoVariable(Builder : LLVMOpaqueDIBuilder? implicit; Scope : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNo : uint; Ty : LLVMOpaqueMetadata? implicit; AlwaysPreserve : int; Flags : LLVMDIFlags; AlignInBits : uint) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMDIBuilderCreateParameterVariable", library="LLVM.dll")]
@@ -1609,10 +1769,18 @@ def LLVMGetSubprogram(Func : LLVMOpaqueValue? implicit) : LLVMOpaqueMetadata? {}
 def LLVMSetSubprogram(Func : LLVMOpaqueValue? implicit; SP : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMDISubprogramGetLine", library="LLVM.dll")]
 def LLVMDISubprogramGetLine(Subprogram : LLVMOpaqueMetadata? implicit) : uint {}
+[extern(cdecl, name="LLVMDISubprogramReplaceType", library="LLVM.dll")]
+def LLVMDISubprogramReplaceType(Subprogram : LLVMOpaqueMetadata? implicit; SubroutineType : LLVMOpaqueMetadata? implicit) : void {}
 [extern(cdecl, name="LLVMInstructionGetDebugLoc", library="LLVM.dll")]
 def LLVMInstructionGetDebugLoc(Inst : LLVMOpaqueValue? implicit) : LLVMOpaqueMetadata? {}
 [extern(cdecl, name="LLVMInstructionSetDebugLoc", library="LLVM.dll")]
 def LLVMInstructionSetDebugLoc(Inst : LLVMOpaqueValue? implicit; Loc : LLVMOpaqueMetadata? implicit) : void {}
+[extern(cdecl, name="LLVMDIBuilderCreateLabel", library="LLVM.dll")]
+def LLVMDIBuilderCreateLabel(Builder : LLVMOpaqueDIBuilder? implicit; Context : LLVMOpaqueMetadata? implicit; Name : string implicit; NameLen : uint64; File : LLVMOpaqueMetadata? implicit; LineNo : uint; AlwaysPreserve : int) : LLVMOpaqueMetadata? {}
+[extern(cdecl, name="LLVMDIBuilderInsertLabelBefore", library="LLVM.dll")]
+def LLVMDIBuilderInsertLabelBefore(Builder : LLVMOpaqueDIBuilder? implicit; LabelInfo : LLVMOpaqueMetadata? implicit; Location : LLVMOpaqueMetadata? implicit; InsertBefore : LLVMOpaqueValue? implicit) : LLVMOpaqueDbgRecord? {}
+[extern(cdecl, name="LLVMDIBuilderInsertLabelAtEnd", library="LLVM.dll")]
+def LLVMDIBuilderInsertLabelAtEnd(Builder : LLVMOpaqueDIBuilder? implicit; LabelInfo : LLVMOpaqueMetadata? implicit; Location : LLVMOpaqueMetadata? implicit; InsertAtEnd : LLVMOpaqueBasicBlock? implicit) : LLVMOpaqueDbgRecord? {}
 [extern(cdecl, name="LLVMGetMetadataKind", library="LLVM.dll")]
 def LLVMGetMetadataKind(Metadata : LLVMOpaqueMetadata? implicit) : uint {}
 [extern(cdecl, name="LLVMSetDisasmOptions", library="LLVM.dll")]
@@ -1625,6 +1793,8 @@ def LLVMDisasmInstruction(DC : void? implicit; Bytes : uint8? implicit; BytesSiz
 def LLVMGetErrorTypeId(Err : LLVMOpaqueError? implicit) : void const? {}
 [extern(cdecl, name="LLVMConsumeError", library="LLVM.dll")]
 def LLVMConsumeError(Err : LLVMOpaqueError? implicit) : void {}
+[extern(cdecl, name="LLVMCantFail", library="LLVM.dll")]
+def LLVMCantFail(Err : LLVMOpaqueError? implicit) : void {}
 [extern(cdecl, name="LLVMGetErrorMessage", library="LLVM.dll")]
 def LLVMGetErrorMessage(Err : LLVMOpaqueError? implicit) : string {}
 [extern(cdecl, name="LLVMDisposeErrorMessage", library="LLVM.dll")]
@@ -1635,226 +1805,40 @@ def LLVMGetStringErrorTypeId() : void const? {}
 def LLVMCreateStringError(ErrMsg : string implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMInitializeAArch64TargetInfo", library="LLVM.dll")]
 def LLVMInitializeAArch64TargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUTargetInfo", library="LLVM.dll")]
-def LLVMInitializeAMDGPUTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeARMTargetInfo", library="LLVM.dll")]
-def LLVMInitializeARMTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeAVRTargetInfo", library="LLVM.dll")]
-def LLVMInitializeAVRTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeBPFTargetInfo", library="LLVM.dll")]
-def LLVMInitializeBPFTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonTargetInfo", library="LLVM.dll")]
-def LLVMInitializeHexagonTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiTargetInfo", library="LLVM.dll")]
-def LLVMInitializeLanaiTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchTargetInfo", library="LLVM.dll")]
-def LLVMInitializeLoongArchTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeMipsTargetInfo", library="LLVM.dll")]
-def LLVMInitializeMipsTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430TargetInfo", library="LLVM.dll")]
-def LLVMInitializeMSP430TargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeNVPTXTargetInfo", library="LLVM.dll")]
-def LLVMInitializeNVPTXTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCTargetInfo", library="LLVM.dll")]
-def LLVMInitializePowerPCTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVTargetInfo", library="LLVM.dll")]
-def LLVMInitializeRISCVTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeSparcTargetInfo", library="LLVM.dll")]
-def LLVMInitializeSparcTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZTargetInfo", library="LLVM.dll")]
-def LLVMInitializeSystemZTargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeVETargetInfo", library="LLVM.dll")]
-def LLVMInitializeVETargetInfo() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyTargetInfo", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyTargetInfo() : void {}
 [extern(cdecl, name="LLVMInitializeX86TargetInfo", library="LLVM.dll")]
 def LLVMInitializeX86TargetInfo() : void {}
-[extern(cdecl, name="LLVMInitializeXCoreTargetInfo", library="LLVM.dll")]
-def LLVMInitializeXCoreTargetInfo() : void {}
 [extern(cdecl, name="LLVMInitializeAArch64Target", library="LLVM.dll")]
 def LLVMInitializeAArch64Target() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUTarget", library="LLVM.dll")]
-def LLVMInitializeAMDGPUTarget() : void {}
-[extern(cdecl, name="LLVMInitializeARMTarget", library="LLVM.dll")]
-def LLVMInitializeARMTarget() : void {}
-[extern(cdecl, name="LLVMInitializeAVRTarget", library="LLVM.dll")]
-def LLVMInitializeAVRTarget() : void {}
-[extern(cdecl, name="LLVMInitializeBPFTarget", library="LLVM.dll")]
-def LLVMInitializeBPFTarget() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonTarget", library="LLVM.dll")]
-def LLVMInitializeHexagonTarget() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiTarget", library="LLVM.dll")]
-def LLVMInitializeLanaiTarget() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchTarget", library="LLVM.dll")]
-def LLVMInitializeLoongArchTarget() : void {}
-[extern(cdecl, name="LLVMInitializeMipsTarget", library="LLVM.dll")]
-def LLVMInitializeMipsTarget() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430Target", library="LLVM.dll")]
-def LLVMInitializeMSP430Target() : void {}
-[extern(cdecl, name="LLVMInitializeNVPTXTarget", library="LLVM.dll")]
-def LLVMInitializeNVPTXTarget() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCTarget", library="LLVM.dll")]
-def LLVMInitializePowerPCTarget() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVTarget", library="LLVM.dll")]
-def LLVMInitializeRISCVTarget() : void {}
-[extern(cdecl, name="LLVMInitializeSparcTarget", library="LLVM.dll")]
-def LLVMInitializeSparcTarget() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZTarget", library="LLVM.dll")]
-def LLVMInitializeSystemZTarget() : void {}
-[extern(cdecl, name="LLVMInitializeVETarget", library="LLVM.dll")]
-def LLVMInitializeVETarget() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyTarget", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyTarget() : void {}
 [extern(cdecl, name="LLVMInitializeX86Target", library="LLVM.dll")]
 def LLVMInitializeX86Target() : void {}
-[extern(cdecl, name="LLVMInitializeXCoreTarget", library="LLVM.dll")]
-def LLVMInitializeXCoreTarget() : void {}
 [extern(cdecl, name="LLVMInitializeAArch64TargetMC", library="LLVM.dll")]
 def LLVMInitializeAArch64TargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUTargetMC", library="LLVM.dll")]
-def LLVMInitializeAMDGPUTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeARMTargetMC", library="LLVM.dll")]
-def LLVMInitializeARMTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeAVRTargetMC", library="LLVM.dll")]
-def LLVMInitializeAVRTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeBPFTargetMC", library="LLVM.dll")]
-def LLVMInitializeBPFTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonTargetMC", library="LLVM.dll")]
-def LLVMInitializeHexagonTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiTargetMC", library="LLVM.dll")]
-def LLVMInitializeLanaiTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchTargetMC", library="LLVM.dll")]
-def LLVMInitializeLoongArchTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeMipsTargetMC", library="LLVM.dll")]
-def LLVMInitializeMipsTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430TargetMC", library="LLVM.dll")]
-def LLVMInitializeMSP430TargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeNVPTXTargetMC", library="LLVM.dll")]
-def LLVMInitializeNVPTXTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCTargetMC", library="LLVM.dll")]
-def LLVMInitializePowerPCTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVTargetMC", library="LLVM.dll")]
-def LLVMInitializeRISCVTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeSparcTargetMC", library="LLVM.dll")]
-def LLVMInitializeSparcTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZTargetMC", library="LLVM.dll")]
-def LLVMInitializeSystemZTargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeVETargetMC", library="LLVM.dll")]
-def LLVMInitializeVETargetMC() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyTargetMC", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyTargetMC() : void {}
 [extern(cdecl, name="LLVMInitializeX86TargetMC", library="LLVM.dll")]
 def LLVMInitializeX86TargetMC() : void {}
-[extern(cdecl, name="LLVMInitializeXCoreTargetMC", library="LLVM.dll")]
-def LLVMInitializeXCoreTargetMC() : void {}
 [extern(cdecl, name="LLVMInitializeAArch64AsmPrinter", library="LLVM.dll")]
 def LLVMInitializeAArch64AsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeAMDGPUAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeARMAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeARMAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeAVRAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeAVRAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeBPFAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeBPFAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeHexagonAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeLanaiAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeLoongArchAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeMipsAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeMipsAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430AsmPrinter", library="LLVM.dll")]
-def LLVMInitializeMSP430AsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeNVPTXAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeNVPTXAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCAsmPrinter", library="LLVM.dll")]
-def LLVMInitializePowerPCAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeRISCVAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeSparcAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeSparcAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeSystemZAsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeVEAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeVEAsmPrinter() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyAsmPrinter", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyAsmPrinter() : void {}
 [extern(cdecl, name="LLVMInitializeX86AsmPrinter", library="LLVM.dll")]
 def LLVMInitializeX86AsmPrinter() : void {}
-[extern(cdecl, name="LLVMInitializeXCoreAsmPrinter", library="LLVM.dll")]
-def LLVMInitializeXCoreAsmPrinter() : void {}
 [extern(cdecl, name="LLVMInitializeAArch64AsmParser", library="LLVM.dll")]
 def LLVMInitializeAArch64AsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUAsmParser", library="LLVM.dll")]
-def LLVMInitializeAMDGPUAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeARMAsmParser", library="LLVM.dll")]
-def LLVMInitializeARMAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeAVRAsmParser", library="LLVM.dll")]
-def LLVMInitializeAVRAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeBPFAsmParser", library="LLVM.dll")]
-def LLVMInitializeBPFAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonAsmParser", library="LLVM.dll")]
-def LLVMInitializeHexagonAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiAsmParser", library="LLVM.dll")]
-def LLVMInitializeLanaiAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchAsmParser", library="LLVM.dll")]
-def LLVMInitializeLoongArchAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeMipsAsmParser", library="LLVM.dll")]
-def LLVMInitializeMipsAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430AsmParser", library="LLVM.dll")]
-def LLVMInitializeMSP430AsmParser() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCAsmParser", library="LLVM.dll")]
-def LLVMInitializePowerPCAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVAsmParser", library="LLVM.dll")]
-def LLVMInitializeRISCVAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeSparcAsmParser", library="LLVM.dll")]
-def LLVMInitializeSparcAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZAsmParser", library="LLVM.dll")]
-def LLVMInitializeSystemZAsmParser() : void {}
-[extern(cdecl, name="LLVMInitializeVEAsmParser", library="LLVM.dll")]
-def LLVMInitializeVEAsmParser() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyAsmParser", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyAsmParser() : void {}
 [extern(cdecl, name="LLVMInitializeX86AsmParser", library="LLVM.dll")]
 def LLVMInitializeX86AsmParser() : void {}
 [extern(cdecl, name="LLVMInitializeAArch64Disassembler", library="LLVM.dll")]
 def LLVMInitializeAArch64Disassembler() : void {}
-[extern(cdecl, name="LLVMInitializeAMDGPUDisassembler", library="LLVM.dll")]
-def LLVMInitializeAMDGPUDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeARMDisassembler", library="LLVM.dll")]
-def LLVMInitializeARMDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeAVRDisassembler", library="LLVM.dll")]
-def LLVMInitializeAVRDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeBPFDisassembler", library="LLVM.dll")]
-def LLVMInitializeBPFDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeHexagonDisassembler", library="LLVM.dll")]
-def LLVMInitializeHexagonDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeLanaiDisassembler", library="LLVM.dll")]
-def LLVMInitializeLanaiDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeLoongArchDisassembler", library="LLVM.dll")]
-def LLVMInitializeLoongArchDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeMipsDisassembler", library="LLVM.dll")]
-def LLVMInitializeMipsDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeMSP430Disassembler", library="LLVM.dll")]
-def LLVMInitializeMSP430Disassembler() : void {}
-[extern(cdecl, name="LLVMInitializePowerPCDisassembler", library="LLVM.dll")]
-def LLVMInitializePowerPCDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeRISCVDisassembler", library="LLVM.dll")]
-def LLVMInitializeRISCVDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeSparcDisassembler", library="LLVM.dll")]
-def LLVMInitializeSparcDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeSystemZDisassembler", library="LLVM.dll")]
-def LLVMInitializeSystemZDisassembler() : void {}
-[extern(cdecl, name="LLVMInitializeVEDisassembler", library="LLVM.dll")]
-def LLVMInitializeVEDisassembler() : void {}
 [extern(cdecl, name="LLVMInitializeWebAssemblyDisassembler", library="LLVM.dll")]
 def LLVMInitializeWebAssemblyDisassembler() : void {}
 [extern(cdecl, name="LLVMInitializeX86Disassembler", library="LLVM.dll")]
 def LLVMInitializeX86Disassembler() : void {}
-[extern(cdecl, name="LLVMInitializeXCoreDisassembler", library="LLVM.dll")]
-def LLVMInitializeXCoreDisassembler() : void {}
 [extern(cdecl, name="LLVMGetModuleDataLayout", library="LLVM.dll")]
 def LLVMGetModuleDataLayout(M : LLVMOpaqueModule? implicit) : LLVMOpaqueTargetData? {}
 [extern(cdecl, name="LLVMSetModuleDataLayout", library="LLVM.dll")]
@@ -1917,6 +1901,24 @@ def LLVMTargetHasJIT(T : LLVMTarget? implicit) : int {}
 def LLVMTargetHasTargetMachine(T : LLVMTarget? implicit) : int {}
 [extern(cdecl, name="LLVMTargetHasAsmBackend", library="LLVM.dll")]
 def LLVMTargetHasAsmBackend(T : LLVMTarget? implicit) : int {}
+[extern(cdecl, name="LLVMCreateTargetMachineOptions", library="LLVM.dll")]
+def LLVMCreateTargetMachineOptions() : LLVMOpaqueTargetMachineOptions? {}
+[extern(cdecl, name="LLVMDisposeTargetMachineOptions", library="LLVM.dll")]
+def LLVMDisposeTargetMachineOptions(Options : LLVMOpaqueTargetMachineOptions? implicit) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetCPU", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetCPU(Options : LLVMOpaqueTargetMachineOptions? implicit; CPU : string implicit) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetFeatures", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetFeatures(Options : LLVMOpaqueTargetMachineOptions? implicit; Features : string implicit) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetABI", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetABI(Options : LLVMOpaqueTargetMachineOptions? implicit; ABI : string implicit) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetCodeGenOptLevel", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetCodeGenOptLevel(Options : LLVMOpaqueTargetMachineOptions? implicit; Level : LLVMCodeGenOptLevel) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetRelocMode", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetRelocMode(Options : LLVMOpaqueTargetMachineOptions? implicit; Reloc : LLVMRelocMode) : void {}
+[extern(cdecl, name="LLVMTargetMachineOptionsSetCodeModel", library="LLVM.dll")]
+def LLVMTargetMachineOptionsSetCodeModel(Options : LLVMOpaqueTargetMachineOptions? implicit; CodeModel : LLVMCodeModel) : void {}
+[extern(cdecl, name="LLVMCreateTargetMachineWithOptions", library="LLVM.dll")]
+def LLVMCreateTargetMachineWithOptions(T : LLVMTarget? implicit; Triple : string implicit; Options : LLVMOpaqueTargetMachineOptions? implicit) : LLVMOpaqueTargetMachine? {}
 [extern(cdecl, name="LLVMCreateTargetMachine", library="LLVM.dll")]
 def LLVMCreateTargetMachine(T : LLVMTarget? implicit; Triple : string implicit; CPU : string implicit; Features : string implicit; Level : LLVMCodeGenOptLevel; Reloc : LLVMRelocMode; CodeModel : LLVMCodeModel) : LLVMOpaqueTargetMachine? {}
 [extern(cdecl, name="LLVMDisposeTargetMachine", library="LLVM.dll")]
@@ -1933,6 +1935,14 @@ def LLVMGetTargetMachineFeatureString(T : LLVMOpaqueTargetMachine? implicit) : s
 def LLVMCreateTargetDataLayout(T : LLVMOpaqueTargetMachine? implicit) : LLVMOpaqueTargetData? {}
 [extern(cdecl, name="LLVMSetTargetMachineAsmVerbosity", library="LLVM.dll")]
 def LLVMSetTargetMachineAsmVerbosity(T : LLVMOpaqueTargetMachine? implicit; VerboseAsm : int) : void {}
+[extern(cdecl, name="LLVMSetTargetMachineFastISel", library="LLVM.dll")]
+def LLVMSetTargetMachineFastISel(T : LLVMOpaqueTargetMachine? implicit; Enable : int) : void {}
+[extern(cdecl, name="LLVMSetTargetMachineGlobalISel", library="LLVM.dll")]
+def LLVMSetTargetMachineGlobalISel(T : LLVMOpaqueTargetMachine? implicit; Enable : int) : void {}
+[extern(cdecl, name="LLVMSetTargetMachineGlobalISelAbort", library="LLVM.dll")]
+def LLVMSetTargetMachineGlobalISelAbort(T : LLVMOpaqueTargetMachine? implicit; Mode : LLVMGlobalISelAbortMode) : void {}
+[extern(cdecl, name="LLVMSetTargetMachineMachineOutliner", library="LLVM.dll")]
+def LLVMSetTargetMachineMachineOutliner(T : LLVMOpaqueTargetMachine? implicit; Enable : int) : void {}
 [extern(cdecl, name="LLVMTargetMachineEmitToFile", library="LLVM.dll")]
 def LLVMTargetMachineEmitToFile(T : LLVMOpaqueTargetMachine? implicit; M : LLVMOpaqueModule? implicit; Filename : string implicit; codegen : LLVMCodeGenFileType; ErrorMessage : string? implicit) : int {}
 [extern(cdecl, name="LLVMTargetMachineEmitToMemoryBuffer", library="LLVM.dll")]
@@ -2021,26 +2031,10 @@ def LLVMCreateIntelJITEventListener() : LLVMOpaqueJITEventListener? {}
 def LLVMCreateOProfileJITEventListener() : LLVMOpaqueJITEventListener? {}
 [extern(cdecl, name="LLVMCreatePerfJITEventListener", library="LLVM.dll")]
 def LLVMCreatePerfJITEventListener() : LLVMOpaqueJITEventListener? {}
-[extern(cdecl, name="LLVMInitializeTransformUtils", library="LLVM.dll")]
-def LLVMInitializeTransformUtils(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeScalarOpts", library="LLVM.dll")]
-def LLVMInitializeScalarOpts(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeVectorization", library="LLVM.dll")]
-def LLVMInitializeVectorization(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeInstCombine", library="LLVM.dll")]
-def LLVMInitializeInstCombine(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeIPO", library="LLVM.dll")]
-def LLVMInitializeIPO(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeAnalysis", library="LLVM.dll")]
-def LLVMInitializeAnalysis(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeIPA", library="LLVM.dll")]
-def LLVMInitializeIPA(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeCodeGen", library="LLVM.dll")]
-def LLVMInitializeCodeGen(R : LLVMOpaquePassRegistry? implicit) : void {}
-[extern(cdecl, name="LLVMInitializeTarget", library="LLVM.dll")]
-def LLVMInitializeTarget(R : LLVMOpaquePassRegistry? implicit) : void {}
 [extern(cdecl, name="LLVMParseIRInContext", library="LLVM.dll")]
 def LLVMParseIRInContext(ContextRef : LLVMOpaqueContext? implicit; MemBuf : LLVMOpaqueMemoryBuffer? implicit; OutM : LLVMOpaqueModule ?? implicit; OutMessage : string? implicit) : int {}
+[extern(cdecl, name="LLVMParseIRInContext2", library="LLVM.dll")]
+def LLVMParseIRInContext2(ContextRef : LLVMOpaqueContext? implicit; MemBuf : LLVMOpaqueMemoryBuffer? implicit; OutM : LLVMOpaqueModule ?? implicit; OutMessage : string? implicit) : int {}
 [extern(cdecl, name="LLVMLinkModules2", library="LLVM.dll")]
 def LLVMLinkModules2(Dest : LLVMOpaqueModule? implicit; Src : LLVMOpaqueModule? implicit) : int {}
 [extern(cdecl, name="LLVMOrcExecutionSessionGetSymbolStringPool", library="LLVM.dll")]
@@ -2088,7 +2082,7 @@ def LLVMOrcDisposeSymbols(Symbols : LLVMOrcOpaqueSymbolStringPoolEntry ?? implic
 [extern(cdecl, name="LLVMOrcMaterializationResponsibilityNotifyResolved", library="LLVM.dll")]
 def LLVMOrcMaterializationResponsibilityNotifyResolved(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; Symbols : LLVMOrcCSymbolMapPair? implicit; NumPairs : uint64) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcMaterializationResponsibilityNotifyEmitted", library="LLVM.dll")]
-def LLVMOrcMaterializationResponsibilityNotifyEmitted(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit) : LLVMOpaqueError? {}
+def LLVMOrcMaterializationResponsibilityNotifyEmitted(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; SymbolDepGroups : LLVMOrcCSymbolDependenceGroup? implicit; NumSymbolDepGroups : uint64) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcMaterializationResponsibilityDefineMaterializing", library="LLVM.dll")]
 def LLVMOrcMaterializationResponsibilityDefineMaterializing(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; Pairs : LLVMOrcCSymbolFlagsMapPair? implicit; NumPairs : uint64) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcMaterializationResponsibilityFailMaterialization", library="LLVM.dll")]
@@ -2097,10 +2091,6 @@ def LLVMOrcMaterializationResponsibilityFailMaterialization(MR : LLVMOrcOpaqueMa
 def LLVMOrcMaterializationResponsibilityReplace(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; MU : LLVMOrcOpaqueMaterializationUnit? implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcMaterializationResponsibilityDelegate", library="LLVM.dll")]
 def LLVMOrcMaterializationResponsibilityDelegate(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; Symbols : LLVMOrcOpaqueSymbolStringPoolEntry ?? implicit; NumSymbols : uint64; Result : LLVMOrcOpaqueMaterializationResponsibility ?? implicit) : LLVMOpaqueError? {}
-[extern(cdecl, name="LLVMOrcMaterializationResponsibilityAddDependencies", library="LLVM.dll")]
-def LLVMOrcMaterializationResponsibilityAddDependencies(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; Name : LLVMOrcOpaqueSymbolStringPoolEntry? implicit; Dependencies : LLVMOrcCDependenceMapPair? implicit; NumPairs : uint64) : void {}
-[extern(cdecl, name="LLVMOrcMaterializationResponsibilityAddDependenciesForAll", library="LLVM.dll")]
-def LLVMOrcMaterializationResponsibilityAddDependenciesForAll(MR : LLVMOrcOpaqueMaterializationResponsibility? implicit; Dependencies : LLVMOrcCDependenceMapPair? implicit; NumPairs : uint64) : void {}
 [extern(cdecl, name="LLVMOrcExecutionSessionCreateBareJITDylib", library="LLVM.dll")]
 def LLVMOrcExecutionSessionCreateBareJITDylib(ES : LLVMOrcOpaqueExecutionSession? implicit; Name : string implicit) : LLVMOrcOpaqueJITDylib? {}
 [extern(cdecl, name="LLVMOrcExecutionSessionCreateJITDylib", library="LLVM.dll")]
@@ -2120,11 +2110,11 @@ def LLVMOrcJITDylibAddGenerator(JD : LLVMOrcOpaqueJITDylib? implicit; DG : LLVMO
 [extern(cdecl, name="LLVMOrcLookupStateContinueLookup", library="LLVM.dll")]
 def LLVMOrcLookupStateContinueLookup(S : LLVMOrcOpaqueLookupState? implicit; Err : LLVMOpaqueError? implicit) : void {}
 [extern(cdecl, name="LLVMOrcCreateStaticLibrarySearchGeneratorForPath", library="LLVM.dll")]
-def LLVMOrcCreateStaticLibrarySearchGeneratorForPath(Result : LLVMOrcOpaqueDefinitionGenerator ?? implicit; ObjLayer : LLVMOrcOpaqueObjectLayer? implicit; FileName : string implicit; TargetTriple : string implicit) : LLVMOpaqueError? {}
+def LLVMOrcCreateStaticLibrarySearchGeneratorForPath(Result : LLVMOrcOpaqueDefinitionGenerator ?? implicit; ObjLayer : LLVMOrcOpaqueObjectLayer? implicit; FileName : string implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcCreateNewThreadSafeContext", library="LLVM.dll")]
 def LLVMOrcCreateNewThreadSafeContext() : LLVMOrcOpaqueThreadSafeContext? {}
-[extern(cdecl, name="LLVMOrcThreadSafeContextGetContext", library="LLVM.dll")]
-def LLVMOrcThreadSafeContextGetContext(TSCtx : LLVMOrcOpaqueThreadSafeContext? implicit) : LLVMOpaqueContext? {}
+[extern(cdecl, name="LLVMOrcCreateNewThreadSafeContextFromLLVMContext", library="LLVM.dll")]
+def LLVMOrcCreateNewThreadSafeContextFromLLVMContext(Ctx : LLVMOpaqueContext? implicit) : LLVMOrcOpaqueThreadSafeContext? {}
 [extern(cdecl, name="LLVMOrcDisposeThreadSafeContext", library="LLVM.dll")]
 def LLVMOrcDisposeThreadSafeContext(TSCtx : LLVMOrcOpaqueThreadSafeContext? implicit) : void {}
 [extern(cdecl, name="LLVMOrcCreateNewThreadSafeModule", library="LLVM.dll")]
@@ -2143,7 +2133,7 @@ def LLVMOrcJITTargetMachineBuilderGetTargetTriple(JTMB : LLVMOrcOpaqueJITTargetM
 def LLVMOrcJITTargetMachineBuilderSetTargetTriple(JTMB : LLVMOrcOpaqueJITTargetMachineBuilder? implicit; TargetTriple : string implicit) : void {}
 [extern(cdecl, name="LLVMOrcObjectLayerAddObjectFile", library="LLVM.dll")]
 def LLVMOrcObjectLayerAddObjectFile(ObjLayer : LLVMOrcOpaqueObjectLayer? implicit; JD : LLVMOrcOpaqueJITDylib? implicit; ObjBuffer : LLVMOpaqueMemoryBuffer? implicit) : LLVMOpaqueError? {}
-[extern(cdecl, late, name="LLVMOrcObjectLayerAddObjectFileWithRT", library="LLVM.dll")]
+[extern(cdecl, name="LLVMOrcObjectLayerAddObjectFileWithRT", library="LLVM.dll")]
 def LLVMOrcObjectLayerAddObjectFileWithRT(ObjLayer : LLVMOrcOpaqueObjectLayer? implicit; RT : LLVMOrcOpaqueResourceTracker? implicit; ObjBuffer : LLVMOpaqueMemoryBuffer? implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcObjectLayerEmit", library="LLVM.dll")]
 def LLVMOrcObjectLayerEmit(ObjLayer : LLVMOrcOpaqueObjectLayer? implicit; R : LLVMOrcOpaqueMaterializationResponsibility? implicit; ObjBuffer : LLVMOpaqueMemoryBuffer? implicit) : void {}
@@ -2203,158 +2193,6 @@ def LLVMOrcLLJITGetObjTransformLayer(J : LLVMOrcOpaqueLLJIT? implicit) : LLVMOrc
 def LLVMOrcLLJITGetIRTransformLayer(J : LLVMOrcOpaqueLLJIT? implicit) : LLVMOrcOpaqueIRTransformLayer? {}
 [extern(cdecl, name="LLVMOrcLLJITGetDataLayoutStr", library="LLVM.dll")]
 def LLVMOrcLLJITGetDataLayoutStr(J : LLVMOrcOpaqueLLJIT? implicit) : string {}
-[extern(cdecl, late, name="lto_get_version", library="LLVM.dll")]
-def lto_get_version() : string {}
-[extern(cdecl, late, name="lto_get_error_message", library="LLVM.dll")]
-def lto_get_error_message() : string {}
-[extern(cdecl, late, name="lto_module_is_object_file", library="LLVM.dll")]
-def lto_module_is_object_file(path : string implicit) : bool {}
-[extern(cdecl, late, name="lto_module_is_object_file_for_target", library="LLVM.dll")]
-def lto_module_is_object_file_for_target(path : string implicit; target_triple_prefix : string implicit) : bool {}
-[extern(cdecl, late, name="lto_module_has_objc_category", library="LLVM.dll")]
-def lto_module_has_objc_category(mem : void const? implicit; length : uint64) : bool {}
-[extern(cdecl, late, name="lto_module_is_object_file_in_memory", library="LLVM.dll")]
-def lto_module_is_object_file_in_memory(mem : void const? implicit; length : uint64) : bool {}
-[extern(cdecl, late, name="lto_module_is_object_file_in_memory_for_target", library="LLVM.dll")]
-def lto_module_is_object_file_in_memory_for_target(mem : void const? implicit; length : uint64; target_triple_prefix : string implicit) : bool {}
-[extern(cdecl, late, name="lto_module_create", library="LLVM.dll")]
-def lto_module_create(path : string implicit) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_from_memory", library="LLVM.dll")]
-def lto_module_create_from_memory(mem : void const? implicit; length : uint64) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_from_memory_with_path", library="LLVM.dll")]
-def lto_module_create_from_memory_with_path(mem : void const? implicit; length : uint64; path : string implicit) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_in_local_context", library="LLVM.dll")]
-def lto_module_create_in_local_context(mem : void const? implicit; length : uint64; path : string implicit) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_in_codegen_context", library="LLVM.dll")]
-def lto_module_create_in_codegen_context(mem : void const? implicit; length : uint64; path : string implicit; cg : LLVMOpaqueLTOCodeGenerator? implicit) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_from_fd", library="LLVM.dll")]
-def lto_module_create_from_fd(fd : int; path : string implicit; file_size : uint64) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_create_from_fd_at_offset", library="LLVM.dll")]
-def lto_module_create_from_fd_at_offset(fd : int; path : string implicit; file_size : uint64; map_size : uint64; offset : int64) : LLVMOpaqueLTOModule? {}
-[extern(cdecl, late, name="lto_module_dispose", library="LLVM.dll")]
-def lto_module_dispose(mod : LLVMOpaqueLTOModule? implicit) : void {}
-[extern(cdecl, late, name="lto_module_get_target_triple", library="LLVM.dll")]
-def lto_module_get_target_triple(mod : LLVMOpaqueLTOModule? implicit) : string {}
-[extern(cdecl, late, name="lto_module_set_target_triple", library="LLVM.dll")]
-def lto_module_set_target_triple(mod : LLVMOpaqueLTOModule? implicit; triple : string implicit) : void {}
-[extern(cdecl, late, name="lto_module_get_num_symbols", library="LLVM.dll")]
-def lto_module_get_num_symbols(mod : LLVMOpaqueLTOModule? implicit) : uint {}
-[extern(cdecl, late, name="lto_module_get_symbol_name", library="LLVM.dll")]
-def lto_module_get_symbol_name(mod : LLVMOpaqueLTOModule? implicit; index : uint) : string {}
-[extern(cdecl, late, name="lto_module_get_symbol_attribute", library="LLVM.dll")]
-def lto_module_get_symbol_attribute(mod : LLVMOpaqueLTOModule? implicit; index : uint) : lto_symbol_attributes {}
-[extern(cdecl, late, name="lto_module_get_linkeropts", library="LLVM.dll")]
-def lto_module_get_linkeropts(mod : LLVMOpaqueLTOModule? implicit) : string {}
-[extern(cdecl, late, name="lto_module_get_macho_cputype", library="LLVM.dll")]
-def lto_module_get_macho_cputype(mod : LLVMOpaqueLTOModule? implicit; out_cputype : uint? implicit; out_cpusubtype : uint? implicit) : bool {}
-[extern(cdecl, late, name="lto_module_has_ctor_dtor", library="LLVM.dll")]
-def lto_module_has_ctor_dtor(mod : LLVMOpaqueLTOModule? implicit) : bool {}
-[extern(cdecl, late, name="lto_codegen_create", library="LLVM.dll")]
-def lto_codegen_create() : LLVMOpaqueLTOCodeGenerator? {}
-[extern(cdecl, late, name="lto_codegen_create_in_local_context", library="LLVM.dll")]
-def lto_codegen_create_in_local_context() : LLVMOpaqueLTOCodeGenerator? {}
-[extern(cdecl, late, name="lto_codegen_dispose", library="LLVM.dll")]
-def lto_codegen_dispose(_argument_0x0 : LLVMOpaqueLTOCodeGenerator? implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_add_module", library="LLVM.dll")]
-def lto_codegen_add_module(cg : LLVMOpaqueLTOCodeGenerator? implicit; mod : LLVMOpaqueLTOModule? implicit) : bool {}
-[extern(cdecl, late, name="lto_codegen_set_module", library="LLVM.dll")]
-def lto_codegen_set_module(cg : LLVMOpaqueLTOCodeGenerator? implicit; mod : LLVMOpaqueLTOModule? implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_set_debug_model", library="LLVM.dll")]
-def lto_codegen_set_debug_model(cg : LLVMOpaqueLTOCodeGenerator? implicit; _argument_0x1 : lto_debug_model) : bool {}
-[extern(cdecl, late, name="lto_codegen_set_pic_model", library="LLVM.dll")]
-def lto_codegen_set_pic_model(cg : LLVMOpaqueLTOCodeGenerator? implicit; _argument_0x1 : lto_codegen_model) : bool {}
-[extern(cdecl, late, name="lto_codegen_set_cpu", library="LLVM.dll")]
-def lto_codegen_set_cpu(cg : LLVMOpaqueLTOCodeGenerator? implicit; cpu : string implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_set_assembler_path", library="LLVM.dll")]
-def lto_codegen_set_assembler_path(cg : LLVMOpaqueLTOCodeGenerator? implicit; path : string implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_set_assembler_args", library="LLVM.dll")]
-def lto_codegen_set_assembler_args(cg : LLVMOpaqueLTOCodeGenerator? implicit; args : string? implicit; nargs : int) : void {}
-[extern(cdecl, late, name="lto_codegen_add_must_preserve_symbol", library="LLVM.dll")]
-def lto_codegen_add_must_preserve_symbol(cg : LLVMOpaqueLTOCodeGenerator? implicit; symbol : string implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_write_merged_modules", library="LLVM.dll")]
-def lto_codegen_write_merged_modules(cg : LLVMOpaqueLTOCodeGenerator? implicit; path : string implicit) : bool {}
-[extern(cdecl, late, name="lto_codegen_compile", library="LLVM.dll")]
-def lto_codegen_compile(cg : LLVMOpaqueLTOCodeGenerator? implicit; length : uint64? implicit) : void const? {}
-[extern(cdecl, late, name="lto_codegen_compile_to_file", library="LLVM.dll")]
-def lto_codegen_compile_to_file(cg : LLVMOpaqueLTOCodeGenerator? implicit; name : string? implicit) : bool {}
-[extern(cdecl, late, name="lto_codegen_optimize", library="LLVM.dll")]
-def lto_codegen_optimize(cg : LLVMOpaqueLTOCodeGenerator? implicit) : bool {}
-[extern(cdecl, late, name="lto_codegen_compile_optimized", library="LLVM.dll")]
-def lto_codegen_compile_optimized(cg : LLVMOpaqueLTOCodeGenerator? implicit; length : uint64? implicit) : void const? {}
-[extern(cdecl, late, name="lto_api_version", library="LLVM.dll")]
-def lto_api_version() : uint {}
-[extern(cdecl, late, name="lto_set_debug_options", library="LLVM.dll")]
-def lto_set_debug_options(_options : string const? implicit; number : int) : void {}
-[extern(cdecl, late, name="lto_codegen_debug_options", library="LLVM.dll")]
-def lto_codegen_debug_options(cg : LLVMOpaqueLTOCodeGenerator? implicit; _argument_0x1 : string implicit) : void {}
-[extern(cdecl, late, name="lto_codegen_debug_options_array", library="LLVM.dll")]
-def lto_codegen_debug_options_array(cg : LLVMOpaqueLTOCodeGenerator? implicit; _argument_0x1 : string const? implicit; number : int) : void {}
-[extern(cdecl, late, name="lto_initialize_disassembler", library="LLVM.dll")]
-def lto_initialize_disassembler() : void {}
-[extern(cdecl, late, name="lto_codegen_set_should_internalize", library="LLVM.dll")]
-def lto_codegen_set_should_internalize(cg : LLVMOpaqueLTOCodeGenerator? implicit; ShouldInternalize : bool) : void {}
-[extern(cdecl, late, name="lto_codegen_set_should_embed_uselists", library="LLVM.dll")]
-def lto_codegen_set_should_embed_uselists(cg : LLVMOpaqueLTOCodeGenerator? implicit; ShouldEmbedUselists : bool) : void {}
-[extern(cdecl, late, name="lto_input_create", library="LLVM.dll")]
-def lto_input_create(buffer : void const? implicit; buffer_size : uint64; path : string implicit) : LLVMOpaqueLTOInput? {}
-[extern(cdecl, late, name="lto_input_dispose", library="LLVM.dll")]
-def lto_input_dispose(input : LLVMOpaqueLTOInput? implicit) : void {}
-[extern(cdecl, late, name="lto_input_get_num_dependent_libraries", library="LLVM.dll")]
-def lto_input_get_num_dependent_libraries(input : LLVMOpaqueLTOInput? implicit) : uint {}
-[extern(cdecl, late, name="lto_input_get_dependent_library", library="LLVM.dll")]
-def lto_input_get_dependent_library(input : LLVMOpaqueLTOInput? implicit; index : uint64; size : uint64? implicit) : string {}
-[extern(cdecl, late, name="lto_runtime_lib_symbols_list", library="LLVM.dll")]
-def lto_runtime_lib_symbols_list(size : uint64? implicit) : string const? {}
-[extern(cdecl, late, name="thinlto_create_codegen", library="LLVM.dll")]
-def thinlto_create_codegen() : LLVMOpaqueThinLTOCodeGenerator? {}
-[extern(cdecl, late, name="thinlto_codegen_dispose", library="LLVM.dll")]
-def thinlto_codegen_dispose(cg : LLVMOpaqueThinLTOCodeGenerator? implicit) : void {}
-[extern(cdecl, late, name="thinlto_codegen_add_module", library="LLVM.dll")]
-def thinlto_codegen_add_module(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; identifier : string implicit; data : string implicit; length : int) : void {}
-[extern(cdecl, late, name="thinlto_codegen_process", library="LLVM.dll")]
-def thinlto_codegen_process(cg : LLVMOpaqueThinLTOCodeGenerator? implicit) : void {}
-[extern(cdecl, late, name="thinlto_module_get_num_objects", library="LLVM.dll")]
-def thinlto_module_get_num_objects(cg : LLVMOpaqueThinLTOCodeGenerator? implicit) : uint {}
-[extern(cdecl, late, name="thinlto_module_get_object", library="LLVM.dll")]
-def thinlto_module_get_object(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; index : uint) : LTOObjectBuffer {}
-[extern(cdecl, late, name="thinlto_module_get_num_object_files", library="LLVM.dll")]
-def thinlto_module_get_num_object_files(cg : LLVMOpaqueThinLTOCodeGenerator? implicit) : uint {}
-[extern(cdecl, late, name="thinlto_module_get_object_file", library="LLVM.dll")]
-def thinlto_module_get_object_file(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; index : uint) : string {}
-[extern(cdecl, late, name="thinlto_codegen_set_pic_model", library="LLVM.dll")]
-def thinlto_codegen_set_pic_model(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; _argument_0x1 : lto_codegen_model) : bool {}
-[extern(cdecl, late, name="thinlto_codegen_set_savetemps_dir", library="LLVM.dll")]
-def thinlto_codegen_set_savetemps_dir(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; save_temps_dir : string implicit) : void {}
-[extern(cdecl, late, name="thinlto_set_generated_objects_dir", library="LLVM.dll")]
-def thinlto_set_generated_objects_dir(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; save_temps_dir : string implicit) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cpu", library="LLVM.dll")]
-def thinlto_codegen_set_cpu(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; cpu : string implicit) : void {}
-[extern(cdecl, late, name="thinlto_codegen_disable_codegen", library="LLVM.dll")]
-def thinlto_codegen_disable_codegen(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; disable : bool) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_codegen_only", library="LLVM.dll")]
-def thinlto_codegen_set_codegen_only(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; codegen_only : bool) : void {}
-[extern(cdecl, late, name="thinlto_debug_options", library="LLVM.dll")]
-def thinlto_debug_options(_options : string const? implicit; number : int) : void {}
-[extern(cdecl, late, name="lto_module_is_thinlto", library="LLVM.dll")]
-def lto_module_is_thinlto(mod : LLVMOpaqueLTOModule? implicit) : bool {}
-[extern(cdecl, late, name="thinlto_codegen_add_must_preserve_symbol", library="LLVM.dll")]
-def thinlto_codegen_add_must_preserve_symbol(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; name : string implicit; length : int) : void {}
-[extern(cdecl, late, name="thinlto_codegen_add_cross_referenced_symbol", library="LLVM.dll")]
-def thinlto_codegen_add_cross_referenced_symbol(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; name : string implicit; length : int) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_dir", library="LLVM.dll")]
-def thinlto_codegen_set_cache_dir(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; cache_dir : string implicit) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_pruning_interval", library="LLVM.dll")]
-def thinlto_codegen_set_cache_pruning_interval(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; interval : int) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_final_cache_size_relative_to_available_space", library="LLVM.dll")]
-def thinlto_codegen_set_final_cache_size_relative_to_available_space(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; percentage : uint) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_entry_expiration", library="LLVM.dll")]
-def thinlto_codegen_set_cache_entry_expiration(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; expiration : uint) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_size_bytes", library="LLVM.dll")]
-def thinlto_codegen_set_cache_size_bytes(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; max_size_bytes : uint) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_size_megabytes", library="LLVM.dll")]
-def thinlto_codegen_set_cache_size_megabytes(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; max_size_megabytes : uint) : void {}
-[extern(cdecl, late, name="thinlto_codegen_set_cache_size_files", library="LLVM.dll")]
-def thinlto_codegen_set_cache_size_files(cg : LLVMOpaqueThinLTOCodeGenerator? implicit; max_size_files : uint) : void {}
 [extern(cdecl, name="LLVMCreateBinary", library="LLVM.dll")]
 def LLVMCreateBinary(MemBuf : LLVMOpaqueMemoryBuffer? implicit; Context : LLVMOpaqueContext? implicit; ErrorMessage : string? implicit) : LLVMOpaqueBinary? {}
 [extern(cdecl, name="LLVMDisposeBinary", library="LLVM.dll")]
@@ -2429,60 +2267,14 @@ def LLVMIsSectionIteratorAtEnd(ObjectFile : LLVMOpaqueObjectFile? implicit; SI :
 def LLVMGetSymbols(ObjectFile : LLVMOpaqueObjectFile? implicit) : LLVMOpaqueSymbolIterator? {}
 [extern(cdecl, name="LLVMIsSymbolIteratorAtEnd", library="LLVM.dll")]
 def LLVMIsSymbolIteratorAtEnd(ObjectFile : LLVMOpaqueObjectFile? implicit; SI : LLVMOpaqueSymbolIterator? implicit) : int {}
+[extern(cdecl, name="LLVMOrcCreateObjectLinkingLayerWithInProcessMemoryManager", library="LLVM.dll")]
+def LLVMOrcCreateObjectLinkingLayerWithInProcessMemoryManager(Result : LLVMOrcOpaqueObjectLayer ?? implicit; ES : LLVMOrcOpaqueExecutionSession? implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMOrcCreateRTDyldObjectLinkingLayerWithSectionMemoryManager", library="LLVM.dll")]
 def LLVMOrcCreateRTDyldObjectLinkingLayerWithSectionMemoryManager(ES : LLVMOrcOpaqueExecutionSession? implicit) : LLVMOrcOpaqueObjectLayer? {}
+[extern(cdecl, name="LLVMOrcCreateRTDyldObjectLinkingLayerWithSectionMemoryManagerReserveAlloc", library="LLVM.dll")]
+def LLVMOrcCreateRTDyldObjectLinkingLayerWithSectionMemoryManagerReserveAlloc(ES : LLVMOrcOpaqueExecutionSession? implicit; ReserveAlloc : int) : LLVMOrcOpaqueObjectLayer? {}
 [extern(cdecl, name="LLVMOrcRTDyldObjectLinkingLayerRegisterJITEventListener", library="LLVM.dll")]
 def LLVMOrcRTDyldObjectLinkingLayerRegisterJITEventListener(RTDyldObjLinkingLayer : LLVMOrcOpaqueObjectLayer? implicit; Listener : LLVMOpaqueJITEventListener? implicit) : void {}
-[extern(cdecl, late, name="LLVMRemarkStringGetData", library="LLVM.dll")]
-def LLVMRemarkStringGetData(String : LLVMRemarkOpaqueString? implicit) : string {}
-[extern(cdecl, late, name="LLVMRemarkStringGetLen", library="LLVM.dll")]
-def LLVMRemarkStringGetLen(String : LLVMRemarkOpaqueString? implicit) : uint {}
-[extern(cdecl, late, name="LLVMRemarkDebugLocGetSourceFilePath", library="LLVM.dll")]
-def LLVMRemarkDebugLocGetSourceFilePath(DL : LLVMRemarkOpaqueDebugLoc? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkDebugLocGetSourceLine", library="LLVM.dll")]
-def LLVMRemarkDebugLocGetSourceLine(DL : LLVMRemarkOpaqueDebugLoc? implicit) : uint {}
-[extern(cdecl, late, name="LLVMRemarkDebugLocGetSourceColumn", library="LLVM.dll")]
-def LLVMRemarkDebugLocGetSourceColumn(DL : LLVMRemarkOpaqueDebugLoc? implicit) : uint {}
-[extern(cdecl, late, name="LLVMRemarkArgGetKey", library="LLVM.dll")]
-def LLVMRemarkArgGetKey(Arg : LLVMRemarkOpaqueArg? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkArgGetValue", library="LLVM.dll")]
-def LLVMRemarkArgGetValue(Arg : LLVMRemarkOpaqueArg? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkArgGetDebugLoc", library="LLVM.dll")]
-def LLVMRemarkArgGetDebugLoc(Arg : LLVMRemarkOpaqueArg? implicit) : LLVMRemarkOpaqueDebugLoc? {}
-[extern(cdecl, late, name="LLVMRemarkEntryDispose", library="LLVM.dll")]
-def LLVMRemarkEntryDispose(Remark : LLVMRemarkOpaqueEntry? implicit) : void {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetType", library="LLVM.dll")]
-def LLVMRemarkEntryGetType(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkType {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetPassName", library="LLVM.dll")]
-def LLVMRemarkEntryGetPassName(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetRemarkName", library="LLVM.dll")]
-def LLVMRemarkEntryGetRemarkName(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetFunctionName", library="LLVM.dll")]
-def LLVMRemarkEntryGetFunctionName(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueString? {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetDebugLoc", library="LLVM.dll")]
-def LLVMRemarkEntryGetDebugLoc(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueDebugLoc? {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetHotness", library="LLVM.dll")]
-def LLVMRemarkEntryGetHotness(Remark : LLVMRemarkOpaqueEntry? implicit) : uint64 {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetNumArgs", library="LLVM.dll")]
-def LLVMRemarkEntryGetNumArgs(Remark : LLVMRemarkOpaqueEntry? implicit) : uint {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetFirstArg", library="LLVM.dll")]
-def LLVMRemarkEntryGetFirstArg(Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueArg? {}
-[extern(cdecl, late, name="LLVMRemarkEntryGetNextArg", library="LLVM.dll")]
-def LLVMRemarkEntryGetNextArg(It : LLVMRemarkOpaqueArg? implicit; Remark : LLVMRemarkOpaqueEntry? implicit) : LLVMRemarkOpaqueArg? {}
-[extern(cdecl, late, name="LLVMRemarkParserCreateYAML", library="LLVM.dll")]
-def LLVMRemarkParserCreateYAML(Buf : void const? implicit; Size : uint64) : LLVMRemarkOpaqueParser? {}
-[extern(cdecl, late, name="LLVMRemarkParserCreateBitstream", library="LLVM.dll")]
-def LLVMRemarkParserCreateBitstream(Buf : void const? implicit; Size : uint64) : LLVMRemarkOpaqueParser? {}
-[extern(cdecl, late, name="LLVMRemarkParserGetNext", library="LLVM.dll")]
-def LLVMRemarkParserGetNext(Parser : LLVMRemarkOpaqueParser? implicit) : LLVMRemarkOpaqueEntry? {}
-[extern(cdecl, late, name="LLVMRemarkParserHasError", library="LLVM.dll")]
-def LLVMRemarkParserHasError(Parser : LLVMRemarkOpaqueParser? implicit) : int {}
-[extern(cdecl, late, name="LLVMRemarkParserGetErrorMessage", library="LLVM.dll")]
-def LLVMRemarkParserGetErrorMessage(Parser : LLVMRemarkOpaqueParser? implicit) : string {}
-[extern(cdecl, late, name="LLVMRemarkParserDispose", library="LLVM.dll")]
-def LLVMRemarkParserDispose(Parser : LLVMRemarkOpaqueParser? implicit) : void {}
-[extern(cdecl, late, name="LLVMRemarkVersion", library="LLVM.dll")]
-def LLVMRemarkVersion() : uint {}
 [extern(cdecl, name="LLVMLoadLibraryPermanently", library="LLVM.dll")]
 def LLVMLoadLibraryPermanently(Filename : string implicit) : int {}
 [extern(cdecl, name="LLVMParseCommandLineOptions", library="LLVM.dll")]
@@ -2491,40 +2283,18 @@ def LLVMParseCommandLineOptions(argc : int; argv : string const? implicit; Overv
 def LLVMSearchForAddressOfSymbol(symbolName : string implicit) : void? {}
 [extern(cdecl, name="LLVMAddSymbol", library="LLVM.dll")]
 def LLVMAddSymbol(symbolName : string implicit; symbolValue : void? implicit) : void {}
-[extern(cdecl, name="LLVMAddConstantMergePass", library="LLVM.dll")]
-def LLVMAddConstantMergePass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddMergeFunctionsPass", library="LLVM.dll")]
-def LLVMAddMergeFunctionsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddCalledValuePropagationPass", library="LLVM.dll")]
-def LLVMAddCalledValuePropagationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddDeadArgEliminationPass", library="LLVM.dll")]
-def LLVMAddDeadArgEliminationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddFunctionAttrsPass", library="LLVM.dll")]
-def LLVMAddFunctionAttrsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddFunctionInliningPass", library="LLVM.dll")]
-def LLVMAddFunctionInliningPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddAlwaysInlinerPass", library="LLVM.dll")]
-def LLVMAddAlwaysInlinerPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddGlobalDCEPass", library="LLVM.dll")]
-def LLVMAddGlobalDCEPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddGlobalOptimizerPass", library="LLVM.dll")]
-def LLVMAddGlobalOptimizerPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddIPSCCPPass", library="LLVM.dll")]
-def LLVMAddIPSCCPPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddInternalizePass", library="LLVM.dll")]
-def LLVMAddInternalizePass(_argument_0x0 : LLVMOpaquePassManager? implicit; AllButMain : uint) : void {}
-[extern(cdecl, name="LLVMAddStripDeadPrototypesPass", library="LLVM.dll")]
-def LLVMAddStripDeadPrototypesPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddStripSymbolsPass", library="LLVM.dll")]
-def LLVMAddStripSymbolsPass(PM : LLVMOpaquePassManager? implicit) : void {}
 [extern(cdecl, name="LLVMRunPasses", library="LLVM.dll")]
 def LLVMRunPasses(M : LLVMOpaqueModule? implicit; Passes : string implicit; TM : LLVMOpaqueTargetMachine? implicit; Options : LLVMOpaquePassBuilderOptions? implicit) : LLVMOpaqueError? {}
+[extern(cdecl, name="LLVMRunPassesOnFunction", library="LLVM.dll")]
+def LLVMRunPassesOnFunction(F : LLVMOpaqueValue? implicit; Passes : string implicit; TM : LLVMOpaqueTargetMachine? implicit; Options : LLVMOpaquePassBuilderOptions? implicit) : LLVMOpaqueError? {}
 [extern(cdecl, name="LLVMCreatePassBuilderOptions", library="LLVM.dll")]
 def LLVMCreatePassBuilderOptions() : LLVMOpaquePassBuilderOptions? {}
 [extern(cdecl, name="LLVMPassBuilderOptionsSetVerifyEach", library="LLVM.dll")]
 def LLVMPassBuilderOptionsSetVerifyEach(Options : LLVMOpaquePassBuilderOptions? implicit; VerifyEach : int) : void {}
 [extern(cdecl, name="LLVMPassBuilderOptionsSetDebugLogging", library="LLVM.dll")]
 def LLVMPassBuilderOptionsSetDebugLogging(Options : LLVMOpaquePassBuilderOptions? implicit; DebugLogging : int) : void {}
+[extern(cdecl, name="LLVMPassBuilderOptionsSetAAPipeline", library="LLVM.dll")]
+def LLVMPassBuilderOptionsSetAAPipeline(Options : LLVMOpaquePassBuilderOptions? implicit; AAPipeline : string implicit) : void {}
 [extern(cdecl, name="LLVMPassBuilderOptionsSetLoopInterleaving", library="LLVM.dll")]
 def LLVMPassBuilderOptionsSetLoopInterleaving(Options : LLVMOpaquePassBuilderOptions? implicit; LoopInterleaving : int) : void {}
 [extern(cdecl, name="LLVMPassBuilderOptionsSetLoopVectorization", library="LLVM.dll")]
@@ -2543,119 +2313,7 @@ def LLVMPassBuilderOptionsSetLicmMssaNoAccForPromotionCap(Options : LLVMOpaquePa
 def LLVMPassBuilderOptionsSetCallGraphProfile(Options : LLVMOpaquePassBuilderOptions? implicit; CallGraphProfile : int) : void {}
 [extern(cdecl, name="LLVMPassBuilderOptionsSetMergeFunctions", library="LLVM.dll")]
 def LLVMPassBuilderOptionsSetMergeFunctions(Options : LLVMOpaquePassBuilderOptions? implicit; MergeFunctions : int) : void {}
+[extern(cdecl, name="LLVMPassBuilderOptionsSetInlinerThreshold", library="LLVM.dll")]
+def LLVMPassBuilderOptionsSetInlinerThreshold(Options : LLVMOpaquePassBuilderOptions? implicit; Threshold : int) : void {}
 [extern(cdecl, name="LLVMDisposePassBuilderOptions", library="LLVM.dll")]
 def LLVMDisposePassBuilderOptions(Options : LLVMOpaquePassBuilderOptions? implicit) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderCreate", library="LLVM.dll")]
-def LLVMPassManagerBuilderCreate() : LLVMOpaquePassManagerBuilder? {}
-[extern(cdecl, name="LLVMPassManagerBuilderDispose", library="LLVM.dll")]
-def LLVMPassManagerBuilderDispose(PMB : LLVMOpaquePassManagerBuilder? implicit) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderSetOptLevel", library="LLVM.dll")]
-def LLVMPassManagerBuilderSetOptLevel(PMB : LLVMOpaquePassManagerBuilder? implicit; OptLevel : uint) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderSetSizeLevel", library="LLVM.dll")]
-def LLVMPassManagerBuilderSetSizeLevel(PMB : LLVMOpaquePassManagerBuilder? implicit; SizeLevel : uint) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderSetDisableUnitAtATime", library="LLVM.dll")]
-def LLVMPassManagerBuilderSetDisableUnitAtATime(PMB : LLVMOpaquePassManagerBuilder? implicit; Value : int) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderSetDisableUnrollLoops", library="LLVM.dll")]
-def LLVMPassManagerBuilderSetDisableUnrollLoops(PMB : LLVMOpaquePassManagerBuilder? implicit; Value : int) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderSetDisableSimplifyLibCalls", library="LLVM.dll")]
-def LLVMPassManagerBuilderSetDisableSimplifyLibCalls(PMB : LLVMOpaquePassManagerBuilder? implicit; Value : int) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderUseInlinerWithThreshold", library="LLVM.dll")]
-def LLVMPassManagerBuilderUseInlinerWithThreshold(PMB : LLVMOpaquePassManagerBuilder? implicit; Threshold : uint) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderPopulateFunctionPassManager", library="LLVM.dll")]
-def LLVMPassManagerBuilderPopulateFunctionPassManager(PMB : LLVMOpaquePassManagerBuilder? implicit; PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMPassManagerBuilderPopulateModulePassManager", library="LLVM.dll")]
-def LLVMPassManagerBuilderPopulateModulePassManager(PMB : LLVMOpaquePassManagerBuilder? implicit; PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddAggressiveDCEPass", library="LLVM.dll")]
-def LLVMAddAggressiveDCEPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddDCEPass", library="LLVM.dll")]
-def LLVMAddDCEPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddBitTrackingDCEPass", library="LLVM.dll")]
-def LLVMAddBitTrackingDCEPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddAlignmentFromAssumptionsPass", library="LLVM.dll")]
-def LLVMAddAlignmentFromAssumptionsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddCFGSimplificationPass", library="LLVM.dll")]
-def LLVMAddCFGSimplificationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddDeadStoreEliminationPass", library="LLVM.dll")]
-def LLVMAddDeadStoreEliminationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddScalarizerPass", library="LLVM.dll")]
-def LLVMAddScalarizerPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddMergedLoadStoreMotionPass", library="LLVM.dll")]
-def LLVMAddMergedLoadStoreMotionPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddGVNPass", library="LLVM.dll")]
-def LLVMAddGVNPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddNewGVNPass", library="LLVM.dll")]
-def LLVMAddNewGVNPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddIndVarSimplifyPass", library="LLVM.dll")]
-def LLVMAddIndVarSimplifyPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddInstructionCombiningPass", library="LLVM.dll")]
-def LLVMAddInstructionCombiningPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddInstructionSimplifyPass", library="LLVM.dll")]
-def LLVMAddInstructionSimplifyPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddJumpThreadingPass", library="LLVM.dll")]
-def LLVMAddJumpThreadingPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLICMPass", library="LLVM.dll")]
-def LLVMAddLICMPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopDeletionPass", library="LLVM.dll")]
-def LLVMAddLoopDeletionPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopIdiomPass", library="LLVM.dll")]
-def LLVMAddLoopIdiomPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopRotatePass", library="LLVM.dll")]
-def LLVMAddLoopRotatePass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopRerollPass", library="LLVM.dll")]
-def LLVMAddLoopRerollPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopUnrollPass", library="LLVM.dll")]
-def LLVMAddLoopUnrollPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopUnrollAndJamPass", library="LLVM.dll")]
-def LLVMAddLoopUnrollAndJamPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLowerAtomicPass", library="LLVM.dll")]
-def LLVMAddLowerAtomicPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddMemCpyOptPass", library="LLVM.dll")]
-def LLVMAddMemCpyOptPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddPartiallyInlineLibCallsPass", library="LLVM.dll")]
-def LLVMAddPartiallyInlineLibCallsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddReassociatePass", library="LLVM.dll")]
-def LLVMAddReassociatePass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddSCCPPass", library="LLVM.dll")]
-def LLVMAddSCCPPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddScalarReplAggregatesPass", library="LLVM.dll")]
-def LLVMAddScalarReplAggregatesPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddScalarReplAggregatesPassSSA", library="LLVM.dll")]
-def LLVMAddScalarReplAggregatesPassSSA(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddScalarReplAggregatesPassWithThreshold", library="LLVM.dll")]
-def LLVMAddScalarReplAggregatesPassWithThreshold(PM : LLVMOpaquePassManager? implicit; Threshold : int) : void {}
-[extern(cdecl, name="LLVMAddSimplifyLibCallsPass", library="LLVM.dll")]
-def LLVMAddSimplifyLibCallsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddTailCallEliminationPass", library="LLVM.dll")]
-def LLVMAddTailCallEliminationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddDemoteMemoryToRegisterPass", library="LLVM.dll")]
-def LLVMAddDemoteMemoryToRegisterPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddVerifierPass", library="LLVM.dll")]
-def LLVMAddVerifierPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddCorrelatedValuePropagationPass", library="LLVM.dll")]
-def LLVMAddCorrelatedValuePropagationPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddEarlyCSEPass", library="LLVM.dll")]
-def LLVMAddEarlyCSEPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddEarlyCSEMemSSAPass", library="LLVM.dll")]
-def LLVMAddEarlyCSEMemSSAPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLowerExpectIntrinsicPass", library="LLVM.dll")]
-def LLVMAddLowerExpectIntrinsicPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLowerConstantIntrinsicsPass", library="LLVM.dll")]
-def LLVMAddLowerConstantIntrinsicsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddTypeBasedAliasAnalysisPass", library="LLVM.dll")]
-def LLVMAddTypeBasedAliasAnalysisPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddScopedNoAliasAAPass", library="LLVM.dll")]
-def LLVMAddScopedNoAliasAAPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddBasicAliasAnalysisPass", library="LLVM.dll")]
-def LLVMAddBasicAliasAnalysisPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddUnifyFunctionExitNodesPass", library="LLVM.dll")]
-def LLVMAddUnifyFunctionExitNodesPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLowerSwitchPass", library="LLVM.dll")]
-def LLVMAddLowerSwitchPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddPromoteMemoryToRegisterPass", library="LLVM.dll")]
-def LLVMAddPromoteMemoryToRegisterPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddAddDiscriminatorsPass", library="LLVM.dll")]
-def LLVMAddAddDiscriminatorsPass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddLoopVectorizePass", library="LLVM.dll")]
-def LLVMAddLoopVectorizePass(PM : LLVMOpaquePassManager? implicit) : void {}
-[extern(cdecl, name="LLVMAddSLPVectorizePass", library="LLVM.dll")]
-def LLVMAddSLPVectorizePass(PM : LLVMOpaquePassManager? implicit) : void {}

@@ -376,11 +376,21 @@ namespace das {
         return llk == this ? vis.visit(static_cast<It *>(this)) : llk;
     }
 
+    template <typename It, typename SimNodeT, bool first>
+    void ExprTableKeysOrValues<It,SimNodeT,first>::dispatch ( Visitor & vis ) {
+        vis.preVisit(static_cast<ExprLooksLikeCall*>(this));
+    }
+
     template <typename It, typename SimNodeT>
     ExpressionPtr ExprArrayCallWithSizeOrIndex<It,SimNodeT>::visit(Visitor & vis) {
         vis.preVisit(static_cast<It *>(this));
         auto llk = ExprLooksLikeCall::visit(vis);
         return llk == this ? vis.visit(static_cast<It *>(this)) : llk;
+    }
+
+    template <typename It, typename SimNodeT>
+    void ExprArrayCallWithSizeOrIndex<It,SimNodeT>::dispatch ( Visitor & vis ) {
+        vis.preVisit(static_cast<ExprLooksLikeCall*>(this));
     }
 
     template <typename TT, typename ExprConstExt>

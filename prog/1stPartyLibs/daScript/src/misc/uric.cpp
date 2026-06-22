@@ -207,7 +207,12 @@ namespace das {
         vector<char> result;
         if ( len==-1 ) len = int(strlen(fileName));
         result.resize(8 + 3*len + 1);
-        lastOp = uriWindowsFilenameToUriStringA(fileName, result.data());
+        // Normalize '/' -> '\\' so each segment is escaped; daslang passes
+        // '/'-paths and uriWindowsFilenameToUriStringA only escapes per '\\'
+        // segment (see windowsFileNameSlashesToBackslashes in uric.h).
+        string slashStorage;
+        const char * winName = windowsFileNameSlashesToBackslashes(fileName, slashStorage);
+        lastOp = uriWindowsFilenameToUriStringA(winName, result.data());
         if ( lastOp != URI_SUCCESS) return false;
         return parse(result.data());
     }

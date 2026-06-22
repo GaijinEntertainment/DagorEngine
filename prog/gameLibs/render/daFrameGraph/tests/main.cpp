@@ -5,6 +5,10 @@
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_loadSettings.h>
 #include <startup/dag_winCommons.h>
+#include <startup/dag_restart.h>
+#include <startup/dag_addBasePathDef.h>
+#include <workCycle/dag_startupModules.h>
+#include <osApiWrappers/dag_cpuJobs.h>
 #include <osApiWrappers/dag_dbgStr.h>
 #include <drv/3d/dag_driver.h>
 #include <debug/dag_logSys.h>
@@ -34,9 +38,18 @@ static int fail_test_on_err(int lev_tag, const char *fmt, const void *arg, int a
 
 #define CUSTOM_UNITTEST_CODE                                             \
   static DagorSettingsBlkHolder stgBlkHolder;                            \
-  dgs_load_settings_blk();                                               \
+  dgs_init_argv(argc, argv);                                             \
+  dagor_init_base_path();                                                \
+  dgs_load_settings_blk(false, "../../settings.blk");                    \
+  cpujobs::init();                                                       \
   d3d::init_driver();                                                    \
+  ::dagor_init_video("daFGtests", 0, nullptr, "");                       \
+  ::startup_game(RESTART_ALL);                                           \
   set_debug_console_handle((intptr_t)::GetStdHandle(STD_OUTPUT_HANDLE)); \
   original_log_callback = debug_set_log_callback(&fail_test_on_err);
+
+#define CUSTOM_UNITTEST_SHUTDOWN_CODE \
+  d3d::release_driver();              \
+  cpujobs::term(true, 1000);
 
 #include <unittest/mainCatch2.inc.cpp>

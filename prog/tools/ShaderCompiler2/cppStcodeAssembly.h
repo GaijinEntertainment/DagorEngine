@@ -51,6 +51,7 @@ struct StcodeAccumulator
 struct StcodeExpression
 {
   eastl::string content;
+  bool noGlobal = false;
 
   static constexpr char EXPR_ELEMENT_PLACEHOLDER = '?';
   static constexpr char EXPR_UNARY_OP_PLACEHOLDER = '#';

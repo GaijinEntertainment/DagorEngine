@@ -13,6 +13,7 @@
 #include <debug/dag_logSys.h>
 #include <debug/dag_debug.h>
 #include <debug/dag_except.h>
+#include <osApiWrappers/dag_dbgStr.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 
@@ -278,6 +279,10 @@ extern bool nvtt_estimate_single_rgb_color_only;
 
 void DagorWinMainInit(int, bool)
 {
+#if _TARGET_PC_LINUX
+  set_debug_console_handle((intptr_t)stdout);
+#endif
+
   screen.demandInit();
   nvtt_estimate_single_rgb_color_only = true;
 

@@ -13,7 +13,7 @@
 #include <daECS/core/utility/ecsRecreate.h>
 #include <render/renderSettings.h>
 #include <render/renderEvent.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/dynModelRenderPass.h>

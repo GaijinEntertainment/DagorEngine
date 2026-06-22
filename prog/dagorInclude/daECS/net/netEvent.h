@@ -70,7 +70,11 @@ namespace event
 {
 void init_server(ecs::EntityManager *mgr);
 void init_client(ecs::EntityManager *mgr);
+
 void shutdown();
+
+void release_claim(ecs::EntityManager *mgr);
+
 bool try_receive(const net::IMessage &msg, ecs::EntityManager &mgr, ecs::EntityId toeid); // return false if message wasn't event one
 IMessage *create_message_by_event(const ecs::Event &evt, net::Er er, IMemAlloc *alloc);
 }; // namespace event

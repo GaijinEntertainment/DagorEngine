@@ -375,6 +375,8 @@ void BinSceneViewPlugin::renderGeometry(Stage stage)
       if (streamingScene->getLandscapeVis())
         streamingScene->renderHeight();
       break;
+
+    default: break;
   }
 }
 

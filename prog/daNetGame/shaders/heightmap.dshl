@@ -310,7 +310,7 @@ shader heightmap
       USE_BRUNETON_FOG()
     } else if (lmesh_rendering_mode == rendering_landmesh)
     {
-      USE_CLIPMAP_NORMAL()
+      USE_CLIPMAP_NORMAL(false)
       USE_NORMAL_DETAIL()
       //USE_CLIPMAP_SHADOW()
       USE_UAV_RENDERING_FEEDBACK()
@@ -649,7 +649,7 @@ shader biome_query_cs
 
   INIT_BIOMES(cs)
   INIT_CLIPMAP_NORMAL_BASE(cs, false)
-  USE_CLIPMAP_NORMAL_BASE(cs, shader == rendinst_landclass)
+  USE_CLIPMAP_NORMAL_BASE(cs, shader == rendinst_landclass, false)
   USE_BIOMES(cs)
 
   (cs) {

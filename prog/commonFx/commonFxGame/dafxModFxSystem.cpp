@@ -12,7 +12,7 @@
 #include <3d/dag_texMgr.h>
 #include <daFx/dafx_loaders.hlsli>
 #include <daFx/dafx_packers.hlsli>
-#include "dafxModFx_decl.h"
+#include "dafxModFx.h"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
 #include "modfx/modfx_decl.hlsli"
@@ -280,27 +280,46 @@ int push_prebake_grad(eastl::vector<unsigned char> &out, const GradientBoxSample
   return ofs;
 }
 
-bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, // -V553
-  dafx::SystemDesc &sdesc, dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
+bool dafx_modfx_system_desc_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, ModFxSystemDesc &out_modfx_sdesc)
 {
   CHECK_FX_VERSION_OPT(ptr, len, 15);
 
-  FxTexture parTex; // If load fails we should release acquired textures at parTex load.
-  parTex.tex_0 = nullptr;
-  parTex.tex_1 = nullptr;
+#define V_load(b)                                 \
+  if (!out_modfx_sdesc.b.load(ptr, len, load_cb)) \
+    return false;
 
-#define V_load(b)                                             \
-  if (!b.load(ptr, len, load_cb))                             \
-  {                                                           \
-    if (parTex.tex_0)                                         \
-      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_0); \
-    if (parTex.tex_1)                                         \
-      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1); \
-    return false;                                             \
-  }
-#define V(a, b) \
-  a b;          \
-  V_load(b)
+  V_load(parSpawn);
+  V_load(parLife);
+  V_load(parPos);
+  V_load(parRadius);
+  V_load(parColor);
+  V_load(parRotation);
+  V_load(parVelocity);
+  V_load(parPlacement);
+  V_load(/*FxTexture*/ parTex);
+  V_load(parColorEmission);
+  V_load(parThermalEmission);
+  V_load(parLighting);
+  V_load(parRenderShape);
+  V_load(parBlending);
+  V_load(parDepthMask);
+  V_load(parRenderGroup);
+  V_load(parRenderShader);
+  V_load(parVolfogInjection);
+  V_load(parPartTrimming);
+  V_load(parGlobals);
+  V_load(parQuality);
+
+#undef V_load
+
+  return true;
+}
+
+
+bool dafx_modfx_system_load(const ModFxSystemDesc &modfx_sdesc, dafx::ContextId ctx, // -V553
+  dafx::SystemDesc &sdesc, dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
+{
+#define V(a, b) a b = modfx_sdesc.b;
 
   V(FxSpawn, parSpawn);
   V(FxLife, parLife);
@@ -310,7 +329,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   V(FxRotation, parRotation);
   V(FxVelocity, parVelocity);
   V(FxPlacement, parPlacement);
-  V_load(/*FxTexture*/ parTex);
+  V(FxTexture, parTex);
   V(FxEmission, parColorEmission);
   V(FxThermalEmission, parThermalEmission);
   V(FxLighting, parLighting);
@@ -1247,7 +1266,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       ENABLE_FLAG(sflags, MODFX_SFLAG_APPLY_PARENT_VELOCITY_LOCALLY);
     }
 
-    if (parVelocity.start.enabled && (parVelocity.start.vel_min > 0 || parVelocity.start.vel_max > 0))
+    if (parVelocity.start.enabled && (parVelocity.start.vel_min != 0 || parVelocity.start.vel_max != 0))
     {
       ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
       ENABLE_DECL(sdecl, MODFX_SDECL_RND_SEED);
@@ -1282,7 +1301,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       }
     }
 
-    if (parVelocity.add.enabled && (parVelocity.add.vel_min > 0 || parVelocity.add.vel_max > 0))
+    if (parVelocity.add.enabled && (parVelocity.add.vel_min != 0 || parVelocity.add.vel_max != 0))
     {
       ENABLE_DECL(sdecl, MODFX_SDECL_VELOCITY);
       ENABLE_DECL(sdecl, MODFX_SDECL_RND_SEED);
@@ -1537,8 +1556,6 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
         release_managed_tex(tex1);
       }
     }
-    else if (parTex.tex_1) // must release it since we don't add them to texturesPs to release later in ~DafxModFx()
-      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1);
 
     ModfxDeclFrameInfo finfo;
     finfo.frames_x = clamp(parTex.frames_x, 1, DAFX_FLIPBOOK_MAX_KEYFRAME_DIM);
@@ -1655,15 +1672,6 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
         ENABLE_MOD(rmods, MODFX_RMOD_TEX_COLOR_REMAP_DYNAMIC);
       }
     }
-  }
-  else
-  {
-    // acquire_managed_tex() was called in createGameResource() (engine/gameRes/effectGameRes.cpp) and
-    // we must release them here since we don't add them to texturesPs to release later in ~DafxModFx()
-    if (parTex.tex_0)
-      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_0);
-    if (parTex.tex_1)
-      release_managed_tex((TEXTUREID)(intptr_t)parTex.tex_1);
   }
 
   // asepct

@@ -21,7 +21,6 @@ endmacro
 
 macro USE_SW_BVH_RAYTRACING(code)
 hlsl(code) {
-  #define BVH_ORDERED_BLAS 0
   //#define OPTIMIZE_SMALL_BOXES_SQ_MUL 32//skip too small blas traversal
 }
 USE_SW_BVH_BLAS(code)

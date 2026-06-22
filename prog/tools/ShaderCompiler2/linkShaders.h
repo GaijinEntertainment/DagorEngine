@@ -60,6 +60,7 @@ struct ShadersBindump
   SerializableTab<int32_t> cppcodeRegisterTableOffsets;
   SerializableTab<shc::SerializedRefinedBlockVar> refinedBlockVars;
   SerializableTab<int32_t> refinedBlockComputedStcode;
+  SerializableTab<char> refinedBlockComputedCppExprs;
 
   // Only used if shc::config().generateCppStcodeValidationData
   SerializableTab<shader_layout::StcodeConstValidationMask *> stcodeConstMasks{};

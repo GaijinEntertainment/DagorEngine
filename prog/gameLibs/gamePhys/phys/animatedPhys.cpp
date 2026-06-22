@@ -56,7 +56,7 @@ void AnimatedPhys::appendVar(const char *var_name, const AnimV20::AnimcharBaseCo
 
 void AnimatedPhys::update(AnimV20::AnimcharBaseComponent &anim_char, PhysVars &phys_vars)
 {
-  AnimV20::IAnimStateHolder *animState = anim_char.getAnimState();
+  AnimV20::AnimGraphStateHolder *animState = anim_char.getAnimState();
   if (DAGOR_UNLIKELY(remappedVars.size() != phys_vars.getVarsCount()))
     init(anim_char, phys_vars);
   if (pullBitmap.empty())

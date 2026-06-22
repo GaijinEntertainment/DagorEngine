@@ -258,7 +258,8 @@ void DaGIImpl::fix(DaGISettings &s) const
     DaGIAlbedoScene::fixup_settings(w, d, s.albedoScene.clips);
     s.albedoScene.voxel0Size = calc_albedo_voxel_size(s.albedoScene.voxel0Size, s.sdf.voxel0Size, s.sdf.clips, s.albedoScene.clips);
     const float maxAlbedoVoxelSize = DaGIAlbedoScene::clip_voxel_size(s.albedoScene.voxel0Size, s.albedoScene.clips - 1);
-    for (; s.voxelScene.sdfResScale && s.voxelScene.clips >= 1; --s.voxelScene.clips)
+    // never reach 0, DaGIVoxelScene::init clamps clips to 1 anyway and settings must agree with it
+    for (; s.voxelScene.sdfResScale && s.voxelScene.clips > 1; --s.voxelScene.clips)
     {
       const int sdfClip = s.voxelScene.clips + s.voxelScene.firstSDFClip - 1;
       float litVoxelSize = s.voxelScene.sdfResScale * WorldSDF::get_voxel_size(s.sdf.voxel0Size, sdfClip);
@@ -760,11 +761,13 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
 #endif
   if (currentSettings.skyVisibility.clipW && skyVisibility)
   {
-    uint8_t clipD = currentSettings.skyVisibility.clipW * currentSettings.skyVisibility.yResScale;
+    // compute in int, uint8 wraps silently for tall sdf or big yResScale
+    int clipD = int(currentSettings.skyVisibility.clipW * currentSettings.skyVisibility.yResScale);
     if (clipD == 0)
     {
-      clipD = (currentSettings.skyVisibility.clipW * sdfH) / sdfW;
+      clipD = (int(currentSettings.skyVisibility.clipW) * sdfH) / sdfW;
     }
+    clipD = clamp(clipD, 8, 512);
     float skyVisProbeSize = calc_probe0_size(currentSettings.skyVisibility.clipW, clipD, currentSettings.skyVisibility.clips, sdfW,
       sdfH, worldSdf->getClipsCount(), worldSdf->getVoxelSize(0));
 
@@ -778,7 +781,9 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
   }
 
   const uint32_t skyVisibilityBufferSizeRequest = skyVisibility ? skyVisibility->getRequiredTemporalBufferSize() : 0;
-  const uint32_t requestedCommonBufferSize = eastl::max(skyVisibilityBufferSizeRequest, worldSdfBufferSizeRequest);
+  const uint32_t radianceGridBufferSizeRequest = radianceGrid ? radianceGrid->getRequiredSpatialFilterBufferSize() : 0;
+  const uint32_t requestedCommonBufferSize =
+    eastl::max(eastl::max(skyVisibilityBufferSizeRequest, worldSdfBufferSizeRequest), radianceGridBufferSizeRequest);
 
   if (requestedCommonBufferSize > 0 && (!commonTempBuffer || commonTempBuffer->getNumElements() < requestedCommonBufferSize))
   {
@@ -789,6 +794,8 @@ void DaGIImpl::beforeRender(uint32_t sw, uint32_t sh, uint32_t maxW, uint32_t ma
 
   if (skyVisibility)
     skyVisibility->setTemporalBuffer(commonTempBuffer);
+  if (radianceGrid)
+    radianceGrid->setSpatialFilterScratch(commonTempBuffer);
   worldSdf->setTemporalBuffer(commonTempBuffer);
 
   if (!radianceGrid && !skyVisibility)

@@ -116,6 +116,7 @@ void release_perline_noise_3d() {}
 void apply_united_vdata_settings(const DataBlock *) {}
 void prepare_ri_united_vdata_setup(const DataBlock *) {}
 void prepare_dynm_united_vdata_setup(const DataBlock *) {}
+void prepare_voxel_atlas_setup(const DataBlock *) {}
 
 const char *node_based_shader_current_platform_suffix() { return ""; }
 DngSkies *get_daskies() { return nullptr; }

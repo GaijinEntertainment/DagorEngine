@@ -363,7 +363,7 @@ enum FlowmapCascadeFlags
   FLOWMAP_OBSTACLES = 1 << 0,
   FLOWMAP_FOAM_SAMPLE = 1 << 1
 };
-// if detect_rivers_width <= 0 or reiversCB == 0, it won't be used
+// if detect_rivers_width <= 0 or riversCB == 0, it won't be used
 void build_distance_field(UniqueTexWithShaderVar &, int texture_size, int heightmap_texture_size, float detect_rivers_width,
   RiverRendererCB *riversCB, bool high_precision_distance_field = true, bool shore_waves_on = true);
 void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_texture_size, const Point3 &camera_pos, int cascade,

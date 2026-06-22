@@ -102,3 +102,19 @@ def test_popen_argv_arg_with_embedded_quote(t : T?) {
             "expected pre/mid/post tokens in output: {output}")
     }
 }
+
+[test]
+def test_popen_argv_child_stdin_isolated(t : T?) {
+    t |> run("child cannot read parent's stdin") @(t : T?) {
+        // Spawn the same echo fixture used by test_popen_argv_pipe. The
+        // fixture reads stdin in a loop and echoes each line. With proper
+        // stdin isolation, the child sees EOF immediately, exits cleanly
+        // with no output. Without isolation, the child would block reading
+        // from the parent's terminal/inherited stdin, hanging the test.
+        var output : string
+        let fixture = path_join(get_das_root(), "tests/mcp/_fixture_echo.das")
+        let rc = run_argv([das_exe(), "-dasroot", get_das_root(), fixture], output)
+        t |> equal(rc, 0, "child should exit cleanly")
+        t |> equal(output, "", "child should produce no output (EOF on stdin)")
+    }
+}

@@ -22,7 +22,7 @@ def test_single_archetype(t : T?) {
         t |> equal(length(decsState.allArchetypes), 1)
     }
     t |> run("correct size") @(t : T?) {
-        t |> equal(decsState.allArchetypes[0].size, 5)
+        t |> equal(decsState.allArchetypes[0].size, 5_l)
     }
     t |> run("has eid component") @(t : T?) {
         t |> success(decsState.allArchetypes[0] |> has("eid"))
@@ -70,7 +70,7 @@ def test_same_components_same_archetype(t : T?) {
         t |> equal(length(decsState.allArchetypes), 1)
     }
     t |> run("two entities in it") @(t : T?) {
-        t |> equal(decsState.allArchetypes[0].size, 2)
+        t |> equal(decsState.allArchetypes[0].size, 2_l)
     }
 }
 
@@ -87,7 +87,7 @@ def test_archetype_lookup(t : T?) {
     commit()
     t |> run("lookup table has entries") @(t : T?) {
         var count = 0
-        for (k, v in keys(decsState.archetypeLookup), values(decsState.archetypeLookup)) {
+        for (_k, _v in keys(decsState.archetypeLookup), values(decsState.archetypeLookup)) {
             count++
         }
         t |> equal(count, 2)
@@ -100,6 +100,7 @@ def test_archetype_lookup(t : T?) {
 def test_archetype_shrinks_on_delete(t : T?) {
     restart()
     var eids : array<EntityId>
+    eids |> reserve(4)
     for (i in range(4)) {
         let eid = create_entity() @(eid, cmp) {
             cmp.val := i
@@ -107,11 +108,11 @@ def test_archetype_shrinks_on_delete(t : T?) {
         eids |> push(eid)
     }
     commit()
-    t |> equal(decsState.allArchetypes[0].size, 4)
+    t |> equal(decsState.allArchetypes[0].size, 4_l)
     delete_entity(eids[1])
     delete_entity(eids[2])
     commit()
-    t |> equal(decsState.allArchetypes[0].size, 2)
+    t |> equal(decsState.allArchetypes[0].size, 2_l)
     // remaining entities still have correct data
     var vals : array<int>
     query() $(val : int) {
@@ -146,7 +147,7 @@ def test_update_entity_changes_archetype(t : T?) {
         // one of them has size 0
         var emptyCount = 0
         for (arch in decsState.allArchetypes) {
-            if (arch.size == 0) {
+            if (arch.size == 0_l) {
                 emptyCount++
             }
         }

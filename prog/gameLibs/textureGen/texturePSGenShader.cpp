@@ -878,16 +878,16 @@ static int create_constants_param_block(DataBlock &params, const DataBlock &para
     paramsSize += typeSize;
     switch (params_.getParamType(i))
     {
-      case params_.TYPE_INT: params.addInt(name, params_.getInt(i)); break;
-      case params_.TYPE_REAL: params.addReal(name, params_.getReal(i)); break;
-      case params_.TYPE_IPOINT2: params.addIPoint2(name, params_.getIPoint2(i)); break;
-      case params_.TYPE_POINT2: params.addPoint2(name, params_.getPoint2(i)); break;
-      case params_.TYPE_IPOINT3: params.addIPoint3(name, params_.getIPoint3(i)); break;
-      case params_.TYPE_IPOINT4: params.addIPoint4(name, params_.getIPoint4(i)); break;
-      case params_.TYPE_POINT3: params.addPoint3(name, params_.getPoint3(i)); break;
-      case params_.TYPE_POINT4: params.addPoint4(name, params_.getPoint4(i)); break;
-      case params_.TYPE_BOOL: params.addBool(name, params_.getBool(i)); break;
-      case params_.TYPE_E3DCOLOR: params.addE3dcolor(name, params_.getE3dcolor(i)); break;
+      case DataBlock::TYPE_INT: params.addInt(name, params_.getInt(i)); break;
+      case DataBlock::TYPE_REAL: params.addReal(name, params_.getReal(i)); break;
+      case DataBlock::TYPE_IPOINT2: params.addIPoint2(name, params_.getIPoint2(i)); break;
+      case DataBlock::TYPE_POINT2: params.addPoint2(name, params_.getPoint2(i)); break;
+      case DataBlock::TYPE_IPOINT3: params.addIPoint3(name, params_.getIPoint3(i)); break;
+      case DataBlock::TYPE_IPOINT4: params.addIPoint4(name, params_.getIPoint4(i)); break;
+      case DataBlock::TYPE_POINT3: params.addPoint3(name, params_.getPoint3(i)); break;
+      case DataBlock::TYPE_POINT4: params.addPoint4(name, params_.getPoint4(i)); break;
+      case DataBlock::TYPE_BOOL: params.addBool(name, params_.getBool(i)); break;
+      case DataBlock::TYPE_E3DCOLOR: params.addE3dcolor(name, params_.getE3dcolor(i)); break;
     }
   }
 

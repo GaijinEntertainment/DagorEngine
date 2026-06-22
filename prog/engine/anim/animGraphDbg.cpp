@@ -188,7 +188,7 @@ AnimV20::AnimcharDumpBlenderDataContext *AnimV20::AnimationGraph::createDumpBlen
 }
 void AnimV20::AnimationGraph::destroyDumpBlenderDataContext(AnimV20::AnimcharDumpBlenderDataContext *ctx) { del_it(ctx); }
 
-const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimcharDumpBlenderDataContext *ctx, IPureAnimStateHolder &st,
+const DataBlock *AnimV20::AnimationGraph::getDebugBlenderState(AnimV20::AnimcharDumpBlenderDataContext *ctx, AnimGraphStateHolder &st,
   bool dump_tm)
 {
   if (!ctx)

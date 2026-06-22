@@ -1,6 +1,9 @@
 include "wind/wind_simulation_inc.dshl"
 include "cloth_inc.dshl"
 
+int render_to_icon = 0;
+interval render_to_icon : no < 1, yes;
+
 
 
 macro INIT_CLOTH_WIND_NOISE()
@@ -305,8 +308,12 @@ macro USE_CLOTH_WIND_NORMAL_BLENDING()
 endmacro
 
 macro USE_CLOTH_WIND_VS_POST_FUNCTION(code, use_burning_and_wounds, render_pass_normal)
+  if (debug_mode_enabled == yes)
+  {
+    (code) { render_to_icon@i1 = render_to_icon; }
+  }
   hlsl(code) {
-    void get_velocity_from_additional_data(VsInput input, out float3 charCurrentVelocity, out float3 charPreviousVelocity, out float2 noiseOffset)
+    void get_velocity_from_additional_data(VsInput input, inout float3 charCurrentVelocity, inout float3 charPreviousVelocity, inout float2 noiseOffset)
     {
       uint2 offset_count = get_offset_count_additional_data(AAD_CLOTH_WIND_PARAMS);
       BRANCH
@@ -322,7 +329,13 @@ macro USE_CLOTH_WIND_VS_POST_FUNCTION(code, use_burning_and_wounds, render_pass_
       }
       else
       {
-        ##assert(false, "No additional data for cloth wind params");
+        ##if debug_mode_enabled == yes
+          BRANCH
+          if (get_render_to_icon() == 0)
+          {
+            ##assert(false, "No additional data for cloth wind params");
+          }
+        ##endif
       }
     }
   }

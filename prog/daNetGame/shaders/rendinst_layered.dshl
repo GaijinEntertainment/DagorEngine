@@ -7,6 +7,7 @@ include "hmap_blend_inc.dshl"
 include "hmap_blend_use_inc.dshl"
 include "plod_inc.dshl"
 include "rendinst_top_projection_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_layered
 {
@@ -44,6 +45,7 @@ shader rendinst_layered
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   INIT_PAINT_DETAILS_STATIC()
   if (rendinst_render_pass == rendinst_render_pass_to_shadow)
@@ -150,7 +152,7 @@ shader rendinst_layered
 
       float3 localNormal = 1;
 ##if (rendinst_render_pass != rendinst_render_pass_depth)
-        localNormal = normalize(BGR_SWIZZLE(input.normal) * 2 - 1);
+        localNormal = normalize(unpack_unit_vector(input.normal.xyz));
 ##endif
         float3 localPos = input.pos;
         float opacity = 1;
@@ -273,6 +275,7 @@ shader rendinst_mask_layered
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   INIT_RANDOMIZED_TC(vs)
   INIT_PAINT_DETAILS_STATIC()
 
@@ -371,8 +374,8 @@ shader rendinst_mask_layered
         #endif
 
         float3 localNormal = 1;
-        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
-        localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
+        localNormal = normalize(unpack_unit_vector(input.normal.xyz));
         ##endif
         float3 localPos = input.pos;
         float opacity = 1;
@@ -389,7 +392,7 @@ shader rendinst_mask_layered
           #endif
         ##endif
 
-        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo)
+        ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_impostor_voxel)
         output.normal.xyz = normalize(worldNormal.xyz);
         ##endif
 

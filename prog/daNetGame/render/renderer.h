@@ -91,7 +91,7 @@ public:
   virtual void afterDeviceReset(bool full_reset) = 0;
   virtual void windowResized() = 0;
   virtual void applySettingsChanged() = 0;
-  virtual void reloadCube(bool first) = 0;
+  virtual void scheduleEnviProbeReRender() = 0;
   virtual void setResolution() = 0;
   virtual void getRenderingResolution(int &w, int &h) const = 0;
   virtual void overrideResolution(IPoint2 res) = 0;

@@ -221,3 +221,5 @@ void dgs_apply_config_blk(const DataBlock &config_blk, bool force_apply_all, boo
 {
   dgs_apply_config_blk_ex(stg, config_blk, force_apply_all, store_cfg_copy, save_order);
 }
+
+void dgs_restore_settings_blk(const DataBlock &baseline) { stg.setFrom(&baseline); }

@@ -441,9 +441,10 @@ struct ArrayAnnotation final : das::ManagedStructureAnnotation<ecs::Array, false
     }
     if (!ati)
     {
-      auto dimType = new das::TypeDecl(*vecType);
-      dimType->ref = 0;
-      dimType->dim.push_back(1234);
+      auto elemType = new das::TypeDecl(*vecType);
+      das::gc_local<das::TypeDecl> elemGuard(elemType);
+      elemType->ref = 0;
+      das::gc_local<das::TypeDecl> dimType(das::makeFixedArrayTypeDecl(1, elemType));
       ati = helpA.makeTypeInfo(nullptr, dimType);
     }
     ecs::Array *pVec = (ecs::Array *)vec;

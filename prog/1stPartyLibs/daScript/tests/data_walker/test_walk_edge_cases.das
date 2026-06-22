@@ -79,7 +79,7 @@ def test_walk_null_pointer(t : T?) {
 def test_walk_lambda(t : T?) {
     t |> run("lambda with capture") @(t : T?) {
         var walker = new LogWalker()
-        var captured_value = 99
+        let captured_value = 99
         var lam <- @ {
             return captured_value
         }

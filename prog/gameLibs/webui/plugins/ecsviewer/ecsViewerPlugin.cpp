@@ -126,12 +126,15 @@ static String &collect_systems(bool &changed)
     process_system(systems[id], id, true);
     usedSystems.insert(systems[id]);
   }
-  ecs::iterate_systems([&](const EntitySystemDesc *sys) {
-    if (usedSystems.find(sys) == usedSystems.end())
-    {
-      process_system(sys, -1, false);
-    }
-  });
+  {
+    ecs::EsListLock::ScopedLock esListLock;
+    ecs::iterate_systems([&](const EntitySystemDesc *sys) {
+      if (usedSystems.find(sys) == usedSystems.end())
+      {
+        process_system(sys, -1, false);
+      }
+    });
+  }
 
   s += "], ";
 

@@ -64,4 +64,28 @@ __forceinline void fatal(const char *fmt, ...)
   va_end(args);
 }
 
+__forceinline float4 rb_get_f4(int32_t gid) { return internalCbTable.rbGetF4(gid); }
+__forceinline float rb_get_real(int32_t gid) { return internalCbTable.rbGetReal(gid); }
+__forceinline int32_t rb_get_int(int32_t gid) { return internalCbTable.rbGetInt(gid); }
+__forceinline void rb_get_mat44(int32_t gid, float4x4 *out) { internalCbTable.rbGetMat44(gid, out); }
+__forceinline void *rb_get_tex(int32_t gid) { return internalCbTable.rbGetTex(gid); }
+__forceinline void *rb_get_buf(int32_t gid) { return internalCbTable.rbGetBuf(gid); }
+__forceinline int4 rb_get_ivec(int32_t gid) { return internalCbTable.rbGetIvec(gid); }
+__forceinline void rb_flush_tex(int32_t stage, int32_t slot, void *tex) { internalCbTable.rbFlushTex(stage, slot, tex); }
+__forceinline void rb_flush_buf(int32_t stage, int32_t slot, void *buf) { internalCbTable.rbFlushBuf(stage, slot, buf); }
+__forceinline uint32_t rb_alloc_bindless(void *tex) { return internalCbTable.rbAllocBindless(tex); }
+__forceinline void rb_flush_bindless_tex(uint32_t bi, void *tex) { internalCbTable.rbFlushBindlessTex(bi, tex); }
+__forceinline uint64_t rb_get_sampler(int32_t gid) { return internalCbTable.rbGetSampler(gid); }
+__forceinline void *rb_get_tlas(int32_t gid) { return internalCbTable.rbGetTlas(gid); }
+__forceinline void rb_flush_cbuf(int32_t stage, int32_t slot, void *buf) { internalCbTable.rbFlushCb(stage, slot, buf); }
+__forceinline void rb_flush_sampler(int32_t stage, int32_t slot, uint64_t handle)
+{
+  internalCbTable.rbFlushSampler(stage, slot, handle);
+}
+__forceinline uint32_t rb_alloc_bindless_sampler(uint64_t handle) { return internalCbTable.rbAllocBindlessSampler(handle); }
+__forceinline void rb_flush_bindless_sampler(uint32_t bi, uint64_t handle) { internalCbTable.rbFlushBindlessSampler(bi, handle); }
+__forceinline void rb_flush_tlas(int32_t stage, int32_t slot, void *tlas) { internalCbTable.rbFlushTlas(stage, slot, tlas); }
+__forceinline void rb_flush_rwtex(int32_t stage, int32_t slot, void *tex) { internalCbTable.rbFlushRwtex(stage, slot, tex); }
+__forceinline void rb_flush_rwbuf(int32_t stage, int32_t slot, void *buf) { internalCbTable.rbFlushRwbuf(stage, slot, buf); }
+
 } // namespace stcode::cpp

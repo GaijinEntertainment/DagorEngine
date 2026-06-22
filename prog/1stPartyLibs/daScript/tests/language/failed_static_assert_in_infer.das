@@ -2,7 +2,7 @@ options gen2
 options no_coverage
 // options log=true,log_infer_passes=false,log_optimization_passes=true,optimize=true
 
-expect 40100
+expect 31403
 
 def fold(a : array<auto(numt)>; var from : numt) {
     for (x in a) {

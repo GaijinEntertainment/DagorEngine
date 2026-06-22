@@ -125,10 +125,10 @@ namespace das {
     class DAS_API AnyHeapAllocator {
     public:
         virtual ~AnyHeapAllocator() = default;
-        virtual bool breakOnFree ( void *, uint32_t ) { return false; }
-        virtual char * impl_allocate ( uint32_t ) = 0;
-        virtual void impl_free ( char *, uint32_t ) = 0;
-        virtual char * impl_reallocate ( char *, uint32_t, uint32_t ) = 0;
+        virtual bool breakOnFree ( void *, uint64_t ) { return false; }
+        virtual char * impl_allocate ( uint64_t ) = 0;
+        virtual void impl_free ( char *, uint64_t ) = 0;
+        virtual char * impl_reallocate ( char *, uint64_t, uint64_t ) = 0;
         virtual int depth() const = 0;
         virtual uint64_t bytesAllocated() const = 0;
         virtual uint64_t totalAlignedMemoryAllocated() const = 0;
@@ -136,12 +136,12 @@ namespace das {
         virtual void shrink() = 0; // shrink usually means release unused memory back to OS, works better for linear allocators after reset
         virtual void report() = 0;
         virtual bool mark() = 0;
-        virtual bool mark ( char * ptr, uint32_t size ) = 0;
+        virtual bool mark ( char * ptr, uint64_t size ) = 0;
         virtual void sweep() = 0;
-        virtual bool isOwnPtr ( char * ptr, uint32_t size ) = 0;
-        virtual bool isValidPtr ( char * ptr, uint32_t size ) = 0;  // only if isOwnPtr
-        virtual void setInitialSize ( uint32_t size ) = 0;
-        virtual int32_t getInitialSize() const = 0;
+        virtual bool isOwnPtr ( char * ptr, uint64_t size ) = 0;
+        virtual bool isValidPtr ( char * ptr, uint64_t size ) = 0;  // only if isOwnPtr
+        virtual void setInitialSize ( uint64_t size ) = 0;
+        virtual int64_t getInitialSize() const = 0;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) = 0;
         __forceinline void setLimit ( uint64_t l ) { limit = l; }
         __forceinline uint64_t getLimit() const { return limit; }
@@ -184,7 +184,7 @@ namespace das {
         __forceinline bool isTrackingAllocations() const { return trackAllocations; }
     public:
         char * allocateName ( const string & name );
-        char * impl_allocateIterator ( uint32_t size, const char * name="", const LineInfo * info=nullptr );
+        char * impl_allocateIterator ( uint64_t size, const char * name="", const LineInfo * info=nullptr );
         void   impl_freeIterator ( char * ptr );
     protected:
         uint64_t limit = 0;
@@ -225,11 +225,11 @@ namespace das {
         virtual void reset() override;
         virtual void shrink() override;
     public:
-        char * impl_allocateString ( Context * context, const char * text, uint32_t length, const LineInfo * at = nullptr );
-        void impl_freeString ( char * text, uint32_t length );
+        char * impl_allocateString ( Context * context, const char * text, uint64_t length, const LineInfo * at = nullptr );
+        void impl_freeString ( char * text, uint64_t length );
         void setIntern ( bool on );
         bool isIntern() const { return needIntern; }
-        char * intern ( const char * str, uint32_t length ) const;
+        char * intern ( const char * str, uint64_t length ) const;
         void recognize ( char * str );
     protected:
         das_string_set internMap;
@@ -243,29 +243,29 @@ namespace das {
     class DAS_API PersistentHeapAllocator final : public AnyHeapAllocator {
 #if DAS_HEAP_DEBUGGER_BREAK_ON_FREE
         void * breakFreeAddr = nullptr;
-        uint32_t breakFreeSize = 0;
+        uint64_t breakFreeSize = 0;
     public:
-        virtual bool breakOnFree ( void * ptr, uint32_t size ) {
+        virtual bool breakOnFree ( void * ptr, uint64_t size ) {
             size = (size + 15) & ~15;
             breakFreeAddr = ptr;
             breakFreeSize = size;
             return true;
         }
-        virtual void free ( char * ptr, uint32_t size ) override {
+        virtual void free ( char * ptr, uint64_t size ) override {
             if ( ptr==breakFreeAddr ) os_debug_break();
             model.free(ptr,size);
         }
         virtual void sweep() override {
             model.sweep();
             if ( breakFreeAddr!=nullptr && !model.isAllocatedPtr((char *)breakFreeAddr,breakFreeSize) ) {
-                printf("COLLECTED: breakFreeAddr = %p, breakFreeSize = %u\n", breakFreeAddr, breakFreeSize);
+                printf("COLLECTED: breakFreeAddr = %p, breakFreeSize = %llu\n", breakFreeAddr, (unsigned long long)breakFreeSize);
                 breakFreeAddr = nullptr;
                 breakFreeSize = 0;
             }
         }
 #else
     public:
-        virtual void impl_free ( char * ptr, uint32_t size ) override {
+        virtual void impl_free ( char * ptr, uint64_t size ) override {
             totalBytesDeleted += size;
             model.free(ptr,size);
         }
@@ -273,8 +273,8 @@ namespace das {
 #endif
     public:
         PersistentHeapAllocator();
-        virtual char * impl_allocate ( uint32_t size ) override;
-        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override;
+        virtual char * impl_allocate ( uint64_t size ) override;
+        virtual char * impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) override;
         virtual int depth() const override;
         virtual uint64_t bytesAllocated() const override;
         virtual uint64_t totalAlignedMemoryAllocated() const override;
@@ -282,11 +282,11 @@ namespace das {
         virtual void shrink() override { model.shrink(); }
         virtual void report() override;
         virtual bool mark() override;
-        virtual bool mark ( char * ptr, uint32_t size ) override;
-        virtual bool isOwnPtr ( char * ptr, uint32_t size ) override;
-        virtual bool isValidPtr ( char * ptr, uint32_t size ) override;
-        virtual void setInitialSize ( uint32_t size ) override;
-        virtual int32_t getInitialSize() const override;
+        virtual bool mark ( char * ptr, uint64_t size ) override;
+        virtual bool isOwnPtr ( char * ptr, uint64_t size ) override;
+        virtual bool isValidPtr ( char * ptr, uint64_t size ) override;
+        virtual void setInitialSize ( uint64_t size ) override;
+        virtual int64_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
         virtual void setTrackAllocations ( bool on ) override {
             AnyHeapAllocator::setTrackAllocations(on);
@@ -304,7 +304,7 @@ namespace das {
     class DAS_API LinearHeapAllocator final : public AnyHeapAllocator {
     public:
         LinearHeapAllocator() {}
-        virtual char * impl_allocate ( uint32_t size ) override {
+        virtual char * impl_allocate ( uint64_t size ) override {
             if ( limit==0 || model.bytesAllocated()+size<=limit ) {
                 totalAllocations ++;
                 totalBytesAllocated += size;
@@ -313,8 +313,8 @@ namespace das {
                 return nullptr;
             }
         }
-        virtual void impl_free ( char * ptr, uint32_t size ) override;
-        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override;
+        virtual void impl_free ( char * ptr, uint64_t size ) override;
+        virtual char * impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) override;
         virtual int depth() const override;
         virtual uint64_t bytesAllocated() const override;
         virtual uint64_t totalAlignedMemoryAllocated() const override;
@@ -322,12 +322,12 @@ namespace das {
         virtual void shrink() override;
         virtual void report() override;
         virtual bool mark() override { return false; }
-        virtual bool mark ( char *, uint32_t ) override { DAS_ASSERT(0 && "not supported"); return false; }
+        virtual bool mark ( char *, uint64_t ) override { DAS_ASSERT(0 && "not supported"); return false; }
         virtual void sweep() override { DAS_ASSERT(0 && "not supported"); }
-        virtual bool isOwnPtr ( char * ptr, uint32_t ) override;
-        virtual bool isValidPtr ( char *, uint32_t ) override { return true; }
-        virtual void setInitialSize ( uint32_t size ) override;
-        virtual int32_t getInitialSize() const override;
+        virtual bool isOwnPtr ( char * ptr, uint64_t ) override;
+        virtual bool isValidPtr ( char *, uint64_t ) override { return true; }
+        virtual void setInitialSize ( uint64_t size ) override;
+        virtual int64_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
     protected:
         LinearChunkAllocator model;
@@ -342,12 +342,12 @@ namespace das {
     class ConstStringAllocator : public LinearChunkAllocator {
     public:
         ConstStringAllocator() { alignMask = 3; }
-        char * impl_allocateString ( const char * text, uint32_t length );
+        char * impl_allocateString ( const char * text, uint64_t length );
         __forceinline char * impl_allocateString ( const string & str ) {
-            return impl_allocateString ( str.c_str(), uint32_t(str.length()) );
+            return impl_allocateString ( str.c_str(), uint64_t(str.length()) );
         }
         virtual void reset () override;
-        char * intern ( const char * str, uint32_t length ) const;
+        char * intern ( const char * str, uint64_t length ) const;
     protected:
         das_string_set internMap;
     };
@@ -355,9 +355,9 @@ namespace das {
     class DAS_API PersistentStringAllocator final : public StringHeapAllocator {
     public:
         PersistentStringAllocator();
-        virtual char * impl_allocate ( uint32_t size ) override;
-        virtual void impl_free ( char * ptr, uint32_t size ) override;
-        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override;
+        virtual char * impl_allocate ( uint64_t size ) override;
+        virtual void impl_free ( char * ptr, uint64_t size ) override;
+        virtual char * impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) override;
         virtual int depth() const override;
         virtual uint64_t bytesAllocated() const override;
         virtual uint64_t totalAlignedMemoryAllocated() const override;
@@ -366,12 +366,12 @@ namespace das {
         virtual void forEachString ( const callable<void (const char *)> & fn ) override ;
         virtual void report() override;
         virtual bool mark() override;
-        virtual bool mark ( char * ptr, uint32_t size ) override;
+        virtual bool mark ( char * ptr, uint64_t size ) override;
         virtual void sweep() override;
-        virtual bool isOwnPtr ( char * ptr, uint32_t size ) override;
-        virtual bool isValidPtr ( char * ptr, uint32_t size ) override;
-        virtual void setInitialSize ( uint32_t size ) override;
-        virtual int32_t getInitialSize() const override;
+        virtual bool isOwnPtr ( char * ptr, uint64_t size ) override;
+        virtual bool isValidPtr ( char * ptr, uint64_t size ) override;
+        virtual void setInitialSize ( uint64_t size ) override;
+        virtual int64_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
         virtual void setTrackAllocations ( bool on ) override {
             AnyHeapAllocator::setTrackAllocations(on);
@@ -389,9 +389,9 @@ namespace das {
     class DAS_API LinearStringAllocator final : public StringHeapAllocator {
     public:
         LinearStringAllocator();
-        virtual char * impl_allocate ( uint32_t size ) override;
-        virtual void impl_free ( char * ptr, uint32_t size ) override;
-        virtual char * impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) override;
+        virtual char * impl_allocate ( uint64_t size ) override;
+        virtual void impl_free ( char * ptr, uint64_t size ) override;
+        virtual char * impl_reallocate ( char * ptr, uint64_t oldSize, uint64_t newSize ) override;
         virtual int depth() const override;
         virtual uint64_t bytesAllocated() const override;
         virtual uint64_t totalAlignedMemoryAllocated() const override;
@@ -400,26 +400,26 @@ namespace das {
         virtual void forEachString ( const callable<void (const char *)> & fn ) override;
         virtual void report() override;
         virtual bool mark() override { return false; }
-        virtual bool mark ( char *, uint32_t ) override { DAS_ASSERT(0 && "not supported"); return false; }
+        virtual bool mark ( char *, uint64_t ) override { DAS_ASSERT(0 && "not supported"); return false; }
         virtual void sweep() override { DAS_ASSERT(0 && "not supported"); }
-        virtual bool isOwnPtr ( char * ptr, uint32_t ) override;
-        virtual bool isValidPtr ( char *, uint32_t ) override { return true; }
-        virtual void setInitialSize ( uint32_t size ) override;
-        virtual int32_t getInitialSize() const override;
+        virtual bool isOwnPtr ( char * ptr, uint64_t ) override;
+        virtual bool isValidPtr ( char *, uint64_t ) override { return true; }
+        virtual void setInitialSize ( uint64_t size ) override;
+        virtual int64_t getInitialSize() const override;
         virtual void setGrowFunction ( CustomGrowFunction && fun ) override;
     protected:
         LinearChunkAllocator model;
     };
 
     struct NodePrefix {
-        uint32_t    size = 0;
+        uint64_t    size = 0;
 #ifdef DAS_NO_ASSERTIONS
         uint32_t    magic;
 #else
         uint32_t    magic = 0xdeadc0de;
 #endif
-        uint32_t    padd0, padd1;
-        NodePrefix ( size_t sz ) : size(uint32_t(sz)) {}
+        uint32_t    padd0;
+        NodePrefix ( size_t sz ) : size(uint64_t(sz)) {}
     };
     static_assert(sizeof(NodePrefix)==sizeof(vec4f), "node prefix must be one alignment line");
 

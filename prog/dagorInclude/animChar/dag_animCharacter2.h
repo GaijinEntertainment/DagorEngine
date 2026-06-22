@@ -172,8 +172,8 @@ public:
 
   const AnimationGraph *getAnimGraph() const { return animGraph; }
   AnimationGraph *getAnimGraph() { return animGraph; }
-  const IAnimStateHolder *getAnimState() const { return animState.get(); }
-  IAnimStateHolder *getAnimState() { return animState.get(); }
+  const AnimGraphStateHolder *getAnimState() const { return animState.get(); }
+  AnimGraphStateHolder *getAnimState() { return animState.get(); }
   const Tab<AnimMap> &getAnimMap() const { return animMap; }
 
   // advance animation state and invalidate animation
@@ -290,7 +290,7 @@ protected:
   GeomNodeTree nodeTree, *originalNodeTree;
 
   Ptr<AnimationGraph> animGraph;
-  eastl::unique_ptr<AnimCommonStateHolder> animState;
+  eastl::unique_ptr<AnimGraphStateHolder> animState;
 
   Tab<AnimMap> animMap;
   Tab<vec4f> animMapPRS;
@@ -541,8 +541,8 @@ public:
 
   AnimationGraph *getAnimGraph() { return base.getAnimGraph(); }
   const AnimationGraph *getAnimGraph() const { return base.getAnimGraph(); }
-  IAnimStateHolder *getAnimState() { return base.getAnimState(); }
-  const IAnimStateHolder *getAnimState() const { return base.getAnimState(); }
+  AnimGraphStateHolder *getAnimState() { return base.getAnimState(); }
+  const AnimGraphStateHolder *getAnimState() const { return base.getAnimState(); }
 
   IAnimCharPostController *getPostController() const { return base.getPostController(); }
   void setPostController(IAnimCharPostController *ctrl) { base.setPostController(ctrl); }

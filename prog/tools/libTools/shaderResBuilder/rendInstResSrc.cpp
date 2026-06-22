@@ -1297,7 +1297,8 @@ static RenderableInstanceLodsResSrc::Lod merge_lods(const RenderableInstanceLods
   return result;
 }
 
-bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
+bool RenderableInstanceLodsResSrc::build(const DataBlock &blk, voxelcache::CacheDump *voxel_cache,
+  const DataBlock *default_voxel_params)
 {
   // debug("building rendInst from %s", (char*)inputFileName);
   buildImpostorDataNow = false;
@@ -1346,7 +1347,7 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
   }
 
   // add impostor transition lod
-  if (hasImpostor && blk.getNameId("transition_lod") != -1)
+  if (hasImpostor && !voxel_cache && blk.getNameId("transition_lod") != -1)
   {
     const DataBlock *block = blk.getBlockByName("transition_lod");
     int transitionRangeNameId = block->getNameId("transition_range");
@@ -1459,6 +1460,17 @@ bool RenderableInstanceLodsResSrc::build(const DataBlock &blk)
     }
 
     break; // only process lod0
+  }
+
+  // add voxel lods
+  if (voxel_cache)
+  {
+    G_ASSERT(default_voxel_params);
+    if (!buildVoxels(blk, *default_voxel_params, voxel_cache, matGather, matSubst))
+    {
+      clear_all_ptr_items(curScenes);
+      return false;
+    }
   }
 
   matGather.copyToMatSaver(matSaver, texSaver);
@@ -1594,8 +1606,17 @@ void RenderableInstanceLodsResSrc::RigidObj::presave(ShaderMeshDataSaveCB &mdcb)
 int RenderableInstanceLodsResSrc::Lod::save(mkbindump::BinDumpSaveCB &cwr, ShaderMeshDataSaveCB &mdcb)
 {
   int sz_pos = cwr.tell();
-  cwr.writePtr64e(0);
+  cwr.writeInt32e(0);
+  cwr.writeInt32e(voxelHullVerts);
   cwr.writeInt32eAt(rigid.meshData.save(cwr, mdcb, true), sz_pos);
+
+  if (voxelHullVerts != 0)
+  {
+    int surfPos = cwr.tell();
+    cwr.writeInt32e(0);
+    if (voxelSurface)
+      cwr.writeInt32eAt(voxelSurface->save(cwr), surfPos);
+  }
 
   return 8;
 }

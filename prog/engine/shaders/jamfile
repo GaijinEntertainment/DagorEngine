@@ -24,6 +24,7 @@ Sources =
   shaderMesh.cpp
   shaderMeshSimple.cpp
   shaderResUnitedData.cpp
+  atlasBlockManager.cpp
   shUtils.cpp
   shUtilsEx.cpp
   dynamicShaderHelper.cpp
@@ -47,6 +48,7 @@ Sources =
   instShaderMeshRes.cpp
   matVdata.cpp
   matVdataLoad.cpp
+  voxelSurfaceData.cpp
   shaderMeshTexLoadCtrl.cpp
   computeShaders.cpp
   meshShaders.cpp

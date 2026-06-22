@@ -31,3 +31,5 @@ enum
   GBUF_MATERIAL = 2,
   GBUF_NUM = 4
 };
+
+static constexpr int GBUF_TARGET_GLOBAL_FLAGS = TEXCF_ESRAM_ONLY;

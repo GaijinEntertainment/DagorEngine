@@ -72,11 +72,7 @@ public:
   virtual void setStickDeadZoneScale(int stick_idx, bool, float scale) override;
   virtual float getStickDeadZoneAbs(int stick_idx, bool, IGenJoystick *for_joy) const override;
 
-#if _TARGET_PC
   static constexpr int GAMEPAD_MAX = 4;
-#elif _TARGET_XBOX
-  static constexpr int GAMEPAD_MAX = 8;
-#endif
 
   virtual RetCode process(void *hwnd, unsigned msg, uintptr_t wParam, intptr_t lParam, intptr_t &result);
 
@@ -104,8 +100,6 @@ protected:
 
   static const char *gamepadName[GAMEPAD_MAX];
 
-  void initXbox();
-  void updateXboxGamepads();
   void terminateInputUpdaterThread();
 };
 } // namespace HumanInput

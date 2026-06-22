@@ -52,6 +52,10 @@ class NodeEqualChecker
     return check(l->a(), r->a()) && check(l->b(), r->b()) && check(l->c(), r->c());
   }
 
+  bool cmpCodeBlockExpr(const CodeBlockExpr *l, const CodeBlockExpr *r) const {
+    return check(l->block(), r->block());
+  }
+
   bool cmpBlock(const Block *l, const Block *r) const {
     if (l->isRoot() != r->isRoot())
       return false;
@@ -325,6 +329,10 @@ class NodeEqualChecker
     return true;
   }
 
+  bool cmpDirective(const DirectiveStmt *l, const DirectiveStmt *r) const {
+    return l->setFlags == r->setFlags && l->clearFlags == r->clearFlags && l->applyToDefault == r->applyToDefault;
+  }
+
 public:
 
   bool check(const Node *lhs, const Node *rhs) const {
@@ -360,6 +368,8 @@ public:
     case TO_BASE:
     case TO_ROOT_TABLE_ACCESS:
       return true;
+    case TO_DIRECTIVE:
+      return cmpDirective((const DirectiveStmt *)lhs, (const DirectiveStmt *)rhs);
     case TO_EXPR_STMT:
       return cmpExprStmt((const ExprStatement *)lhs, (const ExprStatement *)rhs);
 
@@ -429,6 +439,8 @@ public:
       return cmpCallExpr((const CallExpr *)lhs, (const CallExpr *)rhs);
     case TO_TERNARY:
       return cmpTernary((const TerExpr *)lhs, (const TerExpr *)rhs);
+    case TO_CODE_BLOCK_EXPR:
+      return cmpCodeBlockExpr((const CodeBlockExpr *)lhs, (const CodeBlockExpr *)rhs);
       //case TO_EXPR_MARK:
     case TO_VAR:
       return cmpVarDecl((const VarDecl *)lhs, (const VarDecl *)rhs);

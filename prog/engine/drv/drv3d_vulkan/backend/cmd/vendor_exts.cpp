@@ -34,12 +34,26 @@ TSPEC void BEContext::execCmd(const CmdExecuteFSR &cmd)
   };
 
   prepareImage(cmd.params.colorTexture);
-  prepareImage(cmd.params.depthTexture);
   prepareImage(cmd.params.motionVectors);
   prepareImage(cmd.params.exposureTexture);
   prepareImage(cmd.params.reactiveTexture);
   prepareImage(cmd.params.transparencyAndCompositionTexture);
+#if USE_ARM_ASR
+  // ARM ASR writes the upscaled image as a color attachment
+  // Using prepareImage causes false positive "reading garbage" warning (ASR transitioned layout internally but it was too late)
+  if (cmd.params.outputTexture)
+  {
+    verifyResident(cmd.params.outputTexture);
+    Backend::sync.addImageAccess(LogicAddress::forAttachmentWithLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
+      cmd.params.outputTexture, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, {0, 1, 0, 1});
+    verifyResident(cmd.params.depthTexture);
+    Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(ExtendedShaderStage::CS, RegisterType::T), cmd.params.depthTexture,
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+  }
+#else
   prepareImage(cmd.params.outputTexture);
+  prepareImage(cmd.params.depthTexture);
+#endif
 
   auto colorTexture = toPair(cmd.params.colorTexture);
   auto depthTexture = toPair(cmd.params.depthTexture);
@@ -343,6 +357,24 @@ TSPEC void BEContext::execCmd(const CmdExecuteStreamlineDLSSG &cmd)
   // DLSS modifies state in command buffer, so we must setup it back,
   // same way as if command buffer was interrupted
   onFrameCoreReset();
+#endif
+}
+
+TSPEC void BEContext::execCmd(const CmdSetDlssGEnabled &cmd)
+{
+  G_UNUSED(cmd);
+#if USE_STREAMLINE_FOR_DLSS
+  if (auto *dlss = static_cast<DLSSFrameGeneration *>(Globals::VK::loader.streamlineAdapter->getDlssGFeature(cmd.viewIndex)))
+    dlss->setEnabled(cmd.framesToGenerate);
+#endif
+}
+
+TSPEC void BEContext::execCmd(const CmdSetDlssOptions &cmd)
+{
+  G_UNUSED(cmd);
+#if USE_STREAMLINE_FOR_DLSS
+  if (auto *dlss = static_cast<DLSSWithSizeQuery *>(Globals::VK::loader.streamlineAdapter->getDlssFeature(cmd.viewIndex)))
+    dlss->setOptions(cmd.options.mode, cmd.options.outputResolution, cmd.options.useRayReconstruction, cmd.options.useLegacyModel);
 #endif
 }
 

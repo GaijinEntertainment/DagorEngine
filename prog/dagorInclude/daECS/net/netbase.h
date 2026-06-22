@@ -24,7 +24,8 @@ struct Packet;
 namespace ecs
 {
 class EntityComponentRef;
-}
+class EntityManager;
+} // namespace ecs
 
 namespace net
 {
@@ -98,6 +99,8 @@ public:
   virtual SystemAddress getIP() const = 0;
   virtual const char *getIPStr() const = 0;
   virtual bool isResponsive() const = 0;
+
+  virtual ecs::EntityManager &getEntityManager() = 0;
 };
 
 class ConnectionsIterator
@@ -139,7 +142,7 @@ INetDriver *create_net_driver_listen(const char *listenurl, int max_connections,
 INetDriver *create_net_driver_listen(const SocketDescriptor &sd, int max_connections);                       // server driver
 INetDriver *create_net_driver_connect(const char *connecturl, uint16_t protov = 0);                          // client driver
 INetDriver *create_net_driver_startup(); // client driver: binds socket, defers connect
-Connection *create_net_connection(INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query = {}); // generic net connection
+Connection *create_net_connection(ecs::EntityManager &mgr, INetDriver *drv, ConnectionId id, scope_query_cb_t &&scope_query = {});
 
 INetDriver *create_stub_net_driver();
 Connection *create_stub_connection();

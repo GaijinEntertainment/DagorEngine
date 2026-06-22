@@ -5,6 +5,10 @@
 namespace das {
 
 int32_t evalByteCode ( const ByteCode * cur, Context * ctx, LineInfoArg * at ) {
+    if ( !cur ) {
+        ctx->throw_error_at(at, "null bytecode");
+        return 0;
+    }
     int32_t a = 0, b = 0, c = 0;
     bool cmp = false;
     while ( true ) {

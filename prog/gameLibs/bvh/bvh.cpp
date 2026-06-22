@@ -17,6 +17,7 @@
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraAccess.h>
 #include <render/denoiser.h>
+#include <render/smokeTracers.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -42,6 +43,7 @@
 #include "bvh_add_instance.h"
 #include "shaders/dag_shaderVar.h"
 #include "bvh_tools.h"
+#include "bvh_particles.h"
 
 CONSOLE_INT_VAL("render", bvh_riGen_budget_us, 10000, 100, 10000);
 CONSOLE_BOOL_VAL("render", bvh_disable_parallel_instance_processing_finish, false);
@@ -62,6 +64,7 @@ extern bool bvh_grass_enable;
 extern bool bvh_particles_enable;
 extern bool bvh_cables_enable;
 extern bool bvh_splinegen_enable;
+extern bool bvh_tracers_enable;
 #endif
 
 #if BVH_PROFILING_ENABLED
@@ -223,6 +226,25 @@ void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<east
 void update_instances(ContextId context_id, const Point3 &view_pos);
 } // namespace splinegen
 
+namespace smoke_tracers
+{
+void init();
+void teardown();
+void init(ContextId context_id);
+void teardown(ContextId context_id);
+void connect(smoke_tracers_connect_callback callback);
+void update_instances();
+void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count);
+void set_source_buffers(Sbuffer *tracer_buf, Sbuffer *dynamic_buf, Sbuffer *verts_buf);
+} // namespace smoke_tracers
+
+namespace particles
+{
+void init();
+void teardown();
+void ensure_capacity(int fx_max, int smoke_tracer_max);
+} // namespace particles
+
 bool use_batched_skinned_vertex_processor = false;
 bool is_in_lost_device_state = false;
 
@@ -345,7 +367,7 @@ static void process_instance_vertices(ContextId context_id, uint64_t object_id, 
         v_mat43_transpose_to_mat44(tm44, instance->transform);
         vec4f localBounds = v_ldu(&mesh.boundingSphere.c.x);
         vec4f worldBounds = v_mat44_mul_bsph(tm44, localBounds);
-        needProcessing = instance_needs_animation(worldBounds, *frustum, view_pos, light_direction);
+        needProcessing = instance_needs_animation_broad_phase_with_distance_rate(worldBounds, *frustum, view_pos, light_direction);
       }
     }
 
@@ -501,7 +523,7 @@ public:
 
   void doJob() override
   {
-    auto vLightDir = light_direction_for_animation(lightDir);
+    auto vLightDir = v_ldu_p3_safe(&lightDir.x);
     auto itmRelative = itm;
     itmRelative.setcol(3, Point3::ZERO);
     auto frustumRelative = Frustum(TMatrix4(orthonormalized_inverse(itmRelative)) * projTm);
@@ -1078,6 +1100,8 @@ void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSet
   gobj::init();
   grass::init();
   fx::init();
+  smoke_tracers::init();
+  particles::init();
   cables::init();
   binscene::init();
   fftwater::init();
@@ -1095,6 +1119,8 @@ void teardown(bool device_reset, bool zero_bvh_ids)
   gobj::teardown();
   grass::teardown();
   fx::teardown();
+  smoke_tracers::teardown();
+  particles::teardown();
   cables::teardown();
   binscene::teardown();
   fftwater::teardown();
@@ -1122,6 +1148,7 @@ ContextId create_context(const char *name, Features features)
   dyn::init(context_id);
   grass::init(context_id);
   fx::init(context_id);
+  smoke_tracers::init(context_id);
   gpugrass::init(context_id);
   if (context_id->has(Features::Cable))
     cables::init(context_id);
@@ -1149,6 +1176,7 @@ void teardown(ContextId &context_id)
   gobj::teardown(context_id);
   grass::teardown(context_id);
   fx::teardown(context_id);
+  smoke_tracers::teardown(context_id);
   gpugrass::teardown(context_id);
   if (context_id->has(Features::Cable))
     cables::teardown(context_id);
@@ -2357,7 +2385,7 @@ static void add_instances(ContextId context_id, const Context::InstanceMap &inst
   TIME_PROFILE_NAME(addInstance, name);
   DA_PROFILE_TAG(addInstance, "Instance count: %d", instances.size());
 
-  const auto lightDirection = light_direction_for_animation(light_direction);
+  const auto lightDirection = v_ldu_p3_safe(&light_direction.x);
   auto &perInstanceData = context_id->perInstanceDataCpu;
   auto &blasUpdates = context_id->blasUpdates;
   auto &updateGeoms = context_id->updateGeoms;
@@ -2608,6 +2636,10 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   Sbuffer *fxInstanceCount = nullptr;
   fx::get_instances(context_id, fxInstances, fxInstanceCount);
 
+  Sbuffer *smokeTracerInstances = nullptr;
+  Sbuffer *smokeTracerInstanceCount = nullptr;
+  smoke_tracers::get_instances(context_id, smokeTracerInstances, smokeTracerInstanceCount);
+
   auto dgdpBuffers = dagdp::get_buffers(context_id);
   Sbuffer *dagdpInstances = dgdpBuffers.instances;
   Sbuffer *dagdpInstancesCount = dgdpBuffers.instanceCount;
@@ -2639,6 +2671,11 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     fxInstances = nullptr;
     fxInstanceCount = nullptr;
   }
+  if (!bvh_tracers_enable)
+  {
+    smokeTracerInstances = nullptr;
+    smokeTracerInstanceCount = nullptr;
+  }
   if (!bvh_cables_enable)
   {
     cableBlases = nullptr;
@@ -2651,6 +2688,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   int grassBufferSize = grassInstances ? grassInstances->getNumElements() : 0;
   int gobjBufferSize = gobjInstances ? gobjInstances->getNumElements() : 0;
   int fxBufferSize = fxInstances ? fxInstances->getNumElements() : 0;
+  int smokeTracerBufferSize = smokeTracerInstances ? smokeTracerInstances->getNumElements() : 0;
   int dagdpBufferSize = dagdpInstances ? dagdpInstances->getNumElements() : 0;
   int gpuGrassBufferSize = gpuGrassInstances ? gpuGrassInstances->getNumElements() : 0;
 
@@ -2704,7 +2742,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   context_id->tlasTerrainValid = false;
   context_id->tlasParticlesValid = false;
 
-  if (!instanceCount && !grassBufferSize && !gobjBufferSize && !fxBufferSize && !dagdpBufferSize && !gpuGrassInstances)
+  if (!instanceCount && !grassBufferSize && !gobjBufferSize && !fxBufferSize && !smokeTracerBufferSize && !dagdpBufferSize &&
+      !gpuGrassInstances)
     return;
 
   Context::RingBuffers::step();
@@ -2722,9 +2761,11 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   auto round_up = [](uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); };
 
+  const int particleBufferSize = fxBufferSize + smokeTracerBufferSize;
+
   auto uploadSizeMain = max(round_up(allInstancesCount, 1024 << 3), 1U << 17);
   auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
-  auto uploadSizeParticles = max(round_up(fxBufferSize, 1024), 1U << 13);
+  auto uploadSizeParticles = max(round_up(particleBufferSize, 1024), 1U << 13);
   auto uploadSizePerInstanceData = max(round_up(allInstancesCount, 1024), 1U << 13);
 
   if (context_id->tlasUploadMain && uploadSizeMain > context_id->tlasUploadMain->getNumElements())
@@ -3073,6 +3114,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   {
     TIME_D3D_PROFILE(copy_to_tlas_particles_upload);
     copyHwInstances(fxInstanceCount, fxInstances, context_id->tlasUploadParticles.getBuf(), fxBufferSize, 0);
+    copyHwInstances(smokeTracerInstanceCount, smokeTracerInstances, context_id->tlasUploadParticles.getBuf(), smokeTracerBufferSize,
+      fxBufferSize);
   }
 
   G_ASSERT(cpuInstanceCount <= uploadSizeMain);
@@ -3126,7 +3169,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
     context_id->tlasMainValid = context_id->tlasMain && cpuInstanceCount;
     context_id->tlasTerrainValid = context_id->tlasTerrain && terrainBlases.size();
-    context_id->tlasParticlesValid = context_id->tlasParticles && fxBufferSize;
+    context_id->tlasParticlesValid = context_id->tlasParticles && particleBufferSize;
 
     raytrace::BatchedTopAccelerationStructureBuildInfo tlasUpdate[3];
     int tlasCount = 0;
@@ -3167,7 +3210,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     if (context_id->tlasParticlesValid)
     {
       DA_PROFILE_TAG(build_tlas, "particles: %d instances", fxBufferSize);
-      fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles.getBuf(), fxBufferSize);
+      fillTlas(context_id->tlasParticles, context_id->tlasUploadParticles.getBuf(), particleBufferSize);
       CHECK_LOST_DEVICE_STATE();
     }
 
@@ -3601,6 +3644,12 @@ void ChannelParser::enum_shader_channel(int usage, int usage_index, int type, in
 
   if (texcoordFormat == VSDT_SHORT2)
     texcoordFormat = BufferProcessor::bvhAttributeShort2TC;
+  if (secTexcoordFormat == VSDT_SHORT2)
+    secTexcoordFormat = BufferProcessor::bvhAttributeShort2TC;
+  if (thirdTexcoordFormat == VSDT_SHORT2)
+    thirdTexcoordFormat = BufferProcessor::bvhAttributeShort2TC;
+  if (fourthTexcoordFormat == VSDT_SHORT2)
+    fourthTexcoordFormat = BufferProcessor::bvhAttributeShort2TC;
 #undef ATTRIB
 }
 
@@ -3690,6 +3739,21 @@ void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, ea
 }
 
 void remove_spline_gen_instances(ContextId context_id) { splinegen::teardown(context_id); }
+
+void connect_smoke_tracers(ContextId context_id, smoke_tracers_connect_callback callback)
+{
+  if (context_id->has(Features::SmokeTracers))
+    smoke_tracers::connect(callback);
+}
+
+void update_smoke_tracer_instances(SmokeTracerManager *mgr)
+{
+  if (mgr)
+    smoke_tracers::set_source_buffers(mgr->getTracerBuffer(), mgr->getDynamicBuffer(), mgr->getVertsBuffer());
+  smoke_tracers::update_instances();
+}
+
+void ensure_particle_buffer_capacity(int fx_max, int smoke_tracer_max) { particles::ensure_capacity(fx_max, smoke_tracer_max); }
 
 } // namespace bvh
 

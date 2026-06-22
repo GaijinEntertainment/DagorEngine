@@ -338,6 +338,7 @@ UseProgLibs +=
   gameLibs/ecs/os
   gameLibs/ecs/deferToAct
   engine/daECS/hierarchyTransform
+  gameLibs/ecs/net
   gameLibs/ecs/net/dasevents
   gameLibs/userSystemInfo
   gameLibs/statsd
@@ -879,7 +880,7 @@ if $(Dedicated) = yes {
 
   # link gamepad/joystick/mouse/kb drivers
   if $(IsHeadless) != yes {
-    if $(Platform) in windows macOS linux xboxOne scarlett {
+    if $(Platform) in windows macOS linux {
       UseProgLibs += engine/drv/hid_keyboard ;
     }
 
@@ -900,7 +901,7 @@ if $(Dedicated) = yes {
     } else if $(Platform) in ps4 ps5 {
       UseProgLibs += engine/drv/hid_sony ;
     } else if $(Platform) in xboxOne scarlett {
-      UseProgLibs += engine/drv/hid_gamepad_xinput ;
+      UseProgLibs += engine/drv/hid_gameinput ;
     } else if $(Platform) = iOS {
       UseProgLibs += engine/drv/hid_iOS ;
     } else if $(Platform) = android {

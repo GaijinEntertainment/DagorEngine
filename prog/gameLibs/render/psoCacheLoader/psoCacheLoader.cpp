@@ -181,18 +181,10 @@ void load_pso_cache(const char *game_version)
     pipelineSet.defaultFormat = "dx12";
     pipelineSet.inputLayoutSet = cache.getBlockByName("input_layouts");
     debug("PSO cache info. Input layouts count: %d", pipelineSet.inputLayoutSet ? pipelineSet.inputLayoutSet->blockCount() : 0);
-    pipelineSet.computePipelineSet = cache.getBlockByName("compute_pipelines");
-    debug("PSO cache info. Compute pipelines count: %d",
-      pipelineSet.computePipelineSet ? pipelineSet.computePipelineSet->blockCount() : 0);
     pipelineSet.renderStateSet = cache.getBlockByName("render_states");
     debug("PSO cache info. Render states count: %d", pipelineSet.renderStateSet ? pipelineSet.renderStateSet->blockCount() : 0);
-    pipelineSet.graphicsPipelineSet = cache.getBlockByName("graphics_pipelines");
-    debug("PSO cache info. Graphics pipelines count: %d",
-      pipelineSet.graphicsPipelineSet ? pipelineSet.graphicsPipelineSet->blockCount() : 0);
     pipelineSet.featureSet = cache.getBlockByName("features");
     debug("PSO cache info. Feature sets count: %d", pipelineSet.featureSet ? pipelineSet.featureSet->blockCount() : 0);
-    pipelineSet.meshPipelineSet = cache.getBlockByName("mesh_pipelines");
-    debug("PSO cache info. Mesh pipelines count: %d", pipelineSet.meshPipelineSet ? pipelineSet.meshPipelineSet->blockCount() : 0);
     pipelineSet.outputFormatSet = cache.getBlockByName("framebuffer_layouts");
     debug("PSO cache info. Framebuffer layouts count: %d",
       pipelineSet.outputFormatSet ? pipelineSet.outputFormatSet->blockCount() : 0);

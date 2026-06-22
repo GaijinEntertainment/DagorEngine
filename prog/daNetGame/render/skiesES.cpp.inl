@@ -66,7 +66,7 @@ static __forceinline void invalidate_skies_es(const CmdSkiesInvalidate &)
   skies->invalidatePanorama(true);
   WorldRenderer *renderer = (WorldRenderer *)get_world_renderer();
   if (renderer)
-    renderer->invalidateCubeReloadOnly();
+    renderer->scheduleEnviProbeReRender();
 }
 
 template <typename Callable>

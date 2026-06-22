@@ -1297,6 +1297,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   if (!targetCtx.refinedBlockLayout().empty())
   {
     targetCtx.refinedBlockLayout().link(remapTable);
+    targetCtx.refinedBlockLayout().generateCppStcode(targetCtx);
   }
 
   bindump::VecHolder<bindump::StrHolder<>> shader_names;
@@ -1433,6 +1434,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
   bindump::Master<shader_layout::ScriptedShadersBinDumpV5> shaders_dump;
   shaders_dump.refinedBlockStcodeId = refined_block_stcode_id;
+  shaders_dump.cppRefinedBlockStcodeId = targetCtx.refinedBlockLayout().getCppStcodeId().value_or(-1);
 
   // write dump header
   shaders_dump_compressed.header.magicPart1 = _MAKE4C('VSPS');
@@ -1498,6 +1500,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
     // Generate stcode main file w/ the final stcode hash
     save_stcode_global_vars(eastl::move(stcodeGlobvars), ctx.compInfo(), targetCtx);
+    save_stcode_refined_block(targetCtx.cppStcode(), ctx.compInfo());
     save_stcode_dll_main(eastl::move(targetCtx.cppStcode()), externalStcodeHash, ctx.compInfo());
   }
 

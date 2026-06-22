@@ -592,6 +592,7 @@ int Quadrics::optimize(int target_num_faces)
         VertexPtr::dumpset(vertSet);
 #endif
         G_ASSERT(0);
+        id_rv = -1;
     }
     // printf("remove %d to %d save=%d\n", id_rv, id_cv, v.vf);
     G_ASSERT(!removedVerts[id_rv]);

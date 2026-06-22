@@ -14,6 +14,7 @@ include "taa_inc.dshl"
 include "vertex_density_overlay_inc.dshl"
 include "tree_ellipsoid_normal.dshl"
 include "fast_grass_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 include_optional "burnt_ground/shaders/burnt_grass.dshl"
 
 define_macro_if_not_defined INIT_BURNT_GRASS()
@@ -178,6 +179,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
   }
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   ROTATION_PALETTE_FOR_POS_INST()
   INIT_TREE_ELLIPSOID_NORMAL_PARAMS()
   USE_TREE_ELLIPSOID_NORMAL()
@@ -428,7 +430,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
         float3 localNormal = 1;
         ##if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
-        localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        localNormal = normalize(unpack_unit_vector(input.normal.xyz));
         ##endif
         float3 localPos = input.pos;
         output.localPos.xyz = localPos;
@@ -439,6 +441,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         VB_PERFORM_INSTANCING
         APPLY_ROTATION_PALETTE
 
+        VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
         ##if (is_pivoted == yes && rendinst_render_pass != rendinst_render_pass_impostor_color)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 prevWorldPos = worldPos;
@@ -455,6 +458,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             ##endif
           #endif
           float3 currWorldPos = worldPos;
+          vegInput.hData = Data;
         ##endif
 
         ##if (atest == atestOn)
@@ -470,12 +474,17 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##endif
         float3 pointToEye = world_view_pos-worldPos;
 
-        APPLY_INTERACTIONS
+        vegInput.worldPivot = worldLocalPos;
+        vegInput.worldPos = worldPos;
+        vegInput.localPos = localPos;
+        vegInput.height = physBbox.y * length(worldLocalY);
+        float3 vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
+        worldPos += vegetationInteractionOffset;
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
         #ifdef MOTION_VECTORS_ENABLED
-          output.out_pos = mulPointTm(currWorldPos + camera_base_offset, globtm);
-          output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+          output.out_pos = mulPointTm(currWorldPos + vegetationInteractionOffset + camera_base_offset, globtm);
+          output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED
@@ -550,8 +559,6 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     }
 
   endmacro
-  APPLY_VEGETATION_INTERACTIONS(use_cross_dissolve == off && (interactions == interactionsTrees || interactions == interactionsBushes)
-                                && rendinst_render_pass != rendinst_render_pass_impostor_color, false)
 
   if (rendinst_render_pass == rendinst_render_pass_impostor_color)
   {
@@ -559,6 +566,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     {
       USE_PIVOT_PAINTER()
     }
+    APPLY_VEGETATION_INTERACTIONS(false, false)
     DEFAULT_VERTEX_SHADER()
     PACK_UNPACK_GBUFFER()
     USE_PIXEL_TANGENT_SPACE()
@@ -653,10 +661,6 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
       INIT_APPLY_TREE_WIND()
       USE_APPLY_TREE_WIND()
-    }
-    if (use_cross_dissolve == off)
-    {
-      USE_VEGETATION_INTERACTIONS(false)
     }
 
     if (need_tree_burning_for_leaves)
@@ -818,6 +822,8 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
   }
   else
   {
+    bool use_vegetation_interaction = use_cross_dissolve == off && (interactions == interactionsTrees || interactions == interactionsBushes);
+
     if (rendinst_render_pass != rendinst_render_pass_depth)
     {
       if (shader == rendinst_grass_alpha_split)
@@ -850,6 +856,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       {
         USE_VEGETATION_INTERACTIONS(false)
       }
+      APPLY_VEGETATION_INTERACTIONS(use_vegetation_interaction, false)
       DEFAULT_VERTEX_SHADER()
       USE_WEIGHT_FOR_AO()
       FILL_CURRENT_GBUFFER(false, true)
@@ -864,6 +871,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       {
         USE_VEGETATION_INTERACTIONS(false)
       }
+      APPLY_VEGETATION_INTERACTIONS(use_vegetation_interaction, false)
       DEFAULT_VERTEX_SHADER()
       if (need_tree_burning_for_leaves)
       {

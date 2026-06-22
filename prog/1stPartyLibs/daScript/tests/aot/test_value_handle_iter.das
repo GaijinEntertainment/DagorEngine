@@ -1,6 +1,6 @@
 options gen2
 require dastest/testing_boost public
-require fio
+require daslib/fio
 
 //! Regression: iterating a vector-like container of a value-annotation handle
 //! (ManagedValueAnnotation<T>, e.g. `clock` / `das::Time`) used to emit a value

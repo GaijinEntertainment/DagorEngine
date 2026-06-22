@@ -42,7 +42,7 @@ def shutdown() {
 def main() {
     print("live_vars_demo: running in simple mode\n")
     init()
-    for (i in range(120)) {
+    for (_i in range(120)) {
         update()
     }
     shutdown()

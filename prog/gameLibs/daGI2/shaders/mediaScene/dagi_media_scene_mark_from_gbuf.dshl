@@ -38,16 +38,18 @@ macro MEDIA_SCENE_MARK_FROM_GBUF(code)
     #include <monteCarlo.hlsl>
     #include <pcg_hash.hlsl>
 
+    //non-atomic RMW: two groups may pick the same voxel in one frame, accepted (stochastic, temporally averaged)
     void dagi_media_scene_update_color(uint cascade, int3 absCoord, float4 media, float w)
     {
       uint3 targetCoord = dagi_media_scene_wrapped_coord_from_abs_coord(absCoord);
+      uint3 atlasCoord = targetCoord + uint3(0,0,1 + cascade*dagi_media_scene_get_clip_size_with_border());
 
       //fixme: support dx11 (no typed uav)
-      float4 old = texture3DAt(dagi_media_scene, targetCoord);
+      float4 old = texture3DAt(dagi_media_scene, atlasCoord);
       if (all(old == 0))
         w = 1;
       media = lerp(old, media, w);
-      texture3DAt(dagi_media_scene, targetCoord + uint3(0,0,1 + cascade*dagi_media_scene_get_clip_size_with_border())) = media;
+      texture3DAt(dagi_media_scene, atlasCoord) = media;
       if (targetCoord.z == 0 || targetCoord.z == dagi_media_scene_get_clip_size().y - 1)//write border
       {
         texture3DAt(dagi_media_scene, uint3(targetCoord.xy, targetCoord.z ? 0 : dagi_media_scene_get_clip_size().y+1)+uint3(0,0,cascade*dagi_media_scene_get_clip_size_with_border())) = media;

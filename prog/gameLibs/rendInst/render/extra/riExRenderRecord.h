@@ -14,6 +14,8 @@ struct RIExRenderRecord
 {
   const ShaderElement *curShader;
   uint32_t prog;
+  uint32_t voxelSurfaceId;
+  uint32_t voxelDataOffset;
   shaders::RenderStateId rstate;
   ShaderStateBlockId state;
   shaders::TexStateIdx tstate;
@@ -37,6 +39,8 @@ struct RIExRenderRecord
     curShader(curShader),
     cv(cv < 0 ? ~0 : cv),
     prog(prog),
+    voxelSurfaceId(~0u),
+    voxelDataOffset(0),
     state(state_),
     rstate(rstate),
     tstate(tstate),

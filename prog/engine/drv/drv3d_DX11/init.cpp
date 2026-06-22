@@ -227,6 +227,8 @@ bool view_resizing_related_logging_enabled = true;
 bool hdr_enabled = false;
 bool command_list_wa = false;
 bool use_wait_object = true;
+ID3D11Fence *fence_progress = nullptr;
+dag::AtomicInteger<uint64_t> global_frame_progress = 0;
 eastl::optional<MemoryMetrics> memory_metrics;
 
 HWND main_window_hwnd = NULL;
@@ -250,8 +252,10 @@ IDXGI_SWAP_CHAIN *swap_chain = NULL, *secondary_swap_chain = NULL;
 ID3D11_DEV *dx_device = NULL;
 ID3D11_DEV1 *dx_device1 = NULL;
 ID3D11_DEV3 *dx_device3 = NULL;
+ID3D11_DEV5 *dx_device5 = NULL;
 ID3D11_DEVCTX *dx_context = NULL;
 ID3D11_DEVCTX1 *dx_context1 = NULL;
+ID3D11_DEVCTX4 *dx_context4 = NULL;
 ID3D11InfoQueue *pInfoQueue = nullptr;
 os_spinlock_t dx_context_cs;
 WinCritSec dx_res_cs;
@@ -1120,7 +1124,7 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
 
   unsigned int disableTdrFlag = 0;
   if (blk_dx.getBool("disableTdr", true))
-    disableTdrFlag |= 0x100; // D3D11_CREATE_DEVICE_DISABLE_GPU_TIMEOUT, supported from 11.1
+    disableTdrFlag |= D3D11_CREATE_DEVICE_DISABLE_GPU_TIMEOUT; // supported from 11.1
 
   bool afterMathEnabled = blk_dx.getBool("afterMathEnabled", false); // warning: this option influence perfomance
 
@@ -1930,6 +1934,34 @@ bool init_device(Driver3dInitCallback *cb, HWND window_hwnd, int screen_wdt, int
     DEBUG_CTX("dx11_DXGIFactory=%p", dx11_DXGIFactory);
   }
 
+  // Fences are available only on Windows 10+, so this is an optional feature.
+  // AMD-specific by default, use config to enable/disable on other vendors.
+  const bool useFenceSynchronization = blk_dx.getBool("useFenceSynchronization", g_device_desc.info.vendor == GpuVendor::AMD);
+  if (useFenceSynchronization)
+  {
+    if (SUCCEEDED(dx_context->QueryInterface(__uuidof(ID3D11DeviceContext4), (void **)&dx_context4)))
+    {
+      if (SUCCEEDED(dx_device->QueryInterface(__uuidof(ID3D11Device5), (void **)&dx_device5)))
+      {
+        if (FAILED(dx_device5->CreateFence(0, D3D11_FENCE_FLAG_NONE, __uuidof(ID3D11Fence), (void **)&fence_progress)))
+        {
+          SAFE_RELEASE(dx_device5);
+          SAFE_RELEASE(dx_context4);
+        }
+        else
+        {
+          // reset the frame progress
+          global_frame_progress.store(1, dag::mo::release);
+          debug("ID3D11Device5 is supported, GPU progress fence is created successfully");
+        }
+      }
+      else
+      {
+        SAFE_RELEASE(dx_context4);
+      }
+    }
+  }
+
   // Get target_output from current adapter again (fix oculus fullscreen on Windows 8.1).
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
@@ -2187,6 +2219,8 @@ static void close_device(bool is_reset)
   DEBUG_CP();
   SAFE_RELEASE(secondary_swap_chain);
 
+  SAFE_RELEASE(fence_progress);
+
   if (dx_context)
   {
     // If we are in shutdown, we don't need this sequence. It is described at:
@@ -2228,8 +2262,10 @@ static void close_device(bool is_reset)
   streamlineInterposer.reset();
 
   SAFE_RELEASE(dx_context1);
+  SAFE_RELEASE(dx_context4);
   SAFE_RELEASE(dx_device1);
   SAFE_RELEASE(dx_device3);
+  SAFE_RELEASE(dx_device5);
 
   DEBUG_CP();
   SAFE_RELEASE(dx_device);

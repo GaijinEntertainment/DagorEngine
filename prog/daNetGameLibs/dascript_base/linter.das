@@ -1,3 +1,4 @@
 options no_aot
+options persistent_heap
 
 require daslib/lint_everything

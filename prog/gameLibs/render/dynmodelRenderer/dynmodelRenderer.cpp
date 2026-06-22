@@ -83,6 +83,7 @@ struct DipChunk
   int numBones;
 
   int texLevel;
+  int lodNo; // for debug_mesh lod coloring
 
   // Packed/multidraw material support
   bool packedMaterial;
@@ -812,6 +813,7 @@ static void instanceToChunks(ContextData &ctx, const InstanceData &instance_data
     dip_chunk.constDataBuf = perInstanceRenderData->constDataId;
 
     dip_chunk.texLevel = desiredTexLevel;
+    dip_chunk.lodNo = max(instance_data.instanceLod, 0);
     dip_chunk.instanceOffsetRenderData = instance_offset_render_data;
 
     dip_chunk.packedMaterial = false;
@@ -1445,6 +1447,8 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
   int statConstData = 0;
   int statOverrides = 0;
 
+  const bool debugMeshColoring = debug_mesh::is_enabled();
+
   {
     TIME_PROFILE(render);
 
@@ -1537,6 +1541,9 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
         currentInstanceOffset = offsetToInstanceChunk;
       }
 
+      if (debugMeshColoring)
+        debug_mesh::set_debug_value(dipChunk.lodNo);
+
       // Do instansing if > 0 to gen inst id
       if (dipChunk.numPasses > 0)
         d3d::drawind_instanced(PRIM_TRILIST, dipChunk.si, dipChunk.numf, dipChunk.baseVertex, dipChunk.numPasses, 0);
@@ -1556,6 +1563,9 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
 
     if (currentShader)
       currentShader->setReqTexLevel();
+
+    if (debugMeshColoring)
+      debug_mesh::reset_debug_value();
   }
 
   // Multidraw rendering for packed materials
@@ -1606,7 +1616,8 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
       {
         const DipChunk &chunk = dipChunks[packedOrder[dcParams.start]];
 
-        debug_mesh::set_debug_value(chunk.texLevel);
+        if (debugMeshColoring)
+          debug_mesh::set_debug_value(chunk.lodNo);
         set_states_for_variant(chunk.shader->native(), chunk.variantState.curVar, chunk.variantState.prog, chunk.variantState.state);
 
         if (!chunk.vertexData->isEmpty())
@@ -1615,7 +1626,8 @@ static void render_stage(ContextData &ctx, ShaderMesh::Stage shader_mesh_stage)
             (vdata = chunk.vertexData)->setToDriver();
           multiDrawRenderer.render(PRIM_TRILIST, dcParams.start, dcParams.count);
         }
-        debug_mesh::reset_debug_value();
+        if (debugMeshColoring)
+          debug_mesh::reset_debug_value();
         statDip++;
       }
     }
@@ -1893,6 +1905,7 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
     dip.mergeOverrideState = false;
     dip.constDataBuf = BAD_D3DRESID;
     dip.texLevel = reqLevel;
+    dip.lodNo = lodNo;
     dip.instanceOffsetRenderData = globalInstanceOffset;
     dip.intervals = nullptr;
     dip.forcedOrder = (int)priority << 2;
@@ -1953,8 +1966,6 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
         if (ctx.instanceDataOnly)
           continue;
 
-        debug_mesh::set_debug_value(lodNo);
-
         for (uint8_t stage = start_stage; stage <= end_stage; ++stage)
         {
           for (const auto &elem : o.mesh->getMesh()->getElems(stage))
@@ -1989,7 +2000,6 @@ static void animchar_to_chunks(ContextData &ctx, uint32_t start_stage, uint32_t 
           }
         }
 
-        debug_mesh::reset_debug_value();
         ctx.statNodes++;
       }
       currentRigidNo++;

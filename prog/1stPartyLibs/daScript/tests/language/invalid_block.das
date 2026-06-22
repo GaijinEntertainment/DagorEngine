@@ -2,7 +2,7 @@
 // verifies block errors: break from captured block, block type mismatches
 // (void vs int vs float), unexpected/missing return values
 options gen2
-expect 30801, 30304:4, 32102, 32101, 30102  // invalid_block
+expect 30125, 30319, 30341:4, 30343, 31402  // invalid_block
 
 def take_any(b : block) {
     invoke(b)

@@ -292,8 +292,13 @@ ZSTD_DDict_s *zstd_create_ddict(dag::ConstSpan<char> dict_buf, bool use_buf_ref)
 {
   if (!dict_buf.size())
     return nullptr;
+#if DAGOR_ZSTD_DDICT_FORCE_OWNED_BYTES
+  G_UNUSED(use_buf_ref);
+  return ZSTD_createDDict(dict_buf.data(), dict_buf.size());
+#else
   return use_buf_ref ? ZSTD_createDDict_byReference(dict_buf.data(), dict_buf.size())
                      : ZSTD_createDDict(dict_buf.data(), dict_buf.size());
+#endif
 }
 void zstd_destroy_ddict(ZSTD_DDict_s *ddict) { ZSTD_freeDDict(ddict); }
 

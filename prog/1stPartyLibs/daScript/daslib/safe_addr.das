@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module safe_addr shared private
@@ -29,6 +27,22 @@ def public safe_addr(var x : auto(T)& ==const) : T -&?# {
 [tag_function(safe_addr_tag)]
 def public safe_addr(x : auto(T)& ==const) : T -&? const# {
     //! returns temporary pointer to the given expression
+    unsafe {
+        return reinterpret<T -&? const#>(addr(x))
+    }
+}
+
+[tag_function(safe_addr_tag)]
+def public safe_addr(var x : auto(T)[]& ==const) : T -&?# {
+    //! returns temporary pointer to the first element of a fixed array (C-style array decay)
+    unsafe {
+        return reinterpret<T -&?#>(addr(x))
+    }
+}
+
+[tag_function(safe_addr_tag)]
+def public safe_addr(x : auto(T)[]& ==const) : T -&? const# {
+    //! returns temporary pointer to the first element of a fixed array (C-style array decay)
     unsafe {
         return reinterpret<T -&? const#>(addr(x))
     }
@@ -79,9 +93,7 @@ class SharedAddrMacro : AstFunctionAnnotation {
     //! This macro reports an error if shared_addr is attempted on anything other that shared global variables.
     //! I.e. only global variables are safe to use with shared_addr.
     def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
-        if (is_shared_expr(call.arguments[0])) {
-            return true
-        }
+        if (is_shared_expr(call.arguments[0])) return true
         compiling_program() |> macro_error(call.at, "{call.name} can only be used with shared global variables")
         return false
     }
@@ -107,9 +119,7 @@ def public temp_value(var x : auto(T)& ==const) : T&# {
 class TempValueMacro : AstFunctionAnnotation {
     //! This macro reports an error if temp_value is attempted outside of function arguments.
     def override verifyCall(var call : ExprCallFunc?; args, progArgs : AnnotationArgumentList; var errors : das_string) : bool {
-        if (is_temp_safe(call.arguments[0])) {
-            return true
-        }
+        if (is_temp_safe(call.arguments[0])) return true
         compiling_program() |> macro_error(call.at, "{describe(call.arguments[0])} can't be simply promoted to temp value")
         return false
     }

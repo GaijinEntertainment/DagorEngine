@@ -203,6 +203,8 @@ protected:
 
 public:
   uint16_t nodeIndex = 0; // In allNodesList.
+  // Index into allNodesList in final post-sort order (set in sortNodesList; stays valid because
+  // rebuildNodesLL re-stamps nodeIndex = position). 0xffff = not contained by any other node.
   uint16_t insideOfNode = 0xffff;
 
 protected:
@@ -445,7 +447,8 @@ public:
     uint8_t behavior_filter = CollisionNode::TRACEABLE, const CollisionNodeMask *collision_node_mask = nullptr,
     TraceCollisionResourceStats *out_stats = nullptr) const;
 
-  // Don't use it! It's should not be external.
+  // Don't use it! It's should not be external. `node` must be the live allNodesList entry:
+  // SOLID/TRACEABLE behavior flags are read straight from it, not re-fetched from the resource.
   bool traceRayMeshNodeLocal(const CollisionNode &node, const vec4f &v_local_from, const vec4f &v_local_dir, float &in_out_t,
     vec4f *out_norm) const;
 
@@ -491,6 +494,7 @@ public:
   // It does full dispatching for collision primitives.
   // This eliminetes the ordering problem:
   // the function will find an intersection regardless of res1 and res2 order.
+  // Only MESH/BOX/SPHERE nodes participate; CAPSULE and CONVEX nodes are not tested.
   static bool testIntersection(const CollisionResource *res1, const TMatrix &tm1, const CollisionResource *res2, const TMatrix &tm2,
     Point3 &collisionPoint1, Point3 &collisionPoint2, bool checkOnlyPhysNodes = false, bool useTraceFaces = false);
 
@@ -608,6 +612,8 @@ public:
   // Decode a tri_ref_t back to its source triangle's three verts. BLAS refs (type=1) walk the quad
   // leaf at blasOffset and rebuild the sub_tri-selected triangle from vert21 (no side table);
   // non-BLAS refs (type=0) dispatch to getNodeFaceVerts on the encoded srcFace.
+  // A tri_ref_t bakes in nodeIndex, which optimize()/rebuildNodesLL re-permute on every (re)build, so a
+  // ref is valid only until the next build -- fine for ephemeral damage-model use, not for persistence.
   bool getNodeFaceVertsByRef(tri_ref_t ref, Point3 & v0, Point3 & v1, Point3 & v2) const;
 
   template <class CB> // void(int face_idx, uint16_t i0, uint16_t i1, uint16_t i2)
@@ -636,12 +642,12 @@ public:
     if (n->flags & CollisionNode::BLAS_RESIDENT)
     {
       const Grid &g = getBlasGridForResidentNode(*n);
-      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * BVH_BLAS_VERT21_STRIDE;
       const vec3f invScale = g.blasInvScale;
       const vec3f bmin = g.blasBBox.bmin;
       for (uint32_t i = 0; i < vertCount; ++i)
       {
-        vec3f q = RayData::unpackVert21(vbase + i * 8u);
+        vec3f q = RayData::unpackVert21(vbase + i * BVH_BLAS_VERT21_STRIDE);
         cb((int)i, v_madd(q, invScale, bmin));
       }
     }
@@ -664,11 +670,11 @@ public:
       // Resident nodes are always MESH; ownIndices was dropped. Walk leaves and decode each
       // sub-triangle's verts from the leaf encoding.
       const Grid &g = getBlasGridForResidentNode(*n);
-      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * 8u;
+      const uint8_t *vbase = g.blasData.data() + g.blasVertsOfs() + (size_t)n->verticesOfs * BVH_BLAS_VERT21_STRIDE;
       const vec3f invScale = g.blasInvScale;
       const vec3f bmin = g.blasBBox.bmin;
       auto unq = [vbase, invScale, bmin](uint32_t li) -> vec3f {
-        return v_madd(RayData::unpackVert21(vbase + li * 8u), invScale, bmin);
+        return v_madd(RayData::unpackVert21(vbase + li * BVH_BLAS_VERT21_STRIDE), invScale, bmin);
       };
       walkBlasResidentNodeLeavesForFaces(*n,
         [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) { cb(fi, unq(i0), unq(i1), unq(i2)); });
@@ -760,7 +766,7 @@ public:
           return false; // second per-sub-tri callback for the same quad leaf -- already emitted
         lastLeafOfs = dataOfs;
         const BlasLeafLayout L = decodeBlasLeafLayout(bData, (uint32_t)dataOfs);
-        const uint32_t v0Idx = (L.vertBytesOfs - vertsOfs) / 8u;
+        const uint32_t v0Idx = (L.vertBytesOfs - vertsOfs) / BVH_BLAS_VERT21_STRIDE;
         if (v0Idx < nodeVOfs || v0Idx >= nodeVEnd)
           return false; // sibling-node leaf
         const uint32_t baseLocal = v0Idx - nodeVOfs;
@@ -1053,9 +1059,10 @@ public:
     vec3f blasScale = {}, blasOfs = {}; // quantization frame (scale = 65535/extent, ofs = -bmin*scale)
     vec3f blasInvScale = {};            // cached 1/blasScale (per-axis), set in buildBLAS; used by all vert21 decode paths
     uint32_t blasTreeBytes = 0;         // byte size of the BVH tree portion (tree-walk bound)
-    // Byte offset of the vert21 stream in blasData. 8-aligned: MOC RenderBLAS derives vertex indices
-    // as absolute byte offset / 8 from the buffer base, so the stream must start on an 8-byte
-    // boundary (the tree's 20 B leaves leave treeBytes % 8 == 4 for odd prim counts).
+    // Byte offset of the vert21 stream in blasData. Padded to 8, but no longer required for
+    // correctness: MOC RenderBLAS now derives vertex indices relative to this stream base (passed as
+    // the vertOffset argument), so the index divide is exact at any tree size. Kept only as a potential
+    // perf aid -- it keeps every vert21 (8 B) load 8-aligned.
     uint32_t blasVertsOfs() const { return (blasTreeBytes + 7u) & ~7u; }
 
     // Per-node vert21 range table, one entry per BLAS-resident MESH node in this grid (CONVEX never

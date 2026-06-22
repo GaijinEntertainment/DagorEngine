@@ -14,7 +14,7 @@ def main() {
         token = get_env_variable("TELEGRAM_BOT_TOKEN")
     }
     if (empty(token)) {
-        fopen(".bot_token", "rb") <| $(f) {
+        fopen(".bot_token", "rb") $(f) {
             if (f != null) {
                 token = fread(f)
                 token = strip(token)

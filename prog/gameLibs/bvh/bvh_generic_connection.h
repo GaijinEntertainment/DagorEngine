@@ -4,6 +4,7 @@
 #include <3d/dag_eventQueryHolder.h>
 #include <3d/dag_lockSbuffer.h>
 #include <drv/3d/dag_rwResource.h>
+#include <generic/dag_align.h>
 #include "bvh_context.h"
 #include <bvh/bvh_connection.h>
 #include <EASTL/unordered_set.h>
@@ -30,6 +31,9 @@ struct BVHConnection : public ::BVHConnection
   bool waitOneFrame = false;
 
   int maxCount = 2;
+  // Subclasses set this to match the alignment of any shared data buffer they index into,
+  // so the HW instance buffer size (= TLAS slot count) stays in lockstep with that layout.
+  int instanceBufferAlign = 1;
 
   String name;
 
@@ -55,7 +59,8 @@ struct BVHConnection : public ::BVHConnection
         if (auto bufferData = lock_sbuffer<const uint32_t>(counterReadback.getBuf(), 0, 0, VBLOCK_READONLY))
           instanceCount = bufferData[0];
 
-        maxCount = max(maxCount, instanceCount);
+        onInstanceCountReadback(instanceCount);
+        maxCount = dag::align_up(max(maxCount, instanceCount), instanceBufferAlign);
 
         // If the buffer is to be grown, stash the current results, make the new buffer later, clear it, then copy
         // the results of this frame.
@@ -68,7 +73,7 @@ struct BVHConnection : public ::BVHConnection
 
     if (!instances)
     {
-      instances = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), maxCount,
+      instances = dag::buffers::create_ua_sr_structured(sizeof(HWInstance), dag::align_up(maxCount, instanceBufferAlign),
         String(0, "bvh_%s_instances_%d", name.data(), nameCounter++), d3d::buffers::Init::No, RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(instances, false);
     }
@@ -115,6 +120,7 @@ struct BVHConnection : public ::BVHConnection
   const UniqueBuf &getInstanceCounter() override { return counter; }
   const UniqueBuf &getInstancesBuffer() override { return instances; }
   const UniqueBuf &getMappingsBuffer() override { return metainfoMappings; }
+  int getMaxCount() const override { return maxCount; }
 
   void init() {}
 
@@ -128,6 +134,9 @@ struct BVHConnection : public ::BVHConnection
     queryInProgress = false;
     maxCount = 1;
   }
+
+protected:
+  virtual void onInstanceCountReadback(int /*instance_count*/) {}
 };
 
 } // namespace bvh

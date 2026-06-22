@@ -76,6 +76,8 @@ public:
 
   Tab<eastl::pair<uintptr_t, ShVarBool>> boolElementsEvaluationResults{};
 
+  Tab<eastl::pair<ShaderTerminal::state_block_stat *, ShaderStage>> refinedBlockStats{};
+
 private:
   enum BlockPipelineType
   {
@@ -155,6 +157,7 @@ public:
   // Cache in main pass
   void eval_external_block_stat(state_block_stat &s, ShaderStage stage);
   void eval_refined_block_var(state_block_stat &s, ShaderStage stage);
+  void processRefinedBlockVars();
   void eval_shader_locdecl(local_var_decl &s) override { preshaderSource.scalarStats.emplace_back(&s); }
 
   void eval_supports(supports_stat &s) override { preshaderSource.supportStats.emplace_back(&s); }

@@ -10,6 +10,8 @@
 #include <generic/dag_expected.h>
 #include <EASTL/variant.h>
 
+struct RaytraceTopAccelerationStructure;
+
 namespace refined_block
 {
 
@@ -18,7 +20,28 @@ struct BindlessTexVar
   BaseTexture *tex;
 };
 
-using VarValue = eastl::variant<int, float, Color4, IPoint4, TMatrix4, BaseTexture *, BindlessTexVar, Sbuffer *>;
+struct CbufVar
+{
+  Sbuffer *buf;
+};
+
+struct RWTexVar
+{
+  BaseTexture *tex;
+};
+
+struct RWBufVar
+{
+  Sbuffer *buf;
+};
+
+struct BindlessSamplerVar
+{
+  d3d::SamplerHandle handle;
+};
+
+using VarValue = eastl::variant<int, float, Color4, IPoint4, TMatrix4, BaseTexture *, BindlessTexVar, Sbuffer *, CbufVar,
+  d3d::SamplerHandle, BindlessSamplerVar, RaytraceTopAccelerationStructure *, RWTexVar, RWBufVar>;
 
 struct FlushedVar
 {
@@ -61,6 +84,8 @@ class BaseBlockHandle
   uint32_t id;
   template <typename T>
   dag::Expected<T, GetError> getByGid(int gid) const;
+  template <typename T>
+  dag::Expected<T, GetError> getById(int var_id) const;
 
 protected:
   BaseBlockHandle(uint32_t id) : id(id) {}

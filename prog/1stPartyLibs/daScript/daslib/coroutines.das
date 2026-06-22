@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module coroutines shared public
@@ -30,13 +28,9 @@ typedef Coroutines = array<Coroutine>
 def private verify_inside_coroutine(prog : ProgramPtr; call : ExprCallMacro?&) : bool {
     //! Verifies that a call macro is being used inside a [coroutine] or [async] annotated function.
     //! Returns true if valid, false if not (and emits macro_error).
-    if (call.inFunction == null) {
-        return true
-    }
+    if (call.inFunction == null) return true
     for (ann in call.inFunction.annotations) {
-        if (ann.annotation.name == "coroutine" || ann.annotation.name == "async") {
-            return true
-        }
+        if (ann.annotation.name == "coroutine" || ann.annotation.name == "async") return true
     }
     macro_error(prog, call.at, "{call.name}() can only be used inside a [coroutine] or [async] function")
     return false
@@ -71,10 +65,8 @@ class private CoContinue : AstCallMacro {
     //! That way co_continue() does not distract from the fact that it is a generator<bool>.
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         //! Visits the co_continue macro call and rewrites it to ``yield true``.
-        macro_verify(call.arguments |> length == 0, prog, call.at, "expecting co_continue()")
-        if (!verify_inside_coroutine(prog, call)) {
-            return null
-        }
+        macro_verify(empty(call.arguments), prog, call.at, "expecting co_continue()")
+        if (!verify_inside_coroutine(prog, call)) return null
         return qmacro_expr() {
             yield true
         }
@@ -92,9 +84,7 @@ class private CoAwait : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var call : ExprCallMacro?) : Expression? {
         //! Visits the co_await macro call and rewrites it into a for-yield loop over the sub-coroutine.
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting co_await(subroutine)")
-        if (!verify_inside_coroutine(prog, call)) {
-            return null
-        }
+        if (!verify_inside_coroutine(prog, call)) return null
         let iname = make_unique_private_name("_co_await_iterator", call.at)
         return qmacro_block() {
             for ($i(iname) in $e(call.arguments[0])) {
@@ -142,9 +132,7 @@ def public cr_run_all(var a : Coroutines) {
     //! This function runs all coroutines until they are finished.
     while (true) {
         var i = length(a)
-        if (i == 0) {
-            break
-        }
+        if (i == 0) break
         while (i > 0) {
             i --
             var t : bool

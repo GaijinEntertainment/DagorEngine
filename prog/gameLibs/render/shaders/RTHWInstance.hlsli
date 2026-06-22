@@ -13,3 +13,6 @@ struct RTHWInstance
   uint instanceOffset_flags; //24_8
   uint2 blas;
 };
+
+uint pack_rt_instance_id_mask(uint id, uint mask) { return id | (mask << 24); }
+uint pack_rt_instance_flags(uint flags) { return flags << 24; }

@@ -23,13 +23,17 @@ hlsl(code) {
   }
   float3 transform(float3x3 m, float4 pt) {return transform(m, pt.xyz);}
 
-  // TODO: ordered traversal should be faster in theory, but I don't see it in practice
-  // maybe there is a better way to do it, or there is a bug?
-  #define BVH_ORDERED_TLAS 0
   //#define BVH_TLAS_BOXES 0
   //#define BVH_TLAS_BOXES_SHADOW 0
   #define BVH_TLAS_BOXES_SHADOW_THRESHOLD 1 // if ray originated from more than 10*10 distance from instance, it will be treated as box
   #define SHADOW_OFFSET_ORIGIN_PART 0.004
+  // Mirrored instances (det<0) encode the reflection in the sign bit of scale.x; the CPU decoder
+  // (decodeLeafTransform) honors it. The GPU decode ignores it by default, because SWRT shadows
+  // currently run only on collapsed/optimized (non-reflected) models. Turn this on for the correct
+  // decode (clear scale.x sign, negate col2) once reflected instances are fed to the TLAS.
+  #ifndef BVH_TLAS_DECODE_REFLECTION
+  #define BVH_TLAS_DECODE_REFLECTION 0
+  #endif
 
   struct DecodedTLASLeaf
   {
@@ -54,7 +58,14 @@ hlsl(code) {
     ret.scale = asfloat(loadBuffer3(tlas_data, offset + 3*4));
     ret.invTm[0] = asfloat(loadBuffer3(tlas_data, offset + 6*4));
     ret.invTm[1] = asfloat(loadBuffer3(tlas_data, offset + 9*4));
+    #if BVH_TLAS_DECODE_REFLECTION
+    // Sign-cleared scale also keeps invScale (and the [-invScale,invScale] box) correct in distTLASleaf.
+    uint reflected = asuint(ret.scale.x) >> 31;
+    ret.scale.x = abs(ret.scale.x);
+    ret.invTm[2] = reflected ? -cross(ret.invTm[0], ret.invTm[1]) : cross(ret.invTm[0], ret.invTm[1]);
+    #else
     ret.invTm[2] = cross(ret.invTm[0], ret.invTm[1]);
+    #endif
     ret.maxScale__distToTreatAsBox = loadBuffer(tlas_data, offset + 12*4);
     // blasStart (offset+13*4) and blasSize (offset+14*4) are read on demand via load_leaf_blas_start/size
     #ifdef TLAS_ADDITIONAL_LEAF_DATA_DEFINED
@@ -123,75 +134,6 @@ hlsl(code) {
 
     bool found_hit = false;
 
-    #if BVH_ORDERED_TLAS
-    {
-      uint stack[BVH_MAX_TLAS_DEPTH + 1];
-      uint offset = 0;
-      {
-        float3 bmin, bmax;
-        bool leafNode;
-        uint treeSize = 0;
-        decode_tlas_node(tlas_data, offset, bmin, bmax, treeSize, leafNode);
-        if (!RayIntersectsBox(rayOrigin, rayDirInv, bmin, bmax, t))
-        {
-          complex = 0;
-          bCoord = 0;
-          return false;
-        }
-        if (leafNode)
-          offset = treeSize;
-      }
-      int stackSize = 1;
-
-      LOOP
-      do
-      {
-        bool leafNode = offset>>31;
-
-        if (leafNode)
-        {
-          found_hit = found_hit | rayTLASLeaf(tlas_data, blas_data, offset, rayOrigin, rayDir, t, bCoord, triNorm, blasComplex);
-        }
-        else
-        {
-          tlasComplex += 2;
-          uint leftOffset = offset + TLAS_NODE_ELEM_SIZE;
-          float3 left0, left1;
-          uint leftTreeSize;
-          bool leftLeaf;
-          decode_tlas_node(tlas_data, leftOffset, left0, left1, leftTreeSize, leftLeaf);
-
-          uint rightOffset = leftOffset + (leftLeaf ? TLAS_NODE_ELEM_SIZE : leftTreeSize);
-          leftOffset = leftLeaf ? leftTreeSize : leftOffset;
-
-          float3 right0, right1;
-          uint rightTreeSize;
-          bool rightLeaf;
-          decode_tlas_node(tlas_data, rightOffset, right0, right1, rightTreeSize, rightLeaf);
-          rightOffset = rightLeaf ? rightTreeSize : rightOffset;
-
-          float leftT, rightT;
-          bool leftHit = RayIntersectsBoxT(rayOrigin, rayDirInv, left0, left1, t, leftT);
-          leftT = leftHit ? leftT : SW_RT_INFINITY;
-          bool rightHit = RayIntersectsBoxT(rayOrigin, rayDirInv, right0, right1, t, rightT);
-          rightT = rightHit ? rightT : SW_RT_INFINITY;
-          bool leftCloser = leftT < rightT;
-          // add closer node to the top of stack, so it will be picked first, and further node will only be visited if no collision found in closer one
-          // this is not very precise if any of the elements is a leaf, but the point is to make intermediate node traversal faster
-          float nearT = leftCloser ? leftT : rightT;
-          float farT  = leftCloser ? rightT : leftT;
-          uint nearOffset = leftCloser ? leftOffset : rightOffset;
-          uint farOffset = leftCloser ? rightOffset : leftOffset;
-          if ( farT < t )
-            stack[stackSize++] = farOffset ;
-          if ( nearT < t )
-            stack[stackSize++] = nearOffset;
-        }
-        offset = stack[--stackSize];
-      } while (stackSize > 0);
-
-    }
-    #else
     {
       int dataOffset = 0;
       float3 rayOriginScaled = -rayOrigin*rayDirInv;
@@ -225,7 +167,6 @@ hlsl(code) {
         }
       }
     }
-    #endif
     triNorm = normalize(triNorm);
     complex = (blasComplex&0xfffff)|tlasComplex<<16;
     return found_hit;
@@ -248,6 +189,8 @@ hlsl(code) {
 
     BRANCH
     #if BVH_TLAS_BOXES_SHADOW_THRESHOLD
+    // get_leaf_box_dist is in BLAS-encoded half-extent units (anisotropic, per-axis), the same
+    // space as rayOriginTr -- NOT metres, even though the source convar is authored in metres.
     if (is_leaf_box(leaf) || length_sq(rayOriginTr) > pow2(get_leaf_box_dist(leaf)))
     #else
     if (is_leaf_box(leaf))
@@ -406,9 +349,15 @@ hlsl(code) {
 
         uint childEnd = childOfs + (childIsLeaf ? TLAS_NODE_ELEM_SIZE : childSkip);
         // Subtree entirely before the first visible leaf — cannot contain the last leaf
-        if (childEnd > first_leaf_ofs &&
-            childSkip && testBoxExtentB(childBmin, childBmax, frustum, plane4) && stackSize < STACK_SIZE)
+        if (childEnd > first_leaf_ofs && childSkip && testBoxExtentB(childBmin, childBmax, frustum, plane4))
+        {
+          // Overflow drops the DFS-last (rightmost) children -- exactly the ones we look for --
+          // yielding an endAt that is too small and per-tile light leaks. Bail conservatively:
+          // ~0u tells the caller to drop the end limit for this tile (correct, just slower).
+          if (stackSize >= STACK_SIZE)
+            return ~0u;
           stack[stackSize++] = childOfs | (childIsLeaf ? 0x80000000u : 0u);
+        }
 
         childOfs = childEnd;
       }
@@ -474,73 +423,6 @@ hlsl(code) {
     float maxDist2 = maxDist*maxDist;
     bool found_hit = false;
 
-  #if BVH_ORDERED_TLAS
-    uint stack[BVH_MAX_TLAS_DEPTH + 1];
-    uint offset = 0;
-    {
-      float3 bmin, bmax;
-      bool leafNode;
-      int treeSize = 0;
-      decode_tlas_node(tlas_data, offset, bmin, bmax, treeSize, leafNode);
-      float dist2 = sqDistancePointBox(bmin, bmax, worldPos);
-      if (dist2 >= abs(maxDist2))
-        return false;
-      if (leafNode)
-        offset |= 0x80000000;
-    }
-    int stackSize = 0;
-
-    LOOP
-    for(;;)
-    {
-      bool leafNode = offset&0x80000000;
-
-      if (leafNode)
-      {
-        found_hit |= distTLASleaf(tlas_data, blas_data, offset, worldPos, maxDist2);
-      }
-      else
-      {
-        uint leftOffset = offset + TLAS_NODE_ELEM_SIZE;
-        float3 left0, left1;
-        uint leftTreeSize;
-        bool leftLeaf;
-        decode_tlas_node(tlas_data, leftOffset, left0, left1, leftTreeSize, leftLeaf);
-
-        uint rightOffset = leftOffset + (leftLeaf ? TLAS_NODE_ELEM_SIZE : leftTreeSize);
-
-        float3 right0, right1;
-        uint rightTreeSize;
-        bool rightLeaf;
-        decode_tlas_node(tlas_data, rightOffset, right0, right1, rightTreeSize, rightLeaf);
-
-        float leftDist2 = sqDistancePointBox(left0, left1, worldPos);
-        float rightDist2 = sqDistancePointBox(right0, right1, worldPos);
-        bool leftHit = leftDist2 < abs(maxDist2), rightHit = rightDist2 < abs(maxDist2);
-
-        if (leftLeaf)
-          leftOffset = leftTreeSize;
-
-        if (rightLeaf)
-          rightOffset = rightTreeSize;
-
-        if (leftDist2 < rightDist2)
-        {
-          int tmp = leftOffset; leftOffset = rightOffset; rightOffset = tmp;
-          bool tmpHit = leftHit; leftHit = rightHit; rightHit = tmpHit;
-        }
-        // add closer node to the top of stack, so it will be picked first, and further node will only be visited if no collision found in closer one
-        // this is not very precise if any of the elements is a leaf, but the point is to make intermediate node traversal faster
-        if (leftHit)
-          stack[stackSize++] = leftOffset;
-        if (rightHit)
-          stack[stackSize++] = rightOffset;
-      }
-      if (stackSize == 0)
-        break;
-      offset = stack[--stackSize];
-    } while (stackSize > 0);
-  #else
     int dataOffset = 0;
 
     LOOP
@@ -570,7 +452,6 @@ hlsl(code) {
         dataOffset += TLAS_NODE_ELEM_SIZE;
       }
     }
-  #endif
     distance = sqrt(abs(maxDist2));
     distance = maxDist2 < 0 ? -distance/sqrt(NEG_DIST_SCALE) : distance/sqrt(POS_DIST_SCALE);
     //distance = sign(maxDist2)*sqrt(abs(maxDist2));

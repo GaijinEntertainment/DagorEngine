@@ -407,12 +407,13 @@ macro DYNAMIC_SPLINE_GEN_VS_COMMON()
       float3 bitangent : TEXCOORD6;
       ##endif
       ##if shader == dynamic_refractive_spline_gen
-      float3 fogMul                 : TEXCOORD7;
-      float3 fogAdd                 : TEXCOORD8;
-      float4 clipPos                : TEXCOORD9;
-      float2 thicknessBounds        : TEXCOORD10;
-      float2 glassParams            : TEXCOORD11;
-      float surfaceOpaqueness       : TEXCOORD12;
+      float3 fogMul                   : TEXCOORD7;
+      float3 fogAdd                   : TEXCOORD8;
+      float4 clipPos                  : TEXCOORD9;
+      float2 thicknessBounds          : TEXCOORD10;
+      float2 glassParams              : TEXCOORD11;
+      float surfaceOpaqueness         : TEXCOORD12;
+      float4 mediumTintAndShellPacked : TEXCOORD13;
       ##endif
     };
   }

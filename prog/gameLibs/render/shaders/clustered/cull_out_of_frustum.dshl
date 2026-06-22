@@ -67,8 +67,9 @@ shader cull_out_of_frustum_lights_cs
     void v_bbox3_add_pt(inout bbox3f b, float3 v) {b.bmin = min(b.bmin, v); b.bmax = max(b.bmax, v);}
     bbox3f v_bbox3_transform(float3 center, float3 ext, float4 boxR0, float4 boxR1, float4 boxR2)
     {
+      // source box is the grid cell relative to the light box origin; boxR0..2.xyz rotate it to light box space
       float3 boxPos = float3(boxR0.w, boxR1.w, boxR2.w);
-      bbox3f b2; b2.bmin = center - boxPos; b2.bmax = center + boxPos;
+      bbox3f b2; b2.bmin = center - ext - boxPos; b2.bmax = center + ext - boxPos;
       bbox3f b;
       // What we're doing here is this:
       // xxxx*m0 + yyyy*m1 + zzzz*m2 + m3

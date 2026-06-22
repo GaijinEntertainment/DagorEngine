@@ -45,8 +45,6 @@ Sources =
   xcsm.cpp
   variance.cpp
   iesTextureManager.cpp
-  omniLightsManager.cpp
-  spotLightsManager.cpp
   distortion.cpp
   fxaa.cpp
   partialDxtRender.cpp
@@ -61,7 +59,6 @@ Sources =
   lightCube.cpp
   downsampleDepth.cpp
   screenSpaceReflections.cpp
-  tileDeferredLighting.cpp
   grassTranslucency.cpp
   globTMVars.cpp
   viewVecs.cpp
@@ -75,11 +72,6 @@ Sources =
   waterFoamTrail.cpp
   commonMeshManager.cpp
   smokeTracers.cpp
-  frustumClusters.cpp
-  shadowSystem.cpp
-  clusteredLights.cpp
-  clusteredLightsSorter.cpp
-  clusteredLightsGrid.cpp
   dstReadbackLights.cpp
   temporalAA.cpp
   smaa.cpp
@@ -98,7 +90,6 @@ Sources =
   screenDroplets.cpp
   atlasTexManager.cpp
   coherentNoise.cpp
-  tiledLights.cpp
   backBufferHolder.cpp
   gpuVisibilityTest.cpp
   voltexRenderer.cpp
@@ -121,6 +112,7 @@ Sources =
 
 UseProgLibs +=
   engine/lib3d
+  gameLibs/render/lights
   gameLibs/render/texcompressors
   gameLibs/render/primitiveObjects
   gameLibs/render/fx

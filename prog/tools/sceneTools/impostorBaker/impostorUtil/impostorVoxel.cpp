@@ -24,6 +24,7 @@
 #include <libTools/voxel/voxelCache.h>
 #include <EASTL/deque.h>
 #include <EASTL/sort.h>
+#include <EASTL/hash_set.h>
 
 
 #define VOXEL_OVERSCALE        3
@@ -72,7 +73,7 @@ static float compute_threshold_length(RenderableInstanceResource *res, float thr
 #endif
       if (dstIB->lock(0, dstIB->getSize(), (void **)&memIB, VBLOCK_READONLY))
       {
-        for (int k = start * 3, i = 0; k < start * 3 + count * 3; k += 3, ++i)
+        for (int k = start * 3; k < start * 3 + count * 3; k += 3)
         {
           uint8_t *ip = memIB + k * indexSize;
           uint32_t idx[3];
@@ -100,12 +101,12 @@ static float compute_threshold_length(RenderableInstanceResource *res, float thr
 
   int index = int(floorf(threshold_percent * 0.01f * triLen.size()));
   index = clamp<int>(index, 0, triLen.size() - 1);
-  return triLen[index];
+  return sqrtf(triLen[index]);
 }
 
 
 float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const char *name, float proj_scale,
-  float triangle_threshold)
+  float triangle_threshold, bool warn_bad_range)
 {
   // scan lod meshes to compute voxel size
   float voxelSize = -1;
@@ -113,7 +114,7 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
   if (numLods == 0)
   {
     conerror("No usable LoDs (%d total%s) for rendInst %s", res->lods.size(), res->hasImpostor() ? ", has impostor" : "", name);
-    return false;
+    return -1;
   }
 
   for (uint32_t lodIndex = 0; lodIndex < numLods; lodIndex++)
@@ -121,8 +122,11 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
     if (!res->lods[lodIndex].scene)
     {
       conerror("LoD %d is not loaded for rendInst %s", lodIndex, name);
-      return false;
+      return -1;
     }
+
+    if (res->lods[lodIndex].getVoxelSurface())
+      break;
 
     float len = compute_threshold_length(res->lods[lodIndex].scene.get(), triangle_threshold);
     if (len <= 0)
@@ -134,7 +138,7 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
     float vsize = len * 0.5f;                // threshold when triangle is about 2 voxels/pixels
     float range = proj_scale * 0.5f * vsize; // 0.5 is from radius/diameter, see defaults::projScale comment
 
-    if (range < res->lods[lodIndex].range)
+    if (warn_bad_range and range < res->lods[lodIndex].range)
     {
       conwarning("LoD %d of rendInst %s has ineffective range=%f (should be < %f)", lodIndex, name, res->lods[lodIndex].range, range);
     }
@@ -151,13 +155,13 @@ float ImpostorBaker::computeVoxelSize(RenderableInstanceLodsResource *res, const
 }
 
 
-bool ImpostorBaker::beginVoxelBaking(RenderableInstanceLodsResource *res, const IPoint3 &map_size, const Point3 &box_min,
+bool ImpostorBaker::beginVoxelBaking(RenderableInstanceLodsResource *res, int lod, const IPoint3 &map_size, const Point3 &box_min,
   float voxel_size)
 {
   G_ASSERT(get_impostor_texture_mgr());
   G_ASSERT(res);
   G_ASSERT(res->lods.size() > 0);
-  G_ASSERT(res->lods[0].scene);
+  G_ASSERT(res->lods[lod].scene);
   if (!d3d::is_inited())
   {
     conerror("Drawing with uninitialized d3d");
@@ -168,6 +172,7 @@ bool ImpostorBaker::beginVoxelBaking(RenderableInstanceLodsResource *res, const 
   bakeMapSize = map_size;
   bakeBoxMin = box_min;
   bakeVoxelSize = voxel_size;
+  bakeLod = lod;
 
   {
     TextureIdSet usedTexIds;
@@ -184,7 +189,11 @@ bool ImpostorBaker::beginVoxelBaking(RenderableInstanceLodsResource *res, const 
   {
     static unsigned int textureCount = 0; // this helps with debugging
     const static unsigned formats[] = {
-      TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, TEXFMT_A8R8G8B8, TEXFMT_A8R8G8B8, TEXFMT_R32F};
+      TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE,
+      TEXFMT_A8R8G8B8,
+      TEXFMT_A8R8G8B8,
+      TEXFMT_R32F,
+    };
     voxelRt.reset();
     voxelRt = eastl::make_unique<DeferredRenderTarget>(nullptr, String(0, "voxel_baker_rt_%d", textureCount), extent.x, extent.y,
       DeferredRT::StereoMode::MonoOrMultipass, 0, 4, formats, GBUF_DEPTH_FMT);
@@ -322,12 +331,13 @@ void ImpostorBaker::getVoxelFaceParams(uint32_t face_id, uint32_t &view_w, uint3
 bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
 {
   // create readback textures as needed
+  const IPoint2 extent = IPoint2(voxelBakeWidth(), voxelBakeHeight()) * VOXEL_OVERSCALE;
   for (int ri = 0; ri < requests.size(); ri++)
   {
     auto &req = requests[ri];
     if (req.readback.depth)
       continue;
-    if (!req.readback.create(voxelBakeWidth() * VOXEL_OVERSCALE, voxelBakeHeight() * VOXEL_OVERSCALE))
+    if (!req.readback.create(P2D(extent)))
     {
       conerror("Failed to create baking readback textures");
       return false;
@@ -399,20 +409,21 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
       // for (int i = 0; i < 4; i++)
       //   debug("!!! %f %f %f", P3D(viewToModel.col[i]));
       get_impostor_texture_mgr()->render_slice_voxels(viewToModel, wd, ht, zn, zf, bakeRes, rendinst::RenderPass::ImpostorVoxel,
-        rendinstSceneBlockId);
+        rendinstSceneBlockId, bakeLod);
 
       ShaderGlobal::set_texture(depthSliceVarId, nullptr);
 
       // copy to readback textures
+      RectInt rect{.left = 0, .top = 0, .right = extent.x, .bottom = extent.y};
       d3d::resource_barrier({voxelRt->getRt(0), RB_RO_COPY_SOURCE | RB_RO_BLIT_SOURCE, 0, 0});
-      if (!d3d::stretch_rect(voxelRt->getRt(0), req.readback.albedo.getTex2D()))
+      if (!d3d::stretch_rect(voxelRt->getRt(0), req.readback.albedo.getTex2D(), &rect, nullptr))
       {
         conerror("Failed to copy albedo RT");
         return false;
       }
 
       d3d::resource_barrier({voxelRt->getRt(1), RB_RO_COPY_SOURCE | RB_RO_BLIT_SOURCE, 0, 0});
-      if (!d3d::stretch_rect(voxelRt->getRt(1), req.readback.normal.getTex2D()))
+      if (!d3d::stretch_rect(voxelRt->getRt(1), req.readback.normal.getTex2D(), &rect, nullptr))
       {
         conerror("Failed to copy normal RT");
         return false;
@@ -421,14 +432,14 @@ bool ImpostorBaker::bakeVoxels(dag::Span<VoxelBakeRequest> requests)
         d3d::stretch_rect(voxelRt->getRt(1), lastExportedAlbedoAlpha.getTex2D());
 
       d3d::resource_barrier({voxelRt->getRt(2), RB_RO_COPY_SOURCE | RB_RO_BLIT_SOURCE, 0, 0});
-      if (!d3d::stretch_rect(voxelRt->getRt(2), req.readback.extra.getTex2D()))
+      if (!d3d::stretch_rect(voxelRt->getRt(2), req.readback.extra.getTex2D(), &rect, nullptr))
       {
         conerror("Failed to copy extra RT");
         return false;
       }
 
       d3d::resource_barrier({voxelRt->getRt(3), RB_RO_COPY_SOURCE | RB_RO_BLIT_SOURCE, 0, 0});
-      if (!d3d::stretch_rect(voxelRt->getRt(3), req.readback.depth.getTex2D()))
+      if (!d3d::stretch_rect(voxelRt->getRt(3), req.readback.depth.getTex2D(), &rect, nullptr))
       {
         conerror("Failed to copy depth RT");
         return false;
@@ -805,45 +816,90 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
     return false;
   }
 
+  auto loopTimeout = rel_ref_time_ticks(ref_time_ticks(), 5'000'000);
+  while (res->getQlBestLod() > res->getQlMinAllowedLod() and ref_time_ticks() < loopTimeout)
+  {
+    res->updateReqLod(res->getQlMinAllowedLod());
+    dagor_work_cycle();
+  }
+
+  int numMeshLods = 0;
+  for (; numMeshLods < res->lods.size(); numMeshLods++)
+    if (res->lods[numMeshLods].getVoxelSurface())
+      break;
+  if (numMeshLods == 0)
+  {
+    conerror("No mesh LODs in rendInst: %s", asset->getName());
+    return false;
+  }
+
   auto vblk = asset->props.getBlockByName("voxel_impostor");
   if (!vblk)
     vblk = &defaultVoxelParams;
 
-  float projScale = vblk->getReal("projScale", defaultVoxelParams.getReal("projScale", defaults::projScale));
-  float triangleThreshold =
+  const float projScale = vblk->getReal("projScale", defaultVoxelParams.getReal("projScale", defaults::projScale));
+  const float triangleThreshold =
     vblk->getReal("triangleThreshold", defaultVoxelParams.getReal("triangleThreshold", defaults::triangleThreshold));
   float voxelSize = vblk->getReal("voxelSize", defaultVoxelParams.getReal("voxelSize", defaults::voxelSize));
-  int maxMapSize = vblk->getInt("maxMapSize", defaultVoxelParams.getInt("maxMapSize", defaults::maxMapSize));
+  const float minVoxelSize = vblk->getReal("minVoxelSize", defaultVoxelParams.getReal("minVoxelSize", defaults::minVoxelSize));
+  const int minMapSize = vblk->getInt("minMapSize", defaultVoxelParams.getInt("minMapSize", defaults::minMapSize));
+  const int maxMapSize = vblk->getInt("maxMapSize", defaultVoxelParams.getInt("maxMapSize", defaults::maxMapSize));
+  const int lodToBake = min(vblk->getInt("lodToBake", defaultVoxelParams.getInt("lodToBake", defaults::lodToBake)), numMeshLods - 1);
+  const bool adjustMeshLodRanges =
+    vblk->getBool("adjustMeshLodRanges", defaultVoxelParams.getBool("adjustMeshLodRanges", defaults::adjustMeshLodRanges));
   conlog("Loaded RI in %d us", profile_lapse_usec(reft));
 
   // compute voxel/map size
   if (voxelSize <= 0)
   {
-    voxelSize = computeVoxelSize(res, asset->getName(), projScale, triangleThreshold);
+    voxelSize = computeVoxelSize(res, asset->getName(), projScale, triangleThreshold, !adjustMeshLodRanges);
     conlog("Computed voxel size in %d us", profile_lapse_usec(reft));
     if (voxelSize <= 0)
     {
       conerror("Failed to compute voxel size for rendInst %s", asset->getName());
       return false;
     }
+    voxelSize = max(voxelSize, minVoxelSize);
   }
 
-  Point3 width = res->bbox.width();
-  float maxBound = max(max(width.x, width.y), width.z);
-  int maxSize = int(ceilf(maxBound / voxelSize));
+  const Point3 width = res->bbox.width();
+  auto mapSize = ipoint3(ceil(width / voxelSize + 0.5f));
+
+  // decrease voxel size if map is too small to capture detail
+  int numSmallDims = 0;
+  for (int i = 0; i < 3; i++)
+    if (mapSize[i] < minMapSize)
+      numSmallDims++;
+  // 1 dimension is allowed to be small for very flat objects
+  if (numSmallDims > 1)
+  {
+    const float minBound = min(min(width.x, width.y), width.z);
+    float vs = max(minBound / minMapSize, minVoxelSize);
+    if (vs < voxelSize)
+    {
+      conwarning("Decreased voxel size to %f (from %f) because of min map size %d, for rendInst %s", vs, voxelSize, minMapSize,
+        asset->getName());
+      voxelSize = vs;
+      mapSize = ipoint3(ceil(width / voxelSize + 0.5f));
+    }
+  }
+
+  const float maxBound = max(max(width.x, width.y), width.z);
+  const int maxSize = int(ceilf(maxBound / voxelSize + 0.5f));
   if (maxSize > maxMapSize)
   {
     float vs = maxBound / maxMapSize;
     conwarning("Clamped voxel size to %f (from %f) because of max map size %d, for rendInst %s", vs, voxelSize, maxMapSize,
       asset->getName());
     voxelSize = vs;
+    mapSize = ipoint3(ceil(width / voxelSize + 0.5f));
   }
 
-  auto mapSize = ipoint3(ceil(width / voxelSize));
-  conlog("Voxel map %dx%dx%d, voxel %f for rendInst %s", P3D(mapSize), voxelSize, asset->getName());
+  const Point3 boxMin = res->bbox.boxMin() - Point3::ONE * voxelSize * 0.5f;
+  conlog("Baking voxel map %dx%dx%d, origin (%f %f %f), voxel %f for rendInst %s", P3D(mapSize), P3D(boxMin), voxelSize,
+    asset->getName());
 
-  const Point3 boxMin = res->bbox.boxMin();
-  if (!beginVoxelBaking(res, mapSize, boxMin, voxelSize))
+  if (!beginVoxelBaking(res, lodToBake, mapSize, boxMin, voxelSize))
   {
     endVoxelBaking();
     conerror("Failed to bake voxels for rendInst %s", asset->getName());
@@ -925,12 +981,14 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
         for (uint32_t x = 0; x < viewW; x++, albedoPtr++, normalPtr++, extraPtr++, depthPtr++)
         {
           float d = *depthPtr - 1;
-          if (d > viewD)
-            continue;
-          empty = false;
 
           int z = int(floorf(d)) + (r.faceId & 1);
           IPoint3 pos = dirx * x + diry * y + dirz * z + origin;
+          // debug("!!! step=%d face=%d (%d %d) d=%g/%g z=%d (%d %d %d)", stepCounter, r.faceId, x, y, d, viewD, z, P3D(pos));
+
+          if (d > viewD)
+            continue;
+          empty = false;
 
           const uint32_t pi =
             surf.addPixel(abs(dirx) * pos, abs(diry) * pos, dot(point3(dirz) * d + point3(origin), point3(abs(dirz))));
@@ -955,7 +1013,6 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
           p.metalness = extra.b;
           p.translucency = extra.a;
 
-          // debug("!!! step=%d face=%d (%d %d) d=%g z=%d (%d %d %d)", stepCounter, r.faceId, x, y, d, z, P3D(pos));
           solid.set(pos);
           ibbox += pos;
         }
@@ -982,7 +1039,22 @@ bool ImpostorBaker::exportVoxelCache(DagorAsset *asset, const ImpostorOptions &o
 
   if (ibbox.isEmpty())
   {
-    conerror("No voxels baked for rendInst %s, could be unsupported shaders", asset->getName());
+    G_ASSERT(res->lods[lodToBake].scene);
+    ShaderMesh *mesh = res->lods[lodToBake].scene->getMesh()->getMesh()->getMesh();
+    G_ASSERT(mesh);
+    auto elems = mesh->getAllElems();
+    eastl::hash_set<const char *> shaders;
+    for (const auto &e : elems)
+      shaders.insert(e.e->getShaderClassName());
+    String shaderText;
+    for (auto s : shaders)
+    {
+      if (!shaderText.empty())
+        shaderText += ", ";
+      shaderText += s;
+    }
+
+    conerror("No voxels baked for rendInst %s, could be unsupported shaders: %s", asset->getName(), shaderText);
     return false;
   }
 

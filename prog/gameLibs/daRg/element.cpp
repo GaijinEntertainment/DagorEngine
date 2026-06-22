@@ -138,35 +138,36 @@ static void call_attach_detach_handler(GuiScene *scene, Element *elem, bool atta
   if (elem->etree->isInternalTemporaryTree)
     return;
 
-  const Sqrat::Object *slot = attach ? &elem->csk->onAttach : &elem->csk->onDetach;
-
   const Sqrat::Object &funcName = attach ? elem->csk->onAttach : elem->csk->onDetach;
   Sqrat::Function func = elem->props.scriptDesc.RawGetFunction(funcName);
 
-  if (!func.IsNull())
+  if (func.IsNull())
+    return;
+
+  SQInteger nparams = 0, nfreevars = 0;
+  G_VERIFY(get_closure_info(func, &nparams, &nfreevars));
+
+  if (nparams < 1 || nparams > 2)
   {
-    SQInteger nparams = 0, nfreevars = 0;
-    G_VERIFY(get_closure_info(func, &nparams, &nfreevars));
-
-    if (nparams < 1 || nparams > 2)
-    {
-      darg_assert_trace_var("Expected 1 param or no params for attach/detach", elem->props.scriptDesc, *slot);
-      return;
-    }
-
-    if (nparams == 1)
-    {
-      auto handler = new ScriptHandlerSqFunc<>(func);
-      if (!attach)
-        handler->allowOnShutdown = true;
-      scene->queueScriptHandler(handler);
-    }
-    else
-    {
-      // shoud be called with delay, but needs Element pointer to stay valid
-      func(elem->getRef(func.GetVM()));
-    }
+    darg_assert_trace_var("Expected 1 param or no params for attach/detach", elem->props.scriptDesc, funcName);
+    return;
   }
+
+  BaseScriptHandler *handler;
+  if (nparams == 2)
+  {
+    if (!attach)
+      darg_assert_trace_var("onDetach element argument is deprecated, make the handler parameterless", elem->props.scriptDesc,
+        funcName);
+    Sqrat::Object elemRef = elem->getRef(func.GetVM());
+    handler = new ScriptHandlerSqFunc<Sqrat::Object>(func, elemRef);
+  }
+  else
+    handler = new ScriptHandlerSqFunc<>(func);
+
+  if (!attach)
+    handler->allowOnShutdown = true;
+  scene->queueScriptHandler(handler);
 }
 
 
@@ -1480,11 +1481,11 @@ void Element::calcConstrainedSizes(int axis)
 
           if (iq == nq - 1)
           {
-            child->screenCoord.size[axis] = spaceLeft;
+            child->screenCoord.size[axis] = ::max(spaceLeft, 0.0f);
           }
           else if (sizeSpec.mode == SizeSpec::FLEX)
           {
-            float sz = floorf(freeSpace * sizeSpec.value / flexWeightSum + 0.5f);
+            float sz = ::max(floorf(freeSpace * sizeSpec.value / flexWeightSum + 0.5f), 0.0f);
             child->screenCoord.size[axis] = sz;
             spaceLeft -= sz;
           }

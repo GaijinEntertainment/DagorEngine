@@ -36,6 +36,8 @@ struct RefinedBlockVar
   // Computed vars (RHS is an arithmetic expression rather than a simple global var ref).
   // computedStcode holds local var IDs until link(), global var IDs after.
   Tab<int> computedStcode{};
+  // C++ expression assembled from AST at compile time (non-empty when --cpp-stcode is active).
+  eastl::string computedCppExpr{};
 };
 
 struct SerializedRefinedBlockVar
@@ -49,6 +51,8 @@ struct SerializedRefinedBlockVar
   int slot[STAGE_MAX]{-1, -1, -1}; // t, b, s, u
   int computedStcodeOffset = -1;
   int computedStcodeLen = 0;
+  int computedCppExprOffset = -1;
+  int computedCppExprLen = 0;
 };
 
 class RefinedBlockLayout
@@ -62,9 +66,12 @@ public:
   void generateStcode();
   dag::ConstSpan<int> getStcode() const;
 
-  void serializeToBindump(Tab<SerializedRefinedBlockVar> &out, Tab<int> &out_computed_stcode) const;
+  void generateCppStcode(TargetContext &ctx);
+  eastl::optional<int> getCppStcodeId() const { return cppStcodeId; }
+
+  void serializeToBindump(Tab<SerializedRefinedBlockVar> &out, Tab<int> &out_computed_stcode, Tab<char> &out_computed_cpp_exprs) const;
   static RefinedBlockLayout deserializeFromBindump(const VarNameMap &rbVarNameMap, const Tab<SerializedRefinedBlockVar> &entries,
-    const Tab<int> &computed_stcode);
+    const Tab<int> &computed_stcode, const Tab<char> &computed_cpp_exprs);
 
   template <typename Fn>
   void forEachVar(Fn &&fn) const
@@ -76,6 +83,7 @@ public:
 private:
   dag::VectorMap<int, RefinedBlockVar> vars;
   Tab<int> stcode;
+  eastl::optional<int> cppStcodeId = eastl::nullopt;
 };
 
 } // namespace shc

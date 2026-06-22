@@ -272,6 +272,7 @@ static AntiAliasingMode convertAntialiasingMethod(render::antialiasing::Antialia
     case AntialiasingMethod::MobileTAALow:
     case AntialiasingMethod::SGSR:
     case AntialiasingMethod::SGSR2:
+    case AntialiasingMethod::ARM_ASR:
     case AntialiasingMethod::METALFX: return AntiAliasingMode::TSR;
 #if _TARGET_C2
 
@@ -913,7 +914,7 @@ void WorldRenderer::onLevelLoaded(const DataBlock &level_blk)
 
   invalidateGI(true);
   if (getEnviProbeRenderFlags() & ENVI_PROBE_USE_GEOMETRY)
-    invalidateCube();
+    scheduleEnviProbeReRender();
 
   d3d::driver_command(Drv3dCommand::SAVE_PIPELINE_CACHE);
 
@@ -1064,8 +1065,11 @@ void WorldRenderer::beforeLoadLevel(const DataBlock &level_blk)
   d3d::set_render_target();
 
   shadowsManager.initShadows();
-  setSpecularCubesContainerForReinit();
-  reinitCube(level_blk.getPoint3("enviProbePos", Point3(0, 100, 0)));
+
+  setEnviProbePos(level_blk.getPoint3("enviProbePos", Point3(0, 100, 0)));
+  setCubeResolution(dgs_get_settings()->getBlockByNameEx("graphics")->getInt("envi_cube_size", 128));
+  scheduleEnviProbeFullReload();
+
   if (auto *skies = get_daskies())
   {
     const DataBlock &blk = *level_blk.getBlockByNameEx("skies");
@@ -1574,8 +1578,7 @@ void WorldRenderer::afterDeviceReset(bool full_reset)
     initResetable();
     resetGI();
     delayedRenderCtx.invalidate();
-    invalidateCube();
-    reinitSpecularCubesContainerIfNeeded();
+    scheduleEnviProbeFullReload();
     onSceneLoaded(binScene);
     g_entity_mgr->broadcastEventImmediate(AfterDeviceReset(full_reset));
 
@@ -2457,29 +2460,7 @@ void WorldRenderer::updateEnviCoverCompatibility()
 void WorldRenderer::initTarget()
 {
   updateEnviCoverCompatibility();
-
-  dag::RelocatableFixedVector<uint32_t, FULL_GBUFFER_RT_COUNT, false> main_gbuf_fmts{};
-  uint32_t gbuf_cnt = FULL_GBUFFER_RT_COUNT, globalFlags = GBUF_TARGET_GLOBAL_FLAGS;
-  if (!isThinGBuffer())
-  {
-    gbuf_cnt = needMotionVectors() ? FULL_GBUFFER_RT_COUNT : NO_MOTION_GBUFFER_RT_COUNT;
-    for (uint32_t i = 0; i < FULL_GBUFFER_RT_COUNT; ++i)
-      main_gbuf_fmts.push_back(FULL_GBUFFER_FORMATS[i]);
-  }
-  else
-  {
-    G_ASSERTF(!needMotionVectors(), "Motion vectors are not supported with thin gbuffer!");
-    gbuf_cnt = THIN_GBUFFER_RT_COUNT;
-    for (uint32_t i = 0; i < THIN_GBUFFER_RT_COUNT; ++i)
-      main_gbuf_fmts.push_back(THIN_GBUFFER_RT_FORMATS[i]);
-  }
-
-  {
-    if (isEnviCoverCompatible && isEnviCover)
-      globalFlags |= TEXCF_UNORDERED;
-
-    prepareGbufferFGNode = makePrepareGbufferNode(globalFlags, gbuf_cnt, main_gbuf_fmts, hasMotionVectors, is_rr_enabled());
-  }
+  prepareGbufferFGNode = makePrepareGbufferNode();
 
   requestFgRecreation("initTarget");
 }
@@ -4065,7 +4046,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
   bvh_update_instances(viewPos, get_daskies() ? -get_daskies()->getPrimarySunDir() : Point3(0, -1, 0), itm,
     reinterpret_cast<const TMatrix4 &>(proj), currentFrameCamera.noJitterFrustum);
   start_async_game_tasks(frame_id, AGT_ALL, /*wake*/ false); // Start the rest of tasks in case it wasnt started earlier
-  bool tpEarlyWakeUp = hasGpuObjs || rendinst::render::pendingRebuild() || enviProbeInvalid || enviProbeNeedsReload;
+  bool tpEarlyWakeUp = hasGpuObjs || rendinst::render::pendingRebuild() || enviProbeState != EnviProbeState::Ready;
   if (tpEarlyWakeUp)
     threadpool::wake_up_all_delayed(threadpool::PRIO_HIGH); // Wake threadpool for all previously added jobs
 
@@ -4090,13 +4071,7 @@ void WorldRenderer::draw(uint32_t frame_id, float realDt)
     rendinst::render::before_draw(rendinst::RenderPass::Normal, perViewParams);
   }
 
-  reinitCubeIfInvalid();
-
-  if (enviProbeNeedsReload)
-  {
-    reloadCube(true);
-    enviProbeNeedsReload = false;
-  }
+  updateEnviProbe();
 
   bool tpLateWakeUp = !tpEarlyWakeUp;
   if (hasFeature(FeatureRenderFlags::STATIC_SHADOWS))
@@ -4312,7 +4287,7 @@ void WorldRenderer::setDirToSun()
     }
     case DirToSun::RELOAD_CUBE:
       dir_to_sun.sunDirectionUpdateStage++;
-      reloadCube(true);
+      scheduleEnviProbeReRender();
       break;
     case DirToSun::IMPOSTOR_PRESHADOWS:
       rendinst::render::impostorPreshadowNeedUpdate = true;
@@ -5328,72 +5303,45 @@ void WorldRenderer::renderDelayedDepthAbove()
     depthAOAboveCtx->render(*this, data.itm);
 }
 
-void WorldRenderer::reinitCubeIfInvalid()
+void WorldRenderer::updateEnviProbe()
 {
-  if (!enviProbeInvalid)
+  if (enviProbeState == EnviProbeState::Ready)
     return;
 
   uint32_t enviProbeRenderFlags = getEnviProbeRenderFlags();
   uint32_t checkFlags = ENVI_PROBE_SUN_ENABLED | ENVI_PROBE_USE_GEOMETRY;
-  bool needeReinitCube = true;
+  bool canReinitCube = true;
   // In case we use geometry and sun, the shadows must be rendered at the time of probe rendering.
   if ((enviProbeRenderFlags & checkFlags) == checkFlags)
   {
     BBox3 worldBox = getWorldBBox3();
     float checkRadius = length(worldBox.width()) * 0.5f;
-    needeReinitCube &= shadowsManager.fullyUpdatedStaticShadows(worldBox.center(), checkRadius);
+    canReinitCube &= shadowsManager.fullyUpdatedStaticShadows(worldBox.center(), checkRadius);
   }
   // Do not reinit envi probe until skies are not ready, otherwise we will have wrong sky color and missed clouds
   if (auto *skies = get_daskies())
-    needeReinitCube &= skies->isCloudsReady();
-  if (needeReinitCube)
+    canReinitCube &= skies->isCloudsReady() && skies->isScatteringReady();
+  if (canReinitCube)
   {
-    reinitCube();
-    enviProbeInvalid = false;
-    enviProbeNeedsReload = false;
+    if (enviProbeState == EnviProbeState::NeedsFullReload)
+      recreateEnviProbe();
+    renderEnviProbe();
+    enviProbeState = EnviProbeState::Ready;
   }
   else
     debug("WR:cube reinit skipped because dependent systems are not ready");
 }
 
-static int get_envi_cube_size() { return dgs_get_settings()->getBlockByNameEx("graphics")->getInt("envi_cube_size", 128); }
-
-void WorldRenderer::reinitCube(const Point3 &at)
+void WorldRenderer::recreateEnviProbe()
 {
-  cubeResolution = get_envi_cube_size();
-  reinitCube(cubeResolution, at);
-}
-
-void WorldRenderer::reinitSpecularCubesContainerIfNeeded(int cube_size)
-{
-  if (!specularCubesContainerNeedsReinit)
-    return;
-
-  if (specularCubesContainer)
-  {
-    specularCubesContainer->init(cube_size < 0 ? get_envi_cube_size() : cube_size, TEXFMT_A16B16G16R16F);
-    specularCubesContainerNeedsReinit = false;
-  }
-}
-
-void WorldRenderer::reinitCube(int ew, const Point3 &at)
-{
-  const float oldSkyFilterTerm = ShaderGlobal::get_float(var::sky_polarization_filter_term);
-  ShaderGlobal::set_float(var::sky_polarization_filter_term, 1.0f);
-
-  enviProbePos = at;
-  cube->init(ew);
+  cube->init(cubeResolution);
   light_probe::destroy(enviProbe);
-  enviProbe = light_probe::create("envi", ew, TEXFMT_A16B16G16R16F);
+  enviProbe = light_probe::create("envi", cubeResolution, TEXFMT_A16B16G16R16F);
   ShaderGlobal::set_texture(envi_probe_specularVarId, *light_probe::getManagedTex(enviProbe));
   ShaderGlobal::set_sampler(envi_probe_specular_samplerstateVarId, d3d::request_sampler({}));
-  reinitSpecularCubesContainerIfNeeded(ew);
+  if (specularCubesContainer)
+    specularCubesContainer->init(cubeResolution, TEXFMT_A16B16G16R16F);
   initIndoorProbesIfNecessary();
-  g_entity_mgr->broadcastEventImmediate(RenderReinitCube{});
-  beforeDrawPostFx();
-  reloadCube(true);
-
-  ShaderGlobal::set_float(var::sky_polarization_filter_term, oldSkyFilterTerm);
 }
 
 void WorldRenderer::updateSkyProbeDiffuse()
@@ -5464,8 +5412,26 @@ void WorldRenderer::updateSkyProbeDiffuse()
   }
 }
 
-void WorldRenderer::reloadCube(bool first)
+void WorldRenderer::clearEnviProbe()
 {
+  SCOPE_RENDER_TARGET;
+  for (int i = 0; i < 6; ++i)
+  {
+    d3d::set_render_target({}, DepthAccess::RW, {{light_probe::getManagedTex(enviProbe)->getCubeTex(), 0, static_cast<uint32_t>(i)}});
+    d3d::clearview(CLEAR_TARGET, 0, 0, 0);
+  }
+  for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
+    ShaderGlobal::set_float4(get_shader_variable_id(String(128, "enviSPH%d", i)), 1e-9, 1e-9, 1e-9, 1e-9);
+  light_probe::update(enviProbe, NULL);
+}
+
+void WorldRenderer::renderEnviProbe()
+{
+  const float oldSkyFilterTerm = ShaderGlobal::get_float(var::sky_polarization_filter_term);
+  ShaderGlobal::set_float(var::sky_polarization_filter_term, 1.0f);
+
+  beforeDrawPostFx();
+
   const uint32_t enviProbeRenderFlags = getEnviProbeRenderFlags();
   const bool sunEnabled = enviProbeRenderFlags & ENVI_PROBE_SUN_ENABLED;
   const bool useGeometry = enviProbeRenderFlags & ENVI_PROBE_USE_GEOMETRY;
@@ -5477,19 +5443,7 @@ void WorldRenderer::reloadCube(bool first)
   if (!sunEnabled)
     ShaderGlobal::set_float4(sun_color_0VarId, 0, 0, 0, 0);
   ShaderGlobal::setBlock(globalConstBlockId, ShaderGlobal::LAYER_GLOBAL_CONST);
-  if (first)
-  {
-    SCOPE_RENDER_TARGET;
-    for (int i = 0; i < 6; ++i)
-    {
-      d3d::set_render_target({}, DepthAccess::RW,
-        {{light_probe::getManagedTex(enviProbe)->getCubeTex(), 0, static_cast<uint32_t>(i)}});
-      d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-    }
-    for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
-      ShaderGlobal::set_float4(get_shader_variable_id(String(128, "enviSPH%d", i)), 1e-9, 1e-9, 1e-9, 1e-9);
-    light_probe::update(enviProbe, NULL);
-  }
+
   Point3 origin = enviProbePos;
   if (lmeshMgr && lmeshMgr->getHmapHandler())
   {
@@ -5502,6 +5456,7 @@ void WorldRenderer::reloadCube(bool first)
     TIME_D3D_PROFILE(cubeRender)
     if (!render_custom_envi_probe(light_probe::getManagedTex(enviProbe), -1))
     {
+      clearEnviProbe();
       mainCameraVisibilityMgr.waitLightProbeVisibility(); // Async visibility shouldn't be running here, but wait for safety.
       if (!get_daskies()->isPanoramaValid())
         get_daskies()->temporarilyDisablePanorama(true);
@@ -5522,6 +5477,8 @@ void WorldRenderer::reloadCube(bool first)
   ShaderGlobal::set_texture(local_light_probe_texVarId, *light_probe::getManagedTex(enviProbe));
   ShaderGlobal::set_sampler(get_shader_variable_id("local_light_probe_tex_samplerstate", true), d3d::request_sampler({}));
   invalidateGI(true);
+
+  ShaderGlobal::set_float(var::sky_polarization_filter_term, oldSkyFilterTerm);
 }
 
 void WorldRenderer::prepareLightProbeRIVisibility(const mat44f &globtm, const Point3 &view_pos)
@@ -5627,6 +5584,8 @@ void WorldRenderer::renderWater(const CameraParams &camera, DistantWater render_
 {
   if (!water || is_water_hidden())
     return;
+
+  bind_water_refraction_stub_if_unset();
 
   TIME_D3D_PROFILE(water);
   if (render_ssr)
@@ -6046,7 +6005,7 @@ bool WorldRenderer::isTimeDynamic() const { return timeDynamic || dynamic_time_s
 void WorldRenderer::initIndoorProbeShapes(eastl::unique_ptr<IndoorProbeScenes> &&scene_ptr)
 {
   indoorProbesScene = eastl::move(scene_ptr);
-  initIndoorProbesIfNecessary();
+  scheduleEnviProbeFullReload();
   set_up_omni_lights();
   g_entity_mgr->broadcastEvent(UpdateEffectRestrictionBoxes());
 }
@@ -6380,8 +6339,7 @@ void WorldRenderer::changeFeatures(const FeatureRenderFlagMask &f)
   {
     closeResetable();
     initResetable();
-    setSpecularCubesContainerForReinit();
-    reinitCube();
+    scheduleEnviProbeFullReload();
   }
 
   if (reapplySettings)
@@ -6394,7 +6352,7 @@ void WorldRenderer::changeFeatures(const FeatureRenderFlagMask &f)
   updateDistantHeightmap(); // currently it depends on distant fog
 
   if (changedFeatures.test(FeatureRenderFlags::SPECULAR_CUBES))
-    invalidateCube();
+    scheduleEnviProbeFullReload();
 
   if (changedFeatures.test(FeatureRenderFlags::UPSCALE_SAMPLING_TEX) || changedFeatures.test(FeatureRenderFlags::TAA))
     requestFgRecreation("changeFeatures: UPSCALE_SAMPLING_TEX or TAA");
@@ -6656,18 +6614,21 @@ shadercache::WarmupParams get_shader_warmup_params()
 {
   const bool supportsRT = d3d::get_driver_desc().caps.hasRayQuery;
   const bool hasTess = d3d::get_driver_desc().caps.hasQuadTessellation;
-  const uint32_t texFmt = TEXFMT_R8;
-  bool supportUnorderedLoad = d3d::get_texformat_usage(texFmt | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
   const bool hasHalfPrecision = d3d::get_driver_desc().caps.hasShaderFloat16Support;
+  const bool supportsR8UavLoad = d3d::get_texformat_usage(TEXFMT_R8 | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
+  const bool supportsR11G11B10FUavLoad = d3d::get_texformat_usage(TEXFMT_R11G11B10F | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD;
+  const bool supportIrradGridUnorderedLoad =
+    (d3d::get_texformat_usage(TEXFMT_A8R8G8B8 | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD) &&
+    (d3d::get_texformat_usage(TEXFMT_A16B16G16R16F | TEXCF_UNORDERED) & d3d::USAGE_UNORDERED_LOAD);
+  const bool supportLitSceneUnorderedLoad = supportsR8UavLoad && supportsR11G11B10FUavLoad;
 
   shadercache::WarmupParams params{};
-  params.invalidVars = {
-    {"use_hw_rt_gi", supportsRT ? 0 : 1},                         //
-    {"world_sdf_support_uav_load", supportUnorderedLoad ? 0 : 1}, //
-    {"can_use_half_precision", hasHalfPrecision ? 0 : 1},         //
-    {"use_satellite_rendering", 1},                               // not needed for release builds
-    {"water_tess_factor", hasTess ? 0 : 1} // if we have tesselation support, by default it will be used in water
-  };
+  params.invalidVars = {{"use_hw_rt_gi", supportsRT ? 0 : 1},  //
+    {"world_sdf_support_uav_load", supportsR8UavLoad ? 0 : 1}, //
+    {"can_use_half_precision", hasHalfPrecision ? 0 : 1},      //
+    {"use_satellite_rendering", 1},                            // not needed for release builds
+    {"water_tess_factor", hasTess ? 0 : 1},                    // if we have tesselation support, by default it will be used in water
+    {"dagi_rad_grid_support_uav_load", supportsR11G11B10FUavLoad ? 0 : 1}};
 
   if (!supportsRT)
   {
@@ -6677,6 +6638,22 @@ shadercache::WarmupParams get_shader_warmup_params()
 
   if ((get_water_quality() >= 2) && dgs_get_settings()->getBlockByNameEx("graphics")->getBool("useFoamFx", false))
     params.invalidVars.push_back({"wfx_effects_tex_enabled", 0}); // will always have wfx_effects_tex under this condition
+
+  if (!supportIrradGridUnorderedLoad)
+  {
+    params.shadersToSkip = {
+      "dagi_irradiance_grid_toroidal_movement_interpolate_cs",
+      "dagi_irradiance_grid_toroidal_movement_trace_cs",
+      "dagi_irradiance_grid_spatial_filter_cs",
+      "dagi_irradiance_grid_calc_temporal_cs",
+    };
+  }
+
+  if (!supportsR11G11B10FUavLoad)
+    params.shadersToSkip.push_back("dagi_radiance_grid_calc_temporal_cs");
+
+  if (!supportLitSceneUnorderedLoad)
+    params.shadersToSkip.push_back("dagi_voxel_lit_scene_from_gbuf_cs");
 
   return params;
 }
@@ -6792,6 +6769,13 @@ bool WRDispatcher::needSeparatedUI()
   return wr->needSeparatedUI();
 }
 
+bool WRDispatcher::needMotionVectors()
+{
+  auto *wr = static_cast<WorldRenderer *>(get_world_renderer());
+  G_ASSERT_AND_DO(wr != nullptr, DAG_FATAL(WR_WAS_NULL_ERR_MSG));
+  return wr->needMotionVectors();
+}
+
 bool WRDispatcher::isUpsampling()
 {
   if (isReadyToUse())
@@ -6870,8 +6854,6 @@ const ManagedTex &WRDispatcher::getFinalTargetFrame()
   G_ASSERT_AND_DO(wr != nullptr, DAG_FATAL(WR_WAS_NULL_ERR_MSG));
   return *wr->finalTargetFrame; //-V522
 }
-
-int WRDispatcher::getGbufferTargetGlobalFlags() { return WorldRenderer::GBUF_TARGET_GLOBAL_FLAGS; }
 
 bool WRDispatcher::isReadyToUse() { return get_world_renderer() != nullptr; }
 
@@ -7170,6 +7152,7 @@ void WRDispatcher::recreateRayTracingDependentNodes(uint32_t features_to_reset)
 }
 
 ECS_REGISTER_EVENT(GatherSplinegenBVHDataEvent);
+ECS_REGISTER_EVENT(GatherSmokeTracersBVHDataEvent);
 ECS_REGISTER_EVENT(RemoveSplinegenBVHEvent);
 ECS_REGISTER_EVENT(AfterRenderWorld)
 ECS_REGISTER_EVENT(RenderPostFx)
@@ -7190,7 +7173,6 @@ ECS_REGISTER_EVENT(UpdateStageInfoRender);
 ECS_REGISTER_EVENT(UpdateStageInfoRenderTrans);
 ECS_REGISTER_EVENT(QueryHeroWtmAndBoxForRender);
 ECS_REGISTER_EVENT(AfterHeightmapChange);
-ECS_REGISTER_EVENT(RenderReinitCube);
 ECS_REGISTER_EVENT(BeforeDraw);
 
 bool have_renderer() { return true; }

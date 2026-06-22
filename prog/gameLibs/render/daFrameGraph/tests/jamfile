@@ -13,8 +13,9 @@ OutDir      = $(Root)/$(Location)/bin/$(LegacyPlatformSuffix) ;
 Target      = testFrameGraph ;
 
 UseD3DMulti = yes ;
-UseD3DMultiList = stub ;
+UseD3DMultiList = DX12 stub ;
 UseD3DMultiForced = windows ;
+include $(Root)/prog/engine/drv/drv3d_DX12/copy_bundles.jam ;
 
 if $(PlatformSpec) = clang
 {
@@ -41,9 +42,8 @@ UseProgLibs =
   engine/lib3d
   engine/image
   engine/startup
-  engine/perfMon/daProfilerStub
-  engine/perfMon/gpuProfilerStub
-  engine/perfMon/perfTimerStub
+  engine/workCycle
+  engine/perfMon/stub
 
   engine/drv/drv3d_pc_multi
 

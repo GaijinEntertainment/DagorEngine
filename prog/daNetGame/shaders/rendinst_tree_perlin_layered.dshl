@@ -15,6 +15,7 @@ include "tessellation_intervals_inc.dshl"
 include "perlin_layered_inc.dshl"
 include "taa_inc.dshl"
 include "tree_gradient_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 // trees above only requires albedo and ao for gbuffer
 int gbuffer_for_treesabove = 0;
@@ -169,6 +170,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
   }
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   ROTATION_PALETTE_FOR_POS_INST()
   INIT_GROUND_ALIGN()
   if (rendinst_render_pass == rendinst_render_pass_normal)
@@ -507,7 +509,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
         #endif
         float3 localNormal = 1;
         #if NEED_NORMAL
-          localNormal = normalize(BGR_SWIZZLE(input.normal.xyz)*2-1);
+          localNormal = normalize(unpack_unit_vector(input.normal.xyz));
         #endif
         float3 localPos = input.pos;
         float opacity = 1;
@@ -518,6 +520,8 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           worldPos = apply_ground_align(worldPos, localPos, worldLocalPos, pos_and_scale);
         ##endif
         float maxMovement = 0;
+
+        VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 prevWorldPos = worldPos;
@@ -528,8 +532,14 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           ##endif
           float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
           applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, prevWorldPos, maxMovement);
+          vegInput.hData = Data;
         ##endif
-        APPLY_INTERACTIONS
+        vegInput.worldPivot = worldLocalPos;
+        vegInput.worldPos = worldPos;
+        vegInput.localPos = localPos;
+        vegInput.height = physBbox.y * length(worldLocalY);
+        float3 vegetationInteractionOffset = apply_vegetation_interactions(vegInput);
+        worldPos += vegetationInteractionOffset;
 
         float3 pointToEye = world_view_pos-worldPos;
 
@@ -538,7 +548,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           #ifdef MOTION_VECTORS_ENABLED
             // motion vectors will not account for tesellation (for now)
             output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
-            output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
           ##if (material_pn_triangulation == displacement && is_pivoted == yes)
             output.additional_displacement_mul = get_rendinst_displacement_mod()[Data.maxHierarchyLevel];
@@ -548,7 +558,7 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           output.pointToEye = pointToEye;
           #ifdef MOTION_VECTORS_ENABLED
             output.out_pos = mulPointTm(worldPos + camera_base_offset, globtm);
-            output.out_pos_prev = mulPointTm(prevWorldPos - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
+            output.out_pos_prev = mulPointTm(prevWorldPos + vegetationInteractionOffset - world_view_pos, jitteredCamPosToUnjitteredHistoryClip);
           #endif
         #endif
 
@@ -701,13 +711,19 @@ shader rendinst_tree_perlin_layered, rendinst_tree_gradient
           worldPos = apply_ground_align(worldPos, localPos, worldLocalPos, pos_and_scale);
         ##endif
 
+        VegetationInteractionInput vegInput = (VegetationInteractionInput)0;
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 unusedPrevPos;
           float windAnimWeight = saturate(tree_wind_anim_fade_params.x * length(world_view_pos.xyz - worldLocalPos) + tree_wind_anim_fade_params.y);
           applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale * windAnimWeight, unusedPrevPos);
+          vegInput.hData = Data;
         ##endif
-        APPLY_INTERACTIONS
+        vegInput.worldPivot = worldLocalPos;
+        vegInput.worldPos = worldPos;
+        vegInput.localPos = localPos;
+        vegInput.height = physBbox.y * length(worldLocalY);
+        worldPos += apply_vegetation_interactions(vegInput);
 
         #if USE_SHADOW_DISPLACEMENT_OFFSET
           worldPos += from_sun_direction_for_shadow_offset * get_shadow_tessellation_displacement_offset();

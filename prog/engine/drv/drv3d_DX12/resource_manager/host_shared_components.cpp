@@ -8,19 +8,56 @@ namespace drv3d_dx12::resource_manager
 HostDeviceSharedMemoryRegion FramePushRingMemoryProvider::allocatePushMemory(DXGIAdapter *adapter, Device &device, uint32_t size,
   uint32_t alignment)
 {
-  auto ringAccess = pushRing.access();
-  // Here is a dangerous place for emergency defragmentation. We have a lot of push memory allocations from drv internal code (like
-  // flushGraphics). It makes such call here deadlock and gpu-crash prone. So I think it is better to try to handle OOM here in another
-  // way.
-  return ringAccess->allocate(this, adapter, device.getDevice(), size, alignment)
-    .transform([&, this](auto &&result) {
-      recordConstantRingUsed(size);
+  G_UNUSED(adapter);
+  G_UNUSED(device);
+  auto result = pushRing.access()->allocate(size, alignment);
+  if (result)
+  {
+    recordConstantRingUsed(size);
+  }
+  return result;
+}
+
+HostDeviceSharedMemoryRegion TemporaryUploadMemoryProvider::allocatePushMemory(DXGIAdapter *adapter, Device &device, uint32_t size,
+  uint32_t alignment)
+{
+  static constexpr uint32_t large_push_threshold = 2 * 1024 * 1024;
+  // Small allocations try the push ring first; large ones skip it to avoid wasting ring space.
+  if (size <= large_push_threshold)
+  {
+    auto result = BaseType::allocatePushMemory(adapter, device, size, alignment);
+    if (result)
+    {
       return result;
+    }
+  }
+
+  const auto properties = getProperties(D3D12_RESOURCE_FLAG_NONE, TemporaryUploadMemoryImeplementation::memory_class,
+    D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+
+  bool shouldFlush = false;
+  return tryAllocateTempUpload(adapter, device.getDevice(), size, alignment, shouldFlush)
+    .or_else([&, this](auto) {
+      device.processEmergencyDefragmentation(
+
+        properties.raw, true, false, false, size, false);
+      return tryAllocateTempUpload(adapter, device.getDevice(), size, alignment, shouldFlush);
     })
-    .transform_error([&, this](auto error) {
+    .transform([&, this](auto value) {
+      recordTempBufferUsed(value.range.size());
+
+      // Record for automatic cleanup on frame completion, as push memory callers do not free explicitly.
+      accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
+        [buffer = value.buffer, allocSize = value.range.size()](auto &data) {
+          data.uploadBufferRefs.push_back(buffer);
+          data.tempUsage += allocSize;
+        });
+      return value;
+    })
+    .or_else([&, this](auto error) -> HostDeviceSharedMemoryRegionAllocationResult {
       checkForOOM(adapter, error,
-        OomReportData{"allocatePushMemory", nullptr, size, AllocationFlags{}.toUlong(), getPushHeapProperties().raw});
-      return error;
+        OomReportData{"allocatePushMemory(large)", nullptr, size, AllocationFlags{}.toUlong(), properties.raw});
+      return dag::Unexpected{error};
     })
     .value_or({});
 }

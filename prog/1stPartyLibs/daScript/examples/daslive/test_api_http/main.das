@@ -41,7 +41,7 @@ def ping(input : JsonValue?) : JsonValue? {
 
 def test_status() {
     print("--- GET /status ---\n")
-    GET("http://localhost:{live_api_port}/status") <| $(resp) {
+    GET("http://localhost:{live_api_port}/status") $(resp) {
         let body = string(resp.body)
         check("status returns 200", int(resp.status_code) == int(http_status.OK))
         check("status contains fps", find(body, "fps") >= 0)
@@ -53,7 +53,7 @@ def test_status() {
 
 def test_reload() {
     print("--- POST /reload ---\n")
-    POST("http://localhost:{live_api_port}/reload", "") <| $(resp) {
+    POST("http://localhost:{live_api_port}/reload", "") $(resp) {
         let body = string(resp.body)
         check("reload returns 200", int(resp.status_code) == int(http_status.OK))
         check("reload returns ok", find(body, "true") >= 0)
@@ -62,7 +62,7 @@ def test_reload() {
 
 def test_reload_full() {
     print("--- POST /reload/full ---\n")
-    POST("http://localhost:{live_api_port}/reload/full", "") <| $(resp) {
+    POST("http://localhost:{live_api_port}/reload/full", "") $(resp) {
         let body = string(resp.body)
         check("reload/full returns 200", int(resp.status_code) == int(http_status.OK))
         check("reload/full returns ok", find(body, "true") >= 0)
@@ -71,12 +71,14 @@ def test_reload_full() {
 
 def test_pause_unpause() {
     print("--- POST /pause and /unpause ---\n")
-    POST("http://localhost:{live_api_port}/pause", "") <| $(resp) {
+    POST("http://localhost:{live_api_port}/pause", "") $(resp) {
         check("pause returns 200", int(resp.status_code) == int(http_status.OK))
-        check("pause returns paused:true", find(string(resp.body), "true") >= 0)
+        peek(resp.body) $(body) {
+            check("pause returns paused:true", find(body, "true") >= 0)
+        }
     }
     // Verify via status
-    GET("http://localhost:{live_api_port}/status") <| $(resp) {
+    GET("http://localhost:{live_api_port}/status") $(resp) {
         var parse_error = ""
         var js = read_json(string(resp.body), parse_error)
         if (js != null && js.value is _object) {
@@ -90,7 +92,7 @@ def test_pause_unpause() {
         }
     }
     // Unpause
-    POST("http://localhost:{live_api_port}/unpause", "") <| $(resp) {
+    POST("http://localhost:{live_api_port}/unpause", "") $(resp) {
         check("unpause returns 200", int(resp.status_code) == int(http_status.OK))
     }
     set_paused(false)
@@ -99,13 +101,13 @@ def test_pause_unpause() {
 def test_command() {
     print("--- POST /command ---\n")
     cmd_counter = 0
-    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"ping\"}") <| $(resp) {
+    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"ping\"}") $(resp) {
         check("command returns 200", int(resp.status_code) == int(http_status.OK))
         let body = string(resp.body)
         check("command ping response has pong", find(body, "pong") >= 0)
     }
     // Call again
-    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"ping\"}") <| $(resp) {
+    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"ping\"}") $(resp) {
         let body = string(resp.body)
         check("second ping increments counter", find(body, "2") >= 0)
     }
@@ -114,9 +116,11 @@ def test_command() {
 def test_command_errors() {
     print("--- POST /command errors ---\n")
     // Unknown command
-    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"nonexistent\"}") <| $(resp) {
+    POST("http://localhost:{live_api_port}/command", "\{\"name\": \"nonexistent\"}") $(resp) {
         check("unknown command returns 200", int(resp.status_code) == int(http_status.OK))
-        check("unknown command has error", find(string(resp.body), "error") >= 0)
+        peek(resp.body) $(body) {
+            check("unknown command has error", find(body, "error") >= 0)
+        }
     }
 }
 

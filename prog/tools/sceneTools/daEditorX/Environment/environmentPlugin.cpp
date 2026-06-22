@@ -1360,6 +1360,7 @@ void EnvironmentPlugin::renderGeometry(Stage stage)
         break;
       // intended fallthrough
     case STG_RENDER_ENVI:
+    {
       int l, t, w, h;
       float minZ, maxZ;
 
@@ -1406,6 +1407,9 @@ void EnvironmentPlugin::renderGeometry(Stage stage)
           skiesSrv->renderClouds();
       }
       break;
+    }
+
+    default: break;
   }
 }
 

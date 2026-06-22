@@ -23,6 +23,11 @@ namespace danet
 class BitStream;
 }
 
+namespace ecs
+{
+class EntityManager;
+}
+
 namespace net
 {
 
@@ -128,6 +133,8 @@ struct MessageNetDesc
   recipient_filter_t rcptFilter;
 };
 
+typedef void (*msg_handler_t)(const IMessage *msg);
+
 class MessageClass : public MessageNetDesc
 {
   MessageClass *next;
@@ -135,7 +142,9 @@ class MessageClass : public MessageNetDesc
   static int numClassIdBits;
 
 public:
-  void (*msgSinkHandler)(const IMessage *msg);        // If not null then this handler will be called on msgSink messages receival
+  // single recv-side handler; whether it is invoked via the sink path or the untargeted path
+  // is determined by how the sender routed the packet, not by which slot it lives in
+  msg_handler_t handler;
   eastl::string (*formatMsgStr)(const IMessage *msg); // called with the unpacked message on routing failure for logging
   const char *debugClassName = nullptr;               // null in release (see ECS_NET_MSG_CLASS_NAME)
   uint32_t classHash;
@@ -146,14 +155,14 @@ public:
 
   MessageClass(const char *class_name, uint32_t class_hash, uint32_t class_sz, MessageRouting rout, bool timed,
     recipient_filter_t rcptf = ECS_NET_NO_RCPTF, PacketReliability rlb = RELIABLE_ORDERED, uint8_t chn = 0,
-    uint32_t flags_ = MF_DEFAULT_FLAGS, int dup_delay_ms = ECS_NET_NO_DUP, void (*msg_sink_handler)(const IMessage *) = nullptr,
+    uint32_t flags_ = MF_DEFAULT_FLAGS, int dup_delay_ms = ECS_NET_NO_DUP, msg_handler_t msg_handler = nullptr,
     eastl::string (*format_msg_str)(const IMessage *) = &MessageClass::defaultFormatMsgStr);
 
 private:
   static uint32_t initImpl(bool server, bool dbg_output_table);
 
 public:
-  static uint32_t init(bool server);
+  static uint32_t init(bool server, ecs::EntityManager *mgr);
 
   static void startWaitingForMessageIdsSync();
   static void resetMessageIdsSync();
@@ -199,6 +208,7 @@ public:
 #define ECS_NET_IMPL_MSG(class_name, rout, ...)                                                                                      \
   net::MessageClassInst<class_name> class_name::messageClass(ECS_NET_MSG_CLASS_NAME(class_name), ECS_NET_MSG_CLASS_HASH(class_name), \
     sizeof(class_name), rout, (eastl::is_base_of<net::IMessageTimed, class_name>::value), ##__VA_ARGS__)
+
 }; // namespace net
 
 namespace ecs

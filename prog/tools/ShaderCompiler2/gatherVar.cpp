@@ -21,6 +21,7 @@
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_fileIo.h>
 #include <osApiWrappers/dag_direct.h>
+#include <drv/3d/dag_consts.h>
 #include "hash.h"
 
 #if _CROSS_TARGET_DX12
@@ -555,6 +556,7 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   hlsl.aprintf(32, ";};\n");
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return immediate_dword_%d;}\n", i, i);
+  ctx.reportImmediateCbSlotRequired();
 #elif _CROSS_TARGET_SPIRV
   const uint32_t MAX_IMMEDIATE_CONST_WORDS = 4;
   hlsl.aprintf(128,
@@ -564,10 +566,7 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return imm_dwords.data[%d];}\n", i, i);
 #else
-  uint32_t slot = 8;
-#if _CROSS_TARGET_METAL
-  slot = drv3d_metal::IMMEDIATE_BIND_POINT;
-#endif
+  uint32_t slot = IMMEDIATE_CB_REGISTER;
   hlsl.aprintf(128, "#define NUM_IMMEDIATE_DWORDS %u\n", words);
   hlsl.aprintf(128, "cbuffer immediate_const_buffer:register(b%d){ uint", slot);
   for (int i = 0; i < words; ++i)
@@ -575,6 +574,7 @@ void GatherVarShaderEvalCB::eval(immediate_const_block &s)
   hlsl.aprintf(32, ";};\n");
   for (int i = 0; i < words; ++i)
     hlsl.aprintf(32, "uint get_immediate_dword_%d() {return immediate_dword_%d;}\n", i, i);
+  ctx.reportImmediateCbSlotRequired();
 #endif
 
   if (!item_is_in(stage, {HLSL_VS, HLSL_PS, HLSL_CS, HLSL_MS, HLSL_AS}))

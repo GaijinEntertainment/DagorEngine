@@ -103,16 +103,20 @@ static __forceinline void animchar_render_semi_trans_es_event_handler(const Rend
     semi_transparent__placingColorAlpha);
   auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_PLACING_COLOR>(make_span_const(&params, 1));
 
+  TMatrix vtm = event.viewTm;
+  vtm.setcol(3, 0, 0, 0);
+  d3d::settm(TM_VIEW, vtm);
+
   add_animchar(ctx, 0, semi_transparent__endStage, animchar_render.getSceneInstance(), additionalData, NeedPreviousMatrices::No,
     {semiTransMgr->dynamicObjectsRenderer.shader, semiTransMgr->dynamicSkinnedObjectsRenderer.shader}, PathFilterView::NULL_FILTER, 0,
     RenderPriority::HIGH, nullptr, event.texCtx);
 
   if (!prepare_render_current(ctx))
+  {
+    d3d::settm(TM_VIEW, event.viewTm);
     return;
+  }
 
-  TMatrix vtm = event.viewTm;
-  vtm.setcol(3, 0, 0, 0);
-  d3d::settm(TM_VIEW, vtm);
   SCENE_LAYER_GUARD(dynamicSceneTransBlockId);
   render_all_stages(ctx);
   d3d::settm(TM_VIEW, event.viewTm);

@@ -5,6 +5,7 @@ options remove_unused_symbols = false
 module rtti shared public
 
 require rtti_core public
+require strings
 
 typedef FileAccessPtr = smart_ptr<FileAccess>
 
@@ -117,9 +118,7 @@ def arg_names(info : VarInfo) {
 
 def public class_info(cl) : StructInfo const? {
     static_if (typeinfo is_pointer(cl)) {
-        if (cl == null) {
-            return null
-        }
+        if (cl == null) return null
         static_if (typeinfo is_class(*cl)) {
             unsafe {
                 return reinterpret<StructInfo const?>((reinterpret<TypeInfo const?>((*cl).__rtti)).structType)
@@ -135,9 +134,7 @@ def public class_info(cl) : StructInfo const? {
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
             var l = reinterpret<int8 ??> addr(cl)
-            if (l == null) {
-                return null
-            }
+            if (l == null) return null
             var pti = reinterpret<TypeInfo const ??>(l[0] - 16)
             return (*pti).structType
         }
@@ -149,9 +146,7 @@ def public class_info(cl) : StructInfo const? {
 
 def public type_info(cl) : TypeInfo const? {
     static_if (typeinfo is_pointer(cl)) {
-        if (cl == null) {
-            return null
-        }
+        if (cl == null) return null
         static_if (typeinfo is_class(*cl)) {
             unsafe {
                 return (reinterpret<TypeInfo const?>((*cl).__rtti))
@@ -167,9 +162,7 @@ def public type_info(cl) : TypeInfo const? {
     } static_elif (typeinfo is_lambda(cl)) {
         unsafe {
             var l = reinterpret<int8 ??> addr(cl)
-            if (l == null) {
-                return null
-            }
+            if (l == null) return null
             return reinterpret<TypeInfo const ??>(l[0] - 16)
         }
     } else {
@@ -195,8 +188,23 @@ def type_info(vinfo : VarInfo) : TypeInfo const? {
 [generic]
 def RttiValue_nothing {
     var t : RttiValue
-    unsafe {
-        set_variant_index(t, typeinfo variant_index<nothing>(t))
-    }
+    unsafe(set_variant_index(t, typeinfo variant_index<nothing>(t)))
     return t
+}
+
+//! Returns true when the source line at `at` carries a `// nolint:CODE` (or
+//! `// nolint:CODE1,CODE2,...`) directive listing `code`. Null-safe wrapper
+//! around the C-side scanner; returns false if `at.fileInfo == null` or
+//! `at.line == 0`. Canonical entry point for lint visitors.
+def public is_lint_suppressed(at : LineInfo; code : string) : bool {
+    return false if (at.fileInfo == null || at.line == 0u)
+    return rtti_is_nolint_suppressed(at.fileInfo, at.line, code)
+}
+
+//! Extracts the leading code from a lint message such as "LINT001: foo bar"
+//! (returns "LINT001"). Returns empty string if no colon is present.
+def public extract_lint_code(text : string) : string {
+    let colon = find(text, ":")
+    return "" if (colon < 0)
+    return slice(text, 0, colon)
 }

@@ -7,6 +7,20 @@
     #define DAS_FUSION  0
 #endif
 
+// Safe vec4f load for a workhorse-sized source. Picks the load width by sizeof(CTYPE)
+// at compile time so we never v_ldu past a 4/8/12-byte source — important when the
+// source sits within 16 bytes of an unmapped page (real SIGSEGV under TSan, not just
+// a sanitizer over-read warning). Each branch is a single SIMD intrinsic; memcpy
+// fallback only on exotic sizes.
+#define DAS_LDU_WORKHORSE(dst, src_ptr, CTYPE) \
+    do { \
+        if constexpr (sizeof(CTYPE) == sizeof(vec4f))         (dst) = v_ldu((const float *)(src_ptr)); \
+        else if constexpr (sizeof(CTYPE) == sizeof(float) * 3) (dst) = v_ldu_p3_safe((const float *)(src_ptr)); \
+        else if constexpr (sizeof(CTYPE) == sizeof(float) * 2) (dst) = v_ldu_half((const float *)(src_ptr)); \
+        else if constexpr (sizeof(CTYPE) == sizeof(float))     (dst) = v_set_x(*(const float *)(src_ptr)); \
+        else { vec4f __r = v_zero(); memcpy(&__r, (src_ptr), sizeof(CTYPE)); (dst) = __r; } \
+    } while (0)
+
 namespace das {
 
     typedef char * StringPtr;
@@ -110,6 +124,7 @@ namespace das {
     void createFusionEngine_at();
     void createFusionEngine_at_array();
     void createFusionEngine_tableindex();
+    void createFusionEngine_tablewithhash();
     // call
     void createFusionEngine_call1();
     void createFusionEngine_call2();

@@ -89,19 +89,14 @@ class BasicStackWalker : DapiStackWalker {
 // ============================================================
 
 class StackWalkAgent : DapiDebugAgent {
-    walker_adapter : smart_ptr<StackWalker>
     walker : BasicStackWalker?
 
     def StackWalkAgent() {
         walker = new BasicStackWalker()
-        unsafe {
-            walker_adapter <- make_stack_walker(walker)
-        }
     }
 
     def operator delete() {
         unsafe {
-            delete walker_adapter
             delete walker
         }
     }
@@ -110,7 +105,9 @@ class StackWalkAgent : DapiDebugAgent {
                               reason, text : string) : void {
         print("  --- stack walk at line {int(at.line)} ---\n")
         walker.frame_depth = 0
-        walk_stack(walker_adapter, ctx, at)
+        make_stack_walker(walker) $(adapter) {
+            walk_stack(adapter, ctx, at)
+        }
         print("  --- end stack walk ---\n")
     }
 }
@@ -126,7 +123,7 @@ def install_stack_agent(ctx : Context) {
 // ============================================================
 
 def inner_function(x : int; y : float) : float {
-    var result = float(x) + y
+    let result = float(x) + y
     breakpoint()  // stack walker triggers here
     return result
 }
@@ -164,20 +161,15 @@ def demo_basic_stack_walk() {
 //   - Build diagnostic objects from runtime state
 
 class DiagnosticAgent : DapiDebugAgent {
-    walker_adapter : smart_ptr<StackWalker>
     walker : BasicStackWalker?
     collection_count : int = 0
 
     def DiagnosticAgent() {
         walker = new BasicStackWalker()
-        unsafe {
-            walker_adapter <- make_stack_walker(walker)
-        }
     }
 
     def operator delete() {
         unsafe {
-            delete walker_adapter
             delete walker
         }
     }
@@ -199,7 +191,9 @@ class DiagnosticAgent : DapiDebugAgent {
 
         // Walk the stack for a full picture
         walker.frame_depth = 0
-        walk_stack(walker_adapter, ctx, at)
+        make_stack_walker(walker) $(adapter) {
+            walk_stack(adapter, ctx, at)
+        }
         print("  --- end collection ---\n")
     }
 

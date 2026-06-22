@@ -59,6 +59,12 @@ shader compress_voltex_bc4_cs
 
     [numthreads(4, 4, 4)]
     void cs_main(uint3 tid : SV_DispatchThreadID) {
+      // dispatchThreads rounds up to full 4x4x4 groups; drop threads past the block grid so they do
+      // not read the source out of bounds (BC4 packs 4x4 texel blocks in XY, one slice per Z).
+      uint3 srcDim;
+      source.GetDimensions(srcDim.x, srcDim.y, srcDim.z);
+      if (any(tid >= uint3((srcDim.x + 3) / 4, (srcDim.y + 3) / 4, srcDim.z)))
+        return;
       texture3DAt(output, tid) = compress_voltex_bc4_main(tid);
     }
   }

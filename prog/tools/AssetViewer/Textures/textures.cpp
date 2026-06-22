@@ -39,7 +39,7 @@
 #include <osApiWrappers/dag_direct.h>
 
 #include <shaders/dag_overrideStates.h>
-#include <render/renderLightsConsts.hlsli>
+#include <render/lights/renderLightsConsts.hlsli>
 #include <3d/tql.h>
 
 enum

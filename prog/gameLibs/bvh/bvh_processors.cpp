@@ -547,7 +547,7 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int sou
     params.wind_motion_damp_base = args.tree.ppWindMotionDampBase;
     params.wind_motion_damp_level_mul = args.tree.ppWindMotionDampLevelMul;
     params.AnimWindScale = args.tree.AnimWindScale;
-    params.apply_tree_wind = args.tree.apply_tree_wind ? 1 : 0;
+    params.apply_tree_wind = args.tree.isTrunk ? 0 : 1;
     params.target_offset = processed_buffer.referenced ? processed_buffer.referenced->offset : 0;
     params.start_vertex = args.baseVertex + args.startVertex;
     params.vertex_stride = args.vertexStride;

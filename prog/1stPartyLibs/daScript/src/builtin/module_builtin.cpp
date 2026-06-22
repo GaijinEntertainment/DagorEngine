@@ -99,8 +99,6 @@ namespace das
 #define ADD_NUMERIC_LIMITS_EX_UNSIGNED(TYPENAME,CONSTNAME,CTYPE)  \
     addConstant<CTYPE>(*this, #TYPENAME "_MAX", (CTYPE)CONSTNAME##_MAX);
 
-    void verifyOptions();
-
     Module_BuiltIn::Module_BuiltIn() : Module("$") {
         DAS_PROFILE_SECTION("Module_Builtin");
         ModuleLibrary lib(this);
@@ -252,8 +250,6 @@ namespace das
         addRuntimeSort(lib);
         // TIME
         addTime(lib);
-        // lets verify options (it is here because its the builtin module)
-        verifyOptions();
         // lets verify all names
         uint32_t verifyFlags = uint32_t(VerifyBuiltinFlags::verifyAll);
         verifyFlags &= ~VerifyBuiltinFlags::verifyGlobals;      // we skip globals due to INT_MAX etc

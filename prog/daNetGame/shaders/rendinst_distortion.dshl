@@ -1,6 +1,7 @@
 include "psh_tangent.dshl"
 include "rendinst_opaque_inc.dshl"
 include "distortion.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_distortion
 {
@@ -41,6 +42,7 @@ shader rendinst_distortion
   ENABLE_MULTI_DRAW(false)
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl
   {
@@ -80,7 +82,7 @@ shader rendinst_distortion
         SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
       #endif
 
-      float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+      float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       float3 localPos    = input.pos;
 
       VB_PERFORM_INSTANCING

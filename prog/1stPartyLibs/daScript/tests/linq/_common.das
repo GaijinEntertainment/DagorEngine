@@ -19,7 +19,7 @@ struct ComplexType { // this one can't be copied
             i = int(int64(i) / divisor)
         }
     }
-    def operator ==(b : ComplexType) : bool {
+    def const operator ==(b : ComplexType) : bool {
         for (i, j in a, b.a) {
             if (i != j) {
                 return false
@@ -28,7 +28,7 @@ struct ComplexType { // this one can't be copied
         return true
     }
 
-    def operator !=(b : ComplexType) : bool {
+    def const operator !=(b : ComplexType) : bool {
         for (i, j in a, b.a) {
             if (i != j) {
                 return true

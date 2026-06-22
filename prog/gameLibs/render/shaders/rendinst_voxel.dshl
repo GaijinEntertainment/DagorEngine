@@ -1,0 +1,403 @@
+include "shader_global.dshl"
+include "rendinst_opaque_inc.dshl"
+include "rendinst_rotation_palette.dshl"
+include "rendinst_simple_inc.dshl"
+include "simple_painted_inc.dshl"
+include "gbuffer.dshl"
+
+float4 voxel_depth_projection;
+int voxel_data_offset;
+
+texture voxel_color_atlas;
+texture voxel_normal_atlas;
+int4 voxel_atlas_offsets;
+
+shader rendinst_voxel
+{
+  if (rendinst_render_pass == rendinst_render_pass_impostor_color  ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow ||
+      rendinst_render_pass == rendinst_render_pass_impostor_voxel ||
+      rendinst_render_pass == rendinst_render_pass_grassify ||
+      rendinst_render_pass == rendinst_render_pass_to_heightmap ||
+      rendinst_render_pass == rendinst_render_pass_voxelize_albedo ||
+      rendinst_render_pass == rendinst_render_pass_triangle_debug)
+  {
+    dont_render;
+  }
+
+  // NO_DYNSTCODE()
+
+  cull_mode = cw;
+
+  channel float3 pos = pos;
+
+  USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+
+  ENABLE_MULTI_DRAW(false)
+  RENDINST_BLOCK()
+  RI_VOXELIZE_ALBEDO()
+  RENDINST_INSTANCING()
+  hlsl {
+    ##if (rendinst_render_is_normal_or_vox_albedo)
+      #define HLSL_FULL_VS_OUTPUT 1
+    ##endif
+  }
+
+  INIT_AND_USE_COMMON_RENDINST_MOTION_VECTORS()
+  INIT_SIMPLE_PAINTED()
+  COMMON_RENDINST_INIT_PAINT(false)
+  INIT_AND_USE_GLOBTM(ps)
+
+  (vs) {
+    voxel_data@buf : register(ri_vertex_data_no) hlsl {
+      ByteAddressBuffer voxel_data@buf;
+    }
+    voxel_data_offset@u1 = voxel_data_offset;
+  }
+
+  (ps) {
+    voxel_data@buf : register(ri_vertex_data_no) hlsl {
+      ByteAddressBuffer voxel_data@buf;
+    }
+    voxel_data_offset@u1 = voxel_data_offset;
+    color_tex@tex2d = voxel_color_atlas;
+    color_tex_size@f2 = get_dimensions(voxel_color_atlas, 0);
+    color_block_ofs@u1 = voxel_atlas_offsets.x;
+    normal_tex@tex2d = voxel_normal_atlas;
+    normal_tex_size@f2 = get_dimensions(voxel_normal_atlas, 0);
+    normal_block_ofs@u1 = voxel_atlas_offsets.y;
+    depth_proj@f4 = voxel_depth_projection;
+    camera_base_offset@f3 = camera_base_offset;
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      linear noperspective centroid VS_OUT_POSITION(pos)
+      float3 localPos                    : TEXCOORD0;
+      nointerpolation float3 worldLocalX : TEXCOORD1;
+      nointerpolation float3 worldLocalY : TEXCOORD2;
+      nointerpolation float3 worldLocalZ : TEXCOORD3;
+      float3 worldPos                    : TEXCOORD4;
+      #if COLOR_NEEDED
+        float3 colorMul                  : TEXCOORD5;
+      #endif
+      VSOUT_DRAW_ID
+    };
+  }
+
+  hlsl(vs) {
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos : POSITION;
+    };
+
+    VsOutput voxel_vs(VsInput IN  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      float3 localPos = IN.pos;
+      float3 localNormal = 0;
+
+      VB_PERFORM_INSTANCING
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+
+      output.localPos = localPos;
+
+      output.worldLocalX = worldLocalX;
+      output.worldLocalY = worldLocalY;
+      output.worldLocalZ = worldLocalZ;
+      output.worldPos = worldPos;
+
+      #if COLOR_NEEDED
+        output.colorMul = 1;
+        #if HAS_PAINT_DETAILS
+          INSTANCING_HASH_VAL
+          output.colorMul = getColorMul(hashVal);
+        #endif
+        #if HAS_OVERLAY_MAP_COLOR
+          if (need_overlay_map_color())
+            output.colorMul = get_overlay_map_color(worldPos);
+        #endif
+      #endif
+
+      return output;
+    }
+  }
+
+  if (rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth)
+  {
+    WRITE_GBUFFER()
+  }
+
+  hlsl(ps) {
+    #include <octahedral.hlsl>
+
+    struct WooRay3d
+    {
+      float3 p, wdir;
+      int3 pt, stepCell;
+      float3 tMax, tDelta;
+    };
+
+    #define VOXEL_DEPTH_BITS 14
+
+  ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+    float4 voxel_ps(VsOutput IN HW_USE_SCREEN_POS, out float depth : SV_DepthLessEqual) : SV_Target0
+  ##else
+    GBUFFER_OUTPUT voxel_ps(VsOutput IN HW_USE_SCREEN_POS, out float depth : SV_DepthLessEqual)
+  ##endif
+    {
+      float4 screenpos = GET_SCREEN_POS(IN.pos);
+      float3 p2e = -depth_proj.xyz - depth_proj.w * (IN.worldPos + camera_base_offset);
+
+      // assuming orthogonal matrix
+      float3 localRay = -float3(
+        dot(p2e, IN.worldLocalX),
+        dot(p2e, IN.worldLocalY),
+        dot(p2e, IN.worldLocalZ))
+      / max(1e-6, float3(
+        lengthSq(IN.worldLocalX),
+        lengthSq(IN.worldLocalY),
+        lengthSq(IN.worldLocalZ)));
+
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+        BRANCH
+        if (voxel_data_offset == 0)
+        {
+          // shouldn't happen
+          depth = screenpos.z * rcp(screenpos.w);
+          return 0;
+        }
+      ##else
+        UnpackedGbuffer result;
+        init_gbuffer(result);
+
+        BRANCH
+        if (voxel_data_offset == 0)
+        {
+          // shouldn't happen
+          init_albedo(result, half3(1, 0, 1));
+          init_material(result, SHADING_NORMAL);
+          init_order(result, GBUFFER_ORDER_STATIC);
+          depth = screenpos.z * rcp(screenpos.w);
+          return encode_gbuffer(result, p2e.xyz, screenpos);
+        }
+      ##endif
+
+      const uint mipsAndLayers = loadBuffer(voxel_data, voxel_data_offset);
+      const uint numMips = mipsAndLayers & 0xffff;
+      const uint numLayers = mipsAndLayers >> 16;
+      uint mipOfs = loadBuffer(voxel_data, voxel_data_offset + 4) + voxel_data_offset;
+      float voxelSize = asfloat(loadBuffer(voxel_data, mipOfs + 4 * 3));
+
+      float3 pos = IN.localPos;
+
+      // select mip
+      const float bias = -0.5;
+      const float voxelsPerPixel = min(length(ddx(pos)), length(ddy(pos))) / voxelSize;
+      const uint mip = clamp(uint(ceil(log2(voxelsPerPixel) + bias)), 0, numMips - 1);
+      mipOfs = loadBuffer(voxel_data, voxel_data_offset + 4 + 4 * mip) + voxel_data_offset;
+      const uint3 numBlocks = loadBuffer3(voxel_data, mipOfs);
+      voxelSize = asfloat(loadBuffer(voxel_data, mipOfs + 4 * 3));
+      const float3 boxMin = asfloat(loadBuffer3(voxel_data, mipOfs + 4 * 4));
+      pos = (pos - boxMin) / voxelSize;
+
+      float3 startPos = pos;
+      float3 dir = normalize(localRay);
+      WooRay3d ray;
+      ray.p = pos;
+      ray.wdir = dir;
+      ray.pt = int3(floor(pos));
+      ray.stepCell = dir >= 0 ? 1 : -1;
+      int3 rayLimit = dir >= 0 ? numBlocks * 4 - 1 : 0;
+      int3 nextPt = ray.pt + max(0, ray.stepCell);
+      float3 absDir = abs(dir);
+      ray.tDelta = absDir > 1e-9 ? 1.0 / absDir : 0;
+      ray.tMax = absDir > 1e-9 ? (nextPt - pos) / dir : 1e15;
+
+      bool hit = false;
+      uint hitFace = 0;
+      float t = 0;
+
+      float3 tPrev = ray.tMax - ray.tDelta;
+      if (tPrev.x > tPrev.y)
+      {
+        if (tPrev.x > tPrev.z)
+          hitFace = dir.x >= 0 ? 0 : 1;
+        else
+          hitFace = dir.z >= 0 ? 4 : 5;
+      }
+      else
+      {
+        if (tPrev.y > tPrev.z)
+          hitFace = dir.y >= 0 ? 2 : 3;
+        else
+          hitFace = dir.z >= 0 ? 4 : 5;
+      }
+
+      uint numSteps = (numBlocks.x + numBlocks.y + numBlocks.z) * 4;
+
+      // trace ray
+      for (; numSteps > 0; numSteps--)
+      {
+        int3 ip = ray.pt;
+        uint3 bp = uint3(ip >> 2);
+        if (any(bp >= numBlocks))
+        {
+          if (any(ip * ray.stepCell > rayLimit)) break;
+        }
+        else
+        {
+          uint voxelIndex = (ip.y & 3) * 4 * 4 + (ip.z & 3) * 4 + (ip.x & 3);
+          uint data = loadBuffer(voxel_data, (((bp.y * numBlocks.z + bp.z) * numBlocks.x + bp.x) * 2 + (voxelIndex >> 5) + 7) * 4 + mipOfs);
+          if ((data & (1u << (voxelIndex & 31))) != 0)
+          {
+            pos = ray.p + ray.wdir * t;
+            hit = true;
+            // do one extra step for shadow to get backface depth
+            ##if rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth
+              break;
+            ##endif
+          }
+        }
+
+        if (ray.tMax.x < ray.tMax.y) {
+          if (ray.tMax.x < ray.tMax.z) {
+            ray.pt.x += ray.stepCell.x;
+            t = ray.tMax.x;
+            ray.tMax.x += ray.tDelta.x;
+            hitFace = dir.x >= 0 ? 0 : 1;
+          } else {
+            ray.pt.z += ray.stepCell.z;
+            t = ray.tMax.z;
+            ray.tMax.z += ray.tDelta.z;
+            hitFace = dir.z >= 0 ? 4 : 5;
+          }
+        } else {
+          if (ray.tMax.y < ray.tMax.z) {
+            ray.pt.y += ray.stepCell.y;
+            t = ray.tMax.y;
+            ray.tMax.y += ray.tDelta.y;
+            hitFace = dir.y >= 0 ? 2 : 3;
+          } else {
+            ray.pt.z += ray.stepCell.z;
+            t = ray.tMax.z;
+            ray.tMax.z += ray.tDelta.z;
+            hitFace = dir.z >= 0 ? 4 : 5;
+          }
+        }
+
+        ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+          if (hit)
+          {
+            pos = ray.p + ray.wdir * t;
+            break;
+          }
+        ##endif
+      }
+
+      if (!hit) discard;
+
+      // world pos
+      t = dot(pos * voxelSize + boxMin - IN.localPos, localRay) / lengthSq(localRay);
+      float3 worldRay = localRay.x * IN.worldLocalX + localRay.y * IN.worldLocalY + localRay.z * IN.worldLocalZ;
+      float3 worldPos = worldRay * t + IN.worldPos;
+
+      float2 pzw = mulPointTm(worldPos + camera_base_offset, globtm).zw;
+      depth = pzw.x * rcp(pzw.y);
+
+      ##if rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth
+        return 0;
+      ##else
+        const uint faceId = hitFace;
+        const uint faceAxis = faceId >> 1;
+        const bool faceNeg = (faceId & 1) != 0;
+
+        // face data offset
+        uint faceOffset = mipOfs + (numBlocks.x * numBlocks.y * numBlocks.z * 2 + 7) * 4; // + 3d map
+
+        faceOffset += faceId <= 0 ? 0 : numBlocks.z * numBlocks.y * 8 * numLayers;
+        faceOffset += faceId <= 1 ? 0 : numBlocks.z * numBlocks.y * 8 * numLayers;
+        faceOffset += faceId <= 2 ? 0 : numBlocks.z * numBlocks.x * 8 * numLayers;
+        faceOffset += faceId <= 3 ? 0 : numBlocks.z * numBlocks.x * 8 * numLayers;
+        faceOffset += faceId <= 4 ? 0 : numBlocks.x * numBlocks.y * 8 * numLayers;
+
+        // get surface block indices from face map
+        const int3 ipos = ray.pt;
+        const uint2 itc = uint2(faceAxis == 0 ? ipos.zy : (faceAxis == 1 ? ipos.zx : ipos.xy));
+        const uint blockDepth = (faceAxis == 0 ? ipos.x : (faceAxis == 1 ? ipos.y : ipos.z)) >> 2;
+        const uint2 faceSize = faceAxis == 0 ? numBlocks.zy : (faceAxis == 1 ? numBlocks.zx : numBlocks.xy);
+        const bool inFace = all((itc >> 2) < faceSize);
+
+        uint2 surfData = uint2(0, 0);
+        uint surfLayer = 0;
+        const uint dataOffset = ((itc.y >> 2) * faceSize.x + (itc.x >> 2)) * 8 * numLayers + faceOffset;
+        for (uint li = 0; li < numLayers; li++)
+        {
+          const uint2 s = inFace ? loadBuffer2(voxel_data, dataOffset + 8 * li) : uint2(0, 0);
+          const uint d = (s.x >> (32 - VOXEL_DEPTH_BITS / 2)) | (s.y >> (32 - VOXEL_DEPTH_BITS / 2) << (VOXEL_DEPTH_BITS / 2));
+          const bool sel = li == 0 || (faceNeg ? d > blockDepth : d <= blockDepth);
+          surfData = sel ? s : surfData;
+          surfLayer = sel ? li : surfLayer;
+        }
+
+        const uint  colorIndex = surfData.x & ((1u << (32 - VOXEL_DEPTH_BITS / 2)) - 1);
+        const uint normalIndex = surfData.y & ((1u << (32 - VOXEL_DEPTH_BITS / 2)) - 1);
+        const uint  colorBlock =  color_block_ofs + ( colorIndex == 0 ? 0 : (colorIndex - 1) * 2);
+        const uint matBlock = colorBlock + 1;
+        const uint normalBlock = normal_block_ofs + (normalIndex == 0 ? 0 : normalIndex - 1);
+
+        // sample surface blocks
+        half4 color = texelFetch(color_tex, uint2(
+          ((colorBlock << 2) % uint(color_tex_size.x)) | (itc.x & 3),
+          (((colorBlock << 2) / uint(color_tex_size.x)) << 2) | (itc.y & 3)
+          ), 0);
+        color.rgb = RemoveSRGBCurve_Fast(color.rgb);
+        #if COLOR_NEEDED
+          color.rgb += IN.colorMul * color.a * COLOR_CORRECTION_MULTIPLIER;
+        #endif
+
+        half4 material = texelFetch(color_tex, uint2(
+          ((matBlock << 2) % uint(color_tex_size.x)) | (itc.x & 3),
+          (((matBlock << 2) / uint(color_tex_size.x)) << 2) | (itc.y & 3)
+          ), 0);
+
+        half2 packedNormal = texelFetch(normal_tex, uint2(
+          ((normalBlock << 2) % uint(normal_tex_size.x)) | (itc.x & 3),
+          (((normalBlock << 2) / uint(normal_tex_size.x)) << 2) | (itc.y & 3)
+          ), 0).rg;
+
+        half3 localNormal = octDecodeh((packedNormal - 128.0/255) * (255/127.0));
+        half3 normal = normalize(IN.worldLocalX * localNormal.x + IN.worldLocalY * localNormal.y + IN.worldLocalZ * localNormal.z);
+
+        // color.rgb = surfLayer == 0 ? color.rgb : half3(1, 0, 1); //== mark layers for debugging
+        init_albedo(result, color.rgb);
+        init_smoothness(result, material.x);
+        init_reflectance(result, material.y);
+        init_metalness(result, material.z);
+        init_translucency(result, material.w);
+        init_normal(result, normal);
+
+        init_ao(result, 1);
+        init_shadow(result, 1);
+
+        init_material(result, SHADING_NORMAL);
+        init_order(result, GBUFFER_ORDER_STATIC);
+
+        return encode_gbuffer(result, p2e.xyz, screenpos);
+      ##endif
+    }
+  }
+
+  compile("target_vs", "voxel_vs");
+  compile("target_ps", "voxel_ps");
+}

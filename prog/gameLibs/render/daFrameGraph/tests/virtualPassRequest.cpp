@@ -11,6 +11,7 @@
 
 namespace
 {
+
 const auto DEPTH_TEX = dafg::Texture2dCreateInfo{.creationFlags = TEXFMT_DEPTH32, .resolution = IPoint2{4, 4}};
 
 struct CapturedDsBind
@@ -19,11 +20,12 @@ struct CapturedDsBind
   RenderPassTargetAction action;
 };
 
-eastl::vector<CapturedDsBind> g_capturedDsBinds;
+static D3dInterfaceTable g_interfaceTableCopy;
+static eastl::vector<CapturedDsBind> g_capturedDsBinds;
 
 void reset_capture() { g_capturedDsBinds.clear(); }
 
-d3d::RenderPass *capture_create_render_pass(const RenderPassDesc &rp_desc)
+void capture_ds_binds(const RenderPassDesc &rp_desc)
 {
   for (uint32_t i = 0; i < rp_desc.bindCount; ++i)
   {
@@ -31,8 +33,8 @@ d3d::RenderPass *capture_create_render_pass(const RenderPassDesc &rp_desc)
     if (bind.slot == RP_SLOT_DEPTH_STENCIL)
       g_capturedDsBinds.push_back({bind.subpass, bind.action});
   }
-  return nullptr;
 }
+
 } // namespace
 
 
@@ -97,9 +99,13 @@ TEST_CASE("depthReadTestAndSample(string) registers node as a depth reader", "[d
 
 TEST_CASE("requestRenderPass().depth() binds depth as SUBPASS_WRITE/STORE_WRITE", "[depth attachment]")
 {
-  D3dInterfaceTable interfaceTableCopy = d3di;
   reset_capture();
-  d3di.create_render_pass = capture_create_render_pass;
+
+  g_interfaceTableCopy = d3di;
+  d3di.create_render_pass = [](const RenderPassDesc &rp_desc) -> d3d::RenderPass * {
+    capture_ds_binds(rp_desc);
+    return g_interfaceTableCopy.create_render_pass(rp_desc);
+  };
 
   TestRuntime testRuntime{};
 
@@ -130,15 +136,19 @@ TEST_CASE("requestRenderPass().depth() binds depth as SUBPASS_WRITE/STORE_WRITE"
   CHECK(foundMain);
   CHECK(foundStore);
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 
 TEST_CASE("depthReadTestOnly preserves SUBPASS_WRITE bind to avoid decompression", "[depth attachment]")
 {
-  D3dInterfaceTable interfaceTableCopy = d3di;
   reset_capture();
-  d3di.create_render_pass = capture_create_render_pass;
+
+  g_interfaceTableCopy = d3di;
+  d3di.create_render_pass = [](const RenderPassDesc &rp_desc) -> d3d::RenderPass * {
+    capture_ds_binds(rp_desc);
+    return g_interfaceTableCopy.create_render_pass(rp_desc);
+  };
 
   TestRuntime testRuntime{};
 
@@ -174,15 +184,19 @@ TEST_CASE("depthReadTestOnly preserves SUBPASS_WRITE bind to avoid decompression
   CHECK(foundMain);
   CHECK(foundStore);
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }
 
 
 TEST_CASE("depthReadTestAndSample binds depth as SUBPASS_READ/STORE_NONE", "[depth attachment]")
 {
-  D3dInterfaceTable interfaceTableCopy = d3di;
   reset_capture();
-  d3di.create_render_pass = capture_create_render_pass;
+
+  g_interfaceTableCopy = d3di;
+  d3di.create_render_pass = [](const RenderPassDesc &rp_desc) -> d3d::RenderPass * {
+    capture_ds_binds(rp_desc);
+    return g_interfaceTableCopy.create_render_pass(rp_desc);
+  };
 
   TestRuntime testRuntime{};
 
@@ -228,5 +242,5 @@ TEST_CASE("depthReadTestAndSample binds depth as SUBPASS_READ/STORE_NONE", "[dep
   CHECK(foundWriteMain);
   CHECK(foundWriteStore);
 
-  d3di = interfaceTableCopy;
+  d3di = g_interfaceTableCopy;
 }

@@ -136,8 +136,13 @@ void DaSkies::setSkyParams(const SkyAtmosphereParams &params)
 {
   if (skyParams != params)
   {
-    if (clouds && skyParams.planet_scale != params.planet_scale)
-      clouds->invalidateAll();
+    if (clouds)
+    {
+      if (skyParams.planet_scale != params.planet_scale)
+        clouds->invalidateAll();
+      else
+        clouds->invalidateLight();
+    }
     skyParams = params;
     skies.setParams(skyParams);
     moon_check_ht = 15000 * skyParams.planet_scale * skyParams.atmosphere_scale;

@@ -15,7 +15,7 @@
 
 #define ALLOW_DBG_CHAIN_STORE (!_TARGET_STATIC_LIB) // tools only
 
-static float getWeightMul(AnimV20::IPureAnimStateHolder &st, int wscale_pid, bool inv)
+static float getWeightMul(AnimV20::AnimGraphStateHolder &st, int wscale_pid, bool inv)
 {
   if (wscale_pid < 0)
     return 1.0f;
@@ -105,7 +105,7 @@ static void solve_for_target(dag::Span<vec3f> chain, vec3f target)
   simple_solve_fabrik_chain(chain.data(), chain.size(), target, 4, 0.001f, 0.0005f, -1);
 }
 
-void AnimV20::MultiChainFABRIKCtrl::clearAllocatedMemory(IPureAnimStateHolder &st)
+void AnimV20::MultiChainFABRIKCtrl::clearAllocatedMemory(AnimGraphStateHolder &st)
 {
   G_UNUSED(st);
 #if ALLOW_DBG_CHAIN_STORE
@@ -119,7 +119,7 @@ void AnimV20::MultiChainFABRIKCtrl::clearAllocatedMemory(IPureAnimStateHolder &s
 #endif
 }
 
-void AnimV20::MultiChainFABRIKCtrl::setDefaultState(IPureAnimStateHolder &st)
+void AnimV20::MultiChainFABRIKCtrl::setDefaultState(AnimGraphStateHolder &st)
 {
   clearAllocatedMemory(st);
 
@@ -127,7 +127,7 @@ void AnimV20::MultiChainFABRIKCtrl::setDefaultState(IPureAnimStateHolder &st)
     memset(st.getInlinePtr(perAnimStateDataVarId), 0, sizeof(PerAnimStateData));
 }
 
-void AnimV20::MultiChainFABRIKCtrl::init(IPureAnimStateHolder &st, const GeomNodeTree &tree)
+void AnimV20::MultiChainFABRIKCtrl::init(AnimGraphStateHolder &st, const GeomNodeTree &tree)
 {
   G_ASSERT(perAnimStateDataVarId >= 0);
   PerAnimStateData &S = *reinterpret_cast<PerAnimStateData *>(st.getInlinePtr(perAnimStateDataVarId));
@@ -193,9 +193,9 @@ void AnimV20::MultiChainFABRIKCtrl::init(IPureAnimStateHolder &st, const GeomNod
           ord++;
         }
 }
-void AnimV20::MultiChainFABRIKCtrl::advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+void AnimV20::MultiChainFABRIKCtrl::advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 
-void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
+void AnimV20::MultiChainFABRIKCtrl::process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
   if (wt < 1e-3 || tree.empty())
   {
@@ -213,11 +213,11 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   }
 
   bool has_active_effectors = (bodyChainEffectorVarId >= 0)
-                                ? st.getParamEffector(bodyChainEffectorVarId).type == IAnimStateHolder::EffectorVar::T_useEffector
+                                ? st.getParamEffector(bodyChainEffectorVarId).type == AnimGraphStateHolder::EffectorVar::T_useEffector
                                 : false;
   if (!has_active_effectors)
     for (int i = 0; i < effectorVarId.size(); i++)
-      if (st.getParamEffector(effectorVarId[i].eff).type == IAnimStateHolder::EffectorVar::T_useEffector)
+      if (st.getParamEffector(effectorVarId[i].eff).type == AnimGraphStateHolder::EffectorVar::T_useEffector)
       {
         has_active_effectors = true;
         break;
@@ -253,7 +253,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   tree.calcWtm();
   for (int i = 0; i < effectorVarId.size(); i++)
   {
-    IAnimStateHolder::EffectorVar &eff = st.paramEffector(effectorVarId[i].eff);
+    AnimGraphStateHolder::EffectorVar &eff = st.paramEffector(effectorVarId[i].eff);
     if (eff.type == eff.T_useGeomNode && eff.nodeId)
     {
       vec3f p = tree.getNodeWtmRel(eff.nodeId).col3;
@@ -266,7 +266,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   // move whole body to body-chain-start effector
   if (bodyChainEffectorVarId >= 0 && !bodyChainEffectorEnd && S.bodyChainSlice.cnt > 0)
   {
-    const IAnimStateHolder::EffectorVar &eff = st.getParamEffector(bodyChainEffectorVarId);
+    const AnimGraphStateHolder::EffectorVar &eff = st.getParamEffector(bodyChainEffectorVarId);
     if (eff.type == eff.T_useEffector)
     {
       auto node0 = S.bodyChainNodeIds().front();
@@ -298,7 +298,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
 #endif
 
       G_ASSERT_CONTINUE(targets_cnt < MAX_CHAINS);
-      const IAnimStateHolder::EffectorVar &eff = st.getParamEffector(effectorVarId[i].eff);
+      const AnimGraphStateHolder::EffectorVar &eff = st.getParamEffector(effectorVarId[i].eff);
       float w = wt * getWeightMul(st, effectorVarId[i].wScale, effectorVarId[i].wScaleInverted);
       effType[targets_cnt] = eff.type;
       if (eff.type == eff.T_useEffector)
@@ -309,7 +309,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
       else
       {
         targets[targets_cnt] = v_zero();
-        effType[targets_cnt] = IAnimStateHolder::EffectorVar::T_looseEnd;
+        effType[targets_cnt] = AnimGraphStateHolder::EffectorVar::T_looseEnd;
       }
       targets_cnt++;
     }
@@ -317,14 +317,14 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   // solve secondary chains linked to body root
   if (S.bodyChainSlice.cnt)
     for (int i = 0; i < chains.size(); i++)
-      if (effType[i] != IAnimStateHolder::EffectorVar::T_looseEnd && S.chainNodeIds(i).front() == S.bodyChainNodeIds().front())
+      if (effType[i] != AnimGraphStateHolder::EffectorVar::T_looseEnd && S.chainNodeIds(i).front() == S.bodyChainNodeIds().front())
       {
         tree.partialCalcWtm(S.chainNodeIds(i).front());
         reposition_base_location(make_span(chains[i]), tree.getNodeWposRel(S.chainNodeIds(i).front()));
         solve_for_target(make_span(chains[i]), targets[i]);
         apply_chain(&tree, S.chainNodeIds(i), chains[i], -1);
 
-        effType[i] = IAnimStateHolder::EffectorVar::T_looseEnd; // don't solve this chain no more
+        effType[i] = AnimGraphStateHolder::EffectorVar::T_looseEnd; // don't solve this chain no more
       }
 
   // prepare body triangles data
@@ -363,7 +363,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
 
   // solve secondary chains
   for (int i = 0; i < chains.size(); i++)
-    if (effType[i] != IAnimStateHolder::EffectorVar::T_looseEnd)
+    if (effType[i] != AnimGraphStateHolder::EffectorVar::T_looseEnd)
     {
       solve_for_target(make_span(chains[i]), targets[i]);
       if (!chains[i].empty())
@@ -416,7 +416,7 @@ void AnimV20::MultiChainFABRIKCtrl::process(IPureAnimStateHolder &st, real wt, G
   }
 
   for (int i = 0; i < chains.size(); i++)
-    if (effType[i] != IAnimStateHolder::EffectorVar::T_looseEnd)
+    if (effType[i] != AnimGraphStateHolder::EffectorVar::T_looseEnd)
     {
       if (S.bodyChainSlice.cnt > 1)
       {
@@ -474,7 +474,7 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
     node->chainEndsNames.push_back() = end_nm;
 
     VarId &ev = node->effectorVarId.push_back();
-    ev.wScale = graph.addParamIdEx(b.getStr("wtModulate", blk.getStr("wtModulate", NULL)), IPureAnimStateHolder::PT_ScalarParam);
+    ev.wScale = graph.addParamIdEx(b.getStr("wtModulate", blk.getStr("wtModulate", NULL)), AnimGraphStateHolder::PT_ScalarParam);
     ev.wScaleInverted = b.getBool("wtModulateInverse", blk.getBool("wtModulateInverse", false));
     ev.eff = graph.addEffectorParamId(eff_nm);
   }
@@ -530,9 +530,9 @@ void AnimV20::MultiChainFABRIKCtrl::createNode(AnimationGraph &graph, const Data
   if (blk.getBool("use_debug_vars", false))
   {
     node->dbgVarId[0] =
-      graph.addInlinePtrParamId(String(0, "%s$dbg0", name), sizeof(debug_state_t), IPureAnimStateHolder::PT_InlinePtrCTZ);
+      graph.addInlinePtrParamId(String(0, "%s$dbg0", name), sizeof(debug_state_t), AnimGraphStateHolder::PT_InlinePtrCTZ);
     node->dbgVarId[1] =
-      graph.addInlinePtrParamId(String(0, "%s$dbg1", name), sizeof(debug_state_t), IPureAnimStateHolder::PT_InlinePtrCTZ);
+      graph.addInlinePtrParamId(String(0, "%s$dbg1", name), sizeof(debug_state_t), AnimGraphStateHolder::PT_InlinePtrCTZ);
   }
 #endif
 

@@ -14,11 +14,13 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_decl.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <shaders/dag_shStateBlockBindless.h>
 #include <render/debugMesh.h>
+#include <render/globTMVars.h>
 #include <render/pointLod/range.h>
 #include <rendInst/packedMultidrawParams.hlsli>
 #include <shaders/dag_shaderVarsUtils.h>
@@ -38,7 +40,7 @@ class DynVariantsCache;
 namespace rendinst::render
 {
 
-extern int ri_vertex_data_no;
+extern int ri_vertex_data_no, ri_voxel_data_offset_varid, ri_voxel_depth_projection_varid;
 extern bool is_tool_shaders;
 
 static constexpr uint32_t RI_RES_ORDER_COUNT_SHIFT = 14, RI_RES_ORDER_COUNT_MASK = (1 << RI_RES_ORDER_COUNT_SHIFT) - 1;
@@ -152,7 +154,8 @@ public:
 
     const auto mergeComparator = [](const RIExRenderRecord &a, const RIExRenderRecord &b) -> bool {
       bool result = a.isTree == b.isTree && a.drawOrder_stage == b.drawOrder_stage && a.vstride == b.vstride && a.vbIdx == b.vbIdx &&
-                    a.rstate == b.rstate && get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog;
+                    a.rstate == b.rstate && get_material_id(a.cstate) == get_material_id(b.cstate) && a.prog == b.prog &&
+                    a.voxelDataOffset == b.voxelDataOffset && a.voxelSurfaceId == b.voxelSurfaceId;
 
       if constexpr (separate_lods)
         result &= a.lod == b.lod;
@@ -309,7 +312,17 @@ public:
       cb.flushPerDraw();
     }
 
-    int cVbIdx = -1, cStride = 0;
+    if (ri_voxel_depth_projection_varid != -1)
+    {
+      TMatrix4 gtm;
+      d3d::getglobtm(gtm);
+      ::set_globtm_to_shader(gtm);
+      TMatrix4 globTmInv = inverse44(gtm);
+      ShaderGlobal::set_float4(ri_voxel_depth_projection_varid, globTmInv.getrow(2));
+    }
+
+    int cVbIdx = -1, cStride = 0, cVoxOfs = 0;
+    uint32_t cVoxSurf = VoxelSurfaceData::INVALID_ID;
     IPoint3 curOfsAndVertexByteStartPerDrawOffset(-1, -1, -1);
 
     shaders::OverrideStateId previousOverrideId = shaders::overrides::get_current();
@@ -345,6 +358,22 @@ public:
         cVbIdx = rl.vbIdx;
         cStride = rl.vstride;
         d3d_err(d3d::setvsrc(0, vb, cStride));
+      }
+
+      if (cVoxOfs != rl.voxelDataOffset)
+      {
+        if (rl.voxelDataOffset != 0)
+        {
+          G_ASSERT(ri_voxel_data_offset_varid != -1);
+          ShaderGlobal::set_int(ri_voxel_data_offset_varid, rl.voxelDataOffset);
+        }
+        cVoxOfs = rl.voxelDataOffset;
+      }
+
+      if (cVoxSurf != rl.voxelSurfaceId)
+      {
+        cVoxSurf = rl.voxelSurfaceId;
+        VoxelSurfaceData::setToShader(cVoxSurf);
       }
 
       bool skipApply = false;
@@ -440,6 +469,10 @@ public:
         return a.vbIdx < b.vbIdx;
       if (a.isTessellated != b.isTessellated)
         return a.isTessellated < b.isTessellated;
+      if (a.voxelSurfaceId != b.voxelSurfaceId)
+        return a.voxelSurfaceId < b.voxelSurfaceId;
+      if (a.voxelDataOffset != b.voxelDataOffset)
+        return a.voxelDataOffset < b.voxelDataOffset;
 
       if (!isDepthPass || a.isTessellated || a.drawOrder_stage->stage != ShaderMesh::STG_opaque) // opaque stage
                                                                                                  // is all of one
@@ -490,6 +523,10 @@ public:
         return a.vbIdx < b.vbIdx;
       if (a.isTessellated != b.isTessellated)
         return a.isTessellated < b.isTessellated;
+      if (a.voxelSurfaceId != b.voxelSurfaceId)
+        return a.voxelSurfaceId < b.voxelSurfaceId;
+      if (a.voxelDataOffset != b.voxelDataOffset)
+        return a.voxelDataOffset < b.voxelDataOffset;
 
       if (!isDepthPass || a.isTessellated || a.drawOrder_stage->stage != ShaderMesh::STG_opaque) // opaque stage
                                                                                                  // is all of one
@@ -622,9 +659,13 @@ private:
     }
     uint32_t startEIOfs = (lod * riExtra.size() + ri_idx) * ShaderMesh::STG_COUNT + startStage;
 
+    VoxelSurfaceData *voxelSurface = riPool.res->lods[lod].scene->getVoxelSurface();
+    uint32_t voxelSurfaceId = voxelSurface ? voxelSurface->getId() : VoxelSurfaceData::INVALID_ID;
+    int voxelDataOffset = riPool.res->lods[lod].scene->getVoxelDataOffset();
+
     // Flag shaders and
     // Tree shaders are generally incompatible by VS with other RI shaders and with each other. // TODO: still true?
-    const bool disableOptimization = riPool.isTree;
+    const bool disableOptimization = riPool.isTree or voxelDataOffset != 0;
 
     int texLevel = texCtx.getTexLevel(riPool.res->getTexScale(lod), dist2);
 
@@ -648,6 +689,7 @@ private:
 #endif
 
     for (unsigned int stage = startStage; stage <= correctedEndStage; stage++, startEIOfs++)
+    {
       for (uint32_t EI = allElemsIndex[startEIOfs], endEI = allElemsIndex[startEIOfs + 1], startEI = EI; EI < endEI; ++EI)
       {
         const auto &elem = allElems[EI];
@@ -676,6 +718,13 @@ private:
           (uint16_t)elem.vstride, (uint8_t)elem.vbIdx, elem.drawOrder, EI - startEI, elem.primitive, IPoint2(ofsAndCnt.x, count),
           elem.si, elem.sv, elem.numv, elem.numf, elem.baseVertex, texLevel, riPool.isTree, isTessellated, disableOptimization,
           (uint8_t)max(counter, 0));
+
+        if (voxelDataOffset != 0 and EI == startEI and !shader_override)
+        {
+          record.isSWVertexFetch = true;
+          record.voxelSurfaceId = voxelSurfaceId;
+          record.voxelDataOffset = elem.baseVertex * elem.vstride + voxelDataOffset;
+        }
 
         const auto isPacked = is_packed_material(cstate);
         G_ASSERT(!isPacked || elem.si != RELEM_NO_INDEX_BUFFER);
@@ -720,6 +769,7 @@ private:
         if (gpu_instancing) // gpu instancing only supports one mesh per one object
           return;           // TO BE REMOVED AFTER RESOLVING ALL MESHES
       }
+    }
   }
 
   template <class ListT, class MultiListT>

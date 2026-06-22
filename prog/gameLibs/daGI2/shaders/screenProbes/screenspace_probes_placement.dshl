@@ -567,8 +567,6 @@ shader additional_probes_placement_cs
             //screenspace_probe_pos.InterlockedOr(screen_probe_index*4, SP_TAG_HAS_ADDITIONAL<<SP_TAG_BITS_SHIFT);// so we find additional probes during iteration
             storeBuffer3(linked_list_additional_screenspace_probes, sp_getNumScreenProbes()*4 + 4 + additionalAt*12, uint3(oldHead, bestProbeAndNormal.xy));
             storeBuffer(linked_list_additional_screenspace_probes, screen_probe_index*4 + 4, newHead);
-            if (uint(screenspace_probe_res.z) <= TILE_SIZE)
-              linked_list_additional_screenspace_probes.InterlockedExchange(screen_probe_index*4 + 4, newHead, oldHead);
           } else
           {
             //if (uint(screenspace_probe_res.z) > TILE_SIZE)

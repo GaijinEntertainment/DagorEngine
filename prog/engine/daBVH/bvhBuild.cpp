@@ -207,6 +207,9 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
   if (count == 1 && depth != 1)
   {
     // this is a leaf node
+    // depth != 1 guard: the root (depth 1) is never emitted as a leaf even for a single element, so
+    // tree offset 0 is always an internal node. daSWRT relies on this -- its mask/shadow passes use
+    // offset 0 as the "nothing in frustum" sentinel (see swRT.dshl `if (!startOfs)`).
     h.writeNode(*bboxData);
   }
   else
@@ -252,7 +255,8 @@ static int createBVHNodeSAH(bbox3f *bboxData, bbox3f *end, SplitHelper &h, int d
         bool aLeaf = a.c == 1;
         bool bLeaf = b.c == 1;
         if (aLeaf != bLeaf)
-          return bLeaf; // single-element nodes (c==1) should sort last (they're leaves, can't split further)
+          return aLeaf; // leaves (c==1) sort first: the loop pops from the END, so a leaf there would
+                        // break the fanout early. Splittable children must stay at the end to be popped.
         return a.cost < b.cost;
       });
     }

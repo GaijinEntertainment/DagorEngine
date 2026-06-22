@@ -638,6 +638,9 @@ void load_wave_preset(const DataBlock *presetBlk, WavePreset &preset, int def_pr
   preset.chopWater.detail_waves_mul = presetBlk->getReal("chop_detail_waves_mul", defChop.detail_waves_mul);
   preset.chopWater.detail_mask_strength = presetBlk->getReal("chop_detail_mask_strength", defChop.detail_mask_strength);
   preset.chopWater.detail_mask_bias = presetBlk->getReal("chop_detail_mask_bias", defChop.detail_mask_bias);
+  preset.chopWater.domain_size = presetBlk->getReal("chop_domain_size", defChop.domain_size);
+  preset.chopWater.detail_prev_last_cascade_mul =
+    presetBlk->getReal("chop_detail_prev_last_cascade_mul", defChop.detail_prev_last_cascade_mul);
 
   preset.chopWater.scatter_intensity = presetBlk->getReal("scatter_intensity", defChop.scatter_intensity);
   preset.chopWater.scatter_intensity_pow = presetBlk->getReal("scatter_intensity_pow", defChop.scatter_intensity_pow);

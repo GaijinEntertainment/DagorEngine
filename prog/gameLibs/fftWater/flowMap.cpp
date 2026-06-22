@@ -161,7 +161,7 @@ void build_flowmap(FFTWater *handle, int flowmap_texture_size, int heightmap_tex
 
       waterFlowmap->blurTex.close();
       waterFlowmap->blurTex = dag::create_tex(NULL, blurTextureSize, blurTextureSize,
-        TEXCF_RTARGET | blurTextureFormat | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_blur", cascade), RESTAG_WATER);
+        TEXCF_RTARGET | blurTextureFormat | TEXCF_CLEAR_ON_CREATE, 1, String(128, "water_flowmap_tex_blur_%d", cascade), RESTAG_WATER);
     }
 
     waterFlowmapCascade.texA.close();

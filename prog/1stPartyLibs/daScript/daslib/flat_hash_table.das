@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 
 module flat_hash_table shared private
 
@@ -137,12 +135,9 @@ struct template TFlatHashTable {
         while (true) {
             let h = hashes[index]
             if (h == hash) {
-                if (key_data[index] == key) {   // otherwise skip matching hash collision
-                    return index
-                }
-            } elif (h == 0ul) {               // empty, key not found
-                break
-            }
+                // otherwise skip matching hash collision
+                if (key_data[index] == key) return index
+            } elif (h == 0ul) break  // empty, key not found
             // skip hash collision or tombstone(1)
             index = (index + 1) & mask
         }

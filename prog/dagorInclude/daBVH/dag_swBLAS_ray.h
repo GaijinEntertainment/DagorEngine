@@ -11,6 +11,9 @@
 #define BVH_TRACE_EPSILON 0.000004f
 
 static constexpr uint32_t BLAS_LEAF_FLAG = QUAD_LEAF_FLAG;
+// Packed vert21 stride (bytes per vertex) in a collision BLAS vert stream; vertex index <-> byte
+// offset conversions go through this. The stream stays stride-aligned (see RenderBLAS index recovery).
+static constexpr uint32_t BVH_BLAS_VERT21_STRIDE = 8;
 
 struct RayData // -V730
 {
@@ -41,6 +44,7 @@ struct RayData // -V730
 struct DistData
 {
   vec3f pos;
+  vec3f bestPos; // closest point (in query space), valid once bestTriOffset >= 0
   const uint8_t *data;
   float bestDist2;
   int bestTriOffset;
@@ -256,6 +260,7 @@ inline void distBLASLeafTri(DistData &d, vec3f v0, vec3f v1, vec3f v2, int dataO
   if (dist2 < d.bestDist2)
   {
     d.bestDist2 = dist2;
+    d.bestPos = cp;
     d.bestTriOffset = dataOffset;
   }
 }
@@ -742,7 +747,7 @@ struct BLASTraverse
 
   static inline int firstBLASOffsetToCheck(const uint8_t *data, vec3f check_bmin, vec3f check_bmax, int startOffset, int blasSize)
   {
-    int dataOffset = startOffset, lastInsideOffset = -1;
+    int dataOffset = startOffset;
     const int endOffset = startOffset + blasSize;
     for (; dataOffset < endOffset;)
     {
@@ -762,6 +767,6 @@ struct BLASTraverse
           return dataOffset;
       }
     }
-    return lastInsideOffset;
+    return -1;
   }
 };

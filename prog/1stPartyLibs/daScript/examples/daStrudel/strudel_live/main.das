@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 require strudel/strudel
 require strudel/strudel_player
@@ -123,12 +124,14 @@ def cmd_strudel(input : JsonValue?) : JsonValue? {
     return JV("sent: {args.cmd}")
 }
 
+var asch : AudioSystemChannels
+
 // daslang-live mode
 [export]
 def init() {
     print("daStrudel live\n")
-    if (get_audio_command_channel() == null) {
-        audio_system_create()
+    if (get_audio_command_stream() == null) {
+        asch = audio_system_create()
     }
     load_samples()
     strudel_init(@@strudel_main)
@@ -142,7 +145,9 @@ def update() {
 
 [export]
 def shutdown() {
-    pass
+    print("Shutting down...\n")
+    strudel_shutdown()
+    audio_system_finalize(asch.command, asch.next_sid)
 }
 
 // standalone mode (daslang.exe)

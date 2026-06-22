@@ -29,6 +29,7 @@
   VAR(swrt_shadow_target)      \
   VAR(swrt_shadow_target_size) \
   VAR(swrt_checkerboard_frame) \
+  VAR(swrt_frame_no)           \
   VAR(swrt_dir_to_sun_basis)   \
   VAR(swrt_shadow_planes)      \
   VAR(swrt_shadow_mask)
@@ -134,10 +135,12 @@ void RenderSWRT::renderShadowFrustumTiles(int w, int h, const Point3 &to_sun_dir
   mask_shadow_swrt_cs->dispatchThreads((w + SWRT_TILE_SIZE - 1) / SWRT_TILE_SIZE, (h + SWRT_TILE_SIZE - 1) / SWRT_TILE_SIZE, 1);
 }
 
-void RenderSWRT::renderShadows(const Point3 &to_sun_direction, float sun_size, uint32_t checkerboad_frame, Sbuffer *shadow_mask_buf,
-  BaseTexture *shadow_target, bool set_target_var)
+void RenderSWRT::renderShadows(const Point3 &to_sun_direction, float sun_size, uint32_t frame_no, uint32_t checkerboad_frame,
+  int src_w, Sbuffer *shadow_mask_buf, BaseTexture *shadow_target, bool set_target_var)
 {
-  if (!shadows_swrt_cs || !shadow_target)
+  // All three compute shaders are required and created together: renderShadowFrustumTiles writes
+  // swrt_shadow_mask via mask_shadow_swrt_cs, which the per-pixel pass below reads.
+  if (!shadows_swrt_cs || !checkerboard_shadows_swrt_cs || !mask_shadow_swrt_cs || !shadow_target)
     return;
 
   TMatrix orthoSun;
@@ -148,11 +151,14 @@ void RenderSWRT::renderShadows(const Point3 &to_sun_direction, float sun_size, u
   TextureInfo ti;
   shadow_target->getinfo(ti, 0);
   const int w = ti.w, h = ti.h;
-  const int srcW = checkerboad_frame != NO_CHECKER_BOARD ? w * 2 : w; // fixme!! source is not w*2
+  // src_w is the real source (half-res depth) width; in checkerboard mode the target is half that
+  // width. The source height equals the target height.
+  const int srcW = src_w;
   ShaderGlobal::set_int4(swrt_shadow_target_sizeVarId, w, h, srcW - 1, h - 1);
   ShaderGlobal::set_buffer(swrt_shadow_maskVarId, shadow_mask_buf);
   ShaderGlobal::set_texture(swrt_shadow_targetVarId, shadow_target);
   ShaderGlobal::set_int(swrt_checkerboard_frameVarId, checkerboad_frame);
+  ShaderGlobal::set_int(swrt_frame_noVarId, frame_no);
 
   DA_PROFILE_GPU;
   renderShadowFrustumTiles(srcW, h, to_sun_direction, sun_size);

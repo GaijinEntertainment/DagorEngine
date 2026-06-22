@@ -56,6 +56,7 @@ enum LLVMOpcode {
     LLVMFPTrunc = 37
     LLVMFPExt = 38
     LLVMPtrToInt = 39
+    LLVMPtrToAddr = 69
     LLVMIntToPtr = 40
     LLVMBitCast = 41
     LLVMAddrSpaceCast = 60
@@ -100,7 +101,6 @@ enum LLVMTypeKind {
     LLVMPointerTypeKind = 12
     LLVMVectorTypeKind = 13
     LLVMMetadataTypeKind = 14
-    LLVMX86_MMXTypeKind = 15
     LLVMTokenTypeKind = 16
     LLVMScalableVectorTypeKind = 17
     LLVMBFloatTypeKind = 18
@@ -147,7 +147,6 @@ enum LLVMCallConv {
     LLVMColdCallConv = 9
     LLVMGHCCallConv = 10
     LLVMHiPECallConv = 11
-    LLVMWebKitJSCallConv = 12
     LLVMAnyRegCallConv = 13
     LLVMPreserveMostCallConv = 14
     LLVMPreserveAllCallConv = 15
@@ -213,6 +212,7 @@ enum LLVMValueKind {
     LLVMInstructionValueKind = 24
     LLVMPoisonValueValueKind = 25
     LLVMConstantTargetNoneValueKind = 26
+    LLVMConstantPtrAuthValueKind = 27
 }
 enum LLVMIntPredicate {
     LLVMIntEQ = 32
@@ -243,10 +243,6 @@ enum LLVMRealPredicate {
     LLVMRealULE = 13
     LLVMRealUNE = 14
     True = 15
-}
-enum LLVMLandingPadClauseTy {
-    LLVMLandingPadCatch = 0
-    LLVMLandingPadFilter = 1
 }
 enum LLVMThreadLocalMode {
     LLVMNotThreadLocal = 0
@@ -280,6 +276,12 @@ enum LLVMAtomicRMWBinOp {
     FSub = 12
     FMax = 13
     FMin = 14
+    UIncWrap = 15
+    UDecWrap = 16
+    USubCond = 17
+    USubSat = 18
+    FMaximum = 19
+    FMinimum = 20
 }
 enum LLVMDiagnosticSeverity {
     LLVMDSError = 0
@@ -298,6 +300,18 @@ enum LLVMModuleFlagBehavior {
     Override = 3
     Append = 4
     AppendUnique = 5
+}
+enum LLVMTailCallKind {
+    None = 0
+    Tail = 1
+    MustTail = 2
+    NoTail = 3
+}
+enum LLVMDbgRecordKind {
+    LLVMDbgRecordLabel = 0
+    LLVMDbgRecordDeclare = 1
+    LLVMDbgRecordValue = 2
+    LLVMDbgRecordAssign = 3
 }
 enum LLVMDIFlags {
     LLVMDIFlagZero = 0
@@ -383,14 +397,33 @@ enum LLVMDWARFSourceLanguage {
     Fortran18 = 43
     Ada2005 = 44
     Ada2012 = 45
-    Mips_Assembler = 46
-    GOOGLE_RenderScript = 47
-    BORLAND_Delphi = 48
+    HIP = 46
+    Assembly = 47
+    C_sharp = 48
+    Mojo = 49
+    GLSL = 50
+    GLSL_ES = 51
+    HLSL = 52
+    OpenCL_CPP = 53
+    CPP_for_OpenCL = 54
+    SYCL = 55
+    Ruby = 56
+    Move = 57
+    Hylo = 58
+    Metal = 59
+    Mips_Assembler = 60
+    GOOGLE_RenderScript = 61
+    BORLAND_Delphi = 62
 }
 enum LLVMDWARFEmissionKind {
     LLVMDWARFEmissionNone = 0
     LLVMDWARFEmissionFull = 1
     LLVMDWARFEmissionLineTablesOnly = 2
+}
+enum LLVMChecksumKind {
+    CSK_MD5 = 0
+    CSK_SHA1 = 1
+    CSK_SHA256 = 2
 }
 enum LLVMDWARFMacinfoRecordType {
     Define = 1
@@ -431,6 +464,11 @@ enum LLVMCodeGenFileType {
     LLVMAssemblyFile = 0
     LLVMObjectFile = 1
 }
+enum LLVMGlobalISelAbortMode {
+    LLVMGlobalISelAbortEnable = 0
+    LLVMGlobalISelAbortDisable = 1
+    LLVMGlobalISelAbortDisableWithDiag = 2
+}
 enum LLVMLinkerMode {
     LLVMLinkerDestroySource = 0
     LLVMLinkerPreserveSource_Removed = 1
@@ -454,43 +492,6 @@ enum LLVMOrcSymbolLookupFlags {
     RequiredSymbol = 0
     WeaklyReferencedSymbol = 1
 }
-enum lto_symbol_attributes {
-    LTO_SYMBOL_ALIGNMENT_MASK = 31
-    LTO_SYMBOL_PERMISSIONS_MASK = 224
-    LTO_SYMBOL_PERMISSIONS_CODE = 160
-    LTO_SYMBOL_PERMISSIONS_DATA = 192
-    LTO_SYMBOL_PERMISSIONS_RODATA = 128
-    LTO_SYMBOL_DEFINITION_MASK = 1792
-    LTO_SYMBOL_DEFINITION_REGULAR = 256
-    LTO_SYMBOL_DEFINITION_TENTATIVE = 512
-    LTO_SYMBOL_DEFINITION_WEAK = 768
-    LTO_SYMBOL_DEFINITION_UNDEFINED = 1024
-    LTO_SYMBOL_DEFINITION_WEAKUNDEF = 1280
-    LTO_SYMBOL_SCOPE_MASK = 14336
-    LTO_SYMBOL_SCOPE_INTERNAL = 2048
-    LTO_SYMBOL_SCOPE_HIDDEN = 4096
-    LTO_SYMBOL_SCOPE_PROTECTED = 8192
-    LTO_SYMBOL_SCOPE_DEFAULT = 6144
-    LTO_SYMBOL_SCOPE_DEFAULT_CAN_BE_HIDDEN = 10240
-    LTO_SYMBOL_COMDAT = 16384
-    LTO_SYMBOL_ALIAS = 32768
-}
-enum lto_debug_model {
-    NONE = 0
-    DWARF = 1
-}
-enum lto_codegen_model {
-    LTO_CODEGEN_PIC_MODEL_STATIC = 0
-    LTO_CODEGEN_PIC_MODEL_DYNAMIC = 1
-    LTO_CODEGEN_PIC_MODEL_DYNAMIC_NO_PIC = 2
-    LTO_CODEGEN_PIC_MODEL_DEFAULT = 3
-}
-enum lto_codegen_diagnostic_severity_t {
-    LTO_DS_ERROR = 0
-    LTO_DS_WARNING = 1
-    LTO_DS_REMARK = 3
-    LTO_DS_NOTE = 2
-}
 enum LLVMBinaryType {
     Archive = 0
     MachOUniversalBinary = 1
@@ -508,13 +509,5 @@ enum LLVMBinaryType {
     MachO64B = 13
     Wasm = 14
     Offload = 15
-}
-enum LLVMRemarkType {
-    Unknown = 0
-    Passed = 1
-    Missed = 2
-    Analysis = 3
-    AnalysisFPCommute = 4
-    AnalysisAliasing = 5
-    Failure = 6
+    DXcontainer = 16
 }

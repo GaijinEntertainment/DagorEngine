@@ -11,7 +11,7 @@
 
 #include "render/renderEvent.h"
 #include "render/renderSettings.h"
-#include "render/light_consts.hlsli"
+#include "render/lights/light_consts.hlsli"
 #include "render/skies.h"
 
 #define INSIDE_RENDERER 1

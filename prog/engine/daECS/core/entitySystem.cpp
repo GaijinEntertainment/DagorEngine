@@ -100,10 +100,21 @@ static bool topo_sort(int N, const E &edges, T &sortedList, LoopDetected cb)
 
 void EntityManager::resetEsOrder()
 {
-  DAECS_EXT_ASSERT_RETURN(isEventSendingPossible(), );
+  bool didWork = false;
+  {
+    EsListLock::ScopedLock lock;
+    didWork = resetEsOrderLocked();
+  }
+  if (didWork)
+    broadcastEventImmediate(EventEntityManagerEsOrderSet());
+}
+
+bool EntityManager::resetEsOrderLocked()
+{
+  DAECS_EXT_ASSERT_RETURN(isEventSendingPossible(), false);
   eventDb.validate();
   if (lastEsGen == EntitySystemDesc::generation)
-    return;
+    return false;
   debug("reset ES");
 
   remove_if_systems([&](EntitySystemDesc *sd) {
@@ -119,10 +130,14 @@ void EntityManager::resetEsOrder()
   {
     FRAMEMEM_REGION;
 
-    // enumerate all ES
     SmallFmemTab<EntitySystemDesc *> esFullList;
     for (EntitySystemDesc *psd = EntitySystemDesc::tail; psd; psd = psd->next)
+    {
+      EntityManager *owner = psd->ownerEm;
+      if (owner != nullptr && owner != this)
+        continue;
       esFullList.push_back(psd);
+    }
 
     // randomize list to avoid depending on native ES registration order
     // which might be different on different platforms, depend on hot-reload, etc...
@@ -402,7 +417,7 @@ void EntityManager::resetEsOrder()
   clearQueries();
   updateAllQueries();
   lastEsGen = EntitySystemDesc::generation;
-  broadcastEventImmediate(EventEntityManagerEsOrderSet());
+  return true;
 }
 
 void EntityManager::enableES(const char *es_name, bool on)
@@ -443,6 +458,26 @@ void EntityManager::setEsTags(dag::ConstSpan<const char *> es_tags)
   esTags.clear();
   for (auto t : es_tags)
     esTags.insert(t);
+}
+
+void EntityManager::addEsTag(const char *es_tag)
+{
+  if (!es_tag || !*es_tag)
+    return;
+  auto ins = esTags.insert(es_tag);
+  if (ins.second)
+    lastEsGen = EntitySystemDesc::generation - 1;
+}
+
+void EntityManager::removeEsTag(const char *es_tag)
+{
+  if (!es_tag || !*es_tag)
+    return;
+  auto it = esTags.find_as(es_tag);
+  if (it == esTags.end())
+    return;
+  esTags.erase(it);
+  lastEsGen = EntitySystemDesc::generation - 1;
 }
 
 } // namespace ecs

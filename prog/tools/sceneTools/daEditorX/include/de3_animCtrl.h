@@ -23,7 +23,7 @@ public:
   //! returns animation graph
   virtual AnimV20::AnimationGraph *getAnimGraph() const = 0;
   //! returns animation params state
-  virtual AnimV20::IAnimStateHolder *getAnimState() const = 0;
+  virtual AnimV20::AnimGraphStateHolder *getAnimState() const = 0;
   //! returns animated character
   virtual AnimV20::AnimcharBaseComponent *getAnimCharBase() const = 0;
   virtual AnimV20::AnimcharRendComponent *getAnimCharRend() const = 0;

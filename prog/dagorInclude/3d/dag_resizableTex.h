@@ -62,7 +62,7 @@ public:
   }
 };
 
-class ResizableManagedTexWithShaderVar : public ManagedResHolder<ResizableManagedTex>
+class ResizableManagedTexWithShaderVar : public ManagedResWithShaderVar<ResizableManagedTex>
 {
 protected:
   ResizableManagedTexWithShaderVar() = default;
@@ -76,7 +76,7 @@ public:
 };
 
 using ResizableTex = UniqueRes<ResizableManagedTex>;
-using ResizableTexWithShaderVar = ConcreteResHolder<UniqueRes<ResizableManagedTexWithShaderVar>>;
+using ResizableTexWithShaderVar = ConcreteResWithShaderVar<UniqueRes<ResizableManagedTexWithShaderVar>>;
 
 } // namespace resptr_detail
 

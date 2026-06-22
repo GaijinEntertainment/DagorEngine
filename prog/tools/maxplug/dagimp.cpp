@@ -1598,9 +1598,8 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       }
       else
       {
-        DagRotKey *dk = new DagRotKey[numk];
-        assert(dk);
-        rd(dk, sizeof(*dk) * numk);
+        std::vector<DagRotKey> dk(numk);
+        rd(&dk[0], sizeof(DagRotKey) * numk);
         for (int i = 0; i < numk; ++i)
         {
           dk[i].p = Conjugate(dk[i].p);
@@ -1608,7 +1607,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
             adj_rot(dk[i].p);
           rc->SetValue(dk[i].t, &dk[i].p);
         }
-        delete[] dk;
       }
       ResumeAnimate();
       // scl track
@@ -1633,9 +1631,8 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
         ik->SetNumKeys(numk);
         IBezScaleKey k;
         k.flags = BEZKEY_XBROKEN | BEZKEY_YBROKEN | BEZKEY_ZBROKEN;
-        DagPosKey *dk = new DagPosKey[numk];
-        assert(dk);
-        rd(dk, sizeof(*dk) * numk);
+        std::vector<DagPosKey> dk(numk);
+        rd(&dk[0], sizeof(DagPosKey) * numk);
         for (int i = 0; i < numk; ++i)
         {
           k.time = dk[i].t;
@@ -1659,7 +1656,6 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
             adj_scl(k.outtan);
           ik->SetKey(i, &k);
         }
-        delete[] dk;
         ik->SortKeys();
       }
     }
@@ -2176,100 +2172,89 @@ static bool trail_stricmp(const TCHAR *str, const TCHAR *str2)
   return (l >= l2) ? _tcsncicmp(str + l - l2, str2, l2) == 0 : false;
 }
 
-static bool find_co_files(const TCHAR *fname, Tab<TCHAR *> &fnames)
+static bool find_co_files(const TCHAR *fname, std::vector<std::wstring> &fnames)
 {
   if (!trail_stricmp(fname, _T(".lod00.dag")))
     return false;
   int base_len = int(_tcslen(fname) - _tcslen(_T(".lod00.dag")));
 
-  TCHAR *p[2];
-  p[0] = _tcsdup(fname);
-  p[1] = _tcsdup(_T("LOD00"));
-  fnames.Append(2, p);
+  fnames.push_back(fname);
+  fnames.push_back(_T("LOD00"));
 
   TCHAR str_buf[512];
   int i;
   for (i = 1; i < 16; i++)
   {
-    _stprintf(str_buf, _T("%.*s.lod%02d.dag"), base_len, fname, i);
+    _stprintf_s(str_buf, _T("%.*s.lod%02d.dag"), base_len, fname, i);
     if (::_taccess(str_buf, 4) == 0)
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("LOD%02d"), i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _T("LOD%02d"), i);
+      fnames.push_back(str_buf);
     }
   }
 
-  _stprintf(str_buf, _T("%.*s_destr.lod00.dag"), base_len, fname);
+  _stprintf_s(str_buf, _T("%.*s_destr.lod00.dag"), base_len, fname);
   if (::_taccess(str_buf, 4) == 0)
   {
-    p[0] = _tcsdup(str_buf);
-    p[1] = _tcsdup(_T("DESTR"));
-    fnames.Append(2, p);
+    fnames.push_back(str_buf);
+    fnames.push_back(_T("DESTR"));
   }
 
   // if (base_len > 2 && _tcsncmp(&fname[base_len-2], _T("_a"), 2)==0)
   //   base_len -= 2;
 
-  _stprintf(str_buf, _T("%.*s_dm.dag"), base_len, fname);
+  _stprintf_s(str_buf, _T("%.*s_dm.dag"), base_len, fname);
   if (::_taccess(str_buf, 4) == 0)
   {
-    p[0] = _tcsdup(str_buf);
-    p[1] = _tcsdup(_T("DM"));
-    fnames.Append(2, p);
+    fnames.push_back(str_buf);
+    fnames.push_back(_T("DM"));
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
+    _stprintf_s(str_buf, _T("%.*s_dmg.lod%02d.dag"), base_len, fname, i);
     if (::_taccess(str_buf, 4) == 0)
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("DMG_LOD%02d"), i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _T("DMG_LOD%02d"), i);
+      fnames.push_back(str_buf);
     }
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
+    _stprintf_s(str_buf, _T("%.*s_dmg2.lod%02d.dag"), base_len, fname, i);
     if (::_taccess(str_buf, 4) == 0)
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("DMG2_LOD%02d"), i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _T("DMG2_LOD%02d"), i);
+      fnames.push_back(str_buf);
     }
   }
 
   for (i = 0; i < 16; i++)
   {
-    _stprintf(str_buf, _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
+    _stprintf_s(str_buf, _T("%.*s_expl.lod%02d.dag"), base_len, fname, i);
     if (::_taccess(str_buf, 4) == 0)
     {
-      p[0] = _tcsdup(str_buf);
-      _stprintf(str_buf, _T("EXPL_LOD%02d"), i);
-      p[1] = _tcsdup(str_buf);
-      fnames.Append(2, p);
+      fnames.push_back(str_buf);
+      _stprintf_s(str_buf, _T("EXPL_LOD%02d"), i);
+      fnames.push_back(str_buf);
     }
   }
 
-  _stprintf(str_buf, _T("%.*s_xray.dag"), base_len, fname);
+  _stprintf_s(str_buf, _T("%.*s_xray.dag"), base_len, fname);
   if (::_taccess(str_buf, 4) == 0)
   {
-    p[0] = _tcsdup(str_buf);
-    p[1] = _tcsdup(_T("XRAY"));
-    fnames.Append(2, p);
+    fnames.push_back(str_buf);
+    fnames.push_back(_T("XRAY"));
   }
 
-  if (fnames.Count() > 1)
+  if (fnames.size() > 1)
     return true;
 
-  for (i = 0; i < fnames.Count(); i++)
-    free(fnames[i]);
-  fnames.ZeroCount();
+  fnames.clear();
   return false;
 }
 #endif
@@ -2696,7 +2681,7 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
 
 int DagImp::doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, bool nomsg)
 {
-  Tab<TCHAR *> fnames;
+  std::vector<std::wstring> fnames;
 
   if (!find_co_files(fname, fnames))
     return doImportOne(fname, ii, ip, nomsg);
@@ -2704,29 +2689,20 @@ int DagImp::doLegacyImport(const TCHAR *fname, ImpInterface *ii, Interface *ip, 
   TCHAR buf[1024];
   int fn_len = (int)_tcslen(fname);
   _stprintf(buf, _T("We detected that %s%s\nhas %d linked DAGs.\nLoad them at once into separate layers?"),
-    fn_len > 64 ? _T("...") : _T(""), fn_len > 64 ? fname + fn_len - 64 : fname, fnames.Count() / 2 - 1);
+    fn_len > 64 ? _T("...") : _T(""), fn_len > 64 ? fname + fn_len - 64 : fname, (int)fnames.size() / 2 - 1);
   if ((nomsg && !DagImp::separateLayers) ||
       (!nomsg && MessageBox(GetFocus(), buf, _T("Import layered DAGs"), MB_YESNO | MB_ICONQUESTION) != IDYES))
-  {
-    for (int i = 0; i < fnames.Count(); i++)
-      free(fnames[i]);
     return doImportOne(fname, ii, ip, nomsg);
-  }
 
   ILayerManager *manager = GetCOREInterface13()->GetLayerManager();
   manager->Reset();
-  for (int i = 0; i < fnames.Count(); i += 2)
+  for (size_t i = 0; i < fnames.size(); i += 2)
   {
-    TSTR layer_nm(fnames[i + 1]);
+    TSTR layer_nm(fnames[i + 1].data());
     manager->AddLayer(manager->CreateLayer(layer_nm));
     manager->SetCurrentLayer(layer_nm);
-    free(fnames[i + 1]);
-    if (!doImportOne(fnames[i], ii, ip, nomsg))
-    {
-      free(fnames[i]);
+    if (!doImportOne(fnames[i].data(), ii, ip, nomsg))
       return 0;
-    }
-    free(fnames[i]);
   }
   manager->SetCurrentLayer();
   return 1;

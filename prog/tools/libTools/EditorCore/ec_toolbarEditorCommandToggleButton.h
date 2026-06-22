@@ -17,7 +17,9 @@ public:
 
   void *queryInterfacePtr([[maybe_unused]] unsigned huid) override
   {
-    if (huid == IEditorCommandKeyChordChangeEventHandler::HUID)
+    if (huid == ToolbarEditorCommandToggleButton::HUID)
+      return this;
+    else if (huid == IEditorCommandKeyChordChangeEventHandler::HUID)
       return static_cast<IEditorCommandKeyChordChangeEventHandler *>(this);
     return ToolbarToggleButtonPropertyControl::queryInterfacePtr(huid);
   }
@@ -36,6 +38,11 @@ public:
   }
 
   void onWcRightClick(WindowBase *source) override { HotkeyEditorContextMenu::createToolbarContextMenu(editorCommandId); }
+
+  const char *getCommandId() const { return editorCommandId; }
+  const String &getTooltipString() const { return controlTooltip; }
+
+  static constexpr unsigned HUID = 0x560DEB57u; // ToolbarEditorCommandToggleButton
 
 private:
   const SimpleString editorCommandId;

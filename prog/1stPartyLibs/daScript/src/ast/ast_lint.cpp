@@ -123,14 +123,238 @@ namespace das {
         return false;
     }
 
+    // CFG-aware super-call count. Each expression produces:
+    //   - fallsThrough/fallLo/fallHi: count along the path that reaches the end of expr
+    //   - hasExits/exitLo/exitHi: min/max super count over all early-exit (return) paths
+    //     terminating INSIDE expr. break/continue/goto don't escape the function so they
+    //     stop block iteration but don't add to function-level exits.
+    // For loops, inner exits (return) DO propagate; super inside a loop body collapses to
+    // {0, INT_MAX} unbounded since iteration count isn't statically known.
+    // Closures (ExprMakeBlock) are NOT descended into — a super() inside a defer/lambda
+    // is asynchronous and isn't the chain call we're enforcing.
+    static const int kSuperUnbounded = INT_MAX;
+    // Matcher for the chain call the CFG count is looking for.
+    // Ctor mode (mangled non-empty): super(...) post-infer is a direct call to
+    // Parent`Parent, possibly _::-qualified.
+    // Finalizer mode (finalizeParent set): `delete super.self` post-infer is
+    // `_::finalize(cast<Parent>(self))` — match the resolved finalize call whose
+    // single argument casts `self` to the immediate parent. A hand-written
+    // `delete cast<Parent>(self)` lowers to the identical AST and counts the same;
+    // a cast to a deeper ancestor does NOT count (it would skip the parent's field
+    // slice now that generated finalizers chain level by level).
+    struct SuperChainMatch {
+        string      mangled;
+        Structure * finalizeParent = nullptr;
+        bool operator() ( ExprCall * call ) const {
+            if ( !mangled.empty() ) {
+                return call->name == mangled || call->name == ("_::" + mangled);
+            }
+            if ( !call->func || call->func->name != "finalize" ) return false;
+            if ( call->arguments.size() != 1 ) return false;
+            auto arg = call->arguments[0];
+            if ( !arg || !arg->rtti_isCast() ) return false;
+            auto cast = static_cast<ExprCast*>(arg);
+            if ( !cast->castType || cast->castType->structType != finalizeParent ) return false;
+            auto sub = cast->subexpr;
+            return sub && sub->rtti_isVar() && static_cast<ExprVar*>(sub)->name == "self";
+        }
+    };
+    struct SuperCount {
+        bool    fallsThrough;
+        int     fallLo, fallHi;
+        bool    hasExits;
+        int     exitLo, exitHi;
+        static SuperCount onlyFall ( int lo, int hi ) { return {true, lo, hi, false, 0, 0}; }
+        static SuperCount onlyExit ( int lo, int hi ) { return {false, 0, 0, true, lo, hi}; }
+        static SuperCount dead     ()                  { return {false, 0, 0, false, 0, 0}; }
+    };
+    static int safeAdd ( int a, int b ) {
+        if ( a == kSuperUnbounded || b == kSuperUnbounded ) return kSuperUnbounded;
+        return a + b;
+    }
+    static int safeMax ( int a, int b ) {
+        if ( a == kSuperUnbounded || b == kSuperUnbounded ) return kSuperUnbounded;
+        return a > b ? a : b;
+    }
+    static void mergeExit ( SuperCount & out, int lo, int hi ) {
+        if ( !out.hasExits ) { out.hasExits = true; out.exitLo = lo; out.exitHi = hi; }
+        else { out.exitLo = (lo < out.exitLo) ? lo : out.exitLo; out.exitHi = safeMax(hi, out.exitHi); }
+    }
+    // CFG-agnostic scan: any matching super call anywhere in this subtree?
+    // Used at loop boundaries to defend against paths that countSuperCalls collapses
+    // via break/continue/goto (those terminate dead() and erase prefix super counts on
+    // the way out, so e.g. `if(x){ super(); break }` would otherwise look super-free).
+    // Closures are still skipped (super inside defer/lambda isn't the chain call).
+    bool subtreeHasSuperCall ( const ExpressionPtr & expr, const SuperChainMatch & chainCall ) {
+        if ( !expr ) return false;
+        if ( expr->rtti_isCall() ) {
+            auto call = static_cast<ExprCall*>(expr);
+            if ( chainCall(call) ) return true;
+            if ( call->func && call->func->module && call->func->module->name == "$"
+                && call->func->name == "builtin_try_recover"
+                && call->arguments.size() >= 2
+                && call->arguments[0]->rtti_isMakeBlock() ) {
+                auto mb = static_cast<ExprMakeBlock*>(call->arguments[0]);
+                return subtreeHasSuperCall(mb->block, chainCall);
+            }
+            return false;
+        }
+        if ( expr->rtti_isBlock() ) {
+            for ( auto & be : static_cast<ExprBlock*>(expr)->list ) {
+                if ( subtreeHasSuperCall(be, chainCall) ) return true;
+            }
+            return false;
+        }
+        if ( expr->rtti_isIfThenElse() ) {
+            auto ite = static_cast<ExprIfThenElse*>(expr);
+            return subtreeHasSuperCall(ite->if_true, chainCall)
+                || subtreeHasSuperCall(ite->if_false, chainCall);
+        }
+        if ( expr->rtti_isWith() )   return subtreeHasSuperCall(static_cast<ExprWith*>(expr)->body, chainCall);
+        if ( expr->rtti_isUnsafe() ) return subtreeHasSuperCall(static_cast<ExprUnsafe*>(expr)->body, chainCall);
+        if ( expr->rtti_isWhile() )  return subtreeHasSuperCall(static_cast<ExprWhile*>(expr)->body, chainCall);
+        if ( expr->rtti_isFor() )    return subtreeHasSuperCall(static_cast<ExprFor*>(expr)->body, chainCall);
+        if ( expr->__rtti && strcmp(expr->__rtti, "ExprTryCatch") == 0 ) {
+            // Mirror countSuperCalls: only the try block contributes to chain semantics.
+            // The recover block's super (if any) is irrelevant to the chain check.
+            auto tc = static_cast<ExprTryCatch*>(expr);
+            return subtreeHasSuperCall(tc->try_block, chainCall);
+        }
+        return false;
+    }
+    SuperCount countSuperCalls ( const ExpressionPtr & expr, const SuperChainMatch & chainCall ) {
+        if ( !expr ) return SuperCount::onlyFall(0, 0);
+        if ( expr->rtti_isCall() ) {
+            auto call = static_cast<ExprCall*>(expr);
+            if ( chainCall(call) ) {
+                return SuperCount::onlyFall(1, 1);
+            }
+            // JIT-mode rewrite of try/recover: ast_infer_type_op.cpp:1015 emits
+            // `builtin_try_recover(make_block(try), make_block(catch))` and the typer
+            // appends `context` + `at` (final arity = 4). Match the resolved function on
+            // its source module ($) to avoid colliding with any user shadow. Count super
+            // in the try block only; the recover block is fatal-panic-with-diagnostics,
+            // irrelevant to chain semantics (mirrors the direct ExprTryCatch handler below).
+            if ( call->func && call->func->module && call->func->module->name == "$"
+                && call->func->name == "builtin_try_recover"
+                && call->arguments.size() >= 2
+                && call->arguments[0]->rtti_isMakeBlock() ) {
+                auto mb = static_cast<ExprMakeBlock*>(call->arguments[0]);
+                return countSuperCalls(mb->block, chainCall);
+            }
+            return SuperCount::onlyFall(0, 0);
+        }
+        if ( expr->rtti_isReturn() ) {
+            // Early-exit at this point with the prefix accumulated so far; no super
+            // here, no fall-through. The caller (block walker) folds the prefix in.
+            return SuperCount::onlyExit(0, 0);
+        }
+        if ( expr->rtti_isBreak() || expr->rtti_isContinue() || expr->rtti_isGoto() ) {
+            // Don't escape the function — they stop block iteration (no fall-through) but
+            // contribute no function-level exit path.
+            return SuperCount::dead();
+        }
+        if ( expr->rtti_isBlock() ) {
+            auto blk = static_cast<ExprBlock*>(expr);
+            int prefix_lo = 0, prefix_hi = 0;
+            SuperCount out = SuperCount::onlyFall(0, 0); // exits accumulated as we go
+            out.hasExits = false;
+            bool fallenThrough = true;
+            for ( auto & be : blk->list ) {
+                auto sub = countSuperCalls(be, chainCall);
+                if ( sub.hasExits ) {
+                    mergeExit(out, safeAdd(prefix_lo, sub.exitLo), safeAdd(prefix_hi, sub.exitHi));
+                }
+                if ( !sub.fallsThrough ) {
+                    fallenThrough = false;
+                    break;
+                }
+                prefix_lo = safeAdd(prefix_lo, sub.fallLo);
+                prefix_hi = safeAdd(prefix_hi, sub.fallHi);
+            }
+            out.fallsThrough = fallenThrough;
+            out.fallLo = prefix_lo;
+            out.fallHi = prefix_hi;
+            return out;
+        }
+        if ( expr->rtti_isIfThenElse() ) {
+            auto ite = static_cast<ExprIfThenElse*>(expr);
+            auto t = countSuperCalls(ite->if_true, chainCall);
+            // Treat absent else as an empty fall-through branch with 0 super calls.
+            SuperCount e = ite->if_false ? countSuperCalls(ite->if_false, chainCall)
+                                         : SuperCount::onlyFall(0, 0);
+            SuperCount out = SuperCount::dead();
+            if ( t.hasExits ) mergeExit(out, t.exitLo, t.exitHi);
+            if ( e.hasExits ) mergeExit(out, e.exitLo, e.exitHi);
+            if ( t.fallsThrough && e.fallsThrough ) {
+                out.fallsThrough = true;
+                out.fallLo = (t.fallLo < e.fallLo) ? t.fallLo : e.fallLo;
+                out.fallHi = safeMax(t.fallHi, e.fallHi);
+            } else if ( t.fallsThrough ) {
+                out.fallsThrough = true; out.fallLo = t.fallLo; out.fallHi = t.fallHi;
+            } else if ( e.fallsThrough ) {
+                out.fallsThrough = true; out.fallLo = e.fallLo; out.fallHi = e.fallHi;
+            }
+            return out;
+        }
+        if ( expr->rtti_isWith() ) {
+            auto wth = static_cast<ExprWith*>(expr);
+            return countSuperCalls(wth->body, chainCall);
+        }
+        if ( expr->rtti_isUnsafe() ) {
+            auto us = static_cast<ExprUnsafe*>(expr);
+            return countSuperCalls(us->body, chainCall);
+        }
+        if ( expr->rtti_isWhile() || expr->rtti_isFor() ) {
+            ExpressionPtr body = expr->rtti_isWhile()
+                ? static_cast<ExprWhile*>(expr)->body
+                : static_cast<ExprFor*>(expr)->body;
+            auto inner = countSuperCalls(body, chainCall);
+            // Conservatively: loop iterates 0..N times. If body contains ANY super anywhere
+            // (including paths that terminate via break/continue, which countSuperCalls
+            // collapses to dead()), the loop's fall-through count is unbounded. Inner exits
+            // (return) still propagate as function-level exit paths.
+            SuperCount out = SuperCount::onlyFall(0, 0);
+            if ( subtreeHasSuperCall(body, chainCall) ) {
+                out.fallLo = 0; out.fallHi = kSuperUnbounded;
+            }
+            if ( inner.hasExits ) mergeExit(out, inner.exitLo, inner.exitHi);
+            return out;
+        }
+        // try / recover: the try block is the normal-flow path — count super there.
+        // The recover block is for diagnostics-before-exit (daslang panic is fatal); a
+        // super call in recover never establishes invariants for a usable object, so skip
+        // it. ExprTryCatch has no rtti_is* — dispatch via __rtti.
+        if ( expr->__rtti && strcmp(expr->__rtti, "ExprTryCatch") == 0 ) {
+            auto tc = static_cast<ExprTryCatch*>(expr);
+            return countSuperCalls(tc->try_block, chainCall);
+        }
+        return SuperCount::onlyFall(0, 0);
+    }
+    // Reduces a function-body SuperCount to {min, max} over ALL completed CFG paths
+    // (fall-through + every early-exit). The function-level lint compares this to {1, 1}.
+    struct SuperCountReduced { int lo; int hi; };
+    SuperCountReduced reduceSuperCount ( const SuperCount & c ) {
+        if ( !c.fallsThrough && !c.hasExits ) return {0, 0}; // dead body (panic-only)
+        if ( c.fallsThrough && !c.hasExits ) return {c.fallLo, c.fallHi};
+        if ( !c.fallsThrough && c.hasExits ) return {c.exitLo, c.exitHi};
+        int lo = (c.fallLo < c.exitLo) ? c.fallLo : c.exitLo;
+        int hi = safeMax(c.fallHi, c.exitHi);
+        return {lo, hi};
+    }
+
     bool needAvoidNullPtr ( const TypeDeclPtr & type, bool allowDim ) {
         if ( !type ) {
             return false;
         }
-        if ( !allowDim && type->dim.size() ) {
-            return false;
+        auto t = type;
+        if ( t->baseType==Type::tFixedArray ) {
+            if ( !allowDim ) {
+                return false;
+            }
+            while ( t->baseType==Type::tFixedArray && t->firstType ) t = t->firstType;
         }
-        if ( auto * ann = (TypeAnnotation *) type->isPointerToAnnotation() ) {
+        if ( auto * ann = (TypeAnnotation *) t->isPointerToAnnotation() ) {
             if ( ann->avoidNullPtr() ) {
                 return true;
             }
@@ -208,7 +432,6 @@ namespace das {
         bool disableInit;
         bool noLocalClassMembers;
         bool noWritingToNameless;
-        bool alwaysCallSuper;
     public:
         LintVisitor ( const ProgramPtr & prog ) : program(prog) {
             checkOnlyFastAot = program->options.getBoolOption("only_fast_aot", program->policies.only_fast_aot);
@@ -223,14 +446,13 @@ namespace das {
             disableInit = prog->options.getBoolOption("no_init", prog->policies.no_init);
             noLocalClassMembers = prog->options.getBoolOption("no_local_class_members", prog->policies.no_local_class_members);
             noWritingToNameless = prog->options.getBoolOption("no_writing_to_nameless", prog->policies.no_writing_to_nameless);
-            alwaysCallSuper = prog->options.getBoolOption("always_call_super", prog->policies.always_call_super);
         }
     public:
         void reportUnsafeTypeExpressions() {
             for ( auto expr : usedTypeExprs ) {
                 program->error("type expression result is used, and not just passed",
                     "consider default<" + expr->type->describe() + ">", "",
-                        expr->at, CompilationError::invalid_type);
+                        expr->at, CompilationError::invalid_type_expression);
             }
         }
     protected:
@@ -245,7 +467,7 @@ namespace das {
                 auto bif = (BuiltInFunction *) _func;
                 if ( bif->cppName.empty() ) {
                     program->error(_func->describe() + " has no cppName while onlyFastAot option is set", "", "", at,
-                                   CompilationError::only_fast_aot_no_cpp_name );
+                                   CompilationError::missing_function_name );
                 }
             }
         }
@@ -256,7 +478,7 @@ namespace das {
             Visitor::preVisitModule(mod);
             if ( !mod->name.empty() && !isValidModuleName(mod->name) ) {
                 program->error("invalid module name '" + mod->name + "'", "", "",
-                    LineInfo(), CompilationError::invalid_name );
+                    LineInfo(), CompilationError::invalid_module_name );
             }
         }
         void lintType ( TypeDecl * td ) {
@@ -273,7 +495,7 @@ namespace das {
             if ( !td->isAuto() ) {
                 if ( td->getSizeOf64()>0x7fffffff ) {
                     program->error("alias '" + name + "' is too big", "", "",
-                        td->at, CompilationError::invalid_type );
+                        td->at, CompilationError::exceeds_type_alias );
                 }
             }
         }
@@ -284,7 +506,7 @@ namespace das {
             Visitor::preVisit(var);
             if ( var->getSizeOf64()>0x7fffffff ) {
                 program->error("structure '" + var->name + "' is too big", "", "",
-                    var->at, CompilationError::invalid_type );
+                    var->at, CompilationError::exceeds_structure );
             }
         }
         virtual void preVisitExpression ( Expression * expr ) override {
@@ -294,7 +516,7 @@ namespace das {
                     anyUnsafe = true;
                     if ( checkUnsafe ) {
                         program->error("unsafe in global initializer.", "unsafe are prohibited by CodeOfPolicies", "",
-                            expr->at, CompilationError::unsafe_function);
+                            expr->at, CompilationError::unsafe_global);
                     }
                     return;
                 }
@@ -317,7 +539,7 @@ namespace das {
             if ( noLocalClassMembers ) {
                 if ( !decl.type->ref && decl.type->hasClasses() ) {
                     program->error("class can't contain local class declarations", decl.name + ": " + decl.type->describe(), "",
-                        decl.at, CompilationError::invalid_structure_field_type);
+                        decl.at, CompilationError::cant_field_class);
                 }
             }
         }
@@ -326,32 +548,32 @@ namespace das {
             if ( checkNoGlobalVariables && !var->generated ) {
                 if ( checkNoGlobalVariablesAtAll ) {
                     program->error("variable '" + var->name + "' is disabled via option no_global_variables_at_all", "", "",
-                        var->at, CompilationError::no_global_variables );
+                        var->at, CompilationError::cant_global );
                 } else if ( !var->type->isConst() ) {
                     program->error("variable '" + var->name + "' is not a constant, which is disabled via option no_global_variables", "", "",
-                        var->at, CompilationError::no_global_variables );
+                        var->at, CompilationError::cant_global );
                 }
             }
             if ( checkNoGlobalHeap ) {
                 if ( !var->type->isNoHeapType() ) { // note: this is too dangerous to allow even with generated
                     program->error("variable '" + var->name + "' uses heap, which is disabled via option no_global_heap", "", "",
-                        var->at, CompilationError::no_global_heap );
+                        var->at, CompilationError::cant_global );
                 }
             }
             if ( !var->init ) {
                 if ( needAvoidNullPtr(var->type,true) ) {
                     program->error("global variable of type '" + var->type->describe() + "' needs to be initialized to avoid null pointer", "", "",
-                        var->at, CompilationError::cant_be_null);
+                        var->at, CompilationError::missing_global);
                 }
             } else {
                 if ( needAvoidNullPtr(var->type,false) && var->init->rtti_isNullPtr() ) {
                     program->error("global variable of type '" + var->type->describe() + "' can't be initialized with null", "", "",
-                        var->init->at, CompilationError::cant_be_null);
+                        var->init->at, CompilationError::cant_global);
                 }
             }
             if ( var->type->getSizeOf64()>0x7fffffff ) {
                 program->error("global variable '" + var->name + "' is too big", "", "",
-                    var->at,CompilationError::invalid_variable_type);
+                    var->at,CompilationError::exceeds_global);
             }
         }
         virtual void preVisitGlobalLetInit ( const VariablePtr & var, Expression * that ) override {
@@ -371,7 +593,7 @@ namespace das {
                     }
                 }
                 program->error("global variable initialization loop", ss.str(), "",
-                    var->at, CompilationError::variable_not_found);
+                    var->at, CompilationError::recursion_global);
             }
             tableLookupCollision.push_back(das_hash_set<uint64_t>());
         }
@@ -379,7 +601,7 @@ namespace das {
             tableLookupCollision.pop_back();
             if ( disableInit && !var->init->rtti_isConstant() ) {   // we double check here, if it made it past infer
                 program->error("[init] is disabled in the options or CodeOfPolicies", "", "",
-                        var->at, CompilationError::no_init);
+                        var->at, CompilationError::cant_global);
             }
             globalVar->index = -3; // initialized. -1 by default
             globalVar = nullptr;
@@ -391,7 +613,7 @@ namespace das {
                 if ( expr->variable->index!=-3 ) {
                     if ( expr->variable->module==globalVar->module ) {
                         program->error("global variable " + expr->name + " is initialized after " + globalVar->name + " (" + to_string(expr->variable->index) + ")",
-                            "", "", expr->at, CompilationError::variable_not_found);
+                            "", "", expr->at, CompilationError::invalid_global);
                     }
                 }
             }
@@ -401,7 +623,7 @@ namespace das {
             Visitor::preVisit(expr);
             if ( needAvoidNullPtr(expr->subexpr->type,true) ) {
                 program->error("can't delete " + expr->subexpr->type->describe() + ", it will create null pointer", "", "",
-                    expr->subexpr->at, CompilationError::cant_be_null);
+                    expr->subexpr->at, CompilationError::cant_expression);
             }
 
         }
@@ -413,17 +635,17 @@ namespace das {
                 if ( !var->init ) {
                     if ( needAvoidNullPtr(var->type,true) ) {
                         program->error("local variable of type " + var->type->describe() + " needs to be initialized to avoid null pointer", "", "",
-                            var->at, CompilationError::cant_be_null);
+                            var->at, CompilationError::missing_local);
                     }
                 } else {
                     if ( needAvoidNullPtr(var->type,false) && var->init->rtti_isNullPtr() ) {
                         program->error("local variable of type " + var->type->describe() + " can't be initialized with null", "", "",
-                            var->init->at, CompilationError::cant_be_null);
+                            var->init->at, CompilationError::cant_local);
                     }
                 }
                 if ( var->type->getSizeOf64()>0x7fffffff ) {
                     program->error("local variable " + var->name + " is too big", "", "",
-                        var->at,CompilationError::invalid_variable_type);
+                        var->at,CompilationError::exceeds_local);
                 }
             }
         }
@@ -431,7 +653,7 @@ namespace das {
             Visitor::preVisit(expr);
             if ( expr->returnType && needAvoidNullPtr(expr->returnType,false) && expr->subexpr->rtti_isNullPtr() ) {
                 program->error("can't return null", "", "",
-                    expr->subexpr->at, CompilationError::cant_be_null);
+                    expr->subexpr->at, CompilationError::cant_result);
             }
         }
         void verifyToTableMove ( ExprCall * expr ) {
@@ -452,7 +674,7 @@ namespace das {
                                             seen.insert(mc->text.c_str());
                                         } else {
                                             program->error("duplicate key in string=> table initialization", "", "",
-                                                mt->values[0]->at, CompilationError::duplicate_key);
+                                                mt->values[0]->at, CompilationError::already_declared_table);
                                         }
                                     }
                                 }
@@ -470,7 +692,7 @@ namespace das {
                                             seen.insert(mc->value);
                                         } else {
                                             program->error("duplicate key in table initialization", "", "",
-                                                mt->values[0]->at, CompilationError::duplicate_key);
+                                                mt->values[0]->at, CompilationError::already_declared_table);
                                         }
                                     }
                                 }
@@ -487,7 +709,7 @@ namespace das {
                                     seen.insert(mc->text.c_str());
                                 } else {
                                     program->error("duplicate key in string=> set initialization", "", "",
-                                        arg->at, CompilationError::duplicate_key);
+                                        arg->at, CompilationError::already_declared_table);
                                 }
                             }
                         }
@@ -500,7 +722,7 @@ namespace das {
                                     seen.insert(mc->value);
                                 } else {
                                     program->error("duplicate key in set initialization", "", "",
-                                        arg->at, CompilationError::duplicate_key);
+                                        arg->at, CompilationError::already_declared_table);
                                 }
                             }
                         }
@@ -513,7 +735,7 @@ namespace das {
             if ( noWritingToNameless ) {
                 if ( expr->write && !(expr->type->ref || expr->type->isPointer()) ) {
                     program->error("dead write is prohibited by CodeOfPolicies", "\tin " + expr->describe(), "",
-                        expr->at, CompilationError::no_writing_to_nameless);
+                        expr->at, CompilationError::cant_expression);
                 }
             }
         }
@@ -535,7 +757,7 @@ namespace das {
                     "this typically means the AST was modified after type inference "
                     "without signalling that infer needs to run again - check the "
                     "annotation patch() / pass apply() / substitution macro that produced this node",
-                    "", expr->at, CompilationError::missing_node);
+                    "", expr->at, CompilationError::internal_function_not_resolved_yet);
                 return;
             }
             verifyOnlyFastAot(expr->func, expr->at);
@@ -556,7 +778,7 @@ namespace das {
                     }
                 }
                 program->error("function " + expr->func->getMangledName() + " is deprecated.","deprecated functions are prohibited by CodeOfPolicies", message,
-                    expr->at, CompilationError::deprecated_function);
+                    expr->at, CompilationError::cant_function);
             }
             for ( const auto & annDecl : expr->func->annotations ) {
                 auto ann = annDecl->annotation;
@@ -565,7 +787,7 @@ namespace das {
                     string err;
                     if ( !fnAnn->verifyCall(expr, annDecl->arguments, program->options, err) ) {
                         program->error("call annotated by " + fnAnn->name + " failed", err, "",
-                                       expr->at, CompilationError::annotation_failed);
+                                       expr->at, CompilationError::runtime_function_annotation);
                     }
                 }
             }
@@ -574,7 +796,7 @@ namespace das {
                     for ( auto & arg : expr->arguments ) {
                         if ( !arg->noNativeSideEffects ) {
                             program->error("side effects may affect function " + expr->func->name + " evaluation order", "", "",
-                                expr->at, CompilationError::aot_side_effects );
+                                expr->at, CompilationError::invalid_function_argument );
                             break;
                         }
                     }
@@ -588,11 +810,11 @@ namespace das {
                     !expr->arguments.at(1)->rtti_isMakeBlock()) {
                     program->error("builtin_try_recover shouldn't be called directly.",
                         "", "Use `try { ... } recover { ... }` instead.",
-                        expr->at, CompilationError::invalid_argument_type );
+                        expr->at, CompilationError::invalid_function_argument );
                 } else if (exprReturns(static_cast<ExprMakeBlock*>(expr->arguments.front())->block)) {
                     program->error("try { ... } recover { ... } can't have return inside in jit mode",
                         "This feature is not implemented yet.", "",
-                        expr->at, CompilationError::not_expecting_return_value );
+                        expr->at, CompilationError::cant_result );
                 }
             }
             for ( size_t i=0, is=expr->arguments.size(); i!=is; ++i ) {
@@ -601,18 +823,12 @@ namespace das {
                 const auto & argType = funArg->type;
                 if ( needAvoidNullPtr(argType,false) && arg->rtti_isNullPtr() ) {
                     program->error("can't pass null to function " + expr->func->describeName() + " argument " + funArg->name , "", "",
-                        arg->at, CompilationError::cant_be_null);
+                        arg->at, CompilationError::cant_argument);
                 }
             }
             if ( expr->func->fromGeneric && expr->func->fromGeneric->module->name=="builtin" ) {
                 if ( expr->func->fromGeneric->name=="to_table_move" ) {
                     verifyToTableMove(expr);
-                }
-            }
-            if ( isClassCtor ) {
-                auto baseClass = func->classParent->parent;
-                if ( expr->func->name==(baseClass->name+"`"+baseClass->name) ) {
-                    anySuperCalls = true;
                 }
             }
         }
@@ -660,7 +876,7 @@ namespace das {
             if ( checkAotSideEffects ) {
                 if ( !expr->left->noNativeSideEffects || !expr->right->noNativeSideEffects ) {
                     program->error("side effects may affect evaluation order", "", "", expr->at,
-                                   CompilationError::aot_side_effects );
+                                   CompilationError::invalid_expression );
                 }
             }
         }
@@ -670,7 +886,7 @@ namespace das {
             if ( checkAotSideEffects ) {
                 if ( !expr->subexpr->noNativeSideEffects || !expr->left->noNativeSideEffects || !expr->right->noNativeSideEffects ) {
                     program->error("side effects may affect evaluation order", "", "", expr->at,
-                                   CompilationError::aot_side_effects );
+                                   CompilationError::invalid_expression );
                 }
             }
         }
@@ -721,12 +937,12 @@ namespace das {
             */
             if ( needAvoidNullPtr(expr->left->type,false) && expr->right->rtti_isNullPtr() ) {
                 program->error("can't assign null pointer to " + expr->left->type->describe(), "", "",
-                    expr->right->at, CompilationError::cant_be_null);
+                    expr->right->at, CompilationError::cant_expression);
             }
             if ( noWritingToNameless && expr->left->rtti_isMakeLocal() ) {
                 program->error("dead assignment to a temporary value, which is prohibited by CodeOfPolicies",
                     getNamelessHint(expr->left, expr->right, "="), "",
-                    expr->left->at, CompilationError::no_writing_to_nameless);
+                    expr->left->at, CompilationError::cant_expression);
             }
         }
         virtual void preVisit ( ExprMove * expr ) override {
@@ -735,17 +951,17 @@ namespace das {
             if ( checkAotSideEffects ) {
                 if ( !expr->left->noNativeSideEffects || !expr->right->noNativeSideEffects ) {
                     program->error("side effects may affect move evaluation order", "", "",
-                        expr->at, CompilationError::aot_side_effects );
+                        expr->at, CompilationError::invalid_expression );
                 }
             }
             if ( needAvoidNullPtr(expr->left->type,false) && expr->right->rtti_isNullPtr() ) {
                 program->error("can't assign null pointer to " + expr->left->type->describe(), "", "",
-                    expr->right->at, CompilationError::cant_be_null);
+                    expr->right->at, CompilationError::cant_expression);
             }
             if ( noWritingToNameless && expr->left->rtti_isMakeLocal() ) {
                 program->error("dead move to a temporary value, which is prohibited by CodeOfPolicies",
                     getNamelessHint(expr->left, expr->right, "<-"), "",
-                        expr->left->at, CompilationError::no_writing_to_nameless);
+                        expr->left->at, CompilationError::cant_expression);
             }
         }
         virtual void preVisit ( ExprClone * expr ) override {
@@ -754,7 +970,7 @@ namespace das {
             if ( checkAotSideEffects ) {
                 if ( !expr->left->noNativeSideEffects || !expr->right->noNativeSideEffects ) {
                     program->error("side effects may affect clone evaluation order", "", "",
-                        expr->at, CompilationError::aot_side_effects );
+                        expr->at, CompilationError::invalid_expression );
                 }
             }
         }
@@ -762,29 +978,29 @@ namespace das {
             Visitor::preVisit(expr);
             if ( expr->subexpr->type->getSizeOf64()>0x7fffffff ) {
                 program->error("can't ascend type which is too big", "", "",
-                    expr->at, CompilationError::invalid_new_type);
+                    expr->at, CompilationError::exceeds_type);
             }
             if ( !expr->subexpr->type->getSizeOf64() ) {
                 program->error("can't ascend (to heap) type of size 0",  "", "",
-                    expr->at, CompilationError::invalid_new_type);
+                    expr->at, CompilationError::invalid_type);
             }
         }
         virtual void preVisit ( ExprNew * expr ) override {
             Visitor::preVisit(expr);
             if ( expr->typeexpr->getSizeOf64()>0x7fffffff ) {
                 program->error("can't new to a type that is too big", "", "",
-                    expr->at, CompilationError::invalid_new_type);
+                    expr->at, CompilationError::exceeds_type);
             }
             if ( !expr->typeexpr->getSizeOf64() ) {
                 program->error("can't new (to heap) type of size 0",  "", "",
-                    expr->at, CompilationError::invalid_new_type);
+                    expr->at, CompilationError::invalid_type);
             }
         }
         virtual void preVisit ( ExprAssert * expr ) override {
             Visitor::preVisit(expr);
             if ( !expr->isVerify && !expr->arguments[0]->noSideEffects ) {
                 program->error("assert expressions can't have side-effects (use verify instead)", "", "",
-                    expr->at, CompilationError::assert_with_side_effects);
+                    expr->at, CompilationError::invalid_expression);
             }
         }
         virtual void preVisit ( ExprUnsafe * expr ) override {
@@ -810,15 +1026,13 @@ namespace das {
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override {
             return false;
         }
-        bool isClassCtor = false;
-        bool anySuperCalls = false;
         virtual void preVisit ( Function * fn ) override {
             Visitor::preVisit(fn);
             func = fn;
             if ( !fn->result->isVoid() && !fn->result->isAuto() ) {
                 if ( !exprReturns(fn->body) ) {
                     program->error("not all control paths return value",  "", "",
-                        fn->at, CompilationError::not_all_paths_return_value);
+                        fn->at, CompilationError::missing_function_result);
                 }
             }
             if ( !fn->safeImplicit ) {
@@ -830,7 +1044,7 @@ namespace das {
                             anyUnsafe = true;
                             if ( checkUnsafe ) {
                                 program->error("implicit argument " + arg->name,  "implicit is unsafe and is prohibited by the CodeOfPolicies", "",
-                                    fn->at, CompilationError::unsafe_function);
+                                    fn->at, CompilationError::unsafe_argument);
                             }
                         }
                     }
@@ -841,25 +1055,60 @@ namespace das {
                     auto fann = static_cast<FunctionAnnotation*>(ann->annotation);
                     string err;
                     if ( !fann->lint(fn, *program->thisModuleGroup, ann->arguments, program->options, err) ) {
-                        program->error("function annotation lint failed\n", err, "", fn->at, CompilationError::annotation_failed );
+                        program->error("function annotation lint failed\n", err, "", fn->at, CompilationError::runtime_function_annotation );
                     }
                 }
             }
             if ( (fn->init | fn->shutdown) && disableInit ) { // we double-check here. we check in the infer first, but this here is for the case where macro does it later
                 program->error("[init] is disabled in the options or CodeOfPolicies",  "", "",
-                    fn->at, CompilationError::no_init);
-            }
-            if ( alwaysCallSuper && fn->isClassMethod && fn->classParent && fn->classParent->parent && fn->name==(fn->classParent->name+"`"+fn->classParent->name)) {
-                isClassCtor = true; // detect class constructor, but only if we always call super
+                    fn->at, CompilationError::cant_function);
             }
         }
         virtual FunctionPtr visit ( Function * fn ) override {
-            if ( isClassCtor && !anySuperCalls ) {
-                program->error("class constructor " + fn->name + " does not call super initializer", "",
-                    "", fn->at, CompilationError::invalid_member_function);
+            // Derived class ctor: every CFG path must call super(...) exactly once,
+            // and only when ANY ancestor has a user-defined ctor to chain to. The
+            // walk-up matches super(...)'s own walk-up semantics — an empty
+            // intermediate (synth chain ctor) propagates the invariant requirement.
+            if ( fn->isClassMethod && fn->classParent && fn->classParent->parent
+                && !fn->generated
+                && fn->name == fn->classParent->name + "`" + fn->classParent->name ) {
+                Structure * chainAncestor = findChainCtorAncestor(fn->classParent);
+                if ( chainAncestor ) {
+                    SuperChainMatch match;
+                    match.mangled = chainAncestor->name + "`" + chainAncestor->name;
+                    auto count = reduceSuperCount(countSuperCalls(fn->body, match));
+                    if ( count.lo == 0 ) {
+                        program->error("class constructor " + fn->name + " does not call super(...) on every control-flow path",
+                            "", "call super(...) (or super." + chainAncestor->name + "(...)) exactly once per path",
+                            fn->at, CompilationError::missing_function_body);
+                    } else if ( count.hi != count.lo || count.hi > 1 ) {
+                        program->error("class constructor " + fn->name + " calls super(...) more than once on some path",
+                            "", "super(...) must be called exactly once per control-flow path",
+                            fn->at, CompilationError::missing_function_body);
+                    }
+                }
             }
-            anySuperCalls = false;
-            isClassCtor = false;
+            // Derived class finalizer: when ANY ancestor has a user-defined finalizer,
+            // every CFG path must `delete super.self` exactly once — same chain
+            // invariant as ctors. An empty intermediate parent is fine: the chain
+            // call resolves to its generated finalizer, which chains up in turn.
+            if ( fn->isClassMethod && fn->classParent && fn->classParent->parent
+                && !fn->generated
+                && fn->name == "finalize"
+                && findChainFinalizerAncestor(fn->classParent) ) {
+                SuperChainMatch match;
+                match.finalizeParent = fn->classParent->parent;
+                auto count = reduceSuperCount(countSuperCalls(fn->body, match));
+                if ( count.lo == 0 ) {
+                    program->error("class finalizer of " + fn->classParent->name + " does not call delete super.self on every control-flow path",
+                        "", "delete super.self exactly once per path",
+                        fn->at, CompilationError::missing_function_body);
+                } else if ( count.hi != count.lo || count.hi > 1 ) {
+                    program->error("class finalizer of " + fn->classParent->name + " calls delete super.self more than once on some path",
+                        "", "delete super.self must be called exactly once per control-flow path",
+                        fn->at, CompilationError::missing_function_body);
+                }
+            }
             func = nullptr;
             return Visitor::visit(fn);
         }
@@ -869,12 +1118,12 @@ namespace das {
                 if ( !var->marked_used && var->isAccessUnused() ) {
                     program->error("unused function argument " + var->name, "",
                           "use [unused_argument(" + var->name + ")] if intentional",
-                        var->at, CompilationError::unused_function_argument);
+                        var->at, CompilationError::invalid_function_argument);
                 }
             }
             if ( var->type->getSizeOf64()>0x7fffffff ) {
                 program->error("argument variable " + var->name + " is too big", "", "",
-                    var->at,CompilationError::invalid_variable_type);
+                    var->at,CompilationError::exceeds_argument);
             }
         }
         virtual void preVisit ( ExprBlock * block ) override {
@@ -883,13 +1132,13 @@ namespace das {
                 if (  !block->returnType->isVoid() && !block->returnType->isAuto() ) {
                     if ( !exprReturns(block) ) {
                         program->error("not all control paths of the block return value",  "", "",
-                            block->at, CompilationError::not_all_paths_return_value);
+                            block->at, CompilationError::missing_block_result);
                     }
                 }
             }
             if (jitEnabled() && !block->finalList.empty() && block->hasExitByLabel) {
                 program->error("jit blocks can't have finally and goto", "", "",
-                    block->at, CompilationError::invalid_label);
+                    block->at, CompilationError::cant_block);
             }
         }
         virtual void preVisitBlockArgument ( ExprBlock * block, const VariablePtr & var, bool lastArg ) override {
@@ -898,19 +1147,19 @@ namespace das {
                 if ( !var->marked_used && var->isAccessUnused() ) {
                     program->error("unused block argument " + var->name, "",
                           "use [unused_argument(" + var->name + ")] if intentional",
-                        var->at, CompilationError::unused_block_argument);
+                        var->at, CompilationError::invalid_block_argument);
                 }
             }
             if ( var->type->getSizeOf64()>0x7fffffff ) {
                 program->error("block argument variable " + var->name + " is too big", "", "",
-                    var->at,CompilationError::invalid_variable_type);
+                    var->at,CompilationError::exceeds_argument);
             }
         }
         virtual void preVisit ( ExprMakeStruct * mks ) override {
             Visitor::preVisit(mks);
             if ( mks->constructor && mks->constructor->arguments.size() ) {
                 program->error("default arguments of constructors can't be used in make declarations", "its not yet implemented", "",
-                    mks->at, CompilationError::unspecified);
+                    mks->at, CompilationError::cant_argument_structure);
             }
         }
         virtual void preVisit ( ExprTypeDecl * expr ) override {
@@ -925,7 +1174,7 @@ namespace das {
                 auto op2 = static_cast<ExprOp2 *>(expr);
                 if ( op2->func && op2->func->builtIn && op2->func->sideEffectFlags==0 ) {
                     program->error("top level no side effect operation " + op2->op, "", "",
-                        expr->at, CompilationError::top_level_no_sideeffect_operation);
+                        expr->at, CompilationError::invalid_expression);
                 }
             }
         }
@@ -941,7 +1190,7 @@ namespace das {
                 auto op2 = static_cast<ExprOp2 *>(expr);
                 if ( op2->func && op2->func->builtIn && op2->func->sideEffectFlags==0 ) {
                     program->error("top level no side effect operation " + op2->op, "", "",
-                        expr->at, CompilationError::top_level_no_sideeffect_operation);
+                        expr->at, CompilationError::invalid_expression);
                 }
             }
         }
@@ -963,7 +1212,7 @@ namespace das {
                     } else {
                         program->error("potential table lookup collision for " + subexprText, "",
                                 "tab[key1] = tab[key2], or fun(tab[key1],tab[key2]) scenarios may produce undefined behavior",
-                                expr->subexpr->at, CompilationError::table_lookup_collision);
+                                expr->subexpr->at, CompilationError::invalid_table_expression);
                     }
                 } else {
                     tableLookupCollision.back().insert(subexprHash);
@@ -986,7 +1235,6 @@ namespace das {
     // lint
         "lint",                         Type::tBool,
         "no_writing_to_nameless",       Type::tBool,
-        "always_call_super",            Type::tBool,
     // memory
         "heap_size_limit",              Type::tInt,
         "string_heap_size_limit",       Type::tInt,
@@ -1037,16 +1285,18 @@ namespace das {
         "skip_lock_checks",             Type::tBool,
     };
 
-    void verifyOptions() {
-        bool failed = false;
-        for ( const auto & opt : g_allOptions ) {
-            if ( !isValidBuiltinName(opt.name) ) {
-                DAS_FATAL_ERROR("%s - invalid option. expecting snake_case\n", opt.name);
-                failed = true;
+    static struct VerifyOptionsOnStartup {
+        VerifyOptionsOnStartup() {
+            bool failed = false;
+            for ( const auto & opt : g_allOptions ) {
+                if ( !isValidBuiltinName(opt.name) ) {
+                    DAS_FATAL_ERROR("%s - invalid option. expecting snake_case\n", opt.name);
+                    failed = true;
+                }
             }
+            DAS_VERIFYF(!failed, "verifyOptions failed");
         }
-        DAS_VERIFYF(!failed, "verifyOptions failed");
-    }
+    } g_verifyOptionsOnStartup;
 
     vector<pair<string,Type>> getCodeOfPolicyOptions();
 
@@ -1068,7 +1318,7 @@ namespace das {
             auto it = ao.find(opt.name);
             if ( it != ao.end() ) {
                 error("internal error: option '" + string(opt.name) + "' is already defined",
-                    "", "", LineInfo(), CompilationError::internal_error);
+                    "", "", LineInfo(), CompilationError::internal_options);
             } else {
                 ao[opt.name] = opt.type;
             }
@@ -1077,7 +1327,7 @@ namespace das {
             auto it = ao.find(opt.first);
             if ( it != ao.end() ) {
                 error("internal error: option '" + opt.first + "' is already defined",
-                    "", "", LineInfo(), CompilationError::internal_error);
+                    "", "", LineInfo(), CompilationError::internal_options);
             } else {
                 ao[opt.first] = opt.second;
             }
@@ -1100,11 +1350,11 @@ namespace das {
                 error("invalid option type for '" + opt.name
                       + "', unexpected '" + das_to_string(opt.type)
                       + "', expecting '" + das_to_string(optT) + "'", "", "",
-                        LineInfo(), CompilationError::invalid_option);
+                        LineInfo(), CompilationError::invalid_options);
             } else if ( optT==Type::none ){
                 if ( opt.name[0]!='_' ) {
                     error("invalid option '" + opt.name + "'",  "", "",
-                        LineInfo(), CompilationError::invalid_option);
+                        LineInfo(), CompilationError::invalid_options);
                 } else {
                     // custom user option (name starts with '_'), we don't care what's in there
                     continue;
@@ -1139,7 +1389,7 @@ namespace das {
             if ( expr->rtti_isTypeDecl() ) return expr;
             if ( expr->type->isAliasOrExpr() ) {
                 program->error("internal error. leaking alias or expression type",expr->type->describe(),"",
-                    expr->at,CompilationError::internal_error);
+                    expr->at,CompilationError::internal_type);
             }
             return expr;
         }

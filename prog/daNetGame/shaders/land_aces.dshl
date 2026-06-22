@@ -193,7 +193,7 @@ shader land_mesh//, land_mesh_combined
     if (lmesh_rendering_mode == rendering_landmesh)
     {
       supports land_mesh_with_clipmap;
-      USE_CLIPMAP_NORMAL()
+      USE_CLIPMAP_NORMAL(false)
       USE_NORMAL_DETAIL()
       USE_LAND_MICRODETAILS_PS()
       USE_LAND_MICRODETAIL_PARAMS_PS()

@@ -15,11 +15,12 @@ enum
 {
   SHADER_CACHE_SIGN = _MAKE4C('Oz'),
   SHADER_CACHE_EOF = _MAKE4C('eof'),
+  LOCAL_RB_LAYOUT_SIGN = _MAKE4C('LRbL'),
   GLOBAL_RB_LAYOUT_SIGN = _MAKE4C('GRbL'),
 };
 
 // Increase this number if changes in the compiler invalidate .obj for all APIs,
-static const int SHADER_CACHE_COMMON_VER = 134;
+static const int SHADER_CACHE_COMMON_VER = 141;
 
 static int make_shader_cache_ver(int ver)
 {

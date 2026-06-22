@@ -235,20 +235,17 @@ shader rt_reflection
         bool isGrass   = bvhFlags & BVH_GRASS;
         bool isFoliage = bvhFlags & BVH_FOLIAGE;
       ##else
-        uint bvhFlags00  = loadBvhFlags(rayIndex * rtr_res_mul + uint2(0, 0));
-        uint bvhFlags10  = loadBvhFlags(rayIndex * rtr_res_mul + uint2(1, 0));
-        uint bvhFlags01  = loadBvhFlags(rayIndex * rtr_res_mul + uint2(0, 1));
-        uint bvhFlags11  = loadBvhFlags(rayIndex * rtr_res_mul + uint2(1, 1));
-        bool isGrass00   = bvhFlags00 & BVH_GRASS;
-        bool isGrass10   = bvhFlags10 & BVH_GRASS;
-        bool isGrass01   = bvhFlags01 & BVH_GRASS;
-        bool isGrass11   = bvhFlags11 & BVH_GRASS;
-        bool isFoliage00 = bvhFlags00 & BVH_FOLIAGE;
-        bool isFoliage10 = bvhFlags10 & BVH_FOLIAGE;
-        bool isFoliage01 = bvhFlags01 & BVH_FOLIAGE;
-        bool isFoliage11 = bvhFlags11 & BVH_FOLIAGE;
-        bool isGrass     = isGrass00 || isGrass10 || isGrass01 || isGrass11;
-        bool isFoliage   = isFoliage00 || isFoliage10 || isFoliage01 || isFoliage11;
+        // Todo: Replace with gather
+        float4 depths;
+        depths.x = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(0, 0));
+        depths.y = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(1, 0));
+        depths.z = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(0, 1));
+        depths.w = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(1, 1));
+        bool4 aoMask = depths == rawDepth;
+        uint2 offsetForSampling = aoMask.x ? uint2(0, 0) : (aoMask.y ? uint2(1, 0) : (aoMask.z ? uint2(0, 1) : uint2(1, 1)));
+        uint bvhFlags  = loadBvhFlags(rayIndex * rtr_res_mul + offsetForSampling);
+        bool isGrass   = bvhFlags & BVH_GRASS;
+        bool isFoliage = bvhFlags & BVH_FOLIAGE;
       ##endif
 
       float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
@@ -277,16 +274,7 @@ shader rt_reflection
           ##if rtr_res_mul == full_res
             ao = processGbuffer(unpackGbuffer(loadPackedGbuffer(rayIndex))).ao;
           ##else
-            float4 depths;
-            depths.x = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(0, 0));
-            depths.y = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(1, 0));
-            depths.z = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(0, 1));
-            depths.w = loadGbufferDepth(rayIndex * rtr_res_mul + uint2(1, 1));
-            float4 depthDiff = abs(depths - rawDepth);
-            float minDepth = min4(depthDiff.x, depthDiff.y, depthDiff.z, depthDiff.w);
-            bool4 aoMask = depths == minDepth;
-            uint2 offsetForAo = aoMask.x ? uint2(0, 0) : (aoMask.y ? uint2(1, 0) : (aoMask.z ? uint2(0, 1) : uint2(1, 1)));
-            ao = processGbuffer(unpackGbuffer(loadPackedGbuffer((rayIndex * rtr_res_mul + offsetForAo)))).ao;
+            ao = processGbuffer(unpackGbuffer(loadPackedGbuffer((rayIndex * rtr_res_mul + offsetForSampling)))).ao;
           ##endif
         ##endif
       }

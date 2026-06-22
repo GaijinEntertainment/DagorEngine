@@ -37,6 +37,7 @@ namespace darg
 {
 
 CONSOLE_FLOAT_VAL("darg", kinetic_vel_viscosity, 0.25f);
+CONSOLE_FLOAT_VAL("darg", overscroll_spring_freq, 200.0f);
 
 
 static bool is_same_tbl_component(const Element *elem, const Component &new_comp)
@@ -1094,6 +1095,7 @@ void ElementTree::setOverscroll(Element *elem, const Point2 &req_delta)
     delta.y *= expf(-fabsf(state.delta.y) / fadeStep);
 
   state.delta += delta;
+  state.vel.zero();
   state.active = true;
 
   if (lengthSq(state.delta) < 1.0f)
@@ -1121,8 +1123,12 @@ void ElementTree::resetOverscroll(Element *elem)
 
 void ElementTree::updateOverscroll(float dt)
 {
-  Point2 screenSize = guiScene->getDeviceScreenSize();
-  float screenDim = min(screenSize.x, screenSize.y);
+  // Critically damped spring (closed-form solution, so it stays stable and
+  // monotonic for any dt): displacement eases back to zero without
+  // overshooting the boundary. omega is a time constant, so the snap feels
+  // the same on any screen resolution.
+  const float omega = max(overscroll_spring_freq.get(), 1.0f);
+  const float e = expf(-omega * dt);
 
   for (OverscrollMap::iterator it = overscroll.begin(); it != overscroll.end();)
   {
@@ -1131,19 +1137,12 @@ void ElementTree::updateOverscroll(float dt)
       ++it;
     else
     {
-      float dist = length(state.delta);
-      float speed = cvt(dist, 0.0f, screenDim * 0.1f, screenDim * 1.0f, screenDim * 0.2f);
-      float maxMove = screenDim * speed * dt;
+      const Point2 x = state.delta;
+      const Point2 v = state.vel;
+      state.delta = (x + (v + x * omega) * dt) * e;
+      state.vel = (v - (v + x * omega) * omega * dt) * e;
 
-      if (dist < maxMove)
-        state.delta.zero();
-      else
-      {
-        Point2 dir = state.delta / dist;
-        state.delta -= dir * maxMove;
-      }
-
-      if (lengthSq(state.delta) < 1.0f)
+      if (lengthSq(state.delta) < 1.0f && lengthSq(state.vel) < 1.0f)
         it = overscroll.erase(it);
       else
         ++it;

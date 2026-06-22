@@ -1,3 +1,5 @@
+options gen2
+
 require daslib/fio
 require strings
 require daslib/strings_boost
@@ -24,7 +26,7 @@ def file_exists(filename : string) : bool {
 
 def read_file(filename : string) : string {
     var result = ""
-    fopen(filename, "r") $(f) {
+    fopen(filename, "rb") $(f) {
         if (f != null) {
             result = fread(f)
         }

@@ -234,18 +234,23 @@ public:
    *
    * The depth target is bound exactly like \ref depth() (no driver-side
    * decompression), but the node is ordered as if it were a depth READER
-   * (so it can run after a depth writer in parallel with other readers),
-   * and an implicit shader override that disables Z-write for all shaders
-   * executed inside this node is installed for the duration of the node.
+   * (so it can run after a depth writer in parallel with other readers).
    *
    * Use this when the node only needs to test against depth (e.g. a
    * decals/transparency pass that wants depth-test but not depth-write
    * and does not sample the depth texture in shaders).
    *
+   * \warning Contract: shaders rendered in this node MUST NOT write to
+   * depth. This is not enforced by daFG - the framework binds depth as
+   * RW (to avoid decompression) and relies on shader pipeline state to
+   * keep Z-write disabled. Violating the contract causes data races with
+   * other depth readers since this node is ordered as a reader in the
+   * graph. If your shaders may write Z, use \ref depth() instead.
+   *
    * Behavior:
    *  - Decompression: NO (the depth surface stays compressed; this is the
    *    main reason to prefer this over depthReadTestAndSample()).
-   *  - Z-write override: YES (Z-write is force-disabled for this node).
+   *  - Z-write enforcement: NO (caller's responsibility, see warning above).
    *  - Sampling: NO (the depth texture is not bound to any shader var by
    *    this call). Use \ref depthReadTestAndSample() if shaders need to
    *    sample depth.

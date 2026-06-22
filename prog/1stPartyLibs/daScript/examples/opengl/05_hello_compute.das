@@ -107,7 +107,7 @@ def main {
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer <| $() {
+    defer() {
         glfwTerminate()
     }
     glfwInitOpenGL(4, 6)
@@ -115,12 +115,12 @@ def main {
     if (window == null) {
         panic("can't create window")
     }
-    defer <| $() {
+    defer() {
         glfwDestroyWindow(window)
     }
     glfwMakeContextCurrent(window)
     create_gl_objects()
-    eval_main_loop <| $() {
+    eval_main_loop() {
         if (glfwWindowShouldClose(window) != 0) {
             return false
         }

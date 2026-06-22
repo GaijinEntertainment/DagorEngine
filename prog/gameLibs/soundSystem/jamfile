@@ -68,6 +68,16 @@ UseProgLibs =
   gameLibs/soundOcclusionGPU
 ;
 
+if $(UseSteamAudio) = yes {
+  AddIncludes += $(_DEVTOOL)/steamaudio-4.8.1/include ;
+  Sources += steamAudio.cpp ;
+  if $(Platform) = windows {
+    AddLibs = $(_DEVTOOL)/steamaudio-4.8.1/lib/windows-x64/phonon.lib ;
+  }
+} else {
+  Sources += stub/steamAudioStub.cpp ;
+}
+
 include $(Root)/prog/_jBuild/build.jam ;
 
 # exit $(FmodIncPath) ;

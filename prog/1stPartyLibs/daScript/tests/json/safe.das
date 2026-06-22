@@ -12,6 +12,7 @@ def safe_operators(t : T?) {
 
         t |> equal((js?["a"] ?as _longint) ?? -1l, 1l)
         t |> equal(js?.a ?? -1, 1)
+        t |> equal(js?.a ?? -1l, 1l) // JSON int (_longint) → int64 via ??
         t |> equal(js?.b ?? false, true)
         t |> equal(js?.c is _null, true)
         t |> equal(js?.d ?? "", "str")

@@ -284,7 +284,7 @@ void ecs::init_hid_drivers(int poll_thread_interval_msec, int init_dev_type)
       ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(), /*is_xinput*/ true);
 #endif
 #if _TARGET_XBOX
-      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createXinputJoystickClassDriver(true), /*is_xinput*/ true);
+      ::global_cls_composite_drv_joy->addClassDrv(::HumanInput::createGameInputJoystickClassDriver(true), /*is_xinput*/ true);
 #endif
 #if _TARGET_PC_LINUX
       ::global_cls_composite_drv_joy->addClassDrv(

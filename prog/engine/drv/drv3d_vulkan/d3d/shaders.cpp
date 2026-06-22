@@ -2,6 +2,7 @@
 
 // shader mobules/programs implementation
 #include <drv/3d/dag_shader.h>
+#include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_platform.h>
 #include <drv/shadersMetaData/spirv/compiled_meta_data.h>
 #include <ioSys/dag_zlibIo.h>
@@ -117,6 +118,16 @@ PROGRAM d3d::create_program_cs(const ShaderSource &data, CSPreloaded)
   if (smb.source.compressedData.empty())
     DAG_FATAL("Shader has no byte code blob");
 
+  // if we try to use CS that have raytracing yet device don't support it, return stub program
+  // this avoids crashing/issues while keeping caller logic intact
+  if (!Globals::VK::phy.hasAccelerationStructure || !Globals::VK::phy.hasRayQuery)
+  {
+    const auto &hdr = smh->header;
+    for (uint32_t i = 0; i < spirv::T_REGISTER_INDEX_MAX; ++i)
+      if ((hdr.tRegisterUseMask & (1u << i)) && hdr.resTypeMask.forTSlot(i) == spirv::ResourceTypeMask::AS)
+        return Globals::shaderProgramDatabase.getStubComputeProgram().get();
+  }
+
   PROGRAM prog = Globals::shaderProgramDatabase.newComputeProgram(Globals::ctx, *smh, smb).get();
 
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
@@ -130,34 +141,12 @@ PROGRAM d3d::create_program_cs(const ShaderSource &data, CSPreloaded)
 void d3d::delete_program(PROGRAM prog)
 {
   ProgramID pid{prog};
+  if (pid == Globals::shaderProgramDatabase.getStubComputeProgram())
+    return;
   Globals::shaderProgramDatabase.removeProgram(Globals::ctx, pid);
 }
 
 #if _TARGET_PC
-VPROG d3d::create_vertex_shader_dagor(const VPRTYPE * /*tokens*/, int /*len*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
-VPROG d3d::create_vertex_shader_asm(const char * /*asm_text*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
-FSHADER d3d::create_pixel_shader_dagor(const FSHTYPE * /*tokens*/, int /*len*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
-FSHADER d3d::create_pixel_shader_asm(const char * /*asm_text*/)
-{
-  G_ASSERT(false);
-  return BAD_PROGRAM;
-}
-
 // NOTE: entry point should be removed from the interface
 bool d3d::set_pixel_shader(FSHADER /*shader*/)
 {
@@ -171,6 +160,4 @@ bool d3d::set_vertex_shader(VPROG /*shader*/)
   G_ASSERT(false);
   return true;
 }
-
-VDECL d3d::get_program_vdecl(PROGRAM prog) { return Globals::shaderProgramDatabase.getGraphicsProgInputLayout(ProgramID(prog)).get(); }
 #endif // _TARGET_PC

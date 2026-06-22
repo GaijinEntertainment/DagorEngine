@@ -43,7 +43,8 @@ struct PreshaderCompilationContext
       return false;  \
   } while (0)
 
-static bool reserve_special_cbuffer_at(HlslSlotSemantic cbuffer_sem, int reg, PreshaderCompilationContext &ctx)
+static bool reserve_special_cbuffer_at(HlslSlotSemantic cbuffer_sem, int reg, PreshaderCompilationContext &ctx,
+  bool allow_out_of_range = false /* useful for predefined stuff */)
 {
   NamedConstBlock &outNcTable = ctx.output->code.namedConstTable;
   Parser &parser = ctx.vctx->tgtCtx().sourceParseState().parser;
@@ -53,18 +54,28 @@ static bool reserve_special_cbuffer_at(HlslSlotSemantic cbuffer_sem, int reg, Pr
   auto pcr = outNcTable.pixelOrComputeRegAllocators[HLSL_RSPACE_B].reserve(cbuffer_sem, reg);
   if (!vr)
   {
-    G_ASSERT(!vr.error().outOfRange);
-    report_reg_reserve_failed(nullptr, reg, 1, HLSL_RSPACE_B, cbuffer_sem, vr.error(), outNcTable.vertexRegAllocators[HLSL_RSPACE_B],
-      outNcTable.makeInfoProvider(&NamedConstBlock::vertexProps, HLSL_RSPACE_B, parser.get_lexer()));
+    if (!allow_out_of_range)
+      G_VERIFY(!vr.error().outOfRange);
+    if (!vr.error().outOfRange)
+    {
+      report_reg_reserve_failed(nullptr, reg, 1, HLSL_RSPACE_B, cbuffer_sem, vr.error(), outNcTable.vertexRegAllocators[HLSL_RSPACE_B],
+        outNcTable.makeInfoProvider(&NamedConstBlock::vertexProps, HLSL_RSPACE_B, parser.get_lexer()));
+    }
   }
   if (!pcr)
   {
-    G_ASSERT(!pcr.error().outOfRange);
-    report_reg_reserve_failed(nullptr, reg, 1, HLSL_RSPACE_B, cbuffer_sem, pcr.error(),
-      outNcTable.pixelOrComputeRegAllocators[HLSL_RSPACE_B],
-      outNcTable.makeInfoProvider(&NamedConstBlock::pixelProps, HLSL_RSPACE_B, parser.get_lexer()));
+    if (!allow_out_of_range)
+      G_VERIFY(!pcr.error().outOfRange);
+    if (!pcr.error().outOfRange)
+    {
+      report_reg_reserve_failed(nullptr, reg, 1, HLSL_RSPACE_B, cbuffer_sem, pcr.error(),
+        outNcTable.pixelOrComputeRegAllocators[HLSL_RSPACE_B],
+        outNcTable.makeInfoProvider(&NamedConstBlock::pixelProps, HLSL_RSPACE_B, parser.get_lexer()));
+    }
   }
-  return vr && pcr;
+  bool vrOk = vr || (allow_out_of_range && vr.error().outOfRange);
+  bool pcrOk = pcr || (allow_out_of_range && pcr.error().outOfRange);
+  return vrOk && pcrOk;
 }
 
 static bool process_supports(supports_stat &s, PreshaderCompilationContext &ctx)
@@ -633,6 +644,12 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
     }
   }
 
+  if (vctx.shCtx().immediateCbSlotRequired())
+  {
+    CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_IMMEDIATE_CBUF, IMMEDIATE_CB_REGISTER, ctx,
+      true /* allow_out_of_range */));
+  }
+
   // Reserve special global consts block slot if such a block was declared
   // @TODO: find out the reason why just checking supp blks is not enough (this was how it was done before too)
   if (vctx.tgtCtx().blocks().countBlock(ShaderBlockLevel::GLOBAL_CONST) > 0)
@@ -643,10 +660,11 @@ eastl::optional<PreshaderCompilationOutput> compile_variant_preshader(const Pres
     outNcTable.mRefinedBlockLayout = &vctx.tgtCtx().refinedBlockLayout();
     CHECK(reserve_special_cbuffer_at(HlslSlotSemantic::RESERVED_FOR_REFINED_BLOCK_CBUF, REFINED_BLOCK_CONST_BUF_REGISTER, ctx));
     auto &rbAlloc = vctx.tgtCtx().compCtx().rbAllocator();
-    for (auto space : {HLSL_RSPACE_T})
+    for (auto space : {HLSL_RSPACE_B, HLSL_RSPACE_T, HLSL_RSPACE_S, HLSL_RSPACE_U})
     {
-      auto vsResult = outNcTable.vertexRegAllocators[space].reserveAllFrom(rbAlloc.vsAllocator(space));
-      auto psOrCsResult = outNcTable.pixelOrComputeRegAllocators[space].reserveAllFrom(rbAlloc.psOrCsAllocator(space));
+      // Hardcoded regs are already reserved
+      auto vsResult = outNcTable.vertexRegAllocators[space].reserveAllFrom<true>(rbAlloc.vsAllocator(space));
+      auto psOrCsResult = outNcTable.pixelOrComputeRegAllocators[space].reserveAllFrom<true>(rbAlloc.psOrCsAllocator(space));
       if (!vsResult || !psOrCsResult)
       {
         sh_debug(SHLOG_ERROR, "refined_block: %d-space conflict -- refined block slots overlap with other register allocations",

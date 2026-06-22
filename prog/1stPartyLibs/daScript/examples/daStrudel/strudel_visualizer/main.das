@@ -1,5 +1,6 @@
 options gen2
 options indenting = 4
+options persistent_heap
 
 require live/glfw_live
 require opengl/opengl_boost
@@ -18,6 +19,7 @@ require strudel/strudel_player
 require daslib/fio
 require daslib/json
 require daslib/json_boost
+require strings
 require audio_analysis
 require vis_renderer
 
@@ -113,13 +115,17 @@ def find_sf2() : string {
 // --- Build panels from vis registrations ---
 
 def build_panels() {
-    for (i in range(length(g_vis_registrations))) {
+    let num_regs = length(g_vis_registrations)
+    render_states |> reserve(num_regs)
+    audio_analyses |> reserve(num_regs)
+    panels |> reserve(num_regs * 3) // up to 3 panels per registration (pianoroll/drums + scope/spectrum/vectorscope)
+    for (i in range(num_regs)) {
         let reg & = unsafe(g_vis_registrations[i])
         let name = reg.name
         let color = reg.color
         if (reg.flags.has_pianoroll) {
             while (length(render_states) <= i) {
-                render_states |> emplace(PianorollRenderState())
+                render_states |> emplace(PianorollRenderState()) // nolint PERF006
             }
             render_states[i].color = color
             render_states[i].name = name
@@ -127,7 +133,7 @@ def build_panels() {
         }
         if (reg.flags.has_drums) {
             while (length(render_states) <= i) {
-                render_states |> emplace(PianorollRenderState())
+                render_states |> emplace(PianorollRenderState()) // nolint PERF006
             }
             render_states[i].color = color
             render_states[i].name = name
@@ -139,7 +145,7 @@ def build_panels() {
             while (length(audio_analyses) <= i) {
                 var aa = AudioAnalysis()
                 audio_analysis_init(aa)
-                audio_analyses |> emplace(aa)
+                audio_analyses |> emplace(aa) // nolint PERF006
             }
         }
         if (reg.flags.has_scope) {
@@ -158,21 +164,25 @@ def build_panels() {
 
 [live_command(description="Dump debug info")]
 def cmd_debug(input : JsonValue?) : JsonValue? {
-    var info = "tracks: {length(g_vis_registrations)}, panels: {length(panels)}\n"
-    for (i in range(length(render_states))) {
-        var rs & = unsafe(render_states[i])
-        info += "  pianoroll[{i}] \"{rs.name}\": {length(rs.haps)} haps, drum={rs.is_drum_mode}\n"
+    let info = build_string() $(var writer) {
+        writer |> write("tracks: {length(g_vis_registrations)}, panels: {length(panels)}\n")
+        for (i in range(length(render_states))) {
+            let rs & = unsafe(render_states[i])
+            writer |> write("  pianoroll[{i}] \"{rs.name}\": {length(rs.haps)} haps, drum={rs.is_drum_mode}\n")
+        }
+        for (i in range(length(audio_analyses))) {
+            let aa & = unsafe(audio_analyses[i])
+            writer |> write("  audio[{i}]: ring_write={aa.ring_write}\n")
+        }
+        let dbg_pt = strudel_get_playback_time()
+        writer |> write("playback: wall_time={dbg_pt._0}, cps={dbg_pt._1}\n")
     }
-    for (i in range(length(audio_analyses))) {
-        var aa & = unsafe(audio_analyses[i])
-        info += "  audio[{i}]: ring_write={aa.ring_write}\n"
-    }
-    let dbg_pt = strudel_get_playback_time()
-    info += "playback: wall_time={dbg_pt._0}, cps={dbg_pt._1}\n"
     return JV(info)
 }
 
 // --- Lifecycle ---
+
+var asch : AudioSystemChannels
 
 [export]
 def init() {
@@ -188,8 +198,8 @@ def init() {
     }
     upload_font_texture(font)
     // audio
-    if (get_audio_command_channel() == null) {
-        audio_system_create()
+    if (get_audio_command_stream() == null) {
+        asch = audio_system_create()
     }
     // load SF2 soundfont
     if (USE_SF2) {
@@ -213,28 +223,28 @@ def init() {
         )
         */
         strudel_add_track(
-            note_pattern("c2 ~ [~ c2] ~, ~ eb2 ~ eb2, [~ fs2] [~ fs2] [~ fs2] [~ fs2]")
-                |> set_sf2(0) |> set_sf2_bank(128) |> set_gain(0.7)
+            note("c2 ~ [~ c2] ~, ~ eb2 ~ eb2, [~ fs2] [~ fs2] [~ fs2] [~ fs2]")
+                |> sf2(0) |> sf2_bank(128) |> gain(0.7)
                 |> pianoroll("drums") |> vis_color(0xFF5722u) |> drums()
         )
         strudel_add_track(
-            note_pattern("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>")
-                |> set_sf2("piano") |> set_gain(0.45)
+            note("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>")
+                |> sf2("piano") |> gain(0.45)
                 |> pianoroll("piano") |> vis_color(0x42A5F5u)
         )
         strudel_add_track(
-            note_pattern("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>")
-                |> set_sf2("acoustic_bass") |> set_gain(0.6)
+            note("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>")
+                |> sf2("acoustic_bass") |> gain(0.6)
                 |> pianoroll("bass") |> vis_color(0x8BC34Au) |> scope()
         )
         strudel_add_track(
-            note_pattern("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>")
-                |> set_sf2("string_ensemble") |> set_gain(0.2)
+            note("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>")
+                |> sf2("string_ensemble") |> gain(0.2)
                 |> pianoroll("strings") |> vis_color(0xE040FFu) |> vectorscope()
         )
         strudel_add_track(
-            note_pattern("<e4 ~ ~ a4> <~ d5 ~ ~> <g4 ~ f4 ~> <~ ~ b4 ~>")
-                |> set_sf2("violin") |> set_gain(0.9)
+            note("<e4 ~ ~ a4> <~ d5 ~ ~> <g4 ~ f4 ~> <~ ~ b4 ~>")
+                |> sf2("violin") |> gain(0.9)
                 |> pianoroll("violin") |> vis_color(0xF06292u) |> spectrum()
         )
     } else {
@@ -243,20 +253,20 @@ def init() {
                 |> pianoroll("drums") |> vis_color(0xFF5722u) |> drums()
         )
         strudel_add_track(
-            note_pattern("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>", "sawtooth")
-                |> set_gain(0.3) |> pianoroll("piano") |> vis_color(0x42A5F5u)
+            note("<[a3 c4 e4 a4 e4 c4 a3 c4] [f3 a3 c4 f4 c4 a3 f3 a3] [c3 e3 g3 c4 g3 e3 c3 e3] [g3 b3 d4 g4 d4 b3 g3 b3]>", "sawtooth")
+                |> gain(0.3) |> pianoroll("piano") |> vis_color(0x42A5F5u)
         )
         strudel_add_track(
-            note_pattern("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>", "sine")
-                |> set_gain(0.4) |> pianoroll("bass") |> vis_color(0x8BC34Au) |> scope()
+            note("<[a2 ~ ~ a2 ~ a2 ~ ~] [f2 ~ ~ f2 ~ f2 ~ ~] [c2 ~ ~ c2 ~ c2 ~ ~] [g2 ~ ~ g2 ~ g2 ~ ~]>", "sine")
+                |> gain(0.4) |> pianoroll("bass") |> vis_color(0x8BC34Au) |> scope()
         )
         strudel_add_track(
-            note_pattern("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>", "sawtooth")
-                |> set_gain(0.15) |> pianoroll("strings") |> vis_color(0xE040FFu) |> vectorscope()
+            note("<[a2,c3,e3] [f2,a2,c3] [c2,e2,g2] [g2,b2,d3]>", "sawtooth")
+                |> gain(0.15) |> pianoroll("strings") |> vis_color(0xE040FFu) |> vectorscope()
         )
         strudel_add_track(
-            note_pattern("<e4 ~ ~ a4> <~ d5 ~ ~> <g4 ~ f4 ~> <~ ~ b4 ~>", "sawtooth")
-                |> set_gain(0.1) |> pianoroll("violin") |> vis_color(0xF06292u) |> spectrum()
+            note("<e4 ~ ~ a4> <~ d5 ~ ~> <g4 ~ f4 ~> <~ ~ b4 ~>", "sawtooth")
+                |> gain(0.1) |> pianoroll("violin") |> vis_color(0xF06292u) |> spectrum()
         )
     }
     // Build panels from visualization registrations
@@ -393,12 +403,16 @@ def update() {
             let py0 = fh - panel_h * float(pi + 1)
             render_panel_name(font, p.name, display_w, display_h, py0 + m, py1 - m)
         }
+        delete verts
     }
     live_end_frame()
 }
 
 [export]
 def shutdown() {
+    print("Shutting down...\n")
+    strudel_shutdown()
+    audio_system_finalize(asch.command, asch.next_sid)
     delete render_states
     delete audio_analyses
     delete drum_panel_states
@@ -409,11 +423,28 @@ def shutdown() {
 
 // --- Standalone mode ---
 
+var max_frame_limit = 0
+
+def parse_args() {
+    let args <- get_command_line_arguments()
+    for (i in range(length(args) - 1)) {
+        if (args[i] == "--max-frames") {
+            max_frame_limit = to_int(args[i + 1])
+        }
+    }
+}
+
 [export]
 def main() {
+    parse_args()
     init()
+    var frame_count = 0
     while (!exit_requested()) {
         update()
+        frame_count ++
+        if (max_frame_limit > 0 && frame_count >= max_frame_limit) {
+            break
+        }
     }
     shutdown()
 }

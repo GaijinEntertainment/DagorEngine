@@ -18,16 +18,25 @@ target_compile_definitions(dasModuleCounter PRIVATE DAS_MOD_EXPORTS DAS_ENABLE_D
 )
 
 target_include_directories(dasModuleCounter PRIVATE
-    ${DASLANG_DIR}/include
+    "${DASLANG_DIR}/include"
 )
 
 if(WIN32)
-    target_link_libraries(dasModuleCounter PRIVATE
-        ${DASLANG_DIR}/lib/Release/libDaScriptDyn.lib
-    )
+    if(EXISTS "${DASLANG_DIR}/lib/Release/libDaScriptDyn.lib")
+        target_link_libraries(dasModuleCounter PRIVATE
+            "${DASLANG_DIR}/lib/Release/libDaScriptDyn.lib"
+            "${DASLANG_DIR}/lib/Release/libDaScriptDyn_runtime.lib"
+        )
+    else()
+        target_link_libraries(dasModuleCounter PRIVATE
+            "${DASLANG_DIR}/lib/libDaScriptDyn.lib"
+            "${DASLANG_DIR}/lib/libDaScriptDyn_runtime.lib"
+        )
+    endif()
 else()
     target_link_libraries(dasModuleCounter PRIVATE
-        ${DASLANG_DIR}/lib/libDaScriptDyn.so
+        "${DASLANG_DIR}/lib/libDaScriptDyn.so"
+        "${DASLANG_DIR}/lib/libDaScriptDyn_runtime.so"
     )
 endif()
 

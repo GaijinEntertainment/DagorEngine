@@ -355,6 +355,8 @@ public:
   bool needToDiscardPictures = false;
   bool isRebuildingInvalidatedParts = false;
 
+  int screensPanelsIterDepth = 0;
+
   static constexpr int panel_render_buffer_index = 2;
 
   Sqrat::Table canvasApi;

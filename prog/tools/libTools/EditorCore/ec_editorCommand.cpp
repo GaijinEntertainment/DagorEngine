@@ -36,11 +36,17 @@ const char *EditorCommand::getKeyChordsAsText() const
 
 bool EditorCommand::isUsingDefaultHotkeys() const { return hotkeys == defaultHotkeys; }
 
-void EditorCommands::addCommand(const char *id) { addCommand(id, ImGuiKey_None); }
+void EditorCommands::addCommand(const char *id, const char *display_name)
+{
+  addCommand(id, display_name, ImGuiKey_None, ImGuiKey_None);
+}
 
-void EditorCommands::addCommand(const char *id, ImGuiKeyChord key_chord) { addCommand(id, key_chord, ImGuiKey_None); }
+void EditorCommands::addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord)
+{
+  addCommand(id, display_name, key_chord, ImGuiKey_None);
+}
 
-void EditorCommands::addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2)
+void EditorCommands::addCommand(const char *id, const char *display_name, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2)
 {
   G_ASSERT(id && *id);
 
@@ -54,6 +60,7 @@ void EditorCommands::addCommand(const char *id, ImGuiKeyChord key_chord1, ImGuiK
 
   G_ASSERT(index == commands.size());
   EditorCommand &command = commands.push_back();
+  command.displayName = display_name;
 
   if (key_chord1 != ImGuiKey_None)
   {

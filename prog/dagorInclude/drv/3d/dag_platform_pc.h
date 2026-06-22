@@ -23,8 +23,6 @@ bool compile_compute_shader_hlsl(const char *hlsl_text, unsigned len, const char
 #endif
 
 #if !_TARGET_D3D_MULTI
-VDECL get_program_vdecl(PROGRAM);
-
 bool set_vertex_shader(VPROG ps);
 bool set_pixel_shader(FSHADER ps);
 #if _TARGET_PC_WIN | _TARGET_PC_MACOSX
@@ -37,12 +35,6 @@ const char *get_texture_format_str(const BaseTexture *tex);
 void *get_native_surface(BaseTexture *tex);
 } // namespace pcwin
 #endif
-
-VPROG create_vertex_shader_asm(const char *asm_text);
-VPROG create_vertex_shader_dagor(const VPRTYPE *p, int n);
-
-FSHADER create_pixel_shader_asm(const char *asm_text);
-FSHADER create_pixel_shader_dagor(const FSHTYPE *p, int n);
 
 #if _TARGET_PC_WIN | _TARGET_PC_MACOSX | _TARGET_PC_LINUX
 // additional d3d::pcwin interface (PC specific)

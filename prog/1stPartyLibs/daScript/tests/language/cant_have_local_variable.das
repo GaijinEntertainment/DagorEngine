@@ -2,7 +2,7 @@
 // verifies compiler rejects local variables, arrays, and tables of non-local types
 // uses ast::TypeDecl as a representative non-local handled type
 options gen2
-expect 30108:4, 30101:2, 31300:3
+expect 30112, 30254, 31016:2, 31020:4, 31030
 options force_inscope_pod = false
 
 require daslib/ast

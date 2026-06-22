@@ -84,6 +84,7 @@ namespace das {
     DAS_API const char * das_to_cpp_float ( float val, Context * context, LineInfoArg * at );
     DAS_API void builtin_append_char_to_string(string & str, int32_t Ch);
     DAS_API bool builtin_string_ends_with(const string &str, char * substr, Context * context);
+    DAS_API bool builtin_string_starts_with(const string &str, const char * cmp, Context * context);
     DAS_API int32_t builtin_ext_string_length(const string & str);
     DAS_API void builtin_resize_string(string & str, int32_t newLength);
     DAS_API char * string_repeat ( const char * str, int count, Context * context, LineInfoArg * at );

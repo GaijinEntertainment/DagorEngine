@@ -180,7 +180,7 @@ endmacro
 macro NO_SKINNING_VS()
   hlsl(vs) {
     #ifndef OFFSET_TO_NODE_DATA
-    #define OFFSET_TO_NODE_DATA(rigid_index) ((get_immediate_dword_0() >> 8 & 0xFFFFFF) + uint(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
+    #define OFFSET_TO_NODE_DATA(rigid_index) ((((int)get_immediate_dword_0()) >> 8) + (int)(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
     #endif
     #ifndef OFFSET_TO_INSTANCE_DATA
     #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())

@@ -2313,6 +2313,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
 
     GeneratorContext ctx;
     auto v2 = getDump(group)->getDumpV2();
+    if (!v2)
+      return;
     ctx.start(v2);
 
     for (auto &cls : v2->classes)
@@ -2354,6 +2356,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
     }
 
     auto v2 = getDump(group)->getDumpV2();
+    if (!v2)
+      return;
 
     for (auto &cls : v2->classes)
     {
@@ -2417,6 +2421,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
   {
     uint32_t visitCount = 0;
     auto v2 = getDump(group)->getDumpV2();
+    if (!v2)
+      return 0;
 
     for (auto &cls : v2->classes)
     {
@@ -2455,6 +2461,8 @@ class PipelineNameGenerator : public ScriptedShadersBinDumpManager
     GeneratorContext ctx;
     ctx.setAffixes(post_fix, post_fix_2);
     auto v2 = getDump(group)->getDumpV2();
+    if (!v2)
+      return 0;
     ctx.start(v2);
 
     for (auto &cls : v2->classes)

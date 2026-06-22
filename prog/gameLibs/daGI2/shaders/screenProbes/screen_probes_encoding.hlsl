@@ -88,7 +88,7 @@ float3 decodeProbeColor(uint color)
 //todo: for screen probes we can use whole 32 bits for normal only
 uint encodeProbeNormal(float3 scene_normal)
 {
-  uint2 encodedOct = clamp(int2(screenspace_probe_dir_encode(scene_normal)*0.5*SP_NORMAL_MASK + 0.5*SP_NORMAL_MASK + 0.5/SP_NORMAL_MASK), int2(0,0), int2(SP_NORMAL_MASK, SP_NORMAL_MASK));
+  uint2 encodedOct = clamp(int2(screenspace_probe_dir_encode(scene_normal)*0.5*SP_NORMAL_MASK + 0.5*SP_NORMAL_MASK + 0.5), int2(0,0), int2(SP_NORMAL_MASK, SP_NORMAL_MASK));
   return encodedOct.x | (encodedOct.y<<SP_NORMAL_BITS);
 }
 float3 decodeProbeNormal(uint encoded)

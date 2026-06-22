@@ -139,18 +139,42 @@ inline size_t das_aligned_memsize(void *ptr) { return defaultmem->getSize(ptr); 
 #include <ska_hash_map/flat_hash_map2.hpp>
 namespace das
 {
-template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
+// Default hasher for the das_* maps. Upstream defines daslang_hash in
+// das_hash_map.h (only used when DAS_CUSTOM_HASH is on). Dagor uses ska +
+// eastl::hash instead, so we provide our own daslang_hash that forwards to
+// das::hash (eastl::hash) for the general case. This keeps hashing identical to
+// before for every existing key, while letting headers specialize daslang_hash
+// for their own key types (e.g. AstSerializer's SerializeNodeId) and have that
+// specialization picked up as the map's hasher.
+template <typename T, typename Enable = void>
+struct daslang_hash {
+  size_t operator()(const T &key) const noexcept { return das::hash<T>()(key); }
+};
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
 using das_map = ska::flat_hash_map<K, V, H, E>;
-template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
 using das_set = ska::flat_hash_set<K, H, E>;
-template <typename K, typename V, typename H = das::hash<K>, typename E = das::equal_to<K>>
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
 using das_hash_map = ska::flat_hash_map<K, V, H, E>;
-template <typename K, typename H = das::hash<K>, typename E = das::equal_to<K>>
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
 using das_hash_set = ska::flat_hash_set<K, H, E>;
 template <typename K, typename V>
 using das_safe_map = eastl::map<K, V>;
 template <typename K, typename C = das::less<K>>
 using das_safe_set = eastl::set<K, C>;
+// Insert-only / grow-only flavors. Dagor uses ska::flat_hash_map (no in-tree
+// daslang_insert_only_hash_map here), and DAS_CUSTOM_HASH is undefined, so these
+// must alias to the same type as das_hash_map/das_hash_set. The serializer and
+// das_common.h "ordered" insert-only overloads are guarded behind DAS_CUSTOM_HASH
+// precisely so that the regular das_hash_map overloads serve insert-only args.
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_map = ska::flat_hash_map<K, V, H, E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_set = ska::flat_hash_set<K, H, E>;
+template <typename K, typename V, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_map = ska::flat_hash_map<K, V, H, E>;
+template <typename K, typename H = das::daslang_hash<K>, typename E = das::equal_to<K>>
+using das_insert_only_hash_set = ska::flat_hash_set<K, H, E>;
 } // namespace das
 
 

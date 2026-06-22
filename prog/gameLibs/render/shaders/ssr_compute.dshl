@@ -90,6 +90,18 @@ hlsl {
   #define SKY_DIST (MAX_REFLECTION_DIST-1)
   #define REFLECTION_DIST_ENCODE (256./SKY_DIST)
   #define REFLECTION_DIST_DECODE (1./REFLECTION_DIST_ENCODE)
+
+  // Confidence is packed into the fraction of the fp16 distance word. The
+  // largest fraction below 1.0 is one ULP below it at the word's magnitude
+  // (10 = fp16 mantissa bits), and that headroom shrinks as the distance
+  // grows. Encode and decode scale confidence through this headroom so a
+  // zero-confidence sample stays zero instead of rolling into the integer
+  // part and reading back as full confidence.
+  float ssr_max_confidence_frac(float distWord)
+  {
+    uint biasedExp = asuint(max(1.0, distWord)) >> 23;
+    return saturate(1.0 - asfloat((biasedExp - 10u) << 23));
+  }
 }
 
 macro SSR_READ_POINT_INFO(code)
@@ -307,6 +319,11 @@ shader ssr_temporal_denoise_cs
         neighboorhoodVariance = saturate(1 - confidence * rcp(filterH*filterW - 1));
       }
 
+      // reflectDir holds per-cell normals during the variance loop above and is
+      // repurposed in place to hold ray directions below; sync so every thread
+      // finishes reading normals before any thread overwrites them.
+      GroupMemoryBarrierWithGroupSync();
+
       calc_point_info_raydir(screenCoord, currentPoint);
       write_shared_info_raydir(get_local_index(GTid + FILTER), currentPoint.rayDir, currentPoint.linear_roughness);
 
@@ -338,9 +355,10 @@ shader ssr_temporal_denoise_cs
       float3 rayDir = currentPoint.rayDir;
 
       half offsetedDist = max(0, abs(currentPoint.color.a));
-      half alpha = frac(offsetedDist);
-      half reflectionDistance = max(0, offsetedDist - alpha)*REFLECTION_DIST_DECODE;
-      alpha = reflectionDistance > SKY_DIST ? 0 : 1-alpha;
+      half distFrac = frac(offsetedDist);
+      half distWord = offsetedDist - distFrac;
+      half reflectionDistance = distWord*REFLECTION_DIST_DECODE;
+      half alpha = reflectionDistance > SKY_DIST ? 0 : saturate(1 - distFrac/ssr_max_confidence_frac(distWord));
       half originalNeighboorhoodVariance = neighboorhoodVariance;
       half originalConfidence = saturate(1.01h-originalNeighboorhoodVariance);
       half relativePixelTranslation = 0;
@@ -398,9 +416,10 @@ shader ssr_temporal_denoise_cs
 
             half4 neighboorColor = neighboor.color;
             half neighboorOffsetedDist = abs(neighboorColor.a);
-            neighboorColor.a = frac(offsetedDist);
-            half neighboorReflectionDist = (neighboorOffsetedDist - neighboorColor.a)*REFLECTION_DIST_DECODE;
-            neighboorColor.a = neighboorReflectionDist > SKY_DIST ? 0 : 1-neighboorColor.a;
+            half neighboorFrac = frac(neighboorOffsetedDist);
+            half neighboorDistWord = neighboorOffsetedDist - neighboorFrac;
+            half neighboorReflectionDist = neighboorDistWord*REFLECTION_DIST_DECODE;
+            neighboorColor.a = neighboorReflectionDist > SKY_DIST ? 0 : saturate(1 - neighboorFrac/ssr_max_confidence_frac(neighboorDistWord));
 
             half4 sampleColor = neighboorColor;
 
@@ -978,7 +997,8 @@ shader tile_ssr_compute
         float4 packedReflection = result;
         reflectionDistance = min(reflectionDistance, MAX_REFLECTION_DIST);
         //packedReflection.a = result.a < 1 ? -reflectionDistance : reflectionDistance;
-        packedReflection.a = floor(reflectionDistance*REFLECTION_DIST_ENCODE+0.5) + saturate(1-result.a);
+        float distWord = floor(reflectionDistance*REFLECTION_DIST_ENCODE+0.5);
+        packedReflection.a = distWord + (1 - saturate(result.a)) * ssr_max_confidence_frac(distWord);
         packedReflection = NEEDSSR ? packedReflection : half4(0,0,0,-1);
       ##else
         float4 packedReflection = result;
@@ -1035,7 +1055,6 @@ shader tile_ssr_compute
         int2 scr = int2(screenCoord) - select(bool2(ssr_tile_jitter), int2(BLOCK_SIZE_W/2, BLOCK_SIZE_H/2), int2(0,0));
         uint2 screenCoordOfs = clamp(scr, 0, ssr_target_size.xy-1);
         //uint2 screenCoordOfs = uint2(scr)%uint2(ssr_target_size.xy);
-        bool invalidPixel = any(scr != int2(screenCoordOfs));
         screenCoord = screenCoordOfs;
         outputCoord = uint2(scr);
         ##if ssr_denoiser_type != simple
@@ -1134,7 +1153,7 @@ shader tile_ssr_compute
           const float linearZHit = ssr_linearize_z(hit_uv_z_fade.z);
           float3 cameraToHitPoint = getViewVecOptimized(hit_uv_z_fade.xy) * linearZHit;
           reflectionDistance = length(cameraToPoint - cameraToHitPoint);
-          newFrame = sample_vignetted_color( float3(hit_uv_z_fade.xy, linearZHit), calcRoughness, linearZHit, cameraToPoint, calcN, ssr_world_view_pos.xyz + cameraToPoint, cameraToHitPoint);
+          newFrame = sample_vignetted_color( float3(hit_uv_z_fade.xy, linearZHit), calcRoughness, linearZHit, cameraToPoint, R, ssr_world_view_pos.xyz + cameraToPoint, cameraToHitPoint);
         }
         // alternate reflections for puddles, if presented
         half ssrResultPrecision = newFrame.a;

@@ -75,33 +75,9 @@ endmacro
 
 macro READ_PACKED_VTEX_BASE(stage)
   USE_VTEX_BASE(stage)
-  if (render_with_normalmap == no_normalmap)
-  {
-    USE_AUTO_SET_BASE(stage)
-  }
+  USE_AUTO_SET_BASE(stage)
 
   hlsl(stage) {
-    Vtex unpack_vtex(half4 cache0, half2 normal, half4 cache2)
-    {
-      Vtex ret;
-      ret.diffuse = cache0.rgb;
-      ret.smoothness = cache0.a;
-
-      ret.normal = restore_normal(normal);
-      ret.ao = saturate(cache2.x * 2.5f);
-      ret.emission = saturate(2.5f * (cache2.x - 0.6f));
-      ret.reflectance = cache2.y;
-      ret.micro_detail = cache2.a;
-      return ret;
-    }
-    ##if (render_with_normalmap == no_normalmap)
-    void auto_detect_other(inout Vtex vtex, float2 worldPosXZ)
-    {
-      auto_set(vtex, worldPosXZ);
-    }
-    ##endif
-
-    ##if (render_with_normalmap == no_normalmap) || (shaderlod == low)
     Vtex unpack_vtex(half4 cache0)
     {
       Vtex ret;
@@ -114,7 +90,28 @@ macro READ_PACKED_VTEX_BASE(stage)
       ret.emission = 0;
       return ret;
     }
-    ##endif
+
+    Vtex unpack_vtex(half4 cache0, half2 normal)
+    {
+      Vtex ret = unpack_vtex(cache0);
+      ret.normal = restore_normal(normal);
+      return ret;
+    }
+
+    Vtex unpack_vtex(half4 cache0, half2 normal, half4 cache2)
+    {
+      Vtex ret = unpack_vtex(cache0, normal);
+      ret.ao = saturate(cache2.x * 2.5f);
+      ret.emission = saturate(2.5f * (cache2.x - 0.6f));
+      ret.reflectance = cache2.y;
+      ret.smoothness = cache2.a;
+      return ret;
+    }
+
+    void auto_detect_other(inout Vtex vtex, float2 worldPosXZ)
+    {
+      auto_set(vtex, worldPosXZ);
+    }
   }
 endmacro
 

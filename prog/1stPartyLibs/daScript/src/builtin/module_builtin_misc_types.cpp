@@ -40,6 +40,9 @@ namespace das
     template <> struct typeName<EnumStub8>   { constexpr static const char * name() { return "enum8"; } };
     template <> struct typeName<EnumStub16>  { constexpr static const char * name() { return "enum16"; } };
     template <> struct typeName<EnumStub64>  { constexpr static const char * name() { return "enum64"; } };
+    template <> struct typeName<EnumStub8u>  { constexpr static const char * name() { return "enum8u"; } };
+    template <> struct typeName<EnumStub16u> { constexpr static const char * name() { return "enum16u"; } };
+    template <> struct typeName<EnumStub64u> { constexpr static const char * name() { return "enum64u"; } };
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub);
@@ -52,6 +55,18 @@ namespace das
 
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub64);
     IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub64);
+
+    // Mirror policies for the u-stub variants. Required so `==`/`!=` resolve for uint-backed
+    // enums after the isSameType tightening — the signed EnumStub* bindings now refuse to match
+    // uint-underlying enumTypes and would leave them without an operator.
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub8u);
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub8u);
+
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub16u);
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub16u);
+
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(Equ,EnumStub64u);
+    IMPLEMENT_OP2_EVAL_BOOL_POLICY(NotEqu,EnumStub64u);
 
     template <>
     struct SimPolicy<Func> {
@@ -166,6 +181,38 @@ namespace das
         addExtern<DAS_BIND_FUN(enum64_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
         addExtern<DAS_BIND_FUN(enum64_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
         addExtern<DAS_BIND_FUN(enum64_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        // enum8u — unsigned-underlying 8-bit enums dispatch here so byte zero-extends instead of sign-extending
+        // (addFunctionBasic registers ==/!= via the SimPolicy<EnumStub8u> defined above; needed so
+        //  uint-backed enums still have an equality operator after the isSameType tightening).
+        addFunctionBasic<EnumStub8u>(*this,lib);
+        addExtern<DAS_BIND_FUN(enum8u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum8u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        // enum16u
+        addFunctionBasic<EnumStub16u>(*this,lib);
+        addExtern<DAS_BIND_FUN(enum16u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum16u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
+        // enum64u
+        addFunctionBasic<EnumStub64u>(*this,lib);
+        addExtern<DAS_BIND_FUN(enum64u_to_int)>(*this, lib, "int", SideEffects::none, "int32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_uint)>(*this, lib, "uint", SideEffects::none, "uint32_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_int8)>(*this, lib, "int8", SideEffects::none, "int8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_uint8)>(*this, lib, "uint8", SideEffects::none, "uint8_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_int16)>(*this, lib, "int16", SideEffects::none, "int16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_uint16)>(*this, lib, "uint16", SideEffects::none, "uint16_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_int64)>(*this, lib, "int64", SideEffects::none, "int64_t")->arg("src");
+        addExtern<DAS_BIND_FUN(enum64u_to_uint64)>(*this, lib, "uint64", SideEffects::none, "uint64_t")->arg("src");
         // function
         addFunctionBasic<Func>(*this,lib);
         addFunction( (new BuiltInFn<Sim_EqFunPtr, bool,const Func,const void *>("==",lib,"==",false)) );

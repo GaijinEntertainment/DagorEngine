@@ -381,7 +381,8 @@ void gather_process(DagdpRiexGatherJob &job,
     mat43f itm43;
     v_mat44_transpose_to_mat43(itm43, itm44);
 
-    const vec4f extent2 = v_add(v_add(v_abs(tm44.col0), v_add(v_abs(tm44.col1), v_abs(tm44.col2))), v_splats(max_bounding_radius));
+    const vec4f extent2 = v_add(v_mul(v_add(v_abs(tm44.col0), v_add(v_abs(tm44.col1), v_abs(tm44.col2))), v_splats(2.0f * scale)),
+      v_splats(2.0f * max_bounding_radius));
     const vec4f center2 = v_add(tm44.col3, tm44.col3);
 
     bbox3f volBox;

@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 
 module algorithm shared public
 
@@ -34,9 +32,7 @@ def sort_unique(var a : array<auto(TT)>) {
     //! Returns an array of elements from a, sorted and with duplicates removed.
     //! The elements are sorted in ascending order.
     //! The resulting array has only unique elements.
-    if (empty(a)) {
-        return
-    }
+    if (empty(a)) return
     sort(a)
     var b <- unique(a)
     delete a
@@ -56,13 +52,9 @@ def reverse(var a : array<auto>) {
 def combine(a, b : array<auto(TT)>) {
     //! Returns a new array containing elements from a followed by b.
     var c : array<TT>
-    reserve(c, length(a) + length(b))
-    for (t in a) {
-        c |> push_clone(t)
-    }
-    for (t in b) {
-        c |> push_clone(t)
-    }
+    c |> reserve(long_length(a) + long_length(b))
+    c |> push_clone_from(a)
+    c |> push_clone_from(b)
     return <- c
 }
 
@@ -410,8 +402,8 @@ def erase_all(var arr; value) {
 
 def fill(var a : array<auto(TT)>; value : TT const -&) {
     //! Sets all elements of the array to the given value using clone.
-    for (i in range(length(a))) {
-        a[i] := value
+    for (e in a) {
+        e := value
     }
 }
 
@@ -421,8 +413,8 @@ def fill(var a; value) {
     static_if (typeinfo stripped_typename(a[0]) != typeinfo stripped_typename(value)) {
         concept_assert(false, "value type {typeinfo stripped_typename(value)} should be the same as array {typeinfo stripped_typename(a)} element type {typeinfo stripped_typename(a[0])}")
     } else {
-        for (i in range(length(a))) {
-            a[i] := value
+        for (e in a) {
+            e := value
         }
     }
 }
@@ -432,9 +424,7 @@ def fill(var a; value) {
 def is_sorted(a : array<auto(TT)>) : bool {
     //! Returns true if the array is sorted in non-descending order.
     for (i in range(1, length(a))) {
-        if (a[i] < a[i - 1]) {
-            return false
-        }
+        if (a[i] < a[i - 1]) return false
     }
     return true
 }
@@ -442,9 +432,7 @@ def is_sorted(a : array<auto(TT)>) : bool {
 def is_sorted(a : array<auto(TT)>; less : block<(a, b : TT const -&) : bool>) : bool {
     //! Returns true if the array is sorted according to the provided less function.
     for (i in range(1, length(a))) {
-        if (invoke(less, a[i], a[i - 1])) {
-            return false
-        }
+        if (invoke(less, a[i], a[i - 1])) return false
     }
     return true
 }
@@ -463,9 +451,7 @@ def rotate(var a : array<auto>; mid : int) {
     //! Rotates the array so that the element at index mid becomes the first element.
     //! Elements before mid are moved to the end.
     let l = length(a)
-    if (l == 0 || mid == 0 || mid == l) {
-        return
-    }
+    if (l == 0 || mid == 0 || mid == l) return
     assert(mid > 0 && mid < l, "rotate mid out of range")
     // reverse [0, mid), [mid, l), then reverse all
     let lm1 = l - 1
@@ -494,9 +480,7 @@ def rotate(var a; mid : int) {
 
 def min_element(a : array<auto(TT)>) : int {
     //! Returns the index of the minimum element in the array, or -1 if the array is empty.
-    if (length(a) == 0) {
-        return -1
-    }
+    if (empty(a)) return -1
     var best = 0
     for (i in range(1, length(a))) {
         if (a[i] < a[best]) {
@@ -508,9 +492,7 @@ def min_element(a : array<auto(TT)>) : int {
 
 def min_element(a : array<auto(TT)>; less : block<(a, b : TT const -&) : bool>) : int {
     //! Returns the index of the minimum element according to the provided less function, or -1 if the array is empty.
-    if (length(a) == 0) {
-        return -1
-    }
+    if (empty(a)) return -1
     var best = 0
     for (i in range(1, length(a))) {
         if (invoke(less, a[i], a[best])) {
@@ -522,9 +504,7 @@ def min_element(a : array<auto(TT)>; less : block<(a, b : TT const -&) : bool>) 
 
 def max_element(a : array<auto(TT)>) : int {
     //! Returns the index of the maximum element in the array, or -1 if the array is empty.
-    if (length(a) == 0) {
-        return -1
-    }
+    if (empty(a)) return -1
     var best = 0
     for (i in range(1, length(a))) {
         if (a[best] < a[i]) {
@@ -536,9 +516,7 @@ def max_element(a : array<auto(TT)>) : int {
 
 def max_element(a : array<auto(TT)>; less : block<(a, b : TT const -&) : bool>) : int {
     //! Returns the index of the maximum element according to the provided less function, or -1 if the array is empty.
-    if (length(a) == 0) {
-        return -1
-    }
+    if (empty(a)) return -1
     var best = 0
     for (i in range(1, length(a))) {
         if (invoke(less, a[best], a[i])) {
@@ -577,11 +555,11 @@ def topological_sort(nodes : array<auto(Node)>) {
         if (lnodes != 0) {
             sorted |> reserve(lnodes)
             var unsorted : array<Node> := nodes
-            while (length(unsorted) > 0) {
+            while (!empty(unsorted)) {
                 var removed = 0
                 var i = 0
                 while (i < length(unsorted)) {
-                    if (length(unsorted[i].before) == 0) {
+                    if (empty(unsorted[i].before)) {
                         var node <- unsorted[i]
                         unsorted |> erase(i)
                         for (other in unsorted) {
@@ -647,13 +625,9 @@ def difference(a, b : table<auto(TT)>) : table<TT> {
 
 def identical(a, b : table<auto(TT)>) : bool {
     //! Returns true if the two sets are identical.
-    if (length(a) != length(b)) {
-        return false
-    }
+    if (length(a) != length(b)) return false
     for (k in keys(a)) {
-        if (!b |> key_exists(k)) {
-            return false
-        }
+        if (!b |> key_exists(k)) return false
     }
     return true
 }
@@ -676,13 +650,9 @@ def symmetric_difference(a, b : table<auto(TT)>) : table<TT> {
 
 def is_subset(a, b : table<auto(TT)>) : bool {
     //! Returns true if all elements of a are contained in b.
-    if (length(a) > length(b)) {
-        return false
-    }
+    if (length(a) > length(b)) return false
     for (k in keys(a)) {
-        if (!b |> key_exists(k)) {
-            return false
-        }
+        if (!b |> key_exists(k)) return false
     }
     return true
 }

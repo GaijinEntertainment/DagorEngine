@@ -637,15 +637,26 @@ namespace das {
             Visitor::preVisit(expr);
             if ( inStruct ) return;
             if ( expr->subexpr->rtti_isMakeLocal() ) {
-                uint32_t sz = sizeof(void *);
-                expr->stackTop = allocateStack(sz);
-                expr->useStackRef = true;
-                if ( log ) {
-                    logs << "\t" << expr->stackTop << "\t" << sz
-                    << "\tascend, line " << expr->at.line << "\n";
-                }
                 auto mkl = static_cast<ExprMakeLocal*>(expr->subexpr);
-                mkl->setRefSp(true, false, expr->stackTop, 0);
+                if ( expr->allocate_on_stack && !expr->needTypeInfo ) {
+                    // build the value directly into the frame, no ref slot and no heap copy
+                    uint32_t sz = expr->subexpr->type->getSizeOf();
+                    expr->stackTop = allocateStack(sz);
+                    if ( log ) {
+                        logs << "\t" << expr->stackTop << "\t" << sz
+                        << "\tascend stack, line " << expr->at.line << "\n";
+                    }
+                    mkl->setRefSp(false, false, expr->stackTop, 0);
+                } else {
+                    uint32_t sz = sizeof(void *);
+                    expr->stackTop = allocateStack(sz);
+                    expr->useStackRef = true;
+                    if ( log ) {
+                        logs << "\t" << expr->stackTop << "\t" << sz
+                        << "\tascend, line " << expr->at.line << "\n";
+                    }
+                    mkl->setRefSp(true, false, expr->stackTop, 0);
+                }
             }
             pushSp();
         }
@@ -760,12 +771,19 @@ namespace das {
         virtual void preVisit ( ExprNew * expr ) override {
             Visitor::preVisit(expr);
             if ( inStruct ) return;
-            if ( expr->type->dim.size() ) {
+            if ( expr->type->baseType==Type::tFixedArray ) {
                 auto sz = uint32_t(expr->type->getCountOf()*sizeof(char *));
                 expr->stackTop = allocateStack(sz);
                 if ( log ) {
                     logs << "\t" << expr->stackTop << "\t" << sz
                     << "\tNEW " << expr->typeexpr->describe() << ", line " << expr->at.line << "\n";
+                }
+            } else if ( expr->allocate_on_stack ) {
+                auto sz = expr->type->firstType->getBaseSizeOf();
+                expr->stackTop = allocateStack(sz);
+                if ( log ) {
+                    logs << "\t" << expr->stackTop << "\t" << sz
+                    << "\tNEW stack " << expr->typeexpr->describe() << ", line " << expr->at.line << "\n";
                 }
             }
             onPreExprCallFunc(expr);

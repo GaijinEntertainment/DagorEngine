@@ -202,7 +202,7 @@ def dynamic_array_match(A : array<int>) {
 [sideeffects]
 def ascending_array_match(A : int[3]) {
     match (A) {
-        if (fixed_array<int>($v(x), match_expr(x + 1), match_expr(x + 2))) {
+        if (fixed_array<int>($v(x), match_expr(x + 1), match_expr(x + 2))) {  // nolint:STYLE017 (match macro expansion)
             return true
         }
         if (_) {
@@ -235,7 +235,7 @@ def tuple_match(A : tuple<int; float; string>) {
 [sideeffects]
 def or_match(i : int) {
     match (i) {
-        if (1 || 2) {
+        if (1 || 2) {  // nolint:STYLE017 (match macro expansion)
             return true
         }
         if (_) {
@@ -252,6 +252,30 @@ def or_match_v(B : Bar) {
         }
         if (_) {
             return 0.0
+        }
+    }
+}
+
+[sideeffects]
+def or_match_prior_capture(ab : AB) {
+    match (ab) {
+        if (AB(a = $v(a), b = 1 || 2)) {
+            return a
+        }
+        if (_) {
+            return -1
+        }
+    }
+}
+
+[sideeffects]
+def or_capture_both_branches(ab : AB) {
+    match (ab) {
+        if (AB(a = $v(a), b = ($v(b) && (b > 5)) || ($v(b) && (b < 5)))) {
+            return a * 100 + b
+        }
+        if (_) {
+            return -1
         }
     }
 }
@@ -300,6 +324,39 @@ def match_ast_expr_ptr(E : ExpressionPtr) {
         }
         if (_) {
             return "anything"
+        }
+    }
+}
+
+[sideeffects]
+def match_ast_op2_shape(E : ExpressionPtr) {
+    match (E) {
+        if (ExprOp2(op = "+", left = ExprOp2(op = "*", left = $v(a), right = $v(b)), right = $v(c))) {
+            return "mad {a.__rtti} {b.__rtti} {c.__rtti}"
+        }
+        if (ExprOp2(op = "+" || "-", left = $v(l))) {
+            return "addsub {l.__rtti}"
+        }
+        if (ExprSwizzle(mask = "xy", value = $v(v))) {
+            return "swizzle-xy {v.__rtti}"
+        }
+        if (_) {
+            return "other"
+        }
+    }
+}
+
+[sideeffects]
+def match_op_string(o : das_string) {
+    match (o) {
+        if ("+") {
+            return "plus"
+        }
+        if ("-") {
+            return "minus"
+        }
+        if (_) {
+            return "other"
         }
     }
 }
@@ -515,6 +572,13 @@ def test_all_match(t : T?) {
         t |> equal(1., or_match_v(Bar(a = 2, b = 1.)))
         t |> equal(0., or_match_v(Bar(a = 3, b = 1.)))
     }
+    t |> run("or match keeps captures made before it") @@(t : T?) {
+        t |> equal(7, or_match_prior_capture(AB(a = 7, b = 2)))
+        t |> equal(-1, or_match_prior_capture(AB(a = 7, b = 3)))
+        t |> equal(304, or_capture_both_branches(AB(a = 3, b = 4)))
+        t |> equal(309, or_capture_both_branches(AB(a = 3, b = 9)))
+        t |> equal(-1, or_capture_both_branches(AB(a = 3, b = 5)))
+    }
     t |> run("struct ptr match") @@(t : T?) {
         t |> equal(-1, struct_ptr_match(null))
         t |> equal(0, struct_ptr_match(new Foo(a = 13)))
@@ -536,6 +600,44 @@ def test_all_match(t : T?) {
             t |> equal("int 13", match_ast_expr_ptr(ep))
             var fp <- new ExprConstFloat(value = 13.0)
             t |> equal("anything", match_ast_expr_ptr(fp))
+        }
+    }
+    t |> run("match ast op2 shapes") @@(t : T?) {
+        ast_gc_guard() {
+            var a <- new ExprConstInt(value = 1)
+            var b <- new ExprConstInt(value = 2)
+            var mul <- new ExprOp2(op := "*", left = a, right = b)
+            var c <- new ExprConstInt(value = 3)
+            var mad <- new ExprOp2(op := "+", left = mul, right = c)
+            t |> equal("mad ExprConstInt ExprConstInt ExprConstInt", match_ast_op2_shape(mad))
+            var x <- new ExprConstInt(value = 4)
+            var y <- new ExprConstInt(value = 5)
+            var sub <- new ExprOp2(op := "-", left = x, right = y)
+            t |> equal("addsub ExprConstInt", match_ast_op2_shape(sub))
+            var dx <- new ExprConstInt(value = 6)
+            var dy <- new ExprConstInt(value = 7)
+            var dv <- new ExprOp2(op := "/", left = dx, right = dy)
+            t |> equal("other", match_ast_op2_shape(dv))
+            var sv <- new ExprVar(name := "v")
+            var sw <- new ExprSwizzle(value = sv, mask := "xy")
+            t |> equal("swizzle-xy ExprVar", match_ast_op2_shape(sw))
+            var sv2 <- new ExprVar(name := "w")
+            var sw2 <- new ExprSwizzle(value = sv2, mask := "zw")
+            t |> equal("other", match_ast_op2_shape(sw2))
+            // null guard: node arms must fail cleanly on null without an `if (null)` arm
+            t |> equal("other", match_ast_op2_shape(default<ExpressionPtr>))
+        }
+    }
+    t |> run("match das_string scrutinee against string literals") @@(t : T?) {
+        ast_gc_guard() {
+            var l <- new ExprConstInt(value = 1)
+            var r <- new ExprConstInt(value = 2)
+            var plus <- new ExprOp2(op := "+", left = l, right = r)
+            t |> equal("plus", match_op_string(plus.op))
+            var l2 <- new ExprConstInt(value = 3)
+            var r2 <- new ExprConstInt(value = 4)
+            var dv <- new ExprOp2(op := "/", left = l2, right = r2)
+            t |> equal("other", match_op_string(dv.op))
         }
     }
     t |> run("match as is") @@(t : T?) {

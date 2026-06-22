@@ -10,13 +10,13 @@
 #include <daECS/core/componentsMap.h>
 #include <daECS/core/entityComponent.h>
 #include <math/dag_color.h>
-#include <render/omniLight.h>
-#include <render/spotLight.h>
+#include <render/lights/omniLight.h>
+#include <render/lights/spotLight.h>
 #include <ecs/anim/anim.h>
-#include "render/omniLightsManager.h"
-#include <render/clusteredLights.h>
+#include "render/lights/omniLightsManager.h"
+#include <render/lights/clusteredLights.h>
 #include <render/lightShadowParams.h>
-#include <render/light_consts.hlsli>
+#include <render/lights/light_consts.hlsli>
 #include <daEditorE/editorCommon/inGameEditor.h>
 #include <debug/dag_debug3d.h>
 

@@ -84,6 +84,7 @@ static int rtr_probes_tex_slotVarId = -1;
 static int rtr_probe_locations_buf_slotVarId = -1;
 static int rtr_probe_sampler_slotVarId = -1;
 static int rtr_probe_randomize_raysVarId = -1;
+static int rtr_probe_debug_display_backVarId = -1;
 static int rt_nrVarId = -1;
 static int cameraFovYVarId = 1;
 static int downsampled_close_depth_texVarId = -1;
@@ -195,6 +196,7 @@ void initialize(denoiser::ReflectionMethod method, bool half_res, bool checkerbo
   rtr_probe_locations_buf_slotVarId = get_shader_variable_id("rtr_probe_locations_buf_slot", true);
   rtr_probe_sampler_slotVarId = get_shader_variable_id("rtr_probe_sampler_slot", true);
   rtr_probe_randomize_raysVarId = get_shader_variable_id("rtr_probe_randomize_rays", true);
+  rtr_probe_debug_display_backVarId = get_shader_variable_id("rtr_probe_debug_display_back", true);
   rt_nrVarId = get_shader_variable_id("rt_nr");
   cameraFovYVarId = get_shader_variable_id("cameraFovY", true);
   downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
@@ -311,7 +313,7 @@ void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
 
   int probeCountH = divide_up(res_size.x, PROBE_AREA);
   int probeCountV = divide_up(res_size.y, PROBE_AREA);
-  int probeWidth = probeCountH * PROBE_RESOLUTION_WITH_BORDER;
+  int probeWidth = probeCountH * PROBE_LAYER_MUL * PROBE_RESOLUTION_WITH_BORDER;
   int probeHeight = probeCountV * PROBE_RESOLUTION_WITH_BORDER;
   int usableProbeCountH = divide_up(resolution.x, PROBE_AREA);
   int usableProbeCountV = divide_up(resolution.y, PROBE_AREA);
@@ -327,7 +329,7 @@ void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
     }
   }
 
-  if (rtr_probe_locations && rtr_probe_locations->getNumElements() / 4 != probeCountH * probeCountV)
+  if (rtr_probe_locations && rtr_probe_locations->getNumElements() / 4 != probeCountH * probeCountV * PROBE_LAYER_MUL)
   {
     d3d::update_bindless_resources_to_null(D3DResourceType::SBUF, rtr_probes_bindless.locationBuf, 1);
     rtr_probe_locations.close();
@@ -345,7 +347,7 @@ void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
   }
 
   if (!rtr_probe_locations)
-    rtr_probe_locations = dag::buffers::create_ua_sr_byte_address(sizeof(Point4) / 4 * probeCountH * probeCountV,
+    rtr_probe_locations = dag::buffers::create_ua_sr_byte_address(sizeof(Point4) / 4 * probeCountH * probeCountV * PROBE_LAYER_MUL,
       "rtr_probe_locations", d3d::buffers::Init::Zero, RESTAG_RTR);
 
   ShaderGlobal::set_int4(rtr_probes_countVarId, probeCountH, probeCountV, 0, 0);
@@ -358,7 +360,7 @@ void update_probes(IPoint2 res_size, IPoint2 resolution, bool randomize_rays)
 
   d3d::set_cs_constbuffer_register_count(256);
   // One group is processing one probe (PROBE_RESOLUTION * PROBE_RESOLUTION)
-  probeColor->dispatch(usableProbeCountH, usableProbeCountV, 1);
+  probeColor->dispatch(usableProbeCountH, usableProbeCountV, PROBE_LAYER_MUL);
   d3d::set_cs_constbuffer_register_count(0);
 
   d3d::resource_barrier({rtr_probe_locations.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL});
@@ -588,6 +590,7 @@ void render_probes()
 #if DAGOR_DBGLEVEL > 0
 
 static bool show_unfiltered = false;
+static bool display_back_probes = false;
 
 inline const char *operator*(denoiser::ReflectionMethod mode)
 {
@@ -635,6 +638,8 @@ static void imguiWindow()
   if (show_probes)
   {
     ImGui::Checkbox("Fix probes", &fix_probes);
+    ImGui::Checkbox("Display back probes", &display_back_probes);
+    ShaderGlobal::set_int(rtr_probe_debug_display_backVarId, display_back_probes);
     ImGui::SliderFloat("Probe size", &probe_size, 0.01, 2);
   }
 

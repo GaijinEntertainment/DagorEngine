@@ -53,6 +53,7 @@ enum class AntialiasingMethod
   METALFX,
   MOBILE_MSAA,
   SGSR2,
+  ARM_ASR,
   SMAA,
   SSAA,
 #if _TARGET_C2
@@ -203,6 +204,7 @@ float get_mip_bias();
 void adjust_mip_bias(const IPoint2 &dynamic_resolution, const IPoint2 &output_resolution);
 
 bool is_metalfx_upscale_supported();
+bool is_arm_asr_supported();
 
 void before_render_view(int view_index);
 void before_render_frame();
@@ -210,7 +212,7 @@ void before_render_frame();
 Point2 get_jitter_offset(const RenderView &view, bool vr_mode);
 
 void apply_fxaa(AntialiasingMethod method, Texture *src_color, Texture *src_depth, const Point4 &tc_scale_offset);
-void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, bool temporal_reset = false);
+void apply_mobile_aa(Texture *source_tex, Texture *dest_tex, const ApplyContext &ctx);
 
 const char *get_available_methods(bool is_vr, bool names_only);
 const char *get_available_upscaling_options(const char *method);

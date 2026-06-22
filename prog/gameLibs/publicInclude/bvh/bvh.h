@@ -21,6 +21,7 @@ class Sbuffer;
 class LandMeshManager;
 class RandomGrass;
 class Cables;
+class SmokeTracerManager;
 class TMatrix;
 struct RaytraceGeometryDescription;
 struct RaytraceBottomAccelerationStructure;
@@ -334,7 +335,7 @@ struct TreeData
   float ppWindMotionDampBase;
   float ppWindMotionDampLevelMul;
   float AnimWindScale;
-  bool apply_tree_wind;
+  bool isTrunk;
   E3DCOLOR color;
   uint32_t perInstanceRenderAdditionalData;
   float groundSnapHeightSoft;
@@ -538,8 +539,9 @@ enum Features
   Dagdp = 1 << 12,             // Dagdp Only works if and of the RI is enabled.
   GPUGrass = 1 << 13,          // GPUGrass is enabled.
   Splinegen = 1 << 14,         // SplineGen is enabled.
+  SmokeTracers = 1 << 15,      // Smoke tracers are enabled.
 
-  ForRendering = Terrain | RIFull | DynrendRigidFull | DynrendSkinnedFull | GpuObjects | Grass | Fx | Cable | BinScene,
+  ForRendering = Terrain | RIFull | DynrendRigidFull | DynrendSkinnedFull | GpuObjects | Grass | Fx | Cable | BinScene | SmokeTracers,
   ForGI = Terrain | RIBaked | GpuObjects,
 
   AnyRI = RIFull | RIBaked,
@@ -720,6 +722,14 @@ void generate_gpu_grass_instances(ContextId context_id, bool has_grass);
 void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
   uint32_t instance_vertex_count, uint32_t &bvh_id);
 void remove_spline_gen_instances(ContextId context_id);
+
+using smoke_tracers_connect_callback = void (*)(BVHConnection *);
+void connect_smoke_tracers(ContextId context_id, smoke_tracers_connect_callback callback);
+
+void update_smoke_tracer_instances(SmokeTracerManager *mgr);
+
+void ensure_particle_buffer_capacity(int fx_max, int smoke_tracer_max);
+
 
 using on_parallel_jobs_finished_callback = void (*)();
 void set_on_parallel_jobs_finished_cb(on_parallel_jobs_finished_callback callback);

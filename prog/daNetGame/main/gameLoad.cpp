@@ -23,6 +23,7 @@
 #include "main/vromfs.h"
 #include "main/watchdog.h"
 #include "net/net.h"
+#include "net/mainThreadNetInits.h"
 #include "net/replay.h"
 #include "net/dedicated.h"
 #include <daECS/net/netEvents.h>
@@ -594,7 +595,7 @@ void unload_current_game()
   // Explicitly flush delayed actions that might hold sq callbacks (which in turn might need entities, not empty tdb, etc...)
   perform_delayed_actions();
 
-  net_on_before_emgr_clear();
+  net_on_about_to_clear_all_entities(*g_entity_mgr);
 
   {
     debug("clear g_entity_mgr");

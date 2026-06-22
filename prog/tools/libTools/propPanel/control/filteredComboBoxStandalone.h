@@ -36,6 +36,9 @@ public:
 
   const char *getFilter() const;
 
+  bool isOpen() const { return dropdownOpenState != nullptr; }
+  bool isHovered() const { return hovered; }
+
 private:
   class DropdownOpenState
   {
@@ -87,6 +90,7 @@ private:
     bool &downward);
 
   eastl::unique_ptr<DropdownOpenState> dropdownOpenState;
+  bool hovered = false;
 };
 
 } // namespace PropPanel

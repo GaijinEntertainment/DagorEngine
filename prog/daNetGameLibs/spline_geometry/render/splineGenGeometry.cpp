@@ -86,7 +86,9 @@ void SplineGenGeometry::updateInstancingData(const eastl::vector<SplineGenSpline
   const Point4 &uv_scroll_second_offset_and_scale,
   float uv_scroll_interpolation_value,
   float surface_opaqueness,
-  const Point2 &additional_thickness_bounds)
+  const Point2 &additional_thickness_bounds,
+  const Point3 &medium_tint,
+  float is_shell)
 {
   G_ASSERT(isActive());
   G_ASSERT(max_radius >= 0.0f);
@@ -140,6 +142,8 @@ void SplineGenGeometry::updateInstancingData(const eastl::vector<SplineGenSpline
   instance.uvInterpolationValue = uv_scroll_interpolation_value;
   instance.surfaceOpaqueness = surface_opaqueness;
   instance.additionalThicknessBounds = additional_thickness_bounds;
+  instance.mediumTint = medium_tint;
+  instance.isShell = is_shell;
 
   manager.updateInstancingData(id, instance, spline_vec);
 }

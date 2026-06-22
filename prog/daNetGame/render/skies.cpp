@@ -332,7 +332,7 @@ void before_render_daskies()
     daSkies->setStarsLatLon(skies_panel.latitude, skies_panel.longtitude);
     set_dir_to_sun(skies_panel.year, skies_panel.month, skies_panel.day, skies_panel.time);
     daSkies->reset();
-    get_world_renderer()->reloadCube(true);
+    get_world_renderer()->scheduleEnviProbeReRender();
     prev_skies = skies_panel;
 
     g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});

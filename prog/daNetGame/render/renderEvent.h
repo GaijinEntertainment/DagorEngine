@@ -181,6 +181,17 @@ struct GatherSplinegenBVHDataEvent : public ecs::Event
   GatherSplinegenBVHDataEvent(bvh::ContextId contextId) : ECS_EVENT_CONSTRUCTOR(GatherSplinegenBVHDataEvent), contextId(contextId) {}
 };
 
+struct BVHConnection;
+struct GatherSmokeTracersBVHDataEvent : public ecs::Event
+{
+  BVHConnection *connection;
+
+  ECS_BROADCAST_EVENT_DECL(GatherSmokeTracersBVHDataEvent)
+  GatherSmokeTracersBVHDataEvent(BVHConnection *connection) :
+    ECS_EVENT_CONSTRUCTOR(GatherSmokeTracersBVHDataEvent), connection(connection)
+  {}
+};
+
 struct RemoveSplinegenBVHEvent : public ecs::Event
 {
   ECS_BROADCAST_EVENT_DECL(RemoveSplinegenBVHEvent)
@@ -244,12 +255,6 @@ struct VehicleCockpitPrepass : public ecs::Event
   VehicleCockpitPrepass(const TMatrix &view_tm, const TexStreamingContext &tex_ctx) :
     ECS_EVENT_CONSTRUCTOR(VehicleCockpitPrepass), viewTm(view_tm), texCtx(tex_ctx)
   {}
-};
-
-struct RenderReinitCube : public ecs::Event
-{
-  ECS_BROADCAST_EVENT_DECL(RenderReinitCube)
-  RenderReinitCube() : ECS_EVENT_CONSTRUCTOR(RenderReinitCube) {}
 };
 
 struct RenderSetExposure : public ecs::Event

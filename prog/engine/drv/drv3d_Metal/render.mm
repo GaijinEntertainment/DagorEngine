@@ -1087,11 +1087,7 @@ namespace drv3d_metal
     for (int i = 0; i < MAX_STAGE_TEXTURES; i++)
         textures[i] = {};
     for (int i = 0; i < BUFFER_POINT_COUNT; i++)
-    {
-      if (buffers[i])
-        buffers[i]->bound_slots = 0;
       buffers[i] = nil;
-    }
     for (uint32_t j = 0; j < MAX_SHADER_ACCELERATION_STRUCTURES; ++j)
         acceleration_structures[j] = nullptr;
   }
@@ -1099,7 +1095,6 @@ namespace drv3d_metal
   void Render::StageBinding::removeBuf(Buffer* buf)
   {
     G_ASSERT(buf);
-    buf->bound_slots = 0;
     for (int i = 0; i < BUFFER_POINT_COUNT; i++)
     {
       if (buffers[i] == buf)
@@ -1555,14 +1550,9 @@ namespace drv3d_metal
 
     [render.mainview isHDRAvailable];
 
-    if (d3d::get_driver_desc().caps.hasBindless)
+    bool use_residency = d3d::get_driver_desc().caps.hasBindless || render.device.supportsRaytracing;
+    if (use_residency)
     {
-      bindlessTexture2DIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d id buffer");
-      bindlessTexture2DArrayIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d array id buffer");
-      bindlessTextureCubeIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture cube id buffer");
-      bindlessBufferIdBuffer = new Buffer(BINDLESS_BUFFER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless buffer id buffer");
-      bindlessSamplerIdBuffer = new Buffer(BINDLESS_SAMPLER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless sampler id buffer");
-
       if (@available(iOS 18, macOS 15.0, *))
       {
         MTLResidencySetDescriptor *setDescriptor = [[MTLResidencySetDescriptor alloc] init];
@@ -1574,14 +1564,27 @@ namespace drv3d_metal
                                                        error : &error];
         [setDescriptor release];
 
+        if (error)
+          DAG_FATAL("Couldn't create residency set because of %s", [error.localizedDescription UTF8String]);
+
         [residencySet addAllocation : blank_tex_2d];
         [residencySet addAllocation : blank_tex_2dArray];
         [residencySet addAllocation : blank_tex_cube];
         [residencySet addAllocation : stub_buffer];
+      }
+    }
 
-        if (error)
-          DAG_FATAL("Couldn't create residency set because of %s", [error.localizedDescription UTF8String]);
+    debug("[METAL] bindless : %s", d3d::get_driver_desc().caps.hasBindless ? "true" : "false");
+    if (d3d::get_driver_desc().caps.hasBindless)
+    {
+      bindlessTexture2DIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d id buffer");
+      bindlessTexture2DArrayIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture 2d array id buffer");
+      bindlessTextureCubeIdBuffer = new Buffer(BINDLESS_TEXTURE_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless texture cube id buffer");
+      bindlessBufferIdBuffer = new Buffer(BINDLESS_BUFFER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless buffer id buffer");
+      bindlessSamplerIdBuffer = new Buffer(BINDLESS_SAMPLER_COUNT, sizeof(uint64_t), SBCF_DYNAMIC | SBCF_FRAMEMEM, 0, "bindless sampler id buffer");
 
+      if (@available(iOS 18, macOS 15.0, *))
+      {
         bindlessTextures2D.init(ToResourceID(blank_tex_2d));
         bindlessTexturesCube.init(ToResourceID(blank_tex_cube));
         bindlessTextures2DArray.init(ToResourceID(blank_tex_2dArray));
@@ -1591,6 +1594,7 @@ namespace drv3d_metal
 
     if (@available(iOS 17, macOS 13.0, *))
     {
+      debug("[METAL] raytracing : %s", render.device.supportsRaytracing ? "true" : "false");
       if (render.device.supportsRaytracing)
       {
         defaultBlas = createDefaultBlas(device);
@@ -1600,6 +1604,15 @@ namespace drv3d_metal
         G_ASSERT(defaultIndex == 0);
         nativeBlases = [[NSMutableArray alloc] initWithCapacity : 4096];
         [nativeBlases addObject : defaultBlas];
+
+        if (use_residency)
+        {
+          if (@available(iOS 18, macOS 15.0, *))
+          {
+            if (residencySet)
+              [residencySet addAllocation : defaultBlas];
+          }
+        }
 
         defaultTlas = createDefaultTlas(device);
         G_ASSERT(defaultTlas);
@@ -1618,6 +1631,7 @@ namespace drv3d_metal
                              }];
 #endif
 
+    debug("[METAL] init done");
     return true;
   }
 
@@ -1692,6 +1706,9 @@ namespace drv3d_metal
             break;
           case DeletedResource::Type::Program:
             progs.freeIndex(res.program)->release();
+            break;
+          case DeletedResource::Type::RemoveFromResidency:
+            removeResource(res.native_resource);
             break;
           case DeletedResource::Type::NativeResource:
             G_ASSERT(resource_residency.find(res.native_resource) == resource_residency.end());
@@ -1987,8 +2004,8 @@ namespace drv3d_metal
 
     if (@available(macOS 15.0, iOS 18.0, *))
     {
-      if (d3d::get_driver_desc().caps.hasBindless)
-        [commandBuffer useResidencySet:residencySet];
+      if (residencySet)
+        [commandBuffer useResidencySet : residencySet];
     }
 
     if (needBlit)
@@ -2846,6 +2863,13 @@ namespace drv3d_metal
 
     std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
 
+    for (auto blas : blases2create)
+    {
+      G_ASSERT(blas && blas->acceleration_struct);
+      addResource(blas->acceleration_struct);
+    }
+    blases2create.clear();
+
     executeCommands(wait, present);
     command_encoder.clear();
 
@@ -3018,40 +3042,45 @@ namespace drv3d_metal
 
   void Render::removeResource(id<MTLResource> res)
   {
-    if (res == nil)
-      return;
-    auto it = resource_residency.find(res);
-    if (it != resource_residency.end())
+    if (@available(iOS 18, macOS 15.0, *))
     {
-      if (it->second == 1)
+      if (res == nil || residencySet == nil)
+        return;
+
+      auto it = resource_residency.find(res);
+      if (it != resource_residency.end())
       {
-        if (@available(iOS 18, macOS 15.0, *))
+        if (it->second == 1)
         {
           [residencySet removeAllocation:res];
-          bindless_set_dirty = true;
+          resource_residency.erase(it);
+
+          residency_set_dirty = true;
         }
-        resource_residency.erase(it);
+        else
+          it->second--;
       }
-      else
-        it->second--;
     }
   }
 
   void Render::addResource(id<MTLResource> res)
   {
     G_ASSERT(res);
-    auto it = resource_residency.find(res);
-    if (it == resource_residency.end())
+    if (@available(iOS 18, macOS 15.0, *))
     {
-      if (@available(iOS 18, macOS 15.0, *))
+      if (residencySet == nil)
+        return;
+      auto it = resource_residency.find(res);
+      if (it == resource_residency.end())
       {
+
         [residencySet addAllocation:res];
-        bindless_set_dirty = true;
+        residency_set_dirty = true;
+        resource_residency[res] = 1;
       }
-      resource_residency[res] = 1;
+      else
+        it->second++;
     }
-    else
-      it->second++;
   }
 
   bool Render::BindlessTextureCache::update(uint32_t index, D3dResource *res)
@@ -3659,6 +3688,19 @@ namespace drv3d_metal
     buffers2clear.emplace_back(buf, buff);
   }
 
+  void Render::commitResidencySet()
+  {
+    if (!residency_set_dirty)
+      return;
+
+    if (@available(iOS 18, macOS 15.0, *))
+    {
+      if (residencySet)
+        [residencySet commit];
+    }
+    residency_set_dirty = false;
+  }
+
   void Render::dispatch(uint32_t thread_group_x, uint32_t thread_group_y, uint32_t thread_group_z)
   {
     FRAMEMEM_VALIDATE;
@@ -3676,6 +3718,8 @@ namespace drv3d_metal
     if (current_cs_pipeline != cur_prog->csPipeline)
       command_encoder.write(CommandType::SetComputePipelineState).write(cur_prog->csPipeline).write(cur_prog);
     current_cs_pipeline = cur_prog->csPipeline;
+
+    commitResidencySet();
 
     dag::Vector<Resource, framemem_allocator> resources;
     stages[STAGE_CS].apply(storages[STAGE_CS], cur_prog->cshader, resources);
@@ -3710,6 +3754,8 @@ namespace drv3d_metal
     if (current_cs_pipeline != cur_prog->csPipeline)
       command_encoder.write(CommandType::SetComputePipelineState).write(cur_prog->csPipeline).write(cur_prog);
     current_cs_pipeline = cur_prog->csPipeline;
+
+    commitResidencySet();
 
     dag::Vector<Resource, framemem_allocator> resources;
     stages[STAGE_CS].apply(storages[STAGE_CS], cur_prog->cshader, resources);
@@ -4127,6 +4173,8 @@ namespace drv3d_metal
       updateStates();
 
     TIME_PROFILE(applyStates);
+
+    commitResidencySet();
 
     ResourceArray resources;
     if (cur_prog->vshader)
@@ -4670,6 +4718,7 @@ namespace drv3d_metal
     G_ASSERT(regions2copy.empty());
     G_ASSERT(textures2clear.empty());
     G_ASSERT(buffers2clear.empty());
+    G_ASSERT(blases2create.empty());
 
     [commandQueue release];
 
@@ -4699,42 +4748,19 @@ namespace drv3d_metal
       [nativeBlases release];
     nativeBlases = nil;
 
+    if (@available(iOS 18, macOS 15.0, *))
+    {
+      if (residencySet)
+        [residencySet release];
+      residencySet = nil;
+      residency_set_dirty = true;
+    }
+
     debug("[METAL_INIT] render released at frame %llu", frame);
     frame = 0;
     submits_scheduled = 1;
     submits_completed = 0;
     memset(frames_completed, 0, sizeof(frames_completed));
-  }
-
-  int Render::getSupportedMTLVersion(void* mtl_version)
-  {
-    static int v[4] = {0, 0, 0, 0};
-    if (mtl_version)
-        *(const void**)mtl_version = v;
-    auto mkDrvDesc = [] (char a, char b, char c, char d) { v[0] = a; v[1] = b; v[2] = c; v[3] = d; };
-#if _TARGET_TVOS
-    if ([device supportsFeatureSet: (MTLFeatureSet)30000 /*MTLFeatureSet_tvOS_GPUFamily1_v1*/])
-      mkDrvDesc('T', 'V', '1', '1');
-    if ([device supportsFeatureSet: (MTLFeatureSet)30001 /*MTLFeatureSet_tvOS_GPUFamily1_v2*/])
-      mkDrvDesc('T', 'V', '1', '2');
-    if ([device supportsFeatureSet: (MTLFeatureSet)30002 /*MTLFeatureSet_tvOS_GPUFamily1_v3*/])
-      mkDrvDesc('T', 'V', '1', '3');
-    if ([device supportsFeatureSet: (MTLFeatureSet)30003 /*MTLFeatureSet_tvOS_GPUFamily2_v1*/])
-      mkDrvDesc('T', 'V', '2', '1');
-#elif _TARGET_PC_MACOSX
-    if ([device supportsFeatureSet: (MTLFeatureSet)10000 /*MTLFeatureSet_macOS_GPUFamily1_v1*/])
-      mkDrvDesc('M', 'C', '1', '1');
-    if ([device supportsFeatureSet: (MTLFeatureSet)10001 /*MTLFeatureSet_macOS_GPUFamily1_v2*/])
-      mkDrvDesc('M', 'C', '1', '2');
-    if ([device supportsFeatureSet: (MTLFeatureSet)10003 /*MTLFeatureSet_macOS_GPUFamily1_v3*/])
-      mkDrvDesc('M', 'C', '1', '3');
-    if ([device supportsFeatureSet: (MTLFeatureSet)10004 /*MTLFeatureSet_macOS_GPUFamily1_v4*/])
-      mkDrvDesc('M', 'C', '1', '4');
-    if ([device supportsFeatureSet: (MTLFeatureSet)10005 /*MTLFeatureSet_macOS_GPUFamily2_v1*/])
-      mkDrvDesc('M', 'C', '2', '1');
-#endif
-
-    return 0;
   }
 
   void Render::readbackTexture(Texture *tex_ptr, int level, int layer, int w, int h, int d, id<MTLBuffer> buf, int offset, int pitch, int imageSize)
@@ -5003,6 +5029,9 @@ namespace drv3d_metal
 #endif
       blases.unlock();
       G_ASSERT(as->index >= 0);
+
+      std::lock_guard<std::mutex> scopedLock(copy_tex_lock);
+      blases2create.emplace_back(as);
     }
     return as;
   }
@@ -5011,7 +5040,8 @@ namespace drv3d_metal
   {
     if (as)
     {
-      if (as->index >= 0)
+      bool is_blas = as->index >= 0;
+      if (is_blas)
       {
         blases.lock();
         if (nativeBlases.count > as->index)
@@ -5037,6 +5067,8 @@ namespace drv3d_metal
       }
 
       std::lock_guard<std::mutex> scopedLock(delete_lock);
+      if (is_blas)
+        resources2delete.push_back({ .type = DeletedResource::Type::RemoveFromResidency, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
       resources2delete.push_back({ .type = DeletedResource::Type::NativeResource, .submit = submits_scheduled, .native_resource = as->acceleration_struct });
 
       TEXQL_ON_PERSISTENT_RELEASE_SZ(as->acceleration_struct.allocatedSize);
@@ -5178,15 +5210,6 @@ namespace drv3d_metal
       return;
 
     TIME_PROFILE(prepareBindlessResources);
-
-    if (bindless_set_dirty)
-    {
-      if (@available(iOS 18, macOS 15.0, *))
-      {
-        [residencySet commit];
-      }
-      bindless_set_dirty = false;
-    }
 
     uint64_t tex_2d = 0;
     uint64_t tex_2dArray = 0;

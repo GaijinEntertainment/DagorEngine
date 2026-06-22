@@ -62,8 +62,6 @@ protected:
   d3d::SamplerHandle heroPointSampler = d3d::INVALID_SAMPLER_HANDLE;
   d3d::SamplerHandle heroLinearSampler = d3d::INVALID_SAMPLER_HANDLE;
   int numClearsToDo;
-  int heroWetnessTexVarId;
-  int heroWetnessTex_samplerstateVarId = -1;
 
   Vbuffer *waterHeightRendererVb;
   Ptr<ShaderMaterial> waterHeightRendererShmat;

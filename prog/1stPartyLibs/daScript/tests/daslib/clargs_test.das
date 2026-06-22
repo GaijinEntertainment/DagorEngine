@@ -143,94 +143,100 @@ struct CountConfig {
 
 [test]
 def test_string_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--name", "Alice"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.name, "Alice")
 }
 
 [test]
 def test_string_flag_equals(t : T?) {
-    var cfg = Config()
     let a <- ["--name=Bob"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.name, "Bob")
 }
 
 [test]
 def test_string_array_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--tags=aaa", "--tags", "bbb", "--tags=ccc"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.tags, ["aaa", "bbb", "ccc"])
 }
 
 [test]
 def test_int_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--count", "42"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.count, 42)
 }
 
 [test]
 def test_float_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--timeout", "45.1"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.timeout, 45.1)
 }
 
 [test]
 def test_bool_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--verbose"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> success(cfg.verbose, "verbose is true")
 }
 
 [test]
 def test_bool_flag_explicit_false(t : T?) {
-    var cfg = Config()
     let a <- ["--verbose=false"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> success(!cfg.verbose, "verbose is false")
 }
 
 [test]
 def test_enum_flag(t : T?) {
-    var cfg = Config()
     let a <- ["--color", "Green"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(int(cfg.color), int(Color.Green))
 }
 
 [test]
 def test_invalid_int(t : T?) {
-    var cfg = Config()
     let a <- ["--count", "abc"]
-    t |> success(parse_args(cfg, a) != "", "parse fails on bad int")
+    t |> success(parse_args(type<Config>, a) |> is_err, "parse fails on bad int")
 }
 
 [test]
 def test_invalid_float(t : T?) {
-    var cfg = Config()
     let a <- ["--timeout", "abc"]
-    t |> success(parse_args(cfg, a) != "", "parse fails on bad floats")
+    t |> success(parse_args(type<Config>, a) |> is_err, "parse fails on bad floats")
 }
 
 [test]
 def test_invalid_enum(t : T?) {
-    var cfg = Config()
     let a <- ["--color", "Purple"]
-    t |> success(parse_args(cfg, a) != "", "parse fails on unknown enum value")
+    t |> success(parse_args(type<Config>, a) |> is_err, "parse fails on unknown enum value")
 }
 
 [test]
 def test_defaults_unchanged(t : T?) {
-    var cfg = Config()
     let a : array<string>
-    t |> success(parse_args(cfg, a) == "", "parse succeeds with no args")
+    var r <- parse_args(type<Config>, a)
+    t |> success(r |> is_ok, "parse succeeds with no args")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.name, "")
     t |> equal(cfg.count, 0)
     t |> equal(cfg.tags, ["default"])
@@ -240,9 +246,9 @@ def test_defaults_unchanged(t : T?) {
 [test]
 def test_required(t : T?) {
     // Required flag present: parse succeeds.
-    var cfg = ConfigWithRequired()
-    let err = parse_args(cfg, ["--foo=1", "--bar-required=hello"])
-    t |> equal(err, "")
+    var r <- parse_args(type<ConfigWithRequired>, ["--foo=1", "--bar-required=hello"])
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.foo, "1")
     t |> equal(cfg.bar_required, "hello")
 }
@@ -250,9 +256,8 @@ def test_required(t : T?) {
 [test]
 def test_required_failure(t : T?) {
     // Required flag missing: parse returns a missing-flag error.
-    var cfg = ConfigWithRequired()
-    let err = parse_args(cfg, ["--foo=1"])
-    t |> equal(err, "--bar-required: missing required flag")
+    var r <- parse_args(type<ConfigWithRequired>, ["--foo=1"])
+    t |> equal(r |> unwrap_err, "--bar-required: missing required flag")
 }
 
 // --- Missing-value detection ----------------------------------------------
@@ -262,54 +267,48 @@ def test_required_failure(t : T?) {
 
 [test]
 def test_missing_value_string(t : T?) {
-    var cfg = Config()
-    let err = parse_args(cfg, ["--name"])
-    t |> equal(err, "--name: missing value")
+    var r <- parse_args(type<Config>, ["--name"])
+    t |> equal(r |> unwrap_err, "--name: missing value")
 }
 
 [test]
 def test_missing_value_int(t : T?) {
-    var cfg = Config()
-    let err = parse_args(cfg, ["--count"])
-    t |> equal(err, "--count: missing value")
+    var r <- parse_args(type<Config>, ["--count"])
+    t |> equal(r |> unwrap_err, "--count: missing value")
 }
 
 [test]
 def test_missing_value_float(t : T?) {
-    var cfg = Config()
-    let err = parse_args(cfg, ["--timeout"])
-    t |> equal(err, "--timeout: missing value")
+    var r <- parse_args(type<Config>, ["--timeout"])
+    t |> equal(r |> unwrap_err, "--timeout: missing value")
 }
 
 [test]
 def test_missing_value_enum(t : T?) {
-    var cfg = Config()
-    let err = parse_args(cfg, ["--color"])
-    t |> equal(err, "--color: missing value")
+    var r <- parse_args(type<Config>, ["--color"])
+    t |> equal(r |> unwrap_err, "--color: missing value")
 }
 
 [test]
 def test_missing_value_array(t : T?) {
-    var cfg = Config()
-    let err = parse_args(cfg, ["--tags"])
-    t |> equal(err, "--tags: missing value")
+    var r <- parse_args(type<Config>, ["--tags"])
+    t |> equal(r |> unwrap_err, "--tags: missing value")
 }
 
 [test]
 def test_missing_value_short_flag(t : T?) {
     // Same path via the short-flag form.
-    var cfg = ShortFlagsConfig()
-    let err = parse_args(cfg, ["-n"])
-    t |> equal(err, "--name: missing value")
+    var r <- parse_args(type<ShortFlagsConfig>, ["-n"])
+    t |> equal(r |> unwrap_err, "--name: missing value")
 }
 
 [test]
 def test_bare_bool_still_sets_true(t : T?) {
     // Bool is the one type where bare "--flag" IS the canonical "set true"
     // form, not a missing value.  Make sure the new detection didn't break it.
-    var cfg = Config()
-    let err = parse_args(cfg, ["--verbose"])
-    t |> equal(err, "")
+    var r <- parse_args(type<Config>, ["--verbose"])
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> success(cfg.verbose, "verbose set true by bare flag")
 }
 
@@ -319,36 +318,31 @@ def test_bare_bool_still_sets_true(t : T?) {
 
 [test]
 def test_duplicate_string_last_wins(t : T?) {
-    var cfg = Config()
-    parse_args(cfg, ["--name=Alice", "--name=Bob"])
+    var cfg <- parse_args(type<Config>, ["--name=Alice", "--name=Bob"]) |> move_unwrap
     t |> equal(cfg.name, "Bob")
 }
 
 [test]
 def test_duplicate_int_last_wins(t : T?) {
-    var cfg = Config()
-    parse_args(cfg, ["--count", "1", "--count=42"])
+    var cfg <- parse_args(type<Config>, ["--count", "1", "--count=42"]) |> move_unwrap
     t |> equal(cfg.count, 42)
 }
 
 [test]
 def test_duplicate_bool_last_wins(t : T?) {
-    var cfg = Config()
-    parse_args(cfg, ["--verbose", "--verbose=false"])
+    var cfg <- parse_args(type<Config>, ["--verbose", "--verbose=false"]) |> move_unwrap
     t |> success(!cfg.verbose, "explicit false after bare true overrides")
 }
 
 [test]
 def test_short_long_alias_last_wins(t : T?) {
-    var cfg = ShortFlagsConfig()
-    parse_args(cfg, ["-n", "Alice", "--name", "Bob"])
+    var cfg <- parse_args(type<ShortFlagsConfig>, ["-n", "Alice", "--name", "Bob"]) |> move_unwrap
     t |> equal(cfg.name, "Bob")
 }
 
 [test]
 def test_long_short_alias_last_wins(t : T?) {
-    var cfg = ShortFlagsConfig()
-    parse_args(cfg, ["--name", "Bob", "-n", "Alice"])
+    var cfg <- parse_args(type<ShortFlagsConfig>, ["--name", "Bob", "-n", "Alice"]) |> move_unwrap
     t |> equal(cfg.name, "Alice")
 }
 
@@ -369,82 +363,89 @@ def test_get_command_info(t : T?) {
 
 [test]
 def test_short_flag_string(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-n", "Alice"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.name, "Alice")
 }
 
 [test]
 def test_short_flag_string_equals(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-n=Bob"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.name, "Bob")
 }
 
 [test]
 def test_short_flag_int(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-c", "42"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.count, 42)
 }
 
 [test]
 def test_short_flag_float(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-r=2.5"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.timeout, 2.5)
 }
 
 [test]
 def test_short_flag_bool(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-v"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> success(cfg.verbose, "verbose is true")
 }
 
 [test]
 def test_short_flag_enum(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-p", "Blue"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(int(cfg.color), int(Color.Blue))
 }
 
 [test]
 def test_short_flag_array(t : T?) {
-    var cfg = ShortFlagsConfig()
     let a <- ["-t", "a", "-t=b", "-t", "c"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.tags, ["a", "b", "c"])
 }
 
 [test]
 def test_short_and_long_array_preserve_order(t : T?) {
     // Mixing long and short occurrences must preserve command-line order.
-    var cfg = ShortFlagsConfig()
     let a <- ["--tags=a", "-t", "b", "--tags=c", "-t=d"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<ShortFlagsConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.tags, ["a", "b", "c", "d"])
 }
 
 [test]
 def test_short_flag_required_present(t : T?) {
-    var cfg = ShortFlagsRequiredConfig()
-    let err = parse_args(cfg, ["-f", "in.txt"])
-    t |> equal(err, "")
+    var r <- parse_args(type<ShortFlagsRequiredConfig>, ["-f", "in.txt"])
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.file, "in.txt")
 }
 
 [test]
 def test_short_flag_required_missing(t : T?) {
-    var cfg = ShortFlagsRequiredConfig()
-    let err = parse_args(cfg, [])
-    t |> equal(err, "--file: missing required flag")
+    var r <- parse_args(type<ShortFlagsRequiredConfig>, [])
+    t |> equal(r |> unwrap_err, "--file: missing required flag")
 }
 
 [test]
@@ -529,9 +530,10 @@ def test_format_help_no_short_alignment(t : T?) {
 
 [test]
 def test_optional_bool_absent_is_none(t : T?) {
-    var cfg = OptionalConfig()
     let a : array<string>
-    t |> success(parse_args(cfg, a) == "", "parse succeeds with no args")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds with no args")
+    var cfg <- r |> unwrap
     t |> success(cfg.verbose |> is_none, "verbose stays None when flag absent")
     t |> success(cfg.count |> is_none, "count stays None when flag absent")
     t |> success(cfg.name |> is_none, "name stays None when flag absent")
@@ -539,47 +541,50 @@ def test_optional_bool_absent_is_none(t : T?) {
 
 [test]
 def test_optional_bool_set_true(t : T?) {
-    var cfg = OptionalConfig()
     let a <- ["--verbose"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.verbose |> is_some, "verbose becomes Some")
     t |> equal(cfg.verbose |> unwrap, true)
 }
 
 [test]
 def test_optional_bool_set_false_explicit(t : T?) {
-    var cfg = OptionalConfig()
     let a <- ["--verbose=false"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.verbose |> is_some, "explicit --verbose=false produces Some(false)")
     t |> equal(cfg.verbose |> unwrap, false)
 }
 
 [test]
 def test_optional_int_set(t : T?) {
-    var cfg = OptionalConfig()
     let a <- ["--count", "7"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.count |> is_some, "count Some")
     t |> equal(cfg.count |> unwrap, 7)
 }
 
 [test]
 def test_optional_string_set(t : T?) {
-    var cfg = OptionalConfig()
     let a <- ["--name=Alice"]
-    t |> success(parse_args(cfg, a) == "", "parse succeeds")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.name |> is_some, "name Some")
     t |> equal(cfg.name |> unwrap, "Alice")
 }
 
 [test]
 def test_optional_int_invalid_value(t : T?) {
-    var cfg = OptionalConfig()
     let a <- ["--count=notanumber"]
-    let err = parse_args(cfg, a)
-    t |> success(err != "", "parse fails on bad int")
-    t |> success(find(err, "--count") != -1, "error mentions flag name")
+    var r <- parse_args(type<OptionalConfig>, a)
+    t |> success(r |> is_err, "parse fails on bad int")
+    t |> success(find(r |> unwrap_err, "--count") != -1, "error mentions flag name")
 }
 
 // --- Positional arguments -------------------------------------------------
@@ -590,9 +595,10 @@ def test_optional_int_invalid_value(t : T?) {
 
 [test]
 def test_positional_basic(t : T?) {
-    var cfg = PositionalConfig()
     let a <- ["install", "dasImgui"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.command, "install")
     t |> success(cfg.command_arg |> is_some, "command_arg present")
     t |> equal(cfg.command_arg |> unwrap, "dasImgui")
@@ -600,27 +606,28 @@ def test_positional_basic(t : T?) {
 
 [test]
 def test_positional_only_required(t : T?) {
-    var cfg = PositionalConfig()
     let a <- ["list"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.command, "list")
     t |> success(cfg.command_arg |> is_none, "command_arg absent")
 }
 
 [test]
 def test_positional_missing_required(t : T?) {
-    var cfg = PositionalConfig()
     let a : array<string>
-    let err = parse_args(cfg, a)
-    t |> success(err != "", "parse fails when required positional missing")
-    t |> success(find(err, "command") != -1, "error mentions positional name")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_err, "parse fails when required positional missing")
+    t |> success(find(r |> unwrap_err, "command") != -1, "error mentions positional name")
 }
 
 [test]
 def test_positional_mixed_with_flags(t : T?) {
-    var cfg = PositionalConfig()
     let a <- ["--root", "/tmp", "install", "dasImgui", "--force"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.command, "install")
     t |> equal(cfg.command_arg |> unwrap, "dasImgui")
     t |> equal(cfg.root, "/tmp")
@@ -630,9 +637,10 @@ def test_positional_mixed_with_flags(t : T?) {
 [test]
 def test_positional_equals_form_flag_no_consumption(t : T?) {
     // `--root=/tmp` MUST NOT consume `install` as the flag value.
-    var cfg = PositionalConfig()
     let a <- ["--root=/tmp", "install"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.root, "/tmp")
     t |> equal(cfg.command, "install")
     t |> success(cfg.command_arg |> is_none, "no second positional")
@@ -641,9 +649,10 @@ def test_positional_equals_form_flag_no_consumption(t : T?) {
 [test]
 def test_positional_short_flag_with_value(t : T?) {
     // Space-separated short flag form takes the next token as value.
-    var cfg = PositionalConfig()
     let a <- ["-v", "install", "foo"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.verbose, "verbose set")
     t |> equal(cfg.command, "install")
     t |> equal(cfg.command_arg |> unwrap, "foo")
@@ -652,26 +661,29 @@ def test_positional_short_flag_with_value(t : T?) {
 [test]
 def test_positional_unknown_flag_skipped(t : T?) {
     // Unknown `--unknown` is silently dropped, NOT treated as positional.
-    var cfg = PositionalConfig()
     let a <- ["--unknown", "install"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.command, "install")
 }
 
 [test]
 def test_positional_array_tail(t : T?) {
-    var cfg = PositionalArrayTailConfig()
     let a <- ["a", "b", "c", "d"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalArrayTailConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.head, "a")
     t |> equal(cfg.rest, ["b", "c", "d"])
 }
 
 [test]
 def test_positional_array_tail_empty(t : T?) {
-    var cfg = PositionalArrayTailConfig()
     let a <- ["only"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<PositionalArrayTailConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> move_unwrap
     t |> equal(cfg.head, "only")
     t |> equal(length(cfg.rest), 0)
 }
@@ -724,36 +736,36 @@ def test_auto_help_user_help_no_inject(t : T?) {
 
 [test]
 def test_mutex_group_one_member(t : T?) {
-    var cfg = MutexConfig()
     let a <- ["--color"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<MutexConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.color, "color set")
     t |> success(!cfg.no_color, "no_color clear")
 }
 
 [test]
 def test_mutex_group_violation(t : T?) {
-    var cfg = MutexConfig()
     let a <- ["--color", "--no-color"]
-    let err = parse_args(cfg, a)
-    t |> success(err != "", "mutex violation reported")
-    t |> success(find(err, "--color") != -1, "error mentions --color")
-    t |> success(find(err, "--no-color") != -1, "error mentions --no-color")
-    t |> success(find(err, "color") != -1, "error mentions group name")
+    var r <- parse_args(type<MutexConfig>, a)
+    t |> success(r |> is_err, "mutex violation reported")
+    t |> success(find(r |> unwrap_err, "--color") != -1, "error mentions --color")
+    t |> success(find(r |> unwrap_err, "--no-color") != -1, "error mentions --no-color")
+    t |> success(find(r |> unwrap_err, "color") != -1, "error mentions group name")
 }
 
 [test]
 def test_mutex_group_none_set(t : T?) {
-    var cfg = MutexConfig()
     let a : array<string>
-    t |> equal(parse_args(cfg, a), "")
+    t |> success(parse_args(type<MutexConfig>, a) |> is_ok, "parse succeeds")
 }
 
 [test]
 def test_mutex_different_groups_coexist(t : T?) {
-    var cfg = MutexConfig()
     let a <- ["--color", "--quiet"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<MutexConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> success(cfg.color, "color set")
     t |> success(cfg.quiet, "quiet set")
 }
@@ -770,43 +782,46 @@ def test_mutex_help_decoration(t : T?) {
 
 [test]
 def test_count_default(t : T?) {
-    var cfg = CountConfig()
     let a : array<string>
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<CountConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.verbose, 0)
 }
 
 [test]
 def test_count_long_once(t : T?) {
-    var cfg = CountConfig()
     let a <- ["--verbose"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<CountConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.verbose, 1)
 }
 
 [test]
 def test_count_short_thrice(t : T?) {
-    var cfg = CountConfig()
     let a <- ["-v", "-v", "-v"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<CountConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.verbose, 3)
 }
 
 [test]
 def test_count_mixed_long_short(t : T?) {
-    var cfg = CountConfig()
     let a <- ["-v", "--verbose"]
-    t |> equal(parse_args(cfg, a), "")
+    var r <- parse_args(type<CountConfig>, a)
+    t |> success(r |> is_ok, "parse succeeds")
+    var cfg <- r |> unwrap
     t |> equal(cfg.verbose, 2)
 }
 
 [test]
 def test_count_rejects_value_form(t : T?) {
-    var cfg = CountConfig()
     let a <- ["--verbose=2"]
-    let err = parse_args(cfg, a)
-    t |> success(err != "", "value form rejected")
-    t |> success(find(err, "--verbose") != -1, "error mentions flag")
+    var r <- parse_args(type<CountConfig>, a)
+    t |> success(r |> is_err, "value form rejected")
+    t |> success(find(r |> unwrap_err, "--verbose") != -1, "error mentions flag")
 }
 
 [test]

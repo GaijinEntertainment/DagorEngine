@@ -528,11 +528,16 @@ namespace das {
             if ( expr->initializer ) {
                 // if modified, modify CALL
                 auto sef = getSideEffects(expr->func);
-                if ( sef & uint32_t(SideEffects::modifyArgument) ) {
+                // see ExprCall: a recursive initializer call is still mid-analysis here
+                const bool inCycle = !expr->func->knownSideEffects
+                    && asked.find(expr->func) != asked.end();
+                if ( inCycle || (sef & uint32_t(SideEffects::modifyArgument)) ) {
                     for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
                         const auto & argT = expr->func->arguments[ai]->type;
                         if ( argT->canWrite() ) {
-                            if ( !expr->func->builtIn ) {
+                            if ( inCycle ) {
+                                propagateWrite(expr->arguments[ai]);
+                            } else if ( !expr->func->builtIn ) {
                                 if ( expr->func->knownSideEffects ) {
                                     propagateWrite(expr->arguments[ai]);
                                 }
@@ -568,13 +573,27 @@ namespace das {
             if ( expr->func && expr->func->name == "finalize" && expr->arguments.size()==1 ) {
                 propagateWrite(expr->arguments[0]);
             }
+            // call with no resolved function — nothing to propagate; the typer
+            // either left this as an unresolved generic (error elsewhere) or it's
+            // a desugar artifact carrying no side-effect contract.
+            if ( !expr->func ) {
+                return;
+            }
             // if modified, modify NEW
             auto sef = getSideEffects(expr->func);
-            if ( sef & uint32_t(SideEffects::modifyArgument) ) {
+            // a recursive (or mutually-recursive) callee is still mid-analysis here, so
+            // its modifyArgument / knownSideEffects are not established yet — fall back to
+            // the conservative signature rule (a writable-ref argument may be written),
+            // exactly as unresolved calls and invokes already do (issue #3033)
+            const bool inCycle = !expr->func->knownSideEffects
+                && asked.find(expr->func) != asked.end();
+            if ( inCycle || (sef & uint32_t(SideEffects::modifyArgument)) ) {
                 for ( size_t ai=0, ais=expr->arguments.size(); ai!=ais; ++ai ) {
                     const auto & argT = expr->func->arguments[ai]->type;
                     if ( argT->canWrite() ) {
-                        if ( !expr->func->builtIn ) {
+                        if ( inCycle ) {
+                            propagateWrite(expr->arguments[ai]);
+                        } else if ( !expr->func->builtIn ) {
                             if ( expr->func->knownSideEffects ) {
                                 propagateWrite(expr->arguments[ai]);
                             }

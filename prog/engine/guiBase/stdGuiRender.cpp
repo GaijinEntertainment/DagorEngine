@@ -3888,8 +3888,8 @@ void GuiContext::draw_str_scaled_u(real scale, const wchar_t *str, int len)
     {
       DagorFontBinDump *f = curRenderFont.font->dynfont_get_next_segment(str, len, eff_font_ht = font_ht, seglen);
       f->dynfont_prepare_str(buf, eff_font_ht, str, seglen, &fgidx);
-      if (fgidx < 0)
-        break;
+      if (fgidx < 0) // segment's font failed to load
+        continue;
       unsigned glyph_count = 0;
       hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
       hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(buf, &glyph_count);

@@ -3,12 +3,12 @@
 #ifndef DAS_VERSION
 #define DAS_VERSION_MAJOR 0
 #define DAS_VERSION_MINOR 6
-#define DAS_VERSION_PATCH 2
+#define DAS_VERSION_PATCH 3
 #define DAS_VERSION (DAS_VERSION_MAJOR*10000 + DAS_VERSION_MINOR*100 + DAS_VERSION_PATCH)
 #endif
 
 #ifndef DAS_BUILD_ID
-#ifdef DAS_NO_ASSERTIONS
+#ifdef NDEBUG
 #define DAS_BUILD_ID (DAS_VERSION * 100 + sizeof(void*))
 #else
 #define DAS_BUILD_ID (DAS_VERSION * 100 + 10 + sizeof(void*))
@@ -106,10 +106,17 @@
 #endif
 
 #ifndef _MSC_VER
-    #define __forceinline inline __attribute__((always_inline))
-    #define ___noinline __attribute__((noinline))
+    // Only define if not already defined by the compiler/system headers
+    #ifndef __forceinline
+        #define __forceinline inline __attribute__((always_inline))
+    #endif
+    #ifndef ___noinline
+        #define ___noinline __attribute__((noinline))
+    #endif
 #else
-    #define ___noinline __declspec(noinline)
+    #ifndef ___noinline
+        #define ___noinline __declspec(noinline)
+    #endif
 #endif
 
 #if defined(__has_feature)
@@ -251,7 +258,13 @@ __forceinline uint64_t rotr64_c(uint64_t a, uint64_t b) {
 
 #if DAS_ENABLE_DLL
 #ifndef DAS_API
-#ifdef _MSC_VER
+#ifdef _WIN32
+    // __declspec(dll*) works on every Windows toolchain: MSVC, clang-cl,
+    // clang-mingw, and gcc-mingw (gcc accepts the MSVC keyword on Windows
+    // targets). ELF visibility on Windows is a no-op, so the old _MSC_VER
+    // gate left clang-mingw with untagged symbols — lld then defaulted to
+    // exporting every global and overflowed the 16-bit PE ordinal table at
+    // ~65535 symbols.
     #define DAS_EXPORT_DLL __declspec(dllexport)
     #define DAS_IMPORT_DLL __declspec(dllimport)
 #else
@@ -386,6 +399,16 @@ namespace das {
     DAS_API void    track_free_hook(void *p) noexcept;
     DAS_API void    arm_alloc_tracking() noexcept;
     DAS_API size_t  dump_alloc_leaks(FILE *out);
+    // RAII: sets the tracker's tl_inside so allocations/frees inside the scope
+    // are not recorded in the LeakMap. Use for internal bookkeeping containers
+    // (e.g. lexer_track_map) whose operator delete during erase would otherwise
+    // recurse into track_free_hook, bail on the already-true tl_inside, and
+    // leave phantom LeakMap entries.
+    struct DAS_API AllocTrackerInternalGuard {
+        bool prev;
+        AllocTrackerInternalGuard() noexcept;
+        ~AllocTrackerInternalGuard() noexcept;
+    };
     // Landmark RAII: ctor walks the stack once and stores the chain; alloc-site
     // captures that match the landmark's RSP short-circuit with a memcpy. Place
     // one on the stack high in the call tree (e.g. top of compile_and_run) to
@@ -409,6 +432,10 @@ namespace das {
     inline void   track_free_hook(void *) noexcept {}
     inline void   arm_alloc_tracking() noexcept {}
     inline size_t dump_alloc_leaks(FILE *) { return 0; }
+    struct AllocTrackerInternalGuard {
+        AllocTrackerInternalGuard() noexcept {}
+        ~AllocTrackerInternalGuard() noexcept {}
+    };
     struct AllocTrackingLandmark {
         AllocTrackingLandmark() noexcept {}
         ~AllocTrackingLandmark() noexcept {}
@@ -421,7 +448,9 @@ namespace das {
 inline void *das_aligned_alloc16(size_t size) {
     DAS_ASSERTF(size != 0, "das_aligned_alloc16 called with size 0");
     void *p;
-#if defined(_MSC_VER)
+#if defined(_WIN32)
+    // All Windows toolchains (MSVC / clang-cl / clang-mingw64 / gcc-mingw64) use
+    // the MS C runtime aligned-allocator family declared in <malloc.h>.
     p = _aligned_malloc(size, 16);
 #else
     p = nullptr;
@@ -435,7 +464,7 @@ inline void *das_aligned_alloc16(size_t size) {
 }
 inline void das_aligned_free16(void *ptr) {
     das::track_free_hook(ptr);
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     _aligned_free(ptr);
 #else
     free(ptr);
@@ -443,11 +472,12 @@ inline void das_aligned_free16(void *ptr) {
 }
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
-#elif defined (__linux__) || defined (_EMSCRIPTEN_VER) || defined __HAIKU__
+#elif defined (__linux__) || defined (_EMSCRIPTEN_VER) || defined __HAIKU__ || defined(_WIN32)
+// Windows: <malloc.h> declares _aligned_msize for MSVC and the MinGW-w64 CRT.
 #include <malloc.h>
 #endif
 inline size_t das_aligned_memsize(void * ptr){
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     return _aligned_msize(ptr, 16, 0);
 #elif defined(__APPLE__)
     return malloc_size(ptr);
@@ -497,11 +527,16 @@ public:
     DasThreadLocal & operator=(const SelfType & other) = delete;
     DasThreadLocal & operator=(SelfType && other) = delete;
 
-    inline T & operator *() { return value_; }
-    inline T * operator->() { return &value_; }
+    // Function-local static thread_local: dynamic-init code lives inside the
+    // function body with a guard, so there is no separately-emitted TLS init
+    // routine (_ZTH...) for thin-LTO + COFF (mingw-clang) to drop. Same hot-path
+    // cost as a class-static thread_local (TLS load + first-touch guard).
+    // operator-> routes through operator* so both share the same storage.
+    // https://github.com/llvm/llvm-project/issues/199462
+    inline T & operator *() { static thread_local T value_{}; return value_; }
+    inline T * operator->() { return &(**this); }
 
 private:
-    inline static thread_local T value_{};
     inline static std::atomic<int> initCounter{0};
 };
 

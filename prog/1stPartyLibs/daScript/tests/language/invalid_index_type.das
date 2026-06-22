@@ -2,7 +2,7 @@
 // verifies compiler rejects non-integer indices for fixed arrays,
 // dynamic arrays, and constant table indexing
 options gen2
-expect 30110:3, 30106    // invalid_index_type
+expect 30184:2, 30251, 30934    // invalid_index_type
 
 def test {
     let a : int[10]

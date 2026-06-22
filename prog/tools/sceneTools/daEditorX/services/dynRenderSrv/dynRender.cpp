@@ -568,8 +568,7 @@ public:
       d3d::gettm(TM_PROJ, &projTm);
       postFx->downsample(sceneRt, sceneRtId);
       postFx->apply(sceneRt, postfxRt, ::grs_cur_view.tm, projTm, true);
-      d3d::set_render_target(postfxRt, 0);
-      d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
+      d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::SampledRO, {{postfxRt, 0, 0}});
       return postfxRt;
     }
     else if (noPfxResolve.getMat())
@@ -577,8 +576,7 @@ public:
       static int sourceTexVarId = get_shader_variable_id("source_tex");
       if (::grs_draw_wire)
         d3d::setwire(0);
-      d3d::set_render_target(postfxRt, 0);
-      d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
+      d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::SampledRO, {{postfxRt, 0, 0}});
       ShaderGlobal::set_texture(sourceTexVarId, sceneRtId);
       noPfxResolve.render();
       ShaderGlobal::set_texture(sourceTexVarId, BAD_TEXTUREID);
@@ -656,8 +654,7 @@ public:
     enable_wireframe = vpw->wireframeOverlayEnabled();
 
     beforeRender();
-    d3d::set_render_target(sceneRt, 0);
-    d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({fallbackSceneDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{sceneRt, 0, 0}});
     d3d::setview(0, 0, viewportW, viewportH, 0, 1);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
@@ -687,7 +684,7 @@ public:
     {
       if (::grs_draw_wire)
         d3d::setwire(0);
-      d3d::set_render_target(finalRt, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{finalRt, 0, 0}});
       deferredTarget->debugRender(nullptr, dbgShowType);
       goto skip_non_geom_render;
     }
@@ -780,8 +777,7 @@ public:
 
   render_again:
     beforeRender();
-    d3d::set_render_target(sceneRt, 0);
-    d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
+    d3d::set_render_target({fallbackSceneDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{sceneRt, 0, 0}});
     d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
@@ -811,7 +807,7 @@ public:
     {
       if (::grs_draw_wire)
         d3d::setwire(0);
-      d3d::set_render_target(finalRt, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{finalRt, 0, 0}});
       deferredTarget->debugRender(nullptr, dbgShowType);
     }
 
@@ -826,11 +822,12 @@ public:
 
     // fill alfa mask using depthBuf
     {
-      d3d::set_render_target(rt.getColor(0).tex, 0);
+      BaseTexture *alphaMaskDepth;
       if (rtype == RTYPE_DYNAMIC_DEFERRED)
-        d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
+        alphaMaskDepth = deferredTarget->getDepth();
       else
-        d3d::set_depth(fallbackSceneDepth.getTex2D(), DepthAccess::RW);
+        alphaMaskDepth = fallbackSceneDepth.getTex2D();
+      d3d::set_render_target({alphaMaskDepth, 0, 0}, DepthAccess::RW, {{rt.getColor(0).tex, 0, 0}});
       d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
       shaders::overrides::reset();
@@ -1208,7 +1205,7 @@ public:
 
     static int intz_depth_texVarId = get_shader_variable_id("intz_depth_tex", true);
     ShaderGlobal::set_texture(intz_depth_texVarId, deferredTarget->getDepthId());
-    d3d::set_render_target(resolvedDepth.getTex2D(), 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{resolvedDepth.getTex2D(), 0, 0}});
     resolvedDepthRenderer.render();
 
     ShaderGlobal::set_texture(combinedShadowsTex.getVarId(), BAD_TEXTUREID);
@@ -1219,7 +1216,7 @@ public:
       {
         deferredTarget->setVar();
         deferredCsm->setCascadesToShader();
-        d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{combinedShadowsTex.getTex2D(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
         ::set_viewvecs_to_shader(view_tm, proj_tm);
         combinedShadowsRenderer.render();
@@ -1227,7 +1224,7 @@ public:
       }
       else
       {
-        d3d::set_render_target(combinedShadowsTex.getTex2D(), 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{combinedShadowsTex.getTex2D(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, 0xffffffff, 0, 0);
         combinedShadowsTex.setVar();
       }
@@ -1314,8 +1311,7 @@ public:
 
     deferredTarget->resolve(sceneRt, view_tm, proj_tm);
 
-    d3d::set_render_target(sceneRt, 0);
-    d3d::set_depth(deferredTarget->getDepth(), DepthAccess::SampledRO);
+    d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::SampledRO, {{sceneRt, 0, 0}});
 
     renderGeomEnvi();
 
@@ -1352,13 +1348,12 @@ public:
     {
       TIME_D3D_PROFILE_NAME(render_vsm, "render_wireframe");
 
-      d3d::set_depth(deferredTarget->getDepth(), DepthAccess::RW);
       if (!::grs_draw_wire)
         d3d::setwire(1);
 
       if (wireframeTex)
       {
-        d3d::set_render_target(wireframeTex.getTex2D(), 0);
+        d3d::set_render_target({deferredTarget->getDepth(), 0, 0}, DepthAccess::RW, {{wireframeTex.getTex2D(), 0, 0}});
         d3d::clearview(CLEAR_TARGET, E3DCOLOR(255, 255, 255, 255), 0, 0);
       }
 
@@ -1713,11 +1708,11 @@ public:
     G_ASSERT(enviProbeBlack);
     G_ASSERT(enviProbe);
     d3d::GpuAutoLock gpuLock;
-    for (int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
-      d3d::set_render_target(light_probe::getManagedTex(enviProbeBlack)->getCubeTex(), i, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{light_probe::getManagedTex(enviProbeBlack)->getCubeTex(), 0, i}});
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
-      d3d::set_render_target(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{light_probe::getManagedTex(enviProbe)->getCubeTex(), 0, i}});
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, 0, 0, 0);
     }
     light_probe::update(enviProbeBlack, NULL);
@@ -1761,13 +1756,13 @@ public:
     for (int i = 0; i < SphHarmCalc::SPH_COUNT; ++i)
       ShaderGlobal::set_float4(enviSPHVarId[i], 0, 0, 0, 0);
 
-    for (int i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
       d3d::setpersp(Driver3dPerspective(1, 1, zn, zf, 0, 0));
       TMatrix cameraMatrix = cube_matrix(TMatrix::IDENT, i);
       d3d::settm(TM_VIEW, inverse(cameraMatrix));
 
-      d3d::set_render_target(light_probe::getManagedTex(enviProbe)->getCubeTex(), i, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{light_probe::getManagedTex(enviProbe)->getCubeTex(), 0, i}});
       d3d::clearview(CLEAR_TARGET, 0, 0, 0);
       renderGeomEnvi(/*preparing_light_probe*/ true);
     }
@@ -2470,8 +2465,7 @@ private:
     ::grs_cur_view.pos = cameraTransform.getcol(3);
 
     beforeRender();
-    d3d::set_render_target(vrResources.sceneRt.getTex2D(), 0);
-    d3d::set_depth(nullptr, DepthAccess::RW);
+    d3d::set_render_target({}, DepthAccess::RW, {{vrResources.sceneRt.getTex2D(), 0, 0}});
     d3d::setview(0, 0, width, height, 0, 1);
     d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
@@ -2494,7 +2488,7 @@ private:
       TMatrix rotY;
       rotY.rotyTM(-PI / 2);
       d3d::settm(TM_WORLD, orig_cam_transform * rotY);
-      d3d::set_render_target(target.getTex2D(), 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{target.getTex2D(), 0, 0}});
       vrgui::render_to_surface(vrResources.imguiTex.getTexId());
       d3d::settm(TM_WORLD, TMatrix::IDENT);
     }

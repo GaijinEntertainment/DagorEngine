@@ -20,6 +20,7 @@
 
 class Sbuffer;
 class DataBlock;
+class VoxelSurfaceData;
 
 namespace shglobvars
 {
@@ -297,6 +298,7 @@ public:
     real range;
     float texScale;
     int getAllElems(Tab<dag::ConstSpan<ShaderMesh::RElem>> &out_elems) const;
+    static constexpr VoxelSurfaceData *getVoxelSurface() { return nullptr; }
   };
 
   enum StaticFlags : uint32_t

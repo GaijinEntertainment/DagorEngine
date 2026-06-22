@@ -47,6 +47,8 @@ namespace das {
         }
         SimFunction * fnPtr = nullptr;
         SimNode * cmresEval = nullptr;
+        // Operand byte size; always overwritten by IMPLEMENT_OP1_SETUP_NODE.
+        uint8_t loadSize = 0;
     };
 
 #define EVAL_NODE(TYPE,CTYPE)\
@@ -72,7 +74,17 @@ namespace das {
     auto sn = (SimNode_CallBase *)node; \
     rn->fnPtr = sn->fnPtr; \
     rn->cmresEval = sn->cmresEval; \
-    rn->baseType = Type::none;
+    rn->baseType = Type::none; \
+    DAS_VERIFYF(sn->fnPtr && sn->fnPtr->debugInfo && sn->fnPtr->debugInfo->count >= 1 \
+        && sn->fnPtr->debugInfo->fields && sn->fnPtr->debugInfo->fields[0], \
+        "fusion call1: fnPtr/debugInfo/fields missing\n"); \
+    { \
+        auto t0 = sn->fnPtr->debugInfo->fields[0]; \
+        uint32_t s0 = (t0->isRef() || t0->isRefType()) ? (uint32_t)sizeof(void*) : t0->size; \
+        DAS_VERIFYF(s0 <= 16, "fusion call1: load size %u oversized fn=%s\n", \
+            (unsigned)s0, sn->fnPtr->name ? sn->fnPtr->name : "?"); \
+        rn->loadSize = (uint8_t)s0; \
+    }
 
 __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
     auto cb = static_cast<SimNode_CallBase *>(node);
@@ -90,7 +102,8 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
         NO_ASAN_INLINE vec4f compute(Context & context) { \
             DAS_PROFILE_NODE \
             vec4f argValues[1]; \
-            argValues[0] = v_ldu((const float *)subexpr.compute##COMPUTE(context)); \
+            argValues[0] = v_zero(); \
+            memcpy(&argValues[0], subexpr.compute##COMPUTE(context), loadSize); \
             auto aa = context.abiArg; \
             context.abiArg = argValues; \
             auto res = fnPtr->code->eval(context); \
@@ -117,7 +130,8 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
         NO_ASAN_INLINE vec4f compute(Context & context) { \
             DAS_PROFILE_NODE \
             vec4f argValues[1]; \
-            argValues[0] = v_ldu((const float *)subexpr.compute##COMPUTE(context)); \
+            argValues[0] = v_zero(); \
+            memcpy(&argValues[0], subexpr.compute##COMPUTE(context), loadSize); \
             return context.call(fnPtr, argValues, &debugInfo); \
         } \
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override { \

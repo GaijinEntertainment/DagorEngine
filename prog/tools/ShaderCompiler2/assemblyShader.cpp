@@ -1014,9 +1014,14 @@ void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderSta
 
   const bool isNumeric = semantic::vt_is_numeric(vt);
   const bool isTexOrBuf = semantic::vt_is_tex(vt) || semantic::vt_is_buf(vt);
-  if (!isNumeric && !isTexOrBuf)
+  const bool isCbuf = semantic::vt_is_cbuf(vt);
+  const bool isSampler = semantic::vt_is_sampler(vt);
+  const bool isTlas = semantic::vt_is_tlas(vt);
+  const bool isUav = semantic::vt_is_uav(vt);
+  if (!isNumeric && !isTexOrBuf && !isCbuf && !isSampler && !isTlas && !isUav)
   {
-    report_error(parser, s.var->var->name, "#rb var <%s> must have a numeric, texture, buffer type", s.var->var->name->text);
+    report_error(parser, s.var->var->name, "#rb var <%s> must have a numeric, texture/buffer, cbuf, sampler, tlas, or uav type",
+      s.var->var->name->text);
     return;
   }
 
@@ -1084,7 +1089,17 @@ void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderSta
     colorExpr.assembleBytecode(computedStcode, dr, regAlloc, isInt);
     computedStcode.push_back(shaderopcode::makeOpStageSlot(SHCOD_SET_CONST_PACKED, int(dr), slotCount, var.cbufOffset.value()));
 
+    eastl::string computedCppExpr;
+    if (shc::config().compileCppStcode())
+    {
+      StcodeExpression cppExpr;
+      cppExpr.noGlobal = true;
+      colorExpr.assembleCpp(cppExpr, isInt);
+      computedCppExpr = cppExpr.releaseAssembledCode();
+    }
+
     var.computedStcode = eastl::move(computedStcode);
+    var.computedCppExpr = eastl::move(computedCppExpr);
     return;
   }
 
@@ -1099,7 +1114,7 @@ void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderSta
     return;
   }
 
-  const bool requiresHlsl = (vt == semantic::VariableType::buf || vt == semantic::VariableType::tex);
+  const bool requiresHlsl = (vt == semantic::VariableType::buf || vt == semantic::VariableType::tex) || isCbuf || isTlas || isUav;
   if (requiresHlsl && !s.var->hlsl_var_text)
   {
     const char *nsText = s.var->var->nameSpace->text;
@@ -1144,9 +1159,9 @@ void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderSta
     return var;
   };
 
-  const bool allocateBindlessId = shc::config().enableBindless && !requiresHlsl;
+  const bool allocateBindlessId = shc::config().enableBindless && hlslDecl.empty() && vt != semantic::VariableType::cmpSampler;
 
-  if (isNumeric || (isTexOrBuf && allocateBindlessId))
+  if (isNumeric || ((isTexOrBuf || isSampler) && allocateBindlessId))
   {
     auto [var, isNewVar] = layout.addVar(rbVarId, {.varName = hlslName,
                                                     .globVarId = globVarId,
@@ -1166,8 +1181,37 @@ void AssembleShaderEvalCB::eval_refined_block_var(state_block_stat &s, ShaderSta
       var.cbufOffset = cache->second.cbufOffsetAndCount.value().first;
     }
   }
-  else if (isTexOrBuf)
+  else if (isTexOrBuf || isTlas)
     allocSlot(HlslRegisterSpace::HLSL_RSPACE_T);
+  else if (isCbuf)
+    allocSlot(HlslRegisterSpace::HLSL_RSPACE_B);
+  else if (isSampler)
+    allocSlot(HlslRegisterSpace::HLSL_RSPACE_S);
+  else if (isUav)
+    allocSlot(HlslRegisterSpace::HLSL_RSPACE_U);
+}
+
+void AssembleShaderEvalCB::processRefinedBlockVars()
+{
+  if (refinedBlockStats.empty())
+    return;
+
+  for (const PreshaderStat &stat : preshaderSource.hardcodedStats)
+  {
+    const auto defMaybe = semantic::parse_named_const_definition(*stat.stat, stat.stage, semantic::VariableType(stat.vt), ctx);
+    if (!defMaybe)
+      continue;
+
+    const semantic::NamedConstDefInfo &def = *defMaybe;
+    if (def.hardcodedRegister < 0)
+      continue;
+
+    auto &allocator = ctx.compCtx().rbAllocator();
+    allocator.reserveSlot(def.stage, def.regSpace, HlslSlotSemantic::HARDCODED, def.hardcodedRegister, max(def.registerSize, 1));
+  }
+
+  for (auto &[stat, stage] : refinedBlockStats)
+    eval_refined_block_var(*stat, stage);
 }
 
 void AssembleShaderEvalCB::eval_external_block(external_state_block &state_block)
@@ -1220,12 +1264,9 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderS
 {
   if (s.var && s.var->var->refined_tag)
   {
-    eval_refined_block_var(s, stage);
+    refinedBlockStats.emplace_back(&s, stage);
     return;
   }
-
-  if (ctx.tgtCtx().isPreshaderOnly())
-    return;
 
   semantic::VariableType vt = semantic::parse_named_const_type(s);
   if (vt == semantic::VariableType::Unknown)
@@ -1237,8 +1278,15 @@ void AssembleShaderEvalCB::eval_external_block_stat(state_block_stat &s, ShaderS
   PreshaderStat stat{&s, stage, vt};
 
   if (s.reg || s.reg_arr)
+  {
     preshaderSource.hardcodedStats.emplace_back(stat);
-  else if (semantic::vt_is_numeric(vt))
+    return;
+  }
+
+  if (ctx.tgtCtx().isPreshaderOnly())
+    return;
+
+  if (semantic::vt_is_numeric(vt))
     preshaderSource.scalarStats.emplace_back(stat);
   else if (semantic::vt_is_static_texture(vt))
     preshaderSource.staticTextureStats.emplace_back(stat);
@@ -1500,6 +1548,8 @@ end:
 
 void AssembleShaderEvalCB::end_eval(shader_decl &sh)
 {
+  processRefinedBlockVars();
+
   if (ctx.tgtCtx().isPreshaderOnly())
     return;
 

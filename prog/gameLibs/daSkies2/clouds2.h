@@ -50,6 +50,8 @@ struct Clouds2
   // causes clouds to change lighting
   void invalidateAll();
 
+  void invalidateLight() { light.invalidate(); }
+
   void init(bool use_hole = true);
   void update(float dt, const Point2 &wind_dir);
   void setCloudsOffsetVars(CloudsRendererData &data) { clouds.setCloudsOffsetVars(data, weatherParams.worldSize); }
@@ -97,7 +99,6 @@ private:
   bool validateHole(const Point3 &main_light_dir);
 
   void invalidateWeather();
-  void invalidateLight() { light.invalidate(); }
   void invalidateShadows();
   void setCloudLightVars();
   void setCloudRenderingVars();

@@ -1,4 +1,6 @@
 
+#define MIN_POSSIBLE_WARP_SIZE 32 // Apple GPUs
+
 #define RWBuffer         RWStructuredBuffer
 
 #define NOP

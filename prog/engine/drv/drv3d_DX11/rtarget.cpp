@@ -722,7 +722,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
     int writeMask;
     if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
     {
-      d3d::set_depth(target.resource.tex, DepthAccess::RW);
+      d3d::set_render_target({target.resource.tex, 0, 0}, DepthAccess::RW, {});
       writeMask = 0;
       if (bind.action & RP_TA_LOAD_CLEAR)
         writeMask |= (CLEAR_ZBUFFER | CLEAR_STENCIL);
@@ -733,7 +733,7 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
     }
     else
     {
-      d3d::set_render_target(target.resource.tex, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{target.resource.tex, 0, 0}});
       writeMask = CLEAR_TARGET;
     }
     d3d::setview(area.left, area.top, area.width, area.height, area.minZ, area.maxZ);
@@ -888,7 +888,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
     }
     if (try_copy_tex(from, to, NULL, NULL))
       return true;
-    d3d::set_render_target((Texture *)to, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{(Texture *)to, 0, 0}});
     stretch_prepare(from);
     draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
 
@@ -921,9 +921,10 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
     if (to && try_copy_tex(from, to, from_rect, to_rect))
       return true;
 
-    d3d::set_render_target();
     if (to)
-      d3d::set_render_target((Texture *)to, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{(Texture *)to, 0, 0}});
+    else
+      d3d::set_render_target();
     stretch_prepare(from);
     if (to_rect || from_rect)
     {

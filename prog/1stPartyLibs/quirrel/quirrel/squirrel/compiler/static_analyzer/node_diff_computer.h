@@ -19,6 +19,7 @@ class NodeDiffComputer
     const int32_t MutabilityDiffCost = 1;
     const int32_t StaticMemberDiffCost = 2;
     const int32_t NullabilityDiffCost = 3;
+    const int32_t CalleeDiffCost = 5;
   } DiffCosts;
 
   const int32_t limit;
@@ -373,7 +374,12 @@ class NodeDiffComputer
     if (leftArgs.size() != rightArgs.size())
       return sizeDiff(leftArgs.size(), rightArgs.size());
 
-    int32_t calleeDiff = diffNodes(lhs->callee(), rhs->callee());
+    const Expr *leftCallee = lhs->callee();
+    const Expr *rightCallee = rhs->callee();
+    int32_t calleeDiff = leftCallee->op() == TO_ID && rightCallee->op() == TO_ID &&
+        strcmp(leftCallee->asId()->name(), rightCallee->asId()->name()) != 0
+      ? DiffCosts.CalleeDiffCost
+      : diffNodes(leftCallee, rightCallee);
 
     if (calleeDiff > limit)
       return calleeDiff;
@@ -415,6 +421,10 @@ class NodeDiffComputer
       return eDiff;
 
     return condDiff + tDiff + eDiff;
+  }
+
+  int32_t diffCodeBlockExpr(const CodeBlockExpr *lhs, const CodeBlockExpr *rhs) {
+    return diffNodes(lhs->block(), rhs->block());
   }
 
   int32_t diffValueDecl(const ValueDecl *lhs, const ValueDecl *rhs) {
@@ -706,6 +716,8 @@ class NodeDiffComputer
       return diffCallExpr((const CallExpr *)lhs, (const CallExpr *)rhs);
     case TO_TERNARY:
       return diffTernary((const TerExpr *)lhs, (const TerExpr *)rhs);
+    case TO_CODE_BLOCK_EXPR:
+      return diffCodeBlockExpr((const CodeBlockExpr *)lhs, (const CodeBlockExpr *)rhs);
       //case TO_EXPR_MARK:
     case TO_VAR:
       return diffVarDecl((const VarDecl *)lhs, (const VarDecl *)rhs);

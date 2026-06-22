@@ -1127,8 +1127,11 @@ ska::flat_hash_map<eastl::string, int> ImpostorBaker::getHashes(DagorAsset *asse
 
     ret["projScale"] = to_sh(getReal("projScale", defaults::projScale));
     ret["triangleThreshold"] = to_sh(getReal("triangleThreshold", defaults::triangleThreshold));
+    ret["minMapSize"] = getInt("minMapSize", defaults::minMapSize);
     ret["maxMapSize"] = getInt("maxMapSize", defaults::maxMapSize);
     ret["voxelSize"] = to_sh(getReal("voxelSize", defaults::voxelSize));
+    ret["minVoxelSize"] = to_sh(getReal("minVoxelSize", defaults::minVoxelSize));
+    ret["lodToBake"] = getInt("lodToBake", defaults::lodToBake);
   }
 
   return ret;
@@ -1204,7 +1207,11 @@ void ImpostorBaker::gatherExportedFiles(DagorAsset *asset, eastl::set<String, St
   }
 }
 
-void ImpostorBaker::setOptions(const ImpostorOptions &options) { defaultVoxelParams.setBool("enabled", options.defaultVoxelImpostor); }
+void ImpostorBaker::setOptions(const ImpostorOptions &options)
+{
+  if (options.defaultVoxelImpostor)
+    defaultVoxelParams.setBool("enabled", options.defaultVoxelImpostor.value());
+}
 
 void ImpostorBaker::clean(dag::ConstSpan<DagorAsset *> assets, const ImpostorOptions &options)
 {

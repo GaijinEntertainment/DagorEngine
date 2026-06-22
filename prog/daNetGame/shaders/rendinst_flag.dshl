@@ -6,6 +6,7 @@ include "simple_painted_inc.dshl"
 include "vcolor_layered_inc.dshl"
 include "wind/wind_simulation_inc.dshl"
 include "translucent_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 
 shader rendinst_flag_colored, rendinst_flag_layered
 {
@@ -117,6 +118,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
   RI_VOXELIZE_ALBEDO()
   ENABLE_MULTI_DRAW(false)
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
   if (rendinst_render_pass == rendinst_render_pass_normal)
   {
     USE_MICRODETAIL_BASED_WETNESS()
@@ -261,7 +263,7 @@ shader rendinst_flag_colored, rendinst_flag_layered
       ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
         float3 localNormal = 1;
       ##else
-        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       ##endif
       float4 vcol = BGRA_SWIZZLE(input.vcol);
       float3 localPos = input.pos;

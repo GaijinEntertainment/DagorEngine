@@ -181,10 +181,13 @@ void GenNoise::compressBC4(const ManagedTex &tex, const ManagedTex &dest)
     tex->texmiplevel(i, i);
 
     const int w = ti.w >> i, h = ti.h >> i, d = ti.d >> i;
-    compress3D.render(buffer, 0, IPoint3(w, h, d));
+    G_ASSERTF((w % 4) == 0 && (h % 4) == 0, "BC4 compress mip %d is %dx%d: XY must be a multiple of 4", i, w, h);
+    const int blockW = max(1, w / 4), blockH = max(1, h / 4);
+    // BC4 packs 4x4 texel blocks, one CS thread per block: dispatch over block dims, not source dims
+    compress3D.render(buffer, 0, IPoint3(blockW, blockH, d));
     d3d::resource_barrier({buffer.getVolTex(), RB_RO_COPY_SOURCE, 0, 0});
     dest->updateSubRegion(buffer.getVolTex(), 0, 0, 0, 0, // source mip, x,y,z
-      max(1, w / 4), max(1, h / 4), d,                    // width x height x depth
+      blockW, blockH, d,                                  // width x height x depth
       i, 0, 0, 0);                                        // dest mip, x,y,z
   }
   tex->texmiplevel(-1, -1);

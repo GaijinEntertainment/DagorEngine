@@ -19,11 +19,12 @@ require daslib/strings
 require daslib/strings_boost
 require daslib/defer
 require daslib/enum_trait
+require daslib/fio
+require daslib/option
 require jit
 
 let public LLVM_DEBUG_RESULT = false
 let public LLVM_DEBUG_EVERYTHING = false
-let LLVM_ENABLE_DIAGNOSTIC = false
 
 let public LLVM_DEBUG_TRACES = false
 let public LLVM_DEBUG_LINE_TRACES = false
@@ -47,6 +48,10 @@ let public FN_JIT_STRING_BUILDER    = "jit_string_builder"
 let public FN_JIT_STRING_BUILDER_TEMP    = "jit_string_builder_temp"
 let public FN_JIT_GET_GLOBAL_MNH    = "jit_get_global_mnh"
 let public FN_JIT_GET_SHARED_MNH    = "jit_get_shared_mnh"
+// Wasm-only path — see g_target_is_wasm in init_jit and the two sites in
+// llvm_jit.das that emit a call instead of a baked-host-offset GEP+load.
+let public FN_JIT_GET_GLOBALS_BASE  = "jit_get_globals_base"
+let public FN_JIT_GET_SHARED_BASE   = "jit_get_shared_base"
 let public FN_JIT_ALLOC_HEAP        = "jit_alloc_heap"
 let public FN_JIT_ALLOC_PERSISTENT  = "jit_alloc_persistent"
 let public FN_JIT_FREE_HEAP         = "jit_free_heap"
@@ -97,9 +102,20 @@ class public Attributes {
     alwaysinline : LLVMOpaqueAttributeRef?
     noinline : LLVMOpaqueAttributeRef?
     hot : LLVMOpaqueAttributeRef?
+    cold : LLVMOpaqueAttributeRef?
+    mustprogress : LLVMOpaqueAttributeRef?
+    minsize : LLVMOpaqueAttributeRef?
+    nofree : LLVMOpaqueAttributeRef?
+    norecurse : LLVMOpaqueAttributeRef?
     noalias : LLVMOpaqueAttributeRef?
     sext : LLVMOpaqueAttributeRef?
     zext : LLVMOpaqueAttributeRef?
+    // memory(inaccessiblemem: readwrite) — for allocator-style runtime calls
+    // LLVM 22 IRMemLocation layout: ArgMem=0(bits 0-1), InaccessibleMem=1(bits 2-3), each ModRef=3 → 3<<2=12
+    memory_inaccessible_rw : LLVMOpaqueAttributeRef?
+    // memory(argmem: readwrite, inaccessiblemem: readwrite) — for deallocator-style runtime calls
+    // 3 | (3 << 2) = 15
+    memory_arg_inaccessible_rw : LLVMOpaqueAttributeRef?
 
     def Attributes(ctx : LLVMContextRef) {
         noreturn = ctx |> LLVMGetEnumAttribute("noreturn")
@@ -111,31 +127,50 @@ class public Attributes {
         alwaysinline = ctx |> LLVMGetEnumAttribute("alwaysinline")
         noinline = ctx |> LLVMGetEnumAttribute("noinline")
         hot = ctx |> LLVMGetEnumAttribute("hot")
+        cold = ctx |> LLVMGetEnumAttribute("cold")
+        mustprogress = ctx |> LLVMGetEnumAttribute("mustprogress")
+        minsize = ctx |> LLVMGetEnumAttribute("minsize")
+        nofree = ctx |> LLVMGetEnumAttribute("nofree")
+        norecurse = ctx |> LLVMGetEnumAttribute("norecurse")
         noalias = ctx |> LLVMGetEnumAttribute("noalias")
         sext = ctx |> LLVMGetEnumAttribute("signext")
         zext = ctx |> LLVMGetEnumAttribute("zeroext")
+        let memory_kind = LLVMGetEnumAttributeKindForName("memory")
+        memory_inaccessible_rw = LLVMCreateEnumAttribute(ctx, memory_kind, 12ul)
+        memory_arg_inaccessible_rw = LLVMCreateEnumAttribute(ctx, memory_kind, 15ul)
     }
 
 }
 
+// Indices MUST match the field order produced by `type_to_llvm_type` for `Type.tArray`
+// below, which itself mirrors the C++ `das::Array` layout (data, size, capacity, magic,
+// lock, flags, _pad_after_flags). The enum order was originally `LOOK, MAGIC` to match
+// an older mirror that had `lock, magic` in that order — when the mirror was corrected
+// to C++ order, the enum needed the same flip.
 enum public JIT_ARRAY {
     DATA
     SIZE
     CAPACITY
-    LOOK
     MAGIC
+    LOCK
     FLAGS
+    PAD_AFTER_FLAGS  // mirror Array's trailing alignment pad (see arraytype.h)
 }
 
+// Indices MUST match the field order produced by `type_to_llvm_type` for `Type.tTable`
+// below — Array base fields, then keys/hashes/tombstones. Keep in sync with the C++
+// `das::Table` layout (Table : Array).
 enum public JIT_TABLE {
     DATA
     SIZE
     CAPACITY
-    LOOK
     MAGIC
+    LOCK
     FLAGS
+    PAD_AFTER_FLAGS  // matches C++ sizeof(Array)==40 on 32-bit; Table::keys lands at 40
     KEYS
     HASHES
+    TOMBSTONES
 }
 
 enum public JIT_SIMFUNCTION {
@@ -148,6 +183,10 @@ enum public JIT_SIMFUNCTION {
     STACK_SIZE
     FLAGS
 }
+
+// Must match TABLE_MAX_LINEAR_CAPACITY in runtime_table.h. A packed table has exactly this
+// many slots, so the inlined packed find scans a fixed count (and can vectorize it).
+let public JIT_TABLE_MAX_LINEAR_CAPACITY = 8
 
 enum public JIT_FUNCTION {
     SIM_FUNCTION
@@ -185,9 +224,22 @@ def public FN_JIT_TABLE_FIND(t : Type) {
     return "`jit`table_find`{t}`"
 }
 
+// String-key at that takes a precomputed hash (string-only, no per-type matrix; the grow fallback
+// for the inline large-string at). String find is fully inline — no C++ helper.
+def public FN_JIT_STRING_TABLE_AT_WITH_HASH() {
+    return "`jit`string_table_at_with_hash`"
+}
+
+def public FN_JIT_STRING_TABLE_AT_AFTER_PACKED_MISS() {
+    return "`jit`string_table_at_after_packed_miss`"
+}
+
+
 def private add_table_linkage(val : LLVMOpaqueValue?) {
-    // windows crashes with weak linkage
-    LLVMSetLinkage(val, LLVMLinkage.LLVMExternalLinkage)
+    // DLLExport storage so ResolveExternVisitor's set_glob_address (GetProcAddress
+    // on Windows) can find the slot on cache-hit reload; otherwise #2802 stale-addr.
+    LLVMSetLinkage(val, LLVMLinkage.LLVMDLLExportLinkage)
+    LLVMSetDLLStorageClass(val, LLVMDLLStorageClass.LLVMDLLExportStorageClass)
 }
 
 def private get_or_create_table_fn(llvm_module : LLVMOpaqueModule?; var types : PrimitiveTypes?; fn_name : DllName; at_type : LLVMOpaqueType?; fn_ptr : void?) {
@@ -240,15 +292,69 @@ def public get_table_find(g_builder : LLVMOpaqueBuilder?; llvm_module : LLVMOpaq
     return (tab_fun, find_type)
 }
 
+def public get_string_table_at_with_hash(g_builder : LLVMOpaqueBuilder?; llvm_module : LLVMOpaqueModule?; var types : PrimitiveTypes?) {
+    assume fn_ptr = get_jit_string_table_at_with_hash()
+    // int32_t jit_string_table_at_with_hash ( Table * tab, char * key, uint64_t hfn, int32_t valueTypeSize, Context * context, LineInfoArg * at )
+    assume at_type = LLVMFunctionType(types.t_int32,   // int32_t result
+        fixed_array<LLVMTypeRef>(types.LLVMVoidPtrType(), // table ptr
+        base_type_to_llvm_type(Type.tString),                // key
+        types.t_int64,                                    // precomputed hash
+        types.t_int32,                                    // valueTypeSize
+        types.LLVMVoidPtrType(),                          // context
+        types.LLVMVoidPtrType(),                          // at
+    ))
+    let fn_name = DllName(FN_JIT_STRING_TABLE_AT_WITH_HASH())
+    var tab_fun : LLVMOpaqueValue? = get_or_create_table_fn(llvm_module, types, fn_name, at_type, fn_ptr)
+    assert(tab_fun != null)
+    tab_fun = LLVMBuildLoad2(g_builder, LLVMPointerType(at_type, 0u), tab_fun, "func_at_wh")
+    return (tab_fun, at_type)
+}
+
+def public get_string_table_at_after_packed_miss(g_builder : LLVMOpaqueBuilder?; llvm_module : LLVMOpaqueModule?; var types : PrimitiveTypes?) {
+    assume fn_ptr = get_jit_string_table_at_after_packed_miss()
+    // int32_t jit_string_table_at_after_packed_miss ( Table*, char* key, uint64_t hfn, int32_t valueTypeSize, Context*, LineInfoArg* )
+    assume at_type = LLVMFunctionType(types.t_int32,
+        fixed_array<LLVMTypeRef>(types.LLVMVoidPtrType(), // table ptr
+        base_type_to_llvm_type(Type.tString),                // key
+        types.t_int64,                                    // precomputed hash
+        types.t_int32,                                    // valueTypeSize
+        types.LLVMVoidPtrType(),                          // context
+        types.LLVMVoidPtrType(),                          // at
+    ))
+    let fn_name = DllName(FN_JIT_STRING_TABLE_AT_AFTER_PACKED_MISS())
+    var tab_fun : LLVMOpaqueValue? = get_or_create_table_fn(llvm_module, types, fn_name, at_type, fn_ptr)
+    assert(tab_fun != null)
+    tab_fun = LLVMBuildLoad2(g_builder, LLVMPointerType(at_type, 0u), tab_fun, "func_at_apm")
+    return (tab_fun, at_type)
+}
+
+// Generic Table header (Array base + keys/hashes/tombstones) with pointer fields as void*,
+// so it is independent of key/value type. Field order matches JIT_TABLE; used only to read
+// capacity / hashes for the inlined packed find.
+def public table_header_llvm_type(var types : PrimitiveTypes?) : LLVMOpaqueType? {
+    return types |> StructType(fixed_array(
+        types.LLVMVoidPtrType(),   // DATA
+        types.t_int64,             // SIZE
+        types.t_int64,             // CAPACITY
+        types.t_int32,             // MAGIC
+        types.t_int32,             // LOCK
+        types.t_int32,             // FLAGS
+        types.t_int32,             // PAD_AFTER_FLAGS
+        types.LLVMVoidPtrType(),   // KEYS
+        types.LLVMVoidPtrType(),   // HASHES (TableHashKey* = uint32*)
+        types.t_int64))            // TOMBSTONES
+}
+
 def public get_table_erase(g_builder : LLVMOpaqueBuilder?; llvm_module : LLVMOpaqueModule?; t : Type; var types : PrimitiveTypes?) {
     let fn_name = DllName(FN_JIT_TABLE_ERASE(t))
     assume fn_ptr = get_jit_table_erase(unsafe(reinterpret<int> t))
-    // bool jit_table_erase ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context )
+    // bool jit_table_erase ( Table * tab, KeyType key, int32_t valueTypeSize, Context * context, LineInfoArg * at )
     let erase_type = LLVMFunctionType(types.t_int1,                        // bool result
             fixed_array<LLVMTypeRef>(types.LLVMVoidPtrType(),   // table ptr
             base_type_to_llvm_type(t),                          // key
             types.t_int32,                                    // valueTypeSize
-            types.LLVMVoidPtrType()                 // context
+            types.LLVMVoidPtrType(),                          // context
+            types.LLVMVoidPtrType()                           // at
             ))
     var tab_fun : LLVMOpaqueValue? = get_or_create_table_fn(llvm_module, types, fn_name, erase_type, fn_ptr)
     assert(tab_fun != null)
@@ -258,6 +364,15 @@ def public get_table_erase(g_builder : LLVMOpaqueBuilder?; llvm_module : LLVMOpa
 
 var public g_fn_types : table<string; LLVMTypeRef>
 
+// Set by init_jit when target_triple is a wasm target. Cross-compile path's
+// host-LLVM wasm32 codegen mishandles several user-provided hints (alwaysinline
+// over complex inlined bodies, certain loop-vectorize / unroll metadata). When
+// this flag is true, the LlvmJitVisitor skips ALL user hint application —
+// function-level [hint(...)] AND for/while-loop hints — and falls back to the
+// optimizer's default heuristics. Slight perf hit, but eliminates a class of
+// wasm32-only miscompiles.
+var public g_target_is_wasm = false
+
 def public LLVMAddFunctionWithType(mod : LLVMModuleRef; name : string; typ : LLVMTypeRef) {
     var rv = LLVMAddFunction(mod, name, typ)
     g_fn_types[name] = typ
@@ -265,25 +380,87 @@ def public LLVMAddFunctionWithType(mod : LLVMModuleRef; name : string; typ : LLV
 }
 
 
+var g_jit_clopts_parsed = false
+
+// LLVM's cost-model thresholds for unroll / partial-unroll / unroll-and-jam
+// are compiled-in cl::opt globals. opt(1) sets them indirectly via
+// cl::ParseCommandLineOptions before parsing the -passes string; daslang's
+// JIT path does not, so the same `default<O3>` pipeline lands different
+// IR shapes (rolled outer loops, no unroll-and-jam) than `opt` produces
+// on the same input.
+//
+// Bisected against the dasProfile benchmark suite (JIT mode, 16 tests):
+//   * spectral-norm 2.77x, native 1.44x, queen 1.39x, sha256 1.17x
+//   * dict/mandelbrot/exp marginal +1-3%
+//   * 8 others within +-2%
+//   * primes -9% (tight `for (i in 2..n) if (n%i==0) return false` loop —
+//     partial unroll bloats the early-exit path without enabling vectorization)
+//
+// The three permission flags (-unroll-allow-partial + the unroll-and-jam
+// pair) are load-bearing for spectral-norm/native. The threshold quartet
+// is what pushes queen from 1.05x to 1.39x.
 [macro_function]
-def public init_jit(cg_opt_level : uint) {
-    return if (is_in_completion() || is_compiling_macros())
-    return if (g_mod != null)    // prevent double init
+def public init_jit_clopts() {
+    return if (g_jit_clopts_parsed)
+    g_jit_clopts_parsed = true
+    var argv <- [
+        "daslang-jit",
+        "-unroll-threshold=400",
+        "-unroll-partial-threshold=600",
+        "-unroll-max-count=16",
+        "-unroll-allow-partial=true",
+        "-enable-unroll-and-jam=true",
+        "-allow-unroll-and-jam=true"
+    ]
+    unsafe {
+        LLVMParseCommandLineOptions(length(argv),
+            reinterpret<string const?>(addr(argv[0])),
+            "daslang JIT cl::opts")
+    }
+}
+
+[macro_function]
+def public init_jit(cg_opt_level : uint; target_triple : string = "") {
+    // also prevent double init (g_mod != null)
+    return if (is_in_completion() || is_compiling_macros() || g_mod != null)
     LLVMLinkInMCJIT()
     LLVMInitializeAllTargetInfos()
     LLVMInitializeAllTargets()
     LLVMInitializeAllTargetMCs()
     LLVMInitializeAllAsmPrinters()
+    init_jit_clopts()
     g_ctx = LLVMContextCreate()
     g_prim_t = new PrimitiveTypes(g_ctx)
-    LLVMContextSetOpaquePointers(g_ctx, 1)
-    if (LLVM_ENABLE_DIAGNOSTIC) {
-        set_context_diagnostics_to_log(g_ctx)
-    }
     g_failed = false
     g_fn_types |> clear()
     g_mod = LLVMModuleCreateWithNameInContext("llvm_jit_module", g_ctx)
     LLVMCreateJITCompilerForModule(g_engine, g_mod, cg_opt_level)
+    // For cross-compile targets (wasm32, etc.) pin the module's data layout
+    // to the TARGET's, not the host's, BEFORE any IR is built. LLVM constant-
+    // folds GEPs eagerly using the module's current layout — if the host has
+    // 8-byte pointers and the target has 4-byte, every for-loop end-pointer
+    // GEP bakes in the wrong stride and the loop never terminates. The native
+    // path (empty triple) keeps the host default.
+    g_target_is_wasm = target_triple |> starts_with("wasm")
+    if (!(target_triple |> empty())) {
+        // wasm32 target isn't always part of LLVMInitializeAllTargets in
+        // prebuilt LLVM.dll — call the explicit wasm initializer when needed.
+        if (g_target_is_wasm) {
+            LLVMInitializeWasmTarget()
+        }
+        // +simd128 / +nontrapping-fptoint is the feature set the wasm runtime
+        // archive is compiled with (see web/CMakeLists.txt). Required on wasm
+        // so vec4f returns are v128-in-register on both sides; meaningless
+        // (and potentially a target-machine-creation failure) on other
+        // cross-compile triples, so keep features empty there.
+        let features = g_target_is_wasm ? "+simd128,+nontrapping-fptoint" : ""
+        with_target_machine(target_triple, "", features, cg_opt_level) $(targetMachine : LLVMTargetMachineRef) {
+            let dl = LLVMCreateTargetDataLayout(targetMachine)
+            LLVMSetModuleDataLayout(g_mod, dl)
+            LLVMSetTarget(g_mod, target_triple)
+            LLVMDisposeTargetData(dl)
+        }
+    }
     static_if (LLVM_DEBUG_EVERYTHING) {
         let hostcpu = LLVMGetHostCPUName()
         let features = LLVMGetHostCPUFeatures()
@@ -298,6 +475,10 @@ def public init_jit(cg_opt_level : uint) {
     assume nounwind = attrs.nounwind
     assume willreturn = attrs.willreturn
     assume nocapture = attrs.nocapture
+    assume cold = attrs.cold
+    assume nofree = attrs.nofree
+    assume memory_inaccessible_rw = attrs.memory_inaccessible_rw
+    assume memory_arg_inaccessible_rw = attrs.memory_arg_inaccessible_rw
     build_jit_types()
 
     // add default functions
@@ -306,6 +487,10 @@ def public init_jit(cg_opt_level : uint) {
             fixed_array<LLVMTypeRef>(g_prim_t.get_type_string(), g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_exception, get_jit_exception())
     LLVMAddAttributeToFunction(jit_exception, noreturn)
+    // 'cold' tells opt that any branch ending in a jit_exception call is
+    // unlikely (panic/assert paths). Pairs with noreturn so block-placement
+    // sinks the failure block and keeps the hot path straight.
+    LLVMAddAttributeToFunction(jit_exception, cold)
     LLVMAddAttributeToFunctionArgumentRange(jit_exception, urange(0, 2), nocapture)
     // jit_call_or_fastcall(func,args *,context *)
     var jit_call_or_fastcall = LLVMAddFunctionWithType(g_mod, FN_JIT_CALL_OR_FASTCALL,
@@ -361,45 +546,62 @@ def public init_jit(cg_opt_level : uint) {
     LLVMAddGlobalMapping(g_engine, jit_get_shared_mnh, get_jit_get_shared_mnh())
     LLVMAddAttributesToFunction(jit_get_shared_mnh, fixed_array(nounwind, willreturn))
     LLVMAddAttributeToFunctionArgument(jit_get_shared_mnh, 1u, nocapture)
+    // Wasm-only: void * jit_get_globals_base ( Context * ); same shape for shared.
+    // Declared unconditionally (zero cost if unused); only called from llvm_jit.das
+    // when g_target_is_wasm. The native path keeps the inlined GEP+load — these
+    // helpers exist so the wasm32 runtime archive (which knows its own Context
+    // layout) resolves the right field offset.
+    var jit_get_globals_base = LLVMAddFunctionWithType(g_mod, FN_JIT_GET_GLOBALS_BASE,
+        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+            fixed_array<LLVMTypeRef>(g_prim_t.LLVMVoidPtrType())))
+    LLVMAddGlobalMapping(g_engine, jit_get_globals_base, get_jit_get_globals_base())
+    LLVMAddAttributesToFunction(jit_get_globals_base, fixed_array(nounwind, willreturn))
+    LLVMAddAttributeToFunctionArgument(jit_get_globals_base, 0u, nocapture)
+    var jit_get_shared_base = LLVMAddFunctionWithType(g_mod, FN_JIT_GET_SHARED_BASE,
+        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+            fixed_array<LLVMTypeRef>(g_prim_t.LLVMVoidPtrType())))
+    LLVMAddGlobalMapping(g_engine, jit_get_shared_base, get_jit_get_shared_base())
+    LLVMAddAttributesToFunction(jit_get_shared_base, fixed_array(nounwind, willreturn))
+    LLVMAddAttributeToFunctionArgument(jit_get_shared_base, 0u, nocapture)
     // jit_alloc_heap ( uint64_t mnh, context * )
     var jit_alloc_heap = LLVMAddFunctionWithType(g_mod, FN_JIT_ALLOC_HEAP,
         LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
             fixed_array<LLVMTypeRef>(g_prim_t.t_int32, g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_alloc_heap, get_jit_alloc_heap())
-    LLVMAddAttributesToFunction(jit_alloc_heap, fixed_array(nounwind, willreturn))
+    LLVMAddAttributesToFunction(jit_alloc_heap, fixed_array(nounwind, willreturn, nofree, memory_inaccessible_rw))
     LLVMAddAttributeToFunctionArgument(jit_alloc_heap, 1u, nocapture)
     // jit_alloc_persistent ( uint64_t mnh, context * )
     var jit_alloc_persistent = LLVMAddFunctionWithType(g_mod, FN_JIT_ALLOC_PERSISTENT,
         LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
             fixed_array<LLVMTypeRef>(g_prim_t.t_int32, g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_alloc_persistent, get_jit_alloc_persistent())
-    LLVMAddAttributesToFunction(jit_alloc_persistent, fixed_array(nounwind, willreturn))
+    LLVMAddAttributesToFunction(jit_alloc_persistent, fixed_array(nounwind, willreturn, nofree, memory_inaccessible_rw))
     LLVMAddAttributeToFunctionArgument(jit_alloc_persistent, 1u, nocapture)
     // void jit_free_heap ( void * bytes, uint32_t size, Context * context )
     var jit_free_heap = LLVMAddFunctionWithType(g_mod, FN_JIT_FREE_HEAP,
-        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+        LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(g_prim_t.LLVMVoidPtrType(), g_prim_t.t_int32, g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_free_heap, get_jit_free_heap())
-    LLVMAddAttributesToFunction(jit_free_heap, fixed_array(nounwind, willreturn))
+    LLVMAddAttributesToFunction(jit_free_heap, fixed_array(nounwind, willreturn, memory_arg_inaccessible_rw))
     LLVMAddAttributeToFunctionArgument(jit_free_heap, 0u, nocapture)
     LLVMAddAttributeToFunctionArgument(jit_free_heap, 2u, nocapture)
     // void jit_free_persistent ( void * bytes, Context * context )
     var jit_free_persistent = LLVMAddFunctionWithType(g_mod, FN_JIT_FREE_PERSISTENT,
-        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+        LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_free_persistent, get_jit_free_persistent())
-    LLVMAddAttributesToFunction(jit_free_persistent, fixed_array(nounwind, willreturn))
+    LLVMAddAttributesToFunction(jit_free_persistent, fixed_array(nounwind, willreturn, memory_arg_inaccessible_rw))
     LLVMAddAttributeToFunctionArgumentRange(jit_free_persistent, urange(0, 2), nocapture)
-    // void jit_array_lock ( Array & array, Context * context )
+    // void jit_array_lock ( Array & array, Context * context, LineInfoArg * at )
     var jit_array_lock = LLVMAddFunctionWithType(g_mod, FN_JIT_ARRAY_LOCK,
-        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+        LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_array_lock, get_jit_array_lock())
     LLVMAddAttributesToFunction(jit_array_lock, fixed_array(nounwind, willreturn))
     LLVMAddAttributeToFunctionArgumentRange(jit_array_lock, urange(0, 2), nocapture)
-    // void jit_array_unlock ( Array & array, Context * context )
+    // void jit_array_unlock ( Array & array, Context * context, LineInfoArg * at )
     var jit_array_unlock = LLVMAddFunctionWithType(g_mod, FN_JIT_ARRAY_UNLOCK,
-        LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+        LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(
                 g_prim_t.LLVMVoidPtrType(), // arr
                 g_prim_t.LLVMVoidPtrType(), // ctx
@@ -430,21 +632,22 @@ def public init_jit(cg_opt_level : uint) {
     LLVMAddGlobalMapping(g_engine, jit_str_cat, get_jit_str_cat())
     LLVMAddAttributesToFunction(jit_str_cat, fixed_array(nounwind, willreturn))
     LLVMAddAttributeToFunctionArgumentRange(jit_str_cat, urange(0, 3), nocapture)
-    // void jit_prologue ( void * line_info, int32_t stackSize, JitStackState * stackState, Context * context )
+    // void jit_prologue ( char * funcName, void * funcLineInfo, int32_t stackSize, JitStackState * stackState, Context * context, LineInfoArg * at )
     var jit_prologue = LLVMAddFunctionWithType(g_mod, FN_JIT_PROLOGUE,
         LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(
-                g_prim_t.get_type_string(),
-                g_prim_t.LLVMVoidPtrType(),
-                g_prim_t.t_int32,
-                LLVMPointerType(g_t_stack_state, 0u),
-                g_prim_t.LLVMVoidPtrType()
+                g_prim_t.get_type_string(),    // funcName
+                g_prim_t.LLVMVoidPtrType(),    // funcLineInfo
+                g_prim_t.t_int32,              // stackSize
+                LLVMPointerType(g_t_stack_state, 0u), // stackState
+                g_prim_t.LLVMVoidPtrType(),    // context
+                g_prim_t.LLVMVoidPtrType()     // at
             )
         )
     )
     LLVMAddGlobalMapping(g_engine, jit_prologue, get_jit_prologue())
     LLVMAddAttributesToFunction(jit_prologue, fixed_array(nounwind, willreturn))
-    LLVMAddAttributeToFunctionArgumentRange(jit_prologue, urange(3, 5), nocapture)
+    LLVMAddAttributeToFunctionArgumentRange(jit_prologue, urange(3, 6), nocapture)
     // void jit_epilogue ( JitStackState * stackState, Context * context )
     var jit_epilogue = LLVMAddFunctionWithType(g_mod, FN_JIT_EPILOGUE,
         LLVMFunctionType(g_prim_t.t_void,
@@ -485,7 +688,7 @@ def public init_jit(cg_opt_level : uint) {
     LLVMAddAttributeToFunctionArgumentRange(jit_iterator_iterate, urange(0, 3), nocapture)
     // void builtin_iterator_delete ( const Sequence & it, Context * context ) {
     var jit_iterator_delete = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_DELETE,
-        LLVMFunctionType(g_prim_t.t_int1,
+        LLVMFunctionType(g_prim_t.t_void,
             fixed_array<LLVMTypeRef>(LLVMPointerType(g_t_sequence, 0u), g_prim_t.LLVMVoidPtrType())))
     LLVMAddGlobalMapping(g_engine, jit_iterator_delete, get_jit_iterator_delete())
     LLVMAddAttributesToFunction(jit_iterator_delete, fixed_array(nounwind, willreturn))
@@ -501,11 +704,12 @@ def public init_jit(cg_opt_level : uint) {
     var jit_iterator_next = LLVMAddFunctionWithType(g_mod, FN_JIT_ITERATOR_NEXT,
         LLVMFunctionType(g_prim_t.t_int1,
             fixed_array<LLVMTypeRef>(LLVMPointerType(g_t_sequence, 0u), g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType(), g_prim_t.LLVMVoidPtrType())))
-    let simnode_interop_type = LLVMFunctionType(g_prim_t.LLVMVoidPtrType(),
+    // void jit_simnode_interop ( void * ptr, int argCount, TypeInfo ** types )
+    let simnode_interop_type = LLVMFunctionType(g_prim_t.t_void,
         fixed_array<LLVMTypeRef>(
-            g_prim_t.LLVMVoidPtrType(), // context
-            g_prim_t.t_int32,
-            g_prim_t.LLVMVoidPtrType() // argv
+            g_prim_t.LLVMVoidPtrType(), // ptr (placement-new buffer for SimNode_AotInteropBase)
+            g_prim_t.t_int32,           // argCount
+            g_prim_t.LLVMVoidPtrType()  // types
         )
     )
     var jit_simnode_interop = LLVMAddFunctionWithType(
@@ -632,35 +836,81 @@ def public build_block_type {
     ]
 }
 
+// opt_level: 0..3 — picks LLVMCodeGenOptLevel for codegen-side passes
+// use_host_cpu: when true, plumb the host CPU name + feature set into the
+//   TargetMachine. Without this, TargetTransformInfo returns a generic
+//   baseline cost model, which throttles loop unrolling, register-pressure
+//   estimation, and vectorization decisions for the IR-level pipeline
+//   driven by LLVMRunPasses. Use true for JIT and JIT-DLL-cache emission
+//   (the artifact only ever runs on this host); use false for redistributable
+//   exe/dll emission where the binary must run on any compatible CPU.
+// Build a TargetMachine for an arbitrary triple/cpu/features. Caller owns
+// triple/cpu/features (we do not LLVMDisposeMessage them — they are plain
+// das `string`s here, not heap-owned LLVM messages).
 [macro_function]
-def public with_default_target_machine(blk : block<(LLVMTargetMachineRef) : void>) {
-    LLVMInitializeAllTargetInfos()
-    LLVMInitializeAllTargets()
-    LLVMInitializeAllTargetMCs()
-    LLVMInitializeAllAsmPrinters()
-
-    // let triple = "x86_64-pc-linux-gnu"
-    let triple = LLVMGetDefaultTargetTriple()
-
-    // Find the target using the triple
+def public with_target_machine(triple, cpu, features : string; opt_level : uint;
+                               blk : block<(LLVMTargetMachineRef) : void>) {
     var target : LLVMTarget?
-    let error : string?
-    LLVMGetTargetFromTriple(triple, unsafe(addr(target)), error)
+    let rc = LLVMGetTargetFromTriple(triple, unsafe(addr(target)), null)
+    if (rc != 0 || target == null) {
+        panic("LLVM: unknown / unsupported target triple '{triple}'")
+    }
+
+    let cg_level = (
+        (opt_level >= 3u) ? LLVMCodeGenOptLevel.LLVMCodeGenLevelAggressive
+      : (opt_level >= 2u) ? LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault
+      : (opt_level >= 1u) ? LLVMCodeGenOptLevel.LLVMCodeGenLevelLess
+                          : LLVMCodeGenOptLevel.LLVMCodeGenLevelNone)
 
     let targetMachine = LLVMCreateTargetMachine(
         target,
         triple,
-        "", // CPU
-        "", // Features
-        LLVMCodeGenOptLevel.LLVMCodeGenLevelDefault,
+        cpu,
+        features,
+        cg_level,
         LLVMRelocMode.LLVMRelocPIC, // PIC in order to have shared object
         LLVMCodeModel.Default
     )
 
     invoke(blk, targetMachine)
-
-    LLVMDisposeMessage(triple)
     LLVMDisposeTargetMachine(targetMachine)
+}
+
+[macro_function]
+def public with_default_target_machine(opt_level : uint; use_host_cpu : bool;
+                                       blk : block<(LLVMTargetMachineRef) : void>) {
+    LLVMInitializeAllTargetInfos()
+    LLVMInitializeAllTargets()
+    LLVMInitializeAllTargetMCs()
+    LLVMInitializeAllAsmPrinters()
+
+    // host_jit_triple() returns the daslang-host toolchain's triple when it
+    // differs from LLVM.dll's default. On clang-mingw64, the prebuilt LLVM.dll
+    // (MSVC clang-cl-built) defaults to x86_64-pc-windows-msvc — emitting
+    // MSVC-ABI .o files that mingw's linker can't satisfy (_fltused etc).
+    // Empty string means "use LLVM default" (existing MSVC / linux / macOS
+    // builds where LLVM.dll's triple already matches the host).
+    let host_triple = host_jit_triple()
+    var triple_msg : string
+    var triple_owned_by_llvm = false
+    if (empty(host_triple)) {
+        triple_msg = LLVMGetDefaultTargetTriple()
+        triple_owned_by_llvm = true
+    } else {
+        triple_msg = host_triple
+    }
+    let cpu_msg = use_host_cpu ? LLVMGetHostCPUName() : ""
+    let features_msg = use_host_cpu ? LLVMGetHostCPUFeatures() : ""
+
+    with_target_machine(triple_msg, cpu_msg, features_msg, opt_level, blk)
+
+    if (use_host_cpu) {
+        LLVMDisposeMessage(cpu_msg)
+        LLVMDisposeMessage(features_msg)
+    }
+    if (triple_owned_by_llvm) {
+        LLVMDisposeMessage(triple_msg)
+    }
 }
 
 // @mod - module to dump to dll
@@ -668,30 +918,92 @@ def public with_default_target_machine(blk : block<(LLVMTargetMachineRef) : void
 // @path_to_dascript_lib - path to library, required on Windows. Has no effect on Linux.
 // @path_to_linker - path to clang-cl on Windows. By default we'll use clang-cl from LLVM package
 // on Windows, default otherwise.
-def public write_dll(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string; link_whole_lib : bool) {
-    with_default_target_machine() $(targetMachine : LLVMTargetMachineRef) {
+def public write_dll(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker, linker_string : string; link_whole_lib : bool) {
+    // JIT DLL cache: emitted artifact only ever runs on this host.
+    with_default_target_machine(3u, true) $(targetMachine : LLVMTargetMachineRef) {
         let error : string?
         let file = add_obj_extension(out_path)
         let filetype = LLVMCodeGenFileType.LLVMObjectFile
         LLVMTargetMachineEmitToFile(targetMachine, mod, file, filetype, error)
-        create_shared_library(file, add_dll_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", true, link_whole_lib)
+        let ok = create_shared_library(file, add_dll_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", "{linker_string}", true, link_whole_lib)
+        if (!ok) {
+            panic("write_dll: link failed for {out_path}")
+        }
     }
 }
 
-def public write_exe(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker : string; link_whole_lib : bool) {
-    with_default_target_machine() $(targetMachine : LLVMTargetMachineRef) {
+def public write_exe(mod : LLVMOpaqueModule?; out_path : string; path_to_dascript_lib, path_to_linker, linker_string : string; link_whole_lib : bool) {
+    // Standalone exe: must run on any compatible CPU, keep generic.
+    with_default_target_machine(3u, false) $(targetMachine : LLVMTargetMachineRef) {
         let error : string?
         let file = add_obj_extension(out_path)
         let filetype = LLVMCodeGenFileType.LLVMObjectFile
         LLVMTargetMachineEmitToFile(targetMachine, mod, file, filetype, error)
-        create_shared_library(file, add_exe_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", false, link_whole_lib)
+        let ok = create_shared_library(file, add_exe_extension(out_path), "{path_to_dascript_lib}", "{path_to_linker}", "{linker_string}", false, link_whole_lib)
+        if (!ok) {
+            panic("write_exe: link failed for {out_path}")
+        }
+    }
+}
+
+// Locate the wasm32 libDaScript_runtime.a. If `override_path` is non-empty it
+// wins (caller-supplied path, e.g. from --jit-runtime-lib CLI flag) and a
+// missing file logs a warning. Otherwise auto-locates the archive at
+// <das_root>/web/output/lib/liblibDaScript_runtime.a.
+def private find_runtime_lib(override_path : string) : Option<string> {
+    if (!(override_path |> empty())) {
+        if (stat(override_path).is_valid) return some(override_path)
+        to_log(LOG_WARNING, "wasm: --jit-runtime-lib path does not exist: {override_path}\n")
+        return none(type<string>)
+    }
+    let candidate = "{get_das_root()}/web/output/lib/liblibDaScript_runtime.a"
+    return stat(candidate).is_valid ? some(candidate) : none(type<string>)
+}
+
+// Cross-compile a module to wasm32 and link to a runnable .wasm via emcc.
+// triple defaults to wasm32-unknown-emscripten (matches the runtime archive).
+// path_to_emcc may be empty; link_wasm falls back to bin/emcc then PATH.
+// needs_runtime gates inclusion of libDaScript_runtime.a in the link:
+// true → archive is linked when found, otherwise warning + link without;
+// false → archive is omitted unconditionally (pure programs).
+// explicit_runtime is an optional caller-supplied archive path.
+def public write_wasm(mod : LLVMOpaqueModule?; out_path : string; triple : string; path_to_emcc : string; needs_runtime : bool; explicit_runtime : string = "") {
+    LLVMInitializeWasmTarget()
+    let runtime_lib = find_runtime_lib(explicit_runtime)
+    if (needs_runtime && is_none(runtime_lib)) {
+        to_log(LOG_WARNING, "wasm: runtime symbols referenced but libDaScript_runtime.a not found at web/output/lib/ — run the web/ emscripten build to link in the runtime, or pass --jit-runtime-lib=<path>\n")
+    }
+    let real_triple = (!(triple |> empty()) ? triple : "wasm32-unknown-emscripten")
+    // Match the feature set web/CMakeLists.txt compiles the runtime archive with
+    // (-msimd128 -mnontrapping-fptoint). Without +simd128 the host LLVM lowers
+    // vec4f returns via sret while emcc returns them as native v128, causing
+    // function-signature mismatches at wasm-ld link time and `unreachable`
+    // traps at runtime on any helper that returns vec4f (jit_invoke_block_*,
+    // jit_call_*).
+    let features = "+simd128,+nontrapping-fptoint"
+    with_target_machine(real_triple, "", features, 2u) $(targetMachine : LLVMTargetMachineRef) {
+        // Pin the module's data layout + triple so codegen sizes pointers as
+        // 32-bit. Without this the module inherits host layout and produces
+        // wrong-sized loads/stores in the emitted wasm.
+        let dl = LLVMCreateTargetDataLayout(targetMachine)
+        LLVMSetModuleDataLayout(mod, dl)
+        LLVMSetTarget(mod, real_triple)
+        LLVMDisposeTargetData(dl)
+
+        let error : string?
+        let obj = add_obj_extension(out_path)
+        let filetype = LLVMCodeGenFileType.LLVMObjectFile
+        LLVMTargetMachineEmitToFile(targetMachine, mod, obj, filetype, error)
+        let runtime_arg = needs_runtime ? (runtime_lib ?? "") : ""
+        let ok = link_wasm(obj, "{out_path}.wasm", runtime_arg, path_to_emcc)
+        if (!ok) {
+            panic("write_wasm: link failed for {out_path}.wasm")
+        }
     }
 }
 
 def public build_string_constant(message : string) {
-    if (g_str2v |> key_exists(message)) {
-        return g_str2v[message]
-    }
+    if (g_str2v |> key_exists(message)) return g_str2v[message]
     let msg_size = uint(length(message))
     var strType = LLVMArrayType(g_prim_t.t_int8, msg_size + 1u)
     // Prefix all string variable names to not intersect with function names.
@@ -722,9 +1034,7 @@ def public get_empty_string(builder : LLVMOpaqueBuilder?) {
 }
 
 def public get_string_constant_ptr(builder : LLVMOpaqueBuilder?; message : string) {
-    if (message |> length == 0) {
-        return LLVMConstPointerNull(g_prim_t.get_type_string())
-    }
+    if (empty(message)) return LLVMConstPointerNull(g_prim_t.get_type_string())
     var str = build_string_constant(message)
     return LLVMBuildPointerCast(builder, str, g_prim_t.get_type_string(), "string_constant {message}")
 }
@@ -809,14 +1119,9 @@ def public type_to_llvm_abi_type(t : TypeDeclPtr) {
 
 def public type_to_llvm_type(t : TypeDeclPtr) {
     var res : LLVMOpaqueType?
-    if (t.dim |> length != 0) {
-        var ndt = clone_type(t)
-        ndt.dim |> clear()
-        res = type_to_llvm_type(ndt)
-        let ndim = length(t.dim)
-        for (i in range(ndim)) {
-            res = LLVMArrayType(res, uint(t.dim[ndim - 1 - i]))
-        }
+    if (t.baseType == Type.tFixedArray && t.firstType != null) {
+        // natural recursion: [outer x [inner x elem]] — same nesting the reversed flat walk built
+        res = LLVMArrayType(type_to_llvm_type(t.firstType), uint(t.fixedDim))
     } elif (t.isPointer) {
         res = get_type_pointer(t.firstType)
     } elif (t.isWorkhorseType) {
@@ -836,31 +1141,35 @@ def public type_to_llvm_type(t : TypeDeclPtr) {
     } elif (t.baseType == Type.tBlock) {
         res = g_t_block
     } elif (t.baseType == Type.tArray) {
-        // array type
+        // array type — must mirror Array layout in arraytype.h byte-for-byte
         var array_fields <- fixed_array(
             g_prim_t.LLVMVoidPtrType(),// char * data
-            g_prim_t.t_int32,                    // uint32_t size
-            g_prim_t.t_int32,                    // uint32_t capacity
-            g_prim_t.t_int32,                    // uint32_t lock
+            g_prim_t.t_int64,                    // uint64_t size
+            g_prim_t.t_int64,                    // uint64_t capacity
             g_prim_t.t_int32,                    // uint32_t magic
-            g_prim_t.t_int32                     // uint32_t flags
+            g_prim_t.t_int32,                    // uint32_t lock
+            g_prim_t.t_int32,                    // uint32_t flags
+            g_prim_t.t_int32                     // _pad_after_flags (mirror trailing alignment pad)
         )
         if (t.firstType != null) {
             array_fields[int(JIT_ARRAY.DATA)] = LLVMPointerType(type_to_llvm_type(t.firstType), 0u)
         }
         res = g_prim_t |> StructType(array_fields)
     } elif (t.baseType == Type.tTable) {
-        // table type
+        // table type — must mirror Table layout (Array base + keys/hashes/tombstones).
+        // The explicit _pad_after_flags slot forces keys onto an 8-aligned offset on
+        // 32-bit ABIs, matching the C++ Table (where Table::keys lives at sizeof(Array)==40).
         var table_fields <- fixed_array(
             g_prim_t.LLVMVoidPtrType(),// char * data
-            g_prim_t.t_int32,                    // uint32_t size
-            g_prim_t.t_int32,                    // uint32_t capacity
+            g_prim_t.t_int64,                    // uint64_t size
+            g_prim_t.t_int64,                    // uint64_t capacity
+            g_prim_t.t_int32,                    // uint32_t magic
             g_prim_t.t_int32,                    // uint32_t lock
             g_prim_t.t_int32,                    // uint32_t flags
-            g_prim_t.t_int32,                    // uint32_t magic
+            g_prim_t.t_int32,                    // _pad_after_flags
             g_prim_t.LLVMVoidPtrType(),// char * keys
-            g_prim_t.LLVMVoidPtrType(),// char * hashes
-            g_prim_t.t_int32)
+            g_prim_t.LLVMVoidPtrType(),// TableHashKey * hashes
+            g_prim_t.t_int64)                    // uint64_t tombstones
         if (t.firstType != null) {
             table_fields[int(JIT_TABLE.KEYS)] = LLVMPointerType(type_to_llvm_type(t.firstType), 0u)
         }
@@ -894,11 +1203,13 @@ def public type_to_llvm_type(t : TypeDeclPtr) {
 }
 
 def public dim_element_type_to_llvm_type(typ : TypeDeclPtr) {
-    if (typ.dim |> length == 0) {
+    if (typ.baseType != Type.tFixedArray) {
         return type_to_llvm_type(typ)
     } else {
         var ndt = clone_type(typ)
-        ndt.dim |> clear()
+        while (ndt.baseType == Type.tFixedArray && ndt.firstType != null) {   // scalar element at the chain leaf
+            ndt = clone_type(ndt.firstType)
+        }
         return type_to_llvm_type(ndt)
     }
 }
@@ -924,7 +1235,7 @@ def public LLVMBuildLoadData2Aligned(builder : LLVMOpaqueBuilder?; var typ : LLV
 }
 
 def public LLVMBuildMemSet(builder : LLVMOpaqueBuilder?; ptr : LLVMOpaqueValue?; value : uint64; length : uint64; alignment : uint) {
-    LLVMBuildMemSet(builder, ptr, LLVMConstInt(g_prim_t.t_int8, value, 0), g_prim_t.ConstI32(length), uint(alignment))
+    LLVMBuildMemSet(builder, ptr, LLVMConstInt(g_prim_t.t_int8, value, 0), g_prim_t.ConstI32(length), alignment)
 }
 
 def public expand_scalar(builder : LLVMOpaqueBuilder?; scalar : LLVMOpaqueValue?; vecType : TypeDeclPtr) {

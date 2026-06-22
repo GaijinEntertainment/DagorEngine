@@ -56,7 +56,7 @@ struct AnimationClip
   bool duplicate;
   bool inPlaceAnimation;
   bool immediateAnimTreeTimerSync;
-  const AnimV20::AnimData *animation;
+  Ptr<AnimV20::AnimData> animation;
   using Point3Channel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
   using QuaternionChannel = eastl::pair</*animation node id*/ dag::Index16, /*node index*/ dag::Index16>;
   dag::Vector<Point3Channel> channelTranslation;

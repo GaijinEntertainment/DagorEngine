@@ -267,6 +267,7 @@ protected:
 
   int selectMode;
   int currentMode;
+  int hideSplinesAndPolygonsMode = -1;
 
   Tab<SplineObject *> splines;
   GeomObject *waterGeom;
@@ -296,8 +297,6 @@ protected:
 
   IObjectCreator *objCreator;
   bool areLandHoleBoxesVisible;
-  bool hideSplines;
-  bool hidePolygons;
   bool hideNotes;
   bool usePixelPerfectSelection;
   bool selectOnlyIfEntireObjectInRect;

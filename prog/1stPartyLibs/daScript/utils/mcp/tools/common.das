@@ -1,7 +1,5 @@
 options gen2
 options rtti
-options no_unused_function_arguments = false
-options no_unused_block_arguments = false
 
 require daslib/json_boost public
 require daslib/strings_boost public
@@ -26,10 +24,23 @@ struct ToolResult {
 
 // query matching: case-insensitive substring by default, "=foo" for exact case-sensitive
 def symbol_matches(name, query : string) : bool {
-    if (length(query) > 0 && first_character(query) == '=') {
-        return name == slice(query, 1)
-    }
+    if (!empty(query) && first_character(query) == '=') return name == slice(query, 1)
     return find(to_lower(name), to_lower(query)) >= 0
+}
+
+// True when `name` looks like a path-qualified module ("daslib/ast", "foo/bar").
+// Used to gate the auto-`daslib/` fallback: only single-token names get rewritten.
+def is_qualified_module_name(name : string) : bool {
+    return find(name, "/") >= 0
+}
+
+// Result of an attempt by an MCP tool helper that compiles a stub-with-`require`.
+// `retryable=false` means the failure happened before compile (e.g. temp-file write),
+// so retrying with `daslib/<name>` cannot help.
+struct TryResult {
+    text : string
+    ok : bool
+    retryable : bool
 }
 
 def make_tool_result(text : string; is_error : bool = false) : string {
@@ -37,6 +48,22 @@ def make_tool_result(text : string; is_error : bool = false) : string {
     result.isError = is_error
     result.content |> emplace(ContentItem(_type = "text", text = text))
     return sprint_json(result, false)
+}
+
+// Validate the `project` argument shared across MCP subtools. Empty is fine
+// (means "no project, default file access"). Non-empty must point at an
+// existing regular `.das_project` file. Returns empty on success, otherwise
+// a focused error suitable for `make_tool_result(...)`. Catches the common
+// failure mode where callers pass a directory or a non-project file and the
+// underlying compile_file() surfaces a misleading "missing prerequisite".
+def validate_project_arg(project : string) : string {
+    if (empty(project)) return ""
+    if (!ends_with(project, ".das_project")) return "invalid 'project' argument: '{project}' — expected a path to a .das_project file"
+    let st = stat(project)
+    if (!st.is_valid) return "'project' file not found: '{project}'"
+    if (st.is_dir) return "'project' is a directory, not a .das_project file: '{project}'"
+    if (!st.is_reg) return "'project' is not a regular file: '{project}'"
+    return ""
 }
 
 def write_deduped(var writer : StringBuilderWriter; messages : array<string>; prefix : string = "  ") {
@@ -65,6 +92,8 @@ def compile_and_simulate(file : string; project : string = ""; blk : block<(prog
 }
 
 def compile_and_simulate_ctx(file : string; project : string = ""; blk : block<(program : smart_ptr<Program>; var ctx : smart_ptr<Context>; issues : string) : string>) : string {
+    let proj_err = validate_project_arg(project)
+    if (!empty(proj_err)) return make_tool_result(proj_err, true)
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
@@ -97,6 +126,8 @@ def compile_program(file : string; _export_all : bool; blk : block<(program : sm
 }
 
 def compile_program(file : string; _export_all : bool; _no_opt : bool; project : string = ""; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
+    let proj_err = validate_project_arg(project)
+    if (!empty(proj_err)) return make_tool_result(proj_err, true)
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
@@ -116,7 +147,7 @@ def compile_program(file : string; _export_all : bool; _no_opt : bool; project :
                     result = "Compilation failed:\n{issues}"
                     had_error = true
                 } else {
-                    simulate(program) $(sok; ctx; serrors) {
+                    simulate(program) $(sok; _ctx; serrors) {
                         if (!sok) {
                             result = "Simulation failed:\n{serrors}"
                             had_error = true
@@ -136,6 +167,8 @@ def compile_only(file : string; _export_all : bool; project : string = ""; blk :
 }
 
 def compile_only(file : string; _export_all : bool; _no_opt : bool; project : string = ""; _lint : bool = false; blk : block<(program : smart_ptr<Program>; issues : string) : string>) : string {
+    let proj_err = validate_project_arg(project)
+    if (!empty(proj_err)) return make_tool_result(proj_err, true)
     var inscope access <- make_file_access(project)
     var result : string
     var had_error = false
@@ -173,9 +206,7 @@ def arg_needs_documenting(tt) : bool {
 def write_func_signature(var w : StringBuilderWriter; func) {
     var has_args = false
     for (i in range(length(func.arguments))) {
-        if (!arg_needs_documenting(func.arguments[i]._type)) {
-            continue
-        }
+        if (!arg_needs_documenting(func.arguments[i]._type)) continue
         if (!has_args) {
             write(w, "(")
             has_args = true
@@ -205,7 +236,7 @@ def write_handled_type(var w : StringBuilderWriter; value : Annotation const) {
         write(w, "  // C++ {value.cppName}")
     }
     write(w, "\n")
-    for_each_field(*ann) $(name, cppName, xtype, offset) {
+    for_each_field(*ann) $(name, cppName, xtype, _offset) {
         if (!empty(cppName) && cppName != name) {
             write(w, "    {name} : {describe(xtype)}  // C++ {cppName}\n")
         } else {
@@ -220,13 +251,9 @@ def write_function_list(var writer : StringBuilderWriter; program : smart_ptr<Pr
     var generic_instances : array<string>
     var class_methods : array<string>
     for_each_function(thisMod, "") $(func) {
-        if (func.flags.builtIn) {
-            return
-        }
+        if (func.flags.builtIn) return
         var line = ""
-        if (func.flags._lambda) {
-            return
-        }
+        if (func.flags._lambda) return
         if (func.fromGeneric != null) {
             line = build_string() $(var w) {
                 write(w, "  def {func.fromGeneric.name}")
@@ -276,106 +303,122 @@ def get_daslang_exe() : string {
     return get_das_exe()
 }
 
-// Run an external command, capture stdout+stderr, return exit_code.
-// `args[0]` is the executable; remaining elements are positional arguments.
-// timeout_sec > 0 kills the process tree after that many seconds (returns popen_timed_out).
-// timeout_sec <= 0 means no timeout.
+// ── MCP subtool runner ──────────────────────────────────────────────
 //
-// Argv-based: `popen_argv` (Windows: CreateProcess; Unix: fork+execvp) bypasses
-// the shell entirely. No cmd.exe quote-stripping, no /bin/sh `$()`/backtick
-// expansion — every argv element reaches the child verbatim. Callers don't
-// (and shouldn't) quote arguments themselves.
-def run_and_capture(args : array<string>; var output : string&; timeout_sec : float = 0.0) : int {
-    var captured : string
-    let exit_code = unsafe(popen_argv(args, timeout_sec, $(f) {
-        if (f != null) {
-            captured := unsafe(fread_to_eof(f))
+// Why subprocess: in-process compile_file / RTTI walks leak C++-side
+// [function_macro] and [call_macro] registrations into the long-lived MCP
+// daslang process. A second call against an edited .das file sees the OLD
+// macros. Spawning a fresh daslang.exe per call resets that state entirely.
+//
+// Subtool contract:
+//   - Lives at utils/mcp/subtools/<subtool_name>.das.
+//   - [export] def main reads positional argv via get_command_line_arguments().
+//   - Prints the FINAL tool-result envelope (the full make_tool_result(...) JSON)
+//     to stdout. The wrapper passes it through verbatim — no extra wrapping.
+//   - Exits 0 on success AND on tool-level failure (e.g. compile errors are a
+//     successful tool run that reports isError=true). Exit non-0 ONLY on
+//     catastrophic failure (cannot read args, internal panic).
+// Inside an MCP subtool's `[export] def main`, locate the caller-supplied
+// args inside daslang's full argv. Conventional invocation:
+//   daslang.exe utils/mcp/subtools/<name>.das -- <arg1> <arg2> ...
+// Returns the args after `--`. Falls back to args[2..] (skip exe + script
+// path) if no `--` is present, so subtools can also be invoked manually
+// for debugging without the separator.
+def subtool_user_args(args : array<string>) : array<string> {
+    var out : array<string>
+    var i = 0
+    while (i < length(args)) {
+        if (args[i] == "--") {
+            i++
+            while (i < length(args)) {
+                out |> push(args[i])
+                i++
+            }
+            return <- out
         }
-    }))
-    output := captured
-    return exit_code
+        i++
+    }
+    out |> reserve(max(0, length(args) - 2))
+    for (j in range(2, length(args))) {
+        out |> push(args[j])
+    }
+    return <- out
+}
+
+// daslang.exe CLI flags must come BEFORE the script path. `-project_root <P>`
+// triggers `require_dynamic_modules` at daslang startup against <P>/modules/*/.das_module,
+// so the subtool's compile_file() picks up daspkg-style native paths
+// (e.g. require imgui/X resolving via D:/IMGUI_DEMO/modules/dasImgui/.das_module).
+// `--` is critical: without it, daslang treats positional argv as extra
+// .das files to load AND auto-runs each. With `--`, daslang stops parsing
+// its own options and just exposes the rest via get_command_line_arguments().
+def public build_subtool_argv(exe, subtool_path : string;
+                              args : array<string>;
+                              project_root : string;
+                              load_modules : array<string> = array<string>()) : array<string> {
+    var argv <- [exe]
+    if (!empty(project_root)) {
+        argv |> push("-project_root")
+        argv |> push(project_root)
+    }
+    argv |> reserve(length(argv) + 2 * length(load_modules) + 2 + length(args))
+    for (lm in load_modules) {
+        argv |> push("-load_module")
+        argv |> push(lm)
+    }
+    argv |> push(subtool_path)
+    argv |> push("--")
+    argv |> push_from(args)
+    return <- argv
+}
+
+def run_mcp_subtool(subtool_name : string; args : array<string>;
+                    project_root : string = "";
+                    load_modules : array<string> = array<string>();
+                    timeout_sec : float = 120.0) : string {
+    let exe = get_daslang_exe()
+    if (empty(exe)) return make_tool_result("Cannot determine daslang executable path", true)
+    let subtool_path = path_join(get_das_root(), "utils/mcp/subtools/{subtool_name}.das")
+    let argv <- build_subtool_argv(exe, subtool_path, args, project_root, load_modules)
+    var output : string
+    let exit_code = run_and_capture(argv, output, timeout_sec)
+    if (exit_code == popen_timed_out) return make_tool_result("MCP subtool '{subtool_name}' timed out after {timeout_sec}s:\n{output}", true)
+    if (exit_code != 0) return make_tool_result("MCP subtool '{subtool_name}' failed (exit {exit_code}):\n{output}", true)
+    // The subtool emits a single-line ToolResult JSON object on stdout, but run_and_capture merges in any
+    // compiler / dyn-module diagnostics printed before it — e.g. `Warning: local 'X' shadows global — using
+    // local` from a `-load_module` shadow, or a loaded module's compile-error report (which contains daslang
+    // source snippets with `{`). Both print at the child's startup, before the subtool's `main`, and a broken
+    // module does NOT abort the run (require_dynamic_modules continues), so the subtool still exits 0.
+    // The server splices this return value verbatim into the `result` field, so a stray preamble desyncs the
+    // JSON-RPC stream (same class as the 776c10658 GC-leak-dump fix). Anchor on the ToolResult envelope marker
+    // (`content` is its first field) rather than the first `{`, which a source-snippet preamble would match.
+    let envStart = find(output, "\{\"content")
+    if (envStart > 0) {
+        output = strip(slice(output, envStart))
+    }
+    return output
 }
 
 // ── Temp file utilities ──────────────────────────────────────────────
 
 // Returns a unique temp .das file path that won't collide with concurrent processes.
 def make_temp_das_file() : string {
-    return "{get_das_root()}/_mcp_stub_{ref_time_ticks()}.das"
+    return path_join(get_das_root(), "_mcp_stub_{ref_time_ticks()}.das")
 }
 
 // ── File path utilities ──────────────────────────────────────────────
 
 def resolve_path(path : string) : string {
-    if (empty(path)) {
-        return get_das_root()
-    }
-    if (length(path) > 0 && first_character(path) != '/' && find(path, ":") < 0) {
-        return "{get_das_root()}/{path}"
-    }
-    return path
+    if (empty(path)) return get_das_root()
+    // `find(path, ":") == 1` preserves Windows drive-relative paths (`C:foo`):
+    // std::filesystem doesn't classify them as absolute (no trailing separator),
+    // so they'd otherwise be joined under das_root and produce an invalid path.
+    if (is_absolute(path) || find(path, ":") == 1) return path
+    return path_join(get_das_root(), path)
 }
 
 def make_relative_path(path, root : string) : string {
-    var result = path
-    if (find(result, root) == 0) {
-        result = slice(result, length(root) + 1)
-    }
-    return replace(result, "\\", "/")
-}
-
-// Expand a glob pattern (e.g. "utils/mcp/tools/*.das") into a list of file paths
-def expand_glob(pattern : string; var result : array<string>) {
-    let last_slash = max(rfind(pattern, "/"), rfind(pattern, "\\"))
-    var dir_part = "."
-    var file_pattern = pattern
-    if (last_slash >= 0) {
-        dir_part = slice(pattern, 0, last_slash)
-        file_pattern = slice(pattern, last_slash + 1)
-    }
-    var matches : array<string>
-    dir(dir_part) $(fname) {
-        if (fname == "." || fname == "..") {
-            return
-        }
-        if (glob_match(file_pattern, fname)) {
-            if (dir_part == ".") {
-                matches |> push(fname)
-            } else {
-                matches |> push("{dir_part}/{fname}")
-            }
-        }
-    }
-    sort(matches)
-    result |> reserve(length(result) + length(matches))
-    for (m in matches) {
-        result |> push(m)
-    }
-}
-
-// Parse file argument: comma- or newline-separated list of files, dirs, and
-// globs (any part may contain `*` / `?` wildcards, expanded via expand_glob).
-def parse_file_list(file : string; var result : array<string>) {
-    if (find(file, ",") < 0 && find(file, "\n") < 0) {
-        let part = strip(file)
-        if (empty(part)) {
-            return
-        }
-        if (find(part, "*") >= 0 || find(part, "?") >= 0) {
-            expand_glob(part, result)
-        } else {
-            result |> push(part)
-        }
-        return
-    }
-    for (raw in split_by_chars(file, ",\n")) {
-        let part = strip(raw)
-        if (empty(part)) {
-            continue
-        }
-        if (find(part, "*") >= 0 || find(part, "?") >= 0) {
-            expand_glob(part, result)
-        } else {
-            result |> push(part)
-        }
-    }
+    var err : string
+    let rel = relative(path, root, err)
+    return to_generic_path(empty(rel) ? path : rel)
 }

@@ -240,6 +240,7 @@ public:
   }
 
   ProgramID getDebugProgram() const { return debugProgId; }
+  ProgramID getStubComputeProgram() const { return stubComputeProgId; }
   ProgramID getRotateProgram(VkSurfaceTransformFlagBitsKHR transform)
   {
     if (transform == VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR)
@@ -336,10 +337,12 @@ private:
   eastl::optional<ShaderInfo::CreationInfo> getShaderCreationInfo(DeviceContext &ctx, const CombinedChunkModules &modules,
     const ShaderSource &source);
 
+  void initStubComputeProg(DeviceContext &dc);
   void initDebugProg(bool has_bindless, DeviceContext &dc);
   void initRotateProg(bool has_bindless, DeviceContext &dc);
   void initShaders(DeviceContext &ctx);
 
+  ProgramID stubComputeProgId;
   ProgramID debugProgId;
   ProgramID rotate90ProgId;
   ProgramID rotate180ProgId;

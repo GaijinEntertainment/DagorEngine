@@ -61,19 +61,27 @@ def install_new_thread_local_debug_agent(var agentPtr) {
 }
 
 // das::Array. should we bind C++ structure?
+//
+// IMPORTANT: keep this struct byte-compatible with C++ `das::Array` in
+// include/daScript/misc/arraytype.h. The `_pad_after_flags` field mirrors
+// the explicit pad added to the C++ struct to make Table::keys land at the
+// same offset on every ABI (clang/Itanium 32-bit would otherwise reuse base
+// trailing padding and put keys 4 bytes earlier than MSVC).
 struct DapiArray {
     data : void?
-    size : uint
-    capacity : uint
+    size : uint64
+    capacity : uint64
     lock : uint
     magic : uint
     flags : bitfield<_shared; _hopeless>
+    _pad_after_flags : uint
 }
 
 // das::Table. should we bind C++ structure?
 struct DapiTable : DapiArray {
     keys : void?
     hashes : uint?
+    tombstones : uint64
 }
 
 // das::Block
@@ -106,7 +114,7 @@ class DapiDataWalker {
     def abstract canVisitStructure(ps : void?; si : StructInfo) : bool
     def abstract canVisitDim(ps : void?; ti : TypeInfo) : bool
     def abstract canVisitArray(pa : void?; ti : TypeInfo) : bool
-    def abstract canVisitArrayData(ti : TypeInfo; count : uint) : bool
+    def abstract canVisitArrayData(ti : TypeInfo; count : uint64) : bool
     def abstract canVisitTuple(ps : void?; ti : TypeInfo) : bool
     def abstract canVisitVariant(ps : void?; ti : TypeInfo) : bool
     def abstract canVisitTable(ps : void?; ti : TypeInfo) : bool
@@ -125,19 +133,19 @@ class DapiDataWalker {
     def abstract afterTupleEntry(ps : void?; ti : TypeInfo; pv : void?; idx : int; last : bool) : void
     def abstract beforeVariant(ps : void?; ti : TypeInfo) : void
     def abstract afterVariant(ps : void?; ti : TypeInfo) : void
-    def abstract beforeArrayData(ps : void?; stride : uint; count : uint; ti : TypeInfo) : void
-    def abstract afterArrayData(ps : void?; stride : uint; count : uint; ti : TypeInfo) : void
-    def abstract beforeArrayElement(ps : void?; ti : TypeInfo; pe : void?; index : uint; last : bool) : void
-    def abstract afterArrayElement(ps : void?; ti : TypeInfo; pe : void?; index : uint; last : bool) : void
+    def abstract beforeArrayData(ps : void?; stride : uint; count : uint64; ti : TypeInfo) : void
+    def abstract afterArrayData(ps : void?; stride : uint; count : uint64; ti : TypeInfo) : void
+    def abstract beforeArrayElement(ps : void?; ti : TypeInfo; pe : void?; index : uint64; last : bool) : void
+    def abstract afterArrayElement(ps : void?; ti : TypeInfo; pe : void?; index : uint64; last : bool) : void
     def abstract beforeDim(ps : void?; ti : TypeInfo) : void
     def abstract afterDim(ps : void?; ti : TypeInfo) : void
     def abstract beforeArray(pa : DapiArray; ti : TypeInfo) : void
     def abstract afterArray(pa : DapiArray; ti : TypeInfo) : void
     def abstract beforeTable(pa : DapiTable; ti : TypeInfo) : void
-    def abstract beforeTableKey(pa : DapiTable; ti : TypeInfo; pk : void?; ki : TypeInfo; index : uint; last : bool) : void
-    def abstract afterTableKey(pa : DapiTable; ti : TypeInfo; pk : void?; ki : TypeInfo; index : uint; last : bool) : void
-    def abstract beforeTableValue(pa : DapiTable; ti : TypeInfo; pv : void?; kv : TypeInfo; index : uint; last : bool) : void
-    def abstract afterTableValue(pa : DapiTable; ti : TypeInfo; pv : void?; kv : TypeInfo; index : uint; last : bool) : void
+    def abstract beforeTableKey(pa : DapiTable; ti : TypeInfo; pk : void?; ki : TypeInfo; index : uint64; last : bool) : void
+    def abstract afterTableKey(pa : DapiTable; ti : TypeInfo; pk : void?; ki : TypeInfo; index : uint64; last : bool) : void
+    def abstract beforeTableValue(pa : DapiTable; ti : TypeInfo; pv : void?; kv : TypeInfo; index : uint64; last : bool) : void
+    def abstract afterTableValue(pa : DapiTable; ti : TypeInfo; pv : void?; kv : TypeInfo; index : uint64; last : bool) : void
     def abstract afterTable(pa : DapiTable; ti : TypeInfo) : void
     def abstract beforeRef(ps : void?; ti : TypeInfo) : void
     def abstract afterRef(ps : void?; ti : TypeInfo) : void

@@ -16,19 +16,20 @@ class AnimPostBlendCtrlAdapter
   // called once at load: allocate param ids and read configuration from `blk`
   def abstract createNode(var graph : AnimationGraph; var blk : DataBlock) : void
   // called once per animchar instance: resolve node indices etc. against `tree`
-  def abstract init(var st : IPureAnimStateHolder; tree : GeomNodeTree) : void
+  def abstract init(var st : AnimGraphStateHolder; tree : GeomNodeTree) : void
   // called every frame: act on the skeleton (`tree`) using state params (`st`) at weight `wt`
-  def abstract process(var st : IPureAnimStateHolder; wt : float; var tree : GeomNodeTree;
+  def abstract process(var st : AnimGraphStateHolder; wt : float; var tree : GeomNodeTree;
                        var ctx : AnimPostBlendCtrlContext) : void
   // optional per-frame advance independent of blending weight
-  def abstract advance(var st : IPureAnimStateHolder; dt : float) : void
+  def abstract advance(var st : AnimGraphStateHolder; dt : float) : void
   // reset per-instance state params to their defaults
-  def abstract setDefaultState(var st : IPureAnimStateHolder) : void
+  def abstract setDefaultState(var st : AnimGraphStateHolder) : void
+  def abstract renderDebug(var st : AnimGraphStateHolder) : void
 
 
 [generic]
 def anim_graph_enqueueState(var anim_graph : AnimationGraph;
-                            var state : IAnimStateHolder;
+                            var state : AnimGraphStateHolder;
                             state_idx : int;
                             force_dur : float = -1.f;
                             force_speed : float = -1.f)

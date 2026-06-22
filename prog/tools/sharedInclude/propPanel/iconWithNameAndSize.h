@@ -55,6 +55,8 @@ public:
     return id;
   }
 
+  int getLoadedSize() const { return loadedSize; }
+
 private:
   SimpleString fileName;
   IconId id = IconId::Invalid;

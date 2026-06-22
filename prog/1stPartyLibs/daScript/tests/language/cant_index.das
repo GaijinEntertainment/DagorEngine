@@ -1,7 +1,7 @@
 // invalid index operations
 // verifies compiler rejects indexing non-array/non-container types
 options gen2
-expect 30502:2  // cant_index
+expect 30931:2  // cant_index
 
 def test_index(a : int) {
     a[1]        // not a ref (and not an array)

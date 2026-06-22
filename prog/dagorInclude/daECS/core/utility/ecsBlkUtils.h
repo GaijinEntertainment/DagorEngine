@@ -144,7 +144,7 @@ inline void component_to_blk_param(const char *paramName, const ecs::EntityCompo
       return;
     }
     default:
-      logerr("Unsupported component type %s <%d> for comp %s", g_entity_mgr->getComponentTypes().findTypeName(ctype), ctype,
+      logerr("Unsupported component type %s <%d> for comp %s", ecs::EntityManager::shared_component_types().findTypeName(ctype), ctype,
         paramName);
   }
 #undef PROC_COMP

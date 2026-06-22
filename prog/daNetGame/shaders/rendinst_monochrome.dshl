@@ -3,6 +3,7 @@ include "rendinst_voxelize_albedo_inc.dshl"
 include "simple_inc.dshl"
 include "monochrome_inc.dshl"
 include "rendinst_simple_inc.dshl"
+include "unpack_unit_vector_inc.dshl"
 shader rendinst_monochrome
 {
   assume instancing_type = tm_vb;
@@ -46,6 +47,7 @@ shader rendinst_monochrome
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl (ps){
     #if HLSL_FULL_VS_OUTPUT
@@ -105,7 +107,7 @@ shader rendinst_monochrome
       ##if (rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
         float3 localNormal = 1; //warning fix, need not 0 value because of normalize(localNormal) in VB_PERFORM_INSTANCING
       ##else
-        float3 localNormal = normalize(BGR_SWIZZLE(input.normal)*2-1);
+        float3 localNormal = normalize(unpack_unit_vector(input.normal.xyz));
       ##endif
 
       float3 localPos = input.pos;

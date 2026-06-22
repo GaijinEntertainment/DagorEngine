@@ -1594,7 +1594,7 @@ public:
     for (int i = 0;; ++i)
     {
       _stprintf(buf, _T("autoNamedMat_%d"), i);
-      std::wstring name;
+      std::wstring name = buf;
       if (std::find_if(matList.begin(), matList.end(), [&name](EMat &em) { return em.name == name; }) == matList.end())
         return buf;
     }
@@ -1896,7 +1896,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       if (n->RcvShadows())
         d.flg |= DAG_NF_RCVSHADOW;
       const ObjectState &os = n->EvalWorldState(time);
-      if (os.obj->SuperClassID() == LIGHT_CLASS_ID)
+      if (os.obj && os.obj->SuperClassID() == LIGHT_CLASS_ID)
       {
         LightObject *o = static_cast<LightObject *>(os.obj);
         if (o->GetShadow())
@@ -3272,7 +3272,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
         en[i] = new ExpNode(i);
         assert(en[i]);
       }
-      ExpNode *root = new ExpNode(-1);
+      std::unique_ptr<ExpNode> root(new ExpNode(-1));
       assert(root);
       for (int i = 0; i < node.Count(); ++i)
       {

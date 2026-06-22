@@ -110,7 +110,7 @@ namespace das {
         virtual void beforeArray ( Array * pa, TypeInfo * ti ) override {
             verify_hash(ti->hash);
             if ( reading ) {
-                uint32_t newSize = 0;
+                uint64_t newSize = 0;
                 load(newSize);
                 array_clear(*context, *pa, /*at*/nullptr);
                 array_resize(*context, *pa, newSize, getTypeBaseSize(ti), true, /*at*/nullptr);
@@ -305,7 +305,7 @@ namespace das {
     }
 
     // load ( obj, bytesAt )
-    void _builtin_binary_load ( Context & context, LineInfo * at, TypeInfo* info, const char *data, uint32_t len, char *to) {
+    void _builtin_binary_load ( Context & context, LineInfo * at, TypeInfo* info, const char *data, uint64_t len, char *to) {
         if ( !(info->flags&(TypeInfo::flag_refType | TypeInfo::flag_ref)) )
             return;
         BinDataSerialize reader(context, at, const_cast<char*>(data), len);

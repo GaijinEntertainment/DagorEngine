@@ -12,7 +12,7 @@
 #include <collisionGeometryFeeder/collisionGeometryFeeder.h>
 #include <render/occlusion/parallelOcclusionRasterizer.h>
 #include <render/world/occlusionLandMeshManager.h>
-#include <render/omniLight.h>
+#include <render/lights/omniLight.h>
 #include <gameRes/dag_gameResources.h>
 #include <ecs/anim/anim.h>
 #include <ecs/anim/animchar_visbits.h>

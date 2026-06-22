@@ -8,7 +8,7 @@
 // func and emit error 50100 with a hint pointing at the missing
 // astChanged=true in the macro.
 options gen2
-expect 50100:2    // call reached side-effect analysis / lint with null func
+expect 50613    // call reached side-effect analysis / lint with null func
 
 require _helper_macro_uninferred
 

@@ -1160,11 +1160,6 @@ uint64_t HeapFragmentationManager::getAlignmentRequirement(ScratchBufferReferenc
   return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 }
 
-uint64_t HeapFragmentationManager::getAlignmentRequirement(PushRingBufferReference, ID3D12Device *, DefragmentationAccessTokens &)
-{
-  return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
-}
-
 uint64_t HeapFragmentationManager::getAlignmentRequirement(TempUploadBufferReference, ID3D12Device *, DefragmentationAccessTokens &)
 {
   return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
@@ -4266,32 +4261,30 @@ void DebugView::drawConstRingSegmentsTable()
 
     {
       auto pushRingAccess = pushRing.access();
-      for (auto &segment : pushRingAccess->ringSegments)
+      auto &segment = pushRingAccess->segment;
+      auto sizeUnits = size_to_unit_table(segment.getBufferMemorySize());
+      auto allocatedUnits = size_to_unit_table(segment.allocationSize);
+      char bufPtr[32];
+      sprintf_s(bufPtr, "%p", segment.getResourcePtr());
+      begin_selectable_row(bufPtr);
+      if (ImGui::IsItemHovered())
       {
-        auto sizeUnits = size_to_unit_table(segment.getBufferMemorySize());
-        auto allocatedUnits = size_to_unit_table(segment.allocationSize);
-        char bufPtr[32];
-        sprintf_s(bufPtr, "%p", segment.getResourcePtr());
-        begin_selectable_row(bufPtr);
-        if (ImGui::IsItemHovered())
+        if (segment.timeSinceUnused > 0)
         {
-          if (segment.timeSinceUnused > 0)
-          {
-            ScopedTooltip tooltip;
-            ImGui::Text("%u frames since last used", segment.timeSinceUnused);
-          }
+          ScopedTooltip tooltip;
+          ImGui::Text("%u frames since last used", segment.timeSinceUnused);
         }
-        ImGui::TableNextColumn();
-        ImGui::Text("%p", segment.getCPUPointer());
-        ImGui::TableNextColumn();
-        ImGui::Text("%016I64X", segment.getGPUPointer());
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
-        ImGui::TableNextColumn();
-        ImGui::Text("%08X", segment.allocationOffset);
-        ImGui::TableNextColumn();
-        ImGui::Text("%.2f %s", compute_unit_type_size(segment.allocationSize, allocatedUnits), get_unit_name(allocatedUnits));
       }
+      ImGui::TableNextColumn();
+      ImGui::Text("%p", segment.getCPUPointer());
+      ImGui::TableNextColumn();
+      ImGui::Text("%016I64X", segment.getGPUPointer());
+      ImGui::TableNextColumn();
+      ImGui::Text("%.2f %s", compute_unit_type_size(segment.getBufferMemorySize(), sizeUnits), get_unit_name(sizeUnits));
+      ImGui::TableNextColumn();
+      ImGui::Text("%08X", segment.allocationOffset);
+      ImGui::TableNextColumn();
+      ImGui::Text("%.2f %s", compute_unit_type_size(segment.allocationSize, allocatedUnits), get_unit_name(allocatedUnits));
     }
     ImGui::EndTable();
   }
@@ -4833,10 +4826,6 @@ void DebugView::drawHeapsTable()
                   else if (eastl::holds_alternative<ScratchBufferReference>(res))
                   {
                     draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Scratch buffer");
-                  }
-                  else if (eastl::holds_alternative<PushRingBufferReference>(res))
-                  {
-                    draw_segment(heap->heapPointer(), *segment, heap->totalSize, "Push ring buffer");
                   }
                   else if (eastl::holds_alternative<TempUploadBufferReference>(res))
                   {
@@ -5392,12 +5381,6 @@ struct ResourceHeapReportVisitor
   {
     ByteUnits size = range.size();
     target("%016llX with %6.2f %7s Scratch buffer", range.front(), size.units(), size.name());
-  }
-
-  void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::PushRingBufferReference &)
-  {
-    ByteUnits size = range.size();
-    target("%016llX with %6.2f %7s Push ring", range.front(), size.units(), size.name());
   }
 
   void visitResourceInHeap(ValueRange<uint64_t> range, const ResourceMemoryHeap::TempUploadBufferReference &)
@@ -6895,25 +6878,6 @@ HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveR
 }
 
 HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
-  ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, PushRingBufferReference ref,
-  AllocationFlags allocation_flags, bool is_emergency_defragmentation)
-{
-  G_UNUSED(ctx);
-  G_UNUSED(bindless_manager);
-  G_UNUSED(heap_id);
-
-  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Trying to move push ring buffer");
-  if (onMovePushRingBuffer(adapter, device, ref.buffer, allocation_flags))
-  {
-    DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Moved push ring buffer");
-    return ResourceMoveResolution::MOVING;
-  }
-  DEFRAG_VERBOSE(is_emergency_defragmentation, "DX12: Unable to move push ring buffer");
-  // Only way it can fail is if we ran out of memory for a replacement segment
-  return ResourceMoveResolution::NO_SPACE;
-}
-
-HeapFragmentationManager::ResourceMoveResolution HeapFragmentationManager::moveResourceAway(DeviceContext &ctx, DXGIAdapter *adapter,
   ID3D12Device *device, frontend::BindlessManager &bindless_manager, HeapID heap_id, TempUploadBufferReference ref,
   AllocationFlags allocation_flags, bool is_emergency_defragmentation)
 {
@@ -7085,7 +7049,6 @@ HeapFragmentationManager::DefragmentationState HeapFragmentationManager::recompo
     .imagePool = imageObjectPool.access(),
     .scratchBuffer = tempScratchBufferState.access(),
     .bufferHeapState = bufferHeapState.access(),
-    .pushRingState = pushRing.access(),
     .tempBufferState = tempBuffer.access(),
   };
   OSSpinlockScopedLock heapLock{heapGroupMutex};
@@ -7925,23 +7888,6 @@ HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager:
 
   DEFRAG_VERBOSE(true, "DX12: Moving scratch buffer");
 
-  return ResourceLocationUpdateResult::UPDATED;
-}
-
-HeapFragmentationManager::ResourceLocationUpdateResult HeapFragmentationManager::updateResourceLocation(
-  SystemResources &system_resources, PushRingBufferReference ref, const ResourceLocation &new_location,
-  DefragmentationAccessTokens &access)
-{
-  DEFRAG_VERBOSE(true, "DX12: Trying to move push ring buffer");
-  bool result = access.pushRingState->onMoveSegmentToLocation(this, system_resources.device, ref.buffer, new_location.heapId,
-    new_location.freeRangeIndex);
-  if (!result)
-  {
-    G_ASSERT_FAIL("DX12: Unable to move push ring segment, failed to create a new resource in place");
-    D3D_ERROR("DX12: Defragmentation failed on recreation push segment");
-    return ResourceLocationUpdateResult::FAILED;
-  }
-  DEFRAG_VERBOSE(true, "DX12: Moved push ring buffer");
   return ResourceLocationUpdateResult::UPDATED;
 }
 

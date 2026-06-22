@@ -461,7 +461,7 @@ namespace das {
             if (peek() == ']') { cur++; return true; }
             while (true) {
                 // grow array by one, zero-initialized
-                uint32_t idx = builtin_array_push_back_zero(*arr, stride, &ctx, (LineInfoArg*)at);
+                uint64_t idx = uint64_t(builtin_array_push_back_zero(*arr, stride, &ctx, (LineInfoArg*)at));
                 char * elem = arr->data + idx * stride;
                 if (!scanValue(elem, elemTi)) return false;
                 skipWS();
@@ -614,7 +614,7 @@ namespace das {
 
         // Reserve a key in the table and return the index
         template <typename KeyT>
-        int tableReserve(Table * tab, const KeyT & key, uint32_t valueTypeSize) {
+        int64_t tableReserve(Table * tab, const KeyT & key, uint32_t valueTypeSize) {
             auto hfn = hash_function(ctx, key);
             TableHash<KeyT> thh(&ctx, valueTypeSize);
             return thh.reserve(*tab, key, hfn, at);
@@ -623,7 +623,7 @@ namespace das {
         // Parse key from string and reserve in table (for compound key types)
         template <typename KeyT>
         bool scanKeyAndReserve(Table * tab, const string & keyStr, TypeInfo * keyTi,
-                               uint32_t valueTypeSize, int & index) {
+                               uint32_t valueTypeSize, int64_t & index) {
             KeyT key;
             memset(&key, 0, sizeof(key));
             if (!scanFromStr(keyStr, (char*)&key, keyTi)) return false;
@@ -647,7 +647,7 @@ namespace das {
                 if (!readString(keyStr)) return false;
                 if (!expect(':')) return false;
                 // insert key into table based on key type
-                int index = -1;
+                int64_t index = -1;
                 bool keyOk = true;
                 switch (ti->firstType->type) {
                     // string key
@@ -788,12 +788,50 @@ namespace das {
             }
         }
 
-        // ---- scan vector types: [x,y], [x,y,z], [x,y,z,w] ----
+        // ---- scan vector types: [x,y,z,w] (legacy) or {"x":,"y":,"z":,"w":} (canonical) ----
+        //
+        // sprint_json emits the object form ``{"x":..,"y":..}`` for vec types
+        // (matching daslib JV<vecN> in json_boost). The legacy array form
+        // ``[x,y,z]`` is still accepted on the scan side so manually-crafted
+        // payloads and older-emit JSON continue to round-trip.
+
+        // Map a single-char vec field key to its component index (-1 if not
+        // x/y/z/w or if the string isn't a 1-char key). Object-form vecs use
+        // these field names exclusively.
+        static int vecFieldIndex(const string & key) {
+            if (key.size() != 1) return -1;
+            switch (key[0]) {
+                case 'x': return 0;
+                case 'y': return 1;
+                case 'z': return 2;
+                case 'w': return 3;
+                default:  return -1;
+            }
+        }
 
         template <typename T>
         bool scanVec(char * dst, int count) {
-            if (!expect('[')) return false;
+            skipWS();
             T * vals = (T*)dst;
+            if (peek() == '{') {
+                // object form: zero-init then fill by field name
+                cur++;
+                for (int i = 0; i < count; i++) vals[i] = T(0);
+                if (expect('}')) return true;
+                while (true) {
+                    string key;
+                    if (!readString(key)) return false;
+                    if (!expect(':')) return false;
+                    int64_t v;
+                    if (!readInt64(v)) return false;
+                    int idx = vecFieldIndex(key);
+                    if (idx >= 0 && idx < count) vals[idx] = T(v);
+                    if (!expect(',')) break;
+                }
+                return expect('}');
+            }
+            // legacy array form
+            if (!expect('[')) return false;
             for (int i = 0; i < count; i++) {
                 if (i > 0 && !expect(',')) return false;
                 int64_t v;
@@ -804,8 +842,25 @@ namespace das {
         }
 
         bool scanVecF(char * dst, int count) {
-            if (!expect('[')) return false;
+            skipWS();
             float * vals = (float*)dst;
+            if (peek() == '{') {
+                cur++;
+                for (int i = 0; i < count; i++) vals[i] = 0.f;
+                if (expect('}')) return true;
+                while (true) {
+                    string key;
+                    if (!readString(key)) return false;
+                    if (!expect(':')) return false;
+                    double v;
+                    if (!readDouble(v)) return false;
+                    int idx = vecFieldIndex(key);
+                    if (idx >= 0 && idx < count) vals[idx] = float(v);
+                    if (!expect(',')) break;
+                }
+                return expect('}');
+            }
+            if (!expect('[')) return false;
             for (int i = 0; i < count; i++) {
                 if (i > 0 && !expect(',')) return false;
                 double v;

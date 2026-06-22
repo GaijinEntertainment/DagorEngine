@@ -94,8 +94,19 @@ namespace das {
     }
     string InferTypes::describeMismatchingArgument(const string &argName, const TypeDeclPtr &passType, const TypeDeclPtr &argType, int argIndex) const {
         TextWriter ss;
+        AliasDefs aliasDefs;
         ss << "\t\tinvalid argument '" << argName << "' (" << argIndex << "). expecting '"
-           << describeType(argType) << "', passing '" << describeType(passType) << "'\n";
+           << describeType(argType, &aliasDefs) << "', passing '" << describeType(passType, &aliasDefs) << "'\n";
+        if ( !aliasDefs.empty() ) {
+            ss << "\t\twhere ";
+            bool first = true;
+            for ( auto & kv : aliasDefs ) {
+                if ( !first ) ss << "; ";
+                ss << "'" << kv.first << " = " << kv.second << "'";
+                first = false;
+            }
+            ss << "\n";
+        }
         if (passType->isAlias()) {
             ss << "\t\t" << reportAliasError(passType) << "\n";
         }
@@ -355,7 +366,9 @@ namespace das {
             if (nExtra > 0 && candidateFunctions.size() != 0) {
                 ss << "also " << nExtra << " more candidates\n";
             }
-            error(extra, ss.str(), "", at, cerror);
+            if (verbose) {
+                error(extra, ss.str(), "", at, cerror);
+            }
         } else {
             error(extra, "", "", at, cerror);
         }
@@ -438,7 +451,9 @@ namespace das {
             if (nExtra > 0 && candidateFunctions.size() != 0) {
                 ss << "also " << nExtra << " more candidates\n";
             }
-            error(extra, ss.str(), "", at, cerror);
+            if (verbose) {
+                error(extra, ss.str(), "", at, cerror);
+            }
         } else {
             error(extra, "", "", at, cerror);
         }
@@ -503,7 +518,9 @@ namespace das {
                     ss << "also " << nExtra << " more candidates\n";
                 }
             }
-            error(extra, ss.str(), "", at, cerror);
+            if (verbose) {
+                error(extra, ss.str(), "", at, cerror);
+            }
         } else {
             error(extra, "", "", at, cerror);
         }
@@ -517,9 +534,11 @@ namespace das {
                             ss << "\tcan't clone '" << trait << ": " << describeType(subT) << "'\n";
                         }
                     } });
-            error(message, ss.str(), "", at, CompilationError::cant_copy);
+            if (verbose) {
+                error(message, ss.str(), "", at, CompilationError::cant_clone_type);
+            }
         } else {
-            error(message, "", "", at, CompilationError::cant_copy);
+            error(message, "", "", at, CompilationError::cant_clone_type);
         }
     }
     void InferTypes::reportCantCloneFromConst(const string &errorText, CompilationError errorCode, const TypeDeclPtr &type, const LineInfo &at) const {
@@ -531,7 +550,9 @@ namespace das {
                             ss << "\tcan't assign '" << trait << ": " << describeType(subT) << " = " << describeType(subT) << " const'\n";
                         }
                     } });
-            error(errorText + "; " + describeType(type), ss.str(), "", at, errorCode);
+            if (verbose) {
+                error(errorText + "; " + describeType(type), ss.str(), "", at, errorCode);
+            }
         } else {
             error(errorText, "", "", at, errorCode);
         }
@@ -589,10 +610,10 @@ namespace das {
                     }
                     return true; }, moduleName);
             error("function not found " + expr->target, ss.str(), "",
-                  expr->at, CompilationError::function_not_found);
+              expr->at, CompilationError::lookup_function);
         } else {
             error("function not found " + expr->target, "", "",
-                  expr->at, CompilationError::function_not_found);
+                  expr->at, CompilationError::lookup_function);
         }
     }
     void InferTypes::reportMissingFinalizer(const string &message, const LineInfo &at, const TypeDeclPtr &ftype) {
@@ -602,9 +623,9 @@ namespace das {
             fakeVar->type = new TypeDecl(*ftype);
             fakeCall->arguments.push_back(fakeVar);
             vector<TypeDeclPtr> fakeTypes = {ftype};
-            reportMissing(fakeCall, fakeTypes, message, true, CompilationError::function_already_declared);
+            reportMissing(fakeCall, fakeTypes, message, true, CompilationError::missing_finalizer);
         } else {
-            error(message, "", "", at, CompilationError::function_already_declared);
+            error(message, "", "", at, CompilationError::missing_finalizer);
         }
     }
     int InferTypes::sortCandidates(RankedMatchingFunctions &ranked, MatchingFunctions &candidates, int nArgs) {
@@ -743,24 +764,24 @@ namespace das {
             if (isAssignmentOperator(expr_op)) {
                 if (!expr_left->type->ref) {
                     error("numeric operator '" + expr_op + "' left side must be reference.", "", "",
-                          expr->at, CompilationError::operator_not_found);
+                          expr->at, CompilationError::cant_assign_op);
                     return true;
                 } else if (expr_left->type->isConst()) {
                     error("numeric operator '" + expr_op + "' left side can't be constant.", "", "",
-                          expr->at, CompilationError::operator_not_found);
+                          expr->at, CompilationError::cant_assign_op);
                     return true;
                 } else {
                     if (verbose) {
                         TextWriter tw;
                         tw << "\t" << *expr_left << " " << expr_op << " " << das_to_string(expr_left->type->baseType) << "(" << *expr_right << ")\n";
                         error("numeric operator '" + expr_op + "' type mismatch. both sides have to be of the same type; " +
-                                  das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType) + " is not defined",
-                              "", "try the following\n" + tw.str(),
-                              expr->at, CompilationError::operator_not_found);
+                              das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType) + " is not defined",
+                          "", "try the following\n" + tw.str(),
+                          expr->at, CompilationError::mismatching_numeric_type);
                         return true;
                     } else {
                         error("numeric operator '" + expr_op + "' type mismatch. both sides have to be of the same type. ", "", "",
-                              expr->at, CompilationError::operator_not_found);
+                              expr->at, CompilationError::mismatching_numeric_type);
                         return true;
                     }
                 }
@@ -771,27 +792,36 @@ namespace das {
                         tw << "\t" << *expr_left << " " << expr_op << " " << das_to_string(expr_left->type->baseType) << "(" << *expr_right << ")\n";
                         tw << "\t" << das_to_string(expr_right->type->baseType) << "(" << *expr_left << ") " << expr_op << " " << *expr_right << "\n";
                         error("numeric operator '" + expr_op + "' type mismatch. both sides have to be of the same type. " +
-                                  das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType) + " is not defined",
-                              "", "try one of the following\n" + tw.str(),
-                              expr->at, CompilationError::operator_not_found);
+                              das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType) + " is not defined",
+                          "", "try one of the following\n" + tw.str(),
+                          expr->at, CompilationError::mismatching_numeric_type);
                         return true;
                     } else if (expr_left->type->isNumericStorage()) {
                         error("numeric operator '" + expr_op + "' is not defined for storage types (int8, uint8, int16, uint16)",
                               "\t" + das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType),
-                              "", expr->at, CompilationError::operator_not_found);
+                              "", expr->at, CompilationError::invalid_storage_type_op);
                         return true;
                     } else {
                         error("numeric operator '" + expr_op + "' type mismatch",
-                              "\t" + das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType),
-                              "", expr->at, CompilationError::operator_not_found);
+                          "\t" + das_to_string(expr_left->type->baseType) + " " + expr_op + " " + das_to_string(expr_right->type->baseType),
+                          "", expr->at, CompilationError::mismatching_numeric_type);
                         return true;
                     }
                 } else {
                     error("numeric operator '" + expr_op + "' type mismatch", "", "",
-                          expr->at, CompilationError::operator_not_found);
+                          expr->at, CompilationError::mismatching_numeric_type);
                     return true;
                 }
             }
+        }
+        // Mismatched-enum operands are only an error if no custom operator matched —
+        // this runs after the operator lookup failed, so a user operator |(E1;E2)
+        // would already have been picked up. (Moved here from visit(ExprOp2).)
+        if (expr_left->type->isEnum() && expr_right->type->isEnum()
+            && !expr_left->type->isSameType(*expr_right->type, RefMatters::no, ConstMatters::no, TemporaryMatters::no)) {
+            error("operations on different enumerations are prohibited", "", "",
+                  expr->at, CompilationError::invalid_enumeration);
+            return true;
         }
         return false;
     }

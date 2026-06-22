@@ -1,6 +1,4 @@
 options gen2
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options no_global_variables = false
 options indenting = 4
 options strict_smart_pointers = true
@@ -55,10 +53,7 @@ def package_tag(tag : string) {
 }
 
 def package_tags(tags : array<string>) {
-    _pkg_meta.tags |> reserve(length(_pkg_meta.tags) + length(tags))
-    for (t in tags) {
-        _pkg_meta.tags |> push_clone(t)
-    }
+    _pkg_meta.tags |> push_clone_from(tags)
 }
 
 def package_min_sdk(version : string) {
@@ -129,5 +124,54 @@ def no_build() {
 def custom_build(command : string) {
     _build_kind = BuildKind.custom
     _build_command = command
+}
+
+// --- Release info (set by `release()`) ---
+
+struct ReleaseSpec {
+    name : string                       //!< bundle name; defaults to package_name
+    main_script : string                //!< path to project's main .das (relative to root)
+    include_globs : array<string>       //!< asset globs to ship
+    exclude_globs : array<string>       //!< asset globs to skip
+    forced_modules : array<string>      //!< force-include shared module by das_name (auto-detection misses media-only or runtime-loaded packages)
+    native_dlls : array<string>         //!< native shared libraries to ship next to this package's .shared_module (e.g. "glfw3.dll" / "libglfw.so.3.4"); resolved against <das_root>/bin/ (Windows) or <das_root>/lib/ (POSIX)
+    bundle_id : string                  //!< macOS .app CFBundleIdentifier (reverse-DNS); defaults to com.<author>.<name>
+}
+
+var _release_spec : ReleaseSpec
+
+def release_name(name : string) {
+    _release_spec.name = name
+}
+
+def release_main(script : string) {
+    _release_spec.main_script = script
+}
+
+def release_include(pattern : string) {
+    _release_spec.include_globs |> push(pattern)
+}
+
+def release_exclude(pattern : string) {
+    _release_spec.exclude_globs |> push(pattern)
+}
+
+def release_shared_module(name : string) {
+    _release_spec.forced_modules |> push(name)
+}
+
+//! Declare a native shared library that must be shipped next to this package's
+//! `.shared_module` in a release bundle. `name` is the platform-specific filename
+//! (e.g. `"glfw3.dll"` on Windows, `"libglfw.so.3.4"` on Linux,
+//! `"libglfw.3.4.dylib"` on macOS). daspkg searches `<das_root>/bin/` on Windows
+//! and `<das_root>/lib/` on POSIX, then copies the file into
+//! `<bundle>/modules/<package>/`. Errors loudly if the file is not found —
+//! authors should guard per-platform with `if (get_platform_name() == "windows")`.
+def release_include_dll(name : string) {
+    _release_spec.native_dlls |> push(name)
+}
+
+def release_bundle_id(id : string) {
+    _release_spec.bundle_id = id
 }
 

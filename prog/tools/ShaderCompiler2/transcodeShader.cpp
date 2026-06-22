@@ -120,6 +120,7 @@ dag::ConstSpan<int> transcode_stcode(dag::ConstSpan<int> stcode)
       case SHCOD_INT_TOREAL:
       case SHCOD_IVEC_TOREAL:
       case SHCOD_COPY_REAL:
+      case SHCOD_REG_BINDLESS_SAMPLER:
       case SHCOD_COPY_VEC: break;
 
       case SHCOD_IMM_REAL:

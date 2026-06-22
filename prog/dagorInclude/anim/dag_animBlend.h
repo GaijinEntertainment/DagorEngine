@@ -63,7 +63,7 @@ class IAnimBlendNode : public DObject
 public:
   struct BlendCtx
   {
-    IPureAnimStateHolder *st = NULL;
+    AnimGraphStateHolder *st = NULL;
     float *wt = NULL, *abnWt = NULL, *pbcWt = NULL;
     int *cKeyPos = NULL;
     float lastDt = 0;
@@ -72,10 +72,10 @@ public:
     void *irqArg = nullptr;
 
     template <typename T>
-    BlendCtx(IPureAnimStateHolder &s, T &t, bool bp) :
+    BlendCtx(AnimGraphStateHolder &s, T &t, bool bp) :
       st(&s), wt(t.bnlWt.data()), cKeyPos(t.bnlCT.data()), pbcWt(t.pbcWt.data()), animBlendPass(bp), irqFunc(t.irq), irqArg(t.irqArg)
     {}
-    BlendCtx(IPureAnimStateHolder &s) : st(&s) {}
+    BlendCtx(AnimGraphStateHolder &s) : st(&s) {}
 
     intptr_t irq(int type, intptr_t p1, intptr_t p2, intptr_t p3)
     {
@@ -90,24 +90,24 @@ public:
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w) = 0;
-  virtual void setDefaultState(IPureAnimStateHolder &st) = 0;
-  virtual void clearAllocatedMemory(IPureAnimStateHolder & /*st*/) {}
-  virtual bool isAliasOf(IPureAnimStateHolder & /*st*/, IAnimBlendNode *n) { return this == n; }
-  virtual real getDuration(IPureAnimStateHolder & /*st*/) { return 1.0; }
-  virtual real getAvgSpeed(IPureAnimStateHolder & /*st*/) { return 0.0f; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder & /*st*/) { return -1; }
+  virtual void setDefaultState(AnimGraphStateHolder &st) = 0;
+  virtual void clearAllocatedMemory(AnimGraphStateHolder & /*st*/) {}
+  virtual bool isAliasOf(AnimGraphStateHolder & /*st*/, IAnimBlendNode *n) { return this == n; }
+  virtual real getDuration(AnimGraphStateHolder & /*st*/) { return 1.0; }
+  virtual real getAvgSpeed(AnimGraphStateHolder & /*st*/) { return 0.0f; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder & /*st*/) { return -1; }
 
   // interface for seek/tell (used for conditions in anim states graph)
-  virtual void seek(IPureAnimStateHolder & /*st*/, real /*rel_pos*/) {}
-  virtual real tell(IPureAnimStateHolder & /*st*/) { return 0; }
+  virtual void seek(AnimGraphStateHolder & /*st*/, real /*rel_pos*/) {}
+  virtual real tell(AnimGraphStateHolder & /*st*/) { return 0; }
 
   // interface for sync and resume
-  virtual void seekToSyncTime(IPureAnimStateHolder & /*st*/, real /*offset*/) {}
-  virtual void pause(IPureAnimStateHolder & /*st*/) {}
-  virtual void resume(IPureAnimStateHolder & /*st*/, bool /*rewind*/) {}
+  virtual void seekToSyncTime(AnimGraphStateHolder & /*st*/, real /*offset*/) {}
+  virtual void pause(AnimGraphStateHolder & /*st*/) {}
+  virtual void resume(AnimGraphStateHolder & /*st*/, bool /*rewind*/) {}
 
   // interface for named ranges
-  virtual bool isInRange(IPureAnimStateHolder & /*st*/, int /*rangeId*/) { return false; }
+  virtual bool isInRange(AnimGraphStateHolder & /*st*/, int /*rangeId*/) { return false; }
 
   // validate subref against specific node (e.g. missing Null)
   virtual bool validateNodeNotUsed(AnimationGraph & /*g*/, IAnimBlendNode * /*test_n*/) { return true; }
@@ -176,7 +176,7 @@ public:
 
   // returns relative position according to current state of curTime
   virtual real tellRaw() { return 0; }
-  virtual int getTimeScaleParamId(IPureAnimStateHolder & /*st*/) { return timeScaleParamId; }
+  virtual int getTimeScaleParamId(AnimGraphStateHolder & /*st*/) { return timeScaleParamId; }
   bool isAdditive() const { return additive; }
   int getBnlId() const { return bnlId; }
 
@@ -250,9 +250,9 @@ public:
   int getPbcId() const { return pbcId; }
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void init(IPureAnimStateHolder &st, const GeomNodeTree &tree) = 0;
-  virtual void process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, Context &ctx) = 0;
-  virtual void advance(IPureAnimStateHolder & /*st*/, real /*dt*/) {}
+  virtual void init(AnimGraphStateHolder &st, const GeomNodeTree &tree) = 0;
+  virtual void process(AnimGraphStateHolder &st, real wt, GeomNodeTree &tree, Context &ctx) = 0;
+  virtual void advance(AnimGraphStateHolder & /*st*/, real /*dt*/) {}
 
   virtual const char *class_name() const { return "AnimPostBlendCtrl"; }
   virtual bool isSubOf(DClassID id) { return id == AnimPostBlendCtrlCID || IAnimBlendNode::isSubOf(id); }
@@ -424,7 +424,7 @@ public:
   TlsContext &selectCtx(intptr_t (*irq)(int, intptr_t, intptr_t, intptr_t, void *), void *irq_arg);
 
   void buildNodeList();
-  void postBlendInit(IPureAnimStateHolder &st, const GeomNodeTree &tree);
+  void postBlendInit(AnimGraphStateHolder &st, const GeomNodeTree &tree);
 
   int registerBlendNodeLeaf(AnimBlendNodeLeaf *n);
   void unregisterBlendNodeLeaf(int id, AnimBlendNodeLeaf *n);
@@ -432,9 +432,9 @@ public:
   int registerPostBlendCtrl(AnimPostBlendCtrl *n);
   void unregisterPostBlendCtrl(int id, AnimPostBlendCtrl *n);
 
-  bool blend(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm, const AnimationGraph &graph);
-  void blendOriginVel(TlsContext &tls, IPureAnimStateHolder &st, IAnimBlendNode *root, bool rebuild_list);
-  void postBlendProcess(TlsContext &tls, IPureAnimStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
+  bool blend(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNode *root, const CharNodeModif *cmm, const AnimationGraph &graph);
+  void blendOriginVel(TlsContext &tls, AnimGraphStateHolder &st, IAnimBlendNode *root, bool rebuild_list);
+  void postBlendProcess(TlsContext &tls, AnimGraphStateHolder &st, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx);
 
   // valid just after blend() call
   bool getBlendedNodePRS(TlsContext &tls, int id, const vec3f **p, const quat4f **r, const vec3f **s, const vec4f *orig_prs);
@@ -563,14 +563,14 @@ public:
   void replaceRoot(IAnimBlendNode *new_root);
   // Calls setDefaultState function of all nodes in the graph to set state to the one passed as argument.
   // For fifo3 nodes also enqueues default state from initState block.
-  void resetBlendNodesState(IPureAnimStateHolder &st);
+  void resetBlendNodesState(AnimGraphStateHolder &st);
   // Calls clearAllocatedMemory function of all nodes in the graph on passed state.
   // Intention is to clear dynamically allocated memory of array which might be stores in anim state
   // to avoid leaks.
-  void clearBlendNodeAllocatedMemoryFromState(IPureAnimStateHolder &st);
+  void clearBlendNodeAllocatedMemoryFromState(AnimGraphStateHolder &st);
   void sortPbCtrl(const DataBlock &ord);
-  inline void postBlendInit(IPureAnimStateHolder &st, const GeomNodeTree &tree) { blender.postBlendInit(st, tree); }
-  inline void postBlendCtrlAdvance(IPureAnimStateHolder &st, float dt)
+  inline void postBlendInit(AnimGraphStateHolder &st, const GeomNodeTree &tree) { blender.postBlendInit(st, tree); }
+  inline void postBlendCtrlAdvance(AnimGraphStateHolder &st, float dt)
   {
     for (int i = 0; i < blender.pbCtrl.size(); i++)
       blender.pbCtrl[i]->advance(st, dt);
@@ -578,10 +578,10 @@ public:
   inline int getPbcWtParamCount() const { return pbcWtParam.size(); }
 
   int addParamId(const char *name, int type);
-  int addInlinePtrParamId(const char *name, size_t size_bytes, int type = IPureAnimStateHolder::PT_InlinePtr);
+  int addInlinePtrParamId(const char *name, size_t size_bytes, int type = AnimGraphStateHolder::PT_InlinePtr);
   int addEffectorParamId(const char *name)
   {
-    return addInlinePtrParamId(name, sizeof(IAnimStateHolder::EffectorVar), IAnimStateHolder::PT_Effector);
+    return addInlinePtrParamId(name, sizeof(AnimGraphStateHolder::EffectorVar), AnimGraphStateHolder::PT_Effector);
   }
   int getInlinePtrParamMaxSize(int param_id);
   inline int addParamIdEx(const char *name, int type) { return (name && *name) ? addParamId(name, type) : -1; }
@@ -643,15 +643,15 @@ public:
     return state_idx >= 0 ? make_span_const(stRec).subspan(state_idx * stDest.size(), stDest.size()) : make_span_const(stRec).first(0);
   }
   // TODO: decouple these two functions
-  void enqueueState(IPureAnimStateHolder &st, dag::ConstSpan<StateRec> state, float force_dur = -1, float force_speed = -1);
-  void setStateSpeed(IPureAnimStateHolder &st, dag::ConstSpan<StateRec> state, float force_speed);
+  void enqueueState(AnimGraphStateHolder &st, dag::ConstSpan<StateRec> state, float force_dur = -1, float force_speed = -1);
+  void setStateSpeed(AnimGraphStateHolder &st, dag::ConstSpan<StateRec> state, float force_speed);
 
-  void onSingleAnimFinished(IPureAnimStateHolder &st, IAnimBlendNode *n);
+  void onSingleAnimFinished(AnimGraphStateHolder &st, IAnimBlendNode *n);
 
   inline void allocateGlobalTimer()
   {
-    G_VERIFY(PID_GLOBAL_TIME == addParamId("::GlobalTime", IPureAnimStateHolder::PT_TimeParam));
-    G_VERIFY(PID_GLOBAL_LAST_DT == addParamId("::GlobalLastDT", IPureAnimStateHolder::PT_ScalarParam));
+    G_VERIFY(PID_GLOBAL_TIME == addParamId("::GlobalTime", AnimGraphStateHolder::PT_TimeParam));
+    G_VERIFY(PID_GLOBAL_LAST_DT == addParamId("::GlobalLastDT", AnimGraphStateHolder::PT_ScalarParam));
   }
 
   inline void debugSetIrqPosInAllNodes(const char *irq_name, float rel_pos)
@@ -675,13 +675,13 @@ public:
   inline PtrTab<AnimBlendNodeLeaf> &getBnlList() { return blender.bnl; }
 
   // perform animation blending
-  inline bool blend(AnimBlender::TlsContext &tls, IPureAnimStateHolder &st, const AnimBlender::CharNodeModif *cmm = NULL)
+  inline bool blend(AnimBlender::TlsContext &tls, AnimGraphStateHolder &st, const AnimBlender::CharNodeModif *cmm = NULL)
   {
     if (root)
       return blender.blend(tls, st, root, cmm, *this);
     return false;
   }
-  inline void blendOriginVel(AnimBlender::TlsContext &tls, IPureAnimStateHolder &st, bool rebuild_list = true)
+  inline void blendOriginVel(AnimBlender::TlsContext &tls, AnimGraphStateHolder &st, bool rebuild_list = true)
   {
     if (root)
       blender.blendOriginVel(tls, st, root, rebuild_list);
@@ -699,13 +699,13 @@ public:
   }
 
   // post-blending processing
-  inline void postBlendProcess(AnimBlender::TlsContext &tls, IPureAnimStateHolder &st, GeomNodeTree &tree,
+  inline void postBlendProcess(AnimBlender::TlsContext &tls, AnimGraphStateHolder &st, GeomNodeTree &tree,
     AnimPostBlendCtrl::Context &ctx)
   {
     blender.postBlendProcess(tls, st, tree, ctx);
   }
 
-  void atIrq(int irq_type, IAnimBlendNode *src, IPureAnimStateHolder &st);
+  void atIrq(int irq_type, IAnimBlendNode *src, AnimGraphStateHolder &st);
 
   // Debugging support
   int getParamCount() const { return paramNames.nameCount(); }
@@ -746,7 +746,7 @@ public:
 
   AnimcharDumpBlenderDataContext *createDumpBlenderDataContext(const GeomNodeTree *gtree, bool dump_all_nodes = false);
   void destroyDumpBlenderDataContext(AnimcharDumpBlenderDataContext *ctx);
-  const DataBlock *getDebugBlenderState(AnimcharDumpBlenderDataContext *ctx, IPureAnimStateHolder &st, bool dump_tm);
+  const DataBlock *getDebugBlenderState(AnimcharDumpBlenderDataContext *ctx, AnimGraphStateHolder &st, bool dump_tm);
   const DataBlock *getDebugNodemasks(AnimcharDumpBlenderDataContext *ctx);
 
   void getUsedBlendNodes(IAnimBlendNode::used_blend_nodes_t &usedNodes);
@@ -755,7 +755,7 @@ public:
   virtual const char *class_name() const { return "AnimationGraph"; }
   virtual bool isSubOf(DClassID id) { return id == AnimationGraphCID; }
 
-  friend class AnimCommonStateHolder;
+  friend class AnimGraphStateHolder;
   friend struct AnimcharDumpBlenderDataContext;
 
 protected:
@@ -820,10 +820,10 @@ void add_bn(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
 } // end of namespace AnimResManagerV20
 
 #define BUILD_BLENDING_LIST_PROLOGUE_BNL(BCTX, ST, WT) \
-  IPureAnimStateHolder &ST = *BCTX.st;                 \
+  AnimGraphStateHolder &ST = *BCTX.st;                 \
   real *WT = BCTX.wt
 
 #define BUILD_BLENDING_LIST_PROLOGUE(BCTX, ST) \
-  IPureAnimStateHolder &ST = *BCTX.st;         \
+  AnimGraphStateHolder &ST = *BCTX.st;         \
   if (BCTX.abnWt && getAnimNodeId() >= 0)      \
   BCTX.abnWt[getAnimNodeId()] += w

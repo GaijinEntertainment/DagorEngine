@@ -36,6 +36,7 @@
 #include <assets/assetPlugin.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 
+#define __DEBUG_FILEPATH nullptr
 #if _TARGET_PC_WIN
 #include <startup/dag_winMain.inc.cpp>
 #else
@@ -166,12 +167,6 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   const ImpostorOptions options = parse_impostor_options();
 
-  if (!options.valid)
-  {
-    print_impostor_options();
-    return 1;
-  }
-
   if (options.classic_dbg)
     start_classic_debug_system("debug.log");
   else
@@ -179,6 +174,13 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   char stamp_buf[256];
   debug(dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), "\n"));
   debug_set_log_callback(log_cb_with_stack);
+
+  if (!options.valid)
+  {
+    logerr("invalid option passed to impostor baker");
+    print_impostor_options();
+    return 1;
+  }
 
   if (!::symhlp_load("daKernel" DAGOR_DLL))
     DEBUG_CTX("can't load sym for: %s", "daKernel" DAGOR_DLL);

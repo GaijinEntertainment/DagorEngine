@@ -62,6 +62,7 @@ def main() {
     }
     // Drain remaining events
     client->process_event_que()
+    client->cleanup()
     unsafe {
         delete client
     }

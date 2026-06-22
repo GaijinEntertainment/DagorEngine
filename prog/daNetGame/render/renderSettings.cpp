@@ -8,6 +8,7 @@
 #include "renderSettings.h"
 #include "rendererFeatures.h"
 #include <shaders/dag_shaderResUnitedData.h>
+#include <shaders/dag_atlasBlockManager.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_dynSceneRes.h>
 
@@ -129,7 +130,7 @@ bool update_settings_entity(const DataBlock *level_override)
 template <class T>
 static void prepare_united_vdata_setup(T &unitedVdata, const DataBlock *levelBlk, const char *blk_name, const char *def_blk_name)
 {
-  bool streaming_enabled = T::ResType::on_higher_lod_required != nullptr;
+  bool streaming_enabled = T::isStreamingEnabled();
   const DataBlock *b = levelBlk ? levelBlk->getBlockByName(blk_name) : nullptr;
   if (const DataBlock *b2 = b ? b->getBlockByName(get_platform_string_id()) : nullptr)
     b = b2;
@@ -158,6 +159,12 @@ void prepare_ri_united_vdata_setup(const DataBlock *level_blk)
 void prepare_dynm_united_vdata_setup(const DataBlock *level_blk)
 {
   prepare_united_vdata_setup(unitedvdata::dmUnitedVdata, level_blk, "unitedVdata.dynModel", "unitedVdata.dynModel.def");
+}
+
+void prepare_voxel_atlas_setup(const DataBlock *level_blk)
+{
+  prepare_united_vdata_setup(voxeldata::rgbaAtlasManager, level_blk, "blockAtlas.rgba", "blockAtlas.rgba.def");
+  prepare_united_vdata_setup(voxeldata::normAtlasManager, level_blk, "blockAtlas.norm", "blockAtlas.norm.def");
 }
 
 void apply_united_vdata_settings(const DataBlock *scene_blk)

@@ -3,6 +3,7 @@
 #include <vecmath/dag_vecMath.h>
 #include <scene/dag_tiledScene.h>
 #include <startup/dag_globalSettings.h>
+#include <generic/dag_span.h>
 #include <math/dag_bounds2.h>
 #include <debug/dag_debug.h>
 #include <memory/dag_framemem.h>
@@ -64,13 +65,13 @@ void scene::TiledScene::init(float tile_sz)
 
 void scene::TiledScene::termTiledStructures()
 {
-  tileGrid.clear();
-  tileCull.clear();
-  tileBox.clear();
-  tileData.clear();
-  kdNodes.clear();
+  clear_and_shrink(tileGrid);
+  clear_and_shrink(tileCull);
+  clear_and_shrink(tileBox);
+  clear_and_shrink(tileData);
+  clear_and_shrink(kdNodes);
 #if !KD_LEAVES_ONLY
-  kdNodesDistance.clear();
+  clear_and_shrink(kdNodesDistance);
 #endif
   usedKdNodes = 0;
   usedTilesCount = mFirstFreeTile = 0;
@@ -93,7 +94,7 @@ void scene::TiledScene::term()
   SimpleScene::term();
   termTiledStructures();
 
-  mDeferredCommand.clear();
+  clear_and_shrink(mDeferredCommand);
   clearReserves();
 }
 

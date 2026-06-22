@@ -8,7 +8,7 @@
 #include <EASTL/fixed_vector.h>
 #include <render/world/cameraParams.h>
 #include <render/world/shadowsManager.h>
-#include <render/clusteredLights.h>
+#include <render/lights/clusteredLights.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include "render/renderEvent.h"
 #include <daECS/core/entityManager.h>

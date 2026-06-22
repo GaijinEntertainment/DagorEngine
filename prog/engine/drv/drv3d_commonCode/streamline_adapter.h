@@ -27,6 +27,7 @@ struct IUnknown;
 namespace sl
 {
 struct FrameToken;
+struct DLSSGState;
 using Feature = uint32_t;
 } // namespace sl
 
@@ -38,13 +39,13 @@ struct FrameTracker
   void reset();
 
   template <typename Params>
-  void initConstants(const Params &f, int viewport_id);
+  void initConstants(const Params &f, sl::FrameToken &token, int viewport_id);
 
 private:
   static constexpr size_t MAX_CONCURRENT_FRAMES = 8;
   static constexpr size_t MAX_VIEWPORTS = 2;
   eastl::array<dag::AtomicPointer<sl::FrameToken>, MAX_CONCURRENT_FRAMES> frameTokens = {};
-  eastl::array<eastl::array<bool, MAX_VIEWPORTS>, MAX_CONCURRENT_FRAMES> constantsInitialized = {};
+  eastl::array<eastl::optional<uint32_t>, MAX_VIEWPORTS> constantsFrameId = {};
 };
 
 class DLSSWithSizeQuery : public nv::DLSS
@@ -53,6 +54,8 @@ public:
   DLSSWithSizeQuery() = default;
   virtual ~DLSSWithSizeQuery() = default;
   virtual uint64_t getMemorySize() const = 0;
+  // Applied on the render backend thread (via SET_DLSS_OPTIONS), not exposed on the nv::DLSS interface.
+  virtual bool setOptions(nv::DLSS::Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model) = 0;
 };
 
 class DLSSSuperResolution : public DLSSWithSizeQuery
@@ -113,9 +116,19 @@ public:
   uint64_t getMemorySize() const;
 
 private:
+  // slDLSSGGetState is NOT thread safe and must only be queried on the render backend thread. The backend
+  // caches the relevant parts of sl::DLSSGState into these atomics; the main-thread query methods read them.
+  void updateCachedState(const sl::DLSSGState &state);
+
   int viewportId;
   FrameTracker &frameTracker;
   int framesToGenerate = 0;
+  // numFramesActuallyPresented is a "since last query" delta: accumulated on the backend, consumed on read.
+  mutable dag::AtomicInteger<uint32_t> presentedFramesAccum{0};
+  // estimatedVRAMUsageInBytes, refreshed by the backend each frame FG runs.
+  dag::AtomicInteger<uint64_t> cachedMemorySize{0};
+  // numFramesToGenerateMax is a fixed GPU capability; -1 means "not queried yet".
+  static dag::AtomicInteger<int> cachedMaxFramesToGenerate;
 };
 
 class Reflex

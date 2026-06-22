@@ -12,6 +12,26 @@ def testF(arg : tuple<i : int; f : float>) {
     return arg.f == 3.14
 }
 
+def overload_pick(x : tuple<int; float>) {
+    return 1
+}
+
+def overload_pick(x : tuple<x : int; y : float>) {
+    return 2
+}
+
+// return-position shorthand: positional bare-var tuple promotes to the
+// function's declared named-tuple result type
+def make_hit_return(eid : int; distSq : float) : tuple<eid : int; distSq : float> {
+    return (eid, distSq)
+}
+
+def make_hit_locals() : tuple<eid : int; distSq : float> {
+    let eid = 17
+    let distSq = 4.25
+    return (eid, distSq)
+}
+
 [test]
 def test_tuple(t : T?) {
     t |> run("basic creation and named fields") @(t : T?) {
@@ -62,6 +82,74 @@ def test_tuple(t : T?) {
         let mkt = (1, 2.0)
         t |> equal(mkt._0, 1)
         t |> equal(mkt._1, 2.0)
+    }
+    t |> run("shorthand named into array of named tuples") @(t : T?) {
+        var arr : array<tuple<eid : int; distSq : float>>
+        let eid = 7
+        let distSq = 2.5
+        arr |> push((eid, distSq))
+        t |> equal(length(arr), 1)
+        t |> equal(arr[0].eid, 7)
+        t |> equal(arr[0].distSq, 2.5)
+    }
+    t |> run("shorthand named single element") @(t : T?) {
+        let eid = 9
+        var tup : tuple<eid : int> = (eid,)
+        t |> equal(tup.eid, 9)
+    }
+    t |> run("shorthand named via typed var init") @(t : T?) {
+        let eid = 11
+        let distSq = 4.5
+        var tup : tuple<eid : int; distSq : float> = (eid, distSq)
+        t |> equal(tup.eid, 11)
+        t |> equal(tup.distSq, 4.5)
+    }
+    t |> run("unnamed target keeps unnamed (no shorthand)") @(t : T?) {
+        var arr : array<tuple<int; float>>
+        let k = 11
+        let v = 4.5
+        arr |> push((k, v))   // backward compat: target is unnamed, no promotion
+        t |> equal(arr[0]._0, 11)
+        t |> equal(arr[0]._1, 4.5)
+    }
+    t |> run("overload resolution prefers unnamed tuple when both present") @(t : T?) {
+        var x = 123
+        var y = 321.
+        // both `overload_pick(tuple<int;float>)` and `overload_pick(tuple<x:int;y:float>)` visible.
+        // `(x, y)` is unnamed `tuple<int;float>` — exact match unnamed overload.
+        // shorthand-to-named promotion is fallback-only (fires when no candidate matches),
+        // so unnamed overload wins → returns 1.
+        t |> equal(overload_pick((x, y)), 1)
+    }
+    t |> run("explicit named tuple literal picks named overload") @(t : T?) {
+        var x = 123
+        var y = 321.
+        // `(x=x, y=y)` parser tag as named tuple `tuple<x:int;y:float>` directly.
+        // Exact match named overload → returns 2.
+        t |> equal(overload_pick((x = x, y = y)), 2)
+    }
+    t |> run("mixed expression tuple stays unnamed") @(t : T?) {
+        var arr : array<tuple<int; int>>
+        let a = 1
+        arr |> push((a, a + 1))   // 2nd elem not bare ExprVar → never tagged
+        t |> equal(arr[0]._0, 1)
+        t |> equal(arr[0]._1, 2)
+    }
+    t |> run("shorthand named via return from named-tuple-typed fn") @(t : T?) {
+        let r = make_hit_return(7, 2.5)
+        t |> equal(r.eid, 7)
+        t |> equal(r.distSq, 2.5)
+    }
+    t |> run("shorthand named via return using local bare vars") @(t : T?) {
+        let r = make_hit_locals()
+        t |> equal(r.eid, 17)
+        t |> equal(r.distSq, 4.25)
+    }
+    t |> run("return-promoted tuple pushes into named-tuple array") @(t : T?) {
+        var arr : array<tuple<eid : int; distSq : float>>
+        arr |> push(make_hit_return(3, 1.5))
+        t |> equal(arr[0].eid, 3)
+        t |> equal(arr[0].distSq, 1.5)
     }
     t |> run("fixed array of tuples") @(t : T?) {
         let mkta = fixed_array<tuple<int; float>>((1, 2.0), (3, 4.0))

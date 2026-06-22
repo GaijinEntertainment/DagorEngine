@@ -1,7 +1,7 @@
 // duplicate struct field name
 // verifies compiler rejects two fields with the same name in a struct
 options gen2
-expect 30115    // structure_field_already_declared
+expect 20503    // structure_field_already_declared
 
 struct Foo {
     a : int

@@ -59,6 +59,11 @@ struct GrpHeader
 };
 
 inline char *GrpData::dumpBase() const { return ((char *)this) - sizeof(GrpHeader); }
+
+inline bool grp_desc_block_valid(uint32_t block_size, int64_t avail)
+{
+  return block_size >= sizeof(GrpData) && int64_t(block_size) + int64_t(sizeof(GrpHeader)) <= avail;
+}
 } // namespace gamerespackbin
 
 void repack_real_game_res_id_table();

@@ -21,7 +21,9 @@ static String make_mat_var_str(const MatVarDesc &var)
     case MAT_VAR_TYPE_REAL: return String(0, "%s=%f", var.name, var.value.r);
     case MAT_VAR_TYPE_COLOR4:
       return String(0, "%s=%f,%f,%f,%f", var.name, var.value.c[0], var.value.c[1], var.value.c[2], var.value.c[3]);
-    case MAT_VAR_TYPE_NONE: break; // to prevent the unhandled switch case error
+
+    case MAT_VAR_TYPE_NONE:
+    case MAT_VAR_TYPE_COUNT: break; // to prevent the unhandled switch case error
   }
   return String{};
 }

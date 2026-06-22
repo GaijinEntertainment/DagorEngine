@@ -49,6 +49,8 @@ struct Segment
   bbox3f box;
   Tab<Vertex> points;
   int owner; // which cascade is already claimed it
+
+  Segment *prevSeg;
 };
 
 static float get_segment_fade_out_time(Segment *p)
@@ -171,6 +173,8 @@ struct Emitter
     if (lastSeg)
     {
       G_ASSERT(lastSeg->points.size() > 1);
+
+      seg->prevSeg = lastSeg;
 
       seg->totalLength = lastSeg->totalLength;
 
@@ -681,6 +685,7 @@ struct Context
     v_bbox3_init_empty(p->box);
     p->id = activeSegmentsPool.size();
     p->owner = 0;
+    p->prevSeg = nullptr;
     activeSegmentsPool.push_back(p);
     totalActiveVertices += g_settings.maxPointsPerSegment + 4;
 
@@ -710,6 +715,7 @@ struct Context
     freeSegmentsPool.push_back(p);
     p->id = -1;
     p->points.clear();
+    p->prevSeg = nullptr;
   }
 
   void finalizeSegment(Segment *p)
@@ -749,16 +755,24 @@ struct Context
 
     removeSegment(p);
 
-    if (p->totalTurns * g_turns_to_points_ratio >= g_settings.maxPointsPerSegment)
-    {
-      p->forcedGenMul = 0.25f;
-      float fadeOutTime = get_segment_fade_out_time(p);
+    auto accelerateFadeout = [](Segment *curr_seg) -> void {
+      curr_seg->forcedGenMul = 0.25f;
+      float fadeOutTime = get_segment_fade_out_time(curr_seg);
 
-      for (int i = 0; i < p->points.size(); ++i)
+      for (int i = 0; i < curr_seg->points.size(); ++i)
       {
-        Vertex &v = p->points[i];
+        Vertex &v = curr_seg->points[i];
         v.prm.w = (v.prm.w > 0.0f ? 1.0f : -1.0f) / fadeOutTime;
       }
+    };
+
+    if (p->totalTurns * g_turns_to_points_ratio >= g_settings.maxPointsPerSegment)
+    {
+      if (p->prevSeg != nullptr && p->prevSeg->id != -1 && is_equal_float(p->prevSeg->forcedGenMul, 1.0f))
+      {
+        accelerateFadeout(p->prevSeg);
+      }
+      accelerateFadeout(p);
     }
 
     p->lastGen = currentGen;

@@ -36,6 +36,7 @@ float get_mip_bias() { return 0; }
 void adjust_mip_bias(const IPoint2 &, const IPoint2 &) {}
 
 bool is_metalfx_upscale_supported() { return false; }
+bool is_arm_asr_supported() { return false; }
 
 void before_render_frame() {}
 
@@ -45,7 +46,7 @@ Point2 get_jitter(const RenderView &, bool) { return Point2::ZERO; }
 
 RTarget::CPtr apply(const ApplyContext &, bool) { return nullptr; }
 void apply_fxaa(AntialiasingMethod, TEXTUREID, TEXTUREID, const Point4 &) {}
-void apply_mobile_aa(TextureIDPair, TextureIDPair) {}
+void apply_mobile_aa(Texture *, Texture *, const ApplyContext &) {}
 
 const char *get_available_methods(bool, bool) { return "off"; }
 const char *get_available_upscaling_options(const char *) { return "native"; }

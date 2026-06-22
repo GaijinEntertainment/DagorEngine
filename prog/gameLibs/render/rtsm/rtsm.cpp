@@ -358,6 +358,11 @@ void render_dynamic_light_shadows(bvh::ContextId context_id, const Point3 &view_
     dw = dd.x;
     dh = dd.y;
   }
+  else
+  {
+    Point2 res = Point2(dw, dh); // This shader only needs the current resolution.
+    set_dynamic_resolution_stcode(res, res, res);
+  }
 
   bvh::bind_resources(context_id, dw);
 

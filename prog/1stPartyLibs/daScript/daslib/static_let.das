@@ -1,7 +1,5 @@
 options gen2
 options indenting = 4
-options no_unused_block_arguments = false
-options no_unused_function_arguments = false
 options strict_smart_pointers = true
 
 module static_let shared private
@@ -18,21 +16,21 @@ require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 
-[tag_function(static_let_tag)]
+[tag_function(static_let_tag), unused_argument(blk)]
 def public static_let(blk : block) {
     //! Given a scope with the variable declarations, this function will make those variables global.
     //! Variable will be renamed under the hood, and all local access to it will be renamed as well.
     pass
 }
 
-[tag_function(static_let_tag)]
+[tag_function(static_let_tag), unused_argument(name, blk)]
 def public static_let(name : string; blk : block) {
     //! Given a scope with the variable declarations, this function will make those variables global.
     //! Variable will be renamed under the hood, and all local access to it will be renamed as well.
     pass
 }
 
-[tag_function(static_let_tag)]
+[tag_function(static_let_tag), unused_argument(blk)]
 def public static_let_finalize(blk : block) {
     //! This is very similar to regular static_let, but additionally the variable will be deleted on the context shutdown.
     pass
@@ -40,14 +38,14 @@ def public static_let_finalize(blk : block) {
 
 def private make_shutdown_function(varname : string; at : LineInfo) {
     var fn = new Function(at = at, atDecl = at, name := "shutdown`{varname}")
-    fn.flags |= FunctionFlags.generated
-    fn.flags |= FunctionFlags.shutdown
+    fn.flags.generated = true
+    fn.flags.shutdown = true
     fn.result = new TypeDecl(baseType = Type.tVoid, at = at)
     var blk = new ExprBlock(at = at)
     var delv = new ExprDelete(at = at,
         subexpr <- new ExprVar(at = at, name := varname)
     )
-    delv.genFlags |= ExprGenFlags.alwaysSafe
+    delv.genFlags.alwaysSafe = true
     emplace(blk.list, delv)
     fn.body = blk
     return compiling_module() |> add_function(fn)
@@ -82,7 +80,7 @@ class StaticLetMacro : AstFunctionAnnotation {
             return null
         }
         var blk = mblk._block as ExprBlock
-        if (blk.finalList |> length != 0) {
+        if (!empty(blk.finalList)) {
             errors := "not expecting finally section in the static_let"
             return null
         }
@@ -96,8 +94,8 @@ class StaticLetMacro : AstFunctionAnnotation {
             for (vvar in lexpr.variables) {
                 {
                     var vclone <- clone_variable(vvar)
-                    vclone.flags |= VariableFlags.private_variable
-                    vclone.flags |= VariableFlags.generated
+                    vclone.flags.private_variable = true
+                    vclone.flags.generated = true
                     let old_name = "{vclone.name}"
                     let new_name = "{prefix}{vclone.name}"
                     vclone.name := new_name
@@ -128,9 +126,7 @@ class StaticLetMacro : AstFunctionAnnotation {
                 }
             }
         }
-        if (!success) {
-            return null
-        }
+        if (!success) return null
         return <- quote() {
             pass
         }

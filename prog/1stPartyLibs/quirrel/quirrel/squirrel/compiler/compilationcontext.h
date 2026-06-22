@@ -118,7 +118,8 @@ class KeyValueFile;
   DEF_DIAGNOSTIC(ASSIGNED_BACK, WARNING, SEMA, 330, "assigned-back", "Assignment writes back the value that was just copied from this expression."), \
   DEF_DIAGNOSTIC(FUNCTION_RETURNS_SAME_VALUE, WARNING, SEMA, 331, "function-returns-same-value", "Function returns the same value from all value-returning paths."), \
   DEF_DIAGNOSTIC(DUPLICATE_IMPORT, WARNING, SEMA, 332, "duplicate-import", "Imported field '%s' is listed more than once."), \
-  DEF_DIAGNOSTIC(WILDCARD_AND_NAMED_IMPORT, WARNING, SEMA, 333, "wildcard-and-named-import", "Module '%s' is imported both with '*' and by explicit names.") \
+  DEF_DIAGNOSTIC(WILDCARD_AND_NAMED_IMPORT, WARNING, SEMA, 333, "wildcard-and-named-import", "Module '%s' is imported both with '*' and by explicit names."), \
+  DEF_DIAGNOSTIC(SUBST_ARGUMENT_INDEX, WARNING, SEMA, 334, "subst-argument-index", "Substitution references positional placeholder '{%d}' but only %d argument(s) passed; it will be left as literal text.") \
 
 
 namespace SQCompilation {

@@ -2,50 +2,53 @@
 
 #include <scene/dag_buildVisTree.h>
 #include <math/dag_math3d.h>
-#include <util/dag_stlqsort.h>
-#include <supp/dag_prefetch.h>
+#include <generic/dag_sort.h>
 // #include <debug/dag_debug.h>
 
 struct VisTreeComparator
 {
   int use_side;
+  VisTreeComparator(int s) : use_side(s) {}
   inline bool operator()(const HierVisNode &o1, const HierVisNode &o2) const
   {
-    float c1 = as_point3(&o1.bbox.bmin)[use_side] + as_point3(&o1.bbox.bmax)[use_side];
-    float c2 = as_point3(&o2.bbox.bmin)[use_side] + as_point3(&o2.bbox.bmax)[use_side];
-    float dif = c1 - c2;
-    if (dif == 0)
-      return 0;
-    if (dif < 0)
-      return true;
-    return false;
+    float c1, c2;
+    switch (use_side)
+    {
+      case 0:
+        c1 = v_extract_x(o1.bbox.bmin) + v_extract_x(o1.bbox.bmax);
+        c2 = v_extract_x(o2.bbox.bmin) + v_extract_x(o2.bbox.bmax);
+        break;
+      case 1:
+        c1 = v_extract_y(o1.bbox.bmin) + v_extract_y(o1.bbox.bmax);
+        c2 = v_extract_y(o2.bbox.bmin) + v_extract_y(o2.bbox.bmax);
+        break;
+      case 2:
+        c1 = v_extract_z(o1.bbox.bmin) + v_extract_z(o1.bbox.bmax);
+        c2 = v_extract_z(o2.bbox.bmin) + v_extract_z(o2.bbox.bmax);
+        break;
+      default: DAGOR_UNREACHABLE;
+    }
+    return c1 < c2; //-V614
   }
-} comparator;
+};
 
-Tab<HierVisNode> BuildVisTree::buildList(tmpmem_ptr());
-
-void BuildVisTree::clearLastPlaneWord() {}
-
-void BuildVisTree::build(HierVisBuildNode *leaves, int leaves_count, bool clear_lp)
+void BuildVisTree::build(dag::Span<HierVisBuildNode> leaves)
 {
-  leavesCount = leaves_count;
+  leavesCount = (int)leaves.size();
   if (!leavesCount)
   {
     clear_and_shrink(nodes);
     return;
   }
 
-
-  buildHierVisData(leaves, leaves_count);
-
-  nodes = buildList;
-  clear_and_shrink(buildList);
-  if (clear_lp)
-    clearLastPlaneWord();
+  nodes.clear();
+  buildHierVisData(nodes, leaves);
+  nodes.shrink_to_fit();
 }
 
-void BuildVisTree::buildHierVisData(HierVisBuildNode *leaves, int leaves_count)
+void BuildVisTree::buildHierVisData(SmallTab<HierVisNode> &buildList, dag::Span<HierVisBuildNode> leaves)
 {
+  const int leaves_count = (int)leaves.size();
   buildList.reserve(leaves_count * 2 + 1);
   buildList.resize(leaves_count);
   for (int i = 0; i < leaves_count; ++i)
@@ -68,7 +71,7 @@ void BuildVisTree::buildHierVisData(HierVisBuildNode *leaves, int leaves_count)
   root.childLast = buildList.size() - 1;
   buildList.push_back(root);
 
-  recursiveBuild(buildList.size() - 1);
+  recursiveBuild(buildList, buildList.size() - 1);
 }
 
 static inline void set_bbox_sr2(bbox3f &b, vec4f sr2_x, vec4f msor2_w)
@@ -78,7 +81,7 @@ static inline void set_bbox_sr2(bbox3f &b, vec4f sr2_x, vec4f msor2_w)
   b.bmax = v_nmsub(b.bmax, V_C_UNIT_0001, v_add(b.bmax, sr2_w));
 }
 
-void BuildVisTree::recursiveBuild(int node_id)
+void BuildVisTree::recursiveBuild(SmallTab<HierVisNode> &buildList, int node_id)
 {
   static vec4f_const c16 = DECL_VECFLOAT4(16.0f, 16.0f, 16.0f, 16.0f);
   int depth = node_id >> 16;
@@ -113,35 +116,29 @@ void BuildVisTree::recursiveBuild(int node_id)
     return;
   }
   set_bbox_sr2(node.bbox, sr2, msor2);
-  comparator.use_side = 0;
+  int use_side = 0;
   vec3f width = v_bbox3_size(node.bbox);
   Point3_vec4 widthS;
   v_st(&widthS.x, width);
   for (int i = 1; i < 3; ++i)
-    if (widthS[comparator.use_side] < widthS[i])
-      comparator.use_side = i;
+    if (widthS[use_side] < widthS[i])
+      use_side = i;
   // debug("node count = %d, depth=%d", cnt, depth);
 
-  stlsort::sort(buildList.data() + start, buildList.data() + start + cnt, comparator);
+  fast_sort(buildList, start, cnt, VisTreeComparator(use_side));
   const int maxChildsCount = 4;
   HierVisNode childs[maxChildsCount];
   int childsCount = 2;
   if (cnt >= 8)
   {
     childsCount = maxChildsCount;
-    int next_side = (comparator.use_side + 1) % 3;
+    int next_side = (use_side + 1) % 3;
     for (int i = 0; i < 3; ++i)
-      if (i != comparator.use_side)
+      if (i != use_side)
         if (widthS[next_side] < widthS[i])
           next_side = i;
-    // next_side = 2-comparator.use_side;
-    // if (node.bbox.width()[next_side]>node.bbox.width()[comparator.use_side]*0.5)
-    {
-      comparator.use_side = next_side;
-      stlsort::sort(buildList.data() + start, buildList.data() + start + cnt / 2, comparator);
-      stlsort::sort(buildList.data() + start + cnt / 2, buildList.data() + start + cnt, comparator);
-    } // else
-      // debug("not re-sort, side=%d", comparator.use_side);
+    fast_sort(buildList, start, cnt / 2, VisTreeComparator(next_side));
+    fast_sort(buildList, start + cnt / 2, cnt - cnt / 2, VisTreeComparator(next_side));
   }
   for (int i = 0; i < childsCount; ++i)
   {
@@ -156,6 +153,6 @@ void BuildVisTree::recursiveBuild(int node_id)
   depth++;
   for (int i = 0; i < childsCount; ++i)
   {
-    recursiveBuild((first + i) | (depth << 16)); // node& is invalid here
+    recursiveBuild(buildList, (first + i) | (depth << 16)); // node& is invalid here
   }
 }

@@ -277,7 +277,7 @@ static void get_animchar_tight_matrix(const DataBlock &info, IconAnimcharWithAtt
       const DataBlock *animationParams = info.getBlockByNameEx("animationParams");
       if (!animationParams->isEmpty())
       {
-        AnimV20::AnimCommonStateHolder *currentAnimState = iconAnimchar[0].animchar->getAnimState();
+        AnimV20::AnimGraphStateHolder *currentAnimState = iconAnimchar[0].animchar->getAnimState();
         for (int i = 0; i < animationParams->paramCount(); ++i)
         {
           const char *animationParamName = animationParams->getParamName(i);
@@ -286,7 +286,7 @@ static void get_animchar_tight_matrix(const DataBlock &info, IconAnimcharWithAtt
             logerr("[AnimCharIcon] Animation param '%s' must be 'real' (float)", animationParamName);
             continue;
           }
-          int paramId = iconAnimGraph->getParamId(animationParamName, AnimV20::AnimCommonStateHolder::PT_ScalarParam);
+          int paramId = iconAnimGraph->getParamId(animationParamName, AnimV20::AnimGraphStateHolder::PT_ScalarParam);
           if (paramId == -1)
           {
             logerr("[AnimCharIcon] Animation param '%s' not exist in animation tree", animationParamName);
@@ -356,13 +356,13 @@ void RenderAnimCharIconBase::clearPendReq()
   pendReq.clear();
 }
 
-void RenderAnimCharIconBase::clear_to(E3DCOLOR col, Texture *to, int x, int y, int dstw, int dsth) const
+void RenderAnimCharIconBase::clear_to(E3DCOLOR col, const PictureManager::PictureRenderContext &pic_ctx) const
 {
   SCOPE_RENDER_TARGET;
-  d3d::set_render_target({}, DepthAccess::RW, {{to, 0, 0}});
-  d3d::setview(x, y, dstw, dsth, 0, 1);
+  d3d::set_render_target({}, DepthAccess::RW, {{pic_ctx.rt, 0, 0}});
+  d3d::setview(pic_ctx.x0, pic_ctx.y0, pic_ctx.w, pic_ctx.h, 0, 1);
   d3d::clearview(CLEAR_TARGET, col, 0, 0);
-  d3d::resource_barrier({to, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+  d3d::resource_barrier({pic_ctx.rt, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
 
 #define GLOBAL_VARS_ANIMCHAR_ICONS_LIST \
@@ -668,13 +668,12 @@ bool RenderAnimCharIconBase::match(const DataBlock &pic_props, int &out_w, int &
   return true;
 }
 
-RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar(Texture *to, int x, int y, int dstw, int dsth,
-  const DataBlock &info, PICTUREID pid)
+RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar(const PictureManager::PictureRenderContext &pic_ctx)
 {
   IconAnimcharWithAttachments iconAnimchar;
   {
     WinAutoLock lock(pendReqCs);
-    auto it = pendReq.find(pid);
+    auto it = pendReq.find(pic_ctx.pid);
     if (it != pendReq.end())
       iconAnimchar = it->second;
   }
@@ -684,14 +683,14 @@ RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar
     auto missingAnimChar = [&](const IconAnimchar &iconAnimchar) -> AnimcharPrefetch {
       logerr("missing animchar <%s>", iconAnimchar.blk->getStr("animchar"));
 #if DAGOR_DBGLEVEL > 0
-      clear_to(0xFF00FFFF, to, x, y, dstw, dsth);
+      clear_to(0xFF00FFFF, pic_ctx);
 #else
-      clear_to(0, to, x, y, dstw, dsth);
+      clear_to(0, pic_ctx);
 #endif
       return {IconPrepareStatus::Failed};
     };
 
-    AsynLoadAnimcharResult ret = async_load_animchar_with_attachments(info, iconAnimchar);
+    AsynLoadAnimcharResult ret = async_load_animchar_with_attachments(pic_ctx.props, iconAnimchar);
     if (ret == AsynLoadAnimcharResult::LOADING)
       return {IconPrepareStatus::RetryAgain};
     if (ret == AsynLoadAnimcharResult::NOT_EXIST)
@@ -799,10 +798,10 @@ RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar
     IconAnimcharWithAttachments dup_animchar_to_destroy = iconAnimchar;
     {
       WinAutoLock lock(pendReqCs);
-      auto it = pendReq.lower_bound(pid);
-      if (it == pendReq.end() || it->first != pid)
+      auto it = pendReq.lower_bound(pic_ctx.pid);
+      if (it == pendReq.end() || it->first != pic_ctx.pid)
       {
-        pendReq.insert(it, eastl::make_pair(pid, iconAnimchar));
+        pendReq.insert(it, eastl::make_pair(pic_ctx.pid, iconAnimchar));
         dup_animchar_to_destroy.clear();
       }
       else
@@ -832,33 +831,34 @@ RenderAnimCharIconBase::AnimcharPrefetch RenderAnimCharIconBase::prepareAnimchar
   return {IconPrepareStatus::Ready, iconAnimchar};
 }
 
-Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa)
+Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimcharRenderingContext &render_ctx,
+  const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA &icon_ssaa)
 {
-  const float scale = ctx.info->getReal("scale", 1.f);
-  const Point2 ofs = ctx.info->getPoint2("offset", Point2(0, 0));
+  const float scale = pic_ctx.props.getReal("scale", 1.f);
+  const Point2 ofs = pic_ctx.props.getPoint2("offset", Point2(0, 0));
 
   TMatrix viewTm;
   float fovInTan, fovHkInTan, zn, zf, scaleX, scaleY, centerX, centerY;
-  get_animchar_tight_matrix(*ctx.info, ctx.iconAnimchars, float(icon_ssaa.w) / icon_ssaa.h, viewTm, fovInTan, fovHkInTan, zn, zf,
-    scaleX, scaleY, centerX, centerY);
+  get_animchar_tight_matrix(pic_ctx.props, render_ctx.iconAnimchars, float(icon_ssaa.w) / icon_ssaa.h, viewTm, fovInTan, fovHkInTan,
+    zn, zf, scaleX, scaleY, centerX, centerY);
   scaleX *= scale;
   scaleY *= scale;
   scaleX = min(scaleX, scaleY);
   scaleY = scaleX; // because we can't change aspect ratio
 
-  const char *animation = ctx.info->getStr("animation", "");
-  const bool recalcAnimation = ctx.info->getBool("recalcAnimation", false);
+  const char *animation = pic_ctx.props.getStr("animation", "");
+  const bool recalcAnimation = pic_ctx.props.getBool("recalcAnimation", false);
   if (recalcAnimation)
-    for (size_t i = 1; i < ctx.iconAnimchars.size(); ++i)
+    for (size_t i = 1; i < render_ctx.iconAnimchars.size(); ++i)
     {
       const int charUid = 1; // Some post blend controllers rely on this uid to run expensive logic once when attachment changes. By
                              // default it is 0, so we need any non 0 number here to run that logic.
-      ctx.iconAnimchars[0].animchar->setAttachedChar(ctx.iconAnimchars[i].slotId, charUid, ctx.iconAnimchars[i].animchar->baseComp(),
-        false);
+      render_ctx.iconAnimchars[0].animchar->setAttachedChar(render_ctx.iconAnimchars[i].slotId, charUid,
+        render_ctx.iconAnimchars[i].animchar->baseComp(), false);
     }
 
   bool hasAnimation = strcmp(animation, "");
-  AnimV20::AnimationGraph *animgraph = ctx.iconAnimchars[0].animchar->getAnimGraph();
+  AnimV20::AnimationGraph *animgraph = render_ctx.iconAnimchars[0].animchar->getAnimGraph();
 
   if (hasAnimation && !animgraph)
   {
@@ -866,34 +866,34 @@ Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimc
            "itemName:'%d', animation:'%d'].\nBut the animchar does not have the animgraph.\n It's possible "
            "that you've requested "
            "to render the attachment instead of the character!",
-      ctx.info->getStr("animchar", ""), ctx.info->getStr("itemName", ""), animation);
+      pic_ctx.props.getStr("animchar", ""), pic_ctx.props.getStr("itemName", ""), animation);
     hasAnimation = false;
   }
 
   if (hasAnimation)
   {
-    int stateIdx = ctx.iconAnimchars[0].animchar->getAnimGraph()->getStateIdx(animation);
-    ctx.iconAnimchars[0].animchar->getAnimGraph()->enqueueState(*ctx.iconAnimchars[0].animchar->getAnimState(),
-      ctx.iconAnimchars[0].animchar->getAnimGraph()->getState(stateIdx));
-    AnimV20::IAnimBlendNode *node = ctx.iconAnimchars[0].animchar->getAnimGraph()->getBlendNodePtr(animation);
+    int stateIdx = render_ctx.iconAnimchars[0].animchar->getAnimGraph()->getStateIdx(animation);
+    render_ctx.iconAnimchars[0].animchar->getAnimGraph()->enqueueState(*render_ctx.iconAnimchars[0].animchar->getAnimState(),
+      render_ctx.iconAnimchars[0].animchar->getAnimGraph()->getState(stateIdx));
+    AnimV20::IAnimBlendNode *node = render_ctx.iconAnimchars[0].animchar->getAnimGraph()->getBlendNodePtr(animation);
     if (node)
-      node->seek(*ctx.iconAnimchars[0].animchar->getAnimState(), 0);
+      node->seek(*render_ctx.iconAnimchars[0].animchar->getAnimState(), 0);
 
-    ctx.iconAnimchars[0].animchar->setTm(viewTm);
-    ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
+    render_ctx.iconAnimchars[0].animchar->setTm(viewTm);
+    render_ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
   }
   else
   {
-    ctx.iconAnimchars[0].animchar->setTm(viewTm);
+    render_ctx.iconAnimchars[0].animchar->setTm(viewTm);
     if (recalcAnimation)
-      ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
+      render_ctx.iconAnimchars[0].animchar->doRecalcAnimAndWtm();
     else
-      ctx.iconAnimchars[0].animchar->recalcWtm();
+      render_ctx.iconAnimchars[0].animchar->recalcWtm();
   }
 
-  for (size_t i = 1; i < ctx.iconAnimchars.size(); ++i)
-    ctx.iconAnimchars[i].updateTmWtm(ctx.iconAnimchars[0].animchar);
-  for (auto &ia : ctx.iconAnimchars)
+  for (size_t i = 1; i < render_ctx.iconAnimchars.size(); ++i)
+    render_ctx.iconAnimchars[i].updateTmWtm(render_ctx.iconAnimchars[0].animchar);
+  for (auto &ia : render_ctx.iconAnimchars)
   {
     DynamicRenderableSceneInstance *scene = ia.animchar->getSceneInstance();
     scene->setCurrentLod(0);
@@ -905,16 +905,16 @@ Driver3dPerspective RenderAnimCharIconBase::updateAnimcharRenderParams(IconAnimc
     });
   }
 
-  for (int i = 0; i < ctx.iconAnimchars.size(); ++i)
+  for (int i = 0; i < render_ctx.iconAnimchars.size(); ++i)
   {
-    const int hideNodesCount = ctx.iconAnimchars[i].hideNodeNames.size();
+    const int hideNodesCount = render_ctx.iconAnimchars[i].hideNodeNames.size();
     if (hideNodesCount == 0)
       continue;
-    DynamicRenderableSceneInstance *scene = ctx.iconAnimchars[i].animchar->getSceneInstance();
+    DynamicRenderableSceneInstance *scene = render_ctx.iconAnimchars[i].animchar->getSceneInstance();
     const RoNameMapEx &names = scene->getLodsResource()->getNames().node;
     for (int j = 0; j < hideNodesCount; ++j)
     {
-      const int nodeId = names.getNameId(ctx.iconAnimchars[i].hideNodeNames[j].c_str());
+      const int nodeId = names.getNameId(render_ctx.iconAnimchars[i].hideNodeNames[j].c_str());
       if (nodeId >= 0)
       {
         scene->setNodeOpacity(nodeId, 0.f);
@@ -946,34 +946,33 @@ RenderAnimCharIconBase::IconSSAA RenderAnimCharIconBase::applySSAA(const int dst
   return {w, h, ssaa};
 }
 
-void RenderAnimCharIconBase::resolveFinalTarget(const IconAnimcharRenderingContext &ctx, const IconSSAA icon_ssaa)
+void RenderAnimCharIconBase::resolveFinalTarget(const PictureManager::PictureRenderContext &pic_ctx, const IconSSAA icon_ssaa,
+  const bool use_icon_tonemap)
 {
   // we render in one more target to be able to use resolve after AA
   d3d::set_render_target({}, DepthAccess::RW, {{finalTargetAA.getTex2D(), 0, 0}});
-  d3d::setview(0, 0, ctx.dstw, ctx.dsth, 0, 1);
+  d3d::setview(0, 0, pic_ctx.w, pic_ctx.h, 0, 1);
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   d3d::resource_barrier({finalTarget.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   finalTarget.setVar();
   ShaderGlobal::set_float4(view_scale_ofsVarId, icon_ssaa.w / float(target->getWidth()), icon_ssaa.h / float(target->getHeight()), 0,
     0);
-  ShaderGlobal::set_float4(icon_ssaaVarId, icon_ssaa.ssaa, icon_ssaa.ssaa, -ctx.x, -ctx.y);
-  ShaderGlobal::set_float(icon_contrastVarId, ctx.info->getReal("contrast", 1.0));
-  ShaderGlobal::set_float(icon_sharpen_amountVarId, ctx.info->getReal("sharpening", 0.0));
-  bool allSilhouette = eastl::all_of(ctx.iconAnimchars.begin(), ctx.iconAnimchars.end(),
-    [](const IconAnimchar &ia) { return ia.shading == IconAnimchar::SILHOUETTE; });
-  ShaderGlobal::set_float(icon_tonemap_enabledVarId, allSilhouette ? 0.0f : 1.0f);
+  ShaderGlobal::set_float4(icon_ssaaVarId, icon_ssaa.ssaa, icon_ssaa.ssaa, -pic_ctx.x0, -pic_ctx.y0);
+  ShaderGlobal::set_float(icon_contrastVarId, pic_ctx.props.getReal("contrast", 1.0));
+  ShaderGlobal::set_float(icon_sharpen_amountVarId, pic_ctx.props.getReal("sharpening", 0.0));
+  ShaderGlobal::set_float(icon_tonemap_enabledVarId, use_icon_tonemap ? 1.0f : 0.0f);
   finalAA.render();
   ShaderGlobal::set_float(icon_tonemap_enabledVarId, 1.0f);
   d3d::resource_barrier({finalTargetAA.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
-  if (!ctx.to)
+  if (!pic_ctx.rt)
     d3d::set_render_target();
   else
-    d3d::set_render_target({}, DepthAccess::RW, {{ctx.to, 0, 0}});
-  d3d::setview(ctx.x, ctx.y, ctx.dstw, ctx.dsth, 0, 1);
+    d3d::set_render_target({}, DepthAccess::RW, {{pic_ctx.rt, 0, 0}});
+  d3d::setview(pic_ctx.x0, pic_ctx.y0, pic_ctx.w, pic_ctx.h, 0, 1);
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
-  ShaderGlobal::set_float4(view_scale_ofsVarId, ctx.dstw / float(target->getWidth()), ctx.dsth / float(target->getHeight()), 0, 0);
-  ShaderGlobal::set_float4(icon_viewport_sizeVarId, ctx.dstw, ctx.dsth, 1.0 / ctx.dstw, 1.0 / ctx.dsth);
+  ShaderGlobal::set_float4(view_scale_ofsVarId, pic_ctx.w / float(target->getWidth()), pic_ctx.h / float(target->getHeight()), 0, 0);
+  ShaderGlobal::set_float4(icon_viewport_sizeVarId, pic_ctx.w, pic_ctx.h, 1.0 / pic_ctx.w, 1.0 / pic_ctx.h);
 
   finalTargetAA.setVar();
   finalSharpen.render();
@@ -1004,42 +1003,36 @@ void RenderAnimCharIconBase::afterRender(IconAnimcharWithAttachments &icon_animc
   onAfterRender();
 }
 
-RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::beforeRender(Texture *to, int x, int y, int dstw,
-  int dsth, const DataBlock &info, PICTUREID pid)
+RenderAnimCharIconBase::IconAnimcharRenderingContext RenderAnimCharIconBase::beforeRender(
+  const PictureManager::PictureRenderContext &pic_ctx)
 {
-  AnimcharPrefetch animcharPrefetch = prepareAnimchar(to, x, y, dstw, dsth, info, pid);
+  AnimcharPrefetch animcharPrefetch = prepareAnimchar(pic_ctx);
 
   if (animcharPrefetch.status != IconPrepareStatus::Ready)
     return {animcharPrefetch.status};
 
-  eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped = setEnviParams(info);
+  eastl::optional<SharedTexWithShaderVar> previousEnviPanoramaScoped = setEnviParams(pic_ctx.props);
   if (!previousEnviPanoramaScoped.has_value())
     return {IconPrepareStatus::RetryAgain};
 
-  onBeforeRender(info);
+  onBeforeRender(pic_ctx.props);
 
-  return {.status = IconPrepareStatus::Ready,
+  return {
+    .status = IconPrepareStatus::Ready,
     .iconAnimchars = eastl::move(animcharPrefetch.ia),
     .previousEnviPanoramaScoped = eastl::move(previousEnviPanoramaScoped),
-    .to = to,
-    .x = x,
-    .y = y,
-    .dstw = dstw,
-    .dsth = dsth,
-    .info = &info,
-    .pid = pid};
+  };
 }
 
-RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal(Texture *to, int x, int y, int dstw, int dsth,
-  const DataBlock &info, PICTUREID pid)
+RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal(const PictureManager::PictureRenderContext &pic_ctx)
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_ANIMCHAR_ICONS_LIST
 #undef VAR
 
-  IconAnimcharRenderingContext ctx = beforeRender(to, x, y, dstw, dsth, info, pid);
-  if (ctx.status != IconPrepareStatus::Ready)
-    return ctx.status;
+  IconAnimcharRenderingContext renderCtx = beforeRender(pic_ctx);
+  if (renderCtx.status != IconPrepareStatus::Ready)
+    return renderCtx.status;
 
   TIME_D3D_PROFILE(icon_render);
 
@@ -1048,86 +1041,95 @@ RenderAnimCharIconBase::IconPrepareStatus RenderAnimCharIconBase::renderInternal
     SCOPE_RENDER_TARGET;
     SCOPE_VIEW_PROJ_MATRIX;
 
-    const IconSSAA iconSSAA = applySSAA(dstw, dsth, info);
+    const IconSSAA iconSSAA = applySSAA(pic_ctx.w, pic_ctx.h, pic_ctx.props);
     ensureDim(iconSSAA.w, iconSSAA.h);
 
-    const Driver3dPerspective perspective = updateAnimcharRenderParams(ctx, iconSSAA);
-    if (!renderIconAnimChars(ctx, iconSSAA, perspective))
+    const Driver3dPerspective perspective = updateAnimcharRenderParams(renderCtx, pic_ctx, iconSSAA);
+    if (!renderIconAnimChars(renderCtx, pic_ctx, iconSSAA, perspective))
       return IconPrepareStatus::RetryAgain;
 
     if (needsResolveRenderTarget())
-      resolveFinalTarget(ctx, iconSSAA);
+    {
+      const bool allSilhouette = eastl::all_of(renderCtx.iconAnimchars.begin(), renderCtx.iconAnimchars.end(),
+        [](const IconAnimchar &ia) { return ia.shading == IconAnimchar::SILHOUETTE; });
+      const bool useIconToneMap = !allSilhouette;
+      resolveFinalTarget(pic_ctx, iconSSAA, useIconToneMap);
+    }
 
-    if (to)
-      d3d::resource_barrier({to, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    if (pic_ctx.rt)
+      d3d::resource_barrier({pic_ctx.rt, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
   }
 
-  afterRender(ctx.iconAnimchars, pid);
+  afterRender(renderCtx.iconAnimchars, pic_ctx.pid);
   return IconPrepareStatus::Ready;
 }
 
 #if ICON_3D_RENDER_DEBUG
 static bool debugEnabled = false;
 static DataBlock debugIconInfo;
-#endif
 
-bool RenderAnimCharIconBase::render(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid)
+DataBlock RenderAnimCharIconBase::applyDebugInfo(const DataBlock &info) const
 {
-  const DataBlock *dataBlockToUse = &info;
-#if ICON_3D_RENDER_DEBUG
-  DataBlock modifiedBlock;
-  bool forceRenderEveryFrame = info.getBool("forceRenderEveryFrame", false);
-  if (debugEnabled)
+  DataBlock modifiedBlock = DataBlock(info);
+
+  for (uint32_t i = 0; i < info.paramCount(); ++i)
   {
-    for (uint32_t i = 0; i < info.paramCount(); ++i)
+    const char *paramName = info.getParamName(i);
+    if (strcmp(paramName, "forceRenderEveryFrame") == 0)
+      continue;
+    // only copy the param the first time we see it
+    if (debugIconInfo.paramExists(paramName))
+      continue;
+
+    switch (info.getParamType(i))
     {
-      const char *paramName = info.getParamName(i);
-      if (strcmp(paramName, "forceRenderEveryFrame") == 0)
-        continue;
-      // only copy the param the first time we see it
-      if (debugIconInfo.paramExists(paramName))
-        continue;
-
-      switch (info.getParamType(i))
-      {
-        case DataBlock::TYPE_INT: debugIconInfo.setInt(paramName, info.getInt(i)); break;
-        case DataBlock::TYPE_REAL: debugIconInfo.setReal(paramName, info.getReal(i)); break;
-        case DataBlock::TYPE_BOOL: debugIconInfo.setBool(paramName, info.getBool(i)); break;
-        case DataBlock::TYPE_E3DCOLOR: debugIconInfo.setE3dcolor(paramName, info.getE3dcolor(i)); break;
-        case DataBlock::TYPE_POINT2: debugIconInfo.setPoint2(paramName, info.getPoint2(i)); break;
-      }
+      case DataBlock::TYPE_INT: debugIconInfo.setInt(paramName, info.getInt(i)); break;
+      case DataBlock::TYPE_REAL: debugIconInfo.setReal(paramName, info.getReal(i)); break;
+      case DataBlock::TYPE_BOOL: debugIconInfo.setBool(paramName, info.getBool(i)); break;
+      case DataBlock::TYPE_E3DCOLOR: debugIconInfo.setE3dcolor(paramName, info.getE3dcolor(i)); break;
+      case DataBlock::TYPE_POINT2: debugIconInfo.setPoint2(paramName, info.getPoint2(i)); break;
     }
-
-    modifiedBlock = DataBlock(info);
-    for (uint32_t i = 0; i < info.paramCount(); ++i)
-    {
-      const char *paramName = info.getParamName(i);
-      int debugParamId = debugIconInfo.findParam(paramName);
-      if (debugParamId < 0)
-        continue;
-
-      switch (info.getParamType(i))
-      {
-        case DataBlock::TYPE_INT: modifiedBlock.setInt(paramName, debugIconInfo.getInt(debugParamId)); break;
-        case DataBlock::TYPE_REAL: modifiedBlock.setReal(paramName, debugIconInfo.getReal(debugParamId)); break;
-        case DataBlock::TYPE_BOOL: modifiedBlock.setBool(paramName, debugIconInfo.getBool(debugParamId)); break;
-        case DataBlock::TYPE_E3DCOLOR: modifiedBlock.setE3dcolor(paramName, debugIconInfo.getE3dcolor(debugParamId)); break;
-        case DataBlock::TYPE_POINT2: modifiedBlock.setPoint2(paramName, debugIconInfo.getPoint2(debugParamId)); break;
-      }
-    }
-
-    dataBlockToUse = &modifiedBlock;
   }
+
+  for (uint32_t i = 0; i < info.paramCount(); ++i)
+  {
+    const char *paramName = info.getParamName(i);
+    int debugParamId = debugIconInfo.findParam(paramName);
+    if (debugParamId < 0)
+      continue;
+
+    switch (info.getParamType(i))
+    {
+      case DataBlock::TYPE_INT: modifiedBlock.setInt(paramName, debugIconInfo.getInt(debugParamId)); break;
+      case DataBlock::TYPE_REAL: modifiedBlock.setReal(paramName, debugIconInfo.getReal(debugParamId)); break;
+      case DataBlock::TYPE_BOOL: modifiedBlock.setBool(paramName, debugIconInfo.getBool(debugParamId)); break;
+      case DataBlock::TYPE_E3DCOLOR: modifiedBlock.setE3dcolor(paramName, debugIconInfo.getE3dcolor(debugParamId)); break;
+      case DataBlock::TYPE_POINT2: modifiedBlock.setPoint2(paramName, debugIconInfo.getPoint2(debugParamId)); break;
+    }
+  }
+
+  return modifiedBlock;
+}
 #endif
 
-  const IconPrepareStatus status = renderInternal(to, x, y, dstw, dsth, *dataBlockToUse, pid);
+bool RenderAnimCharIconBase::render(const PictureManager::PictureRenderContext &pic_ctx)
+{
+  auto picCtx = pic_ctx;
+
+#if ICON_3D_RENDER_DEBUG
+  bool forceRenderEveryFrame = picCtx.props.getBool("forceRenderEveryFrame", false);
+  if (debugEnabled)
+    picCtx.props = applyDebugInfo(picCtx.props);
+#endif
+
+  IconPrepareStatus status = renderInternal(picCtx);
 
   if (status != IconPrepareStatus::Ready)
   {
 #if ICON_3D_RENDER_DEBUG
     if (!forceRenderEveryFrame)
 #endif
-      clear_to(0, to, x, y, dstw, dsth);
+      clear_to(0, picCtx);
   }
 
   return !(status == IconPrepareStatus::RetryAgain);

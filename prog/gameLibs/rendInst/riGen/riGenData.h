@@ -151,6 +151,7 @@ struct RendInstGenData
     SmallTab<uint8_t, MidmemAlloc> riResHideMask;
     Tab<rendinst::props::DebrisProps> riDebrisMap;
     Tab<DebrisPool> riDebris;
+    Tab<int> riCustomPropsId;
     Tab<eastl::unique_ptr<rendinst::DestroyedRi>> riDebrisDelayedRi; // TODO: remove indirection (put by value)
     Tab<rendinst::props::DestrProps> riDestr;
     Tab<rendinst::DestroyedCellData> riDestrCellData DAG_TS_GUARDED_BY(riRwCs);

@@ -77,6 +77,10 @@ if $(Platform) = macOS {
   Copt += -Wno-deprecated-declarations ;
 }
 
+if $(PlatformSpec) = clang {
+  Copt += -Wno-incompatible-pointer-types-discards-qualifiers ;
+}
+
 if $(PlatformSpec) in gcc {
   Copt += -Wno-unused-result -Wno-discarded-qualifiers ;
 }

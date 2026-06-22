@@ -6,7 +6,7 @@ include "common.dshl"
 shader
 // [[shader_name]]
 {
-  supports nbs_fog_block;
+  NBS_FOG_BLOCK();
 
   (cs) {
     // [[dshl_preshader]]
@@ -19,7 +19,7 @@ shader
     #include "../../../publicInclude/render/nbs_spheres.hlsli"
     #include "globalHlslFunctions.hlsl"
     #include "../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"
-    #include "../../../publicInclude/render/light_consts.hlsli"
+    #include "../../../publicInclude/render/lights/light_consts.hlsli"
     #include "../../../render/shaders/camera_in_camera.hlsl"
     #include "../../../render/shaders/pcg_hash.hlsl"
     #include "../../../publicInclude/render/volumetricLights/heightFogNode.hlsli"

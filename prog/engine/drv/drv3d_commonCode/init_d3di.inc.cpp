@@ -103,7 +103,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(delete_program);
 
   FILL_ENTRY(create_vertex_shader);
-  FILL_ENTRY(create_vertex_shader_dagor);
   FILL_ENTRY(delete_vertex_shader);
 
   FILL_ENTRY(set_vertex_shader);
@@ -114,7 +113,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
   FILL_ENTRY(set_cs_constbuffer_register_count);
 
   FILL_ENTRY(create_pixel_shader);
-  FILL_ENTRY(create_pixel_shader_dagor);
   FILL_ENTRY(delete_pixel_shader);
 
   FILL_ENTRY(set_pixel_shader);
@@ -256,8 +254,6 @@ bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 
   FILL_ENTRY(begin_conditional_render);
   FILL_ENTRY(end_conditional_render);
-
-  FILL_ENTRY(get_program_vdecl);
 
   FILL_ENTRY(get_vrr_supported);
   FILL_ENTRY(get_vsync_enabled);

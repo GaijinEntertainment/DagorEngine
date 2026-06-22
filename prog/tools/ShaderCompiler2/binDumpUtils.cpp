@@ -172,6 +172,7 @@ static void addRefsFromStCode(Tab<int> &refsTable, const shc::TargetContext &ctx
         case SHCOD_GET_GVEC:
         case SHCOD_GET_GMAT44:
         case SHCOD_GLOB_SAMPLER:
+        case SHCOD_REG_BINDLESS_SAMPLER:
         {
           int vi = shaderopcode::getOpStageSlot_Reg(code[i]);
           G_ASSERT(vi >= 0 && vi < refsTable.size());
@@ -287,6 +288,7 @@ void bindumphlp::patchStCode(dag::Span<int32_t> code, dag::ConstSpan<int> remapT
       case SHCOD_GET_GVEC:
       case SHCOD_GET_GMAT44:
       case SHCOD_GLOB_SAMPLER:
+      case SHCOD_REG_BINDLESS_SAMPLER:
       {
         int vi = shaderopcode::getOpStageSlot_Reg(code[i]);
         G_ASSERT(vi >= 0 && vi < remapTable.size());

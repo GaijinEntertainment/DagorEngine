@@ -30,10 +30,10 @@ struct LLVMOpaqueModuleProvider {}
 typedef LLVMModuleProviderRef = LLVMOpaqueModuleProvider?
 struct LLVMOpaquePassManager {}
 typedef LLVMPassManagerRef = LLVMOpaquePassManager?
-struct LLVMOpaquePassRegistry {}
-typedef LLVMPassRegistryRef = LLVMOpaquePassRegistry?
 struct LLVMOpaqueUse {}
 typedef LLVMUseRef = LLVMOpaqueUse?
+struct LLVMOpaqueOperandBundle {}
+typedef LLVMOperandBundleRef = LLVMOpaqueOperandBundle?
 struct LLVMOpaqueAttributeRef {}
 typedef LLVMAttributeRef = LLVMOpaqueAttributeRef?
 struct LLVMOpaqueDiagnosticInfo {}
@@ -46,8 +46,12 @@ struct LLVMOpaqueJITEventListener {}
 typedef LLVMJITEventListenerRef = LLVMOpaqueJITEventListener?
 struct LLVMOpaqueBinary {}
 typedef LLVMBinaryRef = LLVMOpaqueBinary?
+struct LLVMOpaqueDbgRecord {}
+typedef LLVMDbgRecordRef = LLVMOpaqueDbgRecord?
 typedef LLVMFatalErrorHandler = void ??
 typedef LLVMAttributeIndex = uint
+typedef LLVMFastMathFlags = uint
+typedef LLVMGEPNoWrapFlags = uint
 typedef LLVMDiagnosticHandler = void ??
 typedef LLVMYieldCallback = void ??
 typedef LLVMMetadataKind = uint
@@ -64,6 +68,8 @@ struct LLVMOpaqueTargetData {}
 typedef LLVMTargetDataRef = LLVMOpaqueTargetData?
 struct LLVMOpaqueTargetLibraryInfotData {}
 typedef LLVMTargetLibraryInfoRef = LLVMOpaqueTargetLibraryInfotData?
+struct LLVMOpaqueTargetMachineOptions {}
+typedef LLVMTargetMachineOptionsRef = LLVMOpaqueTargetMachineOptions?
 struct LLVMOpaqueTargetMachine {}
 typedef LLVMTargetMachineRef = LLVMOpaqueTargetMachine?
 struct LLVMTarget {}
@@ -103,6 +109,7 @@ typedef LLVMOrcJITDylibRef = LLVMOrcOpaqueJITDylib?
 struct LLVMOrcCSymbolsList {}
 struct LLVMOrcCDependenceMapPair {}
 typedef LLVMOrcCDependenceMapPairs = LLVMOrcCDependenceMapPair?
+struct LLVMOrcCSymbolDependenceGroup {}
 struct LLVMOrcCJITDylibSearchOrderElement {}
 typedef LLVMOrcCJITDylibSearchOrder = LLVMOrcCJITDylibSearchOrderElement?
 struct LLVMOrcCLookupSetElement {}
@@ -152,17 +159,6 @@ struct LLVMOrcOpaqueLLJITBuilder {}
 typedef LLVMOrcLLJITBuilderRef = LLVMOrcOpaqueLLJITBuilder?
 struct LLVMOrcOpaqueLLJIT {}
 typedef LLVMOrcLLJITRef = LLVMOrcOpaqueLLJIT?
-typedef lto_bool_t = bool
-struct LLVMOpaqueLTOModule {}
-typedef lto_module_t = LLVMOpaqueLTOModule?
-struct LLVMOpaqueLTOCodeGenerator {}
-typedef lto_code_gen_t = LLVMOpaqueLTOCodeGenerator?
-struct LLVMOpaqueThinLTOCodeGenerator {}
-typedef thinlto_code_gen_t = LLVMOpaqueThinLTOCodeGenerator?
-typedef lto_diagnostic_handler_t = void ??
-struct LLVMOpaqueLTOInput {}
-typedef lto_input_t = LLVMOpaqueLTOInput?
-struct LTOObjectBuffer {}
 struct LLVMOpaqueSectionIterator {}
 typedef LLVMSectionIteratorRef = LLVMOpaqueSectionIterator?
 struct LLVMOpaqueSymbolIterator {}
@@ -173,17 +169,5 @@ struct LLVMOpaqueObjectFile {}
 typedef LLVMObjectFileRef = LLVMOpaqueObjectFile?
 typedef LLVMMemoryManagerCreateContextCallback = void ??
 typedef LLVMMemoryManagerNotifyTerminatingCallback = void ??
-struct LLVMRemarkOpaqueString {}
-typedef LLVMRemarkStringRef = LLVMRemarkOpaqueString?
-struct LLVMRemarkOpaqueDebugLoc {}
-typedef LLVMRemarkDebugLocRef = LLVMRemarkOpaqueDebugLoc?
-struct LLVMRemarkOpaqueArg {}
-typedef LLVMRemarkArgRef = LLVMRemarkOpaqueArg?
-struct LLVMRemarkOpaqueEntry {}
-typedef LLVMRemarkEntryRef = LLVMRemarkOpaqueEntry?
-struct LLVMRemarkOpaqueParser {}
-typedef LLVMRemarkParserRef = LLVMRemarkOpaqueParser?
 struct LLVMOpaquePassBuilderOptions {}
 typedef LLVMPassBuilderOptionsRef = LLVMOpaquePassBuilderOptions?
-struct LLVMOpaquePassManagerBuilder {}
-typedef LLVMPassManagerBuilderRef = LLVMOpaquePassManagerBuilder?

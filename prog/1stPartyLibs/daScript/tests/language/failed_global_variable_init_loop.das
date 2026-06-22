@@ -1,5 +1,5 @@
 options gen2
-expect 30305:5
+expect 30173, 31104:4
 
 // direct loop: a uses b, b uses a
 var g_a : int = g_b + 1

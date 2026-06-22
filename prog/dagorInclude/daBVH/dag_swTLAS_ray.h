@@ -48,10 +48,9 @@ struct TLASTraverse
     scale = v_and(scale, v_cast_vec4f(v_make_vec4i(0x7FFFFFFF, -1, -1, -1)));
     invTm.col0 = v_ldu(leaf.invTm);
     invTm.col1 = v_ldu(leaf.invTm + 3);
-    // Identity: col0=(1,0,0), col1=(0,1,0)
-    vec4f diff0 = v_sub(invTm.col0, V_C_UNIT_1000);
-    vec4f diff1 = v_sub(invTm.col1, V_C_UNIT_0100);
-    if (v_check_xyz_all_false(v_or(diff0, diff1)))
+    // Exact identity test: col0==(1,0,0) and col1==(0,1,0). The previous signmask-based
+    // v_check_xyz_all_false(diff) only tested "no component is negative", not equality.
+    if (v_check_xyz_all_true(v_and(v_cmp_eq(invTm.col0, V_C_UNIT_1000), v_cmp_eq(invTm.col1, V_C_UNIT_0100))))
     {
       invTm.col2 = reflected ? v_neg(V_C_UNIT_0010) : V_C_UNIT_0010;
       return !reflected;
@@ -246,8 +245,25 @@ struct TLASTraverse
 
         if (BLAS::distBLAS(localD, leaf.blasStart, leaf.blasSize))
         {
-          d.bestDist2 = localD.bestDist2 / (maxScale * maxScale);
-          d.bestTriOffset = localD.bestTriOffset;
+          // Map the BLAS-space closest point back to world and recompute the exact distance.
+          // Dividing localD.bestDist2 by maxScale^2 underestimates the world distance for
+          // anisotropic scales, wrongly pruning later leaves -- mirror the GPU distTLASleaf instead.
+          vec3f localClosest = v_div(localD.bestPos, scale);
+          vec3f worldClosestRel;
+          if (isIdentity)
+            worldClosestRel = localClosest;
+          else
+          {
+            mat33f tm;
+            v_mat33_transpose(tm, invTm);
+            worldClosestRel = v_mat33_mul_vec3(tm, localClosest);
+          }
+          float worldDist2 = v_extract_x(v_length3_sq_x(v_sub(v_sub(d.pos, origin), worldClosestRel)));
+          if (worldDist2 < d.bestDist2)
+          {
+            d.bestDist2 = worldDist2;
+            d.bestTriOffset = localD.bestTriOffset;
+          }
         }
         return false;
       });
@@ -281,7 +297,7 @@ struct TLASTraverse
         BLAS::rayBLASXZInf(localR, leaf.blasStart, leaf.blasSize, [&](typename BLAS::RayDataType &lr, int dataOfs) {
           r.t = blasEncodedYToWorld(lr.t, origin, scale);
           r.bCoord = lr.bCoord;
-          r.bestTriOffset = lr.bestTriOffset;
+          // lr.bestTriOffset is always 0 in this flow; the hit offset is the dataOfs argument.
           cb(r, dataOfs);
           return false;
         });

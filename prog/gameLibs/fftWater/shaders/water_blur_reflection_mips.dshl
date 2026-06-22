@@ -4,7 +4,6 @@ include "water_reflections_inc.dshl"
 float4 mip_target_size;
 float4 ssr_target_size;
 float mip_target_level;
-float reflection_vertical_blur_strength;
 float clouds_water_blur_mask = 0.0;
 
 int prev_mip_tex_register_const_no = 4 always_referenced;
@@ -38,7 +37,6 @@ endmacro
 macro VERTICAL_BLUR_CORE(code)
 
   (code) {
-    reflection_vertical_blur_strength@f1 = reflection_vertical_blur_strength;
     clouds_water_blur_mask@f1 = clouds_water_blur_mask;
   }
 
@@ -67,9 +65,8 @@ macro VERTICAL_BLUR_CORE(code)
       float ws = w0 + wU + wD;
       float depthStable = (ws > 0.0) ? (d0*w0 + dU*wU + dD*wD) / ws : 0.0;
 
-      float baseStep = saturate((2.0 - mip_target_level) * 0.5);
       float cloudAdditionalBlur = max(0.0, depthStable - 0.95) * 8.0 * clouds_water_blur_mask;
-      float2 step = baseStep + depthStable * reflection_vertical_blur_strength + cloudAdditionalBlur;
+      float2 step = 1.0 + cloudAdditionalBlur;
 
       float horiz[3] = {0.2, 0.6, 0.2};
       float vert[7] = {0.12, 0.15, 0.17, 0.18, 0.17, 0.15, 0.12};
@@ -104,7 +101,6 @@ macro VERTICAL_BLUR_CORE(code)
 
         for (int dir = 0; dir < 2; ++dir)
         {
-          bool shouldStop = false;
           int dirOffset = -1 + dir * 2;
           bool gatherAnyway = center.hole && hx == 1 && dirOffset == 1; // spread valid data
 
@@ -116,25 +112,22 @@ macro VERTICAL_BLUR_CORE(code)
             float4 sampleColor = tex2Dlod(prev_mip_tex, float4(sampleCoord, 0, 0));
             ReflAlphaDecoded s = DecodeReflAlpha(sampleColor.a);
 
-            if (s.hole)
-              shouldStop = true;
-
-            if (shouldStop && !gatherAnyway)
-              continue;
+            if (s.hole && !gatherAnyway)
+              break;
 
             if (!s.hole)
             {
               float sampleW = AlphaWeight(s.a8, dirOffset > 0 ? 3.0 : 1.0);
               float w = sampleW * horiz[hx] * vert[idx];
 
-                finalColor  += sampleColor * w;
-                finalWeight += w;
-                if (!center.hole)
-                {
-                  depthAcc += s.depth01 * w;
-                  shadowAcc += (float)s.shadow * w;
-                  alphaWeight += w;
-                }
+              finalColor  += sampleColor * w;
+              finalWeight += w;
+              if (!center.hole)
+              {
+                depthAcc += s.depth01 * w;
+                shadowAcc += (float)s.shadow * w;
+                alphaWeight += w;
+              }
             }
           }
         }

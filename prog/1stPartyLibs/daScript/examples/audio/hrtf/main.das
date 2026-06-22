@@ -12,7 +12,9 @@ require daslib/defer
 require daslib/fio
 require daslib/safe_addr
 require daslib/math_boost
+require daslib/jobque_boost
 require math
+require strings
 
 // -- Shaders --
 
@@ -97,6 +99,11 @@ let SOURCE_COLORS = fixed_array(
     float3(1.0, 0.3, 1.0)    // magenta
 )
 
+// HRTF/simulated routing budget — cycle on B key.
+let HRTF_BUDGETS = fixed_array(32, 0, 999)
+let HRTF_BUDGET_LABELS = fixed_array("mixed top-32", "all simulated", "all HRTF")
+var hrtf_budget_idx = 0
+
 var sound_data : array<float>
 var sound_channels = 1
 var sound_rate = MA_SAMPLE_RATE
@@ -110,6 +117,7 @@ var grid_vertex_count : int
 def create_grid(half_extent : int; spacing : float) {
     var verts : array<float3>
     let fext = float(half_extent) * spacing
+    verts |> reserve((2 * half_extent + 1) * 4)
     for (i in range(-half_extent, half_extent + 1)) {
         let p = float(i) * spacing
         verts |> push(float3(p, 0.0, -fext))
@@ -151,7 +159,7 @@ def load_sound_data() {
         sound_rate = MA_SAMPLE_RATE
         return
     }
-    fmap(f) <| $(data) {
+    fmap(f) $(data) {
         sound_data <- decode_audio(data, sound_channels, sound_rate)
     }
     fclose(f)
@@ -166,9 +174,7 @@ def gl_to_audio(p : float3) : float3 {
 
 def add_sound_source(pos : float3; volume : float = 1.0) {
     let idx = length(sources) % 5
-    var src : SoundSource
-    src.position = pos
-    src.color = SOURCE_COLORS[idx]
+    var src = SoundSource(position = pos, color = SOURCE_COLORS[idx])
     var samples <- clone(sound_data)
     src.sid = play_3d_sound_loop_from_pcm(gl_to_audio(pos), linear_attenuation(10.0), sound_rate, sound_channels, samples)
     src.sid |> set_volume(volume)
@@ -177,13 +183,26 @@ def add_sound_source(pos : float3; volume : float = 1.0) {
 
 // -- Main --
 
+// Parse --max-frames N from argv. Useful for headless repro and shutdown-leak debugging.
+def parse_max_frames {
+    var maxFrames = 0
+    let args <- get_command_line_arguments()
+    for (i in range(length(args))) {
+        if (args[i] == "--max-frames" && i + 1 < length(args)) {
+            maxFrames = to_int(args[i + 1])
+        }
+    }
+    return maxFrames
+}
+
 [export]
 def main {
+    let maxFrames = parse_max_frames()
     // GLFW init
     if (glfwInit() == 0) {
         panic("can't init glfw")
     }
-    defer <| $() {
+    defer() {
         glfwTerminate()
     }
     glfwInitOpenGL(3, 3)
@@ -191,17 +210,17 @@ def main {
     if (window == null) {
         panic("can't create window")
     }
-    defer <| $() {
+    defer() {
         glfwDestroyWindow(window)
     }
     glfwMakeContextCurrent(window)
 
     // Shaders
-    var solid_program = create_shader_program(@@vs_solid, @@fs_solid)
-    var line_program = create_shader_program(@@vs_line, @@fs_line)
+    let solid_program = create_shader_program(@@vs_solid, @@fs_solid)
+    let line_program = create_shader_program(@@vs_line, @@fs_line)
 
     // Geometry
-    var sphere <- gen_sphere(16, 12, false) |> create_geometry_fragment
+    let sphere <- gen_sphere(16, 12, false) |> create_geometry_fragment
     create_grid(20, 1.0)
 
     // Mouse callbacks
@@ -238,27 +257,38 @@ def main {
     // Load sound
     load_sound_data()
 
+    // Stats LockBox for per-second utilization + HRTF/simulated split readout.
+    // Lifecycle wraps the audio system: the audio thread releases its share-ref during
+    // audio_system_finalize (inside with_audio_system below), THEN this outer defer
+    // calls lock_box_remove to do the final delete. `release` alone never deletes.
+    var stats_box <- lock_box_create()
+    defer() {
+        unsafe(lock_box_remove(stats_box))
+    }
+
     // Audio system
-    with_audio_system <| $() {
+    with_audio_system() {
         // Start with one source in front
         add_sound_source(float3(0.0, 0.0, -3.0))
+
+        set_audio_stats_box(stats_box)
 
         print("HRTF 3D Audio Demo\n")
         print("  Click to capture mouse, click again to release\n")
         print("  WASD to move, mouse to look\n")
-        print("  N to add a sound source, ESC to quit\n")
+        print("  N to add a sound source, M to add 30, ESC to quit\n")
+        print("  B to cycle HRTF budget (mixed top-32 / all simulated / all HRTF)\n")
 
         var last_time = glfwGetTime()
         var n_was_pressed = false
         var m_was_pressed = false
+        var b_was_pressed = false
+        var since_stats_print = 0.0
+        var frameCount = 0
 
-        eval_main_loop <| $() {
-            if (glfwWindowShouldClose(window) != 0) {
-                return false
-            }
-            if (glfwGetKey(window, int(GLFW_KEY_ESCAPE)) == int(GLFW_PRESS)) {
-                return false
-            }
+        eval_main_loop() {
+            if (glfwWindowShouldClose(window) != 0 || glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS || (maxFrames > 0 && frameCount >= maxFrames)) return false
+            frameCount ++
             glfwPollEvents()
 
             // Delta time
@@ -270,21 +300,21 @@ def main {
             let speed = 5.0 * dt
             let fwd = camera_forward()
             let rgt = camera_right()
-            if (glfwGetKey(window, int(GLFW_KEY_W)) == int(GLFW_PRESS)) {
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
                 camera_pos += fwd * speed
             }
-            if (glfwGetKey(window, int(GLFW_KEY_S)) == int(GLFW_PRESS)) {
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
                 camera_pos -= fwd * speed
             }
-            if (glfwGetKey(window, int(GLFW_KEY_A)) == int(GLFW_PRESS)) {
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
                 camera_pos -= rgt * speed
             }
-            if (glfwGetKey(window, int(GLFW_KEY_D)) == int(GLFW_PRESS)) {
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
                 camera_pos += rgt * speed
             }
 
             // Add source on N press
-            let n_pressed = glfwGetKey(window, int(GLFW_KEY_N)) == int(GLFW_PRESS)
+            let n_pressed = glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS
             if (n_pressed && !n_was_pressed) {
                 let spawn_pos = camera_pos + fwd * 3.0
                 add_sound_source(spawn_pos)
@@ -293,7 +323,7 @@ def main {
             n_was_pressed = n_pressed
 
             // Add 30 sources around camera on M press
-            let m_pressed = glfwGetKey(window, int(GLFW_KEY_M)) == int(GLFW_PRESS)
+            let m_pressed = glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS
             if (m_pressed && !m_was_pressed) {
                 for (i in range(30)) {
                     let angle = 2.0 * PI * float(i) / 30.0
@@ -305,6 +335,25 @@ def main {
             }
             m_was_pressed = m_pressed
 
+            // Cycle HRTF budget on B press
+            let b_pressed = glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS
+            if (b_pressed && !b_was_pressed) {
+                hrtf_budget_idx = (hrtf_budget_idx + 1) % 3
+                let newBudget = HRTF_BUDGETS[hrtf_budget_idx]
+                set_hrtf_budget(newBudget)
+                print("HRTF budget: {newBudget} ({HRTF_BUDGET_LABELS[hrtf_budget_idx]})\n")
+            }
+            b_was_pressed = b_pressed
+
+            // Per-second audio-system stats line. `get` is read-only — keeps the box alive across reads.
+            // `grab` would consume the notification and break the periodic publish/poll loop.
+            since_stats_print += dt
+            if (since_stats_print >= 1.0) {
+                stats_box |> get() $(s : AudioSystemStats#) {
+                    print("audio: util={s.utilization_pct}%, hrtf={s.hrtf_count}/{s.total_3d} (budget={HRTF_BUDGETS[hrtf_budget_idx]})\n")
+                }
+                since_stats_print = 0.0
+            }
 
             // Update audio listener
             set_head_position(gl_to_audio(camera_pos), gl_to_audio(fwd))

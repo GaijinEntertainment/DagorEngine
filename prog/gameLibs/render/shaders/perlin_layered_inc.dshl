@@ -259,7 +259,14 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
       FORCE_EARLY_DEPTH_STENCIL
     #endif
 
-    #if VOXELIZE_ALBEDO_PASS
+    #if RENDINST_IMPOSTOR_VOXEL
+      void perlin_layered_ps(VsOutput input,
+        out float4 out_0 : SV_Target0,
+        out float4 out_1 : SV_Target1,
+        out float4 out_2 : SV_Target2,
+        out float  out_3 : SV_Target3
+        INPUT_VFACE HW_USE_SCREEN_POS)
+    #elif VOXELIZE_ALBEDO_PASS
       void perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
     #else
       GBUFFER_OUTPUT perlin_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
@@ -306,15 +313,27 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
 
       half3 weights = get_blending_weights(startWeights, initialHeight);
 
-      half3 paint_details_col = get_color_mul(input, get_detail0_const_color());
-      half3 paint_details_col1 = get_color_mul(input, get_detail1_const_color());
-      half3 paint_details_col2 = get_color_mul(input, get_detail2_const_color());
-
       half3 lumins = half3(luminance(diffuseColor0.rgb), luminance(diffuseColor1.rgb), luminance(diffuseColor2.rgb));
       half3 details = get_paint_details().xyz * saturate(lumins * get_paint_points_tr_mul().xyz + get_paint_points_tr_add().xyz);
-      diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col, details.x);
-      diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
-      diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
+
+      //== not baking coloring for now, because it looks like it's better to bake in differenty colored materials for this shader
+      // #if RENDINST_IMPOSTOR_VOXEL
+      //   diffuseColor0.rgb = lerp(diffuseColor0.rgb, get_detail0_const_color().rgb * get_detail0_const_color().a, details.x);
+      //   diffuseColor1.rgb = lerp(diffuseColor1.rgb, get_detail1_const_color().rgb * get_detail1_const_color().a, details.y);
+      //   diffuseColor2.rgb = lerp(diffuseColor2.rgb, get_detail2_const_color().rgb * get_detail2_const_color().a, details.z);
+      //   half3 coloringMul =
+      //     get_detail0_const_color().rgb * (1 - get_detail0_const_color().a) * details.x * weights.x +
+      //     get_detail1_const_color().rgb * (1 - get_detail1_const_color().a) * details.y * weights.y +
+      //     get_detail2_const_color().rgb * (1 - get_detail2_const_color().a) * details.z * weights.z;
+      // #else
+        half3 paint_details_col  = get_color_mul(input, get_detail0_const_color());
+        half3 paint_details_col1 = get_color_mul(input, get_detail1_const_color());
+        half3 paint_details_col2 = get_color_mul(input, get_detail2_const_color());
+        diffuseColor0.rgb = lerp(diffuseColor0.rgb, diffuseColor0.rgb * paint_details_col , details.x);
+        diffuseColor1.rgb = lerp(diffuseColor1.rgb, diffuseColor1.rgb * paint_details_col1, details.y);
+        diffuseColor2.rgb = lerp(diffuseColor2.rgb, diffuseColor2.rgb * paint_details_col2, details.z);
+        half3 coloringMul = 0;
+      // #endif
 
       half4 diffuseColor = diffuseColor0*weights.x + diffuseColor1*weights.y + diffuseColor2*weights.z;
 
@@ -444,20 +463,42 @@ macro PERLIN_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, order_bit, ha
           init_motion_vector(gbuffer, motion);
         #endif
 
+        #if !RENDINST_IMPOSTOR_VOXEL
         ##if is_blending_hmap
           blend_with_landscape(gbuffer, screenpos, worldPos, normalize(input.normal.xyz), input.pointToEye.xyz,
             input.riHmapBlend, GET_SHADING_RATE);
         ##endif
+        #endif
 
         #if DEBUG_DOMINANT_UV
           init_albedo(gbuffer, get_dominant_uv_debug_color(input.diffuseTexcoord.xy));
         #endif
 
-        #if RI_PUDDLES_ENABLED && !VOXELIZE_ALBEDO_PASS
+        #if RI_PUDDLES_ENABLED && !VOXELIZE_ALBEDO_PASS && !RENDINST_IMPOSTOR_VOXEL
           addPuddlesRi(gbuffer, worldPos, worldNormal);
         #endif
 
-        return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
+        #if RENDINST_IMPOSTOR_VOXEL
+          half alpha = 1;
+
+          half coloring = luminance(coloringMul) / COLOR_CORRECTION_MULTIPLIER;
+
+          float depth = dot(impostor_depth_proj, float4(worldPos, 1));
+          float sliceDepth = texelFetch(impostor_depth_slice, int2(GET_SCREEN_POS(input.pos).xy), 0).r;
+          if (depth < sliceDepth + 1) discard;
+
+          out_0.a = alpha;
+          out_0.rgb = gbuffer.albedo.rgb;
+          out_1.rgb = normalize(gbuffer.normal.xyz)*0.5+0.5;
+          out_1.a = coloring;
+          out_2.r = gbuffer.smoothness;
+          out_2.g = gbuffer.reflectance;
+          out_2.b = gbuffer.metalness;
+          out_2.a = gbuffer.translucency;
+          out_3 = depth;
+        #else
+          return encode_gbuffer(gbuffer, input.pointToEye.xyz, screenpos);
+        #endif
       #endif
     }
   }

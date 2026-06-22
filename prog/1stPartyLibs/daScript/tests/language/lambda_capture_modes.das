@@ -19,7 +19,7 @@ def test_lambda_capture_modes(t : T?) {
         var a2 <- array<int>(1, 2)
         var a3 <- array<int>(1, 2)
         unsafe {
-            var lam <- @ capture(& a1, <- a2, := a3) {
+            let lam <- @ capture(& a1, <- a2, := a3) {
                 push(a1, 1)
                 push(a2, 1)
                 push(a3, 1)
@@ -34,7 +34,7 @@ def test_lambda_capture_modes(t : T?) {
         g_lcm_counter = 0
         var pA = new LcmFoo
         var pB = new LcmFoo
-        var C = LcmFoo()
+        var C = LcmFoo() // nolint:LINT003 -- captured by clone; const-let changes capture semantics
         var lam <- @ capture(<- pB, := pC) {
             assert(pA.dummy == 0)
             assert(pB.dummy == 0)
@@ -42,7 +42,7 @@ def test_lambda_capture_modes(t : T?) {
         }
         t |> equal(pB == null, true)
         invoke(lam)
-        delete lam
+        unsafe { delete lam; }
         t |> equal(g_lcm_counter, 1)
     }
 }

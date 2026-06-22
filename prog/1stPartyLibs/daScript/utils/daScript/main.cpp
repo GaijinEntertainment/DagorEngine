@@ -3,7 +3,7 @@
 #include "daScript/ast/dyn_modules.h"
 #include "daScript/daScript.h"
 #include "daScript/daScriptModule.h"
-#include "daScript/das_common.h"
+#include "daScript/misc/das_common.h"
 #include "daScript/simulate/fs_file_info.h"
 #include "../dasFormatter/fmt.h"
 #include "daScript/ast/ast_aot_cpp.h"
@@ -17,8 +17,8 @@ using namespace das;
 
 void use_utf8();
 
-void require_project_specific_modules();//link time resolved dependencies
-das::FileAccessPtr get_file_access( char * pak );//link time resolved dependencies
+void require_project_specific_modules(); //link time resolved dependencies
+das::FileAccessPtr get_file_access( char * pak ); //link time resolved dependencies
 
 TextPrinter tout;
 
@@ -41,6 +41,7 @@ enum class JitMode {
     Executable,
 };
 static JitMode jitEnabled = JitMode::None; // Disabled by default.
+static bool jitNoCache = false; // -jit-no-cache: bypass DLL-cache path, run in-memory.
 static string jitOutPath = ""; // Empty, JIT module will choose default.
 
 static bool noDynamicModules = false;
@@ -55,6 +56,7 @@ static bool version2syntax = true;
 static bool gen2MakeSyntax = false;
 static bool trackAllocations = false;
 static bool heapReportAtExit = false;
+static bool logModuleCompileTime = false;
 
 static CodeOfPolicies getPolicies() {
     CodeOfPolicies policies;
@@ -71,6 +73,7 @@ static CodeOfPolicies getPolicies() {
     policies.scoped_stack_allocator = scopedStackAllocator;
     policies.track_allocations = trackAllocations;
     policies.no_lint = noLint;
+    policies.log_module_compile_time = logModuleCompileTime;
     return policies;
 }
 
@@ -141,7 +144,7 @@ int das_aot_main ( int argc, char * argv[] ) {
     _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     #endif
     if ( argc<=3 ) {
-        tout << "daslang -aot <in_script.das> <out_script.das.cpp> [-v2Syntax] [-v1Syntax] [-v2makeSyntax] [-project <project file>] [-dasroot <dasroot folder>] [-q] [-j] [-aot-macros] [-cross-platform] [-no-lint]\n";
+        tout << "daslang -aot <in_script.das> <out_script.das.cpp> [-v2Syntax] [-v1Syntax] [-v2makeSyntax] [-project <project file>] [-dasroot <dasroot folder>] [-q] [-j] [-aot-macros] [-cross-platform] [-no-lint] [-log-compile-time]\n";
         return -1;
     }
     bool dryRun = false;
@@ -150,6 +153,7 @@ int das_aot_main ( int argc, char * argv[] ) {
     bool das_mode = false;
     vector<pair<string, string>> aot_files;
     string project_root;
+    vector<string> load_modules;
     if ( argc>3  ) {
         for (int ai = 1; ai != argc; ++ai) {
             if ( strcmp(argv[ai],"-q")==0 ) {
@@ -188,6 +192,13 @@ int das_aot_main ( int argc, char * argv[] ) {
             } else if ( strcmp(argv[ai],"-project-root")==0 || strcmp(argv[ai],"-project_root")==0 ) {
                 project_root = argv[ai + 1];
                 ai++;
+            } else if ( strcmp(argv[ai],"-load-module")==0 || strcmp(argv[ai],"-load_module")==0 ) {
+                if ( ai+1 >= argc ) {
+                    tout << "-load_module requires path argument";
+                    return -1;
+                }
+                load_modules.push_back(argv[ai + 1]);
+                ai++;
             } else if ( strcmp(argv[ai],"-v2syntax")==0 ) {
                 version2syntax = true;
             } else if ( strcmp(argv[ai],"-v1syntax")==0 ) {
@@ -199,6 +210,8 @@ int das_aot_main ( int argc, char * argv[] ) {
                 noDynamicModules = true;
             } else if ( strcmp(argv[ai],"-no-lint")==0 ) {
                 noLint = true;
+            } else if ( strcmp(argv[ai],"-log-compile-time")==0 ) {
+                logModuleCompileTime = true;
             } else if ( strcmp(argv[ai],"--")==0 ) {
                 scriptArgs = true;
             } else if ( !scriptArgs ) {
@@ -218,7 +231,7 @@ int das_aot_main ( int argc, char * argv[] ) {
     if ( !noDynamicModules ) {
         daScriptEnvironment::ensure();
         auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
-        require_dynamic_modules(access, getDasRoot(), project_root, tout);
+        require_dynamic_modules(access, getDasRoot(), project_root, load_modules, tout);
     }
     #endif
     Module::Initialize();
@@ -259,6 +272,7 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
             case JitMode::Direct: break;
             default: break;
         }
+        if ( jitNoCache ) policies.jit_dll_mode = false;
         access->addExtraModule("just_in_time", getDasRoot() + "/daslib/just_in_time.das");
         policies.jit_output_path = jitOutPath;
         policies.dll_search_paths.emplace_back(getDasRoot() + "/lib");
@@ -276,6 +290,7 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
     policies.scoped_stack_allocator = scopedStackAllocator;
     policies.track_allocations = trackAllocations;
     policies.no_lint = noLint;
+    policies.log_module_compile_time = logModuleCompileTime;
     policies.persistent_heap = true;
     if ( auto program = compileDaScript(fn,access,tout,dummyGroup,policies) ) {
         if ( program->failed() ) {
@@ -302,11 +317,11 @@ int compile_and_run ( const string & fn, const string & mainFnName, bool outputP
             }
             if ( !pctx ) {
                 exitCode = 1;
-            } else if ( program->thisModule->isModule ) {
-                tout<< "WARNING: program is setup as both module, and endpoint.\n";
             } else if ( dryRun ) {
                 exitCode = 0;
                 tout << "dry run: " << fn << "\n";
+            } else if ( program->thisModule->isModule ) {
+                tout<< "WARNING: program is setup as both module, and endpoint.\n";
             } else {
                 auto fnVec = pctx->findFunctions(mainFnName.c_str());
                 das::vector<SimFunction *> fnMVec;
@@ -414,11 +429,16 @@ void print_help() {
         << "    -v1syntax   enable version 1 syntax (uses Python-style indentation for code blocks)\n"
         << "    -v2makeSyntax enable version 1 syntax with version 2 constructors syntax (for arrays/structures)\n"
         << "    -jit        enable Just-In-Time compilation\n"
+        << "    -jit-no-cache  with -jit: skip the per-script DLL cache, codegen direct in-memory.\n"
+        << "                Useful when the cached .jitted_scripts/ DLL is stale or unwanted.\n"
         << "    -exe        JIT compile to standalone executable (implies -dry-run)\n"
         << "    -output <path> set JIT output path\n"
+        << "    --list-shared-modules <path> with -exe: write JSON describing the program's shared modules and daspkg-package .das module sources to <path>\n"
+        << "    --force-shared-module <name> with -exe: force-include a shared module by daslang or package name (repeatable)\n"
         << "    -use-aot    enable AOT linking (requires AOT stubs linked into the binary)\n"
         << "    -project <path.das_project> path to project file\n"
         << "    -project_root <path> root directory of the project (used for dyn modules)\n"
+        << "    -load_module <path> directly load a single dynamic-module folder (the one containing .das_module); repeatable. Bypasses the project_root/modules/<name> scan and shadows same-basename entries from dasroot/project_root.\n"
         << "    -run-fmt    <-i/-d> <-v2/-v1> {--semicolon} run formatter\n"
         << "    -log        output program code\n"
         << "    -pause      pause after errors and pause again before exiting program\n"
@@ -440,6 +460,7 @@ void print_help() {
         << "    --das-profiler-leaks track live heap allocations and dump leaks on context destroy\n"
         << "    -no-dynamic-modules  skip loading dynamic modules from dasroot and project root\n"
         << "    -no-lint    skip the lint pass (Program::lint)\n"
+        << "    -log-compile-time  log detailed per-module compile-time breakdown (parse / infer with pass count / optimize / macro (in infer) / macro mods / simulate) + function count\n"
         << "    --          separator for script arguments\n"
         << "daslang -aot <in_script.das> <out_script.das.cpp> {-q} {-p}\n"
         << "    -project <path.das_project> path to project file\n"
@@ -447,6 +468,7 @@ void print_help() {
         << "    -q          suppress all output\n"
         << "    -dry-run    no changes will be written\n"
         << "    -dasroot <path> set path to daslang root folder (with daslib)\n"
+        << "    -log-compile-time  log per-module compile-time breakdown during AOT generation\n"
     ;
 }
 
@@ -507,6 +529,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
     bool compileOnly = false;
     bool dumpLeaks = true;
     string project_root;
+    vector<string> load_modules;
     optional<format::FormatOptions> formatter;
     for ( int i=1; i < argc; ++i ) {
         if ( argv[i][0]=='-' ) {
@@ -543,6 +566,8 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 heapReportAtExit = true;
             } else if ( cmd=="jit") {
                 jitEnabled = JitMode::Direct;
+            } else if ( cmd=="jit-no-cache") {
+                jitNoCache = true;
             } else if ( cmd=="use-aot") {
                 useAot = true;
             } else if ( cmd=="output") {
@@ -556,6 +581,23 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
             } else if ( cmd=="exe") {
                 jitEnabled = JitMode::Executable;
                 dryRun = true;
+            } else if ( cmd=="-list-shared-modules" ) {
+                // script will pick up next argument by itself (read from llvm_exe.das via get_command_line_arguments())
+                if ( i+1 >= argc ) {
+                    printf("expecting --list-shared-modules path\n");
+                    print_help();
+                    return -1;
+                }
+                i += 1;
+            } else if ( cmd=="-force-shared-module" ) {
+                // script will pick up next argument by itself (force-include a shared module
+                // in the release-deps list even when the program doesn't `require` it)
+                if ( i+1 >= argc ) {
+                    printf("expecting --force-shared-module name\n");
+                    print_help();
+                    return -1;
+                }
+                i += 1;
             } else if ( cmd=="log" ) {
                 outputProgramCode = true;
             } else if ( cmd=="dry-run" ) {
@@ -564,8 +606,18 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
                 compileOnly = true;
             } else if ( cmd=="no-lint" ) {
                 noLint = true;
+            } else if ( cmd=="log-compile-time" ) {
+                logModuleCompileTime = true;
             } else if ( cmd=="project-root" || cmd=="project_root" ) {
                 project_root = argv[i + 1];
+                i++;
+            } else if ( cmd=="load-module" || cmd=="load_module" ) {
+                if ( i+1 >= argc ) {
+                    printf("-load_module requires path argument\n");
+                    print_help();
+                    return -1;
+                }
+                load_modules.push_back(argv[i + 1]);
                 i++;
             } else if ( cmd=="run-fmt" ) {
                 formatter.emplace();
@@ -709,7 +761,7 @@ int MAIN_FUNC_NAME ( int argc, char * argv[] ) {
         daScriptEnvironment::ensure();
         project_root = deduce_project_root(project_root, files.front());
         auto access = get_file_access((char*)(projectFile.empty() ? nullptr : projectFile.c_str()));
-        require_dynamic_modules(access, getDasRoot(), project_root, tout);
+        require_dynamic_modules(access, getDasRoot(), project_root, load_modules, tout);
     }
     #endif
     Module::Initialize();

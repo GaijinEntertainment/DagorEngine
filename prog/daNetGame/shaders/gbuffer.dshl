@@ -33,7 +33,8 @@ macro USE_NO_LIGHTING_EMISSIVE_SHADING(code)
       // We need a threshold, due to precision limit especially at low values without normal packing
       static const float EMISSION_SCALE_THRESHOLD = 0.1;
       // albedo is [0,1] range, but we can store a scaling factor in emission_strength
-      float maxColor = max4(color.x, color.y, color.z, packed_gbuf_normals ? 0 : 0.1);
+      // 1e-8, converted to 1e-4 as EPS by sqrt() floor keeps color/maxColor finite for pure black input
+      float maxColor = max4(color.x, color.y, color.z, packed_gbuf_normals ? 1e-8 : 0.1);
       FLATTEN
       if (maxColor < 1)
         maxColor = sqrt(maxColor); // it gives a much more natural look for scaling, if it's also gamma corrected
